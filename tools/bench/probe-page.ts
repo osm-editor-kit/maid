@@ -19,9 +19,13 @@ export function installProbe() {
   let startedAt = 0
   let running = false
 
-  new PerformanceObserver((list) => {
-    if (running) for (const entry of list.getEntries()) longTasks.push(entry.duration)
-  }).observe({ entryTypes: ['longtask'] })
+  try {
+    new PerformanceObserver((list) => {
+      if (running) for (const entry of list.getEntries()) longTasks.push(entry.duration)
+    }).observe({ entryTypes: ['longtask'] })
+  } catch {
+    // long tasks are a Chrome feature; frame times still work everywhere
+  }
 
   const tick = (now: number) => {
     if (!running) return

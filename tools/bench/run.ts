@@ -8,7 +8,7 @@
  * Starts the servers it needs. Blocks every non-localhost request (core rule 1) and
  * fails a run when an editor tries to reach OSM infrastructure.
  */
-import { chromium, type Browser, type CDPSession, type Page } from '@playwright/test'
+import { chromium, firefox, webkit, type Browser, type CDPSession, type Page } from '@playwright/test'
 import { spawn, type Subprocess } from 'bun'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -65,6 +65,8 @@ function args() {
     rapidQuery: get('rapid-query', 'nsi=0'),
     variant: get('variant', 'default'),
     dpr: Number(get('dpr', '2')),
+    /** chromium (system Chrome), firefox or webkit (Playwright's builds). Main-thread work and heap are Chrome only. */
+    browser: get('browser', 'chromium') as 'chromium' | 'firefox' | 'webkit',
   }
 }
 
@@ -134,12 +136,13 @@ async function vertexTargets(scene: Scene) {
   return out.sort((a, b) => a.d - b.d).slice(2, 12)
 }
 
-async function cpuMs(cdp: CDPSession) {
+async function cpuMs(cdp: CDPSession | undefined) {
+  if (!cdp) return Number.NaN
   const { metrics } = await cdp.send('Performance.getMetrics')
   return (metrics.find((m) => m.name === 'TaskDuration')?.value ?? 0) * 1000
 }
 
-async function recordPhase(page: Page, cdp: CDPSession, action: () => Promise<void>): Promise<Phase> {
+async function recordPhase(page: Page, cdp: CDPSession | undefined, action: () => Promise<void>): Promise<Phase> {
   const cpu0 = await cpuMs(cdp)
   await page.evaluate(() => window.__probe.start())
   await action()
@@ -169,8 +172,8 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
   page.setDefaultTimeout(90_000) // a hanging editor fails its run instead of blocking the benchmark
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
-  const cdp = await context.newCDPSession(page)
-  await cdp.send('Performance.enable')
+  const cdp = opts.browser === 'chromium' ? await context.newCDPSession(page) : undefined
+  await cdp?.send('Performance.enable')
   const shot = async (name: string) => {
     const file = `${editor}-${opts.variant}-${scene.name}-${name}.png`
     if (repeat === 0) await page.screenshot({ path: join(outDir, file) })
@@ -348,9 +351,11 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
       }
     }
 
-    await cdp.send('HeapProfiler.collectGarbage')
-    const { metrics } = await cdp.send('Performance.getMetrics')
-    result.heapMb = Math.round((metrics.find((m) => m.name === 'JSHeapUsedSize')?.value ?? 0) / 1e5) / 10
+    if (cdp) {
+      await cdp.send('HeapProfiler.collectGarbage')
+      const { metrics } = await cdp.send('Performance.getMetrics')
+      result.heapMb = Math.round((metrics.find((m) => m.name === 'JSHeapUsedSize')?.value ?? 0) / 1e5) / 10
+    }
     result.ok = true
   } catch (error) {
     result.error = String(error).slice(0, 500)
@@ -384,7 +389,10 @@ try {
   if (opts.editors.includes('id')) await ensureServer('iD', PORTS.id, ['bun', 'tools/refs/id/serve.ts'], started)
   if (opts.editors.includes('rapid')) await ensureServer('Rapid', PORTS.rapid, ['bun', 'tools/refs/rapid/serve.ts'], started)
 
-  const browser = await chromium.launch({ channel: 'chrome', headless: true })
+  const browser =
+    opts.browser === 'chromium'
+      ? await chromium.launch({ channel: 'chrome', headless: true })
+      : await { firefox, webkit }[opts.browser].launch({ headless: true })
   const results: RunResult[] = []
   for (const sceneName of opts.scenes) {
     const scene = getScene(sceneName)
@@ -415,7 +423,7 @@ try {
     viewport: VIEWPORT,
     deviceScaleFactor: opts.dpr,
     repeat: opts.repeat,
-    browser: browser.version(),
+    browser: `${opts.browser === 'chromium' ? 'Chrome' : opts.browser} ${browser.version()}`,
     machine: `${process.platform} ${process.arch}`,
     gpu: results.find((r) => r.gpu)?.gpu,
     git: (await Bun.$`git -C ${ROOT} rev-parse --short HEAD`.text()).trim(),

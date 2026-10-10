@@ -66,7 +66,7 @@ function cell(scene: string, column: string, row: Row) {
   const values = results
     .filter((r) => r.scene === scene && columnOf(r) === column && r.ok)
     .map(row.get)
-    .filter((v): v is number => v !== undefined && !Number.isNaN(v))
+    .filter((v): v is number => v != null && !Number.isNaN(v))
   if (values.length === 0) return { text: '–', value: undefined as number | undefined }
   const mid = median(values)
   const spread = values.length > 1 ? ` <small>(${fmt(Math.min(...values))}–${fmt(Math.max(...values))})</small>` : ''
@@ -79,7 +79,7 @@ function statsOf(scene: string, column: string) {
 }
 
 let md = `# Benchmark ${runIds.join(' + ')}\n\n`
-md += `- Date: ${env.date}\n- Machine: ${env.machine}, GPU: ${env.gpu}\n- Browser: Chrome ${env.browser}, headless, viewport ${env.viewport.width}×${env.viewport.height} at ${env.deviceScaleFactor}x\n`
+md += `- Date: ${env.date}\n- Machine: ${env.machine}, GPU: ${env.gpu}\n- Browser: ${String(env.browser).startsWith('Chrome') || /^[a-z]/.test(String(env.browser)) ? env.browser : `Chrome ${env.browser}`}, headless, viewport ${env.viewport.width}×${env.viewport.height} at ${env.deviceScaleFactor}x\n`
 md += `- Repeats per cell: ${env.repeat}. Cells show the median, with the range in brackets.\n`
 md += `- iD: ${env.pins?.id?.tag ?? '?'} (${String(env.pins?.id?.commit).slice(0, 9)}), Rapid: ${String(env.pins?.rapid?.commit).slice(0, 9)}, Maid: ${env.git}\n\n`
 

@@ -259,13 +259,15 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
       },
     })
   }
+  // From OSM zoom 17 iD draws a tagged vertex with a preset icon as a larger disc with the icon in it.
+  const hasIcon: ExpressionSpecification = ['has', 'icon']
   layers.push(
     {
       id: 'vertex',
       type: 'circle',
       source: SOURCES.vertices,
       paint: {
-        'circle-radius': vertexRadius(2.5, 3.5),
+        'circle-radius': ['step', ['zoom'], 2.5, 16, ['case', hasIcon, 8, 3.5]],
         'circle-color': ['case', ['==', ['get', 's'], 1], '#bbb', '#fff'],
         'circle-stroke-color': '#666',
         'circle-stroke-width': 1,
@@ -275,25 +277,45 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
       id: 'vertex-tagged',
       type: 'circle',
       source: SOURCES.vertices,
-      filter: ['==', ['get', 't'], 1],
+      filter: ['all', ['==', ['get', 't'], 1], ['!', hasIcon]],
       paint: { 'circle-radius': vertexRadius(1, 1.5), 'circle-color': '#000' },
     },
   )
-  if (options.highlight === 'source') {
-    // the shape points of a selected way
+  if (options.icons) {
     layers.push({
-      id: 'highlight-vertex',
-      type: 'circle',
-      source: SOURCES.highlight,
-      filter: ['all', ['==', ['geometry-type'], 'Point'], ['==', ['get', 'state'], 'shape']],
-      paint: {
-        'circle-radius': vertexRadius(2.5, 3.5),
-        'circle-color': '#fff',
-        'circle-stroke-color': '#666',
-        'circle-stroke-width': 1,
+      id: 'vertex-icon',
+      type: 'symbol',
+      source: SOURCES.vertices,
+      filter: hasIcon,
+      minzoom: 16,
+      layout: {
+        'icon-image': ['concat', 'icon-', ['get', 'icon']],
+        'icon-allow-overlap': true,
+        'icon-ignore-placement': true,
       },
     })
+  } else {
+    layers.push({
+      id: 'vertex-tagged-icon-dot',
+      type: 'circle',
+      source: SOURCES.vertices,
+      filter: hasIcon,
+      paint: { 'circle-radius': vertexRadius(1, 1.5), 'circle-color': '#000' },
+    })
   }
+  // the shape points of a selected way: iD shows all vertices of the selection
+  layers.push({
+    id: 'highlight-vertex',
+    type: 'circle',
+    source: SOURCES.highlight,
+    filter: ['all', ['==', ['geometry-type'], 'Point'], ['==', ['get', 'state'], 'shape']],
+    paint: {
+      'circle-radius': vertexRadius(2.5, 3.5),
+      'circle-color': '#fff',
+      'circle-stroke-color': '#666',
+      'circle-stroke-width': 1,
+    },
+  })
 
   // --- Points ----------------------------------------------------------------
   // Address nodes: a small marker, with the house number from OSM zoom 19 on (iD draws a label shield)

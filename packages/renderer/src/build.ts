@@ -3,7 +3,7 @@
  * properties. Classification runs once per entity in JavaScript, so MapLibre's style
  * expressions stay trivial (`['get', 'sc']`) and forks can change the look in one place.
  */
-import { hasInterestingTags, isArea, presetIcon, resolveWayStyle, tagClasses, wayLayer, type Tags } from '@maid/style'
+import { hasInterestingTags, isArea, matchPreset, presetIcon, resolveWayStyle, tagClasses, wayLayer, type Tags } from '@maid/style'
 import type { Feature, LineString, MultiPolygon, Point, Polygon, Position } from 'geojson'
 import type { MergeResult, OsmNode, OsmRelation, OsmStore, OsmWay } from './store'
 
@@ -275,6 +275,8 @@ export class FeatureBuilder {
     const state = this.vertexState.get(node.id)
     if (!state) return undefined
     const props: VertexProps = { id: `n${node.id}`, t: state[0] === '1' ? 1 : 0, s: state[1] === '1' ? 1 : 0 }
+    const icon = props.t ? matchPreset(node.tags!, 'vertex')?.icon : undefined
+    if (icon) props.icon = icon
     return { type: 'Feature', id: props.id, properties: props, geometry: { type: 'Point', coordinates: [node.lon, node.lat] } }
   }
 
@@ -341,7 +343,7 @@ export class FeatureBuilder {
       if (this.vertexState.get(node.id) === state) continue
       this.vertexState.set(node.id, state)
       const props: VertexProps = { id, t: tagged ? 1 : 0, s: shared ? 1 : 0 }
-      const icon = tagged ? presetIcon(node.tags!) : undefined
+      const icon = tagged ? matchPreset(node.tags!, 'vertex')?.icon : undefined
       if (icon) props.icon = icon
       out.vertices.push({ type: 'Feature', id, properties: props, geometry: { type: 'Point', coordinates: [node.lon, node.lat] } as Point })
     }

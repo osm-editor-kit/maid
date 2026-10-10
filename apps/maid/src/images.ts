@@ -56,6 +56,14 @@ async function presetIconBitmap(icon: string, px: number) {
  */
 const pending = new Map<string, Promise<void>>()
 
+/** `icon-<preset icon>`: the bare icon, for tagged vertices */
+async function addIcon(map: MapLibreMap, id: string, ratio: number) {
+  const icon = await presetIconBitmap(id.slice(5), 12 * ratio)
+  if (!icon) return
+  const bitmap = await createImageBitmap(icon)
+  if (!map.hasImage(id)) map.addImage(id, bitmap, { pixelRatio: ratio })
+}
+
 async function addPin(map: MapLibreMap, id: string, ratio: number) {
   const icon = id === 'pin-none' ? undefined : await presetIconBitmap(id.slice(4), 12 * ratio)
   const canvas = document.createElement('canvas')
@@ -75,15 +83,19 @@ async function addPin(map: MapLibreMap, id: string, ratio: number) {
   if (!map.hasImage(id)) map.addImage(id, ctx.getImageData(0, 0, canvas.width, canvas.height), { pixelRatio: ratio })
 }
 
-/** Adds the markers for these preset icons, unless they exist. Resolves when all are usable. */
-export function ensurePins(map: MapLibreMap, icons: Iterable<string | undefined>, ratio = 2) {
+/**
+ * Adds the images these ids need, unless they exist: `pin-<icon>` or `icon-<icon>`.
+ * Resolves when all are usable.
+ */
+export function ensureImages(map: MapLibreMap, ids: Iterable<string>, ratio = 2) {
   const jobs: Promise<void>[] = []
-  for (const icon of icons) {
-    const id = `pin-${icon ?? 'none'}`
+  for (const id of ids) {
     if (map.hasImage(id)) continue
     let job = pending.get(id)
     if (!job) {
-      job = addPin(map, id, ratio).catch((error) => console.error(`Could not make marker ${id}`, error))
+      job = (id.startsWith('pin-') ? addPin(map, id, ratio) : addIcon(map, id, ratio)).catch((error) =>
+        console.error(`Could not make image ${id}`, error),
+      )
       pending.set(id, job)
     }
     jobs.push(job)

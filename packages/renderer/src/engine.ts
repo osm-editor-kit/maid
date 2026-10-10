@@ -472,6 +472,12 @@ export class MaidEngine {
       }
       set(previous, false)
       set(kind === 'hover' ? hoverId : selectedId, true)
+      if (kind === 'selected') {
+        // the shape points of the selected way come from the small highlight source
+        const shape = selectedId?.[0] === 'w' ? wayVertices(this.store, Number(selectedId.slice(1))) : []
+        for (const vertex of shape) vertex.properties = { ...vertex.properties, state: 'shape' }
+        void map.getSource<GeoJSONSource>(SOURCES.highlight)?.setData({ type: 'FeatureCollection', features: shape })
+      }
       // a feature that is not on the map changes nothing, so ask for a frame explicitly
       void map.once('render').then(shown)
       map.triggerRepaint()

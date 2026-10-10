@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { Map, type MapEvent, type MapLayerMouseEvent, type ViewStateChangeEvent } from 'react-map-gl/maplibre'
 import { exposeBenchApi } from '../bench'
 import { config, engine } from '../editor'
-import { addBaseImages, ensurePins } from '../images'
+import { addBaseImages, ensureImages } from '../images'
 import { useCameraParam, useSelectedId } from '../url'
 
 /** No basemap: the benchmark compares how editors draw OSM data, not imagery. */
@@ -54,8 +54,12 @@ export function MapView() {
     const map = event.target
     addBaseImages(map)
     engine.options.onStyleChange = () => setDashes(new globalThis.Map(dashPatterns))
-    engine.options.prepare = (batch) =>
-      ensurePins(map, new Set(batch.points.map((f) => f.properties?.icon as string | undefined)))
+    engine.options.prepare = (batch) => {
+      const ids = new Set<string>()
+      for (const f of batch.points) if (!f.properties?.addr) ids.add(`pin-${f.properties?.icon ?? 'none'}`)
+      for (const f of batch.vertices) if (f.properties?.icon) ids.add(`icon-${f.properties.icon}`)
+      return ensureImages(map, ids)
+    }
     engine.attach(map)
     engine.setSelected(selectedId)
     exposeBenchApi(map, engine, { select })
