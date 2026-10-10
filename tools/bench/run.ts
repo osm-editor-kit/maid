@@ -308,11 +308,17 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
         tries++
         const before = await page.evaluate((id) => window.__bench.nodeLoc(id), target.id)
         if (!before) continue
+        // one level closer and centred on the vertex: at the scene's zoom neighbouring vertices
+        // are so close that Rapid picks up a different one
+        await page.mouse.move(3, 3)
+        await page.evaluate(([c, z]) => window.__bench.setCamera({ lng: c[0], lat: c[1], zoom: z }), [before, scene.zoom + 1] as const)
+        await page.evaluate(() => window.__bench.settled())
         const pos = await page.evaluate(([x, y]) => window.__bench.project(x, y), before)
-        if (pos.x < 150 || pos.y < 150 || pos.x > VIEWPORT.width - 150 || pos.y > VIEWPORT.height - 150) continue
         await page.mouse.move(pos.x - 30, pos.y - 30)
         await page.mouse.move(pos.x, pos.y, { steps: 5 })
         await page.waitForTimeout(250)
+        // Alt: iD otherwise snaps the vertex to whatever is under the pointer and may merge it
+        await page.keyboard.down('Alt')
         const phase = await recordPhase(page, cdp, async () => {
           await page.mouse.down()
           const t = performance.now()
@@ -326,6 +332,7 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
           await page.waitForTimeout(100)
           await page.mouse.up()
         })
+        await page.keyboard.up('Alt')
         const after = await page.evaluate((id) => window.__bench.nodeLoc(id), target.id)
         const movedMetres = after
           ? Math.hypot((after[0] - before[0]) * 111320 * Math.cos((before[1] * Math.PI) / 180), (after[1] - before[1]) * 110540)

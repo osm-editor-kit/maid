@@ -2,12 +2,14 @@
  * Smoke test for the iD reference: loads a scene from the mock API through our host page,
  * checks window.__bench end to end and proves that nothing left localhost.
  *
- *   bun tools/refs/id/smoke.ts [--scene small] [--zoom 17] [--build min|dev] [--cull 0] [--headed]
+ *   bun tools/refs/id/smoke.ts [--scene small] [--zoom 17] [--build min|dev] [--cull 0]
+ *                              [--validation 1] [--headed]
  *
  * Needs the mock API on PORTS.mockApi (bun tools/mock-osm-api/server.ts). Starts the iD
  * static server itself when PORTS.id is not answering.
  * Writes tools/refs/id/smoke.png + smoke.json (scene small) or smoke-<scene>.png/.json.
  * Exits non-zero on any failure, including any attempt to reach a non-localhost host.
+ * --validation 1 keeps iD's validator running and checks that it finds issues (default: off, no issues).
  */
 import { chromium } from '@playwright/test'
 import { join } from 'node:path'
@@ -23,10 +25,14 @@ const scene = getScene(arg('scene') ?? 'small')
 const zoom = Number(arg('zoom') ?? 17)
 const build = arg('build') ?? 'min'
 const cull = arg('cull') !== '0'
+const validation = arg('validation') === '1'
 const headed = process.argv.includes('--headed')
 const ID = `http://localhost:${PORTS.id}`
 const MOCK = `http://localhost:${PORTS.mockApi}`
-const outBase = join(import.meta.dir, (scene.name === 'small' ? 'smoke' : `smoke-${scene.name}`) + (cull ? '' : '-cull0'))
+const outBase = join(
+  import.meta.dir,
+  (scene.name === 'small' ? 'smoke' : `smoke-${scene.name}`) + (cull ? '' : '-cull0') + (validation ? '-validation' : ''),
+)
 const VIEWPORT = { width: 1600, height: 1000 }
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
 const OSM_INFRA = /(^|\.)openstreetmap\.(org|de|fr)$|(^|\.)osm\.org$|overpass|nominatim|taginfo/
@@ -94,7 +100,7 @@ try {
     if (m.type() === 'error') consoleErrors.push(m.text().slice(0, 300))
   })
 
-  const url = `${ID}/?scene=${scene.name}${build === 'dev' ? '&build=dev' : ''}${cull ? '' : '&cull=0'}#map=${zoom}/${scene.center[1]}/${scene.center[0]}`
+  const url = `${ID}/?scene=${scene.name}${build === 'dev' ? '&build=dev' : ''}${cull ? '' : '&cull=0'}${validation ? '&validation=1' : ''}#map=${zoom}/${scene.center[1]}/${scene.center[0]}`
   console.log(`open ${url}  viewport ${VIEWPORT.width}x${VIEWPORT.height}`)
   const wallStart = performance.now()
   await page.goto(url, { waitUntil: 'commit' })
@@ -142,6 +148,38 @@ try {
   await page.waitForTimeout(1200)
   const drawsAfter = await call<number>('return b._id.counters.completeDraws')
   check(drawsAfter === drawsBefore, `no full redraw in the 1.2 s after settled() (${drawsBefore} -> ${drawsAfter})`)
+
+  // Validation. iD's validator is off by default (index.html). Off: it must have seen the merged
+  // data (merges > 0) and still report no issues. On (--validation 1): it must find issues in the scene.
+  const issueCount = () => call<number>("return b._id.context.validator().getIssues({ what: 'all', where: 'all' }).length")
+  const merges = await call<number>('return b._id.counters.merges')
+  check(merges > 0, `map data was merged into iD (${merges} merges)`)
+  let issueTotal: number
+  if (validation) {
+    // The validator works through the loaded data in idle time after the picture is final, so
+    // wait until the count has not changed for 3 s (no fixed time: it depends on the scene and machine).
+    const started = Date.now()
+    let last = -1
+    let stableSince = Date.now()
+    issueTotal = 0
+    while (Date.now() - started < 120000) {
+      const now = await issueCount()
+      if (now !== last) {
+        last = now
+        stableSince = Date.now()
+      }
+      issueTotal = now
+      if (now > 0 && Date.now() - stableSince >= 3000) break
+      await page.waitForTimeout(500)
+    }
+    const stable = issueTotal > 0 && Date.now() - stableSince >= 3000
+    check(stable, `validation on: iD's validator found ${issueTotal} issues in scene ${scene.name}, count stable for 3 s (read at ${((Date.now() - started) / 1000).toFixed(1)} s)`)
+  } else {
+    await page.waitForTimeout(3000)
+    issueTotal = await issueCount()
+    check(issueTotal === 0, `validation off: iD's validator reports no issues after 3 s (${issueTotal})`)
+  }
+  console.log(`validator issues (validation ${validation ? 'on' : 'off'}): ${issueTotal}`)
 
   const mapRect = await page.evaluate(() => {
     const r = document.querySelector('.main-map')!.getBoundingClientRect()
@@ -314,6 +352,100 @@ try {
     'setCamera/getCamera round trip',
   )
   check(moved.state.missingTiles.length === 0 && !moved.state.transformed, 'settled after setCamera: tiles loaded, transform reset')
+
+  // Real mouse drag on a vertex, in browse mode (NOTES.md "Dragging a vertex"). Press on the drawn
+  // vertex's own touch target, hold Alt (iD then snaps to nothing, see modes/drag_node.js datum()),
+  // move 60 px in 20 steps, release. iD must move the node by that offset.
+  // The vertex must be clear of the sidebar edges and not connected to a hidden feature (iD refuses
+  // to drag those, drag_node.js start()), and the press point must hit its own target, not a neighbour's.
+  const vertex = await call<{ id: string; x: number; y: number; dx: number; dy: number } | null>(`
+    const ctx = b._id.context
+    const inside = (x, y) => x >= 150 && x <= innerWidth - 150 && y >= 150 && y <= innerHeight - 150
+    const DIRECTIONS = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+    for (const g of document.querySelectorAll('.data-layer.osm .points-group.vertices > g.node.vertex')) {
+      const id = Array.from(g.classList).find((c) => /^n\\d+$/.test(c))
+      const node = id && ctx.hasEntity(id)
+      if (!node || ctx.features().hasHiddenConnections(node, ctx.graph())) continue
+      const p = b.project(node.loc[0], node.loc[1])
+      if (!inside(p.x, p.y)) continue
+      const hit = document.elementFromPoint(p.x, p.y)
+      if (!hit || !hit.classList.contains('target') || !hit.__data__ || !hit.__data__.properties || !hit.__data__.properties.entity || hit.__data__.properties.entity.id !== id) continue
+      for (const [ux, uy] of DIRECTIONS) {
+        if (!inside(p.x + ux * 60, p.y + uy * 60)) continue
+        return { id, x: p.x, y: p.y, dx: ux * 60, dy: uy * 60 }
+      }
+    }
+    return null`)
+  check(vertex, `found a drawn vertex to drag with its own target under the pointer (${vertex?.id} at ${vertex?.x.toFixed(0)},${vertex?.y.toFixed(0)})`)
+  if (vertex) {
+    const before = await call<[number, number] | undefined>(`return b.nodeLoc(${JSON.stringify(vertex.id)})`)
+    await page.evaluate(() => {
+      const w = window as any
+      w.__frames = []
+      w.__framesOn = true
+      const tick = (t: number) => {
+        if (!w.__framesOn) return
+        w.__frames.push(t)
+        requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    })
+    const dragStart = performance.now()
+    await page.keyboard.down('Alt')
+    await page.mouse.move(vertex.x, vertex.y)
+    await page.mouse.down()
+    await page.mouse.move(vertex.x + vertex.dx, vertex.y + vertex.dy, { steps: 20 })
+    await page.mouse.up()
+    await page.keyboard.up('Alt')
+    const dragMs = performance.now() - dragStart
+    const frames = await page.evaluate(() => {
+      const w = window as any
+      w.__framesOn = false
+      return w.__frames as number[]
+    })
+    const intervals = frames.slice(1).map((t, i) => t - frames[i]!).sort((a, b) => a - b)
+    const median = intervals.length ? intervals[Math.floor(intervals.length / 2)]! : NaN
+    const longest = intervals.length ? intervals[intervals.length - 1]! : NaN
+    console.log(
+      `vertex drag ${vertex.id}: mouse down, 20 moves, mouse up in ${dragMs.toFixed(0)} ms; ` +
+        `${frames.length} animation frames, frame interval median ${median.toFixed(1)} ms, max ${longest.toFixed(1)} ms`,
+    )
+    check(frames.length > 5, `animation frames ran during the vertex drag (${frames.length})`)
+
+    const settle = await call<{ ms: number; state: any; changes: boolean; mode: string }>(`
+      const t = performance.now()
+      await b.settled()
+      return { ms: performance.now() - t, state: b._id.state(), changes: b._id.context.history().hasChanges(), mode: b._id.context.mode().id }`)
+    const after = await call<[number, number] | undefined>(`return b.nodeLoc(${JSON.stringify(vertex.id)})`)
+    const shift = await call<{ x: number; y: number } | null>(`
+      const a = ${JSON.stringify(before ?? null)}
+      const c = ${JSON.stringify(after ?? null)}
+      if (!a || !c) return null
+      const pa = b.project(a[0], a[1]), pc = b.project(c[0], c[1])
+      return { x: pc.x - pa.x, y: pc.y - pa.y }`)
+    console.log(
+      `vertex drag: settled ${settle.ms.toFixed(0)} ms after mouse up, mode ${settle.mode}, ` +
+        `nodeLoc ${JSON.stringify(before)} -> ${JSON.stringify(after)}, on screen ${shift ? `${shift.x.toFixed(1)},${shift.y.toFixed(1)}` : 'n/a'} px`,
+    )
+    const movedPx = shift ? Math.hypot(shift.x, shift.y) : NaN
+    check(before !== undefined && after !== undefined && before[0] !== after[0], `nodeLoc of ${vertex.id} changed by the drag`)
+    check(
+      movedPx > 50 && movedPx < 70,
+      `vertex moved by ${movedPx.toFixed(1)} px on screen (60 px requested)`,
+    )
+    check(
+      shift !== null && Math.abs(shift.x - vertex.dx) < 5 && Math.abs(shift.y - vertex.dy) < 5,
+      `vertex followed the pointer: ${shift?.x.toFixed(1)},${shift?.y.toFixed(1)} px for ${vertex.dx},${vertex.dy} requested`,
+    )
+    check(settle.changes, 'the vertex drag is an edit in iD history')
+    check(settle.state.missingTiles.length === 0 && !settle.state.transformed && !settle.state.pendingRedraw, 'settled after vertex drag: nothing queued, tiles loaded')
+    const drawsSettled = await call<number>('return b._id.counters.completeDraws')
+    await page.waitForTimeout(1200)
+    const drawsLater = await call<number>('return b._id.counters.completeDraws')
+    check(drawsLater === drawsSettled, `no full redraw in the 1.2 s after settled() following the vertex drag (${drawsSettled} -> ${drawsLater})`)
+    await page.mouse.move(5, 5)
+  }
+
   const watchdog = await call<number>('return b._id.counters.watchdogClears')
   check(watchdog === 0, `throttle model held for the whole run, watchdog never fired (${watchdog})`)
 
@@ -354,6 +486,7 @@ try {
         zoom,
         build,
         cull,
+        validation: { enabled: validation, issues: issueTotal },
         viewport: VIEWPORT,
         editor: info,
         timing: { readyMs: timing.readyAt, settledMs: timing.settledAt, wallSettledMs: wallSettled, setCameraSettledMs: moved.ms },

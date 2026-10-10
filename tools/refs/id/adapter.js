@@ -63,6 +63,9 @@
     hovered: function () {
       return need().hovered()
     },
+    nodeLoc: function (id) {
+      return need().nodeLoc(id)
+    },
   }
 
   window.__benchFail = function (error) {
@@ -513,6 +516,16 @@
 
     // ---------------------------------------------------------------------------------
 
+    /**
+     * Current position of a node in the graph iD draws and edits (context.graph(), the head
+     * graph), so a drag shows up here as soon as iD has applied the move.
+     */
+    function nodeLoc(id) {
+      var entity = context.hasEntity(id)
+      if (!entity || entity.type !== 'node' || !entity.loc) return undefined
+      return [entity.loc[0], entity.loc[1]]
+    }
+
     var api = {
       setCamera: setCamera,
       getCamera: getCamera,
@@ -522,6 +535,7 @@
       select: select,
       selected: selected,
       hovered: hovered,
+      nodeLoc: nodeLoc,
     }
 
     window.__bench.version = context.version

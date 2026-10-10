@@ -1,12 +1,13 @@
 /**
  * Smoke test for the Rapid benchmark reference.
  *
- *   bun tools/refs/rapid/smoke.ts [--scene small] [--zoom 17] [--headed] [--no-screenshot]
+ *   bun tools/refs/rapid/smoke.ts [--scene small] [--zoom 17] [--headed] [--no-screenshot] [--validation]
  *
  * Opens the host page in system Chrome, waits for ready + settled, prints stats, selects a
- * way, hovers a line with the real mouse and writes tools/refs/rapid/smoke.png (smoke-<scene>.png
- * for other scenes). Every non-localhost request is aborted and counted; the run fails if
- * Rapid tried to reach OSM infrastructure (AGENTS.md core rule 1).
+ * way, hovers a line with the real mouse, drags a drawn vertex with the real mouse and writes
+ * tools/refs/rapid/smoke.png (smoke-<scene>.png for other scenes). Every non-localhost request
+ * is aborted and counted; the run fails if Rapid tried to reach OSM infrastructure (AGENTS.md
+ * core rule 1). `--validation` keeps Rapid's validation on (off by default, see NOTES.md).
  * Starts the Rapid static server and the mock OSM API in-process when they are not running.
  */
 import { chromium, type Request } from '@playwright/test'
@@ -23,6 +24,7 @@ const arg = (name: string) => {
 const scene = getScene(arg('scene') ?? 'small')
 const zoom = Number(arg('zoom') ?? 17)
 const headed = process.argv.includes('--headed')
+const validation = process.argv.includes('--validation')
 const VIEWPORT = { width: 1600, height: 1000 }
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
 const OSM_INFRA = /(^|\.)(openstreetmap\.org|openstreetmap\.de|osm\.org|overpass-api\.de|overpass\.kumi\.systems|osmfoundation\.org)$/
@@ -104,7 +106,7 @@ page.on('console', (msg) => {
 page.on('pageerror', (error) => consoleErrors.push(`pageerror: ${error.message.slice(0, 300)}`))
 
 try {
-  const url = `${rapidUrl}/?scene=${scene.name}#map=${zoom}/${scene.center[1]}/${scene.center[0]}`
+  const url = `${rapidUrl}/?scene=${scene.name}${validation ? '&validation=1' : ''}#map=${zoom}/${scene.center[1]}/${scene.center[0]}`
   console.log(`open ${url} (${headed ? 'headed' : 'headless'}, ${VIEWPORT.width}x${VIEWPORT.height})`)
   const t0 = performance.now()
   await page.goto(url)
@@ -126,6 +128,8 @@ try {
       version: bench.version,
       camera,
       stats: bench.stats(),
+      issues: extra.issues(),
+      validation: extra.validation,
       renderer: extra.renderer(),
       pxPerTile: b.x - a.x,
       centre: a,
@@ -151,6 +155,7 @@ try {
   console.log(`boot              ${JSON.stringify(info.boot)} (ms since navigation start)`)
   console.log(`camera            ${JSON.stringify(info.camera)}`)
   console.log(`stats             ${JSON.stringify(info.stats)}`)
+  console.log(`validation        ${info.validation ? 'on' : 'off'}, issues ${JSON.stringify(info.issues)}`)
   console.log(`renderer          ${JSON.stringify(info.renderer)}`)
   console.log(`canvas            ${JSON.stringify(info.canvas)} dpr ${info.dpr}`)
   console.log(`scheduler.metrics ${JSON.stringify(info.metrics)}`)
@@ -165,6 +170,12 @@ try {
   check(info.stats.entities.ways > 0 && info.stats.entities.nodes > 0, 'entities are loaded from the mock API')
   check((info.stats.drawn['osm.lines'] ?? 0) > 0, `lines are drawn (${info.stats.drawn['osm.lines'] ?? 0})`)
   check((info.stats.drawn['osm.polygons'] ?? 0) > 0, `polygons are drawn (${info.stats.drawn['osm.polygons'] ?? 0})`)
+  check(
+    info.validation ? info.issues.total > 0 : info.issues.total === 0,
+    info.validation
+      ? `validation is on and has found ${info.issues.total} issues`
+      : `validation is off: no issues were computed (${info.issues.total})`
+  )
   check(!info.modal, 'no modal dialog covers the map')
   check(
     info.map.x === 0 && info.map.y === 0 && info.map.width === VIEWPORT.width && info.map.height === VIEWPORT.height,
@@ -249,6 +260,119 @@ try {
     check(hovered.length > 0, `hovering reports a feature (${hovered.includes(target.id) ? 'the selected way' : `not ${target.id}, something drawn above it`})`)
     await page.mouse.move(5, VIEWPORT.height - 5)
     await page.evaluate(() => window.__bench.settled())
+  }
+
+  // A real mouse drag of a vertex in browse mode (NOTES.md "Dragging a vertex").
+  // The vertex is a drawn point of the osm layer that is a way vertex (not a POI, not a midpoint).
+  // Rapid draws more while the pointer moves: hovering a way draws its vertices, and a drop on
+  // another node merges the two (DragNodeMode connects them). So the candidate must be clear of
+  // every node in view, and so must the spot 60 px to its right where the drag ends. A vertex's
+  // hit area is a square of about 14 px around its centre, so "clear" means 15 px in the
+  // max-norm (Chebyshev) distance. Take the candidate with the most room.
+  // Zoom 18 for this part: at 17 the medium scene leaves no vertex with 20 px of room around it.
+  await page.evaluate(() => {
+    const bench = window.__bench
+    bench.setCamera({ ...bench.getCamera(), zoom: 18 })
+  })
+  await page.evaluate(() => window.__bench.settled())
+  const vertex = await page.evaluate(() => {
+    const w = window as any
+    const Rapid = w.Rapid
+    const rapid = w.rapidContext
+    const graph = rapid.systems.editor.staging.graph
+    const layer = rapid.systems.gfx.scene.layers.get('osm')
+    const rect = rapid.systems.gfx.supersurface.parentElement.getBoundingClientRect()
+    const inView = (p: { x: number; y: number }) => p.x >= rect.left && p.x <= rect.right && p.y >= rect.top && p.y <= rect.bottom
+    const project = (loc: number[]) => w.__bench.project(loc[0], loc[1]) as { x: number; y: number }
+    const entities = new Map<string, any>()
+    for (const [id, entity] of graph.base.entities) if (entity) entities.set(id, entity)
+    for (const [id, entity] of graph.local.entities) if (entity) entities.set(id, entity)
+    // Every node in view (the spots a drag can run into).
+    const spots: { id: string; x: number; y: number }[] = []
+    for (const entity of entities.values()) {
+      if (entity.type !== 'node') continue
+      const p = project(entity.loc)
+      if (inView(p)) spots.push({ id: entity.id, x: p.x, y: p.y })
+    }
+    const pins: { id: string; x: number; y: number }[] = []
+    for (const feature of layer.features.values()) {
+      const data = feature.data
+      if (!feature.visible || !feature.container?.parent || !(feature instanceof Rapid.PixiFeaturePoint)) continue
+      if (data?.type !== 'node' || String(feature.id).includes('-midpoint-')) continue
+      if (data.geometry(graph) !== 'vertex') continue
+      const p = project(data.loc)
+      if (p.x < rect.left + 100 || p.x > rect.right - 150 || p.y < rect.top + 100 || p.y > rect.bottom - 100) continue
+      pins.push({ id: data.id, x: p.x, y: p.y })
+    }
+    let best: { id: string; x: number; y: number; clearance: number } | null = null
+    for (const pin of pins) {
+      const gap = (ax: number, ay: number, bx: number, by: number) => Math.max(Math.abs(ax - bx), Math.abs(ay - by))
+      let clearance = Infinity
+      for (const spot of spots) {
+        if (spot.id === pin.id) continue
+        clearance = Math.min(clearance, gap(spot.x, spot.y, pin.x, pin.y), gap(spot.x, spot.y, pin.x + 60, pin.y))
+      }
+      if (!best || clearance > best.clearance) best = { id: pin.id, x: pin.x, y: pin.y, clearance }
+    }
+    return best
+  })
+  check(!!vertex && vertex.clearance >= 15, `found a drawn vertex to drag${vertex ? `: ${vertex.id} (${vertex.clearance.toFixed(0)} px clear of every other node in view)` : ''}`)
+
+  if (vertex) {
+    const frame = () => page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())))
+    await page.evaluate(() => window.__bench.select(null))
+    await page.evaluate(() => window.__bench.settled())
+    const camera0 = await page.evaluate(() => window.__bench.getCamera())
+    const loc0 = await page.evaluate((id) => window.__bench.nodeLoc(id), vertex.id)
+    const screen0 = loc0 && (await page.evaluate(([lng, lat]) => window.__bench.project(lng, lat), loc0))
+
+    // Hover first, as a hand does (one frame so that Rapid has processed the move), then press.
+    await page.mouse.move(vertex.x, vertex.y)
+    await frame()
+    await page.evaluate(() => {
+      const w = window as any
+      w.__dragFrames = []
+      const tick = (t: number) => {
+        w.__dragFrames.push(t)
+        w.__dragRaf = requestAnimationFrame(tick)
+      }
+      w.__dragRaf = requestAnimationFrame(tick)
+    })
+    const tDrag = performance.now()
+    await page.mouse.down()
+    const STEPS = 20
+    const DX = 60
+    for (let i = 1; i <= STEPS; i++) {
+      await page.mouse.move(vertex.x + (DX * i) / STEPS, vertex.y)
+      await frame()
+    }
+    await page.mouse.up()
+    const dragMs = performance.now() - tDrag
+    const frames: number[] = await page.evaluate(() => {
+      const w = window as any
+      cancelAnimationFrame(w.__dragRaf)
+      return w.__dragFrames
+    })
+    await page.evaluate(() => window.__bench.settled())
+    await page.evaluate(() => window.__bench.select(null))
+    await page.evaluate(() => window.__bench.settled())
+
+    const loc1 = await page.evaluate((id) => window.__bench.nodeLoc(id), vertex.id)
+    console.log(`last edit: ${await page.evaluate(() => (window as any).rapidContext.systems.editor.getUndoAnnotation())}`)
+    const camera1 = await page.evaluate(() => window.__bench.getCamera())
+    const screen1 = loc1 && (await page.evaluate(([lng, lat]) => window.__bench.project(lng, lat), loc1))
+    const intervals = frames.slice(1).map((t, i) => t - frames[i]!).sort((a, b) => a - b)
+    const median = intervals.length ? intervals[Math.floor(intervals.length / 2)]! : NaN
+    const max = intervals.length ? intervals[intervals.length - 1]! : NaN
+    console.log(
+      `drag ${vertex.id}: ${STEPS} steps, ${dragMs.toFixed(0)} ms in total; ${frames.length} frames, ` +
+        `rAF interval median ${median.toFixed(1)} ms, max ${max.toFixed(1)} ms`
+    )
+    check(!!loc1, `the dragged vertex ${vertex.id} is still in the graph after the drag`)
+    const moved = screen0 && screen1 ? Math.hypot(screen1.x - screen0.x, screen1.y - screen0.y) : NaN
+    check(moved >= 40 && moved <= 80, `the vertex moved ${moved.toFixed(1)} px on screen (${DX} px asked)`)
+    const cameraMoved = Math.abs(camera1.lng - camera0.lng) + Math.abs(camera1.lat - camera0.lat) + Math.abs(camera1.zoom - camera0.zoom)
+    check(cameraMoved < 1e-9, 'the map did not pan or zoom during the drag')
   }
 
   const mapCalls = mockResponses.filter((entry) => entry.path.includes('/api/0.6/map'))

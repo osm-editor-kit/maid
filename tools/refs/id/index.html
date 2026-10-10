@@ -5,6 +5,7 @@
     /?scene=small|medium|dense   scene from the mock OSM API (default: small)
     /?build=dev                  load dist/iD.js instead of dist/iD.min.js
     /?cull=0                     iD draws all points and buildings instead of auto-hiding them
+    /?validation=1               keep iD's validator running (off by default, see NOTES.md "Validation and background work")
     #map=17/52.389/13.4          iD's own hash; defaults to the scene's center and zoom (tools/fixtures/scenes.ts)
 
   Modelled on iD's own index.html. Differences, all to keep iD away from the network
@@ -140,6 +141,24 @@
 
             context.locale('en');   // UI language only; keeps runs identical across machines
             context.init();
+
+            // Validation is off by default. Maid has no validator, and iD's runs in idle time after
+            // every merged tile (merge.validator), on every mode change and after every edit, which
+            // is work that does not draw. Switched off here, before any data arrives (data comes
+            // from requestIdleCallback after this script; context.ts:300). Removing the listeners
+            // stops the automatic runs; replacing validate() covers the explicit calls from the UI
+            // and modes (modes/select.js, operations/*, ui/entity_editor.js). getIssues() then
+            // stays empty. ?validation=1 keeps iD's validator as it is.
+            if (params.get('validation') !== '1') {
+              var idHistory = context.history();
+              idHistory.on('merge.validator', null);    // validator.js:563
+              idHistory.on('restore.validator', null);  // validator.js:550
+              idHistory.on('undone.validator', null);   // validator.js:551
+              idHistory.on('redone.validator', null);   // validator.js:552
+              idHistory.on('reset.validator', null);    // validator.js:553
+              context.on('exit.validator', null);       // validator.js:561
+              context.validator().validate = function () { return Promise.resolve(); };  // validator.js:470
+            }
 
             // as upstream index.html: boundaries are off unless the hash says otherwise
             if (!hash.disable_features) context.features().disable('boundaries');

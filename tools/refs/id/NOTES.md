@@ -10,11 +10,12 @@ bun tools/refs/id/serve.ts            # http://localhost:8081/?scene=small|mediu
 bun tools/refs/id/smoke.ts            # scene small, zoom 17 -> smoke.png, smoke-selected.png, smoke.json
 bun tools/refs/id/smoke.ts --scene dense   # -> smoke-dense.*   (also: --zoom 18, --build dev, --headed)
 bun tools/refs/id/smoke.ts --cull 0         # with ?cull=0 -> smoke-cull0.*
+bun tools/refs/id/smoke.ts --scene medium --validation 1   # validator on, expects issues -> smoke-medium-validation.*
 ```
 
 `smoke.ts` needs the mock API on 8090 and starts the static server itself when 8081 is not answering. The root scripts `refs-setup` and `refs-serve` from `AGENTS.md` are not wired to these files yet.
 
-Host page parameters: `?scene=` (default `small`), `?cull=0` (see "Auto-hiding"), `?build=dev` loads the unminified `dist/iD.js` instead of `dist/iD.min.js`, and iD's own hash, for example `#map=17/52.389/13.4`. Without `map=` the page starts at the scene's `center` and `zoom` from `tools/fixtures/scenes.ts`.
+Host page parameters: `?scene=` (default `small`), `?cull=0` (see "Auto-hiding"), `?validation=1` (see "Validation and background work"), `?build=dev` loads the unminified `dist/iD.js` instead of `dist/iD.min.js`, and iD's own hash, for example `#map=17/52.389/13.4`. Without `map=` the page starts at the scene's `center` and `zoom` from `tools/fixtures/scenes.ts`.
 
 ## What is where
 
@@ -87,7 +88,7 @@ Timeout: 30 s by default (`settled(ms)` overrides it). The rejection names the u
 
 Safety net: if `pendingRedraw` is still set 1250 ms after the last trigger, it is cleared and counted in `__bench._id.counters.watchdogClears`. `smoke.ts` asserts that this never happens, and that no full redraw occurs in the 1.2 s after `settled()` resolved (after the first load and after a mouse drag).
 
-Not waited for: idle work that does not change the picture (validator, feature match cache warm-up after each merge, `renderer/features.js:627`).
+Not waited for: idle work that does not change the picture. The validator is switched off (see "Validation and background work"), so only the feature match cache warm-up after each merge is left (`renderer/features.js:627`). It is not waited for by `settled()`.
 
 ### Consequences for measuring
 
@@ -151,6 +152,79 @@ Zoom 17, scene center, viewport and map 1600x1000, minified build, mock API with
 | dense | 410 to 510 | 2544, 2882, 4235 | 2882 | 3595 |
 
 The last merge was at about 0.7 to 1.2 s in these runs. From there, 750 ms is the throttle wait and the rest is the final redraw and its frame. Earlier runs with the sidebar open (map 1200x1000, 6 or 9 tiles) had medians of 1559, 2358 and 2687 ms.
+
+These numbers were taken with iD's validator running. It is off now (see "Validation and background work"), so they are stale. Single runs after the switch-off, on a busy machine: small 1525 ms, medium 3777 ms to settled. Not re-measured as a table.
+
+## Validation and background work
+
+**Validation is off by default.** Maid has no validator, so iD must not run one. `index.html` switches it off right after `context.init()`, before any data can arrive: the first tile request is made in an idle callback that `context.ts:300` schedules, and that runs only after the script has finished. `?validation=1` keeps iD's validator as it is.
+
+What iD's validator does (`modules/core/validator.js`, v2.42.2). `context.init()` builds it (`context.ts:707`), and its constructor registers these listeners:
+
+- `merge.validator` (`validator.js:563`): every merged tile validates the base graph's entities, in idle callbacks of 100 entities each (`validateEntitiesAsync`, `validator.js:704`). Most of the validation work during loading.
+- `restore`, `undone`, `redone`, `reset` on history (`validator.js:550-553`) and `exit` on the context (`validator.js:561`): validate the edit diff.
+- Provisional results are validated again after 5 s (`validator.js:759-768`).
+
+Modes, operations and panels also call `context.validator().validate()` directly (`modes/select.js`, `operations/*.js`, `ui/entity_editor.js`, `ui/sections/*.js`).
+
+How it is switched off (`index.html`, after `context.init()`):
+
+- The five history listeners and the context's `exit` listener are removed with `on(name, null)` (`validator.js:550-553, 561, 563`).
+- `context.validator().validate` is replaced by a function that returns `Promise.resolve()` (`validator.js:470`). This covers the direct calls. Nothing else in iD writes to the validator's caches.
+- `getIssues()` stays empty, because the base cache never gets an entry. Selection, hover and dragging work the same. One visible difference: `ui/inspector.js:98` opens the editor for a selected vertex only when it has issues (`getEntityIssues`). With the validator off, a selected plain vertex always gets the preset list. Smoke passes with it off, and both the pan drag and the vertex drag work.
+
+Measured with `smoke.ts` (`getIssues({what:'all', where:'all'}).length`):
+
+| Scene | Validator | Merges | Issues |
+| --- | --- | --- | --- |
+| small | off | 8 | 0 (read 3 s after settled) |
+| medium | off | 12 | 0 (read 3 s after settled) |
+| medium | on (`--validation 1`) | | 149, the same in two runs; stable from about 23 s after the check started |
+
+With `--validation 1`, smoke waits until the count has not changed for 3 s. Early reads (before that wait) showed 12 to 16 issues, which were partial counts: the validator needs about 23 s on medium. The drag checks in those runs happen after the validator has finished.
+
+Other periodic or idle work in iD (v2.42.2), and what was done with it:
+
+| Work | Where | When | Switched off? |
+| --- | --- | --- | --- |
+| Validator (above) | `core/validator.js` | after every merge, edit, mode change | yes |
+| Feature match cache warm-up | `renderer/features.js:627-640` | idle callback after every merge, fills the match cache the next redraw reads | no. It changes no picture, but it is the rendering's own preparation. Switching it off would move the cost into the measured redraw. |
+| Session lock renewal | `util/session_mutex.js:24` (every 4 s), started by `core/history.js:66-69` | a cookie write while the lock is held | no. No request, no drawing, and it is the edit-session check iD uses through `history.lock()`. |
+| API status poll | `ui/status.js:86` (every 90 s), `services/osm.js:821` | a GET on `/api/capabilities` on the mock API | no. Its only handle is `osm.reloadApiStatus`, which the error paths also use (`services/osm.js:438`, `:863`, rate limit in `loadTile`). Switching it off would hide rate limit and offline states. A run is shorter than 90 s, so the poll never fires during one (the log shows only the initial request). |
+| Debounced save | `core/context.ts:451-456` | 100 ms after an edit | only after edits. The smoke drags make edits, so it runs there. |
+| Tile retry | `services/osm.js:911` | 8 s after a failed tile request | only on errors, none in the runs |
+| Data load and parse | `core/context.ts:300`, `services/osm.js:197, 238` | idle callbacks per tile and per response | no. This is loading. |
+| Drag nudge | `modes/drag_node.js:52`, `modes/move.js:84` | while dragging at the viewport edge | no. It is part of the gesture. |
+| Imagery tile queue | `renderer/background_source.js:286` (`IntervalTasksQueue`) | imagery only | imagery is off (`background=none`, no sources) |
+| Services that poll or fetch | taginfo, Nominatim, NSI, photo layers, QA | removed at startup | yes, see "Keeping iD off the network" |
+
+## Dragging a vertex
+
+`smoke.ts` drags one drawn vertex in browse mode with the real mouse and checks that iD moved it. The steps:
+
+1. Pick a `g.node.vertex` in `.points-group.vertices`, take its entity id from the class list, and check that its projected position is at least 150 px from every viewport edge. Skip vertices connected to a hidden feature (see below). The press point must hit the vertex's own touch target: `document.elementFromPoint` returns an element with `__data__.properties.entity.id` equal to the id. Neighbouring vertices' targets overlap in streets, and pressing on one of those would drag the neighbour.
+2. Hold Alt (`keyboard.down('Alt')`), `mouse.move` to the vertex, `mouse.down`, `mouse.move` 60 px right in 20 steps, `mouse.up`, release Alt.
+3. Check that `nodeLoc(id)` changed, that the on-screen displacement (from `project()`) is 60 px and within 5 px of the pointer offset, that the drag is an edit (`history.hasChanges()`), and that `settled()` resolves with nothing queued and no full redraw in the 1.2 s after it.
+
+What iD needs for the drag to move the vertex (`modes/drag_node.js`, `behavior/drag.js`):
+
+- **Press target.** The drag binds to touch targets, selector `.layer-touch.points .target` (`drag_node.js:453`). The visible circle (`g.node.vertex > .stroke`) is not the target. The target is larger than the drawn vertex. In `small` 158 of 840 vertices in view had a neighbour's target over their centre.
+- **Minimum movement.** 1 px for a mouse (`behavior/drag.js:33`), 4 px for a pen (`:34`). The smoke moves 60 px in 20 steps of 3 px.
+- **Shift cancels.** `drag_node.js` `start()` sets `_isCancelled` when `shiftKey` is down. Do not hold Shift.
+- **Alt turns snapping off.** `datum()` returns no target when `altKey` is down, so the node is not snapped. Without Alt, every touch target under the pointer during the move becomes the snap target: a way's edge (`geoChooseEdge` in `doMove`) or another vertex. Each 60 px path in these scenes crossed one. A probe found none of the roughly 680 vertices in `small` with a clear path in 16 directions. So the smoke holds Alt.
+- **Hidden connections refuse the drag.** `start()` calls `features.hasHiddenConnections` (`renderer/features.js:541`) and cancels with a flash message. At zoom 17 iD auto-hides buildings in all three scenes, so vertices of buildings cannot be dragged. Use vertices of highways and paths. `small` had 33 of 840 vertices refused this way.
+- **No selection first.** The drag works straight from browse mode. After the drop iD is in browse mode, and the edit is in `history`.
+- **Playwright.** Mouse events take modifiers from the keyboard state, so Alt must be down before `mouse.down` and released after `mouse.up`.
+
+Timing. Each `mouse.move` is one CDP round trip, so the whole gesture takes 2.4 s (`small`) to 6 to 13 s (`medium`) of wall time. The frame intervals are measured in the page with `requestAnimationFrame` from before `mouse.down` until after `mouse.up`:
+
+| Run | Validator | Frames | Median interval | Max interval |
+| --- | --- | --- | --- | --- |
+| small | off (2 runs) | 65, 134 | 16.7 ms | 250, 467 ms |
+| medium | off (4 runs) | 59, 80, 58, 58 | 16.7 ms | 950, 1200, 600, 1183 ms |
+| medium | on, idle before the drag (2 runs) | 89, 84 | 16.7 ms | 1533, 1550 ms |
+
+The median is the 60 Hz frame cadence in every run. Each run had one or more long frames (250 to 1550 ms), which I did not analyse. The two `medium` runs with the validator on had longer maxima than the four with it off. Two samples is not enough to say the validator causes it. Each number is one run of `smoke.ts`, on a machine that was also running other work.
 
 ## Pitfalls
 

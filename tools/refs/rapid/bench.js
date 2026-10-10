@@ -14,6 +14,8 @@
   const sceneName = query.get('scene') || 'small'
   const scene = config.scenes.find((s) => s.name === sceneName)
   const apiRoot = `${config.mockApi}/s/${sceneName}`
+  // Rapid's validation runs in the background after every load. Off unless `?validation=1`.
+  const validationOn = query.get('validation') === '1'
 
   /** @type {any} */ let context = null
   /** @type {any} */ let sys = null
@@ -165,6 +167,35 @@
 
     await context.initAsync()
     mark('initialised')
+
+    // --- Background work that does not draw -------------------------------------------
+    // Validation (ValidationSystem, pinned at modules/core/ValidationSystem.ts) validates every
+    // merged tile in the scheduler's idle queue, 5 to 25 s on medium, and our editor has no
+    // validator to compare with. Off by default; `?validation=1` keeps it. Replaced on the
+    // instance, before the first tile can merge (tiles load in APP, which needs startAsync):
+    //  - 'merge' listener -> _validateBaseEntitiesAsync (registered in initAsync, line ~180)
+    //  - 'stablechange' listener -> validateAsync (the listener calls `this.validateAsync()`
+    //    at call time, so the instance property is used; also UI toggles, line ~539/553)
+    //  - _validateEntitiesAsync is the only job queue (line ~760); the RETRY timer and
+    //    revalidateUnsquare go through it too, so it is replaced as well.
+    // The `validator.disabledRules` setting would not do this: it only filters getIssues
+    // (lines ~327-328) and _validateEntity (line ~705) still runs every validator.
+    const validator = context.systems.validator
+    if (validator && !validationOn) {
+      const skip = () => Promise.resolve()
+      validator._validateBaseEntitiesAsync = skip
+      validator.validateAsync = skip
+      validator._validateEntitiesAsync = skip
+    }
+    // Two timers in UiApiStatus (ui/UiApiStatus.ts:54 every 1 s, :61 every 90 s). They refresh the
+    // API status chip in the footer. Nothing else reads that state except OsmService's rate limit,
+    // which only an HTTP 429 sets, and the mock API never sends one. Cancelled. The UI re-renders
+    // that remain (footer chips, URL hash, two panes) are listed in NOTES.md, not switched off.
+    const scheduler = context.systems.scheduler
+    if (scheduler) {
+      scheduler.cancel('ui-check-rate-limit')
+      scheduler.cancel('ui-check-api-status')
+    }
 
     // Mark the welcome/privacy and the what's-new dialog as seen, so that UiSystem.startAsync
     // opens neither. (The walkthrough only starts from the welcome dialog or `walkthrough=true`.)
@@ -541,6 +572,14 @@
     return [...ids]
   }
 
+  /** [lng, lat] of a node in the staging graph (base plus edits), or undefined. */
+  function nodeLoc(id) {
+    need()
+    const node = sys.editor.staging.graph.hasEntity(id)
+    if (!node || node.type !== 'node') return undefined
+    return [node.loc[0], node.loc[1]]
+  }
+
   // ------------------------------------------------------------------ export
 
   window.__bench = {
@@ -555,6 +594,7 @@
     select,
     selected,
     hovered,
+    nodeLoc,
   }
 
   /** Rapid-only extras for debugging and for NOTES.md. Not part of the contract. */
@@ -568,6 +608,27 @@
     lastSettle,
     boot,
     seen,
+    /** Whether Rapid's validation was left on (`?validation=1`). */
+    validation: validationOn,
+    /**
+     * Issues Rapid's validator holds, by severity (ValidationSystem.getIssuesBySeverity, which
+     * reads the caches of the base and head graphs). Zero when validation is off.
+     */
+    issues: () => {
+      need()
+      const groups = context.systems.validator?.getIssuesBySeverity({
+        what: 'all',
+        where: 'all',
+        includeIgnored: true,
+        includeDisabledRules: true,
+      })
+      const counts = {
+        error: groups?.error.length ?? 0,
+        warning: groups?.warning.length ?? 0,
+        suggestion: groups?.suggestion.length ?? 0,
+      }
+      return { ...counts, total: counts.error + counts.warning + counts.suggestion }
+    },
     /** Rapid's own frame metrics (SchedulerSystem.metrics). */
     metrics: () => sys?.scheduler.metrics,
     /** Rapid's own `app-N` / `draw-N` performance measures. */

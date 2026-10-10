@@ -9,15 +9,16 @@ bun tools/refs/rapid/setup.ts            # clone + build at the pin; no-op when 
 bun tools/refs/rapid/serve.ts            # http://localhost:8082/?scene=small|medium|dense
 bun tools/refs/rapid/smoke.ts            # scene small, writes smoke.png
 bun tools/refs/rapid/smoke.ts --scene dense [--zoom 17] [--headed] [--no-screenshot]
+bun tools/refs/rapid/smoke.ts --scene medium --validation   # keeps Rapid's validation on
 ```
 
-`smoke.ts` starts the Rapid server and the mock API in-process if they are not running. Page parameters: `?scene=<name>`, `?nsi=0` (see "Where the start-up time goes"), `?profile` (per-system start times in `__benchRapid.boot.parts`). Rapid's own parameters go in the fragment (`#map=17/52.389/13.4`); the page forces `background=none` and `locale=en` and drops `datasets`, `note`, `photo_overlay`, `maproulette`, `walkthrough`, `data`.
+`smoke.ts` starts the Rapid server and the mock API in-process if they are not running. Page parameters: `?scene=<name>`, `?validation=1` (validation stays on, see "Validation and background work"), `?nsi=0` (see "Where the start-up time goes"), `?profile` (per-system start times in `__benchRapid.boot.parts`). Rapid's own parameters go in the fragment (`#map=17/52.389/13.4`); the page forces `background=none` and `locale=en` and drops `datasets`, `note`, `photo_overlay`, `maproulette`, `walkthrough`, `data`.
 
 ## Files
 
 - `pin.json`: repo and commit. `setup.ts`: clones (from `../Rapid-Bryan` if it has the commit, else GitHub; `origin` is set to GitHub either way), `bun install --linker=hoisted`, `bun run build`, writes `.reference/rapid/.maid-built`.
 - `serve.ts`: `/` host page, `/bench.js`, `/frame-sync.js` (shared `tools/refs/frame-sync.js`), `/config.js` (generated from `tools/ports.ts`, `tools/fixtures/scenes.ts`, `pin.json`), and `js/ css/ data/ img/ svg/` from `dist`. Rapid's own `dist/*.html` are not reachable.
-- `index.html` + `bench.js`: host page and the `window.__bench` adapter. `window.__benchRapid` has extras (`blockers()`, `boot`, `lastSettle`, `refused`, `metrics()`, `measures()`, `renderer()`).
+- `index.html` + `bench.js`: host page and the `window.__bench` adapter (`nodeLoc()` is the one added for the drag check). `window.__benchRapid` has extras (`blockers()`, `boot`, `lastSettle`, `refused`, `validation`, `issues()`, `metrics()`, `measures()`, `renderer()`).
 
 ## Verified against docs/research/rapid.md
 
@@ -112,9 +113,11 @@ Works. 90 frames of `setCamera()` (4 px each) ran in 1.5 s (small) and 2.3 s (de
 - Nothing waits on a blocked request or a timeout. The stubs above resolve immediately.
 - 1.5 to 2.5 s between `initAsync` and `startAsync` is `NsiService.startAsync` alone (loads and indexes the name-suggestion-index, 7 JSON files); with `?profile` every other system and service is started within ~0.1 s after `initAsync`. `ready()` cannot resolve earlier: `UrlHashSystem` applies `map=` only after `context.startAsync()` resolves; until then the map sits at zoom 1 and loads nothing.
 - `?nsi=0` removes the service: ready 1.15 s, settled 2.4 s (small), 4.5 s (medium), 4.7 s (dense) in one run. Not the default, because Rapid always starts with it. Whether iD's host page waits for its NSI in the same way decides if this is a fair comparison; that is a decision for the benchmark, not made here.
-- After the picture: validation in the idle queue, 4.7 s (small) to ~25 s (medium, dense).
+- After the picture: validation in the idle queue, 4.7 s (small) to ~25 s (medium, dense). Validation is off by default now (see below); these numbers are from before, with it on.
 
 ## Measured: zoom 17, 1600x1000, headless Chrome, from navigation start (ms)
+
+Validation was on in these runs (the default at the time, now `?validation=1`); the picture times are the same with it off, the idle times are not (see "Validation and background work").
 
 Three runs each with the final page. The machine was shared with other benchmark processes for part of this; the dense rows 2 and 3 were quiet.
 
@@ -140,6 +143,64 @@ Quiet-machine runs: small 2327 / 3199 / 7955, medium 2355 / 4674 / 27400. So rea
 - `context.systems.scheduler.metrics` (`__benchRapid.metrics()`): `avgFrameTime`, `avgRenderTime`, `avgIdleTime` are exponential averages (alpha 0.05), `droppedFrames` counts over the last 60 frames, `pressure` is none/light/moderate/heavy. Under moderate or heavy pressure the idle queue is not drained at all.
 - Events used by the adapter: gfx `draw`, editor `merge`.
 
+## Validation and background work
+
+Validation is off by default. `?validation=1` keeps it on. `__benchRapid.validation` says which mode a page runs in, and `__benchRapid.issues()` counts the issues the validator holds (`getIssuesBySeverity({ what: 'all', where: 'all', includeIgnored: true, includeDisabledRules: true })`, `core/ValidationSystem.ts:429`).
+
+How it is switched off (`bench.js`, after `context.initAsync()` and before `startAsync()`, so before any tile can merge; tiles load in APP, which needs the started graphics system). Rapid's listeners look the methods up on `this` at call time, so replacing them on the instance is enough:
+
+- `validator._validateBaseEntitiesAsync`: the `merge` listener (`core/ValidationSystem.ts:180`). Merged entities go through `_validateEntitiesAsync` in chunks of 50, scheduled with `scheduleIdleTask` (line 838).
+- `validator.validateAsync`: the `stablechange` listener (line 179), and the UI toggles of validators (lines 539, 553).
+- `validator._validateEntitiesAsync` (line 760): the only job queue. The 5 s retry for provisional results (lines 812-815) and `revalidateUnsquare` go through it.
+
+Not used: the `validator.disabledRules` setting. It only filters the results in `getIssues` (lines 327-328). `_validateEntity` (line 705) still runs every validator, so the work stays. (From reading the source, not measured.)
+
+Measured on medium, zoom 17, final smoke run, headless Chrome, two runs each:
+
+| | validation off (default) | validation on (`?validation=1`) |
+| issues held by the validator, after `settled({ idle: true })` | 0 | 519 (1 error, 410 warnings, 108 suggestions) |
+| `settled()`, picture final (ms) | 5824, 5637 | 5839, 5961 |
+| `settled({ idle: true })` (ms) | 7374, 7236 | 28271, 33997 |
+| drag frames: rAF interval median / max (ms) | 16.7 / 50.0, 16.7 / 50.0 | 16.7 / 66.7, 16.7 / 233.3 |
+
+Scene small, validation off: picture 8884 ms, idle 10579 ms (a slow start on that run, ready at 5819 ms).
+
+What runs after the picture is final, with validation off (medium, sampled every 100 ms with `__benchRapid.blockers()`): the picture was final at 4.6 s, the idle queue was empty at 6.2 s. Timers that fired in that window: `UiAttribution-render`, `urlhash-update-hash`, `UiContributors-render`, `UiFilterStatus-render`, `UiDrawModesTool-render`, `BackgroundList-mapDraw`, `OverlayList-mapDraw`. Each is a UI update, not a map change. `settled()` does not wait for them, so the benchmark numbers do not include them.
+
+Background work that does not draw, and what was done with it:
+
+| Work | Where | Trigger | Switched off? |
+| --- | --- | --- | --- |
+| Validation (merge, edit, retry) | `core/ValidationSystem.ts` 179-180, 760, 812-815 | every merge and edit, idle queue | Yes, off by default (`?validation=1` keeps it) |
+| API status poll | `ui/UiApiStatus.ts:54` (1 s, rate-limit countdown), `:61` (90 s) | interval | Yes, `scheduler.cancel` in `bench.js`. Only the footer chip reads it; OsmService's rate limit is set only by HTTP 429, which the mock never sends |
+| Attribution text | `ui/UiAttribution.ts:42`, `:49` | 400 ms throttle, every draw | No: it is visible text on the map, not the map data |
+| URL hash update | `core/UrlHashSystem.ts:274` | 500 ms throttle, map moves | No: it is the URL, and it is cheap |
+| Contributors, filter status, draw modes chips | `ui/UiContributors.ts:44`, `ui/UiFilterStatus.ts:47`, `ui/tools/UiDrawModesTool.ts:100` | 1 s, 1 s, 500 ms throttles | No: footer UI. Freezing it would show stale state |
+| Background and overlay list panes | `ui/sections/UiSectionBackgroundList.ts:754`, `UiSectionOverlayList.ts:214` | 1 s throttle, every draw | No: the pane is hidden, but they are bound to `gfx` events and would need private handlers replaced |
+| React sections | `ui/sections/react_container.jsx:37-47` | 1 s debounce, every draw, then idle | No: same reason |
+| Validation panes and footer status | `UiSectionValidationStatus.ts:40`, `UiSectionValidationIssues.ts:60`, `UiValidatorStatus.ts:46` | `validated` events | Effectively yes: with validation off no `validated` event fires during a load |
+| Scale bar, minimap | `ui/UiScale.ts:50`, `ui/UiMinimap.ts:453` | every draw | No: part of the map picture |
+| Edit backup | `core/EditSystem.ts:1425` | 1 s debounce after an edit | No: only after edits, writes `localStorage` |
+| Taginfo, Wikidata, Wikipedia | `services/TaginfoService.ts`, sidebar fields | on selection | Blocked by the offline guard in `bench.js` |
+
+Rule for the table: only switch off what does not change the picture on the map. The rest is listed so that a later change can decide on it.
+
+## Dragging a vertex
+
+`smoke.ts` does this with the real mouse. It zooms to 18, presses on a vertex, moves 60 px in 20 steps (one animation frame per step), releases, waits for `settled()`, and checks that `nodeLoc()` moved the vertex by about 60 px on screen and that the map did not move. Result on every final run: 60.0 px, camera unchanged, both scenes.
+
+What a real drag needs in browse mode (paths relative to `.reference/rapid/modules`):
+
+- **Press target.** The Pixi hit test at pointerdown must return an `osm` layer point whose data is a node (`behaviors/DragBehavior.ts:123-140`). The press does not need a hover first: pressing right after the move, with no frame in between, started the drag on small (checked with a temporary script, removed).
+- **Hit area.** A vertex's hit area is a square of about 14 px around its centre (`pixi/PixiFeaturePoint.ts:395-403`: at least 20 px, then 4 px padding). Press at `__bench.project(loc)`, which is the centre.
+- **Which vertices can be pressed.** Only the ones drawn: at zoom >= 16 the "interesting" ones (tags, endpoint, intersection), plus those related to the selection or hover (`pixi/PixiLayerOsm.ts:606-626`). Other vertices have no hit area.
+- **Hover draws more.** Hovering a way draws its other vertices, and those have hit areas too (observed in medium). At zoom 17 the picked vertex had neighbours 12 to 14 px away, one of them won the press, and the neighbour moved. So `smoke.ts` picks a vertex that has 15 px (max-norm, the hit square) of room from every node in view, and a spot 60 px to its right with the same room, at zoom 18. At zoom 17 no vertex in medium has that room.
+- **Minimum movement.** 1 px for a mouse, 4 px for a pen (`behaviors/DragBehavior.ts:12-13`, `:180`). The drag starts on the first pointermove past that, and enters `drag-node` (`:178-229`).
+- **Drop.** On pointerup, a node under the pointer is connected to the dragged node (`modes/DragNodeMode.ts:314-315`): the dragged node is merged away, `nodeLoc()` returns undefined, and the annotation reads "Connected a way to another". Within 6 px of a way the node snaps onto the way and stays (`modes/DragNodeMode.ts:238`, `:335`).
+- **Hidden connections.** A node connected to a hidden feature cannot be dragged. Rapid flashes "connected to hidden" and does not enter the mode (`modes/DragNodeMode.ts:104-113`). Boundaries are hidden by default (15 entities in medium), so a boundary vertex is not draggable. The smoke pick does not check this; it would show up as no movement.
+- **Pointer over the canvas.** The drag only runs while the pointer is over the renderer (`behaviors/DragBehavior.ts`, `_pointermove`). Playwright's mouse events are.
+- **Frame times during the drag** (rAF in the page, medium and small, one run each): median 16.7 ms throughout; max 50 ms with validation off, 67 and 233 ms with it on. Single samples, so treat the maxima as indicative.
+
 ## Pitfalls
 
 - The adapter reads protected fields (`_appPending`, `_drawPending`, `_prevTransform`, `_tileCache`, `_inflight`, scheduler queues, `_pendingRasters`, `_svgIcons`). The bundle does not mangle property names and the commit is pinned; a new pin needs a re-check of `blockers()`.
@@ -151,4 +212,7 @@ Quiet-machine runs: small 2327 / 3199 / 7955, medium 2355 / 4674 / 27400. So rea
 ## Not verified
 
 - Behaviour under Rapid's own CSP page, headed mode timings, WebGPU/canvas renderers, device pixel ratio 2 (all runs were DPR 1).
+- Validation on and off were compared on medium only (issue counts and idle times). Dense was not run with validation on or off, and the drag was not run on dense.
+- The drag was not run with a hidden boundary vertex, with a pen, or in a headed browser. The frame-time maxima come from one or two runs.
+- "Validation is off" means no validator job runs; that the `disabledRules` setting does not stop the work is from reading the source, not measured.
 - That no code path at all can reach a remote host through an `<img>`, `<script>` or `<link>` element: the guard covers `fetch` paths only. With imagery, photo layers and Map3D off none was observed, and Playwright would block and report it.
