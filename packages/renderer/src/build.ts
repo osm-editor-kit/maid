@@ -270,6 +270,34 @@ export class FeatureBuilder {
     return { source: 'lines', feature: lineFeature(id, coords, tags, tagClasses(tags)) }
   }
 
+  /** The point feature of a standalone node, or undefined if it has no tags worth showing */
+  buildPoint(node: OsmNode): Feature | undefined {
+    if (!hasInterestingTags(node.tags)) return undefined
+    const id = `n${node.id}`
+    this.built.add(id)
+    const props: PointProps = { id }
+    const addr = addressOf(node.tags!)
+    if (addr) props.addr = addr
+    else {
+      const icon = presetIcon(node.tags!)
+      if (icon) props.icon = icon
+      if (node.tags!.name) props.name = node.tags!.name
+    }
+    return { type: 'Feature', id, properties: props, geometry: { type: 'Point', coordinates: [node.lon, node.lat] } }
+  }
+
+  /** Re-reads a vertex's tags (tagged or not) and returns its feature, if it has one */
+  refreshVertex(node: OsmNode): Feature | undefined {
+    const shared = (this.store.nodeUses.get(node.id) ?? 0) > 1
+    const tagged = hasInterestingTags(node.tags)
+    if (!tagged && !shared && !this.store.endpoints.has(node.id)) {
+      this.vertexState.delete(node.id)
+      return undefined
+    }
+    this.vertexState.set(node.id, `${tagged ? 1 : 0}${shared ? 1 : 0}`)
+    return this.buildVertex(node)
+  }
+
   /** The vertex feature of a node, if it has one */
   buildVertex(node: OsmNode): Feature | undefined {
     const state = this.vertexState.get(node.id)
@@ -324,16 +352,8 @@ export class FeatureBuilder {
       const id = `n${node.id}`
       if (uses === 0) {
         if (!tagged || this.built.has(id)) continue
-        this.built.add(id)
-        const props: PointProps = { id }
-        const addr = addressOf(node.tags!)
-        if (addr) props.addr = addr
-        else {
-          const icon = presetIcon(node.tags!)
-          if (icon) props.icon = icon
-          if (node.tags!.name) props.name = node.tags!.name
-        }
-        out.points.push({ type: 'Feature', id, properties: props, geometry: { type: 'Point', coordinates: [node.lon, node.lat] } })
+        const point = this.buildPoint(node)
+        if (point) out.points.push(point)
         continue
       }
       // iD only draws vertices that matter while nothing is selected: tagged, junctions, way ends

@@ -50,7 +50,11 @@ export function Inspector() {
             {entity.type === 'way' && `, ${entity.size} nodes`}
             {entity.type === 'relation' && `, ${entity.size} members`}
           </p>
-          <TagList tags={entity.tags} />
+          <TagList
+            tags={entity.tags}
+            onChange={entity.type === 'relation' ? undefined : (key, value) => engine.setTag(id, key, value)}
+          />
+          <p className="mt-3 text-xs text-neutral-500">Changes stay in this browser tab. Saving to OSM is not built yet.</p>
         </div>
       )}
     </aside>

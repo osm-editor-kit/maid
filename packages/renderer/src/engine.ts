@@ -399,6 +399,50 @@ export class MaidEngine {
   }
   private editBatch?: FeatureBatch
 
+  // --- Changing tags ---
+
+  /**
+   * Sets or removes one tag of a node or way and redraws it with the look the new tags give it.
+   * Local only: nothing is uploaded, and there is no undo yet.
+   */
+  setTag(id: string, key: string, value: string | undefined) {
+    const num = Number(id.slice(1))
+    const entity = id[0] === 'n' ? this.store.nodes.get(num) : id[0] === 'w' ? this.store.ways.get(num) : undefined
+    if (!entity || !key) return
+    const tags = { ...entity.tags }
+    if (value === undefined || value === '') delete tags[key]
+    else tags[key] = value
+    entity.tags = Object.keys(tags).length ? tags : undefined
+
+    const batch: FeatureBatch = { areas: [], lines: [], points: [], vertices: [] }
+    const remove: [SourceName, string][] = []
+    const previous = this.featureSource.get(id)
+    if (entity.type === 'way') {
+      const built = this.builder.buildWay(entity)
+      if (built) batch[built.source].push(built.feature)
+      // a way can change between line and area, or stop being drawn
+      if (previous && previous !== built?.source) remove.push([previous, id])
+    } else if (this.store.nodeWays.has(num)) {
+      const vertex = this.builder.refreshVertex(entity)
+      if (vertex) batch.vertices.push(vertex)
+      else if (previous) remove.push([previous, id])
+    } else {
+      const point = this.builder.buildPoint(entity)
+      if (point) batch.points.push(point)
+      else if (previous) remove.push([previous, id])
+    }
+    for (const [name, featureId] of remove) {
+      this.removals[name].push(featureId)
+      this.featureSource.delete(featureId)
+      this.dirty[name] = true
+      void this.flush(name)
+    }
+    this.push(batch)
+    // feature state belongs to a source; a way that moved between sources needs it again
+    if (id === this.selectedId && remove.length) queueMicrotask(() => this.applyHighlight(null, 'selected'))
+    this.changed()
+  }
+
   // --- Dragging a vertex ---
 
   private dragTarget?: { nodeId: number; lon: number; lat: number }
