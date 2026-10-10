@@ -26,7 +26,7 @@ Goal: an agent can clone the repo, run one command to set up, pick a step, and v
   Done when: no other file contains these numbers (`grep`).
 - [ ] **0.6 CI.** GitHub Actions: `check-ci` on every push. A placeholder job for `bench-smoke` that is enabled in 4.6. Dependabot from the `tech-stack` template.
   Done when: the workflow file passes `actionlint` and runs green once the repo is pushed. **(person)** to push.
-- [ ] **0.7 License and attribution.** `LICENSE.md` (ISC unless decided otherwise), a note on ODbL for `fixtures/`. **(person)** confirms the license.
+- [ ] **0.7 License and attribution.** `LICENSE.md` (ISC, decided), a note on ODbL for `fixtures/`.
 
 ## Milestone 1: Fixtures and mock API
 
@@ -36,7 +36,7 @@ Goal: the same frozen data for every editor, with no request leaving the machine
   Done when: unit tests pass on a tiny hand-written `.osm` file.
 - [ ] **1.2 Synthetic generator.** `fixtures-synthetic --nodes N`: a deterministic grid city (roads of several classes, buildings, landuse, POIs, some `layer` and `bridge` tags) in the same format, around a fixed Berlin coordinate.
   Done when: the same seed gives byte-identical output; fixtures for 10k, 100k and 500k nodes are generated in tests, and 10k is committed.
-- [ ] **1.3 Real fixtures. (person)** Tobias downloads one Geofabrik Berlin extract and runs `fixtures-build` for `small`, `medium` and `dense` (areas from the open questions in PLAN.md). Commit the JSON (gzip) and `meta.json`.
+- [ ] **1.3 Real fixtures. (person)** Tobias downloads one Geofabrik Berlin extract and runs `fixtures-build` for `small`, `medium` and `dense` (areas from the decisions in PLAN.md). Commit the JSON (gzip) and `meta.json`.
   Done when: three scenes are in `fixtures/` with counts in `meta.json` that match the size targets.
 - [ ] **1.4 Mock OSM API.** `tools/mock-osm-api` on Bun: `/api/capabilities(.json)`, `/api/0.6/map(.json)?bbox=` answered from a spatial index over one scene (selected by `?scene=` at start or a path prefix), `/api/0.6/node/ID.json`, `/api/0.6/{way,relation}/ID/full.json`, CORS headers, 405 for every write, optional `--latency ms`. It logs each request as a JSON line.
   Done when: tests cover each endpoint; a `map` request for a bbox returns exactly the nodes inside plus complete ways, like the real API.
@@ -64,7 +64,7 @@ Goal: a fixture on screen in MapLibre as plain geometry. No iD styling yet.
 
 Goal: both reference editors show the same fixture from the mock API and can be driven by script.
 
-- [ ] **3.1 Pins.** `tools/refs/pins.json` with repo URL and commit for iD (latest upstream release, unless decided otherwise) and Rapid (`bhousel/Rapid`, current `main`). **(person)** confirms the iD baseline.
+- [ ] **3.1 Pins.** `tools/refs/pins.json` with repo URL and commit for iD (latest upstream release of `openstreetmap/iD`, decided) and Rapid (`bhousel/Rapid`, current `main`).
 - [ ] **3.2 `refs-setup`.** Clone both at their pins into `.reference/` (from GitHub), install and build (iD: `npm ci`, `npm run build`; Rapid: `bun install`, `bun run build`). Idempotent: skip when the built commit matches the pin. Record tool versions and build output paths in `.reference/manifest.json`.
   Done when: running it twice does the work once; the manifest exists.
 - [ ] **3.3 Host pages.** Our own `index.html` for each editor, kept in `tools/refs/hosts/`: sets the API to the mock (iD: `context.connection().switch`, or the build-time env if `switch` turns out to send unwanted requests; Rapid: `context.preauth`), local assets, no background imagery, no OAuth credentials, exposes `window.context` or `window.rapidContext`. `refs-serve` serves them on the ports from 0.5.
@@ -129,6 +129,6 @@ Goal: know the cost of data changes in MapLibre and the best way to feed it. Eac
 
 ## Milestone 8: Answer
 
-- [ ] **8.1 Final run** on the agreed machine with all scenes, pinned editors and the chosen renderer variant.
+- [ ] **8.1 Final run** on Tobias's Mac with all scenes, pinned editors and the chosen renderer variant.
 - [ ] **8.2 Report.** `docs/iteration-1/report.md`: the question, the answer for look, speed and data changes against the thresholds in PLAN.md, the gaps, and what we did not measure.
 - [ ] **8.3 Iteration 2 proposal.** What comes next (editing, presets, package boundaries for forks), based on what we learned. **(person)** Tobias decides.

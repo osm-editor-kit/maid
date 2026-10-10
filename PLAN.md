@@ -56,7 +56,7 @@ Editing tools, undo and redo, presets and the tag editor, validation, upload and
 
 ### How we decide
 
-Proposed thresholds. Confirm or change them before milestone 8 (see open questions).
+Proposed thresholds, not yet confirmed (see open questions).
 
 - **Look:** every item of the core subset is either comparable to iD or has a documented gap with a way forward. One gap we cannot close (for example partial fill) is acceptable if an alternative is agreed. A gap in roads, vertices or picking is not.
 - **Speed, against iD:** Maid is better on every scenario in the medium and dense scenes: load time, settle time after a camera move, and hover latency.
@@ -175,16 +175,22 @@ Numbers come early on purpose: milestone 4 runs before the style work. If plain 
 | Benchmarks tempt us to hit real servers | Network guard fails the run; see core rule 1 |
 | Reference editors change | Pinned commits in `.reference/`, recorded in every report |
 
+## Decided
+
+Answers from Tobias, 2026-10-10:
+
+| Topic | Decision |
+| --- | --- |
+| iD baseline | The latest upstream release of `openstreetmap/iD`. The fork changes nothing relevant for this iteration. |
+| Benchmark machine | Everything runs on Tobias's Mac for now, in Chrome with GPU acceleration. A second, weaker machine can follow later. |
+| Fixture areas | `medium`: Mitte around Hackescher Markt. `dense`: a part of Neukölln with detailed parking mapping. |
+| License | ISC, like iD and Rapid. |
+| Repo setup | A Bun monorepo with packages that are shared and published. |
+
 ## Open questions
 
-Defaults are in place so work can start. Tell us if you want something else.
-
-1. **Which iD is the baseline?** Default: the latest upstream release tag of `openstreetmap/iD`. Alternative: your fork.
-2. **Which machine produces the official numbers?** Default: your Mac, in Chrome with GPU acceleration, run by an agent. A second, weaker machine would say more about real mappers.
-3. **Fixture areas:** which Berlin areas for `medium` and `dense`? Default: Mitte around Hackescher Markt, and a part of Neukölln with detailed parking mapping.
-4. **Thresholds** in "How we decide": are they the right bar?
-5. **License** for Maid. Default: ISC, like iD and Rapid.
-6. **Where does the repo live?** Default: `osm-editor-kit/maid` on GitHub, once you want it pushed.
+1. **Thresholds** in "How we decide": are they the right bar? They stay proposals until confirmed, at the latest before milestone 8.
+2. **Where is the repo hosted?** Default: `osm-editor-kit/maid` on GitHub. Nothing is pushed yet.
 
 ## References
 
