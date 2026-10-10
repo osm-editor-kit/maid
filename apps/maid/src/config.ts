@@ -42,7 +42,7 @@ export function readConfig(location: Location): Config {
     live,
     apiUrl: live ? 'https://api.openstreetmap.org' : `http://localhost:${PORTS.mockApi}/s/${scene}`,
     update: param(params, 'update', ['diff', 'setData'] as const, 'diff'),
-    highlight: param(params, 'highlight', ['source', 'state'] as const, 'source'),
+    highlight: param(params, 'highlight', ['state', 'source'] as const, 'state'),
     serialUpdates: params.get('serial') !== '0',
     edit: param(params, 'edit', ['split', 'inline'] as const, 'split'),
     fill: param(params, 'fill', ['partial', 'full', 'wireframe'] as const, 'partial'),
@@ -52,7 +52,7 @@ export function readConfig(location: Location): Config {
     minDataZoom: Number(params.get('minDataZoom') ?? 16),
     tolerance: Number(params.get('tolerance') ?? 0),
     sourceMaxZoom: Number(params.get('sourceMaxZoom') ?? 17),
-    fade: Number(params.get('fade') ?? 300),
+    fade: Number(params.get('fade') ?? 150),
     camera: map ? { zoom: Number(map[1]), lat: Number(map[2]), lng: Number(map[3]) } : undefined,
   }
 }

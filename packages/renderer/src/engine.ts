@@ -376,7 +376,9 @@ export class MaidEngine {
       }
       set(previous, false)
       set(kind === 'hover' ? hoverId : selectedId, true)
+      // a feature that is not on the map changes nothing, so ask for a frame explicitly
       void map.once('render').then(shown)
+      map.triggerRepaint()
       return
     }
     const features: Feature[] = []

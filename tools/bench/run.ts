@@ -146,6 +146,7 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
   )
   await context.addInitScript(installProbe)
   const page = await context.newPage()
+  page.setDefaultTimeout(90_000) // a hanging editor fails its run instead of blocking the benchmark
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
   const cdp = await context.newCDPSession(page)
@@ -322,7 +323,12 @@ try {
     const scene = getScene(sceneName)
     for (let repeat = 0; repeat < opts.repeat; repeat++) {
       for (const editor of opts.editors) {
-        const result = await runOnce(browser, editor, scene, repeat, outDir, opts)
+        const result = await Promise.race([
+          runOnce(browser, editor, scene, repeat, outDir, opts),
+          Bun.sleep(300_000).then(
+            (): RunResult => ({ editor, variant: opts.variant, scene: scene.name, repeat, ok: false, error: 'run did not finish within 5 minutes', blocked: {}, screenshots: {} }),
+          ),
+        ])
         results.push(result)
         if (!result.ok) failed = true
         console.log(
