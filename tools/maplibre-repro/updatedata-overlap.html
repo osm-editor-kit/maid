@@ -1,0 +1,102 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>MapLibre: overlapping updateData calls leave GeoJSON tiles inconsistent</title>
+<link rel="stylesheet" href="/maplibre-gl/dist/maplibre-gl.css" />
+<style>
+  html, body, #map { height: 100%; margin: 0; }
+  #out { position: absolute; top: 8px; left: 8px; z-index: 1; background: #fff; padding: 8px; font: 13px/1.4 monospace; white-space: pre; }
+</style>
+<div id="map"></div>
+<div id="out">running…</div>
+<script type="module">
+  // Local copy for our own runs. For an upstream report replace both URLs with a CDN build, e.g.
+  // https://unpkg.com/maplibre-gl@6.12.0/dist/maplibre-gl.mjs and .../maplibre-gl.css
+  import { Map } from '/maplibre-gl/dist/maplibre-gl.mjs'
+
+  const params = new URLSearchParams(location.search)
+  const SERIAL = params.get('serial') === '1' // wait for each update's tiles before the next
+  const BATCHES = Number(params.get('batches') ?? 12)
+  const PER_BATCH = Number(params.get('perBatch') ?? 400)
+  const GAP_MS = Number(params.get('gap') ?? 30) // time between updateData calls
+  const RESTYLE = params.get('restyle') === '1' // change a data-driven paint property between updates
+  const SORT = params.get('sort') === '1' // layers with line-sort-key
+
+  const center = [13.4, 52.52]
+  const map = new Map({
+    container: 'map',
+    center,
+    zoom: 17,
+    style: { version: 8, sources: {}, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#111' } }] },
+  })
+
+  // deterministic pseudo-random lines around the centre
+  let seed = 1
+  const random = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646
+  const batch = (b) =>
+    Array.from({ length: PER_BATCH }, (_, i) => {
+      const x = center[0] + (random() - 0.5) * 0.004
+      const y = center[1] + (random() - 0.5) * 0.0025
+      const coordinates = Array.from({ length: 6 }, (_, k) => [x + k * 0.0001 + random() * 0.00005, y + random() * 0.0002])
+      return { type: 'Feature', properties: { id: `f${b}-${i}`, kind: i % 3 }, geometry: { type: 'LineString', coordinates } }
+    })
+
+  const tilesReloaded = () =>
+    new Promise((resolve) => {
+      const check = () => map.isSourceLoaded('lines') && (map.off('sourcedata', check), resolve())
+      map.on('sourcedata', check)
+      check()
+    })
+
+  map.on('load', async () => {
+    map.addSource('lines', { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, promoteId: 'id', tolerance: 0, maxzoom: 17 })
+    for (const kind of [0, 1, 2]) {
+      map.addLayer({
+        id: `lines-${kind}`,
+        type: 'line',
+        source: 'lines',
+        filter: ['==', ['get', 'kind'], kind],
+        layout: SORT ? { 'line-sort-key': ['get', 'kind'] } : {},
+        paint: { 'line-color': ['#f66', '#6f6', '#66f'][kind], 'line-width': 2 },
+      })
+    }
+    const source = map.getSource('lines')
+    for (let b = 0; b < BATCHES; b++) {
+      const promise = source.updateData({ add: batch(b) })
+      if (RESTYLE) {
+        // what an app does when new data brings a new dash pattern
+        const cases = Array.from({ length: b + 1 }, (_, k) => [k, ['literal', [1 + k, 2]]]).flat()
+        for (const kind of [0, 1, 2]) map.setPaintProperty(`lines-${kind}`, 'line-dasharray', ['match', ['get', 'kind'], ...cases, ['literal', [1, 0]]])
+      }
+      if (SERIAL) {
+        await promise
+        await tilesReloaded()
+      } else await new Promise((resolve) => setTimeout(resolve, GAP_MS))
+    }
+    await new Promise((resolve) => {
+      map.once('idle', resolve)
+      map.triggerRepaint()
+    })
+    await new Promise((resolve) => setTimeout(resolve, 500))
+
+    const expected = BATCHES * PER_BATCH
+    const inSource = new Set(map.querySourceFeatures('lines').map((f) => f.id)).size
+    const data = await source.getData()
+    let rendered
+    try {
+      rendered = new Set(map.queryRenderedFeatures({ layers: ['lines-0', 'lines-1', 'lines-2'] }).map((f) => f.id)).size
+    } catch (error) {
+      rendered = String(error)
+    }
+    const result = {
+      version: map.version,
+      mode: `${SERIAL ? 'serial' : `overlapping, ${GAP_MS} ms apart`}${RESTYLE ? ', restyle' : ''}${SORT ? ', sort-key' : ''}`,
+      expected,
+      inWorkerData: data.features.length,
+      inTiles_querySourceFeatures: inSource,
+      queryRenderedFeatures: rendered,
+      ok: inSource === expected && typeof rendered === 'number',
+    }
+    document.getElementById('out').textContent = JSON.stringify(result, null, 2)
+    window.__result = result
+  })
+</script>
