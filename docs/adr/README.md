@@ -9,3 +9,5 @@ One file per decision: what we decided, why, and what we measured. Number them i
 | [0003](0003-edit-source-for-changing-features.md) | Features that are being changed live in a small edit source |
 | [0004](0004-points-as-dots-plus-pins-that-fit.md) | Points are dots, with pins where they fit |
 | [0005](0005-own-store-for-the-proof-of-concept.md) | The proof of concept uses its own small data store |
+| [0006](0006-wheel-zoom-finish-delay.md) | Shorten MapLibre's wait after a wheel zoom (bun patch) |
+| [0007](0007-workers-and-batched-updates.md) | Four MapLibre workers, and tiles that arrive together go in as one update |
