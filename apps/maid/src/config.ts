@@ -15,6 +15,8 @@ export type Config = {
   serialUpdates: boolean
   edit: EngineOptions['edit']
   fill: LayerOptions['fill']
+  /** Inspector, controls and status bar. `ui=0` leaves only the map. */
+  ui: boolean
   labels: boolean
   icons: boolean
   pins: LayerOptions['pins']
@@ -46,6 +48,7 @@ export function readConfig(location: Location): Config {
     serialUpdates: params.get('serial') !== '0',
     edit: param(params, 'edit', ['split', 'inline'] as const, 'split'),
     fill: param(params, 'fill', ['partial', 'full', 'wireframe'] as const, 'partial'),
+    ui: params.get('ui') !== '0',
     labels: params.get('labels') !== '0',
     icons: params.get('icons') !== '0',
     pins: param(params, 'pins', ['fit', 'all'] as const, 'fit'),

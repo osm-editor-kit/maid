@@ -1,3 +1,3 @@
 export { hasInterestingTags, isArea, tagClasses, wayLayer, type Tags } from './classes'
-export { presetIcon } from './icons'
+export { matchPreset, presetIcon, type Geometry, type Preset } from './icons'
 export { resolveWayStyle, type PartStyle, type WayStyle } from './resolve'

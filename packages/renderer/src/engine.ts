@@ -6,7 +6,7 @@
  * a whole FeatureCollection through React props on every tile would be the slow path we
  * want to avoid (see docs/research/maplibre.md).
  */
-import { resolveWayStyle, tagClasses } from '@maid/style'
+import { isArea, matchPreset, resolveWayStyle, tagClasses, type Geometry, type Preset, type Tags } from '@maid/style'
 import type { Feature, FeatureCollection } from 'geojson'
 import type { GeoJSONSource, Map as MapLibreMap, MapGeoJSONFeature } from 'maplibre-gl'
 import { dashPatterns, FeatureBuilder, wayVertices, type FeatureBatch, type SourceName } from './build'
@@ -50,6 +50,17 @@ export type EngineMetrics = {
   features: Record<SourceName, number>
 }
 
+/** What the inspector needs to know about one entity */
+export type EntityInfo = {
+  id: string
+  type: 'node' | 'way' | 'relation'
+  geometry: Geometry
+  tags: Tags
+  preset?: Preset
+  /** Number of nodes of a way, or members of a relation */
+  size?: number
+}
+
 const TILE_ZOOM = 16
 const SOURCE_NAMES: SourceName[] = ['areas', 'lines', 'points', 'vertices']
 const EMPTY: FeatureCollection = { type: 'FeatureCollection', features: [] }
@@ -88,6 +99,48 @@ export class MaidEngine {
   private dirty: Record<SourceName, boolean> = { areas: false, lines: false, points: false, vertices: false }
 
   constructor(public options: EngineOptions) {}
+
+  // --- Reading state from the UI ---
+
+  private listeners = new Set<() => void>()
+  /** Counts up whenever data was merged. For `useSyncExternalStore`. */
+  version = 0
+
+  subscribe = (listener: () => void) => {
+    this.listeners.add(listener)
+    return () => this.listeners.delete(listener)
+  }
+  getVersion = () => this.version
+
+  private changed() {
+    this.version++
+    for (const listener of this.listeners) listener()
+  }
+
+  entity(id: string | null): EntityInfo | undefined {
+    if (!id) return undefined
+    const num = Number(id.slice(1))
+    if (id[0] === 'n') {
+      const node = this.store.nodes.get(num)
+      if (!node) return undefined
+      const geometry: Geometry = this.store.nodeWays.has(num) ? 'vertex' : 'point'
+      const tags = node.tags ?? {}
+      return { id, type: 'node', geometry, tags, preset: matchPreset(tags, geometry) }
+    }
+    if (id[0] === 'w') {
+      const way = this.store.ways.get(num)
+      if (!way) return undefined
+      const tags = way.tags ?? {}
+      const closed = way.nodes.length > 2 && way.nodes[0] === way.nodes[way.nodes.length - 1]
+      const geometry: Geometry = isArea(way.tags, closed) ? 'area' : 'line'
+      return { id, type: 'way', geometry, tags, preset: matchPreset(tags, geometry), size: way.nodes.length }
+    }
+    const relation = this.store.relations.get(num)
+    if (!relation) return undefined
+    const tags = relation.tags ?? {}
+    const geometry: Geometry = tags.type === 'multipolygon' ? 'area' : 'relation'
+    return { id, type: 'relation', geometry, tags, preset: matchPreset(tags, geometry), size: relation.members.length }
+  }
 
   attach(map: MapLibreMap) {
     this.map = map
@@ -158,6 +211,7 @@ export class MaidEngine {
       })
     } else this.push(batch)
     const t3 = performance.now()
+    this.changed()
     this.metrics.mergeMs += t1 - t0
     this.metrics.buildMs += t2 - t1
     this.metrics.pushMs += t3 - t2
@@ -173,6 +227,10 @@ export class MaidEngine {
       if (features.length === 0) continue
       this.metrics.features[name] += features.length
       for (const f of features) this.featureSource.set(f.id as string, name)
+      // a selection made before its feature was loaded (from the URL) is shown once it arrives
+      if (this.selectedId && this.shownSelected !== this.selectedId && features.some((f) => f.id === this.selectedId)) {
+        queueMicrotask(() => this.applyHighlight(null, 'selected'))
+      }
       if (this.options.update === 'setData') for (const f of features) this.all[name].set(f.id as string, f)
       else this.queue[name] = this.queue[name].concat(features)
       this.dirty[name] = true

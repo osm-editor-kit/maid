@@ -12,10 +12,14 @@
   "dependencies": {
     "@maid/renderer": "workspace:*",
     "@maid/style": "workspace:*",
+    "@tailwindcss/vite": "^4.3.3",
     "maplibre-gl": "^6.0.0",
+    "nuqs": "^2.10.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-map-gl": "^8.1.3"
+    "react-map-gl": "^8.1.3",
+    "tailwind-merge": "^3.7.0",
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@types/react": "^19.2.0",

@@ -3,6 +3,7 @@ import { setWorkerUrl } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
+import './index.css'
 
 setWorkerUrl(workerUrl)
 

@@ -6,7 +6,7 @@ import type { BenchApi } from '../../../tools/refs/bench-api'
  * Maid's side of the contract in tools/refs/bench-api.d.ts. Also the debug handle for agents:
  * `window.__maid` gives the map and the engine.
  */
-export function exposeBenchApi(map: MapLibreMap, engine: MaidEngine) {
+export function exposeBenchApi(map: MapLibreMap, engine: MaidEngine, app: { select: (id: string | null) => void }) {
   const api: BenchApi = {
     editor: 'maid',
     version: `maplibre-gl ${map.version}`,
@@ -22,7 +22,7 @@ export function exposeBenchApi(map: MapLibreMap, engine: MaidEngine) {
     settled: () => engine.settled(),
     stats: () => engine.stats(),
     select: async (id) => {
-      engine.setSelected(id)
+      app.select(id) // the app's own path: map highlight, URL and inspector
       await new Promise<void>((resolve) => {
         const check = () => ((engine.selected()[0] ?? null) === id ? resolve() : requestAnimationFrame(check))
         check()

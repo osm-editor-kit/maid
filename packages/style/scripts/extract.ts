@@ -108,14 +108,23 @@ for (const p of list) {
   }
 }
 
-/** Preset icons for points and vertices: the most specific matching preset wins at runtime */
-const iconPresets = Object.entries(presets)
-  .filter(([, p]) => p.icon && !p.suggestion && p.tags && Object.keys(p.tags).length > 0)
-  .filter(([, p]) => p.geometry.includes('point') || p.geometry.includes('vertex'))
-  .map(([id, p]) => ({ id, tags: p.tags as Record<string, string>, icon: p.icon as string, score: p.matchScore ?? 1 }))
+/** Presets with their English names, for matching a feature to "what is this" and to its icon */
+const names: Record<string, { name?: string }> = JSON.parse(
+  readFileSync(join(import.meta.dir, '../node_modules/@openstreetmap/id-tagging-schema/dist/translations/en.json'), 'utf8'),
+).en.presets.presets
+const presetList = Object.entries(presets)
+  .filter(([, p]) => !p.suggestion && p.tags && p.searchable !== false)
+  .map(([id, p]) => ({
+    id,
+    name: names[id]?.name ?? id,
+    tags: p.tags as Record<string, string>,
+    geometry: p.geometry as string[],
+    ...(p.icon && { icon: p.icon as string }),
+    score: (p.matchScore as number | undefined) ?? 1,
+  }))
 
 const out = join(import.meta.dir, '../src/generated')
 await Bun.write(join(out, 'id-rules.json'), JSON.stringify(rules))
 await Bun.write(join(out, 'area-keys.json'), JSON.stringify(areaKeys))
-await Bun.write(join(out, 'icon-presets.json'), JSON.stringify(iconPresets))
-console.log(`${rules.length} rules, ${Object.keys(areaKeys).length} area keys, ${iconPresets.length} icon presets from ${idDir}`)
+await Bun.write(join(out, 'presets.json'), JSON.stringify(presetList))
+console.log(`${rules.length} rules, ${Object.keys(areaKeys).length} area keys, ${presetList.length} presets from ${idDir}`)

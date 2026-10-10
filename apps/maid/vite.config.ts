@@ -1,3 +1,4 @@
+import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
 import { PORTS } from '../../tools/ports.ts'
@@ -47,7 +48,7 @@ function patchMapLibre(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [patchMapLibre(), react()],
+  plugins: [patchMapLibre(), tailwindcss(), react()],
   // dev server: do not pre-bundle MapLibre, so the patch above also applies there
   optimizeDeps: { exclude: ['maplibre-gl'] },
   server: { port: PORTS.maid, strictPort: true },

@@ -20,7 +20,8 @@ export function addBaseImages(map: MapLibreMap) {
   if (!map.hasImage('maid-oneway')) map.addImage('maid-oneway', arrow.image, arrow.options)
 }
 
-const SPRITE_OF_PREFIX: Record<string, string> = { maki: 'maki', temaki: 'temaki', fas: 'fa', far: 'fa', fab: 'fa', roentgen: 'roentgen', iD: 'iD' }
+/** Which of iD's sprite files holds an icon, by the prefix of its name */
+export const SPRITE_OF_PREFIX: Record<string, string> = { maki: 'maki', temaki: 'temaki', fas: 'fa', far: 'fa', fab: 'fa', roentgen: 'roentgen', iD: 'iD' }
 const sprites = new Map<string, Promise<Document>>()
 
 function loadSprite(name: string) {

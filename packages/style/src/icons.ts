@@ -1,25 +1,34 @@
-import iconPresetsJson from './generated/icon-presets.json'
+import presetsJson from './generated/presets.json'
 import type { Tags } from './classes'
 
-type IconPreset = { id: string; tags: Tags; icon: string; score: number }
+export type Geometry = 'point' | 'vertex' | 'line' | 'area' | 'relation'
+export type Preset = { id: string; name: string; tags: Tags; geometry: string[]; icon?: string; score: number }
 
-const BY_KEY = new Map<string, IconPreset[]>()
-for (const preset of iconPresetsJson as IconPreset[]) {
-  const key = Object.keys(preset.tags)[0]!
+const BY_KEY = new Map<string, Preset[]>()
+const FALLBACK = new Map<string, Preset>()
+for (const preset of presetsJson as Preset[]) {
+  const key = Object.keys(preset.tags)[0]
+  if (!key) {
+    // iD's generic presets: point, line, area, relation
+    FALLBACK.set(preset.id, preset)
+    continue
+  }
   const list = BY_KEY.get(key)
   if (list) list.push(preset)
   else BY_KEY.set(key, [preset])
 }
 
 /**
- * Icon of the best matching iD preset. A simplified version of iD's preset matching:
- * all preset tags must match, exact values score higher than wildcards.
+ * The iD preset that describes a feature. A simplified version of iD's preset matching:
+ * all preset tags must match, exact values score higher than wildcards, and the preset must
+ * allow the geometry. Falls back to iD's generic preset for the geometry.
  */
-export function presetIcon(tags: Tags): string | undefined {
-  let best: IconPreset | undefined
+export function matchPreset(tags: Tags, geometry: Geometry): Preset | undefined {
+  let best: Preset | undefined
   let bestScore = 0
   for (const key in tags) {
     for (const preset of BY_KEY.get(key) ?? []) {
+      if (!preset.geometry.includes(geometry)) continue
       let score = 0
       for (const k in preset.tags) {
         const want = preset.tags[k]!
@@ -41,5 +50,10 @@ export function presetIcon(tags: Tags): string | undefined {
       }
     }
   }
-  return best?.icon
+  return best ?? FALLBACK.get(geometry)
+}
+
+/** Icon for a standalone point */
+export function presetIcon(tags: Tags): string | undefined {
+  return matchPreset(tags, 'point')?.icon ?? matchPreset(tags, 'vertex')?.icon
 }
