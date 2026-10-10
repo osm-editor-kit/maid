@@ -237,7 +237,7 @@ export class MaidEngine {
   private preparing = 0
 
   private pushing() {
-    return this.preparing > 0 || SOURCE_NAMES.some((name) => this.busy[name] || this.dirty[name])
+    return this.preparing > 0 || this.dragBusy || this.editBatch !== undefined || SOURCE_NAMES.some((name) => this.busy[name] || this.dirty[name])
   }
 
   /** Resolves when all requested tiles are merged and MapLibre has drawn them */
@@ -335,6 +335,44 @@ export class MaidEngine {
     for (const id of Object.values(EDIT_SOURCES)) void map.getSource<GeoJSONSource>(id)?.setData(EMPTY)
   }
   private editBatch?: FeatureBatch
+
+  // --- Dragging a vertex ---
+
+  private dragTarget?: { nodeId: number; lon: number; lat: number }
+  private dragBusy = false
+
+  /** True if this id is a vertex that can be dragged */
+  isVertex(id: string | null): id is string {
+    return !!id && id[0] === 'n' && this.store.nodeWays.has(Number(id.slice(1)))
+  }
+
+  /**
+   * Call on every pointer move while a vertex is held. Positions that arrive while the map is
+   * still drawing the previous one are dropped in favour of the latest, so the vertex never
+   * lags behind by more than one update.
+   */
+  dragTo(id: string, lon: number, lat: number) {
+    this.dragTarget = { nodeId: Number(id.slice(1)), lon, lat }
+    if (this.dragBusy) return
+    this.dragBusy = true
+    void (async () => {
+      try {
+        while (this.dragTarget) {
+          const target = this.dragTarget
+          this.dragTarget = undefined
+          await this.moveNode(target.nodeId, target.lon, target.lat)
+        }
+      } finally {
+        this.dragBusy = false
+      }
+    })()
+  }
+
+  /** Call when the vertex is released */
+  async endDrag() {
+    while (this.dragBusy) await new Promise((resolve) => requestAnimationFrame(resolve))
+    await this.commitEdit()
+  }
 
   // --- Hover and selection ---------------------------------------------------
 

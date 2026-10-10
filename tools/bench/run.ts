@@ -42,6 +42,8 @@ export type RunResult = {
   hoverSweep?: FrameSummary & { cpuMs: number; distinctHovered: number }
   hoverLatencyMs?: number[]
   selectMs?: number[]
+  /** Real mouse drag of a road junction vertex in a small circle for two seconds */
+  dragVertex?: FrameSummary & { cpuMs: number; settleMs: number; node: string; movedMetres: number; tries: number }
   heapMb?: number
   blocked: Record<string, number>
   screenshots: Record<string, string>
@@ -112,6 +114,24 @@ async function hoverTargets(scene: Scene) {
   }
   candidates.sort((x, y) => y.length - x.length)
   return candidates.slice(0, 8)
+}
+
+/** Junction nodes of two or more roads near the scene centre: drawn as vertices by every editor */
+async function vertexTargets(scene: Scene) {
+  const gz = await Bun.file(join(ROOT, `fixtures/${scene.name}.json.gz`)).arrayBuffer()
+  const { elements } = JSON.parse(new TextDecoder().decode(Bun.gunzipSync(new Uint8Array(gz)))) as { elements: any[] }
+  const uses = new Map<number, number>()
+  for (const e of elements) {
+    if (e.type !== 'way' || !/^(residential|tertiary|secondary|living_street|unclassified|service)$/.test(e.tags?.highway ?? '')) continue
+    for (const n of new Set<number>(e.nodes)) uses.set(n, (uses.get(n) ?? 0) + 1)
+  }
+  const out: { id: string; lng: number; lat: number; d: number }[] = []
+  for (const e of elements) {
+    if (e.type !== 'node' || (uses.get(e.id) ?? 0) < 2 || e.tags) continue
+    const d = Math.hypot((e.lon - scene.center[0]) * Math.cos((e.lat * Math.PI) / 180), e.lat - scene.center[1])
+    out.push({ id: `n${e.id}`, lng: e.lon, lat: e.lat, d })
+  }
+  return out.sort((a, b) => a.d - b.d).slice(2, 12)
 }
 
 async function cpuMs(cdp: CDPSession) {
@@ -279,6 +299,46 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
       result.selectMs.push(Math.round(ms * 10) / 10)
       if (target === targets[0]) await shot('select')
       await page.evaluate(() => window.__bench.select(null))
+    }
+
+    // --- Edit: drag a road junction with the real mouse ---
+    if (await page.evaluate(() => typeof window.__bench.nodeLoc === 'function')) {
+      let tries = 0
+      for (const target of await vertexTargets(scene)) {
+        tries++
+        const before = await page.evaluate((id) => window.__bench.nodeLoc(id), target.id)
+        if (!before) continue
+        const pos = await page.evaluate(([x, y]) => window.__bench.project(x, y), before)
+        if (pos.x < 150 || pos.y < 150 || pos.x > VIEWPORT.width - 150 || pos.y > VIEWPORT.height - 150) continue
+        await page.mouse.move(pos.x - 30, pos.y - 30)
+        await page.mouse.move(pos.x, pos.y, { steps: 5 })
+        await page.waitForTimeout(250)
+        const phase = await recordPhase(page, cdp, async () => {
+          await page.mouse.down()
+          const t = performance.now()
+          for (;;) {
+            const k = Math.min(1, (performance.now() - t) / 2000)
+            const angle = k * Math.PI * 3
+            await page.mouse.move(pos.x + Math.sin(angle) * 40 + k * 20, pos.y + (1 - Math.cos(angle)) * 25)
+            if (k >= 1) break
+            await page.waitForTimeout(8)
+          }
+          await page.waitForTimeout(100)
+          await page.mouse.up()
+        })
+        const after = await page.evaluate((id) => window.__bench.nodeLoc(id), target.id)
+        const movedMetres = after
+          ? Math.hypot((after[0] - before[0]) * 111320 * Math.cos((before[1] * Math.PI) / 180), (after[1] - before[1]) * 110540)
+          : 0
+        if (movedMetres > 1) {
+          result.dragVertex = { ...phase, node: target.id, movedMetres: Math.round(movedMetres * 10) / 10, tries }
+          await shot('drag')
+          break
+        }
+        await page.keyboard.press('Escape')
+        await page.evaluate(() => window.__bench.select(null)).catch(() => {})
+        if (tries >= 6) break
+      }
     }
 
     await cdp.send('HeapProfiler.collectGarbage')

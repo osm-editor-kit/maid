@@ -38,6 +38,11 @@ export type BenchApi = {
   selected(): string[]
   /** Ids the editor currently shows as hovered */
   hovered(): string[]
+  /**
+   * Current position of a node in the editor's data, as [lng, lat]. Lets the benchmark check
+   * that a real mouse drag on a vertex moved it. undefined if the node is not loaded.
+   */
+  nodeLoc(id: string): [number, number] | undefined
 }
 
 declare global {

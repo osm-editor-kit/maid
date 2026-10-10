@@ -28,6 +28,8 @@ const engine = new MaidEngine({
 })
 
 let lastTileCheck = 0
+/** The vertex that is being dragged, if any. Not React state: it changes on every pointer event. */
+let dragging: string | null = null
 
 export function App() {
   // Dash patterns are discovered as data arrives; the layers list them in their expressions.
@@ -62,7 +64,24 @@ export function App() {
     lastTileCheck = now
     engine.loadVisibleTiles()
   }
+  const handleMouseDown = (event: MapLayerMouseEvent) => {
+    const id = engine.pick(event.point, interactive)
+    if (!engine.isVertex(id)) return
+    event.preventDefault() // keeps MapLibre from panning the map with this drag
+    dragging = id
+    setCursor('grabbing')
+  }
+  const handleMouseUp = () => {
+    if (!dragging) return
+    dragging = null
+    setCursor('grab')
+    void engine.endDrag()
+  }
   const handleMouseMove = (event: MapLayerMouseEvent) => {
+    if (dragging) {
+      engine.dragTo(dragging, event.lngLat.lng, event.lngLat.lat)
+      return
+    }
     const id = engine.pick(event.point, interactive)
     engine.setHover(id)
     setCursor(id ? 'pointer' : 'grab')
@@ -86,6 +105,8 @@ export function App() {
         onLoad={handleLoad}
         onMove={handleMove}
         onMoveEnd={() => engine.loadVisibleTiles()}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
         onMouseMove={handleMouseMove}
         onClick={handleClick}
       >

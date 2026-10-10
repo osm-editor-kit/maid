@@ -45,6 +45,11 @@ const ROWS: Row[] = [
   { label: 'Hover sweep: frames per second', unit: '', better: 'high', get: (r) => r.hoverSweep?.fps },
   { label: 'Hover sweep: main-thread work per second', unit: 'ms', better: 'low', get: (r) => (r.hoverSweep ? Math.round(r.hoverSweep.cpuMs / (r.hoverSweep.frames / Math.max(1, r.hoverSweep.fps))) : undefined) },
   { label: 'Select a way: until drawn', unit: 'ms', better: 'low', get: (r) => medianOf(r.selectMs) },
+  { label: 'Drag a vertex: frames per second', unit: '', better: 'high', get: (r) => r.dragVertex?.fps },
+  { label: 'Drag a vertex: frame time p95', unit: 'ms', better: 'low', get: (r) => r.dragVertex?.p95Ms },
+  { label: 'Drag a vertex: worst frame', unit: 'ms', better: 'low', get: (r) => r.dragVertex?.maxMs },
+  { label: 'Drag a vertex: main-thread work per second', unit: 'ms', better: 'low', get: (r) => (r.dragVertex ? Math.round(r.dragVertex.cpuMs / (r.dragVertex.frames / Math.max(1, r.dragVertex.fps))) : undefined) },
+  { label: 'Drag a vertex: until correct after release', unit: 'ms', better: 'low', get: (r) => r.dragVertex?.settleMs },
   { label: 'JS heap after the run', unit: 'MB', better: 'low', get: (r) => r.heapMb },
 ]
 
@@ -130,8 +135,8 @@ for (const scene of scenes) {
     md += `Failed runs: ${failures.map((f) => `${columnOf(f)} #${f.repeat}: ${f.error}`).join('; ')}\n\n`
     html += `<p><b>Failed runs:</b> ${failures.map((f) => `${columnOf(f)} #${f.repeat}: ${f.error}`).join('; ')}</p>`
   }
-  for (const shot of ['load', 'zoom', 'select']) {
-    html += `<h3>${scene}: ${shot === 'load' ? 'after loading' : shot === 'zoom' ? 'zoomed in two levels' : 'a selected way'}</h3><div class="shots">`
+  for (const shot of ['load', 'zoom', 'select', 'drag']) {
+    html += `<h3>${scene}: ${shot === 'load' ? 'after loading' : shot === 'zoom' ? 'zoomed in two levels' : shot === 'drag' ? 'after dragging a road junction' : 'a selected way'}</h3><div class="shots">`
     for (const c of columns) {
       const r = results.find((x) => x.scene === scene && columnOf(x) === c && x.screenshots[shot])
       if (r) html += `<figure><figcaption>${c}</figcaption><a href="../${r.runId}/${r.screenshots[shot]}"><img loading="lazy" src="../${r.runId}/${r.screenshots[shot]}"></a></figure>`
