@@ -61,7 +61,7 @@ These names are the contract. Agents and docs only reference these.
 | `bun run bench` | Run all scenarios against all editors and write `reports/<run-id>/`. Starts the servers it needs. Options: `--editor`, `--scene`, `--repeat`, `--label`, `--variant`, `--maid-query`, `--id-query`. |
 | `bun run bench-smoke` | One run per editor on the small scene. |
 | `bun run bench-report [run-id ...]` | Render one or more runs as `report.md` and `report.html`. |
-| `bun run bench-edit [scene] [query]` | Maid only: drag a node and measure change-to-screen time. Needs `compare:maid` or a preview on 5175. |
+| `bun run bench-edit [scene] [query]` | Maid only: drag a node and measure change-to-screen time. Needs a Maid preview on 5175 (`bun run compare` starts one). |
 | `bun run compare` | Everything for the side-by-side page on http://localhost:5174. |
 | `bun run fixtures-build <file.osm.pbf>` | Cut fixtures from a local extract. Manual only, see core rule 1. |
 | `bun run style-generate [iD checkout]` | Regenerate the style data from iD's CSS and presets. |

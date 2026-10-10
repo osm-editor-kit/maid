@@ -23,9 +23,7 @@
     "refs-serve": "bun run --parallel refs-serve:*",
     "refs-serve:id": "bun tools/refs/id/serve.ts",
     "refs-serve:rapid": "bun tools/refs/rapid/serve.ts",
-    "compare": "bun run --parallel dev:api refs-serve:id refs-serve:rapid compare:maid compare:page",
-    "compare:maid": "bun run --cwd apps/maid build && bun run --cwd apps/maid preview --port 5175",
-    "compare:page": "bun apps/compare/serve.ts",
+    "compare": "bun apps/compare/start.ts",
     "bench-edit": "bun tools/bench/edit.ts",
     "style-generate": "bun run --cwd packages/style generate"
   },

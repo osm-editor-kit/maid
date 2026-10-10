@@ -42,7 +42,8 @@ const ROWS: Row[] = [
   { label: 'Zoom out: until correct afterwards', unit: 'ms', better: 'low', get: (r) => r.zoomOut?.settleMs },
   { label: 'Hover: pointer move to highlight', unit: 'ms', better: 'low', get: (r) => medianOf(r.hoverLatencyMs?.filter((v) => v >= 0)) },
   { label: 'Hover sweep: frame time p95', unit: 'ms', better: 'low', get: (r) => r.hoverSweep?.p95Ms },
-  { label: 'Hover sweep: main-thread work per second', unit: 'ms', better: 'low', get: (r) => (r.hoverSweep ? Math.round(r.hoverSweep.cpuMs / 2.4) : undefined) },
+  { label: 'Hover sweep: frames per second', unit: '', better: 'high', get: (r) => r.hoverSweep?.fps },
+  { label: 'Hover sweep: main-thread work per second', unit: 'ms', better: 'low', get: (r) => (r.hoverSweep ? Math.round(r.hoverSweep.cpuMs / (r.hoverSweep.frames / Math.max(1, r.hoverSweep.fps))) : undefined) },
   { label: 'Select a way: until drawn', unit: 'ms', better: 'low', get: (r) => medianOf(r.selectMs) },
   { label: 'JS heap after the run', unit: 'MB', better: 'low', get: (r) => r.heapMb },
 ]

@@ -12,3 +12,6 @@ apps/maid/public/sprites/
 reports/shots/
 apps/maid/public/frame-sync.js
 reports/20*
+tools/refs/*/smoke*.png
+tools/refs/*/smoke*.json
+reports/*.log

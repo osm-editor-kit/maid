@@ -4,50 +4,52 @@
     <meta charset="UTF-8" />
     <title>Maid · iD · Rapid</title>
     <style>
-      html, body { height: 100%; margin: 0; font: 13px/1.4 system-ui, sans-serif; background: #111; color: #eee; }
-      body { display: grid; grid-template-rows: auto 1fr; }
-      header { display: flex; gap: 16px; align-items: center; padding: 6px 12px; background: #222; }
-      header a { color: #9cf; }
-      main { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; min-height: 0; }
-      section { display: grid; grid-template-rows: auto 1fr; min-width: 0; }
-      h2 { margin: 0; padding: 4px 8px; font-size: 13px; background: #333; display: flex; justify-content: space-between; }
-      h2 span { font-weight: 400; font-variant-numeric: tabular-nums; }
-      iframe { width: 100%; height: 100%; border: 0; background: #000; }
+      body { margin: 0; padding: 24px; font: 15px/1.5 system-ui, sans-serif; background: #111; color: #eee; max-width: 760px; }
+      button, select { font: inherit; padding: 6px 12px; }
+      table { border-collapse: collapse; margin-top: 16px; }
+      td, th { padding: 6px 16px 6px 0; text-align: left; font-variant-numeric: tabular-nums; }
+      p { color: #bbb; }
     </style>
   </head>
   <body>
-    <header>
-      <strong>Compare</strong>
+    <h1>Maid · iD · Rapid side by side</h1>
+    <p>
+      Opens the three editors in three windows next to each other, on the same scene and camera. The window under your
+      pointer leads; the other two follow. All data comes from the local mock API.
+    </p>
+    <p>
       <label>Scene <select id="scene"><option>small</option><option selected>medium</option><option>dense</option></select></label>
-      <span>The editor under the pointer leads, the others follow its camera. Data comes from the local mock API only.</span>
-    </header>
-    <main>
-      <section><h2>Maid (MapLibre) <span id="fps-maid"></span></h2><iframe id="maid"></iframe></section>
-      <section><h2>iD (SVG) <span id="fps-id"></span></h2><iframe id="id"></iframe></section>
-      <section><h2>Rapid (PixiJS) <span id="fps-rapid"></span></h2><iframe id="rapid"></iframe></section>
-    </main>
+      <button id="open">Open the three editors</button>
+    </p>
+    <p>If only one window opens, allow pop-ups for this page and press the button again.</p>
+    <table>
+      <tr><th>Editor</th><th>Frames per second</th><th>Worst frame</th></tr>
+      <tr><td>Maid (MapLibre)</td><td id="fps-maid">–</td><td id="worst-maid">–</td></tr>
+      <tr><td>iD (SVG)</td><td id="fps-id">–</td><td id="worst-id">–</td></tr>
+      <tr><td>Rapid (PixiJS)</td><td id="fps-rapid">–</td><td id="worst-rapid">–</td></tr>
+    </table>
     <script type="module">
       const config = await (await fetch('/config.json')).json()
-      const frames = { maid: document.getElementById('maid'), id: document.getElementById('id'), rapid: document.getElementById('rapid') }
-      const select = document.getElementById('scene')
-      const load = () => {
-        const scene = config.scenes.find((s) => s.name === select.value)
-        const hash = `#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`
-        for (const [editor, frame] of Object.entries(frames)) {
-          frame.src = `http://localhost:${config.ports[editor]}/?scene=${scene.name}${hash}`
-        }
-      }
-      select.addEventListener('change', load)
-      load()
+      const editors = ['maid', 'id', 'rapid']
+      const windows = {}
+      document.getElementById('open').addEventListener('click', () => {
+        const scene = config.scenes.find((s) => s.name === document.getElementById('scene').value)
+        const width = Math.floor(screen.availWidth / 3)
+        const height = Math.floor(screen.availHeight * 0.75)
+        editors.forEach((editor, i) => {
+          const url = `http://localhost:${config.ports[editor]}/?scene=${scene.name}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`
+          windows[editor] = window.open(url, `maid-compare-${editor}`, `popup,left=${i * width},top=0,width=${width},height=${height}`)
+        })
+      })
       window.addEventListener('message', (event) => {
         if (event.data?.type === 'maid-compare-camera') {
-          for (const [editor, frame] of Object.entries(frames)) {
-            if (editor !== event.data.editor) frame.contentWindow.postMessage(event.data, '*')
+          for (const editor of editors) {
+            if (editor !== event.data.editor) windows[editor]?.postMessage(event.data, '*')
           }
         }
         if (event.data?.type === 'maid-compare-frames') {
-          const el = document.getElementById(`fps-${event.data.editor}`)
-          if (el) el.textContent = `${event.data.fps.toFixed(0)} fps · worst frame ${event.data.worst.toFixed(0)} ms`
+          document.getElementById(`fps-${event.data.editor}`).textContent = event.data.fps.toFixed(0)
+          document.getElementById(`worst-${event.data.editor}`).textContent = `${event.data.worst.toFixed(0)} ms`
         }
       })
     </script>
