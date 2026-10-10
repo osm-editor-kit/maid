@@ -309,7 +309,11 @@ export class MaidEngine {
       }
       this.loadVisibleTiles()
       if (this.inflight > 0 || this.pushing()) {
-        await new Promise<void>((resolve) => this.waiters.push(resolve))
+        // woken when work finishes; the timer covers work that ends without sending anything
+        await new Promise<void>((resolve) => {
+          this.waiters.push(resolve)
+          setTimeout(resolve, 250)
+        })
         continue
       }
       // `idle` is MapLibre's "nothing left to draw": tiles are loaded, symbols are placed and
@@ -391,6 +395,7 @@ export class MaidEngine {
     }
     this.editing.clear()
     for (const id of Object.values(EDIT_SOURCES)) void map.getSource<GeoJSONSource>(id)?.setData(EMPTY)
+    for (const done of this.waiters.splice(0)) done()
   }
   private editBatch?: FeatureBatch
 

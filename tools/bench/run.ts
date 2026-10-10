@@ -174,6 +174,8 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
   page.on('pageerror', (e) => errors.push(e.message))
   const cdp = opts.browser === 'chromium' ? await context.newCDPSession(page) : undefined
   await cdp?.send('Performance.enable')
+  // BENCH_DEBUG=1 prints each phase as it starts, to see where a run hangs
+  const phaseLog = (name: string) => process.env.BENCH_DEBUG && console.log(`  [${editor} ${scene.name} #${repeat}] ${name}`)
   const shot = async (name: string) => {
     const file = `${editor}-${opts.variant}-${scene.name}-${name}.png`
     if (repeat === 0) await page.screenshot({ path: join(outDir, file) })
@@ -186,6 +188,7 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
     const query = extra ? `&${extra}` : ''
     const start = { lng, lat, zoom: scene.zoom }
 
+    phaseLog('load')
     // --- Load: from navigation to a complete picture ---
     const t0 = performance.now()
     await page.goto(`http://localhost:${port}/?scene=${scene.name}${query}#map=${scene.zoom}/${lat}/${lng}`)
@@ -203,6 +206,7 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
     result.stats = await page.evaluate(() => window.__bench.stats())
     await shot('load')
 
+    phaseLog('pan')
     // --- Pan: a real mouse drag into data that is not loaded yet (cold), then back (warm) ---
     // Real input on purpose: iD and Rapid move a stale picture while dragging and redraw later,
     // and only a real gesture goes through that path.
@@ -240,6 +244,7 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
     await page.evaluate((c) => window.__bench.setCamera(c), start)
     await page.evaluate(() => window.__bench.settled())
 
+    phaseLog('zoom')
     // --- Zoom with the mouse wheel: in two levels, then back out ---
     const wheel = (direction: 1 | -1, target: number) => async () => {
       await page.mouse.move(VIEWPORT.width / 2, VIEWPORT.height / 2)
@@ -259,6 +264,7 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
     await page.evaluate((c) => window.__bench.setCamera(c), start)
     await page.evaluate(() => window.__bench.settled())
 
+    phaseLog('hover')
     // --- Hover: latency on known ways, then a sweep across the map ---
     const targets = await hoverTargets(scene)
     result.hoverLatencyMs = []
@@ -290,6 +296,7 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
     }
     await page.mouse.move(3, 3)
 
+    phaseLog('select')
     // --- Select: until the selection is drawn ---
     result.selectMs = []
     for (const target of targets.slice(0, 4)) {
@@ -304,6 +311,7 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
       await page.evaluate(() => window.__bench.select(null))
     }
 
+    phaseLog('drag')
     // --- Edit: drag a road junction with the real mouse ---
     if (await page.evaluate(() => typeof window.__bench.nodeLoc === 'function')) {
       let tries = 0
