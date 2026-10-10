@@ -5,6 +5,7 @@
  *
  *   /                      tools/refs/id/index.html   (?scene=small|medium|dense, ?build=min|dev)
  *   /adapter.js            tools/refs/id/adapter.js   (window.__bench)
+ *   /frame-sync.js         tools/refs/frame-sync.js   (shared camera sync for the compare page)
  *   /bench-config.js       generated from tools/ports.ts and tools/fixtures/scenes.ts
  *   /dist/**               .reference/id/dist
  *   /cdn/<package>/**      .reference/id/node_modules/<package> (what iD would fetch from jsDelivr)
@@ -51,6 +52,9 @@ export function createHandler() {
     }
     if (path === '/adapter.js') {
       return new Response(Bun.file(join(import.meta.dir, 'adapter.js')), { headers: NO_CACHE })
+    }
+    if (path === '/frame-sync.js') {
+      return new Response(Bun.file(join(import.meta.dir, '../frame-sync.js')), { headers: NO_CACHE })
     }
     if (path === '/bench-config.js') {
       return new Response(config, { headers: { ...NO_CACHE, 'Content-Type': 'text/javascript; charset=utf-8' } })

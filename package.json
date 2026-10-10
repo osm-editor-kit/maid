@@ -19,7 +19,15 @@
     "bench": "bun tools/bench/run.ts",
     "bench-smoke": "bun tools/bench/run.ts --scene small --repeat 1 --label smoke",
     "bench-report": "bun tools/bench/report.ts",
-    "refs-setup": "bun tools/refs/id/setup.ts && bun tools/refs/rapid/setup.ts && bun tools/refs/copy-sprites.ts"
+    "refs-setup": "bun tools/refs/id/setup.ts && bun tools/refs/rapid/setup.ts && bun tools/refs/copy-sprites.ts",
+    "refs-serve": "bun run --parallel refs-serve:*",
+    "refs-serve:id": "bun tools/refs/id/serve.ts",
+    "refs-serve:rapid": "bun tools/refs/rapid/serve.ts",
+    "compare": "bun run --parallel dev:api refs-serve:id refs-serve:rapid compare:maid compare:page",
+    "compare:maid": "bun run --cwd apps/maid build && bun run --cwd apps/maid preview --port 5175",
+    "compare:page": "bun apps/compare/serve.ts",
+    "bench-edit": "bun tools/bench/edit.ts",
+    "style-generate": "bun run --cwd packages/style generate"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

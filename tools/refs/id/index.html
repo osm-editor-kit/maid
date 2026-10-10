@@ -4,14 +4,16 @@
 
     /?scene=small|medium|dense   scene from the mock OSM API (default: small)
     /?build=dev                  load dist/iD.js instead of dist/iD.min.js
-    #map=17/52.389/13.4          iD's own hash; defaults to the scene center at zoom 17
+    /?cull=0                     iD draws all points and buildings instead of auto-hiding them
+    #map=17/52.389/13.4          iD's own hash; defaults to the scene's center and zoom (tools/fixtures/scenes.ts)
 
   Modelled on iD's own index.html. Differences, all to keep iD away from the network
   (AGENTS.md core rule 1) and to keep the map free of dialogs; rendering is left at iD's defaults:
     - OSM connection is switched to the mock API before context.init()
     - background=none, and the imagery index is primed empty (no Bing metadata, no locator overlay)
-    - all services except `osm` are removed (taginfo, nominatim, nsi, photo layers, QA, wikidata ...)
+    - services are removed (taginfo, nominatim, nsi, photo layers, QA) or answer "offline" (wikidata, wikipedia, OSM wiki)
     - localStorage is reset on every load, splash screen marked as seen
+    - the sidebar is collapsed (adapter.js), so the map fills the viewport
 -->
 <html>
   <head>
@@ -36,6 +38,7 @@
 
     <script src='bench-config.js'></script>
     <script src='adapter.js'></script>
+    <script src="/frame-sync.js"></script>
     <script>
       (function () {
         var config = window.__BENCH_CONFIG;
@@ -67,7 +70,7 @@
           var i = pair.indexOf('=');
           if (i > 0) hash[pair.slice(0, i)] = pair.slice(i + 1);
         });
-        if (!hash.map) hash.map = '17/' + scene.center[1] + '/' + scene.center[0];
+        if (!hash.map) hash.map = (scene.zoom || 17) + '/' + scene.center[1] + '/' + scene.center[0];
         hash.background = 'none';
         delete hash.walkthrough;
         delete hash.overlays;
@@ -89,12 +92,36 @@
             // Without this iD loads data/imagery.min.json, asks Bing for metadata and switches
             // on the default locator overlay (renderer/background.js:445-491).
             iD.fileFetcher.cache().imagery = [];
+            // Language list for the wikipedia field, normally fetched from jsDelivr when a selected
+            // feature shows that field. Empty: nothing to fetch.
+            iD.fileFetcher.cache().wmf_sitematrix = [];
 
-            // Only the OSM service stays. iD guards its use of services (`if (services.x)`),
-            // its own tests run this way. Removes taginfo (requests popular keys on init),
-            // nominatim, nsi (downloads ~10 MB), osmose, streetview layers, wikidata, wikipedia.
+            // Remove every service iD can live without; it guards their use with `if (services.x)`.
+            // Goes: taginfo (requests popular keys on init), geocoder (Nominatim), nsi (downloads
+            // several MB on init), osmose (QA), vectorTile, maprules and all street-level photo services.
+            var KEEP = ['osm', 'wikidata', 'wikipedia', 'osmWikibase'];
             Object.keys(iD.services).forEach(function (key) {
-              if (key !== 'osm') delete iD.services[key];
+              if (KEEP.indexOf(key) === -1) delete iD.services[key];
+            });
+            // The wiki services are used unguarded by the preset fields in the sidebar
+            // (ui/fields/wikidata.js:189 throws without them when a selected feature has a
+            // wikidata field), so they stay, but every method that fetches answers "offline".
+            // Hosts this keeps away: www.wikidata.org, *.wikipedia.org, wiki.openstreetmap.org.
+            var offline = function () {
+              for (var i = 0; i < arguments.length; i++) {
+                if (typeof arguments[i] === 'function') return void arguments[i](new Error('offline (maid bench)'));
+              }
+            };
+            var FETCHING = {
+              wikidata: ['itemsForSearchQuery', 'itemsByTitle', 'entityByQID', 'getDocs'],
+              wikipedia: ['search', 'suggestions'],
+              osmWikibase: ['getEntity', 'getDocs']
+            };
+            Object.keys(FETCHING).forEach(function (key) {
+              FETCHING[key].forEach(function (method) {
+                if (typeof iD.services[key][method] !== 'function') throw new Error('iD.services.' + key + '.' + method + ' is gone, update index.html');
+                iD.services[key][method] = offline;
+              });
             });
 
             var context = iD.coreContext()
@@ -116,6 +143,22 @@
 
             // as upstream index.html: boundaries are off unless the hash says otherwise
             if (!hash.disable_features) context.features().disable('boundaries');
+
+            // ?cull=0: switch off iD's automatic hiding of points, address points and buildings
+            // (renderer/features.js:101-129: max 100 / 200 / 250 per 1000x1000 px). Uses iD's own
+            // rule objects: with max = Infinity `rule.hidden()` is never true for an enabled rule,
+            // so iD draws them all and features.hidden()/autoHidden() (= stats().hidden) stay truthful.
+            // Opt-in, for like-for-like workload runs. The default keeps iD's behaviour.
+            var cull = params.get('cull') !== '0';
+            if (!cull) {
+              var rules = context.features().features();
+              ['address_points', 'points', 'buildings'].forEach(function (key) {
+                if (!rules[key] || !isFinite(rules[key].defaultMax)) throw new Error('feature rule "' + key + '" has no max any more, update index.html');
+                rules[key].defaultMax = Infinity;
+                rules[key].currentMax = Infinity;
+              });
+            }
+            window.__BENCH_CONFIG.cull = cull;
 
             window.__benchInstall(iD, context);
           } catch (error) {

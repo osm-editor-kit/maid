@@ -71,6 +71,7 @@
   const hash = new URLSearchParams(location.hash.replace(/^#/, ''))
   if (!hash.has('map')) hash.set('map', `17/${scene.center[1]}/${scene.center[0]}`)
   hash.set('background', 'none')
+  hash.set('locale', 'en') // same UI language in every editor, whatever the browser prefers
   for (const key of ['datasets', 'note', 'photo_overlay', 'photo', 'detection', 'maproulette', 'walkthrough', 'data', 'gpx', 'overlays']) {
     hash.delete(key)
   }
@@ -95,7 +96,12 @@
   script.onerror = () => fail('js/rapid.min.js did not load. Run: bun tools/refs/rapid/setup.ts')
   document.head.appendChild(script)
 
+  /** Milliseconds since navigation start at which each start-up step finished. */
+  const boot = { scriptRequested: Math.round(performance.now()) }
+  const mark = (name) => (boot[name] = Math.round(performance.now()))
+
   async function start() {
+    mark('scriptLoaded')
     const Rapid = window.Rapid
     context = new Rapid.Context()
     window.rapidContext = context
@@ -115,6 +121,7 @@
     context.apiConnections = [{ id: 'mock', url: apiRoot, apiUrl: apiRoot }]
 
     await context.prepareAsync()
+    mark('prepared')
 
     // --- Keep Rapid offline -------------------------------------------------------------
     // (1) A guard at Rapid's two exits. Almost every request goes through NetworkSystem
@@ -150,18 +157,24 @@
     //  - The background pane asks WaybackService for imagery dates at the map centre
     //    (wayback.maptiles.arcgis.com) and asks again after every draw until it has an answer.
     if (wayback) wayback.getLocalDatesAsync = () => Promise.resolve(wayback.allDates)
+    if (query.get('nsi') === '0') delete context.services.nsi // not the default, see ready below
     // Everything else that can call out is off by default and stays off: notes, QA layers
     // (KeepRight, Osmose, MapRoulette, GeoScribble) and photo layers (Mapillary, KartaView,
     // Streetside) have `autoStart = false` and are only started when their layer is enabled;
     // Nominatim, Wikidata, Wikipedia and the OSM wiki are only asked from sidebar fields.
 
     await context.initAsync()
+    mark('initialised')
 
     // Mark the welcome/privacy and the what's-new dialog as seen, so that UiSystem.startAsync
     // opens neither. (The walkthrough only starts from the welcome dialog or `walkthrough=true`.)
     const settings = context.systems.settings
     settings.set('ui.sawPrivacyVersion', String(context.privacyVersion))
     settings.set('ui.sawWhatsNewVersion', String(context.whatsNewVersion))
+    // Start with the sidebar collapsed, through Rapid's own preference (UiSidebar reads it
+    // when it first renders), so that the map fills the whole viewport like in the other
+    // editors. Rapid does not expand it on selection (Rapid#1562).
+    settings.set('ui.inspector.collapsed', 'true')
     // Rapid/Overture/Esri datasets: keep the menu empty and nothing enabled.
     settings.set('rapid.addedDatasetIDs', [])
     settings.set('rapid.enabledDatasetIDs', [])
@@ -178,7 +191,31 @@
     const imagery = context.systems.imagery
     for (const source of imagery.overlayLayerSources()) imagery.toggleOverlayLayer(source)
 
+    if (query.has('profile')) {
+      // ?profile: when each system's and service's startAsync resolved (ms since navigation start)
+      boot.parts = {}
+      for (const [id, part] of [...Object.entries(context.systems), ...Object.entries(context.services)]) {
+        if (!part?.autoStart) continue
+        const original = part.startAsync.bind(part)
+        part.startAsync = () => {
+          const promise = original()
+          if (!(id in boot.parts)) {
+            boot.parts[id] = null
+            promise.then(() => (boot.parts[id] = Math.round(performance.now())), () => {})
+          }
+          return promise
+        }
+      }
+    }
+    // ready() waits for the whole of Context.startAsync, and has to: UrlHashSystem emits its
+    // first `hashchange` (which puts the map at `map=`) only after context.startAsync() has
+    // resolved. Until then the map sits at zoom 1 and a camera set earlier would be overwritten.
+    // About 2.5 s of this is NsiService.startAsync loading and indexing the
+    // name-suggestion-index (7 JSON files); all other systems and services are up ~0.1 s
+    // after initAsync. `?nsi=0` removes that service to show the difference; the default
+    // keeps it, because that is how Rapid starts.
     await context.startAsync()
+    mark('started')
     for (const source of imagery.overlayLayerSources()) imagery.toggleOverlayLayer(source) // should be none left
 
     sys = context.systems
@@ -217,9 +254,12 @@
    *  - at data zoom (>= 15): loadTiles ran for the current viewport version, every tile it
    *    needs is completed, and no `osm-data-tile` request is in flight;
    *  - no worker request is pending (a parsed tile waiting to be merged);
-   *  - the scheduler's urgent, normal and idle queues are empty (merge hand-over, label
-   *    raster drain; the idle queue holds validation and sidebar work, which does not
-   *    change the map but is "queued work", see `lastSettle.pictureMs` for the time without it);
+   *  - the scheduler's urgent and normal queues are empty (merge hand-over, label raster drain);
+   *  - (unless `includeIdle` is false) the scheduler's idle queue is empty and no one-shot
+   *    scheduler timer is pending. That is where Rapid validates merged data and re-renders
+   *    sidebar panes. It does not change the map, but it is queued work that would compete
+   *    with whatever is measured next, and it takes seconds: see `lastSettle.pictureMs`
+   *    for when the picture alone was final;
    *  - no label raster and no icon image is pending;
    *  - the last DRAW came after the last merge and after the last camera/selection change.
    */
@@ -263,6 +303,14 @@
     if (scheduler._urgentQueue.length) out.push(`${scheduler._urgentQueue.length} urgent tasks queued`)
     if (scheduler._normalQueue.length) out.push(`${scheduler._normalQueue.length} normal tasks queued`)
     if (includeIdle && scheduler._idleQueue.length) out.push(`${scheduler._idleQueue.length} idle tasks queued`)
+    if (includeIdle) {
+      // One-shot timers (debounce, throttle, timeout) put work into the queues when they fire,
+      // for example the validation and sidebar re-renders 0.5-1 s after a merge or draw.
+      // Rapid's two permanent intervals (rate-limit countdown every 1 s, API status every
+      // 90 s) never end and are not counted.
+      const timers = [...scheduler._timers.values()].filter((timer) => timer.type !== 'interval')
+      if (timers.length) out.push(`${timers.length} scheduler timers pending (${timers.map((timer) => timer.workID).slice(0, 4).join(', ')})`)
+    }
 
     const labels = gfx.scene?.layers.get('labels')
     if (labels?._pendingRasters?.size) out.push(`${labels._pendingRasters.size} label rasters pending`)
@@ -277,18 +325,33 @@
     return out
   }
 
-  /** Frames in a row that must be clean, with no draw or merge in between, before we resolve. */
-  const QUIET_FRAMES = 3
+  /**
+   * Frames in a row that must be clean, with no draw or merge in between, before we resolve.
+   * This is the only margin settled() adds. Everything else it waits for is Rapid's own work.
+   */
+  const QUIET_FRAMES = 2
 
   /**
+   * Resolves when the picture is final (see blockers) and has stayed so for QUIET_FRAMES frames.
+   *
+   * The shortest possible wait after a camera change over loaded data is Rapid's own:
+   * setCamera only sets `_appPending`; the APP pass runs once 250 ms (THROTTLE) of frames
+   * with a pending APP have passed since the last DRAW, the DRAW follows one frame later,
+   * then our 2 confirmation frames: about 250 + 3 * 16.7 = 300 ms at 60 Hz. A user's drag
+   * or wheel goes through the same throttled path (MapInteractionBehavior -> map.pan /
+   * map.transform -> gfx.setTransformAsync), so this is what a user sees too; in between
+   * Rapid only moves the old picture with a CSS transform.
+   *
    * @param {{ timeoutMs?: number, idle?: boolean }} [options]
-   *   idle (default true): also wait for the scheduler's idle queue. Rapid validates newly
-   *   merged data there; that takes seconds and does not change the map. With `idle: false`
-   *   settled() resolves when the picture is final and only idle work is left.
+   *   idle (default false): also wait until the scheduler's idle queue and its one-shot
+   *   timers are empty. Rapid validates merged data and re-renders panes there. That does
+   *   not change the map and takes from 1 s (a throttle after every draw) to tens of
+   *   seconds (validation after loading), so it is not part of "settled"; use it to get a
+   *   fully quiet app before measuring something else.
    */
   function settled(options = {}) {
-    const timeoutMs = options.timeoutMs ?? 30000
-    const includeIdle = options.idle !== false
+    const timeoutMs = options.timeoutMs ?? 60000
+    const includeIdle = options.idle === true
     const started = performance.now()
     return readyPromise.then(
       () =>
@@ -314,8 +377,9 @@
           // run of QUIET_FRAMES clean frames during which `seq` (draws, merges) must not move.
           const check = () => {
             frames++
-            if (!pictureMs && blockers(false).length === 0) pictureMs = performance.now() - started
-            if (blockers(includeIdle).length === 0 && (quiet === 0 || seqAtQuiet === seq)) {
+            const why = blockers(includeIdle)
+            if (!pictureMs && (includeIdle ? blockers(false) : why).length === 0) pictureMs = performance.now() - started
+            if (why.length === 0 && (quiet === 0 || seqAtQuiet === seq)) {
               if (quiet === 0) seqAtQuiet = seq
               quiet++
             } else {
@@ -344,8 +408,11 @@
    *  the URL hash uses. It does not force a redraw: Rapid's own 250 ms throttle applies. */
   function setCamera(camera) {
     need()
+    const before = context.viewport.transform.props
     sys.map.setMapParams([camera.lng, camera.lat], camera.zoom, 0, 0)
-    seen.camera = ++seq
+    const after = context.viewport.transform.props
+    // setMapParams does nothing when the camera is already there; then no draw will follow.
+    if (before.x !== after.x || before.y !== after.y || before.z !== after.z || before.r !== after.r) seen.camera = ++seq
   }
 
   function getCamera() {
@@ -499,6 +566,7 @@
     refused,
     refusedSamples,
     lastSettle,
+    boot,
     seen,
     /** Rapid's own frame metrics (SchedulerSystem.metrics). */
     metrics: () => sys?.scheduler.metrics,

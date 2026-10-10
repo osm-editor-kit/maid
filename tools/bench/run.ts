@@ -58,6 +58,9 @@ function args() {
     repeat: Number(get('repeat', '3')),
     label: get('label', ''),
     maidQuery: get('maid-query', ''),
+    idQuery: get('id-query', ''),
+    // iD's host page runs without the name-suggestion-index, so Rapid does too by default
+    rapidQuery: get('rapid-query', 'nsi=0'),
     variant: get('variant', 'default'),
     dpr: Number(get('dpr', '2')),
   }
@@ -155,7 +158,8 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
   try {
     const port = editor === 'maid' ? PORTS.maidBuild : PORTS[editor]
     const [lng, lat] = scene.center
-    const query = editor === 'maid' && opts.maidQuery ? `&${opts.maidQuery}` : ''
+    const extra = editor === 'maid' ? opts.maidQuery : editor === 'id' ? opts.idQuery : opts.rapidQuery
+    const query = extra ? `&${extra}` : ''
     const start = { lng, lat, zoom: scene.zoom }
 
     // --- Load: from navigation to a complete picture ---
@@ -175,23 +179,61 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
     result.stats = await page.evaluate(() => window.__bench.stats())
     await shot('load')
 
-    // --- Pan: out over data that is not loaded yet (cold), then back (warm) ---
+    // --- Pan: a real mouse drag into data that is not loaded yet (cold), then back (warm) ---
+    // Real input on purpose: iD and Rapid move a stale picture while dragging and redraw later,
+    // and only a real gesture goes through that path.
     const mPerPx = (156543.03 * Math.cos((lat * Math.PI) / 180)) / 2 ** scene.zoom
     const halfW = ((scene.bbox[2] - scene.bbox[0]) / 2) * 111320 * Math.cos((lat * Math.PI) / 180)
     const halfH = ((scene.bbox[3] - scene.bbox[1]) / 2) * 110540
-    const dx = Math.max(0, halfW - (VIEWPORT.width / 2) * mPerPx - 20)
-    const dy = Math.max(0, halfH - (VIEWPORT.height / 2) * mPerPx - 20)
-    const far = { lng: lng + dx / (111320 * Math.cos((lat * Math.PI) / 180)), lat: lat + dy / 110540, zoom: scene.zoom }
-    const animate = (from: typeof start, to: typeof start, ms: number) => () =>
-      page.evaluate(([a, b, d]) => window.__probe.animate(a, b, d), [from, to, ms] as const)
-    result.panCold = await recordPhase(page, cdp, animate(start, far, 3000))
-    result.panWarm = await recordPhase(page, cdp, animate(far, start, 3000))
+    const dx = Math.round(Math.min(1100, Math.max(0, halfW / mPerPx - VIEWPORT.width / 2 - 30)))
+    const dy = Math.round(Math.min(700, Math.max(0, halfH / mPerPx - VIEWPORT.height / 2 - 30)))
+    const drag = (fromX: number, fromY: number, toX: number, toY: number, ms: number) => async () => {
+      await page.mouse.move(fromX, fromY)
+      await page.mouse.down()
+      const t = performance.now()
+      for (;;) {
+        const k = Math.min(1, (performance.now() - t) / ms)
+        await page.mouse.move(fromX + (toX - fromX) * k, fromY + (toY - fromY) * k)
+        if (k >= 1) break
+        await page.waitForTimeout(8)
+      }
+      await page.waitForTimeout(150) // rest before release, so that no editor adds a fling
+      await page.mouse.up()
+    }
+    // start where nothing is under the pointer: iD and Rapid drag a vertex if there is one
+    let grab = { x: VIEWPORT.width / 2 + dx / 2, y: VIEWPORT.height / 2 - dy / 2 }
+    for (let i = 0; i < 25; i++) {
+      const candidate = { x: grab.x + ((i * 37) % 120) - 60, y: grab.y + ((i * 53) % 120) - 60 }
+      await page.mouse.move(candidate.x, candidate.y)
+      await page.waitForTimeout(120)
+      if ((await page.evaluate(() => window.__bench.hovered())).length === 0) {
+        grab = candidate
+        break
+      }
+    }
+    result.panCold = await recordPhase(page, cdp, drag(grab.x, grab.y, grab.x - dx, grab.y + dy, 3000))
+    result.panWarm = await recordPhase(page, cdp, drag(grab.x - dx, grab.y + dy, grab.x, grab.y, 3000))
+    await page.evaluate((c) => window.__bench.setCamera(c), start)
+    await page.evaluate(() => window.__bench.settled())
 
-    // --- Zoom in two levels and back out ---
-    const close = { ...start, zoom: scene.zoom + 2 }
-    result.zoomIn = await recordPhase(page, cdp, animate(start, close, 2000))
+    // --- Zoom with the mouse wheel: in two levels, then back out ---
+    const wheel = (direction: 1 | -1, target: number) => async () => {
+      await page.mouse.move(VIEWPORT.width / 2, VIEWPORT.height / 2)
+      const t = performance.now()
+      while (performance.now() - t < 5000) {
+        await page.mouse.wheel(0, -40 * direction)
+        await page.waitForTimeout(12)
+        const zoom = await page.evaluate(() => window.__bench.getCamera().zoom)
+        if (direction > 0 ? zoom >= target : zoom <= target) break
+      }
+    }
+    result.zoomIn = await recordPhase(page, cdp, wheel(1, scene.zoom + 2))
+    await page.evaluate((c) => window.__bench.setCamera(c), { ...start, zoom: scene.zoom + 2 })
+    await page.evaluate(() => window.__bench.settled())
     await shot('zoom')
-    result.zoomOut = await recordPhase(page, cdp, animate(close, start, 2000))
+    result.zoomOut = await recordPhase(page, cdp, wheel(-1, scene.zoom))
+    await page.evaluate((c) => window.__bench.setCamera(c), start)
+    await page.evaluate(() => window.__bench.settled())
 
     // --- Hover: latency on known ways, then a sweep across the map ---
     const targets = await hoverTargets(scene)
@@ -295,6 +337,8 @@ try {
     label: opts.label,
     variant: opts.variant,
     maidQuery: opts.maidQuery,
+    idQuery: opts.idQuery,
+    rapidQuery: opts.rapidQuery,
     viewport: VIEWPORT,
     deviceScaleFactor: opts.dpr,
     repeat: opts.repeat,

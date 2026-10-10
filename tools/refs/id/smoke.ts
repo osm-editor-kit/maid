@@ -2,7 +2,7 @@
  * Smoke test for the iD reference: loads a scene from the mock API through our host page,
  * checks window.__bench end to end and proves that nothing left localhost.
  *
- *   bun tools/refs/id/smoke.ts [--scene small] [--zoom 17] [--build min|dev] [--headed]
+ *   bun tools/refs/id/smoke.ts [--scene small] [--zoom 17] [--build min|dev] [--cull 0] [--headed]
  *
  * Needs the mock API on PORTS.mockApi (bun tools/mock-osm-api/server.ts). Starts the iD
  * static server itself when PORTS.id is not answering.
@@ -22,10 +22,11 @@ const arg = (name: string) => {
 const scene = getScene(arg('scene') ?? 'small')
 const zoom = Number(arg('zoom') ?? 17)
 const build = arg('build') ?? 'min'
+const cull = arg('cull') !== '0'
 const headed = process.argv.includes('--headed')
 const ID = `http://localhost:${PORTS.id}`
 const MOCK = `http://localhost:${PORTS.mockApi}`
-const outBase = join(import.meta.dir, scene.name === 'small' ? 'smoke' : `smoke-${scene.name}`)
+const outBase = join(import.meta.dir, (scene.name === 'small' ? 'smoke' : `smoke-${scene.name}`) + (cull ? '' : '-cull0'))
 const VIEWPORT = { width: 1600, height: 1000 }
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
 const OSM_INFRA = /(^|\.)openstreetmap\.(org|de|fr)$|(^|\.)osm\.org$|overpass|nominatim|taginfo/
@@ -93,7 +94,7 @@ try {
     if (m.type() === 'error') consoleErrors.push(m.text().slice(0, 300))
   })
 
-  const url = `${ID}/?scene=${scene.name}${build === 'dev' ? '&build=dev' : ''}#map=${zoom}/${scene.center[1]}/${scene.center[0]}`
+  const url = `${ID}/?scene=${scene.name}${build === 'dev' ? '&build=dev' : ''}${cull ? '' : '&cull=0'}#map=${zoom}/${scene.center[1]}/${scene.center[0]}`
   console.log(`open ${url}  viewport ${VIEWPORT.width}x${VIEWPORT.height}`)
   const wallStart = performance.now()
   await page.goto(url, { waitUntil: 'commit' })
@@ -142,6 +143,28 @@ try {
   const drawsAfter = await call<number>('return b._id.counters.completeDraws')
   check(drawsAfter === drawsBefore, `no full redraw in the 1.2 s after settled() (${drawsBefore} -> ${drawsAfter})`)
 
+  const mapRect = await page.evaluate(() => {
+    const r = document.querySelector('.main-map')!.getBoundingClientRect()
+    return { x: r.left, y: r.top, w: r.width, h: r.height }
+  })
+  check(
+    mapRect.x === 0 && mapRect.y === 0 && mapRect.w === VIEWPORT.width && mapRect.h === VIEWPORT.height,
+    `map fills the viewport (${JSON.stringify(mapRect)})`,
+  )
+  const centerPx = await call<{ x: number; y: number }>('const c = b.getCamera(); return b.project(c.lng, c.lat)')
+  check(
+    Math.abs(centerPx.x - VIEWPORT.width / 2) < 0.5 && Math.abs(centerPx.y - VIEWPORT.height / 2) < 0.5,
+    `camera center projects to the viewport center (${centerPx.x.toFixed(1)}, ${centerPx.y.toFixed(1)})`,
+  )
+  const autoHidden: string[] = internals.features.autoHidden
+  if (cull) console.log(`auto-hidden by iD: ${autoHidden.join(', ') || 'nothing'}`)
+  else {
+    check(autoHidden.length === 0, `?cull=0: iD auto-hides nothing (${autoHidden.join(', ') || 'nothing'})`)
+    check(!Object.keys(stats.hidden).some((k) => k.startsWith('auto:')), `?cull=0: stats().hidden has no auto: entry (${JSON.stringify(stats.hidden)})`)
+    const buildings = await call<number>("return document.querySelectorAll('.data-layer.osm .area-stroke > path.tag-building').length")
+    check(buildings > 50, `?cull=0: buildings are drawn (${buildings})`)
+  }
+
   const modal = await page.evaluate(() => {
     const el = document.querySelector('.modal, .shaded, .intro, .curtain')
     return el ? el.className : null
@@ -160,7 +183,7 @@ try {
       if (!node) continue
       const r = g.querySelector('.stroke').getBoundingClientRect()
       const p = b.project(node.loc[0], node.loc[1])
-      if (p.x < 500 || p.x > innerWidth - 100 || p.y < 100 || p.y > innerHeight - 100) continue
+      if (p.x < 100 || p.x > innerWidth - 100 || p.y < 100 || p.y > innerHeight - 100) continue
       return { id, dx: p.x - (r.left + r.width / 2), dy: p.y - (r.top + r.height / 2) }
     }
     return null`)
@@ -181,7 +204,7 @@ try {
         const c = b.project(nodes[i + 1].loc[0], nodes[i + 1].loc[1])
         if (Math.hypot(a.x - c.x, a.y - c.y) < 40) continue
         const x = (a.x + c.x) / 2, y = (a.y + c.y) / 2
-        if (x < 500 || x > innerWidth - 100 || y < 100 || y > innerHeight - 100) continue
+        if (x < 100 || x > innerWidth - 100 || y < 100 || y > innerHeight - 100) continue
         const el = document.elementFromPoint(x, y)
         if (el && el.classList.contains('target') && el.__data__ && el.__data__.properties && el.__data__.properties.entity.id === way.id) {
           return { id: way.id, x, y }
@@ -226,19 +249,73 @@ try {
     await page.mouse.move(5, 5)
   }
 
+  // real drag: the gesture path (CSS transform first, redraw later) must settle too
+  const empty = await call<{ x: number; y: number } | null>(`
+    for (let y = 300; y < innerHeight - 200; y += 37) {
+      for (let x = 300; x < innerWidth - 300; x += 41) {
+        const el = document.elementFromPoint(x, y)
+        if (el && el.matches('svg.surface')) return { x, y }
+      }
+    }
+    return null`)
+  check(empty, `found an empty spot on the map to drag from (${empty?.x},${empty?.y})`)
+  if (empty) {
+    const before = await call<{ lng: number; lat: number }>('return b.getCamera()')
+    await page.mouse.move(empty.x, empty.y)
+    await page.mouse.down()
+    await page.mouse.move(empty.x + 150, empty.y + 90, { steps: 10 })
+    const during = await call<boolean>('return b._id.state().transformed')
+    await page.mouse.up()
+    const drag = await call<{ ms: number; camera: any; state: any; changes: boolean; draws: number }>(`
+      const t = performance.now()
+      await b.settled()
+      return { ms: performance.now() - t, camera: b.getCamera(), state: b._id.state(), changes: b._id.context.history().hasChanges(), draws: b._id.counters.completeDraws }`)
+    console.log(`mouse drag by 150,90 px: transformed during drag = ${during}, settled ${drag.ms.toFixed(0)} ms after mouseup`)
+    check(drag.camera.lng < before.lng && drag.camera.lat > before.lat, 'drag moved the camera west and north')
+    check(!drag.state.transformed && !drag.state.pendingRedraw && drag.state.missingTiles.length === 0, 'settled after drag: transform reset, nothing queued, tiles loaded')
+    check(!drag.changes, 'the drag did not edit anything')
+    await page.waitForTimeout(1200)
+    const later = await call<number>('return b._id.counters.completeDraws')
+    check(later === drag.draws, `no full redraw in the 1.2 s after settled() following the drag (${drag.draws} -> ${later})`)
+    await page.mouse.move(5, 5)
+  }
+
+  // The benchmark's pattern: setCamera() once per animation frame, then settled().
+  const pan = await call<{ ms: number; frames: number; drawsDuring: number; draws: number; state: any; camera: any; target: any }>(`
+    const c = b.getCamera()
+    const n0 = b._id.counters.completeDraws
+    const frames = 45
+    const target = { lng: c.lng + frames * 0.00004, lat: c.lat, zoom: c.zoom }
+    for (let i = 1; i <= frames; i++) {
+      await new Promise((r) => requestAnimationFrame(r))
+      b.setCamera({ lng: c.lng + i * 0.00004, lat: c.lat, zoom: c.zoom })
+    }
+    const drawsDuring = b._id.counters.completeDraws - n0
+    const t = performance.now()
+    await b.settled()
+    return { ms: performance.now() - t, frames, drawsDuring, draws: b._id.counters.completeDraws, state: b._id.state(), camera: b.getCamera(), target }`)
+  console.log(`setCamera() on ${pan.frames} consecutive frames: ${pan.drawsDuring} full redraws during the pan, settled ${pan.ms.toFixed(0)} ms after the last call`)
+  check(Math.abs(pan.camera.lng - pan.target.lng) < 1e-6, 'per-frame setCamera ends at the last camera')
+  check(!pan.state.transformed && !pan.state.pendingRedraw && pan.state.inflight === 0 && pan.state.missingTiles.length === 0, 'settled after per-frame setCamera: nothing queued, tiles loaded')
+  await page.waitForTimeout(1200)
+  const afterPan = await call<number>('return b._id.counters.completeDraws')
+  check(afterPan === pan.draws, `no full redraw in the 1.2 s after settled() following per-frame setCamera (${pan.draws} -> ${afterPan})`)
+
   // camera round trip through setCamera + settled
-  const moved = await call<{ camera: any; ms: number; state: any }>(`
+  const moved = await call<{ from: any; camera: any; ms: number; state: any }>(`
     const c = b.getCamera()
     const t = performance.now()
     b.setCamera({ lng: c.lng + 0.002, lat: c.lat + 0.001, zoom: c.zoom })
     await b.settled()
-    return { camera: b.getCamera(), ms: performance.now() - t, state: b._id.state() }`)
+    return { from: c, camera: b.getCamera(), ms: performance.now() - t, state: b._id.state() }`)
   console.log(`setCamera(+0.002, +0.001) settled after ${moved.ms.toFixed(0)} ms`)
   check(
-    Math.abs(moved.camera.lng - (camera.lng + 0.002)) < 1e-6 && Math.abs(moved.camera.lat - (camera.lat + 0.001)) < 1e-6,
+    Math.abs(moved.camera.lng - (moved.from.lng + 0.002)) < 1e-6 && Math.abs(moved.camera.lat - (moved.from.lat + 0.001)) < 1e-6 && moved.camera.zoom === moved.from.zoom,
     'setCamera/getCamera round trip',
   )
   check(moved.state.missingTiles.length === 0 && !moved.state.transformed, 'settled after setCamera: tiles loaded, transform reset')
+  const watchdog = await call<number>('return b._id.counters.watchdogClears')
+  check(watchdog === 0, `throttle model held for the whole run, watchdog never fired (${watchdog})`)
 
   // What was requested. Taken from the browser side, because the mock API can be shared with other runs.
   const mockPaths = localUrls.filter((u) => u.port === String(PORTS.mockApi)).map((u) => u.pathname)
@@ -276,6 +353,7 @@ try {
         scene: scene.name,
         zoom,
         build,
+        cull,
         viewport: VIEWPORT,
         editor: info,
         timing: { readyMs: timing.readyAt, settledMs: timing.settledAt, wallSettledMs: wallSettled, setCameraSettledMs: moved.ms },

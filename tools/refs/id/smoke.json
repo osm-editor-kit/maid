@@ -2,6 +2,7 @@
   "scene": "small",
   "zoom": 17,
   "build": "min",
+  "cull": true,
   "viewport": {
     "width": 1600,
     "height": 1000
@@ -11,10 +12,10 @@
     "version": "2.42.2"
   },
   "timing": {
-    "readyMs": 362,
-    "settledMs": 1516.6000000238419,
-    "wallSettledMs": 1520.9550830000003,
-    "setCameraSettledMs": 934.8000000715256
+    "readyMs": 548.2000000476837,
+    "settledMs": 1859.8999999761581,
+    "wallSettledMs": 1868.5979589999997,
+    "setCameraSettledMs": 998.1000000238419
   },
   "camera": {
     "lng": 13.4,
@@ -28,44 +29,44 @@
       "relations": 66
     },
     "drawn": {
-      "lines": 456,
-      "areas": 124,
-      "points": 8,
-      "vertices": 725,
+      "lines": 506,
+      "areas": 135,
+      "points": 9,
+      "vertices": 840,
       "midpoints": 0,
-      "labels": 44,
-      "linePaths": 1398,
-      "areaPaths": 374,
-      "touchTargets": 3418,
-      "domNodesOsmLayer": 4598,
-      "domNodes": 8291
+      "labels": 55,
+      "linePaths": 1560,
+      "areaPaths": 407,
+      "touchTargets": 4049,
+      "domNodesOsmLayer": 5245,
+      "domNodes": 9591
     },
     "hidden": {
-      "auto:address_points": 358,
-      "auto:points": 529,
-      "auto:buildings": 892,
+      "auto:address_points": 387,
+      "auto:points": 657,
+      "auto:buildings": 966,
       "off:boundaries": 3
     }
   },
   "features": {
     "stats": {
-      "address_points": 358,
-      "points": 529,
-      "traffic_roads": 87,
-      "service_roads": 89,
-      "paths": 217,
-      "buildings": 892,
+      "address_points": 387,
+      "points": 657,
+      "traffic_roads": 99,
+      "service_roads": 99,
+      "paths": 244,
+      "buildings": 966,
       "building_parts": 6,
       "indoor": 0,
-      "landuse": 104,
+      "landuse": 112,
       "boundaries": 3,
       "water": 5,
       "rail": 24,
       "pistes": 0,
       "aerialways": 0,
       "power": 0,
-      "past_future": 12,
-      "others": 48
+      "past_future": 16,
+      "others": 49
     },
     "hidden": [
       "address_points",
@@ -86,16 +87,16 @@
     "completeDraws": 3,
     "partialDraws": 0,
     "hoverDraws": 1,
-    "merges": 6,
-    "triggers": 8,
+    "merges": 8,
+    "triggers": 12,
     "watchdogClears": 0,
-    "lastCompleteDrawAt": 1509.5,
-    "lastMergeAt": 662.7000000476837,
-    "lastMoveAt": 356.5
+    "lastCompleteDrawAt": 1845.8999999761581,
+    "lastMergeAt": 930.3000000715256,
+    "lastMoveAt": 544.6000000238419
   },
   "mockRequests": {
     "/s/small/api/capabilities.json": 1,
-    "/s/small/api/0.6/map.json": 9
+    "/s/small/api/0.6/map.json": 15
   },
   "staticServer404s": [],
   "blocked": {},

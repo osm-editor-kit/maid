@@ -15,3 +15,13 @@ File and line references point into the checkouts at the commits named at the to
 - **Unverified** means reported once, or taken from memory or secondary sources. Verify before a decision depends on it. The first working step that touches the topic says so.
 
 When you verify or disprove a claim, update the note in the same commit as the work that depended on it.
+
+## Verified since
+
+The reference editors were built and run on 2026-10-10. What was checked against these notes, corrected or newly found is in:
+
+- [tools/refs/id/NOTES.md](../../tools/refs/id/NOTES.md): iD 2.42.2. Throttle behaviour, the exact "settled" definition, which hosts iD tries to reach and how each is switched off, auto-hiding numbers per scene.
+- [tools/refs/rapid/NOTES.md](../../tools/refs/rapid/NOTES.md): Rapid 3 at `413c0519f`. The same, plus where its start-up time goes.
+- [docs/adr/](../adr/): what was measured for MapLibre (update strategies, the `updateData` consistency problem, symbol placement cost).
+
+Where those files and the notes here disagree, those files win.

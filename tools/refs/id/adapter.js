@@ -79,7 +79,7 @@
     // Settled
     //
     // How iD gets a picture on screen (modules/renderer/map.js):
-    //  - A camera change goes through zoomPan() (map.js:491). It only sets a CSS transform on
+    //  - A camera change by gesture or animation goes through zoomPan() (map.js:455). It only sets a CSS transform on
     //    .supersurface, sets _isTransformed = true and calls scheduleRedraw(). The transform is
     //    reset by the next redraw() (resetTransform, map.js:628). So `map.isTransformed()`
     //    is exactly "the camera changed and no redraw has happened since".
@@ -117,12 +117,13 @@
     // is the throttled call itself or (immediateRedraw without arguments) cancels it.
     //   - history `merge.map` listener (map.js:128)
     //   - context `enter.map` listener (map.js:250, "redraw everything else later")
-    //   - map.centerZoom / map.zoom / map.center / map.dimensions (map.js:816-907). When these
-    //     change the transform they call scheduleRedraw twice (zoomPan, then themselves): the
-    //     first call draws, the second is always queued. So one setCamera() costs iD two full
-    //     redraws, the second 750 ms later with an identical result; we wait for it because the
-    //     contract says "nothing is queued".
-    //   - zoomPan from real gestures needs no wrapper: condition 1 covers it.
+    //   - map.centerZoom / map.zoom / map.center / map.dimensions (map.js:816-907). Without a
+    //     duration these set the projection directly and call scheduleRedraw() once. zoomPan()
+    //     returns early for them ("no change", map.js:463, because setTransform already moved
+    //     _transformStart), so there is no CSS transform phase, no second call and
+    //     isTransformed() stays false. Measured: setCamera() on an idle map draws synchronously
+    //     inside the call; within 750 ms of the previous redraw it is queued instead.
+    //   - zoomPan from real gestures and eased moves needs no wrapper: condition 1 covers it.
     // "Complete draw" = `drawn` {full: true} outside of a `change` dispatch that carried a
     // difference (those are partial redraws and do not cancel the throttle).
     // Watchdog: a queued call must run within 750 ms of the last trigger. Should iD swallow it
@@ -195,9 +196,8 @@
       map[name] = function () {
         if (!arguments.length) return original.apply(this, arguments) // getter
         var before = counters.completeDraws
-        var key = transformKey()
         var result = original.apply(this, arguments)
-        if (key !== transformKey() || counters.completeDraws === before) markPending()
+        if (counters.completeDraws === before) markPending()
         notify()
         return result
       }
@@ -539,10 +539,33 @@
       },
     }
 
+    /**
+     * The map has to fill the viewport in every editor, so the sidebar is collapsed at startup.
+     * This sets exactly the end state of iD's own sidebar.toggle() (ui/sidebar.js:356-403:
+     * width in px, negative margin of the same size, class `collapsed`) without its 250 ms
+     * transition, then lets iD re-measure (ui.onResize) and puts the camera back, because
+     * onResize keeps the top-left corner fixed, not the center. It runs in the same microtask
+     * chain as iD's first render, before the idle callback that requests the first tiles, so
+     * no tile is requested for the narrower map. iD's own toggle (key `) still works afterwards.
+     */
+    function collapseSidebar() {
+      var sidebar = context.container().select('.sidebar')
+      if (sidebar.empty() || sidebar.classed('collapsed')) return
+      var camera = getCamera()
+      var width = sidebar.node().getBoundingClientRect().width
+      sidebar
+        .style('width', width + 'px')
+        .style('margin-left', -width + 'px')
+        .classed('collapsed', true)
+      context.ui().onResize()
+      map.centerZoom([camera.lng, camera.lat], camera.zoom)
+    }
+
     context
       .ui()
       .ensureLoaded()
       .then(function () {
+        collapseSidebar()
         if (!ensureWrapped()) throw new Error('__bench: could not find the iD map listeners to wrap (merge.map, enter.map, change.map)')
         installed = api
         readyResolve()

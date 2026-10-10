@@ -5,6 +5,7 @@
  *
  *   /                 our host page (tools/refs/rapid/index.html), `?scene=<name>`
  *   /bench.js         the `window.__bench` adapter
+ *   /frame-sync.js    tools/refs/frame-sync.js, shared by all editor host pages
  *   /config.js        ports, scenes and the pinned commit for the adapter (generated)
  *   /js /css /data /img /svg   Rapid's build output from .reference/rapid/dist
  *   /data/modules/*   npm packages Rapid expects there for `assetOrigin = 'local'` (from node_modules)
@@ -29,6 +30,7 @@ const OWN: Record<string, string> = {
   '/': join(here, 'index.html'),
   '/index.html': join(here, 'index.html'),
   '/bench.js': join(here, 'bench.js'),
+  '/frame-sync.js': join(here, '../frame-sync.js'), // shared camera sync for the compare page
 }
 /** URL prefix -> directory. Only these parts of the build are reachable. */
 const MOUNTS: [string, string][] = [

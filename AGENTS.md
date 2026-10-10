@@ -50,28 +50,34 @@ Use a small, fast model (Haiku) for code and web research subagents. Give them a
 
 ## Scripts
 
-These names are the contract. They are introduced in milestone 0; until then they do not exist.
+These names are the contract. Agents and docs only reference these.
 
 | Script | What it does |
 | --- | --- |
-| `bun run check` | Type-check, lint and format with fixes, unit tests. Run before every commit. |
-| `bun run check-ci` | Same, read-only. |
-| `bun run dev` | Maid app, mock OSM API and the compare page. |
-| `bun run refs-setup` | Clone and build iD and Rapid at their pinned commits into `.reference/`. |
-| `bun run refs-serve` | Serve the built reference editors on fixed local ports. |
-| `bun run bench` | Run all benchmark scenarios against all editors and write `reports/<run-id>/`. |
-| `bun run bench-smoke` | One small scenario per editor. Fast, used in CI. |
-| `bun run bench-report` | Render the latest run as Markdown and HTML. |
-| `bun run fixtures-build` | Cut fixtures from a local extract. Manual only, see core rule 1. |
+| `bun run check` | Type-check and unit tests. Run before every commit. (Lint and format are not set up yet.) |
+| `bun run dev` | Maid dev server (5173) and the mock OSM API (8090). |
+| `bun run refs-setup` | Clone and build iD and Rapid at their pinned commits into `.reference/`, copy icon sprites into Maid. |
+| `bun run refs-serve` | Serve the built reference editors: iD on 8081, Rapid on 8082. |
+| `bun run bench` | Run all scenarios against all editors and write `reports/<run-id>/`. Starts the servers it needs. Options: `--editor`, `--scene`, `--repeat`, `--label`, `--variant`, `--maid-query`, `--id-query`. |
+| `bun run bench-smoke` | One run per editor on the small scene. |
+| `bun run bench-report [run-id ...]` | Render one or more runs as `report.md` and `report.html`. |
+| `bun run bench-edit [scene] [query]` | Maid only: drag a node and measure change-to-screen time. Needs `compare:maid` or a preview on 5175. |
+| `bun run compare` | Everything for the side-by-side page on http://localhost:5174. |
+| `bun run fixtures-build <file.osm.pbf>` | Cut fixtures from a local extract. Manual only, see core rule 1. |
+| `bun run style-generate [iD checkout]` | Regenerate the style data from iD's CSS and presets. |
+
+Every editor is driven through one contract, `window.__bench` (`tools/refs/bench-api.d.ts`). Maid also exposes `window.__maid` with the map and the engine. To look at one editor: `bun tools/bench/shot.ts maid|id|rapid <scene> [zoom]`.
 
 ## Layout
 
 ```
 apps/maid            the proof-of-concept editor
 apps/compare         page that shows Maid, iD and Rapid side by side
-packages/*           reusable packages, published as @osm-editor-kit/*
+packages/style       iD's look as data: tag classes, CSS rules, preset icons
+packages/renderer    data store, feature builder, MapLibre layers, engine
 tools/mock-osm-api   local stand-in for the OSM API, serves fixtures
-tools/bench          Playwright benchmark, one driver per editor
+tools/refs           pinned iD and Rapid: setup, host pages, bench adapters, notes
+tools/bench          Playwright benchmark, report generator
 fixtures/            frozen OSM data (ODbL, © OpenStreetMap contributors)
 reports/             benchmark output
 docs/                plan, working steps, research, decisions

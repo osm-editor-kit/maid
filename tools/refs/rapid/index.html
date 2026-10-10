@@ -14,6 +14,9 @@
     <style>
       html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
       #rapid-container { width: 100%; height: 100%; }
+      /* The sidebar starts collapsed (bench.js sets Rapid's own preference). Its drag handle
+         would still take 15px from the map; hide it so the map is exactly the viewport. */
+      #rapid-container .resizer { display: none !important; }
     </style>
   </head>
   <body>
@@ -21,5 +24,6 @@
     <!-- bench.js sets the URL hash and storage, then loads js/rapid.min.js itself -->
     <script src="config.js"></script>
     <script src="bench.js"></script>
+    <script src="/frame-sync.js"></script>
   </body>
 </html>

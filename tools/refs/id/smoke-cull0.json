@@ -1,0 +1,96 @@
+{
+  "scene": "small",
+  "zoom": 17,
+  "build": "min",
+  "cull": false,
+  "viewport": {
+    "width": 1600,
+    "height": 1000
+  },
+  "editor": {
+    "editor": "id",
+    "version": "2.42.2"
+  },
+  "timing": {
+    "readyMs": 432.7999999523163,
+    "settledMs": 1792.3999999761581,
+    "wallSettledMs": 1796.8429159999998,
+    "setCameraSettledMs": 1090
+  },
+  "camera": {
+    "lng": 13.4,
+    "lat": 52.38900000000002,
+    "zoom": 17
+  },
+  "stats": {
+    "entities": {
+      "nodes": 10627,
+      "ways": 1636,
+      "relations": 66
+    },
+    "drawn": {
+      "lines": 507,
+      "areas": 1098,
+      "points": 1044,
+      "vertices": 848,
+      "midpoints": 0,
+      "labels": 254,
+      "linePaths": 1563,
+      "areaPaths": 3297,
+      "touchTargets": 12171,
+      "domNodesOsmLayer": 13337,
+      "domNodes": 27733
+    },
+    "hidden": {
+      "off:boundaries": 3
+    }
+  },
+  "features": {
+    "stats": {
+      "address_points": 387,
+      "points": 657,
+      "traffic_roads": 99,
+      "service_roads": 99,
+      "paths": 244,
+      "buildings": 966,
+      "building_parts": 6,
+      "indoor": 0,
+      "landuse": 112,
+      "boundaries": 3,
+      "water": 5,
+      "rail": 24,
+      "pistes": 0,
+      "aerialways": 0,
+      "power": 0,
+      "past_future": 16,
+      "others": 49
+    },
+    "hidden": [
+      "boundaries"
+    ],
+    "autoHidden": [],
+    "disabled": [
+      "boundaries"
+    ]
+  },
+  "counters": {
+    "completeDraws": 3,
+    "partialDraws": 0,
+    "hoverDraws": 1,
+    "merges": 8,
+    "triggers": 12,
+    "watchdogClears": 0,
+    "lastCompleteDrawAt": 1761.0999999046326,
+    "lastMergeAt": 700.5,
+    "lastMoveAt": 429.89999997615814
+  },
+  "mockRequests": {
+    "/s/small/api/capabilities.json": 1,
+    "/s/small/api/0.6/map.json": 15
+  },
+  "staticServer404s": [],
+  "blocked": {},
+  "pageErrors": [],
+  "consoleErrors": [],
+  "failures": []
+}
