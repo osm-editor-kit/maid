@@ -4,7 +4,7 @@ Date: 2026-10-10
 
 ## Decision
 
-Maid changes one constant in MapLibre: the time the map stays in its "zooming" state after a wheel zoom has reached its target goes from 200 ms to 40 ms. The change is a source patch applied by a Vite plugin in `apps/maid/vite.config.ts`. It must match exactly once, so a MapLibre update that changes that code fails the build.
+Maid changes one constant in MapLibre: the time the map stays in its "zooming" state after a wheel zoom has reached its target goes from 200 ms to 40 ms. The change is a `bun patch` (`patches/maplibre-gl@6.12.0.patch`, listed under `patchedDependencies` in the root `package.json`). It is tied to that exact version, so a MapLibre update drops it visibly and it has to be redone.
 
 ## Why
 
@@ -22,9 +22,17 @@ The first zoom out in each run took 3 to 5 s. That is not rendering: the wheel o
 
 Also tried, without effect on this wait: the zoom limit of the sources (15, 16, 17, 19) and removing pins and labels.
 
-## Why not `bun patch`
+## How to patch here
 
-Tobias allowed it, and it was the first attempt. With Bun's shared package store (`linker = "isolated"`, global store) the files in `node_modules` are links into a store that every project on the machine shares. `bun patch` did not make a private copy first: the edit landed in the shared store and the generated patch file was unusable. The edit was reverted and the store files were verified against the package cache by checksum. The Vite plugin keeps the change inside this repo.
+```bash
+bun patch maplibre-gl@6.12.0          # at the repo root; prepares a private copy
+# edit node_modules/maplibre-gl/dist/...   (the ROOT node_modules, nowhere else)
+bun patch --commit node_modules/maplibre-gl
+```
+
+Bun prepares the private copy in the root `node_modules/maplibre-gl`. The path `apps/maid/node_modules/maplibre-gl` is a link into Bun's shared package store that every project on the machine uses, and must not be edited. On the first attempt I edited that link by mistake; the change was reverted and the store verified against the package cache by checksum. The same approach as in `strassenraumkarte/vector/patches`.
+
+The patch file is large (about 580 KB) for a one-number change, because the minified build is a single line and the diff carries the whole line.
 
 ## Still open
 
