@@ -46,6 +46,8 @@ export type EngineMetrics = {
   tiles: number
   /** Updates sent to MapLibre sources */
   updates: number
+  /** Times the live tier was moved into the big sources */
+  compactions: number
   bytes: number
   fetchMs: number
   parseMs: number
@@ -79,7 +81,7 @@ const y2lat = (y: number) => (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / 2 ** 
 export class MaidEngine {
   store = new OsmStore()
   metrics: EngineMetrics = {
-    tiles: 0, updates: 0, bytes: 0, fetchMs: 0, parseMs: 0, mergeMs: 0, buildMs: 0, pushMs: 0,
+    tiles: 0, updates: 0, compactions: 0, bytes: 0, fetchMs: 0, parseMs: 0, mergeMs: 0, buildMs: 0, pushMs: 0,
     features: { areas: 0, lines: 0, points: 0, vertices: 0 },
   } // prettier-ignore
 
@@ -96,12 +98,22 @@ export class MaidEngine {
   private shownHover: string | null = null
   private shownSelected: string | null = null
   private waiters: (() => void)[] = []
-  private queue: FeatureBatch = { areas: [], lines: [], points: [], vertices: [] }
-  private removals: Record<SourceName, string[]> = { areas: [], lines: [], points: [], vertices: [] }
-  /** Ids that currently live in the edit sources */
+  /** Ids whose original in the big sources is hidden while a newer copy is in the live tier */
   private editing = new Set<string>()
-  private busy: Record<SourceName, boolean> = { areas: false, lines: false, points: false, vertices: false }
-  private dirty: Record<SourceName, boolean> = { areas: false, lines: false, points: false, vertices: false }
+  /**
+   * What the live tier holds, by source and id. The live tier is a set of small twin sources
+   * for data that arrived after the first load and for features that were changed. Updating
+   * them re-tiles only that little data; the big sources stay untouched until compaction.
+   */
+  private live: Record<SourceName, Map<string, Feature>> = { areas: new Map(), lines: new Map(), points: new Map(), vertices: new Map() }
+  private channels = {
+    base: makeChannels(SOURCES),
+    live: makeChannels(EDIT_SOURCES),
+  }
+  /** After the first view is complete, new data goes to the live tier */
+  private firstLoadDone = false
+  private compacting = false
+  private compactTimer?: ReturnType<typeof setTimeout>
 
   constructor(public options: EngineOptions) {}
 
@@ -159,6 +171,7 @@ export class MaidEngine {
 
   loadVisibleTiles() {
     const { map } = this
+    this.touch()
     if (!map || this.osmZoom() < this.options.minDataZoom) return
     const bounds = map.getBounds()
     const x0 = lon2x(bounds.getWest())
@@ -198,8 +211,12 @@ export class MaidEngine {
       console.error(error)
     } finally {
       this.inflight--
-      if (this.inflight === 0) this.flushAll()
-      if (this.inflight === 0 && !this.pushing()) for (const done of this.waiters.splice(0)) done()
+      if (this.inflight === 0) {
+        this.flushAll()
+        // the first view is complete: from now on new data goes to the live tier
+        if (this.metrics.tiles > 0) this.firstLoadDone = true
+        this.wake()
+      }
     }
   }
 
@@ -209,13 +226,15 @@ export class MaidEngine {
     const t1 = performance.now()
     const batch = this.builder.build(added)
     const t2 = performance.now()
+    // decided now, not when the images are ready: by then the first view may count as complete
+    const tier = this.tiered && this.firstLoadDone ? 'live' : 'base'
     if (this.options.prepare) {
       this.preparing++
       void this.options.prepare(batch).finally(() => {
         this.preparing--
-        this.push(batch)
+        this.push(batch, tier)
       })
-    } else this.push(batch)
+    } else this.push(batch, tier)
     const t3 = performance.now()
     this.changed()
     this.metrics.mergeMs += t1 - t0
@@ -227,38 +246,52 @@ export class MaidEngine {
     }
   }
 
-  private push(batch: FeatureBatch) {
+  private get tiered() {
+    return this.options.edit === 'split' && this.options.update === 'diff'
+  }
+
+  /** Sends features to MapLibre: to the live tier once the first view is complete, else to the big sources */
+  private push(batch: FeatureBatch, tier: 'base' | 'live' = this.tiered && this.firstLoadDone ? 'live' : 'base') {
     for (const name of SOURCE_NAMES) {
       const features = batch[name]
       if (features.length === 0) continue
       this.metrics.features[name] += features.length
-      for (const f of features) this.featureSource.set(f.id as string, name)
+      for (const f of features) {
+        this.featureSource.set(f.id as string, name)
+        if (tier === 'live') this.live[name].set(f.id as string, f)
+      }
       // a selection made before its feature was loaded (from the URL) is shown once it arrives
       if (this.selectedId && this.shownSelected !== this.selectedId && features.some((f) => f.id === this.selectedId)) {
         queueMicrotask(() => this.applyHighlight(null, 'selected'))
       }
+      const channel = this.channels[tier][name]
       if (this.options.update === 'setData') for (const f of features) this.all[name].set(f.id as string, f)
-      else this.queue[name] = this.queue[name].concat(features)
-      this.dirty[name] = true
-      this.scheduleFlush(name)
+      else channel.queue = channel.queue.concat(features)
+      channel.dirty = true
+      this.scheduleFlush(channel)
     }
+    this.touch()
   }
 
   private flushTimer?: ReturnType<typeof setTimeout>
 
-  private scheduleFlush(name: SourceName) {
+  private scheduleFlush(channel: Channel) {
     // more tiles of this view are on their way: wait for them, but never longer than 150 ms
     if (this.options.coalesce && this.inflight > 1) {
       this.flushTimer ??= setTimeout(() => this.flushAll(), 150)
       return
     }
-    void this.flush(name)
+    void this.flush(channel)
+  }
+
+  private allChannels() {
+    return [...Object.values(this.channels.base), ...Object.values(this.channels.live)]
   }
 
   private flushAll() {
     clearTimeout(this.flushTimer)
     this.flushTimer = undefined
-    for (const name of SOURCE_NAMES) void this.flush(name)
+    for (const channel of this.allChannels()) void this.flush(channel)
   }
 
   /**
@@ -266,33 +299,88 @@ export class MaidEngine {
    * wait and go out together as the next update. Sending overlapping `updateData` calls
    * left tiles in an inconsistent state (queries threw "feature index out of bounds").
    */
-  private async flush(name: SourceName) {
-    if (this.busy[name] || !this.dirty[name]) return
-    const source = this.map?.getSource<GeoJSONSource>(SOURCES[name])
+  private async flush(channel: Channel) {
+    if (channel.busy || !channel.dirty) return
+    const source = this.map?.getSource<GeoJSONSource>(channel.sourceId)
     if (!source) return
-    this.busy[name] = true
-    this.dirty[name] = false
+    channel.busy = true
+    channel.dirty = false
     this.metrics.updates++
     try {
       if (this.options.update === 'setData') {
-        await source.setData({ type: 'FeatureCollection', features: [...this.all[name].values()] })
-        await this.tilesReloaded(SOURCES[name])
-      } else if (this.options.serialUpdates) {
-        const add = this.queue[name]
-        const remove = this.removals[name]
-        this.queue[name] = []
-        this.removals[name] = []
-        await source.updateData({ add, remove })
-        await this.tilesReloaded(SOURCES[name])
+        await source.setData({ type: 'FeatureCollection', features: [...this.all[channel.name].values()] })
+        await this.tilesReloaded(channel.sourceId)
       } else {
-        const add = this.queue[name]
-        this.queue[name] = []
-        void source.updateData({ add })
+        const add = channel.queue
+        const remove = channel.removals
+        channel.queue = []
+        channel.removals = []
+        if (this.options.serialUpdates) {
+          await source.updateData({ add, remove })
+          await this.tilesReloaded(channel.sourceId)
+        } else void source.updateData({ add, remove })
       }
     } finally {
-      this.busy[name] = false
-      if (this.dirty[name]) void this.flush(name)
-      else if (!this.pushing()) for (const done of this.waiters.splice(0)) done()
+      channel.busy = false
+      if (channel.dirty) void this.flush(channel)
+      else this.wake()
+    }
+  }
+
+  /** Resolves when this channel has nothing queued or in flight */
+  private async channelIdle(channel: Channel) {
+    while (channel.busy || channel.dirty) await new Promise<void>((resolve) => this.waiters.push(resolve))
+  }
+
+  private wake() {
+    for (const done of this.waiters.splice(0)) done()
+  }
+
+  // --- Compaction: move the live tier into the big sources when nothing else is going on ---
+
+  /** Call on any activity. Compaction waits until two seconds have passed without one. */
+  private touch() {
+    if (!this.tiered) return
+    clearTimeout(this.compactTimer)
+    this.compactTimer = setTimeout(() => void this.compact(), 2000)
+  }
+
+  private async compact() {
+    const { map } = this
+    if (!map) return
+    // only when the picture is final: compaction must never delay it
+    if (this.compacting || this.dragBusy || this.inflight > 0 || this.pushing() || map.isMoving() || !map.loaded()) return this.touch()
+    const snapshot = SOURCE_NAMES.map((name) => [name, [...this.live[name].values()]] as const)
+    if (snapshot.every(([, features]) => features.length === 0)) return
+    this.compacting = true
+    try {
+      // 1. copy into the big sources; the map keeps showing the live copies meanwhile
+      for (const [name, features] of snapshot) {
+        if (features.length === 0) continue
+        const channel = this.channels.base[name]
+        channel.queue = channel.queue.concat(features)
+        channel.dirty = true
+        void this.flush(channel)
+      }
+      await Promise.all(Object.values(this.channels.base).map((channel) => this.channelIdle(channel)))
+      // 2. drop the live copies that were not changed again since, and show the originals
+      for (const [name, features] of snapshot) {
+        const done = features.filter((f) => this.live[name].get(f.id as string) === f).map((f) => f.id as string)
+        if (done.length === 0) continue
+        for (const id of done) {
+          this.live[name].delete(id)
+          if (this.editing.delete(id)) map.removeFeatureState({ source: SOURCES[name], id }, 'editing')
+        }
+        const channel = this.channels.live[name]
+        channel.removals = channel.removals.concat(done)
+        channel.dirty = true
+        void this.flush(channel)
+      }
+      await Promise.all(Object.values(this.channels.live).map((channel) => this.channelIdle(channel)))
+      this.metrics.compactions++
+    } finally {
+      this.compacting = false
+      this.wake()
     }
   }
 
@@ -318,7 +406,13 @@ export class MaidEngine {
   private preparing = 0
 
   private pushing() {
-    return this.preparing > 0 || this.flushTimer !== undefined || this.dragBusy || this.editBatch !== undefined || SOURCE_NAMES.some((name) => this.busy[name] || this.dirty[name])
+    return (
+      this.preparing > 0 ||
+      this.flushTimer !== undefined ||
+      this.dragBusy ||
+      this.compacting ||
+      this.allChannels().some((channel) => channel.busy || channel.dirty)
+    )
   }
 
   /** Resolves when all requested tiles are merged and MapLibre has drawn them */
@@ -374,27 +468,12 @@ export class MaidEngine {
     const vertex = this.builder.buildVertex(node)
     if (vertex) batch.vertices.push(vertex)
 
-    if (this.options.edit === 'split') {
-      // First step of a change: hide the originals. They stay in the big sources until commit.
-      for (const name of ['areas', 'lines', 'vertices'] as const) {
-        for (const f of batch[name]) {
-          const id = f.id as string
-          if (this.editing.has(id)) continue
-          this.editing.add(id)
-          map.setFeatureState({ source: SOURCES[name], id }, { editing: true })
-        }
-      }
-      await Promise.all(
-        (['areas', 'lines', 'vertices'] as const).map(async (name) => {
-          if (batch[name].length === 0) return
-          const source = map.getSource<GeoJSONSource>(EDIT_SOURCES[name])
-          await source?.setData({ type: 'FeatureCollection', features: batch[name] })
-          await this.tilesReloaded(EDIT_SOURCES[name])
-        }),
-      )
-      this.editBatch = batch
+    if (this.tiered) {
+      this.hideOriginals(batch)
+      this.push(batch, 'live')
+      await Promise.all(Object.values(this.channels.live).map((channel) => this.channelIdle(channel)))
     } else {
-      this.push(batch)
+      this.push(batch, 'base')
       if (this.pushing()) await new Promise<void>((resolve) => this.waiters.push(resolve))
     }
     await new Promise<void>((resolve) => {
@@ -404,23 +483,20 @@ export class MaidEngine {
     return performance.now() - t0
   }
 
-  /** Ends a change: the features go back into the big sources, the edit sources are emptied. */
-  async commitEdit() {
-    const { map } = this
-    if (!map || !this.editBatch) return
-    const batch = this.editBatch
-    this.editBatch = undefined
-    this.push(batch)
-    if (this.pushing()) await new Promise<void>((resolve) => this.waiters.push(resolve))
-    // only now show the originals again and drop the twins, so nothing flickers
-    for (const name of ['areas', 'lines', 'vertices'] as const) {
-      for (const f of batch[name]) map.removeFeatureState({ source: SOURCES[name], id: f.id as string }, 'editing')
+  /**
+   * A feature that is about to get a newer copy in the live tier: hide its original in the big
+   * source through feature state, which costs no re-tiling. Compaction shows it again.
+   */
+  private hideOriginals(batch: FeatureBatch) {
+    for (const name of SOURCE_NAMES) {
+      for (const f of batch[name]) {
+        const id = f.id as string
+        if (this.editing.has(id) || this.live[name].has(id)) continue
+        this.editing.add(id)
+        this.map?.setFeatureState({ source: SOURCES[name], id }, { editing: true })
+      }
     }
-    this.editing.clear()
-    for (const id of Object.values(EDIT_SOURCES)) void map.getSource<GeoJSONSource>(id)?.setData(EMPTY)
-    for (const done of this.waiters.splice(0)) done()
   }
-  private editBatch?: FeatureBatch
 
   // --- Changing tags ---
 
@@ -455,12 +531,19 @@ export class MaidEngine {
       else if (previous) remove.push([previous, id])
     }
     for (const [name, featureId] of remove) {
-      this.removals[name].push(featureId)
       this.featureSource.delete(featureId)
-      this.dirty[name] = true
-      void this.flush(name)
+      for (const tier of ['base', 'live'] as const) {
+        const channel = this.channels[tier][name]
+        channel.removals.push(featureId)
+        channel.dirty = true
+        void this.flush(channel)
+      }
+      this.live[name].delete(featureId)
     }
-    this.push(batch)
+    if (this.tiered) {
+      this.hideOriginals(batch)
+      this.push(batch, 'live')
+    } else this.push(batch, 'base')
     // feature state belongs to a source; a way that moved between sources needs it again
     if (id === this.selectedId && remove.length) queueMicrotask(() => this.applyHighlight(null, 'selected'))
     this.changed()
@@ -483,6 +566,7 @@ export class MaidEngine {
    */
   dragTo(id: string, lon: number, lat: number) {
     this.dragTarget = { nodeId: Number(id.slice(1)), lon, lat }
+    this.touch()
     if (this.dragBusy) return
     this.dragBusy = true
     void (async () => {
@@ -501,7 +585,9 @@ export class MaidEngine {
   /** Call when the vertex is released */
   async endDrag() {
     while (this.dragBusy) await new Promise((resolve) => requestAnimationFrame(resolve))
-    await this.commitEdit()
+    // nothing to write back: the moved features stay in the live tier until compaction
+    this.touch()
+    this.wake()
   }
 
   // --- Hover and selection ---------------------------------------------------
@@ -540,7 +626,10 @@ export class MaidEngine {
     if (this.options.highlight === 'state') {
       const set = (id: string | null, on: boolean) => {
         const name = id && this.featureSource.get(id)
-        if (name) map.setFeatureState({ source: SOURCES[name], id: id! }, { [kind]: on })
+        if (!name) return
+        // a feature can be in the big source, in the live tier, or (hidden) in both
+        map.setFeatureState({ source: SOURCES[name], id: id! }, { [kind]: on })
+        map.setFeatureState({ source: EDIT_SOURCES[name], id: id! }, { [kind]: on })
       }
       set(previous, false)
       set(kind === 'hover' ? hoverId : selectedId, true)
@@ -621,7 +710,8 @@ export class MaidEngine {
     if (map) {
       for (const name of SOURCE_NAMES) {
         try {
-          const ids = new Set(map.queryRenderedFeatures({ layers: layersOfSource(map, SOURCES[name]) }).map((f) => f.id))
+          const layers = [...layersOfSource(map, SOURCES[name]), ...layersOfSource(map, EDIT_SOURCES[name])]
+          const ids = new Set(map.queryRenderedFeatures({ layers }).map((f) => f.id))
           drawn[name] = ids.size
         } catch (error) {
           // MapLibre can throw "feature index out of bounds" here; keep the stats usable and visible
@@ -635,7 +725,19 @@ export class MaidEngine {
   }
 }
 
-const PRIORITY: Record<string, number> = { [SOURCES.vertices]: 0, [SOURCES.points]: 1, [SOURCES.lines]: 2, [SOURCES.areas]: 3 }
+const PRIORITY: Record<string, number> = {
+  [SOURCES.vertices]: 0, [EDIT_SOURCES.vertices]: 0,
+  [SOURCES.points]: 1, [EDIT_SOURCES.points]: 1,
+  [SOURCES.lines]: 2, [EDIT_SOURCES.lines]: 2,
+  [SOURCES.areas]: 3, [EDIT_SOURCES.areas]: 3,
+} // prettier-ignore
+
+type Channel = { name: SourceName; sourceId: string; queue: Feature[]; removals: string[]; busy: boolean; dirty: boolean }
+
+function makeChannels(ids: Record<SourceName, string>) {
+  const channel = (name: SourceName): Channel => ({ name, sourceId: ids[name], queue: [], removals: [], busy: false, dirty: false })
+  return { areas: channel('areas'), lines: channel('lines'), points: channel('points'), vertices: channel('vertices') }
+}
 
 function pickBest(features: MapGeoJSONFeature[]) {
   let best: MapGeoJSONFeature | undefined

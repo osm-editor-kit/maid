@@ -19,11 +19,13 @@ export const SOURCES = {
 export const EDIT_SOURCES = {
   areas: 'osm-areas-edit',
   lines: 'osm-lines-edit',
+  points: 'osm-points-edit',
   vertices: 'osm-vertices-edit',
 } as const
 const EDIT_OF: Record<string, string> = {
   [SOURCES.areas]: EDIT_SOURCES.areas,
   [SOURCES.lines]: EDIT_SOURCES.lines,
+  [SOURCES.points]: EDIT_SOURCES.points,
   [SOURCES.vertices]: EDIT_SOURCES.vertices,
 }
 
@@ -78,7 +80,6 @@ export function buildLayers(options: LayerOptions): LayerSpecification[] {
     const paint: Record<string, unknown> = { ...(layer.paint as Record<string, unknown>) }
     for (const prop of OPACITY[layer.type] ?? []) paint[prop] = ['case', editing, 0, paint[prop] ?? 1]
     const original = { ...layer, paint } as LayerSpecification
-    if (layer.type === 'symbol') return [original]
     return [original, { ...layer, id: `${layer.id}--edit`, source: editSource } as LayerSpecification]
   })
 }
@@ -403,6 +404,6 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
 
 /** Layers a pointer can hit, in iD's picking priority: vertex, point, line, area */
 export function interactiveLayerIds(layers: LayerSpecification[]) {
-  const wanted = /^(vertex|point-pin|point-dot|point-address|line-(casing|stroke)(-dashed)?--?\d|area-stroke|area-fill)/
+  const wanted = /^(vertex|point-pin|point-dot|point-address|line-(casing|stroke)(-dashed)?--?\d|area-stroke|area-fill)/ // also matches the `--edit` twins
   return layers.filter((l) => wanted.test(l.id)).map((l) => l.id)
 }

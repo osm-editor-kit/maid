@@ -51,7 +51,7 @@ const result = await page.evaluate(async () => {
   }
   const total = performance.now() - t0
   const tc = performance.now()
-  await engine.commitEdit()
+  await engine.endDrag()
   await (window as any).__bench.settled()
   const commitMs = performance.now() - tc
   running = false
