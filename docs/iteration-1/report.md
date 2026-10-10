@@ -6,7 +6,7 @@ Run on one machine (Apple M4, Chrome 154 headless with GPU, 1600×1000 at 2x). F
 
 ## Answer
 
-**Yes, this is a feasible path.** With validation off in iD and Rapid, Maid holds 60 frames per second in every scenario, including dragging a vertex. iD drops to 9 to 31 and Rapid to 30 to 42 when panning or hovering on the larger scenes. Maid loads every scene fastest and uses the least memory.
+**Yes, this is a feasible path.** With validation off in iD and Rapid, Maid holds 60 frames per second in every scenario, including dragging a vertex. iD drops to 7 to 31 and Rapid to 30 to 42 when panning or hovering on the larger scenes. Maid loads every scene fastest and uses the least memory.
 
 What you should weigh:
 
