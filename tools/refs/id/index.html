@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<!--
+  Host page for the iD reference (pinned in pin.json, built by setup.ts, served by serve.ts).
+
+    /?scene=small|medium|dense   scene from the mock OSM API (default: small)
+    /?build=dev                  load dist/iD.js instead of dist/iD.min.js
+    #map=17/52.389/13.4          iD's own hash; defaults to the scene center at zoom 17
+
+  Modelled on iD's own index.html. Differences, all to keep iD away from the network
+  (AGENTS.md core rule 1) and to keep the map free of dialogs; rendering is left at iD's defaults:
+    - OSM connection is switched to the mock API before context.init()
+    - background=none, and the imagery index is primed empty (no Bing metadata, no locator overlay)
+    - all services except `osm` are removed (taginfo, nominatim, nsi, photo layers, QA, wikidata ...)
+    - localStorage is reset on every load, splash screen marked as seen
+-->
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <title>iD reference</title>
+    <link rel='stylesheet' href='dist/iD.css'>
+    <link rel='icon' type='image/png' href='data:image/png;base64,iVBORw0KGgo='>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no'/>
+    <style type='text/css'>
+      html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id='id-container'></div>
+
+    <script src='bench-config.js'></script>
+    <script src='adapter.js'></script>
+    <script>
+      (function () {
+        var config = window.__BENCH_CONFIG;
+        var container = document.getElementById('id-container');
+        var params = new URLSearchParams(window.location.search);
+        var sceneName = params.get('scene') || 'small';
+        var scene = config.scenes.find(function (s) { return s.name === sceneName; });
+
+        function fail(message) {
+          container.textContent = message;
+          container.style.padding = '20px';
+          window.__benchFail(new Error(message));
+        }
+
+        if (!scene) {
+          return fail('Unknown scene "' + sceneName + '". Known: ' + config.scenes.map(function (s) { return s.name; }).join(', '));
+        }
+        var apiRoot = config.mockApi + '/s/' + scene.name;
+
+        // Same state on every load: no restored history, no remembered location or background.
+        try {
+          window.localStorage.clear();
+          window.localStorage.setItem('sawSplash', 'true');   // modules/ui/splash.js
+        } catch (e) { /* storage disabled: iD falls back to memory, the splash is closed below */ }
+
+        // iD reads these from the hash during init (behavior/hash.js, renderer/background.js).
+        var hash = {};
+        window.location.hash.replace(/^#/, '').split('&').forEach(function (pair) {
+          var i = pair.indexOf('=');
+          if (i > 0) hash[pair.slice(0, i)] = pair.slice(i + 1);
+        });
+        if (!hash.map) hash.map = '17/' + scene.center[1] + '/' + scene.center[0];
+        hash.background = 'none';
+        delete hash.walkthrough;
+        delete hash.overlays;
+        delete hash.gpx;
+        delete hash.photo_overlay;
+        window.history.replaceState(null, '', window.location.pathname + window.location.search + '#' +
+          Object.keys(hash).map(function (k) { return k + '=' + hash[k]; }).join('&'));
+
+        var script = document.createElement('script');
+        script.onload = start;
+        script.onerror = function () { fail('Could not load the iD bundle. Run: bun tools/refs/id/setup.ts'); };
+        script.src = params.get('build') === 'dev' ? 'dist/iD.js' : 'dist/iD.min.js';
+        document.head.appendChild(script);
+
+        function start() {
+          if (typeof iD === 'undefined' || !iD.utilDetect().support) return fail('iD does not support this browser.');
+          try {
+            // No imagery sources at all. iD still adds its built-in "none" and "custom" sources.
+            // Without this iD loads data/imagery.min.json, asks Bing for metadata and switches
+            // on the default locator overlay (renderer/background.js:445-491).
+            iD.fileFetcher.cache().imagery = [];
+
+            // Only the OSM service stays. iD guards its use of services (`if (services.x)`),
+            // its own tests run this way. Removes taginfo (requests popular keys on init),
+            // nominatim, nsi (downloads ~10 MB), osmose, streetview layers, wikidata, wikipedia.
+            Object.keys(iD.services).forEach(function (key) {
+              if (key !== 'osm') delete iD.services[key];
+            });
+
+            var context = iD.coreContext()
+              .assetPath('dist/')
+              .containerNode(container);
+            window.context = window.id = context;  // for debugging, as upstream does
+
+            try { window.localStorage.setItem('sawPrivacyVersion', context.privacyVersion); } catch (e) { /* see above */ }
+
+            // Point the connection at the scene BEFORE init, so the first request iD makes
+            // already goes to the mock API. The bundle default is the mock API too (setup.ts).
+            // The client id is a dummy, nothing can sign in.
+            var connection = { url: apiRoot, apiUrl: apiRoot, client_id: 'maid-bench-no-auth' };
+            context.connection().apiConnections([connection]);   // one entry: no source switcher in the UI
+            context.preauth(connection);                          // = services.osm.switch()
+
+            context.locale('en');   // UI language only; keeps runs identical across machines
+            context.init();
+
+            // as upstream index.html: boundaries are off unless the hash says otherwise
+            if (!hash.disable_features) context.features().disable('boundaries');
+
+            window.__benchInstall(iD, context);
+          } catch (error) {
+            fail('iD failed to start: ' + (error && error.message || error));
+            throw error;
+          }
+        }
+      })();
+    </script>
+  </body>
+</html>

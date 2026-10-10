@@ -1,0 +1,51 @@
+import type { EngineOptions, LayerOptions } from '@maid/renderer'
+import { PORTS } from '../../../tools/ports'
+
+/**
+ * Everything that can be switched from the URL, so that experiments and the benchmark
+ * run the same build. Example: /?scene=dense&update=setData&fill=full#map=17/52.4845/13.433
+ */
+export type Config = {
+  scene: string
+  apiUrl: string
+  /** Live OSM data is a manual mode for people. It is refused under automation. */
+  live: boolean
+  update: EngineOptions['update']
+  highlight: EngineOptions['highlight']
+  serialUpdates: boolean
+  fill: LayerOptions['fill']
+  labels: boolean
+  icons: boolean
+  minDataZoom: number
+  tolerance: number
+  sourceMaxZoom: number
+  /** OSM zoom (256px tiles), like iD's #map= */
+  camera?: { zoom: number; lat: number; lng: number }
+}
+
+const param = <T extends string>(params: URLSearchParams, name: string, allowed: readonly T[], fallback: T) => {
+  const value = params.get(name) as T | null
+  return value && allowed.includes(value) ? value : fallback
+}
+
+export function readConfig(location: Location): Config {
+  const params = new URLSearchParams(location.search)
+  const scene = params.get('scene') ?? 'small'
+  const live = params.get('live') === '1' && !navigator.webdriver
+  const map = location.hash.match(/map=([\d.]+)\/(-?[\d.]+)\/(-?[\d.]+)/)
+  return {
+    scene,
+    live,
+    apiUrl: live ? 'https://api.openstreetmap.org' : `http://localhost:${PORTS.mockApi}/s/${scene}`,
+    update: param(params, 'update', ['diff', 'setData'] as const, 'diff'),
+    highlight: param(params, 'highlight', ['source', 'state'] as const, 'source'),
+    serialUpdates: params.get('serial') !== '0',
+    fill: param(params, 'fill', ['partial', 'full', 'wireframe'] as const, 'partial'),
+    labels: params.get('labels') !== '0',
+    icons: params.get('icons') !== '0',
+    minDataZoom: Number(params.get('minDataZoom') ?? 16),
+    tolerance: Number(params.get('tolerance') ?? 0),
+    sourceMaxZoom: Number(params.get('sourceMaxZoom') ?? 17),
+    camera: map ? { zoom: Number(map[1]), lat: Number(map[2]), lng: Number(map[3]) } : undefined,
+  }
+}

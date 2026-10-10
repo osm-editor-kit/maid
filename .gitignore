@@ -8,3 +8,5 @@ dist/
 !.env.example
 playwright-report/
 test-results/
+apps/maid/public/sprites/
+reports/shots/

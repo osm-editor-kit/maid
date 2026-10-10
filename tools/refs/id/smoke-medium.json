@@ -1,0 +1,105 @@
+{
+  "scene": "medium",
+  "zoom": 17,
+  "build": "min",
+  "viewport": {
+    "width": 1600,
+    "height": 1000
+  },
+  "editor": {
+    "editor": "id",
+    "version": "2.42.2"
+  },
+  "timing": {
+    "readyMs": 347.1999999284744,
+    "settledMs": 2048,
+    "wallSettledMs": 2053.243542,
+    "setCameraSettledMs": 2643.0999999046326
+  },
+  "camera": {
+    "lng": 13.4023,
+    "lat": 52.52279999999999,
+    "zoom": 17
+  },
+  "stats": {
+    "entities": {
+      "nodes": 30265,
+      "ways": 3953,
+      "relations": 369
+    },
+    "drawn": {
+      "lines": 1369,
+      "areas": 378,
+      "points": 66,
+      "vertices": 2627,
+      "midpoints": 0,
+      "labels": 55,
+      "linePaths": 4260,
+      "areaPaths": 1149,
+      "touchTargets": 12246,
+      "domNodesOsmLayer": 15498,
+      "domNodes": 28553
+    },
+    "hidden": {
+      "auto:address_points": 298,
+      "auto:points": 2586,
+      "auto:buildings": 471,
+      "off:boundaries": 15
+    }
+  },
+  "features": {
+    "stats": {
+      "address_points": 298,
+      "points": 2586,
+      "traffic_roads": 156,
+      "service_roads": 153,
+      "paths": 634,
+      "buildings": 471,
+      "building_parts": 76,
+      "indoor": 46,
+      "landuse": 219,
+      "boundaries": 15,
+      "water": 11,
+      "rail": 128,
+      "pistes": 0,
+      "aerialways": 0,
+      "power": 22,
+      "past_future": 53,
+      "others": 360
+    },
+    "hidden": [
+      "address_points",
+      "points",
+      "buildings",
+      "boundaries"
+    ],
+    "autoHidden": [
+      "address_points",
+      "points",
+      "buildings"
+    ],
+    "disabled": [
+      "boundaries"
+    ]
+  },
+  "counters": {
+    "completeDraws": 3,
+    "partialDraws": 0,
+    "hoverDraws": 1,
+    "merges": 9,
+    "triggers": 11,
+    "watchdogClears": 0,
+    "lastCompleteDrawAt": 2021.2999999523163,
+    "lastMergeAt": 939.8999999761581,
+    "lastMoveAt": 342.1999999284744
+  },
+  "mockRequests": {
+    "/s/medium/api/capabilities.json": 1,
+    "/s/medium/api/0.6/map.json": 14
+  },
+  "staticServer404s": [],
+  "blocked": {},
+  "pageErrors": [],
+  "consoleErrors": [],
+  "failures": []
+}

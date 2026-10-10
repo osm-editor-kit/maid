@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Rapid (benchmark reference)</title>
+    <!--
+      Host page for Rapid 3 (bhousel/Rapid) as a benchmark reference. See NOTES.md.
+      Not a copy of Rapid's dist/index.html: no OAuth client ids, no CSP meta tag, no
+      browser-update.org script. Everything is loaded from this origin; OSM data comes
+      from the local mock API (tools/mock-osm-api). `?scene=<name>` selects the scene.
+    -->
+    <link rel="stylesheet" href="css/rapid.min.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
+      #rapid-container { width: 100%; height: 100%; }
+    </style>
+  </head>
+  <body>
+    <div id="rapid-container"></div>
+    <!-- bench.js sets the URL hash and storage, then loads js/rapid.min.js itself -->
+    <script src="config.js"></script>
+    <script src="bench.js"></script>
+  </body>
+</html>

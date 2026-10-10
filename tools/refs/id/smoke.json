@@ -1,0 +1,105 @@
+{
+  "scene": "small",
+  "zoom": 17,
+  "build": "min",
+  "viewport": {
+    "width": 1600,
+    "height": 1000
+  },
+  "editor": {
+    "editor": "id",
+    "version": "2.42.2"
+  },
+  "timing": {
+    "readyMs": 362,
+    "settledMs": 1516.6000000238419,
+    "wallSettledMs": 1520.9550830000003,
+    "setCameraSettledMs": 934.8000000715256
+  },
+  "camera": {
+    "lng": 13.4,
+    "lat": 52.38900000000002,
+    "zoom": 17
+  },
+  "stats": {
+    "entities": {
+      "nodes": 10627,
+      "ways": 1636,
+      "relations": 66
+    },
+    "drawn": {
+      "lines": 456,
+      "areas": 124,
+      "points": 8,
+      "vertices": 725,
+      "midpoints": 0,
+      "labels": 44,
+      "linePaths": 1398,
+      "areaPaths": 374,
+      "touchTargets": 3418,
+      "domNodesOsmLayer": 4598,
+      "domNodes": 8291
+    },
+    "hidden": {
+      "auto:address_points": 358,
+      "auto:points": 529,
+      "auto:buildings": 892,
+      "off:boundaries": 3
+    }
+  },
+  "features": {
+    "stats": {
+      "address_points": 358,
+      "points": 529,
+      "traffic_roads": 87,
+      "service_roads": 89,
+      "paths": 217,
+      "buildings": 892,
+      "building_parts": 6,
+      "indoor": 0,
+      "landuse": 104,
+      "boundaries": 3,
+      "water": 5,
+      "rail": 24,
+      "pistes": 0,
+      "aerialways": 0,
+      "power": 0,
+      "past_future": 12,
+      "others": 48
+    },
+    "hidden": [
+      "address_points",
+      "points",
+      "buildings",
+      "boundaries"
+    ],
+    "autoHidden": [
+      "address_points",
+      "points",
+      "buildings"
+    ],
+    "disabled": [
+      "boundaries"
+    ]
+  },
+  "counters": {
+    "completeDraws": 3,
+    "partialDraws": 0,
+    "hoverDraws": 1,
+    "merges": 6,
+    "triggers": 8,
+    "watchdogClears": 0,
+    "lastCompleteDrawAt": 1509.5,
+    "lastMergeAt": 662.7000000476837,
+    "lastMoveAt": 356.5
+  },
+  "mockRequests": {
+    "/s/small/api/capabilities.json": 1,
+    "/s/small/api/0.6/map.json": 9
+  },
+  "staticServer404s": [],
+  "blocked": {},
+  "pageErrors": [],
+  "consoleErrors": [],
+  "failures": []
+}

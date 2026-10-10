@@ -1,0 +1,321 @@
+/**
+ * Turns OSM entities into GeoJSON features that carry their resolved iD style as plain
+ * properties. Classification runs once per entity in JavaScript, so MapLibre's style
+ * expressions stay trivial (`['get', 'sc']`) and forks can change the look in one place.
+ */
+import { hasInterestingTags, isArea, presetIcon, resolveWayStyle, tagClasses, wayLayer, type Tags } from '@maid/style'
+import type { Feature, LineString, MultiPolygon, Point, Polygon, Position } from 'geojson'
+import type { MergeResult, OsmNode, OsmRelation, OsmStore, OsmWay } from './store'
+
+export type SourceName = 'areas' | 'lines' | 'points' | 'vertices'
+export type FeatureBatch = Record<SourceName, Feature[]>
+
+/** Short property names keep the payload to MapLibre's worker small. See layers.ts for their use. */
+export type LineProps = {
+  id: string
+  /** stacking band: -1 below ground, 0, 1 above */
+  b: -1 | 0 | 1
+  /** sort key inside a band */
+  z: number
+  /** stroke colour, width, width at low zoom, dash key */
+  sc?: string
+  sw: number
+  swl: number
+  sd?: string
+  /** casing colour, width, width at low zoom, dash key */
+  cc?: string
+  cw: number
+  cwl: number
+  cd?: string
+  /** shadow (hover and selection halo) width */
+  hw: number
+  hwl: number
+  name?: string
+  oneway?: 1
+}
+
+export type AreaProps = {
+  id: string
+  sc?: string
+  sw: number
+  sd?: string
+  /** fill colour with iD's alpha, for full fill */
+  fc?: string
+  /** the same colour without alpha, for the partial-fill band (the layer sets the opacity) */
+  fo?: string
+  /** width of the partial-fill band in px at full size, before clamping to the area's size */
+  fw: number
+  /** rough inner radius of the area in metres: 2 * area / perimeter */
+  r: number
+  hw: number
+  name?: string
+}
+
+export type PointProps = { id: string; icon?: string; name?: string }
+export type VertexProps = { id: string; t: 0 | 1; s: 0 | 1; icon?: string }
+
+const HIGHWAY_STACK: Record<string, number> = {
+  motorway: 0, motorway_link: 1, trunk: 2, trunk_link: 3, primary: 4, primary_link: 5,
+  secondary: 6, tertiary: 7, unclassified: 8, residential: 9, service: 10, busway: 11, footway: 12,
+} // prettier-ignore
+
+/** Dash patterns are registered here so the layer expressions can list them. */
+export const dashPatterns = new Map<string, number[]>()
+function dashKey(dash: number[] | undefined, width: number) {
+  if (!dash || width <= 0) return undefined
+  // CSS dashes are in px, MapLibre's are in multiples of the line width
+  const scaled = dash.map((d) => Math.round((d / width) * 100) / 100)
+  const key = scaled.join(' ')
+  if (!dashPatterns.has(key)) dashPatterns.set(key, scaled)
+  return key
+}
+
+const DEG = Math.PI / 180
+/** Signed area in m² (positive = counter-clockwise) and perimeter in m, on a local flat projection */
+function ringMetrics(ring: Position[]) {
+  const kx = 111320 * Math.cos(ring[0]![1]! * DEG)
+  const ky = 110540
+  let area = 0
+  let perimeter = 0
+  for (let i = 0; i < ring.length - 1; i++) {
+    const x1 = ring[i]![0]! * kx
+    const y1 = ring[i]![1]! * ky
+    const x2 = ring[i + 1]![0]! * kx
+    const y2 = ring[i + 1]![1]! * ky
+    area += x1 * y2 - x2 * y1
+    perimeter += Math.hypot(x2 - x1, y2 - y1)
+  }
+  return { area: area / 2, perimeter }
+}
+
+function wayCoords(store: OsmStore, way: OsmWay) {
+  const coords: Position[] = []
+  for (const id of way.nodes) {
+    const node = store.nodes.get(id)
+    if (node) coords.push([node.lon, node.lat])
+  }
+  return coords
+}
+
+function lineFeature(id: string, coords: Position[], tags: Tags, classes: string[]): Feature<LineString, LineProps> {
+  const style = resolveWayStyle(classes, 'line')
+  const layer = wayLayer(tags)
+  const props: LineProps = {
+    id,
+    b: layer < 0 ? -1 : layer > 0 ? 1 : 0,
+    // iD draws lower `layer` values first and, within one, minor roads first
+    z: layer * 20 + (tags.highway ? 13 - (HIGHWAY_STACK[tags.highway] ?? 13) : 0),
+    sw: style.stroke.width,
+    swl: style.stroke.widthLow,
+    cw: style.casing.width,
+    cwl: style.casing.widthLow,
+    hw: style.shadow.width,
+    hwl: style.shadow.widthLow,
+  }
+  if (style.stroke.color) props.sc = style.stroke.color
+  if (style.casing.color) props.cc = style.casing.color
+  const sd = dashKey(style.stroke.dash, style.stroke.width)
+  if (sd) props.sd = sd
+  const cd = dashKey(style.casing.dash, style.casing.width)
+  if (cd) props.cd = cd
+  if (tags.name) props.name = tags.name
+  if (tags.oneway === 'yes' || tags.junction === 'roundabout') props.oneway = 1
+  return { type: 'Feature', id, properties: props, geometry: { type: 'LineString', coordinates: coords } }
+}
+
+/** MapLibre offsets lines to the left of their direction; counter-clockwise rings put the inside on the left. */
+function orient(ring: Position[], counterClockwise: boolean) {
+  const { area } = ringMetrics(ring)
+  return area > 0 === counterClockwise ? ring : ring.slice().reverse()
+}
+
+function areaFeature(
+  id: string,
+  polygons: Position[][][],
+  tags: Tags,
+  classes: string[],
+): Feature<Polygon | MultiPolygon, AreaProps> {
+  // closed ways with a barrier are outlined like the barrier line (iD: overrideGeometry)
+  const outline = tags.barrier && tags.barrier !== 'no' ? 'line' : 'area'
+  const style = resolveWayStyle(classes, 'area')
+  const stroke = outline === 'line' ? resolveWayStyle(classes, 'line').stroke : style.stroke
+  let area = 0
+  let perimeter = 0
+  const oriented = polygons.map((rings) =>
+    rings.map((ring, i) => {
+      const m = ringMetrics(ring)
+      area += i === 0 ? Math.abs(m.area) : -Math.abs(m.area)
+      perimeter += m.perimeter
+      return orient(ring, i === 0)
+    }),
+  )
+  const props: AreaProps = {
+    id,
+    sw: stroke.width,
+    // iD strokes the clipped fill path 60px wide (css/70_fills.css), which shows as a band half as wide
+    fw: classes.includes('building_part') ? 20 : classes.includes('indoor') ? 10 : classes.includes('amenity-parking_space') ? 15 : 30,
+    r: perimeter > 0 ? Math.round(((2 * area) / perimeter) * 100) / 100 : 0,
+    hw: style.shadow.width,
+  }
+  if (stroke.color) props.sc = stroke.color
+  const sd = dashKey(stroke.dash, stroke.width)
+  if (sd) props.sd = sd
+  if (style.fill) {
+    props.fc = style.fill
+    props.fo = style.fill.replace(/rgba\(([^,]+),([^,]+),([^,]+),[^)]+\)/, 'rgb($1,$2,$3)')
+  }
+  if (tags.name) props.name = tags.name
+  const geometry: Polygon | MultiPolygon =
+    oriented.length === 1
+      ? { type: 'Polygon', coordinates: oriented[0]! }
+      : { type: 'MultiPolygon', coordinates: oriented }
+  return { type: 'Feature', id, properties: props, geometry }
+}
+
+/** Joins member ways into closed rings. Returns undefined if a member is missing or rings do not close. */
+function assembleRings(store: OsmStore, wayIds: number[]) {
+  const segments: Position[][] = []
+  for (const id of wayIds) {
+    const way = store.ways.get(id)
+    if (!way) return undefined
+    const coords = wayCoords(store, way)
+    if (coords.length < 2) return undefined
+    segments.push(coords)
+  }
+  const same = (a: Position, b: Position) => a[0] === b[0] && a[1] === b[1]
+  const rings: Position[][] = []
+  while (segments.length > 0) {
+    let ring = segments.pop()!
+    while (!same(ring[0]!, ring[ring.length - 1]!)) {
+      const end = ring[ring.length - 1]!
+      const i = segments.findIndex((s) => same(s[0]!, end) || same(s[s.length - 1]!, end))
+      if (i < 0) return undefined
+      const next = segments.splice(i, 1)[0]!
+      ring = ring.concat((same(next[0]!, end) ? next : next.slice().reverse()).slice(1))
+    }
+    if (ring.length >= 4) rings.push(ring)
+  }
+  return rings
+}
+
+function pointInRing(point: Position, ring: Position[]) {
+  let inside = false
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i] as [number, number]
+    const [xj, yj] = ring[j] as [number, number]
+    if (yi > point[1]! !== yj > point[1]! && point[0]! < ((xj - xi) * (point[1]! - yi)) / (yj - yi) + xi) inside = !inside
+  }
+  return inside
+}
+
+function multipolygon(store: OsmStore, relation: OsmRelation) {
+  const outerIds = relation.members.filter((m) => m.type === 'way' && m.role !== 'inner').map((m) => m.ref)
+  const innerIds = relation.members.filter((m) => m.type === 'way' && m.role === 'inner').map((m) => m.ref)
+  const outers = assembleRings(store, outerIds)
+  const inners = assembleRings(store, innerIds)
+  if (!outers || !inners || outers.length === 0) return undefined
+  const polygons = outers.map((outer) => [outer])
+  for (const inner of inners) {
+    const host = polygons.find((p) => pointInRing(inner[0]!, p[0]!))
+    if (host) host.push(inner)
+  }
+  return polygons
+}
+
+export class FeatureBuilder {
+  /** Entities that have a feature, so later merges do not build them twice */
+  private built = new Set<string>()
+  /** Multipolygons whose members were not all loaded yet */
+  private pendingRelations = new Set<number>()
+  private vertexState = new Map<number, string>()
+
+  constructor(private store: OsmStore) {}
+
+  /** Features for everything a merge added. Call once per merge, in order. */
+  build(added: MergeResult): FeatureBatch {
+    const { store } = this
+    const out: FeatureBatch = { areas: [], lines: [], points: [], vertices: [] }
+
+    for (const relation of added.relations) {
+      if (relation.tags?.type === 'multipolygon') this.pendingRelations.add(relation.id)
+    }
+    for (const id of this.pendingRelations) {
+      const relation = store.relations.get(id)!
+      const polygons = multipolygon(store, relation)
+      if (!polygons) continue
+      this.pendingRelations.delete(id)
+      // old-style multipolygons carry their tags on the outer way
+      let tags = relation.tags!
+      if (Object.keys(tags).every((k) => k === 'type')) {
+        const outer = relation.members.find((m) => m.type === 'way' && m.role !== 'inner')
+        tags = { ...store.ways.get(outer!.ref)?.tags }
+      }
+      out.areas.push(areaFeature(`r${id}`, polygons, tags, tagClasses(tags)))
+      this.built.add(`r${id}`)
+    }
+
+    for (const way of added.ways) {
+      const id = `w${way.id}`
+      if (this.built.has(id)) continue
+      const coords = wayCoords(store, way)
+      if (coords.length < 2) continue
+      const tags = way.tags ?? {}
+      const closed = way.nodes.length > 2 && way.nodes[0] === way.nodes[way.nodes.length - 1]
+      this.built.add(id)
+      if (isArea(way.tags, closed) && coords.length >= 4) {
+        out.areas.push(areaFeature(id, [[coords]], tags, tagClasses(tags)))
+        continue
+      }
+      // ways that only carry a multipolygon's outline are drawn by the relation's area
+      if (!hasInterestingTags(way.tags) && store.wayMultipolygons.has(way.id)) continue
+      out.lines.push(lineFeature(id, coords, tags, tagClasses(tags)))
+    }
+
+    // Vertices and points. A node's role can change when a later tile brings another way.
+    const touched = new Set<OsmNode>(added.nodes)
+    for (const way of added.ways) {
+      for (const nodeId of way.nodes) {
+        const node = store.nodes.get(nodeId)
+        if (node) touched.add(node)
+      }
+    }
+    for (const node of touched) {
+      const uses = store.nodeUses.get(node.id) ?? 0
+      const tagged = hasInterestingTags(node.tags)
+      const id = `n${node.id}`
+      if (uses === 0) {
+        if (!tagged || this.built.has(id)) continue
+        this.built.add(id)
+        const props: PointProps = { id }
+        const icon = presetIcon(node.tags!)
+        if (icon) props.icon = icon
+        if (node.tags!.name) props.name = node.tags!.name
+        out.points.push({ type: 'Feature', id, properties: props, geometry: { type: 'Point', coordinates: [node.lon, node.lat] } })
+        continue
+      }
+      // iD only draws vertices that matter while nothing is selected: tagged, junctions, way ends
+      const shared = uses > 1
+      if (!tagged && !shared && !store.endpoints.has(node.id)) continue
+      const state = `${tagged ? 1 : 0}${shared ? 1 : 0}`
+      if (this.vertexState.get(node.id) === state) continue
+      this.vertexState.set(node.id, state)
+      const props: VertexProps = { id, t: tagged ? 1 : 0, s: shared ? 1 : 0 }
+      const icon = tagged ? presetIcon(node.tags!) : undefined
+      if (icon) props.icon = icon
+      out.vertices.push({ type: 'Feature', id, properties: props, geometry: { type: 'Point', coordinates: [node.lon, node.lat] } as Point })
+    }
+    return out
+  }
+}
+
+/** All nodes of a way as vertex features, for showing a selected way's shape points */
+export function wayVertices(store: OsmStore, wayId: number): Feature<Point>[] {
+  const way = store.ways.get(wayId)
+  if (!way) return []
+  const out: Feature<Point>[] = []
+  for (const nodeId of new Set(way.nodes)) {
+    const node = store.nodes.get(nodeId)
+    if (node) out.push({ type: 'Feature', properties: { id: `n${nodeId}` }, geometry: { type: 'Point', coordinates: [node.lon, node.lat] } })
+  }
+  return out
+}
