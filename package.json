@@ -3,7 +3,11 @@
   "private": true,
   "license": "ISC",
   "type": "module",
-  "workspaces": ["apps/*", "packages/*", "tools/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "tools/*"
+  ],
   "scripts": {
     "dev": "bun run --parallel dev:*",
     "dev:maid": "bun run --cwd apps/maid dev",
@@ -11,7 +15,11 @@
     "fixtures-build": "bun tools/fixtures/build.ts",
     "type-check": "tsc --noEmit",
     "test-run": "bun test",
-    "check": "bun run --parallel type-check test-run"
+    "check": "bun run --parallel type-check test-run",
+    "bench": "bun tools/bench/run.ts",
+    "bench-smoke": "bun tools/bench/run.ts --scene small --repeat 1 --label smoke",
+    "bench-report": "bun tools/bench/report.ts",
+    "refs-setup": "bun tools/refs/id/setup.ts && bun tools/refs/rapid/setup.ts && bun tools/refs/copy-sprites.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

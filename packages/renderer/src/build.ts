@@ -51,7 +51,8 @@ export type AreaProps = {
   name?: string
 }
 
-export type PointProps = { id: string; icon?: string; name?: string }
+/** `addr`: house number of a pure address node, which iD draws as a small label instead of a pin */
+export type PointProps = { id: string; icon?: string; name?: string; addr?: string }
 export type VertexProps = { id: string; t: 0 | 1; s: 0 | 1; icon?: string }
 
 const HIGHWAY_STACK: Record<string, number> = {
@@ -222,7 +223,23 @@ function multipolygon(store: OsmStore, relation: OsmRelation) {
   return polygons
 }
 
+/** iD hides boundaries by default (renderer/features.js, rule `boundaries`) */
+function isHiddenBoundary(t: Tags) {
+  return !!t.boundary && !(t.highway || t.waterway || t.railway || t.landuse || t.natural || t.building || t.power)
+}
+
+/** iD's isAddressPoint: a node that only carries an address */
+function addressOf(t: Tags) {
+  const number = t['addr:housenumber'] ?? t['addr:housename']
+  if (!number) return undefined
+  for (const k in t) if (!k.startsWith('addr:')) return undefined
+  return number
+}
+
 export class FeatureBuilder {
+  /** Features left out on purpose, by reason */
+  hidden: Record<string, number> = {}
+
   /** Entities that have a feature, so later merges do not build them twice */
   private built = new Set<string>()
   /** Multipolygons whose members were not all loaded yet */
@@ -230,6 +247,36 @@ export class FeatureBuilder {
   private vertexState = new Map<number, string>()
 
   constructor(private store: OsmStore) {}
+
+  /** The feature of one way, or undefined if it is not drawn on its own. Also used when a node moves. */
+  buildWay(way: OsmWay): { source: 'areas' | 'lines'; feature: Feature } | undefined {
+    const { store } = this
+    const id = `w${way.id}`
+    const coords = wayCoords(store, way)
+    if (coords.length < 2) return undefined
+    const tags = way.tags ?? {}
+    const closed = way.nodes.length > 2 && way.nodes[0] === way.nodes[way.nodes.length - 1]
+    const first = !this.built.has(id)
+    this.built.add(id)
+    if (isHiddenBoundary(tags)) {
+      if (first) this.hidden.boundaries = (this.hidden.boundaries ?? 0) + 1
+      return undefined
+    }
+    if (isArea(way.tags, closed) && coords.length >= 4) {
+      return { source: 'areas', feature: areaFeature(id, [[coords]], tags, tagClasses(tags)) }
+    }
+    // ways that only carry a multipolygon's outline are drawn by the relation's area
+    if (!hasInterestingTags(way.tags) && store.wayMultipolygons.has(way.id)) return undefined
+    return { source: 'lines', feature: lineFeature(id, coords, tags, tagClasses(tags)) }
+  }
+
+  /** The vertex feature of a node, if it has one */
+  buildVertex(node: OsmNode): Feature | undefined {
+    const state = this.vertexState.get(node.id)
+    if (!state) return undefined
+    const props: VertexProps = { id: `n${node.id}`, t: state[0] === '1' ? 1 : 0, s: state[1] === '1' ? 1 : 0 }
+    return { type: 'Feature', id: props.id, properties: props, geometry: { type: 'Point', coordinates: [node.lon, node.lat] } }
+  }
 
   /** Features for everything a merge added. Call once per merge, in order. */
   build(added: MergeResult): FeatureBatch {
@@ -257,18 +304,8 @@ export class FeatureBuilder {
     for (const way of added.ways) {
       const id = `w${way.id}`
       if (this.built.has(id)) continue
-      const coords = wayCoords(store, way)
-      if (coords.length < 2) continue
-      const tags = way.tags ?? {}
-      const closed = way.nodes.length > 2 && way.nodes[0] === way.nodes[way.nodes.length - 1]
-      this.built.add(id)
-      if (isArea(way.tags, closed) && coords.length >= 4) {
-        out.areas.push(areaFeature(id, [[coords]], tags, tagClasses(tags)))
-        continue
-      }
-      // ways that only carry a multipolygon's outline are drawn by the relation's area
-      if (!hasInterestingTags(way.tags) && store.wayMultipolygons.has(way.id)) continue
-      out.lines.push(lineFeature(id, coords, tags, tagClasses(tags)))
+      const built = this.buildWay(way)
+      if (built) out[built.source].push(built.feature)
     }
 
     // Vertices and points. A node's role can change when a later tile brings another way.
@@ -287,9 +324,13 @@ export class FeatureBuilder {
         if (!tagged || this.built.has(id)) continue
         this.built.add(id)
         const props: PointProps = { id }
-        const icon = presetIcon(node.tags!)
-        if (icon) props.icon = icon
-        if (node.tags!.name) props.name = node.tags!.name
+        const addr = addressOf(node.tags!)
+        if (addr) props.addr = addr
+        else {
+          const icon = presetIcon(node.tags!)
+          if (icon) props.icon = icon
+          if (node.tags!.name) props.name = node.tags!.name
+        }
         out.points.push({ type: 'Feature', id, properties: props, geometry: { type: 'Point', coordinates: [node.lon, node.lat] } })
         continue
       }

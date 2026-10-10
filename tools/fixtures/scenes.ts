@@ -7,6 +7,8 @@ export type Scene = {
   description: string
   bbox: [number, number, number, number]
   center: [number, number]
+  /** OSM zoom at which scenarios start. Chosen so that the viewport stays inside the data. */
+  zoom: number
 }
 
 export const SCENES: Scene[] = [
@@ -15,18 +17,21 @@ export const SCENES: Scene[] = [
     description: 'Residential streets in Lichtenrade',
     bbox: [13.393, 52.385, 13.407, 52.393],
     center: [13.4, 52.389],
+    zoom: 18,
   },
   {
     name: 'medium',
     description: 'Inner city around Hackescher Markt, Mitte',
     bbox: [13.39, 52.516, 13.415, 52.53],
     center: [13.4023, 52.5228],
+    zoom: 17,
   },
   {
     name: 'dense',
     description: 'Neukölln with detailed street-space and parking mapping',
     bbox: [13.418, 52.476, 13.448, 52.493],
     center: [13.433, 52.4845],
+    zoom: 17,
   },
 ]
 

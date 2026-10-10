@@ -1,6 +1,6 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
-import { PORTS } from '../../tools/ports'
+import { PORTS } from '../../tools/ports.ts'
 
 export default defineConfig({
   plugins: [react()],

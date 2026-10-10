@@ -10,7 +10,7 @@ import { resolveWayStyle, tagClasses } from '@maid/style'
 import type { Feature, FeatureCollection } from 'geojson'
 import type { GeoJSONSource, Map as MapLibreMap, MapGeoJSONFeature } from 'maplibre-gl'
 import { dashPatterns, FeatureBuilder, wayVertices, type FeatureBatch, type SourceName } from './build'
-import { SOURCES } from './layers'
+import { EDIT_SOURCES, SOURCES } from './layers'
 import { OsmStore, type OsmElement } from './store'
 
 export type EngineOptions = {
@@ -21,8 +21,18 @@ export type EngineOptions = {
   /** 'diff' sends only new features to MapLibre, 'setData' re-sends everything on every tile */
   update: 'diff' | 'setData'
   highlight: 'source' | 'state'
+  /**
+   * How a changing feature reaches the screen. 'inline': update it in the big source.
+   * 'split': move it to a small edit source for the duration of the change.
+   */
+  edit: 'inline' | 'split'
   /** Wait for MapLibre to finish one update before sending the next (default true) */
   serialUpdates: boolean
+  /**
+   * Called with new features before they go to MapLibre, e.g. to add the images they need.
+   * Images that arrive after a tile was laid out do not reliably show up in that tile.
+   */
+  prepare?: (batch: FeatureBatch) => Promise<void>
   /** Called when the set of dash patterns grew and the layers need to be rebuilt */
   onStyleChange?: () => void
 }
@@ -61,7 +71,8 @@ export class MaidEngine {
   private map?: MapLibreMap
   private tiles = new Set<string>()
   private inflight = 0
-  private all: FeatureBatch = { areas: [], lines: [], points: [], vertices: [] }
+  /** Everything pushed so far, by id. Only kept for the 'setData' mode, which re-sends all of it. */
+  private all: Record<SourceName, Map<string, Feature>> = { areas: new Map(), lines: new Map(), points: new Map(), vertices: new Map() }
   private featureSource = new Map<string, SourceName>()
   private dashCount = 0
   private hoverId: string | null = null
@@ -70,6 +81,9 @@ export class MaidEngine {
   private shownSelected: string | null = null
   private waiters: (() => void)[] = []
   private queue: FeatureBatch = { areas: [], lines: [], points: [], vertices: [] }
+  private removals: Record<SourceName, string[]> = { areas: [], lines: [], points: [], vertices: [] }
+  /** Ids that currently live in the edit sources */
+  private editing = new Set<string>()
   private busy: Record<SourceName, boolean> = { areas: false, lines: false, points: false, vertices: false }
   private dirty: Record<SourceName, boolean> = { areas: false, lines: false, points: false, vertices: false }
 
@@ -136,7 +150,13 @@ export class MaidEngine {
     const t1 = performance.now()
     const batch = this.builder.build(added)
     const t2 = performance.now()
-    this.push(batch)
+    if (this.options.prepare) {
+      this.preparing++
+      void this.options.prepare(batch).finally(() => {
+        this.preparing--
+        this.push(batch)
+      })
+    } else this.push(batch)
     const t3 = performance.now()
     this.metrics.mergeMs += t1 - t0
     this.metrics.buildMs += t2 - t1
@@ -153,7 +173,7 @@ export class MaidEngine {
       if (features.length === 0) continue
       this.metrics.features[name] += features.length
       for (const f of features) this.featureSource.set(f.id as string, name)
-      if (this.options.update === 'setData') this.all[name] = this.all[name].concat(features)
+      if (this.options.update === 'setData') for (const f of features) this.all[name].set(f.id as string, f)
       else this.queue[name] = this.queue[name].concat(features)
       this.dirty[name] = true
       void this.flush(name)
@@ -174,11 +194,14 @@ export class MaidEngine {
     this.metrics.updates++
     try {
       if (this.options.update === 'setData') {
-        await source.setData({ type: 'FeatureCollection', features: this.all[name] })
+        await source.setData({ type: 'FeatureCollection', features: [...this.all[name].values()] })
+        await this.tilesReloaded(SOURCES[name])
       } else if (this.options.serialUpdates) {
         const add = this.queue[name]
+        const remove = this.removals[name]
         this.queue[name] = []
-        await source.updateData({ add })
+        this.removals[name] = []
+        await source.updateData({ add, remove })
         await this.tilesReloaded(SOURCES[name])
       } else {
         const add = this.queue[name]
@@ -211,8 +234,10 @@ export class MaidEngine {
     })
   }
 
+  private preparing = 0
+
   private pushing() {
-    return SOURCE_NAMES.some((name) => this.busy[name] || this.dirty[name])
+    return this.preparing > 0 || SOURCE_NAMES.some((name) => this.busy[name] || this.dirty[name])
   }
 
   /** Resolves when all requested tiles are merged and MapLibre has drawn them */
@@ -229,24 +254,87 @@ export class MaidEngine {
         await new Promise<void>((resolve) => this.waiters.push(resolve))
         continue
       }
-      if (map.isMoving() || !map.loaded()) {
-        await new Promise<void>((resolve) => {
-          const timer = setTimeout(resolve, 250)
-          void map.once('idle').then(() => {
-            clearTimeout(timer)
-            resolve()
-          })
-        })
-        continue
-      }
-      // one more frame so that the last tiles are on screen
+      // `idle` is MapLibre's "nothing left to draw": tiles are loaded, symbols are placed and
+      // faded in. Waiting for less would call a picture final while pins are still missing.
       await new Promise<void>((resolve) => {
+        const timer = setTimeout(resolve, 2000)
+        void map.once('idle').then(() => {
+          clearTimeout(timer)
+          resolve()
+        })
         map.triggerRepaint()
-        void map.once('render').then(() => requestAnimationFrame(() => resolve()))
       })
       if (this.inflight === 0 && !this.pushing() && map.loaded() && !map.isMoving()) return
     }
   }
+
+  // --- Data changes ---
+
+  /**
+   * Moves a node, as dragging a vertex would, and resolves with the time until the change is
+   * on screen. Rebuilds the ways that use the node and sends them to MapLibre.
+   */
+  async moveNode(nodeId: number, lon: number, lat: number) {
+    const { map } = this
+    const node = this.store.nodes.get(nodeId)
+    if (!map || !node) throw new Error(`Cannot move node ${nodeId}`)
+    const t0 = performance.now()
+    node.lon = lon
+    node.lat = lat
+    const batch: FeatureBatch = { areas: [], lines: [], points: [], vertices: [] }
+    for (const wayId of this.store.nodeWays.get(nodeId) ?? []) {
+      const built = this.builder.buildWay(this.store.ways.get(wayId)!)
+      if (built) batch[built.source].push(built.feature)
+    }
+    const vertex = this.builder.buildVertex(node)
+    if (vertex) batch.vertices.push(vertex)
+
+    if (this.options.edit === 'split') {
+      // First step of a change: hide the originals. They stay in the big sources until commit.
+      for (const name of ['areas', 'lines', 'vertices'] as const) {
+        for (const f of batch[name]) {
+          const id = f.id as string
+          if (this.editing.has(id)) continue
+          this.editing.add(id)
+          map.setFeatureState({ source: SOURCES[name], id }, { editing: true })
+        }
+      }
+      await Promise.all(
+        (['areas', 'lines', 'vertices'] as const).map(async (name) => {
+          if (batch[name].length === 0) return
+          const source = map.getSource<GeoJSONSource>(EDIT_SOURCES[name])
+          await source?.setData({ type: 'FeatureCollection', features: batch[name] })
+          await this.tilesReloaded(EDIT_SOURCES[name])
+        }),
+      )
+      this.editBatch = batch
+    } else {
+      this.push(batch)
+      if (this.pushing()) await new Promise<void>((resolve) => this.waiters.push(resolve))
+    }
+    await new Promise<void>((resolve) => {
+      map.triggerRepaint()
+      void map.once('render').then(() => resolve())
+    })
+    return performance.now() - t0
+  }
+
+  /** Ends a change: the features go back into the big sources, the edit sources are emptied. */
+  async commitEdit() {
+    const { map } = this
+    if (!map || !this.editBatch) return
+    const batch = this.editBatch
+    this.editBatch = undefined
+    this.push(batch)
+    if (this.pushing()) await new Promise<void>((resolve) => this.waiters.push(resolve))
+    // only now show the originals again and drop the twins, so nothing flickers
+    for (const name of ['areas', 'lines', 'vertices'] as const) {
+      for (const f of batch[name]) map.removeFeatureState({ source: SOURCES[name], id: f.id as string }, 'editing')
+    }
+    this.editing.clear()
+    for (const id of Object.values(EDIT_SOURCES)) void map.getSource<GeoJSONSource>(id)?.setData(EMPTY)
+  }
+  private editBatch?: FeatureBatch
 
   // --- Hover and selection ---------------------------------------------------
 
@@ -367,7 +455,7 @@ export class MaidEngine {
       }
       drawn.layers = map.getStyle().layers.length
     }
-    return { entities: this.store.counts(), drawn, hidden: {}, loaded: { ...this.metrics.features }, metrics: { ...this.metrics } }
+    return { entities: this.store.counts(), drawn, hidden: { ...this.builder.hidden }, loaded: { ...this.metrics.features }, metrics: { ...this.metrics } }
   }
 }
 

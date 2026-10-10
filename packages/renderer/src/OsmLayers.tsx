@@ -1,6 +1,6 @@
 import type { FeatureCollection } from 'geojson'
 import { Layer, Source } from 'react-map-gl/maplibre'
-import { buildLayers, SOURCES, type LayerOptions } from './layers'
+import { buildLayers, EDIT_SOURCES, SOURCES, type LayerOptions } from './layers'
 
 const EMPTY: FeatureCollection = { type: 'FeatureCollection', features: [] }
 
@@ -32,6 +32,8 @@ export function OsmLayers({ options, sourceOptions }: Props) {
       <Source id={SOURCES.points} type="geojson" data={EMPTY} {...source} />
       <Source id={SOURCES.vertices} type="geojson" data={EMPTY} {...source} />
       <Source id={SOURCES.highlight} type="geojson" data={EMPTY} tolerance={0} maxzoom={source.maxzoom} />
+      {options.editLayers &&
+        Object.values(EDIT_SOURCES).map((id) => <Source key={id} id={id} type="geojson" data={EMPTY} {...source} />)}
       {layers.map((layer) => (
         <Layer key={layer.id} {...layer} />
       ))}

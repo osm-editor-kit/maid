@@ -8,3 +8,4 @@ if (!existsSync(from)) throw new Error(`${from} is missing. Run: bun tools/refs/
 mkdirSync(to, { recursive: true })
 for (const set of ['maki', 'temaki', 'fa', 'roentgen', 'iD']) cpSync(join(from, `${set}-sprite.svg`), join(to, `${set}-sprite.svg`))
 console.log(`Copied icon sprites to ${to}`)
+cpSync(join(import.meta.dir, 'frame-sync.js'), join(to, '../frame-sync.js'))

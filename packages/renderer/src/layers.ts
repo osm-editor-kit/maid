@@ -12,6 +12,21 @@ export const SOURCES = {
   highlight: 'osm-highlight',
 } as const
 
+/**
+ * Small twin sources for the features that are being changed right now. While a vertex is
+ * dragged, its ways live here, so each step re-tiles a handful of features and not the scene.
+ */
+export const EDIT_SOURCES = {
+  areas: 'osm-areas-edit',
+  lines: 'osm-lines-edit',
+  vertices: 'osm-vertices-edit',
+} as const
+const EDIT_OF: Record<string, string> = {
+  [SOURCES.areas]: EDIT_SOURCES.areas,
+  [SOURCES.lines]: EDIT_SOURCES.lines,
+  [SOURCES.vertices]: EDIT_SOURCES.vertices,
+}
+
 export type LayerOptions = {
   /** iD's fill setting. 'partial' shows a band along the inside edge of areas. */
   fill: 'partial' | 'full' | 'wireframe'
@@ -27,6 +42,10 @@ export type LayerOptions = {
   highlight: 'source' | 'state'
   labels: boolean
   icons: boolean
+  /** 'fit': pins where there is room (dots always). 'all': every pin, overlapping, like iD when it does not hide them. */
+  pins: 'fit' | 'all'
+  /** Add twin layers for the edit sources */
+  editLayers: boolean
 }
 
 /**
@@ -41,6 +60,30 @@ function lowZoomThreshold(lat: number) {
 const HOVER = '#f6634f'
 
 export function buildLayers(options: LayerOptions): LayerSpecification[] {
+  const layers = buildMainLayers(options)
+  if (!options.editLayers) return layers
+  // Each layer is followed by its twin on the edit source, so stacking stays the same.
+  // The original of a feature that is being edited is hidden through feature state, which
+  // costs nothing; taking it out of the big source would re-tile the whole source.
+  const editing: ExpressionSpecification = ['boolean', ['feature-state', 'editing'], false]
+  const OPACITY: Record<string, string[]> = {
+    line: ['line-opacity'],
+    fill: ['fill-opacity'],
+    circle: ['circle-opacity', 'circle-stroke-opacity'],
+    symbol: ['icon-opacity', 'text-opacity'],
+  }
+  return layers.flatMap((layer) => {
+    const editSource = 'source' in layer ? EDIT_OF[layer.source as string] : undefined
+    if (!editSource) return [layer]
+    const paint: Record<string, unknown> = { ...(layer.paint as Record<string, unknown>) }
+    for (const prop of OPACITY[layer.type] ?? []) paint[prop] = ['case', editing, 0, paint[prop] ?? 1]
+    const original = { ...layer, paint } as LayerSpecification
+    if (layer.type === 'symbol') return [original]
+    return [original, { ...layer, id: `${layer.id}--edit`, source: editSource } as LayerSpecification]
+  })
+}
+
+function buildMainLayers(options: LayerOptions): LayerSpecification[] {
   const low = lowZoomThreshold(options.lat)
   const byZoom = (lowProp: string, prop: string): ExpressionSpecification => [
     'step', ['zoom'], ['get', lowProp], low, ['get', prop],
@@ -253,41 +296,39 @@ export function buildLayers(options: LayerOptions): LayerSpecification[] {
   }
 
   // --- Points ----------------------------------------------------------------
+  // Address nodes: a small marker, with the house number from OSM zoom 19 on (iD draws a label shield)
+  layers.push({
+    id: 'point-address',
+    type: 'circle',
+    source: SOURCES.points,
+    filter: ['has', 'addr'],
+    paint: { 'circle-radius': 3, 'circle-color': '#fff', 'circle-stroke-color': '#444', 'circle-stroke-width': 1 },
+  })
+  // Every point is always on the map as a small dot. Pins with the preset icon are drawn on top
+  // where there is room for them, more of them the closer you zoom. iD instead hides all points
+  // once there are more than 200 in view.
+  layers.push({
+    id: 'point-dot',
+    type: 'circle',
+    source: SOURCES.points,
+    filter: ['!', ['has', 'addr']],
+    paint: { 'circle-radius': 3, 'circle-color': '#fff', 'circle-stroke-color': '#444', 'circle-stroke-width': 1 },
+  })
   if (options.icons) {
-    layers.push(
-      {
-        id: 'point-pin',
-        type: 'symbol',
-        source: SOURCES.points,
-        layout: {
-          'icon-image': 'maid-pin',
-          'icon-anchor': 'bottom',
-          'icon-allow-overlap': true,
-          'icon-ignore-placement': true,
-          'symbol-z-order': 'viewport-y',
-        },
-      },
-      {
-        id: 'point-icon',
-        type: 'symbol',
-        source: SOURCES.points,
-        filter: ['has', 'icon'],
-        layout: {
-          'icon-image': ['get', 'icon'],
-          'icon-anchor': 'center',
-          'icon-offset': [0, -15],
-          'icon-allow-overlap': true,
-          'icon-ignore-placement': true,
-          'symbol-z-order': 'viewport-y',
-        },
-      },
-    )
-  } else {
     layers.push({
-      id: 'point-dot',
-      type: 'circle',
+      id: 'point-pin',
+      type: 'symbol',
       source: SOURCES.points,
-      paint: { 'circle-radius': 5, 'circle-color': '#fff', 'circle-stroke-color': '#444', 'circle-stroke-width': 1 },
+      filter: ['!', ['has', 'addr']],
+      layout: {
+        // one image per preset icon, pin and icon drawn together (see the app's image resolver)
+        'icon-image': ['concat', 'pin-', ['coalesce', ['get', 'icon'], 'none']],
+        'icon-anchor': 'bottom',
+        'icon-allow-overlap': options.pins === 'all',
+        'icon-ignore-placement': options.pins === 'all',
+        'icon-padding': 0,
+        'symbol-sort-key': ['case', ['has', 'name'], 0, 1],
+      },
     })
   }
 
@@ -317,6 +358,15 @@ export function buildLayers(options: LayerOptions): LayerSpecification[] {
         paint,
       },
       {
+        id: 'label-address',
+        type: 'symbol',
+        source: SOURCES.points,
+        filter: ['has', 'addr'],
+        minzoom: 18,
+        layout: { ...text, 'text-field': ['get', 'addr'], 'text-size': 10, 'text-anchor': 'top', 'text-offset': [0, 0.4] },
+        paint,
+      },
+      {
         id: 'label-point',
         type: 'symbol',
         source: SOURCES.points,
@@ -331,6 +381,6 @@ export function buildLayers(options: LayerOptions): LayerSpecification[] {
 
 /** Layers a pointer can hit, in iD's picking priority: vertex, point, line, area */
 export function interactiveLayerIds(layers: LayerSpecification[]) {
-  const wanted = /^(vertex|point-pin|point-dot|line-(casing|stroke)(-dashed)?--?\d|area-stroke|area-fill)/
+  const wanted = /^(vertex|point-pin|point-dot|point-address|line-(casing|stroke)(-dashed)?--?\d|area-stroke|area-fill)/
   return layers.filter((l) => wanted.test(l.id)).map((l) => l.id)
 }

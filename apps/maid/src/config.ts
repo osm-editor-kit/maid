@@ -13,12 +13,16 @@ export type Config = {
   update: EngineOptions['update']
   highlight: EngineOptions['highlight']
   serialUpdates: boolean
+  edit: EngineOptions['edit']
   fill: LayerOptions['fill']
   labels: boolean
   icons: boolean
+  pins: LayerOptions['pins']
   minDataZoom: number
   tolerance: number
   sourceMaxZoom: number
+  /** MapLibre's label fade in ms. 0 makes it place symbols on every frame. */
+  fade: number
   /** OSM zoom (256px tiles), like iD's #map= */
   camera?: { zoom: number; lat: number; lng: number }
 }
@@ -40,12 +44,15 @@ export function readConfig(location: Location): Config {
     update: param(params, 'update', ['diff', 'setData'] as const, 'diff'),
     highlight: param(params, 'highlight', ['source', 'state'] as const, 'source'),
     serialUpdates: params.get('serial') !== '0',
+    edit: param(params, 'edit', ['split', 'inline'] as const, 'split'),
     fill: param(params, 'fill', ['partial', 'full', 'wireframe'] as const, 'partial'),
     labels: params.get('labels') !== '0',
     icons: params.get('icons') !== '0',
+    pins: param(params, 'pins', ['fit', 'all'] as const, 'fit'),
     minDataZoom: Number(params.get('minDataZoom') ?? 16),
     tolerance: Number(params.get('tolerance') ?? 0),
     sourceMaxZoom: Number(params.get('sourceMaxZoom') ?? 17),
+    fade: Number(params.get('fade') ?? 300),
     camera: map ? { zoom: Number(map[1]), lat: Number(map[2]), lng: Number(map[3]) } : undefined,
   }
 }

@@ -10,3 +10,5 @@ playwright-report/
 test-results/
 apps/maid/public/sprites/
 reports/shots/
+apps/maid/public/frame-sync.js
+reports/20*

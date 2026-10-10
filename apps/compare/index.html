@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Maid · iD · Rapid</title>
+    <style>
+      html, body { height: 100%; margin: 0; font: 13px/1.4 system-ui, sans-serif; background: #111; color: #eee; }
+      body { display: grid; grid-template-rows: auto 1fr; }
+      header { display: flex; gap: 16px; align-items: center; padding: 6px 12px; background: #222; }
+      header a { color: #9cf; }
+      main { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; min-height: 0; }
+      section { display: grid; grid-template-rows: auto 1fr; min-width: 0; }
+      h2 { margin: 0; padding: 4px 8px; font-size: 13px; background: #333; display: flex; justify-content: space-between; }
+      h2 span { font-weight: 400; font-variant-numeric: tabular-nums; }
+      iframe { width: 100%; height: 100%; border: 0; background: #000; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <strong>Compare</strong>
+      <label>Scene <select id="scene"><option>small</option><option selected>medium</option><option>dense</option></select></label>
+      <span>The editor under the pointer leads, the others follow its camera. Data comes from the local mock API only.</span>
+    </header>
+    <main>
+      <section><h2>Maid (MapLibre) <span id="fps-maid"></span></h2><iframe id="maid"></iframe></section>
+      <section><h2>iD (SVG) <span id="fps-id"></span></h2><iframe id="id"></iframe></section>
+      <section><h2>Rapid (PixiJS) <span id="fps-rapid"></span></h2><iframe id="rapid"></iframe></section>
+    </main>
+    <script type="module">
+      const config = await (await fetch('/config.json')).json()
+      const frames = { maid: document.getElementById('maid'), id: document.getElementById('id'), rapid: document.getElementById('rapid') }
+      const select = document.getElementById('scene')
+      const load = () => {
+        const scene = config.scenes.find((s) => s.name === select.value)
+        const hash = `#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`
+        for (const [editor, frame] of Object.entries(frames)) {
+          frame.src = `http://localhost:${config.ports[editor]}/?scene=${scene.name}${hash}`
+        }
+      }
+      select.addEventListener('change', load)
+      load()
+      window.addEventListener('message', (event) => {
+        if (event.data?.type === 'maid-compare-camera') {
+          for (const [editor, frame] of Object.entries(frames)) {
+            if (editor !== event.data.editor) frame.contentWindow.postMessage(event.data, '*')
+          }
+        }
+        if (event.data?.type === 'maid-compare-frames') {
+          const el = document.getElementById(`fps-${event.data.editor}`)
+          if (el) el.textContent = `${event.data.fps.toFixed(0)} fps · worst frame ${event.data.worst.toFixed(0)} ms`
+        }
+      })
+    </script>
+  </body>
+</html>

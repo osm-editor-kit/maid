@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { Map, MapProvider, type MapLayerMouseEvent, type MapEvent, type ViewStateChangeEvent } from 'react-map-gl/maplibre'
 import { exposeBenchApi } from './bench'
 import { readConfig } from './config'
-import { addBaseImages, resolvePresetIcons } from './images'
+import { addBaseImages, ensurePins } from './images'
 
 const config = readConfig(window.location)
 
@@ -15,7 +15,7 @@ const EMPTY_STYLE: StyleSpecification = {
   version: 8,
   glyphs: '/fonts/{fontstack}/{range}.pbf',
   sources: {},
-  layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#1b1b1b' } }],
+  layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#000' } }],
 }
 
 const engine = new MaidEngine({
@@ -24,6 +24,7 @@ const engine = new MaidEngine({
   update: config.update,
   highlight: config.highlight,
   serialUpdates: config.serialUpdates,
+  edit: config.edit,
 })
 
 let lastTileCheck = 0
@@ -40,6 +41,8 @@ export function App() {
     highlight: config.highlight,
     labels: config.labels,
     icons: config.icons,
+    pins: config.pins,
+    editLayers: config.edit === 'split',
     lat: camera.lat,
     dashes,
   }
@@ -47,7 +50,8 @@ export function App() {
 
   const handleLoad = (event: MapEvent) => {
     addBaseImages(event.target)
-    resolvePresetIcons(event.target)
+    const map = event.target
+    engine.options.prepare = (batch) => ensurePins(map, new Set(batch.points.map((f) => f.properties?.icon as string | undefined)))
     engine.attach(event.target)
     exposeBenchApi(event.target, engine)
   }
@@ -75,6 +79,7 @@ export function App() {
         initialViewState={{ longitude: camera.lng, latitude: camera.lat, zoom: camera.zoom - 1 }}
         mapStyle={EMPTY_STYLE}
         maxZoom={23}
+        fadeDuration={config.fade}
         attributionControl={false}
         dragRotate={false}
         cursor={cursor}

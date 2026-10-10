@@ -1,6 +1,8 @@
 /** Single source for local ports. Import from here, do not repeat the numbers. */
 export const PORTS = {
   maid: 5173,
+  /** Production build of Maid, used by the benchmark */
+  maidBuild: 5175,
   compare: 5174,
   id: 8081,
   rapid: 8082,

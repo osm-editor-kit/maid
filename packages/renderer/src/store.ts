@@ -19,6 +19,8 @@ export class OsmStore {
   relations = new Map<number, OsmRelation>()
   /** How many times a node is used by ways. More than one means it is a junction. */
   nodeUses = new Map<number, number>()
+  /** Ways that use a node, for rebuilding them when the node moves */
+  nodeWays = new Map<number, number[]>()
   /** Nodes that are the first or last node of an unclosed way */
   endpoints = new Set<number>()
   /** Multipolygon relations a way is a member of */
@@ -40,6 +42,9 @@ export class OsmStore {
         const last = closed ? nodes.length - 1 : nodes.length
         for (let i = 0; i < last; i++) {
           this.nodeUses.set(nodes[i]!, (this.nodeUses.get(nodes[i]!) ?? 0) + 1)
+          const ways = this.nodeWays.get(nodes[i]!)
+          if (ways) ways.push(el.id)
+          else this.nodeWays.set(nodes[i]!, [el.id])
         }
         if (!closed && nodes.length > 0) {
           this.endpoints.add(nodes[0]!)

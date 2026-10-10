@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "bun --bun vite --port 5173 --strictPort",
     "build": "bun --bun vite build",
-    "preview": "bun --bun vite preview --port 5173 --strictPort"
+    "preview": "bun --bun vite preview --strictPort"
   },
   "dependencies": {
     "@maid/renderer": "workspace:*",

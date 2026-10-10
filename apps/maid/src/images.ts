@@ -11,18 +11,8 @@ function pathImage(width: number, height: number, draw: (ctx: CanvasRenderingCon
   return { image: ctx.getImageData(0, 0, canvas.width, canvas.height), options: { pixelRatio: ratio } }
 }
 
-/** iD's point marker (modules/svg/points.js) and oneway arrow (modules/svg/defs.js) */
+/** iD's oneway arrow (modules/svg/defs.js) */
 export function addBaseImages(map: MapLibreMap) {
-  const pin = pathImage(19, 26, (ctx) => {
-    ctx.translate(1, 1.5)
-    const path = new Path2D('M 17,8 C 17,13 11,21 8.5,23.5 C 6,21 0,13 0,8 C 0,4 4,-0.5 8.5,-0.5 C 13,-0.5 17,4 17,8 z')
-    ctx.fillStyle = '#fff'
-    ctx.strokeStyle = '#444'
-    ctx.lineWidth = 1
-    ctx.fill(path)
-    ctx.stroke(path)
-  })
-  if (!map.hasImage('maid-pin')) map.addImage('maid-pin', pin.image, pin.options)
   const arrow = pathImage(10, 10, (ctx) => {
     ctx.fillStyle = 'rgba(0,0,0,0.75)'
     ctx.fill(new Path2D('M 2.5,1 L 8,5 L 2.5,9 L 4,5 z'))
@@ -44,23 +34,58 @@ function loadSprite(name: string) {
   return sprite
 }
 
+const PIN = 'M 17,8 C 17,13 11,21 8.5,23.5 C 6,21 0,13 0,8 C 0,4 4,-0.5 8.5,-0.5 C 13,-0.5 17,4 17,8 z'
+
+async function presetIconBitmap(icon: string, px: number) {
+  const spriteName = SPRITE_OF_PREFIX[icon.slice(0, icon.indexOf('-'))]
+  if (!spriteName) return undefined
+  const symbol = (await loadSprite(spriteName)).getElementById(icon)
+  if (!symbol) return undefined
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${symbol.getAttribute('viewBox')}" width="${px}" height="${px}" fill="#333">${symbol.innerHTML}</svg>`
+  const image = new Image(px, px)
+  image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+  await image.decode()
+  return image
+}
+
 /**
- * Preset icons come from iD's SVG sprites and are rasterised when a feature first needs them.
- * iD draws them 12px wide in #333 on the pin.
+ * Point markers: `pin-<preset icon>` is iD's pin with the preset icon from iD's SVG sprites
+ * on it (12px, #333), `pin-none` the empty pin. Pin and icon are one image so that MapLibre
+ * places and hides them together.
  */
-export function resolvePresetIcons(map: MapLibreMap, size = 12, ratio = 2) {
-  map.setMissingStyleImageResolver(async (id) => {
-    const spriteName = SPRITE_OF_PREFIX[id.slice(0, id.indexOf('-'))]
-    if (!spriteName) return
-    const symbol = (await loadSprite(spriteName)).getElementById(id)
-    if (!symbol) return
-    const px = size * ratio
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${symbol.getAttribute('viewBox')}" width="${px}" height="${px}" fill="#333">${symbol.innerHTML}</svg>`
-    const image = new Image(px, px)
-    image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
-    await image.decode()
-    const bitmap = await createImageBitmap(image)
-    // several tiles can ask for the same icon at once
-    if (!map.hasImage(id)) map.addImage(id, bitmap, { pixelRatio: ratio })
-  })
+const pending = new Map<string, Promise<void>>()
+
+async function addPin(map: MapLibreMap, id: string, ratio: number) {
+  const icon = id === 'pin-none' ? undefined : await presetIconBitmap(id.slice(4), 12 * ratio)
+  const canvas = document.createElement('canvas')
+  canvas.width = 19 * ratio
+  canvas.height = 26 * ratio
+  const ctx = canvas.getContext('2d')!
+  ctx.scale(ratio, ratio)
+  ctx.translate(1, 1.5)
+  const path = new Path2D(PIN)
+  ctx.fillStyle = '#fff'
+  ctx.strokeStyle = '#444'
+  ctx.lineWidth = 1
+  ctx.fill(path)
+  ctx.stroke(path)
+  if (icon) ctx.drawImage(icon, 2.5, 2.5, 12, 12)
+  // several tiles can ask for the same marker at once
+  if (!map.hasImage(id)) map.addImage(id, ctx.getImageData(0, 0, canvas.width, canvas.height), { pixelRatio: ratio })
+}
+
+/** Adds the markers for these preset icons, unless they exist. Resolves when all are usable. */
+export function ensurePins(map: MapLibreMap, icons: Iterable<string | undefined>, ratio = 2) {
+  const jobs: Promise<void>[] = []
+  for (const icon of icons) {
+    const id = `pin-${icon ?? 'none'}`
+    if (map.hasImage(id)) continue
+    let job = pending.get(id)
+    if (!job) {
+      job = addPin(map, id, ratio).catch((error) => console.error(`Could not make marker ${id}`, error))
+      pending.set(id, job)
+    }
+    jobs.push(job)
+  }
+  return Promise.all(jobs).then(() => undefined)
 }
