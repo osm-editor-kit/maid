@@ -1,0 +1,26 @@
+{
+  "name": "dense",
+  "description": "Neukölln with detailed street-space and parking mapping",
+  "bbox": [
+    13.418,
+    52.476,
+    13.448,
+    52.493
+  ],
+  "center": [
+    13.433,
+    52.4845
+  ],
+  "counts": {
+    "node": 119678,
+    "way": 20896,
+    "relation": 289
+  },
+  "source": {
+    "file": "berlin-latest.osm.pbf",
+    "timestamp": "2026-08-06T20:21:21Z",
+    "osmium": "osmium version 1.19.1"
+  },
+  "attribution": "© OpenStreetMap contributors, ODbL 1.0",
+  "sha256": "507966052e739deddeb8ba4f33c7189d7257aa689cc43bffde49e9fbc229b236"
+}

@@ -1,0 +1,26 @@
+{
+  "name": "medium",
+  "description": "Inner city around Hackescher Markt, Mitte",
+  "bbox": [
+    13.39,
+    52.516,
+    13.415,
+    52.53
+  ],
+  "center": [
+    13.4023,
+    52.5228
+  ],
+  "counts": {
+    "node": 61510,
+    "way": 8879,
+    "relation": 550
+  },
+  "source": {
+    "file": "berlin-latest.osm.pbf",
+    "timestamp": "2026-08-06T20:21:21Z",
+    "osmium": "osmium version 1.19.1"
+  },
+  "attribution": "© OpenStreetMap contributors, ODbL 1.0",
+  "sha256": "6b29a013dc1670b6900809533e3156916b47ea370296571431014e4fc2c59012"
+}
