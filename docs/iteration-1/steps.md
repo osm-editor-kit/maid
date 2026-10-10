@@ -8,15 +8,15 @@ The proof of concept was built in one pass to get to an answer, not step by step
 
 | Milestone | State | Not done |
 | --- | --- | --- |
-| 0 Foundation | Partly | Lint and format (oxlint, oxfmt), CI, Dependabot, license file, `.claude/settings.json`, glossary. `check` is type-check plus unit tests |
+| 0 Foundation | Partly | Lint and format (oxlint, oxfmt), CI, Dependabot, license file, `.claude/settings.json`, glossary. `check` is type-check plus unit tests. The app now uses Tailwind and nuqs |
 | 1 Fixtures and mock API | Done | Synthetic generator (1.2). The network guard lives in the benchmark runner, not in a shared Playwright fixture (1.5) |
 | 2 Maid draws OSM data | Done | `osm-data` was not evaluated ([ADR 0005](../adr/0005-own-store-for-the-proof-of-concept.md)). Live mode is a URL switch without UI, cache or test (2.6) |
 | 3 iD and Rapid under automation | Done | Pins are per editor in `tools/refs/*/pin.json`. Adapters live in the host pages, so there are no separate driver files (3.4 to 3.7) |
 | 4 Benchmark and report | Done | Zod schema for results, CDP traces, check of the frame-cap flags, CI smoke (4.6). No run on plain geometry before styling (4.5) |
-| 5 Core style, hover, select | Mostly | Vertex icons, shape points of a selected way, fill patterns, sided markers. The look review is a table in the report, not a per-item screenshot checklist (5.8) |
+| 5 Core style, hover, select | Mostly | Fill patterns, sided markers, midpoints. The look review is a table in the report, not a per-item screenshot checklist (5.8) |
 | 6 Compare page | Works | Opens three windows instead of frames. Camera relay is tested; leading by real pointer input was not verified in the automated test. No scenario replay (6.3) |
-| 7 Renderer experiments | Mostly | deck.gl was not needed and not tried (7.5). iD and Rapid were not measured on data changes |
-| 8 Answer | Draft | The report is written. The thresholds were never confirmed, and the decision is Tobias's (8.3) |
+| 7 Renderer experiments | Mostly | deck.gl was not needed and not tried (7.5). Sources split by area is the open experiment |
+| 8 Answer | Second edition | The report has the fair comparison, the drag scenario, Firefox and WebKit. The thresholds were never confirmed, and the decision is Tobias's (8.3) |
 
 The checkboxes below are left as they were. Tick them when a step is done to the letter.
 
