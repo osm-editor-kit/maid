@@ -13,5 +13,6 @@ export const engine = new MaidEngine({
   update: config.update,
   highlight: config.highlight,
   serialUpdates: config.serialUpdates,
+  coalesce: config.coalesce,
   edit: config.edit,
 })

@@ -13,6 +13,7 @@ export type Config = {
   update: EngineOptions['update']
   highlight: EngineOptions['highlight']
   serialUpdates: boolean
+  coalesce: boolean
   edit: EngineOptions['edit']
   fill: LayerOptions['fill']
   /** Inspector, controls and status bar. `ui=0` leaves only the map. */
@@ -46,6 +47,7 @@ export function readConfig(location: Location): Config {
     update: param(params, 'update', ['diff', 'setData'] as const, 'diff'),
     highlight: param(params, 'highlight', ['state', 'source'] as const, 'state'),
     serialUpdates: params.get('serial') !== '0',
+    coalesce: params.get('coalesce') !== '0',
     edit: param(params, 'edit', ['split', 'inline'] as const, 'split'),
     fill: param(params, 'fill', ['partial', 'full', 'wireframe'] as const, 'partial'),
     ui: params.get('ui') !== '0',

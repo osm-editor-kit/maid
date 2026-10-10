@@ -26,6 +26,11 @@ export type EngineOptions = {
    * 'split': move it to a small edit source for the duration of the change.
    */
   edit: 'inline' | 'split'
+  /**
+   * Hold new features back for a moment while more tiles of the same view are still loading,
+   * so that a burst of tiles becomes one update. Every update re-tiles its whole source.
+   */
+  coalesce: boolean
   /** Wait for MapLibre to finish one update before sending the next (default true) */
   serialUpdates: boolean
   /**
@@ -193,6 +198,7 @@ export class MaidEngine {
       console.error(error)
     } finally {
       this.inflight--
+      if (this.inflight === 0) this.flushAll()
       if (this.inflight === 0 && !this.pushing()) for (const done of this.waiters.splice(0)) done()
     }
   }
@@ -234,8 +240,25 @@ export class MaidEngine {
       if (this.options.update === 'setData') for (const f of features) this.all[name].set(f.id as string, f)
       else this.queue[name] = this.queue[name].concat(features)
       this.dirty[name] = true
-      void this.flush(name)
+      this.scheduleFlush(name)
     }
+  }
+
+  private flushTimer?: ReturnType<typeof setTimeout>
+
+  private scheduleFlush(name: SourceName) {
+    // more tiles of this view are on their way: wait for them, but never longer than 150 ms
+    if (this.options.coalesce && this.inflight > 1) {
+      this.flushTimer ??= setTimeout(() => this.flushAll(), 150)
+      return
+    }
+    void this.flush(name)
+  }
+
+  private flushAll() {
+    clearTimeout(this.flushTimer)
+    this.flushTimer = undefined
+    for (const name of SOURCE_NAMES) void this.flush(name)
   }
 
   /**
@@ -295,7 +318,7 @@ export class MaidEngine {
   private preparing = 0
 
   private pushing() {
-    return this.preparing > 0 || this.dragBusy || this.editBatch !== undefined || SOURCE_NAMES.some((name) => this.busy[name] || this.dirty[name])
+    return this.preparing > 0 || this.flushTimer !== undefined || this.dragBusy || this.editBatch !== undefined || SOURCE_NAMES.some((name) => this.busy[name] || this.dirty[name])
   }
 
   /** Resolves when all requested tiles are merged and MapLibre has drawn them */

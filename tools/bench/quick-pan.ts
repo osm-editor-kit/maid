@@ -24,6 +24,7 @@ for (let run = 0; run < Number(runs); run++) {
   await page.evaluate(() => window.__bench.settled())
   const load = performance.now() - t0
   const fps: number[] = []
+  const settle: number[] = []
   for (const [fromX, toX] of [[1100, 700], [700, 1100]] as const) {
     await page.mouse.move(fromX, 300)
     await page.evaluate(() => window.__probe.start())
@@ -38,9 +39,17 @@ for (let run = 0; run < Number(runs); run++) {
     await page.mouse.up()
     const rec = await page.evaluate(() => window.__probe.stop())
     fps.push(Math.round((rec.frames.length / rec.durationMs) * 10000) / 10)
-    await page.evaluate(() => window.__bench.settled())
+    settle.push(
+      Math.round(
+        await page.evaluate(async () => {
+          const t = performance.now()
+          await window.__bench.settled()
+          return performance.now() - t
+        }),
+      ),
+    )
   }
-  console.log(`${editor} ${scene.name} ${query || 'default'}: load ${Math.round(load)} ms, pan ${fps.join(' / ')} fps`)
+  console.log(`${editor} ${scene.name} ${query || 'default'}: load ${Math.round(load)} ms, pan ${fps.join(' / ')} fps, final picture after ${settle.join(' / ')} ms`)
   await context.close()
 }
 await browser.close()
