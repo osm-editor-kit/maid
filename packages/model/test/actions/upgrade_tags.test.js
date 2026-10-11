@@ -1,0 +1,200 @@
+import { describe, it } from 'bun:test';
+import { assert } from 'chai';
+import * as Rapid from '../rapid.ts';
+
+
+describe('actionUpgradeTags', () => {
+  const context = new Rapid.MockContext();
+
+  it('upgrades a tag', () => {
+    const oldTags = { amenity: 'swimming_pool' };
+    const newTags = { leisure: 'swimming_pool' };
+    const entity = new Rapid.OsmNode(context, { tags: { amenity: 'swimming_pool', name: 'Foo' } });
+    const base = new Rapid.Graph(context, [entity]);
+    const graph = new Rapid.Graph(base);
+    const result = Rapid.actionUpgradeTags(entity.id, oldTags, newTags)(graph);
+
+    assert.instanceOf(result, Rapid.Graph);
+    assert.deepEqual(result.entity(entity.id).tags, { leisure: 'swimming_pool', name: 'Foo' });
+  });
+
+  it('upgrades a tag combination', () => {
+    const oldTags = { amenity: 'vending_machine', vending: 'news_papers' };
+    const newTags = { amenity: 'vending_machine', vending: 'newspapers' };
+    const entity = new Rapid.OsmNode(context, { tags: { amenity: 'vending_machine', vending: 'news_papers', name: 'Foo' } });
+    const base = new Rapid.Graph(context, [entity]);
+    const graph = new Rapid.Graph(base);
+    const result = Rapid.actionUpgradeTags(entity.id, oldTags, newTags)(graph);
+
+    assert.instanceOf(result, Rapid.Graph);
+    assert.deepEqual(result.entity(entity.id).tags, { amenity: 'vending_machine', vending: 'newspapers', name: 'Foo' });
+  });
+
+  it('upgrades a tag with multiple replacement tags', () => {
+    const oldTags = { natural: 'marsh' };
+    const newTags = { natural: 'wetland', wetland: 'marsh' };
+    const entity = new Rapid.OsmNode(context, { tags: { natural: 'marsh', name: 'Foo' } });
+    const base = new Rapid.Graph(context, [entity]);
+    const graph = new Rapid.Graph(base);
+    const result = Rapid.actionUpgradeTags(entity.id, oldTags, newTags)(graph);
+
+    assert.instanceOf(result, Rapid.Graph);
+    assert.deepEqual(result.entity(entity.id).tags, { natural: 'wetland', wetland: 'marsh', name: 'Foo' });
+  });
+
+  it('upgrades a tag and overrides an existing value', () => {
+    const oldTags = { landuse: 'wood' };
+    const newTags = { natural: 'wood' };
+    const entity = new Rapid.OsmNode(context, { tags: { landuse: 'wood', natural: 'wetland', name: 'Foo' } });
+    const base = new Rapid.Graph(context, [entity]);
+    const graph = new Rapid.Graph(base);
+    const result = Rapid.actionUpgradeTags(entity.id, oldTags, newTags)(graph);
+
+    assert.instanceOf(result, Rapid.Graph);
+    assert.deepEqual(result.entity(entity.id).tags, { natural: 'wood', name: 'Foo' });
+  });
+
+  it('removes a tag with no replacement tags', () => {
+    const oldTags = { highway: 'no' };
+    const newTags = {};
+    const entity = new Rapid.OsmNode(context, { tags: { highway: 'no', name: 'Foo' } });
+    const base = new Rapid.Graph(context, [entity]);
+    const graph = new Rapid.Graph(base);
+    const result = Rapid.actionUpgradeTags(entity.id, oldTags, newTags)(graph);
+
+    assert.instanceOf(result, Rapid.Graph);
+    assert.deepEqual(result.entity(entity.id).tags, { name: 'Foo' });
+  });
+
+  it('does nothing if the old tags match nothing', () => {
+    const oldTags = { highway: 'no' };
+    const newTags = {};
+    const entity = new Rapid.OsmNode(context, { tags: { name: 'Foo' } });
+    const base = new Rapid.Graph(context, [entity]);
+    const graph = new Rapid.Graph(base);
+    const result = Rapid.actionUpgradeTags(entity.id, oldTags, newTags)(graph);
+
+    assert.instanceOf(result, Rapid.Graph);
+    assert.deepEqual(result.entity(entity.id).tags, { name: 'Foo' });
+  });
+
+  it('upgrades a wildcard tag and moves the value', () => {
+    const oldTags = { color: '*' };
+    const newTags = { colour: '$1' };
+    const entity = new Rapid.OsmNode(context, { tags: { color: 'red', name: 'Foo' } });
+    const base = new Rapid.Graph(context, [entity]);
+    const graph = new Rapid.Graph(base);
+    const result = Rapid.actionUpgradeTags(entity.id, oldTags, newTags)(graph);
+
+    assert.instanceOf(result, Rapid.Graph);
+    assert.deepEqual(result.entity(entity.id).tags, { colour: 'red', name: 'Foo' });
+  });
+
+  it('upgrades a tag with a wildcard replacement and adds a default value', () => {
+    const oldTags = { amenity: 'shop' };
+    const newTags = { shop: '*' };
+    const entity = new Rapid.OsmNode(context, { tags: { amenity: 'shop', name: 'Foo' } });
+    const base = new Rapid.Graph(context, [entity]);
+    const graph = new Rapid.Graph(base);
+    const result = Rapid.actionUpgradeTags(entity.id, oldTags, newTags)(graph);
+
+    assert.instanceOf(result, Rapid.Graph);
+    assert.deepEqual(result.entity(entity.id).tags, { shop: 'yes', name: 'Foo' });
+  });
+
+  it('upgrades a tag with a wildcard replacement and maintains the existing value', () => {
+    const oldTags = { amenity: 'shop' };
+    const newTags = { shop: '*' };
+    const entity = new Rapid.OsmNode(context, { tags: { amenity: 'shop', shop: 'supermarket', name: 'Foo' } });
+    const base = new Rapid.Graph(context, [entity]);
+    const graph = new Rapid.Graph(base);
+    const result = Rapid.actionUpgradeTags(entity.id, oldTags, newTags)(graph);
+
+    assert.instanceOf(result, Rapid.Graph);
+    assert.deepEqual(result.entity(entity.id).tags, { shop: 'supermarket', name: 'Foo' });
+  });
+
+  it('upgrades a tag with a wildcard replacement and replaces the existing "no" value', () => {
+    const oldTags = { amenity: 'shop' };
+    const newTags = { shop: '*' };
+    const entity = new Rapid.OsmNode(context, { tags: { amenity: 'shop', shop: 'no', name: 'Foo' } });
+    const base = new Rapid.Graph(context, [entity]);
+    const graph = new Rapid.Graph(base);
+    const result = Rapid.actionUpgradeTags(entity.id, oldTags, newTags)(graph);
+
+    assert.instanceOf(result, Rapid.Graph);
+    assert.deepEqual(result.entity(entity.id).tags, { shop: 'yes', name: 'Foo' });
+  });
+
+  it('upgrades a tag from a semicolon-delimited list that has one other value', () => {
+    const oldTags = { cuisine: 'vegan' };
+    const newTags = { 'diet:vegan': 'yes' };
+    const entity = new Rapid.OsmNode(context, { tags: { cuisine: 'italian;vegan', name: 'Foo' } });
+    const base = new Rapid.Graph(context, [entity]);
+    const graph = new Rapid.Graph(base);
+    const result = Rapid.actionUpgradeTags(entity.id, oldTags, newTags)(graph);
+
+    assert.instanceOf(result, Rapid.Graph);
+    assert.deepEqual(result.entity(entity.id).tags, { cuisine: 'italian', 'diet:vegan': 'yes', name: 'Foo' });
+  });
+
+  it('upgrades a tag from a semicolon-delimited list that has many other values', () => {
+    const oldTags = { cuisine: 'vegan' };
+    const newTags = { 'diet:vegan': 'yes' };
+    const entity = new Rapid.OsmNode(context, { tags: { cuisine: 'italian;vegan;regional;american', name: 'Foo' } });
+    const base = new Rapid.Graph(context, [entity]);
+    const graph = new Rapid.Graph(base);
+    const result = Rapid.actionUpgradeTags(entity.id, oldTags, newTags)(graph);
+
+    assert.instanceOf(result, Rapid.Graph);
+    assert.deepEqual(result.entity(entity.id).tags, { cuisine: 'italian;regional;american', 'diet:vegan': 'yes', name: 'Foo' });
+  });
+
+  it('upgrades a tag within a semicolon-delimited list without changing other values', () => {
+    const oldTags = { leisure: 'ice_rink', sport: 'hockey' };
+    const newTags = { leisure: 'ice_rink', sport: 'ice_hockey' };
+    const entity = new Rapid.OsmNode(context, { tags: { leisure: 'ice_rink', sport: 'curling;hockey;multi', name: 'Foo' } });
+    const base = new Rapid.Graph(context, [entity]);
+    const graph = new Rapid.Graph(base);
+    const result = Rapid.actionUpgradeTags(entity.id, oldTags, newTags)(graph);
+
+    assert.instanceOf(result, Rapid.Graph);
+    assert.deepEqual(result.entity(entity.id).tags, { leisure: 'ice_rink', name: 'Foo', sport: 'curling;ice_hockey;multi' });
+  });
+
+  it('upgrades an entire semicolon-delimited tag value', () => {
+    const oldTags = { vending: 'parcel_mail_in;parcel_pickup' };
+    const newTags = { vending: 'parcel_pickup;parcel_mail_in' };
+    const entity = new Rapid.OsmNode(context, { tags: { vending: 'parcel_mail_in;parcel_pickup', name: 'Foo' } });
+    const base = new Rapid.Graph(context, [entity]);
+    const graph = new Rapid.Graph(base);
+    const result = Rapid.actionUpgradeTags(entity.id, oldTags, newTags)(graph);
+
+    assert.instanceOf(result, Rapid.Graph);
+    assert.deepEqual(result.entity(entity.id).tags, { vending: 'parcel_pickup;parcel_mail_in', name: 'Foo' });
+  });
+
+  it('removes a tag from a semicolon-delimited list that has no replacement', () => {
+    const oldTags = { cuisine: 'blah' };
+    const newTags = { };
+    const entity = new Rapid.OsmNode(context, { tags: { cuisine: 'italian;blah', name: 'Foo' } });
+    const base = new Rapid.Graph(context, [entity]);
+    const graph = new Rapid.Graph(base);
+    const result = Rapid.actionUpgradeTags(entity.id, oldTags, newTags)(graph);
+
+    assert.instanceOf(result, Rapid.Graph);
+    assert.deepEqual(result.entity(entity.id).tags, { cuisine: 'italian', name: 'Foo' });
+  });
+
+  it('handles a semicolon-delimited list with only one item in it', () => {
+    const oldTags = { cuisine: 'blah' };
+    const newTags = { };
+    const entity = new Rapid.OsmNode(context, { tags: { cuisine: 'blah;', name: 'Foo' } });
+    const base = new Rapid.Graph(context, [entity]);
+    const graph = new Rapid.Graph(base);
+    const result = Rapid.actionUpgradeTags(entity.id, oldTags, newTags)(graph);
+
+    assert.instanceOf(result, Rapid.Graph);
+    assert.deepEqual(result.entity(entity.id).tags, { name: 'Foo' });
+  });
+});

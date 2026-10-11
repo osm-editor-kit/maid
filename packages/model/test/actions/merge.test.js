@@ -1,0 +1,166 @@
+import { describe, it } from 'bun:test';
+import { assert } from 'chai';
+import * as Rapid from '../rapid.ts';
+
+
+describe('actionMerge', () => {
+  const context = new Rapid.MockContext();
+
+  it('merges multiple points to a line', () => {
+    const base = new Rapid.Graph(context, [
+      new Rapid.OsmNode(context, { id: 'a', tags: { a: 'a' }}),
+      new Rapid.OsmNode(context, { id: 'b', tags: { b: 'b' }}),
+      new Rapid.OsmWay(context, { id: 'w' }),
+      new Rapid.OsmRelation(context, { id: 'r', members: [{ id: 'a', role: 'r', type: 'node' }] })
+    ]);
+
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionMerge(['a', 'b', 'w']);
+    assert.isNotOk(action.disabled(graph));
+
+    const result = action(graph);
+    assert.instanceOf(result, Rapid.Graph);
+    assert.isNotOk(result.hasEntity('a'));
+    assert.isNotOk(result.hasEntity('b'));
+    assert.deepEqual(result.entity('w').tags, { a: 'a', b: 'b' });
+    assert.deepEqual(result.entity('r').members, [{ id: 'w', role: 'r', type: 'way' }]);
+  });
+
+  it('merges multiple points to an area', () => {
+    const base = new Rapid.Graph(context, [
+      new Rapid.OsmNode(context, { id: 'a', tags: { a: 'a' }}),
+      new Rapid.OsmNode(context, { id: 'b', tags: { b: 'b' }}),
+      new Rapid.OsmWay(context, { id: 'w', tags: { area: 'yes' }}),
+      new Rapid.OsmRelation(context, { id: 'r', members: [{ id: 'a', role: 'r', type: 'node' }] })
+    ]);
+
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionMerge(['a', 'b', 'w']);
+    assert.isNotOk(action.disabled(graph));
+
+    const result = action(graph);
+    assert.instanceOf(result, Rapid.Graph);
+    assert.isNotOk(result.hasEntity('a'));
+    assert.isNotOk(result.hasEntity('b'));
+    assert.deepEqual(result.entity('w').tags, { a: 'a', b: 'b', area: 'yes' });
+    assert.deepEqual(result.entity('r').members, [{ id: 'w', role: 'r', type: 'way' }]);
+  });
+
+  it('preserves original point if possible', () => {
+    const base = new Rapid.Graph(context, [
+      new Rapid.OsmNode(context, { id: 'a', loc: [1, 0], tags: { a: 'a' }}),
+      new Rapid.OsmNode(context, { id: 'p', loc: [0, 0], tags: { p: 'p' }}),
+      new Rapid.OsmNode(context, { id: 'q', loc: [0, 1] }),
+      new Rapid.OsmWay(context, { id: 'w', nodes: ['p', 'q'], tags: { w: 'w' }})
+    ]);
+
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionMerge(['a', 'w']);
+    assert.isNotOk(action.disabled(graph));
+
+    const result = action(graph);
+    assert.instanceOf(result, Rapid.Graph);
+    assert.isOk(result.hasEntity('a'));
+    assert.isOk(result.hasEntity('p'));
+    assert.isNotOk(result.hasEntity('q'));
+    assert.deepEqual(result.entity('w').tags, { a: 'a', w: 'w' });
+    assert.deepEqual(result.entity('w').nodes, ['p', 'a']);
+    assert.deepEqual(result.entity('a').loc, [0, 1]);
+  });
+
+  it('merges tags from points to a line', () => {
+    const base = new Rapid.Graph(context, [
+      new Rapid.OsmNode(context, { id: 'a', tags: { a: 'a' } }),
+      new Rapid.OsmNode(context, { id: 'b', tags: { b: 'b' } }),
+      new Rapid.OsmWay(context, { id: 'w' })
+    ]);
+
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionMerge(['a', 'b', 'w']);
+    assert.isNotOk(action.disabled(graph));
+
+    const result = action(graph);
+    assert.instanceOf(result, Rapid.Graph);
+    assert.isNotOk(result.hasEntity('a'));
+    assert.isNotOk(result.hasEntity('b'));
+    assert.deepEqual(result.entity('w').tags, { a: 'a', b: 'b' });
+  });
+
+  it('merges tags from points to an area', () => {
+    const base = new Rapid.Graph(context, [
+      new Rapid.OsmNode(context, { id: 'a', tags: { a: 'a' } }),
+      new Rapid.OsmNode(context, { id: 'b', tags: { b: 'b' } }),
+      new Rapid.OsmWay(context, { id: 'w', tags: { area: 'yes' } })
+    ]);
+
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionMerge(['a', 'b', 'w']);
+    assert.isNotOk(action.disabled(graph));
+
+    const result = action(graph);
+    assert.instanceOf(result, Rapid.Graph);
+    assert.isNotOk(result.hasEntity('a'));
+    assert.isNotOk(result.hasEntity('b'));
+    assert.deepEqual(result.entity('w').tags, { a: 'a', b: 'b', area: 'yes' });
+  });
+
+  it('preserves original point if possible', () => {
+    const base = new Rapid.Graph(context, [
+      new Rapid.OsmNode(context, { id: 'a', loc: [1, 0], tags: { a: 'a' } }),
+      new Rapid.OsmNode(context, { id: 'p', loc: [0, 0], tags: { p: 'p' } }),
+      new Rapid.OsmNode(context, { id: 'q', loc: [0, 1] }),
+      new Rapid.OsmWay(context, { id: 'w', nodes: ['p', 'q'], tags: { w: 'w' } })
+    ]);
+
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionMerge(['a', 'w']);
+    assert.isNotOk(action.disabled(graph));
+
+    const result = action(graph);
+    assert.instanceOf(result, Rapid.Graph);
+    assert.isOk(result.hasEntity('a'));
+    assert.isOk(result.hasEntity('p'));
+    assert.isNotOk(result.hasEntity('q'));
+    assert.deepEqual(result.entity('w').tags, { a: 'a', w: 'w' });
+    assert.deepEqual(result.entity('w').nodes, ['p', 'a']);
+    assert.deepEqual(result.entity('a').loc, [0, 1]);
+  });
+
+
+  describe('disabled', () => {
+    it('disables action when there are no points', () => {
+      const base = new Rapid.Graph(context, [
+        new Rapid.OsmWay(context, { id: 'w1' }),
+        new Rapid.OsmWay(context, { id: 'w2' })
+      ]);
+
+      const graph = new Rapid.Graph(base);
+      const action = Rapid.actionMerge(['w1', 'w2']);
+      assert.strictEqual(action.disabled(graph), 'not_eligible');
+    });
+
+    it('disables action when there is more than one area or line', () => {
+      const base = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'a', tags: { a: 'a' }}),
+        new Rapid.OsmWay(context, { id: 'w1' }),
+        new Rapid.OsmWay(context, { id: 'w2' })
+      ]);
+
+      const graph = new Rapid.Graph(base);
+      const action = Rapid.actionMerge(['a', 'w1', 'w2']);
+      assert.strictEqual(action.disabled(graph), 'not_eligible');
+    });
+
+    it('disables action when there are relations', () => {
+      const base = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'a', tags: { a: 'a' }}),
+        new Rapid.OsmWay(context, { id: 'w' }),
+        new Rapid.OsmRelation(context, { id: 'r', members: [{ type: 'node', id: 'n1' }] })
+      ]);
+
+      const graph = new Rapid.Graph(base);
+      const action = Rapid.actionMerge(['a', 'w', 'r']);
+      assert.strictEqual(action.disabled(graph), 'not_eligible');
+    });
+  });
+});

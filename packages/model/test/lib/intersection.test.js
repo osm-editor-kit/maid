@@ -1,0 +1,1795 @@
+import { beforeAll, describe, it } from 'bun:test';
+import { assert } from 'chai';
+import * as Rapid from '../rapid.ts';
+import osmRulesets from '../../src/schema/osm_rulesets.json5';
+
+
+describe('osmIntersection', () => {
+  const context = new Rapid.MockContext();
+  context.systems.schema = new Rapid.SchemaSystem(context);
+  const maxDist = Infinity;
+
+  beforeAll(() => {
+    const schema = context.systems.schema;
+    schema.requestedAssetIDs = '';
+    return schema.initAsync()
+      .then(() => schema.merge(osmRulesets));
+  });
+
+  describe('highways', () => {
+    // u ==== * ---> w
+    it('excludes non-highways', () => {
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'u', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'w', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['u', '*'] }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['*', 'w'] })
+      ]);
+      const result = Rapid.osmIntersection(context, graph, '*', maxDist);
+      assert.deepEqual(result.ways, []);
+    });
+
+    it('excludes degenerate highways', () => {
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'u', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['u', '*'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['*'], tags: { highway: 'residential' } })
+      ]);
+      const result = Rapid.osmIntersection(context, graph, '*', maxDist);
+      assert.lengthOf(result.ways, 1);
+      assert.strictEqual(result.ways[0].id, '=');
+    });
+
+    it('excludes untagged lines', () => {
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'u', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'w', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['u', '*'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['*', 'w'] })
+      ]);
+      const result = Rapid.osmIntersection(context, graph, '*', maxDist);
+      assert.lengthOf(result.ways, 1);
+      assert.strictEqual(result.ways[0].id, '=');
+    });
+
+    it('excludes area highways', () => {
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'u', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'w', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['u', '*', 'w'], tags: { highway: 'pedestrian', area: 'yes' } })
+      ]);
+      const result = Rapid.osmIntersection(context, graph, '*', maxDist);
+      assert.deepEqual(result.ways, []);
+    });
+
+    it('auto-splits highways at the intersection', () => {
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'u', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'w', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['u', '*', 'w'], tags: { highway: 'residential' } })
+      ]);
+      const result = Rapid.osmIntersection(context, graph, '*', maxDist);
+      assert.lengthOf(result.ways, 2);
+    });
+  });
+
+
+  describe('turns', () => {
+    it('permits turns onto a way forward', () => {
+      // u ==== * ---> w
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'u', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'w', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['u', '*'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['*', 'w'], tags: { highway: 'residential' } })
+      ]);
+
+      const turns = Rapid.osmIntersection(context, graph, '*', maxDist).turns('=');
+      assert.isArray(turns);
+      assert.lengthOf(turns, 2);
+
+      assert.instanceOf(turns[0], Rapid.osmTurn);
+      assert.strictEqual(turns[0].key, '=_*_=');
+      assert.strictEqual(turns[0].u, true);
+
+      assert.instanceOf(turns[1], Rapid.osmTurn);
+      assert.strictEqual(turns[1].key, '=_*_-');
+      assert.strictEqual(turns[1].u, false);
+    });
+
+
+    it('permits turns onto a way backward', () => {
+      // u ==== * <--- w
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'u', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'w', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['u', '*'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['w', '*'], tags: { highway: 'residential' } })
+      ]);
+
+      const turns = Rapid.osmIntersection(context, graph, '*', maxDist).turns('=');
+      assert.isArray(turns);
+      assert.lengthOf(turns, 2);
+
+      assert.instanceOf(turns[0], Rapid.osmTurn);
+      assert.strictEqual(turns[0].key, '=_*_=');
+      assert.strictEqual(turns[0].u, true);
+
+      assert.instanceOf(turns[1], Rapid.osmTurn);
+      assert.strictEqual(turns[1].key, '=_*_-');
+      assert.strictEqual(turns[1].u, false);
+    });
+
+
+    it('permits turns from a way that must be split', () => {
+      //       w
+      //       |
+      // u === *
+      //       |
+      //       x
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'u', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'w', loc: [1, 1] }),
+        new Rapid.OsmNode(context, { id: 'x', loc: [1, -1] }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['u', '*'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['w', '*', 'x'], tags: { highway: 'residential' } })
+      ]);
+
+      const turns = Rapid.osmIntersection(context, graph, '*', maxDist).turns('-');
+      assert.isArray(turns);
+      assert.lengthOf(turns, 3);
+
+      assert.instanceOf(turns[0], Rapid.osmTurn);
+      assert.strictEqual(turns[0].key, '-_*_=');
+      assert.strictEqual(turns[0].u, false);
+
+      assert.instanceOf(turns[1], Rapid.osmTurn);
+      assert.strictEqual(turns[1].key, '-_*_-');
+      assert.strictEqual(turns[1].u, true);
+
+      assert.instanceOf(turns[2], Rapid.osmTurn);
+      assert.match(turns[2].key, /^-\_\*\_w-\d+$/);  // a new way, e.g. '-_*_w-1'
+      assert.strictEqual(turns[2].u, false);
+    });
+
+
+    it('permits turns to a way that must be split', () => {
+      //       w
+      //       |
+      // u === *
+      //       |
+      //       x
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'u', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'w', loc: [1, 1] }),
+        new Rapid.OsmNode(context, { id: 'x', loc: [1, -1] }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['u', '*'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['w', '*', 'x'], tags: { highway: 'residential' } })
+      ]);
+
+      const turns = Rapid.osmIntersection(context, graph, '*', maxDist).turns('=');
+      assert.isArray(turns);
+      assert.lengthOf(turns, 3);
+
+      assert.instanceOf(turns[0], Rapid.osmTurn);
+      assert.strictEqual(turns[0].key, '=_*_=');
+      assert.strictEqual(turns[0].u, true);
+
+      assert.instanceOf(turns[1], Rapid.osmTurn);
+      assert.strictEqual(turns[1].key, '=_*_-');
+      assert.strictEqual(turns[1].u, false);
+
+      assert.instanceOf(turns[2], Rapid.osmTurn);
+      assert.match(turns[2].key, /^=\_\*\_w-\d+$/);  // a new way, e.g. '=_*_w-1'
+      assert.strictEqual(turns[2].u, false);
+    });
+
+
+    it('permits turns from a oneway forward', () => {
+      // u ===> * ----w
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'u', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'w', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['u', '*'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['*', 'w'], tags: { highway: 'residential' } })
+      ]);
+
+      const turns = Rapid.osmIntersection(context, graph, '*', maxDist).turns('=');
+      assert.isArray(turns);
+      assert.lengthOf(turns, 1);
+
+      assert.instanceOf(turns[0], Rapid.osmTurn);
+      assert.strictEqual(turns[0].key, '=_*_-');
+      assert.strictEqual(turns[0].u, false);
+    });
+
+
+    it('permits turns from a reverse oneway backward', () => {
+      // u <=== * ---- w
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'u', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'w', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['*', 'u'], tags: { highway: 'residential', oneway: '-1' } }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['*', 'w'], tags: { highway: 'residential' } })
+      ]);
+
+      const turns = Rapid.osmIntersection(context, graph, '*', maxDist).turns('=');
+      assert.isArray(turns);
+      assert.lengthOf(turns, 1);
+
+      assert.instanceOf(turns[0], Rapid.osmTurn);
+      assert.strictEqual(turns[0].key, '=_*_-');
+      assert.strictEqual(turns[0].u, false);
+    });
+
+
+    it('omits turns from a oneway backward', () => {
+      // u <=== * ---- w
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'u', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'w', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['*', 'u'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['*', 'w'], tags: { highway: 'residential' } })
+      ]);
+      const turns = Rapid.osmIntersection(context, graph, '*', maxDist).turns('u');
+      assert.deepEqual(turns, []);
+    });
+
+
+    it('omits turns from a reverse oneway forward', () => {
+      // u ===> * ---- w
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'u', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'w', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['u', '*'], tags: { highway: 'residential', oneway: '-1' } }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['*', 'w'], tags: { highway: 'residential' } })
+      ]);
+      const turns = Rapid.osmIntersection(context, graph, '*', maxDist).turns('u');
+      assert.deepEqual(turns, []);
+    });
+
+
+    it('permits turns onto a oneway forward', () => {
+      // u ==== * ---> w
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'u', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'w', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['u', '*'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['*', 'w'], tags: { highway: 'residential', oneway: 'yes' } })
+      ]);
+
+      const turns = Rapid.osmIntersection(context, graph, '*', maxDist).turns('=');
+      assert.isArray(turns);
+      assert.lengthOf(turns, 2);
+
+      assert.instanceOf(turns[0], Rapid.osmTurn);
+      assert.strictEqual(turns[0].key, '=_*_=');
+      assert.strictEqual(turns[0].u, true);
+
+      assert.instanceOf(turns[1], Rapid.osmTurn);
+      assert.strictEqual(turns[1].key, '=_*_-');
+      assert.strictEqual(turns[1].u, false);
+    });
+
+
+    it('permits turns onto a reverse oneway backward', () => {
+      // u ==== * <--- w
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'u', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'w', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['u', '*'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['w', '*'], tags: { highway: 'residential', oneway: '-1' } })
+      ]);
+
+      const turns = Rapid.osmIntersection(context, graph, '*', maxDist).turns('=');
+      assert.isArray(turns);
+      assert.lengthOf(turns, 2);
+
+      assert.instanceOf(turns[0], Rapid.osmTurn);
+      assert.strictEqual(turns[0].key, '=_*_=');
+      assert.strictEqual(turns[0].u, true);
+
+      assert.instanceOf(turns[1], Rapid.osmTurn);
+      assert.strictEqual(turns[1].key, '=_*_-');
+      assert.strictEqual(turns[1].u, false);
+    });
+
+
+    it('omits turns onto a oneway backward', () => {
+      // u ==== * <--- w
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'u', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'w', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['u', '*'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['w', '*'], tags: { highway: 'residential', oneway: 'yes' } })
+      ]);
+
+      const turns = Rapid.osmIntersection(context, graph, '*', maxDist).turns('=');
+      assert.isArray(turns);
+      assert.lengthOf(turns, 1);
+
+      assert.instanceOf(turns[0], Rapid.osmTurn);
+      assert.strictEqual(turns[0].key, '=_*_=');
+      assert.strictEqual(turns[0].u, true);
+    });
+
+
+    it('omits turns onto a reverse oneway forward', () => {
+      // u ==== * ---> w
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'u', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'w', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['u', '*'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['*', 'w'], tags: { highway: 'residential', oneway: '-1' } })
+      ]);
+
+      const turns = Rapid.osmIntersection(context, graph, '*', maxDist).turns('=');
+      assert.isArray(turns);
+      assert.lengthOf(turns, 1);
+
+      assert.instanceOf(turns[0], Rapid.osmTurn);
+      assert.strictEqual(turns[0].key, '=_*_=');
+      assert.strictEqual(turns[0].u, true);
+    });
+
+
+    it('restricts turns with a restriction relation', () => {
+      // u ==== * ---> w
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'u', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'w', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['u', '*'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['*', 'w'], tags: { highway: 'residential' } }),
+        new Rapid.OsmRelation(context, {
+          id: 'r',
+          tags: { type: 'restriction' },
+          members: [
+            { id: '=', role: 'from', type: 'way' },
+            { id: '-', role: 'to', type: 'way' },
+            { id: '*', role: 'via', type: 'node' }
+          ]
+        })
+      ]);
+      const turns = Rapid.osmIntersection(context, graph, '*', maxDist).turns('=');
+      assert.isArray(turns);
+      assert.lengthOf(turns, 2);
+
+      assert.instanceOf(turns[0], Rapid.osmTurn);
+      assert.strictEqual(turns[0].key, '=_*_=');
+      assert.strictEqual(turns[0].u, true);
+
+      assert.instanceOf(turns[1], Rapid.osmTurn);
+      assert.strictEqual(turns[1].key, '=_*_-');
+      assert.strictEqual(turns[1].u, false);
+      assert.strictEqual(turns[1].restrictionID, 'r');
+      assert.strictEqual(turns[1].direct, true);
+      assert.strictEqual(turns[1].only, false);
+    });
+
+
+    it('restricts turns affected by an only_* restriction relation', () => {
+      // u====*~~~~v
+      //      |
+      //      w
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'u', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'v', loc: [2, 0] }),
+        new Rapid.OsmNode(context, { id: 'w', loc: [1, -1] }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['u', '*'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '~', nodes: ['v', '*'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['w', '*'], tags: { highway: 'residential' } }),
+        new Rapid.OsmRelation(context, {
+          id: 'r',
+          tags: { type: 'restriction', restriction: 'only_right_turn' },
+          members: [
+            { id: '=', role: 'from', type: 'way' },
+            { id: '-', role: 'to', type: 'way' },
+            { id: '*', role: 'via', type: 'node' }
+          ]
+        })
+      ]);
+
+      const turns = Rapid.osmIntersection(context, graph, '*', maxDist).turns('=');
+      assert.isArray(turns);
+      assert.lengthOf(turns, 3);
+
+      assert.instanceOf(turns[0], Rapid.osmTurn);
+      assert.strictEqual(turns[0].key, '=_*_=');
+      assert.strictEqual(turns[0].u, true);
+
+      assert.instanceOf(turns[1], Rapid.osmTurn);
+      assert.strictEqual(turns[1].key, '=_*_~');
+      assert.strictEqual(turns[1].u, false);
+      assert.strictEqual(turns[1].restrictionID, 'r');
+      assert.strictEqual(turns[1].direct, false);
+      assert.strictEqual(turns[1].only, false);
+
+      assert.instanceOf(turns[2], Rapid.osmTurn);
+      assert.strictEqual(turns[2].key, '=_*_-');
+      assert.strictEqual(turns[2].u, false);
+      assert.strictEqual(turns[2].restrictionID, 'r');
+      assert.strictEqual(turns[2].direct, true);
+      assert.strictEqual(turns[2].only, true);
+    });
+
+
+    it('permits turns to a circular way', () => {
+      //
+      //  b -- c
+      //  |    |
+      //  a -- * === u
+      //
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'a', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: 'b', loc: [0, 1] }),
+        new Rapid.OsmNode(context, { id: 'c', loc: [1, 1] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'u', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['*', 'a', 'b', 'c', '*'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['*', 'u'], tags: { highway: 'residential' } })
+      ]);
+
+      const turns = Rapid.osmIntersection(context, graph, '*', maxDist).turns('=');
+      assert.isArray(turns);
+      assert.lengthOf(turns, 3);
+
+      assert.instanceOf(turns[0], Rapid.osmTurn);
+      assert.strictEqual(turns[0].key, '=_*_-');
+      assert.strictEqual(turns[0].u, false);
+
+      assert.instanceOf(turns[1], Rapid.osmTurn);
+      assert.strictEqual(turns[1].key, '=_*_=');
+      assert.strictEqual(turns[1].u, true);
+
+      assert.instanceOf(turns[2], Rapid.osmTurn);
+      assert.match(turns[2].key, /^=\_\*\_w-\d+$/);  // a new way, e.g. '=_*_w-1'
+      assert.strictEqual(turns[2].u, false);
+    });
+
+
+    it('permits turns from a circular way', () => {
+      //
+      //  b -- c
+      //  |    |
+      //  a -- * === u
+      //
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'a', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: 'b', loc: [0, 1] }),
+        new Rapid.OsmNode(context, { id: 'c', loc: [1, 1] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'u', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['*', 'a', 'b', 'c', '*'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['*', 'u'], tags: { highway: 'residential' } })
+      ]);
+
+      const turns = Rapid.osmIntersection(context, graph, '*', maxDist).turns('-');
+      assert.isArray(turns);
+      assert.lengthOf(turns, 3);
+
+      assert.instanceOf(turns[0], Rapid.osmTurn);
+      assert.strictEqual(turns[0].key, '-_*_-');
+      assert.strictEqual(turns[0].u, true);
+
+      assert.instanceOf(turns[1], Rapid.osmTurn);
+      assert.strictEqual(turns[1].key, '-_*_=');
+      assert.strictEqual(turns[1].u, false);
+
+      assert.instanceOf(turns[2], Rapid.osmTurn);
+      assert.match(turns[2].key, /^-\_\*\_w-\d+$/);  // a new way, e.g. '=_*_w-1'
+      assert.strictEqual(turns[2].u, false);
+    });
+
+
+    it('permits turns to a oneway circular way', () => {
+      //
+      //  b -- c
+      //  |    |
+      //  a -- * === u
+      //
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'a', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: 'b', loc: [0, 1] }),
+        new Rapid.OsmNode(context, { id: 'c', loc: [1, 1] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'u', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['*', 'a', 'b', 'c', '*'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['*', 'u'], tags: { highway: 'residential' } })
+      ]);
+
+      const turns = Rapid.osmIntersection(context, graph, '*', maxDist).turns('=');
+      assert.isArray(turns);
+      assert.lengthOf(turns, 2);
+
+      assert.instanceOf(turns[0], Rapid.osmTurn);
+      assert.strictEqual(turns[0].key, '=_*_-');
+      assert.strictEqual(turns[0].u, false);
+
+      assert.instanceOf(turns[1], Rapid.osmTurn);
+      assert.strictEqual(turns[1].key, '=_*_=');
+      assert.strictEqual(turns[1].u, true);
+    });
+
+
+    it('permits turns to a reverse oneway circular way', () => {
+      //
+      //  b -- c
+      //  |    |
+      //  a -- * === u
+      //
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'a', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: 'b', loc: [0, 1] }),
+        new Rapid.OsmNode(context, { id: 'c', loc: [1, 1] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'u', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['*', 'a', 'b', 'c', '*'], tags: { highway: 'residential', oneway: '-1' } }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['*', 'u'], tags: { highway: 'residential' } })
+      ]);
+
+      const turns = Rapid.osmIntersection(context, graph, '*', maxDist).turns('=');
+      assert.isArray(turns);
+      assert.lengthOf(turns, 2);
+
+      assert.instanceOf(turns[0], Rapid.osmTurn);
+      assert.strictEqual(turns[0].key, '=_*_-');
+      assert.strictEqual(turns[0].u, false);
+
+      assert.instanceOf(turns[1], Rapid.osmTurn);
+      assert.strictEqual(turns[1].key, '=_*_=');
+      assert.strictEqual(turns[1].u, true);
+    });
+
+
+    it('permits turns from a oneway circular way', () => {
+      //
+      //  b -- c
+      //  |    |
+      //  a -- * === u
+      //
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'a', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: 'b', loc: [0, 1] }),
+        new Rapid.OsmNode(context, { id: 'c', loc: [1, 1] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'u', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['*', 'a', 'b', 'c', '*'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['*', 'u'], tags: { highway: 'residential' } })
+      ]);
+
+      const intersection = Rapid.osmIntersection(context, graph, '*', maxDist);
+      // The circular way will get split somewhere, so that both a-* and c-* end up on separate ways.
+      const newWay = intersection.ways.find(way => /^w-\d+$/.test(way.id));
+
+      const turns = Rapid.osmIntersection(context, graph, '*', maxDist).turns(newWay.id);
+      assert.isArray(turns);
+      assert.lengthOf(turns, 2);
+
+      assert.instanceOf(turns[0], Rapid.osmTurn);
+      assert.strictEqual(turns[0].key, newWay.id + '_*_-');
+      assert.strictEqual(turns[0].u, false);
+
+      assert.instanceOf(turns[1], Rapid.osmTurn);
+      assert.strictEqual(turns[1].key, newWay.id  + '_*_=');
+      assert.strictEqual(turns[1].u, false);
+    });
+
+
+    it('permits turns from a reverse oneway circular way', () => {
+      //
+      //  b -- c
+      //  |    |
+      //  a -- * === u
+      //
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'a', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: 'b', loc: [0, 1] }),
+        new Rapid.OsmNode(context, { id: 'c', loc: [1, 1] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'u', loc: [2, 0] }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['*', 'a', 'b', 'c', '*'], tags: { highway: 'residential', oneway: '-1' } }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['*', 'u'], tags: { highway: 'residential' } })
+      ]);
+
+      const intersection = Rapid.osmIntersection(context, graph, '*', maxDist);
+      // The circular way will get split somewhere, so that both a-* and c-* end up on separate ways.
+      const newWay = intersection.ways.find(way => /^w-\d+$/.test(way.id));
+
+      const turns = Rapid.osmIntersection(context, graph, '*', maxDist).turns(newWay.id);
+      assert.isArray(turns);
+      assert.lengthOf(turns, 2);
+
+      assert.instanceOf(turns[0], Rapid.osmTurn);
+      assert.strictEqual(turns[0].key, newWay.id + '_*_-');
+      assert.strictEqual(turns[0].u, false);
+
+      assert.instanceOf(turns[1], Rapid.osmTurn);
+      assert.strictEqual(turns[1].key, newWay.id  + '_*_=');
+      assert.strictEqual(turns[1].u, false);
+    });
+
+
+    describe('complex intersection - without restrictions', () => {
+      // This is a dual carraigeway (oneways c-b-a and d-e-f)
+      // intersecting with a bidirectional road (along h-e-b-g)
+      //
+      //           g
+      //          /
+      //  a <--- b <=== c
+      //         |
+      //  d ~~~> e ≈≈≈> f
+      //          \
+      //           h
+      //
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'a', loc: [0, 1] }),
+        new Rapid.OsmNode(context, { id: 'b', loc: [1, 1] }),
+        new Rapid.OsmNode(context, { id: 'c', loc: [2, 1] }),
+        new Rapid.OsmNode(context, { id: 'd', loc: [0, -1] }),
+        new Rapid.OsmNode(context, { id: 'e', loc: [1, -1] }),
+        new Rapid.OsmNode(context, { id: 'f', loc: [2, -1] }),
+        new Rapid.OsmNode(context, { id: 'g', loc: [2, 2] }),
+        new Rapid.OsmNode(context, { id: 'h', loc: [2, -2] }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['b', 'a'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['c', 'b'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '~', nodes: ['d', 'e'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '≈', nodes: ['e', 'f'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '|', nodes: ['b', 'e'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '/', nodes: ['b', 'g'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '\\', nodes: ['e', 'h'], tags: { highway: 'residential' } })
+      ]);
+
+
+      it('no turns from a destination way', () => {
+        const turns1 = Rapid.osmIntersection(context, graph, 'b', maxDist).turns('-', 1);
+        assert.deepEqual(turns1, []);
+        const turns2 = Rapid.osmIntersection(context, graph, 'b', maxDist).turns('≈', 1);
+        assert.deepEqual(turns2, []);
+      });
+
+
+      it('allows via node and via way turns from a oneway', () => {
+        const turns = Rapid.osmIntersection(context, graph, 'b', maxDist).turns('=', 1);
+        assert.isArray(turns);
+        assert.lengthOf(turns, 5);
+
+        assert.instanceOf(turns[0], Rapid.osmTurn);
+        assert.strictEqual(turns[0].key, '=_b_-'); // straight to -
+        assert.strictEqual(turns[0].u, false);
+
+        assert.instanceOf(turns[1], Rapid.osmTurn);
+        assert.strictEqual(turns[1].key, '=_b_|'); // left to |
+        assert.strictEqual(turns[1].u, false);
+
+        assert.instanceOf(turns[2], Rapid.osmTurn);
+        assert.strictEqual(turns[2].key, '=_b_|_e_≈'); // u-turn via | to ≈
+        assert.strictEqual(turns[2].u, false);
+
+        assert.instanceOf(turns[3], Rapid.osmTurn);
+        assert.strictEqual(turns[3].key, '=_b_|_e_\\'); // left via | to \
+        assert.strictEqual(turns[3].u, false);
+
+        assert.instanceOf(turns[4], Rapid.osmTurn);
+        assert.strictEqual(turns[4].key, '=_b_/'); // right to /
+        assert.strictEqual(turns[4].u, false);
+      });
+
+
+      it('allows via node and via way turns from a bidirectional', () => {
+        const turns = Rapid.osmIntersection(context, graph, 'b', maxDist).turns('/', 1);
+        assert.isArray(turns);
+        assert.lengthOf(turns, 5);
+
+        assert.instanceOf(turns[0], Rapid.osmTurn);
+        assert.strictEqual(turns[0].key, '/_b_-'); // right to -
+        assert.strictEqual(turns[0].u, false);
+
+        assert.instanceOf(turns[1], Rapid.osmTurn);
+        assert.strictEqual(turns[1].key, '/_b_|'); // straight to |
+        assert.strictEqual(turns[1].u, false);
+
+        assert.instanceOf(turns[2], Rapid.osmTurn);
+        assert.strictEqual(turns[2].key, '/_b_|_e_≈'); // left via | to ≈
+        assert.strictEqual(turns[2].u, false);
+
+        assert.instanceOf(turns[3], Rapid.osmTurn);
+        assert.strictEqual(turns[3].key, '/_b_|_e_\\'); // straight via | to \
+        assert.strictEqual(turns[3].u, false);
+
+        assert.instanceOf(turns[4], Rapid.osmTurn);
+        assert.strictEqual(turns[4].key, '/_b_/'); // u-turn
+        assert.strictEqual(turns[4].u, true);
+      });
+    });
+
+
+    describe('complex intersection - restricted turn via node', () => {
+      //
+      //           g
+      //          /
+      //  a <--- b <=== c
+      //         |           'r': `no_right_turn` FROM '|' VIA NODE 'e' TO '≈'
+      //  d ~~~> e ≈≈≈> f
+      //          \
+      //           h
+      //
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'a', loc: [0, 1] }),
+        new Rapid.OsmNode(context, { id: 'b', loc: [1, 1] }),
+        new Rapid.OsmNode(context, { id: 'c', loc: [2, 1] }),
+        new Rapid.OsmNode(context, { id: 'd', loc: [0, -1] }),
+        new Rapid.OsmNode(context, { id: 'e', loc: [1, -1] }),
+        new Rapid.OsmNode(context, { id: 'f', loc: [2, -1] }),
+        new Rapid.OsmNode(context, { id: 'g', loc: [2, 2] }),
+        new Rapid.OsmNode(context, { id: 'h', loc: [2, -2] }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['b', 'a'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['c', 'b'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '~', nodes: ['d', 'e'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '≈', nodes: ['e', 'f'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '|', nodes: ['b', 'e'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '/', nodes: ['b', 'g'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '\\', nodes: ['e', 'h'], tags: { highway: 'residential' } }),
+        new Rapid.OsmRelation(context, {
+          id: 'r',
+          tags: { type: 'restriction', restriction: 'no_right_turn' },
+          members: [
+            { role: 'from', id: '|', type: 'way' },
+            { role: 'via', id: 'e', type: 'node' },
+            { role: 'to', id: '≈', type: 'way' }
+          ]
+        })
+      ]);
+
+      it('allows via node and via way turns from a oneway', () => {
+        const turns = Rapid.osmIntersection(context, graph, 'b', maxDist).turns('=', 1);
+        assert.isArray(turns);
+        assert.lengthOf(turns, 5);
+
+        assert.instanceOf(turns[0], Rapid.osmTurn);
+        assert.strictEqual(turns[0].key, '=_b_-'); // straight to -
+        assert.strictEqual(turns[0].u, false);
+
+        assert.instanceOf(turns[1], Rapid.osmTurn);
+        assert.strictEqual(turns[1].key, '=_b_|'); // left to |
+        assert.strictEqual(turns[1].u, false);
+
+        assert.instanceOf(turns[2], Rapid.osmTurn);
+        assert.strictEqual(turns[2].key, '|_e_≈'); // right turn from | to ≈
+        assert.strictEqual(turns[2].u, false);
+        assert.strictEqual(turns[2].restrictionID, 'r');
+        assert.strictEqual(turns[2].direct, false);  // indirect
+        assert.strictEqual(turns[2].no, true);  // restricted!
+        assert.strictEqual(turns[2].only, false);
+
+        assert.instanceOf(turns[3], Rapid.osmTurn);
+        assert.strictEqual(turns[3].key, '=_b_|_e_\\'); // left via | to \
+        assert.strictEqual(turns[3].u, false);
+
+        assert.instanceOf(turns[4], Rapid.osmTurn);
+        assert.strictEqual(turns[4].key, '=_b_/'); // right to /
+        assert.strictEqual(turns[4].u, false);
+      });
+
+
+      it('allows via node and via way turns from a bidirectional', () => {
+        const turns = Rapid.osmIntersection(context, graph, 'b', maxDist).turns('/', 1);
+        assert.isArray(turns);
+        assert.lengthOf(turns, 5);
+
+        assert.instanceOf(turns[0], Rapid.osmTurn);
+        assert.strictEqual(turns[0].key, '/_b_-'); // right to -
+        assert.strictEqual(turns[0].u, false);
+
+        assert.instanceOf(turns[1], Rapid.osmTurn);
+        assert.strictEqual(turns[1].key, '/_b_|'); // straight to |
+        assert.strictEqual(turns[1].u, false);
+
+        assert.instanceOf(turns[2], Rapid.osmTurn);
+        assert.strictEqual(turns[2].key, '|_e_≈'); // right turn from | to ≈
+        assert.strictEqual(turns[2].u, false);
+        assert.strictEqual(turns[2].restrictionID, 'r');
+        assert.strictEqual(turns[2].direct, false);  // indirect
+        assert.strictEqual(turns[2].no, true);  // restricted!
+        assert.strictEqual(turns[2].only, false);
+
+        assert.instanceOf(turns[3], Rapid.osmTurn);
+        assert.strictEqual(turns[3].key, '/_b_|_e_\\'); // straight via | to \
+        assert.strictEqual(turns[3].u, false);
+
+        assert.instanceOf(turns[4], Rapid.osmTurn);
+        assert.strictEqual(turns[4].key, '/_b_/'); // u-turn
+        assert.strictEqual(turns[4].u, true);
+      });
+    });
+
+
+    describe('complex intersection - restricted turn via way', () => {
+      //
+      //           g     'r2': `no_right_turn` FROM '/' VIA WAY '|' TO '≈'
+      //          /
+      //  a <--- b <=== c    'r1': `no_u_turn` FROM '=' VIA WAY '|' TO '≈'
+      //         |
+      //  d ~~~> e ≈≈≈> f
+      //          \
+      //           h
+      //
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'a', loc: [0, 1] }),
+        new Rapid.OsmNode(context, { id: 'b', loc: [1, 1] }),
+        new Rapid.OsmNode(context, { id: 'c', loc: [2, 1] }),
+        new Rapid.OsmNode(context, { id: 'd', loc: [0, -1] }),
+        new Rapid.OsmNode(context, { id: 'e', loc: [1, -1] }),
+        new Rapid.OsmNode(context, { id: 'f', loc: [2, -1] }),
+        new Rapid.OsmNode(context, { id: 'g', loc: [2, 2] }),
+        new Rapid.OsmNode(context, { id: 'h', loc: [2, -2] }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['b', 'a'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['c', 'b'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '~', nodes: ['d', 'e'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '≈', nodes: ['e', 'f'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '|', nodes: ['b', 'e'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '/', nodes: ['b', 'g'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '\\', nodes: ['e', 'h'], tags: { highway: 'residential' } }),
+        new Rapid.OsmRelation(context, {
+          id: 'r1',
+          tags: { type: 'restriction', restriction: 'no_u_turn' },
+          members: [
+            { role: 'from', id: '=', type: 'way' },
+            { role: 'via', id: '|', type: 'way' },
+            { role: 'to', id: '≈', type: 'way' },
+          ]
+        }),
+        new Rapid.OsmRelation(context, {
+          id: 'r2',
+          tags: { type: 'restriction', restriction: 'no_right_turn' },
+          members: [
+            { role: 'from', id: '/', type: 'way' },
+            { role: 'via', id: '|', type: 'way' },
+            { role: 'to', id: '≈', type: 'way' }
+          ]
+        })
+      ]);
+
+      it('allows via node and via way turns from a oneway', () => {
+        const turns = Rapid.osmIntersection(context, graph, 'b', maxDist).turns('=', 1);
+        assert.isArray(turns);
+        assert.lengthOf(turns, 5);
+
+        assert.instanceOf(turns[0], Rapid.osmTurn);
+        assert.strictEqual(turns[0].key, '=_b_-'); // straight to -
+        assert.strictEqual(turns[0].u, false);
+
+        assert.instanceOf(turns[1], Rapid.osmTurn);
+        assert.strictEqual(turns[1].key, '=_b_|'); // left to |
+        assert.strictEqual(turns[1].u, false);
+
+        assert.instanceOf(turns[2], Rapid.osmTurn);
+        assert.strictEqual(turns[2].key, '=_b_|_e_≈'); // u turn via | to ≈
+        assert.strictEqual(turns[2].u, false);
+        assert.strictEqual(turns[2].restrictionID, 'r1');
+        assert.strictEqual(turns[2].direct, true);  // direct
+        assert.strictEqual(turns[2].no, true);  // restricted!
+        assert.strictEqual(turns[2].only, false);
+
+        assert.instanceOf(turns[3], Rapid.osmTurn);
+        assert.strictEqual(turns[3].key, '=_b_|_e_\\'); // left via | to \
+        assert.strictEqual(turns[3].u, false);
+
+        assert.instanceOf(turns[4], Rapid.osmTurn);
+        assert.strictEqual(turns[4].key, '=_b_/'); // right to /
+        assert.strictEqual(turns[4].u, false);
+      });
+
+
+      it('allows via node and via way turns from a bidirectional', () => {
+        const turns = Rapid.osmIntersection(context, graph, 'b', maxDist).turns('/', 1);
+        assert.isArray(turns);
+        assert.lengthOf(turns, 5);
+
+        assert.instanceOf(turns[0], Rapid.osmTurn);
+        assert.strictEqual(turns[0].key, '/_b_-'); // right to -
+        assert.strictEqual(turns[0].u, false);
+
+        assert.instanceOf(turns[1], Rapid.osmTurn);
+        assert.strictEqual(turns[1].key, '/_b_|'); // straight to |
+        assert.strictEqual(turns[1].u, false);
+
+        assert.instanceOf(turns[2], Rapid.osmTurn);
+        assert.strictEqual(turns[2].key, '/_b_|_e_≈'); // right turn from | to ≈
+        assert.strictEqual(turns[2].u, false);
+        assert.strictEqual(turns[2].restrictionID, 'r2');
+        assert.strictEqual(turns[2].direct, true);  // direct
+        assert.strictEqual(turns[2].no, true);  // restricted!
+        assert.strictEqual(turns[2].only, false);
+
+        assert.instanceOf(turns[3], Rapid.osmTurn);
+        assert.strictEqual(turns[3].key, '/_b_|_e_\\'); // straight via | to \
+        assert.strictEqual(turns[3].u, false);
+
+        assert.instanceOf(turns[4], Rapid.osmTurn);
+        assert.strictEqual(turns[4].key, '/_b_/'); // u-turn
+        assert.strictEqual(turns[4].u, true);
+      });
+    });
+
+
+    describe('complex intersection - only turn via node', () => {
+      //
+      //           g
+      //          /
+      //  a <--- b <=== c
+      //         |           'r': `only_right_turn` FROM '|' VIA NODE 'e' TO '≈'
+      //  d ~~~> e ≈≈≈> f
+      //          \
+      //           h
+      //
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'a', loc: [0, 1] }),
+        new Rapid.OsmNode(context, { id: 'b', loc: [1, 1] }),
+        new Rapid.OsmNode(context, { id: 'c', loc: [2, 1] }),
+        new Rapid.OsmNode(context, { id: 'd', loc: [0, -1] }),
+        new Rapid.OsmNode(context, { id: 'e', loc: [1, -1] }),
+        new Rapid.OsmNode(context, { id: 'f', loc: [2, -1] }),
+        new Rapid.OsmNode(context, { id: 'g', loc: [2, 2] }),
+        new Rapid.OsmNode(context, { id: 'h', loc: [2, -2] }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['b', 'a'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['c', 'b'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '~', nodes: ['d', 'e'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '≈', nodes: ['e', 'f'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '|', nodes: ['b', 'e'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '/', nodes: ['b', 'g'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '\\', nodes: ['e', 'h'], tags: { highway: 'residential' } }),
+        new Rapid.OsmRelation(context, {
+          id: 'r',
+          tags: { type: 'restriction', restriction: 'only_right_turn' },
+          members: [
+            { role: 'from', id: '|', type: 'way' },
+            { role: 'via', id: 'e', type: 'node' },
+            { role: 'to', id: '≈', type: 'way' }
+          ]
+        })
+      ]);
+
+      it('allows via node and via way turns from a oneway', () => {
+        const turns = Rapid.osmIntersection(context, graph, 'b', maxDist).turns('=', 1);
+        assert.isArray(turns);
+        assert.lengthOf(turns, 5);
+
+        assert.instanceOf(turns[0], Rapid.osmTurn);
+        assert.strictEqual(turns[0].key, '=_b_-'); // straight to -
+        assert.strictEqual(turns[0].u, false);
+
+        assert.instanceOf(turns[1], Rapid.osmTurn);
+        assert.strictEqual(turns[1].key, '=_b_|'); // left to |
+        assert.strictEqual(turns[1].u, false);
+
+        assert.instanceOf(turns[2], Rapid.osmTurn);
+        assert.strictEqual(turns[2].key, '|_e_≈'); // right turn from | to ≈
+        assert.strictEqual(turns[2].u, false);
+        assert.strictEqual(turns[2].restrictionID, 'r');
+        assert.strictEqual(turns[2].direct, false);  // indirect
+        assert.strictEqual(turns[2].no, false);
+        assert.strictEqual(turns[2].only, true);  // only!
+
+        assert.instanceOf(turns[3], Rapid.osmTurn);
+        assert.strictEqual(turns[3].key, '|_e_\\'); // straight from | to \
+        assert.strictEqual(turns[3].u, false);
+        assert.strictEqual(turns[3].restrictionID, 'r');
+        assert.strictEqual(turns[3].direct, false);  // indirect
+        assert.strictEqual(turns[3].no, true);  // restricted!
+        assert.strictEqual(turns[3].only, false);
+
+        assert.instanceOf(turns[4], Rapid.osmTurn);
+        assert.strictEqual(turns[4].key, '=_b_/'); // right to /
+        assert.strictEqual(turns[4].u, false);
+      });
+
+
+      it('allows via node and via way turns from a bidirectional', () => {
+        const turns = Rapid.osmIntersection(context, graph, 'b', maxDist).turns('/', 1);
+        assert.isArray(turns);
+        assert.lengthOf(turns, 5);
+
+        assert.instanceOf(turns[0], Rapid.osmTurn);
+        assert.strictEqual(turns[0].key, '/_b_-'); // right to -
+        assert.strictEqual(turns[0].u, false);
+
+        assert.instanceOf(turns[1], Rapid.osmTurn);
+        assert.strictEqual(turns[1].key, '/_b_|'); // straight to |
+        assert.strictEqual(turns[1].u, false);
+
+        assert.instanceOf(turns[2], Rapid.osmTurn);
+        assert.strictEqual(turns[2].key, '|_e_≈'); // right turn from | to ≈
+        assert.strictEqual(turns[2].u, false);
+        assert.strictEqual(turns[2].restrictionID, 'r');
+        assert.strictEqual(turns[2].direct, false);  // indirect
+        assert.strictEqual(turns[2].no, false);
+        assert.strictEqual(turns[2].only, true);  // only!
+
+        assert.instanceOf(turns[3], Rapid.osmTurn);
+        assert.strictEqual(turns[3].key, '|_e_\\'); // straight from | to \
+        assert.strictEqual(turns[3].u, false);
+        assert.strictEqual(turns[3].restrictionID, 'r');
+        assert.strictEqual(turns[3].direct, false);  // indirect
+        assert.strictEqual(turns[3].no, true);  // restricted!
+        assert.strictEqual(turns[3].only, false);
+
+        assert.instanceOf(turns[4], Rapid.osmTurn);
+        assert.strictEqual(turns[4].key, '/_b_/'); // u-turn
+        assert.strictEqual(turns[4].u, true);
+      });
+
+
+      it('`only_` restriction is only effective towards the via', () => {
+        const turns = Rapid.osmIntersection(context, graph, 'b', maxDist).turns('|', 1);
+        assert.isArray(turns);
+        assert.lengthOf(turns, 6);
+
+        assert.instanceOf(turns[0], Rapid.osmTurn);
+        assert.strictEqual(turns[0].key, '|_b_-'); // left from | to - (away from only-via)
+        assert.strictEqual(turns[0].u, false);
+
+        assert.instanceOf(turns[1], Rapid.osmTurn);
+        assert.strictEqual(turns[1].key, '|_b_|'); // u-turn from | to | (away from only-via)
+        assert.strictEqual(turns[1].u, true);
+
+        assert.instanceOf(turns[2], Rapid.osmTurn);
+        assert.strictEqual(turns[2].key, '|_b_/'); // straight from | to / (away from only-via)
+        assert.strictEqual(turns[2].u, false);
+
+        assert.instanceOf(turns[3], Rapid.osmTurn);
+        assert.strictEqual(turns[3].key, '|_e_|'); // u-turn from | to | via e
+        assert.strictEqual(turns[3].u, true);
+        assert.strictEqual(turns[3].restrictionID, 'r');
+        assert.strictEqual(turns[3].direct, false);  // indirect
+        assert.strictEqual(turns[3].no, true);  // restricted!
+        assert.strictEqual(turns[3].only, false);
+
+        assert.instanceOf(turns[4], Rapid.osmTurn);
+        assert.strictEqual(turns[4].key, '|_e_≈'); // right turn from | to ≈
+        assert.strictEqual(turns[4].u, false);
+        assert.strictEqual(turns[4].restrictionID, 'r');
+        assert.strictEqual(turns[4].direct, true);  // direct
+        assert.strictEqual(turns[4].no, false);
+        assert.strictEqual(turns[4].only, true); // only!
+
+        assert.instanceOf(turns[5], Rapid.osmTurn);
+        assert.strictEqual(turns[5].key, '|_e_\\'); // straight from | to \
+        assert.strictEqual(turns[5].u, false);
+        assert.strictEqual(turns[5].restrictionID, 'r');
+        assert.strictEqual(turns[5].direct, false);  // indirect
+        assert.strictEqual(turns[5].no, true);  // restricted!
+        assert.strictEqual(turns[5].only, false);
+      });
+    });
+
+
+    describe('complex intersection - only turn via way', () => {
+      //
+      //           j
+      //           ‖
+      //     i ≃≃≃ g     'r2': `only_right_turn` FROM '/' VIA WAY '|' TO '≈'
+      //          /
+      //  a <--- b <=== c    'r1': `only_u_turn` FROM '=' VIA WAY '|' TO '≈'
+      //         |
+      //  d ~~~> e ≈≈≈> f
+      //          \
+      //           h
+      //
+      const graph = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'a', loc: [0, 1] }),
+        new Rapid.OsmNode(context, { id: 'b', loc: [1, 1] }),
+        new Rapid.OsmNode(context, { id: 'c', loc: [2, 1] }),
+        new Rapid.OsmNode(context, { id: 'd', loc: [0, -1] }),
+        new Rapid.OsmNode(context, { id: 'e', loc: [1, -1] }),
+        new Rapid.OsmNode(context, { id: 'f', loc: [2, -1] }),
+        new Rapid.OsmNode(context, { id: 'g', loc: [2, 2] }),
+        new Rapid.OsmNode(context, { id: 'h', loc: [2, -2] }),
+        new Rapid.OsmNode(context, { id: 'i', loc: [0, 2] }),
+        new Rapid.OsmNode(context, { id: 'j', loc: [2, 3] }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['b', 'a'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['c', 'b'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '~', nodes: ['d', 'e'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '≈', nodes: ['e', 'f'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '|', nodes: ['b', 'e'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '/', nodes: ['b', 'g'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '\\', nodes: ['e', 'h'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '≃', nodes: ['g', 'i'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '‖', nodes: ['j', 'g'], tags: { highway: 'residential' } }),
+        new Rapid.OsmRelation(context, {
+          id: 'r1',
+          tags: { type: 'restriction', restriction: 'only_u_turn' },
+          members: [
+            { role: 'from', id: '=', type: 'way' },
+            { role: 'via', id: '|', type: 'way' },
+            { role: 'to', id: '≈', type: 'way' }
+          ]
+        }),
+        new Rapid.OsmRelation(context, {
+          id: 'r2',
+          tags: { type: 'restriction', restriction: 'only_right_turn' },
+          members: [
+            { role: 'from', id: '/', type: 'way' },
+            { role: 'via', id: '|', type: 'way' },
+            { role: 'to', id: '≈', type: 'way' }
+          ]
+        })
+      ]);
+
+      it('allows via node and via way turns from a oneway', () => {
+        const turns = Rapid.osmIntersection(context, graph, 'b', maxDist).turns('=', 1);
+        assert.isArray(turns);
+        assert.lengthOf(turns, 5);
+
+        assert.instanceOf(turns[0], Rapid.osmTurn);
+        assert.strictEqual(turns[0].key, '=_b_-'); // straight to -
+        assert.strictEqual(turns[0].u, false);
+        assert.strictEqual(turns[0].restrictionID, 'r1');
+        assert.strictEqual(turns[0].direct, false);  // indirect
+        assert.strictEqual(turns[0].no, true);  // restricted!
+        assert.strictEqual(turns[0].only, false);
+
+        assert.instanceOf(turns[1], Rapid.osmTurn);
+        assert.strictEqual(turns[1].key, '=_b_|'); // left to |
+        assert.strictEqual(turns[1].u, false);
+        assert.strictEqual(turns[1].restrictionID, 'r1');
+        assert.strictEqual(turns[1].direct, false);  // indirect
+        assert.strictEqual(turns[1].no, false);
+        assert.strictEqual(turns[1].only, true);  // only (along via way)
+
+        assert.instanceOf(turns[2], Rapid.osmTurn);
+        assert.strictEqual(turns[2].key, '=_b_|_e_≈'); // u-turn to ≈ via |
+        assert.strictEqual(turns[2].u, false);
+        assert.strictEqual(turns[2].restrictionID, 'r1');
+        assert.strictEqual(turns[2].direct, true);  // direct
+        assert.strictEqual(turns[2].no, false);
+        assert.strictEqual(turns[2].only, true);  // only!
+
+        assert.instanceOf(turns[3], Rapid.osmTurn);
+        assert.strictEqual(turns[3].key, '=_b_|_e_\\'); // left to \ via |
+        assert.strictEqual(turns[3].u, false);
+        assert.strictEqual(turns[3].restrictionID, 'r1');
+        assert.strictEqual(turns[3].direct, false);  // indirect
+        assert.strictEqual(turns[3].no, true);  // restricted!
+        assert.strictEqual(turns[3].only, false);
+
+        assert.instanceOf(turns[4], Rapid.osmTurn);
+        assert.strictEqual(turns[4].key, '=_b_/'); // right to /
+        assert.strictEqual(turns[4].u, false);
+        assert.strictEqual(turns[4].restrictionID, 'r1');
+        assert.strictEqual(turns[4].direct, false);  // indirect
+        assert.strictEqual(turns[4].no, true);  // restricted!
+        assert.strictEqual(turns[4].only, false);
+      });
+
+
+      it('allows via node and via way turns from a bidirectional', () => {
+        const turns = Rapid.osmIntersection(context, graph, 'b', maxDist).turns('/', 1);
+        assert.isArray(turns);
+        assert.strictEqual(turns.length, 8);
+
+        assert.instanceOf(turns[0], Rapid.osmTurn);
+        assert.strictEqual(turns[0].key, '/_b_-'); // right to -
+        assert.strictEqual(turns[0].u, false);
+        assert.strictEqual(turns[0].restrictionID, 'r2');
+        assert.strictEqual(turns[0].direct, false);  // indirect
+        assert.strictEqual(turns[0].no, true);  // restricted!
+        assert.strictEqual(turns[0].only, false);
+
+        assert.instanceOf(turns[1], Rapid.osmTurn);
+        assert.strictEqual(turns[1].key, '/_b_|'); // straight to |
+        assert.strictEqual(turns[1].u, false);
+        assert.strictEqual(turns[1].restrictionID, 'r2');
+        assert.strictEqual(turns[1].direct, false);  // indirect
+        assert.strictEqual(turns[1].no, false);
+        assert.strictEqual(turns[1].only, true); // only (along via way)
+
+        assert.instanceOf(turns[2], Rapid.osmTurn);
+        assert.strictEqual(turns[2].key, '/_b_|_e_≈'); // right turn from | to ≈
+        assert.strictEqual(turns[2].u, false);
+        assert.strictEqual(turns[2].restrictionID, 'r2');
+        assert.strictEqual(turns[2].direct, true);  // direct
+        assert.strictEqual(turns[2].no, false);
+        assert.strictEqual(turns[2].only, true); // only!
+
+        assert.instanceOf(turns[3], Rapid.osmTurn);
+        assert.strictEqual(turns[3].key, '/_b_|_e_\\'); // straight from | to \
+        assert.strictEqual(turns[3].u, false);
+        assert.strictEqual(turns[3].restrictionID, 'r2');
+        assert.strictEqual(turns[3].direct, false);  // indirect
+        assert.strictEqual(turns[3].no, true);  // restricted!
+        assert.strictEqual(turns[3].only, false);
+
+        assert.instanceOf(turns[4], Rapid.osmTurn);
+        assert.strictEqual(turns[4].key, '/_b_/'); // u-turn
+        assert.strictEqual(turns[4].u, true);
+        assert.strictEqual(turns[4].restrictionID, 'r2');
+        assert.strictEqual(turns[4].direct, false);  // indirect
+        assert.strictEqual(turns[4].no, true);  // restricted!
+        assert.strictEqual(turns[4].only, false);
+      });
+
+      it('`only_` restriction is only effective towards the via', () => {
+        const turns = Rapid.osmIntersection(context, graph, 'b', maxDist).turns('/', 1);
+        assert.isArray(turns);
+        assert.strictEqual(turns.length, 8);
+
+        assert.instanceOf(turns[5], Rapid.osmTurn);
+        assert.strictEqual(turns[5].key, '/_g_/'); // u-turn from / to / (away from only-via)
+        assert.strictEqual(turns[5].u, true);
+
+        assert.instanceOf(turns[6], Rapid.osmTurn);
+        assert.strictEqual(turns[6].key, '/_g_≃'); // left turn from / to ≃ (away from only-via)
+        assert.strictEqual(turns[6].u, false);
+
+        assert.instanceOf(turns[7], Rapid.osmTurn);
+        assert.strictEqual(turns[7].key, '/_g_‖'); // straight from / to ‖ (away from only-via)
+        assert.strictEqual(turns[7].u, false);
+      });
+    });
+
+
+    describe('complex intersection - via 2 ways', () => {
+      //
+      //  a <--- b <=== c
+      //         |
+      //         *
+      //         ‖
+      //  d ~~~> e ≈≈≈> f
+      //
+      const base = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'a', loc: [0, 2] }),
+        new Rapid.OsmNode(context, { id: 'b', loc: [1, 2] }),
+        new Rapid.OsmNode(context, { id: 'c', loc: [2, 2] }),
+        new Rapid.OsmNode(context, { id: 'd', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: 'e', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'f', loc: [2, 0] }),
+        new Rapid.OsmNode(context, { id: '*', loc: [1, 1] }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['b', 'a'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['c', 'b'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '~', nodes: ['d', 'e'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '≈', nodes: ['e', 'f'], tags: { highway: 'residential', oneway: 'yes' } }),
+        new Rapid.OsmWay(context, { id: '|', nodes: ['b', '*'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '‖', nodes: ['*', 'e'], tags: { highway: 'residential' } })
+      ]);
+
+      it('with no restrictions, allows via node and via way turns', () => {
+        const graph = new Rapid.Graph(base);
+        const turns = Rapid.osmIntersection(context, graph, 'b', maxDist).turns('=', 2);
+        assert.isArray(turns);
+        assert.lengthOf(turns, 4);
+
+        assert.instanceOf(turns[0], Rapid.osmTurn);
+        assert.strictEqual(turns[0].key, '=_b_-'); // straight to -
+        assert.strictEqual(turns[0].u, false);
+
+        assert.instanceOf(turns[1], Rapid.osmTurn);
+        assert.strictEqual(turns[1].key, '=_b_|'); // left to |
+        assert.strictEqual(turns[1].u, false);
+
+        assert.instanceOf(turns[2], Rapid.osmTurn);
+        assert.strictEqual(turns[2].key, '=_b_|_*_‖'); // left to ‖ via |
+        assert.strictEqual(turns[2].u, false);
+
+        assert.instanceOf(turns[3], Rapid.osmTurn);
+        assert.strictEqual(turns[3].key, '=_b_|_*_‖_e_≈'); // u-turn via |,‖ to ≈
+        assert.strictEqual(turns[3].u, false);
+      });
+
+
+      it('supports `no_` via 2 way restriction (ordered)', () => {
+        //  'r1': `no_u_turn` FROM '=' VIA WAYS '|','‖' TO '≈'
+        const r1 = new Rapid.OsmRelation(context, {
+          id: 'r1',
+          tags: { type: 'restriction', restriction: 'no_u_turn' },
+          members: [
+            { role: 'from', id: '=', type: 'way' },
+            { role: 'via', id: '|', type: 'way' },
+            { role: 'via', id: '‖', type: 'way' },
+            { role: 'to', id: '≈', type: 'way' }
+          ]
+        });
+        const graph = new Rapid.Graph(base).replace(r1);
+        const turns = Rapid.osmIntersection(context, graph, 'b', maxDist).turns('=', 2);
+        assert.isArray(turns);
+        assert.lengthOf(turns, 4);
+
+        assert.instanceOf(turns[0], Rapid.osmTurn);
+        assert.strictEqual(turns[0].key, '=_b_-'); // straight to -
+        assert.strictEqual(turns[0].u, false);
+
+        assert.instanceOf(turns[1], Rapid.osmTurn);
+        assert.strictEqual(turns[1].key, '=_b_|'); // left to |
+        assert.strictEqual(turns[1].u, false);
+
+        assert.instanceOf(turns[2], Rapid.osmTurn);
+        assert.strictEqual(turns[2].key, '=_b_|_*_‖'); // left to ‖ via |
+        assert.strictEqual(turns[2].u, false);
+
+        assert.instanceOf(turns[3], Rapid.osmTurn);
+        assert.strictEqual(turns[3].key, '=_b_|_*_‖_e_≈'); // u-turn via |,‖ to ≈
+        assert.strictEqual(turns[3].u, false);
+        assert.strictEqual(turns[3].restrictionID, 'r1');
+        assert.strictEqual(turns[3].direct, true); // direct
+        assert.strictEqual(turns[3].no, true); // restricted!
+        assert.strictEqual(turns[3].only, false);
+      });
+
+
+      it('supports `no_` via 2 way restriction (unordered)', () => {
+        //  'r1': `no_u_turn` FROM '=' VIA WAYS '|','‖' TO '≈'
+        const r1 = new Rapid.OsmRelation(context, {
+          id: 'r1',
+          tags: { type: 'restriction', restriction: 'no_u_turn' },
+          members: [
+            { role: 'from', id: '=', type: 'way' },
+            { role: 'via', id: '‖', type: 'way' }, // out of order
+            { role: 'via', id: '|', type: 'way' }, // out of order
+            { role: 'to', id: '≈', type: 'way' }
+          ]
+        });
+        const graph = new Rapid.Graph(base).replace(r1);
+        const turns = Rapid.osmIntersection(context, graph, 'b', maxDist).turns('=', 2);
+        assert.isArray(turns);
+        assert.lengthOf(turns, 4);
+
+        assert.instanceOf(turns[0], Rapid.osmTurn);
+        assert.strictEqual(turns[0].key, '=_b_-'); // straight to -
+        assert.strictEqual(turns[0].u, false);
+
+        assert.instanceOf(turns[1], Rapid.osmTurn);
+        assert.strictEqual(turns[1].key, '=_b_|'); // left to |
+        assert.strictEqual(turns[1].u, false);
+
+        assert.instanceOf(turns[2], Rapid.osmTurn);
+        assert.strictEqual(turns[2].key, '=_b_|_*_‖'); // left to ‖ via |
+        assert.strictEqual(turns[2].u, false);
+
+        assert.instanceOf(turns[3], Rapid.osmTurn);
+        assert.strictEqual(turns[3].key, '=_b_|_*_‖_e_≈'); // u-turn via |,‖ to ≈
+        assert.strictEqual(turns[3].u, false);
+        assert.strictEqual(turns[3].restrictionID, 'r1');
+        assert.strictEqual(turns[3].direct, true); // direct
+        assert.strictEqual(turns[3].no, true); // restricted!
+        assert.strictEqual(turns[3].only, false);
+      });
+
+
+      it('supports `only_` via 2 way restriction (ordered)', () => {
+        //  'r1': `only_u_turn` FROM '=' VIA WAYS '|','‖' TO '≈'
+        const r1 = new Rapid.OsmRelation(context, {
+          id: 'r1',
+          tags: { type: 'restriction', restriction: 'only_u_turn' },
+          members: [
+            { role: 'from', id: '=', type: 'way' },
+            { role: 'via', id: '|', type: 'way' },
+            { role: 'via', id: '‖', type: 'way' },
+            { role: 'to', id: '≈', type: 'way' }
+          ]
+        });
+        const graph = new Rapid.Graph(base).replace(r1);
+        const turns = Rapid.osmIntersection(context, graph, 'b', maxDist).turns('=', 2);
+        assert.isArray(turns);
+        assert.lengthOf(turns, 4);
+
+        assert.instanceOf(turns[0], Rapid.osmTurn);
+        assert.strictEqual(turns[0].key, '=_b_-'); // straight to -
+        assert.strictEqual(turns[0].u, false);
+        assert.strictEqual(turns[0].restrictionID, 'r1');
+        assert.strictEqual(turns[0].direct, false); // indirect
+        assert.strictEqual(turns[0].no, true); // restricted!
+        assert.strictEqual(turns[0].only, false);
+
+        assert.instanceOf(turns[1], Rapid.osmTurn);
+        assert.strictEqual(turns[1].key, '=_b_|'); // left to |
+        assert.strictEqual(turns[1].u, false);
+        assert.strictEqual(turns[1].restrictionID, 'r1');
+        assert.strictEqual(turns[1].direct, false); // indirect
+        assert.strictEqual(turns[1].no, false);
+        assert.strictEqual(turns[1].only, true);  // only (along via way)
+
+        assert.instanceOf(turns[2], Rapid.osmTurn);
+        assert.strictEqual(turns[2].key, '=_b_|_*_‖'); // left to ‖ via |
+        assert.strictEqual(turns[2].u, false);
+        assert.strictEqual(turns[2].restrictionID, 'r1');
+        assert.strictEqual(turns[2].direct, false); // indirect
+        assert.strictEqual(turns[2].no, false);
+        assert.strictEqual(turns[2].only, true);  // only (along via way)
+
+        assert.instanceOf(turns[3], Rapid.osmTurn);
+        assert.strictEqual(turns[3].key, '=_b_|_*_‖_e_≈'); // u-turn via |,‖ to ≈
+        assert.strictEqual(turns[3].u, false);
+        assert.strictEqual(turns[3].restrictionID, 'r1');
+        assert.strictEqual(turns[3].direct, true); // direct
+        assert.strictEqual(turns[3].no, false);
+        assert.strictEqual(turns[3].only, true); // only!
+      });
+
+      it('supports `only_` via 2 way restriction (unordered)', () => {
+        //  'r1': `only_u_turn` FROM '=' VIA WAYS '‖','|' TO '≈'
+        const r1 = new Rapid.OsmRelation(context, {
+          id: 'r1',
+          tags: { type: 'restriction', restriction: 'only_u_turn' },
+          members: [
+            { role: 'from', id: '=', type: 'way' },
+            { role: 'via', id: '‖', type: 'way' }, // out of order
+            { role: 'via', id: '|', type: 'way' }, // out of order
+            { role: 'to', id: '≈', type: 'way' }
+          ]
+        });
+        const graph = new Rapid.Graph(base).replace(r1);
+        const turns = Rapid.osmIntersection(context, graph, 'b', maxDist).turns('=', 2);
+        assert.isArray(turns);
+        assert.lengthOf(turns, 4);
+
+        assert.instanceOf(turns[0], Rapid.osmTurn);
+        assert.strictEqual(turns[0].key, '=_b_-'); // straight to -
+        assert.strictEqual(turns[0].u, false);
+        assert.strictEqual(turns[0].restrictionID, 'r1');
+        assert.strictEqual(turns[0].direct, false); // indirect
+        assert.strictEqual(turns[0].no, true); // restricted!
+        assert.strictEqual(turns[0].only, false);
+
+        assert.instanceOf(turns[1], Rapid.osmTurn);
+        assert.strictEqual(turns[1].key, '=_b_|'); // left to |
+        assert.strictEqual(turns[1].u, false);
+        assert.strictEqual(turns[1].restrictionID, 'r1');
+        assert.strictEqual(turns[1].direct, false); // indirect
+        assert.strictEqual(turns[1].no, false);
+        assert.strictEqual(turns[1].only, true);  // only (along via way)
+
+        assert.instanceOf(turns[2], Rapid.osmTurn);
+        assert.strictEqual(turns[2].key, '=_b_|_*_‖'); // left to ‖ via |
+        assert.strictEqual(turns[2].u, false);
+        assert.strictEqual(turns[2].restrictionID, 'r1');
+        assert.strictEqual(turns[2].direct, false); // indirect
+        assert.strictEqual(turns[2].no, false);
+        assert.strictEqual(turns[2].only, true);  // only (along via way)
+
+        assert.instanceOf(turns[3], Rapid.osmTurn);
+        assert.strictEqual(turns[3].key, '=_b_|_*_‖_e_≈'); // u-turn via |,‖ to ≈
+        assert.strictEqual(turns[3].u, false);
+        assert.strictEqual(turns[3].restrictionID, 'r1');
+        assert.strictEqual(turns[3].direct, true); // direct
+        assert.strictEqual(turns[3].no, false);
+        assert.strictEqual(turns[3].only, true); // only!
+      });
+    });
+
+
+    describe('complex intersection - via 2 ways with loops - gotchas', () => {
+      //
+      //            e
+      //           / \
+      //          /   \
+      //   a --- b === c ~~~ d
+      //
+      const base = new Rapid.Graph(context, [
+        new Rapid.OsmNode(context, { id: 'a', loc: [0, 0] }),
+        new Rapid.OsmNode(context, { id: 'b', loc: [1, 0] }),
+        new Rapid.OsmNode(context, { id: 'c', loc: [3, 0] }),
+        new Rapid.OsmNode(context, { id: 'd', loc: [4, 0] }),
+        new Rapid.OsmNode(context, { id: 'e', loc: [2, 2] }),
+        new Rapid.OsmWay(context, { id: '-', nodes: ['a', 'b'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '=', nodes: ['b', 'c'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '~', nodes: ['c', 'd'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '/', nodes: ['b', 'e'], tags: { highway: 'residential' } }),
+        new Rapid.OsmWay(context, { id: '\\', nodes: ['e', 'c'], tags: { highway: 'residential' } })
+      ]);
+
+      it('with no restrictions, finds all turns', () => {
+        const graph = new Rapid.Graph(base);
+        const turns = Rapid.osmIntersection(context, graph, 'c', maxDist).turns('=', 2);
+        assert.isArray(turns);
+        assert.strictEqual(turns.length, 10);
+
+        assert.strictEqual(turns[0].key, '=_b_=');
+        assert.strictEqual(turns[0].u, true);
+
+        assert.strictEqual(turns[1].key, '=_b_/');
+        assert.strictEqual(turns[1].u, false);
+
+        assert.strictEqual(turns[2].key, '=_b_/_e_\\');
+        assert.strictEqual(turns[2].u, false);
+
+        assert.strictEqual(turns[3].key, '=_b_/_e_\\_c_~');
+        assert.strictEqual(turns[3].u, false);
+
+        assert.strictEqual(turns[4].key, '=_b_-');
+        assert.strictEqual(turns[4].u, false);
+
+        assert.strictEqual(turns[5].key, '=_c_=');
+        assert.strictEqual(turns[5].u, true);
+
+        assert.strictEqual(turns[6].key, '=_c_~');
+        assert.strictEqual(turns[6].u, false);
+
+        assert.strictEqual(turns[7].key, '=_c_\\');
+        assert.strictEqual(turns[7].u, false);
+
+        assert.strictEqual(turns[8].key, '=_c_\\_e_/');
+        assert.strictEqual(turns[8].u, false);
+
+        assert.strictEqual(turns[9].key, '=_c_\\_e_/_b_-');
+        assert.strictEqual(turns[9].u, false);
+      });
+
+
+      it('matches from-via-to strictly when alternate paths exist between from-via-to', () => {
+        const r1 = new Rapid.OsmRelation(context, {
+          id: 'r1',
+          tags: { type: 'restriction', restriction: 'no_straight_on' },
+          members: [
+            { role: 'from', id: '=', type: 'way' },
+            { role: 'via', id: 'c', type: 'node' },
+            { role: 'to', id: '~', type: 'way' }
+          ]
+        });
+        const graph = new Rapid.Graph(base).replace(r1);
+        const turns = Rapid.osmIntersection(context, graph, 'c', maxDist).turns('=', 2);
+        assert.isArray(turns);
+        assert.strictEqual(turns.length, 10);
+
+        assert.strictEqual(turns[0].key, '=_b_=');
+        assert.strictEqual(turns[0].u, true);
+
+        assert.strictEqual(turns[1].key, '=_b_/');
+        assert.strictEqual(turns[1].u, false);
+
+        assert.strictEqual(turns[2].key, '=_b_/_e_\\');
+        assert.strictEqual(turns[2].u, false);
+
+        assert.strictEqual(turns[3].key, '=_b_/_e_\\_c_~');
+        assert.strictEqual(turns[3].u, false);
+        assert.strictEqual(turns[3].restrictionID, undefined); // the alternate path should not match
+        assert.strictEqual(turns[3].direct, undefined);
+
+        assert.strictEqual(turns[4].key, '=_b_-');
+        assert.strictEqual(turns[4].u, false);
+
+        assert.strictEqual(turns[5].key, '=_c_=');
+        assert.strictEqual(turns[5].u, true);
+
+        assert.strictEqual(turns[6].key, '=_c_~');
+        assert.strictEqual(turns[6].u, false);
+        assert.strictEqual(turns[6].restrictionID, 'r1');
+        assert.strictEqual(turns[6].direct, true); // direct
+        assert.strictEqual(turns[6].no, true); // restricted!
+        assert.strictEqual(turns[6].only, false);
+
+        assert.strictEqual(turns[7].key, '=_c_\\');
+        assert.strictEqual(turns[7].u, false);
+
+        assert.strictEqual(turns[8].key, '=_c_\\_e_/');
+        assert.strictEqual(turns[8].u, false);
+
+        assert.strictEqual(turns[9].key, '=_c_\\_e_/_b_-');
+        assert.strictEqual(turns[9].u, false);
+      });
+
+
+      it('`only_` restriction is only effective towards the via', () => {
+        const r1 = new Rapid.OsmRelation(context, {
+          id: 'r1',
+          tags: { type: 'restriction', restriction: 'only_straight_on' },
+          members: [
+            { role: 'from', id: '=', type: 'way' },
+            { role: 'via', id: 'c', type: 'node' },
+            { role: 'to', id: '~', type: 'way' }
+          ]
+        });
+        const graph = new Rapid.Graph(base).replace(r1);
+        const turns = Rapid.osmIntersection(context, graph, 'c', maxDist).turns('=', 2);
+        assert.isArray(turns);
+        assert.strictEqual(turns.length, 8);
+
+        assert.strictEqual(turns[0].key, '=_b_=');  // not towards via
+        assert.strictEqual(turns[0].u, true);
+
+        assert.strictEqual(turns[1].key, '=_b_/');  // not towards via
+        assert.strictEqual(turns[1].u, false);
+
+        assert.strictEqual(turns[2].key, '=_b_/_e_\\');  // not towards via
+        assert.strictEqual(turns[2].u, false);
+
+        assert.strictEqual(turns[3].key, '=_b_/_e_\\_c_~');  // not towards via
+        assert.strictEqual(turns[3].u, false);
+        assert.strictEqual(turns[3].restrictionID, undefined); // the alternate path should not match
+        assert.strictEqual(turns[3].direct, undefined);
+
+        assert.strictEqual(turns[4].key, '=_b_-'); // not towards via
+        assert.strictEqual(turns[4].u, false);
+
+        assert.strictEqual(turns[5].key, '=_c_=');
+        assert.strictEqual(turns[5].u, true);
+        assert.strictEqual(turns[5].restrictionID, 'r1');
+        assert.strictEqual(turns[5].direct, false); // indirect
+        assert.strictEqual(turns[5].no, true); // restricted!
+        assert.strictEqual(turns[5].only, false);
+
+        assert.strictEqual(turns[6].key, '=_c_~');
+        assert.strictEqual(turns[6].u, false);
+        assert.strictEqual(turns[6].restrictionID, 'r1');
+        assert.strictEqual(turns[6].direct, true); // direct
+        assert.strictEqual(turns[6].no, false);
+        assert.strictEqual(turns[6].only, true); // only!
+
+        assert.strictEqual(turns[7].key, '=_c_\\');
+        assert.strictEqual(turns[7].u, false);
+        assert.strictEqual(turns[7].restrictionID, 'r1');
+        assert.strictEqual(turns[7].direct, false); // indirect
+        assert.strictEqual(turns[7].no, true); // restricted!
+        assert.strictEqual(turns[7].only, false);
+      });
+    });
+
+  });
+});
+
+
+describe('osmInferRestriction', () => {
+  const context = new Rapid.MockContext();
+
+  it('infers the restriction type based on the turn angle', () => {
+    //
+    //  u === * ~~~ w
+    //        |
+    //        x
+    //
+    const graph = new Rapid.Graph(context, [
+      new Rapid.OsmNode(context, { id: 'u', loc: [-1, 0] }),
+      new Rapid.OsmNode(context, { id: '*', loc: [0, 0] }),
+      new Rapid.OsmNode(context, { id: 'w', loc: [1, 0] }),
+      new Rapid.OsmNode(context, { id: 'x', loc: [0, -1] }),
+      new Rapid.OsmWay(context, { id: '=', nodes: ['u', '*'] }),
+      new Rapid.OsmWay(context, { id: '-', nodes: ['*', 'x'] }),
+      new Rapid.OsmWay(context, { id: '~', nodes: ['*', 'w'] })
+    ]);
+
+    const r1 = Rapid.osmInferRestriction(graph, {
+      from: { node: 'u', way: '=', vertex: '*' },
+      to: { node: 'x', way: '-', vertex: '*' }
+    });
+    assert.strictEqual(r1, 'no_right_turn');
+
+    const r2 = Rapid.osmInferRestriction(graph, {
+      from: { node: 'x', way: '-', vertex: '*' },
+      to: { node: 'w', way: '~', vertex: '*' }
+    });
+    assert.strictEqual(r2, 'no_right_turn');
+
+    const l1 = Rapid.osmInferRestriction(graph, {
+      from: { node: 'x', way: '-', vertex: '*' },
+      to: { node: 'u', way: '=', vertex: '*' }
+    });
+    assert.strictEqual(l1, 'no_left_turn');
+
+    const l2 = Rapid.osmInferRestriction(graph, {
+      from: { node: 'w', way: '~', vertex: '*' },
+      to: { node: 'x', way: '-', vertex: '*' }
+    });
+    assert.strictEqual(l2, 'no_left_turn');
+
+    const s = Rapid.osmInferRestriction(graph, {
+      from: { node: 'u', way: '=', vertex: '*' },
+      to: { node: 'w', way: '~', vertex: '*' }
+    });
+    assert.strictEqual(s, 'no_straight_on');
+
+    const u = Rapid.osmInferRestriction(graph, {
+      from: { node: 'u', way: '=', vertex: '*' },
+      to: { node: 'u', way: '=', vertex: '*' }
+    });
+    assert.strictEqual(u, 'no_u_turn');
+  });
+
+
+  it('infers no_u_turn from sharply acute angle made by forward oneways', () => {
+    //      *
+    //     / \
+    //  w2/   \w1        angle ≈22.6°
+    //   /     \
+    //  u       x
+    const graph = new Rapid.Graph(context, [
+      new Rapid.OsmNode(context, { id: 'u', loc: [0, -5] }),
+      new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+      new Rapid.OsmNode(context, { id: 'x', loc: [2, -5] }),
+      new Rapid.OsmWay(context, { id: 'w1', nodes: ['x', '*'], tags: { oneway: 'yes' } }),
+      new Rapid.OsmWay(context, { id: 'w2', nodes: ['*', 'u'], tags: { oneway: 'yes' } })
+    ]);
+
+    const r = Rapid.osmInferRestriction(graph, {
+      from: { node: 'x', way: 'w1', vertex: '*' },
+      to: { node: 'u', way: 'w2', vertex: '*' }
+    });
+    assert.strictEqual(r, 'no_u_turn');
+  });
+
+
+  it('does not infer no_u_turn from widely acute angle made by forward oneways', () => {
+    //      *
+    //     / \
+    //  w2/   \w1        angle ≈36.9°
+    //   /     \         (no left turn)
+    //  u       x
+    const graph = new Rapid.Graph(context, [
+      new Rapid.OsmNode(context, { id: 'u', loc: [0, -3] }),
+      new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+      new Rapid.OsmNode(context, { id: 'x', loc: [2, -3] }),
+      new Rapid.OsmWay(context, { id: 'w1', nodes: ['x', '*'], tags: { oneway: 'yes' } }),
+      new Rapid.OsmWay(context, { id: 'w2', nodes: ['*', 'u'], tags: { oneway: 'yes' } })
+    ]);
+
+    const r = Rapid.osmInferRestriction(graph, {
+      from: { node: 'x', way: 'w1', vertex: '*' },
+      to: { node: 'u', way: 'w2', vertex: '*' }
+    });
+    assert.strictEqual(r, 'no_left_turn');
+  });
+
+
+  it('infers no_u_turn from sharply acute angle made by forward oneways with a via way', () => {
+    //      * -- +
+    //     /      \
+    //  w2/        \w1      angle ≈22.6°
+    //   /          \       (no u turn)
+    //  u            x
+    const graph = new Rapid.Graph(context, [
+      new Rapid.OsmNode(context, { id: 'u', loc: [0, -5] }),
+      new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+      new Rapid.OsmNode(context, { id: '+', loc: [2, 0] }),
+      new Rapid.OsmNode(context, { id: 'x', loc: [3, -5] }),
+      new Rapid.OsmWay(context, { id: 'w1', nodes: ['x', '+'], tags: { oneway: 'yes' } }),
+      new Rapid.OsmWay(context, { id: 'w2', nodes: ['*', 'u'], tags: { oneway: 'yes' } }),
+      new Rapid.OsmWay(context, { id: '-', nodes: ['*', '+'] })
+    ]);
+
+    const r = Rapid.osmInferRestriction(graph, {
+      from: { node: 'x', way: 'w1', vertex: '+' },
+      to: { node: 'u', way: 'w2', vertex: '*' }
+    });
+    assert.strictEqual(r, 'no_u_turn');
+  });
+
+
+  it('infers no_u_turn from widely acute angle made by forward oneways with a via way', () => {
+    //      * -- +
+    //     /      \
+    //  w2/        \w1      angle ≈36.9°
+    //   /          \       (no u turn)
+    //  u            x
+    const graph = new Rapid.Graph(context, [
+      new Rapid.OsmNode(context, { id: 'u', loc: [0, -3] }),
+      new Rapid.OsmNode(context, { id: '*', loc: [1, 0] }),
+      new Rapid.OsmNode(context, { id: '+', loc: [2, 0] }),
+      new Rapid.OsmNode(context, { id: 'x', loc: [3, -3] }),
+      new Rapid.OsmWay(context, { id: 'w1', nodes: ['x', '+'], tags: { oneway: 'yes' } }),
+      new Rapid.OsmWay(context, { id: 'w2', nodes: ['*', 'u'], tags: { oneway: 'yes' } }),
+      new Rapid.OsmWay(context, { id: '-', nodes: ['*', '+'] })
+    ]);
+
+    const r = Rapid.osmInferRestriction(graph, {
+      from: { node: 'x', way: 'w1', vertex: '+' },
+      to: { node: 'u', way: 'w2', vertex: '*' }
+    });
+    assert.strictEqual(r, 'no_u_turn');
+  });
+});

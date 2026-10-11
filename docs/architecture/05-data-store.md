@@ -53,13 +53,33 @@ This is where the port pays off for speed, because the renderer already wants ex
 - **Staging** maps onto dragging: while a vertex moves, the staging graph changes on every pointer event and nothing is committed; on release it becomes one undo step. That is what the engine's drag code imitates now.
 - The **spatial index** answers what MapLibre cannot: features outside the rendered tiles, snapping candidates, "what crosses this way". Hit-testing of what is on screen stays with MapLibre.
 
+## First measurement: the model is heavy on the load path
+
+Measured on 2026-10-11 with `bun packages/model/bench/load.ts` (in Bun, not in a browser; best of 5; times in milliseconds for the whole scene at once):
+
+| Scene | Elements | Proof-of-concept store | Rapid's model: parse | create entities | build graph | Total |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| small | 14,177 | 1 | 6 | 38 | 19 | 63 |
+| medium | 70,939 | 6 | 36 | 226 | 146 | 408 |
+| dense | 140,863 | 14 | 68 | 366 | 294 | 728 |
+
+So the unchanged port costs about 50 times more than the store it replaces, and on the dense scene that is 0.7 s of main-thread time. In the app the data arrives tile by tile, so it is spread out, but it is the same total and it competes with rendering.
+
+Where the time goes in "create entities": almost all of it is `structuredClone`. Every entity deep-copies its properties twice in the constructor. Cloning the dense scene's properties twice takes about 350 ms on its own; creating the geometry objects takes about 1 ms.
+
+What follows:
+
+- **Fixed the same day** in one place (`AbstractData`'s constructor): properties are copied with a small function for plain data (`src/util/clone.ts`). Creating the dense scene's entities went from about 350 ms to about 125 ms, and Rapid's tests still pass.
+- **Still open: "build graph"** (210 to 290 ms on the dense scene) is now the larger part and is not analysed yet. The total on the dense scene is about 400 ms, against 14 ms for the proof-of-concept store.
+- This has to be solved, or accepted with numbers from the browser, before the renderer moves to the new model.
+- The numbers have to be repeated in Chrome through the benchmark before a decision; Bun's engine is not the browser's.
+
 ## Order of work
 
-1. `maid-model`: entities and geometry from Rapid, without `Context`. Tests ported.
-2. `maid-graph`: graph, difference, history with staging. Tests ported. The proof-of-concept store goes; the engine consumes differences.
-3. `maid-actions`: move node first (it exists as a hack today), then the rest, each with its tests.
-4. Spatial index, synced from differences.
-5. Journal and restore.
+1. Entities, geometry, graph, difference and actions from Rapid, with Rapid's tests. **Done 2026-10-11.**
+2. Tagging-schema lookup, undo history with staging, spatial index. **Done 2026-10-11.**
+3. The engine consumes differences from the history; the proof-of-concept store goes. Maid has undo.
+4. Journal and restore.
 
 Each step is usable on its own, and after step 2 Maid has undo.
 
@@ -91,13 +111,13 @@ The layout that follows:
 
 | Package | Contains | Public |
 | --- | --- | --- |
-| `maid-model` | Entities and geometry. Also the types of the OSM API's JSON and the parser from that JSON to entities | Later, when it is stable |
-| `maid-graph` | Graph, difference, history with staging, spatial index | Later |
-| `maid-actions` | The edit operations | Later |
+| `maid-model` | Entities, geometry, graph, difference, the edit actions, undo history with staging, the spatial index, the tagging-schema lookup, and the parser from the OSM API's JSON to entities | Later, when it is stable |
 | `osm-data` (street-space editor repo) | Unchanged | As today |
+
+**One package, not three** (changed on 2026-10-11 when the port started). The plan was `maid-model`, `maid-graph` and `maid-actions`. In Rapid these parts import each other in both directions: entity methods take a graph, the graph holds entities, and `lib/intersection` and `lib/multipolygon` call actions. Cutting them into packages would mean rewriting working code before it runs. They stay together, in folders that match Rapid's, and can be split later if a user of only one part appears. The state of the port is in [`packages/model/README.md`](../../packages/model/README.md).
 
 Loading by tile (which tiles, batching, the cache) is not a data package. It stays with the editor, next to the code that hands differences to the renderer.
 
 The one piece both sides share is the description of the API's JSON, about 40 lines of types. That is too little to justify a dependency between the repositories, so it exists twice.
 
-Later, once Maid's data packages are published: an app that outgrows `osm-data` (needs undo, or geometry edits beyond cutting) moves to `maid-graph`. The street-space editor is the candidate, and its shape makes that a contained change. Nothing needs to happen there now.
+Later, once Maid's data packages are published: an app that outgrows `osm-data` (needs undo, or geometry edits beyond cutting) moves to `maid-model`. The street-space editor is the candidate, and its shape makes that a contained change. Nothing needs to happen there now.

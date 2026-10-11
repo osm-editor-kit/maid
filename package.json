@@ -13,7 +13,7 @@
     "dev:maid": "bun run --cwd apps/maid dev",
     "dev:api": "bun tools/mock-osm-api/server.ts",
     "fixtures-build": "bun tools/fixtures/build.ts",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --noEmit && tsc --noEmit -p packages/model",
     "test-run": "bun test",
     "check": "bun run --parallel type-check lint format test-run",
     "bench": "bun tools/bench/run.ts",

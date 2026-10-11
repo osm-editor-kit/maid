@@ -1,0 +1,45 @@
+/**
+ * Type definitions for the data module.
+ * These types represent OSM entities and related data structures.
+ * @module
+ */
+
+import type { Context } from '../Context.ts';
+
+// Re-export entity classes as types
+export type { AbstractData } from './AbstractData.ts';
+export type { OsmEntity, OsmEntityProps } from './OsmEntity.ts';
+export type { OsmChangeset, OsmChangesetProps } from './OsmChangeset.ts';
+export type { OsmNode, OsmNodeProps } from './OsmNode.ts';
+export type { OsmRelation, OsmRelationProps, OsmRelationMember, IndexedMember } from './OsmRelation.ts';
+export type { OsmWay, OsmWayProps } from './OsmWay.ts';
+export type { Segment } from './OsmWay.ts';
+
+/** OSM tags as key-value string pairs */
+export type OsmTags = Record<string, string>;
+
+/**
+ * A lookup table mapping tag values to boolean flags.
+ * Used for checking if a specific value is valid for a tag key.
+ * The special key '*' matches any value.
+ */
+export type TagValueLookup = Record<string, boolean>;
+
+/**
+ * A two-level lookup table: key → value → boolean.
+ * Used for areaKeys, pointTags, vertexTags on SchemaScope
+ */
+export type TagKeyValueLookup = Record<string, TagValueLookup>;
+
+/** Entity type discriminator */
+export type EntityType = 'node' | 'way' | 'relation';
+
+/**
+ * Constructor type for AbstractData and subclasses.
+ * Used for polymorphic copy-on-write update patterns.
+ */
+export type DataConstructor<T> = new (
+  otherOrContext: T | Context,
+  props?: Record<string, unknown>
+) => T;
+

@@ -25,6 +25,8 @@ export default defineConfig({
   sortPackageJson: true,
   ignorePatterns: [
     '.reference/**',
+    // ported from Rapid and kept close to the original for now (packages/model/README.md)
+    'packages/model/**',
     'reports/**',
     'patches/**',
     'fixtures/**',

@@ -1,0 +1,423 @@
+// osm_rulesets.json5
+// Tag classification rulesets for OSM data.
+// These define which tag combinations belong to various categories
+// (e.g. "paved" surfaces, "routable" highways, "one-way" roads).
+{
+  assetID: "osm_rulesets",
+  scopes: [{
+    scope: "osm",
+
+    // "variables" hold reusable data that can be referenced elsewhere.
+    // See `Variable.ts` for details
+    variables: {
+
+      // OSM lifecycle prefixes that can appear before a tag key (e.g. 'disused:railway').
+      // These indicate that the feature is not in active use.
+      lifecycle_prefixes: [
+        "abandoned", "construction", "demolished", "destroyed", "dismantled",
+        "disused", "intermittent", "obliterated", "planned", "proposed",
+        "razed", "removed", "was"
+      ],
+
+      // ### HIGHWAY CLASSIFICATION
+      // Highway values for major vehicular roads
+      major_highway_values: [
+        "motorway", "trunk", "primary", "secondary", "tertiary",
+        "unclassified", "residential", "living_street", "road",
+        "motorway_link", "trunk_link", "primary_link", "secondary_link", "tertiary_link"
+      ],
+
+      // Highway values for minor vehicular roads
+      minor_highway_values: [
+        "service", "track", "busway", "bus_guideway"
+      ],
+
+      // Highway values for paths (no motor vehicles)
+      path_highway_values: [
+        "path", "footway", "cycleway", "bridleway", "pedestrian", "corridor",
+        "elevator", "ladder", "steps", "via_ferrata"
+      ],
+
+      // ### CROSSINGS
+      // Tag keys that should be kept in sync between a crossing way and its child
+      // crossing nodes.
+      crossing_sync_keys: [
+        "crossing", "crossing_ref", "crossing:continuous", "crossing:island",
+        "crossing:markings", "crossing:signals"
+      ],
+
+      // A subset of crossing_sync_keys: tags that should be preserved (not deleted)
+      // if they are set in one place but not the other.  They function more as
+      // attribute/note tags than as defining tags.
+      crossing_preserve_keys: [
+        "crossing_ref", "crossing:continuous", "crossing:island"
+      ],
+
+      // ### PRIVATE DATA
+      // Building types that are likely private residences.
+      // Used by the private_data validator to identify buildings that shouldn't
+      // have personal contact info (phone, email, fax).
+      private_building_values: [
+        "detached", "farm", "house", "houseboat", "residential",
+        "semidetached_house", "static_caravan"
+      ],
+
+      // Tag keys whose presence indicates a building is public (not private).
+      // If a building has any of these keys, it's treated as a public feature
+      // and personal data warnings are suppressed.
+      public_feature_keys: [
+        "amenity", "craft", "historic", "leisure", "office", "shop", "tourism"
+      ],
+
+      // Tag keys that may contain personally identifying information.
+      // The private_data validator flags these on private buildings.
+      personal_data_keys: [
+        "contact:email", "contact:fax", "contact:phone", "email", "fax", "phone"
+      ]
+    },
+
+
+    // "rulesets" are groups of tag matching conditions with include/exclude semantics.
+    // A feature matches the ruleset if ANY `include` rule matches AND NO `exclude` rule matches.
+    // See `Ruleset.ts` for details
+    rulesets: {
+
+      // ### SURFACES
+      // Solid and smooth surfaces akin to the assumed default road surface in OSM
+      surface_paved: {
+        include: [
+          { key: "surface", op: "in", value: [
+            "paved", "asphalt", "concrete", "chipseal", "concrete:lanes", "concrete:plates", "tiles"
+          ]},
+          { key: "tracktype", value: "grade1" }
+        ]
+      },
+      // Solid, if somewhat uncommon surfaces with a high range of smoothness
+      surface_semipaved: {
+        include: [
+          { key: "surface", op: "in", value: [
+            "bricks", "cobblestone", "cobblestone:flattened", "unhewn_cobblestone",
+            "sett", "paving_stones", "grass_paver", "metal", "metal_grid",
+            "fibre_reinforced_polymer_grate", "wood"
+          ]}
+        ]
+      },
+
+      // ### ONEWAYS
+      // Tags that imply a way is one-way in the forward direction
+      // Note that excludes are used here for override, needed when tags combine, like:
+      // `junction=roundabout`+`oneway=no`
+      oneway_forward: {
+        include: [
+          { key: "aerialway", op: "in", value: [
+            "chair_lift", "drag_lift", "j-bar", "magic_carpet",
+            "mixed_lift", "platter", "rope_tow", "t-bar", "zip_line"
+          ]},
+          { key: "conveying", value: "forward" },
+          { key: "flow_direction", value: "forward" },
+          { key: "golf", value: "hole" },
+          { key: "highway", value: "motorway" },
+          { key: "junction", op: "in", value: ["circular", "roundabout"] },
+          { key: "man_made", op: "in", value: ["goods_conveyor", "piste:halfpipe"] },
+          { key: "oneway", op: "in", value: ["yes", "1"] },
+          { key: "piste:type", op: "in", value: ["downhill", "sled", "yes"] },
+          { key: "roller_coaster", value: "track" },
+          { key: "seamark:type", op: "in", value: [
+            "two-way_route", "recommended_traffic_lane", "separation_lane", "separation_roundabout"
+          ]},
+          { key: "waterway", op: "in", value: [
+            "canal", "ditch", "drain", "fish_pass", "flowline",
+            "pressurised", "river", "spillway", "stream", "tidal_channel"
+          ]}
+        ],
+        exclude: [
+          { key: "oneway", op: "in", value: ["no", "0", "unknown"] },
+          { key: "flow_direction", op: "in", value: ["no", "0", "unknown"] }
+        ]
+      },
+
+      // Tags that imply a way is one-way in the backward direction
+      oneway_backward: {
+        include: [
+          { key: "conveying", value: "backward" },
+          { key: "flow_direction", value: "backward" },
+          { key: "oneway", value: "-1" }
+        ],
+        exclude: [
+          { key: "oneway", op: "in", value: ["no", "0", "unknown"] },
+          { key: "flow_direction", op: "in", value: ["no", "0", "unknown"] }
+        ]
+      },
+
+      // Tags that imply a way is bidirectional (alternating/reversible)
+      oneway_bidirectional: {
+        include: [
+          { key: "conveying", value: "reversible" },
+          { key: "oneway", op: "in", value: ["alternating", "reversible"] },
+          { key: "flow_direction", value: "both" }
+        ],
+        exclude: [
+          { key: "oneway", op: "in", value: ["no", "0", "unknown"] },
+          { key: "flow_direction", op: "in", value: ["no", "0", "unknown"] }
+        ]
+      },
+
+      // ### SIDEDNESS
+      // Tags where the right side of a way represents "inside"/"lower" (e.g. cliffs, retaining walls)
+      sided_right: {
+        include: [
+          { key: "barrier", op: "in", value: ["retaining_wall", "kerb", "guard_rail", "city_wall"] },
+          { key: "man_made", op: "in", value: ["embankment", "quay"] },
+          { key: "natural", op: "in", value: ["cliff", "coastline"] },
+          { key: "waterway", op: "in", value: ["dam", "weir"] }
+        ],
+        exclude: [
+          { key: "two_sided", value: "yes" }
+        ]
+      },
+
+      // ### HIGHWAY CLASSIFICATION
+      // Tags that identify major roads for motor vehicles
+      major_vehicular: {
+        include: [
+          { key: "highway", op: "in", value: "var(major_highway_values)" }
+        ]
+      },
+      // Tags that identify minor roads for motor vehicles
+      minor_vehicular: {
+        include: [
+          { key: "highway", op: "in", value: "var(minor_highway_values)" }
+        ]
+      },
+      // Tags that identify paths, no motor vehicles
+      path_highway: {
+        include: [
+          { key: "highway", op: "in", value: "var(path_highway_values)" }
+        ]
+      },
+
+      // ### CONNECTIVITY
+      // Highway tags that we want to test for connectivity
+      // This should only include the "standard" tags (does not include 'raceway', 'abandoned')
+      connected_highway: {
+        include: [
+          { key: "highway", op: "in", value: "var(major_highway_values, minor_highway_values, path_highway_values)" }
+        ]
+      },
+      // Aeroway tags that we want to test for connectivity
+      connected_aeroway: {
+        include: [
+          { key: "aeroway", op: "in", value: ["runway", "taxiway"] }
+        ]
+      },
+      // Railway tags that we want to test for connectivity
+      connected_railway: {
+        include: [
+          { key: "railway", op: "in", value: [
+            "rail", "light_rail", "tram", "subway", "monorail", "funicular",
+            "miniature", "narrow_gauge", "disused", "preserved"
+          ]}
+        ]
+      },
+      // Waterway tags that we want to test for connectivity
+      connected_waterway: {
+        include: [
+          { key: "waterway", op: "in", value: [
+            "canal", "ditch", "drain", "fish_pass", "flowline",
+            "river", "stream", "tidal_channel"
+          ]}
+        ]
+      },
+
+      // ### FILTERS
+      // Rulesets used by FilterSystem to classify entities for the map filter UI.
+      // Each filter corresponds to a toggle in the features panel.
+      // Some filters also apply a _isPastFuture() check in FilterSystem code.
+
+      // Aerialway filter: aerial ways excluding generic 'yes' and 'station' values
+      filter_aerialway: {
+        include: [
+          { key: "aerialway", op: "exists" }
+        ],
+        exclude: [
+          { key: "aerialway", op: "in", value: ["yes", "station"] }
+        ]
+      },
+
+      // Boundary filter: administrative boundaries, excluding features with
+      // more specific classifications (highways, waterways, railways, etc.)
+      filter_boundary: {
+        include: [
+          { key: "boundary", op: "exists" }
+        ],
+        exclude: [
+          { key: "highway", op: "in", value: "var(major_highway_values, minor_highway_values, path_highway_values)" },
+          { key: "waterway", op: "exists" },
+          { key: "railway", op: "exists" },
+          { key: "landuse", op: "exists" },
+          { key: "natural", op: "exists" },
+          { key: "building", op: "exists" },
+          { key: "power", op: "exists" }
+        ]
+      },
+
+      // Building filter: building with actual value (not 'no'), or parking structures
+      filter_building: {
+        include: [
+          { key: "building", value: "*" },
+          { key: "parking", op: "in", value: ["multi-storey", "sheds", "carports", "garage_boxes"] }
+        ]
+      },
+
+      // Building part filter
+      filter_building_part: {
+        include: [
+          { key: "building:part", op: "exists" }
+        ]
+      },
+
+      // Indoor filter
+      filter_indoor: {
+        include: [
+          { key: "indoor", op: "exists" }
+        ]
+      },
+
+      // Landuse features: areas with amenity, landuse, leisure, or natural tags.
+      // See also iD#11153, iD#11184
+      filter_landuse: {
+        include: [
+          { key: "amenity", op: "in", value: [
+            "bicycle_parking", "college", "grave_yard", "hospital", "marketplace",
+            "motorcycle_parking", "parking", "place_of_worship", "prison",
+            "school", "university"
+          ]},
+          { key: "landuse", op: "exists" },
+          { key: "leisure", op: "exists" },
+          { key: "natural", op: "exists" }
+        ],
+        exclude: [
+          { key: "building", op: "exists" },
+          { key: "building:part", op: "exists" },
+          { key: "indoor", op: "exists" },
+          { key: "waterway", op: "exists" },
+          { key: "natural", op: "in", value: ["water", "coastline", "bay"] },
+          { key: "landuse", op: "in", value: ["pond", "basin", "reservoir", "salt_pond"] },
+          { key: "aerialway", op: "exists" }
+        ]
+      },
+
+      // Piste/ski filter
+      filter_piste: {
+        include: [
+          { key: "piste:type", op: "exists" }
+        ]
+      },
+
+      // Rail filter: railways and railway land use, excluding connected highways
+      filter_rail: {
+        include: [
+          { key: "railway", op: "exists" },
+          { key: "landuse", value: "railway" }
+        ],
+        exclude: [
+          { key: "highway", op: "in", value: "var(major_highway_values, minor_highway_values, path_highway_values)" }
+        ]
+      },
+
+      // Power infrastructure filter
+      filter_power: {
+        include: [
+          { key: "power", op: "exists" }
+        ]
+      },
+
+      // Water features: waterways, natural water bodies, water-related land use
+      filter_water: {
+        include: [
+          { key: "waterway", op: "exists" },
+          { key: "natural", op: "in", value: ["water", "coastline", "bay"] },
+          { key: "landuse", op: "in", value: ["pond", "basin", "reservoir", "salt_pond"] }
+        ]
+      },
+
+
+      // ### AREA KEY EXCEPTIONS
+      // These rulesets are exceptions to the normal areaKeys lookups that SchemaSystem
+      // derives from the Presets. SchemaSystem.areaKeys() computes a keeplist/discardlist
+      // from presets, but some tags need special treatment:
+      // Used by OsmWay.tagSuggestingArea() to override the preset-derived areaKeys.
+
+      // areakeys_force_true:  Tags that should be treated as areas even though their
+      //  primary key is typically linear (e.g. highway=elevator, railway=station).
+      //  These tags are NOT in the preset-derived areaKeys but ARE areas.
+      areakeys_force_true: {
+        include: [
+          { key: "amenity", value: "bicycle_parking" },
+          { key: "highway", op: "in", value: ["elevator", "rest_area", "services"] },
+          { key: "public_transport", value: "platform" },
+          { key: "railway", op: "in", value: [
+            "platform", "roundhouse", "station", "traverser", "turntable",
+            "ventilation_shaft", "wash"
+          ]},
+          { key: "traffic_calming", value: "island" },
+          { key: "waterway", value: "dam" }
+        ]
+      },
+      // areakeys_force_false: Tags that should NOT be treated as areas even though
+      //  their primary key IS in the preset-derived areaKeys (e.g. emergency=yes
+      //  on a road — emergency is an area key but these values are not areas).
+      areakeys_force_false: {
+        include: [
+          { key: "emergency", op: "in", value: [
+            "yes", "no", "private", "designated", "destination", "official"
+          ]}
+        ]
+      },
+
+      // ### LIFECYCLE PREFIXES
+      // OSM lifecycle prefixes that can appear before a tag key (e.g. 'disused:railway').
+      // These indicate that the feature is no longer in active use but retains a trace
+      // of its former purpose.  Code can derive a Set<string> of prefix strings from
+      // this ruleset's key patterns, for use in stripping prefixes or identifying
+      // past/future features.
+      lifecycle: {
+        include: [
+          { keyOp: "~", key: "^abandoned:" },
+          { keyOp: "~", key: "^construction:" },
+          { keyOp: "~", key: "^demolished:" },
+          { keyOp: "~", key: "^destroyed:" },
+          { keyOp: "~", key: "^dismantled:" },
+          { keyOp: "~", key: "^disused:" },
+          { keyOp: "~", key: "^intermittent:" },
+          { keyOp: "~", key: "^obliterated:" },
+          { keyOp: "~", key: "^planned:" },
+          { keyOp: "~", key: "^proposed:" },
+          { keyOp: "~", key: "^razed:" },
+          { keyOp: "~", key: "^removed:" },
+          { keyOp: "~", key: "^was:" }
+        ]
+      },
+
+      // ### TAG METADATA
+      // Tag keys that are metadata or import-related (not "interesting" for feature display).
+      // Used by `OsmEntity.isInterestingTag()` to filter out keys like 'source', 'tiger:*', etc.
+      // Uses keyOp: '~' for regex matching on the key name.
+      uninteresting: {
+        include: [
+          { key: "attribution" },
+          { key: "created_by" },
+          { key: "import_uuid" },
+          { keyOp: "~", key: "^geobase:(datasetName|uuid)$" },
+          { keyOp: "~", key: "^KSJ2:(curve_id|lat|long)$" },
+          { keyOp: "~", key: "^lat(itude)?$" },
+          { keyOp: "~", key: "^lon(gitude)?$" },
+          { keyOp: "~", key: "^odbl(:note)?$" },
+          { keyOp: "~", key: "^source(_ref)?(:|$)" },
+          { keyOp: "~", key: "^tiger:" }
+        ]
+      }
+
+    }
+  }]
+}

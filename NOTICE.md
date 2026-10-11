@@ -8,6 +8,7 @@ Maid's own code is under the ISC License ([LICENSE.md](LICENSE.md)). This file l
 | --- | --- | --- | --- |
 | Tag classification (`svgTagClasses`), area detection, way layering, tag helper tables | iD, `modules/svg/tag_classes.ts`, `modules/osm/tags.ts`, `modules/osm/way.ts`. © iD contributors | ISC | `packages/style/src/classes.ts` |
 | Area-key derivation from presets | iD, `modules/presets/index.js` | ISC | `packages/style/scripts/extract.ts` |
+| The data model: entities, graph, difference, geometry, edit actions, undo history, spatial index, tagging-schema lookup, and their tests | Rapid 3 (<https://github.com/bhousel/Rapid>) at commit `413c0519f`: `modules/data`, `modules/lib`, `modules/geo`, `modules/actions`, parts of `modules/core`, `data/osm_rulesets.json5`, `test/unit`. © Rapid contributors | ISC | `packages/model` |
 | A patch to MapLibre GL JS 6.12.0 (wheel-zoom delay, GeoJSON tile load order) | MapLibre GL JS. © MapLibre contributors | BSD-3-Clause | `patches/maplibre-gl@6.12.0.patch` |
 
 ## Data generated from other projects

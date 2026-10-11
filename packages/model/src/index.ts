@@ -1,0 +1,26 @@
+// The data model of Maid: entities, graph, difference, geometry and the edit actions.
+// Ported from Rapid 3 (https://github.com/bhousel/Rapid, modules/data, lib, geo, actions), ISC, © Rapid contributors.
+// See README.md in this package for what was changed.
+import './types/globals.d.ts'
+
+export * from './Context.ts'
+export * from './actions/index.ts'
+export * from './data/index.ts'
+export * from './geo/index.ts'
+export * from './lib/Difference.ts'
+export * from './lib/Edit.ts'
+export * from './lib/Geometry.ts'
+export * from './lib/GeometryPart.ts'
+export * from './lib/Graph.ts'
+export * from './lib/intersection.ts'
+export * from './lib/lanes.ts'
+export * from './lib/multipolygon.ts'
+export type * from './lib/types.ts'
+export * from './schema/Ruleset.ts'
+export * from './schema/RulesetSchema.ts'
+export * from './schema/PropMatcher.ts'
+export * from './schema/Variable.ts'
+export * from './edit/EditHistory.ts'
+export * from './edit/TypedEmitter.ts'
+export * from './spatial/SpatialIndex.ts'
+export * from './util/clone.ts'

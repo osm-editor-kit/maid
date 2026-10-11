@@ -50,13 +50,13 @@ Agreed by Tobias on 2026-10-11. Everything is published under `@osm-editor-kit/`
 
 | Prefix | Meaning | Examples |
 | --- | --- | --- |
-| `maid-*` | Part of the Maid editor. Released together, built on Maid's data model | `maid-model`, `maid-graph`, `maid-actions`, `maid-core`, `maid-renderer`, `maid-style`, `maid-ui` |
+| `maid-*` | Part of the Maid editor. Released together, built on Maid's data model | `maid-model`, `maid-core`, `maid-renderer`, `maid-style`, `maid-ui` |
 | `maid-module-*` | A core module ([naming](01-naming.md)) | `maid-module-maproulette`, `maid-module-notes` |
 | `osm-*` and others | Stands alone and works without Maid | `osm-oauth`, `osm-changeset`, `osm-data`, `street-imagery` |
 
 Why: `osm-model` next to the existing `osm-data` would look like two parts of one thing, and they are two different models ([data store](05-data-store.md)). And a name like `renderer` or `style` says nothing in a shared organisation.
 
-Folders in the monorepo stay short. The package name carries the prefix: `packages/graph` is `@osm-editor-kit/maid-graph`, `packages/module-maproulette` is `@osm-editor-kit/maid-module-maproulette`. Imports always use the package name.
+Folders in the monorepo stay short. The package name carries the prefix: `packages/model` is `@osm-editor-kit/maid-model`, `packages/module-maproulette` is `@osm-editor-kit/maid-module-maproulette`. Imports always use the package name.
 
 ## Where packages live
 

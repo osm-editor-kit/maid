@@ -54,9 +54,8 @@ Names and sources below were updated on 2026-10-11 to what the [architecture cha
 ```
 packages/
   # headless core: no DOM, no React, no MapLibre
-  model/              entities, geometry, API JSON parser            from Rapid data/, lib/
-  graph/              graph, difference, history, spatial index      from Rapid lib/, EditSystem, SpatialSystem
-  actions/            graph-to-graph edits                           from Rapid actions/
+  model/              entities, graph, difference, actions,          from Rapid data/, lib/, actions/,
+                      history, spatial index, API JSON parser        EditSystem, SpatialSystem (exists)
   presets/            preset and field matching                      id-tagging-schema, matching code ported
   validate/           rule engine, rules as separate exports         from Rapid validators/, iD
   core/               createEditor, registries, module lifecycle, selection, modes, tasks
@@ -135,7 +134,7 @@ From the inventory of the local checkouts:
 
 Two conclusions:
 
-- **The store question is answered by this review:** `osm-data` is a download-and-merge helper, not an editing graph. Maid needs a real graph and history (`maid-graph`, ported from Rapid). `osm-data` stays the small apps' store and Maid does not build on it ([data store](architecture/05-data-store.md)).
+- **The store question is answered by this review:** `osm-data` is a download-and-merge helper, not an editing graph. Maid needs a real graph and history (in `maid-model`, ported from Rapid). `osm-data` stays the small apps' store and Maid does not build on it ([data store](architecture/05-data-store.md)).
 - **`osm-maplibre` has no trick for fast data updates.** The reviewer found that the app sends whole collections through `<Source data>` and never uses `updateData` or feature state. What keeps its width-drag smooth is the same pattern Maid's renderer now uses: change a small separate source during the gesture, commit to shared state on release (their commit `037a9b4`). Maid's engine goes further (diff updates, feature state); those parts are candidates to move into `osm-maplibre` so the other apps profit.
 
 ## The config object
@@ -269,7 +268,7 @@ Neither needs a change in a core package if the 17 points exist. That is the tes
 Each step ends with something that runs.
 
 1. **`maid-core` skeleton**: `createEditor`, the plug-in lifecycle, and the registries as empty typed maps. Move today's Maid app onto it.
-2. **Headless data**: port `maid-model`, `maid-graph` with history, `maid-actions`. Replace the proof-of-concept store. Real undo.
+2. **Headless data**: port `maid-model` (entities, graph, actions, history). Replace the proof-of-concept store. Real undo.
 3. **First three extension points, proven by real plug-ins**: map layer (data layers plug-in), inspector section, URL parameter.
 4. **Inspector**: presets and fields in React (`osm-presets`, `ui-inspector`), raw tag editor.
 5. **Save**: `osm-api` with deletes, the commit panel, save lifecycle hooks.

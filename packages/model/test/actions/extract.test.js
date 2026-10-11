@@ -1,0 +1,275 @@
+import { describe, it } from 'bun:test';
+import { assert } from 'chai';
+import * as Rapid from '../rapid.ts';
+
+
+describe('actionExtract', () => {
+  const context = new Rapid.MockContext();
+
+  it('extracts a node from the graph', () => {
+    const n1 = new Rapid.OsmNode(context, { id: 'n1', loc: [0, 0] });
+    const base = new Rapid.Graph(context, [n1]);
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionExtract('n1');
+    const result = action(graph);
+    const extractedNodeID = action.getExtractedNodeID();
+    const extractedNode = result.hasEntity(extractedNodeID);
+    assert.instanceOf(extractedNode, Rapid.OsmNode);
+    assert.deepEqual(extractedNode.loc, [0, 0]);
+  });
+
+  it('extracts a way from the graph', () => {
+    const n1 = new Rapid.OsmNode(context, { id: 'n1', loc: [0, 0] });
+    const n2 = new Rapid.OsmNode(context, { id: 'n2', loc: [1, 0] });
+    const w1 = new Rapid.OsmWay(context, { id: 'w1', nodes: ['n1', 'n2'] });
+    const base = new Rapid.Graph(context, [n1, n2, w1]);
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionExtract('w1');
+    const result = action(graph);
+    const extractedNodeID = action.getExtractedNodeID();
+    const extractedNode = result.hasEntity(extractedNodeID);
+    assert.instanceOf(extractedNode, Rapid.OsmNode);
+    assert.deepEqual(extractedNode.loc, [0.5, 0]);
+  });
+
+  it('extracts a node from a relation', () => {
+    const n1 = new Rapid.OsmNode(context, { id: 'n1', loc: [0, 0] });
+    const n2 = new Rapid.OsmNode(context, { id: 'n2', loc: [1, 0] });
+    const r1 = new Rapid.OsmRelation(context, { id: 'r1', members: [{ id: 'n1', type: 'node' }, { id: 'n2', type: 'node' }] });
+    const base = new Rapid.Graph(context, [n1, n2, r1]);
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionExtract('n1');
+    const result = action(graph);
+    const extractedNodeID = action.getExtractedNodeID();
+    const extractedNode = result.hasEntity(extractedNodeID);
+    assert.instanceOf(extractedNode, Rapid.OsmNode);
+    assert.deepEqual(extractedNode.loc, [0, 0]);
+  });
+
+  it('extracts a node from a linear way', () => {
+    const n1 = new Rapid.OsmNode(context, { id: 'n1', loc: [0, 0] });
+    const n2 = new Rapid.OsmNode(context, { id: 'n2', loc: [1, 0] });
+    const w1 = new Rapid.OsmWay(context, { id: 'w1', nodes: ['n1', 'n2'], tags: { 'building': 'yes' } });
+    const base = new Rapid.Graph(context, [n1, n2, w1]);
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionExtract('w1');
+    const result = action(graph);
+    const extractedNodeID = action.getExtractedNodeID();
+    const extractedNode = result.hasEntity(extractedNodeID);
+    assert.instanceOf(extractedNode, Rapid.OsmNode);
+    assert.deepEqual(extractedNode.loc, [0.5, 0]);
+  });
+
+  it('extracts a node from a closed way', () => {
+    // Graph: n1 -- n2 -- n3 -- n4 -- n1 (closed way)
+    const n1 = new Rapid.OsmNode(context, { id: 'n1', loc: [0, 0] });
+    const n2 = new Rapid.OsmNode(context, { id: 'n2', loc: [1, 0] });
+    const n3 = new Rapid.OsmNode(context, { id: 'n3', loc: [1, 1] });
+    const n4 = new Rapid.OsmNode(context, { id: 'n4', loc: [0, 1] });
+    const w1 = new Rapid.OsmWay(context, { id: 'w1', nodes: ['n1', 'n2', 'n3', 'n4', 'n1'] });
+    const base = new Rapid.Graph(context, [n1, n2, n3, n4, w1]);
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionExtract('n1');
+    const result = action(graph);
+    const extractedNodeID = action.getExtractedNodeID();
+    const extractedNode = result.hasEntity(extractedNodeID);
+    assert.instanceOf(extractedNode, Rapid.OsmNode);
+    assert.deepEqual(extractedNode.loc, [0, 0]);
+  });
+
+  it('extracts a node from a way with no points', () => {
+    const w1 = new Rapid.OsmWay(context, { id: 'w1', nodes: [] });
+    const base = new Rapid.Graph(context, [w1]);
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionExtract('w1');
+    const result = action(graph);
+    const extractedNodeID = action.getExtractedNodeID();
+    assert.strictEqual(extractedNodeID, undefined);
+    assert.strictEqual(result, graph);   // Assert that the graph is unchanged
+  });
+
+  it('extracts a node from a way with one point', () => {
+    const n1 = new Rapid.OsmNode(context, { id: 'n1', loc: [0, 0] });
+    const w1 = new Rapid.OsmWay(context, { id: 'w1', nodes: ['n1'] });
+    const base = new Rapid.Graph(context, [n1, w1]);
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionExtract('w1');
+    const result = action(graph);
+    const extractedNodeID = action.getExtractedNodeID();
+    const extractedNode = result.hasEntity(extractedNodeID);
+    assert.instanceOf(extractedNode, Rapid.OsmNode);
+    assert.deepEqual(extractedNode.loc, [0, 0]);
+  });
+
+  it('extracts a node from a way with two points', () => {
+    const n1 = new Rapid.OsmNode(context, { id: 'n1', loc: [0, 0] });
+    const n2 = new Rapid.OsmNode(context, { id: 'n2', loc: [1, 0] });
+    const w1 = new Rapid.OsmWay(context, { id: 'w1', nodes: ['n1', 'n2'] });
+    const base = new Rapid.Graph(context, [n1, n2, w1]);
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionExtract('w1');
+    const result = action(graph);
+    const extractedNodeID = action.getExtractedNodeID();
+    const extractedNode = result.hasEntity(extractedNodeID);
+    assert.instanceOf(extractedNode, Rapid.OsmNode);
+    assert.deepEqual(extractedNode.loc, [0.5, 0]);
+  });
+
+  it('extracts a node from a way with indoor tag', () => {
+    const n1 = new Rapid.OsmNode(context, { id: 'n1', loc: [0, 0] });
+    const n2 = new Rapid.OsmNode(context, { id: 'n2', loc: [1, 0] });
+    const w1 = new Rapid.OsmWay(context, { id: 'w1', nodes: ['n1', 'n2'], tags: { indoor: 'corridor' } });
+    const base = new Rapid.Graph(context, [n1, n2, w1]);
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionExtract('w1');
+    const result = action(graph);
+    const extractedNodeID = action.getExtractedNodeID();
+    const extractedNode = result.hasEntity(extractedNodeID);
+    assert.instanceOf(extractedNode, Rapid.OsmNode);
+    assert.deepEqual(extractedNode.loc, [0.5, 0]);
+  });
+
+  it('extracts a node from a way with building tag', () => {
+    const n1 = new Rapid.OsmNode(context, { id: 'n1', loc: [0, 0] });
+    const n2 = new Rapid.OsmNode(context, { id: 'n2', loc: [1, 0] });
+    const w1 = new Rapid.OsmWay(context, { id: 'w1', nodes: ['n1', 'n2'], tags: { building: 'yes', height: '10' } });
+    const base = new Rapid.Graph(context, [n1, n2, w1]);
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionExtract('w1');
+    const result = action(graph);
+    const extractedNodeID = action.getExtractedNodeID();
+    const extractedNode = result.hasEntity(extractedNodeID);
+    assert.instanceOf(extractedNode, Rapid.OsmNode);
+    assert.deepEqual(extractedNode.loc, [0.5, 0]);
+  });
+
+  it('extracts a node from a way with source tag', () => {
+    const n1 = new Rapid.OsmNode(context, { id: 'n1', loc: [0, 0] });
+    const n2 = new Rapid.OsmNode(context, { id: 'n2', loc: [1, 0] });
+    const w1 = new Rapid.OsmWay(context, { id: 'w1', nodes: ['n1', 'n2'], tags: { source: 'test_source' } });
+    const base = new Rapid.Graph(context, [n1, n2, w1]);
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionExtract('w1');
+    const result = action(graph);
+    const extractedNodeID = action.getExtractedNodeID();
+    const extractedNode = result.hasEntity(extractedNodeID);
+    assert.instanceOf(extractedNode, Rapid.OsmNode);
+    assert.deepEqual(extractedNode.loc, [0.5, 0]);
+  });
+
+  it('extracts a node from a way with wheelchair tag', () => {
+    const n1 = new Rapid.OsmNode(context, { id: 'n1', loc: [0, 0] });
+    const n2 = new Rapid.OsmNode(context, { id: 'n2', loc: [1, 0] });
+    const w1 = new Rapid.OsmWay(context, { id: 'w1', nodes: ['n1', 'n2'], tags: { wheelchair: 'yes' } });
+    const base = new Rapid.Graph(context, [n1, n2, w1]);
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionExtract('w1');
+    const result = action(graph);
+    const extractedNodeID = action.getExtractedNodeID();
+    const extractedNode = result.hasEntity(extractedNodeID);
+    assert.instanceOf(extractedNode, Rapid.OsmNode);
+    assert.deepEqual(extractedNode.loc, [0.5, 0]);
+  });
+
+  it('extracts a node from a way with addr:housenumber tag', () => {
+    const n1 = new Rapid.OsmNode(context, { id: 'n1', loc: [0, 0] });
+    const n2 = new Rapid.OsmNode(context, { id: 'n2', loc: [1, 0] });
+    const w1 = new Rapid.OsmWay(context, { id: 'w1', nodes: ['n1', 'n2'], tags: { 'addr:housenumber': '123' } });
+    const base = new Rapid.Graph(context, [n1, n2, w1]);
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionExtract('w1');
+    const result = action(graph);
+    const extractedNodeID = action.getExtractedNodeID();
+    const extractedNode = result.hasEntity(extractedNodeID);
+    assert.instanceOf(extractedNode, Rapid.OsmNode);
+    assert.deepEqual(extractedNode.loc, [0.5, 0]);
+  });
+
+  it('extracts a node from a way with area tag', () => {
+    const n1 = new Rapid.OsmNode(context, { id: 'n1', loc: [0, 0] });
+    const n2 = new Rapid.OsmNode(context, { id: 'n2', loc: [1, 0] });
+    const w1 = new Rapid.OsmWay(context, { id: 'w1', nodes: ['n1', 'n2'], tags: { area: 'yes' } });
+    const base = new Rapid.Graph(context, [n1, n2, w1]);
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionExtract('w1');
+    const result = action(graph);
+    const extractedNodeID = action.getExtractedNodeID();
+    const extractedNode = result.hasEntity(extractedNodeID);
+    assert.instanceOf(extractedNode, Rapid.OsmNode);
+    assert.deepEqual(extractedNode.loc, [0.5, 0]);
+  });
+
+  it('extracts a node from a way with level tag', () => {
+    const n1 = new Rapid.OsmNode(context, { id: 'n1', loc: [0, 0] });
+    const n2 = new Rapid.OsmNode(context, { id: 'n2', loc: [1, 0] });
+    const w1 = new Rapid.OsmWay(context, { id: 'w1', nodes: ['n1', 'n2'], tags: { level: '1' } });
+    const base = new Rapid.Graph(context, [n1, n2, w1]);
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionExtract('w1');
+    const result = action(graph);
+    const extractedNodeID = action.getExtractedNodeID();
+    const extractedNode = result.hasEntity(extractedNodeID);
+    assert.instanceOf(extractedNode, Rapid.OsmNode);
+    assert.deepEqual(extractedNode.loc, [0.5, 0]);
+  });
+
+  it('extracts a node from a way with addr:postcode tag', () => {
+    const n1 = new Rapid.OsmNode(context, { id: 'n1', loc: [0, 0] });
+    const n2 = new Rapid.OsmNode(context, { id: 'n2', loc: [1, 0] });
+    const w1 = new Rapid.OsmWay(context, { id: 'w1', nodes: ['n1', 'n2'], tags: { 'addr:postcode': '12345' } });
+    const base = new Rapid.Graph(context, [n1, n2, w1]);
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionExtract('w1');
+    const result = action(graph);
+    const extractedNodeID = action.getExtractedNodeID();
+    const extractedNode = result.hasEntity(extractedNodeID);
+    assert.instanceOf(extractedNode, Rapid.OsmNode);
+    assert.deepEqual(extractedNode.loc, [0.5, 0]);
+  });
+
+  it('extracts a node from a way with addr:city tag', () => {
+    const n1 = new Rapid.OsmNode(context, { id: 'n1', loc: [0, 0] });
+    const n2 = new Rapid.OsmNode(context, { id: 'n2', loc: [1, 0] });
+    const w1 = new Rapid.OsmWay(context, { id: 'w1', nodes: ['n1', 'n2'], tags: { 'addr:city': 'Test City' } });
+    const base = new Rapid.Graph(context, [n1, n2, w1]);
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionExtract('w1');
+    const result = action(graph);
+    const extractedNodeID = action.getExtractedNodeID();
+    const extractedNode = result.hasEntity(extractedNodeID);
+    assert.instanceOf(extractedNode, Rapid.OsmNode);
+    assert.deepEqual(extractedNode.loc, [0.5, 0]);
+  });
+
+  it('extracts a node from a way with more than two points', () => {
+    const n1 = new Rapid.OsmNode(context, { id: 'n1', loc: [0, 0] });
+    const n2 = new Rapid.OsmNode(context, { id: 'n2', loc: [1, 0] });
+    const n3 = new Rapid.OsmNode(context, { id: 'n3', loc: [2, 0] });
+    const w1 = new Rapid.OsmWay(context, { id: 'w1', nodes: ['n1', 'n2', 'n3'] });
+    const base = new Rapid.Graph(context, [n1, n2, n3, w1]);
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionExtract('w1');
+    const result = action(graph);
+    const extractedNodeID = action.getExtractedNodeID();
+    const extractedNode = result.hasEntity(extractedNodeID);
+    assert.instanceOf(extractedNode, Rapid.OsmNode);
+    assert.deepEqual(extractedNode.loc, [1, 0]);
+  });
+
+  it('extracts a node from a closed way with Polygon geometry', () => {
+    const n1 = new Rapid.OsmNode(context, { id: 'n1', loc: [-1, -1] });
+    const n2 = new Rapid.OsmNode(context, { id: 'n2', loc: [-1, 1] });
+    const n3 = new Rapid.OsmNode(context, { id: 'n3', loc: [1, 1] });
+    const n4 = new Rapid.OsmNode(context, { id: 'n4', loc: [1, -1] });
+    const w1 = new Rapid.OsmWay(context, { id: 'w1', nodes: ['n1', 'n2', 'n3', 'n4', 'n1'] });
+    const base = new Rapid.Graph(context, [n1, n2, n3, n4, w1]);
+    const graph = new Rapid.Graph(base);
+    const action = Rapid.actionExtract('w1');
+    const result = action(graph);
+    const extractedNodeID = action.getExtractedNodeID();
+    const extractedNode = result.hasEntity(extractedNodeID);
+    assert.instanceOf(extractedNode, Rapid.OsmNode);
+    assert.isTrue(Rapid.sdk.vecEqual(extractedNode.loc, [0, 0], 1e-6));
+  });
+
+});

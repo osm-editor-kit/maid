@@ -1,0 +1,14 @@
+import { describe, it } from 'bun:test';
+import { assert } from 'chai';
+import * as Rapid from '../rapid.ts';
+
+describe('actionNoop', () => {
+  const context = new Rapid.MockContext();
+
+  it('does nothing', () => {
+    const graph = new Rapid.Graph(context);
+    const result = Rapid.actionNoop()(graph);
+    assert.instanceOf(result, Rapid.Graph);
+    assert.strictEqual(graph, result);
+  });
+});

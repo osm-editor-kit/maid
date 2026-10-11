@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    // Ported from Rapid, which is written without this check
+    "noUncheckedIndexedAccess": false
+  },
+  "include": ["src", "test/maid", "bench"],
+  "exclude": []
+}
