@@ -1,8 +1,10 @@
 # Maid
 
-**Ma**plibre **iD** Editor: a rework of the [iD editor](https://github.com/openstreetmap/iD) for OpenStreetMap on a new stack, built on MapLibre and meant to be helpful.
+**Ma**pLibre **iD** Editor: an OpenStreetMap editor built as a base for single-purpose editors. Projects add their own configuration and modules instead of maintaining a fork.
 
-Maid keeps iD's ecosystem (tagging schema, presets, imagery index, the editing model people know) and replaces the stack underneath: MapLibre GL through `react-map-gl`, React, TypeScript, Bun. It is organised as a monorepo of separate packages so that forks can replace or extend single parts instead of patching one big code base. Reusable parts are published in the [`@osm-editor-kit`](https://www.npmjs.com/org/osm-editor-kit) npm organisation.
+Maid builds on the [iD](https://github.com/openstreetmap/iD) ecosystem and rewrites parts of the technology underneath. Kept from iD: the tagging schema and presets, the imagery index, the look of the data and the editing model people know. Rewritten: rendering (MapLibre GL through `react-map-gl`), the interface (React, TypeScript, Tailwind) and the tooling (Bun, Vite). The data model follows [Rapid](https://github.com/bhousel/Rapid).
+
+It is organised as a monorepo of separate packages, so that a project can replace or extend single parts instead of patching one big code base. Reusable parts are published in the [`@osm-editor-kit`](https://www.npmjs.com/org/osm-editor-kit) npm organisation.
 
 ## Status
 
