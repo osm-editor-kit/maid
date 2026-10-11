@@ -1,6 +1,10 @@
 # Work doc: Maid as a kit that forks configure
 
-Status: proposal, 2026-10-10. Nothing here is built. It is based on three code reviews done the same day (iD upstream, the Radnetz Berlin and MapRoulette forks, the osm-editor-kit packages). Claims marked "review" come from those reviews and were not re-checked line by line.
+Status: proposal, 2026-10-10, revised 2026-10-11 after Tobias's notes. Single topics are worked out in [docs/architecture/](architecture/README.md), which also lists what he decided and what is open. Where this document and a chapter disagree, the chapter is newer.
+
+On the word "plug-in" below: the name is under discussion ([naming](architecture/01-naming.md)); the proposal is "Maid module". Whatever the name, these units are added in code at build time, never through the UI or a URL.
+
+Nothing here is built. It is based on three code reviews done the same day (iD upstream, the Radnetz Berlin and MapRoulette forks, the osm-editor-kit packages). Claims marked "review" come from those reviews and were not re-checked line by line.
 
 ## Goal
 
@@ -145,17 +149,16 @@ createEditor({
   // where the editor starts and what it may touch
   start: { center: [13.4, 52.52], zoom: 17, bounds: berlinBounds },
 
-  // tagging schema: the base, then overlays in order
-  presets: {
-    base: '@openstreetmap/id-tagging-schema',
-    overlays: [radnetzPresets],          // add, move, hide fields; add presets
-  },
+  // the presets themselves, so a fork can change them: start from the standard set
+  presets: withChanges(defaultPresets, radnetzPresetChanges),
 
-  // which feature categories exist, and their state
-  features: {
-    buildings: 'readonly',
-    boundaries: 'hidden',
-  },
+  // ordered: the first filter that matches an object decides. Three states each.
+  filters: [
+    { id: 'cycleways', match: { highway: 'cycleway' }, state: 'editable' },
+    { id: 'buildings', match: { building: '*' }, state: 'readonly' },
+    { id: 'boundaries', match: { boundary: '*' }, state: 'hidden' },
+    ...defaultFilters,
+  ],
 
   changeset: {
     hashtags: ['#radnetz'],
@@ -165,9 +168,9 @@ createEditor({
 
   validation: { rules: [...defaultRules, cyclewaySideOneway], disabled: ['suspicious_name'] },
 
-  ui: { locale: 'de', theme: 'auto', toolbarLabels: true, bottomBar: false, brand: { name: 'Radnetz Berlin' } },
+  ui: { locale: 'de', theme: 'system', toolbarLabels: true, dock: true, brand: { name: 'Radnetz Berlin' } },
 
-  plugins: [
+  modules: [
     imagery({ extra: [berlinOrtho2025] }),
     streetImagery({ providers: ['mapillary', 'panoramax'], highlightUsers: ['…'] }),
     dataLayers({ layers: [radnetzQaLayer] }),
@@ -177,7 +180,9 @@ createEditor({
 })
 ```
 
-Everything in it is serialisable except functions and plug-ins, so most of a fork can also come from a JSON file or from URL parameters.
+Everything in it is serialisable except functions and modules, so most of a fork's configuration can live in a JSON file. It is never read from the URL: the URL carries state, not configuration ([URL state](architecture/08-url-state.md)).
+
+Presets and filters are the actual data, not references, so a fork changes them with ordinary code ([filters](architecture/06-filters.md)).
 
 ## Extension points
 
@@ -201,13 +206,13 @@ Each is one registry in `editor-core`. The right column names what your forks pa
 | 14 | **URL parameter** | a typed parameter with parse, serialise and default | `lens`, `data_layers`, `way_table`, `maproulette`, `photo_*` | `behavior/hash`, `ui/init`, both HTML files |
 | 15 | **Account access** | the OSM token and user preferences, through an API | MapRoulette key, TILDA, key-value store, live touched | `services/osm` |
 | 16 | **Pane, preference section, toolbar tool** | a React component and a slot name | Map Display and Photos panes, notes buttons | `ui/panes/*`, `ui/tools/*` |
-| 17 | **Dock** | a bottom or side panel bound to the selection | way-table dock | new files plus `ui/init` |
+| 17 | **Dock content** | a view inside the bottom dock, bound to the selection. The dock itself is part of the default editor and can be switched off in the config | way-table | new files plus `ui/init` |
 
 Two of these carry performance rules.
 
 **Map layers (1, 13).** A plug-in does not get the MapLibre map to call `addSource`. It declares sources and layers, and it gets a handle with `add`, `update`, `remove` and `setState`. The engine routes those through the fast paths measured in iteration 1: diff updates, one in flight per source, a small twin source for anything that changes during a gesture, feature state for highlight. See ADR 0002 and 0003. A plug-in that wants raw access can ask for it explicitly and is then on its own.
 
-**Lenses (10).** Maid resolves the look per feature from rules (ADR 0001). A lens is a second rule set, so switching it is a property update and not a style rebuild.
+**Lenses (10).** Maid resolves the look per feature from rules (ADR 0001). A lens is a second prepare step, or a user-made MapLibre style on top; see [styles and lenses](architecture/07-styles-and-lenses.md).
 
 ## URL state
 
@@ -272,9 +277,4 @@ Each step ends with something that runs.
 
 ## Open questions
 
-1. **Hash or search parameters?** Search parameters are what nuqs and the rest of the stack use. The hash is what iD links and osm.org use. Proposal: read both, write search parameters.
-2. **Where do the packages live?** In this repo under `@maid/*` until they are stable, then published as `@osm-editor-kit/*`. Or directly in the osm-editor-kit repos from the start.
-3. **How close to iD's code do the ported packages stay?** Close ports make it easy to follow upstream fixes. A rewrite in TypeScript reads better. Proposal: port file by file, keep names, convert to TypeScript.
-4. **Do plug-ins get loaded at build time only, or also at run time from a URL?** Build time is simpler and safer. Run time would let people try a plug-in without a build.
-5. **Licence of ported iD code** is ISC, as Maid's. Attribution per file needs a convention.
-6. **`osm-data`**: keep it as the parsing layer below `osm-graph`, or fold it in?
+Collected, with the decisions made so far, in [docs/architecture/README.md](architecture/README.md).

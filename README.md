@@ -13,7 +13,8 @@ Iteration 1 is a proof of concept that answers one question: can MapLibre render
 - [PLAN.md](PLAN.md): vision, core rules, and the plan for iteration 1
 - [docs/iteration-1/report.md](docs/iteration-1/report.md): the answer
 - [docs/iteration-1/steps.md](docs/iteration-1/steps.md): working steps and what is still open
-- [docs/extensibility-plan.md](docs/extensibility-plan.md): work doc on packages, the config object and plug-ins, so forks become configuration
+- [docs/extensibility-plan.md](docs/extensibility-plan.md): how forks become configuration: packages, the config object, extension points
+- [docs/architecture/](docs/architecture/README.md): work docs per topic (naming, fork model, data store, filters, URL state, storage and settings, UI, Rust), with decisions and open questions
 - [docs/adr/](docs/adr/): decisions and what was measured for each
 - [docs/research/](docs/research/): what we know about iD, Rapid, MapLibre and osm-editor-kit
 - [AGENTS.md](AGENTS.md): how to work in this repo (for people and coding agents)
