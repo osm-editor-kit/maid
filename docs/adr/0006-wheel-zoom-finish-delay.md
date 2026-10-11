@@ -32,7 +32,7 @@ bun patch --commit node_modules/maplibre-gl
 
 Bun prepares the private copy in the root `node_modules/maplibre-gl`. The path `apps/maid/node_modules/maplibre-gl` is a link into Bun's shared package store that every project on the machine uses, and must not be edited. On the first attempt I edited that link by mistake; the change was reverted and the store verified against the package cache by checksum. The same approach as in `strassenraumkarte/vector/patches`.
 
-The patch file is large (about 580 KB) for a one-number change, because the minified build is a single line and the diff carries the whole line.
+The patch file is large (about 900 KB) for a few small changes, because the minified builds are single lines and the diff carries each whole line. It now holds two changes: this one, and the fix for overlapping GeoJSON tile loads ([draft report](../upstream/maplibre-updatedata-inconsistent-tiles.md)).
 
 ## Still open
 

@@ -7,7 +7,8 @@ import { chromium } from '@playwright/test'
 import { join } from 'node:path'
 
 const dir = import.meta.dir
-const maplibre = join(dir, '../../apps/maid/node_modules/maplibre-gl')
+// MAPLIBRE_DIR lets the same page run against an unpatched copy of the package
+const maplibre = process.env.MAPLIBRE_DIR ?? join(dir, '../../apps/maid/node_modules/maplibre-gl')
 const server = Bun.serve({
   port: 0,
   fetch(req) {
@@ -18,11 +19,12 @@ const server = Bun.serve({
 })
 const runs = Number(process.argv[2] ?? 5)
 const browser = await chromium.launch({ channel: 'chrome', headless: true })
-for (const query of (process.argv[3] ?? 'gap=30,gap=30&restyle=1,gap=30&sort=1,gap=30&restyle=1&sort=1,serial=1&restyle=1&sort=1').split(',')) {
+for (const query of (process.argv[3] ?? 'order,gap=5&restyle=1,serial=1&restyle=1').split(',')) {
   for (let i = 0; i < runs; i++) {
     const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 2 })
     await page.route((url) => url.hostname !== 'localhost', (route) => route.abort())
-    await page.goto(`http://localhost:${server.port}/updatedata-overlap.html?${query}`)
+    const file = query.startsWith('order') ? 'updatedata-order.html' : 'updatedata-overlap.html'
+    await page.goto(`http://localhost:${server.port}/${file}?${query}`)
     const result = await page.waitForFunction(() => (window as any).__result, undefined, { timeout: 60000 }).then((h) => h.jsonValue())
     console.log(JSON.stringify(result))
     await page.close()

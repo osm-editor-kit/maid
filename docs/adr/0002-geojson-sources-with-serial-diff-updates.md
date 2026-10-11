@@ -20,9 +20,11 @@ Measured on the dense scene (120k nodes in the fixture, about 51k loaded for the
 
 `setData` re-sends and re-indexes the whole source for every tile that arrives.
 
-## A MapLibre problem we work around
+## A MapLibre problem, found and patched
 
-With MapLibre 6.12, overlapping `updateData` calls on one source left tiles in an inconsistent state: `queryRenderedFeatures` threw `feature index out of bounds` and `querySourceFeatures` returned a different number of features from run to run (708, 976, 1274 or 1640 for the same view). Waiting for the promise of `updateData` was not enough, because it resolves before the visible tiles are rebuilt. Waiting for `isSourceLoaded` before the next update fixed it in six of six runs. This needs a minimal reproduction and an upstream report.
+With MapLibre 6.12, overlapping `updateData` calls on one source left tiles in an inconsistent state: `queryRenderedFeatures` threw `feature index out of bounds` and `querySourceFeatures` returned a different number of features from run to run. The cause is that answers for overlapping loads of one GeoJSON tile are applied in arrival order, so an older one can overwrite a newer one. It is fixed in our `bun patch` and written up, with a reproduction, in [docs/upstream/maplibre-updatedata-inconsistent-tiles.md](../upstream/maplibre-updatedata-inconsistent-tiles.md).
+
+The serialisation described above was the workaround before the patch. It stays on: it costs nothing measurable (five runs each: 441 ms against 428 ms for the final picture after panning into new data) and keeps Maid correct on an unpatched MapLibre.
 
 ## Settings and their trade-offs
 

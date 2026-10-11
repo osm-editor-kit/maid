@@ -60,6 +60,24 @@
       })
     }
     const source = map.getSource('lines')
+    // Diagnostics: do answers for the same tile come back in a different order than they were asked?
+    const trace = { requests: 0, overlapping: 0, outOfOrder: 0 }
+    const open = new globalThis.Map()
+    const loadTile = source.loadTile.bind(source)
+    source.loadTile = async (tile) => {
+      const n = ++trace.requests
+      const pending = open.get(tile.uid) ?? []
+      if (pending.length) trace.overlapping++
+      open.set(tile.uid, [...pending, n])
+      try {
+        return await loadTile(tile)
+      } finally {
+        const list = open.get(tile.uid)
+        // an older request for this tile is still open: this answer overtook it
+        if (list.some((m) => m < n)) trace.outOfOrder++
+        open.set(tile.uid, list.filter((m) => m !== n))
+      }
+    }
     for (let b = 0; b < BATCHES; b++) {
       const promise = source.updateData({ add: batch(b) })
       if (RESTYLE) {
@@ -94,6 +112,7 @@
       inWorkerData: data.features.length,
       inTiles_querySourceFeatures: inSource,
       queryRenderedFeatures: rendered,
+      ...trace,
       ok: inSource === expected && typeof rendered === 'number',
     }
     document.getElementById('out').textContent = JSON.stringify(result, null, 2)
