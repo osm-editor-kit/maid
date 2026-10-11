@@ -36,6 +36,10 @@
         "vite": "^8.0.0",
       },
     },
+    "packages/core": {
+      "name": "@osm-editor-kit/maid-core",
+      "version": "0.0.0",
+    },
     "packages/model": {
       "name": "@osm-editor-kit/maid-model",
       "version": "0.0.0",
@@ -119,6 +123,8 @@
     "@openstreetmap/id-tagging-schema": ["@openstreetmap/id-tagging-schema@6.19.2", "", {}, "sha512-nA3p6VcG063vMPu9GQJw1YMiMUMDhTdxa5dy6BPZgpCC2Pn0Twvzy9zzYM1EfX3fA5XtKaQVkYI16yfvBqujuw=="],
 
     "@osm-editor-kit/maid-app": ["@osm-editor-kit/maid-app@workspace:apps/maid"],
+
+    "@osm-editor-kit/maid-core": ["@osm-editor-kit/maid-core@workspace:packages/core"],
 
     "@osm-editor-kit/maid-model": ["@osm-editor-kit/maid-model@workspace:packages/model"],
 
