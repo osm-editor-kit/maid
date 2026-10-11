@@ -1,12 +1,10 @@
-import { useSyncExternalStore } from 'react'
-import { config, engine } from '../editor'
-import { useCameraParam } from '../url'
+import { config, useEngine } from '../editor'
+import { useCameraParam } from '../url/state'
 
 /** Bottom bar: zoom, what is loaded, where the data comes from */
 export function StatusBar() {
-  useSyncExternalStore(engine.subscribe, engine.getVersion)
   const [camera] = useCameraParam()
-  const { nodes, ways, relations } = engine.store.counts()
+  const { nodes, ways, relations } = useEngine((e) => e.store.counts())
   const zoom = camera?.zoom ?? config.camera?.zoom
   const belowDataZoom = zoom !== undefined && zoom < config.minDataZoom
   return (

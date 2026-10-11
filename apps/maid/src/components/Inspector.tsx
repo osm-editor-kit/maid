@@ -1,6 +1,5 @@
-import { useSyncExternalStore } from 'react'
-import { engine } from '../editor'
-import { useSelectedId } from '../url'
+import { engine, useEngine } from '../editor'
+import { useSelectedId } from '../url/state'
 import { PresetIcon } from './PresetIcon'
 import { TagList } from './TagList'
 
@@ -15,10 +14,9 @@ const GEOMETRY_LABEL = {
 /** Sidebar for the selected feature: what it is (iD preset) and its tags. Floats over the map. */
 export function Inspector() {
   const [id, setId] = useSelectedId()
-  // re-read when data arrives: a selection from the URL exists before its feature is loaded
-  useSyncExternalStore(engine.subscribe, engine.getVersion)
+  // read again when data arrives: a selection from the URL exists before its feature is loaded
+  const entity = useEngine((e) => e.entity(id))
   if (!id) return null
-  const entity = engine.entity(id)
 
   const close = () => {
     engine.setSelected(null)

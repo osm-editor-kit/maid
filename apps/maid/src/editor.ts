@@ -1,10 +1,15 @@
 import { MaidEngine } from '@maid/renderer'
+import { useSyncExternalStore } from 'react'
 import { readConfig } from './config'
+import { migrateIdHash } from './url/id-url'
 
 /**
  * The one editor instance of this app. Module scope is fine for an app with a single map;
  * a library version creates this per instance (docs/extensibility-plan.md).
  */
+// iD-style hash links become Maid query parameters before anything reads the URL
+migrateIdHash(window.location, window.history)
+
 export const config = readConfig(window.location)
 
 export const engine = new MaidEngine({
@@ -16,3 +21,13 @@ export const engine = new MaidEngine({
   coalesce: config.coalesce,
   edit: config.edit,
 })
+
+/**
+ * Reads from the engine inside a component. `read` runs again whenever data was merged or
+ * changed. The engine lives outside React, so the React Compiler cannot see that its answers
+ * change; passing the version as an argument is what tells it.
+ */
+export function useEngine<T>(read: (engine: MaidEngine, version: number) => T): T {
+  const version = useSyncExternalStore(engine.subscribe, engine.getVersion)
+  return read(engine, version)
+}

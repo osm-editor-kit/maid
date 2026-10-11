@@ -3,12 +3,12 @@ import { setWorkerCount, setWorkerUrl } from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
+import { config } from './editor'
 import './index.css'
 
 setWorkerUrl(workerUrl)
 // MapLibre uses one worker by default. Maid's four sources then queue up behind each other.
-const workers = Number(new URLSearchParams(window.location.search).get('workers') ?? 4)
-if (workers > 0) setWorkerCount(workers)
+if (config.workers > 0) setWorkerCount(config.workers)
 
 // No StrictMode: its double mount would create the map twice and distort timings.
 createRoot(document.getElementById('root')!).render(<App />)

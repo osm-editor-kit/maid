@@ -5,7 +5,7 @@ import { MapView } from './components/MapView'
 import { StatusBar } from './components/StatusBar'
 import { ZoomControls } from './components/ZoomControls'
 import { config, engine } from './editor'
-import { useSelectedId } from './url'
+import { useSelectedId } from './url/state'
 
 function Shell() {
   const [, setSelectedId] = useSelectedId()

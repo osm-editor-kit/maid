@@ -18,7 +18,7 @@ import {
 import { exposeBenchApi } from '../bench'
 import { config, engine } from '../editor'
 import { addBaseImages, ensureImages } from '../images'
-import { useCameraParam, useSelectedId } from '../url'
+import { useCameraParam, useSelectedId } from '../url/state'
 
 /** No basemap: the benchmark compares how editors draw OSM data, not imagery. */
 const EMPTY_STYLE: StyleSpecification = {
