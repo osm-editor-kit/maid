@@ -187,10 +187,11 @@ Answers from Tobias, 2026-10-10:
 | License | ISC, like iD and Rapid. |
 | Repo setup | A Bun monorepo with packages that are shared and published. |
 
-## Open questions
+## Outcome of iteration 1
 
-1. **Thresholds** in "How we decide": are they the right bar? They stay proposals until confirmed, at the latest before milestone 8.
-2. **Where is the repo hosted?** Default: `osm-editor-kit/maid` on GitHub. Nothing is pushed yet.
+The answer is yes: [docs/iteration-1/report.md](docs/iteration-1/report.md). Tobias on 2026-10-11: "the app feels great, the experiment was a huge success until now". The thresholds above were proposals and are not used as a gate any more; the benchmark stays as the regression check.
+
+What comes next is in [docs/architecture/](docs/architecture/README.md), with the decisions made so far and the open questions. The repository lives at <https://github.com/osm-editor-kit/maid>.
 
 ## References
 

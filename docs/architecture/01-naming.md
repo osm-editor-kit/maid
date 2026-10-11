@@ -1,6 +1,6 @@
 # What to call the code units that build a fork
 
-Status: proposal for discussion. Tobias wants to ask others before deciding.
+Status: **decided by Tobias on 2026-10-11: "Maid module".** The comparison below is kept as the reasoning.
 
 ## What we are naming
 
@@ -31,7 +31,7 @@ Words for the mechanism, which we need as well and which are uncontroversial:
 - **Hook**: a named callback the core calls (WordPress actions and filters, Rollup and Fastify hooks, `hookable`).
 - **Slot**: a place in the UI that units fill (WordPress Gutenberg SlotFill).
 
-## Recommendation
+## Decision
 
 **"Module"**, always written as "Maid module" in prose and `MaidModule` in code, with packages named `module-*`.
 
@@ -39,11 +39,26 @@ Words for the mechanism, which we need as well and which are uncontroversial:
 - It reads correctly in the config: `modules: [maproulette(), tildaNotes()]`.
 - The collision with ES modules is real. The fixed prefix handles it in writing; in conversation it will sometimes need a second sentence.
 
-Second choice: **"plugin"**, if we prefer the word everyone already knows and accept writing "build-time only, no plugin store" into the first paragraph of the docs. Payload uses it exactly our way.
+Considered and not chosen: "plugin" (people expect a store), "mod" (suggests third-party and unsupported) and "patch" (means a diff, and already has its own job in this repo).
 
-Not recommended: "mod" and "patch". Both tell people something untrue about how the thing is made and supported, and "patch" already has its own job in this repo.
+## Core modules and external modules
 
-Until the name is decided, the other chapters say "module".
+There is one kind of module and one way to write it. Where it lives gives it one of two names:
+
+| | Core module | External module |
+| --- | --- | --- |
+| Lives in | The Maid monorepo, `packages/module-*` | A fork's own repository |
+| Maintained by | Maid | The fork |
+| Reaches an editor | Part of Maid's default set, or exported for forks to add | Listed by the fork in its config |
+| Tested and released | With Maid | By the fork |
+| Examples | Imagery, street-level photos, notes, data layers, MapRoulette | TILDA notes, a Radnetz QA lens |
+
+Rules that keep the two the same thing:
+
+- **Core modules use only the public API**: the same extension points and hooks an external module gets. If a core module needs something private, that thing becomes public or the code is not a module but part of the core.
+- **An external module can become a core module** by moving its folder, without a rewrite. That is the path for a fork's feature that others want too.
+- **"Core" alone means something else**: the editor itself (`editor-core`, the data layer, the renderer), which is not made of modules. So: the core, core modules, external modules.
+- A fork's default set is its choice: it can leave out any core module.
 
 ## The rule that comes with the name
 

@@ -1,6 +1,6 @@
 # How a fork is made and kept up to date
 
-Status: proposal for discussion. Tobias wants to ask others.
+Status: **agreed by Tobias on 2026-10-11**, including how forks consume Maid and that replacing components comes later.
 
 ## The question
 
@@ -20,13 +20,13 @@ From a review of how other projects do it (web research, 2026-10-11):
 | Copy the code | shadcn/ui | The copier wants to own it | It is maintenance by the fork from then on |
 | Patch a dependency | `patch-package`, `bun patch` | A short bridge until upstream has the change | The patch lives long |
 
-## Proposal
+## The model
 
 **A fork is a small app that depends on Maid's packages. It is not a copy of this repo.**
 
 ```
 radnetz-berlin/
-  package.json        depends on @maid/* (or @osm-editor-kit/*)
+  package.json        depends on Maid's npm packages
   src/main.tsx        createEditor({ ...config, modules: [...] })
   src/modules/        the fork's own modules
 ```
@@ -34,6 +34,11 @@ radnetz-berlin/
 - What a fork changes, it changes through the **config object**, through **modules** that register at extension points, and through **hooks**.
 - Maid's own default editor (`apps/maid`) is built the same way. If the default editor cannot do something through the public API, neither can a fork, and we find out first.
 - A fork never rebases. It updates a dependency version.
+
+### Inside the monorepo and outside
+
+- **Inside**, Maid's own apps and core modules depend on each other as workspace packages. No publishing step between a change and its use.
+- **Outside**, a fork depends on the **published npm packages** of Maid. That needs a release routine (versions, a changelog, changesets as in the other osm-editor-kit repos), which is the price of forks that do not rebase.
 
 ### When a fork needs something Maid does not offer
 
@@ -68,10 +73,13 @@ Both are registered in a module's `setup`.
 ## Decided
 
 - Modules are build-time only, never from a URL or the UI ([naming](01-naming.md)).
+- The name is "Maid module", with core modules in the monorepo and external modules in forks ([naming](01-naming.md)).
+- Inside the monorepo: workspace packages. External forks: Maid's npm packages.
+- A missing hook is patched locally with `bun patch` and upstreamed.
 - The bottom dock is part of the default editor. A fork can switch it off; it is not a module.
+- Replacing a core UI component (the Docusaurus "swizzle" idea) comes later, if at all. Slots and config first.
 
 ## Open
 
-- The name ([naming](01-naming.md)).
-- Whether forks consume Maid as published npm packages, as a git dependency, or as a git submodule in a workspace. Published packages are the cleanest and need a release routine. A git dependency works from day one.
-- Whether a fork may replace a core UI component (the Docusaurus "swizzle" idea). Proposal: not at first. Slots and config cover the known cases; replacing components is where upgrades start to hurt.
+- The release routine: when packages are first published, how versions are cut, and what counts as a breaking change while everything is still moving.
+- The first list of hooks, which should come from porting the two existing forks and not from guessing.

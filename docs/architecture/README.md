@@ -6,8 +6,8 @@ The starting point is [the extensibility plan](../extensibility-plan.md): one co
 
 | # | Chapter | In one line |
 | ---: | --- | --- |
-| 1 | [Naming](01-naming.md) | What to call the code units a fork adds. Proposal: "Maid module". For discussion |
-| 2 | [Fork model](02-fork-model.md) | A fork is a small app on Maid's packages; missing hooks are patched locally and upstreamed. For discussion |
+| 1 | [Naming](01-naming.md) | The code units a fork adds are "Maid modules": core modules in the monorepo, external modules in forks. Decided |
+| 2 | [Fork model](02-fork-model.md) | A fork is a small app on Maid's npm packages; missing hooks are patched locally and upstreamed. Agreed |
 | 3 | [Packages](03-packages.md) | What comes from Rapid, iD and osm-editor-kit, where packages live, licence |
 | 4 | [Rapid review](04-rapid-review.md) | What to copy from Rapid 3's structure and what not; workers |
 | 5 | [Data store](05-data-store.md) | Graph, history, undo and spatial index, ported from Rapid with three changes |
@@ -15,7 +15,7 @@ The starting point is [the extensibility plan](../extensibility-plan.md): one co
 | 7 | [Styles and lenses](07-styles-and-lenses.md) | A lens is a second style; export for an external style editor |
 | 8 | [URL state](08-url-state.md) | All parameters in nuqs; translation from and to iD's URLs (built) |
 | 9 | [Storage and settings](09-storage-and-settings.md) | Dexie and Zustand; which value wins between URL, stored preference and user action |
-| 10 | [UI design](10-ui-design.md) | Tailwind, light and dark, the kit as reference; a licence point to settle |
+| 10 | [UI design](10-ui-design.md) | Tailwind, light and dark, components from the Tailwind Plus kit |
 | 11 | [Rust and WASM](11-rust-wasm.md) | Not worth it for today's work; validation is the first candidate; how to test |
 
 ## Decided by Tobias on 2026-10-11
@@ -32,39 +32,40 @@ The starting point is [the extensibility plan](../extensibility-plan.md): one co
 - The UI is rebuilt in a modern Tailwind style with light and dark mode. iD's old design goes.
 - Tooling follows the FMC tech stack: oxlint, oxfmt, React Compiler. Done.
 - Not every package is public; only those useful on their own.
+- **The name is "Maid module"**, with core modules (in the monorepo) and external modules (in forks).
+- **Fork model agreed**: workspace packages inside the monorepo, Maid's npm packages for external forks. Replacing core UI components ("swizzle") comes later.
+- **Speed: accepted.** "The app feels great, the experiment was a huge success until now." The thresholds proposed in iteration 1 are not needed as a gate any more; the benchmark stays as the regression check.
+- **Tailwind Plus components may be used**: we hold a proper licence and distribute adapted components in our open-source projects.
+- **The MapLibre report is postponed.** The write-up, patch and test case stay in the repo, ready to be referenced.
+- **The repository lives at <https://github.com/osm-editor-kit/maid>.**
 
 ## Open questions, collected
 
-Needs Tobias, or the people he wants to ask:
+Needs Tobias:
 
-1. **The name** for a fork's code units: module, plugin, or something else ([naming](01-naming.md)).
-2. **How forks consume Maid**: published packages, a git dependency, or a submodule ([fork model](02-fork-model.md)).
-3. **The Tailwind Plus licence**: may component source sit in a public repository, and which licence (Personal or Team) is it. Until answered, nothing is copied ([UI design](10-ui-design.md)).
-4. **Thresholds** for "fast enough", still unconfirmed from iteration 1.
-5. **Whether to send the MapLibre report** ([draft](../upstream/maplibre-updatedata-inconsistent-tiles.md)).
-6. **Where the repo is hosted**; nothing is pushed.
+1. **The release routine** for Maid's npm packages, once the first fork needs them ([fork model](02-fork-model.md)).
+2. **When to send the MapLibre report** ([write-up](../upstream/maplibre-updatedata-inconsistent-tiles.md)). Postponed.
 
 Design questions with a proposal in the chapter:
 
-7. Final names and formats of the public URL parameters: `filters`, `lens`, `background`, photo options ([URL state](08-url-state.md)).
-8. Whether `id` stays a comma list ([URL state](08-url-state.md)).
-9. The shape of a filter's `match`: how much is data, how much may be a function ([filters](06-filters.md)).
-10. Whether read-only objects look different by default ([filters](06-filters.md)).
-11. The default list of style keys that are copied onto map features for user styles ([styles and lenses](07-styles-and-lenses.md)).
-12. Readable names for the feature properties before they become a public schema ([styles and lenses](07-styles-and-lenses.md)).
-13. Lon/lat or Rapid's world coordinates in the data model ([data store](05-data-store.md)).
-14. `osm-data`: stays as fetch-and-parse, or is folded into the graph package ([data store](05-data-store.md), [packages](03-packages.md)).
-15. Whether OSM data is cached across sessions ([storage and settings](09-storage-and-settings.md)).
-16. Syncing settings to the OSM account ([storage and settings](09-storage-and-settings.md)).
-17. Whether a fork may lock a setting, and which ([storage and settings](09-storage-and-settings.md)).
-18. Whether a fork may replace a core UI component ([fork model](02-fork-model.md)).
-19. The map background and data colours in light mode ([UI design](10-ui-design.md)).
-20. The accent colour, and letting a fork set it ([UI design](10-ui-design.md)).
-21. How dense the inspector is ([UI design](10-ui-design.md)).
+3. Final names and formats of the public URL parameters: `filters`, `lens`, `background`, photo options ([URL state](08-url-state.md)).
+4. Whether `id` stays a comma list ([URL state](08-url-state.md)).
+5. The shape of a filter's `match`: how much is data, how much may be a function ([filters](06-filters.md)).
+6. Whether read-only objects look different by default ([filters](06-filters.md)).
+7. The default list of style keys that are copied onto map features for user styles ([styles and lenses](07-styles-and-lenses.md)).
+8. Readable names for the feature properties before they become a public schema ([styles and lenses](07-styles-and-lenses.md)).
+9. Lon/lat or Rapid's world coordinates in the data model ([data store](05-data-store.md)).
+10. `osm-data`: stays as fetch-and-parse, or is folded into the graph package ([data store](05-data-store.md), [packages](03-packages.md)).
+11. Whether OSM data is cached across sessions ([storage and settings](09-storage-and-settings.md)).
+12. Syncing settings to the OSM account ([storage and settings](09-storage-and-settings.md)).
+13. Whether a fork may lock a setting, and which ([storage and settings](09-storage-and-settings.md)).
+14. The map background and data colours in light mode ([UI design](10-ui-design.md)).
+15. The accent colour, and letting a fork set it ([UI design](10-ui-design.md)).
+16. How dense the inspector is ([UI design](10-ui-design.md)).
 
 To verify, not to decide:
 
-22. The icon and font licences in `NOTICE.md`.
-23. Headless UI together with the React Compiler.
-24. Token lifetime and popup flow of `osm-oauth`.
-25. Rapid's rebase-on-download and history memory on a long session.
+17. The icon and font licences in `NOTICE.md`.
+18. Headless UI together with the React Compiler.
+19. Token lifetime and popup flow of `osm-oauth`.
+20. Rapid's rebase-on-download and history memory on a long session.

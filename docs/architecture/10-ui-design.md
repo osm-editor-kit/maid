@@ -2,17 +2,13 @@
 
 Status: direction set by Tobias on 2026-10-11: a modern web-app look with Tailwind components, light and dark mode, and none of iD's old styling. The reference is the Tailwind Plus material in `~/Development/_tailwind` (Catalyst UI kit and the Plus component catalogue).
 
-## A licence point to settle first
+## Using the kit
 
-That folder is purchased material. Its licence text (found in the template folders; there is none at the folder root or next to Catalyst) says, as the reviewer read it:
+Tobias, 2026-10-11: there is a proper Tailwind Plus licence, and the components are used and distributed, with our modifications, in our open-source projects, as has been done for years.
 
-- Using the components in an **end product that is open source and free** is allowed. An OSM editor with public source fits the example the licence gives.
-- **Redistributing the components separately from an end product is not allowed**: no public repository of the components or derivatives, no starter kit, no theme.
-- The folder's own README says "Do not publish".
+So Catalyst and Plus components are **copied into Maid and adapted**, the way the kit is meant to be used and the way the folder's own README describes (copy components into the project, do not depend on the kit). What still holds from the licence text: the kit itself is not republished. No package or repository whose purpose is to hand out the components. `packages/ui-kit` is part of an editor, not a component library for others.
 
-The text does not say whether component source that sits inside a public application repository counts as "separately". The reviewer reads it as part of the end product; that is an interpretation, not a statement from the licence. Two more things are unclear from the folder: whether the licence is Personal (one person) or Team (up to 25), and how outside contributors to an open-source repo fit either.
-
-**Until Tobias has confirmed with Tailwind's support**, Maid's public code uses the kit as a design reference and writes its own components. Nothing is copied from the folder into this repo. If the answer is yes, copying Catalyst components in is the faster route and this chapter gets shorter.
+Copied components get a row in `NOTICE.md`.
 
 ## Design traits to carry over
 
@@ -67,7 +63,6 @@ What a map editor needs and no kit like this has: toolbars and panels that float
 
 ## Open
 
-- The licence question above.
 - The accent colour and whether a fork can set its own (it should: one CSS variable).
 - The map background and data colours in light mode.
 - How dense the inspector is. iD's is roomy; mappers who edit all day ask for less scrolling.

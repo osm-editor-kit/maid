@@ -52,7 +52,7 @@ Three places, by who else could use the package:
 | **Maid's own, useful to forks** | This monorepo | Yes, once forks consume Maid as packages ([fork model](02-fork-model.md)) | `editor-core`, `renderer`, `style`, `ui-kit`, the feature UI |
 | **Internal** | This monorepo, `private: true` | No | Benchmark tools, the mock API, glue |
 
-Maid itself can become a repository in the osm-editor-kit organisation. Packages that are strong on their own keep their repos, or move in and keep their names; nothing forces one layout on all of them.
+Maid lives in the osm-editor-kit organisation: <https://github.com/osm-editor-kit/maid>. Packages that are strong on their own keep their repos, or move in and keep their names; nothing forces one layout on all of them.
 
 Existing osm-editor-kit packages and what the reviews suggest:
 
@@ -78,6 +78,6 @@ Existing osm-editor-kit packages and what the reviews suggest:
 - ISC lets anyone use, copy, change and sell the code. The one duty is to **keep the copyright and permission notice** with copies.
 - Code ported from iD or Rapid is ISC too. We keep their notice: `LICENSE.md` has Maid's ISC text, `NOTICE.md` lists what came from where, and a ported file starts with one line naming its origin (`// Ported from Rapid modules/lib/Graph.ts, ISC, © Rapid contributors`).
 - Data and assets have their own terms, listed in `NOTICE.md`: the tagging schema (ISC); icon sets (Maki and Temaki are CC0; Font Awesome and Röntgen are CC BY 4.0 and need attribution); the label font (Open Sans); OSM data in the fixtures (ODbL, attribution in the repo and in the app).
-- The Tailwind Plus material is **not** open source and has its own conditions. See [UI design](10-ui-design.md): nothing from it goes into this repo until that is cleared.
+- Tailwind Plus components are used under our Tailwind Plus licence, copied in and adapted ([UI design](10-ui-design.md)). The kit itself is not republished.
 
 `LICENSE.md` and `NOTICE.md` are in the repo as of this change. The icon licences in the notice are from memory of those projects and should be checked once against their repositories.
