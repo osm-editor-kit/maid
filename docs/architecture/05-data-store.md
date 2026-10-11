@@ -55,9 +55,9 @@ This is where the port pays off for speed, because the renderer already wants ex
 
 ## Order of work
 
-1. `osm-model`: entities and geometry from Rapid, without `Context`. Tests ported.
-2. `osm-graph`: graph, difference, history with staging. Tests ported. The proof-of-concept store goes; the engine consumes differences.
-3. `osm-actions`: move node first (it exists as a hack today), then the rest, each with its tests.
+1. `maid-model`: entities and geometry from Rapid, without `Context`. Tests ported.
+2. `maid-graph`: graph, difference, history with staging. Tests ported. The proof-of-concept store goes; the engine consumes differences.
+3. `maid-actions`: move node first (it exists as a hack today), then the rest, each with its tests.
 4. Spatial index, synced from differences.
 5. Journal and restore.
 
@@ -91,13 +91,13 @@ The layout that follows:
 
 | Package | Contains | Public |
 | --- | --- | --- |
-| `osm-model` | Entities and geometry. Also the types of the OSM API's JSON and the parser from that JSON to entities | Later, when it is stable |
-| `osm-graph` | Graph, difference, history with staging, spatial index | Later |
-| `osm-actions` | The edit operations | Later |
+| `maid-model` | Entities and geometry. Also the types of the OSM API's JSON and the parser from that JSON to entities | Later, when it is stable |
+| `maid-graph` | Graph, difference, history with staging, spatial index | Later |
+| `maid-actions` | The edit operations | Later |
 | `osm-data` (street-space editor repo) | Unchanged | As today |
 
 Loading by tile (which tiles, batching, the cache) is not a data package. It stays with the editor, next to the code that hands differences to the renderer.
 
 The one piece both sides share is the description of the API's JSON, about 40 lines of types. That is too little to justify a dependency between the repositories, so it exists twice.
 
-Later, once Maid's data packages are published: an app that outgrows `osm-data` (needs undo, or geometry edits beyond cutting) moves to `osm-graph`. The street-space editor is the candidate, and its shape makes that a contained change. Nothing needs to happen there now.
+Later, once Maid's data packages are published: an app that outgrows `osm-data` (needs undo, or geometry edits beyond cutting) moves to `maid-graph`. The street-space editor is the candidate, and its shape makes that a contained change. Nothing needs to happen there now.

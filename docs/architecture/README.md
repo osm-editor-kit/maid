@@ -39,7 +39,8 @@ The starting point is [the extensibility plan](../extensibility-plan.md): one co
 - **The MapLibre report is postponed.** The write-up, patch and test case stay in the repo, ready to be referenced.
 - **The repository lives at <https://github.com/osm-editor-kit/maid>.**
 - **The data store is ported from Rapid as proposed, with lon/lat in the model.** `@rapid-sdk/math` is a pinned dependency, `@rapid-sdk/util` is used selectively.
-- **`osm-data` stays unchanged** as the small apps' store. Its only user is the street-space editor. Maid's data packages are `osm-model`, `osm-graph` and `osm-actions`.
+- **`osm-data` stays unchanged** as the small apps' store. Its only user is the street-space editor. Maid's data packages are `maid-model`, `maid-graph` and `maid-actions`.
+- **Package names carry a prefix**: `maid-*` for the editor's own packages, `maid-module-*` for core modules, all under `@osm-editor-kit/`. Packages that work without Maid keep names like `osm-*` ([packages](03-packages.md)).
 
 ## Open questions, collected
 

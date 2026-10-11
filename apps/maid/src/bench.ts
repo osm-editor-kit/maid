@@ -1,4 +1,4 @@
-import type { MaidEngine } from '@maid/renderer'
+import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import type { BenchApi } from '../../../tools/refs/bench-api'
 

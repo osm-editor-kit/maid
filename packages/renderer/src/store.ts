@@ -2,7 +2,7 @@
  * In-memory OSM data. Deliberately small: enough to render and to measure.
  * (Evaluating @osm-editor-kit/osm-data as the store is an open step.)
  */
-import type { Tags } from '@maid/style'
+import type { Tags } from '@osm-editor-kit/maid-style'
 
 export type OsmNode = { type: 'node'; id: number; lat: number; lon: number; tags?: Tags }
 export type OsmWay = { type: 'way'; id: number; nodes: number[]; tags?: Tags }

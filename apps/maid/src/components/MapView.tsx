@@ -5,7 +5,7 @@ import {
   interactiveLayerIds,
   OsmLayers,
   type LayerOptions,
-} from '@maid/renderer'
+} from '@osm-editor-kit/maid-renderer'
 import * as maplibregl from 'maplibre-gl'
 import type { StyleSpecification } from 'maplibre-gl'
 import { useState } from 'react'

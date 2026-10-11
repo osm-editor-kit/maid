@@ -1,4 +1,4 @@
-import type { EngineOptions, LayerOptions } from '@maid/renderer'
+import type { EngineOptions, LayerOptions } from '@osm-editor-kit/maid-renderer'
 import { PORTS } from '../../../tools/ports'
 import { readParams, setupParams, stateParams, type Camera } from './url/params'
 

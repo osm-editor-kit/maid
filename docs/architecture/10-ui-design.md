@@ -6,7 +6,7 @@ Status: direction set by Tobias on 2026-10-11: a modern web-app look with Tailwi
 
 Tobias, 2026-10-11: there is a proper Tailwind Plus licence, and the components are used and distributed, with our modifications, in our open-source projects, as has been done for years.
 
-So Catalyst and Plus components are **copied into Maid and adapted**, the way the kit is meant to be used and the way the folder's own README describes (copy components into the project, do not depend on the kit). What still holds from the licence text: the kit itself is not republished. No package or repository whose purpose is to hand out the components. `packages/ui-kit` is part of an editor, not a component library for others.
+So Catalyst and Plus components are **copied into Maid and adapted**, the way the kit is meant to be used and the way the folder's own README describes (copy components into the project, do not depend on the kit). What still holds from the licence text: the kit itself is not republished. No package or repository whose purpose is to hand out the components. `packages/ui` is part of an editor, not a component library for others.
 
 Copied components get a row in `NOTICE.md`.
 
@@ -59,7 +59,7 @@ What a map editor needs and no kit like this has: toolbars and panels that float
 
 ## Where components live
 
-`packages/ui-kit` for the generic ones (button, input, dialog, table, …), written once and used by the default editor and by forks' modules. Feature UI (inspector, panes, dock) is built from them in its own packages.
+`packages/ui` for the generic ones (button, input, dialog, table, …), written once and used by the default editor and by forks' modules. Feature UI (inspector, panes, dock) is built from them in its own packages.
 
 ## Open
 

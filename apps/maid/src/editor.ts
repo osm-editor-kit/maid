@@ -1,4 +1,4 @@
-import { MaidEngine } from '@maid/renderer'
+import { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { useSyncExternalStore } from 'react'
 import { readConfig } from './config'
 import { migrateIdHash } from './url/id-url'

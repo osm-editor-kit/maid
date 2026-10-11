@@ -33,7 +33,7 @@ Words for the mechanism, which we need as well and which are uncontroversial:
 
 ## Decision
 
-**"Module"**, always written as "Maid module" in prose and `MaidModule` in code, with packages named `module-*`.
+**"Module"**, always written as "Maid module" in prose and `MaidModule` in code, with packages named `maid-module-*`.
 
 - It is the one common word with no marketplace or user-install meaning.
 - It reads correctly in the config: `modules: [maproulette(), tildaNotes()]`.
@@ -57,7 +57,7 @@ Rules that keep the two the same thing:
 
 - **Core modules use only the public API**: the same extension points and hooks an external module gets. If a core module needs something private, that thing becomes public or the code is not a module but part of the core.
 - **An external module can become a core module** by moving its folder, without a rewrite. That is the path for a fork's feature that others want too.
-- **"Core" alone means something else**: the editor itself (`editor-core`, the data layer, the renderer), which is not made of modules. So: the core, core modules, external modules.
+- **"Core" alone means something else**: the editor itself (`maid-core`, the data layer, the renderer), which is not made of modules. So: the core, core modules, external modules.
 - A fork's default set is its choice: it can leave out any core module.
 
 ## The rule that comes with the name

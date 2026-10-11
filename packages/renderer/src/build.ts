@@ -12,7 +12,7 @@ import {
   tagClasses,
   wayLayer,
   type Tags,
-} from '@maid/style'
+} from '@osm-editor-kit/maid-style'
 import type { Feature, LineString, MultiPolygon, Point, Polygon, Position } from 'geojson'
 import type { MergeResult, OsmNode, OsmRelation, OsmStore, OsmWay } from './store'
 

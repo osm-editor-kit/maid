@@ -1,4 +1,4 @@
-import type { Tags } from '@maid/style'
+import type { Tags } from '@osm-editor-kit/maid-style'
 import { AddTag } from './AddTag'
 import { TagRow } from './TagRow'
 

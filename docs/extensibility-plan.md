@@ -49,48 +49,50 @@ Everything a fork wants to add lands in one of those lists, so every fork patche
 
 A Bun workspace, following the conventions the osm-editor-kit repos already share (review): `packages/*` with source exports in the workspace and `dist` exports at publish, tsup, changesets, oxlint and oxfmt, peers for UI libraries.
 
+Names and sources below were updated on 2026-10-11 to what the [architecture chapters](architecture/README.md) settled: the data layer comes from Rapid, the units are called Maid modules, and package names carry the `maid-` prefix ([packages](architecture/03-packages.md)). The folder is the short name; the package is `@osm-editor-kit/maid-<folder>`.
+
 ```
 packages/
   # headless core: no DOM, no React, no MapLibre
-  osm-model/          entities, tags helpers, id handling            from iD osm/ (3.3k lines)
-  osm-graph/          graph, difference, history with undo/redo      from iD core/graph, history
-  osm-actions/        graph-to-graph edits                           from iD actions/ (4.2k lines)
-  osm-geo/            geometry math                                  from iD geo/
-  osm-presets/        preset and field matching, overlays            from iD presets/ + id-tagging-schema
-  osm-validate/       rule engine, rules as separate exports         from iD validations/ (18 rules)
-  osm-api/            read, upload, auth                             osm-api + osm-oauth + osm-changeset
-  editor-core/        createEditor, registries, plug-in lifecycle, selection, modes, tasks
+  model/              entities, geometry, API JSON parser            from Rapid data/, lib/
+  graph/              graph, difference, history, spatial index      from Rapid lib/, EditSystem, SpatialSystem
+  actions/            graph-to-graph edits                           from Rapid actions/
+  presets/            preset and field matching                      id-tagging-schema, matching code ported
+  validate/           rule engine, rules as separate exports         from Rapid validators/, iD
+  core/               createEditor, registries, module lifecycle, selection, modes, tasks
 
   # rendering
   style/              iD's look as data (exists)
   renderer/           feature builder, MapLibre layers, engine (exists)
 
   # UI, React 19 + Tailwind
-  ui-kit/             small shared components: buttons, sections, panes, fields shell
+  ui/                 small shared components: buttons, sections, panes, fields shell
   ui-inspector/       preset fields, raw tag editor, sections registry
   ui-map/             map component, controls, hover and select wiring
   ui-app/             the default shell that composes everything
 
-  # optional features, each one a plug-in
-  plugin-imagery/         backgrounds: wraps maplibre-editor-layer-index
-  plugin-street-imagery/  wraps street-imagery and street-imagery-react
-  plugin-notes/           OSM notes
-  plugin-data-layers/     user GeoJSON, PMTiles, vector tiles
-  plugin-maproulette/     task provider
-  plugin-live-touched/    presence, wraps @osm-editor-kit/live-touched
+  # core modules
+  module-imagery/         backgrounds: wraps maplibre-editor-layer-index
+  module-street-imagery/  wraps street-imagery and street-imagery-react
+  module-notes/           OSM notes
+  module-data-layers/     user GeoJSON, PMTiles, vector tiles
+  module-maproulette/     task provider
+  module-live-touched/    presence, wraps @osm-editor-kit/live-touched
   ...
 
 apps/
   maid/               the default editor: default config
-  radnetz-berlin/     example: a config plus two plug-ins
+  radnetz-berlin/     example: a config plus two modules
   compare/            (exists)
 ```
+
+Outside this repo, used as dependencies: `osm-api`, `osm-oauth`, `osm-changeset`, `@rapid-sdk/math`.
 
 Rules for the boundaries:
 
 - A package in the headless group may import only packages above it in that list.
-- `renderer` and `ui-*` import the headless group, never each other's internals; they meet in `editor-core`'s registries.
-- A `plugin-*` package imports `editor-core` types and whatever UI kit it needs. Nothing imports a plug-in except an app.
+- `maid-renderer` and `maid-ui-*` import the headless group, never each other's internals; they meet in `maid-core`'s registries.
+- A `maid-module-*` package imports `maid-core` types and whatever UI it needs. Nothing imports a module except an app.
 
 ### What comes from iD, and what it costs
 
@@ -133,13 +135,13 @@ From the inventory of the local checkouts:
 
 Two conclusions:
 
-- **The store question is answered by this review:** `osm-data` is a download-and-merge helper, not an editing graph. Maid needs iD's graph and history (ported as `osm-graph`). `osm-data`'s parsing can feed it.
+- **The store question is answered by this review:** `osm-data` is a download-and-merge helper, not an editing graph. Maid needs a real graph and history (`maid-graph`, ported from Rapid). `osm-data` stays the small apps' store and Maid does not build on it ([data store](architecture/05-data-store.md)).
 - **`osm-maplibre` has no trick for fast data updates.** The reviewer found that the app sends whole collections through `<Source data>` and never uses `updateData` or feature state. What keeps its width-drag smooth is the same pattern Maid's renderer now uses: change a small separate source during the gesture, commit to shared state on release (their commit `037a9b4`). Maid's engine goes further (diff updates, feature state); those parts are candidates to move into `osm-maplibre` so the other apps profit.
 
 ## The config object
 
 ```ts
-import { createEditor } from '@maid/editor-core'
+import { createEditor } from '@osm-editor-kit/maid-core'
 
 createEditor({
   container: '#editor',
@@ -186,7 +188,7 @@ Presets and filters are the actual data, not references, so a fork changes them 
 
 ## Extension points
 
-Each is one registry in `editor-core`. The right column names what your forks patch in iD today to get the same thing (from the fork review).
+Each is one registry in `maid-core`. The right column names what your forks patch in iD today to get the same thing (from the fork review).
 
 | # | Extension point | A plug-in provides | Needed by | Patched in iD today |
 | ---: | --- | --- | --- | --- |
@@ -218,7 +220,7 @@ Two of these carry performance rules.
 
 iD scatters hash handling over seven modules. Maid uses **nuqs**: there are no pages, so a router buys nothing, and nuqs gives typed parsers, batching and history control per parameter.
 
-- `editor-core` owns the parameters every editor has: `map`, `id`, `background`, `overlays`, `disable_features`, `comment`, `hashtags`, `locale`.
+- `maid-core` owns the parameters every editor has: `map`, `id`, `background`, `overlays`, `disable_features`, `comment`, `hashtags`, `locale`.
 - A plug-in registers its own through extension point 14 and gets a typed hook back.
 - Map position is written on move end with `history: 'replace'`, as the `react-map-gl` skill prescribes.
 - iD uses the hash (`#map=…`), and existing links and the osm.org "Edit" button rely on that. Maid reads iD's hash format on start and writes search parameters after. Open question below.
@@ -266,8 +268,8 @@ Neither needs a change in a core package if the 17 points exist. That is the tes
 
 Each step ends with something that runs.
 
-1. **`editor-core` skeleton**: `createEditor`, the plug-in lifecycle, and the registries as empty typed maps. Move today's Maid app onto it.
-2. **Headless data**: port `osm-model`, `osm-graph` with history, `osm-actions`. Replace the proof-of-concept store. Real undo.
+1. **`maid-core` skeleton**: `createEditor`, the plug-in lifecycle, and the registries as empty typed maps. Move today's Maid app onto it.
+2. **Headless data**: port `maid-model`, `maid-graph` with history, `maid-actions`. Replace the proof-of-concept store. Real undo.
 3. **First three extension points, proven by real plug-ins**: map layer (data layers plug-in), inspector section, URL parameter.
 4. **Inspector**: presets and fields in React (`osm-presets`, `ui-inspector`), raw tag editor.
 5. **Save**: `osm-api` with deletes, the commit panel, save lifecycle hooks.

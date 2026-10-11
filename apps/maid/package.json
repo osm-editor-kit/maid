@@ -1,5 +1,5 @@
 {
-  "name": "@maid/app",
+  "name": "@osm-editor-kit/maid-app",
   "version": "0.0.0",
   "private": true,
   "license": "ISC",
@@ -10,8 +10,8 @@
     "preview": "bun --bun vite preview --strictPort"
   },
   "dependencies": {
-    "@maid/renderer": "workspace:*",
-    "@maid/style": "workspace:*",
+    "@osm-editor-kit/maid-renderer": "workspace:*",
+    "@osm-editor-kit/maid-style": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
     "maplibre-gl": "^6.0.0",
     "nuqs": "^2.10.1",

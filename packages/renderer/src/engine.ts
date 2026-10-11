@@ -14,7 +14,7 @@ import {
   type Geometry,
   type Preset,
   type Tags,
-} from '@maid/style'
+} from '@osm-editor-kit/maid-style'
 import type { Feature, FeatureCollection } from 'geojson'
 import type { GeoJSONSource, Map as MapLibreMap, MapGeoJSONFeature } from 'maplibre-gl'
 import {

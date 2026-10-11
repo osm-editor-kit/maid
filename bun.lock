@@ -14,11 +14,11 @@
       },
     },
     "apps/maid": {
-      "name": "@maid/app",
+      "name": "@osm-editor-kit/maid-app",
       "version": "0.0.0",
       "dependencies": {
-        "@maid/renderer": "workspace:*",
-        "@maid/style": "workspace:*",
+        "@osm-editor-kit/maid-renderer": "workspace:*",
+        "@osm-editor-kit/maid-style": "workspace:*",
         "@tailwindcss/vite": "^4.3.3",
         "maplibre-gl": "^6.0.0",
         "nuqs": "^2.10.1",
@@ -37,10 +37,10 @@
       },
     },
     "packages/renderer": {
-      "name": "@maid/renderer",
+      "name": "@osm-editor-kit/maid-renderer",
       "version": "0.0.0",
       "dependencies": {
-        "@maid/style": "workspace:*",
+        "@osm-editor-kit/maid-style": "workspace:*",
       },
       "devDependencies": {
         "@types/geojson": "^7946.0.16",
@@ -53,7 +53,7 @@
       },
     },
     "packages/style": {
-      "name": "@maid/style",
+      "name": "@osm-editor-kit/maid-style",
       "version": "0.0.0",
       "devDependencies": {
         "@openstreetmap/id-tagging-schema": "^6.11.0",
@@ -74,12 +74,6 @@
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
-    "@maid/app": ["@maid/app@workspace:apps/maid"],
-
-    "@maid/renderer": ["@maid/renderer@workspace:packages/renderer"],
-
-    "@maid/style": ["@maid/style@workspace:packages/style"],
-
     "@mapbox/jsonlint-lines-primitives": ["@mapbox/jsonlint-lines-primitives@2.0.3", "", {}, "sha512-0SElaV0uMxEnxzBhhX9WTuPyUeMsAN/SS0i16tjuba4/mio63MG9khjC1a0JAiPGXAwvwm4UfHJURCN7nyudQg=="],
 
     "@mapbox/point-geometry": ["@mapbox/point-geometry@1.1.0", "", {}, "sha512-YGcBz1cg4ATXDCM/71L9xveh4dynfGmcLDqufR+nQQy3fKwsAZsWd/x4621/6uJaeB9mwOHE6hPeDgXz9uViUQ=="],
@@ -99,6 +93,12 @@
     "@maplibre/vt-pbf": ["@maplibre/vt-pbf@4.3.2", "", { "dependencies": { "@mapbox/point-geometry": "^1.1.0", "@types/geojson": "^7946.0.16", "pbf": "^5.1.0" } }, "sha512-j6p0AdjvAR19Z3XaCysle7A4ZSo08tYOzxD0Y9NQylwPAkwJJeYub5b2eVucdeDh7erhv69DahoLOevDRERRUw=="],
 
     "@openstreetmap/id-tagging-schema": ["@openstreetmap/id-tagging-schema@6.19.2", "", {}, "sha512-nA3p6VcG063vMPu9GQJw1YMiMUMDhTdxa5dy6BPZgpCC2Pn0Twvzy9zzYM1EfX3fA5XtKaQVkYI16yfvBqujuw=="],
+
+    "@osm-editor-kit/maid-app": ["@osm-editor-kit/maid-app@workspace:apps/maid"],
+
+    "@osm-editor-kit/maid-renderer": ["@osm-editor-kit/maid-renderer@workspace:packages/renderer"],
+
+    "@osm-editor-kit/maid-style": ["@osm-editor-kit/maid-style@workspace:packages/style"],
 
     "@oxc-project/types": ["@oxc-project/types@0.152.0", "", {}, "sha512-oM/5rLBm2tPkg0iBgkH/FOeR3PCDpY19GTgAZjMFM8h9WI9VW7cLgzp6nwtarYKmovavIQZ+Fe/RKX/8C8O/Rw=="],
 

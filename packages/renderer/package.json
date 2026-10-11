@@ -1,5 +1,5 @@
 {
-  "name": "@maid/renderer",
+  "name": "@osm-editor-kit/maid-renderer",
   "version": "0.0.0",
   "private": true,
   "license": "ISC",
@@ -8,7 +8,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@maid/style": "workspace:*"
+    "@osm-editor-kit/maid-style": "workspace:*"
   },
   "devDependencies": {
     "@types/geojson": "^7946.0.16",

@@ -44,6 +44,20 @@ Can we use them? **Yes for `math`.** The ported entities and actions call it eve
 
 **Copy into the monorepo?** Not at first. A dependency keeps us honest about what we changed. If we need to change the math, we fork it into `packages/` then, with its tests, and say so in the notice file. Maid's model is lon/lat ([data store](05-data-store.md)); the world-coordinate parts of the package are simply not used.
 
+## Package names
+
+Agreed by Tobias on 2026-10-11. Everything is published under `@osm-editor-kit/`. The prefix of the name says what a package belongs to:
+
+| Prefix | Meaning | Examples |
+| --- | --- | --- |
+| `maid-*` | Part of the Maid editor. Released together, built on Maid's data model | `maid-model`, `maid-graph`, `maid-actions`, `maid-core`, `maid-renderer`, `maid-style`, `maid-ui` |
+| `maid-module-*` | A core module ([naming](01-naming.md)) | `maid-module-maproulette`, `maid-module-notes` |
+| `osm-*` and others | Stands alone and works without Maid | `osm-oauth`, `osm-changeset`, `osm-data`, `street-imagery` |
+
+Why: `osm-model` next to the existing `osm-data` would look like two parts of one thing, and they are two different models ([data store](05-data-store.md)). And a name like `renderer` or `style` says nothing in a shared organisation.
+
+Folders in the monorepo stay short. The package name carries the prefix: `packages/graph` is `@osm-editor-kit/maid-graph`, `packages/module-maproulette` is `@osm-editor-kit/maid-module-maproulette`. Imports always use the package name.
+
 ## Where packages live
 
 Three places, by who else could use the package:
@@ -51,7 +65,7 @@ Three places, by who else could use the package:
 | Kind | Where | Published | Examples |
 | --- | --- | --- | --- |
 | **Useful to others on its own** | Its own package under `@osm-editor-kit/*`, in this monorepo or in its existing repo | Yes | Street-level imagery, the imagery index for MapLibre, `osm-oauth`, `osm-changeset`, later the headless data packages |
-| **Maid's own, useful to forks** | This monorepo | Yes, once forks consume Maid as packages ([fork model](02-fork-model.md)) | `editor-core`, `renderer`, `style`, `ui-kit`, the feature UI |
+| **Maid's own, useful to forks** | This monorepo | Yes, once forks consume Maid as packages ([fork model](02-fork-model.md)) | `maid-core`, `maid-renderer`, `maid-style`, `maid-ui`, the feature UI |
 | **Internal** | This monorepo, `private: true` | No | Benchmark tools, the mock API, glue |
 
 Maid lives in the osm-editor-kit organisation: <https://github.com/osm-editor-kit/maid>. Packages that are strong on their own keep their repos, or move in and keep their names; nothing forces one layout on all of them.
@@ -67,7 +81,7 @@ Existing osm-editor-kit packages and what the reviews suggest:
 | `osm-map-url` | Give it a router-free core and share the parsers with Maid ([URL state](08-url-state.md)) |
 | `osm-data` | Unchanged. It stays the small apps' store; Maid does not build on it ([data store](05-data-store.md)). Decided |
 | `osm-way-edit`, `osm-way-chain` | Superseded for Maid by the ported actions; still right for the small apps |
-| `osm-ui` | Empty today. Either becomes `ui-kit` or goes |
+| `osm-ui` | Empty today. Either becomes `maid-ui` or goes |
 
 ## OSM login
 
