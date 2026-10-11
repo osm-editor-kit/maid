@@ -4,7 +4,8 @@ import { defineConfig } from 'vite'
 import { PORTS } from '../../tools/ports.ts'
 
 export default defineConfig({
-  plugins: [tailwindcss(), react()],
+  // React Compiler through oxc (not Babel): components are memoised at build time
+  plugins: [tailwindcss(), react({ compiler: true })],
   server: { port: PORTS.maid, strictPort: true },
   preview: { port: PORTS.maid, strictPort: true },
 })

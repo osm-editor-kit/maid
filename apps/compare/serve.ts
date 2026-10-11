@@ -9,7 +9,10 @@ Bun.serve({
   fetch(req) {
     const { pathname } = new URL(req.url)
     if (pathname === '/config.json') {
-      return Response.json({ scenes: SCENES, ports: { maid: PORTS.maidBuild, id: PORTS.id, rapid: PORTS.rapid } })
+      return Response.json({
+        scenes: SCENES,
+        ports: { maid: PORTS.maidBuild, id: PORTS.id, rapid: PORTS.rapid },
+      })
     }
     return new Response(Bun.file(join(import.meta.dir, 'index.html')))
   },

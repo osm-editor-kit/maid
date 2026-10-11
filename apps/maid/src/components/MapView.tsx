@@ -1,9 +1,20 @@
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { buildLayers, dashPatterns, interactiveLayerIds, OsmLayers, type LayerOptions } from '@maid/renderer'
+import {
+  buildLayers,
+  dashPatterns,
+  interactiveLayerIds,
+  OsmLayers,
+  type LayerOptions,
+} from '@maid/renderer'
 import * as maplibregl from 'maplibre-gl'
 import type { StyleSpecification } from 'maplibre-gl'
 import { useState } from 'react'
-import { Map, type MapEvent, type MapLayerMouseEvent, type ViewStateChangeEvent } from 'react-map-gl/maplibre'
+import {
+  Map,
+  type MapEvent,
+  type MapLayerMouseEvent,
+  type ViewStateChangeEvent,
+} from 'react-map-gl/maplibre'
 import { exposeBenchApi } from '../bench'
 import { config, engine } from '../editor'
 import { addBaseImages, ensureImages } from '../images'
@@ -56,7 +67,8 @@ export function MapView() {
     engine.options.onStyleChange = () => setDashes(new globalThis.Map(dashPatterns))
     engine.options.prepare = (batch) => {
       const ids = new Set<string>()
-      for (const f of batch.points) if (!f.properties?.addr) ids.add(`pin-${f.properties?.icon ?? 'none'}`)
+      for (const f of batch.points)
+        if (!f.properties?.addr) ids.add(`pin-${f.properties?.icon ?? 'none'}`)
       for (const f of batch.vertices) if (f.properties?.icon) ids.add(`icon-${f.properties.icon}`)
       return ensureImages(map, ids)
     }
@@ -105,7 +117,11 @@ export function MapView() {
     <Map
       id="mainMap"
       mapLib={maplibregl}
-      initialViewState={{ longitude: initialCamera.lng, latitude: initialCamera.lat, zoom: initialCamera.zoom - 1 }}
+      initialViewState={{
+        longitude: initialCamera.lng,
+        latitude: initialCamera.lat,
+        zoom: initialCamera.zoom - 1,
+      }}
       mapStyle={EMPTY_STYLE}
       maxZoom={23}
       fadeDuration={config.fade}
@@ -120,7 +136,10 @@ export function MapView() {
       onMouseMove={handleMouseMove}
       onClick={handleClick}
     >
-      <OsmLayers options={options} sourceOptions={{ tolerance: config.tolerance, maxzoom: config.sourceMaxZoom }} />
+      <OsmLayers
+        options={options}
+        sourceOptions={{ tolerance: config.tolerance, maxzoom: config.sourceMaxZoom }}
+      />
     </Map>
   )
 }

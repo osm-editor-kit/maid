@@ -7,12 +7,20 @@ import { chromium } from '@playwright/test'
 import { getScene } from '../fixtures/scenes'
 import { PORTS } from '../ports'
 
-const [editor = 'maid', sceneName = 'small', zoom = '17', out = `reports/shots/${editor}-${sceneName}-z${zoom}.png`, query = ''] =
-  process.argv.slice(2)
+const [
+  editor = 'maid',
+  sceneName = 'small',
+  zoom = '17',
+  out = `reports/shots/${editor}-${sceneName}-z${zoom}.png`,
+  query = '',
+] = process.argv.slice(2)
 const scene = getScene(sceneName)
 const port = PORTS[editor as 'maid' | 'id' | 'rapid']
 const browser = await chromium.launch({ channel: 'chrome', headless: true })
-const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 2 })
+const context = await browser.newContext({
+  viewport: { width: 1600, height: 1000 },
+  deviceScaleFactor: 2,
+})
 const page = await context.newPage()
 const blocked = new Map<string, number>()
 await context.route(
@@ -25,11 +33,14 @@ await context.route(
 )
 page.on('console', (msg) => {
   if (msg.text().includes('could not be loaded')) return
-  if (msg.type() === 'error' || msg.type() === 'warning') console.log(`[${msg.type()}]`, msg.text().slice(0, 300))
+  if (msg.type() === 'error' || msg.type() === 'warning')
+    console.log(`[${msg.type()}]`, msg.text().slice(0, 300))
 })
 page.on('pageerror', (error) => console.log('[pageerror]', error.message))
 const t0 = performance.now()
-await page.goto(`http://localhost:${port}/?scene=${sceneName}${query ? `&${query}` : ''}#map=${zoom}/${scene.center[1]}/${scene.center[0]}`)
+await page.goto(
+  `http://localhost:${port}/?scene=${sceneName}${query ? `&${query}` : ''}#map=${zoom}/${scene.center[1]}/${scene.center[0]}`,
+)
 await page.waitForFunction(() => window.__bench !== undefined, undefined, { timeout: 30000 })
 await page.evaluate(() => window.__bench.ready())
 await page.evaluate(() => window.__bench.settled())

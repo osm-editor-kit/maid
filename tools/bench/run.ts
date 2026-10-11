@@ -1,3 +1,5 @@
+import { mkdirSync } from 'node:fs'
+import { join } from 'node:path'
 /**
  * Benchmark runner. Drives every editor through the same scenarios and writes
  * reports/<run-id>/results.json plus screenshots.
@@ -8,10 +10,15 @@
  * Starts the servers it needs. Blocks every non-localhost request (core rule 1) and
  * fails a run when an editor tries to reach OSM infrastructure.
  */
-import { chromium, firefox, webkit, type Browser, type CDPSession, type Page } from '@playwright/test'
+import {
+  chromium,
+  firefox,
+  webkit,
+  type Browser,
+  type CDPSession,
+  type Page,
+} from '@playwright/test'
 import { spawn, type Subprocess } from 'bun'
-import { mkdirSync } from 'node:fs'
-import { join } from 'node:path'
 import { getScene, type Scene } from '../fixtures/scenes'
 import { PORTS } from '../ports'
 import { installProbe, type Recording } from './probe-page'
@@ -43,7 +50,13 @@ export type RunResult = {
   hoverLatencyMs?: number[]
   selectMs?: number[]
   /** Real mouse drag of a road junction vertex in a small circle for two seconds */
-  dragVertex?: FrameSummary & { cpuMs: number; settleMs: number; node: string; movedMetres: number; tries: number }
+  dragVertex?: FrameSummary & {
+    cpuMs: number
+    settleMs: number
+    node: string
+    movedMetres: number
+    tries: number
+  }
   heapMb?: number
   blocked: Record<string, number>
   screenshots: Record<string, string>
@@ -99,11 +112,17 @@ async function hoverTargets(scene: Scene) {
   const nodes = new Map<number, [number, number]>()
   for (const e of elements) if (e.type === 'node') nodes.set(e.id, [e.lon, e.lat])
   const mPerPx = (156543.03 * Math.cos((scene.center[1] * Math.PI) / 180)) / 2 ** scene.zoom
-  const maxDx = ((VIEWPORT.width / 2 - 150) * mPerPx) / (111320 * Math.cos((scene.center[1] * Math.PI) / 180))
+  const maxDx =
+    ((VIEWPORT.width / 2 - 150) * mPerPx) / (111320 * Math.cos((scene.center[1] * Math.PI) / 180))
   const maxDy = ((VIEWPORT.height / 2 - 150) * mPerPx) / 110540
   const candidates: { id: string; lng: number; lat: number; length: number }[] = []
   for (const e of elements) {
-    if (e.type !== 'way' || !e.tags?.highway || !/^(residential|tertiary|secondary|primary|living_street|unclassified)$/.test(e.tags.highway)) continue
+    if (
+      e.type !== 'way' ||
+      !e.tags?.highway ||
+      !/^(residential|tertiary|secondary|primary|living_street|unclassified)$/.test(e.tags.highway)
+    )
+      continue
     if (e.nodes.length < 3) continue
     const mid = Math.floor(e.nodes.length / 2)
     const a = nodes.get(e.nodes[mid - 1])
@@ -121,16 +140,27 @@ async function hoverTargets(scene: Scene) {
 /** Junction nodes of two or more roads near the scene centre: drawn as vertices by every editor */
 async function vertexTargets(scene: Scene) {
   const gz = await Bun.file(join(ROOT, `fixtures/${scene.name}.json.gz`)).arrayBuffer()
-  const { elements } = JSON.parse(new TextDecoder().decode(Bun.gunzipSync(new Uint8Array(gz)))) as { elements: any[] }
+  const { elements } = JSON.parse(new TextDecoder().decode(Bun.gunzipSync(new Uint8Array(gz)))) as {
+    elements: any[]
+  }
   const uses = new Map<number, number>()
   for (const e of elements) {
-    if (e.type !== 'way' || !/^(residential|tertiary|secondary|living_street|unclassified|service)$/.test(e.tags?.highway ?? '')) continue
+    if (
+      e.type !== 'way' ||
+      !/^(residential|tertiary|secondary|living_street|unclassified|service)$/.test(
+        e.tags?.highway ?? '',
+      )
+    )
+      continue
     for (const n of new Set<number>(e.nodes)) uses.set(n, (uses.get(n) ?? 0) + 1)
   }
   const out: { id: string; lng: number; lat: number; d: number }[] = []
   for (const e of elements) {
     if (e.type !== 'node' || (uses.get(e.id) ?? 0) < 2 || e.tags) continue
-    const d = Math.hypot((e.lon - scene.center[0]) * Math.cos((e.lat * Math.PI) / 180), e.lat - scene.center[1])
+    const d = Math.hypot(
+      (e.lon - scene.center[0]) * Math.cos((e.lat * Math.PI) / 180),
+      e.lat - scene.center[1],
+    )
     out.push({ id: `n${e.id}`, lng: e.lon, lat: e.lat, d })
   }
   return out.sort((a, b) => a.d - b.d).slice(2, 12)
@@ -142,7 +172,11 @@ async function cpuMs(cdp: CDPSession | undefined) {
   return (metrics.find((m) => m.name === 'TaskDuration')?.value ?? 0) * 1000
 }
 
-async function recordPhase(page: Page, cdp: CDPSession | undefined, action: () => Promise<void>): Promise<Phase> {
+async function recordPhase(
+  page: Page,
+  cdp: CDPSession | undefined,
+  action: () => Promise<void>,
+): Promise<Phase> {
   const cpu0 = await cpuMs(cdp)
   await page.evaluate(() => window.__probe.start())
   await action()
@@ -153,12 +187,35 @@ async function recordPhase(page: Page, cdp: CDPSession | undefined, action: () =
     await window.__bench.settled()
     return performance.now() - t
   })
-  return { ...summarizeFrames(rec.frames, rec.longTasks, rec.durationMs), cpuMs: Math.round(cpu1 - cpu0), settleMs: Math.round(settleMs) }
+  return {
+    ...summarizeFrames(rec.frames, rec.longTasks, rec.durationMs),
+    cpuMs: Math.round(cpu1 - cpu0),
+    settleMs: Math.round(settleMs),
+  }
 }
 
-async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: number, outDir: string, opts: ReturnType<typeof args>) {
-  const result: RunResult = { editor, variant: opts.variant, scene: scene.name, repeat, ok: false, blocked: {}, screenshots: {} }
-  const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: opts.dpr, bypassCSP: true })
+async function runOnce(
+  browser: Browser,
+  editor: Editor,
+  scene: Scene,
+  repeat: number,
+  outDir: string,
+  opts: ReturnType<typeof args>,
+) {
+  const result: RunResult = {
+    editor,
+    variant: opts.variant,
+    scene: scene.name,
+    repeat,
+    ok: false,
+    blocked: {},
+    screenshots: {},
+  }
+  const context = await browser.newContext({
+    viewport: VIEWPORT,
+    deviceScaleFactor: opts.dpr,
+    bypassCSP: true,
+  })
   await context.route(
     (url) => !['localhost', '127.0.0.1'].includes(url.hostname),
     (route) => {
@@ -175,7 +232,8 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
   const cdp = opts.browser === 'chromium' ? await context.newCDPSession(page) : undefined
   await cdp?.send('Performance.enable')
   // BENCH_DEBUG=1 prints each phase as it starts, to see where a run hangs
-  const phaseLog = (name: string) => process.env.BENCH_DEBUG && console.log(`  [${editor} ${scene.name} #${repeat}] ${name}`)
+  const phaseLog = (name: string) =>
+    process.env.BENCH_DEBUG && console.log(`  [${editor} ${scene.name} #${repeat}] ${name}`)
   const shot = async (name: string) => {
     const file = `${editor}-${opts.variant}-${scene.name}-${name}.png`
     if (repeat === 0) await page.screenshot({ path: join(outDir, file) })
@@ -184,19 +242,26 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
   try {
     const port = editor === 'maid' ? PORTS.maidBuild : PORTS[editor]
     const [lng, lat] = scene.center
-    const extra = editor === 'maid' ? opts.maidQuery : editor === 'id' ? opts.idQuery : opts.rapidQuery
+    const extra =
+      editor === 'maid' ? opts.maidQuery : editor === 'id' ? opts.idQuery : opts.rapidQuery
     const query = extra ? `&${extra}` : ''
     const start = { lng, lat, zoom: scene.zoom }
 
     phaseLog('load')
     // --- Load: from navigation to a complete picture ---
     const t0 = performance.now()
-    await page.goto(`http://localhost:${port}/?scene=${scene.name}${query}#map=${scene.zoom}/${lat}/${lng}`)
+    await page.goto(
+      `http://localhost:${port}/?scene=${scene.name}${query}#map=${scene.zoom}/${lat}/${lng}`,
+    )
     await page.waitForFunction(() => window.__bench !== undefined, undefined, { timeout: 60000 })
     await page.evaluate(() => window.__bench.ready())
     const readyMs = performance.now() - t0
     await page.evaluate(() => window.__bench.settled())
-    result.load = { readyMs: Math.round(readyMs), settledMs: Math.round(performance.now() - t0), cpuMs: Math.round(await cpuMs(cdp)) }
+    result.load = {
+      readyMs: Math.round(readyMs),
+      settledMs: Math.round(performance.now() - t0),
+      cpuMs: Math.round(await cpuMs(cdp)),
+    }
     result.version = await page.evaluate(() => window.__bench.version)
     result.gpu = await page.evaluate(() => {
       const gl = document.createElement('canvas').getContext('webgl2')
@@ -215,19 +280,20 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
     const halfH = ((scene.bbox[3] - scene.bbox[1]) / 2) * 110540
     const dx = Math.round(Math.min(1100, Math.max(0, halfW / mPerPx - VIEWPORT.width / 2 - 30)))
     const dy = Math.round(Math.min(700, Math.max(0, halfH / mPerPx - VIEWPORT.height / 2 - 30)))
-    const drag = (fromX: number, fromY: number, toX: number, toY: number, ms: number) => async () => {
-      await page.mouse.move(fromX, fromY)
-      await page.mouse.down()
-      const t = performance.now()
-      for (;;) {
-        const k = Math.min(1, (performance.now() - t) / ms)
-        await page.mouse.move(fromX + (toX - fromX) * k, fromY + (toY - fromY) * k)
-        if (k >= 1) break
-        await page.waitForTimeout(8)
+    const drag =
+      (fromX: number, fromY: number, toX: number, toY: number, ms: number) => async () => {
+        await page.mouse.move(fromX, fromY)
+        await page.mouse.down()
+        const t = performance.now()
+        for (;;) {
+          const k = Math.min(1, (performance.now() - t) / ms)
+          await page.mouse.move(fromX + (toX - fromX) * k, fromY + (toY - fromY) * k)
+          if (k >= 1) break
+          await page.waitForTimeout(8)
+        }
+        await page.waitForTimeout(150) // rest before release, so that no editor adds a fling
+        await page.mouse.up()
       }
-      await page.waitForTimeout(150) // rest before release, so that no editor adds a fling
-      await page.mouse.up()
-    }
     // start where nothing is under the pointer: iD and Rapid drag a vertex if there is one
     let grab = { x: VIEWPORT.width / 2 + dx / 2, y: VIEWPORT.height / 2 - dy / 2 }
     for (let i = 0; i < 25; i++) {
@@ -239,8 +305,16 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
         break
       }
     }
-    result.panCold = await recordPhase(page, cdp, drag(grab.x, grab.y, grab.x - dx, grab.y + dy, 3000))
-    result.panWarm = await recordPhase(page, cdp, drag(grab.x - dx, grab.y + dy, grab.x, grab.y, 3000))
+    result.panCold = await recordPhase(
+      page,
+      cdp,
+      drag(grab.x, grab.y, grab.x - dx, grab.y + dy, 3000),
+    )
+    result.panWarm = await recordPhase(
+      page,
+      cdp,
+      drag(grab.x - dx, grab.y + dy, grab.x, grab.y, 3000),
+    )
     await page.evaluate((c) => window.__bench.setCamera(c), start)
     await page.evaluate(() => window.__bench.settled())
 
@@ -269,9 +343,16 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
     const targets = await hoverTargets(scene)
     result.hoverLatencyMs = []
     for (const target of targets) {
-      const pos = await page.evaluate(([x, y]) => window.__bench.project(x, y), [target.lng, target.lat] as const)
+      const pos = await page.evaluate(([x, y]) => window.__bench.project(x, y), [
+        target.lng,
+        target.lat,
+      ] as const)
       // park the pointer where nothing is hovered
-      for (const [x, y] of [[3, 3], [VIEWPORT.width - 3, 3], [3, VIEWPORT.height - 3]] as const) {
+      for (const [x, y] of [
+        [3, 3],
+        [VIEWPORT.width - 3, 3],
+        [3, VIEWPORT.height - 3],
+      ] as const) {
         await page.mouse.move(x, y)
         await page.waitForTimeout(200)
         if ((await page.evaluate(() => window.__bench.hovered())).length === 0) break
@@ -284,9 +365,13 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
     const cpu0 = await cpuMs(cdp)
     await page.evaluate(() => window.__probe.start())
     for (let i = 0; i <= 90; i++) {
-      await page.mouse.move(100 + (i / 90) * (VIEWPORT.width - 200), VIEWPORT.height / 2 + Math.sin(i / 6) * 250)
+      await page.mouse.move(
+        100 + (i / 90) * (VIEWPORT.width - 200),
+        VIEWPORT.height / 2 + Math.sin(i / 6) * 250,
+      )
       await page.waitForTimeout(25)
-      if (i % 5 === 0) for (const id of await page.evaluate(() => window.__bench.hovered())) hoveredIds.add(id)
+      if (i % 5 === 0)
+        for (const id of await page.evaluate(() => window.__bench.hovered())) hoveredIds.add(id)
     }
     const sweep: Recording = await page.evaluate(() => window.__probe.stop())
     result.hoverSweep = {
@@ -322,7 +407,10 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
         // one level closer and centred on the vertex: at the scene's zoom neighbouring vertices
         // are so close that Rapid picks up a different one
         await page.mouse.move(3, 3)
-        await page.evaluate(([c, z]) => window.__bench.setCamera({ lng: c[0], lat: c[1], zoom: z }), [before, scene.zoom + 1] as const)
+        await page.evaluate(
+          ([c, z]) => window.__bench.setCamera({ lng: c[0], lat: c[1], zoom: z }),
+          [before, scene.zoom + 1] as const,
+        )
         await page.evaluate(() => window.__bench.settled())
         const pos = await page.evaluate(([x, y]) => window.__bench.project(x, y), before)
         await page.mouse.move(pos.x - 30, pos.y - 30)
@@ -336,7 +424,10 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
           for (;;) {
             const k = Math.min(1, (performance.now() - t) / 2000)
             const angle = k * Math.PI * 3
-            await page.mouse.move(pos.x + Math.sin(angle) * 40 + k * 20, pos.y + (1 - Math.cos(angle)) * 25)
+            await page.mouse.move(
+              pos.x + Math.sin(angle) * 40 + k * 20,
+              pos.y + (1 - Math.cos(angle)) * 25,
+            )
             if (k >= 1) break
             await page.waitForTimeout(8)
           }
@@ -346,10 +437,18 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
         await page.keyboard.up('Alt')
         const after = await page.evaluate((id) => window.__bench.nodeLoc(id), target.id)
         const movedMetres = after
-          ? Math.hypot((after[0] - before[0]) * 111320 * Math.cos((before[1] * Math.PI) / 180), (after[1] - before[1]) * 110540)
+          ? Math.hypot(
+              (after[0] - before[0]) * 111320 * Math.cos((before[1] * Math.PI) / 180),
+              (after[1] - before[1]) * 110540,
+            )
           : 0
         if (movedMetres > 1) {
-          result.dragVertex = { ...phase, node: target.id, movedMetres: Math.round(movedMetres * 10) / 10, tries }
+          result.dragVertex = {
+            ...phase,
+            node: target.id,
+            movedMetres: Math.round(movedMetres * 10) / 10,
+            tries,
+          }
           await shot('drag')
           break
         }
@@ -362,18 +461,23 @@ async function runOnce(browser: Browser, editor: Editor, scene: Scene, repeat: n
     if (cdp) {
       await cdp.send('HeapProfiler.collectGarbage')
       const { metrics } = await cdp.send('Performance.getMetrics')
-      result.heapMb = Math.round((metrics.find((m) => m.name === 'JSHeapUsedSize')?.value ?? 0) / 1e5) / 10
+      result.heapMb =
+        Math.round((metrics.find((m) => m.name === 'JSHeapUsedSize')?.value ?? 0) / 1e5) / 10
     }
     result.ok = true
   } catch (error) {
     result.error = String(error).slice(0, 500)
-    await page.screenshot({ path: join(outDir, `error-${editor}-${scene.name}-${repeat}.png`) }).catch(() => {})
+    await page
+      .screenshot({ path: join(outDir, `error-${editor}-${scene.name}-${repeat}.png`) })
+      .catch(() => {})
   }
-  if (errors.length) result.error = [result.error, ...errors.slice(0, 3)].filter(Boolean).join(' | ')
+  if (errors.length)
+    result.error = [result.error, ...errors.slice(0, 3)].filter(Boolean).join(' | ')
   const osmHosts = Object.keys(result.blocked).filter((host) => OSM_HOSTS.test(host))
   if (osmHosts.length) {
     result.ok = false
-    result.error = `${result.error ?? ''} tried to reach OSM infrastructure: ${osmHosts.join(', ')}`.trim()
+    result.error =
+      `${result.error ?? ''} tried to reach OSM infrastructure: ${osmHosts.join(', ')}`.trim()
   }
   await context.close()
   return result
@@ -387,15 +491,31 @@ mkdirSync(outDir, { recursive: true })
 const started: Subprocess[] = []
 let failed = false
 try {
-  await ensureServer('mock-osm-api', PORTS.mockApi, ['bun', 'tools/mock-osm-api/server.ts'], started)
+  await ensureServer(
+    'mock-osm-api',
+    PORTS.mockApi,
+    ['bun', 'tools/mock-osm-api/server.ts'],
+    started,
+  )
   if (opts.editors.includes('maid')) {
     console.log('building Maid')
-    const build = spawn(['bun', 'run', '--cwd', 'apps/maid', 'build'], { cwd: ROOT, stdout: 'ignore', stderr: 'inherit' })
+    const build = spawn(['bun', 'run', '--cwd', 'apps/maid', 'build'], {
+      cwd: ROOT,
+      stdout: 'ignore',
+      stderr: 'inherit',
+    })
     if ((await build.exited) !== 0) throw new Error('Maid build failed')
-    await ensureServer('maid', PORTS.maidBuild, ['bun', 'run', '--cwd', 'apps/maid', 'preview', '--port', String(PORTS.maidBuild)], started)
+    await ensureServer(
+      'maid',
+      PORTS.maidBuild,
+      ['bun', 'run', '--cwd', 'apps/maid', 'preview', '--port', String(PORTS.maidBuild)],
+      started,
+    )
   }
-  if (opts.editors.includes('id')) await ensureServer('iD', PORTS.id, ['bun', 'tools/refs/id/serve.ts'], started)
-  if (opts.editors.includes('rapid')) await ensureServer('Rapid', PORTS.rapid, ['bun', 'tools/refs/rapid/serve.ts'], started)
+  if (opts.editors.includes('id'))
+    await ensureServer('iD', PORTS.id, ['bun', 'tools/refs/id/serve.ts'], started)
+  if (opts.editors.includes('rapid'))
+    await ensureServer('Rapid', PORTS.rapid, ['bun', 'tools/refs/rapid/serve.ts'], started)
 
   const browser =
     opts.browser === 'chromium'
@@ -409,7 +529,16 @@ try {
         const result = await Promise.race([
           runOnce(browser, editor, scene, repeat, outDir, opts),
           Bun.sleep(300_000).then(
-            (): RunResult => ({ editor, variant: opts.variant, scene: scene.name, repeat, ok: false, error: 'run did not finish within 5 minutes', blocked: {}, screenshots: {} }),
+            (): RunResult => ({
+              editor,
+              variant: opts.variant,
+              scene: scene.name,
+              repeat,
+              ok: false,
+              error: 'run did not finish within 5 minutes',
+              blocked: {},
+              screenshots: {},
+            }),
           ),
         ])
         results.push(result)
@@ -436,8 +565,12 @@ try {
     gpu: results.find((r) => r.gpu)?.gpu,
     git: (await Bun.$`git -C ${ROOT} rev-parse --short HEAD`.text()).trim(),
     pins: {
-      id: await Bun.file(join(ROOT, 'tools/refs/id/pin.json')).json().catch(() => null),
-      rapid: await Bun.file(join(ROOT, 'tools/refs/rapid/pin.json')).json().catch(() => null),
+      id: await Bun.file(join(ROOT, 'tools/refs/id/pin.json'))
+        .json()
+        .catch(() => null),
+      rapid: await Bun.file(join(ROOT, 'tools/refs/rapid/pin.json'))
+        .json()
+        .catch(() => null),
     },
   }
   await browser.close()

@@ -254,5 +254,5 @@ bun run bench --repeat 3 --label final2
 bun run bench --browser firefox --scene medium --repeat 2 --label firefox
 bun run bench --editor id --repeat 2 --label id-cull0 --variant "no auto-hide" --id-query "cull=0"   # iD drawing everything
 bun run bench-report <run-id> [<run-id> ...]
-bun run compare         # the three editors side by side on http://localhost:5174
+bun run compare         # the three editors side by side on http://localhost:5184
 ```

@@ -3,8 +3,22 @@
 <title>MapLibre: overlapping updateData calls leave GeoJSON tiles inconsistent</title>
 <link rel="stylesheet" href="/maplibre-gl/dist/maplibre-gl.css" />
 <style>
-  html, body, #map { height: 100%; margin: 0; }
-  #out { position: absolute; top: 8px; left: 8px; z-index: 1; background: #fff; padding: 8px; font: 13px/1.4 monospace; white-space: pre; }
+  html,
+  body,
+  #map {
+    height: 100%;
+    margin: 0;
+  }
+  #out {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 1;
+    background: #fff;
+    padding: 8px;
+    font: 13px/1.4 monospace;
+    white-space: pre;
+  }
 </style>
 <div id="map"></div>
 <div id="out">running…</div>
@@ -26,7 +40,11 @@
     container: 'map',
     center,
     zoom: 17,
-    style: { version: 8, sources: {}, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#111' } }] },
+    style: {
+      version: 8,
+      sources: {},
+      layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#111' } }],
+    },
   })
 
   // deterministic pseudo-random lines around the centre
@@ -36,8 +54,15 @@
     Array.from({ length: PER_BATCH }, (_, i) => {
       const x = center[0] + (random() - 0.5) * 0.004
       const y = center[1] + (random() - 0.5) * 0.0025
-      const coordinates = Array.from({ length: 6 }, (_, k) => [x + k * 0.0001 + random() * 0.00005, y + random() * 0.0002])
-      return { type: 'Feature', properties: { id: `f${b}-${i}`, kind: i % 3 }, geometry: { type: 'LineString', coordinates } }
+      const coordinates = Array.from({ length: 6 }, (_, k) => [
+        x + k * 0.0001 + random() * 0.00005,
+        y + random() * 0.0002,
+      ])
+      return {
+        type: 'Feature',
+        properties: { id: `f${b}-${i}`, kind: i % 3 },
+        geometry: { type: 'LineString', coordinates },
+      }
     })
 
   const tilesReloaded = () =>
@@ -48,7 +73,13 @@
     })
 
   map.on('load', async () => {
-    map.addSource('lines', { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, promoteId: 'id', tolerance: 0, maxzoom: 17 })
+    map.addSource('lines', {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] },
+      promoteId: 'id',
+      tolerance: 0,
+      maxzoom: 17,
+    })
     for (const kind of [0, 1, 2]) {
       map.addLayer({
         id: `lines-${kind}`,
@@ -75,7 +106,10 @@
         const list = open.get(tile.uid)
         // an older request for this tile is still open: this answer overtook it
         if (list.some((m) => m < n)) trace.outOfOrder++
-        open.set(tile.uid, list.filter((m) => m !== n))
+        open.set(
+          tile.uid,
+          list.filter((m) => m !== n),
+        )
       }
     }
     for (let b = 0; b < BATCHES; b++) {
@@ -83,7 +117,13 @@
       if (RESTYLE) {
         // what an app does when new data brings a new dash pattern
         const cases = Array.from({ length: b + 1 }, (_, k) => [k, ['literal', [1 + k, 2]]]).flat()
-        for (const kind of [0, 1, 2]) map.setPaintProperty(`lines-${kind}`, 'line-dasharray', ['match', ['get', 'kind'], ...cases, ['literal', [1, 0]]])
+        for (const kind of [0, 1, 2])
+          map.setPaintProperty(`lines-${kind}`, 'line-dasharray', [
+            'match',
+            ['get', 'kind'],
+            ...cases,
+            ['literal', [1, 0]],
+          ])
       }
       if (SERIAL) {
         await promise
@@ -101,7 +141,9 @@
     const data = await source.getData()
     let rendered
     try {
-      rendered = new Set(map.queryRenderedFeatures({ layers: ['lines-0', 'lines-1', 'lines-2'] }).map((f) => f.id)).size
+      rendered = new Set(
+        map.queryRenderedFeatures({ layers: ['lines-0', 'lines-1', 'lines-2'] }).map((f) => f.id),
+      ).size
     } catch (error) {
       rendered = String(error)
     }

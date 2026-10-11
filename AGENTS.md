@@ -54,7 +54,8 @@ These names are the contract. Agents and docs only reference these.
 
 | Script | What it does |
 | --- | --- |
-| `bun run check` | Type-check and unit tests. Run before every commit. (Lint and format are not set up yet.) |
+| `bun run check` | Type-check, lint and format with fixes (oxlint, oxfmt), unit tests. Run before every commit. |
+| `bun run check-ci` | The same, read-only. |
 | `bun run dev` | Maid dev server (5173) and the mock OSM API (8090). |
 | `bun run refs-setup` | Clone and build iD and Rapid at their pinned commits into `.reference/`, copy icon sprites into Maid. |
 | `bun run refs-serve` | Serve the built reference editors: iD on 8081, Rapid on 8082. |
@@ -62,7 +63,7 @@ These names are the contract. Agents and docs only reference these.
 | `bun run bench-smoke` | One run per editor on the small scene. |
 | `bun run bench-report [run-id ...]` | Render one or more runs as `report.md` and `report.html`. |
 | `bun run bench-edit [scene] [query]` | Maid only: drag a node and measure change-to-screen time. Needs a Maid preview on 5175 (`bun run compare` starts one). |
-| `bun run compare` | Everything for the side-by-side page on http://localhost:5174. |
+| `bun run compare` | Everything for the side-by-side page on http://localhost:5184. |
 | `bun run fixtures-build <file.osm.pbf>` | Cut fixtures from a local extract. Manual only, see core rule 1. |
 | `bun run style-generate [iD checkout]` | Regenerate the style data from iD's CSS and presets. |
 

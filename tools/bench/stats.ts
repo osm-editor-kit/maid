@@ -25,7 +25,12 @@ export type FrameSummary = {
 }
 
 /** @param refreshMs the display's frame interval, taken from the fastest frames of the run */
-export function summarizeFrames(frames: number[], longTasks: number[], durationMs: number, refreshMs = 16.7): FrameSummary {
+export function summarizeFrames(
+  frames: number[],
+  longTasks: number[],
+  durationMs: number,
+  refreshMs = 16.7,
+): FrameSummary {
   const slow = frames.filter((f) => f > refreshMs * 2.5)
   return {
     frames: frames.length,

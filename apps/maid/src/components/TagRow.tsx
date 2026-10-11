@@ -6,7 +6,8 @@ type Props = {
   onChange: (value: string | undefined) => void
 }
 
-const INPUT = 'w-full rounded border border-transparent bg-transparent px-1 py-0.5 hover:border-neutral-300 focus:border-blue-500 focus:bg-white focus:outline-none'
+const INPUT =
+  'w-full rounded border border-transparent bg-transparent px-1 py-0.5 hover:border-neutral-300 focus:border-blue-500 focus:bg-white focus:outline-none'
 
 /** One tag. The value is edited in place and applied on Enter or when the field loses focus. */
 export function TagRow({ tagKey, value, onChange }: Props) {
@@ -14,7 +15,11 @@ export function TagRow({ tagKey, value, onChange }: Props) {
   const commit = () => draft !== value && onChange(draft.trim() || undefined)
   return (
     <tr className="border-b border-neutral-200 last:border-0">
-      <th scope="row" className="w-2/5 truncate py-1 pr-2 text-left font-normal text-neutral-600" title={tagKey}>
+      <th
+        scope="row"
+        className="w-2/5 truncate py-1 pr-2 text-left font-normal text-neutral-600"
+        title={tagKey}
+      >
         {tagKey}
       </th>
       <td className="py-0.5">

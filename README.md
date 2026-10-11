@@ -23,7 +23,7 @@ Iteration 1 is a proof of concept that answers one question: can MapLibre render
 ```bash
 bun install
 bun run refs-setup   # clones and builds iD and Rapid at their pins, once
-bun run compare      # the three editors side by side, http://localhost:5174
+bun run compare      # the three editors side by side, http://localhost:5184
 bun run bench        # the benchmark; then: bun run bench-report
 ```
 

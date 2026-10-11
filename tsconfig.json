@@ -10,7 +10,8 @@
     "skipLibCheck": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "types": ["bun"], "resolveJsonModule": true
+    "types": ["bun"],
+    "resolveJsonModule": true
   },
   "include": ["apps", "packages", "tools"],
   "exclude": ["**/node_modules", "**/dist", ".reference"]

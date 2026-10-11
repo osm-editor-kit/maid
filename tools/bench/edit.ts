@@ -15,18 +15,28 @@ import { median, quantile } from './stats'
 const [sceneName = 'dense', query = '', label = 'default'] = process.argv.slice(2)
 const scene = getScene(sceneName)
 const browser = await chromium.launch({ channel: 'chrome', headless: true })
-const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 2 })
-await context.route((url) => !['localhost', '127.0.0.1'].includes(url.hostname), (route) => route.abort())
+const context = await browser.newContext({
+  viewport: { width: 1600, height: 1000 },
+  deviceScaleFactor: 2,
+})
+await context.route(
+  (url) => !['localhost', '127.0.0.1'].includes(url.hostname),
+  (route) => route.abort(),
+)
 const page = await context.newPage()
 page.on('pageerror', (e) => console.log('[pageerror]', e.message))
-await page.goto(`http://localhost:${PORTS.maidBuild}/?scene=${scene.name}&${query}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`)
+await page.goto(
+  `http://localhost:${PORTS.maidBuild}/?scene=${scene.name}&${query}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
+)
 await page.waitForFunction(() => window.__bench !== undefined)
 await page.evaluate(() => window.__bench.settled())
 
 const result = await page.evaluate(async () => {
   const { engine, map } = (window as any).__maid
   // a node in the middle of the longest road on screen, like a vertex someone would drag
-  const ids = new Set<string>(map.queryRenderedFeatures({ layers: ['line-stroke-0'] }).map((f: any) => f.id))
+  const ids = new Set<string>(
+    map.queryRenderedFeatures({ layers: ['line-stroke-0'] }).map((f: any) => f.id),
+  )
   let best: any
   for (const id of ids) {
     const way = engine.store.ways.get(Number(id.slice(1)))
@@ -47,7 +57,13 @@ const result = await page.evaluate(async () => {
   const latencies: number[] = []
   const t0 = performance.now()
   for (let i = 1; i <= 120; i++) {
-    latencies.push(await engine.moveNode(nodeId, start.lon + i * 0.000002, start.lat + Math.sin(i / 10) * 0.00002))
+    latencies.push(
+      await engine.moveNode(
+        nodeId,
+        start.lon + i * 0.000002,
+        start.lat + Math.sin(i / 10) * 0.00002,
+      ),
+    )
   }
   const total = performance.now() - t0
   const tc = performance.now()
@@ -56,8 +72,14 @@ const result = await page.evaluate(async () => {
   const commitMs = performance.now() - tc
   running = false
   return {
-    way: best.id, wayNodes: best.nodes.length, waysAtNode: engine.store.nodeWays.get(nodeId).length,
-    entities: engine.store.counts(), latencies, frames, total, commitMs,
+    way: best.id,
+    wayNodes: best.nodes.length,
+    waysAtNode: engine.store.nodeWays.get(nodeId).length,
+    entities: engine.store.counts(),
+    latencies,
+    frames,
+    total,
+    commitMs,
   }
 })
 const out = {
@@ -66,11 +88,19 @@ const out = {
   query,
   entities: result.entities,
   way: `w${result.way} (${result.wayNodes} nodes, node shared by ${result.waysAtNode} ways)`,
-  changeToScreenMs: { median: Math.round(median(result.latencies) * 10) / 10, p95: Math.round(quantile(result.latencies, 0.95) * 10) / 10, max: Math.round(Math.max(...result.latencies)) },
+  changeToScreenMs: {
+    median: Math.round(median(result.latencies) * 10) / 10,
+    p95: Math.round(quantile(result.latencies, 0.95) * 10) / 10,
+    max: Math.round(Math.max(...result.latencies)),
+  },
   firstChangeMs: Math.round(result.latencies[0]!),
   commitMs: Math.round(result.commitMs),
   changesPerSecond: Math.round((120 / result.total) * 1000),
-  frameMs: { median: Math.round(median(result.frames) * 10) / 10, p95: Math.round(quantile(result.frames, 0.95) * 10) / 10, max: Math.round(Math.max(...result.frames)) },
+  frameMs: {
+    median: Math.round(median(result.frames) * 10) / 10,
+    p95: Math.round(quantile(result.frames, 0.95) * 10) / 10,
+    max: Math.round(Math.max(...result.frames)),
+  },
 }
 console.log(JSON.stringify(out))
 await page.screenshot({ path: `reports/shots/edit-${scene.name}-${label}.png` })

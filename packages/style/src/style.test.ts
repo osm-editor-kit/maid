@@ -25,7 +25,9 @@ test('areas', () => {
   expect(isArea({ building: 'yes' }, false)).toBe(false)
   const park = resolveWayStyle(tagClasses({ leisure: 'park' }), 'area')
   expect(park.fill).toContain('rgba(140, 208, 95')
-  expect(resolveWayStyle(tagClasses({ building: 'yes' }), 'area').stroke.color).toBe('rgb(224, 110, 95)')
+  expect(resolveWayStyle(tagClasses({ building: 'yes' }), 'area').stroke.color).toBe(
+    'rgb(224, 110, 95)',
+  )
 })
 
 test('preset icons', () => {

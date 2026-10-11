@@ -37,6 +37,7 @@ export const SCENES: Scene[] = [
 
 export function getScene(name: string) {
   const scene = SCENES.find((s) => s.name === name)
-  if (!scene) throw new Error(`Unknown scene "${name}". Known: ${SCENES.map((s) => s.name).join(', ')}`)
+  if (!scene)
+    throw new Error(`Unknown scene "${name}". Known: ${SCENES.map((s) => s.name).join(', ')}`)
   return scene
 }

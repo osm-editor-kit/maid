@@ -30,7 +30,12 @@ export type Config = {
   camera?: { zoom: number; lat: number; lng: number }
 }
 
-const param = <T extends string>(params: URLSearchParams, name: string, allowed: readonly T[], fallback: T) => {
+const param = <T extends string>(
+  params: URLSearchParams,
+  name: string,
+  allowed: readonly T[],
+  fallback: T,
+) => {
   const value = params.get(name) as T | null
   return value && allowed.includes(value) ? value : fallback
 }

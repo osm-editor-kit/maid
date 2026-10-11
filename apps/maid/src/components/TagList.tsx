@@ -19,10 +19,19 @@ export function TagList({ tags, onChange }: Props) {
           {entries.map(([key, value]) =>
             onChange ? (
               // the value in the key resets the row's draft when the tag changes from elsewhere
-              <TagRow key={`${key}=${value}`} tagKey={key} value={value} onChange={(next) => onChange(key, next)} />
+              <TagRow
+                key={`${key}=${value}`}
+                tagKey={key}
+                value={value}
+                onChange={(next) => onChange(key, next)}
+              />
             ) : (
               <tr key={key} className="border-b border-neutral-200 last:border-0">
-                <th scope="row" className="w-2/5 truncate py-1 pr-2 text-left font-normal text-neutral-600" title={key}>
+                <th
+                  scope="row"
+                  className="w-2/5 truncate py-1 pr-2 text-left font-normal text-neutral-600"
+                  title={key}
+                >
                   {key}
                 </th>
                 <td className="truncate py-1" title={value}>

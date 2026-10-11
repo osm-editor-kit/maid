@@ -1,0 +1,18 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+      # no bunfig.toml in CI: the shared package store is for local machines
+      - run: bun install --frozen-lockfile --config=/dev/null
+      # the style data is generated from the pinned iD and is committed, so no reference build is needed here
+      - run: bun run check-ci

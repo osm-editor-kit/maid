@@ -4,7 +4,13 @@ import { useSelectedId } from '../url'
 import { PresetIcon } from './PresetIcon'
 import { TagList } from './TagList'
 
-const GEOMETRY_LABEL = { point: 'Point', vertex: 'Vertex', line: 'Line', area: 'Area', relation: 'Relation' }
+const GEOMETRY_LABEL = {
+  point: 'Point',
+  vertex: 'Vertex',
+  line: 'Line',
+  area: 'Area',
+  relation: 'Relation',
+}
 
 /** Sidebar for the selected feature: what it is (iD preset) and its tags. Floats over the map. */
 export function Inspector() {
@@ -52,9 +58,13 @@ export function Inspector() {
           </p>
           <TagList
             tags={entity.tags}
-            onChange={entity.type === 'relation' ? undefined : (key, value) => engine.setTag(id, key, value)}
+            onChange={
+              entity.type === 'relation' ? undefined : (key, value) => engine.setTag(id, key, value)
+            }
           />
-          <p className="mt-3 text-xs text-neutral-500">Changes stay in this browser tab. Saving to OSM is not built yet.</p>
+          <p className="mt-3 text-xs text-neutral-500">
+            Changes stay in this browser tab. Saving to OSM is not built yet.
+          </p>
         </div>
       )}
     </aside>

@@ -3,7 +3,16 @@
  * properties. Classification runs once per entity in JavaScript, so MapLibre's style
  * expressions stay trivial (`['get', 'sc']`) and forks can change the look in one place.
  */
-import { hasInterestingTags, isArea, matchPreset, presetIcon, resolveWayStyle, tagClasses, wayLayer, type Tags } from '@maid/style'
+import {
+  hasInterestingTags,
+  isArea,
+  matchPreset,
+  presetIcon,
+  resolveWayStyle,
+  tagClasses,
+  wayLayer,
+  type Tags,
+} from '@maid/style'
 import type { Feature, LineString, MultiPolygon, Point, Polygon, Position } from 'geojson'
 import type { MergeResult, OsmNode, OsmRelation, OsmStore, OsmWay } from './store'
 
@@ -98,7 +107,12 @@ function wayCoords(store: OsmStore, way: OsmWay) {
   return coords
 }
 
-function lineFeature(id: string, coords: Position[], tags: Tags, classes: string[]): Feature<LineString, LineProps> {
+function lineFeature(
+  id: string,
+  coords: Position[],
+  tags: Tags,
+  classes: string[],
+): Feature<LineString, LineProps> {
   const style = resolveWayStyle(classes, 'line')
   const layer = wayLayer(tags)
   const props: LineProps = {
@@ -121,7 +135,12 @@ function lineFeature(id: string, coords: Position[], tags: Tags, classes: string
   if (cd) props.cd = cd
   if (tags.name) props.name = tags.name
   if (tags.oneway === 'yes' || tags.junction === 'roundabout') props.oneway = 1
-  return { type: 'Feature', id, properties: props, geometry: { type: 'LineString', coordinates: coords } }
+  return {
+    type: 'Feature',
+    id,
+    properties: props,
+    geometry: { type: 'LineString', coordinates: coords },
+  }
 }
 
 /** MapLibre offsets lines to the left of their direction; counter-clockwise rings put the inside on the left. */
@@ -154,7 +173,13 @@ function areaFeature(
     id,
     sw: stroke.width,
     // iD strokes the clipped fill path 60px wide (css/70_fills.css), which shows as a band half as wide
-    fw: classes.includes('building_part') ? 20 : classes.includes('indoor') ? 10 : classes.includes('amenity-parking_space') ? 15 : 30,
+    fw: classes.includes('building_part')
+      ? 20
+      : classes.includes('indoor')
+        ? 10
+        : classes.includes('amenity-parking_space')
+          ? 15
+          : 30,
     r: perimeter > 0 ? Math.round(((2 * area) / perimeter) * 100) / 100 : 0,
     hw: style.shadow.width,
   }
@@ -204,14 +229,22 @@ function pointInRing(point: Position, ring: Position[]) {
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
     const [xi, yi] = ring[i] as [number, number]
     const [xj, yj] = ring[j] as [number, number]
-    if (yi > point[1]! !== yj > point[1]! && point[0]! < ((xj - xi) * (point[1]! - yi)) / (yj - yi) + xi) inside = !inside
+    if (
+      yi > point[1]! !== yj > point[1]! &&
+      point[0]! < ((xj - xi) * (point[1]! - yi)) / (yj - yi) + xi
+    )
+      inside = !inside
   }
   return inside
 }
 
 function multipolygon(store: OsmStore, relation: OsmRelation) {
-  const outerIds = relation.members.filter((m) => m.type === 'way' && m.role !== 'inner').map((m) => m.ref)
-  const innerIds = relation.members.filter((m) => m.type === 'way' && m.role === 'inner').map((m) => m.ref)
+  const outerIds = relation.members
+    .filter((m) => m.type === 'way' && m.role !== 'inner')
+    .map((m) => m.ref)
+  const innerIds = relation.members
+    .filter((m) => m.type === 'way' && m.role === 'inner')
+    .map((m) => m.ref)
   const outers = assembleRings(store, outerIds)
   const inners = assembleRings(store, innerIds)
   if (!outers || !inners || outers.length === 0) return undefined
@@ -225,7 +258,10 @@ function multipolygon(store: OsmStore, relation: OsmRelation) {
 
 /** iD hides boundaries by default (renderer/features.js, rule `boundaries`) */
 function isHiddenBoundary(t: Tags) {
-  return !!t.boundary && !(t.highway || t.waterway || t.railway || t.landuse || t.natural || t.building || t.power)
+  return (
+    !!t.boundary &&
+    !(t.highway || t.waterway || t.railway || t.landuse || t.natural || t.building || t.power)
+  )
 }
 
 /** iD's isAddressPoint: a node that only carries an address */
@@ -283,7 +319,12 @@ export class FeatureBuilder {
       if (icon) props.icon = icon
       if (node.tags!.name) props.name = node.tags!.name
     }
-    return { type: 'Feature', id, properties: props, geometry: { type: 'Point', coordinates: [node.lon, node.lat] } }
+    return {
+      type: 'Feature',
+      id,
+      properties: props,
+      geometry: { type: 'Point', coordinates: [node.lon, node.lat] },
+    }
   }
 
   /** Re-reads a vertex's tags (tagged or not) and returns its feature, if it has one */
@@ -302,10 +343,19 @@ export class FeatureBuilder {
   buildVertex(node: OsmNode): Feature | undefined {
     const state = this.vertexState.get(node.id)
     if (!state) return undefined
-    const props: VertexProps = { id: `n${node.id}`, t: state[0] === '1' ? 1 : 0, s: state[1] === '1' ? 1 : 0 }
+    const props: VertexProps = {
+      id: `n${node.id}`,
+      t: state[0] === '1' ? 1 : 0,
+      s: state[1] === '1' ? 1 : 0,
+    }
     const icon = props.t ? matchPreset(node.tags!, 'vertex')?.icon : undefined
     if (icon) props.icon = icon
-    return { type: 'Feature', id: props.id, properties: props, geometry: { type: 'Point', coordinates: [node.lon, node.lat] } }
+    return {
+      type: 'Feature',
+      id: props.id,
+      properties: props,
+      geometry: { type: 'Point', coordinates: [node.lon, node.lat] },
+    }
   }
 
   /** Features for everything a merge added. Call once per merge, in order. */
@@ -365,7 +415,12 @@ export class FeatureBuilder {
       const props: VertexProps = { id, t: tagged ? 1 : 0, s: shared ? 1 : 0 }
       const icon = tagged ? matchPreset(node.tags!, 'vertex')?.icon : undefined
       if (icon) props.icon = icon
-      out.vertices.push({ type: 'Feature', id, properties: props, geometry: { type: 'Point', coordinates: [node.lon, node.lat] } as Point })
+      out.vertices.push({
+        type: 'Feature',
+        id,
+        properties: props,
+        geometry: { type: 'Point', coordinates: [node.lon, node.lat] } as Point,
+      })
     }
     return out
   }
@@ -378,7 +433,12 @@ export function wayVertices(store: OsmStore, wayId: number): Feature<Point>[] {
   const out: Feature<Point>[] = []
   for (const nodeId of new Set(way.nodes)) {
     const node = store.nodes.get(nodeId)
-    if (node) out.push({ type: 'Feature', properties: { id: `n${nodeId}` }, geometry: { type: 'Point', coordinates: [node.lon, node.lat] } })
+    if (node)
+      out.push({
+        type: 'Feature',
+        properties: { id: `n${nodeId}` },
+        geometry: { type: 'Point', coordinates: [node.lon, node.lat] },
+      })
   }
   return out
 }

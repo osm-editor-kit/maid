@@ -4,29 +4,75 @@
     <meta charset="UTF-8" />
     <title>Maid · iD · Rapid</title>
     <style>
-      body { margin: 0; padding: 24px; font: 15px/1.5 system-ui, sans-serif; background: #111; color: #eee; max-width: 760px; }
-      button, select { font: inherit; padding: 6px 12px; }
-      table { border-collapse: collapse; margin-top: 16px; }
-      td, th { padding: 6px 16px 6px 0; text-align: left; font-variant-numeric: tabular-nums; }
-      p { color: #bbb; }
+      body {
+        margin: 0;
+        padding: 24px;
+        font:
+          15px/1.5 system-ui,
+          sans-serif;
+        background: #111;
+        color: #eee;
+        max-width: 760px;
+      }
+      button,
+      select {
+        font: inherit;
+        padding: 6px 12px;
+      }
+      table {
+        border-collapse: collapse;
+        margin-top: 16px;
+      }
+      td,
+      th {
+        padding: 6px 16px 6px 0;
+        text-align: left;
+        font-variant-numeric: tabular-nums;
+      }
+      p {
+        color: #bbb;
+      }
     </style>
   </head>
   <body>
     <h1>Maid · iD · Rapid side by side</h1>
     <p>
-      Opens the three editors in three windows next to each other, on the same scene and camera. The window under your
-      pointer leads; the other two follow. All data comes from the local mock API.
+      Opens the three editors in three windows next to each other, on the same scene and camera. The
+      window under your pointer leads; the other two follow. All data comes from the local mock API.
     </p>
     <p>
-      <label>Scene <select id="scene"><option>small</option><option selected>medium</option><option>dense</option></select></label>
+      <label
+        >Scene
+        <select id="scene">
+          <option>small</option>
+          <option selected>medium</option>
+          <option>dense</option>
+        </select></label
+      >
       <button id="open">Open the three editors</button>
     </p>
     <p>If only one window opens, allow pop-ups for this page and press the button again.</p>
     <table>
-      <tr><th>Editor</th><th>Frames per second</th><th>Worst frame</th></tr>
-      <tr><td>Maid (MapLibre)</td><td id="fps-maid">–</td><td id="worst-maid">–</td></tr>
-      <tr><td>iD (SVG)</td><td id="fps-id">–</td><td id="worst-id">–</td></tr>
-      <tr><td>Rapid (PixiJS)</td><td id="fps-rapid">–</td><td id="worst-rapid">–</td></tr>
+      <tr>
+        <th>Editor</th>
+        <th>Frames per second</th>
+        <th>Worst frame</th>
+      </tr>
+      <tr>
+        <td>Maid (MapLibre)</td>
+        <td id="fps-maid">–</td>
+        <td id="worst-maid">–</td>
+      </tr>
+      <tr>
+        <td>iD (SVG)</td>
+        <td id="fps-id">–</td>
+        <td id="worst-id">–</td>
+      </tr>
+      <tr>
+        <td>Rapid (PixiJS)</td>
+        <td id="fps-rapid">–</td>
+        <td id="worst-rapid">–</td>
+      </tr>
     </table>
     <script type="module">
       const config = await (await fetch('/config.json')).json()
@@ -38,7 +84,11 @@
         const height = Math.floor(screen.availHeight * 0.75)
         editors.forEach((editor, i) => {
           const url = `http://localhost:${config.ports[editor]}/?scene=${scene.name}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`
-          windows[editor] = window.open(url, `maid-compare-${editor}`, `popup,left=${i * width},top=0,width=${width},height=${height}`)
+          windows[editor] = window.open(
+            url,
+            `maid-compare-${editor}`,
+            `popup,left=${i * width},top=0,width=${width},height=${height}`,
+          )
         })
       })
       window.addEventListener('message', (event) => {
@@ -48,8 +98,10 @@
           }
         }
         if (event.data?.type === 'maid-compare-frames') {
-          document.getElementById(`fps-${event.data.editor}`).textContent = event.data.fps.toFixed(0)
-          document.getElementById(`worst-${event.data.editor}`).textContent = `${event.data.worst.toFixed(0)} ms`
+          document.getElementById(`fps-${event.data.editor}`).textContent =
+            event.data.fps.toFixed(0)
+          document.getElementById(`worst-${event.data.editor}`).textContent =
+            `${event.data.worst.toFixed(0)} ms`
         }
       })
     </script>

@@ -13,10 +13,18 @@ import { median } from './stats'
 const [sceneName = 'dense', query = ''] = process.argv.slice(2)
 const scene = getScene(sceneName)
 const browser = await chromium.launch({ channel: 'chrome', headless: true })
-const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 2 })
-await context.route((url) => !['localhost', '127.0.0.1'].includes(url.hostname), (route) => route.abort())
+const context = await browser.newContext({
+  viewport: { width: 1600, height: 1000 },
+  deviceScaleFactor: 2,
+})
+await context.route(
+  (url) => !['localhost', '127.0.0.1'].includes(url.hostname),
+  (route) => route.abort(),
+)
 const page = await context.newPage()
-await page.goto(`http://localhost:${PORTS.maidBuild}/?scene=${scene.name}&${query}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`)
+await page.goto(
+  `http://localhost:${PORTS.maidBuild}/?scene=${scene.name}&${query}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
+)
 await page.waitForFunction(() => window.__bench !== undefined)
 await page.evaluate(() => window.__bench.settled())
 await page.mouse.move(800, 500)
@@ -55,8 +63,11 @@ for (let round = 0; round < 3; round++) {
     )
   }
 }
-const fmt = (list: Marks[], key: keyof Marks) => String(Math.round(median(list.map((m) => m[key])))).padStart(5)
+const fmt = (list: Marks[], key: keyof Marks) =>
+  String(Math.round(median(list.map((m) => m[key])))).padStart(5)
 for (const direction of ['in', 'out'] as const) {
-  console.log(`${scene.name} ${query || 'default'} zoom ${direction}: camera at rest ${fmt(rows[direction], 'rest')} ms, tiles loaded ${fmt(rows[direction], 'tiles')} ms, idle ${fmt(rows[direction], 'idle')} ms   (rounds: ${rows[direction].map((m) => Math.round(m.idle)).join(', ')})`)
+  console.log(
+    `${scene.name} ${query || 'default'} zoom ${direction}: camera at rest ${fmt(rows[direction], 'rest')} ms, tiles loaded ${fmt(rows[direction], 'tiles')} ms, idle ${fmt(rows[direction], 'idle')} ms   (rounds: ${rows[direction].map((m) => Math.round(m.idle)).join(', ')})`,
+  )
 }
 await browser.close()

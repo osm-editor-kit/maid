@@ -2,12 +2,12 @@
   "name": "maid",
   "private": true,
   "license": "ISC",
-  "type": "module",
   "workspaces": [
     "apps/*",
     "packages/*",
     "tools/*"
   ],
+  "type": "module",
   "scripts": {
     "dev": "bun run --parallel dev:*",
     "dev:maid": "bun run --cwd apps/maid dev",
@@ -15,7 +15,7 @@
     "fixtures-build": "bun tools/fixtures/build.ts",
     "type-check": "tsc --noEmit",
     "test-run": "bun test",
-    "check": "bun run --parallel type-check test-run",
+    "check": "bun run --parallel type-check lint format test-run",
     "bench": "bun tools/bench/run.ts",
     "bench-smoke": "bun tools/bench/run.ts --scene small --repeat 1 --label smoke",
     "bench-report": "bun tools/bench/report.ts",
@@ -25,11 +25,19 @@
     "refs-serve:rapid": "bun tools/refs/rapid/serve.ts",
     "compare": "bun apps/compare/start.ts",
     "bench-edit": "bun tools/bench/edit.ts",
-    "style-generate": "bun run --cwd packages/style generate"
+    "style-generate": "bun run --cwd packages/style generate",
+    "lint": "oxlint --fix --fix-dangerously --deny-warnings -c oxlint.config.mjs .",
+    "lint-check": "oxlint --deny-warnings -c oxlint.config.mjs .",
+    "format": "oxfmt --write -c oxfmt.config.mjs .",
+    "format-check": "oxfmt --check -c oxfmt.config.mjs .",
+    "check-ci": "bun run --parallel type-check lint-check format-check test-run"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "@types/bun": "^1.4.2",
+    "oxfmt": "0.60.0",
+    "oxlint": "1.79.0",
+    "oxlint-tsgolint": "7.0.2001",
     "typescript": "^7.0.2"
   },
   "patchedDependencies": {

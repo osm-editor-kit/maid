@@ -78,9 +78,13 @@ export function buildLayers(options: LayerOptions): LayerSpecification[] {
     const editSource = 'source' in layer ? EDIT_OF[layer.source as string] : undefined
     if (!editSource) return [layer]
     const paint: Record<string, unknown> = { ...(layer.paint as Record<string, unknown>) }
-    for (const prop of OPACITY[layer.type] ?? []) paint[prop] = ['case', editing, 0, paint[prop] ?? 1]
+    for (const prop of OPACITY[layer.type] ?? [])
+      paint[prop] = ['case', editing, 0, paint[prop] ?? 1]
     const original = { ...layer, paint } as LayerSpecification
-    return [original, { ...layer, id: `${layer.id}--edit`, source: editSource } as LayerSpecification]
+    return [
+      original,
+      { ...layer, id: `${layer.id}--edit`, source: editSource } as LayerSpecification,
+    ]
   })
 }
 
@@ -94,7 +98,12 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
     const cases: unknown[] = []
     for (const [key, pattern] of options.dashes) cases.push(key, ['literal', pattern])
     if (cases.length === 0) return ['literal', [1, 0]]
-    return ['match', ['get', prop], ...cases, ['literal', [1, 0]]] as unknown as ExpressionSpecification
+    return [
+      'match',
+      ['get', prop],
+      ...cases,
+      ['literal', [1, 0]],
+    ] as unknown as ExpressionSpecification
   }
 
   const layers: LayerSpecification[] = []
@@ -132,8 +141,18 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
         // narrow shapes it does not get darker, as it would with a translucent colour.
         'line-color': ['get', 'fo'],
         'line-layer-opacity': 0.3,
-        'line-width': ['interpolate', ['exponential', 2], ['zoom'], ...stops(1)] as ExpressionSpecification,
-        'line-offset': ['interpolate', ['exponential', 2], ['zoom'], ...stops(0.5)] as ExpressionSpecification,
+        'line-width': [
+          'interpolate',
+          ['exponential', 2],
+          ['zoom'],
+          ...stops(1),
+        ] as ExpressionSpecification,
+        'line-offset': [
+          'interpolate',
+          ['exponential', 2],
+          ['zoom'],
+          ...stops(0.5),
+        ] as ExpressionSpecification,
       },
     })
   }
@@ -151,7 +170,11 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
       type: 'line',
       source: SOURCES.areas,
       filter: ['all', ['has', 'sc'], ['has', 'sd']],
-      paint: { 'line-color': ['get', 'sc'], 'line-width': ['get', 'sw'], 'line-dasharray': dashMatch('sd') },
+      paint: {
+        'line-color': ['get', 'sc'],
+        'line-width': ['get', 'sw'],
+        'line-dasharray': dashMatch('sd'),
+      },
     },
   )
 
@@ -246,7 +269,13 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
   }
 
   // --- Vertices ------------------------------------------------------------
-  const vertexRadius = (lowR: number, r: number): ExpressionSpecification => ['step', ['zoom'], lowR, 16, r]
+  const vertexRadius = (lowR: number, r: number): ExpressionSpecification => [
+    'step',
+    ['zoom'],
+    lowR,
+    16,
+    r,
+  ]
   if (options.highlight === 'source') {
     layers.push({
       id: 'highlight-vertex-halo',
@@ -325,7 +354,12 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
     type: 'circle',
     source: SOURCES.points,
     filter: ['has', 'addr'],
-    paint: { 'circle-radius': 3, 'circle-color': '#fff', 'circle-stroke-color': '#444', 'circle-stroke-width': 1 },
+    paint: {
+      'circle-radius': 3,
+      'circle-color': '#fff',
+      'circle-stroke-color': '#444',
+      'circle-stroke-width': 1,
+    },
   })
   // Every point is always on the map as a small dot. Pins with the preset icon are drawn on top
   // where there is room for them, more of them the closer you zoom. iD instead hides all points
@@ -335,7 +369,12 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
     type: 'circle',
     source: SOURCES.points,
     filter: ['!', ['has', 'addr']],
-    paint: { 'circle-radius': 3, 'circle-color': '#fff', 'circle-stroke-color': '#444', 'circle-stroke-width': 1 },
+    paint: {
+      'circle-radius': 3,
+      'circle-color': '#fff',
+      'circle-stroke-color': '#444',
+      'circle-stroke-width': 1,
+    },
   })
   if (options.icons) {
     layers.push({
@@ -362,14 +401,23 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
       'text-field': ['get', 'name'] as ExpressionSpecification,
       'text-size': 12,
     }
-    const paint = { 'text-color': '#333', 'text-halo-color': 'rgba(255,255,255,0.7)', 'text-halo-width': 2.5 }
+    const paint = {
+      'text-color': '#333',
+      'text-halo-color': 'rgba(255,255,255,0.7)',
+      'text-halo-width': 2.5,
+    }
     layers.push(
       {
         id: 'label-line',
         type: 'symbol',
         source: SOURCES.lines,
         filter: ['has', 'name'],
-        layout: { ...text, 'symbol-placement': 'line', 'symbol-spacing': 400, 'text-max-angle': 30 },
+        layout: {
+          ...text,
+          'symbol-placement': 'line',
+          'symbol-spacing': 400,
+          'text-max-angle': 30,
+        },
         paint,
       },
       {
@@ -386,7 +434,13 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
         source: SOURCES.points,
         filter: ['has', 'addr'],
         minzoom: 18,
-        layout: { ...text, 'text-field': ['get', 'addr'], 'text-size': 10, 'text-anchor': 'top', 'text-offset': [0, 0.4] },
+        layout: {
+          ...text,
+          'text-field': ['get', 'addr'],
+          'text-size': 10,
+          'text-anchor': 'top',
+          'text-offset': [0, 0.4],
+        },
         paint,
       },
       {
@@ -404,6 +458,7 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
 
 /** Layers a pointer can hit, in iD's picking priority: vertex, point, line, area */
 export function interactiveLayerIds(layers: LayerSpecification[]) {
-  const wanted = /^(vertex|point-pin|point-dot|point-address|line-(casing|stroke)(-dashed)?--?\d|area-stroke|area-fill)/ // also matches the `--edit` twins
+  const wanted =
+    /^(vertex|point-pin|point-dot|point-address|line-(casing|stroke)(-dashed)?--?\d|area-stroke|area-fill)/ // also matches the `--edit` twins
   return layers.filter((l) => wanted.test(l.id)).map((l) => l.id)
 }

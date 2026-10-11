@@ -85,7 +85,8 @@ export function resolveWayStyle(classes: string[], geom: 'line' | 'area'): WaySt
   const matching = [...BASE]
   for (const cls of classes) {
     for (const rule of BY_TAG.get(cls) ?? []) {
-      if (rule.tags.every((t) => set.has(t)) && !rule.not.some((t) => set.has(t))) matching.push(rule)
+      if (rule.tags.every((t) => set.has(t)) && !rule.not.some((t) => set.has(t)))
+        matching.push(rule)
     }
   }
   const rules = matching

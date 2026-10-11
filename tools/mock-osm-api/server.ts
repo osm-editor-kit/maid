@@ -11,8 +11,8 @@
  * Every write is rejected with 405. /requests returns a log of what was asked.
  */
 import { join } from 'node:path'
-import { PORTS } from '../ports'
 import { SCENES } from '../fixtures/scenes'
+import { PORTS } from '../ports'
 
 type Node = { type: 'node'; id: number; lat: number; lon: number }
 type Way = { type: 'way'; id: number; nodes: number[] }
@@ -81,6 +81,8 @@ class SceneIndex {
       for (const nodeId of this.ways.get(id)!.nodes) if (this.nodes.has(nodeId)) nodeIds.add(nodeId)
       for (const relId of this.memberRelations.get(`w${id}`) ?? []) relationIds.add(relId)
     }
+    // a copy: the loop adds parent relations to the set it walks
+    // oxlint-disable-next-line unicorn/no-useless-spread
     for (const id of [...relationIds]) {
       for (const relId of this.memberRelations.get(`r${id}`) ?? []) relationIds.add(relId)
     }
@@ -189,7 +191,10 @@ export function createHandler(scenes: Map<string, SceneIndex>, options: { latenc
       return Response.json({ ok: true }, { headers: CORS })
     }
     if (url.pathname === '/scenes') {
-      return Response.json(SCENES.filter((s) => scenes.has(s.name)), { headers: CORS })
+      return Response.json(
+        SCENES.filter((s) => scenes.has(s.name)),
+        { headers: CORS },
+      )
     }
     const match = url.pathname.match(/^\/s\/([^/]+)(\/.*)$/)
     if (!match) return new Response('Not found', { status: 404, headers: CORS })
@@ -203,13 +208,19 @@ export function createHandler(scenes: Map<string, SceneIndex>, options: { latenc
     if (options.latency) await Bun.sleep(options.latency)
 
     if (path === '/api/capabilities' || path === '/api/0.6/capabilities') {
-      if (wantsXml) return new Response(CAPABILITIES_XML, { headers: { ...CORS, 'Content-Type': 'application/xml' } })
+      if (wantsXml)
+        return new Response(CAPABILITIES_XML, {
+          headers: { ...CORS, 'Content-Type': 'application/xml' },
+        })
       return Response.json(CAPABILITIES, { headers: CORS })
     }
     if (path === '/api/0.6/map') {
       const bbox = url.searchParams.get('bbox')?.split(',').map(Number)
-      if (bbox?.length !== 4 || bbox.some(Number.isNaN)) return new Response('Bad bbox', { status: 400, headers: CORS })
-      return new Response(scene.map(bbox as [number, number, number, number]), { headers: JSON_HEADERS })
+      if (bbox?.length !== 4 || bbox.some(Number.isNaN))
+        return new Response('Bad bbox', { status: 400, headers: CORS })
+      return new Response(scene.map(bbox as [number, number, number, number]), {
+        headers: JSON_HEADERS,
+      })
     }
     const entity = path.match(/^\/api\/0\.6\/(node|way|relation)\/(\d+)(\/full)?$/)
     if (entity) {
@@ -218,24 +229,36 @@ export function createHandler(scenes: Map<string, SceneIndex>, options: { latenc
       let body: string | undefined
       if (type !== 'node' && entity[3]) body = scene.full(type, id)
       else {
-        const found = type === 'node' ? scene.nodes.get(id) : type === 'way' ? scene.ways.get(id) : scene.relations.get(id)
+        const found =
+          type === 'node'
+            ? scene.nodes.get(id)
+            : type === 'way'
+              ? scene.ways.get(id)
+              : scene.relations.get(id)
         if (found) body = JSON.stringify({ version: '0.6', elements: [found] })
       }
       if (!body) return new Response('Not found', { status: 404, headers: CORS })
       return new Response(body, { headers: JSON_HEADERS })
     }
-    if (path === '/api/0.6/user/details') return new Response('Unauthorized', { status: 401, headers: CORS })
+    if (path === '/api/0.6/user/details')
+      return new Response('Unauthorized', { status: 401, headers: CORS })
     if (path === '/api/0.6/notes' || path === '/api/0.6/notes/search') {
       return Response.json({ type: 'FeatureCollection', features: [] }, { headers: CORS })
     }
-    if (path === '/api/0.6/changesets') return Response.json({ version: '0.6', changesets: [] }, { headers: CORS })
+    if (path === '/api/0.6/changesets')
+      return Response.json({ version: '0.6', changesets: [] }, { headers: CORS })
     return new Response('Not found', { status: 404, headers: CORS })
   }
   return async (req: Request) => {
     const res = await respond(req)
     const url = new URL(req.url)
     if (!url.pathname.startsWith('/requests')) {
-      log.push({ t: Date.now(), method: req.method, path: url.pathname + url.search, status: res.status })
+      log.push({
+        t: Date.now(),
+        method: req.method,
+        path: url.pathname + url.search,
+        status: res.status,
+      })
     }
     return res
   }
@@ -250,5 +273,7 @@ if (import.meta.main) {
   const latency = Number(arg('latency') ?? 0)
   const scenes = await loadScenes()
   Bun.serve({ port, hostname: '127.0.0.1', fetch: createHandler(scenes, { latency }) })
-  console.log(`mock-osm-api on http://localhost:${port} (scenes: ${[...scenes.keys()].join(', ')}, latency ${latency}ms)`)
+  console.log(
+    `mock-osm-api on http://localhost:${port} (scenes: ${[...scenes.keys()].join(', ')}, latency ${latency}ms)`,
+  )
 }

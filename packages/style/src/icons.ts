@@ -1,8 +1,15 @@
-import presetsJson from './generated/presets.json'
 import type { Tags } from './classes'
+import presetsJson from './generated/presets.json'
 
 export type Geometry = 'point' | 'vertex' | 'line' | 'area' | 'relation'
-export type Preset = { id: string; name: string; tags: Tags; geometry: string[]; icon?: string; score: number }
+export type Preset = {
+  id: string
+  name: string
+  tags: Tags
+  geometry: string[]
+  icon?: string
+  score: number
+}
 
 const BY_KEY = new Map<string, Preset[]>()
 const FALLBACK = new Map<string, Preset>()

@@ -1,14 +1,22 @@
 import type { Map as MapLibreMap } from 'maplibre-gl'
 
 /** Draws an SVG path into an image MapLibre can use. `ratio` keeps it sharp on HiDPI screens. */
-function pathImage(width: number, height: number, draw: (ctx: CanvasRenderingContext2D) => void, ratio = 2) {
+function pathImage(
+  width: number,
+  height: number,
+  draw: (ctx: CanvasRenderingContext2D) => void,
+  ratio = 2,
+) {
   const canvas = document.createElement('canvas')
   canvas.width = width * ratio
   canvas.height = height * ratio
   const ctx = canvas.getContext('2d')!
   ctx.scale(ratio, ratio)
   draw(ctx)
-  return { image: ctx.getImageData(0, 0, canvas.width, canvas.height), options: { pixelRatio: ratio } }
+  return {
+    image: ctx.getImageData(0, 0, canvas.width, canvas.height),
+    options: { pixelRatio: ratio },
+  }
 }
 
 /** iD's oneway arrow (modules/svg/defs.js) */
@@ -21,7 +29,15 @@ export function addBaseImages(map: MapLibreMap) {
 }
 
 /** Which of iD's sprite files holds an icon, by the prefix of its name */
-export const SPRITE_OF_PREFIX: Record<string, string> = { maki: 'maki', temaki: 'temaki', fas: 'fa', far: 'fa', fab: 'fa', roentgen: 'roentgen', iD: 'iD' }
+export const SPRITE_OF_PREFIX: Record<string, string> = {
+  maki: 'maki',
+  temaki: 'temaki',
+  fas: 'fa',
+  far: 'fa',
+  fab: 'fa',
+  roentgen: 'roentgen',
+  iD: 'iD',
+}
 const sprites = new Map<string, Promise<Document>>()
 
 function loadSprite(name: string) {
@@ -35,7 +51,8 @@ function loadSprite(name: string) {
   return sprite
 }
 
-const PIN = 'M 17,8 C 17,13 11,21 8.5,23.5 C 6,21 0,13 0,8 C 0,4 4,-0.5 8.5,-0.5 C 13,-0.5 17,4 17,8 z'
+const PIN =
+  'M 17,8 C 17,13 11,21 8.5,23.5 C 6,21 0,13 0,8 C 0,4 4,-0.5 8.5,-0.5 C 13,-0.5 17,4 17,8 z'
 
 async function presetIconBitmap(icon: string, px: number) {
   const spriteName = SPRITE_OF_PREFIX[icon.slice(0, icon.indexOf('-'))]
@@ -80,7 +97,8 @@ async function addPin(map: MapLibreMap, id: string, ratio: number) {
   ctx.stroke(path)
   if (icon) ctx.drawImage(icon, 2.5, 2.5, 12, 12)
   // several tiles can ask for the same marker at once
-  if (!map.hasImage(id)) map.addImage(id, ctx.getImageData(0, 0, canvas.width, canvas.height), { pixelRatio: ratio })
+  if (!map.hasImage(id))
+    map.addImage(id, ctx.getImageData(0, 0, canvas.width, canvas.height), { pixelRatio: ratio })
 }
 
 /**
@@ -93,8 +111,8 @@ export function ensureImages(map: MapLibreMap, ids: Iterable<string>, ratio = 2)
     if (map.hasImage(id)) continue
     let job = pending.get(id)
     if (!job) {
-      job = (id.startsWith('pin-') ? addPin(map, id, ratio) : addIcon(map, id, ratio)).catch((error) =>
-        console.error(`Could not make image ${id}`, error),
+      job = (id.startsWith('pin-') ? addPin(map, id, ratio) : addIcon(map, id, ratio)).catch(
+        (error) => console.error(`Could not make image ${id}`, error),
       )
       pending.set(id, job)
     }

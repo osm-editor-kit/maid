@@ -14,9 +14,25 @@ import { join } from 'node:path'
 
 const root = join(import.meta.dir, '../../..')
 const idDir = process.argv[2] ?? join(root, '.reference/id')
-const FILES = ['20_map.css', '25_areas.css', '30_highways.css', '35_aeroways.css', '40_railways.css', '45_waterways.css', '50_misc.css']
+const FILES = [
+  '20_map.css',
+  '25_areas.css',
+  '30_highways.css',
+  '35_aeroways.css',
+  '40_railways.css',
+  '45_waterways.css',
+  '50_misc.css',
+]
 const PARTS = new Set(['stroke', 'casing', 'shadow', 'fill'])
-const PROPS = new Set(['stroke', 'stroke-width', 'stroke-dasharray', 'stroke-opacity', 'stroke-linecap', 'fill', 'display'])
+const PROPS = new Set([
+  'stroke',
+  'stroke-width',
+  'stroke-dasharray',
+  'stroke-opacity',
+  'stroke-linecap',
+  'fill',
+  'display',
+])
 
 export type Rule = {
   /** Which path of a way this styles */
@@ -79,7 +95,11 @@ for (const file of FILES) {
       const colon = line.indexOf(':')
       if (colon < 0) continue
       const prop = line.slice(0, colon).trim()
-      if (PROPS.has(prop)) decl[prop] = line.slice(colon + 1).trim().replace(/\s*!important/, '')
+      if (PROPS.has(prop))
+        decl[prop] = line
+          .slice(colon + 1)
+          .trim()
+          .replace(/\s*!important/, '')
     }
     if (Object.keys(decl).length === 0) continue
     for (const selector of selectorList!.split(',')) {
@@ -91,7 +111,10 @@ for (const file of FILES) {
 
 /** iD presets decide which keys make a closed way an area (presets/index.js areaKeys) */
 const presets: Record<string, any> = JSON.parse(
-  readFileSync(join(import.meta.dir, '../node_modules/@openstreetmap/id-tagging-schema/dist/presets.json'), 'utf8'),
+  readFileSync(
+    join(import.meta.dir, '../node_modules/@openstreetmap/id-tagging-schema/dist/presets.json'),
+    'utf8',
+  ),
 )
 const ignore = new Set(['barrier', 'highway', 'footway', 'railway', 'junction', 'type'])
 const areaKeys: Record<string, Record<string, true>> = {}
@@ -104,13 +127,20 @@ for (const p of list) {
 for (const p of list) {
   for (const key in p.addTags ?? p.tags ?? {}) {
     const value = (p.addTags ?? p.tags)[key]
-    if (key in areaKeys && p.geometry.includes('line') && value !== '*') areaKeys[key]![value] = true
+    if (key in areaKeys && p.geometry.includes('line') && value !== '*')
+      areaKeys[key]![value] = true
   }
 }
 
 /** Presets with their English names, for matching a feature to "what is this" and to its icon */
 const names: Record<string, { name?: string }> = JSON.parse(
-  readFileSync(join(import.meta.dir, '../node_modules/@openstreetmap/id-tagging-schema/dist/translations/en.json'), 'utf8'),
+  readFileSync(
+    join(
+      import.meta.dir,
+      '../node_modules/@openstreetmap/id-tagging-schema/dist/translations/en.json',
+    ),
+    'utf8',
+  ),
 ).en.presets.presets
 const presetList = Object.entries(presets)
   .filter(([, p]) => !p.suggestion && p.tags && p.searchable !== false)
@@ -127,4 +157,6 @@ const out = join(import.meta.dir, '../src/generated')
 await Bun.write(join(out, 'id-rules.json'), JSON.stringify(rules))
 await Bun.write(join(out, 'area-keys.json'), JSON.stringify(areaKeys))
 await Bun.write(join(out, 'presets.json'), JSON.stringify(presetList))
-console.log(`${rules.length} rules, ${Object.keys(areaKeys).length} area keys, ${presetList.length} presets from ${idDir}`)
+console.log(
+  `${rules.length} rules, ${Object.keys(areaKeys).length} area keys, ${presetList.length} presets from ${idDir}`,
+)

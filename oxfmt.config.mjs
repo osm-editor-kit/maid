@@ -1,0 +1,43 @@
+import { defineConfig } from 'oxfmt'
+
+// FMC default (skill tech-stack, references/oxc-config.md), adapted to this monorepo.
+// ignorePatterns: keep in sync with oxlint.config.mjs.
+export default defineConfig({
+  useTabs: false,
+  tabWidth: 2,
+  printWidth: 100,
+  singleQuote: true,
+  jsxSingleQuote: false,
+  quoteProps: 'as-needed',
+  trailingComma: 'all',
+  semi: false,
+  arrowParens: 'always',
+  bracketSameLine: false,
+  bracketSpacing: true,
+  endOfLine: 'lf',
+  sortImports: {
+    newlinesBetween: false,
+  },
+  sortTailwindcss: {
+    stylesheet: 'apps/maid/src/index.css',
+    functions: ['twMerge', 'twJoin', 'clsx'],
+  },
+  sortPackageJson: true,
+  ignorePatterns: [
+    '.reference/**',
+    'reports/**',
+    'patches/**',
+    'fixtures/**',
+    '**/dist/**',
+    '**/generated/**',
+    'apps/maid/public/**',
+    'tools/refs/id/**',
+    'tools/refs/rapid/**',
+    'tools/refs/frame-sync.js',
+    'playwright-report/**',
+    'test-results/**',
+    'bun.lock',
+    // prose is written and wrapped by hand
+    '**/*.md',
+  ],
+})

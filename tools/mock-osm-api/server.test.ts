@@ -2,12 +2,17 @@ import { describe, expect, test } from 'bun:test'
 import { createHandler, loadScenes } from './server'
 
 const handler = createHandler(await loadScenes(['small']), { latency: 0 })
-const get = (path: string, init?: RequestInit) => handler(new Request(`http://localhost${path}`, init))
+const get = (path: string, init?: RequestInit) =>
+  handler(new Request(`http://localhost${path}`, init))
 
 describe('mock OSM API', () => {
   test('capabilities as JSON and XML', async () => {
-    expect((await (await get('/s/small/api/capabilities.json')).json()).api.status.api).toBe('online')
-    expect(await (await get('/s/small/api/capabilities')).text()).toContain('<status database="online"')
+    expect((await (await get('/s/small/api/capabilities.json')).json()).api.status.api).toBe(
+      'online',
+    )
+    expect(await (await get('/s/small/api/capabilities')).text()).toContain(
+      '<status database="online"',
+    )
   })
 
   test('map returns nodes in the box plus complete ways', async () => {

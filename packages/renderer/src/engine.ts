@@ -6,10 +6,24 @@
  * a whole FeatureCollection through React props on every tile would be the slow path we
  * want to avoid (see docs/research/maplibre.md).
  */
-import { isArea, matchPreset, resolveWayStyle, tagClasses, type Geometry, type Preset, type Tags } from '@maid/style'
+import {
+  isArea,
+  matchPreset,
+  resolveWayStyle,
+  tagClasses,
+  type Geometry,
+  type Preset,
+  type Tags,
+} from '@maid/style'
 import type { Feature, FeatureCollection } from 'geojson'
 import type { GeoJSONSource, Map as MapLibreMap, MapGeoJSONFeature } from 'maplibre-gl'
-import { dashPatterns, FeatureBuilder, wayVertices, type FeatureBatch, type SourceName } from './build'
+import {
+  dashPatterns,
+  FeatureBuilder,
+  wayVertices,
+  type FeatureBatch,
+  type SourceName,
+} from './build'
 import { EDIT_SOURCES, SOURCES } from './layers'
 import { OsmStore, type OsmElement } from './store'
 
@@ -76,7 +90,8 @@ const lon2x = (lon: number) => Math.floor(((lon + 180) / 360) * 2 ** TILE_ZOOM)
 const lat2y = (lat: number) =>
   Math.floor(((1 - Math.asinh(Math.tan((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** TILE_ZOOM)
 const x2lon = (x: number) => (x / 2 ** TILE_ZOOM) * 360 - 180
-const y2lat = (y: number) => (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / 2 ** TILE_ZOOM))) * 180) / Math.PI
+const y2lat = (y: number) =>
+  (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / 2 ** TILE_ZOOM))) * 180) / Math.PI
 
 export class MaidEngine {
   store = new OsmStore()
@@ -90,7 +105,12 @@ export class MaidEngine {
   private tiles = new Set<string>()
   private inflight = 0
   /** Everything pushed so far, by id. Only kept for the 'setData' mode, which re-sends all of it. */
-  private all: Record<SourceName, Map<string, Feature>> = { areas: new Map(), lines: new Map(), points: new Map(), vertices: new Map() }
+  private all: Record<SourceName, Map<string, Feature>> = {
+    areas: new Map(),
+    lines: new Map(),
+    points: new Map(),
+    vertices: new Map(),
+  }
   private featureSource = new Map<string, SourceName>()
   private dashCount = 0
   private hoverId: string | null = null
@@ -105,7 +125,12 @@ export class MaidEngine {
    * for data that arrived after the first load and for features that were changed. Updating
    * them re-tiles only that little data; the big sources stay untouched until compaction.
    */
-  private live: Record<SourceName, Map<string, Feature>> = { areas: new Map(), lines: new Map(), points: new Map(), vertices: new Map() }
+  private live: Record<SourceName, Map<string, Feature>> = {
+    areas: new Map(),
+    lines: new Map(),
+    points: new Map(),
+    vertices: new Map(),
+  }
   private channels = {
     base: makeChannels(SOURCES),
     live: makeChannels(EDIT_SOURCES),
@@ -150,13 +175,27 @@ export class MaidEngine {
       const tags = way.tags ?? {}
       const closed = way.nodes.length > 2 && way.nodes[0] === way.nodes[way.nodes.length - 1]
       const geometry: Geometry = isArea(way.tags, closed) ? 'area' : 'line'
-      return { id, type: 'way', geometry, tags, preset: matchPreset(tags, geometry), size: way.nodes.length }
+      return {
+        id,
+        type: 'way',
+        geometry,
+        tags,
+        preset: matchPreset(tags, geometry),
+        size: way.nodes.length,
+      }
     }
     const relation = this.store.relations.get(num)
     if (!relation) return undefined
     const tags = relation.tags ?? {}
     const geometry: Geometry = tags.type === 'multipolygon' ? 'area' : 'relation'
-    return { id, type: 'relation', geometry, tags, preset: matchPreset(tags, geometry), size: relation.members.length }
+    return {
+      id,
+      type: 'relation',
+      geometry,
+      tags,
+      preset: matchPreset(tags, geometry),
+      size: relation.members.length,
+    }
   }
 
   attach(map: MapLibreMap) {
@@ -251,7 +290,10 @@ export class MaidEngine {
   }
 
   /** Sends features to MapLibre: to the live tier once the first view is complete, else to the big sources */
-  private push(batch: FeatureBatch, tier: 'base' | 'live' = this.tiered && this.firstLoadDone ? 'live' : 'base') {
+  private push(
+    batch: FeatureBatch,
+    tier: 'base' | 'live' = this.tiered && this.firstLoadDone ? 'live' : 'base',
+  ) {
     for (const name of SOURCE_NAMES) {
       const features = batch[name]
       if (features.length === 0) continue
@@ -261,11 +303,16 @@ export class MaidEngine {
         if (tier === 'live') this.live[name].set(f.id as string, f)
       }
       // a selection made before its feature was loaded (from the URL) is shown once it arrives
-      if (this.selectedId && this.shownSelected !== this.selectedId && features.some((f) => f.id === this.selectedId)) {
+      if (
+        this.selectedId &&
+        this.shownSelected !== this.selectedId &&
+        features.some((f) => f.id === this.selectedId)
+      ) {
         queueMicrotask(() => this.applyHighlight(null, 'selected'))
       }
       const channel = this.channels[tier][name]
-      if (this.options.update === 'setData') for (const f of features) this.all[name].set(f.id as string, f)
+      if (this.options.update === 'setData')
+        for (const f of features) this.all[name].set(f.id as string, f)
       else channel.queue = channel.queue.concat(features)
       channel.dirty = true
       this.scheduleFlush(channel)
@@ -308,7 +355,10 @@ export class MaidEngine {
     this.metrics.updates++
     try {
       if (this.options.update === 'setData') {
-        await source.setData({ type: 'FeatureCollection', features: [...this.all[channel.name].values()] })
+        await source.setData({
+          type: 'FeatureCollection',
+          features: [...this.all[channel.name].values()],
+        })
         await this.tilesReloaded(channel.sourceId)
       } else {
         const add = channel.queue
@@ -329,7 +379,8 @@ export class MaidEngine {
 
   /** Resolves when this channel has nothing queued or in flight */
   private async channelIdle(channel: Channel) {
-    while (channel.busy || channel.dirty) await new Promise<void>((resolve) => this.waiters.push(resolve))
+    while (channel.busy || channel.dirty)
+      await new Promise<void>((resolve) => this.waiters.push(resolve))
   }
 
   private wake() {
@@ -349,7 +400,15 @@ export class MaidEngine {
     const { map } = this
     if (!map) return
     // only when the picture is final: compaction must never delay it
-    if (this.compacting || this.dragBusy || this.inflight > 0 || this.pushing() || map.isMoving() || !map.loaded()) return this.touch()
+    if (
+      this.compacting ||
+      this.dragBusy ||
+      this.inflight > 0 ||
+      this.pushing() ||
+      map.isMoving() ||
+      !map.loaded()
+    )
+      return this.touch()
     const snapshot = SOURCE_NAMES.map((name) => [name, [...this.live[name].values()]] as const)
     if (snapshot.every(([, features]) => features.length === 0)) return
     this.compacting = true
@@ -362,21 +421,28 @@ export class MaidEngine {
         channel.dirty = true
         void this.flush(channel)
       }
-      await Promise.all(Object.values(this.channels.base).map((channel) => this.channelIdle(channel)))
+      await Promise.all(
+        Object.values(this.channels.base).map((channel) => this.channelIdle(channel)),
+      )
       // 2. drop the live copies that were not changed again since, and show the originals
       for (const [name, features] of snapshot) {
-        const done = features.filter((f) => this.live[name].get(f.id as string) === f).map((f) => f.id as string)
+        const done = features
+          .filter((f) => this.live[name].get(f.id as string) === f)
+          .map((f) => f.id as string)
         if (done.length === 0) continue
         for (const id of done) {
           this.live[name].delete(id)
-          if (this.editing.delete(id)) map.removeFeatureState({ source: SOURCES[name], id }, 'editing')
+          if (this.editing.delete(id))
+            map.removeFeatureState({ source: SOURCES[name], id }, 'editing')
         }
         const channel = this.channels.live[name]
         channel.removals = channel.removals.concat(done)
         channel.dirty = true
         void this.flush(channel)
       }
-      await Promise.all(Object.values(this.channels.live).map((channel) => this.channelIdle(channel)))
+      await Promise.all(
+        Object.values(this.channels.live).map((channel) => this.channelIdle(channel)),
+      )
       this.metrics.compactions++
     } finally {
       this.compacting = false
@@ -422,7 +488,9 @@ export class MaidEngine {
     const deadline = performance.now() + timeoutMs
     for (;;) {
       if (performance.now() > deadline) {
-        throw new Error(`Maid did not settle in ${timeoutMs}ms (inflight tiles: ${this.inflight}, map loaded: ${map.loaded()})`)
+        throw new Error(
+          `Maid did not settle in ${timeoutMs}ms (inflight tiles: ${this.inflight}, map loaded: ${map.loaded()})`,
+        )
       }
       this.loadVisibleTiles()
       if (this.inflight > 0 || this.pushing()) {
@@ -471,7 +539,9 @@ export class MaidEngine {
     if (this.tiered) {
       this.hideOriginals(batch)
       this.push(batch, 'live')
-      await Promise.all(Object.values(this.channels.live).map((channel) => this.channelIdle(channel)))
+      await Promise.all(
+        Object.values(this.channels.live).map((channel) => this.channelIdle(channel)),
+      )
     } else {
       this.push(batch, 'base')
       if (this.pushing()) await new Promise<void>((resolve) => this.waiters.push(resolve))
@@ -506,7 +576,12 @@ export class MaidEngine {
    */
   setTag(id: string, key: string, value: string | undefined) {
     const num = Number(id.slice(1))
-    const entity = id[0] === 'n' ? this.store.nodes.get(num) : id[0] === 'w' ? this.store.ways.get(num) : undefined
+    const entity =
+      id[0] === 'n'
+        ? this.store.nodes.get(num)
+        : id[0] === 'w'
+          ? this.store.ways.get(num)
+          : undefined
     if (!entity || !key) return
     const tags = { ...entity.tags }
     if (value === undefined || value === '') delete tags[key]
@@ -545,7 +620,8 @@ export class MaidEngine {
       this.push(batch, 'live')
     } else this.push(batch, 'base')
     // feature state belongs to a source; a way that moved between sources needs it again
-    if (id === this.selectedId && remove.length) queueMicrotask(() => this.applyHighlight(null, 'selected'))
+    if (id === this.selectedId && remove.length)
+      queueMicrotask(() => this.applyHighlight(null, 'selected'))
     this.changed()
   }
 
@@ -635,9 +711,12 @@ export class MaidEngine {
       set(kind === 'hover' ? hoverId : selectedId, true)
       if (kind === 'selected') {
         // the shape points of the selected way come from the small highlight source
-        const shape = selectedId?.[0] === 'w' ? wayVertices(this.store, Number(selectedId.slice(1))) : []
+        const shape =
+          selectedId?.[0] === 'w' ? wayVertices(this.store, Number(selectedId.slice(1))) : []
         for (const vertex of shape) vertex.properties = { ...vertex.properties, state: 'shape' }
-        void map.getSource<GeoJSONSource>(SOURCES.highlight)?.setData({ type: 'FeatureCollection', features: shape })
+        void map
+          .getSource<GeoJSONSource>(SOURCES.highlight)
+          ?.setData({ type: 'FeatureCollection', features: shape })
       }
       // a feature that is not on the map changes nothing, so ask for a frame explicitly
       void map.once('render').then(shown)
@@ -646,10 +725,11 @@ export class MaidEngine {
     }
     const features: Feature[] = []
     if (selectedId) features.push(...this.highlightFeatures(selectedId, 'selected'))
-    if (hoverId && hoverId !== selectedId) features.push(...this.highlightFeatures(hoverId, 'hover'))
+    if (hoverId && hoverId !== selectedId)
+      features.push(...this.highlightFeatures(hoverId, 'hover'))
     const source = map.getSource<GeoJSONSource>(SOURCES.highlight)
     if (!source) return
-    source.setData(features.length ? { type: 'FeatureCollection', features } : EMPTY)
+    void source.setData(features.length ? { type: 'FeatureCollection', features } : EMPTY)
     const onData = (event: { sourceId?: string; sourceDataType?: string }) => {
       if (event.sourceId !== SOURCES.highlight || !map.isSourceLoaded(SOURCES.highlight)) return
       map.off('sourcedata', onData)
@@ -663,7 +743,13 @@ export class MaidEngine {
     if (id[0] === 'n') {
       const node = this.store.nodes.get(num)
       if (!node) return []
-      return [{ type: 'Feature', properties: { id, state }, geometry: { type: 'Point', coordinates: [node.lon, node.lat] } }]
+      return [
+        {
+          type: 'Feature',
+          properties: { id, state },
+          geometry: { type: 'Point', coordinates: [node.lon, node.lat] },
+        },
+      ]
     }
     if (id[0] !== 'w') return []
     const way = this.store.ways.get(num)
@@ -677,7 +763,12 @@ export class MaidEngine {
     const out: Feature[] = [
       {
         type: 'Feature',
-        properties: { id, state, hw: shadow.width, hwl: geom === 'area' ? shadow.width : shadow.widthLow },
+        properties: {
+          id,
+          state,
+          hw: shadow.width,
+          hwl: geom === 'area' ? shadow.width : shadow.widthLow,
+        },
         geometry: { type: 'LineString', coordinates },
       },
     ]
@@ -710,7 +801,10 @@ export class MaidEngine {
     if (map) {
       for (const name of SOURCE_NAMES) {
         try {
-          const layers = [...layersOfSource(map, SOURCES[name]), ...layersOfSource(map, EDIT_SOURCES[name])]
+          const layers = [
+            ...layersOfSource(map, SOURCES[name]),
+            ...layersOfSource(map, EDIT_SOURCES[name]),
+          ]
           const ids = new Set(map.queryRenderedFeatures({ layers }).map((f) => f.id))
           drawn[name] = ids.size
         } catch (error) {
@@ -721,7 +815,13 @@ export class MaidEngine {
       }
       drawn.layers = map.getStyle().layers.length
     }
-    return { entities: this.store.counts(), drawn, hidden: { ...this.builder.hidden }, loaded: { ...this.metrics.features }, metrics: { ...this.metrics } }
+    return {
+      entities: this.store.counts(),
+      drawn,
+      hidden: { ...this.builder.hidden },
+      loaded: { ...this.metrics.features },
+      metrics: { ...this.metrics },
+    }
   }
 }
 
@@ -732,11 +832,30 @@ const PRIORITY: Record<string, number> = {
   [SOURCES.areas]: 3, [EDIT_SOURCES.areas]: 3,
 } // prettier-ignore
 
-type Channel = { name: SourceName; sourceId: string; queue: Feature[]; removals: string[]; busy: boolean; dirty: boolean }
+type Channel = {
+  name: SourceName
+  sourceId: string
+  queue: Feature[]
+  removals: string[]
+  busy: boolean
+  dirty: boolean
+}
 
 function makeChannels(ids: Record<SourceName, string>) {
-  const channel = (name: SourceName): Channel => ({ name, sourceId: ids[name], queue: [], removals: [], busy: false, dirty: false })
-  return { areas: channel('areas'), lines: channel('lines'), points: channel('points'), vertices: channel('vertices') }
+  const channel = (name: SourceName): Channel => ({
+    name,
+    sourceId: ids[name],
+    queue: [],
+    removals: [],
+    busy: false,
+    dirty: false,
+  })
+  return {
+    areas: channel('areas'),
+    lines: channel('lines'),
+    points: channel('points'),
+    vertices: channel('vertices'),
+  }
 }
 
 function pickBest(features: MapGeoJSONFeature[]) {

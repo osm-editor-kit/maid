@@ -1,3 +1,5 @@
+import { mkdirSync } from 'node:fs'
+import { join } from 'node:path'
 /**
  * Cuts the scenes from a LOCAL .osm.pbf with osmium and writes OSM API JSON.
  * Never downloads anything (core rule 1). Run by a person on purpose:
@@ -5,12 +7,17 @@
  *   bun run fixtures-build /path/to/berlin-latest.osm.pbf
  */
 import { $ } from 'bun'
-import { mkdirSync } from 'node:fs'
-import { join } from 'node:path'
 import { SCENES } from './scenes'
 
 type Element =
-  | { type: 'node'; id: number; lat: number; lon: number; version: number; tags?: Record<string, string> }
+  | {
+      type: 'node'
+      id: number
+      lat: number
+      lon: number
+      version: number
+      tags?: Record<string, string>
+    }
   | { type: 'way'; id: number; version: number; nodes: number[]; tags?: Record<string, string> }
   | {
       type: 'relation'
@@ -24,7 +31,9 @@ const MEMBER_TYPE = { n: 'node', w: 'way', r: 'relation' } as const
 
 /** OPL escapes special characters as %<hex codepoint>% */
 function unescape(value: string) {
-  return value.replace(/%([0-9a-fA-F]+)%/g, (_, hex: string) => String.fromCodePoint(parseInt(hex, 16)))
+  return value.replace(/%([0-9a-fA-F]+)%/g, (_, hex: string) =>
+    String.fromCodePoint(parseInt(hex, 16)),
+  )
 }
 
 function parseTags(field: string) {
@@ -78,6 +87,11 @@ export function parseOplLine(line: string): Element | undefined {
             })
           : []
         break
+      case undefined: {
+        throw new Error('Not implemented yet: undefined case')
+      }
+      default:
+        break // fields we do not need: changeset, timestamp, user
     }
   }
   switch (head[0]) {
@@ -87,8 +101,12 @@ export function parseOplLine(line: string): Element | undefined {
       return { type: 'way', id, version, nodes, ...(tags && { tags }) }
     case 'r':
       return { type: 'relation', id, version, members, ...(tags && { tags }) }
+    case undefined: {
+      throw new Error('Not implemented yet: undefined case')
+    }
+    default:
+      return undefined
   }
-  return undefined
 }
 
 if (import.meta.main) {
@@ -108,7 +126,10 @@ if (import.meta.main) {
     await $`osmium extract -b ${scene.bbox.join(',')} -s complete_ways -O -o ${pbf} ${source}`.quiet()
     const opl = await $`osmium cat -f opl ${pbf}`.quiet().text()
     await $`rm ${pbf}`
-    const elements = opl.split('\n').map(parseOplLine).filter((e) => e !== undefined)
+    const elements = opl
+      .split('\n')
+      .map(parseOplLine)
+      .filter((e) => e !== undefined)
     const counts = { node: 0, way: 0, relation: 0 }
     for (const e of elements) counts[e.type]++
     const json = JSON.stringify({ version: '0.6', generator: 'maid fixtures', elements })
@@ -121,7 +142,9 @@ if (import.meta.main) {
       sha256: new Bun.CryptoHasher('sha256').update(json).digest('hex'),
     }
     await Bun.write(join(outDir, `${scene.name}.meta.json`), JSON.stringify(meta, null, 2) + '\n')
-    console.log(`${scene.name}: ${counts.node} nodes, ${counts.way} ways, ${counts.relation} relations`)
+    console.log(
+      `${scene.name}: ${counts.node} nodes, ${counts.way} ways, ${counts.relation} relations`,
+    )
   }
   console.log(`Wrote fixtures to ${outDir}`)
 }

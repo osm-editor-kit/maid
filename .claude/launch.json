@@ -1,7 +1,23 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "maid", "runtimeExecutable": "bun", "runtimeArgs": ["run", "--cwd", "apps/maid", "dev"], "port": 5173 },
-    { "name": "mock-osm-api", "runtimeExecutable": "bun", "runtimeArgs": ["tools/mock-osm-api/server.ts"], "port": 8090 }
+    {
+      "name": "maid",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "apps/maid", "dev"],
+      "port": 5173
+    },
+    {
+      "name": "mock-osm-api",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["tools/mock-osm-api/server.ts"],
+      "port": 8090
+    },
+    {
+      "name": "compare",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["apps/compare/start.ts"],
+      "port": 5184
+    }
   ]
 }

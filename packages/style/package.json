@@ -4,7 +4,13 @@
   "private": true,
   "license": "ISC",
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
-  "scripts": { "generate": "bun scripts/extract.ts" },
-  "devDependencies": { "@openstreetmap/id-tagging-schema": "^6.11.0" }
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "bun scripts/extract.ts"
+  },
+  "devDependencies": {
+    "@openstreetmap/id-tagging-schema": "^6.11.0"
+  }
 }

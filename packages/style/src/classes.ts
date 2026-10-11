@@ -24,9 +24,27 @@ const SECONDARIES = [
   'public_transport', 'location', 'parking', 'golf', 'type', 'leisure',
   'man_made', 'indoor', 'construction', 'proposed', 'bicycle', 'foot',
 ] // prettier-ignore
-const PATH_HIGHWAYS = new Set(['path', 'footway', 'cycleway', 'bridleway', 'pedestrian', 'corridor', 'steps', 'ladder'])
+const PATH_HIGHWAYS = new Set([
+  'path',
+  'footway',
+  'cycleway',
+  'bridleway',
+  'pedestrian',
+  'corridor',
+  'steps',
+  'ladder',
+])
 const PAVED: Record<string, Set<string>> = {
-  surface: new Set(['paved', 'asphalt', 'concrete', 'chipseal', 'concrete:lanes', 'concrete:plates', 'metal', 'tiles']),
+  surface: new Set([
+    'paved',
+    'asphalt',
+    'concrete',
+    'chipseal',
+    'concrete:lanes',
+    'concrete:plates',
+    'metal',
+    'tiles',
+  ]),
   tracktype: new Set(['grade1']),
 }
 const SEMIPAVED = new Set([
@@ -94,7 +112,13 @@ export function tagClasses(t: Tags): string[] {
       classes.push('ungraded')
     }
   }
-  if (t.wikidata || t['flag:wikidata'] || t['brand:wikidata'] || t['network:wikidata'] || t['operator:wikidata']) {
+  if (
+    t.wikidata ||
+    t['flag:wikidata'] ||
+    t['brand:wikidata'] ||
+    t['network:wikidata'] ||
+    t['operator:wikidata']
+  ) {
     classes.push('wikidata')
   }
   return classes.filter((c) => VALID.test(`tag-${c}`))
@@ -103,10 +127,25 @@ export function tagClasses(t: Tags): string[] {
 const AREA_EXCEPTIONS: Record<string, Record<string, boolean>> = {
   highway: { elevator: true, rest_area: true, services: true },
   public_transport: { platform: true },
-  railway: { platform: true, roundhouse: true, station: true, traverser: true, turntable: true, wash: true, ventilation_shaft: true },
+  railway: {
+    platform: true,
+    roundhouse: true,
+    station: true,
+    traverser: true,
+    turntable: true,
+    wash: true,
+    ventilation_shaft: true,
+  },
   waterway: { dam: true },
   amenity: { bicycle_parking: true },
-  emergency: { yes: false, no: false, private: false, designated: false, destination: false, official: false },
+  emergency: {
+    yes: false,
+    no: false,
+    private: false,
+    designated: false,
+    destination: false,
+    official: false,
+  },
 }
 
 function removeLifecyclePrefix(key: string) {
@@ -141,7 +180,8 @@ export function hasInterestingTags(tags: Tags | undefined) {
 
 /** iD's osmWay.layer(): which stacking level a way is drawn on */
 export function wayLayer(t: Tags) {
-  if (t.layer !== undefined && isFinite(Number(t.layer))) return Math.max(-10, Math.min(Number(t.layer), 10))
+  if (t.layer !== undefined && isFinite(Number(t.layer)))
+    return Math.max(-10, Math.min(Number(t.layer), 10))
   if (t.covered === 'yes') return -1
   if (t.location === 'overground') return 1
   if (t.location === 'underground') return -1

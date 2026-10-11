@@ -3,8 +3,22 @@
 <title>MapLibre: a slow re-parse that finishes after a newer tile load overwrites it</title>
 <link rel="stylesheet" href="/maplibre-gl/dist/maplibre-gl.css" />
 <style>
-  html, body, #map { height: 100%; margin: 0; }
-  #out { position: absolute; top: 8px; left: 8px; z-index: 1; background: #fff; padding: 8px; font: 13px/1.4 monospace; white-space: pre; }
+  html,
+  body,
+  #map {
+    height: 100%;
+    margin: 0;
+  }
+  #out {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 1;
+    background: #fff;
+    padding: 8px;
+    font: 13px/1.4 monospace;
+    white-space: pre;
+  }
 </style>
 <div id="map"></div>
 <div id="out">running…</div>
@@ -26,7 +40,11 @@
     container: 'map',
     center,
     zoom: 17,
-    style: { version: 8, sources: {}, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#111' } }] },
+    style: {
+      version: 8,
+      sources: {},
+      layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#111' } }],
+    },
   })
 
   let seed = 1
@@ -34,8 +52,15 @@
   const line = (id, kind) => {
     const x = center[0] + (random() - 0.5) * 0.004
     const y = center[1] + (random() - 0.5) * 0.0025
-    const coordinates = Array.from({ length: 6 }, (_, k) => [x + k * 0.0001 + random() * 0.00005, y + random() * 0.0002])
-    return { type: 'Feature', properties: { id, kind }, geometry: { type: 'LineString', coordinates } }
+    const coordinates = Array.from({ length: 6 }, (_, k) => [
+      x + k * 0.0001 + random() * 0.00005,
+      y + random() * 0.0002,
+    ])
+    return {
+      type: 'Feature',
+      properties: { id, kind },
+      geometry: { type: 'LineString', coordinates },
+    }
   }
   const sourceLoaded = () =>
     new Promise((resolve) => {
@@ -45,15 +70,35 @@
     })
 
   map.on('load', async () => {
-    map.addSource('lines', { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, promoteId: 'id' })
+    map.addSource('lines', {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] },
+      promoteId: 'id',
+    })
     map.addLayer({
       id: 'dashed',
       type: 'line',
       source: 'lines',
       filter: ['==', ['get', 'kind'], 'dashed'],
-      paint: { 'line-color': '#f66', 'line-width': 2, 'line-dasharray': ['match', ['get', 'kind'], 'dashed', ['literal', [2, 2]], ['literal', [1, 0]]] },
+      paint: {
+        'line-color': '#f66',
+        'line-width': 2,
+        'line-dasharray': [
+          'match',
+          ['get', 'kind'],
+          'dashed',
+          ['literal', [2, 2]],
+          ['literal', [1, 0]],
+        ],
+      },
     })
-    map.addLayer({ id: 'plain', type: 'line', source: 'lines', filter: ['==', ['get', 'kind'], 'plain'], paint: { 'line-color': '#6f6', 'line-width': 2 } })
+    map.addLayer({
+      id: 'plain',
+      type: 'line',
+      source: 'lines',
+      filter: ['==', ['get', 'kind'], 'plain'],
+      paint: { 'line-color': '#6f6', 'line-width': 2 },
+    })
     const source = map.getSource('lines')
     // Diagnostics: do answers for the same tile come back in a different order than they were asked?
     const trace = { requests: 0, overlapping: 0, outOfOrder: 0 }
@@ -70,17 +115,28 @@
         const list = open.get(tile.uid)
         // an older request for this tile is still open: this answer overtook it
         if (list.some((m) => m < n)) trace.outOfOrder++
-        open.set(tile.uid, list.filter((m) => m !== n))
+        open.set(
+          tile.uid,
+          list.filter((m) => m !== n),
+        )
       }
     }
 
     // 1. many dashed lines, fully loaded
-    await source.updateData({ add: Array.from({ length: 4000 }, (_, i) => line(`old-${i}`, 'dashed')) })
+    await source.updateData({
+      add: Array.from({ length: 4000 }, (_, i) => line(`old-${i}`, 'dashed')),
+    })
     await sourceLoaded()
     await map.once('idle')
 
     // 2. style change: re-parse of the loaded tiles, needs a round trip for the new dash pattern
-    map.setPaintProperty('dashed', 'line-dasharray', ['match', ['get', 'kind'], 'dashed', ['literal', [3, 1]], ['literal', [1, 0]]])
+    map.setPaintProperty('dashed', 'line-dasharray', [
+      'match',
+      ['get', 'kind'],
+      'dashed',
+      ['literal', [3, 1]],
+      ['literal', [1, 0]],
+    ])
     // let MapLibre send the re-parse request; it does so on the next frame
     await new Promise((resolve) => requestAnimationFrame(resolve))
     // 3. replace the data by a few plain lines
@@ -96,7 +152,9 @@
     const inTiles = [...new Set(map.querySourceFeatures('lines').map((f) => f.id))]
     let rendered
     try {
-      rendered = [...new Set(map.queryRenderedFeatures({ layers: ['dashed', 'plain'] }).map((f) => f.id))].length
+      rendered = [
+        ...new Set(map.queryRenderedFeatures({ layers: ['dashed', 'plain'] }).map((f) => f.id)),
+      ].length
     } catch (error) {
       rendered = String(error)
     }

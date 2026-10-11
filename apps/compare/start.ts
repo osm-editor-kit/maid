@@ -1,9 +1,9 @@
+import { join } from 'node:path'
 /**
  * Starts everything the side-by-side page needs and skips what is already running:
  * mock OSM API, iD, Rapid, a production build of Maid, and the page itself.
  */
 import { spawn } from 'bun'
-import { join } from 'node:path'
 import { PORTS } from '../../tools/ports'
 
 const ROOT = join(import.meta.dir, '../..')
@@ -31,10 +31,22 @@ await ensure('mock OSM API', PORTS.mockApi, ['bun', 'tools/mock-osm-api/server.t
 await ensure('iD', PORTS.id, ['bun', 'tools/refs/id/serve.ts'])
 await ensure('Rapid', PORTS.rapid, ['bun', 'tools/refs/rapid/serve.ts'])
 if (!(await listening(PORTS.maidBuild))) {
-  const build = spawn(['bun', 'run', '--cwd', 'apps/maid', 'build'], { cwd: ROOT, stdout: 'ignore', stderr: 'inherit' })
+  const build = spawn(['bun', 'run', '--cwd', 'apps/maid', 'build'], {
+    cwd: ROOT,
+    stdout: 'ignore',
+    stderr: 'inherit',
+  })
   if ((await build.exited) !== 0) throw new Error('Maid build failed')
 }
-await ensure('Maid', PORTS.maidBuild, ['bun', 'run', '--cwd', 'apps/maid', 'preview', '--port', String(PORTS.maidBuild)])
+await ensure('Maid', PORTS.maidBuild, [
+  'bun',
+  'run',
+  '--cwd',
+  'apps/maid',
+  'preview',
+  '--port',
+  String(PORTS.maidBuild),
+])
 await ensure('compare page', PORTS.compare, ['bun', 'apps/compare/serve.ts'])
 console.log(`\nOpen http://localhost:${PORTS.compare}  (Ctrl+C stops the servers started here)`)
 await new Promise(() => {})
