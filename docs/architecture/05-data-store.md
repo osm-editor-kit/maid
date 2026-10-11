@@ -1,6 +1,6 @@
 # The data store: graph, history, undo, spatial index
 
-Status: proposal, 2026-10-11. Based on the reviews of iD, Rapid 3 and osm-editor-kit. Tobias's direction: look at what Rapid did, it is further along than iD here; take a lot from Rapid and iD for the base layer, because geometry work and writing OSM data are critical.
+Status: **agreed by Tobias on 2026-10-11**, including lon/lat in the model, the use of the Rapid SDK and the package layout below. Based on the reviews of iD, Rapid 3 and osm-editor-kit. Tobias's direction: look at what Rapid did, it is further along than iD here; take a lot from Rapid and iD for the base layer, because geometry work and writing OSM data are critical.
 
 ## What an editor needs from its store
 
@@ -63,8 +63,41 @@ This is where the port pays off for speed, because the renderer already wants ex
 
 Each step is usable on its own, and after step 2 Maid has undo.
 
-## Open
+## Decided
 
-- Coordinates: adopt Rapid's world coordinates in the model, or keep lat/lon and convert at the renderer. MapLibre wants lon/lat, so world coordinates buy less for Maid than for Pixi. Proposal: lon/lat in the model.
-- How much of `@rapid-sdk/math` and `@rapid-sdk/util` to depend on ([packages](03-packages.md)).
-- `osm-data` in osm-editor-kit: keep it as the fetch-and-parse layer below the graph, or fold it in.
+- **Coordinates are lon/lat in the model.** Rapid's world coordinates are not adopted. MapLibre wants lon/lat, so nothing is converted on the way to the map. Where ported geometry code needs a flat plane (angles, orthogonalising), it projects for the length of that calculation, as iD does.
+- **The Rapid SDK**: `@rapid-sdk/math` is a pinned dependency, `@rapid-sdk/util` is used only where ported code needs a helper, and neither is copied into the monorepo unless we have to change it ([packages](03-packages.md)).
+- **`osm-data` stays what it is and Maid does not build on it.** Reasoning in the next section.
+
+## `osm-data` and the package layout
+
+Tobias asked who uses `@osm-editor-kit/osm-data` and whether those users could be adjusted. Checked on 2026-10-11 across `~/Development/OSM`:
+
+- **One user: the street-space editor** (`osmberlin/street-space-editor`, checked out as `parking-lanes`), which is also where the package lives. Its app imports it in about 90 files, and seven sibling packages depend on it (`osm-way-edit`, `osm-way-chain`, `osm-changeset`, `osm-coverage`, `osm-editor-links`, `osm-route-snapper`, `osm-oauth`). No other project on disk uses it. On npm it is at `0.1.0-alpha.0`.
+- **Nearly all of those imports are types** (`OsmWay`, `OsmTags`, `ParsedOsmData`). The functions (`downloadOsmData`, `parseOsmResp`, `mergeParsedOsm`) are called in a handful of places.
+- **The package is about 100 lines**: the types of the OSM API's JSON, a download, and a parser into five plain maps.
+
+So it could be adjusted: one repository, ours, mostly type names. But it should not be, because the two stores are right for different apps:
+
+| | `osm-data` | Maid's graph |
+| --- | --- | --- |
+| For | Apps that change tags on ways and cut ways | A general editor |
+| Shape | Plain maps by numeric id; only tagged nodes are kept as objects; coordinates as `[lat, lon]` | Entities with ids like `n1`, lookups in both directions, lon/lat |
+| Undo, difference, spatial index | No, and those apps do not need them | Yes |
+
+Putting `osm-data` under the graph would copy every element twice on Maid's hottest path (loading) and drop information the graph needs. Folding it into the graph package would force the small apps onto a model that is too big for them.
+
+The layout that follows:
+
+| Package | Contains | Public |
+| --- | --- | --- |
+| `osm-model` | Entities and geometry. Also the types of the OSM API's JSON and the parser from that JSON to entities | Later, when it is stable |
+| `osm-graph` | Graph, difference, history with staging, spatial index | Later |
+| `osm-actions` | The edit operations | Later |
+| `osm-data` (street-space editor repo) | Unchanged | As today |
+
+Loading by tile (which tiles, batching, the cache) is not a data package. It stays with the editor, next to the code that hands differences to the renderer.
+
+The one piece both sides share is the description of the API's JSON, about 40 lines of types. That is too little to justify a dependency between the repositories, so it exists twice.
+
+Later, once Maid's data packages are published: an app that outgrows `osm-data` (needs undo, or geometry edits beyond cutting) moves to `osm-graph`. The street-space editor is the candidate, and its shape makes that a contained change. Nothing needs to happen there now.

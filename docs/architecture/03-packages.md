@@ -31,6 +31,8 @@ Status: proposal, following Tobias's notes of 2026-10-11.
 
 ### The Rapid SDK
 
+Agreed by Tobias on 2026-10-11.
+
 Rapid moved the shared math and helpers that iD keeps in `geo/` and `util/` into two packages a while ago. iD never adopted them.
 
 - **`@rapid-sdk/math`** 1.0.0-pre.5, ISC, repository `rapideditor/rapid-sdk`. Extent, vector operations, projection between WGS84 and world coordinates, spherical distance, a tiler. Rapid imports it in about 162 files. Depends on `d3-polygon` and on `@rapid-sdk/util`.
@@ -40,7 +42,7 @@ Can we use them? **Yes for `math`.** The ported entities and actions call it eve
 
 **Selectively for `util`.** Half of it is generic helpers that the language or a line of code covers today, the session lock is the cookie approach we do not want, and it pulls in an AES library. Where ported code needs a helper from it, we take the import; we do not build on it.
 
-**Copy into the monorepo?** Not at first. A dependency keeps us honest about what we changed. If we need to change the math (for example to drop world coordinates), we fork it into `packages/` then, with its tests, and say so in the notice file.
+**Copy into the monorepo?** Not at first. A dependency keeps us honest about what we changed. If we need to change the math, we fork it into `packages/` then, with its tests, and say so in the notice file. Maid's model is lon/lat ([data store](05-data-store.md)); the world-coordinate parts of the package are simply not used.
 
 ## Where packages live
 
@@ -63,7 +65,7 @@ Existing osm-editor-kit packages and what the reviews suggest:
 | `osm-changeset` | Add deletes, which it lacks, and conflict handling; make it public |
 | `osm-maplibre` | Make the latitude a parameter (fixed at 51° today); it is the natural home for Maid's update engine if other apps want it |
 | `osm-map-url` | Give it a router-free core and share the parsers with Maid ([URL state](08-url-state.md)) |
-| `osm-data` | Keep as fetch-and-parse, or fold into the graph package. Open |
+| `osm-data` | Unchanged. It stays the small apps' store; Maid does not build on it ([data store](05-data-store.md)). Decided |
 | `osm-way-edit`, `osm-way-chain` | Superseded for Maid by the ported actions; still right for the small apps |
 | `osm-ui` | Empty today. Either becomes `ui-kit` or goes |
 

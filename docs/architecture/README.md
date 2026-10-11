@@ -10,7 +10,7 @@ The starting point is [the extensibility plan](../extensibility-plan.md): one co
 | 2 | [Fork model](02-fork-model.md) | A fork is a small app on Maid's npm packages; missing hooks are patched locally and upstreamed. Agreed |
 | 3 | [Packages](03-packages.md) | What comes from Rapid, iD and osm-editor-kit, where packages live, licence |
 | 4 | [Rapid review](04-rapid-review.md) | What to copy from Rapid 3's structure and what not; workers |
-| 5 | [Data store](05-data-store.md) | Graph, history, undo and spatial index, ported from Rapid with three changes |
+| 5 | [Data store](05-data-store.md) | Graph, history, undo and spatial index, ported from Rapid with three changes. Agreed |
 | 6 | [Filters](06-filters.md) | Filters as ordered data in the config, three states, two stages |
 | 7 | [Styles and lenses](07-styles-and-lenses.md) | A lens is a second style; export for an external style editor |
 | 8 | [URL state](08-url-state.md) | All parameters in nuqs; translation from and to iD's URLs (built) |
@@ -38,6 +38,8 @@ The starting point is [the extensibility plan](../extensibility-plan.md): one co
 - **Tailwind Plus components may be used**: we hold a proper licence and distribute adapted components in our open-source projects.
 - **The MapLibre report is postponed.** The write-up, patch and test case stay in the repo, ready to be referenced.
 - **The repository lives at <https://github.com/osm-editor-kit/maid>.**
+- **The data store is ported from Rapid as proposed, with lon/lat in the model.** `@rapid-sdk/math` is a pinned dependency, `@rapid-sdk/util` is used selectively.
+- **`osm-data` stays unchanged** as the small apps' store. Its only user is the street-space editor. Maid's data packages are `osm-model`, `osm-graph` and `osm-actions`.
 
 ## Open questions, collected
 
@@ -54,18 +56,16 @@ Design questions with a proposal in the chapter:
 6. Whether read-only objects look different by default ([filters](06-filters.md)).
 7. The default list of style keys that are copied onto map features for user styles ([styles and lenses](07-styles-and-lenses.md)).
 8. Readable names for the feature properties before they become a public schema ([styles and lenses](07-styles-and-lenses.md)).
-9. Lon/lat or Rapid's world coordinates in the data model ([data store](05-data-store.md)).
-10. `osm-data`: stays as fetch-and-parse, or is folded into the graph package ([data store](05-data-store.md), [packages](03-packages.md)).
-11. Whether OSM data is cached across sessions ([storage and settings](09-storage-and-settings.md)).
-12. Syncing settings to the OSM account ([storage and settings](09-storage-and-settings.md)).
-13. Whether a fork may lock a setting, and which ([storage and settings](09-storage-and-settings.md)).
-14. The map background and data colours in light mode ([UI design](10-ui-design.md)).
-15. The accent colour, and letting a fork set it ([UI design](10-ui-design.md)).
-16. How dense the inspector is ([UI design](10-ui-design.md)).
+9. Whether OSM data is cached across sessions ([storage and settings](09-storage-and-settings.md)).
+10. Syncing settings to the OSM account ([storage and settings](09-storage-and-settings.md)).
+11. Whether a fork may lock a setting, and which ([storage and settings](09-storage-and-settings.md)).
+12. The map background and data colours in light mode ([UI design](10-ui-design.md)).
+13. The accent colour, and letting a fork set it ([UI design](10-ui-design.md)).
+14. How dense the inspector is ([UI design](10-ui-design.md)).
 
 To verify, not to decide:
 
-17. The icon and font licences in `NOTICE.md`.
-18. Headless UI together with the React Compiler.
-19. Token lifetime and popup flow of `osm-oauth`.
-20. Rapid's rebase-on-download and history memory on a long session.
+15. The icon and font licences in `NOTICE.md`.
+16. Headless UI together with the React Compiler.
+17. Token lifetime and popup flow of `osm-oauth`.
+18. Rapid's rebase-on-download and history memory on a long session.
