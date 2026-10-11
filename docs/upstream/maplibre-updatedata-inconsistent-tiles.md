@@ -1,10 +1,77 @@
-# Draft bug report for MapLibre GL JS
+# MapLibre GL JS: overlapping loads of one GeoJSON tile
 
-Status: **draft, not sent.** Tobias decides if and where to post it. Nothing in this repo posts anything.
+Status: **write-up and local fix. Not reported upstream; sending it is postponed** (Tobias, 2026-10-11). Nothing in this repo posts anything.
 
-A fix runs locally as part of `patches/maplibre-gl@6.12.0.patch`. It is described under "Cause" and "Fix" below and was confirmed with the reproduction: 8 of 30 runs fail on unpatched 6.12.0, 0 of 30 with the patch.
+This file is written so that it can be referenced, or copied, when the report is sent. Everything it mentions is in this repository:
 
-Before sending: replace the two local MapLibre URLs in the reproduction page with a CDN build (noted in the file), and re-run it against the then-current MapLibre release.
+| What | Where |
+| --- | --- |
+| The fix, as a patch to maplibre-gl 6.12.0 | [`patches/maplibre-gl@6.12.0.patch`](https://github.com/osm-editor-kit/maid/blob/main/patches/maplibre-gl%406.12.0.patch). Search for `_maidLoadSeq` and `_maidRawData`; the readable hunks are the ones for `maplibre-gl-dev.mjs` and `maplibre-gl-worker-dev.mjs`. The same file also holds an unrelated change (a wheel-zoom delay, [ADR 0006](../adr/0006-wheel-zoom-finish-delay.md)) |
+| The test case | [`tools/maplibre-repro/updatedata-overlap.html`](https://github.com/osm-editor-kit/maid/blob/main/tools/maplibre-repro/updatedata-overlap.html): one page, no dependencies besides MapLibre |
+| The runner | [`tools/maplibre-repro/run.ts`](https://github.com/osm-editor-kit/maid/blob/main/tools/maplibre-repro/run.ts): opens the page N times in Chrome and prints one JSON line per run |
+
+The repository is private at the time of writing. The links work for people with access; for a public report the page and the two readable patch hunks should be pasted or put in a gist.
+
+## Run the test case
+
+Needs Bun and Chrome. From the repository root:
+
+```bash
+bun install
+```
+
+Against the MapLibre this repository uses, which has the fix:
+
+```bash
+bun tools/maplibre-repro/run.ts 30 "gap=5&restyle=1"
+```
+
+Against an untouched maplibre-gl 6.12.0. `MAPLIBRE_DIR` is any folder that contains the package's `dist/`. Bun's cache usually has one after `bun install`; if that path does not exist on your machine, unpack the package anywhere (`npm pack maplibre-gl@6.12.0`, then extract the archive) and point to its `package` folder:
+
+```bash
+MAPLIBRE_DIR=~/.bun/install/cache/maplibre-gl@6.12.0@@@1 bun tools/maplibre-repro/run.ts 30 "gap=5&restyle=1"
+```
+
+Each line of output is one run:
+
+- `ok`: `false` means the bug showed.
+- `inTiles_querySourceFeatures`: features the tiles hold. It should equal `expected` (4800).
+- `queryRenderedFeatures`: a number, or the error text when the query threw.
+- `overlapping`: how many requests were sent for a tile while an older one for the same tile was open.
+- `outOfOrder`: how many answers came back while an older request for the same tile was still open.
+
+Parameters of the page: `gap` (milliseconds between `updateData` calls), `restyle=1` (change a data-driven paint property after each batch; needed to trigger the bug), `serial=1` (wait for `isSourceLoaded` between updates; the workaround), `batches`, `perBatch`, `sort=1`.
+
+To open the page by hand in a browser, serve the repository's `tools/maplibre-repro` folder together with a `maplibre-gl` folder next to it, or replace the two local MapLibre URLs at the top of the page with a CDN build, as the comment there says. The result is printed in the top-left corner.
+
+A second page, `updatedata-order.html`, tries to force the bad order deterministically. It does **not** reproduce the bug and is kept only as a record of that attempt.
+
+## Already reported upstream?
+
+Searched on 2026-10-11 in `maplibre/maplibre-gl-js` (issues, pull requests, changelog, source on `main`), read-only. In short: **the symptom has been reported twice and both reports are closed as fixed in the version we use. The cause described here, the missing order check on the main thread, was not found in any issue or pull request.**
+
+The same symptom, closed:
+
+| | Title | State | Relation to this write-up |
+| --- | --- | --- | --- |
+| [#7752](https://github.com/maplibre/maplibre-gl-js/issues/7752) | `map.queryRenderedFeatures` causes "Out of bounds" error | Closed 2026-06-10 by [#7765](https://github.com/maplibre/maplibre-gl-js/pull/7765) ("only remove parse state once parsing is done") | Same error, from conflicting reloads of a tile. The fix is in the worker |
+| [#8064](https://github.com/maplibre/maplibre-gl-js/issues/8064) | `map.queryRenderedFeatures` causes "Out of bounds" error again | Closed 2026-08-07 by [#8107](https://github.com/maplibre/maplibre-gl-js/pull/8107) ("Fix worker sources discarding raw tile data after aborted parse") | Same error. The worker answered without raw tile data after an aborted parse. Different trigger (a missing image and a symbol query) |
+
+Both fixes are part of 6.12.0, and our test case still fails on an untouched 6.12.0 in 8 of 30 runs. So they did not close the path described here. A report should be written as a follow-up to those two and link them.
+
+Related, different mechanism, both in 6.12.0:
+
+- [#8585](https://github.com/maplibre/maplibre-gl-js/pull/8585): worker data updates of a GeoJSON source are sent one at a time. That orders the data updates, not the tile loads that follow them.
+- [#8613](https://github.com/maplibre/maplibre-gl-js/pull/8613): more tests for `GeoJSONSource`, and fixes for stale data after `setData` and stale clusters.
+
+Later versions: the changelog of 6.13.0 (2026-10-06) and of `main` has no entry about GeoJSON tile reloads, `updateData` ordering or the feature index, and `GeoJSONSource.loadTile` is reported as unchanged there. A new request replaces `tile.abortController` without aborting the open one, and an answer is applied whenever the tile is not aborted.
+
+How sure this is:
+
+- Checked by us: numbers, titles, states and merge dates of the six items above, and the `loadTile` code in 6.12.0.
+- From the search agent, not checked by us: the statements about 6.13.0 and `main`, and what the two fixes change in detail.
+- Not done: running the test case on 6.13.0 or `main`. **Do that before sending a report**; if it no longer fails there, the report is not needed.
+- The search used keywords through the GitHub API. Discussions were not searched, and a report under an unusual title can have been missed.
 
 ---
 
@@ -34,12 +101,7 @@ Once the map is idle, the tiles contain what the last `updateData` produced, and
 
 ## Reproduction
 
-`tools/maplibre-repro/updatedata-overlap.html` in this repo: one source, three line layers, 12 batches of 400 lines added with `updateData` 5 ms apart, and a `setPaintProperty('line-dasharray', ['match', ...])` on each layer after every batch. The page also counts, per tile, how often an answer comes back while an older request for the same tile is still open.
-
-```bash
-bun tools/maplibre-repro/run.ts 30 "gap=5&restyle=1"                                  # the MapLibre this repo uses (patched)
-MAPLIBRE_DIR=~/.bun/install/cache/maplibre-gl@6.12.0@@@1 bun tools/maplibre-repro/run.ts 30 "gap=5&restyle=1"   # unpatched
-```
+`tools/maplibre-repro/updatedata-overlap.html`: one source, three line layers, 12 batches of 400 lines added with `updateData` 5 ms apart, and a `setPaintProperty('line-dasharray', ['match', ...])` on each layer after every batch. The page also counts, per tile, how often an answer comes back while an older request for the same tile is still open.
 
 Results on 2026-10-11, 30 runs each:
 
