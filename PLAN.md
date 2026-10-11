@@ -17,7 +17,7 @@ Short form. The binding text is in [AGENTS.md](AGENTS.md).
 
 1. **Minimal traffic on OSM infrastructure.** Automated runs send none. All editors read frozen fixtures from a local mock API.
 2. **Automation first, agent-driven.** Every workflow is a script with machine-readable output. Agents do the work and check it.
-3. **References:** iD (`../iD`, upstream `openstreetmap/iD`) and Rapid 3 (`../Rapid-Bryan`, `bhousel/Rapid`). Not `facebook/Rapid`.
+3. **References:** iD (`openstreetmap/iD`) and Rapid 3 (`bhousel/Rapid`). Not `facebook/Rapid`.
 
 ## Iteration 1: proof of concept for rendering and speed
 
@@ -195,18 +195,18 @@ What comes next is in [docs/architecture/](docs/architecture/README.md), with th
 
 ## References
 
-All local paths are relative to this repo. More detail in [docs/research/](docs/research/).
+More detail in [docs/research/](docs/research/). Both editors are read from the pinned clones in `.reference/` (`bun run refs-setup`); other repositories are never changed ([AGENTS.md](AGENTS.md)).
 
 ### Rapid 3 (primary Rapid reference)
 
-- https://github.com/bhousel/Rapid, local [`../Rapid-Bryan`](../Rapid-Bryan) (`3.0.0-pre.2`)
-- Entry points: [`AGENTS.md`](../Rapid-Bryan/AGENTS.md), [`API.md`](../Rapid-Bryan/API.md), [`FORK-SUMMARY.md`](../Rapid-Bryan/FORK-SUMMARY.md), [`modules/`](../Rapid-Bryan/modules)
-- Not a reference: `facebook/Rapid` and [`../Rapid`](../Rapid) (`tordans/Rapid`, a fork of the facebook version)
+- https://github.com/bhousel/Rapid (`3.0.0-pre.2`), pinned in `tools/refs/rapid/pin.json`, cloned to `.reference/rapid`
+- Entry points there: `AGENTS.md`, `API.md`, `FORK-SUMMARY.md`, `modules/`
+- Not a reference: `facebook/Rapid`
 
 ### iD
 
-- https://github.com/openstreetmap/iD, local [`../iD`](../iD) (fork, `2.43.0-dev`) and [`../iD-OSMORG-REPO`](../iD-OSMORG-REPO) (clean upstream, older)
-- Entry points: [`ARCHITECTURE.md`](../iD/ARCHITECTURE.md), [`API.md`](../iD/API.md), [`modules/`](../iD/modules), [`css/`](../iD/css)
+- https://github.com/openstreetmap/iD, pinned in `tools/refs/id/pin.json`, cloned to `.reference/id`
+- Entry points there: `ARCHITECTURE.md`, `API.md`, `modules/`, `css/`
 
 ### Stack
 

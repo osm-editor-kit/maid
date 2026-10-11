@@ -28,9 +28,10 @@ OSM infrastructure means everything the OSMF and the community run for mappers: 
 
 ### 3. References
 
-- iD: `../iD` (fork) and `../iD-OSMORG-REPO` (clean upstream). Upstream: https://github.com/openstreetmap/iD
-- Rapid: `../Rapid-Bryan`, which is https://github.com/bhousel/Rapid (Rapid 3). **Never** use `facebook/Rapid` or the `../Rapid` checkout as a reference.
-- The reference checkouts are read-only for this project. Benchmarks run against pinned commits cloned into `.reference/` (git-ignored), not against the sibling checkouts.
+- iD: https://github.com/openstreetmap/iD
+- Rapid: https://github.com/bhousel/Rapid (Rapid 3). **Never** use `facebook/Rapid` as a reference.
+- Read their code from `.reference/id` and `.reference/rapid`: pinned commits that `bun run refs-setup` clones from GitHub (git-ignored). Benchmarks and ports use these, so everyone works from the same commit. This file names no other location on purpose.
+- **Other repositories are read-only, wherever they are.** That covers `.reference/`, any other checkout of iD, Rapid or another project on the machine, and every repository on GitHub that is not this one. Never edit, commit, push, open or comment on issues and pull requests, or change settings there, even where the account has the rights to. A change we want upstream is prepared here as a draft and handed to a person.
 
 ## Stack
 
@@ -48,13 +49,14 @@ Performance experiments may need imperative MapLibre calls that the `react-map-g
 
 ## Working with subagents
 
-Learned on 2026-10-11 while porting Rapid's data model (five agents, all results accepted).
+Learned on 2026-10-11 while porting Rapid's data model.
 
 - **Do the mechanical part yourself, with a script.** Copying files and rewriting imports with `cp` and `sed` costs almost nothing and showed in minutes what was really left to do. Hand out what remains.
 - **Measure before you brief.** Run the type-check and the tests first and give the agent the failure list and the done-when command. A brief without a command that proves "done" is not ready.
 - **One folder per agent**, named in the brief, and nothing outside it: no `package.json`, no index files, no `bun install`, no commits. The orchestrator wires things together and commits.
 - **Say what to copy and what to cut.** "Start with `cp`, then delete and edit, do not retype" keeps ported code identical to its source and keeps the agent's context small.
-- **Pick the model by the kind of decision.** Haiku for research with a narrow question, measurements, and ports where the brief names every change. Sonnet where the agent has to choose what to keep or design an API. Opus only for orchestration, review and decisions that span packages.
+- **Haiku is the default for subagents; raise its effort before you switch models.** Set the effort in every brief, do not leave it to the default. Low or medium for lookups and measurements, high or max where the agent has to choose what to keep or design an API. Decided by Tobias on 2026-10-11 from a cost-against-score chart (CursorBench 4.0): Haiku at max effort scores like Sonnet at the same cost, and Haiku is ahead of Sonnet and Opus at every cost below that.
+- **Sonnet only at medium effort**, and only when Haiku at max was not enough. **Opus never at low effort** (Haiku at max is cheaper and scores higher). Opus is for orchestration, review and decisions that span packages.
 - **Keep each agent under about 100k tokens of context**: one file or one package per agent, read with `grep -n` and `sed -n` in ranges. Haiku costs more per request above that size. `CLAUDE_CODE_AUTO_COMPACT_WINDOW=100000` enforces it, but it is set per session and would also apply to the orchestrator.
 - **Ask for a short report in a fixed shape**: what changed, what was cut and why, final numbers, what is unsure. Ask the agent to separate what it measured from what it inferred.
 - **Treat reports as leads.** Re-run the done-when commands yourself, count tests and assertions against the source, and grep for skipped tests before accepting. Mark claims you did not check as unchecked in the docs.

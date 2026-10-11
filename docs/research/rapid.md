@@ -1,8 +1,8 @@
 # Rapid 3
 
-Checkout: `../Rapid-Bryan` at `413c0519f` (`3.0.0-pre.2`), which is https://github.com/bhousel/Rapid. Paths are relative to that checkout, most under `modules/`. License: ISC.
+Source: https://github.com/bhousel/Rapid at `413c0519f` (`3.0.0-pre.2`), cloned to `.reference/rapid`. Paths are relative to that checkout, most under `modules/`. License: ISC.
 
-Do not confuse with `facebook/Rapid` or `../Rapid`. See `../Rapid-Bryan/FORK-SUMMARY.md` for how far the two have diverged.
+Do not confuse with `facebook/Rapid`. See `FORK-SUMMARY.md` in the repository for how far the two have diverged.
 
 ## Rendering
 
@@ -35,7 +35,7 @@ This is close to what a MapLibre port needs: tags go in, a resolved style comes 
 - Merge local data: `context.systems.editor.merge(entities, seenIDs)` (`EditSystem.ts:740`).
 - Mock API: set `context.preauth = {url, apiUrl, access_token}` before init (`Context.ts:434`). Rapid then requests `/api/capabilities` and `/api/0.6/map?bbox=` per z16 tile, and prefers the `.json` variants.
 - Offline assets: by default Rapid pulls assets from jsDelivr. Set `context.assetOrigin = 'local'` and `assetPath` (`Context.ts:116`).
-- URL parameters: `map=zoom/lat/lon/bearing`, `id=`, `background=`, `disable_features=`, `renderer=`, `data=` or `gpx=` (GPX, KML, GeoJSON, not OSM entities), `datasets=`, `poweruser=`, and more. Full list in `../Rapid-Bryan/API.md`.
+- URL parameters: `map=zoom/lat/lon/bearing`, `id=`, `background=`, `disable_features=`, `renderer=`, `data=` or `gpx=` (GPX, KML, GeoJSON, not OSM entities), `datasets=`, `poweruser=`, and more. Full list in `.reference/rapid/API.md`.
 
 ## Driving Rapid from Playwright
 

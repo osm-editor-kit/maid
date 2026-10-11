@@ -19,7 +19,6 @@ import pin from './pin.json'
 const ROOT = join(import.meta.dir, '../../..')
 const DIR = join(ROOT, '.reference/id')
 const STAMP = join(DIR, '.maid-build.json')
-const LOCAL_UPSTREAM = join(ROOT, '../iD-OSMORG-REPO') // optional, only used as object store
 const SERVE = `http://localhost:${PORTS.id}`
 const MOCK = `http://localhost:${PORTS.mockApi}`
 
@@ -61,8 +60,7 @@ const force = process.argv.includes('--force')
 const wanted = { ...pin, env: BUILD_ENV }
 
 if (!existsSync(join(DIR, '.git'))) {
-  const reference = existsSync(join(LOCAL_UPSTREAM, '.git')) ? ['--reference', LOCAL_UPSTREAM, '--dissociate'] : []
-  await run(['git', 'clone', ...reference, '--depth', '1', '--branch', pin.tag, pin.repo, DIR], { cwd: ROOT })
+  await run(['git', 'clone', '--depth', '1', '--branch', pin.tag, pin.repo, DIR], { cwd: ROOT })
 }
 
 let head = await output(['git', 'rev-parse', 'HEAD'])

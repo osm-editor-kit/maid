@@ -1,6 +1,6 @@
 # UI design
 
-Status: direction set by Tobias on 2026-10-11: a modern web-app look with Tailwind components, light and dark mode, and none of iD's old styling. The reference is the Tailwind Plus material in `~/Development/_tailwind` (Catalyst UI kit and the Plus component catalogue).
+Status: direction set by Tobias on 2026-10-11: a modern web-app look with Tailwind components, light and dark mode, and none of iD's old styling. The reference is our licensed Tailwind Plus material (Catalyst UI kit and the Plus component catalogue).
 
 ## Using the kit
 

@@ -1,6 +1,6 @@
 # iD
 
-Checkout: `../iD` at `a427055f7` (`2.43.0-dev`, fork of `openstreetmap/iD`). Paths are relative to that checkout. License: ISC.
+Source: a fork of `openstreetmap/iD` at `a427055f7` (`2.43.0-dev`). Paths are relative to that checkout. License: ISC.
 
 ## Rendering
 

@@ -45,14 +45,8 @@ if (!force && existsSync(stamp) && isBuilt()) {
 
 if (!existsSync(join(dir, '.git'))) {
   mkdirSync(join(root, '.reference'), { recursive: true })
-  const local = resolve(root, pin.localCheckout)
-  const hasLocal =
-    existsSync(join(local, '.git')) && (await out(['git', 'cat-file', '-t', pin.commit], local)) === 'commit'
-  const source = hasLocal ? local : pin.repo
-  console.log(`rapid: cloning from ${source}`)
-  await run(['git', 'clone', '--no-checkout', source, dir], root)
-  // Keep `origin` pointing at the real upstream, whatever we cloned from.
-  await run(['git', 'remote', 'set-url', 'origin', pin.repo], dir)
+  console.log(`rapid: cloning from ${pin.repo}`)
+  await run(['git', 'clone', '--no-checkout', pin.repo, dir], root)
 }
 
 if ((await out(['git', 'cat-file', '-t', pin.commit], dir)) !== 'commit') {

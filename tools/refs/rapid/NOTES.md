@@ -16,7 +16,7 @@ bun tools/refs/rapid/smoke.ts --scene medium --validation   # keeps Rapid's vali
 
 ## Files
 
-- `pin.json`: repo and commit. `setup.ts`: clones (from `../Rapid-Bryan` if it has the commit, else GitHub; `origin` is set to GitHub either way), `bun install --linker=hoisted`, `bun run build`, writes `.reference/rapid/.maid-built`.
+- `pin.json`: repo and commit. `setup.ts`: clones from GitHub, `bun install --linker=hoisted`, `bun run build`, writes `.reference/rapid/.maid-built`.
 - `serve.ts`: `/` host page, `/bench.js`, `/frame-sync.js` (shared `tools/refs/frame-sync.js`), `/config.js` (generated from `tools/ports.ts`, `tools/fixtures/scenes.ts`, `pin.json`), and `js/ css/ data/ img/ svg/` from `dist`. Rapid's own `dist/*.html` are not reachable.
 - `index.html` + `bench.js`: host page and the `window.__bench` adapter (`nodeLoc()` is the one added for the drag check). `window.__benchRapid` has extras (`blockers()`, `boot`, `lastSettle`, `refused`, `validation`, `issues()`, `metrics()`, `measures()`, `renderer()`).
 

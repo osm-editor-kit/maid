@@ -19,7 +19,7 @@ Our npm organisation: https://www.npmjs.com/org/osm-editor-kit, GitHub: https://
 | `surface-smoothness-data`, `surface-smoothness-id-field` | 0.0.0 | Surface and smoothness catalogue and iD field | Later |
 | `key-value-db-client` | 0.1.0 | Client for the key-value store behind `live-touched` | Later |
 
-The alpha packages (`osm-data`, `osm-maplibre`, `osm-coverage`, `osm-way-chain`, `osm-route-snapper`, `osm-map-url`) are published from https://github.com/osmberlin/street-space-editor (verified for `osm-data`; local checkout `../parking-lanes`). They were built for that app's needs. Unverified: how well they perform or generalise.
+The alpha packages (`osm-data`, `osm-maplibre`, `osm-coverage`, `osm-way-chain`, `osm-route-snapper`, `osm-map-url`) are published from https://github.com/osmberlin/street-space-editor (verified for `osm-data`). They were built for that app's needs. Unverified: how well they perform or generalise.
 
 ## Repos and conventions
 

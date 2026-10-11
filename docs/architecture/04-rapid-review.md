@@ -1,6 +1,6 @@
 # Rapid 3 as a model: structure, services, workers
 
-Status: review of `bhousel/Rapid` at `413c0519f` (2026-10-11), read from the code; nothing was run. File references are relative to `../Rapid-Bryan/modules`.
+Status: review of `bhousel/Rapid` at `413c0519f` (2026-10-11), read from the code; nothing was run. File references are relative to `modules/` in that repository (`.reference/rapid/modules`).
 
 Tobias's impression is that Rapid's structure is much better than iD's and should be the model. The review agrees with the direction and finds things to leave behind.
 

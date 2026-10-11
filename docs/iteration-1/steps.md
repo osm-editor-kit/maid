@@ -38,7 +38,7 @@ Goal: an agent can clone the repo, run one command to set up, pick a step, and v
   Done when: each name in the AGENTS.md table exists in `package.json`.
 - [ ] **0.3 Maid app shell.** `apps/maid` with Vite, React 19 and the React Compiler, Tailwind, `react-map-gl/maplibre`, an empty map without a basemap (plain background colour), `MapProvider`, and `window.__maid` exposed in dev and test builds (map instance, version). Check here that `react-map-gl` 8 runs with MapLibre 6; if not, pin MapLibre 5 and record it in an ADR.
   Done when: `bun run dev` serves the app and a Playwright smoke test reads `window.__maid.map.getZoom()`.
-- [ ] **0.4 Agent setup.** `.claude/settings.json` with an allowlist for the repo scripts and read access to `../iD`, `../iD-OSMORG-REPO` and `../Rapid-Bryan`; `.claude/launch.json` for the dev servers with fixed ports (see 0.5); `docs/adr/` with a template and ADR 0001 "Records decisions here"; `docs/GLOSSARY.md` with the terms used in PLAN.md (scene, scenario, driver, fixture, settle time, core subset).
+- [ ] **0.4 Agent setup.** `.claude/settings.json` with an allowlist for the repo scripts and read access to `.reference/`; `.claude/launch.json` for the dev servers with fixed ports (see 0.5); `docs/adr/` with a template and ADR 0001 "Records decisions here"; `docs/GLOSSARY.md` with the terms used in PLAN.md (scene, scenario, driver, fixture, settle time, core subset).
   Done when: a fresh agent session can run `bun run check` and `bun run dev` without a permission prompt.
 - [ ] **0.5 Ports.** One file `tools/ports.ts` as the single source: Maid 5173, compare 5174, iD 8081, Rapid 8082, mock API 8090. Everything else imports it.
   Done when: no other file contains these numbers (`grep`).
@@ -65,13 +65,13 @@ Goal: the same frozen data for every editor, with no request leaving the machine
 
 Goal: a fixture on screen in MapLibre as plain geometry. No iD styling yet.
 
-- [ ] **2.1 Evaluate `@osm-editor-kit/osm-data`.** Read it (`../parking-lanes`), load the `dense` fixture, measure parse and index time and memory, check for hard-coded hosts. Decide in an ADR: use as is, improve upstream, or write `packages/data` here. Update `docs/research/osm-editor-kit.md`.
+- [ ] **2.1 Evaluate `@osm-editor-kit/osm-data`.** Read it (`osmberlin/street-space-editor`), load the `dense` fixture, measure parse and index time and memory, check for hard-coded hosts. Decide in an ADR: use as is, improve upstream, or write `packages/data` here. Update `docs/research/osm-editor-kit.md`.
   Done when: the ADR exists with the measurements.
 - [ ] **2.2 Data loading.** `apps/maid` loads a scene from the mock API per z16 tile for the viewport, like iD and Rapid do, into the store. The API host comes from config; the default is the mock. A `?scene=` parameter selects the fixture.
   Done when: `window.__maid.stats()` returns node, way and relation counts that match `meta.json` after panning over the whole scene.
 - [ ] **2.3 Feature builder.** `packages/renderer`: store to GeoJSON for areas, lines, points and vertices with stable ids (`w123`, `n4`). Closed ways become areas by iD's rules (start with the `area=yes` and key-based rule; note what is missing). Multipolygon relations become polygons with holes.
   Done when: unit tests on small inputs; counts per geometry type for each fixture are written to a snapshot.
-- [ ] **2.4 Plain layers.** `<OsmLayers>`: one source per geometry type with `promoteId`, layers for area outline and light fill, lines in one colour, points and vertices as circles. Read `../Rapid-Bryan/modules/core/Map3dSystem.ts` first.
+- [ ] **2.4 Plain layers.** `<OsmLayers>`: one source per geometry type with `promoteId`, layers for area outline and light fill, lines in one colour, points and vertices as circles. Read `modules/core/Map3dSystem.ts` in `.reference/rapid` first.
   Done when: a Playwright test opens each scene, waits for `idle`, and `queryRenderedFeatures` finds features of every type; a screenshot is saved.
 - [ ] **2.5 Debug handle.** `window.__maid`: `ready()` (promise), `settled()` (resolves on the next `idle` after data and tiles are done), `setCamera`, `stats()` (entities loaded, features per source, features rendered), `hover(id)`, `select(id)` as stubs for now.
   Done when: the Playwright helpers in `tools/bench` use only this handle, no DOM scraping.

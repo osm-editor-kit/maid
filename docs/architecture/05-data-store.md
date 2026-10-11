@@ -80,7 +80,7 @@ What follows:
   | of which: computing geometry for ways and relations (`updateGeometry`, mainly `geoms.setData`) | about 135 | about 65% |
   | of which: parent lookups (a new `Set` per child node) | about 40 | about 20% |
 
-  The geometry that is computed here is Rapid's derived cache: extents, world coordinates, label points. It is the part Maid's renderer does not use, because it builds its own features for MapLibre. So the proposal is to compute it on first access and not on load. Estimated saving about 135 ms of the 204; not built, and it changes behaviour for code that reads `geoms` directly.
+  The geometry that is computed here is Rapid's derived cache: extents, world coordinates, label points. It is the part Maid's renderer does not use, because it builds its own features for MapLibre. **Agreed by Tobias on 2026-10-11: Maid departs from Rapid here**, because it renders differently. The geometry is computed on first access and not on load. Estimated saving about 135 ms of the 204; not built, and it changes behaviour for code that reads `geoms` directly.
 - With both changes the dense scene would be at roughly 250 ms, against 14 ms for the proof-of-concept store. That is the number to judge in the browser before the renderer moves to the new model.
 
 ## Order of work
@@ -100,9 +100,9 @@ Each step is usable on its own, and after step 2 Maid has undo.
 
 ## `osm-data` and the package layout
 
-Tobias asked who uses `@osm-editor-kit/osm-data` and whether those users could be adjusted. Checked on 2026-10-11 across `~/Development/OSM`:
+Tobias asked who uses `@osm-editor-kit/osm-data` and whether those users could be adjusted. Checked on 2026-10-11 across the projects on Tobias's machine:
 
-- **One user: the street-space editor** (`osmberlin/street-space-editor`, checked out as `parking-lanes`), which is also where the package lives. Its app imports it in about 90 files, and seven sibling packages depend on it (`osm-way-edit`, `osm-way-chain`, `osm-changeset`, `osm-coverage`, `osm-editor-links`, `osm-route-snapper`, `osm-oauth`). No other project on disk uses it. On npm it is at `0.1.0-alpha.0`.
+- **One user: the street-space editor** (`osmberlin/street-space-editor`), which is also where the package lives. Its app imports it in about 90 files, and seven sibling packages depend on it (`osm-way-edit`, `osm-way-chain`, `osm-changeset`, `osm-coverage`, `osm-editor-links`, `osm-route-snapper`, `osm-oauth`). No other project on disk uses it. On npm it is at `0.1.0-alpha.0`.
 - **Nearly all of those imports are types** (`OsmWay`, `OsmTags`, `ParsedOsmData`). The functions (`downloadOsmData`, `parseOsmResp`, `mergeParsedOsm`) are called in a handful of places.
 - **The package is about 100 lines**: the types of the OSM API's JSON, a download, and a parser into five plain maps.
 
