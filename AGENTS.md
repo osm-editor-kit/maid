@@ -46,7 +46,19 @@ Performance experiments may need imperative MapLibre calls that the `react-map-g
 4. Tick the step, add a one-line result under it, and commit (see the `finish-work` skill for the message format: `<Topic>: <outcome>` plus outcome bullets).
 5. Do not push unless asked.
 
-Use a small, fast model (Haiku) for code and web research subagents. Give them a narrow question and ask for file and line references. Treat their reports as leads: verify a claim before a decision depends on it, and mark unverified claims as such in `docs/research/`.
+## Working with subagents
+
+Learned on 2026-10-11 while porting Rapid's data model (five agents, all results accepted).
+
+- **Do the mechanical part yourself, with a script.** Copying files and rewriting imports with `cp` and `sed` costs almost nothing and showed in minutes what was really left to do. Hand out what remains.
+- **Measure before you brief.** Run the type-check and the tests first and give the agent the failure list and the done-when command. A brief without a command that proves "done" is not ready.
+- **One folder per agent**, named in the brief, and nothing outside it: no `package.json`, no index files, no `bun install`, no commits. The orchestrator wires things together and commits.
+- **Say what to copy and what to cut.** "Start with `cp`, then delete and edit, do not retype" keeps ported code identical to its source and keeps the agent's context small.
+- **Pick the model by the kind of decision.** Haiku for research with a narrow question, measurements, and ports where the brief names every change. Sonnet where the agent has to choose what to keep or design an API. Opus only for orchestration, review and decisions that span packages.
+- **Keep each agent under about 100k tokens of context**: one file or one package per agent, read with `grep -n` and `sed -n` in ranges. Haiku costs more per request above that size. `CLAUDE_CODE_AUTO_COMPACT_WINDOW=100000` enforces it, but it is set per session and would also apply to the orchestrator.
+- **Ask for a short report in a fixed shape**: what changed, what was cut and why, final numbers, what is unsure. Ask the agent to separate what it measured from what it inferred.
+- **Treat reports as leads.** Re-run the done-when commands yourself, count tests and assertions against the source, and grep for skipped tests before accepting. Mark claims you did not check as unchecked in the docs.
+- Agents that depend on each other's API can still run in parallel if the brief fixes the names both sides use.
 
 ## Scripts
 

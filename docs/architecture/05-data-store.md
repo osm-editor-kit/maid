@@ -70,9 +70,18 @@ Where the time goes in "create entities": almost all of it is `structuredClone`.
 What follows:
 
 - **Fixed the same day** in one place (`AbstractData`'s constructor): properties are copied with a small function for plain data (`src/util/clone.ts`). Creating the dense scene's entities went from about 350 ms to about 125 ms, and Rapid's tests still pass.
-- **Still open: "build graph"** (210 to 290 ms on the dense scene) is now the larger part and is not analysed yet. The total on the dense scene is about 400 ms, against 14 ms for the proof-of-concept store.
-- This has to be solved, or accepted with numbers from the browser, before the renderer moves to the new model.
-- The numbers have to be repeated in Chrome through the benchmark before a decision; Bun's engine is not the browser's.
+- **"Build graph" is mostly geometry.** Measured by a Haiku agent from outside the code (subclassing, best of 5, 204 ms in that run), not re-run by us:
+
+  | Piece of `Graph.rebase` on the dense scene | ms | Share |
+  | --- | ---: | ---: |
+  | Nodes | 24 | 12% |
+  | Ways | 155 | 76% |
+  | Relations | 20 | 10% |
+  | of which: computing geometry for ways and relations (`updateGeometry`, mainly `geoms.setData`) | about 135 | about 65% |
+  | of which: parent lookups (a new `Set` per child node) | about 40 | about 20% |
+
+  The geometry that is computed here is Rapid's derived cache: extents, world coordinates, label points. It is the part Maid's renderer does not use, because it builds its own features for MapLibre. So the proposal is to compute it on first access and not on load. Estimated saving about 135 ms of the 204; not built, and it changes behaviour for code that reads `geoms` directly.
+- With both changes the dense scene would be at roughly 250 ms, against 14 ms for the proof-of-concept store. That is the number to judge in the browser before the renderer moves to the new model.
 
 ## Order of work
 
