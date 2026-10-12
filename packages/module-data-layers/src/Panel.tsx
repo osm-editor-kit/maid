@@ -5,6 +5,7 @@ import type { Editor } from '@osm-editor-kit/maid-core'
 import { toolButtonTone } from '@osm-editor-kit/maid-ui'
 import { useId, useMemo, useState, type ComponentType, type FormEvent } from 'react'
 import { addDataLayer, type Added, type AddInput } from './add.ts'
+import { ColorSwatches } from './ColorSwatches.tsx'
 import {
   DATA_LAYER_KINDS,
   KIND_LABEL,
@@ -220,7 +221,7 @@ function AddLayerForm({
             id={`${ids}-file`}
             type="file"
             accept=".geojson,.json,application/geo+json,application/json"
-            className="text-sm text-zinc-700 file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-zinc-100 file:px-2.5 file:py-1 file:text-sm file:font-medium file:text-zinc-950 hover:file:bg-zinc-200 dark:text-zinc-300 dark:file:bg-zinc-800 dark:file:text-white dark:hover:file:bg-zinc-700"
+            className="h-8 w-full min-w-0 cursor-pointer rounded-md border border-zinc-950/10 bg-white pr-2 pl-1 text-sm text-zinc-500 file:mr-3 file:h-6 file:cursor-pointer file:rounded-sm file:border-0 file:bg-zinc-100 file:px-2.5 file:text-xs file:font-semibold file:text-zinc-950 hover:border-zinc-950/20 hover:file:bg-zinc-200 focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-400 dark:[color-scheme:dark] dark:file:bg-white/10 dark:file:text-white dark:hover:border-white/20 dark:hover:file:bg-white/20"
             onChange={(event) => {
               const chosenFile = event.target.files?.[0]
               setFile(chosenFile)
@@ -246,16 +247,10 @@ function AddLayerForm({
           <span className={HINT}>The names of the layers in the tiles, separated by commas.</span>
         </label>
       ) : null}
-      <label className="flex items-center gap-3" htmlFor={`${ids}-color`}>
+      <div className="flex items-center gap-3">
         <span className={LABEL}>Colour</span>
-        <input
-          id={`${ids}-color`}
-          type="color"
-          value={color}
-          onChange={(event) => setColor(event.target.value)}
-          className="h-8 w-12 cursor-pointer rounded-md border border-zinc-950/10 bg-white p-0.5 dark:border-white/10 dark:bg-zinc-950"
-        />
-      </label>
+        <ColorSwatches label="Colour" value={color} onChange={setColor} />
+      </div>
       {errors.length > 0 ? (
         <ul role="alert" className="flex flex-col gap-1 text-xs text-red-600 dark:text-red-400">
           {errors.map((message) => (
