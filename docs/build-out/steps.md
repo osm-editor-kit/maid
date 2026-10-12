@@ -31,8 +31,9 @@ Review after part A (2026-10-12): the switches of the iteration-1 experiments ar
 
 ## Part B: an editor people can use
 
-- [ ] **B1. The shell.** Top bar, sidebar, map controls and the bottom dock from Tailwind Plus components; light, dark and system theme.
-  Test: look at it in both themes; say what is wrong.
+- [x] **B1. The shell.** Top bar, sidebar, map controls and the bottom dock from Tailwind Plus components; light, dark and system theme.
+  Result (2026-10-12): done. New package [`maid-ui`](../../packages/ui/README.md) with the layout and its pieces; the app fills them in `apps/maid/src/App.tsx`. The sidebar is always there (with a hint when nothing is selected) and no longer floats over the map, so the map is narrower by 320 px; the render reference for the new layout is `b1`. Undo and redo sit in the top bar, the theme switch at its right. The dock has one view, "Data" (what is loaded and from where), and is closed at first. The theme is kept in the browser and follows the system setting live when set to "system". `inspector.section` moved from the app into `maid-ui`, so a module no longer imports a type from the app. `ui=0` still shows the map alone. Not done: the map itself has no dark variant (iD's colours on black, as before), nothing collapses the sidebar, and the layout is not made for phones.
+  **Test for Tobias:** open <http://localhost:5173/?scene=small>, switch between the three themes at the top right, select a road, open "Data" at the bottom. Say what looks wrong or is in the wrong place.
 - [ ] **B2. Presets.** Preset matching on the tagging schema; the inspector shows the preset with icon and name, its fields (text, number, combo, check, and the plain-text fallback for the rest) and the raw tag editor below. The schema lookup of the model gets its real presets (`matchTags`, area keys).
   Test: select a café, a residential road and a building; fields and names are right; edit one field and undo.
 - [ ] **B3. Modes and new points.** A mode system (browse, select, add point, drag). Add a point with a preset, delete an object, with the keys people know from iD.

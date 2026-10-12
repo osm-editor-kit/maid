@@ -13,7 +13,7 @@ export function TagList({ tags, onChange }: Props) {
   const entries = Object.entries(tags).sort(([a], [b]) => a.localeCompare(b))
   return (
     <>
-      {entries.length === 0 && <p className="text-neutral-500">No tags</p>}
+      {entries.length === 0 && <p className="text-zinc-500 dark:text-zinc-400">No tags</p>}
       <table className="w-full table-fixed border-collapse font-mono text-xs">
         <tbody>
           {entries.map(([key, value]) =>
@@ -26,10 +26,13 @@ export function TagList({ tags, onChange }: Props) {
                 onChange={(next) => onChange(key, next)}
               />
             ) : (
-              <tr key={key} className="border-b border-neutral-200 last:border-0">
+              <tr
+                key={key}
+                className="border-b border-zinc-950/5 last:border-0 dark:border-white/5"
+              >
                 <th
                   scope="row"
-                  className="w-2/5 truncate py-1 pr-2 text-left font-normal text-neutral-600"
+                  className="w-2/5 truncate py-1 pr-2 text-left font-normal text-zinc-500 dark:text-zinc-400"
                   title={key}
                 >
                   {key}

@@ -95,6 +95,7 @@ apps/compare         page that shows Maid, iD and Rapid side by side
 packages/style       iD's look as data: tag classes, CSS rules, preset icons
 packages/core        createEditor: the editor's data (context, history), Maid modules, extension points, hooks
 packages/model       the data model, ported from Rapid 3: entities, graph, actions, history (see its README)
+packages/ui          the shell: layout, top bar, sidebar, map controls, dock, theme; declares inspector.section
 packages/renderer    feature builder, MapLibre layers, engine, module layers; draws from the model
 tools/mock-osm-api   local stand-in for the OSM API, serves fixtures
 tools/refs           pinned iD and Rapid: setup, host pages, bench adapters, notes

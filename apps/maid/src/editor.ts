@@ -2,7 +2,6 @@ import { createEditor } from '@osm-editor-kit/maid-core'
 import { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { useSyncExternalStore } from 'react'
 import { readConfig } from './config'
-import './extension-points'
 import { editorConfig } from './maid.config'
 import { migrateIdHash } from './url/id-url'
 

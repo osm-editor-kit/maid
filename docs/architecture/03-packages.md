@@ -81,7 +81,7 @@ Existing osm-editor-kit packages and what the reviews suggest:
 | `osm-map-url` | Give it a router-free core and share the parsers with Maid ([URL state](08-url-state.md)) |
 | `osm-data` | Unchanged. It stays the small apps' store; Maid does not build on it ([data store](05-data-store.md)). Decided |
 | `osm-way-edit`, `osm-way-chain` | Superseded for Maid by the ported actions; still right for the small apps |
-| `osm-ui` | Empty today. Either becomes `maid-ui` or goes |
+| `osm-ui` | Empty today. `maid-ui` exists in this monorepo since step B1, so it can go |
 
 ## OSM login
 

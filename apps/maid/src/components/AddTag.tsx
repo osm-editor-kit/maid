@@ -3,7 +3,7 @@ import { useState } from 'react'
 type Props = { onAdd: (key: string, value: string) => void }
 
 const INPUT =
-  'min-w-0 flex-1 rounded border border-neutral-300 px-1 py-0.5 focus:border-blue-500 focus:outline-none'
+  'min-w-0 flex-1 rounded border border-zinc-950/15 bg-transparent px-1 py-0.5 focus:border-blue-500 focus:outline-none dark:border-white/15'
 
 /** A key and a value field to add one tag */
 export function AddTag({ onAdd }: Props) {
@@ -32,7 +32,10 @@ export function AddTag({ onAdd }: Props) {
         value={value}
         onChange={(e) => setValue(e.target.value)}
       />
-      <button type="submit" className="rounded bg-neutral-800 px-2 text-white hover:bg-neutral-700">
+      <button
+        type="submit"
+        className="cursor-pointer rounded bg-zinc-900 px-2 text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+      >
         Add
       </button>
     </form>

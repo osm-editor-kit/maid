@@ -1,5 +1,5 @@
 /**
- * Extension points of this app. Modules add items to them; this file declares their types.
+ * Extension points of the editor's UI. Modules add items to them; this file declares their types.
  * The renderer's `map.layer` point is declared in maid-renderer.
  */
 import type { Editor } from '@osm-editor-kit/maid-core'

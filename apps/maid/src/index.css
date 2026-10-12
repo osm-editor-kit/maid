@@ -1,5 +1,11 @@
 @import 'tailwindcss';
 
+/* classes used by the UI package */
+@source '../../../packages/ui/src';
+
+/* dark mode is a class on <html>, set by maid-ui's theme (light, dark or system) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 html,
 body,
 #root {
@@ -7,5 +13,5 @@ body,
 }
 
 body {
-  @apply bg-black font-sans text-sm text-neutral-800 antialiased;
+  @apply bg-white font-sans text-sm text-zinc-950 antialiased dark:bg-zinc-900 dark:text-white;
 }

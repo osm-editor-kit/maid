@@ -1,6 +1,7 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import type { EntityInfo } from '@osm-editor-kit/maid-renderer'
+import { SidebarSection } from './Sidebar.tsx'
 
 /** The `inspector.section` items of the editor that apply to this entity, below the tag list. */
 export function InspectorSections({ entity, editor }: { entity: EntityInfo; editor: Editor }) {
@@ -12,12 +13,9 @@ export function InspectorSections({ entity, editor }: { entity: EntityInfo; edit
         .map((section) => {
           const Content = section.component
           return (
-            <section key={section.id} className="mt-4">
-              <h3 className="mb-1 text-xs font-semibold tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
-                {section.title}
-              </h3>
+            <SidebarSection key={section.id} title={section.title}>
               <Content entity={entity} editor={editor} />
-            </section>
+            </SidebarSection>
           )
         })}
     </>

@@ -1,7 +1,6 @@
 import { defineModule, type Editor, type MaidModule } from '@osm-editor-kit/maid-core'
 import type { EntityInfo } from '@osm-editor-kit/maid-renderer'
-// Type only. The `inspector.section` point is declared by the app that uses this module.
-import type { InspectorSection } from '../extension-points'
+import type { InspectorSection } from '@osm-editor-kit/maid-ui'
 
 /** Version, changeset, user and timestamp of the selected entity, and whether it is edited. */
 function ElementInfo({ entity, editor }: { entity: EntityInfo; editor: Editor }) {
@@ -21,11 +20,9 @@ function ElementInfo({ entity, editor }: { entity: EntityInfo; editor: Editor })
       {rows.map(([label, value]) => (
         <div
           key={label}
-          className="flex gap-2 border-b border-neutral-200 py-1 last:border-0 dark:border-neutral-700"
+          className="flex gap-2 border-b border-zinc-950/5 py-1 last:border-0 dark:border-white/5"
         >
-          <dt className="w-2/5 shrink-0 truncate text-neutral-600 dark:text-neutral-400">
-            {label}
-          </dt>
+          <dt className="w-2/5 shrink-0 truncate text-zinc-500 dark:text-zinc-400">{label}</dt>
           <dd className="min-w-0 flex-1 truncate" title={String(value ?? '')}>
             {value ?? '—'}
           </dd>
@@ -33,7 +30,7 @@ function ElementInfo({ entity, editor }: { entity: EntityInfo; editor: Editor })
       ))}
       {edited && (
         <div className="flex gap-2 py-1">
-          <dt className="w-2/5 shrink-0 text-neutral-600 dark:text-neutral-400">Status</dt>
+          <dt className="w-2/5 shrink-0 text-zinc-500 dark:text-zinc-400">Status</dt>
           <dd className="min-w-0 flex-1 text-amber-700 dark:text-amber-400">
             edited, not uploaded
           </dd>

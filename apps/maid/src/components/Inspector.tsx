@@ -1,6 +1,13 @@
+import {
+  InspectorSections,
+  Sidebar,
+  SidebarBody,
+  SidebarEmpty,
+  SidebarHeader,
+  SidebarSection,
+} from '@osm-editor-kit/maid-ui'
 import { editor, engine, useEngine } from '../editor'
 import { useSelectedId } from '../url/state'
-import { InspectorSections } from './InspectorSections'
 import { PresetIcon } from './PresetIcon'
 import { TagList } from './TagList'
 
@@ -12,61 +19,64 @@ const GEOMETRY_LABEL = {
   relation: 'Relation',
 }
 
-/** Sidebar for the selected feature: what it is (iD preset) and its tags. Floats over the map. */
+/** The sidebar: what the selected feature is (iD preset), its tags and the sections of modules. */
 export function Inspector() {
   const [id, setId] = useSelectedId()
   // read again when data arrives: a selection from the URL exists before its feature is loaded
   const entity = useEngine((e) => e.entity(id))
-  if (!id) return null
+
+  if (!id) {
+    return (
+      <Sidebar label="Inspector">
+        <SidebarEmpty title="Nothing selected">
+          Click a feature on the map to see and edit its tags.
+        </SidebarEmpty>
+      </Sidebar>
+    )
+  }
 
   const close = () => {
     engine.setSelected(null)
     void setId(null)
   }
+  const kind = entity ? (entity.preset?.name ?? GEOMETRY_LABEL[entity.geometry]) : undefined
 
   return (
-    <aside
-      aria-label="Selected feature"
-      className="absolute top-2 bottom-10 left-2 flex w-80 flex-col overflow-hidden rounded-md bg-white shadow-lg"
-    >
-      <header className="flex items-center gap-3 border-b border-neutral-200 bg-neutral-100 p-3">
-        <PresetIcon icon={entity?.preset?.icon} className="size-8 shrink-0 fill-neutral-700" />
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate text-base font-semibold">
-            {entity ? (entity.tags.name ?? entity.preset?.name ?? 'Feature') : 'Loading…'}
-          </h2>
-          <p className="truncate text-xs text-neutral-600">
-            {entity ? `${entity.preset?.name ?? GEOMETRY_LABEL[entity.geometry]} · ${id}` : id}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={close}
-          aria-label="Close"
-          className="rounded px-2 py-1 text-lg leading-none text-neutral-600 hover:bg-neutral-200"
-        >
-          ×
-        </button>
-      </header>
+    <Sidebar label="Selected feature">
+      <SidebarHeader
+        icon={
+          <PresetIcon
+            icon={entity?.preset?.icon}
+            className="size-8 fill-zinc-700 dark:fill-zinc-200"
+          />
+        }
+        title={entity ? (entity.tags.name ?? entity.preset?.name ?? 'Feature') : 'Loading…'}
+        subtitle={kind ? `${kind} · ${id}` : id}
+        onClose={close}
+      />
       {entity && (
-        <div className="flex-1 overflow-y-auto p-3">
-          <p className="mb-2 text-xs text-neutral-500">
+        <SidebarBody>
+          <p className="mb-2 text-xs text-zinc-500 dark:text-zinc-400">
             {GEOMETRY_LABEL[entity.geometry]}
             {entity.type === 'way' && `, ${entity.size} nodes`}
             {entity.type === 'relation' && `, ${entity.size} members`}
           </p>
-          <TagList
-            tags={entity.tags}
-            onChange={
-              entity.type === 'relation' ? undefined : (key, value) => engine.setTag(id, key, value)
-            }
-          />
+          <SidebarSection title="Tags">
+            <TagList
+              tags={entity.tags}
+              onChange={
+                entity.type === 'relation'
+                  ? undefined
+                  : (key, value) => engine.setTag(id, key, value)
+              }
+            />
+          </SidebarSection>
           <InspectorSections entity={entity} editor={editor} />
-          <p className="mt-3 text-xs text-neutral-500">
+          <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">
             Changes stay in this browser tab. Saving to OSM is not built yet.
           </p>
-        </div>
+        </SidebarBody>
       )}
-    </aside>
+    </Sidebar>
   )
 }
