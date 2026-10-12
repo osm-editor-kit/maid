@@ -5,6 +5,7 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
 import type { EntityInfo } from '@osm-editor-kit/maid-renderer'
 import type { ComponentType, ReactNode } from 'react'
+import type { FieldComponent } from './inspector/fields/shared.ts'
 
 /** What a section is given. It edits through `editor.history`; the map follows every change. */
 export type InspectorSectionProps = {
@@ -54,10 +55,18 @@ export type TopBarPanel = {
   width?: string
 }
 
+/**
+ * A field type that a module brings: the component that the inspector's field rows use for
+ * fields of this `type` (iD's field type, or a module's own, e.g. `trafficSign`). It gets the
+ * same props as the built-in field components.
+ */
+export type InspectorFieldType = { id: string; type: string; component: FieldComponent }
+
 declare module '@osm-editor-kit/maid-core' {
   interface ExtensionPoints {
     'inspector.section': InspectorSection
     'dock.view': DockView
+    'inspector.field': InspectorFieldType
     'topbar.panel': TopBarPanel
   }
 }

@@ -12,6 +12,7 @@ export type {
   InspectorSection,
   InspectorSectionProps,
   TopBarPanel,
+  InspectorFieldType,
 } from './extension-points.ts'
 export { InspectorSections } from './InspectorSections.tsx'
 export * from './inspector/index.ts'

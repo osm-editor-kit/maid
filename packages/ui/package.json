@@ -8,12 +8,14 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@date-fns/tz": "^1.2.0",
     "@floating-ui/react": "^0.27.20",
     "@heroicons/react": "^2.2.0",
     "@osm-editor-kit/maid-core": "workspace:*",
     "@osm-editor-kit/maid-filters": "workspace:*",
     "@osm-editor-kit/maid-presets": "workspace:*",
     "@osm-editor-kit/maid-renderer": "workspace:*",
+    "date-fns": "^4.1.0",
     "motion": "^14.0.0",
     "tailwind-merge": "^3.7.0",
     "zustand": "^5.0.15"
