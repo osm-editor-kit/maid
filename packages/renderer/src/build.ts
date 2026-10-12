@@ -16,6 +16,7 @@ import {
 } from '@osm-editor-kit/maid-style'
 import type { Feature, LineString, MultiPolygon, Point, Polygon, Position } from 'geojson'
 import type { MergeResult, OsmData } from './data'
+import { arrowColour, onewayOf, sidedOf, type OneWay } from './direction'
 
 export type SourceName = 'areas' | 'lines' | 'points' | 'vertices'
 export type FeatureBatch = Record<SourceName, Feature[]>
@@ -41,7 +42,12 @@ export type LineProps = {
   hw: number
   hwl: number
   name?: string
-  oneway?: 1
+  /** direction arrows (direction.ts): 1 along the way, -1 against it, 2 both ways */
+  oneway?: OneWay
+  /** arrow colour, only when it is not the default (iD: white on dark lines, grey on rail) */
+  ac?: string
+  /** side marker kind (a key of SIDE_KINDS), only on sided lines */
+  side?: string
 }
 
 export type AreaProps = {
@@ -141,7 +147,14 @@ function lineFeature(
   const cd = dashKey(style.casing.dash, style.casing.width)
   if (cd) props.cd = cd
   if (tags.name) props.name = tags.name
-  if (tags.oneway === 'yes' || tags.junction === 'roundabout') props.oneway = 1
+  const oneway = onewayOf(tags)
+  if (oneway) {
+    props.oneway = oneway
+    const ac = arrowColour(tags)
+    if (ac) props.ac = ac
+  }
+  const side = sidedOf(tags)
+  if (side) props.side = side
   return {
     type: 'Feature',
     id,

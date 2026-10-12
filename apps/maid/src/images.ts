@@ -1,33 +1,5 @@
 import type { Map as MapLibreMap } from 'maplibre-gl'
 
-/** Draws an SVG path into an image MapLibre can use. `ratio` keeps it sharp on HiDPI screens. */
-function pathImage(
-  width: number,
-  height: number,
-  draw: (ctx: CanvasRenderingContext2D) => void,
-  ratio = 2,
-) {
-  const canvas = document.createElement('canvas')
-  canvas.width = width * ratio
-  canvas.height = height * ratio
-  const ctx = canvas.getContext('2d')!
-  ctx.scale(ratio, ratio)
-  draw(ctx)
-  return {
-    image: ctx.getImageData(0, 0, canvas.width, canvas.height),
-    options: { pixelRatio: ratio },
-  }
-}
-
-/** iD's oneway arrow (modules/svg/defs.js) */
-export function addBaseImages(map: MapLibreMap) {
-  const arrow = pathImage(10, 10, (ctx) => {
-    ctx.fillStyle = 'rgba(0,0,0,0.75)'
-    ctx.fill(new Path2D('M 2.5,1 L 8,5 L 2.5,9 L 4,5 z'))
-  })
-  if (!map.hasImage('maid-oneway')) map.addImage('maid-oneway', arrow.image, arrow.options)
-}
-
 /** Which of iD's sprite files holds an icon, by the prefix of its name */
 export const SPRITE_OF_PREFIX: Record<string, string> = {
   maki: 'maki',

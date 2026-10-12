@@ -39,6 +39,7 @@ import {
   type SourceName,
 } from './build'
 import { OsmData } from './data'
+import { installDirectionImages } from './direction-images'
 import { DrawTool, nearestOnWay } from './draw'
 import { EDIT_SOURCES, SOURCES } from './layers'
 import { fromMercator, nodesOf, toMercator, TransformTool } from './transform'
@@ -239,6 +240,8 @@ export class MaidEngine {
   /** The node or way with this id in the current graph. Relations and unknown ids give undefined. */
   attach(map: MapLibreMap) {
     this.map = map
+    // before the first tile is pushed: an image that arrives later does not show in that tile
+    installDirectionImages(map)
     this.loadVisibleTiles()
   }
 

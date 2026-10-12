@@ -3,6 +3,7 @@
  * Paint values come from feature properties set by the builder (build.ts).
  */
 import type { ExpressionSpecification, LayerSpecification } from 'maplibre-gl'
+import { ARROW_BOTH_IMAGE, ARROW_IMAGE, SIDE_IMAGE_PREFIX } from './direction'
 
 export const SOURCES = {
   areas: 'osm-areas',
@@ -228,22 +229,44 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
     }
   }
 
+  // Direction arrows and side markers, as iD draws them over the lines (svg/lines.js): one arrow
+  // every 36 px, side markers every 30 px. Images come from direction-images.ts.
   if (options.icons) {
-    layers.push({
-      id: 'line-oneway',
-      type: 'symbol',
-      source: SOURCES.lines,
-      filter: ['has', 'oneway'],
-      minzoom: 15,
-      layout: {
-        'symbol-placement': 'line',
-        'symbol-spacing': 35,
-        'icon-image': 'maid-oneway',
-        'icon-allow-overlap': true,
-        'icon-ignore-placement': true,
-        'icon-rotation-alignment': 'map',
+    layers.push(
+      {
+        id: 'line-oneway',
+        type: 'symbol',
+        source: SOURCES.lines,
+        filter: ['has', 'oneway'],
+        minzoom: 15,
+        layout: {
+          'symbol-placement': 'line',
+          'symbol-spacing': 36,
+          'icon-image': ['case', ['==', ['get', 'oneway'], 2], ARROW_BOTH_IMAGE, ARROW_IMAGE],
+          // -1: the arrow points against the way
+          'icon-rotate': ['case', ['==', ['get', 'oneway'], -1], 180, 0],
+          'icon-rotation-alignment': 'map',
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
+        },
+        paint: { 'icon-color': ['coalesce', ['get', 'ac'], '#333'] },
       },
-    })
+      {
+        id: 'line-sided',
+        type: 'symbol',
+        source: SOURCES.lines,
+        filter: ['has', 'side'],
+        minzoom: 15,
+        layout: {
+          'symbol-placement': 'line',
+          'symbol-spacing': 30,
+          'icon-image': ['concat', SIDE_IMAGE_PREFIX, ['get', 'side']],
+          'icon-rotation-alignment': 'map',
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
+        },
+      },
+    )
   }
 
   // --- Vertices ------------------------------------------------------------

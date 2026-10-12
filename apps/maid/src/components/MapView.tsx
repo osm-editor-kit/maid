@@ -20,7 +20,7 @@ import {
 import { exposeBenchApi } from '../bench'
 import { drawClick } from '../drawing'
 import { config, editor, engine, useEngine } from '../editor'
-import { addBaseImages, ensureImages } from '../images'
+import { ensureImages } from '../images'
 import { useSelection } from '../selection'
 import { useCameraParam } from '../url/state'
 import { MapContextMenu, type MenuPlace } from './MapContextMenu'
@@ -73,7 +73,6 @@ export function MapView() {
 
   const handleLoad = (event: MapEvent) => {
     const map = event.target
-    addBaseImages(map)
     engine.options.onStyleChange = () => setDashes(new globalThis.Map(dashPatterns))
     engine.options.prepare = (batch) => {
       const ids = new Set<string>()
