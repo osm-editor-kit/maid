@@ -1,3 +1,4 @@
+import { isAutomated } from '@osm-editor-kit/maid-core'
 import { toolButtonTone } from '@osm-editor-kit/maid-ui'
 import { useEffect, useState, type ReactNode } from 'react'
 import { useStore } from 'zustand'
@@ -5,7 +6,6 @@ import { listView } from './eli.ts'
 import {
   BRIGHTNESS_MIN,
   categoryLabel,
-  isAutomatedBrowser,
   matchesQuery,
   sortListing,
   visibleAtZoom,
@@ -40,7 +40,7 @@ export function ImageryPanel(props: { store: ImageryStore }) {
           layer.
         </p>
       </div>
-      {isAutomatedBrowser() ? (
+      {isAutomated() ? (
         <p className="p-4 text-sm text-zinc-500 dark:text-zinc-400">
           Backgrounds are off in automated browsers.
         </p>

@@ -4,6 +4,7 @@
 // The wiki is OSM infrastructure (AGENTS.md, rule 1). So: a request follows only a person's click on an
 // "i"; never under automation; one request at a time; no prefetch and no retry; a tag is asked at most
 // once and kept for 30 days, in memory and in localStorage.
+import { isAutomated } from '@osm-editor-kit/maid-core'
 import { wikiTitleOf, type Reference, type ReferenceInfo } from '@osm-editor-kit/maid-ui'
 
 const API = 'https://wiki.openstreetmap.org/w/api.php'
@@ -228,11 +229,11 @@ async function fetchAnswer(reference: Reference): Promise<unknown> {
 
 /**
  * The OSM Wiki's documentation of a reference, for the InfoPopover. Undefined when the wiki has no item
- * for it, or under automation (`navigator.webdriver`), where nothing is requested. Rejects when the wiki
+ * for it, or under automation (`isAutomated()`), where nothing is requested. Rejects when the wiki
  * cannot be asked; nothing is kept then, so the next opening asks again.
  */
 export async function loadReference(reference: Reference): Promise<ReferenceInfo | undefined> {
-  if (navigator.webdriver) return undefined
+  if (isAutomated()) return undefined
   const key = wikiTitleOf(reference)
   return queued(async () => {
     const inMemory = remembered.get(key)

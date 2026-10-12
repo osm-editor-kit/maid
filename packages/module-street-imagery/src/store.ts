@@ -1,9 +1,9 @@
+import { isAutomated, moduleStorage } from '@osm-editor-kit/maid-core'
 import type { NormalizedPhoto } from '@osm-editor-kit/street-imagery'
 import { create } from 'zustand'
-import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
 import {
   DEFAULT_STORED,
-  isAutomatedBrowser,
   parseStored,
   type ImageryProviderId,
   type PhotoKind,
@@ -11,12 +11,7 @@ import {
 } from './state.ts'
 
 /** Automated browsers get no photos and store nothing (AGENTS.md, core rule 1). */
-export const AUTOMATED = isAutomatedBrowser(
-  typeof navigator === 'undefined' ? undefined : navigator,
-)
-
-/** Storage that keeps nothing: what automated browsers use instead of localStorage. */
-const nothing: StateStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} }
+export const AUTOMATED = isAutomated()
 
 /**
  * The feature whose "Street-level images" field is on screen, as the field last registered it: the row's id, its
@@ -91,7 +86,7 @@ export const useStreetImageryStore = create<StreetImageryStore>()(
     {
       name: 'maid:street-imagery',
       version: 1,
-      storage: createJSONStorage(() => (AUTOMATED ? nothing : localStorage)),
+      storage: createJSONStorage(() => moduleStorage()),
       partialize: ({ providers, photoKind, date }) => ({ providers, photoKind, date }),
       migrate: (stored) => parseStored(stored),
       // every stored value is checked on load, not only after a version change

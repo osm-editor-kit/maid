@@ -1,10 +1,11 @@
+import { moduleStorage } from '@osm-editor-kit/maid-core'
 /**
  * The lenses the person has chosen and imported, kept in localStorage under `maid:lenses`. The
  * built-in lenses are not stored: the module sets them when it starts.
  */
 import type { Lens } from '@osm-editor-kit/maid-style'
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
 import { BUILT_IN_LENSES } from './builtin.ts'
 
 export type LensState = {
@@ -43,6 +44,7 @@ export const useLensStore = create<LensState>()(
     {
       name: 'maid:lenses',
       version: 1,
+      storage: createJSONStorage(() => moduleStorage()),
       partialize: ({ activeId, imported }) => ({ activeId, imported }),
     },
   ),

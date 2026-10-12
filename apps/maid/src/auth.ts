@@ -1,3 +1,4 @@
+import { isAutomated } from '@osm-editor-kit/maid-core'
 import { useSyncExternalStore } from 'react'
 import { DEV_API } from './config'
 
@@ -7,7 +8,7 @@ import { DEV_API } from './config'
  *
  * Nothing here talks to a server until a person presses "Log in": `osm-api` is loaded on that
  * click, and the name shown after a reload comes from this browser's storage. Under automation
- * (`navigator.webdriver`) the login is switched off.
+ * (`isAutomated()`) the login is switched off and the stored name is not read.
  */
 const CLIENT_ID: string | undefined = import.meta.env.VITE_OSM_DEV_CLIENT_ID || undefined
 /** The origin the OAuth app's redirect URI is registered for; the popup can only answer a tab on it */
@@ -26,13 +27,14 @@ export type AuthState = {
 }
 
 function unavailable(): string | undefined {
-  if (navigator.webdriver) return 'Login is switched off in automated browsers.'
+  if (isAutomated()) return 'Login is switched off in automated browsers.'
   if (!CLIENT_ID) return 'No client id: set VITE_OSM_DEV_CLIENT_ID in apps/maid/.env.local.'
   if (window.location.origin !== LOGIN_ORIGIN) return `Open Maid at ${LOGIN_ORIGIN} to log in.`
   return undefined
 }
 
 function storedUser(): string | undefined {
+  if (isAutomated()) return undefined
   try {
     if (!localStorage.getItem(TOKEN_KEY)) return undefined
     return localStorage.getItem(USER_KEY) ?? undefined

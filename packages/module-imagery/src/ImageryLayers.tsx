@@ -1,8 +1,8 @@
+import { isAutomated } from '@osm-editor-kit/maid-core'
 import { Fragment, useEffect, useState } from 'react'
 import { AttributionControl, Layer, Source, useMap } from 'react-map-gl/maplibre'
 import { useStore } from 'zustand'
 import { drawLayer, type Drawn } from './eli.ts'
-import { isAutomatedBrowser } from './helpers.ts'
 import type { ImageryStore } from './store.ts'
 
 /**
@@ -18,7 +18,7 @@ export function ImageryLayers(props: { store: ImageryStore; belowOsm: string }) 
   const overlayKey = useStore(store, (s) => s.overlayIds.join('\n'))
   const brightness = useStore(store, (s) => s.brightness)
   const setView = useStore(store, (s) => s.setView)
-  const automated = isAutomatedBrowser()
+  const automated = isAutomated()
 
   // what is drawn, keyed by what was chosen: a result for an older choice is not shown
   const key = `${backgroundId ?? ''}\n${overlayKey}`

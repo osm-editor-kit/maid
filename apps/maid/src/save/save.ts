@@ -8,7 +8,7 @@ const VERSION = '0.0.0'
 
 /** Why edits cannot be saved in this session, if so */
 export function saveBlocked(loggedIn: boolean): string | undefined {
-  // navigator.webdriver is already folded into config.dev: automation never gets here
+  // isAutomated() is already folded into config.dev: automation never gets here
   if (!config.dev)
     return 'Saving works only on data from the OSM development server: open Maid with ?live=dev. Edits on a fixture stay in this browser.'
   if (!loggedIn) return 'Log in to save.'

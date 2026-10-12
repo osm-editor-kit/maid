@@ -2,8 +2,9 @@
  * The module's state: the layers a person added by URL and what is hidden are stored under
  * `maid:data-layers` (version 1). Files and problems are session state and are not stored.
  */
+import { moduleStorage } from '@osm-editor-kit/maid-core'
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
 import { checkDataLayerConfig, isRecord, type DataLayerConfig, type FileLayer } from './config.ts'
 
 export type StoredDataLayers = {
@@ -85,6 +86,7 @@ export function createDataLayerStore() {
       {
         name: 'maid:data-layers',
         version: 1,
+        storage: createJSONStorage(() => moduleStorage()),
         partialize: (state) => ({
           added: state.added,
           // a file layer's id means nothing after a reload, so it is not stored as hidden

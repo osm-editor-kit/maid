@@ -2,7 +2,6 @@ import { describe, expect, it } from 'bun:test'
 import {
   activeProviders,
   DEFAULT_STORED,
-  isAutomatedBrowser,
   isDay,
   parseStored,
   photoTypesOf,
@@ -80,14 +79,5 @@ describe('photoTypesOf', () => {
     expect(photoTypesOf('all')).toBeUndefined()
     expect(photoTypesOf('flat')).toEqual(['flat'])
     expect(photoTypesOf('pano')).toEqual(['pano'])
-  })
-})
-
-describe('isAutomatedBrowser', () => {
-  it('is true only when navigator.webdriver is true', () => {
-    expect(isAutomatedBrowser({ webdriver: true })).toBe(true)
-    expect(isAutomatedBrowser({ webdriver: false })).toBe(false)
-    expect(isAutomatedBrowser({})).toBe(false)
-    expect(isAutomatedBrowser(undefined)).toBe(false)
   })
 })

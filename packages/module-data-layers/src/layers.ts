@@ -38,11 +38,6 @@ export function allowedWhenAutomated(layer: DataLayer): boolean {
   return isLocalUrl(layer.url)
 }
 
-/** True in a browser that a test tool drives (`navigator.webdriver`) */
-export function isAutomated(): boolean {
-  return typeof navigator !== 'undefined' && navigator.webdriver === true
-}
-
 /**
  * Every layer in the order it is listed: the config's, then the ones a person added by URL, then
  * the files. Colours are settled over the whole list, so a layer keeps its colour while others come and go.

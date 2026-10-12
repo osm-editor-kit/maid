@@ -48,16 +48,6 @@ export function categoryLabel(category: string | undefined): string | undefined 
   return CATEGORY_LABELS[category] ?? category
 }
 
-/**
- * True when the browser says it is driven by automation (`navigator.webdriver`). Then no imagery
- * is loaded and nothing is stored: the module behaves as if it had never been used.
- */
-export function isAutomatedBrowser(
-  nav: { webdriver?: boolean } | undefined = globalThis.navigator,
-): boolean {
-  return nav?.webdriver === true
-}
-
 export function clampBrightness(value: number): number {
   if (!Number.isFinite(value)) return BRIGHTNESS_MAX
   return Math.min(BRIGHTNESS_MAX, Math.max(BRIGHTNESS_MIN, value))

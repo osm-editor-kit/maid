@@ -2,12 +2,13 @@
  * The visible data layers on the map, drawn under the OSM data (`belowOsm`). Only visible layers
  * mount a source, so a hidden layer makes no request.
  */
+import { isAutomated } from '@osm-editor-kit/maid-core'
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { useEffect, useMemo, useState, type ComponentType } from 'react'
 import { Layer, Source, useControl, type IControl } from 'react-map-gl/maplibre'
 import { describeFailure } from './add.ts'
 import type { DataLayer, DataLayerConfig } from './config.ts'
-import { isAutomated, layerDraw, layersOf, visibleLayers } from './layers.ts'
+import { layerDraw, layersOf, visibleLayers } from './layers.ts'
 import { readPmtilesLayers, registerPmtilesProtocol } from './pmtiles.ts'
 import type { DataLayerStoreHook } from './store.ts'
 

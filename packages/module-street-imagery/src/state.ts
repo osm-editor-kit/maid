@@ -91,8 +91,3 @@ export function photoTypesOf(kind: PhotoKind): PhotoTypeFilter[] | undefined {
   if (kind === 'pano') return ['pano']
   return undefined
 }
-
-/** Automated browsers (tests, benchmarks, agents) get no photos, whatever is stored. */
-export function isAutomatedBrowser(nav: { webdriver?: boolean } | undefined): boolean {
-  return nav?.webdriver === true
-}

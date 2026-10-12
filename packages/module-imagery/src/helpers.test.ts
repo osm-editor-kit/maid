@@ -4,7 +4,6 @@ import {
   BRIGHTNESS_MIN,
   categoryLabel,
   clampBrightness,
-  isAutomatedBrowser,
   matchesQuery,
   parseStored,
   sortListing,
@@ -15,15 +14,6 @@ import {
 function item(overrides: Partial<Listing> & { id: string }): Listing {
   return { name: overrides.id, best: false, overlay: false, ...overrides }
 }
-
-describe('isAutomatedBrowser', () => {
-  it('is true only when navigator.webdriver is true', () => {
-    expect(isAutomatedBrowser({ webdriver: true })).toBe(true)
-    expect(isAutomatedBrowser({ webdriver: false })).toBe(false)
-    expect(isAutomatedBrowser({})).toBe(false)
-    expect(isAutomatedBrowser(undefined)).toBe(false)
-  })
-})
 
 describe('parseStored', () => {
   const fallback = { backgroundId: null }

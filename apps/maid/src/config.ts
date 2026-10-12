@@ -1,3 +1,4 @@
+import { isAutomated } from '@osm-editor-kit/maid-core'
 import { fromIdDisableFeatures } from '@osm-editor-kit/maid-filters'
 import type { LayerOptions } from '@osm-editor-kit/maid-renderer'
 import { PORTS } from '../../../tools/ports'
@@ -49,7 +50,7 @@ function readFilters(search: string): string | null {
 
 export function readConfig(location: Location): Config {
   const setup = readParams(setupParams, location.search)
-  const live = setup.live !== '0' && !navigator.webdriver
+  const live = setup.live !== '0' && !isAutomated()
   const dev = live && setup.live === 'dev'
   return {
     scene: setup.scene,

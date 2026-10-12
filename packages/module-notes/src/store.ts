@@ -1,5 +1,6 @@
+import { moduleStorage } from '@osm-editor-kit/maid-core'
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
 import {
   boxOf,
   cellKey,
@@ -33,6 +34,7 @@ export const useNotesSettings = create<Settings>()(
     {
       name: 'maid:notes',
       version: 1,
+      storage: createJSONStorage(() => moduleStorage()),
       partialize: ({ enabled, showClosed }) => ({ enabled, showClosed }),
     },
   ),
