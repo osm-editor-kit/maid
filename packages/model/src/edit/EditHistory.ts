@@ -120,8 +120,11 @@ export class EditHistory extends TypedEmitter<EditHistoryEvents> {
 
   /** The shared context (id sequences, schema) */
   public readonly context: Context;
-  /** The spatial index that EditHistory keeps in sync with the `base`, `stable` and `staging` graphs */
-  public readonly spatial: SpatialIndex;
+  /**
+   * The spatial index that EditHistory keeps in sync with the `base`, `stable` and `staging` graphs.
+   * Undefined when the history was created without one (then nothing is indexed).
+   */
+  public readonly spatial: SpatialIndex | undefined;
 
 
   /** Whether there are unsaved edits relative to the last stable state */
@@ -155,9 +158,10 @@ export class EditHistory extends TypedEmitter<EditHistoryEvents> {
 
   /**
    * @param context - Shared context (id sequences, schema)
-   * @param spatial - Spatial index that this history keeps in sync with its graphs
+   * @param spatial - Optional spatial index that this history keeps in sync with its graphs.
+   *  Without one, `intersects()` and `waySegments()` throw; everything else works the same.
    */
-  public constructor(context: Context, spatial: SpatialIndex) {
+  public constructor(context: Context, spatial?: SpatialIndex) {
     super();
     this.context = context;
     this.spatial = spatial;
@@ -213,7 +217,7 @@ export class EditHistory extends TypedEmitter<EditHistoryEvents> {
     this._hasWorkInProgress = false;
 
     // Clear the spatial caches.
-    this.spatial.clearMatching(id => id.startsWith('editor_'));
+    this.spatial?.clearMatching(id => id.startsWith('editor_'));
     this._osmSegmentIDs = new Map();
 
     this._stableKey = baseGraph.key;
@@ -693,6 +697,7 @@ export class EditHistory extends TypedEmitter<EditHistoryEvents> {
    */
   public intersects(graph?: Graph, box: WorldBox = EVERYTHING): OsmEntity[] {
     const spatial = this.spatial;
+    if (!spatial) throw new Error('EditHistory was created without a spatial index');
     const useGraph = graph ?? this.staging.graph!;
     const spatialID = this.spatialIDForGraph(useGraph);
 
@@ -714,6 +719,7 @@ export class EditHistory extends TypedEmitter<EditHistoryEvents> {
    */
   public waySegments(extent: Extent, graph: Graph): Segment[] {
     const spatial = this.spatial;
+    if (!spatial) throw new Error('EditHistory was created without a spatial index');
 
     // Convert the WGS84 query extent to a world-coordinate box.
     const bb = extent.bbox();
@@ -813,6 +819,7 @@ export class EditHistory extends TypedEmitter<EditHistoryEvents> {
    */
   protected _syncCacheFromDiff(spatialID: SpatialID, graph: Graph, diff: Difference): void {
     const spatial = this.spatial;
+    if (!spatial) return;
 
     // `complete()` includes the changed entities plus their affected parents/children.
     // A value of `undefined` means the entity no longer exists in the head graph.
@@ -852,6 +859,7 @@ export class EditHistory extends TypedEmitter<EditHistoryEvents> {
    */
   protected _mergeIntoCache(spatialID: SpatialID, graph: Graph, entities: OsmEntity[]): void {
     const spatial = this.spatial;
+    if (!spatial) return;
 
     const toReplace: OsmEntity[] = [];
     for (const entity of entities) {
@@ -925,6 +933,7 @@ export class EditHistory extends TypedEmitter<EditHistoryEvents> {
    */
   protected _updateWaySegments(spatialID: SpatialID, way: OsmWay, graph: Graph): void {
     const spatial = this.spatial;
+    if (!spatial) return;
 
     const tracker = this._segmentTracker(spatialID);
     const prevIDs = tracker.get(way.id);
@@ -951,6 +960,7 @@ export class EditHistory extends TypedEmitter<EditHistoryEvents> {
    */
   protected _removeWaySegments(spatialID: SpatialID, wayID: EntityID): void {
     const spatial = this.spatial;
+    if (!spatial) return;
 
     const tracker = this._segmentTracker(spatialID);
     const prevIDs = tracker.get(wayID);

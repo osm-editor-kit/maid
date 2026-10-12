@@ -13,7 +13,15 @@ import { gunzipSync } from 'node:zlib'
 import { chromium, firefox, webkit, type Browser as PwBrowser } from '@playwright/test'
 
 type BrowserName = 'chromium' | 'firefox' | 'webkit'
-type Timings = { json: number; poc: number; parse: number; entities: number; graph: number }
+// graph: EditHistory + merge (the real load path). direct: API JSON to entities, no OsmJSONParser.
+type Timings = {
+  json: number
+  poc: number
+  parse: number
+  entities: number
+  graph: number
+  direct: number
+}
 type SceneResult = { scene: string; elements: number; ms: Timings & { total: number } }
 
 const ROOT = resolve(import.meta.dir, '../..')
@@ -103,6 +111,7 @@ async function main(): Promise<void> {
         tParse: number
         tEnt: number
         tGraph: number
+        tDirect: number
       } = await page.evaluate(
         async ({ scene, runs }) => {
           const text = await (await fetch(`/fixtures/${scene}.json`)).text()
@@ -111,17 +120,20 @@ async function main(): Promise<void> {
         { scene, runs },
       )
       const total = r.tParse + r.tEnt + r.tGraph
+      const totalDirect = r.tDirect + r.tGraph
       const ms = {
         json: round(r.tJson),
         poc: round(r.tPoc),
         parse: round(r.tParse),
         entities: round(r.tEnt),
         graph: round(r.tGraph),
+        direct: round(r.tDirect),
         total: round(total),
+        total_direct: round(totalDirect),
       }
       results.push({ scene, elements: r.elements, ms })
       console.log(
-        `${scene} ${r.elements} json=${Math.round(ms.json)} poc=${Math.round(ms.poc)} parse=${Math.round(ms.parse)} entities=${Math.round(ms.entities)} graph=${Math.round(ms.graph)} total=${Math.round(ms.total)}`,
+        `${scene} ${r.elements} json=${Math.round(ms.json)} poc=${Math.round(ms.poc)} parse=${Math.round(ms.parse)} entities=${Math.round(ms.entities)} graph=${Math.round(ms.graph)} total=${Math.round(ms.total)} direct=${Math.round(ms.direct)} total_direct=${Math.round(ms.total_direct)}`,
       )
     }
 
