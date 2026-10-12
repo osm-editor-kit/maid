@@ -2,7 +2,8 @@ import { OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 import type { DifferenceChange, Graph, OsmEntity } from '@osm-editor-kit/maid-model'
 import { boxOf, boxesOverlap } from './geo.ts'
 import type { Box, Point } from './geo.ts'
-import type { Issue, Rule, RuleContext, Validator } from './types.ts'
+import type { GraphChange, Issue, Rule, RuleContext, Validator } from './types.ts'
+import { createWayIndex } from './way-index.ts'
 
 const severityRank: Record<Issue['severity'], number> = { error: 0, warning: 1 }
 
@@ -17,6 +18,11 @@ function compareText(a: string, b: string): number {
  */
 export function createValidator(rules: readonly Rule[]): Validator {
   const issues = new Map<string, Issue>()
+  // The boxes of the ways, kept from one update to the next (see way-index.ts)
+  const wayIndex = createWayIndex()
+  // The graph of the last update and the ids it changed: what changed since then is what the index recomputes
+  let lastHead: Graph | undefined
+  let lastChanged: ReadonlySet<string> = new Set()
 
   function allIssues(): Issue[] {
     return [...issues.values()].sort(
@@ -27,7 +33,7 @@ export function createValidator(rules: readonly Rule[]): Validator {
     )
   }
 
-  function validate(graph: Graph, entityIds: Iterable<string>, ways: Iterable<OsmWay>): void {
+  function validateWith(graph: Graph, entityIds: Iterable<string>, ways: Iterable<OsmWay>): void {
     const targets = new Set(entityIds)
 
     // Drop what the validated entities had, and whatever names an entity that left the graph
@@ -36,7 +42,13 @@ export function createValidator(rules: readonly Rule[]): Validator {
       if (stale) issues.delete(key)
     }
 
-    const context = runContext(graph, ways, targets)
+    const stamp = wayIndex.enter(graph, ways, targets)
+    const context: RuleContext = {
+      graph,
+      validated: targets,
+      waysNear: (way) => wayIndex.near(graph, way, stamp),
+      memo: new Map(),
+    }
     for (const id of targets) {
       const entity = graph.hasEntity(id)
       if (!entity) continue
@@ -64,15 +76,44 @@ export function createValidator(rules: readonly Rule[]): Validator {
     }
   }
 
+  /** Boxes of the ways whose nodes or tags differ between the last update's graph and this one */
+  function invalidateChanged(previous: Graph, change: GraphChange): void {
+    for (const id of new Set([...lastChanged, ...change.changes.keys()])) {
+      const before = previous.hasEntity(id)
+      const after = change.head.hasEntity(id)
+      if (before === after) continue
+      wayIndex.invalidate(id)
+      if (before instanceof OsmNode)
+        for (const way of previous.parentWays(before)) wayIndex.invalidate(way.id)
+      if (after instanceof OsmNode)
+        for (const way of change.head.parentWays(after)) wayIndex.invalidate(way.id)
+    }
+  }
+
   return {
     rules,
 
-    validate,
+    validate(graph, entityIds, ways) {
+      // a run of its own: nothing is kept from an earlier one
+      wayIndex.clear()
+      lastHead = undefined
+      validateWith(graph, entityIds, ways)
+    },
 
     update(change, ways) {
       const checked = entitiesToValidate(change.changes, change.base, change.head)
       keepOnly(checked)
-      validate(change.head, checked, ways)
+      if (lastHead) invalidateChanged(lastHead, change)
+      else wayIndex.clear()
+      validateWith(change.head, checked, ways)
+      lastHead = change.head
+      lastChanged = new Set(change.changes.keys())
+    },
+
+    reset() {
+      wayIndex.clear()
+      lastHead = undefined
+      lastChanged = new Set()
     },
 
     keepOnly,
@@ -219,6 +260,7 @@ export function runContext(
   return {
     graph,
     validated: targets,
+    memo: new Map(),
     waysNear(way) {
       const box = boxFor(way)
       if (!box) return []

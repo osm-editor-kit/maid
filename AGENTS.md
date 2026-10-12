@@ -79,6 +79,7 @@ These names are the contract. Agents and docs only reference these.
 | `bun run bench-report [run-id ...]` | Render one or more runs as `report.md` and `report.html`. |
 | `bun run bench-edit [scene] [query]` | Maid only: drag a node and measure change-to-screen time. Needs a Maid preview on 5175 (`bun run compare` starts one). |
 | `bun run bench-model [--runs 5] [--browser chromium]` | Time loading each fixture into `maid-model` (JSON to entities, entities into the history), in the browser. Writes `reports/model-load-<browser>.json`. |
+| `bun run bench-validation` | Time every validation rule on the dense fixture, one edit, and bursts of edits. Writes `reports/validation-bench.json`. |
 | `bun run check-undo [scene]` | Browser check: move a vertex, change a tag, undo and redo, and compare data and map after each step. Needs `bun run dev`. |
 | `bun run check-draw` | Browser check with real keys and clicks: draw a line, continue it, snap to a node and a way, draw an area, cancel. Needs `bun run dev`. |
 | `bun run check-edit [scene]` | Browser check: add a point, change it, delete it, delete a way, undo and redo, and compare data, lookups and map after each step. Needs `bun run dev`. |

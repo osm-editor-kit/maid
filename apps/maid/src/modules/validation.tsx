@@ -40,6 +40,8 @@ function createStore(editor: Editor, rules: readonly Rule[]): Store & { stop: ()
   let ways: OsmWay[] | undefined
   const forget = editor.history.on('merge', () => {
     ways = undefined
+    // base data changed other than by edits: the boxes the validator kept are no longer known to be right
+    validator.reset()
   })
   const stopValidating = editor.history.on('stablechange', (difference) => {
     for (const id of difference.changes.keys()) if (id[0] === 'w') ways = undefined

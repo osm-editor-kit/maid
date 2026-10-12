@@ -2,7 +2,7 @@ import { OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 import type { Graph, OsmEntity } from '@osm-editor-kit/maid-model'
 import { deleteFeatureFix } from '../fixes.ts'
 import { isRoutableHighway } from '../tags.ts'
-import type { Issue, Rule } from '../types.ts'
+import type { Issue, Rule, RuleContext } from '../types.ts'
 
 // Ported from iD's disconnected_way (ISC, © iD contributors), at commit 0194f3926, with Maid's
 // rule that a feature the run does not validate is part of the network.
@@ -76,8 +76,8 @@ function routingIslandOf(
   entity: OsmEntity,
   graph: Graph,
   validated: ReadonlySet<string>,
+  island: Map<string, OsmEntity>,
 ): Map<string, OsmEntity> | undefined {
-  const island = new Map<string, OsmEntity>()
   const toCheck: Array<OsmWay | OsmRelation> = []
 
   // False when a parent way or multipolygon reaches the rest of the network
@@ -123,6 +123,29 @@ function routingIslandOf(
 }
 
 /**
+ * The island of a way, found once per run. Whether the flood from a road reaches the rest of the network
+ * depends on the connected roads, not on the road: so every road the flood reached gets the same answer
+ * (an island, or none), and a validation of a whole network floods each of its parts once, not once per road.
+ * Ways that never start an island (golf paths, aerialways) are left out: they answer for themselves.
+ */
+function islandOfWay(entity: OsmEntity, context: RuleContext): Map<string, OsmEntity> | undefined {
+  if (!(entity instanceof OsmWay))
+    return routingIslandOf(entity, context.graph, context.validated, new Map())
+  const key = `disconnected_way:${entity.id}`
+  const known = context.memo.get(key)
+  if (known !== undefined) return known === null ? undefined : (known as Map<string, OsmEntity>)
+  const reached = new Map<string, OsmEntity>()
+  const island = routingIslandOf(entity, context.graph, context.validated, reached)
+  const answer = island ?? null
+  for (const member of reached.values()) {
+    if (member instanceof OsmWay && shouldSkipAsEntity(member)) continue
+    context.memo.set(`disconnected_way:${member.id}`, answer)
+  }
+  context.memo.set(key, answer)
+  return island
+}
+
+/**
  * Routable features that form an island with no link to the rest of the network. The island is
  * made of validated features only: an island that reaches a feature this run does not validate is
  * part of the network. The message is about the entity validated. A single feature gets "Delete
@@ -132,7 +155,7 @@ export const disconnectedWay: Rule = {
   id: 'disconnected_way',
   label: 'Disconnected roads',
   validate(entity, context): Issue[] {
-    const island = routingIslandOf(entity, context.graph, context.validated)
+    const island = islandOfWay(entity, context)
     if (!island) return []
 
     const members = [...island.values()]

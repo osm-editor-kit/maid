@@ -28,6 +28,7 @@
     "check-edit": "bun tools/bench/edit-check.ts",
     "check-validation": "bun tools/bench/validation-check.ts",
     "check-undo": "bun tools/bench/undo.ts",
+    "bench-validation": "bun packages/validation/bench/validation.bench.ts",
     "check-filters": "bun tools/bench/filters-check.ts",
     "check-journal": "bun tools/bench/journal-check.ts",
     "check-interactions": "bun tools/bench/interactions-check.ts",

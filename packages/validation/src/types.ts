@@ -41,6 +41,11 @@ export type RuleContext = {
    * that reaches a road nobody changed is connected to the network.
    */
   validated: ReadonlySet<string>
+  /**
+   * Kept for one run only, for what a rule computes about the graph and that other entities of the
+   * run need too (e.g. the island of a road). A rule keys its entries with its own id.
+   */
+  memo: Map<string, unknown>
 }
 
 /** A check that looks at one entity and reports what is wrong with it */
@@ -80,6 +85,11 @@ export type Validator = {
   update(change: GraphChange, ways: Iterable<OsmWay>): void
   /** Drops every issue whose first entity is not in `entityIds`: what is no longer changed is no longer reported */
   keepOnly(entityIds: Iterable<string>): void
+  /**
+   * Forgets what was computed from the graph (the boxes of the ways), without the issues. Call it when
+   * the base data changed other than by edits, e.g. after a merge: the next update makes the boxes again.
+   */
+  reset(): void
   /** All issues, errors first, then by rule and id */
   issues(): readonly Issue[]
   /** The issues an entity is part of */
