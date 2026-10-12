@@ -141,14 +141,23 @@ export function SaveButton() {
   return (
     <Flyout
       label="Save your edits"
-      placement="bottom"
+      placement="bottom-end"
       className="w-[26rem]"
       trigger={
-        <button type="button" title="Save your edits" className={toolButtonClass(true)}>
+        <button
+          type="button"
+          title={hasChanges ? 'Save your edits' : 'Nothing to save yet'}
+          disabled={!hasChanges}
+          className={toolButtonClass(true)}
+        >
           <ArrowUpTrayIcon aria-hidden="true" className="size-5" />
           <span className="max-sm:sr-only">Save</span>
           {hasChanges && (
-            <span aria-label="unsaved edits" className="size-2 rounded-full bg-blue-600" />
+            // on the corner, so the button keeps its width when the dot comes and goes
+            <span
+              aria-label="unsaved edits"
+              className="absolute -top-1 -right-1 size-2.5 rounded-full bg-blue-600 ring-2 ring-white dark:ring-zinc-900"
+            />
           )}
         </button>
       }

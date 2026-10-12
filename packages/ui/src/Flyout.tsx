@@ -2,7 +2,6 @@ import {
   arrow,
   autoUpdate,
   flip,
-  FloatingArrow,
   FloatingFocusManager,
   FloatingPortal,
   offset,
@@ -20,7 +19,17 @@ import { cloneElement, useRef, useState, type ReactElement, type ReactNode } fro
 import { twMerge } from 'tailwind-merge'
 import { UI_SPRING } from './motion.tsx'
 
-const ARROW_HEIGHT = 9
+/** The arrow is a square turned by 45°, half of it behind the panel's edge */
+const ARROW_SIZE = 16
+const ARROW_TIP = Math.ceil((ARROW_SIZE * Math.SQRT2) / 2)
+
+/** Per side of the trigger the panel is on: the edge the arrow sits on, and its two outer borders */
+const ARROW_SIDE = {
+  bottom: { edge: 'top', borders: 'border-t border-l' },
+  top: { edge: 'bottom', borders: 'border-r border-b' },
+  right: { edge: 'left', borders: 'border-b border-l' },
+  left: { edge: 'right', borders: 'border-t border-r' },
+} as const
 
 /**
  * A large panel that opens from one button and points at it with an arrow, in the look of
@@ -51,7 +60,7 @@ export function Flyout(props: {
     setOwnOpen(next)
     props.onOpenChange?.(next)
   }
-  const arrowRef = useRef<SVGSVGElement>(null)
+  const arrowRef = useRef<HTMLSpanElement>(null)
   const reducedMotion = useReducedMotion()
 
   // `transform: false` keeps position on top/left so Motion can own transform
@@ -61,6 +70,7 @@ export function Flyout(props: {
     context,
     isPositioned,
     placement: placed,
+    middlewareData,
   } = useFloating({
     open,
     onOpenChange: setOpen,
@@ -68,7 +78,7 @@ export function Flyout(props: {
     transform: false,
     whileElementsMounted: autoUpdate,
     middleware: [
-      offset(ARROW_HEIGHT + 6),
+      offset(ARROW_TIP + 4),
       flip({ padding: 8 }),
       shift({ padding: 8 }),
       // never larger than the window: the panel's content scrolls instead
@@ -88,7 +98,8 @@ export function Flyout(props: {
   const role = useRole(context, { role: 'dialog' })
   const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role])
 
-  const side = placed.split('-')[0]
+  const side = placed.split('-')[0] as keyof typeof ARROW_SIDE
+  const arrowSide = ARROW_SIDE[side]
   const from =
     side === 'bottom'
       ? { y: -6 }
@@ -123,22 +134,32 @@ export function Flyout(props: {
                 exit={reducedMotion ? { opacity: 0 } : hidden}
                 transition={reducedMotion ? { duration: 0 } : UI_SPRING}
                 className={twMerge(
-                  'z-40 flex w-96 flex-col rounded-2xl bg-white text-sm text-zinc-950 shadow-xl outline-1 outline-zinc-950/10 dark:bg-zinc-800 dark:text-white dark:shadow-2xl dark:shadow-black/60 dark:-outline-offset-1 dark:outline-white/15',
+                  'z-40 flex w-96 flex-col rounded-2xl border border-zinc-950/10 bg-white text-sm text-zinc-950 shadow-xl dark:border-white/15 dark:bg-zinc-800 dark:text-white dark:shadow-2xl dark:shadow-black/60',
                   className,
                 )}
                 // oxlint-disable-next-line react/refs -- refs.setFloating is floating-ui's callback ref, not a .current value read during render
                 {...getFloatingProps({ ref: refs.setFloating, style: floatingStyles })}
               >
-                <FloatingArrow
+                {/* The panel's own colour and border, so the arrow reads as part of it. Tailwind
+                    Plus's flyouts have no arrow; this is the usual turned square. */}
+                <span
                   ref={arrowRef}
-                  context={context}
-                  width={20}
-                  height={ARROW_HEIGHT}
-                  tipRadius={2}
-                  strokeWidth={1}
-                  className="fill-white dark:fill-zinc-800 [&>path:first-of-type]:stroke-zinc-950/10 dark:[&>path:first-of-type]:stroke-white/15"
+                  aria-hidden="true"
+                  className={twMerge(
+                    'absolute rotate-45 rounded-[3px] border-zinc-950/10 bg-white dark:border-white/15 dark:bg-zinc-800',
+                    arrowSide.borders,
+                  )}
+                  style={{
+                    width: ARROW_SIZE,
+                    height: ARROW_SIZE,
+                    left: middlewareData.arrow?.x,
+                    top: middlewareData.arrow?.y,
+                    [arrowSide.edge]: -ARROW_SIZE / 2,
+                  }}
                 />
-                <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl">{children}</div>
+                <div className="relative min-h-0 flex-1 overflow-y-auto rounded-2xl">
+                  {children}
+                </div>
               </motion.div>
             </FloatingFocusManager>
           )}

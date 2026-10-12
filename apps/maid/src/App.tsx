@@ -40,12 +40,12 @@ function Editor() {
             <div className="flex items-center gap-3">
               <ModeButtons />
               <UndoRedo />
-              <SaveButton />
             </div>
           }
           end={
             <>
               <FilterButton />
+              <SaveButton />
               <UserButton />
             </>
           }

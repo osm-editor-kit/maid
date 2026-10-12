@@ -87,13 +87,13 @@ export function FilterButton() {
       trigger={
         <button
           type="button"
-          title="What is editable, read-only or hidden"
-          className={toolButtonClass(true, changed > 0)}
+          aria-label={changed > 0 ? `Filters, ${changed} changed` : 'Filters'}
+          title="Filters: what is editable, read-only or hidden"
+          className={toolButtonClass(false, changed > 0)}
         >
           <FunnelIcon aria-hidden="true" className="size-5" />
-          <span className="max-sm:sr-only">Filters</span>
           {changed > 0 && (
-            <span className="rounded-full bg-blue-600 px-1.5 text-xs font-semibold text-white tabular-nums">
+            <span className="absolute -top-1.5 -right-1.5 min-w-4 rounded-full bg-blue-600 px-1 text-center text-[10px] leading-4 font-semibold text-white tabular-nums ring-2 ring-white dark:ring-zinc-900">
               {changed}
             </span>
           )}
