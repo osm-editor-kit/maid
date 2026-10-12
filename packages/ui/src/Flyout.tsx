@@ -1,0 +1,149 @@
+import {
+  arrow,
+  autoUpdate,
+  flip,
+  FloatingArrow,
+  FloatingFocusManager,
+  FloatingPortal,
+  offset,
+  shift,
+  size,
+  useClick,
+  useDismiss,
+  useFloating,
+  useInteractions,
+  useRole,
+  type Placement,
+} from '@floating-ui/react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { cloneElement, useRef, useState, type ReactElement, type ReactNode } from 'react'
+import { twMerge } from 'tailwind-merge'
+import { UI_SPRING } from './motion.tsx'
+
+const ARROW_HEIGHT = 9
+
+/**
+ * A large panel that opens from one button and points at it with an arrow, in the look of
+ * Tailwind Plus's flyout menus: rounded, with a soft shadow. For choices that need more room than
+ * a menu, such as the feature type or the filters. A click on the button toggles it; a click
+ * outside or Escape closes it. Uncontrolled unless `open` is given.
+ *
+ * The flyout clones its one `trigger` child and gives it the floating reference and the click
+ * handlers, so the trigger keeps its own look.
+ */
+export function Flyout(props: {
+  /** Names the panel for screen readers */
+  label: string
+  trigger: ReactElement
+  children: ReactNode
+  placement?: Placement
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  /** Classes for the panel, mainly its width (`w-96`, `w-[44rem]`) */
+  className?: string
+  /** Moves the keyboard focus into the panel when it opens. Off for panels that focus a field themselves. */
+  focus?: boolean
+}) {
+  const { label, trigger, children, placement = 'bottom', className, focus = true } = props
+  const [ownOpen, setOwnOpen] = useState(false)
+  const open = props.open ?? ownOpen
+  const setOpen = (next: boolean) => {
+    setOwnOpen(next)
+    props.onOpenChange?.(next)
+  }
+  const arrowRef = useRef<SVGSVGElement>(null)
+  const reducedMotion = useReducedMotion()
+
+  // `transform: false` keeps position on top/left so Motion can own transform
+  const {
+    refs,
+    floatingStyles,
+    context,
+    isPositioned,
+    placement: placed,
+  } = useFloating({
+    open,
+    onOpenChange: setOpen,
+    placement,
+    transform: false,
+    whileElementsMounted: autoUpdate,
+    middleware: [
+      offset(ARROW_HEIGHT + 6),
+      flip({ padding: 8 }),
+      shift({ padding: 8 }),
+      // never larger than the window: the panel's content scrolls instead
+      size({
+        padding: 8,
+        apply({ availableWidth, availableHeight, elements }) {
+          elements.floating.style.maxWidth = `${availableWidth}px`
+          elements.floating.style.maxHeight = `${availableHeight}px`
+        },
+      }),
+      // oxlint-disable-next-line react/refs -- floating-ui reads the ref after render, not during it
+      arrow({ element: arrowRef, padding: 20 }),
+    ],
+  })
+  const click = useClick(context)
+  const dismiss = useDismiss(context)
+  const role = useRole(context, { role: 'dialog' })
+  const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role])
+
+  const side = placed.split('-')[0]
+  const from =
+    side === 'bottom'
+      ? { y: -6 }
+      : side === 'top'
+        ? { y: 6 }
+        : side === 'left'
+          ? { x: 6 }
+          : { x: -6 }
+  const hidden = { opacity: 0, scale: 0.98, ...from }
+
+  return (
+    <>
+      {
+        // oxlint-disable-next-line react/refs -- refs.setReference is floating-ui's callback ref, not a .current value read during render
+        cloneElement(
+          trigger,
+          getReferenceProps({
+            ...(trigger.props as object),
+            ref: refs.setReference,
+            'aria-expanded': open,
+          }),
+        )
+      }
+      <FloatingPortal>
+        <AnimatePresence>
+          {open && (
+            <FloatingFocusManager context={context} modal={false} initialFocus={focus ? 0 : -1}>
+              <motion.div
+                aria-label={label}
+                initial={reducedMotion ? false : hidden}
+                animate={isPositioned ? { opacity: 1, scale: 1, x: 0, y: 0 } : hidden}
+                exit={reducedMotion ? { opacity: 0 } : hidden}
+                transition={reducedMotion ? { duration: 0 } : UI_SPRING}
+                className={twMerge(
+                  'z-40 flex w-96 flex-col rounded-2xl bg-white text-sm text-zinc-950 shadow-xl outline-1 outline-zinc-950/10 dark:bg-zinc-800 dark:text-white dark:shadow-2xl dark:shadow-black/60 dark:-outline-offset-1 dark:outline-white/15',
+                  className,
+                )}
+                // oxlint-disable-next-line react/refs -- refs.setFloating is floating-ui's callback ref, not a .current value read during render
+                {...getFloatingProps({ ref: refs.setFloating, style: floatingStyles })}
+              >
+                <FloatingArrow
+                  ref={arrowRef}
+                  context={context}
+                  width={20}
+                  height={ARROW_HEIGHT}
+                  tipRadius={2}
+                  strokeWidth={1}
+                  className="fill-white dark:fill-zinc-800 [&>path:first-of-type]:stroke-zinc-950/10 dark:[&>path:first-of-type]:stroke-white/15"
+                />
+                <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl">{children}</div>
+              </motion.div>
+            </FloatingFocusManager>
+          )}
+        </AnimatePresence>
+      </FloatingPortal>
+    </>
+  )
+}

@@ -28,8 +28,8 @@ export function Inspector() {
   const { id, ids, select } = useSelection()
   // read again when data arrives: a selection from the URL exists before its feature is loaded
   const entity = useEngine((e) => e.entity(id))
-  // the id the picker was opened for: selecting something else closes it
-  const [pickingFor, setPickingFor] = useState<string | null>(null)
+  // whether the type picker is open, and for which id: selecting something else forgets it
+  const [picker, setPicker] = useState<{ id: string; open: boolean } | null>(null)
 
   if (!id) {
     return (
@@ -73,7 +73,7 @@ export function Inspector() {
     entity !== undefined &&
     id.includes('-') &&
     (!entity.preset || Object.keys(entity.preset.tags).length === 0)
-  const picking = onChange !== undefined && (pickingFor === id || untagged)
+  const picking = onChange !== undefined && (picker?.id === id ? picker.open : untagged)
   const kind = entity ? (entity.preset?.name ?? GEOMETRY_LABEL[entity.geometry]) : undefined
 
   const details = entity
@@ -98,14 +98,13 @@ export function Inspector() {
         subtitle={details}
         onClose={close}
         // as in iD, the feature's head is the button that changes its type
-        onTitleClick={canChangeType ? () => setPickingFor(picking ? null : id) : undefined}
+        onTitleClick={canChangeType ? () => setPicker({ id, open: !picking }) : undefined}
         expanded={picking}
         titleAction="Change the feature type"
-      />
-      {entity && (
-        <SidebarBody>
-          {picking && presets && (
-            <SidebarSection title="Feature type">
+        // in a flyout that points at the head, so the fields below stay where they are
+        titleFlyout={
+          entity && presets ? (
+            <div className="p-3">
               <PresetPicker
                 autoFocus
                 currentId={entity.preset?.id}
@@ -121,14 +120,18 @@ export function Inspector() {
                     entity.preset,
                   )
                   engine.setTags(id, tags, `Changed the feature type to ${preset.name}`)
-                  setPickingFor(null)
+                  setPicker({ id, open: false })
                 }}
               />
-            </SidebarSection>
-          )}
+            </div>
+          ) : undefined
+        }
+      />
+      {entity && (
+        <SidebarBody>
           {entity.readOnly ? (
             <p className="mb-3 rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-800 dark:bg-amber-400/10 dark:text-amber-300">
-              Read-only: a filter protects this feature. Change it under “Filters” below the map.
+              Read-only: a filter protects this feature. Change it under “Filters” in the top bar.
             </p>
           ) : (
             <Operations />

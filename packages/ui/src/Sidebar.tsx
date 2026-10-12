@@ -1,5 +1,6 @@
 import { ChevronDownIcon, XMarkIcon } from '@heroicons/react/20/solid'
 import type { ReactNode } from 'react'
+import { Flyout } from './Flyout.tsx'
 import { FadeSlideIn } from './motion.tsx'
 
 /**
@@ -34,8 +35,13 @@ export function SidebarHeader(props: {
   expanded?: boolean
   /** What the title button does, for its tooltip and for screen readers */
   titleAction?: string
+  /**
+   * What the title button opens, shown in a flyout that points at the button. `expanded` says
+   * whether it is open and `onTitleClick` toggles it.
+   */
+  titleFlyout?: ReactNode
 }) {
-  const { icon, title, subtitle, onClose, onTitleClick, expanded, titleAction } = props
+  const { icon, title, subtitle, onClose, onTitleClick, expanded, titleAction, titleFlyout } = props
   const content = (
     <>
       {icon ? (
@@ -56,22 +62,39 @@ export function SidebarHeader(props: {
       </span>
     </>
   )
+  const titleButton = (onClick: (() => void) | undefined) => (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={expanded}
+      title={titleAction}
+      className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg p-1 inset-ring-1 inset-ring-zinc-950/10 hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 dark:inset-ring-white/10 dark:hover:bg-white/5"
+    >
+      {content}
+      <ChevronDownIcon
+        aria-hidden="true"
+        className={`mr-1 size-4 shrink-0 text-zinc-500 transition dark:text-zinc-400 ${expanded ? 'rotate-180' : ''}`}
+      />
+    </button>
+  )
   return (
     <div className="flex shrink-0 items-center gap-1 border-b border-zinc-950/10 p-2 dark:border-white/10">
-      {onTitleClick ? (
-        <button
-          type="button"
-          onClick={onTitleClick}
-          aria-expanded={expanded}
-          title={titleAction}
-          className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg p-1 inset-ring-1 inset-ring-zinc-950/10 hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 dark:inset-ring-white/10 dark:hover:bg-white/5"
+      {onTitleClick && titleFlyout !== undefined ? (
+        <Flyout
+          label={titleAction ?? title}
+          placement="right-start"
+          className="w-[26rem]"
+          focus={false}
+          open={expanded ?? false}
+          onOpenChange={(open) => {
+            if (open !== (expanded ?? false)) onTitleClick()
+          }}
+          trigger={titleButton(undefined)}
         >
-          {content}
-          <ChevronDownIcon
-            aria-hidden="true"
-            className={`mr-1 size-4 shrink-0 text-zinc-500 transition dark:text-zinc-400 ${expanded ? 'rotate-180' : ''}`}
-          />
-        </button>
+          {titleFlyout}
+        </Flyout>
+      ) : onTitleClick ? (
+        titleButton(onTitleClick)
       ) : (
         <div className="flex min-w-0 flex-1 items-center gap-3 p-1">
           {/* a heading when the row is only a title */}

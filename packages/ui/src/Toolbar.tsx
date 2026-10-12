@@ -16,6 +16,17 @@ export function ToolGroup(props: { label: string; children: ReactNode }) {
   )
 }
 
+/** The look of a `ToolButton`, for a button that cannot be one (the trigger of a flyout) */
+export function toolButtonClass(hasText: boolean, pressed = false) {
+  return twJoin(
+    'relative inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md text-sm font-medium inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:text-zinc-300 dark:inset-ring-white/10 dark:disabled:text-zinc-600',
+    hasText ? 'h-9 px-3 max-sm:px-2.5 pointer-coarse:h-10' : 'size-9 pointer-coarse:size-10',
+    pressed
+      ? 'bg-zinc-200 text-zinc-950 enabled:hover:bg-zinc-300 dark:bg-zinc-600 dark:text-white dark:enabled:hover:bg-zinc-500'
+      : 'bg-white text-zinc-950 enabled:hover:bg-zinc-50 dark:bg-zinc-800 dark:text-white dark:enabled:hover:bg-zinc-700',
+  )
+}
+
 /** An icon button for the top bar and toolbars, with an optional text label and a pressed state. */
 export function ToolButton(props: {
   label: string
@@ -38,13 +49,7 @@ export function ToolButton(props: {
         aria-pressed={pressed}
         disabled={disabled}
         onClick={onClick}
-        className={twJoin(
-          'relative inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md text-sm font-medium inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:text-zinc-300 dark:inset-ring-white/10 dark:disabled:text-zinc-600',
-          text ? 'h-9 px-3 max-sm:px-2.5 pointer-coarse:h-10' : 'size-9 pointer-coarse:size-10',
-          pressed
-            ? 'bg-zinc-200 text-zinc-950 enabled:hover:bg-zinc-300 dark:bg-zinc-600 dark:text-white dark:enabled:hover:bg-zinc-500'
-            : 'bg-white text-zinc-950 enabled:hover:bg-zinc-50 dark:bg-zinc-800 dark:text-white dark:enabled:hover:bg-zinc-700',
-        )}
+        className={toolButtonClass(Boolean(text), pressed)}
       >
         <span aria-hidden="true" className="inline-flex shrink-0 [&>svg]:size-5">
           {icon}

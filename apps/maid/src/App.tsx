@@ -1,14 +1,16 @@
-import { Brand, Shell, ThemeSwitch, TopBar } from '@osm-editor-kit/maid-ui'
+import { Brand, Shell, TopBar } from '@osm-editor-kit/maid-ui'
 import { NuqsAdapter } from 'nuqs/adapters/react'
 import { useState } from 'react'
 import { MapProvider } from 'react-map-gl/maplibre'
 import { BottomDock } from './components/BottomDock'
+import { FilterButton } from './components/FilterButton'
 import { Inspector } from './components/Inspector'
 import { MapNotices } from './components/MapNotices'
 import { MapView } from './components/MapView'
 import { ModeButtons } from './components/ModeButtons'
 import { RestorePrompt } from './components/RestorePrompt'
 import { UndoRedo } from './components/UndoRedo'
+import { UserButton } from './components/UserButton'
 import { useShortcuts } from './components/useShortcuts'
 import { ZoomControls } from './components/ZoomControls'
 import { config } from './editor'
@@ -39,7 +41,12 @@ function Editor() {
               <UndoRedo />
             </div>
           }
-          end={<ThemeSwitch />}
+          end={
+            <>
+              <FilterButton />
+              <UserButton />
+            </>
+          }
         />
       }
       sidebar={<Inspector />}

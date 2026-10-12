@@ -28,7 +28,7 @@ export function FilterPanel(props: {
 
   return (
     <div>
-      <div className="flex h-9 items-center justify-between gap-3 px-3 text-xs text-zinc-500 dark:text-zinc-400">
+      <div className="flex h-9 items-center justify-between gap-3 px-4 text-xs text-zinc-500 dark:text-zinc-400">
         <span>The first filter that matches a feature decides.</span>
         {differing.length > 0 ? (
           <button
@@ -42,13 +42,13 @@ export function FilterPanel(props: {
           </button>
         ) : null}
       </div>
-      <ul className="h-56 columns-[18rem] gap-x-6 overflow-y-auto px-3 pb-3">
+      <ul className="columns-[18rem] gap-x-8 px-4 pb-4">
         {filters.map((filter) => {
           const state = current(filter)
           const count = counts?.[filter.id]
           const changed = state !== filter.state
           return (
-            <li key={filter.id} className="flex break-inside-avoid items-center gap-2 py-1">
+            <li key={filter.id} className="flex break-inside-avoid items-center gap-2 py-1.5">
               <span
                 className={twJoin(
                   'min-w-0 flex-1 truncate text-sm',

@@ -3,7 +3,7 @@ import { useId, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { mainTagLabel, moveActive } from './picker-logic.ts'
 
 const FRAME =
-  'h-8 w-full min-w-0 rounded-md border border-zinc-950/10 bg-white text-sm text-zinc-950 hover:border-zinc-950/20 focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:hover:border-white/20 dark:[color-scheme:dark]'
+  'h-10 w-full min-w-0 rounded-lg border border-zinc-950/10 bg-white text-sm text-zinc-950 hover:border-zinc-950/20 focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:hover:border-white/20 dark:[color-scheme:dark]'
 
 export function PresetPicker(props: {
   /** Returns the presets for a query, best first. Called on every change of the query. */
@@ -95,7 +95,7 @@ export function PresetPicker(props: {
           setActiveIndex(0)
         }}
         onKeyDown={onKeyDown}
-        className={`${FRAME} px-2 placeholder:text-zinc-400 dark:placeholder:text-zinc-500`}
+        className={`${FRAME} px-3 placeholder:text-zinc-400 dark:placeholder:text-zinc-500`}
       />
 
       {results.length === 0 ? (
@@ -107,7 +107,7 @@ export function PresetPicker(props: {
           id={listId}
           role="listbox"
           aria-label="Feature types"
-          className="max-h-80 overflow-y-auto rounded-md border border-zinc-950/10 p-1 dark:border-white/10"
+          className="max-h-[26rem] overflow-y-auto"
         >
           {results.map((preset, index) => {
             const isActive = index === active
@@ -120,23 +120,25 @@ export function PresetPicker(props: {
                 aria-selected={isActive}
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => onPick(preset)}
-                className={`flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm ${
+                className={`flex cursor-pointer items-center gap-3 rounded-lg p-2 text-sm ${
                   isActive ? 'bg-zinc-950/5 dark:bg-white/10' : ''
                 }`}
               >
                 {renderIcon ? (
-                  <span className="inline-flex size-5 shrink-0 items-center justify-center text-zinc-500 dark:text-zinc-400 [&>svg]:size-5">
+                  <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-zinc-950/5 dark:bg-white/10 [&>svg]:size-5">
                     {renderIcon(preset)}
                   </span>
                 ) : null}
-                <span className="min-w-0 flex-1 truncate">{preset.name}</span>
-                {tag ? (
-                  <span className="max-w-[45%] min-w-0 truncate font-mono text-xs text-zinc-500 dark:text-zinc-400">
-                    {tag}
-                  </span>
-                ) : null}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold">{preset.name}</span>
+                  {tag ? (
+                    <span className="block truncate font-mono text-xs text-zinc-500 dark:text-zinc-400">
+                      {tag}
+                    </span>
+                  ) : null}
+                </span>
                 {preset.id === currentId ? (
-                  <span className="shrink-0 text-xs font-medium text-blue-600 dark:text-blue-400">
+                  <span className="shrink-0 rounded-full bg-blue-600/10 px-2 py-0.5 text-xs font-semibold text-blue-600 dark:bg-blue-400/10 dark:text-blue-400">
                     current
                   </span>
                 ) : null}
