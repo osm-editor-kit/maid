@@ -1,4 +1,4 @@
-import type { Action, Graph, OsmEntity, OsmWay } from '@osm-editor-kit/maid-model'
+import type { Action, DifferenceChange, Graph, OsmEntity, OsmWay } from '@osm-editor-kit/maid-model'
 
 export type Severity = 'error' | 'warning'
 
@@ -51,6 +51,14 @@ export type Rule = {
   validate(entity: OsmEntity, context: RuleContext): Issue[]
 }
 
+/** A difference between two graphs, as the history gives it: what changed, and both graphs to look up neighbours in */
+export type GraphChange = {
+  base: Graph
+  head: Graph
+  /** Every entity that differs, from the base to the head, with its base and head versions */
+  changes: ReadonlyMap<string, DifferenceChange>
+}
+
 /**
  * Runs rules over entities and keeps what they found. It validates what it is told to, which
  * is what a person changed: checking everything that was loaded would report other people's
@@ -64,6 +72,12 @@ export type Validator = {
    * compare with (the caller knows what is loaded).
    */
   validate(graph: Graph, entityIds: Iterable<string>, ways: Iterable<OsmWay>): void
+  /**
+   * Checks what the difference makes necessary to check again (`entitiesToValidate`), replaces the
+   * issues about those entities and drops every other issue. Give the whole difference from the base:
+   * a deletion makes its neighbours checked again, and what is no longer changed is no longer reported.
+   */
+  update(change: GraphChange, ways: Iterable<OsmWay>): void
   /** Drops every issue whose first entity is not in `entityIds`: what is no longer changed is no longer reported */
   keepOnly(entityIds: Iterable<string>): void
   /** All issues, errors first, then by rule and id */

@@ -22,6 +22,7 @@ The data model of Maid: OSM entities, the graph, differences, geometry, the edit
 - **Global id types** (`EntityID` and friends) are declared in `src/types/globals.d.ts`, as in Rapid.
 - **Entity properties are copied with `cloneData`** (`src/util/clone.ts`) and not with `structuredClone`, which made entity creation about three times faster on load.
 - **Geometry is computed on first access**, not when an entity is created or a graph is built. Maid's renderer builds its own features and does not read it; loading the dense scene went from 587 ms to 211 ms in Chrome.
+- **Summary of a point that became a vertex.** `Difference.summary()` reports it as modified, as iD does, and not as deleted (Rapid reports it as deleted). See [docs/research/id-tests/core.md](../../docs/research/id-tests/core.md) F-core-8.
 - **The tests** are Rapid's, in `test/`, with one changed line each: they import `test/rapid.ts` instead of Rapid's `headless.js`. Maid's own tests are in `test/maid`.
 
 Everything else is unchanged on purpose, including the formatting, so that a later Rapid fix can be compared line by line. For that reason the package is excluded from oxlint and oxfmt and has its own `tsconfig.json` without `noUncheckedIndexedAccess`.

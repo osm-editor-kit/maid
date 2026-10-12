@@ -5,13 +5,13 @@ Compared at iD commit `0194f3926`. Run: `bun test packages/model/test/id/core pa
 | iD spec file | iD tests | covered | adopted | todo | n/a | Maid test file |
 | --- | --- | --- | --- | --- | --- | --- |
 | `core/context.js` | 8 | 0 | 0 | 1 | 7 | `packages/core/src/id-context.test.ts` (todo) |
-| `core/difference.js` | 44 | 38 | 0 | 6 | 0 | `packages/model/test/data/Difference.test.js`; todos in `packages/model/test/id/core/difference.test.ts` |
+| `core/difference.js` | 44 | 38 | 1 | 5 | 0 | `packages/model/test/data/Difference.test.js`; todos in `packages/model/test/id/core/difference.test.ts` |
 | `core/file_fetcher.js` | 5 | 0 | 0 | 0 | 5 | none |
 | `core/graph.js` | 62 | 52 | 0 | 1 | 9 | `packages/model/test/lib/Graph.test.js`; todo in `packages/model/test/id/core/graph.test.ts` |
 | `core/history.js` | 55 | 31 | 1 | 1 | 22 | `packages/model/test/edit/EditHistory.test.js`; `packages/model/test/id/core/history.test.ts` |
 | `core/localizer.ts` | 10 | 0 | 0 | 10 | 0 | none (todo, F-core-1 and F-core-2) |
 | `core/tree.js` | 17 | 3 | 2 | 12 | 0 | `packages/model/test/spatial/SpatialIndex.test.js`; `packages/model/test/id/core/tree.test.ts` |
-| `core/validator.js` | 6 | 0 | 4 | 1 | 1 | `packages/validation/src/id-validator.test.ts` |
+| `core/validator.js` | 6 | 0 | 5 | 0 | 1 | `packages/validation/src/id-validator.test.ts` |
 | `lib/locale.js` | 3 | 0 | 0 | 3 | 0 | none (todo, F-core-1) |
 | **sum** | **210** | **124** | **7** | **35** | **44** | |
 
@@ -30,8 +30,8 @@ Check: 124 + 7 + 35 + 44 = 210, the iD count in `inventory.md` (core 207 + lib 3
 | F-core-5 | Transient cache on a graph: a value computed once per graph, dropped when the graph is rebased | `core/graph.js`: `invalidates transients` 1 | todo | `packages/model/src/lib/Graph.ts` |
 | F-core-6 | Animated edits: actions that run in a transition | `core/history.js`: `performs transitionable actions in a transition` 1 | todo (cut from Rapid's EditHistory, see the model README) | `packages/model/src/edit/EditHistory.ts` |
 | F-core-7 | Editor debug flags, get and set (for example tile and collision debugging) | `core/context.js`: `#debug` 1 | todo | `packages/core/src/editor.ts` |
-| F-core-8 | Summary of a point that becomes a vertex of a way: reported as modified (iD), Maid reports it as deleted | `core/difference.js`: `reports a vertex as modified when it was previously a point` 1 | todo, a bug (see below) | `Difference.summary()` in `packages/model/src/lib/Difference.ts` |
-| F-core-9 | Validation after a deletion: the ways that a deletion leaves disconnected are checked, not only the changed entities | `core/validator.js`: `add validation issue when highway becomes disconnected` 1 | todo | `apps/maid/src/modules/validation.tsx` passes only changed entities that have a head; the rule set itself is fine |
+| F-core-8 | Summary of a point that becomes a vertex of a way: reported as modified (iD), Maid reports it as deleted | `core/difference.js`: `reports a vertex as modified when it was previously a point` 1 | built now | `Difference.summary()` in `packages/model/src/lib/Difference.ts` |
+| F-core-9 | Validation after a deletion: the ways that a deletion leaves disconnected are checked, not only the changed entities | `core/validator.js`: `add validation issue when highway becomes disconnected` 1 | built now | `apps/maid/src/modules/validation.tsx` passes only changed entities that have a head; the rule set itself is fine |
 
 ## Differences found
 

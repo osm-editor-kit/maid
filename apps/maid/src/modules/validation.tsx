@@ -43,14 +43,15 @@ function createStore(editor: Editor, rules: readonly Rule[]): Store & { stop: ()
   })
   const stopValidating = editor.history.on('stablechange', (difference) => {
     for (const id of difference.changes.keys()) if (id[0] === 'w') ways = undefined
-    const changed: string[] = []
-    for (const [id, { head }] of editor.history.difference().changes) if (head) changed.push(id)
-    validator.keepOnly(changed)
-    // nothing was changed (the usual case after loading): nothing to compare with
-    if (changed.length > 0) {
-      ways ??= waysOf(editor)
-      validator.validate(editor.history.staging.graph, changed, ways)
+    // the whole difference from the base, deletions included: the validator works out what it must check again
+    const change = {
+      base: editor.history.base.graph,
+      head: editor.history.staging.graph,
+      changes: editor.history.difference().changes,
     }
+    // nothing was changed (the usual case after loading): nothing to compare with
+    if (change.changes.size > 0) ways ??= waysOf(editor)
+    validator.update(change, ways ?? [])
     version++
     for (const listener of listeners) listener()
   })

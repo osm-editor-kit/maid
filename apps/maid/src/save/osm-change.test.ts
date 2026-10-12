@@ -5,6 +5,7 @@ import {
   OsmNode,
   OsmWay,
   actionAddEntity,
+  actionAddVertex,
   actionChangeTags,
   actionDeleteWay,
   actionMoveNode,
@@ -57,6 +58,29 @@ describe('toOsmChange', () => {
     // the way goes before the nodes it used
     expect(change.delete.map((e) => `${e.type}${e.id}`)).toEqual(['way2', 'node3', 'node4'])
     expect(summaryOf(change)).toBe('1 created, 2 changed, 3 deleted')
+  })
+
+  it('uploads a point that became a vertex of a way as changed, not as deleted', () => {
+    const { context, edits } = history()
+    edits.merge([
+      new OsmNode(context, { id: 'n9', loc: [13.8, 52.4], version: 4, tags: { power: 'pole' } }),
+    ])
+    edits.perform(actionAddVertex('w2', 'n9'), actionChangeTags('n9', { power: 'pole', ref: '42' }))
+    edits.commit({ annotation: 'make the pole a vertex of the way' })
+
+    const change = toOsmChange(edits.changes())
+    expect(change.delete).toEqual([])
+    expect(change.create).toEqual([])
+    expect(change.modify.map((e) => `${e.type}${e.id}`)).toEqual(['node9', 'way2'])
+    expect(change.modify[0]).toMatchObject({
+      type: 'node',
+      id: 9,
+      version: 4,
+      tags: { power: 'pole', ref: '42' },
+      lon: 13.8,
+      lat: 52.4,
+    })
+    expect(change.modify[1]).toMatchObject({ type: 'way', id: 2, nodes: [3, 4, 9] })
   })
 
   it('is empty without edits', () => {

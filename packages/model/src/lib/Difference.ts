@@ -227,7 +227,12 @@ export class Difference {
         result.set(h.id, { entity: h, graph: head, changeType: (b ? 'modified' : 'created') });
 
       } else if (b && b.geometry(base) !== 'vertex') {
-        result.set(b.id, { entity: b, graph: base, changeType: 'deleted' });
+        // Maid: differs from Rapid here, see docs/research/id-tests/core.md F-core-8 (iD's behaviour)
+        if (h) {  // a point that became a vertex of a way: still in OSM, so modified
+          result.set(h.id, { entity: h, graph: head, changeType: 'modified' });
+        } else {
+          result.set(b.id, { entity: b, graph: base, changeType: 'deleted' });
+        }
 
       } else if (b && h) {  // modified vertex
         const moved = !deepEqual((b as OsmNode).loc, (h as OsmNode).loc);
