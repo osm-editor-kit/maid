@@ -13,6 +13,7 @@ import {
   actionAddEntity,
   actionAddMidpoint,
   actionCopyEntities,
+  actionDeleteMultiple,
   actionChangeTags,
   actionDeleteNode,
   actionDeleteRelation,
@@ -743,13 +744,16 @@ export class MaidEngine {
   paste(lon: number, lat: number): string[] {
     const { clipboard } = this
     if (!clipboard || this.draw.active || this.transform.active) return []
-    const action = actionCopyEntities(clipboard.ids, clipboard.graph)
+    // the graph is the state at the time of the copy; what was not in it cannot be copied
+    const ids = clipboard.ids.filter((id) => clipboard.graph.hasEntity(id) !== undefined)
+    if (ids.length === 0) return []
+    const action = actionCopyEntities(ids, clipboard.graph)
     let pasted: string[] = []
     this.change(() => {
       const { history } = this.data
       history.perform(action)
       const copies = action.copies()
-      pasted = clipboard.ids.map((id) => copies[id]?.id).filter((id) => id !== undefined)
+      pasted = ids.map((id) => copies[id]?.id).filter((id) => id !== undefined)
       // move the copies as a whole so that their middle is where the pointer is
       const nodes = [...nodesOf(this, pasted)].map((id) => ({
         id,
@@ -805,8 +809,21 @@ export class MaidEngine {
    * Returns false if there is no such entity.
    */
   deleteEntity(id: string): boolean {
+    return this.deleteEntities([id])
+  }
+
+  /** Deletes several entities as one undo step. Returns false if one is missing or read-only. */
+  deleteEntities(ids: readonly string[]): boolean {
     const { graph } = this.data.history.staging
-    if (!graph.hasEntity(id) || this.isReadOnly(id)) return false
+    if (ids.length === 0 || ids.some((id) => !graph.hasEntity(id) || this.isReadOnly(id)))
+      return false
+    const [id] = ids
+    if (ids.length > 1 || !id) {
+      this.setSelected(this.selectedIds.filter((selected) => !ids.includes(selected)))
+      if (this.hoverId && ids.includes(this.hoverId)) this.setHover(null)
+      this.edit(actionDeleteMultiple([...ids]), `Deleted ${ids.length} features`, [])
+      return true
+    }
     const action =
       id[0] === 'n'
         ? actionDeleteNode(id)
@@ -971,10 +988,15 @@ export class MaidEngine {
     this.collecting = differences
     try {
       step()
+    } catch (error) {
+      // an action that fails half-way must not leave its first half to be committed with the
+      // next edit: take the work in progress back, then tell the caller
+      this.data.history.revert()
+      throw error
     } finally {
       this.collecting = undefined
+      this.redrawDifferences(differences)
     }
-    this.redrawDifferences(differences)
     if (notify) this.changed()
   }
 
@@ -1011,8 +1033,12 @@ export class MaidEngine {
     )
     this.removeFeatures(remove)
     this.sendBatch(batch)
-    // the shape points of the selection follow its nodes
-    if (this.selectedIds.length > 0) this.refreshShape()
+    // the shape points of the selection follow its nodes, when one of them or a selected way changed
+    for (const id of moved.keys())
+      if (this.shapeNodes.has(id) || this.selectedIds.includes(id)) {
+        this.refreshShape()
+        break
+      }
     // feature state belongs to a source: a feature that changed its source needs it again
     if (remove.some(([, featureId]) => this.selectedIds.includes(featureId)))
       queueMicrotask(() => this.applyHighlight([], 'selected'))
@@ -1154,10 +1180,14 @@ export class MaidEngine {
         vertex.properties = { id, state: 'shape' }
         shape.set(id, vertex)
       }
+    this.shapeNodes = new Set(shape.keys())
     void this.map
       ?.getSource<GeoJSONSource>(SOURCES.highlight)
       ?.setData({ type: 'FeatureCollection', features: [...shape.values()] })
   }
+
+  /** The nodes that are shown as shape points now, to know when they have to be drawn again */
+  private shapeNodes: ReadonlySet<string> = new Set()
 
   /** The feature a pointer at this pixel would hit, in iD's priority: vertex, point, line, area */
   pick(

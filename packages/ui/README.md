@@ -9,7 +9,11 @@ The editor's shell as React components: layout, top bar, sidebar, map controls, 
 | `ToolGroup`, `ToolButton` | Joined buttons for the top bar, with label, shortcut and pressed state |
 | `Sidebar`, `SidebarHeader`, `SidebarBody`, `SidebarSection`, `SidebarDisclosure`, `SidebarEmpty` | The inspector's frame |
 | `MapControls`, `ControlGroup`, `ControlButton` | Buttons on the map, top right |
-| `Dock` | Tabs under the map that open a panel |
+| `Dock` | Tabs under the map that open a panel; its height is dragged from the top edge and animates open and closed |
+| `Tooltip` | Label, shortcut and description on hover or focus, for one element; a disabled element is wrapped in a span so it still gets the hover |
+| `CommandBar`, `CommandItem` | Icon-only commands in one hairline-joined group; a command with a `reason` is greyed out and shows the reason |
+| `ResizeHandle`, `useResizable` | A drag strip on the right edge of the sidebar or the top edge of the dock, with the size saved in `localStorage` |
+| `FadeSlideIn`, `UI_SPRING` | The house spring for chrome, and a slide-and-fade entrance |
 | `ThemeSwitch`, `useTheme`, `initTheme` | Light, dark or system, kept in the browser. Dark mode is the class `dark` on `<html>` |
 | `InspectorSections` | Draws the `inspector.section` extension point, which this package declares |
 
@@ -27,6 +31,8 @@ The editor's shell as React components: layout, top bar, sidebar, map controls, 
 ## Where the look comes from
 
 The class lists follow Tailwind Plus and Catalyst (zinc palette, hairlines as translucent borders, focus rings). Components are copied and adapted under the Tailwind Plus licence; the kit itself is not part of this repository.
+
+The tooltip, the resize handle and the resize hook follow the author's app tilda-geo (its shared `Tooltip`, the panel resize handle and the mode panel width hook), adapted to this palette and to panels on the left and bottom edges.
 
 ## Open
 

@@ -1,14 +1,30 @@
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/20/solid'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useId, useState, type ReactNode } from 'react'
 import { twJoin } from 'tailwind-merge'
+import { UI_SPRING } from './motion.tsx'
+import { ResizeHandle } from './ResizeHandle.tsx'
+import { useResizable } from './useResizable.ts'
 
 export type DockTab = { id: string; label: string; content: ReactNode }
+
+// Module level, so the hook sees the same function on every render.
+const dockMaxHeight = (viewport: number) => viewport * 0.7
 
 /** Tabbed panel below the map. The tab bar stays visible when the panel is collapsed. */
 export function Dock(props: { tabs: DockTab[]; defaultOpen?: boolean }) {
   const { tabs, defaultOpen = false } = props
   const [open, setOpen] = useState(defaultOpen)
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined)
+  const panelHeight = useResizable({
+    storageKey: 'maid:dock-height',
+    axis: 'y',
+    initial: 224,
+    min: 120,
+    max: dockMaxHeight,
+    direction: -1,
+  })
+  const reducedMotion = useReducedMotion()
   const baseId = useId()
   // Falls back to the first tab until one is picked, and when the picked tab is gone.
   const selected = tabs.find((tab) => tab.id === selectedId) ?? tabs[0]
@@ -27,8 +43,19 @@ export function Dock(props: { tabs: DockTab[]; defaultOpen?: boolean }) {
     setOpen(true)
   }
 
+  // No animation while the handle is dragged: the panel follows the pointer exactly.
+  const instant = reducedMotion || panelHeight.dragging
+
   return (
-    <div className="shrink-0 border-t border-zinc-950/10 bg-white dark:border-white/10 dark:bg-zinc-900">
+    <div className="relative shrink-0 border-t border-zinc-950/10 bg-white dark:border-white/10 dark:bg-zinc-900">
+      {open ? (
+        <ResizeHandle
+          label="Resize panel"
+          edge="top"
+          dragging={panelHeight.dragging}
+          {...panelHeight.handleProps}
+        />
+      ) : null}
       <div className="flex h-9 items-stretch justify-between">
         <div
           role="tablist"
@@ -73,16 +100,23 @@ export function Dock(props: { tabs: DockTab[]; defaultOpen?: boolean }) {
           )}
         </button>
       </div>
-      {open ? (
-        <div
-          id={panelId}
-          role="tabpanel"
-          aria-labelledby={tabElementId(selectedTabId)}
-          className="h-56 overflow-y-auto p-3"
-        >
-          {selected.content}
-        </div>
-      ) : null}
+      <AnimatePresence initial={false}>
+        {open ? (
+          <motion.div
+            key="panel"
+            id={panelId}
+            role="tabpanel"
+            aria-labelledby={tabElementId(selectedTabId)}
+            className="overflow-hidden"
+            initial={reducedMotion ? false : { height: 0 }}
+            animate={{ height: panelHeight.size }}
+            exit={{ height: 0 }}
+            transition={instant ? { duration: 0 } : UI_SPRING}
+          >
+            <div className="h-full overflow-y-auto p-3">{selected.content}</div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   )
 }

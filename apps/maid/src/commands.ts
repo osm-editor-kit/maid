@@ -64,9 +64,7 @@ export function useEditCommands(): Command[] {
         label: 'Delete',
         shortcut: `${MOD}⌫`,
         run: () => {
-          // several features go one by one, each its own undo step for now
-          for (const id of ids) engine.deleteEntity(id)
-          select(null)
+          if (engine.deleteEntities(ids)) select(null)
         },
       },
     ]

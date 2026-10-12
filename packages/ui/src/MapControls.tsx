@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { twJoin } from 'tailwind-merge'
+import { Tooltip } from './Tooltip.tsx'
 
 /** Column of map buttons in the top right corner of the map area. */
 export function MapControls(props: { children: ReactNode }) {
@@ -29,23 +30,24 @@ export function ControlButton(props: {
 }) {
   const { label, icon, disabled, pressed, onClick } = props
   return (
-    <button
-      type="button"
-      title={label}
-      aria-label={label}
-      aria-pressed={pressed}
-      disabled={disabled}
-      onClick={onClick}
-      className={twJoin(
-        'flex size-9 cursor-pointer items-center justify-center text-zinc-950 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:text-zinc-300 dark:text-white dark:disabled:text-zinc-600',
-        pressed
-          ? 'bg-zinc-200 enabled:hover:bg-zinc-300 dark:bg-zinc-600 dark:enabled:hover:bg-zinc-500'
-          : 'bg-white enabled:hover:bg-zinc-50 dark:bg-zinc-800 dark:enabled:hover:bg-zinc-700',
-      )}
-    >
-      <span aria-hidden="true" className="inline-flex shrink-0 [&>svg]:size-5">
-        {icon}
-      </span>
-    </button>
+    <Tooltip label={label} placement="left">
+      <button
+        type="button"
+        aria-label={label}
+        aria-pressed={pressed}
+        disabled={disabled}
+        onClick={onClick}
+        className={twJoin(
+          'flex size-9 cursor-pointer items-center justify-center text-zinc-950 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:text-zinc-300 dark:text-white dark:disabled:text-zinc-600',
+          pressed
+            ? 'bg-zinc-200 enabled:hover:bg-zinc-300 dark:bg-zinc-600 dark:enabled:hover:bg-zinc-500'
+            : 'bg-white enabled:hover:bg-zinc-50 dark:bg-zinc-800 dark:enabled:hover:bg-zinc-700',
+        )}
+      >
+        <span aria-hidden="true" className="inline-flex shrink-0 [&>svg]:size-5">
+          {icon}
+        </span>
+      </button>
+    </Tooltip>
   )
 }

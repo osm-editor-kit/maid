@@ -13,36 +13,70 @@ export function Sidebar(props: { label: string; children: ReactNode }) {
   )
 }
 
-/** Title row at the top of a sidebar, with an optional close button. */
+/**
+ * Title row at the top of a sidebar, with an optional close button. With `onTitleClick` the icon
+ * and the title are one large button, as iD's feature type button is: it opens what changes
+ * the type, and `expanded` says whether that is open.
+ */
 export function SidebarHeader(props: {
   icon?: ReactNode
   title: string
   subtitle?: string
   onClose?: () => void
+  onTitleClick?: () => void
+  expanded?: boolean
+  /** What the title button does, for its tooltip and for screen readers */
+  titleAction?: string
 }) {
-  const { icon, title, subtitle, onClose } = props
-  return (
-    <div className="flex shrink-0 items-start gap-3 border-b border-zinc-950/10 px-3 py-2.5 dark:border-white/10">
+  const { icon, title, subtitle, onClose, onTitleClick, expanded, titleAction } = props
+  const content = (
+    <>
       {icon ? (
         <span
           aria-hidden="true"
-          className="mt-0.5 inline-flex shrink-0 text-zinc-500 dark:text-zinc-400 [&>svg]:size-5"
+          className="inline-flex size-10 shrink-0 items-center justify-center rounded-md bg-zinc-950/5 text-zinc-600 dark:bg-white/10 dark:text-zinc-300 [&>svg]:size-6"
         >
           {icon}
         </span>
       ) : null}
-      <div className="min-w-0 flex-1">
-        <h2 className="truncate font-semibold">{title}</h2>
+      <span className="min-w-0 flex-1 text-left">
+        <span className="block truncate font-semibold">{title}</span>
         {subtitle ? (
-          <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">{subtitle}</p>
+          <span className="block truncate text-xs text-zinc-500 dark:text-zinc-400">
+            {subtitle}
+          </span>
         ) : null}
-      </div>
+      </span>
+    </>
+  )
+  return (
+    <div className="flex shrink-0 items-center gap-1 border-b border-zinc-950/10 p-2 dark:border-white/10">
+      {onTitleClick ? (
+        <button
+          type="button"
+          onClick={onTitleClick}
+          aria-expanded={expanded}
+          title={titleAction}
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg p-1 inset-ring-1 inset-ring-zinc-950/10 hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 dark:inset-ring-white/10 dark:hover:bg-white/5"
+        >
+          {content}
+          <ChevronDownIcon
+            aria-hidden="true"
+            className={`mr-1 size-4 shrink-0 text-zinc-500 transition dark:text-zinc-400 ${expanded ? 'rotate-180' : ''}`}
+          />
+        </button>
+      ) : (
+        <div className="flex min-w-0 flex-1 items-center gap-3 p-1">
+          {/* a heading when the row is only a title */}
+          <h2 className="contents">{content}</h2>
+        </div>
+      )}
       {onClose ? (
         <button
           type="button"
           aria-label="Close"
           onClick={onClose}
-          className="-my-1.5 -mr-2 flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-500 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:text-white"
+          className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-500 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:text-white"
         >
           <XMarkIcon aria-hidden="true" className="size-5" />
         </button>

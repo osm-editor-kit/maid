@@ -18,12 +18,15 @@ type Store = {
 }
 
 /** All ways of the current state: what the rules compare a changed way with */
-function* waysOf(editor: Editor): Iterable<OsmWay> {
+function waysOf(editor: Editor): OsmWay[] {
   const { graph } = editor.history.staging
+  const ways: OsmWay[] = []
   // an entry in `local` replaces the one in `base`; `undefined` there means deleted
   for (const [id, entity] of graph.base.entities)
-    if (entity instanceof OsmWay && !graph.local.entities.has(id)) yield entity
-  for (const entity of graph.local.entities.values()) if (entity instanceof OsmWay) yield entity
+    if (entity instanceof OsmWay && !graph.local.entities.has(id)) ways.push(entity)
+  for (const entity of graph.local.entities.values())
+    if (entity instanceof OsmWay) ways.push(entity)
+  return ways
 }
 
 function createStore(editor: Editor, rules: readonly Rule[]): Store & { stop: () => void } {
@@ -32,11 +35,22 @@ function createStore(editor: Editor, rules: readonly Rule[]): Store & { stop: ()
   let version = 0
   // After every finished edit, undo or redo: what the person changed is checked again, and
   // what is no longer changed is no longer reported.
-  const stop = editor.history.on('stablechange', () => {
+  // Walking every entity for the list of ways is the expensive part, so the list is kept until
+  // data is loaded or a way is added, removed or changed.
+  let ways: OsmWay[] | undefined
+  const forget = editor.history.on('merge', () => {
+    ways = undefined
+  })
+  const stopValidating = editor.history.on('stablechange', (difference) => {
+    for (const id of difference.changes.keys()) if (id[0] === 'w') ways = undefined
     const changed: string[] = []
     for (const [id, { head }] of editor.history.difference().changes) if (head) changed.push(id)
     validator.keepOnly(changed)
-    validator.validate(editor.history.staging.graph, changed, waysOf(editor))
+    // nothing was changed (the usual case after loading): nothing to compare with
+    if (changed.length > 0) {
+      ways ??= waysOf(editor)
+      validator.validate(editor.history.staging.graph, changed, ways)
+    }
     version++
     for (const listener of listeners) listener()
   })
@@ -47,7 +61,10 @@ function createStore(editor: Editor, rules: readonly Rule[]): Store & { stop: ()
       return () => listeners.delete(listener)
     },
     version: () => version,
-    stop,
+    stop: () => {
+      forget()
+      stopValidating()
+    },
   }
 }
 
@@ -62,8 +79,14 @@ function useIssues<T>(store: Store, read: (validator: Validator, version: number
 
 function applyFix(editor: Editor, issue: Issue, fix: Fix) {
   const { history } = editor
-  history.perform(...fix.actions(history.staging.graph))
-  history.commit({ annotation: fix.annotation, selectedIDs: issue.entityIds })
+  try {
+    history.perform(...fix.actions(history.staging.graph))
+    history.commit({ annotation: fix.annotation, selectedIDs: issue.entityIds })
+  } catch (error) {
+    // a fix that no longer fits the data must not leave half of itself behind
+    history.revert()
+    throw error
+  }
 }
 
 const SEVERITY = {

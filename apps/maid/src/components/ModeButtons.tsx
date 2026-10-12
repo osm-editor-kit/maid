@@ -50,7 +50,7 @@ const ADD: { mode: Mode; label: string; shortcut: string; text: string; icon: Re
 /** Top bar: what a click on the map adds, and deleting the selection */
 export function ModeButtons() {
   const mode = useEngine((e) => e.mode)
-  const { id: selectedId, select } = useSelection()
+  const { id: selectedId, ids, select } = useSelection()
   return (
     <>
       <ToolGroup label="Add">
@@ -73,7 +73,7 @@ export function ModeButtons() {
           icon={<TrashIcon />}
           disabled={!selectedId}
           onClick={() => {
-            if (selectedId && engine.deleteEntity(selectedId)) select(null)
+            if (engine.deleteEntities(ids)) select(null)
           }}
         />
       </ToolGroup>

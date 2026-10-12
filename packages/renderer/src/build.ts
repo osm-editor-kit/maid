@@ -325,7 +325,8 @@ export class FeatureBuilder {
     const { filters } = this
     if (!filters) return false
     const filter = filters.filterOf(tags, geometry)
-    const state = filter ? (filters.states()[filter.id] ?? 'editable') : 'editable'
+    // the filter of a set carries its current state
+    const state = filter?.state ?? 'editable'
     if (state === 'editable') this.states.delete(id)
     else this.states.set(id, state)
     if (state !== 'hidden') return false

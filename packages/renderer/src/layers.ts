@@ -126,7 +126,9 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
       type: 'line',
       source: SOURCES.areas,
       filter: ['has', 'fc'],
-      layout: { 'line-join': 'round' },
+      // Mitred, so the band reaches into the corners of the area. A round join leaves the
+      // corners empty, which shows as soon as the band is wider than a small building.
+      layout: { 'line-join': 'miter', 'line-miter-limit': 4 },
       paint: {
         // Opaque colour plus layer opacity: where the band overlaps itself in corners and
         // narrow shapes it does not get darker, as it would with a translucent colour.

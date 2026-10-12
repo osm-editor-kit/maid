@@ -73,13 +73,16 @@ Asked for by Tobias on 2026-10-12 after testing part B. One item per step, a rev
 
 - [x] **U1. Right click.** The edit menu at the pointer as in iD: on a feature (selects it first), on a selection, on open ground ("Paste"), by long press on a touch screen; not while drawing.
   Result (2026-10-12): done. `ContextMenu` in `maid-ui`; the sidebar's edit menu, the right-click menu and the keys share one list of commands (`apps/maid/src/commands.ts`). Covered by `bun run check-interactions` (26 checks now).
-- [ ] **U2. The inspector's head.** First row in iD's style for the feature (icon, name), a click on it changes the feature type in the panel that slides in as now. The line with geometry and id goes behind it. Third row: the edit commands as icon-only buttons in a button group, the same as on right click, each with a tooltip that shows what it does and its key.
-- [ ] **U3. Tooltips and motion.** A tooltip component with Motion for React as in tilda-geo; panels animate as there.
+- [x] **U2. The inspector's head.** First row in iD's style for the feature (icon, name), a click on it changes the feature type in the panel that slides in as now. The line with geometry and id goes behind it. Third row: the edit commands as icon-only buttons in a button group, the same as on right click, each with a tooltip that shows what it does and its key.
+  Result (2026-10-12): done. The head is one button with the preset's icon, the name and "type · nodes · id"; it opens the type search below it. The edit commands are a bar of iD's operation icons (`CommandBar`), the same list as on right click; the tooltip names the command, its key, and why it cannot run.
+- [x] **U3. Tooltips and motion.** A tooltip component with Motion for React as in tilda-geo; panels animate as there.
+  Result (2026-10-12): `Tooltip` in `maid-ui` (Floating UI for the place, Motion for the animation, tilda-geo's spring), used by the top bar, the map controls and the command bar. The dock opens and closes animated. Not done: the sidebar's content does not animate yet (`FadeSlideIn` is there for it).
+- [x] **U6. Resizable panels.** Sidebar width and dock height can be dragged, in tilda-geo's style.
+  Result (2026-10-12): done with tilda-geo's handle and pointer capture: the sidebar between 280 and 640 px, the dock up to 70% of the window; a double click resets, the size is kept in the browser. Not checked by a person in a browser yet: that the map follows while dragging.
 - [x] **U4. "Element" as a disclosure.** The element's properties stay in the sidebar (not a floating panel as in iD) but fold away.
   Result (2026-10-12): done. An inspector section can say `disclosure: 'open' | 'closed'`; "Element" starts folded.
 - [x] **U5. No footer bar.** The status line at the bottom goes; what matters from it moves elsewhere (zoom hint, data source, attribution).
   Result (2026-10-12): done. "Zoom in to load data" is a pill on the map, the attribution sits in the map's corner, zoom and data source are in the dock's "Data" view. `StatusBar` is gone from `maid-ui`. The render reference for this layout is `u5`.
-- [ ] **U6. Resizable panels.** Sidebar width and dock height can be dragged, in tilda-geo's style.
 - [ ] **U7. Fields one by one.** Every field type of iD's sidebar: read its behaviour in iD, write the spec down, rebuild it in Maid.
 - [ ] **U8. Foreshadowing.** A preview of the result on the map while a command is hovered (make round, square, flip, ...) and iD's helper lines, in iD's look, a little modernised.
 - [ ] **U9. Phones.** The layout for small screens as tilda-geo does it: the properties panel behind a button at the bottom right, and so on.

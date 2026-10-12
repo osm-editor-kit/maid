@@ -76,27 +76,35 @@ export function Inspector() {
   const picking = onChange !== undefined && (pickingFor === id || untagged)
   const kind = entity ? (entity.preset?.name ?? GEOMETRY_LABEL[entity.geometry]) : undefined
 
+  const details = entity
+    ? [
+        kind,
+        entity.type === 'way' ? `${entity.size} nodes` : undefined,
+        entity.type === 'relation' ? `${entity.size} members` : undefined,
+        id,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : id
+  const canChangeType = onChange !== undefined && presets !== undefined
+
   return (
     <Sidebar label="Selected feature">
       <SidebarHeader
         icon={
-          <PresetIcon
-            icon={entity?.preset?.icon}
-            className="size-8 fill-zinc-700 dark:fill-zinc-200"
-          />
+          <PresetIcon icon={entity?.preset?.icon} className="fill-zinc-700 dark:fill-zinc-200" />
         }
         title={entity ? (entity.tags.name ?? entity.preset?.name ?? 'Feature') : 'Loading…'}
-        subtitle={kind ? `${kind} · ${id}` : id}
+        subtitle={details}
         onClose={close}
+        // as in iD, the feature's head is the button that changes its type
+        onTitleClick={canChangeType ? () => setPickingFor(picking ? null : id) : undefined}
+        expanded={picking}
+        titleAction="Change the feature type"
       />
       {entity && (
         <SidebarBody>
-          <p className="mb-2 text-xs text-zinc-500 dark:text-zinc-400">
-            {GEOMETRY_LABEL[entity.geometry]}
-            {entity.type === 'way' && `, ${entity.size} nodes`}
-            {entity.type === 'relation' && `, ${entity.size} members`}
-          </p>
-          {picking && presets ? (
+          {picking && presets && (
             <SidebarSection title="Feature type">
               <PresetPicker
                 autoFocus
@@ -117,17 +125,6 @@ export function Inspector() {
                 }}
               />
             </SidebarSection>
-          ) : (
-            onChange &&
-            presets && (
-              <button
-                type="button"
-                onClick={() => setPickingFor(id)}
-                className="mb-3 cursor-pointer text-xs text-blue-600 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-blue-400"
-              >
-                Change feature type
-              </button>
-            )
           )}
           {entity.readOnly ? (
             <p className="mb-3 rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-800 dark:bg-amber-400/10 dark:text-amber-300">

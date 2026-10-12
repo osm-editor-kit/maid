@@ -101,7 +101,10 @@ export function membershipsOf(graph: Graph, entityId: EntityID): Membership[] {
  */
 export function joinableRelations(graph: Graph, entityId: EntityID): OsmRelation[] {
   const taken = new Set(membershipsOf(graph, entityId).map((m) => m.relation.id))
+  // the label is worked out once per relation, not in every comparison of the sort
   return loadedRelations(graph)
     .filter((relation) => relation.id !== entityId && !taken.has(relation.id))
-    .sort((a, b) => relationLabel(a).localeCompare(relationLabel(b)) || a.id.localeCompare(b.id))
+    .map((relation) => ({ relation, label: relationLabel(relation) }))
+    .sort((a, b) => a.label.localeCompare(b.label) || a.relation.id.localeCompare(b.relation.id))
+    .map(({ relation }) => relation)
 }

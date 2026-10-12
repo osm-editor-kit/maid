@@ -22,7 +22,7 @@ const PAN = 80
  * - arrow keys pan the map, + and - zoom
  */
 export function useShortcuts() {
-  const { ids: selected, id: selectedId, select } = useSelection()
+  const { ids: selected, select } = useSelection()
   const operations = useExtensionPoint(editor, 'edit.operation')
   // which keys are taken depends on what the editor is doing: read it so that this follows
   const drawing = useEngine((e) => e.draw.active)
@@ -42,7 +42,7 @@ export function useShortcuts() {
     engine.setMode('browse')
   }
   const remove = () => {
-    if (selectedId && engine.deleteEntity(selectedId)) select(null)
+    if (engine.deleteEntities(selected)) select(null)
   }
   const cancelDrawing = () => {
     engine.draw.cancel()

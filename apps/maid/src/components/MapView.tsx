@@ -40,6 +40,7 @@ let lastTileCheck = 0
 let dragging: string | null = null
 /** When a click last went to the drawing tool: the double click that follows is not for the map */
 let lastDrawClick = 0
+let zoomGuardTimer: ReturnType<typeof setTimeout> | undefined
 /** The timer of a long press and where the finger went down */
 let longPress: ReturnType<typeof setTimeout> | undefined
 let pressedAt: { x: number; y: number } | undefined
@@ -181,7 +182,9 @@ export function MapView() {
   const guardZoom = () => {
     lastDrawClick = performance.now()
     setZoomGuard(true)
-    setTimeout(() => setZoomGuard(false), 500)
+    // one timer: the guard ends 500 ms after the last click, not after the first
+    clearTimeout(zoomGuardTimer)
+    zoomGuardTimer = setTimeout(() => setZoomGuard(false), 500)
   }
   const handleClick = (event: MapLayerMouseEvent) => {
     if (mode === 'add-point') {
