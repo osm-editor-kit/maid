@@ -40,12 +40,12 @@ function tagValue(tags: Record<string, string>, key: string): string | undefined
  * base one, and an `undefined` local entry means the relation was deleted.
  */
 export function loadedRelations(graph: Graph): OsmRelation[] {
-  const ids = new Set<EntityID>([...graph.base.entities.keys(), ...graph.local.entities.keys()])
+  // runs when the sidebar draws: walk the maps, do not copy the ids of every node first
   const relations: OsmRelation[] = []
-  for (const id of ids) {
-    const entity = graph.hasEntity(id)
+  for (const [id, entity] of graph.base.entities)
+    if (entity instanceof OsmRelation && !graph.local.entities.has(id)) relations.push(entity)
+  for (const entity of graph.local.entities.values())
     if (entity instanceof OsmRelation) relations.push(entity)
-  }
   return relations
 }
 

@@ -1,4 +1,13 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
+/**
+ * Loads OSM data for the viewport and keeps MapLibre's sources in sync.
+ *
+ * This is the one place that talks to MapLibre imperatively. The React layer components
+ * declare sources and layers; the engine fills them with `updateData`, because re-sending
+ * a whole FeatureCollection through React props on every tile would be the slow path we
+ * want to avoid (see docs/research/maplibre.md).
+ */
+import { createFilterSet, type FilterSet } from '@osm-editor-kit/maid-filters'
 import {
   type Action,
   actionAddEntity,
@@ -13,14 +22,6 @@ import {
   type OsmJsonElement,
   OsmNode,
 } from '@osm-editor-kit/maid-model'
-/**
- * Loads OSM data for the viewport and keeps MapLibre's sources in sync.
- *
- * This is the one place that talks to MapLibre imperatively. The React layer components
- * declare sources and layers; the engine fills them with `updateData`, because re-sending
- * a whole FeatureCollection through React props on every tile would be the slow path we
- * want to avoid (see docs/research/maplibre.md).
- */
 import type { Operation, OperationContext } from '@osm-editor-kit/maid-operations'
 import type { Geometry, Preset, Presets } from '@osm-editor-kit/maid-presets'
 import { isArea, type Tags } from '@osm-editor-kit/maid-style'
@@ -44,6 +45,8 @@ export type EngineOptions = {
   apiUrl: string
   /** Data loads from this OSM zoom on (iD: 16) */
   minDataZoom: number
+  /** Filter states that differ from the editor's filters, as in the URL: `buildings:readonly` */
+  filters?: string | null
   /**
    * Called with new features before they go to MapLibre, e.g. to add the images they need.
    * Images that arrive after a tile was laid out do not reliably show up in that tile.
@@ -77,6 +80,8 @@ export type EntityInfo = {
   preset?: Preset
   /** Number of nodes of a way, or members of a relation */
   size?: number
+  /** True if a filter lets this entity be looked at but not changed */
+  readOnly: boolean
 }
 
 const TILE_ZOOM = 16
@@ -155,6 +160,8 @@ export class MaidEngine {
     options.editor.history.on('stagingchange', (difference) => this.onStagingChange(difference))
     this.presets = options.editor.presets
     this.builder = new FeatureBuilder(this.data, this.presets)
+    this.filterSet = createFilterSet(options.editor.filters, options.filters)
+    this.builder.filters = this.filterSet
   }
 
   // --- Reading state from the UI ---
@@ -183,7 +190,14 @@ export class MaidEngine {
       if (!node) return undefined
       const geometry: Geometry = this.data.nodeWays.has(id) ? 'vertex' : 'point'
       const tags = node.tags
-      return { id, type: 'node', geometry, tags, preset: this.presets?.match(tags, geometry) }
+      return {
+        id,
+        type: 'node',
+        geometry,
+        tags,
+        preset: this.presets?.match(tags, geometry),
+        readOnly: this.isReadOnly(id),
+      }
     }
     if (id[0] === 'w') {
       const way = this.data.way(id)
@@ -198,6 +212,7 @@ export class MaidEngine {
         tags,
         preset: this.presets?.match(tags, geometry),
         size: way.nodes.length,
+        readOnly: this.isReadOnly(id),
       }
     }
     const relation = this.data.relation(id)
@@ -211,6 +226,7 @@ export class MaidEngine {
       tags,
       preset: this.presets?.match(tags, geometry),
       size: relation.members.length,
+      readOnly: this.isReadOnly(id),
     }
   }
 
@@ -564,7 +580,7 @@ export class MaidEngine {
    */
   setTag(id: string, key: string, value: string | undefined) {
     const entity = this.data.history.staging.graph.hasEntity(id)
-    if (!entity || !key) return
+    if (!entity || !key || this.isReadOnly(id)) return
     const tags = { ...entity.tags }
     if (value === undefined || value === '') delete tags[key]
     else tags[key] = value
@@ -573,8 +589,66 @@ export class MaidEngine {
 
   /** Replaces all tags of an entity, for example when a preset is chosen. One undo step. */
   setTags(id: string, tags: Tags, annotation = 'Changed tags') {
-    if (!this.data.history.staging.graph.hasEntity(id)) return
+    if (!this.data.history.staging.graph.hasEntity(id) || this.isReadOnly(id)) return
     this.edit(actionChangeTags(id, tags), annotation, [id])
+  }
+
+  // --- Filters ---
+
+  private filterSet: FilterSet
+
+  /** The editor's filters with their current states */
+  get filters(): FilterSet {
+    return this.filterSet
+  }
+
+  /**
+   * Changes the states of the filters. Every feature is built again, because a filter decides
+   * whether an object has a feature at all; nothing is loaded again.
+   */
+  setFilters(filters: FilterSet) {
+    if (filters === this.filterSet) return
+    this.filterSet = filters
+    this.builder.filters = filters
+    this.rebuildAll()
+    // what is selected may be hidden or read-only now
+    this.setSelected(this.selectedIds.filter((id) => this.featureSource.has(id)))
+    this.changed()
+  }
+
+  /** True if the filters let this entity be looked at but not changed */
+  isReadOnly(id: string): boolean {
+    return this.builder.isReadOnly(id)
+  }
+
+  /** How many objects each filter hides, by filter id */
+  hiddenCounts(): Record<string, number> {
+    return this.builder.hidden
+  }
+
+  /** Takes every feature off the map and builds all of them again from the data */
+  private rebuildAll() {
+    const { map } = this
+    if (this.draw.active) this.draw.cancel()
+    for (const name of SOURCE_NAMES) {
+      const ids = [...this.featureSource].filter(([, source]) => source === name).map(([id]) => id)
+      for (const tier of ['base', 'live'] as const) {
+        const channel = this.channels[tier][name]
+        // features that were still waiting to be sent are dropped with the rest
+        channel.queue = []
+        channel.removals = channel.removals.concat(ids)
+        channel.dirty = true
+      }
+      this.live[name].clear()
+      for (const id of this.editing)
+        map?.removeFeatureState({ source: SOURCES[name], id }, 'editing')
+    }
+    this.editing.clear()
+    this.featureSource.clear()
+    this.builder.reset()
+    this.push(this.builder.build(this.data.all()), 'base')
+    for (const channel of this.allChannels()) void this.flush(channel)
+    queueMicrotask(() => this.applyHighlight([], 'selected'))
   }
 
   // --- Operations ---
@@ -590,7 +664,8 @@ export class MaidEngine {
    */
   runOperation(operation: Operation): readonly string[] | undefined {
     const context = this.operationContext()
-    if (this.draw.active || !operation.applies(context) || operation.disabled(context)) return
+    if (this.draw.active || this.selectedIds.some((id) => this.isReadOnly(id))) return
+    if (!operation.applies(context) || operation.disabled(context)) return
     const { actions, annotation, select } = operation.run(context)
     let next: readonly string[] = this.selectedIds
     this.change(() => {
@@ -640,7 +715,7 @@ export class MaidEngine {
    */
   deleteEntity(id: string): boolean {
     const { graph } = this.data.history.staging
-    if (!graph.hasEntity(id)) return false
+    if (!graph.hasEntity(id) || this.isReadOnly(id)) return false
     const action =
       id[0] === 'n'
         ? actionDeleteNode(id)
@@ -856,7 +931,7 @@ export class MaidEngine {
 
   /** True if this id is a vertex that can be dragged */
   isVertex(id: string | null): id is string {
-    return !!id && id[0] === 'n' && this.data.nodeWays.has(id)
+    return !!id && id[0] === 'n' && this.data.nodeWays.has(id) && !this.isReadOnly(id)
   }
 
   /**

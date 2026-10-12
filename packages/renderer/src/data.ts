@@ -90,6 +90,21 @@ export class OsmData {
     return { ...this.loaded }
   }
 
+  /** Every entity of the current state, loaded or added here, for building all features again */
+  all(): MergeResult {
+    const { graph } = this.history.staging
+    const out: MergeResult = { nodes: [], ways: [], relations: [] }
+    const add = (entity: unknown) => {
+      if (entity instanceof OsmNode) out.nodes.push(entity)
+      else if (entity instanceof OsmWay) out.ways.push(entity)
+      else if (entity instanceof OsmRelation) out.relations.push(entity)
+    }
+    // an entry in `local` replaces the one in `base`; `undefined` there means deleted
+    for (const [id, entity] of graph.base.entities) if (!graph.local.entities.has(id)) add(entity)
+    for (const entity of graph.local.entities.values()) add(entity)
+    return out
+  }
+
   /**
    * Keeps the indexes right after an edit, undo or redo. Only entities whose node or member list
    * changed cost anything; moving a node or changing a tag is skipped at the first comparison.

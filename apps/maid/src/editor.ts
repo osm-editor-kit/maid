@@ -21,6 +21,7 @@ export const engine = new MaidEngine({
   editor,
   apiUrl: config.apiUrl,
   minDataZoom: config.minDataZoom,
+  filters: config.filters,
 })
 
 /**

@@ -1,3 +1,4 @@
+import { fromIdDisableFeatures } from '@osm-editor-kit/maid-filters'
 import type { LayerOptions } from '@osm-editor-kit/maid-renderer'
 import { PORTS } from '../../../tools/ports'
 import { readParams, setupParams, stateParams, type Camera } from './url/params'
@@ -26,6 +27,16 @@ export type Config = {
   fade: number
   /** Where the map starts, if the URL says so */
   camera?: Camera
+  /** Filter states the URL starts with: Maid's `filters`, or iD's `disable_features` */
+  filters: string | null
+}
+
+/** Maid's own parameter wins; a link made for iD hides what it lists in `disable_features` */
+function readFilters(search: string): string | null {
+  const own = readParams({ filters: stateParams.filters }, search).filters
+  if (own) return own
+  const disabled = new URLSearchParams(search).get('disable_features')
+  return disabled ? fromIdDisableFeatures(disabled) : null
 }
 
 export function readConfig(location: Location): Config {
@@ -48,5 +59,6 @@ export function readConfig(location: Location): Config {
     sourceMaxZoom: setup.sourceMaxZoom,
     fade: setup.fade,
     camera: readParams({ map: stateParams.map }, location.search).map ?? undefined,
+    filters: readFilters(location.search),
   }
 }

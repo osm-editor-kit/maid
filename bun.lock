@@ -19,6 +19,7 @@
       "dependencies": {
         "@heroicons/react": "^2.2.0",
         "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-filters": "workspace:*",
         "@osm-editor-kit/maid-model": "workspace:*",
         "@osm-editor-kit/maid-operations": "workspace:*",
         "@osm-editor-kit/maid-presets": "workspace:*",
@@ -46,6 +47,7 @@
       "name": "@osm-editor-kit/maid-core",
       "version": "0.0.0",
       "dependencies": {
+        "@osm-editor-kit/maid-filters": "workspace:*",
         "@osm-editor-kit/maid-model": "workspace:*",
         "@osm-editor-kit/maid-presets": "workspace:*",
       },
@@ -58,6 +60,10 @@
       "optionalPeers": [
         "react",
       ],
+    },
+    "packages/filters": {
+      "name": "@osm-editor-kit/maid-filters",
+      "version": "0.0.0",
     },
     "packages/model": {
       "name": "@osm-editor-kit/maid-model",
@@ -100,6 +106,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-filters": "workspace:*",
         "@osm-editor-kit/maid-model": "workspace:*",
         "@osm-editor-kit/maid-operations": "workspace:*",
         "@osm-editor-kit/maid-presets": "workspace:*",
@@ -128,6 +135,7 @@
       "dependencies": {
         "@heroicons/react": "^2.2.0",
         "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-filters": "workspace:*",
         "@osm-editor-kit/maid-presets": "workspace:*",
         "@osm-editor-kit/maid-renderer": "workspace:*",
         "tailwind-merge": "^3.7.0",
@@ -181,6 +189,8 @@
     "@osm-editor-kit/maid-app": ["@osm-editor-kit/maid-app@workspace:apps/maid"],
 
     "@osm-editor-kit/maid-core": ["@osm-editor-kit/maid-core@workspace:packages/core"],
+
+    "@osm-editor-kit/maid-filters": ["@osm-editor-kit/maid-filters@workspace:packages/filters"],
 
     "@osm-editor-kit/maid-model": ["@osm-editor-kit/maid-model@workspace:packages/model"],
 

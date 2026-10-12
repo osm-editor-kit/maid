@@ -98,6 +98,7 @@ export function createEditor(config: EditorConfig = {}): Editor {
   const editor: Editor = {
     context,
     presets: config.presets,
+    filters: config.filters ?? [],
     history: new EditHistory(context),
     hooks: {
       run: (name, ...args) => hooks.run(name, ...args),

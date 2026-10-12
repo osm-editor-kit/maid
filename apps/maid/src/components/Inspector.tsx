@@ -60,9 +60,11 @@ export function Inspector() {
       </Sidebar>
     )
   }
-  const onChange = entity
-    ? (key: string, value: string | undefined) => engine.setTag(id, key, value)
-    : undefined
+  // a filter can make a feature read-only: it is shown, its fields and tags cannot be changed
+  const onChange =
+    entity && !entity.readOnly
+      ? (key: string, value: string | undefined) => engine.setTag(id, key, value)
+      : undefined
   const { presets } = editor
   const fields =
     entity?.preset && presets ? presets.fieldsFor(entity.preset, entity.tags, entity.geometry) : []
@@ -127,7 +129,13 @@ export function Inspector() {
               </button>
             )
           )}
-          <Operations />
+          {entity.readOnly ? (
+            <p className="mb-3 rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-800 dark:bg-amber-400/10 dark:text-amber-300">
+              Read-only: a filter protects this feature. Change it under “Filters” below the map.
+            </p>
+          ) : (
+            <Operations />
+          )}
           {fields.length > 0 && (
             <SidebarSection title="Fields">
               <PresetFields fields={fields} tags={entity.tags} onChange={onChange} />

@@ -3,6 +3,7 @@
  * The core declares no extension point and no hook. It does own the data: `context` and `history`. See README.md.
  */
 
+import type { Filter as FeatureFilter } from '@osm-editor-kit/maid-filters'
 import type { Context, EditHistory } from '@osm-editor-kit/maid-model'
 import type { Presets } from '@osm-editor-kit/maid-presets'
 
@@ -91,6 +92,12 @@ export interface EditorConfig {
    * changed copy. Without them features have no preset, and the model decides with plain tag checks.
    */
   presets?: Presets
+  /**
+   * The filters of this editor, in order: which features are editable, read-only or hidden to
+   * begin with. For example `defaultFilters` of maid-filters, or a fork's own list. The first
+   * filter that matches a feature decides.
+   */
+  filters?: readonly FeatureFilter[]
   /** Called for every error a listener, subscriber or cleanup throws. Default: `console.error`. */
   onError?: OnError
 }
@@ -130,6 +137,8 @@ export interface Editor {
   readonly context: Context
   /** The presets from the config */
   readonly presets: Presets | undefined
+  /** The filters from the config. Their current states are the renderer's. */
+  readonly filters: readonly FeatureFilter[]
   /**
    * The OSM data and its edits: base, stable and staging graph, undo and redo.
    * Created without a spatial index.

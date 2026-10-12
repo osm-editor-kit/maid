@@ -9,6 +9,7 @@
     "./react": "./src/react.ts"
   },
   "dependencies": {
+    "@osm-editor-kit/maid-filters": "workspace:*",
     "@osm-editor-kit/maid-model": "workspace:*",
     "@osm-editor-kit/maid-presets": "workspace:*"
   },

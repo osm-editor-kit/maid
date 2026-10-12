@@ -45,6 +45,8 @@ export const stateParams = {
   map: parseAsCamera,
   /** Selected feature, e.g. `w123`, like iD */
   id: parseAsString,
+  /** Filter states that differ from the editor's own, e.g. `buildings:readonly,boundaries:hidden` */
+  filters: parseAsString,
 }
 
 /** Development and benchmark switches, read once at start */

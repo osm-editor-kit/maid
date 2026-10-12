@@ -1,5 +1,6 @@
-import { Dock } from '@osm-editor-kit/maid-ui'
-import { config, useEngine } from '../editor'
+import { Dock, FilterPanel } from '@osm-editor-kit/maid-ui'
+import { config, editor, engine, useEngine } from '../editor'
+import { useFiltersParam } from '../url/state'
 
 /** What is loaded: entities by type, and where they come from */
 function LoadedData() {
@@ -23,7 +24,38 @@ function LoadedData() {
   )
 }
 
+/** What is editable, read-only or hidden. The states are the engine's; the URL keeps what differs. */
+function Filters() {
+  const [, setParam] = useFiltersParam()
+  const filters = useEngine((e) => e.filters)
+  const hidden = useEngine((e) => ({ ...e.hiddenCounts() }))
+  if (editor.filters.length === 0)
+    return (
+      <p className="p-3 text-xs text-zinc-500 dark:text-zinc-400">This editor has no filters.</p>
+    )
+  return (
+    <FilterPanel
+      // the editor's own list: its states are the defaults that "changed" and "Reset" compare with
+      filters={editor.filters}
+      states={filters.states()}
+      counts={hidden}
+      onChange={(id, state) => {
+        const next = engine.filters.with(id, state)
+        engine.setFilters(next)
+        void setParam(next.toParam() || null)
+      }}
+    />
+  )
+}
+
 /** The dock under the map. Closed at first; its views become an extension point later. */
 export function BottomDock() {
-  return <Dock tabs={[{ id: 'data', label: 'Data', content: <LoadedData /> }]} />
+  return (
+    <Dock
+      tabs={[
+        { id: 'filters', label: 'Filters', content: <Filters /> },
+        { id: 'data', label: 'Data', content: <LoadedData /> },
+      ]}
+    />
+  )
 }

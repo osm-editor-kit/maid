@@ -1,9 +1,10 @@
-import type { OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 /**
  * Turns OSM entities into GeoJSON features that carry their resolved iD style as plain
  * properties. Classification runs once per entity in JavaScript, so MapLibre's style
  * expressions stay trivial (`['get', 'sc']`) and forks can change the look in one place.
  */
+import type { FilterSet, FilterState, Geometry } from '@osm-editor-kit/maid-filters'
+import type { OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 import type { Presets } from '@osm-editor-kit/maid-presets'
 import {
   hasInterestingTags,
@@ -288,11 +289,67 @@ export class FeatureBuilder {
   private pendingRelations = new Set<string>()
   private vertexState = new Map<string, string>()
 
+  /**
+   * Which objects are editable, read-only or hidden. Hidden ones get no feature at all, so they
+   * cannot be drawn, hit or snapped to. Without filters everything is editable.
+   */
+  filters?: FilterSet
+  /** What the filters said about an entity that is not plainly editable */
+  private states = new Map<string, FilterState>()
+
   constructor(
     private data: OsmData,
     /** Without presets nothing has an icon */
     private presets?: Presets,
   ) {}
+
+  /** Forgets everything that was built, for building all features again (after a filter changed) */
+  reset() {
+    this.hidden = {}
+    this.built.clear()
+    this.pendingRelations.clear()
+    this.vertexState.clear()
+    this.states.clear()
+  }
+
+  /** True if the entity has a feature that may be looked at but not changed */
+  isReadOnly(id: string): boolean {
+    return this.states.get(id) === 'readonly'
+  }
+
+  /**
+   * Asks the filters about an entity and remembers the answer. Returns true if it is hidden;
+   * `count` adds it to the hidden counter of its filter (once per entity).
+   */
+  private isFiltered(id: string, tags: Tags, geometry: Geometry, count: boolean): boolean {
+    const { filters } = this
+    if (!filters) return false
+    const filter = filters.filterOf(tags, geometry)
+    const state = filter ? (filters.states()[filter.id] ?? 'editable') : 'editable'
+    if (state === 'editable') this.states.delete(id)
+    else this.states.set(id, state)
+    if (state !== 'hidden') return false
+    if (count && filter) this.hidden[filter.id] = (this.hidden[filter.id] ?? 0) + 1
+    return true
+  }
+
+  /**
+   * A vertex goes with its ways: hidden when all of them are, read-only when one of them is.
+   * Returns true if it is hidden.
+   */
+  private isVertexFiltered(id: string): boolean {
+    if (!this.filters) return false
+    let visible = false
+    let readOnly = false
+    for (const wayId of this.data.nodeWays.get(id) ?? []) {
+      const state = this.states.get(wayId)
+      if (state !== 'hidden') visible = true
+      if (state === 'readonly') readOnly = true
+    }
+    if (visible && readOnly) this.states.set(id, 'readonly')
+    else this.states.delete(id)
+    return !visible
+  }
 
   /** The feature of one way, or undefined if it is not drawn on its own. Also used when a node moves. */
   buildWay(way: OsmWay): { source: 'areas' | 'lines'; feature: Feature } | undefined {
@@ -308,7 +365,9 @@ export class FeatureBuilder {
       if (first) this.hidden.boundaries = (this.hidden.boundaries ?? 0) + 1
       return undefined
     }
-    if (isArea(way.tags, closed) && coords.length >= 4) {
+    const area = isArea(way.tags, closed) && coords.length >= 4
+    if (this.isFiltered(id, tags, area ? 'area' : 'line', first)) return undefined
+    if (area) {
       return { source: 'areas', feature: areaFeature(id, [[coords]], tags, tagClasses(tags)) }
     }
     // ways that only carry a multipolygon's outline are drawn by the relation's area
@@ -325,7 +384,9 @@ export class FeatureBuilder {
     const coordinates = coordinateOf(node)
     if (!coordinates) return undefined
     const id = node.id
+    const first = !this.built.has(id)
     this.built.add(id)
+    if (this.isFiltered(id, node.tags, 'point', first)) return undefined
     const props: PointProps = { id }
     const addr = addressOf(node.tags)
     if (addr) props.addr = addr
@@ -343,7 +404,10 @@ export class FeatureBuilder {
   refreshVertex(node: OsmNode): Feature | undefined {
     const shared = (this.data.nodeUses.get(node.id) ?? 0) > 1
     const tagged = hasInterestingTags(node.tags)
-    if (!tagged && !shared && !this.data.endpoints.has(node.id)) {
+    if (
+      (!tagged && !shared && !this.data.endpoints.has(node.id)) ||
+      this.isVertexFiltered(node.id)
+    ) {
       this.vertexState.delete(node.id)
       return undefined
     }
@@ -393,8 +457,10 @@ export class FeatureBuilder {
         const outerWay = outer && data.way(outer.id)
         tags = { ...outerWay?.tags }
       }
-      out.areas.push(areaFeature(id, polygons, tags, tagClasses(tags)))
+      const first = !this.built.has(id)
       this.built.add(id)
+      if (this.isFiltered(id, tags, 'area', first)) continue
+      out.areas.push(areaFeature(id, polygons, tags, tagClasses(tags)))
     }
 
     for (const way of added.ways) {
@@ -424,6 +490,7 @@ export class FeatureBuilder {
       // iD only draws vertices that matter while nothing is selected: tagged, junctions, way ends
       const shared = uses > 1
       if (!tagged && !shared && !data.endpoints.has(node.id)) continue
+      if (this.isVertexFiltered(id)) continue
       const state = `${tagged ? 1 : 0}${shared ? 1 : 0}`
       if (this.vertexState.get(node.id) === state) continue
       const coordinates = coordinateOf(node)

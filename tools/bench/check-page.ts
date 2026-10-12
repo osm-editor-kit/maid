@@ -22,6 +22,8 @@ export type Check = {
 export async function runCheck(
   sceneName: string,
   body: (check: Check) => Promise<void>,
+  /** More URL parameters, e.g. `filters=buildings:hidden` */
+  query = '',
 ): Promise<number> {
   const scene = getScene(sceneName)
   const browser = await chromium.launch({ channel: 'chrome', headless: true })
@@ -49,7 +51,7 @@ export async function runCheck(
     )
     page.on('pageerror', (error) => report('no uncaught page error', 'none', error.message))
     await page.goto(
-      `http://localhost:${PORTS.maid}/?scene=${sceneName}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
+      `http://localhost:${PORTS.maid}/?scene=${sceneName}${query ? `&${query}` : ''}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
     )
     await page.waitForFunction(() => (window as any).__bench !== undefined, undefined, {
       timeout: 30000,
