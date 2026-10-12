@@ -12,6 +12,7 @@ import {
   type Action,
   actionAddEntity,
   actionAddMidpoint,
+  actionConnect,
   actionCopyEntities,
   actionDeleteMultiple,
   actionChangeTags,
@@ -41,9 +42,18 @@ import {
 import { OsmData } from './data'
 import { onewayOf } from './direction'
 import { installDirectionImages } from './direction-images'
-import { DrawTool, nearestOnWay } from './draw'
+import { DrawTool, nearestOnWay, projectedNodes } from './draw'
 import { EDIT_SOURCES, SOURCES } from './layers'
 import { boundsOf, relatedIds } from './related'
+import {
+  chooseTarget,
+  followEachOther,
+  nearestOnPolyline,
+  type Loc,
+  type Point,
+  type SnapTarget,
+  SNAP_PX,
+} from './snap'
 import { fromMercator, nodesOf, toMercator, TransformTool } from './transform'
 
 export type EngineOptions = {
@@ -837,6 +847,14 @@ export class MaidEngine {
     const on = way && nearestOnWay(this, way, point)
     // a double click inside an area is not on its line
     if (!on) return undefined
+    return this.addNodeOn(on)
+  }
+
+  /**
+   * Adds a new node on the line of a way, between the two nodes of `on`, as a node of that way. One
+   * undo step. Returns the id of the new node.
+   */
+  addNodeOn(on: { loc: Loc; edge: [string, string] }): string {
     const node = new OsmNode(this.data.context, { loc: on.loc })
     this.change(() => {
       const { history } = this.data
@@ -1112,6 +1130,103 @@ export class MaidEngine {
   /** The vertex being dragged: its moves become one undo step when the drag ends */
   private dragged?: string
   private dragBusy = false
+  /**
+   * What the dragged node is over at the last step: a node or a way it would snap to, and the
+   * reason a drop there would be refused. Undefined while nothing is aimed at (Alt, drawing).
+   */
+  private dragAim?: { target?: SnapTarget; refused?: string }
+
+  /** Why the drop at the pointer would be refused, while a drag is over a target that is not allowed */
+  get dragRefusal(): string | undefined {
+    return this.dragAim?.refused
+  }
+
+  /**
+   * What a screen point lands on for a snap: a node (a vertex or a point) within SNAP_PX first,
+   * else the line of the nearest way within SNAP_PX. Features in `skip`, read-only features and
+   * anything not in `layers` (the layers a click uses, so no hidden feature) are not targets. One
+   * query of the rendered features around the point.
+   */
+  snapAt(point: Point, layers: string[], skip: ReadonlySet<string>): SnapTarget | undefined {
+    const { map } = this
+    if (!map) return undefined
+    const features = map.queryRenderedFeatures(
+      [
+        [point.x - SNAP_PX, point.y - SNAP_PX],
+        [point.x + SNAP_PX, point.y + SNAP_PX],
+      ],
+      { layers },
+    )
+    const candidates: SnapTarget[] = []
+    const seen = new Set<string>()
+    for (const feature of features) {
+      const id = feature.id as string | undefined
+      if (!id || seen.has(id) || skip.has(id) || this.isReadOnly(id)) continue
+      seen.add(id)
+      if (id[0] === 'n') {
+        const loc = this.data.node(id)?.loc
+        if (loc) candidates.push({ type: 'node', id, loc: [loc[0], loc[1]] })
+      } else if (id[0] === 'w') {
+        const way = this.data.way(id)
+        const nodes = way ? projectedNodes(this, way) : []
+        // a vertex of the line under the pointer is a node target, as in iD, even where no vertex is drawn
+        for (const n of nodes) {
+          if (skip.has(n.id) || seen.has(n.id) || this.isReadOnly(n.id)) continue
+          if (Math.hypot(n.x - point.x, n.y - point.y) > SNAP_PX) continue
+          const loc = this.data.node(n.id)?.loc
+          if (loc) candidates.push({ type: 'node', id: n.id, loc: [loc[0], loc[1]] })
+        }
+        const on = way && nearestOnPolyline(nodes, point, SNAP_PX)
+        if (on) {
+          const at = map.unproject([on.x, on.y])
+          candidates.push({
+            type: 'way',
+            wayId: id,
+            loc: [at.lng, at.lat],
+            edge: on.edge,
+            distance: on.distance,
+          })
+        }
+      }
+    }
+    return chooseTarget(candidates)
+  }
+
+  /**
+   * The snap of a dragged node at this pointer. The dragged node's own ways are not targets: it
+   * cannot be joined to its own line. A node target that the model would refuse carries the reason.
+   */
+  private aimAt(
+    id: string,
+    point: Point,
+    layers: string[],
+  ): { target?: SnapTarget; refused?: string } {
+    const skip = new Set<string>([id, ...(this.data.nodeWays.get(id) ?? [])])
+    const target = this.snapAt(point, layers, skip)
+    if (!target || target.type === 'way') return { target }
+    return { target, refused: this.connectRefusal(id, target.id) }
+  }
+
+  /**
+   * Why a drop that joins the dragged node to this node would be refused, or undefined if it is
+   * allowed: the model's own rule (relations, turn restrictions), a way that would get the node
+   * twice in a row, or a way that would change and is read-only.
+   */
+  private connectRefusal(dragged: string, target: string): string | undefined {
+    const { staging } = this.data.history
+    const reason = actionConnect([dragged, target]).disabled?.(staging.graph)
+    if (reason === 'restriction') return 'It would break a turn restriction'
+    if (reason) return 'The two nodes have different roles in a relation'
+    const ways = [
+      ...(this.data.nodeWays.get(dragged) ?? []),
+      ...(this.data.nodeWays.get(target) ?? []),
+    ]
+    const lists = (this.data.nodeWays.get(dragged) ?? []).map((w) => this.data.way(w)?.nodes ?? [])
+    if (followEachOther(lists, dragged, target))
+      return 'The node would be joined to its neighbour in the same way'
+    if (ways.some((w) => this.isReadOnly(w))) return 'A way it would change is read-only'
+    return undefined
+  }
 
   /** True if this id is a node that can be dragged: a vertex or a standalone point */
   isDraggable(id: string | null): id is string {
@@ -1123,8 +1238,22 @@ export class MaidEngine {
    * still drawing the previous one are dropped in favour of the latest, so the vertex never
    * lags behind by more than one update.
    */
-  dragTo(id: string, lon: number, lat: number) {
-    this.dragTarget = { id, lon, lat }
+  dragTo(
+    id: string,
+    lon: number,
+    lat: number,
+    aim?: { point: Point; layers: string[]; free: boolean },
+  ) {
+    // Aimed (a vertex or a point dragged by the map view): the node snaps to what is under the pointer,
+    // unless Alt is held. A refused target keeps the node at the pointer; the drop takes it back.
+    const aimed = aim && !aim.free ? this.aimAt(id, aim.point, aim.layers) : undefined
+    this.dragAim = aimed
+    if (aim) {
+      const hover = aimed?.target
+      this.setHover(hover ? (hover.type === 'node' ? hover.id : hover.wayId) : id)
+    }
+    const at: Loc = aimed?.target && !aimed.refused ? aimed.target.loc : [lon, lat]
+    this.dragTarget = { id, lon: at[0], lat: at[1] }
     this.dragged = id
     this.touch()
     if (this.dragBusy) return
@@ -1153,17 +1282,58 @@ export class MaidEngine {
     this.dragged = undefined
   }
 
-  /** Call when the vertex is released. The whole drag becomes one undo step. */
-  async endDrag() {
+  /**
+   * Call when the vertex is released. The drag is one undo step: the move, and the connection when
+   * the node was dropped on a node or a way (the oldest node of a connected pair survives, as iD does).
+   * A refused drop is taken back, so the node is where the drag started. Resolves with the node the
+   * selection should show after a connection (`selected`), and with the reason of a refusal.
+   */
+  async endDrag(): Promise<{ selected?: string; refused?: string }> {
     await this.settleDrag()
     const id = this.dragged
+    const aim = this.dragAim
     this.dragged = undefined
-    if (id && this.data.history.hasWorkInProgress)
-      this.data.history.commit({ annotation: 'Moved a node', selectedIDs: [id] })
+    this.dragAim = undefined
+    const { history } = this.data
+    const result: { selected?: string; refused?: string } = {}
+    if (id && history.hasWorkInProgress) {
+      const target = aim?.target
+      if (aim?.refused) {
+        this.change(() => history.revert())
+        result.refused = aim.refused
+      } else if (target?.type === 'node') {
+        const standalone = !this.data.nodeWays.get(id)?.length
+        this.change(() => {
+          history.perform(actionConnect([id, target.id]))
+          // the connect keeps the oldest of the two: the dragged node, or the one it was dropped on
+          const survivor = history.staging.graph.hasEntity(id) ? id : target.id
+          history.commit({
+            annotation: standalone ? 'Connected a point to a node' : 'Connected a way to a node',
+            selectedIDs: [survivor],
+          })
+          result.selected = survivor
+        })
+      } else if (target?.type === 'way' && this.data.node(id)) {
+        const node = this.data.node(id)!
+        const standalone = !this.data.nodeWays.get(id)?.length
+        this.change(() => {
+          // the dragged node keeps its id and its tags: it is inserted into the way at the snapped place
+          history.perform(actionAddMidpoint({ loc: target.loc, edge: target.edge }, node))
+          history.commit({
+            annotation: standalone ? 'Connected a point to a way' : 'Connected a way to a way',
+            selectedIDs: [id],
+          })
+        })
+      } else {
+        history.commit({ annotation: 'Moved a node', selectedIDs: [id] })
+      }
+    }
+    if (id) this.setHover(result.selected ?? id)
     this.changed()
     // the moved features stay in the live tier until compaction
     this.touch()
     this.wake()
+    return result
   }
 
   // --- Relations: members highlighted, zoom to them, load them in full ------------

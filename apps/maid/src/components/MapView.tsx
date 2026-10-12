@@ -168,14 +168,28 @@ export function MapView() {
     if (!dragging) return
     dragging = null
     setCursor('grab')
-    void engine.endDrag()
+    // a connection leaves the node that survives selected, as iD does
+    void engine.endDrag().then((result) => {
+      if (result.selected) select(result.selected)
+    })
   }
-  const movePointer = (event: { point: Point; lngLat: { lng: number; lat: number } }) => {
+  const movePointer = (event: {
+    point: Point
+    lngLat: { lng: number; lat: number }
+    originalEvent: MouseEvent | TouchEvent
+  }) => {
     const { lng, lat } = event.lngLat
     // keys that act where the pointer is (paste, Space while drawing) read this
     engine.pointer = { point: event.point, lon: lng, lat, layers: interactive }
-    if (dragging) engine.dragTo(dragging, lng, lat)
-    else if (drawing) engine.draw.move(event.point, interactive)
+    if (dragging) {
+      // the dragged node snaps to what is under the pointer, unless Alt is held
+      engine.dragTo(dragging, lng, lat, {
+        point: event.point,
+        layers: interactive,
+        free: event.originalEvent.altKey,
+      })
+      setCursor(engine.dragRefusal ? 'not-allowed' : 'grabbing')
+    } else if (drawing) engine.draw.move(event.point, interactive)
     else if (mode === 'move' || mode === 'rotate') engine.transform.move(lng, lat)
   }
   const handleMouseMove = (event: MapLayerMouseEvent) => {
@@ -255,6 +269,20 @@ export function MapView() {
   }
   const handleClick = (event: MapLayerMouseEvent) => {
     if (mode === 'add-point') {
+      // on a vertex or a point that is there, the click selects it: no second node at the same place
+      // on a line, the new node is a vertex of that way (as iD does); anywhere else a point is added
+      const on = engine.snapAt(event.point, interactive, new Set())
+      if (on?.type === 'node') {
+        engine.setMode('browse')
+        select(on.id)
+        return
+      }
+      if (on?.type === 'way') {
+        const id = engine.addNodeOn(on)
+        engine.setMode('browse')
+        select(id)
+        return
+      }
       // the new point is selected, so the sidebar asks what it is
       // a favourite that started this mode gives the point its tags
       const id = addPointWithFavourite(event.lngLat.lng, event.lngLat.lat)

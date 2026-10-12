@@ -469,6 +469,259 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   await click(free(0))
 })
 
+// --- snapping: a drop on a node or a way joins it, as iD does, and add point snaps too ---
+failed += await runCheck(
+  process.argv[2] ?? 'small',
+  async ({ page, report, settle }) => {
+    const origin = (await page.evaluate(() => {
+      const box = (window as any).__maid.map.getCanvas().getBoundingClientRect()
+      return { x: box.left, y: box.top }
+    })) as XY
+    const abs = (p: XY) => ({ x: origin.x + p.x, y: origin.y + p.y })
+    const click = async (p: XY) => {
+      const at = abs(p)
+      await page.mouse.move(at.x, at.y)
+      await page.mouse.click(at.x, at.y)
+      await settle()
+    }
+    const shiftClick = async (p: XY) => {
+      const at = abs(p)
+      await page.mouse.move(at.x, at.y)
+      await page.keyboard.down('Shift')
+      await page.mouse.click(at.x, at.y)
+      await page.keyboard.up('Shift')
+      await settle()
+    }
+    const drag = async (from: XY, to: XY) => {
+      const a = abs(from)
+      const b = abs(to)
+      await page.mouse.move(a.x, a.y)
+      await page.mouse.down()
+      await page.mouse.move((a.x + b.x) / 2, (a.y + b.y) / 2, { steps: 4 })
+      await page.mouse.move(b.x, b.y, { steps: 4 })
+      await page.mouse.up()
+      await settle()
+    }
+    const key = async (name: string) => {
+      await page.keyboard.press(name)
+      await settle()
+    }
+    const state = () =>
+      page.evaluate(() => {
+        const { engine } = (window as any).__maid
+        return {
+          selection: [...engine.selection] as string[],
+          mode: engine.mode as string,
+          undo: (engine.undoState().undoLabel ?? null) as string | null,
+        }
+      })
+    /** Screen positions of nodes; a node that is gone has none */
+    const where = (ids: string[]) =>
+      page.evaluate((ids) => {
+        const { map, engine } = (window as any).__maid
+        return ids.map((id) => {
+          const loc = engine.data.node(id)?.loc
+          if (!loc) return null
+          const p = map.project(loc)
+          return { x: p.x, y: p.y }
+        })
+      }, ids) as Promise<(XY | null)[]>
+    /** The nodes a way has now, and whether a node exists */
+    const graph = (ids: string[], ways: string[]) =>
+      page.evaluate(
+        ({ ids, ways }) => {
+          const { engine } = (window as any).__maid
+          return {
+            nodes: ids.map((id) => !!engine.data.node(id)),
+            ways: ways.map((id) => (engine.data.way(id)?.nodes ?? []) as string[]),
+            tags: ids.map((id) => engine.data.node(id)?.tags ?? null),
+          }
+        },
+        { ids, ways },
+      ) as Promise<{ nodes: boolean[]; ways: string[][]; tags: (Record<string, string> | null)[] }>
+    const near = (a: XY | null | undefined, b: XY | null | undefined, px = 4) =>
+      !!a && !!b && Math.hypot(a.x - b.x, a.y - b.y) <= px
+
+    // what the checks work on: two buildings with a corner each, a road, a standalone point
+    const scene = (await page.evaluate(() => {
+      const { map, engine } = (window as any).__maid
+      const box = map.getCanvas().getBoundingClientRect()
+      type P = { x: number; y: number }
+      const inView = (p: P) => p.x > 80 && p.y > 80 && p.x < box.width - 80 && p.y < box.height - 80
+      const at = (n: string): P => map.project(engine.data.node(n).loc)
+      const alone = (p: P, ownIds: string[], r = 12) =>
+        map
+          .queryRenderedFeatures([
+            [p.x - r, p.y - r],
+            [p.x + r, p.y + r],
+          ])
+          .every((f: any) => f.layer.type === 'fill' || ownIds.includes(String(f.id)))
+      const buildings: { id: string; nodes: string[]; corner: string; edge: P }[] = []
+      let road: { id: string; mid: P } | undefined
+      let point: { id: string; at: P } | undefined
+      for (const f of map.queryRenderedFeatures()) {
+        const id = String(f.id ?? '')
+        if (id.startsWith('n') && !point && f.source.includes('points') && engine.data.node(id)) {
+          const p = at(id)
+          if (inView(p) && alone(p, [id], 16)) point = { id, at: p }
+        }
+        const way = id.startsWith('w') && engine.data.way(id)
+        if (!way || engine.data.wayMultipolygons.has(id)) continue
+        if (way.tags.building && buildings.length < 2 && !buildings.some((b) => b.id === id)) {
+          const corner = way.nodes.find(
+            (n: string) =>
+              (engine.data.nodeUses.get(n) ?? 0) === 1 && inView(at(n)) && alone(at(n), [id, n]),
+          )
+          const a = at(way.nodes[0])
+          const b = at(way.nodes[1])
+          const edge = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+          if (corner && inView(edge)) buildings.push({ id, nodes: way.nodes, corner, edge })
+        }
+        if (way.tags.highway && !road)
+          for (let i = 0; i + 1 < way.nodes.length; i++) {
+            const a = at(way.nodes[i])
+            const b = at(way.nodes[i + 1])
+            const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+            if (Math.hypot(a.x - b.x, a.y - b.y) > 80 && inView(mid) && alone(mid, [id])) {
+              road = { id, mid }
+              break
+            }
+          }
+      }
+      return { buildings, road, point }
+    })) as {
+      buildings: { id: string; nodes: string[]; corner: string; edge: XY }[]
+      road?: { id: string; mid: XY }
+      point?: { id: string; at: XY }
+    }
+    const [first, second] = scene.buildings
+    if (!first || !second || !scene.road || !scene.point) {
+      report('find two buildings with a corner, a road and a point', 'all in view', {
+        buildings: scene.buildings.length,
+        road: !!scene.road,
+        point: !!scene.point,
+      })
+      return
+    }
+    const road = scene.road
+    const point = scene.point
+    const [cornerA, cornerB] = [first.corner, second.corner]
+    const older = (a: string, b: string) => (Number(a.slice(1)) < Number(b.slice(1)) ? a : b)
+
+    const undoOf = async () => (await state()).undo
+    /** Both buildings selected: their corners are shape points, so they can be dropped on */
+    const selectBoth = async () => {
+      await click(first.edge)
+      await shiftClick(second.edge)
+    }
+    const [a0, b0] = (await where([cornerA, cornerB])) as XY[]
+    await selectBoth()
+
+    // --- a vertex dropped on a vertex of another way: one node is left, the older, one undo step ---
+    const start = await undoOf()
+    await drag(a0!, b0!)
+    const survivor = older(cornerA, cornerB)
+    const sIdx = survivor === cornerA ? 0 : 1
+    const joined = await graph([cornerA, cornerB], [first.id, second.id])
+    report(
+      'a vertex dropped on a vertex: the older node is the one left, both ways use it',
+      [true, false, true, true],
+      [
+        joined.nodes[sIdx],
+        joined.nodes[1 - sIdx],
+        joined.ways[0]!.includes(survivor),
+        joined.ways[1]!.includes(survivor),
+      ],
+    )
+    report('the undo label names the connect', 'Connected a way to a node', await undoOf())
+    await key('Meta+z')
+    const back = await graph([cornerA, cornerB], [])
+    report('one undo puts both nodes back', [true, true, start], [...back.nodes, await undoOf()])
+
+    // --- the same drop with Alt held: nothing is connected ---
+    await selectBoth()
+    await page.keyboard.down('Alt')
+    await drag(a0!, b0!)
+    await page.keyboard.up('Alt')
+    const alt = await graph([cornerA, cornerB], [])
+    report(
+      'Alt held: the drop connects nothing',
+      [true, true, 'Moved a node'],
+      [...alt.nodes, await undoOf()],
+    )
+    await key('Meta+z')
+
+    // --- a corner dropped on the line of a road: the node joins the road, no node is made ---
+    const roadNodesBefore = (await graph([], [road.id])).ways[0]!.length
+    await click(first.edge)
+    await drag(a0!, road.mid)
+    const onRoad = await graph([cornerA], [road.id, first.id])
+    report(
+      'a corner dropped on a road: the road and the building share the node, no node is made',
+      [true, true, roadNodesBefore + 1, 'Connected a way to a way'],
+      [
+        onRoad.ways[1]!.includes(cornerA),
+        onRoad.ways[0]!.includes(cornerA),
+        onRoad.ways[0]!.length,
+        await undoOf(),
+      ],
+    )
+    await key('Meta+z')
+
+    // --- a standalone point dropped on a road: it becomes a node of the road, keeps its id and tags ---
+    const pointBefore = await graph([point.id], [])
+    await drag(point.at, road.mid)
+    const pointOnRoad = await graph([point.id], [road.id])
+    report(
+      'a point dropped on a road: a node of the road, same id and tags',
+      [true, JSON.stringify(pointBefore.tags[0]), 'Connected a point to a way'],
+      [
+        pointOnRoad.ways[0]!.includes(point.id),
+        JSON.stringify(pointOnRoad.tags[0]),
+        await undoOf(),
+      ],
+    )
+    await key('Meta+z')
+
+    // --- a corner dropped on its own neighbour in the same way: refused, the node goes back ---
+    await click(first.edge)
+    const i = first.nodes.indexOf(cornerA)
+    const neighbour = first.nodes[i + 1] ?? first.nodes[i - 1]!
+    const [nb] = (await where([neighbour])) as XY[]
+    const before = await undoOf()
+    await drag(a0!, nb!)
+    const refused = (await where([cornerA]))[0]
+    report(
+      'a drop on the neighbour in the same way is refused: the node is back where it started',
+      [before, true],
+      [await undoOf(), near(refused, a0)],
+    )
+
+    // --- add point on a vertex: no second node, the vertex is selected ---
+    const undoBeforeAdd = await undoOf()
+    await key('1')
+    await click(a0!)
+    report(
+      'add point on a vertex: no new node, the vertex is selected',
+      [[cornerA], 'browse', undoBeforeAdd],
+      [(await state()).selection, (await state()).mode, await undoOf()],
+    )
+
+    // --- add point on a line: one new node, a vertex of that road, selected ---
+    const roadBeforeAdd = (await graph([], [road.id])).ways[0]!.length
+    await key('1')
+    await click(road.mid)
+    const added = (await state()).selection
+    const roadAfterAdd = (await graph([], [road.id])).ways[0]!
+    report(
+      'add point on a line: one new node in the road, selected',
+      [roadBeforeAdd + 1, true, 'Added a node to a way'],
+      [roadAfterAdd.length, added.length === 1 && roadAfterAdd.includes(added[0]!), await undoOf()],
+    )
+  },
+  '',
+)
+
 // --- touch: one finger drags a vertex, on a browser with a touch screen ---
 failed += await runCheck(
   process.argv[2] ?? 'small',
@@ -488,14 +741,36 @@ failed += await runCheck(
             [p.x + 10, p.y + 10],
           ])
           .filter((h: any) => String(h.id).startsWith('n') && String(h.id) !== id)
-        if (others.length === 0) return { id, x: box.left + p.x, y: box.top + p.y }
+        if (others.length === 0) {
+          // the drop must not land on a node or a way of another feature, or it would snap (a connect)
+          const own = new Set<string>([id, ...((engine.data.nodeWays.get(id) ?? []) as string[])])
+          for (const [dx, dy] of [
+            [-30, -30],
+            [30, -30],
+            [-30, 30],
+            [30, 30],
+            [-60, 0],
+            [60, 0],
+            [0, -60],
+            [0, 60],
+          ]) {
+            const hits = map
+              .queryRenderedFeatures([
+                [p.x + dx - 12, p.y + dy - 12],
+                [p.x + dx + 12, p.y + dy + 12],
+              ])
+              .filter((h: any) => h.layer.type !== 'fill' && !own.has(String(h.id)))
+            if (hits.length === 0) return { id, x: box.left + p.x, y: box.top + p.y, dx, dy }
+          }
+        }
       }
       return null
-    })) as { id: string; x: number; y: number } | null
+    })) as { id: string; x: number; y: number; dx: number; dy: number } | null
     if (!vertex) {
-      report('find a vertex to drag', 'one in view', null)
+      report('find a vertex to drag, with a clear place to drop it', 'one in view', null)
       return
     }
+    const { dx, dy } = vertex
     const cdp = await page.context().newCDPSession(page)
     const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', dx = 0, dy = 0) =>
       cdp.send('Input.dispatchTouchEvent', {
@@ -517,8 +792,8 @@ failed += await runCheck(
       }, vertex.id)
     const before = await read()
     await touch('touchStart')
-    await touch('touchMove', -15, -15)
-    await touch('touchMove', -30, -30)
+    await touch('touchMove', dx / 2, dy / 2)
+    await touch('touchMove', dx, dy)
     await touch('touchEnd')
     await settle()
     const after = await read()
@@ -526,7 +801,7 @@ failed += await runCheck(
       'touch: one finger drags a vertex and the map stays where it is',
       [true, 'Moved a node', before.centre],
       [
-        Math.hypot(after.x - (vertex.x - 30), after.y - (vertex.y - 30)) <= 4,
+        Math.hypot(after.x - (vertex.x + dx), after.y - (vertex.y + dy)) <= 4,
         after.undo,
         after.centre,
       ],

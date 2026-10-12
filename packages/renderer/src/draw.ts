@@ -14,18 +14,14 @@ import {
   OsmWay,
 } from '@osm-editor-kit/maid-model'
 import type { MaidEngine } from './engine'
+import { nearestOnPolyline, SNAP_PX, type Loc, type Point, type Projected } from './snap'
 
 export type DrawKind = 'line' | 'area'
-type Point = { x: number; y: number }
-type Loc = [lon: number, lat: number]
 /** What a click or the pointer lands on: an existing node, a place on a way, or open ground */
 type Target =
   | { type: 'node'; id: string; loc: Loc }
   | { type: 'way'; loc: Loc; edge: [string, string] }
   | { type: 'free'; loc: Loc }
-
-/** Pixels around the pointer in which a node or way is snapped to */
-const SNAP_PX = 8
 
 export class DrawTool {
   private kind: DrawKind = 'line'
@@ -316,36 +312,24 @@ export function nearestOnWay(
 ): { loc: Loc; edge: [string, string] } | undefined {
   const map = engine.map
   if (!map) return undefined
-  let best: { d: number; x: number; y: number; edge: [string, string] } | undefined
-  let previous: { id: string; x: number; y: number } | undefined
+  const nodes = projectedNodes(engine, way)
+  // a click inside an area hits its fill: only its outline is snapped to
+  const on = nearestOnPolyline(nodes, point, SNAP_PX)
+  if (!on) return undefined
+  const at = map.unproject([on.x, on.y])
+  return { loc: [at.lng, at.lat], edge: on.edge }
+}
+
+/** The nodes of a way on the screen, in order; a node without a location is left out */
+export function projectedNodes(engine: MaidEngine, way: OsmWay): Projected[] {
+  const map = engine.map
+  const nodes: Projected[] = []
+  if (!map) return nodes
   for (const id of way.nodes) {
     const loc = engine.data.node(id)?.loc
-    if (!loc) {
-      previous = undefined
-      continue
-    }
+    if (!loc) continue
     const p = map.project([loc[0], loc[1]])
-    const current = { id, x: p.x, y: p.y }
-    if (previous) {
-      const dx = current.x - previous.x
-      const dy = current.y - previous.y
-      const length2 = dx * dx + dy * dy
-      const t =
-        length2 === 0
-          ? 0
-          : Math.min(
-              1,
-              Math.max(0, ((point.x - previous.x) * dx + (point.y - previous.y) * dy) / length2),
-            )
-      const x = previous.x + t * dx
-      const y = previous.y + t * dy
-      const d = Math.hypot(x - point.x, y - point.y)
-      if (!best || d < best.d) best = { d, x, y, edge: [previous.id, current.id] }
-    }
-    previous = current
+    nodes.push({ id, x: p.x, y: p.y })
   }
-  // a click inside an area hits its fill: only its outline is snapped to
-  if (!best || best.d > SNAP_PX) return undefined
-  const at = map.unproject([best.x, best.y])
-  return { loc: [at.lng, at.lat], edge: best.edge }
+  return nodes
 }

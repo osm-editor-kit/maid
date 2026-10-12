@@ -82,6 +82,28 @@ report('dragging onto a read-only feature: no snap', true, ...)
 
 Add the draw-side checks to `tools/bench/draw-check.ts` in the same style: click on a vertex reuses it (no new node), click on a way inserts one node, and Alt held while drawing does not snap.
 
+### 1.4 Status after the snapping change
+
+Built: `packages/renderer/src/snap.ts` (pure helpers, unit tests in `snap.test.ts`), `engine.ts` (`snapAt`, `aimAt`, `connectRefusal`, `dragTo` with the pointer, `endDrag`, `addNodeOn`), `draw.ts` (shares `nearestOnPolyline` and `SNAP_PX`), `MapView.tsx` (pointer, Alt, cursor, selection after a drop, add point).
+
+| Situation | Maid now | Still behind iD |
+| --- | --- | --- |
+| Drag a vertex onto a vertex | Snapped to the node. On release one undo step, `actionConnect`: the older id survives, the survivor is selected. Label "Connected a way to a node" | No iD-style flash that names the refusal. The reason is returned by `endDrag` only |
+| Drag a vertex onto a way or an area outline | Snapped to the nearest point of the line (8 px). Inserted into the way with `actionAddMidpoint`. Label "Connected a way to a way" | Area targets are the outline only, as in iD. Inside an area nothing snaps |
+| Drag a standalone point onto a vertex or a line | Connected. The point's id and tags are kept on a line. Labels "Connected a point to a node" / "Connected a point to a way" | Tags of a point that joins a node are merged into the survivor (`actionConnect`), as iD does; not checked against a real edit |
+| Drag onto the node's own ways | Own ways are not targets. A neighbour in the same way is refused with the reason "joined to its neighbour" | iD's "nope" segment and the self-intersection check (`hasInvalidGeometry`) are not built. A drop on a non-adjacent segment of its own way just moves the node |
+| Refused drop | Node back at the start (the work in progress is reverted: no undo step). Cursor `not-allowed` while over the target. Reasons: turn restriction, relation roles, neighbour in the same way, read-only way | No flash message in the UI: the reason is in the `endDrag` result, and no UI shows it yet |
+| Alt held | No snap, the drop moves the node | |
+| Read-only and hidden features | Never a target: a drop on them is a plain move (the brief's "refused" for read-only is not used, because a read-only target is never found) | |
+| Add point on a vertex | Selects the existing node, no new node | A favourite's tags are not applied to the existing node (iD applies the preset) |
+| Add point on a line | One new node inserted into the way, selected (label "Added a node to a way") | A favourite picked for add point is dropped on a line: the vertex is untagged. Keeping its tags needs the pending tags from `favourites.ts`, which is outside this change |
+| Hover | The target is highlighted with the `hover` state (the way or the node). No new highlight layer | iD's `.target` style and the vertex jump are approximated by hover plus the snapped position |
+| Map nudge at the edge | Not built | Behind iD |
+
+Checks: `bun run check-interactions` (new block "snapping": vertex onto vertex, Alt, corner onto road, point onto road, refused neighbour, add point on a vertex and on a line), `check-edit`, `check-draw` and `check-undo` all pass. The touch check now drops the vertex on a clear place: the old drop point was 30 px from another node and would now connect (an expectation that was only right because nothing snapped).
+
+Drag-step timing: not measured in this change (the browser run measures correctness only). The step adds one `queryRenderedFeatures` in an 16 px box and a projection of the ways under the pointer, only while a drag runs.
+
 ## Part 2: are old nodes preserved, and are as few new ones created as possible?
 
 ### 2.1 Measured results
