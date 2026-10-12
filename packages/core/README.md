@@ -1,6 +1,6 @@
 # @osm-editor-kit/maid-core
 
-The headless core of Maid. It has no DOM, no React, no MapLibre and no OSM data model.
+The headless core of Maid. It has no DOM, no React and no MapLibre. It owns the editor's data: `editor.context` and `editor.history` from `maid-model` (graph, edits, undo and redo).
 It has only the mechanism that modules plug into. No dependencies.
 
 ## The five concepts

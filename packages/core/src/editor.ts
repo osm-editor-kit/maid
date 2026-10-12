@@ -1,3 +1,4 @@
+import { EditHistory, ModelContext } from '@osm-editor-kit/maid-model'
 import { createHooks } from './hooks.ts'
 import { createRegistry, type Registry } from './registry.ts'
 import type {
@@ -91,7 +92,10 @@ export function createEditor(config: EditorConfig = {}): Editor {
     })
   }
 
+  const context = new ModelContext()
   const editor: Editor = {
+    context,
+    history: new EditHistory(context),
     hooks: {
       run: (name, ...args) => hooks.run(name, ...args),
       apply: (name, value, ...args) => hooks.apply(name, value, ...args),

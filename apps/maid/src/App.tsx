@@ -3,6 +3,7 @@ import { MapProvider } from 'react-map-gl/maplibre'
 import { Inspector } from './components/Inspector'
 import { MapView } from './components/MapView'
 import { StatusBar } from './components/StatusBar'
+import { UndoRedo } from './components/UndoRedo'
 import { ZoomControls } from './components/ZoomControls'
 import { config, engine } from './editor'
 import { useSelectedId } from './url/state'
@@ -22,6 +23,7 @@ function Shell() {
           <Inspector />
           <ZoomControls />
           <StatusBar />
+          <UndoRedo />
         </>
       )}
     </main>

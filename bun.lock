@@ -39,6 +39,9 @@
     "packages/core": {
       "name": "@osm-editor-kit/maid-core",
       "version": "0.0.0",
+      "dependencies": {
+        "@osm-editor-kit/maid-model": "workspace:*",
+      },
     },
     "packages/model": {
       "name": "@osm-editor-kit/maid-model",

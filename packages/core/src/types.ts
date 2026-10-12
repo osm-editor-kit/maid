@@ -1,7 +1,9 @@
 /**
  * The two maps that other packages extend by declaration merging, and the types around them.
- * The core declares no extension point and no hook. See README.md.
+ * The core declares no extension point and no hook. It does own the data: `context` and `history`. See README.md.
  */
+
+import type { Context, EditHistory } from '@osm-editor-kit/maid-model'
 
 /** `experimental` may change in any release. `stable` is deprecated before it is removed. */
 export type Stability = 'experimental' | 'stable'
@@ -117,6 +119,13 @@ export interface EditorHooks {
 }
 
 export interface Editor {
+  /** Id sequences and schema lookup of the data model. */
+  readonly context: Context
+  /**
+   * The OSM data and its edits: base, stable and staging graph, undo and redo.
+   * Created without a spatial index.
+   */
+  readonly history: EditHistory
   readonly hooks: EditorHooks
   /** Read access to one extension point. */
   registry<K extends PointName>(point: K): ReadonlyRegistry<ExtensionPoints[K] & { id: string }>

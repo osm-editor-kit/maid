@@ -24,6 +24,8 @@
     "refs-serve:id": "bun tools/refs/id/serve.ts",
     "refs-serve:rapid": "bun tools/refs/rapid/serve.ts",
     "compare": "bun apps/compare/start.ts",
+    "check-undo": "bun tools/bench/undo.ts",
+    "check-render": "bun tools/bench/shot-diff.ts check",
     "bench-model": "bun tools/bench/model-load.ts",
     "bench-edit": "bun tools/bench/edit.ts",
     "style-generate": "bun run --cwd packages/style generate",

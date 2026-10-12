@@ -1,6 +1,7 @@
 import {
   actionChangeTags,
   actionMoveNode,
+  type Difference,
   OsmWay,
   type OsmJsonElement,
   type OsmNode,
@@ -550,18 +551,10 @@ export class MaidEngine {
     const { map } = this
     if (!map || !this.data.node(id)) throw new Error(`Cannot move node ${id}`)
     const t0 = performance.now()
-    // the action replaces the node with a moved copy: look the node up again after it
+    // the action replaces the node with a moved copy: the redraw looks the node up again
     this.data.history.perform(actionMoveNode(id, [lon, lat]))
-    const batch: FeatureBatch = { areas: [], lines: [], points: [], vertices: [] }
-    for (const wayId of this.data.nodeWays.get(id) ?? []) {
-      const way = this.data.way(wayId)
-      if (!way) continue
-      const built = this.builder.buildWay(way)
-      if (built) batch[built.source].push(built.feature)
-    }
-    const node = this.data.node(id)
-    const vertex = node && this.builder.buildVertex(node)
-    if (vertex) batch.vertices.push(vertex)
+    const { batch, remove } = this.redraw([id])
+    this.removeFeatures(remove)
 
     if (this.tiered) {
       this.hideOriginals(batch)
@@ -599,7 +592,7 @@ export class MaidEngine {
 
   /**
    * Sets or removes one tag of a node or way and redraws it with the look the new tags give it.
-   * Local only: nothing is uploaded, and there is no undo yet.
+   * Local only: nothing is uploaded. The change is one undo step.
    */
   setTag(id: string, key: string, value: string | undefined) {
     const entity = this.nodeOrWay(id)
@@ -610,27 +603,79 @@ export class MaidEngine {
     else tags[key] = value
     this.data.history.perform(actionChangeTags(id, tags))
     this.data.history.commit({ annotation: 'Changed tags', selectedIDs: [id] })
-    // the action replaced the entity with a copy: look it up again, never reuse the old one
-    const updated = this.nodeOrWay(id)
-    if (!updated) return
+    // the action replaced the entity with a copy: the redraw looks it up again, never reuses the old one
+    if (!this.nodeOrWay(id)) return
+    const { batch, remove } = this.redraw([id])
+    this.removeFeatures(remove)
+    this.sendBatch(batch)
+    // feature state belongs to a source; a way that moved between sources needs it again
+    if (id === this.selectedId && remove.length)
+      queueMicrotask(() => this.applyHighlight(null, 'selected'))
+    this.changed()
+  }
 
+  // --- Redrawing ---
+
+  /**
+   * Rebuilds the features that show the given entities, from the current staging graph. Nothing
+   * is sent to MapLibre: the caller removes the features in `remove` and sends `batch`.
+   * A node rebuilds the ways that use it and its vertex, or its point if it is standalone. A way
+   * rebuilds its line or area, a multipolygon relation its area. An id that is no longer in the
+   * graph loses its feature. Each feature is built once, however many ids need it.
+   */
+  private redraw(entityIds: Iterable<string>): {
+    batch: FeatureBatch
+    remove: [SourceName, string][]
+  } {
     const batch: FeatureBatch = { areas: [], lines: [], points: [], vertices: [] }
     const remove: [SourceName, string][] = []
-    const previous = this.featureSource.get(id)
-    if (updated instanceof OsmWay) {
-      const built = this.builder.buildWay(updated)
-      if (built) batch[built.source].push(built.feature)
+    const placed = new Set<string>()
+    // records what a feature is now: its source and feature, or nothing if it is no longer drawn
+    const place = (id: string, drawn?: { source: SourceName; feature: Feature }) => {
+      if (placed.has(id)) return
+      placed.add(id)
+      if (drawn) batch[drawn.source].push(drawn.feature)
       // a way can change between line and area, or stop being drawn
-      if (previous && previous !== built?.source) remove.push([previous, id])
-    } else if (this.data.nodeWays.has(id)) {
-      const vertex = this.builder.refreshVertex(updated)
-      if (vertex) batch.vertices.push(vertex)
-      else if (previous) remove.push([previous, id])
-    } else {
-      const point = this.builder.buildPoint(updated)
-      if (point) batch.points.push(point)
-      else if (previous) remove.push([previous, id])
+      const previous = this.featureSource.get(id)
+      if (previous && previous !== drawn?.source) remove.push([previous, id])
     }
+    for (const id of entityIds) {
+      if (id[0] === 'n') {
+        const node = this.data.node(id)
+        if (!node) {
+          place(id)
+        } else if (this.data.nodeWays.has(id)) {
+          for (const wayId of this.data.nodeWays.get(id) ?? []) {
+            const way = this.data.way(wayId)
+            if (way) place(wayId, this.builder.buildWay(way))
+          }
+          const vertex = this.builder.refreshVertex(node)
+          place(id, vertex && { source: 'vertices', feature: vertex })
+        } else {
+          const point = this.builder.buildPoint(node)
+          place(id, point && { source: 'points', feature: point })
+        }
+      } else if (id[0] === 'w') {
+        const way = this.data.way(id)
+        place(id, way && this.builder.buildWay(way))
+      } else if (id[0] === 'r') {
+        const relation = this.data.relation(id)
+        if (!relation || relation.tags.type !== 'multipolygon') {
+          place(id)
+          continue
+        }
+        // build() also returns multipolygons that were waiting for members: those are drawn too
+        const out = this.builder.build({ nodes: [], ways: [], relations: [relation] })
+        const area = out.areas.find((f) => f.id === id)
+        place(id, area && { source: 'areas', feature: area })
+        for (const f of out.areas) if (f.id !== id) batch.areas.push(f)
+      }
+    }
+    return { batch, remove }
+  }
+
+  /** Takes features out of the sources they are drawn in, in both tiers */
+  private removeFeatures(remove: [SourceName, string][]) {
     for (const [name, featureId] of remove) {
       this.featureSource.delete(featureId)
       for (const tier of ['base', 'live'] as const) {
@@ -641,13 +686,78 @@ export class MaidEngine {
       }
       this.live[name].delete(featureId)
     }
+  }
+
+  /** Sends a batch the way an edit does: to the live tier when tiered, hiding the originals there */
+  private sendBatch(batch: FeatureBatch) {
     if (this.tiered) {
       this.hideOriginals(batch)
       this.push(batch, 'live')
     } else this.push(batch, 'base')
-    // feature state belongs to a source; a way that moved between sources needs it again
-    if (id === this.selectedId && remove.length)
-      queueMicrotask(() => this.applyHighlight(null, 'selected'))
+  }
+
+  // --- Undo and redo ---
+
+  /** What undo and redo would do now, with the annotations of the edits they would step over */
+  undoState(): { canUndo: boolean; canRedo: boolean; undoLabel?: string; redoLabel?: string } {
+    const { history } = this.data
+    const undoLabel = history.getUndoAnnotation()
+    const redoLabel = history.getRedoAnnotation()
+    return {
+      canUndo: undoLabel !== undefined,
+      canRedo: redoLabel !== undefined,
+      undoLabel,
+      redoLabel,
+    }
+  }
+
+  /** Takes back the last edit and redraws what it changed. Does nothing while a vertex is dragged. */
+  undo(): void {
+    if (this.dragged || this.data.history.getUndoAnnotation() === undefined) return
+    this.historyStep(() => this.data.history.undo())
+  }
+
+  /** Puts back the edit that the last undo took back, and redraws what it changed. */
+  redo(): void {
+    if (this.dragged || this.data.history.getRedoAnnotation() === undefined) return
+    this.historyStep(() => this.data.history.redo())
+  }
+
+  /**
+   * Runs one history step, then redraws every entity that its staging difference names, each once.
+   * Only modifications are handled well. Created or deleted entities get what the redraw can give.
+   */
+  private historyStep(step: () => void) {
+    const { history } = this.data
+    const differences: Difference[] = []
+    const off = history.on('stagingchange', (difference) => {
+      differences.push(difference)
+    })
+    try {
+      step()
+    } finally {
+      off()
+    }
+    const difference = differences[differences.length - 1]
+    if (difference) {
+      const ids: string[] = []
+      let created = 0
+      let deleted = 0
+      for (const [id, { base, head }] of difference.changes) {
+        ids.push(id)
+        if (base === undefined) created++
+        else if (head === undefined) deleted++
+      }
+      if (created + deleted > 0)
+        console.warn(
+          `Undo or redo: ${created} created and ${deleted} deleted entities are only partly redrawn`,
+        )
+      const { batch, remove } = this.redraw(ids)
+      this.removeFeatures(remove)
+      this.sendBatch(batch)
+      if (remove.some(([, featureId]) => featureId === this.selectedId))
+        queueMicrotask(() => this.applyHighlight(null, 'selected'))
+    }
     this.changed()
   }
 
