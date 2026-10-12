@@ -1,14 +1,21 @@
 import { ChevronDownIcon, XMarkIcon } from '@heroicons/react/20/solid'
 import type { ReactNode } from 'react'
+import { FadeSlideIn } from './motion.tsx'
 
-/** Left column for the selection and its properties; a full-height landmark with a hairline on its right. */
+/**
+ * Left column for the selection and its properties; a full-height landmark with a hairline on its
+ * right. Its content eases in when the sidebar shows something else (its label changes), not on
+ * every re-render.
+ */
 export function Sidebar(props: { label: string; children: ReactNode }) {
   return (
     <aside
       aria-label={props.label}
       className="flex h-full min-h-0 w-full flex-col border-r border-zinc-950/10 bg-white dark:border-white/10 dark:bg-zinc-900"
     >
-      {props.children}
+      <FadeSlideIn key={props.label} x={-12} className="flex min-h-0 flex-1 flex-col">
+        {props.children}
+      </FadeSlideIn>
     </aside>
   )
 }

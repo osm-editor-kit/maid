@@ -1,5 +1,6 @@
 import './extension-points.ts'
 
+export { BottomSheet } from './BottomSheet.tsx'
 export { ContextMenu, type MenuItem } from './ContextMenu.tsx'
 export { Dock, type DockTab } from './Dock.tsx'
 export { FilterPanel } from './FilterPanel.tsx'
@@ -24,3 +25,4 @@ export { ToolButton, ToolGroup } from './Toolbar.tsx'
 export { Brand, TopBar } from './TopBar.tsx'
 export { Tooltip } from './Tooltip.tsx'
 export { useResizable } from './useResizable.ts'
+export { useBreakpoint, type Breakpoint } from './useBreakpoint.ts'

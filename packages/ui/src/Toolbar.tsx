@@ -40,7 +40,7 @@ export function ToolButton(props: {
         onClick={onClick}
         className={twJoin(
           'relative inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md text-sm font-medium inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:text-zinc-300 dark:inset-ring-white/10 dark:disabled:text-zinc-600',
-          text ? 'h-9 px-3' : 'size-9',
+          text ? 'h-9 px-3 max-sm:px-2.5 pointer-coarse:h-10' : 'size-9 pointer-coarse:size-10',
           pressed
             ? 'bg-zinc-200 text-zinc-950 enabled:hover:bg-zinc-300 dark:bg-zinc-600 dark:text-white dark:enabled:hover:bg-zinc-500'
             : 'bg-white text-zinc-950 enabled:hover:bg-zinc-50 dark:bg-zinc-800 dark:text-white dark:enabled:hover:bg-zinc-700',
@@ -49,7 +49,7 @@ export function ToolButton(props: {
         <span aria-hidden="true" className="inline-flex shrink-0 [&>svg]:size-5">
           {icon}
         </span>
-        {text ? <span>{text}</span> : null}
+        {text ? <span className="max-sm:sr-only">{text}</span> : null}
       </button>
     </Tooltip>
   )
