@@ -400,6 +400,73 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   await rightClick(free(5))
   report('no menu while drawing', 0, await menu.count())
   await key('Delete')
+
+  // --- the menu on a point and a vertex (both can be dragged), on a second place, a member of a
+  // selection, a Control-click and the menu key; open ground keeps the selection ---
+  await key('Escape')
+  await rightClick(found.point.at)
+  report(
+    'right click on a point: the point is selected and its menu opens',
+    [[found.point.id], true, 1],
+    [(await state()).selection, (await items()).includes('Move'), await menu.count()],
+  )
+  await key('Escape')
+  await click(first.edge)
+  const [cornerAt] = await where([first.corner])
+  await rightClick(cornerAt!)
+  report(
+    'right click on a vertex of the selected building: the node is selected and its menu opens',
+    [[first.corner], true, 1],
+    [(await state()).selection, (await items()).includes('Delete'), await menu.count()],
+  )
+  await key('Escape')
+  await rightClick(found.point.at)
+  await rightClick(second.edge)
+  const menuAt = await menu.boundingBox()
+  report(
+    'a second right click elsewhere moves the menu there, one menu only',
+    [1, true],
+    [await menu.count(), !!menuAt && Math.abs(menuAt.x - abs(second.edge).x) <= 4],
+  )
+  await key('Escape')
+  await click(first.edge)
+  await click(second.edge, { shift: true })
+  await rightClick(first.edge)
+  report(
+    'right click on a member of the selection: the selection stays, its menu opens',
+    [[first.id, second.id], 1],
+    [(await state()).selection, await menu.count()],
+  )
+  await key('Escape')
+  await click(free(0))
+  const control = abs(second.edge)
+  await page.keyboard.down('Control')
+  await page.mouse.click(control.x, control.y)
+  await page.keyboard.up('Control')
+  await settle()
+  report(
+    'Control-click (a right click on a Mac) selects the feature and opens its menu',
+    [[second.id], 1],
+    [(await state()).selection, await menu.count()],
+  )
+  await key('Escape')
+  await click(second.edge)
+  await key('ContextMenu')
+  report(
+    'the menu key opens the menu of the selection',
+    [1, true],
+    [await menu.count(), (await items()).includes('Move')],
+  )
+  await key('Escape')
+  await click(second.edge)
+  await rightClick(free(0))
+  report(
+    'right click on open ground keeps the selection and offers only Paste',
+    [[second.id], ['Paste']],
+    [(await state()).selection, await items()],
+  )
+  await key('Escape')
+  await click(free(0))
 })
 
 // --- touch: one finger drags a vertex, on a browser with a touch screen ---
@@ -467,6 +534,48 @@ failed += await runCheck(
   },
   '',
   true,
+)
+
+// --- a building that a filter protects: its menu opens with the commands greyed out and the reason ---
+failed += await runCheck(
+  process.argv[2] ?? 'small',
+  async ({ page, report, settle }) => {
+    const edge = (await page.evaluate(() => {
+      const { map, engine } = (window as any).__maid
+      const box = map.getCanvas().getBoundingClientRect()
+      for (const f of map.queryRenderedFeatures()) {
+        const id = String(f.id ?? '')
+        const way = id.startsWith('w') ? engine.data.way(id) : undefined
+        if (!way?.tags.building || way.nodes.length < 4 || !engine.isReadOnly(id)) continue
+        const a = map.project(engine.data.node(way.nodes[0]).loc)
+        const b = map.project(engine.data.node(way.nodes[1]).loc)
+        const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+        if (mid.x > 120 && mid.y > 120 && mid.x < box.width - 120 && mid.y < box.height - 120)
+          return { id, x: box.left + mid.x, y: box.top + mid.y }
+      }
+      return null
+    })) as { id: string; x: number; y: number } | null
+    if (!edge) {
+      report('find a building that the filter protects', 'one in view', null)
+      return
+    }
+    await page.mouse.click(edge.x, edge.y, { button: 'right' })
+    await settle()
+    const menu = page.getByRole('menu', { name: 'Edit' })
+    const first = menu.getByRole('menuitem').first()
+    report(
+      'right click on a protected building: the menu opens, commands greyed out with the reason',
+      [1, true, 'A filter protects this feature', [edge.id]],
+      [
+        await menu.count(),
+        await first.isDisabled(),
+        await first.getAttribute('title'),
+        await page.evaluate(() => [...(window as any).__maid.engine.selection]),
+      ],
+    )
+  },
+  'filters=buildings:readonly',
+  false,
 )
 
 process.exit(failed ? 1 : 0)

@@ -1,9 +1,11 @@
-import { useEffect, useRef, type KeyboardEvent } from 'react'
+import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react'
 
 /** One entry of a context menu */
 export type MenuItem = {
   id: string
   label: string
+  /** Drawn before the label in a fixed slot, so that the labels line up; a row without one keeps the slot empty */
+  icon?: ReactNode
   /** Shown at the right, e.g. "M" */
   shortcut?: string
   /** Why it cannot be chosen now; then it is greyed out and says so in its tooltip */
@@ -27,11 +29,14 @@ export function ContextMenu(props: {
   const { at, label, items, onClose } = props
   const menu = useRef<HTMLDivElement>(null)
 
-  // Opening moves the focus into the menu and a press outside closes it. Both are about the
-  // document, not about rendering, so they are an effect.
+  // Opening moves the focus into the menu, once: the menu re-renders with every change of the
+  // editor, and a focus moved again on each of those would undo the arrow keys. A press outside
+  // closes it. Both are about the document, not about rendering, so they are effects.
+  useEffect(() => {
+    menu.current?.querySelector<HTMLButtonElement>('button:enabled')?.focus()
+  }, [])
   useEffect(() => {
     const element = menu.current
-    element?.querySelector<HTMLButtonElement>('button:enabled')?.focus()
     const onPress = (event: PointerEvent) => {
       if (event.target instanceof Node && !element?.contains(event.target)) onClose()
     }
@@ -53,9 +58,9 @@ export function ContextMenu(props: {
     event.stopPropagation()
   }
 
-  // 28 px per row plus padding: enough to keep the menu inside the window without measuring it
+  // 28 px per row plus padding, and 212 px of width: enough to keep the menu inside the window without measuring it
   const height = items.length * 28 + 8
-  const left = Math.max(4, Math.min(at.x, window.innerWidth - 204))
+  const left = Math.max(4, Math.min(at.x, window.innerWidth - 212))
   const top = Math.max(4, Math.min(at.y, window.innerHeight - height - 4))
 
   return (
@@ -66,7 +71,7 @@ export function ContextMenu(props: {
       onKeyDown={onKeyDown}
       onContextMenu={(event) => event.preventDefault()}
       style={{ left, top }}
-      className="fixed z-50 w-50 rounded-lg bg-white p-1 text-sm shadow-lg ring-1 ring-zinc-950/10 dark:bg-zinc-800 dark:ring-white/10"
+      className="fixed z-50 w-52 rounded-lg bg-white p-1 text-sm shadow-lg ring-1 ring-zinc-950/10 dark:bg-zinc-800 dark:ring-white/10"
     >
       {items.map((item) => (
         <button
@@ -83,9 +88,10 @@ export function ContextMenu(props: {
           onPointerLeave={() => item.preview?.(false)}
           onFocus={() => item.preview?.(true)}
           onBlur={() => item.preview?.(false)}
-          className="flex h-7 w-full cursor-pointer items-center justify-between gap-4 rounded-md px-2 text-left focus:bg-zinc-950/5 focus:outline-none enabled:hover:bg-zinc-950/5 disabled:cursor-default disabled:text-zinc-400 dark:focus:bg-white/10 dark:enabled:hover:bg-white/10 dark:disabled:text-zinc-500"
+          className="flex h-7 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-left focus:bg-zinc-950/5 focus:outline-none enabled:hover:bg-zinc-950/5 disabled:cursor-default disabled:text-zinc-400 dark:focus:bg-white/10 dark:enabled:hover:bg-white/10 dark:disabled:text-zinc-500"
         >
-          <span className="truncate">{item.label}</span>
+          <span className="flex size-5 shrink-0 items-center justify-center">{item.icon}</span>
+          <span className="min-w-0 flex-1 truncate">{item.label}</span>
           {item.shortcut && (
             <kbd className="shrink-0 font-sans text-xs text-zinc-500 dark:text-zinc-400">
               {item.shortcut}

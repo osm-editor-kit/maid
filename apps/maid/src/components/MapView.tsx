@@ -11,7 +11,7 @@ import {
 } from '@osm-editor-kit/maid-renderer'
 import * as maplibregl from 'maplibre-gl'
 import type { StyleSpecification } from 'maplibre-gl'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Map,
   type MapEvent,
@@ -49,6 +49,51 @@ let longPress: ReturnType<typeof setTimeout> | undefined
 let pressedAt: { x: number; y: number } | undefined
 
 type Point = { x: number; y: number }
+
+/** A keyboard in a text field keeps its own keys, as the editor's shortcuts do */
+function isTyping(target: EventTarget | null) {
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))
+  )
+}
+
+/**
+ * Where the menu key opens the edit menu: the middle of the selection on screen, as iD opens it
+ * at the pointer, which a key does not have. With nothing selected, the middle of the map.
+ */
+function keyMenuPlace(): MenuPlace | null {
+  const map = engine.map
+  if (!map) return null
+  const locs: [number, number][] = []
+  for (const id of engine.selection) {
+    if (id.startsWith('n')) {
+      const loc = engine.data.node(id)?.loc
+      if (loc) locs.push(loc)
+    } else if (id.startsWith('w')) {
+      for (const n of new Set<string>(engine.data.way(id)?.nodes ?? [])) {
+        const loc = engine.data.node(n)?.loc
+        if (loc) locs.push(loc)
+      }
+    }
+  }
+  const centre = map.getCenter()
+  const [lon, lat] = locs.length
+    ? [
+        locs.reduce((sum, l) => sum + l[0], 0) / locs.length,
+        locs.reduce((sum, l) => sum + l[1], 0) / locs.length,
+      ]
+    : [centre.lng, centre.lat]
+  const point = map.project([lon, lat])
+  const box = map.getCanvas().getBoundingClientRect()
+  return {
+    x: box.left + point.x,
+    y: box.top + point.y,
+    lon,
+    lat,
+    ground: engine.selection.length === 0,
+  }
+}
 
 export function MapView() {
   const [cameraParam, setCameraParam] = useCameraParam()
@@ -111,6 +156,14 @@ export function MapView() {
     dragging = id
     setCursor('grabbing')
   }
+  /**
+   * Only the primary button starts a drag. A right click, or Control and a click on a Mac, opens
+   * the edit menu: a preventDefault on their press would stop MapLibre from sending the
+   * contextmenu event, so the menu would not open on a point, a vertex or a node of a line.
+   */
+  const handleMouseDown = (event: MapLayerMouseEvent) => {
+    if (event.originalEvent.button === 0 && !event.originalEvent.ctrlKey) press(event)
+  }
   const release = () => {
     if (!dragging) return
     dragging = null
@@ -134,16 +187,28 @@ export function MapView() {
   }
   /**
    * A right click, or a long press on a touch screen, opens the edit menu, as in iD: on a
-   * feature that is not selected it selects that feature first; on open ground the menu only
-   * has "Paste". Not while drawing or moving.
+   * feature that is not selected it selects that feature first, and a feature in the
+   * selection keeps the selection. On open ground nothing is selected or cleared: the menu
+   * only has "Paste", and without anything to paste there is no menu. Not while drawing or
+   * moving. The pick is the one of a click: same layers, same tolerance.
    */
   const openMenu = (point: Point, lngLat: { lng: number; lat: number }, screen: Point) => {
     if (mode !== 'browse') return
     const id = engine.pick(point, interactive)
     if (id && !selectedIds.includes(id)) select(id)
-    else if (!id) select(null)
-    setMenu({ x: screen.x, y: screen.y, lon: lngLat.lng, lat: lngLat.lat })
+    setMenu({ x: screen.x, y: screen.y, lon: lngLat.lng, lat: lngLat.lat, ground: !id })
   }
+  // The menu key (iD's "ContextMenu" key) opens the menu for the selection. A window listener,
+  // as the editor's other keys are; the menu's state lives here.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'ContextMenu' || isTyping(event.target)) return
+      event.preventDefault() // not the browser's own menu
+      if (engine.mode === 'browse') setMenu(keyMenuPlace())
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
   const handleContextMenu = (event: MapLayerMouseEvent) => {
     event.originalEvent.preventDefault() // not the browser's own menu
     clearTimeout(longPress)
@@ -259,7 +324,7 @@ export function MapView() {
       onLoad={handleLoad}
       onMove={handleMove}
       onMoveEnd={handleMoveEnd}
-      onMouseDown={press}
+      onMouseDown={handleMouseDown}
       onMouseUp={release}
       onMouseMove={handleMouseMove}
       onTouchStart={handleTouchStart}
