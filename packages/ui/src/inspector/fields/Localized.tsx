@@ -1,20 +1,20 @@
 import { LanguageIcon, TrashIcon } from '@heroicons/react/16/solid'
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import { useEffect, useRef, useState, type FocusEvent, type KeyboardEvent } from 'react'
+import { createPortal } from 'react-dom'
+import { Tooltip } from '../../Tooltip.tsx'
 import { DraftInput, LengthNotice } from './DraftInput.tsx'
 import { FallbackField } from './Fallback.tsx'
 import { commitLanguageRow, languageVariants, type LanguageVariant } from './localized-logic.ts'
 import type { FieldProps } from './shared.ts'
-import { INPUT } from './shared.ts'
-
-const ROW_BUTTON =
-  'grid size-5 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white'
+import { INPUT, ROW_BUTTON } from './shared.ts'
 
 /**
  * A localized name: the base input on the field's key (as TextField), then one row per translation
- * `<key>:<code>` (languageVariants), and "Add a language" for a new row. A row is a language code
- * and a value; both are committed when focus leaves the row (commitLanguageRow), so Tab moves
- * between them without a write. Read-only without onChange: no buttons, inputs read-only.
+ * `<key>:<code>` (languageVariants). "Add a language" is an icon in the row's label bar
+ * (labelActions, set by Row.tsx) and adds a new row. A row is a language code and a value; both
+ * are committed when focus leaves the row (commitLanguageRow), so Tab moves between them without
+ * a write. Read-only without onChange: no buttons, inputs read-only.
  *
  * Row.tsx keys the control by its key's value; the type is listed in STEADY_TYPES so that the rows
  * being typed in keep their state while the tags change.
@@ -25,7 +25,7 @@ export function LocalizedField(props: FieldProps) {
 }
 
 function LocalizedControl(props: FieldProps) {
-  const { field, tags, id, onChange } = props
+  const { field, tags, id, onChange, labelActions } = props
   const key = field.key ?? ''
   const base = tags[key] ?? ''
   const variants = languageVariants(field, tags)
@@ -70,17 +70,21 @@ function LocalizedControl(props: FieldProps) {
           variant={variant}
         />
       ))}
-      {onChange ? (
-        <button
-          type="button"
-          aria-label={`Add a translation of ${field.label}`}
-          onClick={addRow}
-          className="inline-flex h-7 items-center gap-1.5 justify-self-start rounded-md px-1.5 text-sm text-zinc-600 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
-        >
-          <LanguageIcon aria-hidden="true" className="size-4" />
-          Add a language
-        </button>
-      ) : null}
+      {onChange && labelActions
+        ? createPortal(
+            <Tooltip label="Add a language">
+              <button
+                type="button"
+                aria-label={`Add a translation of ${field.label}`}
+                onClick={addRow}
+                className={ROW_BUTTON}
+              >
+                <LanguageIcon aria-hidden="true" className="size-4" />
+              </button>
+            </Tooltip>,
+            labelActions,
+          )
+        : null}
     </div>
   )
 }

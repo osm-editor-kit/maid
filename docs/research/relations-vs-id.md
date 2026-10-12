@@ -1,8 +1,8 @@
 # Relations: Maid against iD
 
-Status: first pass (step one). Compared at iD commit `0194f3926` (the pinned reference). Maid's side read from the code in `apps/maid/src/modules/relations*`, `packages/model/src/actions/*` and `packages/model/src/data/OsmRelation.ts`. Nothing was seen in a browser.
+Status: second pass. The first pass compared the model (step one, iD commit `0194f3926`, the pinned reference). This pass is the inspector side: the Members and Relations sections of the sidebar, built against iD's two UI sections, `modules/ui/sections/raw_member_editor.js` and `raw_membership_editor.js` (read in this pass). Maid's side is read from `apps/maid/src/modules/relations*`, `packages/model/src/actions/*` and `packages/model/src/data/OsmRelation.ts`. Nothing was seen in a browser.
 
-Rows marked **unchecked** were not verified in iD's source in this pass (the UI sections `raw_member_editor.js` and `raw_membership_editor.js` were not read). Their iD column is what the brief describes, and must be checked before a row is acted on.
+Rows marked **unchecked** were not verified in iD's source. In this pass only `modes/select.js` (row 12) and the validation rules (row 30) are still unchecked.
 
 Size: S = under an hour, M = a few hours, L = needs a new API or a renderer change.
 
@@ -11,12 +11,17 @@ Size: S = under an hour, M = a few hours, L = needs a new API or a renderer chan
 | Result | Rows |
 | --- | --- |
 | Rows in the table | 30 |
-| Equal to iD on the cases tested | 15 |
-| Behind iD | 13 |
-| Not compared (iD side unchecked) | 2 |
-| Ahead of iD, built | 0 (six proposals in the next section) |
+| Equal to iD on the cases tested | 14 |
+| Behind iD | 9 |
+| Ahead of iD, built (iD has no such thing) | 3 (rows 3, 5, 8) |
+| Partly built | 1 (row 17) |
+| Not compared (iD side unchecked) | 3 (rows 4, 12, 30) |
 
-Scenarios tested in this pass: 31 in `packages/model/test/id/relations/*.test.ts` (member-order 18, structure 9, restriction 4). 26 pass, 5 are parked as `it.todo` with the feature id in a comment. The logic tests in `apps/maid/src/modules/relations-logic.test.ts` were not changed in this pass.
+Tests in this pass:
+
+- `apps/maid/src/modules/relations-logic.test.ts`: 39 tests, all pass. 14 were there before and are unchanged; 25 are new: `memberRows` (2), `membersHeadline` (2), `moveTarget` (1), moving members on the order that `actionMoveMember` gives (2), `routeJoins` and `routeGaps` (7), `roleSuggestions` (3), `placementOf` and `placementSentence` (5), `membershipHint` (3).
+- Scenarios in the model from the first pass: 31 in `packages/model/test/id/relations/*.test.ts` (26 pass, 5 are parked as `it.todo` with the feature id in a comment). Not re-run here.
+- The Members list cap ("Show all N"), the move buttons, the role datalist and the gap line are components. They have no unit tests and were not seen in a browser.
 
 | Feature id | What fails in the model | Data |
 | --- | --- | --- |
@@ -28,63 +33,68 @@ Scenarios tested in this pass: 31 in `packages/model/test/id/relations/*.test.ts
 
 F-actions-b-36 (five iD split tests with the new way in the wrong place) is not re-run here; F-relations-3 is a new data point for it.
 
+Under F-relations-1 and F-relations-2 the "Added as member N of M" line (row 15, item 6 below) reports the position that the model gives. The line says nothing where the model moved other members too (see `placementOf`).
+
 ## Table
 
 | # | Area | Topic | iD | Maid today | Tests in Maid (file) | Gap | Size |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Loading | Relation with members not loaded | Loads the relation, members are missing from the graph; `isComplete` is false (`relation.js`) | Same: `isComplete` in `OsmRelation.ts`; a missing member is shown as `not loaded` text in the Members list | `member-order.test.ts` (missing members) | Equal in data; the UI does not say how many are missing | S |
-| 2 | Loading | Fetch missing members of a relation | `loadEntityRelations` / `/relation/#id/full` (`services/osm.js`, **unchecked**) | Not implemented. The mock API already serves `/api/0.6/relation/ID/full` (`tools/mock-osm-api/server.ts`, `full()`) | none | Behind: no button, no request | L (step two) |
-| 3 | Loading | Count of members not loaded | (**unchecked**) | Not shown; the list shows rows marked `not loaded` | `relations-logic.test.ts` (new cases, see section 3) | Behind | S |
-| 4 | Loading | Members loaded after the relation (late load) | Parent relations follow when members arrive (`core/tree.js`, F-core-3) | Spatial index: not confirmed; tests parked | `core/tree.test.ts` (4 + 10 todos, not adopted in this pass) | Unknown | M |
-| 5 | Display | Members list in order, with index | Ordered list (**unchecked**) | Ordered, but the index is not shown | `relations-logic.test.ts` | Behind (no index) | S |
-| 6 | Display | Label of a member | Name, else preset name (**unchecked**) | `memberLabel`: name, else first main tag as `key=value` | `relations-logic.test.ts` `memberLabel` (1 test) | Equal in idea; no preset names | S |
-| 7 | Display | Label of a relation | Name / preset name (**unchecked**) | `relationLabel`: name, ref with type, type, "Relation" | `relations-logic.test.ts` `relationLabel` (5 tests) | Equal | S |
-| 8 | Display | Limit of shown members | Limit with a count (**unchecked**) | 50 shown, "and N more" | none | Equal in idea; no test | S |
-| 9 | Display | Memberships list (which relations this is in) | Listed with role (**unchecked**) | Listed with label, id, role; folded, count in headline | `relations-logic.test.ts` `membershipsOf` (4 tests) | Equal | S |
-| 10 | Display | Memberships of an entity in one relation twice | Two entries (**unchecked**) | Two entries | `relations-logic.test.ts` (1 test) | Equal | S |
-| 11 | Display | Sorting of relations for "add to a relation" | Sorted by type and nearness, recently used first (**unchecked**) | Sorted by label, then id; capped at 200 | `relations-logic.test.ts` `joinableRelations` (1 test) | Behind: no nearness, no recent | M |
-| 12 | Map | Highlight members of a selected relation | Members get the `related` class (`modes/select.js`, **unchecked**) | None | none | Behind; step two | L |
-| 13 | Map | Highlight members on hover of a relation row | `behavior/hover.js` (**unchecked**) | None | none | Behind; step two | L |
+| 1 | Loading | Relation with members not loaded | Loads the relation, members are missing from the graph; `isComplete` is false (`relation.js`) | Same: `isComplete` in `OsmRelation.ts`; a missing member has its own row, marked "not loaded", with its id | `member-order.test.ts` (missing members); `relations-logic.test.ts` `memberRows` (2) | Equal in data | S |
+| 2 | Loading | Fetch missing members of a relation | Per row: a download button on each member that is not loaded, `context.loadEntity` of that member (`raw_member_editor.js`, `member-download`). Also `loadEntityRelations` / `/relation/#id/full` (`services/osm.js`, **unchecked**) | Not implemented. A "Load the N missing members" button is shown disabled with the tooltip "Coming with the map side". The mock API already serves `/api/0.6/relation/ID/full` (`tools/mock-osm-api/server.ts`, `full()`) | none | Behind: no request yet | L (step two) |
+| 3 | Loading | Count of members not loaded | No count: the Members label is the member count, `>1000` over the cap (`raw_member_editor.js`) | Headline "40 members, 12 not loaded" (`membersHeadline`) | `relations-logic.test.ts` `membersHeadline` (2) | Ahead: iD does not count | S |
+| 4 | Loading | Members loaded after the relation (late load) | Parent relations follow when members arrive (`core/tree.js`, F-core-3) | Spatial index: not confirmed; tests parked | `core/tree.test.ts` (4 + 10 todos, not adopted in this pass) | Not compared | M |
+| 5 | Display | Members list in order, with index | Ordered list of label and role. No index is shown (`raw_member_editor.js`) | Ordered, with the 1-based index in front of each row | `relations-logic.test.ts` `memberRows` (index, twice) | Ahead: iD shows no index | S |
+| 6 | Display | Label of a member | Preset name (NSI parent preset, with its icon) and the display name (`raw_member_editor.js`, verified) | `memberLabel`: name, else first main tag as `key=value`. No preset names | `relations-logic.test.ts` `memberLabel` (1 test) | Behind: no preset names (`packages/presets` could supply them) | M |
+| 7 | Display | Label of a relation | Preset name, then the name, with the relation's colour (`raw_membership_editor.js` `baseDisplayLabel`, verified) | `relationLabel`: name, ref with type, type, "Relation" | `relations-logic.test.ts` `relationLabel` (5 tests) | Behind: no preset name | S |
+| 8 | Display | Limit of shown members | Hard cap at 1000 with `>` in the headline; members past the cap cannot be reached (`_maxMembers`, `raw_member_editor.js`) | First 50, then "Show all N" (shows every member) | none (UI) | Ahead: nothing is hidden for good. Not tested | S |
+| 9 | Display | Memberships list (which relations this is in) | Listed with role; one entry per membership for one selected entity; capped at 1000 (`raw_membership_editor.js`) | Listed with label, id, role; folded, count in headline. No cap | `relations-logic.test.ts` `membershipsOf` (4 tests) | Equal | S |
+| 10 | Display | Memberships of an entity in one relation twice | Two entries for a single selection (`getMemberships`, verified) | Two entries | `relations-logic.test.ts` `membershipsOf` (1 test) | Equal | S |
+| 11 | Display | Sorting of relations for "add to a relation" | The membership list sorts by label (numeric collation), then id, newly added last. The picker shows relations on screen, connected ones first, then the newest id (`fetchNearbyRelations`, verified) | Sorted by label, then id; capped at 200. No nearness, no connected-first, no recent | `relations-logic.test.ts` `joinableRelations` (1 test) | Behind: no nearness, no connected-first, no newest-first | M |
+| 12 | Map | Highlight members of a selected relation | Members get the `related` class (`modes/select.js`, **unchecked**) | None | none | Behind; step two. iD side not read | L |
+| 13 | Map | Highlight on hover of a relation row | Hover on a member row highlights its feature; hover on a membership row highlights the relation (`utilHighlightEntities`, verified) | None | none | Behind; step two | L |
 | 14 | Map | Multipolygon rendering | Area from outer and inner rings (`multipolygon.js`) | `multipolygon()` in `OsmRelation.ts`, renderer draws areas | `packages/model/test/lib/multipolygon.test.js` (13 of 13 adopted in `osm.md`) | Equal in model; renderer not checked here | S |
-| 15 | Editing | Add a way to a route at a sensible position | `actionAddMember` with `osmJoinWays` (`add_member.js`, 8 tests) | Same algorithm (`add_member.ts`), placed between neighbours, PTv2 stops and platforms first | `member-order.test.ts` (10 scenarios, 8 pass, 2 parked as F-relations-1, -2) | Behind on F-relations-1 and -2 | M |
-| 16 | Editing | Reorder a member | `actionMoveMember` in the UI by drag (**unchecked**) | Model action exists (`move_member.ts`), no UI | `member-order.test.ts` (2 tests) | Behind: no UI | S |
-| 17 | Editing | Role edit with suggestions | Combo with roles from taginfo and other members (**unchecked**) | Free text per row, no suggestions | `actionChangeMember` in `member-order.test.ts` (1 test) | Behind | S |
-| 18 | Editing | Remove a member | `actionDeleteMember`, deletes the relation when it becomes empty | Same. The UI deletes the relation when its last member goes | `member-order.test.ts` (2 tests) | Equal; see "better" 4 below | S |
-| 19 | Editing | Add to a new relation | "New relation" in memberships (**unchecked**) | Not offered | none | Behind | M |
+| 15 | Editing | Add a way to a route at a sensible position | `actionAddMember` with `osmJoinWays` (`add_member.js`, 8 tests) | Same algorithm (`add_member.ts`), placed between neighbours, PTv2 stops and platforms first. The line under the form says where it went (item 6) | `member-order.test.ts` (10 scenarios, 8 pass, 2 parked as F-relations-1, -2); `relations-logic.test.ts` `placementOf` (3) | Behind on F-relations-1 and -2 | M |
+| 16 | Editing | Reorder a member | Drag in the list, from 5 px, one `actionMoveMember` on drop (`raw_member_editor.js`, verified) | Move up and move down buttons on each row, each one undo step, disabled at the ends and when the feature is read-only. No drag | `member-order.test.ts` (2 tests); `relations-logic.test.ts` `moveTarget` (1), moving members (2) | Equal in effect; buttons instead of drag (buttons work with the keyboard) | S |
+| 17 | Editing | Role edit with suggestions | Combo from taginfo (network), filtered by the relation type and the member's geometry, prefix matches first (`raw_member_editor.js`, `raw_membership_editor.js`, verified) | Native datalist: roles the relation's members already use (most frequent first), then the built-in roles of its type. No network, no taginfo ranking, no geometry filter | `relations-logic.test.ts` `roleSuggestions` (3) | Partly: offline by design; no ranking by taginfo's usage counts | S |
+| 18 | Editing | Remove a member | `actionDeleteMember`, leaves browse mode when the relation goes (`raw_member_editor.js`) | Same action. The UI deselects when the relation goes. Disabled when the feature is read-only | `member-order.test.ts` (2 tests) | Equal; see "better" 3 below | S |
+| 19 | Editing | Add to a new relation | "New relation" is the first entry of the picker: creates the relation with the member and selects it (`raw_membership_editor.js`, verified) | Not offered | none | Behind | M |
 | 20 | Editing | Delete a relation | `actionDeleteRelation` (`delete_relation.js`, 10 tests) | Same action | `actions-a.md` row (10 of 10) | Equal | S |
 | 21 | Structure | Split a member way keeps the route's order (forward) | `split.js` | Same | `structure.test.ts` (2 tests, pass) | Equal | S |
 | 22 | Structure | Split against the travel direction | `split.js` route tests (**5 todo in iD's order, F-actions-b-36**) | New part placed after the old one | `structure.test.ts` (1 todo, F-relations-3) | Behind | M |
 | 23 | Structure | Split out-and-back | `split.js` out-and-back | Pair order kept, both directions | `structure.test.ts` (1 test, pass) | Equal on this case | S |
-| 24 | Structure | Join two member ways | `join.js`, survivor is oldest (**unchecked**) | Same survivor rule; replaced members keep their place; duplicate with same role dropped | `structure.test.ts` (2 tests, pass) | Equal here | S |
+| 24 | Structure | Join two member ways | `join.js`, survivor is the oldest | Same survivor rule; replaced members keep their place; duplicate with same role dropped | `structure.test.ts` (2 tests, pass) | Equal here | S |
 | 25 | Structure | Reverse a way: forward and backward roles | `reverse.js` | Same | `structure.test.ts` (2 tests, pass) | Equal | S |
 | 26 | Structure | Delete a member way | `delete_way.js` removes it from parents | Same | `member-order.test.ts` (1 test, pass) | Equal | S |
 | 27 | Structure | Merge of multipolygons | `merge_polygon.js` (F-actions-b-3, -4 in `actions-b.md`) | Keeps the first relation, not the oldest | `actions-b.md` rows | Behind | M |
 | 28 | Structure | Split of a restriction's from way | `split.js` restriction titles (14 adopted) | Keeps the part at the via node or via way | `restriction.test.ts` (2 tests, pass) | Equal | S |
 | 29 | Structure | Split of a via way | `split.js` | Both parts get role `via`; order of via ways is not checked (not semantic) | `restriction.test.ts` (1 test, pass) | Equal | S |
-| 30 | Validation | Missing role, outdated multipolygon tags | `missing_role.js`, `outdated_tags.js` (**unchecked**) | Not checked in this pass | none | Unknown | M |
+| 30 | Validation | Missing role, outdated multipolygon tags | `missing_role.js`, `outdated_tags.js` (**unchecked**) | Not checked in this pass | none | Not compared | M |
 
 ## Where Maid can be better than iD
 
-Proposals, to judge. Not all are built.
+Proposals, to judge. Status after this pass.
 
-1. **Show the gaps in a route's chain.** Between two consecutive way members that do not share a node, show a `gap` marker with both ways' end nodes. iD shows nothing. Pure logic: `relations-logic.ts` (`routeGaps`), to build in this step.
-2. **Show the role's meaning.** A role input with suggestions from the roles this relation uses and from a built-in table per type (multipolygon: outer, inner; route: forward, backward, stop, platform; restriction: from, via, to; boundary: outer, inner, admin_centre, label). Built in this step (pure logic, `relations-logic.ts`).
-3. **Warn before an edit that breaks a relation, instead of silently changing it.** Examples: removing the last member deletes the relation (iD does this without a word); joining two ways that are members of a restriction. Not built. Needs a decision on the UI pattern.
-4. **Keep the member order visible.** A route diagram as a vertical list of member chains, with the gap markers of (1). Not built.
-5. **"Load the missing members" as one button with a count.** Step two.
-6. **Say where a new way was put.** "Placed between X and Y" after an add. Built in this step if the logic is clean; see section 3.
+1. **Show the gaps in a route's chain.** Built. Between two consecutive way members of a `type=route` that do not share a node (or, for a closed way such as a roundabout, any node), the list shows a "gap" line. A member that is not loaded is "unknown", not a gap. Stops, platforms and node members are skipped. `routeGaps` and `routeJoins` in `relations-logic.ts`, 7 tests. iD shows nothing.
+2. **Show the role's meaning.** Partly built. Role suggestions come from the roles the relation's members already use, then a built-in table per relation type (multipolygon, boundary, route with PTv2 variants, restriction, site, associatedStreet). `roleSuggestions`, 3 tests. No taginfo, so no usage counts.
+3. **Warn before an edit that breaks a relation, instead of silently changing it.** Partly built, information only: "Deleting this way breaks the turn restriction" for the only `from` or `to` way of a restriction, and "Deleting this way removes an outer ring of the multipolygon" for an `outer` way (`membershipHint`, 3 tests). Not built: removing the last member deletes the relation without a word (iD does the same); joining two ways that are members of a restriction.
+4. **Keep the member order visible.** Not built: a route diagram as a vertical list of chains.
+5. **"Load the missing members" as one button with a count.** Partly built: the count is in the headline and on a disabled button. Loading is step two.
+6. **Say where a new way was put.** Built. After an add: "Added as member 7 of 12, between A and B" (or "at the start" or "at the end"). `placementOf` (finds the one insertion that turns the old members into the new ones; undefined when the add also moved other members) and `placementSentence`, 5 tests.
 
 ## Specification for step two
 
-(a) **Highlight engine API.** In `packages/renderer` add an engine method `setRelationHighlight(state)` where `state` is `{ kind: 'members'; relationID: EntityID } | { kind: 'memberships'; entityID: EntityID } | null`. The renderer resolves the member ids (from the model's `members`) and draws them with a `related` paint class. Hover sends the state from the Members list row or the Relations row; select sends it for the selected relation. The state lives in the engine, not in React state, so the map does not re-render the sidebar. Imperative MapLibre calls stay inside the renderer package, as AGENTS.md allows.
+(a) **Highlight engine API.** In `packages/renderer` add an engine method `setRelationHighlight(state)` where `state` is `{ kind: 'members'; relationID: EntityID } | { kind: 'memberships'; entityID: EntityID } | null`. The renderer resolves the member ids (from the model's `members`) and draws them with a `related` paint class. Hover sends the state from the Members list row or the Relations row; select sends it for the selected relation. The state lives in the engine, not in React state, so the map does not re-render the sidebar. Imperative MapLibre calls stay inside the renderer package, as AGENTS.md allows. Hover is iD's behaviour (row 13): a member row highlights its feature, a membership row its relation. Zoom to a member (iD's `member-zoom`, which also selects it if it is off screen) and select a member are the map side too. The list's `select` prop is already wired for the select half.
 
-(b) **Load a relation in full.** Endpoint: `GET {apiUrl}/api/0.6/relation/{id}/full` (the same `apiUrl` the engine uses for `map.json`, `engine.ts` near line 284). Mock: the mock API already answers `/api/0.6/relation/ID/full` from its fixtures (`tools/mock-osm-api/server.ts`, `full()`), so automated tests stay on localhost. Merge: the response is OSM JSON, merged with `this.merge(json.elements)` in `engine.ts` (line 309), the same path as map tiles, so the members enter the base graph and the relation's `isComplete` becomes true. UI: the Members headline shows "N of M members loaded" and one "Load missing members" button (disabled while loading, shows a spinner text "Loading 12 members"). On failure, an inline message "Could not load the members: <status>" with a retry button; the relation's rows stay as they are. Nothing is written to the history: loading is not an edit.
+(b) **Load a relation in full.** Endpoint: `GET {apiUrl}/api/0.6/relation/{id}/full` (the same `apiUrl` the engine uses for `map.json`, `engine.ts` near line 284). Mock: the mock API already answers `/api/0.6/relation/ID/full` from its fixtures (`tools/mock-osm-api/server.ts`, `full()`), so automated tests stay on localhost. Merge: the response is OSM JSON, merged with `this.merge(json.elements)` in `engine.ts` (line 309), the same path as map tiles, so the members enter the base graph and the relation's `isComplete` becomes true. UI: the disabled "Load the N missing members" button in `MemberList` (`relations.tsx`) becomes live, shows "Loading N members" while it runs, and on failure an inline message "Could not load the members: <status>" with a retry button; the relation's rows stay as they are. Nothing is written to the history: loading is not an edit. iD loads one member per row instead (row 2); a per-row button is an option if a whole relation is too big.
 
 (c) **Tests for step two.** A browser check (`bun run check-relations`) with the mock API: select an incomplete relation, load its members, see the count drop to zero; a failing relation id shows the message.
 
 ## Unsure points
 
-- iD UI sections (members list, memberships, roles, suggestions, sorting, limit) were not read in this pass. The iD column for those rows is unchecked.
+- The iD sections (members list, memberships, roles, suggestions, sorting, picker, limit) were read in this pass: `raw_member_editor.js` and `raw_membership_editor.js`. Not read: `modes/select.js` (row 12) and the validation sources (row 30). Row 2's "per-row download" was read in the source; whether iD hides the download on complete relations (CSS) was not checked.
+- Nothing was run in a browser. The datalist role suggestions, the move buttons, the "Show all" button and the gap line are untested in the real app.
+- The move buttons replace iD's drag. Keyboard focus is lost after a move when the row's key changes (the key holds the index, id and role, which change); the role field needs that key to reset its draft.
+- The role inputs and the remove button of the Relations section and the add form are disabled when the feature is read-only. Before this pass they were not, so a filter-protected way could be edited through its membership.
+- `roleSuggestions(relation)` takes no graph: the suggestions come from the relation alone.
+- F-relations-1 and F-relations-2 show in the "Added as" line as the model places the way. Where the model moves other members, the line is left out.
 - `docs/research/id-tests/core.md` (F-core-3) was not updated: the tree tests in `packages/model/test/id/core/tree.test.ts` were not adopted in this pass.
-- The renderer's multipolygon drawing and the `related` highlight were not read.
-- Nothing was run in a browser.

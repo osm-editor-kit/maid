@@ -253,11 +253,13 @@
         "@osm-editor-kit/maid-renderer": "workspace:*",
         "date-fns": "^4.1.0",
         "motion": "^14.0.0",
+        "react-dom": "^19.2.0",
         "tailwind-merge": "^3.7.0",
         "zustand": "^5.0.15",
       },
       "devDependencies": {
         "@types/react": "^19.3.0",
+        "@types/react-dom": "^19.2.0",
       },
       "peerDependencies": {
         "react": "^19.3.0",

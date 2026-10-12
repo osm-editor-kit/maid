@@ -8,6 +8,12 @@ export type FieldProps = {
   id?: string
   /** Sets or (with undefined) removes one tag. Absent: read-only. */
   onChange?: (key: string, value: string | undefined) => void
+  /**
+   * The element in the row's label bar, after the "i". A control that has buttons of its own
+   * (for the label bar, not below the input) renders them into it with createPortal. Null or
+   * absent: none; controls that ignore it are unaffected.
+   */
+  labelActions?: HTMLElement | null
 }
 export type FieldComponent = (props: FieldProps) => ReactNode
 
@@ -17,4 +23,7 @@ export const FRAME = `h-8 ${SURFACE}`
 export const INPUT = `${FRAME} px-2 placeholder:text-zinc-400 read-only:cursor-default dark:placeholder:text-zinc-500`
 export const TEXTAREA = `${SURFACE} px-2 py-1.5 leading-5 placeholder:text-zinc-400 read-only:cursor-default dark:placeholder:text-zinc-500`
 export const LABEL = 'min-w-0 truncate text-sm text-zinc-700 dark:text-zinc-300'
+/** A small icon button in a row's label bar (revert, remove, add a language). */
+export const ROW_BUTTON =
+  'grid size-5 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white'
 export const HINT = 'min-w-0 truncate text-xs text-zinc-500 dark:text-zinc-400'

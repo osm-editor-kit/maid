@@ -80,7 +80,7 @@ export function SidebarHeader(props: {
       title={titleAction}
       className={
         titleFlyout !== undefined
-          ? 'group flex min-h-14 min-w-0 flex-1 cursor-pointer items-center gap-3 pr-3 hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 aria-expanded:bg-zinc-950/5 dark:hover:bg-white/5 dark:aria-expanded:bg-white/5'
+          ? `group flex min-h-14 min-w-0 flex-1 cursor-pointer items-center gap-3 ${info ? 'pr-1' : 'pr-3'} hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 aria-expanded:bg-zinc-950/5 dark:hover:bg-white/5 dark:aria-expanded:bg-white/5`
           : 'flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg p-1 inset-ring-1 inset-ring-zinc-950/10 hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 dark:inset-ring-white/10 dark:hover:bg-white/5'
       }
     >
@@ -99,7 +99,7 @@ export function SidebarHeader(props: {
   )
   return (
     <div
-      className={`flex shrink-0 items-center gap-1 border-b border-zinc-950/10 dark:border-white/10 ${
+      className={`group/header flex shrink-0 items-center gap-1 border-b border-zinc-950/10 dark:border-white/10 ${
         onTitleClick && titleFlyout !== undefined ? '' : 'p-2'
       }`}
     >
@@ -125,7 +125,12 @@ export function SidebarHeader(props: {
           <h2 className="contents">{content}</h2>
         </div>
       )}
-      {info ? <span className="flex shrink-0 items-center">{info}</span> : null}
+      {/* fades in with the pointer over the header, like the buttons of a field row */}
+      {info ? (
+        <span className="flex shrink-0 items-center pr-3 opacity-0 transition-opacity duration-150 group-focus-within/header:opacity-100 group-hover/header:opacity-100 has-aria-expanded:opacity-100 pointer-coarse:opacity-100">
+          {info}
+        </span>
+      ) : null}
       {onClose ? (
         <button
           type="button"
@@ -168,7 +173,7 @@ export function SidebarDisclosure(props: {
   return (
     <details
       open={props.defaultOpen}
-      className="group border-t border-zinc-950/10 py-2.5 first:border-t-0 first:pt-0 dark:border-white/10"
+      className="group/section border-t border-zinc-950/10 py-2.5 first:border-t-0 first:pt-0 dark:border-white/10"
     >
       <summary className="flex cursor-pointer list-none items-center gap-2 rounded-sm text-sm font-semibold text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-white [&::-webkit-details-marker]:hidden">
         <h3>{props.title}</h3>
@@ -179,7 +184,7 @@ export function SidebarDisclosure(props: {
         ) : null}
         <ChevronDownIcon
           aria-hidden="true"
-          className="ml-auto size-4 shrink-0 text-zinc-500 transition group-open:rotate-180 dark:text-zinc-400"
+          className="ml-auto size-4 shrink-0 text-zinc-500 transition group-open/section:rotate-180 dark:text-zinc-400"
         />
       </summary>
       <div className="mt-2.5">{props.children}</div>

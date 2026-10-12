@@ -116,6 +116,8 @@ export function Inspector() {
               label={kind ?? 'feature type'}
               reference={entity.preset.reference}
               load={loadReference}
+              // the look of the swap button next to it
+              buttonClassName="size-8 rounded-md inset-ring-1 inset-ring-zinc-950/10 dark:inset-ring-white/10"
             />
           ) : undefined
         }

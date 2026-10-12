@@ -3,16 +3,27 @@ import {
   actionAddMember,
   actionChangeMember,
   actionDeleteMember,
+  actionMoveMember,
   OsmRelation,
   type Action,
 } from '@osm-editor-kit/maid-model'
-import type { InspectorSection, InspectorSectionProps } from '@osm-editor-kit/maid-ui'
-import { useState, type ReactNode } from 'react'
+import { Tooltip, type InspectorSection, type InspectorSectionProps } from '@osm-editor-kit/maid-ui'
+import { Fragment, useState, type ReactNode } from 'react'
 import {
   joinableRelations,
-  memberLabel,
+  memberName,
+  memberRows,
+  membersHeadline,
+  membershipHint,
   membershipsOf,
+  moveTarget,
+  notLoadedCount,
+  placementOf,
+  placementSentence,
   relationLabel,
+  roleSuggestions,
+  routeGaps,
+  type MemberRow,
   type Membership,
 } from './relations-logic.ts'
 
@@ -20,7 +31,7 @@ type Props = InspectorSectionProps
 type Editor = Props['editor']
 type Member = OsmRelation['members'][number]
 
-/** Members shown before the list says "and N more". */
+/** Members shown before the list says "Show all N". iD caps its member list at 1000. */
 const MEMBER_LIMIT = 50
 /** Relations offered in the "Add to a relation" select. */
 const RELATION_OPTION_LIMIT = 200
@@ -30,13 +41,24 @@ const ROW =
 const LINK =
   'min-w-0 flex-1 cursor-pointer truncate rounded px-1 text-left hover:underline focus-visible:outline-2 focus-visible:outline-blue-500'
 const SECONDARY = 'text-zinc-500 dark:text-zinc-400'
+/** A text button in a list, e.g. "Show all 120". */
+const LINK_BUTTON =
+  'cursor-pointer rounded px-1 text-xs text-zinc-500 hover:text-zinc-950 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:text-white'
 /** Inline role input: looks like plain text until hovered or focused, as in TagRow. */
 const ROLE_INPUT =
-  'w-20 shrink-0 rounded border border-transparent bg-transparent px-1 py-0.5 hover:border-zinc-950/20 focus:border-blue-500 focus:bg-white focus:outline-none dark:hover:border-white/20 dark:focus:bg-zinc-950'
+  'w-20 shrink-0 rounded border border-transparent bg-transparent px-1 py-0.5 hover:border-zinc-950/20 focus:border-blue-500 focus:bg-white focus:outline-none disabled:cursor-default disabled:text-zinc-400 disabled:hover:border-transparent dark:hover:border-white/20 dark:focus:bg-zinc-950'
 const FIELD =
-  'h-7 min-w-0 rounded-md border border-zinc-950/10 bg-white px-2 text-xs text-zinc-950 hover:border-zinc-950/20 focus-visible:outline-2 focus-visible:outline-blue-500 placeholder:text-zinc-400 dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:hover:border-white/20 dark:placeholder:text-zinc-500 dark:[color-scheme:dark]'
+  'h-7 min-w-0 rounded-md border border-zinc-950/10 bg-white px-2 text-xs text-zinc-950 hover:border-zinc-950/20 focus-visible:outline-2 focus-visible:outline-blue-500 placeholder:text-zinc-400 disabled:cursor-default disabled:text-zinc-400 dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:hover:border-white/20 dark:placeholder:text-zinc-500 dark:[color-scheme:dark]'
 const BUTTON =
   'inline-flex h-7 shrink-0 cursor-pointer items-center rounded-md bg-white px-2 text-xs font-medium inset-ring-1 inset-ring-zinc-950/10 focus-visible:outline-2 focus-visible:outline-blue-500 enabled:hover:bg-zinc-50 disabled:cursor-default disabled:text-zinc-400 dark:bg-zinc-800 dark:inset-ring-white/10 dark:enabled:hover:bg-zinc-700 dark:disabled:text-zinc-500'
+/** Icon buttons in a row: move, remove. Quiet until hovered, as the edit buttons are. */
+const ICON_BUTTON =
+  'shrink-0 cursor-pointer rounded px-1 text-zinc-400 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:text-zinc-300 disabled:hover:bg-transparent disabled:hover:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-white dark:disabled:text-zinc-700 dark:disabled:hover:bg-transparent dark:disabled:hover:text-zinc-700'
+/** The line between two members of a route whose ways do not meet. */
+const GAP =
+  'flex items-center gap-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400'
+/** A warning under a membership: information only. */
+const HINT = 'pb-1 pl-1 text-xs text-amber-700 dark:text-amber-400'
 
 /** Runs one edit through the history and commits it with its annotation. */
 function edit(editor: Editor, action: Action, annotation: string, selectedID: EntityID) {
@@ -44,19 +66,39 @@ function edit(editor: Editor, action: Action, annotation: string, selectedID: En
   editor.history.commit({ annotation, selectedIDs: [selectedID] })
 }
 
+/** The id of the datalist that offers role suggestions: one per scope (members, membership, add) and entity. */
+function roleOptionsID(scope: string, id: string): string {
+  return `${scope}-roles-${id}`
+}
+
 /** One line of a list: the same spacing and hairline for members and memberships. */
 function Row({ children }: { children: ReactNode }) {
   return <li className={ROW}>{children}</li>
+}
+
+/** The role suggestions as a datalist: the input shows them as the user types, and still takes any text. */
+function RoleOptions({ id, roles }: { id: string; roles: readonly string[] }) {
+  return (
+    <datalist id={id}>
+      {roles.map((role) => (
+        <option key={role} value={role} />
+      ))}
+    </datalist>
+  )
 }
 
 /** A role that is edited in place. Applied on Enter or when the field loses focus; Escape restores it. */
 function RoleInput({
   label,
   role,
+  list,
+  disabled,
   onCommit,
 }: {
   label: string
   role: string
+  list: string
+  disabled: boolean
   onCommit: (role: string) => void
 }) {
   const [draft, setDraft] = useState(role)
@@ -68,6 +110,8 @@ function RoleInput({
     <input
       aria-label={label}
       placeholder="role"
+      list={list}
+      disabled={disabled}
       className={ROLE_INPUT}
       value={draft}
       onChange={(event) => setDraft(event.target.value)}
@@ -83,65 +127,144 @@ function RoleInput({
   )
 }
 
-function RemoveButton({ label, onRemove }: { label: string; onRemove: () => void }) {
+function RemoveButton({
+  label,
+  disabled,
+  onRemove,
+}: {
+  label: string
+  disabled: boolean
+  onRemove: () => void
+}) {
   return (
     <button
       type="button"
       aria-label={label}
       title={label}
+      disabled={disabled}
       onClick={onRemove}
-      className="shrink-0 cursor-pointer rounded px-1 text-zinc-400 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:hover:bg-white/10 dark:hover:text-white"
+      className={ICON_BUTTON}
     >
       ×
     </button>
   )
 }
 
-/** A member of the selected relation, with its role and a remove button. */
-function MemberRow({
+/** Moves a member one place: an icon button with a tooltip, disabled at the ends. */
+function MoveButton({
+  label,
+  glyph,
+  disabled,
+  onMove,
+}: {
+  label: string
+  glyph: string
+  disabled: boolean
+  onMove: () => void
+}) {
+  return (
+    <Tooltip label={label}>
+      <button
+        type="button"
+        aria-label={label}
+        disabled={disabled}
+        onClick={onMove}
+        className={ICON_BUTTON}
+      >
+        {glyph}
+      </button>
+    </Tooltip>
+  )
+}
+
+/** The letter for a member's type: N, W or R. */
+function typeLetter(type: Member['type']): string {
+  if (type === 'node') return 'N'
+  if (type === 'way') return 'W'
+  return 'R'
+}
+
+/** A member of the selected relation: its position, type, label, role, moves and a remove button. */
+function MemberRowView({
   editor,
   relation,
-  member,
-  index,
+  row,
+  readOnly,
+  roleList,
   select,
 }: {
   editor: Editor
   relation: OsmRelation
-  member: Member
-  index: number
+  row: MemberRow
+  readOnly: boolean
+  roleList: string
   select: Props['select']
 }) {
-  const target = editor.history.staging.graph.hasEntity(member.id)
-  const label = memberLabel(target?.tags)
-  const name = `${member.type} ${member.id}`
+  // the member as the relation holds it: its id and type come from the row, the role from the member
+  const member = relation.members[row.index]
+  if (!member) return null
+  const count = relation.members.length
+  const move = (direction: 'up' | 'down') => {
+    const target = moveTarget(count, row.index, direction)
+    if (target === undefined) return
+    edit(
+      editor,
+      actionMoveMember(relation.id, row.index, target),
+      `Moved a member ${direction} in ${relationLabel(relation)}`,
+      relation.id,
+    )
+  }
+  const up = moveTarget(count, row.index, 'up')
+  const down = moveTarget(count, row.index, 'down')
   return (
     <Row>
-      {target ? (
-        <button type="button" className={LINK} onClick={() => select(member.id)}>
-          <span className="font-mono">{name}</span>
-          {label && <span className={`ml-2 ${SECONDARY}`}>{label}</span>}
+      <span className={`w-6 shrink-0 text-right font-mono tabular-nums ${SECONDARY}`}>
+        {row.index + 1}
+      </span>
+      <span title={row.type} className={`w-3 shrink-0 text-center font-mono ${SECONDARY}`}>
+        {typeLetter(row.type)}
+      </span>
+      {row.loaded ? (
+        <button type="button" className={LINK} onClick={() => select(row.id)}>
+          <span className="font-mono">{row.id}</span>
+          {row.label && <span className={`ml-2 ${SECONDARY}`}>{row.label}</span>}
         </button>
       ) : (
         <span className={`min-w-0 flex-1 truncate px-1 font-mono ${SECONDARY}`}>
-          {name} <span className="italic">not loaded</span>
+          {row.id} <span className="italic">not loaded</span>
         </span>
       )}
+      <MoveButton
+        label={`Move ${row.id} up`}
+        glyph="↑"
+        disabled={readOnly || up === undefined}
+        onMove={() => move('up')}
+      />
+      <MoveButton
+        label={`Move ${row.id} down`}
+        glyph="↓"
+        disabled={readOnly || down === undefined}
+        onMove={() => move('down')}
+      />
       <RoleInput
-        label={`Role of ${member.id}`}
+        label={`Role of ${row.id}`}
         role={member.role}
+        list={roleList}
+        disabled={readOnly}
         onCommit={(role) =>
           edit(
             editor,
-            actionChangeMember(relation.id, { ...member, role }, index),
+            actionChangeMember(relation.id, { ...member, role }, row.index),
             'Changed a role',
             relation.id,
           )
         }
       />
       <RemoveButton
-        label={`Remove member ${member.id}`}
+        label={`Remove member ${row.id}`}
+        disabled={readOnly}
         onRemove={() => {
-          edit(editor, actionDeleteMember(relation.id, index), 'Removed a member', relation.id)
+          edit(editor, actionDeleteMember(relation.id, row.index), 'Removed a member', relation.id)
           // removing the last member deletes the relation
           if (!editor.history.staging.graph.hasEntity(relation.id)) select(null)
         }}
@@ -150,90 +273,175 @@ function MemberRow({
   )
 }
 
+/**
+ * The members of a relation in order: the first MEMBER_LIMIT, then "Show all N". Members that are
+ * not loaded keep their rows. A route shows a gap line where two of its ways do not meet.
+ */
+function MemberList({
+  editor,
+  relation,
+  readOnly,
+  select,
+}: {
+  editor: Editor
+  relation: OsmRelation
+  readOnly: boolean
+  select: Props['select']
+}) {
+  const graph = editor.history.staging.graph
+  const rows = memberRows(graph, relation)
+  const gaps = new Set(routeGaps(graph, relation))
+  const missing = notLoadedCount(rows)
+  const [showAll, setShowAll] = useState(false)
+  const shown = showAll ? rows : rows.slice(0, MEMBER_LIMIT)
+  const roleList = roleOptionsID('members', relation.id)
+  return (
+    <div className="grid gap-1">
+      <ul>
+        {rows.length === 0 && <li className={`py-1 text-xs ${SECONDARY}`}>No members.</li>}
+        {shown.map((row) => (
+          <Fragment key={`${row.index}:${row.id}:${row.role}`}>
+            <MemberRowView
+              editor={editor}
+              relation={relation}
+              row={row}
+              readOnly={readOnly}
+              roleList={roleList}
+              select={select}
+            />
+            {gaps.has(row.index) && (
+              <li className={GAP} title="The ends of these two ways do not meet">
+                <span className="h-px flex-1 border-t border-dashed border-amber-500/60" />
+                gap
+                <span className="h-px flex-1 border-t border-dashed border-amber-500/60" />
+              </li>
+            )}
+          </Fragment>
+        ))}
+        {!showAll && rows.length > shown.length && (
+          <li className="py-1">
+            <button type="button" className={LINK_BUTTON} onClick={() => setShowAll(true)}>
+              Show all {rows.length}
+            </button>
+          </li>
+        )}
+      </ul>
+      <RoleOptions id={roleList} roles={roleSuggestions(relation)} />
+      {missing > 0 && (
+        // loading members is the map side's job (the next step): the button is shown, not yet working
+        <Tooltip label="Coming with the map side">
+          <button type="button" disabled className={`${BUTTON} justify-self-start`}>
+            Load the {missing} missing {missing === 1 ? 'member' : 'members'}
+          </button>
+        </Tooltip>
+      )}
+    </div>
+  )
+}
+
 /** The inspected relation's members, in order. */
 function MembersSection({ entity, editor, select }: Props) {
   const relation = editor.history.staging.graph.hasEntity(entity.id)
   if (!(relation instanceof OsmRelation)) return null
-  const count = relation.members.length
-  const shown = Math.min(count, MEMBER_LIMIT)
   return (
-    <ul>
-      {count === 0 && <li className={`py-1 text-xs ${SECONDARY}`}>No members.</li>}
-      {relation.members.slice(0, MEMBER_LIMIT).map((member, index) => (
-        <MemberRow
-          key={`${index}:${member.id}:${member.role}`}
-          editor={editor}
-          relation={relation}
-          member={member}
-          index={index}
-          select={select}
-        />
-      ))}
-      {count > shown && <li className={`py-1 text-xs ${SECONDARY}`}>and {count - shown} more</li>}
-    </ul>
+    <MemberList
+      key={relation.id}
+      editor={editor}
+      relation={relation}
+      readOnly={entity.readOnly}
+      select={select}
+    />
   )
 }
 
-/** One place where the entity is a member: the relation, and the role in it. */
+/** One place where the entity is a member: the relation, the role in it, and a warning if removing it breaks something. */
 function MembershipRow({
   editor,
   entityID,
   membership,
+  readOnly,
+  roleList,
   select,
 }: {
   editor: Editor
   entityID: EntityID
   membership: Membership
+  readOnly: boolean
+  roleList: string
   select: Props['select']
 }) {
   const { relation, index, role } = membership
   const member = relation.members[index]
   if (!member) return null
+  const hint = membershipHint(relation, index)
   return (
-    <Row>
-      <button type="button" className={LINK} onClick={() => select(relation.id)}>
-        <span>{relationLabel(relation)}</span>
-        <span className={`ml-2 font-mono ${SECONDARY}`}>{relation.id}</span>
-      </button>
-      <RoleInput
-        label={`Role in ${relation.id}`}
-        role={role}
-        onCommit={(next) =>
-          edit(
-            editor,
-            actionChangeMember(relation.id, { ...member, role: next }, index),
-            'Changed a role',
-            entityID,
-          )
-        }
-      />
-      <RemoveButton
-        label={`Remove from ${relation.id}`}
-        onRemove={() =>
-          edit(editor, actionDeleteMember(relation.id, index), 'Removed a member', entityID)
-        }
-      />
-    </Row>
+    <>
+      <Row>
+        <button type="button" className={LINK} onClick={() => select(relation.id)}>
+          <span>{relationLabel(relation)}</span>
+          <span className={`ml-2 font-mono ${SECONDARY}`}>{relation.id}</span>
+        </button>
+        <RoleInput
+          label={`Role in ${relation.id}`}
+          role={role}
+          list={roleList}
+          disabled={readOnly}
+          onCommit={(next) =>
+            edit(
+              editor,
+              actionChangeMember(relation.id, { ...member, role: next }, index),
+              'Changed a role',
+              entityID,
+            )
+          }
+        />
+        <RemoveButton
+          label={`Remove from ${relation.id}`}
+          disabled={readOnly}
+          onRemove={() =>
+            edit(editor, actionDeleteMember(relation.id, index), 'Removed a member', entityID)
+          }
+        />
+      </Row>
+      {hint && <li className={HINT}>{hint}</li>}
+    </>
   )
 }
 
-/** Adds the inspected entity to a loaded relation, with a role. Keyed by entity, so it starts empty for each one. */
+/**
+ * Adds the inspected entity to a loaded relation, with a role. Keyed by entity, so it starts empty
+ * for each one. After the add, a line says where the way was placed.
+ */
 function AddToRelation({
   editor,
   entity,
   candidates,
+  readOnly,
 }: {
   editor: Editor
   entity: Props['entity']
   candidates: OsmRelation[]
+  readOnly: boolean
 }) {
   const [targetID, setTargetID] = useState('')
   const [role, setRole] = useState('')
+  const [placed, setPlaced] = useState<string | undefined>(undefined)
   const offered = candidates.slice(0, RELATION_OPTION_LIMIT)
+  const target = candidates.find((relation) => relation.id === targetID)
+  const roleList = roleOptionsID('add', entity.id)
   const add = () => {
     if (!targetID) return
+    const before = editor.history.staging.graph.hasEntity(targetID)
+    const beforeMembers = before instanceof OsmRelation ? before.members : []
     const member = { id: entity.id, type: entity.type, role: role.trim() }
     edit(editor, actionAddMember(targetID, member), 'Added a member', entity.id)
+    const graph = editor.history.staging.graph
+    const after = graph.hasEntity(targetID)
+    const placement =
+      after instanceof OsmRelation
+        ? placementOf(beforeMembers, after.members, entity.id)
+        : undefined
+    setPlaced(placement ? placementSentence(placement, (ref) => memberName(graph, ref)) : undefined)
     setTargetID('')
     setRole('')
   }
@@ -243,9 +451,13 @@ function AddToRelation({
       <div className="flex min-w-0 items-center gap-1.5">
         <select
           aria-label="Relation to add to"
+          disabled={readOnly}
           className={`${FIELD} min-w-0 flex-1 cursor-pointer`}
           value={targetID}
-          onChange={(event) => setTargetID(event.target.value)}
+          onChange={(event) => {
+            setTargetID(event.target.value)
+            setPlaced(undefined)
+          }}
         >
           <option value="">Choose a relation</option>
           {offered.map((relation) => (
@@ -257,17 +469,25 @@ function AddToRelation({
         <input
           aria-label="Role for the new membership"
           placeholder="role"
+          list={roleList}
+          disabled={readOnly}
           className={`${FIELD} w-20 shrink-0`}
           value={role}
           onChange={(event) => setRole(event.target.value)}
         />
-        <button type="button" className={BUTTON} disabled={!targetID} onClick={add}>
+        <button type="button" className={BUTTON} disabled={readOnly || !targetID} onClick={add}>
           Add
         </button>
       </div>
+      <RoleOptions id={roleList} roles={target ? roleSuggestions(target) : []} />
       {candidates.length > offered.length && (
         <span className={`text-xs ${SECONDARY}`}>
           Showing {offered.length} of {candidates.length} relations.
+        </span>
+      )}
+      {placed && (
+        <span role="status" className={`text-xs ${SECONDARY}`}>
+          {placed}
         </span>
       )}
     </div>
@@ -282,6 +502,8 @@ function RelationsSection({ entity, editor, select }: Props) {
   if (memberships.length === 0 && candidates.length === 0) {
     return <p className={`text-xs ${SECONDARY}`}>Not in a relation.</p>
   }
+  // one datalist per relation the entity is in, even when it is in that relation twice
+  const parents = [...new Map(memberships.map((m) => [m.relation.id, m.relation])).values()]
   return (
     <div className="grid gap-1">
       {memberships.length > 0 && (
@@ -292,13 +514,28 @@ function RelationsSection({ entity, editor, select }: Props) {
               editor={editor}
               entityID={entity.id}
               membership={membership}
+              readOnly={entity.readOnly}
+              roleList={roleOptionsID('membership', membership.relation.id)}
               select={select}
             />
           ))}
         </ul>
       )}
+      {parents.map((relation) => (
+        <RoleOptions
+          key={relation.id}
+          id={roleOptionsID('membership', relation.id)}
+          roles={roleSuggestions(relation)}
+        />
+      ))}
       {candidates.length > 0 && (
-        <AddToRelation key={entity.id} editor={editor} entity={entity} candidates={candidates} />
+        <AddToRelation
+          key={entity.id}
+          editor={editor}
+          entity={entity}
+          candidates={candidates}
+          readOnly={entity.readOnly}
+        />
       )}
     </div>
   )
@@ -314,7 +551,11 @@ export function relations(): MaidModule {
         title: 'Members',
         when: (entity) => entity.type === 'relation',
         disclosure: 'open',
-        detail: (entity) => (entity.type === 'relation' ? entity.size : undefined),
+        detail: (entity, editor) => {
+          const relation = editor.history.staging.graph.hasEntity(entity.id)
+          if (!(relation instanceof OsmRelation)) return undefined
+          return membersHeadline(memberRows(editor.history.staging.graph, relation))
+        },
         component: MembersSection,
       }
       const memberships: InspectorSection = {

@@ -1,6 +1,6 @@
 import { ArrowUturnLeftIcon, TrashIcon } from '@heroicons/react/16/solid'
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
-import { useId } from 'react'
+import { useId, useState } from 'react'
 import { InfoPopover, type ReferenceLoader } from '../../InfoPopover.tsx'
 import {
   comboHint,
@@ -15,17 +15,18 @@ import {
 import { FallbackField } from './Fallback.tsx'
 import { RelatedAddButtons, RelatedDetails, type RelatedRow } from './Related.tsx'
 import type { FieldComponent, FieldProps } from './shared.ts'
-import { HINT, LABEL } from './shared.ts'
+import { HINT, LABEL, ROW_BUTTON } from './shared.ts'
 
 /** Field types that take a value from a list of options and show the option's label as a hint. */
 const COMBO_TYPES = new Set(['combo', 'typeCombo', 'networkCombo', 'radio', 'structureRadio'])
 
-const ROW_BUTTON =
-  'grid size-5 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white'
-
-/** The "i" after the label: hidden until the row is hovered or focused, always on touch, as the add buttons are. */
+/**
+ * The "i" among the row's buttons, in their square look. It fades in while the pointer or the
+ * focus is in this field's row (the group is named, so a group around all rows does not count),
+ * stays while its panel is open, and is always there on touch.
+ */
 const INFO_BUTTON =
-  'opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100'
+  'rounded opacity-0 transition-opacity duration-200 group-focus-within/field:opacity-100 group-hover/field:opacity-100 aria-expanded:opacity-100 pointer-coarse:opacity-100'
 
 const STEADY_TYPES = new Set([
   'semiCombo',
@@ -51,6 +52,8 @@ export function FieldRow(props: {
   const { field, tags, baseTags, onChange, registry, related, loadReference } = props
   const id = useId()
   const labelId = useId()
+  // the label bar's container for the control's own buttons: set by a callback ref, so no ref is read in render
+  const [labelActions, setLabelActions] = useState<HTMLElement | null>(null)
   const key = field.key
   // A multi-key field shows only once one of its keys has a value
   const Control = registry[field.type] ?? FallbackField
@@ -68,7 +71,7 @@ export function FieldRow(props: {
     <div
       role={key === undefined ? 'group' : undefined}
       aria-labelledby={key === undefined ? labelId : undefined}
-      className="group grid min-w-0 gap-1"
+      className="group/field grid min-w-0 gap-1"
     >
       <div className="flex min-w-0 items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1">
@@ -81,6 +84,11 @@ export function FieldRow(props: {
               {field.label}
             </label>
           )}
+          {/* the control's buttons for the label bar (FieldProps.labelActions); hidden while it is empty */}
+          <span ref={setLabelActions} className="flex shrink-0 items-center gap-1 empty:hidden" />
+        </div>
+        <div className="flex min-w-0 items-center gap-1">
+          {hint ? <span className={HINT}>{hint}</span> : null}
           {field.reference ? (
             <InfoPopover
               label={field.label}
@@ -89,9 +97,6 @@ export function FieldRow(props: {
               buttonClassName={INFO_BUTTON}
             />
           ) : null}
-        </div>
-        <div className="flex min-w-0 items-center gap-1">
-          {hint ? <span className={HINT}>{hint}</span> : null}
           {onChange && related ? <RelatedAddButtons field={field} related={related} /> : null}
           {onChange && modified && baseTags ? (
             <button
@@ -125,6 +130,7 @@ export function FieldRow(props: {
         field={field}
         tags={tags}
         onChange={onChange}
+        labelActions={labelActions}
       />
       {related ? (
         <RelatedDetails field={field} tags={tags} related={related} onChange={onChange} />
