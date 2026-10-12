@@ -1,6 +1,9 @@
+import { createEditor } from '@osm-editor-kit/maid-core'
 import { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { useSyncExternalStore } from 'react'
 import { readConfig } from './config'
+import './extension-points'
+import { editorConfig } from './maid.config'
 import { migrateIdHash } from './url/id-url'
 
 /**
@@ -12,7 +15,11 @@ migrateIdHash(window.location, window.history)
 
 export const config = readConfig(window.location)
 
+/** The editor's data and modules. What this editor is lives in maid.config.ts. */
+export const editor = createEditor(editorConfig)
+
 export const engine = new MaidEngine({
+  editor,
   apiUrl: config.apiUrl,
   minDataZoom: config.minDataZoom,
   update: config.update,

@@ -3,6 +3,7 @@ import {
   buildLayers,
   dashPatterns,
   interactiveLayerIds,
+  ModuleLayers,
   OsmLayers,
   type LayerOptions,
 } from '@osm-editor-kit/maid-renderer'
@@ -16,7 +17,7 @@ import {
   type ViewStateChangeEvent,
 } from 'react-map-gl/maplibre'
 import { exposeBenchApi } from '../bench'
-import { config, engine } from '../editor'
+import { config, editor, engine } from '../editor'
 import { addBaseImages, ensureImages } from '../images'
 import { useCameraParam, useSelectedId } from '../url/state'
 
@@ -140,6 +141,7 @@ export function MapView() {
         options={options}
         sourceOptions={{ tolerance: config.tolerance, maxzoom: config.sourceMaxZoom }}
       />
+      <ModuleLayers editor={editor} />
     </Map>
   )
 }

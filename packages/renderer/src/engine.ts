@@ -1,3 +1,4 @@
+import type { Editor } from '@osm-editor-kit/maid-core'
 import {
   actionChangeTags,
   actionMoveNode,
@@ -37,6 +38,8 @@ import { OsmData } from './data'
 import { EDIT_SOURCES, SOURCES } from './layers'
 
 export type EngineOptions = {
+  /** The editor that owns the OSM data and the edit history. The engine reads and changes them there. */
+  editor: Editor
   /** OSM API root, e.g. http://localhost:8090/s/medium */
   apiUrl: string
   /** Data loads from this OSM zoom on (iD: 16) */
@@ -103,14 +106,14 @@ const y2lat = (y: number) =>
   (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / 2 ** TILE_ZOOM))) * 180) / Math.PI
 
 export class MaidEngine {
-  /** The OSM data: entities and edit history (in the data model), plus the indexes of the builder */
-  data = new OsmData()
+  /** The OSM data: entities and edit history (from the editor), plus the indexes of the builder */
+  data: OsmData
   metrics: EngineMetrics = {
     tiles: 0, updates: 0, compactions: 0, bytes: 0, fetchMs: 0, parseMs: 0, mergeMs: 0, buildMs: 0, pushMs: 0,
     features: { areas: 0, lines: 0, points: 0, vertices: 0 },
   } // prettier-ignore
 
-  private builder = new FeatureBuilder(this.data)
+  private builder: FeatureBuilder
   private map?: MapLibreMap
   private tiles = new Set<string>()
   private inflight = 0
@@ -150,7 +153,12 @@ export class MaidEngine {
   private compacting = false
   private compactTimer?: ReturnType<typeof setTimeout>
 
-  constructor(public options: EngineOptions) {}
+  // The data comes from the editor, so the engine and the editor's modules see the same entities.
+  // Assigned here, not in field initializers, because the builder needs `data`.
+  constructor(public options: EngineOptions) {
+    this.data = new OsmData(options.editor.context, options.editor.history)
+    this.builder = new FeatureBuilder(this.data)
+  }
 
   // --- Reading state from the UI ---
 

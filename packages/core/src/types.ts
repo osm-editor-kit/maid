@@ -103,12 +103,13 @@ export interface ModuleApi {
   on<N extends HookName>(name: N, listener: Listener<N>): void
 }
 
+/** The members are plain functions, not methods, so they can be passed on (to `useSyncExternalStore`). */
 export interface ReadonlyRegistry<T extends { id: string }> {
-  get(id: string): T | undefined
+  get: (id: string) => T | undefined
   /** Items in registration order. The array is replaced on every change, never mutated. */
-  list(): readonly T[]
+  list: () => readonly T[]
   /** The listener gets the new list after each change. Returns the unsubscribe function. */
-  subscribe(listener: (items: readonly T[]) => void): () => void
+  subscribe: (listener: (items: readonly T[]) => void) => () => void
 }
 
 export interface EditorHooks {

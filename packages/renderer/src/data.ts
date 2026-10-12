@@ -4,9 +4,9 @@
  * indexes keyed by entity id (`n123`, `w45`, `r6`), updated on every merge.
  */
 import {
-  EditHistory,
+  type Context,
+  type EditHistory,
   entitiesFromOsmJson,
-  ModelContext,
   OsmNode,
   OsmRelation,
   OsmWay,
@@ -17,9 +17,14 @@ import {
 export type MergeResult = { nodes: OsmNode[]; ways: OsmWay[]; relations: OsmRelation[] }
 
 export class OsmData {
-  readonly context = new ModelContext()
-  /** Entities and edits. `history.staging.graph` is the current state; entities are never changed in place. */
-  readonly history = new EditHistory(this.context)
+  /**
+   * The editor's context and edit history (maid-core owns them). `history.staging.graph` is the
+   * current state; entities are never changed in place.
+   */
+  constructor(
+    readonly context: Context,
+    readonly history: EditHistory,
+  ) {}
   /** How many times a node is used by ways. More than one means it is a junction. */
   nodeUses = new Map<string, number>()
   /** Ways that use a node, for rebuilding them when the node moves */

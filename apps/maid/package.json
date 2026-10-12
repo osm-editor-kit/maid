@@ -10,6 +10,8 @@
     "preview": "bun --bun vite preview --strictPort"
   },
   "dependencies": {
+    "@osm-editor-kit/maid-core": "workspace:*",
+    "@osm-editor-kit/maid-model": "workspace:*",
     "@osm-editor-kit/maid-renderer": "workspace:*",
     "@osm-editor-kit/maid-style": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",

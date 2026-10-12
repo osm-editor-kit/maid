@@ -1,5 +1,6 @@
-import { engine, useEngine } from '../editor'
+import { editor, engine, useEngine } from '../editor'
 import { useSelectedId } from '../url/state'
+import { InspectorSections } from './InspectorSections'
 import { PresetIcon } from './PresetIcon'
 import { TagList } from './TagList'
 
@@ -60,6 +61,7 @@ export function Inspector() {
               entity.type === 'relation' ? undefined : (key, value) => engine.setTag(id, key, value)
             }
           />
+          <InspectorSections entity={entity} editor={editor} />
           <p className="mt-3 text-xs text-neutral-500">
             Changes stay in this browser tab. Saving to OSM is not built yet.
           </p>
