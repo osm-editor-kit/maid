@@ -1,3 +1,4 @@
+import type { OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 /**
  * Turns OSM entities into GeoJSON features that carry their resolved iD style as plain
  * properties. Classification runs once per entity in JavaScript, so MapLibre's style
@@ -14,7 +15,7 @@ import {
   type Tags,
 } from '@osm-editor-kit/maid-style'
 import type { Feature, LineString, MultiPolygon, Point, Polygon, Position } from 'geojson'
-import type { MergeResult, OsmNode, OsmRelation, OsmStore, OsmWay } from './store'
+import type { MergeResult, OsmData } from './data'
 
 export type SourceName = 'areas' | 'lines' | 'points' | 'vertices'
 export type FeatureBatch = Record<SourceName, Feature[]>
@@ -98,11 +99,17 @@ function ringMetrics(ring: Position[]) {
   return { area: area / 2, perimeter }
 }
 
-function wayCoords(store: OsmStore, way: OsmWay) {
+/** A node's position as a GeoJSON coordinate. A new array, so features never share the entity's. */
+export function coordinateOf(node: OsmNode | undefined): Position | undefined {
+  const loc = node?.loc
+  return loc ? [loc[0], loc[1]] : undefined
+}
+
+function wayCoords(data: OsmData, way: OsmWay) {
   const coords: Position[] = []
   for (const id of way.nodes) {
-    const node = store.nodes.get(id)
-    if (node) coords.push([node.lon, node.lat])
+    const coord = coordinateOf(data.node(id))
+    if (coord) coords.push(coord)
   }
   return coords
 }
@@ -199,12 +206,12 @@ function areaFeature(
 }
 
 /** Joins member ways into closed rings. Returns undefined if a member is missing or rings do not close. */
-function assembleRings(store: OsmStore, wayIds: number[]) {
+function assembleRings(data: OsmData, wayIds: string[]) {
   const segments: Position[][] = []
   for (const id of wayIds) {
-    const way = store.ways.get(id)
+    const way = data.way(id)
     if (!way) return undefined
-    const coords = wayCoords(store, way)
+    const coords = wayCoords(data, way)
     if (coords.length < 2) return undefined
     segments.push(coords)
   }
@@ -238,15 +245,15 @@ function pointInRing(point: Position, ring: Position[]) {
   return inside
 }
 
-function multipolygon(store: OsmStore, relation: OsmRelation) {
+function multipolygon(data: OsmData, relation: OsmRelation) {
   const outerIds = relation.members
     .filter((m) => m.type === 'way' && m.role !== 'inner')
-    .map((m) => m.ref)
+    .map((m) => m.id)
   const innerIds = relation.members
     .filter((m) => m.type === 'way' && m.role === 'inner')
-    .map((m) => m.ref)
-  const outers = assembleRings(store, outerIds)
-  const inners = assembleRings(store, innerIds)
+    .map((m) => m.id)
+  const outers = assembleRings(data, outerIds)
+  const inners = assembleRings(data, innerIds)
   if (!outers || !inners || outers.length === 0) return undefined
   const polygons = outers.map((outer) => [outer])
   for (const inner of inners) {
@@ -279,18 +286,18 @@ export class FeatureBuilder {
   /** Entities that have a feature, so later merges do not build them twice */
   private built = new Set<string>()
   /** Multipolygons whose members were not all loaded yet */
-  private pendingRelations = new Set<number>()
-  private vertexState = new Map<number, string>()
+  private pendingRelations = new Set<string>()
+  private vertexState = new Map<string, string>()
 
-  constructor(private store: OsmStore) {}
+  constructor(private data: OsmData) {}
 
   /** The feature of one way, or undefined if it is not drawn on its own. Also used when a node moves. */
   buildWay(way: OsmWay): { source: 'areas' | 'lines'; feature: Feature } | undefined {
-    const { store } = this
-    const id = `w${way.id}`
-    const coords = wayCoords(store, way)
+    const { data } = this
+    const id = way.id
+    const coords = wayCoords(data, way)
     if (coords.length < 2) return undefined
-    const tags = way.tags ?? {}
+    const tags = way.tags
     const closed = way.nodes.length > 2 && way.nodes[0] === way.nodes[way.nodes.length - 1]
     const first = !this.built.has(id)
     this.built.add(id)
@@ -302,36 +309,33 @@ export class FeatureBuilder {
       return { source: 'areas', feature: areaFeature(id, [[coords]], tags, tagClasses(tags)) }
     }
     // ways that only carry a multipolygon's outline are drawn by the relation's area
-    if (!hasInterestingTags(way.tags) && store.wayMultipolygons.has(way.id)) return undefined
+    if (!hasInterestingTags(way.tags) && data.wayMultipolygons.has(way.id)) return undefined
     return { source: 'lines', feature: lineFeature(id, coords, tags, tagClasses(tags)) }
   }
 
   /** The point feature of a standalone node, or undefined if it has no tags worth showing */
   buildPoint(node: OsmNode): Feature | undefined {
     if (!hasInterestingTags(node.tags)) return undefined
-    const id = `n${node.id}`
+    const coordinates = coordinateOf(node)
+    if (!coordinates) return undefined
+    const id = node.id
     this.built.add(id)
     const props: PointProps = { id }
-    const addr = addressOf(node.tags!)
+    const addr = addressOf(node.tags)
     if (addr) props.addr = addr
     else {
-      const icon = presetIcon(node.tags!)
+      const icon = presetIcon(node.tags)
       if (icon) props.icon = icon
-      if (node.tags!.name) props.name = node.tags!.name
+      if (node.tags.name) props.name = node.tags.name
     }
-    return {
-      type: 'Feature',
-      id,
-      properties: props,
-      geometry: { type: 'Point', coordinates: [node.lon, node.lat] },
-    }
+    return { type: 'Feature', id, properties: props, geometry: { type: 'Point', coordinates } }
   }
 
   /** Re-reads a vertex's tags (tagged or not) and returns its feature, if it has one */
   refreshVertex(node: OsmNode): Feature | undefined {
-    const shared = (this.store.nodeUses.get(node.id) ?? 0) > 1
+    const shared = (this.data.nodeUses.get(node.id) ?? 0) > 1
     const tagged = hasInterestingTags(node.tags)
-    if (!tagged && !shared && !this.store.endpoints.has(node.id)) {
+    if (!tagged && !shared && !this.data.endpoints.has(node.id)) {
       this.vertexState.delete(node.id)
       return undefined
     }
@@ -343,47 +347,50 @@ export class FeatureBuilder {
   buildVertex(node: OsmNode): Feature | undefined {
     const state = this.vertexState.get(node.id)
     if (!state) return undefined
+    const coordinates = coordinateOf(node)
+    if (!coordinates) return undefined
     const props: VertexProps = {
-      id: `n${node.id}`,
+      id: node.id,
       t: state[0] === '1' ? 1 : 0,
       s: state[1] === '1' ? 1 : 0,
     }
-    const icon = props.t ? matchPreset(node.tags!, 'vertex')?.icon : undefined
+    const icon = props.t ? matchPreset(node.tags, 'vertex')?.icon : undefined
     if (icon) props.icon = icon
     return {
       type: 'Feature',
       id: props.id,
       properties: props,
-      geometry: { type: 'Point', coordinates: [node.lon, node.lat] },
+      geometry: { type: 'Point', coordinates },
     }
   }
 
   /** Features for everything a merge added. Call once per merge, in order. */
   build(added: MergeResult): FeatureBatch {
-    const { store } = this
+    const { data } = this
     const out: FeatureBatch = { areas: [], lines: [], points: [], vertices: [] }
 
     for (const relation of added.relations) {
-      if (relation.tags?.type === 'multipolygon') this.pendingRelations.add(relation.id)
+      if (relation.tags.type === 'multipolygon') this.pendingRelations.add(relation.id)
     }
     for (const id of this.pendingRelations) {
-      const relation = store.relations.get(id)!
-      const polygons = multipolygon(store, relation)
+      const relation = data.relation(id)
+      if (!relation) continue
+      const polygons = multipolygon(data, relation)
       if (!polygons) continue
       this.pendingRelations.delete(id)
       // old-style multipolygons carry their tags on the outer way
-      let tags = relation.tags!
+      let tags = relation.tags
       if (Object.keys(tags).every((k) => k === 'type')) {
         const outer = relation.members.find((m) => m.type === 'way' && m.role !== 'inner')
-        tags = { ...store.ways.get(outer!.ref)?.tags }
+        const outerWay = outer && data.way(outer.id)
+        tags = { ...outerWay?.tags }
       }
-      out.areas.push(areaFeature(`r${id}`, polygons, tags, tagClasses(tags)))
-      this.built.add(`r${id}`)
+      out.areas.push(areaFeature(id, polygons, tags, tagClasses(tags)))
+      this.built.add(id)
     }
 
     for (const way of added.ways) {
-      const id = `w${way.id}`
-      if (this.built.has(id)) continue
+      if (this.built.has(way.id)) continue
       const built = this.buildWay(way)
       if (built) out[built.source].push(built.feature)
     }
@@ -392,14 +399,14 @@ export class FeatureBuilder {
     const touched = new Set<OsmNode>(added.nodes)
     for (const way of added.ways) {
       for (const nodeId of way.nodes) {
-        const node = store.nodes.get(nodeId)
+        const node = data.node(nodeId)
         if (node) touched.add(node)
       }
     }
     for (const node of touched) {
-      const uses = store.nodeUses.get(node.id) ?? 0
+      const uses = data.nodeUses.get(node.id) ?? 0
       const tagged = hasInterestingTags(node.tags)
-      const id = `n${node.id}`
+      const id = node.id
       if (uses === 0) {
         if (!tagged || this.built.has(id)) continue
         const point = this.buildPoint(node)
@@ -408,18 +415,20 @@ export class FeatureBuilder {
       }
       // iD only draws vertices that matter while nothing is selected: tagged, junctions, way ends
       const shared = uses > 1
-      if (!tagged && !shared && !store.endpoints.has(node.id)) continue
+      if (!tagged && !shared && !data.endpoints.has(node.id)) continue
       const state = `${tagged ? 1 : 0}${shared ? 1 : 0}`
       if (this.vertexState.get(node.id) === state) continue
+      const coordinates = coordinateOf(node)
+      if (!coordinates) continue
       this.vertexState.set(node.id, state)
       const props: VertexProps = { id, t: tagged ? 1 : 0, s: shared ? 1 : 0 }
-      const icon = tagged ? matchPreset(node.tags!, 'vertex')?.icon : undefined
+      const icon = tagged ? matchPreset(node.tags, 'vertex')?.icon : undefined
       if (icon) props.icon = icon
       out.vertices.push({
         type: 'Feature',
         id,
         properties: props,
-        geometry: { type: 'Point', coordinates: [node.lon, node.lat] } as Point,
+        geometry: { type: 'Point', coordinates } as Point,
       })
     }
     return out
@@ -427,17 +436,17 @@ export class FeatureBuilder {
 }
 
 /** All nodes of a way as vertex features, for showing a selected way's shape points */
-export function wayVertices(store: OsmStore, wayId: number): Feature<Point>[] {
-  const way = store.ways.get(wayId)
+export function wayVertices(data: OsmData, wayId: string): Feature<Point>[] {
+  const way = data.way(wayId)
   if (!way) return []
   const out: Feature<Point>[] = []
   for (const nodeId of new Set(way.nodes)) {
-    const node = store.nodes.get(nodeId)
-    if (node)
+    const coordinates = coordinateOf(data.node(nodeId))
+    if (coordinates)
       out.push({
         type: 'Feature',
-        properties: { id: `n${nodeId}` },
-        geometry: { type: 'Point', coordinates: [node.lon, node.lat] },
+        properties: { id: nodeId },
+        geometry: { type: 'Point', coordinates },
       })
   }
   return out

@@ -1,3 +1,10 @@
+import {
+  actionChangeTags,
+  actionMoveNode,
+  OsmWay,
+  type OsmJsonElement,
+  type OsmNode,
+} from '@osm-editor-kit/maid-model'
 /**
  * Loads OSM data for the viewport and keeps MapLibre's sources in sync.
  *
@@ -18,14 +25,15 @@ import {
 import type { Feature, FeatureCollection } from 'geojson'
 import type { GeoJSONSource, Map as MapLibreMap, MapGeoJSONFeature } from 'maplibre-gl'
 import {
+  coordinateOf,
   dashPatterns,
   FeatureBuilder,
   wayVertices,
   type FeatureBatch,
   type SourceName,
 } from './build'
+import { OsmData } from './data'
 import { EDIT_SOURCES, SOURCES } from './layers'
-import { OsmStore, type OsmElement } from './store'
 
 export type EngineOptions = {
   /** OSM API root, e.g. http://localhost:8090/s/medium */
@@ -94,13 +102,14 @@ const y2lat = (y: number) =>
   (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / 2 ** TILE_ZOOM))) * 180) / Math.PI
 
 export class MaidEngine {
-  store = new OsmStore()
+  /** The OSM data: entities and edit history (in the data model), plus the indexes of the builder */
+  data = new OsmData()
   metrics: EngineMetrics = {
     tiles: 0, updates: 0, compactions: 0, bytes: 0, fetchMs: 0, parseMs: 0, mergeMs: 0, buildMs: 0, pushMs: 0,
     features: { areas: 0, lines: 0, points: 0, vertices: 0 },
   } // prettier-ignore
 
-  private builder = new FeatureBuilder(this.store)
+  private builder = new FeatureBuilder(this.data)
   private map?: MapLibreMap
   private tiles = new Set<string>()
   private inflight = 0
@@ -161,18 +170,17 @@ export class MaidEngine {
 
   entity(id: string | null): EntityInfo | undefined {
     if (!id) return undefined
-    const num = Number(id.slice(1))
     if (id[0] === 'n') {
-      const node = this.store.nodes.get(num)
+      const node = this.data.node(id)
       if (!node) return undefined
-      const geometry: Geometry = this.store.nodeWays.has(num) ? 'vertex' : 'point'
-      const tags = node.tags ?? {}
+      const geometry: Geometry = this.data.nodeWays.has(id) ? 'vertex' : 'point'
+      const tags = node.tags
       return { id, type: 'node', geometry, tags, preset: matchPreset(tags, geometry) }
     }
     if (id[0] === 'w') {
-      const way = this.store.ways.get(num)
+      const way = this.data.way(id)
       if (!way) return undefined
-      const tags = way.tags ?? {}
+      const tags = way.tags
       const closed = way.nodes.length > 2 && way.nodes[0] === way.nodes[way.nodes.length - 1]
       const geometry: Geometry = isArea(way.tags, closed) ? 'area' : 'line'
       return {
@@ -184,9 +192,9 @@ export class MaidEngine {
         size: way.nodes.length,
       }
     }
-    const relation = this.store.relations.get(num)
+    const relation = this.data.relation(id)
     if (!relation) return undefined
-    const tags = relation.tags ?? {}
+    const tags = relation.tags
     const geometry: Geometry = tags.type === 'multipolygon' ? 'area' : 'relation'
     return {
       id,
@@ -196,6 +204,13 @@ export class MaidEngine {
       preset: matchPreset(tags, geometry),
       size: relation.members.length,
     }
+  }
+
+  /** The node or way with this id in the current graph. Relations and unknown ids give undefined. */
+  private nodeOrWay(id: string): OsmNode | OsmWay | undefined {
+    if (id[0] === 'n') return this.data.node(id)
+    if (id[0] === 'w') return this.data.way(id)
+    return undefined
   }
 
   attach(map: MapLibreMap) {
@@ -238,7 +253,7 @@ export class MaidEngine {
       if (!res.ok) throw new Error(`OSM API answered ${res.status} for tile ${x}/${y}`)
       const text = await res.text()
       const t1 = performance.now()
-      const json = JSON.parse(text) as { elements: OsmElement[] }
+      const json = JSON.parse(text) as { elements: OsmJsonElement[] }
       const t2 = performance.now()
       this.metrics.tiles++
       this.metrics.bytes += text.length
@@ -259,9 +274,9 @@ export class MaidEngine {
     }
   }
 
-  merge(elements: OsmElement[]) {
+  merge(elements: OsmJsonElement[]) {
     const t0 = performance.now()
-    const added = this.store.merge(elements)
+    const added = this.data.merge(elements)
     const t1 = performance.now()
     const batch = this.builder.build(added)
     const t2 = performance.now()
@@ -519,21 +534,33 @@ export class MaidEngine {
 
   /**
    * Moves a node, as dragging a vertex would, and resolves with the time until the change is
-   * on screen. Rebuilds the ways that use the node and sends them to MapLibre.
+   * on screen. A move on its own is one undo step; a drag is one step when it ends (`endDrag`).
    */
-  async moveNode(nodeId: number, lon: number, lat: number) {
+  async moveNode(id: string, lon: number, lat: number) {
+    const ms = await this.moveNodeStep(id, lon, lat)
+    this.data.history.commit({ annotation: 'Moved a node', selectedIDs: [id] })
+    return ms
+  }
+
+  /**
+   * Performs one move on the work in progress and sends the features that use the node to
+   * MapLibre. A drag calls this for every step; only `moveNode` and `endDrag` make an undo step. Public for the edit benchmark.
+   */
+  async moveNodeStep(id: string, lon: number, lat: number) {
     const { map } = this
-    const node = this.store.nodes.get(nodeId)
-    if (!map || !node) throw new Error(`Cannot move node ${nodeId}`)
+    if (!map || !this.data.node(id)) throw new Error(`Cannot move node ${id}`)
     const t0 = performance.now()
-    node.lon = lon
-    node.lat = lat
+    // the action replaces the node with a moved copy: look the node up again after it
+    this.data.history.perform(actionMoveNode(id, [lon, lat]))
     const batch: FeatureBatch = { areas: [], lines: [], points: [], vertices: [] }
-    for (const wayId of this.store.nodeWays.get(nodeId) ?? []) {
-      const built = this.builder.buildWay(this.store.ways.get(wayId)!)
+    for (const wayId of this.data.nodeWays.get(id) ?? []) {
+      const way = this.data.way(wayId)
+      if (!way) continue
+      const built = this.builder.buildWay(way)
       if (built) batch[built.source].push(built.feature)
     }
-    const vertex = this.builder.buildVertex(node)
+    const node = this.data.node(id)
+    const vertex = node && this.builder.buildVertex(node)
     if (vertex) batch.vertices.push(vertex)
 
     if (this.tiered) {
@@ -575,33 +602,32 @@ export class MaidEngine {
    * Local only: nothing is uploaded, and there is no undo yet.
    */
   setTag(id: string, key: string, value: string | undefined) {
-    const num = Number(id.slice(1))
-    const entity =
-      id[0] === 'n'
-        ? this.store.nodes.get(num)
-        : id[0] === 'w'
-          ? this.store.ways.get(num)
-          : undefined
+    const entity = this.nodeOrWay(id)
     if (!entity || !key) return
+    // the action sets the whole tag set, so the changed copy is built here
     const tags = { ...entity.tags }
     if (value === undefined || value === '') delete tags[key]
     else tags[key] = value
-    entity.tags = Object.keys(tags).length ? tags : undefined
+    this.data.history.perform(actionChangeTags(id, tags))
+    this.data.history.commit({ annotation: 'Changed tags', selectedIDs: [id] })
+    // the action replaced the entity with a copy: look it up again, never reuse the old one
+    const updated = this.nodeOrWay(id)
+    if (!updated) return
 
     const batch: FeatureBatch = { areas: [], lines: [], points: [], vertices: [] }
     const remove: [SourceName, string][] = []
     const previous = this.featureSource.get(id)
-    if (entity.type === 'way') {
-      const built = this.builder.buildWay(entity)
+    if (updated instanceof OsmWay) {
+      const built = this.builder.buildWay(updated)
       if (built) batch[built.source].push(built.feature)
       // a way can change between line and area, or stop being drawn
       if (previous && previous !== built?.source) remove.push([previous, id])
-    } else if (this.store.nodeWays.has(num)) {
-      const vertex = this.builder.refreshVertex(entity)
+    } else if (this.data.nodeWays.has(id)) {
+      const vertex = this.builder.refreshVertex(updated)
       if (vertex) batch.vertices.push(vertex)
       else if (previous) remove.push([previous, id])
     } else {
-      const point = this.builder.buildPoint(entity)
+      const point = this.builder.buildPoint(updated)
       if (point) batch.points.push(point)
       else if (previous) remove.push([previous, id])
     }
@@ -627,12 +653,14 @@ export class MaidEngine {
 
   // --- Dragging a vertex ---
 
-  private dragTarget?: { nodeId: number; lon: number; lat: number }
+  private dragTarget?: { id: string; lon: number; lat: number }
+  /** The vertex being dragged: its moves become one undo step when the drag ends */
+  private dragged?: string
   private dragBusy = false
 
   /** True if this id is a vertex that can be dragged */
   isVertex(id: string | null): id is string {
-    return !!id && id[0] === 'n' && this.store.nodeWays.has(Number(id.slice(1)))
+    return !!id && id[0] === 'n' && this.data.nodeWays.has(id)
   }
 
   /**
@@ -641,7 +669,8 @@ export class MaidEngine {
    * lags behind by more than one update.
    */
   dragTo(id: string, lon: number, lat: number) {
-    this.dragTarget = { nodeId: Number(id.slice(1)), lon, lat }
+    this.dragTarget = { id, lon, lat }
+    this.dragged = id
     this.touch()
     if (this.dragBusy) return
     this.dragBusy = true
@@ -650,7 +679,7 @@ export class MaidEngine {
         while (this.dragTarget) {
           const target = this.dragTarget
           this.dragTarget = undefined
-          await this.moveNode(target.nodeId, target.lon, target.lat)
+          await this.moveNodeStep(target.id, target.lon, target.lat)
         }
       } finally {
         this.dragBusy = false
@@ -658,10 +687,14 @@ export class MaidEngine {
     })()
   }
 
-  /** Call when the vertex is released */
+  /** Call when the vertex is released. The whole drag becomes one undo step. */
   async endDrag() {
     while (this.dragBusy) await new Promise((resolve) => requestAnimationFrame(resolve))
-    // nothing to write back: the moved features stay in the live tier until compaction
+    const id = this.dragged
+    this.dragged = undefined
+    if (id && this.data.history.hasWorkInProgress)
+      this.data.history.commit({ annotation: 'Moved a node', selectedIDs: [id] })
+    // the moved features stay in the live tier until compaction
     this.touch()
     this.wake()
   }
@@ -711,8 +744,7 @@ export class MaidEngine {
       set(kind === 'hover' ? hoverId : selectedId, true)
       if (kind === 'selected') {
         // the shape points of the selected way come from the small highlight source
-        const shape =
-          selectedId?.[0] === 'w' ? wayVertices(this.store, Number(selectedId.slice(1))) : []
+        const shape = selectedId?.[0] === 'w' ? wayVertices(this.data, selectedId) : []
         for (const vertex of shape) vertex.properties = { ...vertex.properties, state: 'shape' }
         void map
           .getSource<GeoJSONSource>(SOURCES.highlight)
@@ -739,27 +771,26 @@ export class MaidEngine {
   }
 
   private highlightFeatures(id: string, state: 'hover' | 'selected'): Feature[] {
-    const num = Number(id.slice(1))
     if (id[0] === 'n') {
-      const node = this.store.nodes.get(num)
-      if (!node) return []
+      const coordinates = coordinateOf(this.data.node(id))
+      if (!coordinates) return []
       return [
         {
           type: 'Feature',
           properties: { id, state },
-          geometry: { type: 'Point', coordinates: [node.lon, node.lat] },
+          geometry: { type: 'Point', coordinates },
         },
       ]
     }
     if (id[0] !== 'w') return []
-    const way = this.store.ways.get(num)
+    const way = this.data.way(id)
     if (!way) return []
     const coordinates = way.nodes.flatMap((n) => {
-      const node = this.store.nodes.get(n)
-      return node ? [[node.lon, node.lat]] : []
+      const coord = coordinateOf(this.data.node(n))
+      return coord ? [coord] : []
     })
     const geom = this.featureSource.get(id) === 'areas' ? 'area' : 'line'
-    const shadow = resolveWayStyle(tagClasses(way.tags ?? {}), geom).shadow
+    const shadow = resolveWayStyle(tagClasses(way.tags), geom).shadow
     const out: Feature[] = [
       {
         type: 'Feature',
@@ -773,7 +804,7 @@ export class MaidEngine {
       },
     ]
     if (state === 'selected') {
-      for (const vertex of wayVertices(this.store, num)) {
+      for (const vertex of wayVertices(this.data, id)) {
         vertex.properties = { ...vertex.properties, state: 'shape' }
         out.push(vertex)
       }
@@ -816,7 +847,7 @@ export class MaidEngine {
       drawn.layers = map.getStyle().layers.length
     }
     return {
-      entities: this.store.counts(),
+      entities: this.data.counts(),
       drawn,
       hidden: { ...this.builder.hidden },
       loaded: { ...this.metrics.features },

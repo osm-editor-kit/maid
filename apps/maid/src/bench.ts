@@ -40,8 +40,8 @@ export function exposeBenchApi(
     selected: () => engine.selected(),
     hovered: () => engine.hovered(),
     nodeLoc: (id) => {
-      const node = engine.store.nodes.get(Number(id.slice(1)))
-      return node ? [node.lon, node.lat] : undefined
+      const loc = engine.data.node(id)?.loc
+      return loc ? [loc[0], loc[1]] : undefined
     },
   }
   Object.assign(window, { __bench: api, __maid: { map, engine } })

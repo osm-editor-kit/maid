@@ -39,12 +39,12 @@ const result = await page.evaluate(async () => {
   )
   let best: any
   for (const id of ids) {
-    const way = engine.store.ways.get(Number(id.slice(1)))
+    const way = engine.data.way(id)
     if (way?.tags?.highway && (!best || way.nodes.length > best.nodes.length)) best = way
   }
   const nodeId = best.nodes[Math.floor(best.nodes.length / 2)]
-  const node = engine.store.nodes.get(nodeId)
-  const start = { lon: node.lon, lat: node.lat }
+  const node = engine.data.node(nodeId)
+  const start = { lon: node.loc[0], lat: node.loc[1] }
   const frames: number[] = []
   let last = 0
   let running = true
@@ -58,7 +58,7 @@ const result = await page.evaluate(async () => {
   const t0 = performance.now()
   for (let i = 1; i <= 120; i++) {
     latencies.push(
-      await engine.moveNode(
+      await engine.moveNodeStep(
         nodeId,
         start.lon + i * 0.000002,
         start.lat + Math.sin(i / 10) * 0.00002,
@@ -67,6 +67,8 @@ const result = await page.evaluate(async () => {
   }
   const total = performance.now() - t0
   const tc = performance.now()
+  // 120 steps are one undo step, as a drag would be
+  engine.data.history.commit({ annotation: 'Moved a node', selectedIDs: [nodeId] })
   await engine.endDrag()
   await (window as any).__bench.settled()
   const commitMs = performance.now() - tc
@@ -74,8 +76,8 @@ const result = await page.evaluate(async () => {
   return {
     way: best.id,
     wayNodes: best.nodes.length,
-    waysAtNode: engine.store.nodeWays.get(nodeId).length,
-    entities: engine.store.counts(),
+    waysAtNode: engine.data.nodeWays.get(nodeId).length,
+    entities: engine.data.counts(),
     latencies,
     frames,
     total,

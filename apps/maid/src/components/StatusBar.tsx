@@ -4,7 +4,7 @@ import { useCameraParam } from '../url/state'
 /** Bottom bar: zoom, what is loaded, where the data comes from */
 export function StatusBar() {
   const [camera] = useCameraParam()
-  const { nodes, ways, relations } = useEngine((e) => e.store.counts())
+  const { nodes, ways, relations } = useEngine((e) => e.data.counts())
   const zoom = camera?.zoom ?? config.camera?.zoom
   const belowDataZoom = zoom !== undefined && zoom < config.minDataZoom
   return (
