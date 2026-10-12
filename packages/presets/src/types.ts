@@ -39,6 +39,16 @@ export type Field = {
   minValue?: number
   increment?: number
   universal: boolean
+  /** Combos: false when values keep their spaces; iD writes spaces as underscores otherwise */
+  snakeCase?: boolean
+  /** Combos: true when values keep their case; iD writes lower case otherwise */
+  caseSensitive?: boolean
+  /** Combos: false when only the listed options may be chosen */
+  customValues?: boolean
+  /** Identifier fields: the link for a value, with `{value}` in it */
+  urlFormat?: string
+  /** Identifier fields: a regular expression the value has to match for the link */
+  pattern?: string
 }
 
 /**

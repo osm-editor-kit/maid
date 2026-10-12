@@ -326,6 +326,13 @@ export function createPresets(data: PresetData): Presets {
     if (minValue !== undefined) field.minValue = minValue
     const increment = asNumber(raw.increment)
     if (increment !== undefined) field.increment = increment
+    if (typeof raw.snake_case === 'boolean') field.snakeCase = raw.snake_case
+    if (typeof raw.caseSensitive === 'boolean') field.caseSensitive = raw.caseSensitive
+    if (typeof raw.customValues === 'boolean') field.customValues = raw.customValues
+    const urlFormat = asString(raw.urlFormat)
+    if (urlFormat !== undefined) field.urlFormat = urlFormat
+    const pattern = asString(raw.pattern)
+    if (pattern !== undefined) field.pattern = pattern
     return field
   }
 
