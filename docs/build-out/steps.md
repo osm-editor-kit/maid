@@ -177,7 +177,9 @@ Waiting for the renderer to be free (one after the other):
   Result (2026-10-13): built in bbda5ba.
 - [x] Side indicator and width band on the map while a field has the focus.
   Result (2026-10-13): built in 1f5cb67; the band going away after a value is confirmed and when the pointer leaves the fields is fixed in 4ea65cd and c637528.
-- [ ] Measuring tape for width fields.
+- [x] Measuring tape for width fields.
+  Result (2026-10-13): built in f7d5431: a button in the label line of every width field, two clicks on the map, the ground distance to one decimal as one undo step; Escape cancels.
+  Test for Tobias: select a road, add the field "Width", hover its label, click the ruler, click the two kerbs.
 - [x] Validation: measure the speed of all rules on the dense scene; decide between the main thread, a worker and WASM from the numbers.
   Result (2026-10-13): measured in 919405b (an edit is checked in 4 ms on the dense scene). The decision is in [validation-performance.md](../research/validation-performance.md): main thread, no worker, no WASM for now.
 
@@ -191,7 +193,8 @@ Waiting for preset changes and field types from modules:
 
 At the end:
 - [ ] One or two code reviews for speed and for simpler code, with the findings applied.
-- [ ] One list of all missing features from the area reports.
+- [x] One list of all missing features from the area reports.
+  Result (2026-10-13): [missing-features.md](../research/missing-features.md) (c637528). Built from it since: reverse and orthogonalize keep data (72bd175), midpoint handles (2a36487), move keeps the neighbours' shape (194a5f8).
 
 Waiting for a decision by Tobias: bugs in the model that lose data (reverse with semicolon values) need a change to code that is kept identical to Rapid; field defaults when a type is chosen; hide a feature only when all its filter categories are hidden; trimming of `note`, `description`, `fixme`; restore the last map position; combo option order; emptying a translation's code; seven favourites with fixed keys.
 

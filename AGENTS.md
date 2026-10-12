@@ -111,6 +111,8 @@ packages/operations  the edit menu's operations (reverse, split, merge, ...) on 
 packages/presets     preset matching and fields on id-tagging-schema, headless
 packages/validation  rules that check what was changed, and their fixes, headless
 packages/ui          the shell and the inspector's fields: layout, top bar, sidebar, map controls, dock, theme; declares inspector.section
+packages/module-*    optional modules an editor switches on in its config: imagery, street-imagery, data-layers,
+                     notes, lenses, traffic-signs, surface (the last two are built but not switched on)
 packages/renderer    feature builder, MapLibre layers, engine, module layers; draws from the model
 tools/mock-osm-api   local stand-in for the OSM API, serves fixtures
 tools/refs           pinned iD and Rapid: setup, host pages, bench adapters, notes
