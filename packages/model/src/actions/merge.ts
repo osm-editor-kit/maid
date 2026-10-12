@@ -1,4 +1,5 @@
 import { utilArrayGroupBy, utilArrayUniq } from '@rapid-sdk/util';
+import { utilIsExistingEntity, utilIsOrderedEntity, utilSurvivorID } from '../util/ids.ts';
 
 import type { Action } from './types.ts';
 import type { EntityType } from '../data/types.ts';
@@ -56,20 +57,48 @@ export function actionMerge(entityIDs: EntityID[]): Action {
       const nodes = utilArrayUniq(graph.childNodes(target));
       let removeNode: OsmNode = point;
 
-      for (const node of nodes) {
-        if (graph.parentWays(node).length > 1 ||
-          graph.parentRelations(node).length ||
-          node.hasInterestingTags()) {
-          continue;
+      // Maid: differs from Rapid here (F-actions-b-1): the oldest existing entity survives
+      if (utilIsOrderedEntity(point)) {
+        // iD's order (merge.js): an existing point takes the place of a child node; a new point is dropped
+        if (utilIsExistingEntity(point)) {
+          const canBeReplaced = (node: OsmNode): boolean =>
+            !(graph.parentWays(node).length > 1 || graph.parentRelations(node).length);
+
+          // 1. a new child node on the target way
+          let child = nodes.find(node => canBeReplaced(node) && !utilIsExistingEntity(node));
+
+          if (!child && point.hasInterestingTags()) {
+            // 2. an uninteresting child node
+            child = nodes.find(node => canBeReplaced(node) && !node.hasInterestingTags());
+            // 3. an interesting child node that is newer than the point
+            child ??= nodes.find(node => canBeReplaced(node) && utilSurvivorID([point, node]) === point.id);
+          }
+
+          if (child) {
+            graph.replace(point.update({ tags: child.tags, loc: child.loc }));
+            target = target.replaceNode(child.id, point.id);
+            graph.replace(target);
+            removeNode = child;
+          }
         }
 
-        // Found an uninteresting child node on the target way.
-        // Move orig point into its place to preserve point's history. iD#3683
-        graph.replace(point.update({ tags: {}, loc: node.loc }));
-        target = target.replaceNode(node.id, point.id);
-        graph.replace(target);
-        removeNode = node;
-        break;
+      } else {
+        // Rapid's rule for a point without a usable id (a test id without a version)
+        for (const node of nodes) {
+          if (graph.parentWays(node).length > 1 ||
+            graph.parentRelations(node).length ||
+            node.hasInterestingTags()) {
+            continue;
+          }
+
+          // Found an uninteresting child node on the target way.
+          // Move orig point into its place to preserve point's history. iD#3683
+          graph.replace(point.update({ tags: {}, loc: node.loc }));
+          target = target.replaceNode(node.id, point.id);
+          graph.replace(target);
+          removeNode = node;
+          break;
+        }
       }
 
       graph.remove(removeNode);

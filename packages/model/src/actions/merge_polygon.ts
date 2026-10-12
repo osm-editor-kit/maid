@@ -4,6 +4,7 @@ import type { Vec2 } from '@rapid-sdk/math';
 import { OsmRelation } from '../data/OsmRelation.ts';
 import { osmJoinWays } from '../lib/multipolygon.ts';
 import { utilArrayGroupBy, utilArrayIntersection, utilObjectOmit } from '@rapid-sdk/util';
+import { utilSurvivorID } from '../util/ids.ts';
 
 import type { Action } from './types.ts';
 import type { Graph } from '../lib/Graph.ts';
@@ -145,12 +146,18 @@ export function actionMergePolygon(ids: EntityID[], newRelationID?: EntityID): A
     }
 
     // Move all tags to one relation
+    // Maid: differs from Rapid here (F-actions-b-3): the oldest existing entity survives
     let relation = entities.multipolygon[0];
+    const oldestID = utilSurvivorID(entities.multipolygon);
+    if (oldestID) {
+      relation = entities.multipolygon.find((m: OsmRelation) => m.id === oldestID)!;
+    }
     if (!relation) {
       relation = new OsmRelation(graph.context, { id: newRelationID, tags: { type: 'multipolygon' }});
     }
 
-    entities.multipolygon.slice(1).forEach((m: OsmRelation) => {
+    const keptID = relation.id;
+    entities.multipolygon.filter((m: OsmRelation) => m.id !== keptID).forEach((m: OsmRelation) => {
       relation = relation.mergeTags(m.tags);
       graph.remove(m);
     });

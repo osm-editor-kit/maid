@@ -1,6 +1,7 @@
 import { actionDeleteNode } from './delete_node.ts';
 import { actionDeleteWay } from './delete_way.ts';
 import { utilArrayUniq } from '@rapid-sdk/util';
+import { utilIsExistingEntity, utilSurvivorID } from '../util/ids.ts';
 
 import type { Action } from './types.ts';
 import type { EntityType } from '../data/types.ts';
@@ -11,8 +12,33 @@ import type { OsmWay } from '../data/OsmWay.ts';
 
 
 /**
+ * Chooses the node that survives a connect.
+ * Maid: differs from Rapid here (F-actions-a-5, F-actions-b-2): the oldest existing entity survives.
+ * As in iD, an existing node with interesting tags is preferred, then the oldest existing node, then the
+ * oldest node. Where the ids cannot be ordered (test ids without a version), Rapid's rule applies:
+ * the first node with a version, else the last node (iD#4974).
+ * @param   graph   - The current graph
+ * @param   nodeIDs - Array of EntityIDs of the nodes to connect, not empty
+ * @return  The surviving node
+ */
+function chooseSurvivor(graph: Graph, nodeIDs: EntityID[]): OsmNode {
+  const nodes = nodeIDs.map((nodeID) => graph.entity(nodeID) as OsmNode);
+  const interesting = nodes.filter((node) => utilIsExistingEntity(node) && node.hasInterestingTags());
+  const survivorID = utilSurvivorID(interesting.length ? interesting : nodes);
+  if (survivorID) return graph.entity(survivorID) as OsmNode;
+
+  let survivor = nodes[0];
+  for (const node of nodes) {
+    survivor = node;
+    if (survivor.version) break;  // found one
+  }
+  return survivor;
+}
+
+
+/**
  * Connects the ways at the given nodes.
- * First choose a node to be the survivor, with preference given to an existing (not new) node.
+ * First choose a node to be the survivor (see `chooseSurvivor`).
  * Tags and relation memberships of non-surviving nodes are merged to the survivor.
  * This is the inverse of `actionDisconnect`.
  * @param   nodeIDs  - Array of EntityIDs of nodes to connect
@@ -22,13 +48,8 @@ export function actionConnect(nodeIDs: EntityID[]): Action {
   const action = ((graph: Graph): Graph => {
     if (!nodeIDs.length) return graph;
 
-    // Choose a survivor node, prefer an existing (not new) node - iD#4974
-    // If none have a version, the last node becomes the survivor.
-    let survivor = graph.entity(nodeIDs[0]) as OsmNode;
-    for (const nodeID of nodeIDs) {
-      survivor = graph.entity(nodeID) as OsmNode;
-      if (survivor.version) break;  // found one
-    }
+    // Maid: differs from Rapid here (F-actions-a-5): the oldest existing entity survives
+    let survivor = chooseSurvivor(graph, nodeIDs);
 
     // Replace all non-surviving nodes with the survivor and merge tags.
     for (const nodeID of nodeIDs) {
@@ -76,13 +97,8 @@ export function actionConnect(nodeIDs: EntityID[]): Action {
     const seen: Record<EntityID, string> = {};
     const restrictionIDs = new Set<EntityID>();
 
-    // Choose a survivor node, prefer an existing (not new) node - iD#4974
-    // If none have a version, the last node becomes the survivor.
-    let survivor = graph.entity(nodeIDs[0]) as OsmNode;
-    for (const nodeID of nodeIDs) {
-      survivor = graph.entity(nodeID) as OsmNode;
-      if (survivor.version) break;  // found one
-    }
+    // Maid: differs from Rapid here (F-actions-a-5): the same survivor as the action
+    const survivor = chooseSurvivor(graph, nodeIDs);
 
     // 1. disable if the nodes being connected have conflicting relation roles
     for (const nodeID of nodeIDs) {
