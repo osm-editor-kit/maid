@@ -22,6 +22,7 @@ import {
   type Tags,
 } from '@osm-editor-kit/maid-style'
 import type { Feature, LineString, MultiPolygon, Point, Polygon, Position } from 'geojson'
+import { addressLabel, isAddressTags } from './address'
 import type { MergeResult, OsmData } from './data'
 import { arrowColour, onewayOf, sidedOf, type OneWay } from './direction'
 
@@ -76,7 +77,7 @@ export type AreaProps = {
   name?: string
 }
 
-/** `addr`: house number of a pure address node, which iD draws as a small label instead of a pin */
+/** `addr`: the text of an address node (iD draws it on a plaque, not as a pin; '' for an address without number or name) */
 export type PointProps = { id: string; icon?: string; name?: string; addr?: string }
 export type VertexProps = { id: string; t: 0 | 1; s: 0 | 1; icon?: string }
 
@@ -350,14 +351,6 @@ function isHiddenBoundary(t: Tags) {
   )
 }
 
-/** iD's isAddressPoint: a node that only carries an address */
-function addressOf(t: Tags) {
-  const number = t['addr:housenumber'] ?? t['addr:housename']
-  if (!number) return undefined
-  for (const k in t) if (!k.startsWith('addr:')) return undefined
-  return number
-}
-
 export class FeatureBuilder {
   /** Features left out on purpose, by reason */
   hidden: Record<string, number> = {}
@@ -488,8 +481,7 @@ export class FeatureBuilder {
     this.built.add(id)
     if (this.isFiltered(id, node.tags, 'point', first)) return undefined
     const props: PointProps = { id }
-    const addr = addressOf(node.tags)
-    if (addr) props.addr = addr
+    if (isAddressTags(node.tags)) props.addr = addressLabel(node.tags)
     else {
       const icon =
         this.presets?.match(node.tags, 'point').icon ??

@@ -14,7 +14,13 @@ export {
   type MapContentProps,
   type MapLayerItem,
 } from './extension-points'
-export { buildLayers, interactiveLayerIds, SOURCES, type LayerOptions } from './layers'
+export {
+  ADDRESS_PLAQUE,
+  buildLayers,
+  interactiveLayerIds,
+  SOURCES,
+  type LayerOptions,
+} from './layers'
 export { ModuleLayers } from './ModuleLayers'
 export { OsmLayers } from './OsmLayers'
 export { OsmData, type MergeResult } from './data'

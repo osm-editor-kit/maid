@@ -1,3 +1,4 @@
+import { ADDRESS_PLAQUE } from '@osm-editor-kit/maid-renderer'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 
 /** Which of iD's sprite files holds an icon, by the prefix of its name */
@@ -74,17 +75,57 @@ async function addPin(map: MapLibreMap, id: string, ratio: number) {
 }
 
 /**
+ * The address plaque (iD's shield for an address node): a white rounded box with a grey edge,
+ * 16px high, 36px wide. The layer stretches it to the house number (icon-text-fit), so the
+ * middle may grow and the corners stay round.
+ */
+const PLAQUE_W = 36
+const PLAQUE_H = 16
+const PLAQUE_R = 3.5
+
+async function addPlaque(map: MapLibreMap, _id: string, ratio: number) {
+  const canvas = document.createElement('canvas')
+  canvas.width = PLAQUE_W * ratio
+  canvas.height = PLAQUE_H * ratio
+  const ctx = canvas.getContext('2d')!
+  ctx.scale(ratio, ratio)
+  ctx.translate(0.5, 0.5)
+  const [w, h, r] = [PLAQUE_W - 1, PLAQUE_H - 1, PLAQUE_R]
+  ctx.beginPath()
+  ctx.moveTo(r, 0)
+  ctx.arcTo(w, 0, w, h, r)
+  ctx.arcTo(w, h, 0, h, r)
+  ctx.arcTo(0, h, 0, 0, r)
+  ctx.arcTo(0, 0, w, 0, r)
+  ctx.closePath()
+  ctx.fillStyle = '#fff'
+  ctx.strokeStyle = '#444'
+  ctx.lineWidth = 1
+  ctx.fill()
+  ctx.stroke()
+  if (!map.hasImage(ADDRESS_PLAQUE))
+    map.addImage(ADDRESS_PLAQUE, ctx.getImageData(0, 0, canvas.width, canvas.height), {
+      pixelRatio: ratio,
+      // the middle of the box may stretch, the round ends may not (logical px)
+      stretchX: [[PLAQUE_R + 1, PLAQUE_W - PLAQUE_R - 1]],
+      stretchY: [[PLAQUE_R + 1, PLAQUE_H - PLAQUE_R - 1]],
+    })
+}
+
+/**
  * Adds the images these ids need, unless they exist: `pin-<icon>` or `icon-<icon>`.
  * Resolves when all are usable.
  */
 export function ensureImages(map: MapLibreMap, ids: Iterable<string>, ratio = 2) {
   const jobs: Promise<void>[] = []
-  for (const id of ids) {
+  // the address plaque is always needed, whatever the batch holds, so it is added with every call
+  for (const id of [ADDRESS_PLAQUE, ...ids]) {
     if (map.hasImage(id)) continue
     let job = pending.get(id)
     if (!job) {
-      job = (id.startsWith('pin-') ? addPin(map, id, ratio) : addIcon(map, id, ratio)).catch(
-        (error) => console.error(`Could not make image ${id}`, error),
+      const make = id === ADDRESS_PLAQUE ? addPlaque : id.startsWith('pin-') ? addPin : addIcon
+      job = make(map, id, ratio).catch((error) =>
+        console.error(`Could not make image ${id}`, error),
       )
       pending.set(id, job)
     }

@@ -61,6 +61,8 @@ function lowZoomThreshold(lat: number) {
 }
 
 const HOVER = '#f6634f'
+/** The address plaque image (apps/maid/src/images.ts) */
+export const ADDRESS_PLAQUE = 'addr-plaque'
 
 export function buildLayers(options: LayerOptions): LayerSpecification[] {
   const layers = buildMainLayers(options)
@@ -412,17 +414,33 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
     source: SOURCES.points,
     paint: { 'circle-radius': 9, 'circle-color': HOVER, 'circle-opacity': opacity },
   })
-  // Address nodes: a small marker, with the house number from OSM zoom 19 on (iD draws a label shield)
+  // Address nodes are not pins: iD draws a rounded plaque with the house number on the node, at
+  // every zoom it draws points (svg/points.js markerPath, svg/labels.js). The plaque is one symbol
+  // whose icon stretches to the text (the image is ADDRESS_PLAQUE in apps/maid/src/images.ts).
+  // The plaque always shows, as iD's does; only its text gives way to names and other numbers.
   layers.push({
     id: 'point-address',
-    type: 'circle',
+    type: 'symbol',
     source: SOURCES.points,
     filter: ['has', 'addr'],
+    layout: {
+      'icon-image': ADDRESS_PLAQUE,
+      'icon-text-fit': 'both',
+      'icon-text-fit-padding': [2, 4, 2, 4],
+      'icon-anchor': 'center',
+      'icon-allow-overlap': true,
+      'text-field': ['get', 'addr'],
+      'text-font': ['Open Sans Semibold'],
+      'text-size': 10,
+      'text-anchor': 'center',
+      'text-allow-overlap': false,
+      'text-optional': true,
+      'symbol-sort-key': 1,
+    },
     paint: {
-      'circle-radius': 3,
-      'circle-color': '#fff',
-      'circle-stroke-color': '#444',
-      'circle-stroke-width': 1,
+      'text-color': '#333',
+      'text-halo-color': 'rgba(255,255,255,0.7)',
+      'text-halo-width': 2.5,
     },
   })
   // Every point is always on the map as a small dot. Pins with the preset icon are drawn on top
@@ -527,21 +545,6 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
         source: SOURCES.areas,
         filter: ['all', ['has', 'name'], ['>', ['get', 'r'], 6]],
         layout: { ...text, 'text-max-width': 8 },
-        paint,
-      },
-      {
-        id: 'label-address',
-        type: 'symbol',
-        source: SOURCES.points,
-        filter: ['has', 'addr'],
-        minzoom: 18,
-        layout: {
-          ...text,
-          'text-field': ['get', 'addr'],
-          'text-size': 10,
-          'text-anchor': 'top',
-          'text-offset': [0, 0.4],
-        },
         paint,
       },
       {
