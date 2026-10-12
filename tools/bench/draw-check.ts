@@ -10,13 +10,9 @@
  * Prints one line per check: `ok <check>`, or `FAIL <check>` with expected and actual. Exits 1 on
  * any failure, including a request outside localhost.
  */
-import { chromium } from '@playwright/test'
-import { EDIT_SOURCES } from '../../packages/renderer/src/layers'
-import { getScene } from '../fixtures/scenes'
-import { PORTS } from '../ports'
+import { runCheck } from './check-page'
 
 const sceneName = process.argv[2] ?? 'small'
-const scene = getScene(sceneName)
 
 type XY = { x: number; y: number }
 type WayState = {
@@ -29,42 +25,8 @@ type WayState = {
   entities: number
 }
 
-async function main(): Promise<number> {
-  const browser = await chromium.launch({ channel: 'chrome', headless: true })
-  let failed = 0
-  const report = (label: string, expected: unknown, actual: unknown) => {
-    if (JSON.stringify(expected) === JSON.stringify(actual)) console.log(`ok ${label}`)
-    else {
-      failed++
-      console.log(
-        `FAIL ${label}: expected ${JSON.stringify(expected)}, actual ${JSON.stringify(actual)}`,
-      )
-    }
-  }
-  try {
-    const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } })
-    const page = await context.newPage()
-    const blocked = new Map<string, number>()
-    await context.route(
-      (url) => !['localhost', '127.0.0.1'].includes(url.hostname),
-      (route) => {
-        const host = new URL(route.request().url()).hostname
-        blocked.set(host, (blocked.get(host) ?? 0) + 1)
-        return route.abort()
-      },
-    )
-    page.on('pageerror', (error) => report('no uncaught page error', 'none', error.message))
-
-    await page.goto(
-      `http://localhost:${PORTS.maid}/?scene=${sceneName}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
-    )
-    await page.waitForFunction(() => (window as any).__bench !== undefined, undefined, {
-      timeout: 30000,
-    })
-    await page.evaluate(() => (window as any).__bench.ready())
-    const settle = () => page.evaluate(() => (window as any).__bench.settled())
-    await settle()
-
+process.exit(
+  await runCheck(sceneName, async ({ page, report, settle, drawnIn }) => {
     // screen positions come from the map's canvas, the mouse works on the page
     const origin = (await page.evaluate(() => {
       const box = (window as any).__maid.map.getCanvas().getBoundingClientRect()
@@ -85,29 +47,30 @@ async function main(): Promise<number> {
       await settle()
     }
     /** The selected way (or the one given), as the data and the map have it */
-    const read = (wayId?: string) =>
-      page.evaluate(
-        ({ wayId, sources }) => {
-          const { map, engine } = (window as any).__maid
+    const read = async (wayId?: string): Promise<WayState> => {
+      const state = (await page.evaluate(
+        ({ wayId }) => {
+          const { engine } = (window as any).__maid
           const id = wayId ?? new URL(location.href).searchParams.get('id')
           const way = id ? engine.data.way(id) : undefined
           const graph = engine.data.history.staging.graph
           return {
             id: way ? id : null,
+            lookupId: id ?? null,
             nodes: way ? [...way.nodes] : [],
             tags: way ? { ...way.tags } : {},
-            drawnIn: Object.entries(sources)
-              .filter(([, source]) =>
-                map.querySourceFeatures(source).some((f: any) => String(f.id) === id),
-              )
-              .map(([name]) => name),
             undo: engine.undoState().undoLabel ?? null,
             mode: engine.mode,
             entities: graph.local?.entities?.size ?? -1,
           }
         },
-        { wayId, sources: EDIT_SOURCES },
-      ) as Promise<WayState>
+        { wayId },
+      )) as Omit<WayState, 'drawnIn'> & { lookupId: string | null }
+      const { lookupId, ...rest } = state
+      // a way that is only on the map (not in the data) still counts as drawn, as before
+      const drawn = lookupId ? (await drawnIn([lookupId]))[lookupId]! : []
+      return { ...rest, drawnIn: drawn }
+    }
     const isNew = (ids: string[]) => ids.map((id) => id.includes('-'))
 
     // open ground: places with no line, point or label within 14 px (snapping reaches 8), far enough apart from each other
@@ -129,7 +92,7 @@ async function main(): Promise<number> {
     })) as XY[]
     if (free.length < 9) {
       report('find open ground to draw on', '9 places', `${free.length} places`)
-      return 1
+      return
     }
     const at = (i: number) => free[i]!
 
@@ -284,12 +247,5 @@ async function main(): Promise<number> {
       [before.entities, before.undo, 'browse'],
       [after.entities, after.undo, after.mode],
     )
-
-    report('no request outside localhost', {}, Object.fromEntries(blocked))
-    return failed ? 1 : 0
-  } finally {
-    await browser.close()
-  }
-}
-
-process.exit(await main())
+  }),
+)

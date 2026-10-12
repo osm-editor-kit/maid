@@ -8,13 +8,10 @@
  * Prints one line per check: `ok <check>`, or `FAIL <check>` with expected and actual. Exits 1 on
  * any failure, including a request outside localhost.
  */
-import { chromium } from '@playwright/test'
 import { EDIT_SOURCES, SOURCES } from '../../packages/renderer/src/layers'
-import { getScene } from '../fixtures/scenes'
-import { PORTS } from '../ports'
+import { runCheck } from './check-page'
 
 const sceneName = process.argv[2] ?? 'small'
-const scene = getScene(sceneName)
 /** How far a drawn position may be from the expected one. The tile grid rounds to well under this. */
 const TOLERANCE_M = 1
 /** The move in degrees: about 7 m east at Berlin's latitude, far more than the tolerance */
@@ -80,41 +77,8 @@ function linesOf(geometry: { type: string; coordinates: any }): number[][][] {
 const near = (a: number[], b: number[]) =>
   Math.abs(a[0]! - b[0]!) < 1e-9 && Math.abs(a[1]! - b[1]!) < 1e-9
 
-async function main(): Promise<number> {
-  const browser = await chromium.launch({ channel: 'chrome', headless: true })
-  let failed = 0
-  const report = (ok: boolean, label: string, expected: unknown, actual: unknown) => {
-    if (ok) console.log(`ok ${label}`)
-    else {
-      failed++
-      console.log(
-        `FAIL ${label}: expected ${JSON.stringify(expected)}, actual ${JSON.stringify(actual)}`,
-      )
-    }
-  }
-  try {
-    const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } })
-    const page = await context.newPage()
-    const blocked = new Map<string, number>()
-    await context.route(
-      (url) => !['localhost', '127.0.0.1'].includes(url.hostname),
-      (route) => {
-        const host = new URL(route.request().url()).hostname
-        blocked.set(host, (blocked.get(host) ?? 0) + 1)
-        return route.abort()
-      },
-    )
-    page.on('pageerror', (error) => report(false, 'no uncaught page error', 'none', error.message))
-
-    await page.goto(
-      `http://localhost:${PORTS.maid}/?scene=${sceneName}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
-    )
-    await page.waitForFunction(() => (window as any).__bench !== undefined, undefined, {
-      timeout: 30000,
-    })
-    await page.evaluate(() => (window as any).__bench.ready())
-    await page.evaluate(() => (window as any).__bench.settled())
-
+process.exit(
+  await runCheck(sceneName, async ({ page, report, settle }) => {
     // a junction on a highway: its vertex is drawn, so the map can show where it is
     const picked = (await page.evaluate(() => {
       const { map, engine } = (window as any).__maid
@@ -138,8 +102,8 @@ async function main(): Promise<number> {
       return null
     })) as Picked | null
     if (!picked) {
-      report(false, 'find a junction on a highway', 'one in view', null)
-      return 1
+      report('find a junction on a highway', 'one in view', null)
+      return
     }
 
     const orig = [picked.lon, picked.lat]
@@ -220,7 +184,7 @@ async function main(): Promise<number> {
 
     for (const step of steps) {
       if (step.run) await step.run()
-      await page.evaluate(() => (window as any).__bench.settled())
+      await settle()
       const s = (await page.evaluate(
         ({ nodeId, wayId, pairs }) => {
           const { map, engine } = (window as any).__maid
@@ -269,58 +233,37 @@ async function main(): Promise<number> {
       }
       const want = step.undo
       report(
+        `${l}: undo state`,
+        true,
         got.canUndo === want.canUndo &&
           got.canRedo === want.canRedo &&
           got.undoLabel === want.undoLabel &&
           got.redoLabel === want.redoLabel,
-        `${l}: undo state`,
-        want,
-        got,
       )
       report(
-        s.nodeLoc !== null && near(s.nodeLoc, step.at),
         `${l}: node position in the data`,
-        step.at,
-        s.nodeLoc,
+        true,
+        s.nodeLoc !== null && near(s.nodeLoc, step.at),
       )
-      report(s.wayName === step.name, `${l}: way name in the data`, step.name, s.wayName)
+      report(`${l}: way name in the data`, step.name, s.wayName)
       const lat = step.at[1]!
       const vertexOff = Math.min(
         Infinity,
         ...s.vertices.map((c) => metresToLine(step.at, [c, c], lat)),
       )
-      report(
-        vertexOff <= TOLERANCE_M,
-        `${l}: vertex on the map`,
-        `within ${TOLERANCE_M} m of ${JSON.stringify(step.at)}`,
-        Number.isFinite(vertexOff) ? `${vertexOff.toFixed(2)} m away` : 'no vertex feature',
-      )
+      report(`${l}: vertex on the map`, true, vertexOff <= TOLERANCE_M)
       const wayOff = Math.min(
         Infinity,
         ...s.wayFeatures.flatMap((f) =>
           linesOf(f.geometry).map((line) => metresToLine(step.at, line, lat)),
         ),
       )
+      report(`${l}: way geometry on the map`, true, wayOff <= TOLERANCE_M)
       report(
-        wayOff <= TOLERANCE_M,
-        `${l}: way geometry on the map`,
-        `passes within ${TOLERANCE_M} m of ${JSON.stringify(step.at)}`,
-        Number.isFinite(wayOff) ? `${wayOff.toFixed(2)} m away` : 'no way feature',
-      )
-      report(
-        s.wayFeatures.length > 0 && s.wayFeatures.every((f) => f.name === step.name),
         `${l}: way name on the map`,
-        step.name,
-        s.wayFeatures.map((f) => f.name),
+        true,
+        s.wayFeatures.length > 0 && s.wayFeatures.every((f) => f.name === step.name),
       )
     }
-
-    if (blocked.size)
-      report(false, 'no request outside localhost', 'none', Object.fromEntries(blocked))
-  } finally {
-    await browser.close()
-  }
-  return failed === 0 ? 0 : 1
-}
-
-process.exit(await main())
+  }),
+)

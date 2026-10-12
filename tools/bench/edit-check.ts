@@ -8,10 +8,8 @@
  * Prints one line per check: `ok <check>`, or `FAIL <check>` with expected and actual. Exits 1 on
  * any failure, including a request outside localhost.
  */
-import { chromium } from '@playwright/test'
-import { EDIT_SOURCES, SOURCES } from '../../packages/renderer/src/layers'
 import { getScene } from '../fixtures/scenes'
-import { PORTS } from '../ports'
+import { runCheck } from './check-page'
 
 const sceneName = process.argv[2] ?? 'small'
 const scene = getScene(sceneName)
@@ -20,42 +18,8 @@ const scene = getScene(sceneName)
 type Seen = { inData: boolean; sources: string[]; ways: string[]; uses: number }
 type Picked = { wayId: string; own: string[]; shared: string[] }
 
-async function main(): Promise<number> {
-  const browser = await chromium.launch({ channel: 'chrome', headless: true })
-  let failed = 0
-  const report = (label: string, expected: unknown, actual: unknown) => {
-    if (JSON.stringify(expected) === JSON.stringify(actual)) console.log(`ok ${label}`)
-    else {
-      failed++
-      console.log(
-        `FAIL ${label}: expected ${JSON.stringify(expected)}, actual ${JSON.stringify(actual)}`,
-      )
-    }
-  }
-  try {
-    const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } })
-    const page = await context.newPage()
-    const blocked = new Map<string, number>()
-    await context.route(
-      (url) => !['localhost', '127.0.0.1'].includes(url.hostname),
-      (route) => {
-        const host = new URL(route.request().url()).hostname
-        blocked.set(host, (blocked.get(host) ?? 0) + 1)
-        return route.abort()
-      },
-    )
-    page.on('pageerror', (error) => report('no uncaught page error', 'none', error.message))
-
-    await page.goto(
-      `http://localhost:${PORTS.maid}/?scene=${sceneName}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
-    )
-    await page.waitForFunction(() => (window as any).__bench !== undefined, undefined, {
-      timeout: 30000,
-    })
-    await page.evaluate(() => (window as any).__bench.ready())
-    const settle = () => page.evaluate(() => (window as any).__bench.settled())
-    await settle()
-
+process.exit(
+  await runCheck(sceneName, async ({ page, report, settle, drawnIn }) => {
     const engineCall = (method: string, ...args: unknown[]) =>
       page.evaluate(({ method, args }) => (window as any).__maid.engine[method](...args), {
         method,
@@ -65,38 +29,32 @@ async function main(): Promise<number> {
     const after = async (run: () => Promise<unknown>, ids: string[]) => {
       await run()
       await settle()
-      return (await page.evaluate(
-        ({ ids, pairs }) => {
-          const { map, engine } = (window as any).__maid
-          const out: Record<string, unknown> = {}
-          for (const id of ids) {
-            const sources: string[] = []
-            for (const [name, base, live] of pairs) {
-              const has = (source: string) =>
-                map.getSource(source) &&
-                map.querySourceFeatures(source).some((f: any) => String(f.id) === id)
-              // a base copy that an edit replaced stays in its source, hidden by feature state
-              const hidden = map.getFeatureState({ source: base, id })?.editing === true
-              if (has(live) || (has(base) && !hidden)) sources.push(name)
-            }
-            out[id] = {
-              inData: engine.data.history.staging.graph.hasEntity(id) !== undefined,
-              sources,
-              ways: [...(engine.data.nodeWays.get(id) ?? [])].sort((a: string, b: string) =>
-                a.localeCompare(b),
-              ),
-              uses: engine.data.nodeUses.get(id) ?? 0,
-            }
+      const sources = await drawnIn(ids)
+      const data = (await page.evaluate((ids: string[]) => {
+        const { engine } = (window as any).__maid
+        const out: Record<string, { inData: boolean; ways: string[]; uses: number }> = {}
+        for (const id of ids)
+          out[id] = {
+            inData: engine.data.history.staging.graph.hasEntity(id) !== undefined,
+            ways: [...(engine.data.nodeWays.get(id) ?? [])].sort((a: string, b: string) =>
+              a.localeCompare(b),
+            ),
+            uses: engine.data.nodeUses.get(id) ?? 0,
           }
-          return { seen: out, undo: engine.undoState().undoLabel ?? null }
-        },
-        {
-          ids,
-          pairs: (Object.keys(EDIT_SOURCES) as (keyof typeof EDIT_SOURCES)[]).map(
-            (name): [string, string, string] => [name, SOURCES[name], EDIT_SOURCES[name]],
-          ),
-        },
-      )) as { seen: Record<string, Seen>; undo: string | null }
+        return { entities: out, undo: engine.undoState().undoLabel ?? null }
+      }, ids)) as { entities: Record<string, Omit<Seen, 'sources'>>; undo: string | null }
+      const seen: Record<string, Seen> = {}
+      // the key order is part of the comparison (report compares JSON)
+      for (const id of ids) {
+        const entity = data.entities[id]!
+        seen[id] = {
+          inData: entity.inData,
+          sources: sources[id]!,
+          ways: entity.ways,
+          uses: entity.uses,
+        }
+      }
+      return { seen, undo: data.undo }
     }
     const gone: Seen = { inData: false, sources: [], ways: [], uses: 0 }
     const point: Seen = { inData: true, sources: ['points'], ways: [], uses: 0 }
@@ -152,7 +110,7 @@ async function main(): Promise<number> {
     })) as Picked | null
     if (!picked) {
       report('find a highway with own and shared nodes', 'one in view', null)
-      return 1
+      return
     }
     const ids = [picked.wayId, ...picked.own, ...picked.shared]
     const before = await after(async () => {}, ids)
@@ -192,12 +150,5 @@ async function main(): Promise<number> {
 
     s = await after(() => engineCall('undo'), ids)
     report('undo again: data, lookups and map as before', before.seen, s.seen)
-
-    report('no request outside localhost', {}, Object.fromEntries(blocked))
-    return failed ? 1 : 0
-  } finally {
-    await browser.close()
-  }
-}
-
-process.exit(await main())
+  }),
+)

@@ -7,53 +7,15 @@
  * Prints one line per check: `ok <check>`, or `FAIL <check>` with expected and actual. Exits 1 on
  * any failure, including a request outside localhost.
  */
-import { chromium } from '@playwright/test'
-import { EDIT_SOURCES, SOURCES } from '../../packages/renderer/src/layers'
-import { getScene } from '../fixtures/scenes'
-import { PORTS } from '../ports'
+import { runCheck } from './check-page'
 
 const sceneName = process.argv[2] ?? 'small'
-const scene = getScene(sceneName)
 
 type Way = { inData: boolean; nodes: string[]; drawnIn: string[] }
 type Ran = { selection: string[] | null; undo: string | null; ways: Record<string, Way> }
 
-async function main(): Promise<number> {
-  const browser = await chromium.launch({ channel: 'chrome', headless: true })
-  let failed = 0
-  const report = (label: string, expected: unknown, actual: unknown) => {
-    if (JSON.stringify(expected) === JSON.stringify(actual)) console.log(`ok ${label}`)
-    else {
-      failed++
-      console.log(
-        `FAIL ${label}: expected ${JSON.stringify(expected)}, actual ${JSON.stringify(actual)}`,
-      )
-    }
-  }
-  try {
-    const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } })
-    const page = await context.newPage()
-    const blocked = new Map<string, number>()
-    await context.route(
-      (url) => !['localhost', '127.0.0.1'].includes(url.hostname),
-      (route) => {
-        const host = new URL(route.request().url()).hostname
-        blocked.set(host, (blocked.get(host) ?? 0) + 1)
-        return route.abort()
-      },
-    )
-    page.on('pageerror', (error) => report('no uncaught page error', 'none', error.message))
-
-    await page.goto(
-      `http://localhost:${PORTS.maid}/?scene=${sceneName}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
-    )
-    await page.waitForFunction(() => (window as any).__bench !== undefined, undefined, {
-      timeout: 30000,
-    })
-    await page.evaluate(() => (window as any).__bench.ready())
-    const settle = () => page.evaluate(() => (window as any).__bench.settled())
-    await settle()
-
+process.exit(
+  await runCheck(sceneName, async ({ page, report, settle, drawnIn }) => {
     /**
      * Selects `select`, runs the operation `id` (or undo, or nothing) and reads the ways back.
      * `watch` may name ways that only exist afterwards; the new selection is always read too.
@@ -74,31 +36,23 @@ async function main(): Promise<number> {
         { step, select },
       )) as string[] | null
       await settle()
-      return (await page.evaluate(
-        ({ ids, selection, pairs }) => {
-          const { map, engine } = (window as any).__maid
-          const ways: Record<string, unknown> = {}
+      const ids = [...new Set([...watch, ...(selection ?? []).filter((id) => id[0] === 'w')])]
+      const data = (await page.evaluate(
+        ({ ids }) => {
+          const { engine } = (window as any).__maid
+          const ways: Record<string, { inData: boolean; nodes: string[] }> = {}
           for (const id of ids) {
             const way = engine.data.way(id)
-            const drawnIn: string[] = []
-            for (const [name, base, live] of pairs) {
-              const has = (source: string) =>
-                map.querySourceFeatures(source).some((f: any) => String(f.id) === id)
-              const hidden = map.getFeatureState({ source: base, id })?.editing === true
-              if (has(live) || (has(base) && !hidden)) drawnIn.push(name)
-            }
-            ways[id] = { inData: way !== undefined, nodes: way ? [...way.nodes] : [], drawnIn }
+            ways[id] = { inData: way !== undefined, nodes: way ? [...way.nodes] : [] }
           }
-          return { selection, undo: engine.undoState().undoLabel ?? null, ways }
+          return { undo: engine.undoState().undoLabel ?? null, ways }
         },
-        {
-          ids: [...new Set([...watch, ...(selection ?? []).filter((id) => id[0] === 'w')])],
-          selection,
-          pairs: (Object.keys(EDIT_SOURCES) as (keyof typeof EDIT_SOURCES)[]).map(
-            (name): [string, string, string] => [name, SOURCES[name], EDIT_SOURCES[name]],
-          ),
-        },
-      )) as Ran
+        { ids },
+      )) as { undo: string | null; ways: Record<string, Omit<Way, 'drawnIn'>> }
+      const drawn = await drawnIn(ids)
+      const ways: Record<string, Way> = {}
+      for (const id of ids) ways[id] = { ...data.ways[id]!, drawnIn: drawn[id]! }
+      return { selection, undo: data.undo, ways } as Ran
     }
     const locations = (wayId: string) =>
       page.evaluate((wayId) => {
@@ -140,7 +94,7 @@ async function main(): Promise<number> {
     })) as { error?: string; building?: string; road?: { wayId: string; vertex: string } }
     if (picked.error || !picked.building || !picked.road) {
       report('find a building to square and a road to split', 'both in view', picked)
-      return 1
+      return
     }
     const { building, road } = picked
 
@@ -198,12 +152,5 @@ async function main(): Promise<number> {
       [],
       parts.filter((id) => id !== road.wayId && (r.ways[id]?.inData || r.ways[id]?.drawnIn.length)),
     )
-
-    report('no request outside localhost', {}, Object.fromEntries(blocked))
-    return failed ? 1 : 0
-  } finally {
-    await browser.close()
-  }
-}
-
-process.exit(await main())
+  }),
+)
