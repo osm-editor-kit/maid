@@ -16,14 +16,27 @@ export function ToolGroup(props: { label: string; children: ReactNode }) {
   )
 }
 
+/**
+ * The colours of a button in a toolbar or a button group:
+ * - `idle`: can be clicked
+ * - `pressed`: on, and a click turns it off again (a mode, an open flyout)
+ * - `selected`: the chosen one of a set (theme, filter state). A click would change nothing, so
+ *   it has no hover and no pointer cursor.
+ */
+export function toolButtonTone(state: 'idle' | 'pressed' | 'selected') {
+  if (state === 'selected')
+    return 'cursor-default bg-zinc-200 text-zinc-950 dark:bg-zinc-600 dark:text-white'
+  if (state === 'pressed')
+    return 'cursor-pointer bg-zinc-200 text-zinc-950 enabled:hover:bg-zinc-300 dark:bg-zinc-600 dark:text-white dark:enabled:hover:bg-zinc-500'
+  return 'cursor-pointer bg-white text-zinc-950 enabled:hover:bg-zinc-50 dark:bg-zinc-800 dark:text-white dark:enabled:hover:bg-zinc-700'
+}
+
 /** The look of a `ToolButton`, for a button that cannot be one (the trigger of a flyout) */
-export function toolButtonClass(hasText: boolean, pressed = false) {
+export function toolButtonClass(hasText: boolean, state: boolean | 'selected' = false) {
   return twJoin(
-    'relative inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md text-sm font-medium inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:text-zinc-300 dark:inset-ring-white/10 dark:disabled:text-zinc-600',
+    'relative inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:text-zinc-300 dark:inset-ring-white/10 dark:disabled:text-zinc-600',
     hasText ? 'h-9 px-3 max-sm:px-2.5 pointer-coarse:h-10' : 'size-9 pointer-coarse:size-10',
-    pressed
-      ? 'bg-zinc-200 text-zinc-950 enabled:hover:bg-zinc-300 dark:bg-zinc-600 dark:text-white dark:enabled:hover:bg-zinc-500'
-      : 'bg-white text-zinc-950 enabled:hover:bg-zinc-50 dark:bg-zinc-800 dark:text-white dark:enabled:hover:bg-zinc-700',
+    toolButtonTone(state === 'selected' ? 'selected' : state ? 'pressed' : 'idle'),
   )
 }
 
@@ -37,19 +50,21 @@ export function ToolButton(props: {
   text?: string
   disabled?: boolean
   pressed?: boolean
+  /** The chosen one of a set of choices: shown as pressed, without hover, since a click changes nothing */
+  selected?: boolean
   onClick?: () => void
 }) {
-  const { label, shortcut, description, icon, text, disabled, pressed, onClick } = props
+  const { label, shortcut, description, icon, text, disabled, pressed, selected, onClick } = props
   const name = shortcut ? `${label} (${shortcut})` : label
   return (
     <Tooltip label={label} shortcut={shortcut} description={description} placement="bottom">
       <button
         type="button"
         aria-label={name}
-        aria-pressed={pressed}
+        aria-pressed={selected ?? pressed}
         disabled={disabled}
         onClick={onClick}
-        className={toolButtonClass(Boolean(text), pressed)}
+        className={toolButtonClass(Boolean(text), selected ? 'selected' : pressed)}
       >
         <span aria-hidden="true" className="inline-flex shrink-0 [&>svg]:size-5">
           {icon}

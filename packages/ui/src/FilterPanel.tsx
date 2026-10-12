@@ -2,6 +2,7 @@ import { EyeIcon, EyeSlashIcon, PencilIcon } from '@heroicons/react/16/solid'
 import type { Filter, FilterState } from '@osm-editor-kit/maid-filters'
 import type { KeyboardEvent, ReactNode } from 'react'
 import { twJoin } from 'tailwind-merge'
+import { toolButtonTone } from './Toolbar.tsx'
 
 type Option = { state: FilterState; label: string; Icon: typeof PencilIcon }
 
@@ -125,10 +126,8 @@ function StateSwitch(props: {
             onClick={() => onSelect(option.state)}
             onKeyDown={onKeyDown}
             className={twJoin(
-              'relative inline-flex size-7 shrink-0 cursor-pointer items-center justify-center inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:inset-ring-white/10',
-              checked
-                ? 'bg-zinc-200 text-zinc-950 enabled:hover:bg-zinc-300 dark:bg-zinc-600 dark:text-white dark:enabled:hover:bg-zinc-500'
-                : 'bg-white text-zinc-950 enabled:hover:bg-zinc-50 dark:bg-zinc-800 dark:text-white dark:enabled:hover:bg-zinc-700',
+              'relative inline-flex size-7 shrink-0 items-center justify-center inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:inset-ring-white/10',
+              toolButtonTone(checked ? 'selected' : 'idle'),
             )}
           >
             <option.Icon aria-hidden="true" className="size-4" />

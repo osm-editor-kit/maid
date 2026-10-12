@@ -2,7 +2,7 @@ import { ComputerDesktopIcon, MoonIcon, SunIcon } from '@heroicons/react/20/soli
 import { useTheme } from './theme'
 import { ToolButton, ToolGroup } from './Toolbar'
 
-/** Light, dark and match-system buttons; the current choice is shown as pressed. */
+/** Light, dark and match-system buttons; the current choice is shown as selected. */
 export function ThemeSwitch() {
   const [theme, setTheme] = useTheme()
   return (
@@ -10,19 +10,19 @@ export function ThemeSwitch() {
       <ToolButton
         label="Light theme"
         icon={<SunIcon />}
-        pressed={theme === 'light'}
+        selected={theme === 'light'}
         onClick={() => setTheme('light')}
       />
       <ToolButton
         label="Dark theme"
         icon={<MoonIcon />}
-        pressed={theme === 'dark'}
+        selected={theme === 'dark'}
         onClick={() => setTheme('dark')}
       />
       <ToolButton
         label="Match system"
         icon={<ComputerDesktopIcon />}
-        pressed={theme === 'system'}
+        selected={theme === 'system'}
         onClick={() => setTheme('system')}
       />
     </ToolGroup>

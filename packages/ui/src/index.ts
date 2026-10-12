@@ -22,7 +22,7 @@ export { Sidebar, SidebarBody, SidebarEmpty, SidebarHeader, SidebarSection } fro
 export { useSettings, type Settings } from './settings.ts'
 export { initTheme, useResolvedTheme, useTheme, type Theme } from './theme.ts'
 export { ThemeSwitch } from './ThemeSwitch.tsx'
-export { ToolButton, ToolGroup, toolButtonClass } from './Toolbar.tsx'
+export { ToolButton, ToolGroup, toolButtonClass, toolButtonTone } from './Toolbar.tsx'
 export { Brand, TopBar } from './TopBar.tsx'
 export { Tooltip } from './Tooltip.tsx'
 export { useResizable } from './useResizable.ts'
