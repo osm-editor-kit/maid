@@ -13,6 +13,8 @@ export type CommandItem = {
   reason?: string
   icon: ReactNode
   run: () => void
+  /** Called with true while the pointer or the focus is on the command, to show what it would do */
+  preview?: (on: boolean) => void
 }
 
 /**
@@ -38,6 +40,10 @@ export function CommandBar(props: { label: string; items: CommandItem[] }) {
               aria-label={item.label}
               disabled={blocked}
               onClick={() => item.run()}
+              onPointerEnter={() => item.preview?.(true)}
+              onPointerLeave={() => item.preview?.(false)}
+              onFocus={() => item.preview?.(true)}
+              onBlur={() => item.preview?.(false)}
               className={twJoin(
                 '-mt-px -ml-px flex size-8 shrink-0 cursor-pointer items-center justify-center bg-white text-zinc-950 inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 enabled:hover:bg-zinc-50 disabled:cursor-default disabled:text-zinc-300 dark:bg-zinc-800 dark:text-white dark:inset-ring-white/10 dark:enabled:hover:bg-zinc-700 dark:disabled:text-zinc-600 pointer-coarse:size-10',
               )}

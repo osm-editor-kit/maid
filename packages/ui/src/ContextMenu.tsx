@@ -9,6 +9,8 @@ export type MenuItem = {
   /** Why it cannot be chosen now; then it is greyed out and says so in its tooltip */
   reason?: string
   run: () => void
+  /** Called with true while the pointer or the focus is on the item, to show what it would do */
+  preview?: (on: boolean) => void
 }
 
 /**
@@ -77,6 +79,10 @@ export function ContextMenu(props: {
             onClose()
             item.run()
           }}
+          onPointerEnter={() => item.preview?.(true)}
+          onPointerLeave={() => item.preview?.(false)}
+          onFocus={() => item.preview?.(true)}
+          onBlur={() => item.preview?.(false)}
           className="flex h-7 w-full cursor-pointer items-center justify-between gap-4 rounded-md px-2 text-left focus:bg-zinc-950/5 focus:outline-none enabled:hover:bg-zinc-950/5 disabled:cursor-default disabled:text-zinc-400 dark:focus:bg-white/10 dark:enabled:hover:bg-white/10 dark:disabled:text-zinc-500"
         >
           <span className="truncate">{item.label}</span>

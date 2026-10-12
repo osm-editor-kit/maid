@@ -100,6 +100,36 @@ process.exit(
 
     // --- square a building ---
     const before = await locations(building)
+    // the preview first: what squaring would do is drawn, nothing is changed
+    const preview = async (step: string | null) => {
+      await page.evaluate(
+        ({ step, building }) => {
+          const { engine, editor } = (window as any).__maid
+          engine.setSelected([building])
+          const operations = editor.registry('edit.operation').list()
+          engine.previewOperation(step ? operations.find((o: any) => o.id === step) : null)
+        },
+        { step, building },
+      )
+      await page.waitForTimeout(300)
+      return page.evaluate(() => {
+        const { map, editor } = (window as any).__maid
+        return [
+          map
+            .querySourceFeatures('osm-highlight')
+            .filter((f: any) => f.properties.state === 'preview').length > 0,
+          editor.history.hasWorkInProgress,
+        ]
+      })
+    }
+    report(
+      'preview of square: an outline is drawn, no change',
+      [true, false],
+      await preview('square'),
+    )
+    report('preview: the data is untouched', before, await locations(building))
+    report('preview of reverse: nothing to show', [false, false], await preview('reverse'))
+    report('preview taken away', [false, false], await preview(null))
     let r = await run('square', [building], [building])
     const squared = await locations(building)
     report('square: undo label', 'Squared the corners of a feature', r.undo)

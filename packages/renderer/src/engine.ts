@@ -20,7 +20,7 @@ import {
   actionDeleteWay,
   actionMoveNode,
   type Difference,
-  type Graph,
+  Graph,
   OsmWay,
   type OsmEntity,
   type OsmJsonElement,
@@ -1184,9 +1184,76 @@ export class MaidEngine {
         shape.set(id, vertex)
       }
     this.shapeNodes = new Set(shape.keys())
-    void this.map
-      ?.getSource<GeoJSONSource>(SOURCES.highlight)
-      ?.setData({ type: 'FeatureCollection', features: [...shape.values()] })
+    this.shapeFeatures = [...shape.values()]
+    // a preview was for the selection and the data as they were
+    this.previewFeatures = []
+    this.pushHighlight()
+  }
+
+  private shapeFeatures: Feature[] = []
+  private previewFeatures: Feature[] = []
+
+  private pushHighlight() {
+    void this.map?.getSource<GeoJSONSource>(SOURCES.highlight)?.setData({
+      type: 'FeatureCollection',
+      features: [...this.shapeFeatures, ...this.previewFeatures],
+    })
+  }
+
+  /**
+   * Shows what an operation would do to the selection, before it runs: the outlines the selected
+   * ways would have, drawn dashed over the map. `null` takes the preview away. Nothing is
+   * changed: the operation's actions run on a copy of the graph that is thrown away.
+   * Operations that move no node (reverse, split, ...) show nothing.
+   */
+  previewOperation(operation: Operation | null) {
+    const features: Feature[] = []
+    if (operation && !this.draw.active) {
+      const context = this.operationContext()
+      const { graph } = this.data.history.staging
+      if (operation.applies(context) && !operation.disabled(context)) {
+        let after: Graph | undefined
+        try {
+          after = operation.run(context).actions.reduce((g, action) => action(g), new Graph(graph))
+        } catch {
+          // an operation that cannot run has nothing to show
+        }
+        const ways = new Set<string>()
+        for (const id of this.selectedIds) {
+          if (id[0] === 'w') ways.add(id)
+          else if (id[0] === 'n') for (const w of this.data.nodeWays.get(id) ?? []) ways.add(w)
+        }
+        for (const wayId of after ? ways : []) {
+          const before = graph.hasEntity(wayId)
+          const way = after!.hasEntity(wayId)
+          if (!(way instanceof OsmWay) || !(before instanceof OsmWay)) continue
+          const locOf = (g: Graph, nodeId: string) =>
+            (g.hasEntity(nodeId) as OsmNode | undefined)?.loc
+          const coordinates = way.nodes
+            .map((nodeId) => locOf(after!, nodeId))
+            .filter((loc) => !!loc)
+          const moved =
+            way.nodes.length !== before.nodes.length ||
+            way.nodes.some((nodeId, i) => {
+              const a = locOf(after!, nodeId)
+              const b = locOf(graph, before.nodes[i]!)
+              return !a || !b || a[0] !== b[0] || a[1] !== b[1]
+            })
+          if (!moved || coordinates.length < 2) continue
+          features.push({
+            type: 'Feature',
+            properties: { id: `preview-${wayId}`, state: 'preview' },
+            geometry: {
+              type: 'LineString',
+              coordinates: coordinates.map((loc) => [loc[0], loc[1]]),
+            },
+          })
+        }
+      }
+    }
+    if (features.length === 0 && this.previewFeatures.length === 0) return
+    this.previewFeatures = features
+    this.pushHighlight()
   }
 
   /** The nodes that are shown as shape points now, to know when they have to be drawn again */

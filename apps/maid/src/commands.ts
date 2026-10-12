@@ -12,6 +12,8 @@ export type Command = {
   /** Why it cannot run now; then it is shown greyed out */
   reason?: string
   run: () => void
+  /** Shows on the map what the command would do, or takes that away again */
+  preview?: (on: boolean) => void
 }
 
 /** "Paste" at a place on the map, if something was copied */
@@ -52,9 +54,11 @@ export function useEditCommands(): Command[] {
           shortcut: operation.shortcut?.toUpperCase(),
           reason: operation.disabled(context),
           run: () => {
+            engine.previewOperation(null)
             const next = engine.runOperation(operation)
             if (next) select(next)
           },
+          preview: (on: boolean) => engine.previewOperation(on ? operation : null),
         })),
       { id: 'copy', label: 'Copy', shortcut: modKey('C'), run: () => void engine.copy() },
       {

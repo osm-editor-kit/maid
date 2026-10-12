@@ -335,6 +335,28 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
     },
   })
 
+  // what a command would do to the selection, while its button is hovered: a dashed outline
+  // in iD's selection red on a white glow, so it reads on any background
+  const isPreview: ExpressionSpecification = ['==', ['get', 'state'], 'preview']
+  layers.push(
+    {
+      id: 'preview-glow',
+      type: 'line',
+      source: SOURCES.highlight,
+      filter: isPreview,
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#fff', 'line-width': 5, 'line-opacity': 0.7, 'line-blur': 2 },
+    },
+    {
+      id: 'preview-line',
+      type: 'line',
+      source: SOURCES.highlight,
+      filter: isPreview,
+      layout: { 'line-join': 'round' },
+      paint: { 'line-color': '#f6634f', 'line-width': 2, 'line-dasharray': [3, 2] },
+    },
+  )
+
   // --- Points ----------------------------------------------------------------
   // Address nodes: a small marker, with the house number from OSM zoom 19 on (iD draws a label shield)
   layers.push({
