@@ -146,7 +146,44 @@ export const SIDE_KINDS: Record<string, SideKind> = {
   'cutting-left': { ...EMBANKMENT, shapes: [{ base: -2.5, apex: -1.5 }] },
 }
 
-/** Image ids (direction-images.ts draws them): the arrow, the arrow both ways, `maid-side-<kind>` */
-export const ARROW_IMAGE = 'maid-arrow'
-export const ARROW_BOTH_IMAGE = 'maid-arrow-both'
+/**
+ * The markers are line patterns (layers.ts `line-pattern`), not symbols: MapLibre drops symbols
+ * on some lines when they are crowded, a pattern never drops a feature. A pattern image is as
+ * wide as the spacing (one marker per image) and as high as the layer's `line-width`, in CSS px.
+ * The spacings are iD's (svg/lines.js).
+ */
+export const ARROW_SPACING = 36
+export const ARROW_HEIGHT = 6
+export const SIDE_SPACING = 30
+export const SIDE_HEIGHT = 26
+
+/** The arrow's shape, from `oneway`: forward, against the way (mirrored), both ways */
+export type ArrowShape = 'forward' | 'backward' | 'both'
+const SHAPE_OF: Record<OneWay, ArrowShape> = { 1: 'forward', [-1]: 'backward', 2: 'both' }
+/** The arrow's colour when the feature has no `ac` */
+export const ARROW_DEFAULT_COLOUR = '#333'
+/** Colours of the arrows that are built ahead; other colours (the lens dims them) are built on demand */
+export const ARROW_COLOURS = [ARROW_DEFAULT_COLOUR, '#fff', '#eee']
+
+/** Image ids (direction-images.ts draws them): `maid-arrow-<shape>-<colour>`, `maid-side-<kind>` */
+export const ARROW_IMAGE_PREFIX = 'maid-arrow-'
 export const SIDE_IMAGE_PREFIX = 'maid-side-'
+/** The selected way's direction (engine.ts, the highlight source): white with a dark outline */
+export const SELECTED_ARROW_IMAGE = 'maid-selected-arrow'
+export const SELECTED_ARROW_HEIGHT = 8
+
+/** The arrow image for a line's direction and colour. layers.ts builds the same id in an expression. */
+export function arrowImageId(oneway: OneWay, colour = ARROW_DEFAULT_COLOUR): string {
+  return `${ARROW_IMAGE_PREFIX}${SHAPE_OF[oneway]}-${colour}`
+}
+
+/** The shape and colour that an arrow image id names, or undefined for another id */
+export function parseArrowImageId(id: string): { shape: ArrowShape; colour: string } | undefined {
+  if (!id.startsWith(ARROW_IMAGE_PREFIX)) return undefined
+  const rest = id.slice(ARROW_IMAGE_PREFIX.length)
+  const dash = rest.indexOf('-')
+  const shape = rest.slice(0, dash)
+  if (dash < 0 || (shape !== 'forward' && shape !== 'backward' && shape !== 'both'))
+    return undefined
+  return { shape, colour: rest.slice(dash + 1) }
+}

@@ -3,7 +3,15 @@
  * Paint values come from feature properties set by the builder (build.ts).
  */
 import type { ExpressionSpecification, LayerSpecification } from 'maplibre-gl'
-import { ARROW_BOTH_IMAGE, ARROW_IMAGE, SIDE_IMAGE_PREFIX } from './direction'
+import {
+  ARROW_DEFAULT_COLOUR,
+  ARROW_HEIGHT,
+  ARROW_IMAGE_PREFIX,
+  SELECTED_ARROW_HEIGHT,
+  SELECTED_ARROW_IMAGE,
+  SIDE_HEIGHT,
+  SIDE_IMAGE_PREFIX,
+} from './direction'
 
 export const SOURCES = {
   areas: 'osm-areas',
@@ -230,57 +238,54 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
   }
 
   // Direction arrows and side markers, as iD draws them over the lines (svg/lines.js): one arrow
-  // every 36 px, side markers every 30 px. Images come from direction-images.ts.
+  // every 36 px, side markers every 30 px. They are line patterns, not symbols: MapLibre drops
+  // symbols on some crowded lines, a pattern is drawn on every line. Images come from
+  // direction-images.ts; each image is as high as the layer's line-width, so it is not stretched.
   if (options.icons) {
+    // the arrow's shape from `oneway` (1 forward, -1 mirrored, 2 both), in the colour of `ac`
+    const arrow: ExpressionSpecification = [
+      'concat',
+      ARROW_IMAGE_PREFIX,
+      [
+        'case',
+        ['==', ['get', 'oneway'], 2],
+        'both',
+        ['==', ['get', 'oneway'], -1],
+        'backward',
+        'forward',
+      ],
+      '-',
+      ['coalesce', ['get', 'ac'], ARROW_DEFAULT_COLOUR],
+    ]
+    const side: ExpressionSpecification = ['concat', SIDE_IMAGE_PREFIX, ['get', 'side']]
     layers.push(
       {
         id: 'line-oneway',
-        type: 'symbol',
+        type: 'line',
         source: SOURCES.lines,
         filter: ['has', 'oneway'],
         minzoom: 15,
-        layout: {
-          'symbol-placement': 'line',
-          'symbol-spacing': 36,
-          'icon-image': ['case', ['==', ['get', 'oneway'], 2], ARROW_BOTH_IMAGE, ARROW_IMAGE],
-          // -1: the arrow points against the way
-          'icon-rotate': ['case', ['==', ['get', 'oneway'], -1], 180, 0],
-          'icon-rotation-alignment': 'map',
-          'icon-allow-overlap': true,
-          'icon-ignore-placement': true,
-        },
-        paint: { 'icon-color': ['coalesce', ['get', 'ac'], '#333'] },
+        layout: { 'line-cap': 'butt' },
+        paint: { 'line-width': ARROW_HEIGHT, 'line-pattern': arrow },
       },
       {
         id: 'line-sided',
-        type: 'symbol',
+        type: 'line',
         source: SOURCES.lines,
         filter: ['has', 'side'],
         minzoom: 15,
-        layout: {
-          'symbol-placement': 'line',
-          'symbol-spacing': 30,
-          'icon-image': ['concat', SIDE_IMAGE_PREFIX, ['get', 'side']],
-          'icon-rotation-alignment': 'map',
-          'icon-allow-overlap': true,
-          'icon-ignore-placement': true,
-        },
+        layout: { 'line-cap': 'butt' },
+        paint: { 'line-width': SIDE_HEIGHT, 'line-pattern': side },
       },
       // closed barriers and coastline rings: their outline is the area's (build.ts areaFeature)
       {
         id: 'area-sided',
-        type: 'symbol',
+        type: 'line',
         source: SOURCES.areas,
         filter: ['has', 'side'],
         minzoom: 15,
-        layout: {
-          'symbol-placement': 'line',
-          'symbol-spacing': 30,
-          'icon-image': ['concat', SIDE_IMAGE_PREFIX, ['get', 'side']],
-          'icon-rotation-alignment': 'map',
-          'icon-allow-overlap': true,
-          'icon-ignore-placement': true,
-        },
+        layout: { 'line-cap': 'butt' },
+        paint: { 'line-width': SIDE_HEIGHT, 'line-pattern': side },
       },
     )
   }
@@ -361,6 +366,20 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
       'circle-stroke-width': 1,
     },
   })
+
+  // The direction of the selected highway (engine.ts refreshShape): white arrows with a dark outline,
+  // on the selection's glow. iD does not show a way's direction; Maid does, as the product owner asked.
+  if (options.icons) {
+    layers.push({
+      id: 'highlight-direction',
+      type: 'line',
+      source: SOURCES.highlight,
+      filter: ['==', ['get', 'state'], 'direction'],
+      minzoom: 15,
+      layout: { 'line-cap': 'butt' },
+      paint: { 'line-width': SELECTED_ARROW_HEIGHT, 'line-pattern': SELECTED_ARROW_IMAGE },
+    })
+  }
 
   // what a command would do to the selection, while its button is hovered: a dashed outline
   // in iD's selection red on a white glow, so it reads on any background

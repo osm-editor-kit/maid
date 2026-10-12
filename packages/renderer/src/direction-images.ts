@@ -1,5 +1,7 @@
 /**
- * The images of the direction arrows and side markers, drawn in code (no image files).
+ * The images of the direction arrows and side markers, drawn in code (no image files). They are
+ * line patterns (layers.ts): one marker per image, the image as wide as the spacing and as high
+ * as the layer's line-width. Colours are not tinted, so every colour has its own image.
  *
  * Imperative on purpose: MapLibre has no declarative way to give a style generated images, and
  * an image has to be in place before a tile is laid out, or the tile never shows it. This is the
@@ -8,23 +10,31 @@
  */
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import {
-  ARROW_IMAGE,
-  ARROW_BOTH_IMAGE,
+  ARROW_COLOURS,
+  ARROW_HEIGHT,
+  ARROW_SPACING,
+  arrowImageId,
+  parseArrowImageId,
+  SELECTED_ARROW_HEIGHT,
+  SELECTED_ARROW_IMAGE,
+  SIDE_HEIGHT,
   SIDE_IMAGE_PREFIX,
   SIDE_KINDS,
+  SIDE_SPACING,
+  type ArrowShape,
   type SideKind,
 } from './direction'
 
-type Built = { data: ImageData; options: { pixelRatio: number; sdf?: boolean } }
+type Built = { data: ImageData; options: { pixelRatio: number } }
 
 const RATIO = 2
 /** iD's arrow is drawn in a 10 x 5 box that is 12 x 6 px on the map (markers in strokeWidth units) */
 const ARROW_D = 'M 6,3 L 0,3 L 0,2 L 6,2 L 5,0 L 10,2.5 L 5,5 z'
 const ARROW_UNIT = 1.2
+/** The arrow's box starts this far from the image's left edge: the arrow is centred in its spacing */
+const ARROW_X = (ARROW_SPACING - 10 * ARROW_UNIT) / 2
 /** Side markers: one unit is 4.5 px on the map (iD: markerWidth 1.5 of a 6 px stroke, 2 units wide) */
 const SIDE_UNIT = 4.5
-const SIDE_WIDTH = 10
-const SIDE_HEIGHT = 26
 
 function canvas(width: number, height: number) {
   const el = document.createElement('canvas')
@@ -34,31 +44,46 @@ function canvas(width: number, height: number) {
 }
 
 /**
- * The arrow as a mask (SDF: colour comes from `icon-color`). The outline is stroked a little so
- * that MapLibre's threshold on the mask does not thin the thin shaft.
+ * An arrow, in the given colours, at `offsetY` from the top of the image. `backward` is the
+ * arrow mirrored in its box, so it points against the way; `both` draws both on the same place.
  */
-function arrowImage(both: boolean): Built {
-  const el = canvas(12, 6)
-  const ctx = el.getContext('2d')!
-  const s = RATIO * ARROW_UNIT
-  ctx.fillStyle = '#000'
-  ctx.strokeStyle = '#000'
-  ctx.lineWidth = 0.3
-  ctx.lineJoin = 'round'
-  ctx.setTransform(s, 0, 0, s, 0, 0)
+function drawArrow(
+  ctx: CanvasRenderingContext2D,
+  shape: ArrowShape,
+  offsetY: number,
+  fill: string,
+  stroke: string,
+  strokeWidth: number,
+) {
   const path = new Path2D(ARROW_D)
-  ctx.fill(path)
-  ctx.stroke(path)
-  if (both) {
-    // iD draws the arrow again in the other direction at the same place: mirror it on the box's centre
-    ctx.setTransform(-s, 0, 0, s, 10 * s, 0)
+  const s = RATIO * ARROW_UNIT
+  ctx.fillStyle = fill
+  ctx.strokeStyle = stroke
+  ctx.lineWidth = strokeWidth
+  ctx.lineJoin = 'round'
+  const pieces = shape === 'forward' ? [false] : shape === 'backward' ? [true] : [false, true]
+  for (const mirrored of pieces) {
+    const x = mirrored ? ARROW_X + 10 * ARROW_UNIT : ARROW_X
+    ctx.setTransform(mirrored ? -s : s, 0, 0, s, RATIO * x, RATIO * offsetY)
     ctx.fill(path)
     ctx.stroke(path)
   }
-  return {
-    data: ctx.getImageData(0, 0, el.width, el.height),
-    options: { pixelRatio: RATIO, sdf: true },
-  }
+}
+
+/** The arrow of a one-way line, in the colour of its `ac` (or the default) */
+function arrowImage(shape: ArrowShape, colour: string): Built {
+  const el = canvas(ARROW_SPACING, ARROW_HEIGHT)
+  const ctx = el.getContext('2d')!
+  drawArrow(ctx, shape, 0, colour, colour, 0.3)
+  return { data: ctx.getImageData(0, 0, el.width, el.height), options: { pixelRatio: RATIO } }
+}
+
+/** The arrow of the selected way: white with a dark outline, so it reads on the selection's glow */
+function selectedArrowImage(): Built {
+  const el = canvas(ARROW_SPACING, SELECTED_ARROW_HEIGHT)
+  const ctx = el.getContext('2d')!
+  drawArrow(ctx, 'forward', (SELECTED_ARROW_HEIGHT - ARROW_HEIGHT) / 2, '#fff', '#333', 0.5)
+  return { data: ctx.getImageData(0, 0, el.width, el.height), options: { pixelRatio: RATIO } }
 }
 
 /**
@@ -66,11 +91,11 @@ function arrowImage(both: boolean): Built {
  * the way runs east), with the line at the middle of the image.
  */
 function sideImage(kind: SideKind): Built {
-  const el = canvas(SIDE_WIDTH, SIDE_HEIGHT)
+  const el = canvas(SIDE_SPACING, SIDE_HEIGHT)
   const ctx = el.getContext('2d')!
   const s = RATIO * SIDE_UNIT
-  // the line runs through the middle of the canvas (device pixels)
-  ctx.setTransform(s, 0, 0, s, (RATIO * SIDE_WIDTH) / 2, (RATIO * SIDE_HEIGHT) / 2)
+  // the line runs through the middle of the canvas, and the marker through the middle of its spacing
+  ctx.setTransform(s, 0, 0, s, (RATIO * SIDE_SPACING) / 2, (RATIO * SIDE_HEIGHT) / 2)
   ctx.fillStyle = kind.color
   ctx.strokeStyle = kind.stroke ?? 'transparent'
   ctx.lineWidth = 0.1
@@ -90,32 +115,60 @@ function sideImage(kind: SideKind): Built {
   return { data: ctx.getImageData(0, 0, el.width, el.height), options: { pixelRatio: RATIO } }
 }
 
-let built: Map<string, Built> | undefined
-/** Every image the layers name. Built once: the pixels are the same for every map. */
-function allImages(): Map<string, Built> {
-  if (!built) {
-    built = new Map<string, Built>([
-      [ARROW_IMAGE, arrowImage(false)],
-      [ARROW_BOTH_IMAGE, arrowImage(true)],
-    ])
-    for (const [kind, spec] of Object.entries(SIDE_KINDS)) {
-      built.set(`${SIDE_IMAGE_PREFIX}${kind}`, sideImage(spec))
-    }
+/** Built images by id. The pixels are the same for every map, so they are built once. */
+const built = new Map<string, Built>()
+
+/** The image with this id, built now if it is one of ours (undefined for any other id) */
+function imageFor(id: string): Built | undefined {
+  const known = built.get(id)
+  if (known) return known
+  let image: Built | undefined
+  const arrow = parseArrowImageId(id)
+  if (arrow) {
+    image = arrowImage(arrow.shape, arrow.colour)
+  } else if (id === SELECTED_ARROW_IMAGE) {
+    image = selectedArrowImage()
+  } else if (id.startsWith(SIDE_IMAGE_PREFIX)) {
+    const spec = SIDE_KINDS[id.slice(SIDE_IMAGE_PREFIX.length)]
+    if (spec) image = sideImage(spec)
   }
-  return built
+  if (image) built.set(id, image)
+  return image
+}
+
+/** The images that are built ahead: every arrow in the colours the layers use, every side marker */
+function preloadIds(): string[] {
+  const ids: string[] = [SELECTED_ARROW_IMAGE]
+  for (const colour of ARROW_COLOURS)
+    ids.push(arrowImageId(1, colour), arrowImageId(-1, colour), arrowImageId(2, colour))
+  for (const kind of Object.keys(SIDE_KINDS)) ids.push(`${SIDE_IMAGE_PREFIX}${kind}`)
+  return ids
 }
 
 function addMissing(map: MapLibreMap) {
-  for (const [id, image] of allImages()) {
-    if (!map.hasImage(id)) map.addImage(id, image.data, image.options)
+  for (const id of preloadIds()) {
+    if (map.hasImage(id)) continue
+    const image = imageFor(id)
+    if (image) map.addImage(id, image.data, image.options)
   }
 }
 
+/** Maps that already listen for missing images (installDirectionImages may run more than once) */
+const listening = new WeakSet<MapLibreMap>()
+
 /**
  * Adds the arrow and side images to the map now, and again whenever a style is loaded (a new
- * style has none of them). Safe to call more than once.
+ * style has none of them). An arrow in a colour that is not built ahead (the lens dims the arrows,
+ * so their colour is `rgba(...)`) is built when the map first asks for it. Safe to call more than once.
  */
 export function installDirectionImages(map: MapLibreMap) {
   addMissing(map)
+  if (listening.has(map)) return
+  listening.add(map)
   map.on('style.load', () => addMissing(map))
+  map.on('styleimagemissing', ({ id }) => {
+    if (map.hasImage(id)) return
+    const image = imageFor(id)
+    if (image) map.addImage(id, image.data, image.options)
+  })
 }

@@ -39,6 +39,7 @@ import {
   type SourceName,
 } from './build'
 import { OsmData } from './data'
+import { onewayOf } from './direction'
 import { installDirectionImages } from './direction-images'
 import { DrawTool, nearestOnWay } from './draw'
 import { EDIT_SOURCES, SOURCES } from './layers'
@@ -1206,14 +1207,30 @@ export class MaidEngine {
       else if (id[0] === 'n') for (const wayId of this.data.nodeWays.get(id) ?? []) ways.add(wayId)
     }
     const shape = new Map<string, Feature>()
-    for (const wayId of ways)
-      for (const vertex of wayVertices(this.data, wayId)) {
+    // The direction of each selected open highway without arrows of its own: the way's line, drawn
+    // with arrows (layers.ts highlight-direction). iD does not show a way's direction; this is Maid's.
+    const directions: Feature[] = []
+    for (const wayId of ways) {
+      const vertices = wayVertices(this.data, wayId)
+      for (const vertex of vertices) {
         const id = vertex.properties?.id as string
         vertex.properties = { id, state: 'shape' }
         shape.set(id, vertex)
       }
+      const way = this.data.way(wayId)
+      const closed = way !== undefined && way.nodes[0] === way.nodes[way.nodes.length - 1]
+      if (way?.tags.highway && !closed && !onewayOf(way.tags) && vertices.length >= 2)
+        directions.push({
+          type: 'Feature',
+          properties: { id: wayId, state: 'direction' },
+          geometry: {
+            type: 'LineString',
+            coordinates: vertices.map((v) => v.geometry.coordinates),
+          },
+        })
+    }
     this.shapeNodes = new Set(shape.keys())
-    this.shapeFeatures = [...shape.values()]
+    this.shapeFeatures = [...shape.values(), ...directions]
     // a preview was for the selection and the data as they were
     this.previewFeatures = []
     this.pushHighlight()
