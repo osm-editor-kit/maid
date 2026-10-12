@@ -15,5 +15,14 @@
   },
   "include": ["apps", "packages", "tools"],
   "references": [{ "path": "packages/model" }],
-  "exclude": ["**/node_modules", "**/dist", ".reference", "packages/model"]
+  "exclude": [
+    "**/node_modules",
+    "**/dist",
+    ".reference",
+    "packages/model",
+    // these add test-only hooks and extension points to the core's global type maps:
+    // checked on their own (packages/core/tsconfig.test.json) so that no other package sees them
+    "packages/core/src/**/*.test.ts",
+    "packages/core/src/test-fixtures.ts"
+  ]
 }

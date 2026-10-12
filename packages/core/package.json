@@ -5,9 +5,21 @@
   "license": "ISC",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./react": "./src/react.ts"
   },
   "dependencies": {
     "@osm-editor-kit/maid-model": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0"
+  },
+  "peerDependencies": {
+    "react": "^19.3.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
   }
 }

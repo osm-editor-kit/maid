@@ -1,16 +1,10 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
+import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import type { EntityInfo } from '@osm-editor-kit/maid-renderer'
-import { useSyncExternalStore } from 'react'
 
 /** The `inspector.section` items of the editor that apply to this entity, below the tag list. */
 export function InspectorSections({ entity, editor }: { entity: EntityInfo; editor: Editor }) {
-  const registry = editor.registry('inspector.section')
-  // `list()` returns the same array until the registry changes, as useSyncExternalStore needs.
-  // The arrows are memoized by the React Compiler, so the store is not resubscribed on each render.
-  const sections = useSyncExternalStore(
-    (listener) => registry.subscribe(listener),
-    () => registry.list(),
-  )
+  const sections = useExtensionPoint(editor, 'inspector.section')
   return (
     <>
       {sections

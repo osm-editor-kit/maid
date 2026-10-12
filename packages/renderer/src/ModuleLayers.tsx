@@ -1,5 +1,5 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
-import { useSyncExternalStore } from 'react'
+import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { Layer, Source } from 'react-map-gl/maplibre'
 
 /**
@@ -7,13 +7,7 @@ import { Layer, Source } from 'react-map-gl/maplibre'
  * Re-renders when items are added or removed. Must be a child of the map.
  */
 export function ModuleLayers({ editor }: { editor: Editor }) {
-  const registry = editor.registry('map.layer')
-  // `list()` returns the same array until the registry changes, as useSyncExternalStore needs.
-  // The arrows are memoized by the React Compiler, so the store is not resubscribed on each render.
-  const items = useSyncExternalStore(
-    (listener) => registry.subscribe(listener),
-    () => registry.list(),
-  )
+  const items = useExtensionPoint(editor, 'map.layer')
   return (
     <>
       {items.map((item) => (

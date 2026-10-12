@@ -72,7 +72,8 @@ export type HookStabilities = { [N in HookName]?: HookStability<N> }
 
 /** Records the stability of hooks. Call it next to the `Hooks` declaration that adds them. */
 export function declareHooks(declared: HookStabilities): void {
-  for (const [name, stability] of Object.entries(declared)) {
+  // with no hook declared yet the mapped type is empty, so the entries are typed here
+  for (const [name, stability] of Object.entries(declared) as [string, Stability | undefined][]) {
     if (stability) stabilities.set(name, stability)
   }
 }

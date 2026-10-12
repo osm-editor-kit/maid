@@ -44,6 +44,15 @@
       "dependencies": {
         "@osm-editor-kit/maid-model": "workspace:*",
       },
+      "devDependencies": {
+        "@types/react": "^19.3.0",
+      },
+      "peerDependencies": {
+        "react": "^19.3.0",
+      },
+      "optionalPeers": [
+        "react",
+      ],
     },
     "packages/model": {
       "name": "@osm-editor-kit/maid-model",
