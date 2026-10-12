@@ -55,6 +55,7 @@ export function MapView() {
     dashes,
   }
   const interactive = interactiveLayerIds(buildLayers(options))
+  const drawing = mode === 'draw-line' ? 'line' : mode === 'draw-area' ? 'area' : undefined
 
   const select = (id: string | null) => {
     engine.setSelected(id)
@@ -108,6 +109,7 @@ export function MapView() {
       engine.dragTo(dragging, event.lngLat.lng, event.lngLat.lat)
       return
     }
+    if (drawing) engine.draw.move(event.point, interactive)
     if (mode !== 'browse') return
     const id = engine.pick(event.point, interactive)
     engine.setHover(id)
@@ -119,6 +121,15 @@ export function MapView() {
       const id = engine.addPoint(event.lngLat.lng, event.lngLat.lat)
       engine.setMode('browse')
       select(id)
+      return
+    }
+    if (drawing) {
+      // a click that finishes the way selects it, so the sidebar asks what it is
+      void engine.draw.click(drawing, event.point, interactive).then((finished) => {
+        if (!finished) return
+        engine.setMode('browse')
+        select(finished)
+      })
       return
     }
     select(engine.pick(event.point, interactive))
@@ -138,7 +149,8 @@ export function MapView() {
       fadeDuration={config.fade}
       attributionControl={false}
       dragRotate={false}
-      cursor={mode === 'add-point' ? 'crosshair' : cursor}
+      cursor={mode === 'browse' ? cursor : 'crosshair'}
+      doubleClickZoom={mode === 'browse'}
       onLoad={handleLoad}
       onMove={handleMove}
       onMoveEnd={handleMoveEnd}

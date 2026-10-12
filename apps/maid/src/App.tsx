@@ -17,8 +17,9 @@ function Editor() {
   useShortcuts()
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key !== 'Escape') return
-    // Escape first leaves a mode, then drops the selection
+    // Escape first leaves a mode (and drops a way that is being drawn), then the selection
     if (engine.mode !== 'browse') {
+      engine.draw.cancel()
       engine.setMode('browse')
       return
     }

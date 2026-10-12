@@ -33,6 +33,7 @@ import {
   type SourceName,
 } from './build'
 import { OsmData } from './data'
+import { DrawTool } from './draw'
 import { EDIT_SOURCES, SOURCES } from './layers'
 
 export type EngineOptions = {
@@ -98,9 +99,9 @@ function locMoved(base: OsmEntity | undefined, head: OsmEntity | undefined): boo
 
 /**
  * What a click on the map does. `browse` selects and drags; `add-point` places a new point and
- * returns to `browse`. Drawing lines and areas adds its modes here.
+ * returns to `browse`; `draw-line` and `draw-area` add a node per click until the way is finished.
  */
-export type Mode = 'browse' | 'add-point'
+export type Mode = 'browse' | 'add-point' | 'draw-line' | 'draw-area'
 
 export class MaidEngine {
   /** The OSM data: entities and edit history (from the editor), plus the indexes of the builder */
@@ -111,7 +112,8 @@ export class MaidEngine {
   } // prettier-ignore
 
   private builder: FeatureBuilder
-  private map?: MapLibreMap
+  /** The map the engine draws on, once attached */
+  map?: MapLibreMap
   private tiles = new Set<string>()
   private inflight = 0
   private featureSource = new Map<string, SourceName>()
@@ -584,14 +586,18 @@ export class MaidEngine {
   // --- Modes ---
 
   private currentMode: Mode = 'browse'
+  /** Drawing lines and areas */
+  readonly draw = new DrawTool(this)
 
   /** What a click on the map does now */
   get mode(): Mode {
     return this.currentMode
   }
 
+  /** Changes the mode. A way that is being drawn is finished first, as iD does. */
   setMode(mode: Mode) {
     if (mode === this.currentMode) return
+    if (this.draw.active) this.draw.finish()
     this.currentMode = mode
     this.changed()
   }
@@ -629,7 +635,7 @@ export class MaidEngine {
   /** Performs an action as one undo step and redraws what it changed */
   private edit(action: Action, annotation: string, selectedIDs: string[]) {
     const { history } = this.data
-    this.redrawAfter(() => {
+    this.change(() => {
       history.perform(action)
       history.commit({ annotation, selectedIDs })
     })
@@ -734,21 +740,24 @@ export class MaidEngine {
 
   /** Takes back the last edit and redraws what it changed. Does nothing while a vertex is dragged. */
   undo(): void {
-    if (this.dragged || this.data.history.getUndoAnnotation() === undefined) return
-    this.redrawAfter(() => this.data.history.undo())
+    if (this.dragged || this.draw.active || this.data.history.getUndoAnnotation() === undefined)
+      return
+    this.change(() => this.data.history.undo())
   }
 
   /** Puts back the edit that the last undo took back, and redraws what it changed. */
   redo(): void {
-    if (this.dragged || this.data.history.getRedoAnnotation() === undefined) return
-    this.redrawAfter(() => this.data.history.redo())
+    if (this.dragged || this.draw.active || this.data.history.getRedoAnnotation() === undefined)
+      return
+    this.change(() => this.data.history.redo())
   }
 
   /**
-   * Runs a change of the history (an edit, undo or redo), then redraws every entity that its
-   * differences name, each once. Created entities get their features, deleted ones lose them.
+   * Runs a change of the history (actions with or without a commit, a revert, undo or redo), then
+   * redraws every entity that its differences name, each once. Created entities get their
+   * features, deleted ones lose them. This is how tools and operations change the data.
    */
-  private redrawAfter(step: () => void) {
+  change(step: () => void) {
     const { history } = this.data
     const differences: Difference[] = []
     const off = history.on('stagingchange', (difference) => {
@@ -821,9 +830,20 @@ export class MaidEngine {
     })()
   }
 
+  /** Resolves when the moves that were asked for are on the map. Does not end the drag. */
+  async settleDrag() {
+    while (this.dragBusy) await new Promise((resolve) => requestAnimationFrame(resolve))
+  }
+
+  /** Forgets a move that was not made yet and ends the drag without an undo step */
+  stopDrag() {
+    this.dragTarget = undefined
+    this.dragged = undefined
+  }
+
   /** Call when the vertex is released. The whole drag becomes one undo step. */
   async endDrag() {
-    while (this.dragBusy) await new Promise((resolve) => requestAnimationFrame(resolve))
+    await this.settleDrag()
     const id = this.dragged
     this.dragged = undefined
     if (id && this.data.history.hasWorkInProgress)
@@ -889,7 +909,13 @@ export class MaidEngine {
   }
 
   /** The feature a pointer at this pixel would hit, in iD's priority: vertex, point, line, area */
-  pick(point: { x: number; y: number }, layerIds: string[], tolerance = 6): string | null {
+  pick(
+    point: { x: number; y: number },
+    layerIds: string[],
+    tolerance = 6,
+    /** Ids that are not picked, for example the way that is being drawn */
+    skip?: ReadonlySet<string>,
+  ): string | null {
     const { map } = this
     if (!map) return null
     const features = map.queryRenderedFeatures(
@@ -899,7 +925,7 @@ export class MaidEngine {
       ],
       { layers: layerIds },
     )
-    return pickBest(features)
+    return pickBest(skip ? features.filter((f) => !skip.has(f.id as string)) : features)
   }
 
   stats() {

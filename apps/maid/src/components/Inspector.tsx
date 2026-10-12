@@ -51,8 +51,11 @@ export function Inspector() {
   const { presets } = editor
   const fields =
     entity?.preset && presets ? presets.fieldsFor(entity.preset, entity.tags, entity.geometry) : []
-  // a feature without tags (a point that was just added) asks for its type right away
-  const untagged = entity !== undefined && Object.keys(entity.tags).length === 0
+  // a feature that was just added (negative id) and has no type yet asks for it right away
+  const untagged =
+    entity !== undefined &&
+    id.includes('-') &&
+    (!entity.preset || Object.keys(entity.preset.tags).length === 0)
   const picking = onChange !== undefined && (pickingFor === id || untagged)
   const kind = entity ? (entity.preset?.name ?? GEOMETRY_LABEL[entity.geometry]) : undefined
 

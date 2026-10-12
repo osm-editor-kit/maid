@@ -12,3 +12,4 @@ export { buildLayers, interactiveLayerIds, SOURCES, type LayerOptions } from './
 export { ModuleLayers } from './ModuleLayers'
 export { OsmLayers } from './OsmLayers'
 export { OsmData, type MergeResult } from './data'
+export { DrawTool, type DrawKind } from './draw'

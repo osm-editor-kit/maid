@@ -12,7 +12,8 @@ function isTextField(target: EventTarget | null): boolean {
 
 /**
  * The editor's keys, as in iD. Cmd+Z or Ctrl+Z undoes; Shift+Cmd+Z, Shift+Ctrl+Z or Ctrl+Y
- * redoes; 1 adds a point; Cmd+Backspace, Ctrl+Backspace or Delete deletes the selection.
+ * redoes; 1, 2 and 3 add a point, a line and an area; Enter finishes the way that is being
+ * drawn; Cmd+Backspace, Ctrl+Backspace or Delete deletes the selection.
  * Listens on the window so the keys work wherever the focus is, except in text fields.
  */
 export function useShortcuts() {
@@ -27,7 +28,16 @@ export function useShortcuts() {
       else if (command && ((key === 'z' && event.shiftKey) || (key === 'y' && event.ctrlKey)))
         engine.redo()
       else if (!command && key === '1') engine.setMode('add-point')
-      else if (selectedId && ((command && key === 'backspace') || key === 'delete')) {
+      else if (!command && key === '2') engine.setMode('draw-line')
+      else if (!command && key === '3') engine.setMode('draw-area')
+      else if (key === 'enter' && engine.draw.active) {
+        const finished = engine.draw.finish()
+        engine.setMode('browse')
+        if (finished) {
+          engine.setSelected(finished)
+          void setSelectedId(finished)
+        }
+      } else if (selectedId && ((command && key === 'backspace') || key === 'delete')) {
         if (engine.deleteEntity(selectedId)) void setSelectedId(null)
       } else handled = false
       if (handled) event.preventDefault()

@@ -24,6 +24,7 @@
     "refs-serve:id": "bun tools/refs/id/serve.ts",
     "refs-serve:rapid": "bun tools/refs/rapid/serve.ts",
     "compare": "bun apps/compare/start.ts",
+    "check-draw": "bun tools/bench/draw-check.ts",
     "check-edit": "bun tools/bench/edit-check.ts",
     "check-undo": "bun tools/bench/undo.ts",
     "check-render": "bun tools/bench/shot-diff.ts check",
