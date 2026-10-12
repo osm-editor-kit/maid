@@ -1,16 +1,15 @@
 # @osm-editor-kit/maid-ui
 
-The editor's shell as React components: layout, top bar, sidebar, map controls, dock, status bar, and the light, dark and system theme. An app puts its own content into them (see `apps/maid/src/App.tsx`).
+The editor's shell as React components: layout, top bar, sidebar, map controls, dock, context menu, and the light, dark and system theme. An app puts its own content into them (see `apps/maid/src/App.tsx`).
 
 | Piece | What it is |
 | --- | --- |
-| `Shell` | The layout: top bar, sidebar on the left, the map area with the dock under it, status bar |
+| `Shell` | The layout: top bar, sidebar on the left, the map area with the dock under it |
 | `TopBar`, `Brand` | Three areas; the centre stays centred |
 | `ToolGroup`, `ToolButton` | Joined buttons for the top bar, with label, shortcut and pressed state |
-| `Sidebar`, `SidebarHeader`, `SidebarBody`, `SidebarSection`, `SidebarEmpty` | The inspector's frame |
+| `Sidebar`, `SidebarHeader`, `SidebarBody`, `SidebarSection`, `SidebarDisclosure`, `SidebarEmpty` | The inspector's frame |
 | `MapControls`, `ControlGroup`, `ControlButton` | Buttons on the map, top right |
 | `Dock` | Tabs under the map that open a panel |
-| `StatusBar`, `StatusItem` | The line at the bottom |
 | `ThemeSwitch`, `useTheme`, `initTheme` | Light, dark or system, kept in the browser. Dark mode is the class `dark` on `<html>` |
 | `InspectorSections` | Draws the `inspector.section` extension point, which this package declares |
 

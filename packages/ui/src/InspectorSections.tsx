@@ -1,6 +1,6 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import type { InspectorSectionProps } from './extension-points.ts'
-import { SidebarSection } from './Sidebar.tsx'
+import { SidebarDisclosure, SidebarSection } from './Sidebar.tsx'
 
 /** The `inspector.section` items of the editor that apply to this entity, below the tag list. */
 export function InspectorSections({ entity, editor, select }: InspectorSectionProps) {
@@ -11,9 +11,18 @@ export function InspectorSections({ entity, editor, select }: InspectorSectionPr
         .filter((section) => !section.when || section.when(entity))
         .map((section) => {
           const Content = section.component
-          return (
+          const content = <Content entity={entity} editor={editor} select={select} />
+          return section.disclosure ? (
+            <SidebarDisclosure
+              key={section.id}
+              title={section.title}
+              defaultOpen={section.disclosure === 'open'}
+            >
+              {content}
+            </SidebarDisclosure>
+          ) : (
             <SidebarSection key={section.id} title={section.title}>
-              <Content entity={entity} editor={editor} select={select} />
+              {content}
             </SidebarSection>
           )
         })}

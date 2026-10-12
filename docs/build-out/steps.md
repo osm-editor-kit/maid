@@ -75,8 +75,10 @@ Asked for by Tobias on 2026-10-12 after testing part B. One item per step, a rev
   Result (2026-10-12): done. `ContextMenu` in `maid-ui`; the sidebar's edit menu, the right-click menu and the keys share one list of commands (`apps/maid/src/commands.ts`). Covered by `bun run check-interactions` (26 checks now).
 - [ ] **U2. The inspector's head.** First row in iD's style for the feature (icon, name), a click on it changes the feature type in the panel that slides in as now. The line with geometry and id goes behind it. Third row: the edit commands as icon-only buttons in a button group, the same as on right click, each with a tooltip that shows what it does and its key.
 - [ ] **U3. Tooltips and motion.** A tooltip component with Motion for React as in tilda-geo; panels animate as there.
-- [ ] **U4. "Element" as a disclosure.** The element's properties stay in the sidebar (not a floating panel as in iD) but fold away.
-- [ ] **U5. No footer bar.** The status line at the bottom goes; what matters from it moves elsewhere (zoom hint, data source, attribution).
+- [x] **U4. "Element" as a disclosure.** The element's properties stay in the sidebar (not a floating panel as in iD) but fold away.
+  Result (2026-10-12): done. An inspector section can say `disclosure: 'open' | 'closed'`; "Element" starts folded.
+- [x] **U5. No footer bar.** The status line at the bottom goes; what matters from it moves elsewhere (zoom hint, data source, attribution).
+  Result (2026-10-12): done. "Zoom in to load data" is a pill on the map, the attribution sits in the map's corner, zoom and data source are in the dock's "Data" view. `StatusBar` is gone from `maid-ui`. The render reference for this layout is `u5`.
 - [ ] **U6. Resizable panels.** Sidebar width and dock height can be dragged, in tilda-geo's style.
 - [ ] **U7. Fields one by one.** Every field type of iD's sidebar: read its behaviour in iD, write the spec down, rebuild it in Maid.
 - [ ] **U8. Foreshadowing.** A preview of the result on the map while a command is hovered (make round, square, flip, ...) and iD's helper lines, in iD's look, a little modernised.

@@ -47,6 +47,8 @@ export function elementInfo(): MaidModule {
       const section: InspectorSection = {
         id: 'element-info',
         title: 'Element',
+        // id, version and so on are looked at now and then: folded away until asked for
+        disclosure: 'closed',
         component: ElementInfo,
       }
       api.register('inspector.section', section)

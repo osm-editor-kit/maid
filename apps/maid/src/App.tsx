@@ -3,9 +3,9 @@ import { NuqsAdapter } from 'nuqs/adapters/react'
 import { MapProvider } from 'react-map-gl/maplibre'
 import { BottomDock } from './components/BottomDock'
 import { Inspector } from './components/Inspector'
+import { MapNotices } from './components/MapNotices'
 import { MapView } from './components/MapView'
 import { ModeButtons } from './components/ModeButtons'
-import { StatusLine } from './components/StatusLine'
 import { UndoRedo } from './components/UndoRedo'
 import { useShortcuts } from './components/useShortcuts'
 import { ZoomControls } from './components/ZoomControls'
@@ -37,9 +37,9 @@ function Editor() {
       }
       sidebar={<Inspector />}
       dock={<BottomDock />}
-      statusBar={<StatusLine />}
     >
       <MapView />
+      <MapNotices />
       <ZoomControls />
     </Shell>
   )

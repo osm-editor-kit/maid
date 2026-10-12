@@ -17,7 +17,8 @@ OSM infrastructure means everything the OSMF and the community run for mappers: 
 - Fixtures are created once, by a person running a script on purpose, from a bulk extract (not from the editing API), and are committed. Regenerating a fixture is a deliberate, reviewed change.
 - Live OSM data is a manual, opt-in mode of the Maid app for a person exploring. It is off by default, never used in automation, cached, and only loads at editing zoom levels.
 - Never sign in to OSM from an automated run. Never upload. The mock API rejects writes.
-- Do not copy OAuth client ids or secrets from the reference editors into this repo.
+- **The development server** (`master.apis.dev.openstreetmap.org`) may be used by a person for focused tests of login and saving: a few small changesets, not again and again. Never from automated tests, benchmarks, load tests or an agent session; an agent builds the feature and a person tries it. Decided by Tobias on 2026-10-12. Nothing is ever saved to the production API from development.
+- Do not copy OAuth client ids or secrets from the reference editors into this repo. Maid's own client id for the development server is not a secret, but it lives in `apps/maid/.env.local` (git-ignored; `.env.example` names the variable). Maid is a public client with PKCE: it has and needs no client secret, and none is ever written into this repo.
 
 ### 2. Automation first
 

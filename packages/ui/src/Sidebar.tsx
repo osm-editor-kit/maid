@@ -1,4 +1,4 @@
-import { XMarkIcon } from '@heroicons/react/20/solid'
+import { ChevronDownIcon, XMarkIcon } from '@heroicons/react/20/solid'
 import type { ReactNode } from 'react'
 
 /** Left column for the selection and its properties; a full-height landmark with a hairline on its right. */
@@ -63,6 +63,26 @@ export function SidebarSection(props: { title: string; children: ReactNode }) {
       <h3 className="mb-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">{props.title}</h3>
       {props.children}
     </section>
+  )
+}
+
+/** A group like `SidebarSection` that folds away: its title is the switch. Closed unless `defaultOpen`. */
+export function SidebarDisclosure(props: {
+  title: string
+  defaultOpen?: boolean
+  children: ReactNode
+}) {
+  return (
+    <details
+      open={props.defaultOpen}
+      className="group border-t border-zinc-950/10 py-3 first:border-t-0 first:pt-0 dark:border-white/10"
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-medium text-zinc-500 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:text-white [&::-webkit-details-marker]:hidden">
+        {props.title}
+        <ChevronDownIcon aria-hidden="true" className="size-4 transition group-open:rotate-180" />
+      </summary>
+      <div className="mt-2">{props.children}</div>
+    </details>
   )
 }
 
