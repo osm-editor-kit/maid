@@ -86,6 +86,7 @@ Asked for by Tobias on 2026-10-12 after testing part B. One item per step, a rev
 - [ ] **U7. Fields one by one.** Every field type of iD's sidebar: read its behaviour in iD, write the spec down, rebuild it in Maid.
 - [ ] **U8. Foreshadowing.** A preview of the result on the map while a command is hovered (make round, square, flip, ...) and iD's helper lines, in iD's look, a little modernised.
 - [ ] **U9. Phones.** The layout for small screens as tilda-geo does it: the properties panel behind a button at the bottom right, and so on.
+- [ ] **U11. Direction arrows on lines.** iD draws arrows along one-way roads, waterways and other ways with a direction, and on the selected way. Read how iD decides and draws them and do the same.
 - [ ] **U10. Component library.** Fewer components with a smaller surface, shared between their uses.
 
 ## Part C: keeping and sending work

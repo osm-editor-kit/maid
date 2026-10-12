@@ -14,7 +14,7 @@ export function Shell(props: {
 }) {
   const { topBar, sidebar, dock, children } = props
   const sidebarWidth = useResizable({
-    storageKey: 'maid:sidebar-width',
+    storageKey: 'sidebar-width',
     axis: 'x',
     initial: 320,
     min: 280,

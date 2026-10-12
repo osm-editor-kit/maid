@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { clampSize, parseStoredSize } from './useResizable.ts'
+import { clampSize } from './useResizable.ts'
 
 describe('clampSize', () => {
   test('keeps a size between the floor and the ceiling', () => {
@@ -10,21 +10,5 @@ describe('clampSize', () => {
 
   test('the ceiling wins when the window is smaller than the floor', () => {
     expect(clampSize(300, 280, 200)).toBe(200)
-  })
-})
-
-describe('parseStoredSize', () => {
-  test('reads finite numbers', () => {
-    expect(parseStoredSize('400')).toBe(400)
-    expect(parseStoredSize('12.5')).toBe(12.5)
-  })
-
-  test('rejects missing, empty and non-numeric values', () => {
-    expect(parseStoredSize(null)).toBeUndefined()
-    expect(parseStoredSize('')).toBeUndefined()
-    expect(parseStoredSize('   ')).toBeUndefined()
-    expect(parseStoredSize('wide')).toBeUndefined()
-    expect(parseStoredSize('NaN')).toBeUndefined()
-    expect(parseStoredSize('Infinity')).toBeUndefined()
   })
 })

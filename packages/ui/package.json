@@ -15,7 +15,8 @@
     "@osm-editor-kit/maid-presets": "workspace:*",
     "@osm-editor-kit/maid-renderer": "workspace:*",
     "motion": "^14.0.0",
-    "tailwind-merge": "^3.7.0"
+    "tailwind-merge": "^3.7.0",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@types/react": "^19.3.0"

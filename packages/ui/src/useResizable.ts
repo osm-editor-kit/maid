@@ -1,7 +1,8 @@
 import { useEffect, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useSettings } from './settings.ts'
 
 export type ResizableOptions = {
-  /** localStorage key the size is saved under. */
+  /** The key the size is saved under in the settings, e.g. `sidebar-width`. */
   storageKey: string
   /** `x` resizes by width, `y` by height. */
   axis: 'x' | 'y'
@@ -34,30 +35,6 @@ export function clampSize(size: number, min: number, ceiling: number): number {
   return Math.min(ceiling, Math.max(min, size))
 }
 
-/** A stored value as a number, or `undefined` when it is missing or not a finite number. */
-export function parseStoredSize(raw: string | null): number | undefined {
-  if (raw === null || raw.trim() === '') return undefined
-  const value = Number(raw)
-  return Number.isFinite(value) ? value : undefined
-}
-
-function readStoredSize(storageKey: string): number | undefined {
-  try {
-    return parseStoredSize(window.localStorage.getItem(storageKey))
-  } catch {
-    // Storage can be blocked (private windows, cleared site data); the initial size still works.
-    return undefined
-  }
-}
-
-function writeStoredSize(storageKey: string, size: number): void {
-  try {
-    window.localStorage.setItem(storageKey, String(size))
-  } catch {
-    // The size still applies for this visit; it just is not remembered.
-  }
-}
-
 function viewportSize(axis: 'x' | 'y'): number {
   return axis === 'x' ? window.innerWidth : window.innerHeight
 }
@@ -70,7 +47,7 @@ function viewportSize(axis: 'x' | 'y'): number {
 export function useResizable(options: ResizableOptions): Resizable {
   const { storageKey, axis, initial, min, max, direction } = options
   const [size, setSize] = useState(() =>
-    clampSize(readStoredSize(storageKey) ?? initial, min, max(viewportSize(axis))),
+    clampSize(useSettings.getState().sizes[storageKey] ?? initial, min, max(viewportSize(axis))),
   )
   const [dragging, setDragging] = useState(false)
 
@@ -107,7 +84,7 @@ export function useResizable(options: ResizableOptions): Resizable {
       handle.removeEventListener('pointerup', end)
       handle.removeEventListener('pointercancel', end)
       setDragging(false)
-      writeStoredSize(storageKey, current)
+      useSettings.getState().setSize(storageKey, current)
     }
 
     handle.addEventListener('pointermove', onPointerMove)
@@ -118,7 +95,7 @@ export function useResizable(options: ResizableOptions): Resizable {
   function onDoubleClick() {
     const reset = clampSize(initial, min, max(viewportSize(axis)))
     setSize(reset)
-    writeStoredSize(storageKey, reset)
+    useSettings.getState().setSize(storageKey, reset)
   }
 
   return { size, dragging, handleProps: { onPointerDown, onDoubleClick } }

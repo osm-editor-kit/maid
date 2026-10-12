@@ -12,7 +12,7 @@ The editor's shell as React components: layout, top bar, sidebar, map controls, 
 | `Dock` | Tabs under the map that open a panel; its height is dragged from the top edge and animates open and closed |
 | `Tooltip` | Label, shortcut and description on hover or focus, for one element; a disabled element is wrapped in a span so it still gets the hover |
 | `CommandBar`, `CommandItem` | Icon-only commands in one hairline-joined group; a command with a `reason` is greyed out and shows the reason |
-| `ResizeHandle`, `useResizable` | A drag strip on the right edge of the sidebar or the top edge of the dock, with the size saved in `localStorage` |
+| `ResizeHandle`, `useResizable` | A drag strip on the right edge of the sidebar or the top edge of the dock, with the size kept in the settings |
 | `FadeSlideIn`, `UI_SPRING` | The house spring for chrome, and a slide-and-fade entrance |
 | `ThemeSwitch`, `useTheme`, `initTheme` | Light, dark or system, kept in the browser. Dark mode is the class `dark` on `<html>` |
 | `InspectorSections` | Draws the `inspector.section` extension point, which this package declares |
@@ -38,4 +38,4 @@ The tooltip, the resize handle and the resize hook follow the author's app tilda
 
 - `inspector.section` hands a module the renderer's `EntityInfo`, so this package depends on `maid-renderer` for that one type. It should become a type that both packages take from the headless side.
 - The dock's views and the top bar's tools are fixed by the app. They become extension points when the first module needs them.
-- The theme is kept in `localStorage` directly. It moves to the settings store when there is one (step C1).
+- Theme and panel sizes are one Zustand store with `persist` and a version (`settings.ts`). It becomes the editor's settings store with the agreed precedence (default, config, stored, URL, user) in step C1.

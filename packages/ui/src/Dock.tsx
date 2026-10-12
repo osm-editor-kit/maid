@@ -17,7 +17,7 @@ export function Dock(props: { tabs: DockTab[]; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen)
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined)
   const panelHeight = useResizable({
-    storageKey: 'maid:dock-height',
+    storageKey: 'dock-height',
     axis: 'y',
     initial: 224,
     min: 120,
