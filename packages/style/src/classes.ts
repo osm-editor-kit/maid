@@ -52,6 +52,15 @@ const SEMIPAVED = new Set([
   'grass_paver', 'metal_grid', 'fibre_reinforced_polymer_grate', 'wood',
 ]) // prettier-ignore
 const VALID = /^[-_a-z0-9]+$/
+// Every `${status}:${primary}` key (for example `disused:building`), with its rank in the order
+// the status scan used to test them: status first, then primary. Built once, so a way is
+// matched by walking its own keys (a few) instead of testing all 276 combinations per call.
+const STATUS_PRIMARY_KEYS = new Map<string, { rank: number; status: string }>()
+STATUSES.forEach((status, s) =>
+  PRIMARIES.forEach((primary, p) =>
+    STATUS_PRIMARY_KEYS.set(`${status}:${primary}`, { rank: s * PRIMARIES.length + p, status }),
+  ),
+)
 
 export function tagClasses(t: Tags): string[] {
   const classes: string[] = []
@@ -69,14 +78,16 @@ export function tagClasses(t: Tags): string[] {
     break
   }
   if (!primary) {
-    outer: for (const prefix of STATUSES) {
-      for (const key of PRIMARIES) {
-        const v = t[`${prefix}:${key}`]
-        if (!v || v === 'no') continue
-        status = prefix
-        break outer
-      }
+    // The earliest status:primary key the way has, in scan order.
+    let found: { rank: number; status: string } | undefined
+    for (const key in t) {
+      const entry = STATUS_PRIMARY_KEYS.get(key)
+      if (!entry || (found && found.rank < entry.rank)) continue
+      const v = t[key]
+      if (!v || v === 'no') continue
+      found = entry
     }
+    if (found) status = found.status
   }
   if (!status) {
     for (const k of STATUSES) {
