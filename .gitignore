@@ -16,3 +16,4 @@ tools/refs/*/smoke*.png
 tools/refs/*/smoke*.json
 reports/*.log
 reports/model-load-*.json
+reports/validation-bench.json

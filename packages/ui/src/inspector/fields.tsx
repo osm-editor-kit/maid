@@ -143,6 +143,24 @@ export function PresetFields(props: {
     onFieldFocus?.(next)
   }, [tags, onFieldFocus])
 
+  // The pointer can leave the list without a leave event reaching it: when the control under it
+  // was just rebuilt, the event goes to an element that is no longer in the page. So the page
+  // itself tells when the pointer is over something outside the list.
+  useEffect(() => {
+    const outside = (event: PointerEvent) => {
+      const container = containerRef.current
+      if (!hoverRef.current || !container) return
+      if (event.target instanceof Node && container.contains(event.target)) return
+      hoverRef.current = null
+      const next = focusRef.current
+      if (sameFocus(shownRef.current, next)) return
+      shownRef.current = next
+      onFieldFocus?.(next)
+    }
+    document.addEventListener('pointerover', outside)
+    return () => document.removeEventListener('pointerover', outside)
+  }, [onFieldFocus])
+
   const registry = { ...defaultFieldComponents, ...components }
   const rows = rowFields(fields, pickedFields(picked, [...fields, ...moreFields]))
   const offer = onChange ? addableFields(moreFields, new Set(rows.map((field) => field.id))) : []

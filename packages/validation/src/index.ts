@@ -1,16 +1,17 @@
 // Headless validation for Maid: rules that look at entities and their neighbours, and a validator
 // that keeps what they found. No map, no React, no DOM.
-import { crossingWays } from './rules/crossing-ways.ts'
+
 import { almostJunction } from './rules/almost-junction.ts'
+import { crossingWays } from './rules/crossing-ways.ts'
+import { disconnectedWay } from './rules/disconnected-way.ts'
 import { impossibleOneway } from './rules/impossible-oneway.ts'
 import { incompatibleSource } from './rules/incompatible-source.ts'
 import { invalidFormat } from './rules/invalid-format.ts'
 import { missingRole } from './rules/missing-role.ts'
+import { missingTag } from './rules/missing-tag.ts'
 import { mutuallyExclusiveTags } from './rules/mutually-exclusive-tags.ts'
 import { osmApiLimits } from './rules/osm-api-limits.ts'
 import { privateData } from './rules/private-data.ts'
-import { disconnectedWay } from './rules/disconnected-way.ts'
-import { missingTag } from './rules/missing-tag.ts'
 import type { Rule } from './types.ts'
 
 export { createValidator } from './validator.ts'

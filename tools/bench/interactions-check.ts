@@ -483,13 +483,10 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   const overlay = async () => {
     await settle()
     return page.evaluate(() => {
-      const { map } = (window as any).__maid
-      // a feature is returned once per tile it reaches: count each id once
-      const features = new Map<string, any>()
-      for (const f of map.querySourceFeatures('osm-highlight') as any[])
-        features.set(`${f.properties?.id}`, f)
-      const of = (state: string) =>
-        [...features.values()].filter((f) => f.properties?.state === state)
+      // what the engine holds for the overlay, not what the map's tiles hold: a tile that is no
+      // longer in view keeps its old features, and querySourceFeatures would still return them
+      const features = (window as any).__maid.engine.fieldFeatures as any[]
+      const of = (state: string) => features.filter((f) => f.properties?.state === state)
       return {
         sides: of('field-side').map((f) => f.properties.side),
         bands: of('field-band').length,
