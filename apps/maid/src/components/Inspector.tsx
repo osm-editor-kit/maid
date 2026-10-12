@@ -68,6 +68,11 @@ export function Inspector() {
   const { presets } = editor
   const fields =
     entity?.preset && presets ? presets.fieldsFor(entity.preset, entity.tags, entity.geometry) : []
+  // what "Add field" offers; a read-only feature gets no list
+  const moreFields =
+    onChange && entity?.preset && presets
+      ? presets.moreFieldsFor(entity.preset, entity.tags, entity.geometry)
+      : []
   // a feature that was just added (negative id) and has no type yet asks for it right away
   const untagged =
     entity !== undefined &&
@@ -135,10 +140,13 @@ export function Inspector() {
           ) : (
             <Operations />
           )}
-          {fields.length > 0 && (
+          {(fields.length > 0 || moreFields.length > 0) && (
             <SidebarSection title="Fields">
               <PresetFields
+                // picked fields belong to the feature: a new feature starts with none
+                key={id}
                 fields={fields}
+                moreFields={moreFields}
                 tags={entity.tags}
                 // what "revert" goes back to; a feature that was added here has nothing to revert to
                 baseTags={engine.baseTags(id)}

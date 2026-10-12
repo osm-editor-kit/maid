@@ -71,6 +71,12 @@ export type Presets = {
   field(id: string): Field | undefined
   /** The preset's fields that apply: resolved (inheritance, templates), filtered by the field's `geometry` and `prerequisiteTag`. Then every `moreFields` entry and universal field whose key (or one of its keys) has a value in `tags`, without duplicates. */
   fieldsFor(preset: Preset, tags: Tags, geometry: Geometry): Field[]
+  /**
+   * The fields the "Add field" list offers for these tags: every `moreFields` entry and universal
+   * field that `fieldsFor` does not return, that applies to the geometry and whose prerequisiteTag
+   * holds. No duplicates. Sorted by label, universal fields last (iD's order).
+   */
+  moreFieldsFor(preset: Preset, tags: Tags, geometry: Geometry): Field[]
   /** iD's area keys: key → values that are NOT areas. Same shape as iD's `areaKeys`. The object is built once; do not mutate it. */
   areaKeys(): Record<string, Record<string, true>>
   /**

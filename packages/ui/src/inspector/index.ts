@@ -1,3 +1,4 @@
+export { AddField } from './AddField.tsx'
 export { PresetPicker } from './PresetPicker.tsx'
 export {
   CheckField,

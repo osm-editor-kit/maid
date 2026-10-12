@@ -21,6 +21,8 @@ const COMBO_TYPES = new Set(['combo', 'typeCombo', 'networkCombo', 'radio', 'str
 const ROW_BUTTON =
   'grid size-5 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white'
 
+const STEADY_TYPES = new Set(['semiCombo', 'multiCombo', 'manyCombo'])
+
 export function FieldRow(props: {
   field: Field
   tags: Tags
@@ -34,8 +36,10 @@ export function FieldRow(props: {
   const labelId = useId()
   const key = field.key
   // A multi-key field shows only once one of its keys has a value
-  if (key === undefined && keysWithValue(field, tags).length === 0) return null
   const Control = registry[field.type] ?? FallbackField
+  // a field over several keys that has no component of its own only shows the keys in use
+  if (Control === FallbackField && key === undefined && keysWithValue(field, tags).length === 0)
+    return null
   const hint =
     key !== undefined && COMBO_TYPES.has(field.type) ? comboHint(field, tags[key]) : undefined
   const present = isPresent(field, tags)
@@ -86,7 +90,9 @@ export function FieldRow(props: {
         </div>
       </div>
       <Control
-        key={valueSignature(field, tags)}
+        // Most controls keep a draft and start over when the tag changes elsewhere. The chip fields
+        // show the tags as they are and keep the focus in their input while values are added.
+        key={STEADY_TYPES.has(field.type) ? field.id : valueSignature(field, tags)}
         id={id}
         field={field}
         tags={tags}

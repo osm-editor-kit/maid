@@ -189,6 +189,71 @@ describe('fieldsFor', () => {
   })
 })
 
+describe('moreFieldsFor', () => {
+  const bakery = presetOf('shop/bakery')
+  const idsOffered = (tags: Tags, geometry: Geometry = 'point') =>
+    presets.moreFieldsFor(bakery, tags, geometry).map((field) => field.id)
+
+  it('offers Wheelchair to a shop that has no wheelchair tag', () => {
+    const offered = presets.moreFieldsFor(bakery, { shop: 'bakery' }, 'point')
+    const wheelchair = offered.find((field) => field.id === 'wheelchair')
+    expect(wheelchair?.label).toBe('Wheelchair Access')
+    expect(wheelchair?.key).toBe('wheelchair')
+  })
+
+  it('stops offering wheelchair once it has a value and shows it as a field', () => {
+    const tags = { shop: 'bakery', wheelchair: 'yes' }
+    expect(idsOffered(tags)).not.toContain('wheelchair')
+    const shown = presets.fieldsFor(bakery, tags, 'point').map((field) => field.id)
+    expect(shown).toContain('wheelchair')
+  })
+
+  it('never offers a field that fieldsFor returns, and lists each field once', () => {
+    const cafe = presetOf('amenity/cafe')
+    const tags = { amenity: 'cafe', internet_access: 'wlan', phone: '+49', lit: 'yes' }
+    const shown = new Set(presets.fieldsFor(cafe, tags, 'point').map((field) => field.id))
+    const offered = presets.moreFieldsFor(cafe, tags, 'point').map((field) => field.id)
+    expect(new Set(offered).size).toBe(offered.length)
+    for (const id of offered) expect(shown.has(id)).toBe(false)
+  })
+
+  it('lists the non-universal fields first, sorted by label, then the universal fields sorted by label', () => {
+    const offered = presets.moreFieldsFor(bakery, { shop: 'bakery' }, 'point')
+    const specific = offered.filter((field) => !field.universal)
+    const general = offered.filter((field) => field.universal)
+    expect(offered).toEqual([...specific, ...general])
+    const labels = (fields: typeof offered) => fields.map((field) => field.label)
+    expect(labels(specific)).toEqual(
+      labels(specific)
+        .slice()
+        .sort((a, b) => a.localeCompare(b)),
+    )
+    expect(labels(general)).toEqual(
+      labels(general)
+        .slice()
+        .sort((a, b) => a.localeCompare(b)),
+    )
+    expect(general.map((field) => field.id)).toContain('website')
+  })
+
+  it('offers a universal field only for the geometries it applies to (ele_node: point and vertex)', () => {
+    const cafe = presetOf('amenity/cafe')
+    const tags = { amenity: 'cafe' }
+    expect(presets.moreFieldsFor(cafe, tags, 'point').map((f) => f.id)).toContain('ele_node')
+    expect(presets.moreFieldsFor(cafe, tags, 'vertex').map((f) => f.id)).toContain('ele_node')
+    expect(presets.moreFieldsFor(cafe, tags, 'area').map((f) => f.id)).not.toContain('ele_node')
+    expect(presets.moreFieldsFor(cafe, tags, 'line').map((f) => f.id)).not.toContain('ele_node')
+  })
+
+  it('leaves out a field whose prerequisiteTag does not hold', () => {
+    // internet_access/fee (a moreField of the bakery) is offered only while internet_access is not "no"
+    expect(idsOffered({ shop: 'bakery' })).toContain('internet_access/fee')
+    expect(idsOffered({ shop: 'bakery', internet_access: 'no' })).not.toContain(
+      'internet_access/fee',
+    )
+  })
+})
+
 describe('areaKeys', () => {
   const areaKeys = presets.areaKeys()
 

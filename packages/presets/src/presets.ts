@@ -524,6 +524,24 @@ export function createPresets(data: PresetData): Presets {
     return result
   }
 
+  function moreFieldsFor(preset: Preset, tags: Tags, geometry: Geometry): Field[] {
+    const entry = entries.get(preset.id)
+    const shown = new Set(fieldsFor(preset, tags, geometry).map((field) => field.id))
+    const seen = new Set<string>()
+    const offered: Field[] = []
+    for (const field of [...(entry?.moreFields ?? []), ...universal]) {
+      if (seen.has(field.id) || shown.has(field.id)) continue
+      seen.add(field.id)
+      if (fieldAppliesTo(field, geometry) && prerequisiteHolds(field.prerequisiteTag, tags)) {
+        offered.push(field)
+      }
+    }
+    // iD (form_fields.js): by title, universal fields last
+    return offered.sort(
+      (a, b) => Number(a.universal) - Number(b.universal) || a.label.localeCompare(b.label),
+    )
+  }
+
   // iD's areaKeys (index.js): a keeplist of keys from area presets, and per key the values that are lines.
   const areaKeys: Record<string, Record<string, true>> = {}
   for (const { preset, deprecated } of ordered) {
@@ -658,6 +676,7 @@ export function createPresets(data: PresetData): Presets {
     preset: (id) => entries.get(id)?.preset,
     field: (id) => fields.get(id),
     fieldsFor,
+    moreFieldsFor,
     areaKeys: () => areaKeys,
     search,
     applyPreset,
