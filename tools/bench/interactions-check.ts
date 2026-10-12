@@ -1,3 +1,4 @@
+import { checkHelpers, type XY } from './check-helpers'
 /**
  * Interaction check for Maid, with real mouse, keyboard and touch events, against what iD does:
  * Shift-click selects several features, the nodes of a selected area and standalone points can be
@@ -11,60 +12,8 @@
  */
 import { runCheck } from './check-page'
 
-type XY = { x: number; y: number }
-
 let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, settle }) => {
-  const origin = (await page.evaluate(() => {
-    const box = (window as any).__maid.map.getCanvas().getBoundingClientRect()
-    return { x: box.left, y: box.top }
-  })) as XY
-  const abs = (p: XY) => ({ x: origin.x + p.x, y: origin.y + p.y })
-  const click = async (p: XY, options?: { shift?: boolean; count?: number }) => {
-    const at = abs(p)
-    await page.mouse.move(at.x, at.y)
-    if (options?.shift) await page.keyboard.down('Shift')
-    await page.mouse.click(at.x, at.y, { clickCount: options?.count ?? 1 })
-    if (options?.shift) await page.keyboard.up('Shift')
-    await settle()
-  }
-  const drag = async (from: XY, to: XY) => {
-    const a = abs(from)
-    const b = abs(to)
-    await page.mouse.move(a.x, a.y)
-    await page.mouse.down()
-    await page.mouse.move((a.x + b.x) / 2, (a.y + b.y) / 2, { steps: 4 })
-    await page.mouse.move(b.x, b.y, { steps: 4 })
-    await page.mouse.up()
-    await settle()
-  }
-  const key = async (name: string) => {
-    // the editor's keys do not work in a text field: leave the type search first
-    await page.evaluate(() => {
-      if (document.activeElement instanceof HTMLInputElement) document.activeElement.blur()
-    })
-    await page.keyboard.press(name)
-    await settle()
-  }
-  const state = () =>
-    page.evaluate(() => {
-      const { map, engine } = (window as any).__maid
-      return {
-        selection: [...engine.selection] as string[],
-        zoom: Math.round(map.getZoom() * 100) / 100,
-        mode: engine.mode as string,
-        undo: (engine.undoState().undoLabel ?? null) as string | null,
-      }
-    })
-  /** Screen positions of nodes */
-  const where = (ids: string[]) =>
-    page.evaluate((ids) => {
-      const { map, engine } = (window as any).__maid
-      return ids.map((id) => {
-        const p = map.project(engine.data.node(id).loc)
-        return { x: p.x, y: p.y }
-      })
-    }, ids) as Promise<XY[]>
-  const near = (a: XY, b: XY, px = 3) => Math.hypot(a.x - b.x, a.y - b.y) <= px
+  const { origin, abs, click, drag, key, state, where, near } = await checkHelpers(page, settle)
 
   // what the checks work on: two buildings with a free corner each, a point, a road segment, open ground
   const found = (await page.evaluate(() => {
@@ -420,7 +369,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   await settle()
   await page.mouse.click(origin.x + free(1).x + 40, origin.y + free(1).y + 30)
   await settle()
-  const afterMove = await where(ids)
+  const afterMove = (await where(ids)) as XY[]
   report(
     'M: every node moved as far as the pointer',
     [true, 'Moved a feature', 'browse'],
@@ -443,7 +392,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   await settle()
   await page.mouse.click(origin.x + c.x, origin.y + c.y + 100)
   await settle()
-  const afterRotate = await where(ids)
+  const afterRotate = (await where(ids)) as XY[]
   report(
     'R: the nodes turned around their middle and kept their distance to it',
     [true, true, 'Rotated a feature'],
@@ -533,7 +482,8 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
     await settle()
   }
   const movedBy = (now: XY, was: XY) => near(now, { x: was.x + 40, y: was.y + 30 })
-  const sameAs = (now: XY[], was: XY[]) => now.every((p, i) => near(p, was[i]!, 3))
+  const sameAs = (now: (XY | null)[], was: (XY | null)[]) =>
+    now.every((p, i) => near(p, was[i]!, 3))
 
   const pre = { w: await where(built.w), u: await where(built.u), v: await where(built.v) }
   const createdBefore = await createdNodes()
@@ -890,59 +840,10 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
 failed += await runCheck(
   process.argv[2] ?? 'small',
   async ({ page, report, settle }) => {
-    const origin = (await page.evaluate(() => {
-      const box = (window as any).__maid.map.getCanvas().getBoundingClientRect()
-      return { x: box.left, y: box.top }
-    })) as XY
-    const abs = (p: XY) => ({ x: origin.x + p.x, y: origin.y + p.y })
-    const click = async (p: XY) => {
-      const at = abs(p)
-      await page.mouse.move(at.x, at.y)
-      await page.mouse.click(at.x, at.y)
-      await settle()
-    }
-    const shiftClick = async (p: XY) => {
-      const at = abs(p)
-      await page.mouse.move(at.x, at.y)
-      await page.keyboard.down('Shift')
-      await page.mouse.click(at.x, at.y)
-      await page.keyboard.up('Shift')
-      await settle()
-    }
-    const drag = async (from: XY, to: XY) => {
-      const a = abs(from)
-      const b = abs(to)
-      await page.mouse.move(a.x, a.y)
-      await page.mouse.down()
-      await page.mouse.move((a.x + b.x) / 2, (a.y + b.y) / 2, { steps: 4 })
-      await page.mouse.move(b.x, b.y, { steps: 4 })
-      await page.mouse.up()
-      await settle()
-    }
-    const key = async (name: string) => {
-      await page.keyboard.press(name)
-      await settle()
-    }
-    const state = () =>
-      page.evaluate(() => {
-        const { engine } = (window as any).__maid
-        return {
-          selection: [...engine.selection] as string[],
-          mode: engine.mode as string,
-          undo: (engine.undoState().undoLabel ?? null) as string | null,
-        }
-      })
-    /** Screen positions of nodes; a node that is gone has none */
-    const where = (ids: string[]) =>
-      page.evaluate((ids) => {
-        const { map, engine } = (window as any).__maid
-        return ids.map((id) => {
-          const loc = engine.data.node(id)?.loc
-          if (!loc) return null
-          const p = map.project(loc)
-          return { x: p.x, y: p.y }
-        })
-      }, ids) as Promise<(XY | null)[]>
+    // the snapping check presses keys without leaving a text field first, as it always did
+    const { click, drag, key, state, where, near } = await checkHelpers(page, settle, {
+      leaveFields: false,
+    })
     /** The nodes a way has now, and whether a node exists */
     const graph = (ids: string[], ways: string[]) =>
       page.evaluate(
@@ -956,9 +857,6 @@ failed += await runCheck(
         },
         { ids, ways },
       ) as Promise<{ nodes: boolean[]; ways: string[][]; tags: (Record<string, string> | null)[] }>
-    const near = (a: XY | null | undefined, b: XY | null | undefined, px = 4) =>
-      !!a && !!b && Math.hypot(a.x - b.x, a.y - b.y) <= px
-
     // what the checks work on: two buildings with a corner each, a road, a standalone point
     const scene = (await page.evaluate(() => {
       const { map, engine } = (window as any).__maid
@@ -1029,7 +927,7 @@ failed += await runCheck(
     /** Both buildings selected: their corners are shape points, so they can be dropped on */
     const selectBoth = async () => {
       await click(first.edge)
-      await shiftClick(second.edge)
+      await click(second.edge, { shift: true })
     }
     const [a0, b0] = (await where([cornerA, cornerB])) as XY[]
     await selectBoth()
@@ -1111,7 +1009,7 @@ failed += await runCheck(
     report(
       'a drop on the neighbour in the same way is refused: the node is back where it started',
       [before, true],
-      [await undoOf(), near(refused, a0)],
+      [await undoOf(), near(refused, a0, 4)],
     )
 
     // --- add point on a vertex: no second node, the vertex is selected ---
@@ -1275,26 +1173,7 @@ failed += await runCheck(
 failed += await runCheck(
   process.argv[2] ?? 'small',
   async ({ page, report, settle }) => {
-    const origin = (await page.evaluate(() => {
-      const box = (window as any).__maid.map.getCanvas().getBoundingClientRect()
-      return { x: box.left, y: box.top }
-    })) as XY
-    const abs = (p: XY) => ({ x: origin.x + p.x, y: origin.y + p.y })
-    const click = async (p: XY, button: 'left' | 'right' = 'left') => {
-      const at = abs(p)
-      await page.mouse.move(at.x, at.y)
-      await page.mouse.click(at.x, at.y, { button })
-      await settle()
-    }
-    const key = async (name: string) => {
-      await page.evaluate(() => {
-        if (document.activeElement instanceof HTMLInputElement) document.activeElement.blur()
-      })
-      await page.keyboard.press(name)
-      await settle()
-    }
-    const selection = () =>
-      page.evaluate(() => [...(window as any).__maid.engine.selection] as string[])
+    const { click, key, selection } = await checkHelpers(page, settle)
     const pill = () => page.getByRole('button', { name: /\d+ of \d+/ })
     const pillText = async () =>
       (await pill().count()) === 0
@@ -1379,7 +1258,7 @@ failed += await runCheck(
     )
 
     // a right click lists the features in the menu, as a first group
-    await click(place, 'right')
+    await click(place, { button: 'right' })
     const menu = page.getByRole('menu', { name: 'Edit' })
     report(
       'a right click lists the features of the place under a heading',
@@ -1409,33 +1288,7 @@ failed += await runCheck(
 failed += await runCheck(
   process.argv[2] ?? 'small',
   async ({ page, report, settle }) => {
-    const origin = (await page.evaluate(() => {
-      const box = (window as any).__maid.map.getCanvas().getBoundingClientRect()
-      return { x: box.left, y: box.top }
-    })) as XY
-    const abs = (p: XY) => ({ x: origin.x + p.x, y: origin.y + p.y })
-    const click = async (p: XY) => {
-      const at = abs(p)
-      await page.mouse.move(at.x, at.y)
-      await page.mouse.click(at.x, at.y)
-      await settle()
-    }
-    const key = async (name: string) => {
-      await page.evaluate(() => {
-        if (document.activeElement instanceof HTMLInputElement) document.activeElement.blur()
-      })
-      await page.keyboard.press(name)
-      await settle()
-    }
-    const state = () =>
-      page.evaluate(() => {
-        const { engine } = (window as any).__maid
-        return {
-          selection: [...engine.selection] as string[],
-          measuring: engine.measuring as boolean,
-          undo: (engine.undoState().undoLabel ?? null) as string | null,
-        }
-      })
+    const { click, key, state } = await checkHelpers(page, settle)
     const widthOf = (id: string) =>
       page.evaluate((id) => (window as any).__maid.engine.entity(id)?.tags.width ?? null, id)
     const locsOf = (id: string) =>

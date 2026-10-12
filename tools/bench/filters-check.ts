@@ -1,3 +1,4 @@
+import { pickBuildingAndRoad, runDelete } from './check-helpers'
 /**
  * Filters check for Maid: hides buildings, makes them read-only, resets, and starts once with a
  * filter in the URL. Checks what the map has in its sources and that a read-only feature
@@ -9,23 +10,6 @@ import { runCheck, type Check } from './check-page'
 
 const sceneName = process.argv[2] ?? 'small'
 
-/** A building and a road that are drawn, picked before any filter changes */
-const pick = (page: Check['page']) =>
-  page.evaluate(() => {
-    const { map, engine } = (window as any).__maid
-    let building: string | undefined
-    let road: string | undefined
-    for (const source of ['osm-areas', 'osm-lines'])
-      for (const f of map.querySourceFeatures(source)) {
-        const id = String(f.id ?? '')
-        const way = id.startsWith('w') && engine.data.way(id)
-        if (!way) continue
-        if (!building && way.tags.building && !way.tags.highway) building = id
-        if (!road && way.tags.highway === 'residential') road = id
-      }
-    return { building, road }
-  }) as Promise<{ building?: string; road?: string }>
-
 const setFilter = (page: Check['page'], id: string, state: string) =>
   page.evaluate(
     ({ id, state }) => {
@@ -36,7 +20,7 @@ const setFilter = (page: Check['page'], id: string, state: string) =>
   )
 
 let failed = await runCheck(sceneName, async ({ page, report, settle, drawnIn }) => {
-  const { building, road } = await pick(page)
+  const { building, road } = await pickBuildingAndRoad(page)
   if (!building || !road) {
     report('find a building and a residential road', 'both drawn', { building, road })
     return
@@ -80,17 +64,23 @@ let failed = await runCheck(sceneName, async ({ page, report, settle, drawnIn })
     [['areas'], true, 0, 'buildings:readonly'],
     [now.building, now.readOnly, now.hidden, now.param],
   )
-  const refused = await page.evaluate((id) => {
+  const sameTags = await page.evaluate((id) => {
     const { engine } = (window as any).__maid
     const before = JSON.stringify(engine.entity(id).tags)
     engine.setTag(id, 'name', 'Filter test')
-    const deleted = engine.deleteEntity(id)
-    return [JSON.stringify(engine.entity(id)?.tags) === before, deleted, engine.undoState().canUndo]
+    return JSON.stringify(engine.entity(id)?.tags) === before
   }, building)
+  // the delete the app runs (the edit menu and the Delete key): the engine refuses it here
+  const deleted = (await runDelete(page, [building])) !== null
+  const canUndo = await page.evaluate(() => {
+    const { engine } = (window as any).__maid
+    engine.setSelected(null)
+    return engine.undoState().canUndo as boolean
+  })
   report(
     'read-only buildings: a tag change and a delete are refused, nothing to undo',
     [true, false, false],
-    refused,
+    [sameTags, deleted, canUndo],
   )
 
   await setFilter(page, 'buildings', 'editable')

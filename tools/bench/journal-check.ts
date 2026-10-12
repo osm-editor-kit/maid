@@ -1,3 +1,4 @@
+import { pickBuildingAndRoad, runDelete } from './check-helpers'
 /**
  * Journal check for Maid: edits, reloads, restores the edits from the browser's storage and
  * compares data and map with before the reload; then undoes everything, reloads, discards, and
@@ -5,32 +6,16 @@
  *
  *   bun tools/bench/journal-check.ts [scene]
  */
-import { runCheck, type Check } from './check-page'
+import { runCheck } from './check-page'
 
 const sceneName = process.argv[2] ?? 'small'
 
 type Picked = { road: string; vertex: string; building: string }
 
-const pick = (page: Check['page']) =>
-  page.evaluate(() => {
-    const { map, engine } = (window as any).__maid
-    let road: string | undefined
-    let building: string | undefined
-    for (const source of ['osm-areas', 'osm-lines'])
-      for (const f of map.querySourceFeatures(source)) {
-        const id = String(f.id ?? '')
-        const way = id.startsWith('w') && engine.data.way(id)
-        if (!way) continue
-        if (!building && way.tags.building && !way.tags.highway) building = id
-        if (!road && way.tags.highway === 'residential' && way.nodes.length > 2) road = id
-      }
-    const vertex = road ? engine.data.way(road).nodes[1] : undefined
-    return { road, vertex, building }
-  }) as Promise<Partial<Picked>>
-
 {
   const code = await runCheck(sceneName, async ({ page, report, settle, drawnIn }) => {
-    const picked = await pick(page)
+    // the road needs a vertex to drag: more than two nodes
+    const picked = await pickBuildingAndRoad(page, 3)
     if (!picked.road || !picked.vertex || !picked.building) {
       report('find a road with a vertex and a building', 'all drawn', picked)
       return
@@ -78,10 +63,7 @@ const pick = (page: Check['page']) =>
       },
       { road, vertex },
     )
-    await page.evaluate(
-      (building) => (window as any).__maid.engine.deleteEntity(building),
-      building,
-    )
+    await runDelete(page, [building])
     await page.evaluate(() => (window as any).__maid.engine.undo())
     const edited = await read()
     report('five edits made, one undone', 4, edited.index)

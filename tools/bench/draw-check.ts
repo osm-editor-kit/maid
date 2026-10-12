@@ -1,3 +1,4 @@
+import { checkHelpers, type XY } from './check-helpers'
 /**
  * Drawing check for Maid, with real key presses and mouse clicks: draws a line on open ground,
  * continues it, draws a line that snaps to a node and to a way, draws an area, and cancels one.
@@ -14,7 +15,6 @@ import { runCheck } from './check-page'
 
 const sceneName = process.argv[2] ?? 'small'
 
-type XY = { x: number; y: number }
 type WayState = {
   id: string | null
   nodes: string[]
@@ -27,25 +27,7 @@ type WayState = {
 
 process.exit(
   await runCheck(sceneName, async ({ page, report, settle, drawnIn }) => {
-    // screen positions come from the map's canvas, the mouse works on the page
-    const origin = (await page.evaluate(() => {
-      const box = (window as any).__maid.map.getCanvas().getBoundingClientRect()
-      return { x: box.left, y: box.top }
-    })) as XY
-    const click = async (at: XY) => {
-      await page.mouse.move(origin.x + at.x, origin.y + at.y)
-      await page.mouse.click(origin.x + at.x, origin.y + at.y)
-      await settle()
-    }
-    const key = async (name: string) => {
-      // The type search takes the keyboard whenever the sidebar shows it again (after an undo,
-      // for example). The editor's keys do not work in a text field, so leave it first.
-      await page.evaluate(() => {
-        if (document.activeElement instanceof HTMLInputElement) document.activeElement.blur()
-      })
-      await page.keyboard.press(name)
-      await settle()
-    }
+    const { click, key } = await checkHelpers(page, settle)
     /** The selected way (or the one given), as the data and the map have it */
     const read = async (wayId?: string): Promise<WayState> => {
       const state = (await page.evaluate(

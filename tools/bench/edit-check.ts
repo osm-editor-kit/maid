@@ -9,6 +9,7 @@
  * any failure, including a request outside localhost.
  */
 import { getScene } from '../fixtures/scenes'
+import { runDelete } from './check-helpers'
 import { runCheck } from './check-page'
 
 const sceneName = process.argv[2] ?? 'small'
@@ -77,9 +78,9 @@ process.exit(
     s = await after(() => engineCall('setTags', pointId, { natural: 'tree' }), [pointId])
     report('change its tags: still one point', point, s.seen[pointId])
 
-    s = await after(() => engineCall('deleteEntity', pointId), [pointId])
+    s = await after(() => runDelete(page, [pointId]), [pointId])
     report('delete point: gone from data and map', gone, s.seen[pointId])
-    report('delete point: undo label', 'Deleted a node', s.undo)
+    report('delete point: undo label', 'Deleted a point', s.undo)
 
     s = await after(() => engineCall('undo'), [pointId])
     report('undo delete: the point is back', point, s.seen[pointId])
@@ -94,7 +95,9 @@ process.exit(
       for (const f of map.queryRenderedFeatures()) {
         const wayId = String(f.id ?? '')
         const way = wayId.startsWith('w') && engine.data.way(wayId)
+        // a member of a relation cannot be deleted: the app refuses it, as iD does
         if (!way || !way.tags.highway || engine.data.wayMultipolygons.has(wayId)) continue
+        if (engine.data.history.staging.graph.parentRelations(way).length > 0) continue
         const own: string[] = []
         const shared: string[] = []
         for (const nodeId of new Set<string>(way.nodes)) {
@@ -138,9 +141,9 @@ process.exit(
       )
     }
 
-    s = await after(() => engineCall('deleteEntity', picked.wayId), ids)
+    s = await after(() => runDelete(page, [picked.wayId]), ids)
     checkDeleted('delete way', s.seen)
-    report('delete way: undo label', 'Deleted a way', s.undo)
+    report('delete way: undo label', 'Deleted a line', s.undo)
 
     s = await after(() => engineCall('undo'), ids)
     report('undo delete way: data, lookups and map as before', before.seen, s.seen)
