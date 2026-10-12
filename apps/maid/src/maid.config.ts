@@ -9,8 +9,11 @@ import { imagery } from '@osm-editor-kit/maid-module-imagery'
 import { lenses } from '@osm-editor-kit/maid-module-lenses'
 import { notes } from '@osm-editor-kit/maid-module-notes'
 import { streetImagery } from '@osm-editor-kit/maid-module-street-imagery'
-import { defaultOperations } from '@osm-editor-kit/maid-operations'
+import { defaultOperations, pointToArea } from '@osm-editor-kit/maid-operations'
 import { defaultPresets } from '@osm-editor-kit/maid-presets/default'
+// import { createPresets, withChanges } from '@osm-editor-kit/maid-presets'
+// import { defaultPresetData } from '@osm-editor-kit/maid-presets/default'
+// import { examplePresetChanges } from './preset-changes.example'
 import { operations } from '@osm-editor-kit/maid-renderer'
 import { defaultRules } from '@osm-editor-kit/maid-validation'
 import dense from '../../../fixtures/dense.meta.json'
@@ -29,6 +32,13 @@ const BBOX: Record<string, Bbox> = {
   dense: dense.bbox as Bbox,
 }
 
+/**
+ * Whether a point with these tags has a type that can also be an area: the type the presets
+ * give the point lists "area" among its geometries (a playground does, a bench does not).
+ */
+const canBeArea = (tags: Record<string, string>) =>
+  tags.area !== 'no' && defaultPresets.match(tags, 'point').geometry.includes('area')
+
 export function editorConfig(config: Config): EditorConfig {
   // live data and unknown scenes have no fixture area to outline
   const bbox = config.live ? undefined : BBOX[config.scene]
@@ -36,7 +46,8 @@ export function editorConfig(config: Config): EditorConfig {
     // inspector section "Element": id, version and upload state of the selected object
     elementInfo(),
     // the edit menu: reverse, split, merge, straighten, square, make round, disconnect, extract
-    operations(defaultOperations),
+    // plus "Turn into an area" for a point whose type can also be mapped as an area (a playground)
+    operations([...defaultOperations, pointToArea({ canBeArea })]),
     // inspector sections "Members" and "Relations": what a relation contains, what a feature is in
     relations(),
     // checks what was changed here: inspector section and dock view "Issues"
@@ -54,5 +65,11 @@ export function editorConfig(config: Config): EditorConfig {
   ]
   // dashed outline around the area the fixture covers
   if (bbox) modules.push(sceneBounds({ bbox }))
-  return { modules, presets: defaultPresets, filters: defaultFilters }
+  return {
+    modules,
+    presets: defaultPresets,
+    // to use the example changes, replace the line above with this one (see preset-changes.example.ts):
+    // presets: createPresets(withChanges(defaultPresetData, examplePresetChanges)),
+    filters: defaultFilters,
+  }
 }

@@ -19,6 +19,7 @@ const ICON: Record<string, string> = {
   copy: 'iD-operation-copy',
   paste: 'iD-operation-paste',
   delete: 'iD-operation-delete',
+  'point-to-area': 'iD-icon-area',
 }
 
 /**
