@@ -53,8 +53,8 @@ export function ResizeHandle(
       className={twJoin(
         'group absolute z-30 touch-none select-none',
         vertical
-          ? 'inset-y-0 right-0 w-4 translate-x-1/2 cursor-col-resize'
-          : 'inset-x-0 top-0 h-4 -translate-y-1/2 cursor-row-resize',
+          ? 'inset-y-0 left-full w-2 cursor-col-resize'
+          : 'inset-x-0 bottom-full h-2 cursor-row-resize',
       )}
     >
       <span
@@ -62,8 +62,8 @@ export function ResizeHandle(
         className={twJoin(
           'pointer-events-none absolute rounded-full bg-zinc-950/80 transition-opacity dark:bg-white/80',
           vertical
-            ? 'inset-y-2 left-1/2 w-1.5 -translate-x-1/2'
-            : 'inset-x-2 top-1/2 h-1.5 -translate-y-1/2',
+            ? 'inset-y-2 left-0 w-1.5 -translate-x-1/2'
+            : 'inset-x-2 bottom-0 h-1.5 translate-y-1/2',
           dragging ? 'opacity-100' : 'opacity-0 group-active:opacity-100',
         )}
       />

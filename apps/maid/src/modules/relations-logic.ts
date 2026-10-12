@@ -181,6 +181,38 @@ export function membersHeadline(rows: readonly MemberRow[]): string {
   return missing > 0 ? `${count}, ${missing} not loaded` : count
 }
 
+/** "1 member" or "3 members" */
+function membersOf(count: number): string {
+  return `${count} ${count === 1 ? 'member' : 'members'}`
+}
+
+/** The button that loads the missing members: "Load the 12 missing members" */
+export function loadButtonLabel(missing: number): string {
+  return `Load the ${missing} missing ${missing === 1 ? 'member' : 'members'}`
+}
+
+/** The button while the members load: "Loading 12 members" */
+export function loadingLabel(missing: number): string {
+  return `Loading ${membersOf(missing)}`
+}
+
+/**
+ * The line under the button after a load, when some members are still not loaded: the API did not
+ * return them, so loading again will not help. Undefined when all are loaded (the button is gone).
+ */
+export function loadResultSentence(added: number, left: number): string | undefined {
+  if (left === 0) return undefined
+  const notInAPI = left === 1 ? 'is not in the API' : 'are not in the API'
+  if (added === 0)
+    return `Loaded nothing: ${left === 1 ? 'the missing member' : `${left} members`} ${notInAPI}.`
+  return `Loaded ${membersOf(added)}; ${left === 1 ? 'the other member' : `${left} members`} ${notInAPI}.`
+}
+
+/** The line under the button when a load failed: the message says why ("OSM API answered 404") */
+export function loadFailureSentence(message: string): string {
+  return `Could not load the members: ${message}`
+}
+
 /** The index a member moves to with one step, or undefined when it is at the end already. */
 export function moveTarget(
   count: number,

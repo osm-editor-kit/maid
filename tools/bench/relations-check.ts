@@ -1,16 +1,25 @@
 /**
  * Relations check for Maid. Adds a way to a relation, changes its role and removes it again, the
- * way a module does it: straight through `editor.history`. Then moves a node of a multipolygon's
- * member way and checks that the drawn area follows.
+ * way a module does it: straight through `editor.history`. Then highlights related features (a
+ * selected relation, `engine.setRelated`), loads a relation in full from the mock API (one request),
+ * zooms to a member and to a relation. Last, moves a node of a multipolygon's member way and checks
+ * that the drawn area follows.
  *
  *   bun tools/bench/relations-check.ts [scene]
  *
- * The multipolygon part needs one in view: the dense scene has it, the small one skips it.
+ * Needs `bun run dev` (the mock API answers the relation load). The multipolygon part needs one in
+ * view: the dense scene has it, the small one skips it. The load part needs a relation with members
+ * that the map has not loaded but the fixture has: the fixture is read here to find one.
  */
+import { SOURCES } from '../../packages/renderer/src/layers'
+import { loadScenes } from '../mock-osm-api/server'
+import { PORTS } from '../ports'
 import { runCheck } from './check-page'
 
+const sceneName = process.argv[2] ?? 'small'
+
 process.exit(
-  await runCheck(process.argv[2] ?? 'small', async ({ page, report, settle, drawnIn }) => {
+  await runCheck(sceneName, async ({ page, report, settle, drawnIn }) => {
     // --- membership, edited through the history like a module would ---
     const picked = (await page.evaluate(() => {
       const { map, engine, editor } = (window as any).__maid
@@ -108,6 +117,12 @@ process.exit(
           return graph.parentRelations(graph.entity(wayId)).length
         }, member.wayId)
       await page.evaluate((id) => (window as any).__bench.select(id), member.wayId)
+      // the "Relations" group starts folded: its rows exist only once it is open
+      const group = page.locator('details', {
+        has: page.locator('summary', { hasText: 'Relations' }),
+      })
+      if ((await group.first().getAttribute('open')) === null)
+        await group.first().locator('summary').click()
       const remove = page.getByRole('button', { name: `Remove from ${member.relationId}` })
       report('sidebar: the membership is listed with a remove button', 1, await remove.count())
       await remove.first().click()
@@ -122,6 +137,216 @@ process.exit(
         [await parents(), await remove.count()],
       )
       await page.evaluate(() => (window as any).__bench.select(null))
+    }
+
+    // --- related features: a selected relation's members, and what the inspector asks for ---
+    const membersOf = (relationId: string) =>
+      page.evaluate((relationId) => {
+        const { editor, engine } = (window as any).__maid
+        const graph = editor.history.staging.graph
+        const relation = engine.data.relation(relationId)
+        if (!relation) return []
+        return relation.members.filter((m: any) => graph.hasEntity(m.id)).map((m: any) => m.id)
+      }, relationId) as Promise<string[]>
+    /** Per id: whether it is drawn on the map and whether it carries the `related` state */
+    const relatedStates = async (ids: string[]) => {
+      const drawn = await drawnIn(ids)
+      return page.evaluate(
+        ({ drawn, sources }) => {
+          const { map } = (window as any).__maid
+          const out: Record<string, { drawn: boolean; related: boolean }> = {}
+          for (const [id, kinds] of Object.entries(drawn) as [string, string[]][]) {
+            out[id] = {
+              drawn: kinds.length > 0,
+              related: kinds.some(
+                (kind) => map.getFeatureState({ source: sources[kind], id })?.related === true,
+              ),
+            }
+          }
+          return out
+        },
+        { drawn, sources: SOURCES as Record<string, string> },
+      ) as Promise<Record<string, { drawn: boolean; related: boolean }>>
+    }
+    const relatedCount = (states: Record<string, { related: boolean }>) =>
+      Object.values(states).filter((state) => state.related).length
+    const loaded = await membersOf(picked.relationId)
+    if (loaded.length > 0) {
+      // a relation is not drawn, so `__bench.select` (which waits for the map to show it) would never return
+      await page.evaluate((id) => (window as any).__maid.engine.setSelected(id), picked.relationId)
+      await settle()
+      const selected = await relatedStates(loaded)
+      const drawnMembers = loaded.filter((id) => selected[id]!.drawn)
+      report(
+        'select a relation: its drawn members are related',
+        [true, true],
+        [drawnMembers.length > 0, drawnMembers.every((id) => selected[id]!.related)],
+      )
+      await page.evaluate(() => (window as any).__maid.engine.setSelected(null))
+      await settle()
+      report(
+        'deselect: the members are no longer related',
+        0,
+        relatedCount(await relatedStates(drawnMembers)),
+      )
+      await page.evaluate((ids) => (window as any).__maid.engine.setRelated(ids), drawnMembers)
+      await settle()
+      report(
+        'setRelated(ids): exactly those are related',
+        drawnMembers.length,
+        relatedCount(await relatedStates(drawnMembers)),
+      )
+      await page.evaluate(() => (window as any).__maid.engine.setRelated(null))
+      await settle()
+      report(
+        'setRelated(null): none of them is related',
+        0,
+        relatedCount(await relatedStates(drawnMembers)),
+      )
+    }
+
+    // --- load a relation in full: the members the map has not loaded, from the mock API ---
+    const candidates = (await page.evaluate(() => {
+      const { engine } = (window as any).__maid
+      const graph = engine.data.history.staging.graph
+      return engine.data
+        .all()
+        .relations.map((relation: any) => ({
+          id: relation.id as string,
+          members: relation.members.map((m: any) => m.id as string),
+          missing: relation.members
+            .filter((m: any) => !graph.hasEntity(m.id))
+            .map((m: any) => m.id as string),
+        }))
+        .filter((candidate: any) => candidate.missing.length > 0)
+    })) as { id: string; members: string[]; missing: string[] }[]
+    // the fixture (read here, no request): which of the missing members the mock answers for
+    const scene = (await loadScenes([sceneName])).get(sceneName)!
+    const answered = (relationId: string) => {
+      const json = scene.full('relation', Number(relationId.slice(1)))
+      if (!json) return new Set<string>()
+      return new Set(
+        (JSON.parse(json).elements as { type: string; id: number }[]).map(
+          (e) => `${e.type[0]}${e.id}`,
+        ),
+      )
+    }
+    let target: { id: string; members: string[]; reachable: string[] } | undefined
+    for (const candidate of candidates) {
+      const keys = answered(candidate.id)
+      const reachable = candidate.missing.filter((id) => keys.has(id))
+      if (reachable.length > 0 && (!target || reachable.length > target.reachable.length))
+        target = { id: candidate.id, members: candidate.members, reachable }
+    }
+    if (!target) {
+      report('a relation with members the map has not loaded, that the mock has', 'found', null)
+    } else {
+      const reachable = target.reachable
+      const inGraph = () =>
+        page.evaluate((ids) => {
+          const { editor } = (window as any).__maid
+          const graph = editor.history.staging.graph
+          return ids.filter((id: string) => graph.hasEntity(id)).length
+        }, target!.members)
+      const countBefore = await inGraph()
+      await fetch(`http://localhost:${PORTS.mockApi}/requests/reset`)
+      // two calls at once: one request, both get the same answer
+      const answers = (await page.evaluate(async (id) => {
+        const { engine } = (window as any).__maid
+        const [a, b] = await Promise.all([engine.loadRelation(id), engine.loadRelation(id)])
+        return [a, b]
+      }, target.id)) as { added: number }[]
+      await settle()
+      const log = (await (await fetch(`http://localhost:${PORTS.mockApi}/requests`)).json()) as {
+        path: string
+      }[]
+      const number = target.id.slice(1)
+      report(
+        'load a relation: two calls at once make one request to its full answer',
+        [1, 1],
+        [
+          log.length,
+          log.filter((r) => r.path.endsWith(`/api/0.6/relation/${number}/full.json`)).length,
+        ],
+      )
+      report(
+        'load a relation: both calls get the same answer, which adds entities',
+        [answers[0], true],
+        [answers[1], answers[0]!.added > 0],
+      )
+      const countAfter = await inGraph()
+      report(
+        'load a relation: its missing members are in the graph now',
+        countBefore + reachable.length,
+        countAfter,
+      )
+      const failure = await page.evaluate(() =>
+        (window as any).__maid.engine.loadRelation('r999999999').then(
+          () => 'resolved',
+          (error: Error) => error.message,
+        ),
+      )
+      report(
+        'a relation the API does not have: rejects with the status',
+        'OSM API answered 404',
+        failure,
+      )
+
+      // --- zoom to a member, and to the relation: the map has to show them ---
+      const member = await page.evaluate((ids) => {
+        const { engine } = (window as any).__maid
+        for (const id of ids) {
+          const loc =
+            id[0] === 'n'
+              ? engine.data.node(id)?.loc
+              : id[0] === 'w'
+                ? engine.data.node(engine.data.way(id)?.nodes[0])?.loc
+                : undefined
+          if (loc) return { id, loc: [...loc] }
+        }
+        return null
+      }, target.members)
+      if (member) {
+        // far away first, so that the move is real
+        await page.evaluate(() => (window as any).__maid.map.jumpTo({ center: [0, 0], zoom: 2 }))
+        await settle()
+        const inView = (loc: number[]) =>
+          page.evaluate((loc) => (window as any).__maid.map.getBounds().contains(loc), loc)
+        const fitted = await page.evaluate(
+          (id) => (window as any).__maid.engine.fitTo([id]),
+          member.id,
+        )
+        await settle()
+        report(
+          'zoom to a member: the map shows it',
+          [true, true],
+          [fitted, await inView(member.loc)],
+        )
+        await page.evaluate(() => (window as any).__maid.map.jumpTo({ center: [0, 0], zoom: 2 }))
+        await settle()
+        const fittedRelation = await page.evaluate(
+          (id) => (window as any).__maid.engine.fitTo([id]),
+          target.id,
+        )
+        await settle()
+        report(
+          'zoom to a relation: the map shows one of its members',
+          [true, true],
+          [fittedRelation, await inView(member.loc)],
+        )
+      }
+      // the zoom to the relation above has all of them in view: they are drawn then
+      const drawnNow = await relatedStates(reachable)
+      report(
+        'load a relation: the loaded members are drawn',
+        reachable.length,
+        reachable.filter((id) => drawnNow[id]!.drawn).length,
+      )
+      report(
+        'zoom to nothing loaded: no move',
+        false,
+        await page.evaluate(() => (window as any).__maid.engine.fitTo(['n999999999'])),
+      )
     }
 
     // --- a multipolygon is drawn from its member ways and follows them ---

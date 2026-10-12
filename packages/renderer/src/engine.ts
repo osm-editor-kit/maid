@@ -43,6 +43,7 @@ import { onewayOf } from './direction'
 import { installDirectionImages } from './direction-images'
 import { DrawTool, nearestOnWay } from './draw'
 import { EDIT_SOURCES, SOURCES } from './layers'
+import { boundsOf, relatedIds } from './related'
 import { fromMercator, nodesOf, toMercator, TransformTool } from './transform'
 
 export type EngineOptions = {
@@ -65,6 +66,8 @@ export type EngineOptions = {
 
 export type EngineMetrics = {
   tiles: number
+  /** Relations loaded in full (`loadRelation`) */
+  relations: number
   /** Updates sent to MapLibre sources */
   updates: number
   /** Times the live tier was moved into the big sources */
@@ -92,6 +95,10 @@ export type EntityInfo = {
 }
 
 const TILE_ZOOM = 16
+/** Largest zoom fitTo goes to: a single node or a short way is not zoomed in to the last level */
+const FIT_MAX_ZOOM = 18
+/** Zoom of a single point in fitTo, unless the map is already closer */
+const POINT_ZOOM = 17
 const SOURCE_NAMES: SourceName[] = ['areas', 'lines', 'points', 'vertices']
 
 const lon2x = (lon: number) => Math.floor(((lon + 180) / 360) * 2 ** TILE_ZOOM)
@@ -121,7 +128,7 @@ export class MaidEngine {
   /** The OSM data: entities and edit history (from the editor), plus the indexes of the builder */
   data: OsmData
   metrics: EngineMetrics = {
-    tiles: 0, updates: 0, compactions: 0, bytes: 0, fetchMs: 0, parseMs: 0, mergeMs: 0, buildMs: 0, pushMs: 0,
+    tiles: 0, relations: 0, updates: 0, compactions: 0, bytes: 0, fetchMs: 0, parseMs: 0, mergeMs: 0, buildMs: 0, pushMs: 0,
     features: { areas: 0, lines: 0, points: 0, vertices: 0 },
   } // prettier-ignore
 
@@ -307,7 +314,8 @@ export class MaidEngine {
     }
   }
 
-  merge(elements: OsmJsonElement[]) {
+  /** Merges elements of the API into the data and the map. Returns how many entities were new. */
+  merge(elements: OsmJsonElement[]): number {
     const t0 = performance.now()
     const added = this.data.merge(elements)
     const t1 = performance.now()
@@ -331,6 +339,7 @@ export class MaidEngine {
       this.dashCount = dashPatterns.size
       this.options.onStyleChange?.()
     }
+    return added.nodes.length + added.ways.length + added.relations.length
   }
 
   /** Sends features to MapLibre: to the live tier once the first view is complete, else to the big sources */
@@ -339,10 +348,18 @@ export class MaidEngine {
       const features = batch[name]
       if (features.length === 0) continue
       this.metrics.features[name] += features.length
+      let relatedArrived = false
       for (const f of features) {
-        this.featureSource.set(f.id as string, name)
-        if (tier === 'live') this.live[name].set(f.id as string, f)
+        const id = f.id as string
+        this.featureSource.set(id, name)
+        if (tier === 'live') this.live[name].set(id, f)
+        // a related feature that was not loaded when it was asked for gets its state now
+        if (this.wantedRelated.has(id)) {
+          this.appliedRelated.delete(id)
+          relatedArrived = true
+        }
       }
+      if (relatedArrived) queueMicrotask(() => this.syncRelated())
       // a selection made before its feature was loaded (from the URL) is shown once it arrives
       if (
         this.selectedIds.length !== this.shownSelected.length &&
@@ -1047,6 +1064,14 @@ export class MaidEngine {
   }
 
   private redrawDifferences(differences: Difference[]) {
+    // the members of a selected relation are its members now: a member added or removed changes the set
+    const relationChanged = differences.some((difference) =>
+      [...difference.changes.keys()].some((id) => id[0] === 'r' && this.selectedIds.includes(id)),
+    )
+    if (relationChanged) {
+      this.selectionRelated = this.relatedOfSelection()
+      this.syncRelated()
+    }
     // the union of all differences, each id once; a node that moved in any of them moves its ways
     const moved = new Map<string, boolean>()
     for (const difference of differences)
@@ -1075,6 +1100,10 @@ export class MaidEngine {
     // feature state belongs to a source: a feature that changed its source needs it again
     if (remove.some(([, featureId]) => this.selectedIds.includes(featureId)))
       queueMicrotask(() => this.applyHighlight([], 'selected'))
+    let relatedGone = false
+    for (const [, featureId] of remove)
+      relatedGone = this.appliedRelated.delete(featureId) || relatedGone
+    if (relatedGone) queueMicrotask(() => this.syncRelated())
   }
 
   // --- Dragging a vertex ---
@@ -1137,6 +1166,149 @@ export class MaidEngine {
     this.wake()
   }
 
+  // --- Relations: members highlighted, zoom to them, load them in full ------------
+
+  private membersOf = (relationId: string) => this.data.relation(relationId)?.members
+
+  /** What a relation covers on the map: its members, and their members one level down (see related.ts) */
+  relatedOf(id: string): string[] {
+    return relatedIds(id, this.membersOf)
+  }
+
+  /** Relation loads in flight by relation id: a second call for the same relation shares the request */
+  private relationLoads = new Map<string, Promise<number>>()
+
+  /**
+   * Loads a relation in full, as iD's `/relation/ID/full` call does: the relation, its node members,
+   * its way members with their nodes, and its member relations (one level, not their members). One
+   * request to `apiUrl`, merged like a map tile, so the members enter the data and the map. Nothing
+   * is written to the history: loading is not an edit. Resolves with how many entities were new;
+   * rejects with a message when the API cannot be asked or does not answer with the relation.
+   */
+  loadRelation(id: string): Promise<{ added: number }> {
+    let load = this.relationLoads.get(id)
+    if (!load) {
+      load = this.fetchRelation(id).finally(() => this.relationLoads.delete(id))
+      this.relationLoads.set(id, load)
+    }
+    return load.then((added) => ({ added }))
+  }
+
+  private async fetchRelation(id: string): Promise<number> {
+    const match = /^r(\d+)$/.exec(id)
+    if (!match) throw new Error(`Not a relation: ${id}`)
+    const url = `${this.options.apiUrl}/api/0.6/relation/${match[1]}/full.json`
+    const t0 = performance.now()
+    const res = await fetch(url).catch((error: unknown) => {
+      throw new Error(
+        `no answer from the OSM API (${error instanceof Error ? error.message : String(error)})`,
+      )
+    })
+    if (!res.ok) throw new Error(`OSM API answered ${res.status}`)
+    const text = await res.text()
+    const t1 = performance.now()
+    const json = JSON.parse(text) as { elements: OsmJsonElement[] }
+    const t2 = performance.now()
+    this.metrics.relations++
+    this.metrics.bytes += text.length
+    this.metrics.fetchMs += t1 - t0
+    this.metrics.parseMs += t2 - t1
+    // each element once: the API answers each one once, but a merge must not count one twice
+    const seen = new Set<string>()
+    const elements = json.elements.filter((e) => {
+      const key = `${e.type}${e.id}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    return this.merge(elements)
+  }
+
+  /**
+   * Moves the map to show these entities: the bounds of their loaded geometry, with padding. A
+   * relation counts as its members (see relatedIds). Returns false when none of it is loaded.
+   */
+  fitTo(ids: readonly string[]): boolean {
+    const { map } = this
+    const bounds = boundsOf(ids, {
+      loc: (id) => this.data.node(id)?.loc,
+      nodesOf: (id) => this.data.way(id)?.nodes,
+      membersOf: this.membersOf,
+    })
+    if (!map || !bounds) return false
+    const [west, south, east, north] = bounds
+    if (west === east && south === north) {
+      map.easeTo({
+        center: [west, south],
+        zoom: Math.min(Math.max(map.getZoom(), POINT_ZOOM), FIT_MAX_ZOOM),
+        duration: 400,
+      })
+    } else {
+      map.fitBounds(
+        [
+          [west, south],
+          [east, north],
+        ],
+        { padding: 80, maxZoom: FIT_MAX_ZOOM, duration: 400 },
+      )
+    }
+    return true
+  }
+
+  /** Relation members of the selection: a selected relation's members are related */
+  private selectionRelated: readonly string[] = []
+  /** Ids the inspector asked to be related: a relation row, or a member row (setRelated) */
+  private hoverRelated: readonly string[] = []
+  /** Every id that should carry the `related` state now */
+  private wantedRelated: ReadonlySet<string> = new Set()
+  /** The ids that carry the `related` state on the map */
+  private appliedRelated = new Set<string>()
+
+  /**
+   * Highlights these entities as related: a calmer halo than hover. Replaces the set given before;
+   * `null` clears it. The members of a selected relation are related on their own, while it is
+   * selected. Only the feature state changes: no feature is rebuilt.
+   */
+  setRelated(ids: readonly string[] | null) {
+    this.hoverRelated = ids ?? []
+    this.syncRelated()
+  }
+
+  /** Sets and clears the `related` state so that the map shows `wantedRelated`; only what changed is touched */
+  private syncRelated() {
+    this.wantedRelated = new Set([...this.selectionRelated, ...this.hoverRelated])
+    const { map } = this
+    if (!map) return
+    // deleting the current entry while a Set is walked is safe
+    for (const id of this.appliedRelated) {
+      if (this.wantedRelated.has(id)) continue
+      this.paintRelated(id, false)
+      this.appliedRelated.delete(id)
+    }
+    for (const id of this.wantedRelated) {
+      if (this.appliedRelated.has(id) || !this.featureSource.has(id)) continue
+      this.paintRelated(id, true)
+      this.appliedRelated.add(id)
+    }
+    map.triggerRepaint()
+  }
+
+  /** Sets the `related` state of a loaded feature in the big source and in the live tier, as applyHighlight does */
+  private paintRelated(id: string, on: boolean) {
+    const name = this.featureSource.get(id)
+    if (!name || !this.map) return
+    this.map.setFeatureState({ source: SOURCES[name], id }, { related: on })
+    this.map.setFeatureState({ source: EDIT_SOURCES[name], id }, { related: on })
+  }
+
+  /** The members of every selected relation, as the selection's related set */
+  private relatedOfSelection(): string[] {
+    const out = new Set<string>()
+    for (const id of this.selectedIds)
+      if (id[0] === 'r') for (const x of this.relatedOf(id)) out.add(x)
+    return [...out]
+  }
+
   // --- Hover and selection ---------------------------------------------------
 
   setHover(id: string | null) {
@@ -1154,6 +1326,8 @@ export class MaidEngine {
     if (ids.length === previous.length && ids.every((id, i) => id === previous[i])) return
     this.selectedIds = ids
     this.applyHighlight(previous, 'selected')
+    this.selectionRelated = this.relatedOfSelection()
+    this.syncRelated()
     this.changed()
   }
 

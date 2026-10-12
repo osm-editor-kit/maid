@@ -28,7 +28,7 @@ export type NoteFeature = {
 
 const CELL = 0.002 // degrees; index granularity for the bbox lookup
 
-class SceneIndex {
+export class SceneIndex {
   nodes = new Map<number, Node>()
   ways = new Map<number, Way>()
   relations = new Map<number, Relation>()
@@ -132,25 +132,36 @@ class SceneIndex {
     return JSON.stringify({ type: 'FeatureCollection', features })
   }
 
+  /**
+   * What `/api/0.6/{way,relation}/ID/full` answers, as the OSM API does: the way or relation, its
+   * nodes (a way's nodes; a relation's node members and the nodes of its way members), its member
+   * ways, and its member relations, one level only (not their members). Members that are not in
+   * the fixture are left out; each element comes once.
+   */
   full(type: 'way' | 'relation', id: number) {
     const root = type === 'way' ? this.ways.get(id) : this.relations.get(id)
     if (!root) return undefined
     const out: Element[] = []
+    const seen = new Set<string>()
+    const add = (element: Element | undefined) => {
+      if (!element) return
+      const key = `${element.type}${element.id}`
+      if (seen.has(key)) return
+      seen.add(key)
+      out.push(element)
+    }
     const addWay = (way: Way) => {
-      for (const n of way.nodes) {
-        const node = this.nodes.get(n)
-        if (node) out.push(node)
-      }
-      out.push(way)
+      for (const n of way.nodes) add(this.nodes.get(n))
+      add(way)
     }
     if (root.type === 'way') addWay(root)
     else {
       for (const m of root.members) {
-        if (m.type === 'node' && this.nodes.has(m.ref)) out.push(this.nodes.get(m.ref)!)
-        if (m.type === 'way' && this.ways.has(m.ref)) addWay(this.ways.get(m.ref)!)
-        if (m.type === 'relation' && this.relations.has(m.ref)) out.push(this.relations.get(m.ref)!)
+        if (m.type === 'node') add(this.nodes.get(m.ref))
+        else if (m.type === 'way' && this.ways.has(m.ref)) addWay(this.ways.get(m.ref)!)
+        else if (m.type === 'relation') add(this.relations.get(m.ref))
       }
-      out.push(root)
+      add(root)
     }
     return JSON.stringify({ version: '0.6', generator: 'maid mock-osm-api', elements: out })
   }

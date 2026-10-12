@@ -8,9 +8,14 @@ import {
   type Action,
 } from '@osm-editor-kit/maid-model'
 import { Tooltip, type InspectorSection, type InspectorSectionProps } from '@osm-editor-kit/maid-ui'
-import { Fragment, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
+import { engine, useEngine } from '../editor'
 import {
   joinableRelations,
+  loadButtonLabel,
+  loadFailureSentence,
+  loadingLabel,
+  loadResultSentence,
   memberName,
   memberRows,
   membersHeadline,
@@ -59,6 +64,8 @@ const GAP =
   'flex items-center gap-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400'
 /** A warning under a membership: information only. */
 const HINT = 'pb-1 pl-1 text-xs text-amber-700 dark:text-amber-400'
+/** A quiet line under the list: what a load left out */
+const SECONDARY_NOTE = `pt-1 text-xs ${SECONDARY}`
 
 /** Runs one edit through the history and commits it with its annotation. */
 function edit(editor: Editor, action: Action, annotation: string, selectedID: EntityID) {
@@ -72,8 +79,38 @@ function roleOptionsID(scope: string, id: string): string {
 }
 
 /** One line of a list: the same spacing and hairline for members and memberships. */
-function Row({ children }: { children: ReactNode }) {
-  return <li className={ROW}>{children}</li>
+function Row({ children, highlight }: { children: ReactNode; highlight?: RowHighlight }) {
+  return (
+    <li className={ROW} {...highlight}>
+      {children}
+    </li>
+  )
+}
+
+type RowHighlight = ReturnType<typeof useRelatedWhileHovered>
+
+/**
+ * Highlights entities on the map while the pointer or the keyboard focus is on a row: a member
+ * row its member, a relation row the relation and its members. Leaving clears it. A row that goes
+ * away while highlighted (a member removed with its button) clears it too, so no halo stays behind.
+ */
+function useRelatedWhileHovered(ids: () => readonly string[]) {
+  const on = useRef(false)
+  useEffect(
+    () => () => {
+      if (on.current) engine.setRelated(null)
+    },
+    [],
+  )
+  const start = () => {
+    on.current = true
+    engine.setRelated(ids())
+  }
+  const stop = () => {
+    on.current = false
+    engine.setRelated(null)
+  }
+  return { onPointerEnter: start, onPointerLeave: stop, onFocus: start, onBlur: stop }
 }
 
 /** The role suggestions as a datalist: the input shows them as the user types, and still takes any text. */
@@ -150,6 +187,31 @@ function RemoveButton({
   )
 }
 
+/** Zooms the map to an entity: an icon button with a tooltip, disabled when it is not loaded. */
+function ZoomButton({
+  label,
+  disabled,
+  onZoom,
+}: {
+  label: string
+  disabled: boolean
+  onZoom: () => void
+}) {
+  return (
+    <Tooltip label={label}>
+      <button
+        type="button"
+        aria-label={label}
+        disabled={disabled}
+        onClick={onZoom}
+        className={ICON_BUTTON}
+      >
+        ◎
+      </button>
+    </Tooltip>
+  )
+}
+
 /** Moves a member one place: an icon button with a tooltip, disabled at the ends. */
 function MoveButton({
   label,
@@ -200,6 +262,7 @@ function MemberRowView({
   roleList: string
   select: Props['select']
 }) {
+  const highlight = useRelatedWhileHovered(() => [row.id])
   // the member as the relation holds it: its id and type come from the row, the role from the member
   const member = relation.members[row.index]
   if (!member) return null
@@ -217,7 +280,7 @@ function MemberRowView({
   const up = moveTarget(count, row.index, 'up')
   const down = moveTarget(count, row.index, 'down')
   return (
-    <Row>
+    <Row highlight={highlight}>
       <span className={`w-6 shrink-0 text-right font-mono tabular-nums ${SECONDARY}`}>
         {row.index + 1}
       </span>
@@ -234,6 +297,11 @@ function MemberRowView({
           {row.id} <span className="italic">not loaded</span>
         </span>
       )}
+      <ZoomButton
+        label={`Zoom to ${row.id}`}
+        disabled={!row.loaded}
+        onZoom={() => engine.fitTo([row.id])}
+      />
       <MoveButton
         label={`Move ${row.id} up`}
         glyph="↑"
@@ -273,6 +341,13 @@ function MemberRowView({
   )
 }
 
+/** The loading of the missing members: idle, busy, done (with what is still missing), or failed */
+type LoadState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'done'; added: number; left: number }
+  | { status: 'failed'; message: string }
+
 /**
  * The members of a relation in order: the first MEMBER_LIMIT, then "Show all N". Members that are
  * not loaded keep their rows. A route shows a gap line where two of its ways do not meet.
@@ -293,10 +368,41 @@ function MemberList({
   const gaps = new Set(routeGaps(graph, relation))
   const missing = notLoadedCount(rows)
   const [showAll, setShowAll] = useState(false)
+  const [load, setLoad] = useState<LoadState>({ status: 'idle' })
   const shown = showAll ? rows : rows.slice(0, MEMBER_LIMIT)
   const roleList = roleOptionsID('members', relation.id)
+  // one request per click: the relation in full, merged like a map tile (engine.loadRelation)
+  const loadMembers = () => {
+    setLoad({ status: 'loading' })
+    engine.loadRelation(relation.id).then(
+      ({ added }) => {
+        const left = notLoadedCount(memberRows(editor.history.staging.graph, relation))
+        setLoad({ status: 'done', added, left })
+      },
+      (error: unknown) =>
+        setLoad({
+          status: 'failed',
+          message: error instanceof Error ? error.message : String(error),
+        }),
+    )
+  }
+  const result = load.status === 'done' ? loadResultSentence(load.added, load.left) : undefined
   return (
     <div className="grid gap-1">
+      {rows.length > 0 && (
+        <div className="flex justify-end">
+          <Tooltip label="Zoom the map to the members of this relation">
+            <button
+              type="button"
+              className={`${LINK_BUTTON} disabled:cursor-default disabled:text-zinc-300`}
+              disabled={!rows.some((row) => row.loaded)}
+              onClick={() => engine.fitTo([relation.id])}
+            >
+              ◎ Zoom to the relation
+            </button>
+          </Tooltip>
+        </div>
+      )}
       <ul>
         {rows.length === 0 && <li className={`py-1 text-xs ${SECONDARY}`}>No members.</li>}
         {shown.map((row) => (
@@ -327,20 +433,34 @@ function MemberList({
         )}
       </ul>
       <RoleOptions id={roleList} roles={roleSuggestions(relation)} />
-      {missing > 0 && (
-        // loading members is the map side's job (the next step): the button is shown, not yet working
-        <Tooltip label="Coming with the map side">
-          <button type="button" disabled className={`${BUTTON} justify-self-start`}>
-            Load the {missing} missing {missing === 1 ? 'member' : 'members'}
+      {load.status === 'failed' ? (
+        <p className={HINT}>
+          {loadFailureSentence(load.message)}{' '}
+          <button type="button" className={LINK_BUTTON} onClick={loadMembers}>
+            Retry
           </button>
-        </Tooltip>
+        </p>
+      ) : (
+        (missing > 0 || load.status === 'loading') && (
+          <button
+            type="button"
+            disabled={load.status === 'loading'}
+            onClick={loadMembers}
+            className={`${BUTTON} justify-self-start`}
+          >
+            {load.status === 'loading' ? loadingLabel(missing) : loadButtonLabel(missing)}
+          </button>
+        )
       )}
+      {result && <p className={SECONDARY_NOTE}>{result}</p>}
     </div>
   )
 }
 
 /** The inspected relation's members, in order. */
 function MembersSection({ entity, editor, select }: Props) {
+  // loading members merges them into the data: the rows follow the engine's version, not the editor's
+  useEngine((_engine, version) => version)
   const relation = editor.history.staging.graph.hasEntity(entity.id)
   if (!(relation instanceof OsmRelation)) return null
   return (
@@ -371,12 +491,13 @@ function MembershipRow({
   select: Props['select']
 }) {
   const { relation, index, role } = membership
+  const highlight = useRelatedWhileHovered(() => [relation.id, ...engine.relatedOf(relation.id)])
   const member = relation.members[index]
   if (!member) return null
   const hint = membershipHint(relation, index)
   return (
     <>
-      <Row>
+      <Row highlight={highlight}>
         <button type="button" className={LINK} onClick={() => select(relation.id)}>
           <span>{relationLabel(relation)}</span>
           <span className={`ml-2 font-mono ${SECONDARY}`}>{relation.id}</span>

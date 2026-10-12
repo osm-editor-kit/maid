@@ -9,7 +9,11 @@ import {
 } from '@osm-editor-kit/maid-model'
 import {
   joinableRelations,
+  loadButtonLabel,
   loadedRelations,
+  loadFailureSentence,
+  loadingLabel,
+  loadResultSentence,
   placementOf,
   placementSentence,
   memberLabel,
@@ -566,5 +570,31 @@ describe('membershipHint', () => {
     expect(membershipHint(polygon, 1)).toBeUndefined()
     expect(membershipHint(polygon, 2)).toBeUndefined()
     expect(membershipHint(polygon, 9)).toBeUndefined()
+  })
+})
+
+describe('loading the missing members', () => {
+  it('the button and the busy label count the members', () => {
+    expect(loadButtonLabel(1)).toBe('Load the 1 missing member')
+    expect(loadButtonLabel(12)).toBe('Load the 12 missing members')
+    expect(loadingLabel(12)).toBe('Loading 12 members')
+    expect(loadingLabel(1)).toBe('Loading 1 member')
+  })
+
+  it('nothing is said when every member came', () => {
+    expect(loadResultSentence(5, 0)).toBeUndefined()
+  })
+
+  it('the API did not return the rest: loading again will not help', () => {
+    expect(loadResultSentence(0, 3)).toBe('Loaded nothing: 3 members are not in the API.')
+    expect(loadResultSentence(0, 1)).toBe('Loaded nothing: the missing member is not in the API.')
+    expect(loadResultSentence(4, 1)).toBe('Loaded 4 members; the other member is not in the API.')
+    expect(loadResultSentence(1, 2)).toBe('Loaded 1 member; 2 members are not in the API.')
+  })
+
+  it('a failure names the reason', () => {
+    expect(loadFailureSentence('OSM API answered 404')).toBe(
+      'Could not load the members: OSM API answered 404',
+    )
   })
 })

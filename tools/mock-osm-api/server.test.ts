@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
-import { createHandler, loadScenes } from './server'
+import { createHandler, loadScenes, SceneIndex } from './server'
 
 const handler = createHandler(await loadScenes(['small']), { latency: 0 })
 const get = (path: string, init?: RequestInit) =>
@@ -120,5 +120,71 @@ describe('mock OSM API', () => {
         }
       }
     })
+  })
+})
+
+describe('full (relation and way with their members)', () => {
+  // A hand-made fixture: n4 is a member that is not in the fixture (not loaded from the API either).
+  const tiny = new SceneIndex([
+    { type: 'node', id: 1, lat: 52.5, lon: 13.4 },
+    { type: 'node', id: 2, lat: 52.5, lon: 13.41 },
+    { type: 'node', id: 3, lat: 52.5, lon: 13.42 },
+    { type: 'node', id: 5, lat: 52.5, lon: 13.43 },
+    { type: 'way', id: 10, nodes: [1, 2] },
+    { type: 'way', id: 11, nodes: [2, 3] },
+    { type: 'way', id: 12, nodes: [3, 1] },
+    // r22 is a member of r21 only: it must not come with r20
+    { type: 'relation', id: 22, members: [{ type: 'way', ref: 10 }] },
+    {
+      type: 'relation',
+      id: 21,
+      members: [
+        { type: 'way', ref: 12 },
+        { type: 'node', ref: 3 },
+        { type: 'relation', ref: 22 },
+      ],
+    },
+    {
+      type: 'relation',
+      id: 20,
+      members: [
+        { type: 'node', ref: 1 },
+        { type: 'way', ref: 10 },
+        { type: 'way', ref: 11 },
+        { type: 'node', ref: 4 },
+        { type: 'relation', ref: 21 },
+      ],
+    },
+  ])
+  const tinyHandler = createHandler(new Map([['tiny', tiny]]), { latency: 0 })
+  const full = async (path: string) => {
+    const res = await tinyHandler(new Request(`http://localhost/s/tiny${path}`))
+    return res
+  }
+  const keys = (elements: any[]) => elements.map((e) => `${e.type[0]}${e.id}`)
+
+  test('a relation: its nodes, ways with their nodes, member relations one level, each once', async () => {
+    const res = await full('/api/0.6/relation/20/full.json')
+    expect(res.status).toBe(200)
+    expect(res.headers.get('access-control-allow-origin')).toBe('*')
+    const { elements } = await res.json()
+    // n1 (member), n2 (node of w10), w10, n3 (node of w11), w11, r21 (member relation), r20 last
+    expect(keys(elements)).toEqual(['n1', 'n2', 'w10', 'n3', 'w11', 'r21', 'r20'])
+    expect(new Set(keys(elements)).size).toBe(elements.length)
+  })
+
+  test('a member relation comes without its own members', async () => {
+    const { elements } = await (await full('/api/0.6/relation/21/full')).json()
+    // w12 with its nodes 3 and 1, n3 is a member (once), r22 is a member relation, not expanded
+    expect(keys(elements)).toEqual(['n3', 'n1', 'w12', 'r22', 'r21'])
+  })
+
+  test('a way: its nodes and the way', async () => {
+    const { elements } = await (await full('/api/0.6/way/10/full.json')).json()
+    expect(keys(elements)).toEqual(['n1', 'n2', 'w10'])
+  })
+
+  test('an unknown relation is 404', async () => {
+    expect((await full('/api/0.6/relation/999/full.json')).status).toBe(404)
   })
 })

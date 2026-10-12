@@ -185,10 +185,12 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
   )
 
   // --- Hover and selection halo, under the lines like iD's shadow paths ---
+  // `related` (members of a relation): a calmer glow than hover, drawn under it (engine.setRelated)
   const opacity: ExpressionSpecification = [
     'case',
     ['boolean', ['feature-state', 'selected'], false], 0.7,
     ['boolean', ['feature-state', 'hover'], false], 0.4,
+    ['boolean', ['feature-state', 'related'], false], 0.25,
     0,
   ] // prettier-ignore
   layers.push(
