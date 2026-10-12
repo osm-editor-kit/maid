@@ -1,18 +1,11 @@
 import { ChatBubbleLeftEllipsisIcon } from '@heroicons/react/20/solid'
 import { defineModule, type Editor, type MaidModule } from '@osm-editor-kit/maid-core'
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
+import { Time } from '@osm-editor-kit/maid-ui'
 import { useEffect } from 'react'
 import { Layer, Source, useMap, type MapLayerMouseEvent } from 'react-map-gl/maplibre'
 import { NotesDock } from './details.tsx'
-import {
-  cellKey,
-  cellsOf,
-  formatDate,
-  markersOf,
-  notesIn,
-  summaryLine,
-  type NotesMode,
-} from './model.ts'
+import { cellKey, cellsOf, markersOf, notesIn, summaryLine, type NotesMode } from './model.ts'
 import {
   abortRequests,
   missingCells,
@@ -206,7 +199,8 @@ export function notes(options: { apiUrl: string; minZoom?: number }): MaidModule
                       <span className="min-w-0 flex-1">
                         <span className="block truncate">{summaryLine(note)}</span>
                         <span className="block text-zinc-500 dark:text-zinc-400">
-                          {note.status === 'open' ? 'Open' : 'Closed'} · {formatDate(note.created)}
+                          {note.status === 'open' ? 'Open' : 'Closed'} ·{' '}
+                          <Time value={note.created} />
                         </span>
                       </span>
                     </button>

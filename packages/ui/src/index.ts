@@ -42,6 +42,15 @@ export { initTheme, useResolvedTheme, useTheme, type Theme } from './theme.ts'
 export { ThemeSwitch } from './ThemeSwitch.tsx'
 export { ToolButton, ToolGroup, toolButtonClass, toolButtonTone } from './Toolbar.tsx'
 export { Brand, TopBar } from './TopBar.tsx'
+export { Time } from './Time.tsx'
+export {
+  absoluteTime,
+  browserTimeZone,
+  parseTime,
+  preferRelative,
+  relativeTime,
+  type TimeValue,
+} from './time.ts'
 export { Tooltip } from './Tooltip.tsx'
 export { useResizable } from './useResizable.ts'
 export { useBreakpoint, type Breakpoint } from './useBreakpoint.ts'

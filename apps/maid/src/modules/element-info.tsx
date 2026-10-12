@@ -1,12 +1,14 @@
 import { defineModule, type MaidModule } from '@osm-editor-kit/maid-core'
-import type { InspectorSection, InspectorSectionProps } from '@osm-editor-kit/maid-ui'
+import { Time, type InspectorSection, type InspectorSectionProps } from '@osm-editor-kit/maid-ui'
+import type { ReactNode } from 'react'
 
 /** Version, changeset, user and timestamp of the selected entity, and whether it is edited. */
 function ElementInfo({ entity, editor }: InspectorSectionProps) {
   const current = editor.history.staging.graph.hasEntity(entity.id)
   const original = editor.history.base.graph.hasEntity(entity.id)
   const props = current?.props ?? {}
-  type Row = [label: string, value: string | number | undefined]
+  // the shown form may differ from the value (a time is shown relative, with its raw value as title)
+  type Row = [label: string, value: string | number | undefined, shown?: ReactNode]
   const size: Row[] =
     entity.type === 'way'
       ? [['Nodes', entity.size]]
@@ -19,19 +21,19 @@ function ElementInfo({ entity, editor }: InspectorSectionProps) {
     ['Version', props.version],
     ['Changeset', props.changeset],
     ['User', props.user],
-    ['Timestamp', props.timestamp],
+    ['Timestamp', props.timestamp, <Time key="timestamp" value={props.timestamp} />],
   ]
   const edited = current !== original
   return (
     <dl className="font-mono text-xs">
-      {rows.map(([label, value]) => (
+      {rows.map(([label, value, shown]) => (
         <div
           key={label}
           className="flex gap-2 border-b border-zinc-950/5 py-1 last:border-0 dark:border-white/5"
         >
           <dt className="w-2/5 shrink-0 truncate text-zinc-500 dark:text-zinc-400">{label}</dt>
           <dd className="min-w-0 flex-1 truncate" title={String(value ?? '')}>
-            {value ?? '—'}
+            {shown ?? value ?? '—'}
           </dd>
         </div>
       ))}

@@ -1,5 +1,5 @@
-import type { DockViewProps } from '@osm-editor-kit/maid-ui'
-import { formatDate, noteWebUrl, type Note } from './model.ts'
+import { Time, type DockViewProps } from '@osm-editor-kit/maid-ui'
+import { noteWebUrl, type Note } from './model.ts'
 import { useNotesSession } from './store.ts'
 
 const QUIET = 'p-3 text-xs text-zinc-500 dark:text-zinc-400'
@@ -29,11 +29,15 @@ function NoteDetails({ note }: { note: Note }) {
       </header>
       <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-zinc-600 dark:text-zinc-400">
         <dt>Opened</dt>
-        <dd>{formatDate(note.created)} UTC</dd>
+        <dd>
+          <Time value={note.created} primary="absolute" />
+        </dd>
         {note.closed && (
           <>
             <dt>Closed</dt>
-            <dd>{formatDate(note.closed)} UTC</dd>
+            <dd>
+              <Time value={note.closed} primary="absolute" />
+            </dd>
           </>
         )}
         <dt>Position</dt>
@@ -48,7 +52,7 @@ function NoteDetails({ note }: { note: Note }) {
             className="border-l-2 border-zinc-950/10 pl-3 dark:border-white/10"
           >
             <p className="text-zinc-500 dark:text-zinc-400">
-              {comment.user ?? 'anonymous'} · {formatDate(comment.date)} · {comment.action}
+              {comment.user ?? 'anonymous'} · <Time value={comment.date} /> · {comment.action}
             </p>
             <p className="mt-0.5 text-sm whitespace-pre-wrap">{comment.text}</p>
           </li>

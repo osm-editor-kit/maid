@@ -4,7 +4,6 @@ import {
   cellBox,
   cellKey,
   cellsOf,
-  formatDate,
   markersOf,
   noteWebUrl,
   notesIn,
@@ -197,11 +196,6 @@ describe('what a note shows', () => {
     const box = [13.39, 52.39, 13.41, 52.41] as const
     expect(notesIn(notes, [...box], false).map((n) => n.id)).toEqual([1])
     expect(notesIn(notes, [...box], true).map((n) => n.id)).toEqual([1, 3])
-  })
-
-  test('dates are shown in UTC, without a locale', () => {
-    expect(formatDate('2026-09-28T07:14:03Z')).toBe('2026-09-28 07:14')
-    expect(formatDate('not a date')).toBe('not a date')
   })
 
   test('the web page of a note is a link, the id is all it needs', () => {

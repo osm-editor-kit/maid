@@ -192,13 +192,6 @@ export function notesIn(notes: readonly Note[], bbox: Bbox, showClosed: boolean)
   )
 }
 
-/** `2026-09-28 07:14`, in UTC: what the API's timestamps say, without a locale */
-export function formatDate(iso: string): string {
-  const time = Date.parse(iso)
-  if (Number.isNaN(time)) return iso
-  return new Date(time).toISOString().slice(0, 16).replace('T', ' ')
-}
-
 /** Points for the map: id, status and whether it is the chosen note */
 export function markersOf(notes: readonly Note[], chosen: number | null) {
   return {

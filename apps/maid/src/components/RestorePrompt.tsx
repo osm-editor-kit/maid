@@ -1,3 +1,4 @@
+import { Time } from '@osm-editor-kit/maid-ui'
 import { answerRestore, useJournal } from '../journal'
 
 const BUTTON =
@@ -25,8 +26,8 @@ export function RestorePrompt() {
             Restore your edits?
           </h2>
           <p id="restore-text" className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-            You have {count} from {new Date(journal.savedAt).toLocaleString()}. Restore them, or
-            discard them and start fresh.
+            You have {count} from <Time value={journal.savedAt} primary="absolute" />. Restore them,
+            or discard them and start fresh.
           </p>
           <div className="mt-4 flex justify-end gap-2">
             <button
