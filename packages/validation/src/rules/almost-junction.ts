@@ -6,9 +6,15 @@ import {
   actionMergeNodes,
 } from '@osm-editor-kit/maid-model'
 import type { Action, Graph, OsmEntity } from '@osm-editor-kit/maid-model'
-import { interpolate, segmentIntersection, selfIntersects, sphericalDistance } from '../geo.ts'
+import {
+  interpolate,
+  nodeLoc,
+  segmentIntersection,
+  selfIntersects,
+  sphericalDistance,
+} from '../geo.ts'
 import type { Point } from '../geo.ts'
-import { isInterestingKey } from '../tags.ts'
+import { hasTag, isInterestingKey } from '../tags.ts'
 import type { Tags } from '../tags.ts'
 import type { Fix, Issue, Rule, RuleContext } from '../types.ts'
 import { routableHighways } from './impossible-oneway.ts'
@@ -53,24 +59,15 @@ function isTaggedAsNotContinuing(node: OsmNode): boolean {
   )
 }
 
-function hasTag(tags: Tags, key: string): boolean {
-  return tags[key] !== undefined && tags[key] !== 'no'
-}
-
 /** Bridges and tunnels only connect to the same kind, on the same layer and level (iD's canConnectWays) */
 function canConnectWays(way: OsmWay, other: OsmWay): boolean {
   if (way.id === other.id) return true
-  const bridges = hasTag(way.tags, 'bridge') || hasTag(other.tags, 'bridge')
-  if (bridges && !(hasTag(way.tags, 'bridge') && hasTag(other.tags, 'bridge'))) return false
-  const tunnels = hasTag(way.tags, 'tunnel') || hasTag(other.tags, 'tunnel')
-  if (tunnels && !(hasTag(way.tags, 'tunnel') && hasTag(other.tags, 'tunnel'))) return false
+  const bridges = hasTag(way.tags.bridge) || hasTag(other.tags.bridge)
+  if (bridges && !(hasTag(way.tags.bridge) && hasTag(other.tags.bridge))) return false
+  const tunnels = hasTag(way.tags.tunnel) || hasTag(other.tags.tunnel)
+  if (tunnels && !(hasTag(way.tags.tunnel) && hasTag(other.tags.tunnel))) return false
   if ((way.tags.layer || '0') !== (other.tags.layer || '0')) return false
   return (way.tags.level || '0') === (other.tags.level || '0')
-}
-
-function locOf(graph: Graph, id: string): Point | undefined {
-  const entity = graph.hasEntity(id)
-  return entity instanceof OsmNode && entity.loc ? [entity.loc[0], entity.loc[1]] : undefined
 }
 
 /** A way end that is not tagged as continuing, that only this way uses, and that is not a loop */
@@ -123,8 +120,8 @@ function connectionFrom(
       const aId = other.nodes[j]
       const bId = other.nodes[j + 1]
       if (!aId || !bId || aId === tipId || bId === tipId) continue
-      const a = locOf(graph, aId)
-      const b = locOf(graph, bId)
+      const a = nodeLoc(graph, aId)
+      const b = nodeLoc(graph, bId)
       if (!a || !b) continue
       const crossLoc = segmentIntersection(tipLoc, extendedTip, a, b)
       if (crossLoc) return { mid, tip, wayId: other.id, edge: [aId, bId], crossLoc }
@@ -143,7 +140,7 @@ function connectionAt(way: OsmWay, endIndex: number, context: RuleContext): Conn
 
   const points: Point[] = []
   for (const id of way.nodes) {
-    const loc = locOf(context.graph, id)
+    const loc = nodeLoc(context.graph, id)
     if (!loc) return undefined
     points.push(loc)
   }

@@ -2,7 +2,7 @@ import { OsmNode, OsmWay, actionAddEntity, actionAddMidpoint } from '@osm-editor
 import type { Graph } from '@osm-editor-kit/maid-model'
 import { connectionTagsFor } from '../connection-tags.ts'
 import type { ConnectionFeature, ConnectionSide } from '../connection-tags.ts'
-import { properIntersection } from '../geo.ts'
+import { nodeLoc, properIntersection } from '../geo.ts'
 import type { Point } from '../geo.ts'
 import {
   hasTag,
@@ -47,12 +47,6 @@ function featureOf(way: OsmWay, graph: Graph): FeatureType | undefined {
   return undefined
 }
 
-function locOf(graph: Graph, id: string): Point | undefined {
-  const node = graph.hasEntity(id)
-  if (!(node instanceof OsmNode) || !node.loc) return undefined
-  return [node.loc[0], node.loc[1]]
-}
-
 /** The segments of a way, in the order of its nodes. A closed way lists its first node again at the end. */
 function segmentsOf(way: OsmWay, graph: Graph): Segment[] {
   const segments: Segment[] = []
@@ -61,8 +55,8 @@ function segmentsOf(way: OsmWay, graph: Graph): Segment[] {
     const from = nodes[i]
     const to = nodes[i + 1]
     if (from === undefined || to === undefined) continue
-    const a = locOf(graph, from)
-    const b = locOf(graph, to)
+    const a = nodeLoc(graph, from)
+    const b = nodeLoc(graph, to)
     if (a && b) segments.push({ from, to, a, b })
   }
   return segments

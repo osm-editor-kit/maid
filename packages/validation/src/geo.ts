@@ -1,7 +1,25 @@
+import { OsmNode, OsmWay } from '@osm-editor-kit/maid-model'
+import type { Graph, OsmEntity } from '@osm-editor-kit/maid-model'
+
 // Plain planar geometry on [lon, lat] pairs. No map and no projection: the rules only need to
 // know whether two segments cross and whether two boxes overlap, and both work in degrees.
 
 export type Point = [number, number]
+
+/** The [lon, lat] of a node in the graph, or `undefined` if it is missing or has no location */
+export function nodeLoc(graph: Graph, id: string): Point | undefined {
+  const node = graph.hasEntity(id)
+  if (!(node instanceof OsmNode) || !node.loc) return undefined
+  return [node.loc[0], node.loc[1]]
+}
+
+/** The first point of a feature, to show where the issue is */
+export function locationOf(entity: OsmEntity, graph: Graph): Point | undefined {
+  if (entity instanceof OsmNode) return entity.loc ? [entity.loc[0], entity.loc[1]] : undefined
+  if (!(entity instanceof OsmWay)) return undefined
+  const first = entity.first()
+  return first ? nodeLoc(graph, first) : undefined
+}
 
 export type Box = {
   readonly minLon: number

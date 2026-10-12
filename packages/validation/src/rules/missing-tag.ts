@@ -1,6 +1,7 @@
 import { OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 import type { Graph, OsmEntity } from '@osm-editor-kit/maid-model'
 import { deleteFeatureFix } from '../fixes.ts'
+import { locationOf } from '../geo.ts'
 import { descriptiveKeys } from '../tags.ts'
 import type { Issue, Rule } from '../types.ts'
 
@@ -30,20 +31,6 @@ function problemOf(entity: OsmEntity, graph: Graph): string | undefined {
   // Flagged even as a member of a relation: `highway=road` says nothing about the road
   if (entity instanceof OsmWay && tags.highway === 'road')
     return 'This road has no specific highway type'
-  return undefined
-}
-
-/** The first point of a feature, to show where the issue is */
-function locationOf(entity: OsmEntity, graph: Graph): [number, number] | undefined {
-  if (entity instanceof OsmNode) {
-    const loc = entity.loc
-    return loc ? [loc[0], loc[1]] : undefined
-  }
-  if (entity instanceof OsmWay) {
-    const first = entity.first()
-    const node = first ? graph.hasEntity(first) : undefined
-    return node instanceof OsmNode && node.loc ? [node.loc[0], node.loc[1]] : undefined
-  }
   return undefined
 }
 
