@@ -1,4 +1,4 @@
-import { ChevronDownIcon, XMarkIcon } from '@heroicons/react/20/solid'
+import { ArrowsRightLeftIcon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/20/solid'
 import type { ReactNode } from 'react'
 import { Flyout } from './Flyout.tsx'
 import { FadeSlideIn } from './motion.tsx'
@@ -62,23 +62,39 @@ export function SidebarHeader(props: {
       </span>
     </>
   )
+  // With a flyout the button is the header itself, edge to edge, and says "change" with a swap
+  // icon; a chevron would promise a list that drops down below it.
   const titleButton = (onClick: (() => void) | undefined) => (
     <button
       type="button"
       onClick={onClick}
       aria-expanded={expanded}
       title={titleAction}
-      className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg p-1 inset-ring-1 inset-ring-zinc-950/10 hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 dark:inset-ring-white/10 dark:hover:bg-white/5"
+      className={
+        titleFlyout !== undefined
+          ? 'group flex min-w-0 flex-1 cursor-pointer items-center gap-3 p-3 hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 aria-expanded:bg-zinc-950/5 dark:hover:bg-white/5 dark:aria-expanded:bg-white/5'
+          : 'flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg p-1 inset-ring-1 inset-ring-zinc-950/10 hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 dark:inset-ring-white/10 dark:hover:bg-white/5'
+      }
     >
       {content}
-      <ChevronDownIcon
-        aria-hidden="true"
-        className={`mr-1 size-4 shrink-0 text-zinc-500 transition dark:text-zinc-400 ${expanded ? 'rotate-180' : ''}`}
-      />
+      {titleFlyout !== undefined ? (
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-md text-zinc-500 inset-ring-1 inset-ring-zinc-950/10 group-hover:text-zinc-950 dark:text-zinc-400 dark:inset-ring-white/10 dark:group-hover:text-white">
+          <ArrowsRightLeftIcon aria-hidden="true" className="size-4" />
+        </span>
+      ) : (
+        <ChevronDownIcon
+          aria-hidden="true"
+          className={`mr-1 size-4 shrink-0 text-zinc-500 transition dark:text-zinc-400 ${expanded ? 'rotate-180' : ''}`}
+        />
+      )}
     </button>
   )
   return (
-    <div className="flex shrink-0 items-center gap-1 border-b border-zinc-950/10 p-2 dark:border-white/10">
+    <div
+      className={`flex shrink-0 items-center gap-1 border-b border-zinc-950/10 dark:border-white/10 ${
+        onTitleClick && titleFlyout !== undefined ? '' : 'p-2'
+      }`}
+    >
       {onTitleClick && titleFlyout !== undefined ? (
         <Flyout
           label={titleAction ?? title}

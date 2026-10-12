@@ -96,7 +96,6 @@ export function Inspector() {
         }
         title={entity ? (entity.tags.name ?? entity.preset?.name ?? 'Feature') : 'Loading…'}
         subtitle={details}
-        onClose={close}
         // as in iD, the feature's head is the button that changes its type
         onTitleClick={canChangeType ? () => setPicker({ id, open: !picking }) : undefined}
         expanded={picking}
