@@ -181,6 +181,8 @@ createEditor({
 })
 ```
 
+Preset overlays exist now: `withChanges(base, changes)` in `@osm-editor-kit/maid-presets` takes the raw preset data and returns it changed, and the config passes `createPresets(withChanges(defaultPresetData, changes))`. The one-line `withChanges(defaultPresets, …)` above is the plan. See [the presets README](../packages/presets/README.md#changing-presets-in-a-child-app).
+
 Everything in it is serialisable except functions and modules, so most of a fork's configuration can live in a JSON file. It is never read from the URL: the URL carries state, not configuration ([URL state](architecture/08-url-state.md)).
 
 Presets and filters are the actual data, not references, so a fork changes them with ordinary code ([filters](architecture/06-filters.md)).

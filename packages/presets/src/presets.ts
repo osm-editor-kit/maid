@@ -16,7 +16,16 @@ import type { RawRecord } from './raw.ts'
 // area is matched everywhere), categories, field defaults, recents, the fuzzy (edit distance) search
 // tiers, suggestion presets (none in the bundled data), preferences, the file fetcher, and the
 // localizer (labels come straight from the English translation).
-import type { Field, FieldOption, Geometry, Preset, PresetData, Presets, Tags } from './types.ts'
+import type {
+  Field,
+  FieldOption,
+  Geometry,
+  Preset,
+  PresetData,
+  Presets,
+  Reference,
+  Tags,
+} from './types.ts'
 
 type Which = 'fields' | 'moreFields'
 type PrerequisiteTag = NonNullable<Field['prerequisiteTag']>
@@ -104,6 +113,38 @@ function fieldHasValue(field: Field, tags: Tags): boolean {
 
 function fieldAppliesTo(field: Field, geometry: Geometry): boolean {
   return field.geometry === undefined || field.geometry.includes(geometry)
+}
+
+/** The schema's own `reference` (`{ key, value? }`), or undefined when it has no key. */
+function schemaReference(raw: RawRecord): Reference | undefined {
+  const given = asRecord(raw.reference)
+  const key = asString(given?.key)
+  if (key === undefined) return undefined
+  const value = asString(given?.value)
+  return value === undefined ? { key } : { key, value }
+}
+
+/**
+ * iD's field.reference: the schema's reference, else the field's key. A multiCombo key ending in `:`
+ * is looked up as `key:*`, as iD does. The value is left out: iD adds the field's current value.
+ */
+function fieldReferenceOf(raw: RawRecord, field: Field): Reference | undefined {
+  const given = schemaReference(raw)
+  if (given) return given
+  if (field.key === undefined) return undefined
+  return { key: field.type === 'multiCombo' ? field.key.replace(/:$/, ':*') : field.key }
+}
+
+/**
+ * iD's preset.reference(): the schema's reference, else the preset's first tag key other than `name`,
+ * with its value. ID's Wikidata lookup (`wikidata=*` on the tags) is not ported. A `*` value is left out.
+ */
+function presetReferenceOf(raw: RawRecord, tags: Tags): Reference | undefined {
+  const given = schemaReference(raw)
+  const key = given?.key ?? Object.keys(tags).find((name) => name !== 'name')
+  if (key === undefined) return undefined
+  const value = given?.value ?? tags[key]
+  return value === undefined || value === '*' ? { key } : { key, value }
 }
 
 /** iD's presetPreset.matchScore: -1 when a tag of the preset is missing or different. */
@@ -393,6 +434,8 @@ export function createPresets(data: PresetData): Presets {
     if (urlFormat !== undefined) field.urlFormat = urlFormat
     const pattern = asString(raw.pattern)
     if (pattern !== undefined) field.pattern = pattern
+    const reference = fieldReferenceOf(raw, field)
+    if (reference !== undefined) field.reference = reference
     return field
   }
 
@@ -476,6 +519,8 @@ export function createPresets(data: PresetData): Presets {
     }
     const icon = asString(raw.icon)
     if (icon !== undefined) preset.icon = icon
+    const reference = presetReferenceOf(raw, tags)
+    if (reference !== undefined) preset.reference = reference
     entries.set(id, {
       preset,
       fallback: isFallbackTags(tags),

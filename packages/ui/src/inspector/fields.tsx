@@ -1,5 +1,6 @@
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import type { ReferenceLoader } from '../InfoPopover.tsx'
 import {
   addableFields,
   addPicked,
@@ -9,6 +10,7 @@ import {
 } from './add-field-logic.ts'
 import { AddField } from './AddField.tsx'
 import { AccessField } from './fields/Access.tsx'
+import { AddressField } from './fields/Address.tsx'
 import { CheckField } from './fields/Check.tsx'
 import { ComboField } from './fields/Combo.tsx'
 import { ColourField, DateField } from './fields/DateColour.tsx'
@@ -56,6 +58,7 @@ export const defaultFieldComponents: Record<string, FieldComponent> = {
   radio: RadioField,
   structureRadio: StructureRadioField,
   access: AccessField,
+  address: AddressField,
   check: CheckField,
   defaultCheck: CheckField,
   onewayCheck: CheckField,
@@ -76,8 +79,10 @@ export function PresetFields(props: {
   components?: Record<string, FieldComponent>
   /** The fields the "Add field" list offers (presets.moreFieldsFor). No list without onChange. */
   moreFields?: Field[]
+  /** Finds the wiki documentation for each row's "i". Called only when one is opened. */
+  loadReference?: ReferenceLoader
 }): ReactNode {
-  const { fields, tags, baseTags, onChange, components, moreFields = [] } = props
+  const { fields, tags, baseTags, onChange, components, moreFields = [], loadReference } = props
   // the ids picked from "Add field", in the order picked: they are rows although they have no value
   const [picked, setPicked] = useState<string[]>([])
   // the keys of the related tags whose editor is open: state of this list, a new feature starts with none
@@ -136,6 +141,7 @@ export function PresetFields(props: {
             onChange={onChange}
             registry={registry}
             related={relatedOf(field)}
+            loadReference={loadReference}
           />
         </div>
       ))}

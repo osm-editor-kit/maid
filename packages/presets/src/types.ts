@@ -1,6 +1,9 @@
 export type Tags = Record<string, string>
 export type Geometry = 'point' | 'vertex' | 'line' | 'area' | 'relation'
 
+/** The OSM Wiki page that documents a tag: `key` alone, or `key=value` (iD's `reference`). */
+export type Reference = { key: string; value?: string }
+
 export type Preset = {
   id: string
   /** English name, resolved; falls back to the id */
@@ -18,6 +21,8 @@ export type Preset = {
   terms: string[]
   /** Other names from the translation */
   aliases: string[]
+  /** What the OSM Wiki documents for this type: the schema's `reference`, else iD's choice. Absent when there is none. */
+  reference?: Reference
 }
 
 export type FieldOption = { value: string; label: string }
@@ -49,6 +54,8 @@ export type Field = {
   urlFormat?: string
   /** Identifier fields: a regular expression the value has to match for the link */
   pattern?: string
+  /** What the OSM Wiki documents for this field: the schema's `reference`, else its key. Absent when there is none. */
+  reference?: Reference
 }
 
 /**

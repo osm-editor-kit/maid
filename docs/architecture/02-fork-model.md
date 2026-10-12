@@ -32,6 +32,7 @@ radnetz-berlin/
 ```
 
 - What a fork changes, it changes through the **config object**, through **modules** that register at extension points, and through **hooks**.
+- Presets are config data: a fork changes them with `withChanges`, see [the presets README](../../packages/presets/README.md#changing-presets-in-a-child-app).
 - Maid's own default editor (`apps/maid`) is built the same way. If the default editor cannot do something through the public API, neither can a fork, and we find out first.
 - A fork never rebases. It updates a dependency version.
 

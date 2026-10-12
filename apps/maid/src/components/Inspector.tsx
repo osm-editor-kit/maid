@@ -1,5 +1,6 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import {
+  InfoPopover,
   InspectorSections,
   PresetFields,
   PresetPicker,
@@ -18,6 +19,7 @@ import {
   useFavouriteRows,
   useFavouritesFull,
 } from '../favourites'
+import { loadReference } from '../reference'
 import { useSelection } from '../selection'
 import { Operations } from './Operations'
 import { PresetIcon } from './PresetIcon'
@@ -107,6 +109,16 @@ export function Inspector() {
         }
         title={title}
         subtitle={details}
+        // the wiki's page for the type, beside the head and not inside it
+        info={
+          entity?.preset?.reference ? (
+            <InfoPopover
+              label={kind ?? 'feature type'}
+              reference={entity.preset.reference}
+              load={loadReference}
+            />
+          ) : undefined
+        }
         // as in iD, the feature's head is the button that changes its type
         onTitleClick={canChangeType ? () => setPicker({ id, open: !picking }) : undefined}
         expanded={picking}
@@ -157,6 +169,9 @@ export function Inspector() {
                   // what "revert" goes back to; a feature that was added here has nothing to revert to
                   baseTags={engine.baseTags(id)}
                   onChange={onChange}
+                  // field types that modules bring (`inspector.field`)
+                  components={fieldTypes}
+                  loadReference={loadReference}
                 />
               </SidebarDisclosure>
             )}

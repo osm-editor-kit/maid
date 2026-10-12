@@ -1,0 +1,308 @@
+// Ported from iD data/address_formats.json (ISC, © iD contributors), at commit 0194f3926.
+// The placeholders are id-tagging-schema's English strings for fields.address (ISC, © iD contributors).
+
+/**
+ * One layout of the address field. `format` is the rows of input names; `street+place` is one
+ * input that holds a street or a place. `widths` replaces the default widths when given.
+ * `countryCodes` is absent for the default layout.
+ */
+export type AddressFormat = {
+  countryCodes?: readonly string[]
+  format: readonly (readonly string[])[]
+  widths?: Readonly<Record<string, number>>
+}
+
+/** The layouts in iD's order: the default first, then one per country group (lower-case ISO codes). */
+export const ADDRESS_FORMATS: readonly AddressFormat[] = [
+  {
+    format: [
+      ['housenumber', 'street+place'],
+      ['city', 'postcode'],
+    ],
+  },
+  {
+    countryCodes: ['au'],
+    format: [
+      ['unit', 'housenumber', 'street'],
+      ['suburb', 'state', 'postcode'],
+    ],
+  },
+  {
+    countryCodes: ['id'],
+    format: [
+      ['unit', 'housename'],
+      ['street', 'housenumber', 'neighbourhood'],
+      ['subdistrict', 'district'],
+      ['city', 'province', 'postcode'],
+    ],
+  },
+  {
+    countryCodes: ['gb'],
+    format: [['housename'], ['housenumber', 'street+place'], ['city', 'postcode']],
+  },
+  {
+    countryCodes: ['ie'],
+    format: [['housename'], ['housenumber', 'street+place'], ['city'], ['postcode']],
+  },
+  {
+    countryCodes: ['at', 'bg', 'ch', 'de', 'si', 'pl', 'lt'],
+    format: [
+      ['street+place', 'housenumber'],
+      ['postcode', 'city'],
+    ],
+  },
+  {
+    countryCodes: ['ad', 'ba', 'be', 'dk', 'es', 'gr', 'hr', 'it', 'pt', 'se', 'sm', 'va'],
+    format: [
+      ['street+place', 'housenumber', 'unit'],
+      ['postcode', 'city'],
+    ],
+  },
+  {
+    countryCodes: ['fi', 'is', 'li', 'nl', 'no'],
+    format: [
+      ['street', 'housenumber', 'unit'],
+      ['postcode', 'city'],
+    ],
+  },
+  {
+    countryCodes: ['fr', 'lu'],
+    format: [
+      ['housenumber', 'street+place'],
+      ['postcode', 'city'],
+    ],
+  },
+  {
+    countryCodes: ['ma'],
+    format: [['housename'], ['housenumber', 'street+place'], ['postcode', 'city']],
+  },
+  {
+    countryCodes: ['md'],
+    format: [
+      ['street', 'housenumber', 'floor', 'unit'],
+      ['postcode', 'city'],
+      ['subdistrict', 'district'],
+    ],
+  },
+  {
+    countryCodes: ['mo'],
+    format: [
+      ['housenumber', 'street'],
+      ['postcode', 'city'],
+    ],
+  },
+  {
+    countryCodes: ['nz'],
+    format: [['housenumber', 'street'], ['suburb'], ['city', 'postcode']],
+  },
+  {
+    countryCodes: ['br'],
+    format: [['street+place'], ['housenumber', 'suburb'], ['city', 'postcode']],
+  },
+  {
+    countryCodes: ['vn'],
+    format: [
+      ['housenumber', 'street'],
+      ['subdistrict'],
+      ['district'],
+      ['city'],
+      ['province', 'postcode'],
+    ],
+  },
+  {
+    countryCodes: ['ca'],
+    format: [
+      ['housenumber', 'street', 'unit'],
+      ['city', 'province', 'postcode'],
+    ],
+  },
+  {
+    countryCodes: ['us'],
+    format: [
+      ['housenumber', 'street', 'unit'],
+      ['city', 'state', 'postcode'],
+    ],
+  },
+  {
+    countryCodes: ['tw'],
+    format: [['postcode', 'city', 'district'], ['street+place'], ['housenumber', 'floor', 'unit']],
+  },
+  {
+    countryCodes: ['jp'],
+    format: [
+      ['postcode', 'province', 'county'],
+      ['city', 'suburb'],
+      ['quarter', 'neighbourhood'],
+      ['block_number', 'housenumber'],
+    ],
+    widths: {
+      postcode: 0.3,
+      province: 0.35,
+      county: 0.35,
+      city: 0.65,
+      suburb: 0.35,
+      quarter: 0.5,
+      neighbourhood: 0.5,
+      block_number: 0.5,
+      housenumber: 0.5,
+    },
+  },
+  {
+    countryCodes: ['kr'],
+    format: [
+      ['province', 'city'],
+      ['district', 'town', 'subdistrict'],
+      ['street', 'housenumber', 'unit'],
+      ['postcode'],
+    ],
+  },
+  {
+    countryCodes: ['tr'],
+    format: [['neighbourhood'], ['street+place', 'housenumber'], ['postcode', 'district', 'city']],
+  },
+  {
+    countryCodes: ['ua'],
+    format: [['housenumber', 'postcode'], ['street+place']],
+  },
+  {
+    countryCodes: ['cn'],
+    format: [
+      ['postcode', 'province'],
+      ['city', 'district'],
+      ['street', 'housenumber'],
+    ],
+    widths: {
+      postcode: 0.3,
+      province: 0.7,
+      city: 0.5,
+      district: 0.5,
+      street: 0.7,
+      housenumber: 0.3,
+    },
+  },
+  {
+    countryCodes: ['bo'],
+    format: [['housename'], ['street', 'housenumber'], ['neighbourhood', 'city']],
+    widths: {
+      housename: 1,
+      street: 0.7,
+      housenumber: 0.3,
+      neighbourhood: 0.5,
+      city: 0.5,
+    },
+  },
+  {
+    countryCodes: ['pe'],
+    format: [['street', 'housenumber'], ['neighbourhood'], ['city', 'state', 'postcode']],
+    widths: {
+      street: 0.7,
+      housenumber: 0.3,
+      city: 0.4,
+      state: 0.4,
+      postcode: 0.2,
+    },
+  },
+  {
+    countryCodes: ['mx'],
+    format: [['street', 'housenumber'], ['neighbourhood'], ['postcode', 'city', 'state']],
+  },
+  {
+    countryCodes: ['lv'],
+    format: [
+      ['street', 'housenumber'],
+      ['housename', 'subdistrict'],
+      ['district', 'city', 'postcode'],
+    ],
+    widths: {
+      street: 0.7,
+      housenumber: 0.3,
+      housename: 0.4,
+      subdistrict: 0.6,
+      district: 0.4,
+      city: 0.4,
+      postcode: 0.2,
+    },
+  },
+  {
+    countryCodes: ['in'],
+    format: [['housenumber', 'street'], ['city', 'postcode'], ['district']],
+  },
+  {
+    countryCodes: ['ru'],
+    format: [
+      ['housenumber', 'street+place'],
+      ['city', 'postcode'],
+    ],
+  },
+  {
+    countryCodes: ['cz', 'sk'],
+    format: [
+      ['street', 'housenumber'],
+      ['postcode', 'city'],
+    ],
+  },
+  {
+    countryCodes: ['ph'],
+    format: [
+      ['unit', 'housename', 'housenumber', 'street'],
+      ['neighbourhood', 'district', 'city'],
+      ['postcode', 'province'],
+    ],
+  },
+  {
+    countryCodes: ['hu'],
+    format: [
+      ['postcode', 'city'],
+      ['street', 'housenumber'],
+    ],
+  },
+  {
+    countryCodes: ['th'],
+    format: [
+      ['housenumber', 'place'],
+      ['street'],
+      ['subdistrict', 'district'],
+      ['province', 'postcode'],
+    ],
+  },
+]
+
+/** The input placeholders by name; `name!cc` is the variant for a country (iD's placeholders.<key>!<cc>). */
+export const ADDRESS_PLACEHOLDERS: Readonly<Record<string, string>> = {
+  block_number: 'Block Number',
+  'block_number!jp': 'Block No.',
+  city: 'City',
+  'city!cn': 'City/Prefecture/League',
+  'city!jp': 'City/Town/Village/Tokyo Special Ward',
+  'city!vn': 'City/Town',
+  conscriptionnumber: '123',
+  country: 'Country',
+  county: 'County',
+  'county!jp': 'District',
+  district: 'District',
+  'district!cn': 'District/County/Banner',
+  'district!vn': 'Arrondissement/Town/District',
+  door: 'Door Number',
+  floor: 'Floor',
+  hamlet: 'Hamlet',
+  housename: 'Housename',
+  housenumber: '123',
+  'housenumber!jp': 'Building No./Lot No.',
+  neighbourhood: 'Neighborhood',
+  'neighbourhood!jp': 'Machi/Chōme/Aza/Koaza',
+  place: 'Place',
+  postcode: 'Postcode',
+  province: 'Province',
+  'province!cn': 'Province/Municipality/AR/SAR',
+  'province!jp': 'Prefecture',
+  quarter: 'Quarter',
+  'quarter!jp': 'Ōaza',
+  state: 'State',
+  street: 'Street',
+  subdistrict: 'Subdistrict',
+  'subdistrict!vn': 'Ward/Commune/Townlet',
+  suburb: 'Suburb',
+  'suburb!jp': 'Ward (政令市)',
+  town: 'Town',
+  unit: 'Unit',
+}

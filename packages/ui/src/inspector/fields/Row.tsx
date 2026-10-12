@@ -1,6 +1,7 @@
 import { ArrowUturnLeftIcon, TrashIcon } from '@heroicons/react/16/solid'
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import { useId } from 'react'
+import { InfoPopover, type ReferenceLoader } from '../../InfoPopover.tsx'
 import {
   comboHint,
   isModified,
@@ -22,12 +23,17 @@ const COMBO_TYPES = new Set(['combo', 'typeCombo', 'networkCombo', 'radio', 'str
 const ROW_BUTTON =
   'grid size-5 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white'
 
+/** The "i" after the label: hidden until the row is hovered or focused, always on touch, as the add buttons are. */
+const INFO_BUTTON =
+  'opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100'
+
 const STEADY_TYPES = new Set([
   'semiCombo',
   'multiCombo',
   'manyCombo',
   'directionalCombo',
   'localized',
+  'address',
 ])
 
 export function FieldRow(props: {
@@ -39,8 +45,10 @@ export function FieldRow(props: {
   registry: Record<string, FieldComponent>
   /** The related tags below the field (lines, add buttons, editors). Absent: none. */
   related?: RelatedRow
+  /** Finds the wiki documentation for the "i" after the label, when the field has a reference. Called on opening only. */
+  loadReference?: ReferenceLoader
 }) {
-  const { field, tags, baseTags, onChange, registry, related } = props
+  const { field, tags, baseTags, onChange, registry, related, loadReference } = props
   const id = useId()
   const labelId = useId()
   const key = field.key
@@ -63,15 +71,25 @@ export function FieldRow(props: {
       className="group grid min-w-0 gap-1"
     >
       <div className="flex min-w-0 items-center justify-between gap-2">
-        {key === undefined ? (
-          <span id={labelId} className={LABEL}>
-            {field.label}
-          </span>
-        ) : (
-          <label htmlFor={id} className={LABEL}>
-            {field.label}
-          </label>
-        )}
+        <div className="flex min-w-0 items-center gap-1">
+          {key === undefined ? (
+            <span id={labelId} className={LABEL}>
+              {field.label}
+            </span>
+          ) : (
+            <label htmlFor={id} className={LABEL}>
+              {field.label}
+            </label>
+          )}
+          {field.reference ? (
+            <InfoPopover
+              label={field.label}
+              reference={field.reference}
+              load={loadReference}
+              buttonClassName={INFO_BUTTON}
+            />
+          ) : null}
+        </div>
         <div className="flex min-w-0 items-center gap-1">
           {hint ? <span className={HINT}>{hint}</span> : null}
           {onChange && related ? <RelatedAddButtons field={field} related={related} /> : null}

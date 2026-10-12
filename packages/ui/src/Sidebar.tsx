@@ -40,8 +40,11 @@ export function SidebarHeader(props: {
    * whether it is open and `onTitleClick` toggles it.
    */
   titleFlyout?: ReactNode
+  /** A control beside the title, before the close button, for example the feature type's "i". Not part of the title button. */
+  info?: ReactNode
 }) {
-  const { icon, title, subtitle, onClose, onTitleClick, expanded, titleAction, titleFlyout } = props
+  const { icon, title, subtitle, onClose, onTitleClick, expanded, titleAction, titleFlyout, info } =
+    props
   const content = (
     <>
       {icon ? (
@@ -122,6 +125,7 @@ export function SidebarHeader(props: {
           <h2 className="contents">{content}</h2>
         </div>
       )}
+      {info ? <span className="flex shrink-0 items-center">{info}</span> : null}
       {onClose ? (
         <button
           type="button"
