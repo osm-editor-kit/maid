@@ -11,6 +11,7 @@ import medium from '../../../fixtures/medium.meta.json'
 import small from '../../../fixtures/small.meta.json'
 import type { Config } from './config'
 import { elementInfo } from './modules/element-info'
+import { relations } from './modules/relations'
 import { type Bbox, sceneBounds } from './modules/scene-bounds'
 
 /** Extent of each fixture, from its meta file */
@@ -28,6 +29,8 @@ export function editorConfig(config: Config): EditorConfig {
     elementInfo(),
     // the edit menu: reverse, split, merge, straighten, square, make round, disconnect, extract
     operations(defaultOperations),
+    // inspector sections "Members" and "Relations": what a relation contains, what a feature is in
+    relations(),
   ]
   // dashed outline around the area the fixture covers
   if (bbox) modules.push(sceneBounds({ bbox }))

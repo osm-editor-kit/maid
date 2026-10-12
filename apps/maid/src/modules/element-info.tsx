@@ -1,9 +1,8 @@
-import { defineModule, type Editor, type MaidModule } from '@osm-editor-kit/maid-core'
-import type { EntityInfo } from '@osm-editor-kit/maid-renderer'
-import type { InspectorSection } from '@osm-editor-kit/maid-ui'
+import { defineModule, type MaidModule } from '@osm-editor-kit/maid-core'
+import type { InspectorSection, InspectorSectionProps } from '@osm-editor-kit/maid-ui'
 
 /** Version, changeset, user and timestamp of the selected entity, and whether it is edited. */
-function ElementInfo({ entity, editor }: { entity: EntityInfo; editor: Editor }) {
+function ElementInfo({ entity, editor }: InspectorSectionProps) {
   const current = editor.history.staging.graph.hasEntity(entity.id)
   const original = editor.history.base.graph.hasEntity(entity.id)
   const props = current?.props ?? {}

@@ -60,10 +60,9 @@ export function Inspector() {
       </Sidebar>
     )
   }
-  const onChange =
-    !entity || entity.type === 'relation'
-      ? undefined
-      : (key: string, value: string | undefined) => engine.setTag(id, key, value)
+  const onChange = entity
+    ? (key: string, value: string | undefined) => engine.setTag(id, key, value)
+    : undefined
   const { presets } = editor
   const fields =
     entity?.preset && presets ? presets.fieldsFor(entity.preset, entity.tags, entity.geometry) : []
@@ -137,7 +136,7 @@ export function Inspector() {
           <SidebarSection title="Tags">
             <TagList tags={entity.tags} onChange={onChange} />
           </SidebarSection>
-          <InspectorSections entity={entity} editor={editor} />
+          <InspectorSections entity={entity} editor={editor} select={select} />
           <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">
             Changes stay in this browser tab. Saving to OSM is not built yet.
           </p>

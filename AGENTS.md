@@ -82,6 +82,7 @@ These names are the contract. Agents and docs only reference these.
 | `bun run check-draw` | Browser check with real keys and clicks: draw a line, continue it, snap to a node and a way, draw an area, cancel. Needs `bun run dev`. |
 | `bun run check-edit [scene]` | Browser check: add a point, change it, delete it, delete a way, undo and redo, and compare data, lookups and map after each step. Needs `bun run dev`. |
 | `bun run check-ops [scene]` | Browser check: square a building, split a road, merge the parts, undo; data and map after each step. Needs `bun run dev`. |
+| `bun run check-relations [scene]` | Browser check: add a way to a relation, change its role, remove it, undo; move a node of a multipolygon and see its area follow. Needs `bun run dev`. |
 | `bun run check-render <name>` | Compare screenshots and feature counts of all scenes with a reference. Needs `bun run dev`. |
 | `bun run check-render-save <name>` | Save that reference from the current state, before a change to the renderer. |
 | `bun run compare` | Everything for the side-by-side page on http://localhost:5184. |

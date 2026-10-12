@@ -28,6 +28,7 @@
     "check-edit": "bun tools/bench/edit-check.ts",
     "check-undo": "bun tools/bench/undo.ts",
     "check-ops": "bun tools/bench/ops-check.ts",
+    "check-relations": "bun tools/bench/relations-check.ts",
     "check-render": "bun tools/bench/shot-diff.ts check",
     "check-render-save": "bun tools/bench/shot-diff.ts save",
     "bench-model": "bun tools/bench/model-load.ts",

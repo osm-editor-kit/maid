@@ -151,6 +151,8 @@ export class MaidEngine {
   // Assigned here, not in field initializers, because the builder needs `data`.
   constructor(public options: EngineOptions) {
     this.data = new OsmData(options.editor.context, options.editor.history)
+    // after OsmData's own listener, so the lookups are right when the redraw reads them
+    options.editor.history.on('stagingchange', (difference) => this.onStagingChange(difference))
     this.presets = options.editor.presets
     this.builder = new FeatureBuilder(this.data, this.presets)
   }
@@ -213,12 +215,6 @@ export class MaidEngine {
   }
 
   /** The node or way with this id in the current graph. Relations and unknown ids give undefined. */
-  private nodeOrWay(id: string): OsmNode | OsmWay | undefined {
-    if (id[0] === 'n') return this.data.node(id)
-    if (id[0] === 'w') return this.data.way(id)
-    return undefined
-  }
-
   attach(map: MapLibreMap) {
     this.map = map
     this.loadVisibleTiles()
@@ -535,11 +531,8 @@ export class MaidEngine {
     const { map } = this
     if (!map || !this.data.node(id)) throw new Error(`Cannot move node ${id}`)
     const t0 = performance.now()
-    // the action replaces the node with a moved copy: the redraw looks the node up again
-    this.data.history.perform(actionMoveNode(id, [lon, lat]))
-    const { batch, remove } = this.redraw([{ id, moved: true }])
-    this.removeFeatures(remove)
-    this.sendBatch(batch)
+    // not announced to React: this runs on every pointer move, the commit at the end is announced
+    this.change(() => this.data.history.perform(actionMoveNode(id, [lon, lat])), false)
     await Promise.all(Object.values(this.channels.live).map((channel) => this.channelIdle(channel)))
     await new Promise<void>((resolve) => {
       map.triggerRepaint()
@@ -566,11 +559,11 @@ export class MaidEngine {
   // --- Changing tags ---
 
   /**
-   * Sets or removes one tag of a node or way and redraws it with the look the new tags give it.
+   * Sets or removes one tag of an entity and redraws it with the look the new tags give it.
    * Local only: nothing is uploaded. The change is one undo step.
    */
   setTag(id: string, key: string, value: string | undefined) {
-    const entity = this.nodeOrWay(id)
+    const entity = this.data.history.staging.graph.hasEntity(id)
     if (!entity || !key) return
     const tags = { ...entity.tags }
     if (value === undefined || value === '') delete tags[key]
@@ -578,9 +571,9 @@ export class MaidEngine {
     this.setTags(id, tags)
   }
 
-  /** Replaces all tags of a node or way, for example when a preset is chosen. One undo step. */
+  /** Replaces all tags of an entity, for example when a preset is chosen. One undo step. */
   setTags(id: string, tags: Tags, annotation = 'Changed tags') {
-    if (!this.nodeOrWay(id)) return
+    if (!this.data.history.staging.graph.hasEntity(id)) return
     this.edit(actionChangeTags(id, tags), annotation, [id])
   }
 
@@ -696,6 +689,12 @@ export class MaidEngine {
       const previous = this.featureSource.get(id)
       if (previous && previous !== drawn?.source) remove.push([previous, id])
     }
+    // the area of a multipolygon is drawn from its member ways: it follows when one of them changes
+    const multipolygons = new Set<string>()
+    const memberOf = (wayId: string) => {
+      for (const relationId of this.data.wayMultipolygons.get(wayId) ?? [])
+        multipolygons.add(relationId)
+    }
     for (const { id, moved } of entities) {
       if (id[0] === 'n') {
         const node = this.data.node(id)
@@ -706,6 +705,7 @@ export class MaidEngine {
             for (const wayId of this.data.nodeWays.get(id) ?? []) {
               const way = this.data.way(wayId)
               if (way) place(wayId, this.builder.buildWay(way))
+              memberOf(wayId)
             }
           const vertex = this.builder.refreshVertex(node)
           place(id, vertex && { source: 'vertices', feature: vertex })
@@ -716,18 +716,23 @@ export class MaidEngine {
       } else if (id[0] === 'w') {
         const way = this.data.way(id)
         place(id, way && this.builder.buildWay(way))
+        memberOf(id)
       } else if (id[0] === 'r') {
-        const relation = this.data.relation(id)
-        if (!relation || relation.tags.type !== 'multipolygon') {
-          place(id)
-          continue
-        }
-        // build() also returns multipolygons that were waiting for members: those are drawn too
-        const out = this.builder.build({ nodes: [], ways: [], relations: [relation] })
-        const area = out.areas.find((f) => f.id === id)
-        place(id, area && { source: 'areas', feature: area })
-        for (const f of out.areas) if (f.id !== id) batch.areas.push(f)
+        multipolygons.add(id)
       }
+    }
+    // after the ways, so a multipolygon is built once from the new shape of all its members
+    for (const id of multipolygons) {
+      const relation = this.data.relation(id)
+      if (!relation || relation.tags.type !== 'multipolygon') {
+        place(id)
+        continue
+      }
+      // build() also returns multipolygons that were waiting for members: those are drawn too
+      const out = this.builder.build({ nodes: [], ways: [], relations: [relation] })
+      const area = out.areas.find((f) => f.id === id)
+      place(id, area && { source: 'areas', feature: area })
+      for (const f of out.areas) if (f.id !== id) batch.areas.push(f)
     }
     return { batch, remove }
   }
@@ -782,45 +787,64 @@ export class MaidEngine {
   }
 
   /**
-   * Runs a change of the history (actions with or without a commit, a revert, undo or redo), then
-   * redraws every entity that its differences name, each once. Created entities get their
-   * features, deleted ones lose them. This is how tools and operations change the data.
+   * Groups changes of the history: runs `step` (actions with or without a commit, a revert, undo or
+   * redo) and then redraws every entity its differences name, each once. A change made outside
+   * of `change`, for example by a module through `editor.history`, is redrawn as well, one
+   * difference at a time. `notify: false` leaves React alone, for changes on every pointer move.
    */
-  change(step: () => void) {
-    const { history } = this.data
+  change(step: () => void, notify = true) {
+    if (this.collecting) {
+      // already inside a group: its end redraws
+      step()
+      return
+    }
     const differences: Difference[] = []
-    const off = history.on('stagingchange', (difference) => {
-      differences.push(difference)
-    })
+    this.collecting = differences
     try {
       step()
     } finally {
-      off()
+      this.collecting = undefined
     }
-    if (differences.length > 0) {
-      // the union of all differences, each id once; a node that moved in any of them moves its ways
-      const moved = new Map<string, boolean>()
-      for (const difference of differences)
-        for (const [id, { base, head }] of difference.changes) {
-          moved.set(id, (moved.get(id) ?? false) || locMoved(base, head))
-          // A way that came, went or changed its nodes changes what its nodes are: a vertex can
-          // become a junction, an end or a standalone point. Those nodes are not in the difference.
-          const from = base instanceof OsmWay ? base.nodes : undefined
-          const to = head instanceof OsmWay ? head.nodes : undefined
-          if (from !== to)
-            for (const nodeId of [...(from ?? []), ...(to ?? [])])
-              if (!moved.has(nodeId)) moved.set(nodeId, false)
-        }
-      const { batch, remove } = this.redraw(
-        [...moved].map(([id, isMoved]) => ({ id, moved: isMoved })),
-      )
-      this.removeFeatures(remove)
-      this.sendBatch(batch)
-      // feature state belongs to a source: a feature that changed its source needs it again
-      if (remove.some(([, featureId]) => this.selectedIds.includes(featureId)))
-        queueMicrotask(() => this.applyHighlight([], 'selected'))
+    this.redrawDifferences(differences)
+    if (notify) this.changed()
+  }
+
+  /** The differences of the group that is running, see `change` */
+  private collecting?: Difference[]
+
+  /** Every change of the history arrives here. Created entities get their features, deleted ones lose them. */
+  private onStagingChange(difference: Difference) {
+    if (this.collecting) {
+      this.collecting.push(difference)
+      return
     }
+    this.redrawDifferences([difference])
     this.changed()
+  }
+
+  private redrawDifferences(differences: Difference[]) {
+    // the union of all differences, each id once; a node that moved in any of them moves its ways
+    const moved = new Map<string, boolean>()
+    for (const difference of differences)
+      for (const [id, { base, head }] of difference.changes) {
+        moved.set(id, (moved.get(id) ?? false) || locMoved(base, head))
+        // A way that came, went or changed its nodes changes what its nodes are: a vertex can
+        // become a junction, an end or a standalone point. Those nodes are not in the difference.
+        const from = base instanceof OsmWay ? base.nodes : undefined
+        const to = head instanceof OsmWay ? head.nodes : undefined
+        if (from !== to)
+          for (const nodeId of [...(from ?? []), ...(to ?? [])])
+            if (!moved.has(nodeId)) moved.set(nodeId, false)
+      }
+    if (moved.size === 0) return
+    const { batch, remove } = this.redraw(
+      [...moved].map(([id, isMoved]) => ({ id, moved: isMoved })),
+    )
+    this.removeFeatures(remove)
+    this.sendBatch(batch)
+    // feature state belongs to a source: a feature that changed its source needs it again
+    if (remove.some(([, featureId]) => this.selectedIds.includes(featureId)))
+      queueMicrotask(() => this.applyHighlight([], 'selected'))
   }
 
   // --- Dragging a vertex ---
@@ -877,6 +901,7 @@ export class MaidEngine {
     this.dragged = undefined
     if (id && this.data.history.hasWorkInProgress)
       this.data.history.commit({ annotation: 'Moved a node', selectedIDs: [id] })
+    this.changed()
     // the moved features stay in the live tier until compaction
     this.touch()
     this.wake()

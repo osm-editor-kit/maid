@@ -1,7 +1,7 @@
 import './extension-points.ts'
 
 export { Dock, type DockTab } from './Dock.tsx'
-export type { InspectorSection } from './extension-points.ts'
+export type { InspectorSection, InspectorSectionProps } from './extension-points.ts'
 export { InspectorSections } from './InspectorSections.tsx'
 export * from './inspector/index.ts'
 export { ControlButton, ControlGroup, MapControls } from './MapControls.tsx'
