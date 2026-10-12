@@ -61,6 +61,8 @@ function lowZoomThreshold(lat: number) {
 }
 
 const HOVER = '#f6634f'
+/** MapLibre zoom from which points are pins (OSM zoom 18.5); below it they are dots. Chosen on the dense scene: at OSM zoom 17 all its pins cover the map. */
+const PIN_ZOOM = 17.5
 /** The address plaque image (apps/maid/src/images.ts) */
 export const ADDRESS_PLAQUE = 'addr-plaque'
 
@@ -443,14 +445,18 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
       'text-halo-width': 2.5,
     },
   })
-  // Every point is always on the map as a small dot. Pins with the preset icon are drawn on top
-  // where there is room for them, more of them the closer you zoom. iD instead hides all points
-  // once there are more than 200 in view.
+  // As in iD the pin is the point: from PIN_ZOOM on every point is a pin, none is thinned out and
+  // no dot is drawn under it. Further out, where pins would cover the map (iD hides all points
+  // beyond a count there), a point is a small dot; the hovered or selected one still shows its pin.
   layers.push({
     id: 'point-dot',
     type: 'circle',
     source: SOURCES.points,
     filter: ['!', ['has', 'addr']],
+    // without icons there are no pins, so the dots stay at every zoom
+    ...(options.icons && options.pins !== 'all'
+      ? { maxzoom: PIN_ZOOM }
+      : { maxzoom: options.icons ? 0.1 : 24 }),
     paint: {
       'circle-radius': 3,
       'circle-color': '#fff',
@@ -464,14 +470,16 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
       type: 'symbol',
       source: SOURCES.points,
       filter: ['!', ['has', 'addr']],
+      ...(options.pins === 'all' ? {} : { minzoom: PIN_ZOOM }),
       layout: {
         // one image per preset icon, pin and icon drawn together (see the app's image resolver)
         'icon-image': ['concat', 'pin-', ['coalesce', ['get', 'icon'], 'none']],
         'icon-anchor': 'bottom',
-        'icon-allow-overlap': options.pins === 'all',
-        'icon-ignore-placement': options.pins === 'all',
+        // every pin is drawn; a pin further down the screen is in front, as iD sorts them
+        'icon-allow-overlap': true,
+        'icon-ignore-placement': true,
         'icon-padding': 0,
-        'symbol-sort-key': ['case', ['has', 'name'], 0, 1],
+        'symbol-z-order': 'viewport-y',
       },
     })
     // The hovered or selected point always shows its pin, also where pins are thinned out for
