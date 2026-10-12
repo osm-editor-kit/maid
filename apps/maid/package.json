@@ -20,6 +20,7 @@
     "@osm-editor-kit/maid-module-lenses": "workspace:*",
     "@osm-editor-kit/maid-module-notes": "workspace:*",
     "@osm-editor-kit/maid-module-street-imagery": "workspace:*",
+    "@osm-editor-kit/maid-module-traffic-signs": "workspace:*",
     "@osm-editor-kit/maid-operations": "workspace:*",
     "@osm-editor-kit/maid-presets": "workspace:*",
     "@osm-editor-kit/maid-renderer": "workspace:*",
