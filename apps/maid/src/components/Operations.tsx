@@ -29,8 +29,9 @@ export function Operations() {
   const commands = useEditCommands()
   if (commands.length === 0) return null
   return (
-    // a toolbar row under the header, edge to edge: no headline, the icons speak for themselves
-    <div className="-mx-3 -mt-3 mb-3 border-b border-zinc-950/10 px-3 py-2 dark:border-white/10">
+    // a toolbar row under the header: no headline, the icons speak for themselves. The line under
+    // it is the first group's own, as between all groups.
+    <div className="pb-3">
       <CommandBar
         label="Edit"
         items={commands.map((command) => ({

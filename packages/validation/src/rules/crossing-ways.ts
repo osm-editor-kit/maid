@@ -1,5 +1,7 @@
 import { OsmNode, OsmWay, actionAddEntity, actionAddMidpoint } from '@osm-editor-kit/maid-model'
 import type { Graph } from '@osm-editor-kit/maid-model'
+import { connectionTagsFor } from '../connection-tags.ts'
+import type { ConnectionFeature, ConnectionSide } from '../connection-tags.ts'
 import { properIntersection } from '../geo.ts'
 import type { Point } from '../geo.ts'
 import {
@@ -11,27 +13,32 @@ import {
 } from '../tags.ts'
 import type { Fix, Issue, Rule } from '../types.ts'
 
-// Ported from Rapid's crossing_ways validator, only for two ways that cross without a shared node.
-// Cut: relations (multipolygon members are not checked), indoor levels, aeroways, conveying,
-// connection tags by feature type, the bridge, tunnel and layer fixes, and the candidate tree.
+// Ported from iD's crossing_ways validator (ISC, © iD contributors), at commit 0194f3926, and from
+// Rapid's version of it. Cut: relations (multipolygon members are not checked), the bridge, tunnel
+// and layer fixes, the dynamic fixes, and the `lessLikelyTags` variant of the connection tags.
 
-type FeatureType = 'highway' | 'building' | 'railway' | 'waterway'
+type FeatureType = ConnectionFeature
 
 type Segment = { from: string; to: string; a: Point; b: Point }
 
 /** One way of a crossing, with the segment that crosses */
-type Side = { way: OsmWay; type: FeatureType; segment: Segment }
+type Side = { way: OsmWay; type: FeatureType; line: boolean; segment: Segment }
+
+/** iD's `osmRoutableAerowayTags` */
+const routableAerowayValues: ReadonlySet<string | undefined> = new Set(['runway', 'taxiway'])
 
 const defaultLabel: Record<FeatureType, string> = {
+  aeroway: 'an aeroway',
   highway: 'a road',
   building: 'a building',
   railway: 'a railway',
   waterway: 'a waterway',
 }
 
-/** What a way is for this rule, or `undefined` when it is none of the four */
+/** What a way is for this rule, or `undefined` when it is none of the five */
 function featureOf(way: OsmWay, graph: Graph): FeatureType | undefined {
   const tags = way.tags
+  if (routableAerowayValues.has(tags.aeroway)) return 'aeroway'
   if (hasTag(tags.building) && !lifecyclePrefixes.has(tags.building)) return 'building'
   if (isRoutableHighway(tags.highway)) return 'highway'
   if (way.geometry(graph) !== 'line') return undefined
@@ -61,25 +68,48 @@ function segmentsOf(way: OsmWay, graph: Graph): Segment[] {
   return segments
 }
 
-/** Whether the two ways are allowed to cross on the map: Rapid's `isLegitCrossing`, reduced */
-function isLegitCrossing(a: Side, b: Side): boolean {
-  // Different layers do not touch, whatever the feature types
-  if ((a.way.tags.layer || '0') !== (b.way.tags.layer || '0')) return true
-
-  // A bridge, a tunnel or a ford makes the crossing a structure, not a missing junction
-  if (hasStructure(a) || hasStructure(b)) return true
-
-  // A waterway may cross a highway that is a pier
-  if (a.type === 'waterway' && b.type === 'highway' && b.way.tags.man_made === 'pier') return true
-  if (b.type === 'waterway' && a.type === 'highway' && a.way.tags.man_made === 'pier') return true
-
-  return false
+/** iD's `taggedAsIndoor`: indoor features have a level */
+function taggedAsIndoor(tags: OsmWay['tags']): boolean {
+  return hasTag(tags.indoor) || hasTag(tags.level) || tags.highway === 'corridor'
 }
 
-function hasStructure(side: Side): boolean {
-  const tags = side.way.tags
-  if (hasTag(tags.bridge) || hasTag(tags.tunnel)) return true
-  return side.type === 'highway' && hasTag(tags.ford)
+function allowsBridge(type: FeatureType): boolean {
+  return type === 'highway' || type === 'railway' || type === 'waterway' || type === 'aeroway'
+}
+
+function allowsTunnel(type: FeatureType): boolean {
+  return type === 'highway' || type === 'railway' || type === 'waterway'
+}
+
+/** Whether the two ways are allowed to cross on the map: iD's `isLegitCrossing` */
+function isLegitCrossing(a: Side, b: Side): boolean {
+  const tagsA = a.way.tags
+  const tagsB = b.way.tags
+
+  // Indoor features on different levels do not interact
+  if (
+    taggedAsIndoor(tagsA) &&
+    taggedAsIndoor(tagsB) &&
+    (tagsA.level || '0') !== (tagsB.level || '0')
+  )
+    return true
+
+  // A waterway may cross a highway that is a pier
+  if (a.type === 'waterway' && b.type === 'highway' && tagsB.man_made === 'pier') return true
+  if (b.type === 'waterway' && a.type === 'highway' && tagsA.man_made === 'pier') return true
+
+  // Both on the same defined layer: they cross, whatever they are
+  if (tagsA.layer !== undefined && tagsA.layer === tagsB.layer) return false
+
+  // One is a bridge and the other is not, or one is a tunnel and the other is not
+  const bridgeA = allowsBridge(a.type) && hasTag(tagsA.bridge)
+  const bridgeB = allowsBridge(b.type) && hasTag(tagsB.bridge)
+  if (bridgeA !== bridgeB) return true
+  const tunnelA = allowsTunnel(a.type) && hasTag(tagsA.tunnel)
+  const tunnelB = allowsTunnel(b.type) && hasTag(tagsB.tunnel)
+  if (tunnelA !== tunnelB) return true
+
+  return (tagsA.layer || '0') !== (tagsB.layer || '0')
 }
 
 function sharesNode(a: Segment, b: Segment): boolean {
@@ -130,6 +160,11 @@ function connectFix(point: Point, first: Side, second: Side): Fix {
  * building"; two roads keep the way that was validated first. The id is the same from either way.
  */
 function issueFor(validated: Side, other: Side, point: Point): Issue {
+  const connection = (side: Side): ConnectionSide => ({
+    type: side.type,
+    tags: side.way.tags,
+    line: side.line,
+  })
   const [first, second] =
     validated.type === 'highway' || other.type !== 'highway'
       ? [validated, other]
@@ -151,10 +186,15 @@ function issueFor(validated: Side, other: Side, point: Point): Issue {
     entityIds: [first.way.id, second.way.id],
     loc: point,
     fixes,
+    // In the order of the validated way first, as iD does
+    data: {
+      connectionTags: connectionTagsFor(connection(validated), connection(other)),
+      featureTypes: [validated.type, other.type],
+    },
   }
 }
 
-/** Roads, buildings, railways and waterways that cross without a junction */
+/** Roads, aeroways, buildings, railways and waterways that cross without a junction */
 export const crossingWays: Rule = {
   id: 'crossing_ways',
   label: 'Crossing ways',
@@ -167,12 +207,21 @@ export const crossingWays: Rule = {
     const issues: Issue[] = []
     for (const other of context.waysNear(entity)) {
       const otherType = featureOf(other, graph)
-      // Only pairs with a highway: buildings and waterways may cross each other
-      if (!otherType || (type !== 'highway' && otherType !== 'highway')) continue
+      if (!otherType) continue
 
       for (const crossing of crossingsOf(entity, other, graph)) {
-        const validated: Side = { way: entity, type, segment: crossing.segmentA }
-        const otherSide: Side = { way: other, type: otherType, segment: crossing.segmentB }
+        const validated: Side = {
+          way: entity,
+          type,
+          line: entity.geometry(graph) === 'line',
+          segment: crossing.segmentA,
+        }
+        const otherSide: Side = {
+          way: other,
+          type: otherType,
+          line: other.geometry(graph) === 'line',
+          segment: crossing.segmentB,
+        }
         if (isLegitCrossing(validated, otherSide)) continue
         issues.push(issueFor(validated, otherSide, crossing.point))
       }

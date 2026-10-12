@@ -53,3 +53,90 @@ export function properIntersection(p0: Point, p1: Point, q0: Point, q1: Point): 
   if (t <= 0 || t >= 1 || u <= 0 || u >= 1) return undefined
   return [p0[0] + t * rx, p0[1] + t * ry]
 }
+
+// Distances in metres, as iD's geo module: a degree of latitude is the same everywhere, a degree
+// of longitude shrinks with the cosine of the latitude.
+const TAU = 2 * Math.PI
+const EQUATORIAL_RADIUS = 6.378137e6
+const POLAR_RADIUS = 6.3567523e6
+
+/** Metres to degrees of latitude */
+export function metersToLat(meters: number): number {
+  return meters / ((TAU * POLAR_RADIUS) / 360)
+}
+
+/** Metres to degrees of longitude at this latitude */
+export function metersToLon(meters: number, atLat: number): number {
+  if (Math.abs(atLat) >= 90) return 0
+  return meters / ((TAU * EQUATORIAL_RADIUS) / 360) / Math.abs(Math.cos((atLat * Math.PI) / 180))
+}
+
+/** The distance in metres between two points, as iD's geoSphericalDistance (equirectangular) */
+export function sphericalDistance(a: Point, b: Point): number {
+  const dLon = a[0] - b[0]
+  const meanLat = (a[1] + b[1]) / 2
+  const x =
+    Math.abs(meanLat) >= 90
+      ? 0
+      : dLon * ((TAU * EQUATORIAL_RADIUS) / 360) * Math.abs(Math.cos((meanLat * Math.PI) / 180))
+  const y = (a[1] - b[1]) * ((TAU * POLAR_RADIUS) / 360)
+  return Math.hypot(x, y)
+}
+
+/** The point a share t of the way from a to b (t = 1 is b, and beyond it for t > 1) */
+export function interpolate(a: Point, b: Point, t: number): Point {
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
+}
+
+/**
+ * Where segment p0-p1 meets segment q0-q1, end points included: iD's geoLineIntersection. Parallel
+ * segments meet nowhere. Unlike `properIntersection`, touching at an end point counts.
+ */
+export function segmentIntersection(p0: Point, p1: Point, q0: Point, q1: Point): Point | undefined {
+  const rx = p1[0] - p0[0]
+  const ry = p1[1] - p0[1]
+  const sx = q1[0] - q0[0]
+  const sy = q1[1] - q0[1]
+  const qpx = q0[0] - p0[0]
+  const qpy = q0[1] - p0[1]
+  const uNumerator = qpx * ry - qpy * rx
+  const denominator = rx * sy - ry * sx
+  if (uNumerator === 0 || denominator === 0) return undefined
+
+  const u = uNumerator / denominator
+  const t = (qpx * sy - qpy * sx) / denominator
+  if (t < 0 || t > 1 || u < 0 || u > 1) return undefined
+  return interpolate(p0, p1, t)
+}
+
+/**
+ * Whether a polyline crosses itself next to the point at index `active`: iD's geoHasSelfIntersections.
+ * The segments that touch the active point are tested against the others. Segments that share an
+ * end point, and crossings at a segment's end point, do not count.
+ */
+export function selfIntersects(points: readonly Point[], active: number): boolean {
+  const same = (a: Point, b: Point, epsilon = 0): boolean =>
+    Math.abs(a[0] - b[0]) <= epsilon && Math.abs(a[1] - b[1]) <= epsilon
+  const exact = (a: Point, b: Point): boolean => a[0] === b[0] && a[1] === b[1]
+
+  const actives: Array<[Point, Point]> = []
+  const inactives: Array<[Point, Point]> = []
+  for (let j = 0; j < points.length - 1; j++) {
+    const a = points[j]
+    const b = points[j + 1]
+    if (!a || !b) continue
+    if (j === active || j + 1 === active) actives.push([a, b])
+    else inactives.push([a, b])
+  }
+
+  for (const [p0, p1] of actives) {
+    for (const [q0, q1] of inactives) {
+      if (exact(p1, q0) || exact(p0, q1) || exact(p0, q0) || exact(p1, q1)) continue
+      const hit = segmentIntersection(p0, p1, q0, q1)
+      if (!hit) continue
+      const atEnd = [p0, p1, q0, q1].some((end) => same(end, hit, 1e-8))
+      if (!atEnd) return true
+    }
+  }
+  return false
+}

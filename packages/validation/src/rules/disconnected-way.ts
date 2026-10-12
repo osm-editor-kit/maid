@@ -1,20 +1,36 @@
-import { OsmNode, OsmWay } from '@osm-editor-kit/maid-model'
+import { OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 import type { Graph, OsmEntity } from '@osm-editor-kit/maid-model'
 import { deleteFeatureFix } from '../fixes.ts'
 import { isRoutableHighway } from '../tags.ts'
 import type { Issue, Rule } from '../types.ts'
 
-/** Routable ways: a routable highway, a ferry route, or a highway multipolygon or ferry relation */
-function isRoutableWay(way: OsmWay, graph: Graph, ignoreInnerWays: boolean): boolean {
+// Ported from iD's disconnected_way (ISC, © iD contributors), at commit 0194f3926, with Maid's
+// rule that a feature the run does not validate is part of the network.
+
+/** Aerialways connect for the routing network, except `aerialway=no` and `goods` */
+function isAerialway(way: OsmWay): boolean {
+  const value = way.tags.aerialway
+  return value !== undefined && value !== 'no' && value !== 'goods'
+}
+
+/** Routable ways: a routable highway, a ferry route, or an aerialway (iD #9406) */
+function isRoutableWay(way: OsmWay, graph: Graph): boolean {
   if (isRoutableHighway(way.tags.highway) || way.tags.route === 'ferry') return true
-  return graph.parentRelations(way).some((relation) => {
-    if (relation.tags.type === 'route' && relation.tags.route === 'ferry') return true
-    return (
-      relation.isMultipolygon() &&
-      isRoutableHighway(relation.tags.highway) &&
-      (!ignoreInnerWays || relation.memberById(way.id)?.role !== 'inner')
-    )
-  })
+  if (isAerialway(way)) return true
+  return graph
+    .parentRelations(way)
+    .some((relation) => relation.tags.type === 'route' && relation.tags.route === 'ferry')
+}
+
+/** A multipolygon whose type is a routable highway: the area is the road, not its outer way */
+function isRoutableRelation(relation: OsmRelation): boolean {
+  return relation.isMultipolygon() && isRoutableHighway(relation.tags.highway)
+}
+
+/** Golf paths (iD #11863) and aerialways are not checked by themselves, but still connect */
+function shouldSkipAsEntity(way: OsmWay): boolean {
+  if (way.tags.golf === 'path' || way.tags.golf === 'cartpath') return true
+  return way.tags.aerialway !== undefined && way.tags.aerialway !== ''
 }
 
 /** Elevators are features of their own in the routing network */
@@ -28,11 +44,33 @@ function isConnectedVertex(vertex: OsmNode): boolean {
   return vertex.tags.amenity === 'parking_entrance'
 }
 
+/** The nodes that connect a way, or the outer ways of a multipolygon */
+function verticesOf(item: OsmWay | OsmRelation, graph: Graph): OsmNode[] {
+  const ways: OsmWay[] = []
+  if (item instanceof OsmWay) {
+    ways.push(item)
+  } else {
+    for (const member of item.members) {
+      if (member.type !== 'way' || member.role !== 'outer') continue
+      const way = graph.hasEntity(member.id)
+      if (way instanceof OsmWay) ways.push(way)
+    }
+  }
+  const nodes: OsmNode[] = []
+  for (const way of ways) {
+    for (const nodeId of way.nodes) {
+      const node = graph.hasEntity(nodeId)
+      if (node instanceof OsmNode) nodes.push(node)
+    }
+  }
+  return nodes
+}
+
 /**
- * Rapid's flood fill over shared nodes. Returns the island around the entity, or `undefined` when
- * the entity is not routable or the island reaches the rest of the network. The rest of the
- * network is a connected vertex (entrance, parking entrance) or a routable way that this run does
- * not validate: a road that was not changed is part of the network, not a loose island.
+ * Rapid's and iD's flood fill over shared nodes. Returns the island around the entity, or
+ * `undefined` when the entity is not routable or the island reaches the rest of the network. The
+ * rest of the network is a connected vertex (entrance, parking entrance) or a routable way or
+ * multipolygon that this run does not validate: a road that was not changed is part of the network.
  */
 function routingIslandOf(
   entity: OsmEntity,
@@ -40,36 +78,45 @@ function routingIslandOf(
   validated: ReadonlySet<string>,
 ): Map<string, OsmEntity> | undefined {
   const island = new Map<string, OsmEntity>()
-  const waysToCheck: OsmWay[] = []
+  const toCheck: Array<OsmWay | OsmRelation> = []
 
-  // False when a parent way reaches the rest of the network
-  const queueParentWays = (node: OsmNode): boolean => {
+  // False when a parent way or multipolygon reaches the rest of the network
+  const queueParents = (node: OsmNode): boolean => {
     for (const parent of graph.parentWays(node)) {
-      if (island.has(parent.id) || !isRoutableWay(parent, graph, false)) continue
-      if (!validated.has(parent.id)) return false
-      island.set(parent.id, parent)
-      waysToCheck.push(parent)
+      if (!island.has(parent.id) && isRoutableWay(parent, graph)) {
+        if (!validated.has(parent.id)) return false
+        island.set(parent.id, parent)
+        toCheck.push(parent)
+      }
+      // A routable multipolygon counts even when its outer way is not routable by itself
+      for (const relation of graph.parentRelations(parent)) {
+        if (island.has(relation.id) || !isRoutableRelation(relation)) continue
+        if (!validated.has(relation.id)) return false
+        island.set(relation.id, relation)
+        toCheck.push(relation)
+      }
     }
     return true
   }
 
-  if (entity instanceof OsmWay && isRoutableWay(entity, graph, true)) {
+  if (entity instanceof OsmWay && isRoutableWay(entity, graph) && !shouldSkipAsEntity(entity)) {
     island.set(entity.id, entity)
-    waysToCheck.push(entity)
+    toCheck.push(entity)
+  } else if (entity instanceof OsmRelation && isRoutableRelation(entity)) {
+    island.set(entity.id, entity)
+    toCheck.push(entity)
   } else if (entity instanceof OsmNode && isRoutableNode(entity)) {
     island.set(entity.id, entity)
-    if (!queueParentWays(entity)) return undefined
+    if (!queueParents(entity)) return undefined
   } else {
     return undefined
   }
 
-  for (let way = waysToCheck.pop(); way; way = waysToCheck.pop()) {
-    for (const vertexId of way.nodes) {
-      const vertex = graph.hasEntity(vertexId)
-      if (!(vertex instanceof OsmNode)) continue
+  for (let item = toCheck.pop(); item; item = toCheck.pop()) {
+    for (const vertex of verticesOf(item, graph)) {
       if (isConnectedVertex(vertex)) return undefined
       if (isRoutableNode(vertex)) island.set(vertex.id, vertex)
-      if (!queueParentWays(vertex)) return undefined
+      if (!queueParents(vertex)) return undefined
     }
   }
   return island
@@ -77,9 +124,9 @@ function routingIslandOf(
 
 /**
  * Routable features that form an island with no link to the rest of the network. The island is
- * made of validated ways only: an island that reaches a way this run does not validate is part of
- * the network. The message is about the entity validated. A single feature gets "Delete this feature"; a group gets no fix,
- * because the person has to connect it by hand.
+ * made of validated features only: an island that reaches a feature this run does not validate is
+ * part of the network. The message is about the entity validated. A single feature gets "Delete
+ * this feature"; a group gets no fix, because the person has to connect it by hand.
  */
 export const disconnectedWay: Rule = {
   id: 'disconnected_way',

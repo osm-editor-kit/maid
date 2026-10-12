@@ -81,7 +81,7 @@ export function createValidator(rules: readonly Rule[]): Validator {
  * The context of one run: the neighbour lookup over the given ways plus the validated ways (as they
  * are in the graph), and the validated ids themselves.
  */
-function runContext(
+export function runContext(
   graph: Graph,
   ways: Iterable<OsmWay>,
   targets: ReadonlySet<string>,

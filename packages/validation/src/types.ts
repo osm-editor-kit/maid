@@ -27,6 +27,8 @@ export type Issue = {
   loc?: [number, number]
   /** Ways out, best first. Can be empty: then the person has to change the data by hand. */
   fixes: Fix[]
+  /** What the rule measured, for the tests and for fixes, e.g. `connectionTags` of a crossing */
+  data?: Readonly<Record<string, unknown>>
 }
 
 /** What a rule may look at besides the entity */
