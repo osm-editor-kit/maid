@@ -18,6 +18,20 @@ export const AUTOMATED = isAutomatedBrowser(
 /** Storage that keeps nothing: what automated browsers use instead of localStorage. */
 const nothing: StateStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} }
 
+/**
+ * The feature whose "Street-level images" field is on screen, as the field last registered it: the row's id, its
+ * tags and the change function of the inspector. "Use this photo" writes through `onChange`. Null while no such
+ * field is shown.
+ */
+export type ImageWriter = {
+  rowId: string
+  tags: Readonly<Record<string, string>>
+  onChange: (key: string, value: string | undefined) => void
+}
+
+/** The image row the person last focused or clicked: the target of "Use this photo". */
+export type ActiveImage = { rowId: string; key: string }
+
 type Session = {
   /** The Mapillary token of this build, empty when there is none. Not stored. */
   mapillaryToken: string
@@ -25,6 +39,10 @@ type Session = {
   openPhoto: NormalizedPhoto | null
   /** Moves the map to a place. Set by the map layer while it is mounted. */
   easeTo: ((lng: number, lat: number) => void) | null
+  /** The field's feature, while a "Street-level images" field is shown. Not stored. */
+  imageWriter: ImageWriter | null
+  /** The row last focused or clicked. Not stored. */
+  activeImage: ActiveImage | null
 }
 
 type Actions = {
@@ -36,6 +54,9 @@ type Actions = {
   showPhoto: (photo: NormalizedPhoto) => void
   closePhoto: () => void
   setEaseTo: (easeTo: Session['easeTo']) => void
+  /** Called by the field while it is shown. A field of another feature replaces it. */
+  setImageWriter: (writer: ImageWriter | null) => void
+  setActiveImage: (active: ActiveImage | null) => void
 }
 
 export type StreetImageryStore = StreetImageryStored & Session & Actions
@@ -52,6 +73,8 @@ export const useStreetImageryStore = create<StreetImageryStore>()(
       mapillaryToken: '',
       openPhoto: null,
       easeTo: null,
+      imageWriter: null,
+      activeImage: null,
       setProvider: (id, on) =>
         set((state) => ({
           providers: [...state.providers.filter((item) => item !== id), ...(on ? [id] : [])],
@@ -62,6 +85,8 @@ export const useStreetImageryStore = create<StreetImageryStore>()(
       showPhoto: (photo) => set({ openPhoto: photo }),
       closePhoto: () => set({ openPhoto: null }),
       setEaseTo: (easeTo) => set({ easeTo }),
+      setImageWriter: (imageWriter) => set({ imageWriter }),
+      setActiveImage: (activeImage) => set({ activeImage }),
     }),
     {
       name: 'maid:street-imagery',

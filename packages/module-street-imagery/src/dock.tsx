@@ -3,10 +3,52 @@ import { StreetLevelImageryViewer } from '@osm-editor-kit/street-imagery-react'
 import { PhotoDetailsDialog } from '@osm-editor-kit/street-imagery-react/photo-details'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
+import { planUse } from './image-keys.ts'
 import { photoPageLink } from './links.ts'
 import { photoQueries } from './query.ts'
 import { activeProviders } from './state.ts'
 import { AUTOMATED, useStreetImageryStore } from './store.ts'
+
+/**
+ * Writes the open photo to the target key of the selected feature: the row last focused in its "Street-level
+ * images" field, or the provider's default key. Disabled, with the reason as its tooltip, when that is not possible.
+ */
+function UsePhotoButton({ photo }: { photo: NormalizedPhoto }) {
+  const writer = useStreetImageryStore((state) => state.imageWriter)
+  const active = useStreetImageryStore((state) => state.activeImage)
+  const provider =
+    photo.providerId === 'mapillary' || photo.providerId === 'panoramax' ? photo.providerId : null
+  const plan =
+    provider === null
+      ? {
+          ok: false as const,
+          reason: 'Only Mapillary and Panoramax photos can be used as image keys',
+        }
+      : planUse({ photoId: photo.photoId, provider, active, writer })
+
+  return (
+    <button
+      type="button"
+      disabled={!plan.ok}
+      title={plan.ok ? `Adds this photo to ${plan.key}` : plan.reason}
+      onClick={() => {
+        // read again at the click: the selection may have changed since the render
+        const state = useStreetImageryStore.getState()
+        if (provider === null || state.imageWriter === null) return
+        const next = planUse({
+          photoId: photo.photoId,
+          provider,
+          active: state.activeImage,
+          writer: state.imageWriter,
+        })
+        if (next.ok) state.imageWriter.onChange(next.key, next.value)
+      }}
+      className="cursor-pointer rounded-sm text-xs font-medium text-zinc-950 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:text-zinc-400 disabled:no-underline dark:text-white dark:disabled:text-zinc-500"
+    >
+      Use this photo
+    </button>
+  )
+}
 
 /** The photo open in the dock, from the package's viewer, with its link and details. */
 function OpenPhoto({ photo }: { photo: NormalizedPhoto }) {
@@ -29,6 +71,7 @@ function OpenPhoto({ photo }: { photo: NormalizedPhoto }) {
           >
             {link.label}
           </a>
+          <UsePhotoButton photo={photo} />
           <button
             type="button"
             onClick={() => setDetailsOpen(true)}
