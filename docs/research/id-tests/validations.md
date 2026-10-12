@@ -16,7 +16,7 @@ Status: checkpoint. The three existing rules are done. The eight simple rules an
 | `validations/missing_role.js` | 7 | 0 | 7 | 0 | 0 | `packages/validation/src/rules/missing-role.id.test.ts` |
 | `validations/missing_tag.js` | 9 | 4 | 5 | 0 | 0 | `packages/validation/src/rules/missing-tag.id.test.ts`; covered in `packages/validation/src/validation.test.ts` |
 | `validations/mutually_exclusive_tags.js` | 5 | 0 | 5 | 0 | 0 | `packages/validation/src/rules/mutually-exclusive-tags.id.test.ts` |
-| `validations/osm_api_limits.js` | 4 | 0 | 0 | 0 | 0 | not started |
+| `validations/osm_api_limits.js` | 4 | 0 | 1 | 3 | 0 | `packages/validation/src/rules/osm-api-limits.id.test.ts` |
 | `validations/outdated_tags.js` | 13 | 0 | 0 | 0 | 0 | not started |
 | `validations/private_data.js` | 6 | 0 | 6 | 0 | 0 | `packages/validation/src/rules/private-data.id.test.ts` |
 | `validations/suspicious_name.js` | 14 | 0 | 0 | 0 | 0 | not started |
@@ -30,6 +30,8 @@ Rows marked "not started" have zeros until they are done, so the full sum (209 i
 | --- | --- | --- | --- | --- |
 | F-validations-1 | `crossing_ways` checks multipolygon relations: the outer ways of a relation are features, and a way in a relation is checked as the relation (Rapid and iD `getFeatureWithFeatureTypeTagsForWay`) | `crossing_ways.js`: 8 (3 ignores, 5 flags) | todo | `packages/validation/src/rules/crossing-ways.ts` |
 | F-validations-2 | `crossing_ways` fixes beyond "Connect the features": add bridge, add tunnel, change layer, and the dynamic fix list with `_connectionTags` | `crossing_ways.js`: 1 (flags sidewalk crossing service road) | todo | `packages/validation/src/rules/crossing-ways.ts`, `Fix` in `types.ts` |
+| F-validations-3 | `missing_role` fixes: set the member's role to outer or inner, and remove the member from the multipolygon. These change the relation's members, not a tag, so the rule builds the detection only | none (iD's spec counts the issues and does not run the fixes) | todo | `packages/validation/src/rules/missing-role.ts`, membership actions in `packages/model` |
+| F-validations-4 | `osm_api_limits` fix: split a way with too many nodes, at an intersection vertex if there is one near the middle, else at regular intervals (and at the start of a closed way). A split is an operation, not a tag change | `osm_api_limits.js`: 3 (the fix part of "flags way with more than the maximum", "can fix an extreme case", "fix a simple case at an intersection vertex") | todo | `packages/validation/src/rules/osm-api-limits.ts`, a split in `packages/operations` |
 
 ## Differences found
 
@@ -45,6 +47,11 @@ Rows marked "not started" have zeros until they are done, so the full sum (209 i
 - **Test expectations, subtype to message**: iD asserts `issue.type` and `issue.subtype`. Maid's `Issue` has `rule` and `message` and no subtype. The adopted tests assert `rule`, and where iD asserts a subtype, the message that says the same thing.
 - **Todo syntax**: bun's `it.todo` type wants a callback. The todos are `it.todo('title', () => {})`; bun does not run the body of a todo (checked).
 - **Other agent's file**: `packages/validation/src/id-validator.test.ts` (core area, not mine) has the same `it.todo` type error at line 79 (`tsc --noEmit`). It is not touched here.
+- **mutually_exclusive_tags, messages and fixes**: iD has a subtype per message (`default`, `same_value`); Maid has one sentence per case, without the feature's name. The rule is built with iD's list of pairs and both fixes of iD's "remove named tag" (one undo step each).
+- **incompatible_source, no fix**: iD's only fix is "remove proprietary data" with no action behind it. Maid offers no fix, so the person changes the data by hand.
+- **private_data, fix**: built as iD's "remove tag(s)": one fix removes the personal tags of the feature, in one undo step. The fix label names the tags (`Remove phone, email`), not iD's wording.
+- **missing_role, both sides**: as in iD, a way asks its parent multipolygons and a multipolygon asks its members, and the two findings of one missing role are one issue (same id, from the member's index). Fixes are F-validations-3.
+- **osm_api_limits, the limit**: iD reads the maximum from the server's capabilities. Maid never calls the API, so the rule uses the documented 2000 by default and `createOsmApiLimits(n)` takes another limit. The iD tests use 10, through the factory. The fix is F-validations-4.
 
 ## Not applicable, by reason
 
@@ -52,4 +59,4 @@ None so far.
 
 ## Not finished
 
-Not started: `almost_junction.js` (10), `impossible_oneway.js` (9), `incompatible_source.js` (7), `invalid_format.js` (19), `mismatched_geometry.js` (14), `missing_role.js` (7), `mutually_exclusive_tags.js` (5), `osm_api_limits.js` (4), `outdated_tags.js` (13), `private_data.js` (6), `suspicious_name.js` (14). Their rules are not in `defaultRules` yet, and `packages/validation/src/index.ts` is not changed for them.
+Not started: `almost_junction.js` (10), `impossible_oneway.js` (9), `invalid_format.js` (19), `mismatched_geometry.js` (14), `outdated_tags.js` (13), `suspicious_name.js` (14). Done by the validations rules agent this run, not in the list: `incompatible_source.js`, `missing_role.js`, `mutually_exclusive_tags.js`, `osm_api_limits.js`, `private_data.js`. Their rules are not in `defaultRules` yet, and `packages/validation/src/index.ts` is not changed for them.

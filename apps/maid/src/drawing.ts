@@ -1,11 +1,13 @@
 import type { DrawKind } from '@osm-editor-kit/maid-renderer'
 import { engine } from './editor'
+import { giveFavouriteType } from './favourites'
 
 type Select = (selection: string | readonly string[] | null) => void
 
 /**
  * One click of the drawing tool, from the mouse or from Space. A click that finishes the way
- * goes back to browsing and selects it, so the sidebar asks what it is.
+ * goes back to browsing and selects it, so the sidebar asks what it is (or, after a favourite
+ * started it, the favourite's type is already given).
  */
 export async function drawClick(
   select: Select,
@@ -15,6 +17,7 @@ export async function drawClick(
 ): Promise<boolean> {
   const finished = await engine.draw.click(kind, point, layers)
   if (!finished) return false
+  giveFavouriteType(finished, kind === 'line' ? 'draw-line' : 'draw-area')
   engine.setMode('browse')
   select(finished)
   return true

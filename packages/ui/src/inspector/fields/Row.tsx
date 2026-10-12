@@ -12,6 +12,7 @@ import {
   type TagEdit,
 } from '../logic.ts'
 import { FallbackField } from './Fallback.tsx'
+import { RelatedAddButtons, RelatedDetails, type RelatedRow } from './Related.tsx'
 import type { FieldComponent, FieldProps } from './shared.ts'
 import { HINT, LABEL } from './shared.ts'
 
@@ -36,8 +37,10 @@ export function FieldRow(props: {
   baseTags?: Tags
   onChange: FieldProps['onChange']
   registry: Record<string, FieldComponent>
+  /** The related tags below the field (lines, add buttons, editors). Absent: none. */
+  related?: RelatedRow
 }) {
-  const { field, tags, baseTags, onChange, registry } = props
+  const { field, tags, baseTags, onChange, registry, related } = props
   const id = useId()
   const labelId = useId()
   const key = field.key
@@ -57,7 +60,7 @@ export function FieldRow(props: {
     <div
       role={key === undefined ? 'group' : undefined}
       aria-labelledby={key === undefined ? labelId : undefined}
-      className="grid min-w-0 gap-1"
+      className="group grid min-w-0 gap-1"
     >
       <div className="flex min-w-0 items-center justify-between gap-2">
         {key === undefined ? (
@@ -71,6 +74,7 @@ export function FieldRow(props: {
         )}
         <div className="flex min-w-0 items-center gap-1">
           {hint ? <span className={HINT}>{hint}</span> : null}
+          {onChange && related ? <RelatedAddButtons field={field} related={related} /> : null}
           {onChange && modified && baseTags ? (
             <button
               type="button"
@@ -104,6 +108,9 @@ export function FieldRow(props: {
         tags={tags}
         onChange={onChange}
       />
+      {related ? (
+        <RelatedDetails field={field} tags={tags} related={related} onChange={onChange} />
+      ) : null}
     </div>
   )
 }

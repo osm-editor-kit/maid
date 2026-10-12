@@ -22,6 +22,7 @@ import {
 import { exposeBenchApi } from '../bench'
 import { drawClick } from '../drawing'
 import { config, editor, engine, useEngine } from '../editor'
+import { addPointWithFavourite } from '../favourites'
 import { ensureImages } from '../images'
 import { useSelection } from '../selection'
 import { useCameraParam } from '../url/state'
@@ -190,7 +191,8 @@ export function MapView() {
   const handleClick = (event: MapLayerMouseEvent) => {
     if (mode === 'add-point') {
       // the new point is selected, so the sidebar asks what it is
-      const id = engine.addPoint(event.lngLat.lng, event.lngLat.lat)
+      // a favourite that started this mode gives the point its tags
+      const id = addPointWithFavourite(event.lngLat.lng, event.lngLat.lat)
       engine.setMode('browse')
       select(id)
       return

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 import type { Preset } from '@osm-editor-kit/maid-presets'
-import { mainTagLabel, moveActive } from './picker-logic.ts'
+import { mainTagLabel, moveActive, pickerRows } from './picker-logic.ts'
 
 function preset(tags: Record<string, string>): Preset {
   return {
@@ -52,5 +52,29 @@ describe('mainTagLabel', () => {
 
   it('is undefined without tags', () => {
     expect(mainTagLabel(preset({}))).toBeUndefined()
+  })
+})
+
+describe('pickerRows', () => {
+  const named = (id: string): Preset => ({ ...preset({}), id, name: id })
+  const a = named('a')
+  const b = named('b')
+  const c = named('c')
+  const d = named('d')
+
+  it('lists the favourites first with an empty search, then the rest without them', () => {
+    expect(pickerRows([a, b, c, d], [c, a], false).map((p) => p.id)).toEqual(['c', 'a', 'b', 'd'])
+  })
+
+  it('lists only what was found when searching, favourites among them where they are found', () => {
+    expect(pickerRows([a, b], [c], true).map((p) => p.id)).toEqual(['a', 'b'])
+  })
+
+  it('is the search result without favourites', () => {
+    expect(pickerRows([a, b], [], false).map((p) => p.id)).toEqual(['a', 'b'])
+  })
+
+  it('does not list a favourite that the search did not find twice', () => {
+    expect(pickerRows([b, a], [a], false).map((p) => p.id)).toEqual(['a', 'b'])
   })
 })

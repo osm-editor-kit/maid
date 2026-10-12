@@ -16,3 +16,18 @@ export function mainTagLabel(preset: Preset): string | undefined {
   const first = Object.entries(preset.tags)[0]
   return first ? `${first[0]}=${first[1]}` : undefined
 }
+
+/**
+ * The rows the picker lists, in order. With an empty search the favourites come first, then the
+ * presets that were found without the favourites, so no row is listed twice. A search lists what
+ * it found, favourites among them.
+ */
+export function pickerRows(
+  found: readonly Preset[],
+  favourites: readonly Preset[],
+  searching: boolean,
+): Preset[] {
+  if (searching || favourites.length === 0) return [...found]
+  const favouriteIds = new Set(favourites.map((preset) => preset.id))
+  return [...favourites, ...found.filter((preset) => !favouriteIds.has(preset.id))]
+}

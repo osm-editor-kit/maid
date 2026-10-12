@@ -17,11 +17,11 @@ The Radnetz Berlin editor is an iD fork (branch `radnetz-berlin` of `tordans/iD`
 | 13 | No labels under toolbar buttons | UI setting | partly (labels go away on phones only) | **no** (Tobias, 2026-10-13: Maid has tooltips) |
 | 22 | Access field: every tagged access key, add a mode of transport | field `access` (U7 step 13) | being built | yes |
 | 23 | Compact sidebar, feature type as its header | `maid-ui` | done | yes, done |
-| 25 | Related tags below their field (`source:*`, `note:*`, `check_date:*`) | field row (U7) | nothing | **yes, build now** (Tobias, 2026-10-13: in the style of Maid's field rows) |
+| 25 | Related tags below their field (`source:*`, `note:*`, `check_date:*`) | field row (U7) | done 2026-10-13: lines under the field for source, note and check date, add buttons in the label bar, an editor box; without the Mapillary, TILDA and surface parts | **yes** (Tobias, 2026-10-13) |
 | 30 | One pane per job: Map Data, Map Display, Photos | top bar flyouts and dock | partly (filters flyout; no panes for data and photos yet) | yes, with D1 to D3 |
 | 31 | No bottom bar | `maid-ui` | done | yes, done |
 | 34 | What is in the URL | each module declares its parameters | partly (`map`, `id`, `filters`) | yes, per module |
-| 3 | Favourite presets with number shortcuts | preset picker | nothing | **yes, build now** (Tobias, 2026-10-13) |
+| 3 | Favourite presets with number shortcuts | preset picker | done 2026-10-13: hearts in the type picker, favourites first, keys 4 to 9 and 0 (1 to 3 are the draw modes): change the selected feature's type, or add a feature of that type | **yes** (Tobias, 2026-10-13) |
 | 7 | Side indicator: arrows on the left or right of the way while a side field has the focus | field-driven map overlay | nothing (the preview layer of U8 can carry it) | yes |
 | 10 | Width band on the map while a width field has the focus; width fields per side | field-driven map overlay, preset changes | nothing | yes |
 | 21 | Measuring tape for width fields | field button plus a map tool | nothing | **yes, build now** (Tobias, 2026-10-13: in a way that fits Maid) |

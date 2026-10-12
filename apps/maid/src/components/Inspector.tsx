@@ -10,6 +10,13 @@ import {
 } from '@osm-editor-kit/maid-ui'
 import { useState } from 'react'
 import { editor, engine, useEngine } from '../editor'
+import {
+  changeType,
+  moveFavourite,
+  toggleFavourite,
+  useFavouriteRows,
+  useFavouritesFull,
+} from '../favourites'
 import { useSelection } from '../selection'
 import { Operations } from './Operations'
 import { PresetIcon } from './PresetIcon'
@@ -28,6 +35,9 @@ export function Inspector() {
   const { id, ids, select } = useSelection()
   // read again when data arrives: a selection from the URL exists before its feature is loaded
   const entity = useEngine((e) => e.entity(id))
+  // the favourites of the feature's geometry, for the type picker
+  const favourites = useFavouriteRows(entity?.geometry)
+  const favouritesFull = useFavouritesFull()
   // whether the type picker is open, and for which id: selecting something else forgets it
   const [picker, setPicker] = useState<{ id: string; open: boolean } | null>(null)
 
@@ -109,14 +119,12 @@ export function Inspector() {
                 renderIcon={(preset) => (
                   <PresetIcon icon={preset.icon} className="fill-zinc-700 dark:fill-zinc-200" />
                 )}
+                favourites={favourites}
+                favouritesFull={favouritesFull}
+                onToggleFavourite={(preset) => toggleFavourite(preset, entity.geometry)}
+                onMoveFavourite={(preset, delta) => moveFavourite(preset, entity.geometry, delta)}
                 onPick={(preset) => {
-                  const tags = presets.applyPreset(
-                    entity.tags,
-                    preset,
-                    entity.geometry,
-                    entity.preset,
-                  )
-                  engine.setTags(id, tags, `Changed the feature type to ${preset.name}`)
+                  changeType(id, preset)
                   setPicker({ id, open: false })
                 }}
               />

@@ -1,9 +1,24 @@
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  HeartIcon as HeartSolidIcon,
+} from '@heroicons/react/16/solid'
+import { HeartIcon as HeartOutlineIcon } from '@heroicons/react/24/outline'
 import type { Preset } from '@osm-editor-kit/maid-presets'
 import { useId, useState, type KeyboardEvent, type ReactNode } from 'react'
-import { mainTagLabel, moveActive } from './picker-logic.ts'
+import { mainTagLabel, moveActive, pickerRows } from './picker-logic.ts'
 
 const FRAME =
   'h-10 w-full min-w-0 rounded-lg border border-zinc-950/10 bg-white text-sm text-zinc-950 hover:border-zinc-950/20 focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:hover:border-white/20 dark:[color-scheme:dark]'
+
+const ICON_BUTTON =
+  'inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-zinc-500 enabled:cursor-pointer enabled:hover:bg-zinc-950/5 enabled:hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:opacity-40 dark:text-zinc-400 dark:enabled:hover:bg-white/10 dark:enabled:hover:text-white'
+
+/** A favourite as the picker shows it: its preset, and the number key that starts it */
+export type PickerFavourite = { preset: Preset; key: string }
+
+/** Keeps the keyboard focus in the search field when a button of a row is pressed */
+const keepFocus = (event: { preventDefault: () => void }) => event.preventDefault()
 
 export function PresetPicker(props: {
   /** Returns the presets for a query, best first. Called on every change of the query. */
@@ -13,6 +28,17 @@ export function PresetPicker(props: {
   renderIcon?: (preset: Preset) => ReactNode
   /** The preset the feature has now, marked in the list */
   currentId?: string
+  /**
+   * The favourites for the feature's geometry, in order. With an empty search they are listed
+   * first, under "Favourites", with their number key.
+   */
+  favourites?: readonly PickerFavourite[]
+  /** Given, every row gets a heart: it makes the preset a favourite, or takes it out again */
+  onToggleFavourite?: (preset: Preset) => void
+  /** Given with `onToggleFavourite`, the favourites in the list get move up and down buttons */
+  onMoveFavourite?: (preset: Preset, delta: 1 | -1) => void
+  /** True when every number key is taken: no other preset can be made a favourite */
+  favouritesFull?: boolean
   autoFocus?: boolean
   placeholder?: string
 }): ReactNode {
@@ -21,6 +47,10 @@ export function PresetPicker(props: {
     onPick,
     renderIcon,
     currentId,
+    favourites = [],
+    onToggleFavourite,
+    onMoveFavourite,
+    favouritesFull = false,
     autoFocus = false,
     placeholder = 'Search feature types',
   } = props
@@ -29,9 +59,18 @@ export function PresetPicker(props: {
   const [activeIndex, setActiveIndex] = useState(0)
   const baseId = useId()
   const listId = `${baseId}-list`
+  const favouritesHeadingId = `${baseId}-favourites`
   const optionId = (index: number) => `${baseId}-option-${index}`
 
-  const results = search(query)
+  // the favourites are listed only while nothing is searched; their keys show on every row
+  const searching = query.trim() !== ''
+  const keyById = new Map(favourites.map((favourite) => [favourite.preset.id, favourite.key]))
+  const shownFavourites = searching ? 0 : favourites.length
+  const results = pickerRows(
+    search(query),
+    favourites.map((favourite) => favourite.preset),
+    searching,
+  )
   const active = results.length === 0 ? -1 : Math.min(activeIndex, results.length - 1)
 
   /** Scrolls a row into view; the row is already rendered, so the element exists. */
@@ -75,6 +114,111 @@ export function PresetPicker(props: {
     }
   }
 
+  /**
+   * One row: the option itself, then, outside the option, the buttons that act on the preset.
+   * They sit beside the option so that a button is never inside an element with the option role.
+   */
+  function renderRow(preset: Preset, index: number) {
+    const isActive = index === active
+    const tag = mainTagLabel(preset)
+    const key = keyById.get(preset.id)
+    const isFavourite = key !== undefined
+    const inGroup = index < shownFavourites
+    return (
+      <div key={preset.id} role="presentation" className="group flex items-center gap-1">
+        <div
+          id={optionId(index)}
+          role="option"
+          aria-selected={isActive}
+          onMouseDown={keepFocus}
+          onClick={() => onPick(preset)}
+          className={`flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg p-2 text-sm ${
+            isActive ? 'bg-zinc-950/5 dark:bg-white/10' : ''
+          }`}
+        >
+          {renderIcon ? (
+            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-zinc-950/5 dark:bg-white/10 [&>svg]:size-5">
+              {renderIcon(preset)}
+            </span>
+          ) : null}
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-semibold">{preset.name}</span>
+            {tag ? (
+              <span className="block truncate font-mono text-xs text-zinc-500 dark:text-zinc-400">
+                {tag}
+              </span>
+            ) : null}
+          </span>
+          {key !== undefined ? (
+            <kbd className="shrink-0 rounded border border-zinc-950/10 px-1.5 font-mono text-xs text-zinc-600 dark:border-white/10 dark:text-zinc-300">
+              {key}
+            </kbd>
+          ) : null}
+          {preset.id === currentId ? (
+            <span className="shrink-0 rounded-full bg-blue-600/10 px-2 py-0.5 text-xs font-semibold text-blue-600 dark:bg-blue-400/10 dark:text-blue-400">
+              current
+            </span>
+          ) : null}
+        </div>
+        {inGroup && onMoveFavourite ? (
+          // shown on hover, and when a button of the row has the keyboard focus
+          <span className="flex shrink-0 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100">
+            <button
+              type="button"
+              aria-label={`Move ${preset.name} up`}
+              title="Move up"
+              disabled={index === 0}
+              onMouseDown={keepFocus}
+              onClick={() => onMoveFavourite(preset, -1)}
+              className={ICON_BUTTON}
+            >
+              <ChevronUpIcon className="size-4" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              aria-label={`Move ${preset.name} down`}
+              title="Move down"
+              disabled={index === shownFavourites - 1}
+              onMouseDown={keepFocus}
+              onClick={() => onMoveFavourite(preset, 1)}
+              className={ICON_BUTTON}
+            >
+              <ChevronDownIcon className="size-4" aria-hidden="true" />
+            </button>
+          </span>
+        ) : null}
+        {onToggleFavourite ? (
+          <button
+            type="button"
+            aria-pressed={isFavourite}
+            aria-label={
+              isFavourite
+                ? `Remove ${preset.name} from favourites`
+                : `Add ${preset.name} to favourites`
+            }
+            title={
+              !isFavourite && favouritesFull
+                ? 'Every number key is taken: remove a favourite first'
+                : isFavourite
+                  ? 'Remove from favourites'
+                  : 'Add to favourites'
+            }
+            disabled={!isFavourite && favouritesFull}
+            onMouseDown={keepFocus}
+            onClick={() => onToggleFavourite(preset)}
+            className={`${ICON_BUTTON} ${isFavourite ? 'text-rose-600 dark:text-rose-400' : ''}`}
+          >
+            {isFavourite ? (
+              <HeartSolidIcon className="size-4" aria-hidden="true" />
+            ) : (
+              <HeartOutlineIcon className="size-4" aria-hidden="true" />
+            )}
+          </button>
+        ) : null}
+      </div>
+    )
+  }
+
   return (
     <div className="flex min-w-0 flex-col gap-2">
       <input
@@ -109,42 +253,24 @@ export function PresetPicker(props: {
           aria-label="Feature types"
           className="max-h-[26rem] overflow-y-auto"
         >
-          {results.map((preset, index) => {
-            const isActive = index === active
-            const tag = mainTagLabel(preset)
-            return (
-              <div
-                key={preset.id}
-                id={optionId(index)}
-                role="option"
-                aria-selected={isActive}
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => onPick(preset)}
-                className={`flex cursor-pointer items-center gap-3 rounded-lg p-2 text-sm ${
-                  isActive ? 'bg-zinc-950/5 dark:bg-white/10' : ''
-                }`}
+          {shownFavourites > 0 ? (
+            <div
+              role="group"
+              aria-labelledby={favouritesHeadingId}
+              className="mb-2 border-b border-zinc-950/10 pb-2 dark:border-white/10"
+            >
+              <p
+                id={favouritesHeadingId}
+                className="px-2 pt-1 pb-1 text-xs font-medium text-zinc-500 dark:text-zinc-400"
               >
-                {renderIcon ? (
-                  <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-zinc-950/5 dark:bg-white/10 [&>svg]:size-5">
-                    {renderIcon(preset)}
-                  </span>
-                ) : null}
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-semibold">{preset.name}</span>
-                  {tag ? (
-                    <span className="block truncate font-mono text-xs text-zinc-500 dark:text-zinc-400">
-                      {tag}
-                    </span>
-                  ) : null}
-                </span>
-                {preset.id === currentId ? (
-                  <span className="shrink-0 rounded-full bg-blue-600/10 px-2 py-0.5 text-xs font-semibold text-blue-600 dark:bg-blue-400/10 dark:text-blue-400">
-                    current
-                  </span>
-                ) : null}
-              </div>
-            )
-          })}
+                Favourites
+              </p>
+              {results.slice(0, shownFavourites).map(renderRow)}
+            </div>
+          ) : null}
+          {results
+            .slice(shownFavourites)
+            .map((preset, offset) => renderRow(preset, shownFavourites + offset))}
         </div>
       )}
     </div>

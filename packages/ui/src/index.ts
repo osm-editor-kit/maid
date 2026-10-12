@@ -27,6 +27,15 @@ export {
   SidebarHeader,
   SidebarSection,
 } from './Sidebar.tsx'
+export {
+  FAVOURITE_KEYS,
+  favouritesFor,
+  findFavouriteByKey,
+  isFavouritesFull,
+  MAX_FAVOURITES,
+  type Favourite,
+  type FavouriteKey,
+} from './favourites.ts'
 export { useSettings, type Settings } from './settings.ts'
 export { initTheme, useResolvedTheme, useTheme, type Theme } from './theme.ts'
 export { ThemeSwitch } from './ThemeSwitch.tsx'

@@ -18,9 +18,12 @@ import { LocalizedField } from './fields/Localized.tsx'
 import { ManyComboField, MultiComboField, SemiComboField } from './fields/Multi.tsx'
 import { NumberField, RoadHeightField, RoadSpeedField } from './fields/Number.tsx'
 import { RadioField, StructureRadioField } from './fields/Radio.tsx'
+import type { RelatedRow } from './fields/Related.tsx'
 import { FieldRow } from './fields/Row.tsx'
 import type { FieldComponent } from './fields/shared.ts'
 import { TextField, TextareaField } from './fields/Text.tsx'
+import { fieldKeys } from './logic.ts'
+import { assignRelatedTags, relatedBaseKeys, relatedButtonKeys } from './related-logic.ts'
 
 export { CheckField } from './fields/Check.tsx'
 export { ComboField } from './fields/Combo.tsx'
@@ -77,6 +80,11 @@ export function PresetFields(props: {
   const { fields, tags, baseTags, onChange, components, moreFields = [] } = props
   // the ids picked from "Add field", in the order picked: they are rows although they have no value
   const [picked, setPicked] = useState<string[]>([])
+  // the keys of the related tags whose editor is open: state of this list, a new feature starts with none
+  const [editors, setEditors] = useState<string[]>([])
+  const openEditor = (key: string) =>
+    setEditors((keys) => (keys.includes(key) ? keys : [...keys, key]))
+  const closeEditor = (key: string) => setEditors((keys) => keys.filter((open) => open !== key))
   const containerRef = useRef<HTMLDivElement>(null)
   // the row to focus, set by a pick and taken once the row is rendered
   const focusNext = useRef<string | undefined>(undefined)
@@ -92,6 +100,20 @@ export function PresetFields(props: {
   const registry = { ...defaultFieldComponents, ...components }
   const rows = rowFields(fields, pickedFields(picked, [...fields, ...moreFields]))
   const offer = onChange ? addableFields(moreFields, new Set(rows.map((field) => field.id))) : []
+  // a tag is related to a row when it is about one of the row's keys and no field of its own has that key
+  const ownKeys = [...fields, ...moreFields].flatMap((field) => fieldKeys(field, tags))
+  const lines = assignRelatedTags(
+    rows.map((field) => ({ id: field.id, keys: relatedBaseKeys(field) })),
+    tags,
+    ownKeys,
+  )
+  const relatedOf = (field: Field): RelatedRow => ({
+    lines: lines.get(field.id) ?? [],
+    offers: onChange ? relatedButtonKeys(relatedBaseKeys(field), field.key, tags) : [],
+    open: onChange ? editors : [],
+    onOpen: openEditor,
+    onClose: closeEditor,
+  })
 
   // a field from the list is shown at once; a `default` is written when its key is empty
   const pick = (field: Field) => {
@@ -113,6 +135,7 @@ export function PresetFields(props: {
             baseTags={baseTags}
             onChange={onChange}
             registry={registry}
+            related={relatedOf(field)}
           />
         </div>
       ))}

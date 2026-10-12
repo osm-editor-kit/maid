@@ -1,7 +1,9 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
+import { FAVOURITE_KEYS } from '@osm-editor-kit/maid-ui'
 import { useHotkeys, type UseHotkeyDefinition } from '@tanstack/react-hotkeys'
 import { continueLine, drawClick, drawingKind } from '../drawing'
 import { editor, engine, useEngine } from '../editor'
+import { giveFavouriteType, pressFavouriteKey } from '../favourites'
 import { useSelection } from '../selection'
 
 /** Screen pixels the arrow keys move the map by, as in iD */
@@ -13,6 +15,8 @@ const PAN = 80
  *
  * - Cmd/Ctrl+Z undo, Shift+Cmd/Ctrl+Z or Ctrl+Y redo
  * - 1, 2, 3 add a point, a line, an area; A continues the selected line
+ * - 4 to 9 and 0 are the number keys of the favourite feature types: with a feature selected they
+ *   change its type, with nothing selected they start adding a feature of that type
  * - while drawing: Space places a node where the pointer is, Enter or Escape finishes,
  *   Backspace takes back the last node, Delete drops the way
  * - M moves and R rotates the selection with the pointer (click to put down, Escape to cancel)
@@ -30,6 +34,7 @@ export function useShortcuts() {
 
   const finishDrawing = () => {
     const finished = engine.draw.finish()
+    if (finished) giveFavouriteType(finished, engine.mode)
     engine.setMode('browse')
     if (finished) select(finished)
   }
@@ -75,6 +80,7 @@ export function useShortcuts() {
     { hotkey: '1', callback: () => engine.setMode('add-point') },
     { hotkey: '2', callback: () => engine.setMode('draw-line') },
     { hotkey: '3', callback: () => engine.setMode('draw-area') },
+    ...FAVOURITE_KEYS.map((key) => ({ hotkey: key, callback: () => pressFavouriteKey(key) })),
     { hotkey: 'A', callback: () => continueLine(selected) },
     { hotkey: 'M', callback: () => engine.setMode('move') },
     { hotkey: 'R', callback: () => engine.setMode('rotate') },
