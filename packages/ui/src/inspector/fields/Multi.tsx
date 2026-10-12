@@ -7,10 +7,11 @@ import {
   size,
   useFloating,
 } from '@floating-ui/react'
-import { CheckIcon, MinusIcon, XMarkIcon } from '@heroicons/react/16/solid'
+import { XMarkIcon } from '@heroicons/react/16/solid'
 import type { FieldOption } from '@osm-editor-kit/maid-presets'
 import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { moveActive } from '../picker-logic.ts'
+import { CheckBox } from './CheckBox.tsx'
 import { filterOptions, shownText } from './combo-logic.ts'
 import {
   acceptSemi,
@@ -264,19 +265,7 @@ function Chip({
 
 /** The checkbox of a multiCombo chip: yes is a check, no an empty box, other a dash. */
 function ChipBox({ state }: { state: ChipState }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`grid size-4 shrink-0 place-items-center rounded-sm border ${
-        state === 'no'
-          ? 'border-zinc-950/20 bg-white dark:border-white/20 dark:bg-zinc-950'
-          : 'border-blue-500 bg-blue-500 text-white'
-      }`}
-    >
-      {state === 'yes' ? <CheckIcon className="size-3.5" /> : null}
-      {state === 'other' ? <MinusIcon className="size-3.5" /> : null}
-    </span>
-  )
+  return <CheckBox state={state === 'yes' ? 'on' : state === 'other' ? 'dash' : 'off'} />
 }
 
 type ChipInputProps = {
