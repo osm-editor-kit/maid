@@ -51,3 +51,8 @@ Reason → the spec files and counts it covers.
 
 Files of the area you did not get to, if any.
 ```
+
+## Added while the work ran
+
+- `it.todo` takes a second argument here: write `it.todo('title', () => {})`. Bun's types reject the one-argument form and the type-check fails.
+- Where iD builds tests in a loop (`it.each`, `forEach`), the inventory counts the `it(` once. Keep the inventory's number in the table and say in the report how many cases really run.

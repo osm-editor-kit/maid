@@ -1,6 +1,6 @@
 # iD tests: actions-a
 
-Compared at iD commit `0194f3926`. Run: `bun test packages/model/test/id/actions/circularize.test.ts packages/model/test/id/actions/delete_node.test.ts packages/model/test/id/actions/discard_tags.test.ts packages/model/test/id/actions/change_preset.test.ts` → 3 pass, 0 fail, 16 todo. Not yet run for the other files of this area (not written).
+Compared at iD commit `0194f3926`. Run: `bun test packages/model/test/id/actions/circularize.test.ts packages/model/test/id/actions/delete_node.test.ts packages/model/test/id/actions/discard_tags.test.ts packages/model/test/id/actions/change_preset.test.ts packages/model/test/id/actions/connect.test.ts packages/model/test/id/actions/disconnect.test.ts packages/model/test/id/actions/extract.test.ts` → 41 pass, 0 fail, 20 todo. (`delete_way` and `delete_relation` have no Maid file of their own: all their tests are covered by Rapid's files.)
 
 | iD spec file | iD tests | covered | adopted | todo | n/a | Maid test file |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -11,17 +11,17 @@ Compared at iD commit `0194f3926`. Run: `bun test packages/model/test/id/actions
 | `actions/change_preset.js` | 13 | 0 | 0 | 13 | 0 | `packages/model/test/id/actions/change_preset.test.ts` (todos only) |
 | `actions/change_tags.js` | 1 | 1 | 0 | 0 | 0 | `packages/model/test/actions/change_tags.test.js` |
 | `actions/circularize.js` | 16 | 13 | 1 | 2 | 0 | `packages/model/test/actions/circularize.test.js`, `packages/model/test/id/actions/circularize.test.ts` |
-| `actions/connect.js` | 23 | pending | pending | pending | pending | pending |
+| `actions/connect.js` | 23 | 20 | 0 | 3 | 0 | `packages/model/test/actions/connect.test.js`, `packages/model/test/id/actions/connect.test.ts` (todos only) |
 | `actions/copy_entities.js` | 5 | 5 | 0 | 0 | 0 | `packages/model/test/actions/copy_entities.test.js` |
 | `actions/delete_member.js` | 2 | 2 | 0 | 0 | 0 | `packages/model/test/actions/delete_member.test.js` |
 | `actions/delete_multiple.js` | 2 | 2 | 0 | 0 | 0 | `packages/model/test/actions/delete_multiple.test.js` |
 | `actions/delete_node.js` | 7 | 6 | 1 | 0 | 0 | `packages/model/test/actions/delete_node.test.js`, `packages/model/test/id/actions/delete_node.test.ts` |
-| `actions/delete_relation.js` | 10 | pending | pending | pending | pending | pending |
-| `actions/delete_way.js` | 8 | pending | pending | pending | pending | pending |
+| `actions/delete_relation.js` | 10 | 10 | 0 | 0 | 0 | `packages/model/test/actions/delete_relation.test.js` |
+| `actions/delete_way.js` | 8 | 8 | 0 | 0 | 0 | `packages/model/test/actions/delete_way.test.js` |
 | `actions/discard_tags.js` | 6 | 4 | 1 | 1 | 0 | `packages/model/test/actions/discard_tags.test.js`, `packages/model/test/id/actions/discard_tags.test.ts` |
-| `actions/disconnect.js` | 17 | pending | pending | pending | pending | pending |
-| `actions/extract.js` | 36 | pending | pending | pending | pending | pending |
-| **sum** | 160 | | | | | |
+| `actions/disconnect.js` | 17 | 14 | 3 | 0 | 0 | `packages/model/test/actions/disconnect.test.js`, `packages/model/test/id/actions/disconnect.test.ts` |
+| `actions/extract.js` | 36 | 0 | 35 | 1 | 0 | `packages/model/test/id/actions/extract.test.ts` (Rapid's extract tests check other things: the new node's location, not the five properties iD checks) |
+| **sum** | 160 | 99 | 41 | 20 | 0 | |
 
 Counts: iD `it(` calls in each file, commented-out `it`s not counted. `it.each` counts as one (change_preset). The `it.each` blocks in change_preset hold several rows; they are counted once, as in `inventory.md`.
 
@@ -33,28 +33,25 @@ Counts: iD `it(` calls in each file, commented-out `it`s not counted. `it.each` 
 | F-actions-a-2 | circularize: vertex count by size (iD's MIN_VERTICES for small features, MAX_VERTICES for large). Maid uses a max angle per segment only | `circularize.js`: 1 | todo | `packages/model/src/actions/circularize.ts` |
 | F-actions-a-3 | circularize at t = 0 inserts the new vertices with the way still in place (iD). Rapid leaves the way unchanged at t = 0 | `circularize.js`: 1 | todo | `packages/model/src/actions/circularize.ts` |
 | F-actions-a-4 | change_preset needs presets (`packages/presets`, not in the model) | `change_preset.js`: 13 | todo | `packages/presets` plus a model action |
+| F-actions-a-5 | connect picks the survivor by OSM id, as iD does: the oldest existing node (lowest positive id), or the oldest node with interesting tags. Maid picks the first node with a `version` (Rapid 3) and falls back to the last node | `connect.js`: 3 (`chooses the oldest node as the survivor`, `chooses the oldest interesting node as the survivor`, `chooses an existing node as the survivor`) | todo | `packages/model/src/actions/connect.ts` |
+| F-actions-a-6 | extract with the relations option off: iD keeps a node's relation membership on the original (tagged) node and moves it only when asked. Maid always moves the membership to the new vertex (iD's option on) and has no option | `extract.js`: 1 (`does not extract relations by default`) | todo | `packages/model/src/actions/extract.ts` |
 
 ## Differences found
 
 - **discard_tags, object form.** iD expects `attribution: {'https://example.com': true}` to discard only that value. Maid's `checkTags` treats any truthy entry as "discard the key", so with iD's shape it also drops `attribution=other`. Test 6 is parked as F-actions-a-1. Test 5 passes only because the object is truthy; the value check is missing. Which side is right: iD. Maid's behaviour is a bug for iD-shaped data.
 - **circularize at t = 0.** iD inserts the vertices at t = 0 (21 nodes, area still -4). Rapid's test says "nothing done yet" and expects the original five nodes. These two expectations contradict each other. Maid keeps Rapid's, which is deliberate in Rapid 3. Tobias to decide; parked as F-actions-a-3.
 - **circularize, numbers.** iD's t = 0.5 and t = 1 tests check exact areas (-4.74, -6.24) in iD's projection. Rapid's tests check the same circularity and node count and that the area lies between the t = 0 and t = 1 areas. Covered; the exact numbers are not ported.
+- **extract, relation membership.** iD's `actionExtract(id, projection, extractRelations)` moves the relation membership only when the third argument is true. Maid's `actionExtract` always moves it to the new node, which is iD's behaviour with the argument on. The three membership tests that iD runs with the argument on pass on Maid, as adopted. The default (keep the membership on the tagged node) is parked as F-actions-a-6. Which side is right: iD's default keeps the membership with the feature that has the tags, so Maid's default is the less useful one; Tobias to decide.
+- **extract, scope.** All 36 iD tests use a node as the target, so they are not covered by Rapid's `extract.test.js` (its tests check the new node's location and the tag rules). They are adopted in full in `packages/model/test/id/actions/extract.test.ts`.
+- **connect, survivor choice.** iD picks the survivor by id: the oldest existing node, or the oldest node with interesting tags. Maid picks the first node with a `version` and otherwise the last node, as Rapid 3's connect test does (Maid's code comment cites iD#4974), so iD's three survivor tests would fail on Maid. Which side is right for OSM data is a judgement call: OSM ids grow with age, so iD's rule is a sound choice, but the version rule is what Rapid 3 chose. Tobias to decide; parked as F-actions-a-5. The `merges tags` test (iD) is covered by Rapid's `merges tags to the surviving node`, which has the same survivor (the last node).
 - **circularize, clockwise tests.** iD checks the sign of the area; Rapid checks the node order. Both say the way keeps its winding. Covered.
 
 ## Not applicable, by reason
 
-None so far.
+None.
 
 ## Not finished
 
-The run stopped at the context limit of the brief (about 100k), after `change_preset` and before the next file. Not yet decided or written:
-
-- `actions/delete_way.js` (8 tests). Compare with `packages/model/test/actions/delete_way.test.js`.
-- `actions/delete_relation.js` (10 tests). Compare with `packages/model/test/actions/delete_relation.test.js`.
-- `actions/connect.js` (23 tests). Compare with `packages/model/test/actions/connect.test.js`. The `#disabled` restriction tests need the restriction code, check Rapid's `connect.test.js` lines 209 to 540 first.
-- `actions/disconnect.js` (17 tests). Compare with `packages/model/test/actions/disconnect.test.js`.
-- `actions/extract.js` (36 tests). Compare with `packages/model/test/actions/extract.test.js` (iD's per-tag cases are probably covered by Rapid's `extract` tests, check by name).
-
-The table rows for these files are `pending`. The sum row is empty until they are done.
+None. Every file of the area is decided. The per-tag cases in Rapid's `extract.test.js` (indoor, building, source, ...) have no counterpart in iD's `extract.js` spec, so they are not counted here.
 
 Note on the shared folder: `packages/model/test/id/actions/` also holds `move.test.ts` and `reflect.test.ts` from the other half of the actions area. `move.test.ts` has a failing test ("prevents intersections") at the time of writing. That is not one of mine and I did not touch it.

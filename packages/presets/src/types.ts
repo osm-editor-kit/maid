@@ -80,16 +80,27 @@ export type Presets = {
   /** iD's area keys: key → values that are NOT areas. Same shape as iD's `areaKeys`. The object is built once; do not mutate it. */
   areaKeys(): Record<string, Record<string, true>>
   /**
-   * Presets for this geometry whose name, alias, term or tag value matches the query, best first.
-   * Only searchable presets. An empty query returns the first `limit` presets by name.
+   * Presets for this geometry whose name, alias, term or tag value matches the query, best first, and
+   * close matches of the name or a term (edit distance). Only searchable presets. The geometry's fallback
+   * preset comes last, as in iD, so `limit` counts it. An empty query returns the first `limit` presets by name.
    */
   search(query: string, geometry: Geometry, limit?: number): Preset[]
+  /** iD's preset.matchScore: how well the tags fit the preset; -1 when a tag of the preset is missing or different. */
+  matchScore(preset: Preset, tags: Tags): number
+  /** iD's preset.isFallback: the preset has no tags, or only `area=*`. */
+  isFallback(preset: Preset): boolean
   /**
-   * The tags after choosing `preset` for a feature that had `tags` and matched `previous`:
-   * the previous preset's tags are removed (iD's `unsetTags`, without touching tags the new
-   * preset also sets), then the new preset's tags are added (iD's `setTags`: `addTags`, a `*`
-   * value becomes `yes` unless the key already has a value; for geometry `area`, `area=yes` is added when no
-   * tag of the preset makes it an area by `areaKeys`, as iD does). Returns a new object.
+   * iD's unsetTags: the tags without the preset's removeTags (except `ignoringKeys`), without the field
+   * defaults that still hold, and without `area`. Returns a new object.
+   */
+  unsetTags(tags: Tags, preset: Preset, geometry: Geometry, ignoringKeys?: readonly string[]): Tags
+  /**
+   * The tags after choosing `preset` for a feature that had `tags` and matched `previous` (iD's actionChangePreset):
+   * the previous preset's tags and field keys are removed, except the keys the new preset keeps (its addTags
+   * and the keys of its fields that apply to the geometry); then the new preset's tags are added (iD's setTags:
+   * `addTags`, a `*` value becomes `yes` unless the key already has a value; for geometry `area`, `area=yes` is
+   * added when no tag of the preset makes it an area by `areaKeys`; then field defaults). Without `previous`,
+   * only the new preset's tags are added. Returns a new object.
    */
   applyPreset(tags: Tags, preset: Preset, geometry: Geometry, previous?: Preset): Tags
 }

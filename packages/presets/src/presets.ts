@@ -189,6 +189,8 @@ type SearchEntry = {
   aliases: string[]
   aliasesStripped: string[]
   terms: string[]
+  /** the same terms with diacritics removed */
+  termsStripped: string[]
   /** tag values other than `*` */
   values: string[]
   /** `key=value` for tags and addTags */
@@ -220,6 +222,7 @@ function searchEntryOf(preset: Preset): SearchEntry {
     aliases,
     aliasesStripped,
     terms: preset.terms,
+    termsStripped: preset.terms.map((term) => stripDiacritics(term)),
     values,
     keyValues,
     texts,
@@ -269,6 +272,63 @@ function keyValueMatches(pool: SearchEntry[], value: string): SearchEntry[] {
   const exact = pool.filter((entry) => entry.keyValues.includes(value))
   const prefix = pool.filter((entry) => entry.keyValues.some((kv) => leading(kv, value)))
   return [...exact, ...prefix]
+}
+
+/**
+ * iD's utilEditDistance (Levenshtein) on texts that are lower case with diacritics removed. The search
+ * prepares them once (SearchEntry), so the search does not strip the same text again for every query.
+ */
+function editDistance(a: string, b: string): number {
+  if (a.length === 0) return b.length
+  if (b.length === 0) return a.length
+  let previous = Array.from({ length: a.length + 1 }, (_, j) => j)
+  for (let i = 1; i <= b.length; i++) {
+    const current = [i]
+    for (let j = 1; j <= a.length; j++) {
+      current[j] =
+        b[i - 1] === a[j - 1]
+          ? (previous[j - 1] ?? 0)
+          : 1 + Math.min(previous[j - 1] ?? 0, previous[j] ?? 0, current[j - 1] ?? 0)
+    }
+    previous = current
+  }
+  return previous[a.length] ?? 0
+}
+
+// iD's LANGUAGE_SUFFIX_REGEX (modules/ui/fields/localized.js): the `:xx` suffix of a localized name key.
+const LANGUAGE_SUFFIX =
+  /^(.*):([a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-[A-Z]{2}|-[0-9]{3})?(?:-[a-z][a-z0-9]{4,7}|-[0-9][a-z0-9]{3})?)$/
+
+/**
+ * iD's field.allKeys: the keys a field writes, and the keys of its type that are in the tags
+ * (localized `name:xx`, the keys under a multi-combo prefix, `:both` of a directional combo).
+ */
+function allKeysOf(field: Field, tags: Tags): string[] {
+  const keys = new Set<string>()
+  if (field.key !== undefined) keys.add(field.key)
+  for (const key of field.keys ?? []) keys.add(key)
+  const key = field.key
+  if (key !== undefined && field.type === 'directionalCombo') {
+    const base = key.replace(/:both$/, '')
+    keys.add(base)
+    keys.add(`${base}:both`)
+  }
+  if (key !== undefined && field.type === 'localized') {
+    for (const tagKey of Object.keys(tags)) {
+      if (tagKey.startsWith(`${key}:`) && LANGUAGE_SUFFIX.test(tagKey)) keys.add(tagKey)
+    }
+  }
+  if (key !== undefined && field.type === 'multiCombo') {
+    const prefix = key.endsWith(':') ? key : `${key}:`
+    for (const tagKey of Object.keys(tags)) {
+      if (tagKey.startsWith(prefix)) keys.add(tagKey)
+    }
+  }
+  return [...keys]
+}
+
+function withoutKeys(tags: Tags, keys: ReadonlySet<string>): Tags {
+  return Object.fromEntries(Object.entries(tags).filter(([key]) => !keys.has(key)))
 }
 
 function mustGet<T>(value: T | undefined, what: string): T {
@@ -588,6 +648,7 @@ export function createPresets(data: PresetData): Presets {
     const value = query.toLowerCase().trim()
     if (value === '') return byName[geometry].slice(0, limit)
     const pool = searchIndex[geometry]
+    const valueStripped = stripDiacritics(value)
     const tiers: Array<() => SearchEntry[]> = [
       // the name or an alias starts the query, or has it after a space
       () =>
@@ -608,20 +669,42 @@ export function createPresets(data: PresetData): Presets {
         ),
       () => pool.filter((e) => e.terms.some((t) => leading(t, value))),
       () => pool.filter((e) => e.values.some((v) => leading(v, value))),
+      // close matches to the name (iD: edit distance, less the length difference, below 3), closest first
+      () =>
+        pool
+          .map((entry) => ({ entry, dist: editDistance(valueStripped, entry.nameStripped) }))
+          .filter(({ entry, dist }) => dist + Math.min(value.length - entry.name.length, 0) < 3)
+          .sort((a, b) => a.dist - b.dist)
+          .map(({ entry }) => entry),
+      // close matches to a term
+      () =>
+        pool.filter((e) =>
+          e.terms.some(
+            (t, i) =>
+              editDistance(valueStripped, e.termsStripped[i] ?? '') +
+                Math.min(value.length - t.length, 0) <
+              3,
+          ),
+        ),
       () => (value.includes('=') ? keyValueMatches(pool, value) : []),
       // the query contains the preset's name, e.g. "cafe near me"
       () => pool.filter((e) => e.texts.some((t) => nameInQuery(t, value))),
     ]
+    // iD keeps MAXRESULTS - 1 matches and adds the fallback preset of the geometry last
+    const room = limit - 1
     const found: Preset[] = []
     const seen = new Set<Preset>()
     for (const tier of tiers) {
+      if (found.length >= room) break
       for (const entry of tier()) {
+        if (found.length >= room) break
         if (seen.has(entry.preset)) continue
         seen.add(entry.preset)
         found.push(entry.preset)
-        if (found.length >= limit) return found
       }
     }
+    const fallback = generic[geometry]
+    if (!seen.has(fallback)) found.push(fallback)
     return found
   }
 
@@ -635,8 +718,13 @@ export function createPresets(data: PresetData): Presets {
     return true
   }
 
-  // iD's setTags. Field defaults are not applied (iD's skipFieldDefaults), because they need the field
-  // definitions for the location and the user's preferences, which this package does not have.
+  /** The preset's own fields, not its moreFields: iD's preset.fields(). */
+  function fieldsOf(preset: Preset): Field[] {
+    return entries.get(preset.id)?.fields ?? []
+  }
+
+  // iD's setTags: the addTags (a `*` becomes yes unless an ancillary key already has a value), then area=yes
+  // where needed, then the field defaults that are still missing. Returns a new object.
   function withPresetTags(tags: Tags, preset: Preset, geometry: Geometry): Tags {
     const result: Tags = { ...tags }
     for (const key of Object.keys(preset.addTags)) {
@@ -653,22 +741,83 @@ export function createPresets(data: PresetData): Presets {
       delete result.area
       if (geometry === 'area' && needsAreaTag(preset)) result.area = 'yes'
     }
-    return result
-  }
-
-  // iD's unsetTags, minus field defaults. Keys the new preset sets are kept here, because the new
-  // preset overwrites them anyway. iD's unsetTags also deletes `area`; withPresetTags decides it again.
-  function withoutTagsOf(tags: Tags, previous: Preset, next: Preset): Tags {
-    const result: Tags = { ...tags }
-    for (const key of Object.keys(previous.removeTags)) {
-      if (!Object.hasOwn(next.addTags, key)) delete result[key]
+    for (const field of fieldsOf(preset)) {
+      if (!field.key || !field.default || !fieldAppliesTo(field, geometry)) continue
+      if (!result[field.key]) result[field.key] = field.default
     }
     return result
   }
 
+  // iD's unsetTags: the removeTags except the ignored keys, then the field defaults that still hold, then area.
+  // Returns a new object.
+  function withoutPresetTags(
+    tags: Tags,
+    preset: Preset,
+    geometry: Geometry,
+    ignoringKeys: readonly string[] = [],
+  ): Tags {
+    const result: Tags = { ...tags }
+    for (const key of Object.keys(preset.removeTags)) {
+      if (!ignoringKeys.includes(key)) delete result[key]
+    }
+    for (const field of fieldsOf(preset)) {
+      if (!field.key || !field.default || !fieldAppliesTo(field, geometry)) continue
+      if (ignoringKeys.includes(field.key)) continue
+      if (result[field.key] === field.default) delete result[field.key]
+    }
+    delete result.area
+    return result
+  }
+
+  // iD's preserveKeys in actionChangePreset: the keys of the new preset's addTags, and the keys of its fields
+  // (fields and moreFields) that apply to the geometry. When the old preset is a sub-preset of the new one
+  // (highway/service/driveway to highway/service), keys that define the old sub-preset are not kept.
+  function preserveKeysOf(
+    tags: Tags,
+    preset: Preset,
+    geometry: Geometry,
+    previous: Preset,
+  ): string[] {
+    const keys = new Set(Object.keys(preset.addTags))
+    const wasSubPreset = previous.id.startsWith(preset.id)
+    const newFields = [...fieldsOf(preset), ...(entries.get(preset.id)?.moreFields ?? [])]
+    for (const field of newFields) {
+      if (!fieldAppliesTo(field, geometry)) continue
+      for (const key of allKeysOf(field, tags)) {
+        if (wasSubPreset && Object.hasOwn(previous.tags, key)) continue
+        keys.add(key)
+      }
+    }
+    return [...keys]
+  }
+
+  // iD's actionChangePreset. Without a previous preset the new preset's tags are set. With one, its tags and
+  // field keys are removed, except the keys that the new preset keeps. Field keys of the old preset that the
+  // new one does not keep are removed only when the old preset no longer matches afterwards: a collective
+  // preset (e.g. school with a building field) keeps the old tags. Returns a new object.
   function applyPreset(tags: Tags, preset: Preset, geometry: Geometry, previous?: Preset): Tags {
-    const kept = previous ? withoutTagsOf(tags, previous, preset) : { ...tags }
-    return withPresetTags(kept, preset, geometry)
+    if (!previous) return withPresetTags(tags, preset, geometry)
+    const preserve = preserveKeysOf(tags, preset, geometry, previous)
+    let current = tags
+    if (previous.id !== preset.id) {
+      const previousEntry = entries.get(previous.id)
+      const oldFields = [...(previousEntry?.fields ?? []), ...(previousEntry?.moreFields ?? [])]
+      const keep = new Set(preserve)
+      const removeKeys = new Set(
+        oldFields.flatMap((field) => allKeysOf(field, tags)).filter((key) => !keep.has(key)),
+      )
+      const reduced = withPresetTags(
+        withoutPresetTags(withoutKeys(tags, removeKeys), previous, geometry, preserve),
+        preset,
+        geometry,
+      )
+      if (matchScore(previous, reduced) === -1) current = reduced
+    }
+    return withPresetTags(
+      withoutPresetTags(current, previous, geometry, preserve),
+      preset,
+      geometry,
+    )
   }
 
   return {
@@ -679,6 +828,10 @@ export function createPresets(data: PresetData): Presets {
     moreFieldsFor,
     areaKeys: () => areaKeys,
     search,
+    matchScore: (preset, tags) => matchScore(preset, tags),
+    isFallback: (preset) => isFallbackTags(preset.tags),
+    unsetTags: (tags, preset, geometry, ignoringKeys) =>
+      withoutPresetTags(tags, preset, geometry, ignoringKeys),
     applyPreset,
   }
 }

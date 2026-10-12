@@ -1,3 +1,4 @@
+import { matches } from './filters'
 import type { Filter, Geometry, Tags } from './types'
 
 /*
@@ -263,10 +264,19 @@ export const paths: Filter = {
   state: 'editable',
 }
 
+/** iD's `rail`: a railway or a railway landuse, but not on a road or path, and not `railway=disused` and the like */
+function isRail(tags: Tags): boolean {
+  return (
+    (!!tags.railway || tags.landuse === 'railway') &&
+    !isRoadOrPath(tags.highway) &&
+    !(tags.railway !== undefined && lifecycleSet.has(tags.railway))
+  )
+}
+
 export const rail: Filter = {
   id: 'rail',
   label: 'Rail Features',
-  match: [{ railway: '*' }, { landuse: 'railway' }],
+  match: isRail,
   geometry: objects,
   state: 'editable',
 }
@@ -276,10 +286,21 @@ export const rail: Filter = {
  * before landuse (iD leaves buildings out of landuse). Lifecycle values such as
  * `building=construction` are caught by past_future before this filter.
  */
+/** iD's `buildings`: a building value other than `no` and not a lifecycle word, or a building parking */
+function isBuilding(tags: Tags): boolean {
+  return (
+    (!!tags.building && tags.building !== 'no' && !lifecycleSet.has(tags.building)) ||
+    tags.parking === 'multi-storey' ||
+    tags.parking === 'sheds' ||
+    tags.parking === 'carports' ||
+    tags.parking === 'garage_boxes'
+  )
+}
+
 export const buildings: Filter = {
   id: 'buildings',
   label: 'Buildings',
-  match: [{ building: '*' }, { parking: ['multi-storey', 'sheds', 'carports', 'garage_boxes'] }],
+  match: isBuilding,
   geometry: objects,
   state: 'editable',
 }
@@ -292,33 +313,45 @@ export const boundaries: Filter = {
   state: 'editable',
 }
 
+/** iD's `osmLanduseTags`: any landuse, leisure or natural value, and these amenities */
+const landuseAmenities: ReadonlySet<string> = new Set([
+  'bicycle_parking',
+  'college',
+  'grave_yard',
+  'hospital',
+  'marketplace',
+  'motorcycle_parking',
+  'parking',
+  'place_of_worship',
+  'prison',
+  'school',
+  'university',
+])
+
+function hasLanduseTag(tags: Tags): boolean {
+  return (
+    !!tags.landuse ||
+    !!tags.leisure ||
+    !!tags.natural ||
+    (tags.amenity !== undefined && landuseAmenities.has(tags.amenity))
+  )
+}
+
+/** Objects that iD leaves out of landuse, because they have their own category */
+const notLanduse: readonly Filter[] = [buildings, buildingParts, indoor, water, pistes]
+
 /*
- * Landuse comes after water, pistes, buildings, building parts and indoor, which iD leaves out of
- * landuse. Area only, as in iD.
+ * iD's `landuse`: an area with a landuse tag that is not a building, building part, indoor, water
+ * or piste. Area only, as in iD. A function, because the exclusions are other filters.
  */
+function isLanduse(tags: Tags, geometry: Geometry): boolean {
+  return hasLanduseTag(tags) && !notLanduse.some((filter) => matches(filter, tags, geometry))
+}
+
 export const landuse: Filter = {
   id: 'landuse',
   label: 'Landuse Features',
-  match: [
-    { landuse: '*' },
-    { leisure: '*' },
-    { natural: '*' },
-    {
-      amenity: [
-        'bicycle_parking',
-        'college',
-        'grave_yard',
-        'hospital',
-        'marketplace',
-        'motorcycle_parking',
-        'parking',
-        'place_of_worship',
-        'prison',
-        'school',
-        'university',
-      ],
-    },
-  ],
+  match: isLanduse,
   geometry: ['area'],
   state: 'editable',
 }
