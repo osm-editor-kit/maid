@@ -25,8 +25,10 @@ import { config, editor, engine, useEngine } from '../editor'
 import { addPointWithFavourite, giveFavouriteTagsToNode } from '../favourites'
 import { ensureImages } from '../images'
 import { useSelection } from '../selection'
+import { setStack } from '../stack'
 import { useCameraParam } from '../url/state'
 import { MapContextMenu, type MenuPlace } from './MapContextMenu'
+import { StackPicker } from './StackPicker'
 
 /** No basemap: the benchmark compares how editors draw OSM data, not imagery. */
 const EMPTY_STYLE: StyleSpecification = {
@@ -154,6 +156,8 @@ export function MapView() {
     if (!engine.isDraggable(id)) return
     event.preventDefault() // keeps MapLibre from panning the map with this drag
     dragging = id
+    // the pill is for the place of a click: a dragged node leaves it behind
+    setStack(null)
     setCursor('grabbing')
   }
   /**
@@ -208,9 +212,19 @@ export function MapView() {
    */
   const openMenu = (point: Point, lngLat: { lng: number; lat: number }, screen: Point) => {
     if (mode !== 'browse') return
-    const id = engine.pick(point, interactive)
+    const ids = engine.pickAll(point, interactive)
+    const id = ids[0] ?? null
     if (id && !selectedIds.includes(id)) select(id)
-    setMenu({ x: screen.x, y: screen.y, lon: lngLat.lng, lat: lngLat.lat, ground: !id })
+    if (ids.length > 1) setStack({ lon: lngLat.lng, lat: lngLat.lat, ids })
+    else setStack(null)
+    setMenu({
+      x: screen.x,
+      y: screen.y,
+      lon: lngLat.lng,
+      lat: lngLat.lat,
+      ground: !id,
+      features: ids.length > 1 ? ids : undefined,
+    })
   }
   // The menu key (iD's "ContextMenu" key) opens the menu for the selection. A window listener,
   // as the editor's other keys are; the menu's state lives here.
@@ -314,13 +328,17 @@ export function MapView() {
       event.target.queryRenderedFeatures(event.point, { layers: noteLayers }).length > 0
     )
       return
-    const id = engine.pick(event.point, interactive)
+    // all the features at the place: the first is what a click selects, as `pick` gives it
+    const ids = engine.pickAll(event.point, interactive)
+    const id = ids[0] ?? null
     // Shift adds a feature to the selection or takes it out, as in iD
     if (event.originalEvent.shiftKey && id) {
       select(selectedIds.includes(id) ? selectedIds.filter((s) => s !== id) : [...selectedIds, id])
       return
     }
     select(id)
+    // several features here: the pill and the keys reach the others (stack.ts)
+    setStack(ids.length > 1 ? { lon: event.lngLat.lng, lat: event.lngLat.lat, ids } : null)
   }
   const handleDblClick = (event: MapLayerMouseEvent) => {
     if (mode !== 'browse' || performance.now() - lastDrawClick < 500) {
@@ -371,6 +389,7 @@ export function MapView() {
         sourceOptions={{ tolerance: config.tolerance, maxzoom: config.sourceMaxZoom }}
       />
       <ModuleLayers editor={editor} />
+      <StackPicker />
       {menu && <MapContextMenu place={menu} onClose={() => setMenu(null)} />}
     </Map>
   )

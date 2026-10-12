@@ -44,6 +44,7 @@ import { onewayOf } from './direction'
 import { installDirectionImages } from './direction-images'
 import { DrawTool, nearestOnWay, projectedNodes } from './draw'
 import { EDIT_SOURCES, SOURCES } from './layers'
+import { extentOf, orderPicks, PICK_LIMIT, type PickCandidate } from './pick-order'
 import { boundsOf, relatedIds } from './related'
 import {
   chooseTarget,
@@ -1667,6 +1668,49 @@ export class MaidEngine {
       { layers: layerIds },
     )
     return pickBest(skip ? features.filter((f) => !skip.has(f.id as string)) : features)
+  }
+
+  /**
+   * Every feature at this pixel, each once: the one `pick` returns first, then the others by
+   * layer priority and by size (pick-order.ts). For a click that lists what lies on top of each
+   * other; not for pointer moves, as it reads the data of every candidate. Coinciding features
+   * (two points at one place, a way and an area on its outline) are all there.
+   */
+  pickAll(point: { x: number; y: number }, layerIds: string[], tolerance = 6): string[] {
+    const { map } = this
+    if (!map) return []
+    const features = map.queryRenderedFeatures(
+      [
+        [point.x - tolerance, point.y - tolerance],
+        [point.x + tolerance, point.y + tolerance],
+      ],
+      { layers: layerIds },
+    )
+    const candidates = new Map<string, PickCandidate>()
+    for (const f of features) {
+      const id = f.id as string | undefined
+      if (!id) continue
+      // a feature drawn in more than one layer keeps the highest of its priorities, as pick does
+      const priority = PRIORITY[f.source] ?? 9
+      const known = candidates.get(id)
+      if (known) known.priority = Math.min(known.priority, priority)
+      else candidates.set(id, { id, priority, size: this.sizeOf(id) })
+    }
+    return orderPicks([...candidates.values()], pickBest(features), PICK_LIMIT)
+  }
+
+  /** The size that orders picks: 0 for a node, else the area or the length of a way (pick-order.ts) */
+  private sizeOf(id: string): number {
+    if (id[0] !== 'w') return 0
+    const way = this.data.way(id)
+    if (!way) return Number.POSITIVE_INFINITY
+    const points: [number, number][] = []
+    for (const n of way.nodes) {
+      const loc = this.data.node(n)?.loc
+      if (loc) points.push([loc[0], loc[1]])
+    }
+    const closed = way.nodes.length > 2 && way.nodes[0] === way.nodes[way.nodes.length - 1]
+    return extentOf(points, closed && isArea(way.tags, closed))
   }
 
   stats() {

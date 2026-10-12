@@ -6,6 +6,7 @@ import { continueLine, drawClick, drawingKind } from '../drawing'
 import { editor, engine, useEngine } from '../editor'
 import { giveFavouriteType, pressFavouriteKey } from '../favourites'
 import { useSelection } from '../selection'
+import { keepsStack, stepStackId, useStack } from '../stack'
 
 /** Screen pixels the arrow keys move the map by, as in iD */
 const PAN = 80
@@ -25,6 +26,8 @@ const PAN = 80
  * - Cmd/Ctrl+Backspace or Delete deletes the selection; Escape leaves a mode, then the selection
  * - the letters of the edit menu run its operations (V reverse, X split, C merge, ...)
  * - arrow keys pan the map, + and - zoom
+ * - where a click found several features (the pill on the map): , takes the previous one and .
+ *   the next one. Not [ and ], which iD uses for the nodes of a way
  */
 export function useShortcuts() {
   const { ids: selected, select } = useSelection()
@@ -32,6 +35,13 @@ export function useShortcuts() {
   // which keys are taken depends on what the editor is doing: read it so that this follows
   const drawing = useEngine((e) => e.draw.active)
   const drawMode = useEngine((e) => e.mode === 'draw-line' || e.mode === 'draw-area')
+  // the features of a click, while one of them is selected: , and . step through them
+  const stack = useStack()
+  const stackShown = stack !== null && keepsStack(stack, selected)
+  const stepStack = (step: 1 | -1) => {
+    const current = selected[0]
+    if (stack && current) select(stepStackId(stack.ids, current, step) ?? null)
+  }
 
   const finishDrawing = () => {
     const finished = engine.draw.finish()
@@ -85,6 +95,8 @@ export function useShortcuts() {
     { hotkey: '3', callback: () => engine.setMode('draw-area') },
     ...FAVOURITE_KEYS.map((key) => ({ hotkey: key, callback: () => pressFavouriteKey(key) })),
     { hotkey: 'A', callback: () => continueLine(selected) },
+    { hotkey: ',', callback: () => stepStack(-1), options: { enabled: stackShown } },
+    { hotkey: '.', callback: () => stepStack(1), options: { enabled: stackShown } },
     { hotkey: 'M', callback: () => engine.setMode('move') },
     { hotkey: 'R', callback: () => engine.setMode('rotate') },
     { hotkey: 'Enter', callback: finishDrawing, options: { enabled: drawing } },

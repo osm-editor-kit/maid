@@ -853,4 +853,139 @@ failed += await runCheck(
   false,
 )
 
+// --- several features at one place: a click selects the first, the pill counts them, , and . and the
+// list reach the others, a click elsewhere drops them, and a right click lists them in the menu ---
+failed += await runCheck(
+  process.argv[2] ?? 'small',
+  async ({ page, report, settle }) => {
+    const origin = (await page.evaluate(() => {
+      const box = (window as any).__maid.map.getCanvas().getBoundingClientRect()
+      return { x: box.left, y: box.top }
+    })) as XY
+    const abs = (p: XY) => ({ x: origin.x + p.x, y: origin.y + p.y })
+    const click = async (p: XY, button: 'left' | 'right' = 'left') => {
+      const at = abs(p)
+      await page.mouse.move(at.x, at.y)
+      await page.mouse.click(at.x, at.y, { button })
+      await settle()
+    }
+    const key = async (name: string) => {
+      await page.evaluate(() => {
+        if (document.activeElement instanceof HTMLInputElement) document.activeElement.blur()
+      })
+      await page.keyboard.press(name)
+      await settle()
+    }
+    const selection = () =>
+      page.evaluate(() => [...(window as any).__maid.engine.selection] as string[])
+    const pill = () => page.getByRole('button', { name: /\d+ of \d+/ })
+    const pillText = async () =>
+      (await pill().count()) === 0
+        ? null
+        : ((await pill().first().textContent()) ?? '').replace(/\s+/g, ' ').trim()
+
+    // a place where the features of a click are two or more, and open ground that has none
+    const found = (await page.evaluate(() => {
+      const { map, engine } = (window as any).__maid
+      const box = map.getCanvas().getBoundingClientRect()
+      const layers = map
+        .getStyle()
+        .layers.map((l: any) => l.id as string)
+        .filter((id: string) =>
+          /^(highlight-vertex|vertex|point-pin|point-dot|point-address|line-(casing|stroke)(-dashed)?--?\d|area-stroke|area-fill)/.test(
+            id,
+          ),
+        )
+      let place: { x: number; y: number; ids: string[] } | null = null
+      let free: { x: number; y: number } | null = null
+      for (let y = 100; y < box.height - 100; y += 6)
+        for (let x = 100; x < box.width - 100; x += 6) {
+          const ids: string[] = engine.pickAll({ x, y }, layers)
+          if (!place && ids.length >= 2) place = { x, y, ids }
+          if (!free && ids.length === 0) free = { x, y }
+          if (place && free) return { place, free }
+        }
+      return { place, free }
+    })) as {
+      place: { x: number; y: number; ids: string[] } | null
+      free: XY | null
+    }
+    if (!found.place || !found.free) {
+      report('find a place with two features and open ground', 'in view', found)
+      return
+    }
+    const { place, free } = { place: found.place, free: found.free }
+    const ids = place.ids
+    const n = ids.length
+    const target = Math.min(2, n - 1)
+
+    await click(place)
+    report('a click selects the first feature of the place', [ids[0]], await selection())
+    report('the pill says 1 of N', `1 of ${n}`, await pillText())
+
+    await key('.')
+    report('the next key selects the second feature', [ids[1]], await selection())
+    report('the pill says 2 of N', `2 of ${n}`, await pillText())
+
+    await key(',')
+    await key(',')
+    report('the previous key wraps round to the last feature', [ids[n - 1]], await selection())
+    report('the pill says N of N', `${n} of ${n}`, await pillText())
+
+    // the list at the pill: a row chooses, the list stays open and the pill counts on
+    await pill().first().click()
+    await settle()
+    const list = page.getByRole('menu', { name: 'Features here' })
+    report('the pill opens the list of the features', 1, await list.count())
+    await list.getByRole('menuitem').nth(target).click()
+    await settle()
+    report('a row of the list selects its feature', [ids[target]], await selection())
+    report(
+      'the list stays open and the pill follows',
+      [1, `${target + 1} of ${n}`],
+      [await list.count(), await pillText()],
+    )
+    await page.keyboard.press('Escape')
+    await settle()
+    report(
+      'Escape closes the list and keeps the selection',
+      [0, [ids[target]]],
+      [await list.count(), await selection()],
+    )
+
+    // a click on open ground drops the stack
+    await click(free)
+    report(
+      'a click elsewhere drops the stack: no pill, nothing selected',
+      [null, []],
+      [await pillText(), await selection()],
+    )
+
+    // a right click lists the features in the menu, as a first group
+    await click(place, 'right')
+    const menu = page.getByRole('menu', { name: 'Edit' })
+    report(
+      'a right click lists the features of the place under a heading',
+      [1, 1],
+      [await menu.count(), await menu.getByText(`Here: ${n} features`, { exact: true }).count()],
+    )
+    report(
+      'the first feature of the place is the one selected and marked',
+      'true',
+      await menu.getByRole('menuitem').first().getAttribute('aria-current'),
+    )
+    await menu.getByRole('menuitem').nth(1).click()
+    await settle()
+    report(
+      'choosing a feature in the menu selects it and keeps the menu open',
+      [[ids[1]], 1],
+      [await selection(), await menu.count()],
+    )
+    await page.keyboard.press('Escape')
+    await settle()
+  },
+  '',
+  false,
+)
+
 process.exit(failed ? 1 : 0)
