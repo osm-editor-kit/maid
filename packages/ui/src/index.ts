@@ -1,5 +1,6 @@
 import './extension-points.ts'
 
+export { ContextMenu, type MenuItem } from './ContextMenu.tsx'
 export { Dock, type DockTab } from './Dock.tsx'
 export { FilterPanel } from './FilterPanel.tsx'
 export type {

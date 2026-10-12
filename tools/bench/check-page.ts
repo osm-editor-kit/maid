@@ -51,7 +51,13 @@ export async function runCheck(
         return route.abort()
       },
     )
-    page.on('pageerror', (error) => report('no uncaught page error', 'none', error.message))
+    page.on('pageerror', (error) =>
+      report(
+        'no uncaught page error',
+        'none',
+        error.stack?.split('\n').slice(0, 4).join(' | ') ?? error.message,
+      ),
+    )
     await page.goto(
       `http://localhost:${PORTS.maid}/?scene=${sceneName}${query ? `&${query}` : ''}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
     )

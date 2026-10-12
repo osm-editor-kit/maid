@@ -23,6 +23,7 @@ import { config, editor, engine, useEngine } from '../editor'
 import { addBaseImages, ensureImages } from '../images'
 import { useSelection } from '../selection'
 import { useCameraParam } from '../url/state'
+import { MapContextMenu, type MenuPlace } from './MapContextMenu'
 
 /** No basemap: the benchmark compares how editors draw OSM data, not imagery. */
 const EMPTY_STYLE: StyleSpecification = {
@@ -39,6 +40,9 @@ let lastTileCheck = 0
 let dragging: string | null = null
 /** When a click last went to the drawing tool: the double click that follows is not for the map */
 let lastDrawClick = 0
+/** The timer of a long press and where the finger went down */
+let longPress: ReturnType<typeof setTimeout> | undefined
+let pressedAt: { x: number; y: number } | undefined
 
 type Point = { x: number; y: number }
 
@@ -50,6 +54,7 @@ export function MapView() {
   const [cursor, setCursor] = useState('grab')
   const mode = useEngine((e) => e.mode)
   const [zoomGuard, setZoomGuard] = useState(false)
+  const [menu, setMenu] = useState<MenuPlace | null>(null)
 
   // Start position: the `map` parameter, else iD's `#map=` hash, else a default.
   const [initialCamera] = useState(() => cameraParam ?? config.camera ?? FALLBACK_CAMERA)
@@ -124,12 +129,52 @@ export function MapView() {
     engine.setHover(id)
     setCursor(id ? 'pointer' : 'grab')
   }
+  /**
+   * A right click, or a long press on a touch screen, opens the edit menu, as in iD: on a
+   * feature that is not selected it selects that feature first; on open ground the menu only
+   * has "Paste". Not while drawing or moving.
+   */
+  const openMenu = (point: Point, lngLat: { lng: number; lat: number }, screen: Point) => {
+    if (mode !== 'browse') return
+    const id = engine.pick(point, interactive)
+    if (id && !selectedIds.includes(id)) select(id)
+    else if (!id) select(null)
+    setMenu({ x: screen.x, y: screen.y, lon: lngLat.lng, lat: lngLat.lat })
+  }
+  const handleContextMenu = (event: MapLayerMouseEvent) => {
+    event.originalEvent.preventDefault() // not the browser's own menu
+    clearTimeout(longPress)
+    openMenu(event.point, event.lngLat, {
+      x: event.originalEvent.clientX,
+      y: event.originalEvent.clientY,
+    })
+  }
   // one finger drags a node; two fingers are the map's (pinch, pan)
   const handleTouchStart = (event: MapTouchEvent) => {
-    if (event.points.length === 1) press(event)
+    clearTimeout(longPress)
+    if (event.points.length !== 1) return
+    press(event)
+    // iOS sends no contextmenu event for a long press, so it is timed here (iD: 500 ms)
+    const touch = event.originalEvent.touches[0]
+    const { point, lngLat } = event
+    if (touch) {
+      const screen = { x: touch.clientX, y: touch.clientY }
+      pressedAt = point
+      longPress = setTimeout(() => {
+        release()
+        openMenu(point, lngLat, screen)
+      }, 500)
+    }
   }
   const handleTouchMove = (event: MapTouchEvent) => {
+    // a finger that moves is dragging or panning, not pressing
+    if (pressedAt && Math.hypot(event.point.x - pressedAt.x, event.point.y - pressedAt.y) > 5)
+      clearTimeout(longPress)
     if (event.points.length === 1) movePointer(event)
+  }
+  const handleTouchEnd = () => {
+    clearTimeout(longPress)
+    release()
   }
 
   /** The double click that ends a drawing must not zoom the map afterwards */
@@ -205,8 +250,9 @@ export function MapView() {
       onMouseMove={handleMouseMove}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
-      onTouchEnd={release}
-      onTouchCancel={release}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+      onContextMenu={handleContextMenu}
       onClick={handleClick}
       onDblClick={handleDblClick}
     >
@@ -215,6 +261,7 @@ export function MapView() {
         sourceOptions={{ tolerance: config.tolerance, maxzoom: config.sourceMaxZoom }}
       />
       <ModuleLayers editor={editor} />
+      {menu && <MapContextMenu place={menu} onClose={() => setMenu(null)} />}
     </Map>
   )
 }

@@ -16,6 +16,21 @@ export type Command = {
 const MAC = /mac|iphone|ipad/i.test(navigator.platform)
 const MOD = MAC ? '⌘' : 'Ctrl+'
 
+/** "Paste" at a place on the map, if something was copied */
+export function usePasteCommand(at: { lon: number; lat: number } | undefined): Command[] {
+  const { select } = useSelection()
+  const canPaste = useEngine((e) => e.canPaste)
+  if (!canPaste || !at) return []
+  return [
+    {
+      id: 'paste',
+      label: 'Paste',
+      shortcut: `${MOD}V`,
+      run: () => select(engine.paste(at.lon, at.lat)),
+    },
+  ]
+}
+
 /**
  * What can be done with the selection now, in the order of iD's edit menu: move and rotate,
  * the operations that apply (`edit.operation`), copy, delete. Empty without a selection or when

@@ -187,6 +187,9 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
 
   // --- double click: on a way it adds a node, on open ground it zooms ---
   const zoom = (await state()).zoom
+  const mapCentre = (await page.evaluate(() =>
+    (window as any).__maid.map.getCenter().toArray(),
+  )) as number[]
   const roadNodes = () =>
     page.evaluate(
       (id) => (window as any).__maid.engine.data.way(id).nodes.length as number,
@@ -210,7 +213,11 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   await click(free(0), { count: 2 })
   await page.waitForTimeout(600)
   report('double click on open ground zooms in', zoom + 1, (await state()).zoom)
-  await page.evaluate((zoom) => (window as any).__maid.map.jumpTo({ zoom }), zoom)
+  // the zoom was around the pointer: put zoom and centre back, the positions above depend on both
+  await page.evaluate(
+    ({ zoom, mapCentre }) => (window as any).__maid.map.jumpTo({ zoom, center: mapCentre }),
+    { zoom, mapCentre },
+  )
   await settle()
 
   // --- drawing an area: the double click closes it and does not zoom ---
@@ -342,6 +349,57 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
     true,
     copy ? near({ x: copy.x, y: copy.y }, free(4), 4) : false,
   )
+
+  // --- right click: the edit menu at the pointer, as in iD ---
+  const menu = page.getByRole('menu', { name: 'Edit' })
+  const items = async () =>
+    (await menu.getByRole('menuitem').allInnerTexts()).map((t) => t.split('\n')[0] ?? '')
+  const rightClick = async (p: XY) => {
+    await page.mouse.click(origin.x + p.x, origin.y + p.y, { button: 'right' })
+    await settle()
+  }
+  await key('Escape')
+  await rightClick(second.edge)
+  report('right click on a feature selects it', [second.id], (await state()).selection)
+  const offered = await items()
+  report(
+    'right click: the menu offers move, rotate, copy and delete',
+    [true, true, true, true],
+    ['Move', 'Rotate', 'Copy', 'Delete'].map((label) => offered.includes(label)),
+  )
+  await page.keyboard.press('Escape')
+  report(
+    'Escape closes the menu and keeps the selection',
+    [0, [second.id]],
+    [await menu.count(), (await state()).selection],
+  )
+  await rightClick(second.edge)
+  await menu.getByRole('menuitem', { name: 'Delete' }).click()
+  await settle()
+  const deleted = await page.evaluate(
+    (id) => (window as any).__maid.engine.data.way(id) === undefined,
+    second.id,
+  )
+  report(
+    'right click, Delete: the feature is gone',
+    [true, 'Deleted a way'],
+    [deleted, (await state()).undo],
+  )
+  await key('Meta+z')
+  // free(0): the other places have the drawn area and its copy on them by now
+  await rightClick(free(0))
+  report(
+    'right click on open ground: only Paste, and nothing selected',
+    [['Paste'], []],
+    [await items(), (await state()).selection],
+  )
+  await menu.getByRole('menuitem', { name: 'Paste' }).click()
+  await settle()
+  report('Paste from the menu adds a copy there', 'Pasted a feature', (await state()).undo)
+  await key('2')
+  await rightClick(free(5))
+  report('no menu while drawing', 0, await menu.count())
+  await key('Delete')
 })
 
 // --- touch: one finger drags a vertex, on a browser with a touch screen ---

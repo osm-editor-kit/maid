@@ -724,6 +724,11 @@ export class MaidEngine {
   /** What Cmd+C took: ids and the graph they are read from when pasted */
   private clipboard?: { ids: string[]; graph: Graph }
 
+  /** True if something was copied and can be pasted */
+  get canPaste(): boolean {
+    return this.clipboard !== undefined
+  }
+
   /** Remembers the selection for `paste`. Returns false if nothing is selected. */
   copy(): boolean {
     if (this.selectedIds.length === 0) return false

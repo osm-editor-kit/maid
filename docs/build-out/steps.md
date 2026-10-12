@@ -67,6 +67,22 @@ Review after part A (2026-10-12): the switches of the iteration-1 experiments ar
   Not done: only three rules, no issues on the map itself (no marker at the place), no counter on the "Issues" tab, nothing is checked before saving because there is no saving yet, and the texts are English only.
   **Test for Tobias:** open <http://localhost:5173/?scene=small&map=19/52.389/13.4>, press 2 and draw a line across a road without clicking on the road, choose "Footway". Open "Issues" under the map: the crossing and "not connected" are listed. Click "Connect the features".
 
+## Part B2: the UI pass
+
+Asked for by Tobias on 2026-10-12 after testing part B. One item per step, a review in between.
+
+- [x] **U1. Right click.** The edit menu at the pointer as in iD: on a feature (selects it first), on a selection, on open ground ("Paste"), by long press on a touch screen; not while drawing.
+  Result (2026-10-12): done. `ContextMenu` in `maid-ui`; the sidebar's edit menu, the right-click menu and the keys share one list of commands (`apps/maid/src/commands.ts`). Covered by `bun run check-interactions` (26 checks now).
+- [ ] **U2. The inspector's head.** First row in iD's style for the feature (icon, name), a click on it changes the feature type in the panel that slides in as now. The line with geometry and id goes behind it. Third row: the edit commands as icon-only buttons in a button group, the same as on right click, each with a tooltip that shows what it does and its key.
+- [ ] **U3. Tooltips and motion.** A tooltip component with Motion for React as in tilda-geo; panels animate as there.
+- [ ] **U4. "Element" as a disclosure.** The element's properties stay in the sidebar (not a floating panel as in iD) but fold away.
+- [ ] **U5. No footer bar.** The status line at the bottom goes; what matters from it moves elsewhere (zoom hint, data source, attribution).
+- [ ] **U6. Resizable panels.** Sidebar width and dock height can be dragged, in tilda-geo's style.
+- [ ] **U7. Fields one by one.** Every field type of iD's sidebar: read its behaviour in iD, write the spec down, rebuild it in Maid.
+- [ ] **U8. Foreshadowing.** A preview of the result on the map while a command is hovered (make round, square, flip, ...) and iD's helper lines, in iD's look, a little modernised.
+- [ ] **U9. Phones.** The layout for small screens as tilda-geo does it: the properties panel behind a button at the bottom right, and so on.
+- [ ] **U10. Component library.** Fewer components with a smaller surface, shared between their uses.
+
 ## Part C: keeping and sending work
 
 - [ ] **C1. Unsaved work survives.** A journal of edits in the browser (Dexie), restored on reload, safe with two tabs. Settings with the agreed precedence (default, config, stored, URL, user).
