@@ -40,9 +40,30 @@ describe('iD.osmRelation', function () {
   });
 
   describe('#hasFromViaTo', function () {
-    // needs F-osm-7
-    it.todo('returns true if the `intersection` role is used instead of `via` for destination signs');
-    // needs F-osm-7
-    it.todo('returns false if the `intersection` role is used on anything other than a destination sign');
+    it('returns true if the `intersection` role is used instead of `via` for destination signs', () => {
+      const r = new Rapid.OsmRelation(context, {
+        id: 'r',
+        tags: { type: 'destination_sign' },
+        members: [
+          { role: 'from', id: 'f', type: 'way' },
+          { role: 'intersection', id: 'v', type: 'node' },
+          { role: 'to', id: 't', type: 'way' },
+        ],
+      });
+      expect(r.hasFromViaTo()).toBe(true);
+    });
+
+    it('returns false if the `intersection` role is used on anything other than a destination sign', () => {
+      const r = new Rapid.OsmRelation(context, {
+        id: 'r',
+        tags: { type: 'restriction' },
+        members: [
+          { role: 'from', id: 'f', type: 'way' },
+          { role: 'intersection', id: 'v', type: 'node' },
+          { role: 'to', id: 't', type: 'way' },
+        ],
+      });
+      expect(r.hasFromViaTo()).toBe(false);
+    });
   });
 });

@@ -81,6 +81,26 @@ describe('turn restriction members after a split', () => {
     expect(nodesOf(graph, 'r', 'to')).toEqual(['cd'])
   })
 
-  // F-actions-b-35 (iD: intersection role of destination_sign counts as via): not implemented in the model.
-  it.todo('counts the intersection role of a destination_sign relation as via', () => {})
+  it('counts the intersection role of a destination_sign relation as via', () => {
+    // as the test above, for a destination sign: the way V has the `intersection` role, so its split part keeps that role
+    const base = new Rapid.Graph(context, [
+      pt('a', 0), pt('b', 1), pt('m', 1.5), pt('c', 2), pt('d', 3),
+      way('F', ['a', 'b']),
+      way('V', ['b', 'm', 'c']),
+      way('T', ['c', 'd']),
+      new Rapid.OsmRelation(context, {
+        id: 'r',
+        tags: { type: 'destination_sign' },
+        members: [
+          { id: 'F', type: 'way', role: 'from' },
+          { id: 'V', type: 'way', role: 'intersection' },
+          { id: 'T', type: 'way', role: 'to' },
+        ],
+      }),
+    ])
+    const graph = Rapid.actionSplit('m', ['=(new)'])(new Rapid.Graph(base))
+    expect(nodesOf(graph, 'r', 'intersection').sort()).toEqual(['bm', 'mc'])
+    expect(nodesOf(graph, 'r', 'from')).toEqual(['ab'])
+    expect(nodesOf(graph, 'r', 'to')).toEqual(['cd'])
+  })
 })

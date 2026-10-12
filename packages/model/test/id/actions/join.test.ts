@@ -122,9 +122,7 @@ describe('iD.actionJoin', () => {
     expect(graph.entity('-').tags.step_count).toEqual('42');
   });
 
-  // needs F-actions-b-11 (join hands a collapsed multipolygon's parent memberships to the area; Maid's join deletes the parent
-  // relation 'site' as well, see the report)
-  it.todo('transfers memberships of collapsed single-member multipolygon onto resulting basic area', () => {
+  it('transfers memberships of collapsed single-member multipolygon onto resulting basic area', () => {
     // Situation: same as above, but the multipolygon relation was also
     // a member of a site relation. #9064
     const base = new Rapid.Graph(context, [

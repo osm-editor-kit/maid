@@ -147,6 +147,12 @@ export function actionJoin(ids: EntityID[], options: JoinOptions = {}): JoinActi
 
       survivor = survivor.mergeTags(multipolygon.tags);
       graph.replace(survivor);
+      // Maid: differs from Rapid here (F-actions-b-11, see docs/research/relations-vs-id.md)
+      // transfer the membership of the collapsed multipolygon onto the resulting basic area (iD#9064),
+      // before the multipolygon is deleted: deleting it first empties its parent relations, which are then deleted too
+      for (const relation of graph.parentRelations(multipolygon)) {
+        graph.replace(relation.replaceMember({ id: multipolygon.id }, { id: survivor.id, type: survivor.type as EntityType }));
+      }
       graph = actionDeleteRelation(multipolygon.id, true, true /* allow untagged members */)(graph);
 
       const tags: OsmTags = { ...survivor.tags };  // shallow copy

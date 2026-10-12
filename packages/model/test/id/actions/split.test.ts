@@ -482,8 +482,27 @@ describe('actionSplit', () => {
   });
 
   describe('type = multipolygon', () => {
-    // needs F-actions-b-34
-    it.todo('transfers relation memberships of an area to the resulting multipolygon');
+    it('transfers relation memberships of an area to the resulting multipolygon', () => {
+      // Situation: a ---- b
+      //            |      |
+      //            d ---- c
+      // Split at a. The way was also a member of a site relation. #12024
+      const base = new Rapid.Graph(context, [
+        pt('a', 0, 1), pt('b', 1, 1), pt('c', 1, 0), pt('d', 0, 0),
+        way('-', ['a', 'b', 'c', 'd', 'a'], { area: 'yes' }),
+        new Rapid.OsmRelation(context, {
+          id: 's',
+          members: [{ id: '-', role: 'main', type: 'way' }],
+          tags: { type: 'site' }
+        })
+      ]);
+      const graph = Rapid.actionSplit('a', ['='])(new Rapid.Graph(base));
+
+      const parents = graph.parentRelations(graph.entity('-'));
+      expect(parents).toHaveLength(1);
+      expect(graph.entity('s').members.length).toEqual(1);
+      expect(graph.entity('s').members[0]).toEqual({ id: parents[0].id, role: 'main', type: 'relation' });
+    });
 
     // needs F-actions-b-33
     it.todo('preserves coastline tag on the ways when creating a multipolygon');
@@ -542,25 +561,106 @@ describe('actionSplit', () => {
     );
 
     // The 'b' titles are covered by Rapid's tests for the other three types.
+    // Only destination_sign needs these: F-actions-b-35, the 'intersection' role counts as via (iD's tests, same data).
     if (isDestinationSign) {
-      // needs F-actions-b-35: Maid reads only the 'via' role, not iD's 'intersection' role of destination_sign
-      it.todo('updates a restriction\'s \'from\' role - via node (1b)');
-      it.todo('updates a restriction\'s \'to\' role - via node (2b)');
-      it.todo('updates both \'to\' and \'from\' roles for via-node u-turn restrictions (3b)');
-      it.todo('updates a restriction\'s \'from\' role - via way (4b)');
-      it.todo('updates a restriction\'s \'to\' role - via way (5b)');
-      it.todo('updates a restriction\'s \'via\' role when splitting via way (6b)');
-      it.todo('leaves unaffected restrictions unchanged (7b)');
+      it('updates a restriction\'s \'from\' role - via node (1b)', () => {
+        // Expected result:
+        //    a ====> b ----> c ----> d ~~~~ e
+        // A restriction from ---- to ~~~~ via node d.
+        const graph = Rapid.actionSplit('b', ['='])(new Rapid.Graph(restriction1()));
+        expect(graph.entity('r').members).toEqual([
+          { id: '-', role: 'from', type: 'way' },
+          { id: '~', role: 'to', type: 'way' },
+          { id: 'd', role: viaRole, type: 'node' }
+        ]);
+      });
+
+      it('updates a restriction\'s \'to\' role - via node (2b)', () => {
+        // Expected result:
+        //    a ====> b ----> c ----> d ~~~~ e
+        // A restriction from ~~~~ to ---- via node d.
+        const graph = Rapid.actionSplit('b', ['='])(new Rapid.Graph(restriction2()));
+        expect(graph.entity('r').members).toEqual([
+          { id: '~', role: 'from', type: 'way' },
+          { id: '-', role: 'to', type: 'way' },
+          { id: 'd', role: viaRole, type: 'node' }
+        ]);
+      });
+
+      it('updates both \'to\' and \'from\' roles for via-node u-turn restrictions (3b)', () => {
+        // Expected result:
+        //    a ====> b ----> c ----> d ~~~~ e
+        // A restriction from ---- to ---- via node d.
+        const graph = Rapid.actionSplit('b', ['='])(new Rapid.Graph(restriction3()));
+        expect(graph.entity('r').members).toEqual([
+          { id: '-', role: 'from', type: 'way' },
+          { id: '-', role: 'to', type: 'way' },
+          { id: 'd', role: viaRole, type: 'node' }
+        ]);
+      });
+
+      it('updates a restriction\'s \'from\' role - via way (4b)', () => {
+        // Expected result:
+        //                    f <~~~~ e
+        //                            |
+        //                            |
+        //    a ====> b ----> c ----> d
+        // A restriction from ---- to ~~~~ via way |
+        const graph = Rapid.actionSplit('b', ['='])(new Rapid.Graph(restriction4()));
+        expect(graph.entity('r').members).toEqual([
+          { id: '-', role: 'from', type: 'way' },
+          { id: '~', role: 'to', type: 'way' },
+          { id: '|', role: viaRole, type: 'way' }
+        ]);
+      });
+
+      it('updates a restriction\'s \'to\' role - via way (5b)', () => {
+        // Expected result:
+        //                    f <~~~~ e
+        //                            |
+        //                            |
+        //    a ====> b ----> c ----> d
+        // A restriction from ~~~~ to ---- via way |
+        const graph = Rapid.actionSplit('b', ['='])(new Rapid.Graph(restriction5()));
+        expect(graph.entity('r').members).toEqual([
+          { id: '~', role: 'from', type: 'way' },
+          { id: '-', role: 'to', type: 'way' },
+          { id: '|', role: viaRole, type: 'way' }
+        ]);
+      });
+
+      it('updates a restriction\'s \'via\' role when splitting via way (6b)', () => {
+        // Expected result:
+        //    e                       f
+        //    |                       ‖
+        //    |                       ‖
+        //    a ====> b ----> c ----> d
+        // A restriction from | to ‖ via ways ----, ====
+        // (iD's test splits at 'c', as its 6c; the expected result is the same.)
+        const graph = Rapid.actionSplit('c', ['='])(new Rapid.Graph(restriction6()));
+        expect(graph.entity('r').members).toEqual([
+          { id: '|', role: 'from', type: 'way' },
+          { id: '-', role: viaRole, type: 'way' },
+          { id: '=', role: viaRole, type: 'way' },
+          { id: '‖', role: 'to', type: 'way' }
+        ]);
+      });
+
+      it('leaves unaffected restrictions unchanged (7b)', () => {
+        // Expected result:
+        //    a <==== b <---- c <---- d ~~~~ e
+        // A restriction from ---- to ~~~~ via d.
+        const graph = Rapid.actionSplit('b', ['='])(new Rapid.Graph(restriction7()));
+        expect(graph.entity('r').members).toEqual([
+          { id: '-', role: 'from', type: 'way' },
+          { id: '~', role: 'to', type: 'way' },
+          { id: 'd', role: viaRole, type: 'node' }
+        ]);
+      });
     }
 
     describe(`type = ${type}`, () => {
-      // needs F-actions-b-35 (destination_sign uses the 'intersection' role)
-      const adopt = (title: string, body: () => void) => {
-        if (isDestinationSign) it.todo(title);
-        else it(title, body);
-      };
-
-      adopt('updates a restriction\'s \'from\' role - via node (1c)', () => {
+      it('updates a restriction\'s \'from\' role - via node (1c)', () => {
         // Expected result:
         //    a ----> b ----> c ====> d ~~~~ e
         // A restriction from ==== to ~~~~ via node d.
@@ -572,7 +672,7 @@ describe('actionSplit', () => {
         ]);
       });
 
-      adopt('updates a restriction\'s \'to\' role - via node (2c)', () => {
+      it('updates a restriction\'s \'to\' role - via node (2c)', () => {
         // Expected result:
         //    a ----> b ----> c ====> d ~~~~ e
         // A restriction from ~~~~ to ==== via node d.
@@ -584,7 +684,7 @@ describe('actionSplit', () => {
         ]);
       });
 
-      adopt('updates both \'to\' and \'from\' roles for via-node u-turn restrictions (3c)', () => {
+      it('updates both \'to\' and \'from\' roles for via-node u-turn restrictions (3c)', () => {
         // Expected result:
         //    a ----> b ----> c ====> d ~~~~ e
         // A restriction from ==== to ==== via node d.
@@ -596,7 +696,7 @@ describe('actionSplit', () => {
         ]);
       });
 
-      adopt('updates a restriction\'s \'from\' role - via way (4c)', () => {
+      it('updates a restriction\'s \'from\' role - via way (4c)', () => {
         // Expected result:
         // A restriction from ==== to ~~~~ via way |
         const graph = Rapid.actionSplit('c', ['='])(new Rapid.Graph(restriction4()));
@@ -607,7 +707,7 @@ describe('actionSplit', () => {
         ]);
       });
 
-      adopt('updates a restriction\'s \'to\' role - via way (5c)', () => {
+      it('updates a restriction\'s \'to\' role - via way (5c)', () => {
         // Expected result:
         // A restriction from ~~~~ to ==== via way |
         const graph = Rapid.actionSplit('c', ['='])(new Rapid.Graph(restriction5()));
@@ -618,7 +718,7 @@ describe('actionSplit', () => {
         ]);
       });
 
-      adopt('updates a restriction\'s \'via\' role when splitting via way (6c)', () => {
+      it('updates a restriction\'s \'via\' role when splitting via way (6c)', () => {
         // Expected result:
         //    e                       f
         //    |                       ‖
@@ -634,7 +734,7 @@ describe('actionSplit', () => {
         ]);
       });
 
-      adopt('leaves unaffected restrictions unchanged (7c)', () => {
+      it('leaves unaffected restrictions unchanged (7c)', () => {
         // Expected result:
         //    a <---- b <---- c <==== d ~~~~ e
         // A restriction from ---- to ~~~~ via d.

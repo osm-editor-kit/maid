@@ -407,7 +407,9 @@ export class OsmRelation extends OsmEntity {
   public hasFromViaTo(): boolean {
     return (
       this.members.some(m => m.role === 'from') &&
-      this.members.some(m => m.role === 'via') &&
+      // Maid: differs from Rapid here (F-actions-b-35 / F-osm-7, see docs/research/relations-vs-id.md)
+      // a destination sign has its via member in the `intersection` role (as iD)
+      this.members.some(m => m.role === 'via' || (m.role === 'intersection' && this.tags.type === 'destination_sign')) &&
       this.members.some(m => m.role === 'to')
     );
   }

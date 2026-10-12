@@ -226,7 +226,9 @@ export function actionSplit(nodeIDs: EntityID | EntityID[], newWayIDs?: EntityID
       // 2. Splitting a VIA way - `wayB` remains in relation as a VIA way
       if (rel.hasFromViaTo()) {
         const f = rel.memberByRole('from')!;
-        const v = rel.membersByRole('via');
+        // Maid: differs from Rapid here (F-actions-b-35 / F-osm-7, see docs/research/relations-vs-id.md)
+        // the `intersection` role of a destination sign is a via member (as iD)
+        const v = [...rel.membersByRole('via'), ...rel.membersByRole('intersection')];
         const t = rel.memberByRole('to')!;
 
         // 1. split a FROM/TO
@@ -254,7 +256,9 @@ export function actionSplit(nodeIDs: EntityID | EntityID[], newWayIDs?: EntityID
         } else {
           for (const via of v) {
             if (via.type === 'way' && via.id === wayA.id) {
-              member = { id: wayB.id, type: 'way', role: 'via' };
+              // Maid: differs from Rapid here (F-actions-b-35 / F-osm-7, see docs/research/relations-vs-id.md)
+              // the new way takes the role of the split way: `intersection` for a destination sign
+              member = { id: wayB.id, type: 'way', role: via.role };
               graph = actionAddMember(rel.id, member, via.index + 1)(graph);
               break;
             }
@@ -265,6 +269,11 @@ export function actionSplit(nodeIDs: EntityID | EntityID[], newWayIDs?: EntityID
       // 1. Both `wayA` and `wayB` remain in the relation
       // 2. But must be inserted as a pair (see `actionAddMember` for details)
       } else {
+        // Maid: differs from Rapid here (F-actions-b-34, see docs/research/relations-vs-id.md)
+        // a split area is not paired with its new way in its other relations: the new multipolygon
+        // replaces the area there, see below (iD#12024)
+        if (isArea && !rel.isMultipolygon()) continue;
+
         member = { id: wayB.id, type: 'way', role: rel.memberById(wayA.id)!.role };
         const insertPair = { originalID: wayA.id, insertedID: wayB.id, nodes: origNodes };
         graph = actionAddMember(rel.id, member, undefined, insertPair)(graph);
@@ -275,8 +284,10 @@ export function actionSplit(nodeIDs: EntityID | EntityID[], newWayIDs?: EntityID
       // If the way is already in a multipolygon relation, move its tags
       // to that relation instead of creating a new one.
       const parentMP = graph.parentRelations(wayA).find(r => r.isMultipolygon());
+      let multipolygonID: EntityID;
       if (parentMP) {
         graph.replace(parentMP.mergeTags(wayA.tags));
+        multipolygonID = parentMP.id;
       } else {
         const multipolygon = new OsmRelation(wayA.context, {
           tags: Object.assign({}, wayA.tags, { type: 'multipolygon' }),
@@ -286,6 +297,14 @@ export function actionSplit(nodeIDs: EntityID | EntityID[], newWayIDs?: EntityID
           ]
         });
         graph.replace(multipolygon);
+        multipolygonID = multipolygon.id;
+      }
+
+      // Maid: differs from Rapid here (F-actions-b-34, see docs/research/relations-vs-id.md)
+      // the multipolygon takes the place of the area in the area's other parent relations (iD#12024)
+      for (const relation of graph.parentRelations(wayA)) {
+        if (relation.id === multipolygonID) continue;
+        graph.replace(relation.replaceMember({ id: wayA.id }, { id: multipolygonID, type: 'relation' }));
       }
 
       graph.replace(wayA.update({ tags: {} }));
