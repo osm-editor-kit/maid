@@ -62,6 +62,26 @@ export class Graph {
   public base: GraphCache;
   /** Local (edited) entity cache, cloned from the predecessor Graph on construction */
   public local: GraphCache;
+  /**
+   * Maid: differs from Rapid here. The `local.entities` entries of the ids written since the last `commit()`,
+   * as they were before the first of those writes (`_recordWrite`). Rapid kept a full copy of the Graph at
+   * each commit and diffed the whole `local` map against it, which costs O(all edits of the session).
+   */
+  protected _written: Map<EntityID, { had: boolean, value: OsmEntity | undefined, seq: number }>;
+  /**
+   * Maid: differs from Rapid here. `true` once `commit()` has run on this Graph, so `_written` holds every
+   * change since then. A Graph copied from another (or a snapshot) diffs its first commit against `previous`.
+   */
+  protected _tracked: boolean;
+  /**
+   * Maid: differs from Rapid here. The position of each key of `local.entities`, as a number that grows with
+   * each new key. Rapid's `Difference` visits the changed ids in the order of the `local` Map, and the order
+   * decides which parent relations `complete()` reaches; `commit()` sorts the written ids by these numbers to
+   * visit them in that same order (see `_setLocal`).
+   */
+  protected _seqs: Map<EntityID, number>;
+  /** Maid: differs from Rapid here. The last number given out in `_seqs`. */
+  protected _clock: number;
 
 
   /**
@@ -70,6 +90,8 @@ export class Graph {
    */
   public constructor(otherOrContext: Graph | Context, propsOrEntities: OsmEntity[] | Partial<GraphProps> = {}) {
     this.id = '';  // put this first so debug inspect shows it first
+    this._written = new Map();  // Maid: differs from Rapid here (see `_written`)
+    this._tracked = false;
 
     // A Graph derived from a predecessor Graph
     if (otherOrContext instanceof Graph) {  // copy other
@@ -85,6 +107,8 @@ export class Graph {
         parentWays:  new Map<EntityID, Set<EntityID>>(other.local.parentWays),        // shallow clone
         parentRels:  new Map<EntityID, Set<EntityID>>(other.local.parentRels)         // shallow clone
       };
+      this._seqs = new Map(other._seqs);  // Maid: differs from Rapid here (see `_seqs`)
+      this._clock = other._clock;
 
     // A fresh Graph
     } else {
@@ -104,6 +128,8 @@ export class Graph {
         parentWays:  new Map<EntityID, Set<EntityID>>(),
         parentRels:  new Map<EntityID, Set<EntityID>>()
       };
+      this._seqs = new Map();  // Maid: differs from Rapid here (see `_seqs`)
+      this._clock = 0;
     }
 
     // Deal with extra argument
@@ -266,7 +292,7 @@ export class Graph {
       const current = this.hasEntity(entityID);
       if (current === entity) continue;  // no change
 
-      this.local.entities.set(entityID, entity);
+      this._setLocal(entityID, entity);  // Maid: differs from Rapid here (see `_written`)
       this._updateCaches(current, entity);
     }
     return this.touch();
@@ -290,7 +316,7 @@ export class Graph {
       const current = this.hasEntity(entityID);
       if (!current) continue;  // not in the graph
 
-      this.local.entities.set(entityID, undefined);
+      this._setLocal(entityID, undefined);  // Maid: differs from Rapid here (see `_written`)
       this._updateCaches(current, undefined);
     }
     return this.touch();
@@ -313,7 +339,7 @@ export class Graph {
       const current = this.hasEntity(entityID);
       if (current === original) continue;   // no change
 
-      this.local.entities.delete(entityID);
+      this._deleteLocal(entityID);  // Maid: differs from Rapid here (see `_written`)
       this._updateCaches(current, original);
     }
     return this.touch();
@@ -325,16 +351,89 @@ export class Graph {
    * @return  this Graph
    */
   public commit(): Graph {
-    // What changed between 'previous' and 'current'?
-    const diff = new Difference(this.previous, this);
+    // Maid: differs from Rapid here (see `_written`). Rapid diffed this Graph against `previous`, a full
+    // copy taken at the last commit, so every commit cost O(all edits of the session). Now the diff covers
+    // only the ids written since the last commit. Both sides are views that `Difference` reads through
+    // `hasEntity`, `local.entities` and the parent lookups: the "before" side answers from the pre-images
+    // in `_written` and from the shared base (as the copy did), the "after" side from this Graph. An id
+    // that was not written is the same on both sides, so `Difference` finds the same changes as before.
+    // The first commit of a Graph copied from another (or a snapshot) has no pre-images: it diffs against
+    // `previous` as Rapid does.
+    let diff: Difference;
+    if (this._tracked) {
+      // The ids in the order `Difference` would meet them: the keys of `local` (in their order there), then
+      // the keys the last commit had and this one has not (in their order there). Only the written ids can differ.
+      const written = this._written;
+      const local = this.local.entities;
+      const inLocal = [...written.keys()].filter(id => local.has(id));
+      inLocal.sort((a, b) => this._seqs.get(a)! - this._seqs.get(b)!);
+      const gone = [...written].filter(([id, pre]) => pre.had && !local.has(id)).map(([id]) => id);
+      gone.sort((a, b) => written.get(a)!.seq - written.get(b)!.seq);
+
+      const before = {
+        local: { entities: new Map<EntityID, undefined>([...inLocal, ...gone].map((id): [EntityID, undefined] => [id, undefined])) },
+        hasEntity: (id: EntityID): OsmEntity | undefined => {
+          const pre = written.get(id)!;
+          return pre.had ? pre.value : this.base.entities.get(id);
+        },
+      } as unknown as Graph;
+      const after = {
+        local: { entities: new Map<EntityID, undefined>(inLocal.map((id): [EntityID, undefined] => [id, undefined])) },
+        hasEntity: (id: EntityID): OsmEntity | undefined => this.hasEntity(id),
+        parentWays: (entity: OsmEntity): OsmWay[] => this.parentWays(entity),
+        parentRelations: (entity: OsmEntity): OsmRelation[] => this.parentRelations(entity),
+      } as unknown as Graph;
+      diff = new Difference(before, after);
+    } else {
+      diff = new Difference(this.previous, this);
+    }
+
     const ids = [...diff.complete().keys()];
     this._updateGeometries(ids);
 
-    // Replace 'previous' with a copy of the current graph.
-    // More changes can happen to this graph and `commit()` will detect them.
-    // This also allows the previous Graph to be garbage collected if it was temporary.
-    this.previous = this.snapshot();
+    // Nothing is copied any more: the next commit only needs the writes made after this one.
+    // (`previous` was the copy Rapid kept here; it is released so the predecessor can be collected.)
+    this._written.clear();
+    this._tracked = true;
+    this.previous = null;
     return this;
+  }
+
+
+  /**
+   * Maid: differs from Rapid here (see `_written`). Remembers what `local.entities` held for `entityID` before
+   * its first write since the last `commit()`. Call it before every write to `local.entities`.
+   * @param  entityID - The entity that is about to be written
+   */
+  protected _recordWrite(entityID: EntityID): void {
+    if (this._written.has(entityID)) return;
+    const local = this.local.entities;
+    this._written.set(entityID, { had: local.has(entityID), value: local.get(entityID), seq: this._seqs.get(entityID) ?? 0 });
+  }
+
+
+  /**
+   * Maid: differs from Rapid here (see `_written` and `_seqs`). Sets an entry of `local.entities`, and gives a
+   * new key the next position number, as a new key goes last in the Map.
+   * @param  entityID - The entity to set
+   * @param  entity   - The entity, or `undefined` for a deletion
+   */
+  protected _setLocal(entityID: EntityID, entity: OsmEntity | undefined): void {
+    this._recordWrite(entityID);
+    const local = this.local.entities;
+    if (!local.has(entityID)) this._seqs.set(entityID, ++this._clock);
+    local.set(entityID, entity);
+  }
+
+
+  /**
+   * Maid: differs from Rapid here (see `_written` and `_seqs`). Removes an entry of `local.entities`.
+   * @param  entityID - The entity to remove from the local data
+   */
+  protected _deleteLocal(entityID: EntityID): void {
+    this._recordWrite(entityID);
+    this.local.entities.delete(entityID);
+    this._seqs.delete(entityID);
   }
 
 
@@ -369,7 +468,7 @@ export class Graph {
     const _loadOne = (entityID: EntityID, entity: OsmEntity | undefined): void => {
       const current = this.hasEntity(entityID);
       const replacement = entity || undefined;
-      this.local.entities.set(entityID, replacement);
+      this._setLocal(entityID, replacement);  // Maid: differs from Rapid here (see `_written`)
       this._updateCaches(current, replacement);
     };
 
@@ -509,7 +608,7 @@ export class Graph {
     // Restore deleted nodes that were discovered to belong to a parentWay.
     for (const id of restoreIDs) {
       if (local.entities.has(id) && local.entities.get(id) === undefined) {  // was deleted
-        local.entities.delete(id);  // "delete the delete", aka restore.
+        this._deleteLocal(id);  // Maid: differs from Rapid here (see `_written`). "delete the delete", aka restore.
         didChange = true;
       }
     }
