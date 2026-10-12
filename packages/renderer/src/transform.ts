@@ -5,7 +5,7 @@
  * The result is in the work in progress of the history while the pointer moves; a click keeps it
  * as one undo step, Escape takes it back.
  */
-import { actionMove, actionMoveNode } from '@osm-editor-kit/maid-model'
+import { actionMove, type Action, type Graph, type OsmNode } from '@osm-editor-kit/maid-model'
 import type { MaidEngine } from './engine'
 
 export type TransformKind = 'move' | 'rotate'
@@ -15,6 +15,28 @@ type XY = [x: number, y: number]
 type MoveCache = NonNullable<Parameters<typeof actionMove>[2]>
 
 const RAD = Math.PI / 180
+
+/**
+ * Moves many nodes as one action: the positions that one `actionMoveNode` per node would give, but
+ * one pass through the graph and one commit. A commit per node made a rotation of N nodes cost N
+ * commits. Each node is interpolated with the formula of `actionMoveNode` (vecInterp of
+ * @rapid-sdk/math), so the final locations are the same. Each id may appear once.
+ */
+export function actionMoveNodes(moves: readonly (readonly [id: string, to: Loc])[]): Action {
+  const action = ((graph: Graph, t?: number): Graph => {
+    // as actionMoveNode: no or a bad t is the whole move, and t is kept between 0 and 1
+    const eased = t === null || t === undefined || !isFinite(t) ? 1 : Math.min(Math.max(+t, 0), 1)
+    if (eased === 0) return graph
+    const nodes = moves.map(([id, to]) => {
+      const node = graph.entity(id) as OsmNode
+      const from = node.loc!
+      return node.move([from[0] + (to[0] - from[0]) * eased, from[1] + (to[1] - from[1]) * eased])
+    })
+    return graph.replace(nodes).commit()
+  }) as Action
+  action.transitionable = true
+  return action
+}
 
 /** Web Mercator in radians: angles and distances on it are the ones the map shows */
 export function toMercator([lon, lat]: readonly number[]): XY {
@@ -71,6 +93,14 @@ export class TransformTool {
    * with and shares this cache, as iD's move mode does, so the replacement vertices keep their ids.
    */
   private moveCache: MoveCache = {}
+  /**
+   * The latest pointer position that no step has applied yet. The pointer events between two
+   * animation frames only set it, so a step runs once per frame however many events arrive, as
+   * `dragTo` keeps only the latest position while the map is busy.
+   */
+  private latest?: XY
+  /** The animation frame that applies `latest`, if one is asked for */
+  private frame?: number
 
   constructor(private engine: MaidEngine) {}
 
@@ -108,13 +138,27 @@ export class TransformTool {
     return true
   }
 
-  /** The pointer moved: the selection follows */
+  /**
+   * The pointer moved: the selection follows. The step for the latest position runs in the next
+   * animation frame (see `latest`). The first position seen is where the pointer started.
+   */
   move(lon: number, lat: number) {
-    const { kind, engine, pivot } = this
-    if (!kind) return
+    if (!this.kind) return
     const pointer = toMercator([lon, lat])
     this.start ??= pointer
-    const { start } = this
+    this.latest = pointer
+    this.frame ??= requestAnimationFrame(() => {
+      this.frame = undefined
+      this.apply()
+    })
+  }
+
+  /** Moves the selection to the latest pointer position, if no step has done it yet */
+  private apply() {
+    const pointer = this.latest
+    this.latest = undefined
+    const { kind, engine, pivot, start } = this
+    if (!kind || !pointer || !start) return
 
     if (kind === 'move') {
       // as iD: always from the state the move began with, so nothing adds up over many pointer moves
@@ -136,13 +180,23 @@ export class TransformTool {
       const ry = y - pivot[1]
       return [pivot[0] + rx * cos - ry * sin, pivot[1] + rx * sin + ry * cos]
     }
-    // always from where the nodes started, so nothing adds up over many pointer moves
-    const actions = [...this.origin].map(([id, at]) => actionMoveNode(id, fromMercator(place(at))))
-    engine.change(() => engine.data.history.perform(...actions), false)
+    // always from where the nodes started, so nothing adds up over many pointer moves; one action
+    // for all of them, so the step is one commit
+    const moves = [...this.origin].map(([id, at]): [string, Loc] => [id, fromMercator(place(at))])
+    engine.change(() => engine.data.history.perform(actionMoveNodes(moves)), false)
+  }
+
+  /** Stops the frame that would apply the latest position */
+  private unschedule() {
+    if (this.frame !== undefined) cancelAnimationFrame(this.frame)
+    this.frame = undefined
   }
 
   /** Keeps the result as one undo step. Returns false if nothing was moved. */
   finish(): boolean {
+    // the last pointer position is where the selection is put down: applied before the commit
+    this.unschedule()
+    this.apply()
     const { kind, ids, engine } = this
     if (!kind) return false
     this.kind = undefined
@@ -158,10 +212,12 @@ export class TransformTool {
     return true
   }
 
-  /** Puts everything back where it was */
+  /** Puts everything back where it was. A pending pointer position is dropped, not applied. */
   cancel() {
     if (!this.kind) return
     this.kind = undefined
+    this.unschedule()
+    this.latest = undefined
     this.engine.change(() => this.engine.data.history.revert())
   }
 }

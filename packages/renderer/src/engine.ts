@@ -14,11 +14,7 @@ import {
   actionAddMidpoint,
   actionConnect,
   actionCopyEntities,
-  actionDeleteMultiple,
   actionChangeTags,
-  actionDeleteNode,
-  actionDeleteRelation,
-  actionDeleteWay,
   actionMoveNode,
   type Difference,
   Graph,
@@ -58,7 +54,7 @@ import {
   type SnapTarget,
   SNAP_PX,
 } from './snap'
-import { fromMercator, nodesOf, toMercator, TransformTool } from './transform'
+import { actionMoveNodes, fromMercator, nodesOf, toMercator, TransformTool } from './transform'
 
 export type EngineOptions = {
   /** The editor that owns the OSM data and the edit history. The engine reads and changes them there. */
@@ -837,8 +833,11 @@ export class MaidEngine {
         const to = toMercator([lon, lat])
         const dx = to[0] - nodes.reduce((sum, n) => sum + n.at[0], 0) / nodes.length
         const dy = to[1] - nodes.reduce((sum, n) => sum + n.at[1], 0) / nodes.length
+        // one action for all the nodes: one commit, not one per node
         history.perform(
-          ...nodes.map((n) => actionMoveNode(n.id, fromMercator([n.at[0] + dx, n.at[1] + dy]))),
+          actionMoveNodes(
+            nodes.map((n) => [n.id, fromMercator([n.at[0] + dx, n.at[1] + dy])] as const),
+          ),
         )
       }
       const what = pasted.length === 1 ? 'a feature' : `${pasted.length} features`
@@ -891,40 +890,6 @@ export class MaidEngine {
     return node.id
   }
 
-  /**
-   * Deletes a node, way or relation, as iD does: a way takes the nodes along that nothing else
-   * uses and that have no tags of their own; a node is taken out of its ways. One undo step.
-   * Returns false if there is no such entity.
-   */
-  deleteEntity(id: string): boolean {
-    return this.deleteEntities([id])
-  }
-
-  /** Deletes several entities as one undo step. Returns false if one is missing or read-only. */
-  deleteEntities(ids: readonly string[]): boolean {
-    const { graph } = this.data.history.staging
-    if (ids.length === 0 || ids.some((id) => !graph.hasEntity(id) || this.isReadOnly(id)))
-      return false
-    const [id] = ids
-    if (ids.length > 1 || !id) {
-      this.setSelected(this.selectedIds.filter((selected) => !ids.includes(selected)))
-      if (this.hoverId && ids.includes(this.hoverId)) this.setHover(null)
-      this.edit(actionDeleteMultiple([...ids]), `Deleted ${ids.length} features`, [])
-      return true
-    }
-    const action =
-      id[0] === 'n'
-        ? actionDeleteNode(id)
-        : id[0] === 'w'
-          ? actionDeleteWay(id)
-          : actionDeleteRelation(id)
-    const kind = id[0] === 'n' ? 'a node' : id[0] === 'w' ? 'a way' : 'a relation'
-    if (this.selectedIds.includes(id)) this.setSelected(this.selectedIds.filter((s) => s !== id))
-    if (id === this.hoverId) this.setHover(null)
-    this.edit(action, `Deleted ${kind}`, [])
-    return true
-  }
-
   /** Performs an action as one undo step and redraws what it changed */
   private edit(action: Action, annotation: string, selectedIDs: string[]) {
     const { history } = this.data
@@ -974,8 +939,11 @@ export class MaidEngine {
         } else if (this.data.nodeWays.has(id)) {
           if (moved)
             for (const wayId of this.data.nodeWays.get(id) ?? []) {
-              const way = this.data.way(wayId)
-              if (way) place(wayId, this.builder.buildWay(way))
+              // a way that another node already placed is built already: check before building
+              if (!placed.has(wayId)) {
+                const way = this.data.way(wayId)
+                if (way) place(wayId, this.builder.buildWay(way))
+              }
               memberOf(wayId)
             }
           const vertex = this.builder.refreshVertex(node)
@@ -985,8 +953,10 @@ export class MaidEngine {
           place(id, point && { source: 'points', feature: point })
         }
       } else if (id[0] === 'w') {
-        const way = this.data.way(id)
-        place(id, way && this.builder.buildWay(way))
+        if (!placed.has(id)) {
+          const way = this.data.way(id)
+          place(id, way && this.builder.buildWay(way))
+        }
         memberOf(id)
       } else if (id[0] === 'r') {
         multipolygons.add(id)
