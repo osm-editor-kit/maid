@@ -22,7 +22,7 @@ import {
 import { exposeBenchApi } from '../bench'
 import { drawClick } from '../drawing'
 import { config, editor, engine, useEngine } from '../editor'
-import { addPointWithFavourite } from '../favourites'
+import { addPointWithFavourite, giveFavouriteTagsToNode } from '../favourites'
 import { ensureImages } from '../images'
 import { useSelection } from '../selection'
 import { useCameraParam } from '../url/state'
@@ -273,12 +273,15 @@ export function MapView() {
       // on a line, the new node is a vertex of that way (as iD does); anywhere else a point is added
       const on = engine.snapAt(event.point, interactive, new Set())
       if (on?.type === 'node') {
+        // a favourite that started this mode tags the node that is there
+        giveFavouriteTagsToNode(on.id)
         engine.setMode('browse')
         select(on.id)
         return
       }
       if (on?.type === 'way') {
         const id = engine.addNodeOn(on)
+        giveFavouriteTagsToNode(id)
         engine.setMode('browse')
         select(id)
         return

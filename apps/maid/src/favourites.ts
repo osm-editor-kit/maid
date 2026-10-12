@@ -102,6 +102,19 @@ export function addPointWithFavourite(lon: number, lat: number): string {
 }
 
 /**
+ * The favourite's tags for a node that "add point" did not create as a free point: an existing
+ * node that was clicked, or a new node on a line. The node keeps the tags it has; the favourite's
+ * are added on top, as picking that type would.
+ */
+export function giveFavouriteTagsToNode(id: string): void {
+  const found = pending.current
+  if (!found || found.mode !== 'add-point') return
+  pending.current = undefined
+  const tags = engine.entity(id)?.tags ?? {}
+  engine.setTags(id, { ...tags, ...found.tags }, 'Changed the feature type')
+}
+
+/**
  * A line or an area that was just finished in `mode`. A favourite that started that mode gives it
  * its type: a second undo step, as the type picker makes one.
  */
