@@ -1,4 +1,5 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
+import { deleteOperation } from '@osm-editor-kit/maid-operations'
 import { FAVOURITE_KEYS } from '@osm-editor-kit/maid-ui'
 import { useHotkeys, type UseHotkeyDefinition } from '@tanstack/react-hotkeys'
 import { continueLine, drawClick, drawingKind } from '../drawing'
@@ -46,8 +47,10 @@ export function useShortcuts() {
     engine.transform.cancel()
     engine.setMode('browse')
   }
+  // the delete operation has iD's rules: what may not be deleted, and which node is selected after
   const remove = () => {
-    if (engine.deleteEntities(selected)) select(null)
+    const next = engine.runOperation(deleteOperation)
+    if (next) select(next.length > 0 ? next : null)
   }
   const cancelDrawing = () => {
     engine.draw.cancel()

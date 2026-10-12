@@ -712,6 +712,9 @@ export class MaidEngine {
       history.commit({ annotation, selectedIDs: [...next] })
     })
     this.setSelected(next)
+    // an operation can delete what the pointer is over
+    if (this.hoverId && this.data.history.staging.graph.hasEntity(this.hoverId) === undefined)
+      this.setHover(null)
     return next
   }
 

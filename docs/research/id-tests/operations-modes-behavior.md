@@ -1,13 +1,13 @@
 # iD tests: operations, modes, behavior
 
-Compared at iD commit `0194f3926`. Run: `bun test packages/operations apps/maid/src/url` → 81 pass, 0 fail, 11 todo.
+Compared at iD commit `0194f3926`. Run: `bun test packages/operations apps/maid/src/url` → 118 pass, 0 fail, 7 todo.
 
 Browser checks named below are in `tools/bench/` and were only read, not run or edited.
 
 | iD spec file | iD tests | covered | adopted | todo | n/a | Maid test file |
 | --- | --- | --- | --- | --- | --- | --- |
 | `operations/circularize.js` | 11 | 0 | 9 | 2 | 0 | `packages/operations/src/id-circularize.test.ts` |
-| `operations/delete.js` | 4 | 0 | 0 | 4 | 0 | `packages/operations/src/id-delete.test.ts` (todo only) |
+| `operations/delete.js` | 4 | 0 | 4 | 0 | 0 | `packages/operations/src/id-delete.test.ts`; the checks it lacks are in `packages/operations/src/delete.test.ts` |
 | `operations/extract.js` | 14 | 0 | 14 | 0 | 0 | `packages/operations/src/id-extract.test.ts` |
 | `operations/straighten.js` | 15 | 0 | 15 | 0 | 0 | `packages/operations/src/id-straighten.test.ts` |
 | `modes/add_note.js` | 0 | 0 | 0 | 0 | 0 | none (the file has no `it`) |
@@ -17,7 +17,7 @@ Browser checks named below are in `tools/bench/` and were only read, not run or 
 | `behavior/hover.js` | 8 | 0 | 0 | 5 | 3 | none: browser, F-beh-1 and F-beh-2 |
 | `behavior/lasso.js` | 1 | 0 | 0 | 1 | 0 | none: F-beh-3 |
 | `behavior/select.js` | 8 | 4 | 0 | 4 | 0 | none: covered by `interactions-check` |
-| **sum** | **80** | **4** | **42** | **31** | **3** | |
+| **sum** | **80** | **4** | **46** | **27** | **3** | |
 
 The sum is 80, the iD count for these 11 files in `inventory.md` (operations 44, modes 10, behavior 26).
 
@@ -34,13 +34,14 @@ Covered, by check and label (`tools/bench/interactions-check.ts`):
 - Operations take `{ graph, selected }`. The graph is `new Graph(context, entities)`, as in `operations.test.ts`.
 - Straighten: iD's nodes have no position; Maid needs one, so each node gets a distinct one. Applicability is topological, so the positions do not change any result.
 - Hash: iD's `hadLocation` is the fact that the `map` parameter was read. The map moving and the URL being written are browser behaviour, not adopted.
+- Delete: iD's `enter(modeSelect(...))` check becomes the `select` of the result, asked with the graph the actions left behind. The four adopted tests run the actions on a copy of the graph, as in `operations.test.ts`.
 
 ## Missing features
 
 | Id | Feature | iD tests that need it | State | Where it belongs |
 | --- | --- | --- | --- | --- |
 | F-ops-1 | Make round joins unclosed ways into a loop first, as iD does with `osmJoinWays` and a temporary way. Maid marks an open ring "not a loop". The model already has `osmJoinWays` (`packages/model/src/lib/multipolygon.ts`). Not built: it needs a temporary way with a new id, and that is more than a small fix. | `circularize.js`: 2 | todo | `packages/operations/src/operations.ts` (`circularizeOperation`) |
-| F-ops-2 | Delete operation with iD's rules and next-node selection. Maid has no delete operation. The engine (`packages/renderer/src/engine.ts`, `deleteEntities`, line 845) checks that the ids exist and are not read-only (`isReadOnly`), deletes as one undo step, and drops deleted ids from the selection. It selects no neighbour, so a deleted vertex leaves nothing selected. iD's disabled reasons are not ported: `part_of_relation`, `incomplete_relation`, `has_wikidata_tag`, `connected_to_hidden`; `not_downloaded` and `too_large` are about loading tiles and are not decided for Maid. | `delete.js`: 4 | todo | `packages/operations` (new operation) and the engine's delete |
+| F-ops-2 | Delete with iD's rules and next-node selection. Built now as `deleteOperation` (`packages/operations/src/operations.ts`): it decides `part_of_relation` (route, boundary, outer ring of a multipolygon), `incomplete_relation` and `has_wikidata_tag`, in iD's order, and selects the neighbour of a deleted vertex (iD's `nextSelectedID` rule, equal distances go to the following node). Left: `connected_to_hidden` needs the filters, which `OperationContext` does not have; `too_large` needs the visible extent; `not_downloaded` needs tile loading. None of the three is decided, so a vertex of a hidden way can still be deleted. The app is not switched yet: its Delete command and `engine.deleteEntities` still select nothing, and the engine does not check read-only ways that a vertex is connected to. | `delete.js`: 4 | built now; app not switched | `apps/maid/src/commands.ts` and the engine (to do, see the report) |
 | F-mode-1 | Ctrl+↓ selects the child nodes of a selected way, and the shared child node of two selected ways. Maid's ArrowDown pans the map (`apps/maid/src/components/useShortcuts.ts:98`). | `modes/select.js`: 8 | todo | `apps/maid/src/components/useShortcuts.ts`, engine selection |
 | F-mode-2 | Missing check: in add-point mode, a click adds a point, and a click on an existing point selects it instead. The engine can add a point (`addPoint`), and `edit-check` calls it directly, not by a click. Whether a click on a point selects it is not verified. | `modes/add_point.js`: 2 | todo (check missing) | `tools/bench` (a new check) |
 | F-beh-1 | Holding Alt suppresses hover, so the feature under the pointer can be picked. Maid has no Alt handling. | `hover.js`: 4 (Alt keydown ×2, Alt keyup ×2) | todo | `packages/renderer` (`setHover`), `apps/maid` shortcuts |
@@ -60,7 +61,7 @@ Covered, by check and label (`tools/bench/interactions-check.ts`):
 - **Hash, number format.** At zoom 2 iD writes `38.9/-77.0`; Maid writes `38.90/-77.00`. The same numbers, so the test compares the parsed values.
 - **Hash, changeset comment.** Maid carries `comment=` in the URL and never uses it as a changeset comment, because Maid never uploads.
 - **Hash, several ids.** `id-url.ts` says Maid selects the first id of `id=w1,n2` for now; iD selects all of them. No iD test in this area checks it, but the select tests depend on it.
-- **Delete.** iD selects a neighbour after a vertex is deleted; Maid selects nothing. F-ops-2.
+- **Delete.** iD selects a neighbour after a vertex is deleted. Maid's operation does too; the app's Delete command does not yet (F-ops-2). iD's `connected_to_hidden` is the one that matters most for data: the operation cannot tell whether a connected way is hidden or read-only.
 - **Arrow keys.** iD's Ctrl+↓ selects child nodes; Maid's arrow keys pan. F-mode-1.
 
 ## Not applicable, by reason
@@ -70,6 +71,6 @@ Covered, by check and label (`tools/bench/interactions-check.ts`):
 
 ## Not finished
 
-Nothing in the area. No source file was changed: no fix in `packages/operations/src` was small enough to adopt a test that now fails, so nothing was fixed.
-
-Other checks run: `bun run type-check` exits 1, all 10 errors in `packages/filters/src/id-features.test.ts` (another agent's file). The five files I wrote have none. oxfmt `--check` and oxlint `--deny-warnings` are clean on the five files.
+- Delete (F-ops-2): the operation and its tests are in `packages/operations`. Not done: the app switch. `apps/maid/src/maid.config.ts` passes `defaultOperations` to the edit menu, so Delete now appears there too, with id `delete`, next to the hard-coded Delete in `apps/maid/src/commands.ts` (same id). Until the app drops its own command, the menu shows two Deletes. The app also needs to keep `engine.deleteEntities`' read-only check for the selection (`runOperation` already checks it), and needs a check for hidden or read-only ways connected to a deleted vertex, which the operation cannot make.
+- Circularize (F-ops-1): open, 2 todo.
+- Checks run for this change: `bun test packages/operations` 107 pass, 2 todo (both circularize), 0 fail. `oxlint --deny-warnings` clean on `packages/operations`. `oxfmt` run on `packages/operations/src`. Root `tsc --noEmit` exits 0. Not run: `bun run check`, any browser check.

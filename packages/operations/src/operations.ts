@@ -4,8 +4,10 @@
 // visible"), hidden or not downloaded data, the localizer, presets, and iD's OSM connection.
 import {
   OsmNode,
+  OsmRelation,
   OsmWay,
   actionCircularize,
+  actionDeleteMultiple,
   actionDisconnect,
   actionExtract,
   actionJoin,
@@ -639,6 +641,143 @@ function reflectOperation(axis: 'long' | 'short'): Operation {
 export const reflectLongOperation = reflectOperation('long')
 export const reflectShortOperation = reflectOperation('short')
 
+// Delete
+
+/** iD's reasons for delete that the data can decide, with iD's wording (core.yaml, operations.delete) */
+const DELETE_REASONS: Record<string, Sentence> = {
+  part_of_relation: [
+    "This feature can't be deleted because it is part of a larger relation. You must remove it from the relation first.",
+    "These features can't be deleted because they are part of larger relations. You must remove them from the relations first.",
+  ],
+  incomplete_relation: [
+    "This feature can't be deleted because it hasn't been fully downloaded.",
+    "These features can't be deleted because they haven't been fully downloaded.",
+  ],
+  has_wikidata_tag: [
+    "This feature can't be deleted because it has a Wikidata tag.",
+    "These features can't be deleted because some have Wikidata tags.",
+  ],
+}
+
+/** iD's annotation of one deleted feature, by its geometry. Several features: "Deleted 3 features". */
+const DELETE_ANNOTATIONS: Record<string, string> = {
+  point: 'Deleted a point',
+  vertex: 'Deleted a node from a way',
+  line: 'Deleted a line',
+  area: 'Deleted an area',
+  relation: 'Deleted a relation',
+}
+
+/** Equatorial and polar radius in metres, as in iD's geo module */
+const EQUATORIAL_RADIUS = 6.378137e6
+const POLAR_RADIUS = 6.3567523e6
+const TAU = 2 * Math.PI
+
+/**
+ * The distance in metres between two nodes, computed as iD's geoSphericalDistance (equirectangular
+ * at their mean latitude). Infinity when a node has no position: every comparison with it is then
+ * false, which is how iD's NaN behaves.
+ */
+function metresBetween(fromID: string, toID: string, graph: Graph): number {
+  const from = graph.hasEntity(fromID)
+  const to = graph.hasEntity(toID)
+  if (!(from instanceof OsmNode) || !(to instanceof OsmNode) || !from.loc || !to.loc)
+    return Infinity
+  const [lonA, latA] = from.loc
+  const [lonB, latB] = to.loc
+  const meanLat = (latA + latB) / 2
+  const x =
+    Math.abs(meanLat) >= 90
+      ? 0
+      : (lonA - lonB) *
+        ((TAU * EQUATORIAL_RADIUS) / 360) *
+        Math.abs(Math.cos((meanLat * Math.PI) / 180))
+  const y = (latA - latB) * ((TAU * POLAR_RADIUS) / 360)
+  return Math.hypot(x, y)
+}
+
+/**
+ * iD's rule for the node selected after a vertex is deleted: the neighbour on the first way the
+ * vertex belongs to. At an end of the way, the node next to it. In the middle, the nearer one (the
+ * following one when both are equally near). Undefined for a way of one node.
+ */
+function nextNodeOnWay(vertex: OsmNode, graph: Graph): string | undefined {
+  const parent = graph.parentWays(vertex)[0]
+  if (!parent) return undefined
+  const nodes = parent.nodes
+  const i = nodes.indexOf(vertex.id)
+  if (i < 0) return undefined
+  if (i === 0) return nodes[1]
+  if (i === nodes.length - 1) return nodes[i - 1]
+  const previous = nodes[i - 1]
+  const following = nodes[i + 1]
+  if (previous === undefined || following === undefined) return undefined
+  const before = metresBetween(vertex.id, previous, graph)
+  const after = metresBetween(vertex.id, following, graph)
+  return before < after ? previous : following
+}
+
+/**
+ * iD's protectedMember: a way that is a member of a route or a boundary, or the outer ring of a
+ * multipolygon (a member without a role counts as outer). Deleting it would break that relation.
+ */
+function isProtectedWay(way: OsmWay, graph: Graph): boolean {
+  return graph.parentRelations(way).some((relation) => {
+    const role = relation.memberById(way.id)?.role || 'outer'
+    const type = relation.tags.type
+    return type === 'route' || type === 'boundary' || (type === 'multipolygon' && role === 'outer')
+  })
+}
+
+/**
+ * iD's disabled reasons for delete, in iD's order. Not here: `too_large` (needs the visible
+ * extent), `not_downloaded` (needs the tiles loaded) and `connected_to_hidden` (needs the filters).
+ */
+function deleteReason(entities: OsmEntity[], graph: Graph): string | undefined {
+  if (entities.some((entity) => entity instanceof OsmWay && isProtectedWay(entity, graph)))
+    return 'part_of_relation'
+  if (entities.some((entity) => entity instanceof OsmRelation && !entity.isComplete(graph)))
+    return 'incomplete_relation'
+  if (entities.some((entity) => (entity.tags.wikidata ?? '').trim().length > 0))
+    return 'has_wikidata_tag'
+  return undefined
+}
+
+/**
+ * Delete: removes the selected features as one undo step. After one vertex is deleted, its
+ * neighbour on the way is selected, as in iD; otherwise nothing is selected afterwards.
+ * Maid's shortcut type takes one letter, and iD's key is Cmd/Ctrl+Backspace, so it has none here.
+ */
+export const deleteOperation: Operation = {
+  id: 'delete',
+  label: 'Delete',
+  applies: (context) => resolveSelection(context) !== undefined,
+  disabled: (context) => {
+    const entities = resolveSelection(context)
+    if (!entities) return undefined
+    const reason = deleteReason(entities, context.graph)
+    return reason === undefined
+      ? undefined
+      : reasonSentence(DELETE_REASONS, reason, entities.length)
+  },
+  run: (context) => {
+    const entities = resolveSelection(context) ?? notApplicable('delete')
+    const graph = context.graph
+    const only = entities.length === 1 ? entities[0] : undefined
+    const annotation = only
+      ? (DELETE_ANNOTATIONS[only.geometry(graph)] ?? 'Deleted a feature')
+      : `Deleted ${entities.length} features`
+    // computed on the graph before the delete, as iD does; select() checks it still exists after
+    const next =
+      only instanceof OsmNode && isVertex(only, graph) ? nextNodeOnWay(only, graph) : undefined
+    return {
+      actions: [actionDeleteMultiple(entities.map((entity) => entity.id))],
+      annotation,
+      select: (after) => (next !== undefined && after.hasEntity(next) !== undefined ? [next] : []),
+    }
+  },
+}
+
 /** The operations in the order of iD's edit menu */
 export const defaultOperations: Operation[] = [
   reverseOperation,
@@ -651,4 +790,5 @@ export const defaultOperations: Operation[] = [
   extractOperation,
   reflectLongOperation,
   reflectShortOperation,
+  deleteOperation,
 ]

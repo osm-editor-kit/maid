@@ -94,6 +94,7 @@ describe('the operation list', () => {
       ['extract', 'Extract', 'e'],
       ['reflect-long', 'Flip long', 't'],
       ['reflect-short', 'Flip short', 'y'],
+      ['delete', 'Delete', undefined],
     ])
   })
 })

@@ -33,7 +33,7 @@ export function usePasteCommand(at: { lon: number; lat: number } | undefined): C
 
 /**
  * What can be done with the selection now, in the order of iD's edit menu: move and rotate,
- * the operations that apply (`edit.operation`), copy, delete. Empty without a selection or when
+ * copy, then the operations that apply (`edit.operation`), with delete last. Empty without a selection or when
  * a filter makes it read-only.
  */
 export function useEditCommands(): Command[] {
@@ -46,29 +46,22 @@ export function useEditCommands(): Command[] {
     return [
       { id: 'move', label: 'Move', shortcut: 'M', run: () => void engine.setMode('move') },
       { id: 'rotate', label: 'Rotate', shortcut: 'R', run: () => void engine.setMode('rotate') },
+      { id: 'copy', label: 'Copy', shortcut: modKey('C'), run: () => void engine.copy() },
       ...operations
         .filter((operation) => operation.applies(context))
         .map((operation) => ({
           id: operation.id,
           label: operation.label,
-          shortcut: operation.shortcut?.toUpperCase(),
+          // delete has a key with a modifier, which an operation's one-letter shortcut cannot say
+          shortcut: operation.id === 'delete' ? modKey('⌫') : operation.shortcut?.toUpperCase(),
           reason: operation.disabled(context),
           run: () => {
             engine.previewOperation(null)
             const next = engine.runOperation(operation)
-            if (next) select(next)
+            if (next) select(next.length > 0 ? next : null)
           },
           preview: (on: boolean) => engine.previewOperation(on ? operation : null),
         })),
-      { id: 'copy', label: 'Copy', shortcut: modKey('C'), run: () => void engine.copy() },
-      {
-        id: 'delete',
-        label: 'Delete',
-        shortcut: modKey('⌫'),
-        run: () => {
-          if (engine.deleteEntities(ids)) select(null)
-        },
-      },
     ]
   })
 }

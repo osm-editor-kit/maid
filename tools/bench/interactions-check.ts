@@ -382,7 +382,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   )
   report(
     'right click, Delete: the feature is gone',
-    [true, 'Deleted a way'],
+    [true, 'Deleted an area'],
     [deleted, (await state()).undo],
   )
   await key('Meta+z')

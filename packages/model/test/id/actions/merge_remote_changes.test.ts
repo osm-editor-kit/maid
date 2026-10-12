@@ -60,7 +60,7 @@ describe('iD.actionMergeRemoteChanges', () => {
     tags: { foo: 'foo_new', area: 'yes' }
   });
 
-  function makeGraph(entities: Rapid.Entity[]) {
+  function makeGraph(entities: Rapid.OsmEntity[]) {
     const staging = new Rapid.Graph(base);
     staging.replace(entities);
     return staging.commit();

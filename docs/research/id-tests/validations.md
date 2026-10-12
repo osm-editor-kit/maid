@@ -9,7 +9,7 @@ Status: checkpoint. The three existing rules are done. The eight simple rules an
 | `validations/almost_junction.js` | 10 | 0 | 0 | 0 | 0 | not started |
 | `validations/crossing_ways.js` | 82 | 0 | 73 | 9 | 0 | `packages/validation/src/rules/crossing-ways.id.test.ts` |
 | `validations/disconnected_way.js` | 10 | 2 | 8 | 0 | 0 | `packages/validation/src/rules/disconnected-way.id.test.ts`; covered in `packages/validation/src/validation.test.ts` |
-| `validations/impossible_oneway.js` | 9 | 0 | 0 | 0 | 0 | not started |
+| `validations/impossible_oneway.js` | 9 | 0 | 9 | 0 | 0 | `packages/validation/src/rules/impossible-oneway.id.test.ts` |
 | `validations/incompatible_source.js` | 7 | 0 | 7 | 0 | 0 | `packages/validation/src/rules/incompatible-source.id.test.ts` |
 | `validations/invalid_format.js` | 19 | 0 | 19 | 0 | 0 | `packages/validation/src/rules/invalid-format.id.test.ts` |
 | `validations/mismatched_geometry.js` | 14 | 0 | 0 | 0 | 0 | not started |
@@ -32,6 +32,7 @@ Rows marked "not started" have zeros until they are done, so the full sum (209 i
 | F-validations-2 | `crossing_ways` fixes beyond "Connect the features": add bridge, add tunnel, change layer, and the dynamic fix list with `_connectionTags` | `crossing_ways.js`: 1 (flags sidewalk crossing service road) | todo | `packages/validation/src/rules/crossing-ways.ts`, `Fix` in `types.ts` |
 | F-validations-3 | `missing_role` fixes: set the member's role to outer or inner, and remove the member from the multipolygon. These change the relation's members, not a tag, so the rule builds the detection only | none (iD's spec counts the issues and does not run the fixes) | todo | `packages/validation/src/rules/missing-role.ts`, membership actions in `packages/model` |
 | F-validations-4 | `osm_api_limits` fix: split a way with too many nodes, at an intersection vertex if there is one near the middle, else at regular intervals (and at the start of a closed way). A split is an operation, not a tag change | `osm_api_limits.js`: 3 (the fix part of "flags way with more than the maximum", "can fix an extreme case", "fix a simple case at an intersection vertex") | todo | `packages/validation/src/rules/osm-api-limits.ts`, a split in `packages/operations` |
+| F-validations-20 | `impossible_oneway` fix "Continue drawing from start" and "Continue drawing from end" (iD opens the draw mode on the way at its dangling end). `Fix` has only actions, and a draw mode is not a model action | none: no iD test checks the fix | todo | `packages/validation/src/types.ts` (`Fix`), `packages/validation/src/rules/impossible-oneway.ts` |
 
 ## Differences found
 
@@ -52,6 +53,11 @@ Rows marked "not started" have zeros until they are done, so the full sum (209 i
 - **private_data, fix**: built as iD's "remove tag(s)": one fix removes the personal tags of the feature, in one undo step. The fix label names the tags (`Remove phone, email`), not iD's wording.
 - **missing_role, both sides**: as in iD, a way asks its parent multipolygons and a multipolygon asks its members, and the two findings of one missing role are one issue (same id, from the member's index). Fixes are F-validations-3.
 - **osm_api_limits, the limit**: iD reads the maximum from the server's capabilities. Maid never calls the API, so the rule uses the documented 2000 by default and `createOsmApiLimits(n)` takes another limit. The iD tests use 10, through the factory. The fix is F-validations-4.
+- **invalid_format, messages and severity**: the message names the tag key ("has an invalid URL in website"), where iD names the field's label ("in Website"): Maid has no presets here. iD's "suggestion" severity for a Wikimedia Commons file name in `image` is a warning in Maid, which has no suggestion severity. iD's protocol fixes check the value with a placeholder; Maid checks the value itself, which offers the same two protocols.
+- **invalid_format, Wikimedia Commons**: built as well as the website and email parts (the brief named those two), because the moves are plain tag changes and the rule stayed small. The image value that is a file or category moves to `wikimedia_commons`, and a Wikimedia Commons URL in `wikimedia_commons` is shortened to the file name.
+- **impossible_oneway, one-way test**: iD's `isOneWay()` reads its tag dictionaries; Maid's `OsmWay.isOneWay()` reads the schema's rulesets, which a headless validation does not load. The rule copies iD's dictionaries, so the rule needs no schema.
+- **impossible_oneway, loaded tiles**: iD skips a node whose OSM tile is not loaded. Maid's graph holds only what it has loaded, so the check is left out.
+- **impossible_oneway, fixes**: the "Reverse this feature" fix is built (a model action, `actionReverse`). The two "Continue drawing" fixes are F-validations-20.
 
 ## Not applicable, by reason
 
@@ -59,4 +65,4 @@ None so far.
 
 ## Not finished
 
-Not started: `almost_junction.js` (10), `impossible_oneway.js` (9), `invalid_format.js` (19), `mismatched_geometry.js` (14), `outdated_tags.js` (13), `suspicious_name.js` (14). Done by the validations rules agent this run, not in the list: `incompatible_source.js`, `missing_role.js`, `mutually_exclusive_tags.js`, `osm_api_limits.js`, `private_data.js`. Their rules are not in `defaultRules` yet, and `packages/validation/src/index.ts` is not changed for them.
+Not started: `almost_junction.js` (10), `impossible_oneway.js` (9), `invalid_format.js` (19), `mismatched_geometry.js` (14), `outdated_tags.js` (13), `suspicious_name.js` (14). Finished in the run that wrote the rules for `incompatible_source.js`, `missing_role.js`, `mutually_exclusive_tags.js`, `osm_api_limits.js` and `private_data.js` (rows above; `osm_api_limits` has 3 todos for the split fix). Their rules are not in `defaultRules` yet, and `packages/validation/src/index.ts` is not changed for them.
