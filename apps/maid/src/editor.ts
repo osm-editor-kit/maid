@@ -1,5 +1,6 @@
-import { createEditor } from '@osm-editor-kit/maid-core'
+import { createEditor, startSetting } from '@osm-editor-kit/maid-core'
 import { MaidEngine } from '@osm-editor-kit/maid-renderer'
+import { useSettings } from '@osm-editor-kit/maid-ui'
 import { useSyncExternalStore } from 'react'
 import { readConfig } from './config'
 import { editorConfig } from './maid.config'
@@ -17,11 +18,22 @@ export const config = readConfig(window.location)
 /** The editor's data and modules. What this editor is lives in maid.config.ts. */
 export const editor = createEditor(editorConfig(config))
 
+/**
+ * The filter states the session starts with: the link's if it has any, else the user's own.
+ * '' means every filter as the editor defines it.
+ */
+export const filtersStart = startSetting({
+  fallback: '',
+  stored: useSettings.getState().shown.filters,
+  url: config.filters ?? undefined,
+})
+useSettings.getState().setFromLink('filters', filtersStart.fromUrl)
+
 export const engine = new MaidEngine({
   editor,
   apiUrl: config.apiUrl,
   minDataZoom: config.minDataZoom,
-  filters: config.filters,
+  filters: filtersStart.value,
 })
 
 /**

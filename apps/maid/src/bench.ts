@@ -3,6 +3,7 @@ import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import type { BenchApi } from '../../../tools/refs/bench-api'
 import { editor } from './editor'
+import { journalFlushed } from './journal'
 
 /**
  * Maid's side of the contract in tools/refs/bench-api.d.ts. Also the debug handle for agents:
@@ -47,5 +48,5 @@ export function exposeBenchApi(
       return loc ? [loc[0], loc[1]] : undefined
     },
   }
-  Object.assign(window, { __bench: api, __maid: { map, engine, editor, model } })
+  Object.assign(window, { __bench: api, __maid: { map, engine, editor, model, journalFlushed } })
 }

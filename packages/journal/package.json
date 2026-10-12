@@ -1,0 +1,17 @@
+{
+  "name": "@osm-editor-kit/maid-journal",
+  "version": "0.0.0",
+  "private": true,
+  "license": "ISC",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@osm-editor-kit/maid-model": "workspace:*",
+    "dexie": "^4.4.0"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "^6.0.0"
+  }
+}
