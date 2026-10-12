@@ -47,6 +47,12 @@ export class OsmEntity extends AbstractData<OsmEntityProps> {
   /** Cache for memoizing expensive calculations, shared between copies */
   protected _transients: TransientCache;
 
+  /**
+   * Graph to compute `geoms` from, set by `updateGeometry`, cleared by `_resolveGeoms`.
+   * `undefined` means nothing is pending. `null` means pending, with no Graph needed.
+   */
+  protected _pendingGeomGraph: Graph | null | undefined;
+
 
   /**
    * Data elements may be constructed by passing an application context or another data element.
@@ -66,6 +72,8 @@ export class OsmEntity extends AbstractData<OsmEntityProps> {
     if (otherOrContext instanceof AbstractData) {  // copy other
       const other = otherOrContext as OsmEntity;
       this._transients = other._transients;
+      // The backing `_geoms` was cloned unresolved in AbstractData, so carry the pending marker over.
+      this._pendingGeomGraph = other._pendingGeomGraph;
 
     } else {
       this._transients = new Map<string, Map<string, unknown>>() as TransientCache;
@@ -91,6 +99,7 @@ export class OsmEntity extends AbstractData<OsmEntityProps> {
   public destroy(): void {
     super.destroy();
     this._transients = null!;
+    this._pendingGeomGraph = undefined;  // drop the Graph reference, never compute on destroy
   }
 
   /**
@@ -98,14 +107,26 @@ export class OsmEntity extends AbstractData<OsmEntityProps> {
    * Nodes are easy because they represent a single coordinate.
    * But the other data types require topology information from a Graph.
    * This function allows the calling code to recompute the geometry after the Graph has been updated.
+   * The work is deferred: the geometry is computed the first time `geoms` is read.
    * @param graph - the Graph that holds the topology needed
    * @returns this same OsmEntity
    */
   public updateGeometry(graph?: Graph): this {
     // this.touch();
     this._transients.clear();
-    this.geoms.setData(this.asGeoJSON(graph));
+    this._pendingGeomGraph = graph ?? null;
     return this;
+  }
+
+  /**
+   * Computes geometry marked pending by `updateGeometry`. Called by the `geoms` getter.
+   * The pending marker is cleared first, so reads of `geoms` inside `asGeoJSON` cannot recurse.
+   */
+  protected _resolveGeoms(): void {
+    const graph = this._pendingGeomGraph;
+    if (graph === undefined) return;  // nothing pending
+    this._pendingGeomGraph = undefined;
+    this._geoms.setData(this.asGeoJSON(graph ?? undefined));
   }
 
   /**

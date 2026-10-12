@@ -2,7 +2,7 @@
 
 This file is for coding agents and for people. Read it before you change anything. `CLAUDE.md` imports it.
 
-Maid is developed agent-first: every task must be doable, checkable and reportable from the command line without a person clicking through a browser. If a step needs manual work, that is a gap in the tooling. Fix the tooling or write the gap down in [docs/iteration-1/steps.md](docs/iteration-1/steps.md).
+Maid is developed agent-first: every task must be doable, checkable and reportable from the command line without a person clicking through a browser. If a step needs manual work, that is a gap in the tooling. Fix the tooling or write the gap down in [docs/build-out/steps.md](docs/build-out/steps.md).
 
 ## Core rules
 
@@ -41,10 +41,10 @@ Performance experiments may need imperative MapLibre calls that the `react-map-g
 
 ## Workflow
 
-1. Pick the next open step in [docs/iteration-1/steps.md](docs/iteration-1/steps.md). One step is one commit.
+1. Pick the next open step in [docs/build-out/steps.md](docs/build-out/steps.md). One step is about an hour and ends with one thing for Tobias to test. (Iteration 1, the proof of concept, is closed: [docs/iteration-1/steps.md](docs/iteration-1/steps.md).)
 2. Do the work. Stay inside the step. Write down new findings in `docs/research/` and decisions in `docs/adr/`.
 3. Run `bun run check` and fix what it reports. For changes to apps or the benchmark also run the script named in the step.
-4. Tick the step, add a one-line result under it, and commit (see the `finish-work` skill for the message format: `<Topic>: <outcome>` plus outcome bullets).
+4. Tick the step, add the result and the test for Tobias under it, and commit (see the `finish-work` skill for the message format: `<Topic>: <outcome>` plus outcome bullets).
 5. Do not push unless asked.
 
 ## Working with subagents
@@ -77,6 +77,7 @@ These names are the contract. Agents and docs only reference these.
 | `bun run bench-smoke` | One run per editor on the small scene. |
 | `bun run bench-report [run-id ...]` | Render one or more runs as `report.md` and `report.html`. |
 | `bun run bench-edit [scene] [query]` | Maid only: drag a node and measure change-to-screen time. Needs a Maid preview on 5175 (`bun run compare` starts one). |
+| `bun run bench-model [--runs 5] [--browser chromium]` | Time loading each fixture into `maid-model` and into the proof-of-concept store, in the browser. Writes `reports/model-load-<browser>.json`. |
 | `bun run compare` | Everything for the side-by-side page on http://localhost:5184. |
 | `bun run fixtures-build <file.osm.pbf>` | Cut fixtures from a local extract. Manual only, see core rule 1. |
 | `bun run style-generate [iD checkout]` | Regenerate the style data from iD's CSS and presets. |

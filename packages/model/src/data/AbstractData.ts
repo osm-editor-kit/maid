@@ -48,10 +48,23 @@ export class AbstractData<P extends AbstractDataProps = AbstractDataProps> {
   public id: string;
   /** Application context */
   public context: Context;
-  /** Geometry wrapper containing original and projected data */
-  public geoms: Geometry;
+  /** Backing field for `geoms`. Read `geoms` instead, it resolves pending geometry first. */
+  protected _geoms: Geometry;
   /** Properties object */
   public props: Partial<P>;
+
+  /**
+   * Geometry wrapper containing original and projected data.
+   * Reading it first calls `_resolveGeoms()`, so geometry that was marked pending
+   * (see `OsmEntity.updateGeometry`) is computed on first access, not when it was marked.
+   */
+  public get geoms(): Geometry {
+    this._resolveGeoms();
+    return this._geoms;
+  }
+  public set geoms(value: Geometry) {
+    this._geoms = value;
+  }
 
 
   /**
@@ -67,13 +80,14 @@ export class AbstractData<P extends AbstractDataProps = AbstractDataProps> {
       const other = otherOrContext;
       this.context = other.context;
       this.props = cloneData(other.props) as Partial<P>;
-      this.geoms = other.geoms.clone();
+      // Clone the backing field, not `other.geoms`: reading the accessor would force pending geometry.
+      this._geoms = other._geoms.clone();
 
     } else {
       const context = otherOrContext;
       this.context = context;
       this.props = {};
-      this.geoms = new Geometry(context);
+      this._geoms = new Geometry(context);
     }
 
     Object.assign(this.props, cloneData(props));  // override with passed in props
@@ -89,10 +103,19 @@ export class AbstractData<P extends AbstractDataProps = AbstractDataProps> {
    * @abstract
    */
   public destroy(): void {
-    this.geoms.destroy();
-    this.geoms = null!;
+    this._geoms.destroy();  // not `this.geoms`, destroy must not trigger pending geometry
+    this._geoms = null!;
     this.props = null!;
     this.context = null!;
+  }
+
+  /**
+   * Hook for subclasses that compute geometry lazily.
+   * Called by the `geoms` getter before it returns. Does nothing in `AbstractData`.
+   * @abstract
+   */
+  protected _resolveGeoms(): void {
+    // nothing pending in the base class
   }
 
   /**

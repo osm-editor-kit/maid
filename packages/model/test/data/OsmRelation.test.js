@@ -841,7 +841,9 @@ describe('OsmRelation', () => {
       const expected = {
         type: 'FeatureCollection',
         id: 'r1',
-        role: 'other',
+        // Maid: Rapid expects `role: 'other'` here as well. It got there because building the graph
+        // computed r2's GeoJSON first, which wrote its role onto r1's cached object. Maid computes
+        // geometry on first access, so the object asked for directly carries no role.
         properties: { type: 'foo' },
         features: [{
           type: 'FeatureCollection',

@@ -83,6 +83,21 @@ What follows:
   The geometry that is computed here is Rapid's derived cache: extents, world coordinates, label points. It is the part Maid's renderer does not use, because it builds its own features for MapLibre. **Agreed by Tobias on 2026-10-11: Maid departs from Rapid here**, because it renders differently. The geometry is computed on first access and not on load. Estimated saving about 135 ms of the 204; not built, and it changes behaviour for code that reads `geoms` directly.
 - With both changes the dense scene would be at roughly 250 ms, against 14 ms for the proof-of-concept store. That is the number to judge in the browser before the renderer moves to the new model.
 
+### In Chrome, and after deferring geometry (2026-10-12)
+
+`bun run bench-model` runs the same steps in headless Chrome (best of 5 per step; totals move by up to 20% between runs). Dense scene, milliseconds:
+
+| | Proof-of-concept store | Parse | Create entities | Build graph | Total |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Before (with the `cloneData` fix) | 31 | 92 | 256 | 239 | 587 |
+| Geometry deferred for ways, relations and nodes | 30 | 87 | 64 | 59 | 211 |
+
+- Chrome is slower than Bun on these steps, so the Bun numbers above were too friendly.
+- Deferring node geometry was the bigger part of "create entities": every node computed an extent and world coordinates in its constructor.
+- What changed for callers: geometry is computed against the graph as it is at first read, an entity with pending geometry keeps its graph alive until then, and building the spatial index reads the geometry and so computes it.
+- Remaining: the parser (about 90 ms) builds an intermediate object for every element before the entity is created. Going from the API's JSON to entities directly is the next saving if it is needed.
+- Not done: reusing the parent sets in `Graph` (about 35 ms in Bun). They are shared between graph versions, so changing them in place is not safe as the code stands.
+
 ## Order of work
 
 1. Entities, geometry, graph, difference and actions from Rapid, with Rapid's tests. **Done 2026-10-11.**
