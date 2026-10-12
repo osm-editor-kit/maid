@@ -2,8 +2,9 @@
 
 Compared at iD commit `0194f3926`. Run:
 - `bun test packages/model/test/id/geo` → 113 pass, 0 fail, 24 todo
-- `bun test packages/model/test/id/util` → 46 pass, 0 fail, 76 todo
+- `bun test packages/model/test/id/util` → 46 pass, 0 fail, 70 todo
 - `bun test packages/ui/src/inspector/id-util.test.ts` → 1 pass
+- `bun test apps/maid/src/save` → 20 pass, 0 fail (includes the tag cleaning, F-util-2)
 
 Covered tests are compared by their `it` titles and by reading the assertions of the Maid side only where noted. Adopted tests keep iD's titles, inputs and expected values; only the calls and two shapes of argument changed (see Differences).
 
@@ -16,7 +17,7 @@ Covered tests are compared by their `it` titles and by reading the assertions of
 | **sum geo** | **146** | **8** | **113** | **24** | **1** | |
 | `util/aes.ts` | 5 | 0 | 0 | 0 | 5 | none (n/a) |
 | `util/array.js` | 13 | 0 | 12 | 1 | 0 | `packages/model/test/id/util/array.test.ts` |
-| `util/clean_tags.js` | 7 | 0 | 1 | 6 | 0 | `packages/ui/src/inspector/id-util.test.ts` (adopted), `packages/model/test/id/util/clean_tags.test.ts` (todo) |
+| `util/clean_tags.js` | 7 | 0 | 7 | 0 | 0 | `apps/maid/src/save/clean-tags.test.ts` (adopted 7, F-util-2); `packages/ui/src/inspector/id-util.test.ts` (`trims whitespace`, also adopted) |
 | `util/keybinding.js` | 10 | 0 | 0 | 0 | 10 | none (n/a) |
 | `util/localizer.ts` | 0 | 0 | 0 | 0 | 0 | `packages/model/test/id/util/localizer.test.ts` (12 todo cases, see Notes) |
 | `util/object.ts` | 4 | 0 | 1 | 3 | 0 | `packages/model/test/id/util/object.test.ts` |
@@ -24,8 +25,8 @@ Covered tests are compared by their `it` titles and by reading the assertions of
 | `util/session_mutex.js` | 10 | 1 | 0 | 0 | 9 | none; covered in `packages/journal/src/journal.test.ts` |
 | `util/units.js` | 13 | 0 | 0 | 13 | 0 | `packages/model/test/id/util/units.test.ts` |
 | `util/util.js` | 74 | 0 | 33 | 41 | 0 | `packages/model/test/id/util/util.test.ts` |
-| **sum util** | **137** | **1** | **47** | **64** | **25** | |
-| **sum all** | **283** | **9** | **160** | **88** | **26** | |
+| **sum util** | **137** | **1** | **53** | **58** | **25** | |
+| **sum all** | **283** | **9** | **166** | **82** | **26** | |
 
 The sums match the inventory: geo 146 and util 137 (283).
 
@@ -39,7 +40,7 @@ The sums match the inventory: geo 146 and util 137 (283).
 | F-geo-4 | `Extent.split()`: four equal quarters of an extent | `extent.js`: 1 | todo | wrapper in `packages/model/src/geo` (`@rapid-sdk/math` has no `split`) |
 | F-geo-5 | Winding order: `Extent.polygon()` and `geomGetSmallestSurroundingRectangle().polygon` return the ring in the other direction from iD; the test asserts iD's order | `extent.js`: 1, `geom.js`: 1 | todo | `@rapid-sdk/math` upstream, or a wrapper in `packages/model/src/geo` |
 | F-util-1 | `utilArrayPowerset` | `array.js`: 1 | todo | `packages/model/src/util` |
-| F-util-2 | Tag cleaning before upload, as `utilCleanTags`: empty keys and undefined values dropped, whitespace in `;` lists, `opening_hours` and `conditional` spacing, description, note and fixme left alone. `@rapid-sdk/util` has `utilCleanTags`, but `apps/maid/src/save` does not call it | `clean_tags.js`: 6 | todo | `apps/maid/src/save` |
+| F-util-2 | Tag cleaning before upload, as `utilCleanTags`: empty keys and undefined values dropped, whitespace in `;` lists, `opening_hours` and `conditional` spacing, description, note and fixme left alone. `@rapid-sdk/util` has `utilCleanTags`, but `apps/maid/src/save` does not call it | `clean_tags.js`: 7 | done for the upload: `cleanTags` in `apps/maid/src/save/clean-tags.ts` runs in `toOsmChange` on created and changed elements, 7 of 7 adopted in `apps/maid/src/save/clean-tags.test.ts`. Not done: iD's discard list (`discarded.json`), which needs a re-export from `packages/presets` (see `osm-change.ts`) | `apps/maid/src/save` |
 | F-util-3 | Coordinate display and parsing: DMS (`dmsCoordinatePair`) and `dmsMatcher` (D M SS, z/x/y, x/y, localized numbers) | `units.js`: 13 | todo | `packages/ui` (or `packages/model/src/util`) |
 | F-util-4 | `utilCheckTagDictionary`: look a tag value up in a dictionary (iD uses it for one-way tags) | `object.js`: 2 | todo | `packages/model/src/util` |
 | F-util-5 | `stringifyProperties`: GeoJSON properties turned into string tags (iD's data layer editor) | `object.ts`: 1 | todo | with the GeoJSON data layer |
@@ -60,7 +61,7 @@ The sums match the inventory: geo 146 and util 137 (283).
 - **`geoAngle`.** iD takes entities with a `loc` and a projection; the test shim calls `vecAngle` on the projected points. `vecAngle` is `atan2` of the vector from `a` to `b`, the same as iD's.
 - **Extent arguments.** iD accepts a point, a `[min, max]` pair or an extent wherever an extent is expected, and reads `extent[0]` and `extent[1]`. Maid's `Extent` takes an `Extent` or points, and has `min` and `max`. The adopted file wraps every extent argument in a small `geoExtent` helper that accepts iD's forms. The two index-reading tests use `.min` and `.max`. `has length 2` is n/a.
 - **`utilStringQs` and `+` (F-util-14).** iD turns `+` into a space in query strings; `@rapid-sdk/util` does not. Maid's own URL parsing (`apps/maid/src/url`) was not checked.
-- **`cleanValue` trims everything (F-util-2).** Maid's `cleanValue` (`packages/ui/src/inspector/logic.ts`) trims any value, including description, note and fixme, which iD leaves untouched. This is a real difference and the todo in `clean_tags.test.ts` names it. The trimming of a single value is covered in `packages/ui/src/inspector/id-util.test.ts`.
+- **`cleanValue` trims everything in the editor (F-util-2).** Maid's `cleanValue` (`packages/ui/src/inspector/logic.ts`) trims any value, including description, note and fixme, which iD leaves untouched. The upload now keeps those as typed (`apps/maid/src/save/clean-tags.ts`); the editor's own `cleanValue` is not changed here. The trimming of a single value is covered in `packages/ui/src/inspector/id-util.test.ts`. iD runs `utilCleanTags` in its entity editor when a person changes tags (`modules/ui/entity_editor.js`), not on upload; its upload applies only `actionDiscardTags`. Maid cleans the uploaded copy as well, so an element that differs from the server only by whitespace is still sent (the server takes it as a change).
 - **Ordering of entity ids (F-util-12).** Maid's `creationOrder` is newest-first for existing and new entities; iD's `utilCompareIDs` is oldest-first for existing ones. Rapid's tests assert Maid's order, so the iD assertions were not adopted.
 - **`utilTagDiff` test.** The iD test omits the `render` key with es-toolkit's `omit`; the adopted file uses `utilObjectOmit` from `@rapid-sdk/util` with the same keys. The expected values are unchanged.
 

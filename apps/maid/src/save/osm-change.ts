@@ -5,6 +5,7 @@ import {
   OsmWay,
   type ChangesSummary,
 } from '@osm-editor-kit/maid-model'
+import { cleanTags, discardTags, type DiscardList } from './clean-tags.ts'
 
 /**
  * One element of an upload, in the shape the `osm-api` package sends as osmChange. A new element
@@ -64,13 +65,28 @@ function elements(entities: OsmEntity[], order: 1 | -1): ChangeElement[] {
 }
 
 /**
+ * The tags of a created or modified element as they are uploaded: cleaned as iD does, then the
+ * discard list. This is a copy; the editor's entity keeps what the person typed.
+ */
+function uploaded(e: ChangeElement, discarded: DiscardList): ChangeElement {
+  return { ...e, tags: discardTags(cleanTags(e.tags), discarded) }
+}
+
+/**
  * What the history changed, as an upload. Nodes come before the ways and relations that use
  * them; deletions go the other way round, so nothing is deleted while it is still used.
+ *
+ * Created and changed elements have their tags cleaned and discarded (clean-tags.ts). Deleted
+ * elements are sent as they are: iD sends them whole too, and a delete needs only the id and
+ * version. `discarded` is iD's discard list (id-tagging-schema's `discarded.json`). Maid's save
+ * does not pass one yet: that file is in packages/presets' dependencies and apps/maid cannot
+ * import it without a new dependency or a re-export from packages/presets. Until then only
+ * empty values are dropped.
  */
-export function toOsmChange(changes: ChangesSummary): OsmChange {
+export function toOsmChange(changes: ChangesSummary, discarded: DiscardList = {}): OsmChange {
   return {
-    create: elements(changes.created, 1),
-    modify: elements(changes.modified, 1),
+    create: elements(changes.created, 1).map((e) => uploaded(e, discarded)),
+    modify: elements(changes.modified, 1).map((e) => uploaded(e, discarded)),
     delete: elements(changes.deleted, -1),
   }
 }

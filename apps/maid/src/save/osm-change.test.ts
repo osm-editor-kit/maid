@@ -104,3 +104,65 @@ describe('changesetTags', () => {
     )
   })
 })
+
+describe('toOsmChange tags', () => {
+  it('uploads a created node with the spaces around its value removed', () => {
+    const { context, edits } = history()
+    const node = new OsmNode(context, {
+      loc: [13.1, 52.1],
+      tags: { amenity: 'cafe', name: '  Café Nord   ', 'contact:phone': ' +49 30 1 ' },
+    })
+    edits.perform(actionAddEntity(node))
+    edits.commit({ annotation: 'add' })
+
+    const change = toOsmChange(edits.changes())
+    expect(change.create[0]!.tags).toEqual({
+      amenity: 'cafe',
+      name: 'Café Nord',
+      'contact:phone': '+49 30 1',
+    })
+  })
+
+  it('does not upload a key whose value is empty', () => {
+    const { context, edits } = history()
+    const node = new OsmNode(context, {
+      loc: [13.1, 52.1],
+      tags: { amenity: 'bench', name: '', operator: '  ' },
+    })
+    edits.perform(actionAddEntity(node))
+    edits.commit({ annotation: 'add' })
+
+    const change = toOsmChange(edits.changes())
+    expect(change.create[0]!.tags).toEqual({ amenity: 'bench' })
+  })
+
+  it('uploads a description as typed, with its inner text and spaces', () => {
+    const { context, edits } = history()
+    const text = '  Two  rooms;  open   Mondays  '
+    const node = new OsmNode(context, {
+      loc: [13.1, 52.1],
+      tags: { amenity: 'cafe', description: text },
+    })
+    edits.perform(actionAddEntity(node))
+    edits.commit({ annotation: 'add' })
+
+    const change = toOsmChange(edits.changes())
+    expect(change.create[0]!.tags).toEqual({ amenity: 'cafe', description: text })
+  })
+
+  it('cleans the copy that is uploaded and leaves the editor entity as it is', () => {
+    const { context, edits } = history()
+    const node = new OsmNode(context, {
+      loc: [13.1, 52.1],
+      tags: { amenity: 'cafe', name: '  Café Nord  ' },
+    })
+    edits.perform(actionAddEntity(node))
+    edits.commit({ annotation: 'add' })
+    const created = edits.changes().created[0]!
+
+    const change = toOsmChange(edits.changes())
+    expect(change.create[0]!.tags.name).toBe('Café Nord')
+    expect(created.tags.name).toBe('  Café Nord  ')
+    expect(node.tags.name).toBe('  Café Nord  ')
+  })
+})

@@ -1,3 +1,4 @@
+import { discardedTags } from '@osm-editor-kit/maid-presets/default'
 import { api } from '../auth'
 import { config, editor } from '../editor'
 import { forgetJournal } from '../journal'
@@ -16,7 +17,8 @@ export function saveBlocked(loggedIn: boolean): string | undefined {
 
 /** What would be uploaded now */
 export function pendingChange(): OsmChange {
-  return toOsmChange(editor.history.changes())
+  // tags that editors agree never to upload (the tagging schema's list) are left out
+  return toOsmChange(editor.history.changes(), discardedTags)
 }
 
 /**
