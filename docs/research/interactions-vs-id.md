@@ -8,9 +8,9 @@ Key: "same" means Maid does the same thing. "missing" means no code for it. "dif
 
 | Action | iD key | Maid today | Gap |
 | --- | --- | --- | --- |
-| Pan the map | ↓ ↑ ← → (`shortcuts.json`) | missing in app code. MapLibre may pan on arrows when the map has focus (assumption) | Pan by keyboard, check MapLibre first |
+| Pan the map | ↓ ↑ ← → (`shortcuts.json`) | Built (2026-10-13): `useShortcuts.ts` binds the arrows to `pan` | none |
 | Pan more | ⌥ + arrows | missing | Pan by keyboard |
-| Zoom | + - | missing in app code. Zoom buttons exist (`ZoomControls.tsx:10-19`) | Zoom by keyboard |
+| Zoom | + - | Built (2026-10-13): `useShortcuts.ts` binds `=` and `-` to the map's zoom. Zoom buttons exist (`ZoomControls.tsx:10-19`) | none |
 | Zoom more | ⌥ + + or - | missing | Zoom by keyboard |
 | Select one | Space (at the pointer) | missing (`useShortcuts.ts` binds no Space) | Space selects at the pointer |
 | Select several | ⇧ + click | different: Shift-click toggles (`MapView.tsx:133-135`). Known: not reliable | Known gap |
@@ -29,36 +29,36 @@ Key: "same" means Maid does the same thing. "missing" means no code for it. "dif
 | Add point | 1 | the key (`useShortcuts.ts:31`) | none |
 | Add line | 2 | the key (`useShortcuts.ts:32`) | none |
 | Add area | 3 | the key (`useShortcuts.ts:33`) | none |
-| Place a point at the pointer while drawing | Space | missing | Space as a click |
-| Disable snapping | Alt (hold) | missing. `useShortcuts.ts:24` returns on Alt, and snapping is always on (`draw.ts:27`) | Alt turns snapping off |
-| Finish a way and keep it | Enter, or Escape (`behavior/draw.js:245-246`) | Enter: the key (`useShortcuts.ts:34-37`). Escape: different, it cancels and removes the way (`App.tsx:21-24`, `draw.ts:135`) | Escape must finish, not cancel |
-| Undo the last node while drawing | Backspace (`draw.js:243`) | missing | Backspace while drawing |
-| Cancel the way being drawn | Delete, ⌦ (`draw.js:244`) | missing. Delete only acts on a selection (`useShortcuts.ts:38`) | Delete while drawing |
-| Copy | ⌘C | missing | Known gap |
-| Paste | ⌘V | missing | Known gap |
+| Place a point at the pointer while drawing | Space | Built (2026-10-13): `useShortcuts.ts` binds Space in the draw modes | none |
+| Disable snapping | Alt (hold) | Built for a dragged vertex (`MapView.tsx:193`, Alt passed as `free`). While drawing: unverified (2026-10-13) | Alt for drawing (unverified) |
+| Finish a way and keep it | Enter, or Escape (`behavior/draw.js:245-246`) | Enter: the key (`useShortcuts.ts:34-37`). Escape: finishes and keeps the way (`useShortcuts.ts:53-54`) | none |
+| Undo the last node while drawing | Backspace (`draw.js:243`) | Built (2026-10-13): `useShortcuts.ts` binds Backspace while drawing | none |
+| Cancel the way being drawn | Delete, ⌦ (`draw.js:244`) | Built (2026-10-13): Delete cancels the drawing while drawing (`useShortcuts.ts`). Delete only acts on a selection otherwise | none |
+| Copy | ⌘C | Built (075ec35) | none |
+| Paste | ⌘V | Built (075ec35) | none |
 | Undo | ⌘Z | the key (`useShortcuts.ts:28`). Ctrl+Z on other systems (`UndoRedo.tsx:12`) | none |
 | Redo | ⇧⌘Z | the key (`useShortcuts.ts:29`). Ctrl+Y also | none |
 | Save | ⌘S | out of scope: Maid never uploads (`AGENTS.md`, rule 1) | none, by design |
 | Delete the selection | ⌘⌫ (`operations/delete.js:147` also binds ⌘⌦ and ⌦) | the key: ⌘/Ctrl+Backspace and Delete (`useShortcuts.ts:38`) | none |
-| Continue a line | A | missing | Continue operation |
+| Continue a line | A | Built (2026-10-13): `useShortcuts.ts` binds A to `continueLine` | none |
 | Merge | C | the key: c (`operations.ts:224`) | none |
 | Disconnect | D | the key: d (`operations.ts:547`) | none |
 | Extract | E | the key: e (`operations.ts:596`) | none |
 | Extract without relations | ⇧E | different: Shift keys are ignored (`useShortcuts.ts:40`) | Shift+E |
 | Split | X | the key: x (`operations.ts:162`) | none |
 | Reverse | V | the key: v (`operations.ts:104`) | none |
-| Move | M (`operations/move.js:74`) | missing (known) | Move operation |
+| Move | M (`operations/move.js:74`) | Built (075ec35): the move mode | none |
 | Follow a line while drawing | F (`behavior/draw_way.js:523`) | missing | Follow mode |
 | Nudge | ⇧ + arrows | missing | Nudge |
 | Nudge more | ⌥⇧ + arrows | missing | Nudge |
 | Scale | ⇧ + + or - | missing | Scale |
 | Scale more | ⌥⇧ + + or - | missing | Scale |
-| Rotate | R (`operations/rotate.js:75`) | missing (known) | Rotate operation |
+| Rotate | R (`operations/rotate.js:75`) | Built (075ec35): the rotate mode | none |
 | Square (iD: orthogonalize) | Q | the key: q (`operations.ts:387`) | none |
 | Straighten | S | the key: s (`operations.ts:317`) | none |
 | Circularize (Maid: Make round) | O | the key: o (`operations.ts:453`) | none |
-| Reflect, long | T (`operations/reflect.js:112`) | missing (known) | Reflect operation |
-| Reflect, short | Y | missing (known) | Reflect operation |
+| Reflect, long | T (`operations/reflect.js:112`) | Built (075ec35): `reflect-long` in `packages/operations/src/operations.ts` (key not checked) | none |
+| Reflect, short | Y | Built (075ec35): `reflect-short` in `packages/operations/src/operations.ts` (key not checked) | none |
 
 Keyboard rows: 51.
 
@@ -74,7 +74,7 @@ Keyboard rows: 51.
 | Shift + drag | Lasso: selects what is in the lasso (`behavior/lasso.js:19-27`, `:105-118`) | missing | Lasso |
 | Double click on empty map | Zooms in (map default). Off while drawing (`behavior/draw.js:99`) | Zooms in, in browse only (`MapView.tsx:155`) | none |
 | Double click on a way | In select mode: adds a vertex at the click (`modes/select.js:311-312`, `:427-452`). In browse: zooms | missing: no double click handler | Add vertex on double click |
-| Right click | Opens the edit menu for the selection (`behavior/select.js:172-196`) | missing: no context menu handler | Edit menu |
+| Right click | Opens the edit menu for the selection (`behavior/select.js:172-196`) | Built: `MapContextMenu.tsx` opens the edit menu at the pointer (2026-10-13) | none |
 | Hover | Highlights the feature. A hovered way shows its vertices (`svg/vertices.js:400-401`). Midpoints show only on selected ways (`svg/midpoints.ts:77`) | Highlights the hovered id (`MapView.tsx:110-111`). Whether vertices show on hover: not checked | Check vertices on hover |
 
 Browse rows: 8.
@@ -87,8 +87,8 @@ Browse rows: 8.
 | Click a vertex of the selected way | Selects the vertex (`processClick`, entity node) | Known: nodes of a selected area cannot be selected | Known gap |
 | Click a midpoint of the selected way | Treated as a click on the way (`behavior/select.js:294-296`) | missing: midpoints are not drawn (only `draw.ts` names them) | Midpoints |
 | Double click on the selected way | Adds a vertex at the click (`modes/select.js:427-452`) | missing | Add vertex on double click |
-| Right click | Edit menu (`behavior/select.js:172-196`) | missing | Edit menu |
-| Long press (touch) | Edit menu after 500 ms (`behavior/select.js:101`) | missing | Long press |
+| Right click | Edit menu (`behavior/select.js:172-196`) | Built: `MapContextMenu.tsx` (2026-10-13) | none |
+| Long press (touch) | Edit menu after 500 ms (`behavior/select.js:101`) | Built: `MapView.tsx` 250 to 262, 500 ms (2026-10-13) | none |
 | Escape | Back to browse (`modes/select.js:287`, `:492-495`) | clears the selection (`App.tsx:26`) | none |
 | Vertices and midpoints of the selected way | Vertices: `svg/vertices.js:400`. Midpoints: `svg/midpoints.ts:77` | Not checked in Maid's layers | Check |
 
@@ -118,14 +118,14 @@ Area and line work the same, except that the first node of an area closes it.
 | Click on a way | Adds a node on that way (`draw.js:177-181`) | Adds a node on that way (`draw.ts:91-96`) | none |
 | Click on the last node (line) or the first node (area) | Finishes the way (`draw_way.js`, `addNode`) | Finishes (`draw.ts:73-76`) | none |
 | Mouse move | The preview node follows the pointer, snapped to the touch target under it (`behavior/draw.js:47-58`, `:133`) | The preview follows, snapped within 8 px (`MapView.tsx:108`, `draw.ts:27`, `:54-58`) | different: snap radius, and snaps to the nearest node or way |
-| Alt held | No snapping (`behavior/draw.js:47`). The "nope" marker is hidden (`behavior/draw_way.js:118`) | missing | Alt turns snapping off |
+| Alt held | No snapping (`behavior/draw.js:47`). The "nope" marker is hidden (`behavior/draw_way.js:118`) | missing for drawing (unverified, 2026-10-13: `MapView.tsx:193` checks Alt for a dragged vertex only) | Alt turns snapping off |
 | Click that would cross the way | Rejected, with feedback (`draw_way.js`, `rejectedSelfIntersection`) | Not checked | Check |
 | Double click while drawing | Second click ignored for 500 ms. Map zoom off (`behavior/draw.js:93-103`) | Map zoom off while drawing (`MapView.tsx:155`). Known: area closing still zooms | Known gap |
 | Right click while drawing | Nothing: draw mode has no context menu handler | Nothing (no context menu) | none |
 | Enter | Finishes and keeps the way (`behavior/draw.js:246`) | Finishes and selects (`useShortcuts.ts:34-37`) | none |
-| Escape | Finishes and keeps the way (`behavior/draw.js:245`) | different: cancels and removes the way (`App.tsx:21-24`, `draw.ts:135`) | Escape must finish |
-| Backspace | Undoes the last node (`behavior/draw.js:243`, `:220`) | missing | Backspace undo |
-| Delete (⌦) | Cancels and removes the way (`behavior/draw.js:244`, `:226`) | missing | Delete cancel |
+| Escape | Finishes and keeps the way (`behavior/draw.js:245`) | Finishes and keeps the way (`useShortcuts.ts:53-54`, 2026-10-13) | none |
+| Backspace | Undoes the last node (`behavior/draw.js:243`, `:220`) | Built (2026-10-13): `useShortcuts.ts` | none |
+| Delete (⌦) | Cancels and removes the way (`behavior/draw.js:244`, `:226`) | Built (2026-10-13): `useShortcuts.ts` | none |
 | After finishing | Selects the way as a new feature (`draw_way.js`, `finish`, lines 529-544) | Selects the way (`MapView.tsx:126-127`) | none |
 
 Draw rows: 15.
@@ -135,8 +135,8 @@ Draw rows: 15.
 | Gesture | iD | Maid today | Gap |
 | --- | --- | --- | --- |
 | Drag a vertex | Moves it after 1 px of movement, 4 px for a pen (`behavior/drag.js:33-34`, `:94-96`; `modes/drag_node.js:130-160`) | Moves it at once on press (`MapView.tsx:89-102`). No distance limit | none for the move itself |
-| Drop a dragged vertex on a node | Joins the two nodes (`modes/drag_node.js:373-425`, `actionConnect`) | missing: `endDrag` only commits the move (`engine.ts:973-986`) | Connect on drop |
-| Drop a dragged vertex on a way | Adds the vertex to the way (`drag_node.js:373-425`, `actionAddMidpoint`) | missing | Connect on drop |
+| Drop a dragged vertex on a node | Joins the two nodes (`modes/drag_node.js:373-425`, `actionConnect`) | Built (b33374f): a dragged node snaps and connects, as in iD | none |
+| Drop a dragged vertex on a way | Adds the vertex to the way (`drag_node.js:373-425`, `actionAddMidpoint`) | Built (b33374f) | none |
 | Drag a point (standalone node) | Moves it. Points are drag targets (`drag_node.js:453`) | missing: `isVertex` needs a way (`engine.ts:933-935`). Known | Known gap |
 | Drag a midpoint | Makes a new vertex and moves it (`drag_node.js:138-145`) | missing | Midpoints |
 | Drag a way body or empty map | Pans the map. A way is not a drag target | Pans the map (the handler returns before `preventDefault`, `MapView.tsx:89-93`) | none |
@@ -153,7 +153,7 @@ iD uses pointer events for every pointer type. A touch press that is held for 50
 | --- | --- | --- | --- |
 | Tap | A click: a tap moves at most 4 px, or 12 px within 500 ms when drawing (`behavior/draw.js:93`, `behavior/select.js:143-156`) | Inferred: MapLibre fires `click` for a tap, which reaches the same handler (`MapView.tsx:114-138`) | Verify on a device |
 | Double tap on the map | Zooms (d3 zoom, not read) | Inferred: MapLibre's double tap zoom | Verify |
-| Long press (500 ms) | Edit menu (`behavior/select.js:101`) | missing | Long press |
+| Long press (500 ms) | Edit menu (`behavior/select.js:101`) | Built (2026-10-13): `MapView.tsx`, 500 ms | none |
 | One-finger drag on a vertex | Moves the vertex after 1 px. The press stops propagation, so the map does not pan (`behavior/drag.js:57-59`) | Inferred: touch does not fire mouse events, so no vertex drag starts and the map pans (`MapView.tsx:89-102`) | Vertex drag by touch: top gap |
 | One-finger drag on empty map | Pans | Inferred: pans (MapLibre) | none |
 | Hover before a tap | A touch press counts as a pointer over (`behavior/hover.js:76-78`) | Inferred: no hover, because `mousemove` does not fire for touch | Hover on tap |
@@ -166,6 +166,8 @@ Touch rows: 9.
 ## Ranked gaps
 
 Most important for everyday editing first. Each entry says what to change and where.
+
+Status (2026-10-13): gaps 1, 2, 3, 4, 6, 7, 8, 12, 13 are built. Gap 18 is built except Follow (F). Still open: 5, 9, 14, 15, 16, 17 (partly), and Follow. Gaps 10 and 11 were not checked in this pass.
 
 1. **Escape throws away the way being drawn.** iD finishes and keeps it (`behavior/draw.js:245`). In `App.tsx:21-24`, finish the drawn way and select it, as Enter does (`useShortcuts.ts:34-37`). Keep cancel on a separate control.
 2. **A dropped vertex does not join a node or a way.** `engine.ts` `endDrag` (line 973) should take the drop target and apply `actionConnect` or `actionAddMidpoint` from `packages/model`, as iD does (`modes/drag_node.js:373-425`). `MapView.tsx:97-102` passes the target.

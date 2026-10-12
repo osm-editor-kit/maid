@@ -1,6 +1,6 @@
 # iD tests: actions, second half
 
-Compared at iD commit `0194f3926`. Run: `bun test packages/model/test/id/actions/{move,reflect,merge,merge_nodes,merge_polygon,upgrade_tags}.test.ts` → 15 pass, 0 fail, 1 todo (the survivor rule now runs; the adopted merge, merge_nodes and merge_polygon tests use numeric ids, see F-actions-b-1 to -3). Join, orthogonalize and merge_remote_changes: `bun test packages/model/test/id/actions/{join,orthogonalize,merge_remote_changes}.test.ts` → 13 pass, 0 fail, 3 todo. The other files of this half are not all written yet (see "Not finished").
+Compared at iD commit `0194f3926`. Run: `bun test packages/model/test/id/actions/{move,reflect,merge,merge_nodes,merge_polygon,upgrade_tags}.test.ts` → 15 pass, 0 fail, 1 todo (the survivor rule now runs; the adopted merge, merge_nodes and merge_polygon tests use numeric ids, see F-actions-b-1 to -3). Join, orthogonalize and merge_remote_changes: `bun test packages/model/test/id/actions/{join,orthogonalize,merge_remote_changes}.test.ts` → 13 pass, 0 fail, 3 todo. All 18 files of this half are written (see the sum row).
 
 | iD spec file | iD tests | covered | adopted | todo | n/a | Maid test file |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -22,7 +22,7 @@ Compared at iD commit `0194f3926`. Run: `bun test packages/model/test/id/actions
 | `actions/merge_remote_changes.js` | 27 | 20 | 7 | 0 | 0 | `packages/model/test/id/actions/merge_remote_changes.test.ts` (covered: `packages/model/test/actions/merge_remote_changes.test.js`; the 7 adopted tests are the ones whose Rapid ports dropped the `conflicts()` check) |
 | `actions/reverse.js` | 64 | 50 | 5 | 9 | 0 | `packages/model/test/id/actions/reverse.test.ts` (covered: `packages/model/test/actions/reverse.test.js`; the 50 covered titles pair one-to-one, sampled "transforms *=up ⟺ *=down" and "ignores directions other than forward or backward on attached stop sign" match) |
 | `actions/split.js` | 79 | 45 | 24 | 10 | 0 | `packages/model/test/id/actions/split.test.ts` (covered: `packages/model/test/actions/split.test.js`; the file has 24 `it.todo`: these 10 titles plus 14 destination_sign variants of the restriction titles, see Differences; run: 38 pass, 0 fail, 24 todo) |
-| **sum (14 of 18 files, 124 of 349 tests)** | 124 | 108 | 7 | 9 | 0 | |
+| **sum (18 of 18 files)** | 349 | 269 | 57 | 23 | 0 | |
 
 ## Missing features
 

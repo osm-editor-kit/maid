@@ -2,7 +2,7 @@
 
 Compared at iD commit `0194f3926`. Run: `bun test packages/validation/src/rules` → 86 pass, 0 fail, 9 todo (the three rules' tests; `validation.test.ts` is the Maid test file for the covered rows, and it is not part of this run).
 
-Status: checkpoint. The three existing rules are done. The eight simple rules and the three todo-only files are not written yet, see "Not finished".
+Status: all 14 rows are written (2026-10-13). Their open items are in "Missing features" and "Not finished".
 
 | iD spec file | iD tests | covered | adopted | todo | n/a | Maid test file |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -20,9 +20,9 @@ Status: checkpoint. The three existing rules are done. The eight simple rules an
 | `validations/outdated_tags.js` | 13 | 0 | 0 | 13 | 0 | `packages/validation/src/rules/outdated-tags.id.test.ts` (all todo, F-validations-24, 25) |
 | `validations/private_data.js` | 6 | 0 | 6 | 0 | 0 | `packages/validation/src/rules/private-data.id.test.ts` |
 | `validations/suspicious_name.js` | 14 | 0 | 0 | 14 | 0 | `packages/validation/src/rules/suspicious-name.id.test.ts` (all todo, F-validations-26) |
-| **sum of the 3 finished rows** | 101 | 6 | 86 | 9 | 0 | |
+| **sum of the 14 rows** | 209 | 6 | 142 | 61 | 0 | |
 
-Rows marked "not started" have zeros until they are done, so the full sum (209 iD tests) is not reached yet. The sum above covers the three finished rows only: 82 + 10 + 9 = 101 iD tests, of which 6 covered, 86 adopted, 9 todo.
+The sum is the sum of all 14 rows: 6 covered + 142 adopted + 61 todo = 209 iD tests. (The 14 rows also add up to the 209 in `inventory.md`.)
 
 ## Missing features
 
@@ -76,4 +76,4 @@ None so far.
 
 ## Not finished
 
-The six rows of the second validations run (`almost_junction`, `impossible_oneway`, `invalid_format`, `mismatched_geometry`, `outdated_tags`, `suspicious_name`) are written; their features are F-validations-20 to 26. Finished in the run that wrote the rules for `incompatible_source.js`, `missing_role.js`, `mutually_exclusive_tags.js`, `osm_api_limits.js` and `private_data.js` (rows above; `osm_api_limits` has 3 todos for the split fix). Their rules are not in `defaultRules` yet, and `packages/validation/src/index.ts` is not changed for them.
+The six rows of the second validations run (`almost_junction`, `impossible_oneway`, `invalid_format`, `mismatched_geometry`, `outdated_tags`, `suspicious_name`) are written; their features are F-validations-20 to 26. Finished in the run that wrote the rules for `incompatible_source.js`, `missing_role.js`, `mutually_exclusive_tags.js`, `osm_api_limits.js` and `private_data.js` (rows above; `osm_api_limits` has 3 todos for the split fix). Their rules are in `defaultRules` since d8193a8 (`packages/validation/src/index.ts`, lines 32 to 44: 11 rules, the three first rows plus the eight of d8193a8).

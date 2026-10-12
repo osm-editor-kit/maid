@@ -6,8 +6,8 @@ Line numbers in `docs/research/interactions-vs-id.md` (for example `engine.ts:97
 
 ## Summary
 
-- Maid has no drop-snap. Dragging a vertex or a point never connects it to a node or inserts it into a way. Drawing and clicks do snap, but adding a point never does.
-- Maid's connect keeps the first node in the list that has a `version`, not the oldest id. A drop-connect built the iD way would delete the older node.
+- Maid has no drop-snap. Dragging a vertex or a point never connects it to a node or inserts it into a way. Drawing and clicks do snap, but adding a point never does. (Status 2026-10-13: the drop-snap is built in b33374f, see 1.4.)
+- Maid's connect keeps the first node in the list that has a `version`, not the oldest id. A drop-connect built the iD way would delete the older node. (Fixed in 21b2a90, 2026-10-13.)
 - The transform (move and rotate) moves shared nodes in place. This keeps the id count low but silently bends ways that are not selected. iD's move adds replacement vertices for them.
 
 ## Part 1: snapping while dragging and drawing
@@ -16,14 +16,14 @@ Line numbers in `docs/research/interactions-vs-id.md` (for example `engine.ts:97
 
 | Situation | iD | Maid today | Gap |
 | --- | --- | --- | --- |
-| Drag a vertex onto another vertex | Connects them. The survivor is the oldest interesting node (`modes/drag_node.js:397-400`, `actions/connect.ts:25-44`). | Nothing. The drop only commits "Moved a node" (`engine.ts:1128-1139`). Two nodes stay at one place. | Total |
+| Drag a vertex onto another vertex | Connects them. The survivor is the oldest interesting node (`modes/drag_node.js:397-400`, `actions/connect.ts:25-44`). | Built (b33374f, 2026-10-13): the drop connects, and the oldest node survives (21b2a90). Was: nothing, two nodes stayed at one place. | none |
 | Drag a vertex onto a way | Places the node on the nearest edge and inserts it there (`drag_node.js:208-215`, `:387-396`, `geom.ts:47-85`, `actions/add_midpoint.ts`). | Nothing. | Total |
 | Drag a vertex onto an area outline | Same as a way: areas draw the same segment targets (`svg/areas.js` uses `svgSegmentWay`, `svg/helpers.ts:229-289`). | Nothing on drag. Draw snaps to an outline (`draw.ts:312-349`, outline only, 8 px). | Total for drag |
 | Drag a vertex onto its own way | Segments next to the dragged node are "nope" targets; the others snap. Dropping on a nope bounces back (`drag_node.js:380-386`, `svg/helpers.ts:29-60`, `:229-289`, `css/20_map.css:82-86`). A self-intersection is refused (`drag_node.js:298-354`, `:237-268`). | No target at all. No self-intersection check on drop. | Total |
 | Drag a standalone point onto a vertex | Connects. The point is not a vertex, so it may snap to any node (`drag_node.js:92-97`). The point is deleted and its tags are merged into the survivor (`connect.ts` merges tags into the survivor). | Nothing. | Total |
 | Drag a standalone point onto a way or area outline | The point id is inserted into the way and keeps its tags (`drag_node.js:387-396`, `actions/add_midpoint.ts`). | Nothing. | Total |
 | Drag a point onto another point | Connects them, as for a node (`drag_node.js:397-400`). Tags merge into the survivor. | Nothing. | Total |
-| Drag with Alt held | Alt turns snapping off: `datum()` returns `{}` (`drag_node.js:174-183`), and the nope marker is hidden (`:104-115`, `:360`). | No snapping, so Alt does nothing. | Moot until snapping exists |
+| Drag with Alt held | Alt turns snapping off: `datum()` returns `{}` (`drag_node.js:174-183`), and the nope marker is hidden (`:104-115`, `:360`). | Built for a drop (2026-10-13): `MapView.tsx:193` passes Alt as `free`, so the drop does not snap. | none |
 | Drag onto a hidden or read-only feature | A hidden feature is not drawn, so it has no target. A drag that starts on a feature with hidden connections is cancelled (`drag_node.js:130-145`). | `isDraggable` refuses read-only nodes (`engine.ts:1088-1090`). Hidden features are not in the rendered layers (`MapView.tsx`, `pick(point, interactive)`: inferred). | Read-only and hidden targets are not checked on drop (no targets exist) |
 | A drop that would break a relation | `actionConnect.disabled` (turn restrictions, roles) blocks the snap: nope cursor and a flash hint (`drag_node.js:237-244`, `:277-295`; `actions/connect.ts:79-`). | `actionConnect` has `disabled` (`packages/model/src/actions/connect.ts:73`, `merge_nodes.ts:84-92`), but no drop calls it. | Total (API exists) |
 | Add a point on a vertex | No new node. The existing node is tagged and selected (`modes/add_point.js:59-78`, `behavior/draw.js:163-171`). | Add-point mode passes only lon and lat (`MapView.tsx:191-199`). Creates a second node at the same place (`engine.addPoint`, `engine.ts:833-836`). | Total: a duplicate node is created |
@@ -173,12 +173,12 @@ Edits the earlier reports already name (cite, do not re-derive): F-actions-a-2 a
 
 ### 2.3 Ranked list: where Maid loses an id or creates more than needed
 
-1. **Connect survivor (lose an older id).** `packages/model/src/actions/connect.ts:25-31`. Measured: `[n10, n5]` keeps `n10` and deletes the older `n5`. Proposal: choose the oldest existing node by numeric osm id, with interesting tags first (`util.ts:709-727` in iD). Status: being fixed by another agent. Read: still the same code in the working tree.
+1. **Connect survivor (lose an older id).** `packages/model/src/actions/connect.ts:25-31`. Measured: `[n10, n5]` keeps `n10` and deletes the older `n5`. Proposal: choose the oldest existing node by numeric osm id, with interesting tags first (`util.ts:709-727` in iD). Status: built in 21b2a90 (2026-10-13).
 2. **Transform moves shared nodes in place (distort a neighbour, no id lost).** `packages/renderer/src/transform.ts:59-80` (`begin`, `nodesOf`) and `:110` (`actionMoveNode`). Measured: `w2` bends with no replacement. Proposal: use `actionMove(ids, delta)` (`packages/model/src/actions/move.ts:67`) for the apply step, so neighbours keep their shape like iD's move. This adds a few new vertices for neighbours only.
 3. **Circularize adds 16 nodes to a 4-corner building.** `packages/model/src/actions/circularize.ts:121-130`. Measured. Proposal: cap the count with iD's `MIN_VERTICES` and `MAX_VERTICES` (iD `circularize.ts:21-22`, `:219`). Fewer new nodes for small features. F-actions-a-2.
 4. **actionMove inserts a vertex into the moved straight way.** `packages/model/src/actions/move.ts:292-305`. Measured: `n-1` in `w1`. Proposal: add a test (a straight 3-node way moved uniformly creates 0 nodes) and trace why the straight-line skip does not fire. Cause not traced.
 5. **Orthogonalize deletes a duplicated straight vertex.** `packages/model/src/actions/orthogonalize.ts:170-181`. Measured: untagged `qm` deleted. Proposal: keep a vertex that shares its position with a neighbour, as F-actions-b-12 describes. iD's rule is the same for untagged straight nodes; the duplicate case is the gap.
-6. **Drop does not connect (creates duplicate nodes instead of joining).** `packages/renderer/src/engine.ts:1128-1139` and `:833-836`. Read. Adding a point on a vertex creates a second node at the same place. Proposal: part 1 above.
+6. **Drop does not connect (creates duplicate nodes instead of joining).** `packages/renderer/src/engine.ts:1128-1139` and `:833-836`. Read. Adding a point on a vertex creates a second node at the same place. Proposal: part 1 above. Status: built in b33374f (2026-10-13), and the add-point case is built too (see 1.4).
 7. **Straighten deletes untagged interior nodes.** `straighten_way.ts:95-101`. Same as iD. Not a Maid-only gap. Listed so that the owner can decide whether an old id should stay if the result can express it.
 
 No case found where Maid creates a new way or node that iD would reuse, except items 3 and 4.

@@ -11,33 +11,33 @@ Sizes: S is about an hour, M one to two hours, L more than two hours (split it).
 | Type | Count | iD file | Maid today | Size |
 | --- | --- | --- | --- | --- |
 | combo | 277 | `fields/combo.js` | basic text with a datalist | M |
-| check | 113 | `fields/check.ts` | basic: a select (Unknown, Yes, No) | S |
-| number | 65 | `fields/input.js` | basic text, no steppers or clamping | M |
+| check | 113 | `fields/check.ts` | field component `Check.tsx`: three states, unset shows as mixed (2026-10-13) | S |
+| number | 65 | `fields/input.js` | field component `Number.tsx` with `number-logic.ts` (2026-10-13; steppers and clamping not checked) | M |
 | text | 51 | `fields/input.js` | done for plain text (draft, Enter, blur, Escape, trim) | S |
-| semiCombo | 50 | `fields/combo.js` | none: plain text on the key | M |
+| semiCombo | 50 | `fields/combo.js` | field component `Multi.tsx` with `multi-logic.ts` (2026-10-13) | M |
 | typeCombo | 48 | `fields/combo.js` | basic: as combo, without the "yes" rule | S |
-| radio | 36 | `fields/radio.js` | basic, wrong control: a text box with a datalist | M |
-| multiCombo | 18 | `fields/combo.js` | none, and broken: writes a tag named `payment:` | M |
+| radio | 36 | `fields/radio.js` | field component `Radio.tsx` with `radio-logic.ts` (2026-10-13) | M |
+| multiCombo | 18 | `fields/combo.js` | field component `Multi.tsx`; the `payment:` write is fixed (`multi-logic.ts:117-122`, 2026-10-13) | M |
 | identifier | 12 | `fields/input.js` | basic text, no outlink button | S |
-| localized | 9 | `fields/localized.js` | base key only, no language variants | L |
-| defaultCheck | 7 | `fields/check.ts` | basic, wrong: offers "No" | S |
+| localized | 9 | `fields/localized.js` | field component `Localized.tsx` with `localized-logic.ts` (2026-10-13) | L |
+| defaultCheck | 7 | `fields/check.ts` | `Check.tsx`: unset is unchecked, no "No" (`logic.ts:193`, 2026-10-13) | S |
 | textarea | 7 | `fields/textarea.js` | basic, wrong: one-line input | S |
 | wikidata | 6 | `fields/wikidata.js` | none: plain text | M, network |
-| date | 5 | `fields/input.js` | none: plain text | S |
+| date | 5 | `fields/input.js` | field component `DateColour.tsx` (2026-10-13) | S |
 | url | 4 | `fields/input.js` | basic text, no open button | S |
 | manyCombo | 4 | `fields/combo.js` | none: rows of keys | S |
 | directionalCombo | 4 | `fields/directional_combo.js` | none: base key only | M |
 | roadspeed | 4 | `fields/roadspeed.js` | basic number text, no mph | S |
 | roadheight | 4 | `fields/roadheight.js` | basic number text, no ft/in | S |
 | structureRadio | 3 | `fields/radio.js` | basic, wrong control (as radio) | L |
-| address | 3 | `fields/address.js` | none: rows of `addr:*`, only when they have a value | L |
+| address | 3 | `fields/address.js` | field component `Address.tsx` with `address-logic.ts` (2026-10-13) | L |
 | tel | 3 | `fields/input.js` | basic text; the multi-key `keys` are ignored | S |
-| colour | 3 | `fields/input.js` | none: plain text | S |
+| colour | 3 | `fields/input.js` | field component `DateColour.tsx` (2026-10-13) | S |
 | onewayCheck | 2 | `fields/check.ts` | basic select; no reverse button | M |
 | networkCombo | 2 | `fields/combo.js` | basic (datalist); no taginfo | S, network |
 | wikipedia | 1 | `fields/wikipedia.js` | none: plain text | M, network |
 | restrictions | 1 | `fields/restrictions.js` | none; writes relations, not tags | L, decision |
-| access | 1 | `fields/access.js` | rows only for keys that have a value | M |
+| access | 1 | `fields/access.js` | field component `Access.tsx` (2026-10-13) | M |
 | email | 1 | `fields/input.js` | basic text | S |
 
 Not in schema 6.19.2 (iD keeps them, Maid does not need them yet): `integer`, `schedule` (both alias `uiFieldText`, `input.js:18-27`), `cycleway` (a fallback to `directionalCombo`, `directional_combo.js:16-23`).
@@ -234,7 +234,7 @@ Maid: both are plain text on the key (`FallbackField`).
 
 ## 4. Proposed build order
 
-Each step is about an hour (the size in brackets from the table). Most-used types first. Network fields come last and each is marked "needs a decision" (see section 5). The "Add field" list comes early because without it a user cannot add any field that has no value yet.
+Each step is about an hour (the size in brackets from the table). Most-used types first. Network fields come last and each is marked "needs a decision" (see section 5). The "Add field" list comes early because without it a user cannot add any field that has no value yet. Status (2026-10-13): most steps have a component in `packages/ui/src/inspector/fields/` (checked by file names only; the steps' own tests were not checked).
 
 1. **Row chrome.** Remove and revert buttons with `present` and `modified` (`css/80_app.css:1483-1490`), clean on write (trim, NFC, 255), the length indicator, the "Unknown" placeholder. Test: type 300 characters, the tag holds 255; undo to the original. (S, shared by all)
 2. **Add field list.** The "Add field:" input with the fields that are not shown (`moreFields` and universal), sorted by title with universal last, and search by label and terms. Show a field when it is picked. Apply `default` on show. Test: add "Wheelchair" to a shop, set it, remove it. (M)
@@ -274,12 +274,12 @@ Each step is about an hour (the size in brackets from the table). Most-used type
 
 ## 7. Maid bugs found while reading (fix with step 1 or 8)
 
-1. `multiCombo` with a key ending in `:` writes a tag named `payment:` (`fields.tsx:282`, `:175-186`).
-2. `defaultCheck` offers "No" (`logic.ts:17-20`, `:34`; iD `check.ts:51`).
+1. `multiCombo` with a key ending in `:` writes a tag named `payment:` (`fields.tsx:282`, `:175-186`). Fixed (2026-10-13): a write needs a suffix (`multi-logic.ts:117-122`).
+2. `defaultCheck` offers "No" (`logic.ts:17-20`, `:34`; iD `check.ts:51`). Fixed (2026-10-13): an unset defaultCheck is unchecked (`packages/ui/src/inspector/logic.ts:193`).
 3. `textarea` cannot take a line break (`fields.tsx:224`, `:79`).
 4. `radio` and `structureRadio` accept free text in a combo (`fields.tsx:237-238`).
-5. Values longer than 255 characters are not cut (`logic.ts:9-12`; iD `util/util.ts:730-745`, `core/context.ts:402`).
-6. Fields with `default` never get their default: Maid parses `default` (`packages/presets/src/presets.ts`, `buildField`) and nothing applies it (iD `field.js:322-333`).
+5. Values longer than 255 characters are not cut (`logic.ts:9-12`; iD `util/util.ts:730-745`, `core/context.ts:402`). Fixed (2026-10-13): the value cleaning cuts to 255 (`multi-logic.ts:41` says so; not traced further).
+6. Fields with `default` never get their default: Maid parses `default` (`packages/presets/src/presets.ts`, `buildField`) and nothing applies it (iD `field.js:322-333`). Fixed: `applyPreset` applies field defaults (presets report, 2026-10-13).
 
 ## 8. Unsure
 

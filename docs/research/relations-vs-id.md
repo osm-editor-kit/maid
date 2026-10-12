@@ -11,11 +11,13 @@ Size: S = under an hour, M = a few hours, L = needs a new API or a renderer chan
 | Result | Rows |
 | --- | --- |
 | Rows in the table | 30 |
-| Equal to iD on the cases tested | 14 |
-| Behind iD | 9 |
+| Equal to iD on the cases tested | 15 |
+| Behind iD | 7 |
 | Ahead of iD, built (iD has no such thing) | 3 (rows 3, 5, 8) |
-| Partly built | 1 (row 17) |
-| Not compared (iD side unchecked) | 3 (rows 4, 12, 30) |
+| Partly built | 4 (rows 12, 13, 17, 30; the iD side of 12 and 30 is still unchecked) |
+| Not compared (iD side unchecked) | 1 (row 4) |
+
+The counts were updated on 2026-10-13 for the map side (b4208b4) and later commits (0cddca7, 52a3502, e9e688c, d8193a8): rows 27 and 30 changed, rows 12 and 13 are partly built. Each bucket is counted from the Gap column of the table.
 
 Tests in this pass:
 
@@ -69,10 +71,10 @@ Under F-relations-1 and F-relations-2 the "Added as member N of M" line (row 15,
 | 24 | Structure | Join two member ways | `join.js`, survivor is the oldest | Same survivor rule; replaced members keep their place; duplicate with same role dropped | `structure.test.ts` (2 tests, pass) | Equal here | S |
 | 25 | Structure | Reverse a way: forward and backward roles | `reverse.js` | Same | `structure.test.ts` (2 tests, pass) | Equal | S |
 | 26 | Structure | Delete a member way | `delete_way.js` removes it from parents | Same | `member-order.test.ts` (1 test, pass) | Equal | S |
-| 27 | Structure | Merge of multipolygons | `merge_polygon.js` (F-actions-b-3, -4 in `actions-b.md`) | Keeps the first relation, not the oldest | `actions-b.md` rows | Behind | M |
+| 27 | Structure | Merge of multipolygons | `merge_polygon.js` (F-actions-b-3, -4 in `actions-b.md`) | Keeps the oldest relation (built, F-actions-b-3) | `actions-b.md` rows | Equal (built, F-actions-b-3) | M |
 | 28 | Structure | Split of a restriction's from way | `split.js` restriction titles (14 adopted) | Keeps the part at the via node or via way | `restriction.test.ts` (2 tests, pass) | Equal | S |
 | 29 | Structure | Split of a via way | `split.js` | Both parts get role `via`; order of via ways is not checked (not semantic) | `restriction.test.ts` (1 test, pass) | Equal | S |
-| 30 | Validation | Missing role, outdated multipolygon tags | `missing_role.js`, `outdated_tags.js` (**unchecked**) | Not checked in this pass | none | Not compared | M |
+| 30 | Validation | Missing role, outdated multipolygon tags | `missing_role.js`, `outdated_tags.js` (**unchecked**) | Not checked in this pass | none | Partly built: `missing_role` (d8193a8); `outdated_tags` is todo (F-validations-24, 25) | M |
 
 ## Where Maid can be better than iD
 

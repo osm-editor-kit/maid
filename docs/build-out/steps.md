@@ -112,6 +112,7 @@ Asked for by Tobias on 2026-10-12 after testing part B. One item per step, a rev
   Test for Tobias: move a node and change a tag, reload, choose "Restore", press undo twice. Reload again and choose "Discard". Then set "Buildings" to hidden, reload: still hidden. Open the page with `&filters=water:hidden`: the panel says the filters come from the link.
 - [ ] **C2. Login and upload, locally.** `osm-oauth` and `osm-changeset` behind the config; the save flow with changeset comment, hashtags and review of changes; conflicts reported. Uploads go to a local stand-in only. This needs one decision first: core rule 1 says the mock API rejects writes, so either the mock gets an in-memory write mode for tests, or a second local tool does it.
   Decided by Tobias on 2026-10-12: no local stand-in; a person tests against the OSM development server (AGENTS.md, core rule 1).
+  Status (2026-10-13): built, not yet tested by a person. Login is in be2a71d, saving in 62d9183 and the tag cleaning before an upload in 7472084; this step is not ticked until Tobias has run the test below.
   Done so far (2026-10-12), login: `apps/maid/src/auth.ts` on `osm-api` (OAuth 2, PKCE, popup, `public/land.html`), against the development server only, with the client id from `VITE_OSM_DEV_CLIENT_ID`. The account button in the top bar logs in and out and shows the name. Nothing is requested before a person clicks "Log in"; switched off under automation. The dev server now listens on 127.0.0.1 (the redirect URI), port 5173 fixed. Not tried by anyone yet: an agent may not log in.
   Test for Tobias: open http://127.0.0.1:5173 (not localhost), press "Log in", approve in the popup; the button shows your name; reload, still there; "Log out".
   Done (2026-10-12), saving: "Save" in the top bar opens a flyout with what changed (created, changed, deleted, the first twelve listed), the changeset comment (hashtags are taken from it as in iD) and "Upload to the development server". The upload is one changeset through `osm-api`; a conflict or another refusal shows the server's message. Afterwards the stored edits are forgotten and the map is loaded again. Saving needs `?live=dev` (data read from the development server) and a login; on a fixture the button explains that, because the fixture's ids do not exist on that server. `?live=1` (the real API, reading) can never save. The conversion (`apps/maid/src/save/osm-change.ts`) has unit tests; the upload itself has been run by nobody yet.
@@ -154,31 +155,45 @@ Done and committed:
 - [x] Photos: dark mode, the shared button look, details, link to the provider; comparison with Mapillary.
 
 In work (an agent each):
-- [ ] Times shown local and relative, with the other form in the tooltip (date-fns, `@date-fns/tz`).
-- [ ] Bugs: a point that becomes a vertex is summarised as deleted; neighbours are not validated again after a deletion.
-- [ ] Relations: review against iD, strong tests for member order, improvements in the inspector; then the map side (highlight members, load a relation in full).
-- [ ] Preset changes from an editor's config (`withChanges`), with an example and documentation.
-- [ ] An info popover for fields and feature types (the tag's description from the OSM wiki, on a person's click only).
-- [ ] Address field as in iD.
-- [ ] Direction markers: short ways, the selected way's direction, one-sided line styles, view cones of points.
+- [x] Times shown local and relative, with the other form in the tooltip (date-fns, `@date-fns/tz`).
+  Result (2026-10-13): built in bfe6595: times in the browser's time zone, relative where recent (date-fns in `packages/ui`). The tooltip form was not checked.
+- [x] Bugs: a point that becomes a vertex is summarised as deleted; neighbours are not validated again after a deletion.
+  Result (2026-10-13): built in c9e1408: a point that becomes part of a way counts as changed, and neighbours are checked again after a deletion.
+- [x] Relations: review against iD, strong tests for member order, improvements in the inspector; then the map side (highlight members, load a relation in full).
+  Result (2026-10-13): built in 0cddca7 (inspector), 52a3502 (member order), 439f17b (tests), b4208b4 (map side) and e9e688c (joins and splits).
+- [x] Preset changes from an editor's config (`withChanges`), with an example and documentation.
+  Result (2026-10-13): built in c756bc9: `withChanges` in `packages/presets`, an example in `apps/maid/src/preset-changes.example.ts`, the package README.
+- [x] An info popover for fields and feature types (the tag's description from the OSM wiki, on a person's click only).
+  Result (2026-10-13): built in c756bc9 (`packages/ui/src/InfoPopover.tsx`): the wiki is asked only on a click, once per tag in 30 days.
+- [x] Address field as in iD.
+  Result (2026-10-13): built in c756bc9.
+- [x] Direction markers: short ways, the selected way's direction, one-sided line styles, view cones of points.
+  Result (2026-10-13): built in 229963b and 99cdfb9. The view cones of points are not checked (unverified, 2026-10-13).
 
 Waiting for the renderer to be free (one after the other):
-- [ ] Points: iD draws the pin only; Maid always draws a dot under it. House numbers on address points and buildings, as close to iD as MapLibre allows.
-- [ ] Things on top of each other: the first is selected as in iD, a small marker says there are more, a list switches between them; also on right click. For lines and points.
-- [ ] Side indicator and width band on the map while a field has the focus.
+- [x] Points: iD draws the pin only; Maid always draws a dot under it. House numbers on address points and buildings, as close to iD as MapLibre allows.
+  Result (2026-10-13): built in 7a5e7f9 (the pin is the point) and 1a46967 (house numbers on plaques).
+- [x] Things on top of each other: the first is selected as in iD, a small marker says there are more, a list switches between them; also on right click. For lines and points.
+  Result (2026-10-13): built in bbda5ba.
+- [x] Side indicator and width band on the map while a field has the focus.
+  Result (2026-10-13): built in 1f5cb67; the band going away after a value is confirmed and when the pointer leaves the fields is fixed in 4ea65cd and c637528.
 - [ ] Measuring tape for width fields.
-- [ ] Validation: measure the speed of all rules on the dense scene; decide between the main thread, a worker and WASM from the numbers.
+- [x] Validation: measure the speed of all rules on the dense scene; decide between the main thread, a worker and WASM from the numbers.
+  Result (2026-10-13): measured in 919405b (an edit is checked in 4 ms on the dense scene). The decision is in [validation-performance.md](../research/validation-performance.md): main thread, no worker, no WASM for now.
 
 Waiting for preset changes and field types from modules:
 - [ ] Traffic sign field with `@osm-traffic-signs/id-field`.
-- [ ] Image fields for all image keys (no infra3D: that is a module of its own).
-- [ ] Surface and smoothness by photo with `@osm-editor-kit/surface-smoothness-data`.
+  Result (2026-10-13): partly, in c9f7fa2: the module has the presets and a plain text field, not switched on. The package's sign picker is not mounted (it is built for iD), so the item is not done.
+- [x] Image fields for all image keys (no infra3D: that is a module of its own).
+  Result (2026-10-13): built in 0ef2a8b: a field for the image tags, and "Use this photo" in the viewer.
+- [x] Surface and smoothness by photo with `@osm-editor-kit/surface-smoothness-data`.
+  Result (2026-10-13): built in 4c9f6b8 as a module that is not switched on (the data package is GPL-3.0-or-later and Maid is ISC: a decision is needed before it is in the default editor).
 
 At the end:
 - [ ] One or two code reviews for speed and for simpler code, with the findings applied.
 - [ ] One list of all missing features from the area reports.
 
-Waiting for a decision by Tobias: bugs in the model that lose data (join of a collapsed multipolygon, reverse with semicolon values) need a change to code that is kept identical to Rapid; field defaults when a type is chosen; hide a feature only when all its filter categories are hidden; trimming of `note`, `description`, `fixme`; restore the last map position; combo option order; emptying a translation's code; seven favourites with fixed keys.
+Waiting for a decision by Tobias: bugs in the model that lose data (reverse with semicolon values) need a change to code that is kept identical to Rapid; field defaults when a type is chosen; hide a feature only when all its filter categories are hidden; trimming of `note`, `description`, `fixme`; restore the last map position; combo option order; emptying a translation's code; seven favourites with fixed keys.
 
 ## Not planned yet
 

@@ -13,9 +13,9 @@ Compared at iD commit `0194f3926`. Run: `bun test packages/model/test/id/core pa
 | `core/tree.js` | 17 | 3 | 2 | 12 | 0 | `packages/model/test/spatial/SpatialIndex.test.js`; `packages/model/test/id/core/tree.test.ts` |
 | `core/validator.js` | 6 | 0 | 5 | 0 | 1 | `packages/validation/src/id-validator.test.ts` |
 | `lib/locale.js` | 3 | 0 | 0 | 3 | 0 | none (todo, F-core-1) |
-| **sum** | **210** | **124** | **7** | **35** | **44** | |
+| **sum** | **210** | **124** | **9** | **33** | **44** | |
 
-Check: 124 + 7 + 35 + 44 = 210, the iD count in `inventory.md` (core 207 + lib 3). Every row adds up.
+Check: 124 + 9 + 33 + 44 = 210, the iD count in `inventory.md` (core 207 + lib 3). Every row adds up.
 
 "Covered" was judged by test titles and by reading the bodies of a sample (graph constructor, replace, revert, perform, prepareTestHistory). The bodies of the undo, redo, reset, checkpoint, changes and hasChanges rows were not read, so those are unchecked.
 
@@ -30,13 +30,13 @@ Check: 124 + 7 + 35 + 44 = 210, the iD count in `inventory.md` (core 207 + lib 3
 | F-core-5 | Transient cache on a graph: a value computed once per graph, dropped when the graph is rebased | `core/graph.js`: `invalidates transients` 1 | todo | `packages/model/src/lib/Graph.ts` |
 | F-core-6 | Animated edits: actions that run in a transition | `core/history.js`: `performs transitionable actions in a transition` 1 | todo (cut from Rapid's EditHistory, see the model README) | `packages/model/src/edit/EditHistory.ts` |
 | F-core-7 | Editor debug flags, get and set (for example tile and collision debugging) | `core/context.js`: `#debug` 1 | todo | `packages/core/src/editor.ts` |
-| F-core-8 | Summary of a point that becomes a vertex of a way: reported as modified (iD), Maid reports it as deleted | `core/difference.js`: `reports a vertex as modified when it was previously a point` 1 | built now | `Difference.summary()` in `packages/model/src/lib/Difference.ts` |
-| F-core-9 | Validation after a deletion: the ways that a deletion leaves disconnected are checked, not only the changed entities | `core/validator.js`: `add validation issue when highway becomes disconnected` 1 | built now | `apps/maid/src/modules/validation.tsx` passes only changed entities that have a head; the rule set itself is fine |
+| F-core-8 | Summary of a point that becomes a vertex of a way: reported as modified (iD), Maid reports it as deleted | `core/difference.js`: `reports a vertex as modified when it was previously a point` 1 | built in c9e1408 | `Difference.summary()` in `packages/model/src/lib/Difference.ts` |
+| F-core-9 | Validation after a deletion: the ways that a deletion leaves disconnected are checked, not only the changed entities | `core/validator.js`: `add validation issue when highway becomes disconnected` 1 | built in c9e1408 | `apps/maid/src/modules/validation.tsx` passes only changed entities that have a head; the rule set itself is fine |
 
 ## Differences found
 
-- **F-core-8, a bug.** iD's test expects the way and the point (now a vertex with a changed tag) to be reported as modified. Maid's summary checks the base geometry first: the point was a `point` in the base, so it is reported as `deleted`. The node still exists in OSM, so "deleted" is wrong. This is a bug in `Difference.summary()`; I did not change `src`.
-- **F-core-9.** The app calls `validator.validate(staging, changed, ways)` where `changed` is the ids of the difference with a head. Deleting a way leaves its neighbour unchanged in the difference, so the neighbour is never checked. iD re-checks it and reports it. The validator follows what it is told, so the fix is in the app's call (or in what the validator is told), not in the rule.
+- **F-core-8, a bug.** iD's test expects the way and the point (now a vertex with a changed tag) to be reported as modified. Maid's summary checks the base geometry first: the point was a `point` in the base, so it is reported as `deleted`. The node still exists in OSM, so "deleted" is wrong. This was a bug in `Difference.summary()`; fixed in c9e1408 (the summary now counts it as modified, `Difference.ts` line 231).
+- **F-core-9.** The app calls `validator.validate(staging, changed, ways)` where `changed` is the ids of the difference with a head. Deleting a way leaves its neighbour unchanged in the difference, so the neighbour is never checked. iD re-checks it and reports it. The validator follows what it is told, so the fix is in the app's call (or in what the validator is told), not in the rule. Fixed in c9e1408: the validator is given the whole change.
 - **Untagged vertices of a way.** iD reports the way as modified and not the vertex. Maid's summary does the same (tests "ignores uninteresting child node ..."), so these were covered, not a difference.
 - **Graph frozen flag.** iD's `coreGraph` is frozen by default and `update()` copies it. Maid's Graph is Rapid's: a base graph refuses changes and a head graph changes in place. Both are covered as base refusing changes and head changing in place (see the n/a row).
 - **Undo annotation.** iD's `perform(action, annotation)` puts the annotation on the undo stack. Maid's `perform` has no annotation; `commit({ annotation })` does. The iD test "pushes an undo annotation" is covered by the commit tests.

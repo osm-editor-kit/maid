@@ -217,16 +217,12 @@ These are wrong today, not only absent. Evidence and the report that found them.
 
 | # | What is wrong | Evidence | Report |
 | --- | --- | --- | --- |
-| 1 | Reverse loses data in a direction with `;`: `direction=0;error` becomes `180`, the `;error` is dropped; `N;90` stays unchanged (iD gives `180;error` and `S;270`) | checked: `reverse.ts` ~158 to 170, `parseFloat` of `0;error` is 0, the compass table has no `;` case | actions-b, F-actions-b-23 |
-| 2 | Reverse changes `side=right` to `left` on `highway=cyclist_waiting_aid` and on `railway:turnout_side`, and renames `red_turn:right` to `red_turn:left` | actions-b tests (2 and 1, todo) | actions-b, F-actions-b-21, -22; D21 |
-| 3 | Orthogonalize deletes a vertex that sits at the same place as its neighbour: a six-node closed way becomes four nodes; measured: an untagged node is deleted | snapping §2.3 item 5 (measured); test `preserves a way's duplicate vertices` (todo) | actions-b, F-actions-b-12; snapping |
 | 4 | Rotate, scale and move bend the neighbouring ways (their shared nodes move in place, the way gets no new node) | checked: `transform.ts:110`; measured `w2` bends | snapping §2.3 item 2 |
 | 5 | A favourite's tags are not applied when the favourite is added on an existing node; on a line the new vertex is untagged | snapping §1.4 table (report) | snapping §1.4 |
 | 6 | A failed tile (429 or 509) is retried on every move, which repeats the requests that caused the limit | checked: no 429 handling in `packages/renderer` | svg-renderer-services, F-services-1 |
 | 7 | almost_junction misses a crossing beyond a road's end when it lies outside the road's box | checked: `waysNear` only (`types.ts:38`); the rule's own comment says so | validations, F-validations-21 |
 | 8 | Route order after a split: the new way is placed in the wrong position in 2 to 5 cases (dual carriageway) | actions-b, `split.js` route tests | actions-b, F-actions-b-36; relations F-relations-3 |
 | 9 | A closed way split at two given nodes is split at its own antipode as well | actions-b, F-actions-b-32 (todo) | actions-b |
-| 10 | `OsmEntity.toOSM` drops the first character whatever it is: `toOSM('x5')` gives `5`; iD gives `''` | checked: `OsmEntity.ts:305-307` (`id.slice(1)`); test "returns the empty string for other strings" passes only because of its input | osm, entity.js row |
 | 11 | semiCombo on a field that allows duplicates: `addSemi` drops existing repeats on each write | ui differences (F-ui-5) | ui |
 | 12 | A feature gets only its first matching filter category: a station is hidden with `rail` while `points` is on (iD keeps it) | svg-renderer-services differences; `default.ts` documents the rule on purpose | svg-renderer-services; D6 |
 | 13 | A new (unsaved) feature can be hidden by a filter; iD hides only saved features | report: the builder has no such check (not reproduced) | svg-renderer-services, F-features-4 |
@@ -236,7 +232,7 @@ These are wrong today, not only absent. Evidence and the report that found them.
 | 17 | Extract always moves relation membership to the new node; iD does it only when asked | actions-a, F-actions-a-6 | actions-a |
 | 18 | crossing_ways: the "Connect the features" fix adds an untagged node; iD adds connection tags | validations differences | validations |
 
-Fixed since the reports, so not in this table: the join that deleted a collapsed multipolygon's `type=site` parent (F-actions-b-11, now adopted and passing); the survivor rules for connect and merge (F-actions-a-5, F-actions-b-1 to -3); the summary of a point that becomes a vertex (F-core-8); the neighbours not re-validated after a deletion (F-core-9).
+Fixed since the reports, so not in this table: the join that deleted a collapsed multipolygon's `type=site` parent (F-actions-b-11, now adopted and passing); the survivor rules for connect and merge (F-actions-a-5, F-actions-b-1 to -3); the summary of a point that becomes a vertex (F-core-8); the neighbours not re-validated after a deletion (F-core-9); reverse keeping every part of a direction and leaving `side` of a waiting aid, `railway:turnout_side` and `red_turn:*` alone, orthogonalize keeping a duplicate vertex, and `toOSM` on a string that is not an id (rows 1, 2, 3 and 10 of this table before, fixed in 72bd175).
 
 ## 4. Decisions waiting for Tobias
 
@@ -306,23 +302,10 @@ Also: the walkthrough (iD's tutorial): not doing, decided 2026-10-12.
 
 ## 7. Stale documents
 
-Not corrected here. What is stale, with the evidence.
+Worked through on 2026-10-13 (not yet committed). The rows that were fully corrected were removed; what is still open:
 
-| Document | What is stale |
+| Document | What is still stale |
 | --- | --- |
-| `docs/research/id-tests/inventory.md` | Counts `it(` calls only: `localizer.ts` has a 12-row `it.each` that is not counted (the core and util reports say so); the ui `wikipedia.js` `it.skip` and the radio `it.each` are not counted; the osm folder runs more cases than its 406 (node.js runs 61, and its loop of six invalid pairs is one `it`). The core file total is 207 plus 3 from `lib/locale.js` (210 in the core report). |
-| `docs/research/id-tests/actions-a.md` | Sum row (41 adopted, 20 todo) does not match its rows (44 and 17). The `change_preset` row (13 todo) is stale: the presets report adopts them. F-actions-a-4 is built. |
-| `docs/research/id-tests/actions-b.md` | Sum row says "14 of 18 files, 124 of 349 tests": all 18 rows are written, sum 269 covered, 57 adopted, 23 todo. |
-| `docs/research/id-tests/core.md` | Sum row (7 adopted, 35 todo) does not match its rows (9 and 33). F-core-8 and F-core-9 are "built now" in its table, and listed as open bugs in `steps.md`. |
-| `docs/research/id-tests/presets.md` | Counts `change_preset` again (93 instead of 80). Its own `packages/presets/README.md` note is out of date: it says search is not ported (it is, with the fuzzy tiers) and does not mention field defaults or the field-key rules of `applyPreset`. |
-| `docs/research/id-tests/operations-modes-behavior.md` | "Not finished: the app switch" for Delete (F-ops-2). Unverified now: `apps/maid/src/commands.ts` has no `delete` command of its own any more (only the key label). |
-| `docs/research/id-tests/validations.md` | Sum row covers only the first 3 of 14 rows (the table sums to 209: 6, 142, 61, 0). "Not finished" says the new rules are not in `defaultRules`: all 11 are (`packages/validation/src/index.ts:31-44`, commit d8193a8). |
-| `docs/research/id-tests/ui.md` | "Maid has no multi-selection yet" (F-ui-6): selecting several features exists (commit 94d1f1b, Shift-click in `MapView.tsx`); the missing part is the inspector's "Multiple values". Also the `tsc` error at `packages/validation/src/id-validator.test.ts:79` is unverified. |
-| `docs/research/relations-vs-id.md` | Summary counts predate the map side (commits b4208b4, e9e688c, 0cddca7, 52a3502). Row 27 (merge keeps the first relation) is built (F-actions-b-3). Row 30 (missing role, outdated tags) is partly built (missing_role, commit d8193a8). Row 19 and row 2 are unchanged. |
-| `docs/research/interactions-vs-id.md` | Most of the keyboard table says "missing" for things now built: move, rotate, reflect, copy, paste (075ec35); Space, Backspace and Delete while drawing; Escape finishes a drawn way; the arrow keys and `+`/`-` (`useShortcuts.ts`); the `A` continue key; Alt turns snapping off (`MapView.tsx:193`); long press opens the menu (`MapView.tsx` 242 to 259); the right-click menu (`MapContextMenu.tsx`). Ranked gaps 1, 2, 3, 4, 6, 7, 8, 12, 13 and 18 are built. Still open: 5, 9, 14, 15, 16, 17 (partly), and the follow mode. |
-| `docs/research/fields-vs-id.md` | Section 1 "Maid today" is stale for most types (check, number, semiCombo, radio, multiCombo, access, address, localized, date, colour now have field components in `packages/ui/src/inspector/fields/`). Section 4 build steps 1 to 15 are largely built. Section 7 bugs: the 255-character cut (`logic.ts:5`), the default check (`logic.ts:193`) and the `default` values (presets report) are fixed or changed; the `multiCombo` key bug is not visible in `fields.tsx` any more (unverified). Section 5 (decisions) is still open. |
-| `docs/research/snapping-and-node-preservation.md` | §2.3 item 1 (connect survivor, commit 21b2a90) and item 6 (drop connects, commit b33374f) are built. §1 rows for Alt and for the drop onto a node are built. Items 2 to 5 are still open. |
-| `docs/research/validation-performance.md` | Not stale in its answer. Its "Open items" are still open. The steps list asks for the same decision and it is answered here. |
-| `docs/research/street-imagery-vs-mapillary.md` | Written from the code, not from a browser; the "not done" for the open photo in the URL is unverified. |
-| `docs/build-out/radnetz-features.md` | The "In Maid today" column is stale for: 1, 4, 5 (D1, D3, D5 done per `steps.md`); 15 (preset changes from config, c756bc9); 19 and 20 (0ef2a8b); 22 (c50db0c); 7 and 10 (1f5cb67); 2 and 24 (modules built, not switched on). |
-| `docs/build-out/steps.md` (Part E, Part C) | Ticked as open but built: "Times shown local and relative" (bfe6595); "Bugs: point summarised as deleted, neighbours not validated" (F-core-8 and -9 built); "Address field" (c756bc9); "Preset changes from config" (c756bc9); "Direction markers" (229963b, 99cdfb9); "Points: the pin" (7a5e7f9) and "house numbers" (1a46967); "Things on top of each other" (bbda5ba); "Side indicator and width band" (1f5cb67); "Image fields" (0ef2a8b); "Surface and smoothness" (4c9f6b8, not switched on); "Traffic sign field" (c9f7fa2, not switched on); "Relations" (b4208b4 and later). "Validation speed" is answered by its report. Part C "C2 login and upload" is unticked but partly built (62d9183, 7472084). Part E "Waiting for a decision" still lists the join bug, which is fixed. |
+| `docs/research/id-tests/inventory.md` | The `core/localizer.ts` row says 10 tests. A grep finds 9 `it(` lines (unverified, 2026-10-13). |
+| `packages/presets/README.md` (outside `docs/`, not edited) | Still does not mention field defaults or the field-key rules of `applyPreset`. Its "search is not ported" line is gone. |
+| `docs/research/id-tests/ui.md` | The tsc error at `packages/validation/src/id-validator.test.ts:79` is unverified (2026-10-13): that file has no `it.todo` now. |

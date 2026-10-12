@@ -2,6 +2,8 @@
 
 Counted by script from `.reference/id/test/spec` at iD commit `0194f3926`: `it(`/`test(` calls per file. The per-area files next to this one say what Maid has for each test and what is missing.
 
+What the count does not see (checked 2026-10-13 in the iD files): `it.each` tables (`core/localizer.ts` 8 rows, `util/localizer.ts` 12 rows, `ui/fields/radio.ts` 5 rows); one `it.skip` (`ui/fields/wikipedia.js`); a loop that makes one `it` per case (`osm/node.js`: six invalid direction and side pairs, so the file runs 61 cases, not 56). The 10 in the `core/localizer.ts` row is unverified (2026-10-13): a grep finds 9 `it(` lines. `lib/locale.js` is a separate row; the core report adds it to `core` (210).
+
 | Area | Files | Tests | Skipped in iD |
 | --- | --- | --- | --- |
 | actions | 35 | 509 | 0 |

@@ -27,7 +27,7 @@ Effort: S = wiring what a package already exports, or a link/button from data th
 | Highlight photos near the selected feature | iD: photos for a sign (unverified in detail) | Not done | `SelectedMapFeatureLayer`, `useSelectedMapillaryFeature`, `useMapillaryMapFeaturesNear` | M to L | the OSM selection of Maid as an input; Mapillary map features only | No |
 | Viewer size and placement (dock or floating, resizable) | Mapillary: floating viewer (unverified). iD: side panel | Dock view only, via the module's `DockView` | `FloatingPhotoViewer`, `ViewpointLayer`, `getViewpointSession` (viewpoints) | L | a viewpoint session and a floating layout in the UI shell | Yes |
 | Attribution | Mapillary: image credit. Panoramax: creator and licence | Done: the Panoramax panel shows creator and licence; the Mapillary viewer shows its own | `hideAttribution` (not set) | S (done) | nothing | Yes |
-| Keeping the open photo in the URL | iD: unverified | Not done. Maid has URL state in `apps/maid/src/url/params.ts` | Store `openPhoto` (`src/store.ts`) | M | a URL parameter, restored before the photo is requested | Yes |
+| Keeping the open photo in the URL | iD: unverified | Not done (checked 2026-10-13: no photo parameter in `apps/maid/src/url/params.ts`). Maid has URL state there | Store `openPhoto` (`src/store.ts`) | M | a URL parameter, restored before the photo is requested | Yes |
 
 ## Counts
 

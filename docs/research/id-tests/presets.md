@@ -11,7 +11,7 @@ Compared at iD commit `0194f3926`. Run: `bun test packages/presets` → 129 pass
 | `presets/index.js` | 27 | 1 | 17 | 9 | 0 | `packages/presets/src/id-index.test.ts` |
 | `presets/preset.js` | 35 | 0 | 31 | 4 | 0 | `packages/presets/src/id-preset.test.ts` |
 | `actions/change_preset.js` | 13 | 0 | 13 | 0 | 0 | `packages/presets/src/id-change-preset.test.ts` |
-| **sum** | **93** | **1** | **75** | **15** | **2** | |
+| **sum** | **80** | **1** | **62** | **15** | **2** | the `change_preset` row is not in this sum (counted once, under actions, see `actions-a.md`) |
 
 The presets part alone (`presets/*.js`, 80 tests) is 1 covered, 62 adopted, 15 todo, 2 n/a: 80.
 
@@ -34,7 +34,7 @@ The presets part alone (`presets/*.js`, 80 tests) is 1 covered, 62 adopted, 15 t
 - **Field defaults are now applied.** `applyPreset` used to skip them, on purpose: the old comment gave location sets and preferences as the reason. Location sets are still not ported and there is no preference here, so the defaults are built, as in iD (`skipFieldDefaults` is F-presets-3). This changes what the app writes: `apps/maid/src/components/Inspector.tsx` calls `applyPreset` when a preset is picked, so a picked preset now also adds its fields' defaults. Tobias should check that this is wanted.
 - **New public functions** on `Presets`: `matchScore(preset, tags)`, `isFallback(preset)`, `unsetTags(tags, preset, geometry, ignoringKeys?)`. They are iD's preset methods, needed by the adopted tests. `applyPreset` gets the same docs as iD's `actionChangePreset`.
 - **`it.todo` takes a no-op body** (`() => {}`) in these files. bun's types for `it.todo` need a function; the same error shows in other packages' todo tests (`packages/ui`, `packages/validation`).
-- **README is out of date** (`packages/presets/README.md`, not edited: outside the allowed files). Its "Not ported yet" line still lists search, which is now ported with the fuzzy tiers, and it does not mention field defaults or the field-key rules of `applyPreset`.
+- **README is partly out of date** (`packages/presets/README.md`, not edited: outside `docs/`). Its "Not ported yet" line no longer lists search, so that part is fixed (checked 2026-10-13). It still does not mention field defaults or the field-key rules of `applyPreset`.
 
 ## Not applicable, by reason
 
