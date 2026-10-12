@@ -49,10 +49,16 @@ export function FilterPanel(props: {
           const count = counts?.[filter.id]
           const changed = state !== filter.state
           return (
-            <li key={filter.id} className="flex break-inside-avoid items-center gap-2 py-1.5">
+            // the switch first, so the switches of a column line up and each row reads as one group
+            <li key={filter.id} className="flex break-inside-avoid items-center gap-3 py-1.5">
+              <StateSwitch
+                label={filter.label}
+                value={state}
+                onSelect={(next) => onChange(filter.id, next)}
+              />
               <span
                 className={twJoin(
-                  'min-w-0 flex-1 truncate text-sm',
+                  'min-w-0 truncate text-sm',
                   state === 'hidden'
                     ? 'text-zinc-500 dark:text-zinc-400'
                     : 'text-zinc-950 dark:text-white',
@@ -60,24 +66,19 @@ export function FilterPanel(props: {
               >
                 {filter.label}
               </span>
-              {count !== undefined ? (
-                <span className="shrink-0 text-xs text-zinc-500 tabular-nums dark:text-zinc-400">
-                  {count.toLocaleString('en')}
-                </span>
-              ) : null}
               {changed ? (
                 <span
                   role="img"
                   aria-label="Changed from the default"
                   title="Changed from the default"
-                  className="size-1.5 shrink-0 rounded-full bg-blue-500"
+                  className="-ml-1.5 size-1.5 shrink-0 rounded-full bg-blue-500"
                 />
               ) : null}
-              <StateSwitch
-                label={filter.label}
-                value={state}
-                onSelect={(next) => onChange(filter.id, next)}
-              />
+              {count !== undefined ? (
+                <span className="ml-auto shrink-0 text-xs text-zinc-500 tabular-nums dark:text-zinc-400">
+                  {count.toLocaleString('en')}
+                </span>
+              ) : null}
             </li>
           )
         })}
