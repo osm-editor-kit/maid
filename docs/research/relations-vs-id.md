@@ -25,13 +25,15 @@ Tests in this pass:
 
 | Feature id | What fails in the model | Data |
 | --- | --- | --- |
-| F-relations-1 | Adding a way moves a member that is not loaded behind the ways after it | route `[w1 a-b, wM (not loaded), w3 c-d]`, add `w2 b-c`: result `[w1, w3, wM]` (the `wM` entry was between `w1` and `w3`) |
-| F-relations-2 | Adding a way regroups the members by type (nodes, then ways, then relations), so a sub-relation moves to the end | route `[w1, R (subarea), w3]`, add `w2`: result `[w1, w2, w3, R]` |
-| F-relations-3 | Splitting a member way that runs against the route's travel direction puts the new part after the old one (same class as F-actions-b-36) | route `[ed, dcba, az]`, split `dcba` at `c`: result `[ed, cba, dc, az]`, expected `[ed, dc, cba, az]` |
+| F-relations-1 | Adding a way moves a member that is not loaded behind the ways after it | route `[w1 a-b, wM (not loaded), w3 c-d]`, add `w2 b-c`: result `[w1, w3, wM]` (the `wM` entry was between `w1` and `w3`)
+| F-relations-2 | Adding a way regroups the members by type (nodes, then ways, then relations), so a sub-relation moves to the end | route `[w1, R (subarea), w3]`, add `w2`: result `[w1, w2, w3, R]`
+| F-relations-3 | Splitting a member way that runs against the route's travel direction puts the new part after the old one (same class as F-actions-b-36) | route `[ed, dcba, az]`, split `dcba` at `c`: result `[ed, cba, dc, az]`, expected `[ed, dc, cba, az]`
+
+Status of these three (built now, in `packages/model`): F-relations-1 and -2 are fixed in `add_member.ts`, a change beyond iD (iD has the same join code, read, not run); their parked tests are real tests in `member-order.test.ts`. F-relations-3 is fixed in `add_member.ts` (the pair order of an insert pair), with its test in `structure.test.ts`, the same change as F-actions-b-36.
 | F-actions-b-31 | A closed roundabout in a route is not refused (iD: `simple_roundabout`) | parked in `structure.test.ts` |
 | F-actions-b-35 | The `intersection` role of `destination_sign` is not `via` | parked in `restriction.test.ts` |
 
-F-actions-b-36 (five iD split tests with the new way in the wrong place) is not re-run here; F-relations-3 is a new data point for it.
+F-actions-b-36 (five iD split tests with the new way in the wrong place) is not re-run here; F-relations-3 is a new data point for it. Built now: three of the five iD tests are real tests (`split.test.ts`); the two dual-carriageway tests stay todo, because the pair order there comes from the join's direction through the parallel ways, not from the neighbours as in iD's `splitWayMember`.
 
 Under F-relations-1 and F-relations-2 the "Added as member N of M" line (row 15, item 6 below) reports the position that the model gives. The line says nothing where the model moved other members too (see `placementOf`).
 

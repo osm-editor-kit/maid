@@ -41,10 +41,21 @@ describe('split of a member way', () => {
     expect(shape(graph, 'r')).toEqual(['za', 'abc', 'cd', 'de'])
   })
 
-  // F-relations-3: when the route runs against the way's stored direction, the new part is placed after the old
-  // one. Data: route [w2 ed, w dcba, w0 az] split at c. Model: [ed, cba, dc, az]; expected [ed, dc, cba, az].
-  // Same class as F-actions-b-36. The forward direction is covered above and passes.
-  it.todo('keeps the new part before the old one when the route runs against the way direction', () => {})
+  // F-relations-3: the new part was placed after the old one when the longer half kept the id (split swaps the
+  // halves then), because the join decided the order of the pair by the stored node order. Data: route
+  // [w2 ed, w dcba, w0 az] split at c. Before the fix: [ed, cba, dc, az]; expected [ed, dc, cba, az].
+  // Same class as F-actions-b-36. Maid: differs from Rapid here (F-relations-3).
+  it('keeps the new part before the old one when the route runs against the way direction', () => {
+    const base = new Rapid.Graph(context, [
+      pt('z', -1), pt('a', 0), pt('b', 1), pt('c', 2), pt('d', 3), pt('e', 4),
+      way('w2', ['e', 'd']),
+      way('w', ['d', 'c', 'b', 'a']),
+      way('w0', ['a', 'z']),
+      route('r', [{ id: 'w2' }, { id: 'w' }, { id: 'w0' }]),
+    ])
+    const graph = Rapid.actionSplit('c', ['=(new)'])(new Rapid.Graph(base))
+    expect(shape(graph, 'r')).toEqual(['ed', 'dc', 'cba', 'az'])
+  })
 
   it('keeps the entries of members that are not loaded in place when a loaded member is split', () => {
     const base = new Rapid.Graph(context, [

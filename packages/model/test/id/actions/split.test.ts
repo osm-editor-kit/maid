@@ -265,8 +265,20 @@ describe('actionSplit', () => {
         ]);
       });
 
-      // needs F-actions-b-36
-      it.todo('adds the new way to parent relations (existing way is second)');
+      // F-actions-b-36: the new way goes in front of the existing way when the existing way is the second part.
+      // Maid: differs from Rapid here (F-actions-b-36, see docs/research/relations-vs-id.md)
+      it('adds the new way to parent relations (existing way is second)', () => {
+        const base = new Rapid.Graph(context, [
+          pt('a', 0), pt('b', 1), pt('c', 2), pt('d', 3),
+          way('-', ['a', 'b', 'c', 'd']),
+          new Rapid.OsmRelation(context, { id: 'r', members: [{ id: '-', type: 'way', role: 'forward' }] })
+        ]);
+        const graph = Rapid.actionSplit('b', ['='])(new Rapid.Graph(base));
+        expect(graph.entity('r').members).toEqual([
+          { id: '=', type: 'way', role: 'forward' },
+          { id: '-', type: 'way', role: 'forward' }
+        ]);
+      });
     });
 
     describe('splitting out-and-back routes', () => {
@@ -340,8 +352,16 @@ describe('actionSplit', () => {
         expect(members(graph)).toEqual(['-', '=', '~', '~', '=', '-']);
       });
 
-      // needs F-actions-b-36
-      it.todo('splits out-and-back2 route at c');
+      // Maid: differs from Rapid here (F-actions-b-36, see docs/research/relations-vs-id.md)
+      it('splits out-and-back2 route at c', () => {
+        //    a <--- b <--- c <=== d ~~~> e
+        //    Relation: ['-', '=', '~', '~', '=', '-']
+        const graph = Rapid.actionSplit('c', ['='])(new Rapid.Graph(outAndBack2()));
+        expect(graph.entity('-').nodes).toEqual(['c', 'b', 'a']);
+        expect(graph.entity('=').nodes).toEqual(['d', 'c']);
+        expect(graph.entity('~').nodes).toEqual(['d', 'e']);
+        expect(members(graph)).toEqual(['-', '=', '~', '~', '=', '-']);
+      });
 
       it('splits out-and-back3 route at c', () => {
         //    a ---> b ---> c ===> d <~~~ e
@@ -353,8 +373,16 @@ describe('actionSplit', () => {
         expect(members(graph)).toEqual(['-', '=', '~', '~', '=', '-']);
       });
 
-      // needs F-actions-b-36
-      it.todo('splits out-and-back4 route at c');
+      // Maid: differs from Rapid here (F-actions-b-36, see docs/research/relations-vs-id.md)
+      it('splits out-and-back4 route at c', () => {
+        //    a <--- b <--- c <=== d <~~~ e
+        //    Relation: ['-', '=', '~', '~', '=', '-']
+        const graph = Rapid.actionSplit('c', ['='])(new Rapid.Graph(outAndBack4()));
+        expect(graph.entity('-').nodes).toEqual(['c', 'b', 'a']);
+        expect(graph.entity('=').nodes).toEqual(['d', 'c']);
+        expect(graph.entity('~').nodes).toEqual(['e', 'd']);
+        expect(members(graph)).toEqual(['-', '=', '~', '~', '=', '-']);
+      });
     });
 
     describe('splitting Y routes', () => {
@@ -444,10 +472,11 @@ describe('actionSplit', () => {
       const d = pt('d', 3, 0);
       const e = pt('e', 1.5, -1);
 
-      // needs F-actions-b-36
+      // needs F-actions-b-36: still open. The pair order comes from the join's direction through the two
+      // parallel ways, not from the neighbours as in iD's splitWayMember, so both come out in the wrong order.
       it.todo('splits dual-carriageway route, preserving role (forward way)');
 
-      // needs F-actions-b-36
+      // needs F-actions-b-36: still open, same cause as the forward way test above.
       it.todo('splits dual-carriageway route, preserving role (backward way)');
     });
   });

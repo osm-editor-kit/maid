@@ -80,9 +80,13 @@ describe('adding a way to a route', () => {
     expect(ids(graph, 'r')).toEqual(['s', 'w1', 'w2'])
   })
 
-  // F-relations-1: adding a way moves a member that is not loaded behind the ways after it. Data: route
-  // [w1 a-b, wM (not loaded), w3 c-d], add w2 b-c: the result is [w1, w2, w3, wM]; wM was between w1 and w3.
-  it.todo('keeps the entries of the members that are not loaded in their order when it fills a gap', () => {})
+  // F-relations-1: adding a way moved a member that is not loaded behind the ways after it. Data: route
+  // [w1 a-b, wM (not loaded), w3 c-d], add w2 b-c. Before the fix the result was [w1, w2, w3, wM]. Reading iD's
+  // add_member.ts, iD has the same join code (not run), so this goes beyond iD. Maid: differs from Rapid here (F-relations-1).
+  it('keeps the entries of the members that are not loaded in their order when it fills a gap', () => {
+    const base = new Rapid.Graph(context, [...line(), route('r', [{ id: 'w1' }, { id: 'wM' }, { id: 'w3' }])])
+    expect(ids(add(new Rapid.Graph(base), 'r', 'w2'), 'r')).toEqual(['w1', 'w2', 'wM', 'w3'])
+  })
 
   it('keeps a missing member at the start of the route in front', () => {
     const base = new Rapid.Graph(context, [...line(), route('r', [{ id: 'wM' }, { id: 'w1' }])])
@@ -94,9 +98,20 @@ describe('adding a way to a route', () => {
     expect(ids(add(new Rapid.Graph(base), 'r', 'w4'), 'r')).toEqual(['w1', 'wM', 'w4'])
   })
 
-  // F-relations-2: addWayMember regroups the members by type (nodes first, ways, then relations), so a
-  // sub-relation between two ways moves to the end. Data: [w1, R (subarea), w3], add w2: result [w1, w2, w3, R].
-  it.todo('keeps a relation member between the ways it was between', () => {})
+  // F-relations-2: addWayMember regrouped the members by type (nodes first, ways, then relations), so a
+  // sub-relation between two ways moved to the end. Data: [w1, R (subarea), w3], add w2. Before the fix the
+  // result was [w1, w2, w3, R]. iD has the same join code. Maid: differs from Rapid here (F-relations-2).
+  it('keeps a relation member between the ways it was between', () => {
+    const subarea = new Rapid.OsmRelation(context, { id: 'R', tags: { type: 'multipolygon' }, members: [] })
+    const base = new Rapid.Graph(context, [...line(), subarea, route('r', [{ id: 'w1' }, { id: 'R', type: 'relation' }, { id: 'w3' }])])
+    expect(ids(add(new Rapid.Graph(base), 'r', 'w2'), 'r')).toEqual(['w1', 'w2', 'R', 'w3'])
+  })
+
+  it('keeps a relation member after the ways when it was last', () => {
+    const subarea = new Rapid.OsmRelation(context, { id: 'R', tags: { type: 'multipolygon' }, members: [] })
+    const base = new Rapid.Graph(context, [...line(), subarea, route('r', [{ id: 'w1' }, { id: 'w3' }, { id: 'R', type: 'relation' }])])
+    expect(ids(add(new Rapid.Graph(base), 'r', 'w2'), 'r')).toEqual(['w1', 'w2', 'w3', 'R'])
+  })
 
   it('removes the first of two entries of the same member by index 0', () => {
     const base = new Rapid.Graph(context, [

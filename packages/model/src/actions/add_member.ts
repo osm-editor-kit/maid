@@ -19,7 +19,9 @@ export interface InsertPair {
  * during way-member ordering.  The `pair` holds the two real members that
  * replace a temporary "wTemp" way once ordering is complete.
  */
-type PairedMember = IndexedMember & { pair?: OsmRelationMember[] };
+// Maid: differs from Rapid here (F-relations-1, F-relations-2, see docs/research/relations-vs-id.md)
+// `origin` is the position of a loaded way in the member list, it does not change when the way moves.
+type PairedMember = IndexedMember & { pair?: OsmRelationMember[]; origin?: number };
 
 
 /**
@@ -67,6 +69,7 @@ export function actionAddMember(relationID: EntityID, member: OsmRelationMember,
    */
   function addWayMember(relation: OsmRelation, graph: Graph): void {
     let groups: Record<string, any[]>;
+    let sequence: OsmRelationMember[];
     let tempWay: OsmWay | undefined;
 
     // remove PTv2 stops and platforms before doing anything.
@@ -97,17 +100,38 @@ export function actionAddMember(relationID: EntityID, member: OsmRelationMember,
       const tempMember: OsmRelationMember = { id: tempWay.id, type: 'way', role: member.role };
       const tempRelation = relation.replaceMember({ id: insertPair.originalID }, tempMember, true);
       groups = utilArrayGroupBy(tempRelation.members, 'type');
-      groups.way = groups.way || [];
+      sequence = tempRelation.members;
 
     } else {
       // Add the member anywhere, one time. Just push and let `osmJoinWays` decide where to put it.
       groups = utilArrayGroupBy(relation.members, 'type');
-      groups.way = groups.way || [];
-      groups.way.push(member);
+      sequence = relation.members.concat([member]);
     }
 
-    const indexedMembers: PairedMember[] = withIndex(groups.way);
+    // Maid: differs from Rapid here (F-relations-1, F-relations-2, see docs/research/relations-vs-id.md)
+    // Only the loaded ways are joined and reordered. Every other entry (a way that is not loaded, a relation)
+    // is not moved by the join: it is written after the loaded way before it in the member list (see `anchors`).
+    const isLoaded = (m: OsmRelationMember): boolean => m.type === 'way' && graph.hasEntity(m.id) !== undefined;
+    const loaded = sequence.filter(isLoaded);
+    // origin of the new member, when it is a loaded way (it is the last one in the sequence)
+    const newOrigin = !insertPair && loaded.length > 0 && loaded[loaded.length - 1] === member ? loaded.length - 1 : -1;
+
+    // (computed before the join, because the join removes a temporary way of `insertPair`)
+    const anchors = new Map<number, OsmRelationMember[]>();
+    let previous = -1;
+    let loadedCount = 0;
+    for (const m of sequence) {
+      if (m.type === 'node') continue;
+      if (isLoaded(m)) {
+        previous = loadedCount++;
+        continue;
+      }
+      anchors.set(previous, [...(anchors.get(previous) ?? []), m]);
+    }
+
+    const indexedMembers: PairedMember[] = withIndex(loaded);
     const joined = osmJoinWays(indexedMembers, graph);
+    const joinedOrigins = new Set<number>();
 
     // `joined` might not contain all of the way members,
     // But will contain only the completed (downloaded) members
@@ -128,9 +152,20 @@ export function actionAddMember(relationID: EntityID, member: OsmRelationMember,
         const item = segment[k];
         const way = graph.entity(item.id) as OsmWay;
 
+        // Maid: differs from Rapid here (F-relations-2, see docs/research/relations-vs-id.md)
+        // a way that the join placed behind the previous way of its segment
+        if (k > 0) {
+          joinedOrigins.add(item.origin!);
+        }
+
         // If this is a paired item, generate members in correct order and role
         if (insertPair && tempWay && item.id === tempWay.id) {
-          if (nodes[0].id === insertPair.nodes[0]) {
+          // Maid: differs from Rapid here (F-relations-3, F-actions-b-36, see docs/research/relations-vs-id.md)
+          // The half that comes first along the route is the one with the route's node at this point, whichever
+          // half keeps the original id (`split` may swap them to keep the longer history).
+          const originalWay = graph.entity(insertPair.originalID) as OsmWay;
+          const originalFirst = originalWay.nodes[0] === nodes[0].id || originalWay.nodes[originalWay.nodes.length - 1] === nodes[0].id;
+          if (originalFirst) {
             item.pair = [
               { id: insertPair.originalID, type: 'way', role: item.role },
               { id: insertPair.insertedID, type: 'way', role: item.role }
@@ -158,23 +193,38 @@ export function actionAddMember(relationID: EntityID, member: OsmRelationMember,
       graph.remove(tempWay);
     }
 
+    // Maid: differs from Rapid here (F-relations-1, F-relations-2, see docs/research/relations-vs-id.md)
+    // Each entry that is not a loaded way waits under the loaded way before it in the member list (-1: none).
+    // It is written after that way, but before the next loaded way of the join, except that a new way
+    // the join placed directly behind that way is written first.
     // Final pass: skip dead items, split pairs, remove index properties
     const wayMembers: OsmRelationMember[] = [];
+    let current = -1;
+    const flushAnchors = (): void => {
+      wayMembers.push(...(anchors.get(current) ?? []));
+      anchors.delete(current);
+    };
     for (const item of indexedMembers) {
       if (item.index === -1) continue;
+
+      if (item.origin !== newOrigin || !joinedOrigins.has(item.origin)) {
+        flushAnchors();
+        current = item.origin!;
+      }
 
       if (item.pair) {
         wayMembers.push(item.pair[0]);
         wayMembers.push(item.pair[1]);
       } else {
-        wayMembers.push(utilObjectOmit(item, ['index']) as OsmRelationMember);
+        wayMembers.push(utilObjectOmit(item, ['index', 'origin']) as OsmRelationMember);
       }
     }
+    flushAnchors();
 
-    // Put stops and platforms first, then nodes, ways, relations
+    // Put stops and platforms first, then nodes, ways, and the entries that are not loaded ways (relations)
     // This is recommended for Public Transport v2 routes:
     // see https://wiki.openstreetmap.org/wiki/Public_transport#Service_routes
-    const newMembers = PTv2members.concat( (groups.node || []), wayMembers, (groups.relation || []) );
+    const newMembers = PTv2members.concat( (groups.node || []), wayMembers );
 
     graph.replace(relation.update({ members: newMembers }));
 
@@ -228,11 +278,13 @@ export function actionAddMember(relationID: EntityID, member: OsmRelationMember,
      * @param   arr - Array of relation member objects
      * @return  The same members with an added `.index` property
      */
-    function withIndex(arr: any[]): IndexedMember[] {
+    function withIndex(arr: any[]): PairedMember[] {
       const result = new Array(arr.length);
       for (let i = 0; i < arr.length; i++) {
         result[i] = { ...arr[i] };   // shallow copy
         result[i].index = i;
+        // Maid: differs from Rapid here (F-relations-1, F-relations-2, see docs/research/relations-vs-id.md)
+        result[i].origin = i;
       }
       return result;
     }

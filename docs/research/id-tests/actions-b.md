@@ -45,7 +45,7 @@ Compared at iD commit `0194f3926`. Run: `bun test packages/model/test/id/actions
 | F-actions-b-33 | splitting an area keeps line-only tags (`natural=coastline`) on the two ways; Maid moves all tags to the new multipolygon. Same gap as F-actions-b-4 | `split.js`: 1 test | todo | `packages/model/src/actions/split.ts` (area branch), with the way-only tag list from the tagging schema |
 | F-actions-b-34 | splitting an area puts the new multipolygon into the area's other parent relations (e.g. a `type=site`), in place of the area | `split.js`: 1 test | todo | `packages/model/src/actions/split.ts` (area branch) |
 | F-actions-b-35 | the `intersection` role of `destination_sign` relations counts as `via` (`hasFromViaTo`, and the via checks in split) | `split.js`: the destination_sign variant of the 14 restriction titles | todo | `packages/model/src/data/OsmRelation.ts` (`hasFromViaTo`), `packages/model/src/actions/split.ts` |
-| F-actions-b-36 | the position of the new way among a route relation's members after a split is not iD's in 5 cases (see Differences) | `split.js`: 5 tests | todo | unsure: `packages/model/src/actions/add_member.ts` (`insertPair`), not checked |
+| F-actions-b-36 | the position of the new way among a route relation's members after a split is not iD's in 5 cases (see Differences) | `split.js`: 5 tests | built now: 3 adopted, 2 todo (dual carriageway: the pair order follows the join's direction, not the neighbours) | unsure: `packages/model/src/actions/add_member.ts` (`insertPair`), not checked |
 
 ## Differences found
 
