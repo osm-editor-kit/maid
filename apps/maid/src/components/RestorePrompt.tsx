@@ -4,7 +4,7 @@ const BUTTON =
   'cursor-pointer rounded-md px-3 py-1.5 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500'
 
 /**
- * Asks whether the edits of the last visit come back, as iD does on start. It covers the map
+ * Asks whether the edits of the last visit come back, as iD does on start. It covers the app
  * until it is answered, because stored edits can only be put back before the first new one.
  * Also says so when edits are not kept: in a second tab, or when the browser's storage fails.
  */
@@ -13,7 +13,8 @@ export function RestorePrompt() {
   if (journal.status === 'pending') {
     const count = journal.edits === 1 ? '1 unsaved edit' : `${journal.edits} unsaved edits`
     return (
-      <div className="absolute inset-0 z-30 flex items-center justify-center bg-zinc-950/25 p-4 dark:bg-zinc-950/50">
+      // over the whole app and blurred: nothing behind it can be used until this is answered
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/25 p-4 backdrop-blur-sm dark:bg-zinc-950/50">
         <div
           role="alertdialog"
           aria-labelledby="restore-title"
