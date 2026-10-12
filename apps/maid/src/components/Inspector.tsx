@@ -6,7 +6,7 @@ import {
   SidebarBody,
   SidebarEmpty,
   SidebarHeader,
-  SidebarSection,
+  SidebarDisclosure,
 } from '@osm-editor-kit/maid-ui'
 import { useState } from 'react'
 import { editor, engine, useEngine } from '../editor'
@@ -81,16 +81,9 @@ export function Inspector() {
   const picking = onChange !== undefined && (picker?.id === id ? picker.open : untagged)
   const kind = entity ? (entity.preset?.name ?? GEOMETRY_LABEL[entity.geometry]) : undefined
 
-  const details = entity
-    ? [
-        kind,
-        entity.type === 'way' ? `${entity.size} nodes` : undefined,
-        entity.type === 'relation' ? `${entity.size} members` : undefined,
-        id,
-      ]
-        .filter(Boolean)
-        .join(' · ')
-    : id
+  // under the name: what kind of thing it is. Id and node count are in the "Element" group.
+  const title = entity ? (entity.tags.name ?? kind ?? 'Feature') : 'Loading…'
+  const details = entity && kind !== title ? kind : entity ? GEOMETRY_LABEL[entity.geometry] : id
   const canChangeType = onChange !== undefined && presets !== undefined
 
   return (
@@ -99,7 +92,7 @@ export function Inspector() {
         icon={
           <PresetIcon icon={entity?.preset?.icon} className="fill-zinc-700 dark:fill-zinc-200" />
         }
-        title={entity ? (entity.tags.name ?? entity.preset?.name ?? 'Feature') : 'Loading…'}
+        title={title}
         subtitle={details}
         // as in iD, the feature's head is the button that changes its type
         onTitleClick={canChangeType ? () => setPicker({ id, open: !picking }) : undefined}
@@ -140,24 +133,27 @@ export function Inspector() {
           ) : (
             <Operations />
           )}
-          {(fields.length > 0 || moreFields.length > 0) && (
-            <SidebarSection title="Fields">
-              <PresetFields
-                // picked fields belong to the feature: a new feature starts with none
-                key={id}
-                fields={fields}
-                moreFields={moreFields}
-                tags={entity.tags}
-                // what "revert" goes back to; a feature that was added here has nothing to revert to
-                baseTags={engine.baseTags(id)}
-                onChange={onChange}
-              />
-            </SidebarSection>
-          )}
-          <SidebarSection title="Tags">
-            <TagList tags={entity.tags} onChange={onChange} />
-          </SidebarSection>
-          <InspectorSections entity={entity} editor={editor} select={select} />
+          {/* their own box, so the first group has no line above it: the edit bar has one below */}
+          <div>
+            {(fields.length > 0 || moreFields.length > 0) && (
+              <SidebarDisclosure title="Fields" defaultOpen>
+                <PresetFields
+                  // picked fields belong to the feature: a new feature starts with none
+                  key={id}
+                  fields={fields}
+                  moreFields={moreFields}
+                  tags={entity.tags}
+                  // what "revert" goes back to; a feature that was added here has nothing to revert to
+                  baseTags={engine.baseTags(id)}
+                  onChange={onChange}
+                />
+              </SidebarDisclosure>
+            )}
+            <SidebarDisclosure title="Tags" detail={Object.keys(entity.tags).length} defaultOpen>
+              <TagList tags={entity.tags} onChange={onChange} />
+            </SidebarDisclosure>
+            <InspectorSections entity={entity} editor={editor} select={select} />
+          </div>
         </SidebarBody>
       )}
     </Sidebar>

@@ -313,11 +313,16 @@ export function relations(): MaidModule {
         id: 'relation-members',
         title: 'Members',
         when: (entity) => entity.type === 'relation',
+        disclosure: 'open',
+        detail: (entity) => (entity.type === 'relation' ? entity.size : undefined),
         component: MembersSection,
       }
       const memberships: InspectorSection = {
         id: 'relation-memberships',
         title: 'Relations',
+        // most features are in no relation: folded, with the number in the headline
+        disclosure: 'closed',
+        detail: (entity, editor) => membershipsOf(editor.history.staging.graph, entity.id).length,
         component: RelationsSection,
       }
       api.register('inspector.section', members)

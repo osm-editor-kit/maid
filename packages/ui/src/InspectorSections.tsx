@@ -16,6 +16,7 @@ export function InspectorSections({ entity, editor, select }: InspectorSectionPr
             <SidebarDisclosure
               key={section.id}
               title={section.title}
+              detail={section.detail?.(entity, editor)}
               defaultOpen={section.disclosure === 'open'}
             >
               {content}

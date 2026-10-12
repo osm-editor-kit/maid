@@ -19,12 +19,16 @@ export type CommandItem = {
 
 /**
  * Icon-only commands in one group joined by hairlines. The hairline is each button's own ring,
- * overlapped by one pixel, so a row that is not full has no filler at its end. The buttons wrap onto further rows when the
- * panel is narrow. Each button shows its label and shortcut in a tooltip.
+ * overlapped by one pixel, so a row that is not full has no filler at its end. The group is rounded at its start and end. The buttons wrap onto further
+ * rows when the panel is narrow. Each button shows its label and shortcut in a tooltip.
  */
 export function CommandBar(props: { label: string; items: CommandItem[] }) {
   return (
-    <div role="group" aria-label={props.label} className="flex flex-wrap pt-px pl-px">
+    <div
+      role="group"
+      aria-label={props.label}
+      className="flex flex-wrap pt-px pl-px [&>*:first-child]:rounded-l-md [&>*:last-child]:rounded-r-md"
+    >
       {props.items.map((item) => {
         const blocked = Boolean(item.reason)
         return (

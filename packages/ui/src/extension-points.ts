@@ -21,6 +21,8 @@ export type InspectorSection = {
   when?: (entity: EntityInfo) => boolean
   /** Folds away under its title: `'closed'` starts folded, `'open'` unfolded. Absent: always shown. */
   disclosure?: 'open' | 'closed'
+  /** A quiet word after the title that stays readable while folded: a count, an id */
+  detail?: (entity: EntityInfo, editor: Editor) => string | number | undefined
   component: ComponentType<InspectorSectionProps>
 }
 

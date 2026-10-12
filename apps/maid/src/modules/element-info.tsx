@@ -6,8 +6,16 @@ function ElementInfo({ entity, editor }: InspectorSectionProps) {
   const current = editor.history.staging.graph.hasEntity(entity.id)
   const original = editor.history.base.graph.hasEntity(entity.id)
   const props = current?.props ?? {}
-  const rows: [label: string, value: string | number | undefined][] = [
+  type Row = [label: string, value: string | number | undefined]
+  const size: Row[] =
+    entity.type === 'way'
+      ? [['Nodes', entity.size]]
+      : entity.type === 'relation'
+        ? [['Members', entity.size]]
+        : []
+  const rows: Row[] = [
     ['ID', entity.id],
+    ...size,
     ['Version', props.version],
     ['Changeset', props.changeset],
     ['User', props.user],
@@ -49,6 +57,7 @@ export function elementInfo(): MaidModule {
         title: 'Element',
         // id, version and so on are looked at now and then: folded away until asked for
         disclosure: 'closed',
+        detail: (entity) => entity.id,
         component: ElementInfo,
       }
       api.register('inspector.section', section)

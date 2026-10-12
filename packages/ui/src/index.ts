@@ -19,7 +19,14 @@ export { ControlButton, ControlGroup, MapControls } from './MapControls.tsx'
 export { CommandBar, type CommandItem } from './CommandBar.tsx'
 export { ResizeHandle } from './ResizeHandle.tsx'
 export { Shell } from './Shell.tsx'
-export { Sidebar, SidebarBody, SidebarEmpty, SidebarHeader, SidebarSection } from './Sidebar.tsx'
+export {
+  Sidebar,
+  SidebarBody,
+  SidebarDisclosure,
+  SidebarEmpty,
+  SidebarHeader,
+  SidebarSection,
+} from './Sidebar.tsx'
 export { useSettings, type Settings } from './settings.ts'
 export { initTheme, useResolvedTheme, useTheme, type Theme } from './theme.ts'
 export { ThemeSwitch } from './ThemeSwitch.tsx'

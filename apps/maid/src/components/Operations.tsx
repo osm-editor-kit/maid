@@ -1,4 +1,4 @@
-import { CommandBar, SidebarSection } from '@osm-editor-kit/maid-ui'
+import { CommandBar } from '@osm-editor-kit/maid-ui'
 import { useEditCommands } from '../commands'
 import { PresetIcon } from './PresetIcon'
 
@@ -29,7 +29,8 @@ export function Operations() {
   const commands = useEditCommands()
   if (commands.length === 0) return null
   return (
-    <SidebarSection title="Edit">
+    // a toolbar row under the header, edge to edge: no headline, the icons speak for themselves
+    <div className="-mx-3 -mt-3 mb-3 border-b border-zinc-950/10 px-3 py-2 dark:border-white/10">
       <CommandBar
         label="Edit"
         items={commands.map((command) => ({
@@ -37,6 +38,6 @@ export function Operations() {
           icon: <PresetIcon icon={ICON[command.id]} className="size-5 fill-current" />,
         }))}
       />
-    </SidebarSection>
+    </div>
   )
 }

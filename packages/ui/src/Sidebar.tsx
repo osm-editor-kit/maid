@@ -47,12 +47,17 @@ export function SidebarHeader(props: {
       {icon ? (
         <span
           aria-hidden="true"
-          className="inline-flex size-10 shrink-0 items-center justify-center rounded-md bg-zinc-950/5 text-zinc-600 dark:bg-white/10 dark:text-zinc-300 [&>svg]:size-6"
+          className={
+            titleFlyout !== undefined
+              ? // part of the header's box: full height, flush with its left edge, not a button of its own
+                'inline-flex w-14 shrink-0 items-center justify-center self-stretch bg-zinc-950/5 text-zinc-600 dark:bg-white/10 dark:text-zinc-300 [&>svg]:size-7'
+              : 'inline-flex size-10 shrink-0 items-center justify-center rounded-md bg-zinc-950/5 text-zinc-600 dark:bg-white/10 dark:text-zinc-300 [&>svg]:size-6'
+          }
         >
           {icon}
         </span>
       ) : null}
-      <span className="min-w-0 flex-1 text-left">
+      <span className={`min-w-0 flex-1 text-left ${titleFlyout !== undefined ? 'py-3' : ''}`}>
         <span className="block truncate font-semibold">{title}</span>
         {subtitle ? (
           <span className="block truncate text-xs text-zinc-500 dark:text-zinc-400">
@@ -72,7 +77,7 @@ export function SidebarHeader(props: {
       title={titleAction}
       className={
         titleFlyout !== undefined
-          ? 'group flex min-w-0 flex-1 cursor-pointer items-center gap-3 p-3 hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 aria-expanded:bg-zinc-950/5 dark:hover:bg-white/5 dark:aria-expanded:bg-white/5'
+          ? 'group flex min-h-14 min-w-0 flex-1 cursor-pointer items-center gap-3 pr-3 hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 aria-expanded:bg-zinc-950/5 dark:hover:bg-white/5 dark:aria-expanded:bg-white/5'
           : 'flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg p-1 inset-ring-1 inset-ring-zinc-950/10 hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 dark:inset-ring-white/10 dark:hover:bg-white/5'
       }
     >
@@ -146,22 +151,34 @@ export function SidebarSection(props: { title: string; children: ReactNode }) {
   )
 }
 
-/** A group like `SidebarSection` that folds away: its title is the switch. Closed unless `defaultOpen`. */
+/**
+ * A group that folds away: its headline is the switch. Closed unless `defaultOpen`. `detail` is a
+ * quiet word after the headline, such as a count or an id, which stays readable while folded.
+ */
 export function SidebarDisclosure(props: {
   title: string
+  detail?: ReactNode
   defaultOpen?: boolean
   children: ReactNode
 }) {
   return (
     <details
       open={props.defaultOpen}
-      className="group border-t border-zinc-950/10 py-3 first:border-t-0 first:pt-0 dark:border-white/10"
+      className="group border-t border-zinc-950/10 py-2.5 first:border-t-0 first:pt-0 dark:border-white/10"
     >
-      <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-medium text-zinc-500 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:text-white [&::-webkit-details-marker]:hidden">
-        {props.title}
-        <ChevronDownIcon aria-hidden="true" className="size-4 transition group-open:rotate-180" />
+      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-sm text-sm font-semibold text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-white [&::-webkit-details-marker]:hidden">
+        <h3>{props.title}</h3>
+        {props.detail !== undefined && props.detail !== '' ? (
+          <span className="min-w-0 truncate text-xs font-normal text-zinc-500 dark:text-zinc-400">
+            {props.detail}
+          </span>
+        ) : null}
+        <ChevronDownIcon
+          aria-hidden="true"
+          className="ml-auto size-4 shrink-0 text-zinc-500 transition group-open:rotate-180 dark:text-zinc-400"
+        />
       </summary>
-      <div className="mt-2">{props.children}</div>
+      <div className="mt-2.5">{props.children}</div>
     </details>
   )
 }
