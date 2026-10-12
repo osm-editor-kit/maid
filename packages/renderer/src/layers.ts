@@ -280,6 +280,17 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
   // From OSM zoom 17 iD draws a tagged vertex with a preset icon as a larger disc with the icon in it.
   const hasIcon: ExpressionSpecification = ['has', 'icon']
   layers.push(
+    // hover and selection of a vertex: iD's shadow circle under it
+    {
+      id: 'highlight-halo-vertex',
+      type: 'circle',
+      source: SOURCES.vertices,
+      paint: {
+        'circle-radius': ['step', ['zoom'], 6, 16, ['case', hasIcon, 12, 8]],
+        'circle-color': HOVER,
+        'circle-opacity': opacity,
+      },
+    },
     {
       id: 'vertex',
       type: 'circle',
@@ -358,6 +369,14 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
   )
 
   // --- Points ----------------------------------------------------------------
+  // Hover and selection: a glow under the dot, as iD's shadow under a point (0.5 on hover, 0.7
+  // when selected)
+  layers.push({
+    id: 'highlight-halo-points',
+    type: 'circle',
+    source: SOURCES.points,
+    paint: { 'circle-radius': 9, 'circle-color': HOVER, 'circle-opacity': opacity },
+  })
   // Address nodes: a small marker, with the house number from OSM zoom 19 on (iD draws a label shield)
   layers.push({
     id: 'point-address',
@@ -402,6 +421,43 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
         'symbol-sort-key': ['case', ['has', 'name'], 0, 1],
       },
     })
+    // The hovered or selected point always shows its pin, also where pins are thinned out for
+    // room, with a glow behind the pin's head. Both are invisible for every other point.
+    const active: ExpressionSpecification = [
+      'case',
+      ['boolean', ['feature-state', 'selected'], false], 1,
+      ['boolean', ['feature-state', 'hover'], false], 1,
+      0,
+    ] // prettier-ignore
+    layers.push(
+      {
+        id: 'highlight-halo-pin',
+        type: 'circle',
+        source: SOURCES.points,
+        filter: ['!', ['has', 'addr']],
+        paint: {
+          'circle-radius': 16,
+          'circle-translate': [0, -15],
+          'circle-blur': 0.4,
+          'circle-color': HOVER,
+          'circle-opacity': opacity,
+        },
+      },
+      {
+        id: 'active-point-pin',
+        type: 'symbol',
+        source: SOURCES.points,
+        filter: ['!', ['has', 'addr']],
+        layout: {
+          'icon-image': ['concat', 'pin-', ['coalesce', ['get', 'icon'], 'none']],
+          'icon-anchor': 'bottom',
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
+          'icon-padding': 0,
+        },
+        paint: { 'icon-opacity': active },
+      },
+    )
   }
 
   // --- Labels ----------------------------------------------------------------
