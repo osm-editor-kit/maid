@@ -152,6 +152,13 @@ export function MapView() {
 
   const press = (event: { point: Point; preventDefault: () => void }) => {
     if (mode !== 'browse') return
+    // a midpoint handle of the selected way: the press starts a handle drag, which adds a node on first move
+    if (engine.pressMidpoint(event.point)) {
+      event.preventDefault()
+      setStack(null)
+      setCursor('grabbing')
+      return
+    }
     const id = engine.pick(event.point, interactive)
     if (!engine.isDraggable(id)) return
     event.preventDefault() // keeps MapLibre from panning the map with this drag
@@ -169,7 +176,7 @@ export function MapView() {
     if (event.originalEvent.button === 0 && !event.originalEvent.ctrlKey) press(event)
   }
   const release = () => {
-    if (!dragging) return
+    if (!dragging && !engine.pressingHandle) return
     dragging = null
     setCursor('grab')
     // a connection leaves the node that survives selected, as iD does
@@ -185,7 +192,15 @@ export function MapView() {
     const { lng, lat } = event.lngLat
     // keys that act where the pointer is (paste, Space while drawing) read this
     engine.pointer = { point: event.point, lon: lng, lat, layers: interactive }
-    if (dragging) {
+    if (engine.pressingHandle) {
+      // the pressed handle becomes a node once the pointer has moved, and that node is dragged on
+      engine.moveHandle(event.point, lng, lat, {
+        point: event.point,
+        layers: interactive,
+        free: event.originalEvent.altKey,
+      })
+      setCursor(engine.dragRefusal ? 'not-allowed' : 'grabbing')
+    } else if (dragging) {
       // the dragged node snaps to what is under the pointer, unless Alt is held
       engine.dragTo(dragging, lng, lat, {
         point: event.point,
@@ -197,11 +212,13 @@ export function MapView() {
     else if (mode === 'move' || mode === 'rotate') engine.transform.move(lng, lat)
   }
   const handleMouseMove = (event: MapLayerMouseEvent) => {
+    // a handle press whose release was not seen on the map (the button went up off it) ends here: no node is made by a hover
+    if (engine.pressingHandle && event.originalEvent.buttons === 0) release()
     movePointer(event)
-    if (dragging || mode !== 'browse') return
+    if (dragging || engine.pressingHandle || mode !== 'browse') return
     const id = engine.pick(event.point, interactive)
     engine.setHover(id)
-    setCursor(id ? 'pointer' : 'grab')
+    setCursor(engine.midpointAt(event.point) ? 'cell' : id ? 'pointer' : 'grab')
   }
   /**
    * A right click, or a long press on a touch screen, opens the edit menu, as in iD: on a
@@ -320,6 +337,8 @@ export function MapView() {
       engine.setMode('browse')
       return
     }
+    // a midpoint handle: a press on it that did not move added nothing, and the click changes nothing
+    if (engine.midpointAt(event.point)) return
     // a photo or a note under the pointer takes the click: it opens, and no feature is selected
     if (streetImageryClick(event)) return
     const noteLayers = NOTES_LAYER_IDS.filter((layer) => event.target.getLayer(layer))

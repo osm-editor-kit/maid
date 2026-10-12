@@ -45,6 +45,7 @@ import { installDirectionImages } from './direction-images'
 import { DrawTool, nearestOnWay, projectedNodes } from './draw'
 import { fieldOverlayFeatures, type FieldOverlay, type LonLat } from './field-overlay'
 import { EDIT_SOURCES, SOURCES } from './layers'
+import { midpointFeatures, segmentsOf, type MidpointFeature, type Segment } from './midpoints'
 import { extentOf, orderPicks, PICK_LIMIT, type PickCandidate } from './pick-order'
 import { boundsOf, relatedIds } from './related'
 import {
@@ -268,7 +269,10 @@ export class MaidEngine {
     // before the first tile is pushed: an image that arrives later does not show in that tile
     installDirectionImages(map)
     // the side line of a field depends on the view: its visible part may bend or leave the screen
-    map.on('moveend', () => this.refreshFieldOverlay())
+    map.on('moveend', () => {
+      this.refreshFieldOverlay()
+      this.refreshMidpoints()
+    })
     this.loadVisibleTiles()
   }
 
@@ -780,6 +784,9 @@ export class MaidEngine {
     if ((mode === 'move' || mode === 'rotate') && !this.transform.begin(mode, this.selectedIds))
       return false
     this.currentMode = mode
+    // the handles are for browsing only: none while drawing or moving
+    this.computeMidpoints()
+    this.pushHighlight()
     this.changed()
     return true
   }
@@ -859,12 +866,18 @@ export class MaidEngine {
    * undo step. Returns the id of the new node.
    */
   addNodeOn(on: { loc: Loc; edge: [string, string] }): string {
-    const node = new OsmNode(this.data.context, { loc: on.loc })
+    let id = ''
     this.change(() => {
-      const { history } = this.data
-      history.perform(actionAddEntity(node), actionAddMidpoint(on, node))
-      history.commit({ annotation: 'Added a node to a way', selectedIDs: [node.id] })
+      id = this.performNodeOn(on)
+      this.data.history.commit({ annotation: 'Added a node to a way', selectedIDs: [id] })
     })
+    return id
+  }
+
+  /** The node of addNodeOn, in the work in progress and without a commit: the caller commits (a handle drag does). */
+  private performNodeOn(on: { loc: Loc; edge: [string, string] }): string {
+    const node = new OsmNode(this.data.context, { loc: on.loc })
+    this.data.history.perform(actionAddEntity(node), actionAddMidpoint(on, node))
     return node.id
   }
 
@@ -1029,7 +1042,12 @@ export class MaidEngine {
 
   /** True while a drag, a drawing or a move is under way: the history is not stepped through then */
   private busy(): boolean {
-    return this.dragged !== undefined || this.draw.active || this.transform.active
+    return (
+      this.dragged !== undefined ||
+      this.handlePress !== undefined ||
+      this.draw.active ||
+      this.transform.active
+    )
   }
 
   /** Takes back the last edit and redraws what it changed. Does nothing while a vertex is dragged. */
@@ -1293,9 +1311,13 @@ export class MaidEngine {
    * selection should show after a connection (`selected`), and with the reason of a refusal.
    */
   async endDrag(): Promise<{ selected?: string; refused?: string }> {
+    // a press on a handle that never moved is over: it added nothing
+    this.handlePress = undefined
     await this.settleDrag()
     const id = this.dragged
+    const added = this.handleNode
     const aim = this.dragAim
+    this.handleNode = undefined
     this.dragged = undefined
     this.dragAim = undefined
     const { history } = this.data
@@ -1329,7 +1351,9 @@ export class MaidEngine {
           })
         })
       } else {
-        history.commit({ annotation: 'Moved a node', selectedIDs: [id] })
+        // a node that a handle drag made is a new node of the way, not a moved one
+        const annotation = id === added ? 'Added a node to a way' : 'Moved a node'
+        history.commit({ annotation, selectedIDs: [id] })
       }
     }
     if (id) this.setHover(result.selected ?? id)
@@ -1586,6 +1610,7 @@ export class MaidEngine {
     this.shapeFeatures = [...shape.values(), ...directions]
     // a preview was for the selection and the data as they were
     this.previewFeatures = []
+    this.computeMidpoints()
     this.pushHighlight()
   }
 
@@ -1595,8 +1620,135 @@ export class MaidEngine {
   private pushHighlight() {
     void this.map?.getSource<GeoJSONSource>(SOURCES.highlight)?.setData({
       type: 'FeatureCollection',
-      features: [...this.shapeFeatures, ...this.previewFeatures, ...this.fieldFeatures],
+      features: [
+        ...this.shapeFeatures,
+        ...this.midpointList,
+        ...this.previewFeatures,
+        ...this.fieldFeatures,
+      ],
     })
+  }
+
+  // --- Midpoint handles: a node added to a selected way by a press on the middle of a segment ---
+
+  /** The handles on the map now (midpoints.ts): one per segment of a selected way that is long enough and in view */
+  private midpointList: MidpointFeature[] = []
+
+  /** The handles on the map now. Public for the browser checks. */
+  get midpointFeatures(): readonly MidpointFeature[] {
+    return this.midpointList
+  }
+
+  /**
+   * Works out the handles for the selected ways. Only in browse mode, only for ways that are on the map
+   * and can be changed, and only for a segment whose parent ways can all be changed too: the node
+   * of a handle goes into each of them. Nothing is sent: `refreshShape` and `refreshMidpoints` do that.
+   */
+  private computeMidpoints() {
+    const { map } = this
+    this.midpointList = []
+    if (!map || this.currentMode !== 'browse' || this.draw.active || this.transform.active) return
+    const segments: Segment[] = []
+    for (const id of this.selectedIds) {
+      if (id[0] !== 'w' || !this.featureSource.has(id) || this.isReadOnly(id)) continue
+      const way = this.data.way(id)
+      if (way) segments.push(...segmentsOf(projectedNodes(this, way)))
+    }
+    if (segments.length === 0) return
+    const container = map.getContainer()
+    this.midpointList = midpointFeatures(
+      segments,
+      { width: container.clientWidth, height: container.clientHeight },
+      (p) => {
+        const at = map.unproject([p.x, p.y])
+        return [at.lng, at.lat]
+      },
+    ).filter((f) => this.midpointMayChange(f.properties.edge))
+  }
+
+  /** True if every way that a node added on this segment would join is on the map and can be changed */
+  private midpointMayChange(edge: readonly [string, string]): boolean {
+    const [a, b] = edge
+    const bWays = new Set(this.data.nodeWays.get(b) ?? [])
+    return (this.data.nodeWays.get(a) ?? []).every(
+      (wayId) => !bWays.has(wayId) || (this.featureSource.has(wayId) && !this.isReadOnly(wayId)),
+    )
+  }
+
+  /** After the view moved: the handles are the ones in view now. Not per frame, and nothing when no way is selected. */
+  private refreshMidpoints() {
+    if (this.selectedIds.length === 0 && this.midpointList.length === 0) return
+    this.computeMidpoints()
+    this.pushHighlight()
+  }
+
+  /** The handle under a screen point, if there is one: its segment and where it is on the ground */
+  midpointAt(
+    point: Point,
+    tolerance = HANDLE_PX,
+  ): { edge: [string, string]; loc: Loc } | undefined {
+    const { map } = this
+    if (!map) return undefined
+    for (const feature of this.midpointList) {
+      const [lon, lat] = feature.geometry.coordinates as Loc
+      const at = map.project([lon, lat])
+      if (Math.hypot(at.x - point.x, at.y - point.y) <= tolerance)
+        return { edge: feature.properties.edge, loc: [lon, lat] }
+    }
+    return undefined
+  }
+
+  /** The press on a handle that has not moved yet. The node is made on the first real move (`moveHandle`). */
+  private handlePress?: { edge: [string, string]; loc: Loc; start: Point }
+  /** The node that a handle drag made, so the drag's undo step is named for what it did */
+  private handleNode?: string
+
+  /** True between a press on a handle and its release */
+  get pressingHandle(): boolean {
+    return this.handlePress !== undefined
+  }
+
+  /**
+   * A press at a screen point: on a handle, it is taken as the start of a handle drag and true is returned.
+   * Nothing is changed by the press itself: a press with no move adds nothing (see endDrag).
+   */
+  pressMidpoint(point: Point): boolean {
+    if (this.busy()) return false
+    const handle = this.midpointAt(point)
+    if (!handle) return false
+    this.handlePress = { ...handle, start: point }
+    return true
+  }
+
+  /**
+   * A pointer move while a handle is pressed. Until the pointer is HANDLE_DRAG_PX away from the press, nothing
+   * happens. Then the node is added on the segment (inside the drag's work in progress, so the drag is one
+   * undo step) and the drag goes on as a drag of that node: dragTo, with the same snapping as any node.
+   */
+  moveHandle(
+    point: Point,
+    lon: number,
+    lat: number,
+    aim?: { point: Point; layers: string[]; free: boolean },
+  ) {
+    const press = this.handlePress
+    if (!press) return
+    let id = this.dragged
+    if (id === undefined) {
+      if (Math.hypot(point.x - press.start.x, point.y - press.start.y) < HANDLE_DRAG_PX) return
+      id = this.insertHandleNode(press.edge, press.loc)
+    }
+    this.dragTo(id, lon, lat, aim)
+  }
+
+  /** The node of a handle drag: added on the segment, in the work in progress (the drag commits it) */
+  private insertHandleNode(edge: [string, string], loc: Loc): string {
+    let id = ''
+    this.change(() => {
+      id = this.performNodeOn({ loc, edge })
+    })
+    this.handleNode = id
+    return id
   }
 
   private fieldOverlay: FieldOverlay | null = null
@@ -1793,6 +1945,11 @@ export class MaidEngine {
     }
   }
 }
+
+/** Pixels around the pointer in which a midpoint handle is hit */
+const HANDLE_PX = 6
+/** Pixels a press on a handle must move before its node is made: a click with a little shake adds nothing */
+const HANDLE_DRAG_PX = 3
 
 const PRIORITY: Record<string, number> = {
   // the shape points of the selection are vertices like the others

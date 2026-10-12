@@ -359,6 +359,24 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
       paint: { 'circle-radius': vertexRadius(1, 1.5), 'circle-color': '#000' },
     })
   }
+  // The midpoint handles of the selected ways (midpoints.ts): a press on one adds a node there. Drawn
+  // under the vertices. Not in interactiveLayerIds: the engine finds them itself (midpointAt).
+  layers.push({
+    id: 'highlight-midpoint',
+    type: 'circle',
+    source: SOURCES.highlight,
+    filter: ['==', ['get', 'state'], 'midpoint'],
+    paint: {
+      // smaller and fainter than a vertex: a place where a node could be, not a node
+      'circle-radius': 2.5,
+      'circle-color': '#fff',
+      'circle-opacity': 0.55,
+      'circle-stroke-color': '#666',
+      'circle-stroke-width': 1,
+      'circle-stroke-opacity': 0.55,
+    },
+  })
+
   // the shape points of a selected way: iD shows all vertices of the selection
   layers.push({
     id: 'highlight-vertex',
