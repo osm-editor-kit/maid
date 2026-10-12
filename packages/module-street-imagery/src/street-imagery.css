@@ -1,0 +1,99 @@
+/*
+ * Dark mode for the components of @osm-editor-kit/street-imagery-react. The package ships light
+ * colours only (slate and zinc without a dark: variant), so in dark mode the text, the hover and
+ * the chart stay light-theme colours. Maid sets the class `dark` on <html>; these rules apply only
+ * inside `.maid-street-imagery`, the wrapper the module renders around the package's components.
+ *
+ * Plain CSS, not a Tailwind utility: unlayered rules win over the utilities the package uses,
+ * so no `!important` is needed. Each rule names the light class it corrects.
+ */
+
+/* Date filter: "Exact dates" and the "All dates" link were near black on hover (hover:text-slate-900) */
+.dark .maid-street-imagery summary:hover,
+.dark .maid-street-imagery button.text-slate-500:hover,
+.dark .maid-street-imagery button.text-slate-600:hover {
+  color: #ffffff;
+}
+
+/* Date filter: the grey texts (text-slate-500/600/700/800/900) */
+.dark .maid-street-imagery details,
+.dark .maid-street-imagery .text-slate-500,
+.dark .maid-street-imagery .text-slate-600 {
+  color: #a1a1aa;
+}
+.dark .maid-street-imagery .text-slate-700 {
+  color: #e4e4e7;
+}
+.dark .maid-street-imagery .text-slate-900 {
+  color: #ffffff;
+}
+.dark .maid-street-imagery .decoration-slate-300 {
+  text-decoration-color: #52525c;
+}
+
+/* Date filter: the bars of the chart and the track of the slider (light grey on dark) */
+.dark .maid-street-imagery .bg-slate-500 {
+  background-color: #a1a1aa;
+}
+.dark .maid-street-imagery .bg-slate-300 {
+  background-color: #3f3f46;
+}
+.dark .maid-street-imagery .bg-slate-200 {
+  background-color: #3f3f46;
+}
+.dark .maid-street-imagery .bg-slate-700 {
+  background-color: #d4d4d8;
+}
+
+/* Date filter: the handles of the slider are dark on the dark track; they keep a light ring */
+.dark .maid-street-imagery input[type='range']::-webkit-slider-thumb,
+.dark .maid-street-imagery input[type='range']::-moz-range-thumb {
+  background-color: #e4e4e7;
+  border-color: #18181b;
+}
+
+/* Date filter: the native date inputs were white, with a light border */
+.dark .maid-street-imagery input[type='date'] {
+  background-color: #09090b;
+  border-color: rgb(255 255 255 / 0.1);
+  color: #ffffff;
+  color-scheme: dark;
+}
+
+/* Viewer frame and its loading placeholder (border-slate-200, bg-slate-100) */
+.dark .maid-street-imagery .border-slate-200 {
+  border-color: rgb(255 255 255 / 0.1);
+}
+.dark .maid-street-imagery .bg-slate-100 {
+  background-color: #27272a;
+}
+
+/* Photo details dialog (used by the dock's "Details" button): a white dialog with dark texts */
+.dark .maid-street-imagery dialog {
+  background-color: #18181b;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.1);
+  color: #e4e4e7;
+}
+.dark .maid-street-imagery dialog .text-zinc-950 {
+  color: #ffffff;
+}
+.dark .maid-street-imagery dialog .text-zinc-500 {
+  color: #a1a1aa;
+}
+.dark .maid-street-imagery dialog .border-t {
+  border-color: rgb(255 255 255 / 0.1);
+}
+.dark .maid-street-imagery dialog button:hover {
+  background-color: rgb(255 255 255 / 0.05);
+  color: #ffffff;
+}
+.dark .maid-street-imagery dialog a {
+  color: #ffffff;
+  text-decoration-color: rgb(255 255 255 / 0.3);
+}
+.dark .maid-street-imagery dialog a:hover {
+  text-decoration-color: #ffffff;
+}
+.dark .maid-street-imagery dialog summary:hover {
+  color: #ffffff;
+}

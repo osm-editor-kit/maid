@@ -1,5 +1,8 @@
 import { CameraIcon } from '@heroicons/react/20/solid'
+import { toolButtonTone } from '@osm-editor-kit/maid-ui'
 import { PhotoDateRangeFilter } from '@osm-editor-kit/street-imagery-react'
+import type { KeyboardEvent } from 'react'
+import './street-imagery.css'
 import {
   IMAGERY_PROVIDER_IDS,
   PHOTO_KINDS,
@@ -23,7 +26,10 @@ const NOTES: Record<ImageryProviderId, string> = {
 const MAPILLARY_WITHOUT_TOKEN =
   'No Mapillary token is set in this build, so Mapillary is not offered.'
 
-/** One provider: a switch and what it reads from */
+/**
+ * One provider: a checkbox switch and what it reads from. The row layout and the native switch
+ * are the ones of the notes panel (module-notes), so a switch looks the same in every panel.
+ */
 function ProviderRow({ id }: { id: ImageryProviderId }) {
   const on = useStreetImageryStore((state) => state.providers.includes(id))
   const token = useStreetImageryStore((state) => state.mapillaryToken)
@@ -31,26 +37,75 @@ function ProviderRow({ id }: { id: ImageryProviderId }) {
   const available = providerAvailable(id, token)
   const note = available ? NOTES[id] : MAPILLARY_WITHOUT_TOKEN
   return (
-    <li className="flex items-start gap-3 py-2">
-      <button
-        type="button"
-        role="switch"
-        aria-checked={on}
-        aria-label={`Show photos from ${PROVIDER_LABELS[id]}`}
-        disabled={!available}
-        onClick={() => setProvider(id, !on)}
-        className="relative mt-0.5 inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full bg-zinc-200 transition-colors focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-50 aria-checked:bg-blue-600 dark:bg-zinc-700 dark:aria-checked:bg-blue-500"
+    <li className="py-2">
+      <label
+        className={`flex items-start justify-between gap-3 ${available ? 'cursor-pointer' : 'cursor-default opacity-50'}`}
       >
-        <span
-          aria-hidden="true"
-          className={`size-4 rounded-full bg-white shadow-sm transition-transform ${on ? 'translate-x-4' : 'translate-x-0.5'}`}
+        <span className="min-w-0">
+          <span className="block font-medium text-zinc-950 dark:text-white">
+            {PROVIDER_LABELS[id]}
+          </span>
+          <span className="block text-xs text-zinc-500 dark:text-zinc-400">{note}</span>
+        </span>
+        <input
+          type="checkbox"
+          role="switch"
+          aria-label={`Show photos from ${PROVIDER_LABELS[id]}`}
+          className="mt-0.5 size-4 shrink-0 cursor-pointer accent-blue-600 disabled:cursor-default dark:accent-blue-500"
+          checked={on}
+          disabled={!available}
+          onChange={(event) => setProvider(id, event.currentTarget.checked)}
         />
-      </button>
-      <div className="min-w-0">
-        <p className="font-medium text-zinc-950 dark:text-white">{PROVIDER_LABELS[id]}</p>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">{note}</p>
-      </div>
+      </label>
     </li>
+  )
+}
+
+/**
+ * The photo kinds (all, flat, 360°) as one group of buttons: the chosen one is `selected` (no
+ * hover), and the buttons overlap by a pixel so that they share one hairline. The arrow keys move
+ * between them and choose, as in the filter switch of packages/ui (FilterPanel).
+ */
+function KindChoice() {
+  const photoKind = useStreetImageryStore((state) => state.photoKind)
+  const setPhotoKind = useStreetImageryStore((state) => state.setPhotoKind)
+
+  function onKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+    event.preventDefault()
+    const step = event.key === 'ArrowRight' ? 1 : -1
+    const index = (PHOTO_KINDS.indexOf(photoKind) + step + PHOTO_KINDS.length) % PHOTO_KINDS.length
+    const next = PHOTO_KINDS[index]
+    if (next === undefined) return
+    setPhotoKind(next)
+    const target = event.currentTarget.parentElement?.children[index]
+    if (target instanceof HTMLElement) target.focus()
+  }
+
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Which photos"
+      className="isolate mt-1 inline-flex rounded-md shadow-xs dark:shadow-none [&>*]:rounded-none [&>*+*]:-ml-px [&>*:first-child]:rounded-l-md [&>*:last-child]:rounded-r-md"
+    >
+      {PHOTO_KINDS.map((kind) => {
+        const checked = kind === photoKind
+        return (
+          <button
+            key={kind}
+            type="button"
+            role="radio"
+            aria-checked={checked}
+            tabIndex={checked ? 0 : -1}
+            onClick={() => setPhotoKind(kind)}
+            onKeyDown={onKeyDown}
+            className={`relative inline-flex h-8 items-center px-3 text-xs font-medium inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:inset-ring-white/10 ${toolButtonTone(checked ? 'selected' : 'idle')}`}
+          >
+            {KIND_LABELS[kind]}
+          </button>
+        )
+      })}
+    </div>
   )
 }
 
@@ -59,8 +114,6 @@ function ProviderRow({ id }: { id: ImageryProviderId }) {
  * 360°) and from when. Nothing is requested before a provider is switched on.
  */
 export function PhotosPanel() {
-  const photoKind = useStreetImageryStore((state) => state.photoKind)
-  const setPhotoKind = useStreetImageryStore((state) => state.setPhotoKind)
   const date = useStreetImageryStore((state) => state.date)
   const setDate = useStreetImageryStore((state) => state.setDate)
 
@@ -72,7 +125,7 @@ export function PhotosPanel() {
     )
 
   return (
-    <div className="flex flex-col gap-5 p-4 text-sm">
+    <div className="maid-street-imagery flex flex-col gap-5 p-4 text-sm">
       <section>
         <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Show photos from</h3>
         <ul className="mt-1 divide-y divide-zinc-950/5 dark:divide-white/5">
@@ -83,22 +136,7 @@ export function PhotosPanel() {
       </section>
       <section>
         <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Photos</h3>
-        <div className="mt-1 inline-flex rounded-md shadow-xs">
-          {PHOTO_KINDS.map((kind, index) => {
-            const chosen = kind === photoKind
-            return (
-              <button
-                key={kind}
-                type="button"
-                aria-pressed={chosen}
-                onClick={() => setPhotoKind(kind)}
-                className={`h-8 cursor-pointer px-3 text-xs font-medium inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-blue-500 dark:inset-ring-white/10 ${index === 0 ? 'rounded-l-md' : ''} ${index === PHOTO_KINDS.length - 1 ? 'rounded-r-md' : ''} ${chosen ? 'bg-zinc-950 text-white dark:bg-white dark:text-zinc-950' : 'bg-white text-zinc-950 hover:bg-zinc-50 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700'}`}
-              >
-                {KIND_LABELS[kind]}
-              </button>
-            )
-          })}
-        </div>
+        <KindChoice />
       </section>
       <section>
         <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Taken between</h3>

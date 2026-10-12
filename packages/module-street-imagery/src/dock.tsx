@@ -1,17 +1,74 @@
+import type { NormalizedPhoto } from '@osm-editor-kit/street-imagery'
 import { StreetLevelImageryViewer } from '@osm-editor-kit/street-imagery-react'
+import { PhotoDetailsDialog } from '@osm-editor-kit/street-imagery-react/photo-details'
 import { QueryClientProvider } from '@tanstack/react-query'
+import { useState } from 'react'
+import { photoPageLink } from './links.ts'
 import { photoQueries } from './query.ts'
 import { activeProviders } from './state.ts'
 import { AUTOMATED, useStreetImageryStore } from './store.ts'
+
+/** The photo open in the dock, from the package's viewer, with its link and details. */
+function OpenPhoto({ photo }: { photo: NormalizedPhoto }) {
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  const showPhoto = useStreetImageryStore((state) => state.showPhoto)
+  const closePhoto = useStreetImageryStore((state) => state.closePhoto)
+  const easeTo = useStreetImageryStore((state) => state.easeTo)
+  const link = photoPageLink(photo)
+
+  return (
+    <QueryClientProvider client={photoQueries}>
+      {/* the wrapper that the dark-mode rules of street-imagery.css are scoped to */}
+      <div className="maid-street-imagery flex h-full min-h-48 flex-col">
+        <div className="flex h-8 shrink-0 items-center justify-end gap-3 px-3">
+          <a
+            href={link.href}
+            target="_blank"
+            rel="noreferrer"
+            className="mr-auto rounded-sm text-xs font-medium text-zinc-950 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-white"
+          >
+            {link.label}
+          </a>
+          <button
+            type="button"
+            onClick={() => setDetailsOpen(true)}
+            className="cursor-pointer rounded-sm text-xs font-medium text-zinc-950 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-white"
+          >
+            Details
+          </button>
+          <button
+            type="button"
+            onClick={closePhoto}
+            className="cursor-pointer rounded-sm text-xs font-medium text-zinc-950 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-white"
+          >
+            Close photo
+          </button>
+        </div>
+        <div className="relative min-h-0 flex-1">
+          <StreetLevelImageryViewer
+            photo={photo}
+            groupPhotos={[]}
+            onPhotoSelected={() => {}}
+            onEaseMapToPoint={(lng, lat) => easeTo?.(lng, lat)}
+            onViewerPhoto={showPhoto}
+          />
+        </div>
+        <PhotoDetailsDialog
+          photo={photo}
+          open={detailsOpen}
+          onClose={() => setDetailsOpen(false)}
+          externalUrl={link.href}
+        />
+      </div>
+    </QueryClientProvider>
+  )
+}
 
 /** The photo open in the dock, from the package's viewer. Quiet text while none is chosen. */
 export function PhotosView() {
   const openPhoto = useStreetImageryStore((state) => state.openPhoto)
   const stored = useStreetImageryStore((state) => state.providers)
   const token = useStreetImageryStore((state) => state.mapillaryToken)
-  const showPhoto = useStreetImageryStore((state) => state.showPhoto)
-  const closePhoto = useStreetImageryStore((state) => state.closePhoto)
-  const easeTo = useStreetImageryStore((state) => state.easeTo)
 
   if (AUTOMATED)
     return (
@@ -31,28 +88,5 @@ export function PhotosView() {
     )
   }
 
-  return (
-    <QueryClientProvider client={photoQueries}>
-      <div className="flex h-full min-h-48 flex-col">
-        <div className="flex h-8 shrink-0 items-center justify-end px-3">
-          <button
-            type="button"
-            onClick={closePhoto}
-            className="cursor-pointer rounded-sm text-xs font-medium text-zinc-950 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-white"
-          >
-            Close photo
-          </button>
-        </div>
-        <div className="relative min-h-0 flex-1">
-          <StreetLevelImageryViewer
-            photo={openPhoto}
-            groupPhotos={[]}
-            onPhotoSelected={() => {}}
-            onEaseMapToPoint={(lng, lat) => easeTo?.(lng, lat)}
-            onViewerPhoto={showPhoto}
-          />
-        </div>
-      </div>
-    </QueryClientProvider>
-  )
+  return <OpenPhoto photo={openPhoto} />
 }
