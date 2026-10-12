@@ -8,11 +8,13 @@ import { dataLayers } from '@osm-editor-kit/maid-module-data-layers'
 import { imagery } from '@osm-editor-kit/maid-module-imagery'
 import { lenses } from '@osm-editor-kit/maid-module-lenses'
 import { notes } from '@osm-editor-kit/maid-module-notes'
-import { streetImagery } from '@osm-editor-kit/maid-module-street-imagery'
+import {
+  streetImagery,
+  streetImageryPresetChanges,
+} from '@osm-editor-kit/maid-module-street-imagery'
 import { defaultOperations, pointToArea } from '@osm-editor-kit/maid-operations'
-import { defaultPresets } from '@osm-editor-kit/maid-presets/default'
-// import { createPresets, withChanges } from '@osm-editor-kit/maid-presets'
-// import { defaultPresetData } from '@osm-editor-kit/maid-presets/default'
+import { createPresets, withChanges, type PresetChanges } from '@osm-editor-kit/maid-presets'
+import { defaultPresetData } from '@osm-editor-kit/maid-presets/default'
 // import { examplePresetChanges } from './preset-changes.example'
 import { operations } from '@osm-editor-kit/maid-renderer'
 import { defaultRules } from '@osm-editor-kit/maid-validation'
@@ -33,11 +35,21 @@ const BBOX: Record<string, Bbox> = {
 }
 
 /**
+ * The presets of this editor: the tagging schema's, with what modules add to them. Further
+ * changes are chained the same way: `withChanges(withChanges(data, a), b)`.
+ * - street-level images: one field for a feature's image tags (mapillary, panoramax)
+ */
+const presets = createPresets(
+  withChanges(defaultPresetData, streetImageryPresetChanges as PresetChanges),
+  // withChanges(…, examplePresetChanges): see preset-changes.example.ts
+)
+
+/**
  * Whether a point with these tags has a type that can also be an area: the type the presets
  * give the point lists "area" among its geometries (a playground does, a bench does not).
  */
 const canBeArea = (tags: Record<string, string>) =>
-  tags.area !== 'no' && defaultPresets.match(tags, 'point').geometry.includes('area')
+  tags.area !== 'no' && presets.match(tags, 'point').geometry.includes('area')
 
 export function editorConfig(config: Config): EditorConfig {
   // live data and unknown scenes have no fixture area to outline
@@ -67,9 +79,8 @@ export function editorConfig(config: Config): EditorConfig {
   if (bbox) modules.push(sceneBounds({ bbox }))
   return {
     modules,
-    presets: defaultPresets,
+    presets,
     // to use the example changes, replace the line above with this one (see preset-changes.example.ts):
-    // presets: createPresets(withChanges(defaultPresetData, examplePresetChanges)),
     filters: defaultFilters,
   }
 }

@@ -8,7 +8,8 @@ import type { PresetData, Presets } from './types.ts'
 
 export const defaultPresetData: PresetData = { presets, fields, translations }
 
-export const defaultPresets: Presets = createPresets(defaultPresetData)
+// pure, so that an editor which builds its own presets from the data does not pay for these
+export const defaultPresets: Presets = /* @__PURE__ */ createPresets(defaultPresetData)
 
 /**
  * Tags that no editor should upload (the schema's `discarded.json`): a key with `true` is always

@@ -35,6 +35,10 @@ const STEADY_TYPES = new Set([
   'directionalCombo',
   'localized',
   'address',
+  // fields that modules bring and that keep their own rows and inputs
+  'streetImages',
+  'surfaceSmoothness',
+  'trafficSign',
 ])
 
 export function FieldRow(props: {
