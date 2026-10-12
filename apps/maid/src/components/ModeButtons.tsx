@@ -1,9 +1,7 @@
-import { MapPinIcon, TrashIcon } from '@heroicons/react/20/solid'
+import { MapPinIcon } from '@heroicons/react/20/solid'
 import type { Mode } from '@osm-editor-kit/maid-renderer'
 import { ToolButton, ToolGroup } from '@osm-editor-kit/maid-ui'
 import { engine, useEngine } from '../editor'
-import { useSelection } from '../selection'
-import { MAC } from './UndoRedo'
 
 /** iD's line and area icons are in its sprite; these two small drawings stand in for them */
 function LineIcon() {
@@ -47,36 +45,22 @@ const ADD: { mode: Mode; label: string; shortcut: string; text: string; icon: Re
     },
   ]
 
-/** Top bar: what a click on the map adds, and deleting the selection */
+/** Top bar: what a click on the map adds. Deleting is in the sidebar's edit commands and on right click. */
 export function ModeButtons() {
   const mode = useEngine((e) => e.mode)
-  const { id: selectedId, ids, select } = useSelection()
   return (
-    <>
-      <ToolGroup label="Add">
-        {ADD.map((add) => (
-          <ToolButton
-            key={add.mode}
-            label={add.label}
-            shortcut={add.shortcut}
-            text={add.text}
-            icon={add.icon}
-            pressed={mode === add.mode}
-            onClick={() => engine.setMode(mode === add.mode ? 'browse' : add.mode)}
-          />
-        ))}
-      </ToolGroup>
-      <ToolGroup label="Edit">
+    <ToolGroup label="Add">
+      {ADD.map((add) => (
         <ToolButton
-          label={selectedId ? 'Delete the selected feature' : 'Select a feature to delete it'}
-          shortcut={selectedId ? (MAC ? '⌘⌫' : 'Ctrl+Backspace') : undefined}
-          icon={<TrashIcon />}
-          disabled={!selectedId}
-          onClick={() => {
-            if (engine.deleteEntities(ids)) select(null)
-          }}
+          key={add.mode}
+          label={add.label}
+          shortcut={add.shortcut}
+          text={add.text}
+          icon={add.icon}
+          pressed={mode === add.mode}
+          onClick={() => engine.setMode(mode === add.mode ? 'browse' : add.mode)}
         />
-      </ToolGroup>
-    </>
+      ))}
+    </ToolGroup>
   )
 }

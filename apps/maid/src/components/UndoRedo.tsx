@@ -1,16 +1,10 @@
 import { ArrowUturnLeftIcon, ArrowUturnRightIcon } from '@heroicons/react/20/solid'
 import { ToolButton, ToolGroup } from '@osm-editor-kit/maid-ui'
 import { engine, useEngine } from '../editor'
+import { modKey } from '../platform'
 
-function isMacPlatform(): boolean {
-  const agent = navigator as Navigator & { userAgentData?: { platform?: string } }
-  const platform = agent.userAgentData?.platform ?? navigator.platform
-  return /mac|iphone|ipad/i.test(platform)
-}
-
-export const MAC = isMacPlatform()
-const UNDO_KEYS = MAC ? '⌘Z' : 'Ctrl+Z'
-const REDO_KEYS = MAC ? '⇧⌘Z' : 'Ctrl+Shift+Z'
+const UNDO_KEYS = modKey('Z')
+const REDO_KEYS = modKey('Z', true)
 
 /** Undo and redo buttons for the top bar */
 export function UndoRedo() {

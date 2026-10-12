@@ -1,5 +1,6 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { editor, engine, useEngine } from './editor'
+import { modKey } from './platform'
 import { useSelection } from './selection'
 
 /** One entry of the edit menu: in the sidebar, on a right click, and behind its key */
@@ -13,9 +14,6 @@ export type Command = {
   run: () => void
 }
 
-const MAC = /mac|iphone|ipad/i.test(navigator.platform)
-const MOD = MAC ? '⌘' : 'Ctrl+'
-
 /** "Paste" at a place on the map, if something was copied */
 export function usePasteCommand(at: { lon: number; lat: number } | undefined): Command[] {
   const { select } = useSelection()
@@ -25,7 +23,7 @@ export function usePasteCommand(at: { lon: number; lat: number } | undefined): C
     {
       id: 'paste',
       label: 'Paste',
-      shortcut: `${MOD}V`,
+      shortcut: modKey('V'),
       run: () => select(engine.paste(at.lon, at.lat)),
     },
   ]
@@ -58,11 +56,11 @@ export function useEditCommands(): Command[] {
             if (next) select(next)
           },
         })),
-      { id: 'copy', label: 'Copy', shortcut: `${MOD}C`, run: () => void engine.copy() },
+      { id: 'copy', label: 'Copy', shortcut: modKey('C'), run: () => void engine.copy() },
       {
         id: 'delete',
         label: 'Delete',
-        shortcut: `${MOD}⌫`,
+        shortcut: modKey('⌫'),
         run: () => {
           if (engine.deleteEntities(ids)) select(null)
         },
