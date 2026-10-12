@@ -8,6 +8,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@osm-editor-kit/maid-model": "workspace:*",
     "@osm-editor-kit/maid-style": "workspace:*"
   },
   "devDependencies": {

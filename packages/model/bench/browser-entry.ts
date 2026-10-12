@@ -8,7 +8,7 @@ import {
   createOsmEntity,
   Graph,
 } from '../src/index.ts'
-import { OsmStore } from '../../renderer/src/store.ts'
+import { OsmStore } from './poc-store.ts'
 
 export type ModelLoadResult = {
   elements: number

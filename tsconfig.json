@@ -14,5 +14,6 @@
     "resolveJsonModule": true
   },
   "include": ["apps", "packages", "tools"],
+  "references": [{ "path": "packages/model" }],
   "exclude": ["**/node_modules", "**/dist", ".reference", "packages/model"]
 }

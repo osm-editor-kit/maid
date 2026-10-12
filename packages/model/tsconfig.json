@@ -3,7 +3,15 @@
   "compilerOptions": {
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     // Ported from Rapid, which is written without this check
-    "noUncheckedIndexedAccess": false
+    "noUncheckedIndexedAccess": false,
+    // A project of its own: the rest of the repo sees this package through its declarations,
+    // so the repo's stricter settings are not applied to the ported code. See README.md.
+    "composite": true,
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "../../node_modules/.cache/maid-model-types",
+    "rootDir": "."
   },
   "include": ["src", "test/maid", "bench"],
   "exclude": []

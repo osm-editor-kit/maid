@@ -66,6 +66,7 @@
       "name": "@osm-editor-kit/maid-renderer",
       "version": "0.0.0",
       "dependencies": {
+        "@osm-editor-kit/maid-model": "workspace:*",
         "@osm-editor-kit/maid-style": "workspace:*",
       },
       "devDependencies": {

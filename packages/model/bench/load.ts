@@ -9,7 +9,7 @@ import {
   createOsmEntity,
   Graph,
 } from '../src/index.ts'
-import { OsmStore } from '../../renderer/src/store.ts'
+import { OsmStore } from './poc-store.ts'
 
 for (const scene of ['small', 'medium', 'dense']) {
   const text = gunzipSync(
