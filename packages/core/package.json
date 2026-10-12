@@ -11,7 +11,8 @@
   "dependencies": {
     "@osm-editor-kit/maid-filters": "workspace:*",
     "@osm-editor-kit/maid-model": "workspace:*",
-    "@osm-editor-kit/maid-presets": "workspace:*"
+    "@osm-editor-kit/maid-presets": "workspace:*",
+    "@osm-editor-kit/maid-validation": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.3.0"

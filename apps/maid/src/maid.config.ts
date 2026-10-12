@@ -7,6 +7,7 @@ import { defaultFilters } from '@osm-editor-kit/maid-filters'
 import { defaultOperations } from '@osm-editor-kit/maid-operations'
 import { defaultPresets } from '@osm-editor-kit/maid-presets/default'
 import { operations } from '@osm-editor-kit/maid-renderer'
+import { defaultRules } from '@osm-editor-kit/maid-validation'
 import dense from '../../../fixtures/dense.meta.json'
 import medium from '../../../fixtures/medium.meta.json'
 import small from '../../../fixtures/small.meta.json'
@@ -14,6 +15,7 @@ import type { Config } from './config'
 import { elementInfo } from './modules/element-info'
 import { relations } from './modules/relations'
 import { type Bbox, sceneBounds } from './modules/scene-bounds'
+import { validation } from './modules/validation'
 
 /** Extent of each fixture, from its meta file */
 const BBOX: Record<string, Bbox> = {
@@ -32,6 +34,8 @@ export function editorConfig(config: Config): EditorConfig {
     operations(defaultOperations),
     // inspector sections "Members" and "Relations": what a relation contains, what a feature is in
     relations(),
+    // checks what was changed here: inspector section and dock view "Issues"
+    validation({ rules: defaultRules }),
   ]
   // dashed outline around the area the fixture covers
   if (bbox) modules.push(sceneBounds({ bbox }))

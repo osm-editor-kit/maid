@@ -1,3 +1,4 @@
+import * as model from '@osm-editor-kit/maid-model'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import type { BenchApi } from '../../../tools/refs/bench-api'
@@ -5,7 +6,8 @@ import { editor } from './editor'
 
 /**
  * Maid's side of the contract in tools/refs/bench-api.d.ts. Also the debug handle for agents:
- * `window.__maid` gives the map, the engine and the editor.
+ * `window.__maid` gives the map, the engine, the editor and the data model's module (entity
+ * classes and actions), so a check can build data without the UI.
  */
 export function exposeBenchApi(
   map: MapLibreMap,
@@ -45,5 +47,5 @@ export function exposeBenchApi(
       return loc ? [loc[0], loc[1]] : undefined
     },
   }
-  Object.assign(window, { __bench: api, __maid: { map, engine, editor } })
+  Object.assign(window, { __bench: api, __maid: { map, engine, editor, model } })
 }

@@ -26,6 +26,7 @@
     "compare": "bun apps/compare/start.ts",
     "check-draw": "bun tools/bench/draw-check.ts",
     "check-edit": "bun tools/bench/edit-check.ts",
+    "check-validation": "bun tools/bench/validation-check.ts",
     "check-undo": "bun tools/bench/undo.ts",
     "check-filters": "bun tools/bench/filters-check.ts",
     "check-ops": "bun tools/bench/ops-check.ts",

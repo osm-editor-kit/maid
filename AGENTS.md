@@ -84,13 +84,14 @@ These names are the contract. Agents and docs only reference these.
 | `bun run check-filters [scene]` | Browser check: hide buildings, make them read-only, reset, and start with a filter in the URL. Needs `bun run dev`. |
 | `bun run check-ops [scene]` | Browser check: square a building, split a road, merge the parts, undo; data and map after each step. Needs `bun run dev`. |
 | `bun run check-relations [scene]` | Browser check: add a way to a relation, change its role, remove it, undo; move a node of a multipolygon and see its area follow. Needs `bun run dev`. |
+| `bun run check-validation [scene]` | Browser check: add a footway that crosses a road and is connected to nothing, see both reported, use the fix, undo. Needs `bun run dev`. |
 | `bun run check-render <name>` | Compare screenshots and feature counts of all scenes with a reference. Needs `bun run dev`. |
 | `bun run check-render-save <name>` | Save that reference from the current state, before a change to the renderer. |
 | `bun run compare` | Everything for the side-by-side page on http://localhost:5184. |
 | `bun run fixtures-build <file.osm.pbf>` | Cut fixtures from a local extract. Manual only, see core rule 1. |
 | `bun run style-generate [iD checkout]` | Regenerate the style data from iD's CSS and presets. |
 
-Every editor is driven through one contract, `window.__bench` (`tools/refs/bench-api.d.ts`). Maid also exposes `window.__maid` with the map, the engine and the editor. To look at one editor: `bun tools/bench/shot.ts maid|id|rapid <scene> [zoom]`.
+Every editor is driven through one contract, `window.__bench` (`tools/refs/bench-api.d.ts`). Maid also exposes `window.__maid` with the map, the engine, the editor and the data model's module. To look at one editor: `bun tools/bench/shot.ts maid|id|rapid <scene> [zoom]`.
 
 ## Layout
 
@@ -103,6 +104,7 @@ packages/model       the data model, ported from Rapid 3: entities, graph, actio
 packages/filters     which features are editable, read-only or hidden: ordered rules, iD's categories, headless
 packages/operations  the edit menu's operations (reverse, split, merge, ...) on the model, headless
 packages/presets     preset matching and fields on id-tagging-schema, headless
+packages/validation  rules that check what was changed, and their fixes, headless
 packages/ui          the shell and the inspector's fields: layout, top bar, sidebar, map controls, dock, theme; declares inspector.section
 packages/renderer    feature builder, MapLibre layers, engine, module layers; draws from the model
 tools/mock-osm-api   local stand-in for the OSM API, serves fixtures

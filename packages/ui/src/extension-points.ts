@@ -22,8 +22,23 @@ export type InspectorSection = {
   component: ComponentType<InspectorSectionProps>
 }
 
+/** What a view in the dock is given */
+export type DockViewProps = {
+  editor: Editor
+  /** Selects an entity (or several, or nothing), for example the one an issue is about */
+  select: (selection: string | readonly string[] | null) => void
+}
+
+/** A view in the dock under the map, with its own tab */
+export type DockView = {
+  id: string
+  label: string
+  component: ComponentType<DockViewProps>
+}
+
 declare module '@osm-editor-kit/maid-core' {
   interface ExtensionPoints {
     'inspector.section': InspectorSection
+    'dock.view': DockView
   }
 }

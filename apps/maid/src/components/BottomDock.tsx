@@ -1,5 +1,7 @@
+import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { Dock, FilterPanel } from '@osm-editor-kit/maid-ui'
 import { config, editor, engine, useEngine } from '../editor'
+import { useSelection } from '../selection'
 import { useFiltersParam } from '../url/state'
 
 /** What is loaded: entities by type, and where they come from */
@@ -48,12 +50,19 @@ function Filters() {
   )
 }
 
-/** The dock under the map. Closed at first; its views become an extension point later. */
+/** The dock under the map, closed at first: the editor's own views, then those of modules (`dock.view`) */
 export function BottomDock() {
+  const views = useExtensionPoint(editor, 'dock.view')
+  const { select } = useSelection()
   return (
     <Dock
       tabs={[
         { id: 'filters', label: 'Filters', content: <Filters /> },
+        ...views.map((view) => ({
+          id: view.id,
+          label: view.label,
+          content: <view.component editor={editor} select={select} />,
+        })),
         { id: 'data', label: 'Data', content: <LoadedData /> },
       ]}
     />
