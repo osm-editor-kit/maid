@@ -12,7 +12,9 @@ import { AccessField } from './fields/Access.tsx'
 import { CheckField } from './fields/Check.tsx'
 import { ComboField } from './fields/Combo.tsx'
 import { ColourField, DateField } from './fields/DateColour.tsx'
+import { DirectionalComboField } from './fields/Directional.tsx'
 import { EmailField, IdentifierField, TelField, UrlField } from './fields/Link.tsx'
+import { LocalizedField } from './fields/Localized.tsx'
 import { ManyComboField, MultiComboField, SemiComboField } from './fields/Multi.tsx'
 import { NumberField, RoadHeightField, RoadSpeedField } from './fields/Number.tsx'
 import { RadioField, StructureRadioField } from './fields/Radio.tsx'
@@ -35,7 +37,8 @@ export const defaultFieldComponents: Record<string, FieldComponent> = {
   email: EmailField,
   tel: TelField,
   identifier: IdentifierField,
-  localized: TextField,
+  localized: LocalizedField,
+  directionalCombo: DirectionalComboField,
   date: DateField,
   colour: ColourField,
   number: NumberField,

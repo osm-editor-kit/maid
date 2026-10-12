@@ -21,7 +21,13 @@ const COMBO_TYPES = new Set(['combo', 'typeCombo', 'networkCombo', 'radio', 'str
 const ROW_BUTTON =
   'grid size-5 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white'
 
-const STEADY_TYPES = new Set(['semiCombo', 'multiCombo', 'manyCombo'])
+const STEADY_TYPES = new Set([
+  'semiCombo',
+  'multiCombo',
+  'manyCombo',
+  'directionalCombo',
+  'localized',
+])
 
 export function FieldRow(props: {
   field: Field

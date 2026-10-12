@@ -28,7 +28,7 @@ import {
 } from '@osm-editor-kit/maid-model'
 import type { Operation, OperationContext } from '@osm-editor-kit/maid-operations'
 import type { Geometry, Preset, Presets } from '@osm-editor-kit/maid-presets'
-import { isArea, type Tags } from '@osm-editor-kit/maid-style'
+import { isArea, type Lens, type Tags } from '@osm-editor-kit/maid-style'
 import type { Feature } from 'geojson'
 import type { GeoJSONSource, Map as MapLibreMap, MapGeoJSONFeature } from 'maplibre-gl'
 import {
@@ -626,6 +626,27 @@ export class MaidEngine {
     this.builder.filters = filters
     this.rebuildAll()
     // what is selected may be hidden or read-only now
+    this.setSelected(this.selectedIds.filter((id) => this.featureSource.has(id)))
+    this.changed()
+  }
+
+  private lensState: Lens | null = null
+
+  /** The lens the map is styled with, or null for the default look */
+  get lens(): Lens | null {
+    return this.lensState
+  }
+
+  /**
+   * Restyles the map with a lens (lenses are data: see @osm-editor-kit/maid-style lens.ts), or
+   * back to the default look with null. Every feature is built again, as for filters; nothing is
+   * loaded again and the data does not change.
+   */
+  setLens(lens: Lens | null) {
+    if (lens === this.lensState) return
+    this.lensState = lens
+    this.builder.lens = lens ?? undefined
+    this.rebuildAll()
     this.setSelected(this.selectedIds.filter((id) => this.featureSource.has(id)))
     this.changed()
   }

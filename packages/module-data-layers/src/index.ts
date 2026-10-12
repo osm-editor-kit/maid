@@ -1,6 +1,10 @@
-import { defineModule, type MaidModule } from '@osm-editor-kit/maid-core'
-
-/** Placeholder: replaced by the module's implementation */
-export function dataLayers(): MaidModule {
-  return defineModule({ id: 'data-layers', setup() {} })
-}
+export {
+  checkDataLayerConfig,
+  DATA_LAYER_KINDS,
+  guessKind,
+  KIND_LABEL,
+  type Checked,
+  type DataLayerConfig,
+  type DataLayerKind,
+} from './config.ts'
+export { dataLayers, type DataLayersOptions } from './module.tsx'

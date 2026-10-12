@@ -1,4 +1,5 @@
 import { createEditor, startSetting } from '@osm-editor-kit/maid-core'
+import { connectLenses } from '@osm-editor-kit/maid-module-lenses'
 import { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { useSettings } from '@osm-editor-kit/maid-ui'
 import { useSyncExternalStore } from 'react'
@@ -35,6 +36,9 @@ export const engine = new MaidEngine({
   minDataZoom: config.minDataZoom,
   filters: filtersStart.value,
 })
+
+// the lens the person chose restyles what the engine builds
+connectLenses(engine)
 
 /**
  * Reads from the engine inside a component. `read` runs again whenever data was merged or

@@ -18,6 +18,7 @@
     "@osm-editor-kit/maid-module-data-layers": "workspace:*",
     "@osm-editor-kit/maid-module-imagery": "workspace:*",
     "@osm-editor-kit/maid-module-lenses": "workspace:*",
+    "@osm-editor-kit/maid-module-notes": "workspace:*",
     "@osm-editor-kit/maid-module-street-imagery": "workspace:*",
     "@osm-editor-kit/maid-operations": "workspace:*",
     "@osm-editor-kit/maid-presets": "workspace:*",

@@ -1,0 +1,213 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [13.433, 52.4846] },
+      "properties": {
+        "id": 9000009,
+        "url": "http://localhost:8090/s/dense/api/0.6/notes/9000009.json",
+        "date_created": "2026-10-01T09:12:26Z",
+        "status": "open",
+        "comments": [
+          {
+            "date": "2026-10-01T09:12:26Z",
+            "uid": 910013,
+            "user": "Lotte_Radweg",
+            "action": "opened",
+            "text": "Der Radweg endet hier im Nichts. Der Parkverkehr blockiert die Einfahrt zur Querung.",
+            "html": "<p>Der Radweg endet hier im Nichts. Der Parkverkehr blockiert die Einfahrt zur Querung.</p>"
+          },
+          {
+            "date": "2026-10-04T13:38:02Z",
+            "uid": 910014,
+            "user": "fahrradkarte_neukoelln",
+            "action": "commented",
+            "text": "Ergänzt: Der Radweg ist in der Karte bis zur Ampel verlängert, die Querung fehlt noch.",
+            "html": "<p>Ergänzt: Der Radweg ist in der Karte bis zur Ampel verlängert, die Querung fehlt noch.</p>"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [13.429, 52.481] },
+      "properties": {
+        "id": 9000010,
+        "url": "http://localhost:8090/s/dense/api/0.6/notes/9000010.json",
+        "date_created": "2026-09-22T16:55:10Z",
+        "status": "open",
+        "comments": [
+          {
+            "date": "2026-09-22T16:55:10Z",
+            "uid": 910015,
+            "user": "Sven_Kiez",
+            "action": "opened",
+            "text": "Parking spaces on the north side: the kerb is marked as on-street parking, but the bays are separate ways in the map.",
+            "html": "<p>Parking spaces on the north side: the kerb is marked as on-street parking, but the bays are separate ways in the map.</p>"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [13.4355, 52.4875] },
+      "properties": {
+        "id": 9000011,
+        "url": "http://localhost:8090/s/dense/api/0.6/notes/9000011.json",
+        "date_created": "2026-05-18T08:20:41Z",
+        "status": "closed",
+        "closed_at": "2026-06-02T10:04:19Z",
+        "comments": [
+          {
+            "date": "2026-05-18T08:20:41Z",
+            "uid": 910016,
+            "user": "Ines_Kiez",
+            "action": "opened",
+            "text": "Einbahnstraße gilt nur tagsüber? Das Zusatzschild ist schwer zu lesen.",
+            "html": "<p>Einbahnstraße gilt nur tagsüber? Das Zusatzschild ist schwer zu lesen.</p>"
+          },
+          {
+            "date": "2026-05-25T19:02:33Z",
+            "uid": 910017,
+            "user": "verkehrszeichen_fan",
+            "action": "commented",
+            "text": "Das Zusatzschild sagt: Mo bis Fr 7 bis 19 Uhr. Die Angabe fehlt bei uns.",
+            "html": "<p>Das Zusatzschild sagt: Mo bis Fr 7 bis 19 Uhr. Die Angabe fehlt bei uns.</p>"
+          },
+          {
+            "date": "2026-06-02T10:04:19Z",
+            "uid": 910018,
+            "user": "Tom Hinterhof",
+            "action": "closed",
+            "text": "Zeiten ergänzt.",
+            "html": "<p>Zeiten ergänzt.</p>"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [13.4412, 52.4779] },
+      "properties": {
+        "id": 9000012,
+        "url": "http://localhost:8090/s/dense/api/0.6/notes/9000012.json",
+        "date_created": "2026-10-07T21:33:57Z",
+        "status": "open",
+        "comments": [
+          {
+            "date": "2026-10-07T21:33:57Z",
+            "action": "opened",
+            "text": "Das Einbahnschild an der Ecke ist nicht eingezeichnet. Bitte am Wochenende prüfen.",
+            "html": "<p>Das Einbahnschild an der Ecke ist nicht eingezeichnet. Bitte am Wochenende prüfen.</p>"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [13.424, 52.49] },
+      "properties": {
+        "id": 9000013,
+        "url": "http://localhost:8090/s/dense/api/0.6/notes/9000013.json",
+        "date_created": "2026-08-27T14:48:12Z",
+        "status": "open",
+        "comments": [
+          {
+            "date": "2026-08-27T14:48:12Z",
+            "uid": 910019,
+            "user": "Ruth_Zebra",
+            "action": "opened",
+            "text": "Zebrastreifen ist eingezeichnet, aber auf der Straße ist seit dem Umbau nichts mehr zu sehen.",
+            "html": "<p>Zebrastreifen ist eingezeichnet, aber auf der Straße ist seit dem Umbau nichts mehr zu sehen.</p>"
+          },
+          {
+            "date": "2026-09-03T11:09:44Z",
+            "uid": 910020,
+            "user": "Felix_N",
+            "action": "commented",
+            "text": "Bestätigt. Der Zebrastreifen ist weg, nur die Mittelinsel ist noch da.",
+            "html": "<p>Bestätigt. Der Zebrastreifen ist weg, nur die Mittelinsel ist noch da.</p>"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [13.446, 52.493] },
+      "properties": {
+        "id": 9000014,
+        "url": "http://localhost:8090/s/dense/api/0.6/notes/9000014.json",
+        "date_created": "2026-04-09T06:59:30Z",
+        "status": "closed",
+        "closed_at": "2026-04-12T17:22:08Z",
+        "comments": [
+          {
+            "date": "2026-04-09T06:59:30Z",
+            "uid": 910021,
+            "user": "Mia_Platz",
+            "action": "opened",
+            "text": "The square has two names on the signs. Which one is right for the map?",
+            "html": "<p>The square has two names on the signs. Which one is right for the map?</p>"
+          },
+          {
+            "date": "2026-04-12T17:22:08Z",
+            "uid": 910022,
+            "user": "Bernd_Karte",
+            "action": "closed",
+            "text": "The name on the newer sign is the one we use now.",
+            "html": "<p>The name on the newer sign is the one we use now.</p>"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [13.4385, 52.4835] },
+      "properties": {
+        "id": 9000015,
+        "url": "http://localhost:8090/s/dense/api/0.6/notes/9000015.json",
+        "date_created": "2026-10-10T12:41:19Z",
+        "status": "open",
+        "comments": [
+          {
+            "date": "2026-10-10T12:41:19Z",
+            "uid": 910023,
+            "user": "hof_karte_2026",
+            "action": "opened",
+            "text": "Hinterhof-Parkplätze sind unklar erfasst. Bitte prüfen, ob sie öffentlich sind.",
+            "html": "<p>Hinterhof-Parkplätze sind unklar erfasst. Bitte prüfen, ob sie öffentlich sind.</p>"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [13.4185, 52.4768] },
+      "properties": {
+        "id": 9000016,
+        "url": "http://localhost:8090/s/dense/api/0.6/notes/9000016.json",
+        "date_created": "2026-09-05T18:10:02Z",
+        "status": "open",
+        "comments": [
+          {
+            "date": "2026-09-05T18:10:02Z",
+            "uid": 910024,
+            "user": "park_watcher",
+            "action": "opened",
+            "text": "The park gate is tagged access=private. Is it open to the public during the day?",
+            "html": "<p>The park gate is tagged access=private. Is it open to the public during the day?</p>"
+          },
+          {
+            "date": "2026-09-07T07:45:50Z",
+            "uid": 910025,
+            "user": "Greta_Tor",
+            "action": "commented",
+            "text": "It is open from sunrise to sunset, the sign at the gate says so.",
+            "html": "<p>It is open from sunrise to sunset, the sign at the gate says so.</p>"
+          }
+        ]
+      }
+    }
+  ]
+}

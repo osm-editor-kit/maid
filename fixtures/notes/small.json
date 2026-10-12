@@ -1,0 +1,219 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [13.4003, 52.3889] },
+      "properties": {
+        "id": 9000001,
+        "url": "http://localhost:8090/s/small/api/0.6/notes/9000001.json",
+        "date_created": "2026-09-28T07:14:03Z",
+        "status": "open",
+        "comments": [
+          {
+            "date": "2026-09-28T07:14:03Z",
+            "uid": 910001,
+            "user": "Hanna_Weg",
+            "action": "opened",
+            "text": "Auf dem Gehweg vor der Hausnummer 12 liegt seit Wochen ein umgestürzter Mülleimer. Ist das noch aktuell?",
+            "html": "<p>Auf dem Gehweg vor der Hausnummer 12 liegt seit Wochen ein umgestürzter Mülleimer. Ist das noch aktuell?</p>"
+          },
+          {
+            "date": "2026-10-02T16:40:51Z",
+            "uid": 910002,
+            "user": "mapwalker_42",
+            "action": "commented",
+            "text": "Am 2. Oktober gesehen, der Eimer steht noch da.",
+            "html": "<p>Am 2. Oktober gesehen, der Eimer steht noch da.</p>"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [13.3968, 52.3871] },
+      "properties": {
+        "id": 9000002,
+        "url": "http://localhost:8090/s/small/api/0.6/notes/9000002.json",
+        "date_created": "2026-08-11T10:02:37Z",
+        "status": "closed",
+        "closed_at": "2026-08-19T08:31:12Z",
+        "comments": [
+          {
+            "date": "2026-08-11T10:02:37Z",
+            "uid": 910003,
+            "user": "KarlaKarte",
+            "action": "opened",
+            "text": "Hinter der Kirche gibt es sechs Parkplätze, die nicht eingezeichnet sind.",
+            "html": "<p>Hinter der Kirche gibt es sechs Parkplätze, die nicht eingezeichnet sind.</p>"
+          },
+          {
+            "date": "2026-08-19T08:31:12Z",
+            "uid": 910004,
+            "user": "Lina Fenster",
+            "action": "closed",
+            "text": "Parkplätze ergänzt, danke!",
+            "html": "<p>Parkplätze ergänzt, danke!</p>"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [13.4051, 52.392] },
+      "properties": {
+        "id": 9000003,
+        "url": "http://localhost:8090/s/small/api/0.6/notes/9000003.json",
+        "date_created": "2026-10-06T19:48:20Z",
+        "status": "open",
+        "comments": [
+          {
+            "date": "2026-10-06T19:48:20Z",
+            "uid": 910005,
+            "user": "bikerouter_nord",
+            "action": "opened",
+            "text": "Is the bike lane here still closed? There is a construction barrier at the corner, but no sign of work.",
+            "html": "<p>Is the bike lane here still closed? There is a construction barrier at the corner, but no sign of work.</p>"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [13.395, 52.3905] },
+      "properties": {
+        "id": 9000004,
+        "url": "http://localhost:8090/s/small/api/0.6/notes/9000004.json",
+        "date_created": "2026-09-15T12:05:44Z",
+        "status": "open",
+        "comments": [
+          {
+            "date": "2026-09-15T12:05:44Z",
+            "uid": 910006,
+            "user": "Marei_S",
+            "action": "opened",
+            "text": "Das Straßenschild sagt 'Am Dorfteich', in der Karte steht 'Dorfteichweg'.",
+            "html": "<p>Das Straßenschild sagt 'Am Dorfteich', in der Karte steht 'Dorfteichweg'.</p>"
+          },
+          {
+            "date": "2026-09-16T06:22:09Z",
+            "user": "Pit_Ost",
+            "action": "commented",
+            "text": "Stimmt, ich habe das Schild heute fotografiert. Der Name ist 'Am Dorfteich'.",
+            "html": "<p>Stimmt, ich habe das Schild heute fotografiert. Der Name ist 'Am Dorfteich'.</p>"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [13.4012, 52.3851] },
+      "properties": {
+        "id": 9000005,
+        "url": "http://localhost:8090/s/small/api/0.6/notes/9000005.json",
+        "date_created": "2026-07-02T09:40:15Z",
+        "status": "closed",
+        "closed_at": "2026-07-14T15:10:58Z",
+        "comments": [
+          {
+            "date": "2026-07-02T09:40:15Z",
+            "uid": 910007,
+            "user": "rainer_t",
+            "action": "opened",
+            "text": "The bench on the playground is missing. Gone since spring?",
+            "html": "<p>The bench on the playground is missing. Gone since spring?</p>"
+          },
+          {
+            "date": "2026-07-09T07:55:31Z",
+            "uid": 910008,
+            "user": "stadtkartenfan",
+            "action": "commented",
+            "text": "The bench is still there, I checked this morning. It is behind the hedge.",
+            "html": "<p>The bench is still there, I checked this morning. It is behind the hedge.</p>"
+          },
+          {
+            "date": "2026-07-14T15:10:58Z",
+            "uid": 910009,
+            "user": "Amara_K",
+            "action": "closed",
+            "text": "Closed: the bench is mapped as amenity=bench now.",
+            "html": "<p>Closed: the bench is mapped as amenity=bench now.</p>"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [13.4065, 52.3868] },
+      "properties": {
+        "id": 9000006,
+        "url": "http://localhost:8090/s/small/api/0.6/notes/9000006.json",
+        "date_created": "2026-10-09T17:26:03Z",
+        "status": "open",
+        "comments": [
+          {
+            "date": "2026-10-09T17:26:03Z",
+            "uid": 910010,
+            "user": "Oskar P.",
+            "action": "opened",
+            "text": "Die Tempo-30-Zone endet hier am Bahndamm. Stimmt die Grenze noch?",
+            "html": "<p>Die Tempo-30-Zone endet hier am Bahndamm. Stimmt die Grenze noch?</p>"
+          },
+          {
+            "date": "2026-10-10T08:14:47Z",
+            "action": "commented",
+            "text": "Ich bin hier gestern gefahren, das Schild steht eindeutig weiter vorne.",
+            "html": "<p>Ich bin hier gestern gefahren, das Schild steht eindeutig weiter vorne.</p>"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [13.3985, 52.393] },
+      "properties": {
+        "id": 9000007,
+        "url": "http://localhost:8090/s/small/api/0.6/notes/9000007.json",
+        "date_created": "2026-08-30T14:03:29Z",
+        "status": "open",
+        "comments": [
+          {
+            "date": "2026-08-30T14:03:29Z",
+            "uid": 910011,
+            "user": "tiefbau_bln",
+            "action": "opened",
+            "text": "Die Rutsche auf dem Spielplatz ist abgebaut. Der Sandbereich ist noch als Spielplatz eingetragen.",
+            "html": "<p>Die Rutsche auf dem Spielplatz ist abgebaut. Der Sandbereich ist noch als Spielplatz eingetragen.</p>"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [13.4, 52.39] },
+      "properties": {
+        "id": 9000008,
+        "url": "http://localhost:8090/s/small/api/0.6/notes/9000008.json",
+        "date_created": "2026-06-21T11:17:50Z",
+        "status": "closed",
+        "closed_at": "2026-06-28T18:45:06Z",
+        "comments": [
+          {
+            "date": "2026-06-21T11:17:50Z",
+            "uid": 910012,
+            "user": "Jonas B.",
+            "action": "opened",
+            "text": "Die Hausnummer 14a fehlt in der Karte, das Haus steht seit dem Frühjahr.",
+            "html": "<p>Die Hausnummer 14a fehlt in der Karte, das Haus steht seit dem Frühjahr.</p>"
+          },
+          {
+            "date": "2026-06-28T18:45:06Z",
+            "action": "closed",
+            "text": "Hausnummer ergänzt.",
+            "html": "<p>Hausnummer ergänzt.</p>"
+          }
+        ]
+      }
+    }
+  ]
+}

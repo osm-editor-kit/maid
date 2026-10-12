@@ -4,6 +4,11 @@
  */
 import type { EditorConfig, MaidModule } from '@osm-editor-kit/maid-core'
 import { defaultFilters } from '@osm-editor-kit/maid-filters'
+import { dataLayers } from '@osm-editor-kit/maid-module-data-layers'
+import { imagery } from '@osm-editor-kit/maid-module-imagery'
+import { lenses } from '@osm-editor-kit/maid-module-lenses'
+import { notes } from '@osm-editor-kit/maid-module-notes'
+import { streetImagery } from '@osm-editor-kit/maid-module-street-imagery'
 import { defaultOperations } from '@osm-editor-kit/maid-operations'
 import { defaultPresets } from '@osm-editor-kit/maid-presets/default'
 import { operations } from '@osm-editor-kit/maid-renderer'
@@ -36,6 +41,16 @@ export function editorConfig(config: Config): EditorConfig {
     relations(),
     // checks what was changed here: inspector section and dock view "Issues"
     validation({ rules: defaultRules }),
+    // top bar "Background": aerial imagery and overlays under the OSM data
+    imagery(),
+    // top bar "Data layers": GeoJSON, PMTiles and vector tiles to look at next to the OSM data
+    dataLayers(),
+    // top bar "Map style": lenses that recolour the map for one theme (surface, lit, max speed)
+    lenses(),
+    // top bar and dock "Photos": street-level photos; Mapillary needs VITE_MAPILLARY_TOKEN
+    streetImagery({ mapillaryToken: import.meta.env.VITE_MAPILLARY_TOKEN || undefined }),
+    // top bar and dock "Notes": OSM notes of the same API the data comes from, read-only
+    notes({ apiUrl: config.apiUrl, minZoom: config.minDataZoom }),
   ]
   // dashed outline around the area the fixture covers
   if (bbox) modules.push(sceneBounds({ bbox }))

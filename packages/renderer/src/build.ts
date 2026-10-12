@@ -9,9 +9,16 @@ import type { Presets } from '@osm-editor-kit/maid-presets'
 import {
   hasInterestingTags,
   isArea,
+  lensColour,
+  lensFill,
+  lensStyle,
+  scaleAlpha,
   resolveWayStyle,
   tagClasses,
   wayLayer,
+  type Lens,
+  type LensGeometry,
+  type LensStyle,
   type Tags,
 } from '@osm-editor-kit/maid-style'
 import type { Feature, LineString, MultiPolygon, Point, Polygon, Position } from 'geojson'
@@ -118,6 +125,58 @@ function wayCoords(data: OsmData, way: OsmWay) {
     if (coord) coords.push(coord)
   }
   return coords
+}
+
+/**
+ * A lens restyles a feature by rewriting the properties the layers already read (sc, sw, swl, sd,
+ * fc, fo). Only what the lens sets is written, and layers.ts does not change, so without a lens
+ * nothing here runs.
+ */
+function restyleLine(feature: Feature<LineString, LineProps>, style: LensStyle | undefined) {
+  if (!style) return feature
+  const p = feature.properties
+  if (style.width !== undefined) {
+    p.sw = style.width
+    p.swl = style.width
+  }
+  const sc = lensColour(style, p.sc)
+  if (sc !== undefined) p.sc = sc
+  // the casing keeps its own colour under a rule colour, but fades with a dimmed line
+  if (style.color === undefined) {
+    const cc = lensColour(style, p.cc)
+    if (cc !== undefined) p.cc = cc
+    // direction arrows fade too; their colour is `ac`, and layers.ts uses #333 when it is not set
+    if (p.oneway !== undefined && style.opacity !== undefined) {
+      p.ac = scaleAlpha(p.ac ?? '#333', style.opacity)
+    }
+  }
+  if (style.dash !== undefined) {
+    const sd = dashKey(style.dash, p.sw)
+    if (sd) p.sd = sd
+    else delete p.sd
+  }
+  return feature
+}
+
+function restyleArea(
+  feature: Feature<Polygon | MultiPolygon, AreaProps>,
+  style: LensStyle | undefined,
+) {
+  if (!style) return feature
+  const p = feature.properties
+  if (style.width !== undefined) p.sw = style.width
+  const sc = lensColour(style, p.sc)
+  if (sc !== undefined) p.sc = sc
+  if (style.dash !== undefined) {
+    const sd = dashKey(style.dash, p.sw)
+    if (sd) p.sd = sd
+    else delete p.sd
+  }
+  const fc = lensFill(style, p.fc)
+  if (fc !== undefined) p.fc = fc
+  const fo = lensColour(style, p.fo)
+  if (fo !== undefined) p.fo = fo
+  return feature
 }
 
 function lineFeature(
@@ -310,6 +369,17 @@ export class FeatureBuilder {
   /** What the filters said about an entity that is not plainly editable */
   private states = new Map<string, FilterState>()
 
+  /**
+   * The lens the features are styled with (engine.setLens). Without one the builder does exactly
+   * what it did before. A feature the lens hides gets the 'hidden' state, like a filter's, so its
+   * junction vertices are left out too.
+   */
+  lens?: Lens
+
+  private lensOf(tags: Tags, geometry: LensGeometry): LensStyle | undefined {
+    return this.lens ? lensStyle(this.lens, tags, geometry) : undefined
+  }
+
   constructor(
     private data: OsmData,
     /** Without presets nothing has an icon */
@@ -381,12 +451,19 @@ export class FeatureBuilder {
     }
     const area = isArea(way.tags, closed) && coords.length >= 4
     if (this.isFiltered(id, tags, area ? 'area' : 'line', first)) return undefined
+    const lens = this.lensOf(tags, area ? 'area' : 'line')
+    if (lens?.hidden) {
+      this.states.set(id, 'hidden')
+      return undefined
+    }
     if (area) {
-      return { source: 'areas', feature: areaFeature(id, [[coords]], tags, tagClasses(tags)) }
+      const feature = areaFeature(id, [[coords]], tags, tagClasses(tags))
+      return { source: 'areas', feature: restyleArea(feature, lens) }
     }
     // ways that only carry a multipolygon's outline are drawn by the relation's area
     if (!hasInterestingTags(way.tags) && data.wayMultipolygons.has(way.id)) return undefined
-    return { source: 'lines', feature: lineFeature(id, coords, tags, tagClasses(tags)) }
+    const feature = lineFeature(id, coords, tags, tagClasses(tags))
+    return { source: 'lines', feature: restyleLine(feature, lens) }
   }
 
   /**
@@ -395,6 +472,8 @@ export class FeatureBuilder {
    */
   buildPoint(node: OsmNode): Feature | undefined {
     if (!hasInterestingTags(node.tags) && !node.id.startsWith('n-')) return undefined
+    // points have no colour in the layers, so a lens can only hide them
+    if (this.lensOf(node.tags, 'point')?.hidden) return undefined
     const coordinates = coordinateOf(node)
     if (!coordinates) return undefined
     const id = node.id
@@ -474,7 +553,13 @@ export class FeatureBuilder {
       const first = !this.built.has(id)
       this.built.add(id)
       if (this.isFiltered(id, tags, 'area', first)) continue
-      out.areas.push(areaFeature(id, polygons, tags, tagClasses(tags)))
+      const lens = this.lensOf(tags, 'area')
+      if (lens?.hidden) {
+        this.states.set(id, 'hidden')
+        continue
+      }
+      const feature = areaFeature(id, polygons, tags, tagClasses(tags))
+      out.areas.push(restyleArea(feature, lens))
     }
 
     for (const way of added.ways) {

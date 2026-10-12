@@ -1,4 +1,5 @@
 import type { Field, FieldOption, Tags } from '@osm-editor-kit/maid-presets'
+import { directionalKeys } from './fields/directional-logic.ts'
 
 /** OSM's limit for a tag value, in Unicode characters (iD's maxCharsForTagValue). */
 export const MAX_VALUE_LENGTH = 255
@@ -52,7 +53,13 @@ function ownsKey(field: Field, own: string, tagKey: string): boolean {
  */
 export function fieldKeys(field: Field, ...sources: Tags[]): string[] {
   // both: a phone field has `key` phone and `keys` phone and contact:phone
-  const own = [...new Set([...(field.key !== undefined ? [field.key] : []), ...(field.keys ?? [])])]
+  const listed = [...(field.key !== undefined ? [field.key] : []), ...(field.keys ?? [])]
+  // a side field also owns the other spelling of its key (`cycleway` and `cycleway:both`)
+  const sides =
+    field.type === 'directionalCombo' && field.key !== undefined
+      ? Object.values(directionalKeys(field.key))
+      : []
+  const own = [...new Set([...listed, ...sides])]
   const keys = new Set(own)
   for (const tags of sources) {
     for (const tagKey of Object.keys(tags)) {

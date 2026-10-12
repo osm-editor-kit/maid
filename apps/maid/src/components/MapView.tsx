@@ -1,4 +1,6 @@
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { NOTES_LAYER_IDS } from '@osm-editor-kit/maid-module-notes'
+import { streetImageryClick } from '@osm-editor-kit/maid-module-street-imagery'
 import {
   buildLayers,
   dashPatterns,
@@ -206,6 +208,14 @@ export function MapView() {
       engine.setMode('browse')
       return
     }
+    // a photo or a note under the pointer takes the click: it opens, and no feature is selected
+    if (streetImageryClick(event)) return
+    const noteLayers = NOTES_LAYER_IDS.filter((layer) => event.target.getLayer(layer))
+    if (
+      noteLayers.length > 0 &&
+      event.target.queryRenderedFeatures(event.point, { layers: noteLayers }).length > 0
+    )
+      return
     const id = engine.pick(event.point, interactive)
     // Shift adds a feature to the selection or takes it out, as in iD
     if (event.originalEvent.shiftKey && id) {

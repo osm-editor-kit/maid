@@ -7,6 +7,7 @@
  * API root per scene: http://localhost:8090/s/<scene>
  *   /api/capabilities(.json)
  *   /api/0.6/map(.json)?bbox=w,s,e,n
+ *   /api/0.6/notes.json?bbox=l,b,r,t&closed=0|-1&limit=N (notes of fixtures/notes/<scene>.json)
  *   /api/0.6/node/ID(.json), /api/0.6/{way,relation}/ID(/full)(.json)
  * Every write is rejected with 405. /requests returns a log of what was asked.
  */
@@ -18,6 +19,12 @@ type Node = { type: 'node'; id: number; lat: number; lon: number }
 type Way = { type: 'way'; id: number; nodes: number[] }
 type Relation = { type: 'relation'; id: number; members: { type: string; ref: number }[] }
 type Element = Node | Way | Relation
+/** A note as the notes API returns it: a GeoJSON point with its comments (fixtures/notes/<scene>.json) */
+export type NoteFeature = {
+  type: 'Feature'
+  geometry: { type: 'Point'; coordinates: [number, number] }
+  properties: { id: number; status: 'open' | 'closed'; [key: string]: unknown }
+}
 
 const CELL = 0.002 // degrees; index granularity for the bbox lookup
 
@@ -30,7 +37,10 @@ class SceneIndex {
   private memberRelations = new Map<string, number[]>()
   private cache = new Map<string, string>()
 
-  constructor(elements: Element[]) {
+  constructor(
+    elements: Element[],
+    private readonly notes: NoteFeature[] = [],
+  ) {
     for (const e of elements) {
       if (e.type === 'node') {
         this.nodes.set(e.id, e)
@@ -104,6 +114,24 @@ class SceneIndex {
     return body
   }
 
+  /**
+   * The notes API's answer for a box: `closed` false is the API's `closed=0` (open notes only).
+   * The fixture is frozen, so the API's "closed in the last N days" window is not applied: every
+   * closed note of the fixture counts as recent. `limit` caps the list like the real API does.
+   */
+  notesIn(bbox: [number, number, number, number], closed: boolean, limit: number): string {
+    const [w, s, e, n] = bbox
+    const features: NoteFeature[] = []
+    for (const note of this.notes) {
+      if (features.length >= limit) break
+      const [lon, lat] = note.geometry.coordinates
+      if (lon < w || lon > e || lat < s || lat > n) continue
+      if (!closed && note.properties.status !== 'open') continue
+      features.push(note)
+    }
+    return JSON.stringify({ type: 'FeatureCollection', features })
+  }
+
   full(type: 'way' | 'relation', id: number) {
     const root = type === 'way' ? this.ways.get(id) : this.relations.get(id)
     if (!root) return undefined
@@ -175,7 +203,10 @@ export async function loadScenes(names = SCENES.map((s) => s.name)) {
   for (const name of names) {
     const gz = await Bun.file(join(import.meta.dir, `../../fixtures/${name}.json.gz`)).arrayBuffer()
     const json = JSON.parse(new TextDecoder().decode(Bun.gunzipSync(new Uint8Array(gz))))
-    scenes.set(name, new SceneIndex(json.elements))
+    // notes are optional: a scene without fixtures/notes/<name>.json has none
+    const notesFile = Bun.file(join(import.meta.dir, `../../fixtures/notes/${name}.json`))
+    const notes: NoteFeature[] = (await notesFile.exists()) ? (await notesFile.json()).features : []
+    scenes.set(name, new SceneIndex(json.elements, notes))
   }
   return scenes
 }
@@ -199,13 +230,31 @@ export function createHandler(scenes: Map<string, SceneIndex>, options: { latenc
     const match = url.pathname.match(/^\/s\/([^/]+)(\/.*)$/)
     if (!match) return new Response('Not found', { status: 404, headers: CORS })
     const scene = scenes.get(match[1]!)
-    if (!scene) return new Response('Unknown scene', { status: 404, headers: CORS })
+    const path = match[2]!.replace(/\.json$/, '')
+    // notes of an unknown scene, or of a scene without notes, are an empty collection
+    if (!scene && path !== '/api/0.6/notes')
+      return new Response('Unknown scene', { status: 404, headers: CORS })
     if (req.method !== 'GET') {
       return new Response('The mock OSM API is read-only', { status: 405, headers: CORS })
     }
     const wantsXml = !match[2]!.endsWith('.json') && !req.headers.get('accept')?.includes('json')
-    const path = match[2]!.replace(/\.json$/, '')
     if (options.latency) await Bun.sleep(options.latency)
+
+    if (path === '/api/0.6/notes') {
+      const bbox = url.searchParams.get('bbox')?.split(',').map(Number)
+      if (bbox?.length !== 4 || bbox.some(Number.isNaN))
+        return new Response('Bad bbox', { status: 400, headers: CORS })
+      // closed=0 asks for open notes only; any other value (the API default is 7 days) gives closed too
+      const closed = url.searchParams.get('closed') !== '0'
+      const requested = Number(url.searchParams.get('limit') ?? 100)
+      const limit = Number.isFinite(requested) ? Math.min(Math.max(requested, 1), 10000) : 100
+      const box = bbox as [number, number, number, number]
+      const body = scene
+        ? scene.notesIn(box, closed, limit)
+        : JSON.stringify({ type: 'FeatureCollection', features: [] })
+      return new Response(body, { headers: JSON_HEADERS })
+    }
+    if (!scene) return new Response('Unknown scene', { status: 404, headers: CORS })
 
     if (path === '/api/capabilities' || path === '/api/0.6/capabilities') {
       if (wantsXml)
@@ -242,7 +291,7 @@ export function createHandler(scenes: Map<string, SceneIndex>, options: { latenc
     }
     if (path === '/api/0.6/user/details')
       return new Response('Unauthorized', { status: 401, headers: CORS })
-    if (path === '/api/0.6/notes' || path === '/api/0.6/notes/search') {
+    if (path === '/api/0.6/notes/search') {
       return Response.json({ type: 'FeatureCollection', features: [] }, { headers: CORS })
     }
     if (path === '/api/0.6/changesets')
