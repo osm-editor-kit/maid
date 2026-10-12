@@ -28,8 +28,7 @@ Everything else is unchanged on purpose, including the formatting, so that a lat
 
 ## Still to do
 
-- Loading is still about seven times slower than the proof-of-concept store (`bun run bench-model`); the parser is the largest part now.
-- Nothing uses this package yet. The renderer still runs on its own small store.
+- Loading the dense scene takes about 180 ms in Chrome (`bun run bench-model`), several times what the proof-of-concept store needed. The app does not use the parser; it creates entities with `entitiesFromOsmJson`.
 - Enforce immutability (frozen entities in development builds).
 - Decide what happens to the world-coordinate parts of `Geometry` and `GeometryPart`. Entity locations are lon/lat already; the world coordinates are a derived cache that Maid's renderer does not need.
 - Bring the package under the repo's lint rules, or keep the exclusion and say why.

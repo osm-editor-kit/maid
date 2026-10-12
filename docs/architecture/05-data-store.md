@@ -55,7 +55,7 @@ This is where the port pays off for speed, because the renderer already wants ex
 
 ## First measurement: the model is heavy on the load path
 
-Measured on 2026-10-11 with `bun packages/model/bench/load.ts` (in Bun, not in a browser; best of 5; times in milliseconds for the whole scene at once):
+Measured on 2026-10-11 with a script run in Bun that compared the model with the proof-of-concept store; both the script and that store are removed, `bun run bench-model` times today's load path in a browser. (In Bun, not in a browser; best of 5; times in milliseconds for the whole scene at once):
 
 | Scene | Elements | Proof-of-concept store | Rapid's model: parse | create entities | build graph | Total |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -96,6 +96,7 @@ What follows:
 - Deferring node geometry was the bigger part of "create entities": every node computed an extent and world coordinates in its constructor.
 - What changed for callers: geometry is computed against the graph as it is at first read, an entity with pending geometry keeps its graph alive until then, and building the spatial index reads the geometry and so computes it.
 - Remaining: the parser (about 90 ms) builds an intermediate object for every element before the entity is created. Going from the API's JSON to entities directly is the next saving if it is needed.
+- Done since (A2 and the review after part A): the app creates entities straight from the API's JSON (`entitiesFromOsmJson`), and an entity creates its geometry object and its cache on first use. `bun run bench-model` now times only that path: dense scene 78 ms for entities plus 105 ms for the merge into the history, 183 ms in total.
 - Not done: reusing the parent sets in `Graph` (about 35 ms in Bun). They are shared between graph versions, so changing them in place is not safe as the code stands.
 
 ## Order of work

@@ -48,8 +48,11 @@ export class AbstractData<P extends AbstractDataProps = AbstractDataProps> {
   public id: string;
   /** Application context */
   public context: Context;
-  /** Backing field for `geoms`. Read `geoms` instead, it resolves pending geometry first. */
-  protected _geoms: Geometry;
+  /**
+   * Backing field for `geoms`. Created on first use by `_ensureGeoms`, so most data elements never allocate it.
+   * Read `geoms` instead, it resolves pending geometry first.
+   */
+  protected _geoms: Geometry | null | undefined;  // undefined: never created, null: destroyed
   /** Properties object */
   public props: Partial<P>;
 
@@ -60,7 +63,7 @@ export class AbstractData<P extends AbstractDataProps = AbstractDataProps> {
    */
   public get geoms(): Geometry {
     this._resolveGeoms();
-    return this._geoms;
+    return this._ensureGeoms();
   }
   public set geoms(value: Geometry) {
     this._geoms = value;
@@ -81,13 +84,14 @@ export class AbstractData<P extends AbstractDataProps = AbstractDataProps> {
       this.context = other.context;
       this.props = cloneData(other.props) as Partial<P>;
       // Clone the backing field, not `other.geoms`: reading the accessor would force pending geometry.
-      this._geoms = other._geoms.clone();
+      // If the source never created its container, the copy does not create one either.
+      this._geoms = other._geoms?.clone();
 
     } else {
       const context = otherOrContext;
       this.context = context;
       this.props = {};
-      this._geoms = new Geometry(context);
+      // `_geoms` stays undefined until `_ensureGeoms` creates it.
     }
 
     Object.assign(this.props, cloneData(props));  // override with passed in props
@@ -103,10 +107,20 @@ export class AbstractData<P extends AbstractDataProps = AbstractDataProps> {
    * @abstract
    */
   public destroy(): void {
-    this._geoms.destroy();  // not `this.geoms`, destroy must not trigger pending geometry
-    this._geoms = null!;
+    this._geoms?.destroy();  // not `this.geoms`, destroy must not trigger pending geometry or create the container
+    this._geoms = null;
     this.props = null!;
     this.context = null!;
+  }
+
+  /**
+   * Returns the geometry container, creating it on first use.
+   * Does not resolve pending geometry, use the `geoms` getter for that.
+   */
+  protected _ensureGeoms(): Geometry {
+    // Only `undefined` means "never created". After `destroy()` the field stays null.
+    if (this._geoms === undefined) this._geoms = new Geometry(this.context);
+    return this._geoms!;
   }
 
   /**

@@ -1,9 +1,9 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 /**
- * Model load benchmark in a real browser. The browser twin of packages/model/bench/load.ts.
+ * Model load benchmark in a real browser: the load path the app uses.
  *
- *   bun tools/bench/model-load.ts [--runs 5] [--browser chromium|firefox|webkit]
+ *   bun run bench-model [--runs 5] [--browser chromium|firefox|webkit]
  *
  * Bundles packages/model/bench/browser-entry.ts in memory and serves it, with the gunzipped
  * fixtures, from http://localhost/ through page.route. Every other request is aborted
@@ -11,17 +11,11 @@ import { join, resolve } from 'node:path'
  */
 import { gunzipSync } from 'node:zlib'
 import { chromium, firefox, webkit, type Browser as PwBrowser } from '@playwright/test'
+import type { ModelLoadResult } from '../../packages/model/bench/browser-entry.ts'
 
 type BrowserName = 'chromium' | 'firefox' | 'webkit'
-// graph: EditHistory + merge (the real load path). direct: API JSON to entities, no OsmJSONParser.
-type Timings = {
-  json: number
-  poc: number
-  parse: number
-  entities: number
-  graph: number
-  direct: number
-}
+// entities: API JSON to entities (entitiesFromOsmJson). merge: into the history's graph.
+type Timings = { json: number; entities: number; merge: number }
 type SceneResult = { scene: string; elements: number; ms: Timings & { total: number } }
 
 const ROOT = resolve(import.meta.dir, '../..')
@@ -104,36 +98,22 @@ async function main(): Promise<void> {
 
     const results: SceneResult[] = []
     for (const scene of SCENES) {
-      const r: {
-        elements: number
-        tJson: number
-        tPoc: number
-        tParse: number
-        tEnt: number
-        tGraph: number
-        tDirect: number
-      } = await page.evaluate(
+      const r: ModelLoadResult = await page.evaluate(
         async ({ scene, runs }) => {
           const text = await (await fetch(`/fixtures/${scene}.json`)).text()
           return (window as any).__modelLoad(text, runs)
         },
         { scene, runs },
       )
-      const total = r.tParse + r.tEnt + r.tGraph
-      const totalDirect = r.tDirect + r.tGraph
       const ms = {
         json: round(r.tJson),
-        poc: round(r.tPoc),
-        parse: round(r.tParse),
-        entities: round(r.tEnt),
-        graph: round(r.tGraph),
-        direct: round(r.tDirect),
-        total: round(total),
-        total_direct: round(totalDirect),
+        entities: round(r.tEntities),
+        merge: round(r.tMerge),
+        total: round(r.tEntities + r.tMerge),
       }
       results.push({ scene, elements: r.elements, ms })
       console.log(
-        `${scene} ${r.elements} json=${Math.round(ms.json)} poc=${Math.round(ms.poc)} parse=${Math.round(ms.parse)} entities=${Math.round(ms.entities)} graph=${Math.round(ms.graph)} total=${Math.round(ms.total)} direct=${Math.round(ms.direct)} total_direct=${Math.round(ms.total_direct)}`,
+        `${scene} ${r.elements} json=${Math.round(ms.json)} entities=${Math.round(ms.entities)} merge=${Math.round(ms.merge)} total=${Math.round(ms.total)}`,
       )
     }
 

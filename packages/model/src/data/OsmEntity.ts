@@ -29,6 +29,17 @@ export interface OsmEntityProps extends AbstractDataProps {
 /** Type for the transients cache - maps entity keys to their cached computed values */
 type TransientCache = Map<string, Map<string, unknown>>;
 
+/**
+ * Shared holder for the transients cache. A copy and its source point at the same holder,
+ * so they see the same Map, and `clear()` through either empties both. A plain Map field
+ * would not work with lazy creation: the first write would replace it on one side only.
+ * The holder is created at the first copy or the first memoised value, whichever comes first,
+ * so most entities never allocate one.
+ */
+interface TransientHolder {
+  map: TransientCache | null;
+}
+
 
 /**
  * This class contains logic that is common to OSM data elements.
@@ -45,7 +56,7 @@ type TransientCache = Map<string, Map<string, unknown>>;
 export class OsmEntity extends AbstractData<OsmEntityProps> {
 
   /** Cache for memoizing expensive calculations, shared between copies */
-  protected _transients: TransientCache;
+  protected _transients: TransientHolder | null;
 
   /**
    * Graph to compute `geoms` from, set by `updateGeometry`, cleared by `_resolveGeoms`.
@@ -69,14 +80,17 @@ export class OsmEntity extends AbstractData<OsmEntityProps> {
     // The transients cache is shared between entities that copy from other entities.
     // For this to work, the Entity must be touched if there is a meaningful
     // change in the Graph that will cause the computed property to change.
+    // The cache itself is created on first write, see TransientHolder.
     if (otherOrContext instanceof AbstractData) {  // copy other
       const other = otherOrContext as OsmEntity;
+      // Create the holder on the source now, so both entities point at the same object.
+      other._transients ??= { map: null };
       this._transients = other._transients;
       // The backing `_geoms` was cloned unresolved in AbstractData, so carry the pending marker over.
       this._pendingGeomGraph = other._pendingGeomGraph;
 
     } else {
-      this._transients = new Map<string, Map<string, unknown>>() as TransientCache;
+      this._transients = null;
     }
 
     // Idea: Store tags in a proto-less object to avoid collisions with
@@ -98,7 +112,7 @@ export class OsmEntity extends AbstractData<OsmEntityProps> {
    */
   public destroy(): void {
     super.destroy();
-    this._transients = null!;
+    this._transients = null;
     this._pendingGeomGraph = undefined;  // drop the Graph reference, never compute on destroy
   }
 
@@ -113,7 +127,7 @@ export class OsmEntity extends AbstractData<OsmEntityProps> {
    */
   public updateGeometry(graph?: Graph): this {
     // this.touch();
-    this._transients.clear();
+    this._transients?.map?.clear();  // nothing to clear if no value was ever memoised
     this._pendingGeomGraph = graph ?? null;
     return this;
   }
@@ -126,7 +140,7 @@ export class OsmEntity extends AbstractData<OsmEntityProps> {
     const graph = this._pendingGeomGraph;
     if (graph === undefined) return;  // nothing pending
     this._pendingGeomGraph = undefined;
-    this._geoms.setData(this.asGeoJSON(graph ?? undefined));
+    this._ensureGeoms().setData(this.asGeoJSON(graph ?? undefined));
   }
 
   /**
@@ -201,10 +215,13 @@ export class OsmEntity extends AbstractData<OsmEntityProps> {
    */
   public transient<T>(k: string, fn: () => T): T {
     const entityKey = this.key;
-    let cache = this._transients.get(entityKey);
+    // Memoising is the first write: create the shared holder and its Map here if needed.
+    const holder = (this._transients ??= { map: null });
+    const memo: TransientCache = (holder.map ??= new Map<string, Map<string, unknown>>() as TransientCache);
+    let cache = memo.get(entityKey);
     if (!cache) {
       cache = new Map<string, Map<string, unknown>>() as TransientCache;
-      this._transients.set(entityKey, cache);
+      memo.set(entityKey, cache);
     }
 
     let v = cache.get(k);

@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'bun:test'
 import { Graph, ModelContext, OsmNode, OsmWay } from '../../src/index.ts'
 import type { OsmEntity } from '../../src/index.ts'
+import { OsmRelation } from '../../src/index.ts'
 
 // Private state under test. Only this file reads it, the rest of the suite uses the public API.
 interface LazyInternals {
@@ -39,7 +40,7 @@ describe('lazy geometry', () => {
   it('leaves a way pending after rebase, with no extent computed yet', () => {
     const { way, base } = setup()
     expect(internals(way)._pendingGeomGraph).toBe(base)
-    expect(internals(way)._geoms.orig).toBeNull()
+    expect(internals(way)._geoms).toBeUndefined()  // the container itself is created on first use
   })
 
   it('computes the same extent on first read of geoms', () => {
@@ -76,7 +77,7 @@ describe('lazy geometry', () => {
     const copy = way.update({ tags: { highway: 'service' } })
     expect(counter.calls()).toBe(0)
     expect(internals(copy)._pendingGeomGraph).toBe(base)
-    expect(internals(copy)._geoms.orig).toBeNull()
+    expect(internals(copy)._geoms).toBeUndefined()  // the container itself is created on first use
     expect(internals(way)._pendingGeomGraph).toBe(base)  // the original is untouched
 
     expect(copy.extent()?.min).toEqual([13.0, 52.0])
@@ -98,4 +99,65 @@ describe('lazy geometry', () => {
     expect(internals(node)._pendingGeomGraph).toBeUndefined()
   })
 
+})
+
+// Lazy containers: `_geoms` and the transients cache are created only when first used.
+interface ContainerInternals {
+  _geoms: unknown
+  _transients: { map: Map<string, unknown> | null } | null
+}
+const containers = (entity: OsmEntity): ContainerInternals => entity as unknown as ContainerInternals
+
+describe('lazy containers', () => {
+
+  it('a fresh node, way and relation have no geometry container and no transients cache', () => {
+    const context = new ModelContext()
+    const node = new OsmNode(context, { id: 'n9', loc: [1, 2] })
+    const way = new OsmWay(context, { id: 'w9', nodes: ['n9'] })
+    const relation = new OsmRelation(context, { id: 'r9', members: [] })
+    for (const entity of [node, way, relation]) {
+      expect(containers(entity)._geoms).toBeUndefined()
+      expect(containers(entity)._transients).toBeNull()
+    }
+  })
+
+  it('copying an entity whose geometry was never created does not create one', () => {
+    const context = new ModelContext()
+    const node = new OsmNode(context, { id: 'n9', loc: [1, 2] })
+    const copy = new OsmNode(node, { tags: { amenity: 'bench' } })
+    expect(containers(node)._geoms).toBeUndefined()
+    expect(containers(copy)._geoms).toBeUndefined()
+  })
+
+  it('a value memoised through a copy is visible through its source, and the other way round', () => {
+    const context = new ModelContext()
+    const node = new OsmNode(context, { id: 'n9', loc: [1, 2] })
+    const copy = new OsmNode(node, { tags: { amenity: 'bench' } })
+    let calls = 0
+
+    expect(copy.transient('k', () => { calls++; return 'from copy' })).toBe('from copy')
+    expect(node.transient('k', () => { calls++; return 'from source' })).toBe('from copy')
+    expect(calls).toBe(1)
+
+    expect(node.transient('j', () => 'from source')).toBe('from source')
+    expect(copy.transient('j', () => 'recomputed')).toBe('from source')
+  })
+
+  it('clearing through a copy clears the source too, and clearing through the source clears the copy', () => {
+    const context = new ModelContext()
+    const node = new OsmNode(context, { id: 'n9', loc: [1, 2] })
+    const copy = new OsmNode(node, { tags: { amenity: 'bench' } })
+    let calls = 0
+    const compute = () => { calls++; return calls }
+
+    expect(node.transient('k', compute)).toBe(1)
+    copy.updateGeometry()  // clears the shared cache
+    expect(node.transient('k', compute)).toBe(2)
+    expect(copy.transient('k', compute)).toBe(2)
+
+    copy.transient('m', compute)
+    node.updateGeometry()  // clears the shared cache from the other side
+    expect(copy.transient('m', compute)).toBe(4)
+    expect(calls).toBe(4)
+  })
 })
