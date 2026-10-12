@@ -1405,4 +1405,193 @@ failed += await runCheck(
   false,
 )
 
+// --- the measuring tape of a width field: the button in its row, two clicks on the map, and what the clicks may not do ---
+failed += await runCheck(
+  process.argv[2] ?? 'small',
+  async ({ page, report, settle }) => {
+    const origin = (await page.evaluate(() => {
+      const box = (window as any).__maid.map.getCanvas().getBoundingClientRect()
+      return { x: box.left, y: box.top }
+    })) as XY
+    const abs = (p: XY) => ({ x: origin.x + p.x, y: origin.y + p.y })
+    const click = async (p: XY) => {
+      const at = abs(p)
+      await page.mouse.move(at.x, at.y)
+      await page.mouse.click(at.x, at.y)
+      await settle()
+    }
+    const key = async (name: string) => {
+      await page.evaluate(() => {
+        if (document.activeElement instanceof HTMLInputElement) document.activeElement.blur()
+      })
+      await page.keyboard.press(name)
+      await settle()
+    }
+    const state = () =>
+      page.evaluate(() => {
+        const { engine } = (window as any).__maid
+        return {
+          selection: [...engine.selection] as string[],
+          measuring: engine.measuring as boolean,
+          undo: (engine.undoState().undoLabel ?? null) as string | null,
+        }
+      })
+    const widthOf = (id: string) =>
+      page.evaluate((id) => (window as any).__maid.engine.entity(id)?.tags.width ?? null, id)
+    const locsOf = (id: string) =>
+      page.evaluate((id) => {
+        const { engine } = (window as any).__maid
+        return engine.data.way(id).nodes.map((n: string) => engine.data.node(n).loc)
+      }, id)
+    const measureButton = page.locator(
+      '[data-focus-key="width"] button[aria-label^="Measure "][aria-label$=" on the map"]',
+    )
+
+    // a road, a building edge to click, and two places of open ground that are at least 100 px apart
+    const found = (await page.evaluate(() => {
+      const { map, engine } = (window as any).__maid
+      const box = map.getCanvas().getBoundingClientRect()
+      const inView = (p: XY) =>
+        p.x > 80 && p.y > 80 && p.x < box.width - 80 && p.y < box.height - 80
+      type XY = { x: number; y: number }
+      const alone = (p: XY, ownIds: string[], r = 12) =>
+        map
+          .queryRenderedFeatures([
+            [p.x - r, p.y - r],
+            [p.x + r, p.y + r],
+          ])
+          .every((f: any) => f.layer.type === 'fill' || ownIds.includes(String(f.id)))
+      let road: string | undefined
+      let building: { id: string; at: XY } | undefined
+      for (const f of map.queryRenderedFeatures()) {
+        const id = String(f.id ?? '')
+        const way = id.startsWith('w') && engine.data.way(id)
+        if (!way || engine.data.wayMultipolygons.has(id) || way.nodes.length < 2) continue
+        const at = (n: string) => map.project(engine.data.node(n).loc)
+        if (way.tags.highway && !road && way.nodes[0] !== way.nodes[way.nodes.length - 1]) road = id
+        if (way.tags.building && !building) {
+          const a = at(way.nodes[0])
+          const b = at(way.nodes[1])
+          const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+          if (inView(mid) && alone(mid, [id], 8)) building = { id, at: mid }
+        }
+      }
+      const free: XY[] = []
+      for (let y = 100; y < box.height - 100 && free.length < 2; y += 10)
+        for (let x = 100; x < box.width - 100 && free.length < 2; x += 10) {
+          if (free.some((p) => Math.hypot(p.x - x, p.y - y) < 100)) continue
+          if (alone({ x, y }, [], 16)) free.push({ x, y })
+        }
+      return { road, building, free }
+    })) as {
+      road?: string
+      building?: { id: string; at: XY }
+      free: XY[]
+    }
+    if (!found.road || !found.building || found.free.length < 2) {
+      report('find a road, a building and two places of open ground', 'all in view', {
+        road: !!found.road,
+        building: !!found.building,
+        free: found.free.length,
+      })
+      return
+    }
+    const road = found.road
+    const building = found.building
+    const [p1, p2] = found.free as [XY, XY]
+
+    // the road, selected as the app selects it, and an add of its width field (as a user does), so
+    // that the width has no tag yet
+    await page.evaluate((id) => (window as any).__bench.select(id), road)
+    await settle()
+    await page.getByLabel('Add field').fill('Width')
+    await settle()
+    await page.keyboard.press('Enter')
+    await settle()
+
+    // --- the width field has the button, the name field has none ---
+    report(
+      'a width field of the selected road has the measure button',
+      1,
+      await measureButton.count(),
+    )
+    report(
+      'a name field has no measure button',
+      [1, 0],
+      await page.evaluate(() => [
+        document.querySelectorAll('[data-focus-key="name"] input').length,
+        document.querySelectorAll('[data-focus-key="name"] button[aria-label$="on the map"]')
+          .length,
+      ]),
+    )
+
+    // --- the button, two clicks on the map: the ground distance in the field, one undo step ---
+    const nodesBefore = await locsOf(road)
+    await measureButton.click()
+    await settle()
+    report('the button starts a measure', true, (await state()).measuring)
+    await click(p1)
+    await click(p2)
+    const expected = await page.evaluate(
+      ({ a, b }) => {
+        const { map } = (window as any).__maid
+        const from = map.unproject([a.x, a.y])
+        const to = map.unproject([b.x, b.y])
+        // the same great-circle distance as measure.ts, written out here so that the check does not use it
+        const rad = Math.PI / 180
+        const dLat = (to.lat - from.lat) * rad
+        const dLon = (to.lng - from.lng) * rad
+        const h =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos(from.lat * rad) * Math.cos(to.lat * rad) * Math.sin(dLon / 2) ** 2
+        const metres = 2 * 6371008.8 * Math.asin(Math.min(1, Math.sqrt(h)))
+        return String(Math.round(metres * 10) / 10)
+      },
+      { a: p1, b: p2 },
+    )
+    const afterMeasure = await state()
+    report('two clicks write the ground distance into the field', expected, await widthOf(road))
+    report('the measure has ended', false, afterMeasure.measuring)
+    report('the selection is unchanged', [road], afterMeasure.selection)
+    report('no node was added or moved', nodesBefore, await locsOf(road))
+    await key('Meta+z')
+    report('one undo removes the value', null, await widthOf(road))
+
+    // --- the button, one click, Escape: nothing is written, the selection stays ---
+    const undoBefore = (await state()).undo
+    await measureButton.click()
+    await settle()
+    await click(p1)
+    report('a first click is the start of the measure', true, (await state()).measuring)
+    await key('Escape')
+    const afterEscape = await state()
+    report('Escape ends the measure', false, afterEscape.measuring)
+    report('Escape writes no tag', null, await widthOf(road))
+    report('Escape makes no edit', undoBefore, afterEscape.undo)
+    report('Escape keeps the selection', [road], afterEscape.selection)
+
+    // --- while measuring, a click on another feature does not select it ---
+    await measureButton.click()
+    await settle()
+    await click(building.at)
+    report(
+      'a click on a feature while measuring does not select it',
+      { measuring: true, selection: [road] },
+      { measuring: (await state()).measuring, selection: (await state()).selection },
+    )
+    await click(p2)
+    report('the second click ends the measure', false, (await state()).measuring)
+
+    // --- after measuring, a normal click selects again ---
+    await click(building.at)
+    report(
+      'after measuring, a click selects the building again',
+      [building.id],
+      (await state()).selection,
+    )
+  },
+  '',
+  false,
+)
+
 process.exit(failed ? 1 : 0)

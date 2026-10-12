@@ -43,7 +43,7 @@ const FALLBACK_CAMERA = { zoom: 17, lat: 52.389, lng: 13.4 }
 let lastTileCheck = 0
 /** The vertex that is being dragged, if any. Not React state: it changes on every pointer event. */
 let dragging: string | null = null
-/** When a click last went to the drawing tool: the double click that follows is not for the map */
+/** When a click last went to the drawing tool or to a measure: the double click that follows is not for the map */
 let lastDrawClick = 0
 let zoomGuardTimer: ReturnType<typeof setTimeout> | undefined
 /** The timer of a long press and where the finger went down */
@@ -104,6 +104,7 @@ export function MapView() {
   const [dashes, setDashes] = useState(() => new globalThis.Map(dashPatterns))
   const [cursor, setCursor] = useState('grab')
   const mode = useEngine((e) => e.mode)
+  const measuring = useEngine((e) => e.measuring)
   const [zoomGuard, setZoomGuard] = useState(false)
   const [menu, setMenu] = useState<MenuPlace | null>(null)
 
@@ -151,7 +152,7 @@ export function MapView() {
   // --- pointer: the same for the mouse and for one finger ---
 
   const press = (event: { point: Point; preventDefault: () => void }) => {
-    if (mode !== 'browse') return
+    if (mode !== 'browse' || engine.measuring) return
     // a midpoint handle of the selected way: the press starts a handle drag, which adds a node on first move
     if (engine.pressMidpoint(event.point)) {
       event.preventDefault()
@@ -192,6 +193,11 @@ export function MapView() {
     const { lng, lat } = event.lngLat
     // keys that act where the pointer is (paste, Space while drawing) read this
     engine.pointer = { point: event.point, lon: lng, lat, layers: interactive }
+    // a measure follows the pointer and takes nothing else
+    if (engine.measuring) {
+      engine.measureMove(lng, lat)
+      return
+    }
     if (engine.pressingHandle) {
       // the pressed handle becomes a node once the pointer has moved, and that node is dragged on
       engine.moveHandle(event.point, lng, lat, {
@@ -215,7 +221,7 @@ export function MapView() {
     // a handle press whose release was not seen on the map (the button went up off it) ends here: no node is made by a hover
     if (engine.pressingHandle && event.originalEvent.buttons === 0) release()
     movePointer(event)
-    if (dragging || engine.pressingHandle || mode !== 'browse') return
+    if (dragging || engine.pressingHandle || mode !== 'browse' || engine.measuring) return
     const id = engine.pick(event.point, interactive)
     engine.setHover(id)
     setCursor(engine.midpointAt(event.point) ? 'cell' : id ? 'pointer' : 'grab')
@@ -228,7 +234,7 @@ export function MapView() {
    * moving. The pick is the one of a click: same layers, same tolerance.
    */
   const openMenu = (point: Point, lngLat: { lng: number; lat: number }, screen: Point) => {
-    if (mode !== 'browse') return
+    if (mode !== 'browse' || engine.measuring) return
     const ids = engine.pickAll(point, interactive)
     const id = ids[0] ?? null
     if (id && !selectedIds.includes(id)) select(id)
@@ -254,6 +260,18 @@ export function MapView() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
+  // Escape cancels a measure. It is taken in the capture phase on the window, so the editor's own
+  // Escape (useShortcuts: it clears the selection) does not see it. The selection stays.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || !engine.measuring) return
+      event.preventDefault()
+      event.stopPropagation()
+      engine.cancelMeasure()
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [])
   const handleContextMenu = (event: MapLayerMouseEvent) => {
     event.originalEvent.preventDefault() // not the browser's own menu
     clearTimeout(longPress)
@@ -265,7 +283,7 @@ export function MapView() {
   // one finger drags a node; two fingers are the map's (pinch, pan)
   const handleTouchStart = (event: MapTouchEvent) => {
     clearTimeout(longPress)
-    if (event.points.length !== 1) return
+    if (event.points.length !== 1 || engine.measuring) return
     press(event)
     // iOS sends no contextmenu event for a long press, so it is timed here (iD: 500 ms)
     const touch = event.originalEvent.touches[0]
@@ -299,6 +317,12 @@ export function MapView() {
     zoomGuardTimer = setTimeout(() => setZoomGuard(false), 500)
   }
   const handleClick = (event: MapLayerMouseEvent) => {
+    if (engine.measuring) {
+      // the first click sets the start of the measure, the second ends it: nothing is selected
+      guardZoom()
+      engine.measureClick(event.lngLat.lng, event.lngLat.lat)
+      return
+    }
     if (mode === 'add-point') {
       // on a vertex or a point that is there, the click selects it: no second node at the same place
       // on a line, the new node is a vertex of that way (as iD does); anywhere else a point is added
@@ -360,7 +384,7 @@ export function MapView() {
     setStack(ids.length > 1 ? { lon: event.lngLat.lng, lat: event.lngLat.lat, ids } : null)
   }
   const handleDblClick = (event: MapLayerMouseEvent) => {
-    if (mode !== 'browse' || performance.now() - lastDrawClick < 500) {
+    if (mode !== 'browse' || engine.measuring || performance.now() - lastDrawClick < 500) {
       event.preventDefault()
       return
     }
@@ -385,10 +409,10 @@ export function MapView() {
       fadeDuration={config.fade}
       attributionControl={false}
       dragRotate={false}
-      cursor={mode === 'browse' ? cursor : 'crosshair'}
+      cursor={mode === 'browse' && !measuring ? cursor : 'crosshair'}
       // Shift-drag is not MapLibre's box zoom here: Shift-click selects several features
       boxZoom={false}
-      doubleClickZoom={mode === 'browse' && !zoomGuard}
+      doubleClickZoom={mode === 'browse' && !measuring && !zoomGuard}
       onLoad={handleLoad}
       onMove={handleMove}
       onMoveEnd={handleMoveEnd}
@@ -409,6 +433,14 @@ export function MapView() {
       />
       <ModuleLayers editor={editor} />
       <StackPicker />
+      {measuring && (
+        <div
+          role="status"
+          className="pointer-events-none absolute top-3 left-1/2 z-30 -translate-x-1/2 rounded-full bg-white px-3 py-1 text-xs font-medium text-zinc-800 shadow ring-1 ring-zinc-950/10 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-white/10"
+        >
+          Click two points to measure. Escape cancels.
+        </div>
+      )}
       {menu && <MapContextMenu place={menu} onClose={() => setMenu(null)} />}
     </Map>
   )

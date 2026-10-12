@@ -1,4 +1,5 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
+import { formatMetres } from '@osm-editor-kit/maid-renderer'
 import {
   type FieldFocus,
   InfoPopover,
@@ -11,7 +12,7 @@ import {
   SidebarHeader,
   SidebarDisclosure,
 } from '@osm-editor-kit/maid-ui'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { editor, engine, useEngine } from '../editor'
 import {
   changeType,
@@ -20,7 +21,7 @@ import {
   useFavouriteRows,
   useFavouritesFull,
 } from '../favourites'
-import { fieldOverlayFor } from '../field-overlay'
+import { fieldOverlayFor, widthKeyTarget } from '../field-overlay'
 import { loadReference } from '../reference'
 import { useSelection } from '../selection'
 import { Operations } from './Operations'
@@ -56,6 +57,11 @@ export function Inspector() {
   const favouritesFull = useFavouritesFull()
   // whether the type picker is open, and for which id: selecting something else forgets it
   const [picker, setPicker] = useState<{ id: string; open: boolean } | null>(null)
+  // the key whose width is being measured on the map: state here, not a module variable
+  const [measureKey, setMeasureKey] = useState<string>()
+  // a measure is about the features it began on: a change of the selection (or leaving the inspector) ends it
+  const selectionKey = ids.join(',')
+  useEffect(() => () => engine.cancelMeasure(), [selectionKey])
 
   if (!id) {
     return (
@@ -91,6 +97,24 @@ export function Inspector() {
     entity && !entity.readOnly
       ? (key: string, value: string | undefined) => engine.setTag(id, key, value)
       : undefined
+  /**
+   * The "Measure on the map" button of a width field: the first click on the map sets the start, the
+   * second the end, and the distance is written into the field as a typed value would be (one undo step).
+   * The button again, or Escape, cancels and writes nothing.
+   */
+  const startMeasure = (key: string) => {
+    const again = measureKey === key && engine.measuring
+    engine.cancelMeasure()
+    if (again) return
+    setMeasureKey(key)
+    engine.startMeasure((metres) => {
+      setMeasureKey(undefined)
+      if (metres === undefined) return
+      const value = formatMetres(metres)
+      // a measure of no distance (two clicks in one place) would write "0": nothing is written then
+      if (Number(value) > 0) onChange?.(key, value)
+    })
+  }
   const { presets } = editor
   const fields =
     entity?.preset && presets ? presets.fieldsFor(entity.preset, entity.tags, entity.geometry) : []
@@ -186,6 +210,15 @@ export function Inspector() {
                   components={fieldTypes}
                   loadReference={loadReference}
                   onFieldFocus={showFieldFocus}
+                  // a width field of a single way has the "Measure on the map" button
+                  measure={{
+                    can: (key) =>
+                      onChange !== undefined &&
+                      id.startsWith('w') &&
+                      widthKeyTarget(key) !== undefined,
+                    start: startMeasure,
+                    active: measureKey,
+                  }}
                 />
               </SidebarDisclosure>
             )}

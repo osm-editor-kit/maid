@@ -22,7 +22,7 @@ import { NumberField, RoadHeightField, RoadSpeedField } from './fields/Number.ts
 import { RadioField, StructureRadioField } from './fields/Radio.tsx'
 import type { RelatedRow } from './fields/Related.tsx'
 import { FieldRow } from './fields/Row.tsx'
-import type { FieldComponent, FieldFocus } from './fields/shared.ts'
+import type { FieldComponent, FieldFocus, FieldMeasure } from './fields/shared.ts'
 import { TextField, TextareaField } from './fields/Text.tsx'
 import { fieldKeys } from './logic.ts'
 import { assignRelatedTags, relatedBaseKeys, relatedButtonKeys } from './related-logic.ts'
@@ -87,6 +87,8 @@ export function PresetFields(props: {
    * from the list: a control only needs its row's data attributes (data-focus-key, data-focus-side).
    */
   onFieldFocus?: (focus: FieldFocus | null) => void
+  /** The measuring tape of the width fields: their "Measure on the map" button (fields/shared.ts FieldMeasure) */
+  measure?: FieldMeasure
 }): ReactNode {
   const {
     fields,
@@ -97,6 +99,7 @@ export function PresetFields(props: {
     moreFields = [],
     loadReference,
     onFieldFocus,
+    measure,
   } = props
   // the ids picked from "Add field", in the order picked: they are rows although they have no value
   const [picked, setPicked] = useState<string[]>([])
@@ -231,6 +234,7 @@ export function PresetFields(props: {
             registry={registry}
             related={relatedOf(field)}
             loadReference={loadReference}
+            measure={measure}
           />
         </div>
       ))}

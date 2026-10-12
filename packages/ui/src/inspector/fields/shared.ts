@@ -30,6 +30,17 @@ export type FieldFocus = {
   side?: 'left' | 'right'
 }
 
+/**
+ * The measuring tape of the width fields (PresetFields `measure`): `can` says whether a key has the
+ * "Measure on the map" button, `start` begins a measure for it, and `active` is the key being
+ * measured now (the button is pressed then).
+ */
+export type FieldMeasure = {
+  can: (key: string) => boolean
+  start: (key: string) => void
+  active?: string
+}
+
 const SURFACE =
   'w-full min-w-0 rounded-md border border-zinc-950/10 bg-white text-sm text-zinc-950 hover:border-zinc-950/20 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-60 dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:hover:border-white/20 dark:[color-scheme:dark]'
 export const FRAME = `h-8 ${SURFACE}`

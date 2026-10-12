@@ -45,6 +45,7 @@ import { installDirectionImages } from './direction-images'
 import { DrawTool, nearestOnWay, projectedNodes } from './draw'
 import { fieldOverlayFeatures, type FieldOverlay, type LonLat } from './field-overlay'
 import { EDIT_SOURCES, SOURCES } from './layers'
+import { distanceMetres, measureFeatures as measureOnMap } from './measure'
 import { midpointFeatures, segmentsOf, type MidpointFeature, type Segment } from './midpoints'
 import { extentOf, orderPicks, PICK_LIMIT, type PickCandidate } from './pick-order'
 import { boundsOf, relatedIds } from './related'
@@ -779,6 +780,8 @@ export class MaidEngine {
    */
   setMode(mode: Mode): boolean {
     if (mode === this.currentMode) return true
+    // a measure is not a mode of its own: a mode the editor changes to ends it, without a value
+    this.cancelMeasure()
     if (this.draw.active) this.draw.finish()
     if (this.transform.active) this.transform.finish()
     if ((mode === 'move' || mode === 'rotate') && !this.transform.begin(mode, this.selectedIds))
@@ -1046,7 +1049,8 @@ export class MaidEngine {
       this.dragged !== undefined ||
       this.handlePress !== undefined ||
       this.draw.active ||
-      this.transform.active
+      this.transform.active ||
+      this.measuring
     )
   }
 
@@ -1625,6 +1629,7 @@ export class MaidEngine {
         ...this.midpointList,
         ...this.previewFeatures,
         ...this.fieldFeatures,
+        ...this.measureList,
       ],
     })
   }
@@ -1647,7 +1652,14 @@ export class MaidEngine {
   private computeMidpoints() {
     const { map } = this
     this.midpointList = []
-    if (!map || this.currentMode !== 'browse' || this.draw.active || this.transform.active) return
+    if (
+      !map ||
+      this.currentMode !== 'browse' ||
+      this.draw.active ||
+      this.transform.active ||
+      this.measuring
+    )
+      return
     const segments: Segment[] = []
     for (const id of this.selectedIds) {
       if (id[0] !== 'w' || !this.featureSource.has(id) || this.isReadOnly(id)) continue
@@ -1792,6 +1804,82 @@ export class MaidEngine {
     if (features.length === 0 && this.fieldFeatures.length === 0) return
     this.fieldFeatures = features
     this.pushHighlight()
+  }
+
+  // --- Measuring a distance on the map, for a width field (measure.ts) ---
+
+  /** What a measure gives when it ends: the metres of the second click, or undefined when cancelled. Set while measuring. */
+  private measureDone?: (metres: number | undefined) => void
+  /** The first click of the measure, once it is made */
+  private measureStart?: LonLat
+  /** The line and the label from the first click to the pointer: empty until there is a first click and a move */
+  private measureList: Feature[] = []
+
+  /**
+   * True from startMeasure until the second click or a cancel. While it is, clicks and moves go to the
+   * measure (measureClick, measureMove), and busy() is true: no selection, drag, handle or undo.
+   */
+  get measuring(): boolean {
+    return this.measureDone !== undefined
+  }
+
+  /** The features of the measure on the map now. Public for the browser checks. */
+  get measureFeatures(): readonly Feature[] {
+    return this.measureList
+  }
+
+  /**
+   * Starts a measure: the first click on the map sets its start, the second ends it, and `done` is called
+   * once with the distance on the ground in metres. `cancelMeasure` calls it with undefined. A measure that
+   * is under way is cancelled first. Refused while a drawing, a move, a rotation or a drag is under way: `done`
+   * is then called at once with undefined.
+   */
+  startMeasure(done: (metres: number | undefined) => void) {
+    this.cancelMeasure()
+    if (this.busy()) {
+      done(undefined)
+      return
+    }
+    this.measureDone = done
+    // the hover of before the measure does not stay on the feature under it
+    this.setHover(null)
+    this.computeMidpoints()
+    this.pushHighlight()
+    this.changed()
+  }
+
+  /** A click on the map while measuring: the first sets the start, the second ends the measure with its distance */
+  measureClick(lon: number, lat: number) {
+    if (!this.measureDone) return
+    if (this.measureStart === undefined) {
+      this.measureStart = [lon, lat]
+      return
+    }
+    this.finishMeasure(distanceMetres(this.measureStart, [lon, lat]))
+  }
+
+  /** A pointer move while measuring: the line and label from the start to the pointer, once there is a start */
+  measureMove(lon: number, lat: number) {
+    if (!this.measureDone || this.measureStart === undefined) return
+    this.measureList = measureOnMap(this.measureStart, [lon, lat])
+    this.pushHighlight()
+  }
+
+  /** Ends a measure without a distance: its `done` gets undefined, and nothing is changed. Nothing when none is under way. */
+  cancelMeasure() {
+    this.finishMeasure(undefined)
+  }
+
+  private finishMeasure(metres: number | undefined) {
+    const done = this.measureDone
+    if (!done) return
+    this.measureDone = undefined
+    this.measureStart = undefined
+    this.measureList = []
+    this.computeMidpoints()
+    this.pushHighlight()
+    this.changed()
+    done(metres)
   }
 
   /**

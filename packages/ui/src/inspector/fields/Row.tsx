@@ -14,7 +14,7 @@ import {
 } from '../logic.ts'
 import { FallbackField } from './Fallback.tsx'
 import { RelatedAddButtons, RelatedDetails, type RelatedRow } from './Related.tsx'
-import type { FieldComponent, FieldProps } from './shared.ts'
+import type { FieldComponent, FieldMeasure, FieldProps } from './shared.ts'
 import { HINT, LABEL, ROW_BUTTON } from './shared.ts'
 
 /** Field types that take a value from a list of options and show the option's label as a hint. */
@@ -27,6 +27,31 @@ const COMBO_TYPES = new Set(['combo', 'typeCombo', 'networkCombo', 'radio', 'str
  */
 const INFO_BUTTON =
   'rounded opacity-0 transition-opacity duration-200 group-focus-within/field:opacity-100 group-hover/field:opacity-100 aria-expanded:opacity-100 pointer-coarse:opacity-100'
+
+/**
+ * The "Measure on the map" button: as the "i", it fades in with the row, and it stays while the
+ * measure it started is under way (aria-pressed).
+ */
+const MEASURE_BUTTON = `${ROW_BUTTON} opacity-0 transition-opacity duration-200 group-focus-within/field:opacity-100 group-hover/field:opacity-100 aria-pressed:bg-zinc-950/5 aria-pressed:text-blue-600 aria-pressed:opacity-100 pointer-coarse:opacity-100 dark:aria-pressed:bg-white/10 dark:aria-pressed:text-blue-400`
+
+/** A ruler on a diagonal with its ticks, 16 px, in the colour of the text (the row's icons are 16 px too) */
+function RulerIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      className="size-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.25}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M2.5 9.5 9.5 2.5l4 4-7 7-4-4Z" />
+      <path d="M4.25 7.75 6 9.5M6 6l1.75 1.75M7.75 4.25 9.5 6" />
+    </svg>
+  )
+}
 
 const STEADY_TYPES = new Set([
   'semiCombo',
@@ -52,8 +77,10 @@ export function FieldRow(props: {
   related?: RelatedRow
   /** Finds the wiki documentation for the "i" after the label, when the field has a reference. Called on opening only. */
   loadReference?: ReferenceLoader
+  /** The measuring tape: the "Measure on the map" button, for the keys that have one. Absent: none. */
+  measure?: FieldMeasure
 }) {
-  const { field, tags, baseTags, onChange, registry, related, loadReference } = props
+  const { field, tags, baseTags, onChange, registry, related, loadReference, measure } = props
   const id = useId()
   const labelId = useId()
   // the label bar's container for the control's own buttons: set by a callback ref, so no ref is read in render
@@ -100,6 +127,18 @@ export function FieldRow(props: {
               load={loadReference}
               buttonClassName={INFO_BUTTON}
             />
+          ) : null}
+          {onChange && key !== undefined && measure?.can(key) ? (
+            <button
+              type="button"
+              aria-label={`Measure ${field.label} on the map`}
+              aria-pressed={measure.active === key}
+              title="Measure on the map"
+              className={MEASURE_BUTTON}
+              onClick={() => measure?.start(key)}
+            >
+              <RulerIcon />
+            </button>
           ) : null}
           {onChange && related ? <RelatedAddButtons field={field} related={related} /> : null}
           {onChange && modified && baseTags ? (

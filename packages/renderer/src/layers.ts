@@ -472,6 +472,43 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
     },
   )
 
+  // The measuring tape (engine.ts startMeasure, measure.ts): a dashed dark line on a white casing, so it
+  // reads on dark and on light ground, and its distance as a label with a white halo.
+  layers.push(
+    {
+      id: 'measure-casing',
+      type: 'line',
+      source: SOURCES.highlight,
+      filter: ['==', ['get', 'state'], 'measure-line'],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#fff', 'line-width': 5, 'line-opacity': 0.9 },
+    },
+    {
+      id: 'measure-line',
+      type: 'line',
+      source: SOURCES.highlight,
+      filter: ['==', ['get', 'state'], 'measure-line'],
+      layout: { 'line-cap': 'butt' },
+      paint: { 'line-color': '#111827', 'line-width': 2, 'line-dasharray': [3, 2] },
+    },
+    {
+      id: 'measure-label',
+      type: 'symbol',
+      source: SOURCES.highlight,
+      filter: ['==', ['get', 'state'], 'measure-label'],
+      layout: {
+        'text-field': ['get', 'label'],
+        'text-font': ['Open Sans Semibold'],
+        // above the line and over everything else, so the number is readable on a busy map
+        'text-size': 15,
+        'text-offset': [0, -1.1],
+        'text-allow-overlap': true,
+        'text-ignore-placement': true,
+      },
+      paint: { 'text-color': '#111827', 'text-halo-color': '#fff', 'text-halo-width': 3 },
+    },
+  )
+
   // --- Points ----------------------------------------------------------------
   // Hover and selection: a glow under the dot, as iD's shadow under a point (0.5 on hover, 0.7
   // when selected)

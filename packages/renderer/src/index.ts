@@ -8,6 +8,7 @@ export {
   type Mode,
 } from './engine'
 export { type FieldOverlay, type SideChoice } from './field-overlay'
+export { distanceMetres, formatMetres } from './measure'
 export {
   BELOW_OSM_LAYER,
   operations,
