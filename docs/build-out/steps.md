@@ -141,6 +141,45 @@ Asked for by Tobias on 2026-10-12 after testing part B. One item per step, a rev
 
 Each of these gets its test line when it is planned in detail.
 
+## Part E: from the comparison with iD and the fork (Tobias, 2026-10-13)
+
+Asked for in one session; worked by parallel agents, one folder each. The reports of the test comparison are in [docs/research/id-tests](../research/id-tests/). State as of the last edit of this list.
+
+Done and committed:
+- [x] iD's 2196 unit tests accounted for per area (covered, adopted, todo with a feature, not applicable).
+- [x] Points and vertices show hover and selection.
+- [x] Delete as an operation with iD's rules; the neighbour is selected after a vertex is deleted.
+- [x] Eight more validation rules (11 of iD's 14).
+- [x] Related tags under their field; favourite feature types with number keys.
+- [x] Photos: dark mode, the shared button look, details, link to the provider; comparison with Mapillary.
+
+In work (an agent each):
+- [ ] Times shown local and relative, with the other form in the tooltip (date-fns, `@date-fns/tz`).
+- [ ] Bugs: a point that becomes a vertex is summarised as deleted; neighbours are not validated again after a deletion.
+- [ ] Relations: review against iD, strong tests for member order, improvements in the inspector; then the map side (highlight members, load a relation in full).
+- [ ] Preset changes from an editor's config (`withChanges`), with an example and documentation.
+- [ ] An info popover for fields and feature types (the tag's description from the OSM wiki, on a person's click only).
+- [ ] Address field as in iD.
+- [ ] Direction markers: short ways, the selected way's direction, one-sided line styles, view cones of points.
+
+Waiting for the renderer to be free (one after the other):
+- [ ] Points: iD draws the pin only; Maid always draws a dot under it. House numbers on address points and buildings, as close to iD as MapLibre allows.
+- [ ] Things on top of each other: the first is selected as in iD, a small marker says there are more, a list switches between them; also on right click. For lines and points.
+- [ ] Side indicator and width band on the map while a field has the focus.
+- [ ] Measuring tape for width fields.
+- [ ] Validation: measure the speed of all rules on the dense scene; decide between the main thread, a worker and WASM from the numbers.
+
+Waiting for preset changes and field types from modules:
+- [ ] Traffic sign field with `@osm-traffic-signs/id-field`.
+- [ ] Image fields for all image keys (no infra3D: that is a module of its own).
+- [ ] Surface and smoothness by photo with `@osm-editor-kit/surface-smoothness-data`.
+
+At the end:
+- [ ] One or two code reviews for speed and for simpler code, with the findings applied.
+- [ ] One list of all missing features from the area reports.
+
+Waiting for a decision by Tobias: bugs in the model that lose data (join of a collapsed multipolygon, reverse with semicolon values) need a change to code that is kept identical to Rapid; field defaults when a type is chosen; hide a feature only when all its filter categories are hidden; trimming of `note`, `description`, `fixme`; restore the last map position; combo option order; emptying a translation's code; seven favourites with fixed keys.
+
 ## Not planned yet
 
 Tasks and MapRoulette (was D4: the task extension points and `maid-module-maproulette`): left out by Tobias on 2026-10-13, because the MapRoulette integration is broken by problems of its API at the moment.

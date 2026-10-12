@@ -144,8 +144,8 @@ export function Inspector() {
           ) : (
             <Operations />
           )}
-          {/* their own box, so the first group has no line above it: the edit bar has one below */}
-          <div>
+          {/* the groups in their own box; each has a line above it, the first one too, under the edit bar */}
+          <div className="[&>*:first-child]:border-t [&>*:first-child]:pt-2.5">
             {(fields.length > 0 || moreFields.length > 0) && (
               <SidebarDisclosure title="Fields" defaultOpen>
                 <PresetFields
