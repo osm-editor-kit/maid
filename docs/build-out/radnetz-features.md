@@ -2,7 +2,7 @@
 
 The Radnetz Berlin editor is an iD fork (branch `radnetz-berlin` of `tordans/iD`). Its `WORKDOC.md` lists 36 features. This is the list of what `apps/radnetz-berlin` (step D6) takes over, where each one goes in Maid, and what Maid has of it today. Read from the work doc on 2026-10-13; the fork itself was not run.
 
-"Proposal" is a suggestion for Tobias to confirm or change: **yes** (part of D6), **later** (after D6), **no** (not needed in Maid). Nothing below is decided yet.
+"Proposal" is a suggestion for Tobias to confirm or change: **yes** (part of D6), **later** (after D6), **no** (not needed in Maid). Rows marked with Tobias's name and a date are decided; the others are still proposals.
 
 "In Maid today" says what exists as of 2026-10-13: **done**, **partly**, or **nothing**.
 
@@ -14,19 +14,19 @@ The Radnetz Berlin editor is an iD fork (branch `radnetz-berlin` of `tordans/iD`
 | 4 | Custom data layers: several, from URLs, GeoJSON and PMTiles, tag filter | D3, data layers module | nothing | yes |
 | 5 | Lenses (a restyling of the map for one theme), import and export | D5 | nothing | yes |
 | 12 | Read-only feature categories | `maid-filters` | done (three states per filter, in the URL, stored) | yes, done |
-| 13 | No labels under toolbar buttons | UI setting | partly (labels go away on phones only) | later |
+| 13 | No labels under toolbar buttons | UI setting | partly (labels go away on phones only) | **no** (Tobias, 2026-10-13: Maid has tooltips) |
 | 22 | Access field: every tagged access key, add a mode of transport | field `access` (U7 step 13) | being built | yes |
 | 23 | Compact sidebar, feature type as its header | `maid-ui` | done | yes, done |
-| 25 | Related tags below their field (`source:*`, `note:*`, `check_date:*`) | field row (U7) | nothing | yes |
+| 25 | Related tags below their field (`source:*`, `note:*`, `check_date:*`) | field row (U7) | nothing | **yes, build now** (Tobias, 2026-10-13: in the style of Maid's field rows) |
 | 30 | One pane per job: Map Data, Map Display, Photos | top bar flyouts and dock | partly (filters flyout; no panes for data and photos yet) | yes, with D1 to D3 |
 | 31 | No bottom bar | `maid-ui` | done | yes, done |
 | 34 | What is in the URL | each module declares its parameters | partly (`map`, `id`, `filters`) | yes, per module |
-| 3 | Favourite presets with number shortcuts | preset picker | nothing | later |
+| 3 | Favourite presets with number shortcuts | preset picker | nothing | **yes, build now** (Tobias, 2026-10-13) |
 | 7 | Side indicator: arrows on the left or right of the way while a side field has the focus | field-driven map overlay | nothing (the preview layer of U8 can carry it) | yes |
 | 10 | Width band on the map while a width field has the focus; width fields per side | field-driven map overlay, preset changes | nothing | yes |
-| 21 | Measuring tape for width fields | field button plus a map tool | nothing | later |
+| 21 | Measuring tape for width fields | field button plus a map tool | nothing | **yes, build now** (Tobias, 2026-10-13: in a way that fits Maid) |
 | 6 | Way-as-table: compare the tags of connected ways | a dock view | nothing | later |
-| 11 | Live edits of others nearby (`@osm-editor-kit/live-touched`) | a module with a map layer | nothing | later |
+| 11 | Live edits of others nearby (`@osm-editor-kit/live-touched`) | a module with a map layer | nothing | **no** (Tobias, 2026-10-13: ignore) |
 
 ## Street-level photos: D2, on `street-imagery` and `street-imagery-react`
 
