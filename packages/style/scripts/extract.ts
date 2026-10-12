@@ -132,31 +132,7 @@ for (const p of list) {
   }
 }
 
-/** Presets with their English names, for matching a feature to "what is this" and to its icon */
-const names: Record<string, { name?: string }> = JSON.parse(
-  readFileSync(
-    join(
-      import.meta.dir,
-      '../node_modules/@openstreetmap/id-tagging-schema/dist/translations/en.json',
-    ),
-    'utf8',
-  ),
-).en.presets.presets
-const presetList = Object.entries(presets)
-  .filter(([, p]) => !p.suggestion && p.tags && p.searchable !== false)
-  .map(([id, p]) => ({
-    id,
-    name: names[id]?.name ?? id,
-    tags: p.tags as Record<string, string>,
-    geometry: p.geometry as string[],
-    ...(p.icon && { icon: p.icon as string }),
-    score: (p.matchScore as number | undefined) ?? 1,
-  }))
-
 const out = join(import.meta.dir, '../src/generated')
 await Bun.write(join(out, 'id-rules.json'), JSON.stringify(rules))
 await Bun.write(join(out, 'area-keys.json'), JSON.stringify(areaKeys))
-await Bun.write(join(out, 'presets.json'), JSON.stringify(presetList))
-console.log(
-  `${rules.length} rules, ${Object.keys(areaKeys).length} area keys, ${presetList.length} presets from ${idDir}`,
-)
+console.log(`${rules.length} rules, ${Object.keys(areaKeys).length} area keys from ${idDir}`)

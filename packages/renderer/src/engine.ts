@@ -16,13 +16,8 @@ import {
  * a whole FeatureCollection through React props on every tile would be the slow path we
  * want to avoid (see docs/research/maplibre.md).
  */
-import {
-  isArea,
-  matchPreset,
-  type Geometry,
-  type Preset,
-  type Tags,
-} from '@osm-editor-kit/maid-style'
+import type { Geometry, Preset, Presets } from '@osm-editor-kit/maid-presets'
+import { isArea, type Tags } from '@osm-editor-kit/maid-style'
 import type { Feature } from 'geojson'
 import type { GeoJSONSource, Map as MapLibreMap, MapGeoJSONFeature } from 'maplibre-gl'
 import {
@@ -141,7 +136,8 @@ export class MaidEngine {
   // Assigned here, not in field initializers, because the builder needs `data`.
   constructor(public options: EngineOptions) {
     this.data = new OsmData(options.editor.context, options.editor.history)
-    this.builder = new FeatureBuilder(this.data)
+    this.presets = options.editor.presets
+    this.builder = new FeatureBuilder(this.data, this.presets)
   }
 
   // --- Reading state from the UI ---
@@ -161,6 +157,8 @@ export class MaidEngine {
     for (const listener of this.listeners) listener()
   }
 
+  private presets: Presets | undefined
+
   entity(id: string | null): EntityInfo | undefined {
     if (!id) return undefined
     if (id[0] === 'n') {
@@ -168,7 +166,7 @@ export class MaidEngine {
       if (!node) return undefined
       const geometry: Geometry = this.data.nodeWays.has(id) ? 'vertex' : 'point'
       const tags = node.tags
-      return { id, type: 'node', geometry, tags, preset: matchPreset(tags, geometry) }
+      return { id, type: 'node', geometry, tags, preset: this.presets?.match(tags, geometry) }
     }
     if (id[0] === 'w') {
       const way = this.data.way(id)
@@ -181,7 +179,7 @@ export class MaidEngine {
         type: 'way',
         geometry,
         tags,
-        preset: matchPreset(tags, geometry),
+        preset: this.presets?.match(tags, geometry),
         size: way.nodes.length,
       }
     }
@@ -194,7 +192,7 @@ export class MaidEngine {
       type: 'relation',
       geometry,
       tags,
-      preset: matchPreset(tags, geometry),
+      preset: this.presets?.match(tags, geometry),
       size: relation.members.length,
     }
   }

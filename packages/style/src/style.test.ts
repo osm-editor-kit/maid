@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { isArea, presetIcon, resolveWayStyle, tagClasses, wayLayer } from './index'
+import { isArea, resolveWayStyle, tagClasses, wayLayer } from './index'
 
 test('residential road gets iD colours and widths', () => {
   const style = resolveWayStyle(tagClasses({ highway: 'residential' }), 'line')
@@ -28,9 +28,4 @@ test('areas', () => {
   expect(resolveWayStyle(tagClasses({ building: 'yes' }), 'area').stroke.color).toBe(
     'rgb(224, 110, 95)',
   )
-})
-
-test('preset icons', () => {
-  expect(presetIcon({ amenity: 'cafe', name: 'x' })).toBe('maki-cafe')
-  expect(presetIcon({ source: 'x' })).toBeUndefined()
 })

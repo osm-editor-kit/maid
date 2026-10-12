@@ -3,6 +3,7 @@
  * The run-time settings (scene, live data, ...) come from the URL and are read once, in config.ts.
  */
 import type { EditorConfig, MaidModule } from '@osm-editor-kit/maid-core'
+import { defaultPresets } from '@osm-editor-kit/maid-presets/default'
 import dense from '../../../fixtures/dense.meta.json'
 import medium from '../../../fixtures/medium.meta.json'
 import small from '../../../fixtures/small.meta.json'
@@ -26,5 +27,5 @@ export function editorConfig(config: Config): EditorConfig {
   ]
   // dashed outline around the area the fixture covers
   if (bbox) modules.push(sceneBounds({ bbox }))
-  return { modules }
+  return { modules, presets: defaultPresets }
 }

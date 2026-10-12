@@ -4,11 +4,10 @@ import type { OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
  * properties. Classification runs once per entity in JavaScript, so MapLibre's style
  * expressions stay trivial (`['get', 'sc']`) and forks can change the look in one place.
  */
+import type { Presets } from '@osm-editor-kit/maid-presets'
 import {
   hasInterestingTags,
   isArea,
-  matchPreset,
-  presetIcon,
   resolveWayStyle,
   tagClasses,
   wayLayer,
@@ -289,7 +288,11 @@ export class FeatureBuilder {
   private pendingRelations = new Set<string>()
   private vertexState = new Map<string, string>()
 
-  constructor(private data: OsmData) {}
+  constructor(
+    private data: OsmData,
+    /** Without presets nothing has an icon */
+    private presets?: Presets,
+  ) {}
 
   /** The feature of one way, or undefined if it is not drawn on its own. Also used when a node moves. */
   buildWay(way: OsmWay): { source: 'areas' | 'lines'; feature: Feature } | undefined {
@@ -324,7 +327,9 @@ export class FeatureBuilder {
     const addr = addressOf(node.tags)
     if (addr) props.addr = addr
     else {
-      const icon = presetIcon(node.tags)
+      const icon =
+        this.presets?.match(node.tags, 'point').icon ??
+        this.presets?.match(node.tags, 'vertex').icon
       if (icon) props.icon = icon
       if (node.tags.name) props.name = node.tags.name
     }
@@ -354,7 +359,7 @@ export class FeatureBuilder {
       t: state[0] === '1' ? 1 : 0,
       s: state[1] === '1' ? 1 : 0,
     }
-    const icon = props.t ? matchPreset(node.tags, 'vertex')?.icon : undefined
+    const icon = props.t ? this.presets?.match(node.tags, 'vertex').icon : undefined
     if (icon) props.icon = icon
     return {
       type: 'Feature',
@@ -422,7 +427,7 @@ export class FeatureBuilder {
       if (!coordinates) continue
       this.vertexState.set(node.id, state)
       const props: VertexProps = { id, t: tagged ? 1 : 0, s: shared ? 1 : 0 }
-      const icon = tagged ? matchPreset(node.tags, 'vertex')?.icon : undefined
+      const icon = tagged ? this.presets?.match(node.tags, 'vertex').icon : undefined
       if (icon) props.icon = icon
       out.vertices.push({
         type: 'Feature',

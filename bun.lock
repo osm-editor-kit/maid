@@ -20,6 +20,7 @@
         "@heroicons/react": "^2.2.0",
         "@osm-editor-kit/maid-core": "workspace:*",
         "@osm-editor-kit/maid-model": "workspace:*",
+        "@osm-editor-kit/maid-presets": "workspace:*",
         "@osm-editor-kit/maid-renderer": "workspace:*",
         "@osm-editor-kit/maid-style": "workspace:*",
         "@osm-editor-kit/maid-ui": "workspace:*",
@@ -45,6 +46,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@osm-editor-kit/maid-model": "workspace:*",
+        "@osm-editor-kit/maid-presets": "workspace:*",
       },
       "devDependencies": {
         "@types/react": "^19.3.0",
@@ -78,12 +80,20 @@
         "chai": "^6.2.2",
       },
     },
+    "packages/presets": {
+      "name": "@osm-editor-kit/maid-presets",
+      "version": "0.0.0",
+      "dependencies": {
+        "@openstreetmap/id-tagging-schema": "^6.11.0",
+      },
+    },
     "packages/renderer": {
       "name": "@osm-editor-kit/maid-renderer",
       "version": "0.0.0",
       "dependencies": {
         "@osm-editor-kit/maid-core": "workspace:*",
         "@osm-editor-kit/maid-model": "workspace:*",
+        "@osm-editor-kit/maid-presets": "workspace:*",
         "@osm-editor-kit/maid-style": "workspace:*",
       },
       "devDependencies": {
@@ -109,6 +119,7 @@
       "dependencies": {
         "@heroicons/react": "^2.2.0",
         "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-presets": "workspace:*",
         "@osm-editor-kit/maid-renderer": "workspace:*",
         "tailwind-merge": "^3.7.0",
       },
@@ -163,6 +174,8 @@
     "@osm-editor-kit/maid-core": ["@osm-editor-kit/maid-core@workspace:packages/core"],
 
     "@osm-editor-kit/maid-model": ["@osm-editor-kit/maid-model@workspace:packages/model"],
+
+    "@osm-editor-kit/maid-presets": ["@osm-editor-kit/maid-presets@workspace:packages/presets"],
 
     "@osm-editor-kit/maid-renderer": ["@osm-editor-kit/maid-renderer@workspace:packages/renderer"],
 

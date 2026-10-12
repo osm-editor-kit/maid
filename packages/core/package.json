@@ -9,7 +9,8 @@
     "./react": "./src/react.ts"
   },
   "dependencies": {
-    "@osm-editor-kit/maid-model": "workspace:*"
+    "@osm-editor-kit/maid-model": "workspace:*",
+    "@osm-editor-kit/maid-presets": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.3.0"

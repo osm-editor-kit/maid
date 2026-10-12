@@ -1,5 +1,6 @@
 import {
   InspectorSections,
+  PresetFields,
   Sidebar,
   SidebarBody,
   SidebarEmpty,
@@ -39,6 +40,14 @@ export function Inspector() {
     engine.setSelected(null)
     void setId(null)
   }
+  const onChange =
+    !entity || entity.type === 'relation'
+      ? undefined
+      : (key: string, value: string | undefined) => engine.setTag(id, key, value)
+  const fields =
+    entity?.preset && editor.presets
+      ? editor.presets.fieldsFor(entity.preset, entity.tags, entity.geometry)
+      : []
   const kind = entity ? (entity.preset?.name ?? GEOMETRY_LABEL[entity.geometry]) : undefined
 
   return (
@@ -61,15 +70,13 @@ export function Inspector() {
             {entity.type === 'way' && `, ${entity.size} nodes`}
             {entity.type === 'relation' && `, ${entity.size} members`}
           </p>
+          {fields.length > 0 && (
+            <SidebarSection title="Fields">
+              <PresetFields fields={fields} tags={entity.tags} onChange={onChange} />
+            </SidebarSection>
+          )}
           <SidebarSection title="Tags">
-            <TagList
-              tags={entity.tags}
-              onChange={
-                entity.type === 'relation'
-                  ? undefined
-                  : (key, value) => engine.setTag(id, key, value)
-              }
-            />
+            <TagList tags={entity.tags} onChange={onChange} />
           </SidebarSection>
           <InspectorSections entity={entity} editor={editor} />
           <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">

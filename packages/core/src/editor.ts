@@ -1,6 +1,7 @@
 import { EditHistory, ModelContext } from '@osm-editor-kit/maid-model'
 import { createHooks } from './hooks.ts'
 import { createRegistry, type Registry } from './registry.ts'
+import { PresetSchema } from './schema.ts'
 import type {
   Editor,
   EditorConfig,
@@ -93,8 +94,10 @@ export function createEditor(config: EditorConfig = {}): Editor {
   }
 
   const context = new ModelContext()
+  if (config.presets) context.systems.schema = new PresetSchema(context, config.presets)
   const editor: Editor = {
     context,
+    presets: config.presets,
     history: new EditHistory(context),
     hooks: {
       run: (name, ...args) => hooks.run(name, ...args),

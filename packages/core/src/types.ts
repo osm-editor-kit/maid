@@ -4,6 +4,7 @@
  */
 
 import type { Context, EditHistory } from '@osm-editor-kit/maid-model'
+import type { Presets } from '@osm-editor-kit/maid-presets'
 
 /** `experimental` may change in any release. `stable` is deprecated before it is removed. */
 export type Stability = 'experimental' | 'stable'
@@ -85,6 +86,11 @@ export type OnError = (error: unknown, context: ErrorContext) => void
 /** Configuration. Other packages add their own keys by merging into this interface. */
 export interface EditorConfig {
   modules?: MaidModule[]
+  /**
+   * The presets and fields of this editor, for example `defaultPresets` of maid-presets or a
+   * changed copy. Without them features have no preset, and the model decides with plain tag checks.
+   */
+  presets?: Presets
   /** Called for every error a listener, subscriber or cleanup throws. Default: `console.error`. */
   onError?: OnError
 }
@@ -122,6 +128,8 @@ export interface EditorHooks {
 export interface Editor {
   /** Id sequences and schema lookup of the data model. */
   readonly context: Context
+  /** The presets from the config */
+  readonly presets: Presets | undefined
   /**
    * The OSM data and its edits: base, stable and staging graph, undo and redo.
    * Created without a spatial index.

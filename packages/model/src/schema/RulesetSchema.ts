@@ -23,6 +23,11 @@ export interface RulesetsInputScope {
   rulesets?: Record<RulesetID, Partial<RulesetProps> | null>;
 }
 
+/** What the model asks of a matched preset: whether it is only the generic preset of the geometry. */
+export interface PresetMatch {
+  isFallback(): boolean;
+}
+
 /** The data of one scope, as far as the model uses it. */
 export interface RulesetScope {
   variables: Map<VariableID, Variable>;
@@ -110,8 +115,8 @@ export class RulesetSchema implements SchemaLookup {
     return key;
   }
 
-  /** There are no presets in this schema, so nothing ever matches. */
-  public matchTags(_tags: Record<string, string>, _geometry: string): undefined {
+  /** There are no presets in this schema, so nothing ever matches. A subclass with presets overrides it. */
+  public matchTags(_tags: Record<string, string>, _geometry: string): PresetMatch | undefined {
     return undefined;
   }
 

@@ -1,0 +1,14 @@
+{
+  "name": "@osm-editor-kit/maid-presets",
+  "version": "0.0.0",
+  "private": true,
+  "license": "ISC",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./default": "./src/default.ts"
+  },
+  "dependencies": {
+    "@openstreetmap/id-tagging-schema": "^6.11.0"
+  }
+}
