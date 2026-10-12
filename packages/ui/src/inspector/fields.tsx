@@ -128,6 +128,21 @@ export function PresetFields(props: {
     onFieldFocus?.(next)
   }
 
+  // A write remounts the control that had the focus or was under the pointer, and no blur or
+  // leave event tells. After every change of the tags, what is no longer focused or hovered is
+  // dropped, so the map does not keep showing it.
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    if (focusRef.current && !container.contains(document.activeElement)) focusRef.current = null
+    if (hoverRef.current && !container.querySelector('[data-focus-key]:hover'))
+      hoverRef.current = null
+    const next = focusRef.current ?? hoverRef.current
+    if (sameFocus(shownRef.current, next)) return
+    shownRef.current = next
+    onFieldFocus?.(next)
+  }, [tags, onFieldFocus])
+
   const registry = { ...defaultFieldComponents, ...components }
   const rows = rowFields(fields, pickedFields(picked, [...fields, ...moreFields]))
   const offer = onChange ? addableFields(moreFields, new Set(rows.map((field) => field.id))) : []
