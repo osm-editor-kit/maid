@@ -2,7 +2,7 @@
 
 Compared at iD commit `0194f3926` (`git -C .reference/id rev-parse --short HEAD`) and id-tagging-schema 6.19.2 (the version in `packages/presets/node_modules`). Schema counts come from `dist/fields.min.json`: 744 fields, 29 types.
 
-Paths like `fields/check.ts:38-55` are under `.reference/id/modules/ui/` unless they start with `ui/` already. Maid paths are under `packages/`. Anything not read in the source is marked **(inferred)**.
+iD paths: `fields/…` is `.reference/id/modules/ui/fields/…`, `ui/…` is `modules/ui/…`, other paths are under `.reference/id/modules/`, and `data/…` and `css/…` are under `.reference/id/`. Maid paths: `fields.tsx` and `logic.ts` are in `packages/ui/src/inspector/`, `presets.ts` in `packages/presets/src/`. Anything not read in the source is marked **(inferred)**.
 
 Sizes: S is about an hour, M one to two hours, L more than two hours (split it). "Network" means the field calls a service outside the repo; automation must not do that (AGENTS.md rule 1).
 
@@ -74,7 +74,7 @@ Universal fields: 21 (`localized` 7, `identifier` 4, `url` 2, `date` 2, `number`
 - A listed field becomes shown when a tag of it is set (`field.js:299-313`) or when the user picks it from the list (`form_fields.js:112-118`, `field.js:322-333`).
 - The "Add field" list is sorted by title, with universal fields last (`preset_fields.js:87-90`, `form_fields.js:19-20`). Each entry searches by label and terms (`form_fields.js:59-61`).
 - Shown fields are ordered as in the preset (`form_fields.js:46-51`).
-- Showing a field with `default` sets the default tag when the key is empty (`field.js:322-333`; 10 fields have a default).
+- Showing a field with `default` sets the tag to the default when its value is not already the default (`field.js:322-333`; 10 fields have a default). Shown from the list, this also replaces a different value.
 - Maid: `presets.ts:496-518` adds `moreFields` and universal fields only when they have a value. There is no "Add field" list at all. Also Maid hides keyless fields (`access`, `address`) until a key has a value (`fields.tsx:281`), while iD shows them when the preset lists them.
 
 **Keyboard in combos** (`ui/combobox.js:186-235`, `:336-372`). Tab accepts the highlighted or typed value. Enter accepts and, in multi and semi combos, blurs (`combo.js:739-742`). Up and Down move through the list and open it. Escape closes the list (on key up) and cancels. The typed text autocompletes inline to the first suggestion that starts with it, except numbers (`combobox.js:341-372`).
@@ -108,7 +108,7 @@ Edge cases to test: leading and trailing spaces are removed; empty removes the t
 
 - **check** (113). A checkbox with three states: unset, yes, no (`check.ts:49-53`). Click cycles unset → yes → no → unset (`check.ts:146`). Values `reversible` and `alternating` are skipped (`:151-153`). With mixed values the next value is `yes` if any has yes, else the first value (`:139-144`). The checkbox is indeterminate when the value is empty (`:113`, `:218`) and checked for any value except `no`, empty or unset (`:197-199`). A value that is not one of the options shows in quotes (`:201-205`). The description of the option shows as the tooltip (`:230-237`). 6 check fields have their own options (for example `covered`, `armrest`, `parcel_pickup`, `crossing:island`, `windings:auto`).
 - **defaultCheck** (7). The same, but the cycle is unset → yes only, with no "no" (`check.ts:51-52`). Seven fields, for example `two_sided`, `irrigation`, `bicycle_road`, `barrier`.
-- **onewayCheck** (2, both `oneway`). Same states, with options `undefined`, `yes`, `no`, `reversible`, `alternating`. A value `1` or `-1` counts as yes (`check.ts:213-215`). When the way has `junction=roundabout` (or similar), an unset `oneway` is shown as implied yes (`check.ts:59-70`). A "Change Direction" button (`inspector.check.reverser`, `data/core.yaml:754`) shows for a way whose value is yes (`check.ts:74-79`) and reverses the way's nodes with `actionReverse` (`check.ts:158-181`). It shows the direction arrow of the way (`check.ts:82-98`).
+- **onewayCheck** (2, both `oneway`). Same states, with options `undefined`, `yes`, `no`, `reversible`, `alternating`. A value `1` or `-1` counts as yes (`check.ts:213-215`). When the way has `junction=roundabout` (or similar), an unset `oneway` is shown as implied yes (`check.ts:59-70`). A "Change Direction" button (`inspector.check.reverser`, `data/core.yaml:755`) shows for a way whose value is yes (`check.ts:74-79`) and reverses the way's nodes with `actionReverse` (`check.ts:158-181`). It shows the direction arrow of the way (`check.ts:82-98`).
 
 Maid today: `CheckField` is a select with an unset option (`–`, from the schema's unset option or a dash), Yes and No (`ui/src/inspector/logic.ts:17-39`, `fields.tsx:144-172`). Differences: (a) defaultCheck offers "No", which iD does not (`check.ts:51`); (b) the unset label is "–" where iD says "Unknown" (`check.ts:50`, `core.yaml:747`); (c) no three-state checkbox, no indeterminate look, no tooltip; (d) no reverse button.
 
@@ -139,7 +139,7 @@ Edge cases: "Bus Stop" typed becomes `bus_stop`; a label typed in the wrong case
   - Options: the schema's list (9 fields) or taginfo's `multikeys` for the prefix (`combo.js:407-409`, `:434-460`). **Network for the taginfo part.**
   - Examples in the schema: `payment:`, `diet:`, `drink:`, `recycling:`, `fuel:`, `service:vehicle:`, `service:bicycle:`, `currency:`, `communication:`, `language:` (9 fields with a list; the `language:` list comes from local data).
   - Maid: the field has a key (`payment:`) and no `keys`, so `FallbackField` shows one text input for the key `payment:`, and writing it creates a tag literally named `payment:` (`fields.tsx:282`, `:175-186`). Shown only when that empty key has a value, which is never, so the field appears only through a prerequisite. This is a bug and must be fixed first.
-- **manyCombo** (4). No key. Each option is a key of its own: choosing `bus` writes `bus=yes`, removing writes `bus=undefined` (`combo.js:586-594` with `field.key` empty: `key = (field.key || '') + v`). Only the listed options (`customValues` is not used; read-only, `combo.js:39`). No taginfo (`combo.js:32`). Four fields; the `keys` are the option list.
+- **manyCombo** (4). No key. Each option is a key of its own: choosing `bus` writes `bus=yes`, removing deletes `bus` (`combo.js:586-594` with `field.key` empty: `key = (field.key || '') + v`). Only the listed options (`customValues` is not used; read-only, `combo.js:39`). No taginfo (`combo.js:32`). Four fields; the `keys` are the option list.
   - Maid: rows of the `keys` that have a value (`FallbackField`, `fields.tsx:189-196`), no checkboxes, no list of options.
 
 Edge cases: `diet:vegan=no` shows the checkbox as unchecked and negated; `language:de=main` is not overwritten by adding `de`; removing the last `payment:*` chip removes the key; a suffix with a space becomes `_` (snake case; the 44 `snake_case: false` fields keep spaces).
@@ -279,7 +279,7 @@ Each step is about an hour (the size in brackets from the table). Most-used type
 3. `textarea` cannot take a line break (`fields.tsx:224`, `:79`).
 4. `radio` and `structureRadio` accept free text in a combo (`fields.tsx:237-238`).
 5. Values longer than 255 characters are not cut (`logic.ts:9-12`; iD `util/util.ts:730-745`, `core/context.ts:402`).
-6. Fields with `default` never get their default (`presets.ts`, not read for `default`; iD `field.js:322-333`).
+6. Fields with `default` never get their default: Maid parses `default` (`packages/presets/src/presets.ts`, `buildField`) and nothing applies it (iD `field.js:322-333`).
 
 ## 8. Unsure
 

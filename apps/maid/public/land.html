@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Maid: logged in</title>
+  </head>
+  <body>
+    <p>You can close this window.</p>
+    <!-- The OSM login popup lands here. It hands the code to the Maid tab that opened it (osm-api). -->
+    <script>
+      if (new URLSearchParams(location.search).has('code')) {
+        new BroadcastChannel('osm-api-auth-complete').postMessage(location.href)
+        window.close()
+      }
+    </script>
+  </body>
+</html>

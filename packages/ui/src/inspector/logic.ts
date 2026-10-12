@@ -1,52 +1,93 @@
-import type { Field, Tags } from '@osm-editor-kit/maid-presets'
+import type { Field, FieldOption, Tags } from '@osm-editor-kit/maid-presets'
+
+/** OSM's limit for a tag value, in Unicode characters (iD's maxCharsForTagValue). */
+export const MAX_VALUE_LENGTH = 255
 
 /** iD's unset entry in a field's options has no value (we also accept an empty one). */
 export function isUnsetOption(option: { value: string | undefined }): boolean {
   return option.value === undefined || option.value === ''
 }
 
-/** The trimmed draft; an empty draft means the tag is removed. */
-export function commitValue(raw: string): string | undefined {
-  const value = raw.trim()
+/**
+ * What is written to a tag, as iD's utilCleanOsmString: trimmed, in Unicode NFC, cut to 255
+ * characters. Empty means the tag is removed.
+ */
+export function cleanValue(text: string): string | undefined {
+  const value = Array.from(text.trim().normalize('NFC')).slice(0, MAX_VALUE_LENGTH).join('')
   return value === '' ? undefined : value
 }
 
-export type CheckChoice = { value: string; label: string }
-export type CheckChoices = { unsetLabel: string; choices: CheckChoice[] }
+/** The length of a draft in the unit the limit counts: Unicode characters. */
+export function valueLength(text: string): number {
+  return Array.from(text).length
+}
 
-const YES_NO: CheckChoice[] = [
-  { value: 'yes', label: 'Yes' },
-  { value: 'no', label: 'No' },
-]
+/** The counter under a text input: shown from 10 characters before the limit, amber at the limit. */
+export function lengthNotice(draft: string): { length: number; atLimit: boolean } | undefined {
+  const length = valueLength(draft)
+  if (length < MAX_VALUE_LENGTH - 10) return undefined
+  return { length, atLimit: length >= MAX_VALUE_LENGTH }
+}
+
+const LANGUAGE = /^[a-z]{2,3}(?:[-_][A-Za-z0-9]+)*$/
 
 /**
- * The choices of a check field. Without options: Yes and No. With options: the non-unset ones,
- * and the unset option's label for the empty entry. A current value that is not a choice is
- * added as a choice of its own, so that it stays visible.
+ * Whether a tag key belongs to a field whose key is `own`. A key ending in ':' is a prefix
+ * (multiCombo: payment:cash belongs to payment:). For localized names, name:<language> belongs
+ * to name, but name:etymology does not.
  */
-export function checkChoices(field: Field, current: string | undefined): CheckChoices {
-  const unset = field.options.find((option) => isUnsetOption(option))
-  const choices: CheckChoice[] =
-    field.options.length > 0
-      ? field.options
-          .filter((option) => !isUnsetOption(option))
-          .map(({ value, label }) => ({ value, label }))
-      : [...YES_NO]
-  if (current && !choices.some((choice) => choice.value === current)) {
-    choices.push({ value: current, label: current })
+function ownsKey(field: Field, own: string, tagKey: string): boolean {
+  if (tagKey === own) return true
+  if (own.endsWith(':')) return tagKey.startsWith(own)
+  return (
+    field.type === 'localized' &&
+    tagKey.startsWith(`${own}:`) &&
+    LANGUAGE.test(tagKey.slice(own.length + 1))
+  )
+}
+
+/**
+ * The tag keys of a field: its key or keys, plus every key of the given tag sets that the field
+ * owns (see ownsKey).
+ */
+export function fieldKeys(field: Field, ...sources: Tags[]): string[] {
+  const own = field.key !== undefined ? [field.key] : (field.keys ?? [])
+  const keys = new Set(own)
+  for (const tags of sources) {
+    for (const tagKey of Object.keys(tags)) {
+      if (own.some((key) => ownsKey(field, key, tagKey))) keys.add(tagKey)
+    }
   }
-  return { unsetLabel: unset?.label || '–', choices }
+  return [...keys]
 }
 
-/**
- * The label of the option the current value stands for, shown next to a combo's label.
- * Nothing when the value has no option, or when the label would only repeat the value.
- */
-export function comboHint(field: Field, value: string | undefined): string | undefined {
-  if (!value) return undefined
-  const option = field.options.find((candidate) => candidate.value === value)
-  return option && option.label !== value ? option.label : undefined
+/** Some key of the field has a value. This shows the remove button. */
+export function isPresent(field: Field, tags: Tags): boolean {
+  return fieldKeys(field, tags).some((key) => (tags[key] ?? '') !== '')
 }
+
+/** Some key of the field differs from the base tags. This shows the revert button. */
+export function isModified(field: Field, tags: Tags, base: Tags): boolean {
+  return fieldKeys(field, tags, base).some((key) => (tags[key] ?? '') !== (base[key] ?? ''))
+}
+
+export type TagEdit = { key: string; value: string | undefined }
+
+/** The writes that remove the field: every key that has a value is removed. */
+export function removeEdits(field: Field, tags: Tags): TagEdit[] {
+  return fieldKeys(field, tags)
+    .filter((key) => (tags[key] ?? '') !== '')
+    .map((key) => ({ key, value: undefined }))
+}
+
+/** The writes that bring the field back to the base tags. Keys the base lacks are removed. */
+export function revertEdits(field: Field, tags: Tags, base: Tags): TagEdit[] {
+  return fieldKeys(field, tags, base)
+    .filter((key) => (tags[key] ?? '') !== (base[key] ?? ''))
+    .map((key) => ({ key, value: base[key] || undefined }))
+}
+
+const SKIPPED_BY_CLICK = new Set(['reversible', 'alternating'])
 
 /** The keys of a multi-key field (address, access, ...) that have a value. */
 export function keysWithValue(field: Field, tags: Tags): string[] {
@@ -60,4 +101,143 @@ export function keysWithValue(field: Field, tags: Tags): string[] {
 export function valueSignature(field: Field, tags: Tags): string {
   const keys = field.key === undefined ? (field.keys ?? []) : [field.key]
   return JSON.stringify(keys.map((key) => tags[key] ?? ''))
+}
+
+/**
+ * The label of the option the current value stands for, shown next to a combo's label.
+ * Nothing when the value has no option, or when the label would only repeat the value.
+ */
+export function comboHint(field: Field, value: string | undefined): string | undefined {
+  if (!value) return undefined
+  const option = field.options.find((candidate) => candidate.value === value)
+  return option && option.label !== value ? option.label : undefined
+}
+
+/** The value a check field works with: lower case, onewayCheck's 1 and -1 are yes, empty is unset. */
+export function checkValue(type: string, value: string | undefined): string | undefined {
+  if (value === undefined || value === '') return undefined
+  const lower = value.toLowerCase()
+  return type === 'onewayCheck' && (lower === '1' || lower === '-1') ? 'yes' : lower
+}
+
+/**
+ * Whether an unset oneway counts as yes: oneway_yes always, oneway when a tag of the way implies
+ * it (iD check.ts:59-70).
+ */
+export function impliesYes(field: Field, tags: Tags): boolean {
+  if (field.type !== 'onewayCheck' || field.key === undefined) return false
+  if (checkValue(field.type, tags[field.key]) !== undefined) return false
+  return field.id === 'oneway_yes' || (field.id === 'oneway' && impliesOneway(tags))
+}
+
+/** iD's osmOneWayTags without oneway (osm/tags.ts:161-230): a way with one of these is one way. */
+const IMPLYING_TAGS: Record<string, readonly string[]> = {
+  aerialway: [
+    'chair_lift',
+    'drag_lift',
+    'j-bar',
+    'magic_carpet',
+    'mixed_lift',
+    'platter',
+    'rope_tow',
+    't-bar',
+    'zip_line',
+  ],
+  conveying: ['forward', 'backward', 'reversible'],
+  highway: ['motorway'],
+  junction: ['circular', 'roundabout'],
+  man_made: ['goods_conveyor', 'piste:halfpipe'],
+  'piste:type': ['downhill', 'sled', 'yes'],
+  'seamark:type': [
+    'two-way_route',
+    'recommended_traffic_lane',
+    'separation_lane',
+    'separation_roundabout',
+  ],
+  waterway: [
+    'canal',
+    'ditch',
+    'drain',
+    'fish_pass',
+    'flowline',
+    'pressurised',
+    'river',
+    'spillway',
+    'stream',
+    'tidal_channel',
+  ],
+}
+
+function impliesOneway(tags: Tags): boolean {
+  return Object.entries(IMPLYING_TAGS).some(([key, values]) => values.includes(tags[key] ?? ''))
+}
+
+/**
+ * The checkbox state of a check field: true for yes and for any other value, false for no,
+ * 'mixed' when unset (defaultCheck is unchecked when unset, it has no third state).
+ */
+export function checkState(
+  type: string,
+  value: string | undefined,
+  impliedYes = false,
+): boolean | 'mixed' {
+  const current = checkValue(type, value)
+  if (current === undefined) return type === 'defaultCheck' && !impliedYes ? false : 'mixed'
+  return current !== 'no'
+}
+
+/**
+ * The cycle of a check field's values, unset first. Without options: unset, yes, no
+ * (defaultCheck: unset, yes). With options: the unset option and the others, without the
+ * reversible and alternating values, which iD never cycles to (check.ts:151-153).
+ */
+export function checkCycle(field: Pick<Field, 'type' | 'options'>): (string | undefined)[] {
+  const choices = field.options
+    .filter((option) => !isUnsetOption(option) && !SKIPPED_BY_CLICK.has(option.value))
+    .map((option) => option.value)
+  if (choices.length > 0) return [undefined, ...choices]
+  return defaultCheckCycle(field.type)
+}
+
+/** The cycle of a check type without options: unset, yes, no (defaultCheck: unset, yes). */
+export function defaultCheckCycle(type: string): (string | undefined)[] {
+  return type === 'defaultCheck' ? [undefined, 'yes'] : [undefined, 'yes', 'no']
+}
+
+/**
+ * The value after a click (or Space): the next value of the cycle, which is the type's default
+ * unless the field's own cycle (checkCycle) is given. A value outside the cycle goes to unset.
+ */
+export function nextCheckValue(
+  type: string,
+  current: string | undefined,
+  cycle: readonly (string | undefined)[] = defaultCheckCycle(type),
+): string | undefined {
+  const index = cycle.indexOf(checkValue(type, current))
+  return cycle[(index + 1) % cycle.length]
+}
+
+/**
+ * The text next to the checkbox: the option's label for the value, else Yes or No, else the value
+ * in quotes. Unset: "Assumed to be Yes" when implied, else the unset option's label or Unknown.
+ */
+export function checkLabel(
+  field: Pick<Field, 'options'>,
+  type: string,
+  value: string | undefined,
+  impliedYes = false,
+): string {
+  const current = checkValue(type, value)
+  if (current === undefined) {
+    if (impliedYes) return 'Assumed to be Yes'
+    return field.options.find((option) => isUnsetOption(option))?.label || 'Unknown'
+  }
+  const option = field.options.find(
+    (candidate: FieldOption) =>
+      !isUnsetOption(candidate) && candidate.value.toLowerCase() === current,
+  )
+  if (option) return option.label
+  if (current === 'yes') return 'Yes'
+  if (current === 'no') return 'No'
+  return `"${current}"`
 }

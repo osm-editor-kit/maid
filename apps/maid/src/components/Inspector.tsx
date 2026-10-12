@@ -137,7 +137,13 @@ export function Inspector() {
           )}
           {fields.length > 0 && (
             <SidebarSection title="Fields">
-              <PresetFields fields={fields} tags={entity.tags} onChange={onChange} />
+              <PresetFields
+                fields={fields}
+                tags={entity.tags}
+                // what "revert" goes back to; a feature that was added here has nothing to revert to
+                baseTags={engine.baseTags(id)}
+                onChange={onChange}
+              />
             </SidebarSection>
           )}
           <SidebarSection title="Tags">

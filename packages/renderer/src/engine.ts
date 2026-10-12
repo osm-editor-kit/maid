@@ -190,6 +190,11 @@ export class MaidEngine {
 
   private presets: Presets | undefined
 
+  /** The tags an entity had when it was loaded, before any edit; undefined for one that was added here */
+  baseTags(id: string): Tags | undefined {
+    return this.data.history.staging.graph.base.entities.get(id)?.tags
+  }
+
   entity(id: string | null): EntityInfo | undefined {
     if (!id) return undefined
     if (id[0] === 'n') {

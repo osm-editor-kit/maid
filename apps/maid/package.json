@@ -25,6 +25,7 @@
     "@tanstack/react-hotkeys": "^0.13.0",
     "maplibre-gl": "^6.0.0",
     "nuqs": "^2.10.1",
+    "osm-api": "^4.0.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-map-gl": "^8.1.3",
