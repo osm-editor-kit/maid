@@ -291,15 +291,17 @@ export function actionMove(moveIDs: EntityID[], tryDelta: Vec2, cache?: Partial<
 
     // Angle at orig vertex between prev and next — if ~180° (nearly straight),
     // skip inserting it because it wouldn't change the way's shape.
-    // Use the ORIGINAL positions of prev/next here: when the moved way is
-    // connected to the unmoved way at more than one node (e.g. a U-shaped
-    // driveway joining a road at both endpoints), prev or next may itself be
-    // one of those shared moving endpoints whose current position no longer
-    // reflects the unmoved way's original geometry.
+    // Maid: differs from Rapid here (Rapid compares with the ORIGINAL positions of prev and next for
+    // both ways. For the moved way that compares the new position of the vertex with the old place of
+    // its neighbours, so a straight way that another way crosses at its middle node kept a vertex it
+    // did not need. iD uses the current positions for the moved way, as this does now. For the unmoved
+    // way (delta null) the ORIGINAL positions stay: prev or next may itself be one of several shared
+    // moving endpoints, e.g. a U-shaped driveway joining a road at both ends, whose current position no
+    // longer reflects the unmoved way's original geometry.)
     const o = endLocal;
-    const aOrig = nodeOriginalLocal(prev);
-    const bOrig = nodeOriginalLocal(next);
-    const angle = Math.abs(vecAngle(o, aOrig) - vecAngle(o, bOrig)) * RAD2DEG;
+    const aRef = delta ? nodeLocal(prev) : nodeOriginalLocal(prev);
+    const bRef = delta ? nodeLocal(next) : nodeOriginalLocal(next);
+    const angle = Math.abs(vecAngle(o, aRef) - vecAngle(o, bRef)) * RAD2DEG;
 
     // Don't add orig vertex if it would just make a straight line..
     if (angle > 175 && angle < 185) return graph;

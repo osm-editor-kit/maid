@@ -3,7 +3,8 @@
  * Shift-click selects several features, the nodes of a selected area and standalone points can be
  * dragged, a double click on a way adds a node and one on open ground zooms, a double click
  * closes a drawn area without zooming, Backspace takes back a drawn node and Escape keeps the
- * way, M moves and R rotates with the pointer, Cmd+C and Cmd+V copy and paste, one finger
+ * way, M moves and R rotates with the pointer (M keeps the shape of the ways that share a node with
+ * the moved way, as iD does), Cmd+C and Cmd+V copy and paste, one finger
  * drags a node, and a selected way shows midpoint handles: a drag of one adds a node, a click adds nothing.
  *
  *   bun tools/bench/interactions-check.ts [scene]
@@ -461,6 +462,145 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
     true,
     (await where(ids)).every((p, i) => near(p, afterRotate[i]!)),
   )
+
+  // --- M on a way that shares a node with an unselected way: that way keeps its shape (iD's move) ---
+  // Three ways are built in the middle of the view: `wayW` (selected) crosses `wayU` at `junction`,
+  // which is bent there; `wayV` shares nothing.
+  const built = (await page.evaluate(() => {
+    const { map, editor, model } = (window as any).__maid
+    const { history, context } = editor
+    const box = map.getCanvas().getBoundingClientRect()
+    const node = (dx: number, dy: number) => {
+      const p = map.unproject([box.width / 2 + dx, box.height / 2 + dy])
+      return new model.OsmNode(context, { loc: [p.lng, p.lat] })
+    }
+    const junction = node(0, 0)
+    const w0 = node(-90, 0)
+    const w2 = node(90, 0)
+    const u0 = node(0, -90)
+    const u2 = node(70, 70)
+    const v0 = node(260, -190)
+    const v1 = node(320, -190)
+    const v2 = node(320, -130)
+    const way = (nodes: string[]) =>
+      new model.OsmWay(context, { nodes, tags: { highway: 'service' } })
+    const wayW = way([w0.id, junction.id, w2.id])
+    const wayU = way([u0.id, junction.id, u2.id])
+    const wayV = way([v0.id, v1.id, v2.id])
+    history.perform(
+      ...[junction, w0, w2, u0, u2, v0, v1, v2].map((n) => model.actionAddEntity(n)),
+      model.actionAddEntity(wayW),
+      model.actionAddEntity(wayU),
+      model.actionAddEntity(wayV),
+    )
+    history.commit({ annotation: 'Added the ways for the move check', selectedIDs: [] })
+    return {
+      junction: junction.id as string,
+      w: [w0.id, junction.id, w2.id] as string[],
+      u: [u0.id, junction.id, u2.id] as string[],
+      v: [v0.id, v1.id, v2.id] as string[],
+      wayW: wayW.id as string,
+      wayU: wayU.id as string,
+      wayV: wayV.id as string,
+    }
+  })) as {
+    junction: string
+    w: string[]
+    u: string[]
+    v: string[]
+    wayW: string
+    wayU: string
+    wayV: string
+  }
+  await settle()
+  const nodesOf = (way: string) =>
+    page.evaluate((id) => [...(window as any).__maid.engine.data.way(id).nodes] as string[], way)
+  const createdNodes = () =>
+    page.evaluate(
+      () =>
+        (window as any).__maid.engine.data.history
+          .changes()
+          .created.filter((e: { type: string }) => e.type === 'node').length as number,
+    )
+  /** Moves the way by 40 px right and 30 px down: the pointer goes to a free spot and then clicks */
+  const moveWay = async (way: string) => {
+    await page.evaluate((id) => (window as any).__bench.select(id), way)
+    await key('m')
+    await page.mouse.move(origin.x + 300, origin.y + 800)
+    await page.mouse.move(origin.x + 340, origin.y + 830, { steps: 3 })
+    await settle()
+    await page.mouse.click(origin.x + 340, origin.y + 830)
+    await settle()
+  }
+  const movedBy = (now: XY, was: XY) => near(now, { x: was.x + 40, y: was.y + 30 })
+  const sameAs = (now: XY[], was: XY[]) => now.every((p, i) => near(p, was[i]!, 3))
+
+  const pre = { w: await where(built.w), u: await where(built.u), v: await where(built.v) }
+  const createdBefore = await createdNodes()
+  await moveWay(built.wayW)
+  const post = { w: await where(built.w), u: await where(built.u), v: await where(built.v) }
+  const uNodes = await nodesOf(built.wayU)
+  const replacement = uNodes.filter((n) => !built.u.includes(n))
+  const replacementAt = replacement.length === 1 ? await where(replacement) : []
+  report(
+    'M: the selected way keeps its three nodes and its ends moved as far as the pointer',
+    [built.w, true, true],
+    [await nodesOf(built.wayW), movedBy(post.w[0]!, pre.w[0]!), movedBy(post.w[2]!, pre.w[2]!)],
+  )
+  report(
+    'M: the unselected way keeps its ends and gets one vertex where the shared node was',
+    [true, true, 4, true],
+    [
+      sameAs([post.u[0]!, post.u[2]!], [pre.u[0]!, pre.u[2]!]),
+      uNodes.includes(built.junction) && uNodes.length === 4 && replacement.length === 1,
+      uNodes.length,
+      replacementAt.length === 1 && near(replacementAt[0]!, pre.u[1]!, 3),
+    ],
+  )
+  // the junction is moved onto both ways, as iD's move snaps it between them (within a pixel or two)
+  const distanceToSegment = (p: XY, a: XY, b: XY) => {
+    const dx = b.x - a.x
+    const dy = b.y - a.y
+    const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy)))
+    return Math.hypot(a.x + t * dx - p.x, a.y + t * dy - p.y)
+  }
+  const junctionAt = post.w[1]!
+  const onWay = distanceToSegment(junctionAt, post.w[0]!, post.w[2]!)
+  const onUnselected = replacementAt[0]
+    ? Math.min(
+        distanceToSegment(junctionAt, post.u[0]!, replacementAt[0]),
+        distanceToSegment(junctionAt, replacementAt[0], post.u[2]!),
+      )
+    : Infinity
+  report(
+    'M: the shared junction lies on both ways after the move',
+    [true, true],
+    [onWay <= 3, onUnselected <= 3],
+  )
+  report('M: one undo step, labelled as a move', 'Moved a feature', (await state()).undo)
+  await key('Meta+z')
+  const restored = { w: await where(built.w), u: await where(built.u), v: await where(built.v) }
+  report(
+    'undo: every node of the three ways is where it was, the unselected way has its three nodes again',
+    [true, 3, createdBefore],
+    [
+      sameAs(restored.w, pre.w) && sameAs(restored.u, pre.u) && sameAs(restored.v, pre.v),
+      (await nodesOf(built.wayU)).length,
+      await createdNodes(),
+    ],
+  )
+  // a way that shares nothing: its nodes move and no node is made
+  await moveWay(built.wayV)
+  const movedV = await where(built.v)
+  report(
+    'M on a way that shares nothing: its nodes move and the move creates no node',
+    [true, createdBefore],
+    [built.v.every((_, i) => movedBy(movedV[i]!, pre.v[i]!)), await createdNodes()],
+  )
+  await key('Meta+z')
+  // the copy below takes the area that was selected before these checks
+  await page.evaluate((id) => (window as any).__bench.select(id), areaId)
+  await settle()
 
   // --- Cmd+C, Cmd+V: a copy where the pointer is ---
   await key('Meta+c')
