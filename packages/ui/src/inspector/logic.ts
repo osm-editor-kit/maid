@@ -51,7 +51,8 @@ function ownsKey(field: Field, own: string, tagKey: string): boolean {
  * owns (see ownsKey).
  */
 export function fieldKeys(field: Field, ...sources: Tags[]): string[] {
-  const own = field.key !== undefined ? [field.key] : (field.keys ?? [])
+  // both: a phone field has `key` phone and `keys` phone and contact:phone
+  const own = [...new Set([...(field.key !== undefined ? [field.key] : []), ...(field.keys ?? [])])]
   const keys = new Set(own)
   for (const tags of sources) {
     for (const tagKey of Object.keys(tags)) {
@@ -99,7 +100,7 @@ export function keysWithValue(field: Field, tags: Tags): string[] {
  * on the control, so that the draft starts over from the tags when they change elsewhere.
  */
 export function valueSignature(field: Field, tags: Tags): string {
-  const keys = field.key === undefined ? (field.keys ?? []) : [field.key]
+  const keys = fieldKeys(field)
   return JSON.stringify(keys.map((key) => tags[key] ?? ''))
 }
 

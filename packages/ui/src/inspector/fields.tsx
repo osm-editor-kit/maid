@@ -2,7 +2,9 @@ import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import type { ReactNode } from 'react'
 import { CheckField } from './fields/Check.tsx'
 import { ComboField } from './fields/Combo.tsx'
-import { NumberField } from './fields/Number.tsx'
+import { ColourField, DateField } from './fields/DateColour.tsx'
+import { EmailField, IdentifierField, TelField, UrlField } from './fields/Link.tsx'
+import { NumberField, RoadHeightField, RoadSpeedField } from './fields/Number.tsx'
 import { FieldRow } from './fields/Row.tsx'
 import type { FieldComponent } from './fields/shared.ts'
 import { TextField, TextareaField } from './fields/Text.tsx'
@@ -18,14 +20,16 @@ export type { FieldComponent, FieldProps } from './fields/shared.ts'
 export const defaultFieldComponents: Record<string, FieldComponent> = {
   text: TextField,
   textarea: TextareaField,
-  url: TextField,
-  email: TextField,
-  tel: TextField,
-  identifier: TextField,
+  url: UrlField,
+  email: EmailField,
+  tel: TelField,
+  identifier: IdentifierField,
   localized: TextField,
+  date: DateField,
+  colour: ColourField,
   number: NumberField,
-  roadspeed: NumberField,
-  roadheight: NumberField,
+  roadspeed: RoadSpeedField,
+  roadheight: RoadHeightField,
   combo: ComboField,
   typeCombo: ComboField,
   networkCombo: ComboField,
