@@ -21,6 +21,7 @@ import {
  * a whole FeatureCollection through React props on every tile would be the slow path we
  * want to avoid (see docs/research/maplibre.md).
  */
+import type { Operation, OperationContext } from '@osm-editor-kit/maid-operations'
 import type { Geometry, Preset, Presets } from '@osm-editor-kit/maid-presets'
 import { isArea, type Tags } from '@osm-editor-kit/maid-style'
 import type { Feature } from 'geojson'
@@ -119,9 +120,10 @@ export class MaidEngine {
   private featureSource = new Map<string, SourceName>()
   private dashCount = 0
   private hoverId: string | null = null
-  private selectedId: string | null = null
+  /** Everything that is selected, in the order it was selected. The first is what the inspector shows. */
+  private selectedIds: string[] = []
   private shownHover: string | null = null
-  private shownSelected: string | null = null
+  private shownSelected: string[] = []
   private waiters: (() => void)[] = []
   /** Ids whose original in the big sources is hidden while a newer copy is in the live tier */
   private editing = new Set<string>()
@@ -316,11 +318,10 @@ export class MaidEngine {
       }
       // a selection made before its feature was loaded (from the URL) is shown once it arrives
       if (
-        this.selectedId &&
-        this.shownSelected !== this.selectedId &&
-        features.some((f) => f.id === this.selectedId)
+        this.selectedIds.length !== this.shownSelected.length &&
+        features.some((f) => this.selectedIds.includes(f.id as string))
       ) {
-        queueMicrotask(() => this.applyHighlight(null, 'selected'))
+        queueMicrotask(() => this.applyHighlight([], 'selected'))
       }
       const channel = this.channels[tier][name]
       channel.queue = channel.queue.concat(features)
@@ -583,6 +584,34 @@ export class MaidEngine {
     this.edit(actionChangeTags(id, tags), annotation, [id])
   }
 
+  // --- Operations ---
+
+  /** What an operation looks at: the current data and the selection */
+  operationContext(): OperationContext {
+    return { graph: this.data.history.staging.graph, selected: this.selectedIds }
+  }
+
+  /**
+   * Runs an operation on the selection as one undo step. Returns what is selected afterwards, or
+   * undefined if the operation does not apply or cannot run now.
+   */
+  runOperation(operation: Operation): readonly string[] | undefined {
+    const context = this.operationContext()
+    if (this.draw.active || !operation.applies(context) || operation.disabled(context)) return
+    const { actions, annotation, select } = operation.run(context)
+    let next: readonly string[] = this.selectedIds
+    this.change(() => {
+      const { history } = this.data
+      history.perform(...actions)
+      const { graph } = history.staging
+      // what was selected can be gone, and the operation knows what should be selected now
+      next = (select?.(graph) ?? next).filter((id) => graph.hasEntity(id) !== undefined)
+      history.commit({ annotation, selectedIDs: [...next] })
+    })
+    this.setSelected(next)
+    return next
+  }
+
   // --- Modes ---
 
   private currentMode: Mode = 'browse'
@@ -626,7 +655,7 @@ export class MaidEngine {
           ? actionDeleteWay(id)
           : actionDeleteRelation(id)
     const kind = id[0] === 'n' ? 'a node' : id[0] === 'w' ? 'a way' : 'a relation'
-    if (id === this.selectedId) this.setSelected(null)
+    if (this.selectedIds.includes(id)) this.setSelected(this.selectedIds.filter((s) => s !== id))
     if (id === this.hoverId) this.setHover(null)
     this.edit(action, `Deleted ${kind}`, [])
     return true
@@ -788,8 +817,8 @@ export class MaidEngine {
       this.removeFeatures(remove)
       this.sendBatch(batch)
       // feature state belongs to a source: a feature that changed its source needs it again
-      if (remove.some(([, featureId]) => featureId === this.selectedId))
-        queueMicrotask(() => this.applyHighlight(null, 'selected'))
+      if (remove.some(([, featureId]) => this.selectedIds.includes(featureId)))
+        queueMicrotask(() => this.applyHighlight([], 'selected'))
     }
     this.changed()
   }
@@ -859,14 +888,23 @@ export class MaidEngine {
     if (id === this.hoverId) return
     const previous = this.hoverId
     this.hoverId = id
-    this.applyHighlight(previous, 'hover')
+    this.applyHighlight(previous ? [previous] : [], 'hover')
   }
 
-  setSelected(id: string | null) {
-    if (id === this.selectedId) return
-    const previous = this.selectedId
-    this.selectedId = id
+  /** Selects one entity, several, or nothing */
+  setSelected(selection: string | readonly string[] | null) {
+    const ids =
+      selection === null ? [] : typeof selection === 'string' ? [selection] : [...selection]
+    const previous = this.selectedIds
+    if (ids.length === previous.length && ids.every((id, i) => id === previous[i])) return
+    this.selectedIds = ids
     this.applyHighlight(previous, 'selected')
+    this.changed()
+  }
+
+  /** The ids that are selected (what was asked for; `selected()` is what the map shows) */
+  get selection(): readonly string[] {
+    return this.selectedIds
   }
 
   /** What is on screen as hovered or selected (lags the request by the time MapLibre needs to draw it) */
@@ -874,17 +912,18 @@ export class MaidEngine {
     return this.shownHover ? [this.shownHover] : []
   }
   selected() {
-    return this.shownSelected ? [this.shownSelected] : []
+    return this.shownSelected
   }
 
-  private applyHighlight(previous: string | null, kind: 'hover' | 'selected') {
+  private applyHighlight(previous: readonly string[], kind: 'hover' | 'selected') {
     const { map } = this
     if (!map) return
     const hoverId = this.hoverId
-    const selectedId = this.selectedId
+    const selectedIds = this.selectedIds
     const shown = () => {
       this.shownHover = hoverId
-      this.shownSelected = selectedId
+      // only what has a feature is on the map
+      this.shownSelected = selectedIds.filter((id) => this.featureSource.has(id))
     }
     const set = (id: string | null, on: boolean) => {
       const name = id && this.featureSource.get(id)
@@ -893,11 +932,11 @@ export class MaidEngine {
       map.setFeatureState({ source: SOURCES[name], id: id! }, { [kind]: on })
       map.setFeatureState({ source: EDIT_SOURCES[name], id: id! }, { [kind]: on })
     }
-    set(previous, false)
-    set(kind === 'hover' ? hoverId : selectedId, true)
+    for (const id of previous) set(id, false)
+    for (const id of kind === 'hover' ? (hoverId ? [hoverId] : []) : selectedIds) set(id, true)
     if (kind === 'selected') {
       // the shape points of the selected way come from the small highlight source
-      const shape = selectedId?.[0] === 'w' ? wayVertices(this.data, selectedId) : []
+      const shape = selectedIds.flatMap((id) => (id[0] === 'w' ? wayVertices(this.data, id) : []))
       for (const vertex of shape) vertex.properties = { ...vertex.properties, state: 'shape' }
       void map
         .getSource<GeoJSONSource>(SOURCES.highlight)

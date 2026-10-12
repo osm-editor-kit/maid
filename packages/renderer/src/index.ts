@@ -7,7 +7,7 @@ export {
   type EntityInfo,
   type Mode,
 } from './engine'
-export type { MapLayerItem } from './extension-points'
+export { operations, type MapLayerItem } from './extension-points'
 export { buildLayers, interactiveLayerIds, SOURCES, type LayerOptions } from './layers'
 export { ModuleLayers } from './ModuleLayers'
 export { OsmLayers } from './OsmLayers'

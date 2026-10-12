@@ -2,7 +2,7 @@ import { MapPinIcon, TrashIcon } from '@heroicons/react/20/solid'
 import type { Mode } from '@osm-editor-kit/maid-renderer'
 import { ToolButton, ToolGroup } from '@osm-editor-kit/maid-ui'
 import { engine, useEngine } from '../editor'
-import { useSelectedId } from '../url/state'
+import { useSelection } from '../selection'
 import { MAC } from './UndoRedo'
 
 /** iD's line and area icons are in its sprite; these two small drawings stand in for them */
@@ -50,7 +50,7 @@ const ADD: { mode: Mode; label: string; shortcut: string; text: string; icon: Re
 /** Top bar: what a click on the map adds, and deleting the selection */
 export function ModeButtons() {
   const mode = useEngine((e) => e.mode)
-  const [selectedId, setSelectedId] = useSelectedId()
+  const { id: selectedId, select } = useSelection()
   return (
     <>
       <ToolGroup label="Add">
@@ -73,7 +73,7 @@ export function ModeButtons() {
           icon={<TrashIcon />}
           disabled={!selectedId}
           onClick={() => {
-            if (selectedId && engine.deleteEntity(selectedId)) void setSelectedId(null)
+            if (selectedId && engine.deleteEntity(selectedId)) select(null)
           }}
         />
       </ToolGroup>

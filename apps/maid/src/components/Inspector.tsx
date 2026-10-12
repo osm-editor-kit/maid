@@ -10,7 +10,8 @@ import {
 } from '@osm-editor-kit/maid-ui'
 import { useState } from 'react'
 import { editor, engine, useEngine } from '../editor'
-import { useSelectedId } from '../url/state'
+import { useSelection } from '../selection'
+import { Operations } from './Operations'
 import { PresetIcon } from './PresetIcon'
 import { TagList } from './TagList'
 
@@ -24,7 +25,7 @@ const GEOMETRY_LABEL = {
 
 /** The sidebar: what the selected feature is (iD preset), its tags and the sections of modules. */
 export function Inspector() {
-  const [id, setId] = useSelectedId()
+  const { id, ids, select } = useSelection()
   // read again when data arrives: a selection from the URL exists before its feature is loaded
   const entity = useEngine((e) => e.entity(id))
   // the id the picker was opened for: selecting something else closes it
@@ -40,9 +41,24 @@ export function Inspector() {
     )
   }
 
-  const close = () => {
-    engine.setSelected(null)
-    void setId(null)
+  const close = () => select(null)
+
+  if (ids.length > 1) {
+    return (
+      <Sidebar label="Selected features">
+        <SidebarHeader
+          title={`${ids.length} features selected`}
+          subtitle={ids.join(', ')}
+          onClose={close}
+        />
+        <SidebarBody>
+          <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
+            Shift-click adds a feature to the selection or takes it out.
+          </p>
+          <Operations />
+        </SidebarBody>
+      </Sidebar>
+    )
   }
   const onChange =
     !entity || entity.type === 'relation'
@@ -112,6 +128,7 @@ export function Inspector() {
               </button>
             )
           )}
+          <Operations />
           {fields.length > 0 && (
             <SidebarSection title="Fields">
               <PresetFields fields={fields} tags={entity.tags} onChange={onChange} />

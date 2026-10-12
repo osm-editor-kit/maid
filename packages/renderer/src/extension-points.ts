@@ -2,6 +2,8 @@
  * Extension points that the renderer declares. Importing this file (index.ts does) merges them
  * into the `ExtensionPoints` of maid-core, so every app that uses the renderer can register items.
  */
+import { defineModule, type MaidModule } from '@osm-editor-kit/maid-core'
+import type { Operation } from '@osm-editor-kit/maid-operations'
 import type { Feature, FeatureCollection } from 'geojson'
 import type { LayerProps } from 'react-map-gl/maplibre'
 
@@ -22,5 +24,17 @@ export type MapLayerItem = {
 declare module '@osm-editor-kit/maid-core' {
   interface ExtensionPoints {
     'map.layer': MapLayerItem
+    /** Something the editor can do to the selection: shown in the edit menu, run with its key */
+    'edit.operation': Operation
   }
+}
+
+/** A module that adds operations to the edit menu, for example `defaultOperations` of maid-operations */
+export function operations(list: Operation[]): MaidModule {
+  return defineModule({
+    id: 'operations',
+    setup(api) {
+      for (const operation of list) api.register('edit.operation', operation)
+    },
+  })
 }

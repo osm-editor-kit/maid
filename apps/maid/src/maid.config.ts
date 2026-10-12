@@ -3,7 +3,9 @@
  * The run-time settings (scene, live data, ...) come from the URL and are read once, in config.ts.
  */
 import type { EditorConfig, MaidModule } from '@osm-editor-kit/maid-core'
+import { defaultOperations } from '@osm-editor-kit/maid-operations'
 import { defaultPresets } from '@osm-editor-kit/maid-presets/default'
+import { operations } from '@osm-editor-kit/maid-renderer'
 import dense from '../../../fixtures/dense.meta.json'
 import medium from '../../../fixtures/medium.meta.json'
 import small from '../../../fixtures/small.meta.json'
@@ -24,6 +26,8 @@ export function editorConfig(config: Config): EditorConfig {
   const modules: MaidModule[] = [
     // inspector section "Element": id, version and upload state of the selected object
     elementInfo(),
+    // the edit menu: reverse, split, merge, straighten, square, make round, disconnect, extract
+    operations(defaultOperations),
   ]
   // dashed outline around the area the fixture covers
   if (bbox) modules.push(sceneBounds({ bbox }))

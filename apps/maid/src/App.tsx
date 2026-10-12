@@ -10,10 +10,10 @@ import { UndoRedo } from './components/UndoRedo'
 import { useShortcuts } from './components/useShortcuts'
 import { ZoomControls } from './components/ZoomControls'
 import { config, engine } from './editor'
-import { useSelectedId } from './url/state'
+import { useSelection } from './selection'
 
 function Editor() {
-  const [, setSelectedId] = useSelectedId()
+  const { select } = useSelection()
   useShortcuts()
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key !== 'Escape') return
@@ -23,8 +23,7 @@ function Editor() {
       engine.setMode('browse')
       return
     }
-    engine.setSelected(null)
-    void setSelectedId(null)
+    select(null)
   }
   // `ui=0` leaves only the map, for screenshots and measurements of the map alone
   if (!config.ui) {

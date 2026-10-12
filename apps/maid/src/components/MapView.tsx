@@ -19,7 +19,8 @@ import {
 import { exposeBenchApi } from '../bench'
 import { config, editor, engine, useEngine } from '../editor'
 import { addBaseImages, ensureImages } from '../images'
-import { useCameraParam, useSelectedId } from '../url/state'
+import { useSelection } from '../selection'
+import { useCameraParam } from '../url/state'
 
 /** No basemap: the benchmark compares how editors draw OSM data, not imagery. */
 const EMPTY_STYLE: StyleSpecification = {
@@ -37,7 +38,7 @@ let dragging: string | null = null
 
 export function MapView() {
   const [cameraParam, setCameraParam] = useCameraParam()
-  const [selectedId, setSelectedId] = useSelectedId()
+  const { ids: selectedIds, select } = useSelection()
   // Dash patterns are discovered as data arrives; the layers list them in their expressions.
   const [dashes, setDashes] = useState(() => new globalThis.Map(dashPatterns))
   const [cursor, setCursor] = useState('grab')
@@ -57,11 +58,6 @@ export function MapView() {
   const interactive = interactiveLayerIds(buildLayers(options))
   const drawing = mode === 'draw-line' ? 'line' : mode === 'draw-area' ? 'area' : undefined
 
-  const select = (id: string | null) => {
-    engine.setSelected(id)
-    void setSelectedId(id)
-  }
-
   const handleLoad = (event: MapEvent) => {
     const map = event.target
     addBaseImages(map)
@@ -74,7 +70,7 @@ export function MapView() {
       return ensureImages(map, ids)
     }
     engine.attach(map)
-    engine.setSelected(selectedId)
+    engine.setSelected(selectedIds)
     exposeBenchApi(map, engine, { select })
   }
   const handleMove = (_: ViewStateChangeEvent) => {
@@ -132,7 +128,13 @@ export function MapView() {
       })
       return
     }
-    select(engine.pick(event.point, interactive))
+    const id = engine.pick(event.point, interactive)
+    // Shift adds a feature to the selection or takes it out, as in iD
+    if (event.originalEvent.shiftKey && id) {
+      select(selectedIds.includes(id) ? selectedIds.filter((s) => s !== id) : [...selectedIds, id])
+      return
+    }
+    select(id)
   }
 
   return (

@@ -20,6 +20,7 @@
         "@heroicons/react": "^2.2.0",
         "@osm-editor-kit/maid-core": "workspace:*",
         "@osm-editor-kit/maid-model": "workspace:*",
+        "@osm-editor-kit/maid-operations": "workspace:*",
         "@osm-editor-kit/maid-presets": "workspace:*",
         "@osm-editor-kit/maid-renderer": "workspace:*",
         "@osm-editor-kit/maid-style": "workspace:*",
@@ -80,6 +81,13 @@
         "chai": "^6.2.2",
       },
     },
+    "packages/operations": {
+      "name": "@osm-editor-kit/maid-operations",
+      "version": "0.0.0",
+      "dependencies": {
+        "@osm-editor-kit/maid-model": "workspace:*",
+      },
+    },
     "packages/presets": {
       "name": "@osm-editor-kit/maid-presets",
       "version": "0.0.0",
@@ -93,6 +101,7 @@
       "dependencies": {
         "@osm-editor-kit/maid-core": "workspace:*",
         "@osm-editor-kit/maid-model": "workspace:*",
+        "@osm-editor-kit/maid-operations": "workspace:*",
         "@osm-editor-kit/maid-presets": "workspace:*",
         "@osm-editor-kit/maid-style": "workspace:*",
       },
@@ -174,6 +183,8 @@
     "@osm-editor-kit/maid-core": ["@osm-editor-kit/maid-core@workspace:packages/core"],
 
     "@osm-editor-kit/maid-model": ["@osm-editor-kit/maid-model@workspace:packages/model"],
+
+    "@osm-editor-kit/maid-operations": ["@osm-editor-kit/maid-operations@workspace:packages/operations"],
 
     "@osm-editor-kit/maid-presets": ["@osm-editor-kit/maid-presets@workspace:packages/presets"],
 

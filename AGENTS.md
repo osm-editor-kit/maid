@@ -81,13 +81,14 @@ These names are the contract. Agents and docs only reference these.
 | `bun run check-undo [scene]` | Browser check: move a vertex, change a tag, undo and redo, and compare data and map after each step. Needs `bun run dev`. |
 | `bun run check-draw` | Browser check with real keys and clicks: draw a line, continue it, snap to a node and a way, draw an area, cancel. Needs `bun run dev`. |
 | `bun run check-edit [scene]` | Browser check: add a point, change it, delete it, delete a way, undo and redo, and compare data, lookups and map after each step. Needs `bun run dev`. |
+| `bun run check-ops [scene]` | Browser check: square a building, split a road, merge the parts, undo; data and map after each step. Needs `bun run dev`. |
 | `bun run check-render <name>` | Compare screenshots and feature counts of all scenes with a reference. Needs `bun run dev`. |
 | `bun run check-render-save <name>` | Save that reference from the current state, before a change to the renderer. |
 | `bun run compare` | Everything for the side-by-side page on http://localhost:5184. |
 | `bun run fixtures-build <file.osm.pbf>` | Cut fixtures from a local extract. Manual only, see core rule 1. |
 | `bun run style-generate [iD checkout]` | Regenerate the style data from iD's CSS and presets. |
 
-Every editor is driven through one contract, `window.__bench` (`tools/refs/bench-api.d.ts`). Maid also exposes `window.__maid` with the map and the engine. To look at one editor: `bun tools/bench/shot.ts maid|id|rapid <scene> [zoom]`.
+Every editor is driven through one contract, `window.__bench` (`tools/refs/bench-api.d.ts`). Maid also exposes `window.__maid` with the map, the engine and the editor. To look at one editor: `bun tools/bench/shot.ts maid|id|rapid <scene> [zoom]`.
 
 ## Layout
 
@@ -97,6 +98,7 @@ apps/compare         page that shows Maid, iD and Rapid side by side
 packages/style       iD's look as data: tag classes, CSS rules
 packages/core        createEditor: the editor's data (context, history), Maid modules, extension points, hooks
 packages/model       the data model, ported from Rapid 3: entities, graph, actions, history (see its README)
+packages/operations  the edit menu's operations (reverse, split, merge, ...) on the model, headless
 packages/presets     preset matching and fields on id-tagging-schema, headless
 packages/ui          the shell and the inspector's fields: layout, top bar, sidebar, map controls, dock, theme; declares inspector.section
 packages/renderer    feature builder, MapLibre layers, engine, module layers; draws from the model
