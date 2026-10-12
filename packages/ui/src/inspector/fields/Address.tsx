@@ -1,6 +1,6 @@
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import { useId, useState } from 'react'
-import { cleanValue, type TagEdit } from '../logic.ts'
+import type { TagEdit } from '../logic.ts'
 import {
   addressPrefix,
   addressRows,
@@ -17,6 +17,7 @@ import {
   type StreetOrPlace,
 } from './address-logic.ts'
 import { ComboField } from './Combo.tsx'
+import { useDraft } from './DraftInput.tsx'
 import type { FieldProps } from './shared.ts'
 
 export type AddressFieldProps = FieldProps & {
@@ -218,13 +219,12 @@ function TextSlot(props: {
   onText: (text: string) => void
 }) {
   const { id, label, value, readOnly, className, onText } = props
-  const [draft, setDraft] = useState(value)
-  const commit = () => {
-    if (readOnly) return
-    const next = cleanValue(draft) ?? ''
-    setDraft(next)
-    if (next !== value) onText(next)
-  }
+  // The slot has no tag of its own: the text goes to the address, which writes it.
+  const { draft, setDraft, commit, revert } = useDraft({
+    tagKey: '',
+    value,
+    onChange: readOnly ? undefined : (_key, text) => onText(text ?? ''),
+  })
   return (
     <input
       id={id}
@@ -241,7 +241,7 @@ function TextSlot(props: {
       onKeyDown={(event) => {
         if (event.key === 'Enter') event.currentTarget.blur()
         if (event.key === 'Escape') {
-          setDraft(value)
+          revert()
           event.stopPropagation()
         }
       }}

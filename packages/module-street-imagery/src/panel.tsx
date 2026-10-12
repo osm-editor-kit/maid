@@ -1,7 +1,6 @@
 import { CameraIcon } from '@heroicons/react/20/solid'
-import { toolButtonTone } from '@osm-editor-kit/maid-ui'
+import { SegmentedControl } from '@osm-editor-kit/maid-ui'
 import { PhotoDateRangeFilter } from '@osm-editor-kit/street-imagery-react'
-import type { KeyboardEvent } from 'react'
 import './street-imagery.css'
 import {
   IMAGERY_PROVIDER_IDS,
@@ -17,6 +16,7 @@ import { AUTOMATED, useStreetImageryStore } from './store.ts'
 export const PHOTOS_ICON = <CameraIcon aria-hidden="true" />
 
 const KIND_LABELS: Record<PhotoKind, string> = { all: 'All', flat: 'Flat', pano: '360°' }
+const KIND_OPTIONS = PHOTO_KINDS.map((kind) => ({ value: kind, label: KIND_LABELS[kind] }))
 
 const NOTES: Record<ImageryProviderId, string> = {
   panoramax: 'From api.panoramax.xyz. No account needed.',
@@ -62,50 +62,21 @@ function ProviderRow({ id }: { id: ImageryProviderId }) {
 }
 
 /**
- * The photo kinds (all, flat, 360°) as one group of buttons: the chosen one is `selected` (no
- * hover), and the buttons overlap by a pixel so that they share one hairline. The arrow keys move
- * between them and choose, as in the filter switch of packages/ui (FilterPanel).
+ * The photo kinds (all, flat, 360°) as one group of buttons, from the shared SegmentedControl. The
+ * arrow keys move between them and choose.
  */
 function KindChoice() {
   const photoKind = useStreetImageryStore((state) => state.photoKind)
   const setPhotoKind = useStreetImageryStore((state) => state.setPhotoKind)
-
-  function onKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
-    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
-    event.preventDefault()
-    const step = event.key === 'ArrowRight' ? 1 : -1
-    const index = (PHOTO_KINDS.indexOf(photoKind) + step + PHOTO_KINDS.length) % PHOTO_KINDS.length
-    const next = PHOTO_KINDS[index]
-    if (next === undefined) return
-    setPhotoKind(next)
-    const target = event.currentTarget.parentElement?.children[index]
-    if (target instanceof HTMLElement) target.focus()
-  }
-
   return (
-    <div
-      role="radiogroup"
-      aria-label="Which photos"
-      className="isolate mt-1 inline-flex rounded-md shadow-xs dark:shadow-none [&>*]:rounded-none [&>*+*]:-ml-px [&>*:first-child]:rounded-l-md [&>*:last-child]:rounded-r-md"
-    >
-      {PHOTO_KINDS.map((kind) => {
-        const checked = kind === photoKind
-        return (
-          <button
-            key={kind}
-            type="button"
-            role="radio"
-            aria-checked={checked}
-            tabIndex={checked ? 0 : -1}
-            onClick={() => setPhotoKind(kind)}
-            onKeyDown={onKeyDown}
-            className={`relative inline-flex h-8 items-center px-3 text-xs font-medium inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:inset-ring-white/10 ${toolButtonTone(checked ? 'selected' : 'idle')}`}
-          >
-            {KIND_LABELS[kind]}
-          </button>
-        )
-      })}
-    </div>
+    <SegmentedControl
+      label="Which photos"
+      options={KIND_OPTIONS}
+      value={photoKind}
+      onSelect={setPhotoKind}
+      textSize="xs"
+      className="mt-1"
+    />
   )
 }
 

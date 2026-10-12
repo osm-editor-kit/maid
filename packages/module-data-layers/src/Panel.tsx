@@ -2,7 +2,7 @@ import type { Editor } from '@osm-editor-kit/maid-core'
 /**
  * The "Data layers" flyout: the list of layers with a switch each, and the form that adds one.
  */
-import { toolButtonTone } from '@osm-editor-kit/maid-ui'
+import { SegmentedControl } from '@osm-editor-kit/maid-ui'
 import { useId, useMemo, useState, type ComponentType, type FormEvent } from 'react'
 import { addDataLayer, type Added, type AddInput } from './add.ts'
 import { ColorSwatches } from './ColorSwatches.tsx'
@@ -100,6 +100,11 @@ function LayerRow({
   )
 }
 
+const KIND_OPTIONS = DATA_LAYER_KINDS.map((option) => ({
+  value: option,
+  label: KIND_LABEL[option],
+}))
+
 const KIND_HINT: Record<DataLayerKind, string> = {
   geojson: 'An address of GeoJSON, or a file from your computer.',
   pmtiles: 'The layer names are read from the file.',
@@ -117,27 +122,16 @@ function KindChoice({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <div
-        role="radiogroup"
-        aria-label="Kind of data"
-        className="isolate inline-flex w-fit rounded-md shadow-xs dark:shadow-none [&>*]:rounded-none [&>*+*]:-ml-px [&>*:first-child]:rounded-l-md [&>*:last-child]:rounded-r-md"
-      >
-        {DATA_LAYER_KINDS.map((option) => {
-          const checked = option === kind
-          return (
-            <button
-              key={option}
-              type="button"
-              role="radio"
-              aria-checked={checked}
-              onClick={() => onChoose(option)}
-              className={`relative inline-flex h-8 items-center px-3 text-sm font-medium inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-blue-500 dark:inset-ring-white/10 ${toolButtonTone(checked ? 'selected' : 'idle')}`}
-            >
-              {KIND_LABEL[option]}
-            </button>
-          )
-        })}
-      </div>
+      <SegmentedControl
+        label="Kind of data"
+        options={KIND_OPTIONS}
+        value={kind}
+        onSelect={onChoose}
+        // no arrow keys here: every kind is a tab stop, and the focus ring sits on the edge
+        arrowKeys={false}
+        outlineOffset={false}
+        className="w-fit"
+      />
       <p className={HINT}>
         {chosen ? KIND_HINT[kind] : `${KIND_HINT[kind]} Guessed from the address.`}
       </p>

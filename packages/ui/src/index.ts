@@ -49,7 +49,17 @@ export {
 export { useSettings, type Settings } from './settings.ts'
 export { initTheme, useResolvedTheme, useTheme, type Theme } from './theme.ts'
 export { ThemeSwitch } from './ThemeSwitch.tsx'
-export { ToolButton, ToolGroup, toolButtonClass, toolButtonTone } from './Toolbar.tsx'
+export {
+  SegmentedControl,
+  ToolButton,
+  ToolGroup,
+  toolButtonClass,
+  toolButtonTone,
+  type SegmentedOption,
+} from './Toolbar.tsx'
+export { DraftInput, useDraft } from './inspector/fields/DraftInput.tsx'
+/** The class of a single-line text input, as the inspector's fields and the modules use it */
+export { INPUT as INPUT_CLASS } from './inspector/fields/shared.ts'
 export { Brand, TopBar } from './TopBar.tsx'
 export { Time } from './Time.tsx'
 export {

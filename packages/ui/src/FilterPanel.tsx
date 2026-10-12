@@ -1,8 +1,8 @@
 import { EyeIcon, EyeSlashIcon, PencilIcon } from '@heroicons/react/16/solid'
 import type { Filter, FilterState } from '@osm-editor-kit/maid-filters'
-import type { KeyboardEvent, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { twJoin } from 'tailwind-merge'
-import { toolButtonTone } from './Toolbar.tsx'
+import { SegmentedControl } from './Toolbar.tsx'
 
 type Option = { state: FilterState; label: string; Icon: typeof PencilIcon }
 
@@ -12,7 +12,12 @@ const OPTIONS: readonly Option[] = [
   { state: 'hidden', label: 'Hidden', Icon: EyeSlashIcon },
 ]
 
-const STATES: readonly FilterState[] = OPTIONS.map((option) => option.state)
+/** The three states as the icon buttons of each filter's switch */
+const STATE_OPTIONS = OPTIONS.map((option) => ({
+  value: option.state,
+  label: option.label,
+  icon: <option.Icon aria-hidden="true" className="size-4" />,
+}))
 
 /** Lists the filters with a three-way switch each: what can be done with their objects on the map. */
 export function FilterPanel(props: {
@@ -51,10 +56,12 @@ export function FilterPanel(props: {
           return (
             // the switch first, so the switches of a column line up and each row reads as one group
             <li key={filter.id} className="flex break-inside-avoid items-center gap-3 py-1.5">
-              <StateSwitch
-                label={filter.label}
+              <SegmentedControl
+                label={`${filter.label}: what can be done`}
+                options={STATE_OPTIONS}
                 value={state}
                 onSelect={(next) => onChange(filter.id, next)}
+                className="shrink-0"
               />
               <span
                 className={twJoin(
@@ -83,58 +90,6 @@ export function FilterPanel(props: {
           )
         })}
       </ul>
-    </div>
-  )
-}
-
-/** A radio group of the three states; the arrow keys move between them and select. */
-function StateSwitch(props: {
-  label: string
-  value: FilterState
-  onSelect: (state: FilterState) => void
-}): ReactNode {
-  const { label, value, onSelect } = props
-
-  function onKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
-    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
-    event.preventDefault()
-    const step = event.key === 'ArrowRight' ? 1 : -1
-    const index = (STATES.indexOf(value) + step + STATES.length) % STATES.length
-    const next = STATES[index]
-    if (next === undefined) return
-    onSelect(next)
-    const target = event.currentTarget.parentElement?.children[index]
-    if (target instanceof HTMLElement) target.focus()
-  }
-
-  return (
-    <div
-      role="radiogroup"
-      aria-label={`${label}: what can be done`}
-      className="isolate inline-flex shrink-0 rounded-md shadow-xs dark:shadow-none [&>*]:rounded-none [&>*+*]:-ml-px [&>*:first-child]:rounded-l-md [&>*:last-child]:rounded-r-md"
-    >
-      {OPTIONS.map((option) => {
-        const checked = option.state === value
-        return (
-          <button
-            key={option.state}
-            type="button"
-            role="radio"
-            aria-checked={checked}
-            aria-label={option.label}
-            title={option.label}
-            tabIndex={checked ? 0 : -1}
-            onClick={() => onSelect(option.state)}
-            onKeyDown={onKeyDown}
-            className={twJoin(
-              'relative inline-flex size-7 shrink-0 items-center justify-center inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:inset-ring-white/10',
-              toolButtonTone(checked ? 'selected' : 'idle'),
-            )}
-          >
-            <option.Icon aria-hidden="true" className="size-4" />
-          </button>
-        )
-      })}
     </div>
   )
 }
