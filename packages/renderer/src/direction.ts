@@ -69,12 +69,37 @@ const SIDEDNESS: Record<string, Record<string, true | string>> = {
   },
 } // prettier-ignore
 
+/**
+ * iD's osmLifecyclePrefixes: `disused:barrier=kerb` is read as `barrier=kerb` (osmRemoveLifecyclePrefix).
+ * Only the sidedness rules use it; iD's one-way tags are read as written.
+ */
+const LIFECYCLE = new Set([
+  'proposed',
+  'planned',
+  'construction',
+  'disused',
+  'abandoned',
+  'was',
+  'dismantled',
+  'razed',
+  'demolished',
+  'destroyed',
+  'removed',
+  'intermittent',
+])
+function withoutLifecycle(key: string): string {
+  const colon = key.indexOf(':')
+  if (colon < 0) return key
+  return LIFECYCLE.has(key.slice(0, colon)) ? key.slice(colon + 1) : key
+}
+
 /** The marker kind of a sided line (a key of SIDE_KINDS), or undefined. `two_sided=yes` wins. */
 export function sidedOf(tags: Tags): string | undefined {
   if (tags.two_sided === 'yes') return undefined
-  for (const key in tags) {
+  for (const realKey in tags) {
+    const key = withoutLifecycle(realKey)
     const values = SIDEDNESS[key]
-    const value = tags[key]!
+    const value = tags[realKey]!
     if (!values || !Object.hasOwn(values, value)) continue
     const kind = values[value]!
     return kind === true ? key : kind

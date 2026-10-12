@@ -117,3 +117,14 @@ describe('sidedOf (iD isSided, sidednessIdentifier)', () => {
     }
   })
 })
+
+describe('lifecycle prefixes on sided keys (iD sidednessIdentifier)', () => {
+  test('a disused or construction barrier is sided as its plain key', () => {
+    expect(sidedOf({ 'disused:barrier': 'kerb' })).toBe('barrier')
+    expect(sidedOf({ 'construction:natural': 'cliff' })).toBe('natural')
+  })
+
+  test('a prefix that is not a lifecycle prefix is not stripped', () => {
+    expect(sidedOf({ 'foo:barrier': 'kerb' })).toBeUndefined()
+  })
+})

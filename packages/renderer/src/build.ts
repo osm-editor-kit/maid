@@ -68,6 +68,8 @@ export type AreaProps = {
   fo?: string
   /** width of the partial-fill band in px at full size, before clamping to the area's size */
   fw: number
+  /** side marker kind of a closed barrier or coastline ring (layers: area-sided), only then */
+  side?: string
   /** rough inner radius of the area in metres: 2 * area / perimeter */
   r: number
   hw: number
@@ -238,6 +240,10 @@ function areaFeature(
   const outline = tags.barrier && tags.barrier !== 'no' ? 'line' : 'area'
   const style = resolveWayStyle(classes, 'area')
   const stroke = outline === 'line' ? resolveWayStyle(classes, 'line').stroke : style.stroke
+  // iD draws side markers on a closed barrier (it is a line there) and on a coastline ring. Those
+  // markers follow the way's own direction, so such a ring keeps its node order.
+  const side = sidedOf(tags)
+  const sided = side !== undefined && (outline === 'line' || side === 'coastline')
   let area = 0
   let perimeter = 0
   const oriented = polygons.map((rings) =>
@@ -245,7 +251,7 @@ function areaFeature(
       const m = ringMetrics(ring)
       area += i === 0 ? Math.abs(m.area) : -Math.abs(m.area)
       perimeter += m.perimeter
-      return orient(ring, i === 0)
+      return sided ? ring : orient(ring, i === 0)
     }),
   )
   const props: AreaProps = {
@@ -270,6 +276,7 @@ function areaFeature(
     props.fo = style.fill.replace(/rgba\(([^,]+),([^,]+),([^,]+),[^)]+\)/, 'rgb($1,$2,$3)')
   }
   if (tags.name) props.name = tags.name
+  if (sided) props.side = side
   const geometry: Polygon | MultiPolygon =
     oriented.length === 1
       ? { type: 'Polygon', coordinates: oriented[0]! }

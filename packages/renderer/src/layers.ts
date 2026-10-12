@@ -266,6 +266,22 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
           'icon-ignore-placement': true,
         },
       },
+      // closed barriers and coastline rings: their outline is the area's (build.ts areaFeature)
+      {
+        id: 'area-sided',
+        type: 'symbol',
+        source: SOURCES.areas,
+        filter: ['has', 'side'],
+        minzoom: 15,
+        layout: {
+          'symbol-placement': 'line',
+          'symbol-spacing': 30,
+          'icon-image': ['concat', SIDE_IMAGE_PREFIX, ['get', 'side']],
+          'icon-rotation-alignment': 'map',
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
+        },
+      },
     )
   }
 
