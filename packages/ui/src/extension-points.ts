@@ -4,7 +4,7 @@
  */
 import type { Editor } from '@osm-editor-kit/maid-core'
 import type { EntityInfo } from '@osm-editor-kit/maid-renderer'
-import type { ComponentType } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 
 /** What a section is given. It edits through `editor.history`; the map follows every change. */
 export type InspectorSectionProps = {
@@ -38,9 +38,24 @@ export type DockView = {
   component: ComponentType<DockViewProps>
 }
 
+/**
+ * A panel behind an icon button at the right of the top bar, opened as a flyout: one job per
+ * button (backgrounds, photos, data layers, map style).
+ */
+export type TopBarPanel = {
+  id: string
+  /** Names the button and the panel */
+  label: string
+  icon: ReactNode
+  component: ComponentType<{ editor: Editor }>
+  /** Tailwind width class of the flyout, e.g. `w-96` (the default) */
+  width?: string
+}
+
 declare module '@osm-editor-kit/maid-core' {
   interface ExtensionPoints {
     'inspector.section': InspectorSection
     'dock.view': DockView
+    'topbar.panel': TopBarPanel
   }
 }

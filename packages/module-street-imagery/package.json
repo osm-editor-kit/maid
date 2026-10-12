@@ -1,0 +1,26 @@
+{
+  "name": "@osm-editor-kit/maid-module-street-imagery",
+  "version": "0.0.0",
+  "private": true,
+  "license": "ISC",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@heroicons/react": "^2.2.0",
+    "@osm-editor-kit/maid-core": "workspace:*",
+    "@osm-editor-kit/maid-renderer": "workspace:*",
+    "@osm-editor-kit/maid-ui": "workspace:*",
+    "@osm-editor-kit/street-imagery": "0.1.0-alpha.8",
+    "@osm-editor-kit/street-imagery-react": "0.1.0-alpha.10",
+    "@panoramax/web-viewer": "^5",
+    "@tanstack/react-query": "^5",
+    "mapillary-js": "^4",
+    "maplibre-gl": "^6.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-map-gl": "^8.1.3",
+    "zustand": "^5.0.0"
+  }
+}

@@ -7,7 +7,13 @@ export {
   type EntityInfo,
   type Mode,
 } from './engine'
-export { operations, type MapLayerItem } from './extension-points'
+export {
+  BELOW_OSM_LAYER,
+  operations,
+  type MapContentItem,
+  type MapContentProps,
+  type MapLayerItem,
+} from './extension-points'
 export { buildLayers, interactiveLayerIds, SOURCES, type LayerOptions } from './layers'
 export { ModuleLayers } from './ModuleLayers'
 export { OsmLayers } from './OsmLayers'

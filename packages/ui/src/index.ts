@@ -11,6 +11,7 @@ export type {
   DockViewProps,
   InspectorSection,
   InspectorSectionProps,
+  TopBarPanel,
 } from './extension-points.ts'
 export { InspectorSections } from './InspectorSections.tsx'
 export * from './inspector/index.ts'

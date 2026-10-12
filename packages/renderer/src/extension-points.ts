@@ -2,9 +2,10 @@
  * Extension points that the renderer declares. Importing this file (index.ts does) merges them
  * into the `ExtensionPoints` of maid-core, so every app that uses the renderer can register items.
  */
-import { defineModule, type MaidModule } from '@osm-editor-kit/maid-core'
+import { defineModule, type Editor, type MaidModule } from '@osm-editor-kit/maid-core'
 import type { Operation } from '@osm-editor-kit/maid-operations'
 import type { Feature, FeatureCollection } from 'geojson'
+import type { ComponentType } from 'react'
 import type { LayerProps } from 'react-map-gl/maplibre'
 
 /** Omit per member of a union. A plain `Omit` would keep only one kind of layer. */
@@ -21,9 +22,29 @@ export type MapLayerItem = {
   layers: MapLayerProps[]
 }
 
+/**
+ * The id of an invisible layer right below the OSM layers. A layer with `beforeId` set to it is
+ * drawn under the OSM data (a background); a layer without `beforeId` is drawn on top of it.
+ */
+export const BELOW_OSM_LAYER = 'maid-below-osm'
+
+export type MapContentProps = {
+  editor: Editor
+  /** Pass as `beforeId` to draw under the OSM data */
+  belowOsm: typeof BELOW_OSM_LAYER
+}
+
+/**
+ * Anything a module draws on the map itself: a component rendered inside the map, which brings
+ * its own `<Source>` and `<Layer>` elements of any kind (raster, vector, GeoJSON) and can use
+ * `useMap`. For a plain GeoJSON overlay `map.layer` is less work.
+ */
+export type MapContentItem = { id: string; component: ComponentType<MapContentProps> }
+
 declare module '@osm-editor-kit/maid-core' {
   interface ExtensionPoints {
     'map.layer': MapLayerItem
+    'map.content': MapContentItem
     /** Something the editor can do to the selection: shown in the edit menu, run with its key */
     'edit.operation': Operation
   }
