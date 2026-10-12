@@ -57,6 +57,8 @@ export function actionReverse(entityID: EntityID, options?: ReverseOptions): Rev
   const numeric = /^([+\-]?)(?=[\d.])/;
   const directionKey = /direction$/;
   const turn_lanes = /^turn:lanes:?/;
+  // Maid: differs from Rapid here (iD#10736: red_turn:right and red_turn:left are not relative to the way)
+  const red_turn_key = /^red_turn:(right|left):?/;
 
   const keyReplacements: KeyReplacement[] = [
     [/:right$/, ':left'],
@@ -120,6 +122,7 @@ export function actionReverse(entityID: EntityID, options?: ReverseOptions): Rev
    * @return  Transformed key, or the original key if no replacement matched
    */
   function reverseKey(key: string): string {
+    if (red_turn_key.test(key)) return key;  // Maid: differs from Rapid here (see red_turn_key)
     for (const replacement of keyReplacements) {
       if (replacement[0].test(key)) {
         return key.replace(replacement[0], replacement[1]);
@@ -137,14 +140,19 @@ export function actionReverse(entityID: EntityID, options?: ReverseOptions): Rev
    * Keys matching `ignoreKey` (names, descriptions, refs, etc.) are passed through unchanged.
    * @param   key             - The tag key (used to select the reversal strategy)
    * @param   value           - The tag value to transform
+   * @param   allTags         - All tags of the entity, to check the tags a value depends on
    * @param   includeAbsolute - When `true`, also reverse absolute compass bearings
    * @return  Transformed value, or the original value if no replacement applied
    */
-  function reverseValue(key: string, value: string, includeAbsolute?: boolean): string {
+  function reverseValue(key: string, value: string, allTags: OsmTags, includeAbsolute?: boolean): string {
     if (ignoreKey.test(key)) return value;
 
     // Turn lanes are left/right to key (not way) direction - iD#5674
     if (turn_lanes.test(key)) {
+      return value;
+
+    // Maid: differs from Rapid here (iD#10128, the side of a cyclist waiting aid and railway:turnout_side are not relative to the way)
+    } else if ((key === 'side' && allTags.highway === 'cyclist_waiting_aid') || key === 'railway:turnout_side') {
       return value;
 
     } else if (key === 'incline' && numeric.test(value)) {
@@ -155,18 +163,22 @@ export function actionReverse(entityID: EntityID, options?: ReverseOptions): Rev
     } else if (options && options.reverseOneway && key === 'oneway') {
       return onewayReplacements[value] || value;
 
+    // Maid: differs from Rapid here (iD splits the value on ';' and reverses each part, so 'N;90' becomes 'S;270')
     } else if (includeAbsolute && directionKey.test(key)) {
-      if (compassReplacements[value]) return compassReplacements[value];
+      return value.split(';').map((part: string) => {
+        if (compassReplacements[part]) return compassReplacements[part];
 
-      let degrees: number = parseFloat(value);
-      if (Number.isFinite(degrees)) {
-        if (degrees < 180) {
-          degrees += 180;
-        } else {
-          degrees -= 180;
+        let degrees: number = Number(part);  // Number, not parseFloat: '90deg' is not a bearing, as in iD
+        if (Number.isFinite(degrees)) {
+          if (degrees < 180) {
+            degrees += 180;
+          } else {
+            degrees -= 180;
+          }
+          return degrees.toString();
         }
-        return degrees.toString();
-      }
+        return valueReplacements[part] || part;
+      }).join(';');
     }
 
     return valueReplacements[value] || value;
@@ -188,7 +200,7 @@ export function actionReverse(entityID: EntityID, options?: ReverseOptions): Rev
 
       const tags: OsmTags = {};
       for (const [key, value] of Object.entries(node.tags)) {
-        tags[reverseKey(key)] = reverseValue(key, value, node.id === entityID);
+        tags[reverseKey(key)] = reverseValue(key, value, node.tags, node.id === entityID);
       }
       graph.replace(node.update({ tags: tags }));
     }
@@ -207,7 +219,7 @@ export function actionReverse(entityID: EntityID, options?: ReverseOptions): Rev
     const tags: OsmTags = {};
 
     for (const [key, value] of Object.entries(way.tags)) {
-      tags[reverseKey(key)] = reverseValue(key, value);
+      tags[reverseKey(key)] = reverseValue(key, value, way.tags);
     }
 
     for (let relation of graph.parentRelations(way)) {
@@ -253,7 +265,7 @@ export function actionReverse(entityID: EntityID, options?: ReverseOptions): Rev
     if (!entity || entity.type === 'way') return false;
 
     for (const [key, value] of Object.entries(entity.tags)) {
-      if (reverseKey(key) !== key || reverseValue(key, value, true) !== value) {
+      if (reverseKey(key) !== key || reverseValue(key, value, entity.tags, true) !== value) {
         return false;
       }
     }

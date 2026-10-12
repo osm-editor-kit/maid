@@ -6,10 +6,21 @@ describe('actionReverse', () => {
   const context = new Rapid.MockContext();
 
   describe('reverses directional tags on nodes', () => {
-    // needs F-actions-b-23 (iD splits the value on ';' and reverses each part)
-    it.todo('reverses directions with multiple semicolon separated values');
-    // needs F-actions-b-23
-    it.todo('reverses directions with multiple semicolon separated values, preserves non-directional part');
+    it('reverses directions with multiple semicolon separated values', () => {
+      const node1 = new Rapid.OsmNode(context, { tags: { 'direction': 'N;90' } });
+      const base = new Rapid.Graph(context, [node1]);
+      const graph = new Rapid.Graph(base);
+      const result = Rapid.actionReverse(node1.id)(graph);
+      expect(result.entity(node1.id).tags).toEqual({ 'direction': 'S;270' });
+    });
+
+    it('reverses directions with multiple semicolon separated values, preserves non-directional part', () => {
+      const node1 = new Rapid.OsmNode(context, { tags: { 'direction': '0;error' } });
+      const base = new Rapid.Graph(context, [node1]);
+      const graph = new Rapid.Graph(base);
+      const result = Rapid.actionReverse(node1.id)(graph);
+      expect(result.entity(node1.id).tags).toEqual({ 'direction': '180;error' });
+    });
   });
 
   describe('directionless nodes', () => {
@@ -69,13 +80,48 @@ describe('actionReverse', () => {
       expect(result.entity(way.id).tags['turn:lanes:both_ways']).toEqual('left');
     });
 
-    // needs F-actions-b-21 (Maid turns side=right into side=left)
-    it.todo('preserves the value of the side tag of a cycling waiting aid');
+    it('preserves the value of the side tag of a cycling waiting aid', () => {
+      const node1 = new Rapid.OsmNode(context);
+      const node2 = new Rapid.OsmNode(context, { tags: { 'highway': 'cyclist_waiting_aid', 'direction': 'forward', 'side': 'right' } });
+      const node3 = new Rapid.OsmNode(context);
+      const way = new Rapid.OsmWay(context, { nodes: [node1.id, node2.id, node3.id] });
+      const base = new Rapid.Graph(context, [node1, node2, node3, way]);
+      const graph = new Rapid.Graph(base);
+      const result = Rapid.actionReverse(way.id)(graph);
+      expect(result.entity(node2.id).tags['direction']).toEqual('backward');
+      expect(result.entity(node2.id).tags['side']).toEqual('right');
+    });
 
-    // needs F-actions-b-21 (Maid turns railway:turnout_side=right into left)
-    it.todo('preserves the value of railway:turnout_side');
+    it('preserves the value of railway:turnout_side', () => {
+      const node1 = new Rapid.OsmNode(context);
+      const node2 = new Rapid.OsmNode(context, { tags: { 'direction': 'forward', 'railway:turnout_side': 'right' } });
+      const node3 = new Rapid.OsmNode(context);
+      const way = new Rapid.OsmWay(context, { nodes: [node1.id, node2.id, node3.id] });
+      const base = new Rapid.Graph(context, [node1, node2, node3, way]);
+      const graph = new Rapid.Graph(base);
+      const result = Rapid.actionReverse(way.id)(graph);
+      expect(result.entity(node2.id).tags['direction']).toEqual('backward');
+      expect(result.entity(node2.id).tags['railway:turnout_side']).toEqual('right');
+    });
 
-    // needs F-actions-b-22 (Maid renames red_turn:right to red_turn:left)
-    it.todo('preserves the direction of a red turn at a traffic signal');
+    it('preserves the direction of a red turn at a traffic signal', () => {
+      const node1 = new Rapid.OsmNode(context);
+      const node2 = new Rapid.OsmNode(context, {
+        tags: {
+          'highway': 'traffic_signals',
+          'traffic_signals:direction': 'forward',
+          'red_turn:right': 'no',
+          'red_turn:right:bicycle': 'yes'
+        }
+      });
+      const node3 = new Rapid.OsmNode(context);
+      const way = new Rapid.OsmWay(context, { nodes: [node1.id, node2.id, node3.id] });
+      const base = new Rapid.Graph(context, [node1, node2, node3, way]);
+      const graph = new Rapid.Graph(base);
+      const result = Rapid.actionReverse(way.id)(graph);
+      expect(result.entity(node2.id).tags['traffic_signals:direction']).toEqual('backward');
+      expect(result.entity(node2.id).tags['red_turn:right']).toEqual('no');
+      expect(result.entity(node2.id).tags['red_turn:right:bicycle']).toEqual('yes');
+    });
   });
 });

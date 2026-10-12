@@ -303,7 +303,9 @@ export class OsmEntity extends AbstractData<OsmEntityProps> {
    * @returns Numeric ID as string (e.g. '123')
    */
   public static toOSM(id: EntityID): string {
-    return id.slice(1);
+    // Maid: differs from Rapid here (iD's osmIdManager.toOSM: a type letter, then an optional minus and digits; anything else is '')
+    const match = id.match(/^[cnwr](-?\d+)$/);
+    return match?.[1] ?? '';
   }
 
   /**

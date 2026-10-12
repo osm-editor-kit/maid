@@ -1,4 +1,4 @@
-import { DEG2RAD, RAD2DEG, vecEqual, vecNormalizedDot } from '@rapid-sdk/math';
+import { DEG2RAD, RAD2DEG, vecNormalizedDot } from '@rapid-sdk/math';
 
 import type { Vec2 } from '@rapid-sdk/math';
 
@@ -14,12 +14,10 @@ interface OrthoPoint {
  * @param a - First point
  * @param b - Second point
  * @param origin - Origin point
- * @returns Normalized dot product, or 1 if points are coincident
+ * @returns Normalized dot product (0 when a point coincides with the origin)
  */
 export function geoOrthoNormalizedDotProduct(a: Vec2, b: Vec2, origin: Vec2): number {
-  if (vecEqual(origin, a) || vecEqual(origin, b)) {
-    return 1;  // coincident points, treat as straight and try to remove
-  }
+  // Maid: differs from Rapid here (iD#9155: a vertex at the same place as its neighbour is kept, not treated as straight and removed)
   return vecNormalizedDot(a, b, origin);
 }
 

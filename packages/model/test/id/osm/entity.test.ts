@@ -15,8 +15,14 @@ describe('iD.OsmAbstractEntity', function () {
 
   describe('.id', function () {
     describe('.toOSM', function () {
+      it('reverses fromOSM, including negative ids', function () {
+        expect(Rapid.OsmEntity.toOSM(Rapid.OsmEntity.fromOSM('node', '1'))).toEqual('1');
+        expect(Rapid.OsmEntity.toOSM(Rapid.OsmEntity.fromOSM('node', '-1'))).toEqual('-1');
+      });
+
       it('returns the empty string for other strings', function () {
         expect(Rapid.OsmEntity.toOSM('a')).toEqual('');
+        expect(Rapid.OsmEntity.toOSM('x5')).toEqual('');
       });
     });
   });

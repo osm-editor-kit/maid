@@ -2,7 +2,6 @@
 // Only the iD test that has no counterpart in test/actions/orthogonalize.test.js is here. The other 39 pair with
 // Rapid's tests by title (see the report). iD passes an identity projection; Maid's action projects itself,
 // and the input is the same planar layout, used as lon/lat, as in Rapid's tests.
-// Parked as a todo: Maid's action removes the duplicate vertex (6 nodes become 4), see the report.
 import { describe, expect, it } from 'bun:test';
 import * as Rapid from '../../rapid.ts';
 
@@ -10,8 +9,7 @@ describe('iD.actionOrthogonalize', () => {
   const context = new Rapid.MockContext();
 
   describe('closed paths', () => {
-    // needs F-actions-b-12 (Maid's straight-node pass deletes a vertex at the same position as its neighbour, iD#9155 keeps it)
-    it.todo('preserves a way\'s duplicate vertices', () => {
+    it('preserves a way\'s duplicate vertices', () => {
       // #9155
       const base = new Rapid.Graph(context, [
         new Rapid.OsmNode(context, { id: 'a', loc: [0, 0] }),
