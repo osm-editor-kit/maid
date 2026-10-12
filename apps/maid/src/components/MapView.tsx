@@ -47,11 +47,9 @@ export function MapView() {
 
   const options: LayerOptions = {
     fill: config.fill,
-    highlight: config.highlight,
     labels: config.labels,
     icons: config.icons,
     pins: config.pins,
-    editLayers: config.edit === 'split',
     lat: initialCamera.lat,
     dashes,
   }

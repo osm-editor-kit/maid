@@ -5,7 +5,7 @@ import { join } from 'node:path'
  * reports/<run-id>/results.json plus screenshots.
  *
  *   bun run bench [--editor maid,id,rapid] [--scene small,medium,dense] [--repeat 3]
- *                 [--label text] [--maid-query "update=setData"] [--variant name]
+ *                 [--label text] [--maid-query "fill=full"] [--variant name]
  *
  * Starts the servers it needs. Blocks every non-localhost request (core rule 1) and
  * fails a run when an editor tries to reach OSM infrastructure.

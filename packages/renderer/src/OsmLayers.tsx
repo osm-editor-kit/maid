@@ -38,10 +38,9 @@ export function OsmLayers({ options, sourceOptions }: Props) {
         tolerance={0}
         maxzoom={source.maxzoom}
       />
-      {options.editLayers &&
-        Object.values(EDIT_SOURCES).map((id) => (
-          <Source key={id} id={id} type="geojson" data={EMPTY} {...source} />
-        ))}
+      {Object.values(EDIT_SOURCES).map((id) => (
+        <Source key={id} id={id} type="geojson" data={EMPTY} {...source} />
+      ))}
       {layers.map((layer) => (
         <Layer key={layer.id} {...layer} />
       ))}

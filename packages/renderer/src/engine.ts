@@ -4,6 +4,7 @@ import {
   actionMoveNode,
   type Difference,
   OsmWay,
+  type OsmEntity,
   type OsmJsonElement,
   type OsmNode,
 } from '@osm-editor-kit/maid-model'
@@ -18,16 +19,13 @@ import {
 import {
   isArea,
   matchPreset,
-  resolveWayStyle,
-  tagClasses,
   type Geometry,
   type Preset,
   type Tags,
 } from '@osm-editor-kit/maid-style'
-import type { Feature, FeatureCollection } from 'geojson'
+import type { Feature } from 'geojson'
 import type { GeoJSONSource, Map as MapLibreMap, MapGeoJSONFeature } from 'maplibre-gl'
 import {
-  coordinateOf,
   dashPatterns,
   FeatureBuilder,
   wayVertices,
@@ -44,21 +42,6 @@ export type EngineOptions = {
   apiUrl: string
   /** Data loads from this OSM zoom on (iD: 16) */
   minDataZoom: number
-  /** 'diff' sends only new features to MapLibre, 'setData' re-sends everything on every tile */
-  update: 'diff' | 'setData'
-  highlight: 'source' | 'state'
-  /**
-   * How a changing feature reaches the screen. 'inline': update it in the big source.
-   * 'split': move it to a small edit source for the duration of the change.
-   */
-  edit: 'inline' | 'split'
-  /**
-   * Hold new features back for a moment while more tiles of the same view are still loading,
-   * so that a burst of tiles becomes one update. Every update re-tiles its whole source.
-   */
-  coalesce: boolean
-  /** Wait for MapLibre to finish one update before sending the next (default true) */
-  serialUpdates: boolean
   /**
    * Called with new features before they go to MapLibre, e.g. to add the images they need.
    * Images that arrive after a tile was laid out do not reliably show up in that tile.
@@ -96,7 +79,6 @@ export type EntityInfo = {
 
 const TILE_ZOOM = 16
 const SOURCE_NAMES: SourceName[] = ['areas', 'lines', 'points', 'vertices']
-const EMPTY: FeatureCollection = { type: 'FeatureCollection', features: [] }
 
 const lon2x = (lon: number) => Math.floor(((lon + 180) / 360) * 2 ** TILE_ZOOM)
 const lat2y = (lat: number) =>
@@ -104,6 +86,15 @@ const lat2y = (lat: number) =>
 const x2lon = (x: number) => (x / 2 ** TILE_ZOOM) * 360 - 180
 const y2lat = (y: number) =>
   (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / 2 ** TILE_ZOOM))) * 180) / Math.PI
+
+/** Whether an entity moved between the two sides of a change. A missing side or position counts as moved. */
+function locMoved(base: OsmEntity | undefined, head: OsmEntity | undefined): boolean {
+  // only nodes have a position; a way gives undefined and counts as moved (ways are always rebuilt anyway)
+  const from = (base as OsmNode | undefined)?.loc
+  const to = (head as OsmNode | undefined)?.loc
+  if (!from || !to) return true
+  return from[0] !== to[0] || from[1] !== to[1]
+}
 
 export class MaidEngine {
   /** The OSM data: entities and edit history (from the editor), plus the indexes of the builder */
@@ -117,13 +108,6 @@ export class MaidEngine {
   private map?: MapLibreMap
   private tiles = new Set<string>()
   private inflight = 0
-  /** Everything pushed so far, by id. Only kept for the 'setData' mode, which re-sends all of it. */
-  private all: Record<SourceName, Map<string, Feature>> = {
-    areas: new Map(),
-    lines: new Map(),
-    points: new Map(),
-    vertices: new Map(),
-  }
   private featureSource = new Map<string, SourceName>()
   private dashCount = 0
   private hoverId: string | null = null
@@ -290,7 +274,7 @@ export class MaidEngine {
     const batch = this.builder.build(added)
     const t2 = performance.now()
     // decided now, not when the images are ready: by then the first view may count as complete
-    const tier = this.tiered && this.firstLoadDone ? 'live' : 'base'
+    const tier = this.firstLoadDone ? 'live' : 'base'
     if (this.options.prepare) {
       this.preparing++
       void this.options.prepare(batch).finally(() => {
@@ -309,15 +293,8 @@ export class MaidEngine {
     }
   }
 
-  private get tiered() {
-    return this.options.edit === 'split' && this.options.update === 'diff'
-  }
-
   /** Sends features to MapLibre: to the live tier once the first view is complete, else to the big sources */
-  private push(
-    batch: FeatureBatch,
-    tier: 'base' | 'live' = this.tiered && this.firstLoadDone ? 'live' : 'base',
-  ) {
+  private push(batch: FeatureBatch, tier: 'base' | 'live' = this.firstLoadDone ? 'live' : 'base') {
     for (const name of SOURCE_NAMES) {
       const features = batch[name]
       if (features.length === 0) continue
@@ -335,9 +312,7 @@ export class MaidEngine {
         queueMicrotask(() => this.applyHighlight(null, 'selected'))
       }
       const channel = this.channels[tier][name]
-      if (this.options.update === 'setData')
-        for (const f of features) this.all[name].set(f.id as string, f)
-      else channel.queue = channel.queue.concat(features)
+      channel.queue = channel.queue.concat(features)
       channel.dirty = true
       this.scheduleFlush(channel)
     }
@@ -348,7 +323,7 @@ export class MaidEngine {
 
   private scheduleFlush(channel: Channel) {
     // more tiles of this view are on their way: wait for them, but never longer than 150 ms
-    if (this.options.coalesce && this.inflight > 1) {
+    if (this.inflight > 1) {
       this.flushTimer ??= setTimeout(() => this.flushAll(), 150)
       return
     }
@@ -378,22 +353,12 @@ export class MaidEngine {
     channel.dirty = false
     this.metrics.updates++
     try {
-      if (this.options.update === 'setData') {
-        await source.setData({
-          type: 'FeatureCollection',
-          features: [...this.all[channel.name].values()],
-        })
-        await this.tilesReloaded(channel.sourceId)
-      } else {
-        const add = channel.queue
-        const remove = channel.removals
-        channel.queue = []
-        channel.removals = []
-        if (this.options.serialUpdates) {
-          await source.updateData({ add, remove })
-          await this.tilesReloaded(channel.sourceId)
-        } else void source.updateData({ add, remove })
-      }
+      const add = channel.queue
+      const remove = channel.removals
+      channel.queue = []
+      channel.removals = []
+      await source.updateData({ add, remove })
+      await this.tilesReloaded(channel.sourceId)
     } finally {
       channel.busy = false
       if (channel.dirty) void this.flush(channel)
@@ -415,7 +380,6 @@ export class MaidEngine {
 
   /** Call on any activity. Compaction waits until two seconds have passed without one. */
   private touch() {
-    if (!this.tiered) return
     clearTimeout(this.compactTimer)
     this.compactTimer = setTimeout(() => void this.compact(), 2000)
   }
@@ -561,19 +525,10 @@ export class MaidEngine {
     const t0 = performance.now()
     // the action replaces the node with a moved copy: the redraw looks the node up again
     this.data.history.perform(actionMoveNode(id, [lon, lat]))
-    const { batch, remove } = this.redraw([id])
+    const { batch, remove } = this.redraw([{ id, moved: true }])
     this.removeFeatures(remove)
-
-    if (this.tiered) {
-      this.hideOriginals(batch)
-      this.push(batch, 'live')
-      await Promise.all(
-        Object.values(this.channels.live).map((channel) => this.channelIdle(channel)),
-      )
-    } else {
-      this.push(batch, 'base')
-      if (this.pushing()) await new Promise<void>((resolve) => this.waiters.push(resolve))
-    }
+    this.sendBatch(batch)
+    await Promise.all(Object.values(this.channels.live).map((channel) => this.channelIdle(channel)))
     await new Promise<void>((resolve) => {
       map.triggerRepaint()
       void map.once('render').then(() => resolve())
@@ -613,7 +568,8 @@ export class MaidEngine {
     this.data.history.commit({ annotation: 'Changed tags', selectedIDs: [id] })
     // the action replaced the entity with a copy: the redraw looks it up again, never reuses the old one
     if (!this.nodeOrWay(id)) return
-    const { batch, remove } = this.redraw([id])
+    // a tag change does not move the node, so the ways that use it keep their features
+    const { batch, remove } = this.redraw([{ id, moved: false }])
     this.removeFeatures(remove)
     this.sendBatch(batch)
     // feature state belongs to a source; a way that moved between sources needs it again
@@ -627,11 +583,12 @@ export class MaidEngine {
   /**
    * Rebuilds the features that show the given entities, from the current staging graph. Nothing
    * is sent to MapLibre: the caller removes the features in `remove` and sends `batch`.
-   * A node rebuilds the ways that use it and its vertex, or its point if it is standalone. A way
-   * rebuilds its line or area, a multipolygon relation its area. An id that is no longer in the
-   * graph loses its feature. Each feature is built once, however many ids need it.
+   * A node rebuilds its vertex, or its point if it is standalone. If the node moved (`moved`), it
+   * also rebuilds the ways that use it, because their shape depends on the position only.
+   * A way rebuilds its line or area, a multipolygon relation its area. An id that is no longer in
+   * the graph loses its feature. Each feature is built once, however many ids need it.
    */
-  private redraw(entityIds: Iterable<string>): {
+  private redraw(entities: Iterable<{ id: string; moved: boolean }>): {
     batch: FeatureBatch
     remove: [SourceName, string][]
   } {
@@ -647,16 +604,17 @@ export class MaidEngine {
       const previous = this.featureSource.get(id)
       if (previous && previous !== drawn?.source) remove.push([previous, id])
     }
-    for (const id of entityIds) {
+    for (const { id, moved } of entities) {
       if (id[0] === 'n') {
         const node = this.data.node(id)
         if (!node) {
           place(id)
         } else if (this.data.nodeWays.has(id)) {
-          for (const wayId of this.data.nodeWays.get(id) ?? []) {
-            const way = this.data.way(wayId)
-            if (way) place(wayId, this.builder.buildWay(way))
-          }
+          if (moved)
+            for (const wayId of this.data.nodeWays.get(id) ?? []) {
+              const way = this.data.way(wayId)
+              if (way) place(wayId, this.builder.buildWay(way))
+            }
           const vertex = this.builder.refreshVertex(node)
           place(id, vertex && { source: 'vertices', feature: vertex })
         } else {
@@ -696,12 +654,10 @@ export class MaidEngine {
     }
   }
 
-  /** Sends a batch the way an edit does: to the live tier when tiered, hiding the originals there */
+  /** Sends a batch the way an edit does: to the live tier, hiding the originals there */
   private sendBatch(batch: FeatureBatch) {
-    if (this.tiered) {
-      this.hideOriginals(batch)
-      this.push(batch, 'live')
-    } else this.push(batch, 'base')
+    this.hideOriginals(batch)
+    this.push(batch, 'live')
   }
 
   // --- Undo and redo ---
@@ -746,21 +702,24 @@ export class MaidEngine {
     } finally {
       off()
     }
-    const difference = differences[differences.length - 1]
-    if (difference) {
-      const ids: string[] = []
-      let created = 0
-      let deleted = 0
-      for (const [id, { base, head }] of difference.changes) {
-        ids.push(id)
-        if (base === undefined) created++
-        else if (head === undefined) deleted++
-      }
-      if (created + deleted > 0)
+    if (differences.length > 0) {
+      // the union of all differences, each id once; a node that moved in any of them moves its ways
+      const moved = new Map<string, boolean>()
+      const created = new Set<string>()
+      const deleted = new Set<string>()
+      for (const difference of differences)
+        for (const [id, { base, head }] of difference.changes) {
+          moved.set(id, (moved.get(id) ?? false) || locMoved(base, head))
+          if (base === undefined) created.add(id)
+          else if (head === undefined) deleted.add(id)
+        }
+      if (created.size + deleted.size > 0)
         console.warn(
-          `Undo or redo: ${created} created and ${deleted} deleted entities are only partly redrawn`,
+          `Undo or redo: ${created.size} created and ${deleted.size} deleted entities are only partly redrawn`,
         )
-      const { batch, remove } = this.redraw(ids)
+      const { batch, remove } = this.redraw(
+        [...moved].map(([id, isMoved]) => ({ id, moved: isMoved })),
+      )
       this.removeFeatures(remove)
       this.sendBatch(batch)
       if (remove.some(([, featureId]) => featureId === this.selectedId))
@@ -850,84 +809,26 @@ export class MaidEngine {
       this.shownHover = hoverId
       this.shownSelected = selectedId
     }
-    if (this.options.highlight === 'state') {
-      const set = (id: string | null, on: boolean) => {
-        const name = id && this.featureSource.get(id)
-        if (!name) return
-        // a feature can be in the big source, in the live tier, or (hidden) in both
-        map.setFeatureState({ source: SOURCES[name], id: id! }, { [kind]: on })
-        map.setFeatureState({ source: EDIT_SOURCES[name], id: id! }, { [kind]: on })
-      }
-      set(previous, false)
-      set(kind === 'hover' ? hoverId : selectedId, true)
-      if (kind === 'selected') {
-        // the shape points of the selected way come from the small highlight source
-        const shape = selectedId?.[0] === 'w' ? wayVertices(this.data, selectedId) : []
-        for (const vertex of shape) vertex.properties = { ...vertex.properties, state: 'shape' }
-        void map
-          .getSource<GeoJSONSource>(SOURCES.highlight)
-          ?.setData({ type: 'FeatureCollection', features: shape })
-      }
-      // a feature that is not on the map changes nothing, so ask for a frame explicitly
-      void map.once('render').then(shown)
-      map.triggerRepaint()
-      return
+    const set = (id: string | null, on: boolean) => {
+      const name = id && this.featureSource.get(id)
+      if (!name) return
+      // a feature can be in the big source, in the live tier, or (hidden) in both
+      map.setFeatureState({ source: SOURCES[name], id: id! }, { [kind]: on })
+      map.setFeatureState({ source: EDIT_SOURCES[name], id: id! }, { [kind]: on })
     }
-    const features: Feature[] = []
-    if (selectedId) features.push(...this.highlightFeatures(selectedId, 'selected'))
-    if (hoverId && hoverId !== selectedId)
-      features.push(...this.highlightFeatures(hoverId, 'hover'))
-    const source = map.getSource<GeoJSONSource>(SOURCES.highlight)
-    if (!source) return
-    void source.setData(features.length ? { type: 'FeatureCollection', features } : EMPTY)
-    const onData = (event: { sourceId?: string; sourceDataType?: string }) => {
-      if (event.sourceId !== SOURCES.highlight || !map.isSourceLoaded(SOURCES.highlight)) return
-      map.off('sourcedata', onData)
-      void map.once('render').then(shown)
+    set(previous, false)
+    set(kind === 'hover' ? hoverId : selectedId, true)
+    if (kind === 'selected') {
+      // the shape points of the selected way come from the small highlight source
+      const shape = selectedId?.[0] === 'w' ? wayVertices(this.data, selectedId) : []
+      for (const vertex of shape) vertex.properties = { ...vertex.properties, state: 'shape' }
+      void map
+        .getSource<GeoJSONSource>(SOURCES.highlight)
+        ?.setData({ type: 'FeatureCollection', features: shape })
     }
-    map.on('sourcedata', onData)
-  }
-
-  private highlightFeatures(id: string, state: 'hover' | 'selected'): Feature[] {
-    if (id[0] === 'n') {
-      const coordinates = coordinateOf(this.data.node(id))
-      if (!coordinates) return []
-      return [
-        {
-          type: 'Feature',
-          properties: { id, state },
-          geometry: { type: 'Point', coordinates },
-        },
-      ]
-    }
-    if (id[0] !== 'w') return []
-    const way = this.data.way(id)
-    if (!way) return []
-    const coordinates = way.nodes.flatMap((n) => {
-      const coord = coordinateOf(this.data.node(n))
-      return coord ? [coord] : []
-    })
-    const geom = this.featureSource.get(id) === 'areas' ? 'area' : 'line'
-    const shadow = resolveWayStyle(tagClasses(way.tags), geom).shadow
-    const out: Feature[] = [
-      {
-        type: 'Feature',
-        properties: {
-          id,
-          state,
-          hw: shadow.width,
-          hwl: geom === 'area' ? shadow.width : shadow.widthLow,
-        },
-        geometry: { type: 'LineString', coordinates },
-      },
-    ]
-    if (state === 'selected') {
-      for (const vertex of wayVertices(this.data, id)) {
-        vertex.properties = { ...vertex.properties, state: 'shape' }
-        out.push(vertex)
-      }
-    }
-    return out
+    // a feature that is not on the map changes nothing, so ask for a frame explicitly
+    void map.once('render').then(shown)
+    map.triggerRepaint()
   }
 
   /** The feature a pointer at this pixel would hit, in iD's priority: vertex, point, line, area */

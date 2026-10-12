@@ -36,18 +36,10 @@ export type LayerOptions = {
   dashes: Map<string, number[]>
   /** Latitude of the scene, for converting metres to pixels */
   lat: number
-  /**
-   * How hover and selection are shown.
-   * 'source': a small extra source that holds only the highlighted features.
-   * 'state': feature state on the big sources; halo layers cover every feature at zero opacity.
-   */
-  highlight: 'source' | 'state'
   labels: boolean
   icons: boolean
   /** 'fit': pins where there is room (dots always). 'all': every pin, overlapping, like iD when it does not hide them. */
   pins: 'fit' | 'all'
-  /** Add twin layers for the edit sources */
-  editLayers: boolean
 }
 
 /**
@@ -63,7 +55,6 @@ const HOVER = '#f6634f'
 
 export function buildLayers(options: LayerOptions): LayerSpecification[] {
   const layers = buildMainLayers(options)
-  if (!options.editLayers) return layers
   // Each layer is followed by its twin on the edit source, so stacking stays the same.
   // The original of a feature that is being edited is hidden through feature state, which
   // costs nothing; taking it out of the big source would re-tile the whole source.
@@ -179,43 +170,28 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
   )
 
   // --- Hover and selection halo, under the lines like iD's shadow paths ---
-  if (options.highlight === 'source') {
-    layers.push({
+  const opacity: ExpressionSpecification = [
+    'case',
+    ['boolean', ['feature-state', 'selected'], false], 0.7,
+    ['boolean', ['feature-state', 'hover'], false], 0.4,
+    0,
+  ] // prettier-ignore
+  layers.push(
+    {
+      id: 'highlight-halo-areas',
+      type: 'line',
+      source: SOURCES.areas,
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': HOVER, 'line-width': ['get', 'hw'], 'line-opacity': opacity },
+    },
+    {
       id: 'highlight-halo',
       type: 'line',
-      source: SOURCES.highlight,
-      filter: ['==', ['geometry-type'], 'LineString'],
+      source: SOURCES.lines,
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: {
-        'line-color': HOVER,
-        'line-width': byZoom('hwl', 'hw'),
-        'line-opacity': ['match', ['get', 'state'], 'selected', 0.7, 0.4],
-      },
-    })
-  } else {
-    const opacity: ExpressionSpecification = [
-      'case',
-      ['boolean', ['feature-state', 'selected'], false], 0.7,
-      ['boolean', ['feature-state', 'hover'], false], 0.4,
-      0,
-    ] // prettier-ignore
-    layers.push(
-      {
-        id: 'highlight-halo-areas',
-        type: 'line',
-        source: SOURCES.areas,
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': HOVER, 'line-width': ['get', 'hw'], 'line-opacity': opacity },
-      },
-      {
-        id: 'highlight-halo',
-        type: 'line',
-        source: SOURCES.lines,
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': HOVER, 'line-width': byZoom('hwl', 'hw'), 'line-opacity': opacity },
-      },
-    )
-  }
+      paint: { 'line-color': HOVER, 'line-width': byZoom('hwl', 'hw'), 'line-opacity': opacity },
+    },
+  )
 
   // --- Lines: three stacking bands, each with casing below stroke ---------
   for (const band of [-1, 0, 1]) {
@@ -276,19 +252,6 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
     16,
     r,
   ]
-  if (options.highlight === 'source') {
-    layers.push({
-      id: 'highlight-vertex-halo',
-      type: 'circle',
-      source: SOURCES.highlight,
-      filter: ['==', ['geometry-type'], 'Point'],
-      paint: {
-        'circle-radius': vertexRadius(6, 7.5),
-        'circle-color': HOVER,
-        'circle-opacity': ['match', ['get', 'state'], 'selected', 0.7, 'hover', 0.5, 0],
-      },
-    })
-  }
   // From OSM zoom 17 iD draws a tagged vertex with a preset icon as a larger disc with the icon in it.
   const hasIcon: ExpressionSpecification = ['has', 'icon']
   layers.push(

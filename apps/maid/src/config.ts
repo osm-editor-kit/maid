@@ -1,22 +1,17 @@
-import type { EngineOptions, LayerOptions } from '@osm-editor-kit/maid-renderer'
+import type { LayerOptions } from '@osm-editor-kit/maid-renderer'
 import { PORTS } from '../../../tools/ports'
 import { readParams, setupParams, stateParams, type Camera } from './url/params'
 
 /**
  * What the app is started with. Read once from the URL before React renders, so that
  * experiments and the benchmark run the same build.
- * Example: /?scene=dense&update=setData&fill=full&map=17/52.4845/13.433
+ * Example: /?scene=dense&fill=full&map=17/52.4845/13.433
  */
 export type Config = {
   scene: string
   apiUrl: string
   /** Live OSM data is a manual mode for people. It is refused under automation. */
   live: boolean
-  update: EngineOptions['update']
-  highlight: EngineOptions['highlight']
-  serialUpdates: boolean
-  coalesce: boolean
-  edit: EngineOptions['edit']
   fill: LayerOptions['fill']
   /** Inspector, controls and status bar. `ui=0` leaves only the map. */
   ui: boolean
@@ -42,11 +37,6 @@ export function readConfig(location: Location): Config {
     apiUrl: live
       ? 'https://api.openstreetmap.org'
       : `http://localhost:${PORTS.mockApi}/s/${setup.scene}`,
-    update: setup.update,
-    highlight: setup.highlight,
-    serialUpdates: setup.serial,
-    coalesce: setup.coalesce,
-    edit: setup.edit,
     fill: setup.fill,
     ui: setup.ui,
     labels: setup.labels,

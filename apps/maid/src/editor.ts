@@ -16,17 +16,12 @@ migrateIdHash(window.location, window.history)
 export const config = readConfig(window.location)
 
 /** The editor's data and modules. What this editor is lives in maid.config.ts. */
-export const editor = createEditor(editorConfig)
+export const editor = createEditor(editorConfig(config))
 
 export const engine = new MaidEngine({
   editor,
   apiUrl: config.apiUrl,
   minDataZoom: config.minDataZoom,
-  update: config.update,
-  highlight: config.highlight,
-  serialUpdates: config.serialUpdates,
-  coalesce: config.coalesce,
-  edit: config.edit,
 })
 
 /**

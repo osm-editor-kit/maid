@@ -6,7 +6,8 @@
  *   bun tools/bench/shot-diff.ts save <name>          take the reference set reports/shots/<name>/
  *   bun tools/bench/shot-diff.ts check <name> [query] compare the current state with it
  *
- * `check` exits non-zero when a scene differs in more than 1% of its pixels or its counts differ.
+ * `check` exits non-zero when a scene differs in more than 1% of its pixels or its counts differ
+ * (what is on screen may differ by 0.5%).
  * Two runs of the same code are not identical: tiles arrive in a different order, which moves a
  * few labels and decides a handful of shared vertices differently (measured: up to 0.4% of pixels).
  */
@@ -21,11 +22,24 @@ mkdirSync(dir, { recursive: true })
 type Counts = Record<string, number>
 type Stats = { entities: Counts; drawn: Counts; hidden: Counts; loaded: Counts }
 
-/** What must not change: the number of entities and of features per kind. Timings are left out. */
+/**
+ * What must not change: the number of entities, of layers and of features per kind. Timings are
+ * left out. So is what is drawn on screen: it depends on which tiles are in the view when the
+ * count is taken and differs by a feature or two between runs of the same code (`drift` checks it).
+ */
 function counts(stats: Stats) {
-  const { vertices: _drawnVertices, ...drawn } = stats.drawn
   const { vertices: _loadedVertices, ...loaded } = stats.loaded
-  return JSON.stringify({ entities: stats.entities, drawn, hidden: stats.hidden, loaded })
+  const layers = stats.drawn.layers
+  return JSON.stringify({ entities: stats.entities, layers, hidden: stats.hidden, loaded })
+}
+
+/** Largest relative difference of the counts that vary between runs */
+function drift(now: Stats, expected: Stats) {
+  const pairs = [
+    [now.loaded.vertices, expected.loaded.vertices],
+    ...Object.keys(expected.drawn).map((key) => [now.drawn[key], expected.drawn[key]]),
+  ]
+  return Math.max(...pairs.map(([a = 0, b = 0]) => Math.abs(a - b) / Math.max(1, b)))
 }
 
 async function shoot(scene: string, out: string) {
@@ -53,14 +67,11 @@ for (const scene of SCENES) {
       .quiet()
   const pixels = Number.parseFloat(result.stderr.toString())
   const share = pixels / (3200 * 2000)
-  const vertexDrift =
-    Math.abs((stats.loaded.vertices ?? 0) - (expected.loaded.vertices ?? 0)) /
-    Math.max(1, expected.loaded.vertices ?? 0)
-  const same = counts(stats) === counts(expected) && vertexDrift <= 0.005
+  const same = counts(stats) === counts(expected) && drift(stats, expected) <= 0.005
   const ok = same && share <= 0.01 && problems.length === 0
   if (!ok) failed = true
   console.log(
-    `${scene}: ${ok ? 'ok' : 'DIFFERENT'} pixels=${(share * 100).toFixed(2)}% counts ${same ? 'equal' : `now ${counts(stats)} vertices ${stats.loaded.vertices}, expected ${counts(expected)} vertices ${expected.loaded.vertices}`}`,
+    `${scene}: ${ok ? 'ok' : 'DIFFERENT'} pixels=${(share * 100).toFixed(2)}% counts ${same ? 'equal' : `now ${JSON.stringify(stats)}, expected ${JSON.stringify(expected)}`}`,
     problems.join(' '),
   )
 }

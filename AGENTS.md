@@ -77,9 +77,10 @@ These names are the contract. Agents and docs only reference these.
 | `bun run bench-smoke` | One run per editor on the small scene. |
 | `bun run bench-report [run-id ...]` | Render one or more runs as `report.md` and `report.html`. |
 | `bun run bench-edit [scene] [query]` | Maid only: drag a node and measure change-to-screen time. Needs a Maid preview on 5175 (`bun run compare` starts one). |
-| `bun run bench-model [--runs 5] [--browser chromium]` | Time loading each fixture into `maid-model` and into the proof-of-concept store, in the browser. Writes `reports/model-load-<browser>.json`. |
+| `bun run bench-model [--runs 5] [--browser chromium]` | Time loading each fixture into `maid-model` (JSON to entities, entities into the history), in the browser. Writes `reports/model-load-<browser>.json`. |
 | `bun run check-undo [scene]` | Browser check: move a vertex, change a tag, undo and redo, and compare data and map after each step. Needs `bun run dev`. |
-| `bun run check-render <name>` | Compare screenshots and feature counts of all scenes with a reference saved by `bun tools/bench/shot-diff.ts save <name>`. Needs `bun run dev`. |
+| `bun run check-render <name>` | Compare screenshots and feature counts of all scenes with a reference. Needs `bun run dev`. |
+| `bun run check-render-save <name>` | Save that reference from the current state, before a change to the renderer. |
 | `bun run compare` | Everything for the side-by-side page on http://localhost:5184. |
 | `bun run fixtures-build <file.osm.pbf>` | Cut fixtures from a local extract. Manual only, see core rule 1. |
 | `bun run style-generate [iD checkout]` | Regenerate the style data from iD's CSS and presets. |

@@ -5,7 +5,7 @@ Date: 2026-10-10
 ## Decision
 
 - Maid starts MapLibre with four workers (`setWorkerCount(4)`; `?workers=N` overrides).
-- Features from tiles that arrive within 150 ms of each other are sent to MapLibre as one update per source (`?coalesce=0` switches it off).
+- Features from tiles that arrive within 150 ms of each other are sent to MapLibre as one update per source.
 
 ## Why
 
