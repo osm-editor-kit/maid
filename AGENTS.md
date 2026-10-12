@@ -79,6 +79,7 @@ These names are the contract. Agents and docs only reference these.
 | `bun run bench-edit [scene] [query]` | Maid only: drag a node and measure change-to-screen time. Needs a Maid preview on 5175 (`bun run compare` starts one). |
 | `bun run bench-model [--runs 5] [--browser chromium]` | Time loading each fixture into `maid-model` (JSON to entities, entities into the history), in the browser. Writes `reports/model-load-<browser>.json`. |
 | `bun run check-undo [scene]` | Browser check: move a vertex, change a tag, undo and redo, and compare data and map after each step. Needs `bun run dev`. |
+| `bun run check-edit [scene]` | Browser check: add a point, change it, delete it, delete a way, undo and redo, and compare data, lookups and map after each step. Needs `bun run dev`. |
 | `bun run check-render <name>` | Compare screenshots and feature counts of all scenes with a reference. Needs `bun run dev`. |
 | `bun run check-render-save <name>` | Save that reference from the current state, before a change to the renderer. |
 | `bun run compare` | Everything for the side-by-side page on http://localhost:5184. |

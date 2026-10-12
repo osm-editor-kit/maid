@@ -17,7 +17,7 @@ import {
   type ViewStateChangeEvent,
 } from 'react-map-gl/maplibre'
 import { exposeBenchApi } from '../bench'
-import { config, editor, engine } from '../editor'
+import { config, editor, engine, useEngine } from '../editor'
 import { addBaseImages, ensureImages } from '../images'
 import { useCameraParam, useSelectedId } from '../url/state'
 
@@ -41,6 +41,7 @@ export function MapView() {
   // Dash patterns are discovered as data arrives; the layers list them in their expressions.
   const [dashes, setDashes] = useState(() => new globalThis.Map(dashPatterns))
   const [cursor, setCursor] = useState('grab')
+  const mode = useEngine((e) => e.mode)
 
   // Start position: the `map` parameter, else iD's `#map=` hash, else a default.
   const [initialCamera] = useState(() => cameraParam ?? config.camera ?? FALLBACK_CAMERA)
@@ -89,6 +90,7 @@ export function MapView() {
     void setCameraParam({ zoom: zoom + 1, lat: latitude, lng: longitude })
   }
   const handleMouseDown = (event: MapLayerMouseEvent) => {
+    if (mode !== 'browse') return
     const id = engine.pick(event.point, interactive)
     if (!engine.isVertex(id)) return
     event.preventDefault() // keeps MapLibre from panning the map with this drag
@@ -106,11 +108,21 @@ export function MapView() {
       engine.dragTo(dragging, event.lngLat.lng, event.lngLat.lat)
       return
     }
+    if (mode !== 'browse') return
     const id = engine.pick(event.point, interactive)
     engine.setHover(id)
     setCursor(id ? 'pointer' : 'grab')
   }
-  const handleClick = (event: MapLayerMouseEvent) => select(engine.pick(event.point, interactive))
+  const handleClick = (event: MapLayerMouseEvent) => {
+    if (mode === 'add-point') {
+      // the new point is selected, so the sidebar asks what it is
+      const id = engine.addPoint(event.lngLat.lng, event.lngLat.lat)
+      engine.setMode('browse')
+      select(id)
+      return
+    }
+    select(engine.pick(event.point, interactive))
+  }
 
   return (
     <Map
@@ -126,7 +138,7 @@ export function MapView() {
       fadeDuration={config.fade}
       attributionControl={false}
       dragRotate={false}
-      cursor={cursor}
+      cursor={mode === 'add-point' ? 'crosshair' : cursor}
       onLoad={handleLoad}
       onMove={handleMove}
       onMoveEnd={handleMoveEnd}

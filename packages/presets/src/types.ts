@@ -14,6 +14,10 @@ export type Preset = {
   matchScore: number
   /** false for presets that are not offered in search (iD's `searchable: false`), default true */
   searchable: boolean
+  /** Search words from the translation, lower case */
+  terms: string[]
+  /** Other names from the translation */
+  aliases: string[]
 }
 
 export type FieldOption = { value: string; label: string }
@@ -59,4 +63,17 @@ export type Presets = {
   fieldsFor(preset: Preset, tags: Tags, geometry: Geometry): Field[]
   /** iD's area keys: key → values that are NOT areas. Same shape as iD's `areaKeys`. The object is built once; do not mutate it. */
   areaKeys(): Record<string, Record<string, true>>
+  /**
+   * Presets for this geometry whose name, alias, term or tag value matches the query, best first.
+   * Only searchable presets. An empty query returns the first `limit` presets by name.
+   */
+  search(query: string, geometry: Geometry, limit?: number): Preset[]
+  /**
+   * The tags after choosing `preset` for a feature that had `tags` and matched `previous`:
+   * the previous preset's tags are removed (iD's `unsetTags`, without touching tags the new
+   * preset also sets), then the new preset's tags are added (iD's `setTags`: `addTags`, a `*`
+   * value becomes `yes` unless the key already has a value; for geometry `area`, `area=yes` is added when no
+   * tag of the preset makes it an area by `areaKeys`, as iD does). Returns a new object.
+   */
+  applyPreset(tags: Tags, preset: Preset, geometry: Geometry, previous?: Preset): Tags
 }

@@ -10,9 +10,12 @@ import {
 } from './raw.ts'
 import type { RawRecord } from './raw.ts'
 // Port of the matching and field logic of iD's modules/presets (index.js, preset.ts, collection.ts, field.ts).
+// Search (collection.ts `search`) and applyPreset (preset.ts `setTags`, `unsetTags`) are ported too,
+// without the fuzzy tiers, field defaults and location sets.
 // Not ported: location sets (`locationSet` is ignored, so a preset that iD would hide outside its
-// area is matched everywhere), categories, defaults, recents, search, preferences, the file fetcher,
-// and the localizer (labels come straight from the English translation).
+// area is matched everywhere), categories, field defaults, recents, the fuzzy (edit distance) search
+// tiers, suggestion presets (none in the bundled data), preferences, the file fetcher, and the
+// localizer (labels come straight from the English translation).
 import type { Field, FieldOption, Geometry, Preset, PresetData, Presets, Tags } from './types.ts'
 
 type Which = 'fields' | 'moreFields'
@@ -128,6 +131,144 @@ function matchScore(preset: Preset, entityTags: Tags): number {
 function isFallbackTags(tags: Tags): boolean {
   const keys = Object.keys(tags)
   return keys.length === 0 || (keys.length === 1 && keys[0] === 'area')
+}
+
+/** A translation list: `text` split on `separator` (iD's `terms` are comma separated, `aliases` newline separated), else the raw array. */
+function wordList(text: string | undefined, separator: string, fallback: unknown): string[] {
+  const words = text !== undefined ? text.split(separator) : (asStrings(fallback) ?? [])
+  return words.map((word) => word.trim()).filter((word) => word !== '')
+}
+
+/** iD's utilStripDiacritics. */
+function stripDiacritics(text: string): string {
+  return text.normalize('NFD').replace(/\p{Dia}/gu, '')
+}
+
+/** iD's `leading`: the text starts with `value`, or has it after a space (e.g. "office" in "Law Office"). */
+function leading(text: string, value: string): boolean {
+  const index = text.indexOf(value)
+  return index === 0 || (index > 0 && text[index - 1] === ' ')
+}
+
+/** iD's `presetInSearchTerm`: the query starts with the preset's name, or has it after a space. */
+function nameInQuery(name: string, value: string): boolean {
+  if (name.length === 0) return false
+  const index = value.indexOf(name)
+  return index === 0 || (index > 0 && value[index - 1] === ' ')
+}
+
+/**
+ * iD's osmAreaKeysExceptions (modules/osm/tags.ts): values that make a key an area without `area=yes`.
+ * iD tests only that the value is listed, so the `false` entries of `emergency` count too.
+ */
+const AREA_KEY_EXCEPTIONS: ReadonlyMap<string, ReadonlySet<string>> = new Map([
+  ['highway', new Set(['elevator', 'rest_area', 'services'])],
+  ['public_transport', new Set(['platform'])],
+  [
+    'railway',
+    new Set([
+      'platform',
+      'roundhouse',
+      'station',
+      'traverser',
+      'turntable',
+      'wash',
+      'ventilation_shaft',
+    ]),
+  ],
+  ['waterway', new Set(['dam'])],
+  ['amenity', new Set(['bicycle_parking'])],
+  ['emergency', new Set(['yes', 'no', 'private', 'designated', 'destination', 'official'])],
+])
+
+/** What search needs about one preset, lower-cased once when the presets are built. */
+type SearchEntry = {
+  preset: Preset
+  name: string
+  nameStripped: string
+  aliases: string[]
+  aliasesStripped: string[]
+  terms: string[]
+  /** tag values other than `*` */
+  values: string[]
+  /** `key=value` for tags and addTags */
+  keyValues: string[]
+  /** name, aliases, terms and stripped names: the texts that a query can contain */
+  texts: string[]
+}
+
+function searchEntryOf(preset: Preset): SearchEntry {
+  const name = preset.name.toLowerCase()
+  const nameStripped = stripDiacritics(name)
+  const aliases = preset.aliases.map((alias) => alias.toLowerCase())
+  const aliasesStripped = aliases.map((alias) => stripDiacritics(alias))
+  const values = Object.values(preset.tags)
+    .filter((value) => value !== '*')
+    .map((value) => value.toLowerCase())
+  const keyValues = [
+    ...new Set(
+      [...Object.entries(preset.tags), ...Object.entries(preset.addTags)].map(([key, value]) =>
+        `${key}=${value}`.toLowerCase(),
+      ),
+    ),
+  ]
+  const texts = [name, ...aliases, ...preset.terms, nameStripped, ...aliasesStripped]
+  return {
+    preset,
+    name,
+    nameStripped,
+    aliases,
+    aliasesStripped,
+    terms: preset.terms,
+    values,
+    keyValues,
+    texts,
+  }
+}
+
+function byNameThenId(a: SearchEntry, b: SearchEntry): number {
+  if (a.name !== b.name) return a.name < b.name ? -1 : 1
+  return a.preset.id < b.preset.id ? -1 : 1
+}
+
+/** iD's findMatchingAlias: the name or alias that equals the query, else the shortest one that contains it. */
+function bestText(value: string, names: string[]): string {
+  if (names.includes(value)) return value
+  const containing = names.filter((name) => name.includes(value))
+  containing.sort((a, b) => a.length - b.length)
+  return containing[0] ?? names[0] ?? ''
+}
+
+/** iD's sortPresets: an exact match first, then the higher matchScore, then the earlier position, then the shorter text. */
+function rankByName(
+  entries: SearchEntry[],
+  value: string,
+  variant: 'plain' | 'stripped',
+): SearchEntry[] {
+  const ranked = entries.map((entry) => {
+    const names =
+      variant === 'plain'
+        ? [entry.name, ...entry.aliases]
+        : [entry.nameStripped, ...entry.aliasesStripped]
+    return { entry, text: bestText(value, names) }
+  })
+  ranked.sort((a, b) => {
+    if (value === a.text) return -1
+    if (value === b.text) return 1
+    const byScore = b.entry.preset.matchScore - a.entry.preset.matchScore
+    if (byScore !== 0) return byScore
+    const byPosition = a.text.indexOf(value) - b.text.indexOf(value)
+    if (byPosition !== 0) return byPosition
+    return a.text.length - b.text.length
+  })
+  return ranked.map((item) => item.entry)
+}
+
+/** iD's key=value tier: exact matches first, then those that start with the query. */
+function keyValueMatches(pool: SearchEntry[], value: string): SearchEntry[] {
+  const exact = pool.filter((entry) => entry.keyValues.includes(value))
+  const prefix = pool.filter((entry) => entry.keyValues.some((kv) => leading(kv, value)))
+  return [...exact, ...prefix]
 }
 
 function mustGet<T>(value: T | undefined, what: string): T {
@@ -261,6 +402,10 @@ export function createPresets(data: PresetData): Presets {
       removeTags,
       matchScore: score !== undefined && score !== 0 ? score : 1,
       searchable: raw.searchable !== false,
+      terms: wordList(textOf(presetNames, id, 'terms'), ',', raw.terms).map((term) =>
+        term.toLowerCase(),
+      ),
+      aliases: wordList(textOf(presetNames, id, 'aliases'), '\n', raw.aliases),
     }
     const icon = asString(raw.icon)
     if (icon !== undefined) preset.icon = icon
@@ -390,11 +535,124 @@ export function createPresets(data: PresetData): Presets {
     }
   }
 
+  // Search: the searchable presets per geometry, prepared once (lower-cased names, terms, values).
+  const searchIndex: Record<Geometry, SearchEntry[]> = {
+    point: [],
+    vertex: [],
+    line: [],
+    area: [],
+    relation: [],
+  }
+  for (const { preset } of ordered) {
+    if (!preset.searchable) continue
+    const entry = searchEntryOf(preset)
+    for (const geometry of preset.geometry) searchIndex[geometry].push(entry)
+  }
+  // The empty query's order: by name, then id.
+  const byName: Record<Geometry, Preset[]> = {
+    point: [...searchIndex.point].sort(byNameThenId).map((entry) => entry.preset),
+    vertex: [...searchIndex.vertex].sort(byNameThenId).map((entry) => entry.preset),
+    line: [...searchIndex.line].sort(byNameThenId).map((entry) => entry.preset),
+    area: [...searchIndex.area].sort(byNameThenId).map((entry) => entry.preset),
+    relation: [...searchIndex.relation].sort(byNameThenId).map((entry) => entry.preset),
+  }
+
+  // iD's collection.search: the tiers in iD's order, each tier ranked as iD ranks it; a preset is listed once.
+  function search(query: string, geometry: Geometry, limit = 20): Preset[] {
+    if (limit <= 0) return []
+    const value = query.toLowerCase().trim()
+    if (value === '') return byName[geometry].slice(0, limit)
+    const pool = searchIndex[geometry]
+    const tiers: Array<() => SearchEntry[]> = [
+      // the name or an alias starts the query, or has it after a space
+      () =>
+        rankByName(
+          pool.filter((e) => leading(e.name, value) || e.aliases.some((a) => leading(a, value))),
+          value,
+          'plain',
+        ),
+      // the same with diacritics stripped
+      () =>
+        rankByName(
+          pool.filter(
+            (e) =>
+              leading(e.nameStripped, value) || e.aliasesStripped.some((a) => leading(a, value)),
+          ),
+          value,
+          'stripped',
+        ),
+      () => pool.filter((e) => e.terms.some((t) => leading(t, value))),
+      () => pool.filter((e) => e.values.some((v) => leading(v, value))),
+      () => (value.includes('=') ? keyValueMatches(pool, value) : []),
+      // the query contains the preset's name, e.g. "cafe near me"
+      () => pool.filter((e) => e.texts.some((t) => nameInQuery(t, value))),
+    ]
+    const found: Preset[] = []
+    const seen = new Set<Preset>()
+    for (const tier of tiers) {
+      for (const entry of tier()) {
+        if (seen.has(entry.preset)) continue
+        seen.add(entry.preset)
+        found.push(entry.preset)
+        if (found.length >= limit) return found
+      }
+    }
+    return found
+  }
+
+  // iD's needsAreaTag test in setTags: no tag of the preset is an area key (and it is not an exception).
+  function needsAreaTag(preset: Preset): boolean {
+    for (const key of Object.keys(preset.addTags)) {
+      const value = preset.addTags[key] ?? ''
+      if (!preset.geometry.includes('line') && Object.hasOwn(areaKeys, key)) return false
+      if (AREA_KEY_EXCEPTIONS.get(key)?.has(value)) return false
+    }
+    return true
+  }
+
+  // iD's setTags. Field defaults are not applied (iD's skipFieldDefaults), because they need the field
+  // definitions for the location and the user's preferences, which this package does not have.
+  function withPresetTags(tags: Tags, preset: Preset, geometry: Geometry): Tags {
+    const result: Tags = { ...tags }
+    for (const key of Object.keys(preset.addTags)) {
+      const value = preset.addTags[key]
+      if (value === undefined) continue
+      if (value !== '*') {
+        result[key] = value
+      } else if (preset.tags[key] || !result[key]) {
+        // iD: a key the preset matches on becomes `yes`; an ancillary key keeps an existing value.
+        result[key] = 'yes'
+      }
+    }
+    if (!Object.hasOwn(preset.addTags, 'area')) {
+      delete result.area
+      if (geometry === 'area' && needsAreaTag(preset)) result.area = 'yes'
+    }
+    return result
+  }
+
+  // iD's unsetTags, minus field defaults. Keys the new preset sets are kept here, because the new
+  // preset overwrites them anyway. iD's unsetTags also deletes `area`; withPresetTags decides it again.
+  function withoutTagsOf(tags: Tags, previous: Preset, next: Preset): Tags {
+    const result: Tags = { ...tags }
+    for (const key of Object.keys(previous.removeTags)) {
+      if (!Object.hasOwn(next.addTags, key)) delete result[key]
+    }
+    return result
+  }
+
+  function applyPreset(tags: Tags, preset: Preset, geometry: Geometry, previous?: Preset): Tags {
+    const kept = previous ? withoutTagsOf(tags, previous, preset) : { ...tags }
+    return withPresetTags(kept, preset, geometry)
+  }
+
   return {
     match,
     preset: (id) => entries.get(id)?.preset,
     field: (id) => fields.get(id),
     fieldsFor,
     areaKeys: () => areaKeys,
+    search,
+    applyPreset,
   }
 }

@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'bun:test'
 import { defaultPresets as presets } from './default.ts'
-import type { Geometry, Tags } from './types.ts'
+import type { Geometry, Preset, Tags } from './types.ts'
+
+function presetOf(id: string): Preset {
+  const preset = presets.preset(id)
+  if (!preset) throw new Error(`no preset ${id}`)
+  return preset
+}
+
+function idsOf(query: string, geometry: Geometry, limit?: number): string[] {
+  return presets.search(query, geometry, limit).map((preset) => preset.id)
+}
 
 // Expected values were read from the id-tagging-schema 6.19.2 data (dist/*.min.json), not from this code.
 
@@ -205,5 +215,137 @@ describe('field', () => {
   it('returns undefined for an unknown id', () => {
     expect(presets.field('no_such_field')).toBeUndefined()
     expect(presets.preset('no/such/preset')).toBeUndefined()
+  })
+})
+
+describe('search', () => {
+  it('ranks amenity/cafe first for "cafe"', () => {
+    expect(idsOf('cafe', 'point')[0]).toBe('amenity/cafe')
+  })
+
+  it('finds amenity/cafe for "caf" near the top', () => {
+    expect(idsOf('caf', 'point', 5)).toContain('amenity/cafe')
+  })
+
+  it('finds amenity/cafe by its term "espresso"', () => {
+    expect(presetOf('amenity/cafe').terms).toContain('espresso')
+    expect(idsOf('espresso', 'point')).toContain('amenity/cafe')
+  })
+
+  it('does not offer amenity/cafe for the line geometry', () => {
+    expect(idsOf('cafe', 'line')).not.toContain('amenity/cafe')
+  })
+
+  it('never offers a preset with searchable: false (highway/bus_stop)', () => {
+    expect(presetOf('highway/bus_stop').searchable).toBe(false)
+    expect(idsOf('bus stop', 'point', 100)).not.toContain('highway/bus_stop')
+    expect(presets.search('bus', 'point', 100).every((preset) => preset.searchable)).toBe(true)
+  })
+
+  it('returns the first 5 presets by name for an empty query', () => {
+    expect(presets.search('', 'point', 5)).toHaveLength(5)
+  })
+
+  it('returns 20 presets by default', () => {
+    expect(presets.search('a', 'point')).toHaveLength(20)
+  })
+
+  it('lists a preset once', () => {
+    const ids = idsOf('cafe', 'point', 100)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('runs 1,000 searches of varied queries fast enough for typing', () => {
+    const queries = [
+      'cafe',
+      'caf',
+      'bak',
+      'shop',
+      'a',
+      'b c',
+      'amenity=cafe',
+      'road',
+      'restaurant',
+      'pizza',
+      'tea',
+      'espresso',
+      'bus',
+      'church',
+      's',
+      'park',
+      'x',
+      'building',
+      'coffee shop near me',
+      'playground',
+    ]
+    const geometries: Geometry[] = ['point', 'line', 'area', 'vertex']
+    const start = performance.now()
+    let found = 0
+    for (let i = 0; i < 1000; i++) {
+      found += presets.search(
+        queries[i % queries.length] ?? '',
+        geometries[i % 4] ?? 'point',
+      ).length
+    }
+    const elapsed = performance.now() - start
+    console.log(`1,000 searches: ${elapsed.toFixed(1)} ms (${found} results)`)
+    // about 0.2 ms per search alone; the check runs tests next to the type-check and the linter,
+    // which made it 1.2 ms. The bound only catches a search that scans far more than it should.
+    expect(elapsed).toBeLessThan(5000)
+  })
+})
+
+describe('applyPreset', () => {
+  it('sets amenity=cafe on an untagged point', () => {
+    expect(presets.applyPreset({}, presetOf('amenity/cafe'), 'point')).toEqual({ amenity: 'cafe' })
+  })
+
+  it('does not change the tags it was given', () => {
+    const tags: Tags = { name: 'Corner' }
+    const result = presets.applyPreset(tags, presetOf('amenity/cafe'), 'point')
+    expect(result).not.toBe(tags)
+    expect(tags).toEqual({ name: 'Corner' })
+  })
+
+  it('sets a * value of the preset to yes', () => {
+    expect(presets.applyPreset({}, presetOf('shop'), 'point')).toEqual({ shop: 'yes' })
+  })
+
+  it('keeps an existing value of an ancillary * tag', () => {
+    const wind = presetOf('power/plant/source/wind')
+    expect(presets.applyPreset({}, wind, 'area')['plant:output:electricity']).toBe('yes')
+    const kept = presets.applyPreset({ 'plant:output:electricity': '5 MW' }, wind, 'area')
+    expect(kept['plant:output:electricity']).toBe('5 MW')
+    expect(kept['plant:method']).toBe('wind_turbine')
+  })
+
+  it('removes the previous preset tags and keeps unrelated tags', () => {
+    const tags: Tags = { amenity: 'cafe', name: 'Corner' }
+    const result = presets.applyPreset(
+      tags,
+      presetOf('amenity/restaurant'),
+      'point',
+      presetOf('amenity/cafe'),
+    )
+    expect(result).toEqual({ amenity: 'restaurant', name: 'Corner' })
+  })
+
+  it('adds area=yes to an area preset whose key is not an area key (highway=pedestrian)', () => {
+    const pedestrian = presetOf('highway/pedestrian_area')
+    expect(presets.areaKeys().highway).toBeUndefined()
+    expect(presets.applyPreset({}, pedestrian, 'area')).toEqual({
+      highway: 'pedestrian',
+      area: 'yes',
+    })
+  })
+
+  it('does not add area=yes for building, which is an area key', () => {
+    expect(presets.applyPreset({}, presetOf('building'), 'area')).toEqual({ building: 'yes' })
+  })
+
+  it('does not add area=yes on a point', () => {
+    expect(presets.applyPreset({}, presetOf('highway/pedestrian_area'), 'point')).toEqual({
+      highway: 'pedestrian',
+    })
   })
 })

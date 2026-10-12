@@ -1,6 +1,12 @@
 import './extension-points'
 export { dashPatterns, FeatureBuilder, type FeatureBatch } from './build'
-export { MaidEngine, type EngineMetrics, type EngineOptions, type EntityInfo } from './engine'
+export {
+  MaidEngine,
+  type EngineMetrics,
+  type EngineOptions,
+  type EntityInfo,
+  type Mode,
+} from './engine'
 export type { MapLayerItem } from './extension-points'
 export { buildLayers, interactiveLayerIds, SOURCES, type LayerOptions } from './layers'
 export { ModuleLayers } from './ModuleLayers'

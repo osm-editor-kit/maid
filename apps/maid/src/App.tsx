@@ -4,16 +4,24 @@ import { MapProvider } from 'react-map-gl/maplibre'
 import { BottomDock } from './components/BottomDock'
 import { Inspector } from './components/Inspector'
 import { MapView } from './components/MapView'
+import { ModeButtons } from './components/ModeButtons'
 import { StatusLine } from './components/StatusLine'
 import { UndoRedo } from './components/UndoRedo'
+import { useShortcuts } from './components/useShortcuts'
 import { ZoomControls } from './components/ZoomControls'
 import { config, engine } from './editor'
 import { useSelectedId } from './url/state'
 
 function Editor() {
   const [, setSelectedId] = useSelectedId()
+  useShortcuts()
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key !== 'Escape') return
+    // Escape first leaves a mode, then drops the selection
+    if (engine.mode !== 'browse') {
+      engine.setMode('browse')
+      return
+    }
     engine.setSelected(null)
     void setSelectedId(null)
   }
@@ -31,7 +39,12 @@ function Editor() {
       topBar={
         <TopBar
           start={<Brand name="Maid" detail="MapLibre iD Editor" />}
-          center={<UndoRedo />}
+          center={
+            <div className="flex items-center gap-3">
+              <ModeButtons />
+              <UndoRedo />
+            </div>
+          }
           end={<ThemeSwitch />}
         />
       }

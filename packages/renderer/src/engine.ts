@@ -1,12 +1,17 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
 import {
+  type Action,
+  actionAddEntity,
   actionChangeTags,
+  actionDeleteNode,
+  actionDeleteRelation,
+  actionDeleteWay,
   actionMoveNode,
   type Difference,
   OsmWay,
   type OsmEntity,
   type OsmJsonElement,
-  type OsmNode,
+  OsmNode,
 } from '@osm-editor-kit/maid-model'
 /**
  * Loads OSM data for the viewport and keeps MapLibre's sources in sync.
@@ -90,6 +95,12 @@ function locMoved(base: OsmEntity | undefined, head: OsmEntity | undefined): boo
   if (!from || !to) return true
   return from[0] !== to[0] || from[1] !== to[1]
 }
+
+/**
+ * What a click on the map does. `browse` selects and drags; `add-point` places a new point and
+ * returns to `browse`. Drawing lines and areas adds its modes here.
+ */
+export type Mode = 'browse' | 'add-point'
 
 export class MaidEngine {
   /** The OSM data: entities and edit history (from the editor), plus the indexes of the builder */
@@ -558,22 +569,70 @@ export class MaidEngine {
   setTag(id: string, key: string, value: string | undefined) {
     const entity = this.nodeOrWay(id)
     if (!entity || !key) return
-    // the action sets the whole tag set, so the changed copy is built here
     const tags = { ...entity.tags }
     if (value === undefined || value === '') delete tags[key]
     else tags[key] = value
-    this.data.history.perform(actionChangeTags(id, tags))
-    this.data.history.commit({ annotation: 'Changed tags', selectedIDs: [id] })
-    // the action replaced the entity with a copy: the redraw looks it up again, never reuses the old one
+    this.setTags(id, tags)
+  }
+
+  /** Replaces all tags of a node or way, for example when a preset is chosen. One undo step. */
+  setTags(id: string, tags: Tags, annotation = 'Changed tags') {
     if (!this.nodeOrWay(id)) return
-    // a tag change does not move the node, so the ways that use it keep their features
-    const { batch, remove } = this.redraw([{ id, moved: false }])
-    this.removeFeatures(remove)
-    this.sendBatch(batch)
-    // feature state belongs to a source; a way that moved between sources needs it again
-    if (id === this.selectedId && remove.length)
-      queueMicrotask(() => this.applyHighlight(null, 'selected'))
+    this.edit(actionChangeTags(id, tags), annotation, [id])
+  }
+
+  // --- Modes ---
+
+  private currentMode: Mode = 'browse'
+
+  /** What a click on the map does now */
+  get mode(): Mode {
+    return this.currentMode
+  }
+
+  setMode(mode: Mode) {
+    if (mode === this.currentMode) return
+    this.currentMode = mode
     this.changed()
+  }
+
+  // --- Creating and deleting ---
+
+  /** Adds a standalone point and returns its id (negative, as for every new entity). One undo step. */
+  addPoint(lon: number, lat: number, tags: Tags = {}): string {
+    const node = new OsmNode(this.data.context, { loc: [lon, lat], tags })
+    this.edit(actionAddEntity(node), 'Added a point', [node.id])
+    return node.id
+  }
+
+  /**
+   * Deletes a node, way or relation, as iD does: a way takes the nodes along that nothing else
+   * uses and that have no tags of their own; a node is taken out of its ways. One undo step.
+   * Returns false if there is no such entity.
+   */
+  deleteEntity(id: string): boolean {
+    const { graph } = this.data.history.staging
+    if (!graph.hasEntity(id)) return false
+    const action =
+      id[0] === 'n'
+        ? actionDeleteNode(id)
+        : id[0] === 'w'
+          ? actionDeleteWay(id)
+          : actionDeleteRelation(id)
+    const kind = id[0] === 'n' ? 'a node' : id[0] === 'w' ? 'a way' : 'a relation'
+    if (id === this.selectedId) this.setSelected(null)
+    if (id === this.hoverId) this.setHover(null)
+    this.edit(action, `Deleted ${kind}`, [])
+    return true
+  }
+
+  /** Performs an action as one undo step and redraws what it changed */
+  private edit(action: Action, annotation: string, selectedIDs: string[]) {
+    const { history } = this.data
+    this.redrawAfter(() => {
+      history.perform(action)
+      history.commit({ annotation, selectedIDs })
+    })
   }
 
   // --- Redrawing ---
@@ -676,20 +735,20 @@ export class MaidEngine {
   /** Takes back the last edit and redraws what it changed. Does nothing while a vertex is dragged. */
   undo(): void {
     if (this.dragged || this.data.history.getUndoAnnotation() === undefined) return
-    this.historyStep(() => this.data.history.undo())
+    this.redrawAfter(() => this.data.history.undo())
   }
 
   /** Puts back the edit that the last undo took back, and redraws what it changed. */
   redo(): void {
     if (this.dragged || this.data.history.getRedoAnnotation() === undefined) return
-    this.historyStep(() => this.data.history.redo())
+    this.redrawAfter(() => this.data.history.redo())
   }
 
   /**
-   * Runs one history step, then redraws every entity that its staging difference names, each once.
-   * Only modifications are handled well. Created or deleted entities get what the redraw can give.
+   * Runs a change of the history (an edit, undo or redo), then redraws every entity that its
+   * differences name, each once. Created entities get their features, deleted ones lose them.
    */
-  private historyStep(step: () => void) {
+  private redrawAfter(step: () => void) {
     const { history } = this.data
     const differences: Difference[] = []
     const off = history.on('stagingchange', (difference) => {
@@ -703,23 +762,23 @@ export class MaidEngine {
     if (differences.length > 0) {
       // the union of all differences, each id once; a node that moved in any of them moves its ways
       const moved = new Map<string, boolean>()
-      const created = new Set<string>()
-      const deleted = new Set<string>()
       for (const difference of differences)
         for (const [id, { base, head }] of difference.changes) {
           moved.set(id, (moved.get(id) ?? false) || locMoved(base, head))
-          if (base === undefined) created.add(id)
-          else if (head === undefined) deleted.add(id)
+          // A way that came, went or changed its nodes changes what its nodes are: a vertex can
+          // become a junction, an end or a standalone point. Those nodes are not in the difference.
+          const from = base instanceof OsmWay ? base.nodes : undefined
+          const to = head instanceof OsmWay ? head.nodes : undefined
+          if (from !== to)
+            for (const nodeId of [...(from ?? []), ...(to ?? [])])
+              if (!moved.has(nodeId)) moved.set(nodeId, false)
         }
-      if (created.size + deleted.size > 0)
-        console.warn(
-          `Undo or redo: ${created.size} created and ${deleted.size} deleted entities are only partly redrawn`,
-        )
       const { batch, remove } = this.redraw(
         [...moved].map(([id, isMoved]) => ({ id, moved: isMoved })),
       )
       this.removeFeatures(remove)
       this.sendBatch(batch)
+      // feature state belongs to a source: a feature that changed its source needs it again
       if (remove.some(([, featureId]) => featureId === this.selectedId))
         queueMicrotask(() => this.applyHighlight(null, 'selected'))
     }

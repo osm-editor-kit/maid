@@ -316,9 +316,12 @@ export class FeatureBuilder {
     return { source: 'lines', feature: lineFeature(id, coords, tags, tagClasses(tags)) }
   }
 
-  /** The point feature of a standalone node, or undefined if it has no tags worth showing */
+  /**
+   * The point feature of a standalone node, or undefined if it has no tags worth showing.
+   * A node that was added here (negative id) is always drawn: it has no tags until its type is chosen.
+   */
   buildPoint(node: OsmNode): Feature | undefined {
-    if (!hasInterestingTags(node.tags)) return undefined
+    if (!hasInterestingTags(node.tags) && !node.id.startsWith('n-')) return undefined
     const coordinates = coordinateOf(node)
     if (!coordinates) return undefined
     const id = node.id

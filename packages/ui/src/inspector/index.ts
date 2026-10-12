@@ -1,3 +1,4 @@
+export { PresetPicker } from './PresetPicker.tsx'
 export {
   CheckField,
   ComboField,

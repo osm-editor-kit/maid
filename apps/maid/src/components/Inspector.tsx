@@ -1,12 +1,14 @@
 import {
   InspectorSections,
   PresetFields,
+  PresetPicker,
   Sidebar,
   SidebarBody,
   SidebarEmpty,
   SidebarHeader,
   SidebarSection,
 } from '@osm-editor-kit/maid-ui'
+import { useState } from 'react'
 import { editor, engine, useEngine } from '../editor'
 import { useSelectedId } from '../url/state'
 import { PresetIcon } from './PresetIcon'
@@ -25,6 +27,8 @@ export function Inspector() {
   const [id, setId] = useSelectedId()
   // read again when data arrives: a selection from the URL exists before its feature is loaded
   const entity = useEngine((e) => e.entity(id))
+  // the id the picker was opened for: selecting something else closes it
+  const [pickingFor, setPickingFor] = useState<string | null>(null)
 
   if (!id) {
     return (
@@ -44,10 +48,12 @@ export function Inspector() {
     !entity || entity.type === 'relation'
       ? undefined
       : (key: string, value: string | undefined) => engine.setTag(id, key, value)
+  const { presets } = editor
   const fields =
-    entity?.preset && editor.presets
-      ? editor.presets.fieldsFor(entity.preset, entity.tags, entity.geometry)
-      : []
+    entity?.preset && presets ? presets.fieldsFor(entity.preset, entity.tags, entity.geometry) : []
+  // a feature without tags (a point that was just added) asks for its type right away
+  const untagged = entity !== undefined && Object.keys(entity.tags).length === 0
+  const picking = onChange !== undefined && (pickingFor === id || untagged)
   const kind = entity ? (entity.preset?.name ?? GEOMETRY_LABEL[entity.geometry]) : undefined
 
   return (
@@ -70,6 +76,39 @@ export function Inspector() {
             {entity.type === 'way' && `, ${entity.size} nodes`}
             {entity.type === 'relation' && `, ${entity.size} members`}
           </p>
+          {picking && presets ? (
+            <SidebarSection title="Feature type">
+              <PresetPicker
+                autoFocus
+                currentId={entity.preset?.id}
+                search={(query) => presets.search(query, entity.geometry)}
+                renderIcon={(preset) => (
+                  <PresetIcon icon={preset.icon} className="fill-zinc-700 dark:fill-zinc-200" />
+                )}
+                onPick={(preset) => {
+                  const tags = presets.applyPreset(
+                    entity.tags,
+                    preset,
+                    entity.geometry,
+                    entity.preset,
+                  )
+                  engine.setTags(id, tags, `Changed the feature type to ${preset.name}`)
+                  setPickingFor(null)
+                }}
+              />
+            </SidebarSection>
+          ) : (
+            onChange &&
+            presets && (
+              <button
+                type="button"
+                onClick={() => setPickingFor(id)}
+                className="mb-3 cursor-pointer text-xs text-blue-600 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-blue-400"
+              >
+                Change feature type
+              </button>
+            )
+          )}
           {fields.length > 0 && (
             <SidebarSection title="Fields">
               <PresetFields fields={fields} tags={entity.tags} onChange={onChange} />
