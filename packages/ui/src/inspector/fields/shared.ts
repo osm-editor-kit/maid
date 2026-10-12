@@ -17,6 +17,19 @@ export type FieldProps = {
 }
 export type FieldComponent = (props: FieldProps) => ReactNode
 
+/**
+ * The control that has the focus or the pointer on it, as the map needs it (PresetFields
+ * onFieldFocus). `key` is the tag the control is about: a directional field's side has its own
+ * key (`cycleway:left`) and `side`; a width field has its key and no side.
+ */
+export type FieldFocus = {
+  fieldId: string
+  key: string
+  /** The control's text (its draft while it is edited), else the tag's value */
+  value: string | undefined
+  side?: 'left' | 'right'
+}
+
 const SURFACE =
   'w-full min-w-0 rounded-md border border-zinc-950/10 bg-white text-sm text-zinc-950 hover:border-zinc-950/20 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-60 dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:hover:border-white/20 dark:[color-scheme:dark]'
 export const FRAME = `h-8 ${SURFACE}`

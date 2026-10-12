@@ -1,5 +1,6 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import {
+  type FieldFocus,
   InfoPopover,
   InspectorSections,
   PresetFields,
@@ -19,6 +20,7 @@ import {
   useFavouriteRows,
   useFavouritesFull,
 } from '../favourites'
+import { fieldOverlayFor } from '../field-overlay'
 import { loadReference } from '../reference'
 import { useSelection } from '../selection'
 import { Operations } from './Operations'
@@ -31,6 +33,15 @@ const GEOMETRY_LABEL = {
   line: 'Line',
   area: 'Area',
   relation: 'Relation',
+}
+
+/**
+ * The map shows the field that has the focus or the pointer on it, on the selected way: a side line
+ * or a width band (field-overlay.ts). Module-level, so its identity is stable for PresetFields.
+ */
+function showFieldFocus(focus: FieldFocus | null) {
+  const id = engine.selection[0]
+  engine.setFieldOverlay(fieldOverlayFor(focus, id ? engine.entity(id)?.tags : undefined))
 }
 
 /** The sidebar: what the selected feature is (iD preset), its tags and the sections of modules. */
@@ -174,6 +185,7 @@ export function Inspector() {
                   // field types that modules bring (`inspector.field`)
                   components={fieldTypes}
                   loadReference={loadReference}
+                  onFieldFocus={showFieldFocus}
                 />
               </SidebarDisclosure>
             )}

@@ -43,6 +43,7 @@ import { OsmData } from './data'
 import { onewayOf } from './direction'
 import { installDirectionImages } from './direction-images'
 import { DrawTool, nearestOnWay, projectedNodes } from './draw'
+import { fieldOverlayFeatures, type FieldOverlay, type LonLat } from './field-overlay'
 import { EDIT_SOURCES, SOURCES } from './layers'
 import { extentOf, orderPicks, PICK_LIMIT, type PickCandidate } from './pick-order'
 import { boundsOf, relatedIds } from './related'
@@ -266,6 +267,8 @@ export class MaidEngine {
     this.map = map
     // before the first tile is pushed: an image that arrives later does not show in that tile
     installDirectionImages(map)
+    // the side line of a field depends on the view: its visible part may bend or leave the screen
+    map.on('moveend', () => this.refreshFieldOverlay())
     this.loadVisibleTiles()
   }
 
@@ -1534,7 +1537,12 @@ export class MaidEngine {
     }
     for (const id of previous) set(id, false)
     for (const id of kind === 'hover' ? (hoverId ? [hoverId] : []) : selectedIds) set(id, true)
-    if (kind === 'selected') this.refreshShape()
+    if (kind === 'selected') {
+      // the field that had the focus was about the selection before: it goes with it
+      this.fieldOverlay = null
+      this.fieldFeatures = []
+      this.refreshShape()
+    }
     // a feature that is not on the map changes nothing, so ask for a frame explicitly
     void map.once('render').then(shown)
     map.triggerRepaint()
@@ -1587,8 +1595,51 @@ export class MaidEngine {
   private pushHighlight() {
     void this.map?.getSource<GeoJSONSource>(SOURCES.highlight)?.setData({
       type: 'FeatureCollection',
-      features: [...this.shapeFeatures, ...this.previewFeatures],
+      features: [...this.shapeFeatures, ...this.previewFeatures, ...this.fieldFeatures],
     })
+  }
+
+  private fieldOverlay: FieldOverlay | null = null
+  private fieldFeatures: Feature[] = []
+
+  /**
+   * What a field that has the focus or the pointer on it is about, drawn on the selected way: a
+   * side line or a width band (field-overlay.ts). Only for exactly one selected way. Nothing is
+   * rebuilt per pointer move: this is one or two features. `null` takes it away.
+   */
+  setFieldOverlay(overlay: FieldOverlay | null) {
+    this.fieldOverlay = overlay
+    this.refreshFieldOverlay()
+  }
+
+  private refreshFieldOverlay() {
+    const id = this.selectedIds.length === 1 ? this.selectedIds[0] : undefined
+    const way = this.fieldOverlay && id?.[0] === 'w' ? this.data.way(id) : undefined
+    const map = this.map
+    const line: LonLat[] = []
+    if (way) {
+      for (const nodeId of way.nodes) {
+        const loc = this.data.node(nodeId)?.loc
+        if (loc) line.push([loc[0], loc[1]])
+      }
+    }
+    const features =
+      way && this.fieldOverlay && map && line.length >= 2
+        ? fieldOverlayFeatures(this.fieldOverlay, line, {
+            closed: way.nodes[0] === way.nodes[way.nodes.length - 1],
+            viewport: {
+              width: map.getContainer().clientWidth,
+              height: map.getContainer().clientHeight,
+            },
+            project: (p) => {
+              const at = map.project(p)
+              return [at.x, at.y]
+            },
+          })
+        : []
+    if (features.length === 0 && this.fieldFeatures.length === 0) return
+    this.fieldFeatures = features
+    this.pushHighlight()
   }
 
   /**

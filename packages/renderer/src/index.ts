@@ -7,6 +7,7 @@ export {
   type EntityInfo,
   type Mode,
 } from './engine'
+export { type FieldOverlay, type SideChoice } from './field-overlay'
 export {
   BELOW_OSM_LAYER,
   operations,

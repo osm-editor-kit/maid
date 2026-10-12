@@ -22,7 +22,7 @@ import { NumberField, RoadHeightField, RoadSpeedField } from './fields/Number.ts
 import { RadioField, StructureRadioField } from './fields/Radio.tsx'
 import type { RelatedRow } from './fields/Related.tsx'
 import { FieldRow } from './fields/Row.tsx'
-import type { FieldComponent } from './fields/shared.ts'
+import type { FieldComponent, FieldFocus } from './fields/shared.ts'
 import { TextField, TextareaField } from './fields/Text.tsx'
 import { fieldKeys } from './logic.ts'
 import { assignRelatedTags, relatedBaseKeys, relatedButtonKeys } from './related-logic.ts'
@@ -32,7 +32,7 @@ export { ComboField } from './fields/Combo.tsx'
 export { FallbackField } from './fields/Fallback.tsx'
 export { NumberField } from './fields/Number.tsx'
 export { TextField, TextareaField } from './fields/Text.tsx'
-export type { FieldComponent, FieldProps } from './fields/shared.ts'
+export type { FieldComponent, FieldFocus, FieldProps } from './fields/shared.ts'
 
 /** iD field type → component. Types not listed use FallbackField. */
 export const defaultFieldComponents: Record<string, FieldComponent> = {
@@ -81,8 +81,23 @@ export function PresetFields(props: {
   moreFields?: Field[]
   /** Finds the wiki documentation for each row's "i". Called only when one is opened. */
   loadReference?: ReferenceLoader
+  /**
+   * Told when the focus or the pointer moves onto a control of one key, with its value (the draft,
+   * while it is typed), and with null when it leaves. The focus wins over the pointer. Delegated
+   * from the list: a control only needs its row's data attributes (data-focus-key, data-focus-side).
+   */
+  onFieldFocus?: (focus: FieldFocus | null) => void
 }): ReactNode {
-  const { fields, tags, baseTags, onChange, components, moreFields = [], loadReference } = props
+  const {
+    fields,
+    tags,
+    baseTags,
+    onChange,
+    components,
+    moreFields = [],
+    loadReference,
+    onFieldFocus,
+  } = props
   // the ids picked from "Add field", in the order picked: they are rows although they have no value
   const [picked, setPicked] = useState<string[]>([])
   // the keys of the related tags whose editor is open: state of this list, a new feature starts with none
@@ -101,6 +116,17 @@ export function PresetFields(props: {
     const row = [...rows].find((element) => element.dataset.fieldId === target)
     row?.querySelector<HTMLElement>('input, textarea, select')?.focus()
   }, [picked])
+
+  // what the map was last told: the focused control, else the hovered one. Set in the handlers only.
+  const focusRef = useRef<FieldFocus | null>(null)
+  const hoverRef = useRef<FieldFocus | null>(null)
+  const shownRef = useRef<FieldFocus | null>(null)
+  const report = () => {
+    const next = focusRef.current ?? hoverRef.current
+    if (sameFocus(shownRef.current, next)) return
+    shownRef.current = next
+    onFieldFocus?.(next)
+  }
 
   const registry = { ...defaultFieldComponents, ...components }
   const rows = rowFields(fields, pickedFields(picked, [...fields, ...moreFields]))
@@ -130,10 +156,40 @@ export function PresetFields(props: {
 
   if (rows.length === 0 && offer.length === 0) return null
   return (
-    <div ref={containerRef} className="flex flex-col gap-3">
+    <div
+      ref={containerRef}
+      className="flex flex-col gap-3"
+      onFocus={(event) => {
+        focusRef.current = focusOf(event.target, containerRef.current, tags)
+        report()
+      }}
+      onBlur={() => {
+        focusRef.current = null
+        report()
+      }}
+      onInput={(event) => {
+        if (focusRef.current === null) return
+        focusRef.current = focusOf(event.target, containerRef.current, tags)
+        report()
+      }}
+      onPointerOver={(event) => {
+        hoverRef.current = focusOf(event.target, containerRef.current, tags)
+        report()
+      }}
+      onPointerLeave={() => {
+        hoverRef.current = null
+        report()
+      }}
+    >
       {rows.map((field) => (
         // empty: a keyless row without a value renders nothing and must not leave a gap
-        <div key={field.id} data-field-id={field.id} className="empty:hidden">
+        <div
+          key={field.id}
+          data-field-id={field.id}
+          // the row's own key, for the map; a directional side inside it has its own and is the innermost
+          data-focus-key={field.key}
+          className="empty:hidden"
+        >
           <FieldRow
             field={field}
             tags={tags}
@@ -148,4 +204,33 @@ export function PresetFields(props: {
       {offer.length > 0 ? <AddField fields={offer} onPick={pick} /> : null}
     </div>
   )
+}
+
+/**
+ * The control under an event's target, for the map: the innermost element with a key (its row, or
+ * a directional side), its id and its value. Null outside the list and for a row without a key.
+ */
+function focusOf(
+  target: EventTarget | null,
+  container: HTMLElement | null,
+  tags: Tags,
+): FieldFocus | null {
+  if (!(target instanceof Element) || !container?.contains(target)) return null
+  const element = target.closest<HTMLElement>('[data-focus-key]')
+  const key = element?.dataset.focusKey
+  if (!element || !key) return null
+  const row = element.closest<HTMLElement>('[data-field-id]')
+  const input = element.querySelector<HTMLInputElement>('input')
+  const side = element.dataset.focusSide
+  return {
+    fieldId: row?.dataset.fieldId ?? '',
+    key,
+    value: input ? input.value : tags[key],
+    side: side === 'left' || side === 'right' ? side : undefined,
+  }
+}
+
+function sameFocus(a: FieldFocus | null, b: FieldFocus | null): boolean {
+  if (a === null || b === null) return a === b
+  return a.fieldId === b.fieldId && a.key === b.key && a.side === b.side && a.value === b.value
 }

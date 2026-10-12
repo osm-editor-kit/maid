@@ -9,6 +9,7 @@ export {
   PresetFields,
   TextField,
   type FieldComponent,
+  type FieldFocus,
   type FieldProps,
 } from './fields.tsx'
 export { RELATED_BUTTONS, type RelatedButtons, type RelatedCategory } from './related-logic.ts'

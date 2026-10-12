@@ -74,7 +74,12 @@ function SideRow(props: {
   }
   const sideTags: Tags = value === undefined ? {} : { [sideKey]: value }
   return (
-    <div className="grid min-w-0 grid-cols-[6rem_minmax(0,1fr)] items-center gap-2">
+    <div
+      className="grid min-w-0 grid-cols-[6rem_minmax(0,1fr)] items-center gap-2"
+      // the side's own key, for the map (PresetFields onFieldFocus); the innermost one counts
+      data-focus-key={sideKey}
+      data-focus-side={side}
+    >
       <label htmlFor={id} className={LABEL}>
         {label}
       </label>

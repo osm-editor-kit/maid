@@ -409,6 +409,51 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
     },
   )
 
+  // The field that has the focus or the pointer on it (field-overlay.ts). A side is a blue line a few
+  // pixels off the way: MapLibre's line-offset is in pixels, positive to the right of the direction.
+  // A band is a polygon in metres, so its width on the ground is right at every zoom; its label sits in its middle.
+  const FIELD_BLUE = '#2563eb'
+  const FIELD_SIDE_OFFSET = 5
+  const isField = (state: string): ExpressionSpecification => ['==', ['get', 'state'], state]
+  layers.push(
+    {
+      id: 'field-side-left',
+      type: 'line',
+      source: SOURCES.highlight,
+      filter: ['all', isField('field-side'), ['==', ['get', 'side'], 'left']],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': FIELD_BLUE, 'line-width': 3, 'line-offset': -FIELD_SIDE_OFFSET },
+    },
+    {
+      id: 'field-side-right',
+      type: 'line',
+      source: SOURCES.highlight,
+      filter: ['all', isField('field-side'), ['==', ['get', 'side'], 'right']],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': FIELD_BLUE, 'line-width': 3, 'line-offset': FIELD_SIDE_OFFSET },
+    },
+    {
+      id: 'field-band',
+      type: 'fill',
+      source: SOURCES.highlight,
+      filter: isField('field-band'),
+      paint: { 'fill-color': FIELD_BLUE, 'fill-opacity': 0.22 },
+    },
+    {
+      id: 'field-label',
+      type: 'symbol',
+      source: SOURCES.highlight,
+      filter: isField('field-label'),
+      layout: {
+        'text-field': ['get', 'label'],
+        'text-font': ['Open Sans Semibold'],
+        'text-size': 12,
+        'text-allow-overlap': true,
+      },
+      paint: { 'text-color': '#1e3a8a', 'text-halo-color': '#fff', 'text-halo-width': 1.5 },
+    },
+  )
+
   // --- Points ----------------------------------------------------------------
   // Hover and selection: a glow under the dot, as iD's shadow under a point (0.5 on hover, 0.7
   // when selected)

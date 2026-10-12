@@ -467,6 +467,141 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   )
   await key('Escape')
   await click(free(0))
+
+  // --- a field that has the focus or the pointer on it draws on the selected street: a side line
+  // for a directional side (hidden when the way is too curved on screen), a band with its width for
+  // a width field (the fork's features 7 and 10; field-overlay.ts) ---
+  const setUpStreet = (id: string) =>
+    page.evaluate((id) => {
+      const { engine } = (window as any).__maid
+      const tags = engine.entity(id)?.tags ?? {}
+      // only streets show their sidewalk sides: a path would not
+      if (tags.highway !== 'residential') engine.setTag(id, 'highway', 'residential')
+      if (!tags['sidewalk:both']) engine.setTag(id, 'sidewalk:both', 'separate')
+      engine.setTag(id, 'width', '6')
+    }, id)
+  const overlay = async () => {
+    await settle()
+    return page.evaluate(() => {
+      const { map } = (window as any).__maid
+      // a feature is returned once per tile it reaches: count each id once
+      const features = new Map<string, any>()
+      for (const f of map.querySourceFeatures('osm-highlight') as any[])
+        features.set(`${f.properties?.id}`, f)
+      const of = (state: string) =>
+        [...features.values()].filter((f) => f.properties?.state === state)
+      return {
+        sides: of('field-side').map((f) => f.properties.side),
+        bands: of('field-band').length,
+        labels: of('field-label').map((f) => f.properties.label),
+      }
+    })
+  }
+  const box = await page.evaluate(() => {
+    const rect = (window as any).__maid.map.getCanvas().getBoundingClientRect()
+    return { x: rect.left, y: rect.top, w: rect.width, h: rect.height }
+  })
+  // the pointer goes to open map: a field's hover ends there
+  const leaveFields = async () => {
+    await page.mouse.move(box.x + box.w - 40, box.y + box.h - 40)
+    await settle()
+  }
+
+  // a curved street on screen: its side line is hidden
+  await setUpStreet(found.road.id)
+  await click(found.road.mid)
+  await page.locator('[data-focus-key="sidewalk:left"] input').click()
+  report(
+    'a side line is hidden on a street that is too curved on screen',
+    { sides: [], bands: 0, labels: [] },
+    await overlay(),
+  )
+  await leaveFields()
+
+  // a straight street in view: found by its corners on screen (under 12 degrees each), at least 120 px long
+  const straight = (await page.evaluate(() => {
+    const { map, engine } = (window as any).__maid
+    const box = map.getCanvas().getBoundingClientRect()
+    const inView = (p: { x: number; y: number }) =>
+      p.x > 60 && p.y > 60 && p.x < box.width - 60 && p.y < box.height - 60
+    for (const f of map.queryRenderedFeatures()) {
+      const id = String(f.id ?? '')
+      const way = id.startsWith('w') && engine.data.way(id)
+      if (!way || !way.tags.highway || engine.data.wayMultipolygons.has(id)) continue
+      const pts = way.nodes.map((n: string) => map.project(engine.data.node(n).loc))
+      if (pts.length < 2 || !pts.every(inView)) continue
+      let straightWay = true
+      let length = 0
+      for (let i = 0; i + 1 < pts.length; i++)
+        length += Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y)
+      for (let i = 1; i + 1 < pts.length; i++) {
+        const a1 = Math.atan2(pts[i].y - pts[i - 1].y, pts[i].x - pts[i - 1].x)
+        const a2 = Math.atan2(pts[i + 1].y - pts[i].y, pts[i + 1].x - pts[i].x)
+        if (Math.abs(Math.atan2(Math.sin(a2 - a1), Math.cos(a2 - a1))) > 0.21) straightWay = false
+      }
+      // the middle of the longest segment, away from its nodes, so that a click picks the way
+      let best: { x: number; y: number; len: number } | null = null
+      for (let i = 0; i + 1 < pts.length; i++) {
+        const a = pts[i]
+        const b = pts[i + 1]
+        const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+        const len = Math.hypot(b.x - a.x, b.y - a.y)
+        const nearNode = pts.some(
+          (p: { x: number; y: number }) => Math.hypot(p.x - mid.x, p.y - mid.y) < 15,
+        )
+        if (!nearNode && (!best || len > best.len)) best = { ...mid, len }
+      }
+      if (straightWay && length >= 120 && best) return { id, x: best.x, y: best.y }
+    }
+    return null
+  })) as (XY & { id: string }) | null
+  if (!straight) {
+    report('find a straight street in view', 'found', null)
+    return
+  }
+  await setUpStreet(straight.id)
+  await click(straight)
+
+  await page.locator('[data-focus-key="sidewalk:left"] input').click()
+  report(
+    'focusing the left side of a directional field draws a left side line',
+    { sides: ['left'], bands: 0, labels: [] },
+    await overlay(),
+  )
+  await page.locator('[data-focus-key="sidewalk:right"] input').click()
+  report(
+    'focusing the right side moves the line to the right side',
+    { sides: ['right'], bands: 0, labels: [] },
+    await overlay(),
+  )
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+  await leaveFields()
+  report(
+    'blurring the field and leaving it takes the line away',
+    { sides: [], bands: 0, labels: [] },
+    await overlay(),
+  )
+
+  await page.locator('[data-focus-key="width"] input').click()
+  report(
+    'focusing a width field draws its band with the width',
+    { sides: [], bands: 1, labels: ['6 m'] },
+    await overlay(),
+  )
+  await page.keyboard.press('Backspace')
+  await page.keyboard.type('3.5')
+  report(
+    'typing another width moves the band and its label while typing',
+    { sides: [], bands: 1, labels: ['3.5 m'] },
+    await overlay(),
+  )
+  await page.keyboard.press('Enter')
+  await leaveFields()
+  report(
+    'leaving the width field takes the band away',
+    { sides: [], bands: 0, labels: [] },
+    await overlay(),
+  )
 })
 
 // --- snapping: a drop on a node or a way joins it, as iD does, and add point snaps too ---
