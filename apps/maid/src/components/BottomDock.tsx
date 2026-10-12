@@ -13,7 +13,14 @@ function LoadedData() {
     ['Nodes', nodes.toLocaleString('en')],
     ['Ways', ways.toLocaleString('en')],
     ['Relations', relations.toLocaleString('en')],
-    ['Source', config.live ? 'OSM API (live)' : `Fixture “${config.scene}”, local mock API`],
+    [
+      'Source',
+      config.dev
+        ? 'OSM development server (live)'
+        : config.live
+          ? 'OSM API (live)'
+          : `Fixture “${config.scene}”, local mock API`,
+    ],
     ['Zoom', zoom === undefined ? '–' : zoom.toFixed(1)],
     ['Loads from zoom', String(config.minDataZoom)],
   ]

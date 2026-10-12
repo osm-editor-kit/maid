@@ -8,11 +8,19 @@ import { readParams, setupParams, stateParams, type Camera } from './url/params'
  * experiments and the benchmark run the same build.
  * Example: /?scene=dense&fill=full&map=17/52.4845/13.433
  */
+/** The OSM development server: its own, nearly empty database, for trying login and saving */
+export const DEV_API = 'https://master.apis.dev.openstreetmap.org'
+
 export type Config = {
   scene: string
   apiUrl: string
   /** Live OSM data is a manual mode for people. It is refused under automation. */
   live: boolean
+  /**
+   * The live data is the OSM development server's. Only then can edits be saved: nothing is
+   * ever saved to the real map from here (AGENTS.md, core rule 1).
+   */
+  dev: boolean
   fill: LayerOptions['fill']
   /** Inspector, controls and status bar. `ui=0` leaves only the map. */
   ui: boolean
@@ -41,13 +49,17 @@ function readFilters(search: string): string | null {
 
 export function readConfig(location: Location): Config {
   const setup = readParams(setupParams, location.search)
-  const live = setup.live && !navigator.webdriver
+  const live = setup.live !== '0' && !navigator.webdriver
+  const dev = live && setup.live === 'dev'
   return {
     scene: setup.scene,
     live,
-    apiUrl: live
-      ? 'https://api.openstreetmap.org'
-      : `http://localhost:${PORTS.mockApi}/s/${setup.scene}`,
+    dev,
+    apiUrl: dev
+      ? DEV_API
+      : live
+        ? 'https://api.openstreetmap.org'
+        : `http://localhost:${PORTS.mockApi}/s/${setup.scene}`,
     fill: setup.fill,
     ui: setup.ui,
     labels: setup.labels,

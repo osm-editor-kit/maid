@@ -52,7 +52,8 @@ export const stateParams = {
 /** Development and benchmark switches, read once at start */
 export const setupParams = {
   scene: parseAsString.withDefault('small'),
-  live: parseAsFlag.withDefault(false),
+  /** `1`: read from the real OSM API. `dev`: read from, and save to, the OSM development server. */
+  live: parseAsStringLiteral(['0', '1', 'dev']).withDefault('0'),
   ui: parseAsFlag.withDefault(true),
   labels: parseAsFlag.withDefault(true),
   icons: parseAsFlag.withDefault(true),

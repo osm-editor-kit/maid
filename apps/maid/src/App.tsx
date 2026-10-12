@@ -9,6 +9,7 @@ import { MapNotices } from './components/MapNotices'
 import { MapView } from './components/MapView'
 import { ModeButtons } from './components/ModeButtons'
 import { RestorePrompt } from './components/RestorePrompt'
+import { SaveButton } from './components/SaveButton'
 import { UndoRedo } from './components/UndoRedo'
 import { UserButton } from './components/UserButton'
 import { useShortcuts } from './components/useShortcuts'
@@ -39,6 +40,7 @@ function Editor() {
             <div className="flex items-center gap-3">
               <ModeButtons />
               <UndoRedo />
+              <SaveButton />
             </div>
           }
           end={

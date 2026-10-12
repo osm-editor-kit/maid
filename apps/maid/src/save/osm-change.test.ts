@@ -1,0 +1,82 @@
+import { describe, expect, it } from 'bun:test'
+import {
+  EditHistory,
+  ModelContext,
+  OsmNode,
+  OsmWay,
+  actionAddEntity,
+  actionChangeTags,
+  actionDeleteWay,
+  actionMoveNode,
+} from '@osm-editor-kit/maid-model'
+import { changesetTags, summaryOf, toOsmChange } from './osm-change.ts'
+
+function history() {
+  const context = new ModelContext()
+  const edits = new EditHistory(context)
+  edits.merge([
+    new OsmNode(context, { id: 'n1', loc: [13, 52], version: 3 }),
+    new OsmNode(context, { id: 'n2', loc: [13.5, 52.25], version: 1 }),
+    new OsmNode(context, { id: 'n5', loc: [13.6, 52.3], version: 2, tags: { amenity: 'bench' } }),
+    new OsmWay(context, { id: 'w1', nodes: ['n1', 'n2'], version: 7, tags: { highway: 'path' } }),
+    new OsmNode(context, { id: 'n3', loc: [14, 52], version: 1 }),
+    new OsmNode(context, { id: 'n4', loc: [14.5, 52], version: 1 }),
+    new OsmWay(context, { id: 'w2', nodes: ['n3', 'n4'], version: 2, tags: { barrier: 'wall' } }),
+  ])
+  return { context, edits }
+}
+
+describe('toOsmChange', () => {
+  it('lists created, changed and deleted elements with ids, versions and geometry', () => {
+    const { context, edits } = history()
+    const node = new OsmNode(context, { loc: [13.1, 52.1], tags: { amenity: 'cafe' } })
+    edits.perform(actionAddEntity(node))
+    edits.commit({ annotation: 'add' })
+    edits.perform(
+      actionChangeTags('w1', { highway: 'footway' }),
+      actionMoveNode('n5', [13.7, 52.3]),
+    )
+    edits.commit({ annotation: 'change' })
+    edits.perform(actionDeleteWay('w2'))
+    edits.commit({ annotation: 'delete' })
+
+    const change = toOsmChange(edits.changes())
+    expect(change.create).toHaveLength(1)
+    expect(change.create[0]).toMatchObject({
+      type: 'node',
+      lon: 13.1,
+      lat: 52.1,
+      version: 0,
+      tags: { amenity: 'cafe' },
+    })
+    expect(change.create[0]!.id).toBeLessThan(0)
+    expect(change.modify).toEqual([
+      { type: 'node', id: 5, version: 2, tags: { amenity: 'bench' }, lon: 13.7, lat: 52.3 },
+      { type: 'way', id: 1, version: 7, tags: { highway: 'footway' }, nodes: [1, 2] },
+    ])
+    // the way goes before the nodes it used
+    expect(change.delete.map((e) => `${e.type}${e.id}`)).toEqual(['way2', 'node3', 'node4'])
+    expect(summaryOf(change)).toBe('1 created, 2 changed, 3 deleted')
+  })
+
+  it('is empty without edits', () => {
+    const change = toOsmChange(history().edits.changes())
+    expect(change).toEqual({ create: [], modify: [], delete: [] })
+    expect(summaryOf(change)).toBe('')
+  })
+})
+
+describe('changesetTags', () => {
+  it('sets the editor and the trimmed comment', () => {
+    expect(changesetTags('  Added a cafe ', '0.1')).toEqual({
+      created_by: 'Maid 0.1',
+      comment: 'Added a cafe',
+    })
+  })
+
+  it('collects hashtags from the comment, each once', () => {
+    expect(changesetTags('Paths #radnetz and #berlin, again #radnetz.', '0.1').hashtags).toBe(
+      '#radnetz;#berlin',
+    )
+  })
+})

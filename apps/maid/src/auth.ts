@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { DEV_API } from './config'
 
 /**
  * Login to OpenStreetMap, for a person, against the OSM development server only (AGENTS.md,
@@ -8,7 +9,6 @@ import { useSyncExternalStore } from 'react'
  * click, and the name shown after a reload comes from this browser's storage. Under automation
  * (`navigator.webdriver`) the login is switched off.
  */
-const DEV_API = 'https://master.apis.dev.openstreetmap.org'
 const CLIENT_ID: string | undefined = import.meta.env.VITE_OSM_DEV_CLIENT_ID || undefined
 /** The origin the OAuth app's redirect URI is registered for; the popup can only answer a tab on it */
 const LOGIN_ORIGIN = 'http://127.0.0.1:5173'
@@ -49,7 +49,8 @@ function set(next: Partial<AuthState>) {
   for (const listener of listeners) listener()
 }
 
-async function api() {
+/** The `osm-api` package, set up for the development server. For the code that saves. */
+export async function api() {
   const OSM = await import('osm-api')
   OSM.configure({ apiUrl: DEV_API })
   return OSM

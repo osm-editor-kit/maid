@@ -17,7 +17,7 @@ export type JournalState =
 
 // One journal per data source: edits made on a fixture must never be restored onto live data
 const journal = createJournal({
-  name: config.live ? 'maid:osm' : `maid:scene:${config.scene}`,
+  name: config.dev ? 'maid:osm-dev' : config.live ? 'maid:osm' : `maid:scene:${config.scene}`,
   context: editor.context,
   history: editor.history,
   onError: (error) => set({ status: 'failed', message: messageOf(error) }),
@@ -35,9 +35,11 @@ function messageOf(error: unknown) {
   return error instanceof Error ? error.message : String(error)
 }
 
+let stop: (() => void) | undefined
+
 async function start() {
   try {
-    await journal.start()
+    stop = await journal.start()
     set({ status: 'running' })
   } catch (error) {
     if (error instanceof JournalLockedError) set({ status: 'locked' })
@@ -77,6 +79,14 @@ export function useJournal(): JournalState {
     },
     () => state,
   )
+}
+
+/** Forgets the stored edits after they were saved to the server. The page is reloaded after it. */
+export async function forgetJournal() {
+  await journal.flushed()
+  stop?.()
+  stop = undefined
+  await journal.clear()
 }
 
 /** Resolves when everything edited so far is written. For the browser checks. */

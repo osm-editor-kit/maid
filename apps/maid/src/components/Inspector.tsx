@@ -150,9 +150,6 @@ export function Inspector() {
             <TagList tags={entity.tags} onChange={onChange} />
           </SidebarSection>
           <InspectorSections entity={entity} editor={editor} select={select} />
-          <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">
-            Changes stay in this browser tab. Saving to OSM is not built yet.
-          </p>
         </SidebarBody>
       )}
     </Sidebar>
