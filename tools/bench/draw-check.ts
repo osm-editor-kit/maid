@@ -76,6 +76,11 @@ async function main(): Promise<number> {
       await settle()
     }
     const key = async (name: string) => {
+      // The type search takes the keyboard whenever the sidebar shows it again (after an undo,
+      // for example). The editor's keys do not work in a text field, so leave it first.
+      await page.evaluate(() => {
+        if (document.activeElement instanceof HTMLInputElement) document.activeElement.blur()
+      })
       await page.keyboard.press(name)
       await settle()
     }
@@ -267,12 +272,12 @@ async function main(): Promise<number> {
     )
     report('area: one undo step', 'Added an area', area.undo)
 
-    // --- Escape drops what was drawn ---
+    // --- Delete drops what was drawn (Escape finishes and keeps it, as in iD) ---
     const before = await read(area.id ?? '')
     await key('2')
     await click(at(8))
     await click(at(3))
-    await key('Escape')
+    await key('Delete')
     const after = await read(area.id ?? '')
     report(
       'cancel: nothing added, no undo step, browse mode',

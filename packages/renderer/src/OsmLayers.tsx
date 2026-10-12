@@ -35,6 +35,7 @@ export function OsmLayers({ options, sourceOptions }: Props) {
         id={SOURCES.highlight}
         type="geojson"
         data={EMPTY}
+        promoteId="id"
         tolerance={0}
         maxzoom={source.maxzoom}
       />

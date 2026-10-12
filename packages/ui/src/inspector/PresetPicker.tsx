@@ -47,6 +47,10 @@ export function PresetPicker(props: {
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.nativeEvent.isComposing) return
     switch (event.key) {
+      case 'Escape':
+        // gives the keyboard back to the editor: its keys do not work inside a text field
+        event.currentTarget.blur()
+        break
       case 'ArrowDown':
       case 'ArrowUp':
         event.preventDefault()

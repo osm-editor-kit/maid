@@ -9,33 +9,20 @@ import { StatusLine } from './components/StatusLine'
 import { UndoRedo } from './components/UndoRedo'
 import { useShortcuts } from './components/useShortcuts'
 import { ZoomControls } from './components/ZoomControls'
-import { config, engine } from './editor'
-import { useSelection } from './selection'
+import { config } from './editor'
 
 function Editor() {
-  const { select } = useSelection()
   useShortcuts()
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key !== 'Escape') return
-    // Escape first leaves a mode (and drops a way that is being drawn), then the selection
-    if (engine.mode !== 'browse') {
-      engine.draw.cancel()
-      engine.setMode('browse')
-      return
-    }
-    select(null)
-  }
   // `ui=0` leaves only the map, for screenshots and measurements of the map alone
   if (!config.ui) {
     return (
-      <Shell onKeyDown={handleKeyDown}>
+      <Shell>
         <MapView />
       </Shell>
     )
   }
   return (
     <Shell
-      onKeyDown={handleKeyDown}
       topBar={
         <TopBar
           start={<Brand name="Maid" detail="MapLibre iD Editor" />}

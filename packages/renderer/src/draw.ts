@@ -98,6 +98,14 @@ export class DrawTool {
     return undefined
   }
 
+  /** Starts a line at this node; on the end of exactly one line that line is continued (iD's A) */
+  startAt(nodeId: string): boolean {
+    const loc = this.engine.data.node(nodeId)?.loc
+    if (this.active || !loc) return false
+    this.start('line', { type: 'node', id: nodeId, loc: [loc[0], loc[1]] })
+    return true
+  }
+
   /**
    * Ends drawing and keeps the way as one undo step. A way that is too short to exist (a line
    * with one node, an area with two) is dropped. Returns the id of the way that was kept.
@@ -129,6 +137,37 @@ export class DrawTool {
       history.commit({ annotation, selectedIDs: [wayId] })
     })
     return kept
+  }
+
+  /**
+   * Takes back the node that was placed last, as Backspace does in iD. With only the first node
+   * left, drawing is cancelled.
+   */
+  undoLast() {
+    const { engine } = this
+    const way = this.way
+    if (!way || !this.cursorId) return
+    const fixed = this.fixedNodes(way)
+    if (fixed.length <= 1 || (this.continued && fixed.length <= 2)) {
+      this.cancel()
+      engine.setMode('browse')
+      return
+    }
+    const last = this.atStart ? fixed[0] : fixed[fixed.length - 1]
+    if (!last) return
+    engine.stopDrag()
+    engine.change(() => {
+      const { history } = engine.data
+      const node = engine.data.node(last)
+      // a node that other ways use stays; it only leaves this way
+      const shared = (engine.data.nodeUses.get(last) ?? 0) > 1
+      if (shared && node) {
+        const next = way.removeNode(last)
+        history.perform((graph) => graph.replace(next).commit())
+      } else {
+        history.perform(actionDeleteNode(last, false))
+      }
+    })
   }
 
   /** Ends drawing and takes everything back that it added */
@@ -262,47 +301,51 @@ export class DrawTool {
     }
     if (id?.[0] === 'w') {
       const hit = engine.data.way(id)
-      const on = hit && this.nearestOnWay(hit, point)
-      if (on) return on
+      const on = hit && nearestOnWay(engine, hit, point)
+      if (on) return { type: 'way', ...on }
     }
     return free()
   }
+}
 
-  /** The closest place on a way's line to a screen position, with the two nodes it lies between */
-  private nearestOnWay(way: OsmWay, point: Point): Target | undefined {
-    const map = this.engine.map
-    if (!map) return undefined
-    let best: { d: number; x: number; y: number; edge: [string, string] } | undefined
-    let previous: { id: string; x: number; y: number } | undefined
-    for (const id of way.nodes) {
-      const loc = this.engine.data.node(id)?.loc
-      if (!loc) {
-        previous = undefined
-        continue
-      }
-      const p = map.project([loc[0], loc[1]])
-      const current = { id, x: p.x, y: p.y }
-      if (previous) {
-        const dx = current.x - previous.x
-        const dy = current.y - previous.y
-        const length2 = dx * dx + dy * dy
-        const t =
-          length2 === 0
-            ? 0
-            : Math.min(
-                1,
-                Math.max(0, ((point.x - previous.x) * dx + (point.y - previous.y) * dy) / length2),
-              )
-        const x = previous.x + t * dx
-        const y = previous.y + t * dy
-        const d = Math.hypot(x - point.x, y - point.y)
-        if (!best || d < best.d) best = { d, x, y, edge: [previous.id, current.id] }
-      }
-      previous = current
+/** The closest place on a way's line to a screen position, with the two nodes it lies between */
+export function nearestOnWay(
+  engine: MaidEngine,
+  way: OsmWay,
+  point: Point,
+): { loc: Loc; edge: [string, string] } | undefined {
+  const map = engine.map
+  if (!map) return undefined
+  let best: { d: number; x: number; y: number; edge: [string, string] } | undefined
+  let previous: { id: string; x: number; y: number } | undefined
+  for (const id of way.nodes) {
+    const loc = engine.data.node(id)?.loc
+    if (!loc) {
+      previous = undefined
+      continue
     }
-    // a click inside an area hits its fill: only its outline is snapped to
-    if (!best || best.d > SNAP_PX) return undefined
-    const at = map.unproject([best.x, best.y])
-    return { type: 'way', loc: [at.lng, at.lat], edge: best.edge }
+    const p = map.project([loc[0], loc[1]])
+    const current = { id, x: p.x, y: p.y }
+    if (previous) {
+      const dx = current.x - previous.x
+      const dy = current.y - previous.y
+      const length2 = dx * dx + dy * dy
+      const t =
+        length2 === 0
+          ? 0
+          : Math.min(
+              1,
+              Math.max(0, ((point.x - previous.x) * dx + (point.y - previous.y) * dy) / length2),
+            )
+      const x = previous.x + t * dx
+      const y = previous.y + t * dy
+      const d = Math.hypot(x - point.x, y - point.y)
+      if (!best || d < best.d) best = { d, x, y, edge: [previous.id, current.id] }
+    }
+    previous = current
   }
+  // a click inside an area hits its fill: only its outline is snapped to
+  if (!best || best.d > SNAP_PX) return undefined
+  const at = map.unproject([best.x, best.y])
+  return { loc: [at.lng, at.lat], edge: best.edge }
 }

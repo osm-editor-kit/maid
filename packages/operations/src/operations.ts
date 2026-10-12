@@ -10,6 +10,7 @@ import {
   actionExtract,
   actionJoin,
   actionOrthogonalize,
+  actionReflect,
   actionReverse,
   actionSplit,
   actionStraightenNodes,
@@ -609,6 +610,35 @@ export const extractOperation: Operation = {
   },
 }
 
+/** Mirrors the selection along its long or its short axis, as iD's T and Y do */
+function reflectOperation(axis: 'long' | 'short'): Operation {
+  // what can be mirrored: at least one way, or several nodes. A single node has no axis.
+  const targets = (context: OperationContext) => {
+    const entities = context.selected.map((id) => context.graph.hasEntity(id))
+    if (entities.length === 0 || entities.some((entity) => entity === undefined)) return undefined
+    const nodes = entities.filter((entity) => entity instanceof OsmNode).length
+    return entities.length > nodes || nodes >= 3 ? context.selected : undefined
+  }
+  return {
+    id: `reflect-${axis}`,
+    label: axis === 'long' ? 'Flip long' : 'Flip short',
+    shortcut: axis === 'long' ? 't' : 'y',
+    applies: (context) => targets(context) !== undefined,
+    disabled: () => undefined,
+    run: (context) => {
+      const ids = targets(context) ?? notApplicable(`reflect-${axis}`)
+      const n = ids.length
+      return {
+        actions: [actionReflect([...ids]).useLongAxis(axis === 'long')],
+        annotation: n === 1 ? 'Flipped a feature' : `Flipped ${n} features`,
+      }
+    },
+  }
+}
+
+export const reflectLongOperation = reflectOperation('long')
+export const reflectShortOperation = reflectOperation('short')
+
 /** The operations in the order of iD's edit menu */
 export const defaultOperations: Operation[] = [
   reverseOperation,
@@ -619,4 +649,6 @@ export const defaultOperations: Operation[] = [
   circularizeOperation,
   disconnectOperation,
   extractOperation,
+  reflectLongOperation,
+  reflectShortOperation,
 ]

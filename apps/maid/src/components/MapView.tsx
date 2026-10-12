@@ -14,9 +14,11 @@ import {
   Map,
   type MapEvent,
   type MapLayerMouseEvent,
+  type MapTouchEvent,
   type ViewStateChangeEvent,
 } from 'react-map-gl/maplibre'
 import { exposeBenchApi } from '../bench'
+import { drawClick } from '../drawing'
 import { config, editor, engine, useEngine } from '../editor'
 import { addBaseImages, ensureImages } from '../images'
 import { useSelection } from '../selection'
@@ -35,6 +37,10 @@ const FALLBACK_CAMERA = { zoom: 17, lat: 52.389, lng: 13.4 }
 let lastTileCheck = 0
 /** The vertex that is being dragged, if any. Not React state: it changes on every pointer event. */
 let dragging: string | null = null
+/** When a click last went to the drawing tool: the double click that follows is not for the map */
+let lastDrawClick = 0
+
+type Point = { x: number; y: number }
 
 export function MapView() {
   const [cameraParam, setCameraParam] = useCameraParam()
@@ -43,6 +49,7 @@ export function MapView() {
   const [dashes, setDashes] = useState(() => new globalThis.Map(dashPatterns))
   const [cursor, setCursor] = useState('grab')
   const mode = useEngine((e) => e.mode)
+  const [zoomGuard, setZoomGuard] = useState(false)
 
   // Start position: the `map` parameter, else iD's `#map=` hash, else a default.
   const [initialCamera] = useState(() => cameraParam ?? config.camera ?? FALLBACK_CAMERA)
@@ -86,30 +93,50 @@ export function MapView() {
     // OSM zoom (256px tiles) is MapLibre zoom plus one
     void setCameraParam({ zoom: zoom + 1, lat: latitude, lng: longitude })
   }
-  const handleMouseDown = (event: MapLayerMouseEvent) => {
+  // --- pointer: the same for the mouse and for one finger ---
+
+  const press = (event: { point: Point; preventDefault: () => void }) => {
     if (mode !== 'browse') return
     const id = engine.pick(event.point, interactive)
-    if (!engine.isVertex(id)) return
+    if (!engine.isDraggable(id)) return
     event.preventDefault() // keeps MapLibre from panning the map with this drag
     dragging = id
     setCursor('grabbing')
   }
-  const handleMouseUp = () => {
+  const release = () => {
     if (!dragging) return
     dragging = null
     setCursor('grab')
     void engine.endDrag()
   }
+  const movePointer = (event: { point: Point; lngLat: { lng: number; lat: number } }) => {
+    const { lng, lat } = event.lngLat
+    // keys that act where the pointer is (paste, Space while drawing) read this
+    engine.pointer = { point: event.point, lon: lng, lat, layers: interactive }
+    if (dragging) engine.dragTo(dragging, lng, lat)
+    else if (drawing) engine.draw.move(event.point, interactive)
+    else if (mode === 'move' || mode === 'rotate') engine.transform.move(lng, lat)
+  }
   const handleMouseMove = (event: MapLayerMouseEvent) => {
-    if (dragging) {
-      engine.dragTo(dragging, event.lngLat.lng, event.lngLat.lat)
-      return
-    }
-    if (drawing) engine.draw.move(event.point, interactive)
-    if (mode !== 'browse') return
+    movePointer(event)
+    if (dragging || mode !== 'browse') return
     const id = engine.pick(event.point, interactive)
     engine.setHover(id)
     setCursor(id ? 'pointer' : 'grab')
+  }
+  // one finger drags a node; two fingers are the map's (pinch, pan)
+  const handleTouchStart = (event: MapTouchEvent) => {
+    if (event.points.length === 1) press(event)
+  }
+  const handleTouchMove = (event: MapTouchEvent) => {
+    if (event.points.length === 1) movePointer(event)
+  }
+
+  /** The double click that ends a drawing must not zoom the map afterwards */
+  const guardZoom = () => {
+    lastDrawClick = performance.now()
+    setZoomGuard(true)
+    setTimeout(() => setZoomGuard(false), 500)
   }
   const handleClick = (event: MapLayerMouseEvent) => {
     if (mode === 'add-point') {
@@ -120,12 +147,16 @@ export function MapView() {
       return
     }
     if (drawing) {
-      // a click that finishes the way selects it, so the sidebar asks what it is
-      void engine.draw.click(drawing, event.point, interactive).then((finished) => {
-        if (!finished) return
-        engine.setMode('browse')
-        select(finished)
-      })
+      guardZoom()
+      void drawClick(select, drawing, event.point, interactive).then(
+        (finished) => finished && guardZoom(),
+      )
+      return
+    }
+    if (mode === 'move' || mode === 'rotate') {
+      // the click puts the selection down where it is now
+      engine.transform.move(event.lngLat.lng, event.lngLat.lat)
+      engine.setMode('browse')
       return
     }
     const id = engine.pick(event.point, interactive)
@@ -135,6 +166,17 @@ export function MapView() {
       return
     }
     select(id)
+  }
+  const handleDblClick = (event: MapLayerMouseEvent) => {
+    if (mode !== 'browse' || performance.now() - lastDrawClick < 500) {
+      event.preventDefault()
+      return
+    }
+    // on the line of a way a double click adds a node there, as in iD; elsewhere it zooms
+    const node = engine.insertNode(event.point, interactive)
+    if (!node) return
+    event.preventDefault()
+    select(node)
   }
 
   return (
@@ -152,14 +194,21 @@ export function MapView() {
       attributionControl={false}
       dragRotate={false}
       cursor={mode === 'browse' ? cursor : 'crosshair'}
-      doubleClickZoom={mode === 'browse'}
+      // Shift-drag is not MapLibre's box zoom here: Shift-click selects several features
+      boxZoom={false}
+      doubleClickZoom={mode === 'browse' && !zoomGuard}
       onLoad={handleLoad}
       onMove={handleMove}
       onMoveEnd={handleMoveEnd}
-      onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
+      onMouseDown={press}
+      onMouseUp={release}
       onMouseMove={handleMouseMove}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={release}
+      onTouchCancel={release}
       onClick={handleClick}
+      onDblClick={handleDblClick}
     >
       <OsmLayers
         options={options}

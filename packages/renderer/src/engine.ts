@@ -11,12 +11,15 @@ import { createFilterSet, type FilterSet } from '@osm-editor-kit/maid-filters'
 import {
   type Action,
   actionAddEntity,
+  actionAddMidpoint,
+  actionCopyEntities,
   actionChangeTags,
   actionDeleteNode,
   actionDeleteRelation,
   actionDeleteWay,
   actionMoveNode,
   type Difference,
+  type Graph,
   OsmWay,
   type OsmEntity,
   type OsmJsonElement,
@@ -35,8 +38,9 @@ import {
   type SourceName,
 } from './build'
 import { OsmData } from './data'
-import { DrawTool } from './draw'
+import { DrawTool, nearestOnWay } from './draw'
 import { EDIT_SOURCES, SOURCES } from './layers'
+import { fromMercator, nodesOf, toMercator, TransformTool } from './transform'
 
 export type EngineOptions = {
   /** The editor that owns the OSM data and the edit history. The engine reads and changes them there. */
@@ -105,9 +109,10 @@ function locMoved(base: OsmEntity | undefined, head: OsmEntity | undefined): boo
 
 /**
  * What a click on the map does. `browse` selects and drags; `add-point` places a new point and
- * returns to `browse`; `draw-line` and `draw-area` add a node per click until the way is finished.
+ * returns to `browse`; `draw-line` and `draw-area` add a node per click until the way is finished;
+ * in `move` and `rotate` the selection follows the pointer until a click.
  */
-export type Mode = 'browse' | 'add-point' | 'draw-line' | 'draw-area'
+export type Mode = 'browse' | 'add-point' | 'draw-line' | 'draw-area' | 'move' | 'rotate'
 
 export class MaidEngine {
   /** The OSM data: entities and edit history (from the editor), plus the indexes of the builder */
@@ -683,23 +688,104 @@ export class MaidEngine {
   // --- Modes ---
 
   private currentMode: Mode = 'browse'
+  /**
+   * Where the pointer was last seen over the map, set by the map view: what keys that act
+   * "here" (paste, Space while drawing) use. `layers` are the layers that can be snapped to.
+   */
+  pointer?: { point: { x: number; y: number }; lon: number; lat: number; layers: string[] }
   /** Drawing lines and areas */
   readonly draw = new DrawTool(this)
+  /** Moving and rotating the selection with the pointer */
+  readonly transform = new TransformTool(this)
 
   /** What a click on the map does now */
   get mode(): Mode {
     return this.currentMode
   }
 
-  /** Changes the mode. A way that is being drawn is finished first, as iD does. */
-  setMode(mode: Mode) {
-    if (mode === this.currentMode) return
+  /**
+   * Changes the mode. A way that is being drawn is finished first, as iD does, and so is a move
+   * or rotation. `move` and `rotate` need a selection that can be changed; without one the mode
+   * stays as it is and false is returned.
+   */
+  setMode(mode: Mode): boolean {
+    if (mode === this.currentMode) return true
     if (this.draw.active) this.draw.finish()
+    if (this.transform.active) this.transform.finish()
+    if ((mode === 'move' || mode === 'rotate') && !this.transform.begin(mode, this.selectedIds))
+      return false
     this.currentMode = mode
     this.changed()
+    return true
+  }
+
+  // --- Copy and paste ---
+
+  /** What Cmd+C took: ids and the graph they are read from when pasted */
+  private clipboard?: { ids: string[]; graph: Graph }
+
+  /** Remembers the selection for `paste`. Returns false if nothing is selected. */
+  copy(): boolean {
+    if (this.selectedIds.length === 0) return false
+    this.clipboard = { ids: [...this.selectedIds], graph: this.data.history.stable.graph }
+    return true
+  }
+
+  /**
+   * Adds copies of what was copied, with their middle at this place, as one undo step, and
+   * returns the ids of the copies. Relations are copied with new members, as in iD.
+   */
+  paste(lon: number, lat: number): string[] {
+    const { clipboard } = this
+    if (!clipboard || this.draw.active || this.transform.active) return []
+    const action = actionCopyEntities(clipboard.ids, clipboard.graph)
+    let pasted: string[] = []
+    this.change(() => {
+      const { history } = this.data
+      history.perform(action)
+      const copies = action.copies()
+      pasted = clipboard.ids.map((id) => copies[id]?.id).filter((id) => id !== undefined)
+      // move the copies as a whole so that their middle is where the pointer is
+      const nodes = [...nodesOf(this, pasted)].map((id) => ({
+        id,
+        at: toMercator(this.data.node(id)?.loc ?? [0, 0]),
+      }))
+      if (nodes.length > 0) {
+        const to = toMercator([lon, lat])
+        const dx = to[0] - nodes.reduce((sum, n) => sum + n.at[0], 0) / nodes.length
+        const dy = to[1] - nodes.reduce((sum, n) => sum + n.at[1], 0) / nodes.length
+        history.perform(
+          ...nodes.map((n) => actionMoveNode(n.id, fromMercator([n.at[0] + dx, n.at[1] + dy]))),
+        )
+      }
+      const what = pasted.length === 1 ? 'a feature' : `${pasted.length} features`
+      history.commit({ annotation: `Pasted ${what}`, selectedIDs: pasted })
+    })
+    this.setSelected(pasted)
+    return pasted
   }
 
   // --- Creating and deleting ---
+
+  /**
+   * Adds a node to the way under this screen position, on its line, as a double click on a way
+   * does in iD. Returns the id of the new node, or undefined if there is no way to add to.
+   */
+  insertNode(point: { x: number; y: number }, layerIds: string[]): string | undefined {
+    const wayId = this.pick(point, layerIds)
+    if (wayId?.[0] !== 'w' || this.isReadOnly(wayId)) return undefined
+    const way = this.data.way(wayId)
+    const on = way && nearestOnWay(this, way, point)
+    // a double click inside an area is not on its line
+    if (!on) return undefined
+    const node = new OsmNode(this.data.context, { loc: on.loc })
+    this.change(() => {
+      const { history } = this.data
+      history.perform(actionAddEntity(node), actionAddMidpoint(on, node))
+      history.commit({ annotation: 'Added a node to a way', selectedIDs: [node.id] })
+    })
+    return node.id
+  }
 
   /** Adds a standalone point and returns its id (negative, as for every new entity). One undo step. */
   addPoint(lon: number, lat: number, tags: Tags = {}): string {
@@ -847,17 +933,20 @@ export class MaidEngine {
     }
   }
 
+  /** True while a drag, a drawing or a move is under way: the history is not stepped through then */
+  private busy(): boolean {
+    return this.dragged !== undefined || this.draw.active || this.transform.active
+  }
+
   /** Takes back the last edit and redraws what it changed. Does nothing while a vertex is dragged. */
   undo(): void {
-    if (this.dragged || this.draw.active || this.data.history.getUndoAnnotation() === undefined)
-      return
+    if (this.busy() || this.data.history.getUndoAnnotation() === undefined) return
     this.change(() => this.data.history.undo())
   }
 
   /** Puts back the edit that the last undo took back, and redraws what it changed. */
   redo(): void {
-    if (this.dragged || this.draw.active || this.data.history.getRedoAnnotation() === undefined)
-      return
+    if (this.busy() || this.data.history.getRedoAnnotation() === undefined) return
     this.change(() => this.data.history.redo())
   }
 
@@ -917,6 +1006,8 @@ export class MaidEngine {
     )
     this.removeFeatures(remove)
     this.sendBatch(batch)
+    // the shape points of the selection follow its nodes
+    if (this.selectedIds.length > 0) this.refreshShape()
     // feature state belongs to a source: a feature that changed its source needs it again
     if (remove.some(([, featureId]) => this.selectedIds.includes(featureId)))
       queueMicrotask(() => this.applyHighlight([], 'selected'))
@@ -929,9 +1020,9 @@ export class MaidEngine {
   private dragged?: string
   private dragBusy = false
 
-  /** True if this id is a vertex that can be dragged */
-  isVertex(id: string | null): id is string {
-    return !!id && id[0] === 'n' && this.data.nodeWays.has(id) && !this.isReadOnly(id)
+  /** True if this id is a node that can be dragged: a vertex or a standalone point */
+  isDraggable(id: string | null): id is string {
+    return !!id && id[0] === 'n' && this.data.node(id) !== undefined && !this.isReadOnly(id)
   }
 
   /**
@@ -1034,17 +1125,33 @@ export class MaidEngine {
     }
     for (const id of previous) set(id, false)
     for (const id of kind === 'hover' ? (hoverId ? [hoverId] : []) : selectedIds) set(id, true)
-    if (kind === 'selected') {
-      // the shape points of the selected way come from the small highlight source
-      const shape = selectedIds.flatMap((id) => (id[0] === 'w' ? wayVertices(this.data, id) : []))
-      for (const vertex of shape) vertex.properties = { ...vertex.properties, state: 'shape' }
-      void map
-        .getSource<GeoJSONSource>(SOURCES.highlight)
-        ?.setData({ type: 'FeatureCollection', features: shape })
-    }
+    if (kind === 'selected') this.refreshShape()
     // a feature that is not on the map changes nothing, so ask for a frame explicitly
     void map.once('render').then(shown)
     map.triggerRepaint()
+  }
+
+  /**
+   * The shape points of the selection, in the small highlight source: all nodes of the selected
+   * ways and, for a selected vertex, of the ways it belongs to, as iD shows them. They can be
+   * picked and dragged like any vertex.
+   */
+  private refreshShape() {
+    const ways = new Set<string>()
+    for (const id of this.selectedIds) {
+      if (id[0] === 'w') ways.add(id)
+      else if (id[0] === 'n') for (const wayId of this.data.nodeWays.get(id) ?? []) ways.add(wayId)
+    }
+    const shape = new Map<string, Feature>()
+    for (const wayId of ways)
+      for (const vertex of wayVertices(this.data, wayId)) {
+        const id = vertex.properties?.id as string
+        vertex.properties = { id, state: 'shape' }
+        shape.set(id, vertex)
+      }
+    void this.map
+      ?.getSource<GeoJSONSource>(SOURCES.highlight)
+      ?.setData({ type: 'FeatureCollection', features: [...shape.values()] })
   }
 
   /** The feature a pointer at this pixel would hit, in iD's priority: vertex, point, line, area */
@@ -1098,6 +1205,8 @@ export class MaidEngine {
 }
 
 const PRIORITY: Record<string, number> = {
+  // the shape points of the selection are vertices like the others
+  [SOURCES.highlight]: 0,
   [SOURCES.vertices]: 0, [EDIT_SOURCES.vertices]: 0,
   [SOURCES.points]: 1, [EDIT_SOURCES.points]: 1,
   [SOURCES.lines]: 2, [EDIT_SOURCES.lines]: 2,

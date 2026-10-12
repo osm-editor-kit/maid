@@ -7,6 +7,8 @@ import {
   disconnectOperation,
   extractOperation,
   mergeOperation,
+  reflectLongOperation,
+  reflectShortOperation,
   reverseOperation,
   splitOperation,
   squareOperation,
@@ -90,6 +92,8 @@ describe('the operation list', () => {
       ['circularize', 'Make round', 'o'],
       ['disconnect', 'Disconnect', 'd'],
       ['extract', 'Extract', 'e'],
+      ['reflect-long', 'Flip long', 't'],
+      ['reflect-short', 'Flip short', 'y'],
     ])
   })
 })
@@ -413,5 +417,40 @@ describe('extract', () => {
 
   it('has no disabled state: iD disables extract only for the viewport', () => {
     expect(extractOperation.disabled(at(['n2'], signal))).toBeUndefined()
+  })
+})
+
+describe('flip', () => {
+  // A long rectangle lying along the equator, 4 wide and 1 high, with one corner cut off so that
+  // a flip is visible: n3 sits at three quarters of the top edge.
+  //   n4 ------- n3
+  //   |            \
+  //   n1 --------- n2
+  const shape = graphOf(
+    node('n1', 0, 0),
+    node('n2', 0.0004, 0),
+    node('n3', 0.0003, 0.0001),
+    node('n4', 0, 0.0001),
+    way('w1', ['n1', 'n2', 'n3', 'n4', 'n1'], { area: 'yes' }),
+  )
+
+  it('mirrors along the long axis: top and bottom swap, left and right stay', () => {
+    const { after, result } = run(reflectLongOperation, shape, ['w1'])
+    expect(result.annotation).toBe('Flipped a feature')
+    // n3 was at the top right of the cut corner; flipped over the horizontal middle it is at the bottom
+    expect(locOf(after, 'n3')[0]).toBeCloseTo(0.0003, 6)
+    expect(locOf(after, 'n3')[1]).toBeLessThan(locOf(after, 'n2')[1])
+    expect(locOf(after, 'n1')[0]).toBeCloseTo(0, 6)
+  })
+
+  it('mirrors along the short axis: left and right swap', () => {
+    const { after } = run(reflectShortOperation, shape, ['w1'])
+    // n1 and n4 were the left side; now they are the right side
+    expect(locOf(after, 'n1')[0]).toBeGreaterThan(locOf(after, 'n2')[0])
+    expect(locOf(after, 'n4')[1]).toBeCloseTo(0.0001, 6)
+  })
+
+  it('does not apply to a single node', () => {
+    expect(reflectLongOperation.applies(at(['n1'], new Graph(shape)))).toBe(false)
   })
 })

@@ -24,6 +24,8 @@ export async function runCheck(
   body: (check: Check) => Promise<void>,
   /** More URL parameters, e.g. `filters=buildings:hidden` */
   query = '',
+  /** A browser with a touch screen, for checks that send touch events */
+  hasTouch = false,
 ): Promise<number> {
   const scene = getScene(sceneName)
   const browser = await chromium.launch({ channel: 'chrome', headless: true })
@@ -38,7 +40,7 @@ export async function runCheck(
     }
   }
   try {
-    const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } })
+    const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, hasTouch })
     const page = await context.newPage()
     const blocked = new Map<string, number>()
     await context.route(

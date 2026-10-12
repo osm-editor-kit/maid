@@ -50,8 +50,10 @@ Review after part A (2026-10-12): the switches of the iteration-1 experiments ar
   Result (2026-10-12): partly done; the interactive ones are open. New headless package [`maid-operations`](../../packages/operations/README.md): eight operations (reverse V, split X, merge C, straighten S, square Q, make round O, disconnect D, extract E) as data and functions on the graph, each with iD's rule for when it is offered, a sentence for why it cannot run now, and one undo step (29 tests). They reach the editor through a new extension point, `edit.operation`, filled by `operations(defaultOperations)` in the config. The sidebar shows the ones that apply to the selection as an "Edit" menu with their keys; one that cannot run is grey and says why. Several features can be selected with Shift-click (the URL holds `id=w1,w2` as in iD), which merge needs. New check `bun run check-ops` (13 checks, small and dense scene): square a building, split a road at a vertex, merge the parts, undo, with data and map compared after each step. Found by it: the selection after a split did not contain the new way, because its id is only known after the action ran; the contract now asks for the selection with the resulting graph.
   **Not done:** move (M), rotate (R), reflect, copy and paste: they need the pointer or a clipboard and are the next step for this part. Also open: merging a point into a line or area, selecting with a box, and a context menu on the map.
   **Test for Tobias:** open <http://localhost:5173/?scene=small&map=19/52.389/13.4>. Select a building and press Q. Select a vertex in the middle of a road and press X. Shift-click both parts and press C. Undo all three.
-- [ ] **B5b. Move, rotate, reflect, copy and paste.** The operations of B5 that need the pointer or a clipboard: move (M) and rotate (R) as modes that follow the pointer, reflect, Cmd+C and Cmd+V.
-  Test: move a building, rotate it, copy a bench and paste it twice.
+- [x] **B5b. Move, rotate, reflect, copy and paste, and iD's keys and gestures.** The operations of B5 that need the pointer or a clipboard: move (M) and rotate (R) as modes that follow the pointer, reflect, Cmd+C and Cmd+V. With it a pass over keyboard, mouse and touch against iD ([comparison](../research/interactions-vs-id.md)).
+  Result (2026-10-12): done. M moves and R rotates the selection with the pointer, a click puts it down, Escape puts it back; both are in the edit menu too. T and Y flip along the long and the short axis (two more operations in `maid-operations`). Cmd/Ctrl+C copies, Cmd/Ctrl+V pastes with the middle of the copy at the pointer. Keys are registered with TanStack Hotkeys (`apps/maid/src/components/useShortcuts.ts`) and follow iD: while drawing, Space places a node at the pointer, Enter **and Escape** finish (Escape dropped the way before), Backspace takes back the last node, Delete drops the way; A continues the selected line; arrow keys pan, + and - zoom. Fixed from Tobias's test: a double click that closes a drawn area no longer zooms; Shift-click works because MapLibre's Shift-drag zoom is off; the nodes of a selected way are shown, can be picked, selected and dragged (areas had no draggable nodes); standalone points can be dragged; a double click on the line of a way adds a node there. One finger drags a node on a touch screen. New check `bun run check-interactions` with real mouse, key and touch events (19 checks).
+  Not done, from the comparison: a dragged node is not connected to the node or way it is dropped on, no midpoints to drag, no edit menu on right click or long press, no lasso (Shift-drag), Alt does not switch snapping off while drawing, and the layout is not made for phones yet.
+  **Test for Tobias:** open <http://localhost:5173/?scene=small&map=19/52.389/13.4>. Draw an area and close it with a double click. Select a building, drag a corner, press M and move it, R and turn it, Cmd+C, Cmd+V. Shift-click two roads.
 - [x] **B6. Relations.** Membership list in the inspector, add to and remove from a relation, multipolygons draw correctly while edited. Turn restrictions come later.
   Result (2026-10-12): done. Relations are a module (`apps/maid/src/modules/relations.tsx`) with two inspector sections: "Members" for a selected relation (select a member, change its role, remove it; the first 50) and "Relations" for any feature (its memberships with role and remove, and "Add to a relation" with the relations that are loaded). The module edits through `editor.history` alone, which works because the engine now redraws every change of the history, not only its own; `engine.change` groups several changes into one redraw. A section is given `select` to jump to another entity. The area of a multipolygon is rebuilt when a member way or one of its nodes changes. Relations can change their tags and feature type like nodes and ways (they were read-only). Browser checks share their page setup in `tools/bench/check-page.ts`; new check `bun run check-relations` (12 checks on the dense scene; the small one has no multipolygon in view and skips that part).
   Not done: reordering members, creating a relation, the member list beyond 50, relations that are not loaded cannot be chosen, and turn restrictions.
@@ -76,8 +78,8 @@ Review after part A (2026-10-12): the switches of the iteration-1 experiments ar
 
 ## Part D: core modules and the first fork
 
-- [ ] **D1. Backgrounds.** `maid-module-imagery` on `maplibre-editor-layer-index`: background list, overlays, offset.
-- [ ] **D2. Street-level photos.** `maid-module-street-imagery` on the existing packages, with the viewer in the dock.
+- [ ] **D1. Backgrounds.** The existing package `maplibre-editor-layer-index` does the work: background list, overlays, offset. `maid-module-imagery` is only the adapter that puts it into Maid (a Maid module of a few files that registers the layers, the panel and the settings on the extension points). What is missing for Maid is added to the existing package, not built a second time here.
+- [ ] **D2. Street-level photos.** The same: the existing packages `street-imagery` and `street-imagery-react` do the work, with the viewer in the dock; `maid-module-street-imagery` is the adapter.
 - [ ] **D3. Notes and data layers.** OSM notes; user GeoJSON, PMTiles and vector tiles.
 - [ ] **D4. Tasks.** The task extension points and `maid-module-maproulette`.
 - [ ] **D5. Lenses and user styles.** A second prepare step, style export and import.
@@ -87,7 +89,11 @@ Each of these gets its test line when it is planned in detail.
 
 ## Not planned yet
 
-Translations, the walkthrough, turn restrictions, GPX, measurement and history panels, keyboard shortcut help, the published npm packages and their release routine. They are listed so that nobody assumes they are covered.
+Translations, turn restrictions, GPX, measurement and history panels, keyboard shortcut help, the published npm packages and their release routine. They are listed so that nobody assumes they are covered.
+
+## Not doing
+
+- **The walkthrough** (iD's interactive tutorial). Decided by Tobias on 2026-10-12: Maid will not have one.
 
 ## Log
 

@@ -422,6 +422,6 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
 /** Layers a pointer can hit, in iD's picking priority: vertex, point, line, area */
 export function interactiveLayerIds(layers: LayerSpecification[]) {
   const wanted =
-    /^(vertex|point-pin|point-dot|point-address|line-(casing|stroke)(-dashed)?--?\d|area-stroke|area-fill)/ // also matches the `--edit` twins
+    /^(highlight-vertex|vertex|point-pin|point-dot|point-address|line-(casing|stroke)(-dashed)?--?\d|area-stroke|area-fill)/ // also matches the `--edit` twins
   return layers.filter((l) => wanted.test(l.id)).map((l) => l.id)
 }
