@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'bun:test'
 import * as Rapid from '../../rapid.ts'
 import * as sdk from '../../sdk.ts'
+import { utilOldestID } from '../../../src/util/ids.ts'
 
 // chai's to.have.members (the same items, in any order); bun's expect has no such matcher.
 function expectMembers(actual: unknown[], expected: unknown[]) {
@@ -277,12 +278,22 @@ describe('iD.util', function() {
     });
 
     describe('utilOldestID', function() {
-        // needs F-util-10
-        it.todo('returns the oldest database ID')
-        it.todo('returns the oldest editor ID')
-        it.todo('returns the oldest IDs among database and editor IDs')
-        it.todo('returns the oldest editor ID if no database IDs')
-        it.todo('returns the first ID in the list otherwise')
+        it('returns the oldest database ID', () => {
+            expect(utilOldestID(['w3', 'w1', 'w2'])).toEqual('w1')
+        })
+        it('returns the oldest editor ID', () => {
+            expect(utilOldestID(['w-3', 'w-2', 'w-1'])).toEqual('w-1')
+        })
+        it('returns the oldest IDs among database and editor IDs', () => {
+            expect(utilOldestID(['w-1', 'w1', 'w-2'])).toEqual('w1')
+            expect(utilOldestID(['w100', 'w-1', 'a', 'w-300', 'w2'])).toEqual('w2')
+        })
+        it('returns the oldest editor ID if no database IDs', () => {
+            expect(utilOldestID(['w-100', 'w-1', 'a', 'w-300', 'w-2'])).toEqual('w-1')
+        })
+        it('returns the first ID in the list otherwise', () => {
+            expect(utilOldestID(['z', 'a', 'A', 'Z'])).toEqual('z')
+        })
     });
 
     describe('utilStripDiacritics', function() {

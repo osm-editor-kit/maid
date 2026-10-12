@@ -2,7 +2,7 @@
 
 Compared at iD commit `0194f3926`. Run:
 - `bun test packages/model/test/id/geo` → 113 pass, 0 fail, 24 todo
-- `bun test packages/model/test/id/util` → 41 pass, 0 fail, 81 todo
+- `bun test packages/model/test/id/util` → 46 pass, 0 fail, 76 todo
 - `bun test packages/ui/src/inspector/id-util.test.ts` → 1 pass
 
 Covered tests are compared by their `it` titles and by reading the assertions of the Maid side only where noted. Adopted tests keep iD's titles, inputs and expected values; only the calls and two shapes of argument changed (see Differences).
@@ -23,9 +23,9 @@ Covered tests are compared by their `it` titles and by reading the assertions of
 | `util/rebind.js` | 1 | 0 | 0 | 0 | 1 | none (n/a) |
 | `util/session_mutex.js` | 10 | 1 | 0 | 0 | 9 | none; covered in `packages/journal/src/journal.test.ts` |
 | `util/units.js` | 13 | 0 | 0 | 13 | 0 | `packages/model/test/id/util/units.test.ts` |
-| `util/util.js` | 74 | 0 | 28 | 46 | 0 | `packages/model/test/id/util/util.test.ts` |
-| **sum util** | **137** | **1** | **42** | **69** | **25** | |
-| **sum all** | **283** | **9** | **155** | **93** | **26** | |
+| `util/util.js` | 74 | 0 | 33 | 41 | 0 | `packages/model/test/id/util/util.test.ts` |
+| **sum util** | **137** | **1** | **47** | **64** | **25** | |
+| **sum all** | **283** | **9** | **160** | **88** | **26** | |
 
 The sums match the inventory: geo 146 and util 137 (283).
 
@@ -47,7 +47,7 @@ The sums match the inventory: geo 146 and util 137 (283).
 | F-util-7 | `utilCombinedTags`: the values of a tag across a multi-selection, most frequent first | `util.js`: 2 | todo | `packages/ui/src/inspector` (multi-selection) |
 | F-util-8 | `utilEditDistance` with `substring: true` (a query matched inside a name, for combo search) | `util.js`: 6 (5 tests and one `it.each` of 9 rows) | todo | `packages/model/src/util` |
 | F-util-9 | `utilDisplayName`: the label of a feature from name, ref, route network and direction, address fallbacks, localized names | `util.js`: 24 | todo | `packages/model/src/util` (the renderer's label in `packages/renderer/src/build.ts` covers only the house number) |
-| F-util-10 | `utilOldestID`: the oldest of several entity ids, database before editor ids (used when merging) | `util.js`: 5 | todo | `packages/model/src/util` (`join.ts` has its own rule for ways) |
+| F-util-10 | `utilOldestID`: the oldest of several entity ids, database before editor ids (used when merging) | `util.js`: 5 | built now: `src/util/ids.ts`, 5 adopted. No action uses it yet: the survivor rules that would use it are blocked by Rapid's tests (F-actions-a-5, F-actions-b-1 to -3). It does not need F-util-12: the numeric order is a private helper in `ids.ts` | `packages/model/src/util` (`join.ts` has its own rule for ways) |
 | F-util-11 | `utilStripDiacritics` as a utility (Maid has a private `stripDiacritics` in `packages/presets/src/presets.ts`) | `util.js`: 1 | todo | `packages/model/src/util` or `packages/presets` export |
 | F-util-12 | `utilCompareIDs`: iD's order (existing oldest-first, new ones after, other strings last). Maid's `OsmEntity.creationOrder` is newest-first on purpose (Rapid's tests) and does not sort strings. A decision is needed first | `util.js`: 5 | todo | `packages/model/src/data/OsmEntity.ts` |
 | F-util-13 | `utilExpandLocaleCode`: language fallbacks (`zh-CN` to `zh-Hans-CN`, `zh-Hans`, `zh`) for localized names | `localizer.ts`: 12 cases (inventory counts 0) | todo | `packages/ui/src/inspector/fields/localized-logic.ts` |
