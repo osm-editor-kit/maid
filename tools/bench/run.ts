@@ -15,6 +15,7 @@ import {
   firefox,
   webkit,
   type Browser,
+  type BrowserContext,
   type CDPSession,
   type Page,
 } from '@playwright/test'
@@ -27,6 +28,10 @@ import { summarizeFrames, type FrameSummary } from './stats'
 const ROOT = join(import.meta.dir, '../..')
 const VIEWPORT = { width: 1600, height: 1000 }
 const OSM_HOSTS = /(^|\.)(openstreetmap\.(org|de|fr)|osm\.org|overpass-api\.de|osmfoundation\.org)$/
+/** One phase of a run (load, pan, zoom, hover, select, drag) may take this long before the run is given up */
+const PHASE_LIMIT_MS = 60_000
+/** The whole run, as a backstop for anything the phase limits do not cover */
+const RUN_LIMIT_MS = 300_000
 
 type Editor = 'maid' | 'id' | 'rapid'
 type Phase = FrameSummary & { cpuMs: number; settleMs: number }
@@ -38,6 +43,10 @@ export type RunResult = {
   repeat: number
   ok: boolean
   error?: string
+  /** Set when a phase did not finish: the phase, the page's own state (`window.__maid.debug()`, or `{ error }` if it did not answer), and the console warnings and errors so far */
+  stuck?: { phase: string; limitSeconds: number; page: unknown; console: string[] }
+  /** Marker images the editor could not draw (bench: the run fails, the numbers would look better than they are) */
+  imageFailures?: { id: string; reason: string }[]
   version?: string
   gpu?: string
   load?: { readyMs: number; settledMs: number; cpuMs: number }
@@ -194,6 +203,21 @@ async function recordPhase(
   }
 }
 
+/** The context of the run in progress, and its phase: the run's backstop closes the one and names the other */
+let openContext: BrowserContext | undefined
+let lastPhase = ''
+
+/**
+ * Waits for a call to a page that may never answer (a stuck main thread answers no call). Resolves with the
+ * call's value, or with `{ error }` after `ms`. The call itself is left behind.
+ */
+function bounded<T>(work: Promise<T>, ms: number): Promise<T | { error: string }> {
+  return Promise.race([
+    work.catch((error: unknown) => ({ error: String(error).slice(0, 300) })),
+    Bun.sleep(ms).then(() => ({ error: `no answer within ${ms / 1000} s` })),
+  ])
+}
+
 async function runOnce(
   browser: Browser,
   editor: Editor,
@@ -227,13 +251,52 @@ async function runOnce(
   await context.addInitScript(installProbe)
   const page = await context.newPage()
   page.setDefaultTimeout(90_000) // a hanging editor fails its run instead of blocking the benchmark
+  openContext = context
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
+  const consoleLines: string[] = []
+  page.on('console', (message) => {
+    if ((message.type() === 'warning' || message.type() === 'error') && consoleLines.length < 30)
+      consoleLines.push(`${message.type()}: ${message.text()}`.slice(0, 300))
+  })
   const cdp = opts.browser === 'chromium' ? await context.newCDPSession(page) : undefined
   await cdp?.send('Performance.enable')
-  // BENCH_DEBUG=1 prints each phase as it starts, to see where a run hangs
-  const phaseLog = (name: string) =>
-    process.env.BENCH_DEBUG && console.log(`  [${editor} ${scene.name} #${repeat}] ${name}`)
+  // Every phase has PHASE_LIMIT_MS. A phase that runs over is given up: the page is asked what it holds, a
+  // screenshot is kept, and the context is closed, so the call the phase waits on fails and the run is recorded
+  // as stuck in that phase. A stuck page answers no calls, so nothing here waits on the page without a bound.
+  let watchdog: ReturnType<typeof setTimeout> | undefined
+  let stuckPhase: string | undefined
+  const giveUp = async (name: string) => {
+    stuckPhase = name
+    const state = await bounded(
+      page.evaluate(() => window.__maid?.debug?.() ?? null),
+      5_000,
+    )
+    result.stuck = {
+      phase: name,
+      limitSeconds: PHASE_LIMIT_MS / 1000,
+      page: state,
+      console: [...consoleLines],
+    }
+    await bounded(
+      page.screenshot({
+        path: join(outDir, `stuck-${editor}-${opts.variant}-${scene.name}-${repeat}.png`),
+        timeout: 10_000,
+      }),
+      15_000,
+    )
+    console.log(
+      `  [${editor} ${scene.name} #${repeat}] phase "${name}" did not finish within ${PHASE_LIMIT_MS / 1000} s; page: ${JSON.stringify(state).slice(0, 2000)}`,
+    )
+    await bounded(context.close(), 10_000)
+  }
+  // BENCH_DEBUG=1 also prints each phase as it starts, to see where a run hangs
+  const enter = (name: string) => {
+    lastPhase = name
+    if (process.env.BENCH_DEBUG) console.log(`  [${editor} ${scene.name} #${repeat}] ${name}`)
+    clearTimeout(watchdog)
+    watchdog = setTimeout(() => void giveUp(name), PHASE_LIMIT_MS)
+  }
   const shot = async (name: string) => {
     const file = `${editor}-${opts.variant}-${scene.name}-${name}.png`
     if (repeat === 0) await page.screenshot({ path: join(outDir, file) })
@@ -247,7 +310,7 @@ async function runOnce(
     const query = extra ? `&${extra}` : ''
     const start = { lng, lat, zoom: scene.zoom }
 
-    phaseLog('load')
+    enter('load')
     // --- Load: from navigation to a complete picture ---
     const t0 = performance.now()
     await page.goto(
@@ -271,7 +334,7 @@ async function runOnce(
     result.stats = await page.evaluate(() => window.__bench.stats())
     await shot('load')
 
-    phaseLog('pan')
+    enter('pan')
     // --- Pan: a real mouse drag into data that is not loaded yet (cold), then back (warm) ---
     // Real input on purpose: iD and Rapid move a stale picture while dragging and redraw later,
     // and only a real gesture goes through that path.
@@ -318,7 +381,7 @@ async function runOnce(
     await page.evaluate((c) => window.__bench.setCamera(c), start)
     await page.evaluate(() => window.__bench.settled())
 
-    phaseLog('zoom')
+    enter('zoom')
     // --- Zoom with the mouse wheel: in two levels, then back out ---
     const wheel = (direction: 1 | -1, target: number) => async () => {
       await page.mouse.move(VIEWPORT.width / 2, VIEWPORT.height / 2)
@@ -338,7 +401,7 @@ async function runOnce(
     await page.evaluate((c) => window.__bench.setCamera(c), start)
     await page.evaluate(() => window.__bench.settled())
 
-    phaseLog('hover')
+    enter('hover')
     // --- Hover: latency on known ways, then a sweep across the map ---
     const targets = await hoverTargets(scene)
     result.hoverLatencyMs = []
@@ -381,7 +444,7 @@ async function runOnce(
     }
     await page.mouse.move(3, 3)
 
-    phaseLog('select')
+    enter('select')
     // --- Select: until the selection is drawn ---
     result.selectMs = []
     for (const target of targets.slice(0, 4)) {
@@ -396,7 +459,7 @@ async function runOnce(
       await page.evaluate(() => window.__bench.select(null))
     }
 
-    phaseLog('drag')
+    enter('drag')
     // --- Edit: drag a road junction with the real mouse ---
     if (await page.evaluate(() => typeof window.__bench.nodeLoc === 'function')) {
       let tries = 0
@@ -458,6 +521,20 @@ async function runOnce(
       }
     }
 
+    if (editor === 'maid') {
+      // a marker image that was not drawn makes the picture differ from the other runs: such a run fails
+      const debug = await page.evaluate(() => window.__maid?.debug?.())
+      const images = (debug as { images?: { failed?: { id: string; reason: string }[] } } | null)
+        ?.images
+      const failed = images?.failed ?? []
+      if (failed.length) {
+        result.imageFailures = failed
+        throw new Error(
+          `${failed.length} marker image(s) not drawn: ${failed.map((f) => `${f.id} (${f.reason})`).join('; ')}`,
+        )
+      }
+    }
+
     if (cdp) {
       await cdp.send('HeapProfiler.collectGarbage')
       const { metrics } = await cdp.send('Performance.getMetrics')
@@ -466,11 +543,18 @@ async function runOnce(
     }
     result.ok = true
   } catch (error) {
-    result.error = String(error).slice(0, 500)
-    await page
-      .screenshot({ path: join(outDir, `error-${editor}-${scene.name}-${repeat}.png`) })
-      .catch(() => {})
+    result.error = stuckPhase
+      ? `phase "${stuckPhase}" did not finish within ${PHASE_LIMIT_MS / 1000} s`
+      : String(error).slice(0, 500)
+    if (!stuckPhase)
+      await page
+        .screenshot({
+          path: join(outDir, `error-${editor}-${scene.name}-${repeat}.png`),
+          timeout: 10_000,
+        })
+        .catch(() => {})
   }
+  clearTimeout(watchdog)
   if (errors.length)
     result.error = [result.error, ...errors.slice(0, 3)].filter(Boolean).join(' | ')
   const osmHosts = Object.keys(result.blocked).filter((host) => OSM_HOSTS.test(host))
@@ -479,7 +563,8 @@ async function runOnce(
     result.error =
       `${result.error ?? ''} tried to reach OSM infrastructure: ${osmHosts.join(', ')}`.trim()
   }
-  await context.close()
+  openContext = undefined
+  await context.close().catch(() => {})
   return result
 }
 
@@ -526,20 +611,30 @@ try {
     const scene = getScene(sceneName)
     for (let repeat = 0; repeat < opts.repeat; repeat++) {
       for (const editor of opts.editors) {
+        // the backstop belongs to this run only: once the run is over its timer must do nothing, or it would
+        // close the context of a later run five minutes after this one started
+        let over = false
         const result = await Promise.race([
-          runOnce(browser, editor, scene, repeat, outDir, opts),
-          Bun.sleep(300_000).then(
-            (): RunResult => ({
+          runOnce(browser, editor, scene, repeat, outDir, opts).finally(() => {
+            over = true
+          }),
+          Bun.sleep(RUN_LIMIT_MS).then(async (): Promise<RunResult> => {
+            if (over) return new Promise<RunResult>(() => {})
+            // close what is still open, so the run's calls end and the next run starts clean
+            const phase = lastPhase
+            await openContext?.close().catch(() => {})
+            openContext = undefined
+            return {
               editor,
               variant: opts.variant,
               scene: scene.name,
               repeat,
               ok: false,
-              error: 'run did not finish within 5 minutes',
+              error: `run did not finish within ${RUN_LIMIT_MS / 60_000} minutes (last phase: ${phase || 'none'})`,
               blocked: {},
               screenshots: {},
-            }),
-          ),
+            }
+          }),
         ])
         results.push(result)
         if (!result.ok) failed = true

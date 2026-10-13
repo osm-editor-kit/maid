@@ -221,3 +221,78 @@ So nothing clean exists and the layer is unchanged. What a person sees does not 
 | `bun run bench-edit-path [--steps 300]` | `packages/renderer/bench/edit.bench.ts` | `reports/renderer-edit-bench-<scene>.json` | one node move: `history.perform` and the rebuild of the vertex and its ways |
 
 `bench-load` imports `tools/mock-osm-api/server.ts` for the tile bodies; no server is started and nothing is fetched. To profile a phase: `bun --cpu-prof --cpu-prof-dir <dir> packages/renderer/bench/load.bench.ts --runs 1`.
+
+## A run that did not finish
+
+One of 17 runs of the dense scene after d1158bc (`reports/bench-after.log` line 161: `dense maid #0`, "run did not finish within 5 minutes"). Its `load` result was never written (`load undefinedms`), so the stall was in the load phase: `page.goto`, `waitForFunction` (60 s), `ready()`, or the first `settled()`. The other 16 runs were normal. It did not come back in 8 further runs. This section is a reading of the code, with the hardening that goes with it. Nothing was run in a browser; the orchestrator runs `bun run bench`.
+
+### What the reading shows
+
+**The image path cannot hang by itself.** Every await in it, and what settles it now:
+
+| Await | Before | Now |
+| --- | --- | --- |
+| MapLibre `ImageManager._getImagesForIds`: `await Promise.allSettled(resolver(id))` (maplibre-gl-dev.mjs, around line 1078) | waits for each resolver; a resolver that never settles keeps the tile from loading | MapLibre's side is unchanged; every resolver promise now settles (below) |
+| resolver `await job` (images.ts `installMarkerImages`) | the job could be pending for ever | the job is `addMarker(...)` wrapped in `.catch` (records the failure, warns once) and `.finally` (leaves `making`); it settles within `MARKER_LIMIT_MS` (5 s) |
+| `addMarker`: `await makeMarker(...)` | no limit | `within(makeMarker(...), limitMs)`; the image is added only if the limit has not won, so a late result is dropped |
+| `makePin` / `makeBareIcon`: `await decodeIcon(...)` | the cache held the pending promise for ever | `within(...)` on the decode; a failed or late decode is dropped from the cache (`icons`) |
+| `makeIconImage`: `await loadSprite(...)` | the sprite fetch had no limit; a failed fetch stayed cached | `within(...)` on the fetch chain; a failed or late sprite is dropped from `sprites` |
+| `makeIconImage`: `await image.decode()` | a second promise, no limit | replaced by `onload`/`onerror` (`loadDataImage`); a loaded image is decoded when the canvas draws it |
+| the resolver's synchronous part (`parseMarkerImage`, `map.hasImage`, the job set-up) | a throw became a rejection that MapLibre only logs | inside `try`; a throw is recorded as a failure and the resolver resolves |
+
+Before the change, the only way the resolver could leave a tile waiting for ever was a `decode()` or a sprite `fetch` that never settled. Both are now limited. None of this is confirmed as the cause of the run.
+
+**The engine's `settled()` cannot hang.** Each iteration waits at most 250 ms (`waiters` plus a timer) or 2 s (`nextIdle`), and the deadline (60 s) is checked at the top of each iteration, so the call returns or throws within about 62 s. A `setData` in flight or a stuck channel makes it throw `Maid did not settle`, not hang. `once('idle')` cannot be missed: the listener is registered before `triggerRepaint()`, and the 2 s timer covers a frame that does not come. The `preparing` counter is always 0 because `setEngineHooks` passes no `prepare` (MapView.tsx, `handleLoad`), so the split push in `merge` (suspect 3) is inert in Maid: the `else` branch pushes the whole batch.
+
+**A 5-minute stall in load needs an unbounded await, and the image path is bounded.** The `settled()` of the load phase can take at most about 62 s, so it would have failed with `Maid did not settle`, which the run records as FAILED with that text, not as "did not finish". The text in the log is the runner's 5-minute race. So the stall was a call the runner waits on with no limit:
+- Playwright `page.evaluate` and `page.mouse` / `page.keyboard` calls have no timeout (`page.setDefaultTimeout` does not apply to them). They answer only if the renderer's main thread runs. A renderer that stops running timers answers none of them, and then `settled()` (whose waits are timers) does not return either.
+- In the harness, `window.__bench.select` (bench.ts) waited on a `requestAnimationFrame` loop with no limit. That is not in the load phase, so it does not explain this run, but it is the one unbounded page-side wait that a rendering problem could cause (see below).
+- `hoverLatency` in `tools/bench/probe-page.ts` resolves only after a `pointermove`; no limit before the first one. Not in the load phase; not changed (outside the allowed files).
+
+**No cause found by reading.** The image path can make a load fail in 60 s, not hang for 5 minutes. A renderer that stopped answering, a run that was slow on a busy machine (several `settled()` calls of up to 60 s each in one run), and a frame that threw in the render path are all consistent with the log. Nothing here distinguishes them. The render path is the one I could not rule out: `applyHighlight` (engine.ts) sets `shownSelected` only in `map.once('render')`, and a frame that throws never fires it, so the bench's selection wait would stay pending (the page error goes only to the run's error list at the end, never awaited).
+
+### What is hardened
+
+- `images.ts`: every step of a marker image is limited (`MARKER_LIMIT_MS` 5 s, via `within`); a failure or a late result is dropped from the caches; `onload`/`onerror` replace `decode()`; the resolver never rejects and never throws; an id that failed is warned once (`console.warn`) and not asked again in the session (`failed`). The resolver resolves `undefined` for it, which MapLibre draws without the image, as before. A failed image is not silent: `markerImageState()` lists it, and the bench fails the run (below). Unit tests in `images.test.ts` cover: a decode that never settles (resolves through the limit, warns once), an `onerror`, a synchronous throw (in the canvas and in the map's lookup), two requests for one id (one creation, both settle), and a result that comes after the limit (not added).
+- `engine.ts`: `settled()` waits on the next `idle` through `on`/`off` (the listener is removed when the timer wins, no longer left behind), and its deadline error carries the state (`debugState()`). No wait became unbounded and no wait was shortened: the picture is still final only when nothing is in flight, nothing is queued, the map is loaded and not moving, and a frame has been drawn.
+- `bench.ts`: `select` fails after 10 s with the state when the selection is not drawn, instead of waiting for ever. `window.__maid.debug()` returns the map state (`loaded`, `areTilesLoaded`, `moving`, `zoom`), `engine.debugState()`, and `markerImageState()`.
+- `tools/bench/run.ts`: each phase (load, pan, zoom, hover, select, drag) has a limit of 60 s (`PHASE_LIMIT_MS`). When it runs over, the runner asks the page for `__maid.debug()` (bounded to 5 s), takes `stuck-<editor>-<variant>-<scene>-<repeat>.png` (bounded), records the phase, the page state and the page's console warnings and errors (last 30) in `result.stuck`, prints one line, and closes the context so the waiting call fails. The run keeps the 5-minute limit (`RUN_LIMIT_MS`) as a backstop; when it fires, the runner now closes the open context and names the last phase in the error (the text starts the same, `run did not finish within 5 minutes (last phase: ...)`). A Maid run also fails when the editor reports marker images it could not draw (`result.imageFailures`), with the ids and reasons in the error.
+
+### What the next hang will print
+
+- `results.json`, the run: `error` says `phase "<name>" did not finish within 60 s` (or `run did not finish within 5 minutes (last phase: <name>)`), `stuck.phase`, `stuck.page` (the map, the engine's counters and channels, tile counts, `shown` and `selection`, the marker images' pending and failed ids), `stuck.console` (MapLibre and editor warnings).
+- The log: one line `phase "<name>" did not finish within 60 s; page: {...}`.
+- A screenshot `reports/<run-id>/stuck-maid-<variant>-<scene>-<repeat>.png`.
+- A `select` that is not drawn: `the selection of <id> was not drawn within 10000 ms: {...}`.
+- A load settle that does not come: `Maid did not settle in 60000ms: {...}`, with the same state.
+- Run with `BENCH_DEBUG=1` to print each phase as it starts.
+
+### Still unexplained or not done
+
+- The cause of the one stall is not found. The next occurrence should show which phase and the page state; if the state shows a stopped renderer rather than the editor's counters, the cause is outside the image path.
+- `probe-page.ts` `hoverLatency` and `applyHighlight`'s `once('render')` (engine.ts, outside the allowed edits) are still unbounded in principle. The phase limit covers `hover`; the `select` bound covers the selection wait.
+- `debug` is declared on `MaidHandle` now (`tools/bench/maid-window.d.ts`) and `run.ts` reads it without a cast.
+- The 60 s phase limit can trip a legitimate slow `drag` phase on a loaded machine (several `settled()` calls per try). If that happens, the state in `stuck.page` will show it (counters moving, not stopped).
+- Marker images that fail are now a failed run. If the sprite files or a decode fail on some machine, runs fail rather than look better; the orchestrator should look at `imageFailures` in the first run.
+
+## What settled means
+
+Found 2026-10-13: `bun run check-journal` failed in about 4 of 6 runs after d1158bc, at "after restore: data, undo state and map as before the reload".
+
+**Cause.** `__bench.ready()` was `Promise.resolve()` (packages/shell/src/bench.ts). The restore dialog closes when `answerRestore` sets the journal to `checking` (journal.ts), before `journal.restore()` has replayed anything, so the check's "dialog detached, `ready()`, `settle()`" read the un-restored state (shape b), or the state with the edits applied but not yet in the map's sources (shape a). Before the on-demand images the same race was hidden by the longer, slower image path. `settled()` did not wait for the restore because it could not know about it.
+
+**Now `ready()`** resolves when the journal is no longer `checking` (looking for stored edits, or restoring): `journalSettled` in bench.ts. A dialog that is open (`pending`) does not block it, since only a person answers it.
+
+**`settled()` returns only when, on one check after an `idle`:** no tile request is in flight or planned for the view; no flush timer, preparing batch, drag, compaction, or channel (base, live, select) is busy or dirty; no update of the active source is unconfirmed (`activeSending`); `map.loaded()`, `map.areTilesLoaded()`, not moving; `map.isSourceLoaded` for every source the engine feeds; and a `render` has happened after the last start or end of any source update (`dataSeq` against `renderedSeq`). The 250 ms and 2 s timers only wake the loop; none of them ends it. After the 60 s deadline it throws with `debugState()`. Marker images need no extra condition: a tile that waits for an image is not loaded, so `map.loaded()` is false.
+
+**Check:** `check-journal` 10 of 10 runs exit 0 with 15 ok; `check-all` 11 of 11, `check-all --app parking` 12 of 12.
+
+**Load numbers with the honest settled** (`reports/2026-10-13-13-10-settled-fixed`, 3 runs per scene, medians, all nine ok, no `stuck`, no `imageFailures`):
+
+| Scene | ready | settled | load CPU | baseline settled / CPU | after d1158bc (early settled) |
+| --- | --- | --- | --- | --- | --- |
+| small | 325 | 613 | 449 | 990 / 658 | 706 / 466 |
+| medium | 323 | 856 | 667 | 1691 / 1235 | 1105 / 675 |
+| dense | 326 | 1024 | 757 | 1397 / 1106 | ~1120 / 759 |
+
+The numbers marked "early settled" were measured while `ready()` did nothing and `settled()` did not look at the sources or at a frame after the last update; they are not comparable with the honest column. The improvement over the baseline stands. The honest settled is not slower than the early one in this run, so the early settled did not flatter the numbers by a measurable amount (medians of three runs on one machine; not a statistical result).

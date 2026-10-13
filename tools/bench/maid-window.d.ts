@@ -24,6 +24,8 @@ export type MaidHandle = {
   model: typeof model
   /** Resolves when the journal has written its pending edits to the browser's storage */
   journalFlushed: () => Promise<void>
+  /** The map, engine and marker image state in plain values (packages/shell/src/bench.ts `maidDebugState`) */
+  debug: () => unknown
 }
 
 declare global {

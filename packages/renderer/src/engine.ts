@@ -181,6 +181,16 @@ function locMoved(base: OsmEntity | undefined, head: OsmEntity | undefined) {
 }
 
 /** The OSM id of a map or GeoJSON feature: the builder and promoteId make it the entity id, a string such as `w123` */
+/** The MapLibre state that `settled()` waits on, in plain values, for diagnostics */
+function mapState(map: MapLibreMap) {
+  return {
+    loaded: map.loaded(),
+    areTilesLoaded: map.areTilesLoaded(),
+    moving: map.isMoving(),
+    zoom: map.getZoom(),
+  }
+}
+
 function featureId(f: { id?: string | number }) {
   return typeof f.id === 'string' ? f.id : undefined
 }
@@ -380,6 +390,10 @@ export class MaidEngine {
   /** The node or way with this id in the current graph. Relations and unknown ids give undefined. */
   attach(map: MapLibreMap) {
     this.map = map
+    // a frame drawn after the last data change: `settled()` needs one (see `dataSeq`)
+    map.on('render', () => {
+      this.renderedSeq = this.dataSeq
+    })
     this.flushActive()
     // before the first tile is pushed: an image that arrives later does not show in that tile
     installDirectionImages(map)
@@ -628,10 +642,17 @@ export class MaidEngine {
 
   /** Sends the copies to the active source: the whole set, which is a few features */
   private flushActive() {
-    void this.map?.getSource<GeoJSONSource>(ACTIVE_SOURCE)?.setData({
-      type: 'FeatureCollection',
-      features: [...this.activeCopies.values()],
-    })
+    const source = this.map?.getSource<GeoJSONSource>(ACTIVE_SOURCE)
+    if (!source) return
+    this.dataSeq++
+    this.activeSending++
+    void source
+      .setData({ type: 'FeatureCollection', features: [...this.activeCopies.values()] })
+      .finally(() => {
+        this.activeSending--
+        this.dataSeq++
+        this.wake()
+      })
   }
 
   /**
@@ -712,9 +733,11 @@ export class MaidEngine {
       const remove = channel.removals
       channel.queue = []
       channel.removals = []
+      this.dataSeq++
       await source.updateData({ add, remove })
       await this.tilesReloaded(channel.sourceId)
     } finally {
+      this.dataSeq++
       channel.busy = false
       if (channel.dirty) void this.flush(channel)
       else this.wake()
@@ -838,10 +861,16 @@ export class MaidEngine {
   }
 
   private preparing = 0
+  /** Counts every change of what a source holds (start and end of each update). `render` copies it to `renderedSeq`. */
+  private dataSeq = 0
+  private renderedSeq = 0
+  /** Updates of the active source that MapLibre has not confirmed yet */
+  private activeSending = 0
 
   private pushing() {
     return (
       this.preparing > 0 ||
+      this.activeSending > 0 ||
       this.flushTimer !== undefined ||
       this.dragBusy ||
       this.compacting ||
@@ -849,7 +878,10 @@ export class MaidEngine {
     )
   }
 
-  /** Resolves when all requested tiles are merged and MapLibre has drawn them */
+  /**
+   * Resolves when all requested tiles are merged and MapLibre has drawn them. Every wait in here is bounded (250 ms,
+   * 2 s, or the deadline), so this either resolves or throws with the state that was waiting; it never hangs silently.
+   */
   async settled(timeoutMs = 60000) {
     const { map } = this
     if (!map) throw new Error('Engine is not attached to a map')
@@ -857,7 +889,10 @@ export class MaidEngine {
     for (;;) {
       if (performance.now() > deadline) {
         throw new Error(
-          `Maid did not settle in ${timeoutMs}ms (inflight tiles: ${this.inflight}, map loaded: ${map.loaded()})`,
+          `Maid did not settle in ${timeoutMs}ms: ${JSON.stringify({
+            map: mapState(map),
+            engine: this.debugState(),
+          })}`,
         )
       }
       this.loadVisibleTiles()
@@ -871,15 +906,91 @@ export class MaidEngine {
       }
       // `idle` is MapLibre's "nothing left to draw": tiles are loaded, symbols are placed and
       // faded in. Waiting for less would call a picture final while pins are still missing.
-      await new Promise<void>((resolve) => {
-        const timer = setTimeout(resolve, 2000)
-        void map.once('idle').then(() => {
-          clearTimeout(timer)
-          resolve()
-        })
-        map.triggerRepaint()
-      })
-      if (this.inflight === 0 && !this.pushing() && map.loaded() && !map.isMoving()) return
+      await this.nextIdle(map)
+      // Back to the top (and so to the deadline) unless every condition holds on this very check: nothing in flight,
+      // no update on its way, MapLibre has every source loaded and all tiles, has not moved, and has drawn a frame
+      // after the last change of any source's data. A timer never ends the wait.
+      if (
+        this.inflight === 0 &&
+        !this.pushing() &&
+        map.loaded() &&
+        map.areTilesLoaded() &&
+        !map.isMoving() &&
+        this.sourcesLoaded(map) &&
+        this.renderedSeq === this.dataSeq
+      )
+        return
+    }
+  }
+
+  /** True when MapLibre holds every source the engine feeds as loaded (no tile of it is being rebuilt) */
+  private sourcesLoaded(map: MapLibreMap) {
+    return [ACTIVE_SOURCE, ...this.allChannels().map((channel) => channel.sourceId)].every(
+      (id) => !map.getSource(id) || map.isSourceLoaded(id),
+    )
+  }
+
+  /**
+   * Resolves at MapLibre's next `idle`, or after 2 s if there is none. A frame is requested first, so the state is
+   * looked at again on a frame that is drawn. The listener is removed either way: a timer that wins leaves none behind.
+   * The caller checks the state again after this returns, so a missed idle only costs the 2 s.
+   */
+  private nextIdle(map: MapLibreMap) {
+    return new Promise<void>((resolve) => {
+      const done = () => {
+        clearTimeout(timer)
+        map.off('idle', done)
+        resolve()
+      }
+      const timer = setTimeout(done, 2000)
+      map.on('idle', done)
+      map.triggerRepaint()
+    })
+  }
+
+  /**
+   * What the engine is waiting for, in plain values: the counters `settled()` looks at and the state of each channel.
+   * The benchmark writes it when a wait times out. Changes nothing.
+   */
+  debugState() {
+    const channels: Record<
+      string,
+      { busy: boolean; dirty: boolean; queued: number; removals: number }
+    > = {}
+    for (const [tier, group] of Object.entries(this.channels)) {
+      for (const [name, channel] of Object.entries(group)) {
+        channels[`${tier}/${name}`] = {
+          busy: channel.busy,
+          dirty: channel.dirty,
+          queued: channel.queue.length,
+          removals: channel.removals.length,
+        }
+      }
+    }
+    const tiles: Record<string, number> = {}
+    for (const state of this.tileLoads.tiles.values()) {
+      tiles[state.status] = (tiles[state.status] ?? 0) + 1
+    }
+    return {
+      inflight: this.inflight,
+      pushing: this.pushing(),
+      parts: {
+        preparing: this.preparing,
+        flushTimer: this.flushTimer !== undefined,
+        activeSending: this.activeSending,
+        dataSeq: this.dataSeq,
+        renderedSeq: this.renderedSeq,
+        dragBusy: this.dragBusy,
+        compacting: this.compacting,
+      },
+      channels,
+      tiles,
+      pausedUntil: this.tileLoads.pausedUntil,
+      waiters: this.waiters.length,
+      firstLoadDone: this.firstLoadDone,
+      selection: [...this.selectedIds],
+      shown: { selected: [...this.shownSelected], hovered: this.shownHover },
+      metrics: { ...this.metrics },
     }
   }
 

@@ -34,15 +34,52 @@ export function spriteOf(icon: string): string | undefined {
   return Object.hasOwn(SPRITE_OF_PREFIX, prefix) ? SPRITE_OF_PREFIX[prefix] : undefined
 }
 
+/**
+ * How long one marker image may take before it is given up. Every step that waits (the sprite file, the icon's load,
+ * the whole image) is limited by it: a promise that never settles would keep the tile that asked for the image from
+ * loading, and MapLibre would then never report the map as loaded.
+ */
+export const MARKER_LIMIT_MS = 5000
+
+/**
+ * Settles like `work`, or rejects after `ms`. `work` is not cancelled: when the limit wins, its result is ignored, so
+ * a promise that never settles is left behind here and nothing waits for it again.
+ */
+export function within<T>(work: Promise<T>, ms: number, what: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${what} did not finish within ${ms} ms`)), ms)
+    work.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      (error: unknown) => {
+        clearTimeout(timer)
+        reject(error)
+      },
+    )
+  })
+}
+
 const sprites = new Map<string, Promise<Document>>()
 
-function loadSprite(name: string) {
+/**
+ * The sprite file, fetched once. A fetch that fails or takes too long is dropped from the cache, so the next request
+ * tries again instead of sharing a broken or pending promise.
+ */
+function loadSprite(name: string, limitMs: number) {
   let sprite = sprites.get(name)
   if (!sprite) {
+    // the sprite of an icon set, read from the app's own origin (the allow list in no-direct-fetch.test.ts names this line)
     sprite = fetch(`/sprites/${name}-sprite.svg`)
       .then((res) => res.text())
       .then((text) => new DOMParser().parseFromString(text, 'image/svg+xml'))
-    sprites.set(name, sprite)
+    const job = within(sprite, limitMs, `the sprite file ${name}`)
+    sprites.set(name, job)
+    job.catch(() => {
+      if (sprites.get(name) === job) sprites.delete(name)
+    })
+    sprite = job
   }
   return sprite
 }
@@ -53,29 +90,41 @@ const PIN =
 /** The icon at `px` pixels, decoded once: a pin and the bare icon of the same preset share it */
 const icons = new Map<string, Promise<HTMLImageElement | undefined>>()
 
-function decodeIcon(icon: string, px: number) {
+function decodeIcon(icon: string, px: number, limitMs: number) {
   const key = `${icon}@${px}`
   let job = icons.get(key)
   if (!job) {
-    job = makeIconImage(icon, px).catch((error) => {
-      icons.delete(key)
-      throw error
+    const made = within(makeIconImage(icon, px, limitMs), limitMs, `the icon ${icon}`)
+    icons.set(key, made)
+    // a failed or late decode is dropped, so the next request makes it again
+    made.catch(() => {
+      if (icons.get(key) === made) icons.delete(key)
     })
-    icons.set(key, job)
+    job = made
   }
   return job
 }
 
-async function makeIconImage(icon: string, px: number) {
+async function makeIconImage(icon: string, px: number, limitMs: number) {
   const spriteName = spriteOf(icon)
   if (!spriteName) return undefined
-  const symbol = (await loadSprite(spriteName)).getElementById(icon)
+  const symbol = (await loadSprite(spriteName, limitMs)).getElementById(icon)
   if (!symbol) return undefined
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${symbol.getAttribute('viewBox')}" width="${px}" height="${px}" fill="#333">${symbol.innerHTML}</svg>`
-  const image = new Image(px, px)
-  image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
-  await image.decode()
-  return image
+  return loadDataImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, px)
+}
+
+/**
+ * The image once it has loaded, or the error that stops it. `onload` and `onerror` settle a data URL; `decode()` is not
+ * waited for, because drawing a loaded image on the canvas decodes it, and a second promise is one more that can hang.
+ */
+function loadDataImage(src: string, px: number) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image(px, px)
+    image.onload = () => resolve(image)
+    image.onerror = () => reject(new Error('the image failed to load'))
+    image.src = src
+  })
 }
 
 /**
@@ -107,8 +156,8 @@ type Made = {
  * Point markers: `pin-<preset icon>` is iD's pin with the preset icon from iD's SVG sprites on it (12px, #333).
  * Pin and icon are one image so that MapLibre places and hides them together.
  */
-async function makePin(icon: string, ratio: number): Promise<Made> {
-  const image = await decodeIcon(icon, ICON_PX * ratio)
+async function makePin(icon: string, ratio: number, limitMs: number): Promise<Made> {
+  const image = await decodeIcon(icon, ICON_PX * ratio, limitMs)
   const ctx = scratchContext(PIN_W * ratio, PIN_H * ratio)
   ctx.scale(ratio, ratio)
   ctx.translate(1, 1.5)
@@ -126,8 +175,12 @@ async function makePin(icon: string, ratio: number): Promise<Made> {
 }
 
 /** `icon-<preset icon>`: the bare icon, for tagged vertices */
-async function makeBareIcon(icon: string, ratio: number): Promise<Made | undefined> {
-  const image = await decodeIcon(icon, ICON_PX * ratio)
+async function makeBareIcon(
+  icon: string,
+  ratio: number,
+  limitMs: number,
+): Promise<Made | undefined> {
+  const image = await decodeIcon(icon, ICON_PX * ratio, limitMs)
   if (!image) return undefined
   const px = ICON_PX * ratio
   const ctx = scratchContext(px, px)
@@ -170,22 +223,43 @@ function makePlaque(ratio: number): Made {
   }
 }
 
-/** Markers being made, by id: two tiles that ask for the same image wait for one job */
-const making = new Map<string, Promise<void>>()
+async function makeMarker(
+  marker: MarkerImage,
+  ratio: number,
+  limitMs: number,
+): Promise<Made | undefined> {
+  if (marker.kind === 'plaque') return makePlaque(ratio)
+  if (marker.kind === 'pin') return makePin(marker.icon, ratio, limitMs)
+  return makeBareIcon(marker.icon, ratio, limitMs)
+}
 
-async function addMarker(map: MapLibreMap, id: string, marker: MarkerImage, ratio: number) {
-  const made =
-    marker.kind === 'plaque'
-      ? makePlaque(ratio)
-      : marker.kind === 'pin'
-        ? await makePin(marker.icon, ratio)
-        : await makeBareIcon(marker.icon, ratio)
+/** Marker images being made, by id: two tiles that ask for the same image wait for one job */
+const making = new Map<string, Promise<void>>()
+/** Ids that could not be drawn, with the reason. Not tried again in this session: MapLibre draws the symbol without them. */
+const failed = new Map<string, string>()
+
+async function addMarker(
+  map: MapLibreMap,
+  id: string,
+  marker: MarkerImage,
+  ratio: number,
+  limitMs: number,
+) {
+  // the image is added here, after the limit: a result that comes later is dropped, not added behind MapLibre's back
+  const made = await within(makeMarker(marker, ratio, limitMs), limitMs, `the image ${id}`)
   if (!made || map.hasImage(id)) return
   map.addImage(id, made.data, {
     pixelRatio: made.pixelRatio,
     stretchX: made.stretchX,
     stretchY: made.stretchY,
   })
+}
+
+export type MarkerOptions = {
+  /** How long one marker image may take, in ms (default MARKER_LIMIT_MS) */
+  limitMs?: number
+  /** Where the warning for an image that could not be drawn goes (default console.warn) */
+  warn?: (message: string) => void
 }
 
 /**
@@ -195,24 +269,47 @@ async function addMarker(map: MapLibreMap, id: string, marker: MarkerImage, rati
  * no placeholder or second layout is needed. An image added after the tile was laid out would not reach it reliably
  * (MapLibre only re-lays out tiles that already asked for it), which is why this is a resolver and not `styleimagemissing`.
  *
+ * Every promise the resolver returns settles, within MARKER_LIMIT_MS, whatever the image does: a decode or a fetch that
+ * never ends, an error, or a throw. A missing image resolves to nothing, which MapLibre draws without, as it does for
+ * any missing image. Such an image is warned about once and not asked for again.
+ *
  * Ids that are not markers (the direction arrows, the parking arrow) are left alone: their own handlers add them.
- * A style reload drops the images, and the next request makes them again. A failed image is logged; MapLibre then
- * draws the symbol without it, as it does for any missing image.
+ * A style reload drops the images, and the next request makes them again.
  *
  * react-map-gl has no declarative resolver (its `onStyleImageMissing` is an event, which cannot resolve the image
  * of the current request), so this calls `map.setMissingStyleImageResolver`, as the renderer calls `map.addImage`.
  */
-export function installMarkerImages(map: MapLibreMap, ratio = 2) {
+export function installMarkerImages(map: MapLibreMap, ratio = 2, options: MarkerOptions = {}) {
+  const limitMs = options.limitMs ?? MARKER_LIMIT_MS
+  const warn = options.warn ?? ((message: string) => console.warn(message))
+  const fail = (id: string, error: unknown) => {
+    if (failed.has(id)) return
+    const reason = error instanceof Error ? error.message : String(error)
+    failed.set(id, reason)
+    warn(`Marker image ${id} is not drawn: ${reason}`)
+  }
   map.setMissingStyleImageResolver(async (id) => {
-    const marker = parseMarkerImage(id)
-    if (!marker || map.hasImage(id)) return
-    let job = making.get(id)
-    if (!job) {
-      job = addMarker(map, id, marker, ratio)
-        .catch((error) => console.error(`Could not make image ${id}`, error))
-        .finally(() => making.delete(id))
-      making.set(id, job)
+    try {
+      const marker = parseMarkerImage(id)
+      if (!marker || map.hasImage(id) || failed.has(id)) return
+      let job = making.get(id)
+      if (!job) {
+        job = addMarker(map, id, marker, ratio, limitMs)
+          .catch((error: unknown) => fail(id, error))
+          .finally(() => making.delete(id))
+        making.set(id, job)
+      }
+      await job
+    } catch (error) {
+      fail(id, error)
     }
-    await job
   })
+}
+
+/** What the marker images hold right now: the ids being made and the ids that failed, with the reason. For diagnostics. */
+export function markerImageState() {
+  return {
+    pending: [...making.keys()],
+    failed: [...failed].map(([id, reason]) => ({ id, reason })),
+  }
 }
