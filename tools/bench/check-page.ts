@@ -6,7 +6,13 @@
 import { chromium, type Page } from '@playwright/test'
 import { EDIT_SOURCES, SOURCES } from '../../packages/renderer/src/layers'
 import { getScene } from '../fixtures/scenes'
-import { PORTS } from '../ports'
+import { APPS, takeApp } from './args'
+
+/**
+ * The app the check runs against (`--app maid|bicycle`, default maid). Taken here, when this module
+ * loads, so it runs before any check reads `process.argv` (see args.ts).
+ */
+export const app = takeApp()
 
 export type Check = {
   page: Page
@@ -30,6 +36,7 @@ export async function runCheck(
   permissions: string[] = [],
 ): Promise<number> {
   const scene = getScene(sceneName)
+  console.log(`app ${app} on port ${APPS[app].port}`)
   const browser = await chromium.launch({ channel: 'chrome', headless: true })
   let failed = 0
   const report: Check['report'] = (label, expected, actual) => {
@@ -62,7 +69,7 @@ export async function runCheck(
       ),
     )
     await page.goto(
-      `http://localhost:${PORTS.maid}/?scene=${sceneName}${query ? `&${query}` : ''}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
+      `http://localhost:${APPS[app].port}/?scene=${sceneName}${query ? `&${query}` : ''}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
     )
     await page.waitForFunction(() => window.__bench !== undefined, undefined, {
       timeout: 30000,

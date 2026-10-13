@@ -34,6 +34,8 @@
     "check-journal": "bun tools/bench/journal-check.ts",
     "check-tags": "bun tools/bench/tags-check.ts",
     "check-multi": "bun tools/bench/multi-check.ts",
+    "check-all": "bun tools/checks/check-all.ts",
+    "check-config": "bun tools/checks/config-check.ts",
     "check-interactions": "bun tools/bench/interactions-check.ts",
     "check-ops": "bun tools/bench/ops-check.ts",
     "check-relations": "bun tools/bench/relations-check.ts",

@@ -14,6 +14,8 @@ import type * as model from '../../packages/model/src/index'
 import type { MaidEngine } from '../../packages/renderer/src/index'
 
 export type MaidHandle = {
+  /** The app's id (`AppConfig.id`, bench.ts sets it): 'maid' for apps/maid, 'maid-bicycle' for apps/maid-bicycle */
+  app: string
   /** The MapLibre map the engine draws on */
   map: MapLibreMap
   engine: MaidEngine

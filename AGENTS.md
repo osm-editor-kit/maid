@@ -72,7 +72,7 @@ These names are the contract. Agents and docs only reference these.
 | --- | --- |
 | `bun run check` | Type-check, lint and format with fixes (oxlint, oxfmt), unit tests. Run before every commit. |
 | `bun run check-ci` | The same, read-only. |
-| `bun run dev` | Maid dev server (5173) and the mock OSM API (8090). |
+| `bun run dev` | Both Maid dev servers (`apps/maid` on 5173, `apps/maid-bicycle` on 5176) and the mock OSM API (8090). |
 | `bun run dev-maid` | Only the Maid dev server (`apps/maid`, 5173). |
 | `bun run dev-bicycle` | Only the Maid Bicycle dev server (`apps/maid-bicycle`, 5176): Maid's modules plus the traffic signs module. |
 | `bun run refs-setup` | Clone and build iD and Rapid at their pinned commits into `.reference/`, copy icon sprites into Maid. |
@@ -96,9 +96,13 @@ These names are the contract. Agents and docs only reference these.
 | `bun run check-validation [scene]` | Browser check: add a footway that crosses a road and is connected to nothing, see both reported, use the fix, undo. Needs `bun run dev`. |
 | `bun run check-render <name>` | Compare screenshots and feature counts of all scenes with a reference. Needs `bun run dev`. |
 | `bun run check-render-save <name>` | Save that reference from the current state, before a change to the renderer. |
+| `bun run check-all [--app maid\|bicycle]` | Runs the eleven browser checks above, one after another, against one app (default maid), with the scene each check uses by default. One line per check (`name exit= ok=`) and its FAIL lines; exits 1 if a check exits non-zero or prints fewer `ok` lines than the table in `tools/checks/check-all.ts`. Writes `reports/check-all-<app>.json` and the full output of each check to `reports/check-all-<app>/`. Needs `bun run dev`. |
+| `bun run check-config` | Contract check of each app's `maid.config.ts` in Bun, without a browser: the modules set up alone with no network request, their extension points exist, their items are removed on destroy, the preset changes apply, and each app's Vite port, strictPort, login origin and the app ids and ports are unique. Writes `reports/config-check.json`. |
 | `bun run compare` | Everything for the side-by-side page on http://localhost:5184. |
 | `bun run fixtures-build <file.osm.pbf>` | Cut fixtures from a local extract. Manual only, see core rule 1. |
 | `bun run style-generate [iD checkout]` | Regenerate the style data from iD's CSS and presets. |
+
+Every browser check takes `--app maid\|bicycle` (default maid) and runs against that app's port, for example `bun run check-edit small --app bicycle`. The option is read in one place, `tools/bench/args.ts`; the scene argument keeps its place.
 
 Every editor is driven through one contract, `window.__bench` (`tools/refs/bench-api.d.ts`). Maid also exposes `window.__maid` with the map, the engine, the editor and the data model's module. To look at one editor: `bun tools/bench/shot.ts maid|id|rapid <scene> [zoom]`.
 

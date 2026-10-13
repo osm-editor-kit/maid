@@ -18,3 +18,5 @@ reports/*.log
 reports/model-load-*.json
 reports/validation-bench.json
 reports/renderer-build-bench.json
+reports/check-all-*
+reports/config-check.json
