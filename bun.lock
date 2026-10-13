@@ -199,7 +199,7 @@
         "@osm-editor-kit/maid-core": "workspace:*",
         "@osm-editor-kit/maid-renderer": "workspace:*",
         "@osm-editor-kit/maid-ui": "workspace:*",
-        "@osm-editor-kit/maplibre-editor-layer-index": "0.1.14",
+        "@osm-editor-kit/maplibre-editor-layer-index": "0.2.0",
         "react": "^19.2.0",
         "react-map-gl": "^8.1.3",
         "zod": "4.6.5",
@@ -605,7 +605,7 @@
 
     "@osm-editor-kit/maid-validation": ["@osm-editor-kit/maid-validation@workspace:packages/validation"],
 
-    "@osm-editor-kit/maplibre-editor-layer-index": ["@osm-editor-kit/maplibre-editor-layer-index@0.1.14", "", { "dependencies": { "@types/geojson": "^7946.0.16" }, "peerDependencies": { "maplibre-gl": ">=4", "react": ">=18", "react-map-gl": ">=7.1" }, "optionalPeers": ["maplibre-gl", "react", "react-map-gl"] }, "sha512-nGTkjEIErihahFyCzNVNDtn66nuJt6qYDb4KzO3af9VqAunGKdOo8PuP1xUhLz+qUbqQ7OMCYeZIlb8uhCZwHQ=="],
+    "@osm-editor-kit/maplibre-editor-layer-index": ["@osm-editor-kit/maplibre-editor-layer-index@0.2.0", "", { "dependencies": { "@types/geojson": "^7946.0.16" }, "peerDependencies": { "maplibre-gl": ">=4", "react": ">=18", "react-map-gl": ">=7.1" }, "optionalPeers": ["maplibre-gl", "react", "react-map-gl"] }, "sha512-440XSYpPKCHMjl9zhpY7YylODQ+3/P7bOrrHF5m5o25N4nP6cWAVGr96nJmLOPhcKYQSbB9LHsQUSmAEj70Qtg=="],
 
     "@osm-editor-kit/street-imagery": ["@osm-editor-kit/street-imagery@0.1.0-alpha.8", "", { "dependencies": { "@mapbox/vector-tile": "^3.0.0", "date-fns": "^4.4.0", "pbf": "^5.1.0" } }, "sha512-6u/IGZSKZuMVae7BsjVX9CtrF0vSo/cg5oRHZSr2xTxM+mdx4qIaAM0kVZFeN6locnjkD/SiIbYUCBwHpDySkw=="],
 

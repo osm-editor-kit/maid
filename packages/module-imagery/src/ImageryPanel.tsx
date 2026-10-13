@@ -5,16 +5,9 @@ import { toolButtonTone } from '@osm-editor-kit/maid-ui'
 import { useEffect, useId, useState, type FormEvent } from 'react'
 import { useStore } from 'zustand'
 import { checkTemplate, isCustomId, shortLabel, type CustomEntry } from './custom.ts'
-import { listView } from './eli.ts'
-import {
-  BRIGHTNESS_MIN,
-  categoryLabel,
-  matchesQuery,
-  sortListing,
-  visibleAtZoom,
-  type Listing,
-  type View,
-} from './helpers.ts'
+import { listView, type Listed } from './eli.ts'
+import { BRIGHTNESS_MIN, matchesQuery, sortListing } from './helpers.ts'
+import { filterSeriesRows, seriesRows, type SeriesChip, type SeriesRow } from './series.ts'
 import { VISIT_ID, type ImageryStore, type SaveResult } from './store.ts'
 
 /** From this many layers in view on, a search field is shown above the list */
@@ -103,21 +96,17 @@ function PanelBody(props: { store: ImageryStore }) {
   const [query, setQuery] = useState('')
   const [form, setForm] = useState<FormState>(null)
   const [asking, setAsking] = useState<string | null>(null)
-  const [listed, setListed] = useState<{
-    view: View
-    items: Listing[]
-    failed: boolean
-  } | null>(null)
+  const [listed, setListed] = useState<(Listed & { failed: boolean }) | null>(null)
 
   useEffect(() => {
     if (!view) return
     let cancelled = false
-    listView(view.bounds).then(
-      (items) => {
-        if (!cancelled) setListed({ view, items, failed: false })
+    listView(view).then(
+      (result) => {
+        if (!cancelled) setListed({ ...result, failed: false })
       },
       () => {
-        if (!cancelled) setListed({ view, items: [], failed: true })
+        if (!cancelled) setListed({ items: [], series: [], failed: true })
       },
     )
     return () => {
@@ -125,21 +114,20 @@ function PanelBody(props: { store: ImageryStore }) {
     }
   }, [view])
 
-  // the last list stays until the new one arrives, so the panel does not flicker while the map moves
-  const all = sortListing(listed?.items ?? [])
-  const zoom = view?.zoom
-  const inView = zoom === undefined ? all : all.filter((item) => visibleAtZoom(item, zoom))
-  const backgrounds = inView.filter((item) => !item.overlay && matchesQuery(item, query))
-  const overlays = inView.filter((item) => item.overlay && matchesQuery(item, query))
-  const percent = Math.round(brightness * 100)
+  // the last list stays until the new one arrives, so the panel does not flicker while the map moves.
+  // The layers are already filtered by the view and its zoom (see `listView`).
+  const items = listed?.items ?? []
   // the background that is drawn: a link's while a visit shows one, else the stored choice
   const shownId = visit === null ? backgroundId : VISIT_ID
+  const rows = filterSeriesRows(seriesRows(listed?.series ?? [], shownId), query)
+  const overlays = sortListing(items).filter((item) => item.overlay && matchesQuery(item, query))
+  const percent = Math.round(brightness * 100)
   const chosenOutOfView =
     visit === null &&
     backgroundId !== null &&
     !isCustomId(backgroundId) &&
     listed !== null &&
-    !inView.some((item) => item.id === backgroundId)
+    !items.some((item) => item.id === backgroundId)
   // a form saved closes; a refused one keeps its reason in the form
   const save = (result: SaveResult) => {
     if (result.ok) setForm(null)
@@ -148,7 +136,7 @@ function PanelBody(props: { store: ImageryStore }) {
 
   return (
     <>
-      {all.length > SEARCH_FROM ? (
+      {items.length > SEARCH_FROM ? (
         <div className="px-4 pb-2">
           <input
             {...PLAIN_INPUT}
@@ -170,7 +158,7 @@ function PanelBody(props: { store: ImageryStore }) {
         </p>
       ) : null}
 
-      {listed !== null && !listed.failed && inView.length === 0 ? (
+      {listed !== null && !listed.failed && items.length === 0 ? (
         <p className="px-4 pb-3 text-sm text-zinc-500 dark:text-zinc-400">
           No background covers this view at this zoom.
         </p>
@@ -222,16 +210,8 @@ function PanelBody(props: { store: ImageryStore }) {
             }}
           />
         ))}
-        {backgrounds.map((item) => (
-          <Choice
-            key={item.id}
-            name={item.name}
-            detail={categoryLabel(item.category)}
-            attribution={item.attributionText}
-            best={item.best}
-            selected={shownId === item.id}
-            onSelect={() => setBackground(item.id)}
-          />
+        {rows.map((row) => (
+          <SeriesChoice key={row.key} row={row} onSelect={setBackground} />
         ))}
       </div>
 
@@ -476,6 +456,59 @@ function CustomForm(props: {
         </button>
       </div>
     </form>
+  )
+}
+
+/**
+ * A background row. A series is one row, with its dates as always-visible chips under it: a click
+ * on the row selects the default date, a chip selects that date. The row looks chosen while one of
+ * its dates is drawn, and the chip of that date is marked (aria-pressed). Chips follow the row in
+ * the tab order, so no arrow keys are needed.
+ */
+function SeriesChoice(props: { row: SeriesRow; onSelect: (id: string) => void }) {
+  const { row, onSelect } = props
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <Choice
+        name={row.name}
+        detail={row.category}
+        attribution={row.attributionText}
+        best={row.best}
+        selected={row.selected}
+        onSelect={() => onSelect(row.defaultId)}
+      />
+      {row.chips.length > 0 ? (
+        <div role="group" aria-label={`${row.name}: dates`} className="flex flex-wrap gap-1 pl-2.5">
+          {row.chips.map((chip) => (
+            <DateChip key={chip.id} chip={chip} onSelect={() => onSelect(chip.id)} />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+/** One date of a series: a small button, marked when it is the drawn background, and the best one */
+function DateChip(props: { chip: SeriesChip; onSelect: () => void }) {
+  const { chip, onSelect } = props
+  return (
+    <button
+      type="button"
+      aria-pressed={chip.active}
+      title={chip.name}
+      onClick={onSelect}
+      className={classes(
+        'flex items-center gap-1 rounded-md px-2 py-0.5 text-xs tabular-nums inset-ring-1 inset-ring-zinc-950/10 focus-visible:outline-2 focus-visible:outline-blue-500 dark:inset-ring-white/10',
+        toolButtonTone(chip.active ? 'selected' : 'idle'),
+      )}
+    >
+      <span>{chip.label}</span>
+      {chip.best ? (
+        <span className="rounded-sm bg-blue-100 px-1 text-[10px] leading-4 font-medium text-blue-800 dark:bg-blue-400/15 dark:text-blue-300">
+          Best
+        </span>
+      ) : null}
+    </button>
   )
 }
 

@@ -9,7 +9,7 @@ function fakeJournal(first: string) {
     subscribe: (l: () => void) => (listeners.add(l), () => listeners.delete(l)),
     set(next: string) {
       status = next
-      for (const l of [...listeners]) l()
+      for (const l of listeners) l()
     },
   }
 }

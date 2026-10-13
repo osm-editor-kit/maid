@@ -5,12 +5,12 @@
  * server. Only the tiles of a chosen layer are requested, from the layer's own server.
  */
 import type {
-  BBox,
   EliLayer,
+  EliLayerEntry,
   RasterLayerSpec,
   RasterSourceSpec,
 } from '@osm-editor-kit/maplibre-editor-layer-index'
-import { toMapZoom } from './helpers.ts'
+import { toMapZoom, visibleAtZoom, type Listing, type View } from './helpers.ts'
 
 const load = () => import('@osm-editor-kit/maplibre-editor-layer-index')
 
@@ -38,7 +38,7 @@ export type Drawn = {
   background: boolean
 }
 
-function toListing(layer: EliLayer) {
+function toListing(layer: EliLayer): Listing {
   return {
     id: layer.id,
     name: layer.name,
@@ -46,18 +46,32 @@ function toListing(layer: EliLayer) {
     best: layer.best,
     overlay: layer.overlay,
     minzoom: layer.minzoom,
+    group: layer.group,
     attributionText: layer.attributionText,
   }
 }
 
+/** What the panel lists for a view: every layer at this zoom, and the backgrounds as time series */
+export type Listed = {
+  /** The layers that cover the view at this zoom, overlays too; the stored choice is looked up here */
+  items: Listing[]
+  /** The backgrounds at this zoom, one entry per series (ELI's `groupLayers`, see `series.ts`) */
+  series: EliLayerEntry<Listing>[]
+}
+
 /**
- * The layers that cover the viewport, with their attribution. Layers that need an API key are
- * left out, because no key is given. Loads the details of the continent in view from the package.
+ * The layers that cover the view, with their attribution. Layers that need an API key are left out,
+ * because no key is given. Loads the details the layers are filed under, from the package.
+ *
+ * Series are made after the zoom filter, so a series offers only the dates that cover the view and
+ * show at this zoom.
  */
-export async function listView(bounds: BBox) {
+export async function listView(view: View): Promise<Listed> {
   const eli = await load()
-  const layers = await eli.loadLayersInViewport(bounds)
-  return layers.map(toListing)
+  const layers = await eli.loadLayersInViewport(view.bounds)
+  const items = layers.map(toListing).filter((item) => visibleAtZoom(item, view.zoom))
+  const series = eli.groupLayers(items.filter((item) => !item.overlay))
+  return { items, series }
 }
 
 /**

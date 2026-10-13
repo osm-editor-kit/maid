@@ -103,7 +103,13 @@ function highestStoredCustomNumber(raw: unknown) {
   }, 0)
 }
 
-/** One row of the list, as the panel needs it. Filled from the ELI package by `eli.ts`. */
+/**
+ * Where a layer sits in its time series, as ELI gives it (`group`, with `order` 0 for the oldest).
+ * Same shape as ELI's `EliLayerGroup`, written out here so this file imports nothing from ELI.
+ */
+export type ListingGroup = { id: string; name: string; label: string; order: number }
+
+/** One layer of the list, as the panel needs it. Filled from the ELI package by `eli.ts`. */
 export type Listing = {
   id: string
   name: string
@@ -113,6 +119,8 @@ export type Listing = {
   best: boolean
   overlay: boolean
   minzoom?: number
+  /** Set when the layer is one date of a time series (see `series.ts`) */
+  group?: ListingGroup
   /** Plain text: the ELI package gives HTML, which the panel does not render */
   attributionText?: string
 }
@@ -186,12 +194,17 @@ export function visibleAtZoom(item: Pick<Listing, 'minzoom'>, zoom: number) {
   return zoom >= item.minzoom
 }
 
-/** Every word of the query must appear in the name or the category label (case-insensitive) */
-export function matchesQuery(item: Listing, query: string) {
+/** Every word of the query must appear in the text (case-insensitive). An empty query matches. */
+export function everyWordIn(text: string, query: string) {
   const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean)
   if (words.length === 0) return true
-  const haystack = `${item.name} ${categoryLabel(item.category) ?? ''}`.toLowerCase()
+  const haystack = text.toLowerCase()
   return words.every((word) => haystack.includes(word))
+}
+
+/** Every word of the query must appear in the name or the category label (case-insensitive) */
+export function matchesQuery(item: Listing, query: string) {
+  return everyWordIn(`${item.name} ${categoryLabel(item.category) ?? ''}`, query)
 }
 
 /**
