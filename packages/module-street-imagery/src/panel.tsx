@@ -4,6 +4,7 @@ import { SegmentedControl } from '@osm-editor-kit/maid-ui'
 import { PhotoDateRangeFilter } from '@osm-editor-kit/street-imagery-react'
 import './street-imagery.css'
 import {
+  activeProviders,
   IMAGERY_PROVIDER_IDS,
   PHOTO_KINDS,
   PROVIDER_LABELS,
@@ -89,6 +90,9 @@ function KindChoice() {
 export function PhotosPanel() {
   const date = useStreetImageryStore((state) => state.date)
   const setDate = useStreetImageryStore((state) => state.setDate)
+  const stored = useStreetImageryStore((state) => state.providers)
+  const token = useStreetImageryStore((state) => state.mapillaryToken)
+  const anyOn = activeProviders(stored, token, AUTOMATED).length > 0
 
   if (AUTOMATED)
     return (
@@ -101,6 +105,11 @@ export function PhotosPanel() {
     <div className="maid-street-imagery flex flex-col gap-5 p-4 text-sm">
       <section>
         <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Show photos from</h3>
+        {!anyOn && (
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            Photos are off. Choose a source to load them.
+          </p>
+        )}
         <ul className="mt-1 divide-y divide-zinc-950/5 dark:divide-white/5">
           {IMAGERY_PROVIDER_IDS.map((id) => (
             <ProviderRow key={id} id={id} />

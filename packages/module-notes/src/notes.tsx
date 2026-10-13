@@ -1,13 +1,25 @@
 import { ChatBubbleLeftEllipsisIcon } from '@heroicons/react/20/solid'
 import { defineModule, type Editor } from '@osm-editor-kit/maid-core'
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
-import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
+import { notify, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { Time } from '@osm-editor-kit/maid-ui'
 import { useEffect } from 'react'
 import { Layer, Source, useMap, type MapLayerMouseEvent } from 'react-map-gl/maplibre'
 import { NotesDock } from './details.tsx'
-import { cellKey, cellsOf, markersOf, notesIn, summaryLine, type NotesMode } from './model.ts'
 import {
+  cellKey,
+  cellsOf,
+  markersOf,
+  notesIn,
+  osmZoomOf,
+  summaryLine,
+  truncationNotice,
+  TRUNCATED_NOTICE_ID,
+  TRUNCATED_NOTICE_TEXT,
+  type NotesMode,
+} from './model.ts'
+import {
+  abortOutside,
   abortRequests,
   missingCells,
   requestCells,
@@ -34,7 +46,7 @@ const CLOSED = '#8e96a3'
  * The notes module: the notes of the view as markers on the map, a panel to switch them on and
  * list them, and a dock view with the chosen note. Read-only: nothing is sent to the API.
  * `apiUrl` is the API root (the mock API in development and tests, api.openstreetmap.org in
- * production); `minZoom` is the OSM zoom from which notes are loaded (default 12).
+ * production); `minZoom` is the OSM zoom from which notes are loaded (default 12; Maid passes 14).
  */
 export function notes(options: { apiUrl: string; minZoom?: number }) {
   const { apiUrl } = options
@@ -50,8 +62,16 @@ export function notes(options: { apiUrl: string; minZoom?: number }) {
         const showClosed = useNotesSettings((s) => s.showClosed)
         const view = useNotesSession((s) => s.view)
         const notes = useNotesSession((s) => s.notes)
+        const cells = useNotesSession((s) => s.cells)
+        const paused = useNotesSession((s) => s.paused)
+        const tick = useNotesSession((s) => s.tick)
         const chosen = useNotesSession((s) => s.chosen)
         const mode: NotesMode = showClosed ? 'all' : 'open'
+        const active = enabled && view !== null && view.zoom >= minZoom
+        const truncatedInView =
+          active && view !== null
+            ? cellsOf(view.bbox).some((cell) => cells[cellKey(mode, cell)] === 'truncated')
+            : false
 
         // the map's box after every move; the session keeps it for the panel too
         useEffect(() => {
@@ -60,8 +80,8 @@ export function notes(options: { apiUrl: string; minZoom?: number }) {
             const bounds = map.getBounds()
             useNotesSession.getState().setView({
               bbox: [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()],
-              // OSM zoom: MapLibre's zoom plus one, as the engine counts it
-              zoom: map.getZoom() + 1,
+              // the one place of the conversion from MapLibre's zoom to OSM zoom (model.ts)
+              zoom: osmZoomOf(map.getZoom()),
             })
           }
           update()
@@ -87,17 +107,35 @@ export function notes(options: { apiUrl: string; minZoom?: number }) {
           }
         }, [map])
 
-        // what the view needs and does not have yet: one request for the missing cells
+        // a request whose cells left the view, or whose layer went off, is aborted (a cell is then asked again later)
         useEffect(() => {
-          if (!enabled || !view || view.zoom < minZoom) return
-          const missing = missingCells(view.bbox, mode, useNotesSession.getState().cells)
-          if (missing.length > 0) requestCells(apiUrl, mode, missing)
-        }, [enabled, view, mode])
+          const wanted = active && view ? cellsOf(view.bbox).map((cell) => cellKey(mode, cell)) : []
+          abortOutside(new Set(wanted))
+        }, [active, view, mode])
+
+        // what the view needs and does not have yet: one request for the missing cells, none while the
+        // OSM service is paused for a rate limit, and none for a cell still waiting after a failure
+        // (`tick` changes when such a wait is over)
+        useEffect(() => {
+          if (!active || !view || paused) return
+          const session = useNotesSession.getState()
+          const missing = missingCells(view.bbox, mode, session.cells, session.failures, Date.now())
+          if (missing.length > 0) requestCells(api.editor.fetch, apiUrl, mode, missing)
+        }, [active, view, mode, paused, tick])
+
+        // the notice of a list cut at the limit: once for a view that has one, not on every move
+        useEffect(() => {
+          const step = truncationNotice(useNotesSession.getState().noticeShown, truncatedInView)
+          if (step.shown !== useNotesSession.getState().noticeShown) {
+            useNotesSession.getState().setNoticeShown(step.shown)
+          }
+          if (step.notify) notify.info(TRUNCATED_NOTICE_TEXT, { id: TRUNCATED_NOTICE_ID })
+        }, [truncatedInView])
 
         // unmounting (or a development remount) aborts what is in flight
         useEffect(() => () => abortRequests(), [])
 
-        if (!enabled || !view || view.zoom < minZoom) return null
+        if (!active || !view) return null
         const shown = Object.values(notes).filter((note) => showClosed || note.status === 'open')
         return (
           <Source id={SOURCE} type="geojson" data={markersOf(shown, chosen)}>
@@ -224,8 +262,17 @@ export function notes(options: { apiUrl: string; minZoom?: number }) {
         width: 'w-80',
       })
       api.register('dock.view', { id: 'notes', label: 'Notes', component: NotesDock })
+      // a rate limit of the OSM service stops the notes requests until its pause ends
+      const isPaused = (pauses: readonly { service: string }[]) =>
+        pauses.some((pause) => pause.service === 'osm')
+      useNotesSession.getState().setPaused(isPaused(api.editor.fetchPauses.list()))
+      const stopPauses = api.editor.fetchPauses.subscribe((pauses) =>
+        useNotesSession.getState().setPaused(isPaused(pauses)),
+      )
       return () => {
+        stopPauses()
         abortRequests()
+        useNotesSession.getState().setPaused(false)
         useNotesSession.getState().setView(null)
       }
     },

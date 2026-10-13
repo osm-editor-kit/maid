@@ -24,8 +24,12 @@ export type ReferenceInfo = {
 /**
  * Finds the documentation of a reference. It is asked only when the popover opens. `undefined` means
  * nothing was found; a rejection means the answer could not be had. The popover shows the same for both.
+ * `signal` aborts when the popover closes: a loader stops asking then.
  */
-export type ReferenceLoader = (reference: Reference) => Promise<ReferenceInfo | undefined>
+export type ReferenceLoader = (
+  reference: Reference,
+  signal?: AbortSignal,
+) => Promise<ReferenceInfo | undefined>
 
 /** The tag as the popover titles it: `key=value`, or `key=*` for a key alone. */
 export function referenceTag(reference: Reference) {
@@ -110,7 +114,9 @@ function ReferenceBody(props: { reference: Reference; load?: ReferenceLoader }) 
     if (!load) return
     // a late answer, for a popover that has closed or moved on, is dropped
     let current = true
-    load(reference).then(
+    // closing the popover (or moving on) aborts the request, so that no wiki call is left running
+    const controller = new AbortController()
+    load(reference, controller.signal).then(
       (info) => {
         if (current) setFound({ status: 'done', info })
       },
@@ -120,6 +126,7 @@ function ReferenceBody(props: { reference: Reference; load?: ReferenceLoader }) 
     )
     return () => {
       current = false
+      controller.abort()
     }
   }, [reference, load])
 

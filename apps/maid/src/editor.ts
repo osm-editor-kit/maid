@@ -1,4 +1,4 @@
-import { createEditor } from '@osm-editor-kit/maid-core'
+import { createEditor, isLocalUrl } from '@osm-editor-kit/maid-core'
 import { createFilterSet } from '@osm-editor-kit/maid-filters'
 import { connectLenses } from '@osm-editor-kit/maid-module-lenses'
 import { MaidEngine } from '@osm-editor-kit/maid-renderer'
@@ -21,6 +21,12 @@ export const config = readConfig(window.location)
 /** The editor's data and modules. What this editor is lives in maid.config.ts. */
 export const editor = createEditor(editorConfig(config))
 
+// The OSM API is a service of its own: its requests wait in the 'osm' gate, and a pause on it is its own.
+// A local API (the mock, on localhost) is not claimed: it stays with the 'local' gate, as hosts that no
+// service claims do, so the mock is never paused or limited as the real API is.
+const apiUrl = new URL(config.apiUrl)
+if (!isLocalUrl(apiUrl)) editor.services.register('osm', apiUrl.host)
+
 /** The filter states in the URL's notation, as the editor writes them: the same states are one value */
 export const normalizeFilters = (param: string) => createFilterSet(editor.filters, param).toParam()
 
@@ -39,6 +45,8 @@ export const engine = new MaidEngine({
   apiUrl: config.apiUrl,
   minDataZoom: config.minDataZoom,
   filters: filtersStart.value,
+  // the editor's fetch: gated per service, time-limited, paused on a rate limit
+  fetch: editor.fetch,
 })
 
 // the lens the person chose restyles what the engine builds

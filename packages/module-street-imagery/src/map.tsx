@@ -1,3 +1,4 @@
+import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { MAP_FEATURE_COLOR, photoTypeColorExpression } from '@osm-editor-kit/street-imagery'
 import {
   queryStreetImageryFeatures,
@@ -12,7 +13,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import type { MapLayerMouseEvent } from 'maplibre-gl'
 import { useEffect, useState } from 'react'
 import { useMap, type MapRef } from 'react-map-gl/maplibre'
-import { photoQueries } from './query.ts'
+import { snapBboxToTiles } from './snap.ts'
 import { activeProviders, photoTypesOf } from './state.ts'
 import { AUTOMATED, useStreetImageryStore } from './store.ts'
 
@@ -74,8 +75,9 @@ function useEaseBridge(mapRef: MapRef | undefined) {
 /**
  * The photos on the map (the providers that are switched on), the view cone of the photo open in
  * the dock. Drawn above the OSM data; the click on a photo is handled by `streetImageryClick`.
+ * The box is snapped to the photo tiles (snap.ts), so the package's queries are keyed per tile list.
  */
-export function StreetImageryLayers() {
+export function StreetImageryLayers({ editor }: MapContentProps) {
   const mapRef = useMap()[MAP_ID]
   const stored = useStreetImageryStore((state) => state.providers)
   const token = useStreetImageryStore((state) => state.mapillaryToken)
@@ -90,10 +92,10 @@ export function StreetImageryLayers() {
   const providers = activeProviders(stored, token, AUTOMATED)
 
   return (
-    <QueryClientProvider client={photoQueries}>
+    <QueryClientProvider client={editor.queries}>
       <StreetLevelImagerySourcesAndLayers
         providers={providers}
-        bbox={bbox}
+        bbox={bbox === null ? null : snapBboxToTiles(bbox)}
         zoom={zoom}
         filter={{ photoTypes: photoTypesOf(photoKind), date }}
         options={{

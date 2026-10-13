@@ -42,6 +42,9 @@ export {
   type StreetImagesPresetChanges,
 } from './image-presets.ts'
 
+/** The query-key prefixes of the package's provider hooks (street-imagery-react, `useProviderPhotos` and the others) */
+const PACKAGE_QUERY_PREFIXES = ['provider-photos', 'provider-sequences', 'provider-map-features']
+
 export type StreetImageryOptions = {
   /**
    * Mapillary client token (`VITE_MAPILLARY_TOKEN` in apps/maid). Without one Mapillary is not
@@ -67,6 +70,13 @@ export function streetImagery(options: StreetImageryOptions = {}) {
         setStreetImageryConfig(createStreetImageryConfig({ mapillaryToken: token }))
         registerProviderAdapters(token ? [panoramaxAdapter, mapillaryAdapter] : [panoramaxAdapter])
         useStreetImageryStore.setState({ mapillaryToken: token })
+        // The package names its provider queries by these prefixes, and keys them by the box and the
+        // zoom. The box is snapped to tiles (snap.ts), so the same tiles are the same key, and a key
+        // is asked once for the session: its data is not stale. A rename by the package would stop
+        // this without an error (the photos would then be asked again on each move).
+        for (const prefix of PACKAGE_QUERY_PREFIXES) {
+          api.editor.queries.setQueryDefaults([prefix], { staleTime: Infinity })
+        }
         const layers: MapContentItem = { id: 'street-imagery', component: StreetImageryLayers }
         api.register('map.content', layers)
       }

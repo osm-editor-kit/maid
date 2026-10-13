@@ -203,3 +203,32 @@ export function markersOf(notes: readonly Note[], chosen: number | null) {
     })),
   }
 }
+
+/**
+ * The map's zoom in OSM terms. MapLibre counts 512 px tiles and OSM 256 px, so OSM zoom is MapLibre
+ * zoom plus one (docs/research/zoom-study.md). This is the one place of the conversion: every zoom
+ * the notes module compares, and every `minZoom` it takes, is an OSM zoom.
+ */
+export function osmZoomOf(mapLibreZoom: number) {
+  return mapLibreZoom + 1
+}
+
+/** Whether the notes load at a map zoom (MapLibre's), for a `minZoom` in OSM zoom */
+export function loadsAt(mapLibreZoom: number, minZoom: number) {
+  return osmZoomOf(mapLibreZoom) >= minZoom
+}
+
+/** The one toast id of the truncated notice: a second one replaces the first, it never stacks */
+export const TRUNCATED_NOTICE_ID = 'notes-truncated'
+
+export const TRUNCATED_NOTICE_TEXT = `Only the first ${NOTES_LIMIT} notes of this area are shown. Zoom in to see all.`
+
+/**
+ * Whether the truncated notice fires, given whether it fired for the view before and whether the
+ * view has a list cut at the limit. It fires once when a view starts to have a cut list, and not
+ * again while that view keeps one (the map moves, the same notice stays). It is ready again after
+ * a view without a cut list.
+ */
+export function truncationNotice(shown: boolean, truncatedInView: boolean) {
+  return { shown: truncatedInView, notify: truncatedInView && !shown }
+}

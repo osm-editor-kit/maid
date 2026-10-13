@@ -1,11 +1,28 @@
 // The OSM Wiki's documentation of a tag, for the "i" buttons. The request and the reading follow iD's
 // osm_wikibase.js (getEntity and getDocs), reduced to a description, an image and the wiki page.
 //
-// The wiki is OSM infrastructure (AGENTS.md, rule 1). So: a request follows only a person's click on an
-// "i"; never under automation; one request at a time; no prefetch and no retry; a tag is asked at most
-// once and kept for 30 days, in memory and in localStorage.
-import { isAutomated } from '@osm-editor-kit/maid-core'
-import { wikiTitleOf, type Reference, type ReferenceInfo } from '@osm-editor-kit/maid-ui'
+// The wiki is OSM infrastructure (AGENTS.md, rule 1). A request follows only a person's click on an "i",
+// never runs under automation, and goes through the editor's fetch: the wikimedia gate (one at a time, a
+// pause on 429 and 509), a time limit and the retry rule. Each wiki page is one query of the editor's query
+// client, kept for the session. A page that the query cache does not have is read from storage (30 days)
+// before it is asked. The pages of a reference are asked in one call, as iD asks the missing titles
+// together, so a key page is asked once for all the tags of that key.
+import {
+  isAutomated,
+  keys,
+  retryDelayFor,
+  SESSION_DATA,
+  shouldRetry,
+  type EditorFetch,
+  type ModuleStorage,
+  type RemoteFetch,
+} from '@osm-editor-kit/maid-core'
+import {
+  wikiTitleOf,
+  type Reference,
+  type ReferenceInfo,
+  type ReferenceLoader,
+} from '@osm-editor-kit/maid-ui'
 import { z } from 'zod'
 
 const API = 'https://wiki.openstreetmap.org/w/api.php'
@@ -21,8 +38,12 @@ const PROPERTY_WIKI_IMAGE = 'P28'
 /** English: the popover is in English, as the presets are. The server falls back to a close language. */
 const LANGUAGE = 'en'
 const IMAGE_WIDTH = 400
+/** The time limit of a request until its answer starts (the editor's fetch counts it) */
 const TIMEOUT_MS = 10_000
+/** Wikimedia's maxlag (etiquette, fetching-audit.md): the server refuses while it lags this many seconds */
+const MAXLAG_SECONDS = 5
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
+/** Storage keys: `maid.reference:` and the wiki page title, as before. The stored shape is unchanged. */
 const STORAGE_PREFIX = 'maid.reference:'
 
 /*
@@ -92,10 +113,16 @@ const answerSchema = z.object({
     .catch(undefined),
 })
 
+/** The code of an error answer, such as `maxlag`: it goes into the message */
+const errorSchema = z.object({ code: optionalText })
+
 type WikibaseItem = z.infer<typeof itemSchema>
 type Property = 'P4' | 'P28' | 'P31'
 
-/** A stored answer: when it was asked, and its info, or null for a reference the wiki has no item for */
+/** What the popover shows of one wiki page; null when the wiki has no item for the page */
+type PageInfo = ReferenceInfo | null
+
+/** A stored answer: when it was asked, and its info, or null for a page the wiki has no item for */
 const cachedAnswerSchema = z.object({
   at: z.number(),
   info: z.union([
@@ -117,21 +144,31 @@ function pagesOf(reference: Reference) {
   }
 }
 
-/** The request for a reference: one call for its key and its tag page, as iD sends it. */
-export function requestUrl(reference: Reference) {
+/** The titles of the pages a reference names, the key page first. */
+function titlesOf(reference: Reference): string[] {
   const pages = pagesOf(reference)
-  const titles = [pages.key, pages.tag].filter((title) => title !== undefined).join('|')
+  return pages.tag === undefined ? [pages.key] : [pages.key, pages.tag]
+}
+
+/** The request for some wiki pages: one call with their titles, in English, as iD sends it. */
+export function requestUrlFor(titles: readonly string[]) {
   const query = new URLSearchParams({
     action: 'wbgetentities',
     sites: 'wiki',
-    titles,
+    titles: titles.join('|'),
     languages: LANGUAGE,
     languagefallback: '1',
+    maxlag: String(MAXLAG_SECONDS),
     // the browser's CORS check needs it; iD sends it too. A User-Agent cannot be set from a page.
     origin: '*',
     format: 'json',
   })
   return `${API}?${query}`
+}
+
+/** The request for a reference: its key page and its tag page in one call, as iD sends it. */
+export function requestUrl(reference: Reference) {
+  return requestUrlFor(titlesOf(reference))
 }
 
 /** The URL that shows a file of a wiki at a fixed width, as iD builds it. */
@@ -158,8 +195,7 @@ function preferredValue(item: WikibaseItem, property: Property) {
 }
 
 /** The wiki page title in one language, from the monolingual statements of an item. The last one wins, as in iD. */
-function wikiPageIn(item: WikibaseItem | undefined, language: string) {
-  if (!item) return undefined
+function wikiPageIn(item: WikibaseItem, language: string) {
   let page: string | undefined
   for (const statement of statementsOf(item, PROPERTY_WIKI_PAGE)) {
     const datavalue = statement.mainsnak?.datavalue
@@ -170,8 +206,7 @@ function wikiPageIn(item: WikibaseItem | undefined, language: string) {
   return page
 }
 
-/** The items of the answer by the wiki page they are. Missing items are left out, as iD does. */
-/** The items of an answer by the wiki page they belong to, each with its id (the key it has in the answer) */
+/** The items of an answer by the wiki page they belong to, each with its id (the key it has in the answer). Missing items are left out, as iD does. */
 function itemsByTitle(entities: Record<string, WikibaseItem | undefined>) {
   const items = new Map<string, WikibaseItem & { id: string }>()
   for (const [id, item] of Object.entries(entities)) {
@@ -182,24 +217,9 @@ function itemsByTitle(entities: Record<string, WikibaseItem | undefined>) {
   return items
 }
 
-/**
- * Reads an answer of the wiki as iD's getDocs does. The description comes from the tag's item, else the
- * key's: in English when there is one, else the first. The image is the preferred one on Commons, else
- * on the wiki. The wiki page is the English one of the tag's item, else of the key's. Undefined when the
- * wiki has neither item. Throws when the answer is an error.
- */
-export function parseWikibaseAnswer(answer: unknown, reference: Reference) {
-  const parsed = answerSchema.safeParse(answer)
-  if (!parsed.success || !parsed.data.success || parsed.data.error !== undefined) {
-    throw new Error('The OSM Wiki answered with an error')
-  }
-  const pages = pagesOf(reference)
-  const items = itemsByTitle(parsed.data.entities ?? {})
-  const tagItem = pages.tag === undefined ? undefined : items.get(pages.tag)
-  const keyItem = items.get(pages.key)
-  const item = tagItem ?? keyItem
-  if (!item) return undefined
-
+/** The info of one wiki page, from its item: the description (English when there is one, else the first), the preferred image (Commons, else the wiki), the English page and the data item. */
+function infoOfItem(item: (WikibaseItem & { id: string }) | undefined): PageInfo {
+  if (!item) return null
   const descriptions = item.descriptions ?? {}
   const english = descriptions[LANGUAGE]
   const first = Object.values(descriptions)[0]
@@ -214,13 +234,54 @@ export function parseWikibaseAnswer(answer: unknown, reference: Reference) {
         ? fileUrl(WIKI_FILES, onWiki)
         : undefined
 
-  const wikiTitle = wikiPageIn(tagItem, LANGUAGE) ?? wikiPageIn(keyItem, LANGUAGE)
-  // the item that iD links as well: the tag's own, else the key's. Only a real item id (Q and digits).
+  // only a real item id (Q and digits) is linked
   const itemId = /^Q\d+$/.test(item.id) ? item.id : undefined
-  return { description, imageUrl, wikiTitle, itemId }
+  return { description, imageUrl, wikiTitle: wikiPageIn(item, LANGUAGE), itemId }
 }
 
-/** A stored answer, when it is younger than 30 days: its info, or null for a reference the wiki has no item for. */
+/**
+ * The info of a reference from the info of its pages, as iD's getDocs reads them: the description, the
+ * image and the data item come from the tag's item when it has one, else from the key's; the wiki page is
+ * the tag's English page, else the key's. Undefined when the wiki has neither item.
+ */
+function combine(tag: PageInfo | undefined, key: PageInfo | undefined): ReferenceInfo | undefined {
+  const item = tag ?? key
+  if (!item) return undefined
+  return {
+    description: item.description,
+    imageUrl: item.imageUrl,
+    itemId: item.itemId,
+    wikiTitle: tag?.wikiTitle ?? key?.wikiTitle,
+  }
+}
+
+/**
+ * Reads an answer of the wiki page by page: for each title asked, its info, or null when the wiki has no
+ * item for it. Throws when the answer is an error; the message names the code (`maxlag` for a busy wiki).
+ */
+export function parseWikibasePages(answer: unknown, titles: readonly string[]) {
+  const parsed = answerSchema.safeParse(answer)
+  if (!parsed.success || !parsed.data.success || parsed.data.error !== undefined) {
+    const code = parsed.success ? errorSchema.safeParse(parsed.data.error).data?.code : undefined
+    throw new Error(`The OSM Wiki answered with an error${code === undefined ? '' : ` (${code})`}`)
+  }
+  const items = itemsByTitle(parsed.data.entities ?? {})
+  return new Map<string, PageInfo>(
+    titles.map((title): [string, PageInfo] => [title, infoOfItem(items.get(title))]),
+  )
+}
+
+/**
+ * Reads one answer that holds both pages of a reference, as iD's getDocs does. Undefined when the wiki has
+ * neither item. Throws when the answer is an error.
+ */
+export function parseWikibaseAnswer(answer: unknown, reference: Reference) {
+  const pages = pagesOf(reference)
+  const found = parseWikibasePages(answer, titlesOf(reference))
+  return combine(pages.tag === undefined ? undefined : found.get(pages.tag), found.get(pages.key))
+}
+
+/** A stored answer, when it is younger than 30 days: its info, or null for a page the wiki has no item for. */
 export function freshStored(raw: string | null, now: number) {
   if (raw === null) return undefined
   let json: unknown
@@ -234,72 +295,173 @@ export function freshStored(raw: string | null, now: number) {
   return stored.data.info
 }
 
-/** Answers of this session, by the wiki page of the reference. null: the wiki has no item for it. */
-const remembered = new Map<string, ReferenceInfo | null>()
-
-/** The requests in line: each waits for the one before, so that only one is ever in flight. */
-const line: { tail: Promise<void> } = { tail: Promise.resolve() }
-
-function queued<T>(task: () => Promise<T>) {
-  const run = line.tail.then(task)
-  line.tail = run.then(
-    () => undefined,
-    () => undefined,
-  )
-  return run
+/** Resolves with the value of a promise, or rejects as it does, unless `signal` aborts first: then it rejects with the reason. */
+function untilAborted<T>(promise: Promise<T>, signal: AbortSignal | undefined): Promise<T> {
+  if (signal === undefined) return promise
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => reject(signal.reason)
+    signal.addEventListener('abort', abort, { once: true })
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', abort)
+        resolve(value)
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', abort)
+        reject(error)
+      },
+    )
+  })
 }
 
-function readStored(key: string) {
-  try {
-    return freshStored(localStorage.getItem(STORAGE_PREFIX + key), Date.now())
-  } catch {
-    // no localStorage (a private window, blocked site data): the answer is asked again
-    return undefined
-  }
+export type ReferenceLoaderDeps = {
+  /** The editor's fetch: the wikimedia gate, the time limit and the pause on 429 apply to it */
+  fetch: RemoteFetch
+  /** The editor's query client: each wiki page is one query, kept for the session */
+  queries: EditorFetch['queries']
+  /** Where answers are kept for 30 days across visits: `moduleStorage()` in the app (nothing under automation) */
+  storage: ModuleStorage
+  /** Epoch milliseconds. Injected so that tests need no real clock. */
+  now: () => number
+  /** Waits between the retries of a call. Default: a timer. Tests pass one that does not wait. */
+  sleep?: (ms: number) => Promise<void>
 }
 
-function writeStored(key: string, info: ReferenceInfo | null) {
-  try {
-    localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify({ at: Date.now(), info }))
-  } catch {
-    // not kept: the answer stays in memory for this session
-  }
-}
-
-async function fetchAnswer(reference: Reference) {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
-  try {
-    const response = await fetch(requestUrl(reference), {
-      signal: controller.signal,
-      credentials: 'omit',
-    })
-    if (!response.ok) throw new Error(`The OSM Wiki answered ${response.status}`)
-    return await response.json()
-  } finally {
-    clearTimeout(timer)
-  }
+/** One call to the wiki in flight: the pages it asks for, the way to cancel it, and its answer */
+type Batch = {
+  readonly titles: readonly string[]
+  readonly controller: AbortController
+  readonly answer: Promise<Map<string, PageInfo>>
 }
 
 /**
- * The OSM Wiki's documentation of a reference, for the InfoPopover. Undefined when the wiki has no item
- * for it, or under automation (`isAutomated()`), where nothing is requested. Rejects when the wiki
- * cannot be asked; nothing is kept then, so the next opening asks again.
+ * The loader of the "i" popovers. The app makes one, on the editor's fetch and query cache; tests make
+ * their own with fakes. Under automation it asks nothing and returns undefined.
  */
-export async function loadReference(reference: Reference) {
-  if (isAutomated()) return undefined
-  const key = wikiTitleOf(reference)
-  return queued(async () => {
-    const inMemory = remembered.get(key)
-    // an answer held as null (no item) is an answer: the storage is not asked again for it
-    const known = inMemory !== undefined ? inMemory : readStored(key)
-    if (known !== undefined) {
-      remembered.set(key, known)
-      return known ?? undefined
+export function createReferenceLoader(deps: ReferenceLoaderDeps): ReferenceLoader {
+  const { fetch: send, queries, storage, now } = deps
+  const sleep =
+    deps.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)))
+  /** The callers waiting for each page. A call to the wiki is cancelled when none waits for any of its pages. */
+  const waiting = new Map<string, number>()
+  /** The call in flight that asks for each page */
+  const batches = new Map<string, Batch>()
+
+  function cachedOf(title: string) {
+    return queries.getQueryData<PageInfo>(keys.wiki(title))
+  }
+
+  /** The query of a page is filled from storage when it is empty and the stored answer is fresh */
+  function seed(title: string) {
+    if (cachedOf(title) !== undefined) return
+    const stored = freshStored(storage.getItem(STORAGE_PREFIX + title), now())
+    if (stored !== undefined) queries.setQueryData(keys.wiki(title), stored)
+  }
+
+  /** Called for a fresh answer only: a failed one is not stored */
+  function remember(title: string, info: PageInfo) {
+    storage.setItem(STORAGE_PREFIX + title, JSON.stringify({ at: now(), info }))
+  }
+
+  async function requestPages(titles: readonly string[], signal: AbortSignal) {
+    const response = await send(requestUrlFor(titles), {
+      signal,
+      timeoutMs: TIMEOUT_MS,
+      credentials: 'omit',
+    })
+    return parseWikibasePages(await response.json(), titles)
+  }
+
+  /**
+   * A call with the retry rule of the editor (`shouldRetry`: at most two retries, never a 4xx, a rate limit
+   * or an abort) and its delays (`retryDelayFor`). The retries belong to the call, not to each page, so
+   * that the pages of one call are retried together: one request per try.
+   */
+  async function requestWithRetries(titles: readonly string[], signal: AbortSignal) {
+    for (let retries = 0; ; retries++) {
+      try {
+        return await requestPages(titles, signal)
+      } catch (error) {
+        if (!shouldRetry(retries, error)) throw error
+        await sleep(retryDelayFor(retries))
+        if (signal.aborted) throw signal.reason
+      }
     }
-    const info = parseWikibaseAnswer(await fetchAnswer(reference), reference)
-    remembered.set(key, info ?? null)
-    writeStored(key, info ?? null)
-    return info
-  })
+  }
+
+  /** One call to the wiki for these pages. The answer is kept for each page; the call is forgotten when it is over. */
+  function startBatch(titles: readonly string[]): Batch {
+    const controller = new AbortController()
+    const answer = requestWithRetries(titles, controller.signal).then((pages) => {
+      for (const title of titles) remember(title, pages.get(title) ?? null)
+      return pages
+    })
+    const batch: Batch = { titles, controller, answer }
+    for (const title of titles) batches.set(title, batch)
+    const forget = () => {
+      for (const title of titles) if (batches.get(title) === batch) batches.delete(title)
+    }
+    answer.then(forget, forget)
+    return batch
+  }
+
+  /**
+   * The answer for one page, for its query. A page that a call is already asking for joins that call. Else
+   * the call also asks for the other pages of the reference that nobody has yet.
+   */
+  function askPage(title: string, others: readonly string[]): Promise<PageInfo> {
+    const batch =
+      batches.get(title) ??
+      startBatch([
+        title,
+        ...others.filter((other) => cachedOf(other) === undefined && !batches.has(other)),
+      ])
+    return batch.answer.then((pages) => pages.get(title) ?? null)
+  }
+
+  /** A caller of a page has left (its answer came, or its signal aborted). With no caller left, the page's query stops, and a call that no page of it waits for is cancelled. */
+  function release(title: string) {
+    const left = (waiting.get(title) ?? 1) - 1
+    if (left > 0) {
+      waiting.set(title, left)
+      return
+    }
+    waiting.delete(title)
+    void queries.cancelQueries({ queryKey: keys.wiki(title) })
+    const batch = batches.get(title)
+    if (batch && batch.titles.every((other) => !waiting.has(other))) batch.controller.abort()
+  }
+
+  /** One caller's answer for a page. Callers share the page's query, so two of them make one call. */
+  function pageOf(
+    title: string,
+    others: readonly string[],
+    signal: AbortSignal | undefined,
+  ): Promise<PageInfo> {
+    if (signal?.aborted) return Promise.reject(signal.reason)
+    waiting.set(title, (waiting.get(title) ?? 0) + 1)
+    const query = queries.fetchQuery({
+      queryKey: keys.wiki(title),
+      queryFn: () => askPage(title, others),
+      ...SESSION_DATA,
+      // the retries are the call's (requestWithRetries), not the query's
+      retry: false,
+    })
+    const answer = untilAborted(query, signal)
+    const leave = () => release(title)
+    answer.then(leave, leave)
+    return answer
+  }
+
+  const loader: ReferenceLoader = async (reference, signal) => {
+    if (isAutomated()) return undefined
+    const pages = pagesOf(reference)
+    seed(pages.key)
+    if (pages.tag !== undefined) seed(pages.tag)
+    const keyPage = pageOf(pages.key, pages.tag === undefined ? [] : [pages.tag], signal)
+    const tagPage = pages.tag === undefined ? undefined : pageOf(pages.tag, [pages.key], signal)
+    const [key, tag] = await Promise.all([keyPage, tagPage])
+    return combine(tag, key)
+  }
+  return loader
 }

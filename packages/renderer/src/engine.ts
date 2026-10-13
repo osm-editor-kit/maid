@@ -1,4 +1,11 @@
-import type { Editor } from '@osm-editor-kit/maid-core'
+import {
+  createGates,
+  createRemoteFetch,
+  type Editor,
+  HttpError,
+  RateLimitedError,
+  type RemoteFetch,
+} from '@osm-editor-kit/maid-core'
 /**
  * Loads OSM data for the viewport and keeps MapLibre's sources in sync.
  *
@@ -57,6 +64,20 @@ import {
   type SnapTarget,
   SNAP_PX,
 } from './snap'
+import {
+  createTileLoads,
+  nearestFirst,
+  notePause,
+  outcomeOf,
+  planLoads,
+  resetLoads,
+  settleLoad,
+  TILE_TIMEOUT_MS,
+  tileKey,
+  tileXY,
+  type TileKey,
+  type TileLoads,
+} from './tile-loading'
 import { actionMoveNodes, fromMercator, nodesOf, toMercator, TransformTool } from './transform'
 
 export type EngineOptions = {
@@ -75,7 +96,15 @@ export type EngineOptions = {
   prepare?: (batch: FeatureBatch) => Promise<void>
   /** Called when the set of dash patterns grew and the layers need to be rebuilt */
   onStyleChange?: () => void
+  /**
+   * How the engine sends its requests: the editor's `fetch` (gated per service, time-limited, paused on a
+   * rate limit). Left out, the engine uses the same rules with gates of its own, for use on its own (tests).
+   */
+  fetch?: RemoteFetch
 }
+
+/** The engine on its own: the foundation's rules, with gates and a service of its own. */
+const standaloneFetch = createRemoteFetch({ gates: createGates(), serviceOf: () => 'local' })
 
 export type EngineMetrics = {
   tiles: number
@@ -154,7 +183,11 @@ export class MaidEngine {
   private builder: FeatureBuilder
   /** The map the engine draws on, once attached */
   map?: MapLibreMap
-  private tiles = new Set<string>()
+  /** Map data tiles: their state, and the rate-limit pause that holds them (tile-loading.ts) */
+  private tileLoads: TileLoads = createTileLoads()
+  /** The one timer for the next moment a wanted tile may be asked (the end of a wait or of a pause) */
+  private wakeTimer?: ReturnType<typeof setTimeout>
+  private readonly remote: RemoteFetch
   private inflight = 0
   private featureSource = new Map<string, SourceName>()
   private dashCount = 0
@@ -196,6 +229,7 @@ export class MaidEngine {
     this.builder = new FeatureBuilder(this.data, this.presets)
     this.filterSet = createFilterSet(options.editor.filters, options.filters)
     this.builder.filters = this.filterSet
+    this.remote = options.fetch ?? standaloneFetch
   }
 
   // --- Reading state from the UI ---
@@ -290,43 +324,78 @@ export class MaidEngine {
   loadVisibleTiles() {
     const { map } = this
     this.touch()
-    if (!map || this.osmZoom() < this.options.minDataZoom) return
-    const bounds = map.getBounds()
-    const x0 = lon2x(bounds.getWest())
-    const x1 = lon2x(bounds.getEast())
-    const y0 = lat2y(bounds.getNorth())
-    const y1 = lat2y(bounds.getSouth())
-    const cx = (x0 + x1) / 2
-    const cy = (y0 + y1) / 2
-    const wanted: [number, number][] = []
-    for (let x = x0; x <= x1; x++) {
-      for (let y = y0; y <= y1; y++) if (!this.tiles.has(`${x}/${y}`)) wanted.push([x, y])
+    if (!map) return
+    // below the minimum zoom nothing is wanted, so the loads in flight are cancelled
+    const wanted: TileKey[] = []
+    if (this.osmZoom() >= this.options.minDataZoom) {
+      const bounds = map.getBounds()
+      const x0 = lon2x(bounds.getWest())
+      const x1 = lon2x(bounds.getEast())
+      const y0 = lat2y(bounds.getNorth())
+      const y1 = lat2y(bounds.getSouth())
+      const cx = (x0 + x1) / 2
+      const cy = (y0 + y1) / 2
+      const inView: [number, number][] = []
+      for (let x = x0; x <= x1; x++) {
+        for (let y = y0; y <= y1; y++) inView.push([x, y])
+      }
+      // centre first, like a person would want it
+      for (const [x, y] of nearestFirst(inView, [cx, cy])) wanted.push(tileKey(x, y))
     }
-    // centre first, like a person would want it
-    wanted.sort((a, b) => Math.hypot(a[0] - cx, a[1] - cy) - Math.hypot(b[0] - cx, b[1] - cy))
-    for (const [x, y] of wanted) void this.loadTile(x, y)
+    this.requestTiles(wanted)
   }
 
-  private async loadTile(x: number, y: number) {
-    this.tiles.add(`${x}/${y}`)
+  /**
+   * Asks for the wanted tiles that may be asked now, in the order given, and cancels the loads of tiles
+   * that are no longer wanted. Then sets the wake-up for the next wait or pause that ends.
+   */
+  private requestTiles(wanted: readonly TileKey[]) {
+    const plan = planLoads(this.tileLoads, wanted, Date.now())
+    for (const { key, controller } of plan.start) void this.loadTile(key, controller)
+    this.scheduleWake(plan.nextWakeAt)
+  }
+
+  /** One timer for the next moment a wanted tile may be asked. It asks again for the view as it is then. */
+  private scheduleWake(at: number | undefined) {
+    clearTimeout(this.wakeTimer)
+    this.wakeTimer = undefined
+    if (at === undefined) return
+    this.wakeTimer = setTimeout(
+      () => {
+        this.wakeTimer = undefined
+        this.loadVisibleTiles()
+      },
+      Math.max(0, at - Date.now()),
+    )
+  }
+
+  private async loadTile(key: TileKey, controller: AbortController) {
+    const [x, y] = tileXY(key)
     this.inflight++
     try {
       const bbox = [x2lon(x), y2lat(y + 1), x2lon(x + 1), y2lat(y)].join(',')
+      const url = `${this.options.apiUrl}/api/0.6/map.json?bbox=${bbox}`
       const t0 = performance.now()
-      const res = await fetch(`${this.options.apiUrl}/api/0.6/map.json?bbox=${bbox}`)
-      if (!res.ok) throw new Error(`OSM API answered ${res.status} for tile ${x}/${y}`)
+      const res = await this.remote(url, { signal: controller.signal, timeoutMs: TILE_TIMEOUT_MS })
+      if (!res.ok) throw new HttpError(res.status, url)
       const text = await res.text()
       const t1 = performance.now()
       const json = JSON.parse(text) as { elements: OsmJsonElement[] }
       const t2 = performance.now()
+      // a request that was cancelled meanwhile (the tile left the view) is not used
+      if (!settleLoad(this.tileLoads, key, controller, { kind: 'loaded' }, Date.now())) return
       this.metrics.tiles++
       this.metrics.bytes += text.length
       this.metrics.fetchMs += t1 - t0
       this.metrics.parseMs += t2 - t1
       this.merge(json.elements)
     } catch (error) {
-      this.tiles.delete(`${x}/${y}`)
-      console.error(error)
+      const outcome = outcomeOf(error, controller.signal)
+      const current = settleLoad(this.tileLoads, key, controller, outcome, Date.now())
+      if (outcome.kind !== 'aborted') console.error(error)
+      // a failed tile has a wait, and a paused service has an end: plan again when they end
+      const waits = current && (outcome.kind === 'failed' || outcome.kind === 'refused')
+      if (waits || outcome.kind === 'rateLimited') this.loadVisibleTiles()
     } finally {
       this.inflight--
       if (this.inflight === 0) {
@@ -1403,7 +1472,7 @@ export class MaidEngine {
   }
 
   /** Relation loads in flight by relation id: a second call for the same relation shares the request */
-  private relationLoads = new Map<string, Promise<number>>()
+  private relationLoads = new Map<string, { load: Promise<number>; controller: AbortController }>()
 
   /**
    * Loads a relation in full, as iD's `/relation/ID/full` call does: the relation, its node members,
@@ -1413,20 +1482,33 @@ export class MaidEngine {
    * rejects with a message when the API cannot be asked or does not answer with the relation.
    */
   loadRelation(id: string) {
-    let load = this.relationLoads.get(id)
-    if (!load) {
-      load = this.fetchRelation(id).finally(() => this.relationLoads.delete(id))
-      this.relationLoads.set(id, load)
+    const running = this.relationLoads.get(id)
+    if (running) return running.load.then((added) => ({ added }))
+    // cancelled when the engine is destroyed or the relation is no longer selected (setSelected, destroy)
+    const controller = new AbortController()
+    const load = this.fetchRelation(id, controller.signal)
+    const entry = { load, controller }
+    this.relationLoads.set(id, entry)
+    const forget = () => {
+      if (this.relationLoads.get(id) === entry) this.relationLoads.delete(id)
     }
+    load.then(forget, forget)
     return load.then((added) => ({ added }))
   }
 
-  private async fetchRelation(id: string) {
+  private async fetchRelation(id: string, signal: AbortSignal) {
     const match = /^r(\d+)$/.exec(id)
     if (!match) throw new Error(`Not a relation: ${id}`)
     const url = `${this.options.apiUrl}/api/0.6/relation/${match[1]}/full.json`
     const t0 = performance.now()
-    const res = await fetch(url).catch((error: unknown) => {
+    const res = await this.remote(url, { signal }).catch((error: unknown) => {
+      if (error instanceof HttpError) throw new Error(`OSM API answered ${error.status}`)
+      if (error instanceof RateLimitedError) {
+        // the service is paused: the map's tiles wait for the same pause
+        notePause(this.tileLoads, error.until)
+        this.loadVisibleTiles()
+        throw new Error(`OSM API answered ${error.status}`)
+      }
       throw new Error(
         `no answer from the OSM API (${error instanceof Error ? error.message : String(error)})`,
       )
@@ -1553,10 +1635,29 @@ export class MaidEngine {
     const previous = this.selectedIds
     if (ids.length === previous.length && ids.every((id, i) => id === previous[i])) return
     this.selectedIds = ids
+    // a relation load belongs to the selection that asked for it: once that is gone, the load is cancelled
+    for (const [id, entry] of this.relationLoads) {
+      if (!ids.includes(id))
+        entry.controller.abort(new DOMException(`${id} is no longer selected`, 'AbortError'))
+    }
     this.applyHighlight(previous, 'selected')
     this.selectionRelated = this.relatedOfSelection()
     this.syncRelated()
     this.changed()
+  }
+
+  /**
+   * Stops what the engine has in flight: map data tiles and relation loads are aborted, and the timer for
+   * the next request is cleared. For an engine that is not used any more.
+   */
+  destroy() {
+    clearTimeout(this.wakeTimer)
+    this.wakeTimer = undefined
+    resetLoads(this.tileLoads)
+    for (const entry of this.relationLoads.values()) {
+      entry.controller.abort(new DOMException('the engine was destroyed', 'AbortError'))
+    }
+    this.relationLoads.clear()
   }
 
   /** The ids that are selected (what was asked for; `selected()` is what the map shows) */

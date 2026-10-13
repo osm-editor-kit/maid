@@ -79,8 +79,9 @@ export function editorConfig(config: Config) {
     streetImagery({ mapillaryToken: import.meta.env.VITE_MAPILLARY_TOKEN || undefined }),
     // inspector field "Surface and smoothness" on roads and paths: a photo per value, bundled, no network
     surface(),
-    // top bar and dock "Notes": OSM notes of the same API the data comes from, read-only
-    notes({ apiUrl: config.apiUrl, minZoom: config.minDataZoom }),
+    // top bar and dock "Notes": OSM notes of the same API the data comes from, read-only.
+    // From OSM zoom 14 (iD and Rapid use 12; the data itself loads from 16). minZoom is an OSM zoom.
+    notes({ apiUrl: config.apiUrl, minZoom: 14 }),
   ]
   // dashed outline around the area the fixture covers
   if (bbox) modules.push(sceneBounds({ bbox }))

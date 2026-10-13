@@ -3,6 +3,7 @@ import { NuqsAdapter } from 'nuqs/adapters/react'
 import { useState } from 'react'
 import { MapProvider } from 'react-map-gl/maplibre'
 import { BottomDock } from './components/BottomDock'
+import { FetchPauses } from './components/FetchPauses'
 import { FilterButton } from './components/FilterButton'
 import { Inspector } from './components/Inspector'
 import { MapNotices } from './components/MapNotices'
@@ -15,7 +16,7 @@ import { UndoRedo } from './components/UndoRedo'
 import { UserButton } from './components/UserButton'
 import { useShortcuts } from './components/useShortcuts'
 import { ZoomControls } from './components/ZoomControls'
-import { config } from './editor'
+import { config, editor } from './editor'
 import { useSelection } from './selection'
 
 function Editor() {
@@ -72,6 +73,7 @@ export function App() {
       <MapProvider>
         <Editor />
         <Toaster />
+        <FetchPauses source={editor.fetchPauses} />
       </MapProvider>
     </NuqsAdapter>
   )

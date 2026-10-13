@@ -1,11 +1,11 @@
+import type { DockViewProps } from '@osm-editor-kit/maid-ui'
 import type { NormalizedPhoto } from '@osm-editor-kit/street-imagery'
 import { StreetLevelImageryViewer } from '@osm-editor-kit/street-imagery-react'
 import { PhotoDetailsDialog } from '@osm-editor-kit/street-imagery-react/photo-details'
-import { QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { planUse } from './image-keys.ts'
 import { photoPageLink } from './links.ts'
-import { photoQueries } from './query.ts'
 import { activeProviders } from './state.ts'
 import { AUTOMATED, useStreetImageryStore } from './store.ts'
 
@@ -51,7 +51,7 @@ function UsePhotoButton({ photo }: { photo: NormalizedPhoto }) {
 }
 
 /** The photo open in the dock, from the package's viewer, with its link and details. */
-function OpenPhoto({ photo }: { photo: NormalizedPhoto }) {
+function OpenPhoto({ photo, queries }: { photo: NormalizedPhoto; queries: QueryClient }) {
   const [detailsOpen, setDetailsOpen] = useState(false)
   const showPhoto = useStreetImageryStore((state) => state.showPhoto)
   const closePhoto = useStreetImageryStore((state) => state.closePhoto)
@@ -59,7 +59,7 @@ function OpenPhoto({ photo }: { photo: NormalizedPhoto }) {
   const link = photoPageLink(photo)
 
   return (
-    <QueryClientProvider client={photoQueries}>
+    <QueryClientProvider client={queries}>
       {/* the wrapper that the dark-mode rules of street-imagery.css are scoped to */}
       <div className="maid-street-imagery flex h-full min-h-48 flex-col">
         <div className="flex h-8 shrink-0 items-center justify-end gap-3 px-3">
@@ -108,7 +108,7 @@ function OpenPhoto({ photo }: { photo: NormalizedPhoto }) {
 }
 
 /** The photo open in the dock, from the package's viewer. Quiet text while none is chosen. */
-export function PhotosView() {
+export function PhotosView({ editor }: DockViewProps) {
   const openPhoto = useStreetImageryStore((state) => state.openPhoto)
   const stored = useStreetImageryStore((state) => state.providers)
   const token = useStreetImageryStore((state) => state.mapillaryToken)
@@ -131,5 +131,5 @@ export function PhotosView() {
     )
   }
 
-  return <OpenPhoto photo={openPhoto} />
+  return <OpenPhoto photo={openPhoto} queries={editor.queries} />
 }
