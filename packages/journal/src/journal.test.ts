@@ -11,7 +11,8 @@ import {
   actionMoveNode,
 } from '@osm-editor-kit/maid-model'
 import type { Graph, OsmEntity } from '@osm-editor-kit/maid-model'
-import { JournalLockedError, createJournal } from './journal.ts'
+import type { EditRecord } from './journal.ts'
+import { JournalLockedError, changesAt, createJournal } from './journal.ts'
 import type { LockProvider } from './journal.ts'
 
 // A lock provider that always grants the lock, the way navigator.locks does when the lock is free.
@@ -277,5 +278,112 @@ describe('journal', () => {
     expect(journal.lastError()).toBeUndefined()
     // Loose bound: an edit costs the same late in a session. The slack absorbs garbage collection pauses.
     expect(last).toBeLessThan(first * 3 + 50)
+  })
+})
+
+describe('stored edits', () => {
+  it('reads every record and the pointer, without restoring', async () => {
+    const name = nextName()
+    const first = freshHistory()
+    const journal1 = createJournal(
+      { name, context: first.context, history: first.history },
+      freeLocks,
+    )
+    const stop1 = await journal1.start()
+    const newID = commitThree(first.context, first.history)
+    first.history.undo()
+    await journal1.flushed()
+    stop1()
+
+    const second = freshHistory()
+    const journal2 = createJournal(
+      { name, context: second.context, history: second.history },
+      freeLocks,
+    )
+    const stored = await journal2.stored()
+    expect(stored?.records.map((record) => record.index)).toEqual([1, 2, 3])
+    expect(stored?.pointer).toBe(2)
+    expect(stored?.savedAt).toBe(stored?.records[2]?.savedAt ?? -1)
+    // reading changes nothing: the history is still empty and restore() still works
+    expect(second.history.index).toBe(0)
+    expect(await journal2.restore()).toBe(3)
+    expect(second.history.stable.graph!.hasEntity(newID)).toBeUndefined()
+  })
+
+  it('is undefined when nothing is stored', async () => {
+    const { context, history } = freshHistory()
+    const journal = createJournal({ name: nextName(), context, history }, freeLocks)
+    expect(await journal.stored()).toBeUndefined()
+  })
+})
+
+describe('changesAt', () => {
+  /** The records of what `make` commits, read back from a journal that wrote them */
+  async function recordsOf(
+    make: (context: ModelContext, history: EditHistory) => void,
+  ): Promise<{ records: EditRecord[]; pointer: number }> {
+    const name = nextName()
+    const { context, history } = freshHistory()
+    const journal = createJournal({ name, context, history }, freeLocks)
+    const stop = await journal.start()
+    make(context, history)
+    await journal.flushed()
+    stop()
+    const stored = await journal.stored()
+    if (!stored) throw new Error('nothing stored')
+    return stored
+  }
+
+  it('lists what was created and changed, and leaves out what the pointer undid', async () => {
+    let newID = ''
+    const { records, pointer } = await recordsOf((context, history) => {
+      newID = commitThree(context, history)
+    })
+    const all = changesAt(records, pointer)
+    expect(all.map((change) => change.id).sort()).toEqual(['n1', newID, 'w1'].sort())
+
+    const created = all.find((change) => change.id === newID)
+    expect(created?.before).toBeNull()
+    expect(created?.after?.tags).toEqual({ amenity: 'bench' })
+
+    const moved = all.find((change) => change.id === 'n1')
+    expect(moved?.before?.loc).toEqual([13.0, 52.0])
+    expect(moved?.after?.loc).toEqual([13.1, 52.05])
+
+    // two edits back: the node the last edit added is not part of the state any more
+    expect(changesAt(records, 2).map((change) => change.id)).not.toContain(newID)
+    // nothing done: nothing changed
+    expect(changesAt(records, 0)).toEqual([])
+  })
+
+  it('reports a deleted entity with its base state', async () => {
+    const { records, pointer } = await recordsOf((_context, history) => {
+      history.perform(actionDeleteNode('n3'))
+      history.commit({ annotation: 'deleted a node', selectedIDs: [] })
+    })
+    const [deleted] = changesAt(records, pointer)
+    expect(deleted?.id).toBe('n3')
+    expect(deleted?.after).toBeNull()
+    expect(deleted?.before?.loc).toEqual([13.25, 52.1])
+  })
+
+  it('leaves out an entity that was changed and changed back', async () => {
+    const { records, pointer } = await recordsOf((_context, history) => {
+      history.perform(actionMoveNode('n1', [13.1, 52.05]))
+      history.commit({ annotation: 'moved a node', selectedIDs: ['n1'] })
+      history.perform(actionMoveNode('n1', [13.0, 52.0]))
+      history.commit({ annotation: 'moved it back', selectedIDs: ['n1'] })
+    })
+    expect(changesAt(records, pointer)).toEqual([])
+  })
+
+  it('compares tags regardless of their order', async () => {
+    const { records, pointer } = await recordsOf((_context, history) => {
+      history.perform(actionChangeTags('w1', { highway: 'primary', name: 'Main' }))
+      history.commit({ annotation: 'tagged', selectedIDs: ['w1'] })
+      history.perform(actionChangeTags('w1', { highway: 'residential' }))
+      history.commit({ annotation: 'tagged back', selectedIDs: ['w1'] })
+    })
+    expect(changesAt(records, pointer)).toEqual([])
   })
 })

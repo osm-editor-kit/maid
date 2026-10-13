@@ -8,10 +8,15 @@ import type { Preset } from '@osm-editor-kit/maid-presets'
 import { useId, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { isFavouriteNumber } from '../favourites.ts'
 import { PLAIN_INPUT } from '../plain-input.ts'
-import { mainTagLabel, moveActive, pickerRows } from './picker-logic.ts'
-
-const FRAME =
-  'h-10 w-full min-w-0 rounded-lg border border-zinc-950/10 bg-white text-sm text-zinc-950 hover:border-zinc-950/20 focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:hover:border-white/20 dark:[color-scheme:dark]'
+import {
+  EMPTY_NOTE,
+  keepFocus,
+  listboxMove,
+  revealRow,
+  ROW_ACTIVE,
+  SEARCH_FIELD,
+} from './listbox.ts'
+import { mainTagLabel, pickerRows } from './picker-logic.ts'
 
 // the colour is not here: a class of the same property in the same string would be overridden by the
 // order of the generated CSS, so each button adds its own text colour (a favourite's heart is rose)
@@ -76,9 +81,6 @@ function FavouriteNumberField(props: {
   )
 }
 
-/** Keeps the keyboard focus in the search field when a button of a row is pressed */
-const keepFocus = (event: { preventDefault: () => void }) => event.preventDefault()
-
 export function PresetPicker(props: {
   /** Returns the presets for a query, best first. Called on every change of the query. */
   search: (query: string) => Preset[]
@@ -135,14 +137,9 @@ export function PresetPicker(props: {
   )
   const active = results.length === 0 ? -1 : Math.min(activeIndex, results.length - 1)
 
-  /** Scrolls a row into view; the row is already rendered, so the element exists. */
-  function reveal(index: number) {
-    document.getElementById(optionId(index))?.scrollIntoView({ block: 'nearest' })
-  }
-
   function moveTo(index: number) {
     setActiveIndex(index)
-    reveal(index)
+    revealRow(optionId(index))
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -154,17 +151,13 @@ export function PresetPicker(props: {
         break
       case 'ArrowDown':
       case 'ArrowUp':
-        event.preventDefault()
-        moveTo(moveActive(active, event.key === 'ArrowDown' ? 1 : -1, results.length))
-        return
       case 'Home':
+      case 'End': {
         event.preventDefault()
-        moveTo(results.length > 0 ? 0 : -1)
+        const next = listboxMove(event.key, active, results.length)
+        if (next !== undefined) moveTo(next)
         return
-      case 'End':
-        event.preventDefault()
-        moveTo(results.length - 1)
-        return
+      }
       case 'Enter': {
         const preset = results[active]
         if (preset) {
@@ -195,7 +188,7 @@ export function PresetPicker(props: {
           onMouseDown={keepFocus}
           onClick={() => onPick(preset)}
           className={`flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg p-2 text-sm ${
-            isActive ? 'bg-zinc-950/5 dark:bg-white/10' : ''
+            isActive ? ROW_ACTIVE : ''
           }`}
         >
           {renderIcon ? (
@@ -302,13 +295,11 @@ export function PresetPicker(props: {
           setActiveIndex(0)
         }}
         onKeyDown={onKeyDown}
-        className={`${FRAME} px-3 placeholder:text-zinc-400 dark:placeholder:text-zinc-500`}
+        className={SEARCH_FIELD}
       />
 
       {results.length === 0 ? (
-        <p className="px-2 py-3 text-center text-sm text-zinc-500 dark:text-zinc-400">
-          No feature type found
-        </p>
+        <p className={EMPTY_NOTE}>No feature type found</p>
       ) : (
         <div
           id={listId}

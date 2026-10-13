@@ -7,10 +7,13 @@ import { clampBrightness, parseStored, type ImageryStored, type View } from './h
 export type ImageryState = ImageryStored & {
   /** Not stored: the viewport, kept by the map layer for the panel */
   view: View | null
+  /** Not stored: the name iD cites for each layer that is drawn, by layer id (see `usedNames`) */
+  names: Record<string, string>
   setBackground: (id: string | null) => void
   setOverlay: (id: string, on: boolean) => void
   setBrightness: (value: number) => void
   setView: (view: View) => void
+  remember: (names: Record<string, string>) => void
 }
 
 export type ImageryStore = ReturnType<typeof createImageryStore>
@@ -28,6 +31,8 @@ export function createImageryStore(defaultBackground: string | null) {
         overlayIds: [],
         brightness: 1,
         view: null,
+        names: {},
+        remember: (names) => set((state) => ({ names: { ...state.names, ...names } })),
         setBackground: (backgroundId) => set({ backgroundId }),
         setOverlay: (id, on) =>
           set((state) => ({

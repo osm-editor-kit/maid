@@ -83,9 +83,37 @@ export type RestoreInfo = {
   savedAt: number
 }
 
+/** What is stored, read in one go: see `stored()` */
+export type StoredEdits = {
+  /** Every stored record in order, the first at index 1 */
+  records: EditRecord[]
+  /**
+   * The history index that was current at the last write. Records above it were undone before the
+   * reload: `restore()` puts them back and undoes them again, so the redo part is kept.
+   */
+  pointer: number
+  /** ms since epoch of the last record */
+  savedAt: number
+}
+
+/** One entity that the stored edits change, as it stands at the pointer: see `changesAt()` */
+export interface StoredChange {
+  /** The entity id, e.g. `n1` or `n-3` */
+  id: EntityID
+  /** Its state in the base map, or `null` if the edits created it */
+  before: EntityData | null
+  /** Its state at the pointer, or `null` if the edits delete it */
+  after: EntityData | null
+}
+
 export type Journal = {
   /** What is stored and could be restored, or undefined if there is nothing */
   pending(): Promise<RestoreInfo | undefined>
+  /**
+   * Reads everything that is stored, without changing anything: what the dialog that asks to restore
+   * shows before anything is restored. Undefined if nothing is stored.
+   */
+  stored(): Promise<StoredEdits | undefined>
   /**
    * Puts the stored edits back into the history: the entities they started from are merged in
    * first (they may not be loaded yet), then every edit is performed and committed with its
@@ -219,6 +247,46 @@ function countOf(keys: unknown[]) {
   return count
 }
 
+/**
+ * What the records change compared with the base map, as the state stands at `pointer`: the entities
+ * whose state there differs from their base state. An entity that was changed and changed back is
+ * left out. Records must be in order (`stored()` gives them so). Ordered by id.
+ */
+export function changesAt(records: EditRecord[], pointer: number): StoredChange[] {
+  // the base state comes from the first record that touched an entity (the only one that stores it)
+  const bases = new Map<EntityID, EntityData | null>()
+  // the state at the pointer is the one of the last record at or below it
+  const afters = new Map<EntityID, EntityData | null>()
+  for (const record of records) {
+    for (const change of record.changes) {
+      if (change.before !== undefined && !bases.has(change.id)) bases.set(change.id, change.before)
+      if (record.index <= pointer) afters.set(change.id, change.after)
+    }
+  }
+  const out: StoredChange[] = []
+  for (const [id, after] of afters) {
+    const before = bases.get(id)
+    // no base state was stored for it: nothing to compare with, so it is not listed (the restore still replays it)
+    if (before === undefined) continue
+    if (before === null && after === null) continue
+    if (before !== null && after !== null && contentOf(before) === contentOf(after)) continue
+    out.push({ id, before, after })
+  }
+  return out.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+}
+
+/**
+ * The content of an entity as text, without its version: every edit bumps `v`, which is no change
+ * of the feature. Keys are sorted, so that equal data gives equal text.
+ */
+function contentOf(data: EntityData) {
+  const content = Object.fromEntries(Object.entries(data).filter(([key]) => key !== 'v'))
+  return JSON.stringify(content, (_key, item: unknown) => {
+    if (typeof item !== 'object' || item === null || Array.isArray(item)) return item
+    return Object.fromEntries(Object.entries(item).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+  })
+}
+
 type Running = { off: () => void; release: (() => void) | undefined }
 
 class ChangeJournal implements Journal {
@@ -268,6 +336,19 @@ class ChangeJournal implements Journal {
     return { edits, savedAt: last?.savedAt ?? 0 }
   }
 
+  async stored() {
+    await this.flushed()
+    const count = countOf(await this.db.edits.orderBy('index').keys())
+    if (count === 0) return undefined
+    const meta = await this.readMeta()
+    const records = await this.db.edits.where('index').between(1, count, true, true).toArray()
+    return {
+      records,
+      pointer: Math.min(meta?.pointer ?? count, count),
+      savedAt: records[count - 1]?.savedAt ?? 0,
+    }
+  }
+
   async restore() {
     await this.flushed()
     const { context, history } = this.options
@@ -277,10 +358,7 @@ class ChangeJournal implements Journal {
 
     const keys = await this.db.edits.orderBy('index').keys()
     const count = countOf(keys)
-    const meta = await this.db.meta.get('state')
-    if (meta && meta.schema > SCHEMA_VERSION) {
-      throw new Error(`The journal has schema ${meta.schema}, this code reads ${SCHEMA_VERSION}`)
-    }
+    const meta = await this.readMeta()
     this.restored = true
     if (count === 0) return 0
 
@@ -325,6 +403,15 @@ class ChangeJournal implements Journal {
       }
     }
     return count
+  }
+
+  /** The meta row, refused if it was written by a newer version of this code */
+  private async readMeta() {
+    const meta = await this.db.meta.get('state')
+    if (meta && meta.schema > SCHEMA_VERSION) {
+      throw new Error(`The journal has schema ${meta.schema}, this code reads ${SCHEMA_VERSION}`)
+    }
+    return meta
   }
 
   clear() {

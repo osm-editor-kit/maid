@@ -1,5 +1,5 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
-import { type EntityInfo, formatMetres } from '@osm-editor-kit/maid-renderer'
+import type { EntityInfo } from '@osm-editor-kit/maid-renderer'
 import {
   type FieldFocus,
   InfoPopover,
@@ -22,6 +22,8 @@ import {
   useFavouriteRows,
 } from '../favourites'
 import { fieldOverlayFor, widthKeyTarget } from '../field-overlay'
+import { imageryOnMap } from '../imagery-used'
+import { measureTags } from '../measure-tags'
 import { loadReference } from '../reference'
 import { useSelection } from '../selection'
 import { Operations } from './Operations'
@@ -98,8 +100,9 @@ export function Inspector() {
       : undefined
   /**
    * The "Measure on the map" button of a width field: the first click on the map sets the start, the
-   * second the end, and the distance is written into the field as a typed value would be (one undo step).
-   * The button again, or Escape, cancels and writes nothing.
+   * second the end. The distance is written into the field, and the background imagery on the map is
+   * written as its `source:<key>` (measure-tags.ts), both in one edit: one undo step. The button again,
+   * or Escape, cancels and writes nothing.
    */
   const startMeasure = (key: string) => {
     const again = measureKey === key && engine.measuring
@@ -108,10 +111,13 @@ export function Inspector() {
     setMeasureKey(key)
     engine.startMeasure((metres) => {
       setMeasureKey(undefined)
-      if (metres === undefined) return
-      const value = formatMetres(metres)
-      // a measure of no distance (two clicks in one place) would write "0": nothing is written then
-      if (Number(value) > 0) onChange?.(key, value)
+      if (metres === undefined || !onChange) return
+      // the background when the measure ends is the one it was taken on
+      const changes = measureTags(key, metres, imageryOnMap().background)
+      // a measure of no distance (two clicks in one place) writes nothing
+      if (Object.keys(changes).length === 0) return
+      // the feature's tags as they are now, with the changes: one edit, so one undo step
+      engine.setTags(id, { ...engine.entity(id)?.tags, ...changes }, 'Measured width')
     })
   }
   const { presets } = editor

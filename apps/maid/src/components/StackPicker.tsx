@@ -9,12 +9,24 @@ import { PresetIcon } from './PresetIcon'
 /** The pill sits up and to the right of the place it is for, so that it does not cover the feature */
 const PILL_OFFSET = { x: 14, y: 26 }
 
+/** The count of a stack as a chip: the same chip for the pill and for the marker in the menu */
+export const STACK_CHIP_CLASS =
+  'flex h-6 items-center gap-1 rounded-full bg-white px-2 text-xs font-medium text-zinc-800 shadow ring-1 ring-zinc-950/10 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-white/10'
+
 const GEOMETRY_LABEL = {
   point: 'Point',
   vertex: 'Vertex',
   line: 'Line',
   area: 'Area',
   relation: 'Relation',
+}
+
+const ORDINALS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth']
+
+/** The accessible name of the pill: "3 features here, the first is selected" */
+function stackName(total: number, index: number) {
+  const which = ORDINALS[index] ? `the ${ORDINALS[index]}` : `number ${index + 1}`
+  return `${total} features here, ${which} is selected`
 }
 
 /**
@@ -50,30 +62,44 @@ export function featureItems(
   })
 }
 
+/** The icon and the count, "2 of 3". `index` is -1 when the selection is not one of the features */
+export function StackCount({ index, total }: { index: number; total: number }) {
+  return (
+    <>
+      <Square2StackIcon className="size-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
+      <span>{index >= 0 ? `${index + 1} of ${total}` : `${total} features`}</span>
+    </>
+  )
+}
+
 /**
  * The pill on the map for a plain click that found several features at its place: "1 of 4". A
  * click opens the list of them (a menu at the pill). `,` and `.` step through them; the keys are
- * in useShortcuts. The pill follows the map and goes when the selection leaves the stack.
+ * in useShortcuts. The pill shows while the selection is one of the stack, in browse mode and
+ * with no menu open (the menu has the count itself). The map moving, a drag, a mode change or
+ * Escape ends the stack (MapView, stack.ts), and so the pill.
  */
 export function StackPicker() {
   const stack = useStack()
   const { ids: selected, select } = useSelection()
+  const mode = useEngine((e) => e.mode)
+  const measuring = useEngine((e) => e.measuring)
   // the list is open for one stack only: a new stack starts with the list closed
   const [list, setList] = useState<{ stack: Stack; at: { x: number; y: number } } | null>(null)
-  // the map moves while the pill is shown: a render on each move places the pill again
-  const [, moved] = useState(0)
+  // the sidebar or the window changes the map's place on the page: the pill is placed again
+  const [, redraw] = useState(0)
 
   useEffect(() => {
     const map = engine.map
     if (!stack || !map) return
-    const onMove = () => moved((n) => n + 1)
-    map.on('move', onMove)
+    const onResize = () => redraw((n) => n + 1)
+    map.on('resize', onResize)
     return () => {
-      map.off('move', onMove)
+      map.off('resize', onResize)
     }
   }, [stack])
 
-  const shown = stack !== null && keepsStack(stack, selected)
+  const shown = stack !== null && keepsStack(stack, selected) && mode === 'browse' && !measuring
   const rows = useEngine(() =>
     shown && list?.stack === stack && stack
       ? featureItems(
@@ -100,22 +126,22 @@ export function StackPicker() {
       >
         <button
           type="button"
+          data-stack-pill
+          aria-label={stackName(stack.ids.length, index)}
           aria-haspopup="menu"
           aria-expanded={open}
           style={{
             left: box.left + point.x + PILL_OFFSET.x,
-            top: box.top + point.y - PILL_OFFSET.y,
+            // kept below the top of the window, where it would be cut off
+            top: Math.max(box.top + 4, box.top + point.y - PILL_OFFSET.y),
           }}
           onClick={(event) => {
             const at = event.currentTarget.getBoundingClientRect()
             setList({ stack, at: { x: at.left, y: at.bottom + 4 } })
           }}
-          className="fixed z-40 flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-zinc-800 shadow ring-1 ring-zinc-950/10 hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-white/10 dark:hover:bg-zinc-700"
+          className={`${STACK_CHIP_CLASS} fixed z-40 hover:bg-zinc-50 dark:hover:bg-zinc-700`}
         >
-          <Square2StackIcon className="size-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
-          <span>
-            {index + 1} of {stack.ids.length}
-          </span>
+          <StackCount index={index} total={stack.ids.length} />
         </button>
       </Tooltip>
       {open && list && (

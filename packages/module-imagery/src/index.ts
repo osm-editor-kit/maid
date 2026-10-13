@@ -2,6 +2,7 @@ import { PhotoIcon } from '@heroicons/react/20/solid'
 import { defineModule } from '@osm-editor-kit/maid-core'
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { createElement } from 'react'
+import { backgroundName, usedNames } from './helpers.ts'
 import { ImageryLayers } from './ImageryLayers.tsx'
 import { ImageryPanel } from './ImageryPanel.tsx'
 import { createImageryStore } from './store.ts'
@@ -31,6 +32,18 @@ export function imagery(options: ImageryOptions = {}) {
         icon: createElement(PhotoIcon, { 'aria-hidden': true }),
         component: () => createElement(ImageryPanel, { store }),
         width: 'w-96',
+      })
+      // what the map shows now, read by the measure and the changeset (the app reads it outside React)
+      api.register('imagery.used', {
+        id: 'imagery',
+        used: () => {
+          const state = store.getState()
+          return usedNames(state.backgroundId, state.overlayIds, state.names)
+        },
+        background: () => {
+          const state = store.getState()
+          return backgroundName(state.backgroundId, state.names)
+        },
       })
     },
   })

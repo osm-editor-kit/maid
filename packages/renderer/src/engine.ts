@@ -104,10 +104,11 @@ export type EntityInfo = {
   readOnly: boolean
 }
 
+/** OSM zoom (256 px tiles) of the OSM data requests, as iD and Rapid use. Not a MapLibre zoom */
 const TILE_ZOOM = 16
-/** Largest zoom fitTo goes to: a single node or a short way is not zoomed in to the last level */
+/** MapLibre zoom (512 px) of the largest zoom fitTo goes to (OSM 19): a single node or a short way is not zoomed in to the last level */
 const FIT_MAX_ZOOM = 18
-/** Zoom of a single point in fitTo, unless the map is already closer */
+/** MapLibre zoom (512 px) of a single point in fitTo (OSM 18), unless the map is already closer */
 const POINT_ZOOM = 17
 const SOURCE_NAMES: SourceName[] = ['areas', 'lines', 'points', 'vertices']
 
@@ -1412,6 +1413,7 @@ export class MaidEngine {
   /**
    * Moves the map to show these entities: the bounds of their loaded geometry, with padding. A
    * relation counts as its members (see relatedIds). Returns false when none of it is loaded.
+   * The zoom limits are MapLibre zoom (POINT_ZOOM, FIT_MAX_ZOOM), one level below iD's and Rapid's.
    */
   fitTo(ids: readonly string[]) {
     const { map } = this

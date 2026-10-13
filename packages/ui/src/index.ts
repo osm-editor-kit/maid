@@ -68,6 +68,7 @@ export {
   type TimeValue,
 } from './time.ts'
 export { Tooltip } from './Tooltip.tsx'
+export { errorText, notify, Toaster, type NotifyOptions } from './Toast.tsx'
 export { useResizable } from './useResizable.ts'
 export { useBreakpoint, type Breakpoint } from './useBreakpoint.ts'
 export { PLAIN_INPUT } from './plain-input.ts'

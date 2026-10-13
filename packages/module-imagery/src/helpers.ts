@@ -5,7 +5,22 @@
  */
 import { z } from 'zod'
 
-/** The viewport: `[west, south, east, north]` in degrees, and the zoom */
+/**
+ * Zoom numbers. MapLibre counts zoom with 512 px tiles. ELI, iD and Rapid count with 256 px tiles
+ * (OSM zoom). For the same view, OSM zoom is MapLibre zoom plus one: MapLibre 13 is OSM 14. ELI's
+ * `minzoom` is in OSM zoom, so a number from `map.getZoom()` goes through `toOsmZoom` before it is
+ * compared with it, and a value from ELI goes through `toMapZoom` before it is given to MapLibre.
+ */
+export function toOsmZoom(mapZoom: number) {
+  return mapZoom + 1
+}
+
+/** The inverse of `toOsmZoom`: an OSM (256 px) zoom as MapLibre (512 px) counts it */
+export function toMapZoom(osmZoom: number) {
+  return osmZoom - 1
+}
+
+/** The viewport: `[west, south, east, north]` in degrees, and the zoom in OSM convention */
 export type View = { bounds: [number, number, number, number]; zoom: number }
 
 /**
@@ -81,11 +96,13 @@ export function sortListing(items: readonly Listing[]) {
 }
 
 /**
- * Whether a layer is worth listing at this zoom. ELI's `maxzoom` is not a limit: MapLibre
- * overzooms the last tiles. Only a layer that starts at a higher zoom is left out.
+ * Whether a layer is worth listing at this zoom, given in OSM convention (see `toOsmZoom`). ELI's
+ * `maxzoom` is not a limit: MapLibre overzooms the last tiles. Only a layer that starts at a higher
+ * zoom is left out.
  */
 export function visibleAtZoom(item: Pick<Listing, 'minzoom'>, zoom: number) {
-  return zoom >= (item.minzoom ?? 0)
+  if (item.minzoom === undefined) return true
+  return zoom >= item.minzoom
 }
 
 /** Every word of the query must appear in the name or the category label (case-insensitive) */
@@ -94,4 +111,29 @@ export function matchesQuery(item: Listing, query: string) {
   if (words.length === 0) return true
   const haystack = `${item.name} ${categoryLabel(item.category) ?? ''}`.toLowerCase()
   return words.every((word) => haystack.includes(word))
+}
+
+/**
+ * The names of the imagery drawn now, as iD cites them: the background first, then the overlays in
+ * the order they were chosen. `names` has the name of each layer that is drawn; a layer that is
+ * chosen but not drawn yet (or needs an API key) is not in it and is left out.
+ */
+export function usedNames(
+  backgroundId: string | null,
+  overlayIds: readonly string[],
+  names: Readonly<Record<string, string>>,
+) {
+  const ids = backgroundId === null ? overlayIds : [backgroundId, ...overlayIds]
+  return ids.flatMap((id) => {
+    const name = names[id]
+    return name === undefined ? [] : [name]
+  })
+}
+
+/** The name of the drawn background, or undefined with no background or while it is not drawn yet */
+export function backgroundName(
+  backgroundId: string | null,
+  names: Readonly<Record<string, string>>,
+) {
+  return backgroundId === null ? undefined : names[backgroundId]
 }

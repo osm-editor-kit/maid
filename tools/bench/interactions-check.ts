@@ -850,7 +850,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   const changeType = page.getByTitle('Change the feature type')
   const numberOf = (name: string) =>
     page.getByRole('textbox', { name: `Number of ${name}`, exact: true })
-  // the picker's search field; the page has other comboboxes (the title, "Add field")
+  // the picker's search field; the page has other comboboxes (the title, the Add field search)
   const search = () => page.getByRole('combobox', { name: 'Search feature types', exact: true })
 
   // the building: the scene's building is an Industrial Building, and without a search the picker
@@ -1313,25 +1313,25 @@ failed += await runCheck(
 failed += await runCheck(
   process.argv[2] ?? 'small',
   async ({ page, report, settle }) => {
-    const { click, key, selection } = await checkHelpers(page, settle)
-    const pill = () => page.getByRole('button', { name: /\d+ of \d+/ })
+    const { click, key, selection, drag } = await checkHelpers(page, settle)
+    // the pill is found by its accessible name: "3 features here, the first is selected"
+    const pill = () => page.getByRole('button', { name: /features here, / })
     const pillText = async () =>
       (await pill().count()) === 0
         ? null
         : ((await pill().first().textContent()) ?? '').replace(/\s+/g, ' ').trim()
+    // the layers a click picks from (the editor's pick): the features that a click can find
+    const FEATURE_LAYERS =
+      '^(highlight-vertex|vertex|point-pin|point-dot|point-address|line-(casing|stroke)(-dashed)?--?\\d|area-stroke|area-fill)'
 
     // a place where the features of a click are two or more, and open ground that has none
-    const found = (await page.evaluate(() => {
+    const found = (await page.evaluate((pattern) => {
       const { map, engine } = window.__maid
       const box = map.getCanvas().getBoundingClientRect()
       const layers = map
         .getStyle()
         .layers.map((l: any) => l.id as string)
-        .filter((id: string) =>
-          /^(highlight-vertex|vertex|point-pin|point-dot|point-address|line-(casing|stroke)(-dashed)?--?\d|area-stroke|area-fill)/.test(
-            id,
-          ),
-        )
+        .filter((id: string) => new RegExp(pattern).test(id))
       let place: { x: number; y: number; ids: string[] } | null = null
       let free: { x: number; y: number } | null = null
       for (let y = 100; y < box.height - 100; y += 6)
@@ -1342,7 +1342,7 @@ failed += await runCheck(
           if (place && free) return { place, free }
         }
       return { place, free }
-    })) as {
+    }, FEATURE_LAYERS)) as {
       place: { x: number; y: number; ids: string[] } | null
       free: XY | null
     }
@@ -1419,6 +1419,192 @@ failed += await runCheck(
     )
     await page.keyboard.press('Escape')
     await settle()
+
+    // --- the menu's marker: the count sits with the menu, no row covers it, and it goes with the menu ---
+    type Place = { x: number; y: number; ids: string[]; lon: number; lat: number }
+    // a place where a click finds two or more features; `lowest`: in the lowest 150 px of the map,
+    // `draggable`: whose first feature is a node that can be dragged (what a press would drag)
+    const findPlace = (wanted: { lowest?: boolean; draggable?: boolean }) =>
+      page.evaluate(
+        ({ wanted, pattern }) => {
+          const { map, engine } = window.__maid
+          const box = map.getCanvas().getBoundingClientRect()
+          const layers = map
+            .getStyle()
+            .layers.map((l: any) => l.id as string)
+            .filter((id: string) => new RegExp(pattern).test(id))
+          const [y0, y1] = wanted.lowest
+            ? [box.height - 150, box.height - 20]
+            : [100, box.height - 100]
+          for (let y = y0; y < y1; y += 6)
+            for (let x = 100; x < box.width - 100; x += 6) {
+              const ids: string[] = engine.pickAll({ x, y }, layers)
+              if (ids.length < 2) continue
+              if (wanted.draggable && !engine.isDraggable(ids[0] ?? null)) continue
+              const at = map.unproject([x, y])
+              return { x, y, ids, lon: at.lng, lat: at.lat }
+            }
+          return null
+        },
+        { wanted, pattern: FEATURE_LAYERS },
+      ) as Promise<Place | null>
+    // the menu and its marker, as the page has them now: positions in window pixels
+    const layout = () =>
+      page.evaluate(() => {
+        const menu = document.querySelector<HTMLElement>('[role="menu"][aria-label="Edit"]')
+        const marker = document.querySelector<HTMLElement>('[data-stack-marker]')
+        const box = (el: Element) => {
+          const r = el.getBoundingClientRect()
+          return { left: r.left, top: r.top, right: r.right, bottom: r.bottom }
+        }
+        const m = marker ? box(marker) : null
+        const rows = [...(menu?.querySelectorAll('[role="menuitem"]') ?? [])].map(box)
+        const hit = m
+          ? document.elementFromPoint((m.left + m.right) / 2, (m.top + m.bottom) / 2)
+          : null
+        const panel = menu ? box(menu) : null
+        return {
+          menu: menu !== null,
+          marker: m !== null,
+          text: marker?.textContent?.replace(/\s+/g, ' ').trim() ?? null,
+          inWindow:
+            !!m && m.left >= 0 && m.top >= 0 && m.right <= innerWidth && m.bottom <= innerHeight,
+          // what lies at the middle of the marker is the marker itself
+          notCovered: !!m && !!marker?.contains(hit),
+          overlapsRow:
+            !!m &&
+            rows.some(
+              (r) => m.left < r.right && r.left < m.right && m.top < r.bottom && r.top < m.bottom,
+            ),
+          // the marker is over the menu, or under it when the menu flipped up
+          under: !!m && !!panel && m.top >= panel.bottom - 0.5,
+        }
+      })
+    const rowState = () =>
+      page.evaluate(() => {
+        const rows = [
+          ...document.querySelectorAll('[role="menu"][aria-label="Edit"] [role="menuitem"]'),
+        ]
+        return {
+          current: rows.findIndex((r) => r.getAttribute('aria-current') === 'true'),
+          focused: rows.indexOf(document.activeElement as Element),
+        }
+      })
+
+    // a right click on the place: the menu and its marker open together, in the window, not covered
+    await click(place, { button: 'right' })
+    const open = await layout()
+    report(
+      'a right click on several features opens the menu and its marker together',
+      [true, true],
+      [open.menu, open.marker],
+    )
+    report(
+      'the marker is in the window, is not covered and no row of the menu lies under it',
+      [true, true, true],
+      [open.inWindow, open.notCovered, !open.overlapsRow],
+    )
+    report('the marker counts the selected feature: 1 of N', `1 of ${n}`, open.text)
+
+    // Escape closes the menu, and the marker and the pill go with it
+    await page.keyboard.press('Escape')
+    await settle()
+    const closed = await layout()
+    report(
+      'Escape removes the menu, its marker and the pill',
+      [false, false, null],
+      [closed.menu, closed.marker, await pillText()],
+    )
+
+    // stepping with the key, with the menu open: the count, the bold row and the focused row move together
+    await click(place)
+    await click(place, { button: 'right' })
+    const beforeStep = { ...(await layout()), row: await rowState() }
+    await key('.')
+    const afterStep = { ...(await layout()), row: await rowState() }
+    report(
+      'stepping with the key moves the count, the current row and the focus together',
+      [
+        [`1 of ${n}`, 0, 0],
+        [`2 of ${n}`, 1, 1],
+      ],
+      [
+        [beforeStep.text, beforeStep.row.current, beforeStep.row.focused],
+        [afterStep.text, afterStep.row.current, afterStep.row.focused],
+      ],
+    )
+    await page.keyboard.press('Escape')
+    await settle()
+
+    // a press that starts a drag of a node with the menu open: the menu and its marker go, the pill too
+    const node = await findPlace({ draggable: true })
+    if (!node)
+      report('find a place whose first feature is a node that can be dragged', 'found', null)
+    else {
+      await click(node, { button: 'right' })
+      const dragOpen = await layout()
+      report(
+        'a node with several features: the menu and its marker are open',
+        [true, true],
+        [dragOpen.menu, dragOpen.marker],
+      )
+      // the menu's corner is at the place, so the press starts just outside that corner, on the node
+      await drag({ x: node.x - 3, y: node.y - 3 }, { x: node.x + 17, y: node.y - 3 })
+      const dragged = await layout()
+      report(
+        'a drag of the node with the menu open closes the menu, its marker and the pill',
+        [false, false, null],
+        [dragged.menu, dragged.marker, await pillText()],
+      )
+      await key('Meta+z')
+    }
+
+    // the same at the lowest 150 px of the map, where the menu flips up: the marker still shows and is not covered
+    const home = await page.evaluate(() => {
+      const c = window.__maid.map.getCenter()
+      return { lng: c.lng, lat: c.lat }
+    })
+    await page.evaluate((y) => {
+      // the centre moves so that the place (its screen x kept) lies 60 px above the bottom of the map
+      const { map } = window.__maid
+      const box = map.getCanvas().getBoundingClientRect()
+      map.jumpTo({ center: map.unproject([box.width / 2, box.height / 2 + y - (box.height - 60)]) })
+    }, place.y)
+    await settle()
+    const low = await findPlace({ lowest: true })
+    if (!low) report('find a place with several features in the lowest 150 px', 'found', null)
+    else {
+      await click(low, { button: 'right' })
+      const bottom = await layout()
+      report(
+        'at the bottom edge the menu flips up: its marker is under it and both show',
+        [true, true, true],
+        [bottom.menu, bottom.marker, bottom.under],
+      )
+      report(
+        'the marker at the bottom edge is in the window, is not covered and no row lies under it',
+        [true, true, true],
+        [bottom.inWindow, bottom.notCovered, !bottom.overlapsRow],
+      )
+      await page.keyboard.press('Escape')
+      await settle()
+    }
+    await page.evaluate(
+      (centre) => window.__maid.map.jumpTo({ center: [centre.lng, centre.lat] }),
+      home,
+    )
+    await settle()
+
+    // --- the pill: shown after a plain click on the stack, and gone after the map is panned ---
+    const pillAt = await findPlace({})
+    if (!pillAt) report('find a place with several features in view', 'found', null)
+    else {
+      await click(pillAt)
+      report('a left click on several features shows the pill', 1, await pill().count())
+      await page.evaluate(() => window.__maid.map.panBy([120, 0], { duration: 0 }))
+      await settle()
+      report('a pan of the map takes the pill away', null, await pillText())
+    }
   },
   '',
   false,
@@ -1497,10 +1683,61 @@ failed += await runCheck(
     // that the width has no tag yet
     await page.evaluate((id) => window.__bench.select(id), road)
     await settle()
-    await page.getByLabel('Add field').fill('Width')
+    const addButton = page.getByRole('button', { name: 'Add field', exact: true })
+    const addSearch = page.getByRole('combobox', { name: 'Search fields', exact: true })
+    const addOptions = page.getByRole('option')
+    const focusIs = (locator: typeof addButton) =>
+      locator.evaluate((el) => el === document.activeElement)
+    const rowIds = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll<HTMLElement>('[data-field-id]')].map(
+          (el) => el.dataset.fieldId,
+        ),
+      )
+    // the button opens the flyout, and its search field has the focus
+    await addButton.click()
     await settle()
+    report(
+      'the Add field button opens the flyout with the search field focused',
+      true,
+      await focusIs(addSearch),
+    )
+    // typing filters the list; Enter adds the first match, and its control has the focus
+    const offered = await addOptions.count()
+    await addSearch.fill('Width')
+    await settle()
+    const matching = await addOptions.count()
     await page.keyboard.press('Enter')
     await settle()
+    report(
+      'typing filters the list, and Enter adds the first match, whose control has the focus',
+      { narrowed: true, rows: 1, focused: 'width' },
+      {
+        narrowed: matching < offered,
+        rows: await page.locator('[data-field-id="width"]').count(),
+        focused: await page.evaluate(
+          () =>
+            document.activeElement?.closest('[data-field-id]')?.getAttribute('data-field-id') ??
+            null,
+        ),
+      },
+    )
+    // Escape closes the flyout, adds nothing, and gives the focus back to the button
+    const rowsBefore = await rowIds()
+    await addButton.click()
+    await settle()
+    await page.keyboard.press('Escape')
+    await addSearch.waitFor({ state: 'detached' }).catch(() => undefined)
+    await settle()
+    report(
+      'Escape closes the flyout, adds nothing and the focus is on the button again',
+      { open: 0, rowsChanged: false, focusOnButton: true },
+      {
+        open: await addSearch.count(),
+        rowsChanged: JSON.stringify(await rowIds()) !== JSON.stringify(rowsBefore),
+        focusOnButton: await focusIs(addButton),
+      },
+    )
 
     // --- the width field has the button, the name field has none ---
     report(

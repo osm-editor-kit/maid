@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import { withMapMinzoom } from './eli.ts'
 import {
   BRIGHTNESS_MAX,
   BRIGHTNESS_MIN,
@@ -7,6 +8,8 @@ import {
   matchesQuery,
   parseStored,
   sortListing,
+  toMapZoom,
+  toOsmZoom,
   visibleAtZoom,
   type Listing,
 } from './helpers.ts'
@@ -95,6 +98,44 @@ describe('visibleAtZoom', () => {
 
   it('does not hide a layer past its ELI maximum zoom, because MapLibre overzooms', () => {
     expect(visibleAtZoom({ minzoom: 0 }, 22)).toBe(true)
+  })
+
+  it('takes OSM zoom: a layer with minzoom 14 is visible at MapLibre 13, not at 12.9', () => {
+    expect(visibleAtZoom({ minzoom: 14 }, toOsmZoom(13))).toBe(true)
+    expect(visibleAtZoom({ minzoom: 14 }, toOsmZoom(12.9))).toBe(false)
+  })
+
+  it('shows a layer without minzoom at every MapLibre zoom', () => {
+    expect(visibleAtZoom({}, toOsmZoom(-2))).toBe(true)
+  })
+})
+
+describe('zoom conversion', () => {
+  it('converts MapLibre zoom to OSM zoom by one level', () => {
+    expect(toOsmZoom(16)).toBe(17)
+    expect(toOsmZoom(13)).toBe(14)
+  })
+
+  it('round-trips in both directions', () => {
+    for (const zoom of [-2, 0, 12.9, 13, 16.5, 22]) {
+      expect(toMapZoom(toOsmZoom(zoom))).toBe(zoom)
+      expect(toOsmZoom(toMapZoom(zoom))).toBe(zoom)
+    }
+  })
+})
+
+describe('withMapMinzoom', () => {
+  it('turns ELI minzoom 14 (OSM) into MapLibre minzoom 13 for the style layer', () => {
+    expect(withMapMinzoom({ minzoom: 14 }).minzoom).toBe(13)
+  })
+
+  it('never goes below 0', () => {
+    expect(withMapMinzoom({ minzoom: 0 }).minzoom).toBe(0)
+    expect(withMapMinzoom({ minzoom: 1 }).minzoom).toBe(0)
+  })
+
+  it('leaves a layer without minzoom without one', () => {
+    expect(withMapMinzoom<{ minzoom?: number }>({}).minzoom).toBeUndefined()
   })
 })
 

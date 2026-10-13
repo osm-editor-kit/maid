@@ -25,7 +25,7 @@ import { config, editor, engine, useEngine } from '../editor'
 import { addPointWithFavourite, giveFavouriteTagsToNode } from '../favourites'
 import { ensureImages } from '../images'
 import { useSelection } from '../selection'
-import { setStack } from '../stack'
+import { dropStack, setStack } from '../stack'
 import { useCameraParam } from '../url/state'
 import { FavouriteHint } from './FavouriteHint'
 import { MapContextMenu, type MenuPlace } from './MapContextMenu'
@@ -108,6 +108,10 @@ export function MapView() {
   const measuring = useEngine((e) => e.measuring)
   const [zoomGuard, setZoomGuard] = useState(false)
   const [menu, setMenu] = useState<MenuPlace | null>(null)
+  // a stack's pill is for a plain click in browse mode: a draw, a move, a rotation or a measure ends it
+  useEffect(() => {
+    if (mode !== 'browse' || measuring) dropStack()
+  }, [mode, measuring])
 
   // Start position: the `map` parameter, else iD's `#map=` hash, else a default.
   const [initialCamera] = useState(() => cameraParam ?? config.camera ?? FALLBACK_CAMERA)
@@ -415,6 +419,8 @@ export function MapView() {
       boxZoom={false}
       doubleClickZoom={mode === 'browse' && !measuring && !zoomGuard}
       onLoad={handleLoad}
+      // the pill's place is the place of the click: a pan or a zoom ends the stack
+      onMoveStart={dropStack}
       onMove={handleMove}
       onMoveEnd={handleMoveEnd}
       onMouseDown={handleMouseDown}
@@ -433,7 +439,8 @@ export function MapView() {
         sourceOptions={{ tolerance: config.tolerance, maxzoom: config.sourceMaxZoom }}
       />
       <ModuleLayers editor={editor} />
-      <StackPicker />
+      {/* with a menu open its marker is the count: the pill is not shown twice */}
+      {!menu && <StackPicker />}
       <FavouriteHint />
       {measuring && (
         <div

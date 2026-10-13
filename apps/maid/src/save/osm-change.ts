@@ -104,14 +104,31 @@ export function summaryOf(change: OsmChange) {
     .join(', ')
 }
 
+/** OSM's limit for a changeset tag's value, in characters */
+const TAG_VALUE_MAX = 255
+
+/**
+ * The value of `imagery_used`: the names, each once, `;`-separated, as iD's `cleanTagValue` gives
+ * it (trimmed, NFC, cut to 255 characters). Empty when there are no names.
+ */
+export function imageryUsedValue(names: readonly string[]) {
+  const unique = [...new Set(names.map((name) => name.trim()).filter((name) => name !== ''))]
+  const joined = unique.join(';').trim().normalize('NFC')
+  return Array.from(joined).slice(0, TAG_VALUE_MAX).join('')
+}
+
 /**
  * The changeset's tags. `created_by` and `comment` as every editor sets them; hashtags are taken
- * from the comment as iD does (`#mapathon` → `hashtags=#mapathon`).
+ * from the comment as iD does (`#mapathon` → `hashtags=#mapathon`). `imagery_used` lists the imagery
+ * on the map (`imagery` in the order given, background first) as iD writes it; it is left out when
+ * there is none, where iD writes `None`.
  */
-export function changesetTags(comment: string, version: string) {
+export function changesetTags(comment: string, version: string, imagery: readonly string[] = []) {
   const text = comment.trim()
   const tags: Record<string, string> = { created_by: `Maid ${version}`, comment: text }
   const hashtags = [...new Set(text.match(/#[^\s#;,.!?]{2,}/g) ?? [])]
   if (hashtags.length > 0) tags.hashtags = hashtags.join(';')
+  const imageryUsed = imageryUsedValue(imagery)
+  if (imageryUsed !== '') tags.imagery_used = imageryUsed
   return tags
 }

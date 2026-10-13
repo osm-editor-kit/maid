@@ -1,4 +1,13 @@
-import { Fragment, useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
+import {
+  Fragment,
+  useEffect,
+  useRef,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+} from 'react'
+import { UI_SPRING } from './motion.tsx'
 
 /** One entry of a context menu */
 export type MenuItem = {
@@ -21,19 +30,71 @@ export type MenuItem = {
   current?: boolean
 }
 
+/** The menu is 208 px wide (w-52); it keeps 4 px to the edges of the window */
+const MENU_WIDTH = 208
+const MARGIN = 4
+/**
+ * The height of the rows as they are drawn: a row 28 px (h-7), a heading 26 px (text-xs with 6 px
+ * above and 4 px below), a divider 9 px (1 px with 4 px around it), and the panel's padding 8 px.
+ * The menu's height is worked out from the items, so that the place is known before it is drawn.
+ */
+const ROW = 28
+const HEADING = 26
+const DIVIDER = 9
+const PADDING = 8
+/** The marker of a stack: a chip 24 px high (h-6) with the 4 px gap of the block, 28 px in all */
+const MARKER_BLOCK = 28
+
+function menuHeight(items: readonly MenuItem[]) {
+  let height = PADDING
+  items.forEach((item, i) => {
+    const previous = items[i - 1]
+    if (item.section && item.section !== previous?.section) height += HEADING
+    if (!item.section && previous?.section) height += DIVIDER
+    height += ROW
+  })
+  return height
+}
+
+/**
+ * Where the block of a menu goes for a point of the window: its top edge at the point when the
+ * menu fits below it, else its bottom edge at the point (it flips up), and inside the window in
+ * both cases. A marker is part of the block: above the menu when the menu is below the point,
+ * under it when the menu is flipped, so it moves, flips and stays visible with the menu.
+ */
+function placeMenu(
+  at: { x: number; y: number },
+  height: number,
+  marker: number,
+  view: { width: number; height: number },
+) {
+  const below = at.y + height + MARGIN <= view.height
+  const wanted = below ? at.y - marker : at.y - height
+  const block = height + marker
+  const top = Math.max(MARGIN, Math.min(wanted, view.height - block - MARGIN))
+  const left = Math.max(MARGIN, Math.min(at.x, view.width - MENU_WIDTH - MARGIN))
+  return { left, top, flipped: !below }
+}
+
 /**
  * A menu at a place on the screen, as a right click opens it. Arrow keys move, Enter or a click
- * chooses, Escape or a click elsewhere closes. It stays inside the window.
+ * chooses, Escape or a click elsewhere closes. It stays inside the window, and a menu that does
+ * not fit below its place flips up. `marker` is a chip that goes with the menu (a stack's count):
+ * it is one element with the menu, so it is placed, flipped and faded with it.
  */
 export function ContextMenu(props: {
   /** Where the pointer was, in window pixels */
   at: { x: number; y: number }
   label: string
   items: MenuItem[]
+  /** Drawn above the menu, or under it when the menu is flipped up; it is not a menu row */
+  marker?: ReactNode
   onClose: () => void
 }) {
-  const { at, label, items, onClose } = props
+  const { at, label, items, marker, onClose } = props
+  const frame = useRef<HTMLDivElement>(null)
   const menu = useRef<HTMLDivElement>(null)
+  const reducedMotion = useReducedMotion()
 
   // Opening moves the focus into the menu. It is not moved on every render: the menu re-renders
   // with every change of the editor, and that would undo the arrow keys. A press outside closes
@@ -49,8 +110,9 @@ export function ContextMenu(props: {
     ;(current ?? menu.current?.querySelector<HTMLButtonElement>('button:enabled'))?.focus()
   }, [currentIndex])
   useEffect(() => {
-    const element = menu.current
+    const element = frame.current
     const onPress = (event: PointerEvent) => {
+      // the marker is part of the menu: a press on it does not close the menu
       if (event.target instanceof Node && !element?.contains(event.target)) onClose()
     }
     document.addEventListener('pointerdown', onPress, true)
@@ -84,23 +146,18 @@ export function ContextMenu(props: {
     event.stopPropagation()
   }
 
-  // a heading row is 22 px and a divider 9 px; 28 px per row plus padding, and 212 px of width:
-  // enough to keep the menu inside the window without measuring it
-  const headings = items.filter((item, i) => item.section && item.section !== items[i - 1]?.section)
-  const dividers = items.filter((item, i) => !item.section && items[i - 1]?.section).length
-  const height = items.length * 28 + 8 + headings.length * 22 + dividers * 9
-  const left = Math.max(4, Math.min(at.x, window.innerWidth - 212))
-  const top = Math.max(4, Math.min(at.y, window.innerHeight - height - 4))
+  const { left, top, flipped } = placeMenu(at, menuHeight(items), marker ? MARKER_BLOCK : 0, {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  })
 
-  return (
+  const panel = (
     <div
       ref={menu}
       role="menu"
       aria-label={label}
       onKeyDown={onKeyDown}
-      onContextMenu={(event) => event.preventDefault()}
-      style={{ left, top }}
-      className="fixed z-50 w-52 rounded-lg bg-white p-1 text-sm shadow-lg ring-1 ring-zinc-950/10 dark:bg-zinc-800 dark:ring-white/10"
+      className="w-full rounded-lg bg-white p-1 text-sm shadow-lg ring-1 ring-zinc-950/10 dark:bg-zinc-800 dark:ring-white/10"
     >
       {items.map((item, i) => {
         const previous = items[i - 1]
@@ -147,5 +204,30 @@ export function ContextMenu(props: {
         )
       })}
     </div>
+  )
+
+  return (
+    <motion.div
+      ref={frame}
+      onContextMenu={(event: MouseEvent) => event.preventDefault()}
+      // the menu and its marker enter together, with the spring of the other UI chrome
+      initial={reducedMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={reducedMotion ? { duration: 0 } : UI_SPRING}
+      style={{ left, top }}
+      className="fixed z-50 flex w-52 flex-col gap-1"
+    >
+      {flipped ? (
+        <>
+          {panel}
+          {marker && <div className="self-start">{marker}</div>}
+        </>
+      ) : (
+        <>
+          {marker && <div className="self-start">{marker}</div>}
+          {panel}
+        </>
+      )}
+    </motion.div>
   )
 }

@@ -74,14 +74,71 @@ type Picked = { road: string; vertex: string; building: string }
     await page.evaluate(() => window.__maid.engine.undo())
     const edited = await read()
     report('five edits made, one undone', 4, edited.index)
+    // the vertex as the edits left it: after the reload only the base map has it
+    const vertexLoc = await page.evaluate((id) => {
+      const { model, editor } = window.__maid
+      const node = editor.history.staging.graph.hasEntity(id)
+      return node instanceof model.OsmNode ? node.loc : undefined
+    }, vertex)
 
     await reload()
     await dialog.waitFor()
+    const question = await dialog.innerText()
+    report('the restore question names the edits', true, question.includes('5 unsaved edits'))
     report(
-      'the restore question names the edits',
+      'the restore question names the features, and the one undone edit',
       true,
-      (await dialog.innerText()).includes('5 unsaved edits'),
+      question.includes('5 unsaved edits to 3 features (1 undone)'),
     )
+    report(
+      'the restore question names the road where the edits are',
+      true,
+      question.includes('Journalstraße'),
+    )
+
+    await dialog.getByText('Show the changes').click()
+    const changes = await dialog.locator('ul').first().innerText()
+    report(
+      'opening "Show the changes" lists the road and the new point, not the undone delete',
+      [true, true, false],
+      [changes.includes('Journalstraße'), changes.includes('Created'), changes.includes('Deleted')],
+    )
+
+    const state = () =>
+      page.evaluate(() => {
+        const { editor, engine } = window.__maid
+        return {
+          index: editor.history.index,
+          undo: engine.undoState(),
+          selection: engine.selection,
+          staging: Object.keys(editor.history.staging.graph.local.entities).sort(),
+        }
+      })
+    const beforeMap = await state()
+    await dialog.getByRole('button', { name: 'Show on the map' }).click()
+    await dialog.getByRole('button', { name: 'Back' }).waitFor()
+    report('"Show on the map" changes no data and selects nothing', beforeMap, await state())
+    report(
+      'the map is moved to the stored edits',
+      true,
+      vertexLoc
+        ? await page.evaluate(
+            (loc) => window.__maid.map.getBounds().contains([loc[0], loc[1]]),
+            vertexLoc,
+          )
+        : false,
+    )
+    report(
+      'Restore and Discard stay in reach while the map is shown',
+      [true, true],
+      [
+        await dialog.getByRole('button', { name: 'Restore' }).isVisible(),
+        await dialog.getByRole('button', { name: 'Discard' }).isVisible(),
+      ],
+    )
+    await dialog.getByRole('button', { name: 'Back' }).click()
+    await dialog.getByText('Show the changes').waitFor()
+
     await dialog.getByRole('button', { name: 'Restore' }).click()
     await dialog.waitFor({ state: 'detached' })
     await ready()

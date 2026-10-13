@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 import {
   currentStack,
+  dropStack,
   dropStackUnless,
   keepsStack,
   setStack,
@@ -66,6 +67,14 @@ describe('the stack in the store', () => {
 
   test('dropping without a stack changes nothing', () => {
     dropStackUnless(['w1'])
+    expect(currentStack()).toBeNull()
+  })
+
+  test('dropStack ends the stack whatever the selection is', () => {
+    setStack(stack)
+    dropStack()
+    expect(currentStack()).toBeNull()
+    dropStack()
     expect(currentStack()).toBeNull()
   })
 })

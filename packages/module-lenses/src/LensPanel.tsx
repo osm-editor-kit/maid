@@ -1,7 +1,7 @@
 import { describeMatch, type Lens } from '@osm-editor-kit/maid-style'
-import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
+import { notify, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { toolButtonTone } from '@osm-editor-kit/maid-ui'
-import { useRef, useState, type ChangeEvent } from 'react'
+import { useId, useRef, useState, type ChangeEvent } from 'react'
 import { MAX_FILE_BYTES, parseLensFile, serialiseLenses } from './lens-file.ts'
 import { activeLens, allLenses, useLensStore } from './store.ts'
 
@@ -11,7 +11,8 @@ const REST_TEXT = {
   hide: 'hidden',
 } as const
 
-type Notice = { ok: boolean; lines: string[] }
+/** A refused file: what is wrong with it. An import that worked is a toast instead. */
+type Notice = { lines: string[] }
 
 /** Saves text as a file the browser downloads. The object URL is released after the download starts. */
 function download(name: string, lenses: Lens[]) {
@@ -36,6 +37,7 @@ export function LensPanel() {
   const removeLens = useLensStore((s) => s.removeLens)
   const [notice, setNotice] = useState<Notice | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
+  const noticeId = useId()
 
   const active = activeLens({ activeId, builtIn, imported })
   const isOwn = active !== null && imported.some((lens) => lens.id === active.id)
@@ -48,17 +50,19 @@ export function LensPanel() {
     input.value = ''
     if (!file) return
     if (file.size > MAX_FILE_BYTES) {
-      setNotice({ ok: false, lines: [`The file is larger than ${MAX_FILE_BYTES / 1024} KB.`] })
+      setNotice({ lines: [`The file is larger than ${MAX_FILE_BYTES / 1024} KB.`] })
       return
     }
     const result = parseLensFile(await file.text(), reserved)
     if (!result.ok) {
-      setNotice({ ok: false, lines: result.errors })
+      setNotice({ lines: result.errors })
       return
     }
     importLenses(result.lenses)
     const names = result.lenses.map((lens) => lens.name).join(', ')
-    setNotice({ ok: true, lines: [`Imported ${result.lenses.length}: ${names}.`] })
+    setNotice(null)
+    // an event with its result: a toast (Toast.tsx)
+    notify.done(`Imported ${result.lenses.length}: ${names}.`)
   }
 
   return (
@@ -134,7 +138,12 @@ export function LensPanel() {
         className="flex flex-col gap-2 border-t border-zinc-950/5 pt-3 dark:border-white/5"
       >
         <div className="flex flex-wrap gap-1.5">
-          <button type="button" className={BUTTON} onClick={() => fileInput.current?.click()}>
+          <button
+            type="button"
+            className={BUTTON}
+            aria-describedby={notice ? noticeId : undefined}
+            onClick={() => fileInput.current?.click()}
+          >
             Import
           </button>
           <button
@@ -164,10 +173,7 @@ export function LensPanel() {
           onChange={onFile}
         />
         {notice && (
-          <div
-            role="status"
-            className={notice.ok ? 'text-xs' : 'text-xs text-red-600 dark:text-red-400'}
-          >
+          <div id={noticeId} role="status" className="text-xs text-red-600 dark:text-red-400">
             {notice.lines.map((line) => (
               <p key={line}>{line}</p>
             ))}

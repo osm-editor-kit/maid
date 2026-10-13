@@ -1,21 +1,63 @@
 import { ArrowUpTrayIcon } from '@heroicons/react/20/solid'
 import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
-import { Flyout, toolButtonClass } from '@osm-editor-kit/maid-ui'
-import { useState } from 'react'
+import { Flyout, notify, toolButtonClass } from '@osm-editor-kit/maid-ui'
+import { useId, useState, type ReactNode } from 'react'
 import { useAuth } from '../auth'
 import { DEV_API } from '../config'
 import { config, editor, useEngine } from '../editor'
 import { saveBlocked } from '../save/blocked'
-import { changesetTags, summaryOf, type ChangeElement } from '../save/osm-change'
+import { changesetTags, summaryOf, type ChangeElement, type OsmChange } from '../save/osm-change'
 import { pendingChange, uploadEdits, uploadErrors } from '../save/save'
 
-const LISTED = 12
+export const LISTED = 12
 
-function describe(element: ChangeElement) {
+export function describe(element: ChangeElement) {
   const tags = Object.entries(element.tags)
   const main = tags.find(([key]) => key !== 'name' && !key.includes(':'))
   const what = element.tags.name ?? (main ? `${main[0]}=${main[1]}` : 'no tags')
   return `${element.type} ${element.id < 0 ? 'new' : element.id} · ${what}`
+}
+
+/** One line of a change list: what happened ("Created", "Changed", "Deleted") and the element */
+export type ChangeRow = readonly [kind: string, element: ChangeElement]
+
+/** The rows of an upload: created, then changed, then deleted, as the save flyout lists them */
+export function rowsOf(change: OsmChange): ChangeRow[] {
+  return [
+    ...change.create.map((e) => ['Created', e] as const),
+    ...change.modify.map((e) => ['Changed', e] as const),
+    ...change.delete.map((e) => ['Deleted', e] as const),
+  ]
+}
+
+/**
+ * The list of changed elements: the kind, then the element as `describe` writes it. `limit` lists
+ * that many rows and counts the rest; `icon` puts a symbol before each element.
+ */
+export function ChangeRows(props: {
+  rows: readonly ChangeRow[]
+  limit?: number
+  className?: string
+  icon?: (element: ChangeElement) => ReactNode
+}) {
+  const { rows, limit = LISTED, icon } = props
+  const className =
+    props.className ??
+    'max-h-44 overflow-y-auto rounded-lg bg-zinc-50 px-3 py-2 text-xs dark:bg-white/5'
+  return (
+    <ul className={className}>
+      {rows.slice(0, limit).map(([kind, element]) => (
+        <li key={`${element.type}${element.id}`} className="flex gap-2 py-0.5">
+          <span className="w-14 shrink-0 font-medium text-zinc-500 dark:text-zinc-400">{kind}</span>
+          {icon?.(element)}
+          <span className="min-w-0 truncate font-mono">{describe(element)}</span>
+        </li>
+      ))}
+      {rows.length > limit && (
+        <li className="py-0.5 text-zinc-500 dark:text-zinc-400">and {rows.length - limit} more</li>
+      )}
+    </ul>
+  )
 }
 
 /** The inside of the save flyout: what changed, the changeset comment, and the upload */
@@ -28,16 +70,13 @@ function SavePanel() {
     | { kind: 'done'; id: number }
     | { kind: 'failed'; text: string }
   >({ kind: 'idle' })
+  const noteId = useId()
   // read again after every edit
   const change = useEngine(() => pendingChange())
   // the OSM API limits on what is changed: a tag too long for the API blocks the upload
   const errors = useEngine(() => uploadErrors())
   const blocked = saveBlocked({ dev: config.dev, loggedIn: auth.user !== undefined, errors })
-  const rows = [
-    ...change.create.map((e) => ['Created', e] as const),
-    ...change.modify.map((e) => ['Changed', e] as const),
-    ...change.delete.map((e) => ['Deleted', e] as const),
-  ]
+  const rows = rowsOf(change)
   const hashtags = changesetTags(comment, '').hashtags
 
   if (status.kind === 'done') {
@@ -67,6 +106,8 @@ function SavePanel() {
     )
   }
 
+  // a message about this form: the block, or the failed upload. It stays here, next to the button.
+  const note = blocked ?? (status.kind === 'failed' ? status.text : undefined)
   return (
     <form
       className="flex flex-col gap-3 p-4"
@@ -75,7 +116,24 @@ function SavePanel() {
         if (blocked || status.kind === 'busy' || rows.length === 0 || !comment.trim()) return
         setStatus({ kind: 'busy' })
         uploadEdits(comment).then(
-          (id) => setStatus({ kind: 'done', id }),
+          (id) => {
+            setStatus({ kind: 'done', id })
+            // an event that needs no action: a toast, with the changeset linked (the panel stays, it blocks a second upload)
+            notify.done(
+              <>
+                Your edits are changeset{' '}
+                <a
+                  className="font-medium underline"
+                  href={`${DEV_API}/changeset/${id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {id}
+                </a>{' '}
+                on the development server.
+              </>,
+            )
+          },
           (error: unknown) =>
             setStatus({
               kind: 'failed',
@@ -90,23 +148,7 @@ function SavePanel() {
           {rows.length === 0 ? 'Nothing to save yet.' : summaryOf(change)}
         </p>
       </div>
-      {rows.length > 0 && (
-        <ul className="max-h-44 overflow-y-auto rounded-lg bg-zinc-50 px-3 py-2 text-xs dark:bg-white/5">
-          {rows.slice(0, LISTED).map(([kind, element]) => (
-            <li key={`${element.type}${element.id}`} className="flex gap-2 py-0.5">
-              <span className="w-14 shrink-0 font-medium text-zinc-500 dark:text-zinc-400">
-                {kind}
-              </span>
-              <span className="min-w-0 truncate font-mono">{describe(element)}</span>
-            </li>
-          ))}
-          {rows.length > LISTED && (
-            <li className="py-0.5 text-zinc-500 dark:text-zinc-400">
-              and {rows.length - LISTED} more
-            </li>
-          )}
-        </ul>
-      )}
+      {rows.length > 0 && <ChangeRows rows={rows} />}
       <label className="flex flex-col gap-1">
         <span className="font-medium">Changeset comment</span>
         <textarea
@@ -127,13 +169,14 @@ function SavePanel() {
         disabled={
           blocked !== undefined || status.kind === 'busy' || rows.length === 0 || !comment.trim()
         }
+        aria-describedby={note ? noteId : undefined}
         className="w-full cursor-pointer rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 enabled:hover:bg-blue-500 disabled:cursor-default disabled:opacity-50"
       >
         {status.kind === 'busy' ? 'Uploading…' : 'Upload to the development server'}
       </button>
-      {(blocked ?? (status.kind === 'failed' ? status.text : undefined)) && (
-        <p role="status" className="text-xs text-amber-700 dark:text-amber-300">
-          {blocked ?? (status.kind === 'failed' ? status.text : '')}
+      {note && (
+        <p id={noteId} role="status" className="text-xs text-amber-700 dark:text-amber-300">
+          {note}
         </p>
       )}
     </form>

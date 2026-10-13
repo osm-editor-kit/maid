@@ -10,11 +10,27 @@ import type {
   RasterLayerSpec,
   RasterSourceSpec,
 } from '@osm-editor-kit/maplibre-editor-layer-index'
+import { toMapZoom } from './helpers.ts'
 
 const load = () => import('@osm-editor-kit/maplibre-editor-layer-index')
 
+/**
+ * A style layer's `minzoom` is compared with the map's zoom (512 px), but ELI's `minzoom` is in OSM
+ * zoom (256 px), so it is converted here. The layer then appears at the view ELI means. The
+ * source keeps ELI's value: a source's zooms are tile zooms, which MapLibre maps itself for a
+ * `tileSize` of 256. Never below 0.
+ */
+export function withMapMinzoom<T extends { minzoom?: number }>(layer: T): T {
+  if (layer.minzoom === undefined) return layer
+  return { ...layer, minzoom: Math.max(0, toMapZoom(layer.minzoom)) }
+}
+
 /** A layer ready for react-map-gl: its source and its layer, with the id `eli-<id>` */
 export type Drawn = {
+  /** ELI's id of the layer */
+  id: string
+  /** The name iD cites for it in `imagery_used` (ELI's `getImageryUsedValue`: the index name, else the id) */
+  name: string
   sourceId: string
   source: RasterSourceSpec
   layer: RasterLayerSpec
@@ -54,9 +70,11 @@ export async function drawLayer(id: string, background: boolean) {
   if (!layer || layer.requiresKeys.length > 0) return undefined
   const sourceId = eli.eliSourceId(layer)
   return {
+    id: layer.id,
+    name: eli.getImageryUsedValue(layer),
     sourceId,
     source: eli.getRasterSourceSpec(layer),
-    layer: eli.getRasterLayerSpec(layer, { source: sourceId }),
+    layer: withMapMinzoom(eli.getRasterLayerSpec(layer, { source: sourceId })),
     background,
   }
 }

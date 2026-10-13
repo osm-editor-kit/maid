@@ -511,24 +511,39 @@ function buildMainLayers(options: LayerOptions) {
   // Address nodes are not pins: iD draws a rounded plaque with the house number on the node, at
   // every zoom it draws points (svg/points.js markerPath, svg/labels.js). The plaque is one symbol
   // whose icon stretches to the text (the image is ADDRESS_PLAQUE in apps/maid/src/images.ts).
-  // The plaque always shows, as iD's does; only its text gives way to names and other numbers.
+  // Maid differs from iD here: a plaque shows only together with its number. Where numbers would
+  // overlap (a row of houses), iD keeps every plaque and drops the text, which leaves empty white
+  // cards. Here the whole plaque gives way and the address stays a small dot, which the plaque
+  // covers where it is drawn. An address without a number or name is a dot only.
+  layers.push({
+    id: 'point-address-dot',
+    type: 'circle',
+    source: SOURCES.points,
+    filter: ['has', 'addr'],
+    paint: {
+      'circle-radius': 3,
+      'circle-color': '#fff',
+      'circle-stroke-color': '#444',
+      'circle-stroke-width': 1,
+    },
+  })
   layers.push({
     id: 'point-address',
     type: 'symbol',
     source: SOURCES.points,
-    filter: ['has', 'addr'],
+    filter: ['all', ['has', 'addr'], ['!=', ['get', 'addr'], '']],
     layout: {
       'icon-image': ADDRESS_PLAQUE,
       'icon-text-fit': 'both',
       'icon-text-fit-padding': [2, 4, 2, 4],
       'icon-anchor': 'center',
-      'icon-allow-overlap': true,
+      // neither is optional: the icon and the text are placed together or not at all
+      'icon-allow-overlap': false,
       'text-field': ['get', 'addr'],
       'text-font': ['Open Sans Semibold'],
       'text-size': 10,
       'text-anchor': 'center',
       'text-allow-overlap': false,
-      'text-optional': true,
       'symbol-sort-key': 1,
     },
     paint: {

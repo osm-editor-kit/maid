@@ -2,7 +2,8 @@ import { ContextMenu } from '@osm-editor-kit/maid-ui'
 import { useEditCommands, usePasteCommand } from '../commands'
 import { engine, useEngine } from '../editor'
 import { useSelection } from '../selection'
-import { featureItems } from './StackPicker'
+import { dropStack } from '../stack'
+import { featureItems, STACK_CHIP_CLASS, StackCount } from './StackPicker'
 
 /**
  * Where a right click or a long press happened: on the screen and on the map. `ground` is set
@@ -23,6 +24,10 @@ export type MenuPlace = {
  * features at the place when there are several ("Here: N features", the selected one marked),
  * then what can be done with the selection, and "Paste" at this place if something was copied.
  * On open ground only "Paste". Shows nothing when there is nothing to choose.
+ *
+ * With several features the count ("2 of 3") is the menu's marker, a chip that moves and flips
+ * with the menu. The stack ends with the menu: closing it, by Escape, a press outside or a
+ * choice that closes it, drops the stack and so the pill too.
  */
 export function MapContextMenu({ place, onClose }: { place: MenuPlace; onClose: () => void }) {
   const { ids: selected, select } = useSelection()
@@ -43,15 +48,23 @@ export function MapContextMenu({ place, onClose }: { place: MenuPlace; onClose: 
   // on open ground the selection is not what the menu is about: only Paste, as in iD's browse mode
   const items = place.ground ? paste : [...here, ...selection, ...paste]
   if (items.length === 0) return null
+  const marker =
+    features.length > 1 ? (
+      <span data-stack-marker className={STACK_CHIP_CLASS}>
+        <StackCount index={features.indexOf(selected[0] ?? '')} total={features.length} />
+      </span>
+    ) : undefined
   return (
     <ContextMenu
       at={place}
       label="Edit"
       items={items}
+      marker={marker}
       onClose={() => {
         // the menu goes without the pointer leaving its item
         engine.previewOperation(null)
         engine.setRelated(null)
+        dropStack()
         onClose()
       }}
     />

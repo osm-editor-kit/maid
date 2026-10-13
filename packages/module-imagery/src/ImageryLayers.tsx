@@ -3,6 +3,7 @@ import { Fragment, useEffect, useState } from 'react'
 import { AttributionControl, Layer, Source, useMap } from 'react-map-gl/maplibre'
 import { useStore } from 'zustand'
 import { drawLayer, type Drawn } from './eli.ts'
+import { toOsmZoom } from './helpers.ts'
 import type { ImageryStore } from './store.ts'
 
 /**
@@ -18,6 +19,7 @@ export function ImageryLayers(props: { store: ImageryStore; belowOsm: string }) 
   const overlayKey = useStore(store, (s) => s.overlayIds.join('\n'))
   const brightness = useStore(store, (s) => s.brightness)
   const setView = useStore(store, (s) => s.setView)
+  const remember = useStore(store, (s) => s.remember)
   const automated = isAutomated()
 
   // what is drawn, keyed by what was chosen: a result for an older choice is not shown
@@ -30,7 +32,8 @@ export function ImageryLayers(props: { store: ImageryStore; belowOsm: string }) 
       const bounds = map.getBounds()
       setView({
         bounds: [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()],
-        zoom: map.getZoom(),
+        // MapLibre zoom (512 px) to OSM zoom (256 px), the convention of ELI's minzoom
+        zoom: toOsmZoom(map.getZoom()),
       })
     }
     track()
@@ -54,12 +57,14 @@ export function ImageryLayers(props: { store: ImageryStore; belowOsm: string }) 
     ).then((results) => {
       if (cancelled) return
       const items = results.filter((item): item is Drawn => item !== undefined)
+      // the names of what is drawn now: the measure and the changeset cite them (usedNames)
+      remember(Object.fromEntries(items.map((item) => [item.id, item.name])))
       setLoaded({ key, items })
     })
     return () => {
       cancelled = true
     }
-  }, [automated, backgroundId, overlayKey, key])
+  }, [automated, backgroundId, overlayKey, key, remember])
 
   if (automated) return null
   const drawn = loaded?.key === key ? loaded.items : []

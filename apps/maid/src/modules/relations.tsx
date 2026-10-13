@@ -7,7 +7,7 @@ import {
   OsmRelation,
   type Action,
 } from '@osm-editor-kit/maid-model'
-import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
+import { notify, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { Tooltip, type InspectorSection, type InspectorSectionProps } from '@osm-editor-kit/maid-ui'
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import { engine, useEngine } from '../editor'
@@ -533,7 +533,7 @@ function MembershipRow({
 
 /**
  * Adds the inspected entity to a loaded relation, with a role. Keyed by entity, so it starts empty
- * for each one. After the add, a line says where the way was placed.
+ * for each one. After the add, a toast says where the way was placed.
  */
 function AddToRelation({
   editor,
@@ -548,7 +548,6 @@ function AddToRelation({
 }) {
   const [targetID, setTargetID] = useState('')
   const [role, setRole] = useState('')
-  const [placed, setPlaced] = useState<string | undefined>(undefined)
   const offered = candidates.slice(0, RELATION_OPTION_LIMIT)
   const target = candidates.find((relation) => relation.id === targetID)
   const roleList = roleOptionsID('add', entity.id)
@@ -564,7 +563,8 @@ function AddToRelation({
       after instanceof OsmRelation
         ? placementOf(beforeMembers, after.members, entity.id)
         : undefined
-    setPlaced(placement ? placementSentence(placement, (ref) => memberName(graph, ref)) : undefined)
+    // an event with its result: a toast, not a line that stays in the section (Toast.tsx)
+    if (placement) notify.done(placementSentence(placement, (ref) => memberName(graph, ref)))
     setTargetID('')
     setRole('')
   }
@@ -577,10 +577,7 @@ function AddToRelation({
           disabled={readOnly}
           className={`${FIELD} min-w-0 flex-1 cursor-pointer`}
           value={targetID}
-          onChange={(event) => {
-            setTargetID(event.target.value)
-            setPlaced(undefined)
-          }}
+          onChange={(event) => setTargetID(event.target.value)}
         >
           <option value="">Choose a relation</option>
           {offered.map((relation) => (
@@ -607,11 +604,6 @@ function AddToRelation({
       {candidates.length > offered.length && (
         <span className={`text-xs ${SECONDARY}`}>
           Showing {offered.length} of {candidates.length} relations.
-        </span>
-      )}
-      {placed && (
-        <span role="status" className={`text-xs ${SECONDARY}`}>
-          {placed}
         </span>
       )}
     </div>

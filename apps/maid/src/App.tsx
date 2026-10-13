@@ -1,4 +1,4 @@
-import { Brand, Shell, TopBar } from '@osm-editor-kit/maid-ui'
+import { Brand, Shell, Toaster, TopBar } from '@osm-editor-kit/maid-ui'
 import { NuqsAdapter } from 'nuqs/adapters/react'
 import { useState } from 'react'
 import { MapProvider } from 'react-map-gl/maplibre'
@@ -71,6 +71,7 @@ export function App() {
     <NuqsAdapter>
       <MapProvider>
         <Editor />
+        <Toaster />
       </MapProvider>
     </NuqsAdapter>
   )

@@ -41,12 +41,27 @@ export type MapContentProps = {
  */
 export type MapContentItem = { id: string; component: ComponentType<MapContentProps> }
 
+/**
+ * The imagery the map shows now, under the OSM data: what a measure on the map takes as its source,
+ * and what a changeset cites as `imagery_used`. A module that draws imagery contributes it; the app
+ * reads it outside React (`editor.registry('imagery.used').list()`). Names are as iD cites them.
+ */
+export type ImageryUsedItem = {
+  id: string
+  /** The names of the imagery visible now: the background first, then the overlays. Empty when none. */
+  used: () => string[]
+  /** The name of the background alone; undefined with no background (none chosen, or the plain style) */
+  background: () => string | undefined
+}
+
 declare module '@osm-editor-kit/maid-core' {
   interface ExtensionPoints {
     'map.layer': MapLayerItem
     'map.content': MapContentItem
     /** Something the editor can do to the selection: shown in the edit menu, run with its key */
     'edit.operation': Operation
+    /** The imagery visible on the map now (see ImageryUsedItem). Declared here because it describes the map. */
+    'imagery.used': ImageryUsedItem
   }
 }
 

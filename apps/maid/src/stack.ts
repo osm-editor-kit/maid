@@ -48,6 +48,14 @@ export function setStack(stack: Stack | null) {
 }
 
 /**
+ * Drops the stack, if there is one: the map moved or changed mode, a drag began, or the menu that
+ * showed the stack closed. Without a stack it changes nothing, so it can run on every map frame.
+ */
+export function dropStack() {
+  if (holder.stack) setHeld(null)
+}
+
+/**
  * Called on every selection change: a stack goes unless the new selection is one of its features.
  * Plain clicks, Shift, the sidebar, undo and the menu all come through here, so the stack only
  * survives a change that it made itself.

@@ -1,23 +1,26 @@
-import {
-  autoUpdate,
-  flip,
-  FloatingPortal,
-  offset,
-  shift,
-  size,
-  useFloating,
-} from '@floating-ui/react'
+import { PlusIcon } from '@heroicons/react/16/solid'
 import type { Field } from '@osm-editor-kit/maid-presets'
 import { useId, useState, type KeyboardEvent } from 'react'
+import { Flyout } from '../Flyout.tsx'
 import { PLAIN_INPUT } from '../plain-input.ts'
-import { searchFields } from './add-field-logic.ts'
-import { HINT, INPUT } from './fields/shared.ts'
-import { moveActive } from './picker-logic.ts'
+import { toolButtonClass } from '../Toolbar.tsx'
+import { rowKey, searchFields, sharedLabelIds } from './add-field-logic.ts'
+import { HINT } from './fields/shared.ts'
+import {
+  EMPTY_NOTE,
+  keepFocus,
+  listboxMove,
+  revealRow,
+  ROW_ACTIVE,
+  SEARCH_FIELD,
+} from './listbox.ts'
 
 /**
- * The "Add field" input: a combobox over the fields that are not rows yet. Typing filters them
- * (label, id and keys); Down and Up move through the list; Enter or a click picks the highlighted
- * field. Escape clears the text. A pick is reported through `onPick`; the parent shows the row.
+ * The "Add field" button: it opens a flyout with a search field over the fields that are not rows
+ * yet. The search field has the focus when the flyout opens. Typing filters the fields (label, id
+ * and keys). Up and Down move the highlighted row, Enter or a click picks it, Escape closes the
+ * flyout and gives the focus back to the button. A pick is reported through `onPick`; the parent
+ * shows the row and gives it the focus.
  */
 export function AddField(props: { fields: readonly Field[]; onPick: (field: Field) => void }) {
   const { fields, onPick } = props
@@ -25,36 +28,32 @@ export function AddField(props: { fields: readonly Field[]; onPick: (field: Fiel
   const listId = `${baseId}-list`
   const optionId = (index: number) => `${baseId}-option-${index}`
 
-  const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
   // the highlighted row; the first one until the user moves
   const [activeIndex, setActiveIndex] = useState(0)
 
   const results = searchFields(fields, query)
   const active = results.length === 0 ? -1 : Math.min(activeIndex, results.length - 1)
-  const listVisible = open && results.length > 0
+  // the labels that two of the offered fields share: their rows also show the key
+  const sharedLabels = sharedLabelIds(fields)
 
-  const { refs, floatingStyles } = useFloating({
-    open: listVisible,
-    placement: 'bottom-start',
-    whileElementsMounted: autoUpdate,
-    middleware: [
-      offset(4),
-      flip({ padding: 8 }),
-      shift({ padding: 8 }),
-      size({
-        padding: 8,
-        apply({ rects, elements }) {
-          Object.assign(elements.floating.style, { minWidth: `${rects.reference.width}px` })
-        },
-      }),
-    ],
-  })
+  function setFlyoutOpen(next: boolean) {
+    // every opening starts with an empty search; a closing flyout keeps its list while it fades
+    if (next) {
+      setQuery('')
+      setActiveIndex(0)
+    }
+    setOpen(next)
+  }
+
+  function moveTo(index: number) {
+    setActiveIndex(index)
+    revealRow(optionId(index))
+  }
 
   function pick(field: Field) {
-    setQuery('')
     setOpen(false)
-    setActiveIndex(0)
     onPick(field)
   }
 
@@ -62,74 +61,80 @@ export function AddField(props: { fields: readonly Field[]; onPick: (field: Fiel
     if (event.nativeEvent.isComposing) return
     switch (event.key) {
       case 'ArrowDown':
-      case 'ArrowUp': {
+      case 'ArrowUp':
+      case 'Home':
+      case 'End': {
         event.preventDefault()
-        const delta = event.key === 'ArrowDown' ? 1 : -1
-        setOpen(true)
-        setActiveIndex(moveActive(listVisible ? active : -1, delta, results.length))
+        const next = listboxMove(event.key, active, results.length)
+        if (next !== undefined) moveTo(next)
         return
       }
       case 'Enter': {
         event.preventDefault()
-        const field = listVisible && active >= 0 ? results[active] : undefined
+        const field = results[active]
         if (field) pick(field)
         return
       }
       case 'Escape':
-        // as the combos: the editor does not see the key
+        // the flyout's key: the editor does not see it, as in the preset picker's search field
+        event.preventDefault()
         event.stopPropagation()
-        setQuery('')
-        setOpen(false)
-        setActiveIndex(0)
+        setFlyoutOpen(false)
         return
     }
   }
 
   return (
-    <div className="grid min-w-0 gap-1">
-      {/* oxlint-disable-next-line react/refs -- refs.setReference is floating-ui's callback ref, not a .current value read during render */}
-      <div ref={refs.setReference} className="min-w-0">
+    <Flyout
+      label="Add field"
+      placement="right-start"
+      className="w-72"
+      open={open}
+      onOpenChange={setFlyoutOpen}
+      trigger={
+        <button type="button" className={`${toolButtonClass(true, open)} self-start`}>
+          <PlusIcon aria-hidden="true" className="size-4" />
+          Add field
+        </button>
+      }
+    >
+      <div className="grid gap-2 p-2">
         <input
           {...PLAIN_INPUT}
-          type="text"
+          type="search"
           role="combobox"
-          aria-label="Add field"
-          autoComplete="off"
           spellCheck={false}
-          placeholder="Add field"
+          placeholder="Search fields"
+          aria-label="Search fields"
           value={query}
-          aria-expanded={listVisible}
-          aria-controls={listVisible ? listId : undefined}
+          aria-expanded={results.length > 0}
+          aria-controls={results.length > 0 ? listId : undefined}
           aria-autocomplete="list"
-          aria-activedescendant={listVisible && active >= 0 ? optionId(active) : undefined}
-          className={INPUT}
+          aria-activedescendant={active >= 0 ? optionId(active) : undefined}
+          className={SEARCH_FIELD}
           onChange={(event) => {
             setQuery(event.currentTarget.value)
-            setOpen(true)
             setActiveIndex(0)
           }}
-          onFocus={() => setOpen(true)}
-          onClick={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          onBlur={() => {
-            setQuery('')
-            setOpen(false)
-            setActiveIndex(0)
-          }}
         />
-      </div>
-      <FloatingPortal>
-        {listVisible ? (
+        {/* what a screen reader hears when the search changes; the visible note is for sighted users */}
+        <p aria-live="polite" className="sr-only">
+          {results.length === 0
+            ? 'No field matches'
+            : `${results.length} ${results.length === 1 ? 'field' : 'fields'}`}
+        </p>
+
+        {results.length === 0 ? (
+          <p className={EMPTY_NOTE}>No field matches</p>
+        ) : (
           <div
             id={listId}
-            // oxlint-disable-next-line react/refs -- refs.setFloating is floating-ui's callback ref, not a .current value read during render
-            ref={refs.setFloating}
             role="listbox"
             aria-label="Fields to add"
-            // keeps the focus in the input while the list is clicked
-            onMouseDown={(event) => event.preventDefault()}
-            style={floatingStyles}
-            className="z-50 max-h-[26rem] overflow-y-auto rounded-md border border-zinc-950/10 bg-white p-1 text-sm text-zinc-950 shadow-md dark:border-white/10 dark:bg-zinc-950 dark:text-white"
+            // keeps the focus in the search field while a row is clicked
+            onMouseDown={keepFocus}
+            className="grid max-h-80 overflow-y-auto"
           >
             {results.map((field, index) => (
               <div
@@ -138,17 +143,20 @@ export function AddField(props: { fields: readonly Field[]; onPick: (field: Fiel
                 role="option"
                 aria-selected={index === active}
                 onClick={() => pick(field)}
-                className={`flex h-8 cursor-pointer items-center gap-3 rounded px-2 ${
-                  index === active ? 'bg-zinc-950/5 dark:bg-white/10' : ''
+                className={`flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 ${
+                  index === active ? ROW_ACTIVE : ''
                 }`}
               >
                 <span className="min-w-0 flex-1 truncate">{field.label}</span>
+                {sharedLabels.has(field.id) ? (
+                  <span className={`${HINT} max-w-[45%] shrink font-mono`}>{rowKey(field)}</span>
+                ) : null}
                 {field.universal ? <span className={`${HINT} shrink-0`}>general</span> : null}
               </div>
             ))}
           </div>
-        ) : null}
-      </FloatingPortal>
-    </div>
+        )}
+      </div>
+    </Flyout>
   )
 }

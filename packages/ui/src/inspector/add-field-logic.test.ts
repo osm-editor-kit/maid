@@ -6,7 +6,9 @@ import {
   defaultOnPick,
   pickedFields,
   rowFields,
+  rowKey,
   searchFields,
+  sharedLabelIds,
 } from './add-field-logic.ts'
 
 function field(id: string, label: string, extra: Partial<Field> = {}): Field {
@@ -138,5 +140,40 @@ describe('defaultOnPick', () => {
   it('writes nothing for a field without a key', () => {
     const keyless = field('access', 'Access', { key: undefined, default: 'yes' })
     expect(defaultOnPick(keyless, {})).toBeUndefined()
+  })
+})
+
+describe('sharedLabelIds', () => {
+  it('lists the fields whose label another field has too', () => {
+    const lanes = field('lanes', 'Lanes')
+    const lanesBackward = field('lanes:backward', 'Lanes')
+    const width = field('width', 'Width')
+    expect([...sharedLabelIds([lanes, width, lanesBackward])].sort()).toEqual([
+      'lanes',
+      'lanes:backward',
+    ])
+  })
+
+  it('lists nothing when every label is different', () => {
+    expect(sharedLabelIds(fields).size).toBe(0)
+  })
+})
+
+describe('rowKey', () => {
+  it('shows the key of a field', () => {
+    expect(rowKey(level)).toBe('level')
+  })
+
+  it('shows the keys of a multi-key field, joined', () => {
+    const multi = field('payment', 'Payment', {
+      key: undefined,
+      keys: ['payment:cash', 'payment:card'],
+    })
+    expect(rowKey(multi)).toBe('payment:cash, payment:card')
+  })
+
+  it('shows the id of a field with no key', () => {
+    const keyless = field('access', 'Access', { key: undefined })
+    expect(rowKey(keyless)).toBe('access')
   })
 })

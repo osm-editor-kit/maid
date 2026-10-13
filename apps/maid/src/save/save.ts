@@ -2,6 +2,7 @@ import { discardedTags } from '@osm-editor-kit/maid-presets/default'
 import { createValidator, osmApiLimits, type Issue } from '@osm-editor-kit/maid-validation'
 import { api } from '../auth'
 import { config, editor } from '../editor'
+import { imageryOnMap } from '../imagery-used'
 import { forgetJournal } from '../journal'
 import { errorSentence } from './blocked'
 import { changesetTags, toOsmChange } from './osm-change'
@@ -42,7 +43,8 @@ export async function uploadEdits(comment: string) {
   // the element shape is osm-api's, without the read-only attributes the server sets itself
   type Diff = Parameters<typeof OSM.uploadChangeset>[1]
   const result = await OSM.uploadChangeset(
-    changesetTags(comment, VERSION),
+    // the imagery on the map now, as iD's imagery_used (the background first)
+    changesetTags(comment, VERSION, imageryOnMap().used),
     change as unknown as Diff,
   )
   await forgetJournal()

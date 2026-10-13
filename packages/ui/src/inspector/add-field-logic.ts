@@ -25,6 +25,23 @@ export function searchFields(fields: readonly Field[], query: string) {
   return ranked.sort((a, b) => a.rank - b.rank).map((entry) => entry.field)
 }
 
+/**
+ * The ids of the fields whose label another of the given fields has too. Their rows in the list also
+ * show the key, so that the two can be told apart.
+ */
+export function sharedLabelIds(fields: readonly Field[]) {
+  const count = new Map<string, number>()
+  for (const field of fields) count.set(field.label, (count.get(field.label) ?? 0) + 1)
+  return new Set(
+    fields.filter((field) => (count.get(field.label) ?? 0) > 1).map((field) => field.id),
+  )
+}
+
+/** The key a row of the list shows after its label: the field's key, else its keys, else its id. */
+export function rowKey(field: Field) {
+  return field.key ?? (field.keys?.join(', ') || field.id)
+}
+
 /** The offered fields that are not already rows (shown or picked), by id. */
 export function addableFields(offered: readonly Field[], rowIds: ReadonlySet<string>) {
   return offered.filter((field) => !rowIds.has(field.id))

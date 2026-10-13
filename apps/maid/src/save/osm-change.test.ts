@@ -10,7 +10,7 @@ import {
   actionDeleteWay,
   actionMoveNode,
 } from '@osm-editor-kit/maid-model'
-import { changesetTags, summaryOf, toOsmChange } from './osm-change.ts'
+import { changesetTags, imageryUsedValue, summaryOf, toOsmChange } from './osm-change.ts'
 
 function history() {
   const context = new ModelContext()
@@ -102,6 +102,45 @@ describe('changesetTags', () => {
     expect(changesetTags('Paths #radnetz and #berlin, again #radnetz.', '0.1').hashtags).toBe(
       '#radnetz;#berlin',
     )
+  })
+
+  it('writes the imagery on the map as imagery_used, background first', () => {
+    expect(changesetTags('Added a cafe', '0.1', ['Bing aerial imagery', 'Road overlay'])).toEqual({
+      created_by: 'Maid 0.1',
+      comment: 'Added a cafe',
+      imagery_used: 'Bing aerial imagery;Road overlay',
+    })
+  })
+
+  it('leaves imagery_used out when no imagery is on the map', () => {
+    expect(changesetTags('Added a cafe', '0.1', [])).not.toHaveProperty('imagery_used')
+    expect(changesetTags('Added a cafe', '0.1')).not.toHaveProperty('imagery_used')
+  })
+})
+
+describe('imageryUsedValue', () => {
+  it('joins the names with ";" and trims each one', () => {
+    expect(imageryUsedValue([' Bing aerial imagery ', 'DOP 20 (Berlin)'])).toBe(
+      'Bing aerial imagery;DOP 20 (Berlin)',
+    )
+  })
+
+  it('lists a name once', () => {
+    expect(imageryUsedValue(['Bing aerial imagery', 'Bing aerial imagery'])).toBe(
+      'Bing aerial imagery',
+    )
+  })
+
+  it('cuts the value to 255 characters, as iD does', () => {
+    const first = 'a'.repeat(200)
+    const value = imageryUsedValue([first, 'b'.repeat(200)])
+    expect(value).toHaveLength(255)
+    expect(value.startsWith(`${first};`)).toBe(true)
+  })
+
+  it('is empty without names', () => {
+    expect(imageryUsedValue([])).toBe('')
+    expect(imageryUsedValue(['  '])).toBe('')
   })
 })
 

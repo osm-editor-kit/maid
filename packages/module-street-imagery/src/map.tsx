@@ -23,6 +23,8 @@ export const MAP_ID = 'mainMap'
  * Below this zoom nothing is requested or drawn. Mapillary's track tiles are several MB each in
  * dense areas when zoomed out, and the editor is used at street level (chosen by hand, not
  * measured).
+ * This is a MapLibre zoom (512 px, compared with `map.getZoom()`): 13 is OSM zoom 14, the zoom
+ * iD uses for Mapillary. Not an OSM number like the rest of Maid's zoom values.
  */
 const MIN_ZOOM = 13
 
