@@ -903,8 +903,27 @@ export class MaidEngine {
   /** What an operation looks at: the current data and the selection */
   operationContext(): OperationContext {
     // the view lets an operation refuse a feature that is mostly outside it ("too large", as iD)
-    // under a turn this is the box around the turned view, larger than the view: the rule is looser (see extent.ts)
-    const bounds = this.map?.getBounds()
+    // under a turn the view is a quadrilateral: its four canvas corners, unprojected (pitch is 0); see extent.ts
+    const map = this.map
+    const bounds = map?.getBounds()
+    const { clientWidth: width, clientHeight: height } = map?.getContainer() ?? {
+      clientWidth: 0,
+      clientHeight: 0,
+    }
+    const viewPolygon =
+      map && width > 0 && height > 0
+        ? (
+            [
+              [0, 0],
+              [width, 0],
+              [width, height],
+              [0, height],
+            ] as [number, number][]
+          ).map(([x, y]): [number, number] => {
+            const at = map.unproject([x, y])
+            return [at.lng, at.lat]
+          })
+        : undefined
     return {
       graph: this.data.history.staging.graph,
       selected: this.selectedIds,
@@ -912,6 +931,7 @@ export class MaidEngine {
         min: [bounds.getWest(), bounds.getSouth()],
         max: [bounds.getEast(), bounds.getNorth()],
       },
+      viewPolygon,
     }
   }
 

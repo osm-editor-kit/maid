@@ -88,11 +88,91 @@ export function percentContainedIn(inner: Extent, outer: Extent): number {
   return shared / whole
 }
 
+type Point = [number, number]
+
+/** Twice the signed area of the triangle a, b, c: positive when c is left of the line from a to b */
+function cross(a: Point, b: Point, c: Point) {
+  return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+}
+
+/** The sides of a polygon, each as its two corners: from a corner to the next, the last to the first */
+function sides(polygon: readonly Point[]): [Point, Point][] {
+  return polygon.map((a, i): [Point, Point] => [a, polygon[(i + 1) % polygon.length] ?? a])
+}
+
+/** The corners of a polygon, counter-clockwise (a copy): either winding may come in */
+function counterClockwise(polygon: readonly Point[]): Point[] {
+  const twice = sides(polygon).reduce((sum, [a, b]) => sum + a[0] * b[1] - b[0] * a[1], 0)
+  return twice < 0 ? [...polygon].reverse() : [...polygon]
+}
+
+/** Sutherland-Hodgman: the part of a convex polygon `subject` on the left of, or on, the side a to b */
+function clipToHalfPlane(subject: Point[], [a, b]: [Point, Point]): Point[] {
+  const out: Point[] = []
+  for (const [p, q] of sides(subject)) {
+    const dp = cross(a, b, p)
+    const dq = cross(a, b, q)
+    if (dp >= 0) out.push(p)
+    if (dp >= 0 !== dq >= 0) {
+      // on a side that is vertical or horizontal (a view box) the crossing keeps that coordinate exactly
+      const t = dp / (dp - dq)
+      const x = a[0] === b[0] ? a[0] : p[0] + t * (q[0] - p[0])
+      const y = a[1] === b[1] ? a[1] : p[1] + t * (q[1] - p[1])
+      out.push([x, y])
+    }
+  }
+  return out
+}
+
+/** The area of a polygon, by the shoelace formula measured from its first corner */
+function polygonArea(polygon: Point[]): number {
+  const origin: Point = polygon[0] ?? [0, 0]
+  const twice = sides(polygon).reduce(
+    (sum, [a, b]) =>
+      sum + (a[0] - origin[0]) * (b[1] - origin[1]) - (b[0] - origin[0]) * (a[1] - origin[1]),
+    0,
+  )
+  return Math.abs(twice) / 2
+}
+
+/**
+ * The part of `inner` that lies in a convex polygon, by area, as a fraction from 0 to 1: the same
+ * share as `percentContainedIn` when the polygon is the rectangle `outer`. The polygon is the
+ * view's footprint in lon/lat, its corners in either order; under a turn it is not a box. The
+ * feature's box is clipped to the polygon. A point or a line has no area: it counts as all in
+ * view when all its corners lie in the polygon, edges included.
+ */
+export function percentInPolygon(inner: Extent, polygon: readonly Point[]): number {
+  const view = counterClockwise(polygon)
+  const corners: Point[] = [
+    [inner.min[0], inner.min[1]],
+    [inner.max[0], inner.min[1]],
+    [inner.max[0], inner.max[1]],
+    [inner.min[0], inner.max[1]],
+  ]
+  const whole = area(inner)
+  if (whole === 0) {
+    const inside = corners.every((c) => sides(view).every(([a, b]) => cross(a, b, c) >= 0))
+    return inside ? 1 : 0
+  }
+  let shape = corners
+  for (const side of sides(view)) {
+    shape = clipToHalfPlane(shape, side)
+    if (shape.length === 0) break
+  }
+  return polygonArea(shape) / whole
+}
+
 /**
  * True when the features with this extent are mostly outside the view: less than 80 % of them in
- * view. Never true without a view extent, or without a position to measure.
+ * view. The view is `viewPolygon` when the context has one (a turned map), else `viewExtent`.
+ * Never true without a view, or without a position to measure.
  */
 export function isTooLarge(extent: Extent | undefined, context: OperationContext): boolean {
-  if (extent === undefined || context.viewExtent === undefined) return false
+  if (extent === undefined) return false
+  if (context.viewPolygon !== undefined) {
+    return percentInPolygon(extent, context.viewPolygon) < MIN_SHARE_IN_VIEW
+  }
+  if (context.viewExtent === undefined) return false
   return percentContainedIn(extent, context.viewExtent) < MIN_SHARE_IN_VIEW
 }

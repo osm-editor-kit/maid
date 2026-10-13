@@ -15,6 +15,12 @@ export type OperationContext = {
    * feature which is mostly outside the view (`too_large`) never refuse. The app passes the map's bounds.
    */
   viewExtent?: Extent
+  /**
+   * The same view as its footprint in lon/lat: a convex polygon of its corners, in either winding.
+   * Set for a turned map, where the view is not a box; when set, it is the view for `too_large`
+   * and `viewExtent` is not read by the rule.
+   */
+  viewPolygon?: [number, number][]
 }
 
 /** What running an operation means: actions that become one undo step */

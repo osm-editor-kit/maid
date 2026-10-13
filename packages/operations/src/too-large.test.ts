@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'bun:test'
 import { Graph, ModelContext, OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 import type { OsmEntity } from '@osm-editor-kit/maid-model'
-import { percentContainedIn } from './extent.ts'
+import { percentContainedIn, percentInPolygon } from './extent.ts'
 import {
   circularizeOperation,
   deleteOperation,
@@ -381,5 +381,119 @@ describe('too large: extract', () => {
       node('q2', 9.3, 9.3),
     )
     expect(op.disabled(at(graph, ['p1', 'p2'], NOT_IN_VIEW))).toBe(TOO_LARGE_EXTRACT_SEVERAL)
+  })
+})
+
+/** A view turned by 45 degrees: the square |lon| + |lat| <= 1, as its corners */
+const TURNED: [number, number][] = [
+  [1, 0],
+  [0, 1],
+  [-1, 0],
+  [0, -1],
+]
+/** The same square, clockwise */
+const TURNED_CLOCKWISE: [number, number][] = [...TURNED].reverse()
+/** A box view as its corners, counter-clockwise from the south-west */
+const boxPolygon = (extent: Extent): [number, number][] => [
+  [extent.min[0], extent.min[1]],
+  [extent.max[0], extent.min[1]],
+  [extent.max[0], extent.max[1]],
+  [extent.min[0], extent.max[1]],
+]
+/** The view as the context's polygon only */
+const atPolygon = (
+  graph: Graph,
+  selected: string[],
+  polygon: [number, number][],
+): OperationContext => ({ graph, selected, viewPolygon: polygon })
+/** A closed way of four nodes, `r` out from (cx, cy) on each side */
+const square = (id: string, cx: number, cy: number, r: number): OsmEntity[] => {
+  const corners: [number, number][] = [
+    [cx - r, cy - r],
+    [cx + r, cy - r],
+    [cx + r, cy + r],
+    [cx - r, cy + r],
+  ]
+  const ids = corners.map((_, i) => `${id}-${i}`)
+  return [
+    ...corners.map(([lon, lat], i) => node(`${id}-${i}`, lon, lat)),
+    way(id, [...ids, `${id}-0`]),
+  ]
+}
+
+const deleteOp: Operation = deleteOperation
+
+describe('the share in a view polygon, for a box view (the same numbers as the box)', () => {
+  it('a rectangle polygon gives the shares of percentContainedIn, in either winding', () => {
+    const a = view(0, 0, 4, 1)
+    const b = view(3, 0, 4, 2)
+    expect(percentInPolygon(a, boxPolygon(b))).toBe(percentContainedIn(a, b))
+    expect(percentInPolygon(b, boxPolygon(a))).toBe(percentContainedIn(b, a))
+    expect(percentInPolygon(a, [...boxPolygon(b)].reverse())).toBe(percentContainedIn(a, b))
+    expect(percentInPolygon(a, boxPolygon(b))).toBe(0.25)
+    expect(percentInPolygon(b, boxPolygon(a))).toBe(0.5)
+  })
+
+  it('exactly 80 % is allowed and 79 % is too large, through the polygon too', () => {
+    const feature = view(0, 0, 5, 1)
+    expect(percentInPolygon(feature, boxPolygon(EIGHTY))).toBe(0.8)
+    expect(percentInPolygon(feature, boxPolygon(SEVENTY_NINE))).toBeCloseTo(0.79, 12)
+    const graph = graphOf(...quad('w1', 0, 5))
+    expect(deleteOp.disabled(atPolygon(graph, ['w1'], boxPolygon(EIGHTY)))).toBeUndefined()
+    expect(deleteOp.disabled(atPolygon(graph, ['w1'], boxPolygon(SEVENTY_NINE)))).toBe(
+      TOO_LARGE_DELETE,
+    )
+  })
+
+  it('a point and a line count as the box does: in view when all of it is, edges included', () => {
+    expect(percentInPolygon(view(0.5, 0.5, 0.5, 0.5), boxPolygon(ALL))).toBe(1)
+    expect(percentInPolygon(view(9, 9, 9, 9), boxPolygon(EIGHTY))).toBe(0)
+    expect(percentInPolygon(view(0, 0.5, 4, 0.5), boxPolygon(EIGHTY))).toBe(1)
+    expect(percentInPolygon(view(0, 0.5, 4.5, 0.5), boxPolygon(EIGHTY))).toBe(0)
+  })
+})
+
+describe('too large on a turned view (a square turned 45 degrees)', () => {
+  it('a feature in the corner of the bounding box, outside the turned view, is too large', () => {
+    const graph = graphOf(...square('w1', 0.8, 0.8, 0.1))
+    expect(deleteOp.disabled(atPolygon(graph, ['w1'], TURNED))).toBe(TOO_LARGE_DELETE)
+    expect(deleteOp.disabled(atPolygon(graph, ['w1'], TURNED_CLOCKWISE))).toBe(TOO_LARGE_DELETE)
+  })
+
+  it('a feature at the centre is not too large', () => {
+    const graph = graphOf(...square('w1', 0, 0, 0.1))
+    expect(deleteOp.disabled(atPolygon(graph, ['w1'], TURNED))).toBeUndefined()
+    expect(deleteOp.disabled(atPolygon(graph, ['w1'], TURNED_CLOCKWISE))).toBeUndefined()
+  })
+
+  it('a point in the corner is too large, a point at the centre is not', () => {
+    const corner = graphOf(node('n1', 0.9, 0.9))
+    expect(deleteOp.disabled(atPolygon(corner, ['n1'], TURNED))).toBe(TOO_LARGE_DELETE)
+    const centre = graphOf(node('n1', 0, 0))
+    expect(deleteOp.disabled(atPolygon(centre, ['n1'], TURNED))).toBeUndefined()
+  })
+
+  it('a box half in the turned view has 3/4 of its area in it', () => {
+    // x from 0 to 1, y from -0.5 to 0.5: the part with |x| + |y| <= 1 is 3/4 of the box
+    expect(percentInPolygon(view(0, -0.5, 1, 0.5), TURNED)).toBeCloseTo(0.75, 12)
+    expect(percentInPolygon(view(0, -0.5, 1, 0.5), TURNED_CLOCKWISE)).toBeCloseTo(0.75, 12)
+  })
+
+  it('a point on the edge is in view, a box that touches the view only at a corner is not', () => {
+    // the edge from (1, 0) to (0, 1)
+    expect(percentInPolygon(view(0.5, 0.5, 0.5, 0.5), TURNED)).toBe(1)
+    // the box from x 1 to 2 meets the view only at its corner (1, 0)
+    expect(percentInPolygon(view(1, -0.1, 2, 0.1), TURNED)).toBe(0)
+  })
+
+  it('a line counts as in view only when all of it is in the polygon', () => {
+    expect(percentInPolygon(view(0, 0, 0.5, 0), TURNED)).toBe(1)
+    expect(percentInPolygon(view(0, 0, 1.5, 0), TURNED)).toBe(0)
+  })
+
+  it('the polygon is used instead of the box when both are in the context', () => {
+    const graph = graphOf(node('n1', 0.9, 0.9))
+    const both: OperationContext = { graph, selected: ['n1'], viewExtent: ALL, viewPolygon: TURNED }
+    expect(deleteOp.disabled(both)).toBe(TOO_LARGE_DELETE)
   })
 })

@@ -21,7 +21,7 @@ Compared with iD, what needs the tiles or the filters is left out: "not download
 
 ## The view: `too_large`
 
-`OperationContext` has an optional `viewExtent`: the part of the world the map shows, as `{ min: [lon, lat], max: [lon, lat] }` (the form of the model's Extent). Without it, nothing is too large. With it, an operation whose features are less than 80 % in view is disabled with `too_large` (iD's and Rapid's threshold, `<` 0.8: exactly 0.8 is allowed). The share is by area, as iD's `percentContainedIn`; a point counts as all in view when it lies in view. The features' extent is the union of the selection, as iD's `utilTotalExtent`; a feature without a position is not measured. The sentences are iD's (`core.yaml`, `operations.<name>.too_large`), in the operation's own reason table.
+`OperationContext` has an optional `viewExtent`: the box the map shows, as `{ min: [lon, lat], max: [lon, lat] }` (the form of the model's Extent). A turned map is not a box in lon/lat, so the context may also have `viewPolygon`: the same view as its convex corners in lon/lat, in either winding. When it is set, it is the view and `viewExtent` is not read. Without either, nothing is too large. With a view, an operation whose features are less than 80 % in view is disabled with `too_large` (iD's and Rapid's threshold, `<` 0.8: exactly 0.8 is allowed). The share is by area, as iD's `percentContainedIn` for a box. For a polygon the feature's box (its lon/lat bounding box, as iD) is clipped to the convex view (`percentInPolygon`, Sutherland-Hodgman) and the share is the clipped area over the box's area; for a box view this gives the same numbers. A point or a line counts as all in view when all its corners lie in the view, edges included. The features' extent is the union of the selection, as iD's `utilTotalExtent`; a feature without a position is not measured. The sentences are iD's (`core.yaml`, `operations.<name>.too_large`), in the operation's own reason table.
 
 | Operation | iD | Rapid | Maid |
 | --- | --- | --- | --- |
@@ -37,4 +37,4 @@ Compared with iD, what needs the tiles or the filters is left out: "not download
 | Escape hatch `poweruser.allowLargeEdits` | none | yes | not adopted: a setting would let a feature far out of view be edited |
 | Point to area (Maid's own, not iD's) | none | none | no rule |
 
-The app builds the context in the renderer's `operationContext()` and passes `viewExtent` there, from the map's bounds. Nothing in this package reads the map.
+The app builds the context in the renderer's `operationContext()` and passes `viewExtent` (the map's bounds) and `viewPolygon` (the four canvas corners, unprojected; pitch is 0) there. Nothing in this package reads the map.
