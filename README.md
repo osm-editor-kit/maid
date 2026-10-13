@@ -1,10 +1,26 @@
 # Maid
 
-**Ma**pLibre **iD** Editor: an OpenStreetMap editor built as a base for single-purpose editors. Projects add their own configuration and modules instead of maintaining a fork.
+**Ma**pLibre **iD** Editor: the iD-inspired OpenStreetMap editor for building your own single-purpose editing experience.
+
+OpenStreetMap data gets more detailed by the minute, and sub-communities gather around their fields of expertise. Each of them deserves an editor made for its topic: an editing experience that is limited to that topic and optimised for it. Road and bike infrastructure is the first; playgrounds, golf courses, climbing crags and routes, or footway mapping could be next.
+
+## Your own editor
+
+1. Fork this repository.
+2. Add your app next to ours, for example `apps/maid-golf`: a config that says which modules, presets and filters your editor has, and nothing else.
+3. Add what your topic needs as modules in `packages/` (a map layer, an inspector section, a validation rule, an operation). Features are built as modules, so your editor and ours do not get in each other's way.
+4. Where the core lacks something, change it in your fork right away, as a small commit of its own, and open a pull request with that commit. When it is merged, your fork and this repository are the same there again.
+5. Deploy: a GitHub variable names the app directory that is built and published to GitHub Pages.
+
+To take over what happened here since, merge this repository into your fork. As long as your work lives in your own app and module directories, that merge has nothing to argue about.
+
+This repository is built the same way: `apps/maid` is the default editor and `apps/maid-bicycle` the editor for road and bike infrastructure. If our own second editor cannot do something through a config and modules, neither can yours, and we find out first.
+
+## What it is made of
 
 Maid builds on the [iD](https://github.com/openstreetmap/iD) ecosystem and rewrites parts of the technology underneath. Kept from iD: the tagging schema and presets, the imagery index, the look of the data and the editing model people know. Rewritten: rendering (MapLibre GL through `react-map-gl`), the interface (React, TypeScript, Tailwind) and the tooling (Bun, Vite). The data model follows [Rapid](https://github.com/bhousel/Rapid).
 
-It is organised as a monorepo of separate packages, so that a project can replace or extend single parts instead of patching one big code base. Reusable parts are published in the [`@osm-editor-kit`](https://www.npmjs.com/org/osm-editor-kit) npm organisation.
+It is a monorepo of separate packages, so that an editor replaces or extends single parts instead of patching one big code base.
 
 ## Status
 

@@ -1,6 +1,6 @@
 # How a fork is made and kept up to date
 
-Status: **agreed by Tobias on 2026-10-11**, including how forks consume Maid and that replacing components comes later.
+Status: **changed by Tobias on 2026-10-13** ([ADR 0009](../adr/0009-decisions-of-2026-10-13.md), "How someone makes their own editor"): an editor is made by forking this repository and adding an app and modules inside the fork; pull requests and merges connect the two. What this page says about configs, modules, hooks and `bun patch` as the way to change things still holds; what it says about forks depending on published npm packages and never merging is the later, second way. Before that: **agreed by Tobias on 2026-10-11**, including how forks consume Maid and that replacing components comes later.
 
 ## The question
 
