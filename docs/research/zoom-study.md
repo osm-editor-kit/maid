@@ -9,8 +9,37 @@ Not run: iD and Rapid (no reference servers were started, per the brief). Their 
 ## Answers in short
 
 1. **Zoom numbers.** iD and Rapid count zoom with 256 px tiles (OSM zoom). MapLibre counts with 512 px tiles, so for the same view `MapLibre zoom = OSM zoom - 1`. Measured: `#map=17` gives `map.getZoom() === 16`. Maid converts correctly almost everywhere. Two places are off by one, both in the imagery module (list below).
-2. **Large features.** iD: below zoom 16 it draws only the selection ("wide selection"), loads nothing, and blocks editing. Rapid: no editing gate at all; it loads from OSM 15, draws from OSM 12, and hides everything below 12. Both refuse an operation when less than 80% of the feature is in view (`too_large`). Maid has no `too_large` check, and it keeps drawing and editing all loaded data at any zoom (measured at OSM 11).
+2. **Large features.** iD: below zoom 16 it draws only the selection ("wide selection"), loads nothing, and blocks editing. Rapid: no editing gate at all; it loads from OSM 15, draws from OSM 12, and hides everything below 12. Both refuse an operation when less than 80% of the feature is in view (`too_large`). Maid has a `too_large` check since 5251d50, and since 56a497f it draws the selection at any zoom and the rest of the loaded data down to OSM 12 (see the section below). Before those commits it kept drawing all loaded data at any zoom (measured at OSM 11).
 3. **Decisions needed:** see section 6.
+
+---
+
+## Built on 2026-10-13
+
+Built after the study above, in 5251d50 (`too_large`), 827a9f8 (`too_large` with a turned map) and 56a497f (zoom below the load zoom, the switch, the world view). The sections above read as they were when the study was written, except where a line says "built" or "since".
+
+What Maid does now, by OSM zoom:
+
+| OSM zoom | Drawn | Loads new data |
+| --- | --- | --- |
+| 17 and up | everything loaded, with vertices and labels | yes |
+| 16 | everything loaded, with vertices and labels | yes (the load zoom) |
+| 12 to 15 | lines, areas and point dots; no vertices or labels | no |
+| 2 to 11 | only the selection | no |
+
+Camera minimum: OSM 2 (the world view).
+
+The switch "show only the selection" in the top bar shows only the selection at any zoom, for the visit.
+
+Open (from the same commits, see [steps.md](../build-out/steps.md) Part F):
+
+- Point dots at 12 to 15 keep their size and crowd the map; to tune.
+- 34 more layers (114 instead of 80); cost not measured on the dense scene.
+- Hover and relation-member highlights are not drawn below the floors.
+- `check-render` references need a review before a new one is saved.
+- Pan timing at zoom 12, 14 and 16 on the dense scene is not measured.
+
+Not checked here: this section was written from the commit messages and code reads of the same day. No browser run was made for it.
 
 ---
 
@@ -115,10 +144,10 @@ Note on the owner's wording: iD has no maximum zoom for editing. Its only editin
 ### C.3 Maid
 
 - **Editing zoomed out:** allowed at any zoom (no gate) [inferred].
-- **`too_large`:** built in 5251d50 (2026-10-13). `packages/operations/src/extent.ts` gives the share of a feature in view; straighten, square, make round, disconnect, extract, flip and delete refuse a feature that is less than 80 % in view, with iD's wording. There is no power-user switch and no exemption for unsaved features, as in iD. Point-to-area has no rule. The rule uses the view box, so with a turned map it is not yet exact (see [rotate-and-tilt.md](rotate-and-tilt.md)). Before 5251d50 this line read: not implemented. [read]
-- **Loaded data below the load zoom:** still drawn and hit-testable [measured: rendered features at OSM 11; inferred for hit-testing]. The tile set only grows: `engine.ts` removes a tile from `this.tiles` only when its request fails. Data is never unloaded.
+- **`too_large`:** built in 5251d50 (2026-10-13); with a turned map, measured against the view itself in 827a9f8. `packages/operations/src/extent.ts` gives the share of a feature in view; straighten, square, make round, disconnect, extract, flip and delete refuse a feature that is less than 80 % in view, with iD's wording. There is no power-user switch and no exemption for unsaved features, as in iD. Point-to-area has no rule. The rule uses the view box, so with a turned map it is not yet exact (see [rotate-and-tilt.md](rotate-and-tilt.md)). Before 5251d50 this line read: not implemented. [read]
+- **Loaded data below the load zoom:** before 56a497f still drawn and hit-testable [measured: rendered features at OSM 11; inferred for hit-testing]. The tile set only grows: `engine.ts` removes a tile from `this.tiles` only when its request fails. Data is never unloaded. Since 56a497f: drawn down to OSM 12 without vertices and labels, only the selection below 12 (see the section below).
 - **Zoom to this:** `engine.fitTo` (`engine.ts:1416-1441`), `POINT_ZOOM` 17 and `FIT_MAX_ZOOM` 18 in MapLibre (= OSM 18 and 19). Not clamped to iD's 20.
-- **Show only the selection:** not implemented. Filters (`packages/filters`) hide by category and cannot isolate a selection.
+- **Show only the selection:** built in 56a497f, a switch in the top bar that works at any zoom for the visit. Before that: not implemented; filters (`packages/filters`) hide by category and cannot isolate a selection.
 
 ---
 
@@ -149,18 +178,18 @@ Not measured: editing below 16 in Maid (no gate was found, so it was not run); t
 - (b) Rapid: editing allowed at any zoom, but refused when less than 80% of the feature is in view. Fits the owner's use case: zoom out to see the forest, edit it, and it still works because the 80% check is about the view.
 - (c) Maid today: allowed at any zoom with no check. Risky for huge features.
 
-Recommendation: (b). It is what Rapid does and it matches the workflow. Add the `too_large` rule first, with the power-user escape as in Rapid.
+Recommendation: (b). It is what Rapid does and it matches the workflow. Built: the `too_large` rule came first (5251d50), without Rapid's power-user escape (as iD); with a turned map the share is measured against the view (827a9f8).
 
 **D2. Data loading floor.** Keep 16 (iD) or 15 (Rapid). Recommendation: keep 16. Loading a half-country at z15 is the problem the owner names. Rapid's 15 is an OSM number that loads more than iD's.
 
-**D3. What to draw below the load zoom.** Options:
+**D3. What to draw below the load zoom.** Built in 56a497f: the option (a) for the selection and (b)'s floor of 12 for the rest. Options:
 - (a) iD: only the selection (wide selection), everything else removed from the map. Matches "keep only it visible and hide the rest".
 - (b) Rapid: everything loaded, down to OSM 12; hidden below 12.
 - (c) Maid today: everything loaded, at every zoom (measured: still drawn at OSM 11).
 
 Recommendation: (a) for the selection, plus (b)'s floor of 12 for the rest. Hide the rest below 12 or 16.
 
-**D4. Camera minimum zoom.** iD and Rapid stop at OSM 2. Maid can go to OSM -1 (MapLibre -2). Recommendation: set `minZoom` to 1 in MapLibre (= OSM 2) to match. Small, but it is a visible behaviour change.
+**D4. Camera minimum zoom.** iD and Rapid stop at OSM 2. Maid can go to OSM -1 (MapLibre -2). Recommendation: set `minZoom` to 1 in MapLibre (= OSM 2) to match. Built in 56a497f: the camera stops at the world view, OSM 2.
 
 **D5. Notes start zoom.** iD and Rapid show notes from OSM 12. Maid passes `minDataZoom` (16) into the notes module (`maid.config.ts:79`), so notes start at 16. Recommendation: 12, as iD, or keep 16 and say so in a comment. This is probably an unintended coupling.
 

@@ -10,6 +10,29 @@ Audit of 2026-10-13. Read-only: no code changed, no servers, no network, no brow
 - iD has no spec for the inspector's multi sections (selection list, feature type, preset fields, entity issues, membership, preset list, measurement, history). Maid must write its own tests there; copying iD's specs cannot cover them.
 - The brief assumed a "3 features" header. iD's header says "Edit features" with no count (`ui/entity_editor.js` 68-70). The count is in the selection list label, "Features (3)" (`ui/sections/selection_list.js` 19-21).
 
+## Built on 2026-10-13
+
+The summary and the gap table above describe the state before fc45983 and d0d7c6d. The following is what was built after them. The base (one write to all features) is 49fe526.
+
+Built:
+
+- The inspector for several (fc45983): a list (click selects one, x takes one out), the type or "Multiple types", the fields all of them have, the tags all of them share, "Multiple values" where they differ. A change is one undo step; a read-only feature in the selection refuses the change, with a toast.
+- The tags of several (d0d7c6d): a typed value goes to all; renaming a key keeps each feature's own value; removing a row removes it everywhere; a paste adds or overrides.
+- The type of several (d0d7c6d): each feature keeps its own other tags, one undo step; the list offers only types that fit every geometry in the selection.
+- The issues of all selected features (d0d7c6d), in iD's order.
+- `bun run check-multi` (d0d7c6d): 11 steps in a browser.
+
+Open:
+
+- Relation membership for several: one row per relation, add to all (iD). Not built (D8 above).
+- The type picker's empty search shows the first 50 types by name; iD shows its defaults.
+- The issue list for several is ordered by type, as iD; the single list is ordered by severity.
+- `check-multi` does not cover the type change and the issues yet.
+- A pasted `key=*` on a mixed tag is refused with a message; iD skips it silently.
+- Shift-click on open ground keeps the selection, and lasso: as in 3.5 above, not covered by these commits.
+
+Not checked here: this section was written from the commit messages and their stats. No test or browser check was run for it.
+
 ## Part 1: iD
 
 ### 1.1 The inspector for several features

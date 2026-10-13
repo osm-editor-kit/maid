@@ -15,7 +15,7 @@ Tilt is not built and stays off. The Part 4 tilt items (the rotate tool's angle 
 Still broken with a turned map:
 
 - Tiles, notes, imagery and street imagery load for the box around the view, which is larger than the view when turned. More requests than needed (Part 2, the rows for `loadVisibleTiles`, notes and imagery).
-- The "too large" rule (5251d50) uses the view box, so the share in view is not exact with a turned map. In work.
+- The "too large" rule (5251d50) uses the view box, so the share in view is not exact with a turned map. Fixed in 827a9f8: the share is measured against the four corners of the view.
 - Ctrl-click on open map on a Mac no longer opens the menu, because Ctrl with a drag turns the map. Needs a person's test.
 - Shift+Right turns clockwise, as in Rapid. This reverses MapLibre's default. To be confirmed.
 

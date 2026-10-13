@@ -240,8 +240,24 @@ Built since the queue was written, with the commit and a line on what to try, is
 - [x] The map can be turned: Alt or Control with a drag on open map; Shift with the left and right arrows in steps of 2.5 degrees; two fingers on a touch screen; a compass button and the key N set north up again; a link and the stored position keep the turn. A zoom to a feature keeps a turned map turned.
   Result (2026-10-13): built in be55541, and the zoom to a feature in 3bb1edd. Test for Tobias: hold Alt and drag on open map, press Shift+Right, then press N. Tilting is not built; the map is only turned.
 
+- [x] "Too large" with a turned map: the share in view is measured against the view itself, not the larger box around it. With north up the result is the same as before.
+  Result (2026-10-13): built in 827a9f8. Test for Tobias: turn the map with Alt and a drag, zoom in until a long road runs off the screen, select it and try Straighten. It is refused as it is with north up.
+- [x] Several features in the inspector: a list (click selects one, x takes one out), the type or "Multiple types", the fields all of them have, the tags all of them share with "Multiple values". A change goes to all as one undo step; a read-only feature in the selection refuses the change, and a toast says so.
+  Result (2026-10-13): built in fc45983 and d0d7c6d. d0d7c6d adds: a typed value in the tags sheet goes to all; renaming a key keeps each feature's own value; removing a row removes it everywhere; the type of several can be changed, each keeps its own other tags, in one undo step, and the list offers only types that fit every geometry; the issues of all selected features, in iD's order. New browser check `bun run check-multi` (11 steps). Fixed in passing: changing a filter after an edit caused an error in the map library.
+  Test for Tobias: select three features with Shift-click. See the list, the shared fields and tags; change a shared value and undo it. Then select two features of different types and change the type of both.
+- [x] Checks for each app: every check takes `--app maid|bicycle`. `bun run check-all` runs the eleven checks, compares their counts with the expected ones and writes a report. `bun run check-config` tests both editors' configs without a browser: unique module ids, known extension points, fixed ports.
+  Result (2026-10-13): built in 2a3e9be; both editors pass all eleven checks.
+  Test for Tobias: run `bun run check-all` and read the report it names; run `bun run check-config`. Both exit 0 when all is well.
+- [x] Saving again without a reload: after a successful upload the edit history is emptied and the view loads again after 2.5 seconds, as in iD and Rapid. A selected new feature stays selected under its new id. The save button is no longer blocked after a save, and edits made after it are kept for a restore again.
+  Result (2026-10-13): built in dce9e86. Not yet tried on the development server by a person (see Waiting for Tobias).
+  Test for Tobias, five steps: (1) on the development server, with `?live=dev`, log in and add a bench; (2) save; a toast shows and the map loads again after about 2.5 seconds; (3) move the bench; (4) save again; (5) changeset B must contain exactly one changed node, with the id from changeset A.
+- [x] Map zoom: below the load zoom (16) the loaded lines, areas and points stay drawn down to zoom 12, without vertices and labels; below 12 only the selection is drawn. New data still loads only from zoom 16. A switch in the top bar, "show only the selection", works at any zoom for the visit. The camera stops at the world view, as in iD and Rapid.
+  Result (2026-10-13): built in 56a497f.
+  Test for Tobias: with data loaded, zoom out step by step. At 12 to 15 lines and areas stay, points show as dots, no vertices or labels. Below 12 only the selected feature is drawn. Turn on "show only the selection" in the top bar. Zoom out to the world view and no further.
+
 ### Waiting for Tobias
 
+- [ ] Saving on the development server (dce9e86): the five steps under Done. Not yet tried by a person.
 - [ ] C2: try login at `http://127.0.0.1:5173` and saving with `?live=dev`.
 - [ ] Licences: surface and smoothness by photo is switched on (decided 2026-10-13); its data package is GPL-3.0-or-later and Maid is ISC. To be settled.
 - [ ] Look at on screen (nobody has): the ruler icon, the red state of a too long value, the favourite number fields, the toasts on a narrow window, the three places with the shared segmented control, the address dots.
@@ -255,9 +271,11 @@ Built since the queue was written, with the commit and a line on what to try, is
 
 ### Editing and data
 
-- [ ] Editing below the load zoom as Rapid; draw the selection at every zoom and the rest down to zoom 12; a switch "show only the selection"; the camera stops at the world view; notes from zoom 14, with a toast when the limit cut the list.
-- [ ] Several features at once: the engine writes one change to all as one undo step; the inspector for several (fields that fit every geometry, "Multiple types", shared issues); the "Multiple values" state in every field; a read-only feature in the selection refuses the whole change with a reason; Shift-click on open ground keeps the selection; lasso. Base built in 49fe526. [multi-selection.md](../research/multi-selection.md)
-- [ ] Tags as a sheet: the React grid and `TagSheet`, the browser check `check-tags`, the inspector switched over (the old tag rows go), suggestions, the mixed state. Core built in b7535df. [sheet-design.md](../research/sheet-design.md)
+- [ ] Notes from zoom 14, with a toast when the limit cut the list. Editing below the load zoom, the selection at every zoom, the switch and the world view are built (see Done: 5251d50, 56a497f).
+- [ ] Zoom, open: point dots at zoom 12 to 15 keep their size and crowd the map (to tune); 34 more layers (114 instead of 80), cost not measured on the dense scene; hover and relation-member highlights are not drawn below the floors; `check-render` references need a review before saving new ones; pan timing at zoom 12, 14 and 16 on the dense scene is not measured.
+- [ ] Several features at once: the "Multiple values" state in every field; Shift-click on open ground keeps the selection; lasso. Base built in 49fe526; the inspector for several, mixed tags, the type change, shared issues and the read-only refusal are built in fc45983 and d0d7c6d (see Done). [multi-selection.md](../research/multi-selection.md)
+- [ ] Several features, open: relation membership for several; the type picker's empty search shows the first 50 types by name (iD shows its defaults); the issue list for several is ordered by type as in iD, while the single list is ordered by severity; `check-multi` does not cover the type change and the issues yet; a pasted `key=*` on a mixed tag is refused with a message (iD skips it silently).
+- [ ] Tags as a sheet: the React grid and `TagSheet`, the browser check `check-tags`, the inspector switched over (the old tag rows go), suggestions. Core built in b7535df; the mixed state built in d0d7c6d (see Done). [sheet-design.md](../research/sheet-design.md)
 - [ ] Countries: the restore list has no position for ways and relations; multipolygon holes are ignored in "inside the building"; a child app's own presets and fields cannot carry a location set; the country data costs about 0.25 MB gzip at startup, and the first use of large sets about 140 ms (warm when idle?).
 - [ ] Custom background: a key inside a path segment is not redacted in the cited name; the mark on the Background button when a link sets the background is open.
 - [ ] "Too large": point-to-area has no rule.
@@ -271,8 +289,10 @@ Built since the queue was written, with the commit and a line on what to try, is
 - [ ] Fetching with TanStack Query: one client, reference data fetched once per session, a gate per service (Wikimedia one request at a time), at most two retries and none on 4xx, a pause with a standing toast on 429 and 509, map data tiles with a time limit, cancelling and a wait after an error, street-level photo queries keyed per tile, the photo layer off until switched on, one switch that stops every remote request in automated runs. [fetching-audit.md](../research/fetching-audit.md) Built so far: the no-direct-fetch test and the 5 seconds on `maxlag` (2c4b73b, see Done above).
 - [ ] Fetching, open: requests made inside third-party packages (street-level photos, PMTiles, MapLibre tiles) are outside the editor's fetch; the sprite loader in the shell is on the allow list with a TODO.
 - [ ] Taginfo, open: the suggestion list does not scroll the highlighted option into view; keystrokes can queue several requests behind a pause.
-- [ ] Turned map: tiles, notes and imagery load for the box around the view, which is larger than the view (more requests). The "too large" rule with a turned map is in work.
+- [ ] Turned map: tiles, notes and imagery load for the box around the view, which is larger than the view (more requests). The "too large" rule with a turned map is built (827a9f8).
 - [ ] What a link may do: the URL wins and never writes storage; the filter banner goes; the first change a person makes is stored; a mark at the control when the view differs from the stored choice; the last map position as a fallback; iD's link parameters act for the visit. Built so far: a `background=custom:` link holds for the visit (3bb1edd). [state-storage-and-url.md](../research/state-storage-and-url.md)
+
+- [ ] Saving, open: a large upload split into several changesets can duplicate the first part when a later part fails and the person retries (present before dce9e86, not fixed). The 2.5 second wait after an upload is copied from iD and Rapid and may be too short for the server (`REPLICATION_DELAY_MS` in `packages/shell/src/save/after-upload.ts`).
 
 ### Translations
 
@@ -281,8 +301,8 @@ Built since the queue was written, with the commit and a line on what to try, is
 
 ### The module system
 
-- [ ] Shell plan, steps 5 and 6: checks for each app (`--app`), a contract test per module, and `bun run check-config` over a matrix of configs (D6), with a dev-only `?modules=` harness. [shell-package-plan.md](../research/shell-package-plan.md)
-- [ ] Shell, open points: the six settings stores keep fixed names, not one set per app; `created_by` is still "Maid 0.0.0" for both apps; browser checks run only against `apps/maid` until step 5.
+- [ ] Shell plan, steps 5 and 6: the checks for each app (`--app`) and `bun run check-config` are built (2a3e9be, see Done). Open: a contract test per module, and the dev-only `?modules=` page, which can be done in each app's entry alone and is not built. [shell-package-plan.md](../research/shell-package-plan.md)
+- [ ] Shell, open points: the six settings stores keep fixed names, not one set per app; `created_by` is still "Maid 0.0.0" for both apps. Browser checks run against both apps since 2a3e9be.
 - [ ] Radnetz modules: the TILDA bike infrastructure section with its checklist and rule; "extract a side into its own way" and "merge a cycleway and a footway"; age colours and a way's images for the photo layer; infra3D links; the traffic sign field as a Maid field on `@osm-traffic-signs/converter`.
 
 ### Cleanup
