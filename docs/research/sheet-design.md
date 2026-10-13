@@ -302,3 +302,14 @@ Not checked: whether another browser check selects the old tag inputs by somethi
 8. **Tab.** (a) Spreadsheet: Tab moves through cells and leaves only at the two ends. (b) ARIA grid pattern: Tab always leaves, arrows move. Recommend (a): key, Tab, value, Tab is how tags are typed.
 9. **Refused paste lines.** (a) In the status line under the sheet. (b) As a toast once sonner is in. Recommend (a) now.
 10. **Where it lives.** (a) `packages/ui/src/sheet`. (b) A package of its own (`maid-sheet`) for use outside Maid. Recommend (a) until the way table proves the API, then extract.
+
+## Decided by Tobias on 2026-10-13
+
+These answer open questions 1 to 4 and override anything above that says otherwise.
+
+1. **Row order:** sorted by key when a feature is selected. While the focus is inside the sheet no row moves, new rows included. A paste sorts at once, with the reorder animated. Everything else sorts when the focus leaves the sheet.
+2. **Emptying a value:** the tag is removed from the data; the row stays as an incomplete row until the focus leaves the sheet, so a new value can be typed. No tag with an empty value is ever written.
+3. **Paste:** adds keys and overrides the values of keys that exist. It never removes a tag. A line `key=` without a value is refused and named under the sheet. After a paste one line says what happened ("5 tags pasted, 2 replaced").
+4. **No text view.** A "Copy all" button copies every tag as `key=value` lines; selected rows are copied with the copy key; a paste works in any cell.
+
+Questions 5 to 10 follow the recommendations above until decided otherwise.
