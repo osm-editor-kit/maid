@@ -43,6 +43,7 @@ export {
   setFavouriteNumber,
   type Favourite,
 } from './favourites.ts'
+export { useBearing } from './bearing.ts'
 export { useSettings, type Settings } from './settings.ts'
 export { initTheme, useResolvedTheme, useTheme, type Theme } from './theme.ts'
 export { ThemeSwitch } from './ThemeSwitch.tsx'

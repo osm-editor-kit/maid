@@ -171,4 +171,16 @@ describe('the last map position', () => {
       expect(state.shown).toEqual(good.shown)
     }
   })
+
+  it('the turn is kept with the position; a turn that does not fit is dropped and the position kept', async () => {
+    const turned = await load({
+      ...good,
+      lastView: { lng: 13.4, lat: 52.5, zoom: 17, bearing: -37.5 },
+    })
+    expect(turned.lastView).toEqual({ lng: 13.4, lat: 52.5, zoom: 17, bearing: -37.5 })
+
+    const bad = await load({ ...good, lastView: { lng: 13.4, lat: 52.5, zoom: 17, bearing: 400 } })
+    expect(bad.lastView).toEqual({ lng: 13.4, lat: 52.5, zoom: 17 })
+    expect(bad.lastView?.bearing).toBeUndefined()
+  })
 })

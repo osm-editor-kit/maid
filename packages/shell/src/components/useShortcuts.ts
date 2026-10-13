@@ -6,6 +6,7 @@ import { giveFavouriteType } from '../favourites'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
 import { keepsStack, stepStackId, useStack } from '../stack'
+import { turnForKey } from '../url/bearing'
 
 /** Screen pixels the arrow keys move the map by, as in iD */
 const PAN = 80
@@ -25,6 +26,8 @@ const PAN = 80
  * - Cmd/Ctrl+Backspace or Delete deletes the selection; Escape leaves a mode, then the selection
  * - the letters of the edit menu run its operations (V reverse, X split, C merge, ...)
  * - arrow keys pan the map, + and - zoom
+ * - Shift with the left and right arrows turns the map by 2.5 degrees, N turns it back to north
+ *   (no key tilts the map: pitch is switched off)
  * - where a click found several features (the pill on the map): , takes the previous one and .
  *   the next one. Not [ and ], which iD uses for the nodes of a way
  */
@@ -118,6 +121,10 @@ export function useShortcuts() {
     { hotkey: 'ArrowDown', callback: () => pan(0, PAN) },
     { hotkey: '=', callback: () => engine.map?.zoomIn() },
     { hotkey: '-', callback: () => engine.map?.zoomOut() },
+    // turns as Rapid's Shift+Left and Shift+Right; N as its compass (the map's keyboard is off, see MapView)
+    { hotkey: 'Shift+ArrowLeft', callback: () => engine.turnBy(turnForKey('ArrowLeft')) },
+    { hotkey: 'Shift+ArrowRight', callback: () => engine.turnBy(turnForKey('ArrowRight')) },
+    { hotkey: 'N', callback: () => engine.resetNorth() },
     // the keys of the edit menu
     ...operations.flatMap((operation) =>
       operation.shortcut

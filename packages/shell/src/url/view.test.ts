@@ -19,6 +19,12 @@ describe('startCamera: the URL, else the last position, else the fallback', () =
   test('with neither the fallback holds', () => {
     expect(startCamera({ url: null, stored: undefined, fallback: FALLBACK })).toEqual(FALLBACK)
   })
+
+  test('a stored position keeps its turn; a link without one starts north-up', () => {
+    const turned: Camera = { ...STORED, bearing: -37.5 }
+    expect(startCamera({ url: null, stored: turned, fallback: FALLBACK })).toEqual(turned)
+    expect(startCamera({ url: LINK, stored: turned, fallback: FALLBACK })).toEqual(LINK)
+  })
 })
 
 describe('moveSource: what moved the map', () => {

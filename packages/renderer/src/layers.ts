@@ -336,6 +336,8 @@ function buildMainLayers(options: LayerOptions) {
       minzoom: 16,
       layout: {
         'icon-image': ['concat', 'icon-', ['get', 'icon']],
+        // upright on the screen when the map is turned (point symbols; labels on lines follow the line)
+        'icon-rotation-alignment': 'viewport',
         'icon-allow-overlap': true,
         'icon-ignore-placement': true,
       },
@@ -534,6 +536,11 @@ function buildMainLayers(options: LayerOptions) {
     filter: ['all', ['has', 'addr'], ['!=', ['get', 'addr'], '']],
     layout: {
       'icon-image': ADDRESS_PLAQUE,
+      // upright on the screen when the map is turned or tilted: the plaque and its text
+      'icon-rotation-alignment': 'viewport',
+      'icon-pitch-alignment': 'viewport',
+      'text-rotation-alignment': 'viewport',
+      'text-pitch-alignment': 'viewport',
       'icon-text-fit': 'both',
       'icon-text-fit-padding': [2, 4, 2, 4],
       'icon-anchor': 'center',
@@ -581,6 +588,8 @@ function buildMainLayers(options: LayerOptions) {
       layout: {
         // one image per preset icon, pin and icon drawn together (see the app's image resolver)
         'icon-image': ['concat', 'pin-', ['coalesce', ['get', 'icon'], 'none']],
+        'icon-rotation-alignment': 'viewport',
+        'icon-pitch-alignment': 'viewport',
         'icon-anchor': 'bottom',
         // every pin is drawn; a pin further down the screen is in front, as iD sorts them
         'icon-allow-overlap': true,
@@ -618,6 +627,8 @@ function buildMainLayers(options: LayerOptions) {
         filter: ['!', ['has', 'addr']],
         layout: {
           'icon-image': ['concat', 'pin-', ['coalesce', ['get', 'icon'], 'none']],
+          'icon-rotation-alignment': 'viewport',
+          'icon-pitch-alignment': 'viewport',
           'icon-anchor': 'bottom',
           'icon-allow-overlap': true,
           'icon-ignore-placement': true,
@@ -667,7 +678,14 @@ function buildMainLayers(options: LayerOptions) {
         type: 'symbol',
         source: SOURCES.points,
         filter: ['has', 'name'],
-        layout: { ...text, 'text-size': 10, 'text-anchor': 'top', 'text-offset': [0, 0.3] },
+        layout: {
+          ...text,
+          'text-size': 10,
+          'text-anchor': 'top',
+          'text-offset': [0, 0.3],
+          'text-rotation-alignment': 'viewport',
+          'text-pitch-alignment': 'viewport',
+        },
         paint,
       },
     )

@@ -13,24 +13,53 @@ import {
   parseAsString,
   parseAsStringLiteral,
 } from 'nuqs'
+import { normaliseBearing, roundDegrees } from './bearing'
 
-/** OSM zoom (256px tiles), like iD's `map=` */
-export type Camera = { zoom: number; lat: number; lng: number }
+/**
+ * OSM zoom (256px tiles), like iD's `map=`. The turn (bearing) and the tilt (pitch) are in degrees;
+ * a position without them is north-up and flat. Tilt is switched off in the editor (ADR 0009).
+ */
+export type Camera = { zoom: number; lat: number; lng: number; bearing?: number; pitch?: number }
 
-/** `map=17.25/52.5228/13.4023`: zoom/lat/lng, the order iD uses. Precision follows the zoom. */
+/** The highest tilt MapLibre allows */
+const MAX_PITCH = 85
+
+/**
+ * `map=17.25/52.5228/13.4023/-37.5/0`: zoom/lat/lng, the order iD uses, then the turn and the tilt
+ * when they are not zero (tilda-geo's order). The turn is written only when it or the tilt is not zero.
+ * Precision follows the zoom.
+ */
 export const parseAsCamera = createParser<Camera>({
   parse(value) {
-    const [zoom, lat, lng] = value.split('/').map(Number)
+    const [zoom, lat, lng, bearing, pitch] = value.split('/').map(Number)
     if (zoom === undefined || lat === undefined || lng === undefined) return null
     if ([zoom, lat, lng].some((n) => !Number.isFinite(n))) return null
     if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null
-    return { zoom, lat, lng }
+    const camera: Camera = { zoom, lat, lng }
+    if (bearing !== undefined) {
+      if (!Number.isFinite(bearing)) return null
+      camera.bearing = normaliseBearing(bearing)
+    }
+    if (pitch !== undefined) {
+      if (!Number.isFinite(pitch) || pitch < 0 || pitch > MAX_PITCH) return null
+      camera.pitch = pitch
+    }
+    return camera
   },
-  serialize({ zoom, lat, lng }) {
+  serialize({ zoom, lat, lng, bearing = 0, pitch = 0 }) {
     const digits = Math.max(2, Math.ceil(zoom / 3) - 1)
-    return `${zoom.toFixed(2)}/${lat.toFixed(digits)}/${lng.toFixed(digits)}`
+    const head = `${zoom.toFixed(2)}/${lat.toFixed(digits)}/${lng.toFixed(digits)}`
+    const turn = roundDegrees(normaliseBearing(bearing))
+    const tilt = roundDegrees(pitch)
+    if (tilt !== 0) return `${head}/${turn}/${tilt}`
+    return turn !== 0 ? `${head}/${turn}` : head
   },
-  eq: (a, b) => a.zoom === b.zoom && a.lat === b.lat && a.lng === b.lng,
+  eq: (a, b) =>
+    a.zoom === b.zoom &&
+    a.lat === b.lat &&
+    a.lng === b.lng &&
+    (a.bearing ?? 0) === (b.bearing ?? 0) &&
+    (a.pitch ?? 0) === (b.pitch ?? 0),
 })
 
 /** `1` or `0`. Shorter than true/false and what the benchmark scripts pass. */

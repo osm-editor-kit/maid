@@ -16,7 +16,7 @@ export type Theme = 'light' | 'dark' | 'system'
  * A map position: the centre and the zoom in OSM's convention (256px tiles), the one the URL's
  * `map=` uses. MapLibre's zoom is one lower; the conversion is made where the map is set.
  */
-export type LastView = { lng: number; lat: number; zoom: number }
+export type LastView = { lng: number; lat: number; zoom: number; bearing?: number | undefined }
 
 /** What the UI remembers between visits */
 export type Settings = {
@@ -53,6 +53,8 @@ const lastViewSchema = z.object({
   lng: z.number().min(-180).max(180),
   lat: z.number().min(-90).max(90),
   zoom: z.number().min(0).max(30),
+  // optional and checked on its own: a position stored before the turn existed loads north-up
+  bearing: z.number().min(-180).max(180).optional().catch(undefined),
 })
 
 /** A favourite as it is stored: the same shape as `Favourite`, read field by field */

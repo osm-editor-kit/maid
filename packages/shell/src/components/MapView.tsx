@@ -10,7 +10,7 @@ import {
   type MaidEngine,
   type LayerOptions,
 } from '@osm-editor-kit/maid-renderer'
-import { useSettings } from '@osm-editor-kit/maid-ui'
+import { useBearing, useSettings } from '@osm-editor-kit/maid-ui'
 import * as maplibregl from 'maplibre-gl'
 import type { StyleSpecification } from 'maplibre-gl'
 import { useEffect, useRef, useState } from 'react'
@@ -28,6 +28,7 @@ import { ensureImages } from '../images'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
 import { dropStack, setStack } from '../stack'
+import { normaliseBearing } from '../url/bearing'
 import { useCameraParam } from '../url/state'
 import { moveSource, shouldStoreMove, startCamera } from '../url/view'
 import { FavouriteHint } from './FavouriteHint'
@@ -164,6 +165,7 @@ export function MapView() {
   const handleLoad = (event: MapEvent) => {
     const map = event.target
     loaded.current = true
+    useBearing.setState({ bearing: map.getBearing() })
     setEngineHooks(engine, {
       onStyleChange: () => setDashes(new globalThis.Map(dashPatterns)),
       prepare: (batch) => {
@@ -185,14 +187,19 @@ export function MapView() {
     lastTileCheck = now
     engine.loadVisibleTiles()
   }
+  // the compass shows while the map is turned, and its needle turns with the map
+  const handleRotate = (event: ViewStateChangeEvent) => {
+    useBearing.setState({ bearing: event.viewState.bearing })
+  }
   const handleResize = () => {
     resized.current = true
   }
   const handleMoveEnd = (event: ViewStateChangeEvent) => {
     engine.loadVisibleTiles()
-    const { zoom, latitude, longitude } = event.viewState
-    // OSM zoom (256px tiles) is MapLibre zoom plus one
-    void setCameraParam({ zoom: zoom + 1, lat: latitude, lng: longitude })
+    const { zoom, latitude, longitude, bearing } = event.viewState
+    const turn = normaliseBearing(bearing)
+    // OSM zoom (256px tiles) is MapLibre zoom plus one; the turn is in the URL when it is not zero
+    void setCameraParam({ zoom: zoom + 1, lat: latitude, lng: longitude, bearing: turn })
     // the last position: the person's moves, stored once the map rests (view.ts). Storage keeps OSM zoom.
     const source = moveSource({
       loaded: loaded.current,
@@ -203,7 +210,13 @@ export function MapView() {
     if (!shouldStoreMove(source)) return
     clearTimeout(storeTimer.current)
     storeTimer.current = setTimeout(
-      () => useSettings.getState().setLastView({ lng: longitude, lat: latitude, zoom: zoom + 1 }),
+      () =>
+        useSettings.getState().setLastView({
+          lng: longitude,
+          lat: latitude,
+          zoom: zoom + 1,
+          bearing: turn,
+        }),
       LAST_VIEW_DELAY,
     )
   }
@@ -227,14 +240,37 @@ export function MapView() {
     setCursor('grabbing')
   }
   /**
+   * Alt or Control with a press on open map turns the map, as in Rapid. The press is taken, so that
+   * MapLibre does not pan with the drag. On a Mac Control is also the right click: its press turns
+   * the map, and the edit menu does not open for it (handleContextMenu). A press on a feature is
+   * left to press(): Alt drags a node free there, and Control opens the menu.
+   */
+  const startTurnOnOpenMap = (event: MapLayerMouseEvent) => {
+    const { altKey, ctrlKey } = event.originalEvent
+    if (!altKey && !ctrlKey) return false
+    if (mode !== 'browse' || engine.measuring) return false
+    if (engine.pick(event.point, interactive) || engine.midpointAt(event.point)) return false
+    event.preventDefault()
+    engine.startTurn(event.point)
+    setCursor('grabbing')
+    return true
+  }
+  /**
    * Only the primary button starts a drag. A right click, or Control and a click on a Mac, opens
    * the edit menu: a preventDefault on their press would stop MapLibre from sending the
    * contextmenu event, so the menu would not open on a point, a vertex or a node of a line.
    */
   const handleMouseDown = (event: MapLayerMouseEvent) => {
-    if (event.originalEvent.button === 0 && !event.originalEvent.ctrlKey) press(event)
+    if (event.originalEvent.button !== 0) return
+    if (startTurnOnOpenMap(event)) return
+    if (!event.originalEvent.ctrlKey) press(event)
   }
   const release = () => {
+    if (engine.turning) {
+      engine.endTurn()
+      setCursor('grab')
+      return
+    }
     if (!dragging && !engine.pressingHandle) return
     dragging = null
     setCursor('grab')
@@ -251,6 +287,11 @@ export function MapView() {
     const { lng, lat } = event.lngLat
     // keys that act where the pointer is (paste, Space while drawing) read this
     setEnginePointer(engine, { point: event.point, lon: lng, lat, layers: interactive })
+    // a turn with the mouse takes the pointer's moves, and nothing else
+    if (engine.turning) {
+      engine.moveTurn(event.point)
+      return
+    }
     // a measure follows the pointer and takes nothing else
     if (engine.measuring) {
       engine.measureMove(lng, lat)
@@ -277,9 +318,17 @@ export function MapView() {
   }
   const handleMouseMove = (event: MapLayerMouseEvent) => {
     // a handle press whose release was not seen on the map (the button went up off it) ends here: no node is made by a hover
-    if (engine.pressingHandle && event.originalEvent.buttons === 0) release()
+    // a turn whose release was not seen on the map ends here too
+    if ((engine.pressingHandle || engine.turning) && event.originalEvent.buttons === 0) release()
     movePointer(event)
-    if (dragging || engine.pressingHandle || mode !== 'browse' || engine.measuring) return
+    if (
+      dragging ||
+      engine.pressingHandle ||
+      engine.turning ||
+      mode !== 'browse' ||
+      engine.measuring
+    )
+      return
     const id = engine.pick(event.point, interactive)
     engine.setHover(id)
     setCursor(engine.midpointAt(event.point) ? 'cell' : id ? 'pointer' : 'grab')
@@ -333,6 +382,8 @@ export function MapView() {
   const handleContextMenu = (event: MapLayerMouseEvent) => {
     event.originalEvent.preventDefault() // not the browser's own menu
     clearTimeout(longPress)
+    // the Control press that turns the map on a Mac fires this event too: that press is a turn, not a menu
+    if (engine.turning) return
     openMenu(event.point, event.lngLat, {
       x: event.originalEvent.clientX,
       y: event.originalEvent.clientY,
@@ -375,6 +426,8 @@ export function MapView() {
     zoomGuardTimer = setTimeout(() => setZoomGuard(false), 500)
   }
   const handleClick = (event: MapLayerMouseEvent) => {
+    // the click that MapLibre sends after a turn that moved is not a click: the selection stays
+    if (performance.now() - engine.turnedAt < 300) return
     if (engine.measuring) {
       // the first click sets the start of the measure, the second ends it: nothing is selected
       guardZoom()
@@ -465,12 +518,20 @@ export function MapView() {
         longitude: initialCamera.lng,
         latitude: initialCamera.lat,
         zoom: initialCamera.zoom - 1,
+        bearing: initialCamera.bearing ?? 0,
       }}
       mapStyle={EMPTY_STYLE}
       maxZoom={23}
       fadeDuration={config.fade}
       attributionControl={false}
+      // the turn is by the mouse (startTurnOnOpenMap), by two fingers and by N and Shift+arrows (useShortcuts)
       dragRotate={false}
+      // no tilt, from any gesture or key: the maximum is flat
+      maxPitch={0}
+      pitchWithRotate={false}
+      touchPitch={false}
+      // the keys are the editor's (useShortcuts): MapLibre's would turn by 15 degrees, and tilt
+      keyboard={false}
       cursor={mode === 'browse' && !measuring ? cursor : 'crosshair'}
       // Shift-drag is not MapLibre's box zoom here: Shift-click selects several features
       boxZoom={false}
@@ -480,6 +541,7 @@ export function MapView() {
       onMoveStart={dropStack}
       onMove={handleMove}
       onMoveEnd={handleMoveEnd}
+      onRotate={handleRotate}
       onResize={handleResize}
       onMouseDown={handleMouseDown}
       onMouseUp={release}
