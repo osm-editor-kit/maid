@@ -1,6 +1,7 @@
-import { Brand, Shell, Toaster, TopBar } from '@osm-editor-kit/maid-ui'
+import { isAutomated } from '@osm-editor-kit/maid-core'
+import { Brand, notify, Shell, Toaster, TopBar } from '@osm-editor-kit/maid-ui'
 import { NuqsAdapter } from 'nuqs/adapters/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { MapProvider } from 'react-map-gl/maplibre'
 import { BottomDock } from './components/BottomDock'
 import { FetchPauses } from './components/FetchPauses'
@@ -68,8 +69,26 @@ function Editor() {
   )
 }
 
+/**
+ * A `background=custom:` link: its template is shown for this visit, once, when the shell is up (so a refusal can
+ * be a toast). Nothing is stored (ADR 0009). Under automation the imagery is off, so the link is not used.
+ */
+function useBackgroundLink() {
+  const { config, visitBackground } = useShell()
+  useEffect(() => {
+    if (!config.background || !visitBackground || isAutomated()) return
+    const result = visitBackground(config.background)
+    if (!result.ok)
+      notify.failed(result.reason, {
+        id: 'background-link',
+        fallback: 'The background link was not used',
+      })
+  }, [config, visitBackground])
+}
+
 export function App() {
   const { editor } = useShell()
+  useBackgroundLink()
   return (
     <NuqsAdapter>
       <MapProvider>

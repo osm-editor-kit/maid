@@ -21,7 +21,13 @@ import { ManyComboField, MultiComboField, SemiComboField } from './fields/Multi.
 import { NumberField, RoadHeightField, RoadSpeedField } from './fields/Number.tsx'
 import { RadioField, StructureRadioField } from './fields/Radio.tsx'
 import { FieldRow } from './fields/Row.tsx'
-import type { CombinedTags, FieldComponent, FieldFocus, FieldMeasure } from './fields/shared.ts'
+import type {
+  AddressContext,
+  CombinedTags,
+  FieldComponent,
+  FieldFocus,
+  FieldMeasure,
+} from './fields/shared.ts'
 import { TextField, TextareaField } from './fields/Text.tsx'
 import { fieldKeys } from './logic.ts'
 import { assignRelatedTags, relatedBaseKeys, relatedButtonKeys } from './related-logic.ts'
@@ -96,6 +102,8 @@ export function PresetFields(props: {
   onFieldFocus?: (focus: FieldFocus | null) => void
   /** The measuring tape of the width fields: their "Measure on the map" button (fields/shared.ts FieldMeasure) */
   measure?: FieldMeasure
+  /** The address field's country and the features near the feature (fields/shared.ts AddressContext) */
+  address?: AddressContext
 }) {
   const {
     fields,
@@ -109,6 +117,7 @@ export function PresetFields(props: {
     loadReference,
     onFieldFocus,
     measure,
+    address,
   } = props
   // the ids picked from "Add field", in the order picked: they are rows although they have no value
   const [picked, setPicked] = useState<string[]>([])
@@ -246,6 +255,7 @@ export function PresetFields(props: {
             related={relatedOf(field)}
             loadReference={loadReference}
             measure={measure}
+            address={address}
           />
         </div>
       ))}

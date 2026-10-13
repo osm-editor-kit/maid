@@ -15,7 +15,9 @@ function iconOf(presets: Editor['presets'], element: ChangeElement) {
         ? ['area', 'line']
         : ['relation']
   for (const geometry of geometries) {
-    const preset = presets?.match(element.tags, geometry)
+    // a node has its place; a way lists its node ids only, so its location is not known here
+    const loc = element.type === 'node' ? ([element.lon, element.lat] as const) : undefined
+    const preset = presets?.match(element.tags, geometry, loc)
     if (preset?.icon && Object.keys(preset.tags).length > 0) return preset.icon
   }
   return undefined

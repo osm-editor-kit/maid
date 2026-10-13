@@ -5,7 +5,7 @@
  */
 import type { FilterSet, FilterState, Geometry } from '@osm-editor-kit/maid-filters'
 import type { OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
-import type { Presets } from '@osm-editor-kit/maid-presets'
+import type { LonLat, Presets } from '@osm-editor-kit/maid-presets'
 import {
   hasInterestingTags,
   isArea,
@@ -485,9 +485,11 @@ export class FeatureBuilder {
     const props: PointProps = { id }
     if (isAddressTags(node.tags)) props.addr = addressLabel(node.tags)
     else {
+      // a point's extent is the point itself, so its location is the one the presets are matched at
+      const loc: LonLat = [coordinates[0]!, coordinates[1]!]
       const icon =
-        this.presets?.match(node.tags, 'point').icon ??
-        this.presets?.match(node.tags, 'vertex').icon
+        this.presets?.match(node.tags, 'point', loc).icon ??
+        this.presets?.match(node.tags, 'vertex', loc).icon
       if (icon) props.icon = icon
       if (node.tags.name) props.name = node.tags.name
     }
@@ -520,7 +522,9 @@ export class FeatureBuilder {
       t: state[0] === '1' ? 1 : 0,
       s: state[1] === '1' ? 1 : 0,
     }
-    const icon = props.t ? this.presets?.match(node.tags, 'vertex').icon : undefined
+    const icon = props.t
+      ? this.presets?.match(node.tags, 'vertex', [coordinates[0]!, coordinates[1]!]).icon
+      : undefined
     if (icon) props.icon = icon
     return {
       type: 'Feature',
@@ -597,7 +601,9 @@ export class FeatureBuilder {
       if (!coordinates) continue
       this.vertexState.set(node.id, state)
       const props: VertexProps = { id, t: tagged ? 1 : 0, s: shared ? 1 : 0 }
-      const icon = tagged ? this.presets?.match(node.tags, 'vertex').icon : undefined
+      const icon = tagged
+        ? this.presets?.match(node.tags, 'vertex', [coordinates[0]!, coordinates[1]!]).icon
+        : undefined
       if (icon) props.icon = icon
       out.vertices.push({
         type: 'Feature',

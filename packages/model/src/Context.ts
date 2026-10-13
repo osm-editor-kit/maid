@@ -16,7 +16,8 @@ export interface SchemaLookup {
   removeLifecyclePrefix(key: string): string
   /** Preset lookup. Optional: the ruleset-only schema has no presets. */
   // oxlint-disable-next-line typescript/no-explicit-any -- a preset, which the model does not port
-  matchTags(tags: Record<string, string>, geometry: string): any
+  // `loc` is the place of the feature, where its location-bound presets apply; absent: everywhere
+  matchTags(tags: Record<string, string>, geometry: string, loc?: readonly [number, number]): any
 }
 
 export interface Context {

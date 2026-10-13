@@ -15,7 +15,13 @@ import {
 import { FallbackField, MixedField } from './Fallback.tsx'
 import { handlesSeveral, mixedKeysOf, mixedSignature } from './mixed-logic.ts'
 import { RelatedAddButtons, RelatedDetails, type RelatedRow } from './Related.tsx'
-import type { CombinedTags, FieldComponent, FieldMeasure, FieldProps } from './shared.ts'
+import type {
+  AddressContext,
+  CombinedTags,
+  FieldComponent,
+  FieldMeasure,
+  FieldProps,
+} from './shared.ts'
 import { HINT, LABEL, REVEAL, ROW_BUTTON } from './shared.ts'
 
 /** Field types that take a value from a list of options and show the option's label as a hint. */
@@ -89,6 +95,8 @@ export function FieldRow(props: {
   loadReference?: ReferenceLoader
   /** The measuring tape: the "Measure on the map" button, for the keys that have one. Absent: none. */
   measure?: FieldMeasure
+  /** The address field's country and nearby features (FieldProps.address). Absent: none. */
+  address?: AddressContext
 }) {
   const {
     field,
@@ -101,6 +109,7 @@ export function FieldRow(props: {
     related,
     loadReference,
     measure,
+    address,
   } = props
   const id = useId()
   const labelId = useId()
@@ -228,6 +237,7 @@ export function FieldRow(props: {
         features={features}
         onChange={onChange}
         labelActions={labelActions}
+        address={field.type === 'address' ? address : undefined}
       />
       {related ? (
         <RelatedDetails field={field} tags={tags} related={related} onChange={onChange} />

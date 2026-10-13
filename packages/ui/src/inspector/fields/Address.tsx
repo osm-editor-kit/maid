@@ -1,10 +1,11 @@
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
-import { useId, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { PLAIN_INPUT } from '../../plain-input.ts'
 import type { TagEdit } from '../logic.ts'
 import {
   addressPrefix,
   addressRows,
+  addressSuggestions,
   modeSwitchEdits,
   STREET_PLACE,
   slotEdits,
@@ -65,8 +66,16 @@ function comboRadius({ left, right }: Edges) {
  * (Escape reverts). Street, city and postcode offer the suggestions. Read-only without onChange.
  */
 export function AddressField(props: AddressFieldProps) {
-  const { field, tags, id, onChange, country, suggestions, combined } = props
+  const { field, tags, id, onChange, combined, address } = props
   const prefix = addressPrefix(field)
+  // the place of the feature gives the country and the lists (PresetFields `address`); explicit props win
+  const country = props.country ?? address?.country
+  const candidates = address?.candidates
+  const derived = useMemo(
+    () => (candidates ? addressSuggestions(candidates, prefix) : undefined),
+    [candidates, prefix],
+  )
+  const suggestions = props.suggestions ?? derived
   const rows = addressRows(field, tags, country)
   return (
     <div className="grid min-w-0 gap-1.5">

@@ -65,6 +65,9 @@ const presets = createPresets(
 const canBeArea = (tags: Record<string, string>) =>
   tags.area !== 'no' && presets.match(tags, 'point').geometry.includes('area')
 
+// the imagery module, made once: a `background=custom:` link is shown through its visitBackground
+const background = imagery()
+
 function editorConfig(config: Config) {
   // live data and unknown scenes have no fixture area to outline
   const bbox = config.live ? undefined : BBOX[config.scene]
@@ -79,7 +82,7 @@ function editorConfig(config: Config) {
     // checks what was changed here: inspector section and dock view "Issues"
     validation({ rules: defaultRules }),
     // top bar "Background": aerial imagery and overlays under the OSM data
-    imagery(),
+    background,
     // top bar "Data layers": GeoJSON, PMTiles and vector tiles to look at next to the OSM data
     dataLayers(),
     // top bar "Map style": lenses that recolour the map for one theme (surface, lit, max speed)
@@ -114,4 +117,5 @@ export const app: AppConfig = {
     envFile: 'apps/maid-bicycle/.env.local',
   },
   editor: editorConfig,
+  visitBackground: (template) => background.visitBackground(template),
 }

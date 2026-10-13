@@ -31,6 +31,11 @@ export type AppConfig = {
   }
   /** What the editor is made of: modules, presets, filters. Gets the settings read from the URL. */
   editor: (config: Config) => EditorConfig
+  /**
+   * Shows a custom background template from a `background=custom:` link, for this visit (the imagery module's
+   * visitBackground). Says why a template is refused. Called once, after the shell is shown; not under automation.
+   */
+  visitBackground?: (template: string) => { ok: true } | { ok: false; reason: string }
 }
 
 /**
@@ -89,6 +94,7 @@ export function createShell(app: AppConfig) {
     config,
     editor,
     engine,
+    visitBackground: app.visitBackground,
     normalizeFilters,
     filtersStart,
     auth: createAuth({

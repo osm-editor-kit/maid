@@ -1,5 +1,5 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
-import type { Geometry, Preset, Tags } from '@osm-editor-kit/maid-presets'
+import type { Geometry, LonLat, Preset, PresetOptions, Presets } from '@osm-editor-kit/maid-presets'
 import type { Mode } from '@osm-editor-kit/maid-renderer'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import {
@@ -21,10 +21,16 @@ const ADD_MODE: Partial<Record<Geometry, Mode>> = {
 }
 
 /**
- * A favourite that started adding a feature: the feature gets its tags when it is made. The
- * favourite is dropped as soon as the editor leaves its mode, so a later click cannot take it.
+ * A favourite that started adding a feature: the feature gets its tags when it is made, where it is
+ * made (a field with a location set depends on that place). The favourite is dropped as soon as the
+ * editor leaves its mode, so a later click cannot take it.
  */
-const pending: { current?: { mode: Mode; preset: Preset; tags: Tags } } = {}
+const pending: {
+  current?: { mode: Mode; preset: Preset; geometry: Geometry; presets: Presets }
+} = {}
+
+/** The options that give presets the place a feature is at; none when the place is not known */
+const at = (loc: LonLat | undefined): PresetOptions | undefined => (loc ? { loc } : undefined)
 
 /** Called once by the shell, when it makes the engine */
 export function watchFavourites(engine: MaidEngine) {
@@ -74,7 +80,13 @@ export function changeType({ editor, engine }: Parts, id: string, preset: Preset
   const entity = engine.entity(id)
   const { presets } = editor
   if (!entity || !presets) return
-  const tags = presets.applyPreset(entity.tags, preset, entity.geometry, entity.preset)
+  const tags = presets.applyPreset(
+    entity.tags,
+    preset,
+    entity.geometry,
+    entity.preset,
+    at(engine.centreOf(id)),
+  )
   engine.setTags(id, tags, `Changed the feature type to ${preset.name}`)
 }
 
@@ -105,7 +117,7 @@ export function startFavourite({ editor, engine }: Parts, number: string) {
   if (!mode || !presets) return
   // the mode first: switching it can finish a drawing, and that must not see the new favourite
   if (!engine.setMode(mode)) return
-  pending.current = { mode, preset, tags: presets.applyPreset({}, preset, favourite.geometry) }
+  pending.current = { mode, preset, geometry: favourite.geometry, presets }
 }
 
 /** Adds a point at a place on the map. A favourite that started the point mode gives it its tags. */
@@ -113,7 +125,15 @@ export function addPointWithFavourite({ engine }: Pick<Parts, 'engine'>, lon: nu
   const found = pending.current
   if (!found || found.mode !== 'add-point') return engine.addPoint(lon, lat)
   pending.current = undefined
-  return engine.addPoint(lon, lat, found.tags)
+  // the point is made where it is clicked: its location decides which fields with a location set apply
+  const tags = found.presets.applyPreset(
+    {},
+    found.preset,
+    found.geometry,
+    undefined,
+    at([lon, lat]),
+  )
+  return engine.addPoint(lon, lat, tags)
 }
 
 /**
@@ -130,7 +150,13 @@ export function giveFavouriteTagsToNode({ editor, engine }: Parts, id: string) {
   if (!entity || !presets) return
   // as changeType: a field default only fills a key the node does not have (iD keeps existing keys),
   // so a default never overwrites a value the node already has
-  const tags = presets.applyPreset(entity.tags, found.preset, entity.geometry, entity.preset)
+  const tags = presets.applyPreset(
+    entity.tags,
+    found.preset,
+    entity.geometry,
+    entity.preset,
+    at(engine.centreOf(id)),
+  )
   engine.setTags(id, tags, 'Changed the feature type')
 }
 
@@ -142,5 +168,12 @@ export function giveFavouriteType({ engine }: Pick<Parts, 'engine'>, id: string,
   const found = pending.current
   if (!found || found.mode !== mode) return
   pending.current = undefined
-  engine.setTags(id, found.tags, `Changed the feature type to ${found.preset.name}`)
+  const tags = found.presets.applyPreset(
+    {},
+    found.preset,
+    found.geometry,
+    undefined,
+    at(engine.centreOf(id)),
+  )
+  engine.setTags(id, tags, `Changed the feature type to ${found.preset.name}`)
 }

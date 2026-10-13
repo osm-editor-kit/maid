@@ -169,13 +169,22 @@ export function Inspector() {
     })
   }
   const { presets } = editor
+  // the place of the feature (the centre of its extent): fields with a location set are looked up there
+  const loc = entity ? engine.centreOf(id) : undefined
   const fields =
-    entity?.preset && presets ? presets.fieldsFor(entity.preset, entity.tags, entity.geometry) : []
+    entity?.preset && presets
+      ? presets.fieldsFor(entity.preset, entity.tags, entity.geometry, loc)
+      : []
   // what "Add field" offers; a read-only feature gets no list
   const moreFields =
     onChange && entity?.preset && presets
-      ? presets.moreFieldsFor(entity.preset, entity.tags, entity.geometry)
+      ? presets.moreFieldsFor(entity.preset, entity.tags, entity.geometry, loc)
       : []
+  // the address field's country and the features near this one: found only when an address field is shown
+  const address =
+    presets && loc && [...fields, ...moreFields].some((field) => field.type === 'address')
+      ? { country: presets.countryAt(loc), candidates: engine.nearby(id) }
+      : undefined
   // a feature that was just added (negative id) and has no type yet asks for it right away
   const untagged =
     entity !== undefined &&
@@ -220,7 +229,7 @@ export function Inspector() {
               <PresetPicker
                 autoFocus
                 currentId={entity.preset?.id}
-                search={(query) => presets.search(query, entity.geometry)}
+                search={(query) => presets.search(query, entity.geometry, undefined, loc)}
                 renderIcon={(preset) => (
                   <PresetIcon icon={preset.icon} className="fill-zinc-700 dark:fill-zinc-200" />
                 )}
@@ -258,6 +267,7 @@ export function Inspector() {
                   fields={fields}
                   moreFields={moreFields}
                   tags={entity.tags}
+                  address={address}
                   // what "revert" goes back to; a feature that was added here has nothing to revert to
                   baseTags={engine.baseTags(id)}
                   onChange={onChange}

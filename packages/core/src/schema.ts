@@ -15,8 +15,12 @@ export class PresetSchema extends RulesetSchema {
     this.getScope('osm').areaKeys = presets.areaKeys()
   }
 
-  public override matchTags(tags: Record<string, string>, geometry: string): PresetMatch {
-    const preset = this.presets.match(tags, geometry as Geometry)
+  public override matchTags(
+    tags: Record<string, string>,
+    geometry: string,
+    loc?: readonly [number, number],
+  ): PresetMatch {
+    const preset = this.presets.match(tags, geometry as Geometry, loc)
     // the generic presets (point, line, area, relation) are the ones without tags
     return { isFallback: () => Object.keys(preset.tags).length === 0 }
   }

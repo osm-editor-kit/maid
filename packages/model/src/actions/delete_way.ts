@@ -61,9 +61,9 @@ export function actionDeleteWay(wayID: EntityID, doDeleteDegenerate: boolean = t
 
     const schema = node.context?.systems?.schema;
     if (schema) {
-      const pointMatch = schema.matchTags(node.tags, 'point');
+      const pointMatch = schema.matchTags(node.tags, 'point', node.loc);
       if (pointMatch && !pointMatch.isFallback()) return false;    // don't delete standalone points
-      const vertexMatch = schema.matchTags(node.tags, 'vertex');
+      const vertexMatch = schema.matchTags(node.tags, 'vertex', node.loc);
       if (vertexMatch && !vertexMatch.isFallback()) return true;   // do delete vertex-only nodes
     }
 

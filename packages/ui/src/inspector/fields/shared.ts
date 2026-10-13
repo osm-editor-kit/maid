@@ -1,5 +1,6 @@
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import type { ReactNode } from 'react'
+import type { AddressCandidate } from './address-logic.ts'
 
 /**
  * One key over several features. Mirrors `Combined` in packages/model/src/util/combined-tags.ts (ui does not
@@ -33,7 +34,14 @@ export type FieldProps = {
    * absent: none; controls that ignore it are unaffected.
    */
   labelActions?: HTMLElement | null
+  /** The address field's place: its country and the features near the feature. Only the address field reads it. */
+  address?: AddressContext
 }
+/**
+ * The address field's context from the feature: the country of its centre (an ISO code, `de`), and the features
+ * near it (address-logic.ts). Absent: the default layout and no suggestions.
+ */
+export type AddressContext = { country?: string; candidates?: readonly AddressCandidate[] }
 export type FieldComponent = (props: FieldProps) => ReactNode
 
 /**

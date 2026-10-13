@@ -56,6 +56,8 @@ const engine = {
   },
   subscribe: () => () => {},
   entity: (id: string) => nodes.get(id),
+  // the places of these tests are not checked: a point has no location set that holds only somewhere
+  centreOf: () => undefined,
   setMode: (next: string) => {
     editing.mode = next
     return true

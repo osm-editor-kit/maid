@@ -53,6 +53,18 @@ import { fieldOverlayFeatures, type FieldOverlay, type LonLat } from './field-ov
 import { EDIT_SOURCES, SOURCES } from './layers'
 import { distanceMetres, measureFeatures as measureOnMap } from './measure'
 import { midpointFeatures, segmentsOf, type MidpointFeature, type Segment } from './midpoints'
+import {
+  boxesOf,
+  centreOfBox,
+  extentOfEntity,
+  nearbyFeatures,
+  type BoxEntry,
+  type Nearby,
+  type NearbyShape,
+  overlaps,
+  padBox,
+  shapeOf,
+} from './nearby'
 import { extentOf, orderPicks, PICK_LIMIT, type PickCandidate } from './pick-order'
 import { boundsOf, relatedIds } from './related'
 import {
@@ -79,6 +91,7 @@ import {
   type TileLoads,
 } from './tile-loading'
 import { actionMoveNodes, fromMercator, nodesOf, toMercator, TransformTool } from './transform'
+import { dragTurn, TURN_TOLERANCE } from './turn'
 
 export type EngineOptions = {
   /** The editor that owns the OSM data and the edit history. The engine reads and changes them there. */
@@ -256,6 +269,51 @@ export class MaidEngine {
     return this.data.history.staging.graph.base.entities.get(id)?.tags
   }
 
+  /**
+   * The centre of a feature's extent (iD's extent.center()): a node's location, the middle of a way's or a relation's
+   * box. Where the presets and fields with a location set are looked up. Undefined for an unknown id.
+   */
+  centreOf(id: string): LonLat | undefined {
+    const graph = this.data.history.staging.graph
+    const entity = graph.hasEntity(id)
+    const box = entity && extentOfEntity(graph, entity)
+    return box && centreOfBox(box)
+  }
+
+  private nearbyMemo?: { graph: Graph; id: string; metres: number; value: Nearby[] }
+  private nearbyBoxes?: { graph: Graph; entries: BoxEntry[] }
+
+  /**
+   * The features near one feature, for the address field's suggestions (nearby.ts): the features within `metres` of
+   * its extent, and whether an area encloses it. Asked only when an address field is shown; kept until the graph
+   * changes, so a second ask for the same feature costs nothing.
+   */
+  nearby(id: string, metres = 200): Nearby[] {
+    const graph = this.data.history.staging.graph
+    const memo = this.nearbyMemo
+    if (memo && memo.graph === graph && memo.id === id && memo.metres === metres) return memo.value
+    let value: Nearby[] = []
+    const entity = graph.hasEntity(id)
+    const selected = entity && shapeOf(graph, id, entity)
+    if (entity && selected) {
+      if (this.nearbyBoxes?.graph !== graph) this.nearbyBoxes = { graph, entries: boxesOf(graph) }
+      // the feature's own nodes are part of it, not its neighbours
+      const excluded = new Set<string>([id])
+      if (entity instanceof OsmWay) for (const node of entity.nodes) excluded.add(node)
+      const near = padBox(selected.box, metres)
+      const candidates: NearbyShape[] = []
+      for (const { id: other, box } of this.nearbyBoxes.entries) {
+        if (excluded.has(other) || !overlaps(box, near)) continue
+        const found = graph.hasEntity(other)
+        const shape = found && shapeOf(graph, other, found)
+        if (shape) candidates.push(shape)
+      }
+      value = nearbyFeatures(selected, candidates, metres)
+    }
+    this.nearbyMemo = { graph, id, metres, value }
+    return value
+  }
+
   entity(id: string | null): EntityInfo | undefined {
     if (!id) return undefined
     if (id[0] === 'n') {
@@ -268,7 +326,7 @@ export class MaidEngine {
         type: 'node',
         geometry,
         tags,
-        preset: this.presets?.match(tags, geometry),
+        preset: this.presets?.match(tags, geometry, this.centreOf(id)),
         readOnly: this.isReadOnly(id),
       }
     }
@@ -283,7 +341,7 @@ export class MaidEngine {
         type: 'way',
         geometry,
         tags,
-        preset: this.presets?.match(tags, geometry),
+        preset: this.presets?.match(tags, geometry, this.centreOf(id)),
         size: way.nodes.length,
         readOnly: this.isReadOnly(id),
       }
@@ -297,7 +355,7 @@ export class MaidEngine {
       type: 'relation',
       geometry,
       tags,
-      preset: this.presets?.match(tags, geometry),
+      preset: this.presets?.match(tags, geometry, this.centreOf(id)),
       size: relation.members.length,
       readOnly: this.isReadOnly(id),
     }
@@ -845,6 +903,7 @@ export class MaidEngine {
   /** What an operation looks at: the current data and the selection */
   operationContext(): OperationContext {
     // the view lets an operation refuse a feature that is mostly outside it ("too large", as iD)
+    // under a turn this is the box around the turned view, larger than the view: the rule is looser (see extent.ts)
     const bounds = this.map?.getBounds()
     return {
       graph: this.data.history.staging.graph,
@@ -1542,10 +1601,59 @@ export class MaidEngine {
     return this.merge(elements)
   }
 
+  // --- Turning the map (bearing; tilt is switched off, see MapView) ---
+
+  /** A turn with the mouse in progress: where the press was, where the pointer is, and whether it moved */
+  private turnDrag: { start: Point; last: Point; moved: boolean } | undefined
+  /** When the last turn that moved ended (performance.now). The click MapLibre sends after it is not a click. */
+  turnedAt = Number.NEGATIVE_INFINITY
+
+  /** True from the press to the release of a turn with the mouse */
+  get turning() {
+    return this.turnDrag !== undefined
+  }
+
+  /** A turn with the mouse starts at `point`. The caller has checked that the press is on open map. */
+  startTurn(point: Point) {
+    this.turnDrag = { start: point, last: point, moved: false }
+  }
+
+  /** The pointer moved during a turn: the map turns around the centre of the view (turn.ts) */
+  moveTurn(point: Point) {
+    const drag = this.turnDrag
+    const map = this.map
+    if (!drag || !map) return
+    const { clientWidth, clientHeight } = map.getContainer()
+    const turn = dragTurn(drag.last, point, { x: clientWidth / 2, y: clientHeight / 2 })
+    drag.last = point
+    if (Math.hypot(point.x - drag.start.x, point.y - drag.start.y) > TURN_TOLERANCE)
+      drag.moved = true
+    if (turn !== 0) map.setBearing(map.getBearing() + turn)
+  }
+
+  /** The turn ends with the release of the mouse */
+  endTurn() {
+    const drag = this.turnDrag
+    this.turnDrag = undefined
+    if (drag?.moved) this.turnedAt = performance.now()
+  }
+
+  /** Turns the map by `degrees` in a short ease: the keys (Shift with the arrows) */
+  turnBy(degrees: number) {
+    const map = this.map
+    if (map) map.easeTo({ bearing: map.getBearing() + degrees, duration: 100 })
+  }
+
+  /** Turns the map back to north: the compass button and N */
+  resetNorth() {
+    this.map?.easeTo({ bearing: 0, duration: 300 })
+  }
+
   /**
    * Moves the map to show these entities: the bounds of their loaded geometry, with padding. A
    * relation counts as its members (see relatedIds). Returns false when none of it is loaded.
    * The zoom limits are MapLibre zoom (POINT_ZOOM, FIT_MAX_ZOOM), one level below iD's and Rapid's.
+   * The turn of the map is kept: MapLibre would otherwise bring it back to north.
    */
   fitTo(ids: readonly string[]) {
     const { map } = this
@@ -1560,6 +1668,7 @@ export class MaidEngine {
       map.easeTo({
         center: [west, south],
         zoom: Math.min(Math.max(map.getZoom(), POINT_ZOOM), FIT_MAX_ZOOM),
+        bearing: map.getBearing(),
         duration: 400,
       })
     } else {
@@ -1568,7 +1677,7 @@ export class MaidEngine {
           [west, south],
           [east, north],
         ],
-        { padding: 80, maxZoom: FIT_MAX_ZOOM, duration: 400 },
+        { padding: 80, maxZoom: FIT_MAX_ZOOM, bearing: map.getBearing(), duration: 400 },
       )
     }
     return true
