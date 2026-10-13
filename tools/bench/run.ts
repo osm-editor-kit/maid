@@ -631,9 +631,12 @@ async function runOnce(
         await page.waitForTimeout(200)
         if ((await page.evaluate(() => window.__bench.hovered())).length === 0) break
       }
-      const latency = page.evaluate(() => window.__probe.hoverLatency())
+      // armed before the move: a move that gets to the page first would leave the wait without an event
+      await page.evaluate(() => window.__probe.armHover())
       await page.mouse.move(pos.x, pos.y)
-      result.hoverLatencyMs.push(Math.round((await latency) * 10) / 10)
+      result.hoverLatencyMs.push(
+        Math.round((await page.evaluate(() => window.__probe.hoverLatency())) * 10) / 10,
+      )
     }
     const hoveredIds = new Set<string>()
     const cpu0 = await cpuMs(cdp)

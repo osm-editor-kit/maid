@@ -269,10 +269,19 @@ Before the change, the only way the resolver could leave a tile waiting for ever
 - A load settle that does not come: `Maid did not settle in 60000ms: {...}`, with the same state.
 - Run with `BENCH_DEBUG=1` to print each phase as it starts.
 
+### The hover-phase hang (found 2026-10-13, evening)
+
+**Cause: the probe, not the editor.** In the hover phase `run.ts` did `const latency = page.evaluate(() => __probe.hoverLatency())` and then, without waiting, `page.mouse.move(...)`. The evaluate (which registers the `pointermove` listener and reads `before = hovered()`) and the mouse move reach the page on separate paths. When the page's main thread is busy, the move is handled first: Maid shows the hover (`shown.hovered` = the node), and only then the listener is registered and `before` already holds that node. No further `pointermove` comes, so `hoverLatency` waited for ever (its 2 s timeout started only after a pointer move). That is exactly the recorded state: the editor idle and consistent, a node shown as hovered, the selection left by an earlier phase, nothing pending.
+
+**Reproduced** with `bun tools/bench/hover-probe.ts dense N [port]` (hovers real targets found with the mouse, with and without a selection, parked pointer between): the old arm-then-move order without waiting (`RACY=1`) lost the move 3 times in 300 hovers; every case had a hover that did not clear within the park wait, i.e. a busy page. With the arm awaited first: 0 in 500. The full `bun run bench --editor maid --scene dense --repeat 6` also hung once in run #0 before the fix.
+
+**A person cannot see it.** Hovering the same feature in the app shows the highlight every time: `setHover` returns early for the feature already hovered, which is right, and a hover of another feature always leads to a frame (`applyHighlight` calls `triggerRepaint`). Selection is the same (`select` was bounded already; 400+ selects in the probe, none failed). No change to the editor was needed.
+
+**Fix.** `__probe.armHover()` is awaited before the mouse moves; `hoverLatency()` returns the armed wait. A wait that sees no pointer move rejects after 8 s with the page's `__maid.debug()` state (it was unbounded); a move without a new hover still gives -1 after 2 s. Why the hang was seen more often after d1158bc is not known (a busier main thread is the likely reason, not measured).
+
 ### Still unexplained or not done
 
-- The cause of the one stall is not found. The next occurrence should show which phase and the page state; if the state shows a stopped renderer rather than the editor's counters, the cause is outside the image path.
-- `probe-page.ts` `hoverLatency` and `applyHighlight`'s `once('render')` (engine.ts, outside the allowed edits) are still unbounded in principle. The phase limit covers `hover`; the `select` bound covers the selection wait.
+- The hover-phase hang is explained (next section). The 5-minute stall in the load phase after d1158bc is a different symptom (no `hover` phase was reached) and is still not explained; the 60 s phase limit will name its phase.
 - `debug` is declared on `MaidHandle` now (`tools/bench/maid-window.d.ts`) and `run.ts` reads it without a cast.
 - The 60 s phase limit can trip a legitimate slow `drag` phase on a loaded machine (several `settled()` calls per try). If that happens, the state in `stuck.page` will show it (counters moving, not stopped).
 - Marker images that fail are now a failed run. If the sprite files or a decode fail on some machine, runs fail rather than look better; the orchestrator should look at `imageFailures` in the first run.
