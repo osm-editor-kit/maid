@@ -175,7 +175,7 @@ describe('iD.presetIndex', () => {
   })
 
   describe('PresetIndex.recents', () => {
-    // needs F-presets-5
-    it.todo('fills all recent slots even when some remembered presets are not available in the current region (#11405)', () => {})
+    // ported in browse.test.ts ("fills all recent slots even when some remembered presets are not in the region (iD #11405)"):
+    // the recents are the editor's list of ids, read by browseOf
   })
 })

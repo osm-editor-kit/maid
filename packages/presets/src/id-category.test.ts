@@ -1,13 +1,45 @@
 // Adopted from iD test/spec/presets/category.js (ISC, © iD contributors), at commit 0194f3926.
-import { describe, it } from 'bun:test'
+// iD's fixture is one member, a category of one. The picker lists a category only with two or more members
+// (defaults.ts, MIN_CATEGORY_MEMBERS), so the fixture here has two members.
+import { describe, expect, it } from 'bun:test'
+import { createPresets } from './presets.ts'
+import type { PresetCategory, PresetData } from './types.ts'
 
-// Maid has no preset categories (the groups of the preset list). The tests stay here until the feature exists.
+const data: PresetData = {
+  presets: {
+    'highway/residential': {
+      name: 'Residential Road',
+      tags: { highway: 'residential' },
+      geometry: ['line'],
+    },
+    'highway/tertiary': {
+      name: 'Tertiary Road',
+      tags: { highway: 'tertiary' },
+      geometry: ['line'],
+    },
+  },
+  fields: {},
+  translations: {},
+  categories: {
+    road: { icon: 'iD-highway-unclassified', members: ['highway/residential', 'highway/tertiary'] },
+  },
+  defaults: { line: ['road'] },
+}
+
+const presets = createPresets(data)
+
 describe('iD.presetCategory', () => {
-  // needs F-presets-4
-  it.todo('maps members names to preset instances', () => {})
+  const category = presets.defaults(['line']).find((row) => row.id === 'road') as PresetCategory
+
+  it('maps members names to preset instances', () => {
+    expect(category.members[0]).toEqual(presets.preset('highway/residential'))
+    expect(category.members[0]?.name).toBe('Residential Road')
+  })
 
   describe('#matchGeometry', () => {
-    // needs F-presets-4
-    it.todo('matches the type of an entity', () => {})
+    it('matches the type of an entity', () => {
+      expect(presets.matchGeometry(category, 'line')).toBe(true)
+      expect(presets.matchGeometry(category, 'point')).toBe(false)
+    })
   })
 })

@@ -244,6 +244,8 @@ export function withChanges(base: PresetData, changes: PresetChanges): PresetDat
     )
   }
   return {
+    // the other entries of the base (the deprecated list) stay as they are
+    ...base,
     presets,
     fields,
     translations: {

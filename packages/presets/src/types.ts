@@ -35,6 +35,8 @@ export type Preset = {
   reference?: Reference
   /** iD's `locationSet`: the preset is matched, and offered by search, only where it holds. Absent: everywhere. */
   locationSet?: LocationSet
+  /** iD's `replacement`: the id of the preset that replaces this one (the preset is deprecated). Absent when there is none. */
+  replacement?: string
 }
 
 export type FieldOption = { value: string; label: string }
@@ -90,7 +92,29 @@ export type PresetData = {
   presets: Record<string, unknown>
   fields: Record<string, unknown>
   translations: unknown
+  /** The schema's `deprecated.json` (a list of `{ old, replace? }`), read by `deprecatedTags`. Absent: no deprecated tags. */
+  deprecated?: unknown
+  /** The schema's `preset_categories.json` (id → `{ icon?, members }`), read by `defaults`. Absent: no categories. */
+  categories?: unknown
+  /** The schema's `preset_defaults.json` (geometry → the ids of its default presets and categories). Absent: no defaults. */
+  defaults?: unknown
 }
+
+/**
+ * iD's preset category: a row of the type picker that lists its member presets when it is opened. It is shaped as a
+ * preset (name, icon, geometry of the members together) with no tags, and `members` are the members the picker offers.
+ */
+export type PresetCategory = Preset & { members: Preset[] }
+
+/** A row of the defaults: a preset, or a category of presets (`'members' in row`). */
+export type PresetRow = Preset | PresetCategory
+
+/**
+ * One entry of the schema's `deprecated.json`: the tags that are outdated (`old`), and what they become (`replace`).
+ * A value of `*` in `old` matches any value, and the same in `replace` keeps the value that was there; `$1`, `$2`
+ * in `replace` stand for the values of the wildcards of `old`, in their order.
+ */
+export type DeprecatedTag = { old: Tags; replace?: Tags }
 
 /**
  * Options of the preset functions that write tags. `skipFieldDefaults` leaves out the default tags of the
@@ -107,6 +131,12 @@ export type Presets = {
    */
   match(tags: Tags, geometry: Geometry, loc?: LonLat): Preset
   preset(id: string): Preset | undefined
+  /**
+   * iD's getDeprecatedTags: the entries of the schema's deprecated list that these tags match, in the list's order
+   * (an entry whose `replace` would overwrite a value that is there already does not match). Empty when the presets
+   * were made without the list. Indexed by key when the presets are made, so a tag set costs about its key count.
+   */
+  deprecatedTags(tags: Tags): DeprecatedTag[]
   field(id: string): Field | undefined
   /**
    * The preset's fields that apply: its own `fields` with `{preset}` and template references expanded, filtered by the field's `geometry` and `prerequisiteTag`. Then every `moreFields` entry and universal field whose key (or one of its keys) is in `tags`, even with an empty value (iD's tagsContainFieldKey), without duplicates.
@@ -138,6 +168,13 @@ export type Presets = {
    * With `loc`, only the presets whose location set holds there are searched (iD's collection.search).
    */
   search(query: string, geometry: Geometry, limit?: number, loc?: LonLat): Preset[]
+  /**
+   * iD's defaults for a list of geometries (preset_defaults.json, defaults.ts): the presets and categories that the
+   * picker lists when the search is empty, in order, with the geometry's fallback last. Presets that are hidden or
+   * that do not match every geometry are left out; a category is listed when two or more of its members are offered.
+   * Empty without the data, and for an empty list of geometries. Location sets are not checked, as in iD.
+   */
+  defaults(geometries: readonly Geometry[]): PresetRow[]
   /** iD's preset.matchScore: how well the tags fit the preset; -1 when a tag of the preset is missing or different. */
   matchScore(preset: Preset, tags: Tags): number
   /** iD's preset.matchGeometry: the preset is for this geometry. */

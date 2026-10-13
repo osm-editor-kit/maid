@@ -1,15 +1,18 @@
 import {
   ChevronDownIcon,
+  ChevronRightIcon,
   ChevronUpIcon,
   HeartIcon as HeartSolidIcon,
 } from '@heroicons/react/16/solid'
 import { HeartIcon as HeartOutlineIcon } from '@heroicons/react/24/outline'
-import type { Preset } from '@osm-editor-kit/maid-presets'
+import type { Browse, Preset } from '@osm-editor-kit/maid-presets'
 import { useId, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { isFavouriteNumber } from '../favourites.ts'
 import { PLAIN_INPUT } from '../plain-input.ts'
+import { useRecents } from '../recents.ts'
 import { EMPTY_NOTE, keepFocus, listboxMove, revealRow, ROW_ACTIVE } from './listbox.ts'
-import { mainTagLabel, pickerRows } from './picker-logic.ts'
+import { listRows, type ListRow } from './picker-browse.ts'
+import { mainTagLabel } from './picker-logic.ts'
 import { SearchField } from './SearchField.tsx'
 
 // the colour is not here: a class of the same property in the same string would be overridden by the
@@ -20,6 +23,18 @@ const ICON_TONE = 'text-zinc-500 dark:text-zinc-400'
 
 /** A favourite as the picker shows it: its preset, and the number that starts it */
 export type PickerFavourite = { preset: Preset; number: string }
+
+/**
+ * The texts of the picker that the editor translates (packages/i18n: picker_recent, picker_category_expand,
+ * picker_category_collapse). English without them.
+ */
+export type PresetPickerTexts = { recent: string; expand: string; collapse: string }
+
+const ENGLISH_TEXTS: PresetPickerTexts = {
+  recent: 'Recently used',
+  expand: 'Show the feature types in this category',
+  collapse: 'Hide the feature types in this category',
+}
 
 /**
  * The number of a favourite, as a field. It is sent on Enter or when the field loses focus, not on
@@ -79,7 +94,7 @@ export function PresetPicker(props: {
   /** Returns the presets for a query, best first. Called on every change of the query. */
   search: (query: string) => Preset[]
   onPick: (preset: Preset) => void
-  /** Draws a preset's icon; without it rows have no icon */
+  /** Draws a preset's icon (a category's too); without it rows have no icon */
   renderIcon?: (preset: Preset) => ReactNode
   /** The preset the feature has now, marked in the list */
   currentId?: string
@@ -88,6 +103,14 @@ export function PresetPicker(props: {
    * first, under "Favourites", with their numbers.
    */
   favourites?: readonly PickerFavourite[]
+  /**
+   * Given, an empty search lists the recently used presets that fit the feature (under "Recently used", after the
+   * favourites), then the defaults for its geometry: presets, and categories that expand in place to their members
+   * (presets browseOf). Without it, an empty search lists what `search` gives for an empty query.
+   */
+  browse?: Browse
+  /** The texts the picker shows that the editor translates. English without it. */
+  texts?: PresetPickerTexts
   /** Given, every row gets a heart: it makes the preset a favourite, or takes it out again */
   onToggleFavourite?: (preset: Preset) => void
   /** Given with `onToggleFavourite`, the favourites in the list get move up and down buttons */
@@ -106,6 +129,8 @@ export function PresetPicker(props: {
     renderIcon,
     currentId,
     favourites = [],
+    browse,
+    texts = ENGLISH_TEXTS,
     onToggleFavourite,
     onMoveFavourite,
     onSetNumber,
@@ -115,25 +140,56 @@ export function PresetPicker(props: {
 
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
+  // the categories that are open: their members are listed under them, and only while nothing is searched
+  const [openCategories, setOpenCategories] = useState<readonly string[]>([])
+  const remember = useRecents((state) => state.remember)
+  const recentIds = useRecents((state) => state.ids)
   const baseId = useId()
   const listId = `${baseId}-list`
   const favouritesHeadingId = `${baseId}-favourites`
+  const recentHeadingId = `${baseId}-recent`
   const optionId = (index: number) => `${baseId}-option-${index}`
 
-  // the favourites are listed only while nothing is searched; their numbers show on every row
+  // the favourites and the defaults are listed only while nothing is searched; their numbers show on every row
   const searching = query.trim() !== ''
   const numberById = new Map(favourites.map((favourite) => [favourite.preset.id, favourite.number]))
-  const shownFavourites = searching ? 0 : favourites.length
-  const results = pickerRows(
-    search(query),
-    favourites.map((favourite) => favourite.preset),
+  const defaults = browse ? browse.defaults : searching ? [] : search('')
+  const rows = listRows({
     searching,
-  )
-  const active = results.length === 0 ? -1 : Math.min(activeIndex, results.length - 1)
+    found: searching ? search(query) : [],
+    defaults,
+    recent: browse && !searching ? browse.recent(recentIds) : [],
+    favourites: favourites.map((favourite) => favourite.preset),
+    expanded: new Set(openCategories),
+  })
+  const active = rows.length === 0 ? -1 : Math.min(activeIndex, rows.length - 1)
+  // the favourites come first in the list, then the recent presets: their rows are contiguous
+  const favouriteCount = rows.filter(
+    (row) => row.kind === 'preset' && row.section === 'favourite',
+  ).length
+  const recentCount = rows.filter((row) => row.kind === 'preset' && row.section === 'recent').length
 
   function moveTo(index: number) {
     setActiveIndex(index)
     revealRow(optionId(index))
+  }
+
+  function toggleCategory(id: string) {
+    setOpenCategories((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+    )
+  }
+
+  // a chosen preset becomes the most recent one (a hidden preset is not recorded, as iD)
+  function pick(preset: Preset) {
+    if (preset.searchable !== false) remember(preset.id)
+    onPick(preset)
+  }
+
+  // Enter picks a preset, and opens or closes a category
+  function activate(row: ListRow) {
+    if (row.kind === 'category') toggleCategory(row.category.id)
+    else pick(row.preset)
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -148,15 +204,15 @@ export function PresetPicker(props: {
       case 'Home':
       case 'End': {
         event.preventDefault()
-        const next = listboxMove(event.key, active, results.length)
+        const next = listboxMove(event.key, active, rows.length)
         if (next !== undefined) moveTo(next)
         return
       }
       case 'Enter': {
-        const preset = results[active]
-        if (preset) {
+        const row = rows[active]
+        if (row) {
           event.preventDefault()
-          onPick(preset)
+          activate(row)
         }
         return
       }
@@ -164,23 +220,29 @@ export function PresetPicker(props: {
   }
 
   /**
-   * One row: the option itself, then, outside the option, the buttons that act on the preset.
+   * One preset row: the option itself, then, outside the option, the buttons that act on the preset.
    * They sit beside the option so that a button is never inside an element with the option role.
+   * A member of an open category is indented.
    */
-  function renderRow(preset: Preset, index: number) {
+  function renderPresetRow(row: Extract<ListRow, { kind: 'preset' }>, index: number) {
+    const { preset } = row
     const isActive = index === active
     const tag = mainTagLabel(preset)
     const number = numberById.get(preset.id)
     const isFavourite = number !== undefined
-    const inGroup = index < shownFavourites
+    const inFavourites = row.section === 'favourite'
     return (
-      <div key={preset.id} role="presentation" className="group flex items-center gap-1">
+      <div
+        key={row.key}
+        role="presentation"
+        className={`group flex items-center gap-1 ${row.member ? 'pl-6' : ''}`}
+      >
         <div
           id={optionId(index)}
           role="option"
           aria-selected={isActive}
           onMouseDown={keepFocus}
-          onClick={() => onPick(preset)}
+          onClick={() => pick(preset)}
           className={`flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg p-2 text-sm ${
             isActive ? ROW_ACTIVE : ''
           }`}
@@ -209,7 +271,7 @@ export function PresetPicker(props: {
             </span>
           ) : null}
         </div>
-        {inGroup && onMoveFavourite ? (
+        {inFavourites && onMoveFavourite ? (
           // shown on hover, and when a button of the row has the keyboard focus
           <span className="flex shrink-0 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100">
             <button
@@ -227,7 +289,7 @@ export function PresetPicker(props: {
               type="button"
               aria-label={`Move ${preset.name} down`}
               title="Move down"
-              disabled={index === shownFavourites - 1}
+              disabled={index === favouriteCount - 1}
               onMouseDown={keepFocus}
               onClick={() => onMoveFavourite(preset, 1)}
               className={`${ICON_BUTTON} ${ICON_TONE}`}
@@ -268,6 +330,54 @@ export function PresetPicker(props: {
     )
   }
 
+  /** A category row: it opens or closes its members in place; a chevron shows which */
+  function renderCategoryRow(row: Extract<ListRow, { kind: 'category' }>, index: number) {
+    const { category } = row
+    const isActive = index === active
+    return (
+      <div key={row.key} role="presentation" className="group flex items-center gap-1">
+        <div
+          id={optionId(index)}
+          role="option"
+          aria-selected={isActive}
+          title={row.expanded ? texts.collapse : texts.expand}
+          onMouseDown={keepFocus}
+          onClick={() => {
+            moveTo(index)
+            toggleCategory(category.id)
+          }}
+          className={`flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg p-2 text-sm ${
+            isActive ? ROW_ACTIVE : ''
+          }`}
+        >
+          {renderIcon ? (
+            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-zinc-950/5 dark:bg-white/10 [&>svg]:size-5">
+              {renderIcon(category)}
+            </span>
+          ) : null}
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-semibold">{category.name}</span>
+          </span>
+          {row.expanded ? (
+            <ChevronDownIcon
+              className="size-4 shrink-0 text-zinc-500 dark:text-zinc-400"
+              aria-hidden="true"
+            />
+          ) : (
+            <ChevronRightIcon
+              className="size-4 shrink-0 text-zinc-500 dark:text-zinc-400"
+              aria-hidden="true"
+            />
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  function renderRow(row: ListRow, index: number) {
+    return row.kind === 'category' ? renderCategoryRow(row, index) : renderPresetRow(row, index)
+  }
+
   return (
     <div className="flex min-w-0 flex-col gap-2">
       <SearchField
@@ -279,19 +389,20 @@ export function PresetPicker(props: {
         autoFocus={autoFocus}
         placeholder={placeholder}
         aria-label={placeholder}
-        aria-expanded={results.length > 0}
-        aria-controls={results.length > 0 ? listId : undefined}
+        aria-expanded={rows.length > 0}
+        aria-controls={rows.length > 0 ? listId : undefined}
         aria-autocomplete="list"
         aria-activedescendant={active >= 0 ? optionId(active) : undefined}
         value={query}
         onChange={(event) => {
           setQuery(event.currentTarget.value)
           setActiveIndex(0)
+          setOpenCategories([])
         }}
         onKeyDown={onKeyDown}
       />
 
-      {results.length === 0 ? (
+      {rows.length === 0 ? (
         <p className={EMPTY_NOTE}>No feature type found</p>
       ) : (
         <div
@@ -300,7 +411,7 @@ export function PresetPicker(props: {
           aria-label="Feature types"
           className="max-h-[26rem] overflow-y-auto"
         >
-          {shownFavourites > 0 ? (
+          {favouriteCount > 0 ? (
             <div
               role="group"
               aria-labelledby={favouritesHeadingId}
@@ -312,12 +423,29 @@ export function PresetPicker(props: {
               >
                 Favourites
               </p>
-              {results.slice(0, shownFavourites).map(renderRow)}
+              {rows.slice(0, favouriteCount).map((row, index) => renderRow(row, index))}
             </div>
           ) : null}
-          {results
-            .slice(shownFavourites)
-            .map((preset, offset) => renderRow(preset, shownFavourites + offset))}
+          {recentCount > 0 ? (
+            <div
+              role="group"
+              aria-labelledby={recentHeadingId}
+              className="mb-2 border-b border-zinc-950/10 pb-2 dark:border-white/10"
+            >
+              <p
+                id={recentHeadingId}
+                className="px-2 pt-1 pb-1 text-xs font-medium text-zinc-500 dark:text-zinc-400"
+              >
+                {texts.recent}
+              </p>
+              {rows
+                .slice(favouriteCount, favouriteCount + recentCount)
+                .map((row, offset) => renderRow(row, favouriteCount + offset))}
+            </div>
+          ) : null}
+          {rows
+            .slice(favouriteCount + recentCount)
+            .map((row, offset) => renderRow(row, favouriteCount + recentCount + offset))}
         </div>
       )}
     </div>

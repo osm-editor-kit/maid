@@ -2,9 +2,12 @@
 // the search (collection.ts `search`) and the tag changes (preset.ts `setTags`, `unsetTags`, and
 // actions/change_preset.js). README.md, "Compared with iD", lists every rule and the test that pins it.
 // Location sets follow iD when a `loc` is given (locations.ts holds the lookup); without one they are ignored.
-// Not ported: categories, recents, preset defaults per geometry, addable presets, suggestion presets
+// Categories and the defaults per geometry are in defaults.ts; recents and the browse list in browse.ts.
+// Not ported: addable presets, suggestion presets
 // (none in the bundled data), preferences, the file fetcher, and the localizer (labels come straight
 // from the English translation).
+import { createDefaults } from './defaults.ts'
+import { deprecatedIndexOf, deprecatedTagsOf } from './deprecated.ts'
 import { createLocations } from './locations.ts'
 import {
   asGeometries,
@@ -412,6 +415,8 @@ function mustGet<T>(value: T | undefined, what: string) {
 export function createPresets(data: PresetData): Presets {
   // One location lookup per presets instance; its location sets are registered when first used.
   const locations = createLocations()
+  // The schema's deprecated tags, indexed once (deprecated.ts)
+  const deprecated = deprecatedIndexOf(data.deprecated)
   // iD's location test: without a `loc`, every location set holds.
   function here(locationSet: LocationSet | undefined, loc: LonLat | undefined) {
     return loc === undefined || locations.matchesLocation(locationSet, loc)
@@ -562,6 +567,8 @@ export function createPresets(data: PresetData): Presets {
     if (reference !== undefined) preset.reference = reference
     const locationSet = locationSetOf(raw)
     if (locationSet !== undefined) preset.locationSet = locationSet
+    const replacement = asString(raw.replacement)
+    if (replacement !== undefined) preset.replacement = replacement
     entries.set(id, {
       preset,
       fallback: isFallbackTags(tags),
@@ -994,13 +1001,18 @@ export function createPresets(data: PresetData): Presets {
     )
   }
 
+  // the type picker's defaults per geometry, categories included (defaults.ts)
+  const defaults = createDefaults(data, (id) => entries.get(id)?.preset)
+
   return {
     match,
     preset: (id) => entries.get(id)?.preset,
+    defaults,
     field: (id) => fields.get(id),
     fieldsFor,
     moreFieldsFor,
     matchesLocation: (locationSet, loc) => locations.matchesLocation(locationSet, loc),
+    deprecatedTags: (tags) => deprecatedTagsOf(tags, deprecated),
     countryAt: (loc) => locations.countryAt(loc),
     areaKeys: () => areaKeys,
     search,

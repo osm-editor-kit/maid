@@ -1,4 +1,5 @@
-import type { LonLat, Preset } from '@osm-editor-kit/maid-presets'
+import { m } from '@osm-editor-kit/maid-i18n'
+import { browseOf, type LonLat, type Preset } from '@osm-editor-kit/maid-presets'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { notify, PresetPicker } from '@osm-editor-kit/maid-ui'
 import { useState } from 'react'
@@ -102,6 +103,12 @@ export function MultiType({ ids }: { ids: readonly string[] }) {
             autoFocus
             currentId={onlyPreset}
             search={(query) => presetsForAll(presets, query, info.geometries, info.loc)}
+            browse={browseOf(presets, info.geometries, info.loc)}
+            texts={{
+              recent: m.picker_recent(),
+              expand: m.picker_category_expand(),
+              collapse: m.picker_category_collapse(),
+            }}
             renderIcon={(preset) => (
               <PresetIcon icon={preset.icon} className="fill-zinc-700 dark:fill-zinc-200" />
             )}
