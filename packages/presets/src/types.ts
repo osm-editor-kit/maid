@@ -1,6 +1,16 @@
 export type Tags = Record<string, string>
 export type Geometry = 'point' | 'vertex' | 'line' | 'area' | 'relation'
 
+/** A point as `[longitude, latitude]`, the order iD and the location packages use. */
+export type LonLat = readonly [number, number]
+
+/**
+ * iD's `locationSet`: the places where a preset or a field applies. `include` and `exclude` are country
+ * codes (ISO 3166-1 alpha-2 or alpha-3, any case), regions (`Q46`, `EU`, `001`, `Planet`) or `.geojson` files;
+ * the set is the union of `include` less the union of `exclude`. Absent: everywhere.
+ */
+export type LocationSet = { include?: string[]; exclude?: string[] }
+
 /** The OSM Wiki page that documents a tag: `key` alone, or `key=value` (iD's `reference`). */
 export type Reference = { key: string; value?: string }
 
@@ -23,6 +33,8 @@ export type Preset = {
   aliases: string[]
   /** What the OSM Wiki documents for this type: the schema's `reference`, else iD's choice. Absent when there is none. */
   reference?: Reference
+  /** iD's `locationSet`: the preset is matched, and offered by search, only where it holds. Absent: everywhere. */
+  locationSet?: LocationSet
 }
 
 export type FieldOption = { value: string; label: string }
@@ -63,6 +75,8 @@ export type Field = {
   pattern?: string
   /** What the OSM Wiki documents for this field: the schema's `reference`, else its key. Absent when there is none. */
   reference?: Reference
+  /** iD's `locationSet`: the field is shown, and its default written, only where it holds. Absent: everywhere. */
+  locationSet?: LocationSet
 }
 
 /**
@@ -81,22 +95,38 @@ export type PresetData = {
 /**
  * Options of the preset functions that write tags. `skipFieldDefaults` leaves out the default tags of the
  * fields (iD's `skipFieldDefaults`): iD's validation for outdated tags uses it, the preset list does not.
+ * `loc` is the point the feature is at (iD's `loc`, the centre of its extent): the fields whose location set
+ * does not hold there are left out of the field defaults. Without `loc`, every location set is ignored.
  */
-export type PresetOptions = { skipFieldDefaults?: boolean }
+export type PresetOptions = { skipFieldDefaults?: boolean; loc?: LonLat }
 
 export type Presets = {
-  /** The preset that describes these tags for this geometry. Always returns one (generic fallback). */
-  match(tags: Tags, geometry: Geometry): Preset
+  /**
+   * The preset that describes these tags for this geometry. Always returns one (generic fallback). With `loc`,
+   * a preset whose location set does not hold there is passed over for the best one that does (iD's matchTags).
+   */
+  match(tags: Tags, geometry: Geometry, loc?: LonLat): Preset
   preset(id: string): Preset | undefined
   field(id: string): Field | undefined
-  /** The preset's fields that apply: its own `fields` with `{preset}` and template references expanded, filtered by the field's `geometry` and `prerequisiteTag`. Then every `moreFields` entry and universal field whose key (or one of its keys) is in `tags`, even with an empty value (iD's tagsContainFieldKey), without duplicates. */
-  fieldsFor(preset: Preset, tags: Tags, geometry: Geometry): Field[]
+  /**
+   * The preset's fields that apply: its own `fields` with `{preset}` and template references expanded, filtered by the field's `geometry` and `prerequisiteTag`. Then every `moreFields` entry and universal field whose key (or one of its keys) is in `tags`, even with an empty value (iD's tagsContainFieldKey), without duplicates.
+   * With `loc`, a field whose location set does not hold there is left out (iD's `fields(loc)` and `isAllowed`).
+   */
+  fieldsFor(preset: Preset, tags: Tags, geometry: Geometry, loc?: LonLat): Field[]
   /**
    * The fields the "Add field" list offers for these tags: every `moreFields` entry and universal
    * field that `fieldsFor` does not return, that applies to the geometry and whose prerequisiteTag
-   * holds. No duplicates. Sorted by label, universal fields last (iD's order).
+   * holds. No duplicates. Sorted by label, universal fields last (iD's order). With `loc`, only the
+   * fields whose location set holds there.
    */
-  moreFieldsFor(preset: Preset, tags: Tags, geometry: Geometry): Field[]
+  moreFieldsFor(preset: Preset, tags: Tags, geometry: Geometry, loc?: LonLat): Field[]
+  /** iD's `locationSetsAt` for one location set: true when it holds at `loc`, or when there is no location set. */
+  matchesLocation(locationSet: LocationSet | undefined, loc: LonLat): boolean
+  /**
+   * The country of a point as an ISO 3166-1 alpha-2 code in lower case (the codes of the address formats), or
+   * undefined outside every country. iD's `countryCoder.iso1A2Code`. The borders ship with the package.
+   */
+  countryAt(loc: LonLat): string | undefined
   /** iD's area keys: key → values that are NOT areas. Same shape as iD's `areaKeys`. The object is built once; do not mutate it. */
   areaKeys(): Record<string, Record<string, true>>
   /**
@@ -105,8 +135,9 @@ export type Presets = {
    * presets. The geometry's fallback preset comes last, as in iD, so `limit` counts it. As in iD, the tiers
    * are cut to `limit - 1` before duplicates are removed, so a preset that two tiers find uses two places.
    * The default limit is 50 (iD's MAXRESULTS). An empty query returns the first `limit` presets by name.
+   * With `loc`, only the presets whose location set holds there are searched (iD's collection.search).
    */
-  search(query: string, geometry: Geometry, limit?: number): Preset[]
+  search(query: string, geometry: Geometry, limit?: number, loc?: LonLat): Preset[]
   /** iD's preset.matchScore: how well the tags fit the preset; -1 when a tag of the preset is missing or different. */
   matchScore(preset: Preset, tags: Tags): number
   /** iD's preset.matchGeometry: the preset is for this geometry. */

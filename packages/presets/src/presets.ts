@@ -1,3 +1,11 @@
+// Port of the matching and field logic of iD's modules/presets (index.js, preset.ts, collection.ts, field.ts),
+// the search (collection.ts `search`) and the tag changes (preset.ts `setTags`, `unsetTags`, and
+// actions/change_preset.js). README.md, "Compared with iD", lists every rule and the test that pins it.
+// Location sets follow iD when a `loc` is given (locations.ts holds the lookup); without one they are ignored.
+// Not ported: categories, recents, preset defaults per geometry, addable presets, suggestion presets
+// (none in the bundled data), preferences, the file fetcher, and the localizer (labels come straight
+// from the English translation).
+import { createLocations } from './locations.ts'
 import {
   asGeometries,
   asNumber,
@@ -9,18 +17,12 @@ import {
   referenceOf,
 } from './raw.ts'
 import type { RawRecord } from './raw.ts'
-// Port of the matching and field logic of iD's modules/presets (index.js, preset.ts, collection.ts, field.ts),
-// the search (collection.ts `search`) and the tag changes (preset.ts `setTags`, `unsetTags`, and
-// actions/change_preset.js). README.md, "Compared with iD", lists every rule and the test that pins it.
-// Not ported: location sets (`locationSet` is ignored, so a preset that iD would hide outside its
-// area is matched everywhere, and a field default that iD writes only inside its location is written
-// everywhere), categories, recents, preset defaults per geometry, addable presets, suggestion presets
-// (none in the bundled data), preferences, the file fetcher, and the localizer (labels come straight
-// from the English translation).
 import type {
   Field,
   FieldOption,
   Geometry,
+  LocationSet,
+  LonLat,
   Preset,
   PresetData,
   PresetOptions,
@@ -145,6 +147,18 @@ function fieldReferenceOf(raw: RawRecord, field: Field) {
   if (given) return given
   if (field.key === undefined) return undefined
   return { key: field.type === 'multiCombo' ? field.key.replace(/:$/, ':*') : field.key }
+}
+
+/** The schema's `locationSet` (`include`, `exclude`), or undefined when the entry has none (iD: everywhere). */
+function locationSetOf(raw: RawRecord): LocationSet | undefined {
+  const given = asRecord(raw.locationSet)
+  if (!given) return undefined
+  const set: LocationSet = {}
+  const include = asStrings(given.include)
+  if (include !== undefined) set.include = include
+  const exclude = asStrings(given.exclude)
+  if (exclude !== undefined) set.exclude = exclude
+  return set
 }
 
 /**
@@ -396,6 +410,13 @@ function mustGet<T>(value: T | undefined, what: string) {
 }
 
 export function createPresets(data: PresetData): Presets {
+  // One location lookup per presets instance; its location sets are registered when first used.
+  const locations = createLocations()
+  // iD's location test: without a `loc`, every location set holds.
+  function here(locationSet: LocationSet | undefined, loc: LonLat | undefined) {
+    return loc === undefined || locations.matchesLocation(locationSet, loc)
+  }
+
   // Fields first: presets refer to them.
   const presetNames = translationSection(data.translations, 'presets')
   const fieldTexts = translationSection(data.translations, 'fields')
@@ -459,6 +480,8 @@ export function createPresets(data: PresetData): Presets {
     if (pattern !== undefined) field.pattern = pattern
     const reference = fieldReferenceOf(raw, field)
     if (reference !== undefined) field.reference = reference
+    const locationSet = locationSetOf(raw)
+    if (locationSet !== undefined) field.locationSet = locationSet
     return field
   }
 
@@ -537,6 +560,8 @@ export function createPresets(data: PresetData): Presets {
     if (icon !== undefined) preset.icon = icon
     const reference = presetReferenceOf(raw, tags)
     if (reference !== undefined) preset.reference = reference
+    const locationSet = locationSetOf(raw)
+    if (locationSet !== undefined) preset.locationSet = locationSet
     entries.set(id, {
       preset,
       fallback: isFallbackTags(tags),
@@ -579,7 +604,30 @@ export function createPresets(data: PresetData): Presets {
     relation: mustGet(entries.get('relation')?.preset, 'relation'),
   }
 
-  function match(tags: Tags, geometry: Geometry) {
+  // iD's matchCandidates: every preset that matches these tags with its score, the best score first. The sort is
+  // stable, so equal scores keep the order of the keys and of the index.
+  function matchesRanked(tags: Tags, geometry: Geometry) {
+    const byKey = index[geometry]
+    const found: Array<{ preset: Preset; score: number }> = []
+    for (const key in tags) {
+      const byValue = byKey.get(key)
+      if (!byValue) continue
+      const value = tags[key]
+      if (value === undefined) continue
+      // exact value first, then presets with `*` for this key (iD's order)
+      for (let pass = 0; pass < 2; pass++) {
+        const list = byValue.get(pass === 0 ? value : '*')
+        if (!list) continue
+        for (const candidate of list) {
+          const score = matchScore(candidate, tags)
+          if (score !== -1) found.push({ preset: candidate, score })
+        }
+      }
+    }
+    return found.sort((a, b) => b.score - a.score)
+  }
+
+  function match(tags: Tags, geometry: Geometry, loc?: LonLat) {
     const byKey = index[geometry]
     let best: Preset | undefined
     let bestScore = -1
@@ -603,6 +651,13 @@ export function createPresets(data: PresetData): Presets {
       }
     }
 
+    // as iD's matchTags: when the best preset does not hold at this place, the best one that does is taken
+    if (best !== undefined && !here(best.locationSet, loc)) {
+      best = matchesRanked(tags, geometry).find(({ preset }) =>
+        here(preset.locationSet, loc),
+      )?.preset
+    }
+
     // iD: if any part of an address is present, the "Address" preset is the fallback (#4353)
     if (best === undefined || entries.get(best.id)?.fallback) {
       const address = index[geometry].get('addr:*')?.get('*')?.[0]
@@ -621,7 +676,7 @@ export function createPresets(data: PresetData): Presets {
 
   const universal = [...fields.values()].filter((field) => field.universal)
 
-  function fieldsFor(preset: Preset, tags: Tags, geometry: Geometry) {
+  function fieldsFor(preset: Preset, tags: Tags, geometry: Geometry, loc?: LonLat) {
     const entry = entries.get(preset.id)
     const result: Field[] = []
     const seen = new Set<string>()
@@ -630,30 +685,37 @@ export function createPresets(data: PresetData): Presets {
       seen.add(field.id)
       result.push(field)
     }
+    // as iD: a field whose location set does not hold is not shown (ui/field.js isAllowed, preset.fields(loc))
+    const applies = (field: Field) =>
+      fieldAppliesTo(field, geometry) && here(field.locationSet, loc)
     // 1. the preset's fields; iD also keeps a field whose key already has a value, prerequisite or not
     for (const field of entry?.fields ?? []) {
-      if (!fieldAppliesTo(field, geometry)) continue
+      if (!applies(field)) continue
       if (fieldHasValue(field, tags) || prerequisiteHolds(field.prerequisiteTag, tags)) add(field)
     }
     // 2. moreFields and universal fields that have a value
     for (const field of entry?.moreFields ?? []) {
-      if (fieldAppliesTo(field, geometry) && fieldHasValue(field, tags)) add(field)
+      if (applies(field) && fieldHasValue(field, tags)) add(field)
     }
     for (const field of universal) {
-      if (fieldAppliesTo(field, geometry) && fieldHasValue(field, tags)) add(field)
+      if (applies(field) && fieldHasValue(field, tags)) add(field)
     }
     return result
   }
 
-  function moreFieldsFor(preset: Preset, tags: Tags, geometry: Geometry) {
+  function moreFieldsFor(preset: Preset, tags: Tags, geometry: Geometry, loc?: LonLat) {
     const entry = entries.get(preset.id)
-    const shown = new Set(fieldsFor(preset, tags, geometry).map((field) => field.id))
+    const shown = new Set(fieldsFor(preset, tags, geometry, loc).map((field) => field.id))
     const seen = new Set<string>()
     const offered: Field[] = []
     for (const field of [...(entry?.moreFields ?? []), ...universal]) {
       if (seen.has(field.id) || shown.has(field.id)) continue
       seen.add(field.id)
-      if (fieldAppliesTo(field, geometry) && prerequisiteHolds(field.prerequisiteTag, tags)) {
+      if (
+        fieldAppliesTo(field, geometry) &&
+        here(field.locationSet, loc) &&
+        prerequisiteHolds(field.prerequisiteTag, tags)
+      ) {
         offered.push(field)
       }
     }
@@ -707,11 +769,22 @@ export function createPresets(data: PresetData): Presets {
   // joined and the first `limit - 1` entries are kept, duplicates included; then the duplicates are removed
   // and the geometry's fallback is added last (or where it already is).
   // as iD: the default limit is MAXRESULTS, 50
-  function search(query: string, geometry: Geometry, limit = 50) {
+  function search(query: string, geometry: Geometry, limit = 50, loc?: LonLat) {
     if (limit <= 0) return []
     const value = query.toLowerCase().trim()
+    // as iD's collection.search: a preset whose location set does not hold here is not searched at all. The
+    // test is made for the presets that are taken, not for the whole pool: removing entries from a ranked tier
+    // leaves the order of the others as it is, so the result is the same, and few location sets are resolved.
+    const placed = (preset: Preset) => here(preset.locationSet, loc)
     // not as iD: iD returns the whole collection for an empty query and the UI shows its defaults instead
-    if (value === '') return byName[geometry].slice(0, limit)
+    if (value === '') {
+      const names: Preset[] = []
+      for (const preset of byName[geometry]) {
+        if (names.length >= limit) break
+        if (placed(preset)) names.push(preset)
+      }
+      return names
+    }
     const pool = searchIndex[geometry]
     const valueStripped = stripDiacritics(value)
     const tiers: Array<() => SearchEntry[]> = [
@@ -764,7 +837,7 @@ export function createPresets(data: PresetData): Presets {
       if (taken.length >= room) break
       for (const entry of tier()) {
         if (taken.length >= room) break
-        taken.push(entry.preset)
+        if (placed(entry.preset)) taken.push(entry.preset)
       }
     }
     const found = [...new Set(taken)]
@@ -786,6 +859,11 @@ export function createPresets(data: PresetData): Presets {
   /** The preset's own fields, not its moreFields: iD's preset.fields(). */
   function fieldsOf(preset: Preset) {
     return entries.get(preset.id)?.fields ?? []
+  }
+
+  /** The preset's own fields that hold at `loc` (iD's preset.fields(loc)). Without a `loc`, all of them. */
+  function fieldsHere(preset: Preset, loc: LonLat | undefined) {
+    return fieldsOf(preset).filter((field) => here(field.locationSet, loc))
   }
 
   // iD's setTags: the addTags (a `*` becomes yes unless an ancillary key already has a value), then area=yes
@@ -811,10 +889,10 @@ export function createPresets(data: PresetData): Presets {
       delete result.area
       if (geometry === 'area' && needsAreaTag(preset)) result.area = 'yes'
     }
-    // as iD's setTags: the defaults of the preset's own fields (not moreFields) that apply to the geometry,
-    // when the key is not set. iD does not look at prerequisiteTag here.
+    // as iD's setTags: the defaults of the preset's own fields (not moreFields) that apply to the geometry and
+    // to the location, when the key is not set. iD does not look at prerequisiteTag here.
     if (!options.skipFieldDefaults) {
-      for (const field of fieldsOf(preset)) {
+      for (const field of fieldsHere(preset, options.loc)) {
         if (!field.key || !field.default || !fieldAppliesTo(field, geometry)) continue
         if (!result[field.key]) result[field.key] = field.default
       }
@@ -837,7 +915,7 @@ export function createPresets(data: PresetData): Presets {
     }
     // as iD: a field whose default is undefined is skipped (iD compares `field.default === tags[key]`)
     if (!options.skipFieldDefaults) {
-      for (const field of fieldsOf(preset)) {
+      for (const field of fieldsHere(preset, options.loc)) {
         if (!field.key || field.default === undefined || !fieldAppliesTo(field, geometry)) continue
         if (ignoringKeys.includes(field.key)) continue
         if (result[field.key] === field.default) delete result[field.key]
@@ -850,12 +928,18 @@ export function createPresets(data: PresetData): Presets {
   // iD's preserveKeys in actionChangePreset: the keys of the new preset's addTags, and the keys of its fields
   // (fields and moreFields) that apply to the geometry. When the old preset is a sub-preset of the new one
   // (highway/service/driveway to highway/service), keys that define the old sub-preset are not kept.
-  function preserveKeysOf(tags: Tags, preset: Preset, geometry: Geometry, previous: Preset) {
+  function preserveKeysOf(
+    tags: Tags,
+    preset: Preset,
+    geometry: Geometry,
+    previous: Preset,
+    loc: LonLat | undefined,
+  ) {
     const keys = new Set(Object.keys(preset.addTags))
     const wasSubPreset = previous.id.startsWith(preset.id)
     const newFields = [...fieldsOf(preset), ...(entries.get(preset.id)?.moreFields ?? [])]
     for (const field of newFields) {
-      if (!fieldAppliesTo(field, geometry)) continue
+      if (!fieldAppliesTo(field, geometry) || !here(field.locationSet, loc)) continue
       for (const key of allKeysOf(field, tags)) {
         if (wasSubPreset && Object.hasOwn(previous.tags, key)) continue
         keys.add(key)
@@ -878,17 +962,24 @@ export function createPresets(data: PresetData): Presets {
     options: PresetOptions = {},
   ) {
     if (!previous) return withPresetTags(tags, preset, geometry, options)
-    const preserve = preserveKeysOf(tags, preset, geometry, previous)
+    // as iD's actionChangePreset: the location is used everywhere, for the new preset's keys, the old preset's
+    // field keys and both presets' defaults
+    const loc = options.loc
+    const removal: PresetOptions = { loc }
+    const preserve = preserveKeysOf(tags, preset, geometry, previous, loc)
     let current = tags
     if (previous.id !== preset.id) {
       const previousEntry = entries.get(previous.id)
       const oldFields = [...(previousEntry?.fields ?? []), ...(previousEntry?.moreFields ?? [])]
       const keep = new Set(preserve)
       const removeKeys = new Set(
-        oldFields.flatMap((field) => allKeysOf(field, tags)).filter((key) => !keep.has(key)),
+        oldFields
+          .filter((field) => here(field.locationSet, loc))
+          .flatMap((field) => allKeysOf(field, tags))
+          .filter((key) => !keep.has(key)),
       )
       const reduced = withPresetTags(
-        withoutPresetTags(withoutKeys(tags, removeKeys), previous, geometry, preserve),
+        withoutPresetTags(withoutKeys(tags, removeKeys), previous, geometry, preserve, removal),
         preset,
         geometry,
         options,
@@ -896,7 +987,7 @@ export function createPresets(data: PresetData): Presets {
       if (matchScore(previous, reduced) === -1) current = reduced
     }
     return withPresetTags(
-      withoutPresetTags(current, previous, geometry, preserve),
+      withoutPresetTags(current, previous, geometry, preserve, removal),
       preset,
       geometry,
       options,
@@ -909,6 +1000,8 @@ export function createPresets(data: PresetData): Presets {
     field: (id) => fields.get(id),
     fieldsFor,
     moreFieldsFor,
+    matchesLocation: (locationSet, loc) => locations.matchesLocation(locationSet, loc),
+    countryAt: (loc) => locations.countryAt(loc),
     areaKeys: () => areaKeys,
     search,
     matchScore: (preset, tags) => matchScore(preset, tags),

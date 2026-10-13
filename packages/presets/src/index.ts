@@ -12,6 +12,8 @@ export type {
   Field,
   FieldOption,
   Geometry,
+  LocationSet,
+  LonLat,
   Preset,
   PresetData,
   PresetOptions,

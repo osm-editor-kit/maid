@@ -13,7 +13,7 @@ const fields = defaultPresets.fieldsFor(preset, tags, 'point')
 - The default data is a separate entry (`/default`), so importing the package alone does not pull in the JSON.
 - `match` is called for every point drawn on the map. It uses an index by geometry and first tag key and does not scan the presets.
 
-Not ported yet: location sets, categories, recently used presets, addable presets, preset defaults per geometry, language variants of names. Names and labels are English only. The rules that are ported, and the ones that are not, are listed under [Compared with iD](#compared-with-id).
+Not ported yet: categories, recently used presets, addable presets, preset defaults per geometry, language variants of names. Location sets are ported (see below). Names and labels are English only. The rules that are ported, and the ones that are not, are listed under [Compared with iD](#compared-with-id).
 
 ## Changing presets in a child app
 
@@ -60,7 +60,7 @@ Options can be a record of value to label, or a list of `{ value, label }`. A re
 - Side labels of a directional combo (iD's `strings.types`): `Field` has no place for them.
 - Other languages: texts are written in English only. Terms and aliases of an existing preset cannot be changed without replacing the preset.
 - `{preset}` and `{@templates/…}` references in a definition: list the field ids.
-- Locations and `locationSet`, as in the rest of this package.
+- `locationSet` in a definition: a field or preset that a change adds or replaces has no location set, so it applies everywhere. `FieldDefinition` and `PresetDefinition` take none.
 
 ## Compared with iD
 
@@ -77,7 +77,7 @@ The `id-*.test.ts` files are adopted from iD's spec files. `as-id.test.ts` holds
 | `match`: best score | same | For each tag key, the presets with the exact value, then those with `*`. A later candidate wins only with a higher score. | `presets.test.ts` "match" |
 | `match`: geometry fallbacks | same | The generic preset of the geometry; a vertex gets the point preset. | `presets.test.ts` "falls back to the generic preset of the geometry when there are no tags" |
 | `match`: `addr:*` fallback | same | Any `addr:` key gives the Address preset when the match is a fallback. | `presets.test.ts` "uses the Address preset when only addr:* tags are present" |
-| `match`: `locationSetID` | left | iD checks the location. Maid has no locations, so a preset that iD would hide outside its area is matched everywhere. | none |
+| `match`: location sets | same | With a `loc`, as iD's matchTags: when the best preset's location set does not hold there, the best one that does is taken, and the fallbacks follow as before. Without a `loc` every set holds. | `location-sets.test.ts` "match" (chitalishte, barangay, post box); `locations.test.ts` |
 | `match`: a vertex on an address line is a point | left | iD's `match` gets the geometry from the entity. Maid takes the geometry as an argument, and the model decides it. | `packages/model/test/data/OsmNode.test.js` |
 | `areaKeys` | same | Keeplist: the first key of each area preset, except `barrier`, `highway`, `footway`, `railway`, `junction` and `type`. Discard list: the addTags of line presets. Suggestions and replacements are left out. | `id-index.test.ts` "#areaKeys" |
 | `matchScore` | same | An exact value scores the preset's `matchScore`, a `*` half of it, a missing key is -1. addTags add a boost. `searchable: false` multiplies by 0.999. A `matchScore` of 0 or none is 1 (iD's `originalScore`). | `id-preset.test.ts` "#matchScore" |
@@ -86,7 +86,7 @@ The `id-*.test.ts` files are adopted from iD's spec files. `as-id.test.ts` holds
 | `isFallback` | same | No tags, or only `area`. | `id-preset.test.ts` "isFallback" |
 | `setTags`: addTags | same | A `*` becomes `yes` unless the preset matches on that key and the key has a value. addTags overwrite the tags. | `id-preset.test.ts` "#setTags" |
 | `setTags`: `area=yes` | same | On an area, when no addTag is an area key (not for a preset that can also be a line) and no exception applies. | `id-preset.test.ts` "for a preset with a tag in areaKeys" |
-| `setTags`: field defaults | same, except locations | See [When iD applies field defaults](#when-id-applies-field-defaults). Not checked against `prerequisiteTag`, as in iD. | `as-id.test.ts` "a field default is set even when its prerequisiteTag does not hold" |
+| `setTags`: field defaults | same | See [When iD applies field defaults](#when-id-applies-field-defaults). Not checked against `prerequisiteTag`, as in iD. The location set of the field is checked when a `loc` is given. | `as-id.test.ts` "a field default is set even when its prerequisiteTag does not hold"; `location-sets.test.ts` "a field default is written only where its location set holds" |
 | `setTags` and `applyPreset`: `skipFieldDefaults` | fixed | An option. It skips the field defaults of the new preset only, as iD's `actionChangePreset` does. | `as-id.test.ts` "skipFieldDefaults adds the addTags but no field default" |
 | `unsetTags`: removeTags | same | The removeTags, without `ignoringKeys`. Without removeTags, the addTags. | `id-preset.test.ts` "#unsetTags" |
 | `unsetTags`: field defaults and `area` | same | A default is removed when the key has exactly that value, unless `ignoringKeys` names the key. `area` is always removed. | `id-preset.test.ts` "removes tags that match field default tags" |
@@ -95,7 +95,9 @@ The `id-*.test.ts` files are adopted from iD's spec files. `as-id.test.ts` holds
 | `fields`: `{preset}` and `{@templates/x}` | left (kept) | iD's runtime does not expand references: the schema build does. The bundled dist still has them, so Maid expands them. The templates are presets with a `@template` tag in the dist. | `presets.test.ts` "expands the internet_access template into the cafe fields" |
 | `fields`: inheritance from the parent (`a/b` to `a`) | fixed | Removed: iD gives a preset with no fields of its own none. Was different. | `as-id.test.ts` "a preset with no fields of its own shows none"; `changes.test.ts` "as iD: a preset with no fields" |
 | `fields`: geometry filter | same | A field with a `geometry` applies to the listed geometries only. | `presets.test.ts` "takes the label of building for building_area_yes and shows it only for areas" |
-| `fields`: `locationSet` | left | iD filters fields and their defaults by location. Not ported. See the crossing note under [When iD applies field defaults](#when-id-applies-field-defaults). | none |
+| `fields`: location sets | same | With a `loc`, a field whose location set does not hold is left out of `fieldsFor` and `moreFieldsFor`, for the preset's fields, its moreFields and the universal fields (iD's `fields(loc)` and `isAllowed`). | `location-sets.test.ts` "fields" |
+| `search`: location sets | same | With a `loc`, a preset whose location set does not hold is not searched, neither by name nor in the empty-query list (iD's collection.search). | `location-sets.test.ts` "presets that exist in some countries only" |
+| country of a point | same | `countryAt` is iD's `countryCoder.iso1A2Code(center)` (the address field's country), in lower case. `matchesLocation` is iD's `locationSetsAt(loc).has(id)`. Both use the borders that ship with the packages. | `locations.test.ts` |
 | `fields`: `prerequisiteTag` | fixed | `key`, `value`, `valueNot`, `keyNot`, and `values` and `valuesNot` (these were missing), tested in iD's order. An absent key counts as `''`. | `presets.test.ts` "applies internet_access/fee only while its prerequisite holds"; `as-id.test.ts` "prerequisiteTag values, valuesNot and keyNot hold as iD tests them" |
 | `fieldsFor`: a field has a value | fixed | A key that is in the tags counts even with an empty value, and a multiCombo's prefixed keys count (iD's `tagsContainFieldKey`). Was different. | `as-id.test.ts` "a field whose key is in the tags is shown, even with an empty value"; "a multiCombo field is shown when a key under its prefix is set" |
 | `moreFieldsFor` ("Add field") | same | Non-universal fields by label, then universal fields by label (iD's form_fields sort). | `presets.test.ts` "lists the non-universal fields first, sorted by label" |
@@ -121,7 +123,7 @@ The `id-*.test.ts` files are adopted from iD's spec files. `as-id.test.ts` holds
 | `allowsVertex`, `pointTags`, `vertexTags` | left | iD's vertex and point decisions. The model makes them in Maid. | none |
 | merging presets after creation (`presetIndex.build`) | left | Not ported (F-presets-6): `createPresets` builds the lookup once. | `id-index.test.ts` "builds presets from provided" (todo) |
 
-**Summary:** 46 rows: 22 same (one of them with the location gap noted), 10 fixed, 13 left, and 1 not applicable (subtitle). Of the 13 left, one (`{preset}` expansion in `fields`) is a Maid addition that iD does not have, and it stays on purpose. The others are location sets, categories, recents, addable presets, Wikidata references, the UI's Add field default, two query edge cases, and the vertex helpers of iD's presets.
+**Summary:** 48 rows: 26 same (one of them, aliases and terms, same on the bundled data only), 10 fixed, 11 left, and 1 not applicable (subtitle). Of the 11 left, one (`{preset}` expansion in `fields`) is a Maid addition that iD does not have, and it stays on purpose. The others are categories, recents, addable presets, Wikidata references, the UI's Add field default, a vertex on an address line, two query edge cases, the vertex helpers of iD's presets, and the merge of presets after creation.
 
 ### When iD applies field defaults
 
@@ -131,10 +133,12 @@ iD writes a field's default in `setTags`, and the UI writes it when the user add
 2. the field has a `key` and a non-empty `default`;
 3. the field applies to the geometry (it has no `geometry`, or lists it);
 4. the key is not set yet, or is `''`;
-5. the field's `locationSet` holds at the location (iD only).
+5. the field's `locationSet` holds at the location (iD only; with a `loc`).
 
-`prerequisiteTag` is not checked there. The UI checks it, to decide whether a field is shown.
+`prerequisiteTag` is not checked there. The UI checks it, to decide whether a field is shown. The location is checked in the same way the UI checks it: `setTags`, `unsetTags` and `applyPreset` take it as `options.loc`, and the fields of `fieldsFor` and `moreFieldsFor` take it as their `loc` argument.
 
 `unsetTags` removes a default only when the key has exactly that value, and not when `ignoringKeys` names the key or `skipFieldDefaults` is set. `actionChangePreset` calls the old preset's `unsetTags` without skipping, so the old preset's defaults are always removed.
 
-Maid follows all of this except rule 5. In the bundled data, that matters for the four `crossing/markings_yes*` fields. Each has a `locationSet` and a default of `yes` for `crossing:markings`, and the presets `highway/crossing/uncontrolled`, `highway/footway/crossing/uncontrolled`, `highway/cycleway/crossing/uncontrolled` and `highway/path/crossing/uncontrolled` list them. Maid writes `crossing:markings=yes` wherever those presets are picked. iD writes it only where the location set holds.
+Maid follows all of this, rule 5 included, when a `loc` is given. Without one, every location set holds.
+
+The bundled data has four location-bound fields with a default: `crossing/markings_yes` (every country but BG, DE, AT, CH and PL), and `crossing/markings_yes-PL`, `-DE-AT-CH` and `-BG`. Each has the default `yes` for `crossing:markings`, and the presets `highway/crossing/uncontrolled`, `highway/footway/crossing/uncontrolled`, `highway/cycleway/crossing/uncontrolled` and `highway/path/crossing/uncontrolled` list them through the `@templates/crossing/markings_yes` template. Together the four location sets cover the world, so iD writes `crossing:markings=yes` in every country, each time from the one field that holds there. The location changes which field is shown and which options it lists: in Paris `crossing/markings_yes`, in Berlin `crossing/markings_yes-DE-AT-CH`. The tags written are the same as before.

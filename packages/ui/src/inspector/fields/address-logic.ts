@@ -4,9 +4,34 @@ import { ADDRESS_FORMATS, ADDRESS_PLACEHOLDERS } from './address-formats.ts'
 
 /**
  * Suggestions for the inputs of the address field, as the app computes them from the loaded
- * features (iD's getNear*, address.js:44-200). Plain text lists; the field does no lookup itself.
+ * features (iD's getNear* and getEnclosing*, address.js:44-200; see `addressSuggestions`). Plain text
+ * lists; the field does no lookup itself. `parts` holds the other inputs by their name (`suburb`, `floor`).
  */
-export type AddressSuggestions = { streets?: string[]; cities?: string[]; postcodes?: string[] }
+export type AddressSuggestions = {
+  streets?: string[]
+  places?: string[]
+  cities?: string[]
+  postcodes?: string[]
+  housenumbers?: string[]
+  housenames?: string[]
+  parts?: Record<string, string[]>
+}
+
+/**
+ * A feature near the one being edited, as the host finds it: the features within about 200 m of the edited
+ * feature's centre, without the edited feature itself. `distanceMetres` is iD's distance: from the edited
+ * feature's centre to the candidate's centre, or to its nearest point when the candidate is a line.
+ * `encloses` is true for an area (a closed way or a multipolygon) whose outline contains the whole edited feature
+ * (iD's getEnclosing). `inEnclosingBuilding` is true for a point that lies in a building containing the
+ * edited feature (iD's isInNearbyBuilding; the host finds the building, the point must be within 100 m).
+ */
+export type AddressCandidate = {
+  type: 'node' | 'way' | 'relation'
+  tags: Tags
+  distanceMetres: number
+  encloses?: boolean
+  inEnclosingBuilding?: boolean
+}
 
 /** The name of the input that holds `addr:street` or `addr:place`, as iD's street+place. */
 export const STREET_PLACE = 'street+place'
@@ -176,19 +201,27 @@ export function slotPlaceholder(name: string, country?: string) {
 }
 
 /**
- * The suggestions of an input (its list of values). The street-or-place input lists streets in
- * street mode; there are no place suggestions in the type. No list: the input is plain text.
+ * The suggestions of an input (its list of values). The street-or-place input lists streets in street mode and
+ * places in place mode. The housenumber and housename inputs have a list only when there are values (iD shows
+ * their caret only then). No list: the input is plain text.
  */
 export function suggestionsFor(
   name: string,
   suggestions: AddressSuggestions | undefined,
   mode: StreetOrPlace = 'street',
 ) {
-  if (name === STREET_PLACE) return mode === 'street' ? suggestions?.streets : undefined
+  if (name === STREET_PLACE) return mode === 'street' ? suggestions?.streets : suggestions?.places
   if (name === 'street') return suggestions?.streets
   if (name === 'city') return suggestions?.cities
   if (name === 'postcode') return suggestions?.postcodes
-  return undefined
+  if (name === 'housenumber') return nonEmptyList(suggestions?.housenumbers)
+  if (name === 'housename') return nonEmptyList(suggestions?.housenames)
+  const parts = suggestions?.parts
+  return parts && Object.hasOwn(parts, name) ? parts[name] : undefined
+}
+
+function nonEmptyList(list: string[] | undefined) {
+  return list && list.length > 0 ? list : undefined
 }
 
 /**
@@ -199,4 +232,133 @@ export function suggestionOptions(list: readonly string[], value: string) {
   const values = [...new Set(list.filter((item) => item !== ''))]
   const shown = value !== '' && !values.includes(value) ? [value, ...values] : values
   return shown.map((item) => ({ value: item, label: item }))
+}
+
+/** iD's radius for the lists of nearby features (address.js getNear, 200 m). */
+const NEAR_METRES = 200
+/** iD's radius for the points inside an enclosing building (address.js getEnclosingValues, 100 m). */
+const IN_BUILDING_METRES = 100
+
+/** The other inputs with a list of nearby values (iD's getNearValues, the default of the dropdowns). */
+const OTHER_PARTS = [
+  'block_number',
+  'country',
+  'county',
+  'district',
+  'floor',
+  'hamlet',
+  'neighbourhood',
+  'province',
+  'quarter',
+  'state',
+  'subdistrict',
+  'suburb',
+  'town',
+] as const
+
+/** A tag value, or undefined when it is missing or empty (iD tests the tag for being truthy). */
+function text(value: string | undefined) {
+  return value === undefined || value === '' ? undefined : value
+}
+
+/**
+ * iD's getNear: the values of the candidates within `radius`, nearest first, each value once (the nearest
+ * candidate that gives a value is the one kept). A candidate without a value is left out.
+ */
+function nearest(
+  candidates: readonly AddressCandidate[],
+  valueOf: (candidate: AddressCandidate) => string | undefined,
+  radius = NEAR_METRES,
+) {
+  const found: Array<{ value: string; distanceMetres: number }> = []
+  for (const candidate of candidates) {
+    const value = valueOf(candidate)
+    if (value !== undefined && candidate.distanceMetres <= radius) {
+      found.push({ value, distanceMetres: candidate.distanceMetres })
+    }
+  }
+  found.sort((a, b) => a.distanceMetres - b.distanceMetres)
+  return [...new Set(found.map((item) => item.value))]
+}
+
+/** iD's isAddressable test for a place (address.js getNearPlaces). */
+function isPlace(tags: Tags) {
+  if (text(tags.name) === undefined) return false
+  if (text(tags.place) !== undefined) return true
+  return tags.boundary === 'administrative' && Number(tags.admin_level) > 8
+}
+
+/** iD's isAddressable test for a city (address.js getNearCities). */
+function isCity(tags: Tags) {
+  if (text(tags.name) === undefined) return false
+  if (tags.boundary === 'administrative' && tags.admin_level === '8') return true
+  if (tags.border_type === 'city') return true
+  return ['city', 'town', 'village', 'hamlet'].includes(tags.place ?? '')
+}
+
+/**
+ * The suggestion lists of the address field, from the features near the edited one (iD's getNearStreets,
+ * getNearPlaces, getNearCities, getNearPostcodes, getNearValues and getEnclosingValues in address.js). `prefix` is
+ * the field's key prefix (`addr`, see `addressPrefix`). Each list has each value once.
+ *
+ * As iD: the radius is 200 m (100 m for the points in an enclosing building). Streets are the named highways,
+ * places the named places, cities the named cities; a city takes its `addr:city` in place of its name. Postcodes
+ * are the `addr:postcode` values, then the `postal_code` values. The housenumbers and housenames are the addresses
+ * of the enclosing areas and of the points in an enclosing building, sorted by value (iD sorts them, not by
+ * distance). The other inputs are the `addr:*` values near.
+ *
+ * Not as iD: streets also take the `addr:street` of a nearby address, and places its `addr:place`, as the
+ * owner asked. iD gives those only where the feature is itself an address.
+ */
+export function addressSuggestions(
+  candidates: readonly AddressCandidate[],
+  prefix: string,
+): AddressSuggestions {
+  const tagOf = (tags: Tags, name: string) => text(tags[`${prefix}:${name}`])
+  const streetOf = (candidate: AddressCandidate) =>
+    (candidate.type === 'way' && text(candidate.tags.highway) !== undefined
+      ? text(candidate.tags.name)
+      : undefined) ?? tagOf(candidate.tags, 'street')
+  const placeOf = (candidate: AddressCandidate) =>
+    (isPlace(candidate.tags) ? text(candidate.tags.name) : undefined) ??
+    tagOf(candidate.tags, 'place')
+  const cityOf = (candidate: AddressCandidate) =>
+    tagOf(candidate.tags, 'city') ??
+    (isCity(candidate.tags) ? text(candidate.tags.name) : undefined)
+
+  // iD's enclosing rule: an enclosing area's address, or an address point in an enclosing building (sorted by value)
+  const enclosing = (name: string) => {
+    const values: string[] = []
+    for (const candidate of candidates) {
+      const value = tagOf(candidate.tags, name)
+      if (value === undefined) continue
+      const inside =
+        candidate.encloses === true ||
+        (candidate.type === 'node' &&
+          candidate.inEnclosingBuilding === true &&
+          candidate.distanceMetres <= IN_BUILDING_METRES)
+      if (inside) values.push(value)
+    }
+    return [...new Set(values)].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+  }
+
+  const parts: Record<string, string[]> = {}
+  for (const name of OTHER_PARTS) {
+    parts[name] = nearest(candidates, (candidate) => tagOf(candidate.tags, name))
+  }
+
+  return {
+    streets: nearest(candidates, streetOf),
+    places: nearest(candidates, placeOf),
+    cities: nearest(candidates, cityOf),
+    postcodes: [
+      ...new Set([
+        ...nearest(candidates, (candidate) => tagOf(candidate.tags, 'postcode')),
+        ...nearest(candidates, (candidate) => text(candidate.tags.postal_code)),
+      ]),
+    ],
+    housenumbers: enclosing('housenumber'),
+    housenames: enclosing('housename'),
+    parts,
+  }
 }

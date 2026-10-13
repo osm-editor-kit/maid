@@ -15,6 +15,8 @@ import {
   streetPlaceMode,
   suggestionOptions,
   suggestionsFor,
+  addressSuggestions,
+  type AddressCandidate,
 } from './address-logic.ts'
 
 const ADDR_KEYS = [
@@ -342,9 +344,25 @@ describe('suggestions', () => {
     expect(suggestionsFor('housenumber', list)).toBeUndefined()
   })
 
-  test('the street-or-place input lists streets in street mode only', () => {
-    expect(suggestionsFor('street+place', list, 'street')).toEqual(['Main Street'])
+  test('the street-or-place input lists streets in street mode and places in place mode', () => {
+    const withPlaces = { ...list, places: ['Lindenhof'] }
+    expect(suggestionsFor('street+place', withPlaces, 'street')).toEqual(['Main Street'])
+    expect(suggestionsFor('street+place', withPlaces, 'place')).toEqual(['Lindenhof'])
     expect(suggestionsFor('street+place', list, 'place')).toBeUndefined()
+  })
+
+  test('a housenumber or housename has a list only when there are values', () => {
+    expect(suggestionsFor('housenumber', { housenumbers: [] })).toBeUndefined()
+    expect(suggestionsFor('housenumber', { housenumbers: ['4', '6'] })).toEqual(['4', '6'])
+    expect(suggestionsFor('housename', { housenames: ['Old Mill'] })).toEqual(['Old Mill'])
+  })
+
+  test('the other inputs take their list from the parts', () => {
+    const parts = { suburb: ['Kessenich'], floor: ['2'] }
+    expect(suggestionsFor('suburb', { parts })).toEqual(['Kessenich'])
+    expect(suggestionsFor('floor', { parts })).toEqual(['2'])
+    expect(suggestionsFor('town', { parts })).toBeUndefined()
+    expect(suggestionsFor('constructor', { parts })).toBeUndefined()
   })
 
   test('without suggestions there is no list', () => {
@@ -374,5 +392,195 @@ describe('tags of other keys', () => {
       ['housenumber', 'street+place'],
       ['city', 'postcode'],
     ])
+  })
+})
+
+describe('formatFor, by country, end to end', () => {
+  // the layouts of iD's address_formats.json (checked against it when this was written)
+  test('Germany: the street before the house number, the postcode before the city', () => {
+    expect(names(addressRows(ADDRESS, {}, 'de'))).toEqual([
+      ['street+place', 'housenumber'],
+      ['postcode', 'city'],
+    ])
+  })
+
+  test('France: the house number before the street, the postcode before the city', () => {
+    expect(names(addressRows(ADDRESS, {}, 'fr'))).toEqual([
+      ['housenumber', 'street+place'],
+      ['postcode', 'city'],
+    ])
+  })
+
+  test('the United States: the state between the city and the postcode, the unit after the street', () => {
+    expect(names(addressRows(ADDRESS, {}, 'us'))).toEqual([
+      ['housenumber', 'street', 'unit'],
+      ['city', 'state', 'postcode'],
+    ])
+  })
+
+  test('Japan: the largest unit first, with its own widths', () => {
+    expect(names(addressRows(ADDRESS, {}, 'jp'))).toEqual([
+      ['postcode', 'province', 'county'],
+      ['city', 'suburb'],
+      ['quarter', 'neighbourhood'],
+      ['block_number', 'housenumber'],
+    ])
+    expect(formatFor('jp').widths?.postcode).toBe(0.3)
+  })
+
+  test('no country gives the default layout', () => {
+    expect(names(addressRows(ADDRESS, {}, undefined))).toEqual([
+      ['housenumber', 'street+place'],
+      ['city', 'postcode'],
+    ])
+  })
+
+  test('the country code is taken in any case', () => {
+    expect(names(addressRows(ADDRESS, {}, 'US'))).toEqual(names(addressRows(ADDRESS, {}, 'us')))
+  })
+})
+
+describe('addressSuggestions', () => {
+  // A feature at the origin; the host gives each candidate its distance from the edited feature's centre.
+  const near = (
+    type: AddressCandidate['type'],
+    tags: Tags,
+    distanceMetres: number,
+    extra: Partial<AddressCandidate> = {},
+  ): AddressCandidate => ({ type, tags, distanceMetres, ...extra })
+
+  test('streets are the named highways and the addr:street of nearby addresses, nearest first, each once', () => {
+    const result = addressSuggestions(
+      [
+        near('way', { highway: 'residential', name: 'Hauptstraße' }, 60),
+        near('way', { highway: 'footway', name: 'Am Park' }, 20),
+        near('node', { 'addr:street': 'Bahnhofstraße' }, 35),
+        near('way', { highway: 'residential', name: 'Hauptstraße' }, 90),
+        near('way', { highway: 'residential' }, 10),
+        near('way', { building: 'yes', name: 'Rathaus' }, 15),
+      ],
+      'addr',
+    )
+    expect(result.streets).toEqual(['Am Park', 'Bahnhofstraße', 'Hauptstraße'])
+  })
+
+  test('a street beyond 200 m is left out', () => {
+    const result = addressSuggestions(
+      [
+        near('way', { highway: 'primary', name: 'Far Road' }, 201),
+        near('way', { highway: 'primary', name: 'Near Road' }, 199),
+      ],
+      'addr',
+    )
+    expect(result.streets).toEqual(['Near Road'])
+  })
+
+  test('places are the named places and the addr:place of nearby addresses; admin level 8 is no place', () => {
+    const result = addressSuggestions(
+      [
+        near('node', { place: 'village', name: 'Lindenhof' }, 80),
+        near(
+          'relation',
+          { boundary: 'administrative', admin_level: '9', name: 'Ortsteil Nord' },
+          40,
+        ),
+        near('relation', { boundary: 'administrative', admin_level: '8', name: 'Stadt' }, 10),
+        near('node', { 'addr:place': 'Hof am Berg' }, 120),
+        near('node', { place: 'village' }, 5),
+      ],
+      'addr',
+    )
+    expect(result.places).toEqual(['Ortsteil Nord', 'Lindenhof', 'Hof am Berg'])
+  })
+
+  test('cities take addr:city in place of the name, and a city needs a name unless it has addr:city', () => {
+    const result = addressSuggestions(
+      [
+        near('node', { place: 'town', name: 'Bonn' }, 150),
+        near('node', { place: 'city', name: 'Köln', 'addr:city': 'Cologne' }, 90),
+        near('relation', { boundary: 'administrative', admin_level: '8', name: 'Bonn' }, 150),
+        near('node', { 'addr:city': 'Düsseldorf' }, 120),
+        near('node', { place: 'city' }, 10),
+        near('node', { place: 'suburb', name: 'Dorf' }, 10),
+      ],
+      'addr',
+    )
+    expect(result.cities).toEqual(['Cologne', 'Düsseldorf', 'Bonn'])
+  })
+
+  test('postcodes are the addr:postcode values, then the postal_code values, each once', () => {
+    const result = addressSuggestions(
+      [
+        near('node', { 'addr:postcode': '53111' }, 30),
+        near('node', { postal_code: '53117' }, 10),
+        near('node', { postal_code: '53111' }, 15),
+        near('node', { 'addr:postcode': '53113' }, 50),
+        near('node', { 'addr:postcode': '53111' }, 70),
+      ],
+      'addr',
+    )
+    expect(result.postcodes).toEqual(['53111', '53113', '53117'])
+  })
+
+  test('the other inputs list their addr:* values near, nearest first', () => {
+    const result = addressSuggestions(
+      [
+        near('node', { 'addr:suburb': 'Kessenich' }, 100),
+        near('node', { 'addr:suburb': 'Dottendorf' }, 40),
+        near('node', { 'addr:suburb': 'Kessenich' }, 10),
+        near('node', { 'addr:floor': '2' }, 5),
+      ],
+      'addr',
+    )
+    expect(result.parts?.suburb).toEqual(['Kessenich', 'Dottendorf'])
+    expect(result.parts?.floor).toEqual(['2'])
+    expect(result.parts?.town).toEqual([])
+  })
+
+  test('housenumbers are the enclosing addresses and the points in an enclosing building, sorted by value', () => {
+    const result = addressSuggestions(
+      [
+        near('relation', { 'addr:housenumber': '12', building: 'yes' }, 0, { encloses: true }),
+        near('way', { 'addr:housenumber': '4' }, 0, { encloses: true }),
+        near('node', { 'addr:housenumber': '3a' }, 60, { inEnclosingBuilding: true }),
+        near('node', { 'addr:housenumber': '99' }, 150, { inEnclosingBuilding: true }),
+        near('node', { 'addr:housenumber': '7' }, 20),
+      ],
+      'addr',
+    )
+    expect(result.housenumbers).toEqual(['12', '3a', '4'])
+  })
+
+  test('housenames are the enclosing addresses by name, and the same rule as housenumbers', () => {
+    const result = addressSuggestions(
+      [near('way', { 'addr:housename': 'Old Mill' }, 0, { encloses: true })],
+      'addr',
+    )
+    expect(result.housenames).toEqual(['Old Mill'])
+    expect(suggestionsFor('housename', result)).toEqual(['Old Mill'])
+  })
+
+  test('the keys of the field prefix are used: a postal address reads post:*', () => {
+    const result = addressSuggestions(
+      [near('node', { 'post:city': 'Gamma' }, 10), near('node', { 'addr:city': 'Delta' }, 10)],
+      'post',
+    )
+    expect(result.cities).toEqual(['Gamma'])
+  })
+
+  test('no candidates give empty lists, and the housenumbers then have no list', () => {
+    const result = addressSuggestions([], 'addr')
+    expect(result.streets).toEqual([])
+    expect(result.housenumbers).toEqual([])
+    expect(suggestionsFor('housenumber', result)).toBeUndefined()
+    expect(suggestionsFor('street', result)).toEqual([])
+  })
+
+  test('a candidate without any tag of the lists gives nothing', () => {
+    const result = addressSuggestions([near('node', { amenity: 'cafe', name: 'Café' }, 10)], 'addr')
+    expect(result.streets).toEqual([])
+    expect(result.places).toEqual([])
+    expect(result.cities).toEqual([])
+    expect(result.postcodes).toEqual([])
   })
 })
