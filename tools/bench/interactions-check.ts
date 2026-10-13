@@ -1844,6 +1844,166 @@ failed += await runCheck(
   false,
 )
 
+// --- the magnifier of the measuring tape: a lens with the background, centred on the pointer, with the tape
+// from the first click. `loupe=blank` draws the lens with an empty style (under automation there is no imagery,
+// so no tile is asked for). While the measure runs the width band is not drawn; it is back when the field is hovered. ---
+failed += await runCheck(
+  process.argv[2] ?? 'small',
+  async ({ page, report, settle }) => {
+    const { abs, click, key, state } = await checkHelpers(page, settle)
+    const measureButton = page.locator(
+      '[data-focus-key="width"] button[aria-label^="Measure "][aria-label$=" on the map"]',
+    )
+    const bands = () =>
+      page.evaluate(() => {
+        const features: GeoJSON.Feature[] = Reflect.get(window.__maid.engine, 'fieldFeatures')
+        return features.filter((f) => f.properties?.state === 'field-band').length
+      })
+    // the magnifiers that are shown (the lens is kept, hidden, until the pointer is over the map)
+    const lenses = () =>
+      page.evaluate(
+        () =>
+          [...document.querySelectorAll<HTMLElement>('[data-testid="measure-loupe"]')].filter(
+            (el) => getComputedStyle(el).visibility === 'visible',
+          ).length,
+      )
+
+    // a road, and two places of open ground that are at least 100 px apart
+    const found = (await page.evaluate(() => {
+      const { map, engine } = window.__maid
+      const box = map.getCanvas().getBoundingClientRect()
+      type XY = { x: number; y: number }
+      const alone = (p: XY, r = 16) =>
+        map
+          .queryRenderedFeatures([
+            [p.x - r, p.y - r],
+            [p.x + r, p.y + r],
+          ])
+          .every((f: any) => f.layer.type === 'fill')
+      let road: string | undefined
+      for (const f of map.queryRenderedFeatures()) {
+        const id = String(f.id ?? '')
+        const way = id.startsWith('w') && engine.data.way(id)
+        if (
+          way &&
+          way.tags.highway &&
+          way.nodes.length >= 2 &&
+          way.nodes[0] !== way.nodes[way.nodes.length - 1]
+        ) {
+          road = id
+          break
+        }
+      }
+      const free: XY[] = []
+      for (let y = 100; y < box.height - 100 && free.length < 2; y += 10)
+        for (let x = 100; x < box.width - 100 && free.length < 2; x += 10) {
+          if (free.some((p) => Math.hypot(p.x - x, p.y - y) < 100)) continue
+          if (alone({ x, y })) free.push({ x, y })
+        }
+      return { road, free }
+    })) as { road?: string; free: XY[] }
+    if (!found.road || found.free.length < 2) {
+      report('find a road and two places of open ground', 'all in view', {
+        road: !!found.road,
+        free: found.free.length,
+      })
+      return
+    }
+    const road = found.road
+    const [p1, p2] = found.free as [XY, XY]
+
+    // the road, with a width, selected as the app selects it
+    await page.evaluate((id) => {
+      window.__maid.engine.setTag(id, 'width', '6')
+    }, road)
+    await page.evaluate((id) => window.__bench.select(id), road)
+    await settle()
+
+    // a width field that the pointer is on has its band on the map
+    await page.locator('[data-focus-key="width"] input').hover()
+    await settle()
+    report('hovering a width field draws its band before a measure', 1, await bands())
+
+    // the measure: the band is taken away, and there is no magnifier before the pointer is over the map
+    await measureButton.click()
+    await settle()
+    report('the button starts a measure', true, (await state()).measuring)
+    report('while measuring, the band is not drawn', 0, await bands())
+    report('no magnifier until the pointer is over the map', 0, await lenses())
+
+    // the magnifier follows the pointer: 160 px, not under the pointer, near it, with its crosshair in the middle
+    await page.mouse.move(abs(p1).x, abs(p1).y)
+    await settle()
+    report('moving over the map shows one magnifier', 1, await lenses())
+    const geometry = (await page.evaluate(() => {
+      const lens = [
+        ...document.querySelectorAll<HTMLElement>('[data-testid="measure-loupe"]'),
+      ].find((el) => getComputedStyle(el).visibility === 'visible')
+      const box = lens?.getBoundingClientRect()
+      const cross = lens
+        ?.querySelector('[data-testid="measure-loupe-cross"]')
+        ?.getBoundingClientRect()
+      if (!box || !cross) return null
+      return {
+        size: box.width,
+        cx: box.left + box.width / 2,
+        cy: box.top + box.height / 2,
+        crossX: cross.left + cross.width / 2,
+        crossY: cross.top + cross.height / 2,
+      }
+    })) as { size: number; cx: number; cy: number; crossX: number; crossY: number } | null
+    const at = abs(p1)
+    const distance = geometry ? Math.hypot(geometry.cx - at.x, geometry.cy - at.y) : -1
+    report('the magnifier is 160 px across', 160, geometry ? Math.round(geometry.size) : null)
+    report('the magnifier is not under the pointer', true, distance >= 80)
+    report('the magnifier is near the pointer', true, distance > 0 && distance <= 140)
+    report(
+      "its crosshair is at the magnifier's centre",
+      true,
+      !!geometry &&
+        Math.abs(geometry.crossX - geometry.cx) < 1 &&
+        Math.abs(geometry.crossY - geometry.cy) < 1,
+    )
+
+    // the first click sets the start: the tape runs from the magnifier's centre to it, three times as long
+    await click(p1)
+    await page.mouse.move(abs(p2).x, abs(p2).y)
+    await settle()
+    const tape = await page.evaluate(() => {
+      const line = document.querySelector<SVGLineElement>('[data-testid="measure-loupe-tape"]')
+      if (!line) return null
+      return {
+        x1: Number(line.getAttribute('x1')),
+        y1: Number(line.getAttribute('y1')),
+        x2: Number(line.getAttribute('x2')),
+        y2: Number(line.getAttribute('y2')),
+      }
+    })
+    report('a first click puts the tape in the magnifier', true, tape !== null)
+    report(
+      'the tape runs from the centre to the first point, at three times the distance',
+      true,
+      !!tape &&
+        tape.x1 === 80 &&
+        tape.y1 === 80 &&
+        Math.abs(tape.x2 - 80 - 3 * (p1.x - p2.x)) < 1.5 &&
+        Math.abs(tape.y2 - 80 - 3 * (p1.y - p2.y)) < 1.5,
+    )
+
+    // Escape ends the measure and takes the magnifier away
+    await key('Escape')
+    report('Escape ends the measure', false, (await state()).measuring)
+    report('Escape removes the magnifier', 0, await lenses())
+
+    // after the measure, the band is back when the field is hovered again
+    await page.locator('[data-focus-key="width"] input').hover()
+    await settle()
+    report('after the measure the band is back when the width field is hovered', 1, await bands())
+  },
+  'loupe=blank',
+  false,
+)
+
 // --- the Tags section is the sheet: a row per tag and the empty row; a key and a value typed in the empty row add
 // the tag; a paste of two lines is one step; one undo takes the paste back. Clipboard permissions for this block only.
 failed += await runCheck(

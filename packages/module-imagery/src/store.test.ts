@@ -1,6 +1,14 @@
 import { afterEach, describe, expect, it } from 'bun:test'
 import { imagery } from './index.ts'
-import { createImageryStore, shownBackgroundId, shownTemplate, VISIT_ID } from './store.ts'
+import {
+  backgroundKey,
+  backgroundKeyOf,
+  backgroundOnMap,
+  createImageryStore,
+  shownBackgroundId,
+  shownTemplate,
+  VISIT_ID,
+} from './store.ts'
 
 const KEY = 'maid:imagery'
 const A = 'https://tiles.example.org/a/{z}/{x}/{y}.png'
@@ -277,5 +285,36 @@ describe('the visit background from a link', () => {
     const store = createImageryStore(null)
     expect(store.getState().visitBackground('https://links.example.org/{z}/{x}').ok).toBe(false)
     expect(store.getState().visit).toBeNull()
+  })
+})
+
+describe('the background as drawn, for the measure magnifier', () => {
+  const source = { type: 'raster' as const, tiles: [A], tileSize: 256 }
+  const drawn = (key: string) => ({ key, source })
+  const choice = { visit: null, backgroundId: 'wms-a', custom: [] }
+
+  it('is the drawn background of the shown choice, with the brightness', () => {
+    const state = { ...choice, drawnBackground: drawn(backgroundKey(choice)), brightness: 0.6 }
+    expect(backgroundOnMap(state)).toEqual({ source, brightness: 0.6 })
+  })
+
+  it('is nothing while the choice is not drawn yet, or another one was drawn', () => {
+    expect(backgroundOnMap({ ...choice, drawnBackground: null, brightness: 1 })).toBeUndefined()
+    const other = { ...choice, backgroundId: 'wms-b' }
+    const stale = { ...other, drawnBackground: drawn(backgroundKey(choice)), brightness: 1 }
+    expect(backgroundOnMap(stale)).toBeUndefined()
+  })
+
+  it('is nothing with no background chosen', () => {
+    const none = { visit: null, backgroundId: null, custom: [] }
+    expect(
+      backgroundOnMap({ ...none, drawnBackground: drawn('\n'), brightness: 1 }),
+    ).toBeUndefined()
+  })
+
+  it('a visit shows its own template, with its own key', () => {
+    const visit = { visit: { template: A }, backgroundId: 'wms-a', custom: [] }
+    expect(backgroundKey(visit)).toBe(backgroundKeyOf(VISIT_ID, A))
+    expect(backgroundKey(visit)).not.toBe(backgroundKey(choice))
   })
 })

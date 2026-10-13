@@ -5,7 +5,7 @@ import { lazyComponent, PANEL_FALLBACK } from '@osm-editor-kit/maid-ui'
 import { createElement } from 'react'
 import { backgroundName, usedNames } from './helpers.ts'
 import { ImageryLayers } from './ImageryLayers.tsx'
-import { createImageryStore, shownBackgroundId } from './store.ts'
+import { backgroundOnMap, createImageryStore, shownBackgroundId } from './store.ts'
 
 export type ImageryOptions = {
   /** The background before anyone chooses one, by its ELI id. Default: none. */
@@ -57,6 +57,8 @@ export function imagery(options: ImageryOptions = {}) {
           const state = store.getState()
           return backgroundName(shownBackgroundId(state), state.names)
         },
+        // the background alone, as the measure's magnifier draws it (undefined until it is drawn)
+        backgroundSource: () => backgroundOnMap(store.getState()),
       })
     },
   })

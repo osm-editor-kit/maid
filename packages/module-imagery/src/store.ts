@@ -1,4 +1,5 @@
 import { moduleStorage } from '@osm-editor-kit/maid-core'
+import type { RasterSourceSpec } from '@osm-editor-kit/maplibre-editor-layer-index'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { checkTemplate, customId, type CustomEntry } from './custom.ts'
@@ -16,6 +17,8 @@ export type ImageryState = ImageryStored & {
   view: View | null
   /** Not stored: the name iD cites for each layer that is drawn, by layer id (see `usedNames`) */
   names: Record<string, string>
+  /** Not stored: the background as it is drawn, with the key of the choice it was drawn for (see `backgroundKey`) */
+  drawnBackground: { key: string; source: RasterSourceSpec } | null
   /**
    * Not stored: a background a link named, shown for this visit only. It is not in `custom`, and the
    * stored `backgroundId` is not changed. The first change the person makes ends it.
@@ -26,6 +29,8 @@ export type ImageryState = ImageryStored & {
   setBrightness: (value: number) => void
   setView: (view: View) => void
   remember: (names: Record<string, string>) => void
+  /** Sets the background drawn now (with its key), or none. See `drawnBackground`. */
+  rememberBackground: (drawn: { key: string; source: RasterSourceSpec } | null) => void
   /** Saves a custom background and selects it. A template saved already selects that entry. */
   addCustom: (name: string, template: string) => SaveResult
   /** Changes the name and the template of an entry. Into another entry's template, the two merge. */
@@ -52,6 +57,33 @@ export function shownTemplate(state: Pick<ImageryState, 'visit' | 'backgroundId'
   return entry?.template ?? null
 }
 
+/**
+ * The key of a background choice: what the layer draws, with no overlays and no brightness. A drawn
+ * background is only used while its key is the one of the choice shown now.
+ */
+export function backgroundKeyOf(id: string | null, template: string | null) {
+  return `${id ?? ''}\n${template ?? ''}`
+}
+
+/** The key of the shown background (see `backgroundKeyOf`) */
+export function backgroundKey(state: Pick<ImageryState, 'visit' | 'backgroundId' | 'custom'>) {
+  return backgroundKeyOf(shownBackgroundId(state), shownTemplate(state))
+}
+
+/**
+ * The background the map shows now, as a raster source with its brightness: undefined when none is
+ * drawn for the shown choice (none chosen, or not drawn yet). The measure's magnifier draws it.
+ */
+export function backgroundOnMap(
+  state: Pick<ImageryState, 'visit' | 'backgroundId' | 'custom' | 'drawnBackground' | 'brightness'>,
+) {
+  const drawn = state.drawnBackground
+  if (shownBackgroundId(state) === null || !drawn || drawn.key !== backgroundKey(state)) {
+    return undefined
+  }
+  return { source: drawn.source, brightness: state.brightness }
+}
+
 function without(names: Record<string, string>, id: string) {
   return Object.fromEntries(Object.entries(names).filter(([key]) => key !== id))
 }
@@ -72,8 +104,10 @@ export function createImageryStore(defaultBackground: string | null) {
         customNext: 1,
         view: null,
         names: {},
+        drawnBackground: null,
         visit: null,
         remember: (names) => set((state) => ({ names: { ...state.names, ...names } })),
+        rememberBackground: (drawn) => set({ drawnBackground: drawn }),
         setBackground: (backgroundId) => set({ backgroundId, visit: null }),
         setOverlay: (id, on) =>
           set((state) => ({

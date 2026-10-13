@@ -294,3 +294,15 @@ export function fieldOverlayFeatures(
 function sidesOf(choice: SideChoice) {
   return choice === 'both' ? ['left', 'right'] : [choice]
 }
+
+/**
+ * The overlay the map draws now. While a measure is under way the map shows the measure's magnifier
+ * and tape, and nothing of a field: a width band would be in the way of the points that are clicked.
+ * The overlay the field asked for is kept by the engine and drawn again when the measure ends.
+ */
+export function drawnFieldOverlay(
+  overlay: FieldOverlay | null,
+  measuring: boolean,
+): FieldOverlay | null {
+  return measuring ? null : overlay
+}

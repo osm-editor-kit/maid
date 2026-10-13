@@ -24,6 +24,7 @@ import {
 import { exposeBenchApi } from '../bench'
 import { drawClick } from '../drawing'
 import { addPointWithFavourite, giveFavouriteTagsToNode } from '../favourites'
+import { backgroundSourceOnMap } from '../imagery-used'
 import { installMarkerImages } from '../images'
 import { preloadAfterFirstSettle } from '../lazy-chunks'
 import { useSelection } from '../selection'
@@ -34,6 +35,7 @@ import { useCameraParam } from '../url/state'
 import { moveSource, shouldStoreMove, startCamera } from '../url/view'
 import { FavouriteHint } from './FavouriteHint'
 import { MapContextMenu, type MenuPlace } from './MapContextMenu'
+import { MeasureLoupe } from './MeasureLoupe'
 import { StackPicker } from './StackPicker'
 
 /** No basemap: the benchmark compares how editors draw OSM data, not imagery. */
@@ -134,6 +136,12 @@ export function MapView() {
   const selectionOnly = useEngine((e) => e.selectionOnly)
   const [zoomGuard, setZoomGuard] = useState(false)
   const [menu, setMenu] = useState<MenuPlace | null>(null)
+  // the magnifier of a measure is drawn with the background: none without one (MeasureLoupe). `?loupe=blank`
+  // draws it with an empty style, for the browser check, which has no imagery (the imagery module is off there)
+  const [blankLoupe] = useState(
+    () => new URLSearchParams(window.location.search).get('loupe') === 'blank',
+  )
+  const background = measuring ? backgroundSourceOnMap(editor) : undefined
   // a stack's pill is for a plain click in browse mode: a draw, a move, a rotation or a measure ends it
   useEffect(() => {
     if (mode !== 'browse' || measuring) dropStack()
@@ -295,7 +303,7 @@ export function MapView() {
     }
     // a measure follows the pointer and takes nothing else
     if (engine.measuring) {
-      engine.measureMove(lng, lat)
+      engine.measureMove(lng, lat, 'touches' in event.originalEvent)
       return
     }
     if (engine.pressingHandle) {
@@ -572,6 +580,13 @@ export function MapView() {
         >
           Click two points to measure. Escape cancels.
         </div>
+      )}
+      {measuring && engine.map && (blankLoupe || background) && (
+        <MeasureLoupe
+          map={engine.map}
+          source={background?.source}
+          brightness={background?.brightness ?? 1}
+        />
       )}
       {menu && <MapContextMenu place={menu} onClose={() => setMenu(null)} />}
     </Map>

@@ -12,3 +12,16 @@ export function imageryOnMap(editor: Editor): { background: string | undefined; 
     used: items.flatMap((item) => item.used()),
   }
 }
+
+/**
+ * The background the map shows now, as a raster source with its brightness, for the measure's magnifier
+ * (the `backgroundSource` of the imagery.used items). Undefined with no background drawn: then there is
+ * no magnifier.
+ */
+export function backgroundSourceOnMap(editor: Editor) {
+  for (const item of editor.registry('imagery.used').list()) {
+    const background = item.backgroundSource?.()
+    if (background) return background
+  }
+  return undefined
+}

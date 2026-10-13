@@ -5,6 +5,7 @@
 import { defineModule, type Editor } from '@osm-editor-kit/maid-core'
 import type { Operation } from '@osm-editor-kit/maid-operations'
 import type { Feature, FeatureCollection } from 'geojson'
+import type { RasterSourceSpecification } from 'maplibre-gl'
 import type { ComponentType } from 'react'
 import type { LayerProps } from 'react-map-gl/maplibre'
 
@@ -52,6 +53,11 @@ export type ImageryUsedItem = {
   used: () => string[]
   /** The name of the background alone; undefined with no background (none chosen, or the plain style) */
   background: () => string | undefined
+  /**
+   * The background as a MapLibre raster source, with its brightness, for the measure's magnifier, which
+   * draws it alone in a small map of its own. Undefined with no background, or until it is drawn.
+   */
+  backgroundSource?: () => { source: RasterSourceSpecification; brightness: number } | undefined
 }
 
 declare module '@osm-editor-kit/maid-core' {

@@ -39,7 +39,7 @@ type CheckName = (typeof CHECKS)[number]
  * Bicycle and parking have the same numbers until a real run says otherwise.
  */
 const EXPECTED_OK: Record<CheckName, Record<AppName, number>> = {
-  interactions: { maid: 136, bicycle: 136, parking: 136 },
+  interactions: { maid: 151, bicycle: 151, parking: 151 },
   edit: { maid: 20, bicycle: 20, parking: 20 },
   draw: { maid: 14, bicycle: 14, parking: 14 },
   undo: { maid: 43, bicycle: 43, parking: 43 },

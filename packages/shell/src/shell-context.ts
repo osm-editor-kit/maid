@@ -26,3 +26,13 @@ export function useEngine<T>(read: (engine: MaidEngine, version: number) => T) {
   const version = useSyncExternalStore(engine.subscribe, engine.getVersion)
   return read(engine, version)
 }
+
+/**
+ * Reads from the measure of the engine (its first click and the pointer) inside a component. It is
+ * read again on each move of the measure only, not on every change of the editor (see useEngine).
+ */
+export function useMeasure<T>(read: (engine: MaidEngine, version: number) => T) {
+  const { engine } = useShell()
+  const version = useSyncExternalStore(engine.subscribeMeasure, engine.getMeasureVersion)
+  return read(engine, version)
+}

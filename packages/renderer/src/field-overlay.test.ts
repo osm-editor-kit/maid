@@ -1,8 +1,10 @@
 import { describe, expect, test } from 'bun:test'
 import type { Feature, Polygon } from 'geojson'
 import {
+  drawnFieldOverlay,
   fieldOverlayFeatures,
   formatMetres,
+  type FieldOverlay,
   isStraightEnough,
   offsetLine,
   visiblePolyline,
@@ -256,5 +258,20 @@ describe('formatMetres', () => {
     expect(formatMetres(3.5)).toBe('3.5 m')
     expect(formatMetres(2)).toBe('2 m')
     expect(formatMetres(1.234)).toBe('1.23 m')
+  })
+})
+
+describe('drawnFieldOverlay', () => {
+  const band: FieldOverlay = { kind: 'width', metres: 3.5 }
+
+  test('the overlay is drawn when no measure is under way', () => {
+    expect(drawnFieldOverlay(band, false)).toBe(band)
+    expect(drawnFieldOverlay(null, false)).toBeNull()
+  })
+
+  test('nothing is drawn while a measure is under way, whatever the field asked for', () => {
+    expect(drawnFieldOverlay(band, true)).toBeNull()
+    expect(drawnFieldOverlay({ kind: 'side', side: 'left' }, true)).toBeNull()
+    expect(drawnFieldOverlay(null, true)).toBeNull()
   })
 })

@@ -55,7 +55,12 @@ import { OsmData } from './data'
 import { onewayOf } from './direction'
 import { installDirectionImages } from './direction-images'
 import { DrawTool, nearestOnWay, projectedNodes } from './draw'
-import { fieldOverlayFeatures, type FieldOverlay, type LonLat } from './field-overlay'
+import {
+  drawnFieldOverlay,
+  fieldOverlayFeatures,
+  type FieldOverlay,
+  type LonLat,
+} from './field-overlay'
 import { ACTIVE_SOURCE, activePinIds, EDIT_SOURCES, SELECT_SOURCES, SOURCES } from './layers'
 import { distanceMetres, measureFeatures as measureOnMap } from './measure'
 import { midpointFeatures, segmentsOf, type MidpointFeature, type Segment } from './midpoints'
@@ -2396,8 +2401,10 @@ export class MaidEngine {
   }
 
   private refreshFieldOverlay() {
+    // the field's overlay is kept as it is; while a measure runs it is not drawn (drawnFieldOverlay)
+    const overlay = drawnFieldOverlay(this.fieldOverlay, this.measuring)
     const id = this.selectedIds.length === 1 ? this.selectedIds[0] : undefined
-    const way = this.fieldOverlay && id?.[0] === 'w' ? this.data.way(id) : undefined
+    const way = overlay && id?.[0] === 'w' ? this.data.way(id) : undefined
     const map = this.map
     const line: LonLat[] = []
     if (way) {
@@ -2407,8 +2414,8 @@ export class MaidEngine {
       }
     }
     const features =
-      way && this.fieldOverlay && map && line.length >= 2
-        ? fieldOverlayFeatures(this.fieldOverlay, line, {
+      way && overlay && map && line.length >= 2
+        ? fieldOverlayFeatures(overlay, line, {
             closed: way.nodes[0] === way.nodes[way.nodes.length - 1],
             viewport: {
               width: map.getContainer().clientWidth,
@@ -2433,6 +2440,33 @@ export class MaidEngine {
   private measureStart?: LonLat
   /** The line and the label from the first click to the pointer: empty until there is a first click and a move */
   private measureList: Feature[] = []
+  /** Where the pointer is while measuring, and whether it is a finger: the magnifier follows it, before the first click too */
+  private measurePointer?: { lon: number; lat: number; touch: boolean }
+  private measureListeners = new Set<() => void>()
+  private measureVersion = 0
+
+  /**
+   * Subscribes to the measure's moves and clicks. Its own channel: `subscribe` tells every React
+   * component of the editor, and a pointer move while measuring must not make them all read again.
+   */
+  subscribeMeasure = (listener: () => void) => {
+    this.measureListeners.add(listener)
+    return () => this.measureListeners.delete(listener)
+  }
+  getMeasureVersion = () => this.measureVersion
+
+  private measureChanged() {
+    this.measureVersion++
+    for (const listener of this.measureListeners) listener()
+  }
+
+  /**
+   * The measure's first click and the pointer, for the magnifier (MeasureLoupe). `start` is undefined
+   * until the first click; `pointer` is undefined until the pointer has moved over the map.
+   */
+  get measureSpots() {
+    return { start: this.measureStart, pointer: this.measurePointer }
+  }
 
   /**
    * True from startMeasure until the second click or a cancel. While it is, clicks and moves go to the
@@ -2463,6 +2497,8 @@ export class MaidEngine {
     // the hover of before the measure does not stay on the feature under it
     this.setHover(null)
     this.computeMidpoints()
+    // the field's band is not drawn while the measure runs (drawnFieldOverlay)
+    this.refreshFieldOverlay()
     this.pushHighlight()
     this.changed()
   }
@@ -2472,14 +2508,21 @@ export class MaidEngine {
     if (!this.measureDone) return
     if (this.measureStart === undefined) {
       this.measureStart = [lon, lat]
+      this.measureChanged()
       return
     }
     this.finishMeasure(distanceMetres(this.measureStart, [lon, lat]))
   }
 
-  /** A pointer move while measuring: the line and label from the start to the pointer, once there is a start */
-  measureMove(lon: number, lat: number) {
-    if (!this.measureDone || this.measureStart === undefined) return
+  /**
+   * A pointer move while measuring: the magnifier follows the pointer (`touch`: a finger), and the line
+   * and label run from the start to the pointer, once there is a start.
+   */
+  measureMove(lon: number, lat: number, touch = false) {
+    if (!this.measureDone) return
+    this.measurePointer = { lon, lat, touch }
+    this.measureChanged()
+    if (this.measureStart === undefined) return
     this.measureList = measureOnMap(this.measureStart, [lon, lat])
     this.pushHighlight()
   }
@@ -2494,10 +2537,14 @@ export class MaidEngine {
     if (!done) return
     this.measureDone = undefined
     this.measureStart = undefined
+    this.measurePointer = undefined
     this.measureList = []
     this.computeMidpoints()
+    // the field's band comes back if the field still has the focus or the pointer on it
+    this.refreshFieldOverlay()
     this.pushHighlight()
     this.changed()
+    this.measureChanged()
     done(metres)
   }
 

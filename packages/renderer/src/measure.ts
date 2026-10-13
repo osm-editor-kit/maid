@@ -6,6 +6,14 @@
  *
  * Pure: no MapLibre here. The distance is on the ground, from longitude and latitude, so it does
  * not depend on the zoom or on Mercator units.
+ *
+ * How the tool works, for people who use it and for the code that changes it: the width field's
+ * "Measure on the map" button starts a measure (engine.startMeasure). Two clicks on the map set its
+ * ends; Escape or the button again cancels. While it runs the map shows no field overlay (the width
+ * band is taken away, drawnFieldOverlay), and the magnifier of the shell (MeasureLoupe) follows the
+ * pointer: a lens of 160 px with the background imagery 3 times larger, its crosshair on the point a
+ * click would set, and the tape from the first click drawn in the lens. The engine's measure channel
+ * (subscribeMeasure, measureSpots) tells the magnifier about each move; nothing else re-reads.
  */
 import type { Feature, LineString, Point } from 'geojson'
 import type { LonLat } from './field-overlay'

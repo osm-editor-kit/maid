@@ -5,7 +5,7 @@ import { useStore } from 'zustand'
 import { drawCustom } from './custom.ts'
 import { drawLayer, type Drawn } from './eli.ts'
 import { toOsmZoom } from './helpers.ts'
-import { shownBackgroundId, shownTemplate, type ImageryStore } from './store.ts'
+import { backgroundKeyOf, shownBackgroundId, shownTemplate, type ImageryStore } from './store.ts'
 
 /**
  * Draws the chosen background and overlays under the OSM data (`belowOsm`), and keeps the store
@@ -24,6 +24,7 @@ export function ImageryLayers(props: { store: ImageryStore; belowOsm: string }) 
   const brightness = useStore(store, (s) => s.brightness)
   const setView = useStore(store, (s) => s.setView)
   const remember = useStore(store, (s) => s.remember)
+  const rememberBackground = useStore(store, (s) => s.rememberBackground)
   const automated = isAutomated()
 
   // what is drawn, keyed by what was chosen: a result for an older choice is not shown
@@ -68,12 +69,19 @@ export function ImageryLayers(props: { store: ImageryStore; belowOsm: string }) 
       const items = results.filter((item): item is Drawn => item !== undefined)
       // the names of what is drawn now: the measure and the changeset cite them (usedNames)
       remember(Object.fromEntries(items.map((item) => [item.id, item.name])))
+      // the background alone, for the measure's magnifier (backgroundOnMap); its key says which choice it is
+      const background = items.find((item) => item.background)
+      rememberBackground(
+        background
+          ? { key: backgroundKeyOf(backgroundId, template), source: background.source }
+          : null,
+      )
       setLoaded({ key, items })
     })
     return () => {
       cancelled = true
     }
-  }, [automated, backgroundId, template, overlayKey, key, remember])
+  }, [automated, backgroundId, template, overlayKey, key, remember, rememberBackground])
 
   if (automated) return null
   const drawn = loaded?.key === key ? loaded.items : []
