@@ -10,7 +10,13 @@ import {
   actionDeleteWay,
   actionMoveNode,
 } from '@osm-editor-kit/maid-model'
-import { changesetTags, imageryUsedValue, summaryOf, toOsmChange } from './osm-change.ts'
+import {
+  changesetTags,
+  createdByValue,
+  imageryUsedValue,
+  summaryOf,
+  toOsmChange,
+} from './osm-change.ts'
 
 function history() {
   const context = new ModelContext()
@@ -90,22 +96,48 @@ describe('toOsmChange', () => {
   })
 })
 
+describe('createdByValue', () => {
+  it('is the app name and its version, as the changeset names the app', () => {
+    expect(createdByValue('Maid', '0.1.0')).toBe('Maid 0.1.0')
+    expect(createdByValue('Maid Bicycle', '0.1.0')).toBe('Maid Bicycle 0.1.0')
+    expect(createdByValue('Maid Parking', '0.1.0')).toBe('Maid Parking 0.1.0')
+  })
+
+  it('trims the name and the version', () => {
+    expect(createdByValue(' Maid ', ' 0.1.0 ')).toBe('Maid 0.1.0')
+  })
+
+  it('refuses an empty name or version: nothing is uploaded under a wrong name', () => {
+    expect(() => createdByValue('', '0.1.0')).toThrow('created_by needs an app name and a version')
+    expect(() => createdByValue('Maid', '  ')).toThrow('created_by needs an app name and a version')
+  })
+
+  it('accepts 255 characters, the API limit, and refuses one more', () => {
+    // the name and " 0.1.0" together are 255 characters
+    const name = 'M'.repeat(255 - ' 0.1.0'.length)
+    expect(createdByValue(name, '0.1.0')).toHaveLength(255)
+    expect(() => createdByValue(`${name}x`, '0.1.0')).toThrow('longer than 255 characters')
+  })
+})
+
 describe('changesetTags', () => {
   it('sets the editor and the trimmed comment', () => {
-    expect(changesetTags('  Added a cafe ', '0.1')).toEqual({
+    expect(changesetTags('  Added a cafe ', 'Maid 0.1')).toEqual({
       created_by: 'Maid 0.1',
       comment: 'Added a cafe',
     })
   })
 
   it('collects hashtags from the comment, each once', () => {
-    expect(changesetTags('Paths #radnetz and #berlin, again #radnetz.', '0.1').hashtags).toBe(
+    expect(changesetTags('Paths #radnetz and #berlin, again #radnetz.', 'Maid 0.1').hashtags).toBe(
       '#radnetz;#berlin',
     )
   })
 
   it('writes the imagery on the map as imagery_used, background first', () => {
-    expect(changesetTags('Added a cafe', '0.1', ['Bing aerial imagery', 'Road overlay'])).toEqual({
+    expect(
+      changesetTags('Added a cafe', 'Maid 0.1', ['Bing aerial imagery', 'Road overlay']),
+    ).toEqual({
       created_by: 'Maid 0.1',
       comment: 'Added a cafe',
       imagery_used: 'Bing aerial imagery;Road overlay',
@@ -113,8 +145,8 @@ describe('changesetTags', () => {
   })
 
   it('leaves imagery_used out when no imagery is on the map', () => {
-    expect(changesetTags('Added a cafe', '0.1', [])).not.toHaveProperty('imagery_used')
-    expect(changesetTags('Added a cafe', '0.1')).not.toHaveProperty('imagery_used')
+    expect(changesetTags('Added a cafe', 'Maid 0.1', [])).not.toHaveProperty('imagery_used')
+    expect(changesetTags('Added a cafe', 'Maid 0.1')).not.toHaveProperty('imagery_used')
   })
 })
 

@@ -1,6 +1,6 @@
 {
   "name": "@osm-editor-kit/maid-parking",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "license": "ISC",
   "type": "module",

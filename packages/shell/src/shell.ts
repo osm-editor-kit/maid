@@ -24,8 +24,13 @@ export type AppConfig = {
    * automation, which is always English.
    */
   defaultLocale?: Locale
-  /** The name and the line under it in the top bar */
+  /** The name and the line under it in the top bar. The name is also the changeset's `created_by` (with `version`) */
   brand?: { name: string; detail?: string }
+  /**
+   * The app's version, as in its package.json: `created_by` of every changeset is `<brand.name> <version>`,
+   * e.g. `Maid Parking 0.1.0`. Each app passes its own; the value is checked when a changeset is uploaded.
+   */
+  version: string
   /** Login to the OSM development server. Without a client id, "Log in" explains what is missing. */
   osm?: {
     /** OAuth client id; not a secret, read from the app's own env file */
@@ -97,6 +102,7 @@ export function createShell(app: AppConfig) {
   return {
     id,
     brand: app.brand ?? { name: 'Maid', detail: 'MapLibre iD Editor' },
+    version: app.version,
     config,
     editor,
     engine,

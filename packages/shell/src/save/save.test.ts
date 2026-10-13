@@ -17,7 +17,15 @@ type Shelled = Parameters<typeof uploadEdits>[0]
  * The editor and a fake OSM client. The base has one node (n1, version 3). The test then moves it and
  * adds a bench, which gets the id n-1 the way a session gives one. The client never leaves the test.
  */
-function setUp(options: { dev?: boolean; fail?: boolean; selectBench?: boolean } = {}) {
+function setUp(
+  options: {
+    dev?: boolean
+    fail?: boolean
+    selectBench?: boolean
+    brand?: string
+    version?: string
+  } = {},
+) {
   const context = new ModelContext()
   const history = new EditHistory(context)
   history.merge([new OsmNode(context, { id: 'n1', loc: [13, 52], version: 3, tags: {} })])
@@ -61,6 +69,8 @@ function setUp(options: { dev?: boolean; fail?: boolean; selectBench?: boolean }
     editor,
     engine,
     auth: { api: async () => OSM },
+    brand: { name: options.brand ?? 'Maid Parking' },
+    version: options.version ?? '0.1.0',
   } as unknown as Shelled
   return { editor, history, context, shell, uploads, reloads }
 }
@@ -75,6 +85,8 @@ describe('uploadEdits', () => {
     expect(done.selection).toEqual(['n555'])
     expect(uploads).toHaveLength(1)
     expect(uploads[0]?.tags.comment).toBe('Moved and added')
+    // the changeset names the app that made it: its brand name and version
+    expect(uploads[0]?.tags.created_by).toBe('Maid Parking 0.1.0')
     expect(uploads[0]?.diff.create.map((e) => e.id)).toEqual([-1])
     expect(uploads[0]?.diff.modify.map((e) => e.id)).toEqual([1])
     // nothing is left to save and nothing to undo, as after iD's flush
@@ -97,6 +109,15 @@ describe('uploadEdits', () => {
     expect(uploads[1]?.diff.create.map((e) => e.id)).toEqual([-2])
     expect(uploads[1]?.diff.modify).toEqual([])
     expect(uploads[1]?.diff.delete).toEqual([])
+  })
+
+  it('sends nothing when the app has no version: created_by would be wrong', async () => {
+    const { history, shell, uploads } = setUp({ version: '' })
+
+    expect(uploadEdits(shell, 'No version')).rejects.toThrow('created_by needs an app name')
+
+    expect(uploads).toHaveLength(0)
+    expect(history.hasChanges()).toBe(true)
   })
 
   it('keeps the edits and does not reload the map when the upload fails', async () => {

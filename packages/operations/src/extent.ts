@@ -176,3 +176,26 @@ export function isTooLarge(extent: Extent | undefined, context: OperationContext
   if (context.viewExtent === undefined) return false
   return percentContainedIn(extent, context.viewExtent) < MIN_SHARE_IN_VIEW
 }
+
+/**
+ * Whether every one of these features is new: not saved yet, so its id has a minus (`n-1`, `w-3`).
+ * A feature that is not in the graph is not new. False for no features.
+ */
+export function allNew(ids: readonly string[], graph: Graph): boolean {
+  return ids.length > 0 && ids.every((id) => graph.hasEntity(id)?.isNew() === true)
+}
+
+/**
+ * The `too_large` test as an edit runs it, with Rapid's exemption: Rapid's operations check
+ * `!isNew && tooLarge()`, so a feature that is new (not saved yet) is never too large. Here the
+ * selection and the features whose extent is measured must all be new for that. `measured`
+ * defaults to the selection; straighten and disconnect measure other features (their extent IDs).
+ * No power-user switch: Rapid's `poweruser.allowLargeEdits` is not adopted (README).
+ */
+export function isTooLargeToEdit(
+  context: OperationContext,
+  measured: readonly string[] = context.selected,
+): boolean {
+  if (allNew([...context.selected, ...measured], context.graph)) return false
+  return isTooLarge(selectionExtent(measured, context.graph), context)
+}

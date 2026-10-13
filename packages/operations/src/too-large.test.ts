@@ -384,6 +384,97 @@ describe('too large: extract', () => {
   })
 })
 
+describe('new features are exempt, as in Rapid (!isNew && tooLarge)', () => {
+  // ids with a minus are new, as the model gives them before a save: `n-1`, `w-1`
+  /** A quad of new nodes n-first.. and a new way w-way, closed when asked; 0 to 1 high, from x0 */
+  function newQuad(first: number, wayNo: number, x0: number, width: number, closed = false) {
+    const corners: [number, number][] = [
+      [x0, 0],
+      [x0 + width, 0],
+      [x0 + width, 1],
+      [x0 + 0.1, 1],
+    ]
+    const ids = corners.map((_, i) => `n-${first + i}`)
+    const nodes = corners.map(([lon, lat], i) => node(ids[i] ?? '', lon, lat))
+    return [...nodes, way(`w-${wayNo}`, closed ? [...ids, ids[0] ?? ''] : ids)]
+  }
+
+  it('delete: new points and ways far outside the view can be deleted', () => {
+    const graph = graphOf(node('n-1', 9, 9), node('n-2', 9.5, 9.5), way('w-1', ['n-1', 'n-2']))
+    expect(deleteOperation.disabled(at(graph, ['n-1'], NOT_IN_VIEW))).toBeUndefined()
+    expect(deleteOperation.disabled(at(graph, ['n-1', 'n-2'], NOT_IN_VIEW))).toBeUndefined()
+    expect(deleteOperation.disabled(at(graph, ['w-1'], NOT_IN_VIEW))).toBeUndefined()
+  })
+
+  it('delete: a saved feature far out stays too large, also next to new ones', () => {
+    const graph = graphOf(node('n-1', 9, 9), node('n1', 9.5, 9.5))
+    expect(deleteOperation.disabled(at(graph, ['n1'], NOT_IN_VIEW))).toBe(TOO_LARGE_DELETE)
+    expect(deleteOperation.disabled(at(graph, ['n-1', 'n1'], NOT_IN_VIEW))).toBe(
+      TOO_LARGE_DELETE_SEVERAL,
+    )
+  })
+
+  it('straighten: a new line far out is not too large; the same line saved is', () => {
+    const fresh = graphOf(
+      node('n-1', 9, 0),
+      node('n-2', 11.5, 0.5),
+      node('n-3', 14, 0),
+      way('w-1', ['n-1', 'n-2', 'n-3']),
+    )
+    expect(straightenOperation.applies(at(fresh, ['w-1'], NOT_IN_VIEW))).toBe(true)
+    expect(straightenOperation.disabled(at(fresh, ['w-1'], NOT_IN_VIEW))).toBeUndefined()
+    const saved = graphOf(
+      node('n1', 9, 0),
+      node('n2', 11.5, 0.5),
+      node('n3', 14, 0),
+      way('w1', ['n1', 'n2', 'n3']),
+    )
+    expect(straightenOperation.disabled(at(saved, ['w1'], NOT_IN_VIEW))).toBe(TOO_LARGE_STRAIGHTEN)
+  })
+
+  it('square and make round: a new closed way far out is not too large', () => {
+    const graph = graphOf(...newQuad(10, 2, 9, 5, true))
+    expect(squareOperation.disabled(at(graph, ['w-2'], NOT_IN_VIEW))).toBeUndefined()
+    expect(circularizeOperation.disabled(at(graph, ['w-2'], NOT_IN_VIEW))).toBeUndefined()
+    const saved = graphOf(...quad('w1', 9, 5, true))
+    expect(squareOperation.disabled(at(saved, ['w1'], NOT_IN_VIEW))).toBe(TOO_LARGE_SQUARE)
+  })
+
+  it('disconnect: a new vertex far out can be disconnected, a saved one cannot', () => {
+    const fresh = graphOf(
+      node('n-20', 9, 9),
+      node('n-21', 9, 9),
+      node('n-22', 9, 9),
+      node('n-23', 9, 9),
+      node('n-24', 9, 9),
+      way('w-3', ['n-21', 'n-20', 'n-22']),
+      way('w-4', ['n-23', 'n-20', 'n-24']),
+    )
+    expect(disconnectOperation.applies(at(fresh, ['n-20'], NOT_IN_VIEW))).toBe(true)
+    expect(disconnectOperation.disabled(at(fresh, ['n-20'], NOT_IN_VIEW))).toBeUndefined()
+    expect(
+      disconnectOperation.disabled(at(graphOf(...junction('v1', 9, 9)), ['v1'], NOT_IN_VIEW)),
+    ).toBe(TOO_LARGE_DISCONNECT)
+  })
+
+  it('extract: a new tagged point far out is not too large', () => {
+    const graph = graphOf(
+      node('n-30', 9, 9, { amenity: 'bench' }),
+      way('w-5', ['n-30', 'n-31']),
+      node('n-31', 9.1, 9.1),
+    )
+    expect(extractOperation.applies(at(graph, ['n-30'], NOT_IN_VIEW))).toBe(true)
+    expect(extractOperation.disabled(at(graph, ['n-30'], NOT_IN_VIEW))).toBeUndefined()
+  })
+
+  it('flip: new nodes far out are not too large', () => {
+    const graph = graphOf(node('n-41', 9, 0), node('n-42', 14, 0), node('n-43', 14, 1))
+    for (const op of [reflectLongOperation, reflectShortOperation]) {
+      expect(op.disabled(at(graph, ['n-41', 'n-42', 'n-43'], NOT_IN_VIEW))).toBeUndefined()
+    }
+  })
+})
+
 /** A view turned by 45 degrees: the square |lon| + |lat| <= 1, as its corners */
 const TURNED: [number, number][] = [
   [1, 0],

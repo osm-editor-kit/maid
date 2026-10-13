@@ -40,6 +40,7 @@ import { defaultRules } from '@osm-editor-kit/maid-validation'
 import dense from '../../../fixtures/dense.meta.json'
 import medium from '../../../fixtures/medium.meta.json'
 import small from '../../../fixtures/small.meta.json'
+import { version } from '../package.json'
 
 /**
  * Extent of each fixture, from its meta file. The casts stay on purpose: JSON imports as number[], not
@@ -111,6 +112,7 @@ function editorConfig(config: Config) {
 export const app: AppConfig = {
   id: 'maid-parking',
   brand: { name: 'Maid Parking', detail: 'Street-side parking' },
+  version,
   // German unless the URL (`?lang=`), the stored choice or the browser names a language; automation stays English
   defaultLocale: 'de',
   osm: {

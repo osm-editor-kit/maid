@@ -31,6 +31,7 @@ import { defaultRules } from '@osm-editor-kit/maid-validation'
 import dense from '../../../fixtures/dense.meta.json'
 import medium from '../../../fixtures/medium.meta.json'
 import small from '../../../fixtures/small.meta.json'
+import { version } from '../package.json'
 
 /**
  * Extent of each fixture, from its meta file. The casts stay on purpose: JSON imports as number[], not
@@ -104,6 +105,7 @@ function editorConfig(config: Config) {
 export const app: AppConfig = {
   id: 'maid',
   brand: { name: 'Maid', detail: 'MapLibre iD Editor' },
+  version,
   osm: {
     devClientId: import.meta.env.VITE_OSM_DEV_CLIENT_ID || undefined,
     loginOrigin: 'http://127.0.0.1:5173',

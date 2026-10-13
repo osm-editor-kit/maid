@@ -118,14 +118,30 @@ export function imageryUsedValue(names: readonly string[]) {
 }
 
 /**
- * The changeset's tags. `created_by` and `comment` as every editor sets them; hashtags are taken
- * from the comment as iD does (`#mapathon` → `hashtags=#mapathon`). `imagery_used` lists the imagery
- * on the map (`imagery` in the order given, background first) as iD writes it; it is left out when
- * there is none, where iD writes `None`.
+ * The changeset's `created_by`: the app's name and version, as `Maid 0.1.0` or `Maid Parking 0.1.0`.
+ * `name` is the app's brand name and `version` its package version. Throws when either is empty or
+ * the value is longer than OSM's 255 characters, so nothing is uploaded under a wrong name.
  */
-export function changesetTags(comment: string, version: string, imagery: readonly string[] = []) {
+export function createdByValue(name: string, version: string) {
+  const value = `${name.trim()} ${version.trim()}`
+  if (name.trim() === '' || version.trim() === '') {
+    throw new Error(`created_by needs an app name and a version, got "${name}" and "${version}"`)
+  }
+  if (Array.from(value).length > TAG_VALUE_MAX) {
+    throw new Error(`created_by is longer than ${TAG_VALUE_MAX} characters: "${value}"`)
+  }
+  return value
+}
+
+/**
+ * The changeset's tags. `created_by` (from `createdByValue`) and `comment` as every editor sets them;
+ * hashtags are taken from the comment as iD does (`#mapathon` → `hashtags=#mapathon`). `imagery_used`
+ * lists the imagery on the map (`imagery` in the order given, background first) as iD writes it; it is
+ * left out when there is none, where iD writes `None`.
+ */
+export function changesetTags(comment: string, createdBy: string, imagery: readonly string[] = []) {
   const text = comment.trim()
-  const tags: Record<string, string> = { created_by: `Maid ${version}`, comment: text }
+  const tags: Record<string, string> = { created_by: createdBy, comment: text }
   const hashtags = [...new Set(text.match(/#[^\s#;,.!?]{2,}/g) ?? [])]
   if (hashtags.length > 0) tags.hashtags = hashtags.join(';')
   const imageryUsed = imageryUsedValue(imagery)

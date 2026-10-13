@@ -20,7 +20,7 @@ import {
   actionStraightenWay,
 } from '@osm-editor-kit/maid-model'
 import type { Action, DisconnectAction, Graph, OsmEntity } from '@osm-editor-kit/maid-model'
-import { isTooLarge, selectionExtent } from './extent.ts'
+import { isTooLargeToEdit } from './extent.ts'
 import type { Operation, OperationContext } from './types.ts'
 
 /** Used when an action gives a reason code that has no sentence here */
@@ -329,7 +329,7 @@ export const straightenOperation: Operation = {
     if (!plan) return undefined
     const reason = reasonOf(plan.action, context.graph)
     if (reason !== undefined) return reasonSentence(STRAIGHTEN_REASONS, reason, plan.count)
-    return isTooLarge(selectionExtent(plan.extentIDs, context.graph), context)
+    return isTooLargeToEdit(context, plan.extentIDs)
       ? reasonSentence(STRAIGHTEN_REASONS, 'too_large', plan.count)
       : undefined
   },
@@ -409,7 +409,7 @@ export const squareOperation: Operation = {
       context.graph,
     )
     if (code !== undefined) return reasonSentence(SQUARE_REASONS, code, context.selected.length)
-    return isTooLarge(selectionExtent(context.selected, context.graph), context)
+    return isTooLargeToEdit(context)
       ? reasonSentence(SQUARE_REASONS, 'too_large', context.selected.length)
       : undefined
   },
@@ -478,7 +478,7 @@ export const circularizeOperation: Operation = {
     const code = blockedByAll(actions, context.graph)
     if (code !== undefined) return reasonSentence(CIRCULARIZE_REASONS, code, actions.length)
     // as iD: only when some feature can be made round is the view checked
-    return isTooLarge(selectionExtent(context.selected, context.graph), context)
+    return isTooLargeToEdit(context)
       ? reasonSentence(CIRCULARIZE_REASONS, 'too_large', actions.length)
       : undefined
   },
@@ -585,7 +585,7 @@ export const disconnectOperation: Operation = {
       if (reason !== undefined)
         return reasonSentence(DISCONNECT_REASONS, reason, context.selected.length)
     }
-    return isTooLarge(selectionExtent(plan.extentIDs, context.graph), context)
+    return isTooLargeToEdit(context, plan.extentIDs)
       ? reasonSentence(DISCONNECT_REASONS, 'too_large', plan.count)
       : undefined
   },
@@ -637,7 +637,7 @@ export const extractOperation: Operation = {
   applies: (context) => extractTargets(context) !== undefined,
   disabled: (context) => {
     if (!extractTargets(context)) return undefined
-    return isTooLarge(selectionExtent(context.selected, context.graph), context)
+    return isTooLargeToEdit(context)
       ? reasonSentence(EXTRACT_REASONS, 'too_large', context.selected.length)
       : undefined
   },
@@ -679,7 +679,7 @@ function reflectOperation(axis: 'long' | 'short') {
     disabled: (context) => {
       const ids = targets(context)
       if (!ids) return undefined
-      return isTooLarge(selectionExtent(ids, context.graph), context)
+      return isTooLargeToEdit(context, ids)
         ? reasonSentence(REFLECT_REASONS, 'too_large', ids.length)
         : undefined
     },
@@ -817,7 +817,7 @@ export const deleteOperation: Operation = {
     const entities = resolveSelection(context)
     if (!entities) return undefined
     // as iD: the view is checked before anything about the data
-    if (isTooLarge(selectionExtent(context.selected, context.graph), context))
+    if (isTooLargeToEdit(context))
       return reasonSentence(DELETE_REASONS, 'too_large', entities.length)
     const reason = deleteReason(entities, context.graph)
     return reason === undefined
