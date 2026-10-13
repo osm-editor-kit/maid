@@ -8,12 +8,10 @@ dist/
 !.env.example
 playwright-report/
 test-results/
-packages/shell/public/sprites/
 # Paraglide's compiled output, written by `bun run i18n-compile` (packages/i18n/scripts/compile.ts)
 packages/i18n/paraglide/
 reports/i18n-missing.json
 reports/shots/
-packages/shell/public/frame-sync.js
 reports/20*
 tools/refs/*/smoke*.png
 tools/refs/*/smoke*.json
@@ -24,5 +22,5 @@ reports/renderer-build-bench.json
 reports/check-all-*
 reports/config-check.json
 
-# source material of the parking project: extracted Word files and photos stay local
-docs/parking/source-raw/
+# the parking project's brief and source material (internal notes, photos) stay local
+docs/parking/

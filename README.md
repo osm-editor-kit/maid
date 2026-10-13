@@ -47,3 +47,35 @@ bun run bench        # the benchmark; then: bun run bench-report
 ```
 
 Everything runs offline against frozen fixtures. No request goes to OSM servers.
+
+## Deploying to GitHub Pages
+
+The workflow `.github/workflows/pages.yml` builds one Maid app and deploys it to GitHub Pages. It runs on every push to `main`, and by hand from the Actions tab. No secret is needed.
+
+**`deploy.env`** (in the repository root) says what to deploy:
+
+- `MAID_APP` is the app folder: `maid`, `maid-bicycle` or `maid-parking`.
+- `MAID_BASE` is the path the site is served from. Empty means `/<repository name>/`, for example `/maid/`. A fork with its own domain sets `/`.
+
+**Repository variables** (Settings, Secrets and variables, Actions, Variables) override `deploy.env` when they are not empty:
+
+- `MAID_APP` and `MAID_BASE`: the same as above.
+- `OSM_DEV_CLIENT_ID`: the client id of the OAuth app on the development server (see below). Without it, Log in explains what is missing.
+- `MAPILLARY_TOKEN`: optional. Without it the apps' shared token is used. A fork should set its own.
+
+Maid is a public client. It uses PKCE and has no client secret. Never put a client secret in the repository or in a variable.
+
+**Setup for a fork:**
+
+1. Set Pages to deploy from GitHub Actions: Settings, Pages, Build and deployment, Source.
+2. Set `deploy.env` and the repository variables.
+3. Register an OAuth app on the development server, at `https://master.apis.dev.openstreetmap.org/oauth2/applications`. Its redirect URI is your Pages address with `land.html` at the end, for example `https://osm-editor-kit.github.io/maid/land.html`. Ask for the scopes `read_prefs`, `write_api` and `write_notes`.
+4. Put the client id of that app in `OSM_DEV_CLIENT_ID`.
+5. Push to `main`, or run the workflow by hand.
+
+**What the deployed editor does:**
+
+- It reads the real OpenStreetMap data from `api.openstreetmap.org`, read only. It never saves there.
+- The account menu has a Server choice. Pick "Development server" to log in and save. Saving goes only to `master.apis.dev.openstreetmap.org`.
+
+To build the Pages version locally, run this in the app folder: `VITE_BASE=/maid/ VITE_MAID_DATA=live bun run build`.

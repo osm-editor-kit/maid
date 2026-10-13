@@ -2,6 +2,7 @@ import { isAutomated } from '@osm-editor-kit/maid-core'
 import { useSyncExternalStore } from 'react'
 import { DEV_API } from './config'
 import { useShell } from './shell-context'
+import { publicUrl } from './url/public-url'
 
 /**
  * Login to OpenStreetMap, for a person, against the OSM development server only (AGENTS.md,
@@ -41,7 +42,8 @@ export function createAuth({ id, envFile, clientId, loginOrigin }: AuthOptions) 
 
   function unavailable() {
     if (isAutomated()) return 'Login is switched off in automated browsers.'
-    if (!clientId) return `No client id: set VITE_OSM_DEV_CLIENT_ID in ${envFile}.`
+    if (!clientId)
+      return `No client id: set VITE_OSM_DEV_CLIENT_ID in ${envFile}, or the repository variable OSM_DEV_CLIENT_ID for GitHub Pages.`
     if (loginOrigin && window.location.origin !== loginOrigin) {
       return `Open this editor at ${loginOrigin} to log in.`
     }
@@ -84,7 +86,12 @@ export function createAuth({ id, envFile, clientId, loginOrigin }: AuthOptions) 
       await OSM.login({
         mode: 'popup',
         clientId,
-        redirectUrl: `${loginOrigin ?? window.location.origin}/land.html`,
+        // the redirect the OAuth app is registered for: <origin><base>land.html (base: `/`, or `/<repo>/` on Pages)
+        redirectUrl: publicUrl(
+          'land.html',
+          import.meta.env.BASE_URL,
+          loginOrigin ?? window.location.origin,
+        ),
         scopes: ['read_prefs', 'write_api', 'write_notes'],
       })
       const user = await OSM.getUser('me')

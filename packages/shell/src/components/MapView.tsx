@@ -31,6 +31,7 @@ import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
 import { dropStack, setStack } from '../stack'
 import { normaliseBearing } from '../url/bearing'
+import { appUrl } from '../url/public-url'
 import { useCameraParam } from '../url/state'
 import { moveSource, shouldStoreMove, startCamera } from '../url/view'
 import { FavouriteHint } from './FavouriteHint'
@@ -41,7 +42,7 @@ import { StackPicker } from './StackPicker'
 /** No basemap: the benchmark compares how editors draw OSM data, not imagery. */
 const EMPTY_STYLE: StyleSpecification = {
   version: 8,
-  glyphs: '/fonts/{fontstack}/{range}.pbf',
+  glyphs: appUrl('fonts/{fontstack}/{range}.pbf'),
   sources: {},
   layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#000' } }],
 }

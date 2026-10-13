@@ -1,5 +1,6 @@
 import { ADDRESS_PLAQUE } from '@osm-editor-kit/maid-renderer'
 import type { Map as MapLibreMap } from 'maplibre-gl'
+import { appUrl } from './url/public-url'
 
 /** Which of iD's sprite files holds an icon, by the prefix of its name */
 export const SPRITE_OF_PREFIX: Record<string, string> = {
@@ -71,7 +72,7 @@ function loadSprite(name: string, limitMs: number) {
   let sprite = sprites.get(name)
   if (!sprite) {
     // the sprite of an icon set, read from the app's own origin (the allow list in no-direct-fetch.test.ts names this line)
-    sprite = fetch(`/sprites/${name}-sprite.svg`)
+    sprite = fetch(appUrl(`sprites/${name}-sprite.svg`))
       .then((res) => res.text())
       .then((text) => new DOMParser().parseFromString(text, 'image/svg+xml'))
     const job = within(sprite, limitMs, `the sprite file ${name}`)

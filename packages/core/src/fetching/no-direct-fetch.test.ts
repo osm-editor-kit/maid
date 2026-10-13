@@ -54,9 +54,9 @@ interface Allowed {
 const ALLOWED: readonly Allowed[] = [
   {
     file: 'packages/shell/src/images.ts',
-    text: 'sprite = fetch(`/sprites/${name}-sprite.svg`)',
+    text: 'sprite = fetch(appUrl(`sprites/${name}-sprite.svg`))',
     reason:
-      'TODO move to editor.fetch. The sprite of an icon set, read from the app\u2019s own origin (/sprites), not from a remote host.',
+      'TODO move to editor.fetch. The sprite of an icon set, read from the app\u2019s own origin (its sprites folder under the base path), not from a remote host.',
   },
 ]
 

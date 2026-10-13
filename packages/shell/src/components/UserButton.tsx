@@ -4,6 +4,7 @@ import { Flyout, ThemeSwitch, toolButtonClass } from '@osm-editor-kit/maid-ui'
 import { useAuth } from '../auth'
 import { useShell } from '../shell-context'
 import { LanguageSelect } from './LanguageSelect'
+import { ServerSelect } from './ServerSelect'
 
 const ACTION =
   'w-full cursor-pointer rounded-lg px-3 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-50'
@@ -15,7 +16,8 @@ const ACTION =
  */
 export function UserButton() {
   const auth = useAuth()
-  const { login, logout } = useShell().auth
+  const { auth: authActions, config } = useShell()
+  const { login, logout } = authActions
   return (
     <Flyout
       label={m.topbar_account()}
@@ -49,7 +51,11 @@ export function UserButton() {
         <div className="min-w-0">
           <p className="truncate font-semibold">{auth.user ?? 'Not logged in'}</p>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            OpenStreetMap development server. Nothing is saved to the real map.
+            {config.dev
+              ? 'OpenStreetMap development server. Nothing is saved to the real map.'
+              : config.live
+                ? 'OpenStreetMap, read only. Logging in and saving need the development server.'
+                : 'Local test data. Nothing is saved.'}
           </p>
         </div>
       </div>
@@ -87,6 +93,7 @@ export function UserButton() {
           <span className="font-medium">{m.topbar_language()}</span>
           <LanguageSelect />
         </div>
+        {config.serverChoice && <ServerSelect />}
       </div>
     </Flyout>
   )

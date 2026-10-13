@@ -1,4 +1,5 @@
 import { SPRITE_OF_PREFIX } from '../images'
+import { appUrl } from '../url/public-url'
 
 type Props = { icon?: string; className?: string }
 
@@ -8,7 +9,7 @@ export function PresetIcon({ icon, className }: Props) {
   if (!icon || !sprite) return <span className={className} aria-hidden />
   return (
     <svg className={className} aria-hidden>
-      <use href={`/sprites/${sprite}-sprite.svg#${icon}`} />
+      <use href={appUrl(`sprites/${sprite}-sprite.svg#${icon}`)} />
     </svg>
   )
 }

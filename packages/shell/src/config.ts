@@ -1,6 +1,7 @@
 import { isAutomated } from '@osm-editor-kit/maid-core'
 import { fromIdDisableFeatures } from '@osm-editor-kit/maid-filters'
 import type { LayerOptions } from '@osm-editor-kit/maid-renderer'
+import { useSettings, type Server } from '@osm-editor-kit/maid-ui'
 import { PORTS } from '../../../tools/ports'
 import { customBackgroundLink } from './url/background'
 import { readParams, setupParams, stateParams, type Camera } from './url/params'
@@ -13,6 +14,33 @@ import { readParams, setupParams, stateParams, type Camera } from './url/params'
 /** The OSM development server: its own, nearly empty database, for trying login and saving */
 export const DEV_API = 'https://master.apis.dev.openstreetmap.org'
 
+/** The real OSM API. Read only from here: nothing is ever saved to it. */
+export const OSM_API = 'https://api.openstreetmap.org'
+
+/** `live` in the URL: `0` the local mock API, `1` the OSM API (read only), `dev` the development server */
+export type LiveMode = '0' | '1' | 'dev'
+
+/**
+ * A build that reads live OSM data by default: GitHub Pages (`.github/workflows/pages.yml` sets
+ * `VITE_MAID_DATA=live`). Any other build keeps the local mock unless the URL says otherwise.
+ */
+export const LIVE_BUILD = import.meta.env?.VITE_MAID_DATA === 'live'
+
+/**
+ * Which data the page starts with. The URL's `live` wins, then the person's stored server choice, then the
+ * build's default. The stored choice counts only in a live build, so local development and the benchmark
+ * keep the mock exactly as before.
+ */
+export function chooseLiveMode(input: {
+  url: LiveMode | null
+  stored: Server | undefined
+  liveBuild: boolean
+}): LiveMode {
+  if (input.url) return input.url
+  if (input.liveBuild && input.stored) return input.stored === 'dev' ? 'dev' : '1'
+  return input.liveBuild ? '1' : '0'
+}
+
 export type Config = {
   scene: string
   apiUrl: string
@@ -23,6 +51,8 @@ export type Config = {
    * ever saved to the real map from here (AGENTS.md, core rule 1).
    */
   dev: boolean
+  /** The account flyout offers the server choice: in a live build or a live session. Never under automation. */
+  serverChoice: boolean
   fill: LayerOptions['fill']
   /** Inspector, controls and status bar. `ui=0` leaves only the map. */
   ui: boolean
@@ -51,19 +81,23 @@ function readFilters(search: string) {
   return disabled ? fromIdDisableFeatures(disabled) : null
 }
 
-export function readConfig(location: Location) {
+export function readConfig(
+  location: Location,
+  choice: { stored: Server | undefined; liveBuild: boolean } = {
+    stored: useSettings.getState().server,
+    liveBuild: LIVE_BUILD,
+  },
+) {
   const setup = readParams(setupParams, location.search)
-  const live = setup.live !== '0' && !isAutomated()
-  const dev = live && setup.live === 'dev'
+  const mode = chooseLiveMode({ url: setup.live, ...choice })
+  const live = mode !== '0' && !isAutomated()
+  const dev = live && mode === 'dev'
   return {
     scene: setup.scene,
     live,
     dev,
-    apiUrl: dev
-      ? DEV_API
-      : live
-        ? 'https://api.openstreetmap.org'
-        : `http://localhost:${PORTS.mockApi}/s/${setup.scene}`,
+    serverChoice: !isAutomated() && (live || choice.liveBuild),
+    apiUrl: dev ? DEV_API : live ? OSM_API : `http://localhost:${PORTS.mockApi}/s/${setup.scene}`,
     fill: setup.fill,
     ui: setup.ui,
     labels: setup.labels,

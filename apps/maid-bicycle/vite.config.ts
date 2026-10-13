@@ -6,6 +6,8 @@ import { PORTS } from '../../tools/ports.ts'
 import { presetsPreload } from '../vite-presets-preload.ts'
 
 export default defineConfig({
+  // `/` in development; GitHub Pages builds set VITE_BASE=/<repository>/ (.github/workflows/pages.yml)
+  base: process.env.VITE_BASE || '/',
   // sprites, label fonts, land.html and frame-sync.js belong to the shell, which every app serves
   publicDir: fileURLToPath(new URL('../../packages/shell/public', import.meta.url)),
   // React Compiler through oxc (not Babel): components are memoised at build time

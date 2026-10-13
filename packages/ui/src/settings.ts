@@ -37,16 +37,26 @@ export type Settings = {
   lastView?: LastView | undefined
   /** The language the person chose in the top bar (ADR 0009, decision 4). Unset: the URL, then the browser. */
   lang?: Lang | undefined
+  /**
+   * The data server the person chose in the account flyout: OpenStreetMap (read only) or the
+   * development server (login and saving). Read only by a build that reads live data by default
+   * (`VITE_MAID_DATA=live`, packages/shell/src/config.ts). Unset: that build's default.
+   */
+  server?: Server | undefined
 }
 
 /** The languages Maid has (packages/i18n: LOCALES) */
 export type Lang = 'en' | 'de' | 'fr' | 'es'
+
+/** The data servers the account flyout offers: the real API, read only, and the development server */
+export type Server = 'osm' | 'dev'
 
 type SettingsStore = Settings & {
   setShown: (key: string, value: string) => void
   setLastView: (view: LastView) => void
   setTheme: (theme: Theme) => void
   setLang: (lang: Lang) => void
+  setServer: (server: Server) => void
   setSize: (key: string, size: number) => void
   /** Makes the preset a favourite for the geometry, or takes it out again */
   toggleFavourite: (presetId: string, geometry: Geometry) => void
@@ -92,6 +102,8 @@ const storedSchema = z.object({
   lastView: lastViewSchema.optional().catch(undefined),
   // optional, like lastView: a language that is not one of Maid's is dropped, the rest is kept
   lang: z.enum(['en', 'de', 'fr', 'es']).optional().catch(undefined),
+  // optional, like lang: a server that is not one of the two is dropped, the rest is kept
+  server: z.enum(['osm', 'dev']).optional().catch(undefined),
 })
 
 /** The stored value as settings. A value that is not an object at all gives every default. */
@@ -129,6 +141,7 @@ export const useSettings = create<SettingsStore>()(
       favourites: [],
       setTheme: (theme) => set({ theme }),
       setLang: (lang) => set({ lang }),
+      setServer: (server) => set({ server }),
       setSize: (key, size) => set((state) => ({ sizes: { ...state.sizes, [key]: size } })),
       setShown: (key, value) => set((state) => ({ shown: { ...state.shown, [key]: value } })),
       setLastView: (lastView) => set({ lastView }),
@@ -148,13 +161,14 @@ export const useSettings = create<SettingsStore>()(
       // runs on every load. With nothing stored, the state stays as it is.
       merge: (stored, current) =>
         stored === undefined ? current : { ...current, ...parseStored(stored) },
-      partialize: ({ theme, sizes, shown, favourites, lastView, lang }) => ({
+      partialize: ({ theme, sizes, shown, favourites, lastView, lang, server }) => ({
         theme,
         sizes,
         shown,
         favourites,
         lastView,
         lang,
+        server,
       }),
     },
   ),
