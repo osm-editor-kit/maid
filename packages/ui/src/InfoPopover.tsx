@@ -50,7 +50,7 @@ const BUTTON =
   'grid size-5 shrink-0 place-items-center rounded-full text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 aria-expanded:bg-zinc-950/5 aria-expanded:text-zinc-950 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white dark:aria-expanded:bg-white/10 dark:aria-expanded:text-white'
 
 const LINK =
-  'inline-flex w-fit items-center gap-1.5 rounded-md text-sm font-medium text-blue-600 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-blue-400'
+  'inline-flex w-fit items-center gap-1 rounded-md text-xs font-medium text-blue-600 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-blue-400'
 
 /**
  * A small round "i" button that opens a compact panel next to it with what the OSM Wiki says about a
@@ -137,21 +137,24 @@ function ReferenceBody(props: { reference: Reference; load?: ReferenceLoader }) 
       {info?.description ? (
         <p className="leading-5 text-zinc-700 dark:text-zinc-300">{info.description}</p>
       ) : null}
-      <a href={wikiUrl(title)} target="_blank" rel="noopener noreferrer" className={LINK}>
-        <ArrowTopRightOnSquareIcon aria-hidden="true" className="size-4" />
-        Open on the OSM Wiki
-      </a>
-      {info?.itemId ? (
-        <a
-          href={wikiUrl(`Item:${info.itemId}`)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={LINK}
-        >
-          <ArrowTopRightOnSquareIcon aria-hidden="true" className="size-4" />
-          Open the data item
+      {/* the icon and the colour say "opens elsewhere": the text only names the place */}
+      <div className="grid grid-cols-2 gap-2">
+        <a href={wikiUrl(title)} target="_blank" rel="noopener noreferrer" className={LINK}>
+          <ArrowTopRightOnSquareIcon aria-hidden="true" className="size-3.5 shrink-0" />
+          OSM Wiki
         </a>
-      ) : null}
+        {info?.itemId ? (
+          <a
+            href={wikiUrl(`Item:${info.itemId}`)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={LINK}
+          >
+            <ArrowTopRightOnSquareIcon aria-hidden="true" className="size-3.5 shrink-0" />
+            Data item
+          </a>
+        ) : null}
+      </div>
       {/* last: the image arrives after the text, so it grows the panel downwards and nothing above it moves */}
       {info?.imageUrl && !imageFailed ? (
         <img

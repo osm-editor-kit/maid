@@ -1,6 +1,7 @@
 import { PlusIcon } from '@heroicons/react/16/solid'
 import type { Field } from '@osm-editor-kit/maid-presets'
 import { useId, useState, type KeyboardEvent } from 'react'
+import { twMerge } from 'tailwind-merge'
 import { Flyout } from '../Flyout.tsx'
 import { PLAIN_INPUT } from '../plain-input.ts'
 import { toolButtonClass } from '../Toolbar.tsx'
@@ -92,7 +93,10 @@ export function AddField(props: { fields: readonly Field[]; onPick: (field: Fiel
       open={open}
       onOpenChange={setFlyoutOpen}
       trigger={
-        <button type="button" className={`${toolButtonClass(true, open)} self-start`}>
+        <button
+          type="button" // as high as the buttons of the edit bar under the header, at the right edge of the list
+          className={twMerge(toolButtonClass(true, open), 'h-8 gap-1.5 self-end px-2.5')}
+        >
           <PlusIcon aria-hidden="true" className="size-4" />
           Add field
         </button>

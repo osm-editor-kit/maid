@@ -212,3 +212,51 @@ Translations, turn restrictions, GPX, measurement and history panels, keyboard s
 ## Log
 
 Results are written under the step. Longer findings go to `docs/research/`, decisions to `docs/adr/` or the architecture chapters.
+
+## Part F: the queue after 2026-10-13
+
+Everything that was decided or asked for on 2026-10-13 and is not built yet, so that nothing is lost between sessions. The decisions are in [ADR 0009](../adr/0009-decisions-of-2026-10-13.md); the studies are named per item. Order inside a group is the proposed order of work.
+
+### Waiting for Tobias
+
+- [ ] C2: try login at `http://127.0.0.1:5173` and saving with `?live=dev`.
+- [ ] Surface and smoothness by photo: the module is built (4c9f6b8) and not switched on. Its data package is GPL-3.0-or-later, Maid is ISC: a licence decision is needed before it is switched on.
+- [ ] Look at on screen (nobody has): the ruler icon, the red state of a too long value, the favourite number fields, the toasts on a narrow window, the three places with the shared segmented control, the address dots.
+- [ ] A real background with a minimum zoom: offered and drawn from `#map=<minzoom>`, not one level later (cannot be checked offline).
+
+### Editing and data
+
+- [ ] Operations refuse a feature that is less than 80 % in view ("too large", as iD and Rapid). First, because the next item needs it. [zoom-study.md](../research/zoom-study.md)
+- [ ] Editing below the load zoom as Rapid; draw the selection at every zoom and the rest down to zoom 12; a switch "show only the selection"; the camera stops at the world view; notes from zoom 14, with a toast when the limit cut the list.
+- [ ] Several features at once: the engine writes one change to all as one undo step; the inspector for several (fields that fit every geometry, "Multiple types", shared issues); the "Multiple values" state in every field; a read-only feature in the selection refuses the whole change with a reason; Shift-click on open ground keeps the selection; lasso. Base built in 49fe526. [multi-selection.md](../research/multi-selection.md)
+- [ ] Tags as a sheet: the React grid and `TagSheet`, the browser check `check-tags`, the inspector switched over (the old tag rows go), suggestions, the mixed state. Core built in b7535df. [sheet-design.md](../research/sheet-design.md)
+- [ ] Address field: the country from the feature's place (`@rapideditor/country-coder`), the format by country, suggestions from loaded data nearby. The same package makes presets, fields and defaults that are bound to countries apply only there (today `crossing:markings=yes` is written everywhere).
+- [ ] Wikidata and Wikipedia fields as iD.
+- [ ] Turn restrictions field as iD (large).
+- [ ] "Ignore this issue" on warnings, as iD, in Maid's UI.
+- [ ] "Add field" writes the field's default as iD does (found by the presets comparison).
+- [ ] A custom background as in the Radnetz fork: add, name, edit, delete; stored as a list; a link's template holds for the visit only. [custom-background-and-toasts.md](../research/custom-background-and-toasts.md)
+
+### Loading and storing
+
+- [ ] Fetching with TanStack Query: one client, reference data fetched once per session, a gate per service (Wikimedia one request at a time), at most two retries and none on 4xx, a pause with a standing toast on 429 and 509, map data tiles with a time limit, cancelling and a wait after an error, street-level photo queries keyed per tile, the photo layer off until switched on, one switch that stops every remote request in automated runs. [fetching-audit.md](../research/fetching-audit.md)
+- [ ] Tag and value suggestions from taginfo as iD, through those rules; off in automated runs.
+- [ ] What a link may do: the URL wins and never writes storage; the filter banner goes; the first change a person makes is stored; a mark at the control when the view differs from the stored choice; the last map position as a fallback; iD's link parameters act for the visit. [state-storage-and-url.md](../research/state-storage-and-url.md)
+
+### Translations
+
+- [ ] Step 1: `packages/i18n` with Paraglide (pinned to 2.25.4), English, German (informal "Du"), French, Spanish; the language choice; the preset texts as one JSON file per language made from the tagging schema; the UI's texts; a script that lists missing keys. [paraglide-study.md](../research/paraglide-study.md)
+- [ ] Step 2: validation, operations and undo labels return a message id with values; the journal stores those.
+
+### The module system
+
+- [ ] The shell moves from `apps/maid` into a package; `apps/radnetz-berlin` with its own config on port 5176; a contract test every module passes; `bun run check-config` over a matrix of configs (D6).
+- [ ] Radnetz modules: the TILDA bike infrastructure section with its checklist and rule; "extract a side into its own way" and "merge a cycleway and a footway"; age colours and a way's images for the photo layer; infra3D links; the traffic sign field as a Maid field on `@osm-traffic-signs/converter`.
+
+### Cleanup
+
+- [ ] `/unslop-code` phases 3 to 10 (re-exports, legacy paths, the skill reviews, component location, decision lift, semantic HTML, leftovers, texts). Phases 1 and 2 are done (44674af, 16129c3, fb0c7eb). When it is finished: a memory entry on what it changed.
+- [ ] The editor's own tooltip on every icon button (about 60 native `title` attributes left).
+- [ ] Open findings of the two reviews ([review-performance.md](../research/review-performance.md), [review-cleanup.md](../research/review-cleanup.md)), the largest being the split of `engine.ts`.
+- [ ] Small: a length counter in the raw tag rows and the multi-value lists; the upload adding spaces after `;` can push a value over 255; the benchmark handle is exposed in every build; the pill of overlapping features has no animation; a second-tab case in `check-journal`; messages next to their control tied with `aria-describedby`; after undo of a node move the way keeps its cached shape in the model (effect not examined).
+- [ ] A benchmark of Maid against iD and Rapid on the dense scene at the current state.
