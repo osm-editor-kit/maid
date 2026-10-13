@@ -24,6 +24,7 @@ export {
   SOURCES,
   type LayerOptions,
 } from './layers'
+export { iconImagePrefix, iconImagesRequestedAt } from './icon-requests'
 export { ModuleLayers } from './ModuleLayers'
 export { OsmLayers } from './OsmLayers'
 export { OsmData, type MergeResult } from './data'

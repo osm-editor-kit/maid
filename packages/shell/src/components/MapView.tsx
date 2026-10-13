@@ -24,7 +24,7 @@ import {
 import { exposeBenchApi } from '../bench'
 import { drawClick } from '../drawing'
 import { addPointWithFavourite, giveFavouriteTagsToNode } from '../favourites'
-import { ensureImages } from '../images'
+import { installMarkerImages } from '../images'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
 import { dropStack, setStack } from '../stack'
@@ -168,15 +168,10 @@ export function MapView() {
     const map = event.target
     loaded.current = true
     useBearing.setState({ bearing: map.getBearing() })
+    // Marker images are made when MapLibre asks for them, while it lays out a tile (see images.ts): no `prepare`
+    installMarkerImages(map)
     setEngineHooks(engine, {
       onStyleChange: () => setDashes(new globalThis.Map(dashPatterns)),
-      prepare: (batch) => {
-        const ids = new Set<string>()
-        for (const f of batch.points)
-          if (!f.properties?.addr) ids.add(`pin-${f.properties?.icon ?? 'none'}`)
-        for (const f of batch.vertices) if (f.properties?.icon) ids.add(`icon-${f.properties.icon}`)
-        return ensureImages(map, ids)
-      },
     })
     engine.attach(map)
     engine.setSelected(selectedIds)

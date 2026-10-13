@@ -56,6 +56,25 @@ const SELECT_OF: Record<string, string> = {
 }
 
 /**
+ * The hovered and the selected points, as copies on a source of their own: the pin of `active-point-pin` is drawn
+ * from it. A few features, sent whole on each change (engine.ts `syncActive`), so MapLibre lays out and asks for the
+ * pin images of those points only. Not in SOURCES: the layer has no feature state, no edit twin and no selection
+ * twin (buildLayers). Below the layer's floor the selection's pins are drawn by the `point-pin--select` twin.
+ */
+export const ACTIVE_SOURCE = 'osm-points-active'
+
+/**
+ * The ids whose pin the active source holds: the hovered point and the selected ones, each once. Only nodes have
+ * pins; a way or a relation is left out. A node that is a vertex is left out by the engine, which knows the ways.
+ */
+export function activePinIds(hoverId: string | null, selectedIds: readonly string[]): string[] {
+  const out = new Set<string>()
+  if (hoverId?.startsWith('n')) out.add(hoverId)
+  for (const id of selectedIds) if (id.startsWith('n')) out.add(id)
+  return [...out]
+}
+
+/**
  * MapLibre zoom (512 px) from which lines, areas and points are drawn: OSM 12, the lowest zoom the data is drawn
  * at (docs/research/zoom-study.md, D3). Below it only the selection is drawn.
  */
@@ -131,6 +150,11 @@ export function buildLayers(options: LayerOptions) {
           layout: { ...floored.layout, visibility: 'none' as const },
         } as LayerSpecification)
       : floored
+    // the active source holds only the hovered and selected points: it has no edit or selection twin
+    if (source === ACTIVE_SOURCE) {
+      out.push(shown)
+      continue
+    }
     const editSource = EDIT_OF[source]
     if (editSource) {
       const paint: Record<string, unknown> = { ...layer.paint }
@@ -694,44 +718,38 @@ function buildMainLayers(options: LayerOptions) {
       },
     })
     // The hovered or selected point always shows its pin, also where pins are thinned out for
-    // room, with a glow behind the pin's head. Both are invisible for every other point.
-    const active: ExpressionSpecification = [
-      'case',
-      ['boolean', ['feature-state', 'selected'], false], 1,
-      ['boolean', ['feature-state', 'hover'], false], 1,
-      0,
-    ] // prettier-ignore
-    layers.push(
-      {
-        id: 'highlight-halo-pin',
-        type: 'circle',
-        source: SOURCES.points,
-        filter: ['!', ['has', 'addr']],
-        paint: {
-          'circle-radius': 16,
-          'circle-translate': [0, -15],
-          'circle-blur': 0.4,
-          'circle-color': HOVER,
-          'circle-opacity': opacity,
-        },
+    // room, with a glow behind the pin's head. The glow is a feature state of the point (invisible
+    // for every other point). The pin is drawn from the active source, which holds only those points
+    // (engine.ts `syncActive`): no feature state, so MapLibre asks for the pins of a few points, not
+    // of every point from the zoom where the layer starts (see docs/research/performance-2026-10-13.md).
+    layers.push({
+      id: 'highlight-halo-pin',
+      type: 'circle',
+      source: SOURCES.points,
+      filter: ['!', ['has', 'addr']],
+      paint: {
+        'circle-radius': 16,
+        'circle-translate': [0, -15],
+        'circle-blur': 0.4,
+        'circle-color': HOVER,
+        'circle-opacity': opacity,
       },
-      {
-        id: 'active-point-pin',
-        type: 'symbol',
-        source: SOURCES.points,
-        filter: ['!', ['has', 'addr']],
-        layout: {
-          'icon-image': ['concat', 'pin-', ['coalesce', ['get', 'icon'], 'none']],
-          'icon-rotation-alignment': 'viewport',
-          'icon-pitch-alignment': 'viewport',
-          'icon-anchor': 'bottom',
-          'icon-allow-overlap': true,
-          'icon-ignore-placement': true,
-          'icon-padding': 0,
-        },
-        paint: { 'icon-opacity': active },
+    })
+    layers.push({
+      id: 'active-point-pin',
+      type: 'symbol',
+      source: ACTIVE_SOURCE,
+      filter: ['!', ['has', 'addr']],
+      layout: {
+        'icon-image': ['concat', 'pin-', ['coalesce', ['get', 'icon'], 'none']],
+        'icon-rotation-alignment': 'viewport',
+        'icon-pitch-alignment': 'viewport',
+        'icon-anchor': 'bottom',
+        'icon-allow-overlap': true,
+        'icon-ignore-placement': true,
+        'icon-padding': 0,
       },
-    )
+    })
   }
 
   // --- Labels ----------------------------------------------------------------

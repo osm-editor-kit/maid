@@ -1,3 +1,4 @@
+import { ownNextProps } from '../util/clone.ts';
 import { OsmNode } from './OsmNode.ts';
 import { OsmRelation } from './OsmRelation.ts';
 import { OsmWay } from './OsmWay.ts';
@@ -52,12 +53,15 @@ export function entitiesFromOsmJson(
 
     if (el.type === 'node') {
       props.loc = [el.lon, el.lat];
+      ownNextProps();
       entities.push(new OsmNode(context, props));
     } else if (el.type === 'way') {
       props.nodes = (el.nodes ?? []).map(ref => 'n' + ref);
+      ownNextProps();
       entities.push(new OsmWay(context, props));
     } else {
       props.members = (el.members ?? []).map(m => ({ id: m.type[0] + String(m.ref), type: m.type, role: m.role }));
+      ownNextProps();
       entities.push(new OsmRelation(context, props));
     }
   }

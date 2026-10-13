@@ -1,7 +1,14 @@
 import type { FeatureCollection } from 'geojson'
 import { Layer, Source } from 'react-map-gl/maplibre'
 import { BELOW_OSM_LAYER } from './extension-points'
-import { buildLayers, EDIT_SOURCES, SELECT_SOURCES, SOURCES, type LayerOptions } from './layers'
+import {
+  ACTIVE_SOURCE,
+  buildLayers,
+  EDIT_SOURCES,
+  SELECT_SOURCES,
+  SOURCES,
+  type LayerOptions,
+} from './layers'
 
 const EMPTY: FeatureCollection = { type: 'FeatureCollection', features: [] }
 
@@ -40,6 +47,8 @@ export function OsmLayers({ options, sourceOptions }: Props) {
         tolerance={0}
         maxzoom={source.maxzoom}
       />
+      {/* the hovered and selected points, a few features: the engine sets them (layers.ts ACTIVE_SOURCE) */}
+      <Source id={ACTIVE_SOURCE} type="geojson" data={EMPTY} {...source} />
       {Object.values(EDIT_SOURCES).map((id) => (
         <Source key={id} id={id} type="geojson" data={EMPTY} {...source} />
       ))}

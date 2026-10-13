@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'bun:test'
+import { LocationConflation } from '@rapideditor/location-conflation'
+import { defaultPresetData } from './default.ts'
 import { createLocations } from './locations.ts'
 import type { LonLat } from './types.ts'
 
@@ -107,5 +109,87 @@ describe('matchesLocation', () => {
     expect(locations.matchesLocation({ include: ['ph'] }, MANILA)).toBe(true)
     expect(locations.matchesLocation({ include: ['ph'] }, MANILA)).toBe(true)
     expect(locations.matchesLocation({ include: ['ph'] }, PARIS)).toBe(false)
+  })
+})
+
+// The fast path for sets of country-coder regions (locations.ts) must give the answer of location-conflation's polygons.
+describe('matchesLocation against location-conflation', () => {
+  const sets = (() => {
+    const found = new Map<string, { include?: string[]; exclude?: string[] }>()
+    const walk = (value: unknown) => {
+      if (Array.isArray(value)) return value.forEach(walk)
+      if (typeof value !== 'object' || value === null) return
+      const record = value as Record<string, unknown>
+      const set = record.locationSet
+      if (set && typeof set === 'object')
+        found.set(JSON.stringify(set), set as { include?: string[] })
+      for (const child of Object.values(record)) walk(child)
+    }
+    walk(defaultPresetData.presets)
+    walk(defaultPresetData.fields)
+    // shapes the data may not have yet
+    for (const set of [
+      { include: ['Q46'] },
+      { include: ['eu'] },
+      { include: ['de', 'at', 'ch'] },
+      { include: ['Planet'], exclude: ['us', 'Q46'] },
+      { include: ['001'], exclude: ['gb'] },
+      { include: ['Q46'], exclude: ['gb', 'ie'] },
+      { include: ['pr'] },
+      { include: ['ic', 'es'] },
+    ])
+      found.set(JSON.stringify(set), set)
+    return [...found.values()]
+  })()
+
+  // a lattice over the world, the places where groups and territories differ from their country, and the ocean
+  const points: LonLat[] = []
+  for (let lon = -179; lon <= 179; lon += 3.7)
+    for (let lat = -80; lat <= 80; lat += 3.1) points.push([lon, lat])
+  points.push(
+    PARIS,
+    BERLIN,
+    SOFIA,
+    MANILA,
+    NEW_YORK,
+    OCEAN,
+    [-17.9, 28.5], // the Canary Islands
+    [-2.9, 35.9], // Melilla
+    [-66.1, 18.4], // Puerto Rico
+    [-2.1, 49.2], // Jersey
+    [-4.5, 54.2], // the Isle of Man
+    [12.45, 41.9], // the Vatican
+    [-61.5, 12.1], // Grenada
+    [55.5, -21.1], // Reunion
+    [-52.3, 4.9], // French Guiana
+    [-8.6, 41.1], // Porto
+    [-149.9, 61.2], // Alaska
+    [-155.5, 19.6], // Hawaii
+    [33.4, 35.1], // Cyprus
+    [24.9, 60.2], // Helsinki
+    [-21.9, 64.1], // Reykjavik
+    [37.6, 55.7], // Moscow
+    [28.9, 41.0], // Istanbul
+  )
+
+  it(`gives the answer of the polygons for ${sets.length} sets at every point`, () => {
+    const reference = new LocationConflation()
+    const locations = createLocations()
+    const mismatches: string[] = []
+    for (const set of sets) {
+      const [registered] = reference.registerLocationSets([
+        { locationSet: { include: set.include?.slice(), exclude: set.exclude?.slice() } },
+      ])
+      const id = registered?.locationSetID
+      for (const point of points) {
+        const expected =
+          id === undefined ? true : reference.locationSetsAt([point[0], point[1]]).has(id)
+        if (locations.matchesLocation(set, point) !== expected)
+          mismatches.push(
+            `${JSON.stringify(set)} at ${point.join(',')}: expected ${String(expected)}`,
+          )
+      }
+    }
+    expect(mismatches.slice(0, 20)).toEqual([])
   })
 })

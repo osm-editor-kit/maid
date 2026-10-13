@@ -56,7 +56,7 @@ import { onewayOf } from './direction'
 import { installDirectionImages } from './direction-images'
 import { DrawTool, nearestOnWay, projectedNodes } from './draw'
 import { fieldOverlayFeatures, type FieldOverlay, type LonLat } from './field-overlay'
-import { EDIT_SOURCES, SELECT_SOURCES, SOURCES } from './layers'
+import { ACTIVE_SOURCE, activePinIds, EDIT_SOURCES, SELECT_SOURCES, SOURCES } from './layers'
 import { distanceMetres, measureFeatures as measureOnMap } from './measure'
 import { midpointFeatures, segmentsOf, type MidpointFeature, type Segment } from './midpoints'
 import {
@@ -216,6 +216,11 @@ export class MaidEngine {
   private selectedIds: string[] = []
   private shownHover: string | null = null
   private shownSelected: string[] = []
+  /**
+   * The copies of the hovered and selected points, by id: what the active source holds (ACTIVE_SOURCE in layers.ts),
+   * from which the active pin is drawn. Sent whole on each change: a few features.
+   */
+  private activeCopies = new Map<string, Feature>()
   private waiters: (() => void)[] = []
   /** Ids whose original in the big sources is hidden while a newer copy is in the live tier */
   private editing = new Set<string>()
@@ -375,6 +380,7 @@ export class MaidEngine {
   /** The node or way with this id in the current graph. Relations and unknown ids give undefined. */
   attach(map: MapLibreMap) {
     this.map = map
+    this.flushActive()
     // before the first tile is pushed: an image that arrives later does not show in that tile
     installDirectionImages(map)
     // the side line of a field depends on the view: its visible part may bend or leave the screen
@@ -486,10 +492,19 @@ export class MaidEngine {
     // decided now, not when the images are ready: by then the first view may count as complete
     const tier = this.firstLoadDone ? 'live' : 'base'
     if (this.options.prepare) {
+      // Areas and lines need no image, so they go to MapLibre at once and the worker tiles them while the shell
+      // makes the pins and icons. Points and vertices wait for their images.
+      this.push({ areas: batch.areas, lines: batch.lines, points: [], vertices: [] }, tier)
+      const waiting: FeatureBatch = {
+        areas: [],
+        lines: [],
+        points: batch.points,
+        vertices: batch.vertices,
+      }
       this.preparing++
       void this.options.prepare(batch).finally(() => {
         this.preparing--
-        this.push(batch, tier)
+        this.push(waiting, tier)
       })
     } else this.push(batch, tier)
     const t3 = performance.now()
@@ -539,6 +554,7 @@ export class MaidEngine {
       this.scheduleFlush(channel)
     }
     this.pushSelect(batch)
+    this.pushActive(batch)
     this.touch()
   }
 
@@ -561,6 +577,61 @@ export class MaidEngine {
       channel.dirty = true
       this.scheduleFlush(channel)
     }
+  }
+
+  /**
+   * A batch that arrives or changes (a load, an edit, a drag step): a wanted point in it replaces the copy held, so the
+   * active pin follows the data. A wanted point that is not loaded yet gets its copy here when it arrives.
+   */
+  private pushActive(batch: FeatureBatch) {
+    const wanted = new Set(activePinIds(this.hoverId, this.selectedIds))
+    if (wanted.size === 0) return
+    let changed = false
+    for (const f of batch.points) {
+      const id = featureId(f)
+      if (id !== undefined && wanted.has(id)) {
+        this.activeCopies.set(id, f)
+        changed = true
+      }
+    }
+    if (changed) this.flushActive()
+  }
+
+  /**
+   * Brings the copies in line with the hovered and selected points: the copies of ids no longer wanted go, and each
+   * wanted standalone point gets a copy (a node in a way is a vertex, which has no pin here). Called when the hover or
+   * the selection changes, so a hover shows its pin when the source has it (a few features: cheap).
+   */
+  private syncActive() {
+    const wanted = activePinIds(this.hoverId, this.selectedIds)
+    let changed = false
+    // deleting the entry being visited is safe for a Map
+    for (const id of this.activeCopies.keys()) {
+      if (wanted.includes(id)) continue
+      this.activeCopies.delete(id)
+      changed = true
+    }
+    for (const id of wanted) {
+      // a point not loaded yet gets its copy when its batch arrives (pushActive)
+      if (this.activeCopies.has(id) || !this.featureSource.has(id) || this.data.nodeWays.has(id))
+        continue
+      const point = this.redraw([{ id, moved: false }]).batch.points.find(
+        (f) => featureId(f) === id,
+      )
+      if (point) {
+        this.activeCopies.set(id, point)
+        changed = true
+      }
+    }
+    if (changed) this.flushActive()
+  }
+
+  /** Sends the copies to the active source: the whole set, which is a few features */
+  private flushActive() {
+    void this.map?.getSource<GeoJSONSource>(ACTIVE_SOURCE)?.setData({
+      type: 'FeatureCollection',
+      features: [...this.activeCopies.values()],
+    })
   }
 
   /**
@@ -1038,7 +1109,10 @@ export class MaidEngine {
     this.editing.clear()
     this.featureSource.clear()
     this.builder.reset()
+    // the copies are rebuilt from the data that comes back; a wanted point that is gone leaves no copy
+    this.activeCopies.clear()
     this.push(this.builder.build(this.data.all()), 'base')
+    this.flushActive()
     for (const channel of this.allChannels()) void this.flush(channel)
     queueMicrotask(() => this.applyHighlight([], 'selected'))
   }
@@ -1336,6 +1410,7 @@ export class MaidEngine {
 
   /** Takes features out of the sources they are drawn in, in both tiers */
   private removeFeatures(remove: [SourceName, string][]) {
+    let activeChanged = false
     for (const [name, featureId] of remove) {
       this.featureSource.delete(featureId)
       for (const tier of ['base', 'live', 'select'] as const) {
@@ -1345,7 +1420,9 @@ export class MaidEngine {
         void this.flush(channel)
       }
       this.live[name].delete(featureId)
+      if (this.activeCopies.delete(featureId)) activeChanged = true
     }
+    if (activeChanged) this.flushActive()
   }
 
   /** Sends a batch the way an edit does: to the live tier, hiding the originals there */
@@ -1909,6 +1986,7 @@ export class MaidEngine {
     const previous = this.hoverId
     this.hoverId = id
     this.applyHighlight(previous ? [previous] : [], 'hover')
+    this.syncActive()
   }
 
   /** Selects one entity, several, or nothing */
@@ -1919,6 +1997,7 @@ export class MaidEngine {
     if (ids.length === previous.length && ids.every((id, i) => id === previous[i])) return
     this.selectedIds = ids
     this.syncSelectTier(previous, ids)
+    this.syncActive()
     // a relation load belongs to the selection that asked for it: once that is gone, the load is cancelled
     for (const [id, entry] of this.relationLoads) {
       if (!ids.includes(id))

@@ -1,6 +1,6 @@
 import { Extent } from '@rapid-sdk/math';
 import { Geometry } from '../lib/Geometry.ts';
-import { cloneData } from '../util/clone.ts';  // Maid: replaces structuredClone, see util/clone.ts
+import { cloneData, takeOwnedProps } from '../util/clone.ts';  // Maid: replaces structuredClone, see util/clone.ts
 
 import type { Context } from '../Context.ts';
 import type { GeoJSONObject } from '../lib/types.ts';
@@ -78,6 +78,7 @@ export class AbstractData<P extends AbstractDataProps = AbstractDataProps> {
    */
   public constructor(otherOrContext: AbstractData<P> | Context, props: Partial<P> = {}) {
     this.id = '';  // put this first so debug inspect shows it first
+    const owned = takeOwnedProps();  // Maid: the caller gives up `props`, see util/clone.ts
 
     if (otherOrContext instanceof AbstractData) {  // copy other
       const other = otherOrContext;
@@ -90,11 +91,11 @@ export class AbstractData<P extends AbstractDataProps = AbstractDataProps> {
     } else {
       const context = otherOrContext;
       this.context = context;
-      this.props = {};
+      this.props = owned ? props : {};
       // `_geoms` stays undefined until `_ensureGeoms` creates it.
     }
 
-    Object.assign(this.props, cloneData(props));  // override with passed in props
+    if (!owned || otherOrContext instanceof AbstractData) Object.assign(this.props, cloneData(props));  // override with passed in props
 
     // For consistency, offer a `this.id` property.
     this.id = this.props.id || '';

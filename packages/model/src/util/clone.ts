@@ -18,3 +18,23 @@ export function cloneData<T>(value: T): T {
   for (const key in value) out[key] = cloneData((value as Record<string, unknown>)[key])
   return out as T
 }
+
+/**
+ * Set by a caller that passes a props object it will not use again, read once by the next `AbstractData`
+ * constructor: that entity then keeps the object instead of copying it. Not in Rapid. The load path
+ * (`entitiesFromOsmJson`) builds a fresh props object for every element, and copying it again was a
+ * fifth of the time the merge of a tile took.
+ */
+let ownsNextProps = false
+
+/** The next entity made takes the props object it is given, without copying it. The caller must not use that object again. */
+export function ownNextProps(): void {
+  ownsNextProps = true
+}
+
+/** True once after `ownNextProps()`. Called first thing in the `AbstractData` constructor, so the flag cannot outlive the entity. */
+export function takeOwnedProps(): boolean {
+  const owned = ownsNextProps
+  ownsNextProps = false
+  return owned
+}

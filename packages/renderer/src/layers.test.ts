@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import type { LayerSpecification } from 'maplibre-gl'
 import {
+  ACTIVE_SOURCE,
+  activePinIds,
   buildLayers,
   DETAIL_ZOOM,
   DRAW_ZOOM,
@@ -167,5 +169,82 @@ describe('the layer list', () => {
       .map(view)
       .map((l) => l.id)
     expect(new Set(ids).size).toBe(ids.length)
+  })
+})
+
+describe('the active pin (the hovered and selected points)', () => {
+  const active = (layers: LayerSpecification[]) => {
+    const found = layers.find((l) => l.id === 'active-point-pin')
+    if (!found) throw new Error('no active-point-pin layer')
+    return found as unknown as {
+      source: string
+      minzoom?: number
+      filter: unknown
+      paint?: unknown
+      layout: { 'icon-image': unknown }
+    }
+  }
+
+  test('draws from its own source, which holds only the hovered and selected points', () => {
+    const layer = active(buildLayers(options))
+    expect(layer.source).toBe(ACTIVE_SOURCE)
+    expect(ACTIVE_SOURCE).not.toBe(SOURCES.points)
+    expect(layer.filter).toEqual(['!', ['has', 'addr']])
+    expect(layer.layout['icon-image']).toEqual([
+      'concat',
+      'pin-',
+      ['coalesce', ['get', 'icon'], 'none'],
+    ])
+  })
+
+  test('needs no feature state: no opacity from hover or selection, so no pin is requested for the others', () => {
+    const layer = active(buildLayers(options))
+    expect(layer.paint).toBeUndefined()
+    expect(JSON.stringify(layer)).not.toContain('feature-state')
+  })
+
+  test('starts at the symbol floor, as before (below it the selected pins are the point-pin twin)', () => {
+    const layer = active(buildLayers(options))
+    expect(layer.minzoom).toBe(DETAIL_ZOOM)
+    expect(layer.minzoom).toBe(15)
+  })
+
+  test('has no edit or selection twin: the source holds the copies the engine keeps current', () => {
+    const ids = buildLayers(options).map((l) => l.id)
+    expect(ids).not.toContain('active-point-pin--edit')
+    expect(ids).not.toContain('active-point-pin--select')
+  })
+
+  test('is not picked: a pin never takes a press from the point under it, as before', () => {
+    expect(interactiveLayerIds(buildLayers(options))).not.toContain('active-point-pin')
+  })
+
+  test('is hidden with the data in selection-only mode, where the selection pins are the twin of point-pin', () => {
+    const layers = buildLayers({ ...options, selectionOnly: true })
+    expect(active(layers).layout).toMatchObject({ visibility: 'none' })
+    // the selected pins are drawn by the twin on the selection source, at every zoom
+    expect(twinOf(layers, 'point-pin').layout?.visibility).toBeUndefined()
+  })
+
+  test('without icons there is no active pin layer', () => {
+    const ids = buildLayers({ ...options, icons: false }).map((l) => l.id)
+    expect(ids).not.toContain('active-point-pin')
+  })
+})
+
+describe('activePinIds', () => {
+  test('the hovered node and the selected nodes, each once', () => {
+    expect(activePinIds('n1', ['n2', 'n1'])).toEqual(['n1', 'n2'])
+    expect(activePinIds(null, ['n3'])).toEqual(['n3'])
+    expect(activePinIds('n4', [])).toEqual(['n4'])
+  })
+
+  test('nothing when nothing is hovered or selected', () => {
+    expect(activePinIds(null, [])).toEqual([])
+  })
+
+  test('ways and relations have no pin', () => {
+    expect(activePinIds('w5', ['r6', 'w7'])).toEqual([])
+    expect(activePinIds('w5', ['r6', 'n8'])).toEqual(['n8'])
   })
 })
