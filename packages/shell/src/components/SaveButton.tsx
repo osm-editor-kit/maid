@@ -7,6 +7,7 @@ import { DEV_API } from '../config'
 import { saveBlocked } from '../save/blocked'
 import { changesetTags, summaryOf, type ChangeElement, type OsmChange } from '../save/osm-change'
 import { pendingChange, uploadEdits, uploadErrors } from '../save/save'
+import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
 
 export const LISTED = 12
@@ -73,6 +74,7 @@ function SavePanel(props: {
   const { config, editor } = shell
   const { uploading, onUploading, onSaved } = props
   const auth = useAuth()
+  const { select } = useSelection()
   const [comment, setComment] = useState('')
   const [failure, setFailure] = useState<string>()
   const noteId = useId()
@@ -95,26 +97,30 @@ function SavePanel(props: {
         onUploading(true)
         setFailure(undefined)
         uploadEdits(shell, comment).then(
-          (id) => {
+          ({ changesets, selection }) => {
             onUploading(false)
             onSaved()
-            // the one message of a success: a toast, with the changeset linked and the map reloadable
+            // the features have the ids the server gave them: the URL and the selection follow
+            select(selection)
+            // the one message of a success: a toast, with the changesets linked
             notify.done(
               <>
-                Your edits are changeset{' '}
-                <a
-                  className="font-medium underline"
-                  href={`${DEV_API}/changeset/${id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {id}
-                </a>{' '}
+                Your edits are {changesets.length === 1 ? 'changeset' : 'changesets'}{' '}
+                {changesets.map((id, i) => (
+                  <span key={id}>
+                    {i > 0 && ', '}
+                    <a
+                      className="font-medium underline"
+                      href={`${DEV_API}/changeset/${id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {id}
+                    </a>
+                  </span>
+                ))}{' '}
                 on the development server.
               </>,
-              {
-                action: { label: 'Load the map again', onClick: () => window.location.reload() },
-              },
             )
           },
           (error: unknown) => {
@@ -170,10 +176,6 @@ export function SaveButton() {
   const [open, setOpen] = useState(false)
   // while an upload runs the flyout cannot close, so its panel stays and no second upload can start
   const [uploading, setUploading] = useState(false)
-  // After an upload the edits are still in the history until the page loads the map again (the
-  // answer of the API is not yet written back into the data). Until then nothing can be saved,
-  // or the same edits would be sent a second time.
-  const [saved, setSaved] = useState(false)
   return (
     <Flyout
       label="Save your edits"
@@ -186,26 +188,19 @@ export function SaveButton() {
       trigger={
         <button
           type="button"
-          title={
-            saved
-              ? 'Saved. Load the map again to go on editing.'
-              : hasChanges
-                ? 'Save your edits'
-                : 'Nothing to save yet'
-          }
-          disabled={!hasChanges || saved}
+          title={hasChanges ? 'Save your edits' : 'Nothing to save yet'}
+          disabled={!hasChanges}
           className={toolButtonClass(true)}
         >
           <ArrowUpTrayIcon aria-hidden="true" className="size-5" />
           <span className="max-sm:sr-only">Save</span>
-          {hasChanges &&
-            !saved && (
-              // on the corner, so the button keeps its width when the dot comes and goes
-              <span
-                aria-label="unsaved edits"
-                className="absolute -top-1 -right-1 size-2.5 rounded-full bg-blue-600 ring-2 ring-white dark:ring-zinc-900"
-              />
-            )}
+          {hasChanges && (
+            // on the corner, so the button keeps its width when the dot comes and goes
+            <span
+              aria-label="unsaved edits"
+              className="absolute -top-1 -right-1 size-2.5 rounded-full bg-blue-600 ring-2 ring-white dark:ring-zinc-900"
+            />
+          )}
         </button>
       }
     >
@@ -213,7 +208,6 @@ export function SaveButton() {
         uploading={uploading}
         onUploading={setUploading}
         onSaved={() => {
-          setSaved(true)
           setOpen(false)
         }}
       />

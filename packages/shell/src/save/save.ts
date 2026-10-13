@@ -3,6 +3,12 @@ import { discardedTags } from '@osm-editor-kit/maid-presets/default'
 import { createValidator, osmApiLimits, type Issue } from '@osm-editor-kit/maid-validation'
 import { imageryOnMap } from '../imagery-used'
 import type { Shell } from '../shell'
+import {
+  assignedIds,
+  changesetsOf,
+  REPLICATION_DELAY_MS,
+  selectionAfterUpload,
+} from './after-upload'
 import { errorSentence } from './blocked'
 import { changesetTags, toOsmChange } from './osm-change'
 
@@ -28,13 +34,19 @@ export function pendingChange(editor: Editor) {
 }
 
 /**
- * Uploads the edits as one changeset to the OSM development server and returns its number.
- * Only ever called from a person's click (AGENTS.md, core rule 1). Afterwards the stored edits
- * are forgotten; the caller reloads the page, so the map shows what the server has now.
- * A conflict (someone changed the same element) rejects with the server's message.
+ * Uploads the edits as one changeset to the OSM development server. Only ever called from a person's
+ * click (AGENTS.md, core rule 1). A conflict (someone changed the same element) rejects with the
+ * server's message, and then nothing is forgotten.
+ *
+ * After a successful upload the editor starts again from the server, as iD and Rapid do: the history
+ * is reset (its undo steps are gone, and a running journal clears the stored edits by itself, see
+ * packages/journal), and the map loads the view again, after a short wait for the server's replication.
+ * The new ids and versions come from the server's answer, so nothing old is sent a second time.
+ * Resolves with the changesets (one, unless the upload was chunked) and the selection as the server
+ * knows it now, which the caller shows.
  */
 export async function uploadEdits(
-  { config, editor, auth, journal }: Pick<Shell, 'config' | 'editor' | 'auth' | 'journal'>,
+  { config, editor, auth, engine }: Pick<Shell, 'config' | 'editor' | 'auth' | 'engine'>,
   comment: string,
 ) {
   if (!config.dev) throw new Error('Saving is only possible on the OSM development server')
@@ -49,6 +61,8 @@ export async function uploadEdits(
     changesetTags(comment, VERSION, imageryOnMap(editor).used),
     change as unknown as Diff,
   )
-  await journal.forgetJournal()
-  return Number(Object.keys(result)[0])
+  const selection = selectionAfterUpload(engine.selection, change, assignedIds(result))
+  editor.history.reset()
+  engine.reloadAfterUpload(selection, REPLICATION_DELAY_MS)
+  return { changesets: changesetsOf(result), selection }
 }

@@ -238,6 +238,28 @@ describe('journal', () => {
     expect(await journal1.pending()).toBeUndefined()
   })
 
+  it('is cleared by a reset of the history while it runs, and writes the next edit as the first', async () => {
+    const name = nextName()
+    const { context, history } = freshHistory()
+    const journal = createJournal({ name, context, history }, freeLocks)
+    const stop = await journal.start()
+    commitThree(context, history)
+    await journal.flushed()
+    expect((await journal.pending())?.edits).toBe(3)
+
+    // a reset starts a new base: what was stored belongs to the session that was saved
+    history.reset()
+    await journal.flushed()
+    expect(await journal.pending()).toBeUndefined()
+
+    const node = new OsmNode(context, { loc: [13.3, 52.3], tags: { amenity: 'bench' } })
+    history.perform(actionAddEntity(node))
+    history.commit({ annotation: 'added a node', selectedIDs: [node.id] })
+    await journal.flushed()
+    stop()
+    expect((await journal.pending())?.edits).toBe(1)
+  })
+
   it('refuses to start while another tab holds the lock', async () => {
     const { context, history } = freshHistory()
     const journal = createJournal({ name: nextName(), context, history }, takenLocks)

@@ -130,14 +130,6 @@ export function createShellJournal(id: string, config: Config, editor: Editor) {
     await start()
   }
 
-  /** Forgets the stored edits after they were saved to the server. The page is reloaded after it. */
-  async function forgetJournal() {
-    await journal.flushed()
-    holder.stop?.()
-    holder.stop = undefined
-    await journal.clear()
-  }
-
   /** Resolves when everything edited so far is written. For the browser checks. */
   const journalFlushed = () => journal.flushed()
 
@@ -145,7 +137,6 @@ export function createShellJournal(id: string, config: Config, editor: Editor) {
 
   return {
     answerRestore,
-    forgetJournal,
     flushed: journalFlushed,
     getState: () => holder.state,
     subscribe: (listener: () => void) => {
