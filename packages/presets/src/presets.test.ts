@@ -311,8 +311,10 @@ describe('search', () => {
     expect(presets.search('', 'point', 5)).toHaveLength(5)
   })
 
-  it('returns 20 presets by default', () => {
-    expect(presets.search('a', 'point')).toHaveLength(20)
+  it('returns 50 presets by default, the point fallback last (iD: MAXRESULTS is 50)', () => {
+    const found = presets.search('a', 'point')
+    expect(found).toHaveLength(50)
+    expect(found.at(-1)?.id).toBe('point')
   })
 
   it('lists a preset once', () => {

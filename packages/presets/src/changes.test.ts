@@ -281,8 +281,8 @@ describe('withChanges: edits to presets in the data', () => {
     ).toEqual(['a', 'name', 'surface', 'b', 'width', 'c'])
   })
 
-  it("a preset with no fields of its own inherits its parent's list, and an edit starts from that list", () => {
-    // highway/cycleway/crossing inherits nothing in this data: its parent highway/cycleway has the fields
+  it("as iD: a preset with no fields of its own shows none, not its parent's, and an edit starts from an empty list", () => {
+    // iD does not inherit fields: highway/cycleway/crossing has no fields, and highway/cycleway has some
     const data: PresetData = {
       ...base,
       presets: {
@@ -293,20 +293,15 @@ describe('withChanges: edits to presets in the data', () => {
         },
       },
     }
+    const crossingTags = { highway: 'cycleway', cycleway: 'crossing' }
+    expect(shownIds(data, 'highway/cycleway/crossing', crossingTags, 'line')).toEqual([])
     const changed = withChanges(data, {
-      presetEdits: { 'highway/cycleway/crossing': { addFields: [{ id: 'lit', before: 'name' }] } },
+      presetEdits: { 'highway/cycleway/crossing': { addFields: ['lit'] } },
     })
-    expect(
-      shownIds(
-        changed,
-        'highway/cycleway/crossing',
-        { highway: 'cycleway', cycleway: 'crossing' },
-        'line',
-      ),
-    ).toEqual(['lit', 'name', 'surface', 'width'])
+    expect(shownIds(changed, 'highway/cycleway/crossing', crossingTags, 'line')).toEqual(['lit'])
   })
 
-  it('an edit to a parent is seen by its child, which inherits the list', () => {
+  it('as iD: an edit to a parent does not reach its child', () => {
     const data: PresetData = {
       ...base,
       presets: {
@@ -319,7 +314,6 @@ describe('withChanges: edits to presets in the data', () => {
     }
     const changed = withChanges(data, {
       presetEdits: {
-        // listed first on purpose: the parent's edit must still be in place when the child inherits
         'highway/cycleway/crossing': { addFields: ['lit'] },
         'highway/cycleway': { removeFields: ['width'] },
       },
@@ -331,7 +325,8 @@ describe('withChanges: edits to presets in the data', () => {
         { highway: 'cycleway', cycleway: 'crossing' },
         'line',
       ),
-    ).toEqual(['name', 'surface', 'lit'])
+    ).toEqual(['lit'])
+    expect(shownIds(changed, 'highway/cycleway', cyclewayTags, 'line')).not.toContain('width')
   })
 })
 
@@ -407,12 +402,11 @@ describe('withChanges: errors', () => {
     ).toThrow('setFields cannot be combined with addFields')
   })
 
-  it("refuses to leave a preset with no fields, which would inherit its parent's", () => {
-    expect(() =>
-      withChanges(base, {
-        presetEdits: { 'highway/cycleway': { removeFields: ['name', 'surface', 'width'] } },
-      }),
-    ).toThrow('would leave no fields')
+  it('as iD: a preset may end with no fields, which shows none (no inheritance)', () => {
+    const changed = withChanges(base, {
+      presetEdits: { 'highway/cycleway': { removeFields: ['name', 'surface', 'width'] } },
+    })
+    expect(shownIds(changed, 'highway/cycleway', cyclewayTags, 'line')).toEqual([])
   })
 
   it('names a field without a type or a label, and a misspelt key', () => {

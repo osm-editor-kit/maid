@@ -8,4 +8,13 @@ export type {
   PresetDefinition,
   PresetEdit,
 } from './changes.ts'
-export type { Field, FieldOption, Geometry, Preset, PresetData, Presets, Tags } from './types.ts'
+export type {
+  Field,
+  FieldOption,
+  Geometry,
+  Preset,
+  PresetData,
+  PresetOptions,
+  Presets,
+  Tags,
+} from './types.ts'

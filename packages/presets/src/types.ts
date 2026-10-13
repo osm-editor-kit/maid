@@ -40,7 +40,14 @@ export type Field = {
   options: FieldOption[]
   default?: string
   geometry?: Geometry[]
-  prerequisiteTag?: { key?: string; value?: string; valueNot?: string; keyNot?: string }
+  prerequisiteTag?: {
+    key?: string
+    value?: string
+    values?: string[]
+    valueNot?: string
+    valuesNot?: string[]
+    keyNot?: string
+  }
   minValue?: number
   increment?: number
   universal: boolean
@@ -71,12 +78,18 @@ export type PresetData = {
   translations: unknown
 }
 
+/**
+ * Options of the preset functions that write tags. `skipFieldDefaults` leaves out the default tags of the
+ * fields (iD's `skipFieldDefaults`): iD's validation for outdated tags uses it, the preset list does not.
+ */
+export type PresetOptions = { skipFieldDefaults?: boolean }
+
 export type Presets = {
   /** The preset that describes these tags for this geometry. Always returns one (generic fallback). */
   match(tags: Tags, geometry: Geometry): Preset
   preset(id: string): Preset | undefined
   field(id: string): Field | undefined
-  /** The preset's fields that apply: resolved (inheritance, templates), filtered by the field's `geometry` and `prerequisiteTag`. Then every `moreFields` entry and universal field whose key (or one of its keys) has a value in `tags`, without duplicates. */
+  /** The preset's fields that apply: its own `fields` with `{preset}` and template references expanded, filtered by the field's `geometry` and `prerequisiteTag`. Then every `moreFields` entry and universal field whose key (or one of its keys) is in `tags`, even with an empty value (iD's tagsContainFieldKey), without duplicates. */
   fieldsFor(preset: Preset, tags: Tags, geometry: Geometry): Field[]
   /**
    * The fields the "Add field" list offers for these tags: every `moreFields` entry and universal
@@ -87,27 +100,51 @@ export type Presets = {
   /** iD's area keys: key → values that are NOT areas. Same shape as iD's `areaKeys`. The object is built once; do not mutate it. */
   areaKeys(): Record<string, Record<string, true>>
   /**
-   * Presets for this geometry whose name, alias, term or tag value matches the query, best first, and
-   * close matches of the name or a term (edit distance). Only searchable presets. The geometry's fallback
-   * preset comes last, as in iD, so `limit` counts it. An empty query returns the first `limit` presets by name.
+   * Presets for this geometry whose name, alias, term or tag value matches the query, in iD's order of
+   * tiers (collection.ts `search`), and close matches of the name or a term (edit distance). Only searchable
+   * presets. The geometry's fallback preset comes last, as in iD, so `limit` counts it. As in iD, the tiers
+   * are cut to `limit - 1` before duplicates are removed, so a preset that two tiers find uses two places.
+   * The default limit is 50 (iD's MAXRESULTS). An empty query returns the first `limit` presets by name.
    */
   search(query: string, geometry: Geometry, limit?: number): Preset[]
   /** iD's preset.matchScore: how well the tags fit the preset; -1 when a tag of the preset is missing or different. */
   matchScore(preset: Preset, tags: Tags): number
+  /** iD's preset.matchGeometry: the preset is for this geometry. */
+  matchGeometry(preset: Preset, geometry: Geometry): boolean
+  /** iD's preset.matchAllGeometry: the preset is for every one of these geometries (true for an empty list). */
+  matchAllGeometry(preset: Preset, geometries: Geometry[]): boolean
   /** iD's preset.isFallback: the preset has no tags, or only `area=*`. */
   isFallback(preset: Preset): boolean
   /**
-   * iD's unsetTags: the tags without the preset's removeTags (except `ignoringKeys`), without the field
-   * defaults that still hold, and without `area`. Returns a new object.
+   * iD's setTags: the tags with the preset's addTags (a `*` value becomes `yes` unless the key already has a
+   * value), `area=yes` for an area where no tag of the preset makes it one (areaKeys), then the field defaults
+   * of the fields that apply to the geometry and whose key is not set yet. Field defaults are not checked
+   * against prerequisiteTag, as in iD. `skipFieldDefaults` leaves them out. Returns a new object.
    */
-  unsetTags(tags: Tags, preset: Preset, geometry: Geometry, ignoringKeys?: readonly string[]): Tags
+  setTags(tags: Tags, preset: Preset, geometry: Geometry, options?: PresetOptions): Tags
+  /**
+   * iD's unsetTags: the tags without the preset's removeTags (except `ignoringKeys`), without the field
+   * defaults that still hold (unless `skipFieldDefaults`), and without `area`. Returns a new object.
+   */
+  unsetTags(
+    tags: Tags,
+    preset: Preset,
+    geometry: Geometry,
+    ignoringKeys?: readonly string[],
+    options?: PresetOptions,
+  ): Tags
   /**
    * The tags after choosing `preset` for a feature that had `tags` and matched `previous` (iD's actionChangePreset):
    * the previous preset's tags and field keys are removed, except the keys the new preset keeps (its addTags
-   * and the keys of its fields that apply to the geometry); then the new preset's tags are added (iD's setTags:
-   * `addTags`, a `*` value becomes `yes` unless the key already has a value; for geometry `area`, `area=yes` is
-   * added when no tag of the preset makes it an area by `areaKeys`; then field defaults). Without `previous`,
-   * only the new preset's tags are added. Returns a new object.
+   * and the keys of its fields that apply to the geometry); then the new preset's tags are added (`setTags`).
+   * `skipFieldDefaults` applies to that last step only, as in iD: the removal of the old preset never skips
+   * field defaults. Without `previous`, only the new preset's tags are added. Returns a new object.
    */
-  applyPreset(tags: Tags, preset: Preset, geometry: Geometry, previous?: Preset): Tags
+  applyPreset(
+    tags: Tags,
+    preset: Preset,
+    geometry: Geometry,
+    previous?: Preset,
+    options?: PresetOptions,
+  ): Tags
 }

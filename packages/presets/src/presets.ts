@@ -9,14 +9,24 @@ import {
   referenceOf,
 } from './raw.ts'
 import type { RawRecord } from './raw.ts'
-// Port of the matching and field logic of iD's modules/presets (index.js, preset.ts, collection.ts, field.ts).
-// Search (collection.ts `search`) and applyPreset (preset.ts `setTags`, `unsetTags`) are ported too,
-// without the fuzzy tiers, field defaults and location sets.
+// Port of the matching and field logic of iD's modules/presets (index.js, preset.ts, collection.ts, field.ts),
+// the search (collection.ts `search`) and the tag changes (preset.ts `setTags`, `unsetTags`, and
+// actions/change_preset.js). README.md, "Compared with iD", lists every rule and the test that pins it.
 // Not ported: location sets (`locationSet` is ignored, so a preset that iD would hide outside its
-// area is matched everywhere), categories, field defaults, recents, the fuzzy (edit distance) search
-// tiers, suggestion presets (none in the bundled data), preferences, the file fetcher, and the
-// localizer (labels come straight from the English translation).
-import type { Field, FieldOption, Geometry, Preset, PresetData, Presets, Tags } from './types.ts'
+// area is matched everywhere, and a field default that iD writes only inside its location is written
+// everywhere), categories, recents, preset defaults per geometry, addable presets, suggestion presets
+// (none in the bundled data), preferences, the file fetcher, and the localizer (labels come straight
+// from the English translation).
+import type {
+  Field,
+  FieldOption,
+  Geometry,
+  Preset,
+  PresetData,
+  PresetOptions,
+  Presets,
+  Tags,
+} from './types.ts'
 
 type Which = 'fields' | 'moreFields'
 type PrerequisiteTag = NonNullable<Field['prerequisiteTag']>
@@ -84,12 +94,19 @@ function tagValue(tags: Tags, key: string) {
   return typeof value === 'string' ? value : ''
 }
 
-/** iD's prerequisiteTag check (modules/ui/field.js). An absent tag counts as ''. */
+/**
+ * iD's prerequisiteTag check (modules/ui/field.js, isAllowed). An absent tag counts as ''. The order of the
+ * tests is iD's: valuesNot, valueNot, values, value, then any value. Only iD's Field UI asks it; the default
+ * tags of a preset do not (see setTags).
+ */
 function prerequisiteHolds(prerequisite: PrerequisiteTag | undefined, tags: Tags) {
   if (!prerequisite) return true
   if (prerequisite.key !== undefined) {
     const value = tagValue(tags, prerequisite.key)
+    // as iD: valuesNot, valueNot, values, value, then any value (ui/field.js isAllowed)
+    if (prerequisite.valuesNot !== undefined) return !prerequisite.valuesNot.includes(value)
     if (prerequisite.valueNot) return prerequisite.valueNot !== value
+    if (prerequisite.values !== undefined) return prerequisite.values.includes(value)
     if (prerequisite.value) return prerequisite.value === value
     return value !== ''
   }
@@ -97,9 +114,13 @@ function prerequisiteHolds(prerequisite: PrerequisiteTag | undefined, tags: Tags
   return true
 }
 
+/**
+ * iD's tagsContainFieldKey (modules/ui/field.js): one of the keys the field controls (allKeys, which includes
+ * the prefixed keys of a multiCombo) is in the tags. An empty value counts, as it does in iD.
+ */
 function fieldHasValue(field: Field, tags: Tags) {
-  if (field.key !== undefined && tagValue(tags, field.key) !== '') return true
-  return (field.keys ?? []).some((key) => tagValue(tags, key) !== '')
+  // as iD: a present key counts even when its value is empty (`_tags[key] !== undefined`)
+  return allKeysOf(field, tags).some((key) => Object.hasOwn(tags, key))
 }
 
 function fieldAppliesTo(field: Field, geometry: Geometry) {
@@ -182,10 +203,9 @@ function leading(text: string, value: string) {
   return index === 0 || (index > 0 && text[index - 1] === ' ')
 }
 
-/** iD's `presetInSearchTerm`: the query starts with the preset's name, or has it after a space. */
-function nameInQuery(name: string, value: string) {
-  if (name.length === 0) return false
-  const index = value.indexOf(name)
+/** iD's `presetInSearchTerm`: the query contains one of the preset's texts at its start, or after a space. */
+function nameInQuery(text: string, value: string) {
+  const index = value.indexOf(text)
   return index === 0 || (index > 0 && value[index - 1] === ' ')
 }
 
@@ -213,7 +233,12 @@ const AREA_KEY_EXCEPTIONS: ReadonlyMap<string, ReadonlySet<string>> = new Map([
   ['emergency', new Set(['yes', 'no', 'private', 'designated', 'destination', 'official'])],
 ])
 
-/** What search needs about one preset, lower-cased once when the presets are built. */
+/**
+ * What search needs about one preset, prepared once when the presets are built. As in iD, the name,
+ * the aliases and the stripped forms are lower case, and the tag values and key=value strings are
+ * compared as they are (the query is lower-cased, so a mixed-case value is found only by its lower-case query).
+ * The terms are lower case because the schema build lower-cases them.
+ */
 type SearchEntry = {
   preset: Preset
   name: string
@@ -225,9 +250,13 @@ type SearchEntry = {
   termsStripped: string[]
   /** tag values other than `*` */
   values: string[]
-  /** `key=value` for tags and addTags */
-  keyValues: string[]
-  /** name, aliases, terms and stripped names: the texts that a query can contain */
+  /** `key=value` of the tags, and of addTags, each in the preset's order */
+  tagKeyValues: string[]
+  addTagKeyValues: string[]
+  /**
+   * The texts that a query can contain (iD's presetInSearchTerm): name, aliases, terms and stripped forms,
+   * trimmed. A text that is empty before trimming is left out, as iD does.
+   */
   texts: string[]
 }
 
@@ -236,17 +265,11 @@ function searchEntryOf(preset: Preset) {
   const nameStripped = stripDiacritics(name)
   const aliases = preset.aliases.map((alias) => alias.toLowerCase())
   const aliasesStripped = aliases.map((alias) => stripDiacritics(alias))
-  const values = Object.values(preset.tags)
-    .filter((value) => value !== '*')
-    .map((value) => value.toLowerCase())
-  const keyValues = [
-    ...new Set(
-      [...Object.entries(preset.tags), ...Object.entries(preset.addTags)].map(([key, value]) =>
-        `${key}=${value}`.toLowerCase(),
-      ),
-    ),
-  ]
+  const keyValuesOf = (tags: Tags) => Object.entries(tags).map(([key, value]) => `${key}=${value}`)
+  // as iD: presetInSearchTerm trims the text; a text that is empty before trimming is left out
   const texts = [name, ...aliases, ...preset.terms, nameStripped, ...aliasesStripped]
+    .filter((text) => text.length > 0)
+    .map((text) => text.trim())
   return {
     preset,
     name,
@@ -255,8 +278,10 @@ function searchEntryOf(preset: Preset) {
     aliasesStripped,
     terms: preset.terms,
     termsStripped: preset.terms.map((term) => stripDiacritics(term)),
-    values,
-    keyValues,
+    // as iD: the tag values are not lower-cased (only the query is)
+    values: Object.values(preset.tags).filter((value) => value !== '*'),
+    tagKeyValues: keyValuesOf(preset.tags),
+    addTagKeyValues: keyValuesOf(preset.addTags),
     texts,
   }
 }
@@ -295,11 +320,17 @@ function rankByName(entries: SearchEntry[], value: string, variant: 'plain' | 's
   return ranked.map((item) => item.entry)
 }
 
-/** iD's key=value tier: exact matches first, then those that start with the query. */
+/**
+ * iD's key=value tier (leadingTagKeyValues), in iD's order: the exact matches of the tags, the tags that start
+ * with the query, then the same two for addTags. A preset can appear in more than one of the four.
+ */
 function keyValueMatches(pool: SearchEntry[], value: string) {
-  const exact = pool.filter((entry) => entry.keyValues.includes(value))
-  const prefix = pool.filter((entry) => entry.keyValues.some((kv) => leading(kv, value)))
-  return [...exact, ...prefix]
+  return [
+    ...pool.filter((entry) => entry.tagKeyValues.includes(value)),
+    ...pool.filter((entry) => entry.tagKeyValues.some((kv) => leading(kv, value))),
+    ...pool.filter((entry) => entry.addTagKeyValues.includes(value)),
+    ...pool.filter((entry) => entry.addTagKeyValues.some((kv) => leading(kv, value))),
+  ]
 }
 
 /**
@@ -408,6 +439,11 @@ export function createPresets(data: PresetData): Presets {
         const text = asString(prerequisite[name])
         if (text !== undefined) picked[name] = text
       }
+      // as iD: the list forms of prerequisiteTag (values, valuesNot) are read too
+      const values = asStrings(prerequisite.values)
+      if (values !== undefined) picked.values = values
+      const valuesNot = asStrings(prerequisite.valuesNot)
+      if (valuesNot !== undefined) picked.valuesNot = valuesNot
       field.prerequisiteTag = picked
     }
     const minValue = asNumber(raw.minValue)
@@ -448,13 +484,10 @@ export function createPresets(data: PresetData): Presets {
   const presetLookup = (id: string) =>
     textOf(presetNames, id, 'name') ?? asString(rawPresets.get(id)?.name)
 
-  function parentOf(id: string) {
-    const slash = id.lastIndexOf('/')
-    return slash > 0 ? id.slice(0, slash) : undefined
-  }
-
-  // Expands `{preset}` and `{@templates/x}` references and inherits `fields` from the parent preset
-  // when a preset has none of its own. Memoized per preset and list; a cycle resolves to nothing.
+  // Expands `{preset}` and `{@templates/x}` references (the bundled dist still has them; the templates are
+  // presets with a `@template` tag). Memoized per preset and list; a cycle resolves to nothing.
+  // As iD: a preset with no fields of its own shows none. iD does not inherit the fields of the parent
+  // preset (`a/b` to `a`): the schema build leaves such a preset without fields, and so does iD's runtime.
   const memo: Record<Which, Map<string, Field[]>> = { fields: new Map(), moreFields: new Map() }
   const stack = new Set<string>()
   function resolveList(presetId: string, which: Which) {
@@ -462,21 +495,17 @@ export function createPresets(data: PresetData): Presets {
     if (cached) return cached
     if (stack.has(presetId)) return []
     stack.add(presetId)
-    const listed = asStrings(rawPresets.get(presetId)?.[which])
+    // as iD: a preset with no fields of its own has none; the parent's fields are not inherited
+    const listed = asStrings(rawPresets.get(presetId)?.[which]) ?? []
     const resolved: Field[] = []
-    if (listed && listed.length > 0) {
-      for (const entry of listed) {
-        const ref = referenceOf(entry)
-        if (ref !== undefined) {
-          resolved.push(...resolveList(ref, which))
-          continue
-        }
-        const field = fields.get(entry)
-        if (field) resolved.push(field)
+    for (const entry of listed) {
+      const ref = referenceOf(entry)
+      if (ref !== undefined) {
+        resolved.push(...resolveList(ref, which))
+        continue
       }
-    } else if (which === 'fields') {
-      const parent = parentOf(presetId)
-      if (parent !== undefined) resolved.push(...resolveList(parent, which))
+      const field = fields.get(entry)
+      if (field) resolved.push(field)
     }
     stack.delete(presetId)
     const unique = [...new Set(resolved)]
@@ -674,10 +703,14 @@ export function createPresets(data: PresetData): Presets {
     relation: [...searchIndex.relation].sort(byNameThenId).map((entry) => entry.preset),
   }
 
-  // iD's collection.search: the tiers in iD's order, each tier ranked as iD ranks it; a preset is listed once.
-  function search(query: string, geometry: Geometry, limit = 20) {
+  // as iD: collection.search, the tiers in iD's order, each ranked as iD ranks it. The tiers are
+  // joined and the first `limit - 1` entries are kept, duplicates included; then the duplicates are removed
+  // and the geometry's fallback is added last (or where it already is).
+  // as iD: the default limit is MAXRESULTS, 50
+  function search(query: string, geometry: Geometry, limit = 50) {
     if (limit <= 0) return []
     const value = query.toLowerCase().trim()
+    // not as iD: iD returns the whole collection for an empty query and the UI shows its defaults instead
     if (value === '') return byName[geometry].slice(0, limit)
     const pool = searchIndex[geometry]
     const valueStripped = stripDiacritics(value)
@@ -699,7 +732,9 @@ export function createPresets(data: PresetData): Presets {
           value,
           'stripped',
         ),
+      // a term starts the query (iD keeps the order of the presets here)
       () => pool.filter((e) => e.terms.some((t) => leading(t, value))),
+      // a tag value starts the query
       () => pool.filter((e) => e.values.some((v) => leading(v, value))),
       // close matches to the name (iD: edit distance, less the length difference, below 3), closest first
       () =>
@@ -722,21 +757,19 @@ export function createPresets(data: PresetData): Presets {
       // the query contains the preset's name, e.g. "cafe near me"
       () => pool.filter((e) => e.texts.some((t) => nameInQuery(t, value))),
     ]
-    // iD keeps MAXRESULTS - 1 matches and adds the fallback preset of the geometry last
+    // as iD: MAXRESULTS - 1 entries of the joined tiers are kept, duplicates included; a preset found twice takes two
     const room = limit - 1
-    const found: Preset[] = []
-    const seen = new Set<Preset>()
+    const taken: Preset[] = []
     for (const tier of tiers) {
-      if (found.length >= room) break
+      if (taken.length >= room) break
       for (const entry of tier()) {
-        if (found.length >= room) break
-        if (seen.has(entry.preset)) continue
-        seen.add(entry.preset)
-        found.push(entry.preset)
+        if (taken.length >= room) break
+        taken.push(entry.preset)
       }
     }
+    const found = [...new Set(taken)]
     const fallback = generic[geometry]
-    if (!seen.has(fallback)) found.push(fallback)
+    if (!found.includes(fallback)) found.push(fallback)
     return found
   }
 
@@ -757,7 +790,12 @@ export function createPresets(data: PresetData): Presets {
 
   // iD's setTags: the addTags (a `*` becomes yes unless an ancillary key already has a value), then area=yes
   // where needed, then the field defaults that are still missing. Returns a new object.
-  function withPresetTags(tags: Tags, preset: Preset, geometry: Geometry) {
+  function withPresetTags(
+    tags: Tags,
+    preset: Preset,
+    geometry: Geometry,
+    options: PresetOptions = {},
+  ) {
     const result: Tags = { ...tags }
     for (const key of Object.keys(preset.addTags)) {
       const value = preset.addTags[key]
@@ -773,9 +811,13 @@ export function createPresets(data: PresetData): Presets {
       delete result.area
       if (geometry === 'area' && needsAreaTag(preset)) result.area = 'yes'
     }
-    for (const field of fieldsOf(preset)) {
-      if (!field.key || !field.default || !fieldAppliesTo(field, geometry)) continue
-      if (!result[field.key]) result[field.key] = field.default
+    // as iD's setTags: the defaults of the preset's own fields (not moreFields) that apply to the geometry,
+    // when the key is not set. iD does not look at prerequisiteTag here.
+    if (!options.skipFieldDefaults) {
+      for (const field of fieldsOf(preset)) {
+        if (!field.key || !field.default || !fieldAppliesTo(field, geometry)) continue
+        if (!result[field.key]) result[field.key] = field.default
+      }
     }
     return result
   }
@@ -787,15 +829,19 @@ export function createPresets(data: PresetData): Presets {
     preset: Preset,
     geometry: Geometry,
     ignoringKeys: readonly string[] = [],
+    options: PresetOptions = {},
   ) {
     const result: Tags = { ...tags }
     for (const key of Object.keys(preset.removeTags)) {
       if (!ignoringKeys.includes(key)) delete result[key]
     }
-    for (const field of fieldsOf(preset)) {
-      if (!field.key || !field.default || !fieldAppliesTo(field, geometry)) continue
-      if (ignoringKeys.includes(field.key)) continue
-      if (result[field.key] === field.default) delete result[field.key]
+    // as iD: a field whose default is undefined is skipped (iD compares `field.default === tags[key]`)
+    if (!options.skipFieldDefaults) {
+      for (const field of fieldsOf(preset)) {
+        if (!field.key || field.default === undefined || !fieldAppliesTo(field, geometry)) continue
+        if (ignoringKeys.includes(field.key)) continue
+        if (result[field.key] === field.default) delete result[field.key]
+      }
     }
     delete result.area
     return result
@@ -822,8 +868,16 @@ export function createPresets(data: PresetData): Presets {
   // field keys are removed, except the keys that the new preset keeps. Field keys of the old preset that the
   // new one does not keep are removed only when the old preset no longer matches afterwards: a collective
   // preset (e.g. school with a building field) keeps the old tags. Returns a new object.
-  function applyPreset(tags: Tags, preset: Preset, geometry: Geometry, previous?: Preset) {
-    if (!previous) return withPresetTags(tags, preset, geometry)
+  // as iD: `skipFieldDefaults` applies to the new preset's setTags only. The removal of the old preset never
+  // skips field defaults (iD passes `false` there).
+  function applyPreset(
+    tags: Tags,
+    preset: Preset,
+    geometry: Geometry,
+    previous?: Preset,
+    options: PresetOptions = {},
+  ) {
+    if (!previous) return withPresetTags(tags, preset, geometry, options)
     const preserve = preserveKeysOf(tags, preset, geometry, previous)
     let current = tags
     if (previous.id !== preset.id) {
@@ -837,6 +891,7 @@ export function createPresets(data: PresetData): Presets {
         withoutPresetTags(withoutKeys(tags, removeKeys), previous, geometry, preserve),
         preset,
         geometry,
+        options,
       )
       if (matchScore(previous, reduced) === -1) current = reduced
     }
@@ -844,6 +899,7 @@ export function createPresets(data: PresetData): Presets {
       withoutPresetTags(current, previous, geometry, preserve),
       preset,
       geometry,
+      options,
     )
   }
 
@@ -856,9 +912,14 @@ export function createPresets(data: PresetData): Presets {
     areaKeys: () => areaKeys,
     search,
     matchScore: (preset, tags) => matchScore(preset, tags),
+    // as iD: preset.matchGeometry and matchAllGeometry (F-presets-1; iD's preset list uses the second for a selection)
+    matchGeometry: (preset, geometry) => preset.geometry.includes(geometry),
+    matchAllGeometry: (preset, geometries) =>
+      geometries.every((geometry) => preset.geometry.includes(geometry)),
     isFallback: (preset) => isFallbackTags(preset.tags),
-    unsetTags: (tags, preset, geometry, ignoringKeys) =>
-      withoutPresetTags(tags, preset, geometry, ignoringKeys),
+    setTags: (tags, preset, geometry, options) => withPresetTags(tags, preset, geometry, options),
+    unsetTags: (tags, preset, geometry, ignoringKeys, options) =>
+      withoutPresetTags(tags, preset, geometry, ignoringKeys, options),
     applyPreset,
   }
 }

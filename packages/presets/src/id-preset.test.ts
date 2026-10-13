@@ -38,25 +38,27 @@ describe('iD.presetPreset', () => {
   })
 
   describe('#matchGeometry', () => {
-    // Maid has no matchGeometry on a preset; the geometry is the match's argument.
     it("returns false if it doesn't match", () => {
-      const presets = presetsOf({ test: { tags: { leisure: 'park' }, geometry: ['line'] } })
-      expect(presets.match({ leisure: 'park' }, 'point').id).not.toBe('test')
+      const presets = presetsOf({ test: { geometry: ['line'] } })
+      expect(presets.matchGeometry(get(presets, 'test'), 'point')).toEqual(false)
     })
 
     it('returns true if it does match', () => {
-      const presets = presetsOf({
-        test: { tags: { leisure: 'park' }, geometry: ['point', 'line'] },
-      })
-      expect(presets.match({ leisure: 'park' }, 'point').id).toBe('test')
+      const presets = presetsOf({ test: { geometry: ['point', 'line'] } })
+      expect(presets.matchGeometry(get(presets, 'test'), 'point')).toEqual(true)
     })
   })
 
   describe('#matchAllGeometry', () => {
-    // needs F-presets-1
-    it.todo("returns false if they don't all match", () => {})
-    // needs F-presets-1
-    it.todo('returns true if they do all match', () => {})
+    it("returns false if they don't all match", () => {
+      const presets = presetsOf({ test: { geometry: ['line'] } })
+      expect(presets.matchAllGeometry(get(presets, 'test'), ['point', 'line'])).toEqual(false)
+    })
+
+    it('returns true if they do all match', () => {
+      const presets = presetsOf({ test: { geometry: ['point', 'line'] } })
+      expect(presets.matchAllGeometry(get(presets, 'test'), ['point', 'line'])).toEqual(true)
+    })
   })
 
   describe('#matchScore', () => {
@@ -269,8 +271,17 @@ describe('iD.presetPreset', () => {
       expect(presets.unsetTags({ a: 'b' }, get(presets, 'test'), 'area')).toEqual({ a: 'b' })
     })
 
-    // needs F-presets-3
-    it.todo('preserves field default tags when "skipFieldDefaults" flag is on', () => {})
+    it('preserves field default tags when "skipFieldDefaults" flag is on', () => {
+      const presets = presetsOf(
+        { test: { fields: ['field'] } },
+        { field: { key: 'building', geometry: ['area'], default: 'yes', type: 'check' } },
+      )
+      expect(
+        presets.unsetTags({ building: 'yes' }, get(presets, 'test'), 'area', undefined, {
+          skipFieldDefaults: true,
+        }),
+      ).toEqual({ building: 'yes' })
+    })
 
     it('preserves "ignoringKeys" tags', () => {
       const presets = presetsOf({ test: { tags: { a: 'a', b: 'b' } } })

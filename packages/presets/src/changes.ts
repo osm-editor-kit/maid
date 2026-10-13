@@ -1,7 +1,8 @@
 /**
  * Changes to a preset data set, for a child app: `withChanges(base, changes)` returns a new PresetData with
  * the changes made, and `createPresets` builds the lookup from it as usual. It works on the raw data, so the
- * presets inherit fields and the labels resolve exactly as in the default data. The base is never mutated.
+ * `{preset}` and template references and the labels resolve exactly as in the default data. The base is never
+ * mutated.
  * See README.md, "Changing presets in a child app".
  */
 import { asRecord, asStrings, isGeometry, own, referenceOf } from './raw.ts'
@@ -25,7 +26,14 @@ export type FieldDefinition = {
   options?: FieldOptions
   default?: string
   geometry?: readonly Geometry[]
-  prerequisiteTag?: { key?: string; value?: string; valueNot?: string; keyNot?: string }
+  prerequisiteTag?: {
+    key?: string
+    value?: string
+    values?: readonly string[]
+    valueNot?: string
+    valuesNot?: readonly string[]
+    keyNot?: string
+  }
   minValue?: number
   increment?: number
   universal?: boolean
@@ -109,7 +117,9 @@ const FIELD_KEYS = [
   'urlFormat',
   'pattern',
 ]
-const PREREQUISITE_KEYS = ['key', 'value', 'valueNot', 'keyNot']
+const PREREQUISITE_TEXT_KEYS = ['key', 'value', 'valueNot', 'keyNot']
+const PREREQUISITE_LIST_KEYS = ['values', 'valuesNot']
+const PREREQUISITE_KEYS = [...PREREQUISITE_TEXT_KEYS, ...PREREQUISITE_LIST_KEYS]
 const PRESET_KEYS = [
   'name',
   'tags',
@@ -175,12 +185,8 @@ export function withChanges(base: PresetData, changes: PresetChanges): PresetDat
     trPresets[id] = { name: definition.name }
   }
 
-  // 3. edits to presets in the data. Parents first: a preset with no fields of its own inherits its parent's,
-  // and that must already be the edited list. A parent id is always shorter than its children's.
-  const edits = entriesOf(input.presetEdits, 'presetEdits', report).sort(
-    ([a], [b]) => a.length - b.length,
-  )
-  for (const [id, value] of edits) {
+  // 3. edits to presets in the data. as iD: a preset that ends with no fields shows none (no inheritance)
+  for (const [id, value] of entriesOf(input.presetEdits, 'presetEdits', report)) {
     const path = `presetEdits["${id}"]`
     if (!Object.hasOwn(presets, id)) {
       report(path, unknownPreset(id))
@@ -201,12 +207,6 @@ export function withChanges(base: PresetData, changes: PresetChanges): PresetDat
       if (edit === undefined) continue
       const next = applyListEdit(listOf(presets, fields, id, which), edit, path, hasField, report)
       if (next === undefined) continue
-      if (which === 'fields' && next.length === 0) {
-        report(
-          path,
-          "would leave no fields: an empty list makes the preset inherit its parent's fields",
-        )
-      }
       raw[which] = next
     }
     presets[id] = raw
@@ -356,7 +356,7 @@ function listEditOf(
   return { set, add, remove, keys }
 }
 
-/** The ids a preset shows for `which`, as createPresets resolves them: references expanded, the parent's fields when none. */
+/** The ids a preset shows for `which`, as createPresets resolves them: `{preset}` and template references expanded. */
 function listOf(
   presets: RawRecord,
   fields: RawRecord,
@@ -366,17 +366,12 @@ function listOf(
 ) {
   if (stack.has(id)) return []
   stack.add(id)
-  const listed = asStrings(asRecord(own(presets, id))?.[which])
+  const listed = asStrings(asRecord(own(presets, id))?.[which]) ?? []
   const ids: string[] = []
-  if (listed !== undefined && listed.length > 0) {
-    for (const entry of listed) {
-      const reference = referenceOf(entry)
-      if (reference !== undefined) ids.push(...listOf(presets, fields, reference, which, stack))
-      else if (Object.hasOwn(fields, entry)) ids.push(entry)
-    }
-  } else if (which === 'fields') {
-    const slash = id.lastIndexOf('/')
-    if (slash > 0) ids.push(...listOf(presets, fields, id.slice(0, slash), which, stack))
+  for (const entry of listed) {
+    const reference = referenceOf(entry)
+    if (reference !== undefined) ids.push(...listOf(presets, fields, reference, which, stack))
+    else if (Object.hasOwn(fields, entry)) ids.push(entry)
   }
   stack.delete(id)
   return [...new Set(ids)]
@@ -520,14 +515,18 @@ function readPrerequisite(obj: RawRecord, key: string, path: string, report: Rep
   if (value === undefined) return undefined
   const at = `${path}.${key}`
   if (!isRecord(value)) {
-    report(at, 'must be an object with key, value, valueNot or keyNot')
+    report(at, `must be an object with ${PREREQUISITE_KEYS.join(', ')}`)
     return undefined
   }
   checkKeys(value, PREREQUISITE_KEYS, at, report)
-  const picked: Record<string, string> = {}
-  for (const name of PREREQUISITE_KEYS) {
+  const picked: Record<string, string | string[]> = {}
+  for (const name of PREREQUISITE_TEXT_KEYS) {
     const text = readString(value, name, at, report)
     if (text !== undefined) picked[name] = text
+  }
+  for (const name of PREREQUISITE_LIST_KEYS) {
+    const list = readStrings(value, name, at, report)
+    if (list !== undefined) picked[name] = list
   }
   return picked
 }
