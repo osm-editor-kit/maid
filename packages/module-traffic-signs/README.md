@@ -18,7 +18,7 @@ trafficSigns({ country: 'DE' }),
 presets: createPresets(withChanges(defaultPresetData, trafficSignPresetChanges)),
 ```
 
-Tailwind needs the module's sources in `apps/maid/src/index.css`: `@source '../../../packages/module-traffic-signs/src';`.
+Tailwind needs the module's sources in `packages/shell/src/styles.css`: `@source '../../module-traffic-signs/src';`.
 
 ## Status: not complete
 

@@ -19,7 +19,7 @@ export default defineConfig({
     newlinesBetween: false,
   },
   sortTailwindcss: {
-    stylesheet: 'apps/maid/src/index.css',
+    stylesheet: 'packages/shell/src/styles.css',
     functions: ['twMerge', 'twJoin', 'clsx'],
   },
   sortPackageJson: true,
@@ -32,7 +32,7 @@ export default defineConfig({
     'fixtures/**',
     '**/dist/**',
     '**/generated/**',
-    'apps/maid/public/**',
+    'packages/shell/public/**',
     'tools/refs/id/**',
     'tools/refs/rapid/**',
     'tools/refs/frame-sync.js',

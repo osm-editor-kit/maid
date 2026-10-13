@@ -14,7 +14,7 @@ export default defineConfig({
     'fixtures/**',
     '**/dist/**',
     '**/generated/**',
-    'apps/maid/public/**',
+    'packages/shell/public/**',
     // host pages and adapters for iD and Rapid: plain browser scripts, not part of our code base
     'tools/refs/id/**',
     'tools/refs/rapid/**',

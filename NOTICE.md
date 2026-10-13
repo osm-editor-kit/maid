@@ -24,8 +24,8 @@ Licences in this table are from memory of the projects and still need to be chec
 
 | What | From | Licence | Where |
 | --- | --- | --- | --- |
-| Preset icons, copied from the pinned iD build at setup, not committed | Maki (Mapbox), Temaki, Font Awesome Free, Röntgen, iD | CC0 (Maki, Temaki), CC BY 4.0 (Font Awesome Free icons, Röntgen), ISC (iD) | `apps/maid/public/sprites/` |
-| Label font glyphs, Open Sans Semibold, from MapLibre's demo tiles | Open Sans | Open Font License or Apache 2.0, depending on the version | `apps/maid/public/fonts/` |
+| Preset icons, copied from the pinned iD build at setup, not committed | Maki (Mapbox), Temaki, Font Awesome Free, Röntgen, iD | CC0 (Maki, Temaki), CC BY 4.0 (Font Awesome Free icons, Röntgen), ISC (iD) | `packages/shell/public/sprites/` |
+| Label font glyphs, Open Sans Semibold, from MapLibre's demo tiles | Open Sans | Open Font License or Apache 2.0, depending on the version | `packages/shell/public/fonts/` |
 
 ## OpenStreetMap data
 

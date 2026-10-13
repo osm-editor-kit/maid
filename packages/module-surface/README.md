@@ -20,7 +20,7 @@ presets: createPresets(withChanges(defaultPresetData, surfacePresetChanges)),
 
 With the traffic sign module as well, both sets apply in either order: `withChanges(withChanges(defaultPresetData, trafficSignPresetChanges), surfacePresetChanges)`. Checked for residential, cycleway, footway and secondary.
 
-Tailwind needs the module's sources in `apps/maid/src/index.css`: `@source '../../../packages/module-surface/src';`.
+Tailwind needs the module's sources in `packages/shell/src/styles.css`: `@source '../../module-surface/src';`.
 
 ## What the field does
 

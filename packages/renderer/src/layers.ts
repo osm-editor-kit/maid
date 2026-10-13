@@ -63,7 +63,7 @@ function lowZoomThreshold(lat: number) {
 const HOVER = '#f6634f'
 /** MapLibre zoom from which points are pins (OSM zoom 18.5); below it they are dots. Chosen on the dense scene: at OSM zoom 17 all its pins cover the map. */
 const PIN_ZOOM = 17.5
-/** The address plaque image (apps/maid/src/images.ts) */
+/** The address plaque image (packages/shell/src/images.ts) */
 export const ADDRESS_PLAQUE = 'addr-plaque'
 
 export function buildLayers(options: LayerOptions) {
@@ -510,7 +510,7 @@ function buildMainLayers(options: LayerOptions) {
   })
   // Address nodes are not pins: iD draws a rounded plaque with the house number on the node, at
   // every zoom it draws points (svg/points.js markerPath, svg/labels.js). The plaque is one symbol
-  // whose icon stretches to the text (the image is ADDRESS_PLAQUE in apps/maid/src/images.ts).
+  // whose icon stretches to the text (the image is ADDRESS_PLAQUE in packages/shell/src/images.ts).
   // Maid differs from iD here: a plaque shows only together with its number. Where numbers would
   // overlap (a row of houses), iD keeps every plaque and drops the text, which leaves empty white
   // cards. Here the whole plaque gives way and the address stays a small dot, which the plaque

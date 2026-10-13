@@ -86,7 +86,7 @@ function entitiesOf(graph: Graph) {
   return out
 }
 
-/** The way list the app builds (apps/maid/src/modules/validation.tsx, `waysOf`) */
+/** The way list the app builds (packages/shell/src/modules/validation.tsx, `waysOf`) */
 function waysOf(graph: Graph) {
   return entitiesOf(graph).filter((entity): entity is OsmWay => entity instanceof OsmWay)
 }

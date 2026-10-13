@@ -1,30 +1,18 @@
+import { setAppConfig } from '@osm-editor-kit/maid-shell'
+import '@osm-editor-kit/maid-shell/styles.css'
 import { initTheme } from '@osm-editor-kit/maid-ui'
-import { setWorkerCount, setWorkerUrl } from 'maplibre-gl'
+import { setWorkerUrl } from 'maplibre-gl'
 // MapLibre 6 is ESM only and loads its worker from a URL. Let Vite bundle the worker.
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
-import { createRoot } from 'react-dom/client'
-import { App } from './App'
-import { config } from './editor'
-import './index.css'
+import { editorConfig } from './maid.config'
 
 // before the first render, so the page does not flash in the wrong theme
 initTheme()
 
 setWorkerUrl(workerUrl)
-// MapLibre uses one worker by default. Maid's four sources then queue up behind each other.
-if (config.workers > 0) setWorkerCount(config.workers)
 
-// No StrictMode: its double mount would create the map twice and distort timings.
-const root = createRoot(document.getElementById('root')!)
-// Dev server only: the Tags sheet on its own, for tools/bench/tags-check.ts (see sheet-harness.tsx)
-if (import.meta.env.DEV && new URLSearchParams(location.search).get('harness') === 'tags') {
-  void import('./sheet-harness').then(({ TagHarness }) => root.render(<TagHarness />))
-} else if (
-  import.meta.env.DEV &&
-  new URLSearchParams(location.search).get('harness') === 'fields'
-) {
-  // Dev server only: the fields of several features on their own (fields-harness.tsx)
-  void import('./fields-harness').then(({ FieldsHarness }) => root.render(<FieldsHarness />))
-} else {
-  root.render(<App />)
-}
+// The shell creates its editor from this config when its entry is first imported, so the config is
+// set first and the entry is loaded after (a bridge until the shell has createApp, see app-config.ts).
+setAppConfig(editorConfig)
+const { mountEditor } = await import('@osm-editor-kit/maid-shell/mount')
+mountEditor(document.getElementById('root')!)

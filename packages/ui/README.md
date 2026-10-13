@@ -1,6 +1,6 @@
 # @osm-editor-kit/maid-ui
 
-The editor's shell as React components: layout, top bar, sidebar, map controls, dock, context menu, and the light, dark and system theme. An app puts its own content into them (see `apps/maid/src/App.tsx`).
+The components the shell is built from: layout, top bar, sidebar, map controls, dock, context menu, and the light, dark and system theme. An app puts its own content into them (see `packages/shell/src/App.tsx`).
 
 | Piece | What it is |
 | --- | --- |

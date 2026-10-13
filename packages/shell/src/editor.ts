@@ -4,8 +4,9 @@ import { connectLenses } from '@osm-editor-kit/maid-module-lenses'
 import { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { useSettings } from '@osm-editor-kit/maid-ui'
 import { useSyncExternalStore } from 'react'
+import { appConfig } from './app-config'
 import { readConfig } from './config'
-import { editorConfig } from './maid.config'
+import { setLateEngine } from './engine-ref'
 import { migrateIdHash } from './url/id-url'
 import { startShown } from './url/shown'
 
@@ -18,8 +19,8 @@ migrateIdHash(window.location, window.history)
 
 export const config = readConfig(window.location)
 
-/** The editor's data and modules. What this editor is lives in maid.config.ts. */
-export const editor = createEditor(editorConfig(config))
+/** The editor's data and modules. What this editor is comes from the app's config (apps/maid/src/maid.config.ts), through the bridge in app-config.ts*/
+export const editor = createEditor(appConfig()(config))
 
 // The OSM API is a service of its own: its requests wait in the 'osm' gate, and a pause on it is its own.
 // A local API (the mock, on localhost) is not claimed: it stays with the 'local' gate, as hosts that no
@@ -48,6 +49,8 @@ export const engine = new MaidEngine({
   // the editor's fetch: gated per service, time-limited, paused on a rate limit
   fetch: editor.fetch,
 })
+
+setLateEngine(engine)
 
 // the lens the person chose restyles what the engine builds
 connectLenses(engine)

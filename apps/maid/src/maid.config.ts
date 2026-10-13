@@ -1,7 +1,7 @@
 import type { MaidModule } from '@osm-editor-kit/maid-core'
 /**
  * What this editor is: the modules it is made of, one per line so that one can be commented out.
- * The run-time settings (scene, live data, ...) come from the URL and are read once, in config.ts.
+ * The run-time settings (scene, live data, ...) come from the URL and are read once, in the shell's config.ts.
  */
 import { defaultFilters } from '@osm-editor-kit/maid-filters'
 import { dataLayers } from '@osm-editor-kit/maid-module-data-layers'
@@ -18,15 +18,18 @@ import { createPresets, withChanges } from '@osm-editor-kit/maid-presets'
 import { defaultPresetData } from '@osm-editor-kit/maid-presets/default'
 // import { examplePresetChanges } from './preset-changes.example'
 import { operations } from '@osm-editor-kit/maid-renderer'
+import {
+  type Bbox,
+  type Config,
+  elementInfo,
+  relations,
+  sceneBounds,
+  validation,
+} from '@osm-editor-kit/maid-shell'
 import { defaultRules } from '@osm-editor-kit/maid-validation'
 import dense from '../../../fixtures/dense.meta.json'
 import medium from '../../../fixtures/medium.meta.json'
 import small from '../../../fixtures/small.meta.json'
-import type { Config } from './config'
-import { elementInfo } from './modules/element-info'
-import { relations } from './modules/relations'
-import { type Bbox, sceneBounds } from './modules/scene-bounds'
-import { validation } from './modules/validation'
 
 /**
  * Extent of each fixture, from its meta file. The casts stay on purpose: JSON imports as number[], not

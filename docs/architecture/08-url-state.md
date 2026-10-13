@@ -4,7 +4,7 @@ Status: decided in outline by Tobias on 2026-10-11 ("we migrate all URLs to nuqs
 
 ## Rules
 
-1. **One definition.** Every parameter is a nuqs parser in one place (`apps/maid/src/url/params.ts` today). Nothing else reads `location`.
+1. **One definition.** Every parameter is a nuqs parser in one place (`packages/shell/src/url/params.ts` today). Nothing else reads `location`.
 2. **Query string, not hash.** `?map=17/52.52/13.40&id=w123`. nuqs, link previews, analytics and servers all work with the query string; the hash is invisible to half of them.
 3. **Typed and validated.** A value that does not parse is treated as absent. It never reaches the app as a string to be interpreted later.
 4. **Short and readable.** Names are words. Values are what a person would type. Nothing is encoded that does not have to be.
@@ -34,7 +34,7 @@ View and selection replace the current history entry. Opening a pane or a task p
 
 ## iD's URLs
 
-iD keeps state in the hash, and links from osm.org, QA tools and old bookmarks are in that form. `apps/maid/src/url/id-url.ts` is the translation, with tests:
+iD keeps state in the hash, and links from osm.org, QA tools and old bookmarks are in that form. `packages/shell/src/url/id-url.ts` is the translation, with tests:
 
 - **`migrateIdHash`** runs once before the app renders. An iD-style hash is rewritten to Maid's query parameters in place, with no reload and no extra history entry.
 - **`fromIdUrl`** converts any iD URL and reports what it left out and why.

@@ -1,14 +1,15 @@
 @import 'tailwindcss';
 
-/* classes used by the UI package */
-@source '../../../packages/ui/src';
-@source '../../../packages/module-imagery/src';
-@source '../../../packages/module-street-imagery/src';
-@source '../../../packages/module-street-imagery/node_modules/@osm-editor-kit/street-imagery-react';
-@source '../../../packages/module-data-layers/src';
-@source '../../../packages/module-lenses/src';
-@source '../../../packages/module-notes/src';
-@source '../../../packages/module-surface/src';
+/* classes used by the shell itself and by the UI package and the modules the default app uses */
+@source '.';
+@source '../../ui/src';
+@source '../../module-imagery/src';
+@source '../../module-street-imagery/src';
+@source '../../module-street-imagery/node_modules/@osm-editor-kit/street-imagery-react';
+@source '../../module-data-layers/src';
+@source '../../module-lenses/src';
+@source '../../module-notes/src';
+@source '../../module-surface/src';
 
 /* dark mode is a class on <html>, set by maid-ui's theme (light, dark or system) */
 @custom-variant dark (&:where(.dark, .dark *));

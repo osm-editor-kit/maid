@@ -12,6 +12,6 @@ validator.issues() // [{ rule, severity, message, entityIds, loc?, fixes }]
 - An **issue** has one sentence, the entities it is about, a place if it has one, and **fixes**: actions that become one undo step ("Connect the features", "Delete this feature").
 - The validator checks what it is told to, which is what a person changed. Checking everything that was loaded would report other people's old mistakes. That also defines "not connected": a group of changed roads that reaches no road that was left alone.
 
-The editor uses it through a module (`apps/maid/src/modules/validation.tsx`): after every edit, undo and redo it validates the changed entities and shows the issues in the inspector and in the dock.
+The editor uses it through a module (`packages/shell/src/modules/validation.tsx`): after every edit, undo and redo it validates the changed entities and shows the issues in the inspector and in the dock.
 
 Compared with Rapid: no localised texts, no check against tiles that are not loaded, and of `crossing_ways` only the cases above (no aeroways, indoor, conveying or connection tags, no "add a bridge or tunnel" fixes).

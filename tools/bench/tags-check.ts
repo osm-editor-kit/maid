@@ -1,6 +1,6 @@
 /**
  * Browser check of the Tags sheet (packages/ui/src/sheet, docs/research/sheet-design.md section 9), with real keys,
- * mouse and clipboard. It runs on the dev server's harness page (apps/maid/src/sheet-harness.tsx, `?harness=tags`):
+ * mouse and clipboard. It runs on the dev server's harness page (packages/shell/src/sheet-harness.tsx, `?harness=tags`):
  * the sheet on its own, the editor's keys mounted, no map. Data is read from `window.__sheet`, the editor from
  * `window.__maid`, focus from the focused input's aria-label.
  *

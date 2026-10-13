@@ -102,7 +102,7 @@ Every editor is driven through one contract, `window.__bench` (`tools/refs/bench
 ## Layout
 
 ```
-apps/maid            the default editor: maid.config.ts (modules), shell, components, modules
+apps/maid            the default editor: maid.config.ts (which modules, presets, filters), main.tsx, env files; the rest is the shell
 apps/compare         page that shows Maid, iD and Rapid side by side
 packages/style       iD's look as data: tag classes, CSS rules
 packages/core        createEditor: the editor's data (context, history), Maid modules, extension points, hooks
@@ -112,7 +112,8 @@ packages/filters     which features are editable, read-only or hidden: ordered r
 packages/operations  the edit menu's operations (reverse, split, merge, ...) on the model, headless
 packages/presets     preset matching and fields on id-tagging-schema, headless
 packages/validation  rules that check what was changed, and their fixes, headless
-packages/ui          the shell and the inspector's fields: layout, top bar, sidebar, map controls, dock, theme; declares inspector.section
+packages/shell       the editor's shell (@osm-editor-kit/maid-shell): App, components, URL, save, auth, built-in modules, bench handle, styles and public assets (sprites, fonts, land.html, frame-sync.js)
+packages/ui          the shell's components and the inspector's fields: layout, top bar, sidebar, map controls, dock, theme; declares inspector.section
 packages/module-*    optional modules an editor switches on in its config: imagery, street-imagery, data-layers,
                      notes, lenses, traffic-signs, surface (the last two are built but not switched on)
 packages/renderer    feature builder, MapLibre layers, engine, module layers; draws from the model

@@ -32,7 +32,7 @@ export type Settings = {
   favourites: Favourite[]
   /**
    * Where the person last left the map. Used only when the URL names no position. Not written
-   * for a position that came from a link (apps/maid/src/url/view.ts).
+   * for a position that came from a link (packages/shell/src/url/view.ts).
    */
   lastView?: LastView | undefined
 }
