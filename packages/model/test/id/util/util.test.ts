@@ -3,6 +3,7 @@ import { describe, expect, it } from 'bun:test'
 import * as Rapid from '../../rapid.ts'
 import * as sdk from '../../sdk.ts'
 import { utilOldestID } from '../../../src/util/ids.ts'
+import { combinedTags, combinedToId } from '../../../src/util/combined-tags.ts'
 
 // chai's to.have.members (the same items, in any order); bun's expect has no such matcher.
 function expectMembers(actual: unknown[], expected: unknown[]) {
@@ -92,9 +93,30 @@ describe('iD.util', function() {
     });
 
     describe('utilCombinedTags', function() {
-        // needs F-util-7
-        it.todo('sorts tag values by frequency then alphabetically')
-        it.todo('returns raw value when all entities share the same tag value')
+        // Through combinedToId (src/util/combined-tags.ts): iD's shape of the typed combined tags.
+        it('sorts tag values by frequency then alphabetically', function() {
+            const result = combinedToId(combinedTags([
+                { surface: 'paved' },
+                { surface: 'paved' },
+                { surface: 'paved' },
+                { surface: 'asphalt' },
+                { surface: 'gravel' },
+            ]));
+
+            expect(result.surface).toBeInstanceOf(Array);
+            expect(result.surface[0]).toEqual('paved');
+            expect(result.surface[1]).toEqual('asphalt');
+            expect(result.surface[2]).toEqual('gravel');
+        });
+
+        it('returns raw value when all entities share the same tag value', function() {
+            const result = combinedToId(combinedTags([
+                { highway: 'residential' },
+                { highway: 'residential' },
+            ]));
+
+            expect(result.highway).toEqual('residential');
+        });
     });
 
 
