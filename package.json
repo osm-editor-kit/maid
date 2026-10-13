@@ -23,6 +23,7 @@
     "bench": "bun tools/bench/run.ts",
     "bench-smoke": "bun tools/bench/run.ts --scene small --repeat 1 --label smoke",
     "bench-report": "bun tools/bench/report.ts",
+    "bench-budget": "bun tools/bench/budget.ts",
     "refs-setup": "bun tools/refs/id/setup.ts && bun tools/refs/rapid/setup.ts && bun tools/refs/copy-sprites.ts",
     "refs-serve": "bun run --parallel refs-serve:*",
     "refs-serve:id": "bun tools/refs/id/serve.ts",

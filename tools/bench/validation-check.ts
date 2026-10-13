@@ -71,6 +71,8 @@ process.exit(
 
     // the same in the sidebar for the selected footway
     await page.evaluate((id) => window.__bench.select(id), made.wayId)
+    // the inspector is a chunk of its own: settled waits until it shows its content
+    await settle()
     const sidebar = page.getByRole('complementary')
     report(
       'sidebar: a section "Issues" for the footway',

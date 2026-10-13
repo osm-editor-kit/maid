@@ -6,6 +6,12 @@ import { join } from 'node:path'
  *
  *   bun run bench [--editor maid,id,rapid] [--scene small,medium,dense] [--repeat 3]
  *                 [--label text] [--maid-query "fill=full"] [--variant name]
+ *                 [--app maid|bicycle|parking] [--maid-lens <lens id>] [--edit-reps 5]
+ *
+ * `--app` picks the Maid build that is measured (its production build, on the benchmark's port); iD and Rapid ignore it.
+ * `--maid-lens` switches that lens on after load, through the lens store the app's lenses module reads, and the
+ * variant of the Maid results says so (`lens-<id>`) unless `--variant` names it.
+ * `--edit-reps` is how many times each edit interaction is measured after its warm-up (see the edit phases below).
  *
  * Starts the servers it needs. Blocks every non-localhost request (core rule 1) and
  * fails a run when an editor tries to reach OSM infrastructure.
@@ -22,8 +28,9 @@ import {
 import { spawn, type Subprocess } from 'bun'
 import { getScene, type Scene } from '../fixtures/scenes'
 import { PORTS } from '../ports'
+import { APPS, takeApp, type AppName } from './args'
 import { installProbe, type Recording } from './probe-page'
-import { summarizeFrames, type FrameSummary } from './stats'
+import { median, quantile, summarizeFrames, type FrameSummary } from './stats'
 
 const ROOT = join(import.meta.dir, '../..')
 const VIEWPORT = { width: 1600, height: 1000 }
@@ -36,9 +43,35 @@ const RUN_LIMIT_MS = 300_000
 type Editor = 'maid' | 'id' | 'rapid'
 type Phase = FrameSummary & { cpuMs: number; settleMs: number }
 
+/**
+ * One edit interaction measured N times: milliseconds from its input (a pointer event, or the editor call) to the first
+ * draw of the map that shows the change. The warm-up is not in `samples`. `missed` counts the repetitions that no draw
+ * showed within the timeout. Nothing is filled in for a value that was not measured.
+ */
+export type EditSamples = {
+  reps: number
+  samples: number[]
+  /** Latency in ms (the frame summary of the same phase has its own medianMs, p95Ms and maxMs) */
+  latencyMedianMs?: number
+  latencyP95Ms?: number
+  latencyMaxMs?: number
+  missed: number
+  /** The feature the interaction was made on: one id, or the ids of the roads it cycled through */
+  target?: string
+}
+
+/** An edit interaction with the frames, main-thread work and settle time of its whole measured loop */
+export type EditRun = Phase & EditSamples
+
 export type RunResult = {
   editor: Editor
   variant: string
+  /** The Maid app that was measured (maid editor only) */
+  app?: AppName
+  /** The lens switched on after load (maid editor, `--maid-lens`) */
+  lens?: string
+  /** Edit phases that did not run for this editor, with the reason: the report shows "not measured" */
+  notMeasured?: Record<string, string>
   scene: string
   repeat: number
   ok: boolean
@@ -66,9 +99,31 @@ export type RunResult = {
     movedMetres: number
     tries: number
   }
+  /** Edit latency, from a real pointer move: 20 steps of one drag of a vertex, per repetition */
+  dragNode?: EditRun
+  /** A tag set through the editor's own edit path, with a way selected */
+  tagEdit?: EditRun
+  /** Undo and redo of those tag edits */
+  undoRedo?: Phase & { undo: EditSamples; redo: EditSamples }
+  /** A real click on a road until the editor shows it selected in the inspector and has drawn it */
+  selectLatency?: EditRun
   heapMb?: number
   blocked: Record<string, number>
   screenshots: Record<string, string>
+}
+
+/** The pointer events of the edit phases, counted in the page. `moves`/`ups` count all of them since the page loaded. */
+type EditProbe = {
+  moves: number
+  move: { count: number; ts: number; seq: number }
+  ups: number
+  up: { count: number; ts: number; seq: number }
+}
+
+declare global {
+  interface Window {
+    __edit?: EditProbe
+  }
 }
 
 function args() {
@@ -76,11 +131,16 @@ function args() {
     const i = process.argv.indexOf(`--${name}`)
     return i > -1 ? process.argv[i + 1]! : fallback
   }
+  // removes `--app` from argv, so the other options keep their place
+  const app = takeApp()
   return {
     editors: get('editor', 'maid,id,rapid').split(',') as Editor[],
     scenes: get('scene', 'small,medium,dense').split(','),
     repeat: Number(get('repeat', '3')),
     label: get('label', ''),
+    app,
+    maidLens: get('maid-lens', ''),
+    editReps: Number(get('edit-reps', '5')),
     maidQuery: get('maid-query', ''),
     idQuery: get('id-query', ''),
     // iD's host page runs without the name-suggestion-index, so Rapid does too by default
@@ -203,6 +263,138 @@ async function recordPhase(
   }
 }
 
+/**
+ * Runs in the page, once per page. Records every pointer move and release in the window's capture phase, so the time
+ * and the draw count are taken before the editor handles the event. Everything else about the event is left alone.
+ */
+function pageInstallEditProbe() {
+  if (window.__edit) return
+  const probe: EditProbe = {
+    moves: 0,
+    move: { count: 0, ts: 0, seq: 0 },
+    ups: 0,
+    up: { count: 0, ts: 0, seq: 0 },
+  }
+  window.__edit = probe
+  window.addEventListener(
+    'pointermove',
+    (event) => {
+      probe.moves++
+      probe.move = { count: probe.moves, ts: event.timeStamp, seq: window.__bench.paint().seq }
+    },
+    true,
+  )
+  window.addEventListener(
+    'pointerup',
+    (event) => {
+      probe.ups++
+      probe.up = { count: probe.ups, ts: event.timeStamp, seq: window.__bench.paint().seq }
+    },
+    true,
+  )
+}
+
+/** One change to time. `pointer`: the Node side has sent the event (its count before the send is `before`). */
+type EditStep = {
+  action: 'setTag' | 'undo' | 'redo' | 'pointer'
+  /** The feature the change is about */
+  id: string
+  key?: string
+  value?: string
+  pointer?: 'move' | 'up'
+  before?: number
+  /**
+   * What the change must show before its draw counts: nothing (a call changes the data when it returns), a node moved
+   * from `prev`, or the feature selected with its inspector drawn
+   */
+  check: 'none' | 'moved' | 'selected'
+  prev?: [number, number]
+  timeoutMs: number
+}
+
+type EditStepResult = { ms: number; loc?: [number, number] } | { missed: string }
+
+/**
+ * Runs in the page. Times one change from its input to the first draw that shows it. The input is the editor call
+ * (the draw count and the time are taken just before it), or the pointer event that arrived (taken when it arrived).
+ * The draw counts when the change is in the editor and the draw came after the input. Resolves with the time of
+ * that draw, or with `missed` when none came within the timeout. Frame-driven: it looks once per frame.
+ */
+function pageEditStep(step: EditStep): Promise<EditStepResult> {
+  return new Promise<EditStepResult>((resolve) => {
+    const bench = window.__bench
+    const started = performance.now()
+    let mark: { ts: number; seq: number } | undefined
+    if (step.action !== 'pointer') {
+      mark = { seq: bench.paint().seq, ts: performance.now() }
+      if (step.action === 'setTag') bench.setTag(step.id, step.key!, step.value)
+      else if (step.action === 'undo') bench.undo()
+      else bench.redo()
+    }
+    let loc: [number, number] | undefined = step.prev
+    const frame = () => {
+      if (!mark && window.__edit) {
+        const probe = window.__edit
+        if (
+          step.pointer === 'up' ? probe.ups > (step.before ?? 0) : probe.moves > (step.before ?? 0)
+        ) {
+          const arrived = step.pointer === 'up' ? probe.up : probe.move
+          mark = { ts: arrived.ts, seq: arrived.seq }
+        }
+      }
+      if (mark) {
+        let ready = true
+        if (step.check === 'moved') {
+          const now = bench.nodeLoc(step.id)
+          if (now) loc = [now[0], now[1]]
+          ready = !!now && (!step.prev || now[0] !== step.prev[0] || now[1] !== step.prev[1])
+        } else if (step.check === 'selected') {
+          ready = bench.selected().includes(step.id) && bench.inspectorShows(step.id)
+        }
+        const paint = bench.paint()
+        if (ready && paint.seq > mark.seq) {
+          return resolve({ ms: paint.at - mark.ts, loc: step.check === 'moved' ? loc : undefined })
+        }
+      }
+      if (performance.now() - started > step.timeoutMs) {
+        return resolve({
+          missed: mark
+            ? `${step.check === 'none' ? 'the change' : step.check} not drawn within ${step.timeoutMs} ms`
+            : `the ${step.pointer ?? 'call'} input did not arrive within ${step.timeoutMs} ms`,
+        })
+      }
+      requestAnimationFrame(frame)
+    }
+    frame()
+  })
+}
+
+/**
+ * Runs one timed step in the page. The step is typed here, so the literal types in the call ('setTag', 'moved' ...)
+ * are not widened to string by Playwright's argument inference.
+ */
+function runStep(page: Page, step: EditStep): Promise<EditStepResult> {
+  return page.evaluate(pageEditStep, step)
+}
+
+/** The summary of the measured repetitions: median, p95 and max in ms, the samples kept in the order measured */
+function samplesOf(samples: number[], reps: number, missed: number, target?: string): EditSamples {
+  const r = (n: number) => Math.round(n * 10) / 10
+  return {
+    reps,
+    samples: samples.map(r),
+    missed,
+    target,
+    ...(samples.length
+      ? {
+          latencyMedianMs: r(median(samples)),
+          latencyP95Ms: r(quantile(samples, 0.95)),
+          latencyMaxMs: r(Math.max(...samples)),
+        }
+      : {}),
+  }
+}
+
 /** The context of the run in progress, and its phase: the run's backstop closes the one and names the other */
 let openContext: BrowserContext | undefined
 let lastPhase = ''
@@ -226,9 +418,15 @@ async function runOnce(
   outDir: string,
   opts: ReturnType<typeof args>,
 ) {
+  // a lens with no variant named: the Maid results say which lens they were measured with
+  const variant =
+    editor === 'maid' && opts.maidLens && opts.variant === 'default'
+      ? `lens-${opts.maidLens}`
+      : opts.variant
   const result: RunResult = {
     editor,
-    variant: opts.variant,
+    variant,
+    ...(editor === 'maid' ? { app: opts.app } : {}),
     scene: scene.name,
     repeat,
     ok: false,
@@ -333,6 +531,19 @@ async function runOnce(
     })
     result.stats = await page.evaluate(() => window.__bench.stats())
     await shot('load')
+    if (editor === 'maid' && opts.maidLens) {
+      // switched on the way a person does it: the lens store, which the engine follows. Checked: a lens the app does not
+      // have would leave the map in its default look, and the run would measure that without saying so.
+      await page.evaluate((id) => window.__bench.setLens?.(id), opts.maidLens)
+      await page.evaluate(() => window.__bench.settled())
+      const active = await page.evaluate(() => window.__maid?.engine.lens?.id ?? null)
+      if (active !== opts.maidLens) {
+        throw new Error(
+          `lens "${opts.maidLens}" is not on the map after switching it on (${active ?? 'no lens'} is): this app may not have it`,
+        )
+      }
+      result.lens = opts.maidLens
+    }
 
     enter('pan')
     // --- Pan: a real mouse drag into data that is not loaded yet (cold), then back (warm) ---
@@ -521,6 +732,200 @@ async function runOnce(
       }
     }
 
+    // --- Edit latency, all editors (EditSamples): from an input, or from an editor call, to the first draw of the map
+    // that shows the change. Each interaction runs once as a warm-up, which is not measured, then `--edit-reps`
+    // times. The frames and the main-thread work are recorded over the measured repetitions only.
+    await page.evaluate(pageInstallEditProbe)
+    const reps = opts.editReps
+    const notMeasured: Record<string, string> = {}
+
+    enter('dragNode')
+    // Input to paint for every step of a drag: the vertex the drag phase moved is pressed, moved 20 times by 3 px and
+    // released. The side alternates from one repetition to the next, so the vertex stays near where it was.
+    if (!result.dragVertex) {
+      notMeasured.dragNode = 'the drag phase moved no road junction, so there is no vertex to drag'
+    } else {
+      const node = result.dragVertex.node
+      const dragSamples: number[] = []
+      let dragMissed = 0
+      const at0 = await page.evaluate((id) => window.__bench.nodeLoc(id), node)
+      if (!at0) {
+        notMeasured.dragNode = `node ${node} is not in the editor's data`
+      } else {
+        // one level closer and centred on the vertex, as the drag phase does
+        await page.mouse.move(3, 3)
+        await page.evaluate(
+          ([c, z]) => window.__bench.setCamera({ lng: c[0], lat: c[1], zoom: z }),
+          [at0, scene.zoom + 1] as const,
+        )
+        await page.evaluate(() => window.__bench.settled())
+        const dragOnce = async (rep: number, record: boolean) => {
+          const loc = await page.evaluate((id) => window.__bench.nodeLoc(id), node)
+          if (!loc) return
+          const pos = await page.evaluate(([x, y]) => window.__bench.project(x, y), loc)
+          const side = rep % 2 === 0 ? 1 : -1
+          await page.mouse.move(pos.x, pos.y)
+          await page.waitForTimeout(120)
+          await page.mouse.down()
+          let prev: [number, number] = loc
+          for (let i = 1; i <= 20; i++) {
+            const before = await page.evaluate(() => window.__edit?.moves ?? 0)
+            await page.mouse.move(pos.x + side * i * 3, pos.y)
+            const step = await runStep(page, {
+              action: 'pointer',
+              id: node,
+              pointer: 'move',
+              before,
+              check: 'moved',
+              prev,
+              timeoutMs: 1000,
+            })
+            if ('missed' in step) {
+              if (record) dragMissed++
+            } else {
+              if (record) dragSamples.push(step.ms)
+              if (step.loc) prev = step.loc
+            }
+          }
+          await page.waitForTimeout(150) // rest before release, so that no editor adds a fling
+          await page.mouse.up()
+        }
+        await page.keyboard.down('Alt') // as the drag phase: iD would otherwise snap the vertex to what is under it
+        await dragOnce(-1, false)
+        const phase = await recordPhase(page, cdp, async () => {
+          for (let rep = 0; rep < reps; rep++) await dragOnce(rep, true)
+        })
+        await page.keyboard.up('Alt')
+        result.dragNode = { ...phase, ...samplesOf(dragSamples, reps, dragMissed, node) }
+      }
+    }
+
+    enter('tagEdit')
+    // A tag set through the editor's own edit path, with a way selected. The way is the first road near the centre.
+    const way = targets[0]
+    const noRoad = 'no road near the centre of the scene'
+    if (!way) {
+      notMeasured.tagEdit = noRoad
+      notMeasured.undoRedo = noRoad
+    } else {
+      // selected through the editor's own selection path: the click itself is measured by selectLatency
+      await page.evaluate((id) => window.__bench.select(id), way.id)
+      const tagSamples: number[] = []
+      let tagMissed = 0
+      // the name alternates, so that each edit changes the way; the warm-up writes a third value
+      const setName = async (rep: number, record: boolean) => {
+        const value = rep < 0 ? 'Bench W' : rep % 2 === 0 ? 'Bench A' : 'Bench B'
+        const step = await runStep(page, {
+          action: 'setTag',
+          id: way.id,
+          key: 'name',
+          value,
+          check: 'none',
+          timeoutMs: 2000,
+        })
+        if ('missed' in step) {
+          if (record) tagMissed++
+        } else if (record) tagSamples.push(step.ms)
+      }
+      await setName(-1, false)
+      const tagPhase = await recordPhase(page, cdp, async () => {
+        for (let rep = 0; rep < reps; rep++) await setName(rep, true)
+      })
+      result.tagEdit = { ...tagPhase, ...samplesOf(tagSamples, reps, tagMissed, way.id) }
+
+      enter('undoRedo')
+      // undo and redo of the last tag edit, one after the other: the state is the same after each pair
+      const undoSamples: number[] = []
+      const redoSamples: number[] = []
+      let undoMissed = 0
+      let redoMissed = 0
+      const undoRedoOnce = async (record: boolean) => {
+        const undo = await runStep(page, {
+          action: 'undo',
+          id: way.id,
+          check: 'none',
+          timeoutMs: 2000,
+        })
+        if ('missed' in undo) {
+          if (record) undoMissed++
+        } else if (record) undoSamples.push(undo.ms)
+        const redo = await runStep(page, {
+          action: 'redo',
+          id: way.id,
+          check: 'none',
+          timeoutMs: 2000,
+        })
+        if ('missed' in redo) {
+          if (record) redoMissed++
+        } else if (record) redoSamples.push(redo.ms)
+      }
+      await undoRedoOnce(false)
+      const undoPhase = await recordPhase(page, cdp, async () => {
+        for (let rep = 0; rep < reps; rep++) await undoRedoOnce(true)
+      })
+      result.undoRedo = {
+        ...undoPhase,
+        undo: samplesOf(undoSamples, reps, undoMissed, way.id),
+        redo: samplesOf(redoSamples, reps, redoMissed, way.id),
+      }
+    }
+
+    enter('selectLatency')
+    // A real click on a road: the pointer goes to the road, presses and releases. Measured until the editor has the
+    // feature selected, its inspector holds it, and a draw came after the release. Roads cycle through the same list in
+    // every editor (the ids come from the fixture).
+    if (targets.length === 0) {
+      notMeasured.selectLatency = 'no road near the centre of the scene'
+    } else {
+      await page.evaluate(() => window.__bench.select(null))
+      await page.evaluate((c) => window.__bench.setCamera(c), start)
+      await page.evaluate(() => window.__bench.settled())
+      const clickSamples: number[] = []
+      let clickMissed = 0
+      const clickOnce = async (rep: number, record: boolean) => {
+        const target = targets[Math.max(rep, 0) % targets.length]!
+        await page.evaluate(() => window.__bench.select(null))
+        const pos = await page.evaluate(([lng, lat]) => window.__bench.project(lng, lat), [
+          target.lng,
+          target.lat,
+        ] as const)
+        await page.mouse.move(pos.x, pos.y)
+        await page.waitForTimeout(150) // the pointer rests on the road first, as a person's would
+        const before = await page.evaluate(() => window.__edit?.ups ?? 0)
+        await page.mouse.down()
+        await page.mouse.up()
+        const step = await runStep(page, {
+          action: 'pointer',
+          id: target.id,
+          pointer: 'up',
+          before,
+          check: 'selected',
+          timeoutMs: 2000,
+        })
+        if ('missed' in step) {
+          if (record) clickMissed++
+        } else if (record) clickSamples.push(step.ms)
+      }
+      await clickOnce(-1, false)
+      const clickPhase = await recordPhase(page, cdp, async () => {
+        for (let rep = 0; rep < reps; rep++) await clickOnce(rep, true)
+      })
+      await page.evaluate(() => window.__bench.select(null))
+      result.selectLatency = {
+        ...clickPhase,
+        ...samplesOf(
+          clickSamples,
+          reps,
+          clickMissed,
+          targets
+            .slice(0, 4)
+            .map((t) => t.id)
+            .join(' '),
+        ),
+      }
+    }
+    if (Object.keys(notMeasured).length) result.notMeasured = notMeasured
+
     if (editor === 'maid') {
       // a marker image that was not drawn makes the picture differ from the other runs: such a run fails
       const debug = await page.evaluate(() => window.__maid?.debug?.())
@@ -583,17 +988,25 @@ try {
     started,
   )
   if (opts.editors.includes('maid')) {
-    console.log('building Maid')
-    const build = spawn(['bun', 'run', '--cwd', 'apps/maid', 'build'], {
+    // The preview serves the build of one app from its own folder. A server already on the port could be serving
+    // another app's build, so the run stops instead of measuring it under this app's name.
+    if (await portOpen(PORTS.maidBuild)) {
+      throw new Error(
+        `port ${PORTS.maidBuild} is in use by another server: stop it, the benchmark serves the build of --app ${opts.app} there`,
+      )
+    }
+    const appDir = APPS[opts.app].dir
+    console.log(`building Maid (${opts.app}: ${appDir})`)
+    const build = spawn(['bun', 'run', '--cwd', appDir, 'build'], {
       cwd: ROOT,
       stdout: 'ignore',
       stderr: 'inherit',
     })
-    if ((await build.exited) !== 0) throw new Error('Maid build failed')
+    if ((await build.exited) !== 0) throw new Error(`build of ${appDir} failed`)
     await ensureServer(
       'maid',
       PORTS.maidBuild,
-      ['bun', 'run', '--cwd', 'apps/maid', 'preview', '--port', String(PORTS.maidBuild)],
+      ['bun', 'run', '--cwd', appDir, 'preview', '--port', String(PORTS.maidBuild)],
       started,
     )
   }
@@ -649,6 +1062,9 @@ try {
     date: new Date().toISOString(),
     label: opts.label,
     variant: opts.variant,
+    app: opts.app,
+    maidLens: opts.maidLens || undefined,
+    editReps: opts.editReps,
     maidQuery: opts.maidQuery,
     idQuery: opts.idQuery,
     rapidQuery: opts.rapidQuery,

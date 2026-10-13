@@ -43,7 +43,31 @@ export type BenchApi = {
    * that a real mouse drag on a vertex moved it. undefined if the node is not loaded.
    */
   nodeLoc(id: string): [number, number] | undefined
+  /**
+   * Every draw of the map. `seq` rises by one for each draw that ended, `at` is performance.now() when the latest one
+   * ended. The edit benchmark times an input or a call by the first draw after it: iD's `drawn` event, Rapid's `draw`
+   * (GraphicsSystem), MapLibre's `render` (Maid). Counted, not waited for: nothing here changes the picture.
+   */
+  paint(): BenchPaint
+  /**
+   * Sets one tag through the editor's own edit path, as one undo step (iD: context.perform with actionChangeTags,
+   * Rapid: EditSystem.perform + commit, Maid: MaidEngine.setTag). Synchronous: the data has changed when it returns,
+   * the picture follows (see `paint`). Nothing happens when the value is already there.
+   */
+  setTag(id: string, key: string, value: string | undefined): void
+  /** The editor's own undo and redo (its toolbar and shortcut). Synchronous as for `setTag`. */
+  undo(): void
+  redo(): void
+  /**
+   * Whether the inspector is rendered for this feature: the feature is selected and the editor's sidebar holds its
+   * editor. The DOM counts, not the pixels: iD and Rapid start with the sidebar collapsed (see their adapters).
+   */
+  inspectorShows(id: string): boolean
+  /** Maid only: the lens on the map, by id, or null for the default look. The other editors have no lenses. */
+  setLens?(id: string | null): void
 }
+
+export type BenchPaint = { seq: number; at: number }
 
 declare global {
   interface Window {

@@ -80,9 +80,10 @@ These names are the contract. Agents and docs only reference these.
 | `bun run dev-bicycle` | Only the Maid Bicycle dev server (`apps/maid-bicycle`, 5176): Maid's modules plus the traffic signs module. |
 | `bun run refs-setup` | Clone and build iD and Rapid at their pinned commits into `.reference/`, copy icon sprites into Maid. |
 | `bun run refs-serve` | Serve the built reference editors: iD on 8081, Rapid on 8082. |
-| `bun run bench` | Run all scenarios against all editors and write `reports/<run-id>/`. Starts the servers it needs. Options: `--editor`, `--scene`, `--repeat`, `--label`, `--variant`, `--maid-query`, `--id-query`. |
+| `bun run bench` | Run all scenarios against all editors and write `reports/<run-id>/`. Starts the servers it needs. Options: `--editor`, `--scene`, `--repeat`, `--label`, `--variant`, `--maid-query`, `--id-query`, `--app maid\|bicycle\|parking` (the Maid build measured), `--maid-lens <id>` (switch a lens on after load), `--edit-reps` (repetitions of each edit interaction, default 5). |
 | `bun run bench-smoke` | One run per editor on the small scene. |
 | `bun run bench-report [run-id ...]` | Render one or more runs as `report.md` and `report.html`. |
+| `bun run bench-budget [run-id ...]` | Check a run against the budgets: Maid against iD and Rapid in the same run (FAIL, exit 1), and against `tools/bench/budget.json` (WARN). `--update` writes that file from the run. Writes `reports/<run>/budget-check.json`. |
 | `bun run bench-edit [scene] [query]` | Maid only: drag a node and measure change-to-screen time. Needs a Maid preview on 5175 (`bun run compare` starts one). |
 | `bun run bench-model [--runs 5] [--browser chromium]` | Time loading each fixture into `maid-model` (JSON to entities, entities into the history), in the browser. Writes `reports/model-load-<browser>.json`. |
 | `bun run bench-validation` | Time every validation rule on the dense fixture, one edit, and bursts of edits. Writes `reports/validation-bench.json`. |

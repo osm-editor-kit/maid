@@ -1,0 +1,249 @@
+{
+  "version": 1,
+  "run": "2026-10-13-13-10-settled-fixed",
+  "git": "8b2a72d",
+  "date": "2026-10-13T13:17:10.582Z",
+  "defaultTolerance": 0.15,
+  "scenes": {
+    "small": {
+      "load-settled": {
+        "median": 613
+      },
+      "load-cpu": {
+        "median": 449
+      },
+      "pan-cold-p95": {
+        "median": 16.8
+      },
+      "pan-cold-max": {
+        "median": 16.8
+      },
+      "pan-cold-settle": {
+        "median": 125
+      },
+      "pan-warm-p95": {
+        "median": 16.7
+      },
+      "pan-warm-max": {
+        "median": 16.8
+      },
+      "pan-warm-fps": {
+        "median": 59.6
+      },
+      "pan-warm-cpu": {
+        "median": 167
+      },
+      "pan-warm-settle": {
+        "median": 143
+      },
+      "zoom-in-p95": {
+        "median": 16.7
+      },
+      "zoom-in-max": {
+        "median": 16.8
+      },
+      "zoom-in-settle": {
+        "median": 333
+      },
+      "zoom-out-p95": {
+        "median": 16.7
+      },
+      "zoom-out-settle": {
+        "median": 323
+      },
+      "hover-latency": {
+        "median": 13.5
+      },
+      "hover-sweep-p95": {
+        "median": 16.7
+      },
+      "hover-sweep-fps": {
+        "median": 59.5
+      },
+      "hover-sweep-cpu": {
+        "median": 119
+      },
+      "select-api": {
+        "median": 30.5
+      },
+      "drag-fps": {
+        "median": 60
+      },
+      "drag-p95": {
+        "median": 16.7
+      },
+      "drag-max": {
+        "median": 16.8
+      },
+      "drag-cpu": {
+        "median": 213
+      },
+      "drag-settle": {
+        "median": 162
+      },
+      "heap": {
+        "median": 42.5
+      }
+    },
+    "medium": {
+      "load-settled": {
+        "median": 856
+      },
+      "load-cpu": {
+        "median": 667
+      },
+      "pan-cold-p95": {
+        "median": 16.8
+      },
+      "pan-cold-max": {
+        "median": 16.8
+      },
+      "pan-cold-settle": {
+        "median": 315
+      },
+      "pan-warm-p95": {
+        "median": 16.7
+      },
+      "pan-warm-max": {
+        "median": 16.8
+      },
+      "pan-warm-fps": {
+        "median": 59.6
+      },
+      "pan-warm-cpu": {
+        "median": 269
+      },
+      "pan-warm-settle": {
+        "median": 121
+      },
+      "zoom-in-p95": {
+        "median": 16.7
+      },
+      "zoom-in-max": {
+        "median": 16.8
+      },
+      "zoom-in-settle": {
+        "median": 337
+      },
+      "zoom-out-p95": {
+        "median": 16.7
+      },
+      "zoom-out-settle": {
+        "median": 607
+      },
+      "hover-latency": {
+        "median": 13.6
+      },
+      "hover-sweep-p95": {
+        "median": 16.8
+      },
+      "hover-sweep-fps": {
+        "median": 59.4
+      },
+      "hover-sweep-cpu": {
+        "median": 157
+      },
+      "select-api": {
+        "median": 30.1
+      },
+      "drag-fps": {
+        "median": 59.8
+      },
+      "drag-p95": {
+        "median": 16.7
+      },
+      "drag-max": {
+        "median": 16.8
+      },
+      "drag-cpu": {
+        "median": 270
+      },
+      "drag-settle": {
+        "median": 26
+      },
+      "heap": {
+        "median": 82.4
+      }
+    },
+    "dense": {
+      "load-settled": {
+        "median": 1024
+      },
+      "load-cpu": {
+        "median": 757
+      },
+      "pan-cold-p95": {
+        "median": 16.8
+      },
+      "pan-cold-max": {
+        "median": 16.8
+      },
+      "pan-cold-settle": {
+        "median": 176
+      },
+      "pan-warm-p95": {
+        "median": 16.7
+      },
+      "pan-warm-max": {
+        "median": 16.8
+      },
+      "pan-warm-fps": {
+        "median": 59.4
+      },
+      "pan-warm-cpu": {
+        "median": 306
+      },
+      "pan-warm-settle": {
+        "median": 175
+      },
+      "zoom-in-p95": {
+        "median": 16.7
+      },
+      "zoom-in-max": {
+        "median": 16.8
+      },
+      "zoom-in-settle": {
+        "median": 290
+      },
+      "zoom-out-p95": {
+        "median": 16.8
+      },
+      "zoom-out-settle": {
+        "median": 410
+      },
+      "hover-latency": {
+        "median": 14.1
+      },
+      "hover-sweep-p95": {
+        "median": 16.7
+      },
+      "hover-sweep-fps": {
+        "median": 59.5
+      },
+      "hover-sweep-cpu": {
+        "median": 148
+      },
+      "select-api": {
+        "median": 33.9
+      },
+      "drag-fps": {
+        "median": 59.5
+      },
+      "drag-p95": {
+        "median": 16.7
+      },
+      "drag-max": {
+        "median": 16.8
+      },
+      "drag-cpu": {
+        "median": 287
+      },
+      "drag-settle": {
+        "median": 9
+      },
+      "heap": {
+        "median": 72.3
+      }
+    }
+  }
+}

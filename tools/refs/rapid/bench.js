@@ -21,6 +21,8 @@
   /** @type {any} */ let sys = null
   let seq = 0 // one counter orders draws, merges and camera changes
   const seen = { draw: 0, merge: 0, camera: 0, select: 0 }
+  /** Every 'draw' of GraphicsSystem is one draw of the map (see `paint` in tools/refs/bench-api.d.ts) */
+  const paint = { seq: 0, at: 0 }
   const lastSettle = { ms: 0, pictureMs: 0, frames: 0 }
 
   let resolveReady, rejectReady
@@ -251,6 +253,10 @@
 
     sys = context.systems
     sys.gfx.on('draw', () => (seen.draw = ++seq))
+    sys.gfx.on('draw', () => {
+      paint.seq++
+      paint.at = performance.now()
+    })
     sys.editor.on('merge', () => (seen.merge = ++seq))
     seen.camera = ++seq
   }
@@ -580,6 +586,47 @@
     return [node.loc[0], node.loc[1]]
   }
 
+  // ------------------------------------------------------------------ edits
+
+  /**
+   * One tag through Rapid's own edit path, as the raw tag editor does it (modules/ui/UiEntityEditor.ts): perform the
+   * change_tags action, then commit it as one undo step. Rapid's action takes the whole tag set, so the new set is the
+   * old one with the key changed.
+   */
+  function setTag(id, key, value) {
+    need()
+    const editor = sys.editor
+    const entity = editor.staging.graph.hasEntity(id)
+    if (!entity) throw new Error(`[bench rapid] setTag("${id}"): entity is not loaded`)
+    const tags = { ...entity.tags }
+    if (value === undefined || value === '') delete tags[key]
+    else tags[key] = value
+    editor.perform(window.Rapid.actionChangeTags(id, tags))
+    editor.commit({ annotation: 'Changed tags', selectedIDs: [id] })
+  }
+
+  /** Rapid's own undo and redo: EditSystem.undo / redo, which the toolbar and the shortcuts call */
+  function undo() {
+    need()
+    sys.editor.undo()
+  }
+  function redo() {
+    need()
+    sys.editor.redo()
+  }
+
+  /**
+   * The inspector holds the editor of this feature: `.inspector-wrap` loses `inspector-hidden` for a selected feature
+   * (UiSidebar.ts), and `.entity-editor` is its body (UiEntityEditor.ts:156). The sidebar starts collapsed in this
+   * adapter (see the start-up code) and Rapid expands it only for new features, so this is a DOM check, not the pixels.
+   */
+  function inspectorShows(id) {
+    need()
+    if (!context.selectedIDs().includes(id)) return false
+    const wrap = document.querySelector('.inspector-wrap')
+    return !!wrap && !wrap.classList.contains('inspector-hidden') && !!wrap.querySelector('.entity-editor')
+  }
+
   // ------------------------------------------------------------------ export
 
   window.__bench = {
@@ -595,6 +642,11 @@
     selected,
     hovered,
     nodeLoc,
+    paint: () => ({ seq: paint.seq, at: paint.at }),
+    setTag,
+    undo,
+    redo,
+    inspectorShows,
   }
 
   /** Rapid-only extras for debugging and for NOTES.md. Not part of the contract. */

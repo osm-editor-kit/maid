@@ -66,6 +66,21 @@
     nodeLoc: function (id) {
       return need().nodeLoc(id)
     },
+    paint: function () {
+      return need().paint()
+    },
+    setTag: function (id, key, value) {
+      need().setTag(id, key, value)
+    },
+    undo: function () {
+      need().undo()
+    },
+    redo: function () {
+      need().redo()
+    },
+    inspectorShows: function (id) {
+      return need().inspectorShows(id)
+    },
   }
 
   window.__benchFail = function (error) {
@@ -148,6 +163,8 @@
       lastMergeAt: 0,
       lastMoveAt: 0,
     }
+    // every `drawn` event is one draw of the map (see `paint` in tools/refs/bench-api.d.ts)
+    var paint = { seq: 0, at: 0 }
     var pending = false
     var partialDepth = 0
     var waiters = new Set()
@@ -177,6 +194,8 @@
     }
 
     map.on('drawn.bench', function (e) {
+      paint.seq++
+      paint.at = performance.now()
       if (!e || !e.full) counters.hoverDraws++
       else if (partialDepth > 0) counters.partialDraws++
       else {
@@ -526,6 +545,44 @@
       return [entity.loc[0], entity.loc[1]]
     }
 
+    /**
+     * One tag through iD's own edit path: context.perform with the same action the raw tag editor uses
+     * (modules/actions/change_tags.ts), with the annotation that makes it one undo step. iD's change_tags action takes
+     * the whole tag set, so the new set is the old one with the key changed. A change that leaves the tags as they are
+     * is still performed by iD, and nothing is drawn for it.
+     */
+    function setTag(id, key, value) {
+      need()
+      var entity = context.hasEntity(id)
+      if (!entity) throw new Error('__bench.setTag: iD has not loaded entity "' + id + '"')
+      var tags = Object.assign({}, entity.tags)
+      if (value === undefined || value === '') delete tags[key]
+      else tags[key] = value
+      context.perform(iD.actionChangeTags(id, tags), 'Changed tags')
+    }
+
+    // iD's own undo and redo (the same functions the toolbar buttons and the shortcuts call)
+    function undo() {
+      need()
+      context.undo()
+    }
+    function redo() {
+      need()
+      context.redo()
+    }
+
+    /**
+     * The inspector holds the editor of this feature. iD's sidebar keeps `inspector-wrap` hidden while nothing is
+     * selected (sidebar.js:158, :230-250) and fills `.entity-editor` when a feature is selected. The check reads the
+     * DOM, not the pixels: this adapter collapses the sidebar at start-up, and iD expands it only for new features
+     * (sidebar.js:282), so a selected feature counts as shown while the sidebar stays collapsed.
+     */
+    function inspectorShows(id) {
+      if (selected().indexOf(id) === -1) return false
+      var wrap = document.querySelector('.inspector-wrap')
+      return !!wrap && !wrap.classList.contains('inspector-hidden') && !!wrap.querySelector('.entity-editor')
+    }
+
     var api = {
       setCamera: setCamera,
       getCamera: getCamera,
@@ -536,6 +593,13 @@
       selected: selected,
       hovered: hovered,
       nodeLoc: nodeLoc,
+      paint: function () {
+        return { seq: paint.seq, at: paint.at }
+      },
+      setTag: setTag,
+      undo: undo,
+      redo: redo,
+      inspectorShows: inspectorShows,
     }
 
     window.__bench.version = context.version

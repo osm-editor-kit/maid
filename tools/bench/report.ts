@@ -3,10 +3,12 @@
  *
  *   bun run bench-report [run-id ...]      (default: the latest run)
  *
- * Several run ids are merged into one report, e.g. a main run plus variant runs.
+ * Several run ids are merged into one report, e.g. a main run plus variant runs. For each Maid column the report also says
+ * how Maid compares with the fastest of the other editors on each measurement.
  */
 import { readdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { columnOf, ROWS, type Row } from './metrics'
 import type { RunResult } from './run'
 import { median } from './stats'
 
@@ -31,165 +33,11 @@ const runs = await Promise.all(
 const env = runs[0]!.environment
 const results = runs.flatMap((run) => run.results.map((r) => ({ ...r, runId: run.id })))
 
-type Row = {
-  label: string
-  unit: string
-  better: 'low' | 'high' | 'none'
-  get: (r: RunResult) => number | undefined
-  note?: string
-}
-const ROWS: Row[] = [
-  {
-    label: 'Load: until the picture is complete',
-    unit: 'ms',
-    better: 'low',
-    get: (r) => r.load?.settledMs,
-  },
-  { label: 'Load: main-thread work', unit: 'ms', better: 'low', get: (r) => r.load?.cpuMs },
-  {
-    label: 'Pan into new data: frame time p95',
-    unit: 'ms',
-    better: 'low',
-    get: (r) => r.panCold?.p95Ms,
-  },
-  {
-    label: 'Pan into new data: worst frame',
-    unit: 'ms',
-    better: 'low',
-    get: (r) => r.panCold?.maxMs,
-  },
-  {
-    label: 'Pan into new data: until correct afterwards',
-    unit: 'ms',
-    better: 'low',
-    get: (r) => r.panCold?.settleMs,
-  },
-  {
-    label: 'Pan over loaded data: frame time p95',
-    unit: 'ms',
-    better: 'low',
-    get: (r) => r.panWarm?.p95Ms,
-  },
-  {
-    label: 'Pan over loaded data: worst frame',
-    unit: 'ms',
-    better: 'low',
-    get: (r) => r.panWarm?.maxMs,
-  },
-  {
-    label: 'Pan over loaded data: frames per second',
-    unit: '',
-    better: 'high',
-    get: (r) => r.panWarm?.fps,
-  },
-  {
-    label: 'Pan over loaded data: main-thread work per second',
-    unit: 'ms',
-    better: 'low',
-    get: (r) =>
-      r.panWarm
-        ? Math.round(r.panWarm.cpuMs / (r.panWarm.frames / Math.max(1, r.panWarm.fps)))
-        : undefined,
-  },
-  {
-    label: 'Pan over loaded data: until correct afterwards',
-    unit: 'ms',
-    better: 'low',
-    get: (r) => r.panWarm?.settleMs,
-  },
-  { label: 'Zoom in: frame time p95', unit: 'ms', better: 'low', get: (r) => r.zoomIn?.p95Ms },
-  { label: 'Zoom in: worst frame', unit: 'ms', better: 'low', get: (r) => r.zoomIn?.maxMs },
-  {
-    label: 'Zoom in: until correct afterwards',
-    unit: 'ms',
-    better: 'low',
-    get: (r) => r.zoomIn?.settleMs,
-  },
-  { label: 'Zoom out: frame time p95', unit: 'ms', better: 'low', get: (r) => r.zoomOut?.p95Ms },
-  {
-    label: 'Zoom out: until correct afterwards',
-    unit: 'ms',
-    better: 'low',
-    get: (r) => r.zoomOut?.settleMs,
-  },
-  {
-    label: 'Hover: pointer move to highlight',
-    unit: 'ms',
-    better: 'low',
-    get: (r) => medianOf(r.hoverLatencyMs?.filter((v) => v >= 0)),
-  },
-  {
-    label: 'Hover sweep: frame time p95',
-    unit: 'ms',
-    better: 'low',
-    get: (r) => r.hoverSweep?.p95Ms,
-  },
-  {
-    label: 'Hover sweep: frames per second',
-    unit: '',
-    better: 'high',
-    get: (r) => r.hoverSweep?.fps,
-  },
-  {
-    label: 'Hover sweep: main-thread work per second',
-    unit: 'ms',
-    better: 'low',
-    get: (r) =>
-      r.hoverSweep
-        ? Math.round(r.hoverSweep.cpuMs / (r.hoverSweep.frames / Math.max(1, r.hoverSweep.fps)))
-        : undefined,
-  },
-  {
-    label: 'Select a way: until drawn',
-    unit: 'ms',
-    better: 'low',
-    get: (r) => medianOf(r.selectMs),
-  },
-  {
-    label: 'Drag a vertex: frames per second',
-    unit: '',
-    better: 'high',
-    get: (r) => r.dragVertex?.fps,
-  },
-  {
-    label: 'Drag a vertex: frame time p95',
-    unit: 'ms',
-    better: 'low',
-    get: (r) => r.dragVertex?.p95Ms,
-  },
-  {
-    label: 'Drag a vertex: worst frame',
-    unit: 'ms',
-    better: 'low',
-    get: (r) => r.dragVertex?.maxMs,
-  },
-  {
-    label: 'Drag a vertex: main-thread work per second',
-    unit: 'ms',
-    better: 'low',
-    get: (r) =>
-      r.dragVertex
-        ? Math.round(r.dragVertex.cpuMs / (r.dragVertex.frames / Math.max(1, r.dragVertex.fps)))
-        : undefined,
-  },
-  {
-    label: 'Drag a vertex: until correct after release',
-    unit: 'ms',
-    better: 'low',
-    get: (r) => r.dragVertex?.settleMs,
-  },
-  { label: 'JS heap after the run', unit: 'MB', better: 'low', get: (r) => r.heapMb },
-]
-
-function medianOf(values: number[] | undefined) {
-  return values && values.length ? median(values) : undefined
-}
-
 const scenes = [...new Set(results.map((r) => r.scene))]
-const columns = [
-  ...new Set(results.map((r) => `${r.editor}${r.variant === 'default' ? '' : ` (${r.variant})`}`)),
-]
-const columnOf = (r: RunResult) => `${r.editor}${r.variant === 'default' ? '' : ` (${r.variant})`}`
+const columns = [...new Set(results.map(columnOf))]
+const editorOf = new Map(results.map((r) => [columnOf(r), r.editor] as const))
+const maidColumns = columns.filter((c) => editorOf.get(c) === 'maid')
+const otherColumns = columns.filter((c) => editorOf.get(c) !== 'maid')
 const fmt = (n: number | undefined) =>
   n === undefined || Number.isNaN(n)
     ? '–'
@@ -202,35 +50,70 @@ function cell(scene: string, column: string, row: Row) {
     .filter((r) => r.scene === scene && columnOf(r) === column && r.ok)
     .map(row.get)
     .filter((v): v is number => v != null && !Number.isNaN(v))
-  if (values.length === 0) return { text: '–', value: undefined as number | undefined }
+  if (values.length === 0) {
+    // a phase that did not run says why: the report shows "not measured", not a dash
+    const reason = results
+      .filter((r) => r.scene === scene && columnOf(r) === column && row.phase)
+      .map((r) => r.notMeasured?.[row.phase!])
+      .find((v) => v !== undefined)
+    if (reason !== undefined)
+      return { text: 'not measured', value: undefined as number | undefined, reason }
+    return { text: '–', value: undefined as number | undefined, reason: undefined }
+  }
   const mid = median(values)
   const spread =
     values.length > 1
       ? ` <small>(${fmt(Math.min(...values))}–${fmt(Math.max(...values))})</small>`
       : ''
-  return { text: `${fmt(mid)}${spread}`, value: mid }
+  return { text: `${fmt(mid)}${spread}`, value: mid, reason: undefined }
 }
 
-function statsOf(scene: string, column: string) {
-  const r = results.find((x) => x.scene === scene && columnOf(x) === column && x.ok)
-  return r?.stats as
-    | {
-        entities: Record<string, number>
-        drawn: Record<string, number>
-        hidden: Record<string, number>
-      }
-    | undefined
+const round1 = (n: number) => Math.round(n * 10) / 10
+
+/**
+ * How a Maid value stands against the fastest of the other editors: "1.8x faster than Rapid", "12 ms slower than iD".
+ * Ratios for speed, the difference in ms for a time that is slower; fps is compared as a ratio.
+ */
+function versus(
+  row: Row,
+  maid: number | undefined,
+  others: { name: string; value: number }[],
+): string {
+  if (maid === undefined || others.length === 0 || row.better === 'none') return '–'
+  if (row.better === 'low') {
+    const best = others.reduce((a, b) => (b.value < a.value ? b : a))
+    if (maid <= best.value) {
+      const ratio = best.value / Math.max(maid, 0.1)
+      return ratio >= 1.05
+        ? `${round1(ratio)}x faster than ${best.name}`
+        : `as fast as ${best.name}`
+    }
+    if (row.unit === 'ms') return `${fmt(maid - best.value)} ms slower than ${best.name}`
+    return `${round1(maid / Math.max(best.value, 0.1))}x slower than ${best.name}`
+  }
+  const best = others.reduce((a, b) => (b.value > a.value ? b : a))
+  if (maid >= best.value) {
+    const ratio = maid / Math.max(best.value, 0.1)
+    return ratio >= 1.05 ? `${round1(ratio)}x the ${best.name} value` : `as high as ${best.name}`
+  }
+  return `${fmt(best.value - maid)} lower than ${best.name}`
 }
 
 let md = `# Benchmark ${runIds.join(' + ')}\n\n`
 md += `- Date: ${env.date}\n- Machine: ${env.machine}, GPU: ${env.gpu}\n- Browser: ${String(env.browser).startsWith('Chrome') || /^[a-z]/.test(String(env.browser)) ? env.browser : `Chrome ${env.browser}`}, headless, viewport ${env.viewport.width}×${env.viewport.height} at ${env.deviceScaleFactor}x\n`
 md += `- Repeats per cell: ${env.repeat}. Cells show the median, with the range in brackets.\n`
+if (env.editReps !== undefined)
+  md += `- Edit interactions: ${env.editReps} repetitions each, after one warm-up that is not counted.\n`
+if (env.app && env.app !== 'maid')
+  md += `- Maid app: ${env.app}${env.maidLens ? `, lens ${env.maidLens} on` : ''}\n`
+else if (env.maidLens) md += `- Maid lens: ${env.maidLens}\n`
 md += `- iD: ${env.pins?.id?.tag ?? '?'} (${String(env.pins?.id?.commit).slice(0, 9)}), Rapid: ${String(env.pins?.rapid?.commit).slice(0, 9)}, Maid: ${env.git}\n\n`
 
 let html = `<!doctype html><meta charset="utf-8"><title>Maid benchmark ${runIds[0]}</title><style>
 body{font:14px/1.5 system-ui,sans-serif;max-width:1500px;margin:2rem auto;padding:0 1rem;color:#222}
 table{border-collapse:collapse;margin:1rem 0}td,th{border:1px solid #ccc;padding:4px 10px;text-align:right}
 td:first-child,th:first-child{text-align:left}th{background:#f2f2f2}small{color:#777}
+td.vs{text-align:left;color:#444;font-size:13px}td.na{color:#999;font-style:italic}
 .best{background:#d9f2d9;font-weight:600}.worst{background:#fbe3e3}
 .shots{display:grid;grid-template-columns:repeat(${Math.min(3, columns.length)},1fr);gap:8px}.shots img{width:100%;border:1px solid #999}
 .shots figure{margin:0}figcaption{font-weight:600}
@@ -246,6 +129,16 @@ for (const scene of scenes) {
   // what each editor held and drew
   md += `| What was drawn | ${columns.join(' | ')} |\n|---|${columns.map(() => '---:').join('|')}|\n`
   html += `<table><tr><th>What was drawn</th>${columns.map((c) => `<th>${c}</th>`).join('')}</tr>`
+  const statsOf = (column: string) => {
+    const r = results.find((x) => x.scene === scene && columnOf(x) === column && x.ok)
+    return r?.stats as
+      | {
+          entities: Record<string, number>
+          drawn: Record<string, number>
+          hidden: Record<string, number>
+        }
+      | undefined
+  }
   const statRows: [string, (s: NonNullable<ReturnType<typeof statsOf>>) => string][] = [
     [
       'Entities in memory (nodes / ways / relations)',
@@ -268,7 +161,7 @@ for (const scene of scenes) {
   ]
   for (const [label, get] of statRows) {
     const cells = columns.map((c) => {
-      const s = statsOf(scene, c)
+      const s = statsOf(c)
       return s ? get(s) : '–'
     })
     md += `| ${label} | ${cells.join(' | ')} |\n`
@@ -277,24 +170,36 @@ for (const scene of scenes) {
   md += '\n'
   html += '</table>'
 
-  md += `| Measurement | ${columns.join(' | ')} |\n|---|${columns.map(() => '---:').join('|')}|\n`
-  html += `<table><tr><th>Measurement</th>${columns.map((c) => `<th>${c}</th>`).join('')}</tr>`
+  // the Maid columns, each with its position against the fastest other editor
+  const vsHeader = (c: string) => `${c}: against the fastest other editor`
+  md += `| Measurement | ${columns.join(' | ')} | ${maidColumns.map(vsHeader).join(' | ')} |\n|---|${columns.map(() => '---:').join('|')}|${maidColumns.map(() => '---').join('|')}|\n`
+  html += `<table><tr><th>Measurement</th>${columns.map((c) => `<th>${c}</th>`).join('')}${maidColumns.map((c) => `<th>${vsHeader(c)}</th>`).join('')}</tr>`
+  const notes = new Set<string>()
   for (const row of ROWS) {
     const cells = columns.map((c) => cell(scene, c, row))
+    for (const c of cells) if (c.reason) notes.add(`${row.label}: ${c.reason}`)
     const values = cells.map((c) => c.value).filter((v): v is number => v !== undefined)
     const best = row.better === 'low' ? Math.min(...values) : Math.max(...values)
     const worst = row.better === 'low' ? Math.max(...values) : Math.min(...values)
     const unit = row.unit ? ` (${row.unit})` : ''
-    md += `| ${row.label}${unit} | ${cells.map((c) => (c.value === best && values.length > 1 ? `**${c.text}**` : c.text).replace(/<\/?small>/g, '')).join(' | ')} |\n`
+    const others = otherColumns
+      .map((c) => ({ name: c, value: cell(scene, c, row).value }))
+      .filter((o): o is { name: string; value: number } => o.value !== undefined)
+    const vs = maidColumns.map((c) => versus(row, cell(scene, c, row).value, others))
+    md += `| ${row.label}${unit} | ${cells.map((c) => (c.value === best && values.length > 1 ? `**${c.text}**` : c.text).replace(/<\/?small>/g, '')).join(' | ')} | ${vs.join(' | ')} |\n`
     html += `<tr><td>${row.label}${unit}</td>${cells
       .map(
         (c) =>
-          `<td class="${values.length > 1 && c.value === best ? 'best' : values.length > 2 && c.value === worst ? 'worst' : ''}">${c.text}</td>`,
+          `<td class="${c.reason ? 'na' : values.length > 1 && c.value === best ? 'best' : values.length > 2 && c.value === worst ? 'worst' : ''}"${c.reason ? ` title="${c.reason.replace(/"/g, '&quot;')}"` : ''}>${c.text}</td>`,
       )
-      .join('')}</tr>`
+      .join('')}${vs.map((v) => `<td class="vs">${v}</td>`).join('')}</tr>`
   }
   md += '\n'
   html += '</table>'
+  if (notes.size) {
+    md += `Not measured:\n\n${[...notes].map((n) => `- ${n}`).join('\n')}\n\n`
+    html += `<p><b>Not measured:</b></p><ul>${[...notes].map((n) => `<li>${n}</li>`).join('')}</ul>`
+  }
 
   const failures = results.filter((r) => r.scene === scene && !r.ok)
   if (failures.length) {
