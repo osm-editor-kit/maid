@@ -88,7 +88,6 @@ export const useStreetImageryStore = create<StreetImageryStore>()(
       version: 1,
       storage: createJSONStorage(() => moduleStorage()),
       partialize: ({ providers, photoKind, date }) => ({ providers, photoKind, date }),
-      migrate: (stored) => parseStored(stored),
       // every stored value is checked on load, not only after a version change
       merge: (stored, current) => ({ ...current, ...parseStored(stored) }),
     },

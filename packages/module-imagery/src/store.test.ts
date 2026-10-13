@@ -209,22 +209,6 @@ describe('custom backgrounds in the store', () => {
     })
     expect(createImageryStore('bing').getState().backgroundId).toBe('bing')
   })
-
-  it('loads a version 1 value with an empty list, keeps its choice and brightness, and writes version 2', () => {
-    const storage = useStorage({
-      [KEY]: JSON.stringify({
-        state: { backgroundId: 'bing', overlayIds: ['osm-roads'], brightness: 0.5 },
-        version: 1,
-      }),
-    })
-    const store = createImageryStore(null)
-    expect(store.getState().backgroundId).toBe('bing')
-    expect(store.getState().overlayIds).toEqual(['osm-roads'])
-    expect(store.getState().brightness).toBe(0.5)
-    expect(store.getState().custom).toEqual([])
-    expect(store.getState().customNext).toBe(1)
-    expect(stored(storage.items)?.version).toBe(2)
-  })
 })
 
 describe('the visit background from a link', () => {

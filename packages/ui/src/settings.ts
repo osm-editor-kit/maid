@@ -112,25 +112,12 @@ function parseStored(value: unknown): Settings {
   return parsed.success ? parsed.data : { theme: 'system', sizes: {}, shown: {}, favourites: [] }
 }
 
-/** A version 3 value with its favourites numbered in list order. Anything else is passed on as it is. */
-function numbered(stored: unknown): unknown {
-  const found = z.looseObject({ favourites: z.array(z.looseObject({})) }).safeParse(stored)
-  if (!found.success) return stored
-  return {
-    ...found.data,
-    favourites: found.data.favourites.map((favourite, index) => ({
-      ...favourite,
-      number: String(index + 1),
-    })),
-  }
-}
-
 /**
- * The one store for the UI's settings, kept in localStorage with a version. A setting that is
- * added or changes its shape gets a step in `migrate`, so stored settings are carried over, not
- * dropped. Reading is synchronous: the first paint already has the right theme and sizes.
- * Every stored value is parsed on load (`merge`), not only after a version change. Under automation
- * nothing is read or written (`moduleStorage`).
+ * The one store for the UI's settings, kept in localStorage with a version. Once a shape has shipped,
+ * a change of it gets a step in `migrate`, so stored settings are carried over, not dropped. Until
+ * then a value with another version is not read, and the defaults apply. Reading is synchronous: the
+ * first paint already has the right theme and sizes. Every stored value is parsed on load (`merge`),
+ * not only after a version change. Under automation nothing is read or written (`moduleStorage`).
  */
 export const useSettings = create<SettingsStore>()(
   persist(
@@ -154,10 +141,6 @@ export const useSettings = create<SettingsStore>()(
       name: 'maid:settings',
       version: 4,
       storage: createJSONStorage(() => moduleStorage()),
-      // version 2 added `shown`, version 3 added `favourites`: a version 2 value parses with the defaults.
-      // Version 4 gave every favourite a number in place of one of seven fixed keys: the favourites
-      // of version 3 keep their order and are numbered 1, 2, 3, ...
-      migrate: (stored, version) => parseStored(version < 4 ? numbered(stored) : stored),
       // runs on every load. With nothing stored, the state stays as it is.
       merge: (stored, current) =>
         stored === undefined ? current : { ...current, ...parseStored(stored) },

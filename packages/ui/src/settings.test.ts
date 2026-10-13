@@ -34,10 +34,10 @@ const good: Settings = {
 }
 
 /** Stores the value as a version 4 record and loads it, as a new visit does */
-async function load(state: unknown, version = 4) {
+async function load(state: unknown) {
   // a page load starts without a position or a chosen language: the earlier test's value must not carry over
   useSettings.setState({ lastView: undefined, lang: undefined })
-  entries.set(KEY, JSON.stringify({ state, version }))
+  entries.set(KEY, JSON.stringify({ state, version: 4 }))
   await useSettings.persist.rehydrate()
   return useSettings.getState()
 }
@@ -95,20 +95,6 @@ describe('settings store', () => {
     expect(state.favourites).toEqual(good.favourites)
   })
 
-  it('version 3 favourites, with one of seven fixed keys each, are numbered in their order', async () => {
-    const state = await load(
-      {
-        ...good,
-        favourites: [
-          { presetId: 'amenity/bench', geometry: 'point', key: '9' },
-          { presetId: 'highway/residential', geometry: 'line', key: '4' },
-        ],
-      },
-      3,
-    )
-    expect(state.favourites).toEqual(good.favourites)
-  })
-
   it('favourites that are not a list give no favourites', async () => {
     const state = await load({ ...good, favourites: { presetId: 'amenity/bench' } })
     expect(state.favourites).toEqual([])
@@ -130,13 +116,6 @@ describe('settings store', () => {
       expect(state.shown).toEqual({})
       expect(state.favourites).toEqual([])
     }
-  })
-
-  it('a version 2 value, without favourites, loads with the defaults for what it lacks', async () => {
-    const state = await load({ theme: 'light', sizes: { 'dock-height': 200 }, shown: {} }, 2)
-    expect(state.theme).toBe('light')
-    expect(state.sizes).toEqual({ 'dock-height': 200 })
-    expect(state.favourites).toEqual([])
   })
 })
 

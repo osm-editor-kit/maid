@@ -62,10 +62,9 @@ export const parseAsCamera = createParser<Camera>({
     (a.pitch ?? 0) === (b.pitch ?? 0),
 })
 
-/** `1` or `0`. Shorter than true/false and what the benchmark scripts pass. */
+/** `1` or `0`, the only notation. Anything else gives the default. */
 export const parseAsFlag = createParser<boolean>({
-  parse: (value) =>
-    value === '1' || value === 'true' ? true : value === '0' || value === 'false' ? false : null,
+  parse: (value) => (value === '1' ? true : value === '0' ? false : null),
   serialize: (value) => (value ? '1' : '0'),
 })
 

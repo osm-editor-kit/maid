@@ -196,10 +196,6 @@ export function createImageryStore(defaultBackground: string | null) {
           custom,
           customNext,
         }),
-        // version 1 had no custom backgrounds. Without a migrate step zustand drops a stored value of
-        // another version, so the choice and the brightness would be lost; here they are read as they
-        // are, and the list starts empty.
-        migrate: (persisted) => parseStored(persisted, { backgroundId: defaultBackground }),
         merge: (persisted, current) => ({
           ...current,
           ...parseStored(persisted, { backgroundId: defaultBackground }),

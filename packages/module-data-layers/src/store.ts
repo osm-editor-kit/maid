@@ -37,7 +37,7 @@ export type StoredDataLayers = z.infer<typeof storedSchema>
 /**
  * Turns whatever is stored into a valid state. A stored layer that no longer passes the checks is
  * dropped, not repaired; a repeated id keeps its first entry. Used on every load, so a state
- * written by an older version or edited by hand cannot break the map. Anything that is not an
+ * edited by hand cannot break the map. Anything that is not an
  * object gives an empty state.
  */
 export function sanitizeStored(value: unknown): StoredDataLayers {
@@ -99,7 +99,6 @@ export function createDataLayerStore() {
           // a file layer's id means nothing after a reload, so it is not stored as hidden
           hidden: state.hidden.filter((id) => !state.files.some((file) => file.id === id)),
         }),
-        migrate: (persisted) => sanitizeStored(persisted),
         merge: (persisted, current) => ({ ...current, ...sanitizeStored(persisted) }),
       },
     ),
