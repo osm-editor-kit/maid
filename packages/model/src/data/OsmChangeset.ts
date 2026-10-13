@@ -78,7 +78,7 @@ export class OsmChangeset extends OsmEntity {
             return { '@k': k, '@v': this.tags[k] };
           }),
           '@version': 0.6,
-          '@generator': 'Rapid'
+          '@generator': 'Maid'
         }
       }
     };
@@ -188,7 +188,7 @@ export class OsmChangeset extends OsmEntity {
     return {
       osmChange: {
         '@version': 0.6,
-        '@generator': 'Rapid',
+        '@generator': 'Maid',
         'create': sort(nest(changes.created.map(rep), ['node', 'way', 'relation'])),
         'modify': nest(changes.modified.map(rep), ['node', 'way', 'relation']),
         'delete': Object.assign(nest(changes.deleted.map(rep), ['relation', 'way', 'node']), { '@if-unused': true })

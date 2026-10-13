@@ -91,8 +91,9 @@ describe('OsmChangeset', () => {
         osm: {
           changeset: {
             tag: [{ '@k': 'comment', '@v': 'hello' }],
+            // Maid: the generator is Maid, not Rapid (decided 2026-10-13)
             '@version': 0.6,
-            '@generator': 'Rapid'
+            '@generator': 'Maid'
           }
         }
       };
@@ -114,8 +115,9 @@ describe('OsmChangeset', () => {
     it('converts change data to JXON', () => {
       const expected = {
         osmChange: {
+          // Maid: the generator is Maid, not Rapid (decided 2026-10-13)
           '@version': 0.6,
-          '@generator': 'Rapid',
+          '@generator': 'Maid',
           'create': {},
           'modify': {},
           'delete': { '@if-unused': true }

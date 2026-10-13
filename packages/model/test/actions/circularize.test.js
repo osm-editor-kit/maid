@@ -19,6 +19,52 @@ describe('actionCircularize', () => {
   }
 
 
+  // Maid: expectation changed to iD's behaviour (decided 2026-10-13): iD's check, the area within 0.1% of the
+  // regular polygon with the same vertices. Rapid's check above reads the radius from the first node, which is
+  // not on the circle at t = 0.5 now that the way starts with a new node.
+  function isCircularID(wayID, graph) {
+    const nodes = graph.childNodes(graph.entity(wayID));
+    const world = nodes.map(n => Rapid.sdk.projWgs84ToWorld(n.loc));
+    const points = world.map(p => Rapid.sdk.vecSubtract(p, world[0]));
+    const centroid = polygonCentroid(points);
+    const radius = Rapid.sdk.vecLength(centroid, points[0]);
+    const n = points.length - 1;
+    const estArea = Math.pow(radius, 2) * n / 2 * Math.sin(2 * Math.PI / n);
+    const trueArea = Math.abs(polygonArea(points));
+    return Math.abs(estArea - trueArea) / estArea < 1e-3;
+  }
+
+
+  // d3-polygon's polygonArea and polygonCentroid, as iD's tests use them.
+  function polygonArea(points) {
+    let area = 0;
+    let b = points[points.length - 1];
+    for (const a of points) {
+      area += b[1] * a[0] - b[0] * a[1];
+      b = a;
+    }
+    return area / 2;
+  }
+
+
+  function polygonCentroid(polygon) {
+    let x = 0;
+    let y = 0;
+    let k = 0;
+    let b = polygon[polygon.length - 1];
+    for (const p of polygon) {
+      const a = b;
+      b = p;
+      const c = a[0] * b[1] - b[0] * a[1];
+      k += c;
+      x += (a[0] + b[0]) * c;
+      y += (a[1] + b[1]) * c;
+    }
+    k *= 3;
+    return [x / k, y / k];
+  }
+
+
   function intersection(a, b) {
     return (new Set(a)).intersection(new Set(b));
   }
@@ -61,7 +107,8 @@ describe('actionCircularize', () => {
     const result = Rapid.actionCircularize('-')(graph);
     assert.instanceOf(result, Rapid.Graph);
     assert.isTrue(isCircular('-', result));
-    assert.lengthOf(result.entity('-').nodes, 21);
+    // Maid: expectation changed to iD's behaviour (decided 2026-10-13)
+    assert.lengthOf(result.entity('-').nodes, 33);
   });
 
 
@@ -123,7 +170,7 @@ describe('actionCircularize', () => {
     ]);
 
     const graph = new Rapid.Graph(base);
-    const result = Rapid.actionCircularize('-', 20)(graph);
+    const result = Rapid.actionCircularize('-')(graph);
     assert.instanceOf(result, Rapid.Graph);
     assert.isTrue(isCircular('-', result));
 
@@ -131,10 +178,12 @@ describe('actionCircularize', () => {
     const points = way.geoms.parts[0].world.coords;
     const centroid = way.geoms.parts[0].world.centroid;
 
+    // Maid: expectation changed to iD's behaviour (decided 2026-10-13): iD's largest angle for a circle of 32 vertices, 360 / 31
+    const maxAngle = 360 / 31;
     for (let i = 0; i < points.length - 1; i++) {
-      assert.isAtMost(angle(points.at(i), points.at(i+1), centroid), 20);
+      assert.isAtMost(angle(points.at(i), points.at(i+1), centroid), maxAngle);
     }
-    assert.isAtMost(angle(points.at(-2), points.at(0), centroid), 20);
+    assert.isAtMost(angle(points.at(-2), points.at(0), centroid), maxAngle);
   });
 
 
@@ -156,7 +205,8 @@ describe('actionCircularize', () => {
     assert.isTrue(isCircular('+', result));
 
     const nodeIDs = result.entity('+').nodes.filter(nodeID => ['a', 'b', 'c', 'd'].includes(nodeID));
-    assert.deepEqual(nodeIDs, ['a', 'd', 'c', 'b', 'a']);  // still in this order
+    // Maid: expectation changed to iD's behaviour (decided 2026-10-13): the closing node is a new node, so 'a' is listed once
+    assert.deepEqual(nodeIDs, ['a', 'd', 'c', 'b']);  // still in this order
   });
 
 
@@ -178,7 +228,8 @@ describe('actionCircularize', () => {
     assert.isTrue(isCircular('-', result));
 
     const nodeIDs = result.entity('-').nodes.filter(nodeID => ['a', 'b', 'c', 'd'].includes(nodeID));
-    assert.deepEqual(nodeIDs, ['a', 'b', 'c', 'd', 'a']);  // still in this order
+    // Maid: expectation changed to iD's behaviour (decided 2026-10-13): the closing node is a new node, so 'a' is listed once
+    assert.deepEqual(nodeIDs, ['a', 'b', 'c', 'd']);  // still in this order
   });
 
 
@@ -354,7 +405,8 @@ describe('actionCircularize', () => {
       const graph = new Rapid.Graph(base);
       const result = Rapid.actionCircularize('-')(graph, 0);
       assert.isFalse(isCircular('-', result));
-      assert.deepEqual(result.entity('-').nodes, ['a', 'b', 'c', 'd', 'a']);  // nothing done yet
+      // Maid: expectation changed to iD's behaviour (decided 2026-10-13): iD inserts the vertices at t = 0 (33 entries)
+      assert.lengthOf(result.entity('-').nodes, 33);
     });
 
     it('circularize at t = 0.5', () => {
@@ -371,8 +423,9 @@ describe('actionCircularize', () => {
       const a1 = area('-', Rapid.actionCircularize('-')(base.snapshot(), 1));
       const result = Rapid.actionCircularize('-')(graph, 0.5);
       const aHalf = area('-', result);
-      assert.isFalse(isCircular('-', result));          // not circular yet
-      assert.lengthOf(result.entity('-').nodes, 21);    // all final nodes exist
+      assert.isFalse(isCircularID('-', result));        // not circular yet
+      // Maid: expectation changed to iD's behaviour (decided 2026-10-13): all final nodes exist (33 entries)
+      assert.lengthOf(result.entity('-').nodes, 33);
       assert.isAbove(aHalf, a0);   // more area than at t=0
       assert.isBelow(aHalf, a1);   // less area than at t=1
     });
@@ -389,7 +442,8 @@ describe('actionCircularize', () => {
       const graph = new Rapid.Graph(base);
       const result = Rapid.actionCircularize('-')(graph, 1);
       assert.isTrue(isCircular('-', result));
-      assert.lengthOf(result.entity('-').nodes, 21);
+      // Maid: expectation changed to iD's behaviour (decided 2026-10-13)
+      assert.lengthOf(result.entity('-').nodes, 33);
     });
   });
 
