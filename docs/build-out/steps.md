@@ -266,6 +266,18 @@ Built since the queue was written, with the commit and a line on what to try, is
 
 Notes for the parking and the bicycle editor: a TILDA notes module used by both. Its config names the region and the folder id, so that switching it on for a project is one line.
 
+### Decided by Tobias on 2026-10-13, evening
+
+- Our own packages (`@osm-editor-kit/*`, `@osm-traffic-signs/*`) are exempt from the five-day wait in `bunfig.toml`, so that a new version lands at once.
+- Language: the link's `lang=`, then the stored choice, then the browser's language, as iD. An app's own default comes last.
+- Pins appear from zoom 18 (MapLibre), not 17.5: the map prepares a layer from the whole zoom level below its start, so 17.5 made every pin image at zoom 17 before one was drawn.
+- "Too large": features created in this session and not yet saved are exempt, as in Rapid. No power-user switch.
+- `created_by` in a changeset is the app's name and version ("Maid Parking 0.1.0").
+- Surface and smoothness data: check where the data of our own package comes from and how our projects use it; relicense it to fit the other projects if possible. The translated texts are plain texts; the pictures have their own licence.
+- Performance: no synthetic scene of 500,000 nodes. Test what is realistic in OSM, and cap what nobody can work with instead. Next: "ready" faster than iD, the CPU time while zooming, and the time from an edit (drag, typing a tag) to the picture, measured for all three editors. Rust: measure first, then decide.
+- Performance budgets are warnings. The crisis is being slower than Rapid or iD. A cost that buys a feature is decided case by case; a feature of one editor (parking) must not slow the others.
+- The benchmark covers each app, and a lens switched on.
+
 ### Waiting for Tobias
 
 - [ ] Saving on the development server (dce9e86): the five steps under Done. Not yet tried by a person.
