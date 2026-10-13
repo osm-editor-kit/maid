@@ -1,5 +1,13 @@
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
-import { useEffect, useRef, useState } from 'react'
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  type LazyExoticComponent,
+  type ReactNode,
+} from 'react'
 import type { ReferenceLoader } from '../InfoPopover.tsx'
 import {
   addableFields,
@@ -15,6 +23,7 @@ import { CheckField } from './fields/Check.tsx'
 import { ComboField } from './fields/Combo.tsx'
 import { ColourField, DateField } from './fields/DateColour.tsx'
 import { DirectionalComboField } from './fields/Directional.tsx'
+import { FallbackField } from './fields/Fallback.tsx'
 import { EmailField, IdentifierField, TelField, UrlField } from './fields/Link.tsx'
 import { LocalizedField } from './fields/Localized.tsx'
 import { ManyComboField, MultiComboField, SemiComboField } from './fields/Multi.tsx'
@@ -40,8 +49,29 @@ export { NumberField } from './fields/Number.tsx'
 export { TextField, TextareaField } from './fields/Text.tsx'
 export type { CombinedTags, FieldComponent, FieldFocus, FieldProps } from './fields/shared.ts'
 
+// The Wikipedia and Wikidata fields are loaded on first use, not on the start path. Until the chunk is in, the
+// key is a plain text input (FallbackField), as it is when no lookup source is given.
+const WikipediaFieldLazy = lazy(() =>
+  import('./fields/WikiFields.tsx').then((loaded) => ({ default: loaded.WikipediaField })),
+)
+const WikidataFieldLazy = lazy(() =>
+  import('./fields/WikiFields.tsx').then((loaded) => ({ default: loaded.WikidataField })),
+)
+
+function lazyField(Component: LazyExoticComponent<FieldComponent>): FieldComponent {
+  return function LazyField(props): ReactNode {
+    return (
+      <Suspense fallback={<FallbackField {...props} />}>
+        <Component {...props} />
+      </Suspense>
+    )
+  }
+}
+
 /** iD field type → component. Types not listed use FallbackField. */
 export const defaultFieldComponents: Record<string, FieldComponent> = {
+  wikipedia: lazyField(WikipediaFieldLazy),
+  wikidata: lazyField(WikidataFieldLazy),
   text: TextField,
   textarea: TextareaField,
   url: UrlField,

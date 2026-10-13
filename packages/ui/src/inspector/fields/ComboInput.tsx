@@ -8,11 +8,25 @@ import {
   useFloating,
 } from '@floating-ui/react'
 import type { Field } from '@osm-editor-kit/maid-presets'
-import { useId, useRef, useState, type KeyboardEvent } from 'react'
+import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { PLAIN_INPUT } from '../../plain-input.ts'
 import { isUnsetOption } from '../logic.ts'
-import { moveActive } from '../picker-logic.ts'
-import { filterOptions, shownText, valueFromText } from './combo-logic.ts'
+import {
+  comboArrow,
+  comboChoose,
+  comboDelete,
+  comboEnter,
+  comboEscape,
+  comboList,
+  comboOpen,
+  comboSettle,
+  comboStart,
+  comboTab,
+  comboType,
+  type ComboKeyEnv,
+  type ComboKeyState,
+} from './combo-keys.ts'
+import { shownText, valueFromText } from './combo-logic.ts'
 import { LengthNotice, useLengthLimit } from './DraftInput.tsx'
 import type { FieldProps } from './shared.ts'
 import { INPUT, LIMITED } from './shared.ts'
@@ -21,6 +35,11 @@ import { INPUT, LIMITED } from './shared.ts'
  * The input of a combobox, over one key: the options of `field`, the text it shows (`value`, undefined when
  * the key is empty or mixed) and its placeholder and title. Shared by the combo fields and the generic mixed
  * control (fields/Fallback.tsx), so a key that is mixed can offer its values as the list.
+ *
+ * The keys are combo-keys.ts (iD's combobox rules, as pure functions over the state). This component keeps
+ * the state, applies what the functions return, and writes the text on blur. `latest` is the newest state:
+ * a key that blurs the input (Enter) is followed by a blur that must read the state the key made, before React
+ * has rendered it.
  */
 export function ComboInput(props: {
   id?: string
@@ -39,17 +58,29 @@ export function ComboInput(props: {
   const optionId = (index: number) => `${baseId}-option-${index}`
 
   const options = field.options.filter((option) => !isUnsetOption(option))
+  const env: ComboKeyEnv = { options, caseSensitive: field.caseSensitive === true }
   const shown = shownText(field, value)
-  const [draft, setDraft] = useState(shown.text)
-  const [open, setOpen] = useState(false)
-  const [activeIndex, setActiveIndex] = useState(-1)
-  // A choice made with the keyboard or the mouse: the text the next blur commits instead of the draft
-  const pending = useRef<string | undefined>(undefined)
+  const [state, setState] = useState<ComboKeyState>(() => comboStart(shown.text))
+  const latest = useRef<ComboKeyState>(state)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const results = filterOptions(options, draft)
-  const active = activeIndex < results.length ? activeIndex : -1
-  const listVisible = onChange !== undefined && open && results.length > 0
+  /** Keeps the newest state for the handlers, and renders it. */
+  function apply(next: ComboKeyState) {
+    latest.current = next
+    setState(next)
+  }
+
+  const results = comboList(env, state)
+  const active = state.active < results.length ? state.active : -1
+  const listVisible = onChange !== undefined && state.open && results.length > 0
+
+  // The inline completion is selected, so that the next key replaces it (iD selects the completed part)
+  useLayoutEffect(() => {
+    const range = state.completion
+    const input = inputRef.current
+    if (!range || !input || document.activeElement !== input) return
+    input.setSelectionRange(range.start, range.end)
+  }, [state])
 
   const { refs, floatingStyles } = useFloating({
     open: listVisible,
@@ -68,63 +99,53 @@ export function ComboInput(props: {
     ],
   })
 
-  /** Writes the text as a value, as cleanValue and the spelling rules make it. */
-  function commit(text: string) {
+  /** Writes the text as a value, as cleanValue and the spelling rules make it, and shows what was written. */
+  function commit() {
+    const text = latest.current.text
     if (!onChange) return
-    if (text === shown.text) {
-      setDraft(shown.text)
+    const write = text === shown.text ? undefined : valueFromText(field, text)
+    if (write === undefined || write === 'refused') {
+      apply(comboSettle(latest.current, shown.text))
       return
     }
-    const write = valueFromText(field, text)
-    if (write === 'refused') {
-      setDraft(shown.text)
-      return
-    }
-    setDraft(shownText(field, write.value).text)
+    apply(comboSettle(latest.current, shownText(field, write.value).text))
     if (write.value !== value) onChange(tagKey, write.value)
-  }
-
-  /** Puts a label in the input; the blur that follows commits it. */
-  function choose(label: string) {
-    pending.current = label
-    setDraft(label)
-    setOpen(false)
-    setActiveIndex(-1)
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.nativeEvent.isComposing) return
-    const picked = listVisible && active >= 0 ? results[active] : undefined
     switch (event.key) {
       case 'ArrowDown':
-      case 'ArrowUp': {
+      case 'ArrowUp':
         event.preventDefault()
-        const delta = event.key === 'ArrowDown' ? 1 : -1
-        setOpen(true)
-        setActiveIndex(moveActive(listVisible ? active : -1, delta, results.length))
+        apply(comboArrow(env, latest.current, event.key === 'ArrowDown' ? 1 : -1))
         return
-      }
       case 'Tab':
         // no preventDefault: focus moves on, and the blur commits the chosen label
-        if (picked) choose(picked.label)
+        apply(comboTab(env, latest.current).state)
         return
       case 'Enter':
         event.preventDefault()
-        if (picked) choose(picked.label)
+        apply(comboEnter(env, latest.current).state)
         event.currentTarget.blur()
         return
       case 'Escape':
         // as DraftInput: the value comes back, and the editor does not see the key
         event.stopPropagation()
-        setOpen(false)
-        setActiveIndex(-1)
-        setDraft(shown.text)
+        apply(comboEscape(latest.current, shown.text))
         return
+      case 'Backspace':
+      case 'Delete': {
+        const result = comboDelete(latest.current)
+        if (result.handled) event.preventDefault()
+        apply(result.state)
+        return
+      }
     }
   }
 
-  const italic = shown.raw && draft === shown.text
-  const limit = useLengthLimit(draft)
+  const italic = shown.raw && state.text === shown.text
+  const limit = useLengthLimit(state.text)
 
   return (
     <div className="grid min-w-0 gap-1">
@@ -141,33 +162,35 @@ export function ComboInput(props: {
           placeholder={placeholder ?? field.placeholder}
           title={title}
           readOnly={onChange === undefined}
-          value={draft}
+          value={state.text}
           aria-expanded={listVisible}
           aria-controls={listVisible ? listId : undefined}
-          aria-autocomplete="list"
+          aria-autocomplete="both"
           aria-activedescendant={listVisible && active >= 0 ? optionId(active) : undefined}
           className={`${INPUT} ${LIMITED} ${italic ? 'italic' : ''}`}
           aria-invalid={limit.invalid}
           aria-describedby={limit.describedBy()}
           onChange={(event) => {
-            setDraft(event.currentTarget.value)
-            setOpen(true)
-            setActiveIndex(-1)
+            const input = event.currentTarget
+            apply(
+              comboType(
+                env,
+                latest.current,
+                input.value,
+                input.selectionEnd === input.value.length,
+              ),
+            )
           }}
           onClick={() => {
-            if (onChange !== undefined) setOpen(true)
+            if (onChange !== undefined) apply(comboOpen(latest.current))
           }}
           onKeyDown={onKeyDown}
           onBlur={() => {
-            const text = pending.current ?? draft
-            pending.current = undefined
-            setOpen(false)
-            setActiveIndex(-1)
-            commit(text)
+            commit()
           }}
         />
       </div>
-      <LengthNotice draft={draft} messageId={limit.messageId} />
+      <LengthNotice draft={state.text} messageId={limit.messageId} />
       <FloatingPortal>
         {listVisible ? (
           <div
@@ -188,7 +211,7 @@ export function ComboInput(props: {
                 role="option"
                 aria-selected={index === active}
                 onClick={() => {
-                  choose(option.label)
+                  apply(comboChoose(latest.current, option.label))
                   inputRef.current?.blur()
                 }}
                 className={`flex h-8 cursor-pointer items-center gap-3 rounded px-2 ${
