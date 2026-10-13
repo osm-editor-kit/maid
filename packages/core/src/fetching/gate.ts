@@ -199,6 +199,7 @@ export function createGates(timing: Pick<GateOptions, 'now' | 'sleep'> = {}): Ga
     wikimedia: gate('wikimedia'),
     mapillary: gate('mapillary'),
     panoramax: gate('panoramax'),
+    taginfo: gate('taginfo'),
     data: gate('data'),
     local: gate('local'),
   }

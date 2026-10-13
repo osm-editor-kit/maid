@@ -1,6 +1,6 @@
 import { ClipboardDocumentIcon } from '@heroicons/react/16/solid'
 import type { Tags } from '@osm-editor-kit/maid-presets'
-import { useState, type FocusEvent as ReactFocusEvent } from 'react'
+import { useMemo, useState, type FocusEvent as ReactFocusEvent } from 'react'
 import { Tooltip } from '../../Tooltip.tsx'
 import { Sheet } from '../Sheet.tsx'
 import type { SheetBatch, SheetClipboard } from '../types.ts'
@@ -12,6 +12,7 @@ import {
   type TagModel,
 } from './tag-model.ts'
 import { planTagsPaste, serializeTagCells } from './tag-paste.ts'
+import { withTagSuggestions, type TagSuggestSource } from './tag-suggest.ts'
 import { copyAllText, describePaste, TAG_COLUMNS, type ReadOnlyKeys } from './tags.ts'
 
 export type TagSheetProps = {
@@ -28,6 +29,8 @@ export type TagSheetProps = {
   onRedo?: () => void
   /** The grid's aria-label. */
   label: string
+  /** Key and value suggestions (taginfo, or any source of that shape). Without it the sheet asks nothing. */
+  suggest?: TagSuggestSource
 }
 
 /**
@@ -44,6 +47,7 @@ export function TagSheet(props: TagSheetProps) {
     onUndo,
     onRedo,
     label,
+    suggest,
   } = props
   const [model, setModel] = useState<TagModel>(() =>
     initialTagModel(featureKey, tags, readOnlyKeys),
@@ -70,6 +74,12 @@ export function TagSheet(props: TagSheetProps) {
         if (change.label !== undefined) onChangeTags(change.tags, change.label)
       }
 
+  // The columns are made again when the rows change: the key column leaves out the keys the other rows have.
+  const columns = useMemo(
+    () => (suggest ? withTagSuggestions(TAG_COLUMNS, suggest, current.rows.rows) : TAG_COLUMNS),
+    [suggest, current.rows.rows],
+  )
+
   const clipboard: SheetClipboard = {
     serialize: serializeTagCells,
     plan: (input) => planTagsPaste(input, { tags, previous: current.rows, readOnlyKeys }),
@@ -93,7 +103,7 @@ export function TagSheet(props: TagSheetProps) {
     <div className="flex flex-col gap-1" onBlur={onLeave}>
       <Sheet
         label={label}
-        columns={TAG_COLUMNS}
+        columns={columns}
         rows={current.rows.rows}
         onChange={onSheetChange}
         clipboard={clipboard}

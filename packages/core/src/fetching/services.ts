@@ -4,7 +4,15 @@
  * during a rate-limit pause. A URL is matched to a service by its host (fetching-audit.md, 5.3).
  */
 
-export const SERVICE_IDS = ['osm', 'wikimedia', 'mapillary', 'panoramax', 'data', 'local'] as const
+export const SERVICE_IDS = [
+  'osm',
+  'wikimedia',
+  'mapillary',
+  'panoramax',
+  'taginfo',
+  'data',
+  'local',
+] as const
 
 export type ServiceId = (typeof SERVICE_IDS)[number]
 
@@ -15,6 +23,8 @@ export const SERVICES: Readonly<Record<ServiceId, { readonly limit: number }>> =
   wikimedia: { limit: 1 },
   mapillary: { limit: 6 },
   panoramax: { limit: 6 },
+  // taginfo.openstreetmap.org, asked while a person types a key or a value (taginfo/taginfo.ts). Two at a time: iD sends no limit.
+  taginfo: { limit: 2 },
   // Added data layers, and every host that no service claims.
   data: { limit: 2 },
   // Local hosts that no service claims, such as the dev server and the mock API when not registered.
@@ -60,6 +70,7 @@ const KNOWN: readonly { readonly id: ServiceId; readonly matches: (url: URL) => 
   },
   { id: 'mapillary', matches: domainMatcher('mapillary.com') },
   { id: 'panoramax', matches: domainMatcher('panoramax.xyz') },
+  { id: 'taginfo', matches: domainMatcher('taginfo.openstreetmap.org') },
 ]
 
 function hostMatcher(host: HostMatch): (url: URL) => boolean {
