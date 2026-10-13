@@ -192,7 +192,8 @@ Waiting for preset changes and field types from modules:
   Result (2026-10-13): built in 4c9f6b8 as a module that is not switched on (the data package is GPL-3.0-or-later and Maid is ISC: a decision is needed before it is in the default editor).
 
 At the end:
-- [ ] One or two code reviews for speed and for simpler code, with the findings applied.
+- [x] One or two code reviews for speed and for simpler code, with the findings applied.
+  Result (2026-10-13): one review each, [review-performance.md](../research/review-performance.md) (14 findings, 7 applied) and [review-cleanup.md](../research/review-cleanup.md) (20 findings, 5 applied and 3 in part). Biggest gains, measured headless: moving 300 buildings 34 ms per pointer move instead of 647 ms; a commit after 50 tag edits is validated in 0.6 ms instead of 20 ms; a redraw of a moved 519-node way 0.13 ms instead of 9.6 ms. The open findings are listed at the top of each file. Not shown in a browser benchmark: there is no earlier dense run of the same state to compare with.
 - [x] One list of all missing features from the area reports.
   Result (2026-10-13): [missing-features.md](../research/missing-features.md) (c637528). Built from it since: reverse and orthogonalize keep data (72bd175), midpoint handles (2a36487), move keeps the neighbours' shape (194a5f8).
 

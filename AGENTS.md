@@ -62,6 +62,7 @@ Learned on 2026-10-11 while porting Rapid's data model.
 - **Ask for a short report in a fixed shape**: what changed, what was cut and why, final numbers, what is unsure. Ask the agent to separate what it measured from what it inferred.
 - **Treat reports as leads.** Re-run the done-when commands yourself, count tests and assertions against the source, and grep for skipped tests before accepting. Mark claims you did not check as unchecked in the docs.
 - Agents that depend on each other's API can still run in parallel if the brief fixes the names both sides use.
+- **Browser checks and parallel edits do not mix.** The dev server reloads the page whenever a source file changes, so a check run by one agent dies ("Execution context was destroyed") when another agent saves a file. Agents that run in parallel prove their work with unit tests and headless scripts; the orchestrator runs the browser checks once nobody is editing. A check counts only with exit code 0 and the expected number of `ok` lines: an aborted run prints no `FAIL`. Learned on 2026-10-13.
 
 ## Scripts
 
