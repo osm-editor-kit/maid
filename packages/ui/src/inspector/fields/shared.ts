@@ -54,3 +54,11 @@ export const LABEL = 'min-w-0 truncate text-sm text-zinc-700 dark:text-zinc-300'
 export const ROW_BUTTON =
   'grid size-5 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white'
 export const HINT = 'min-w-0 truncate text-xs text-zinc-500 dark:text-zinc-400'
+
+/**
+ * For the buttons of a row's label bar: they fade in while the pointer or the focus is in the row
+ * (the row is the named group `field`), stay while their panel is open or they are pressed, and
+ * are always there on touch.
+ */
+export const REVEAL =
+  'opacity-0 transition-opacity duration-200 group-focus-within/field:opacity-100 group-hover/field:opacity-100 aria-expanded:opacity-100 aria-pressed:opacity-100 has-[[aria-expanded=true]]:opacity-100 pointer-coarse:opacity-100'

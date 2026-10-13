@@ -1,4 +1,5 @@
 import type { ComponentPropsWithoutRef } from 'react'
+import { PLAIN_INPUT } from '../../plain-input.ts'
 import { DraftInput, LengthNotice, useDraft, useLengthLimit } from './DraftInput.tsx'
 import { FallbackField } from './Fallback.tsx'
 import type { FieldProps } from './shared.ts'
@@ -56,6 +57,7 @@ function DraftTextarea({ tagKey, value, onChange, ...rest }: DraftTextareaProps)
   return (
     <>
       <textarea
+        {...PLAIN_INPUT}
         {...rest}
         rows={Math.min(8, Math.max(2, lines))}
         className={`${TEXTAREA} ${LIMITED}`}

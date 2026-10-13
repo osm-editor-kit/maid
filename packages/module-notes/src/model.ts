@@ -2,32 +2,72 @@
  * Pure logic of the notes module: the grid the notes are loaded by, the check of the notes API's
  * answer, and what a note shows. No React, no map, no network.
  */
+import { z } from 'zod'
 
 /** west, south, east, north in degrees: the order of the API's `bbox` parameter */
 export type Bbox = [west: number, south: number, east: number, north: number]
 
-export type NoteStatus = 'open' | 'closed'
+const statusSchema = z.enum(['open', 'closed'])
+export type NoteStatus = z.infer<typeof statusSchema>
 
-export type NoteComment = {
-  date: string
+const isoTime = z.string().refine((value) => !Number.isNaN(Date.parse(value)))
+
+/**
+ * One comment of the answer. A comment that fails is dropped by the note that holds it, the rest
+ * of the note stays. `action` is `commented` when the API gives none.
+ */
+const apiComment = z.object({
+  date: isoTime,
   /** `opened`, `commented`, `closed`, `reopened`, `hidden` as the API names them */
-  action: string
-  text: string
-  uid?: number
+  action: z.string().catch('commented'),
+  text: z.string(),
+  uid: z.number().optional().catch(undefined),
   /** Absent for anonymous comments */
-  user?: string
-}
+  user: z.string().optional().catch(undefined),
+})
+export type NoteComment = z.infer<typeof apiComment>
 
-export type Note = {
-  id: number
-  lon: number
-  lat: number
-  status: NoteStatus
-  created: string
-  closed?: string
-  /** Oldest first, as the API gives them */
-  comments: NoteComment[]
-}
+/**
+ * One feature of the answer, read as a note. Coordinates are `[lon, lat]` and anything after them is
+ * not read. A note without a readable comment is dropped (the transform gives null).
+ */
+const noteFeature = z
+  .object({
+    geometry: z.object({
+      type: z.literal('Point'),
+      coordinates: z
+        .tuple([z.number().min(-180).max(180), z.number().min(-90).max(90)])
+        .rest(z.unknown()),
+    }),
+    properties: z.object({
+      id: z.number().positive().refine(Number.isInteger),
+      status: statusSchema,
+      date_created: isoTime,
+      closed_at: isoTime.optional().catch(undefined),
+      comments: z.array(apiComment.nullable().catch(null)),
+    }),
+  })
+  .transform(({ geometry, properties }) => {
+    // oldest first, as the API gives them
+    const comments = properties.comments
+      .filter((comment): comment is NoteComment => comment !== null)
+      .sort((a, b) => Date.parse(a.date) - Date.parse(b.date))
+    if (comments.length === 0) return null
+    const [lon, lat] = geometry.coordinates
+    return {
+      id: properties.id,
+      lon,
+      lat,
+      status: properties.status,
+      created: properties.date_created,
+      comments,
+      ...(properties.closed_at === undefined ? {} : { closed: properties.closed_at }),
+    }
+  })
+  .catch(null)
+
+/** A note as the app shows it */
+export type Note = NonNullable<z.infer<typeof noteFeature>>
 
 /** Degrees per grid cell. Requests cover whole cells, so panning inside one asks nothing new. */
 export const CELL_SIZE = 0.05
@@ -103,62 +143,21 @@ export function noteWebUrl(id: number) {
   return `https://www.openstreetmap.org/note/${id}`
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-
-const isTime = (value: unknown): value is string =>
-  typeof value === 'string' && !Number.isNaN(Date.parse(value))
-
-function parseComment(value: unknown) {
-  if (!isRecord(value) || !isTime(value.date) || typeof value.text !== 'string') return undefined
-  const comment: NoteComment = {
-    date: value.date,
-    action: typeof value.action === 'string' ? value.action : 'commented',
-    text: value.text,
-  }
-  if (typeof value.uid === 'number') comment.uid = value.uid
-  if (typeof value.user === 'string') comment.user = value.user
-  return comment
-}
-
-/** One feature of the answer, or undefined when it is malformed. Malformed comments are dropped. */
-function parseNote(value: unknown) {
-  if (!isRecord(value) || !isRecord(value.geometry) || !isRecord(value.properties)) return undefined
-  const { geometry, properties } = value
-  if (geometry.type !== 'Point' || !Array.isArray(geometry.coordinates)) return undefined
-  const coordinates: unknown[] = geometry.coordinates
-  const [lon, lat] = coordinates
-  if (typeof lon !== 'number' || typeof lat !== 'number') return undefined
-  if (!(Math.abs(lon) <= 180 && Math.abs(lat) <= 90)) return undefined
-  const { id, status, date_created: created, closed_at: closed, comments } = properties
-  if (typeof id !== 'number' || !Number.isInteger(id) || id <= 0) return undefined
-  if (status !== 'open' && status !== 'closed') return undefined
-  if (!isTime(created) || !Array.isArray(comments)) return undefined
-  const parsed = comments
-    .map(parseComment)
-    .filter((comment): comment is NoteComment => comment !== undefined)
-    .sort((a, b) => Date.parse(a.date) - Date.parse(b.date))
-  if (parsed.length === 0) return undefined
-  const note: Note = { id, lon, lat, status, created, comments: parsed }
-  if (isTime(closed)) note.closed = closed
-  return note
-}
+const collection = z.object({
+  type: z.literal('FeatureCollection'),
+  features: z.array(noteFeature),
+})
 
 /**
  * Checks the notes API's answer (a GeoJSON FeatureCollection). A malformed feature is skipped and
  * counted; an answer that is not a collection at all throws.
  */
 export function parseNotes(json: unknown) {
-  if (!isRecord(json) || json.type !== 'FeatureCollection' || !Array.isArray(json.features))
-    throw new Error('The notes answer is not a FeatureCollection')
-  const notes: Note[] = []
-  let skipped = 0
-  for (const feature of json.features) {
-    const note = parseNote(feature)
-    if (note) notes.push(note)
-    else skipped++
-  }
-  return { notes, skipped, count: json.features.length }
+  const answer = collection.safeParse(json)
+  if (!answer.success) throw new Error('The notes answer is not a FeatureCollection')
+  const { features } = answer.data
+  const notes = features.filter((note): note is Note => note !== null)
+  return { notes, skipped: features.length - notes.length, count: features.length }
 }
 
 /** The first line of the first comment, cut to a length that fits one line of a list */

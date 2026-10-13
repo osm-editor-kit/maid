@@ -5,6 +5,7 @@
 import {
   checkDataLayerConfig,
   checkLayerUrl,
+  colorSchema,
   parseSourceLayers,
   type Checked,
   type DataLayerConfig,
@@ -27,8 +28,6 @@ export type AddInput = {
 
 export type Added = { kind: 'url'; layer: DataLayerConfig } | { kind: 'file'; layer: FileLayer }
 
-const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
-
 /** The checks of the form that need no network */
 export function checkAddInput(input: AddInput) {
   const errors: string[] = []
@@ -40,7 +39,7 @@ export function checkAddInput(input: AddInput) {
     const urlError = checkLayerUrl(input.url, input.kind)
     if (urlError) errors.push(urlError)
   }
-  if (!COLOR_PATTERN.test(input.color)) errors.push('Pick a colour.')
+  if (!colorSchema.safeParse(input.color).success) errors.push('Pick a colour.')
   if (input.kind === 'vector' && !input.file && parseSourceLayers(input.sourceLayers).length === 0)
     errors.push('Vector tiles need the names of their source layers, separated by commas.')
   return errors

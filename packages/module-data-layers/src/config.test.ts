@@ -212,3 +212,18 @@ describe('checkConfigLayers and isLocalUrl', () => {
     expect(isLocalUrl('not a url')).toBe(false)
   })
 })
+
+describe('the schema refuses what is not a layer, and names a scheme that is not https', () => {
+  test('an array is not a layer', () => {
+    expect(checkDataLayerConfig([GEOJSON])).toEqual({
+      ok: false,
+      errors: ['A data layer must be an object.'],
+    })
+  })
+
+  test('an address that is not a URL, although it starts with http, is not valid', () => {
+    expect(checkLayerUrl('http:/x', 'geojson')).toBe(
+      'The address is not valid. It must start with https://.',
+    )
+  })
+})

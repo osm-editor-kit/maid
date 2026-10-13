@@ -3,16 +3,31 @@
  * how the stored choice is read back. No React, no MapLibre and no imports of the ELI package, so
  * they can be tested without a browser.
  */
+import { z } from 'zod'
 
 /** The viewport: `[west, south, east, north]` in degrees, and the zoom */
 export type View = { bounds: [number, number, number, number]; zoom: number }
 
-/** What is stored: the chosen background, the chosen overlays and the brightness (0.2 to 1) */
-export type ImageryStored = {
-  backgroundId: string | null
-  overlayIds: string[]
-  brightness: number
+/**
+ * The stored choice, read field by field: a field of the wrong type takes its default, so an old or
+ * damaged entry cannot break the map. Overlays of the wrong type are dropped, repeats too. A stored
+ * value that is not an object takes every default.
+ */
+export function storedImagery(defaultBackground: string | null) {
+  return z
+    .object({
+      backgroundId: z.string().nullable().catch(defaultBackground),
+      overlayIds: z
+        .array(z.string().nullable().catch(null))
+        .transform((ids) => [...new Set(ids.filter((id): id is string => id !== null))])
+        .catch([]),
+      brightness: z.number().catch(BRIGHTNESS_MAX).transform(clampBrightness),
+    })
+    .catch({ backgroundId: defaultBackground, overlayIds: [], brightness: BRIGHTNESS_MAX })
 }
+
+/** What is stored: the chosen background, the chosen overlays and the brightness (0.2 to 1) */
+export type ImageryStored = z.infer<ReturnType<typeof storedImagery>>
 
 /** One row of the list, as the panel needs it. Filled from the ELI package by `eli.ts`. */
 export type Listing = {
@@ -53,30 +68,9 @@ export function clampBrightness(value: number) {
   return Math.min(BRIGHTNESS_MAX, Math.max(BRIGHTNESS_MIN, value))
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-/**
- * Reads the stored choice. Anything that does not have the right shape falls back to the
- * defaults, so an old or damaged entry cannot break the map.
- */
+/** Reads the stored choice; see `storedImagery`. Never throws: every field has a default. */
 export function parseStored(raw: unknown, fallback: { backgroundId: string | null }) {
-  const stored: ImageryStored = {
-    backgroundId: fallback.backgroundId,
-    overlayIds: [],
-    brightness: BRIGHTNESS_MAX,
-  }
-  if (!isRecord(raw)) return stored
-  const record = raw
-  if (record.backgroundId === null || typeof record.backgroundId === 'string')
-    stored.backgroundId = record.backgroundId
-  if (Array.isArray(record.overlayIds))
-    stored.overlayIds = [
-      ...new Set(record.overlayIds.filter((id): id is string => typeof id === 'string')),
-    ]
-  if (typeof record.brightness === 'number') stored.brightness = clampBrightness(record.brightness)
-  return stored
+  return storedImagery(fallback.backgroundId).parse(raw)
 }
 
 /** Best layers first, then by name. ELI gives no ranking of its own beyond the `best` flag. */

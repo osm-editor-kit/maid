@@ -1,3 +1,4 @@
+import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { useState } from 'react'
 
 type Props = { onAdd: (key: string, value: string) => void }
@@ -19,6 +20,7 @@ export function AddTag({ onAdd }: Props) {
   return (
     <form onSubmit={submit} className="mt-3 flex gap-1 font-mono text-xs">
       <input
+        {...PLAIN_INPUT}
         aria-label="New tag key"
         placeholder="key"
         className={INPUT}
@@ -26,6 +28,7 @@ export function AddTag({ onAdd }: Props) {
         onChange={(e) => setKey(e.target.value)}
       />
       <input
+        {...PLAIN_INPUT}
         aria-label="New tag value"
         placeholder="value"
         className={INPUT}

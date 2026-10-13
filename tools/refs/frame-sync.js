@@ -8,6 +8,18 @@
 ;(() => {
   const hub = window.opener
   if (!hub) return
+  // Only the compare page may drive the camera. It is this window's opener (the page that opened
+  // it, so event.source is window.opener; window.parent is this window itself), and it is served
+  // from a local host. An opaque or unparsable origin is refused.
+  const LOCAL_HOSTS = ['localhost', '127.0.0.1', '[::1]']
+  const fromCompare = (event) => {
+    if (event.source !== hub) return false
+    try {
+      return LOCAL_HOSTS.includes(new URL(event.origin).hostname)
+    } catch {
+      return false
+    }
+  }
   let leading = false
   let last = ''
   let lastFrame = performance.now()
@@ -16,6 +28,7 @@
   window.addEventListener('pointermove', () => (leading = true), true)
   window.addEventListener('pointerleave', () => (leading = false), true)
   window.addEventListener('message', (event) => {
+    if (!fromCompare(event)) return
     const bench = window.__bench
     if (!bench || !event.data) return
     try {

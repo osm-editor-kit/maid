@@ -3,39 +3,46 @@
  * `maid:data-layers` (version 1). Files and problems are session state and are not stored.
  */
 import { moduleStorage } from '@osm-editor-kit/maid-core'
+import { z } from 'zod'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import { checkDataLayerConfig, isRecord, type DataLayerConfig, type FileLayer } from './config.ts'
+import { dataLayerSchema, type DataLayerConfig, type FileLayer } from './config.ts'
 
-export type StoredDataLayers = {
-  /** Layers added by URL, in the order they were added */
-  added: DataLayerConfig[]
-  /** Ids of hidden layers: config, added and file layers */
-  hidden: string[]
-}
+/**
+ * What is stored. A broken entry is dropped on its own, not the whole list: a layer that no longer
+ * passes the schema becomes `null` and is left out, and a text that is not a string is too.
+ */
+const storedSchema = z.object({
+  added: z
+    .array(dataLayerSchema.nullable().catch(null))
+    .catch([])
+    .transform((layers) => {
+      const seen = new Set<string>()
+      const kept: DataLayerConfig[] = []
+      for (const layer of layers) {
+        if (layer === null || seen.has(layer.id)) continue
+        seen.add(layer.id)
+        kept.push(layer)
+      }
+      return kept
+    }),
+  hidden: z
+    .array(z.string().nullable().catch(null))
+    .catch([])
+    .transform((ids) => [...new Set(ids.filter((id): id is string => id !== null))]),
+})
+
+export type StoredDataLayers = z.infer<typeof storedSchema>
 
 /**
  * Turns whatever is stored into a valid state. A stored layer that no longer passes the checks is
  * dropped, not repaired; a repeated id keeps its first entry. Used on every load, so a state
- * written by an older version or edited by hand cannot break the map.
+ * written by an older version or edited by hand cannot break the map. Anything that is not an
+ * object gives an empty state.
  */
-export function sanitizeStored(value: unknown) {
-  const record = isRecord(value) ? value : {}
-  const added: DataLayerConfig[] = []
-  const seen = new Set<string>()
-  if (Array.isArray(record.added)) {
-    for (const entry of record.added) {
-      const checked = checkDataLayerConfig(entry)
-      if (checked.ok && !seen.has(checked.value.id)) {
-        seen.add(checked.value.id)
-        added.push(checked.value)
-      }
-    }
-  }
-  const hidden = Array.isArray(record.hidden)
-    ? [...new Set(record.hidden.filter((id): id is string => typeof id === 'string'))]
-    : []
-  return { added, hidden }
+export function sanitizeStored(value: unknown): StoredDataLayers {
+  const result = storedSchema.safeParse(value)
+  return result.success ? result.data : { added: [], hidden: [] }
 }
 
 export type DataLayerStore = StoredDataLayers & {

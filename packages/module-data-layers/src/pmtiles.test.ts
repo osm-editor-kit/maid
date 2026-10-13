@@ -39,3 +39,10 @@ describe('registerPmtilesProtocol', () => {
     expect(() => registerPmtilesProtocol({})).not.toThrow()
   })
 })
+
+describe('sourceLayerNames with metadata that is not an object', () => {
+  test('an array or a number has no layer names', () => {
+    expect(sourceLayerNames([{ id: 'roads' }])).toEqual([])
+    expect(sourceLayerNames({ vector_layers: [{ id: 5 }] })).toEqual([])
+  })
+})

@@ -1,39 +1,39 @@
 import type { Geometry } from '@osm-editor-kit/maid-presets'
 
 /**
- * A favourite feature type: a preset for one geometry, and the number key that starts it. The key
- * is given when the favourite is made and stays until the favourite is removed, so reordering or
- * removing other favourites does not move it.
+ * A favourite feature type: a preset for one geometry, and the number that starts it. Holding the
+ * modifier key and typing the number starts it (apps/maid/src/favourites-keys.ts). The number is
+ * given when the favourite is made and stays until the favourite is removed or the person changes
+ * it, so reordering or removing other favourites does not move it.
  */
 export type Favourite = {
   presetId: string
   geometry: Geometry
-  key: FavouriteKey
+  number: FavouriteNumber
 }
 
 /**
- * The number keys favourites can use, in the order new favourites take them. 1, 2 and 3 start the
- * draw modes, so the keys are 4 to 9 and 0. The keys the left hand reaches (4, 5) come first.
+ * A favourite's number, kept as text: a positive integer without a leading zero, as many digits as
+ * wanted. Numbers are unique among all favourites, whatever their geometry.
  */
-export const FAVOURITE_KEYS = ['4', '5', '6', '7', '8', '9', '0'] as const
-export type FavouriteKey = (typeof FAVOURITE_KEYS)[number]
+export type FavouriteNumber = string
 
-/** The most favourites there can be: one per key */
-export const MAX_FAVOURITES = FAVOURITE_KEYS.length
-
-/** The first key no favourite uses, or undefined when every key is taken */
-export function freeFavouriteKey(favourites: Favourite[]) {
-  return FAVOURITE_KEYS.find((key) => !favourites.some((favourite) => favourite.key === key))
+/** True for a number a favourite can have: digits only, and the first one is not zero */
+export function isFavouriteNumber(value: string): boolean {
+  return /^[1-9][0-9]*$/.test(value)
 }
 
-/** True when every number key is taken: no more favourites can be made */
-export function isFavouritesFull(favourites: Favourite[]) {
-  return freeFavouriteKey(favourites) === undefined
+/** The lowest number no favourite uses: 1 when there are none */
+export function freeFavouriteNumber(favourites: Favourite[]): FavouriteNumber {
+  const taken = new Set(favourites.map((favourite) => favourite.number))
+  let number = 1
+  while (taken.has(String(number))) number++
+  return String(number)
 }
 
-/** The favourite that a number key starts, if one has that key */
-export function findFavouriteByKey(favourites: Favourite[], key: string) {
-  return favourites.find((favourite) => favourite.key === key)
+/** The favourite that a number starts, if one has that number */
+export function findFavouriteByNumber(favourites: Favourite[], number: string) {
+  return favourites.find((favourite) => favourite.number === number)
 }
 
 /** The favourites for one geometry, in their order */
@@ -48,21 +48,41 @@ function indexOf(favourites: Favourite[], presetId: string, geometry: Geometry) 
 }
 
 /**
- * Makes the preset a favourite for the geometry, at the end, with the first free key; or takes it
- * out again if it is one. When every key is taken, a new favourite changes nothing and the same
- * list is returned.
+ * Makes the preset a favourite for the geometry, at the end, with the lowest free number; or takes
+ * it out again if it is one. Taking a favourite out frees its number.
  */
 export function toggleFavourite(favourites: Favourite[], presetId: string, geometry: Geometry) {
   const index = indexOf(favourites, presetId, geometry)
   if (index >= 0) return favourites.filter((_, at) => at !== index)
-  const key = freeFavouriteKey(favourites)
-  if (!key) return favourites
-  return [...favourites, { presetId, geometry, key }]
+  return [...favourites, { presetId, geometry, number: freeFavouriteNumber(favourites) }]
+}
+
+/**
+ * Gives a favourite a new number. A number that another favourite has is swapped: that favourite
+ * gets the number this one had. An invalid number (see `isFavouriteNumber`) or a favourite that is
+ * not in the list changes nothing, and the same list is returned.
+ */
+export function setFavouriteNumber(
+  favourites: Favourite[],
+  presetId: string,
+  geometry: Geometry,
+  number: string,
+) {
+  if (!isFavouriteNumber(number)) return favourites
+  const index = indexOf(favourites, presetId, geometry)
+  const current = favourites[index]
+  if (!current || current.number === number) return favourites
+  const other = favourites.findIndex((favourite) => favourite.number === number)
+  return favourites.map((favourite, at) => {
+    if (at === index) return { ...favourite, number }
+    if (at === other) return { ...favourite, number: current.number }
+    return favourite
+  })
 }
 
 /**
  * Moves a favourite one place up (-1) or down (+1) among the favourites of its geometry. Only the
- * order changes: the two favourites trade places in the list, and their keys stay with them.
+ * order changes: the two favourites trade places in the list, and their numbers stay with them.
  * Moving past the first or the last favourite of the geometry changes nothing.
  */
 export function moveFavourite(

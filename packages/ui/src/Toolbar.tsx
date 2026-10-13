@@ -91,14 +91,13 @@ export function SegmentedControl<T extends string>(props: {
       {options.map((option) => {
         const checked = option.value === value
         const hasIcon = option.icon !== undefined
-        return (
+        const button = (
           <button
             key={option.value}
             type="button"
             role="radio"
             aria-checked={checked}
             aria-label={hasIcon ? option.label : undefined}
-            title={hasIcon ? option.label : undefined}
             tabIndex={arrowKeys ? (checked ? 0 : -1) : undefined}
             onClick={() => onSelect(option.value)}
             onKeyDown={arrowKeys ? onKeyDown : undefined}
@@ -113,6 +112,14 @@ export function SegmentedControl<T extends string>(props: {
           >
             {hasIcon ? option.icon : option.label}
           </button>
+        )
+        // an icon alone needs its name: the editor's own tooltip, not the browser's slow one
+        return hasIcon ? (
+          <Tooltip key={option.value} label={option.label}>
+            {button}
+          </Tooltip>
+        ) : (
+          button
         )
       })}
     </div>

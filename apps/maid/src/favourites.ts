@@ -2,8 +2,8 @@ import type { Geometry, Preset, Tags } from '@osm-editor-kit/maid-presets'
 import type { Mode } from '@osm-editor-kit/maid-renderer'
 import {
   favouritesFor,
-  findFavouriteByKey,
-  isFavouritesFull,
+  findFavouriteByNumber,
+  setFavouriteNumber as setNumberIn,
   useSettings,
 } from '@osm-editor-kit/maid-ui'
 import { editor, engine } from './editor'
@@ -25,20 +25,15 @@ engine.subscribe(() => {
   if (pending.current && engine.mode !== pending.current.mode) pending.current = undefined
 })
 
-/** The favourites of a geometry as the type picker lists them: their presets, with their keys */
+/** The favourites of a geometry as the type picker lists them: their presets, with their numbers */
 export function useFavouriteRows(geometry: Geometry | undefined) {
   const favourites = useSettings((state) => state.favourites)
   const { presets } = editor
   if (!geometry || !presets) return []
   return favouritesFor(favourites, geometry).flatMap((favourite) => {
     const preset = presets.preset(favourite.presetId)
-    return preset ? [{ preset, key: favourite.key }] : []
+    return preset ? [{ preset, number: favourite.number }] : []
   })
-}
-
-/** True when every number key is taken, so no other preset can become a favourite */
-export function useFavouritesFull() {
-  return useSettings((state) => isFavouritesFull(state.favourites))
 }
 
 /** Makes the preset a favourite for the geometry, or takes it out again */
@@ -49,6 +44,17 @@ export function toggleFavourite(preset: Preset, geometry: Geometry) {
 /** Moves a favourite one place up (-1) or down (+1) among the favourites of its geometry */
 export function moveFavourite(preset: Preset, geometry: Geometry, delta: 1 | -1) {
   useSettings.getState().moveFavourite(preset.id, geometry, delta)
+}
+
+/**
+ * Gives a favourite the number the person typed in the list. A number another favourite has swaps
+ * the two. The settings store keeps the change; an invalid number changes nothing.
+ */
+export function setFavouriteNumber(preset: Preset, geometry: Geometry, number: string) {
+  // the store's own action would be the place for this; set state here keeps settings.ts unchanged
+  useSettings.setState((state) => ({
+    favourites: setNumberIn(state.favourites, preset.id, geometry, number),
+  }))
 }
 
 /**
@@ -64,13 +70,14 @@ export function changeType(id: string, preset: Preset) {
 }
 
 /**
- * A number key of a favourite. With one feature selected whose geometry the favourite has, that
- * feature gets the favourite's type. With nothing selected, the key starts adding a feature of
- * the favourite's type: the mode for its geometry is switched on and the feature is made with the
- * favourite's tags. Otherwise the key does nothing.
+ * A favourite started by its number (favourites-keys.ts: Alt with the digits). With one feature
+ * selected whose geometry the favourite has, that feature gets the favourite's type. With nothing
+ * selected, it starts adding a feature of the favourite's type: the mode for its geometry is
+ * switched on and the feature is made with the favourite's tags. Otherwise, or for a number that
+ * no favourite has, it does nothing.
  */
-export function pressFavouriteKey(key: string) {
-  const favourite = findFavouriteByKey(useSettings.getState().favourites, key)
+export function startFavourite(number: string) {
+  const favourite = findFavouriteByNumber(useSettings.getState().favourites, number)
   const preset = favourite ? editor.presets?.preset(favourite.presetId) : undefined
   if (!favourite || !preset) return
 
@@ -109,8 +116,13 @@ export function giveFavouriteTagsToNode(id: string) {
   const found = pending.current
   if (!found || found.mode !== 'add-point') return
   pending.current = undefined
-  const tags = engine.entity(id)?.tags ?? {}
-  engine.setTags(id, { ...tags, ...found.tags }, 'Changed the feature type')
+  const entity = engine.entity(id)
+  const { presets } = editor
+  if (!entity || !presets) return
+  // as changeType: a field default only fills a key the node does not have (iD keeps existing keys),
+  // so a default never overwrites a value the node already has
+  const tags = presets.applyPreset(entity.tags, found.preset, entity.geometry, entity.preset)
+  engine.setTags(id, tags, 'Changed the feature type')
 }
 
 /**

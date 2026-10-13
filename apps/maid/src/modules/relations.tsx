@@ -7,6 +7,7 @@ import {
   OsmRelation,
   type Action,
 } from '@osm-editor-kit/maid-model'
+import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { Tooltip, type InspectorSection, type InspectorSectionProps } from '@osm-editor-kit/maid-ui'
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import { engine, useEngine } from '../editor'
@@ -145,6 +146,7 @@ function RoleInput({
   }
   return (
     <input
+      {...PLAIN_INPUT}
       aria-label={label}
       placeholder="role"
       list={list}
@@ -588,6 +590,7 @@ function AddToRelation({
           ))}
         </select>
         <input
+          {...PLAIN_INPUT}
           aria-label="Role for the new membership"
           placeholder="role"
           list={roleList}

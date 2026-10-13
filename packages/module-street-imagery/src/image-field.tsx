@@ -1,4 +1,5 @@
 import { EyeIcon, XMarkIcon } from '@heroicons/react/20/solid'
+import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 /**
  * The "Street-level images" field: one row per image key of the feature that has a value (`;` separated ids, as
  * chips), an input per row to add an id or a link, and a select to add a row for a key without a value. A row
@@ -228,6 +229,7 @@ function ImageRow({
       {onChange ? (
         <>
           <input
+            {...PLAIN_INPUT}
             type="text"
             dir="ltr"
             aria-label={`Add to ${imageKey}`}

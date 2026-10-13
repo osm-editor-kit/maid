@@ -1,4 +1,5 @@
 import { moduleStorage } from '@osm-editor-kit/maid-core'
+import { z } from 'zod'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import {
@@ -14,11 +15,27 @@ import {
   NOTES_LIMIT,
 } from './model.ts'
 
+/** What is stored. Both flags must be booleans: a stored string never switches the requests on. */
+const storedSettings = z.object({
+  enabled: z.boolean(),
+  showClosed: z.boolean(),
+})
+
+/**
+ * The settings from storage, over the current (default) state. A stored value that does not parse
+ * is ignored, so the defaults apply: nothing is requested until the person switches the notes on.
+ */
+export function restoreSettings<State extends z.infer<typeof storedSettings>>(
+  persisted: unknown,
+  current: State,
+): State {
+  const stored = storedSettings.safeParse(persisted)
+  return stored.success ? { ...current, ...stored.data } : current
+}
+
 /** What the person chose. Kept between visits in localStorage (`maid:notes`, version 1). */
-type Settings = {
+type Settings = z.infer<typeof storedSettings> & {
   /** Off by default: nothing is requested until the person switches the notes on */
-  enabled: boolean
-  showClosed: boolean
   setEnabled: (enabled: boolean) => void
   setShowClosed: (showClosed: boolean) => void
 }
@@ -36,6 +53,8 @@ export const useNotesSettings = create<Settings>()(
       version: 1,
       storage: createJSONStorage(() => moduleStorage()),
       partialize: ({ enabled, showClosed }) => ({ enabled, showClosed }),
+      // every stored value is checked on load, not only after a version change
+      merge: (persisted, current) => restoreSettings(persisted, current),
     },
   ),
 )

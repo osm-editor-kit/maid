@@ -1,3 +1,4 @@
+import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { useState } from 'react'
 
 type Props = {
@@ -24,6 +25,7 @@ export function TagRow({ tagKey, value, onChange }: Props) {
       </th>
       <td className="py-0.5">
         <input
+          {...PLAIN_INPUT}
           aria-label={`Value of ${tagKey}`}
           className={INPUT}
           value={draft}

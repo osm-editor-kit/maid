@@ -1,7 +1,8 @@
 /**
  * What a data layer is, whether the editor's config brings it or a person adds it by URL or file:
- * the kinds, the checks every layer goes through, and the colours. Pure: no network, no React.
+ * the kinds, the one schema every layer is checked with, and the colours. Pure: no network, no React.
  */
+import { z } from 'zod'
 import type { GeoJsonData } from './geojson.ts'
 
 export const DATA_LAYER_KINDS = ['geojson', 'pmtiles', 'vector'] as const
@@ -14,17 +15,151 @@ export const KIND_LABEL: Record<DataLayerKind, string> = {
   vector: 'Vector tiles',
 }
 
-/** A data layer as the editor's config (or a stored URL) gives it */
-export type DataLayerConfig = {
-  id: string
-  name: string
-  kind: DataLayerKind
-  url: string
-  /** `#rrggbb`. Without it the layer gets the next colour of the palette. */
-  color?: string
-  /** Vector tiles: the layers of the tiles to draw. PMTiles: read from the file when absent. */
-  sourceLayers?: string[]
+const ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
+const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
+const KIND_MESSAGE = `The kind must be one of ${DATA_LAYER_KINDS.join(', ')}.`
+const OBJECT_MESSAGE = 'A data layer must be an object.'
+const ENTER_ADDRESS = 'Enter the address of the data.'
+const NOT_VALID_ADDRESS = 'The address is not valid. It must start with https://.'
+const NOT_HTTP_ADDRESS = 'The address must start with https:// (or http://).'
+const TEMPLATE_ADDRESS = 'A vector tile address needs {z}, {x} and {y} in it.'
+const LIST_MESSAGE = 'The source layers must be a list of names.'
+const NEED_SOURCE_LAYERS = 'Vector tiles need the names of their source layers.'
+const ID_MESSAGE = 'The id must be 1 to 64 letters, digits, "-" or "_".'
+const NAME_MESSAGE = 'The name must not be empty.'
+const COLOR_MESSAGE = 'The colour must be a hex value such as #d6007a.'
+const ONLY_VECTOR_AND_PMTILES = 'Source layers only apply to vector tiles and PMTiles.'
+
+/** A `#rrggbb` colour in any case. Stored in lower case. */
+export const colorSchema = z
+  .string({ error: COLOR_MESSAGE })
+  .regex(COLOR_PATTERN, { error: COLOR_MESSAGE })
+  .toLowerCase()
+
+/** A path on the same server (`/data/x.geojson`), not a protocol-relative `//host/...` */
+export function isSameServerPath(url: string) {
+  return url.startsWith('/') && !url.startsWith('//')
 }
+
+/** Whether an address points at this machine. Automated runs may load only these. */
+export function isLocalUrl(url: string) {
+  if (isSameServerPath(url)) return true
+  try {
+    const { hostname } = new URL(url)
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]'
+  } catch {
+    return false
+  }
+}
+
+/**
+ * An address, trimmed: an https or http URL, or a path on the same server. The message says what
+ * is wrong with the text: empty, not a URL at all, or another scheme.
+ */
+const address = z
+  .string({ error: ENTER_ADDRESS })
+  .trim()
+  .pipe(
+    z.union([z.string().refine(isSameServerPath), z.url({ protocol: /^https?$/ })], {
+      error: (issue) => {
+        const text = String(issue.input)
+        if (text === '') return ENTER_ADDRESS
+        // a readable address with another scheme (`ftp:`, `javascript:`) is named as such
+        return URL.canParse(text) && !/^https?:/i.test(text) ? NOT_HTTP_ADDRESS : NOT_VALID_ADDRESS
+      },
+    }),
+  )
+
+/** Vector tiles also need the `{z}`, `{x}` and `{y}` template in the address */
+const vectorAddress = address.refine(
+  (text) => ['{z}', '{x}', '{y}'].every((part) => text.includes(part)),
+  { error: TEMPLATE_ADDRESS },
+)
+
+/** The reason an address cannot be used for a kind of layer, or `undefined` when it can */
+export function checkLayerUrl(url: unknown, kind: DataLayerKind) {
+  const result = (kind === 'vector' ? vectorAddress : address).safeParse(url)
+  return result.success ? undefined : result.error.issues[0]?.message
+}
+
+/** The kind an address most likely has: `.pmtiles` is PMTiles, `{z}` is vector tiles, else GeoJSON */
+export function guessKind(url: string) {
+  const trimmed = url.trim()
+  if (/\.pmtiles(?:[?#]|$)/i.test(trimmed)) return 'pmtiles'
+  if (trimmed.includes('{z}')) return 'vector'
+  return 'geojson'
+}
+
+/** Source layer names typed by a person: separated by commas, blanks and repeats dropped */
+export function parseSourceLayers(text: string) {
+  const names: string[] = []
+  for (const part of text.split(',')) {
+    const name = part.trim()
+    if (name !== '' && !names.includes(name)) names.push(name)
+  }
+  return names
+}
+
+/**
+ * A list of source layer names. Each item must be text that is not blank; the list is then read
+ * as a typed string (see `parseSourceLayers`). `missing` is said when the list is absent.
+ */
+function sourceLayerList(missing: string) {
+  return z
+    .array(
+      z
+        .string({ error: LIST_MESSAGE })
+        .refine((item) => item.trim() !== '', { error: LIST_MESSAGE }),
+      {
+        error: (issue) => (issue.input === undefined ? missing : LIST_MESSAGE),
+      },
+    )
+    .transform((items) => parseSourceLayers(items.join(',')))
+}
+
+/** The fields every kind of layer has */
+const layerFields = {
+  id: z.string({ error: ID_MESSAGE }).regex(ID_PATTERN, { error: ID_MESSAGE }),
+  name: z.string({ error: NAME_MESSAGE }).trim().min(1, { error: NAME_MESSAGE }),
+  color: colorSchema.optional(),
+  sourceLayers: sourceLayerList(LIST_MESSAGE).optional(),
+}
+
+/**
+ * A data layer as the editor's config, a stored entry or the form gives it. One schema for all
+ * three: a GeoJSON layer has no source layers, vector tiles need them, PMTiles may list them.
+ * Anything that is not an object (`null` and arrays too) is refused first, with its own message.
+ */
+export const dataLayerSchema = z.looseObject({}, { error: OBJECT_MESSAGE }).pipe(
+  z.discriminatedUnion(
+    'kind',
+    [
+      z.object({
+        ...layerFields,
+        kind: z.literal('geojson'),
+        url: address,
+        sourceLayers: z.undefined({ error: ONLY_VECTOR_AND_PMTILES }).optional(),
+      }),
+      z.object({
+        ...layerFields,
+        kind: z.literal('pmtiles'),
+        url: address,
+      }),
+      z.object({
+        ...layerFields,
+        kind: z.literal('vector'),
+        url: vectorAddress,
+        sourceLayers: sourceLayerList(NEED_SOURCE_LAYERS).refine((names) => names.length > 0, {
+          error: NEED_SOURCE_LAYERS,
+        }),
+      }),
+    ],
+    { error: KIND_MESSAGE },
+  ),
+)
+
+/** A data layer as the editor's config (or a stored URL) gives it */
+export type DataLayerConfig = z.infer<typeof dataLayerSchema>
 
 /** A GeoJSON file a person opened. Kept in memory only: it is gone after a reload. */
 export type FileLayer = {
@@ -49,115 +184,34 @@ export type DataLayer = {
 
 export type Checked<T> = { ok: true; value: T } | { ok: false; errors: string[] }
 
-const ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
-const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
+/** The fields alone, for an unknown kind, where the union cannot look at them */
+const commonFields = z.object(layerFields)
 
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
+/** The order in which the messages name the fields */
+const FIELD_ORDER = ['id', 'name', 'kind', 'url', 'color', 'sourceLayers']
 
-export function isDataLayerKind(value: unknown): value is DataLayerKind {
-  return typeof value === 'string' && DATA_LAYER_KINDS.some((kind) => kind === value)
-}
-
-/** A path on the same server (`/data/x.geojson`), not a protocol-relative `//host/...` */
-export function isSameServerPath(url: string) {
-  return url.startsWith('/') && !url.startsWith('//')
-}
-
-/** Whether an address points at this machine. Automated runs may load only these. */
-export function isLocalUrl(url: string) {
-  if (isSameServerPath(url)) return true
-  try {
-    const { hostname } = new URL(url)
-    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]'
-  } catch {
-    return false
-  }
-}
-
-/** The reason an address cannot be used for a kind of layer, or `undefined` when it can */
-export function checkLayerUrl(url: unknown, kind: DataLayerKind) {
-  if (typeof url !== 'string' || url.trim() === '') return 'Enter the address of the data.'
-  const trimmed = url.trim()
-  if (!isSameServerPath(trimmed)) {
-    let parsed: URL
-    try {
-      parsed = new URL(trimmed)
-    } catch {
-      return 'The address is not valid. It must start with https://.'
-    }
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:')
-      return 'The address must start with https:// (or http://).'
-  }
-  if (kind === 'vector' && !['{z}', '{x}', '{y}'].every((part) => trimmed.includes(part)))
-    return 'A vector tile address needs {z}, {x} and {y} in it.'
-  return undefined
-}
-
-/** The kind an address most likely has: `.pmtiles` is PMTiles, `{z}` is vector tiles, else GeoJSON */
-export function guessKind(url: string) {
-  const trimmed = url.trim()
-  if (/\.pmtiles(?:[?#]|$)/i.test(trimmed)) return 'pmtiles'
-  if (trimmed.includes('{z}')) return 'vector'
-  return 'geojson'
-}
-
-/** Source layer names typed by a person: separated by commas, blanks and repeats dropped */
-export function parseSourceLayers(text: string) {
-  const names: string[] = []
-  for (const part of text.split(',')) {
-    const name = part.trim()
-    if (name !== '' && !names.includes(name)) names.push(name)
-  }
-  return names
+function fieldRank(field: PropertyKey | undefined) {
+  const index = FIELD_ORDER.indexOf(String(field))
+  return index === -1 ? FIELD_ORDER.length : index
 }
 
 /**
- * Checks a layer from the editor's config or a stored one. Returns the layer with its fields
- * trimmed, or every reason it is not usable (in plain words).
+ * Checks a layer from the editor's config, the form or the stored state. Returns the layer with its
+ * fields trimmed, or every reason it is not usable (in plain words).
  */
 export function checkDataLayerConfig(input: unknown): Checked<DataLayerConfig> {
-  if (!isRecord(input)) return { ok: false, errors: ['A data layer must be an object.'] }
-  const { id, name, kind, url, color, sourceLayers } = input
-  const errors: string[] = []
-  if (typeof id !== 'string' || !ID_PATTERN.test(id))
-    errors.push('The id must be 1 to 64 letters, digits, "-" or "_".')
-  if (typeof name !== 'string' || name.trim() === '') errors.push('The name must not be empty.')
-  if (!isDataLayerKind(kind)) errors.push(`The kind must be one of ${DATA_LAYER_KINDS.join(', ')}.`)
-  if (isDataLayerKind(kind)) {
-    const urlError = checkLayerUrl(url, kind)
-    if (urlError) errors.push(urlError)
+  const result = dataLayerSchema.safeParse(input)
+  if (result.success) return { ok: true, value: result.data }
+  // An unknown kind stops the union at the kind. The other fields are checked on their own too, so
+  // every reason is named.
+  const issues = [...result.error.issues]
+  if (issues.some((issue) => issue.path[0] === 'kind')) {
+    const fields = commonFields.safeParse(input)
+    if (!fields.success) issues.push(...fields.error.issues)
   }
-  if (color !== undefined && (typeof color !== 'string' || !COLOR_PATTERN.test(color)))
-    errors.push('The colour must be a hex value such as #d6007a.')
-  let names: string[] | undefined
-  if (sourceLayers !== undefined) {
-    if (
-      !Array.isArray(sourceLayers) ||
-      !sourceLayers.every((item) => typeof item === 'string' && item.trim() !== '')
-    ) {
-      errors.push('The source layers must be a list of names.')
-    } else {
-      names = parseSourceLayers(sourceLayers.join(','))
-    }
-  }
-  if (kind === 'vector' && (names === undefined || names.length === 0))
-    errors.push('Vector tiles need the names of their source layers.')
-  if (kind === 'geojson' && sourceLayers !== undefined)
-    errors.push('Source layers only apply to vector tiles and PMTiles.')
-  if (errors.length > 0) return { ok: false, errors }
-  // every check above passed, so these narrow types are right
-  const trimmedName = (name as string).trim()
-  const value: DataLayerConfig = {
-    id: id as string,
-    name: trimmedName,
-    kind: kind as DataLayerKind,
-    url: (url as string).trim(),
-    ...(typeof color === 'string' ? { color: color.toLowerCase() } : {}),
-    ...(names !== undefined && kind !== 'geojson' ? { sourceLayers: names } : {}),
-  }
-  return { ok: true, value }
+  // in the order of the fields, as the messages have always come
+  issues.sort((a, b) => fieldRank(a.path[0]) - fieldRank(b.path[0]))
+  return { ok: false, errors: issues.map((issue) => issue.message) }
 }
 
 /**

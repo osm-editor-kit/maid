@@ -2,7 +2,8 @@
  * What the photos module keeps between visits, and the rules that decide which providers may be
  * used. Pure: no React, no store, no browser global except the navigator the caller passes in.
  */
-import type { DateRange, PhotoTypeFilter } from '@osm-editor-kit/street-imagery'
+import type { PhotoTypeFilter } from '@osm-editor-kit/street-imagery'
+import { z } from 'zod'
 
 /** The providers the module offers. Panoramax is public; Mapillary needs a client token. */
 export const IMAGERY_PROVIDER_IDS = ['panoramax', 'mapillary'] as const
@@ -17,49 +18,38 @@ export const PROVIDER_LABELS: Record<ImageryProviderId, string> = {
 export const PHOTO_KINDS = ['all', 'flat', 'pano'] as const
 export type PhotoKind = (typeof PHOTO_KINDS)[number]
 
-/** What is stored in the browser under `maid:street-imagery` (version 1). */
-export type StreetImageryStored = {
-  /** The providers the person switched on. Nothing is requested for the others. */
-  providers: ImageryProviderId[]
-  photoKind: PhotoKind
-  /** Days as `YYYY-MM-DD`. No `from` and no `to`: no limit. */
-  date: DateRange
-}
-
-export const DEFAULT_STORED: StreetImageryStored = { providers: [], photoKind: 'all', date: {} }
-
-const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/
-
-/** `true` for a real calendar day written as `YYYY-MM-DD`. */
-export function isDay(value: unknown): value is string {
-  if (typeof value !== 'string' || !DAY_PATTERN.test(value)) return false
-  const time = Date.parse(`${value}T00:00:00Z`)
-  return Number.isFinite(time) && new Date(time).toISOString().slice(0, 10) === value
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function isProviderId(value: unknown): value is ImageryProviderId {
-  return typeof value === 'string' && IMAGERY_PROVIDER_IDS.some((id) => id === value)
-}
+/** A day as `YYYY-MM-DD`: a real calendar day (29 February only in leap years) */
+export const DAY = z.iso.date()
 
 /**
- * Reads what storage gave back. Anything that does not fit is dropped and the default is used
- * for it: a stored value must never stop the editor from starting.
+ * What is stored in the browser under `maid:street-imagery` (version 1), read field by field: a
+ * value that does not fit is dropped and the default is used for it. A stored value must never stop
+ * the editor from starting.
  */
-export function parseStored(value: unknown) {
-  if (!isRecord(value)) return DEFAULT_STORED
-  const providers = Array.isArray(value.providers)
-    ? [...new Set(value.providers.filter(isProviderId))]
-    : []
-  const photoKind = PHOTO_KINDS.find((kind) => kind === value.photoKind) ?? DEFAULT_STORED.photoKind
-  const stored = isRecord(value.date) ? value.date : {}
-  const date: DateRange = {}
-  if (isDay(stored.from)) date.from = stored.from
-  if (isDay(stored.to)) date.to = stored.to
-  return { providers, photoKind, date }
+const storedSchema = z
+  .object({
+    /** The providers the person switched on. Nothing is requested for the others. Repeats and unknown ids are dropped. */
+    providers: z
+      .array(z.enum(IMAGERY_PROVIDER_IDS).nullable().catch(null))
+      .transform((ids) => [...new Set(ids.filter((id): id is ImageryProviderId => id !== null))])
+      .catch([]),
+    photoKind: z.enum(PHOTO_KINDS).catch('all'),
+    /** Days as `YYYY-MM-DD`. No `from` and no `to`: no limit. */
+    date: z
+      .object({ from: DAY.optional().catch(undefined), to: DAY.optional().catch(undefined) })
+      .catch({}),
+  })
+  .catch({ providers: [], photoKind: 'all', date: {} })
+
+/** What is stored: the providers, the photo kind and the dates (see `storedSchema`) */
+export type StreetImageryStored = z.infer<typeof storedSchema>
+
+/** What a missing or broken stored value becomes */
+export const DEFAULT_STORED: StreetImageryStored = storedSchema.parse(undefined)
+
+/** Reads what storage gave back. Never throws: every field has a default. */
+export function parseStored(value: unknown): StreetImageryStored {
+  return storedSchema.parse(value)
 }
 
 /** Mapillary is offered only when the build has a token; Panoramax always. */

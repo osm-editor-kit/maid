@@ -9,6 +9,7 @@ import {
 } from '@floating-ui/react'
 import type { Field } from '@osm-editor-kit/maid-presets'
 import { useId, useState, type KeyboardEvent } from 'react'
+import { PLAIN_INPUT } from '../plain-input.ts'
 import { searchFields } from './add-field-logic.ts'
 import { HINT, INPUT } from './fields/shared.ts'
 import { moveActive } from './picker-logic.ts'
@@ -89,6 +90,7 @@ export function AddField(props: { fields: readonly Field[]; onPick: (field: Fiel
       {/* oxlint-disable-next-line react/refs -- refs.setReference is floating-ui's callback ref, not a .current value read during render */}
       <div ref={refs.setReference} className="min-w-0">
         <input
+          {...PLAIN_INPUT}
           type="text"
           role="combobox"
           aria-label="Add field"

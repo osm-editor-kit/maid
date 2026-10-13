@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test'
 import {
   activeProviders,
+  DAY,
   DEFAULT_STORED,
-  isDay,
   parseStored,
   photoTypesOf,
   providerAvailable,
@@ -42,13 +42,13 @@ describe('parseStored', () => {
   })
 })
 
-describe('isDay', () => {
+describe('DAY', () => {
   it('accepts real calendar days only', () => {
-    expect(isDay('2024-02-29')).toBe(true)
-    expect(isDay('2023-02-29')).toBe(false)
-    expect(isDay('2024-2-9')).toBe(false)
-    expect(isDay('2024-02-29T10:00')).toBe(false)
-    expect(isDay(20240229)).toBe(false)
+    expect(DAY.safeParse('2024-02-29').success).toBe(true)
+    expect(DAY.safeParse('2023-02-29').success).toBe(false)
+    expect(DAY.safeParse('2024-2-9').success).toBe(false)
+    expect(DAY.safeParse('2024-02-29T10:00').success).toBe(false)
+    expect(DAY.safeParse(20240229).success).toBe(false)
   })
 })
 

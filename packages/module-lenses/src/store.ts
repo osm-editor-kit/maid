@@ -4,9 +4,26 @@ import { moduleStorage } from '@osm-editor-kit/maid-core'
  * built-in lenses are not stored: the module sets them when it starts.
  */
 import type { Lens } from '@osm-editor-kit/maid-style'
+import { z } from 'zod'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { BUILT_IN_LENSES } from './builtin.ts'
+import { lensSchema } from './lens-file.ts'
+
+/** What is stored. Read back with every load: a stored value that does not fit is not used. */
+const storedLenses = z.object({
+  activeId: z.string().nullable(),
+  imported: z.array(lensSchema),
+})
+
+/** The state from storage, over the current (default) state. A value that does not parse is ignored. */
+export function restoreLenses<State extends Pick<LensState, 'activeId' | 'imported'>>(
+  persisted: unknown,
+  current: State,
+): State {
+  const stored = storedLenses.safeParse(persisted)
+  return stored.success ? { ...current, ...stored.data } : current
+}
 
 export type LensState = {
   /** The id of the lens on the map, or null for the default look */
@@ -46,6 +63,8 @@ export const useLensStore = create<LensState>()(
       version: 1,
       storage: createJSONStorage(() => moduleStorage()),
       partialize: ({ activeId, imported }) => ({ activeId, imported }),
+      // every stored value is checked on load, not only after a version change
+      merge: (persisted, current) => restoreLenses(persisted, current),
     },
   ),
 )

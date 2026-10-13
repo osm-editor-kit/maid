@@ -1,3 +1,4 @@
+import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 /**
  * The "Data layers" flyout: the list of layers with a switch each, and the form that adds one.
  */
@@ -184,6 +185,7 @@ function AddLayerForm({
       <label className="flex flex-col gap-1" htmlFor={`${ids}-name`}>
         <span className={LABEL}>Name</span>
         <input
+          {...PLAIN_INPUT}
           id={`${ids}-name`}
           className={INPUT}
           value={name}
@@ -198,6 +200,7 @@ function AddLayerForm({
       <label className="flex flex-col gap-1" htmlFor={`${ids}-url`}>
         <span className={LABEL}>Address</span>
         <input
+          {...PLAIN_INPUT}
           id={`${ids}-url`}
           className={INPUT}
           inputMode="url"
@@ -210,11 +213,12 @@ function AddLayerForm({
         <label className="flex flex-col gap-1" htmlFor={`${ids}-file`}>
           <span className={LABEL}>Or a GeoJSON file</span>
           <input
+            {...PLAIN_INPUT}
             key={fileInputKey}
             id={`${ids}-file`}
             type="file"
             accept=".geojson,.json,application/geo+json,application/json"
-            className="h-8 w-full min-w-0 cursor-pointer rounded-md border border-zinc-950/10 bg-white pr-2 pl-1 text-sm text-zinc-500 file:mr-3 file:h-6 file:cursor-pointer file:rounded-sm file:border-0 file:bg-zinc-100 file:px-2.5 file:text-xs file:font-semibold file:text-zinc-950 hover:border-zinc-950/20 hover:file:bg-zinc-200 focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-400 dark:[color-scheme:dark] dark:file:bg-white/10 dark:file:text-white dark:hover:border-white/20 dark:hover:file:bg-white/20"
+            className="block w-full min-w-0 cursor-pointer rounded-md text-sm text-zinc-500 file:mr-3 file:h-8 file:cursor-pointer file:rounded-md file:border file:border-solid file:border-zinc-950/10 file:bg-white file:px-3 file:text-sm file:font-medium file:text-zinc-950 hover:file:border-zinc-950/20 hover:file:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:file:border-white/10 dark:file:bg-white/5 dark:file:text-white dark:hover:file:border-white/20 dark:hover:file:bg-white/10"
             onChange={(event) => {
               const chosenFile = event.target.files?.[0]
               setFile(chosenFile)
@@ -231,6 +235,7 @@ function AddLayerForm({
         <label className="flex flex-col gap-1" htmlFor={`${ids}-layers`}>
           <span className={LABEL}>Source layers</span>
           <input
+            {...PLAIN_INPUT}
             id={`${ids}-layers`}
             className={INPUT}
             value={sourceLayers}

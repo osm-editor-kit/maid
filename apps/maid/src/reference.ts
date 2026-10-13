@@ -6,6 +6,7 @@
 // once and kept for 30 days, in memory and in localStorage.
 import { isAutomated } from '@osm-editor-kit/maid-core'
 import { wikiTitleOf, type Reference, type ReferenceInfo } from '@osm-editor-kit/maid-ui'
+import { z } from 'zod'
 
 const API = 'https://wiki.openstreetmap.org/w/api.php'
 /** Where iD shows an image that is on Wikimedia Commons (Wikibase property P4) */
@@ -24,17 +25,89 @@ const TIMEOUT_MS = 10_000
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
 const STORAGE_PREFIX = 'maid.reference:'
 
-type Json = Record<string, unknown>
+/*
+ * The shapes below are the fields the code reads from the wiki's answer, and from our own cache. The
+ * wiki is a third party, so a field of another type is read as absent (`optionalText`), as a missing
+ * field is. The cache is ours: an entry that does not parse counts as absent, and the wiki is asked again.
+ */
 
-function record(value: unknown) {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-    ? (value as Json)
-    : undefined
-}
+/** A text field: a value of another type is read as absent */
+const optionalText = z.string().optional().catch(undefined)
 
-function text(value: unknown) {
-  return typeof value === 'string' ? value : undefined
-}
+/** A statement's value, for the three kinds the code reads: a string, an item id, a text in a language */
+const datavalueSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('string'), value: optionalText }),
+  z.object({ type: z.literal('wikibase-entityid'), value: z.object({ id: optionalText }) }),
+  z.object({
+    type: z.literal('monolingualtext'),
+    value: z.object({ text: optionalText, language: optionalText }),
+  }),
+])
+
+/** A statement: its rank and the value of its main snak. A statement that is not an object is left out. */
+const statementSchema = z.object({
+  rank: optionalText,
+  mainsnak: z
+    .object({ datavalue: datavalueSchema.optional().catch(undefined) })
+    .optional()
+    .catch(undefined),
+})
+
+/** The statements of one property */
+const statementsSchema = z
+  .array(statementSchema.optional().catch(undefined))
+  .optional()
+  .catch(undefined)
+
+/** The properties the code reads, and no others */
+const claimsSchema = z
+  .object({ P4: statementsSchema, P28: statementsSchema, P31: statementsSchema })
+  .optional()
+  .catch(undefined)
+
+/** An item of the answer, as far as the code reads it */
+const itemSchema = z.object({
+  missing: optionalText,
+  sitelinks: z
+    .object({ wiki: z.object({ title: optionalText }).optional().catch(undefined) })
+    .optional()
+    .catch(undefined),
+  descriptions: z
+    .record(
+      z.string(),
+      z.object({ language: optionalText, value: optionalText }).optional().catch(undefined),
+    )
+    .optional()
+    .catch(undefined),
+  claims: claimsSchema,
+})
+
+/** The answer of wbgetentities. `success` and `error` decide whether it is an answer at all. */
+const answerSchema = z.object({
+  success: z.unknown().optional(),
+  error: z.unknown().optional(),
+  entities: z
+    .record(z.string(), itemSchema.optional().catch(undefined))
+    .optional()
+    .catch(undefined),
+})
+
+type WikibaseItem = z.infer<typeof itemSchema>
+type Property = 'P4' | 'P28' | 'P31'
+
+/** A stored answer: when it was asked, and its info, or null for a reference the wiki has no item for */
+const cachedAnswerSchema = z.object({
+  at: z.number(),
+  info: z.union([
+    z.null(),
+    z.object({
+      description: z.string().optional(),
+      imageUrl: z.string().optional(),
+      wikiTitle: z.string().optional(),
+      itemId: z.string().optional(),
+    }),
+  ]),
+})
 
 /** The wiki pages a reference names: its key page, and its tag page when it has a value. */
 function pagesOf(reference: Reference) {
@@ -70,45 +143,41 @@ function fileUrl(base: string, file: string) {
   return `${base}?${query}`
 }
 
-/** The statements of one property of an item, as records. */
-function statementsOf(item: Json, property: string) {
-  const list = record(item.claims)?.[property]
-  if (!Array.isArray(list)) return []
-  return list.flatMap((statement) => {
-    const found = record(statement)
-    return found ? [found] : []
-  })
+/** The statements of one property of an item. */
+function statementsOf(item: WikibaseItem, property: Property) {
+  return (item.claims?.[property] ?? []).flatMap((statement) => (statement ? [statement] : []))
 }
 
 /** iD's claimToValue without a locale: the value of the first statement that is preferred, else none. */
-function preferredValue(item: Json, property: string) {
+function preferredValue(item: WikibaseItem, property: Property) {
   const statement = statementsOf(item, property).find((found) => found.rank === 'preferred')
-  const datavalue = record(record(statement?.mainsnak)?.datavalue)
-  if (!datavalue) return undefined
-  const value =
-    datavalue.type === 'wikibase-entityid' ? record(datavalue.value)?.id : datavalue.value
-  return text(value)
+  const datavalue = statement?.mainsnak?.datavalue
+  if (datavalue?.type === 'string') return datavalue.value
+  if (datavalue?.type === 'wikibase-entityid') return datavalue.value.id
+  return undefined
 }
 
 /** The wiki page title in one language, from the monolingual statements of an item. The last one wins, as in iD. */
-function wikiPageIn(item: Json | undefined, language: string) {
+function wikiPageIn(item: WikibaseItem | undefined, language: string) {
   if (!item) return undefined
   let page: string | undefined
   for (const statement of statementsOf(item, PROPERTY_WIKI_PAGE)) {
-    const value = record(record(record(statement.mainsnak)?.datavalue)?.value)
-    if (value?.language === language) page = text(value.text) ?? page
+    const datavalue = statement.mainsnak?.datavalue
+    if (datavalue?.type === 'monolingualtext' && datavalue.value.language === language) {
+      page = datavalue.value.text ?? page
+    }
   }
   return page
 }
 
 /** The items of the answer by the wiki page they are. Missing items are left out, as iD does. */
-function itemsByTitle(answer: Json) {
-  const items = new Map<string, Json>()
-  for (const entry of Object.values(record(answer.entities) ?? {})) {
-    const item = record(entry)
+/** The items of an answer by the wiki page they belong to, each with its id (the key it has in the answer) */
+function itemsByTitle(entities: Record<string, WikibaseItem | undefined>) {
+  const items = new Map<string, WikibaseItem & { id: string }>()
+  for (const [id, item] of Object.entries(entities)) {
     if (!item || item.missing === '') continue
-    const title = text(record(record(item.sitelinks)?.wiki)?.title)
-    if (title !== undefined) items.set(title, item)
+    const title = item.sitelinks?.wiki?.title
+    if (title !== undefined) items.set(title, { ...item, id })
   }
   return items
 }
@@ -120,21 +189,21 @@ function itemsByTitle(answer: Json) {
  * wiki has neither item. Throws when the answer is an error.
  */
 export function parseWikibaseAnswer(answer: unknown, reference: Reference) {
-  const root = record(answer)
-  if (!root || !root.success || root.error !== undefined) {
+  const parsed = answerSchema.safeParse(answer)
+  if (!parsed.success || !parsed.data.success || parsed.data.error !== undefined) {
     throw new Error('The OSM Wiki answered with an error')
   }
   const pages = pagesOf(reference)
-  const items = itemsByTitle(root)
+  const items = itemsByTitle(parsed.data.entities ?? {})
   const tagItem = pages.tag === undefined ? undefined : items.get(pages.tag)
   const keyItem = items.get(pages.key)
   const item = tagItem ?? keyItem
   if (!item) return undefined
 
-  const descriptions = record(item.descriptions) ?? {}
-  const english = record(descriptions[LANGUAGE])
-  const first = record(Object.values(descriptions)[0])
-  const description = text((english?.language === LANGUAGE ? english : first)?.value)
+  const descriptions = item.descriptions ?? {}
+  const english = descriptions[LANGUAGE]
+  const first = Object.values(descriptions)[0]
+  const description = (english?.language === LANGUAGE ? english : first)?.value
 
   const commons = preferredValue(item, PROPERTY_COMMONS_IMAGE)
   const onWiki = preferredValue(item, PROPERTY_WIKI_IMAGE)
@@ -146,35 +215,23 @@ export function parseWikibaseAnswer(answer: unknown, reference: Reference) {
         : undefined
 
   const wikiTitle = wikiPageIn(tagItem, LANGUAGE) ?? wikiPageIn(keyItem, LANGUAGE)
-  return { description, imageUrl, wikiTitle }
+  // the item that iD links as well: the tag's own, else the key's. Only a real item id (Q and digits).
+  const itemId = /^Q\d+$/.test(item.id) ? item.id : undefined
+  return { description, imageUrl, wikiTitle, itemId }
 }
 
 /** A stored answer, when it is younger than 30 days: its info, or null for a reference the wiki has no item for. */
-export function freshStored(raw: string | null, now: number): ReferenceInfo | null | undefined {
-  const stored = parseJson(raw)
-  const at = stored?.at
-  if (stored === undefined || typeof at !== 'number' || now - at > MAX_AGE_MS) return undefined
-  if (stored.info === null) return null
-  return infoOf(stored.info)
-}
-
-function parseJson(raw: string | null) {
+export function freshStored(raw: string | null, now: number) {
   if (raw === null) return undefined
+  let json: unknown
   try {
-    return record(JSON.parse(raw))
+    json = JSON.parse(raw)
   } catch {
     return undefined
   }
-}
-
-function infoOf(value: unknown) {
-  const info = record(value)
-  if (!info) return undefined
-  return {
-    description: text(info.description),
-    imageUrl: text(info.imageUrl),
-    wikiTitle: text(info.wikiTitle),
-  }
+  const stored = cachedAnswerSchema.safeParse(json)
+  if (!stored.success || now - stored.data.at > MAX_AGE_MS) return undefined
+  return stored.data.info
 }
 
 /** Answers of this session, by the wiki page of the reference. null: the wiki has no item for it. */

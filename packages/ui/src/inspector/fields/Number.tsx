@@ -9,6 +9,7 @@ import {
   type KeyboardEvent,
   type MouseEvent,
 } from 'react'
+import { PLAIN_INPUT } from '../../plain-input.ts'
 import { cleanValue } from '../logic.ts'
 import { FallbackField } from './Fallback.tsx'
 import {
@@ -171,6 +172,7 @@ function NumberControl({
     >
       <div className="min-w-0 flex-1">
         <input
+          {...PLAIN_INPUT}
           ref={registerPart(parts, 'input')}
           id={id}
           type="text"
@@ -292,6 +294,7 @@ function SpeedControl({
     >
       <div className="min-w-0 flex-1">
         <input
+          {...PLAIN_INPUT}
           ref={registerPart(parts, 'input')}
           id={id}
           type="text"
@@ -406,6 +409,7 @@ function HeightControl({
     >
       <div className="min-w-0 flex-1">
         <input
+          {...PLAIN_INPUT}
           ref={registerPart(parts, 'input')}
           id={id}
           type="text"
@@ -421,6 +425,7 @@ function HeightControl({
       {unit === 'ft' ? (
         <div className="w-16 shrink-0">
           <input
+            {...PLAIN_INPUT}
             ref={registerPart(parts, 'secondary')}
             type="text"
             inputMode="decimal"

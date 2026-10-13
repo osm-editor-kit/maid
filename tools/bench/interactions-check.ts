@@ -836,6 +836,144 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
     { sides: [], bands: 0, labels: [] },
     await overlay(),
   )
+
+  // --- favourites by number: hold Alt, type the digits, let Alt go starts the favourite of that
+  // number (apps/maid/src/favourites-keys.ts, components/FavouriteHint.tsx). Under automation the
+  // settings are not stored, so the favourites are made in the picker: the building (an area) gets
+  // number 3 and the bench (a point) gets 39 ---
+  const holdAlt = async (digits: string[]) => {
+    await page.keyboard.down('Alt')
+    for (const digit of digits) await page.keyboard.press(`Digit${digit}`)
+  }
+  const hint = () =>
+    page.evaluate(() => document.querySelector('[role="status"]')?.textContent ?? '')
+  const changeType = page.getByTitle('Change the feature type')
+  const numberOf = (name: string) =>
+    page.getByRole('textbox', { name: `Number of ${name}`, exact: true })
+  // the picker's search field; the page has other comboboxes (the title, "Add field")
+  const search = () => page.getByRole('combobox', { name: 'Search feature types', exact: true })
+
+  // the building: the scene's building is an Industrial Building, and without a search the picker
+  // lists only the first 50 presets by name, so "Building" is found by typing it. Its picker lists
+  // the area favourites, and the field gives the number
+  await click(first.edge)
+  await changeType.click()
+  await settle()
+  await search().fill('Building')
+  await settle()
+  await page.getByRole('button', { name: 'Add Building to favourites', exact: true }).click()
+  await settle()
+  await numberOf('Building').fill('3')
+  await numberOf('Building').press('Enter')
+  await settle()
+  report(
+    'the building favourite gets number 3 in the list',
+    '3',
+    await numberOf('Building').inputValue(),
+  )
+  await key('Escape')
+
+  // the bench: a point, found by its name in the search field of its picker
+  await click(found.point!.at)
+  await changeType.click()
+  await search().fill('Bench')
+  await settle()
+  await page.getByRole('button', { name: 'Add Bench to favourites', exact: true }).click()
+  await settle()
+  await numberOf('Bench').fill('39')
+  await numberOf('Bench').press('Enter')
+  await settle()
+  report(
+    'the bench favourite gets number 39 in the list',
+    '39',
+    await numberOf('Bench').inputValue(),
+  )
+  await key('Escape')
+
+  // (1) 3, then 9, then Alt let go: favourite 39 (a point, so add-point), not favourite 3 (an area)
+  await key('Escape')
+  await holdAlt(['3', '9'])
+  await settle()
+  report(
+    'while typing 3 then 9 the hint shows the bench',
+    true,
+    (await hint()).includes('39 · Bench'),
+  )
+  await page.keyboard.up('Alt')
+  await settle()
+  report(
+    'Alt let go after 3 then 9 starts favourite 39, not favourite 3',
+    'add-point',
+    (await state()).mode,
+  )
+  await key('Escape')
+
+  // (2) 3 alone, then Alt let go: favourite 3, the area
+  await holdAlt(['3'])
+  await page.keyboard.up('Alt')
+  await settle()
+  report('Alt let go after 3 alone starts favourite 3, the area', 'draw-area', (await state()).mode)
+  await key('Escape')
+
+  // (4) a number without a favourite: nothing starts, and the hint says so
+  await holdAlt(['7'])
+  await settle()
+  report('the hint says there is no favourite 7', true, (await hint()).includes('no favourite 7'))
+  await page.keyboard.up('Alt')
+  await settle()
+  report('a number without a favourite starts nothing', 'browse', (await state()).mode)
+
+  // (5) Escape while holding cancels: the hint goes, and letting Alt go starts nothing
+  await holdAlt(['3', '9'])
+  await page.keyboard.press('Escape')
+  await settle()
+  report('Escape while holding clears the hint', '', await hint())
+  await page.keyboard.up('Alt')
+  await settle()
+  report('Escape, then Alt let go, starts nothing', 'browse', (await state()).mode)
+
+  // (6) the same digits typed in the search field of a picker start nothing and change nothing
+  await click(first.edge)
+  await changeType.click()
+  await settle()
+  const undoBeforeField = (await state()).undo
+  await holdAlt(['3', '9'])
+  await page.keyboard.up('Alt')
+  await settle()
+  report(
+    'digits typed in a text field start no favourite',
+    ['browse', undoBeforeField],
+    [(await state()).mode, (await state()).undo],
+  )
+  await page.keyboard.press('Escape')
+  await key('Escape')
+
+  // (3) the number of the building is set to 888 in the list; 8, 8, 8 starts it, and 3 starts nothing
+  await click(first.edge)
+  if (!(await numberOf('Building').isVisible())) await changeType.click()
+  await settle()
+  await numberOf('Building').fill('888')
+  await numberOf('Building').press('Enter')
+  await settle()
+  report(
+    'the building favourite gets number 888 in the list',
+    '888',
+    await numberOf('Building').inputValue(),
+  )
+  await key('Escape')
+  await holdAlt(['8', '8', '8'])
+  await page.keyboard.up('Alt')
+  await settle()
+  report(
+    'Alt let go after 8, 8, 8 starts favourite 888, the area',
+    'draw-area',
+    (await state()).mode,
+  )
+  await key('Escape')
+  await holdAlt(['3'])
+  await page.keyboard.up('Alt')
+  await settle()
+  report('number 3 is free now and starts nothing', 'browse', (await state()).mode)
 })
 
 // --- snapping: a drop on a node or a way joins it, as iD does, and add point snaps too ---

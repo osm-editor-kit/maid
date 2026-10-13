@@ -3,22 +3,28 @@
  * read `pmtiles://` sources.
  */
 import { PMTiles, Protocol, TileType } from 'pmtiles'
-import { isRecord } from './config.ts'
+import { z } from 'zod'
+
+/** The part of an archive's metadata that is read. Other members are not checked. */
+const metadataSchema = z.object({
+  // a layer without a non-empty id is dropped on its own
+  vector_layers: z
+    .array(
+      z
+        .object({ id: z.string().min(1) })
+        .nullable()
+        .catch(null),
+    )
+    .catch([]),
+})
 
 /** The layer names in an archive's metadata (`vector_layers`), in order, without repeats */
 export function sourceLayerNames(metadata: unknown) {
-  if (!isRecord(metadata) || !Array.isArray(metadata.vector_layers)) return []
-  const names: string[] = []
-  for (const layer of metadata.vector_layers) {
-    if (
-      isRecord(layer) &&
-      typeof layer.id === 'string' &&
-      layer.id !== '' &&
-      !names.includes(layer.id)
-    )
-      names.push(layer.id)
-  }
-  return names
+  const result = metadataSchema.safeParse(metadata)
+  if (!result.success) return []
+  const names = new Set<string>()
+  for (const layer of result.data.vector_layers) if (layer !== null) names.add(layer.id)
+  return [...names]
 }
 
 async function readArchive(url: string) {

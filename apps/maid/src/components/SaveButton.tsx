@@ -1,4 +1,5 @@
 import { ArrowUpTrayIcon } from '@heroicons/react/20/solid'
+import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { Flyout, toolButtonClass } from '@osm-editor-kit/maid-ui'
 import { useState } from 'react'
 import { useAuth } from '../auth'
@@ -109,6 +110,7 @@ function SavePanel() {
       <label className="flex flex-col gap-1">
         <span className="font-medium">Changeset comment</span>
         <textarea
+          {...PLAIN_INPUT}
           rows={3}
           maxLength={255}
           value={comment}

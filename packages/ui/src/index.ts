@@ -38,13 +38,10 @@ export {
   SidebarSection,
 } from './Sidebar.tsx'
 export {
-  FAVOURITE_KEYS,
   favouritesFor,
-  findFavouriteByKey,
-  isFavouritesFull,
-  MAX_FAVOURITES,
+  findFavouriteByNumber,
+  setFavouriteNumber,
   type Favourite,
-  type FavouriteKey,
 } from './favourites.ts'
 export { useSettings, type Settings } from './settings.ts'
 export { initTheme, useResolvedTheme, useTheme, type Theme } from './theme.ts'
@@ -73,3 +70,4 @@ export {
 export { Tooltip } from './Tooltip.tsx'
 export { useResizable } from './useResizable.ts'
 export { useBreakpoint, type Breakpoint } from './useBreakpoint.ts'
+export { PLAIN_INPUT } from './plain-input.ts'

@@ -1,4 +1,5 @@
 import { isAutomated } from '@osm-editor-kit/maid-core'
+import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { toolButtonTone } from '@osm-editor-kit/maid-ui'
 import { useEffect, useState } from 'react'
 import { useStore } from 'zustand'
@@ -98,6 +99,7 @@ function PanelBody(props: { store: ImageryStore }) {
       {all.length > SEARCH_FROM ? (
         <div className="px-4 pb-2">
           <input
+            {...PLAIN_INPUT}
             type="search"
             aria-label="Search backgrounds"
             placeholder="Search backgrounds"
@@ -156,6 +158,7 @@ function PanelBody(props: { store: ImageryStore }) {
               <li key={item.id} className="py-1">
                 <label className="flex cursor-pointer items-start gap-2.5 text-sm">
                   <input
+                    {...PLAIN_INPUT}
                     type="checkbox"
                     className="mt-1 size-4 shrink-0 accent-blue-600"
                     checked={overlayIds.includes(item.id)}
@@ -178,6 +181,7 @@ function PanelBody(props: { store: ImageryStore }) {
         <label className="flex items-center gap-3 border-t border-zinc-950/5 px-4 py-3 text-sm dark:border-white/5">
           <span className="w-20 shrink-0">Brightness</span>
           <input
+            {...PLAIN_INPUT}
             type="range"
             className="min-w-0 flex-1 accent-blue-600"
             min={Math.round(BRIGHTNESS_MIN * 100)}

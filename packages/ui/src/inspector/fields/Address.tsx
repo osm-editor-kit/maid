@@ -1,5 +1,6 @@
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import { useId, useState } from 'react'
+import { PLAIN_INPUT } from '../../plain-input.ts'
 import type { TagEdit } from '../logic.ts'
 import {
   addressPrefix,
@@ -230,6 +231,7 @@ function TextSlot(props: {
   return (
     <>
       <input
+        {...PLAIN_INPUT}
         id={id}
         type="text"
         autoComplete="off"

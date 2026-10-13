@@ -1,6 +1,8 @@
+import { moduleStorage } from '@osm-editor-kit/maid-core'
 import type { Geometry } from '@osm-editor-kit/maid-presets'
+import { z } from 'zod'
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
 import {
   moveFavourite as moveIn,
   toggleFavourite as toggleIn,
@@ -20,7 +22,7 @@ export type Settings = {
    * URL's notation. A link never writes here (docs/architecture/09-storage-and-settings.md).
    */
   shown: Record<string, string>
-  /** The favourite feature types, in the order they are listed, each with its number key */
+  /** The favourite feature types, in the order they are listed, each with its number */
   favourites: Favourite[]
 }
 
@@ -41,10 +43,58 @@ type SettingsStore = Settings & {
   moveFavourite: (presetId: string, geometry: Geometry, delta: 1 | -1) => void
 }
 
+/** A favourite as it is stored: the same shape as `Favourite`, read field by field */
+const favouriteSchema = z.object({
+  presetId: z.string(),
+  geometry: z.enum(['point', 'vertex', 'line', 'area', 'relation']),
+  // a positive whole number without a leading zero, as many digits as wanted
+  number: z.string().regex(/^[1-9][0-9]*$/),
+})
+
+/**
+ * The stored settings. A field that does not fit gets its default on its own: a broken `sizes` keeps
+ * the favourites, and a favourite that does not fit is left out while the others are kept.
+ */
+const storedSchema = z.object({
+  theme: z.enum(['light', 'dark', 'system']).catch('system'),
+  sizes: z.record(z.string(), z.number()).catch(() => ({})),
+  shown: z.record(z.string(), z.string()).catch(() => ({})),
+  favourites: z
+    .array(z.unknown())
+    .transform((items) =>
+      items.flatMap((item) => {
+        const found = favouriteSchema.safeParse(item)
+        return found.success ? [found.data] : []
+      }),
+    )
+    .catch(() => []),
+})
+
+/** The stored value as settings. A value that is not an object at all gives every default. */
+function parseStored(value: unknown): Settings {
+  const parsed = storedSchema.safeParse(value)
+  return parsed.success ? parsed.data : { theme: 'system', sizes: {}, shown: {}, favourites: [] }
+}
+
+/** A version 3 value with its favourites numbered in list order. Anything else is passed on as it is. */
+function numbered(stored: unknown): unknown {
+  const found = z.looseObject({ favourites: z.array(z.looseObject({})) }).safeParse(stored)
+  if (!found.success) return stored
+  return {
+    ...found.data,
+    favourites: found.data.favourites.map((favourite, index) => ({
+      ...favourite,
+      number: String(index + 1),
+    })),
+  }
+}
+
 /**
  * The one store for the UI's settings, kept in localStorage with a version. A setting that is
  * added or changes its shape gets a step in `migrate`, so stored settings are carried over, not
  * dropped. Reading is synchronous: the first paint already has the right theme and sizes.
+ * Every stored value is parsed on load (`merge`), not only after a version change. Under automation
+ * nothing is read or written (`moduleStorage`).
  */
 export const useSettings = create<SettingsStore>()(
   persist(
@@ -66,10 +116,15 @@ export const useSettings = create<SettingsStore>()(
     }),
     {
       name: 'maid:settings',
-      version: 3,
-      // version 2 added `shown`, version 3 added `favourites`
-      migrate: (stored) =>
-        ({ shown: {}, favourites: [], ...(stored as Partial<Settings>) }) as Settings,
+      version: 4,
+      storage: createJSONStorage(() => moduleStorage()),
+      // version 2 added `shown`, version 3 added `favourites`: a version 2 value parses with the defaults.
+      // Version 4 gave every favourite a number in place of one of seven fixed keys: the favourites
+      // of version 3 keep their order and are numbered 1, 2, 3, ...
+      migrate: (stored, version) => parseStored(version < 4 ? numbered(stored) : stored),
+      // runs on every load. With nothing stored, the state stays as it is.
+      merge: (stored, current) =>
+        stored === undefined ? current : { ...current, ...parseStored(stored) },
       partialize: ({ theme, sizes, shown, favourites }) => ({ theme, sizes, shown, favourites }),
     },
   ),

@@ -10,6 +10,7 @@ import {
 import { XMarkIcon } from '@heroicons/react/16/solid'
 import type { FieldOption } from '@osm-editor-kit/maid-presets'
 import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { PLAIN_INPUT } from '../../plain-input.ts'
 import { moveActive } from '../picker-logic.ts'
 import { CheckBox } from './CheckBox.tsx'
 import { filterOptions, shownText } from './combo-logic.ts'
@@ -396,6 +397,7 @@ function ChipInput(props: ChipInputProps) {
         {chips}
         {showInput ? (
           <input
+            {...PLAIN_INPUT}
             ref={inputRef}
             id={id}
             type="text"

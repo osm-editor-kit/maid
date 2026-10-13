@@ -44,3 +44,10 @@ describe('sanitizeStored', () => {
     expect(sanitizeStored({ added: [VALID] })).toEqual({ added: [VALID], hidden: [] })
   })
 })
+
+describe('sanitizeStored with entries that are not layers', () => {
+  test('null, text and numbers in the list are dropped, and a state that is null is empty', () => {
+    expect(sanitizeStored({ added: [null, 'x', 3] })).toEqual({ added: [], hidden: [] })
+    expect(sanitizeStored(null)).toEqual({ added: [], hidden: [] })
+  })
+})

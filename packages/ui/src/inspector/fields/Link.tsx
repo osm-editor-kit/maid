@@ -1,5 +1,6 @@
 import { ArrowTopRightOnSquareIcon } from '@heroicons/react/16/solid'
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
+import { PLAIN_INPUT } from '../../plain-input.ts'
 import { cleanValue } from '../logic.ts'
 import { DraftInput, LengthNotice, useDraft, useLengthLimit } from './DraftInput.tsx'
 import { FallbackField } from './Fallback.tsx'
@@ -50,6 +51,7 @@ export function AddonInput({ tagKey, value, onChange, addons, hint, ...rest }: A
     <>
       <div className="flex min-w-0">
         <input
+          {...PLAIN_INPUT}
           {...rest}
           className={`${grouped ? `${INPUT} flex-1 rounded-r-none` : INPUT} ${LIMITED}`}
           aria-invalid={limit.invalid}

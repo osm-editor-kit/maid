@@ -17,9 +17,9 @@ import { editor, engine, useEngine } from '../editor'
 import {
   changeType,
   moveFavourite,
+  setFavouriteNumber,
   toggleFavourite,
   useFavouriteRows,
-  useFavouritesFull,
 } from '../favourites'
 import { fieldOverlayFor, widthKeyTarget } from '../field-overlay'
 import { loadReference } from '../reference'
@@ -54,7 +54,6 @@ export function Inspector() {
   const fieldTypes = Object.fromEntries(moduleFields.map((item) => [item.type, item.component]))
   // the favourites of the feature's geometry, for the type picker
   const favourites = useFavouriteRows(entity?.geometry)
-  const favouritesFull = useFavouritesFull()
   // whether the type picker is open, and for which id: selecting something else forgets it
   const [picker, setPicker] = useState<{ id: string; open: boolean } | null>(null)
   // the key whose width is being measured on the map: state here, not a module variable
@@ -172,9 +171,11 @@ export function Inspector() {
                   <PresetIcon icon={preset.icon} className="fill-zinc-700 dark:fill-zinc-200" />
                 )}
                 favourites={favourites}
-                favouritesFull={favouritesFull}
                 onToggleFavourite={(preset) => toggleFavourite(preset, entity.geometry)}
                 onMoveFavourite={(preset, delta) => moveFavourite(preset, entity.geometry, delta)}
+                onSetNumber={(preset, number) =>
+                  setFavouriteNumber(preset, entity.geometry, number)
+                }
                 onPick={(preset) => {
                   changeType(id, preset)
                   setPicker({ id, open: false })

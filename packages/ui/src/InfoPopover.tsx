@@ -17,6 +17,8 @@ export type ReferenceInfo = {
   imageUrl?: string
   /** The wiki page to link, when it is not the page the reference names (for example a translation) */
   wikiTitle?: string
+  /** The id of the tag's data item on the OSM Wiki (`Q123`), for the link to the item */
+  itemId?: string
 }
 
 /**
@@ -47,9 +49,12 @@ export function wikiUrl(title: string) {
 const BUTTON =
   'grid size-5 shrink-0 place-items-center rounded-full text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 aria-expanded:bg-zinc-950/5 aria-expanded:text-zinc-950 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white dark:aria-expanded:bg-white/10 dark:aria-expanded:text-white'
 
+const LINK =
+  'inline-flex w-fit items-center gap-1.5 rounded-md text-sm font-medium text-blue-600 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-blue-400'
+
 /**
  * A small round "i" button that opens a compact panel next to it with what the OSM Wiki says about a
- * tag: its title, a description, an optional image and a link to the wiki page. It is a Flyout, so
+ * tag: its title, a description, links to the wiki page and to the tag's data item, and an image below them. It is a Flyout, so
  * a click outside or Escape closes it. Without `load` it shows the tag and the link only.
  */
 export function InfoPopover(props: {
@@ -129,6 +134,25 @@ function ReferenceBody(props: { reference: Reference; load?: ReferenceLoader }) 
       {found.status === 'loading' ? (
         <p className="text-xs text-zinc-500 dark:text-zinc-400">Loading the description…</p>
       ) : null}
+      {info?.description ? (
+        <p className="leading-5 text-zinc-700 dark:text-zinc-300">{info.description}</p>
+      ) : null}
+      <a href={wikiUrl(title)} target="_blank" rel="noopener noreferrer" className={LINK}>
+        <ArrowTopRightOnSquareIcon aria-hidden="true" className="size-4" />
+        Open on the OSM Wiki
+      </a>
+      {info?.itemId ? (
+        <a
+          href={wikiUrl(`Item:${info.itemId}`)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={LINK}
+        >
+          <ArrowTopRightOnSquareIcon aria-hidden="true" className="size-4" />
+          Open the data item
+        </a>
+      ) : null}
+      {/* last: the image arrives after the text, so it grows the panel downwards and nothing above it moves */}
       {info?.imageUrl && !imageFailed ? (
         <img
           src={info.imageUrl}
@@ -138,18 +162,6 @@ function ReferenceBody(props: { reference: Reference; load?: ReferenceLoader }) 
           className="max-h-40 w-full rounded-md bg-zinc-950/5 object-contain dark:bg-white/10"
         />
       ) : null}
-      {info?.description ? (
-        <p className="leading-5 text-zinc-700 dark:text-zinc-300">{info.description}</p>
-      ) : null}
-      <a
-        href={wikiUrl(title)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex w-fit items-center gap-1.5 rounded-md text-sm font-medium text-blue-600 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-blue-400"
-      >
-        <ArrowTopRightOnSquareIcon aria-hidden="true" className="size-4" />
-        Open on the OSM Wiki
-      </a>
     </div>
   )
 }

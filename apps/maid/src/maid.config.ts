@@ -27,7 +27,10 @@ import { relations } from './modules/relations'
 import { type Bbox, sceneBounds } from './modules/scene-bounds'
 import { validation } from './modules/validation'
 
-/** Extent of each fixture, from its meta file */
+/**
+ * Extent of each fixture, from its meta file. The casts stay on purpose: JSON imports as number[], not
+ * as the four-number tuple, and the committed fixtures are trusted, so no runtime check is needed.
+ */
 const BBOX: Record<string, Bbox> = {
   small: small.bbox as Bbox,
   medium: medium.bbox as Bbox,

@@ -1,4 +1,5 @@
 import { CameraIcon } from '@heroicons/react/20/solid'
+import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { SegmentedControl } from '@osm-editor-kit/maid-ui'
 import { PhotoDateRangeFilter } from '@osm-editor-kit/street-imagery-react'
 import './street-imagery.css'
@@ -48,6 +49,7 @@ function ProviderRow({ id }: { id: ImageryProviderId }) {
           <span className="block text-xs text-zinc-500 dark:text-zinc-400">{note}</span>
         </span>
         <input
+          {...PLAIN_INPUT}
           type="checkbox"
           role="switch"
           aria-label={`Show photos from ${PROVIDER_LABELS[id]}`}

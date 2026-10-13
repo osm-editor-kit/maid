@@ -35,15 +35,19 @@ export function ContextMenu(props: {
   const { at, label, items, onClose } = props
   const menu = useRef<HTMLDivElement>(null)
 
-  // Opening moves the focus into the menu, once: the menu re-renders with every change of the
-  // editor, and a focus moved again on each of those would undo the arrow keys. A press outside
-  // closes it. Both are about the document, not about rendering, so they are effects.
+  // Opening moves the focus into the menu. It is not moved on every render: the menu re-renders
+  // with every change of the editor, and that would undo the arrow keys. A press outside closes
+  // it. Both are about the document, not about rendering, so they are effects.
+  // The highlight follows the current one of a choice: when another item becomes the current one
+  // while the menu is open (a key that steps through the choice), the focus moves to it, so the
+  // highlighted row and the bold row are always the same.
+  const currentIndex = items.findIndex((item) => item.current)
   useEffect(() => {
     const current = menu.current?.querySelector<HTMLButtonElement>(
       'button[aria-current="true"]:enabled',
     )
     ;(current ?? menu.current?.querySelector<HTMLButtonElement>('button:enabled'))?.focus()
-  }, [])
+  }, [currentIndex])
   useEffect(() => {
     const element = menu.current
     const onPress = (event: PointerEvent) => {

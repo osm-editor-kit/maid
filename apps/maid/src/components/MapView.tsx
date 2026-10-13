@@ -27,6 +27,7 @@ import { ensureImages } from '../images'
 import { useSelection } from '../selection'
 import { setStack } from '../stack'
 import { useCameraParam } from '../url/state'
+import { FavouriteHint } from './FavouriteHint'
 import { MapContextMenu, type MenuPlace } from './MapContextMenu'
 import { StackPicker } from './StackPicker'
 
@@ -433,6 +434,7 @@ export function MapView() {
       />
       <ModuleLayers editor={editor} />
       <StackPicker />
+      <FavouriteHint />
       {measuring && (
         <div
           role="status"

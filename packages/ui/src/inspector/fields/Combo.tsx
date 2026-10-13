@@ -9,6 +9,7 @@ import {
 } from '@floating-ui/react'
 import type { Field } from '@osm-editor-kit/maid-presets'
 import { useId, useRef, useState, type KeyboardEvent } from 'react'
+import { PLAIN_INPUT } from '../../plain-input.ts'
 import { isUnsetOption } from '../logic.ts'
 import { moveActive } from '../picker-logic.ts'
 import { filterOptions, shownText, valueFromText } from './combo-logic.ts'
@@ -135,6 +136,7 @@ function ComboInput(props: {
       {/* oxlint-disable-next-line react/refs -- refs.setReference is floating-ui's callback ref, not a .current value read during render */}
       <div ref={refs.setReference} className="min-w-0">
         <input
+          {...PLAIN_INPUT}
           ref={inputRef}
           id={id}
           type="text"

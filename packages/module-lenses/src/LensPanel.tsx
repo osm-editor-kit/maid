@@ -1,4 +1,5 @@
 import { describeMatch, type Lens } from '@osm-editor-kit/maid-style'
+import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { toolButtonTone } from '@osm-editor-kit/maid-ui'
 import { useRef, useState, type ChangeEvent } from 'react'
 import { MAX_FILE_BYTES, parseLensFile, serialiseLenses } from './lens-file.ts'
@@ -154,6 +155,7 @@ export function LensPanel() {
           </button>
         </div>
         <input
+          {...PLAIN_INPUT}
           ref={fileInput}
           type="file"
           accept=".json,application/json"

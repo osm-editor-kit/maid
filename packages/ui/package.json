@@ -19,6 +19,7 @@
     "motion": "^14.0.0",
     "react-dom": "^19.2.0",
     "tailwind-merge": "^3.7.0",
+    "zod": "4.6.5",
     "zustand": "^5.0.15"
   },
   "devDependencies": {

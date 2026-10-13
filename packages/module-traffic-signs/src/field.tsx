@@ -1,3 +1,4 @@
+import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 /**
  * The sidebar field for `traffic_sign*` keys.
  *
@@ -27,6 +28,7 @@ export function TrafficSignField({ field, tags, id, onChange }: SignFieldProps) 
 
   return (
     <input
+      {...PLAIN_INPUT}
       id={id}
       type="text"
       dir="auto"

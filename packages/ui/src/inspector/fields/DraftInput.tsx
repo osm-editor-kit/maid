@@ -1,5 +1,6 @@
 import type { ComponentPropsWithoutRef } from 'react'
 import { useId, useState } from 'react'
+import { PLAIN_INPUT } from '../../plain-input.ts'
 import { cleanValue, excessOf, lengthNotice, MAX_VALUE_LENGTH, tooLongText } from '../logic.ts'
 import type { FieldProps } from './shared.ts'
 import { INPUT, LIMITED } from './shared.ts'
@@ -61,6 +62,7 @@ export function DraftInput({ tagKey, value, onChange, ...rest }: DraftInputProps
   return (
     <>
       <input
+        {...PLAIN_INPUT}
         {...rest}
         className={`${INPUT} ${LIMITED}`}
         aria-invalid={limit.invalid}

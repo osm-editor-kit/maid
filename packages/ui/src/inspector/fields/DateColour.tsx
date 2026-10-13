@@ -1,5 +1,6 @@
 import { ArrowPathIcon, CalendarIcon, PencilIcon } from '@heroicons/react/16/solid'
 import { useRef, useState } from 'react'
+import { PLAIN_INPUT } from '../../plain-input.ts'
 import { FallbackField } from './Fallback.tsx'
 import { ADDON, AddonInput } from './Link.tsx'
 import type { FieldProps } from './shared.ts'
@@ -63,6 +64,7 @@ export function DateField(props: FieldProps) {
                   <CalendarIcon aria-hidden="true" className="size-4" />
                 </button>
                 <input
+                  {...PLAIN_INPUT}
                   ref={pickerRef}
                   type="date"
                   tabIndex={-1}
@@ -125,6 +127,7 @@ export function ColourField(props: FieldProps) {
               )}
             </button>
             <input
+              {...PLAIN_INPUT}
               ref={pickerRef}
               type="color"
               tabIndex={-1}

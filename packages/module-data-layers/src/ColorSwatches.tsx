@@ -3,6 +3,7 @@
  * and choose), then one swatch that opens the native colour picker for any other colour.
  */
 import { PencilIcon } from '@heroicons/react/16/solid'
+import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import type { CSSProperties, KeyboardEvent } from 'react'
 import { PALETTE } from './config.ts'
 import { colourName, stepIndex, swatchIndex } from './swatch.ts'
@@ -69,6 +70,7 @@ export function ColorSwatches({
         style={custom ? { backgroundColor: value, ...ringColour(value) } : undefined}
       >
         <input
+          {...PLAIN_INPUT}
           type="color"
           aria-label="Custom colour"
           value={value}

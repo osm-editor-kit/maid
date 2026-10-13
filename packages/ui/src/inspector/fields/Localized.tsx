@@ -2,6 +2,7 @@ import { LanguageIcon, TrashIcon } from '@heroicons/react/16/solid'
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import { useEffect, useRef, useState, type FocusEvent, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
+import { PLAIN_INPUT } from '../../plain-input.ts'
 import { Tooltip } from '../../Tooltip.tsx'
 import { DraftInput, LengthNotice, useLengthLimit } from './DraftInput.tsx'
 import { FallbackField } from './Fallback.tsx'
@@ -165,6 +166,7 @@ function LanguageRow(props: {
       }`}
     >
       <input
+        {...PLAIN_INPUT}
         ref={codeInput}
         type="text"
         aria-label="Language code"
@@ -183,6 +185,7 @@ function LanguageRow(props: {
       />
       <div className="grid min-w-0 gap-1">
         <input
+          {...PLAIN_INPUT}
           type="text"
           aria-label={`Translation of ${field.label}`}
           value={text}

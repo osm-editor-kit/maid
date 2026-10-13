@@ -1,6 +1,7 @@
 import { ChatBubbleLeftEllipsisIcon } from '@heroicons/react/20/solid'
 import { defineModule, type Editor } from '@osm-editor-kit/maid-core'
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
+import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { Time } from '@osm-editor-kit/maid-ui'
 import { useEffect } from 'react'
 import { Layer, Source, useMap, type MapLayerMouseEvent } from 'react-map-gl/maplibre'
@@ -157,6 +158,7 @@ export function notes(options: { apiUrl: string; minZoom?: number }) {
             <label className="flex cursor-pointer items-center justify-between gap-3 py-1.5">
               <span>Show notes</span>
               <input
+                {...PLAIN_INPUT}
                 type="checkbox"
                 role="switch"
                 className="size-4 cursor-pointer accent-orange-600"
@@ -167,6 +169,7 @@ export function notes(options: { apiUrl: string; minZoom?: number }) {
             <label className="flex cursor-pointer items-center justify-between gap-3 py-1.5">
               <span>Also closed ones</span>
               <input
+                {...PLAIN_INPUT}
                 type="checkbox"
                 className="size-4 cursor-pointer"
                 checked={showClosed}

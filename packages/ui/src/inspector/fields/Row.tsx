@@ -15,7 +15,7 @@ import {
 import { FallbackField } from './Fallback.tsx'
 import { RelatedAddButtons, RelatedDetails, type RelatedRow } from './Related.tsx'
 import type { FieldComponent, FieldMeasure, FieldProps } from './shared.ts'
-import { HINT, LABEL, ROW_BUTTON } from './shared.ts'
+import { HINT, LABEL, REVEAL, ROW_BUTTON } from './shared.ts'
 
 /** Field types that take a value from a list of options and show the option's label as a hint. */
 const COMBO_TYPES = new Set(['combo', 'typeCombo', 'networkCombo', 'radio', 'structureRadio'])
@@ -25,14 +25,16 @@ const COMBO_TYPES = new Set(['combo', 'typeCombo', 'networkCombo', 'radio', 'str
  * focus is in this field's row (the group is named, so a group around all rows does not count),
  * stays while its panel is open, and is always there on touch.
  */
-const INFO_BUTTON =
-  'rounded opacity-0 transition-opacity duration-200 group-focus-within/field:opacity-100 group-hover/field:opacity-100 aria-expanded:opacity-100 pointer-coarse:opacity-100'
+const INFO_BUTTON = `rounded ${REVEAL}`
 
 /**
  * The "Measure on the map" button: as the "i", it fades in with the row, and it stays while the
  * measure it started is under way (aria-pressed).
  */
-const MEASURE_BUTTON = `${ROW_BUTTON} opacity-0 transition-opacity duration-200 group-focus-within/field:opacity-100 group-hover/field:opacity-100 aria-pressed:bg-zinc-950/5 aria-pressed:text-blue-600 aria-pressed:opacity-100 pointer-coarse:opacity-100 dark:aria-pressed:bg-white/10 dark:aria-pressed:text-blue-400`
+const MEASURE_BUTTON = `${ROW_BUTTON} ${REVEAL} aria-pressed:bg-zinc-950/5 aria-pressed:text-blue-600 dark:aria-pressed:bg-white/10 dark:aria-pressed:text-blue-400`
+
+/** Revert and remove: as the other buttons of the label bar, they show with the row */
+const ACTION_BUTTON = `${ROW_BUTTON} ${REVEAL}`
 
 /** A ruler on a diagonal with its ticks, 16 px, in the colour of the text (the row's icons are 16 px too) */
 function RulerIcon() {
@@ -116,7 +118,10 @@ export function FieldRow(props: {
             </label>
           )}
           {/* the control's buttons for the label bar (FieldProps.labelActions); hidden while it is empty */}
-          <span ref={setLabelActions} className="flex shrink-0 items-center gap-1 empty:hidden" />
+          <span
+            ref={setLabelActions}
+            className={`flex shrink-0 items-center gap-1 empty:hidden ${REVEAL}`}
+          />
         </div>
         <div className="flex min-w-0 items-center gap-1">
           {hint ? <span className={HINT}>{hint}</span> : null}
@@ -146,7 +151,7 @@ export function FieldRow(props: {
               type="button"
               aria-label={`Revert ${field.label}`}
               title={`Revert ${field.label}`}
-              className={ROW_BUTTON}
+              className={ACTION_BUTTON}
               onClick={() => apply(revertEdits(field, tags, baseTags))}
             >
               <ArrowUturnLeftIcon aria-hidden="true" className="size-4" />
@@ -157,7 +162,7 @@ export function FieldRow(props: {
               type="button"
               aria-label={`Remove ${field.label}`}
               title={`Remove ${field.label}`}
-              className={ROW_BUTTON}
+              className={ACTION_BUTTON}
               onClick={() => apply(removeEdits(field, tags))}
             >
               <TrashIcon aria-hidden="true" className="size-4" />

@@ -80,6 +80,8 @@ describe('parseWikibaseAnswer', () => {
     const info = parseWikibaseAnswer(answer(TAG_ITEM, KEY_ITEM), TAG)
     expect(info?.description).toBe('A road that gives access to houses.')
     expect(info?.wikiTitle).toBe('Tag:highway=residential')
+    // the tag's own item, for the link to the data item
+    expect(info?.itemId).toBe('Q100')
     const image = new URL(info?.imageUrl ?? '')
     expect(image.origin + image.pathname).toBe('https://commons.wikimedia.org/w/index.php')
     expect(image.searchParams.get('title')).toBe('Special:Redirect/file/Residential road.jpg')
@@ -90,6 +92,7 @@ describe('parseWikibaseAnswer', () => {
     const info = parseWikibaseAnswer(answer(KEY_ITEM), KEY)
     expect(info?.description).toBe('The type of a road.')
     expect(info?.wikiTitle).toBe('Key:highway')
+    expect(info?.itemId).toBe('Q100')
     const image = new URL(info?.imageUrl ?? '')
     expect(image.origin + image.pathname).toBe('https://wiki.openstreetmap.org/w/index.php')
     expect(image.searchParams.get('title')).toBe('Special:Redirect/file/Highway sign.svg')
@@ -123,6 +126,26 @@ describe('parseWikibaseAnswer', () => {
     }
     const info = parseWikibaseAnswer(answer(onlyNormal), TAG)
     expect(info?.imageUrl).toBeUndefined()
+  })
+
+  it('reads a value of another type as absent, and skips an item that is not an object', () => {
+    const otherType = {
+      ...TAG_ITEM,
+      claims: {
+        P4: [
+          {
+            rank: 'preferred',
+            mainsnak: { snaktype: 'value', datavalue: { type: 'quantity', value: { amount: 1 } } },
+          },
+        ],
+      },
+    }
+    const info = parseWikibaseAnswer(
+      { success: 1, entities: { Q99: 'junk', Q100: otherType } },
+      TAG,
+    )
+    expect(info?.imageUrl).toBeUndefined()
+    expect(info?.description).toBe('A road that gives access to houses.')
   })
 
   it('returns undefined when the wiki has no item for the reference', () => {
@@ -178,6 +201,12 @@ describe('freshStored', () => {
     expect(freshStored(null, now)).toBeUndefined()
     expect(freshStored('{not json', now)).toBeUndefined()
     expect(freshStored(JSON.stringify({ info: null }), now)).toBeUndefined()
+  })
+
+  it('counts an entry as absent when a part of it does not have its type', () => {
+    expect(freshStored(JSON.stringify({ at: now, info: { description: 5 } }), now)).toBeUndefined()
+    expect(freshStored(JSON.stringify({ at: now, info: 'A road.' }), now)).toBeUndefined()
+    expect(freshStored(JSON.stringify({ at: 'today', info: null }), now)).toBeUndefined()
   })
 })
 
