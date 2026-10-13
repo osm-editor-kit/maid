@@ -28,22 +28,15 @@ import {
   type Difference,
   Graph,
   OsmWay,
-  type OsmEntity,
   type OsmJsonElement,
   OsmNode,
 } from '@osm-editor-kit/maid-model'
 import type { Operation, OperationContext } from '@osm-editor-kit/maid-operations'
 import type { Geometry, Preset, Presets } from '@osm-editor-kit/maid-presets'
-import { hasInterestingTags, isArea, type Lens, type Tags } from '@osm-editor-kit/maid-style'
+import { hasInterestingTags, type Lens, type Tags } from '@osm-editor-kit/maid-style'
 import type { Feature } from 'geojson'
-import type { GeoJSONSource, Map as MapLibreMap, MapGeoJSONFeature } from 'maplibre-gl'
-import {
-  dashPatterns,
-  FeatureBuilder,
-  wayVertices,
-  type FeatureBatch,
-  type SourceName,
-} from './build'
+import type { GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl'
+import { dashPatterns, FeatureBuilder, type FeatureBatch, type SourceName } from './build'
 import {
   type ChangeTagsResult,
   planChangeTags,
@@ -51,10 +44,13 @@ import {
   type TagChangeEach,
   type TagChangeRequest,
 } from './change-tags'
+import { type Channel, makeChannels, SOURCE_NAMES } from './channels'
 import { OsmData } from './data'
-import { onewayOf } from './direction'
 import { installDirectionImages } from './direction-images'
 import { DrawTool, nearestOnWay, projectedNodes } from './draw'
+import { drawnCounts } from './drawn-counts'
+import { entityInfo } from './entity-info'
+import { featureId } from './feature-id'
 import {
   drawnFieldOverlay,
   fieldOverlayFeatures,
@@ -76,18 +72,16 @@ import {
   padBox,
   shapeOf,
 } from './nearby'
-import { extentOf, orderPicks, PICK_LIMIT, type PickCandidate } from './pick-order'
+import { operationContextOf } from './operation-context'
+import { operationPreview } from './operation-preview'
+import { pickAllFeatures, pickFeature } from './pick'
+import { movedOf, redrawEntities } from './redraw'
 import { boundsOf, relatedIds } from './related'
+import { selectionShape } from './selection-shape'
 import { planSetTagsEach, type TagsOfFeature } from './set-tags-each'
-import {
-  chooseTarget,
-  followEachOther,
-  nearestOnPolyline,
-  type Loc,
-  type Point,
-  type SnapTarget,
-  SNAP_PX,
-} from './snap'
+import type { Loc, Point, SnapTarget } from './snap'
+import { aimAtNode, snapTargetAt } from './snap-aim'
+import { lat2y, lon2x, x2lon, y2lat } from './tile-coords'
 import {
   createTileLoads,
   nearestFirst,
@@ -163,31 +157,11 @@ export type EntityInfo = {
   readOnly: boolean
 }
 
-/** OSM zoom (256 px tiles) of the OSM data requests, as iD and Rapid use. Not a MapLibre zoom */
-const TILE_ZOOM = 16
 /** MapLibre zoom (512 px) of the largest zoom fitTo goes to (OSM 19): a single node or a short way is not zoomed in to the last level */
 const FIT_MAX_ZOOM = 18
 /** MapLibre zoom (512 px) of a single point in fitTo (OSM 18), unless the map is already closer */
 const POINT_ZOOM = 17
-const SOURCE_NAMES: SourceName[] = ['areas', 'lines', 'points', 'vertices']
 
-const lon2x = (lon: number) => Math.floor(((lon + 180) / 360) * 2 ** TILE_ZOOM)
-const lat2y = (lat: number) =>
-  Math.floor(((1 - Math.asinh(Math.tan((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** TILE_ZOOM)
-const x2lon = (x: number) => (x / 2 ** TILE_ZOOM) * 360 - 180
-const y2lat = (y: number) =>
-  (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / 2 ** TILE_ZOOM))) * 180) / Math.PI
-
-/** Whether an entity moved between the two sides of a change. A missing side or position counts as moved. */
-function locMoved(base: OsmEntity | undefined, head: OsmEntity | undefined) {
-  // only nodes have a position; a way gives undefined and counts as moved (ways are always rebuilt anyway)
-  const from = base instanceof OsmNode ? base.loc : undefined
-  const to = head instanceof OsmNode ? head.loc : undefined
-  if (!from || !to) return true
-  return from[0] !== to[0] || from[1] !== to[1]
-}
-
-/** The OSM id of a map or GeoJSON feature: the builder and promoteId make it the entity id, a string such as `w123` */
 /** The MapLibre state that `settled()` waits on, in plain values, for diagnostics */
 function mapState(map: MapLibreMap) {
   return {
@@ -202,10 +176,6 @@ function mapState(map: MapLibreMap) {
 const PRESETS_HOLD_MS = 300
 /** After this, an engine that holds features starts the presets itself, if nobody has */
 const PRESETS_START_MS = 100
-
-function featureId(f: { id?: string | number }) {
-  return typeof f.id === 'string' ? f.id : undefined
-}
 
 /**
  * What a click on the map does. `browse` selects and drags; `add-point` places a new point and
@@ -475,50 +445,7 @@ export class MaidEngine {
   }
 
   entity(id: string | null): EntityInfo | undefined {
-    if (!id) return undefined
-    if (id[0] === 'n') {
-      const node = this.data.node(id)
-      if (!node) return undefined
-      const geometry: Geometry = this.data.nodeWays.has(id) ? 'vertex' : 'point'
-      const tags = node.tags
-      return {
-        id,
-        type: 'node',
-        geometry,
-        tags,
-        preset: this.presets?.match(tags, geometry, this.centreOf(id)),
-        readOnly: this.isReadOnly(id),
-      }
-    }
-    if (id[0] === 'w') {
-      const way = this.data.way(id)
-      if (!way) return undefined
-      const tags = way.tags
-      const closed = way.nodes.length > 2 && way.nodes[0] === way.nodes[way.nodes.length - 1]
-      const geometry: Geometry = isArea(way.tags, closed) ? 'area' : 'line'
-      return {
-        id,
-        type: 'way',
-        geometry,
-        tags,
-        preset: this.presets?.match(tags, geometry, this.centreOf(id)),
-        size: way.nodes.length,
-        readOnly: this.isReadOnly(id),
-      }
-    }
-    const relation = this.data.relation(id)
-    if (!relation) return undefined
-    const tags = relation.tags
-    const geometry: Geometry = tags.type === 'multipolygon' ? 'area' : 'relation'
-    return {
-      id,
-      type: 'relation',
-      geometry,
-      tags,
-      preset: this.presets?.match(tags, geometry, this.centreOf(id)),
-      size: relation.members.length,
-      readOnly: this.isReadOnly(id),
-    }
+    return entityInfo(this, id)
   }
 
   /** The node or way with this id in the current graph. Relations and unknown ids give undefined. */
@@ -1388,37 +1315,7 @@ export class MaidEngine {
 
   /** What an operation looks at: the current data and the selection */
   operationContext(): OperationContext {
-    // the view lets an operation refuse a feature that is mostly outside it ("too large", as iD)
-    // under a turn the view is a quadrilateral: its four canvas corners, unprojected (pitch is 0); see extent.ts
-    const map = this.map
-    const bounds = map?.getBounds()
-    const { clientWidth: width, clientHeight: height } = map?.getContainer() ?? {
-      clientWidth: 0,
-      clientHeight: 0,
-    }
-    const viewPolygon =
-      map && width > 0 && height > 0
-        ? (
-            [
-              [0, 0],
-              [width, 0],
-              [width, height],
-              [0, height],
-            ] as [number, number][]
-          ).map(([x, y]): [number, number] => {
-            const at = map.unproject([x, y])
-            return [at.lng, at.lat]
-          })
-        : undefined
-    return {
-      graph: this.data.history.staging.graph,
-      selected: this.selectedIds,
-      viewExtent: bounds && {
-        min: [bounds.getWest(), bounds.getSouth()],
-        max: [bounds.getEast(), bounds.getNorth()],
-      },
-      viewPolygon,
-    }
+    return operationContextOf(this.map, this.data, this.selectedIds)
   }
 
   /**
@@ -1596,83 +1493,8 @@ export class MaidEngine {
 
   // --- Redrawing ---
 
-  /**
-   * Rebuilds the features that show the given entities, from the current staging graph. Nothing
-   * is sent to MapLibre: the caller removes the features in `remove` and sends `batch`.
-   * A node rebuilds its vertex, or its point if it is standalone. If the node moved (`moved`), it
-   * also rebuilds the ways that use it, because their shape depends on the position only.
-   * A way rebuilds its line or area, a multipolygon relation its area. An id that is no longer in
-   * the graph loses its feature. Each feature is built once, however many ids need it.
-   */
   private redraw(entities: Iterable<{ id: string; moved: boolean }>) {
-    const batch: FeatureBatch = { areas: [], lines: [], points: [], vertices: [] }
-    const remove: [SourceName, string][] = []
-    const placed = new Set<string>()
-    // records what a feature is now: its source and feature, or nothing if it is no longer drawn
-    const place = (id: string, drawn?: { source: SourceName; feature: Feature }) => {
-      if (placed.has(id)) return
-      placed.add(id)
-      if (drawn) batch[drawn.source].push(drawn.feature)
-      // a way can change between line and area, or stop being drawn
-      const previous = this.featureSource.get(id)
-      if (previous && previous !== drawn?.source) remove.push([previous, id])
-    }
-    // the area of a multipolygon is drawn from its member ways: it follows when one of them changes
-    const multipolygons = new Set<string>()
-    const memberOf = (wayId: string) => {
-      for (const relationId of this.data.wayMultipolygons.get(wayId) ?? [])
-        multipolygons.add(relationId)
-    }
-    for (const { id, moved } of entities) {
-      switch (id.charAt(0)) {
-        case 'n': {
-          const node = this.data.node(id)
-          if (!node) {
-            place(id)
-          } else if (this.data.nodeWays.has(id)) {
-            if (moved)
-              for (const wayId of this.data.nodeWays.get(id) ?? []) {
-                // a way that another node already placed is built already: check before building
-                if (!placed.has(wayId)) {
-                  const way = this.data.way(wayId)
-                  if (way) place(wayId, this.builder.buildWay(way))
-                }
-                memberOf(wayId)
-              }
-            const vertex = this.builder.refreshVertex(node)
-            place(id, vertex && { source: 'vertices', feature: vertex })
-          } else {
-            const point = this.builder.buildPoint(node)
-            place(id, point && { source: 'points', feature: point })
-          }
-          break
-        }
-        case 'w':
-          if (!placed.has(id)) {
-            const way = this.data.way(id)
-            place(id, way && this.builder.buildWay(way))
-          }
-          memberOf(id)
-          break
-        case 'r':
-          multipolygons.add(id)
-          break
-      }
-    }
-    // after the ways, so a multipolygon is built once from the new shape of all its members
-    for (const id of multipolygons) {
-      const relation = this.data.relation(id)
-      if (!relation || relation.tags.type !== 'multipolygon') {
-        place(id)
-        continue
-      }
-      // build() also returns multipolygons that were waiting for members: those are drawn too
-      const out = this.builder.build({ nodes: [], ways: [], relations: [relation] })
-      const area = out.areas.find((f) => f.id === id)
-      place(id, area && { source: 'areas', feature: area })
-      for (const f of out.areas) if (f.id !== id) batch.areas.push(f)
-    }
-    return { batch, remove }
+    return redrawEntities(this.data, this.builder, this.featureSource, entities)
   }
 
   /** Takes features out of the sources they are drawn in, in both tiers */
@@ -1786,19 +1608,7 @@ export class MaidEngine {
       this.selectionRelated = this.relatedOfSelection()
       this.syncRelated()
     }
-    // the union of all differences, each id once; a node that moved in any of them moves its ways
-    const moved = new Map<string, boolean>()
-    for (const difference of differences)
-      for (const [id, { base, head }] of difference.changes) {
-        moved.set(id, (moved.get(id) ?? false) || locMoved(base, head))
-        // A way that came, went or changed its nodes changes what its nodes are: a vertex can
-        // become a junction, an end or a standalone point. Those nodes are not in the difference.
-        const from = base instanceof OsmWay ? base.nodes : undefined
-        const to = head instanceof OsmWay ? head.nodes : undefined
-        if (from !== to)
-          for (const nodeId of [...(from ?? []), ...(to ?? [])])
-            if (!moved.has(nodeId)) moved.set(nodeId, false)
-      }
+    const moved = movedOf(differences)
     if (moved.size === 0) return
     const { batch, remove } = this.redraw(
       [...moved].map(([id, isMoved]) => ({ id, moved: isMoved })),
@@ -1844,85 +1654,11 @@ export class MaidEngine {
    * query of the rendered features around the point.
    */
   snapAt(point: Point, layers: string[], skip: ReadonlySet<string>) {
-    const { map } = this
-    if (!map) return undefined
-    const features = map.queryRenderedFeatures(
-      [
-        [point.x - SNAP_PX, point.y - SNAP_PX],
-        [point.x + SNAP_PX, point.y + SNAP_PX],
-      ],
-      { layers },
-    )
-    const candidates: SnapTarget[] = []
-    const seen = new Set<string>()
-    for (const feature of features) {
-      const id = featureId(feature)
-      if (!id || seen.has(id) || skip.has(id) || this.isReadOnly(id)) continue
-      seen.add(id)
-      switch (id.charAt(0)) {
-        case 'n': {
-          const loc = this.data.node(id)?.loc
-          if (loc) candidates.push({ type: 'node', id, loc: [loc[0], loc[1]] })
-          break
-        }
-        case 'w': {
-          const way = this.data.way(id)
-          const nodes = way ? projectedNodes(this, way) : []
-          // a vertex of the line under the pointer is a node target, as in iD, even where no vertex is drawn
-          for (const n of nodes) {
-            if (skip.has(n.id) || seen.has(n.id) || this.isReadOnly(n.id)) continue
-            if (Math.hypot(n.x - point.x, n.y - point.y) > SNAP_PX) continue
-            const loc = this.data.node(n.id)?.loc
-            if (loc) candidates.push({ type: 'node', id: n.id, loc: [loc[0], loc[1]] })
-          }
-          const on = way && nearestOnPolyline(nodes, point, SNAP_PX)
-          if (on) {
-            const at = map.unproject([on.x, on.y])
-            candidates.push({
-              type: 'way',
-              wayId: id,
-              loc: [at.lng, at.lat],
-              edge: on.edge,
-              distance: on.distance,
-            })
-          }
-          break
-        }
-      }
-    }
-    return chooseTarget(candidates)
+    return snapTargetAt(this, point, layers, skip)
   }
 
-  /**
-   * The snap of a dragged node at this pointer. The dragged node's own ways are not targets: it
-   * cannot be joined to its own line. A node target that the model would refuse carries the reason.
-   */
   private aimAt(id: string, point: Point, layers: string[]) {
-    const skip = new Set<string>([id, ...(this.data.nodeWays.get(id) ?? [])])
-    const target = this.snapAt(point, layers, skip)
-    if (!target || target.type === 'way') return { target }
-    return { target, refused: this.connectRefusal(id, target.id) }
-  }
-
-  /**
-   * Why a drop that joins the dragged node to this node would be refused, or undefined if it is
-   * allowed: the model's own rule (relations, turn restrictions), a way that would get the node
-   * twice in a row, or a way that would change and is read-only.
-   */
-  private connectRefusal(dragged: string, target: string) {
-    const { staging } = this.data.history
-    const reason = actionConnect([dragged, target]).disabled?.(staging.graph)
-    if (reason === 'restriction') return 'It would break a turn restriction'
-    if (reason) return 'The two nodes have different roles in a relation'
-    const ways = [
-      ...(this.data.nodeWays.get(dragged) ?? []),
-      ...(this.data.nodeWays.get(target) ?? []),
-    ]
-    const lists = (this.data.nodeWays.get(dragged) ?? []).map((w) => this.data.way(w)?.nodes ?? [])
-    if (followEachOther(lists, dragged, target))
-      return 'The node would be joined to its neighbour in the same way'
-    if (ways.some((w) => this.isReadOnly(w))) return 'A way it would change is read-only'
-    return undefined
+    return aimAtNode(this, id, point, layers)
   }
 
   /** True if this id is a node that can be dragged: a vertex or a standalone point */
@@ -2073,10 +1809,30 @@ export class MaidEngine {
     return load.then((added) => ({ added }))
   }
 
-  private async fetchRelation(id: string, signal: AbortSignal) {
+  /**
+   * Loads one entity that is not in the data, as iD's `loadEntity` does: a node by its own call, a way with its
+   * nodes, a relation with its members (`/full`). For the member of a relation that the map tiles did not bring.
+   * Merged like `loadRelation`; resolves with how many entities were new.
+   */
+  async loadEntity(id: string) {
+    if (id.startsWith('r')) return this.loadRelation(id)
+    const match = /^([nw])(\d+)$/.exec(id)
+    if (!match) throw new Error(`Not an OSM element: ${id}`)
+    const path = match[1] === 'n' ? `node/${match[2]}.json` : `way/${match[2]}/full.json`
+    // not kept in `relationLoads`: a member is asked for by a click, and a second click merges the same data again
+    const added = await this.fetchElements(path, new AbortController().signal)
+    return { added }
+  }
+
+  private fetchRelation(id: string, signal: AbortSignal) {
     const match = /^r(\d+)$/.exec(id)
     if (!match) throw new Error(`Not a relation: ${id}`)
-    const url = `${this.options.apiUrl}/api/0.6/relation/${match[1]}/full.json`
+    return this.fetchElements(`relation/${match[1]}/full.json`, signal)
+  }
+
+  /** One call to `apiUrl` under `/api/0.6/` that answers with elements, merged into the data */
+  private async fetchElements(path: string, signal: AbortSignal) {
+    const url = `${this.options.apiUrl}/api/0.6/${path}`
     const t0 = performance.now()
     const res = await this.remote(url, { signal }).catch((error: unknown) => {
       if (error instanceof HttpError) throw new Error(`OSM API answered ${error.status}`)
@@ -2341,49 +2097,10 @@ export class MaidEngine {
     map.triggerRepaint()
   }
 
-  /**
-   * The shape points of the selection, in the small highlight source: all nodes of the selected
-   * ways and, for a selected vertex, of the ways it belongs to, as iD shows them. They can be
-   * picked and dragged like any vertex.
-   */
   private refreshShape() {
-    const ways = new Set<string>()
-    for (const id of this.selectedIds) {
-      switch (id.charAt(0)) {
-        case 'w':
-          ways.add(id)
-          break
-        case 'n':
-          for (const wayId of this.data.nodeWays.get(id) ?? []) ways.add(wayId)
-          break
-      }
-    }
-    const shape = new Map<string, Feature>()
-    // The direction of each selected open highway without arrows of its own: the way's line, drawn
-    // with arrows (layers.ts highlight-direction). iD does not show a way's direction; this is Maid's.
-    const directions: Feature[] = []
-    for (const wayId of ways) {
-      const vertices = wayVertices(this.data, wayId)
-      for (const vertex of vertices) {
-        const id = vertex.properties?.id
-        if (typeof id !== 'string') continue
-        vertex.properties = { id, state: 'shape' }
-        shape.set(id, vertex)
-      }
-      const way = this.data.way(wayId)
-      const closed = way !== undefined && way.nodes[0] === way.nodes[way.nodes.length - 1]
-      if (way?.tags.highway && !closed && !onewayOf(way.tags) && vertices.length >= 2)
-        directions.push({
-          type: 'Feature',
-          properties: { id: wayId, state: 'direction' },
-          geometry: {
-            type: 'LineString',
-            coordinates: vertices.map((v) => v.geometry.coordinates),
-          },
-        })
-    }
-    this.shapeNodes = new Set(shape.keys())
-    this.shapeFeatures = [...shape.values(), ...directions]
+    const shape = selectionShape(this.data, this.selectedIds)
+    this.shapeNodes = shape.nodes
+    this.shapeFeatures = shape.features
     // a preview was for the selection and the data as they were
     this.previewFeatures = []
     this.computeMidpoints()
@@ -2703,58 +2420,10 @@ export class MaidEngine {
    * Operations that move no node (reverse, split, ...) show nothing.
    */
   previewOperation(operation: Operation | null) {
-    const features: Feature[] = []
-    if (operation && !this.draw.active) {
-      const context = this.operationContext()
-      const { graph } = this.data.history.staging
-      if (operation.applies(context) && !operation.disabled(context)) {
-        let after: Graph | undefined
-        try {
-          after = operation.run(context).actions.reduce((g, action) => action(g), new Graph(graph))
-        } catch {
-          // an operation that cannot run has nothing to show
-        }
-        const ways = new Set<string>()
-        for (const id of this.selectedIds) {
-          switch (id.charAt(0)) {
-            case 'w':
-              ways.add(id)
-              break
-            case 'n':
-              for (const w of this.data.nodeWays.get(id) ?? []) ways.add(w)
-              break
-          }
-        }
-        for (const wayId of after ? ways : []) {
-          const before = graph.hasEntity(wayId)
-          const way = after!.hasEntity(wayId)
-          if (!(way instanceof OsmWay) || !(before instanceof OsmWay)) continue
-          const locOf = (g: Graph, nodeId: string) => {
-            const node = g.hasEntity(nodeId)
-            return node instanceof OsmNode ? node.loc : undefined
-          }
-          const coordinates = way.nodes
-            .map((nodeId) => locOf(after!, nodeId))
-            .filter((loc) => !!loc)
-          const moved =
-            way.nodes.length !== before.nodes.length ||
-            way.nodes.some((nodeId, i) => {
-              const a = locOf(after!, nodeId)
-              const b = locOf(graph, before.nodes[i]!)
-              return !a || !b || a[0] !== b[0] || a[1] !== b[1]
-            })
-          if (!moved || coordinates.length < 2) continue
-          features.push({
-            type: 'Feature',
-            properties: { id: `preview-${wayId}`, state: 'preview' },
-            geometry: {
-              type: 'LineString',
-              coordinates: coordinates.map((loc) => [loc[0], loc[1]]),
-            },
-          })
-        }
-      }
-    }
+    const features =
+      operation && !this.draw.active
+        ? operationPreview(operation, this.operationContext(), this.data, this.selectedIds)
+        : []
     if (features.length === 0 && this.previewFeatures.length === 0) return
     this.previewFeatures = features
     this.pushHighlight()
@@ -2771,23 +2440,7 @@ export class MaidEngine {
     /** Ids that are not picked, for example the way that is being drawn */
     skip?: ReadonlySet<string>,
   ) {
-    const { map } = this
-    if (!map) return null
-    const features = map.queryRenderedFeatures(
-      [
-        [point.x - tolerance, point.y - tolerance],
-        [point.x + tolerance, point.y + tolerance],
-      ],
-      { layers: layerIds },
-    )
-    return pickBest(
-      skip
-        ? features.filter((f) => {
-            const id = featureId(f)
-            return id === undefined || !skip.has(id)
-          })
-        : features,
-    )
+    return pickFeature(this, point, layerIds, tolerance, skip)
   }
 
   /**
@@ -2797,62 +2450,11 @@ export class MaidEngine {
    * (two points at one place, a way and an area on its outline) are all there.
    */
   pickAll(point: { x: number; y: number }, layerIds: string[], tolerance = 6) {
-    const { map } = this
-    if (!map) return []
-    const features = map.queryRenderedFeatures(
-      [
-        [point.x - tolerance, point.y - tolerance],
-        [point.x + tolerance, point.y + tolerance],
-      ],
-      { layers: layerIds },
-    )
-    const candidates = new Map<string, PickCandidate>()
-    for (const f of features) {
-      const id = featureId(f)
-      if (!id) continue
-      // a feature drawn in more than one layer keeps the highest of its priorities, as pick does
-      const priority = PRIORITY[f.source] ?? 9
-      const known = candidates.get(id)
-      if (known) known.priority = Math.min(known.priority, priority)
-      else candidates.set(id, { id, priority, size: this.sizeOf(id) })
-    }
-    return orderPicks([...candidates.values()], pickBest(features), PICK_LIMIT)
-  }
-
-  /** The size that orders picks: 0 for a node, else the area or the length of a way (pick-order.ts) */
-  private sizeOf(id: string) {
-    if (id[0] !== 'w') return 0
-    const way = this.data.way(id)
-    if (!way) return Number.POSITIVE_INFINITY
-    const points: [number, number][] = []
-    for (const n of way.nodes) {
-      const loc = this.data.node(n)?.loc
-      if (loc) points.push([loc[0], loc[1]])
-    }
-    const closed = way.nodes.length > 2 && way.nodes[0] === way.nodes[way.nodes.length - 1]
-    return extentOf(points, closed && isArea(way.tags, closed))
+    return pickAllFeatures(this, point, layerIds, tolerance)
   }
 
   stats() {
-    const { map } = this
-    const drawn: Record<string, number> = {}
-    if (map) {
-      for (const name of SOURCE_NAMES) {
-        try {
-          const layers = [
-            ...layersOfSource(map, SOURCES[name]),
-            ...layersOfSource(map, EDIT_SOURCES[name]),
-          ]
-          const ids = new Set(map.queryRenderedFeatures({ layers }).map((f) => f.id))
-          drawn[name] = ids.size
-        } catch (error) {
-          // MapLibre can throw "feature index out of bounds" here; keep the stats usable and visible
-          console.error(`stats: queryRenderedFeatures failed for ${name}`, error)
-          drawn[name] = -1
-        }
-      }
-      drawn.layers = map.getStyle().layers.length
-    }
+    const drawn = drawnCounts(this.map)
     return {
       entities: this.data.counts(),
       drawn,
@@ -2867,53 +2469,3 @@ export class MaidEngine {
 const HANDLE_PX = 6
 /** Pixels a press on a handle must move before its node is made: a click with a little shake adds nothing */
 const HANDLE_DRAG_PX = 3
-
-const PRIORITY: Record<string, number> = {
-  // the shape points of the selection are vertices like the others
-  [SOURCES.highlight]: 0,
-  [SOURCES.vertices]: 0, [EDIT_SOURCES.vertices]: 0, [SELECT_SOURCES.vertices]: 0,
-  [SOURCES.points]: 1, [EDIT_SOURCES.points]: 1, [SELECT_SOURCES.points]: 1,
-  [SOURCES.lines]: 2, [EDIT_SOURCES.lines]: 2, [SELECT_SOURCES.lines]: 2,
-  [SOURCES.areas]: 3, [EDIT_SOURCES.areas]: 3, [SELECT_SOURCES.areas]: 3,
-} // prettier-ignore
-
-type Channel = {
-  name: SourceName
-  sourceId: string
-  queue: Feature[]
-  removals: string[]
-  busy: boolean
-  dirty: boolean
-}
-
-function makeChannels(ids: Record<SourceName, string>) {
-  const channel = (name: SourceName): Channel => ({
-    name,
-    sourceId: ids[name],
-    queue: [],
-    removals: [],
-    busy: false,
-    dirty: false,
-  })
-  return {
-    areas: channel('areas'),
-    lines: channel('lines'),
-    points: channel('points'),
-    vertices: channel('vertices'),
-  }
-}
-
-function pickBest(features: MapGeoJSONFeature[]) {
-  let best: MapGeoJSONFeature | undefined
-  for (const f of features) {
-    if (!best || (PRIORITY[f.source] ?? 9) < (PRIORITY[best.source] ?? 9)) best = f
-  }
-  return (best && featureId(best)) ?? null
-}
-
-function layersOfSource(map: MapLibreMap, source: string) {
-  return map
-    .getStyle()
-    .layers.filter((l) => 'source' in l && l.source === source)
-    .map((l) => l.id)
-}
