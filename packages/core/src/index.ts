@@ -1,5 +1,6 @@
 export { isAutomated } from './automated.ts'
 export { createEditor, defineModule } from './editor.ts'
+export { lazyPresets } from './lazy-presets.ts'
 export { declareHooks, declaredHooks, hookStability } from './hooks.ts'
 export type { HookStabilities } from './hooks.ts'
 export { startSetting, writesStored } from './layers.ts'
@@ -27,6 +28,7 @@ export type {
   ModuleApi,
   OnError,
   PointName,
+  PresetsSource,
   ReadonlyRegistry,
   Stability,
 } from './types.ts'

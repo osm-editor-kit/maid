@@ -1,4 +1,4 @@
-import type { MaidModule } from '@osm-editor-kit/maid-core'
+import { lazyPresets, type MaidModule } from '@osm-editor-kit/maid-core'
 /**
  * What this editor is: the modules it is made of, one per line so that one can be commented out.
  * The run-time settings (scene, live data, ...) come from the URL and are read once, in the shell's config.ts.
@@ -8,16 +8,10 @@ import { dataLayers } from '@osm-editor-kit/maid-module-data-layers'
 import { imagery } from '@osm-editor-kit/maid-module-imagery'
 import { lenses } from '@osm-editor-kit/maid-module-lenses'
 import { notes } from '@osm-editor-kit/maid-module-notes'
-import {
-  streetImagery,
-  streetImageryPresetChanges,
-} from '@osm-editor-kit/maid-module-street-imagery'
-import { surface, surfacePresetChanges } from '@osm-editor-kit/maid-module-surface'
-import { trafficSigns, trafficSignPresetChanges } from '@osm-editor-kit/maid-module-traffic-signs'
+import { streetImagery } from '@osm-editor-kit/maid-module-street-imagery'
+import { surface } from '@osm-editor-kit/maid-module-surface'
+import { trafficSigns } from '@osm-editor-kit/maid-module-traffic-signs'
 import { defaultOperations, pointToArea } from '@osm-editor-kit/maid-operations'
-import { createPresets, withChanges } from '@osm-editor-kit/maid-presets'
-import { defaultPresetData } from '@osm-editor-kit/maid-presets/default'
-// import { examplePresetChanges } from './preset-changes.example'
 import { operations } from '@osm-editor-kit/maid-renderer'
 import {
   type AppConfig,
@@ -45,26 +39,19 @@ const BBOX: Record<string, Bbox> = {
 }
 
 /**
- * The presets of this editor: the tagging schema's, with what modules add to them. Further
- * changes are chained the same way: `withChanges(withChanges(data, a), b)`.
- * - street-level images: one field for a feature's image tags (mapillary, panoramax)
- * - surface and smoothness: one field for both tags on roads and paths, with bundled photos
- * - traffic signs: one field for `traffic_sign` on roads, cycleways and paths (text input for now)
+ * The presets of this editor, made after the first picture: the tagging schema's with what modules add to them
+ * (see presets.ts, which holds the data and the changes, so that they are a chunk of their own that is not read
+ * before the map exists). Until they are there, pins and vertices have no icon and the inspector waits.
  */
-const presets = createPresets(
-  withChanges(
-    withChanges(withChanges(defaultPresetData, streetImageryPresetChanges), surfacePresetChanges),
-    trafficSignPresetChanges,
-  ),
-  // withChanges(…, examplePresetChanges): see preset-changes.example.ts
-)
+const presets = lazyPresets(() => import('./presets').then((module) => module.makePresets()))
 
 /**
  * Whether a point with these tags has a type that can also be an area: the type the presets
  * give the point lists "area" among its geometries (a playground does, a bench does not).
+ * False while the presets are not there yet.
  */
 const canBeArea = (tags: Record<string, string>) =>
-  tags.area !== 'no' && presets.match(tags, 'point').geometry.includes('area')
+  tags.area !== 'no' && (presets.current?.match(tags, 'point').geometry.includes('area') ?? false)
 
 // the imagery module, made once: a `background=custom:` link is shown through its visitBackground
 const background = imagery()

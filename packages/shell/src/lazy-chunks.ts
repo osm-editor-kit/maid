@@ -1,4 +1,5 @@
 import { preloadLazyComponents } from '@osm-editor-kit/maid-ui'
+import { journalSettled } from './bench'
 import type { Shell } from './shell'
 
 /** One preload per engine, started by the first call */
@@ -17,4 +18,18 @@ export function preloadAfterFirstSettle(engine: Pick<Shell['engine'], 'settled'>
     preloads.set(engine, preload)
   }
   return preload
+}
+
+/**
+ * Starts making the editor's presets (the tagging schema's data and the country data, a chunk of their own) after the
+ * first picture: when the journal has looked for stored edits (what `ready` waits for), in a task of its own. Not in an
+ * idle callback: the map draws and the tiles are parsed from then on, so the main thread is never idle for long, and
+ * the presets would wait for the data instead of arriving while the first tiles are still on the network.
+ * The chunk is fetched earlier, by a `prefetch` link in the page (see `presetsPreload`, apps/vite-presets-preload.ts),
+ * but not parsed or run before the map exists. The engine fills in the icons of what was drawn without them; `settled` waits.
+ */
+export function loadPresetsAfterReady(shell: Pick<Shell, 'editor' | 'journal'>) {
+  void journalSettled(shell.journal).then(() =>
+    setTimeout(() => void shell.editor.loadPresets(), 0),
+  )
 }

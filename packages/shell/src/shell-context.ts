@@ -36,3 +36,25 @@ export function useMeasure<T>(read: (engine: MaidEngine, version: number) => T) 
   const version = useSyncExternalStore(engine.subscribeMeasure, engine.getMeasureVersion)
   return read(engine, version)
 }
+
+/**
+ * The editor's presets, or undefined until they are made (`editor.presets`: they are made after the first picture, see
+ * `lazyPresets`). The component draws again when they arrive. The editor lives outside React, so the React Compiler
+ * cannot see that `editor.presets` changes: read it through this hook, not from the editor in a render.
+ */
+export function usePresets() {
+  const { editor } = useShell()
+  return useSyncExternalStore(
+    (notify) => editor.onPresets(() => notify()),
+    () => editor.presets,
+  )
+}
+
+/** True while the presets of a lazy source are not there yet (the inspector waits for them) */
+export function usePresetsPending() {
+  const { editor } = useShell()
+  return useSyncExternalStore(
+    (notify) => editor.onPresets(() => notify()),
+    () => editor.presetsPending,
+  )
+}

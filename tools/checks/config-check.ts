@@ -161,7 +161,10 @@ async function checkApp(name: AppName, declared: Set<string>) {
     return { id, port }
   }
   const list = editorConfig.modules ?? []
-  const options: Options = { presets: editorConfig.presets, filters: editorConfig.filters }
+  // a lazy source (`lazyPresets`) is made here, as the editor makes it after the first picture
+  const configured = editorConfig.presets
+  const presets = configured && 'load' in configured ? await configured.load() : configured
+  const options: Options = { presets, filters: editorConfig.filters }
   const ids = list.map((module) => module.id)
   const duplicates = ids.filter((item, index) => ids.indexOf(item) !== index)
   record(
@@ -202,7 +205,6 @@ async function checkApp(name: AppName, declared: Set<string>) {
         : `editor.moduleIds ${together.moduleIds.join(', ')} differs from the config`),
   )
 
-  const presets = editorConfig.presets
   if (!presets) {
     record(name, 'presets are set', false, 'no presets in the editor config')
   } else {

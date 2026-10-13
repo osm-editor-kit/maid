@@ -95,7 +95,7 @@ export interface EditorConfig {
    * The presets and fields of this editor, for example `defaultPresets` of maid-presets or a
    * changed copy. Without them features have no preset, and the model decides with plain tag checks.
    */
-  presets?: Presets
+  presets?: Presets | PresetsSource
   /**
    * The filters of this editor, in order: which features are editable, read-only or hidden to
    * begin with. For example `defaultFilters` of maid-filters, or a fork's own list. The first
@@ -104,6 +104,18 @@ export interface EditorConfig {
   filters?: readonly FeatureFilter[]
   /** Called for every error a listener, subscriber or cleanup throws. Default: `console.error`. */
   onError?: OnError
+}
+
+/**
+ * Presets that are made after the first picture: the data of the tagging schema and the country data are
+ * a chunk of their own, imported when `load` is called (the shell calls it once the map exists). Make one with
+ * `lazyPresets`.
+ */
+export interface PresetsSource {
+  /** Makes the presets. The same promise on every call. */
+  load(): Promise<Presets>
+  /** The presets once they are made, else undefined. For code that has no editor at hand (a module's closure). */
+  readonly current: Presets | undefined
 }
 
 export interface MaidModule {
@@ -139,8 +151,23 @@ export interface EditorHooks {
 export interface Editor {
   /** Id sequences and schema lookup of the data model. */
   readonly context: Context
-  /** The presets from the config */
+  /**
+   * The presets from the config. Undefined until they are made when the config gives a `PresetsSource`
+   * (see `loadPresets`), and for an editor without presets.
+   */
   readonly presets: Presets | undefined
+  /** True from the start until the presets of a `PresetsSource` are made (or failed). False when they were given directly, or none. */
+  readonly presetsPending: boolean
+  /**
+   * Starts making the presets of a `PresetsSource` (once) and resolves when they are there; undefined when the
+   * editor has none or making them failed (the error goes to `onError`).
+   */
+  loadPresets(): Promise<Presets | undefined>
+  /**
+   * The listener runs once making the presets is over: with them, or with undefined when it failed. Returns the
+   * unsubscribe function. Not called for presets that were given directly.
+   */
+  onPresets(listener: (presets: Presets | undefined) => void): () => void
   /** The filters from the config. Their current states are the renderer's. */
   readonly filters: readonly FeatureFilter[]
   /**

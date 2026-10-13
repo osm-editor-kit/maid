@@ -9,7 +9,7 @@ import {
   type SequenceState,
 } from '../favourites-keys'
 import { MAC } from '../platform'
-import { useShell } from '../shell-context'
+import { usePresets, useShell } from '../shell-context'
 
 /** The modifier as the hint shows it: the Option symbol on Apple devices, Alt elsewhere */
 const MODIFIER_LABEL = MAC ? '⌥' : 'Alt'
@@ -32,6 +32,7 @@ function inField(target: EventTarget | null) {
  */
 export function FavouriteHint() {
   const { editor, engine } = useShell()
+  const presets = usePresets()
   const [sequence, setSequence] = useState<SequenceState>(IDLE)
   const favourites = useSettings((state) => state.favourites)
 
@@ -83,7 +84,7 @@ export function FavouriteHint() {
   const { held, digits, cancelled } = sequence
   if (!held || cancelled || digits === '') return null
   const favourite = favourites.find((item) => item.number === digits)
-  const name = favourite ? editor.presets?.preset(favourite.presetId)?.name : undefined
+  const name = favourite ? presets?.preset(favourite.presetId)?.name : undefined
   return (
     <div
       role="status"

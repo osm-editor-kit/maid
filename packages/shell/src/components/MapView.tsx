@@ -26,7 +26,7 @@ import { drawClick } from '../drawing'
 import { addPointWithFavourite, giveFavouriteTagsToNode } from '../favourites'
 import { backgroundSourceOnMap } from '../imagery-used'
 import { installMarkerImages } from '../images'
-import { preloadAfterFirstSettle } from '../lazy-chunks'
+import { loadPresetsAfterReady, preloadAfterFirstSettle } from '../lazy-chunks'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
 import { dropStack, setStack } from '../stack'
@@ -186,6 +186,9 @@ export function MapView() {
     engine.attach(map)
     engine.setSelected(selectedIds)
     exposeBenchApi(shell, map, { select })
+    // the presets (the schema's data and the country data, a chunk of their own) are made after the first picture,
+    // once the journal has looked for stored edits (`ready` is that): their pins and icons are filled in when they come
+    loadPresetsAfterReady(shell)
     // the chunks for the inspector, the panels and the dock: after the first view is drawn, in idle time
     void preloadAfterFirstSettle(engine)
   }

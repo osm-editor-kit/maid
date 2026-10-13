@@ -37,7 +37,7 @@ const changes: PresetChanges = {
 // presets: createPresets(withChanges(defaultPresetData, changes)) in the editor config
 ```
 
-`EditorConfig.presets` takes the built `Presets`, which does not keep its data, so the config calls `createPresets` on the result. `apps/maid/src/preset-changes.example.ts` is a longer example, and `apps/maid/src/maid.config.ts` shows where it goes.
+`EditorConfig.presets` takes the built `Presets`, which does not keep its data, so the config calls `createPresets` on the result. The three apps do not build them at import time: `apps/*/src/presets.ts` exports `makePresets()` (the data, the module changes, `createPresets`), and `maid.config.ts` gives the editor `lazyPresets(() => import('./presets').then((m) => m.makePresets()))` from `@osm-editor-kit/maid-core`. The schema's data and the country data (about 1.4 MB, 400 kB gzip) are then a chunk of their own, fetched in parallel with the entry (a `modulepreload`, `apps/vite-presets-preload.ts`) and run after the map exists; `editor.presets` is undefined until then (`editor.presetsPending`, `editor.onPresets`). `apps/maid/src/preset-changes.example.ts` is a longer example; its changes go into `apps/maid/src/presets.ts`.
 
 `PresetChanges` has four keys:
 

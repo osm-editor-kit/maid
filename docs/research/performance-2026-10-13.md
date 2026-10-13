@@ -455,3 +455,101 @@ Not shown. The quiet figures are Maid 325 / iD 313 (small), 359 (dense). Subtrac
 2. `settled` does not rise by more than the noise (about 20 ms): the preload runs inside it.
 3. `check-render`, `check-edit`, `check-ops`, `check-relations`, `check-validation`, `check-tags`, `check-interactions` and `check-journal` still green (they select features right after `ready()` and expect the inspector; relations and the tags sheet are lazy).
 4. Request count before ready and the bytes (`bench` records neither today).
+
+## Presets after the first picture
+
+Measured by me on 2026-10-13 with Playwright and system Chrome against two production builds served by `vite preview` (127.0.0.1, then stopped): the build of HEAD in a `git worktree` with its own `bun install` ("before") and the working tree ("after"). Cache disabled, all non-localhost requests blocked (a `context.route`), 1600x1000, local mock API, `?scene=small#map=18/...` and `?scene=dense#map=17/...`, 20 loads each (10 with 4x CPU throttling), alternating. The machine was shared with a running benchmark for part of the time; load average 4 to 8. Only the paired difference means anything. The timings are taken inside the page: `window.__bench` assigned (setter on `window`), `await __bench.ready()` returned, the first `render` of the map after `queryRenderedFeatures()` found a feature (first data frame), `await __bench.settled()` returned.
+
+One trap that cost me an hour: **the worktree has no `packages/shell/public/sprites` and no `frame-sync.js`** (git-ignored, copied by `refs-setup`). Without the sprites the "before" build never made a single pin or vertex icon, its picture differed from the "after" picture (md5 of the screenshot), and its `settled` was 150 to 250 ms shorter because no icon image had to be made. After copying the two paths in, both builds draw the same picture (identical screenshot hash, 4 of 4) and the numbers below are the ones to read.
+
+### What the presets are used for (classification)
+
+Every use of `editor.presets` / `Presets.match` and friends, by the moment it needs them:
+
+| class | what | where | count |
+| --- | --- | --- | --- |
+| (a) needed for the first picture to be right | nothing. The geometry class of a way (area or line) comes from `isArea` of `@osm-editor-kit/maid-style` (iD's area keys as generated data), not from the presets; the source a feature goes to, its filter state and its lens style do not read them. | `build.ts`, `engine.ts` | 0 |
+| (b) decorates the picture | the icon of a pin (`buildPoint`: `match(..., 'point')`, else `'vertex'`) and of a tagged vertex (`refreshVertex`, `buildVertex`, `build`) | `packages/renderer/src/build.ts` | 4 call sites |
+| (c) only on interaction | `engine.entity()` (type, icon, name for the inspector, 3 sites), the inspector and its fields, the type picker, favourites (`packages/shell/src/favourites.ts`, 9 sites), multi-select (`MultiInspector`, `MultiType`), the restore list (icons), `FavouriteHint`, the operation `pointToArea` (`canBeArea`), `PresetSchema` for the model (`matchTags` when a way is deleted, `areaKeys` for `OsmWay.isArea()` in split, merge, disconnect, move, extract), validation (no preset use), the save flow and the journal (`discardedTags` only, not the presets) | engine, shell, ui, core | about 25 |
+
+Class (a) is empty, so no tile ever has to wait for presets to be *correct*. The model's `OsmWay.geometry()` caches per entity and uses `areaKeys` of the schema; it is only called by edits, operations and validation (never by the renderer or at load), and the schema is installed on the editor's context before any of them can run (the inspector waits for the presets, `settled()` waits for them), so no cached answer is made without the keys.
+
+### The design as built
+
+- **`lazyPresets(make)`** (`packages/core/src/lazy-presets.ts`): a `PresetsSource` with `load()` (memoised) and `current`. An app config gives `presets: lazyPresets(() => import('./presets').then((m) => m.makePresets()))`; `apps/*/src/presets.ts` holds `createPresets`, the schema data and the module changes (`withChanges` chains of street imagery, surface, traffic signs, parking and its German labels). Parking makes the source inside `editorConfig`, so the language of the visit is read when it is made, as before. `EditorConfig.presets` takes `Presets | PresetsSource`; presets given directly work as before.
+- **`editor.presets`** is a getter, undefined until they are made; `editor.presetsPending`, `editor.loadPresets()` (starts once, resolves with them) and `editor.onPresets(listener)` (called with the presets, or with undefined when making them failed, which is reported to `onError`). The model's `PresetSchema` is installed when they arrive.
+- **When:** `MapView.handleLoad` calls `loadPresetsAfterReady`: when the journal check that `ready()` waits for is over, one `setTimeout(0)`, then `editor.loadPresets()`. Not an idle callback: the map draws and parses tiles from then on, and the main thread is never idle for long. `engine.settled()` starts them too if nobody did, and an engine that holds features starts them 100 ms after the first hold (the net for use without the shell).
+- **Entry graph:** `maid-presets` no longer reaches the entry. The shell read `discardedTags` through `@osm-editor-kit/maid-presets/default`, which pulled in all of the data; it now comes from `discarded.ts` (3 kB) through the package index, and the apps' vite configs mark `packages/presets/src` as free of import-time effects (as for `packages/ui/src`), so the matching code and `country-coder` leave the entry.
+- **Fetch:** `apps/vite-presets-preload.ts` adds `<link rel="prefetch" as="script">` for the chunk to `index.html`. See "Prefetch, not modulepreload" below.
+- **Engine, tiles that arrive before the presets** (`engine.ts`): `holdForPresets` takes the points and the tagged vertices out of a merged batch and holds them, at most 300 ms (`PRESETS_HOLD_MS`); lines, areas and untagged vertices go to the map at once. When the presets arrive (`fillInPresets`) the held features are built again, with their icon, and sent: **drawn once, never bare.** When 300 ms pass first, they are sent bare, and when the presets come, `fillInPresets` goes through the points and vertices that are on the map (ids from `featureSource`), builds those with tags again in slices of at most 8 ms with a pause between, and sends only those that now have an icon, as updates by id (`updateData` replaces by id; no line or area is touched; edited features go to the live tier, the others to the big sources). `settled()` counts the held features, the fill-in slices and the pending presets (`pushing()`, `presetsPending`), and `debugState().parts` shows `held`, `fillingIn`, `presetsPending`. `ready()` and `settled()` are not redefined; `bench.ts` is not touched.
+- **React:** `usePresets()` and `usePresetsPending()` (`shell-context.ts`, `useSyncExternalStore` on `editor.onPresets`) for the components that read `editor.presets` in a render (restore list, favourite hint). `InspectorSlot` shows the same empty sidebar frame as while its chunk loads until the presets are there. Everything else of class (c) is behind the inspector or a click.
+
+What a person sees when the tiles win the race: the lines and areas, then, up to 300 ms later at most, the pins and vertex icons together (never a bare pin that later gets its icon). If the presets take longer than 300 ms (a slow network for the 400 kB chunk), the pins appear bare and fill in. The inspector for a feature selected before the presets are there shows its frame, then the content. I tested both paths in the production build by delaying the chunk by 2.5 s (small) and 3 s (dense) with a route: the icons after the fill-in are the same set as without delay (dense: 7709 of 8476 points and 2743 of 25814 vertices with an icon, as without delay), the fill-in costs 4 ms (small) and 20 ms (dense) of engine time in 8 ms slices, no console error.
+
+### Prefetch, not modulepreload
+
+The brief said modulepreload. Measured on the small scene, ready (median, ms, no route, cache on): no link 254, `prefetch` 263, `modulepreload` 283. A `modulepreload` downloads **and parses** the module, and Chrome parses a module on the main thread: 1.4 MB is about 20 ms before `ready`, which is the number this work is meant to lower. `prefetch` only downloads it, at low priority, into the HTTP cache. **Not verified here:** `vite preview` answers `Cache-Control: no-cache`, and with that the later `import()` sent a second request (200, not from the cache); on a host that serves the hashed files with `immutable`, as a CDN does, the cache is used. `settled` was the same for all three variants (578 to 591 ms). `presetsPreload({ rel: 'modulepreload' })` switches back.
+
+### Chunks
+
+| | before (HEAD) | after |
+| --- | --- | --- |
+| entry `index-*.js`, raw / gzip, Maid | 3,483 kB / 992 kB | 1,852 kB / 545 kB |
+| static graph before the first paint (entry and the chunks it preloads), raw / gzip, Maid | 4,030 kB (7 files) / 1,159 kB | 2,618 kB (15 files) / 763 kB |
+| same, Maid Bicycle / Maid Parking | not measured | 2,621 kB / 764 kB, 2,731 kB / 800 kB |
+| presets chunk (schema data, country data, `createPresets`, the app's changes), raw / gzip | in the entry | 1,418 kB / 399 kB (bicycle 1,418 kB, parking 1,423 kB) |
+
+The entry lost 1.63 MB raw (447 kB gzip); the static graph 1.41 MB raw (396 kB gzip). More files in the graph because the split now also keeps some shared pieces apart; the bytes are what counts.
+
+### Measurements (paired, medians [p25 to p75], ms, 20 loads, 10 at 4x)
+
+| | before | after | change |
+| --- | --- | --- | --- |
+| small: `__bench` exists | 299 [298-301] | 239 [235-244] | -60 |
+| small: ready | 314 [311-319] | 256 [251-263] | **-58** |
+| small: first frame with data | 470 [463-478] | 378 [371-382] | -92 |
+| small: settled | 829 [648-871] | 791 [590-822] | -38 (before is bimodal, 650 or 870) |
+| dense: `__bench` exists | 303 [300-312] | 246 [237-248] | -57 |
+| dense: ready | 315 [312-325] | 258 [251-262] | **-57** |
+| dense: first frame with data | 756 [735-769] | 686 [664-702] | -70 |
+| dense: settled | 1142 [1019-1242] | 1083 [1042-1122] | -59 |
+| small 4x: `__bench` / ready | 790 [788-795] / 829 [825-836] | 634 [627-644] / 673 [669-691] | -156 / **-156** |
+| small 4x: first frame / settled | 1388 [1378-1395] / 1721 [1715-1818] | 1152 [1145-1157] / 1792 [1681-1806] | -236 / +71 (inside the spread) |
+| dense 4x: `__bench` / ready | 794 [789-795] / 835 [825-842] | 635 [631-636] / 671 [665-685] | -159 / **-164** |
+| dense 4x: first frame / settled | 2138 [2037-2205] / 3064 [3031-3099] | 1898 [1885-1906] / 2977 [2933-2981] | -240 / -87 |
+
+Two earlier variants of the same work, for the record: loading the presets in an idle callback left them to arrive after the first tiles and gave a second pass; `settled` rose 100 to 200 ms in the small scene. And the first fill-in-only design (no hold) drew the pins twice. The hold made both go away. A trigger of `loadPresets()` inside the first tile's merge ran the 25 ms chunk evaluation in the task of the first tile, before `ready()` could resolve (ready minus `__bench` was 38 ms instead of 13): it is 100 ms later now.
+
+### Other things looked at for the start path
+
+Profile of the "after" load up to `ready` (self time, ms, one load, 0.5 ms sampling): the entry 142 to 173 (almost all MapLibre and WebGL: `_containerDimensions`, shader link, painter setup, style clone), idle 100 to 150 (waiting for the entry), `schemas` (zod) 11 to 12, `floating-ui` 5 to 6, the presets chunk 23 to 25 (now after `ready`).
+
+- **Moved:** the presets chunk and, with it, `country-coder`, `location-conflation`, `createPresets` and the schema data (this section).
+- **Not moved, with the number:** zod (319 kB chunk, 11 to 12 ms): `settings.ts`, the stores of the lenses, imagery, notes, data-layers and street-imagery modules build their schemas at import to parse what the browser stored, synchronously. Moving it means making each store lazy or asynchronous: eight packages, not a safe change for 12 ms (about 45 ms at 4x); it is the next candidate. `floating-ui` (217 kB, 5 to 6 ms): `Tooltip` and `Flyout` render in the top bar at the first paint; lazy tooltips would be a change of the components. Dexie (132 kB): the journal check is part of what `ready()` waits for. Paraglide and the stores that rehydrate from `localStorage`: tiny (below the sampling resolution).
+
+### Risks
+
+- The 300 ms hold and the 8 ms slices are numbers from a localhost run. On a slow network the chunk (400 kB gzip) may take longer than the hold: pins appear bare, then fill in (tested with a 2.5 s delay).
+- `prefetch` needs cacheable responses (see above); where they are `no-cache` the 400 kB are fetched twice, the second time after `ready`.
+- `packages/presets/src` is marked free of import-time effects in the apps' vite configs (build only), like `packages/ui/src`. A module there that gets an effect that only its import provides would be dropped silently; `bun run check-config` and the builds do not catch that.
+- The inspector shows its empty frame until the presets are there (about 100 ms after `ready` on a quiet machine). A check that selects a feature and reads the inspector right after `ready()` without `settled()` waits for its elements as before.
+- A check or a script that reads `editor.presets` right after `ready()` without `settled()` gets undefined for about 100 ms. Anything in `tools/` that does this is a candidate to fail; the browser checks I ran do not.
+- `check-all` for the app `maid` could not be run: port 5173 is held by another project's dev server (TILDA), and the checks fix the port. `bicycle` (the same config plus traffic signs) and `parking` pass.
+
+### What the quiet three-editor benchmark must confirm
+
+1. Maid's `load.readyMs` below iD's: small 319, medium 302, dense 285 (iD) against Maid's 378 / 352 / 305 from the earlier quiet run. My paired difference on the same machine is -58 ms at 1x in this harness (about 18 percent of ready); the bench's definition of ready differs (it includes the time to `page.goto`), so I do not claim a win: the dense scene (305 minus 57 is about 250) and medium (352 minus 57 is about 295) would be below iD's 285 and 302 only narrowly or by a few ms; small (378 minus 57 is about 320) would be level with iD's 319.
+2. `load.drawnMs` / `settledMs` not higher than the baseline by more than the noise (20 ms): they include the presets and the hold.
+3. The same picture as before (`check-render`).
+4. Whether `prefetch` is served from the cache on the real host.
+
+## What the load numbers mean
+
+The benchmark records two load times per editor, and the phases after the load use one of them. They differ only for Maid, because only Maid loads something after its first picture.
+
+- **Loaded: map drawn** (`load.drawnMs`, the headline row). The map shows the complete data for the view. Maid: its engine's own wait (`__bench.drawn()`, which is `engine.settled()`): no tile under way, every MapLibre source and tile loaded, nothing moving, a frame drawn after the last data change. iD: its `settled()`, which waits for the redraw queue, the OSM tile requests and one frame. Rapid: its `settled()`, which waits for the draw, the tile requests and two quiet frames.
+- **Loaded: everything fetched** (`load.settledMs`). Everything the editor loads by itself after start has arrived. Maid: the drawn wait, then its lazy chunks (the inspector and the panels, fetched in idle time). iD and Rapid have no such work in their adapters, so both rows are the same for them. Rapid's `settled({ idle: true })` would also wait for its idle queue, but that holds validation and pane re-renders, which fetch nothing; it is not used.
+- The pan, zoom and drag phases settle with the drawn wait, not with the lazy chunks. The setup calls between phases still use `settled()`, so that the inspector is there before a selection is timed.
+- **Until correct afterwards** is each editor's own definition of a final picture, so the numbers do not measure one thing. Maid waits for MapLibre's `idle`, which fires only when nothing is dirty, so it includes the label and symbol fade-in that MapLibre runs after a change (`fadeDuration`, 300 ms by default). iD waits for its redraw queue and tiles, then one frame and one message task, with no fade. Rapid waits for its draw and tile queues and two quiet frames. A common definition would be "the time until the last frame that changed pixels in the map area", measured from outside with screencast frames or a pixel hash of the map element. It is not built: it needs a readback of the map on every frame, and its cost on a loaded map is not measured yet. For that reason the budget does not compare the settle rows with the other editors (`compare: false` in `tools/bench/metrics.ts`); they only warn against Maid's own baseline.
+- **Tag edit** is measured from the call to the first draw after it. iD's draw runs synchronously inside the call (its `drawn` event fires before `setTag` returns), so its time is the draw itself. Maid's engine hands the change to MapLibre, which draws on its next animation frame, so its time includes that wait, up to 16.7 ms at 60 Hz. Both are the next picture. Maid is not changed for this.
+- **Select by a click** uses the longest roads of the scene whose midpoint lies inside the editor's own map element (`__bench.mapRect()`), inset from its edges and with no control or panel on top (`pageVisibleRoads` in `tools/bench/run.ts`). Maid's map element starts right of its sidebar, so a road under the sidebar is not picked there. A click that does not show the road selected with its inspector within 2 s is a miss, and the report names the road and what the page held: the selection, the inspector, and the element under the pointer.

@@ -2,7 +2,7 @@ import type { Editor } from '@osm-editor-kit/maid-core'
 import type { Geometry } from '@osm-editor-kit/maid-presets'
 import type { RestoreSummary } from '../journal'
 import type { ChangeElement } from '../save/osm-change'
-import { useShell } from '../shell-context'
+import { usePresets } from '../shell-context'
 import { PresetIcon } from './PresetIcon'
 import { ChangeRows, rowsOf } from './SaveButton'
 
@@ -28,7 +28,7 @@ function iconOf(presets: Editor['presets'], element: ChangeElement) {
  * dimmed), then the features they leave changed, grouped and listed as the save flyout lists an upload.
  */
 export function RestoreChanges({ summary }: { summary: RestoreSummary }) {
-  const { editor } = useShell()
+  const presets = usePresets()
   const rows = rowsOf(summary.change)
   return (
     <div className="mt-3 flex flex-col gap-3 text-xs">
@@ -56,7 +56,7 @@ export function RestoreChanges({ summary }: { summary: RestoreSummary }) {
               className="max-h-56 overflow-y-auto rounded-lg bg-zinc-50 px-3 py-2 dark:bg-white/5"
               icon={(element) => (
                 <PresetIcon
-                  icon={iconOf(editor.presets, element)}
+                  icon={iconOf(presets, element)}
                   className="size-4 shrink-0 fill-zinc-600 dark:fill-zinc-300"
                 />
               )}

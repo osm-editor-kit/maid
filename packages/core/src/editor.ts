@@ -1,4 +1,5 @@
 import { EditHistory, ModelContext } from '@osm-editor-kit/maid-model'
+import type { Presets } from '@osm-editor-kit/maid-presets'
 import { createEditorFetch } from './fetching/editor-fetch.ts'
 import { createHooks } from './hooks.ts'
 import { createRegistry, type Registry } from './registry.ts'
@@ -95,10 +96,56 @@ export function createEditor(config: EditorConfig = {}): Editor {
   }
 
   const context = new ModelContext()
-  if (config.presets) context.systems.schema = new PresetSchema(context, config.presets)
+  // Presets given directly are there from the start. A source is made later (`loadPresets`): the model asks the
+  // schema only when an edit is made, so it is set then, and the first picture does not wait for the data.
+  const source = config.presets && 'load' in config.presets ? config.presets : undefined
+  let presets: Presets | undefined = source ? undefined : (config.presets as Presets | undefined)
+  let presetsPending = source !== undefined
+  let loading: Promise<Presets | undefined> | undefined
+  const presetListeners = new Set<(presets: Presets | undefined) => void>()
+  if (presets) context.systems.schema = new PresetSchema(context, presets)
+  function announce(made: Presets | undefined) {
+    for (const listener of presetListeners) {
+      try {
+        listener(made)
+      } catch (error) {
+        onError(error, { source: 'subscriber', name: 'presets' })
+      }
+    }
+  }
+  function loadPresets() {
+    if (!source) return Promise.resolve(presets)
+    loading ??= source.load().then(
+      (made) => {
+        presetsPending = false
+        if (destroyed) return undefined
+        presets = made
+        context.systems.schema = new PresetSchema(context, made)
+        announce(made)
+        return made
+      },
+      (error: unknown) => {
+        presetsPending = false
+        onError(error, { source: 'subscriber', name: 'presets' })
+        announce(undefined)
+        return undefined
+      },
+    )
+    return loading
+  }
   const editor: Editor = {
     context,
-    presets: config.presets,
+    get presets() {
+      return presets
+    },
+    get presetsPending() {
+      return presetsPending
+    },
+    loadPresets,
+    onPresets(listener) {
+      presetListeners.add(listener)
+      return () => presetListeners.delete(listener)
+    },
     filters: config.filters ?? [],
     history: new EditHistory(context),
     hooks: {

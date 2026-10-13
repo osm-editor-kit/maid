@@ -6,7 +6,7 @@ import {
   type StoredEdits,
 } from '@osm-editor-kit/maid-journal'
 import { createOsmEntity, type ChangesSummary } from '@osm-editor-kit/maid-model'
-import { discardedTags } from '@osm-editor-kit/maid-presets/default'
+import { discardedTags } from '@osm-editor-kit/maid-presets'
 import { useSyncExternalStore } from 'react'
 import type { Config } from './config'
 import { toOsmChange, type OsmChange } from './save/osm-change'

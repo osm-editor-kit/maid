@@ -384,8 +384,8 @@ export class FeatureBuilder {
 
   constructor(
     private data: OsmData,
-    /** Without presets nothing has an icon */
-    private presets?: Presets,
+    /** Without presets nothing has an icon; the engine sets them when they arrive (see `Engine.fillInPresets`) */
+    public presets?: Presets,
   ) {}
 
   /** Forgets everything that was built, for building all features again (after a filter changed) */

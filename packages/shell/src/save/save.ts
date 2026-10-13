@@ -1,5 +1,5 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
-import { discardedTags } from '@osm-editor-kit/maid-presets/default'
+import { discardedTags } from '@osm-editor-kit/maid-presets'
 import { createValidator, osmApiLimits, type Issue } from '@osm-editor-kit/maid-validation'
 import { imageryOnMap } from '../imagery-used'
 import type { Shell } from '../shell'

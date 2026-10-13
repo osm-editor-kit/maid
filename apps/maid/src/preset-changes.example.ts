@@ -1,6 +1,6 @@
 /**
  * An example of changes to the default presets, in the spirit of a fork's customisation. Not used by default:
- * maid.config.ts has the lines that switch it on. See packages/presets/README.md, "Changing presets in a child app".
+ * presets.ts has the lines that switch it on. See packages/presets/README.md, "Changing presets in a child app".
  */
 import type { PresetChanges } from '@osm-editor-kit/maid-presets'
 

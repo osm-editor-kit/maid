@@ -34,7 +34,7 @@ import {
 } from '@osm-editor-kit/maid-model'
 import type { Operation, OperationContext } from '@osm-editor-kit/maid-operations'
 import type { Geometry, Preset, Presets } from '@osm-editor-kit/maid-presets'
-import { isArea, type Lens, type Tags } from '@osm-editor-kit/maid-style'
+import { hasInterestingTags, isArea, type Lens, type Tags } from '@osm-editor-kit/maid-style'
 import type { Feature } from 'geojson'
 import type { GeoJSONSource, Map as MapLibreMap, MapGeoJSONFeature } from 'maplibre-gl'
 import {
@@ -145,6 +145,8 @@ export type EngineMetrics = {
   mergeMs: number
   buildMs: number
   pushMs: number
+  /** Time spent filling in icons after the presets arrived (all slices) */
+  fillInMs: number
   features: Record<SourceName, number>
 }
 
@@ -196,6 +198,11 @@ function mapState(map: MapLibreMap) {
   }
 }
 
+/** How long points and vertices wait for presets that are being made before they are drawn without icons */
+const PRESETS_HOLD_MS = 300
+/** After this, an engine that holds features starts the presets itself, if nobody has */
+const PRESETS_START_MS = 100
+
 function featureId(f: { id?: string | number }) {
   return typeof f.id === 'string' ? f.id : undefined
 }
@@ -211,7 +218,7 @@ export class MaidEngine {
   /** The OSM data: entities and edit history (from the editor), plus the indexes of the builder */
   data: OsmData
   metrics: EngineMetrics = {
-    tiles: 0, relations: 0, updates: 0, compactions: 0, bytes: 0, fetchMs: 0, parseMs: 0, mergeMs: 0, buildMs: 0, pushMs: 0,
+    tiles: 0, relations: 0, updates: 0, compactions: 0, bytes: 0, fetchMs: 0, parseMs: 0, mergeMs: 0, buildMs: 0, pushMs: 0, fillInMs: 0,
     features: { areas: 0, lines: 0, points: 0, vertices: 0 },
   } // prettier-ignore
 
@@ -269,8 +276,9 @@ export class MaidEngine {
     this.data = new OsmData(options.editor.context, options.editor.history)
     // after OsmData's own listener, so the lookups are right when the redraw reads them
     options.editor.history.on('stagingchange', (difference) => this.onStagingChange(difference))
-    this.presets = options.editor.presets
-    this.builder = new FeatureBuilder(this.data, this.presets)
+    this.builder = new FeatureBuilder(this.data, options.editor.presets)
+    // presets that are made after the first picture: the icons of what was built without them are filled in
+    this.stopPresets = options.editor.onPresets((presets) => presets && this.fillInPresets(presets))
     this.filterSet = createFilterSet(options.editor.filters, options.filters)
     this.builder.filters = this.filterSet
     this.remote = options.fetch ?? standaloneFetch
@@ -293,7 +301,128 @@ export class MaidEngine {
     for (const listener of this.listeners) listener()
   }
 
-  private presets: Presets | undefined
+  /** The editor's presets: undefined while they are being made (`editor.presetsPending`) */
+  private get presets(): Presets | undefined {
+    return this.options.editor.presets
+  }
+  private stopPresets: () => void
+  /** Slices of the fill-in after the presets arrived that are still to run; `settled()` waits for them */
+  private fillingIn = 0
+  private fillTimer?: ReturnType<typeof setTimeout>
+
+  /**
+   * Points and vertices of tiles that arrived while the presets were still being made. Their icons come from the
+   * presets, so they wait for them (at most `PRESETS_HOLD_MS`) instead of being drawn bare and drawn again: lines and
+   * areas, which do not depend on the presets, go to the map at once. Released when the presets arrive, or when the
+   * time is up (then `fillInPresets` adds the icons later). `settled()` counts them as work in progress.
+   */
+  private held: { id: string; source: 'points' | 'vertices'; tier: 'base' | 'live' }[] = []
+  private holdTimer?: ReturnType<typeof setTimeout>
+  private safetyTimer?: ReturnType<typeof setTimeout>
+
+  /** Takes the points and vertices out of a batch to hold them. Returns the batch as it is to be sent now. */
+  private holdForPresets(batch: FeatureBatch, tier: 'base' | 'live') {
+    if (!this.options.editor.presetsPending) return batch
+    for (const source of ['points', 'vertices'] as const) {
+      for (const feature of batch[source]) {
+        const id = featureId(feature)
+        // an untagged vertex (a junction, the end of a way) has no icon to wait for
+        if (id === undefined || (source === 'vertices' && !feature.properties?.t)) continue
+        this.held.push({ id, source, tier })
+      }
+    }
+    if (this.held.length === 0) return batch
+    const holding = new Set(this.held.map((entry) => entry.id))
+    batch = {
+      ...batch,
+      points: batch.points.filter((f) => !holding.has(String(featureId(f)))),
+      vertices: batch.vertices.filter((f) => !holding.has(String(featureId(f)))),
+    }
+    // The shell starts the presets once `ready` is over (loadPresetsAfterReady) and `settled()` asks for them. This is
+    // the net for an engine that has neither: a little later, not at once, because running the presets chunk in the
+    // task of the first tile would delay whatever else is waiting for the main thread then (`ready`).
+    this.safetyTimer ??= setTimeout(() => void this.options.editor.loadPresets(), PRESETS_START_MS)
+    this.holdTimer ??= setTimeout(() => this.releaseHeld(), PRESETS_HOLD_MS)
+    return batch
+  }
+
+  /** Sends what was held, built again with the presets if they are there (with no icon if the time was up) */
+  private releaseHeld() {
+    clearTimeout(this.holdTimer)
+    this.holdTimer = undefined
+    const held = this.held
+    if (held.length === 0) return
+    this.held = []
+    const sends = new Map<string, FeatureBatch>()
+    for (const { id, source, tier } of held) {
+      const node = this.data.node(id)
+      if (!node) continue
+      const feature =
+        source === 'points' ? this.builder.buildPoint(node) : this.builder.buildVertex(node)
+      if (!feature) continue
+      let batch = sends.get(tier)
+      if (!batch) sends.set(tier, (batch = { areas: [], lines: [], points: [], vertices: [] }))
+      batch[source].push(feature)
+    }
+    for (const [tier, batch] of sends) this.push(batch, tier as 'base' | 'live')
+    this.wake()
+  }
+
+  /**
+   * The presets arrived after features were built without them. Presets only decorate the first picture: they give
+   * a pin or a vertex its icon (nothing else a feature is drawn as depends on them: the geometry class comes from the
+   * style package's own area keys). So the points and vertices that are drawn are built again, and only those that
+   * now have an icon are sent, in slices of about 8 ms with a pause between them, as updates by id (no geometry of a
+   * line or an area is touched). When the presets are there before the first tile, nothing was built and there is
+   * nothing to do. Edited features (live tier) are replaced in the live tier, the others in the big sources.
+   */
+  private fillInPresets(presets: Presets) {
+    this.builder.presets = presets
+    // what is drawn already was built without them (the held features are not drawn yet)
+    const ids: string[] = []
+    for (const [id, source] of this.featureSource) {
+      if (source === 'points' || source === 'vertices') ids.push(id)
+    }
+    // what waited for the presets is built with them, and is not drawn bare at all
+    this.releaseHeld()
+    // the type of a selected feature, read from the presets: whoever shows it reads it again
+    this.changed()
+    if (ids.length === 0) return
+    this.fillingIn++
+    let at = 0
+    const slice = () => {
+      this.fillTimer = undefined
+      const started = performance.now()
+      const base: FeatureBatch = { areas: [], lines: [], points: [], vertices: [] }
+      const live: FeatureBatch = { areas: [], lines: [], points: [], vertices: [] }
+      while (at < ids.length && performance.now() - started < 8) {
+        const id = ids[at++]!
+        const source = this.featureSource.get(id)
+        const node = this.data.node(id)
+        if (
+          (source !== 'points' && source !== 'vertices') ||
+          !node ||
+          !hasInterestingTags(node.tags)
+        )
+          continue
+        const feature =
+          source === 'points' ? this.builder.buildPoint(node) : this.builder.buildVertex(node)
+        // a feature that has no icon with the presets is as it was
+        if (!feature?.properties?.icon) continue
+        ;(this.live[source].has(id) ? live : base)[source].push(feature)
+      }
+      this.push(base, 'base')
+      this.push(live, 'live')
+      this.metrics.fillInMs += performance.now() - started
+      if (at < ids.length) {
+        this.fillTimer = setTimeout(slice, 0)
+        return
+      }
+      this.fillingIn--
+      this.wake()
+    }
+    this.fillTimer = setTimeout(slice, 0)
+  }
 
   /** The tags an entity had when it was loaded, before any edit; undefined for one that was added here */
   baseTags(id: string) {
@@ -506,10 +635,11 @@ export class MaidEngine {
     const t0 = performance.now()
     const added = this.data.merge(elements)
     const t1 = performance.now()
-    const batch = this.builder.build(added)
+    const built = this.builder.build(added)
     const t2 = performance.now()
     // decided now, not when the images are ready: by then the first view may count as complete
     const tier = this.firstLoadDone ? 'live' : 'base'
+    const batch = this.holdForPresets(built, tier)
     if (this.options.prepare) {
       // Areas and lines need no image, so they go to MapLibre at once and the worker tiles them while the shell
       // makes the pins and icons. Points and vertices wait for their images.
@@ -888,6 +1018,8 @@ export class MaidEngine {
       this.flushTimer !== undefined ||
       this.dragBusy ||
       this.compacting ||
+      this.fillingIn > 0 ||
+      this.held.length > 0 ||
       this.allChannels().some((channel) => channel.busy || channel.dirty)
     )
   }
@@ -910,6 +1042,13 @@ export class MaidEngine {
         )
       }
       this.loadVisibleTiles()
+      // the presets are made after the first picture: they are work in progress until they are there and the
+      // icons of what was drawn without them are filled in (`pushing` counts the fill-in)
+      const { editor } = this.options
+      if (editor.presetsPending) {
+        await editor.loadPresets()
+        continue
+      }
       if (this.inflight > 0 || this.pushing()) {
         // woken when work finishes; the timer covers work that ends without sending anything
         await new Promise<void>((resolve) => {
@@ -990,6 +1129,9 @@ export class MaidEngine {
       pushing: this.pushing(),
       parts: {
         preparing: this.preparing,
+        presetsPending: this.options.editor.presetsPending,
+        fillingIn: this.fillingIn,
+        held: this.held.length,
         flushTimer: this.flushTimer !== undefined,
         activeSending: this.activeSending,
         dataSeq: this.dataSeq,
@@ -2139,6 +2281,12 @@ export class MaidEngine {
    * the next request is cleared. For an engine that is not used any more.
    */
   destroy() {
+    this.stopPresets()
+    clearTimeout(this.fillTimer)
+    clearTimeout(this.holdTimer)
+    clearTimeout(this.safetyTimer)
+    this.held = []
+    this.fillingIn = 0
     clearTimeout(this.wakeTimer)
     this.wakeTimer = undefined
     resetLoads(this.tileLoads)
