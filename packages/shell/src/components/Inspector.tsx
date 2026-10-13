@@ -34,6 +34,7 @@ import { measureTags } from '../measure-tags'
 import { createReferenceLoader } from '../reference'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
+import { MultiInspector } from './MultiInspector'
 import { Operations } from './Operations'
 import { PresetIcon } from './PresetIcon'
 
@@ -122,23 +123,13 @@ export function Inspector() {
     )
   }
 
-  const close = () => select(null)
-
+  // several features: what they share, in MultiInspector (iD's entity editor for several)
   if (ids.length > 1) {
     return (
-      <Sidebar label="Selected features">
-        <SidebarHeader
-          title={`${ids.length} features selected`}
-          subtitle={ids.join(', ')}
-          onClose={close}
-        />
-        <SidebarBody>
-          <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
-            Shift-click adds a feature to the selection or takes it out.
-          </p>
-          <Operations />
-        </SidebarBody>
-      </Sidebar>
+      <MultiInspector
+        ids={ids}
+        suggest={entity ? suggestSourceFor(editor, entity.geometry) : undefined}
+      />
     )
   }
   // a filter can make a feature read-only: it is shown, its fields and tags cannot be changed
