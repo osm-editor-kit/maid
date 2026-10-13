@@ -61,11 +61,11 @@ export async function runCheck(
     await page.goto(
       `http://localhost:${PORTS.maid}/?scene=${sceneName}${query ? `&${query}` : ''}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
     )
-    await page.waitForFunction(() => (window as any).__bench !== undefined, undefined, {
+    await page.waitForFunction(() => window.__bench !== undefined, undefined, {
       timeout: 30000,
     })
-    await page.evaluate(() => (window as any).__bench.ready())
-    const settle = () => page.evaluate(() => (window as any).__bench.settled()) as Promise<void>
+    await page.evaluate(() => window.__bench.ready())
+    const settle = () => page.evaluate(() => window.__bench.settled()) as Promise<void>
     await settle()
     const pairs = (Object.keys(EDIT_SOURCES) as (keyof typeof EDIT_SOURCES)[]).map(
       (name): [string, string, string] => [name, SOURCES[name], EDIT_SOURCES[name]],
@@ -73,7 +73,7 @@ export async function runCheck(
     const drawnIn: Check['drawnIn'] = (ids) =>
       page.evaluate(
         ({ ids, pairs }) => {
-          const { map } = (window as any).__maid
+          const { map } = window.__maid
           const out: Record<string, string[]> = {}
           for (const id of ids) {
             out[id] = []

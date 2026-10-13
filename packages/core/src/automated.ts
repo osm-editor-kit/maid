@@ -3,6 +3,6 @@
  * no network feature starts and no stored setting is read or written (AGENTS.md, core rule 1).
  * Safe where there is no navigator (`bun test`, a server): then it is false.
  */
-export function isAutomated(): boolean {
+export function isAutomated() {
   return typeof navigator !== 'undefined' && navigator.webdriver === true
 }

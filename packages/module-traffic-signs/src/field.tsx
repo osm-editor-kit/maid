@@ -7,7 +7,6 @@
  * not installed. See README.md, "Not done". The fallback loads nothing from the network.
  */
 import type { InspectorFieldType } from '@osm-editor-kit/maid-ui'
-import type { ReactNode } from 'react'
 import { applySignTagChanges } from './tag-changes.ts'
 
 export type FieldComponent = InspectorFieldType['component']
@@ -22,7 +21,7 @@ const INPUT_CLASS =
  * The value is committed on blur or Enter, like Maid's text fields. The row keys this control by its tag value
  * (the type is not in STEADY_TYPES), so the input is new whenever the value changes from outside.
  */
-export function TrafficSignField({ field, tags, id, onChange }: SignFieldProps): ReactNode {
+export function TrafficSignField({ field, tags, id, onChange }: SignFieldProps) {
   const key = field.key ?? field.id
   const current = tags[key] ?? ''
 

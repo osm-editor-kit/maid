@@ -1,4 +1,4 @@
-import { defineModule, type MaidModule } from '@osm-editor-kit/maid-core'
+import { defineModule } from '@osm-editor-kit/maid-core'
 import { Time, type InspectorSection, type InspectorSectionProps } from '@osm-editor-kit/maid-ui'
 import type { ReactNode } from 'react'
 
@@ -50,7 +50,7 @@ function ElementInfo({ entity, editor }: InspectorSectionProps) {
 }
 
 /** Adds an "Element" section to the inspector. */
-export function elementInfo(): MaidModule {
+export function elementInfo() {
   return defineModule({
     id: 'element-info',
     setup(api) {

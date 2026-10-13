@@ -73,7 +73,7 @@ type Parsed<T> = {
 /** Reads a group of parameters from a query string, outside React */
 export function readParams<
   T extends Record<string, { parseServerSide(value: string | undefined): unknown }>,
->(parsers: T, search: string): Parsed<T> {
+>(parsers: T, search: string) {
   const query = new URLSearchParams(search)
   const out: Record<string, unknown> = {}
   for (const name in parsers)

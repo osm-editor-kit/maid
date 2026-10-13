@@ -15,7 +15,7 @@ export type MembersOf = (relationId: string) => readonly MemberRef[] | undefined
  * Each id is listed once, in the order the members give them. Members that are not loaded are
  * listed too: the caller finds them by id when they arrive.
  */
-export function relatedIds(relationId: string, membersOf: MembersOf): string[] {
+export function relatedIds(relationId: string, membersOf: MembersOf) {
   const out = new Set<string>()
   const direct = membersOf(relationId) ?? []
   for (const member of direct) if (member.id !== relationId) out.add(member.id)

@@ -22,7 +22,7 @@ process.exit(
   await runCheck(sceneName, async ({ page, report, settle, drawnIn }) => {
     // --- membership, edited through the history like a module would ---
     const picked = (await page.evaluate(() => {
-      const { map, engine, editor } = (window as any).__maid
+      const { map, engine, editor } = window.__maid
       const graph = editor.history.staging.graph
       let relationId: string | undefined
       let wayId: string | undefined
@@ -31,7 +31,7 @@ process.exit(
         const way = id.startsWith('w') && engine.data.way(id)
         if (!way) continue
         const parents = graph.parentRelations(way)
-        if (!relationId && parents.length) relationId = parents[0].id
+        if (!relationId && parents.length) relationId = parents[0]!.id
         else if (!wayId && way.tags.highway && parents.length === 0) wayId = id
         if (relationId && wayId) break
       }
@@ -43,21 +43,21 @@ process.exit(
     }
     const members = () =>
       page.evaluate(({ relationId, wayId }) => {
-        const { editor, engine } = (window as any).__maid
-        const relation = editor.history.staging.graph.entity(relationId)
+        const { engine } = window.__maid
+        const relation = engine.data.relation(relationId)!
         const at = relation.members.findIndex((m: any) => m.id === wayId)
         return {
           count: relation.members.length,
-          role: at < 0 ? null : relation.members[at].role,
+          role: at < 0 ? null : relation.members[at]!.role,
           undo: engine.undoState().undoLabel ?? null,
         }
       }, picked)
     const edit = async (kind: 'add' | 'role' | 'remove') => {
       await page.evaluate(
         ({ relationId, wayId, kind }) => {
-          const { editor } = (window as any).__maid
+          const { editor, engine } = window.__maid
           const { history } = editor
-          const relation = history.staging.graph.entity(relationId)
+          const relation = engine.data.relation(relationId)!
           const at = relation.members.findIndex((m: any) => m.id === wayId)
           // an action is a function from graph to graph: these do what the member actions do
           const next =
@@ -89,7 +89,7 @@ process.exit(
     await edit('remove')
     report('remove member', [before.count, null, 'Member: remove'], Object.values(await members()))
     await page.evaluate(() => {
-      const { engine } = (window as any).__maid
+      const { engine } = window.__maid
       engine.undo()
       engine.undo()
       engine.undo()
@@ -99,24 +99,24 @@ process.exit(
 
     // --- the same in the sidebar: select a member, remove it from its relation, undo ---
     const member = (await page.evaluate(() => {
-      const { map, engine, editor } = (window as any).__maid
+      const { map, engine, editor } = window.__maid
       const graph = editor.history.staging.graph
       for (const f of map.queryRenderedFeatures()) {
         const id = String(f.id ?? '')
         const way = id.startsWith('w') && engine.data.way(id)
         const parents = way ? graph.parentRelations(way) : []
-        if (parents.length === 1) return { wayId: id, relationId: parents[0].id as string }
+        if (parents.length === 1) return { wayId: id, relationId: parents[0]!.id }
       }
       return null
     })) as { wayId: string; relationId: string } | null
     if (member) {
       const parents = () =>
         page.evaluate((wayId) => {
-          const { editor } = (window as any).__maid
+          const { editor } = window.__maid
           const graph = editor.history.staging.graph
           return graph.parentRelations(graph.entity(wayId)).length
         }, member.wayId)
-      await page.evaluate((id) => (window as any).__bench.select(id), member.wayId)
+      await page.evaluate((id) => window.__bench.select(id), member.wayId)
       // the "Relations" group starts folded: its rows exist only once it is open
       const group = page.locator('details', {
         has: page.locator('summary', { hasText: 'Relations' }),
@@ -129,20 +129,20 @@ process.exit(
       await settle()
       report('sidebar: remove takes the way out of the relation', 0, await parents())
       report('sidebar: the row is gone', 0, await remove.count())
-      await page.evaluate(() => (window as any).__maid.engine.undo())
+      await page.evaluate(() => window.__maid.engine.undo())
       await settle()
       report(
         'sidebar: undo puts it back, and the row with it',
         [1, 1],
         [await parents(), await remove.count()],
       )
-      await page.evaluate(() => (window as any).__bench.select(null))
+      await page.evaluate(() => window.__bench.select(null))
     }
 
     // --- related features: a selected relation's members, and what the inspector asks for ---
     const membersOf = (relationId: string) =>
       page.evaluate((relationId) => {
-        const { editor, engine } = (window as any).__maid
+        const { editor, engine } = window.__maid
         const graph = editor.history.staging.graph
         const relation = engine.data.relation(relationId)
         if (!relation) return []
@@ -152,20 +152,27 @@ process.exit(
     const relatedStates = async (ids: string[]) => {
       const drawn = await drawnIn(ids)
       return page.evaluate(
-        ({ drawn, sources }) => {
-          const { map } = (window as any).__maid
+        ({
+          drawn,
+          sources,
+        }: {
+          drawn: Record<string, string[]>
+          sources: Record<string, string>
+        }) => {
+          const { map } = window.__maid
           const out: Record<string, { drawn: boolean; related: boolean }> = {}
-          for (const [id, kinds] of Object.entries(drawn) as [string, string[]][]) {
+          for (const [id, kinds] of Object.entries(drawn)) {
             out[id] = {
               drawn: kinds.length > 0,
               related: kinds.some(
-                (kind) => map.getFeatureState({ source: sources[kind], id })?.related === true,
+                // kinds are the keys of SOURCES (drawnIn in check-page.ts), so each has a source
+                (kind) => map.getFeatureState({ source: sources[kind]!, id })?.related === true,
               ),
             }
           }
           return out
         },
-        { drawn, sources: SOURCES as Record<string, string> },
+        { drawn, sources: SOURCES },
       ) as Promise<Record<string, { drawn: boolean; related: boolean }>>
     }
     const relatedCount = (states: Record<string, { related: boolean }>) =>
@@ -173,7 +180,7 @@ process.exit(
     const loaded = await membersOf(picked.relationId)
     if (loaded.length > 0) {
       // a relation is not drawn, so `__bench.select` (which waits for the map to show it) would never return
-      await page.evaluate((id) => (window as any).__maid.engine.setSelected(id), picked.relationId)
+      await page.evaluate((id) => window.__maid.engine.setSelected(id), picked.relationId)
       await settle()
       const selected = await relatedStates(loaded)
       const drawnMembers = loaded.filter((id) => selected[id]!.drawn)
@@ -182,21 +189,21 @@ process.exit(
         [true, true],
         [drawnMembers.length > 0, drawnMembers.every((id) => selected[id]!.related)],
       )
-      await page.evaluate(() => (window as any).__maid.engine.setSelected(null))
+      await page.evaluate(() => window.__maid.engine.setSelected(null))
       await settle()
       report(
         'deselect: the members are no longer related',
         0,
         relatedCount(await relatedStates(drawnMembers)),
       )
-      await page.evaluate((ids) => (window as any).__maid.engine.setRelated(ids), drawnMembers)
+      await page.evaluate((ids) => window.__maid.engine.setRelated(ids), drawnMembers)
       await settle()
       report(
         'setRelated(ids): exactly those are related',
         drawnMembers.length,
         relatedCount(await relatedStates(drawnMembers)),
       )
-      await page.evaluate(() => (window as any).__maid.engine.setRelated(null))
+      await page.evaluate(() => window.__maid.engine.setRelated(null))
       await settle()
       report(
         'setRelated(null): none of them is related',
@@ -207,7 +214,7 @@ process.exit(
 
     // --- load a relation in full: the members the map has not loaded, from the mock API ---
     const candidates = (await page.evaluate(() => {
-      const { engine } = (window as any).__maid
+      const { engine } = window.__maid
       const graph = engine.data.history.staging.graph
       return engine.data
         .all()
@@ -244,7 +251,7 @@ process.exit(
       const reachable = target.reachable
       const inGraph = () =>
         page.evaluate((ids) => {
-          const { editor } = (window as any).__maid
+          const { editor } = window.__maid
           const graph = editor.history.staging.graph
           return ids.filter((id: string) => graph.hasEntity(id)).length
         }, target!.members)
@@ -252,7 +259,7 @@ process.exit(
       await fetch(`http://localhost:${PORTS.mockApi}/requests/reset`)
       // two calls at once: one request, both get the same answer
       const answers = (await page.evaluate(async (id) => {
-        const { engine } = (window as any).__maid
+        const { engine } = window.__maid
         const [a, b] = await Promise.all([engine.loadRelation(id), engine.loadRelation(id)])
         return [a, b]
       }, target.id)) as { added: number }[]
@@ -281,7 +288,7 @@ process.exit(
         countAfter,
       )
       const failure = await page.evaluate(() =>
-        (window as any).__maid.engine.loadRelation('r999999999').then(
+        window.__maid.engine.loadRelation('r999999999').then(
           () => 'resolved',
           (error: Error) => error.message,
         ),
@@ -294,38 +301,35 @@ process.exit(
 
       // --- zoom to a member, and to the relation: the map has to show them ---
       const member = await page.evaluate((ids) => {
-        const { engine } = (window as any).__maid
+        const { engine } = window.__maid
         for (const id of ids) {
           const loc =
             id[0] === 'n'
               ? engine.data.node(id)?.loc
               : id[0] === 'w'
-                ? engine.data.node(engine.data.way(id)?.nodes[0])?.loc
+                ? engine.data.node(engine.data.way(id)?.nodes[0] ?? '')?.loc
                 : undefined
-          if (loc) return { id, loc: [...loc] }
+          if (loc) return { id, loc: [loc[0], loc[1]] satisfies [number, number] }
         }
         return null
       }, target.members)
       if (member) {
         // far away first, so that the move is real
-        await page.evaluate(() => (window as any).__maid.map.jumpTo({ center: [0, 0], zoom: 2 }))
+        await page.evaluate(() => window.__maid.map.jumpTo({ center: [0, 0], zoom: 2 }))
         await settle()
-        const inView = (loc: number[]) =>
-          page.evaluate((loc) => (window as any).__maid.map.getBounds().contains(loc), loc)
-        const fitted = await page.evaluate(
-          (id) => (window as any).__maid.engine.fitTo([id]),
-          member.id,
-        )
+        const inView = (loc: [number, number]) =>
+          page.evaluate((loc) => window.__maid.map.getBounds().contains(loc), loc)
+        const fitted = await page.evaluate((id) => window.__maid.engine.fitTo([id]), member.id)
         await settle()
         report(
           'zoom to a member: the map shows it',
           [true, true],
           [fitted, await inView(member.loc)],
         )
-        await page.evaluate(() => (window as any).__maid.map.jumpTo({ center: [0, 0], zoom: 2 }))
+        await page.evaluate(() => window.__maid.map.jumpTo({ center: [0, 0], zoom: 2 }))
         await settle()
         const fittedRelation = await page.evaluate(
-          (id) => (window as any).__maid.engine.fitTo([id]),
+          (id) => window.__maid.engine.fitTo([id]),
           target.id,
         )
         await settle()
@@ -345,13 +349,13 @@ process.exit(
       report(
         'zoom to nothing loaded: no move',
         false,
-        await page.evaluate(() => (window as any).__maid.engine.fitTo(['n999999999'])),
+        await page.evaluate(() => window.__maid.engine.fitTo(['n999999999'])),
       )
     }
 
     // --- a multipolygon is drawn from its member ways and follows them ---
     const multi = (await page.evaluate(() => {
-      const { map, engine } = (window as any).__maid
+      const { map, engine } = window.__maid
       // every multipolygon that has an area, in view or not: the small scene has few
       for (const f of map.querySourceFeatures('osm-areas')) {
         const id = String(f.id ?? '')
@@ -378,7 +382,7 @@ process.exit(
     const hasCorner = (loc: number[]) =>
       page.evaluate(
         ({ relationId, loc }) => {
-          const { map } = (window as any).__maid
+          const { map } = window.__maid
           const near = (c: number[]) =>
             Math.abs(c[0]! - loc[0]!) < 1e-5 && Math.abs(c[1]! - loc[1]!) < 1e-5
           const flat = (g: any): number[][] =>
@@ -394,14 +398,14 @@ process.exit(
         },
         { relationId: multi.relationId, loc },
       )
-    const moved = [multi.loc[0]! + 0.0002, multi.loc[1]! + 0.0002]
+    const moved: [number, number] = [multi.loc[0]! + 0.0002, multi.loc[1]! + 0.0002]
     report(
       'multipolygon: its area has the corner where the node is',
       true,
       await hasCorner(multi.loc),
     )
     await page.evaluate(
-      ({ nodeId, moved }) => (window as any).__maid.engine.moveNode(nodeId, moved[0], moved[1]),
+      ({ nodeId, moved }) => window.__maid.engine.moveNode(nodeId, moved[0], moved[1]),
       { nodeId: multi.nodeId, moved },
     )
     await settle()
@@ -415,7 +419,7 @@ process.exit(
       ['areas'],
       (await drawnIn([multi.relationId]))[multi.relationId],
     )
-    await page.evaluate(() => (window as any).__maid.engine.undo())
+    await page.evaluate(() => window.__maid.engine.undo())
     await settle()
     report(
       'undo: the corner is back',

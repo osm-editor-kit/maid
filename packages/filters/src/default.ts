@@ -42,7 +42,7 @@ const trafficSet: ReadonlySet<string> = new Set(trafficHighways)
 const serviceSet: ReadonlySet<string> = new Set(serviceHighways)
 const pathSet: ReadonlySet<string> = new Set(pathHighways)
 
-function isRoadOrPath(highway: string | undefined): boolean {
+function isRoadOrPath(highway: string | undefined) {
   return (
     highway !== undefined &&
     (trafficSet.has(highway) || serviceSet.has(highway) || pathSet.has(highway))
@@ -67,7 +67,7 @@ const lifecycleWords = [
 const lifecycleSet: ReadonlySet<string> = new Set(lifecycleWords)
 
 /** `disused:shop`, `construction:railway` and so on: the key starts with a lifecycle word and a colon */
-function hasLifecyclePrefix(key: string): boolean {
+function hasLifecyclePrefix(key: string) {
   const colon = key.indexOf(':')
   if (colon < 0) return false
   for (const word of lifecycleWords) {
@@ -81,7 +81,7 @@ function hasLifecyclePrefix(key: string): boolean {
  * Data cannot say "a value or a key prefix is one of these words", so this is a function. It
  * loops over the keys without allocating, because it runs for every object.
  */
-function isPastFuture(tags: Tags): boolean {
+function isPastFuture(tags: Tags) {
   if (isRoadOrPath(tags.highway)) return false
   for (const key in tags) {
     const value = tags[key]
@@ -123,7 +123,7 @@ const nonPrimaryKeyRegex = /^(ref|survey|note|([^:]+:|old_|alt_)addr):/
  * iD's address point: at least one interesting key, and every interesting key starts with `addr:`.
  * Data cannot say "every key starts with a prefix", so this is a function.
  */
-function isAddressPoint(tags: Tags): boolean {
+function isAddressPoint(tags: Tags) {
   let found = false
   for (const key in tags) {
     if (uninterestingKeys.has(key) || uninterestingKeyRegex.test(key)) continue
@@ -140,7 +140,7 @@ function isAddressPoint(tags: Tags): boolean {
  * and the exclusions cannot be said as one data rule, so this is a function. The exclusions are
  * also guarded by the order of the list; they are kept here so the filter means what iD means.
  */
-function isBoundary(tags: Tags, geometry: Geometry): boolean {
+function isBoundary(tags: Tags, geometry: Geometry) {
   const boundaryObject =
     (geometry === 'line' && !!tags.boundary) ||
     (geometry === 'relation' && tags.type === 'boundary')
@@ -160,7 +160,7 @@ function isBoundary(tags: Tags, geometry: Geometry): boolean {
  * iD's `aerialways`: any `aerialway` value except `yes` (the generic way) and `station`. Data would
  * need every other value listed, so this is a function.
  */
-function isAerialway(tags: Tags): boolean {
+function isAerialway(tags: Tags) {
   return !!tags.aerialway && tags.aerialway !== 'yes' && tags.aerialway !== 'station'
 }
 
@@ -265,7 +265,7 @@ export const paths: Filter = {
 }
 
 /** iD's `rail`: a railway or a railway landuse, but not on a road or path, and not `railway=disused` and the like */
-function isRail(tags: Tags): boolean {
+function isRail(tags: Tags) {
   return (
     (!!tags.railway || tags.landuse === 'railway') &&
     !isRoadOrPath(tags.highway) &&
@@ -287,7 +287,7 @@ export const rail: Filter = {
  * `building=construction` are caught by past_future before this filter.
  */
 /** iD's `buildings`: a building value other than `no` and not a lifecycle word, or a building parking */
-function isBuilding(tags: Tags): boolean {
+function isBuilding(tags: Tags) {
   return (
     (!!tags.building && tags.building !== 'no' && !lifecycleSet.has(tags.building)) ||
     tags.parking === 'multi-storey' ||
@@ -328,7 +328,7 @@ const landuseAmenities: ReadonlySet<string> = new Set([
   'university',
 ])
 
-function hasLanduseTag(tags: Tags): boolean {
+function hasLanduseTag(tags: Tags) {
   return (
     !!tags.landuse ||
     !!tags.leisure ||
@@ -344,7 +344,7 @@ const notLanduse: readonly Filter[] = [buildings, buildingParts, indoor, water, 
  * iD's `landuse`: an area with a landuse tag that is not a building, building part, indoor, water
  * or piste. Area only, as in iD. A function, because the exclusions are other filters.
  */
-function isLanduse(tags: Tags, geometry: Geometry): boolean {
+function isLanduse(tags: Tags, geometry: Geometry) {
   return hasLanduseTag(tags) && !notLanduse.some((filter) => matches(filter, tags, geometry))
 }
 

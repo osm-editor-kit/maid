@@ -71,7 +71,7 @@ function drawArrow(
 }
 
 /** The arrow of a one-way line, in the colour of its `ac` (or the default) */
-function arrowImage(shape: ArrowShape, colour: string): Built {
+function arrowImage(shape: ArrowShape, colour: string) {
   const el = canvas(ARROW_SPACING, ARROW_HEIGHT)
   const ctx = el.getContext('2d')!
   drawArrow(ctx, shape, 0, colour, colour, 0.3)
@@ -79,7 +79,7 @@ function arrowImage(shape: ArrowShape, colour: string): Built {
 }
 
 /** The arrow of the selected way: white with a dark outline, so it reads on the selection's glow */
-function selectedArrowImage(): Built {
+function selectedArrowImage() {
   const el = canvas(ARROW_SPACING, SELECTED_ARROW_HEIGHT)
   const ctx = el.getContext('2d')!
   drawArrow(ctx, 'forward', (SELECTED_ARROW_HEIGHT - ARROW_HEIGHT) / 2, '#fff', '#333', 0.5)
@@ -90,7 +90,7 @@ function selectedArrowImage(): Built {
  * A side marker in colour. Units run along the way (x) and to its right (y, down on screen when
  * the way runs east), with the line at the middle of the image.
  */
-function sideImage(kind: SideKind): Built {
+function sideImage(kind: SideKind) {
   const el = canvas(SIDE_SPACING, SIDE_HEIGHT)
   const ctx = el.getContext('2d')!
   const s = RATIO * SIDE_UNIT
@@ -119,7 +119,7 @@ function sideImage(kind: SideKind): Built {
 const built = new Map<string, Built>()
 
 /** The image with this id, built now if it is one of ours (undefined for any other id) */
-function imageFor(id: string): Built | undefined {
+function imageFor(id: string) {
   const known = built.get(id)
   if (known) return known
   let image: Built | undefined
@@ -137,7 +137,7 @@ function imageFor(id: string): Built | undefined {
 }
 
 /** The images that are built ahead: every arrow in the colours the layers use, every side marker */
-function preloadIds(): string[] {
+function preloadIds() {
   const ids: string[] = [SELECTED_ARROW_IMAGE]
   for (const colour of ARROW_COLOURS)
     ids.push(arrowImageId(1, colour), arrowImageId(-1, colour), arrowImageId(2, colour))

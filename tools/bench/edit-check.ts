@@ -22,17 +22,21 @@ type Picked = { wayId: string; own: string[]; shared: string[] }
 process.exit(
   await runCheck(sceneName, async ({ page, report, settle, drawnIn }) => {
     const engineCall = (method: string, ...args: unknown[]) =>
-      page.evaluate(({ method, args }) => (window as any).__maid.engine[method](...args), {
-        method,
-        args,
-      })
+      page.evaluate(
+        ({ method, args }) =>
+          Reflect.apply(Reflect.get(window.__maid.engine, method), window.__maid.engine, args),
+        {
+          method,
+          args,
+        },
+      )
     /** Runs one step, waits for the map and reads the entities back */
     const after = async (run: () => Promise<unknown>, ids: string[]) => {
       await run()
       await settle()
       const sources = await drawnIn(ids)
       const data = (await page.evaluate((ids: string[]) => {
-        const { engine } = (window as any).__maid
+        const { engine } = window.__maid
         const out: Record<string, { inData: boolean; ways: string[]; uses: number }> = {}
         for (const id of ids)
           out[id] = {
@@ -91,7 +95,7 @@ process.exit(
 
     // --- deleting a highway: nodes only it uses go with it, shared nodes stay ---
     const picked = (await page.evaluate(() => {
-      const { map, engine } = (window as any).__maid
+      const { map, engine } = window.__maid
       for (const f of map.queryRenderedFeatures()) {
         const wayId = String(f.id ?? '')
         const way = wayId.startsWith('w') && engine.data.way(wayId)

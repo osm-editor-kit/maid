@@ -5,7 +5,7 @@ import {
   actionChangeTags,
   actionMergeNodes,
 } from '@osm-editor-kit/maid-model'
-import type { Action, Graph, OsmEntity } from '@osm-editor-kit/maid-model'
+import type { Graph, OsmEntity } from '@osm-editor-kit/maid-model'
 import {
   interpolate,
   nodeLoc,
@@ -45,12 +45,12 @@ type Connection = {
   crossLoc: Point
 }
 
-function isHighway(way: OsmWay): boolean {
+function isHighway(way: OsmWay) {
   return way.tags.highway !== undefined && routableHighways.has(way.tags.highway)
 }
 
 /** Ends tagged as not continuing (iD's isTaggedAsNotContinuing) are not joined */
-function isTaggedAsNotContinuing(node: OsmNode): boolean {
+function isTaggedAsNotContinuing(node: OsmNode) {
   const tags: Tags = node.tags
   return (
     tags.noexit === 'yes' ||
@@ -60,7 +60,7 @@ function isTaggedAsNotContinuing(node: OsmNode): boolean {
 }
 
 /** Bridges and tunnels only connect to the same kind, on the same layer and level (iD's canConnectWays) */
-function canConnectWays(way: OsmWay, other: OsmWay): boolean {
+function canConnectWays(way: OsmWay, other: OsmWay) {
   if (way.id === other.id) return true
   const bridges = hasTag(way.tags.bridge) || hasTag(other.tags.bridge)
   if (bridges && !(hasTag(way.tags.bridge) && hasTag(other.tags.bridge))) return false
@@ -71,19 +71,19 @@ function canConnectWays(way: OsmWay, other: OsmWay): boolean {
 }
 
 /** A way end that is not tagged as continuing, that only this way uses, and that is not a loop */
-function isExtendableCandidate(node: OsmNode, way: OsmWay, graph: Graph): boolean {
+function isExtendableCandidate(node: OsmNode, way: OsmWay, graph: Graph) {
   if (isTaggedAsNotContinuing(node) || graph.parentWays(node).length !== 1) return false
   return way.nodes.filter((id) => id === node.id).length <= 1
 }
 
 /** Mercator, as iD's projection: the angle between two points is the one on the map */
-function projected(point: Point): Point {
+function projected(point: Point) {
   const lat = (point[1] * Math.PI) / 360
-  return [(point[0] * Math.PI) / 180, -Math.log(Math.tan(Math.PI / 4 + lat))]
+  return [(point[0] * Math.PI) / 180, -Math.log(Math.tan(Math.PI / 4 + lat))] satisfies Point
 }
 
 /** iD's geoAngle: the angle of the line from a to b on the map */
-function angleBetween(a: Point, b: Point): number {
+function angleBetween(a: Point, b: Point) {
   const pa = projected(a)
   const pb = projected(b)
   return Math.atan2(pb[1] - pa[1], pb[0] - pa[0])
@@ -93,11 +93,7 @@ function angleBetween(a: Point, b: Point): number {
  * The extension of one way end, and the first segment it meets, among the way itself (a loop) and
  * the ways whose box overlaps the way's box.
  */
-function connectionFrom(
-  way: OsmWay,
-  endIndex: number,
-  context: RuleContext,
-): Connection | undefined {
+function connectionFrom(way: OsmWay, endIndex: number, context: RuleContext) {
   const graph = context.graph
   const tipId = way.nodes[endIndex]
   const midId = endIndex === 0 ? way.nodes[1] : way.nodes[way.nodes.length - 2]
@@ -124,14 +120,15 @@ function connectionFrom(
       const b = nodeLoc(graph, bId)
       if (!a || !b) continue
       const crossLoc = segmentIntersection(tipLoc, extendedTip, a, b)
-      if (crossLoc) return { mid, tip, wayId: other.id, edge: [aId, bId], crossLoc }
+      if (crossLoc)
+        return { mid, tip, wayId: other.id, edge: [aId, bId], crossLoc } satisfies Connection
     }
   }
   return undefined
 }
 
 /** The connection at one end, unless the extension would make the way cross itself */
-function connectionAt(way: OsmWay, endIndex: number, context: RuleContext): Connection | undefined {
+function connectionAt(way: OsmWay, endIndex: number, context: RuleContext) {
   const node = context.graph.hasEntity(way.nodes[endIndex] ?? '')
   if (!(node instanceof OsmNode) || !isExtendableCandidate(node, way, context.graph))
     return undefined
@@ -149,7 +146,7 @@ function connectionAt(way: OsmWay, endIndex: number, context: RuleContext): Conn
 }
 
 /** The end nearest to collinear with the way's last segment, if its change of angle is small */
-function smallJoinAngle(mid: OsmNode, tip: OsmNode, ends: OsmNode[]): OsmNode | undefined {
+function smallJoinAngle(mid: OsmNode, tip: OsmNode, ends: OsmNode[]) {
   let joinTo: OsmNode | undefined
   let minAngle = Infinity
   if (!mid.loc || !tip.loc) return undefined
@@ -171,7 +168,7 @@ function smallJoinAngle(mid: OsmNode, tip: OsmNode, ends: OsmNode[]): OsmNode | 
  * end to the nearest node of the segment when that is closer than WELD_TH_METERS, else add the
  * end to the segment as a new node at the crossing.
  */
-function connectActions(graph: Graph, connection: Connection, endId: string): Action[] {
+function connectActions(graph: Graph, connection: Connection, endId: string) {
   const endNode = graph.hasEntity(endId)
   const midNode = graph.hasEntity(connection.mid.id)
   if (!(endNode instanceof OsmNode) || !(midNode instanceof OsmNode) || !endNode.loc) return []
@@ -206,17 +203,17 @@ function connectActions(graph: Graph, connection: Connection, endId: string): Ac
   return [actionAddMidpoint({ loc: connection.crossLoc, edge: connection.edge }, endNode)]
 }
 
-function connectFix(connection: Connection, endId: string): Fix {
+function connectFix(connection: Connection, endId: string) {
   return {
     id: 'connect_almost_junction',
     label: 'Connect the features',
     annotation: 'Connected very close features.',
     actions: (graph) => connectActions(graph, connection, endId),
-  }
+  } satisfies Fix
 }
 
 /** iD's "Tag as disconnected": the end gets noexit=yes */
-function tagAsDisconnectedFix(nodeId: string): Fix {
+function tagAsDisconnectedFix(nodeId: string) {
   return {
     id: 'tag_as_disconnected',
     label: 'Tag as disconnected',
@@ -226,7 +223,7 @@ function tagAsDisconnectedFix(nodeId: string): Fix {
       if (!node) return []
       return [actionChangeTags(nodeId, { ...node.tags, noexit: 'yes' })]
     },
-  }
+  } satisfies Fix
 }
 
 /**
@@ -236,7 +233,7 @@ function tagAsDisconnectedFix(nodeId: string): Fix {
 export const almostJunction: Rule = {
   id: 'almost_junction',
   label: 'Almost junctions',
-  validate(entity: OsmEntity, context: RuleContext): Issue[] {
+  validate(entity: OsmEntity, context: RuleContext) {
     if (!(entity instanceof OsmWay) || !isHighway(entity)) return []
     if (entity.isDegenerate() || entity.isClosed()) return []
 
@@ -258,7 +255,7 @@ export const almostJunction: Rule = {
           ? `${name} is very close but not connected to ${other.tags.name || 'another road'}`
           : `${name} ends very close to itself but does not reconnect`,
         entityIds: [entity.id, tip.id, connection.wayId],
-        loc: tip.loc ? [tip.loc[0], tip.loc[1]] : undefined,
+        loc: tip.loc ? ([tip.loc[0], tip.loc[1]] satisfies Point) : undefined,
         fixes,
         data: { midId: connection.mid.id, edge: connection.edge, cross_loc: connection.crossLoc },
       })

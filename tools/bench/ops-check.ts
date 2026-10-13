@@ -23,14 +23,14 @@ process.exit(
     const run = async (step: string | null, select: string[] | null, watch: string[]) => {
       const selection = (await page.evaluate(
         ({ step, select }) => {
-          const { engine, editor } = (window as any).__maid
+          const { engine, editor } = window.__maid
           if (select) engine.setSelected(select)
           if (step === 'undo') return engine.undo() ?? null
           if (!step) return null
           const operation = editor
             .registry('edit.operation')
             .list()
-            .find((o: any) => o.id === step)
+            .find((o) => o.id === step)!
           return engine.runOperation(operation) ?? null
         },
         { step, select },
@@ -39,7 +39,7 @@ process.exit(
       const ids = [...new Set([...watch, ...(selection ?? []).filter((id) => id[0] === 'w')])]
       const data = (await page.evaluate(
         ({ ids }) => {
-          const { engine } = (window as any).__maid
+          const { engine } = window.__maid
           const ways: Record<string, { inData: boolean; nodes: string[] }> = {}
           for (const id of ids) {
             const way = engine.data.way(id)
@@ -56,13 +56,13 @@ process.exit(
     }
     const locations = (wayId: string) =>
       page.evaluate((wayId) => {
-        const { engine } = (window as any).__maid
-        return engine.data.way(wayId).nodes.map((id: string) => engine.data.node(id).loc.join())
+        const { engine } = window.__maid
+        return engine.data.way(wayId)!.nodes.map((id: string) => engine.data.node(id)!.loc!.join())
       }, wayId) as Promise<string[]>
 
     // has the app the editor on its debug handle? the operations come from its registry
     const picked = (await page.evaluate(() => {
-      const { map, engine, editor } = (window as any).__maid
+      const { map, engine, editor } = window.__maid
       if (!editor) return { error: 'window.__maid.editor is missing' }
       const operation = (id: string) =>
         editor
@@ -104,16 +104,16 @@ process.exit(
     const preview = async (step: string | null) => {
       await page.evaluate(
         ({ step, building }) => {
-          const { engine, editor } = (window as any).__maid
+          const { engine, editor } = window.__maid
           engine.setSelected([building])
           const operations = editor.registry('edit.operation').list()
-          engine.previewOperation(step ? operations.find((o: any) => o.id === step) : null)
+          engine.previewOperation(step ? operations.find((o) => o.id === step)! : null)
         },
         { step, building },
       )
       await page.waitForTimeout(300)
       return page.evaluate(() => {
-        const { map, editor } = (window as any).__maid
+        const { map, editor } = window.__maid
         return [
           map
             .querySourceFeatures('osm-highlight')

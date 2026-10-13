@@ -71,7 +71,7 @@ export async function answerRestore(restore: boolean) {
   await start()
 }
 
-export function useJournal(): JournalState {
+export function useJournal() {
   return useSyncExternalStore(
     (listener) => {
       listeners.add(listener)

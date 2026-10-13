@@ -57,16 +57,16 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function isDataLayerKind(value: unknown): value is DataLayerKind {
-  return typeof value === 'string' && (DATA_LAYER_KINDS as readonly string[]).includes(value)
+  return typeof value === 'string' && DATA_LAYER_KINDS.some((kind) => kind === value)
 }
 
 /** A path on the same server (`/data/x.geojson`), not a protocol-relative `//host/...` */
-export function isSameServerPath(url: string): boolean {
+export function isSameServerPath(url: string) {
   return url.startsWith('/') && !url.startsWith('//')
 }
 
 /** Whether an address points at this machine. Automated runs may load only these. */
-export function isLocalUrl(url: string): boolean {
+export function isLocalUrl(url: string) {
   if (isSameServerPath(url)) return true
   try {
     const { hostname } = new URL(url)
@@ -77,7 +77,7 @@ export function isLocalUrl(url: string): boolean {
 }
 
 /** The reason an address cannot be used for a kind of layer, or `undefined` when it can */
-export function checkLayerUrl(url: unknown, kind: DataLayerKind): string | undefined {
+export function checkLayerUrl(url: unknown, kind: DataLayerKind) {
   if (typeof url !== 'string' || url.trim() === '') return 'Enter the address of the data.'
   const trimmed = url.trim()
   if (!isSameServerPath(trimmed)) {
@@ -96,7 +96,7 @@ export function checkLayerUrl(url: unknown, kind: DataLayerKind): string | undef
 }
 
 /** The kind an address most likely has: `.pmtiles` is PMTiles, `{z}` is vector tiles, else GeoJSON */
-export function guessKind(url: string): DataLayerKind {
+export function guessKind(url: string) {
   const trimmed = url.trim()
   if (/\.pmtiles(?:[?#]|$)/i.test(trimmed)) return 'pmtiles'
   if (trimmed.includes('{z}')) return 'vector'
@@ -104,7 +104,7 @@ export function guessKind(url: string): DataLayerKind {
 }
 
 /** Source layer names typed by a person: separated by commas, blanks and repeats dropped */
-export function parseSourceLayers(text: string): string[] {
+export function parseSourceLayers(text: string) {
   const names: string[] = []
   for (const part of text.split(',')) {
     const name = part.trim()
@@ -180,7 +180,7 @@ export function pickColor(used: readonly string[]): string {
  * Settles the colours of a list of layers, in order: a layer's own colour stays, a layer without
  * one gets the first palette colour that no layer uses (own colours of later layers included).
  */
-export function resolveColors(colors: readonly (string | undefined)[]): string[] {
+export function resolveColors(colors: readonly (string | undefined)[]) {
   const used = colors.filter((color): color is string => color !== undefined)
   return colors.map((color) => {
     if (color !== undefined) return color.toLowerCase()
@@ -194,7 +194,7 @@ export function resolveColors(colors: readonly (string | undefined)[]): string[]
  * Checks the layers the editor's config gives: each one, and that no id is used twice. Throws with
  * every problem in one message, so a broken config is seen at once.
  */
-export function checkConfigLayers(layers: readonly unknown[]): DataLayerConfig[] {
+export function checkConfigLayers(layers: readonly unknown[]) {
   const problems: string[] = []
   const ids = new Set<string>()
   const valid: DataLayerConfig[] = []

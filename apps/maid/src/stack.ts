@@ -7,11 +7,7 @@ import { useSyncExternalStore } from 'react'
 export type Stack = { lon: number; lat: number; ids: string[] }
 
 /** The next (1) or the previous (-1) feature of the stack, from the current one; wraps round the ends */
-export function stepStackId(
-  ids: readonly string[],
-  current: string,
-  step: 1 | -1,
-): string | undefined {
+export function stepStackId(ids: readonly string[], current: string, step: 1 | -1) {
   if (ids.length === 0) return undefined
   const index = ids.indexOf(current)
   // a feature that is not in the stack: the next one is the first, the previous one the last
@@ -23,7 +19,7 @@ export function stepStackId(
  * True if a selection keeps the stack: exactly one feature of it is selected. Any other selection
  * (nothing, several features, a feature that is not in the stack) drops the stack.
  */
-export function keepsStack(stack: Stack, selection: readonly string[]): boolean {
+export function keepsStack(stack: Stack, selection: readonly string[]) {
   return selection.length === 1 && stack.ids.includes(selection[0]!)
 }
 
@@ -37,7 +33,7 @@ function subscribe(listener: () => void) {
 }
 
 /** The stack of the last plain click, or null */
-export function useStack(): Stack | null {
+export function useStack() {
   return useSyncExternalStore(subscribe, () => holder.stack)
 }
 
@@ -62,6 +58,6 @@ export function dropStackUnless(selection: readonly string[]) {
 }
 
 /** The current stack, read outside React (for the keys) */
-export function currentStack(): Stack | null {
+export function currentStack() {
   return holder.stack
 }

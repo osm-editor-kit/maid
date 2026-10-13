@@ -23,7 +23,7 @@ const FILES = [
   '45_waterways.css',
   '50_misc.css',
 ]
-const PARTS = new Set(['stroke', 'casing', 'shadow', 'fill'])
+const PARTS: readonly Rule['part'][] = ['stroke', 'casing', 'shadow', 'fill']
 const PROPS = new Set([
   'stroke',
   'stroke-width',
@@ -48,7 +48,7 @@ export type Rule = {
   specificity: number
 }
 
-function parseSelector(selector: string): Omit<Rule, 'decl'> | undefined {
+function parseSelector(selector: string) {
   const compounds = selector.trim().split(/\s+/)
   const target = compounds.pop()!
   let lowZoom = false
@@ -72,7 +72,8 @@ function parseSelector(selector: string): Omit<Rule, 'decl'> | undefined {
       continue
     }
     const cls = token.slice(1)
-    if (PARTS.has(cls)) part = cls as Rule['part']
+    const listedPart = PARTS.find((value) => value === cls)
+    if (listedPart) part = listedPart
     else if (cls === 'line' || cls === 'area') geom = cls
     else if (cls.startsWith('tag-')) tags.push(cls.slice(4))
     else return undefined // state classes such as .hover, .selected, .old-multipolygon

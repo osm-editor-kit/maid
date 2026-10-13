@@ -43,25 +43,30 @@ const crossingValues: ReadonlySet<string | undefined> = new Set([
   'uncontrolled',
 ])
 
-function isPath(tags: Tags): boolean {
+function isPath(tags: Tags) {
   return pathHighways.has(tags.highway ?? '')
 }
 
 /** The tags of the node that joins two crossing features, or `null` when they must not be joined */
-export function connectionTagsFor(one: ConnectionSide, two: ConnectionSide): Tags | null {
+export function connectionTagsFor(one: ConnectionSide, two: ConnectionSide) {
   const bothLines = one.line && two.line
   const featureTypes = [one.type, two.type].sort().join('-')
 
-  if (featureTypes === 'aeroway-aeroway') return {}
-  if (featureTypes === 'aeroway-highway') {
-    const isService = one.tags.highway === 'service' || two.tags.highway === 'service'
-    // only significant roads get the aeroway=aircraft_crossing tag
-    return isService || isPath(one.tags) || isPath(two.tags) ? {} : { aeroway: 'aircraft_crossing' }
+  switch (featureTypes) {
+    case 'aeroway-aeroway':
+      return {}
+    case 'aeroway-highway': {
+      const isService = one.tags.highway === 'service' || two.tags.highway === 'service'
+      // only significant roads get the aeroway=aircraft_crossing tag
+      return isService || isPath(one.tags) || isPath(two.tags)
+        ? {}
+        : { aeroway: 'aircraft_crossing' }
+    }
+    case 'aeroway-railway':
+      return { aeroway: 'aircraft_crossing', railway: 'level_crossing' }
+    case 'aeroway-waterway':
+      return null
   }
-  if (featureTypes === 'aeroway-railway') {
-    return { aeroway: 'aircraft_crossing', railway: 'level_crossing' }
-  }
-  if (featureTypes === 'aeroway-waterway') return null
 
   if (one.type === two.type) {
     if (one.type === 'highway') {

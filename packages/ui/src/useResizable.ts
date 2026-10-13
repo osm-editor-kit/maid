@@ -31,11 +31,11 @@ export type Resizable = {
 }
 
 /** Keeps a size between `min` and `ceiling`. The ceiling wins, so the panel never overflows the window. */
-export function clampSize(size: number, min: number, ceiling: number): number {
+export function clampSize(size: number, min: number, ceiling: number) {
   return Math.min(ceiling, Math.max(min, size))
 }
 
-function viewportSize(axis: 'x' | 'y'): number {
+function viewportSize(axis: 'x' | 'y') {
   return axis === 'x' ? window.innerWidth : window.innerHeight
 }
 
@@ -44,7 +44,7 @@ function viewportSize(axis: 'x' | 'y'): number {
  * the drag. A double click on the handle resets it to `initial`. The size follows the window when
  * the window is resized.
  */
-export function useResizable(options: ResizableOptions): Resizable {
+export function useResizable(options: ResizableOptions) {
   const { storageKey, axis, initial, min, max, direction } = options
   const [size, setSize] = useState(() =>
     clampSize(useSettings.getState().sizes[storageKey] ?? initial, min, max(viewportSize(axis))),

@@ -121,7 +121,7 @@ const inflight = new Map<string, AbortController>()
  * Asks the API for the cells that are not loaded or loading yet, in one request for their box.
  * A failed request leaves its cells unloaded, so the next view asks again.
  */
-export function requestCells(apiUrl: string, mode: NotesMode, cells: Cell[]): void {
+export function requestCells(apiUrl: string, mode: NotesMode, cells: Cell[]) {
   const keys = cells.map((cell) => cellKey(mode, cell))
   const controller = new AbortController()
   for (const key of keys) inflight.set(key, controller)
@@ -159,7 +159,7 @@ export function requestCells(apiUrl: string, mode: NotesMode, cells: Cell[]): vo
 }
 
 /** Aborts every request in flight and forgets its cells, so that they are asked for again later */
-export function abortRequests(): void {
+export function abortRequests() {
   const keys = [...inflight.keys()]
   const controllers = new Set(inflight.values())
   inflight.clear()

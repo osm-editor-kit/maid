@@ -40,17 +40,17 @@ export class OsmData {
   /** Entities loaded so far, by type */
   private loaded = { nodes: 0, ways: 0, relations: 0 }
 
-  node(id: string): OsmNode | undefined {
+  node(id: string) {
     const entity = this.history.staging.graph.hasEntity(id)
     return entity instanceof OsmNode ? entity : undefined
   }
 
-  way(id: string): OsmWay | undefined {
+  way(id: string) {
     const entity = this.history.staging.graph.hasEntity(id)
     return entity instanceof OsmWay ? entity : undefined
   }
 
-  relation(id: string): OsmRelation | undefined {
+  relation(id: string) {
     const entity = this.history.staging.graph.hasEntity(id)
     return entity instanceof OsmRelation ? entity : undefined
   }
@@ -59,7 +59,7 @@ export class OsmData {
    * Adds the elements of one OSM API response. Entities that are loaded already are skipped.
    * Returns what was added, which is all the feature builder needs.
    */
-  merge(elements: OsmJsonElement[]): MergeResult {
+  merge(elements: OsmJsonElement[]) {
     const { graph } = this.history.staging
     const fresh = entitiesFromOsmJson(
       this.context,
@@ -91,7 +91,7 @@ export class OsmData {
   }
 
   /** Every entity of the current state, loaded or added here, for building all features again */
-  all(): MergeResult {
+  all() {
     const { graph } = this.history.staging
     const out: MergeResult = { nodes: [], ways: [], relations: [] }
     const add = (entity: unknown) => {

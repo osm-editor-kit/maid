@@ -16,11 +16,11 @@ type Matcher = {
 
 const compiled = new WeakMap<Filter, Matcher>()
 
-function always(): boolean {
+function always() {
   return true
 }
 
-function compile(filter: Filter): Matcher {
+function compile(filter: Filter) {
   const { geometry, match } = filter
   if (typeof match === 'function') return { geometry, keys: undefined, test: match }
   if (match === '*') return { geometry, keys: undefined, test: always }
@@ -45,10 +45,10 @@ function compile(filter: Filter): Matcher {
     geometry,
     keys: unconditional ? undefined : [...keys],
     test: (tags) => anyAlternative(conds, tags),
-  }
+  } satisfies Matcher
 }
 
-function matcherOf(filter: Filter): Matcher {
+function matcherOf(filter: Filter) {
   let matcher = compiled.get(filter)
   if (matcher === undefined) {
     matcher = compile(filter)
@@ -57,29 +57,29 @@ function matcherOf(filter: Filter): Matcher {
   return matcher
 }
 
-function holds(cond: Cond, tags: Tags): boolean {
+function holds(cond: Cond, tags: Tags) {
   const value = tags[cond.key]
   if (typeof value !== 'string') return false
   if (cond.any) return value !== 'no'
   return cond.values.includes(value)
 }
 
-function allHold(conds: readonly Cond[], tags: Tags): boolean {
+function allHold(conds: readonly Cond[], tags: Tags) {
   for (const cond of conds) if (!holds(cond, tags)) return false
   return true
 }
 
-function anyAlternative(alternatives: readonly (readonly Cond[])[], tags: Tags): boolean {
+function anyAlternative(alternatives: readonly (readonly Cond[])[], tags: Tags) {
   for (const conds of alternatives) if (allHold(conds, tags)) return true
   return false
 }
 
-function anyKeyPresent(tags: Tags, keys: readonly string[]): boolean {
+function anyKeyPresent(tags: Tags, keys: readonly string[]) {
   for (const key of keys) if (typeof tags[key] === 'string') return true
   return false
 }
 
-function ruleMatches(matcher: Matcher, tags: Tags, geometry: Geometry): boolean {
+function ruleMatches(matcher: Matcher, tags: Tags, geometry: Geometry) {
   if (matcher.geometry !== undefined && !matcher.geometry.includes(geometry)) return false
   if (matcher.keys !== undefined && !anyKeyPresent(tags, matcher.keys)) return false
   return matcher.test(tags, geometry)
@@ -89,7 +89,7 @@ function ruleMatches(matcher: Matcher, tags: Tags, geometry: Geometry): boolean 
  * Whether one filter matches an object. Geometry first, then the tags, or the function.
  * The state is not looked at: that is the set's job.
  */
-export function matches(filter: Filter, tags: Tags, geometry: Geometry): boolean {
+export function matches(filter: Filter, tags: Tags, geometry: Geometry) {
   return ruleMatches(matcherOf(filter), tags, geometry)
 }
 
@@ -104,10 +104,7 @@ type Rule = {
   readonly matcher: Matcher
 }
 
-function makeRules(
-  filters: readonly Filter[],
-  overrides: ReadonlyMap<string, FilterState>,
-): Rule[] {
+function makeRules(filters: readonly Filter[], overrides: ReadonlyMap<string, FilterState>) {
   return filters.map((base) => {
     const state = overrides.get(base.id) ?? base.state
     return {
@@ -119,7 +116,7 @@ function makeRules(
 }
 
 /** The first rule that matches decides; nothing matching is `undefined` */
-function decide(rules: readonly Rule[], tags: Tags, geometry: Geometry): Rule | undefined {
+function decide(rules: readonly Rule[], tags: Tags, geometry: Geometry) {
   for (const rule of rules) {
     if (ruleMatches(rule.matcher, tags, geometry)) return rule
   }
@@ -127,10 +124,7 @@ function decide(rules: readonly Rule[], tags: Tags, geometry: Geometry): Rule | 
 }
 
 /** Reads `id:state,id:state`. Unknown ids and unknown states are ignored. */
-function parseParam(
-  ids: ReadonlySet<string>,
-  param: string | null | undefined,
-): Map<string, FilterState> {
+function parseParam(ids: ReadonlySet<string>, param: string | null | undefined) {
   const overrides = new Map<string, FilterState>()
   if (!param) return overrides
   for (const part of param.split(',')) {
@@ -148,7 +142,7 @@ function makeSet(
   filters: readonly Filter[],
   ids: ReadonlySet<string>,
   overrides: ReadonlyMap<string, FilterState>,
-): FilterSet {
+) {
   const rules = makeRules(filters, overrides)
 
   const set: FilterSet = {
@@ -204,7 +198,7 @@ export function createFilterSet(filters: readonly Filter[], param?: string | nul
  * `boundaries:hidden,buildings:hidden`. iD's ids are Maid's default filter ids. iD also accepts
  * `;` as a separator, as it does.
  */
-export function fromIdDisableFeatures(value: string): string {
+export function fromIdDisableFeatures(value: string) {
   return value
     .split(/[,;]/)
     .map((id) => id.trim())

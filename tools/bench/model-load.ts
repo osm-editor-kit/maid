@@ -94,14 +94,14 @@ async function main(): Promise<void> {
     })
 
     await page.goto(`${ORIGIN}/`)
-    await page.waitForFunction(() => typeof (window as any).__modelLoad === 'function')
+    await page.waitForFunction(() => typeof window.__modelLoad === 'function')
 
     const results: SceneResult[] = []
     for (const scene of SCENES) {
       const r: ModelLoadResult = await page.evaluate(
         async ({ scene, runs }) => {
           const text = await (await fetch(`/fixtures/${scene}.json`)).text()
-          return (window as any).__modelLoad(text, runs)
+          return window.__modelLoad(text, runs)
         },
         { scene, runs },
       )

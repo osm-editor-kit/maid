@@ -157,7 +157,7 @@ export function withChanges(base: PresetData, changes: PresetChanges): PresetDat
   const section: RawRecord = { ...asRecord(en.presets) }
   const trFields: RawRecord = { ...asRecord(section.fields) }
   const trPresets: RawRecord = { ...asRecord(section.presets) }
-  const hasField = (id: string): boolean => Object.hasOwn(fields, id)
+  const hasField = (id: string) => Object.hasOwn(fields, id)
 
   // 1. fields first: presets and universal fields may refer to them
   for (const [id, value] of entriesOf(input.fields, 'fields', report)) {
@@ -255,11 +255,7 @@ export function withChanges(base: PresetData, changes: PresetChanges): PresetDat
 
 // ---- definitions: shape checks, then the raw record that createPresets reads ----
 
-function fieldOf(
-  path: string,
-  value: unknown,
-  report: Report,
-): { raw: RawRecord; text: RawRecord } | undefined {
+function fieldOf(path: string, value: unknown, report: Report) {
   if (!isRecord(value)) {
     report(path, 'must be an object')
     return undefined
@@ -295,12 +291,7 @@ function fieldOf(
   return { raw, text }
 }
 
-function presetOf(
-  path: string,
-  value: unknown,
-  hasField: (id: string) => boolean,
-  report: Report,
-): { raw: RawRecord; name: string } | undefined {
+function presetOf(path: string, value: unknown, hasField: (id: string) => boolean, report: Report) {
   if (!isRecord(value)) {
     report(path, 'must be an object')
     return undefined
@@ -348,7 +339,7 @@ function listEditOf(
   which: 'fields' | 'moreFields',
   path: string,
   report: Report,
-): ListEdit | undefined {
+) {
   const keys: readonly [string, string, string] =
     which === 'fields'
       ? ['setFields', 'addFields', 'removeFields']
@@ -372,7 +363,7 @@ function listOf(
   id: string,
   which: 'fields' | 'moreFields',
   stack: Set<string> = new Set(),
-): string[] {
+) {
   if (stack.has(id)) return []
   stack.add(id)
   const listed = asStrings(asRecord(own(presets, id))?.[which])
@@ -398,7 +389,7 @@ function applyListEdit(
   path: string,
   hasField: (id: string) => boolean,
   report: Report,
-): string[] | undefined {
+) {
   const [setKey, addKey, removeKey] = edit.keys
   if (edit.set !== undefined) {
     checkFieldIds(edit.set, `${path}.${setKey}`, hasField, report)
@@ -442,7 +433,7 @@ function applyListEdit(
 
 // ---- reading values: each reports a wrong type and returns undefined ----
 
-function entriesOf(value: unknown, path: string, report: Report): Array<[string, unknown]> {
+function entriesOf(value: unknown, path: string, report: Report) {
   if (value === undefined) return []
   if (!isRecord(value)) {
     report(path, 'must be an object, keyed by id')
@@ -451,12 +442,7 @@ function entriesOf(value: unknown, path: string, report: Report): Array<[string,
   return Object.entries(value)
 }
 
-function checkKeys(
-  value: RawRecord,
-  allowed: readonly string[],
-  path: string,
-  report: Report,
-): void {
+function checkKeys(value: RawRecord, allowed: readonly string[], path: string, report: Report) {
   for (const key of Object.keys(value)) {
     if (!allowed.includes(key))
       report(path, `unknown key "${key}" (allowed: ${allowed.join(', ')})`)
@@ -468,52 +454,42 @@ function checkFieldIds(
   path: string,
   hasField: (id: string) => boolean,
   report: Report,
-): void {
+) {
   ids?.forEach((id, index) => {
     if (!hasField(id)) report(`${path}[${index}]`, unknownField(id))
   })
 }
 
-function unknownField(id: string): string {
+function unknownField(id: string) {
   return `no field "${id}" (define it in fields, or check the id)`
 }
 
-function unknownPreset(id: string): string {
+function unknownPreset(id: string) {
   return `no preset "${id}" in the data (define it in presets, or check the id)`
 }
 
-function readString(obj: RawRecord, key: string, path: string, report: Report): string | undefined {
+function readString(obj: RawRecord, key: string, path: string, report: Report) {
   const value = obj[key]
   if (value === undefined || typeof value === 'string') return value
   report(`${path}.${key}`, 'must be text')
   return undefined
 }
 
-function readBoolean(
-  obj: RawRecord,
-  key: string,
-  path: string,
-  report: Report,
-): boolean | undefined {
+function readBoolean(obj: RawRecord, key: string, path: string, report: Report) {
   const value = obj[key]
   if (value === undefined || typeof value === 'boolean') return value
   report(`${path}.${key}`, 'must be true or false')
   return undefined
 }
 
-function readNumber(obj: RawRecord, key: string, path: string, report: Report): number | undefined {
+function readNumber(obj: RawRecord, key: string, path: string, report: Report) {
   const value = obj[key]
   if (value === undefined || (typeof value === 'number' && Number.isFinite(value))) return value
   report(`${path}.${key}`, 'must be a number')
   return undefined
 }
 
-function readStrings(
-  obj: RawRecord,
-  key: string,
-  path: string,
-  report: Report,
-): string[] | undefined {
+function readStrings(obj: RawRecord, key: string, path: string, report: Report) {
   const value = obj[key]
   if (value === undefined) return undefined
   if (Array.isArray(value) && value.every((item) => typeof item === 'string')) return [...value]
@@ -521,12 +497,7 @@ function readStrings(
   return undefined
 }
 
-function readGeometries(
-  obj: RawRecord,
-  key: string,
-  path: string,
-  report: Report,
-): Geometry[] | undefined {
+function readGeometries(obj: RawRecord, key: string, path: string, report: Report) {
   const value = obj[key]
   if (value === undefined) return undefined
   if (Array.isArray(value) && value.every(isGeometry)) return [...value]
@@ -534,12 +505,7 @@ function readGeometries(
   return undefined
 }
 
-function readTags(
-  obj: RawRecord,
-  key: string,
-  path: string,
-  report: Report,
-): Record<string, string> | undefined {
+function readTags(obj: RawRecord, key: string, path: string, report: Report) {
   const value = obj[key]
   if (value === undefined) return undefined
   if (isRecord(value) && Object.values(value).every((item) => typeof item === 'string')) {
@@ -549,12 +515,7 @@ function readTags(
   return undefined
 }
 
-function readPrerequisite(
-  obj: RawRecord,
-  key: string,
-  path: string,
-  report: Report,
-): Record<string, string> | undefined {
+function readPrerequisite(obj: RawRecord, key: string, path: string, report: Report) {
   const value = obj[key]
   if (value === undefined) return undefined
   const at = `${path}.${key}`
@@ -571,18 +532,14 @@ function readPrerequisite(
   return picked
 }
 
-function readPlacements(
-  obj: RawRecord,
-  key: string,
-  path: string,
-  report: Report,
-): FieldPlacement[] | undefined {
+function readPlacements(obj: RawRecord, key: string, path: string, report: Report) {
   const value = obj[key]
   if (value === undefined) return undefined
   if (!Array.isArray(value)) {
     report(`${path}.${key}`, 'must be a list')
     return undefined
   }
+  // The callback returns a bare id or a placement: the annotation names the array type, since inference unites two array types and fails.
   return value.flatMap((item, index): FieldPlacement[] => {
     const at = `${path}.${key}[${index}]`
     if (typeof item === 'string') return [item]
@@ -605,17 +562,12 @@ function readPlacements(
   })
 }
 
-function readOptions(
-  obj: RawRecord,
-  key: string,
-  path: string,
-  report: Report,
-): Array<{ value: string; label: string }> | undefined {
+function readOptions(obj: RawRecord, key: string, path: string, report: Report) {
   const value = obj[key]
   if (value === undefined) return undefined
   const at = `${path}.${key}`
   if (Array.isArray(value)) {
-    return value.flatMap((item, index): Array<{ value: string; label: string }> => {
+    return value.flatMap((item, index) => {
       if (
         isRecord(item) &&
         typeof item.value === 'string' &&

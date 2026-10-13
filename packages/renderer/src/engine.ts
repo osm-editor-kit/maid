@@ -23,7 +23,7 @@ import {
   type OsmJsonElement,
   OsmNode,
 } from '@osm-editor-kit/maid-model'
-import type { Operation, OperationContext } from '@osm-editor-kit/maid-operations'
+import type { Operation } from '@osm-editor-kit/maid-operations'
 import type { Geometry, Preset, Presets } from '@osm-editor-kit/maid-presets'
 import { isArea, type Lens, type Tags } from '@osm-editor-kit/maid-style'
 import type { Feature } from 'geojson'
@@ -119,7 +119,7 @@ const y2lat = (y: number) =>
   (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / 2 ** TILE_ZOOM))) * 180) / Math.PI
 
 /** Whether an entity moved between the two sides of a change. A missing side or position counts as moved. */
-function locMoved(base: OsmEntity | undefined, head: OsmEntity | undefined): boolean {
+function locMoved(base: OsmEntity | undefined, head: OsmEntity | undefined) {
   // only nodes have a position; a way gives undefined and counts as moved (ways are always rebuilt anyway)
   const from = (base as OsmNode | undefined)?.loc
   const to = (head as OsmNode | undefined)?.loc
@@ -209,7 +209,7 @@ export class MaidEngine {
   private presets: Presets | undefined
 
   /** The tags an entity had when it was loaded, before any edit; undefined for one that was added here */
-  baseTags(id: string): Tags | undefined {
+  baseTags(id: string) {
     return this.data.history.staging.graph.base.entities.get(id)?.tags
   }
 
@@ -330,7 +330,7 @@ export class MaidEngine {
   }
 
   /** Merges elements of the API into the data and the map. Returns how many entities were new. */
-  merge(elements: OsmJsonElement[]): number {
+  merge(elements: OsmJsonElement[]) {
     const t0 = performance.now()
     const added = this.data.merge(elements)
     const t1 = performance.now()
@@ -645,7 +645,7 @@ export class MaidEngine {
   private filterSet: FilterSet
 
   /** The editor's filters with their current states */
-  get filters(): FilterSet {
+  get filters() {
     return this.filterSet
   }
 
@@ -666,7 +666,7 @@ export class MaidEngine {
   private lensState: Lens | null = null
 
   /** The lens the map is styled with, or null for the default look */
-  get lens(): Lens | null {
+  get lens() {
     return this.lensState
   }
 
@@ -685,12 +685,12 @@ export class MaidEngine {
   }
 
   /** True if the filters let this entity be looked at but not changed */
-  isReadOnly(id: string): boolean {
+  isReadOnly(id: string) {
     return this.builder.isReadOnly(id)
   }
 
   /** How many objects each filter hides, by filter id */
-  hiddenCounts(): Record<string, number> {
+  hiddenCounts() {
     return this.builder.hidden
   }
 
@@ -722,7 +722,7 @@ export class MaidEngine {
   // --- Operations ---
 
   /** What an operation looks at: the current data and the selection */
-  operationContext(): OperationContext {
+  operationContext() {
     return { graph: this.data.history.staging.graph, selected: this.selectedIds }
   }
 
@@ -730,7 +730,7 @@ export class MaidEngine {
    * Runs an operation on the selection as one undo step. Returns what is selected afterwards, or
    * undefined if the operation does not apply or cannot run now.
    */
-  runOperation(operation: Operation): readonly string[] | undefined {
+  runOperation(operation: Operation) {
     const context = this.operationContext()
     if (this.draw.active || this.selectedIds.some((id) => this.isReadOnly(id))) return
     if (!operation.applies(context) || operation.disabled(context)) return
@@ -765,7 +765,7 @@ export class MaidEngine {
   readonly transform = new TransformTool(this)
 
   /** What a click on the map does now */
-  get mode(): Mode {
+  get mode() {
     return this.currentMode
   }
 
@@ -774,7 +774,7 @@ export class MaidEngine {
    * or rotation. `move` and `rotate` need a selection that can be changed; without one the mode
    * stays as it is and false is returned.
    */
-  setMode(mode: Mode): boolean {
+  setMode(mode: Mode) {
     if (mode === this.currentMode) return true
     // a measure is not a mode of its own: a mode the editor changes to ends it, without a value
     this.cancelMeasure()
@@ -796,12 +796,12 @@ export class MaidEngine {
   private clipboard?: { ids: string[]; graph: Graph }
 
   /** True if something was copied and can be pasted */
-  get canPaste(): boolean {
+  get canPaste() {
     return this.clipboard !== undefined
   }
 
   /** Remembers the selection for `paste`. Returns false if nothing is selected. */
-  copy(): boolean {
+  copy() {
     if (this.selectedIds.length === 0) return false
     this.clipboard = { ids: [...this.selectedIds], graph: this.data.history.stable.graph }
     return true
@@ -811,7 +811,7 @@ export class MaidEngine {
    * Adds copies of what was copied, with their middle at this place, as one undo step, and
    * returns the ids of the copies. Relations are copied with new members, as in iD.
    */
-  paste(lon: number, lat: number): string[] {
+  paste(lon: number, lat: number) {
     const { clipboard } = this
     if (!clipboard || this.draw.active || this.transform.active) return []
     // the graph is the state at the time of the copy; what was not in it cannot be copied
@@ -853,7 +853,7 @@ export class MaidEngine {
    * Adds a node to the way under this screen position, on its line, as a double click on a way
    * does in iD. Returns the id of the new node, or undefined if there is no way to add to.
    */
-  insertNode(point: { x: number; y: number }, layerIds: string[]): string | undefined {
+  insertNode(point: { x: number; y: number }, layerIds: string[]) {
     const wayId = this.pick(point, layerIds)
     if (wayId?.[0] !== 'w' || this.isReadOnly(wayId)) return undefined
     const way = this.data.way(wayId)
@@ -867,7 +867,7 @@ export class MaidEngine {
    * Adds a new node on the line of a way, between the two nodes of `on`, as a node of that way. One
    * undo step. Returns the id of the new node.
    */
-  addNodeOn(on: { loc: Loc; edge: [string, string] }): string {
+  addNodeOn(on: { loc: Loc; edge: [string, string] }) {
     let id = ''
     this.change(() => {
       id = this.performNodeOn(on)
@@ -877,14 +877,14 @@ export class MaidEngine {
   }
 
   /** The node of addNodeOn, in the work in progress and without a commit: the caller commits (a handle drag does). */
-  private performNodeOn(on: { loc: Loc; edge: [string, string] }): string {
+  private performNodeOn(on: { loc: Loc; edge: [string, string] }) {
     const node = new OsmNode(this.data.context, { loc: on.loc })
     this.data.history.perform(actionAddEntity(node), actionAddMidpoint(on, node))
     return node.id
   }
 
   /** Adds a standalone point and returns its id (negative, as for every new entity). One undo step. */
-  addPoint(lon: number, lat: number, tags: Tags = {}): string {
+  addPoint(lon: number, lat: number, tags: Tags = {}) {
     const node = new OsmNode(this.data.context, { loc: [lon, lat], tags })
     this.edit(actionAddEntity(node), 'Added a point', [node.id])
     return node.id
@@ -909,10 +909,7 @@ export class MaidEngine {
    * A way rebuilds its line or area, a multipolygon relation its area. An id that is no longer in
    * the graph loses its feature. Each feature is built once, however many ids need it.
    */
-  private redraw(entities: Iterable<{ id: string; moved: boolean }>): {
-    batch: FeatureBatch
-    remove: [SourceName, string][]
-  } {
+  private redraw(entities: Iterable<{ id: string; moved: boolean }>) {
     const batch: FeatureBatch = { areas: [], lines: [], points: [], vertices: [] }
     const remove: [SourceName, string][] = []
     const placed = new Set<string>()
@@ -1001,7 +998,7 @@ export class MaidEngine {
   // --- Undo and redo ---
 
   /** What undo and redo would do now, with the annotations of the edits they would step over */
-  undoState(): { canUndo: boolean; canRedo: boolean; undoLabel?: string; redoLabel?: string } {
+  undoState() {
     const { history } = this.data
     const undoLabel = history.getUndoAnnotation()
     const redoLabel = history.getRedoAnnotation()
@@ -1014,7 +1011,7 @@ export class MaidEngine {
   }
 
   /** True while a drag, a drawing or a move is under way: the history is not stepped through then */
-  private busy(): boolean {
+  private busy() {
     return (
       this.dragged !== undefined ||
       this.handlePress !== undefined ||
@@ -1025,13 +1022,13 @@ export class MaidEngine {
   }
 
   /** Takes back the last edit and redraws what it changed. Does nothing while a vertex is dragged. */
-  undo(): void {
+  undo() {
     if (this.busy() || this.data.history.getUndoAnnotation() === undefined) return
     this.change(() => this.data.history.undo())
   }
 
   /** Puts back the edit that the last undo took back, and redraws what it changed. */
-  redo(): void {
+  redo() {
     if (this.busy() || this.data.history.getRedoAnnotation() === undefined) return
     this.change(() => this.data.history.redo())
   }
@@ -1133,7 +1130,7 @@ export class MaidEngine {
   private dragAim?: { target?: SnapTarget; refused?: string }
 
   /** Why the drop at the pointer would be refused, while a drag is over a target that is not allowed */
-  get dragRefusal(): string | undefined {
+  get dragRefusal() {
     return this.dragAim?.refused
   }
 
@@ -1143,7 +1140,7 @@ export class MaidEngine {
    * anything not in `layers` (the layers a click uses, so no hidden feature) are not targets. One
    * query of the rendered features around the point.
    */
-  snapAt(point: Point, layers: string[], skip: ReadonlySet<string>): SnapTarget | undefined {
+  snapAt(point: Point, layers: string[], skip: ReadonlySet<string>) {
     const { map } = this
     if (!map) return undefined
     const features = map.queryRenderedFeatures(
@@ -1192,11 +1189,7 @@ export class MaidEngine {
    * The snap of a dragged node at this pointer. The dragged node's own ways are not targets: it
    * cannot be joined to its own line. A node target that the model would refuse carries the reason.
    */
-  private aimAt(
-    id: string,
-    point: Point,
-    layers: string[],
-  ): { target?: SnapTarget; refused?: string } {
+  private aimAt(id: string, point: Point, layers: string[]) {
     const skip = new Set<string>([id, ...(this.data.nodeWays.get(id) ?? [])])
     const target = this.snapAt(point, layers, skip)
     if (!target || target.type === 'way') return { target }
@@ -1208,7 +1201,7 @@ export class MaidEngine {
    * allowed: the model's own rule (relations, turn restrictions), a way that would get the node
    * twice in a row, or a way that would change and is read-only.
    */
-  private connectRefusal(dragged: string, target: string): string | undefined {
+  private connectRefusal(dragged: string, target: string) {
     const { staging } = this.data.history
     const reason = actionConnect([dragged, target]).disabled?.(staging.graph)
     if (reason === 'restriction') return 'It would break a turn restriction'
@@ -1284,7 +1277,7 @@ export class MaidEngine {
    * A refused drop is taken back, so the node is where the drag started. Resolves with the node the
    * selection should show after a connection (`selected`), and with the reason of a refusal.
    */
-  async endDrag(): Promise<{ selected?: string; refused?: string }> {
+  async endDrag() {
     // a press on a handle that never moved is over: it added nothing
     this.handlePress = undefined
     await this.settleDrag()
@@ -1343,7 +1336,7 @@ export class MaidEngine {
   private membersOf = (relationId: string) => this.data.relation(relationId)?.members
 
   /** What a relation covers on the map: its members, and their members one level down (see related.ts) */
-  relatedOf(id: string): string[] {
+  relatedOf(id: string) {
     return relatedIds(id, this.membersOf)
   }
 
@@ -1357,7 +1350,7 @@ export class MaidEngine {
    * is written to the history: loading is not an edit. Resolves with how many entities were new;
    * rejects with a message when the API cannot be asked or does not answer with the relation.
    */
-  loadRelation(id: string): Promise<{ added: number }> {
+  loadRelation(id: string) {
     let load = this.relationLoads.get(id)
     if (!load) {
       load = this.fetchRelation(id).finally(() => this.relationLoads.delete(id))
@@ -1366,7 +1359,7 @@ export class MaidEngine {
     return load.then((added) => ({ added }))
   }
 
-  private async fetchRelation(id: string): Promise<number> {
+  private async fetchRelation(id: string) {
     const match = /^r(\d+)$/.exec(id)
     if (!match) throw new Error(`Not a relation: ${id}`)
     const url = `${this.options.apiUrl}/api/0.6/relation/${match[1]}/full.json`
@@ -1400,7 +1393,7 @@ export class MaidEngine {
    * Moves the map to show these entities: the bounds of their loaded geometry, with padding. A
    * relation counts as its members (see relatedIds). Returns false when none of it is loaded.
    */
-  fitTo(ids: readonly string[]): boolean {
+  fitTo(ids: readonly string[]) {
     const { map } = this
     const bounds = boundsOf(ids, {
       loc: (id) => this.data.node(id)?.loc,
@@ -1474,7 +1467,7 @@ export class MaidEngine {
   }
 
   /** The members of every selected relation, as the selection's related set */
-  private relatedOfSelection(): string[] {
+  private relatedOfSelection() {
     const out = new Set<string>()
     for (const id of this.selectedIds)
       if (id[0] === 'r') for (const x of this.relatedOf(id)) out.add(x)
@@ -1504,7 +1497,7 @@ export class MaidEngine {
   }
 
   /** The ids that are selected (what was asked for; `selected()` is what the map shows) */
-  get selection(): readonly string[] {
+  get selection() {
     return this.selectedIds
   }
 
@@ -1610,7 +1603,7 @@ export class MaidEngine {
   private midpointList: MidpointFeature[] = []
 
   /** The handles on the map now. Public for the browser checks. */
-  get midpointFeatures(): readonly MidpointFeature[] {
+  get midpointFeatures() {
     return this.midpointList
   }
 
@@ -1649,7 +1642,7 @@ export class MaidEngine {
   }
 
   /** True if every way that a node added on this segment would join is on the map and can be changed */
-  private midpointMayChange(edge: readonly [string, string]): boolean {
+  private midpointMayChange(edge: readonly [string, string]) {
     const [a, b] = edge
     const bWays = new Set(this.data.nodeWays.get(b) ?? [])
     return (this.data.nodeWays.get(a) ?? []).every(
@@ -1686,7 +1679,7 @@ export class MaidEngine {
   private handleNode?: string
 
   /** True between a press on a handle and its release */
-  get pressingHandle(): boolean {
+  get pressingHandle() {
     return this.handlePress !== undefined
   }
 
@@ -1694,7 +1687,7 @@ export class MaidEngine {
    * A press at a screen point: on a handle, it is taken as the start of a handle drag and true is returned.
    * Nothing is changed by the press itself: a press with no move adds nothing (see endDrag).
    */
-  pressMidpoint(point: Point): boolean {
+  pressMidpoint(point: Point) {
     if (this.busy()) return false
     const handle = this.midpointAt(point)
     if (!handle) return false
@@ -1724,7 +1717,7 @@ export class MaidEngine {
   }
 
   /** The node of a handle drag: added on the segment, in the work in progress (the drag commits it) */
-  private insertHandleNode(edge: [string, string], loc: Loc): string {
+  private insertHandleNode(edge: [string, string], loc: Loc) {
     let id = ''
     this.change(() => {
       id = this.performNodeOn({ loc, edge })
@@ -1789,12 +1782,12 @@ export class MaidEngine {
    * True from startMeasure until the second click or a cancel. While it is, clicks and moves go to the
    * measure (measureClick, measureMove), and busy() is true: no selection, drag, handle or undo.
    */
-  get measuring(): boolean {
+  get measuring() {
     return this.measureDone !== undefined
   }
 
   /** The features of the measure on the map now. Public for the browser checks. */
-  get measureFeatures(): readonly Feature[] {
+  get measureFeatures() {
     return this.measureList
   }
 
@@ -1918,7 +1911,7 @@ export class MaidEngine {
     tolerance = 6,
     /** Ids that are not picked, for example the way that is being drawn */
     skip?: ReadonlySet<string>,
-  ): string | null {
+  ) {
     const { map } = this
     if (!map) return null
     const features = map.queryRenderedFeatures(
@@ -1937,7 +1930,7 @@ export class MaidEngine {
    * other; not for pointer moves, as it reads the data of every candidate. Coinciding features
    * (two points at one place, a way and an area on its outline) are all there.
    */
-  pickAll(point: { x: number; y: number }, layerIds: string[], tolerance = 6): string[] {
+  pickAll(point: { x: number; y: number }, layerIds: string[], tolerance = 6) {
     const { map } = this
     if (!map) return []
     const features = map.queryRenderedFeatures(
@@ -1961,7 +1954,7 @@ export class MaidEngine {
   }
 
   /** The size that orders picks: 0 for a node, else the area or the length of a way (pick-order.ts) */
-  private sizeOf(id: string): number {
+  private sizeOf(id: string) {
     if (id[0] !== 'w') return 0
     const way = this.data.way(id)
     if (!way) return Number.POSITIVE_INFINITY

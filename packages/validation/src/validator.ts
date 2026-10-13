@@ -7,7 +7,7 @@ import { createWayIndex } from './way-index.ts'
 
 const severityRank: Record<Issue['severity'], number> = { error: 0, warning: 1 }
 
-function compareText(a: string, b: string): number {
+function compareText(a: string, b: string) {
   return a < b ? -1 : a > b ? 1 : 0
 }
 
@@ -16,6 +16,7 @@ function compareText(a: string, b: string): number {
  * its entities is one issue. A run (one `validate` call) looks up each way's bounding box at most
  * once, when a rule first asks for a way's neighbours.
  */
+// The annotation makes the returned object be checked against the Validator interface
 export function createValidator(rules: readonly Rule[]): Validator {
   const issues = new Map<string, Issue>()
   // The boxes of the ways, kept from one update to the next (see way-index.ts)
@@ -26,7 +27,7 @@ export function createValidator(rules: readonly Rule[]): Validator {
   // The issues sorted, until they change: `issuesFor` is called for every inspector render
   let sorted: Issue[] | undefined
 
-  function allIssues(): Issue[] {
+  function allIssues() {
     if (sorted === undefined)
       sorted = [...issues.values()].sort(
         (a, b) =>
@@ -41,11 +42,7 @@ export function createValidator(rules: readonly Rule[]): Validator {
    * Drops the issues that name an entity in `replaced`, or an entity that left the graph. With
    * `validated`, also the issues that name no validated entity: nothing that was changed makes them.
    */
-  function dropStale(
-    graph: Graph,
-    replaced: ReadonlySet<string>,
-    validated?: ReadonlySet<string>,
-  ): void {
+  function dropStale(graph: Graph, replaced: ReadonlySet<string>, validated?: ReadonlySet<string>) {
     for (const [key, issue] of issues) {
       const stale = issue.entityIds.some((id) => replaced.has(id) || !graph.hasEntity(id))
       const orphaned = validated !== undefined && !issue.entityIds.some((id) => validated.has(id))
@@ -60,7 +57,7 @@ export function createValidator(rules: readonly Rule[]): Validator {
     validated: ReadonlySet<string>,
     runIds: readonly string[],
     stamp: number,
-  ): void {
+  ) {
     const context: RuleContext = {
       graph,
       validated,
@@ -87,7 +84,7 @@ export function createValidator(rules: readonly Rule[]): Validator {
     sorted = undefined
   }
 
-  function keepOnly(entityIds: Iterable<string>): void {
+  function keepOnly(entityIds: Iterable<string>) {
     const keep = new Set(entityIds)
     for (const [key, issue] of issues) {
       const first = issue.entityIds[0]
@@ -101,9 +98,9 @@ export function createValidator(rules: readonly Rule[]): Validator {
    * the ids that may differ. Returns the ids whose box was invalidated (the ways, and the parents of
    * changed nodes, before and after).
    */
-  function invalidateChanged(previous: Graph, head: Graph, ids: Iterable<string>): Set<string> {
+  function invalidateChanged(previous: Graph, head: Graph, ids: Iterable<string>) {
     const invalidated = new Set<string>()
-    const invalidate = (id: string): void => {
+    const invalidate = (id: string) => {
       wayIndex.invalidate(id)
       invalidated.add(id)
     }
@@ -213,13 +210,13 @@ export function entitiesToValidate(
   changes: ReadonlyMap<string, DifferenceChange>,
   base: Graph,
   head: Graph,
-): Set<string> {
+) {
   const ids = new Set<string>()
   // per graph, the parents whose own parent relations were already added
   const climbed: Record<0 | 1, Set<string>> = { 0: new Set(), 1: new Set() }
 
   // Adds the ways and relations that hold `entity` in `graph`, and the relations above them
-  function addParentsOf(entity: OsmEntity, graph: Graph, index: 0 | 1): void {
+  function addParentsOf(entity: OsmEntity, graph: Graph, index: 0 | 1) {
     for (const way of graph.parentWays(entity)) {
       ids.add(way.id)
       addRelationsAbove(way, graph, index)
@@ -230,7 +227,7 @@ export function entitiesToValidate(
     }
   }
 
-  function addRelationsAbove(entity: OsmEntity, graph: Graph, index: 0 | 1): void {
+  function addRelationsAbove(entity: OsmEntity, graph: Graph, index: 0 | 1) {
     if (climbed[index].has(entity.id)) return
     climbed[index].add(entity.id)
     for (const relation of graph.parentRelations(entity)) {
@@ -292,14 +289,10 @@ export function entitiesToValidate(
  * The context of one run: the neighbour lookup over the given ways plus the validated ways (as they
  * are in the graph), and the validated ids themselves.
  */
-export function runContext(
-  graph: Graph,
-  ways: Iterable<OsmWay>,
-  targets: ReadonlySet<string>,
-): RuleContext {
+export function runContext(graph: Graph, ways: Iterable<OsmWay>, targets: ReadonlySet<string>) {
   const candidates: OsmWay[] = []
   const seen = new Set<string>()
-  const addCandidate = (id: string): void => {
+  const addCandidate = (id: string) => {
     if (seen.has(id)) return
     seen.add(id)
     const current = graph.hasEntity(id)
@@ -309,7 +302,7 @@ export function runContext(
   for (const id of targets) addCandidate(id)
 
   const boxes = new Map<string, Box | null>()
-  const boxFor = (way: OsmWay): Box | undefined => {
+  const boxFor = (way: OsmWay) => {
     let box = boxes.get(way.id)
     if (box === undefined) {
       const points: Point[] = []
@@ -339,5 +332,5 @@ export function runContext(
       }
       return near
     },
-  }
+  } satisfies RuleContext
 }

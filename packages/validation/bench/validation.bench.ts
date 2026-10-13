@@ -44,25 +44,25 @@ const OUT = resolve(ROOT, 'reports/validation-bench.json')
 
 // ---------------------------------------------------------------- helpers
 
-function now(): number {
+function now() {
   return performance.now()
 }
 
-function median(values: readonly number[]): number {
+function median(values: readonly number[]) {
   if (values.length === 0) return NaN
   const sorted = [...values].sort((a, b) => a - b)
   const mid = Math.floor(sorted.length / 2)
   return sorted.length % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2
 }
 
-function round(value: number, digits = 2): number {
+function round(value: number, digits = 2) {
   const factor = 10 ** digits
   return Math.round(value * factor) / factor
 }
 
 type Stats = { median: number; min: number; max: number; runs: number[] }
 
-function statsOf(samples: readonly number[]): Stats {
+function statsOf(samples: readonly number[]) {
   return {
     median: round(median(samples)),
     min: round(Math.min(...samples)),
@@ -72,13 +72,13 @@ function statsOf(samples: readonly number[]): Stats {
 }
 
 /** The issue ids of a run as one short hash: the same issues give the same digest */
-function digestOf(issues: readonly Issue[]): string {
+function digestOf(issues: readonly Issue[]) {
   const ids = issues.map((issue) => issue.id).sort()
   return createHash('sha256').update(ids.join('\n')).digest('hex').slice(0, 16)
 }
 
 /** Every current entity of a graph: the base ones not overridden locally, then the local ones */
-function entitiesOf(graph: Graph): OsmEntity[] {
+function entitiesOf(graph: Graph) {
   const out: OsmEntity[] = []
   for (const [id, entity] of graph.base.entities)
     if (!graph.local.entities.has(id) && entity) out.push(entity)
@@ -87,12 +87,12 @@ function entitiesOf(graph: Graph): OsmEntity[] {
 }
 
 /** The way list the app builds (apps/maid/src/modules/validation.tsx, `waysOf`) */
-function waysOf(graph: Graph): OsmWay[] {
+function waysOf(graph: Graph) {
   return entitiesOf(graph).filter((entity): entity is OsmWay => entity instanceof OsmWay)
 }
 
 /** A deterministic pick of `n` items: a small linear congruential generator, so runs agree */
-function pick<T>(items: readonly T[], n: number, seed: number): T[] {
+function pick<T>(items: readonly T[], n: number, seed: number) {
   const pool = [...items]
   const out: T[] = []
   let state = seed
@@ -104,7 +104,7 @@ function pick<T>(items: readonly T[], n: number, seed: number): T[] {
 }
 
 /** How many other ways overlap each way's box, from a grid (for choosing the busy ways) */
-function neighbourCounts(ways: readonly OsmWay[], graph: Graph): Map<string, number> {
+function neighbourCounts(ways: readonly OsmWay[], graph: Graph) {
   const CELL = 0.002
   const boxes = new Map<string, Box>()
   const cells = new Map<string, OsmWay[]>()
@@ -176,7 +176,7 @@ type RuleRow = {
   throws: number
 }
 
-function timed(runs: number, body: () => Validator): { stats: Stats; validator: Validator } {
+function timed(runs: number, body: () => Validator) {
   let validator = body() // warm-up
   const samples: number[] = []
   for (let i = 0; i < runs; i++) {
@@ -298,7 +298,7 @@ type Edit = {
 }
 
 /** Moves the middle node of a way by about 3 m, and sets a tag of the way */
-function editsFor(way: OsmWay, index: number): Edit[] {
+function editsFor(way: OsmWay, index: number) {
   const edits: Edit[] = []
   const middle = way.nodes[Math.floor(way.nodes.length / 2)]
   const node = middle ? base.hasEntity(middle) : undefined
@@ -322,10 +322,10 @@ function editsFor(way: OsmWay, index: number): Edit[] {
 
 const edits: Edit[] = editWays.flatMap(({ way }, index) => editsFor(way, index))
 /** The head graph after each edit, built outside the timer: the editor does this part */
-const heads = edits.map((edit) => edit.action(new Graph(base)) as Graph)
+const heads = edits.map((edit) => edit.action(new Graph(base)))
 
 /** The way list the app passes: all ways, rebuilt when a way changed (a move keeps the list) */
-function waysFor(edit: Edit, head: Graph): readonly OsmWay[] {
+function waysFor(edit: Edit, head: Graph) {
   return edit.kind === 'tag' ? waysOf(head) : baseWays
 }
 
@@ -334,19 +334,14 @@ function waysFor(edit: Edit, head: Graph): readonly OsmWay[] {
  * from the graph of the previous commit, `prev`), then the validator. Both differences are part of the
  * timed work, as the history makes them in the app.
  */
-function commit(
-  validator: Validator,
-  prev: Graph,
-  head: Graph,
-  ways: readonly OsmWay[],
-): GraphChange {
+function commit(validator: Validator, prev: Graph, head: Graph, ways: readonly OsmWay[]) {
   const change: GraphChange = { base, head, changes: new Difference(base, head).changes }
   validator.update(change, ways, new Difference(prev, head).changes)
   return change
 }
 
 /** A validator that has made the boxes of all ways: the app does this at the first edit after loading */
-function warmValidator(rules: readonly Rule[] = defaultRules): Validator {
+function warmValidator(rules: readonly Rule[] = defaultRules) {
   const validator = createValidator(rules)
   commit(validator, base, new Graph(base), baseWays)
   return validator
@@ -385,8 +380,8 @@ console.log(
 
 // steady state: the validator has its boxes, and each edit is one commit on it. Pass 0 is a warm-up.
 const passes: EditResult[][] = []
-const editSamples = edits.map(() => [] as number[])
-const waysSamples = edits.map(() => [] as number[])
+const editSamples: number[][] = edits.map(() => [])
+const waysSamples: number[][] = edits.map(() => [])
 for (let pass = 0; pass <= RUNS; pass++) {
   const validator = warmValidator()
   const results: EditResult[] = []
@@ -466,21 +461,8 @@ console.log(
 
 // ---------------------------------------------------------------- bursts
 
-type Burst = {
-  label: string
-  steps: number
-  perStep: Stats
-  total: number
-  overFrame: number
-  overChunk: number
-  checkedLast: number
-  /** median of the first and of the last ten steps: a cost that grows with the session shows here */
-  firstTenMedian: number
-  lastTenMedian: number
-}
-
 /** A series of commits on one warm validator, each validated as the app validates it */
-function burst(label: string, steps: { head: Graph; ways: readonly OsmWay[] }[]): Burst {
+function burst(label: string, steps: { head: Graph; ways: readonly OsmWay[] }[]) {
   const validator = warmValidator()
   const samples: number[] = []
   let checkedLast = 0
@@ -511,7 +493,9 @@ function burst(label: string, steps: { head: Graph; ways: readonly OsmWay[] }[])
 // A drag: one node moved 50 small steps, each validated as if it were a commit
 const dragWay = featureNeighbours[0]!
 const dragNodeId = dragWay.nodes[Math.floor(dragWay.nodes.length / 2)]!
-const dragNode = base.entity(dragNodeId) as OsmNode
+const dragEntity = base.entity(dragNodeId)
+if (!(dragEntity instanceof OsmNode)) throw new Error(`${dragNodeId} is not a node`)
+const dragNode = dragEntity
 const dragSteps: { head: Graph; ways: readonly OsmWay[] }[] = []
 {
   let head = new Graph(base)
@@ -519,7 +503,7 @@ const dragSteps: { head: Graph; ways: readonly OsmWay[] }[] = []
     head = actionMoveNode(dragNodeId, [
       dragNode.loc![0] + i * 0.000002,
       dragNode.loc![1] + i * 0.000001,
-    ])(head) as Graph
+    ])(head)
     dragSteps.push({ head, ways: baseWays })
   }
 }
@@ -531,7 +515,7 @@ const tagSteps: { head: Graph; ways: readonly OsmWay[] }[] = []
 {
   let head = new Graph(base)
   for (const [i, way] of burstWays.entries()) {
-    head = actionChangeTags(way.id, { ...way.tags, description: `burst ${i}` })(head) as Graph
+    head = actionChangeTags(way.id, { ...way.tags, description: `burst ${i}` })(head)
     tagSteps.push({ head, ways: waysOf(head) })
   }
 }
@@ -554,7 +538,7 @@ for (const b of [dragBurst, tagBurst])
   const timedRules: Rule[] = defaultRules.map((rule) => ({
     id: rule.id,
     label: rule.label,
-    validate(entity, ctx: RuleContext): Issue[] {
+    validate(entity, ctx: RuleContext) {
       const start = now()
       const wrapped: RuleContext = {
         ...ctx,

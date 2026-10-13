@@ -10,7 +10,6 @@ import type {
   RasterLayerSpec,
   RasterSourceSpec,
 } from '@osm-editor-kit/maplibre-editor-layer-index'
-import type { Listing } from './helpers.ts'
 
 const load = () => import('@osm-editor-kit/maplibre-editor-layer-index')
 
@@ -23,7 +22,7 @@ export type Drawn = {
   background: boolean
 }
 
-function toListing(layer: EliLayer): Listing {
+function toListing(layer: EliLayer) {
   return {
     id: layer.id,
     name: layer.name,
@@ -39,7 +38,7 @@ function toListing(layer: EliLayer): Listing {
  * The layers that cover the viewport, with their attribution. Layers that need an API key are
  * left out, because no key is given. Loads the details of the continent in view from the package.
  */
-export async function listView(bounds: BBox): Promise<Listing[]> {
+export async function listView(bounds: BBox) {
   const eli = await load()
   const layers = await eli.loadLayersInViewport(bounds)
   return layers.map(toListing)
@@ -49,7 +48,7 @@ export async function listView(bounds: BBox): Promise<Listing[]> {
  * One layer ready to draw, or `undefined` when it is unknown or needs an API key. The raster
  * source carries ELI's attribution, which MapLibre's attribution control shows.
  */
-export async function drawLayer(id: string, background: boolean): Promise<Drawn | undefined> {
+export async function drawLayer(id: string, background: boolean) {
   const eli = await load()
   const layer = await eli.getLayerHydrated(id)
   if (!layer || layer.requiresKeys.length > 0) return undefined

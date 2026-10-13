@@ -5,7 +5,7 @@ import { EyeIcon, XMarkIcon } from '@heroicons/react/20/solid'
  * focused or clicked becomes the target of "Use this photo" in the viewer (see dock.tsx and image-keys.ts).
  */
 import type { InspectorFieldType } from '@osm-editor-kit/maid-ui'
-import { useEffect, useId, useState, type ReactNode } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { showBlockedReason, openImageById } from './image-actions.ts'
 import {
   IMAGE_KEYS,
@@ -29,21 +29,21 @@ const ICON_BUTTON =
   'grid size-6 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-40 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white'
 
 /** Long ids are cut in the middle: the start and the end tell them apart. */
-export function shortId(id: string): string {
+export function shortId(id: string) {
   return id.length <= 14 ? id : `${id.slice(0, 6)}…${id.slice(-4)}`
 }
 
 const GROUPS = ['Way', 'Bike lane', 'Sidewalk', 'Panoramax'] as const
 
 /** The group of a key in the "Add" list */
-function groupOf(key: string): (typeof GROUPS)[number] {
+function groupOf(key: string) {
   if (providerOfKey(key) === 'panoramax') return 'Panoramax'
   if (key.includes('cycleway:')) return 'Bike lane'
   if (key.includes('sidewalk:')) return 'Sidewalk'
   return 'Way'
 }
 
-export function StreetImagesField({ tags, id, onChange }: FieldProps): ReactNode {
+export function StreetImagesField({ tags, id, onChange }: FieldProps) {
   const generated = useId()
   // the row of this field: the inspector gives an id per row, which stays while the value changes
   const rowId = id ?? generated
@@ -114,7 +114,7 @@ function ImageRow({
   imageKey: string
   value: string | undefined
   onChange: FieldProps['onChange']
-}): ReactNode {
+}) {
   const provider: ImageProvider = providerOfKey(imageKey) ?? 'mapillary'
   const isActive = useStreetImageryStore(
     (state) =>

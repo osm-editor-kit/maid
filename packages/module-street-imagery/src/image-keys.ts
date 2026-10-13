@@ -55,18 +55,18 @@ export const IMAGE_KEYS: readonly string[] = [
 const ORDER = new Map(IMAGE_KEYS.map((key, index) => [key, index]))
 
 /** Which provider a key's photos come from, or null for a key that is no image key. */
-export function providerOfKey(key: string): ImageProvider | null {
+export function providerOfKey(key: string) {
   if (MAPILLARY_PATTERN.test(key)) return 'mapillary'
   if (PANORAMAX_PATTERN.test(key)) return 'panoramax'
   return null
 }
 
-export function isImageKey(key: string): boolean {
+export function isImageKey(key: string) {
   return providerOfKey(key) !== null
 }
 
 /** The key a photo of this provider is written to when no other key is the target. */
-export function defaultKey(provider: ImageProvider): string {
+export function defaultKey(provider: ImageProvider) {
   return provider === 'mapillary' ? 'mapillary' : 'panoramax'
 }
 
@@ -74,7 +74,7 @@ export function defaultKey(provider: ImageProvider): string {
  * A short label for a key, from its parts: "Right bike lane · traffic sign (source)". Not translated; the
  * key itself is shown next to it.
  */
-export function keyLabel(key: string): string {
+export function keyLabel(key: string) {
   const provider = providerOfKey(key)
   if (provider === 'panoramax') {
     const number = key.match(/:(\d+)$/)?.[1]
@@ -101,34 +101,34 @@ export function keyLabel(key: string): string {
   return source === undefined ? text : `${text} (source)`
 }
 
-function capitalize(text: string): string {
+function capitalize(text: string) {
   return text.length === 0 ? text : `${text[0]?.toUpperCase() ?? ''}${text.slice(1)}`
 }
 
 /** The ids of a value: split at `;`, trimmed, empty parts dropped, order kept. */
-export function splitIds(value: string | undefined): string[] {
+export function splitIds(value: string | undefined) {
   return (value ?? '')
     .split(';')
     .map((part) => part.trim())
     .filter((part) => part !== '')
 }
 
-export function joinIds(ids: readonly string[]): string {
+export function joinIds(ids: readonly string[]) {
   return ids.join(';')
 }
 
-export function hasId(value: string | undefined, id: string): boolean {
+export function hasId(value: string | undefined, id: string) {
   return splitIds(value).includes(id)
 }
 
 /** The value with `id` added at the end, unless it is there already (then the value is unchanged). */
-export function appendId(value: string | undefined, id: string): string {
+export function appendId(value: string | undefined, id: string) {
   const ids = splitIds(value)
   return ids.includes(id) ? joinIds(ids) : joinIds([...ids, id])
 }
 
 /** The value without `id`. Undefined when no id is left: the tag is then removed. */
-export function removeId(value: string | undefined, id: string): string | undefined {
+export function removeId(value: string | undefined, id: string) {
   const ids = splitIds(value).filter((item) => item !== id)
   return ids.length === 0 ? undefined : joinIds(ids)
 }
@@ -137,7 +137,7 @@ export function removeId(value: string | undefined, id: string): string | undefi
  * The keys of the feature that have a value, in the field's order (the offered keys first, then any other image
  * key of the tags, by name).
  */
-export function imageKeysWithValue(tags: Tags): string[] {
+export function imageKeysWithValue(tags: Tags) {
   return Object.keys(tags)
     .filter((key) => isImageKey(key) && splitIds(tags[key]).length > 0)
     .sort((a, b) => {
@@ -170,7 +170,7 @@ export function idFromText(
     : { error: 'Not a Panoramax id' }
 }
 
-function idFromLink(provider: ImageProvider, link: string): { id: string } | { error: string } {
+function idFromLink(provider: ImageProvider, link: string) {
   let url: URL
   try {
     url = new URL(link)
@@ -204,7 +204,7 @@ export function targetKey(
   provider: ImageProvider,
   active: { rowId: string; key: string } | null,
   writerRowId: string | undefined,
-): string {
+) {
   if (
     active !== null &&
     writerRowId !== undefined &&

@@ -10,7 +10,7 @@ export type Breakpoint = keyof typeof breakpoints
  * `useSyncExternalStore`, so there is no effect and no state to keep in step, and it matches the
  * `sm:` classes of Tailwind.
  */
-export function useBreakpoint(breakpoint: Breakpoint): boolean {
+export function useBreakpoint(breakpoint: Breakpoint) {
   const query = `(min-width: ${breakpoints[breakpoint]}px)`
   return useSyncExternalStore(
     (onChange) => {

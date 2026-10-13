@@ -26,18 +26,18 @@ const STORAGE_PREFIX = 'maid.reference:'
 
 type Json = Record<string, unknown>
 
-function record(value: unknown): Json | undefined {
+function record(value: unknown) {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
     ? (value as Json)
     : undefined
 }
 
-function text(value: unknown): string | undefined {
+function text(value: unknown) {
   return typeof value === 'string' ? value : undefined
 }
 
 /** The wiki pages a reference names: its key page, and its tag page when it has a value. */
-function pagesOf(reference: Reference): { key: string; tag?: string } {
+function pagesOf(reference: Reference) {
   return {
     key: wikiTitleOf({ key: reference.key }),
     tag: reference.value === undefined ? undefined : wikiTitleOf(reference),
@@ -45,7 +45,7 @@ function pagesOf(reference: Reference): { key: string; tag?: string } {
 }
 
 /** The request for a reference: one call for its key and its tag page, as iD sends it. */
-export function requestUrl(reference: Reference): string {
+export function requestUrl(reference: Reference) {
   const pages = pagesOf(reference)
   const titles = [pages.key, pages.tag].filter((title) => title !== undefined).join('|')
   const query = new URLSearchParams({
@@ -62,7 +62,7 @@ export function requestUrl(reference: Reference): string {
 }
 
 /** The URL that shows a file of a wiki at a fixed width, as iD builds it. */
-function fileUrl(base: string, file: string): string {
+function fileUrl(base: string, file: string) {
   const query = new URLSearchParams({
     title: `Special:Redirect/file/${file}`,
     width: String(IMAGE_WIDTH),
@@ -71,7 +71,7 @@ function fileUrl(base: string, file: string): string {
 }
 
 /** The statements of one property of an item, as records. */
-function statementsOf(item: Json, property: string): Json[] {
+function statementsOf(item: Json, property: string) {
   const list = record(item.claims)?.[property]
   if (!Array.isArray(list)) return []
   return list.flatMap((statement) => {
@@ -81,7 +81,7 @@ function statementsOf(item: Json, property: string): Json[] {
 }
 
 /** iD's claimToValue without a locale: the value of the first statement that is preferred, else none. */
-function preferredValue(item: Json, property: string): string | undefined {
+function preferredValue(item: Json, property: string) {
   const statement = statementsOf(item, property).find((found) => found.rank === 'preferred')
   const datavalue = record(record(statement?.mainsnak)?.datavalue)
   if (!datavalue) return undefined
@@ -91,7 +91,7 @@ function preferredValue(item: Json, property: string): string | undefined {
 }
 
 /** The wiki page title in one language, from the monolingual statements of an item. The last one wins, as in iD. */
-function wikiPageIn(item: Json | undefined, language: string): string | undefined {
+function wikiPageIn(item: Json | undefined, language: string) {
   if (!item) return undefined
   let page: string | undefined
   for (const statement of statementsOf(item, PROPERTY_WIKI_PAGE)) {
@@ -102,7 +102,7 @@ function wikiPageIn(item: Json | undefined, language: string): string | undefine
 }
 
 /** The items of the answer by the wiki page they are. Missing items are left out, as iD does. */
-function itemsByTitle(answer: Json): Map<string, Json> {
+function itemsByTitle(answer: Json) {
   const items = new Map<string, Json>()
   for (const entry of Object.values(record(answer.entities) ?? {})) {
     const item = record(entry)
@@ -119,10 +119,7 @@ function itemsByTitle(answer: Json): Map<string, Json> {
  * on the wiki. The wiki page is the English one of the tag's item, else of the key's. Undefined when the
  * wiki has neither item. Throws when the answer is an error.
  */
-export function parseWikibaseAnswer(
-  answer: unknown,
-  reference: Reference,
-): ReferenceInfo | undefined {
+export function parseWikibaseAnswer(answer: unknown, reference: Reference) {
   const root = record(answer)
   if (!root || !root.success || root.error !== undefined) {
     throw new Error('The OSM Wiki answered with an error')
@@ -161,7 +158,7 @@ export function freshStored(raw: string | null, now: number): ReferenceInfo | nu
   return infoOf(stored.info)
 }
 
-function parseJson(raw: string | null): Json | undefined {
+function parseJson(raw: string | null) {
   if (raw === null) return undefined
   try {
     return record(JSON.parse(raw))
@@ -170,7 +167,7 @@ function parseJson(raw: string | null): Json | undefined {
   }
 }
 
-function infoOf(value: unknown): ReferenceInfo | undefined {
+function infoOf(value: unknown) {
   const info = record(value)
   if (!info) return undefined
   return {
@@ -186,7 +183,7 @@ const remembered = new Map<string, ReferenceInfo | null>()
 /** The requests in line: each waits for the one before, so that only one is ever in flight. */
 const line: { tail: Promise<void> } = { tail: Promise.resolve() }
 
-function queued<T>(task: () => Promise<T>): Promise<T> {
+function queued<T>(task: () => Promise<T>) {
   const run = line.tail.then(task)
   line.tail = run.then(
     () => undefined,
@@ -195,7 +192,7 @@ function queued<T>(task: () => Promise<T>): Promise<T> {
   return run
 }
 
-function readStored(key: string): ReferenceInfo | null | undefined {
+function readStored(key: string) {
   try {
     return freshStored(localStorage.getItem(STORAGE_PREFIX + key), Date.now())
   } catch {
@@ -204,7 +201,7 @@ function readStored(key: string): ReferenceInfo | null | undefined {
   }
 }
 
-function writeStored(key: string, info: ReferenceInfo | null): void {
+function writeStored(key: string, info: ReferenceInfo | null) {
   try {
     localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify({ at: Date.now(), info }))
   } catch {
@@ -212,7 +209,7 @@ function writeStored(key: string, info: ReferenceInfo | null): void {
   }
 }
 
-async function fetchAnswer(reference: Reference): Promise<unknown> {
+async function fetchAnswer(reference: Reference) {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
   try {
@@ -232,7 +229,7 @@ async function fetchAnswer(reference: Reference): Promise<unknown> {
  * for it, or under automation (`isAutomated()`), where nothing is requested. Rejects when the wiki
  * cannot be asked; nothing is kept then, so the next opening asks again.
  */
-export async function loadReference(reference: Reference): Promise<ReferenceInfo | undefined> {
+export async function loadReference(reference: Reference) {
   if (isAutomated()) return undefined
   const key = wikiTitleOf(reference)
   return queued(async () => {

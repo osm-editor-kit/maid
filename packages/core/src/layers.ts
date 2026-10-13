@@ -33,6 +33,6 @@ export function startSetting<T>(
 }
 
 /** A user action is stored as the preference unless the session's value came from the URL */
-export function writesStored(fromUrl: boolean): boolean {
+export function writesStored(fromUrl: boolean) {
   return !fromUrl
 }

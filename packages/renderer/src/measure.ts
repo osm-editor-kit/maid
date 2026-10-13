@@ -14,7 +14,7 @@ import type { LonLat } from './field-overlay'
 const EARTH_RADIUS = 6371008.8
 
 /** The great-circle distance between two places on the ground, in metres */
-export function distanceMetres(a: LonLat, b: LonLat): number {
+export function distanceMetres(a: LonLat, b: LonLat) {
   const toRadians = Math.PI / 180
   const dLat = (b[1] - a[1]) * toRadians
   const dLon = (b[0] - a[0]) * toRadians
@@ -28,7 +28,7 @@ export function distanceMetres(a: LonLat, b: LonLat): number {
  * A distance as the value of a width tag: one decimal, and no trailing ".0" ("3.4", "3", "12.5").
  * Metres, as OSM's width tag takes them.
  */
-export function formatMetres(metres: number): string {
+export function formatMetres(metres: number) {
   return String(Math.round(metres * 10) / 10)
 }
 
@@ -36,7 +36,7 @@ export function formatMetres(metres: number): string {
  * The features that show a measure from `start` to `end` while the second click is not made: a
  * line between the two, and its distance as a label ("3.4 m") at the middle of the line.
  */
-export function measureFeatures(start: LonLat, end: LonLat): Feature[] {
+export function measureFeatures(start: LonLat, end: LonLat) {
   const line: Feature<LineString> = {
     type: 'Feature',
     properties: { id: 'measure-line', state: 'measure-line' },

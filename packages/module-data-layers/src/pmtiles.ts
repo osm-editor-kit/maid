@@ -6,7 +6,7 @@ import { PMTiles, Protocol, TileType } from 'pmtiles'
 import { isRecord } from './config.ts'
 
 /** The layer names in an archive's metadata (`vector_layers`), in order, without repeats */
-export function sourceLayerNames(metadata: unknown): string[] {
+export function sourceLayerNames(metadata: unknown) {
   if (!isRecord(metadata) || !Array.isArray(metadata.vector_layers)) return []
   const names: string[] = []
   for (const layer of metadata.vector_layers) {
@@ -21,7 +21,7 @@ export function sourceLayerNames(metadata: unknown): string[] {
   return names
 }
 
-async function readArchive(url: string): Promise<string[]> {
+async function readArchive(url: string) {
   const archive = new PMTiles(url)
   const header = await archive.getHeader()
   if (header.tileType !== TileType.Mvt) throw new Error('it does not hold vector tiles.')
@@ -34,7 +34,7 @@ async function readArchive(url: string): Promise<string[]> {
 const archives = new Map<string, Promise<string[]>>()
 
 /** The layer names of a PMTiles archive. Makes requests to the archive's server (ranges of it). */
-export function readPmtilesLayers(url: string): Promise<string[]> {
+export function readPmtilesLayers(url: string) {
   const cached = archives.get(url)
   if (cached) return cached
   const read = readArchive(url)
@@ -59,7 +59,7 @@ const registered = new WeakSet<object>()
  * imperative MapLibre call of the package: `addProtocol` is a static of the library, not of a map,
  * and react-map-gl has no declarative form for it. It must run before a `pmtiles://` source is added.
  */
-export function registerPmtilesProtocol(mapLib: object): void {
+export function registerPmtilesProtocol(mapLib: object) {
   if (registered.has(mapLib)) return
   registered.add(mapLib)
   ;(mapLib as WithProtocols).addProtocol?.('pmtiles', new Protocol().tile)

@@ -108,7 +108,7 @@ export function assignRelatedTags(
   owners: readonly FieldKeys[],
   tags: Tags,
   ownKeys: Iterable<string> = owners.flatMap((owner) => owner.keys),
-): Map<string, RelatedTag[]> {
+) {
   const result = new Map<string, RelatedTag[]>()
   const owned = new Set(ownKeys)
   for (const [tagKey, value] of Object.entries(tags)) {
@@ -132,7 +132,7 @@ export function assignRelatedTags(
   return result
 }
 
-export function compareRelatedTags(a: RelatedSlot, b: RelatedSlot): number {
+export function compareRelatedTags(a: RelatedSlot, b: RelatedSlot) {
   return (
     RELATED_CATEGORIES.indexOf(a.category) - RELATED_CATEGORIES.indexOf(b.category) ||
     a.baseKey.localeCompare(b.baseKey) ||
@@ -144,12 +144,12 @@ export function compareRelatedTags(a: RelatedSlot, b: RelatedSlot): number {
  * The keys a field owns related tags for: each key of the field (a field over several keys, like
  * a directional one, owns the related tags of each). Prefix keys (`payment:`) are left out.
  */
-export function relatedBaseKeys(field: Field): string[] {
+export function relatedBaseKeys(field: Field) {
   return fieldKeys(field).filter((key) => !key.endsWith(':'))
 }
 
 /** The side or direction a related key is about (`cycleway:left:width` → `left`). */
-export function relatedSide(baseKey: string): string | undefined {
+export function relatedSide(baseKey: string) {
   return /(?:^|:)(left|right|both|forward|backward)(?::|$)/.exec(baseKey)?.[1]
 }
 
@@ -157,7 +157,7 @@ export function relatedSide(baseKey: string): string | undefined {
  * The label of a related tag: its category, with the side (or the key) in brackets when the field
  * has several keys and the tag is not about the field's own key (`Source (left)`).
  */
-export function relatedLabel(slot: RelatedSlot, field: Field): string {
+export function relatedLabel(slot: RelatedSlot, field: Field) {
   const base = CATEGORY_LABELS[slot.category]
   const baseKeys = relatedBaseKeys(field)
   const mainKey = field.key ?? baseKeys[0]
@@ -175,7 +175,7 @@ export function relatedButtonKeys(
   mainKey: string | undefined,
   tags: Tags,
   buttons: RelatedButtons = RELATED_BUTTONS,
-): RelatedSlot[] {
+) {
   const has = (key: string) => (tags[key] ?? '') !== ''
   const anyValue = baseKeys.some(has)
   const result = new Map<string, RelatedSlot>()

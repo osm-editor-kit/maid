@@ -2,12 +2,12 @@ import { discardedTags } from '@osm-editor-kit/maid-presets/default'
 import { api } from '../auth'
 import { config, editor } from '../editor'
 import { forgetJournal } from '../journal'
-import { changesetTags, toOsmChange, type OsmChange } from './osm-change'
+import { changesetTags, toOsmChange } from './osm-change'
 
 const VERSION = '0.0.0'
 
 /** Why edits cannot be saved in this session, if so */
-export function saveBlocked(loggedIn: boolean): string | undefined {
+export function saveBlocked(loggedIn: boolean) {
   // isAutomated() is already folded into config.dev: automation never gets here
   if (!config.dev)
     return 'Saving works only on data from the OSM development server: open Maid with ?live=dev. Edits on a fixture stay in this browser.'
@@ -16,7 +16,7 @@ export function saveBlocked(loggedIn: boolean): string | undefined {
 }
 
 /** What would be uploaded now */
-export function pendingChange(): OsmChange {
+export function pendingChange() {
   // tags that editors agree never to upload (the tagging schema's list) are left out
   return toOsmChange(editor.history.changes(), discardedTags)
 }
@@ -27,7 +27,7 @@ export function pendingChange(): OsmChange {
  * are forgotten; the caller reloads the page, so the map shows what the server has now.
  * A conflict (someone changed the same element) rejects with the server's message.
  */
-export async function uploadEdits(comment: string): Promise<number> {
+export async function uploadEdits(comment: string) {
   if (!config.dev) throw new Error('Saving is only possible on the OSM development server')
   const change = pendingChange()
   const OSM = await api()

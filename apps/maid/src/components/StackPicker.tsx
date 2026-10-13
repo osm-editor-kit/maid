@@ -1,5 +1,5 @@
 import { Square2StackIcon } from '@heroicons/react/16/solid'
-import { ContextMenu, Tooltip, type MenuItem } from '@osm-editor-kit/maid-ui'
+import { ContextMenu, Tooltip } from '@osm-editor-kit/maid-ui'
 import { useEffect, useState } from 'react'
 import { engine, useEngine } from '../editor'
 import { useSelection } from '../selection'
@@ -27,7 +27,7 @@ export function featureItems(
   isCurrent: (id: string) => boolean,
   choose: (id: string) => void,
   section?: string,
-): MenuItem[] {
+) {
   return ids.map((id) => {
     const entity = engine.entity(id)
     const kind = entity ? (entity.preset?.name ?? GEOMETRY_LABEL[entity.geometry]) : undefined

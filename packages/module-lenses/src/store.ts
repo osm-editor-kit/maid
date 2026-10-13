@@ -51,14 +51,12 @@ export const useLensStore = create<LensState>()(
 )
 
 /** Every lens the person can choose from: built-in first, then imported */
-export function allLenses(state: Pick<LensState, 'builtIn' | 'imported'>): Lens[] {
+export function allLenses(state: Pick<LensState, 'builtIn' | 'imported'>) {
   return [...state.builtIn, ...state.imported]
 }
 
 /** The lens on the map: the active one if it still exists, else null */
-export function activeLens(
-  state: Pick<LensState, 'activeId' | 'builtIn' | 'imported'>,
-): Lens | null {
+export function activeLens(state: Pick<LensState, 'activeId' | 'builtIn' | 'imported'>) {
   if (state.activeId === null) return null
   return allLenses(state).find((lens) => lens.id === state.activeId) ?? null
 }
@@ -70,7 +68,7 @@ export type LensTarget = { setLens: (lens: Lens | null) => void }
  * Puts the active lens on the map and keeps it there: the app calls this once with its engine
  * (`connectLenses(engine)`). Returns a function that stops the connection.
  */
-export function connectLenses(engine: LensTarget): () => void {
+export function connectLenses(engine: LensTarget) {
   let current: Lens | null | undefined
   const apply = () => {
     const lens = activeLens(useLensStore.getState())

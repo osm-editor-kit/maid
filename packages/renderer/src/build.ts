@@ -116,7 +116,7 @@ function ringMetrics(ring: Position[]) {
 }
 
 /** A node's position as a GeoJSON coordinate. A new array, so features never share the entity's. */
-export function coordinateOf(node: OsmNode | undefined): Position | undefined {
+export function coordinateOf(node: OsmNode | undefined) {
   const loc = node?.loc
   return loc ? [loc[0], loc[1]] : undefined
 }
@@ -376,7 +376,7 @@ export class FeatureBuilder {
    */
   lens?: Lens
 
-  private lensOf(tags: Tags, geometry: LensGeometry): LensStyle | undefined {
+  private lensOf(tags: Tags, geometry: LensGeometry) {
     return this.lens ? lensStyle(this.lens, tags, geometry) : undefined
   }
 
@@ -396,7 +396,7 @@ export class FeatureBuilder {
   }
 
   /** True if the entity has a feature that may be looked at but not changed */
-  isReadOnly(id: string): boolean {
+  isReadOnly(id: string) {
     return this.states.get(id) === 'readonly'
   }
 
@@ -404,7 +404,7 @@ export class FeatureBuilder {
    * Asks the filters about an entity and remembers the answer. Returns true if it is hidden;
    * `count` adds it to the hidden counter of its filter (once per entity).
    */
-  private isFiltered(id: string, tags: Tags, geometry: Geometry, count: boolean): boolean {
+  private isFiltered(id: string, tags: Tags, geometry: Geometry, count: boolean) {
     const { filters } = this
     if (!filters) return false
     const filter = filters.filterOf(tags, geometry)
@@ -421,7 +421,7 @@ export class FeatureBuilder {
    * A vertex goes with its ways: hidden when all of them are, read-only when one of them is.
    * Returns true if it is hidden.
    */
-  private isVertexFiltered(id: string): boolean {
+  private isVertexFiltered(id: string) {
     if (!this.filters) return false
     let visible = false
     let readOnly = false
@@ -493,7 +493,7 @@ export class FeatureBuilder {
   }
 
   /** Re-reads a vertex's tags (tagged or not) and returns its feature, if it has one */
-  refreshVertex(node: OsmNode): Feature | undefined {
+  refreshVertex(node: OsmNode) {
     const shared = (this.data.nodeUses.get(node.id) ?? 0) > 1
     const tagged = hasInterestingTags(node.tags)
     if (
@@ -529,7 +529,7 @@ export class FeatureBuilder {
   }
 
   /** Features for everything a merge added. Call once per merge, in order. */
-  build(added: MergeResult): FeatureBatch {
+  build(added: MergeResult) {
     const { data } = this
     const out: FeatureBatch = { areas: [], lines: [], points: [], vertices: [] }
 
@@ -609,7 +609,7 @@ export class FeatureBuilder {
 }
 
 /** All nodes of a way as vertex features, for showing a selected way's shape points */
-export function wayVertices(data: OsmData, wayId: string): Feature<Point>[] {
+export function wayVertices(data: OsmData, wayId: string) {
   const way = data.way(wayId)
   if (!way) return []
   const out: Feature<Point>[] = []

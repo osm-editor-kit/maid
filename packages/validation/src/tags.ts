@@ -94,7 +94,7 @@ const uninterestingKeys: readonly RegExp[] = [
 ]
 
 /** Rapid's `isRoutableHighway` test: a `highway` value that connects roads */
-export function isRoutableHighway(value: string | undefined): boolean {
+export function isRoutableHighway(value: string | undefined) {
   return value !== undefined && routableHighways.has(value)
 }
 
@@ -104,7 +104,7 @@ export function hasTag(value: string | undefined): value is string {
 }
 
 /** Whether a key is not in the `uninteresting` ruleset */
-export function isInterestingKey(key: string): boolean {
+export function isInterestingKey(key: string) {
   return !uninterestingKeys.some((pattern) => pattern.test(key))
 }
 
@@ -112,7 +112,7 @@ export function isInterestingKey(key: string): boolean {
  * The keys that say what a feature is, as in Rapid's `hasDescriptiveTags`: interesting keys other
  * than `area` and the attribute keys (name, description, note, start_date and their `key:` variants).
  */
-export function descriptiveKeys(tags: Tags): string[] {
+export function descriptiveKeys(tags: Tags) {
   const attributeKeys = ['description', 'name', 'note', 'start_date']
   return Object.keys(tags).filter((key) => {
     if (key === 'area' || !isInterestingKey(key)) return false

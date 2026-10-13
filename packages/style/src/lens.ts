@@ -57,7 +57,7 @@ export const DIM_OPACITY = 0.25
 export const FILL_ALPHA = 0.3
 
 /** True if every key of the match holds for the tags */
-export function matchesTags(match: Record<string, LensMatchValue>, tags: Tags): boolean {
+export function matchesTags(match: Record<string, LensMatchValue>, tags: Tags) {
   for (const [key, want] of Object.entries(match)) {
     const have = tags[key]
     if (want === true) {
@@ -119,19 +119,19 @@ export function parseColour(value: string): RGBA | undefined {
   return undefined
 }
 
-function toRgba([r, g, b, a]: RGBA): string {
+function toRgba([r, g, b, a]: RGBA) {
   return `rgba(${r}, ${g}, ${b}, ${Math.round(a * 1000) / 1000})`
 }
 
 /** The colour with a new alpha. A colour that cannot be read is returned as it is. */
-export function withAlpha(colour: string, alpha: number): string {
+export function withAlpha(colour: string, alpha: number) {
   const rgba = parseColour(colour)
   if (!rgba) return colour
   return toRgba([rgba[0], rgba[1], rgba[2], alpha])
 }
 
 /** The colour with its alpha multiplied by `factor`. A colour that cannot be read is returned as it is. */
-export function scaleAlpha(colour: string, factor: number): string {
+export function scaleAlpha(colour: string, factor: number) {
   const rgba = parseColour(colour)
   if (!rgba) return colour
   return toRgba([rgba[0], rgba[1], rgba[2], rgba[3] * factor])
@@ -141,7 +141,7 @@ export function scaleAlpha(colour: string, factor: number): string {
  * The stroke or outline colour a lens gives a feature that had `colour` (undefined if it had
  * none and the lens does not bring one).
  */
-export function lensColour(style: LensStyle, colour: string | undefined): string | undefined {
+export function lensColour(style: LensStyle, colour: string | undefined) {
   if (style.color !== undefined) {
     return style.opacity === undefined ? style.color : withAlpha(style.color, style.opacity)
   }
@@ -153,7 +153,7 @@ export function lensColour(style: LensStyle, colour: string | undefined): string
  * The fill of an area under a lens. A rule colour fills at FILL_ALPHA, like iD's fills; an area
  * without a fill keeps none, so the lens never adds fills iD does not draw.
  */
-export function lensFill(style: LensStyle, fill: string | undefined): string | undefined {
+export function lensFill(style: LensStyle, fill: string | undefined) {
   if (fill === undefined) return undefined
   if (style.color !== undefined) return withAlpha(style.color, FILL_ALPHA * (style.opacity ?? 1))
   if (style.opacity === undefined) return fill
@@ -161,7 +161,7 @@ export function lensFill(style: LensStyle, fill: string | undefined): string | u
 }
 
 /** One line of text for a match, for the legend: `surface: asphalt, concrete`, `surface is missing` */
-export function describeMatch(match: Record<string, LensMatchValue>): string {
+export function describeMatch(match: Record<string, LensMatchValue>) {
   const parts = Object.entries(match).map(([key, value]) => {
     if (value === true) return `${key} is set`
     if (value === false) return `${key} is missing`

@@ -11,7 +11,7 @@ export type SignTagChanges = Readonly<Record<string, string | undefined>>
 export function applySignTagChanges(
   changes: SignTagChanges,
   onChange: (key: string, value: string | undefined) => void,
-): void {
+) {
   for (const [key, value] of Object.entries(changes)) {
     onChange(key, value === undefined || value === '' ? undefined : value)
   }

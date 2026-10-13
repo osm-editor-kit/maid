@@ -26,7 +26,7 @@ function rememberFocus(field: string, value: string) {
   pendingFocus.field = field
   pendingFocus.value = value
 }
-function takeFocus(field: string): string | undefined {
+function takeFocus(field: string) {
   if (pendingFocus.field !== field) return undefined
   const { value } = pendingFocus
   pendingFocus.field = undefined
@@ -46,7 +46,7 @@ const BUTTON =
   'relative inline-flex h-8 min-w-0 max-w-full items-center rounded-md px-3 text-sm inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:opacity-60 dark:inset-ring-white/10'
 
 /** Focuses the button of `value` in the group, if there is one. */
-function focusButton(group: HTMLElement | null, value: string): void {
+function focusButton(group: HTMLElement | null, value: string) {
   const buttons = group?.querySelectorAll<HTMLElement>('[role="radio"]') ?? []
   for (const button of buttons) {
     if (button.dataset.value === value) {
@@ -163,7 +163,7 @@ const LAYER_FIELD: Field = {
   universal: false,
 }
 
-function withoutKey(tags: Tags, key: string): Tags {
+function withoutKey(tags: Tags, key: string) {
   return Object.fromEntries(Object.entries(tags).filter(([tagKey]) => tagKey !== key))
 }
 

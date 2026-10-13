@@ -92,7 +92,7 @@ export function toOsmChange(changes: ChangesSummary, discarded: DiscardList = {}
 }
 
 /** "3 created, 1 changed, 2 deleted", without the parts that are zero */
-export function summaryOf(change: OsmChange): string {
+export function summaryOf(change: OsmChange) {
   const parts = [
     [change.create.length, 'created'],
     [change.modify.length, 'changed'],
@@ -108,7 +108,7 @@ export function summaryOf(change: OsmChange): string {
  * The changeset's tags. `created_by` and `comment` as every editor sets them; hashtags are taken
  * from the comment as iD does (`#mapathon` → `hashtags=#mapathon`).
  */
-export function changesetTags(comment: string, version: string): Record<string, string> {
+export function changesetTags(comment: string, version: string) {
   const text = comment.trim()
   const tags: Record<string, string> = { created_by: `Maid ${version}`, comment: text }
   const hashtags = [...new Set(text.match(/#[^\s#;,.!?]{2,}/g) ?? [])]

@@ -38,7 +38,7 @@ const STEPPER =
  * as constant and would read it again after it was cleared.
  */
 let refocus: { id: string; part: string } | undefined
-function takeRefocus(id: string): string | undefined {
+function takeRefocus(id: string) {
   if (refocus?.id !== id) return undefined
   const { part } = refocus
   refocus = undefined
@@ -51,7 +51,7 @@ type Parts = { current: Map<string, HTMLElement> }
  * Row keys each control by its tag value, so every write remounts the control and would drop the
  * focus. A write from one part sets `refocus`; the control that mounts next focuses that part again.
  */
-function useParts(id: string): Parts {
+function useParts(id: string) {
   const parts = useRef(new Map<string, HTMLElement>())
   useEffect(() => {
     const part = takeRefocus(id)
@@ -83,7 +83,7 @@ function writeTag(control: Control, next: string | undefined, part?: string) {
 }
 
 /** Whether a blur leaves the control: a move to another part of it keeps the draft. */
-function leavesControl(event: FocusEvent<HTMLDivElement>): boolean {
+function leavesControl(event: FocusEvent<HTMLDivElement>) {
   const next = event.relatedTarget
   return !(next instanceof Node && event.currentTarget.contains(next))
 }

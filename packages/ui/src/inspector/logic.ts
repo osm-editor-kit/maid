@@ -5,7 +5,7 @@ import { directionalKeys } from './fields/directional-logic.ts'
 export const MAX_VALUE_LENGTH = 255
 
 /** iD's unset entry in a field's options has no value (we also accept an empty one). */
-export function isUnsetOption(option: { value: string | undefined }): boolean {
+export function isUnsetOption(option: { value: string | undefined }) {
   return option.value === undefined || option.value === ''
 }
 
@@ -13,18 +13,18 @@ export function isUnsetOption(option: { value: string | undefined }): boolean {
  * What is written to a tag, as iD's utilCleanOsmString: trimmed, in Unicode NFC, cut to 255
  * characters. Empty means the tag is removed.
  */
-export function cleanValue(text: string): string | undefined {
+export function cleanValue(text: string) {
   const value = Array.from(text.trim().normalize('NFC')).slice(0, MAX_VALUE_LENGTH).join('')
   return value === '' ? undefined : value
 }
 
 /** The length of a draft in the unit the limit counts: Unicode characters. */
-export function valueLength(text: string): number {
+export function valueLength(text: string) {
   return Array.from(text).length
 }
 
 /** The counter under a text input: shown from 10 characters before the limit, amber at the limit. */
-export function lengthNotice(draft: string): { length: number; atLimit: boolean } | undefined {
+export function lengthNotice(draft: string) {
   const length = valueLength(draft)
   if (length < MAX_VALUE_LENGTH - 10) return undefined
   return { length, atLimit: length >= MAX_VALUE_LENGTH }
@@ -37,7 +37,7 @@ const LANGUAGE = /^[a-z]{2,3}(?:[-_][A-Za-z0-9]+)*$/
  * (multiCombo: payment:cash belongs to payment:). For localized names, name:<language> belongs
  * to name, but name:etymology does not.
  */
-function ownsKey(field: Field, own: string, tagKey: string): boolean {
+function ownsKey(field: Field, own: string, tagKey: string) {
   if (tagKey === own) return true
   if (own.endsWith(':')) return tagKey.startsWith(own)
   return (
@@ -51,7 +51,7 @@ function ownsKey(field: Field, own: string, tagKey: string): boolean {
  * The tag keys of a field: its key or keys, plus every key of the given tag sets that the field
  * owns (see ownsKey).
  */
-export function fieldKeys(field: Field, ...sources: Tags[]): string[] {
+export function fieldKeys(field: Field, ...sources: Tags[]) {
   // both: a phone field has `key` phone and `keys` phone and contact:phone
   const listed = [...(field.key !== undefined ? [field.key] : []), ...(field.keys ?? [])]
   // a side field also owns the other spelling of its key (`cycleway` and `cycleway:both`)
@@ -70,26 +70,26 @@ export function fieldKeys(field: Field, ...sources: Tags[]): string[] {
 }
 
 /** Some key of the field has a value. This shows the remove button. */
-export function isPresent(field: Field, tags: Tags): boolean {
+export function isPresent(field: Field, tags: Tags) {
   return fieldKeys(field, tags).some((key) => (tags[key] ?? '') !== '')
 }
 
 /** Some key of the field differs from the base tags. This shows the revert button. */
-export function isModified(field: Field, tags: Tags, base: Tags): boolean {
+export function isModified(field: Field, tags: Tags, base: Tags) {
   return fieldKeys(field, tags, base).some((key) => (tags[key] ?? '') !== (base[key] ?? ''))
 }
 
 export type TagEdit = { key: string; value: string | undefined }
 
 /** The writes that remove the field: every key that has a value is removed. */
-export function removeEdits(field: Field, tags: Tags): TagEdit[] {
+export function removeEdits(field: Field, tags: Tags) {
   return fieldKeys(field, tags)
     .filter((key) => (tags[key] ?? '') !== '')
     .map((key) => ({ key, value: undefined }))
 }
 
 /** The writes that bring the field back to the base tags. Keys the base lacks are removed. */
-export function revertEdits(field: Field, tags: Tags, base: Tags): TagEdit[] {
+export function revertEdits(field: Field, tags: Tags, base: Tags) {
   return fieldKeys(field, tags, base)
     .filter((key) => (tags[key] ?? '') !== (base[key] ?? ''))
     .map((key) => ({ key, value: base[key] || undefined }))
@@ -98,7 +98,7 @@ export function revertEdits(field: Field, tags: Tags, base: Tags): TagEdit[] {
 const SKIPPED_BY_CLICK = new Set(['reversible', 'alternating'])
 
 /** The keys of a multi-key field (address, access, ...) that have a value. */
-export function keysWithValue(field: Field, tags: Tags): string[] {
+export function keysWithValue(field: Field, tags: Tags) {
   return (field.keys ?? []).filter((key) => (tags[key] ?? '') !== '')
 }
 
@@ -106,7 +106,7 @@ export function keysWithValue(field: Field, tags: Tags): string[] {
  * Changes whenever the value of the field's key (or of its keys) changes. Used as a React key
  * on the control, so that the draft starts over from the tags when they change elsewhere.
  */
-export function valueSignature(field: Field, tags: Tags): string {
+export function valueSignature(field: Field, tags: Tags) {
   const keys = fieldKeys(field)
   return JSON.stringify(keys.map((key) => tags[key] ?? ''))
 }
@@ -115,14 +115,14 @@ export function valueSignature(field: Field, tags: Tags): string {
  * The label of the option the current value stands for, shown next to a combo's label.
  * Nothing when the value has no option, or when the label would only repeat the value.
  */
-export function comboHint(field: Field, value: string | undefined): string | undefined {
+export function comboHint(field: Field, value: string | undefined) {
   if (!value) return undefined
   const option = field.options.find((candidate) => candidate.value === value)
   return option && option.label !== value ? option.label : undefined
 }
 
 /** The value a check field works with: lower case, onewayCheck's 1 and -1 are yes, empty is unset. */
-export function checkValue(type: string, value: string | undefined): string | undefined {
+export function checkValue(type: string, value: string | undefined) {
   if (value === undefined || value === '') return undefined
   const lower = value.toLowerCase()
   return type === 'onewayCheck' && (lower === '1' || lower === '-1') ? 'yes' : lower
@@ -132,7 +132,7 @@ export function checkValue(type: string, value: string | undefined): string | un
  * Whether an unset oneway counts as yes: oneway_yes always, oneway when a tag of the way implies
  * it (iD check.ts:59-70).
  */
-export function impliesYes(field: Field, tags: Tags): boolean {
+export function impliesYes(field: Field, tags: Tags) {
   if (field.type !== 'onewayCheck' || field.key === undefined) return false
   if (checkValue(field.type, tags[field.key]) !== undefined) return false
   return field.id === 'oneway_yes' || (field.id === 'oneway' && impliesOneway(tags))
@@ -176,7 +176,7 @@ const IMPLYING_TAGS: Record<string, readonly string[]> = {
   ],
 }
 
-function impliesOneway(tags: Tags): boolean {
+function impliesOneway(tags: Tags) {
   return Object.entries(IMPLYING_TAGS).some(([key, values]) => values.includes(tags[key] ?? ''))
 }
 
@@ -199,7 +199,7 @@ export function checkState(
  * (defaultCheck: unset, yes). With options: the unset option and the others, without the
  * reversible and alternating values, which iD never cycles to (check.ts:151-153).
  */
-export function checkCycle(field: Pick<Field, 'type' | 'options'>): (string | undefined)[] {
+export function checkCycle(field: Pick<Field, 'type' | 'options'>) {
   const choices = field.options
     .filter((option) => !isUnsetOption(option) && !SKIPPED_BY_CLICK.has(option.value))
     .map((option) => option.value)
@@ -208,7 +208,7 @@ export function checkCycle(field: Pick<Field, 'type' | 'options'>): (string | un
 }
 
 /** The cycle of a check type without options: unset, yes, no (defaultCheck: unset, yes). */
-export function defaultCheckCycle(type: string): (string | undefined)[] {
+export function defaultCheckCycle(type: string) {
   return type === 'defaultCheck' ? [undefined, 'yes'] : [undefined, 'yes', 'no']
 }
 
@@ -220,7 +220,7 @@ export function nextCheckValue(
   type: string,
   current: string | undefined,
   cycle: readonly (string | undefined)[] = defaultCheckCycle(type),
-): string | undefined {
+) {
   const index = cycle.indexOf(checkValue(type, current))
   return cycle[(index + 1) % cycle.length]
 }
@@ -234,7 +234,7 @@ export function checkLabel(
   type: string,
   value: string | undefined,
   impliedYes = false,
-): string {
+) {
   const current = checkValue(type, value)
   if (current === undefined) {
     if (impliedYes) return 'Assumed to be Yes'

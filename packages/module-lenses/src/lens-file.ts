@@ -7,7 +7,6 @@ import {
   parseColour,
   type Lens,
   type LensGeometry,
-  type LensMatchValue,
   type LensRule,
 } from '@osm-editor-kit/maid-style'
 
@@ -27,7 +26,7 @@ function isObject(value: unknown): value is Obj {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function text(value: unknown, path: string, problems: Problems, max: number): string | undefined {
+function text(value: unknown, path: string, problems: Problems, max: number) {
   if (typeof value !== 'string' || value.trim() === '') {
     problems.push(`${path}: expected a text`)
     return undefined
@@ -39,7 +38,7 @@ function text(value: unknown, path: string, problems: Problems, max: number): st
   return value
 }
 
-function matchValue(value: unknown, path: string, problems: Problems): LensMatchValue | undefined {
+function matchValue(value: unknown, path: string, problems: Problems) {
   if (typeof value === 'boolean') return value
   if (typeof value === 'string') return text(value, path, problems, 200)
   if (Array.isArray(value) && value.length > 0) {
@@ -56,7 +55,7 @@ function matchValue(value: unknown, path: string, problems: Problems): LensMatch
   return undefined
 }
 
-function rule(value: unknown, path: string, problems: Problems): LensRule | undefined {
+function rule(value: unknown, path: string, problems: Problems) {
   if (!isObject(value)) {
     problems.push(`${path}: expected an object`)
     return undefined
@@ -90,12 +89,7 @@ function rule(value: unknown, path: string, problems: Problems): LensRule | unde
     else problems.push(`${path}.opacity: expected a number from 0 to 1`)
   }
   if (value.dash !== undefined) {
-    const ok =
-      Array.isArray(value.dash) &&
-      value.dash.length >= 1 &&
-      value.dash.length <= 8 &&
-      value.dash.every((d) => typeof d === 'number' && d > 0 && d <= 100)
-    if (ok) out.dash = value.dash as number[]
+    if (isDashList(value.dash)) out.dash = value.dash
     else problems.push(`${path}.dash: expected 1 to 8 lengths in px, each above 0 and up to 100`)
   }
   if (value.label !== undefined) {
@@ -105,7 +99,24 @@ function rule(value: unknown, path: string, problems: Problems): LensRule | unde
   return problems.length === before ? out : undefined
 }
 
-function lens(value: unknown, path: string, problems: Problems): Lens | undefined {
+function isDashList(value: unknown): value is number[] {
+  return (
+    Array.isArray(value) &&
+    value.length >= 1 &&
+    value.length <= 8 &&
+    value.every((d) => typeof d === 'number' && d > 0 && d <= 100)
+  )
+}
+
+function isGeometryList(value: unknown): value is LensGeometry[] {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((g) => GEOMETRIES.some((geometry) => geometry === g))
+  )
+}
+
+function lens(value: unknown, path: string, problems: Problems) {
   if (!isObject(value)) {
     problems.push(`${path}: expected an object`)
     return undefined
@@ -133,15 +144,12 @@ function lens(value: unknown, path: string, problems: Problems): Lens | undefine
     })
   }
   if (value.rest !== undefined) {
-    if ((REST as readonly unknown[]).includes(value.rest)) out.rest = value.rest as Lens['rest']
+    const rest = REST.find((item) => item === value.rest)
+    if (rest !== undefined) out.rest = rest
     else problems.push(`${path}.rest: expected one of dim, normal, hide`)
   }
   if (value.geometry !== undefined) {
-    const ok =
-      Array.isArray(value.geometry) &&
-      value.geometry.length > 0 &&
-      value.geometry.every((g) => (GEOMETRIES as readonly unknown[]).includes(g))
-    if (ok) out.geometry = value.geometry as LensGeometry[]
+    if (isGeometryList(value.geometry)) out.geometry = value.geometry
     else problems.push(`${path}.geometry: expected a list of line, area or point`)
   }
   return problems.length === before ? out : undefined
@@ -192,6 +200,6 @@ export function parseLensFile(source: string, reserved: readonly string[] = []):
 }
 
 /** The file for a list of lenses: a JSON list, which parseLensFile reads back */
-export function serialiseLenses(lenses: readonly Lens[]): string {
+export function serialiseLenses(lenses: readonly Lens[]) {
   return `${JSON.stringify(lenses, null, 2)}\n`
 }

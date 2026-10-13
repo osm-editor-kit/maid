@@ -14,7 +14,7 @@ const DISMISS_OFFSET = 120
 const DISMISS_VELOCITY = 500
 
 /** Whether a drag that ended with this offset and velocity (down is positive) closes the sheet. */
-export function shouldDismiss(offsetY: number, velocityY: number): boolean {
+export function shouldDismiss(offsetY: number, velocityY: number) {
   return offsetY > DISMISS_OFFSET || velocityY > DISMISS_VELOCITY
 }
 

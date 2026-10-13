@@ -7,7 +7,7 @@ import type { Field, Tags } from '@osm-editor-kit/maid-presets'
  * that starts with the query, then a label that contains it, then a key only. The order inside a
  * rank is the given order.
  */
-export function searchFields(fields: readonly Field[], query: string): Field[] {
+export function searchFields(fields: readonly Field[], query: string) {
   const text = query.trim().toLowerCase()
   if (text === '') return [...fields]
   const underscored = text.replace(/ /g, '_')
@@ -26,7 +26,7 @@ export function searchFields(fields: readonly Field[], query: string): Field[] {
 }
 
 /** The offered fields that are not already rows (shown or picked), by id. */
-export function addableFields(offered: readonly Field[], rowIds: ReadonlySet<string>): Field[] {
+export function addableFields(offered: readonly Field[], rowIds: ReadonlySet<string>) {
   return offered.filter((field) => !rowIds.has(field.id))
 }
 
@@ -35,7 +35,7 @@ export function addableFields(offered: readonly Field[], rowIds: ReadonlySet<str
  * not shown, in the order they were picked. Each field id once, so a picked field that has a value
  * and is shown is not listed twice.
  */
-export function rowFields(shown: readonly Field[], picked: readonly Field[]): Field[] {
+export function rowFields(shown: readonly Field[], picked: readonly Field[]) {
   const seen = new Set<string>()
   const rows: Field[] = []
   for (const field of [...shown, ...picked]) {
@@ -47,7 +47,7 @@ export function rowFields(shown: readonly Field[], picked: readonly Field[]): Fi
 }
 
 /** The picked ids with `id` added at the end. An id already picked keeps its place. */
-export function addPicked(picked: readonly string[], id: string): string[] {
+export function addPicked(picked: readonly string[], id: string) {
   return picked.includes(id) ? [...picked] : [...picked, id]
 }
 
@@ -55,7 +55,7 @@ export function addPicked(picked: readonly string[], id: string): string[] {
  * The fields for the picked ids, in the order picked. An id that no field has is left out (for
  * example a field whose prerequisite stopped holding).
  */
-export function pickedFields(ids: readonly string[], fields: readonly Field[]): Field[] {
+export function pickedFields(ids: readonly string[], fields: readonly Field[]) {
   const byId = new Map<string, Field>()
   for (const field of fields) byId.set(field.id, field)
   const result: Field[] = []
@@ -70,7 +70,7 @@ export function pickedFields(ids: readonly string[], fields: readonly Field[]): 
  * The value that showing a field from the list writes: its `default`, when it has one and its key
  * is empty. Undefined when nothing is written.
  */
-export function defaultOnPick(field: Field, tags: Tags): string | undefined {
+export function defaultOnPick(field: Field, tags: Tags) {
   if (field.key === undefined || field.default === undefined || field.default === '')
     return undefined
   return (tags[field.key] ?? '') === '' ? field.default : undefined

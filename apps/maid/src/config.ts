@@ -41,14 +41,14 @@ export type Config = {
 }
 
 /** Maid's own parameter wins; a link made for iD hides what it lists in `disable_features` */
-function readFilters(search: string): string | null {
+function readFilters(search: string) {
   const own = readParams({ filters: stateParams.filters }, search).filters
   if (own) return own
   const disabled = new URLSearchParams(search).get('disable_features')
   return disabled ? fromIdDisableFeatures(disabled) : null
 }
 
-export function readConfig(location: Location): Config {
+export function readConfig(location: Location) {
   const setup = readParams(setupParams, location.search)
   const live = setup.live !== '0' && !isAutomated()
   const dev = live && setup.live === 'dev'

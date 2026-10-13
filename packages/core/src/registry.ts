@@ -13,7 +13,7 @@ export function createRegistry<T extends { id: string }>(
   const subscribers = new Set<(items: readonly T[]) => void>()
   let snapshot: readonly T[] = []
 
-  function changed(): void {
+  function changed() {
     snapshot = [...items.values()]
     const context: ErrorContext = { source: 'subscriber', name }
     for (const subscriber of Array.from(subscribers)) {

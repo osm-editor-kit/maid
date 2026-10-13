@@ -44,7 +44,7 @@ export type WayIndex = {
 }
 
 /** The box in degrees of a way's nodes in the graph, or `undefined` when none of them has a location */
-export function boxOfWay(way: OsmWay, graph: Graph): Box | undefined {
+export function boxOfWay(way: OsmWay, graph: Graph) {
   const points: Point[] = []
   for (const id of way.nodes) {
     const node = graph.hasEntity(id)
@@ -53,20 +53,21 @@ export function boxOfWay(way: OsmWay, graph: Graph): Box | undefined {
   return boxOf(points)
 }
 
-function cellRange(box: Box): [number, number, number, number] {
+function cellRange(box: Box) {
   return [
     Math.floor(box.minLon / CELL),
     Math.floor(box.maxLon / CELL),
     Math.floor(box.minLat / CELL),
     Math.floor(box.maxLat / CELL),
-  ]
+  ] satisfies [number, number, number, number]
 }
 
 /** One number for a cell: the coordinates of cells are far below a million in absolute value */
-function cellKey(x: number, y: number): number {
+function cellKey(x: number, y: number) {
   return x * 1_000_003 + y
 }
 
+// The annotation makes the returned object be checked against the WayIndex interface
 export function createWayIndex(): WayIndex {
   const entries = new Map<string, Entry>()
   const cells = new Map<number, Set<Entry>>()
@@ -75,7 +76,7 @@ export function createWayIndex(): WayIndex {
   let stamp = 0
   let query = 0
 
-  function detach(entry: Entry): void {
+  function detach(entry: Entry) {
     for (const key of entry.cells) cells.get(key)?.delete(entry)
     entry.cells = []
     large.delete(entry)
@@ -83,7 +84,7 @@ export function createWayIndex(): WayIndex {
     entry.box = undefined
   }
 
-  function attach(entry: Entry, graph: Graph): void {
+  function attach(entry: Entry, graph: Graph) {
     const current = graph.hasEntity(entry.id)
     const box = current instanceof OsmWay ? boxOfWay(current, graph) : undefined
     entry.box = box
@@ -108,9 +109,9 @@ export function createWayIndex(): WayIndex {
     }
   }
 
-  function enter(graph: Graph, ways: Iterable<OsmWay>, targets: Iterable<string>): number {
+  function enter(graph: Graph, ways: Iterable<OsmWay>, targets: Iterable<string>) {
     stamp++
-    const name = (way: OsmWay): void => {
+    const name = (way: OsmWay) => {
       let entry = entries.get(way.id)
       if (!entry) {
         entry = {
@@ -145,12 +146,12 @@ export function createWayIndex(): WayIndex {
     return stamp
   }
 
-  function near(graph: Graph, way: OsmWay, runStamp: number): OsmWay[] {
+  function near(graph: Graph, way: OsmWay, runStamp: number) {
     const box = boxOfWay(way, graph)
     if (!box) return []
     query++
     const found: Entry[] = []
-    const test = (entry: Entry): void => {
+    const test = (entry: Entry) => {
       if (entry.query === query || entry.stamp !== runStamp || entry.id === way.id) return
       entry.query = query
       if (entry.box && boxesOverlap(box, entry.box)) found.push(entry)

@@ -34,12 +34,12 @@ export class DrawTool {
   private continued = false
   constructor(private engine: MaidEngine) {}
 
-  get active(): boolean {
+  get active() {
     return this.wayId !== undefined
   }
 
   /** The way being drawn, if any */
-  get way(): OsmWay | undefined {
+  get way() {
     return this.wayId ? this.engine.data.way(this.wayId) : undefined
   }
 
@@ -58,7 +58,7 @@ export class DrawTool {
    * Later ones fix the preview node there and add the next. A click on the node placed last, or
    * on the first node of an area, finishes. Returns the id of the finished way, if this click finished one.
    */
-  async click(kind: DrawKind, point: Point, layers: string[]): Promise<string | undefined> {
+  async click(kind: DrawKind, point: Point, layers: string[]) {
     const { engine } = this
     await engine.settleDrag()
     const target = this.target(point, layers)
@@ -95,7 +95,7 @@ export class DrawTool {
   }
 
   /** Starts a line at this node; on the end of exactly one line that line is continued (iD's A) */
-  startAt(nodeId: string): boolean {
+  startAt(nodeId: string) {
     const loc = this.engine.data.node(nodeId)?.loc
     if (this.active || !loc) return false
     this.start('line', { type: 'node', id: nodeId, loc: [loc[0], loc[1]] })
@@ -106,7 +106,7 @@ export class DrawTool {
    * Ends drawing and keeps the way as one undo step. A way that is too short to exist (a line
    * with one node, an area with two) is dropped. Returns the id of the way that was kept.
    */
-  finish(): string | undefined {
+  finish() {
     const { engine } = this
     const { history } = engine.data
     const wayId = this.wayId
@@ -231,7 +231,7 @@ export class DrawTool {
   }
 
   /** Where the preview node sits in the way: at the growing end, in an area before the closing node */
-  private cursorIndex(): number | undefined {
+  private cursorIndex() {
     const way = this.way
     if (!way) return undefined
     if (this.atStart) return 0
@@ -241,7 +241,7 @@ export class DrawTool {
   }
 
   /** The nodes of the way without the preview node (and without an area's closing node) */
-  private fixedNodes(way: OsmWay): string[] {
+  private fixedNodes(way: OsmWay) {
     const nodes = way.nodes.filter((id) => id !== this.cursorId)
     if (this.kind === 'area' && nodes.length > 1 && nodes[0] === nodes[nodes.length - 1])
       nodes.pop()
@@ -249,12 +249,12 @@ export class DrawTool {
   }
 
   /** A click on the first node closes an area that has enough nodes */
-  private closes(nodeId: string, fixed: string[]): boolean {
+  private closes(nodeId: string, fixed: string[]) {
     return this.kind === 'area' && fixed.length >= 3 && fixed[0] === nodeId
   }
 
   /** The one unclosed line that starts or ends at this node, if there is exactly one */
-  private lineEndingAt(nodeId: string): OsmWay | undefined {
+  private lineEndingAt(nodeId: string) {
     const { data } = this.engine
     const ways = (data.nodeWays.get(nodeId) ?? []).map((id) => data.way(id))
     if (ways.length !== 1) return undefined
@@ -321,7 +321,7 @@ export function nearestOnWay(
 }
 
 /** The nodes of a way on the screen, in order; a node without a location is left out */
-export function projectedNodes(engine: MaidEngine, way: OsmWay): Projected[] {
+export function projectedNodes(engine: MaidEngine, way: OsmWay) {
   const map = engine.map
   const nodes: Projected[] = []
   if (!map) return nodes

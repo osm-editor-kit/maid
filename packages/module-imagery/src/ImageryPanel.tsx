@@ -1,6 +1,6 @@
 import { isAutomated } from '@osm-editor-kit/maid-core'
 import { toolButtonTone } from '@osm-editor-kit/maid-ui'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from 'zustand'
 import { listView } from './eli.ts'
 import {
@@ -20,7 +20,7 @@ const SEARCH_FROM = 8
 const MUTED = 'text-xs text-zinc-500 dark:text-zinc-400'
 
 /** The classes that are set, joined with spaces */
-function classes(...parts: (string | false | null | undefined)[]): string {
+function classes(...parts: (string | false | null | undefined)[]) {
   return parts.filter(Boolean).join(' ')
 }
 
@@ -204,7 +204,7 @@ function Choice(props: {
   best?: boolean
   selected: boolean
   onSelect: () => void
-}): ReactNode {
+}) {
   const { name, detail, attribution, best, selected, onSelect } = props
   return (
     <button

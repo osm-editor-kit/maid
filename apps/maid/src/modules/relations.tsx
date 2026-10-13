@@ -1,4 +1,4 @@
-import { defineModule, type MaidModule } from '@osm-editor-kit/maid-core'
+import { defineModule } from '@osm-editor-kit/maid-core'
 import {
   actionAddMember,
   actionChangeMember,
@@ -74,7 +74,7 @@ function edit(editor: Editor, action: Action, annotation: string, selectedID: En
 }
 
 /** The id of the datalist that offers role suggestions: one per scope (members, membership, add) and entity. */
-function roleOptionsID(scope: string, id: string): string {
+function roleOptionsID(scope: string, id: string) {
   return `${scope}-roles-${id}`
 }
 
@@ -240,7 +240,7 @@ function MoveButton({
 }
 
 /** The letter for a member's type: N, W or R. */
-function typeLetter(type: Member['type']): string {
+function typeLetter(type: Member['type']) {
   if (type === 'node') return 'N'
   if (type === 'way') return 'W'
   return 'R'
@@ -663,7 +663,7 @@ function RelationsSection({ entity, editor, select }: Props) {
 }
 
 /** Adds "Members" (for relations) and "Relations" (for every element) to the inspector. */
-export function relations(): MaidModule {
+export function relations() {
   return defineModule({
     id: 'relations',
     setup(api) {

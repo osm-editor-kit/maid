@@ -9,10 +9,14 @@ const TICK_MS = 30_000
  * times stay current without each one keeping a timer. The state is an object so that no
  * module-level variable is reassigned.
  */
-const clock = {
+const clock: {
+  now: number
+  listeners: Set<() => void>
+  timer: ReturnType<typeof setInterval> | undefined
+} = {
   now: Date.now(),
   listeners: new Set<() => void>(),
-  timer: undefined as ReturnType<typeof setInterval> | undefined,
+  timer: undefined,
 }
 
 function subscribe(listener: () => void) {
@@ -35,7 +39,7 @@ function currentNow() {
 }
 
 /** The page's clock, updated every 30 s. Read here, never `Date.now()` during render. */
-function useNow(): number {
+function useNow() {
   return useSyncExternalStore(subscribe, currentNow, currentNow)
 }
 

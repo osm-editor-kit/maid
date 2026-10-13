@@ -12,11 +12,7 @@ import { providerOfKey } from './image-keys.ts'
 import { useStreetImageryStore } from './store.ts'
 
 /** The reason "show" is off for a key, or null when it works. Pure apart from the arguments. */
-export function showBlockedReason(
-  key: string,
-  mapillaryToken: string,
-  automated: boolean,
-): string | null {
+export function showBlockedReason(key: string, mapillaryToken: string, automated: boolean) {
   if (automated) return 'Photos are off in automated browsers'
   const provider = providerOfKey(key)
   if (provider === 'panoramax') return 'Panoramax photos cannot be opened by id yet'
@@ -47,7 +43,7 @@ export function mapillaryPhoto(details: MapillaryImageDetails): NormalizedPhoto 
  * Loads the photo of one id and opens it in the dock's viewer. Returns the message to show, or null when the photo
  * is open. The dock's Photos tab is not opened from here (the dock keeps its tab to itself).
  */
-export async function openImageById(id: string): Promise<string | null> {
+export async function openImageById(id: string) {
   const [details] = await fetchMapillaryImages([id])
   if (details === undefined) return 'Mapillary has no image with this id'
   const photo = mapillaryPhoto(details)

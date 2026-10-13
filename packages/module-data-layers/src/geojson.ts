@@ -27,11 +27,11 @@ export function parseGeoJson(text: string): Checked<GeoJsonData> {
 }
 
 /** The shape was checked above; the GeoJSON types are stricter about geometry than the checks are. */
-function asGeoJson(value: Record<string, unknown>): GeoJsonData {
+function asGeoJson(value: Record<string, unknown>) {
   return value as unknown as GeoJsonData
 }
 
-function isFeature(value: unknown): boolean {
+function isFeature(value: unknown) {
   return isRecord(value) && value.type === 'Feature' && 'geometry' in value
 }
 

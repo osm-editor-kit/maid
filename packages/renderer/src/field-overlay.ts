@@ -53,7 +53,7 @@ const MITER_LIMIT = 3
 const EARTH_RADIUS = 6378137
 
 /** Whether the visible part of a way (screen points, in order) is straight enough for a side line */
-export function isStraightEnough(points: Point2[], viewport: Viewport, closed: boolean): boolean {
+export function isStraightEnough(points: Point2[], viewport: Viewport, closed: boolean) {
   return straightEnough(visiblePolyline(points, viewport, closed))
 }
 
@@ -61,7 +61,7 @@ export function isStraightEnough(points: Point2[], viewport: Viewport, closed: b
  * The part of a polyline inside the viewport, in order. Segments are clipped to the viewport's
  * rectangle; a closed way includes its closing segment.
  */
-export function visiblePolyline(points: Point2[], viewport: Viewport, closed: boolean): Point2[] {
+export function visiblePolyline(points: Point2[], viewport: Viewport, closed: boolean) {
   const out: Point2[] = []
   if (points.length < 2) return out
   const count = closed ? points.length : points.length - 1
@@ -113,7 +113,7 @@ function clipToViewport(a: Point2, b: Point2, viewport: Viewport): [number, numb
 }
 
 /** The fork's rule on a visible polyline: length, turns, spread of headings, and how straight the chord is */
-function straightEnough(points: Point2[]): boolean {
+function straightEnough(points: Point2[]) {
   if (points.length < 2) return false
   let length = 0
   for (let i = 0; i < points.length - 1; i++) length += distance(points[i]!, points[i + 1]!)
@@ -175,7 +175,7 @@ function frame(origin: LonLat) {
   const cos = Math.cos((lat0 * Math.PI) / 180)
   return {
     to: ([lon, lat]: LonLat): Point2 => [(lon - lon0) * degree * cos, (lat - lat0) * degree],
-    from: ([x, y]: Point2): LonLat => [lon0 + x / (degree * cos), lat0 + y / degree],
+    from: ([x, y]: Point2) => [lon0 + x / (degree * cos), lat0 + y / degree],
   }
 }
 
@@ -183,7 +183,7 @@ function frame(origin: LonLat) {
  * A polyline moved sideways by `distance` metres: positive is left of its direction (north up,
  * so left is the anticlockwise normal). A corner is extended as a miter, up to MITER_LIMIT.
  */
-export function offsetLine(points: Point2[], distance: number): Point2[] {
+export function offsetLine(points: Point2[], distance: number) {
   const normals = points.slice(1).map((p, i) => {
     const a = points[i]!
     const dx = p[0] - a[0]
@@ -220,7 +220,7 @@ function middleOf(points: Point2[]): Point2 {
 }
 
 /** A width as the text on its band: "3.5 m" */
-export function formatMetres(metres: number): string {
+export function formatMetres(metres: number) {
   return `${Number(metres.toFixed(2))} m`
 }
 
@@ -290,6 +290,6 @@ export function fieldOverlayFeatures(
   return features
 }
 
-function sidesOf(choice: SideChoice): Side[] {
+function sidesOf(choice: SideChoice) {
   return choice === 'both' ? ['left', 'right'] : [choice]
 }

@@ -26,14 +26,14 @@ export type AuthState = {
   error?: string
 }
 
-function unavailable(): string | undefined {
+function unavailable() {
   if (isAutomated()) return 'Login is switched off in automated browsers.'
   if (!CLIENT_ID) return 'No client id: set VITE_OSM_DEV_CLIENT_ID in apps/maid/.env.local.'
   if (window.location.origin !== LOGIN_ORIGIN) return `Open Maid at ${LOGIN_ORIGIN} to log in.`
   return undefined
 }
 
-function storedUser(): string | undefined {
+function storedUser() {
   if (isAutomated()) return undefined
   try {
     if (!localStorage.getItem(TOKEN_KEY)) return undefined
@@ -88,7 +88,7 @@ export async function logout() {
   set({ user: undefined, error: undefined })
 }
 
-export function useAuth(): AuthState {
+export function useAuth() {
   return useSyncExternalStore(
     (listener) => {
       listeners.add(listener)

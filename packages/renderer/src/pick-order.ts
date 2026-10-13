@@ -13,7 +13,7 @@ export function orderPicks(
   candidates: readonly PickCandidate[],
   picked: string | null,
   limit = PICK_LIMIT,
-): string[] {
+) {
   const sorted = candidates
     .map((candidate, index) => ({ ...candidate, index }))
     .sort((a, b) => a.priority - b.priority || a.size - b.size || a.index - b.index)
@@ -33,7 +33,7 @@ const METRES_PER_DEGREE = 111_320
  * area, else the length in metres of the line. Flat-earth and rough: it only has to put the smaller
  * one first. Points are [lon, lat]; nothing is measured for fewer than two of them.
  */
-export function extentOf(points: readonly (readonly [number, number])[], area: boolean): number {
+export function extentOf(points: readonly (readonly [number, number])[], area: boolean) {
   if (points.length < 2) return 0
   if (!area) {
     let length = 0

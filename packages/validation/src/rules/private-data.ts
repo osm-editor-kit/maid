@@ -1,7 +1,7 @@
 import { actionChangeTags } from '@osm-editor-kit/maid-model'
 import type { Graph } from '@osm-editor-kit/maid-model'
 import { locationOf } from '../geo.ts'
-import type { Fix, Issue, Rule } from '../types.ts'
+import type { Rule } from '../types.ts'
 
 /** Buildings that are probably someone's home, so their contact details are personal */
 const privateBuildingValues: ReadonlySet<string> = new Set([
@@ -36,7 +36,7 @@ const personalTags: ReadonlySet<string> = new Set([
 ])
 
 /** "Remove the personal tags" of the entity, as one undo step */
-function removePersonalTagsFix(entityId: string, keys: readonly string[]): Fix {
+function removePersonalTagsFix(entityId: string, keys: readonly string[]) {
   const list = keys.join(', ')
   return {
     id: 'remove_personal_tags',
@@ -60,7 +60,7 @@ function removePersonalTagsFix(entityId: string, keys: readonly string[]): Fix {
 export const privateData: Rule = {
   id: 'private_data',
   label: 'Private data',
-  validate(entity, { graph }): Issue[] {
+  validate(entity, { graph }) {
     const tags = entity.tags
     const building = tags.building
     if (!building || !privateBuildingValues.has(building)) return []

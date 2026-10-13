@@ -1,4 +1,4 @@
-import { defineModule, type MaidModule } from '@osm-editor-kit/maid-core'
+import { defineModule } from '@osm-editor-kit/maid-core'
 import type { MapContentItem } from '@osm-editor-kit/maid-renderer'
 import type { DockView, TopBarPanel } from '@osm-editor-kit/maid-ui'
 import {
@@ -57,7 +57,7 @@ export type StreetImageryOptions = {
  * It also brings the "Street-level images" field type (`streetImages`): its preset change is
  * `streetImageryPresetChanges`.
  */
-export function streetImagery(options: StreetImageryOptions = {}): MaidModule {
+export function streetImagery(options: StreetImageryOptions = {}) {
   return defineModule({
     id: 'street-imagery',
     setup(api) {

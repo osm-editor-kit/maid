@@ -1,4 +1,4 @@
-import { defineModule, type MaidModule } from '@osm-editor-kit/maid-core'
+import { defineModule } from '@osm-editor-kit/maid-core'
 import { signFieldComponent } from './field.tsx'
 import { TRAFFIC_SIGN_FIELD_TYPE } from './presets.ts'
 
@@ -11,7 +11,7 @@ export type TrafficSignsOptions = {
  * Registers the traffic sign field type (`trafficSign`) on `inspector.field`. The presets that show it come from
  * `trafficSignPresetChanges`: the app's config must apply them (see README.md).
  */
-export function trafficSigns(options: TrafficSignsOptions = {}): MaidModule {
+export function trafficSigns(options: TrafficSignsOptions = {}) {
   const component = signFieldComponent(options.country ?? 'DE')
   return defineModule({
     id: 'traffic-signs',

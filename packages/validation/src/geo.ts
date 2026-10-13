@@ -7,15 +7,16 @@ import type { Graph, OsmEntity } from '@osm-editor-kit/maid-model'
 export type Point = [number, number]
 
 /** The [lon, lat] of a node in the graph, or `undefined` if it is missing or has no location */
-export function nodeLoc(graph: Graph, id: string): Point | undefined {
+export function nodeLoc(graph: Graph, id: string) {
   const node = graph.hasEntity(id)
   if (!(node instanceof OsmNode) || !node.loc) return undefined
-  return [node.loc[0], node.loc[1]]
+  return [node.loc[0], node.loc[1]] satisfies Point
 }
 
 /** The first point of a feature, to show where the issue is */
-export function locationOf(entity: OsmEntity, graph: Graph): Point | undefined {
-  if (entity instanceof OsmNode) return entity.loc ? [entity.loc[0], entity.loc[1]] : undefined
+export function locationOf(entity: OsmEntity, graph: Graph) {
+  if (entity instanceof OsmNode)
+    return entity.loc ? ([entity.loc[0], entity.loc[1]] satisfies Point) : undefined
   if (!(entity instanceof OsmWay)) return undefined
   const first = entity.first()
   return first ? nodeLoc(graph, first) : undefined
@@ -29,7 +30,7 @@ export type Box = {
 }
 
 /** The box around some points, or `undefined` for none */
-export function boxOf(points: readonly Point[]): Box | undefined {
+export function boxOf(points: readonly Point[]) {
   const first = points[0]
   if (!first) return undefined
   let minLon = first[0]
@@ -45,7 +46,7 @@ export function boxOf(points: readonly Point[]): Box | undefined {
   return { minLon, minLat, maxLon, maxLat }
 }
 
-export function boxesOverlap(a: Box, b: Box): boolean {
+export function boxesOverlap(a: Box, b: Box) {
   return (
     a.minLon <= b.maxLon && b.minLon <= a.maxLon && a.minLat <= b.maxLat && b.minLat <= a.maxLat
   )
@@ -56,7 +57,7 @@ export function boxesOverlap(a: Box, b: Box): boolean {
  * through the interior of the other. Touching at an end point is not a proper crossing, and
  * neither is parallel or collinear.
  */
-export function properIntersection(p0: Point, p1: Point, q0: Point, q1: Point): Point | undefined {
+export function properIntersection(p0: Point, p1: Point, q0: Point, q1: Point) {
   const rx = p1[0] - p0[0]
   const ry = p1[1] - p0[1]
   const sx = q1[0] - q0[0]
@@ -69,7 +70,7 @@ export function properIntersection(p0: Point, p1: Point, q0: Point, q1: Point): 
   const t = (qpx * sy - qpy * sx) / denominator
   const u = (qpx * ry - qpy * rx) / denominator
   if (t <= 0 || t >= 1 || u <= 0 || u >= 1) return undefined
-  return [p0[0] + t * rx, p0[1] + t * ry]
+  return [p0[0] + t * rx, p0[1] + t * ry] satisfies Point
 }
 
 // Distances in metres, as iD's geo module: a degree of latitude is the same everywhere, a degree
@@ -79,18 +80,18 @@ const EQUATORIAL_RADIUS = 6.378137e6
 const POLAR_RADIUS = 6.3567523e6
 
 /** Metres to degrees of latitude */
-export function metersToLat(meters: number): number {
+export function metersToLat(meters: number) {
   return meters / ((TAU * POLAR_RADIUS) / 360)
 }
 
 /** Metres to degrees of longitude at this latitude */
-export function metersToLon(meters: number, atLat: number): number {
+export function metersToLon(meters: number, atLat: number) {
   if (Math.abs(atLat) >= 90) return 0
   return meters / ((TAU * EQUATORIAL_RADIUS) / 360) / Math.abs(Math.cos((atLat * Math.PI) / 180))
 }
 
 /** The distance in metres between two points, as iD's geoSphericalDistance (equirectangular) */
-export function sphericalDistance(a: Point, b: Point): number {
+export function sphericalDistance(a: Point, b: Point) {
   const dLon = a[0] - b[0]
   const meanLat = (a[1] + b[1]) / 2
   const x =
@@ -102,15 +103,15 @@ export function sphericalDistance(a: Point, b: Point): number {
 }
 
 /** The point a share t of the way from a to b (t = 1 is b, and beyond it for t > 1) */
-export function interpolate(a: Point, b: Point, t: number): Point {
-  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
+export function interpolate(a: Point, b: Point, t: number) {
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t] satisfies Point
 }
 
 /**
  * Where segment p0-p1 meets segment q0-q1, end points included: iD's geoLineIntersection. Parallel
  * segments meet nowhere. Unlike `properIntersection`, touching at an end point counts.
  */
-export function segmentIntersection(p0: Point, p1: Point, q0: Point, q1: Point): Point | undefined {
+export function segmentIntersection(p0: Point, p1: Point, q0: Point, q1: Point) {
   const rx = p1[0] - p0[0]
   const ry = p1[1] - p0[1]
   const sx = q1[0] - q0[0]
@@ -132,10 +133,10 @@ export function segmentIntersection(p0: Point, p1: Point, q0: Point, q1: Point):
  * The segments that touch the active point are tested against the others. Segments that share an
  * end point, and crossings at a segment's end point, do not count.
  */
-export function selfIntersects(points: readonly Point[], active: number): boolean {
-  const same = (a: Point, b: Point, epsilon = 0): boolean =>
+export function selfIntersects(points: readonly Point[], active: number) {
+  const same = (a: Point, b: Point, epsilon = 0) =>
     Math.abs(a[0] - b[0]) <= epsilon && Math.abs(a[1] - b[1]) <= epsilon
-  const exact = (a: Point, b: Point): boolean => a[0] === b[0] && a[1] === b[1]
+  const exact = (a: Point, b: Point) => a[0] === b[0] && a[1] === b[1]
 
   const actives: Array<[Point, Point]> = []
   const inactives: Array<[Point, Point]> = []

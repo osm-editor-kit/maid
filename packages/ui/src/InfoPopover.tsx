@@ -26,12 +26,12 @@ export type ReferenceInfo = {
 export type ReferenceLoader = (reference: Reference) => Promise<ReferenceInfo | undefined>
 
 /** The tag as the popover titles it: `key=value`, or `key=*` for a key alone. */
-export function referenceTag(reference: Reference): string {
+export function referenceTag(reference: Reference) {
   return `${reference.key}=${reference.value ?? '*'}`
 }
 
 /** The wiki page of a reference, as iD names it: `Key:<key>` or `Tag:<key>=<value>`, with `_` read as a space. */
-export function wikiTitleOf(reference: Reference): string {
+export function wikiTitleOf(reference: Reference) {
   const title =
     reference.value === undefined
       ? `Key:${reference.key}`
@@ -40,7 +40,7 @@ export function wikiTitleOf(reference: Reference): string {
 }
 
 /** The URL of a wiki page: the title with its characters escaped, and the three that would end the path escaped too. */
-export function wikiUrl(title: string): string {
+export function wikiUrl(title: string) {
   return `https://wiki.openstreetmap.org/wiki/${encodeURI(title).replace(/[#?&]/g, (char) => encodeURIComponent(char))}`
 }
 

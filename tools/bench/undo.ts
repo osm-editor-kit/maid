@@ -81,7 +81,7 @@ process.exit(
   await runCheck(sceneName, async ({ page, report, settle }) => {
     // a junction on a highway: its vertex is drawn, so the map can show where it is
     const picked = (await page.evaluate(() => {
-      const { map, engine } = (window as any).__maid
+      const { map, engine } = window.__maid
       for (const f of map.queryRenderedFeatures()) {
         const wayId = String(f.id ?? '')
         if (!wayId.startsWith('w')) continue
@@ -107,7 +107,7 @@ process.exit(
     }
 
     const orig = [picked.lon, picked.lat]
-    const moved = [picked.lon + MOVE_LON, picked.lat]
+    const moved: [number, number] = [picked.lon + MOVE_LON, picked.lat]
     const none = { canUndo: false, canRedo: false, undoLabel: null, redoLabel: null }
     const steps: Step[] = [
       { label: 'start', undo: none, name: picked.wayName, at: orig },
@@ -116,7 +116,7 @@ process.exit(
         run: () =>
           page.evaluate(
             async ({ id, lon, lat }) => {
-              await (window as any).__maid.engine.moveNode(id, lon, lat)
+              await window.__maid.engine.moveNode(id, lon, lat)
             },
             { id: picked.nodeId, lon: moved[0], lat: moved[1] },
           ),
@@ -127,7 +127,7 @@ process.exit(
       {
         label: 'change tag',
         run: () =>
-          page.evaluate(({ id, name }) => (window as any).__maid.engine.setTag(id, 'name', name), {
+          page.evaluate(({ id, name }) => window.__maid.engine.setTag(id, 'name', name), {
             id: picked.wayId,
             name: NAME,
           }),
@@ -137,7 +137,7 @@ process.exit(
       },
       {
         label: 'undo',
-        run: () => page.evaluate(() => (window as any).__maid.engine.undo()),
+        run: () => page.evaluate(() => window.__maid.engine.undo()),
         undo: {
           canUndo: true,
           canRedo: true,
@@ -149,21 +149,21 @@ process.exit(
       },
       {
         label: 'undo',
-        run: () => page.evaluate(() => (window as any).__maid.engine.undo()),
+        run: () => page.evaluate(() => window.__maid.engine.undo()),
         undo: { canUndo: false, canRedo: true, undoLabel: null, redoLabel: 'Moved a node' },
         name: picked.wayName,
         at: orig,
       },
       {
         label: 'undo with nothing to undo',
-        run: () => page.evaluate(() => (window as any).__maid.engine.undo()),
+        run: () => page.evaluate(() => window.__maid.engine.undo()),
         undo: { canUndo: false, canRedo: true, undoLabel: null, redoLabel: 'Moved a node' },
         name: picked.wayName,
         at: orig,
       },
       {
         label: 'redo',
-        run: () => page.evaluate(() => (window as any).__maid.engine.redo()),
+        run: () => page.evaluate(() => window.__maid.engine.redo()),
         undo: {
           canUndo: true,
           canRedo: true,
@@ -187,7 +187,7 @@ process.exit(
       await settle()
       const s = (await page.evaluate(
         ({ nodeId, wayId, pairs }) => {
-          const { map, engine } = (window as any).__maid
+          const { map, engine } = window.__maid
           // an edited feature is drawn from its live twin; its base copy is hidden by feature state
           const find = (id: string, sets: [string, string][]) => {
             const inSource = (source: string) =>

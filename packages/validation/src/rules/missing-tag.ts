@@ -3,16 +3,16 @@ import type { Graph, OsmEntity } from '@osm-editor-kit/maid-model'
 import { deleteFeatureFix } from '../fixes.ts'
 import { locationOf } from '../geo.ts'
 import { descriptiveKeys } from '../tags.ts'
-import type { Issue, Rule } from '../types.ts'
+import type { Rule } from '../types.ts'
 
-function kindOf(entity: OsmEntity, graph: Graph): string {
+function kindOf(entity: OsmEntity, graph: Graph) {
   if (entity instanceof OsmNode) return 'point'
   if (entity instanceof OsmWay) return entity.geometry(graph) === 'area' ? 'area' : 'line'
   return 'relation'
 }
 
 /** Rapid's `missing_tag` checks, in its order. Returns the message, or `undefined` when all is well. */
-function problemOf(entity: OsmEntity, graph: Graph): string | undefined {
+function problemOf(entity: OsmEntity, graph: Graph) {
   const tags = entity.tags
   const isVertex = entity instanceof OsmNode && graph.parentWays(entity).length > 0
   const isRelation = entity instanceof OsmRelation
@@ -38,7 +38,7 @@ function problemOf(entity: OsmEntity, graph: Graph): string | undefined {
 export const missingTag: Rule = {
   id: 'missing_tag',
   label: 'Missing tags',
-  validate(entity, { graph }): Issue[] {
+  validate(entity, { graph }) {
     const message = problemOf(entity, graph)
     if (message === undefined) return []
     const loc = locationOf(entity, graph)

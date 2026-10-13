@@ -1,5 +1,5 @@
 import { ChatBubbleLeftEllipsisIcon } from '@heroicons/react/20/solid'
-import { defineModule, type Editor, type MaidModule } from '@osm-editor-kit/maid-core'
+import { defineModule, type Editor } from '@osm-editor-kit/maid-core'
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { Time } from '@osm-editor-kit/maid-ui'
 import { useEffect } from 'react'
@@ -35,7 +35,7 @@ const CLOSED = '#8e96a3'
  * `apiUrl` is the API root (the mock API in development and tests, api.openstreetmap.org in
  * production); `minZoom` is the OSM zoom from which notes are loaded (default 12).
  */
-export function notes(options: { apiUrl: string; minZoom?: number }): MaidModule {
+export function notes(options: { apiUrl: string; minZoom?: number }) {
   const { apiUrl } = options
   const minZoom = options.minZoom ?? 12
 

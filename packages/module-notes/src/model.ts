@@ -40,7 +40,7 @@ export type Cell = { i: number; j: number }
 /** Which notes a cell holds: open notes only, or open and closed (`closed=0` or `closed=-1`) */
 export type NotesMode = 'open' | 'all'
 
-export function cellKey(mode: NotesMode, cell: Cell): string {
+export function cellKey(mode: NotesMode, cell: Cell) {
   return `${mode}|${cell.i},${cell.j}`
 }
 
@@ -50,7 +50,7 @@ const round = (value: number) => Math.round(value * 1e6) / 1e6
 const EPSILON = 1e-7
 
 /** The grid cells a box touches. A box whose edge lies on a grid line does not take the cell beyond it. */
-export function cellsOf(bbox: Bbox): Cell[] {
+export function cellsOf(bbox: Bbox) {
   const [west, south, east, north] = bbox
   const i0 = Math.floor(west / CELL_SIZE + EPSILON)
   const i1 = Math.max(i0, Math.ceil(east / CELL_SIZE - EPSILON) - 1)
@@ -62,17 +62,17 @@ export function cellsOf(bbox: Bbox): Cell[] {
 }
 
 /** The box of one cell */
-export function cellBox({ i, j }: Cell): Bbox {
+export function cellBox({ i, j }: Cell) {
   return [
     round(i * CELL_SIZE),
     round(j * CELL_SIZE),
     round((i + 1) * CELL_SIZE),
     round((j + 1) * CELL_SIZE),
-  ]
+  ] satisfies Bbox
 }
 
 /** The smallest box, on the grid, that covers the cells: one request for a set of missing cells */
-export function boxOf(cells: readonly Cell[]): Bbox {
+export function boxOf(cells: readonly Cell[]) {
   let minI = Infinity
   let minJ = Infinity
   let maxI = -Infinity
@@ -88,18 +88,18 @@ export function boxOf(cells: readonly Cell[]): Bbox {
     round(minJ * CELL_SIZE),
     round((maxI + 1) * CELL_SIZE),
     round((maxJ + 1) * CELL_SIZE),
-  ]
+  ] satisfies Bbox
 }
 
 /** The notes API request for a box: `closed=0` asks for open notes, `closed=-1` for all closed ones too */
-export function notesUrl(apiUrl: string, bbox: Bbox, mode: NotesMode): string {
+export function notesUrl(apiUrl: string, bbox: Bbox, mode: NotesMode) {
   const base = apiUrl.replace(/\/+$/, '')
   const box = bbox.map(round).join(',')
   return `${base}/api/0.6/notes.json?bbox=${box}&closed=${mode === 'all' ? -1 : 0}&limit=${NOTES_LIMIT}`
 }
 
 /** The page of the note on openstreetmap.org. Only ever a link: nothing is fetched from it. */
-export function noteWebUrl(id: number): string {
+export function noteWebUrl(id: number) {
   return `https://www.openstreetmap.org/note/${id}`
 }
 
@@ -109,7 +109,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isTime = (value: unknown): value is string =>
   typeof value === 'string' && !Number.isNaN(Date.parse(value))
 
-function parseComment(value: unknown): NoteComment | undefined {
+function parseComment(value: unknown) {
   if (!isRecord(value) || !isTime(value.date) || typeof value.text !== 'string') return undefined
   const comment: NoteComment = {
     date: value.date,
@@ -122,11 +122,12 @@ function parseComment(value: unknown): NoteComment | undefined {
 }
 
 /** One feature of the answer, or undefined when it is malformed. Malformed comments are dropped. */
-function parseNote(value: unknown): Note | undefined {
+function parseNote(value: unknown) {
   if (!isRecord(value) || !isRecord(value.geometry) || !isRecord(value.properties)) return undefined
   const { geometry, properties } = value
   if (geometry.type !== 'Point' || !Array.isArray(geometry.coordinates)) return undefined
-  const [lon, lat] = geometry.coordinates as unknown[]
+  const coordinates: unknown[] = geometry.coordinates
+  const [lon, lat] = coordinates
   if (typeof lon !== 'number' || typeof lat !== 'number') return undefined
   if (!(Math.abs(lon) <= 180 && Math.abs(lat) <= 90)) return undefined
   const { id, status, date_created: created, closed_at: closed, comments } = properties
@@ -147,7 +148,7 @@ function parseNote(value: unknown): Note | undefined {
  * Checks the notes API's answer (a GeoJSON FeatureCollection). A malformed feature is skipped and
  * counted; an answer that is not a collection at all throws.
  */
-export function parseNotes(json: unknown): { notes: Note[]; skipped: number; count: number } {
+export function parseNotes(json: unknown) {
   if (!isRecord(json) || json.type !== 'FeatureCollection' || !Array.isArray(json.features))
     throw new Error('The notes answer is not a FeatureCollection')
   const notes: Note[] = []
@@ -161,7 +162,7 @@ export function parseNotes(json: unknown): { notes: Note[]; skipped: number; cou
 }
 
 /** The first line of the first comment, cut to a length that fits one line of a list */
-export function summaryLine(note: Note): string {
+export function summaryLine(note: Note) {
   const first = note.comments[0]?.text.split('\n').find((line) => line.trim() !== '')
   if (!first) return '(no text)'
   const line = first.trim()
@@ -169,7 +170,7 @@ export function summaryLine(note: Note): string {
 }
 
 /** Open notes first, then the newest first; the id breaks ties */
-export function sortNotes(notes: readonly Note[]): Note[] {
+export function sortNotes(notes: readonly Note[]) {
   return [...notes].sort((a, b) => {
     if (a.status !== b.status) return a.status === 'open' ? -1 : 1
     const byDate = Date.parse(b.created) - Date.parse(a.created)
@@ -178,7 +179,7 @@ export function sortNotes(notes: readonly Note[]): Note[] {
 }
 
 /** The notes inside a box, in the order of `sortNotes`. Closed notes only when asked for. */
-export function notesIn(notes: readonly Note[], bbox: Bbox, showClosed: boolean): Note[] {
+export function notesIn(notes: readonly Note[], bbox: Bbox, showClosed: boolean) {
   const [west, south, east, north] = bbox
   return sortNotes(
     notes.filter(

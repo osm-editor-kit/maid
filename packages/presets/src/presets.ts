@@ -16,16 +16,7 @@ import type { RawRecord } from './raw.ts'
 // area is matched everywhere), categories, field defaults, recents, the fuzzy (edit distance) search
 // tiers, suggestion presets (none in the bundled data), preferences, the file fetcher, and the
 // localizer (labels come straight from the English translation).
-import type {
-  Field,
-  FieldOption,
-  Geometry,
-  Preset,
-  PresetData,
-  Presets,
-  Reference,
-  Tags,
-} from './types.ts'
+import type { Field, FieldOption, Geometry, Preset, PresetData, Presets, Tags } from './types.ts'
 
 type Which = 'fields' | 'moreFields'
 type PrerequisiteTag = NonNullable<Field['prerequisiteTag']>
@@ -60,13 +51,13 @@ const AREA_KEY_IGNORE: ReadonlySet<string> = new Set([
 ])
 
 /** The translation section of the English file: 'presets' (id → {name}) or 'fields' (id → {label, options, ...}). */
-function translationSection(translations: unknown, section: 'presets' | 'fields'): RawRecord {
+function translationSection(translations: unknown, section: 'presets' | 'fields') {
   const en = asRecord(asRecord(translations)?.en)
   const presets = asRecord(en?.presets)
   return asRecord(presets?.[section]) ?? {}
 }
 
-function textOf(section: RawRecord, id: string, key: string): string | undefined {
+function textOf(section: RawRecord, id: string, key: string) {
   return asString(asRecord(own(section, id))?.[key])
 }
 
@@ -78,7 +69,7 @@ function resolveText(
   lookup: (id: string) => string | undefined,
   id: string,
   seen: Set<string> = new Set(),
-): { owner: string; text: string } | undefined {
+) {
   if (seen.has(id)) return undefined
   seen.add(id)
   const text = lookup(id)
@@ -88,13 +79,13 @@ function resolveText(
   return resolveText(lookup, ref, seen)
 }
 
-function tagValue(tags: Tags, key: string): string {
+function tagValue(tags: Tags, key: string) {
   const value: unknown = tags[key]
   return typeof value === 'string' ? value : ''
 }
 
 /** iD's prerequisiteTag check (modules/ui/field.js). An absent tag counts as ''. */
-function prerequisiteHolds(prerequisite: PrerequisiteTag | undefined, tags: Tags): boolean {
+function prerequisiteHolds(prerequisite: PrerequisiteTag | undefined, tags: Tags) {
   if (!prerequisite) return true
   if (prerequisite.key !== undefined) {
     const value = tagValue(tags, prerequisite.key)
@@ -106,17 +97,17 @@ function prerequisiteHolds(prerequisite: PrerequisiteTag | undefined, tags: Tags
   return true
 }
 
-function fieldHasValue(field: Field, tags: Tags): boolean {
+function fieldHasValue(field: Field, tags: Tags) {
   if (field.key !== undefined && tagValue(tags, field.key) !== '') return true
   return (field.keys ?? []).some((key) => tagValue(tags, key) !== '')
 }
 
-function fieldAppliesTo(field: Field, geometry: Geometry): boolean {
+function fieldAppliesTo(field: Field, geometry: Geometry) {
   return field.geometry === undefined || field.geometry.includes(geometry)
 }
 
 /** The schema's own `reference` (`{ key, value? }`), or undefined when it has no key. */
-function schemaReference(raw: RawRecord): Reference | undefined {
+function schemaReference(raw: RawRecord) {
   const given = asRecord(raw.reference)
   const key = asString(given?.key)
   if (key === undefined) return undefined
@@ -128,7 +119,7 @@ function schemaReference(raw: RawRecord): Reference | undefined {
  * iD's field.reference: the schema's reference, else the field's key. A multiCombo key ending in `:`
  * is looked up as `key:*`, as iD does. The value is left out: iD adds the field's current value.
  */
-function fieldReferenceOf(raw: RawRecord, field: Field): Reference | undefined {
+function fieldReferenceOf(raw: RawRecord, field: Field) {
   const given = schemaReference(raw)
   if (given) return given
   if (field.key === undefined) return undefined
@@ -139,7 +130,7 @@ function fieldReferenceOf(raw: RawRecord, field: Field): Reference | undefined {
  * iD's preset.reference(): the schema's reference, else the preset's first tag key other than `name`,
  * with its value. ID's Wikidata lookup (`wikidata=*` on the tags) is not ported. A `*` value is left out.
  */
-function presetReferenceOf(raw: RawRecord, tags: Tags): Reference | undefined {
+function presetReferenceOf(raw: RawRecord, tags: Tags) {
   const given = schemaReference(raw)
   const key = given?.key ?? Object.keys(tags).find((name) => name !== 'name')
   if (key === undefined) return undefined
@@ -148,7 +139,7 @@ function presetReferenceOf(raw: RawRecord, tags: Tags): Reference | undefined {
 }
 
 /** iD's presetPreset.matchScore: -1 when a tag of the preset is missing or different. */
-function matchScore(preset: Preset, entityTags: Tags): number {
+function matchScore(preset: Preset, entityTags: Tags) {
   let score = 0
   for (const key in preset.tags) {
     const wanted = preset.tags[key]
@@ -169,30 +160,30 @@ function matchScore(preset: Preset, entityTags: Tags): number {
   return score
 }
 
-function isFallbackTags(tags: Tags): boolean {
+function isFallbackTags(tags: Tags) {
   const keys = Object.keys(tags)
   return keys.length === 0 || (keys.length === 1 && keys[0] === 'area')
 }
 
 /** A translation list: `text` split on `separator` (iD's `terms` are comma separated, `aliases` newline separated), else the raw array. */
-function wordList(text: string | undefined, separator: string, fallback: unknown): string[] {
+function wordList(text: string | undefined, separator: string, fallback: unknown) {
   const words = text !== undefined ? text.split(separator) : (asStrings(fallback) ?? [])
   return words.map((word) => word.trim()).filter((word) => word !== '')
 }
 
 /** iD's utilStripDiacritics. */
-function stripDiacritics(text: string): string {
+function stripDiacritics(text: string) {
   return text.normalize('NFD').replace(/\p{Dia}/gu, '')
 }
 
 /** iD's `leading`: the text starts with `value`, or has it after a space (e.g. "office" in "Law Office"). */
-function leading(text: string, value: string): boolean {
+function leading(text: string, value: string) {
   const index = text.indexOf(value)
   return index === 0 || (index > 0 && text[index - 1] === ' ')
 }
 
 /** iD's `presetInSearchTerm`: the query starts with the preset's name, or has it after a space. */
-function nameInQuery(name: string, value: string): boolean {
+function nameInQuery(name: string, value: string) {
   if (name.length === 0) return false
   const index = value.indexOf(name)
   return index === 0 || (index > 0 && value[index - 1] === ' ')
@@ -240,7 +231,7 @@ type SearchEntry = {
   texts: string[]
 }
 
-function searchEntryOf(preset: Preset): SearchEntry {
+function searchEntryOf(preset: Preset) {
   const name = preset.name.toLowerCase()
   const nameStripped = stripDiacritics(name)
   const aliases = preset.aliases.map((alias) => alias.toLowerCase())
@@ -270,13 +261,13 @@ function searchEntryOf(preset: Preset): SearchEntry {
   }
 }
 
-function byNameThenId(a: SearchEntry, b: SearchEntry): number {
+function byNameThenId(a: SearchEntry, b: SearchEntry) {
   if (a.name !== b.name) return a.name < b.name ? -1 : 1
   return a.preset.id < b.preset.id ? -1 : 1
 }
 
 /** iD's findMatchingAlias: the name or alias that equals the query, else the shortest one that contains it. */
-function bestText(value: string, names: string[]): string {
+function bestText(value: string, names: string[]) {
   if (names.includes(value)) return value
   const containing = names.filter((name) => name.includes(value))
   containing.sort((a, b) => a.length - b.length)
@@ -284,11 +275,7 @@ function bestText(value: string, names: string[]): string {
 }
 
 /** iD's sortPresets: an exact match first, then the higher matchScore, then the earlier position, then the shorter text. */
-function rankByName(
-  entries: SearchEntry[],
-  value: string,
-  variant: 'plain' | 'stripped',
-): SearchEntry[] {
+function rankByName(entries: SearchEntry[], value: string, variant: 'plain' | 'stripped') {
   const ranked = entries.map((entry) => {
     const names =
       variant === 'plain'
@@ -309,7 +296,7 @@ function rankByName(
 }
 
 /** iD's key=value tier: exact matches first, then those that start with the query. */
-function keyValueMatches(pool: SearchEntry[], value: string): SearchEntry[] {
+function keyValueMatches(pool: SearchEntry[], value: string) {
   const exact = pool.filter((entry) => entry.keyValues.includes(value))
   const prefix = pool.filter((entry) => entry.keyValues.some((kv) => leading(kv, value)))
   return [...exact, ...prefix]
@@ -319,7 +306,7 @@ function keyValueMatches(pool: SearchEntry[], value: string): SearchEntry[] {
  * iD's utilEditDistance (Levenshtein) on texts that are lower case with diacritics removed. The search
  * prepares them once (SearchEntry), so the search does not strip the same text again for every query.
  */
-function editDistance(a: string, b: string): number {
+function editDistance(a: string, b: string) {
   if (a.length === 0) return b.length
   if (b.length === 0) return a.length
   let previous = Array.from({ length: a.length + 1 }, (_, j) => j)
@@ -344,7 +331,7 @@ const LANGUAGE_SUFFIX =
  * iD's field.allKeys: the keys a field writes, and the keys of its type that are in the tags
  * (localized `name:xx`, the keys under a multi-combo prefix, `:both` of a directional combo).
  */
-function allKeysOf(field: Field, tags: Tags): string[] {
+function allKeysOf(field: Field, tags: Tags) {
   const keys = new Set<string>()
   if (field.key !== undefined) keys.add(field.key)
   for (const key of field.keys ?? []) keys.add(key)
@@ -368,11 +355,11 @@ function allKeysOf(field: Field, tags: Tags): string[] {
   return [...keys]
 }
 
-function withoutKeys(tags: Tags, keys: ReadonlySet<string>): Tags {
+function withoutKeys(tags: Tags, keys: ReadonlySet<string>) {
   return Object.fromEntries(Object.entries(tags).filter(([key]) => !keys.has(key)))
 }
 
-function mustGet<T>(value: T | undefined, what: string): T {
+function mustGet<T>(value: T | undefined, what: string) {
   if (value === undefined) throw new Error(`presets: missing generic preset ${what}`)
   return value
 }
@@ -389,7 +376,7 @@ export function createPresets(data: PresetData): Presets {
   const fields = new Map<string, Field>()
   for (const [id, raw] of rawFields) fields.set(id, buildField(id, raw))
 
-  function buildField(id: string, raw: RawRecord): Field {
+  function buildField(id: string, raw: RawRecord) {
     const fieldLookup = (key: string) => (fieldId: string) =>
       textOf(fieldTexts, fieldId, key) ?? asString(rawFields.get(fieldId)?.[key])
     const label = resolveText(fieldLookup('label'), id)
@@ -440,7 +427,7 @@ export function createPresets(data: PresetData): Presets {
   }
 
   // iD's option label: the translation of the field the label points to, then of the field itself.
-  function optionText(owner: string, id: string, value: string): string {
+  function optionText(owner: string, id: string, value: string) {
     for (const source of owner === id ? [id] : [owner, id]) {
       const options = asRecord(asRecord(own(fieldTexts, source))?.options)
       const entry = options ? own(options, value) : undefined
@@ -461,7 +448,7 @@ export function createPresets(data: PresetData): Presets {
   const presetLookup = (id: string) =>
     textOf(presetNames, id, 'name') ?? asString(rawPresets.get(id)?.name)
 
-  function parentOf(id: string): string | undefined {
+  function parentOf(id: string) {
     const slash = id.lastIndexOf('/')
     return slash > 0 ? id.slice(0, slash) : undefined
   }
@@ -470,7 +457,7 @@ export function createPresets(data: PresetData): Presets {
   // when a preset has none of its own. Memoized per preset and list; a cycle resolves to nothing.
   const memo: Record<Which, Map<string, Field[]>> = { fields: new Map(), moreFields: new Map() }
   const stack = new Set<string>()
-  function resolveList(presetId: string, which: Which): Field[] {
+  function resolveList(presetId: string, which: Which) {
     const cached = memo[which].get(presetId)
     if (cached) return cached
     if (stack.has(presetId)) return []
@@ -563,7 +550,7 @@ export function createPresets(data: PresetData): Presets {
     relation: mustGet(entries.get('relation')?.preset, 'relation'),
   }
 
-  function match(tags: Tags, geometry: Geometry): Preset {
+  function match(tags: Tags, geometry: Geometry) {
     const byKey = index[geometry]
     let best: Preset | undefined
     let bestScore = -1
@@ -605,7 +592,7 @@ export function createPresets(data: PresetData): Presets {
 
   const universal = [...fields.values()].filter((field) => field.universal)
 
-  function fieldsFor(preset: Preset, tags: Tags, geometry: Geometry): Field[] {
+  function fieldsFor(preset: Preset, tags: Tags, geometry: Geometry) {
     const entry = entries.get(preset.id)
     const result: Field[] = []
     const seen = new Set<string>()
@@ -629,7 +616,7 @@ export function createPresets(data: PresetData): Presets {
     return result
   }
 
-  function moreFieldsFor(preset: Preset, tags: Tags, geometry: Geometry): Field[] {
+  function moreFieldsFor(preset: Preset, tags: Tags, geometry: Geometry) {
     const entry = entries.get(preset.id)
     const shown = new Set(fieldsFor(preset, tags, geometry).map((field) => field.id))
     const seen = new Set<string>()
@@ -688,7 +675,7 @@ export function createPresets(data: PresetData): Presets {
   }
 
   // iD's collection.search: the tiers in iD's order, each tier ranked as iD ranks it; a preset is listed once.
-  function search(query: string, geometry: Geometry, limit = 20): Preset[] {
+  function search(query: string, geometry: Geometry, limit = 20) {
     if (limit <= 0) return []
     const value = query.toLowerCase().trim()
     if (value === '') return byName[geometry].slice(0, limit)
@@ -754,7 +741,7 @@ export function createPresets(data: PresetData): Presets {
   }
 
   // iD's needsAreaTag test in setTags: no tag of the preset is an area key (and it is not an exception).
-  function needsAreaTag(preset: Preset): boolean {
+  function needsAreaTag(preset: Preset) {
     for (const key of Object.keys(preset.addTags)) {
       const value = preset.addTags[key] ?? ''
       if (!preset.geometry.includes('line') && Object.hasOwn(areaKeys, key)) return false
@@ -764,13 +751,13 @@ export function createPresets(data: PresetData): Presets {
   }
 
   /** The preset's own fields, not its moreFields: iD's preset.fields(). */
-  function fieldsOf(preset: Preset): Field[] {
+  function fieldsOf(preset: Preset) {
     return entries.get(preset.id)?.fields ?? []
   }
 
   // iD's setTags: the addTags (a `*` becomes yes unless an ancillary key already has a value), then area=yes
   // where needed, then the field defaults that are still missing. Returns a new object.
-  function withPresetTags(tags: Tags, preset: Preset, geometry: Geometry): Tags {
+  function withPresetTags(tags: Tags, preset: Preset, geometry: Geometry) {
     const result: Tags = { ...tags }
     for (const key of Object.keys(preset.addTags)) {
       const value = preset.addTags[key]
@@ -800,7 +787,7 @@ export function createPresets(data: PresetData): Presets {
     preset: Preset,
     geometry: Geometry,
     ignoringKeys: readonly string[] = [],
-  ): Tags {
+  ) {
     const result: Tags = { ...tags }
     for (const key of Object.keys(preset.removeTags)) {
       if (!ignoringKeys.includes(key)) delete result[key]
@@ -817,12 +804,7 @@ export function createPresets(data: PresetData): Presets {
   // iD's preserveKeys in actionChangePreset: the keys of the new preset's addTags, and the keys of its fields
   // (fields and moreFields) that apply to the geometry. When the old preset is a sub-preset of the new one
   // (highway/service/driveway to highway/service), keys that define the old sub-preset are not kept.
-  function preserveKeysOf(
-    tags: Tags,
-    preset: Preset,
-    geometry: Geometry,
-    previous: Preset,
-  ): string[] {
+  function preserveKeysOf(tags: Tags, preset: Preset, geometry: Geometry, previous: Preset) {
     const keys = new Set(Object.keys(preset.addTags))
     const wasSubPreset = previous.id.startsWith(preset.id)
     const newFields = [...fieldsOf(preset), ...(entries.get(preset.id)?.moreFields ?? [])]
@@ -840,7 +822,7 @@ export function createPresets(data: PresetData): Presets {
   // field keys are removed, except the keys that the new preset keeps. Field keys of the old preset that the
   // new one does not keep are removed only when the old preset no longer matches afterwards: a collective
   // preset (e.g. school with a building field) keeps the old tags. Returns a new object.
-  function applyPreset(tags: Tags, preset: Preset, geometry: Geometry, previous?: Preset): Tags {
+  function applyPreset(tags: Tags, preset: Preset, geometry: Geometry, previous?: Preset) {
     if (!previous) return withPresetTags(tags, preset, geometry)
     const preserve = preserveKeysOf(tags, preset, geometry, previous)
     let current = tags

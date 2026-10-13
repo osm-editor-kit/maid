@@ -15,7 +15,7 @@ const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/
 const ISO_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/
 
 /** The time zone of the browser, as IANA name (`Europe/Berlin`). */
-export function browserTimeZone(): string {
+export function browserTimeZone() {
   return Intl.DateTimeFormat().resolvedOptions().timeZone
 }
 
@@ -23,7 +23,7 @@ export function browserTimeZone(): string {
  * Reads what the app stores: OSM API timestamps (`2026-09-28T07:14:00Z`), date-only values, and
  * milliseconds. Anything else, including a date that does not exist, gives `undefined`.
  */
-export function parseTime(value: string | number | Date | undefined): TimeValue | undefined {
+export function parseTime(value: string | number | Date | undefined) {
   if (value === undefined) return undefined
   if (value instanceof Date) {
     return Number.isNaN(value.getTime()) ? undefined : { date: value, dateOnly: false }
@@ -51,10 +51,7 @@ export function parseTime(value: string | number | Date | undefined): TimeValue 
  * The local date and time in `timeZone`: `13 Oct 2026, 14:05`. The year is left out when it is
  * the year of `now`, because then the reader knows it; a date-only value has no time.
  */
-export function absoluteTime(
-  value: TimeValue,
-  options: { timeZone: string; now?: Date | number },
-): string {
+export function absoluteTime(value: TimeValue, options: { timeZone: string; now?: Date | number }) {
   const now = options.now ?? Date.now()
   // a date-only value is local midnight already; a time is shown in the chosen zone
   const at = value.dateOnly ? value.date : new TZDate(value.date.getTime(), options.timeZone)
@@ -69,7 +66,7 @@ export function absoluteTime(
  * yesterday on the wall clock. Within 24 hours the exact distance is more useful than the day.
  * date-fns has no week unit, so weeks are counted here.
  */
-export function relativeTime(value: TimeValue, now: Date | number): string {
+export function relativeTime(value: TimeValue, now: Date | number) {
   const nowMs = +now
   const diff = nowMs - value.date.getTime()
   if (Math.abs(diff) < MINUTE) return 'just now'
@@ -100,6 +97,6 @@ export function relativeTime(value: TimeValue, now: Date | number): string {
  * Whether relative time is the better primary form: for anything less than about four weeks
  * away (past or future). Older values read better as dates.
  */
-export function preferRelative(date: Date | number, now: Date | number): boolean {
+export function preferRelative(date: Date | number, now: Date | number) {
   return Math.abs(+now - +date) < FOUR_WEEKS
 }

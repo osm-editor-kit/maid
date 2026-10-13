@@ -5,7 +5,6 @@ import {
   findFavouriteByKey,
   isFavouritesFull,
   useSettings,
-  type PickerFavourite,
 } from '@osm-editor-kit/maid-ui'
 import { editor, engine } from './editor'
 
@@ -27,7 +26,7 @@ engine.subscribe(() => {
 })
 
 /** The favourites of a geometry as the type picker lists them: their presets, with their keys */
-export function useFavouriteRows(geometry: Geometry | undefined): PickerFavourite[] {
+export function useFavouriteRows(geometry: Geometry | undefined) {
   const favourites = useSettings((state) => state.favourites)
   const { presets } = editor
   if (!geometry || !presets) return []
@@ -38,17 +37,17 @@ export function useFavouriteRows(geometry: Geometry | undefined): PickerFavourit
 }
 
 /** True when every number key is taken, so no other preset can become a favourite */
-export function useFavouritesFull(): boolean {
+export function useFavouritesFull() {
   return useSettings((state) => isFavouritesFull(state.favourites))
 }
 
 /** Makes the preset a favourite for the geometry, or takes it out again */
-export function toggleFavourite(preset: Preset, geometry: Geometry): void {
+export function toggleFavourite(preset: Preset, geometry: Geometry) {
   useSettings.getState().toggleFavourite(preset.id, geometry)
 }
 
 /** Moves a favourite one place up (-1) or down (+1) among the favourites of its geometry */
-export function moveFavourite(preset: Preset, geometry: Geometry, delta: 1 | -1): void {
+export function moveFavourite(preset: Preset, geometry: Geometry, delta: 1 | -1) {
   useSettings.getState().moveFavourite(preset.id, geometry, delta)
 }
 
@@ -56,7 +55,7 @@ export function moveFavourite(preset: Preset, geometry: Geometry, delta: 1 | -1)
  * Gives a feature the type of a preset, as the type picker does: one undo step with the same
  * annotation.
  */
-export function changeType(id: string, preset: Preset): void {
+export function changeType(id: string, preset: Preset) {
   const entity = engine.entity(id)
   const { presets } = editor
   if (!entity || !presets) return
@@ -70,7 +69,7 @@ export function changeType(id: string, preset: Preset): void {
  * the favourite's type: the mode for its geometry is switched on and the feature is made with the
  * favourite's tags. Otherwise the key does nothing.
  */
-export function pressFavouriteKey(key: string): void {
+export function pressFavouriteKey(key: string) {
   const favourite = findFavouriteByKey(useSettings.getState().favourites, key)
   const preset = favourite ? editor.presets?.preset(favourite.presetId) : undefined
   if (!favourite || !preset) return
@@ -94,7 +93,7 @@ export function pressFavouriteKey(key: string): void {
 }
 
 /** Adds a point at a place on the map. A favourite that started the point mode gives it its tags. */
-export function addPointWithFavourite(lon: number, lat: number): string {
+export function addPointWithFavourite(lon: number, lat: number) {
   const found = pending.current
   if (!found || found.mode !== 'add-point') return engine.addPoint(lon, lat)
   pending.current = undefined
@@ -106,7 +105,7 @@ export function addPointWithFavourite(lon: number, lat: number): string {
  * node that was clicked, or a new node on a line. The node keeps the tags it has; the favourite's
  * are added on top, as picking that type would.
  */
-export function giveFavouriteTagsToNode(id: string): void {
+export function giveFavouriteTagsToNode(id: string) {
   const found = pending.current
   if (!found || found.mode !== 'add-point') return
   pending.current = undefined
@@ -118,7 +117,7 @@ export function giveFavouriteTagsToNode(id: string): void {
  * A line or an area that was just finished in `mode`. A favourite that started that mode gives it
  * its type: a second undo step, as the type picker makes one.
  */
-export function giveFavouriteType(id: string, mode: Mode): void {
+export function giveFavouriteType(id: string, mode: Mode) {
   const found = pending.current
   if (!found || found.mode !== mode) return
   pending.current = undefined

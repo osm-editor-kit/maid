@@ -30,7 +30,7 @@ export type Added = { kind: 'url'; layer: DataLayerConfig } | { kind: 'file'; la
 const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
 
 /** The checks of the form that need no network */
-export function checkAddInput(input: AddInput): string[] {
+export function checkAddInput(input: AddInput) {
   const errors: string[] = []
   if (input.name.trim() === '') errors.push('Give the layer a name.')
   if (input.file) {
@@ -47,7 +47,7 @@ export function checkAddInput(input: AddInput): string[] {
 }
 
 /** A new id for a layer added here. Not a secret, only unique enough within one browser. */
-export function newLayerId(prefix: 'user' | 'file'): string {
+export function newLayerId(prefix: 'user' | 'file') {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
 }
 
@@ -55,13 +55,13 @@ const UNREACHABLE =
   'the address could not be reached from this page. Check the address, and that the server allows requests from this site.'
 
 /** Says what went wrong with a request, in plain words. A network error is a `TypeError`. */
-export function describeFailure(error: unknown, what: string): Error {
+export function describeFailure(error: unknown, what: string) {
   if (error instanceof TypeError) return new Error(`${what}: ${UNREACHABLE}`)
   return new Error(`${what}: ${error instanceof Error ? error.message : String(error)}`)
 }
 
 /** A request for the data itself; a failure to reach the server is said in plain words */
-async function probe(url: string): Promise<Response> {
+async function probe(url: string) {
   try {
     return await fetch(url)
   } catch (error) {
@@ -73,7 +73,7 @@ async function probe(url: string): Promise<Response> {
  * The checks that need the data: GeoJSON is fetched and parsed, PMTiles has its header and layer
  * names read, vector tiles get one test tile. Returns the source layers the layer needs.
  */
-async function checkRemote(input: AddInput, url: string): Promise<string[] | undefined> {
+async function checkRemote(input: AddInput, url: string) {
   if (input.kind === 'geojson') {
     const response = await probe(url)
     if (!response.ok) throw new Error(`The server answered ${response.status}.`)

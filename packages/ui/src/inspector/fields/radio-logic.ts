@@ -23,7 +23,7 @@ function isChosenKey(value: string | undefined): value is string {
 }
 
 /** The options in the order they are shown. A radio over keys shows its keys, labelled from the options when they name them. */
-export function radioOptions(field: Field): { value: string; label: string }[] {
+export function radioOptions(field: Field) {
   if (field.key !== undefined) {
     return field.options
       .filter((option) => !isUnsetOption(option))
@@ -39,7 +39,7 @@ export function radioOptions(field: Field): { value: string; label: string }[] {
  * The chosen value. For a radio over one key, that key's value (even when no option has it). For a
  * radio over keys, the one key that is chosen; none when no key or several are.
  */
-export function radioChosen(field: Field, tags: Tags): string | undefined {
+export function radioChosen(field: Field, tags: Tags) {
   if (field.key !== undefined) {
     const value = tags[field.key]
     return isSet(value) ? value : undefined
@@ -49,7 +49,7 @@ export function radioChosen(field: Field, tags: Tags): string | undefined {
 }
 
 /** The buttons: the options, plus the chosen value as a raw button when no option has it. */
-export function radioChoices(field: Field, tags: Tags): RadioChoice[] {
+export function radioChoices(field: Field, tags: Tags) {
   const choices: RadioChoice[] = radioOptions(field).map((option) => ({ ...option, raw: false }))
   const chosen = radioChosen(field, tags)
   if (field.key !== undefined && chosen !== undefined) {
@@ -61,7 +61,7 @@ export function radioChoices(field: Field, tags: Tags): RadioChoice[] {
 }
 
 /** The edit that makes a key hold `value` (undefined removes it), or none when it holds that already. */
-function edit(tags: Tags, key: string, value: string | undefined): TagEdit[] {
+function edit(tags: Tags, key: string, value: string | undefined) {
   return (tags[key] ?? '') === (value ?? '') ? [] : [{ key, value }]
 }
 
@@ -74,7 +74,7 @@ export function structureLayer(
   structure: string | undefined,
   type: string | undefined,
   layer: string | undefined,
-): string | undefined {
+) {
   const current = isSet(layer) && layer.trim() !== '' ? Number(layer) : Number.NaN
   if (structure === 'bridge') return current > 0 ? layer : DEFAULT_LAYER.bridge
   if (structure === 'tunnel' && type !== 'building_passage') {
@@ -93,7 +93,7 @@ function layerEdits(
   structure: string | undefined,
   type: string | undefined,
   previous: string | undefined,
-): TagEdit[] {
+) {
   const wanted = structureLayer(structure, type, tags.layer)
   if (wanted !== undefined) return edit(tags, 'layer', wanted)
   const old = previous === undefined ? undefined : DEFAULT_LAYER[previous]
@@ -107,7 +107,7 @@ function layerEdits(
  * yes) and removes every other key. A structureRadio also sets or removes its layer. Only the keys
  * whose value changes are returned, one edit each.
  */
-export function radioWrite(field: Field, tags: Tags, choice: string | undefined): TagEdit[] {
+export function radioWrite(field: Field, tags: Tags, choice: string | undefined) {
   if (field.key !== undefined) return edit(tags, field.key, choice)
   const edits: TagEdit[] = []
   for (const key of field.keys ?? []) {
@@ -123,7 +123,7 @@ export function radioWrite(field: Field, tags: Tags, choice: string | undefined)
 }
 
 /** The edits for a click on `value`: choosing the chosen one again clears the radio (iD's None). */
-export function radioPick(field: Field, tags: Tags, value: string): TagEdit[] {
+export function radioPick(field: Field, tags: Tags, value: string) {
   const chosen = radioChosen(field, tags)
   return radioWrite(field, tags, chosen === value ? undefined : value)
 }
@@ -133,11 +133,7 @@ export function radioPick(field: Field, tags: Tags, value: string): TagEdit[] {
  * key value; clearing it gives yes. The layer follows the type: a tunnel of type building_passage
  * loses its default layer, and a bridge or tunnel without a layer gets its default.
  */
-export function structureTypeEdits(
-  structure: string,
-  tags: Tags,
-  type: string | undefined,
-): TagEdit[] {
+export function structureTypeEdits(structure: string, tags: Tags, type: string | undefined) {
   const value = type === undefined || type.trim() === '' ? 'yes' : type
   return [...edit(tags, structure, value), ...layerEdits(tags, structure, value, structure)]
 }
@@ -159,7 +155,7 @@ const ACCESS_VALUES: { value: string; label: string }[] = [
 ]
 
 /** The options of one access row (access.js:85-112). */
-export function accessOptions(key: string): { value: string; label: string }[] {
+export function accessOptions(key: string) {
   const options =
     key === 'access'
       ? ACCESS_VALUES.filter((option) => option.value !== 'yes' && option.value !== 'designated')
@@ -217,7 +213,7 @@ const PLACEHOLDERS_BY_TAG: Record<string, Record<string, Record<string, string>>
  * motor_vehicle; access; then the default of the highway or barrier value. access is yes unless
  * there is a barrier. Undefined when none applies (the field's own placeholder is shown then).
  */
-export function impliedAccess(tags: Tags, key: string): string | undefined {
+export function impliedAccess(tags: Tags, key: string) {
   const own = tags[key]
   if (own) return own
   if (tags.motorroad === 'yes' && (key === 'foot' || key === 'bicycle' || key === 'horse')) {

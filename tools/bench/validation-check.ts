@@ -11,15 +11,15 @@ process.exit(
   await runCheck(process.argv[2] ?? 'small', async ({ page, report, settle }) => {
     // a footway across the middle of a road segment, about 15 m long
     const made = (await page.evaluate(() => {
-      const { map, engine, editor, model } = (window as any).__maid
+      const { map, engine, editor, model } = window.__maid
       const bounds = map.getBounds()
       for (const f of map.querySourceFeatures('osm-lines')) {
         const id = String(f.id ?? '')
         const road = engine.data.way(id)
         if (road?.tags.highway !== 'residential' || road.tags.bridge || road.tags.tunnel) continue
         for (let i = 0; i + 1 < road.nodes.length; i++) {
-          const a = engine.data.node(road.nodes[i])?.loc
-          const b = engine.data.node(road.nodes[i + 1])?.loc
+          const a = engine.data.node(road.nodes[i]!)?.loc
+          const b = engine.data.node(road.nodes[i + 1]!)?.loc
           if (!a || !b || !bounds.contains(a) || !bounds.contains(b)) continue
           const dx = b[0] - a[0]
           const dy = b[1] - a[1]
@@ -70,7 +70,7 @@ process.exit(
     )
 
     // the same in the sidebar for the selected footway
-    await page.evaluate((id) => (window as any).__bench.select(id), made.wayId)
+    await page.evaluate((id) => window.__bench.select(id), made.wayId)
     const sidebar = page.getByRole('complementary')
     report(
       'sidebar: a section "Issues" for the footway',
@@ -82,8 +82,8 @@ process.exit(
     await settle()
     // the footway can cross several things; the first fix in the list connects it to one of them
     const shared = await page.evaluate(({ wayId }) => {
-      const { engine } = (window as any).__maid
-      const way = engine.data.way(wayId)
+      const { engine } = window.__maid
+      const way = engine.data.way(wayId)!
       return [
         way.nodes.length,
         way.nodes.filter((id: string) => engine.data.nodeUses.get(id) === 2).length,
@@ -100,7 +100,7 @@ process.exit(
     )
 
     await page.evaluate(() => {
-      const { engine } = (window as any).__maid
+      const { engine } = window.__maid
       engine.undo()
     })
     await settle()
@@ -110,7 +110,7 @@ process.exit(
       [true, true],
       [back.some((t) => /crosses/.test(t)), back.some((t) => /not connected/.test(t))],
     )
-    await page.evaluate(() => (window as any).__maid.engine.undo())
+    await page.evaluate(() => window.__maid.engine.undo())
     await settle()
     report('undo the footway: nothing is reported', 0, (await rows()).length)
   }),

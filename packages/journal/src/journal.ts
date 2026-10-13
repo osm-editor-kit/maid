@@ -1,6 +1,5 @@
 import { createOsmEntity } from '@osm-editor-kit/maid-model'
 import type {
-  Action,
   Context,
   Difference,
   Edit,
@@ -161,7 +160,7 @@ export function createJournal(options: JournalOptions, locks?: LockProvider): Jo
   return new ChangeJournal(options, locks ?? defaultLocks())
 }
 
-function defaultLocks(): LockProvider | undefined {
+function defaultLocks() {
   if (typeof navigator === 'undefined' || !('locks' in navigator)) return undefined
   return navigator.locks
 }
@@ -170,10 +169,7 @@ function defaultLocks(): LockProvider | undefined {
  * Takes the journal's lock without waiting. Resolves with the function that gives it back, or with
  * undefined when there is no lock provider. Rejects with `JournalLockedError` when it is taken.
  */
-function acquireLock(
-  locks: LockProvider | undefined,
-  name: string,
-): Promise<(() => void) | undefined> {
+function acquireLock(locks: LockProvider | undefined, name: string) {
   if (!locks) return Promise.resolve(undefined)
   return new Promise<(() => void) | undefined>((resolve, reject) => {
     locks
@@ -190,8 +186,8 @@ function acquireLock(
 }
 
 /** Puts the edits of a record back into a graph. Entities are replaced whole; a deleted one is removed. */
-function replayAction(context: Context, changes: JournalChange[]): Action {
-  return (graph: Graph): Graph => {
+function replayAction(context: Context, changes: JournalChange[]) {
+  return (graph: Graph) => {
     for (const change of changes) {
       if (change.after) {
         graph.replace(createOsmEntity(context, change.after))
@@ -204,11 +200,17 @@ function replayAction(context: Context, changes: JournalChange[]): Action {
   }
 }
 
-function metaRow(pointer: number, sequences: Record<SequenceID, number>): MetaRow {
-  return { key: 'state', schema: SCHEMA_VERSION, pointer, sequences, updatedAt: Date.now() }
+function metaRow(pointer: number, sequences: Record<SequenceID, number>) {
+  return {
+    key: 'state',
+    schema: SCHEMA_VERSION,
+    pointer,
+    sequences,
+    updatedAt: Date.now(),
+  } satisfies MetaRow
 }
 
-function countOf(keys: unknown[]): number {
+function countOf(keys: unknown[]) {
   let count = 0
   for (const key of keys) {
     if (key !== count + 1) break
@@ -249,15 +251,15 @@ class ChangeJournal implements Journal {
     this.lockName = `maid-journal:${options.name}`
   }
 
-  flushed(): Promise<void> {
+  flushed() {
     return this.chain
   }
 
-  lastError(): unknown {
+  lastError() {
     return this.error
   }
 
-  async pending(): Promise<RestoreInfo | undefined> {
+  async pending() {
     await this.flushed()
     const keys = await this.db.edits.orderBy('index').keys()
     const edits = countOf(keys)
@@ -266,7 +268,7 @@ class ChangeJournal implements Journal {
     return { edits, savedAt: last?.savedAt ?? 0 }
   }
 
-  async restore(): Promise<number> {
+  async restore() {
     await this.flushed()
     const { context, history } = this.options
     if (history.history.length !== 1) {
@@ -325,7 +327,7 @@ class ChangeJournal implements Journal {
     return count
   }
 
-  clear(): Promise<void> {
+  clear() {
     if (this.running) {
       return Promise.reject(
         new Error('Stop the journal before clear(), or reset the history while it runs'),
@@ -339,7 +341,7 @@ class ChangeJournal implements Journal {
     return done
   }
 
-  async start(): Promise<() => void> {
+  async start() {
     if (this.running) throw new Error(`The journal "${this.options.name}" is already running`)
     const { context, history } = this.options
 
@@ -365,7 +367,7 @@ class ChangeJournal implements Journal {
     return () => this.stop()
   }
 
-  private stop(): void {
+  private stop() {
     const running = this.running
     if (!running) return
     this.running = undefined
@@ -374,7 +376,7 @@ class ChangeJournal implements Journal {
   }
 
   /** Runs for every change of the stable edit: a commit, an undo, a redo, or a reset of the history. */
-  private readonly onStableChange = (difference: Difference): void => {
+  private readonly onStableChange = (difference: Difference) => {
     if (this.replaying) return
     const { context, history } = this.options
     const index = history.index
@@ -428,7 +430,7 @@ class ChangeJournal implements Journal {
     this.enqueue(() => this.putCommit(record, sequences))
   }
 
-  private enqueue(task: () => Promise<void>): void {
+  private enqueue(task: () => Promise<void>) {
     this.chain = this.chain.then(task).catch((error: unknown) => {
       this.error = error
       try {
@@ -439,10 +441,7 @@ class ChangeJournal implements Journal {
     })
   }
 
-  private async putCommit(
-    record: EditRecord,
-    sequences: Record<SequenceID, number>,
-  ): Promise<void> {
+  private async putCommit(record: EditRecord, sequences: Record<SequenceID, number>) {
     await this.db.transaction('rw', this.db.edits, this.db.meta, async () => {
       // A commit at `index` ends the redo part of the history above it.
       await this.db.edits.where('index').above(record.index).delete()
@@ -451,11 +450,11 @@ class ChangeJournal implements Journal {
     })
   }
 
-  private async putMeta(pointer: number, sequences: Record<SequenceID, number>): Promise<void> {
+  private async putMeta(pointer: number, sequences: Record<SequenceID, number>) {
     await this.db.meta.put(metaRow(pointer, sequences))
   }
 
-  private async wipe(): Promise<void> {
+  private async wipe() {
     await this.db.transaction('rw', this.db.edits, this.db.meta, async () => {
       await this.db.edits.clear()
       await this.db.meta.clear()

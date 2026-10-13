@@ -1,7 +1,7 @@
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 
 /** Whether the text is an absolute http or https URL with a host. Surrounding spaces are ignored. */
-export function isValidUrl(text: string): boolean {
+export function isValidUrl(text: string) {
   const value = text.trim()
   if (value === '') return false
   try {
@@ -13,7 +13,7 @@ export function isValidUrl(text: string): boolean {
 }
 
 /** The first match of a regular expression in the text, or undefined (also for a bad pattern). */
-function firstMatch(pattern: string, text: string): string | undefined {
+function firstMatch(pattern: string, text: string) {
   try {
     return new RegExp(pattern).exec(text)?.[0]
   } catch {
@@ -25,10 +25,7 @@ function firstMatch(pattern: string, text: string): string | undefined {
  * The outlink of an identifier: the value itself when it already is a URL, else the first match
  * of the pattern put into urlFormat's {value}. Undefined when there is no link to build.
  */
-export function identifierLink(
-  field: Pick<Field, 'urlFormat' | 'pattern'>,
-  text: string,
-): string | undefined {
+export function identifierLink(field: Pick<Field, 'urlFormat' | 'pattern'>, text: string) {
   const value = text.trim()
   if (value === '' || field.urlFormat === undefined || field.pattern === undefined) return undefined
   if (isValidUrl(value)) return value
@@ -41,7 +38,7 @@ export function identifierLink(
  * The key a tel value is written to: the first of the field's keys (key first) that has a value,
  * else the field's key. Without a key, the first of its keys.
  */
-export function telKey(field: Pick<Field, 'key' | 'keys'>, tags: Tags): string | undefined {
+export function telKey(field: Pick<Field, 'key' | 'keys'>, tags: Tags) {
   const keys = [
     ...new Set([...(field.key !== undefined ? [field.key] : []), ...(field.keys ?? [])]),
   ]
@@ -50,17 +47,17 @@ export function telKey(field: Pick<Field, 'key' | 'keys'>, tags: Tags): string |
 
 const DATE_SHAPE = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/
 
-function isLeapYear(year: number): boolean {
+function isLeapYear(year: number) {
   return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
 }
 
-function daysInMonth(year: number, month: number): number {
+function daysInMonth(year: number, month: number) {
   const days = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
   return days[month - 1] ?? 0
 }
 
 /** YYYY, YYYY-MM or YYYY-MM-DD with a month from 01 to 12 and a day that exists in that month. */
-export function isValidDate(text: string): boolean {
+export function isValidDate(text: string) {
   const match = DATE_SHAPE.exec(text.trim())
   if (!match) return false
   const year = Number(match[1])
@@ -75,13 +72,13 @@ export function isValidDate(text: string): boolean {
 }
 
 /** The value a native date picker takes: YYYY-MM-DD when the text is a whole date, else empty. */
-export function pickerDate(text: string): string {
+export function pickerDate(text: string) {
   const value = text.trim()
   return /^\d{4}-\d{2}-\d{2}$/.test(value) && isValidDate(value) ? value : ''
 }
 
 /** The local calendar date of `now` as YYYY-MM-DD. */
-export function todayIso(now: Date): string {
+export function todayIso(now: Date) {
   const year = String(now.getFullYear()).padStart(4, '0')
   const month = String(now.getMonth() + 1).padStart(2, '0')
   const day = String(now.getDate()).padStart(2, '0')
@@ -91,7 +88,7 @@ export function todayIso(now: Date): string {
 const SET_TODAY_KEYS = new Set(['check_date', 'survey:date'])
 
 /** The "set to today" button shows for check_date and survey:date when the text is not today. */
-export function showsSetToday(key: string | undefined, text: string, today: string): boolean {
+export function showsSetToday(key: string | undefined, text: string, today: string) {
   return key !== undefined && SET_TODAY_KEYS.has(key) && text.trim() !== today
 }
 
@@ -128,7 +125,7 @@ const NAMED_COLOURS = new Map<string, string>([
  * The hex form of a colour the text names: #rgb or #rrggbb (the # is required, as in iD), or one
  * of the basic colour names. Lower case, six digits. Undefined when the text is neither.
  */
-export function colourToHex(text: string): string | undefined {
+export function colourToHex(text: string) {
   const value = text.trim()
   if (HEX.test(value)) {
     const digits = value.slice(1).toLowerCase()

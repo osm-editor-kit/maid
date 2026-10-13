@@ -1,6 +1,5 @@
 import { EyeIcon, EyeSlashIcon, PencilIcon } from '@heroicons/react/16/solid'
 import type { Filter, FilterState } from '@osm-editor-kit/maid-filters'
-import type { ReactNode } from 'react'
 import { twJoin } from 'tailwind-merge'
 import { SegmentedControl } from './Toolbar.tsx'
 
@@ -27,9 +26,9 @@ export function FilterPanel(props: {
   onChange: (id: string, state: FilterState) => void
   /** How many objects on the map each filter decides for; shown when given */
   counts?: Record<string, number>
-}): ReactNode {
+}) {
   const { filters, states, onChange, counts } = props
-  const current = (filter: Filter): FilterState => states[filter.id] ?? filter.state
+  const current = (filter: Filter) => states[filter.id] ?? filter.state
   const differing = filters.filter((filter) => current(filter) !== filter.state)
 
   return (

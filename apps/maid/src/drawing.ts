@@ -14,7 +14,7 @@ export async function drawClick(
   kind: DrawKind,
   point: { x: number; y: number },
   layers: string[],
-): Promise<boolean> {
+) {
   const finished = await engine.draw.click(kind, point, layers)
   if (!finished) return false
   giveFavouriteType(finished, kind === 'line' ? 'draw-line' : 'draw-area')
@@ -24,7 +24,7 @@ export async function drawClick(
 }
 
 /** The kind of way the current mode draws, if it is a drawing mode */
-export function drawingKind(): DrawKind | undefined {
+export function drawingKind() {
   return engine.mode === 'draw-line' ? 'line' : engine.mode === 'draw-area' ? 'area' : undefined
 }
 
@@ -32,7 +32,7 @@ export function drawingKind(): DrawKind | undefined {
  * iD's A: continues the selected line from its end, or from the selected vertex if that is an
  * end of a line. Returns false if the selection is not something to continue.
  */
-export function continueLine(selected: readonly string[]): boolean {
+export function continueLine(selected: readonly string[]) {
   const [id] = selected
   if (selected.length !== 1 || !id) return false
   const way = id[0] === 'w' ? engine.data.way(id) : undefined

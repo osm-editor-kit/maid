@@ -45,7 +45,7 @@ connectLenses(engine)
  * changed. The engine lives outside React, so the React Compiler cannot see that its answers
  * change; passing the version as an argument is what tells it.
  */
-export function useEngine<T>(read: (engine: MaidEngine, version: number) => T): T {
+export function useEngine<T>(read: (engine: MaidEngine, version: number) => T) {
   const version = useSyncExternalStore(engine.subscribe, engine.getVersion)
   return read(engine, version)
 }

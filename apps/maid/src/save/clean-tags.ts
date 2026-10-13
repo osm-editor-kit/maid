@@ -15,7 +15,7 @@ const KEEP_SPACES = /_hours|_times|:conditional$/
 const SKIP = /^(description|note|fixme|inscription)(:.+)?$/
 const ZERO_WIDTH = /[​-‏﻿]/g
 
-function cleanValue(key: string, value: string): string {
+function cleanValue(key: string, value: string) {
   // free text is kept as the person typed it
   if (SKIP.test(key)) return value
 
@@ -38,7 +38,7 @@ function cleanValue(key: string, value: string): string {
  * and each value cleaned as above. Empty strings are kept here, as in iD; they are dropped by
  * `discardTags`.
  */
-export function cleanTags(tags: TagsIn): Record<string, string> {
+export function cleanTags(tags: TagsIn) {
   const out: Record<string, string> = {}
   for (const key of Object.keys(tags)) {
     if (!key) continue
@@ -53,10 +53,7 @@ export function cleanTags(tags: TagsIn): Record<string, string> {
  * empty value, and a key on the discard list (for all values with `true`, for listed values only
  * with an object). iD applies it to created and modified elements before the upload.
  */
-export function discardTags(
-  tags: Record<string, string>,
-  discarded: DiscardList = {},
-): Record<string, string> {
+export function discardTags(tags: Record<string, string>, discarded: DiscardList = {}) {
   const out: Record<string, string> = {}
   for (const key of Object.keys(tags)) {
     const value = tags[key]!

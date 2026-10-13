@@ -21,16 +21,16 @@ export function asRecord(value: unknown): RawRecord | undefined {
   return value as RawRecord
 }
 
-export function asString(value: unknown): string | undefined {
+export function asString(value: unknown) {
   return typeof value === 'string' ? value : undefined
 }
 
-export function asNumber(value: unknown): number | undefined {
+export function asNumber(value: unknown) {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
 /** The string entries of an array, or undefined when the value is not an array. */
-export function asStrings(value: unknown): string[] | undefined {
+export function asStrings(value: unknown) {
   if (!Array.isArray(value)) return undefined
   return value.filter((item): item is string => typeof item === 'string')
 }
@@ -53,11 +53,11 @@ export function asTags(value: unknown): Tags {
 }
 
 /** `{name}` → `name`; anything else → undefined. iD uses this form for references to other presets and fields. */
-export function referenceOf(text: string): string | undefined {
+export function referenceOf(text: string) {
   return /^\{([^{}]+)\}$/.exec(text)?.[1]
 }
 
 /** Own property lookup that never reaches the prototype chain. */
-export function own(section: RawRecord, id: string): unknown {
+export function own(section: RawRecord, id: string) {
   return Object.hasOwn(section, id) ? section[id] : undefined
 }

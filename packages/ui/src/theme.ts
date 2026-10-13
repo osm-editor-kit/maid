@@ -10,14 +10,14 @@ function resolve(value: Theme): 'light' | 'dark' {
   return value
 }
 
-function applyToDocument(): void {
+function applyToDocument() {
   const resolved = resolve(useSettings.getState().theme)
   const root = document.documentElement
   root.classList.toggle('dark', resolved === 'dark')
   root.style.colorScheme = resolved
 }
 
-function subscribeToSystem(listener: () => void): () => void {
+function subscribeToSystem(listener: () => void) {
   const query = window.matchMedia(darkQuery)
   query.addEventListener('change', listener)
   return () => query.removeEventListener('change', listener)
@@ -27,7 +27,7 @@ function subscribeToSystem(listener: () => void): () => void {
  * Applies the stored theme to the document and keeps it applied when the setting or the
  * operating system changes. Call once before React renders.
  */
-export function initTheme(): void {
+export function initTheme() {
   applyToDocument()
   useSettings.subscribe(applyToDocument)
   subscribeToSystem(applyToDocument)

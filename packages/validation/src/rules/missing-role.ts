@@ -4,18 +4,18 @@ import { locationOf } from '../geo.ts'
 import type { Issue, Rule } from '../types.ts'
 
 /** A member without a role, or with only spaces as its role, in a multipolygon */
-function isMissingRole(role: string | undefined): boolean {
+function isMissingRole(role: string | undefined) {
   return !role || role.trim().length === 0
 }
 
-function kindOf(entity: OsmEntity): string {
+function kindOf(entity: OsmEntity) {
   if (entity instanceof OsmNode) return 'node'
   if (entity instanceof OsmWay) return 'way'
   return 'relation'
 }
 
 /** One issue per member of a multipolygon that has no role: `outer` or `inner` is needed */
-function makeIssue(member: OsmEntity, relation: OsmRelation, index: number, graph: Graph): Issue {
+function makeIssue(member: OsmEntity, relation: OsmRelation, index: number, graph: Graph) {
   const loc = locationOf(member, graph)
   return {
     id: `missing_role:${member.id}:${relation.id}:${index}`,
@@ -26,7 +26,7 @@ function makeIssue(member: OsmEntity, relation: OsmRelation, index: number, grap
     ...(loc ? { loc } : {}),
     fixes: [],
     data: { index },
-  }
+  } satisfies Issue
 }
 
 /**
@@ -38,7 +38,7 @@ function makeIssue(member: OsmEntity, relation: OsmRelation, index: number, grap
 export const missingRole: Rule = {
   id: 'missing_role',
   label: 'Missing role',
-  validate(entity, { graph }): Issue[] {
+  validate(entity, { graph }) {
     const issues: Issue[] = []
 
     if (entity instanceof OsmWay) {

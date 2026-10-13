@@ -1,5 +1,5 @@
 import { Square3Stack3DIcon } from '@heroicons/react/20/solid'
-import { defineModule, type MaidModule } from '@osm-editor-kit/maid-core'
+import { defineModule } from '@osm-editor-kit/maid-core'
 import { checkConfigLayers, type DataLayerConfig } from './config.ts'
 import { createMapContent } from './MapLayers.tsx'
 import { createPanel } from './Panel.tsx'
@@ -18,7 +18,7 @@ export type DataLayersOptions = {
  * and a "Data layers" flyout to show, hide, add and remove them. Added layers and what is hidden
  * are stored in the browser under `maid:data-layers`; files are kept until a reload.
  */
-export function dataLayers(options: DataLayersOptions = {}): MaidModule {
+export function dataLayers(options: DataLayersOptions = {}) {
   const layers = checkConfigLayers(options.layers ?? [])
   const useStore = createDataLayerStore()
   const MapContent = createMapContent(useStore, layers)

@@ -13,47 +13,49 @@ type Dictionary = ReadonlyMap<string, ReadonlySet<string>>
 
 /** iD's osmOneWayForwardTags, osmOneWayBackwardTags and osmOneWayBiDirectionalTags, merged */
 const oneWayValues: Dictionary = new Map(
-  [
+  (
     [
-      'aerialway',
       [
-        'chair_lift',
-        'drag_lift',
-        'j-bar',
-        'magic_carpet',
-        'mixed_lift',
-        'platter',
-        'rope_tow',
-        't-bar',
-        'zip_line',
+        'aerialway',
+        [
+          'chair_lift',
+          'drag_lift',
+          'j-bar',
+          'magic_carpet',
+          'mixed_lift',
+          'platter',
+          'rope_tow',
+          't-bar',
+          'zip_line',
+        ],
       ],
-    ],
-    ['conveying', ['forward', 'backward', 'reversible']],
-    ['highway', ['motorway']],
-    ['junction', ['circular', 'roundabout']],
-    ['man_made', ['goods_conveyor', 'piste:halfpipe']],
-    ['oneway', ['yes', '-1', 'alternating', 'reversible']],
-    ['piste:type', ['downhill', 'sled', 'yes']],
-    [
-      'seamark:type',
-      ['two-way_route', 'recommended_traffic_lane', 'separation_lane', 'separation_roundabout'],
-    ],
-    [
-      'waterway',
+      ['conveying', ['forward', 'backward', 'reversible']],
+      ['highway', ['motorway']],
+      ['junction', ['circular', 'roundabout']],
+      ['man_made', ['goods_conveyor', 'piste:halfpipe']],
+      ['oneway', ['yes', '-1', 'alternating', 'reversible']],
+      ['piste:type', ['downhill', 'sled', 'yes']],
       [
-        'canal',
-        'ditch',
-        'drain',
-        'fish_pass',
-        'flowline',
-        'pressurised',
-        'river',
-        'spillway',
-        'stream',
-        'tidal_channel',
+        'seamark:type',
+        ['two-way_route', 'recommended_traffic_lane', 'separation_lane', 'separation_roundabout'],
       ],
-    ],
-  ].map(([key, values]) => [key as string, new Set(values as string[])]),
+      [
+        'waterway',
+        [
+          'canal',
+          'ditch',
+          'drain',
+          'fish_pass',
+          'flowline',
+          'pressurised',
+          'river',
+          'spillway',
+          'stream',
+          'tidal_channel',
+        ],
+      ],
+    ] satisfies Array<[string, string[]]>
+  ).map(([key, values]) => [key, new Set(values)] satisfies [string, ReadonlySet<string>]),
 )
 
 /** iD's osmOneWayBackwardTags */
@@ -117,11 +119,7 @@ const ignoreNonHighwayKeys: ReadonlySet<string> = new Set([
 type WayType = 'highway' | 'waterway'
 
 /** Whether a tag has a value in the dictionary, ignoring the keys given (as iD's utilCheckTagDictionary) */
-function hasValue(
-  tags: Tags,
-  dictionary: Dictionary,
-  ignored: ReadonlySet<string> = new Set(),
-): boolean {
+function hasValue(tags: Tags, dictionary: Dictionary, ignored: ReadonlySet<string> = new Set()) {
   return Object.entries(tags).some(
     ([key, value]) =>
       !ignored.has(key) && value !== undefined && dictionary.get(key)?.has(value) === true,
@@ -129,17 +127,17 @@ function hasValue(
 }
 
 /** iD's OsmWay.isOneWay: `oneway=no` is never one-way */
-function isOneWay(tags: Tags): boolean {
+function isOneWay(tags: Tags) {
   return tags.oneway !== 'no' && hasValue(tags, oneWayValues)
 }
 
 /** iD's OsmWay.isOneWayBackwards */
-function isOneWayBackwards(tags: Tags): boolean {
+function isOneWayBackwards(tags: Tags) {
   return tags.oneway !== 'no' && hasValue(tags, backwardValues)
 }
 
 /** iD's typeForWay: a highway first, then a flowing waterway, only for lines */
-function typeOf(way: OsmWay, graph: Graph): WayType | undefined {
+function typeOf(way: OsmWay, graph: Graph) {
   if (way.geometry(graph) !== 'line') return undefined
   if (way.tags.highway !== undefined && routableHighways.has(way.tags.highway)) return 'highway'
   if (way.tags.waterway !== undefined && flowingWaterways.has(way.tags.waterway)) return 'waterway'
@@ -147,17 +145,12 @@ function typeOf(way: OsmWay, graph: Graph): WayType | undefined {
 }
 
 /** A node that occurs twice in a way, a loop at that node */
-function occursMoreThanOnce(way: OsmWay, nodeId: string): boolean {
+function occursMoreThanOnce(way: OsmWay, nodeId: string) {
   return way.nodes.filter((id) => id === nodeId).length > 1
 }
 
 /** Entrances, parking entrances, springs and drains, and other roads or waterbodies at the node */
-function isConnectedViaOtherTypes(
-  way: OsmWay,
-  node: OsmNode,
-  type: WayType,
-  graph: Graph,
-): boolean {
+function isConnectedViaOtherTypes(way: OsmWay, node: OsmNode, type: WayType, graph: Graph) {
   if (type === 'highway') {
     if (node.tags.entrance !== undefined && node.tags.entrance !== 'no') return true
     if (node.tags.amenity === 'parking_entrance') return true
@@ -188,18 +181,18 @@ function isConnectedViaOtherTypes(
   })
 }
 
-function isRoutable(value: string | undefined): boolean {
+function isRoutable(value: string | undefined) {
   return value !== undefined && routableHighways.has(value)
 }
 
 /** The way reversed, when the ways it meets point the other way: the fix iD offers first */
-function reverseFix(wayId: string): Fix {
+function reverseFix(wayId: string) {
   return {
     id: 'reverse_feature',
     label: 'Reverse this feature',
     annotation: 'Reversed a line.',
     actions: () => [actionReverse(wayId)],
-  }
+  } satisfies Fix
 }
 
 /**
@@ -207,12 +200,7 @@ function reverseFix(wayId: string): Fix {
  * waterway meets other features of its kind that take the flow away from the end, or it is an
  * entrance, a spring, a drain or a water body.
  */
-function issueAt(
-  way: OsmWay,
-  nodeId: string,
-  type: WayType,
-  context: RuleContext,
-): Issue | undefined {
+function issueAt(way: OsmWay, nodeId: string, type: WayType, context: RuleContext) {
   const graph = context.graph
   // The start of the way, unless it is drawn backwards
   const isFirst = (nodeId === way.first()) !== isOneWayBackwards(way.tags)
@@ -246,18 +234,16 @@ function issueAt(
     type === 'waterway'
       ? `${name} ${isFirst ? 'flows away from' : 'flows against'} a connected waterway`
       : `${name} ${isFirst ? 'is unreachable' : 'has no outlet'}`
-  const loc = node.loc as [number, number]
-
   return {
     id: `impossible_oneway:${way.id}:${node.id}`,
     rule: 'impossible_oneway',
     severity: 'warning',
     message,
     entityIds: [way.id, node.id],
-    loc,
+    loc: node.loc,
     fixes: oneways.length > 0 ? [reverseFix(way.id)] : [],
     data: { type, placement },
-  }
+  } satisfies Issue
 }
 
 /**
@@ -269,7 +255,7 @@ function issueAt(
 export const impossibleOneway: Rule = {
   id: 'impossible_oneway',
   label: 'Impossible one-ways',
-  validate(entity: OsmEntity, context: RuleContext): Issue[] {
+  validate(entity: OsmEntity, context: RuleContext) {
     if (!(entity instanceof OsmWay)) return []
     const graph = context.graph
     if (entity.geometry(graph) !== 'line' || entity.isClosed()) return []

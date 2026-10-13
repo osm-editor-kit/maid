@@ -1,9 +1,8 @@
-import type { Editor } from '@osm-editor-kit/maid-core'
 /**
  * The "Data layers" flyout: the list of layers with a switch each, and the form that adds one.
  */
 import { SegmentedControl } from '@osm-editor-kit/maid-ui'
-import { useId, useMemo, useState, type ComponentType, type FormEvent } from 'react'
+import { useId, useMemo, useState, type FormEvent } from 'react'
 import { addDataLayer, type Added, type AddInput } from './add.ts'
 import { ColorSwatches } from './ColorSwatches.tsx'
 import {
@@ -270,10 +269,7 @@ function AddLayerForm({
 }
 
 /** The flyout of the module: the layers and the form. The store is the module's own. */
-export function createPanel(
-  useStore: DataLayerStoreHook,
-  config: readonly DataLayerConfig[],
-): ComponentType<{ editor: Editor }> {
+export function createPanel(useStore: DataLayerStoreHook, config: readonly DataLayerConfig[]) {
   function DataLayersPanel() {
     const added = useStore((state) => state.added)
     const files = useStore((state) => state.files)

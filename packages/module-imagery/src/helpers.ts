@@ -43,31 +43,32 @@ const CATEGORY_LABELS: Record<string, string> = {
 }
 
 /** The name of an ELI category for people; unknown categories are shown as they are */
-export function categoryLabel(category: string | undefined): string | undefined {
+export function categoryLabel(category: string | undefined) {
   if (category === undefined) return undefined
   return CATEGORY_LABELS[category] ?? category
 }
 
-export function clampBrightness(value: number): number {
+export function clampBrightness(value: number) {
   if (!Number.isFinite(value)) return BRIGHTNESS_MAX
   return Math.min(BRIGHTNESS_MAX, Math.max(BRIGHTNESS_MIN, value))
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 /**
  * Reads the stored choice. Anything that does not have the right shape falls back to the
  * defaults, so an old or damaged entry cannot break the map.
  */
-export function parseStored(
-  raw: unknown,
-  fallback: { backgroundId: string | null },
-): ImageryStored {
+export function parseStored(raw: unknown, fallback: { backgroundId: string | null }) {
   const stored: ImageryStored = {
     backgroundId: fallback.backgroundId,
     overlayIds: [],
     brightness: BRIGHTNESS_MAX,
   }
-  if (typeof raw !== 'object' || raw === null) return stored
-  const record = raw as Record<string, unknown>
+  if (!isRecord(raw)) return stored
+  const record = raw
   if (record.backgroundId === null || typeof record.backgroundId === 'string')
     stored.backgroundId = record.backgroundId
   if (Array.isArray(record.overlayIds))
@@ -79,7 +80,7 @@ export function parseStored(
 }
 
 /** Best layers first, then by name. ELI gives no ranking of its own beyond the `best` flag. */
-export function sortListing(items: readonly Listing[]): Listing[] {
+export function sortListing(items: readonly Listing[]) {
   return [...items].sort(
     (a, b) => Number(b.best) - Number(a.best) || a.name.localeCompare(b.name, 'en'),
   )
@@ -89,12 +90,12 @@ export function sortListing(items: readonly Listing[]): Listing[] {
  * Whether a layer is worth listing at this zoom. ELI's `maxzoom` is not a limit: MapLibre
  * overzooms the last tiles. Only a layer that starts at a higher zoom is left out.
  */
-export function visibleAtZoom(item: Pick<Listing, 'minzoom'>, zoom: number): boolean {
+export function visibleAtZoom(item: Pick<Listing, 'minzoom'>, zoom: number) {
   return zoom >= (item.minzoom ?? 0)
 }
 
 /** Every word of the query must appear in the name or the category label (case-insensitive) */
-export function matchesQuery(item: Listing, query: string): boolean {
+export function matchesQuery(item: Listing, query: string) {
   const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean)
   if (words.length === 0) return true
   const haystack = `${item.name} ${categoryLabel(item.category) ?? ''}`.toLowerCase()

@@ -42,14 +42,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isProviderId(value: unknown): value is ImageryProviderId {
-  return typeof value === 'string' && (IMAGERY_PROVIDER_IDS as readonly string[]).includes(value)
+  return typeof value === 'string' && IMAGERY_PROVIDER_IDS.some((id) => id === value)
 }
 
 /**
  * Reads what storage gave back. Anything that does not fit is dropped and the default is used
  * for it: a stored value must never stop the editor from starting.
  */
-export function parseStored(value: unknown): StreetImageryStored {
+export function parseStored(value: unknown) {
   if (!isRecord(value)) return DEFAULT_STORED
   const providers = Array.isArray(value.providers)
     ? [...new Set(value.providers.filter(isProviderId))]
@@ -63,10 +63,7 @@ export function parseStored(value: unknown): StreetImageryStored {
 }
 
 /** Mapillary is offered only when the build has a token; Panoramax always. */
-export function providerAvailable(
-  id: ImageryProviderId,
-  mapillaryToken: string | undefined,
-): boolean {
+export function providerAvailable(id: ImageryProviderId, mapillaryToken: string | undefined) {
   return id === 'panoramax' || (mapillaryToken ?? '').trim() !== ''
 }
 
@@ -78,7 +75,7 @@ export function activeProviders(
   stored: readonly ImageryProviderId[],
   mapillaryToken: string | undefined,
   automated: boolean,
-): ImageryProviderId[] {
+) {
   if (automated) return []
   return IMAGERY_PROVIDER_IDS.filter(
     (id) => stored.includes(id) && providerAvailable(id, mapillaryToken),

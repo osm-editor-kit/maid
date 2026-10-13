@@ -66,7 +66,7 @@ const PIN_ZOOM = 17.5
 /** The address plaque image (apps/maid/src/images.ts) */
 export const ADDRESS_PLAQUE = 'addr-plaque'
 
-export function buildLayers(options: LayerOptions): LayerSpecification[] {
+export function buildLayers(options: LayerOptions) {
   const layers = buildMainLayers(options)
   // Each layer is followed by its twin on the edit source, so stacking stays the same.
   // The original of a feature that is being edited is hidden through feature state, which
@@ -92,7 +92,7 @@ export function buildLayers(options: LayerOptions): LayerSpecification[] {
   })
 }
 
-function buildMainLayers(options: LayerOptions): LayerSpecification[] {
+function buildMainLayers(options: LayerOptions) {
   const low = lowZoomThreshold(options.lat)
   const byZoom = (lowProp: string, prop: string): ExpressionSpecification => [
     'step', ['zoom'], ['get', lowProp], low, ['get', prop],
@@ -126,7 +126,7 @@ function buildMainLayers(options: LayerOptions): LayerSpecification[] {
     // Band along the inside edge: a line offset to the inside by half its width. Its width is
     // capped by the area's own size so that it never spills over the far edge of small areas.
     const metresPerPixelAtZ0 = (40075016.686 * Math.cos((options.lat * Math.PI) / 180)) / 512
-    const band = (zoom: number): ExpressionSpecification => [
+    const band = (zoom: number) => [
       'min', ['get', 'fw'], ['*', ['get', 'r'], 2 ** zoom / metresPerPixelAtZ0],
     ] // prettier-ignore
     const stops = (scale: number) => {

@@ -10,18 +10,18 @@ const POLAR_RADIUS = 6.3567523e6
 const TAU = 2 * Math.PI
 
 /** Metres to degrees of latitude. Copied: this package depends on the model only. */
-function metersToLat(meters: number): number {
+function metersToLat(meters: number) {
   return meters / ((TAU * POLAR_RADIUS) / 360)
 }
 
 /** Metres to degrees of longitude at this latitude. Copied: this package depends on the model only. */
-function metersToLon(meters: number, atLat: number): number {
+function metersToLon(meters: number, atLat: number) {
   if (Math.abs(atLat) >= 90) return 0
   return meters / ((TAU * EQUATORIAL_RADIUS) / 360) / Math.abs(Math.cos((atLat * Math.PI) / 180))
 }
 
 /** The selected point, when the selection is exactly one standalone node with tags and a position */
-function standalonePoint(context: OperationContext): OsmNode | undefined {
+function standalonePoint(context: OperationContext) {
   if (context.selected.length !== 1) return undefined
   const id = context.selected[0]
   const entity = id === undefined ? undefined : context.graph.hasEntity(id)
@@ -77,9 +77,9 @@ export function pointToArea(options: {
       const pointID = point.id
       let wayID: string | undefined
 
-      const action: Action = (graph: Graph): Graph => {
-        const node = graph.entity(pointID) as OsmNode
-        const loc = node.loc
+      const action: Action = (graph: Graph) => {
+        const node = graph.entity(pointID)
+        const loc = node instanceof OsmNode ? node.loc : undefined
         if (!loc) throw new Error(`The point ${pointID} has no position`)
         const [lon, lat] = loc
         const dLon = metersToLon(half, lat)

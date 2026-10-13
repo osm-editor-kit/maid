@@ -32,7 +32,7 @@ process.exit(
     const read = async (wayId?: string): Promise<WayState> => {
       const state = (await page.evaluate(
         ({ wayId }) => {
-          const { engine } = (window as any).__maid
+          const { engine } = window.__maid
           const id = wayId ?? new URL(location.href).searchParams.get('id')
           const way = id ? engine.data.way(id) : undefined
           const graph = engine.data.history.staging.graph
@@ -57,7 +57,7 @@ process.exit(
 
     // open ground: places with no line, point or label within 14 px (snapping reaches 8), far enough apart from each other
     const free = (await page.evaluate(() => {
-      const { map } = (window as any).__maid
+      const { map } = window.__maid
       const { width, height } = map.getCanvas().getBoundingClientRect()
       const out: XY[] = []
       for (let y = 100; y < height - 100 && out.length < 9; y += 10)
@@ -110,7 +110,7 @@ process.exit(
 
     // --- snapping: from open ground to an existing node, then onto a way ---
     const snap = (await page.evaluate(() => {
-      const { map, engine } = (window as any).__maid
+      const { map, engine } = window.__maid
       const { width, height } = map.getCanvas().getBoundingClientRect()
       const inView = (p: XY) => p.x > 60 && p.y > 60 && p.x < width - 60 && p.y < height - 60
       for (const f of map.queryRenderedFeatures()) {
@@ -123,8 +123,8 @@ process.exit(
         if (!jLoc) continue
         const j = map.project(jLoc)
         for (let i = 0; i + 1 < way.nodes.length; i++) {
-          const a = engine.data.node(way.nodes[i])?.loc
-          const b = engine.data.node(way.nodes[i + 1])?.loc
+          const a = engine.data.node(way.nodes[i]!)?.loc
+          const b = engine.data.node(way.nodes[i + 1]!)?.loc
           if (!a || !b) continue
           const pa = map.project(a)
           const pb = map.project(b)
@@ -163,7 +163,7 @@ process.exit(
       // several nodes can lie within reach of the click: any existing one under it is right
       const reach = await page.evaluate(
         ({ id, at }) => {
-          const { map, engine } = (window as any).__maid
+          const { map, engine } = window.__maid
           const loc = engine.data.node(id)?.loc
           const p = loc && map.project(loc)
           // picking looks at a square of 8 px each way and at the drawn size of a vertex

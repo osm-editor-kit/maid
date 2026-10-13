@@ -13,7 +13,7 @@ const SWATCH =
 /** The chosen swatch gets a ring in its own colour, set apart from the swatch by a gap */
 const CHOSEN = 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900'
 
-function ringColour(color: string): CSSProperties {
+function ringColour(color: string) {
   return { '--tw-ring-color': color } as CSSProperties
 }
 

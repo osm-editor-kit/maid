@@ -14,7 +14,7 @@ export const TRAFFIC_SIGN_FIELD_TYPE = 'trafficSign'
 type SignField = NonNullable<PresetChanges['fields']>[string]
 type SignPresetEdit = NonNullable<PresetChanges['presetEdits']>[string]
 
-function signField(key: string, label: string): SignField {
+function signField(key: string, label: string) {
   return {
     type: TRAFFIC_SIGN_FIELD_TYPE,
     label,
@@ -22,7 +22,7 @@ function signField(key: string, label: string): SignField {
     geometry: ['line'],
     snakeCase: false,
     caseSensitive: true,
-  }
+  } satisfies SignField
 }
 
 /** Field id → definition. The ids are ours, the keys are OSM's. */

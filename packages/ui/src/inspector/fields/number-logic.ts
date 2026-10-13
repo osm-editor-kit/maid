@@ -52,12 +52,12 @@ const COMPASS = new Map<string, number>([
 ])
 
 /** The degrees of a compass word (N, NE, north-east, ...), or undefined. */
-export function compassDegrees(word: string): number | undefined {
+export function compassDegrees(word: string) {
   return COMPASS.get(word.trim().toLowerCase())
 }
 
 /** iD's direction fields: a key with a `direction` part (`direction`, `camera:direction`). */
-export function isDirectionKey(key: string): boolean {
+export function isDirectionKey(key: string) {
   return key.split(':').includes('direction')
 }
 
@@ -65,7 +65,7 @@ export function isDirectionKey(key: string): boolean {
 const NUMBER = /^([+-]?)(\d*)(?:[.,](\d*))?$/
 
 /** A plain number with a dot or a decimal comma, with its count of decimal places. */
-export function parseNumber(text: string): { value: number; decimals: number } | undefined {
+export function parseNumber(text: string) {
   const match = NUMBER.exec(text.trim())
   if (!match) return undefined
   const [, sign = '', whole = '', fraction = ''] = match
@@ -75,23 +75,23 @@ export function parseNumber(text: string): { value: number; decimals: number } |
 }
 
 /** A number with the given decimal places, written with a dot and without a sign on zero. */
-export function formatNumber(value: number, decimals: number): string {
+export function formatNumber(value: number, decimals: number) {
   const text = value.toFixed(Math.min(decimals, 20))
   return /^-0(\.0*)?$/.test(text) ? text.slice(1) : text
 }
 
-function decimalsOf(value: number): number {
+function decimalsOf(value: number) {
   const text = String(value)
   const dot = text.indexOf('.')
   return dot < 0 ? 0 : text.length - dot - 1
 }
 
-function clamp(value: number, minValue: number | undefined): number {
+function clamp(value: number, minValue: number | undefined) {
   return minValue === undefined ? value : Math.max(value, minValue)
 }
 
 /** The text an empty field stands for when stepping: 0, as iD does. */
-function stepSource(text: string): string {
+function stepSource(text: string) {
   return text.trim() === '' ? '0' : text
 }
 
@@ -100,11 +100,7 @@ function stepSource(text: string): string {
  * fields) and clamped to minValue. Parts that are not numbers stay as they are. The decimal places
  * of a part are kept, and of the increment if it has more, so 0.2 + 0.1 gives "0.3".
  */
-export function stepValue(
-  text: string,
-  direction: StepDirection,
-  options: StepOptions = {},
-): string {
+export function stepValue(text: string, direction: StepDirection, options: StepOptions = {}) {
   const { increment = 1, minValue, wrap = false } = options
   const stepDecimals = decimalsOf(increment)
   return stepSource(text)
@@ -123,7 +119,7 @@ export function stepValue(
 }
 
 /** Whether a step changes the text: at least one value is a number (or a compass word, wrapping). */
-export function canStep(text: string, wrap = false): boolean {
+export function canStep(text: string, wrap = false) {
   return stepSource(text)
     .split(';')
     .some((part) => {
@@ -136,7 +132,7 @@ export function canStep(text: string, wrap = false): boolean {
  * A typed text as it is written: each `;`-separated number is clamped to minValue and written with a
  * dot and its own decimal places. Parts that are not numbers are kept as typed.
  */
-export function normalizeNumber(text: string, minValue?: number): string {
+export function normalizeNumber(text: string, minValue?: number) {
   return text
     .split(';')
     .map((part) => {
@@ -159,7 +155,7 @@ export function parseSpeed(value: string): { number: string; unit: SpeedUnit } {
 }
 
 /** The tag for a speed: a plain number in km/h, `<n> mph` in mph. Empty means no tag. */
-export function formatSpeed(number: string, unit: SpeedUnit): string | undefined {
+export function formatSpeed(number: string, unit: SpeedUnit) {
   const text = normalizeNumber(number.trim())
   if (text === '') return undefined
   return unit === 'mph' && parseNumber(text) !== undefined ? `${text} mph` : text
@@ -192,11 +188,7 @@ export function parseHeight(value: string): {
  * The tag for a height. In metres: the primary number. In feet: `<ft>'<in>"`, each part only when
  * it has a value. A part that is not a number is written as the primary text alone, as iD does.
  */
-export function formatHeight(
-  primary: string,
-  secondary: string,
-  unit: HeightUnit,
-): string | undefined {
+export function formatHeight(primary: string, secondary: string, unit: HeightUnit) {
   const feet = normalizeNumber(primary.trim())
   if (unit === 'm') return feet === '' ? undefined : feet
   const inches = normalizeNumber(secondary.trim())

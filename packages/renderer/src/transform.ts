@@ -22,8 +22,8 @@ const RAD = Math.PI / 180
  * commits. Each node is interpolated with the formula of `actionMoveNode` (vecInterp of
  * @rapid-sdk/math), so the final locations are the same. Each id may appear once.
  */
-export function actionMoveNodes(moves: readonly (readonly [id: string, to: Loc])[]): Action {
-  const action = ((graph: Graph, t?: number): Graph => {
+export function actionMoveNodes(moves: readonly (readonly [id: string, to: Loc])[]) {
+  const action = ((graph: Graph, t?: number) => {
     // as actionMoveNode: no or a bad t is the whole move, and t is kept between 0 and 1
     const eased = t === null || t === undefined || !isFinite(t) ? 1 : Math.min(Math.max(+t, 0), 1)
     if (eased === 0) return graph
@@ -61,7 +61,7 @@ export function worldDelta(from: XY, to: XY): XY {
 }
 
 /** The nodes that make up these entities: a node itself, the nodes of a way, of a relation's member ways */
-export function nodesOf(engine: MaidEngine, ids: readonly string[]): Set<string> {
+export function nodesOf(engine: MaidEngine, ids: readonly string[]) {
   const { data } = engine
   const nodes = new Set<string>()
   const addWay = (id: string) => {
@@ -104,12 +104,12 @@ export class TransformTool {
 
   constructor(private engine: MaidEngine) {}
 
-  get active(): boolean {
+  get active() {
     return this.kind !== undefined
   }
 
   /** Starts moving or rotating these entities. False if there is nothing to transform or it is read-only. */
-  begin(kind: TransformKind, ids: readonly string[]): boolean {
+  begin(kind: TransformKind, ids: readonly string[]) {
     const { engine } = this
     if (this.active || ids.length === 0 || ids.some((id) => engine.isReadOnly(id))) return false
     // a move starts again from the last commit on every pointer move: work that is not ours in
@@ -193,7 +193,7 @@ export class TransformTool {
   }
 
   /** Keeps the result as one undo step. Returns false if nothing was moved. */
-  finish(): boolean {
+  finish() {
     // the last pointer position is where the selection is put down: applied before the commit
     this.unschedule()
     this.apply()

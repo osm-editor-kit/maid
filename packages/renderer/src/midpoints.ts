@@ -34,12 +34,12 @@ export type MidpointProperties = {
 export type MidpointFeature = Feature<GeoPoint, MidpointProperties>
 
 /** The id of the handle of a segment: the same whichever way it is walked in */
-export function midpointId(edge: readonly [string, string]): string {
+export function midpointId(edge: readonly [string, string]) {
   return `midpoint:${[...edge].sort().join(':')}`
 }
 
 /** The segments of a way, from its projected nodes in order. The closing segment of a closed way is one of them. */
-export function segmentsOf(nodes: readonly (ScreenPoint & { id: string })[]): Segment[] {
+export function segmentsOf(nodes: readonly (ScreenPoint & { id: string })[]) {
   const out: Segment[] = []
   for (let i = 0; i + 1 < nodes.length; i++) {
     const a = nodes[i]!
@@ -59,7 +59,7 @@ export function midpointFeatures(
   segments: readonly Segment[],
   view: { width: number; height: number },
   unproject: (point: ScreenPoint) => LonLatPoint,
-): MidpointFeature[] {
+) {
   const out = new Map<string, MidpointFeature>()
   for (const { edge, a, b } of segments) {
     const id = midpointId(edge)

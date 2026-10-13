@@ -2,7 +2,7 @@
  * Extension points that the renderer declares. Importing this file (index.ts does) merges them
  * into the `ExtensionPoints` of maid-core, so every app that uses the renderer can register items.
  */
-import { defineModule, type Editor, type MaidModule } from '@osm-editor-kit/maid-core'
+import { defineModule, type Editor } from '@osm-editor-kit/maid-core'
 import type { Operation } from '@osm-editor-kit/maid-operations'
 import type { Feature, FeatureCollection } from 'geojson'
 import type { ComponentType } from 'react'
@@ -51,7 +51,7 @@ declare module '@osm-editor-kit/maid-core' {
 }
 
 /** A module that adds operations to the edit menu, for example `defaultOperations` of maid-operations */
-export function operations(list: Operation[]): MaidModule {
+export function operations(list: Operation[]) {
   return defineModule({
     id: 'operations',
     setup(api) {

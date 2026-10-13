@@ -32,7 +32,7 @@ await page.waitForFunction(() => window.__bench !== undefined)
 await page.evaluate(() => window.__bench.settled())
 
 const result = await page.evaluate(async () => {
-  const { engine, map } = (window as any).__maid
+  const { engine, map } = window.__maid
   // a node in the middle of the longest road on screen, like a vertex someone would drag
   const ids = new Set<string>(
     map.queryRenderedFeatures({ layers: ['line-stroke-0'] }).map((f: any) => f.id),
@@ -43,8 +43,8 @@ const result = await page.evaluate(async () => {
     if (way?.tags?.highway && (!best || way.nodes.length > best.nodes.length)) best = way
   }
   const nodeId = best.nodes[Math.floor(best.nodes.length / 2)]
-  const node = engine.data.node(nodeId)
-  const start = { lon: node.loc[0], lat: node.loc[1] }
+  const node = engine.data.node(nodeId)!
+  const start = { lon: node.loc![0], lat: node.loc![1] }
   const frames: number[] = []
   let last = 0
   let running = true
@@ -70,13 +70,13 @@ const result = await page.evaluate(async () => {
   // 120 steps are one undo step, as a drag would be
   engine.data.history.commit({ annotation: 'Moved a node', selectedIDs: [nodeId] })
   await engine.endDrag()
-  await (window as any).__bench.settled()
+  await window.__bench.settled()
   const commitMs = performance.now() - tc
   running = false
   return {
     way: best.id,
     wayNodes: best.nodes.length,
-    waysAtNode: engine.data.nodeWays.get(nodeId).length,
+    waysAtNode: engine.data.nodeWays.get(nodeId)!.length,
     entities: engine.data.counts(),
     latencies,
     frames,

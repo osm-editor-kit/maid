@@ -30,7 +30,7 @@ export const PROTECTED_REASON = 'A filter protects this feature'
  * is not asked: the filter that protects its tags protects it as an area or as a line. A vertex
  * follows its ways.
  */
-function protectedBy(id: string): boolean {
+function protectedBy(id: string) {
   if (engine.isReadOnly(id)) return true
   const { filters } = engine
   const readOnly = (
@@ -51,7 +51,7 @@ function protectedBy(id: string): boolean {
 }
 
 /** "Paste" at a place on the map, if something was copied */
-export function usePasteCommand(at: { lon: number; lat: number } | undefined): Command[] {
+export function usePasteCommand(at: { lon: number; lat: number } | undefined) {
   const { select } = useSelection()
   const canPaste = useEngine((e) => e.canPaste)
   if (!canPaste || !at) return []
@@ -71,7 +71,7 @@ export function usePasteCommand(at: { lon: number; lat: number } | undefined): C
  * copy, then the operations that apply (`edit.operation`), with delete last. Empty without a
  * selection. A feature that a filter protects keeps its commands, greyed out with the reason.
  */
-export function useEditCommands(): Command[] {
+export function useEditCommands() {
   const operations = useExtensionPoint(editor, 'edit.operation')
   const { ids, select } = useSelection()
   // the version makes this read again after every edit: what applies depends on the data

@@ -26,7 +26,7 @@ function nonEmpty(value: string | undefined): value is string {
  * says it belongs to the field: `name:de` and `name:zh-Hans` are, `name:etymology`, `name:left`
  * and `name:source` are not. Empty values are not shown.
  */
-export function languageVariants(field: Field, tags: Tags): LanguageVariant[] {
+export function languageVariants(field: Field, tags: Tags) {
   const base = field.key
   if (base === undefined) return []
   return fieldKeys(field, tags)
@@ -46,7 +46,7 @@ export function languageVariants(field: Field, tags: Tags): LanguageVariant[] {
  * `DE` is `de`, `pt-br` is `pt-BR`, `zh_hant_tw` is `zh-Hant-TW`. Undefined when the text is not
  * a code. A code without a script or region is still a code: `left` is refused (four letters).
  */
-export function normalizeLanguageCode(text: string): string | undefined {
+export function normalizeLanguageCode(text: string) {
   const match = /^([A-Za-z]{2,3})(?:[-_]([A-Za-z]{4}))?(?:[-_]([A-Za-z]{2}|[0-9]{3}))?$/.exec(
     text.trim(),
   )

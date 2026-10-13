@@ -6,11 +6,7 @@
  * descriptions and photo paths. Paths are package-relative (`images/surface_asphalt.jpg`); `photos.ts` maps them to
  * the bundled files.
  */
-import {
-  catalogue,
-  type Attribution,
-  type SurfaceInfo,
-} from '@osm-editor-kit/surface-smoothness-data'
+import { catalogue, type SurfaceInfo } from '@osm-editor-kit/surface-smoothness-data'
 
 /** The two tag keys the field writes */
 export const SURFACE_KEY = 'surface'
@@ -20,42 +16,42 @@ export const SMOOTHNESS_KEY = 'smoothness'
 export type Picture = { path: string; kind: 'photo' | 'vehicle' }
 
 /** Own properties only: a tag value such as `constructor` must not find the prototype's members */
-function own<T>(record: Readonly<Record<string, T>>, key: string): T | undefined {
+function own<T>(record: Readonly<Record<string, T>>, key: string) {
   return Object.hasOwn(record, key) ? record[key] : undefined
 }
 
 /** The canonical surface of a tag value: `concrete:plates` and the other aliases map to their surface */
-export function canonicalSurface(value: string): string {
+export function canonicalSurface(value: string) {
   return own(catalogue.surfaceAliases, value) ?? value
 }
 
 /** The surface's catalogue entry for a tag value, following aliases; undefined when the value is not in the catalogue */
-export function surfaceInfo(value: string): SurfaceInfo | undefined {
+export function surfaceInfo(value: string) {
   return own(catalogue.surfaces, canonicalSurface(value))
 }
 
-export function isKnownSurface(value: string): boolean {
+export function isKnownSurface(value: string) {
   return surfaceInfo(value) !== undefined
 }
 
-export function isKnownSmoothness(value: string): boolean {
+export function isKnownSmoothness(value: string) {
   return own(catalogue.smoothnessLevels, value) !== undefined
 }
 
 /** The English title of a surface tag value, or undefined for a value that is not in the catalogue */
-export function surfaceTitle(value: string): string | undefined {
+export function surfaceTitle(value: string) {
   return surfaceInfo(value)?.title ?? undefined
 }
 
 /** The English title of a smoothness tag value, or undefined for a value that is not in the catalogue */
-export function smoothnessTitle(value: string): string | undefined {
+export function smoothnessTitle(value: string) {
   return own(catalogue.smoothnessLevels, value)?.title ?? undefined
 }
 
 /** The reference photo of a surface tag value */
-export function surfacePicture(value: string): Picture | undefined {
+export function surfacePicture(value: string) {
   const path = surfaceInfo(value)?.icon
-  return path ? { path, kind: 'photo' } : undefined
+  return path ? ({ path, kind: 'photo' } satisfies Picture) : undefined
 }
 
 /** The smoothness cells of a surface (its tag value or its canonical surface); undefined without photos */
@@ -76,14 +72,11 @@ export function smoothnessCell(surface: string, smoothness: string) {
  * The picture a smoothness tile shows: the surface's photo for that level when there is one, else the level's
  * vehicle icon (the generic picture), else nothing. Without a surface there is no photo, only the vehicle icon.
  */
-export function smoothnessPicture(
-  surface: string | undefined,
-  smoothness: string,
-): Picture | undefined {
+export function smoothnessPicture(surface: string | undefined, smoothness: string) {
   const cell = surface === undefined ? undefined : smoothnessCell(surface, smoothness)
-  if (cell) return { path: cell.photo, kind: 'photo' }
+  if (cell) return { path: cell.photo, kind: 'photo' } satisfies Picture
   const icon = own(catalogue.smoothnessLevels, smoothness)?.vehicleIcon
-  return icon ? { path: icon, kind: 'vehicle' } : undefined
+  return icon ? ({ path: icon, kind: 'vehicle' } satisfies Picture) : undefined
 }
 
 // ---- pickers ----
@@ -100,12 +93,12 @@ export type SurfaceGroup = { id: 'common' | 'other'; title: string; items: Surfa
  * The surfaces in the catalogue's order, in two groups: the ones StreetComplete asks the smoothness for (its
  * `smoothnessQuest` flag) first, then the rest. An empty group is left out.
  */
-export function surfaceGroups(): SurfaceGroup[] {
+export function surfaceGroups() {
   const entries = Object.values(catalogue.surfaces)
-  const choice = (info: SurfaceInfo): SurfaceChoice => ({
+  const choice = (info: SurfaceInfo) => ({
     value: info.osmValue,
     label: info.title ?? info.osmValue,
-    picture: info.icon ? { path: info.icon, kind: 'photo' } : undefined,
+    picture: info.icon ? ({ path: info.icon, kind: 'photo' } satisfies Picture) : undefined,
   })
   const groups: SurfaceGroup[] = [
     {
@@ -135,10 +128,7 @@ export type SmoothnessChoice = {
  * its photo and description (`photos: true`). Without a surface, or for a surface without photos: all levels with
  * their vehicle icons and no description (`photos: false`).
  */
-export function smoothnessChoices(surface: string | undefined): {
-  photos: boolean
-  choices: SmoothnessChoice[]
-} {
+export function smoothnessChoices(surface: string | undefined) {
   const matrix = surface === undefined ? undefined : matrixOf(surface)
   if (matrix !== undefined) {
     const choices = Object.entries(matrix).map(([value, cell]) => ({
@@ -164,7 +154,7 @@ export function smoothnessChoices(surface: string | undefined): {
  * The index of the chosen value in a grid, or the first item when nothing is chosen (or the value is not in the grid):
  * the item that takes the Tab stop.
  */
-export function tabStopIndex(values: readonly string[], chosen: string | undefined): number {
+export function tabStopIndex(values: readonly string[], chosen: string | undefined) {
   const index = chosen === undefined ? -1 : values.indexOf(chosen)
   return index === -1 ? 0 : index
 }
@@ -174,12 +164,7 @@ export function tabStopIndex(values: readonly string[], chosen: string | undefin
  * Down by a row (`columns`), Home and End go to the first and the last item. The moves stop at the ends; they do not
  * wrap. An index outside the grid is brought in first.
  */
-export function gridStep(
-  index: number,
-  key: string,
-  count: number,
-  columns: number,
-): number | undefined {
+export function gridStep(index: number, key: string, count: number, columns: number) {
   if (count <= 0 || columns <= 0) return undefined
   const last = count - 1
   const current = Math.min(Math.max(index, 0), last)
@@ -204,7 +189,7 @@ export function gridStep(
 // ---- the text fallback ----
 
 /** The options of the surface combo: every surface, then the aliases (e.g. `concrete:plates`) with their surface's title */
-export function surfaceOptions(): { value: string; label: string }[] {
+export function surfaceOptions() {
   const surfaces = Object.values(catalogue.surfaces).map((info) => ({
     value: info.osmValue,
     label: info.title ?? info.osmValue,
@@ -217,7 +202,7 @@ export function surfaceOptions(): { value: string; label: string }[] {
 }
 
 /** The options of the smoothness combo: the levels, best to worst */
-export function smoothnessOptions(): { value: string; label: string }[] {
+export function smoothnessOptions() {
   return Object.values(catalogue.smoothnessLevels).map((level) => ({
     value: level.osmValue,
     label: level.title ?? level.osmValue,
@@ -230,7 +215,7 @@ export function smoothnessOptions(): { value: string; label: string }[] {
  * The catalogue's attribution of the given package-relative files, in the catalogue's order. Shown under the pickers:
  * the photos are CC-BY(-SA) and public domain, the vehicle icons GPL-3.0-or-later.
  */
-export function creditsFor(paths: readonly string[]): Attribution[] {
+export function creditsFor(paths: readonly string[]) {
   const wanted = new Set(paths)
   return catalogue.attribution.filter((entry) => wanted.has(entry.file))
 }

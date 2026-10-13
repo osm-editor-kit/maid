@@ -1,5 +1,5 @@
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReferenceLoader } from '../InfoPopover.tsx'
 import {
   addableFields,
@@ -20,7 +20,6 @@ import { LocalizedField } from './fields/Localized.tsx'
 import { ManyComboField, MultiComboField, SemiComboField } from './fields/Multi.tsx'
 import { NumberField, RoadHeightField, RoadSpeedField } from './fields/Number.tsx'
 import { RadioField, StructureRadioField } from './fields/Radio.tsx'
-import type { RelatedRow } from './fields/Related.tsx'
 import { FieldRow } from './fields/Row.tsx'
 import type { FieldComponent, FieldFocus, FieldMeasure } from './fields/shared.ts'
 import { TextField, TextareaField } from './fields/Text.tsx'
@@ -89,7 +88,7 @@ export function PresetFields(props: {
   onFieldFocus?: (focus: FieldFocus | null) => void
   /** The measuring tape of the width fields: their "Measure on the map" button (fields/shared.ts FieldMeasure) */
   measure?: FieldMeasure
-}): ReactNode {
+}) {
   const {
     fields,
     tags,
@@ -174,7 +173,7 @@ export function PresetFields(props: {
     tags,
     ownKeys,
   )
-  const relatedOf = (field: Field): RelatedRow => ({
+  const relatedOf = (field: Field) => ({
     lines: lines.get(field.id) ?? [],
     offers: onChange ? relatedButtonKeys(relatedBaseKeys(field), field.key, tags) : [],
     open: onChange ? editors : [],
@@ -267,7 +266,7 @@ function focusOf(
   }
 }
 
-function sameFocus(a: FieldFocus | null, b: FieldFocus | null): boolean {
+function sameFocus(a: FieldFocus | null, b: FieldFocus | null) {
   if (a === null || b === null) return a === b
   return a.fieldId === b.fieldId && a.key === b.key && a.side === b.side && a.value === b.value
 }

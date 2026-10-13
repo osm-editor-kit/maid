@@ -27,7 +27,7 @@ const urlKeys: ReadonlySet<string> = new Set([
 ])
 
 /** iD's utilIsValidURL: a URL the WHATWG parser accepts with an http or https protocol. When not strict, also a loose http(s) match. */
-function isValidURL(url: string, strict = false): boolean {
+function isValidURL(url: string, strict = false) {
   try {
     return new URL(url).protocol.startsWith('http')
   } catch {
@@ -37,7 +37,7 @@ function isValidURL(url: string, strict = false): boolean {
 }
 
 /** A value without a protocol that looks like a domain: its host has a dot */
-function isFixableURL(url: string): boolean {
+function isFixableURL(url: string) {
   try {
     return new URL(`https://${url}`).hostname.includes('.')
   } catch {
@@ -49,7 +49,7 @@ function isFixableURL(url: string): boolean {
 const emailPattern = /^[^()\\,":;<>@[\]]+@[^()\\,":;<>@[\].]+(?:\.[a-z0-9-]+)*$/i
 
 /** An empty email is acceptable */
-function isValidEmail(email: string): boolean {
+function isValidEmail(email: string) {
   return !email || emailPattern.test(email)
 }
 
@@ -57,7 +57,7 @@ function isValidEmail(email: string): boolean {
  * iD's cleanWikimediaCommonsReference: a file or category name in the `image` tag, which belongs
  * in `wikimedia_commons`. `undefined` when there is none, or when `wikimedia_commons` is set.
  */
-function wikimediaReferenceOf(value: string, tags: Tags): string | undefined {
+function wikimediaReferenceOf(value: string, tags: Tags) {
   if (tags.wikimedia_commons) return undefined
   for (const prefix of ['file', 'datei', 'fichier', 'plik']) {
     if (value.toLowerCase().startsWith(`${prefix}:`)) return `File${value.slice(prefix.length)}`
@@ -66,7 +66,7 @@ function wikimediaReferenceOf(value: string, tags: Tags): string | undefined {
 }
 
 /** Sets a protocol on the URL tag; `{protocol}` in the value is where it goes */
-function protocolFix(entityId: string, key: string, value: string, protocol: string): Fix {
+function protocolFix(entityId: string, key: string, value: string, protocol: string) {
   const label = `Set ${protocol.toUpperCase()} for the URL`
   return {
     id: `add_protocol_${protocol}`,
@@ -82,7 +82,7 @@ function protocolFix(entityId: string, key: string, value: string, protocol: str
 }
 
 /** Moves a file or category from the `image` tag to `wikimedia_commons` */
-function moveImageFix(entityId: string, reference: string): Fix {
+function moveImageFix(entityId: string, reference: string) {
   return {
     id: 'move_value_to_wikimedia_commons',
     label: 'Set image as from Wikimedia Commons',
@@ -101,7 +101,7 @@ function moveImageFix(entityId: string, reference: string): Fix {
 }
 
 /** Replaces a Wikimedia Commons URL in `wikimedia_commons` by the file or category name */
-function upgradeFix(entityId: string, value: string): Fix {
+function upgradeFix(entityId: string, value: string) {
   return {
     id: 'upgrade_tags',
     label: 'Accept the suggested updates',
@@ -123,7 +123,7 @@ function upgradeFix(entityId: string, value: string): Fix {
 export const invalidFormat: Rule = {
   id: 'invalid_format',
   label: 'Invalid formatting',
-  validate(entity: OsmEntity): Issue[] {
+  validate(entity: OsmEntity) {
     const tags = entity.tags
     const name = tags.name || 'This feature'
     const issues: Issue[] = []

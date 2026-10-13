@@ -62,7 +62,7 @@ STATUSES.forEach((status, s) =>
   ),
 )
 
-export function tagClasses(t: Tags): string[] {
+export function tagClasses(t: Tags) {
   const classes: string[] = []
   let primary: string | undefined
   let status: string | undefined

@@ -1,7 +1,7 @@
 import { actionChangeTags } from '@osm-editor-kit/maid-model'
 import type { Graph } from '@osm-editor-kit/maid-model'
 import { locationOf } from '../geo.ts'
-import type { Fix, Issue, Rule } from '../types.ts'
+import type { Rule } from '../types.ts'
 
 /**
  * Tags that exclude each other, from iD's `osmMutuallyExclusiveTagPairs` (the OSM wiki's list of
@@ -20,12 +20,12 @@ const mutuallyExclusivePairs: readonly (readonly [string, string])[] = [
 type Conflict = { first: string; second: string; sameValue: boolean }
 
 /** `noname=no` is a double negation: positive and not conflicting, so it is ignored */
-function isNegatedNo(key: string, tags: Readonly<Record<string, string>>): boolean {
+function isNegatedNo(key: string, tags: Readonly<Record<string, string>>) {
   return /^(addr:)?no[a-z]/.test(key) && tags[key] === 'no'
 }
 
 /** The conflicts of one entity's tags, in iD's order: the pairs first, then `not:` tags */
-function conflictsOf(tags: Readonly<Record<string, string>>): Conflict[] {
+function conflictsOf(tags: Readonly<Record<string, string>>) {
   const conflicts: Conflict[] = mutuallyExclusivePairs
     .filter(([first, second]) => first in tags && second in tags)
     .filter(([first, second]) => !isNegatedNo(first, tags) && !isNegatedNo(second, tags))
@@ -51,7 +51,7 @@ function conflictsOf(tags: Readonly<Record<string, string>>): Conflict[] {
 }
 
 /** Removes one tag from the entity, as one undo step */
-function removeTagFix(entityId: string, key: string): Fix {
+function removeTagFix(entityId: string, key: string) {
   return {
     id: `remove_tag:${key}`,
     label: `Remove ${key}`,
@@ -70,10 +70,10 @@ function removeTagFix(entityId: string, key: string): Fix {
 export const mutuallyExclusiveTags: Rule = {
   id: 'mutually_exclusive_tags',
   label: 'Mutually exclusive tags',
-  validate(entity, { graph }): Issue[] {
+  validate(entity, { graph }) {
     const conflicts = conflictsOf(entity.tags)
     const loc = locationOf(entity, graph)
-    return conflicts.map((conflict): Issue => {
+    return conflicts.map((conflict) => {
       const { first, second, sameValue } = conflict
       const message = sameValue
         ? `${first} repeats the value of ${second}, so the feature says it is not called that`

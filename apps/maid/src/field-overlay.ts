@@ -33,7 +33,7 @@ const DEFAULT_ROAD_WIDTH = 10
  * A width in metres from the field's text: `3.5`, `3,5`, `3.5 m`, `3.` while it is typed. Other
  * units (cm, ft, ...) and anything else give undefined: no band.
  */
-export function parseWidthMetres(value: string | undefined): number | undefined {
+export function parseWidthMetres(value: string | undefined) {
   const match = value?.trim().match(/^(\d+(?:[.,]\d*)?|[.,]\d+)\s*(m)?$/i)
   if (!match) return undefined
   const metres = Number.parseFloat(match[1]!.replace(',', '.'))
@@ -41,7 +41,7 @@ export function parseWidthMetres(value: string | undefined): number | undefined 
 }
 
 /** An OSM width value: metres, or cm and km (the fork reads all three for the road's width) */
-function parseOsmWidth(value: string | undefined): number | undefined {
+function parseOsmWidth(value: string | undefined) {
   const match = value?.trim().match(/^(\d+\.?\d*|\.\d+)\s*([a-zA-Z]*)$/)
   if (!match) return undefined
   const number = Number.parseFloat(match[1]!)
@@ -52,7 +52,7 @@ function parseOsmWidth(value: string | undefined): number | undefined {
   return undefined
 }
 
-function isOneway(tags: Tags): boolean {
+function isOneway(tags: Tags) {
   if (tags.oneway === 'yes' || tags.oneway === '-1') return true
   if (tags.oneway === 'no') return false
   return (
@@ -63,7 +63,7 @@ function isOneway(tags: Tags): boolean {
 }
 
 /** The road's width in metres: its width or est_width tag, else the default for its highway type */
-export function roadWidthMetres(tags: Tags): number {
+export function roadWidthMetres(tags: Tags) {
   const explicit = parseOsmWidth(tags.width) ?? parseOsmWidth(tags.est_width)
   if (explicit !== undefined) return explicit
   const table = isOneway(tags) ? WIDTH_ONEWAY : WIDTH_NO_ONEWAY
@@ -77,7 +77,14 @@ export function widthKeyTarget(
   if (WAY_WIDTH_KEYS.has(key)) return { kind: 'way' }
   const match = SIDE_WIDTH_KEY.exec(key)
   if (!match) return undefined
-  return { kind: 'side', side: match[2] as SideChoice }
+  const side = sideChoiceOf(match[2])
+  return side ? { kind: 'side', side } : undefined
+}
+
+/** The side a width key names; the regex above only lets these three through */
+function sideChoiceOf(text: string | undefined) {
+  if (text === 'left' || text === 'right' || text === 'both') return text
+  return undefined
 }
 
 /**

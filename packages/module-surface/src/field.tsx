@@ -169,7 +169,7 @@ function PickGrid(props: {
       return
     }
     const buttons = [...event.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')]
-    const current = buttons.indexOf(event.target as HTMLElement)
+    const current = buttons.findIndex((button) => button === event.target)
     const next = gridStep(current, event.key, buttons.length, columns)
     if (next === undefined) return
     event.preventDefault()
@@ -391,13 +391,13 @@ function TypedValues(props: {
 }
 
 /** Empty tags are no value */
-function valueOf(tags: FieldProps['tags'], key: string): string | undefined {
+function valueOf(tags: FieldProps['tags'], key: string) {
   const value = tags[key]
   return value === undefined || value === '' ? undefined : value
 }
 
 /** The field the module registers for the type `surfaceSmoothness` */
-export function SurfaceSmoothnessField(props: FieldProps): ReactNode {
+export function SurfaceSmoothnessField(props: FieldProps) {
   const { tags, id, onChange } = props
   const surface = valueOf(tags, SURFACE_KEY)
   const smoothness = valueOf(tags, SMOOTHNESS_KEY)

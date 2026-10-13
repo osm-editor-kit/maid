@@ -72,7 +72,7 @@ const MAIN_KEYS = [
 ]
 
 /** A tag value, or undefined when the tag is missing or empty. */
-function tagValue(tags: Record<string, string>, key: string): string | undefined {
+function tagValue(tags: Record<string, string>, key: string) {
   const value = tags[key]?.trim()
   return value ? value : undefined
 }
@@ -81,7 +81,7 @@ function tagValue(tags: Record<string, string>, key: string): string | undefined
  * Every relation the graph holds: the base data plus local edits. A local entry overrides the
  * base one, and an `undefined` local entry means the relation was deleted.
  */
-export function loadedRelations(graph: Graph): OsmRelation[] {
+export function loadedRelations(graph: Graph) {
   // runs when the sidebar draws: walk the maps, do not copy the ids of every node first
   const relations: OsmRelation[] = []
   for (const [id, entity] of graph.base.entities)
@@ -95,7 +95,7 @@ export function loadedRelations(graph: Graph): OsmRelation[] {
  * A short name for a relation: `name`, else `ref` (with the `type` in front, "route 100"),
  * else the `type` tag, else "Relation".
  */
-export function relationLabel(relation: OsmRelation): string {
+export function relationLabel(relation: OsmRelation) {
   const tags = relation.tags
   const name = tagValue(tags, 'name')
   if (name) return name
@@ -110,7 +110,7 @@ export function relationLabel(relation: OsmRelation): string {
  * A label for a member in the inspector: its `name`, else its main tag as `key=value`,
  * else undefined (the UI then shows only the type and id).
  */
-export function memberLabel(tags: Record<string, string> | undefined): string | undefined {
+export function memberLabel(tags: Record<string, string> | undefined) {
   if (!tags) return undefined
   const name = tagValue(tags, 'name')
   if (name) return name
@@ -125,7 +125,7 @@ export function memberLabel(tags: Record<string, string> | undefined): string | 
  * Every place where the entity is a member, in relation order and then member order.
  * An entity that is in one relation twice gets two entries.
  */
-export function membershipsOf(graph: Graph, entityId: EntityID): Membership[] {
+export function membershipsOf(graph: Graph, entityId: EntityID) {
   const entity = graph.hasEntity(entityId)
   if (!entity) return []
   const result: Membership[] = []
@@ -141,7 +141,7 @@ export function membershipsOf(graph: Graph, entityId: EntityID): Membership[] {
  * The loaded relations an entity can be added to: not the entity itself and not a relation it
  * is already a member of. Sorted by label, then by id.
  */
-export function joinableRelations(graph: Graph, entityId: EntityID): OsmRelation[] {
+export function joinableRelations(graph: Graph, entityId: EntityID) {
   const taken = new Set(membershipsOf(graph, entityId).map((m) => m.relation.id))
   // the label is worked out once per relation, not in every comparison of the sort
   return loadedRelations(graph)
@@ -155,7 +155,7 @@ export function joinableRelations(graph: Graph, entityId: EntityID): OsmRelation
  * The members of a relation in their order, each with its position (0-based `index`), its role,
  * and whether its entity is in the graph. A member that is not loaded keeps its row.
  */
-export function memberRows(graph: Graph, relation: OsmRelation): MemberRow[] {
+export function memberRows(graph: Graph, relation: OsmRelation) {
   return relation.members.map((member, index) => {
     const entity = graph.hasEntity(member.id)
     return {
@@ -170,29 +170,29 @@ export function memberRows(graph: Graph, relation: OsmRelation): MemberRow[] {
 }
 
 /** How many of the rows are not loaded. */
-export function notLoadedCount(rows: readonly MemberRow[]): number {
+export function notLoadedCount(rows: readonly MemberRow[]) {
   return rows.filter((row) => !row.loaded).length
 }
 
 /** The headline of the Members section: "40 members, 12 not loaded" (the second part only if some are missing). */
-export function membersHeadline(rows: readonly MemberRow[]): string {
+export function membersHeadline(rows: readonly MemberRow[]) {
   const count = `${rows.length} ${rows.length === 1 ? 'member' : 'members'}`
   const missing = notLoadedCount(rows)
   return missing > 0 ? `${count}, ${missing} not loaded` : count
 }
 
 /** "1 member" or "3 members" */
-function membersOf(count: number): string {
+function membersOf(count: number) {
   return `${count} ${count === 1 ? 'member' : 'members'}`
 }
 
 /** The button that loads the missing members: "Load the 12 missing members" */
-export function loadButtonLabel(missing: number): string {
+export function loadButtonLabel(missing: number) {
   return `Load the ${missing} missing ${missing === 1 ? 'member' : 'members'}`
 }
 
 /** The button while the members load: "Loading 12 members" */
-export function loadingLabel(missing: number): string {
+export function loadingLabel(missing: number) {
   return `Loading ${membersOf(missing)}`
 }
 
@@ -200,7 +200,7 @@ export function loadingLabel(missing: number): string {
  * The line under the button after a load, when some members are still not loaded: the API did not
  * return them, so loading again will not help. Undefined when all are loaded (the button is gone).
  */
-export function loadResultSentence(added: number, left: number): string | undefined {
+export function loadResultSentence(added: number, left: number) {
   if (left === 0) return undefined
   const notInAPI = left === 1 ? 'is not in the API' : 'are not in the API'
   if (added === 0)
@@ -209,16 +209,12 @@ export function loadResultSentence(added: number, left: number): string | undefi
 }
 
 /** The line under the button when a load failed: the message says why ("OSM API answered 404") */
-export function loadFailureSentence(message: string): string {
+export function loadFailureSentence(message: string) {
   return `Could not load the members: ${message}`
 }
 
 /** The index a member moves to with one step, or undefined when it is at the end already. */
-export function moveTarget(
-  count: number,
-  index: number,
-  direction: 'up' | 'down',
-): number | undefined {
+export function moveTarget(count: number, index: number, direction: 'up' | 'down') {
   const target = direction === 'up' ? index - 1 : index + 1
   return target >= 0 && target < count ? target : undefined
 }
@@ -227,13 +223,13 @@ export function moveTarget(
 type ChainLink = { index: number; way: OsmWay | undefined }
 
 /** The nodes where a way can meet another: its two ends, or every node of a closed way (a roundabout). */
-function touchPoints(way: OsmWay): EntityID[] {
+function touchPoints(way: OsmWay) {
   if (way.isClosed()) return way.nodes
   return [way.first(), way.last()].filter((node): node is EntityID => node !== undefined)
 }
 
 /** Whether two loaded ways share a point where they meet. */
-function joinOf(a: OsmWay | undefined, b: OsmWay | undefined): RouteJoin {
+function joinOf(a: OsmWay | undefined, b: OsmWay | undefined) {
   if (!a || !b || a.nodes.length === 0 || b.nodes.length === 0) return 'unknown'
   const atB = new Set(touchPoints(b))
   return touchPoints(a).some((node) => atB.has(node)) ? 'connected' : 'gap'
@@ -244,10 +240,7 @@ function joinOf(a: OsmWay | undefined, b: OsmWay | undefined): RouteJoin {
  * skipped), whether they connect: keyed by the index of the earlier member. Only `type=route`
  * is checked; other relations, including `route_master`, return nothing.
  */
-export function routeJoins(
-  graph: Graph,
-  relation: OsmRelation,
-): { index: number; join: RouteJoin }[] {
+export function routeJoins(graph: Graph, relation: OsmRelation) {
   if (tagValue(relation.tags, 'type') !== 'route') return []
   const chain: ChainLink[] = []
   relation.members.forEach((member, index) => {
@@ -265,7 +258,7 @@ export function routeJoins(
 }
 
 /** The indexes of the members after which a route has a gap: the ends of the two ways do not meet. */
-export function routeGaps(graph: Graph, relation: OsmRelation): number[] {
+export function routeGaps(graph: Graph, relation: OsmRelation) {
   return routeJoins(graph, relation)
     .filter((entry) => entry.join === 'gap')
     .map((entry) => entry.index)
@@ -276,7 +269,7 @@ export function routeGaps(graph: Graph, relation: OsmRelation): number[] {
  * first, then the order they first appear), then the built-in roles of its type. No duplicates,
  * no empty role. Needs no network.
  */
-export function roleSuggestions(relation: OsmRelation): string[] {
+export function roleSuggestions(relation: OsmRelation) {
   const counts = new Map<string, number>()
   for (const member of relation.members) {
     if (member.role === '') continue
@@ -307,7 +300,7 @@ export function placementOf(
   before: readonly MemberRef[],
   after: readonly MemberRef[],
   entityID: EntityID,
-): Placement | undefined {
+) {
   if (after.length !== before.length + 1) return undefined
   for (let k = 0; k < after.length; k++) {
     if (after[k]?.id !== entityID) continue
@@ -324,11 +317,7 @@ export function placementOf(
 }
 
 /** Whether `after` without its element at `skip` holds the same members, in the same order, as `before`. */
-function sameWithoutIndex(
-  after: readonly MemberRef[],
-  before: readonly MemberRef[],
-  skip: number,
-): boolean {
+function sameWithoutIndex(after: readonly MemberRef[], before: readonly MemberRef[], skip: number) {
   for (let i = 0; i < before.length; i++) {
     const a = after[i < skip ? i : i + 1]
     const b = before[i]
@@ -338,7 +327,7 @@ function sameWithoutIndex(
 }
 
 /** A member's name in a sentence: its label (name or main tag) if it is loaded, else its id. */
-export function memberName(graph: Graph, member: MemberRef): string {
+export function memberName(graph: Graph, member: MemberRef) {
   const entity = graph.hasEntity(member.id)
   return (entity && memberLabel(entity.tags)) || member.id
 }
@@ -347,10 +336,7 @@ export function memberName(graph: Graph, member: MemberRef): string {
  * The line under "Add to a relation" that says where the way went:
  * "Added as member 7 of 12, between A and B", "... at the start" or "... at the end".
  */
-export function placementSentence(
-  placement: Placement,
-  name: (member: MemberRef) => string,
-): string {
+export function placementSentence(placement: Placement, name: (member: MemberRef) => string) {
   const position = `member ${placement.index + 1} of ${placement.count}`
   if (placement.count === 1) return 'Added as the only member'
   if (placement.before && placement.after)
@@ -363,7 +349,7 @@ export function placementSentence(
  * A warning for a membership whose removal breaks something, or undefined. Information only:
  * the edit is not blocked.
  */
-export function membershipHint(relation: OsmRelation, index: number): string | undefined {
+export function membershipHint(relation: OsmRelation, index: number) {
   const member = relation.members[index]
   if (!member || member.type !== 'way') return undefined
   const type = tagValue(relation.tags, 'type')

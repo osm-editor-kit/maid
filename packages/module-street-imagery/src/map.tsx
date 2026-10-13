@@ -113,7 +113,7 @@ export function StreetImageryLayers() {
  * opens in the dock and `true` is returned: the handler must then select no OSM feature, because
  * the photo is drawn above the data. Otherwise `false`, and the click goes on as usual.
  */
-export function streetImageryClick(event: MapLayerMouseEvent): boolean {
+export function streetImageryClick(event: MapLayerMouseEvent) {
   const state = useStreetImageryStore.getState()
   const providers = activeProviders(state.providers, state.mapillaryToken, AUTOMATED)
   if (providers.length === 0) return false

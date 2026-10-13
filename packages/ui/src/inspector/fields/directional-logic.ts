@@ -21,7 +21,7 @@ export type DirectionalKeys = {
 export type DirectionalSide = 'left' | 'right'
 
 /** The keys of a directionalCombo field, from its key (iD's directional_combo.js:89-96, :133-142). */
-export function directionalKeys(key: string): DirectionalKeys {
+export function directionalKeys(key: string) {
   const hasBoth = key.includes(':both')
   const other = hasBoth ? key.replace(/:both(:|$)/, '$1') : `${key}:both`
   const both = hasBoth ? key : other
@@ -35,7 +35,7 @@ function nonEmpty(value: string | undefined): value is string {
 }
 
 /** The first value that is not empty. */
-function firstValue(...values: (string | undefined)[]): string | undefined {
+function firstValue(...values: (string | undefined)[]) {
   return values.find(nonEmpty)
 }
 
@@ -43,16 +43,16 @@ function firstValue(...values: (string | undefined)[]): string | undefined {
  * Whether `value` is a part of `tagKey` after a colon, as iD's `:<value>(:|$)` test on the key:
  * `left` is a part of `cycleway:left`, `lane` is not a part of any key.
  */
-function isPartOf(tagKey: string, value: string): boolean {
+function isPartOf(tagKey: string, value: string) {
   return tagKey.includes(`:${value}:`) || tagKey.endsWith(`:${value}`)
 }
 
 /** Whether the value names a side of the field (left or right) as a part of one of its side keys. */
-function namesSide(keys: DirectionalKeys, value: string): boolean {
+function namesSide(keys: DirectionalKeys, value: string) {
   return isPartOf(keys.left, value) || isPartOf(keys.right, value)
 }
 
-function sideKeyOf(keys: DirectionalKeys, side: DirectionalSide): string {
+function sideKeyOf(keys: DirectionalKeys, side: DirectionalSide) {
   return side === 'left' ? keys.left : keys.right
 }
 
@@ -61,7 +61,7 @@ function sideKeyOf(keys: DirectionalKeys, side: DirectionalSide): string {
  * as iD's read does: `both` means yes; a direction gives yes for its side and no for the other;
  * any other value is the value of both sides; the `:both` key is the value of both sides.
  */
-function sideValue(keys: DirectionalKeys, tags: Tags, side: DirectionalSide): string | undefined {
+function sideValue(keys: DirectionalKeys, tags: Tags, side: DirectionalSide) {
   const own = tags[sideKeyOf(keys, side)]
   if (nonEmpty(own)) return own
   const fallback = tags[keys.fallback]
@@ -75,10 +75,7 @@ function sideValue(keys: DirectionalKeys, tags: Tags, side: DirectionalSide): st
 }
 
 /** The values the two sides show, as the field reads them from the tags. */
-export function directionalValues(
-  keys: DirectionalKeys,
-  tags: Tags,
-): { left: string | undefined; right: string | undefined } {
+export function directionalValues(keys: DirectionalKeys, tags: Tags) {
   return { left: sideValue(keys, tags, 'left'), right: sideValue(keys, tags, 'right') }
 }
 
@@ -97,7 +94,7 @@ export function directionalWrite(
   tags: Tags,
   side: DirectionalSide,
   value: string | undefined,
-): TagEdit[] {
+) {
   const next = nonEmpty(value) ? value : undefined
   const sideKey = sideKeyOf(keys, side)
   const otherSide: DirectionalSide = side === 'left' ? 'right' : 'left'

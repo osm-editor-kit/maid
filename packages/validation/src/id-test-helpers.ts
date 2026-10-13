@@ -24,7 +24,7 @@ export function relation(
   return new OsmRelation(context, { id, members, tags })
 }
 
-export function graphOf(...entities: OsmEntity[]): Graph {
+export function graphOf(...entities: OsmEntity[]) {
   return new Graph(context, entities)
 }
 
@@ -36,7 +36,7 @@ export type Scene = { graph: Graph; ids: string[] }
  * issue it gives. Unlike the validator, this does not merge issues with the same id, which is what
  * the iD expectations count.
  */
-export function validateChanged(rule: Rule, graph: Graph, ids: readonly string[]): Issue[] {
+export function validateChanged(rule: Rule, graph: Graph, ids: readonly string[]) {
   const targets = new Set(ids)
   const ways: OsmWay[] = []
   for (const id of ids) {
@@ -53,7 +53,7 @@ export function validateChanged(rule: Rule, graph: Graph, ids: readonly string[]
 }
 
 /** The data of an issue, as the tests read it. Tests fail when a rule leaves it out. */
-export function dataOf(issue: Issue | undefined): Readonly<Record<string, unknown>> {
+export function dataOf(issue: Issue | undefined) {
   if (!issue?.data) throw new Error(`${issue?.id ?? 'issue'} has no data`)
   return issue.data
 }

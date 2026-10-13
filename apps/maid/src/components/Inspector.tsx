@@ -1,5 +1,5 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
-import { formatMetres } from '@osm-editor-kit/maid-renderer'
+import { type EntityInfo, formatMetres } from '@osm-editor-kit/maid-renderer'
 import {
   type FieldFocus,
   InfoPopover,
@@ -49,7 +49,7 @@ function showFieldFocus(focus: FieldFocus | null) {
 export function Inspector() {
   const { id, ids, select } = useSelection()
   // read again when data arrives: a selection from the URL exists before its feature is loaded
-  const entity = useEngine((e) => e.entity(id))
+  const entity: EntityInfo | undefined = useEngine((e) => e.entity(id))
   const moduleFields = useExtensionPoint(editor, 'inspector.field')
   const fieldTypes = Object.fromEntries(moduleFields.map((item) => [item.type, item.component]))
   // the favourites of the feature's geometry, for the type picker

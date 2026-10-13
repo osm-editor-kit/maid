@@ -26,23 +26,30 @@ type Picked = { road: string; vertex: string; building: string }
       await settle()
       const ids = [road, vertex, building, point]
       const data = await page.evaluate((ids) => {
-        const { engine, editor } = (window as any).__maid
+        const { engine, editor } = window.__maid
         const graph = editor.history.staging.graph
         const entities = ids.map((id) => {
           const entity = graph.hasEntity(id)
-          return entity ? { id, tags: entity.tags, loc: entity.loc, nodes: entity.nodes } : null
+          return entity
+            ? {
+                id,
+                tags: entity.tags,
+                loc: 'loc' in entity ? entity.loc : undefined,
+                nodes: 'nodes' in entity ? entity.nodes : undefined,
+              }
+            : null
         })
         return { entities, undo: engine.undoState(), index: editor.history.index }
       }, ids)
       return { ...data, drawn: await drawnIn([road, building, point]) }
     }
     const reload = async () => {
-      await page.evaluate(() => (window as any).__maid.journalFlushed())
+      await page.evaluate(() => window.__maid.journalFlushed())
       await page.reload()
-      await page.waitForFunction(() => (window as any).__bench !== undefined)
+      await page.waitForFunction(() => window.__bench !== undefined)
     }
     const ready = async () => {
-      await page.evaluate(() => (window as any).__bench.ready())
+      await page.evaluate(() => window.__bench.ready())
       await settle()
     }
     const dialog = page.getByRole('alertdialog')
@@ -52,9 +59,9 @@ type Picked = { road: string; vertex: string; building: string }
 
     point = await page.evaluate(
       async ({ road, vertex }) => {
-        const { engine } = (window as any).__maid
+        const { engine } = window.__maid
         engine.setTag(road, 'name', 'Journalstraße')
-        const [lon, lat] = engine.data.node(vertex).loc
+        const [lon, lat] = engine.data.node(vertex)!.loc!
         engine.dragTo(vertex, lon + 0.0001, lat + 0.0001)
         await engine.endDrag()
         const id = engine.addPoint(lon + 0.0003, lat, { amenity: 'bench' })
@@ -64,7 +71,7 @@ type Picked = { road: string; vertex: string; building: string }
       { road, vertex },
     )
     await runDelete(page, [building])
-    await page.evaluate(() => (window as any).__maid.engine.undo())
+    await page.evaluate(() => window.__maid.engine.undo())
     const edited = await read()
     report('five edits made, one undone', 4, edited.index)
 
@@ -80,18 +87,18 @@ type Picked = { road: string; vertex: string; building: string }
     await ready()
     report('after restore: data, undo state and map as before the reload', edited, await read())
 
-    await page.evaluate(() => (window as any).__maid.engine.redo())
+    await page.evaluate(() => window.__maid.engine.redo())
     await settle()
     report(
       'redo after restore deletes the building again',
       [],
       (await drawnIn([building]))[building],
     )
-    const added = await page.evaluate(() => (window as any).__maid.engine.addPoint(0, 0, {}))
+    const added = await page.evaluate(() => window.__maid.engine.addPoint(0, 0, {}))
     report('a new point does not reuse a restored id', true, added !== point)
-    await page.evaluate(() => (window as any).__maid.engine.undo())
+    await page.evaluate(() => window.__maid.engine.undo())
 
-    for (let i = 0; i < 5; i++) await page.evaluate(() => (window as any).__maid.engine.undo())
+    for (let i = 0; i < 5; i++) await page.evaluate(() => window.__maid.engine.undo())
     const undone = await read()
     report('all undone: data as at the start', pristine.entities, undone.entities)
     report(

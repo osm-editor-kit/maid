@@ -17,7 +17,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
 
   // what the checks work on: two buildings with a free corner each, a point, a road segment, open ground
   const found = (await page.evaluate(() => {
-    const { map, engine } = (window as any).__maid
+    const { map, engine } = window.__maid
     const box = map.getCanvas().getBoundingClientRect()
     const inView = (p: XY) => p.x > 80 && p.y > 80 && p.x < box.width - 80 && p.y < box.height - 80
     type XY = { x: number; y: number }
@@ -40,15 +40,15 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
       }
       const way = id.startsWith('w') && engine.data.way(id)
       if (!way || engine.data.wayMultipolygons.has(id)) continue
-      const at = (n: string) => map.project(engine.data.node(n).loc)
+      const at = (n: string) => map.project(engine.data.node(n)!.loc!)
       if (way.tags.building && !buildings.some((b) => b.id === id)) {
         // a corner that only this building uses, and the middle of an edge to click the outline
         const nodes = [...new Set<string>(way.nodes)]
         const corner = nodes.find(
           (n) => (engine.data.nodeUses.get(n) ?? 0) === 1 && inView(at(n)) && alone(at(n), [id, n]),
         )
-        const a = at(way.nodes[0])
-        const b = at(way.nodes[1])
+        const a = at(way.nodes[0]!)
+        const b = at(way.nodes[1]!)
         const edge = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
         if (
           nodes.length >= 4 &&
@@ -60,8 +60,8 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
       }
       if (way.tags.highway && !road)
         for (let i = 0; i + 1 < way.nodes.length; i++) {
-          const a = at(way.nodes[i])
-          const b = at(way.nodes[i + 1])
+          const a = at(way.nodes[i]!)
+          const b = at(way.nodes[i + 1]!)
           const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
           if (Math.hypot(a.x - b.x, a.y - b.y) > 80 && inView(mid) && alone(mid, [id])) {
             road = { id, mid }
@@ -137,14 +137,12 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
 
   // --- double click: on a way it adds a node, on open ground it zooms ---
   const zoom = (await state()).zoom
-  const mapCentre = (await page.evaluate(() =>
-    (window as any).__maid.map.getCenter().toArray(),
-  )) as number[]
+  const mapCentre = await page.evaluate<[number, number]>(() => {
+    const c = window.__maid.map.getCenter()
+    return [c.lng, c.lat]
+  })
   const roadNodes = () =>
-    page.evaluate(
-      (id) => (window as any).__maid.engine.data.way(id).nodes.length as number,
-      found.road!.id,
-    )
+    page.evaluate((id) => window.__maid.engine.data.way(id)!.nodes.length, found.road!.id)
   const before = await roadNodes()
   await click(found.road.mid, { count: 2 })
   await page.waitForTimeout(500)
@@ -165,7 +163,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   report('double click on open ground zooms in', zoom + 1, (await state()).zoom)
   // the zoom was around the pointer: put zoom and centre back, the positions above depend on both
   await page.evaluate(
-    ({ zoom, mapCentre }) => (window as any).__maid.map.jumpTo({ zoom, center: mapCentre }),
+    ({ zoom, mapCentre }) => window.__maid.map.jumpTo({ zoom, center: mapCentre }),
     { zoom, mapCentre },
   )
   await settle()
@@ -175,27 +173,28 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   // (midpoints.ts, engine.pressMidpoint). A double click on a way adds a node, checked here on a building. ---
   const handles = () =>
     page.evaluate(() => {
-      const { map, engine } = (window as any).__maid
+      const { map, engine } = window.__maid
       return engine.midpointFeatures.map((f: any) => {
         const p = map.project(f.geometry.coordinates)
         return { edge: [...f.properties.edge] as string[], at: { x: p.x, y: p.y } }
       })
     }) as Promise<{ edge: string[]; at: XY }[]>
   const wayNodes = (id: string) =>
-    page.evaluate((id) => [...(window as any).__maid.engine.data.way(id).nodes] as string[], id)
+    page.evaluate((id) => [...window.__maid.engine.data.way(id)!.nodes] as string[], id)
   // the segments of the road that are over 40 px on screen with their middle in view, as "a b" node pairs:
   // what the handles should be, in the order of the way
   const roadId = found.road.id
   const wantedHandles = () =>
     page.evaluate((id) => {
-      const { map, engine } = (window as any).__maid
+      const { map, engine } = window.__maid
       const { clientWidth: w, clientHeight: h } = map.getContainer()
-      const nodes = engine.data.way(id).nodes as string[]
-      const at = nodes.map((n) => map.project(engine.data.node(n).loc))
+      const nodes = engine.data.way(id)!.nodes
+      const at = nodes.map((n) => map.project(engine.data.node(n)!.loc!))
       const out: string[] = []
       for (let i = 0; i + 1 < at.length; i++) {
         const a = at[i]
         const b = at[i + 1]
+        if (!a || !b) continue
         if (Math.hypot(b.x - a.x, b.y - a.y) <= 40) continue
         const x = (a.x + b.x) / 2
         const y = (a.y + b.y) / 2
@@ -214,15 +213,16 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   )
   // zoom in: every segment is twice as long on screen, so the set of handles must change (they are
   // computed when the view stops). Zoom and centre go back afterwards.
-  const view = (await page.evaluate(() => {
-    const { map } = (window as any).__maid
-    return { zoom: map.getZoom() as number, centre: map.getCenter().toArray() as number[] }
-  })) as { zoom: number; centre: number[] }
+  const view = await page.evaluate<{ zoom: number; centre: [number, number] }>(() => {
+    const { map } = window.__maid
+    const c = map.getCenter()
+    return { zoom: map.getZoom(), centre: [c.lng, c.lat] }
+  })
   const beforeZoom = await handlePairs()
-  await page.evaluate(
-    ({ zoom, centre }) => (window as any).__maid.map.jumpTo({ zoom, center: centre }),
-    { zoom: view.zoom + 1, centre: view.centre },
-  )
+  await page.evaluate(({ zoom, centre }) => window.__maid.map.jumpTo({ zoom, center: centre }), {
+    zoom: view.zoom + 1,
+    centre: view.centre,
+  })
   await settle()
   const afterZoom = await handlePairs()
   report(
@@ -237,7 +237,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
     beforeZoom.join() !== afterZoom.join(),
   )
   await page.evaluate(
-    ({ zoom, centre }) => (window as any).__maid.map.jumpTo({ zoom, center: centre }),
+    ({ zoom, centre }) => window.__maid.map.jumpTo({ zoom, center: centre }),
     view,
   )
   await settle()
@@ -310,7 +310,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
     [afterGround.undo, afterGround.selection, afterGround.zoom],
   )
   await page.evaluate(
-    ({ zoom, mapCentre }) => (window as any).__maid.map.jumpTo({ zoom, center: mapCentre }),
+    ({ zoom, mapCentre }) => window.__maid.map.jumpTo({ zoom, center: mapCentre }),
     { zoom, mapCentre },
   )
   await settle()
@@ -323,7 +323,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   await page.waitForTimeout(600)
   const drawn = await state()
   const area = await page.evaluate((id) => {
-    const way = (window as any).__maid.engine.data.way(id)
+    const way = window.__maid.engine.data.way(id)
     return way
       ? [way.nodes.length, way.nodes[0] === way.nodes[way.nodes.length - 1], way.tags.area]
       : null
@@ -345,7 +345,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   await key('Escape')
   const line = await state()
   const lineNodes = await page.evaluate(
-    (id) => (window as any).__maid.engine.data.way(id)?.nodes.length ?? 0,
+    (id) => window.__maid.engine.data.way(id)?.nodes.length ?? 0,
     line.selection[0] ?? '',
   )
   report(
@@ -357,9 +357,9 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
 
   // --- M moves the selection with the pointer, R rotates it ---
   await key('Escape')
-  await page.evaluate((id) => (window as any).__bench.select(id), areaId)
+  await page.evaluate((id) => window.__bench.select(id), areaId)
   const ids = (await page.evaluate(
-    (id) => [...new Set((window as any).__maid.engine.data.way(id).nodes)],
+    (id) => [...new Set(window.__maid.engine.data.way(id)!.nodes)],
     areaId,
   )) as string[]
   const start = await where(ids)
@@ -416,7 +416,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   // Three ways are built in the middle of the view: `wayW` (selected) crosses `wayU` at `junction`,
   // which is bent there; `wayV` shares nothing.
   const built = (await page.evaluate(() => {
-    const { map, editor, model } = (window as any).__maid
+    const { map, editor, model } = window.__maid
     const { history, context } = editor
     const box = map.getCanvas().getBoundingClientRect()
     const node = (dx: number, dy: number) => {
@@ -463,17 +463,17 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   }
   await settle()
   const nodesOf = (way: string) =>
-    page.evaluate((id) => [...(window as any).__maid.engine.data.way(id).nodes] as string[], way)
+    page.evaluate((id) => [...window.__maid.engine.data.way(id)!.nodes] as string[], way)
   const createdNodes = () =>
     page.evaluate(
       () =>
-        (window as any).__maid.engine.data.history
+        window.__maid.engine.data.history
           .changes()
           .created.filter((e: { type: string }) => e.type === 'node').length as number,
     )
   /** Moves the way by 40 px right and 30 px down: the pointer goes to a free spot and then clicks */
   const moveWay = async (way: string) => {
-    await page.evaluate((id) => (window as any).__bench.select(id), way)
+    await page.evaluate((id) => window.__bench.select(id), way)
     await key('m')
     await page.mouse.move(origin.x + 300, origin.y + 800)
     await page.mouse.move(origin.x + 340, origin.y + 830, { steps: 3 })
@@ -549,7 +549,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   )
   await key('Meta+z')
   // the copy below takes the area that was selected before these checks
-  await page.evaluate((id) => (window as any).__bench.select(id), areaId)
+  await page.evaluate((id) => window.__bench.select(id), areaId)
   await settle()
 
   // --- Cmd+C, Cmd+V: a copy where the pointer is ---
@@ -558,10 +558,12 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   await key('Meta+v')
   const pasted = await state()
   const copy = await page.evaluate((id) => {
-    const { map, engine } = (window as any).__maid
+    const { map, engine } = window.__maid
     const way = engine.data.way(id)
     if (!way) return null
-    const points = [...new Set<string>(way.nodes)].map((n) => map.project(engine.data.node(n).loc))
+    const points = [...new Set<string>(way.nodes)].map((n) =>
+      map.project(engine.data.node(n)!.loc!),
+    )
     return {
       nodes: way.nodes.length,
       tags: way.tags,
@@ -612,7 +614,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   await menu.getByRole('menuitem', { name: 'Delete' }).click()
   await settle()
   const deleted = await page.evaluate(
-    (id) => (window as any).__maid.engine.data.way(id) === undefined,
+    (id) => window.__maid.engine.data.way(id) === undefined,
     second.id,
   )
   report(
@@ -708,7 +710,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   // a width field (the fork's features 7 and 10; field-overlay.ts) ---
   const setUpStreet = (id: string) =>
     page.evaluate((id) => {
-      const { engine } = (window as any).__maid
+      const { engine } = window.__maid
       const tags = engine.entity(id)?.tags ?? {}
       // only streets show their sidewalk sides: a path would not
       if (tags.highway !== 'residential') engine.setTag(id, 'highway', 'residential')
@@ -720,17 +722,17 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
     return page.evaluate(() => {
       // what the engine holds for the overlay, not what the map's tiles hold: a tile that is no
       // longer in view keeps its old features, and querySourceFeatures would still return them
-      const features = (window as any).__maid.engine.fieldFeatures as any[]
+      const features: GeoJSON.Feature[] = Reflect.get(window.__maid.engine, 'fieldFeatures')
       const of = (state: string) => features.filter((f) => f.properties?.state === state)
       return {
-        sides: of('field-side').map((f) => f.properties.side),
+        sides: of('field-side').map((f) => f.properties!.side),
         bands: of('field-band').length,
-        labels: of('field-label').map((f) => f.properties.label),
+        labels: of('field-label').map((f) => f.properties!.label),
       }
     })
   }
   const box = await page.evaluate(() => {
-    const rect = (window as any).__maid.map.getCanvas().getBoundingClientRect()
+    const rect = window.__maid.map.getCanvas().getBoundingClientRect()
     return { x: rect.left, y: rect.top, w: rect.width, h: rect.height }
   })
   // the pointer goes to open map: a field's hover ends there
@@ -752,7 +754,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
 
   // a straight street in view: found by its corners on screen (under 12 degrees each), at least 120 px long
   const straight = (await page.evaluate(() => {
-    const { map, engine } = (window as any).__maid
+    const { map, engine } = window.__maid
     const box = map.getCanvas().getBoundingClientRect()
     const inView = (p: { x: number; y: number }) =>
       p.x > 60 && p.y > 60 && p.x < box.width - 60 && p.y < box.height - 60
@@ -760,22 +762,22 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
       const id = String(f.id ?? '')
       const way = id.startsWith('w') && engine.data.way(id)
       if (!way || !way.tags.highway || engine.data.wayMultipolygons.has(id)) continue
-      const pts = way.nodes.map((n: string) => map.project(engine.data.node(n).loc))
+      const pts = way.nodes.map((n: string) => map.project(engine.data.node(n)!.loc!))
       if (pts.length < 2 || !pts.every(inView)) continue
       let straightWay = true
       let length = 0
       for (let i = 0; i + 1 < pts.length; i++)
-        length += Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y)
+        length += Math.hypot(pts[i + 1]!.x - pts[i]!.x, pts[i + 1]!.y - pts[i]!.y)
       for (let i = 1; i + 1 < pts.length; i++) {
-        const a1 = Math.atan2(pts[i].y - pts[i - 1].y, pts[i].x - pts[i - 1].x)
-        const a2 = Math.atan2(pts[i + 1].y - pts[i].y, pts[i + 1].x - pts[i].x)
+        const a1 = Math.atan2(pts[i]!.y - pts[i - 1]!.y, pts[i]!.x - pts[i - 1]!.x)
+        const a2 = Math.atan2(pts[i + 1]!.y - pts[i]!.y, pts[i + 1]!.x - pts[i]!.x)
         if (Math.abs(Math.atan2(Math.sin(a2 - a1), Math.cos(a2 - a1))) > 0.21) straightWay = false
       }
       // the middle of the longest segment, away from its nodes, so that a click picks the way
       let best: { x: number; y: number; len: number } | null = null
       for (let i = 0; i + 1 < pts.length; i++) {
-        const a = pts[i]
-        const b = pts[i + 1]
+        const a = pts[i]!
+        const b = pts[i + 1]!
         const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
         const len = Math.hypot(b.x - a.x, b.y - a.y)
         const nearNode = pts.some(
@@ -848,7 +850,7 @@ failed += await runCheck(
     const graph = (ids: string[], ways: string[]) =>
       page.evaluate(
         ({ ids, ways }) => {
-          const { engine } = (window as any).__maid
+          const { engine } = window.__maid
           return {
             nodes: ids.map((id) => !!engine.data.node(id)),
             ways: ways.map((id) => (engine.data.way(id)?.nodes ?? []) as string[]),
@@ -859,11 +861,11 @@ failed += await runCheck(
       ) as Promise<{ nodes: boolean[]; ways: string[][]; tags: (Record<string, string> | null)[] }>
     // what the checks work on: two buildings with a corner each, a road, a standalone point
     const scene = (await page.evaluate(() => {
-      const { map, engine } = (window as any).__maid
+      const { map, engine } = window.__maid
       const box = map.getCanvas().getBoundingClientRect()
       type P = { x: number; y: number }
       const inView = (p: P) => p.x > 80 && p.y > 80 && p.x < box.width - 80 && p.y < box.height - 80
-      const at = (n: string): P => map.project(engine.data.node(n).loc)
+      const at = (n: string): P => map.project(engine.data.node(n)!.loc!)
       const alone = (p: P, ownIds: string[], r = 12) =>
         map
           .queryRenderedFeatures([
@@ -887,15 +889,15 @@ failed += await runCheck(
             (n: string) =>
               (engine.data.nodeUses.get(n) ?? 0) === 1 && inView(at(n)) && alone(at(n), [id, n]),
           )
-          const a = at(way.nodes[0])
-          const b = at(way.nodes[1])
+          const a = at(way.nodes[0]!)
+          const b = at(way.nodes[1]!)
           const edge = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
           if (corner && inView(edge)) buildings.push({ id, nodes: way.nodes, corner, edge })
         }
         if (way.tags.highway && !road)
           for (let i = 0; i + 1 < way.nodes.length; i++) {
-            const a = at(way.nodes[i])
-            const b = at(way.nodes[i + 1])
+            const a = at(way.nodes[i]!)
+            const b = at(way.nodes[i + 1]!)
             const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
             if (Math.hypot(a.x - b.x, a.y - b.y) > 80 && inView(mid) && alone(mid, [id])) {
               road = { id, mid }
@@ -1042,12 +1044,12 @@ failed += await runCheck(
   process.argv[2] ?? 'small',
   async ({ page, report, settle }) => {
     const vertex = (await page.evaluate(() => {
-      const { map, engine } = (window as any).__maid
+      const { map, engine } = window.__maid
       const box = map.getCanvas().getBoundingClientRect()
       for (const f of map.queryRenderedFeatures()) {
         const id = String(f.id ?? '')
         if (!id.startsWith('n') || !f.source.includes('vertices')) continue
-        const p = map.project(engine.data.node(id).loc)
+        const p = map.project(engine.data.node(id)!.loc!)
         if (p.x < 100 || p.y < 100 || p.x > box.width - 100 || p.y > box.height - 100) continue
         // nothing else to pick within reach, so the finger lands on this vertex
         const others = map
@@ -1068,7 +1070,7 @@ failed += await runCheck(
             [60, 0],
             [0, -60],
             [0, 60],
-          ]) {
+          ] satisfies [number, number][]) {
             const hits = map
               .queryRenderedFeatures([
                 [p.x + dx - 12, p.y + dy - 12],
@@ -1094,9 +1096,9 @@ failed += await runCheck(
       })
     const read = () =>
       page.evaluate((id) => {
-        const { map, engine } = (window as any).__maid
+        const { map, engine } = window.__maid
         const box = map.getCanvas().getBoundingClientRect()
-        const p = map.project(engine.data.node(id).loc)
+        const p = map.project(engine.data.node(id)!.loc!)
         const centre = map.getCenter()
         return {
           x: Math.round(box.left + p.x),
@@ -1131,14 +1133,14 @@ failed += await runCheck(
   process.argv[2] ?? 'small',
   async ({ page, report, settle }) => {
     const edge = (await page.evaluate(() => {
-      const { map, engine } = (window as any).__maid
+      const { map, engine } = window.__maid
       const box = map.getCanvas().getBoundingClientRect()
       for (const f of map.queryRenderedFeatures()) {
         const id = String(f.id ?? '')
         const way = id.startsWith('w') ? engine.data.way(id) : undefined
         if (!way?.tags.building || way.nodes.length < 4 || !engine.isReadOnly(id)) continue
-        const a = map.project(engine.data.node(way.nodes[0]).loc)
-        const b = map.project(engine.data.node(way.nodes[1]).loc)
+        const a = map.project(engine.data.node(way.nodes[0]!)!.loc!)
+        const b = map.project(engine.data.node(way.nodes[1]!)!.loc!)
         const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
         if (mid.x > 120 && mid.y > 120 && mid.x < box.width - 120 && mid.y < box.height - 120)
           return { id, x: box.left + mid.x, y: box.top + mid.y }
@@ -1160,7 +1162,7 @@ failed += await runCheck(
         await menu.count(),
         await first.isDisabled(),
         await first.getAttribute('title'),
-        await page.evaluate(() => [...(window as any).__maid.engine.selection]),
+        await page.evaluate(() => [...window.__maid.engine.selection]),
       ],
     )
   },
@@ -1182,7 +1184,7 @@ failed += await runCheck(
 
     // a place where the features of a click are two or more, and open ground that has none
     const found = (await page.evaluate(() => {
-      const { map, engine } = (window as any).__maid
+      const { map, engine } = window.__maid
       const box = map.getCanvas().getBoundingClientRect()
       const layers = map
         .getStyle()
@@ -1290,11 +1292,11 @@ failed += await runCheck(
   async ({ page, report, settle }) => {
     const { click, key, state } = await checkHelpers(page, settle)
     const widthOf = (id: string) =>
-      page.evaluate((id) => (window as any).__maid.engine.entity(id)?.tags.width ?? null, id)
+      page.evaluate((id) => window.__maid.engine.entity(id)?.tags.width ?? null, id)
     const locsOf = (id: string) =>
       page.evaluate((id) => {
-        const { engine } = (window as any).__maid
-        return engine.data.way(id).nodes.map((n: string) => engine.data.node(n).loc)
+        const { engine } = window.__maid
+        return engine.data.way(id)!.nodes.map((n: string) => engine.data.node(n)!.loc!)
       }, id)
     const measureButton = page.locator(
       '[data-focus-key="width"] button[aria-label^="Measure "][aria-label$=" on the map"]',
@@ -1302,7 +1304,7 @@ failed += await runCheck(
 
     // a road, a building edge to click, and two places of open ground that are at least 100 px apart
     const found = (await page.evaluate(() => {
-      const { map, engine } = (window as any).__maid
+      const { map, engine } = window.__maid
       const box = map.getCanvas().getBoundingClientRect()
       const inView = (p: XY) =>
         p.x > 80 && p.y > 80 && p.x < box.width - 80 && p.y < box.height - 80
@@ -1320,11 +1322,11 @@ failed += await runCheck(
         const id = String(f.id ?? '')
         const way = id.startsWith('w') && engine.data.way(id)
         if (!way || engine.data.wayMultipolygons.has(id) || way.nodes.length < 2) continue
-        const at = (n: string) => map.project(engine.data.node(n).loc)
+        const at = (n: string) => map.project(engine.data.node(n)!.loc!)
         if (way.tags.highway && !road && way.nodes[0] !== way.nodes[way.nodes.length - 1]) road = id
         if (way.tags.building && !building) {
-          const a = at(way.nodes[0])
-          const b = at(way.nodes[1])
+          const a = at(way.nodes[0]!)
+          const b = at(way.nodes[1]!)
           const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
           if (inView(mid) && alone(mid, [id], 8)) building = { id, at: mid }
         }
@@ -1355,7 +1357,7 @@ failed += await runCheck(
 
     // the road, selected as the app selects it, and an add of its width field (as a user does), so
     // that the width has no tag yet
-    await page.evaluate((id) => (window as any).__bench.select(id), road)
+    await page.evaluate((id) => window.__bench.select(id), road)
     await settle()
     await page.getByLabel('Add field').fill('Width')
     await settle()
@@ -1387,7 +1389,7 @@ failed += await runCheck(
     await click(p2)
     const expected = await page.evaluate(
       ({ a, b }) => {
-        const { map } = (window as any).__maid
+        const { map } = window.__maid
         const from = map.unproject([a.x, a.y])
         const to = map.unproject([b.x, b.y])
         // the same great-circle distance as measure.ts, written out here so that the check does not use it

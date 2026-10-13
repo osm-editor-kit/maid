@@ -2,19 +2,19 @@ import { OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 import type { Graph, OsmEntity } from '@osm-editor-kit/maid-model'
 import { deleteFeatureFix } from '../fixes.ts'
 import { isRoutableHighway } from '../tags.ts'
-import type { Issue, Rule, RuleContext } from '../types.ts'
+import type { Rule, RuleContext } from '../types.ts'
 
 // Ported from iD's disconnected_way (ISC, © iD contributors), at commit 0194f3926, with Maid's
 // rule that a feature the run does not validate is part of the network.
 
 /** Aerialways connect for the routing network, except `aerialway=no` and `goods` */
-function isAerialway(way: OsmWay): boolean {
+function isAerialway(way: OsmWay) {
   const value = way.tags.aerialway
   return value !== undefined && value !== 'no' && value !== 'goods'
 }
 
 /** Routable ways: a routable highway, a ferry route, or an aerialway (iD #9406) */
-function isRoutableWay(way: OsmWay, graph: Graph): boolean {
+function isRoutableWay(way: OsmWay, graph: Graph) {
   if (isRoutableHighway(way.tags.highway) || way.tags.route === 'ferry') return true
   if (isAerialway(way)) return true
   return graph
@@ -23,29 +23,29 @@ function isRoutableWay(way: OsmWay, graph: Graph): boolean {
 }
 
 /** A multipolygon whose type is a routable highway: the area is the road, not its outer way */
-function isRoutableRelation(relation: OsmRelation): boolean {
+function isRoutableRelation(relation: OsmRelation) {
   return relation.isMultipolygon() && isRoutableHighway(relation.tags.highway)
 }
 
 /** Golf paths (iD #11863) and aerialways are not checked by themselves, but still connect */
-function shouldSkipAsEntity(way: OsmWay): boolean {
+function shouldSkipAsEntity(way: OsmWay) {
   if (way.tags.golf === 'path' || way.tags.golf === 'cartpath') return true
   return way.tags.aerialway !== undefined && way.tags.aerialway !== ''
 }
 
 /** Elevators are features of their own in the routing network */
-function isRoutableNode(node: OsmNode): boolean {
+function isRoutableNode(node: OsmNode) {
   return node.tags.highway === 'elevator'
 }
 
 /** Entrances (not `entrance=no`) and parking entrances connect a route to the wider network */
-function isConnectedVertex(vertex: OsmNode): boolean {
+function isConnectedVertex(vertex: OsmNode) {
   if (vertex.tags.entrance && vertex.tags.entrance !== 'no') return true
   return vertex.tags.amenity === 'parking_entrance'
 }
 
 /** The nodes that connect a way, or the outer ways of a multipolygon */
-function verticesOf(item: OsmWay | OsmRelation, graph: Graph): OsmNode[] {
+function verticesOf(item: OsmWay | OsmRelation, graph: Graph) {
   const ways: OsmWay[] = []
   if (item instanceof OsmWay) {
     ways.push(item)
@@ -77,11 +77,11 @@ function routingIslandOf(
   graph: Graph,
   validated: ReadonlySet<string>,
   island: Map<string, OsmEntity>,
-): Map<string, OsmEntity> | undefined {
+) {
   const toCheck: Array<OsmWay | OsmRelation> = []
 
   // False when a parent way or multipolygon reaches the rest of the network
-  const queueParents = (node: OsmNode): boolean => {
+  const queueParents = (node: OsmNode) => {
     for (const parent of graph.parentWays(node)) {
       if (!island.has(parent.id) && isRoutableWay(parent, graph)) {
         if (!validated.has(parent.id)) return false
@@ -128,12 +128,13 @@ function routingIslandOf(
  * (an island, or none), and a validation of a whole network floods each of its parts once, not once per road.
  * Ways that never start an island (golf paths, aerialways) are left out: they answer for themselves.
  */
-function islandOfWay(entity: OsmEntity, context: RuleContext): Map<string, OsmEntity> | undefined {
+function islandOfWay(entity: OsmEntity, context: RuleContext) {
   if (!(entity instanceof OsmWay))
     return routingIslandOf(entity, context.graph, context.validated, new Map())
   const key = `disconnected_way:${entity.id}`
   const known = context.memo.get(key)
-  if (known !== undefined) return known === null ? undefined : (known as Map<string, OsmEntity>)
+  if (known === null) return undefined
+  if (known instanceof Map) return known
   const reached = new Map<string, OsmEntity>()
   const island = routingIslandOf(entity, context.graph, context.validated, reached)
   const answer = island ?? null
@@ -156,7 +157,7 @@ function islandOfWay(entity: OsmEntity, context: RuleContext): Map<string, OsmEn
 export const disconnectedWay: Rule = {
   id: 'disconnected_way',
   label: 'Disconnected roads',
-  validate(entity, context): Issue[] {
+  validate(entity, context) {
     const island = islandOfWay(entity, context)
     if (!island) return []
 

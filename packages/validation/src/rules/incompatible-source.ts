@@ -1,5 +1,5 @@
 import { locationOf } from '../geo.ts'
-import type { Issue, Rule } from '../types.ts'
+import type { Rule } from '../types.ts'
 
 /**
  * Sources that OSM must not use as a reference, from iD's `incompatible_source`. `exceptRegex`
@@ -47,23 +47,21 @@ function incompatibleRulesFor(source: string) {
 export const incompatibleSource: Rule = {
   id: 'incompatible_source',
   label: 'Incompatible source',
-  validate(entity, { graph }): Issue[] {
+  validate(entity, { graph }) {
     const sourceTag = entity.tags.source
     if (!sourceTag) return []
     const loc = locationOf(entity, graph)
     return sourceTag.split(';').flatMap((source) =>
-      incompatibleRulesFor(source).map(
-        (matched): Issue => ({
-          id: `incompatible_source:${entity.id}:${source}:${matched.id}`,
-          rule: 'incompatible_source',
-          severity: 'warning',
-          message: `Lists "${source}" as a data source. ${matched.reference}`,
-          entityIds: [entity.id],
-          ...(loc ? { loc } : {}),
-          fixes: [],
-          data: { source, product: matched.id },
-        }),
-      ),
+      incompatibleRulesFor(source).map((matched) => ({
+        id: `incompatible_source:${entity.id}:${source}:${matched.id}`,
+        rule: 'incompatible_source',
+        severity: 'warning',
+        message: `Lists "${source}" as a data source. ${matched.reference}`,
+        entityIds: [entity.id],
+        ...(loc ? { loc } : {}),
+        fixes: [],
+        data: { source, product: matched.id },
+      })),
     )
   },
 }

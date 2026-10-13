@@ -41,7 +41,7 @@ export function PresetPicker(props: {
   favouritesFull?: boolean
   autoFocus?: boolean
   placeholder?: string
-}): ReactNode {
+}) {
   const {
     search,
     onPick,

@@ -1,6 +1,6 @@
 import { OsmWay } from '@osm-editor-kit/maid-model'
 import type { OsmEntity } from '@osm-editor-kit/maid-model'
-import type { Issue, Rule } from '../types.ts'
+import type { Rule } from '../types.ts'
 
 /**
  * The most nodes the OSM API accepts in one way. iD reads it from the server's capabilities; Maid
@@ -10,11 +10,12 @@ import type { Issue, Rule } from '../types.ts'
 export const defaultMaxWayNodes = 2000
 
 /** Ways with more nodes than the OSM API accepts: the upload would be refused */
+// The annotation makes the returned object be checked against the Rule type
 export function createOsmApiLimits(maxWayNodes: number): Rule {
   return {
     id: 'osm_api_limits',
     label: 'OSM API limits',
-    validate(entity: OsmEntity): Issue[] {
+    validate(entity: OsmEntity) {
       if (!(entity instanceof OsmWay)) return []
       const count = entity.nodes.length
       if (count <= maxWayNodes) return []

@@ -52,7 +52,7 @@ export async function checkHelpers(
 ): Promise<Helpers> {
   const leaveFields = options.leaveFields ?? true
   const origin = (await page.evaluate(() => {
-    const box = (window as any).__maid.map.getCanvas().getBoundingClientRect()
+    const box = window.__maid.map.getCanvas().getBoundingClientRect()
     return { x: box.left, y: box.top }
   })) as XY
   const abs = (p: XY) => ({ x: origin.x + p.x, y: origin.y + p.y })
@@ -88,7 +88,7 @@ export async function checkHelpers(
   }
   const state: Helpers['state'] = () =>
     page.evaluate(() => {
-      const { map, engine } = (window as any).__maid
+      const { map, engine } = window.__maid
       return {
         selection: [...engine.selection] as string[],
         zoom: Math.round(map.getZoom() * 100) / 100,
@@ -98,10 +98,10 @@ export async function checkHelpers(
       }
     })
   const selection: Helpers['selection'] = () =>
-    page.evaluate(() => [...(window as any).__maid.engine.selection] as string[])
+    page.evaluate(() => [...window.__maid.engine.selection] as string[])
   const where: Helpers['where'] = (ids) =>
     page.evaluate((ids) => {
-      const { map, engine } = (window as any).__maid
+      const { map, engine } = window.__maid
       return ids.map((id) => {
         const loc = engine.data.node(id)?.loc
         if (!loc) return null
@@ -121,13 +121,14 @@ export async function checkHelpers(
  */
 export const runDelete = (page: Page, ids: string[]) =>
   page.evaluate((ids) => {
-    const { engine, editor } = (window as any).__maid
+    const { engine, editor } = window.__maid
     const operation = editor
       .registry('edit.operation')
       .list()
-      .find((o: any) => o.id === 'delete')
+      .find((o) => o.id === 'delete')!
     engine.setSelected(ids)
-    return (engine.runOperation(operation) ?? null) as string[] | null
+    const next = engine.runOperation(operation)
+    return next ? [...next] : null
   }, ids)
 
 /**
@@ -137,7 +138,7 @@ export const runDelete = (page: Page, ids: string[]) =>
  */
 export const pickBuildingAndRoad = (page: Page, roadMinNodes = 0) =>
   page.evaluate((roadMinNodes) => {
-    const { map, engine } = (window as any).__maid
+    const { map, engine } = window.__maid
     let building: string | undefined
     let road: string | undefined
     for (const source of ['osm-areas', 'osm-lines'])
@@ -149,6 +150,6 @@ export const pickBuildingAndRoad = (page: Page, roadMinNodes = 0) =>
         if (!road && way.tags.highway === 'residential' && way.nodes.length >= roadMinNodes)
           road = id
       }
-    const vertex = road ? engine.data.way(road).nodes[1] : undefined
-    return { building, road, vertex } as { building?: string; road?: string; vertex?: string }
+    const vertex = road ? engine.data.way(road)!.nodes[1] : undefined
+    return { building, road, vertex }
   }, roadMinNodes)

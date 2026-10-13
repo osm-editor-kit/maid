@@ -18,10 +18,7 @@ export type ComboWrite = { value: string | undefined } | 'refused'
  * The text a combo shows for a value. An option's label when the value is listed; otherwise the
  * raw value, which the caller shows in italics. A typeCombo's `yes` shows as empty (as in iD).
  */
-export function shownText(
-  field: Pick<Field, 'type' | 'options'>,
-  value: string | undefined,
-): { text: string; raw: boolean } {
+export function shownText(field: Pick<Field, 'type' | 'options'>, value: string | undefined) {
   if (value === undefined || value === '') return { text: '', raw: false }
   const option = field.options.find((candidate) => candidate.value === value)
   if (option) return { text: option.label, raw: false }
@@ -30,7 +27,7 @@ export function shownText(
 }
 
 /** The option whose label equals the text, case-insensitively. The first one wins. */
-export function matchLabel(options: readonly FieldOption[], text: string): FieldOption | undefined {
+export function matchLabel(options: readonly FieldOption[], text: string) {
   const wanted = text.trim().toLowerCase()
   if (wanted === '') return undefined
   return options.find((option) => option.label.trim().toLowerCase() === wanted)
@@ -42,7 +39,7 @@ export function matchLabel(options: readonly FieldOption[], text: string): Field
  * in the text also matches an underscore in the value). Label prefix matches come first; the
  * order inside each group is the options' order.
  */
-export function filterOptions(options: readonly FieldOption[], text: string): FieldOption[] {
+export function filterOptions(options: readonly FieldOption[], text: string) {
   const query = text.trim().toLowerCase()
   if (query === '') return [...options]
   const underscored = query.replace(/ /g, '_')
@@ -77,7 +74,7 @@ export function valueFromText(field: ComboSpec, text: string): ComboWrite {
 }
 
 /** iD's restrictTagValueSpelling, then cleaned again (lower-casing can lengthen a text). */
-function spell(field: ComboSpec, text: string): string | undefined {
+function spell(field: ComboSpec, text: string) {
   let value = text
   if (field.snakeCase !== false) value = value.replace(/ /g, '_')
   if (field.caseSensitive !== true) value = value.toLowerCase()

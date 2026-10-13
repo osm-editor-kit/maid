@@ -38,7 +38,7 @@ const NON_PRIMARY_KEY = /^(ref|survey|note|([^:]+:|old_|alt_)addr):/
  * iD's isAddressPoint: at least one primary key, and every primary key is `addr:*`.
  * `source=*` and friends do not count, so `addr:*` + `source` is still an address.
  */
-export function isAddressTags(tags: Readonly<Record<string, string>>): boolean {
+export function isAddressTags(tags: Readonly<Record<string, string>>) {
   let primary = 0
   for (const key of Object.keys(tags)) {
     if (UNINTERESTING_KEYS.has(key) || UNINTERESTING_KEY.test(key)) continue
@@ -54,6 +54,6 @@ export function isAddressTags(tags: Readonly<Record<string, string>>): boolean {
  * utilDisplayName with isMapLabel; the unit and the street are never shown on the map).
  * Empty when the node has neither, iD still draws an empty plaque for it.
  */
-export function addressLabel(tags: Readonly<Record<string, string>>): string {
+export function addressLabel(tags: Readonly<Record<string, string>>) {
   return tags['addr:housename'] || tags['addr:housenumber'] || ''
 }

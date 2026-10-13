@@ -22,26 +22,26 @@ export type FavouriteKey = (typeof FAVOURITE_KEYS)[number]
 export const MAX_FAVOURITES = FAVOURITE_KEYS.length
 
 /** The first key no favourite uses, or undefined when every key is taken */
-export function freeFavouriteKey(favourites: Favourite[]): FavouriteKey | undefined {
+export function freeFavouriteKey(favourites: Favourite[]) {
   return FAVOURITE_KEYS.find((key) => !favourites.some((favourite) => favourite.key === key))
 }
 
 /** True when every number key is taken: no more favourites can be made */
-export function isFavouritesFull(favourites: Favourite[]): boolean {
+export function isFavouritesFull(favourites: Favourite[]) {
   return freeFavouriteKey(favourites) === undefined
 }
 
 /** The favourite that a number key starts, if one has that key */
-export function findFavouriteByKey(favourites: Favourite[], key: string): Favourite | undefined {
+export function findFavouriteByKey(favourites: Favourite[], key: string) {
   return favourites.find((favourite) => favourite.key === key)
 }
 
 /** The favourites for one geometry, in their order */
-export function favouritesFor(favourites: Favourite[], geometry: Geometry): Favourite[] {
+export function favouritesFor(favourites: Favourite[], geometry: Geometry) {
   return favourites.filter((favourite) => favourite.geometry === geometry)
 }
 
-function indexOf(favourites: Favourite[], presetId: string, geometry: Geometry): number {
+function indexOf(favourites: Favourite[], presetId: string, geometry: Geometry) {
   return favourites.findIndex(
     (favourite) => favourite.presetId === presetId && favourite.geometry === geometry,
   )
@@ -52,11 +52,7 @@ function indexOf(favourites: Favourite[], presetId: string, geometry: Geometry):
  * out again if it is one. When every key is taken, a new favourite changes nothing and the same
  * list is returned.
  */
-export function toggleFavourite(
-  favourites: Favourite[],
-  presetId: string,
-  geometry: Geometry,
-): Favourite[] {
+export function toggleFavourite(favourites: Favourite[], presetId: string, geometry: Geometry) {
   const index = indexOf(favourites, presetId, geometry)
   if (index >= 0) return favourites.filter((_, at) => at !== index)
   const key = freeFavouriteKey(favourites)
@@ -74,7 +70,7 @@ export function moveFavourite(
   presetId: string,
   geometry: Geometry,
   delta: 1 | -1,
-): Favourite[] {
+) {
   const positions = favourites.flatMap((favourite, index) =>
     favourite.geometry === geometry ? [index] : [],
   )

@@ -23,11 +23,7 @@ export type Projected = { id: string; x: number; y: number }
  * between. Undefined if that place is farther than `tolerance` pixels. The point is clamped to the
  * ends of each segment, so a point beyond an end snaps to that end.
  */
-export function nearestOnPolyline(
-  nodes: readonly Projected[],
-  point: Point,
-  tolerance = SNAP_PX,
-): { x: number; y: number; distance: number; edge: [string, string] } | undefined {
+export function nearestOnPolyline(nodes: readonly Projected[], point: Point, tolerance = SNAP_PX) {
   let best: { x: number; y: number; distance: number; edge: [string, string] } | undefined
   for (let i = 0; i + 1 < nodes.length; i++) {
     const a = nodes[i]!
@@ -51,7 +47,7 @@ export function nearestOnPolyline(
  * The target under the pointer: a node first (a vertex or a point, the first one found), else the
  * nearest way. Several ways that are equally near go to the first one.
  */
-export function chooseTarget(candidates: readonly SnapTarget[]): SnapTarget | undefined {
+export function chooseTarget(candidates: readonly SnapTarget[]) {
   let way: Extract<SnapTarget, { type: 'way' }> | undefined
   for (const candidate of candidates) {
     if (candidate.type === 'node') return candidate
@@ -64,11 +60,7 @@ export function chooseTarget(candidates: readonly SnapTarget[]): SnapTarget | un
  * True if two nodes follow each other in one of the node lists (the node lists of the ways that a
  * node is part of). Connecting such a pair would give a way the same node twice in a row.
  */
-export function followEachOther(
-  lists: readonly (readonly string[])[],
-  a: string,
-  b: string,
-): boolean {
+export function followEachOther(lists: readonly (readonly string[])[], a: string, b: string) {
   return lists.some((nodes) =>
     nodes.some((id, i) => (id === a && nodes[i + 1] === b) || (id === b && nodes[i + 1] === a)),
   )

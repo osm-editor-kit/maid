@@ -38,7 +38,7 @@ const SWITCH =
 type Edges = { left: boolean; right: boolean }
 
 /** The corner classes of a text input. Each class is written out so that Tailwind finds it. */
-function textRadius({ left, right }: Edges): string {
+function textRadius({ left, right }: Edges) {
   if (left && right) return 'rounded-md'
   if (left) return 'rounded-l-md'
   if (right) return 'rounded-r-md'
@@ -49,7 +49,7 @@ function textRadius({ left, right }: Edges): string {
  * The corner classes of a combo, whose input sits inside the combo's own element: the classes
  * are set on the wrapper, for the input inside it.
  */
-function comboRadius({ left, right }: Edges): string {
+function comboRadius({ left, right }: Edges) {
   if (left && right) return '[&_input]:rounded-md'
   if (left) return '[&_input]:rounded-l-md [&_input]:rounded-r-none'
   if (right) return '[&_input]:rounded-r-md [&_input]:rounded-l-none'

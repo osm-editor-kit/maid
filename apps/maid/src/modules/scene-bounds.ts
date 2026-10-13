@@ -1,11 +1,11 @@
-import { defineModule, type MaidModule } from '@osm-editor-kit/maid-core'
+import { defineModule } from '@osm-editor-kit/maid-core'
 import type { MapLayerItem } from '@osm-editor-kit/maid-renderer'
 
 /** Bounding box as [west, south, east, north] */
 export type Bbox = [west: number, south: number, east: number, north: number]
 
 /** Draws the outline of a bounding box as a dashed line, e.g. the extent of a fixture. */
-export function sceneBounds({ bbox }: { bbox: Bbox }): MaidModule {
+export function sceneBounds({ bbox }: { bbox: Bbox }) {
   const [west, south, east, north] = bbox
   const outline: MapLayerItem = {
     id: 'scene-bounds',

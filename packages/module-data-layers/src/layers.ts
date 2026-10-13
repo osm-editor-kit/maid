@@ -32,7 +32,7 @@ export type DataLayerDraw = {
 }
 
 /** Whether the automated-run rule lets a layer load. Stored layers never do; files and local config do. */
-export function allowedWhenAutomated(layer: DataLayer): boolean {
+export function allowedWhenAutomated(layer: DataLayer) {
   if (layer.origin === 'added') return false
   if (layer.origin === 'file') return true
   return isLocalUrl(layer.url)
@@ -46,7 +46,7 @@ export function layersOf(
   config: readonly DataLayerConfig[],
   added: readonly DataLayerConfig[],
   files: readonly FileLayer[],
-): DataLayer[] {
+) {
   const pending: (Omit<DataLayer, 'color'> & { color: string | undefined })[] = [
     ...config.map((layer) => ({ ...layer, color: layer.color, origin: 'config' as const })),
     ...added.map((layer) => ({ ...layer, color: layer.color, origin: 'added' as const })),
@@ -69,7 +69,7 @@ export function visibleLayers(
   layers: readonly DataLayer[],
   hidden: readonly string[],
   automated: boolean,
-): DataLayer[] {
+) {
   const off = new Set(hidden)
   return layers.filter((layer) => !off.has(layer.id) && (!automated || allowedWhenAutomated(layer)))
 }

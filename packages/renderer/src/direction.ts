@@ -25,7 +25,7 @@ const FORWARD = new Map<string, Set<string>>([
  * The direction of a one-way line, or undefined. `oneway=no` wins over everything. Both-ways
  * wins over backwards, as iD draws a both-ways line with its arrows in both directions.
  */
-export function onewayOf(tags: Tags): OneWay | undefined {
+export function onewayOf(tags: Tags) {
   if (tags.oneway === 'no') return undefined
   if (
     tags.oneway === 'alternating' ||
@@ -45,7 +45,7 @@ export function onewayOf(tags: Tags): OneWay | undefined {
  * Arrow colour for a one-way line, as iD's onewayArrowColour: white on dark lines, grey on
  * pedestrian and rail lines, else the default dark grey (undefined here: the layer's default).
  */
-export function arrowColour(tags: Tags): string | undefined {
+export function arrowColour(tags: Tags) {
   if (tags.highway === 'construction' && tags.bridge) return '#fff'
   if (tags.highway === 'pedestrian') return '#eee'
   if (tags.railway && !tags.highway) return '#eee'
@@ -87,14 +87,14 @@ const LIFECYCLE = new Set([
   'removed',
   'intermittent',
 ])
-function withoutLifecycle(key: string): string {
+function withoutLifecycle(key: string) {
   const colon = key.indexOf(':')
   if (colon < 0) return key
   return LIFECYCLE.has(key.slice(0, colon)) ? key.slice(colon + 1) : key
 }
 
 /** The marker kind of a sided line (a key of SIDE_KINDS), or undefined. `two_sided=yes` wins. */
-export function sidedOf(tags: Tags): string | undefined {
+export function sidedOf(tags: Tags) {
   if (tags.two_sided === 'yes') return undefined
   for (const realKey in tags) {
     const key = withoutLifecycle(realKey)
@@ -173,7 +173,7 @@ export const SELECTED_ARROW_IMAGE = 'maid-selected-arrow'
 export const SELECTED_ARROW_HEIGHT = 8
 
 /** The arrow image for a line's direction and colour. layers.ts builds the same id in an expression. */
-export function arrowImageId(oneway: OneWay, colour = ARROW_DEFAULT_COLOUR): string {
+export function arrowImageId(oneway: OneWay, colour = ARROW_DEFAULT_COLOUR) {
   return `${ARROW_IMAGE_PREFIX}${SHAPE_OF[oneway]}-${colour}`
 }
 

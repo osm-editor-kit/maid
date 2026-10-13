@@ -1,5 +1,5 @@
 import { PhotoIcon } from '@heroicons/react/20/solid'
-import { defineModule, type MaidModule } from '@osm-editor-kit/maid-core'
+import { defineModule } from '@osm-editor-kit/maid-core'
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { createElement } from 'react'
 import { ImageryLayers } from './ImageryLayers.tsx'
@@ -15,7 +15,7 @@ export type ImageryOptions = {
  * Imagery under the OSM data: a background (one ELI layer), overlays and a brightness, chosen in
  * the top bar's "Background" panel. Built on `@osm-editor-kit/maplibre-editor-layer-index`.
  */
-export function imagery(options: ImageryOptions = {}): MaidModule {
+export function imagery(options: ImageryOptions = {}) {
   const store = createImageryStore(options.default ?? null)
   return defineModule({
     id: 'imagery',

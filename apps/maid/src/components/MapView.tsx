@@ -64,7 +64,7 @@ function isTyping(target: EventTarget | null) {
  * Where the menu key opens the edit menu: the middle of the selection on screen, as iD opens it
  * at the pointer, which a key does not have. With nothing selected, the middle of the map.
  */
-function keyMenuPlace(): MenuPlace | null {
+function keyMenuPlace() {
   const map = engine.map
   if (!map) return null
   const locs: [number, number][] = []

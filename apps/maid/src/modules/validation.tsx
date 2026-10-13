@@ -1,4 +1,4 @@
-import { defineModule, type Editor, type MaidModule } from '@osm-editor-kit/maid-core'
+import { defineModule, type Editor } from '@osm-editor-kit/maid-core'
 import { OsmWay, type Graph } from '@osm-editor-kit/maid-model'
 import type { DockViewProps, InspectorSectionProps } from '@osm-editor-kit/maid-ui'
 import {
@@ -18,7 +18,7 @@ type Store = {
 }
 
 /** Every way of a graph: the base ways that no edit replaced, then the ways of the edits */
-function waysOf(graph: Graph): OsmWay[] {
+function waysOf(graph: Graph) {
   const ways: OsmWay[] = []
   // an entry in `local` replaces the one in `base`; `undefined` there means deleted
   for (const [id, entity] of graph.base.entities)
@@ -83,7 +83,7 @@ function createStore(editor: Editor, rules: readonly Rule[]): Store & { stop: ()
  * Reads from the validator inside a component. The validator lives outside React, so the React
  * Compiler cannot see that its answers change; passing the version as an argument is what tells it.
  */
-function useIssues<T>(store: Store, read: (validator: Validator, version: number) => T): T {
+function useIssues<T>(store: Store, read: (validator: Validator, version: number) => T) {
   const version = useSyncExternalStore(store.subscribe, store.version)
   return read(store.validator, version)
 }
@@ -155,7 +155,7 @@ function IssueRow(props: {
  * inspector for the selected feature, and as a list of everything in the dock ("Issues").
  * What was loaded and not touched is not checked.
  */
-export function validation({ rules }: { rules: readonly Rule[] }): MaidModule {
+export function validation({ rules }: { rules: readonly Rule[] }) {
   return defineModule({
     id: 'validation',
     setup(api) {

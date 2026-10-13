@@ -55,14 +55,27 @@ export function ContextMenu(props: {
 
   const onKeyDown = (event: KeyboardEvent) => {
     const buttons = [...(menu.current?.querySelectorAll<HTMLButtonElement>('button:enabled') ?? [])]
-    const current = buttons.indexOf(document.activeElement as HTMLButtonElement)
+    const current = buttons.findIndex((button) => button === document.activeElement)
     const focus = (index: number) => buttons[(index + buttons.length) % buttons.length]?.focus()
-    if (event.key === 'Escape') onClose()
-    else if (event.key === 'ArrowDown') focus(current + 1)
-    else if (event.key === 'ArrowUp') focus(current - 1)
-    else if (event.key === 'Home') focus(0)
-    else if (event.key === 'End') focus(-1)
-    else return
+    switch (event.key) {
+      case 'Escape':
+        onClose()
+        break
+      case 'ArrowDown':
+        focus(current + 1)
+        break
+      case 'ArrowUp':
+        focus(current - 1)
+        break
+      case 'Home':
+        focus(0)
+        break
+      case 'End':
+        focus(-1)
+        break
+      default:
+        return
+    }
     event.preventDefault()
     event.stopPropagation()
   }

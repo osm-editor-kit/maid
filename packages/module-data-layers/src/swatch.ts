@@ -12,7 +12,7 @@ const NAMES: Record<string, string> = {
 }
 
 /** The index of a colour in the palette (case does not matter), or -1 when it is a custom colour */
-export function swatchIndex(color: string, palette: readonly string[]): number {
+export function swatchIndex(color: string, palette: readonly string[]) {
   return palette.indexOf(color.toLowerCase())
 }
 
@@ -20,7 +20,7 @@ export function swatchIndex(color: string, palette: readonly string[]): number {
  * The swatch an arrow key moves to: right and down go forward, left and up back, both wrap around.
  * Undefined for any other key, so the caller leaves the key alone.
  */
-export function stepIndex(current: number, count: number, key: string): number | undefined {
+export function stepIndex(current: number, count: number, key: string) {
   if (count < 1) return undefined
   const step =
     key === 'ArrowRight' || key === 'ArrowDown'
@@ -33,7 +33,7 @@ export function stepIndex(current: number, count: number, key: string): number |
 }
 
 /** The name of a palette colour for a screen reader; any other colour is named by its hex value */
-export function colourName(color: string): string {
+export function colourName(color: string) {
   const hex = color.toLowerCase()
   return NAMES[hex] ?? hex
 }

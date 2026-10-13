@@ -1,5 +1,5 @@
 import type { Field, FieldOption, Tags } from '@osm-editor-kit/maid-presets'
-import { cleanValue, isUnsetOption, MAX_VALUE_LENGTH, valueLength, type TagEdit } from '../logic.ts'
+import { cleanValue, isUnsetOption, MAX_VALUE_LENGTH, valueLength } from '../logic.ts'
 import { matchLabel, valueFromText } from './combo-logic.ts'
 
 /*
@@ -8,14 +8,14 @@ import { matchLabel, valueFromText } from './combo-logic.ts'
  * components in Multi.tsx only call these.
  */
 
-function unique(values: readonly string[]): string[] {
+function unique(values: readonly string[]) {
   return [...new Set(values)]
 }
 
 // ---------------------------------------------------------------- semiCombo
 
 /** The values of one tag: split at ';', trimmed, empty ones dropped. Order and duplicates kept. */
-export function semiList(value: string | undefined): string[] {
+export function semiList(value: string | undefined) {
   if (value === undefined) return []
   return value
     .split(';')
@@ -24,7 +24,7 @@ export function semiList(value: string | undefined): string[] {
 }
 
 /** The pieces of a typed text: a comma or a semicolon separates them. Empty pieces are dropped. */
-export function semiValues(text: string): string[] {
+export function semiValues(text: string) {
   return text
     .split(/[,;]/)
     .map((part) => part.trim())
@@ -32,7 +32,7 @@ export function semiValues(text: string): string[] {
 }
 
 /** The text after the last separator: what the list filters by while several values are typed. */
-export function afterLastSeparator(text: string): string {
+export function afterLastSeparator(text: string) {
   const cut = Math.max(text.lastIndexOf(','), text.lastIndexOf(';'))
   return cut < 0 ? text : text.slice(cut + 1)
 }
@@ -41,12 +41,12 @@ export function afterLastSeparator(text: string): string {
  * The tag value for a list of values: joined with ';', cleaned as every tag value is (cut to 255
  * characters). No values removes the tag.
  */
-export function semiWrite(values: readonly string[]): string | undefined {
+export function semiWrite(values: readonly string[]) {
   return cleanValue(values.join(';'))
 }
 
 /** The list fills the 255 characters: no value can be added and the input hides. */
-export function semiFull(values: readonly string[]): boolean {
+export function semiFull(values: readonly string[]) {
   return valueLength(semiWrite(values) ?? '') >= MAX_VALUE_LENGTH
 }
 
@@ -55,7 +55,7 @@ export function semiFull(values: readonly string[]): boolean {
  * (a label becomes its value; refused and empty pieces are dropped). Duplicates are removed, as
  * iD does unless a field allows them.
  */
-export function addSemi(field: Field, current: readonly string[], typed: string): string[] {
+export function addSemi(field: Field, current: readonly string[], typed: string) {
   const added: string[] = []
   for (const piece of semiValues(typed)) {
     const write = valueFromText(field, piece)
@@ -74,7 +74,7 @@ export function acceptSemi(
   current: readonly string[],
   typed: string,
   option?: FieldOption,
-): string[] {
+) {
   if (option === undefined) return addSemi(field, current, typed)
   const cut = Math.max(typed.lastIndexOf(','), typed.lastIndexOf(';'))
   const before = cut < 0 ? '' : typed.slice(0, cut)
@@ -82,12 +82,12 @@ export function acceptSemi(
 }
 
 /** The list without the value at the index. Index based, so equal values are removed one at a time. */
-export function removeSemi(current: readonly string[], index: number): string[] {
+export function removeSemi(current: readonly string[], index: number) {
   return current.filter((_, position) => position !== index)
 }
 
 /** The options a semi list still offers: those whose value is not chosen yet. */
-export function semiOptions(field: Field, current: readonly string[]): FieldOption[] {
+export function semiOptions(field: Field, current: readonly string[]) {
   return field.options.filter((option) => !isUnsetOption(option) && !current.includes(option.value))
 }
 
@@ -107,7 +107,7 @@ export function chipState(value: string): ChipState {
  * The key prefix of a multiCombo: its key with a ':' at the end (iD adds it, combo.js:57-60).
  * Undefined without a key or with an empty one.
  */
-export function multiPrefix(field: Pick<Field, 'key'>): string | undefined {
+export function multiPrefix(field: Pick<Field, 'key'>) {
   if (field.key === undefined || field.key === '') return undefined
   return field.key.endsWith(':') ? field.key : `${field.key}:`
 }
@@ -116,7 +116,7 @@ export function multiPrefix(field: Pick<Field, 'key'>): string | undefined {
  * The tag a chosen suffix stands for. Undefined when the suffix is empty: a multiCombo never
  * writes the bare prefix as a tag (the `payment:` bug).
  */
-export function multiKey(field: Pick<Field, 'key'>, suffix: string): string | undefined {
+export function multiKey(field: Pick<Field, 'key'>, suffix: string) {
   const prefix = multiPrefix(field)
   if (prefix === undefined || suffix === '') return undefined
   return `${prefix}${suffix}`
@@ -126,7 +126,7 @@ export function multiKey(field: Pick<Field, 'key'>, suffix: string): string | un
  * The suffix a typed text stands for: a label becomes its option's value, any other text is
  * spelled as a combo spells it. Undefined when nothing is left.
  */
-export function multiSuffix(field: Field, typed: string): string | undefined {
+export function multiSuffix(field: Field, typed: string) {
   const write = valueFromText(field, typed)
   if (write === 'refused') return undefined
   return write.value
@@ -148,7 +148,7 @@ export type MultiChip = {
  * The chips of a multiCombo: every tag that starts with the prefix and has a value. The bare
  * prefix is not a chip. Chips follow the options' order; unknown suffixes come last, in tag order.
  */
-export function multiChosen(field: Field, tags: Tags): MultiChip[] {
+export function multiChosen(field: Field, tags: Tags) {
   const prefix = multiPrefix(field)
   if (prefix === undefined) return []
   const chips: MultiChip[] = []
@@ -169,7 +169,7 @@ export function multiChosen(field: Field, tags: Tags): MultiChip[] {
   return chips.sort((a, b) => optionRank(field, a.suffix) - optionRank(field, b.suffix))
 }
 
-function optionRank(field: Pick<Field, 'options'>, value: string): number {
+function optionRank(field: Pick<Field, 'options'>, value: string) {
   const index = field.options.findIndex((option) => option.value === value)
   return index < 0 ? field.options.length : index
 }
@@ -178,7 +178,7 @@ function optionRank(field: Pick<Field, 'options'>, value: string): number {
  * The write that chooses a suffix. It is `yes`, unless the tag has a value other than `no`:
  * then the value stays (iD keeps `language:de=main`). Undefined when nothing is to be written.
  */
-export function multiAdd(field: Field, tags: Tags, suffix: string): TagEdit | undefined {
+export function multiAdd(field: Field, tags: Tags, suffix: string) {
   const key = multiKey(field, suffix)
   if (key === undefined) return undefined
   const old = tags[key]
@@ -187,12 +187,12 @@ export function multiAdd(field: Field, tags: Tags, suffix: string): TagEdit | un
 }
 
 /** The write that flips a chip between yes and no (iD's invertMultikey). Anything else becomes yes. */
-export function multiToggle(chip: MultiChip): TagEdit {
+export function multiToggle(chip: MultiChip) {
   return { key: chip.key, value: chip.state === 'yes' ? 'no' : 'yes' }
 }
 
 /** The options a multiCombo's input offers: those that have no chip yet. */
-export function multiOptions(field: Field, chips: readonly MultiChip[]): FieldOption[] {
+export function multiOptions(field: Field, chips: readonly MultiChip[]) {
   return field.options.filter(
     (option) => !isUnsetOption(option) && !chips.some((chip) => chip.suffix === option.value),
   )
@@ -204,12 +204,12 @@ export function multiOptions(field: Field, chips: readonly MultiChip[]): FieldOp
 export type ManyChip = { key: string; label: string; value: string; state: ChipState }
 
 /** The label of a key: its option's label, else the key itself. */
-export function manyLabel(field: Pick<Field, 'options'>, key: string): string {
+export function manyLabel(field: Pick<Field, 'options'>, key: string) {
   return field.options.find((option) => option.value === key)?.label ?? key
 }
 
 /** The chips of a manyCombo: the field's keys that have a value, in the order of `keys`. */
-export function manyChosen(field: Field, tags: Tags): ManyChip[] {
+export function manyChosen(field: Field, tags: Tags) {
   return (field.keys ?? [])
     .filter((key) => (tags[key] ?? '') !== '')
     .map((key) => {
@@ -219,23 +219,23 @@ export function manyChosen(field: Field, tags: Tags): ManyChip[] {
 }
 
 /** The keys a manyCombo's input offers: those without a value. Customs are not allowed. */
-export function manyCandidates(field: Field, tags: Tags): FieldOption[] {
+export function manyCandidates(field: Field, tags: Tags) {
   return (field.keys ?? [])
     .filter((key) => (tags[key] ?? '') === '')
     .map((key) => ({ value: key, label: manyLabel(field, key) }))
 }
 
 /** The key a typed text picks: an exact label of one of the candidates. */
-export function manyPick(candidates: readonly FieldOption[], typed: string): string | undefined {
+export function manyPick(candidates: readonly FieldOption[], typed: string) {
   return matchLabel(candidates, typed)?.value
 }
 
 /** The write that chooses a key: it is set to yes. */
-export function manyAdd(key: string): TagEdit {
+export function manyAdd(key: string) {
   return { key, value: 'yes' }
 }
 
 /** The write that removes a key. */
-export function manyRemove(key: string): TagEdit {
+export function manyRemove(key: string) {
   return { key, value: undefined }
 }

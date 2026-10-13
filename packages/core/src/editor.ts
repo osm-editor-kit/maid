@@ -32,9 +32,7 @@ export function createEditor(config: EditorConfig = {}): Editor {
   const active: { id: string; cleanup: () => void }[] = []
   let destroyed = false
 
-  function registryFor<K extends PointName>(
-    point: K,
-  ): Registry<ExtensionPoints[K] & { id: string }> {
+  function registryFor<K extends PointName>(point: K) {
     let registry = registries.get(point)
     if (!registry) {
       registry = createRegistry(point, onError)
@@ -43,7 +41,7 @@ export function createEditor(config: EditorConfig = {}): Editor {
     return registry as Registry<ExtensionPoints[K] & { id: string }>
   }
 
-  function destroy(): void {
+  function destroy() {
     if (destroyed) return
     destroyed = true
     for (const { id, cleanup } of active.reverse()) {
@@ -56,10 +54,10 @@ export function createEditor(config: EditorConfig = {}): Editor {
     }
   }
 
-  function setUp(module: MaidModule): void {
+  function setUp(module: MaidModule) {
     // What the module registered. Undone in reverse order after its own cleanup function.
     const undo: (() => void)[] = []
-    const guard = (): void => {
+    const guard = () => {
       if (destroyed) throw new Error(`Module "${module.id}" used its api after editor.destroy().`)
     }
     const api: ModuleApi = {
@@ -73,7 +71,7 @@ export function createEditor(config: EditorConfig = {}): Editor {
         undo.push(hooks.on(name, listener, module.id))
       },
     }
-    const cleanup = (own?: () => void): void => {
+    const cleanup = (own?: () => void) => {
       try {
         own?.()
       } finally {
@@ -119,7 +117,7 @@ export function createEditor(config: EditorConfig = {}): Editor {
   return editor
 }
 
-function assertUniqueIds(modules: MaidModule[]): void {
+function assertUniqueIds(modules: MaidModule[]) {
   const seen = new Set<string>()
   for (const { id } of modules) {
     if (seen.has(id)) throw new Error(`Duplicate module id "${id}". Module ids must be unique.`)

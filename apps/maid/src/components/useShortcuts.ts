@@ -120,10 +120,11 @@ export function useShortcuts() {
     { hotkey: '=', callback: () => engine.map?.zoomIn() },
     { hotkey: '-', callback: () => engine.map?.zoomOut() },
     // the keys of the edit menu
-    ...operations.flatMap((operation): UseHotkeyDefinition[] =>
+    ...operations.flatMap((operation) =>
       operation.shortcut
         ? [
             {
+              // the operation's shortcut is a plain string; the hotkey library's type is a union of key names
               hotkey: operation.shortcut.toUpperCase() as UseHotkeyDefinition['hotkey'],
               callback: () => {
                 const next = engine.runOperation(operation)

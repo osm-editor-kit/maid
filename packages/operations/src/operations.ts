@@ -18,13 +18,7 @@ import {
   actionStraightenNodes,
   actionStraightenWay,
 } from '@osm-editor-kit/maid-model'
-import type {
-  Action,
-  DisconnectAction,
-  Graph,
-  OsmEntity,
-  SplitAction,
-} from '@osm-editor-kit/maid-model'
+import type { Action, DisconnectAction, Graph, OsmEntity } from '@osm-editor-kit/maid-model'
 import type { Operation, OperationContext } from './types.ts'
 
 /** Used when an action gives a reason code that has no sentence here */
@@ -34,7 +28,7 @@ const FALLBACK = 'This cannot be done here'
 type Sentence = string | readonly [single: string, several: string]
 
 /** The sentence for a reason code of an action, for a selection of `count` features */
-function reasonSentence(reasons: Record<string, Sentence>, code: string, count: number): string {
+function reasonSentence(reasons: Record<string, Sentence>, code: string, count: number) {
   const sentence = Object.hasOwn(reasons, code) ? reasons[code] : undefined
   if (sentence === undefined) return FALLBACK
   if (typeof sentence === 'string') return sentence
@@ -42,7 +36,7 @@ function reasonSentence(reasons: Record<string, Sentence>, code: string, count: 
 }
 
 /** The entities of the selection, in order. Undefined when there is no selection or an id is not in the graph. */
-function resolveSelection(context: OperationContext): OsmEntity[] | undefined {
+function resolveSelection(context: OperationContext) {
   if (context.selected.length === 0) return undefined
   const entities: OsmEntity[] = []
   for (const id of context.selected) {
@@ -54,22 +48,22 @@ function resolveSelection(context: OperationContext): OsmEntity[] | undefined {
 }
 
 /** A node that belongs to at least one way (iD's "vertex") */
-function isVertex(entity: OsmEntity, graph: Graph): boolean {
+function isVertex(entity: OsmEntity, graph: Graph) {
   return entity instanceof OsmNode && entity.geometry(graph) === 'vertex'
 }
 
 /** The ids without repeats, keeping the first occurrence */
-function unique(ids: readonly string[]): string[] {
+function unique(ids: readonly string[]) {
   return [...new Set(ids)]
 }
 
 /** Why an action cannot run on this graph, or undefined when it can */
-function reasonOf(action: Action, graph: Graph): string | undefined {
+function reasonOf(action: Action, graph: Graph) {
   return action.disabled?.(graph) || undefined
 }
 
 /** The reason that blocks every action, or undefined when at least one can run. Several different reasons: 'multiple_blockers'. */
-function blockedByAll(actions: Action[], graph: Graph): string | undefined {
+function blockedByAll(actions: Action[], graph: Graph) {
   const reasons: string[] = []
   for (const action of actions) {
     const reason = reasonOf(action, graph)
@@ -81,6 +75,7 @@ function blockedByAll(actions: Action[], graph: Graph): string | undefined {
 }
 
 /** Thrown when `run` is called for a selection the operation does not apply to */
+// `never`: a function that only throws infers `void`, which would stop `??` narrowing.
 function notApplicable(operationID: string): never {
   throw new Error(`The ${operationID} operation does not apply to this selection`)
 }
@@ -88,7 +83,7 @@ function notApplicable(operationID: string): never {
 // Reverse
 
 /** Lines (not areas) and nodes whose direction tags would change. iD offers nothing else. */
-function reverseTargets(context: OperationContext): OsmEntity[] {
+function reverseTargets(context: OperationContext) {
   const graph = context.graph
   return (resolveSelection(context) ?? []).filter((entity) => {
     if (entity instanceof OsmWay) return entity.geometry(graph) === 'line'
@@ -129,10 +124,8 @@ const SPLIT_REASONS: Record<string, Sentence> = {
   not_eligible: "Lines can't be split at their beginning or end.",
 }
 
-type SplitPlan = { action: SplitAction; vertexIDs: string[]; wayIDs: string[] }
-
 /** iD: one or more vertices, and nothing selected besides vertices and ways */
-function splitPlan(context: OperationContext): SplitPlan | undefined {
+function splitPlan(context: OperationContext) {
   const entities = resolveSelection(context)
   if (!entities) return undefined
   const graph = context.graph
@@ -145,7 +138,7 @@ function splitPlan(context: OperationContext): SplitPlan | undefined {
   return { action, vertexIDs, wayIDs }
 }
 
-function splitAnnotation(geometries: string[], n: number): string {
+function splitAnnotation(geometries: string[], n: number) {
   if (geometries.length === 1 && geometries[0] === 'area') {
     return n === 1 ? 'Split the edge of an area' : `Split ${n} areas`
   }
@@ -206,7 +199,7 @@ const MERGE_REASONS: Record<string, Sentence> = {
  * Two or more lines, joined end to end. iD's other merges (a point into a line or area, areas
  * into a multipolygon, nodes into one) are not ported: for those selections this does not apply.
  */
-function mergePlan(context: OperationContext): { action: Action; ids: string[] } | undefined {
+function mergePlan(context: OperationContext) {
   const entities = resolveSelection(context)
   if (!entities || entities.length < 2) return undefined
   if (
@@ -264,7 +257,7 @@ const STRAIGHTEN_REASONS: Record<string, Sentence> = {
  * iD's rule for ways: none is closed, the selected ways form one chain (two free ends in total),
  * and the chain has more than two nodes. A selected node pair must lie on the chain.
  */
-function straightenableWays(ways: OsmWay[], nodes: OsmNode[]): boolean {
+function straightenableWays(ways: OsmWay[], nodes: OsmNode[]) {
   if (ways.some((way) => way.isClosed())) return false
   const starts: string[] = []
   const ends: string[] = []
@@ -287,10 +280,8 @@ function straightenableWays(ways: OsmWay[], nodes: OsmNode[]): boolean {
   return nodes.length !== 2 || nodes.every((node) => wayNodes.includes(node.id))
 }
 
-type StraightenPlan = { action: Action; kind: 'point' | 'line'; count: number }
-
 /** iD: three or more nodes (points), or ways with nothing or exactly two nodes selected (lines) */
-function straightenPlan(context: OperationContext): StraightenPlan | undefined {
+function straightenPlan(context: OperationContext) {
   const entities = resolveSelection(context)
   if (!entities) return undefined
   const nodes = entities.filter((entity): entity is OsmNode => entity instanceof OsmNode)
@@ -362,7 +353,7 @@ type SquareTarget = { corner: boolean; action: Action }
  * iD: each selected entity is either a way with more than two nodes (its whole outline is squared)
  * or a vertex on exactly one way (that corner is squared). Corners and whole features are not mixed.
  */
-function squareTargets(context: OperationContext): SquareTarget[] | undefined {
+function squareTargets(context: OperationContext) {
   const entities = resolveSelection(context)
   if (!entities) return undefined
   const graph = context.graph
@@ -441,7 +432,7 @@ const CIRCULARIZE_REASONS: Record<string, Sentence> = {
  * iD: every selected entity is a way with at least two nodes. Not ported: iD first joins
  * unclosed ways into loops; here an unclosed way is disabled ("not a loop") instead.
  */
-function circularizeTargets(context: OperationContext): Action[] | undefined {
+function circularizeTargets(context: OperationContext) {
   const entities = resolveSelection(context)
   if (!entities) return undefined
   if (!entities.every((entity) => entity instanceof OsmWay && unique(entity.nodes).length > 1))
@@ -487,14 +478,12 @@ const DISCONNECT_REASONS: Record<string, Sentence> = {
   relation: "This can't be disconnected because it connects members of a relation.",
 }
 
-type DisconnectPlan = { actions: DisconnectAction[]; fromEachOther: boolean }
-
 /**
  * iD: vertices (with or without ways): the selected ways, or all ways, are separated at each
  * vertex. Only ways: the ways are separated from each other where they share a node, otherwise
  * from everything they touch. Anything else in the selection: not offered.
  */
-function disconnectPlan(context: OperationContext): DisconnectPlan | undefined {
+function disconnectPlan(context: OperationContext) {
   const entities = resolveSelection(context)
   if (!entities) return undefined
   const graph = context.graph
@@ -576,7 +565,7 @@ export const disconnectOperation: Operation = {
  * iD: a vertex with interesting tags, or an area with interesting tags. iD also requires that the
  * preset of the feature allows points; there are no presets here, so every area with tags is offered.
  */
-function extractTargets(context: OperationContext): OsmEntity[] | undefined {
+function extractTargets(context: OperationContext) {
   const entities = resolveSelection(context)
   if (!entities) return undefined
   const graph = context.graph
@@ -613,7 +602,7 @@ export const extractOperation: Operation = {
 }
 
 /** Mirrors the selection along its long or its short axis, as iD's T and Y do */
-function reflectOperation(axis: 'long' | 'short'): Operation {
+function reflectOperation(axis: 'long' | 'short') {
   // what can be mirrored: at least one way, or several nodes. A single node has no axis.
   const targets = (context: OperationContext) => {
     const entities = context.selected.map((id) => context.graph.hasEntity(id))
@@ -635,7 +624,7 @@ function reflectOperation(axis: 'long' | 'short'): Operation {
         annotation: n === 1 ? 'Flipped a feature' : `Flipped ${n} features`,
       }
     },
-  }
+  } satisfies Operation
 }
 
 export const reflectLongOperation = reflectOperation('long')
@@ -678,7 +667,7 @@ const TAU = 2 * Math.PI
  * at their mean latitude). Infinity when a node has no position: every comparison with it is then
  * false, which is how iD's NaN behaves.
  */
-function metresBetween(fromID: string, toID: string, graph: Graph): number {
+function metresBetween(fromID: string, toID: string, graph: Graph) {
   const from = graph.hasEntity(fromID)
   const to = graph.hasEntity(toID)
   if (!(from instanceof OsmNode) || !(to instanceof OsmNode) || !from.loc || !to.loc)
@@ -701,7 +690,7 @@ function metresBetween(fromID: string, toID: string, graph: Graph): number {
  * vertex belongs to. At an end of the way, the node next to it. In the middle, the nearer one (the
  * following one when both are equally near). Undefined for a way of one node.
  */
-function nextNodeOnWay(vertex: OsmNode, graph: Graph): string | undefined {
+function nextNodeOnWay(vertex: OsmNode, graph: Graph) {
   const parent = graph.parentWays(vertex)[0]
   if (!parent) return undefined
   const nodes = parent.nodes
@@ -721,7 +710,7 @@ function nextNodeOnWay(vertex: OsmNode, graph: Graph): string | undefined {
  * iD's protectedMember: a way that is a member of a route or a boundary, or the outer ring of a
  * multipolygon (a member without a role counts as outer). Deleting it would break that relation.
  */
-function isProtectedWay(way: OsmWay, graph: Graph): boolean {
+function isProtectedWay(way: OsmWay, graph: Graph) {
   return graph.parentRelations(way).some((relation) => {
     const role = relation.memberById(way.id)?.role || 'outer'
     const type = relation.tags.type
@@ -733,7 +722,7 @@ function isProtectedWay(way: OsmWay, graph: Graph): boolean {
  * iD's disabled reasons for delete, in iD's order. Not here: `too_large` (needs the visible
  * extent), `not_downloaded` (needs the tiles loaded) and `connected_to_hidden` (needs the filters).
  */
-function deleteReason(entities: OsmEntity[], graph: Graph): string | undefined {
+function deleteReason(entities: OsmEntity[], graph: Graph) {
   if (entities.some((entity) => entity instanceof OsmWay && isProtectedWay(entity, graph)))
     return 'part_of_relation'
   if (entities.some((entity) => entity instanceof OsmRelation && !entity.isComplete(graph)))

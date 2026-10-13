@@ -1,8 +1,8 @@
+import type { MaidModule } from '@osm-editor-kit/maid-core'
 /**
  * What this editor is: the modules it is made of, one per line so that one can be commented out.
  * The run-time settings (scene, live data, ...) come from the URL and are read once, in config.ts.
  */
-import type { EditorConfig, MaidModule } from '@osm-editor-kit/maid-core'
 import { defaultFilters } from '@osm-editor-kit/maid-filters'
 import { dataLayers } from '@osm-editor-kit/maid-module-data-layers'
 import { imagery } from '@osm-editor-kit/maid-module-imagery'
@@ -13,7 +13,7 @@ import {
   streetImageryPresetChanges,
 } from '@osm-editor-kit/maid-module-street-imagery'
 import { defaultOperations, pointToArea } from '@osm-editor-kit/maid-operations'
-import { createPresets, withChanges, type PresetChanges } from '@osm-editor-kit/maid-presets'
+import { createPresets, withChanges } from '@osm-editor-kit/maid-presets'
 import { defaultPresetData } from '@osm-editor-kit/maid-presets/default'
 // import { examplePresetChanges } from './preset-changes.example'
 import { operations } from '@osm-editor-kit/maid-renderer'
@@ -40,7 +40,7 @@ const BBOX: Record<string, Bbox> = {
  * - street-level images: one field for a feature's image tags (mapillary, panoramax)
  */
 const presets = createPresets(
-  withChanges(defaultPresetData, streetImageryPresetChanges as PresetChanges),
+  withChanges(defaultPresetData, streetImageryPresetChanges),
   // withChanges(…, examplePresetChanges): see preset-changes.example.ts
 )
 
@@ -51,7 +51,7 @@ const presets = createPresets(
 const canBeArea = (tags: Record<string, string>) =>
   tags.area !== 'no' && presets.match(tags, 'point').geometry.includes('area')
 
-export function editorConfig(config: Config): EditorConfig {
+export function editorConfig(config: Config) {
   // live data and unknown scenes have no fixture area to outline
   const bbox = config.live ? undefined : BBOX[config.scene]
   const modules: MaidModule[] = [

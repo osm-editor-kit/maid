@@ -19,7 +19,7 @@ export type StoredDataLayers = {
  * dropped, not repaired; a repeated id keeps its first entry. Used on every load, so a state
  * written by an older version or edited by hand cannot break the map.
  */
-export function sanitizeStored(value: unknown): StoredDataLayers {
+export function sanitizeStored(value: unknown) {
   const record = isRecord(value) ? value : {}
   const added: DataLayerConfig[] = []
   const seen = new Set<string>()
