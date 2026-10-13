@@ -11,6 +11,7 @@ import { missingRole } from './rules/missing-role.ts'
 import { missingTag } from './rules/missing-tag.ts'
 import { mutuallyExclusiveTags } from './rules/mutually-exclusive-tags.ts'
 import { osmApiLimits } from './rules/osm-api-limits.ts'
+import { outdatedTags } from './rules/outdated-tags.ts'
 import { privateData } from './rules/private-data.ts'
 import type { Rule } from './types.ts'
 
@@ -25,6 +26,8 @@ export { incompatibleSource } from './rules/incompatible-source.ts'
 export { invalidFormat } from './rules/invalid-format.ts'
 export { missingRole } from './rules/missing-role.ts'
 export { mutuallyExclusiveTags } from './rules/mutually-exclusive-tags.ts'
+export { outdatedTags, tagDiffOf, upgradeTags } from './rules/outdated-tags.ts'
+export type { TagDiff } from './rules/outdated-tags.ts'
 export { osmApiLimits } from './rules/osm-api-limits.ts'
 export { privateData } from './rules/private-data.ts'
 export type * from './types.ts'
@@ -38,6 +41,8 @@ export const defaultRules: Rule[] = [
   almostJunction,
   impossibleOneway,
   invalidFormat,
+  // needs the presets (the validator's `presets` option): nothing until they are made
+  outdatedTags,
   mutuallyExclusiveTags,
   incompatibleSource,
   privateData,

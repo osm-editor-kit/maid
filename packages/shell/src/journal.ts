@@ -9,6 +9,7 @@ import { createOsmEntity, type ChangesSummary } from '@osm-editor-kit/maid-model
 import { discardedTags } from '@osm-editor-kit/maid-presets'
 import { useSyncExternalStore } from 'react'
 import type { Config } from './config'
+import { clearIgnoredIssues } from './modules/validation-ignored'
 import { toOsmChange, type OsmChange } from './save/osm-change'
 import { useShell } from './shell-context'
 
@@ -122,7 +123,10 @@ export function createShellJournal(id: string, config: Config, editor: Editor) {
     set({ status: 'checking' })
     try {
       if (restore) await journal.restore()
-      else await journal.clear()
+      else {
+        await journal.clear()
+        clearIgnoredIssues()
+      }
     } catch (error) {
       set({ status: 'failed', message: messageOf(error) })
       return

@@ -2,6 +2,7 @@ import type { Editor } from '@osm-editor-kit/maid-core'
 import { discardedTags } from '@osm-editor-kit/maid-presets'
 import { createValidator, osmApiLimits, type Issue } from '@osm-editor-kit/maid-validation'
 import { imageryOnMap } from '../imagery-used'
+import { clearIgnoredIssues } from '../modules/validation-ignored'
 import type { Shell } from '../shell'
 import {
   assignedIds,
@@ -70,6 +71,8 @@ export async function uploadEdits(
   )
   const selection = selectionAfterUpload(engine.selection, change, assignedIds(result))
   editor.history.reset()
+  // ignored warnings belong to the edits that were just sent (as in iD)
+  clearIgnoredIssues()
   engine.reloadAfterUpload(selection, REPLICATION_DELAY_MS)
   return { changesets: changesetsOf(result), selection }
 }

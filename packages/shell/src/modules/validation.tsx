@@ -1,4 +1,5 @@
 import { defineModule, type Editor } from '@osm-editor-kit/maid-core'
+import { m } from '@osm-editor-kit/maid-i18n'
 import { OsmWay, type Graph } from '@osm-editor-kit/maid-model'
 import type { DockViewProps, InspectorSectionProps } from '@osm-editor-kit/maid-ui'
 import {
@@ -9,6 +10,7 @@ import {
   type Validator,
 } from '@osm-editor-kit/maid-validation'
 import { useSyncExternalStore } from 'react'
+import { clearIgnoredIssues, ignoredIssueIds, ignoredIssues } from './validation-ignored'
 
 /** The validator of one editor and a way for React to hear that its issues changed */
 type Store = {
@@ -29,9 +31,17 @@ function waysOf(graph: Graph) {
 }
 
 function createStore(editor: Editor, rules: readonly Rule[]): Store & { stop: () => void } {
-  const validator = createValidator(rules)
+  // The presets are read at each run, and the ignored warnings (saved in the browser) are left out of what is shown
+  const validator = createValidator(rules, {
+    presets: () => editor.presets,
+    ignored: ignoredIssueIds,
+  })
   const listeners = new Set<() => void>()
   let version = 0
+  const announce = () => {
+    version++
+    for (const listener of listeners) listener()
+  }
   // The ways the rules compare with, by id. Read once from the whole graph (after loading, or after a
   // merge), then changed by each edit's difference: a way that the edit named is set, or deleted.
   let ways: Map<string, OsmWay> | undefined
@@ -39,6 +49,12 @@ function createStore(editor: Editor, rules: readonly Rule[]): Store & { stop: ()
     ways = undefined
     // base data changed other than by edits: the boxes the validator kept are no longer known to be right
     validator.reset()
+  })
+  // the whole difference from the base: what is kept, and what is checked when no step is given
+  const wholeChange = () => ({
+    base: editor.history.base.graph,
+    head: editor.history.stable.graph,
+    changes: editor.history.difference().changes,
   })
   // After every finished edit, undo or redo: what the person changed is checked again, and
   // what is no longer changed is no longer reported.
@@ -56,15 +72,17 @@ function createStore(editor: Editor, rules: readonly Rule[]): Store & { stop: ()
     // the whole difference from the base decides what is kept; the step (this edit's difference, from
     // the stable graph before it) is what is checked again. Before the first change there are no ways
     // to compare with, and an empty step checks nothing.
-    const change = {
-      base: editor.history.base.graph,
-      head,
-      changes: editor.history.difference().changes,
-    }
-    validator.update(change, ways?.values() ?? [], difference.changes)
-    version++
-    for (const listener of listeners) listener()
+    validator.update(wholeChange(), ways?.values() ?? [], difference.changes)
+    announce()
   })
+  // The presets of a large schema are made after the first picture. The rules that need them said nothing until
+  // now: the whole session is checked again, with no step, once they are there.
+  const stopPresets = editor.onPresets(() => {
+    validator.update(wholeChange(), ways?.values() ?? [])
+    announce()
+  })
+  // An ignore or "show again" changes what is shown
+  const stopIgnored = ignoredIssues.subscribe(announce)
   return {
     validator,
     subscribe: (listener) => {
@@ -75,6 +93,8 @@ function createStore(editor: Editor, rules: readonly Rule[]): Store & { stop: ()
     stop: () => {
       forget()
       stopValidating()
+      stopPresets()
+      stopIgnored()
     },
   }
 }
@@ -123,6 +143,27 @@ const SEVERITY = {
   warning: 'bg-amber-500',
 }
 
+/** One line of a tag diff, as the rule gives it in `data.tagDiff` (iD's TagDiff): `+` added, `-` removed, `~` kept */
+type TagLine = { type: '+' | '-' | '~'; key: string; value: string }
+
+/** The tag diff of an issue, when its rule gives one. Read without trusting its shape: a line that does not fit is left out. */
+function tagLinesOf(issue: Issue): TagLine[] {
+  const diff = issue.data?.tagDiff
+  if (!Array.isArray(diff)) return []
+  const lines: TagLine[] = []
+  for (const item of diff) {
+    if (typeof item !== 'object' || item === null) continue
+    const { type, key, oldVal, newVal } = item as Record<string, unknown>
+    if ((type === '+' || type === '-' || type === '~') && typeof key === 'string') {
+      const value = type === '-' ? oldVal : newVal
+      lines.push({ type, key, value: typeof value === 'string' ? value : '' })
+    }
+  }
+  return lines
+}
+
+const TAG_SIGN = { '+': '+', '-': '−', '~': ' ' }
+
 /** One issue with its fixes: the row of the dock's list, of one feature's inspector and of several */
 export function IssueRow(props: {
   editor: Editor
@@ -131,6 +172,7 @@ export function IssueRow(props: {
   onSelect?: () => void
 }) {
   const { editor, issue, onSelect } = props
+  const lines = tagLinesOf(issue)
   return (
     <li className="flex items-start gap-2 border-b border-zinc-950/5 py-1.5 text-xs last:border-0 dark:border-white/5">
       <span
@@ -150,7 +192,17 @@ export function IssueRow(props: {
         ) : (
           <p>{issue.message}</p>
         )}
-        {issue.fixes.length > 0 && (
+        {lines.length > 0 && (
+          // a div, not a list: the rows of the dock are the list items
+          <div className="mt-0.5 font-mono text-[11px] leading-4 text-zinc-500 dark:text-zinc-400">
+            {lines.map((line) => (
+              <span key={`${line.type}${line.key}`} className="block">
+                {TAG_SIGN[line.type]} {line.key}={line.value}
+              </span>
+            ))}
+          </div>
+        )}
+        {(issue.fixes.length > 0 || issue.severity === 'warning') && (
           <div className="mt-1 flex flex-wrap gap-1.5">
             {issue.fixes.map((fix) => (
               <button
@@ -162,6 +214,16 @@ export function IssueRow(props: {
                 {fix.label}
               </button>
             ))}
+            {/* only a warning can be ignored: an error stops the upload */}
+            {issue.severity === 'warning' && (
+              <button
+                type="button"
+                onClick={() => ignoredIssues.ignore(issue.id)}
+                className="h-6 cursor-pointer rounded-md px-2 text-zinc-600 inset-ring-1 inset-ring-zinc-950/10 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-300 dark:inset-ring-white/10 dark:hover:bg-zinc-700"
+              >
+                {m.issues_ignore()}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -194,24 +256,39 @@ export function validation({ rules }: { rules: readonly Rule[] }) {
 
       function AllIssues({ editor, select }: DockViewProps) {
         const issues = useIssues(store, (v) => v.issues())
-        if (issues.length === 0)
-          return (
-            <p className="p-3 text-xs text-zinc-500 dark:text-zinc-400">
-              No issues in what you changed. Features that were loaded and not touched are not
-              checked.
-            </p>
-          )
+        const ignored = useIssues(store, (v) => v.ignoredIssues())
         return (
-          <ul className="max-w-2xl px-3 py-1">
-            {issues.map((issue) => (
-              <IssueRow
-                key={issue.id}
-                editor={editor}
-                issue={issue}
-                onSelect={() => select(issue.entityIds[0] ?? null)}
-              />
-            ))}
-          </ul>
+          <div>
+            {issues.length === 0 ? (
+              <p className="p-3 text-xs text-zinc-500 dark:text-zinc-400">
+                No issues in what you changed. Features that were loaded and not touched are not
+                checked.
+              </p>
+            ) : (
+              <ul className="max-w-2xl px-3 py-1">
+                {issues.map((issue) => (
+                  <IssueRow
+                    key={issue.id}
+                    editor={editor}
+                    issue={issue}
+                    onSelect={() => select(issue.entityIds[0] ?? null)}
+                  />
+                ))}
+              </ul>
+            )}
+            {ignored.length > 0 && (
+              <p className="flex items-center gap-2 px-3 py-2 text-xs text-zinc-500 dark:text-zinc-400">
+                <span>{m.issues_ignored_count({ count: ignored.length })}</span>
+                <button
+                  type="button"
+                  onClick={() => ignoredIssues.showAgain()}
+                  className="cursor-pointer underline hover:no-underline focus-visible:outline-2 focus-visible:outline-blue-500"
+                >
+                  {m.issues_show_again()}
+                </button>
+              </p>
+            )}
+          </div>
         )
       }
 
@@ -226,3 +303,6 @@ export function validation({ rules }: { rules: readonly Rule[] }) {
     },
   })
 }
+
+/** Forgets the ignored warnings (for the save flow and the discard of the stored edits: see validation-ignored.ts) */
+export { clearIgnoredIssues }

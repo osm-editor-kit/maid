@@ -29,6 +29,10 @@ import {
   entitiesFromOsmJson,
 } from '@osm-editor-kit/maid-model'
 import type { Action, OsmEntity, OsmJsonElement } from '@osm-editor-kit/maid-model'
+// The presets of the tagging schema: the outdated tags rule needs them (without them it reports nothing). The source is
+// imported by path because the presets package is not linked into this package's node_modules (see outdated-tags.test.ts).
+import { defaultPresetData } from '../../presets/src/default.ts'
+import { createPresets } from '../../presets/src/presets.ts'
 import { boxesOverlap } from '../src/geo.ts'
 import type { Box } from '../src/geo.ts'
 import { createValidator, defaultRules } from '../src/index.ts'
@@ -152,6 +156,13 @@ const loadMs = now() - loadStart
 
 const allEntities = entitiesOf(base)
 const allIds = allEntities.map((entity) => entity.id)
+
+// made once, before the timings: the validator reads them at each run, as the editor does once its presets are made
+const PRESETS = createPresets(defaultPresetData)
+/** A validator as the editor makes it: with the presets */
+function withPresets(rules: readonly Rule[]) {
+  return createValidator(rules, { presets: () => PRESETS })
+}
 const counts = { node: 0, way: 0, relation: 0 }
 for (const entity of allEntities) {
   if (entity instanceof OsmNode) counts.node++
@@ -204,7 +215,7 @@ for (const rule of defaultRules) {
     },
   }
   const { stats, validator } = timed(RUNS, () => {
-    const v = createValidator([counted])
+    const v = withPresets([counted])
     v.validate(base, allIds, baseWays)
     return v
   })
@@ -224,7 +235,7 @@ for (const rule of defaultRules) {
 }
 
 const overhead = timed(RUNS, () => {
-  const v = createValidator([])
+  const v = withPresets([])
   v.validate(base, allIds, baseWays)
   return v
 })
@@ -233,7 +244,7 @@ console.log(
 )
 
 const everything = timed(RUNS, () => {
-  const v = createValidator(defaultRules)
+  const v = withPresets(defaultRules)
   v.validate(base, allIds, baseWays)
   return v
 })
@@ -342,7 +353,7 @@ function commit(validator: Validator, prev: Graph, head: Graph, ways: readonly O
 
 /** A validator that has made the boxes of all ways: the app does this at the first edit after loading */
 function warmValidator(rules: readonly Rule[] = defaultRules) {
-  const validator = createValidator(rules)
+  const validator = withPresets(rules)
   commit(validator, base, new Graph(base), baseWays)
   return validator
 }
@@ -368,7 +379,7 @@ let crossingPairsPerEdit = 0
 // the first edit after loading: no boxes yet, so the validator makes them all (once per session)
 const firstEditSamples: number[] = []
 for (let pass = 0; pass < RUNS; pass++) {
-  const validator = createValidator(defaultRules)
+  const validator = withPresets(defaultRules)
   const start = now()
   commit(validator, base, heads[0]!, waysFor(edits[0]!, heads[0]!))
   firstEditSamples.push(now() - start)
@@ -587,9 +598,7 @@ for (const b of [dragBurst, tagBurst])
   crossingPairsPerEdit = pairsPerEdit
   // the same count over the whole dense scene: every way validated, as validate-everything does it
   crossingPairs = 0
-  const everythingValidator = createValidator(
-    timedRules.filter((rule) => rule.id === 'crossing_ways'),
-  )
+  const everythingValidator = withPresets(timedRules.filter((rule) => rule.id === 'crossing_ways'))
   everythingValidator.validate(base, allIds, baseWays)
   crossingPairsAll = crossingPairs
   console.log(

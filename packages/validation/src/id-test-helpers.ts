@@ -3,7 +3,7 @@
 // helper `validate()` does: on each changed entity, keeping every issue it returns.
 import { Graph, ModelContext, OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 import type { OsmEntity } from '@osm-editor-kit/maid-model'
-import type { Issue, Rule } from './types.ts'
+import type { Issue, PresetLookup, Rule } from './types.ts'
 import { runContext } from './validator.ts'
 
 const context = new ModelContext()
@@ -36,14 +36,19 @@ export type Scene = { graph: Graph; ids: string[] }
  * issue it gives. Unlike the validator, this does not merge issues with the same id, which is what
  * the iD expectations count.
  */
-export function validateChanged(rule: Rule, graph: Graph, ids: readonly string[]) {
+export function validateChanged(
+  rule: Rule,
+  graph: Graph,
+  ids: readonly string[],
+  presets?: PresetLookup,
+) {
   const targets = new Set(ids)
   const ways: OsmWay[] = []
   for (const id of ids) {
     const entity = graph.hasEntity(id)
     if (entity instanceof OsmWay) ways.push(entity)
   }
-  const ruleContext = runContext(graph, ways, targets)
+  const ruleContext = runContext(graph, ways, targets, presets)
   const issues: Issue[] = []
   for (const id of ids) {
     const entity = graph.hasEntity(id)

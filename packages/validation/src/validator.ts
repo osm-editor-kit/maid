@@ -3,7 +3,7 @@ import type { DifferenceChange, Graph, OsmEntity } from '@osm-editor-kit/maid-mo
 import { boxOf, boxesOverlap, locationOf } from './geo.ts'
 import type { Box, Point } from './geo.ts'
 import { sharedIssues } from './shared-issues.ts'
-import type { Issue, Rule, RuleContext, Validator } from './types.ts'
+import type { Issue, PresetLookup, Rule, RuleContext, Validator } from './types.ts'
 import { createWayIndex } from './way-index.ts'
 
 const severityRank: Record<Issue['severity'], number> = { error: 0, warning: 1 }
@@ -12,13 +12,24 @@ function compareText(a: string, b: string) {
   return a < b ? -1 : a > b ? 1 : 0
 }
 
+/** What the validator reads from its editor. Both are functions: the editor's data changes while the validator lives. */
+export type ValidatorOptions = {
+  /** The presets, read at each run. Undefined until they are made: the rules that need them report nothing then. */
+  presets?: () => PresetLookup | undefined
+  /**
+   * The ids of the warnings the person ignores (an issue's `id`). They are left out of `issues`, `issuesFor` and
+   * `issuesForAll`, and listed by `ignoredIssues`. Errors are never ignored: an error stops the upload.
+   */
+  ignored?: () => ReadonlySet<string>
+}
+
 /**
  * Creates a validator over these rules. Issues are kept per id, so the same finding from two of
  * its entities is one issue. A run (one `validate` call) looks up each way's bounding box at most
  * once, when a rule first asks for a way's neighbours.
  */
 // The annotation makes the returned object be checked against the Validator interface
-export function createValidator(rules: readonly Rule[]): Validator {
+export function createValidator(rules: readonly Rule[], options: ValidatorOptions = {}): Validator {
   const issues = new Map<string, Issue>()
   // The boxes of the ways, kept from one update to the next (see way-index.ts)
   const wayIndex = createWayIndex()
@@ -37,6 +48,19 @@ export function createValidator(rules: readonly Rule[]): Validator {
           compareText(a.id, b.id),
       )
     return sorted
+  }
+
+  /** Whether the person ignores this issue. Only a warning can be ignored. */
+  function isIgnored(issue: Issue, ignored: ReadonlySet<string>) {
+    return issue.severity === 'warning' && ignored.has(issue.id)
+  }
+
+  /** The issues that are shown: all but the ignored warnings */
+  function shownIssues() {
+    const ignored = options.ignored?.()
+    const all = allIssues()
+    if (!ignored || ignored.size === 0) return all
+    return all.filter((issue) => !isIgnored(issue, ignored))
   }
 
   /**
@@ -73,6 +97,7 @@ export function createValidator(rules: readonly Rule[]): Validator {
       validated,
       waysNear: (way) => wayIndex.near(graph, way, stamp),
       memo: new Map(),
+      presets: options.presets?.(),
     }
     for (const id of runIds) {
       const entity = graph.hasEntity(id)
@@ -194,15 +219,21 @@ export function createValidator(rules: readonly Rule[]): Validator {
     keepOnly,
 
     issues() {
-      return allIssues()
+      return shownIssues()
+    },
+
+    ignoredIssues() {
+      const ignored = options.ignored?.()
+      if (!ignored || ignored.size === 0) return []
+      return allIssues().filter((issue) => isIgnored(issue, ignored))
     },
 
     issuesFor(entityId) {
-      return allIssues().filter((issue) => issue.entityIds.includes(entityId))
+      return shownIssues().filter((issue) => issue.entityIds.includes(entityId))
     },
 
     issuesForAll(entityIds) {
-      return sharedIssues(allIssues(), entityIds)
+      return sharedIssues(shownIssues(), entityIds)
     },
   }
 }
@@ -304,7 +335,12 @@ export function entitiesToValidate(
  * The context of one run: the neighbour lookup over the given ways plus the validated ways (as they
  * are in the graph), and the validated ids themselves.
  */
-export function runContext(graph: Graph, ways: Iterable<OsmWay>, targets: ReadonlySet<string>) {
+export function runContext(
+  graph: Graph,
+  ways: Iterable<OsmWay>,
+  targets: ReadonlySet<string>,
+  presets?: PresetLookup,
+) {
   const candidates: OsmWay[] = []
   const seen = new Set<string>()
   const addCandidate = (id: string) => {
@@ -336,6 +372,7 @@ export function runContext(graph: Graph, ways: Iterable<OsmWay>, targets: Readon
     graph,
     validated: targets,
     memo: new Map(),
+    presets,
     waysNear(way) {
       const box = boxFor(way)
       if (!box) return []

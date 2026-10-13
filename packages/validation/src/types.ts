@@ -31,9 +31,46 @@ export type Issue = {
   data?: Readonly<Record<string, unknown>>
 }
 
+/**
+ * The part of the presets (maid-presets' `Presets`) that rules use. Structural, so that this package does not depend on
+ * the presets package: `Presets` has all of it. Method syntax on purpose: a `geometry` of `string` takes `Geometry`.
+ */
+export type PresetLookup = {
+  match(
+    tags: Readonly<Record<string, string>>,
+    geometry: string,
+    loc?: readonly [number, number],
+  ): LookupPreset
+  preset(id: string): LookupPreset | undefined
+  applyPreset(
+    tags: Readonly<Record<string, string>>,
+    preset: LookupPreset,
+    geometry: string,
+    previous?: LookupPreset,
+    options?: { skipFieldDefaults?: boolean },
+  ): Record<string, string>
+  deprecatedTags(
+    tags: Readonly<Record<string, string>>,
+  ): { old: Record<string, string>; replace?: Record<string, string> }[]
+}
+
+/** The fields of a preset that the rules read. `addTags` is `tags` itself when the preset has none (as in maid-presets). */
+export type LookupPreset = {
+  id: string
+  tags: Readonly<Record<string, string>>
+  addTags: Readonly<Record<string, string>>
+  replacement?: string
+}
+
 /** What a rule may look at besides the entity */
 export type RuleContext = {
   graph: Graph
+  /**
+   * The presets of the editor, as they are at this run. Undefined until they are made (the presets of a large
+   * schema are made after the first picture): a rule that needs them reports nothing then, and the validator is
+   * run again over what was changed when they are there (see `ValidatorOptions`).
+   */
+  presets?: PresetLookup
   /** Ways whose bounding box overlaps the one of this way, without the way itself */
   waysNear(way: OsmWay): OsmWay[]
   /**
@@ -100,8 +137,10 @@ export type Validator = {
    * the base data changed other than by edits, e.g. after a merge: the next update makes the boxes again.
    */
   reset(): void
-  /** All issues, errors first, then by rule and id */
+  /** All issues that are shown, errors first, then by rule and id. Issues the person ignores are left out. */
   issues(): readonly Issue[]
+  /** The warnings the person ignores that are still found: the count of "N ignored" and the list to show again */
+  ignoredIssues(): readonly Issue[]
   /** The issues an entity is part of */
   issuesFor(entityId: string): readonly Issue[]
   /**
