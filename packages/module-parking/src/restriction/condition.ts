@@ -5,7 +5,7 @@
  * The reading is only used when it writes back exactly: parseCondition returns the structure only when
  * formatCondition(structure) is the input again. Anything else (a comma between weekday groups, an unknown word, a
  * day list such as `Mo,We`) is `{ raw }` and stays as written. This is not an opening_hours parser: it covers the
- * patterns of docs/parking/qa-traffic-signs.md and a few neighbours.
+ * patterns of qa-traffic-signs.md and a few neighbours.
  */
 
 export type TimeRange = { from: string; to: string }

@@ -1,6 +1,6 @@
 /**
  * The colours of the parking map style, from the JOSM style Styles_euvm_parking_import.mapcss (its rule groups 1 to 9,
- * in docs/parking/josm-setup-presets-styles.md section 3.1 and 4c) and the two lines of its other files. Pure.
+ * in josm-setup-presets-styles.md section 3.1 and 4c) and the two lines of its other files. Pure.
  *
  * The category of a feature is the first one in CATEGORY_ORDER that matches: the same order as the lens rules (4c),
  * where the JOSM groups that come later in the file win. Categories with `source: 'maid'` have no JOSM colour: they

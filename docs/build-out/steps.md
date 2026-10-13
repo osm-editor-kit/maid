@@ -203,7 +203,7 @@ Waiting for a decision by Tobias: bugs in the model that lose data (reverse with
 
 Tasks and MapRoulette (was D4: the task extension points and `maid-module-maproulette`): left out by Tobias on 2026-10-13, because the MapRoulette integration is broken by problems of its API at the moment.
 
-Translations, turn restrictions, GPX, measurement and history panels, keyboard shortcut help, the published npm packages and their release routine. They are listed so that nobody assumes they are covered.
+GPX, measurement and history panels, keyboard shortcut help, the published npm packages and their release routine. They are listed so that nobody assumes they are covered. (Translations and turn restrictions stood here until 2026-10-13: both are in work now, see Part F.)
 
 ## Not doing
 
@@ -272,7 +272,7 @@ Three editors run from this repository: `apps/maid` (5173), `apps/maid-bicycle` 
 
 Built after the lists below were written, each with its commit:
 
-- The parking editor: presets, quick-tag buttons, side lines, the restriction field, nine validation rules, three operations, reviewed and corrected (f488630, 8b2a72d; the brief and the review are in [docs/parking/](../parking/README.md)).
+- The parking editor: presets, quick-tag buttons, side lines, the restriction field, nine validation rules, three operations, reviewed and corrected (f488630, 8b2a72d; the brief and the review are working documents kept outside this repository).
 - Imagery series: one row per series with its dates as buttons; the layer index package at 0.2.0 (69647e2).
 - The measuring magnifier, and the width band hidden while measuring (6f2f871).
 - New features are exempt from "too large"; `created_by` names the app and its version (15a52b6).
@@ -292,7 +292,7 @@ Open from today, beyond the lists below:
 - Two build flags mark `packages/ui/src` and `packages/presets/src` as free of import-time effects. A file there that is imported only for an effect would be dropped from the build without a warning; a check for that is missing.
 - "Select until the inspector shows it" still misses some clicks in Maid and Rapid; the report shows the misses.
 - The parking editor: nobody has mapped with it. Open in it: German for the lens legend, the undo texts of the buttons and iD's own preset names; rules that need a distance (an area next to a road); "parking area from this side"; sign to tags; the cost of the side lines in the browser; whether the 14 rows of buttons should fold.
-- The surface data package: its eight icons from StreetComplete are GPL and are what carries the GPL into `apps/maid` and `apps/maid-bicycle` ([surface-data-licence.md](../research/surface-data-licence.md)).
+- Resolved 2026-10-13: the surface data package is MIT from 0.1.0 and has no GPL icons; the emoji replace them ([surface-data-licence.md](../research/surface-data-licence.md)).
 
 Recommended order from here: a person maps with the parking editor and saves once on the development server; finish the translations; the TILDA notes module; the Radnetz modules; count the comparison with iD again; cleanup (`/unslop-code` phases 3 to 10, split `engine.ts`).
 
@@ -303,16 +303,34 @@ Recommended order from here: a person maps with the parking editor and saves onc
 - Pins appear from zoom 18 (MapLibre), not 17.5: the map prepares a layer from the whole zoom level below its start, so 17.5 made every pin image at zoom 17 before one was drawn.
 - "Too large": features created in this session and not yet saved are exempt, as in Rapid. No power-user switch.
 - `created_by` in a changeset is the app's name and version ("Maid Parking 0.1.0").
-- Surface and smoothness data: check where the data of our own package comes from and how our projects use it; relicense it to fit the other projects if possible. The translated texts are plain texts; the pictures have their own licence.
+- Resolved 2026-10-13: the surface and smoothness data is MIT from 0.1.0 (the question of where it comes from and how we use it is answered in [surface-data-licence.md](../research/surface-data-licence.md)). The translated texts are plain texts; the pictures have their own licence.
 - Performance: no synthetic scene of 500,000 nodes. Test what is realistic in OSM, and cap what nobody can work with instead. Next: "ready" faster than iD, the CPU time while zooming, and the time from an edit (drag, typing a tag) to the picture, measured for all three editors. Rust: measure first, then decide.
 - Performance budgets are warnings. The crisis is being slower than Rapid or iD. A cost that buys a feature is decided case by case; a feature of one editor (parking) must not slow the others.
 - The benchmark covers each app, and a lens switched on.
+
+### Decided by Tobias on 2026-10-13, night (from the recount of the comparison with iD)
+
+Build now, from the ten gaps that matter most ([missing-features.md](../research/missing-features.md)):
+
+- Recently used presets and preset categories in the type picker.
+- Labels for `ref`, routes and networks, not only names.
+- Combo fields: completion while typing, Escape and Enter.
+- Deprecated tags are reported, with the fix that upgrades them.
+- Wikipedia and Wikidata fields.
+- Relations: create a new relation, load one missing member, nearby relations first.
+- "Ignore this issue" for warnings, kept in the browser's storage.
+- Turn restrictions, as a module of its own (`packages/module-turn-restrictions`), built so that its parts serve other cases; built by one agent and reviewed by another.
+- Search for coordinates, OSM ids and places: a button with a flyout in the top bar, Ctrl/Cmd+F (Cmd+K is kept for a later action bar).
+
+Not wanted: iD's keys for stepping along a way's vertices and for parent and child (`[`, `]`, Ctrl+arrows). Maid has its own way to pick among features.
+
+Also decided: the editor is deployed to GitHub Pages by a workflow, a fork chooses the app in `deploy.env`; the deployed editor reads the real map read-only by default and can be switched to the development server in the account menu. The Mapillary token is a commented constant (`apps/mapillary-token.ts`). The street space editor of osm-editor-kit is reviewed for what Maid can adopt ([street-space-editor-review.md](../research/street-space-editor-review.md)).
 
 ### Waiting for Tobias
 
 - [ ] Saving on the development server (dce9e86): the five steps under Done. Not yet tried by a person.
 - [ ] C2: try login at `http://127.0.0.1:5173` and saving with `?live=dev`.
-- [ ] Licences: surface and smoothness by photo is switched on (decided 2026-10-13); its data package is GPL-3.0-or-later and Maid is ISC. To be settled.
+- [x] Licences: surface and smoothness by photo is switched on (decided 2026-10-13). Resolved 2026-10-13: the data package is MIT from 0.1.0, and the GPL icons are replaced by emoji.
 - [ ] Look at on screen (nobody has): the ruler icon, the red state of a too long value, the favourite number fields, the toasts on a narrow window, the three places with the shared segmented control, the address dots.
 - [ ] A real background with a minimum zoom: offered and drawn from `#map=<minzoom>`, not one level later (cannot be checked offline).
 - [ ] Turned map on a Mac: Ctrl-click on open map no longer opens the menu, because Ctrl with a drag turns the map. Needs a person's test. [rotate-and-tilt.md](../research/rotate-and-tilt.md)

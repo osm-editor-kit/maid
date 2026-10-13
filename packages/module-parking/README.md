@@ -1,6 +1,6 @@
 # Parking module (`@osm-editor-kit/maid-module-parking`)
 
-The street-side parking editor's module for Maid (see docs/parking/README.md). `src/index.ts` composes the parts into `parking(options)`.
+The street-side parking editor's module for Maid . Comments in this package cite the brief it was built from by document and entry (`josm-setup-presets-styles.md`, `qa-traffic-signs.md`, `qa-markings-obstacles-process.md`, `project-decisions.md`): summaries of the mapping project's internal material, which are kept outside this repository. `src/index.ts` composes the parts into `parking(options)`.
 
 `parking({ lenses: useLensStore, showMissing? })`: with the lens store of `@osm-editor-kit/maid-module-lenses` the parking sides are drawn while the "Parking" lens is active, and the lens is switched on at the first visit (not under automation). Without `lenses` no side line is drawn.
 

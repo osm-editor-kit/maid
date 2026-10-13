@@ -8,7 +8,7 @@ import {
 } from './conditional.ts'
 
 /**
- * The conditional expressions written out in full in docs/parking/qa-traffic-signs.md (line numbers in the comment).
+ * The conditional expressions written out in full in qa-traffic-signs.md (line numbers in the comment).
  * The section 4.3 table counts 34 "explicit conditional expressions", but its counts include chain parts, repeats and
  * the eUVM lines; the document writes out 26 distinct well-formed expressions, listed here, and the malformed ones
  * below. Every tag line is copied from the document; the value is what follows the first "=".

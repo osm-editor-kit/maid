@@ -7,7 +7,7 @@ import { connectParkingSides, getParkingSides, type LensSource } from './side-st
 
 /**
  * The colours of Styles_euvm_parking_import.mapcss, by the name the file uses. Copied here on purpose: the file is
- * local (docs/parking/source-raw, git-ignored), and the tests must run without it.
+ * not in this repository, and the tests must run without it.
  */
 const JOSM_COLOURS: Record<string, string> = {
   black: '#000000',

@@ -1,7 +1,7 @@
 /**
  * The parking fields: on a road (per side, `parking:left|right|both:*`) and on a separately mapped area, a
  * crossing and the rest. Values and key names come from the project's presets (parkraumprojekt.xml, value lists
- * `parking_values` … `crossing_side_values`) and the mapping decisions (docs/parking/project-decisions.md, 2.1 to
+ * `parking_values` … `crossing_side_values`) and the mapping decisions (project-decisions.md, 2.1 to
  * 2.10). English labels here; the German ones are in labels-de.ts.
  *
  * Reused from iD (changed or kept): `parking/side/parking` and `parking/side/orientation` (directional combos of

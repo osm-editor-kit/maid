@@ -5,7 +5,7 @@ import { parseSideKey } from '../sides.ts'
 import { QUICK_TAG_ROWS, QUICK_TAGS } from './quick-tags.ts'
 
 /**
- * The 33 buttons of docs/parking/source-raw/josm_presets/street_parking_hot_buttons.xml, typed by hand from the file:
+ * The 33 buttons of the mapping project's JOSM file street_parking_hot_buttons.xml, typed by hand from the file:
  * [name, key, value]. Each item of the file has one `<key key=... value=... match="keyvalue">`.
  */
 const XML_BUTTONS: [string, string, string][] = [

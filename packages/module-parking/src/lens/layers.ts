@@ -1,7 +1,7 @@
 /**
  * The layers of the parking map, as data (the component turns each into a MapLibre layer). Pure: the tests read them.
  *
- * Look, from the JOSM style (docs/parking/josm-setup-presets-styles.md 3.1 to 3.3, 4c, 4d):
+ * Look, from the JOSM style (josm-setup-presets-styles.md 3.1 to 3.3, 4c, 4d):
  * - areas: a strip along the inside of the outline, 3 px in the category colour (warnings 6 px black)
  * - sides: one line per side of a road, offset to that side, in the colour of its category (categories.ts) on a dark
  *   casing. The JOSM style has no side lines; this is Maid's design. A conditional restriction and the gap check are

@@ -1,6 +1,6 @@
 /**
  * The quick-tag buttons of a selected road: the 33 buttons of the Berlin parking project's hot-button file
- * (docs/parking/source-raw/josm_presets/street_parking_hot_buttons.xml, group "Street Parking Hot Buttons"), and
+ * (the mapping project's JOSM file street_parking_hot_buttons.xml, group "Street Parking Hot Buttons"), and
  * Maid's additions for the combined buttons the documents ask for (qa-markings-obstacles-process.md, 5.2).
  * Pure data: the logic is in quick-tag-logic.ts, the component in QuickTags.tsx. No icon imports here.
  */
