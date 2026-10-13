@@ -104,4 +104,9 @@ export type Validator = {
   issues(): readonly Issue[]
   /** The issues an entity is part of */
   issuesFor(entityId: string): readonly Issue[]
+  /**
+   * The issues that involve any of several features, in iD's order for a selection (`sharedIssues`):
+   * what the inspector of several features shows.
+   */
+  issuesForAll(entityIds: readonly string[]): readonly Issue[]
 }

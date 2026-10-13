@@ -54,7 +54,7 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
   const optionId = (index: number) => `${listId}-${index}`
   // The host's message wins; else the column's check of what is shown (the draft while it is edited).
   const invalid = data?.invalid ?? column.validate?.(value, row)
-  const mixedTitle = mixed?.map((entry) => `${entry.text ?? 'no tag'}: ${entry.count}`).join(', ')
+  const mixedTitle = mixed?.map((entry) => entry.text ?? '(no tag)').join('\n')
   const role = column.role === 'rowheader' ? 'rowheader' : 'gridcell'
   const tone = data?.tone ?? 'default'
   const listShown = suggestions.open && anchor !== null

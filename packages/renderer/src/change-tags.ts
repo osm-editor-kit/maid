@@ -82,3 +82,47 @@ export function planChangeTags(
   })
   return { ok: true, changed, actions }
 }
+
+/** A change of one feature with its own `set` and `remove` (see `planChangeTagsEach`). */
+export type TagChangeEach = { readonly id: string } & TagChangeRequest
+
+/**
+ * Plans a change to several features, each with its own `set` and `remove`: the sheet of several features
+ * renames a key on each feature and keeps that feature's value. The refusals are those of `planChangeTags`:
+ * an id not in the graph, or any read-only feature, and then nothing is planned. An id listed twice gets both
+ * changes, in order. One action per feature whose tags really change.
+ * @param   graph      - The graph the change is made on (the staging graph of the editor)
+ * @param   changes    - The features and the change of each
+ * @param   isReadOnly - True for a feature that a filter makes read-only
+ * @return  The refusal, or the number of changed features and the actions that change them
+ */
+export function planChangeTagsEach(
+  graph: Graph,
+  changes: readonly TagChangeEach[],
+  isReadOnly: (id: string) => boolean,
+): TagChangePlan {
+  const ids = [...new Set(changes.map((change) => change.id))]
+  const tagsOf = new Map<string, Readonly<Record<string, string>>>()
+  for (const id of ids) {
+    const entity = graph.hasEntity(id)
+    if (!entity) return { ok: false, reason: 'missing' }
+    tagsOf.set(id, entity.tags)
+  }
+  const readOnly = ids.filter((id) => isReadOnly(id)).length
+  if (readOnly > 0) return { ok: false, reason: 'read-only', readOnly, of: ids.length }
+  const touched = new Set<string>()
+  for (const change of changes) {
+    const tags = tagsOf.get(change.id)
+    if (tags === undefined) continue
+    const after = tagChangesFor([tags], cleanTagChange(change)).next[0]
+    if (after !== undefined) {
+      tagsOf.set(change.id, after)
+      touched.add(change.id)
+    }
+  }
+  const actions = ids.flatMap((id) => {
+    const tags = tagsOf.get(id)
+    return touched.has(id) && tags ? [actionChangeTags(id, tags)] : []
+  })
+  return { ok: true, changed: actions.length, actions }
+}

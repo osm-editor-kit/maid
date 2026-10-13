@@ -1,7 +1,7 @@
 import { XMarkIcon } from '@heroicons/react/20/solid'
 import type { Editor } from '@osm-editor-kit/maid-core'
 import type { CombinedTags } from '@osm-editor-kit/maid-model'
-import type { Field, Preset } from '@osm-editor-kit/maid-presets'
+import type { Field } from '@osm-editor-kit/maid-presets'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import {
   notify,
@@ -11,22 +11,22 @@ import {
   SidebarDisclosure,
   SidebarHeader,
   TagSheet,
+  type TagSheetChange,
   type TagSuggestSource,
 } from '@osm-editor-kit/maid-ui'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
 import {
-  changeFromTags,
-  distinctPresets,
+  changesPerFeature,
   listedIds,
   readOnlyRefusal,
   sharedFields,
   sharedTags,
-  typeLabel,
   withoutId,
 } from './multi-logic'
+import { MultiIssues } from './MultiIssues'
+import { MultiType } from './MultiType'
 import { Operations } from './Operations'
-import { PresetIcon } from './PresetIcon'
 
 const GEOMETRY_LABEL = {
   point: 'Point',
@@ -37,7 +37,6 @@ const GEOMETRY_LABEL = {
 } as const
 
 /** The types shown as icons on the type line; the rest are counted in the label (iD shows a few). */
-const TYPE_ICONS = 3
 
 /** What the inspector derives from the selection; computed once per selection and data version. */
 type Derived = {
@@ -47,9 +46,10 @@ type Derived = {
   combined: CombinedTags
   shared: Record<string, string>
   fields: Field[]
+  /** Each selected feature with its tags: what a rename needs to keep each feature's own value. */
+  features: { id: string; tags: Record<string, string> }[]
   featureTags: Record<string, string>[]
   readOnly: number
-  distinct: { preset: Preset; count: number }[]
 }
 
 /**
@@ -86,9 +86,9 @@ function derive(engine: MaidEngine, editor: Editor, selectionKey: string): Deriv
     combined,
     shared: sharedTags(combined),
     fields: sharedFields(perFeature),
+    features: found.map((f) => ({ id: f.id, tags: f.entity.tags })),
     featureTags: found.map((f) => f.entity.tags),
     readOnly: found.filter((f) => f.entity.readOnly).length,
-    distinct: distinctPresets(found.map((f) => f.entity.preset)),
   }
 }
 
@@ -111,9 +111,13 @@ export function MultiInspector({
   const selectionKey = ids.join(',')
   const derived = useEngine((e) => derive(e, editor, selectionKey))
 
-  // one write to every selected feature, in one undo step; a refusal says why, and nothing changes
-  const write = (change: { set?: Record<string, string>; remove?: string[] }, label?: string) => {
-    const result = engine.changeTags(derived.ids, change, label)
+  // one write to every selected feature, in one undo step; a refusal says why, and nothing changes. A rename
+  // needs each feature's own value, so it goes as one change per feature (changeTagsEach).
+  const write = (change: TagSheetChange, label?: string) => {
+    const result =
+      change.rename === undefined
+        ? engine.changeTags(derived.ids, { set: change.set, remove: change.remove }, label)
+        : engine.changeTagsEach(changesPerFeature(change, derived.features), label)
     if (result.ok) return
     notify.failed(
       result.reason === 'read-only'
@@ -123,7 +127,6 @@ export function MultiInspector({
   }
 
   const { shown, more } = listedIds(derived.ids)
-  const mixed = Object.entries(derived.combined).filter(([, entry]) => entry.kind === 'mixed')
   const count = derived.ids.length
 
   return (
@@ -170,18 +173,10 @@ export function MultiInspector({
               {more > 0 && <li className="px-2 py-1 text-xs text-zinc-500">and {more} more</li>}
             </ul>
           </SidebarDisclosure>
-          <div className="flex items-center gap-2 py-2 text-sm">
-            <span className="flex shrink-0 items-center">
-              {derived.distinct.slice(0, TYPE_ICONS).map(({ preset }) => (
-                <PresetIcon
-                  key={preset.id}
-                  icon={preset.icon}
-                  className="size-5 fill-zinc-700 dark:fill-zinc-200"
-                />
-              ))}
-            </span>
-            <span className="min-w-0 truncate">{typeLabel(derived.distinct)}</span>
+          <div className="py-2 text-sm">
+            <MultiType ids={derived.ids} />
           </div>
+          <MultiIssues ids={derived.ids} />
           {derived.fields.length > 0 && (
             <SidebarDisclosure title="Fields" defaultOpen>
               <PresetFields
@@ -202,26 +197,11 @@ export function MultiInspector({
             </SidebarDisclosure>
           )}
           <SidebarDisclosure title="Tags" detail={Object.keys(derived.combined).length} defaultOpen>
-            {mixed.length > 0 && (
-              <ul
-                className="mb-2 flex flex-col gap-1 text-xs text-zinc-600 dark:text-zinc-300"
-                aria-label="Keys with several values"
-              >
-                {mixed.map(([key, entry]) => (
-                  <li key={key}>
-                    <span className="font-medium">{key}</span>: Multiple values
-                    {entry.kind === 'mixed' && (
-                      <span className="text-zinc-500"> ({entry.values.join(', ')})</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
             <TagSheet
               label="Tags"
-              tags={derived.shared}
+              combined={derived.combined}
               featureKey={selectionKey}
-              onChangeTags={(tags, label) => write(changeFromTags(derived.shared, tags), label)}
+              onChange={write}
               suggest={suggest}
               onUndo={() => engine.undo()}
               onRedo={() => engine.redo()}

@@ -77,27 +77,50 @@ export function toSheetSuggestions(items: readonly TagSuggestion[]): SheetSugges
  */
 export function withTagSuggestions(
   columns: readonly SheetColumn[],
-  source: TagSuggestSource,
+  source: TagSuggestSource | undefined,
   rows: readonly SheetRow[],
 ): SheetColumn[] {
   const keySuggest: Suggest = async (ctx, signal) => {
+    if (source === undefined) return []
     const used = new Set(rows.filter((row) => row.id !== ctx.row.id).map(rowKey))
     const items = await source.keys(ctx.text, signal)
     return keySuggestions(ctx.text, toSheetSuggestions(items), used)
   }
+  // The values several features have (a mixed row) come first, then the source's answers (iD: local values
+  // only for a mixed key, taginfo after them). Without a source the mixed values are all there is: no delay.
   const valueSuggest: Suggest = async (ctx, signal) => {
     const key = rowKey(ctx.row)
     if (key === '') return []
+    const offered = valueSuggestions(ctx.text, mixedValueSuggestions(ctx.row))
+    if (source === undefined) return offered
     const items = await source.values(key, ctx.text, signal)
-    return valueSuggestions(ctx.text, toSheetSuggestions(items))
+    return uniqueValues([...offered, ...valueSuggestions(ctx.text, toSheetSuggestions(items))])
   }
+  const delay = source === undefined ? 0 : TAG_SUGGEST_DELAY_MS
   return columns.map((column) => {
-    if (column.id === 'key') {
-      return { ...column, suggest: keySuggest, suggestDelay: TAG_SUGGEST_DELAY_MS }
+    if (column.id === 'key' && source !== undefined) {
+      return { ...column, suggest: keySuggest, suggestDelay: delay }
     }
     if (column.id === 'value') {
-      return { ...column, suggest: valueSuggest, suggestDelay: TAG_SUGGEST_DELAY_MS }
+      return { ...column, suggest: valueSuggest, suggestDelay: delay }
     }
     return column
+  })
+}
+
+/** The distinct values of a mixed row, as suggestions. A missing tag is not a value to suggest. */
+export function mixedValueSuggestions(row: SheetRow): SheetSuggestion[] {
+  const cell = row.cells.value?.value
+  if (cell?.kind !== 'mixed') return []
+  return cell.values.flatMap((entry) => (entry.text === undefined ? [] : [{ value: entry.text }]))
+}
+
+/** The first of each value: a value both sources give is offered once. */
+function uniqueValues(items: readonly SheetSuggestion[]): SheetSuggestion[] {
+  const seen = new Set<string>()
+  return items.filter((item) => {
+    if (seen.has(item.value)) return false
+    seen.add(item.value)
+    return true
   })
 }

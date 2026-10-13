@@ -35,11 +35,11 @@ export type CellRef = { row: RowId; col: ColId }
 
 /**
  * A cell's value. `mixed`: several selected features disagree; an `undefined` text in `values` means the key
- * is absent on those features, and `count` is how many features have that state.
+ * is absent on those features; `count` (optional) is how many features have that state.
  */
 export type CellValue =
   | { kind: 'value'; text: string }
-  | { kind: 'mixed'; values: { text: string | undefined; count: number }[] }
+  | { kind: 'mixed'; values: { text: string | undefined; count?: number }[] }
 
 /** What the host knows about one cell. The sheet never stores it; the host passes it in every render. */
 export type SheetCellData = {

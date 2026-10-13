@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { EditHistory, ModelContext, OsmNode, type OsmTags } from '@osm-editor-kit/maid-model'
-import { planChangeTags } from './change-tags'
+import { planChangeTags, planChangeTagsEach, type TagChangeEach } from './change-tags'
 
 // Nodes with tags, merged into a history as the engine's data is. No map, no engine.
 function historyWith(tagsOf: Record<string, OsmTags>) {
@@ -160,5 +160,87 @@ describe('planChangeTags', () => {
     const plan = applyChange(history, ['n1', 'n1'], { set: { a: 'b' } })
     expect(plan).toMatchObject({ ok: true, changed: 1 })
     expect(tagsOf(history, 'n1')).toEqual({ a: 'b' })
+  })
+})
+
+/** The engine's sequence for changes to each feature on its own: plan, perform, commit, as `changeTagsEach` does */
+function applyEach(
+  history: EditHistory,
+  changes: TagChangeEach[],
+  isReadOnly: (id: string) => boolean = none,
+) {
+  const plan = planChangeTagsEach(history.staging.graph, changes, isReadOnly)
+  if (plan.ok && plan.changed > 0) {
+    history.perform(...plan.actions)
+    history.commit({ annotation: 'Changed tags', selectedIDs: changes.map((c) => c.id) })
+  }
+  return plan
+}
+
+describe('planChangeTagsEach', () => {
+  test('each feature gets its own change; a rename keeps each feature own value, in one undo step', () => {
+    const history = historyWith({
+      n1: { amenity: 'bench', name: 'Alpha' },
+      n2: { amenity: 'bench', name: 'Beta' },
+      n3: { amenity: 'bench' },
+    })
+    const before = history.stable.graph
+    const plan = applyEach(history, [
+      { id: 'n1', set: { label: 'Alpha' }, remove: ['name'] },
+      { id: 'n2', set: { label: 'Beta' }, remove: ['name'] },
+    ])
+
+    expect(plan).toMatchObject({ ok: true, changed: 2 })
+    expect(tagsOf(history, 'n1')).toEqual({ amenity: 'bench', label: 'Alpha' })
+    expect(tagsOf(history, 'n2')).toEqual({ amenity: 'bench', label: 'Beta' })
+    expect(tagsOf(history, 'n3')).toEqual({ amenity: 'bench' })
+    history.undo()
+    expect(history.stable.graph).toBe(before)
+  })
+
+  test('a feature whose tags the change leaves as they are is not touched', () => {
+    const history = historyWith({ n1: { a: 'b' }, n2: { a: 'c' } })
+    const plan = applyEach(history, [
+      { id: 'n1', set: { a: 'b' } },
+      { id: 'n2', remove: ['missing'] },
+    ])
+    expect(plan).toMatchObject({ ok: true, changed: 0 })
+    expect(history.hasChanges()).toBe(false)
+  })
+
+  test('one read-only feature refuses the whole change and writes nothing', () => {
+    const history = historyWith({ n1: { a: 'b' }, n2: { a: 'c' } })
+    const plan = applyEach(
+      history,
+      [
+        { id: 'n1', set: { x: '1' } },
+        { id: 'n2', set: { x: '2' } },
+      ],
+      (id) => id === 'n2',
+    )
+    expect(plan).toEqual({ ok: false, reason: 'read-only', readOnly: 1, of: 2 })
+    expect(tagsOf(history, 'n1')).toEqual({ a: 'b' })
+    expect(history.hasChanges()).toBe(false)
+  })
+
+  test('an id not in the graph refuses the whole change', () => {
+    const history = historyWith({ n1: {} })
+    expect(
+      applyEach(history, [
+        { id: 'n1', set: { a: 'b' } },
+        { id: 'gone', set: { a: 'b' } },
+      ]),
+    ).toEqual({ ok: false, reason: 'missing' })
+    expect(tagsOf(history, 'n1')).toEqual({})
+  })
+
+  test('an id listed twice gets both changes in order', () => {
+    const history = historyWith({ n1: { a: 'b' } })
+    const plan = applyEach(history, [
+      { id: 'n1', remove: ['a'] },
+      { id: 'n1', set: { c: 'd' } },
+    ])
+    expect(plan).toMatchObject({ ok: true, changed: 1 })
+    expect(tagsOf(history, 'n1')).toEqual({ c: 'd' })
   })
 })

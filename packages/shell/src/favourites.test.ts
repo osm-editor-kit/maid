@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from 'bun:test'
 import {
   createPresets,
+  type Preset,
   type Presets,
   type PresetData,
   type Tags,
@@ -132,5 +133,71 @@ describe('a favourite that is given to a clicked node', () => {
     const before = writes.length
     favourites.giveFavouriteTagsToNode(parts, 'n5')
     expect(writes.length).toBe(before)
+  })
+})
+
+describe('the type of several features', () => {
+  // each feature's tags and old preset, as the engine keeps them; the writes go to one fake engine call
+  const features = new Map<string, { tags: Tags; geometry: 'point'; preset: Preset | undefined }>()
+  const calls: { changes: { id: string; tags: Tags }[]; annotation: string }[] = []
+  const many = {
+    editor: { presets },
+    engine: {
+      entity: (id: string) => features.get(id),
+      centreOf: () => undefined,
+      setTagsEach: (changes: { id: string; tags: Tags }[], annotation: string) => {
+        calls.push({ changes, annotation })
+        return { ok: true as const, changed: changes.length }
+      },
+    },
+  } as unknown as Parameters<typeof favourites.changeTypeMany>[0]
+
+  const bench = presets.preset('amenity/bench')
+  if (!bench) throw new Error('the test data has the bench preset')
+
+  it('gives each feature the new tags from its own tags and old preset, in one call', () => {
+    features.clear()
+    calls.length = 0
+    features.set('a', {
+      tags: { amenity: 'cafe', name: 'Kiosk' },
+      geometry: 'point',
+      preset: presets.match({ amenity: 'cafe' }, 'point'),
+    })
+    features.set('b', {
+      tags: { amenity: 'bench', name: 'Park' },
+      geometry: 'point',
+      preset: presets.match({ amenity: 'bench' }, 'point'),
+    })
+    const result = favourites.changeTypeMany(many, ['a', 'b'], bench)
+
+    expect(result).toEqual({ ok: true, changed: 2 })
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.annotation).toBe('Changed tags')
+    expect(calls[0]?.changes).toEqual([
+      { id: 'a', tags: { name: 'Kiosk', amenity: 'bench', backrest: 'yes' } },
+      { id: 'b', tags: { name: 'Park', amenity: 'bench', backrest: 'yes' } },
+    ])
+  })
+
+  it('refuses a feature that is not in the data, and writes nothing', () => {
+    calls.length = 0
+    const result = favourites.changeTypeMany(many, ['a', 'gone'], bench)
+    expect(result).toEqual({ ok: false, reason: 'missing' })
+    expect(calls).toHaveLength(0)
+  })
+
+  it('lists only the presets that take every geometry of the features', () => {
+    // the bench takes point and vertex, the cafe only point
+    const onlyPoints = favourites.presetsForAll(presets, '', ['point'])
+    expect(onlyPoints.map((preset) => preset.id)).toEqual(
+      expect.arrayContaining(['amenity/bench', 'amenity/cafe']),
+    )
+    const pointAndVertex = favourites.presetsForAll(presets, '', ['point', 'vertex'])
+    expect(pointAndVertex.map((preset) => preset.id)).toContain('amenity/bench')
+    expect(pointAndVertex.map((preset) => preset.id)).not.toContain('amenity/cafe')
+  })
+
+  it('lists nothing when no geometry is given', () => {
+    expect(favourites.presetsForAll(presets, 'bench', [])).toEqual([])
   })
 })

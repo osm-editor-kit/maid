@@ -20,7 +20,7 @@ import {
 export type TagModel = {
   featureKey: string
   /** The tags the rows were made from, by identity: a new object from the host means the tags changed. */
-  seen: Tags
+  seen: object
   rows: TagRows
   order: OrderMode
   keepIncomplete: boolean

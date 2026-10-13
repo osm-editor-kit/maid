@@ -2,6 +2,7 @@ import { OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 import type { DifferenceChange, Graph, OsmEntity } from '@osm-editor-kit/maid-model'
 import { boxOf, boxesOverlap } from './geo.ts'
 import type { Box, Point } from './geo.ts'
+import { sharedIssues } from './shared-issues.ts'
 import type { Issue, Rule, RuleContext, Validator } from './types.ts'
 import { createWayIndex } from './way-index.ts'
 
@@ -188,6 +189,10 @@ export function createValidator(rules: readonly Rule[]): Validator {
 
     issuesFor(entityId) {
       return allIssues().filter((issue) => issue.entityIds.includes(entityId))
+    },
+
+    issuesForAll(entityIds) {
+      return sharedIssues(allIssues(), entityIds)
     },
   }
 }

@@ -15,6 +15,7 @@ import { privateData } from './rules/private-data.ts'
 import type { Rule } from './types.ts'
 
 export { createValidator } from './validator.ts'
+export { compareSharedIssues, sharedIssues } from './shared-issues.ts'
 export { missingTag } from './rules/missing-tag.ts'
 export { disconnectedWay } from './rules/disconnected-way.ts'
 export { crossingWays } from './rules/crossing-ways.ts'

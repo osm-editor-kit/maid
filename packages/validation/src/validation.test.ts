@@ -357,6 +357,9 @@ describe('validator', () => {
     )
     expect(validator.issuesFor('w2')).toHaveLength(1)
     expect(validator.issuesFor('a1')).toEqual([])
+    // several features: the issues that involve any of them, once each
+    expect(validator.issuesForAll(['a1', 'w2'])).toHaveLength(1)
+    expect(validator.issuesForAll(['a1'])).toEqual([])
 
     validator.keepOnly(['w2'])
     expect(validator.issues()).toEqual([])

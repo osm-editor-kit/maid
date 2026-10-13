@@ -88,6 +88,24 @@ function useIssues<T>(store: Store, read: (validator: Validator, version: number
   return read(store.validator, version)
 }
 
+/** The store of each editor that has the validation module, for the inspector of several features */
+const storeOf = new WeakMap<Editor, Store>()
+
+/** Stands in for an editor without the validation module: no issues, and nothing to wait for */
+const NO_STORE: Store = {
+  validator: createValidator([]),
+  subscribe: () => () => {},
+  version: () => 0,
+}
+
+/**
+ * The issues that involve any of these features, as the inspector of several features shows them
+ * (iD's `getSharedEntityIssues`, in the validator's `issuesForAll`). Empty without the module.
+ */
+export function useSharedIssues(editor: Editor, ids: readonly string[]): readonly Issue[] {
+  return useIssues(storeOf.get(editor) ?? NO_STORE, (validator) => validator.issuesForAll(ids))
+}
+
 function applyFix(editor: Editor, issue: Issue, fix: Fix) {
   const { history } = editor
   try {
@@ -105,7 +123,8 @@ const SEVERITY = {
   warning: 'bg-amber-500',
 }
 
-function IssueRow(props: {
+/** One issue with its fixes: the row of the dock's list, of one feature's inspector and of several */
+export function IssueRow(props: {
   editor: Editor
   issue: Issue
   /** Makes the message a button that selects what the issue is about */
@@ -160,6 +179,7 @@ export function validation({ rules }: { rules: readonly Rule[] }) {
     id: 'validation',
     setup(api) {
       const store = createStore(api.editor, rules)
+      storeOf.set(api.editor, store)
 
       function EntityIssues({ entity, editor }: InspectorSectionProps) {
         const issues = useIssues(store, (v) => v.issuesFor(entity.id))

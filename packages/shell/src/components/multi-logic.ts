@@ -5,7 +5,8 @@
  * a change writes). See docs/research/multi-selection.md, 1.1 to 1.3.
  */
 import type { CombinedTags } from '@osm-editor-kit/maid-model'
-import type { Field, Tags } from '@osm-editor-kit/maid-presets'
+import type { Field } from '@osm-editor-kit/maid-presets'
+import type { TagSheetChange } from '@osm-editor-kit/maid-ui'
 
 /**
  * The selection list shows this many features. The rest are counted as "and N more": iD lists all of
@@ -27,11 +28,11 @@ export function withoutId(ids: readonly string[], id: string): string[] {
 }
 
 /**
- * The tags the fields and the tag sheet show for several features: the keys that every feature has with
- * one value. A mixed key is absent (the field or row shows "Multiple values" from `combined`).
+ * The tags the fields show for several features: the keys that every feature has with one value. A mixed key is
+ * absent (the field shows "Multiple values" from `combined`).
  */
-export function sharedTags(combined: CombinedTags): Tags {
-  const shared: Tags = {}
+export function sharedTags(combined: CombinedTags): Record<string, string> {
+  const shared: Record<string, string> = {}
   for (const [key, entry] of Object.entries(combined)) {
     if (entry.kind === 'one') shared[key] = entry.value
   }
@@ -39,30 +40,29 @@ export function sharedTags(combined: CombinedTags): Tags {
 }
 
 /**
- * The write that turns the shared tags into the sheet's next tags: a key the sheet no longer has is
- * removed where it was shared; a key with a new value (or a new key) is set on every feature. A blank
- * value is a removal, as in `cleanTagChange`. A mixed key that the sheet does not show is not touched.
- * @param   before - The shared tags the sheet was given
- * @param   after  - The tags the sheet gives back
- * @return  The change for `engine.changeTags`
+ * The change of each feature that a sheet change asks for, as `engine.changeTagsEach` takes it. `set` and
+ * `remove` go to every feature as they are. A rename moves each feature's own value to the new key (iD's
+ * keyChange): a feature without the old key is not changed by it. A value already set for the new key by
+ * `set` wins over the moved one.
+ * @param   change   - What the sheet of several features asks for
+ * @param   features - Each selected feature with its tags
+ * @return  The change of each feature, in the order of `features`
  */
-export function changeFromTags(
-  before: Readonly<Tags>,
-  after: Readonly<Tags>,
-): { set: Record<string, string>; remove: string[] } {
-  const set: Record<string, string> = {}
-  const remove: string[] = []
-  const keys = new Set([...Object.keys(before), ...Object.keys(after)])
-  for (const key of keys) {
-    const was = Object.hasOwn(before, key) ? before[key] : undefined
-    const now = Object.hasOwn(after, key) ? after[key] : undefined
-    if (now === undefined || now === '') {
-      if (was !== undefined) remove.push(key)
-    } else if (now !== was) {
-      set[key] = now
+export function changesPerFeature(
+  change: TagSheetChange,
+  features: readonly { id: string; tags: Readonly<Record<string, string>> }[],
+): { id: string; set: Record<string, string>; remove: string[] }[] {
+  return features.map(({ id, tags }) => {
+    const set: Record<string, string> = { ...change.set }
+    const remove: string[] = [...(change.remove ?? [])]
+    for (const { from, to } of change.rename ?? []) {
+      const value = Object.hasOwn(tags, from) ? tags[from] : undefined
+      if (value === undefined || value === '') continue
+      remove.push(from)
+      if (!Object.hasOwn(set, to)) set[to] = value
     }
-  }
-  return { set, remove }
+    return { id, set, remove }
+  })
 }
 
 /**

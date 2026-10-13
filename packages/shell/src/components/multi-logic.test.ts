@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test'
 import { combinedTags } from '@osm-editor-kit/maid-model'
 import type { Field } from '@osm-editor-kit/maid-presets'
 import {
-  changeFromTags,
+  changesPerFeature,
   distinctPresets,
   listedIds,
   readOnlyRefusal,
@@ -46,30 +46,38 @@ describe('sharedTags', () => {
   })
 })
 
-describe('changeFromTags', () => {
-  const before = { building: 'yes', height: '10' }
+describe('changesPerFeature', () => {
+  const features: { id: string; tags: Record<string, string> }[] = [
+    { id: 'w1', tags: { building: 'yes', name: 'A' } },
+    { id: 'w2', tags: { building: 'house', name: 'B', height: '10' } },
+    { id: 'w3', tags: { building: 'yes' } },
+  ]
 
-  it('sets a changed or new key, and removes a key the sheet dropped', () => {
-    expect(changeFromTags(before, { building: 'house', height: '10' })).toEqual({
-      set: { building: 'house' },
-      remove: [],
-    })
-    expect(changeFromTags(before, { building: 'yes' })).toEqual({ set: {}, remove: ['height'] })
+  it('gives set and remove to every feature as they are', () => {
+    expect(changesPerFeature({ set: { building: 'house' }, remove: ['name'] }, features)).toEqual([
+      { id: 'w1', set: { building: 'house' }, remove: ['name'] },
+      { id: 'w2', set: { building: 'house' }, remove: ['name'] },
+      { id: 'w3', set: { building: 'house' }, remove: ['name'] },
+    ])
   })
 
-  it('treats a blank value as a removal of a shared key', () => {
-    expect(changeFromTags(before, { building: '', height: '10' })).toEqual({
-      set: {},
-      remove: ['building'],
-    })
+  it('renames a key on each feature that has it and keeps that feature own value', () => {
+    expect(changesPerFeature({ rename: [{ from: 'name', to: 'label' }] }, features)).toEqual([
+      { id: 'w1', set: { label: 'A' }, remove: ['name'] },
+      { id: 'w2', set: { label: 'B' }, remove: ['name'] },
+      { id: 'w3', set: {}, remove: [] },
+    ])
   })
 
-  it('sets a key the features do not share, and ignores an unchanged state', () => {
-    expect(changeFromTags(before, { ...before, name: 'New' })).toEqual({
-      set: { name: 'New' },
-      remove: [],
-    })
-    expect(changeFromTags(before, { ...before })).toEqual({ set: {}, remove: [] })
+  it('lets a set value win over the moved one, and leaves a blank value alone', () => {
+    const named = [{ id: 'w1', tags: { name: 'A' } }]
+    expect(
+      changesPerFeature({ set: { label: 'X' }, rename: [{ from: 'name', to: 'label' }] }, named),
+    ).toEqual([{ id: 'w1', set: { label: 'X' }, remove: ['name'] }])
+    const blank = [{ id: 'w1', tags: { name: '' } }]
+    expect(changesPerFeature({ rename: [{ from: 'name', to: 'label' }] }, blank)).toEqual([
+      { id: 'w1', set: {}, remove: [] },
+    ])
   })
 })
 
@@ -134,10 +142,9 @@ describe('timing for several features', () => {
       const tags = make(n)
       const start = performance.now()
       const combined = combinedTags(tags)
-      const shared = sharedTags(combined)
       const listed = listedIds(tags.map((_, i) => `w${i}`))
       const elapsed = performance.now() - start
-      expect(Object.keys(shared)).toEqual(['addr:street'])
+      expect(combined['addr:street']).toEqual({ kind: 'one', value: 'Main Street' })
       expect(listed.shown.length).toBe(Math.min(n, 100))
       expect(elapsed).toBeLessThan(1000)
     })

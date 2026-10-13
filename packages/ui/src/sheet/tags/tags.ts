@@ -41,7 +41,7 @@ export type OrderMode = 'sorted' | 'hold'
 export type OrderEvent = 'select' | 'edit' | 'paste' | 'blur'
 export type ReadOnlyKeys = (key: string) => boolean
 
-const NONE: ReadOnlyKeys = () => false
+export const NONE: ReadOnlyKeys = () => false
 
 export type RowsOptions = {
   /** Keys that are shown and never written (iD's readOnlyTags). Default: none. */
@@ -78,10 +78,10 @@ export type PastePlan = {
   superseded: TagParse['superseded']
 }
 
-const READ_ONLY = 'The key is read-only'
-const DUPLICATE = 'A tag with this key exists'
-const NO_KEY = 'A tag needs a key'
-const GONE = 'The row is no longer in the sheet'
+export const READ_ONLY = 'The key is read-only'
+export const DUPLICATE = 'A tag with this key exists'
+export const NO_KEY = 'A tag needs a key'
+export const GONE = 'The row is no longer in the sheet'
 const COLUMN = 'This column cannot be changed'
 
 /** A key or value as the sheet stores it: trimmed and in Unicode NFC. Never cut. */
@@ -122,7 +122,7 @@ function without(tags: Tags, key: string): Tags {
 }
 
 /** iD's order: UTF-16 code units, as JavaScript's default string sort. */
-function codeUnits(a: string, b: string): number {
+export function codeUnits(a: string, b: string): number {
   if (a < b) return -1
   if (a > b) return 1
   return 0
@@ -133,7 +133,7 @@ function cellOf(text: string, readOnly: boolean, tone: 'default' | 'muted'): She
 }
 
 /** The row for a key and its value ('' for an incomplete row). */
-function rowOf(id: RowId, key: string, value: string, readOnly: boolean): SheetRow {
+export function rowOf(id: RowId, key: string, value: string, readOnly: boolean): SheetRow {
   return {
     id,
     label: key,
@@ -149,11 +149,11 @@ function sameRow(row: SheetRow, key: string, value: string, readOnly: boolean): 
   return rowKey(row) === key && rowValue(row) === value && (row.readOnly === true) === readOnly
 }
 
-function replaceRow(rows: SheetRow[], id: RowId, next: SheetRow): SheetRow[] {
+export function replaceRow(rows: SheetRow[], id: RowId, next: SheetRow): SheetRow[] {
   return rows.map((row) => (row.id === id ? next : row))
 }
 
-function mint(nextId: number, used: ReadonlySet<RowId>): { id: RowId; nextId: number } {
+export function mint(nextId: number, used: ReadonlySet<RowId>): { id: RowId; nextId: number } {
   let n = nextId
   while (used.has(`tag${n}`)) n++
   return { id: `tag${n}`, nextId: n + 1 }
@@ -417,13 +417,24 @@ export function planTagPaste(
       report.refused.push({ line: entry.line, text: `${key}=${value}`, reason: READ_ONLY })
       continue
     }
+    // A mixed row (several features, tag-combined.ts) has no single current value: a paste always writes it.
+    // Copying a mixed row gives `key=*`; that line is refused, so the `*` never becomes a tag value.
+    const mixed = row?.cells.value?.value.kind === 'mixed'
+    if (mixed && value === '*') {
+      report.refused.push({
+        line: entry.line,
+        text: `${key}=${value}`,
+        reason: '"*" stands for several values and is not written',
+      })
+      continue
+    }
     const current = tagValue(tags, key)
-    if (row && current === value) {
+    if (row && !mixed && current === value) {
       report.unchanged += 1
     } else if (row) {
       changes.push({ type: 'set', row: row.id, col: 'value', text: value })
       pasted.push(row.id)
-      if (current === undefined) report.added += 1
+      if (current === undefined && !mixed) report.added += 1
       else report.replaced += 1
     } else {
       const id = options.newRowId()

@@ -1,6 +1,13 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
-import type { Geometry, LonLat, Preset, PresetOptions, Presets } from '@osm-editor-kit/maid-presets'
-import type { Mode } from '@osm-editor-kit/maid-renderer'
+import type {
+  Geometry,
+  LonLat,
+  Preset,
+  PresetOptions,
+  Presets,
+  Tags,
+} from '@osm-editor-kit/maid-presets'
+import type { ChangeTagsResult, Mode } from '@osm-editor-kit/maid-renderer'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import {
   favouritesFor,
@@ -88,6 +95,60 @@ export function changeType({ editor, engine }: Parts, id: string, preset: Preset
     at(engine.centreOf(id)),
   )
   engine.setTags(id, tags, `Changed the feature type to ${preset.name}`)
+}
+
+/**
+ * Gives several features the type of a preset, as iD's preset list does for a selection: each feature
+ * gets the new preset's tags computed from its own tags, its own old preset and its own place, and all
+ * of them change in one undo step. Refused as a whole (nothing written) when one is read-only, and
+ * `missing` when a feature is not in the data. `annotation` is the undo label; iD writes "Changed tags".
+ */
+export function changeTypeMany(
+  { editor, engine }: Parts,
+  ids: readonly string[],
+  preset: Preset,
+  annotation = 'Changed tags',
+): ChangeTagsResult {
+  const { presets } = editor
+  if (!presets) return { ok: false, reason: 'missing' }
+  const changes: { id: string; tags: Tags }[] = []
+  for (const id of new Set(ids)) {
+    const entity = engine.entity(id)
+    if (!entity) return { ok: false, reason: 'missing' }
+    const tags = presets.applyPreset(
+      entity.tags,
+      preset,
+      entity.geometry,
+      entity.preset,
+      at(engine.centreOf(id)),
+    )
+    changes.push({ id, tags })
+  }
+  return engine.setTagsEach(changes, annotation)
+}
+
+/**
+ * The presets the type picker lists for several features: those that take every geometry of them, as
+ * iD's preset list does for a selection (`matchAllGeometry` of the geometries present). The candidates
+ * are the best 500 that `search` finds for the first geometry; the first 50 of those that take all of
+ * them are kept, in search order.
+ * @param   presets    - The editor's presets
+ * @param   query      - What the person typed (empty for the defaults)
+ * @param   geometries - The distinct geometries of the features; none gives no presets
+ * @param   loc        - The place of the features, for presets with a location set
+ */
+export function presetsForAll(
+  presets: Presets,
+  query: string,
+  geometries: readonly Geometry[],
+  loc?: LonLat,
+): Preset[] {
+  const [first] = geometries
+  if (first === undefined) return []
+  return presets
+    .search(query, first, 500, loc)
+    .filter((preset) => presets.matchAllGeometry(preset, [...geometries]))
+    .slice(0, 50)
 }
 
 /**

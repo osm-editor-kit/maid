@@ -44,7 +44,13 @@ import {
   type FeatureBatch,
   type SourceName,
 } from './build'
-import { type ChangeTagsResult, planChangeTags, type TagChangeRequest } from './change-tags'
+import {
+  type ChangeTagsResult,
+  planChangeTags,
+  planChangeTagsEach,
+  type TagChangeEach,
+  type TagChangeRequest,
+} from './change-tags'
 import { OsmData } from './data'
 import { onewayOf } from './direction'
 import { installDirectionImages } from './direction-images'
@@ -67,6 +73,7 @@ import {
 } from './nearby'
 import { extentOf, orderPicks, PICK_LIMIT, type PickCandidate } from './pick-order'
 import { boundsOf, relatedIds } from './related'
+import { planSetTagsEach, type TagsOfFeature } from './set-tags-each'
 import {
   chooseTarget,
   followEachOther,
@@ -799,6 +806,49 @@ export class MaidEngine {
   }
 
   /**
+   * `changeTags` with each feature's own change: `changes` lists the features and what each one writes (a
+   * sheet of several features renames a key on each feature and keeps that feature's value). One undo step,
+   * with the same refusals as `changeTags`: nothing is written when a feature is missing or read-only.
+   */
+  changeTagsEach(changes: readonly TagChangeEach[], annotation = 'Changed tags'): ChangeTagsResult {
+    const plan = planChangeTagsEach(this.data.history.staging.graph, changes, (id) =>
+      this.isReadOnly(id),
+    )
+    if (!plan.ok) return plan
+    if (plan.changed > 0) {
+      const { history } = this.data
+      const selectedIDs = [...new Set(changes.map((change) => change.id))]
+      this.change(() => {
+        history.perform(...plan.actions)
+        history.commit({ annotation, selectedIDs })
+      })
+    }
+    return { ok: true, changed: plan.changed }
+  }
+
+  /**
+   * Writes each feature its own full tags (a key not listed is removed) as one undo step, with the
+   * label `annotation`: the type picker gives each feature the new preset's tags, computed from its
+   * own. Same refusals and result as `changeTags` (see `planSetTagsEach`); a feature whose tags are
+   * already those is not touched. Redraws every changed feature.
+   */
+  setTagsEach(changes: readonly TagsOfFeature[], annotation = 'Changed tags'): ChangeTagsResult {
+    const plan = planSetTagsEach(this.data.history.staging.graph, changes, (id) =>
+      this.isReadOnly(id),
+    )
+    if (!plan.ok) return plan
+    if (plan.changed > 0) {
+      const { history } = this.data
+      const selectedIDs = [...new Set(changes.map((change) => change.id))]
+      this.change(() => {
+        history.perform(...plan.actions)
+        history.commit({ annotation, selectedIDs })
+      })
+    }
+    return { ok: true, changed: plan.changed }
+  }
+
+  /**
    * The combined tags of several features, for the inspector: per key the one value every feature has,
    * or the values that differ (see `combinedTags` in the model). For one feature every key is `one`.
    * Reads the staging graph. An id that is not in the graph is left out.
@@ -887,8 +937,13 @@ export class MaidEngine {
         channel.dirty = true
       }
       this.live[name].clear()
-      for (const id of this.editing)
-        map?.removeFeatureState({ source: SOURCES[name], id }, 'editing')
+      // only where the state was set: MapLibre throws on its next frame when a key is removed
+      // from a feature that has no state in that source
+      for (const id of this.editing) {
+        const target = { source: SOURCES[name], id }
+        if (map?.getFeatureState(target).editing !== undefined)
+          map.removeFeatureState(target, 'editing')
+      }
     }
     this.editing.clear()
     this.featureSource.clear()

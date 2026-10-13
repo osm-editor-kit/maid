@@ -74,7 +74,7 @@ export { useResizable } from './useResizable.ts'
 export { useBreakpoint, type Breakpoint } from './useBreakpoint.ts'
 export { PLAIN_INPUT } from './plain-input.ts'
 export { Sheet } from './sheet/Sheet.tsx'
-export { TagSheet, type TagSheetProps } from './sheet/tags/TagSheet.tsx'
+export { TagSheet, type TagSheetChange, type TagSheetProps } from './sheet/tags/TagSheet.tsx'
 export type { TagSuggestSource } from './sheet/tags/tag-suggest.ts'
 export type {
   CellRef,
