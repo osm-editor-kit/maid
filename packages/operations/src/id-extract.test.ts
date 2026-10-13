@@ -1,6 +1,6 @@
 // Adopted from iD test/spec/operations/extract.js (ISC, © iD contributors), at commit 0194f3926.
 // API changes: `available()` is `applies`; `disabled()` returns undefined where iD returns a falsy
-// value (Maid has no disabled state for extract: iD's only one is about the visible map).
+// value. The one disabled state of extract, `too_large` (the view), is tested in too-large.test.ts.
 import { beforeEach, describe, expect, it } from 'bun:test'
 import { Graph, ModelContext, OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 import type { OsmEntity } from '@osm-editor-kit/maid-model'

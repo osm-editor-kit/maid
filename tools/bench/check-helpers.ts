@@ -132,7 +132,7 @@ export const runDelete = (page: Page, ids: string[]) =>
   }, ids)
 
 /**
- * A building (not a highway) and a residential road that are drawn, picked before any change. The
+ * A building (not a highway, all of it in view) and a residential road that are drawn, picked before any change. The
  * road must have at least `roadMinNodes` nodes; `vertex` is the road's second node when there is a
  * road.
  */
@@ -141,12 +141,20 @@ export const pickBuildingAndRoad = (page: Page, roadMinNodes = 0) =>
     const { map, engine } = window.__maid
     let building: string | undefined
     let road: string | undefined
+    // a building that is partly outside the view cannot be deleted ("too large"), and which
+    // building comes first depends on the order the tiles arrived in
+    const bounds = map.getBounds()
+    const inView = (nodes: readonly string[]) =>
+      nodes.every((id) => {
+        const loc = engine.data.node(id)?.loc
+        return loc !== undefined && bounds.contains([loc[0], loc[1]])
+      })
     for (const source of ['osm-areas', 'osm-lines'])
       for (const f of map.querySourceFeatures(source)) {
         const id = String(f.id ?? '')
         const way = id.startsWith('w') && engine.data.way(id)
         if (!way) continue
-        if (!building && way.tags.building && !way.tags.highway) building = id
+        if (!building && way.tags.building && !way.tags.highway && inView(way.nodes)) building = id
         if (!road && way.tags.highway === 'residential' && way.nodes.length >= roadMinNodes)
           road = id
       }

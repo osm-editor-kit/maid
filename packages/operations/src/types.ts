@@ -1,9 +1,20 @@
 import type { Action, Graph } from '@osm-editor-kit/maid-model'
 
+/**
+ * A rectangle in lon/lat, in the form the data model's Extent uses: its south-west corner (`min`)
+ * and north-east corner (`max`), each as [lon, lat]. An Extent of `maid-model` fits this type.
+ */
+export type Extent = { min: [number, number]; max: [number, number] }
+
 /** What an operation looks at: the current data and the ids of the selected entities, in the order they were selected */
 export type OperationContext = {
   graph: Graph
   selected: readonly string[]
+  /**
+   * The part of the world the map shows now. Optional: without it, the operations that refuse a
+   * feature which is mostly outside the view (`too_large`) never refuse. The app passes the map's bounds.
+   */
+  viewExtent?: Extent
 }
 
 /** What running an operation means: actions that become one undo step */

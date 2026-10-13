@@ -32,7 +32,7 @@ import {
   type OsmJsonElement,
   OsmNode,
 } from '@osm-editor-kit/maid-model'
-import type { Operation } from '@osm-editor-kit/maid-operations'
+import type { Operation, OperationContext } from '@osm-editor-kit/maid-operations'
 import type { Geometry, Preset, Presets } from '@osm-editor-kit/maid-presets'
 import { isArea, type Lens, type Tags } from '@osm-editor-kit/maid-style'
 import type { Feature } from 'geojson'
@@ -843,8 +843,17 @@ export class MaidEngine {
   // --- Operations ---
 
   /** What an operation looks at: the current data and the selection */
-  operationContext() {
-    return { graph: this.data.history.staging.graph, selected: this.selectedIds }
+  operationContext(): OperationContext {
+    // the view lets an operation refuse a feature that is mostly outside it ("too large", as iD)
+    const bounds = this.map?.getBounds()
+    return {
+      graph: this.data.history.staging.graph,
+      selected: this.selectedIds,
+      viewExtent: bounds && {
+        min: [bounds.getWest(), bounds.getSouth()],
+        max: [bounds.getEast(), bounds.getNorth()],
+      },
+    }
   }
 
   /**

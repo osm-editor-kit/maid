@@ -1,7 +1,8 @@
 // The edit operations of the edit menu, as plain data and functions on the data model.
 // Ported from iD's modules/operations (ISC, © iD contributors). Applicability and the order of
-// checks follow iD. Left out: everything that needs the map or the viewport ("too large", "not
-// visible"), hidden or not downloaded data, the localizer, presets, and iD's OSM connection.
+// checks follow iD. The view is the one thing the map adds: `too_large` uses the optional
+// `viewExtent` of the context (see extent.ts). Left out: hidden or not downloaded data, the
+// localizer, presets, and iD's OSM connection.
 import {
   OsmNode,
   OsmRelation,
@@ -19,6 +20,7 @@ import {
   actionStraightenWay,
 } from '@osm-editor-kit/maid-model'
 import type { Action, DisconnectAction, Graph, OsmEntity } from '@osm-editor-kit/maid-model'
+import { isTooLarge, selectionExtent } from './extent.ts'
 import type { Operation, OperationContext } from './types.ts'
 
 /** Used when an action gives a reason code that has no sentence here */
@@ -251,6 +253,10 @@ const STRAIGHTEN_REASONS: Record<string, Sentence> = {
     'This is already as straight as it can be.',
     'These are already as straight as they can be.',
   ],
+  too_large: [
+    "This can't be straightened because not enough of it is currently visible.",
+    "These can't be straightened because not enough of them are currently visible.",
+  ],
 }
 
 /**
@@ -288,10 +294,12 @@ function straightenPlan(context: OperationContext) {
   const ways = entities.filter((entity): entity is OsmWay => entity instanceof OsmWay)
   if (nodes.length + ways.length !== entities.length) return undefined
   if (ways.length === 0 && nodes.length > 2) {
+    const ids = nodes.map((node) => node.id)
     return {
-      action: actionStraightenNodes(nodes.map((node) => node.id)),
+      action: actionStraightenNodes(ids),
       kind: 'point',
       count: nodes.length,
+      extentIDs: ids,
     }
   }
   if (
@@ -299,7 +307,13 @@ function straightenPlan(context: OperationContext) {
     (nodes.length === 0 || nodes.length === 2) &&
     straightenableWays(ways, nodes)
   ) {
-    return { action: actionStraightenWay([...context.selected]), kind: 'line', count: ways.length }
+    return {
+      action: actionStraightenWay([...context.selected]),
+      kind: 'line',
+      count: ways.length,
+      // as iD: two nodes picked on the line are the extent that must be in view, else the ways
+      extentIDs: nodes.length === 2 ? nodes.map((node) => node.id) : [...context.selected],
+    }
   }
   return undefined
 }
@@ -314,7 +328,10 @@ export const straightenOperation: Operation = {
     const plan = straightenPlan(context)
     if (!plan) return undefined
     const reason = reasonOf(plan.action, context.graph)
-    return reason === undefined ? undefined : reasonSentence(STRAIGHTEN_REASONS, reason, plan.count)
+    if (reason !== undefined) return reasonSentence(STRAIGHTEN_REASONS, reason, plan.count)
+    return isTooLarge(selectionExtent(plan.extentIDs, context.graph), context)
+      ? reasonSentence(STRAIGHTEN_REASONS, 'too_large', plan.count)
+      : undefined
   },
   run: (context) => {
     const plan = straightenPlan(context) ?? notApplicable('straighten')
@@ -345,6 +362,10 @@ const SQUARE_REASONS: Record<string, Sentence> = {
     "These can't be made square because they are not squarish.",
   ],
   multiple_blockers: "These can't be squared for multiple reasons.",
+  too_large: [
+    "This can't be made square because not enough of it is currently visible.",
+    "These can't be made square because not enough of them are currently visible.",
+  ],
 }
 
 type SquareTarget = { corner: boolean; action: Action }
@@ -387,9 +408,10 @@ export const squareOperation: Operation = {
       targets.map((target) => target.action),
       context.graph,
     )
-    return code === undefined
-      ? undefined
-      : reasonSentence(SQUARE_REASONS, code, context.selected.length)
+    if (code !== undefined) return reasonSentence(SQUARE_REASONS, code, context.selected.length)
+    return isTooLarge(selectionExtent(context.selected, context.graph), context)
+      ? reasonSentence(SQUARE_REASONS, 'too_large', context.selected.length)
+      : undefined
   },
   run: (context) => {
     const targets = squareTargets(context) ?? notApplicable('square')
@@ -426,6 +448,10 @@ const CIRCULARIZE_REASONS: Record<string, Sentence> = {
     "These can't be made more round than they already are.",
   ],
   multiple_blockers: "These can't be made round for multiple reasons.",
+  too_large: [
+    "This can't be made round because not enough of it is currently visible.",
+    "These can't be made round because not enough of them are currently visible.",
+  ],
 }
 
 /**
@@ -450,9 +476,11 @@ export const circularizeOperation: Operation = {
     const actions = circularizeTargets(context)
     if (!actions) return undefined
     const code = blockedByAll(actions, context.graph)
-    return code === undefined
-      ? undefined
-      : reasonSentence(CIRCULARIZE_REASONS, code, actions.length)
+    if (code !== undefined) return reasonSentence(CIRCULARIZE_REASONS, code, actions.length)
+    // as iD: only when some feature can be made round is the view checked
+    return isTooLarge(selectionExtent(context.selected, context.graph), context)
+      ? reasonSentence(CIRCULARIZE_REASONS, 'too_large', actions.length)
+      : undefined
   },
   run: (context) => {
     const actions = circularizeTargets(context) ?? notApplicable('circularize')
@@ -476,6 +504,10 @@ export const circularizeOperation: Operation = {
 const DISCONNECT_REASONS: Record<string, Sentence> = {
   not_connected: "There aren't enough lines or areas here to disconnect.",
   relation: "This can't be disconnected because it connects members of a relation.",
+  too_large: [
+    "This can't be disconnected because not enough of it is currently visible.",
+    "These can't be disconnected because not enough of them are currently visible.",
+  ],
 }
 
 /**
@@ -510,12 +542,14 @@ function disconnectPlan(context: OperationContext) {
       }
       return action
     })
-    return { actions, fromEachOther: false }
+    return { actions, fromEachOther: false, extentIDs: vertexIDs, count: vertexIDs.length }
   }
 
   const wayIDs = ways.map((way) => way.id)
   const shared: DisconnectAction[] = []
+  const sharedIDs: string[] = []
   const unshared: DisconnectAction[] = []
+  const unsharedIDs: string[] = []
   for (const nodeID of unique(ways.flatMap((way) => way.nodes))) {
     if (!graph.hasEntity(nodeID)) continue
     const action = actionDisconnect(nodeID).limitWays(wayIDs)
@@ -523,12 +557,17 @@ function disconnectPlan(context: OperationContext) {
     const count = ways.filter((way) => way.nodes.includes(nodeID)).length
     if (count > 1) {
       shared.push(action)
+      sharedIDs.push(nodeID)
     } else {
       unshared.push(action)
+      unsharedIDs.push(nodeID)
     }
   }
-  if (shared.length > 0) return { actions: shared, fromEachOther: true }
-  if (unshared.length > 0) return { actions: unshared, fromEachOther: false }
+  // as iD: the extent is that of the nodes that are disconnected, shared ones first
+  if (shared.length > 0)
+    return { actions: shared, fromEachOther: true, extentIDs: sharedIDs, count: ways.length }
+  if (unshared.length > 0)
+    return { actions: unshared, fromEachOther: false, extentIDs: unsharedIDs, count: ways.length }
   return undefined
 }
 
@@ -546,7 +585,9 @@ export const disconnectOperation: Operation = {
       if (reason !== undefined)
         return reasonSentence(DISCONNECT_REASONS, reason, context.selected.length)
     }
-    return undefined
+    return isTooLarge(selectionExtent(plan.extentIDs, context.graph), context)
+      ? reasonSentence(DISCONNECT_REASONS, 'too_large', plan.count)
+      : undefined
   },
   run: (context) => {
     const plan = disconnectPlan(context) ?? notApplicable('disconnect')
@@ -578,16 +619,28 @@ function extractTargets(context: OperationContext) {
   return ok ? entities : undefined
 }
 
+const EXTRACT_REASONS: Record<string, Sentence> = {
+  too_large: [
+    "A point can't be extracted because not enough of this feature is visible.",
+    "Points can't be extracted because not enough of these features are visible.",
+  ],
+}
+
 /**
- * Extract: pulls a point out of a vertex or an area. The new point is selected. iD's extract has
- * no reason codes that survive without the map (its disabled states are about the viewport).
+ * Extract: pulls a point out of a vertex or an area. The new point is selected. The one reason iD
+ * has for extract is about the view: `too_large`.
  */
 export const extractOperation: Operation = {
   id: 'extract',
   label: 'Extract',
   shortcut: 'e',
   applies: (context) => extractTargets(context) !== undefined,
-  disabled: () => undefined,
+  disabled: (context) => {
+    if (!extractTargets(context)) return undefined
+    return isTooLarge(selectionExtent(context.selected, context.graph), context)
+      ? reasonSentence(EXTRACT_REASONS, 'too_large', context.selected.length)
+      : undefined
+  },
   run: (context) => {
     const targets = extractTargets(context) ?? notApplicable('extract')
     const actions = targets.map((entity) => actionExtract(entity.id))
@@ -599,6 +652,14 @@ export const extractOperation: Operation = {
         actions.map((action) => action.getExtractedNodeID()).filter((id) => id !== undefined),
     }
   },
+}
+
+/** iD's wording for both flips (core.yaml, reflect.too_large) */
+const REFLECT_REASONS: Record<string, Sentence> = {
+  too_large: [
+    "This feature can't be flipped because not enough of it is currently visible.",
+    "These features can't be flipped because not enough of them are currently visible.",
+  ],
 }
 
 /** Mirrors the selection along its long or its short axis, as iD's T and Y do */
@@ -615,7 +676,13 @@ function reflectOperation(axis: 'long' | 'short') {
     label: axis === 'long' ? 'Flip long' : 'Flip short',
     shortcut: axis === 'long' ? 't' : 'y',
     applies: (context) => targets(context) !== undefined,
-    disabled: () => undefined,
+    disabled: (context) => {
+      const ids = targets(context)
+      if (!ids) return undefined
+      return isTooLarge(selectionExtent(ids, context.graph), context)
+        ? reasonSentence(REFLECT_REASONS, 'too_large', ids.length)
+        : undefined
+    },
     run: (context) => {
       const ids = targets(context) ?? notApplicable(`reflect-${axis}`)
       const n = ids.length
@@ -645,6 +712,10 @@ const DELETE_REASONS: Record<string, Sentence> = {
   has_wikidata_tag: [
     "This feature can't be deleted because it has a Wikidata tag.",
     "These features can't be deleted because some have Wikidata tags.",
+  ],
+  too_large: [
+    "This feature can't be deleted because not enough of it is currently visible.",
+    "These features can't be deleted because not enough of them are currently visible.",
   ],
 }
 
@@ -719,8 +790,9 @@ function isProtectedWay(way: OsmWay, graph: Graph) {
 }
 
 /**
- * iD's disabled reasons for delete, in iD's order. Not here: `too_large` (needs the visible
- * extent), `not_downloaded` (needs the tiles loaded) and `connected_to_hidden` (needs the filters).
+ * iD's disabled reasons for delete, in iD's order, after `too_large` (the operation checks the
+ * view first). Not here: `not_downloaded` (needs the tiles loaded) and `connected_to_hidden`
+ * (needs the filters).
  */
 function deleteReason(entities: OsmEntity[], graph: Graph) {
   if (entities.some((entity) => entity instanceof OsmWay && isProtectedWay(entity, graph)))
@@ -744,6 +816,9 @@ export const deleteOperation: Operation = {
   disabled: (context) => {
     const entities = resolveSelection(context)
     if (!entities) return undefined
+    // as iD: the view is checked before anything about the data
+    if (isTooLarge(selectionExtent(context.selected, context.graph), context))
+      return reasonSentence(DELETE_REASONS, 'too_large', entities.length)
     const reason = deleteReason(entities, context.graph)
     return reason === undefined
       ? undefined

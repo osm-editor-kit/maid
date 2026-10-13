@@ -145,6 +145,9 @@ process.exit(
       )
     }
 
+    // a way that is less than 80 % in view is not deleted ("too large", as iD)
+    await page.evaluate((id) => window.__maid.engine.fitTo([id]), picked.wayId)
+    await page.waitForTimeout(1500)
     s = await after(() => runDelete(page, [picked.wayId]), ids)
     checkDeleted('delete way', s.seen)
     report('delete way: undo label', 'Deleted a line', s.undo)

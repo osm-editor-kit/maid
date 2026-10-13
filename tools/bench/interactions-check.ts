@@ -646,7 +646,9 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   await key('2')
   await rightClick(free(5))
   report('no menu while drawing', 0, await menu.count())
-  await key('Delete')
+  // the copy lies partly outside the view, so Delete would refuse it ("too large"): undo takes it away
+  await key('Escape')
+  await key('Meta+z')
 
   // --- the menu on a point and a vertex (both can be dragged), on a second place, a member of a
   // selection, a Control-click and the menu key; open ground keeps the selection ---
@@ -848,7 +850,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   )
 
   // --- favourites by number: hold Alt, type the digits, let Alt go starts the favourite of that
-  // number (apps/maid/src/favourites-keys.ts, components/FavouriteHint.tsx). Under automation the
+  // number (packages/shell/src/favourites-keys.ts, components/FavouriteHint.tsx). Under automation the
   // settings are not stored, so the favourites are made in the picker: the building (an area) gets
   // number 3 and the bench (a point) gets 39 ---
   const holdAlt = async (digits: string[]) => {
