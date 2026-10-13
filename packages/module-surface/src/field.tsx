@@ -66,31 +66,49 @@ const PICK_TILE =
 const PICK_CHOSEN = 'ring-2 ring-inset ring-blue-500'
 const MUTED = 'text-zinc-500 dark:text-zinc-400'
 
-/**
- * A picture in a frame: the photo, the vehicle icon on the frame's ground, or the text when there is no picture.
- * The photos are square; the frame's size comes from `className`.
- */
-function Frame(props: { picture?: Picture; alt: string; text: string; className: string }) {
-  const { picture, alt, text, className } = props
-  const url = picture ? PICTURES[picture.path] : undefined
-  return (
-    <span
-      className={`grid place-items-center overflow-hidden rounded-md bg-zinc-100 dark:bg-zinc-900 ${className}`}
-    >
-      {url !== undefined && picture !== undefined ? (
+/** The content of a frame for a picture: the photo, or the emoji large and centred; the text when a photo has no file */
+function pictureContent(picture: Picture, alt: string, text: string) {
+  switch (picture.kind) {
+    case 'photo': {
+      const url = PICTURES[picture.path]
+      return url === undefined ? (
+        <span className={`px-2 text-center text-xs ${MUTED}`}>{text}</span>
+      ) : (
         <img
           src={url}
           alt={alt}
           loading="lazy"
           decoding="async"
-          className={
-            picture.kind === 'vehicle'
-              ? 'size-3/5 object-contain dark:invert'
-              : 'size-full object-cover'
-          }
+          className="size-full object-cover"
         />
-      ) : (
+      )
+    }
+    case 'emoji':
+      return (
+        <>
+          <span aria-hidden="true" className="text-5xl leading-none">
+            {picture.text}
+          </span>
+          <span className="sr-only">{alt}</span>
+        </>
+      )
+  }
+}
+
+/**
+ * A picture in a frame: the photo or the emoji of the picture, or the text when there is no picture.
+ * The photos are square; the frame's size comes from `className`.
+ */
+function Frame(props: { picture?: Picture; alt: string; text: string; className: string }) {
+  const { picture, alt, text, className } = props
+  return (
+    <span
+      className={`grid place-items-center overflow-hidden rounded-md bg-zinc-100 dark:bg-zinc-900 ${className}`}
+    >
+      {picture === undefined ? (
         <span className={`px-2 text-center text-xs ${MUTED}`}>{text}</span>
+      ) : (
+        pictureContent(picture, alt, text)
       )}
     </span>
   )
@@ -237,7 +255,7 @@ function SurfacePicker(props: {
 }) {
   const { chosen, onPick, onClose } = props
   const paths = SURFACE_GROUPS.flatMap((group) =>
-    group.items.flatMap((item) => (item.picture ? [item.picture.path] : [])),
+    group.items.flatMap((item) => (item.picture?.kind === 'photo' ? [item.picture.path] : [])),
   )
   return (
     <div className="grid gap-3 p-3">
@@ -256,7 +274,7 @@ function SurfacePicker(props: {
 
 /**
  * The smoothness picker: the levels for the chosen surface, best to worst, with their photos and descriptions; the
- * generic levels (vehicle icons) without a surface or a surface without photos. A value the surface does not offer is
+ * generic levels (their emoji) without a surface or a surface without photos. A value the surface does not offer is
  * shown first, marked, so that it is not hidden.
  */
 function SmoothnessPicker(props: {
@@ -288,7 +306,7 @@ function SmoothnessPicker(props: {
       : []
   const groups: PickGroup[] = [{ items: [...notOffered, ...offered] }]
   const paths = groups.flatMap((group) =>
-    group.items.flatMap((item) => (item.picture ? [item.picture.path] : [])),
+    group.items.flatMap((item) => (item.picture?.kind === 'photo' ? [item.picture.path] : [])),
   )
   const hint =
     surface === undefined

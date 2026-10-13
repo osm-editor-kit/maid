@@ -1,5 +1,16 @@
 # Surface and smoothness data: licence check
 
+## Resolved on 2026-10-13
+
+Read this first. The rest of this note is the analysis as it stood before the change. It is kept as history.
+
+- **The package is MIT from version 0.1.0.** Its `package.json` says `"license": "MIT"`, and it ships a `LICENSE` file (MIT, Tobias Jordans).
+- **The vehicle icons are gone.** Version 0.1.0 has no `icons/*.svg` files and no `SmoothnessLevel.vehicleIcon`. Each level has `emoji` instead: the "usable by" vehicle emoji, or `null`. Maid shows the emoji where a level had an icon (`packages/module-surface`).
+- **The photos keep their own licences.** Each file is listed in `catalogue.attribution` with its licence (CC BY-SA 4.0 and older, CC BY, CC0, public domain). The flyouts show these credits under "Photo credits".
+- **Still open, not checked here:** the two attribution gaps in section 1 (the package's README lists them). The package says MIT for its English texts too, which came from StreetComplete; nobody has checked that statement against StreetComplete's own terms. The two apps were not rebuilt for this note.
+
+Engineer's reading, not legal advice.
+
 Date: 2026-10-13. Read-only check: local files, the npm registry (`npm view`), and the code in this repo. No other network request, nothing changed in another repository.
 Tags: [measured] = read or counted in this session; [inferred] = my reading, not checked; [Tobias] = his view, recorded as he gave it.
 Engineer's reading, not legal advice. Paths for the package are in `node_modules/.bun/@osm-editor-kit+surface-smoothness-data@0.0.0/node_modules/@osm-editor-kit/surface-smoothness-data/` (below: `PKG/`).

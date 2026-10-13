@@ -12,8 +12,11 @@ import { catalogue, type SurfaceInfo } from '@osm-editor-kit/surface-smoothness-
 export const SURFACE_KEY = 'surface'
 export const SMOOTHNESS_KEY = 'smoothness'
 
-/** A picture for a tile: a surface or smoothness photo, or a vehicle icon for a level without a photo */
-export type Picture = { path: string; kind: 'photo' | 'vehicle' }
+/**
+ * A picture for a tile: a surface or smoothness photo (its package-relative path), or the "usable by" vehicle emoji
+ * of a smoothness level that has no photo for the surface
+ */
+export type Picture = { kind: 'photo'; path: string } | { kind: 'emoji'; text: string }
 
 /** Own properties only: a tag value such as `constructor` must not find the prototype's members */
 function own<T>(record: Readonly<Record<string, T>>, key: string) {
@@ -51,7 +54,7 @@ export function smoothnessTitle(value: string) {
 /** The reference photo of a surface tag value */
 export function surfacePicture(value: string) {
   const path = surfaceInfo(value)?.icon
-  return path ? ({ path, kind: 'photo' } satisfies Picture) : undefined
+  return path ? ({ kind: 'photo', path } satisfies Picture) : undefined
 }
 
 /** The smoothness cells of a surface (its tag value or its canonical surface); undefined without photos */
@@ -70,13 +73,18 @@ export function smoothnessCell(surface: string, smoothness: string) {
 
 /**
  * The picture a smoothness tile shows: the surface's photo for that level when there is one, else the level's
- * vehicle icon (the generic picture), else nothing. Without a surface there is no photo, only the vehicle icon.
+ * "usable by" emoji (the generic picture), else nothing. Without a surface there is no photo, only the emoji.
  */
 export function smoothnessPicture(surface: string | undefined, smoothness: string) {
   const cell = surface === undefined ? undefined : smoothnessCell(surface, smoothness)
-  if (cell) return { path: cell.photo, kind: 'photo' } satisfies Picture
-  const icon = own(catalogue.smoothnessLevels, smoothness)?.vehicleIcon
-  return icon ? ({ path: icon, kind: 'vehicle' } satisfies Picture) : undefined
+  if (cell) return { kind: 'photo', path: cell.photo } satisfies Picture
+  return levelEmoji(smoothness)
+}
+
+/** The "usable by" emoji of a smoothness level as a picture; undefined for a level without one */
+function levelEmoji(smoothness: string) {
+  const text = own(catalogue.smoothnessLevels, smoothness)?.emoji
+  return text ? ({ kind: 'emoji', text } satisfies Picture) : undefined
 }
 
 // ---- pickers ----
@@ -98,7 +106,7 @@ export function surfaceGroups() {
   const choice = (info: SurfaceInfo) => ({
     value: info.osmValue,
     label: info.title ?? info.osmValue,
-    picture: info.icon ? ({ path: info.icon, kind: 'photo' } satisfies Picture) : undefined,
+    picture: info.icon ? ({ kind: 'photo', path: info.icon } satisfies Picture) : undefined,
   })
   const groups: SurfaceGroup[] = [
     {
@@ -126,7 +134,7 @@ export type SmoothnessChoice = {
 /**
  * What the smoothness picker offers. For a surface with reference photos: its matrix cells, best to worst, each with
  * its photo and description (`photos: true`). Without a surface, or for a surface without photos: all levels with
- * their vehicle icons and no description (`photos: false`).
+ * their "usable by" emoji and no description (`photos: false`).
  */
 export function smoothnessChoices(surface: string | undefined) {
   const matrix = surface === undefined ? undefined : matrixOf(surface)
@@ -135,7 +143,7 @@ export function smoothnessChoices(surface: string | undefined) {
       value,
       label: own(catalogue.smoothnessLevels, value)?.title ?? value,
       description: cell.description ?? undefined,
-      picture: { path: cell.photo, kind: 'photo' } as const,
+      picture: { kind: 'photo', path: cell.photo } satisfies Picture,
     }))
     return { photos: true, choices }
   }
@@ -143,9 +151,7 @@ export function smoothnessChoices(surface: string | undefined) {
     value: level.osmValue,
     label: level.title ?? level.osmValue,
     description: undefined,
-    picture: level.vehicleIcon
-      ? ({ path: level.vehicleIcon, kind: 'vehicle' } as const)
-      : undefined,
+    picture: levelEmoji(level.osmValue),
   }))
   return { photos: false, choices }
 }
@@ -213,7 +219,7 @@ export function smoothnessOptions() {
 
 /**
  * The catalogue's attribution of the given package-relative files, in the catalogue's order. Shown under the pickers:
- * the photos are CC-BY(-SA) and public domain, the vehicle icons GPL-3.0-or-later.
+ * the photos keep their own licences (CC-BY, CC-BY-SA, public domain).
  */
 export function creditsFor(paths: readonly string[]) {
   const wanted = new Set(paths)

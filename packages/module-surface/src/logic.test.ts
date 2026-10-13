@@ -34,19 +34,19 @@ describe('which photo a surface and smoothness shows', () => {
     expect(canonicalSurface('asphalt')).toBe('asphalt')
   })
 
-  it("falls back to the level's vehicle icon for a surface without a photo of that level", () => {
+  it("falls back to the level's emoji for a surface without a photo of that level", () => {
     // sett has no photo for excellent: the matrix has no cell for it
     expect(smoothnessCell('sett', 'excellent')).toBeUndefined()
     expect(smoothnessPicture('sett', 'excellent')).toEqual({
-      path: 'icons/skateboard.svg',
-      kind: 'vehicle',
+      kind: 'emoji',
+      text: '🛹',
     })
   })
 
-  it('shows the vehicle icon of the level without a surface', () => {
+  it('shows the emoji of the level without a surface', () => {
     expect(smoothnessPicture(undefined, 'impassable')).toEqual({
-      path: 'icons/pedestrian.svg',
-      kind: 'vehicle',
+      kind: 'emoji',
+      text: '🚶',
     })
   })
 
@@ -106,12 +106,12 @@ describe('the pickers', () => {
     expect(choices[0]?.picture?.kind).toBe('photo')
   })
 
-  it('offers all levels with their vehicle icons when there is no surface', () => {
+  it('offers all levels with their emoji when there is no surface', () => {
     const { photos, choices } = smoothnessChoices(undefined)
     expect(photos).toBe(false)
     expect(choices.map((choice) => choice.value)).toEqual(Object.keys(catalogue.smoothnessLevels))
     expect(choices.every((choice) => choice.description === undefined)).toBe(true)
-    expect(choices.every((choice) => choice.picture?.kind === 'vehicle')).toBe(true)
+    expect(choices.every((choice) => choice.picture?.kind === 'emoji')).toBe(true)
   })
 
   it('offers all levels when the surface has no photos', () => {
@@ -213,13 +213,14 @@ describe('credits', () => {
   it('gives the catalogue attribution of the files shown, in the catalogue order', () => {
     const credits = creditsFor([
       'images/surface_asphalt.jpg',
-      'icons/car.svg',
+      'images/surface_acrylic.jpg',
       'images/unknown.jpg',
     ])
     expect(credits.map((credit) => credit.file)).toEqual([
+      'images/surface_acrylic.jpg',
       'images/surface_asphalt.jpg',
-      'icons/car.svg',
     ])
-    expect(credits[1]?.license).toBe('GPL-3.0-or-later')
+    expect(credits[0]?.license).toBe('CC-BY-SA 4.0')
+    expect(credits[1]?.license).toBe('Public Domain')
   })
 })

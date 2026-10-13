@@ -1,20 +1,12 @@
-import pic_car_svg from '@osm-editor-kit/surface-smoothness-data/icons/car.svg?no-inline'
-import pic_city_bike_svg from '@osm-editor-kit/surface-smoothness-data/icons/city_bike.svg?no-inline'
-import pic_pedestrian_svg from '@osm-editor-kit/surface-smoothness-data/icons/pedestrian.svg?no-inline'
-import pic_pickup_truck_svg from '@osm-editor-kit/surface-smoothness-data/icons/pickup_truck.svg?no-inline'
-import pic_scooter_svg from '@osm-editor-kit/surface-smoothness-data/icons/scooter.svg?no-inline'
-import pic_skateboard_svg from '@osm-editor-kit/surface-smoothness-data/icons/skateboard.svg?no-inline'
-import pic_suv_svg from '@osm-editor-kit/surface-smoothness-data/icons/suv.svg?no-inline'
-import pic_tractor_svg from '@osm-editor-kit/surface-smoothness-data/icons/tractor.svg?no-inline'
 /**
- * The catalogue's pictures, keyed by the package-relative paths the catalogue uses (images/ and icons/).
- * Each file is imported from the data package, so the bundler emits it as a file of Maid's own origin: nothing
- * is loaded from the network at run time. Generated from the package's dist/generated folder (one import per file);
- * test: photos.test.ts checks that every path the catalogue names is here.
+ * The catalogue's photos, keyed by the package-relative paths the catalogue uses (images/). The vehicle pictures of
+ * the smoothness levels are emoji now and are not files. Each file is imported from the data package, so the bundler
+ * emits it as a file of Maid's own origin: nothing is loaded from the network at run time. Generated from the
+ * package's dist/generated/images folder (one import per file); test: photos.test.ts checks that every path the
+ * catalogue names is here.
  *
- * The `?no-inline` suffix keeps Vite from inlining a file into the JavaScript as a data URI. Vite inlines files under
- * its `assetsInlineLimit` (4 KB by default), and the vehicle icons are all under it. The photos (7.7 KB and up) are
- * emitted as files either way. Bun's test runner accepts the suffix and returns the file path.
+ * The `?no-inline` suffix keeps Vite from inlining a file into the JavaScript as a data URI, whatever its size.
+ * Bun's test runner accepts the suffix and returns the file path.
  */
 import pic_surface_acrylic_jpg from '@osm-editor-kit/surface-smoothness-data/images/surface_acrylic.jpg?no-inline'
 import pic_surface_artificial_turf_jpg from '@osm-editor-kit/surface-smoothness-data/images/surface_artificial_turf.jpg?no-inline'
@@ -128,12 +120,4 @@ export const PICTURES: Readonly<Record<string, string>> = {
   'images/surface_unpaved_very_horrible.jpg': pic_surface_unpaved_very_horrible_jpg,
   'images/surface_wood.jpg': pic_surface_wood_jpg,
   'images/surface_woodchips.jpg': pic_surface_woodchips_jpg,
-  'icons/car.svg': pic_car_svg,
-  'icons/city_bike.svg': pic_city_bike_svg,
-  'icons/pedestrian.svg': pic_pedestrian_svg,
-  'icons/pickup_truck.svg': pic_pickup_truck_svg,
-  'icons/scooter.svg': pic_scooter_svg,
-  'icons/skateboard.svg': pic_skateboard_svg,
-  'icons/suv.svg': pic_suv_svg,
-  'icons/tractor.svg': pic_tractor_svg,
 }

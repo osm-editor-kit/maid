@@ -25,7 +25,7 @@ Tailwind needs the module's sources in `packages/shell/src/styles.css`: `@source
 ## What the field does
 
 - **Two tiles**, "Surface" and "Smoothness", side by side. Each shows its photo and label, with the tag value in small mono type. An empty tile shows its name and "Choose…". A value that is not in the catalogue shows on the tile as text.
-- **A click on a tile** opens a flyout with a grid of photos. Surfaces: the common ones first (the catalogue's `smoothnessQuest` flag), then the others. Smoothness: for the chosen surface, its reference photos best to worst, each with its description; without a surface, or for a surface without photos, the eight levels with their vehicle icons. A value the surface does not offer is shown first and marked "Not offered for this surface".
+- **A click on a tile** opens a flyout with a grid of photos. Surfaces: the common ones first (the catalogue's `smoothnessQuest` flag), then the others. Smoothness: for the chosen surface, its reference photos best to worst, each with its description; without a surface, or for a surface without photos, the eight levels with their "usable by" emoji. A value the surface does not offer is shown first and marked "Not offered for this surface".
 - **Choosing** writes the tag at once and closes the flyout. The clear button on a tile's corner removes its tag.
 - **Keyboard** in a grid: arrow keys move (Left and Right by one, Up and Down by a row), Home and End go to the ends, Enter or Space chooses, Escape closes. The Tab stop is the chosen item, or the first.
 - **Changing the surface keeps the smoothness**, as the task asks. The fork's rule is different: it removes a smoothness the new surface does not offer (asphalt `excellent` → sett). Not done here; a kept value that the new surface does not offer shows as "Not offered for this surface" in the picker.
@@ -34,12 +34,12 @@ Tailwind needs the module's sources in `packages/shell/src/styles.css`: `@source
 
 ## Where the photos come from, and the licence
 
-Everything comes from `@osm-editor-kit/surface-smoothness-data` (npm 0.0.0, extracted from StreetComplete). The package's files are imported by `src/photos.ts`, so the bundler emits them as files of Maid's own origin. Nothing is loaded from the network at run time.
+Everything comes from `@osm-editor-kit/surface-smoothness-data` (npm 0.1.0, extracted from StreetComplete). The package is MIT-licensed from 0.1.0. The package's files are imported by `src/photos.ts`, so the bundler emits them as files of Maid's own origin. Nothing is loaded from the network at run time.
 
 - **Photos**: 55 JPEGs (256 × 256). Each file has its own licence in the package's `catalogue.attribution`: CC-BY-SA 4.0, CC-BY-SA 3.0 and 2.0, CC-BY 2.0 and 3.0, CC0, and public domain. The flyouts show the credits (file, licence, source) of the photos they show, under "Photo credits".
-- **Vehicle icons**: 8 SVGs, GPL-3.0-or-later (StreetComplete).
-- **The package itself** is GPL-3.0-or-later. **Maid is ISC.** Shipping the package in Maid's bundle means the distributed app is under GPL-3.0 terms. This needs a decision by the owner before a release; it is not decided by this module.
-- **Status**: decided by Tobias on 2026-10-13, the module is switched on in the default editor now; the licence question for editors that ship the data package (GPL-3.0-or-later) is open and is settled later.
+- **Vehicle pictures** are the level's "usable by" emoji, not icons. Version 0.1.0 no longer ships StreetComplete's GPL vehicle SVGs. The package has no SVG files.
+- **The package** is MIT from 0.1.0. Maid is ISC. No GPL terms apply to the data package any more, so the bundle has no GPL question for it.
+- **Status**: the licence question was resolved on 2026-10-13. See `docs/research/surface-data-licence.md`.
 
 Attribution gaps to check: `images/surface_unpaved_impassable.jpg` is marked public domain with a Google Drive link as its source; `images/surface_paving_stones.jpg` names its author but gives no URL.
 
@@ -47,7 +47,7 @@ Attribution gaps to check: `images/surface_unpaved_impassable.jpg` is marked pub
 
 Measured with Vite 8 on a scratch entry (not committed):
 
-- Photos and icons: 63 files, 1,827,595 bytes in total (55 JPEG, 8 SVG). They are separate hashed files, not inlined. The `?no-inline` suffix on each import keeps Vite from inlining the SVGs, which are all under its 4 KB limit.
+- Photos: 55 JPEG files. They are separate hashed files, not inlined. The `?no-inline` suffix on each import keeps Vite from inlining a file. The size was measured for 0.0.0 with 63 files; not measured again after 0.1.0.
 - The picture map in JavaScript: 5,475 bytes (1,551 gzipped), with no data URIs.
 - The field's own code is not measured apart from React, maid-ui, motion and floating-ui, which the app ships already.
 
@@ -66,8 +66,7 @@ Presets that take their list from another (`secondary`, `tertiary` from primary,
 - **Presets not changed**: `highway/motorway`, `track`, `bridleway`, `steps`, `construction`. They keep the plain `surface` field and `smoothness` in their more fields. Add a `presetEdits` entry for each, if wanted.
 - **Side keys** (`cycleway:right:surface`, `sidewalk:…`) and `sett:length` are not covered, as in the fork.
 - **Labels are English** only, as the fork's.
-- **19 of the 26 surfaces have no smoothness photos** (the matrix covers asphalt, concrete, sett, paving stones, compacted, gravel and fine gravel). For them the smoothness picker shows the levels with vehicle icons. All 26 have a surface photo.
-- **The vehicle icons on a dark theme** are inverted with `dark:invert`, which is a guess; not seen in a browser.
+- **19 of the 26 surfaces have no smoothness photos** (the matrix covers asphalt, concrete, sett, paving stones, compacted, gravel and fine gravel). For them the smoothness picker shows the levels with their emoji. All 26 have a surface photo.
 - **Tests** cover the logic, the preset changes and the photo map. The flyout's keyboard and clicks are not tested in a DOM; a server-side render of the field was checked once, in a throwaway test.
 
 ## Tests

@@ -1,5 +1,7 @@
 # Draft for the surface-smoothness data package: licence (not sent)
 
+Status: obsolete as of 2026-10-13. Version 0.1.0 of the package is MIT, has no GPL vehicle icons (each level has an emoji instead) and the photos keep their own per-file licences. Nothing in this draft needs to be sent. Kept as history.
+
 Status: local draft, 2026-10-13. Nothing here is sent, posted or opened anywhere. A person decides and does the change in the upstream repository. Maid does not edit, commit, push or comment there (AGENTS.md, rule 3).
 
 Repository: `osm-editor-kit/osm-surface-smoothness-tagging`, directory `packages/data`, published on npm as `@osm-editor-kit/surface-smoothness-data`. Only version 0.0.0 is published (2026-07-27), with `"license": "GPL-3.0-or-later"`. The facts and the sources are in [docs/research/surface-data-licence.md](../research/surface-data-licence.md).
