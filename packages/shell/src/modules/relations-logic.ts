@@ -1,6 +1,15 @@
+import {
+  actionAddEntity,
+  actionAddMember,
+  OsmRelation,
+  OsmWay,
+  type Action,
+  type Graph,
+  type OsmRelationMember,
+} from '@osm-editor-kit/maid-model'
 // Pure functions behind the relations module: which relations are loaded, how they are named,
 // and where an entity sits in them. No React here, so the tests can build graphs by hand.
-import { OsmRelation, OsmWay, type Graph, type OsmRelationMember } from '@osm-editor-kit/maid-model'
+import { labelOf } from '@osm-editor-kit/maid-renderer'
 
 /** One place where an entity is a member: the relation, the position in its members, and the role. */
 export type Membership = { relation: OsmRelation; index: number; role: string }
@@ -92,18 +101,11 @@ export function loadedRelations(graph: Graph) {
 }
 
 /**
- * A short name for a relation: `name`, else `ref` (with the `type` in front, "route 100"),
- * else the `type` tag, else "Relation".
+ * A short name for a relation: the text iD shows (`labelOf`: name, else for a route its network, ref and
+ * direction, else the ref), else the `type` tag, else "Relation".
  */
 export function relationLabel(relation: OsmRelation) {
-  const tags = relation.tags
-  const name = tagValue(tags, 'name')
-  if (name) return name
-  const ref = tagValue(tags, 'ref')
-  const type = tagValue(tags, 'type')
-  if (ref) return type ? `${type} ${ref}` : ref
-  if (type) return type
-  return 'Relation'
+  return labelOf(relation.tags).trim() || tagValue(relation.tags, 'type') || 'Relation'
 }
 
 /**
@@ -138,17 +140,112 @@ export function membershipsOf(graph: Graph, entityId: EntityID) {
 }
 
 /**
- * The loaded relations an entity can be added to: not the entity itself and not a relation it
- * is already a member of. Sorted by label, then by id.
+ * The loaded relations the given entities can be added to, in the order of iD's membership editor
+ * (`sortNearbyFirst`). Not the entities themselves, and not a relation that already holds all of them.
  */
-export function joinableRelations(graph: Graph, entityId: EntityID) {
-  const taken = new Set(membershipsOf(graph, entityId).map((m) => m.relation.id))
-  // the label is worked out once per relation, not in every comparison of the sort
-  return loadedRelations(graph)
-    .filter((relation) => relation.id !== entityId && !taken.has(relation.id))
-    .map((relation) => ({ relation, label: relationLabel(relation) }))
-    .sort((a, b) => a.label.localeCompare(b.label) || a.relation.id.localeCompare(b.relation.id))
-    .map(({ relation }) => relation)
+export function joinableRelations(graph: Graph, entityIds: readonly EntityID[]) {
+  if (entityIds.length === 0) return []
+  const own = new Set(entityIds)
+  const candidates = loadedRelations(graph).filter(
+    (relation) =>
+      !own.has(relation.id) &&
+      !entityIds.every((id) => relation.members.some((member) => member.id === id)),
+  )
+  return sortNearbyFirst(candidates, connectedRelationIds(graph, entityIds))
+}
+
+/**
+ * The relations that a selection touches, as iD's membership editor finds them (`getConnectedRelations`):
+ * a relation that holds a way which shares a node with a selected node or way. For a selected way, the
+ * ways that share one of its nodes are looked at; the selected ways themselves are left out.
+ */
+export function connectedRelationIds(graph: Graph, ids: readonly EntityID[]) {
+  const selected = new Set(ids)
+  const connected = new Set<EntityID>()
+  for (const id of ids) {
+    const entity = graph.hasEntity(id)
+    if (!entity) continue
+    const ways = new Map<EntityID, OsmWay>()
+    if (entity.type === 'node') {
+      for (const way of graph.parentWays(entity)) ways.set(way.id, way)
+    } else if (entity instanceof OsmWay) {
+      for (const nodeID of entity.nodes) {
+        const node = graph.hasEntity(nodeID)
+        if (!node) continue
+        for (const way of graph.parentWays(node)) if (!selected.has(way.id)) ways.set(way.id, way)
+      }
+    }
+    for (const way of ways.values())
+      for (const relation of graph.parentRelations(way)) connected.add(relation.id)
+  }
+  return connected
+}
+
+/**
+ * iD's `osmRelation.creationOrder`: relations made here (negative ids) first, the newest first; then the
+ * loaded ones, the highest id first. Ids are `r123` or `r-1`.
+ */
+export function creationOrder(a: EntityID, b: EntityID) {
+  const aID = Number(a.slice(1))
+  const bID = Number(b.slice(1))
+  if (aID < 0 || bID < 0) return aID - bID
+  return bID - aID
+}
+
+/**
+ * The order of the relations offered for a selection, as iD's membership editor sorts them: the relations
+ * connected to the selection first (`connected`, from `connectedRelationIds`), then the rest in creation order.
+ * Stable for equal keys; the input is not changed.
+ */
+export function sortNearbyFirst(
+  relations: readonly OsmRelation[],
+  connected: ReadonlySet<EntityID>,
+) {
+  return [...relations].sort((a, b) => {
+    const aConnected = connected.has(a.id)
+    const bConnected = connected.has(b.id)
+    if (aConnected !== bConnected) return aConnected ? -1 : 1
+    return creationOrder(a.id, b.id)
+  })
+}
+
+/**
+ * The actions that make a new relation with the given entities as its members, as iD's "New relation…" does:
+ * an empty relation, then each entity added with the role. Performed together, they are one undo step.
+ * The relation is new (its id is `r-N`) and is returned with the actions.
+ */
+export function newRelationActions(
+  graph: Graph,
+  members: readonly { id: EntityID; type: OsmRelationMember['type'] }[],
+  role: string,
+) {
+  const relation = new OsmRelation(graph.context, {})
+  const actions: Action[] = [actionAddEntity(relation)]
+  for (const member of members)
+    actions.push(actionAddMember(relation.id, { id: member.id, type: member.type, role }))
+  return { relation, actions }
+}
+
+/**
+ * Loads one member that is not in the data: the engine's call, which resolves with how many entities
+ * were new. There is no such call in the engine yet (it loads whole relations, `loadRelation`); the
+ * members section is built against this type and draws no download button until one is given.
+ */
+export type LoadMember = (id: EntityID) => Promise<{ added: number }>
+
+/**
+ * The API path that loads one member, as iD's `loadEntity` asks for it: a node by its own call, a way or
+ * a relation with `/full` (its nodes or members). Undefined for an id that is not in OSM (`n-1`, a new
+ * feature) or is not an element id.
+ */
+export function memberLoadPath(id: EntityID) {
+  const match = /^([nwr])(\d+)$/.exec(id)
+  if (!match) return undefined
+  const letter = match[1]
+  const osmID = match[2]
+  if (letter === 'n') return `/api/0.6/node/${osmID}.json`
+  const type = letter === 'w' ? 'way' : 'relation'
+  return `/api/0.6/${type}/${osmID}/full.json`
 }
 
 /**

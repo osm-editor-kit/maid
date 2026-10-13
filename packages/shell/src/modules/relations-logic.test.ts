@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import {
   actionMoveMember,
+  type Action,
   Graph,
   ModelContext,
   OsmNode,
@@ -8,12 +9,16 @@ import {
   OsmWay,
 } from '@osm-editor-kit/maid-model'
 import {
+  connectedRelationIds,
+  creationOrder,
   joinableRelations,
   loadButtonLabel,
   loadedRelations,
   loadFailureSentence,
   loadingLabel,
   loadResultSentence,
+  memberLoadPath,
+  newRelationActions,
   placementOf,
   placementSentence,
   memberLabel,
@@ -27,6 +32,7 @@ import {
   roleSuggestions,
   routeGaps,
   routeJoins,
+  sortNearbyFirst,
 } from './relations-logic.ts'
 
 const context = new ModelContext()
@@ -41,6 +47,11 @@ function relation(
 
 function way(id: string, nodes: string[], tags: Record<string, string> = {}) {
   return new OsmWay(context, { id, nodes, tags })
+}
+
+/** Runs the actions one after another on a staging copy of `base`, as the history does, and returns the result. */
+function applyAll(base: Graph, actions: readonly Action[]) {
+  return actions.reduce<Graph>((graph, action) => action(graph), new Graph(base))
 }
 
 function relationIn(graph: Graph, id: EntityID): OsmRelation {
@@ -96,8 +107,8 @@ describe('relationLabel', () => {
     )
   })
 
-  it('uses the ref with the type in front', () => {
-    expect(relationLabel(relation('r1', { ref: '100', type: 'route' }))).toBe('route 100')
+  it('uses the ref as iD does', () => {
+    expect(relationLabel(relation('r1', { ref: '100', type: 'route' }))).toBe('100')
   })
 
   it('uses the type alone when there is no name or ref', () => {
@@ -176,14 +187,192 @@ describe('membershipsOf', () => {
 })
 
 describe('joinableRelations', () => {
-  it('leaves out the entity itself and the relations it is already in, sorted by label', () => {
+  it('leaves out the entity itself and the relations it is already in; the rest in creation order', () => {
     const base = new Graph(context, [
       relation('r1', { name: 'Zeta' }, [{ id: 'n1', type: 'node', role: '' }]),
       relation('r2', { name: 'Alpha' }),
       relation('r3', { ref: '5', type: 'route' }),
       new OsmNode(context, { id: 'n1', loc: [0, 0], tags: {} }),
     ])
-    expect(joinableRelations(base, 'n1').map((r) => r.id)).toEqual(['r2', 'r3'])
+    // iD: no label sort. The newest (highest id) first, as creationOrder gives
+    expect(joinableRelations(base, ['n1']).map((r) => r.id)).toEqual(['r3', 'r2'])
+  })
+
+  it('leaves out a relation only when it holds every selected entity', () => {
+    const base = new Graph(context, [
+      relation('r1', {}, [{ id: 'n1', type: 'node', role: '' }]),
+      relation('r2', {}, [
+        { id: 'n1', type: 'node', role: '' },
+        { id: 'n2', type: 'node', role: '' },
+      ]),
+      relation('r3', {}, [{ id: 'n2', type: 'node', role: '' }]),
+      new OsmNode(context, { id: 'n1', loc: [0, 0], tags: {} }),
+      new OsmNode(context, { id: 'n2', loc: [0, 0], tags: {} }),
+    ])
+    // r1 holds n1 only, r2 both, r3 n2 only: with both selected, r2 is left out
+    expect(joinableRelations(base, ['n1', 'n2']).map((r) => r.id)).toEqual(['r3', 'r1'])
+  })
+
+  it('offers nothing for an empty selection', () => {
+    const base = new Graph(context, [relation('r1', {})])
+    expect(joinableRelations(base, [])).toEqual([])
+  })
+
+  it('puts the relations connected to the selection first', () => {
+    const base = new Graph(context, [
+      relation('r1', {}, [{ id: 'w9', type: 'way', role: '' }]),
+      relation('r2', {}, [{ id: 'w1', type: 'way', role: '' }]),
+      relation('r3', {}, [{ id: 'w8', type: 'way', role: '' }]),
+      way('w1', ['a', 'b']),
+      way('w8', ['x', 'y']),
+      way('w9', ['b', 'z']),
+      new OsmNode(context, { id: 'a', loc: [0, 0], tags: {} }),
+      new OsmNode(context, { id: 'b', loc: [0, 0], tags: {} }),
+    ])
+    // w9 shares node b with the selected way w1, so r1 is connected; r3 is not
+    expect(joinableRelations(base, ['w1']).map((r) => r.id)).toEqual(['r1', 'r3'])
+  })
+})
+
+describe('connectedRelationIds', () => {
+  it('finds the relations of the ways that share a node with a selected node', () => {
+    const base = new Graph(context, [
+      relation('r1', {}, [{ id: 'w1', type: 'way', role: '' }]),
+      relation('r2', {}, [{ id: 'w2', type: 'way', role: '' }]),
+      way('w1', ['n1', 'n2']),
+      way('w2', ['n3', 'n4']),
+      new OsmNode(context, { id: 'n1', loc: [0, 0], tags: {} }),
+      new OsmNode(context, { id: 'n2', loc: [0, 0], tags: {} }),
+      new OsmNode(context, { id: 'n3', loc: [0, 0], tags: {} }),
+      new OsmNode(context, { id: 'n4', loc: [0, 0], tags: {} }),
+    ])
+    expect([...connectedRelationIds(base, ['n1'])]).toEqual(['r1'])
+  })
+
+  it('for a selected way, looks at the ways that share its nodes, not the selected way itself', () => {
+    const base = new Graph(context, [
+      relation('r1', {}, [{ id: 'w2', type: 'way', role: '' }]),
+      relation('r2', {}, [{ id: 'w1', type: 'way', role: '' }]),
+      way('w1', ['n1', 'n2']),
+      way('w2', ['n2', 'n3']),
+      new OsmNode(context, { id: 'n1', loc: [0, 0], tags: {} }),
+      new OsmNode(context, { id: 'n2', loc: [0, 0], tags: {} }),
+      new OsmNode(context, { id: 'n3', loc: [0, 0], tags: {} }),
+    ])
+    // r1 holds w2, which touches w1 at n2; r2 holds only the selected w1 itself
+    expect([...connectedRelationIds(base, ['w1'])]).toEqual(['r1'])
+  })
+
+  it('finds nothing when no way of a relation touches the selection, and ignores ids not in the graph', () => {
+    const base = new Graph(context, [
+      relation('r1', {}, [{ id: 'w9', type: 'way', role: '' }]),
+      way('w9', ['q1', 'q2']),
+      way('w1', ['n1', 'n2']),
+      new OsmNode(context, { id: 'q1', loc: [0, 0], tags: {} }),
+      new OsmNode(context, { id: 'q2', loc: [0, 0], tags: {} }),
+      new OsmNode(context, { id: 'n1', loc: [0, 0], tags: {} }),
+      new OsmNode(context, { id: 'n2', loc: [0, 0], tags: {} }),
+    ])
+    expect([...connectedRelationIds(base, ['w1', 'n404'])]).toEqual([])
+  })
+})
+
+describe('creationOrder', () => {
+  it('puts the relations made here first, the newest of them first', () => {
+    expect(creationOrder('r-1', 'r-3')).toBeGreaterThan(0)
+    expect(creationOrder('r-3', 'r-1')).toBeLessThan(0)
+    expect(creationOrder('r-1', 'r12')).toBeLessThan(0)
+  })
+
+  it('puts the loaded relations after them, the highest id first', () => {
+    expect(creationOrder('r12', 'r7')).toBeLessThan(0)
+    expect(creationOrder('r7', 'r12')).toBeGreaterThan(0)
+    expect(creationOrder('r7', 'r7')).toBe(0)
+  })
+})
+
+describe('sortNearbyFirst', () => {
+  it('lists the connected relations first, then the others in creation order', () => {
+    const relations = [
+      relation('r5', {}),
+      relation('r9', {}),
+      relation('r-2', {}),
+      relation('r3', {}),
+      relation('r-1', {}),
+    ]
+    const sorted = sortNearbyFirst(relations, new Set(['r3', 'r5']))
+    // among the new relations the more negative id (made later) comes first, as iD's creationOrder
+    expect(sorted.map((r) => r.id)).toEqual(['r5', 'r3', 'r-2', 'r-1', 'r9'])
+  })
+
+  it('does not change the list it is given', () => {
+    const relations = [relation('r1', {}), relation('r2', {})]
+    sortNearbyFirst(relations, new Set(['r1']))
+    expect(relations.map((r) => r.id)).toEqual(['r1', 'r2'])
+  })
+
+  it('keeps the creation order when nothing is connected', () => {
+    const relations = [relation('r1', {}), relation('r4', {}), relation('r2', {})]
+    expect(sortNearbyFirst(relations, new Set()).map((r) => r.id)).toEqual(['r4', 'r2', 'r1'])
+  })
+})
+
+describe('newRelationActions', () => {
+  it('makes an untagged relation with the entities as members, in order, with the role', () => {
+    const base = new Graph(context, [
+      way('w1', ['a', 'b']),
+      new OsmNode(context, { id: 'a', loc: [0, 0], tags: {} }),
+      new OsmNode(context, { id: 'b', loc: [0, 0], tags: {} }),
+    ])
+    const { relation: created, actions } = newRelationActions(
+      base,
+      [{ id: 'w1', type: 'way' }],
+      'outer',
+    )
+    expect(created.id).toMatch(/^r-\d+$/)
+    const after = applyAll(base, actions)
+    const made = relationIn(after, created.id)
+    expect(made.tags).toEqual({})
+    expect(made.members).toEqual([{ id: 'w1', type: 'way', role: 'outer' }])
+  })
+
+  it('adds several entities in the order given, nodes and ways alike, with an empty role', () => {
+    const base = new Graph(context, [
+      way('w1', ['a', 'b']),
+      way('w2', ['b', 'c']),
+      new OsmNode(context, { id: 'a', loc: [0, 0], tags: {} }),
+      new OsmNode(context, { id: 'b', loc: [0, 0], tags: {} }),
+      new OsmNode(context, { id: 'c', loc: [0, 0], tags: {} }),
+    ])
+    const { relation: created, actions } = newRelationActions(
+      base,
+      [
+        { id: 'w2', type: 'way' },
+        { id: 'a', type: 'node' },
+        { id: 'w1', type: 'way' },
+      ],
+      '',
+    )
+    const after = applyAll(base, actions)
+    const made = relationIn(after, created.id)
+    expect(made.members.map((m) => m.id).sort()).toEqual(['a', 'w1', 'w2'])
+    expect(made.members.every((m) => m.role === '')).toBe(true)
+    expect(made.members.find((m) => m.id === 'a')?.type).toBe('node')
+  })
+})
+
+describe('memberLoadPath', () => {
+  it('asks for a node by its own call and a way or a relation with /full, as iD does', () => {
+    expect(memberLoadPath('n5')).toBe('/api/0.6/node/5.json')
+    expect(memberLoadPath('w7')).toBe('/api/0.6/way/7/full.json')
+    expect(memberLoadPath('r9')).toBe('/api/0.6/relation/9/full.json')
+  })
+
+  it('has no path for a feature made here (negative id) or an id that is not an element', () => {
+    expect(memberLoadPath('n-1')).toBeUndefined()
+    expect(memberLoadPath('r-3')).toBeUndefined()
+    expect(memberLoadPath('x1')).toBeUndefined()
+    expect(memberLoadPath('r')).toBeUndefined()
   })
 })
 

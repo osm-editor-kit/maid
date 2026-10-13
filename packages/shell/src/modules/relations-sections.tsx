@@ -1,3 +1,4 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import {
   actionAddMember,
   actionChangeMember,
@@ -16,17 +17,20 @@ import {
   loadFailureSentence,
   loadingLabel,
   loadResultSentence,
+  memberLoadPath,
   memberName,
   memberRows,
   membershipHint,
   membershipsOf,
   moveTarget,
+  newRelationActions,
   notLoadedCount,
   placementOf,
   placementSentence,
   relationLabel,
   roleSuggestions,
   routeGaps,
+  type LoadMember,
   type MemberRow,
   type Membership,
 } from './relations-logic.ts'
@@ -39,6 +43,11 @@ type Member = OsmRelation['members'][number]
 const MEMBER_LIMIT = 50
 /** Relations offered in the "Add to a relation" select. */
 const RELATION_OPTION_LIMIT = 200
+/**
+ * The select's value for "New relation…", as iD's list starts with it. Not an element id (those start with
+ * `r`), so it cannot be taken for a relation.
+ */
+const NEW_RELATION = 'new'
 
 const ROW =
   'flex min-w-0 items-center gap-2 border-b border-zinc-950/5 py-1 text-xs last:border-0 dark:border-white/5'
@@ -66,10 +75,20 @@ const HINT = 'pb-1 pl-1 text-xs text-amber-700 dark:text-amber-400'
 /** A quiet line under the list: what a load left out */
 const SECONDARY_NOTE = `pt-1 text-xs ${SECONDARY}`
 
+/** Runs the actions as one undo step and commits them with their annotation. */
+function editAll(
+  editor: Editor,
+  actions: readonly Action[],
+  annotation: string,
+  selectedID: EntityID,
+) {
+  editor.history.perform(...actions)
+  editor.history.commit({ annotation, selectedIDs: [selectedID] })
+}
+
 /** Runs one edit through the history and commits it with its annotation. */
 function edit(editor: Editor, action: Action, annotation: string, selectedID: EntityID) {
-  editor.history.perform(action)
-  editor.history.commit({ annotation, selectedIDs: [selectedID] })
+  editAll(editor, [action], annotation, selectedID)
 }
 
 /** The id of the datalist that offers role suggestions: one per scope (members, membership, add) and entity. */
@@ -240,6 +259,36 @@ function MoveButton({
   )
 }
 
+/**
+ * Loads a member that is not in the data, as iD's "download" does. Busy until the load ends; the row
+ * changes by itself when the data does (the section follows the engine's version).
+ */
+function DownloadButton({ id, load }: { id: EntityID; load: LoadMember }) {
+  const [busy, setBusy] = useState(false)
+  const label = m.relations_download_member({ id })
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      disabled={busy}
+      className={`${LINK_BUTTON} disabled:cursor-default disabled:text-zinc-300`}
+      onClick={() => {
+        setBusy(true)
+        load(id).then(
+          () => setBusy(false),
+          (error: unknown) => {
+            setBusy(false)
+            notify.failed(error)
+          },
+        )
+      }}
+    >
+      {busy ? m.relations_downloading() : m.relations_download()}
+    </button>
+  )
+}
+
 /** The letter for a member's type: N, W or R. */
 function typeLetter(type: Member['type']) {
   if (type === 'node') return 'N'
@@ -255,6 +304,7 @@ function MemberRowView({
   readOnly,
   roleList,
   select,
+  load,
 }: {
   editor: Editor
   relation: OsmRelation
@@ -262,6 +312,8 @@ function MemberRowView({
   readOnly: boolean
   roleList: string
   select: Props['select']
+  /** Loads a member that is not in the data; undefined while the engine has no such call */
+  load: LoadMember | undefined
 }) {
   const { engine } = useShell()
   const highlight = useRelatedWhileHovered(() => [row.id])
@@ -298,6 +350,9 @@ function MemberRowView({
         <span className={`min-w-0 flex-1 truncate px-1 font-mono ${SECONDARY}`}>
           {row.id} <span className="italic">not loaded</span>
         </span>
+      )}
+      {!row.loaded && load && memberLoadPath(row.id) !== undefined && (
+        <DownloadButton id={row.id} load={load} />
       )}
       <ZoomButton
         label={`Zoom to ${row.id}`}
@@ -417,6 +472,7 @@ function MemberList({
               readOnly={readOnly}
               roleList={roleList}
               select={select}
+              load={(id) => engine.loadEntity(id)}
             />
             {gaps.has(row.index) && (
               <li className={GAP} title="The ends of these two ways do not meet">
@@ -535,39 +591,65 @@ function MembershipRow({
 }
 
 /**
- * Adds the inspected entity to a loaded relation, with a role. Keyed by entity, so it starts empty
- * for each one. After the add, a toast says where the way was placed.
+ * Adds the selected features to a relation, with a role: an existing one, or a new one ("New relation…").
+ * Keyed by the selection, so it starts empty for each one. After an add, a toast says where a single way went.
  */
 function AddToRelation({
   editor,
-  entity,
+  entities,
   candidates,
   readOnly,
+  select,
 }: {
   editor: Editor
-  entity: Props['entity']
+  /** The selected features, in selection order: all of them become members */
+  entities: readonly Props['entity'][]
   candidates: OsmRelation[]
   readOnly: boolean
+  select: Props['select']
 }) {
   const [targetID, setTargetID] = useState('')
   const [role, setRole] = useState('')
+  const [first] = entities
   const offered = candidates.slice(0, RELATION_OPTION_LIMIT)
   const target = candidates.find((relation) => relation.id === targetID)
-  const roleList = roleOptionsID('add', entity.id)
+  const roleList = roleOptionsID('add', first?.id ?? '')
   const add = () => {
-    if (!targetID) return
-    const before = editor.history.staging.graph.hasEntity(targetID)
-    const beforeMembers = before instanceof OsmRelation ? before.members : []
-    const member = { id: entity.id, type: entity.type, role: role.trim() }
-    edit(editor, actionAddMember(targetID, member), 'Added a member', entity.id)
-    const graph = editor.history.staging.graph
-    const after = graph.hasEntity(targetID)
-    const placement =
-      after instanceof OsmRelation
-        ? placementOf(beforeMembers, after.members, entity.id)
-        : undefined
-    // an event with its result: a toast, not a line that stays in the section (Toast.tsx)
-    if (placement) notify.done(placementSentence(placement, (ref) => memberName(graph, ref)))
+    if (!targetID || !first) return
+    const members = entities.map((entity) => ({ id: entity.id, type: entity.type }))
+    const trimmed = role.trim()
+    if (targetID === NEW_RELATION) {
+      // as iD: an empty relation with the features as members, one undo step. The new relation is selected,
+      // and its type picker opens by itself (an untagged feature with a new id asks for its type, see Inspector)
+      const { relation, actions } = newRelationActions(
+        editor.history.staging.graph,
+        members,
+        trimmed,
+      )
+      editAll(editor, actions, 'Created a relation', relation.id)
+      select(relation.id)
+    } else {
+      const before = editor.history.staging.graph.hasEntity(targetID)
+      const beforeMembers = before instanceof OsmRelation ? before.members : []
+      editAll(
+        editor,
+        members.map((member) => actionAddMember(targetID, { ...member, role: trimmed })),
+        members.length === 1 ? 'Added a member' : 'Added members',
+        first.id,
+      )
+      if (members.length === 1) {
+        const graph = editor.history.staging.graph
+        const after = graph.hasEntity(targetID)
+        const placement =
+          after instanceof OsmRelation
+            ? placementOf(beforeMembers, after.members, first.id)
+            : undefined
+        // an event with its result: a toast, not a line that stays in the section (Toast.tsx)
+        if (placement) notify.done(placementSentence(placement, (ref) => memberName(graph, ref)))
+      } else {
+        notify.done(m.relations_added_features({ count: members.length }))
+      }
+    }
     setTargetID('')
     setRole('')
   }
@@ -583,6 +665,7 @@ function AddToRelation({
           onChange={(event) => setTargetID(event.target.value)}
         >
           <option value="">Choose a relation</option>
+          <option value={NEW_RELATION}>{m.relations_new_relation()}</option>
           {offered.map((relation) => (
             <option key={relation.id} value={relation.id}>
               {relationLabel(relation)} ({relation.id})
@@ -613,18 +696,29 @@ function AddToRelation({
   )
 }
 
-/** The relations the inspected entity belongs to, and a way to add it to another loaded relation. */
-export function RelationsSection({ entity, editor, select }: Props) {
+/**
+ * The relations the inspected feature belongs to, and a way to add the selection to a loaded relation or to a new
+ * one. With several features selected (`entities`), all of them become members; the list of memberships is the
+ * first feature's.
+ */
+export function RelationsSection({ entity, entities, editor, select }: Props) {
   const graph = editor.history.staging.graph
+  const selection = entities ?? [entity]
   const memberships = membershipsOf(graph, entity.id)
-  const candidates = joinableRelations(graph, entity.id)
-  if (memberships.length === 0 && candidates.length === 0) {
-    return <p className={`text-xs ${SECONDARY}`}>Not in a relation.</p>
-  }
+  const candidates = joinableRelations(
+    graph,
+    selection.map((item) => item.id),
+  )
   // one datalist per relation the entity is in, even when it is in that relation twice
-  const parents = [...new Map(memberships.map((m) => [m.relation.id, m.relation])).values()]
+  const parents = [
+    ...new Map(
+      memberships.map((membership) => [membership.relation.id, membership.relation]),
+    ).values(),
+  ]
+  const readOnly = selection.some((item) => item.readOnly)
   return (
     <div className="grid gap-1">
+      {memberships.length === 0 && <p className={`text-xs ${SECONDARY}`}>Not in a relation.</p>}
       {memberships.length > 0 && (
         <ul>
           {memberships.map((membership) => (
@@ -647,15 +741,14 @@ export function RelationsSection({ entity, editor, select }: Props) {
           roles={roleSuggestions(relation)}
         />
       ))}
-      {candidates.length > 0 && (
-        <AddToRelation
-          key={entity.id}
-          editor={editor}
-          entity={entity}
-          candidates={candidates}
-          readOnly={entity.readOnly}
-        />
-      )}
+      <AddToRelation
+        key={selection.map((item) => item.id).join(',')}
+        editor={editor}
+        entities={selection}
+        candidates={candidates}
+        readOnly={readOnly}
+        select={select}
+      />
     </div>
   )
 }
