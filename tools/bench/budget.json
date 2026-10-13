@@ -6,9 +6,6 @@
   "defaultTolerance": 0.15,
   "scenes": {
     "small": {
-      "load-settled": {
-        "median": 613
-      },
       "load-cpu": {
         "median": 449
       },
@@ -83,12 +80,12 @@
       },
       "heap": {
         "median": 42.5
+      },
+      "load-drawn": {
+        "median": 613
       }
     },
     "medium": {
-      "load-settled": {
-        "median": 856
-      },
       "load-cpu": {
         "median": 667
       },
@@ -163,12 +160,12 @@
       },
       "heap": {
         "median": 82.4
+      },
+      "load-drawn": {
+        "median": 856
       }
     },
     "dense": {
-      "load-settled": {
-        "median": 1024
-      },
       "load-cpu": {
         "median": 757
       },
@@ -243,7 +240,11 @@
       },
       "heap": {
         "median": 72.3
+      },
+      "load-drawn": {
+        "median": 1024
       }
     }
-  }
+  },
+  "note": "load-drawn: the median of the old load-settled of run 2026-10-13-13-10-settled-fixed, the time to the complete picture before Maid's lazy chunks were loaded after it. Carried over, not re-measured: replace with bench-budget --update on a quiet machine. There is no baseline for load-settled (everything fetched): it is a warning-only metric without a baseline until then."
 }

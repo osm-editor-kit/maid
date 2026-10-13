@@ -56,6 +56,8 @@ export type EditSamples = {
   latencyP95Ms?: number
   latencyMaxMs?: number
   missed: number
+  /** Why the misses missed, the first few, with the page's state at the time (what was selected, what was under the pointer) */
+  missReasons?: string[]
   /** The feature the interaction was made on: one id, or the ids of the roads it cycled through */
   target?: string
 }
@@ -82,7 +84,8 @@ export type RunResult = {
   imageFailures?: { id: string; reason: string }[]
   version?: string
   gpu?: string
-  load?: { readyMs: number; settledMs: number; cpuMs: number }
+  /** drawnMs: the map shows the complete data for the view. settledMs: also what the editor fetches after that (Maid's lazy chunks). Runs before drawnMs was added have only settledMs. */
+  load?: { readyMs: number; drawnMs?: number; settledMs: number; cpuMs: number }
   stats?: unknown
   panCold?: Phase
   panWarm?: Phase
@@ -172,38 +175,202 @@ async function ensureServer(name: string, port: number, cmd: string[], started: 
   throw new Error(`${name} did not come up on port ${port}`)
 }
 
-/** Ways near the scene centre that a pointer can hover: [id, lng, lat] of a point on the way */
-async function hoverTargets(scene: Scene) {
+type Road = { id: string; lng: number; lat: number; length: number }
+
+/**
+ * Every road of the scene that a pointer can hit: its id and a point on it (the middle of its middle segment), the
+ * longest first. Not limited to the window: each phase checks which of them are in its own visible map area.
+ */
+async function roadMidpoints(scene: Scene): Promise<Road[]> {
+  const { roads } = await sceneGeometry(scene)
+  return roads.map((r) => r.road).sort((x, y) => y.length - x.length)
+}
+
+/**
+ * The scene's geometry from the fixture: every node's position, and every way with its positions in order. `roads` is
+ * the roads a pointer picks (highway ways of three or more nodes), each with its midpoint.
+ */
+async function sceneGeometry(scene: Scene) {
   const gz = await Bun.file(join(ROOT, `fixtures/${scene.name}.json.gz`)).arrayBuffer()
   const { elements } = JSON.parse(new TextDecoder().decode(Bun.gunzipSync(new Uint8Array(gz)))) as {
     elements: any[]
   }
   const nodes = new Map<number, [number, number]>()
   for (const e of elements) if (e.type === 'node') nodes.set(e.id, [e.lon, e.lat])
-  const mPerPx = (156543.03 * Math.cos((scene.center[1] * Math.PI) / 180)) / 2 ** scene.zoom
-  const maxDx =
-    ((VIEWPORT.width / 2 - 150) * mPerPx) / (111320 * Math.cos((scene.center[1] * Math.PI) / 180))
-  const maxDy = ((VIEWPORT.height / 2 - 150) * mPerPx) / 110540
-  const candidates: { id: string; lng: number; lat: number; length: number }[] = []
+  // how many ways use each node: a junction is a point of its own on the map
+  const uses = new Map<number, number>()
   for (const e of elements) {
-    if (
-      e.type !== 'way' ||
-      !e.tags?.highway ||
-      !/^(residential|tertiary|secondary|primary|living_street|unclassified)$/.test(e.tags.highway)
-    )
-      continue
-    if (e.nodes.length < 3) continue
+    if (e.type !== 'way') continue
+    for (const n of new Set<number>(e.nodes)) uses.set(n, (uses.get(n) ?? 0) + 1)
+  }
+  // what a click can pick instead of a road: a tagged node (a POI) or a junction
+  const points: [number, number][] = []
+  for (const e of elements) {
+    if (e.type !== 'node') continue
+    if (e.tags || (uses.get(e.id) ?? 0) > 1) points.push([e.lon, e.lat])
+  }
+  const highways: { id: string; coords: [number, number][]; road: boolean; nodeCount: number }[] =
+    []
+  const roads: { road: Road; coords: [number, number][] }[] = []
+  for (const e of elements) {
+    if (e.type !== 'way' || !e.tags?.highway) continue
+    const coords = e.nodes
+      .map((n: number) => nodes.get(n))
+      .filter((c: unknown): c is [number, number] => !!c)
+    const isRoad =
+      /^(residential|tertiary|secondary|primary|living_street|unclassified)$/.test(
+        e.tags.highway,
+      ) && e.nodes.length >= 3
+    highways.push({ id: `w${e.id}`, coords, road: isRoad, nodeCount: e.nodes.length })
+    if (!isRoad) continue
     const mid = Math.floor(e.nodes.length / 2)
     const a = nodes.get(e.nodes[mid - 1])
     const b = nodes.get(e.nodes[mid])
     if (!a || !b) continue
-    const lng = (a[0] + b[0]) / 2
-    const lat = (a[1] + b[1]) / 2
-    if (Math.abs(lng - scene.center[0]) > maxDx || Math.abs(lat - scene.center[1]) > maxDy) continue
-    candidates.push({ id: `w${e.id}`, lng, lat, length: e.nodes.length })
+    roads.push({
+      road: {
+        id: `w${e.id}`,
+        lng: (a[0] + b[0]) / 2,
+        lat: (a[1] + b[1]) / 2,
+        length: e.nodes.length,
+      },
+      coords: [a, b],
+    })
   }
-  candidates.sort((x, y) => y.length - x.length)
-  return candidates.slice(0, 8)
+  return { points, highways, roads }
+}
+
+/**
+ * The roads a click can pick on their own. For each road, the point on it that is farthest from anything a click would
+ * pick instead: a tagged node or a junction, or another highway. The first medium run missed its clicks because the
+ * midpoint sat next to such a thing and the click selected that. A road with no point at least `clearM` metres clear is
+ * left out. Buildings are not checked: a click on a line does not pick a building outline. The points come from the same
+ * fixture in every editor, so the same roads are clicked in each editor where they are visible (pageVisibleRoads).
+ */
+async function clickRoads(scene: Scene, clearM = 8): Promise<Road[]> {
+  const { points, highways } = await sceneGeometry(scene)
+  const kx = 111320 * Math.cos((scene.center[1] * Math.PI) / 180)
+  const ky = 110540
+  const toM = (lng: number, lat: number): [number, number] => [
+    (lng - scene.center[0]) * kx,
+    (lat - scene.center[1]) * ky,
+  ]
+  const toLngLat = (p: [number, number]): [number, number] => [
+    scene.center[0] + p[0] / kx,
+    scene.center[1] + p[1] / ky,
+  ]
+  // A grid of 10 m cells: the neighbours of a cell cover every point within 10 m of it
+  const CELL = 10
+  const cellOf = (p: [number, number]) => `${Math.floor(p[0] / CELL)},${Math.floor(p[1] / CELL)}`
+  const pointGrid = new Map<string, [number, number][]>()
+  for (const n of points) {
+    const p = toM(n[0], n[1])
+    const list = pointGrid.get(cellOf(p))
+    if (list) list.push(p)
+    else pointGrid.set(cellOf(p), [p])
+  }
+  // every 4 m along every highway, with the way's id
+  const STEP = 4
+  const alongWay = (coords: [number, number][]) => {
+    const out: [number, number][] = []
+    for (let i = 0; i + 1 < coords.length; i++) {
+      const a = toM(...coords[i]!)
+      const b = toM(...coords[i + 1]!)
+      const n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / STEP))
+      for (let k = 0; k < n; k++)
+        out.push([a[0] + ((b[0] - a[0]) * k) / n, a[1] + ((b[1] - a[1]) * k) / n])
+    }
+    if (coords.length) out.push(toM(...coords[coords.length - 1]!))
+    return out
+  }
+  const segGrid = new Map<string, { id: string; p: [number, number] }[]>()
+  for (const w of highways) {
+    for (const p of alongWay(w.coords)) {
+      const list = segGrid.get(cellOf(p))
+      if (list) list.push({ id: w.id, p })
+      else segGrid.set(cellOf(p), [{ id: w.id, p }])
+    }
+  }
+  const around = <T>(grid: Map<string, T[]>, p: [number, number]) => {
+    const cx = Math.floor(p[0] / CELL)
+    const cy = Math.floor(p[1] / CELL)
+    const out: T[] = []
+    for (let dx = -1; dx <= 1; dx++)
+      for (let dy = -1; dy <= 1; dy++) out.push(...(grid.get(`${cx + dx},${cy + dy}`) ?? []))
+    return out
+  }
+  /** Distance to the nearest point or other highway; Infinity when none is within a cell's reach */
+  const clearance = (p: [number, number], own: string) => {
+    let best = Infinity
+    for (const q of around(pointGrid, p))
+      best = Math.min(best, Math.hypot(q[0] - p[0], q[1] - p[1]))
+    for (const s of around(segGrid, p))
+      if (s.id !== own) best = Math.min(best, Math.hypot(s.p[0] - p[0], s.p[1] - p[1]))
+    return best
+  }
+  const out: { road: Road; clear: number }[] = []
+  for (const w of highways) {
+    if (!w.road) continue
+    let chosen: { lng: number; lat: number; clear: number } | undefined
+    for (const p of alongWay(w.coords)) {
+      const clear = Math.min(clearance(p, w.id), 30)
+      if (clear >= clearM && (!chosen || clear > chosen.clear)) {
+        const [lng, lat] = toLngLat(p)
+        chosen = { lng, lat, clear }
+      }
+    }
+    if (chosen)
+      out.push({
+        road: { id: w.id, lng: chosen.lng, lat: chosen.lat, length: w.nodeCount },
+        clear: chosen.clear,
+      })
+  }
+  // the roads with the most room around their click point first, then the longest
+  return out.sort((x, y) => y.clear - x.clear || y.road.length - x.road.length).map((x) => x.road)
+}
+
+/** Ways near the scene centre that the hover phase points at: the window's centre, away from its edges */
+async function hoverTargets(scene: Scene) {
+  const mPerPx = (156543.03 * Math.cos((scene.center[1] * Math.PI) / 180)) / 2 ** scene.zoom
+  const maxDx =
+    ((VIEWPORT.width / 2 - 150) * mPerPx) / (111320 * Math.cos((scene.center[1] * Math.PI) / 180))
+  const maxDy = ((VIEWPORT.height / 2 - 150) * mPerPx) / 110540
+  return (await roadMidpoints(scene))
+    .filter(
+      (r) =>
+        Math.abs(r.lng - scene.center[0]) <= maxDx && Math.abs(r.lat - scene.center[1]) <= maxDy,
+    )
+    .slice(0, 8)
+}
+
+/**
+ * Runs in the page. The roads whose midpoint is in this editor's visible map area (the map element, inset from its edge,
+ * so that no bar, panel or the sidebar is under the pointer) and that have no control or panel on top of them. The first
+ * four in the order given (longest first).
+ */
+function pageVisibleRoads(candidates: { id: string; lng: number; lat: number }[]) {
+  const bench = window.__bench
+  const map = bench.mapRect()
+  const inset = 40
+  const chrome =
+    'button, input, select, textarea, aside, header, footer, nav, [role="toolbar"], [role="dialog"], [role="menu"], [role="tablist"]'
+  const out: { id: string; lng: number; lat: number; x: number; y: number; under: string }[] = []
+  for (const c of candidates) {
+    const p = bench.project(c.lng, c.lat)
+    if (
+      p.x < map.left + inset ||
+      p.x > map.left + map.width - inset ||
+      p.y < map.top + inset ||
+      p.y > map.top + map.height - inset
+    )
+      continue
+    const el = document.elementFromPoint(p.x, p.y)
+    if (!el || el.closest(chrome)) continue
+    const under = `${el.tagName.toLowerCase()}${el.classList.length ? `.${[...el.classList].slice(0, 2).join('.')}` : ''}`
+    out.push({ id: c.id, lng: c.lng, lat: c.lat, x: p.x, y: p.y, under })
+    if (out.length === 4) break
+  }
+  return out
 }
 
 /** Junction nodes of two or more roads near the scene centre: drawn as vertices by every editor */
@@ -251,9 +418,10 @@ async function recordPhase(
   await action()
   const rec: Recording = await page.evaluate(() => window.__probe.stop())
   const cpu1 = await cpuMs(cdp)
+  // the picture is final (drawn), not the lazy chunks that load after it: the settle is about the map
   const settleMs = await page.evaluate(async () => {
     const t = performance.now()
-    await window.__bench.settled()
+    await window.__bench.drawn()
     return performance.now() - t
   })
   return {
@@ -309,6 +477,8 @@ type EditStep = {
    */
   check: 'none' | 'moved' | 'selected'
   prev?: [number, number]
+  /** The viewport point of a pointer step: the miss reason says what was under it */
+  at?: { x: number; y: number }
   timeoutMs: number
 }
 
@@ -323,6 +493,8 @@ type EditStepResult = { ms: number; loc?: [number, number] } | { missed: string 
 function pageEditStep(step: EditStep): Promise<EditStepResult> {
   return new Promise<EditStepResult>((resolve) => {
     const bench = window.__bench
+    const describe = (el: Element) =>
+      `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ''}${el.classList.length ? `.${[...el.classList].slice(0, 2).join('.')}` : ''}`
     const started = performance.now()
     let mark: { ts: number; seq: number } | undefined
     if (step.action !== 'pointer') {
@@ -357,9 +529,26 @@ function pageEditStep(step: EditStep): Promise<EditStepResult> {
         }
       }
       if (performance.now() - started > step.timeoutMs) {
+        const what =
+          step.check === 'selected'
+            ? 'the feature was not selected with its inspector shown'
+            : step.check === 'moved'
+              ? 'the node did not move'
+              : 'the change was not drawn'
+        const state = () => {
+          const parts = [
+            `selected: [${bench.selected().join(' ') || 'none'}]`,
+            `inspector shows ${step.id}: ${bench.inspectorShows(step.id)}`,
+          ]
+          if (step.at) {
+            const el = document.elementFromPoint(step.at.x, step.at.y)
+            parts.push(`under the pointer: ${el ? describe(el) : 'nothing'}`)
+          }
+          return parts.join(', ')
+        }
         return resolve({
           missed: mark
-            ? `${step.check === 'none' ? 'the change' : step.check} not drawn within ${step.timeoutMs} ms`
+            ? `${what} within ${step.timeoutMs} ms (${state()})`
             : `the ${step.pointer ?? 'call'} input did not arrive within ${step.timeoutMs} ms`,
         })
       }
@@ -378,12 +567,19 @@ function runStep(page: Page, step: EditStep): Promise<EditStepResult> {
 }
 
 /** The summary of the measured repetitions: median, p95 and max in ms, the samples kept in the order measured */
-function samplesOf(samples: number[], reps: number, missed: number, target?: string): EditSamples {
+function samplesOf(
+  samples: number[],
+  reps: number,
+  missed: number,
+  target?: string,
+  missReasons?: string[],
+): EditSamples {
   const r = (n: number) => Math.round(n * 10) / 10
   return {
     reps,
     samples: samples.map(r),
     missed,
+    ...(missReasons?.length ? { missReasons } : {}),
     target,
     ...(samples.length
       ? {
@@ -394,6 +590,9 @@ function samplesOf(samples: number[], reps: number, missed: number, target?: str
       : {}),
   }
 }
+
+/** The click roads of the first editor that measured each scene: the other editors click the same ones when they can see them */
+const clickRoadIdsOf = new Map<string, string[]>()
 
 /** The context of the run in progress, and its phase: the run's backstop closes the one and names the other */
 let openContext: BrowserContext | undefined
@@ -517,9 +716,14 @@ async function runOnce(
     await page.waitForFunction(() => window.__bench !== undefined, undefined, { timeout: 60000 })
     await page.evaluate(() => window.__bench.ready())
     const readyMs = performance.now() - t0
+    // drawn first: the map shows the complete data for the view. Then settled, which also waits for what the editor
+    // fetches after that (Maid's lazy chunks). For iD and Rapid the two waits are the same.
+    await page.evaluate(() => window.__bench.drawn())
+    const drawnMs = performance.now() - t0
     await page.evaluate(() => window.__bench.settled())
     result.load = {
       readyMs: Math.round(readyMs),
+      drawnMs: Math.round(drawnMs),
       settledMs: Math.round(performance.now() - t0),
       cpuMs: Math.round(await cpuMs(cdp)),
     }
@@ -875,22 +1079,38 @@ async function runOnce(
 
     enter('selectLatency')
     // A real click on a road: the pointer goes to the road, presses and releases. Measured until the editor has the
-    // feature selected, its inspector holds it, and a draw came after the release. Roads cycle through the same list in
-    // every editor (the ids come from the fixture).
-    if (targets.length === 0) {
-      notMeasured.selectLatency = 'no road near the centre of the scene'
+    // feature selected, its inspector holds it, and a draw came after the release. The roads are the longest of the
+    // scene whose midpoint is in this editor's visible map area (pageVisibleRoads): the same roads in every editor when
+    // the map areas agree. A click that does not select is a miss, and the miss says what the page held.
+    await page.evaluate(() => window.__bench.select(null))
+    await page.evaluate((c) => window.__bench.setCamera(c), start)
+    await page.evaluate(() => window.__bench.settled())
+    // the roads the first editor measured in this scene come first, so that the editors click the same roads when all
+    // of them can see those (the map areas differ by the sidebar); the others come after, for a road one editor cannot see
+    const candidates = await clickRoads(scene)
+    const first = clickRoadIdsOf.get(scene.name) ?? []
+    const ordered = [
+      ...first.map((id) => candidates.find((c) => c.id === id)).filter((c): c is Road => !!c),
+      ...candidates.filter((c) => !first.includes(c.id)),
+    ]
+    const roads = await page.evaluate(pageVisibleRoads, ordered)
+    if (roads.length && !clickRoadIdsOf.has(scene.name))
+      clickRoadIdsOf.set(
+        scene.name,
+        roads.map((r) => r.id),
+      )
+    if (roads.length === 0) {
+      notMeasured.selectLatency = 'no road midpoint is in the visible map area of this editor'
     } else {
-      await page.evaluate(() => window.__bench.select(null))
-      await page.evaluate((c) => window.__bench.setCamera(c), start)
-      await page.evaluate(() => window.__bench.settled())
       const clickSamples: number[] = []
+      const missReasons: string[] = []
       let clickMissed = 0
       const clickOnce = async (rep: number, record: boolean) => {
-        const target = targets[Math.max(rep, 0) % targets.length]!
+        const road = roads[Math.max(rep, 0) % roads.length]!
         await page.evaluate(() => window.__bench.select(null))
         const pos = await page.evaluate(([lng, lat]) => window.__bench.project(lng, lat), [
-          target.lng,
-          target.lat,
+          road.lng,
+          road.lat,
         ] as const)
         await page.mouse.move(pos.x, pos.y)
         await page.waitForTimeout(150) // the pointer rests on the road first, as a person's would
@@ -899,14 +1119,18 @@ async function runOnce(
         await page.mouse.up()
         const step = await runStep(page, {
           action: 'pointer',
-          id: target.id,
+          id: road.id,
           pointer: 'up',
           before,
           check: 'selected',
+          at: pos,
           timeoutMs: 2000,
         })
         if ('missed' in step) {
-          if (record) clickMissed++
+          if (record) {
+            clickMissed++
+            if (missReasons.length < 3) missReasons.push(`${road.id}: ${step.missed}`)
+          }
         } else if (record) clickSamples.push(step.ms)
       }
       await clickOnce(-1, false)
@@ -920,10 +1144,8 @@ async function runOnce(
           clickSamples,
           reps,
           clickMissed,
-          targets
-            .slice(0, 4)
-            .map((t) => t.id)
-            .join(' '),
+          roads.map((r) => r.id).join(' '),
+          missReasons,
         ),
       }
     }
@@ -1055,7 +1277,7 @@ try {
         results.push(result)
         if (!result.ok) failed = true
         console.log(
-          `${scene.name} ${editor} #${repeat}: ${result.ok ? 'ok' : 'FAILED'} load ${result.load?.settledMs}ms, pan p95 ${result.panWarm?.p95Ms}ms, settle ${result.panWarm?.settleMs}ms${result.error ? ` — ${result.error}` : ''}`,
+          `${scene.name} ${editor} #${repeat}: ${result.ok ? 'ok' : 'FAILED'} load drawn ${result.load?.drawnMs}ms, settled ${result.load?.settledMs}ms, pan p95 ${result.panWarm?.p95Ms}ms, settle ${result.panWarm?.settleMs}ms${result.error ? ` — ${result.error}` : ''}`,
         )
       }
     }

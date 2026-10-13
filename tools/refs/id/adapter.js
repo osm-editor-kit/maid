@@ -49,6 +49,13 @@
         return installed.settled(timeoutMs)
       })
     },
+    // iD has no work after the first picture that fetches data: drawn and settled are the same wait
+    drawn: function () {
+      return window.__bench.settled()
+    },
+    mapRect: function () {
+      return need().mapRect()
+    },
     stats: function () {
       return need().stats()
     },
@@ -435,6 +442,12 @@
       return { x: rect.left + p[0], y: rect.top + p[1] }
     }
 
+    /** The map element iD draws into (`.main-map`), in viewport pixels: the sidebar and the bars are not in it. */
+    function mapRectOf() {
+      var rect = mapNode().getBoundingClientRect()
+      return { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
+    }
+
     // ---------------------------------------------------------------------------------
     // Stats
     // ---------------------------------------------------------------------------------
@@ -587,6 +600,7 @@
       setCamera: setCamera,
       getCamera: getCamera,
       project: project,
+      mapRect: mapRectOf,
       settled: settled,
       stats: stats,
       select: select,

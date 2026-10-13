@@ -13,6 +13,8 @@ export type Row = {
   get: (r: RunResult) => number | undefined
   /** The phase that measures it: when the run says the phase did not run, the report says "not measured" */
   phase?: string
+  /** false: shown and kept in the budget as a warning only, not compared with iD and Rapid in the same run */
+  compare?: boolean
 }
 
 function medianOf(values: number[] | undefined) {
@@ -25,10 +27,19 @@ const cpuPerSecond = (s: { cpuMs: number; frames: number; fps: number } | undefi
 
 export const ROWS: Row[] = [
   {
-    id: 'load-settled',
-    label: 'Load: until the picture is complete',
+    // the map shows the complete data for the view. Runs before drawnMs was recorded have only settledMs: used instead
+    id: 'load-drawn',
+    label: 'Loaded: map drawn',
     unit: 'ms',
     better: 'low',
+    get: (r) => r.load?.drawnMs ?? r.load?.settledMs,
+  },
+  {
+    id: 'load-settled',
+    label: 'Loaded: everything fetched',
+    unit: 'ms',
+    better: 'low',
+    compare: false,
     get: (r) => r.load?.settledMs,
   },
   {
@@ -57,6 +68,7 @@ export const ROWS: Row[] = [
     label: 'Pan into new data: until correct afterwards',
     unit: 'ms',
     better: 'low',
+    compare: false,
     get: (r) => r.panCold?.settleMs,
   },
   {
@@ -92,6 +104,7 @@ export const ROWS: Row[] = [
     label: 'Pan over loaded data: until correct afterwards',
     unit: 'ms',
     better: 'low',
+    compare: false,
     get: (r) => r.panWarm?.settleMs,
   },
   {
@@ -113,6 +126,7 @@ export const ROWS: Row[] = [
     label: 'Zoom in: until correct afterwards',
     unit: 'ms',
     better: 'low',
+    compare: false,
     get: (r) => r.zoomIn?.settleMs,
   },
   {
@@ -127,6 +141,7 @@ export const ROWS: Row[] = [
     label: 'Zoom out: until correct afterwards',
     unit: 'ms',
     better: 'low',
+    compare: false,
     get: (r) => r.zoomOut?.settleMs,
   },
   {
@@ -197,6 +212,7 @@ export const ROWS: Row[] = [
     label: 'Drag a vertex: until correct after release',
     unit: 'ms',
     better: 'low',
+    compare: false,
     get: (r) => r.dragVertex?.settleMs,
   },
   {

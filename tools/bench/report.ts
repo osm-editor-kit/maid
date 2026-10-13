@@ -45,12 +45,34 @@ const fmt = (n: number | undefined) =>
       ? String(Math.round(n))
       : String(Math.round(n * 10) / 10)
 
+/** An edit phase's result as the report reads it: the misses of a repetition set, with their reasons */
+type EditLike = { missed: number; reps: number; missReasons?: string[] }
+
 function cell(scene: string, column: string, row: Row) {
   const values = results
     .filter((r) => r.scene === scene && columnOf(r) === column && r.ok)
     .map(row.get)
     .filter((v): v is number => v != null && !Number.isNaN(v))
+  // the edit phase of this row: a miss is counted and its reason kept (undo and redo are one level down)
+  const phased = row.phase
+    ? results
+        .filter((r) => r.scene === scene && columnOf(r) === column && r.ok)
+        .map((r) => (r as unknown as Record<string, unknown>)[row.phase!])
+        .map((x): EditLike | undefined => {
+          const edit = x as { undo?: EditLike; redo?: EditLike } & Partial<EditLike>
+          if (row.id.startsWith('undo')) return edit.undo
+          if (row.id.startsWith('redo')) return edit.redo
+          return edit.missed === undefined ? undefined : (edit as EditLike)
+        })
+        .find((x) => x && x.missed > 0)
+    : undefined
+  const missNote = phased ? `missed ${phased.missed} of ${phased.reps}` : undefined
+  const missReason = phased
+    ? (phased.missReasons ?? []).join('; ') || 'no reason recorded'
+    : undefined
   if (values.length === 0) {
+    if (missNote)
+      return { text: missNote, value: undefined as number | undefined, reason: missReason }
     // a phase that did not run says why: the report shows "not measured", not a dash
     const reason = results
       .filter((r) => r.scene === scene && columnOf(r) === column && row.phase)
@@ -65,7 +87,8 @@ function cell(scene: string, column: string, row: Row) {
     values.length > 1
       ? ` <small>(${fmt(Math.min(...values))}–${fmt(Math.max(...values))})</small>`
       : ''
-  return { text: `${fmt(mid)}${spread}`, value: mid, reason: undefined }
+  const misses = missNote ? ` <small>(${missNote})</small>` : ''
+  return { text: `${fmt(mid)}${spread}${misses}`, value: mid, reason: missReason }
 }
 
 const round1 = (n: number) => Math.round(n * 10) / 10
@@ -197,8 +220,8 @@ for (const scene of scenes) {
   md += '\n'
   html += '</table>'
   if (notes.size) {
-    md += `Not measured:\n\n${[...notes].map((n) => `- ${n}`).join('\n')}\n\n`
-    html += `<p><b>Not measured:</b></p><ul>${[...notes].map((n) => `<li>${n}</li>`).join('')}</ul>`
+    md += `Not measured or missed:\n\n${[...notes].map((n) => `- ${n}`).join('\n')}\n\n`
+    html += `<p><b>Not measured or missed:</b></p><ul>${[...notes].map((n) => `<li>${n}</li>`).join('')}</ul>`
   }
 
   const failures = results.filter((r) => r.scene === scene && !r.ok)
@@ -216,6 +239,25 @@ for (const scene of scenes) {
     html += '</div>'
   }
 }
+
+/** What the rows mean, once per report: the definitions that differ between the editors */
+const FOOTNOTES = [
+  "Loaded: map drawn is the wait for the complete picture of the view. For Maid it is the engine's own wait (tiles merged, every source and tile loaded, nothing moving, a frame drawn after the last change), without the lazy chunks. For iD and Rapid it is the same wait as their settled(). Loaded: everything fetched also waits for what Maid loads after its first picture (the inspector and panel chunks). The adapters of iD and Rapid have no such work, so for them both rows are the same. A run from before the drawn measurement shows its settled time in the first row (noted below).",
+  "Until correct afterwards is each editor's own definition of a final picture, not one measured from the pixels, so the numbers are not the same thing. Maid waits for MapLibre's idle event, which fires only when nothing is dirty, so it includes the label and symbol fade-in MapLibre runs after a change (fadeDuration, 300 ms by default). iD waits for its own redraw queue and its tiles, then one frame and one message task, and has no fade. Rapid waits for its draw and tile queues and two quiet frames. A common definition would be the time until the last frame that changed pixels in the map area, measured from outside (screencast frames or a pixel hash of the map element). Not built. For that reason the settle rows are not compared against the other editors in the budget (compare: false): they are warnings against Maid's own baseline only.",
+  "Tag edit: iD's draw runs synchronously inside the call (its drawn event fires before setTag returns), so its time is the draw itself. Maid's engine hands the change to MapLibre, which draws on its next animation frame, so its time also includes the wait for that frame (up to 16.7 ms at 60 Hz). Both are the next picture; iD's is not under a frame by construction. Maid is not changed.",
+  "Select by a click: the roads are the longest of the scene whose midpoint is inside this editor's map element, away from its edges and with no control on top. The first editor of a run picks them, and the others click the same ids when they can see them; the ids are in results.json (selectLatency.target). A miss is a click that did not show the road selected with its inspector within 2 s; the miss line names the road and says what the page held: the selection, the inspector, and the element under the pointer.",
+]
+const noDrawn = [
+  ...new Set(
+    results.filter((r) => r.ok && r.load && r.load.drawnMs === undefined).map((r) => columnOf(r)),
+  ),
+]
+md += `## Notes on the measurements\n\n${FOOTNOTES.map((n, i) => `${i + 1}. ${n}`).join('\n')}\n\n`
+if (noDrawn.length)
+  md += `Runs without the drawn measurement (its settled time is in the first load row): ${noDrawn.join(', ')}\n\n`
+html += `<h2>Notes on the measurements</h2><ol>${FOOTNOTES.map((n) => `<li>${n}</li>`).join('')}</ol>`
+if (noDrawn.length)
+  html += `<p>Runs without the drawn measurement (its settled time is in the first load row): ${noDrawn.join(', ')}</p>`
 
 const blocked: Record<string, Record<string, number>> = {}
 for (const r of results) {

@@ -30,8 +30,19 @@ export type BenchApi = {
    * Resolves when the picture is final for the current camera: all data for the view is
    * loaded and merged, a full redraw with that data has been painted, nothing is queued.
    * Must not resolve early while a throttled redraw is still pending.
+   * Everything the editor loads by itself after start is in as well (Maid: its lazy chunks, see `drawn`).
    */
   settled(): Promise<void>
+  /**
+   * Resolves when the map shows the complete data for the view: the same wait as `settled`, without the work that
+   * comes after the first picture (Maid: its lazy chunks). iD and Rapid have no such work, so for them it is `settled`.
+   */
+  drawn(): Promise<void>
+  /**
+   * The visible map area in viewport CSS pixels: the editor's map element, without the sidebar, the bars and the
+   * panels around it. The benchmark picks what it points at inside this rectangle.
+   */
+  mapRect(): { left: number; top: number; width: number; height: number }
   stats(): BenchStats
   /** Select through the editor's own selection path. null clears. Resolves when the selection is drawn. */
   select(id: string | null): Promise<void>

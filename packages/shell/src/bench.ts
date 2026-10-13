@@ -75,6 +75,14 @@ export function exposeBenchApi(
     // that selects a feature right after `settled` finds the inspector, not its fallback. The first call also
     // waits for the preload that follows the first settle (lazy-chunks.ts), so that it never starts in the middle of
     // a later phase.
+    // The engine's own wait only: tiles merged, MapLibre has every source and tile, nothing moving, a frame drawn after
+    // the last data change. Without the lazy chunks, so the load and the phases can report when the map is drawn apart
+    // from when everything the editor fetches has arrived (`settled`).
+    drawn: () => engine.settled(),
+    mapRect: () => {
+      const rect = map.getContainer().getBoundingClientRect()
+      return { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
+    },
     settled: async () => {
       await engine.settled()
       await preloadAfterFirstSettle(engine)

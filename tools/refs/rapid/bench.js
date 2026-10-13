@@ -473,6 +473,13 @@
     return { x: rect.left + surface.offsetLeft + x, y: rect.top + surface.offsetTop + y }
   }
 
+  /** The map element Rapid draws into (the parent of the supersurface, as `project` uses), in viewport pixels. */
+  function mapRect() {
+    need()
+    const rect = sys.gfx.supersurface.parentElement.getBoundingClientRect()
+    return { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
+  }
+
   // ------------------------------------------------------------------- stats
 
   function stats() {
@@ -637,6 +644,9 @@
     getCamera,
     project,
     settled,
+    // Rapid has no work after the first picture that fetches data (one bundle, no lazy chunks): drawn is settled
+    drawn: () => settled(),
+    mapRect,
     stats,
     select,
     selected,

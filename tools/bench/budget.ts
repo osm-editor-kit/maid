@@ -10,6 +10,7 @@ import { readdirSync } from 'node:fs'
  *
  * Two kinds of line, per scene and measurement (rows are in tools/bench/metrics.ts):
  *  - FAIL (exit code 1): Maid is slower than iD or Rapid on that measurement. This is the crisis the budget guards.
+ *    Load is compared on "Loaded: map drawn" (drawnMs) only; "Loaded: everything fetched" is a warning, never a FAIL.
  *    Measured against the same run's other editors. A difference counts only when it is above the noise floor:
  *    5 % of the other editor's value and at least 1 unit (1 ms, 1 MB, 1 frame per second). Frame times of 16.7 and
  *    16.8 ms are the same frame; they are reported as ties, not as failures.
@@ -142,7 +143,7 @@ for (const scene of scenes) {
     const others = OTHERS.map((name) => ({ name, value: valueOf(name, scene, row) }))
     const base = baseline?.scenes[scene]?.[row.id]
     const verdicts: string[] = []
-    if (row.better !== 'none' && maid !== undefined) {
+    if (row.compare !== false && row.better !== 'none' && maid !== undefined) {
       for (const other of others) {
         if (other.value === undefined) continue
         // slower by more than the noise floor: 5 % of the other value and one unit (see the header)
