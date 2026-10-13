@@ -2,9 +2,10 @@ import { isAutomated } from '@osm-editor-kit/maid-core'
 import { Fragment, useEffect, useState } from 'react'
 import { AttributionControl, Layer, Source, useMap } from 'react-map-gl/maplibre'
 import { useStore } from 'zustand'
+import { drawCustom } from './custom.ts'
 import { drawLayer, type Drawn } from './eli.ts'
 import { toOsmZoom } from './helpers.ts'
-import type { ImageryStore } from './store.ts'
+import { shownBackgroundId, shownTemplate, type ImageryStore } from './store.ts'
 
 /**
  * Draws the chosen background and overlays under the OSM data (`belowOsm`), and keeps the store
@@ -15,7 +16,10 @@ import type { ImageryStore } from './store.ts'
 export function ImageryLayers(props: { store: ImageryStore; belowOsm: string }) {
   const { store, belowOsm } = props
   const map = useMap().current
-  const backgroundId = useStore(store, (s) => s.backgroundId)
+  // the background that is shown: the stored choice, or a link's for this visit (see the store)
+  const backgroundId = useStore(store, (s) => shownBackgroundId(s))
+  // the template when the background is a custom one (or a link's); null for an index layer
+  const template = useStore(store, (s) => shownTemplate(s))
   const overlayKey = useStore(store, (s) => s.overlayIds.join('\n'))
   const brightness = useStore(store, (s) => s.brightness)
   const setView = useStore(store, (s) => s.setView)
@@ -23,7 +27,7 @@ export function ImageryLayers(props: { store: ImageryStore; belowOsm: string }) 
   const automated = isAutomated()
 
   // what is drawn, keyed by what was chosen: a result for an older choice is not shown
-  const key = `${backgroundId ?? ''}\n${overlayKey}`
+  const key = `${backgroundId ?? ''}\n${template ?? ''}\n${overlayKey}`
   const [loaded, setLoaded] = useState<{ key: string; items: Drawn[] } | null>(null)
 
   useEffect(() => {
@@ -46,15 +50,20 @@ export function ImageryLayers(props: { store: ImageryStore; belowOsm: string }) 
   useEffect(() => {
     if (automated) return
     const overlays = overlayKey === '' ? [] : overlayKey.split('\n')
-    const ids = backgroundId === null ? overlays : [backgroundId, ...overlays]
-    if (ids.length === 0) return
+    if (backgroundId === null && overlays.length === 0) return
     let cancelled = false
-    // the background is first, so the overlays are drawn above it; each draw catches its own failure
-    void Promise.all(
-      ids.map((id, index) =>
-        drawLayer(id, backgroundId !== null && index === 0).catch(() => undefined),
-      ),
-    ).then((results) => {
+    // the background is first, so the overlays are drawn above it. A custom background is drawn
+    // from its template, an index layer from ELI; each draw catches its own failure
+    const jobs: Promise<Drawn | undefined>[] = []
+    if (backgroundId !== null) {
+      jobs.push(
+        template === null
+          ? drawLayer(backgroundId, true)
+          : Promise.resolve(drawCustom(backgroundId, template, true, window.devicePixelRatio)),
+      )
+    }
+    for (const id of overlays) jobs.push(drawLayer(id, false))
+    void Promise.all(jobs.map((job) => job.catch(() => undefined))).then((results) => {
       if (cancelled) return
       const items = results.filter((item): item is Drawn => item !== undefined)
       // the names of what is drawn now: the measure and the changeset cite them (usedNames)
@@ -64,7 +73,7 @@ export function ImageryLayers(props: { store: ImageryStore; belowOsm: string }) 
     return () => {
       cancelled = true
     }
-  }, [automated, backgroundId, overlayKey, key, remember])
+  }, [automated, backgroundId, template, overlayKey, key, remember])
 
   if (automated) return null
   const drawn = loaded?.key === key ? loaded.items : []

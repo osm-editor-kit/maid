@@ -64,7 +64,7 @@ export async function listView(bounds: BBox) {
  * One layer ready to draw, or `undefined` when it is unknown or needs an API key. The raster
  * source carries ELI's attribution, which MapLibre's attribution control shows.
  */
-export async function drawLayer(id: string, background: boolean) {
+export async function drawLayer(id: string, background: boolean): Promise<Drawn | undefined> {
   const eli = await load()
   const layer = await eli.getLayerHydrated(id)
   if (!layer || layer.requiresKeys.length > 0) return undefined

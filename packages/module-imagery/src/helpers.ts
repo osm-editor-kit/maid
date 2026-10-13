@@ -4,6 +4,7 @@
  * they can be tested without a browser.
  */
 import { z } from 'zod'
+import { CUSTOM_ID, customNumber, isCustomId, type CustomEntry } from './custom.ts'
 
 /**
  * Zoom numbers. MapLibre counts zoom with 512 px tiles. ELI, iD and Rapid count with 256 px tiles
@@ -24,9 +25,37 @@ export function toMapZoom(osmZoom: number) {
 export type View = { bounds: [number, number, number, number]; zoom: number }
 
 /**
+ * One saved custom background. A broken entry (no id of the `custom-<n>` form, no template) is
+ * dropped; a name of the wrong type is emptied, and the entry stays.
+ */
+const storedCustom = z
+  .object({
+    id: z.string().regex(CUSTOM_ID),
+    name: z.string().catch(''),
+    template: z.string().min(1),
+  })
+  .nullable()
+  .catch(null)
+
+function isEntry(entry: CustomEntry | null): entry is CustomEntry {
+  return entry !== null
+}
+
+/** The first entry of each id stays: a repeated id would make two rows for one choice */
+function uniqueIds(entries: CustomEntry[]) {
+  const seen = new Set<string>()
+  return entries.filter((entry) => {
+    if (seen.has(entry.id)) return false
+    seen.add(entry.id)
+    return true
+  })
+}
+
+/**
  * The stored choice, read field by field: a field of the wrong type takes its default, so an old or
  * damaged entry cannot break the map. Overlays of the wrong type are dropped, repeats too. A stored
- * value that is not an object takes every default.
+ * value that is not an object takes every default. Custom backgrounds are read entry by entry (see
+ * `storedCustom`); `customNext` is the number the next custom id takes, see `parseStored`.
  */
 export function storedImagery(defaultBackground: string | null) {
   return z
@@ -37,12 +66,42 @@ export function storedImagery(defaultBackground: string | null) {
         .transform((ids) => [...new Set(ids.filter((id): id is string => id !== null))])
         .catch([]),
       brightness: z.number().catch(BRIGHTNESS_MAX).transform(clampBrightness),
+      custom: z
+        .array(storedCustom)
+        .transform((entries) => uniqueIds(entries.filter(isEntry)))
+        .catch([]),
+      customNext: z.number().int().min(1).catch(1),
     })
-    .catch({ backgroundId: defaultBackground, overlayIds: [], brightness: BRIGHTNESS_MAX })
+    .catch({
+      backgroundId: defaultBackground,
+      overlayIds: [],
+      brightness: BRIGHTNESS_MAX,
+      custom: [],
+      customNext: 1,
+    })
 }
 
-/** What is stored: the chosen background, the chosen overlays and the brightness (0.2 to 1) */
+/**
+ * What is stored: the chosen background (a layer id or a custom id), the chosen overlays, the
+ * brightness (0.2 to 1), the saved custom backgrounds and the number of the next custom id.
+ */
 export type ImageryStored = z.infer<ReturnType<typeof storedImagery>>
+
+const rawCustomList = z.object({ custom: z.array(z.unknown()) })
+const rawEntryId = z.object({ id: z.string() })
+
+/**
+ * The highest custom number in the stored value, counting entries that are dropped as broken too.
+ * A dropped entry's id must never be given out again, so it is counted here.
+ */
+function highestStoredCustomNumber(raw: unknown) {
+  const list = rawCustomList.safeParse(raw)
+  if (!list.success) return 0
+  return list.data.custom.reduce<number>((highest, item) => {
+    const entry = rawEntryId.safeParse(item)
+    return entry.success ? Math.max(highest, customNumber(entry.data.id)) : highest
+  }, 0)
+}
 
 /** One row of the list, as the panel needs it. Filled from the ELI package by `eli.ts`. */
 export type Listing = {
@@ -83,9 +142,31 @@ export function clampBrightness(value: number) {
   return Math.min(BRIGHTNESS_MAX, Math.max(BRIGHTNESS_MIN, value))
 }
 
-/** Reads the stored choice; see `storedImagery`. Never throws: every field has a default. */
-export function parseStored(raw: unknown, fallback: { backgroundId: string | null }) {
-  return storedImagery(fallback.backgroundId).parse(raw)
+/**
+ * Reads the stored choice; see `storedImagery`. Never throws: every field has a default.
+ *
+ * Two things are settled here, not in the schema. A chosen custom background whose entry is gone
+ * (dropped as broken, or never there) falls back to the default, so nothing points at nothing. The
+ * next custom number is never below the highest number seen in the stored value, so an id is not
+ * given out twice.
+ */
+export function parseStored(
+  raw: unknown,
+  fallback: { backgroundId: string | null },
+): ImageryStored {
+  const stored = storedImagery(fallback.backgroundId).parse(raw)
+  const { custom } = stored
+  const backgroundGone =
+    isCustomId(stored.backgroundId) && !custom.some((entry) => entry.id === stored.backgroundId)
+  const highest = Math.max(
+    highestStoredCustomNumber(raw),
+    ...custom.map((entry) => customNumber(entry.id)),
+  )
+  return {
+    ...stored,
+    backgroundId: backgroundGone ? fallback.backgroundId : stored.backgroundId,
+    customNext: Math.max(stored.customNext, highest + 1),
+  }
 }
 
 /** Best layers first, then by name. ELI gives no ranking of its own beyond the `best` flag. */

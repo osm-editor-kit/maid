@@ -26,6 +26,8 @@ describe('parseStored', () => {
       backgroundId: null,
       overlayIds: [],
       brightness: 1,
+      custom: [],
+      customNext: 1,
     })
   })
 
@@ -42,7 +44,13 @@ describe('parseStored', () => {
       { backgroundId: 42, overlayIds: ['a', 7, 'a', 'b'], brightness: 'bright' },
       fallback,
     )
-    expect(stored).toEqual({ backgroundId: null, overlayIds: ['a', 'b'], brightness: 1 })
+    expect(stored).toEqual({
+      backgroundId: null,
+      overlayIds: ['a', 'b'],
+      brightness: 1,
+      custom: [],
+      customNext: 1,
+    })
   })
 
   it('clamps a stored brightness', () => {
@@ -55,6 +63,8 @@ describe('parseStored', () => {
       backgroundId: null,
       overlayIds: [],
       brightness: 1,
+      custom: [],
+      customNext: 1,
     })
   })
 })
