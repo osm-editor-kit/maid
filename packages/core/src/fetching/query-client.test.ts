@@ -3,6 +3,8 @@ import { hashKey, type QueryClient } from '@tanstack/query-core'
 import {
   createEditorQueryClient,
   keys,
+  MAXLAG_RETRY_DELAY_MS,
+  MaxlagError,
   retryDelayFor,
   SESSION_DATA,
   shouldRetry,
@@ -59,9 +61,23 @@ describe('retry rule', () => {
   })
 
   test('the pause before a retry is 1 s, then 2 s, capped at 30 s', () => {
-    expect([0, 1, 2, 3, 4, 5, 6].map(retryDelayFor)).toEqual([
+    expect([0, 1, 2, 3, 4, 5, 6].map((count) => retryDelayFor(count))).toEqual([
       1000, 2000, 4000, 8000, 16000, 30000, 30000,
     ])
+  })
+
+  test('a maxlag refusal is retried, and waits 5 s before each retry', () => {
+    const maxlag = new MaxlagError()
+    expect(shouldRetry(0, maxlag)).toBe(true)
+    expect(shouldRetry(1, maxlag)).toBe(true)
+    expect(shouldRetry(2, maxlag)).toBe(false)
+    expect([0, 1].map((count) => retryDelayFor(count, maxlag))).toEqual([5000, 5000])
+    expect(MAXLAG_RETRY_DELAY_MS).toBe(5000)
+  })
+
+  test('the error does not change the pause of any other error', () => {
+    expect(retryDelayFor(0, new TypeError('Failed to fetch'))).toBe(1000)
+    expect(retryDelayFor(1, new HttpError(503, API))).toBe(2000)
   })
 })
 

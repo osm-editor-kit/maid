@@ -27,8 +27,29 @@ export function shouldRetry(failureCount: number, error: unknown): boolean {
   return true
 }
 
-/** The pause before a retry: 1 s, then 2 s, capped at 30 s. `failureCount` as passed by TanStack. */
-export function retryDelayFor(failureCount: number): number {
+/**
+ * The pause before a retry of a `maxlag` refusal: Wikimedia asks for at least 5 s (fetching-audit.md, Part 3).
+ */
+export const MAXLAG_RETRY_DELAY_MS = 5_000
+
+/**
+ * An answer that refuses because the server lags behind (Wikimedia's `maxlag` error code, sent as HTTP 200).
+ * The retry waits `MAXLAG_RETRY_DELAY_MS` instead of the usual back-off.
+ */
+export class MaxlagError extends Error {
+  readonly code = 'maxlag'
+  constructor(message = 'The server is lagging (maxlag)') {
+    super(message)
+    this.name = 'MaxlagError'
+  }
+}
+
+/**
+ * The pause before a retry: 1 s, then 2 s, capped at 30 s; 5 s after a `maxlag` refusal. Both arguments as
+ * passed by TanStack (`retryDelay(failureCount, error)`); the caller's own retries pass the error too.
+ */
+export function retryDelayFor(failureCount: number, error?: unknown): number {
+  if (error instanceof MaxlagError) return MAXLAG_RETRY_DELAY_MS
   return Math.min(MAX_RETRY_DELAY_MS, FIRST_RETRY_DELAY_MS * 2 ** Math.max(0, failureCount))
 }
 

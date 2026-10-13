@@ -1,7 +1,8 @@
-import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 /**
  * The "Data layers" flyout: the list of layers with a switch each, and the form that adds one.
  */
+import type { RemoteFetch } from '@osm-editor-kit/maid-core'
+import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { SegmentedControl } from '@osm-editor-kit/maid-ui'
 import { useId, useMemo, useState, type FormEvent } from 'react'
 import { addDataLayer, type Added, type AddInput } from './add.ts'
@@ -142,9 +143,12 @@ function KindChoice({
 function AddLayerForm({
   colors,
   onAdded,
+  send,
 }: {
   colors: readonly string[]
   onAdded: (added: Added) => void
+  /** The editor's fetch: the checks of an address go through it */
+  send: RemoteFetch
 }) {
   const ids = useId()
   const [name, setName] = useState('')
@@ -162,7 +166,7 @@ function AddLayerForm({
     event.preventDefault()
     const input: AddInput = { name, kind, url, sourceLayers, color, ...(file ? { file } : {}) }
     setBusy(true)
-    const result = await addDataLayer(input)
+    const result = await addDataLayer(input, send)
     setBusy(false)
     if (!result.ok) {
       setErrors(result.errors)
@@ -274,7 +278,11 @@ function AddLayerForm({
 }
 
 /** The flyout of the module: the layers and the form. The store is the module's own. */
-export function createPanel(useStore: DataLayerStoreHook, config: readonly DataLayerConfig[]) {
+export function createPanel(
+  useStore: DataLayerStoreHook,
+  config: readonly DataLayerConfig[],
+  send: RemoteFetch,
+) {
   function DataLayersPanel() {
     const added = useStore((state) => state.added)
     const files = useStore((state) => state.files)
@@ -312,6 +320,7 @@ export function createPanel(useStore: DataLayerStoreHook, config: readonly DataL
         )}
         <AddLayerForm
           colors={colors}
+          send={send}
           onAdded={(result) => {
             if (result.kind === 'url') addLayer(result.layer)
             else addFile(result.layer)

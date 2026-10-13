@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { beforeEach, describe, expect, test } from 'bun:test'
+import { HttpError, RateLimitedError, type RemoteFetch } from '@osm-editor-kit/maid-core'
 import { addDataLayer, checkAddInput, type AddInput } from './add.ts'
 
 const BASE: AddInput = {
@@ -45,30 +46,28 @@ describe('checkAddInput (the form, no network)', () => {
 })
 
 describe('addDataLayer makes no request for input the form already refuses', () => {
-  const original = globalThis.fetch
-  let requests = 0
+  let urls: string[] = []
+  /** What the fake editor fetch does for the next request; the default is a plain empty answer */
+  let respond: () => Promise<Response>
+  const send: RemoteFetch = async (url) => {
+    urls.push(String(url))
+    return respond()
+  }
 
   beforeEach(() => {
-    requests = 0
-    globalThis.fetch = (async () => {
-      requests += 1
-      return new Response('{}')
-    }) as unknown as typeof fetch
-  })
-
-  afterEach(() => {
-    globalThis.fetch = original
+    urls = []
+    respond = () => Promise.resolve(new Response('{}'))
   })
 
   test('no request when the form has an error', async () => {
-    const result = await addDataLayer({ ...BASE, url: 'javascript:alert(1)' })
+    const result = await addDataLayer({ ...BASE, url: 'javascript:alert(1)' }, send)
     expect(result.ok).toBe(false)
-    expect(requests).toBe(0)
+    expect(urls).toEqual([])
   })
 
   test('a GeoJSON address is requested once and must be GeoJSON', async () => {
-    const result = await addDataLayer(BASE)
-    expect(requests).toBe(1)
+    const result = await addDataLayer(BASE, send)
+    expect(urls).toEqual([BASE.url])
     expect(result).toEqual({
       ok: false,
       errors: [expect.stringContaining('This is JSON, but not GeoJSON.')],
@@ -76,12 +75,22 @@ describe('addDataLayer makes no request for input the form already refuses', () 
   })
 
   test('an address that cannot be reached says so in plain words', async () => {
-    globalThis.fetch = (async () => {
-      throw new TypeError('Failed to fetch')
-    }) as unknown as typeof fetch
-    const result = await addDataLayer(BASE)
+    respond = () => Promise.reject(new TypeError('Failed to fetch'))
+    const result = await addDataLayer(BASE, send)
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.errors[0]).toContain('could not be reached from this page')
+  })
+
+  test('an HTTP error answer is read as the answer it is', async () => {
+    respond = () => Promise.reject(new HttpError(404, BASE.url))
+    const result = await addDataLayer(BASE, send)
+    expect(result).toEqual({ ok: false, errors: ['The server answered 404.'] })
+  })
+
+  test('a rate limit is read as the status it had, and not as a network failure', async () => {
+    respond = () => Promise.reject(new RateLimitedError('data', 429, 0))
+    const result = await addDataLayer(BASE, send)
+    expect(result).toEqual({ ok: false, errors: ['The server answered 429.'] })
   })
 
   test('a GeoJSON file is read and parsed without a request', async () => {
@@ -89,8 +98,8 @@ describe('addDataLayer makes no request for input the form already refuses', () 
       [JSON.stringify({ type: 'Feature', geometry: null, properties: {} })],
       'a.geojson',
     )
-    const result = await addDataLayer({ ...BASE, url: '', file })
-    expect(requests).toBe(0)
+    const result = await addDataLayer({ ...BASE, url: '', file }, send)
+    expect(urls).toEqual([])
     expect(result.ok).toBe(true)
     if (result.ok) expect(result.value.kind).toBe('file')
   })

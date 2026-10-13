@@ -2,6 +2,7 @@
  * Adding a layer from the form: the checks of the form (no network), then the checks that need the
  * data (one request per layer, made only when a person adds it). Errors are plain sentences.
  */
+import { HttpError, RateLimitedError, type RemoteFetch } from '@osm-editor-kit/maid-core'
 import {
   checkDataLayerConfig,
   checkLayerUrl,
@@ -59,11 +60,18 @@ export function describeFailure(error: unknown, what: string) {
   return new Error(`${what}: ${error instanceof Error ? error.message : String(error)}`)
 }
 
-/** A request for the data itself; a failure to reach the server is said in plain words */
-async function probe(url: string) {
+/**
+ * A request for the data itself, through the editor's fetch (the `data` gate, the time limit). A failure to
+ * reach the server is said in plain words. A non-2xx answer comes back as a response with its status, so the
+ * checks below read it as before; the editor's fetch has already cancelled its body.
+ */
+async function probe(send: RemoteFetch, url: string): Promise<Response> {
   try {
-    return await fetch(url)
+    return await send(url)
   } catch (error) {
+    if (error instanceof HttpError || error instanceof RateLimitedError) {
+      return new Response(null, { status: error.status })
+    }
     throw describeFailure(error, 'The data')
   }
 }
@@ -72,9 +80,9 @@ async function probe(url: string) {
  * The checks that need the data: GeoJSON is fetched and parsed, PMTiles has its header and layer
  * names read, vector tiles get one test tile. Returns the source layers the layer needs.
  */
-async function checkRemote(input: AddInput, url: string) {
+async function checkRemote(send: RemoteFetch, input: AddInput, url: string) {
   if (input.kind === 'geojson') {
-    const response = await probe(url)
+    const response = await probe(send, url)
     if (!response.ok) throw new Error(`The server answered ${response.status}.`)
     const parsed = parseGeoJson(await response.text())
     if (!parsed.ok) throw new Error(parsed.errors.join(' '))
@@ -89,16 +97,16 @@ async function checkRemote(input: AddInput, url: string) {
   }
   // Any answer to the test tile counts as reachable: a server may answer an empty tile with 404.
   const tile = url.replaceAll('{z}', '0').replaceAll('{x}', '0').replaceAll('{y}', '0')
-  const response = await probe(tile)
+  const response = await probe(send, tile)
   await response.body?.cancel()
   return parseSourceLayers(input.sourceLayers)
 }
 
 /**
  * Checks a layer the person typed or chose and turns it into what the module stores. Makes at most
- * one request per layer, and none when the form's own checks fail.
+ * one request per layer, through `send` (the editor's fetch), and none when the form's own checks fail.
  */
-export async function addDataLayer(input: AddInput): Promise<Checked<Added>> {
+export async function addDataLayer(input: AddInput, send: RemoteFetch): Promise<Checked<Added>> {
   const errors = checkAddInput(input)
   if (errors.length > 0) return { ok: false, errors }
   const name = input.name.trim()
@@ -124,7 +132,7 @@ export async function addDataLayer(input: AddInput): Promise<Checked<Added>> {
   const url = input.url.trim()
   let sourceLayers: string[] | undefined
   try {
-    sourceLayers = await checkRemote(input, url)
+    sourceLayers = await checkRemote(send, input, url)
   } catch (error) {
     return { ok: false, errors: [error instanceof Error ? error.message : String(error)] }
   }

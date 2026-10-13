@@ -22,10 +22,11 @@ export function dataLayers(options: DataLayersOptions = {}) {
   const layers = checkConfigLayers(options.layers ?? [])
   const useStore = createDataLayerStore()
   const MapContent = createMapContent(useStore, layers)
-  const Panel = createPanel(useStore, layers)
   return defineModule({
     id: 'data-layers',
     setup(api) {
+      // the form's checks of an address go through the editor's fetch (the `data` gate)
+      const Panel = createPanel(useStore, layers, api.editor.fetch)
       api.register('map.content', { id: 'data-layers', component: MapContent })
       api.register('topbar.panel', {
         id: 'data-layers',
