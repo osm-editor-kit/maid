@@ -9,6 +9,7 @@ Key: "same" means Maid does the same thing. "missing" means no code for it. "dif
 | Action | iD key | Maid today | Gap |
 | --- | --- | --- | --- |
 | Pan the map | ↓ ↑ ← → (`shortcuts.json`) | Built (2026-10-13): `useShortcuts.ts` binds the arrows to `pan` | none |
+| Search (not in iD's keyboard list) | ⌘F / Ctrl+F in Maid, iD has no search key | Built: `useShortcuts.ts` opens the search flyout (`SearchButton.tsx`), see [search.md](search.md) | Fetching an object by id that is not loaded (see search.md) |
 | Pan more | ⌥ + arrows | missing | Pan by keyboard |
 | Zoom | + - | Built (2026-10-13): `useShortcuts.ts` binds `=` and `-` to the map's zoom. Zoom buttons exist (`ZoomControls.tsx:10-19`) | none |
 | Zoom more | ⌥ + + or - | missing | Zoom by keyboard |

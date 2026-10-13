@@ -12,6 +12,7 @@ import { MapView } from './components/MapView'
 import { ModeButtons } from './components/ModeButtons'
 import { RestorePrompt } from './components/RestorePrompt'
 import { SaveButton } from './components/SaveButton'
+import { SearchButton } from './components/SearchButton'
 import { SelectionOnlyButton } from './components/SelectionOnlyButton'
 import { TopBarPanels } from './components/TopBarPanels'
 import { UndoRedo } from './components/UndoRedo'
@@ -49,6 +50,7 @@ function Editor() {
           }
           end={
             <>
+              <SearchButton />
               <TopBarPanels />
               <SelectionOnlyButton />
               <FilterButton />

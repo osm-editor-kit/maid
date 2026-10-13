@@ -3,6 +3,7 @@ import { deleteOperation } from '@osm-editor-kit/maid-operations'
 import { useHotkeys, type UseHotkeyDefinition } from '@tanstack/react-hotkeys'
 import { continueLine, drawClick, drawingKind } from '../drawing'
 import { giveFavouriteType } from '../favourites'
+import { openSearch } from '../search/flyout'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
 import { keepsStack, stepStackId, useStack } from '../stack'
@@ -23,6 +24,7 @@ const PAN = 80
  *   Backspace takes back the last node, Delete drops the way
  * - M moves and R rotates the selection with the pointer (click to put down, Escape to cancel)
  * - Cmd/Ctrl+C copies the selection, Cmd/Ctrl+V pastes it where the pointer is
+ * - Cmd/Ctrl+F opens the search (SearchButton) and focuses its input; the browser's find stays off
  * - Cmd/Ctrl+Backspace or Delete deletes the selection; Escape leaves a mode, then the selection
  * - the letters of the edit menu run its operations (V reverse, X split, C merge, ...)
  * - arrow keys pan the map, + and - zoom
@@ -115,6 +117,7 @@ export function useShortcuts() {
       options: { preventDefault: false },
     },
     { hotkey: 'Mod+V', callback: paste },
+    { hotkey: 'Mod+F', callback: () => openSearch() },
     { hotkey: 'ArrowLeft', callback: () => pan(-PAN, 0) },
     { hotkey: 'ArrowRight', callback: () => pan(PAN, 0) },
     { hotkey: 'ArrowUp', callback: () => pan(0, -PAN) },
