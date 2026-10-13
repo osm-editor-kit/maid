@@ -56,7 +56,7 @@ import { onewayOf } from './direction'
 import { installDirectionImages } from './direction-images'
 import { DrawTool, nearestOnWay, projectedNodes } from './draw'
 import { fieldOverlayFeatures, type FieldOverlay, type LonLat } from './field-overlay'
-import { EDIT_SOURCES, SOURCES } from './layers'
+import { EDIT_SOURCES, SELECT_SOURCES, SOURCES } from './layers'
 import { distanceMetres, measureFeatures as measureOnMap } from './measure'
 import { midpointFeatures, segmentsOf, type MidpointFeature, type Segment } from './midpoints'
 import {
@@ -233,7 +233,11 @@ export class MaidEngine {
   private channels = {
     base: makeChannels(SOURCES),
     live: makeChannels(EDIT_SOURCES),
+    /** The selection's copies (SELECT_SOURCES): what is drawn below the floor of the data (layers.ts) */
+    select: makeChannels(SELECT_SOURCES),
   }
+  /** Only the selection is drawn, at any zoom. A view option: per visit, not stored. */
+  private selectionOnlyShown = false
   /** After the first view is complete, new data goes to the live tier */
   private firstLoadDone = false
   private compacting = false
@@ -534,7 +538,65 @@ export class MaidEngine {
       channel.dirty = true
       this.scheduleFlush(channel)
     }
+    this.pushSelect(batch)
     this.touch()
+  }
+
+  /**
+   * Sends a copy of each selected feature in the batch to the selection source (SELECT_SOURCES), whatever tier it
+   * goes to: the layers draw it below the floor of the data (layers.ts). Called for every batch, so a selected
+   * feature that loads or changes later is current there too.
+   */
+  private pushSelect(batch: FeatureBatch) {
+    if (this.selectedIds.length === 0) return
+    const selected = new Set(this.selectedIds)
+    for (const name of SOURCE_NAMES) {
+      const picked = batch[name].filter((f) => {
+        const id = featureId(f)
+        return id !== undefined && selected.has(id)
+      })
+      if (picked.length === 0) continue
+      const channel = this.channels.select[name]
+      channel.queue = channel.queue.concat(picked)
+      channel.dirty = true
+      this.scheduleFlush(channel)
+    }
+  }
+
+  /**
+   * The selection's copies follow the selection: a feature that was deselected leaves the selection source, and
+   * a feature that was selected now is built and sent there (a feature not loaded yet comes with its batch).
+   */
+  private syncSelectTier(previous: readonly string[], selected: readonly string[]) {
+    const kept = new Set(selected)
+    const before = new Set(previous)
+    for (const id of previous) if (!kept.has(id)) this.dropFromSelectTier(id)
+    const added = selected.filter((id) => !before.has(id) && this.featureSource.has(id))
+    if (added.length === 0) return
+    // the same features the data would be built as, for these ids only; pushSelect keeps the selected ones
+    this.pushSelect(this.redraw(added.map((id) => ({ id, moved: false }))).batch)
+  }
+
+  private dropFromSelectTier(id: string) {
+    const name = this.featureSource.get(id)
+    if (!name) return
+    const channel = this.channels.select[name]
+    // a copy still waiting to be sent goes too, so the next update does not bring it back
+    channel.queue = channel.queue.filter((f) => featureId(f) !== id)
+    channel.removals.push(id)
+    channel.dirty = true
+    this.scheduleFlush(channel)
+  }
+
+  /** Only the selection is drawn, at any zoom, and the data is hidden (layers.ts `selectionOnly`). Per visit. */
+  get selectionOnly() {
+    return this.selectionOnlyShown
+  }
+
+  setSelectionOnly(on: boolean) {
+    if (on === this.selectionOnlyShown) return
+    this.selectionOnlyShown = on
+    this.changed()
   }
 
   private flushTimer?: ReturnType<typeof setTimeout>
@@ -549,7 +611,11 @@ export class MaidEngine {
   }
 
   private allChannels() {
-    return [...Object.values(this.channels.base), ...Object.values(this.channels.live)]
+    return [
+      ...Object.values(this.channels.base),
+      ...Object.values(this.channels.live),
+      ...Object.values(this.channels.select),
+    ]
   }
 
   private flushAll() {
@@ -592,6 +658,30 @@ export class MaidEngine {
 
   private wake() {
     for (const done of this.waiters.splice(0)) done()
+  }
+
+  /**
+   * Starts the data again after an upload. The caller has reset the editor's history, so the data is
+   * empty: the features come off the map, the loads in flight are cancelled, and the selection is the
+   * one the server gave (`selection`). The visible tiles load again after `delayMs`, as iD and Rapid
+   * wait for the server's replication. A pan within that wait loads the view at once.
+   */
+  reloadAfterUpload(selection: readonly string[], delayMs: number) {
+    // OsmData updates these indexes only for what changes; after a reset they would still name the old data
+    this.data.nodeUses.clear()
+    this.data.nodeWays.clear()
+    this.data.endpoints.clear()
+    this.data.wayMultipolygons.clear()
+    resetLoads(this.tileLoads)
+    for (const entry of this.relationLoads.values()) {
+      entry.controller.abort(new DOMException('the data was reloaded', 'AbortError'))
+    }
+    this.relationLoads.clear()
+    this.firstLoadDone = false
+    this.rebuildAll()
+    this.setSelected(selection)
+    this.scheduleWake(Date.now() + delayMs)
+    this.changed()
   }
 
   // --- Compaction: move the live tier into the big sources when nothing else is going on ---
@@ -929,7 +1019,7 @@ export class MaidEngine {
     if (this.draw.active) this.draw.cancel()
     for (const name of SOURCE_NAMES) {
       const ids = [...this.featureSource].filter(([, source]) => source === name).map(([id]) => id)
-      for (const tier of ['base', 'live'] as const) {
+      for (const tier of ['base', 'live', 'select'] as const) {
         const channel = this.channels[tier][name]
         // features that were still waiting to be sent are dropped with the rest
         channel.queue = []
@@ -1248,7 +1338,7 @@ export class MaidEngine {
   private removeFeatures(remove: [SourceName, string][]) {
     for (const [name, featureId] of remove) {
       this.featureSource.delete(featureId)
-      for (const tier of ['base', 'live'] as const) {
+      for (const tier of ['base', 'live', 'select'] as const) {
         const channel = this.channels[tier][name]
         channel.removals.push(featureId)
         channel.dirty = true
@@ -1828,6 +1918,7 @@ export class MaidEngine {
     const previous = this.selectedIds
     if (ids.length === previous.length && ids.every((id, i) => id === previous[i])) return
     this.selectedIds = ids
+    this.syncSelectTier(previous, ids)
     // a relation load belongs to the selection that asked for it: once that is gone, the load is cancelled
     for (const [id, entry] of this.relationLoads) {
       if (!ids.includes(id))
@@ -1882,6 +1973,8 @@ export class MaidEngine {
       // a feature can be in the big source, in the live tier, or (hidden) in both
       map.setFeatureState({ source: SOURCES[name], id: id! }, { [kind]: on })
       map.setFeatureState({ source: EDIT_SOURCES[name], id: id! }, { [kind]: on })
+      // the copy the layers draw below the data's floor has the same state (the halo, the pin)
+      map.setFeatureState({ source: SELECT_SOURCES[name], id: id! }, { [kind]: on })
     }
     for (const id of previous) set(id, false)
     for (const id of kind === 'hover' ? (hoverId ? [hoverId] : []) : selectedIds) set(id, true)
@@ -2384,10 +2477,10 @@ const HANDLE_DRAG_PX = 3
 const PRIORITY: Record<string, number> = {
   // the shape points of the selection are vertices like the others
   [SOURCES.highlight]: 0,
-  [SOURCES.vertices]: 0, [EDIT_SOURCES.vertices]: 0,
-  [SOURCES.points]: 1, [EDIT_SOURCES.points]: 1,
-  [SOURCES.lines]: 2, [EDIT_SOURCES.lines]: 2,
-  [SOURCES.areas]: 3, [EDIT_SOURCES.areas]: 3,
+  [SOURCES.vertices]: 0, [EDIT_SOURCES.vertices]: 0, [SELECT_SOURCES.vertices]: 0,
+  [SOURCES.points]: 1, [EDIT_SOURCES.points]: 1, [SELECT_SOURCES.points]: 1,
+  [SOURCES.lines]: 2, [EDIT_SOURCES.lines]: 2, [SELECT_SOURCES.lines]: 2,
+  [SOURCES.areas]: 3, [EDIT_SOURCES.areas]: 3, [SELECT_SOURCES.areas]: 3,
 } // prettier-ignore
 
 type Channel = {

@@ -38,6 +38,37 @@ const EDIT_OF: Record<string, string> = {
   [SOURCES.vertices]: EDIT_SOURCES.vertices,
 }
 
+/**
+ * Small sources for the selection: a copy of every selected feature, whatever tier it is in. The layers draw
+ * them below the floor of the data (see `buildLayers`), so the selection stays on the map when the rest is hidden.
+ */
+export const SELECT_SOURCES = {
+  areas: 'osm-areas-select',
+  lines: 'osm-lines-select',
+  points: 'osm-points-select',
+  vertices: 'osm-vertices-select',
+} as const
+const SELECT_OF: Record<string, string> = {
+  [SOURCES.areas]: SELECT_SOURCES.areas,
+  [SOURCES.lines]: SELECT_SOURCES.lines,
+  [SOURCES.points]: SELECT_SOURCES.points,
+  [SOURCES.vertices]: SELECT_SOURCES.vertices,
+}
+
+/**
+ * MapLibre zoom (512 px) from which lines, areas and points are drawn: OSM 12, the lowest zoom the data is drawn
+ * at (docs/research/zoom-study.md, D3). Below it only the selection is drawn.
+ */
+export const DRAW_ZOOM = 11
+/**
+ * MapLibre zoom from which vertices and symbols (labels, icons) are drawn: OSM 16, the load zoom. Below it only the
+ * selection is drawn. Chosen without a measurement: symbols are placed for everything in view, so they are the
+ * first thing to measure at OSM 12 to 15 (see the notes in docs/research/zoom-study.md).
+ */
+export const DETAIL_ZOOM = 15
+/** MapLibre's largest zoom (OSM 24) */
+const MAX_ZOOM = 24
+
 export type LayerOptions = {
   /** iD's fill setting. 'partial' shows a band along the inside edge of areas. */
   fill: 'partial' | 'full' | 'wireframe'
@@ -49,6 +80,8 @@ export type LayerOptions = {
   icons: boolean
   /** 'fit': pins where there is room (dots always). 'all': every pin, overlapping, like iD when it does not hide them. */
   pins: 'fit' | 'all'
+  /** Hides all of the OSM data at every zoom, and draws only the selection. Off by default. */
+  selectionOnly?: boolean
 }
 
 /**
@@ -66,8 +99,13 @@ const PIN_ZOOM = 17.5
 /** The address plaque image (packages/shell/src/images.ts) */
 export const ADDRESS_PLAQUE = 'addr-plaque'
 
+/**
+ * The layers of the map, bottom to top. The data layers (the OSM sources) draw from their floor (DRAW_ZOOM, or
+ * DETAIL_ZOOM for vertices and symbols) and not below it: there only the selection is drawn, by the twin on the
+ * selection source. The highlight layers (the selection's shape, the tools) are never floored.
+ */
 export function buildLayers(options: LayerOptions) {
-  const layers = buildMainLayers(options)
+  const selectionOnly = options.selectionOnly === true
   // Each layer is followed by its twin on the edit source, so stacking stays the same.
   // The original of a feature that is being edited is hidden through feature state, which
   // costs nothing; taking it out of the big source would re-tile the whole source.
@@ -78,16 +116,73 @@ export function buildLayers(options: LayerOptions) {
     circle: ['circle-opacity', 'circle-stroke-opacity'],
     symbol: ['icon-opacity', 'text-opacity'],
   }
-  return layers.flatMap((layer) => {
+  const out: LayerSpecification[] = []
+  for (const layer of buildMainLayers(options)) {
     const source = 'source' in layer ? layer.source : undefined
-    const editSource = typeof source === 'string' ? EDIT_OF[source] : undefined
-    if (!editSource) return [layer]
-    const paint: Record<string, unknown> = { ...layer.paint }
-    for (const prop of OPACITY[layer.type] ?? [])
-      paint[prop] = ['case', editing, 0, paint[prop] ?? 1]
-    const original = { ...layer, paint }
-    return [original, { ...layer, id: `${layer.id}--edit`, source: editSource }]
-  })
+    if (typeof source !== 'string' || source === SOURCES.highlight) {
+      out.push(layer)
+      continue
+    }
+    const floor = floorOf(layer)
+    const floored = { ...layer, minzoom: Math.max(layer.minzoom ?? 0, floor) } as LayerSpecification
+    const shown = selectionOnly
+      ? ({
+          ...floored,
+          layout: { ...floored.layout, visibility: 'none' as const },
+        } as LayerSpecification)
+      : floored
+    const editSource = EDIT_OF[source]
+    if (editSource) {
+      const paint: Record<string, unknown> = { ...layer.paint }
+      for (const prop of OPACITY[layer.type] ?? [])
+        paint[prop] = ['case', editing, 0, paint[prop] ?? 1]
+      out.push(
+        { ...shown, paint } as LayerSpecification,
+        { ...shown, id: `${layer.id}--edit`, source: editSource } as LayerSpecification,
+      )
+    } else out.push(shown)
+    out.push(selectionTwin(layer, source, floor, selectionOnly))
+  }
+  return out
+}
+
+/** The MapLibre zoom from which a data layer draws: vertices and symbols at the load zoom, the rest from OSM 12 */
+function floorOf(layer: LayerSpecification) {
+  const source = 'source' in layer ? layer.source : undefined
+  return layer.type === 'symbol' || source === SOURCES.vertices ? DETAIL_ZOOM : DRAW_ZOOM
+}
+
+/**
+ * The selection's copy of a data layer: the same look, on the selection source. It is drawn below the layer's
+ * floor, where the data itself is hidden, so the selection is drawn at every zoom down to the lowest one. Above
+ * the floor the data layer draws the selection, so the twin stops there (its own maxzoom still applies). With
+ * `selectionOnly` the data layers are hidden, so the twin draws at every zoom its layer has.
+ */
+function selectionTwin(
+  layer: LayerSpecification,
+  source: string,
+  floor: number,
+  selectionOnly: boolean,
+): LayerSpecification {
+  // With selectionOnly the bound is always set, to MapLibre's maximum where the layer has none: MapLibre keeps the
+  // old bound when a zoom range is set to undefined, so a switch back would leave the twin stopped at the floor.
+  const maxzoom = selectionOnly
+    ? (layer.maxzoom ?? MAX_ZOOM)
+    : Math.min(floor, layer.maxzoom ?? floor)
+  const twin = withoutZoomRange(layer)
+  return {
+    ...twin,
+    id: `${layer.id}--select`,
+    source: SELECT_OF[source],
+    maxzoom,
+  } as LayerSpecification
+}
+
+/** The layer's properties without its zoom range (minzoom and maxzoom) */
+function withoutZoomRange(layer: LayerSpecification): LayerSpecification {
+  return Object.fromEntries(
+    Object.entries(layer).filter(([key]) => key !== 'minzoom' && key !== 'maxzoom'),
+  ) as LayerSpecification
 }
 
 function buildMainLayers(options: LayerOptions) {

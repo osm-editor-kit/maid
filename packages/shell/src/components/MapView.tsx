@@ -130,6 +130,7 @@ export function MapView() {
   const [cursor, setCursor] = useState('grab')
   const mode = useEngine((e) => e.mode)
   const measuring = useEngine((e) => e.measuring)
+  const selectionOnly = useEngine((e) => e.selectionOnly)
   const [zoomGuard, setZoomGuard] = useState(false)
   const [menu, setMenu] = useState<MenuPlace | null>(null)
   // a stack's pill is for a plain click in browse mode: a draw, a move, a rotation or a measure ends it
@@ -158,6 +159,7 @@ export function MapView() {
     pins: config.pins,
     lat: initialCamera.lat,
     dashes,
+    selectionOnly,
   }
   const interactive = interactiveLayerIds(buildLayers(options))
   const drawing = mode === 'draw-line' ? 'line' : mode === 'draw-area' ? 'area' : undefined
@@ -521,6 +523,8 @@ export function MapView() {
         bearing: initialCamera.bearing ?? 0,
       }}
       mapStyle={EMPTY_STYLE}
+      // OSM zoom 2, the world view: iD and Rapid stop there too (docs/research/zoom-study.md, D4)
+      minZoom={1}
       maxZoom={23}
       fadeDuration={config.fade}
       attributionControl={false}
