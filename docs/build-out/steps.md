@@ -255,6 +255,17 @@ Built since the queue was written, with the commit and a line on what to try, is
   Result (2026-10-13): built in 56a497f.
   Test for Tobias: with data loaded, zoom out step by step. At 12 to 15 lines and areas stay, points show as dots, no vertices or labels. Below 12 only the selected feature is drawn. Turn on "show only the selection" in the top bar. Zoom out to the world view and no further.
 
+### Order after the parking editor (decided by Tobias, 2026-10-13)
+
+1. A performance round on the current state: all three editors measured again, bottlenecks found and fixed. The aim is to be faster than Rapid in every scenario. Zooming out being slower is accepted for now.
+2. Count the comparison with iD again ([missing-features.md](../research/missing-features.md)) and strike what was built.
+3. Finish the translations.
+4. The gaps in editing (turn restrictions, Wikidata and Wikipedia fields, "ignore this issue", lasso, field defaults on "Add field").
+5. Cleanup (`/unslop-code` phases 3 to 10, the remaining native tooltips, splitting `engine.ts`).
+6. The Radnetz modules for the bicycle editor, after the parking editor: both need the same parts (side fields, an app's own operations and validation rules).
+
+Notes for the parking and the bicycle editor: a TILDA notes module used by both. Its config names the region and the folder id, so that switching it on for a project is one line.
+
 ### Waiting for Tobias
 
 - [ ] Saving on the development server (dce9e86): the five steps under Done. Not yet tried by a person.
