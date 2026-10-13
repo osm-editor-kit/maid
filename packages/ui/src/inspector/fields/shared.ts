@@ -54,7 +54,12 @@ export type FieldFocus = {
   key: string
   /** The control's text (its draft while it is edited), else the tag's value */
   value: string | undefined
-  side?: 'left' | 'right'
+  /**
+   * The side of the road the control is about. A module's own field sets it with `data-focus-side` on an element
+   * (with `data-focus-key`) around its control; `both` is for a control that covers both sides. A `parking:<side>:*`
+   * key needs no `side`: the shell reads it from the key.
+   */
+  side?: 'left' | 'right' | 'both'
 }
 
 /**

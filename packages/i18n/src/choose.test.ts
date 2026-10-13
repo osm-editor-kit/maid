@@ -48,4 +48,11 @@ describe('the language list', () => {
     expect(isLocale(undefined)).toBe(false)
     expect(isLocale(3)).toBe(false)
   })
+
+  it('uses the fallback of the app last, before English', () => {
+    expect(chooseLocale({ url: page, browser: ['it'], fallback: 'de' })).toBe('de')
+    expect(chooseLocale({ url: page, browser: ['es'], fallback: 'de' })).toBe('es')
+    expect(chooseLocale({ url: `${page}?lang=fr`, stored: 'es', fallback: 'de' })).toBe('fr')
+    expect(chooseLocale({ url: page, stored: 'en', fallback: 'de' })).toBe('en')
+  })
 })

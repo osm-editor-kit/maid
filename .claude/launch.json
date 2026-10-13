@@ -14,6 +14,12 @@
       "port": 5176
     },
     {
+      "name": "maid-parking",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "apps/maid-parking", "dev"],
+      "port": 5177
+    },
+    {
       "name": "mock-osm-api",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["tools/mock-osm-api/server.ts"],

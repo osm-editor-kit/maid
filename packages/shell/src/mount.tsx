@@ -8,15 +8,16 @@ import { createShell, type AppConfig } from './shell'
 import { ShellContext } from './shell-context'
 
 /**
- * The language of this visit (ADR 0009, decision 4): the URL, the stored choice, the browser, English.
+ * The language of this visit (ADR 0009, decision 4): the URL, the stored choice, the browser, the app's `defaultLocale`, English.
  * Under automation it is always English, so that the browser checks keep their texts.
  */
-function visitLocale(): Locale {
+function visitLocale(fallback?: Locale): Locale {
   if (isAutomated()) return 'en'
   return chooseLocale({
     url: location.href,
     stored: useSettings.getState().lang,
     browser: navigator.languages,
+    fallback,
   })
 }
 
@@ -26,7 +27,7 @@ function visitLocale(): Locale {
  */
 export function mountEditor(rootElement: HTMLElement, app: AppConfig) {
   // before anything is drawn: every text is read when it renders
-  const locale = visitLocale()
+  const locale = visitLocale(app.defaultLocale)
   setLocale(locale)
   document.documentElement.lang = locale
 

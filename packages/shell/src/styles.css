@@ -10,6 +10,7 @@
 @source '../../module-lenses/src';
 @source '../../module-notes/src';
 @source '../../module-surface/src';
+@source '../../module-parking/src';
 @source '../../module-traffic-signs/src';
 
 /* dark mode is a class on <html>, set by maid-ui's theme (light, dark or system) */

@@ -284,7 +284,7 @@ function focusOf(
     fieldId: row?.dataset.fieldId ?? '',
     key,
     value: input ? input.value : tags[key],
-    side: side === 'left' || side === 'right' ? side : undefined,
+    side: side === 'left' || side === 'right' || side === 'both' ? side : undefined,
   }
 }
 

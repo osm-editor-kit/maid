@@ -9,7 +9,7 @@ import { getScene } from '../fixtures/scenes'
 import { APPS, takeApp } from './args'
 
 /**
- * The app the check runs against (`--app maid|bicycle`, default maid). Taken here, when this module
+ * The app the check runs against (`--app maid|bicycle|parking`, default maid). Taken here, when this module
  * loads, so it runs before any check reads `process.argv` (see args.ts).
  */
 export const app = takeApp()

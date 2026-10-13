@@ -35,12 +35,14 @@ function localeFromUrl(url: string): Locale | undefined {
 /**
  * The language of a visit, the first that names one: the `lang=` parameter of the address, the
  * choice stored in the settings, the browser's languages in their order (`de-CH` counts as `de`),
- * and English. Pure: the caller reads the address, the storage and `navigator.languages`.
+ * and the app's fallback (English if it has none). Pure: the caller reads the address, the storage and `navigator.languages`.
  */
 export function chooseLocale(input: {
   url: string
   stored?: string | undefined
   browser?: readonly string[] | undefined
+  /** The app's own default, used when the address, the stored choice and the browser name no language. Default English. */
+  fallback?: Locale | undefined
 }): Locale {
   const fromUrl = localeFromUrl(input.url)
   if (fromUrl) return fromUrl
@@ -49,5 +51,5 @@ export function chooseLocale(input: {
     const base = tag.split('-')[0]?.toLowerCase()
     if (isLocale(base)) return base
   }
-  return FALLBACK_LOCALE
+  return input.fallback ?? FALLBACK_LOCALE
 }

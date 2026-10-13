@@ -1,5 +1,6 @@
 import { createEditor, isLocalUrl, type EditorConfig } from '@osm-editor-kit/maid-core'
 import { createFilterSet } from '@osm-editor-kit/maid-filters'
+import type { Locale } from '@osm-editor-kit/maid-i18n'
 import { connectLenses } from '@osm-editor-kit/maid-module-lenses'
 import { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { useSettings } from '@osm-editor-kit/maid-ui'
@@ -18,6 +19,11 @@ export type AppConfig = {
    * notes, lenses, ...) keep fixed names: two apps on one origin would share those.
    */
   id?: string
+  /**
+   * The language when the URL, the stored choice and the browser name none (before English). Not used under
+   * automation, which is always English.
+   */
+  defaultLocale?: Locale
   /** The name and the line under it in the top bar */
   brand?: { name: string; detail?: string }
   /** Login to the OSM development server. Without a client id, "Log in" explains what is missing. */

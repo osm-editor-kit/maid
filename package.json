@@ -11,10 +11,11 @@
   "scripts": {
     "i18n-compile": "bun run --cwd packages/i18n compile",
     "i18n-check": "bun packages/i18n/scripts/missing.ts",
-    "dev": "bun run i18n-compile && bun run --parallel dev-maid dev-bicycle dev:api",
+    "dev": "bun run i18n-compile && bun run --parallel dev-maid dev-bicycle dev-parking dev:api",
     "dev:api": "bun tools/mock-osm-api/server.ts",
     "dev-maid": "bun run i18n-compile && bun run --cwd apps/maid dev",
     "dev-bicycle": "bun run i18n-compile && bun run --cwd apps/maid-bicycle dev",
+    "dev-parking": "bun run i18n-compile && bun run --cwd apps/maid-parking dev",
     "fixtures-build": "bun tools/fixtures/build.ts",
     "type-check": "bun run i18n-compile && tsc -b packages/model && tsc --noEmit && tsc --noEmit -p packages/core/tsconfig.test.json",
     "test-run": "bun run i18n-compile && bun test",

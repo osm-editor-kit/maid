@@ -1,7 +1,7 @@
 /**
  * Runs the eleven browser checks one after another against one app, and writes one report.
  *
- *   bun run check-all [--app maid|bicycle]
+ *   bun run check-all [--app maid|bicycle|parking]
  *
  * Each check is started as `bun run check-<name> --app <app>` and must exit 0 with at least the
  * expected number of `ok` lines. Prints one line per check, then its FAIL lines. Writes
@@ -35,20 +35,20 @@ type CheckName = (typeof CHECKS)[number]
 /**
  * The `ok` lines each check prints on the default scene (small) when it passes, per app. A check
  * with fewer `ok` lines fails. With more, it passes, and the run prints a note: update this table.
- * Bicycle has the same numbers until a real run says otherwise.
+ * Bicycle and parking have the same numbers until a real run says otherwise.
  */
 const EXPECTED_OK: Record<CheckName, Record<AppName, number>> = {
-  interactions: { maid: 136, bicycle: 136 },
-  edit: { maid: 20, bicycle: 20 },
-  draw: { maid: 14, bicycle: 14 },
-  undo: { maid: 43, bicycle: 43 },
-  ops: { maid: 17, bicycle: 17 },
-  relations: { maid: 21, bicycle: 21 },
-  validation: { maid: 8, bicycle: 8 },
-  journal: { maid: 15, bicycle: 15 },
-  filters: { maid: 18, bicycle: 18 },
-  tags: { maid: 23, bicycle: 23 },
-  multi: { maid: 11, bicycle: 11 },
+  interactions: { maid: 136, bicycle: 136, parking: 136 },
+  edit: { maid: 20, bicycle: 20, parking: 20 },
+  draw: { maid: 14, bicycle: 14, parking: 14 },
+  undo: { maid: 43, bicycle: 43, parking: 43 },
+  ops: { maid: 17, bicycle: 17, parking: 17 },
+  relations: { maid: 21, bicycle: 21, parking: 21 },
+  validation: { maid: 8, bicycle: 8, parking: 8 },
+  journal: { maid: 15, bicycle: 15, parking: 15 },
+  filters: { maid: 18, bicycle: 18, parking: 18 },
+  tags: { maid: 23, bicycle: 23, parking: 23 },
+  multi: { maid: 11, bicycle: 11, parking: 11 },
 }
 
 type CheckResult = {

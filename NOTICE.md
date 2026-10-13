@@ -26,6 +26,7 @@ Licences in this table are from memory of the projects and still need to be chec
 | --- | --- | --- | --- |
 | Preset icons, copied from the pinned iD build at setup, not committed | Maki (Mapbox), Temaki, Font Awesome Free, Röntgen, iD | CC0 (Maki, Temaki), CC BY 4.0 (Font Awesome Free icons, Röntgen), ISC (iD) | `packages/shell/public/sprites/` |
 | Label font glyphs, Open Sans Semibold, from MapLibre's demo tiles | Open Sans | Open Font License or Apache 2.0, depending on the version | `packages/shell/public/fonts/` |
+| Parking icons (39 PNG), and the presets and styles the parking editor follows | The Berlin parking mapping project (JOSM presets and map styles), used with the author's permission | Reuse allowed by the author | `packages/module-parking/src/icons/` |
 
 ## OpenStreetMap data
 

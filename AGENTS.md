@@ -74,8 +74,9 @@ These names are the contract. Agents and docs only reference these.
 | `bun run i18n-compile` | Paraglide: generates `packages/i18n/paraglide/` from the message files. Runs first in `check`, `check-ci`, `test-run`, `type-check`, `dev`, `dev-maid`, `dev-bicycle` and the apps' `build`; skips when the output is up to date. |
 | `bun run i18n-check` | Lists the keys each language lacks (en is the base) as JSON in `reports/i18n-missing.json`. Exits 1 when a key lacks a language. |
 | `bun run check-ci` | The same, read-only. |
-| `bun run dev` | Both Maid dev servers (`apps/maid` on 5173, `apps/maid-bicycle` on 5176) and the mock OSM API (8090). |
+| `bun run dev` | The three apps' dev servers (`apps/maid` on 5173, `apps/maid-bicycle` on 5176, `apps/maid-parking` on 5177) and the mock OSM API (8090). |
 | `bun run dev-maid` | Only the Maid dev server (`apps/maid`, 5173). |
+| `bun run dev-parking` | Only the Maid Parking dev server (`apps/maid-parking`, 5177): the street-side parking editor, German by default. Checks and the benchmark take it with `--app parking`. |
 | `bun run dev-bicycle` | Only the Maid Bicycle dev server (`apps/maid-bicycle`, 5176): Maid's modules plus the traffic signs module. |
 | `bun run refs-setup` | Clone and build iD and Rapid at their pinned commits into `.reference/`, copy icon sprites into Maid. |
 | `bun run refs-serve` | Serve the built reference editors: iD on 8081, Rapid on 8082. |
@@ -98,13 +99,13 @@ These names are the contract. Agents and docs only reference these.
 | `bun run check-validation [scene]` | Browser check: add a footway that crosses a road and is connected to nothing, see both reported, use the fix, undo. Needs `bun run dev`. |
 | `bun run check-render <name>` | Compare screenshots and feature counts of all scenes with a reference. Needs `bun run dev`. |
 | `bun run check-render-save <name>` | Save that reference from the current state, before a change to the renderer. |
-| `bun run check-all [--app maid\|bicycle]` | Runs the eleven browser checks above, one after another, against one app (default maid), with the scene each check uses by default. One line per check (`name exit= ok=`) and its FAIL lines; exits 1 if a check exits non-zero or prints fewer `ok` lines than the table in `tools/checks/check-all.ts`. Writes `reports/check-all-<app>.json` and the full output of each check to `reports/check-all-<app>/`. Needs `bun run dev`. |
+| `bun run check-all [--app maid\|bicycle\|parking]` | Runs the eleven browser checks above, one after another, against one app (default maid), with the scene each check uses by default. One line per check (`name exit= ok=`) and its FAIL lines; exits 1 if a check exits non-zero or prints fewer `ok` lines than the table in `tools/checks/check-all.ts`. Writes `reports/check-all-<app>.json` and the full output of each check to `reports/check-all-<app>/`. Needs `bun run dev`. |
 | `bun run check-config` | Contract check of each app's `maid.config.ts` in Bun, without a browser: the modules set up alone with no network request, their extension points exist, their items are removed on destroy, the preset changes apply, and each app's Vite port, strictPort, login origin and the app ids and ports are unique. Writes `reports/config-check.json`. |
 | `bun run compare` | Everything for the side-by-side page on http://localhost:5184. |
 | `bun run fixtures-build <file.osm.pbf>` | Cut fixtures from a local extract. Manual only, see core rule 1. |
 | `bun run style-generate [iD checkout]` | Regenerate the style data from iD's CSS and presets. |
 
-Every browser check takes `--app maid\|bicycle` (default maid) and runs against that app's port, for example `bun run check-edit small --app bicycle`. The option is read in one place, `tools/bench/args.ts`; the scene argument keeps its place.
+Every browser check takes `--app maid\|bicycle\|parking` (default maid) and runs against that app's port, for example `bun run check-edit small --app bicycle`. The option is read in one place, `tools/bench/args.ts`; the scene argument keeps its place.
 
 Every editor is driven through one contract, `window.__bench` (`tools/refs/bench-api.d.ts`). Maid also exposes `window.__maid` with the map, the engine, the editor and the data model's module. To look at one editor: `bun tools/bench/shot.ts maid|id|rapid <scene> [zoom]`.
 
@@ -113,6 +114,7 @@ Every editor is driven through one contract, `window.__bench` (`tools/refs/bench
 ```
 apps/maid            the default editor: maid.config.ts (an AppConfig: modules, presets, filters), main.tsx, env files; the rest is the shell
 apps/maid-bicycle    the second app on port 5176: the same, with the traffic signs module switched on and its own name
+apps/maid-parking    the third app on port 5177: street-side parking; the parking module, no surface module, German by default
 apps/compare         page that shows Maid, iD and Rapid side by side
 packages/style       iD's look as data: tag classes, CSS rules
 packages/core        createEditor: the editor's data (context, history), Maid modules, extension points, hooks
@@ -125,6 +127,7 @@ packages/presets     preset matching and fields on id-tagging-schema, headless
 packages/validation  rules that check what was changed, and their fixes, headless
 packages/shell       the editor's shell (@osm-editor-kit/maid-shell): App, components, URL, save, auth, built-in modules, bench handle, styles and public assets (sprites, fonts, land.html, frame-sync.js)
 packages/ui          the shell's components and the inspector's fields: layout, top bar, sidebar, map controls, dock, theme; declares inspector.section
+packages/module-parking the parking editor's module: presets, quick buttons, lens, restriction field, rules, operations, icons
 packages/module-*    optional modules an editor switches on in its config: imagery, street-imagery, data-layers,
                      notes, lenses, traffic-signs, surface (the last two are built but not switched on)
 packages/renderer    feature builder, MapLibre layers, engine, module layers; draws from the model

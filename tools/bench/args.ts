@@ -14,6 +14,7 @@ import { PORTS } from '../ports'
 export const APPS = {
   maid: { dir: 'apps/maid', port: PORTS.maid },
   bicycle: { dir: 'apps/maid-bicycle', port: PORTS.maidBicycle },
+  parking: { dir: 'apps/maid-parking', port: PORTS.maidParking },
 } as const
 
 export type AppName = keyof typeof APPS

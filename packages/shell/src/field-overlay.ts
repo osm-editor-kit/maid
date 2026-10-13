@@ -2,7 +2,7 @@ import type { FieldOverlay, SideChoice } from '@osm-editor-kit/maid-renderer'
 import type { Tags } from '@osm-editor-kit/maid-style'
 /**
  * What the map shows for the field that has the focus or the pointer on it: a side line for a
- * directional field's side (cycleway:left, sidewalk:right, ...) and a width band for a width field
+ * directional field's side (cycleway:left, sidewalk:right, parking:both:orientation, ...) and a width band for a width field
  * (width, est_width, cycleway:left:width, sidewalk:both:width, ...). Pure: the Inspector hands the
  * result to the engine. Rules from the iD fork (WORKDOC.md features 7 and 10; modules/width/
  * width_tags.ts and width_indicator.ts): the band of a side starts at the road's edge, half the
@@ -10,6 +10,8 @@ import type { Tags } from '@osm-editor-kit/maid-style'
  */
 import type { FieldFocus } from '@osm-editor-kit/maid-ui'
 
+/** A parking key of a side: `parking:left`, `parking:right:orientation`, `parking:both:fee:conditional` */
+const PARKING_SIDE_KEY = /^parking:(left|right|both)(?::|$)/
 const SIDE_WIDTH_KEY = /^(cycleway|sidewalk):(left|right|both):width$/
 const WAY_WIDTH_KEYS = new Set(['width', 'est_width'])
 
@@ -98,6 +100,10 @@ export function fieldOverlayFor(
 ): FieldOverlay | null {
   if (!focus) return null
   if (focus.side) return { kind: 'side', side: focus.side }
+  const parkingSide = PARKING_SIDE_KEY.exec(focus.key)?.[1]
+  if (parkingSide === 'left' || parkingSide === 'right' || parkingSide === 'both') {
+    return { kind: 'side', side: parkingSide }
+  }
   const target = widthKeyTarget(focus.key)
   if (!target) return null
   const metres = parseWidthMetres(focus.value)

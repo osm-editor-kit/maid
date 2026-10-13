@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { fieldOverlayFor, parseWidthMetres, roadWidthMetres, widthKeyTarget } from './field-overlay'
 
-const focus = (key: string, value: string | undefined, side?: 'left' | 'right') => ({
+const focus = (key: string, value: string | undefined, side?: 'left' | 'right' | 'both') => ({
   fieldId: 'f',
   key,
   value,
@@ -102,5 +102,32 @@ describe('fieldOverlayFor', () => {
     expect(fieldOverlayFor(focus('width', ''), road)).toBeNull()
     expect(fieldOverlayFor(focus('surface', 'asphalt'), road)).toBeNull()
     expect(fieldOverlayFor(null, road)).toBeNull()
+  })
+})
+
+describe('fieldOverlayFor: parking keys', () => {
+  test('shows the side of a parking key without a side on the focus', () => {
+    expect(fieldOverlayFor(focus('parking:left:orientation', 'parallel'), undefined)).toEqual({
+      kind: 'side',
+      side: 'left',
+    })
+    expect(fieldOverlayFor(focus('parking:right', 'lane'), undefined)).toEqual({
+      kind: 'side',
+      side: 'right',
+    })
+    expect(fieldOverlayFor(focus('parking:both:fee:conditional', ''), undefined)).toEqual({
+      kind: 'side',
+      side: 'both',
+    })
+  })
+
+  test('takes the focus side when the control has one, and ignores other parking keys', () => {
+    expect(fieldOverlayFor(focus('parking:left', 'lane', 'both'), undefined)).toEqual({
+      kind: 'side',
+      side: 'both',
+    })
+    expect(fieldOverlayFor(focus('parking:condition', 'free'), undefined)).toBeNull()
+    expect(fieldOverlayFor(focus('parking:lane:left', 'x'), undefined)).toBeNull()
+    expect(fieldOverlayFor(focus('amenity', 'parking'), undefined)).toBeNull()
   })
 })
