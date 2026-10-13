@@ -1,8 +1,8 @@
 import { SwatchIcon } from '@heroicons/react/20/solid'
 import { defineModule } from '@osm-editor-kit/maid-core'
 import type { Lens } from '@osm-editor-kit/maid-style'
+import { lazyComponent, PANEL_FALLBACK } from '@osm-editor-kit/maid-ui'
 import { BUILT_IN_LENSES } from './builtin.ts'
-import { LensPanel } from './LensPanel.tsx'
 import { useLensStore } from './store.ts'
 
 /**
@@ -13,6 +13,11 @@ export function lenses(options: { lenses?: Lens[] } = {}) {
   return defineModule({
     id: 'lenses',
     setup(api) {
+      // the panel's code is a chunk of its own: it loads when the flyout opens (or in idle time after the first view)
+      const LensPanel = lazyComponent(
+        () => import('./LensPanel.tsx').then((panel) => ({ default: panel.LensPanel })),
+        PANEL_FALLBACK,
+      )
       useLensStore.getState().setBuiltIn([...BUILT_IN_LENSES, ...(options.lenses ?? [])])
       api.register('topbar.panel', {
         id: 'lenses',

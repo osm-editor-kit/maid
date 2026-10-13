@@ -1,4 +1,3 @@
-import { CameraIcon } from '@heroicons/react/20/solid'
 import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { SegmentedControl } from '@osm-editor-kit/maid-ui'
 import { PhotoDateRangeFilter } from '@osm-editor-kit/street-imagery-react'
@@ -13,9 +12,6 @@ import {
   type PhotoKind,
 } from './state.ts'
 import { AUTOMATED, useStreetImageryStore } from './store.ts'
-
-/** The icon of the photos button in the top bar */
-export const PHOTOS_ICON = <CameraIcon aria-hidden="true" />
 
 const KIND_LABELS: Record<PhotoKind, string> = { all: 'All', flat: 'Flat', pano: '360°' }
 const KIND_OPTIONS = PHOTO_KINDS.map((kind) => ({ value: kind, label: KIND_LABELS[kind] }))

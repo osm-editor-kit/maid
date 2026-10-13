@@ -1,6 +1,12 @@
+import { CameraIcon } from '@heroicons/react/20/solid'
 import { defineModule } from '@osm-editor-kit/maid-core'
 import type { MapContentItem } from '@osm-editor-kit/maid-renderer'
-import type { DockView, TopBarPanel } from '@osm-editor-kit/maid-ui'
+import {
+  lazyComponent,
+  PANEL_FALLBACK,
+  type DockView,
+  type TopBarPanel,
+} from '@osm-editor-kit/maid-ui'
 import {
   createStreetImageryConfig,
   registerProviderAdapters,
@@ -8,11 +14,9 @@ import {
 } from '@osm-editor-kit/street-imagery'
 import { mapillaryAdapter } from '@osm-editor-kit/street-imagery/providers/mapillary'
 import { panoramaxAdapter } from '@osm-editor-kit/street-imagery/providers/panoramax'
-import { PhotosView } from './dock.tsx'
-import { StreetImagesField } from './image-field.tsx'
+import { createElement } from 'react'
 import { STREET_IMAGES_FIELD_TYPE } from './image-keys.ts'
 import { StreetImageryLayers } from './map.tsx'
-import { PHOTOS_ICON, PhotosPanel } from './panel.tsx'
 import { AUTOMATED, useStreetImageryStore } from './store.ts'
 
 export { MAP_ID, streetImageryClick } from './map.tsx'
@@ -41,6 +45,23 @@ export {
   streetImageryPresetChanges,
   type StreetImagesPresetChanges,
 } from './image-presets.ts'
+
+// The panel, the dock view and the field are chunks of their own (with the photo viewers they use): they load when
+// they are first shown, or in idle time after the first view (lazyComponent).
+const PhotosPanel = lazyComponent(
+  () => import('./panel.tsx').then((panel) => ({ default: panel.PhotosPanel })),
+  PANEL_FALLBACK,
+)
+const PhotosView = lazyComponent(
+  () => import('./dock.tsx').then((dock) => ({ default: dock.PhotosView })),
+  PANEL_FALLBACK,
+)
+const StreetImagesField = lazyComponent(() =>
+  import('./image-field.tsx').then((field) => ({ default: field.StreetImagesField })),
+)
+
+/** The icon of the photos button in the top bar */
+const PHOTOS_ICON = createElement(CameraIcon, { 'aria-hidden': true })
 
 /** The query-key prefixes of the package's provider hooks (street-imagery-react, `useProviderPhotos` and the others) */
 const PACKAGE_QUERY_PREFIXES = ['provider-photos', 'provider-sequences', 'provider-map-features']

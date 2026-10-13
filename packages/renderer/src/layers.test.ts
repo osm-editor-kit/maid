@@ -9,6 +9,7 @@ import {
   EDIT_SOURCES,
   interactiveLayerIds,
   type LayerOptions,
+  PIN_ZOOM,
   SELECT_SOURCES,
   SOURCES,
 } from './layers'
@@ -246,5 +247,106 @@ describe('activePinIds', () => {
   test('ways and relations have no pin', () => {
     expect(activePinIds('w5', ['r6', 'w7'])).toEqual([])
     expect(activePinIds('w5', ['r6', 'n8'])).toEqual(['n8'])
+  })
+})
+
+describe('the pin zoom (PIN_ZOOM = 18: the dot below, the pin from 18)', () => {
+  test('the pin layer starts at PIN_ZOOM, an integer, so its tiles are laid out from that zoom only', () => {
+    expect(PIN_ZOOM).toBe(18)
+    expect(Number.isInteger(PIN_ZOOM)).toBe(true)
+    const pin = buildLayers(options)
+      .map(view)
+      .find((l) => l.id === 'point-pin')
+    expect(pin?.minzoom).toBe(PIN_ZOOM)
+  })
+
+  test('the dot is drawn up to PIN_ZOOM, so between 17 and 18 a point is a dot as before 17.5', () => {
+    const dot = buildLayers(options)
+      .map(view)
+      .find((l) => l.id === 'point-dot')
+    expect(dot?.maxzoom).toBe(PIN_ZOOM)
+  })
+
+  test('with pins: all, the pin layer has no zoom range and the dot is hidden at every zoom with icons', () => {
+    const layers = buildLayers({ ...options, pins: 'all' }).map(view)
+    expect(layers.find((l) => l.id === 'point-pin')?.minzoom).toBe(DETAIL_ZOOM)
+    expect(layers.find((l) => l.id === 'point-dot')?.maxzoom).toBe(0.1)
+  })
+
+  test('the active pin and the selection pin keep their own zoom: they do not start at PIN_ZOOM', () => {
+    const layers = buildLayers(options).map(view)
+    expect(layers.find((l) => l.id === 'active-point-pin')?.minzoom).toBe(DETAIL_ZOOM)
+    expect(layers.find((l) => l.id === 'point-pin--select')?.maxzoom).toBe(DETAIL_ZOOM)
+  })
+})
+
+describe('the selection twins when nothing is selected (selectTwins)', () => {
+  const selectTwinIds = (layers: LayerSpecification[]) =>
+    layers
+      .map(view)
+      .filter((l) => l.id.endsWith('--select'))
+      .map((l) => l.id)
+  const hidden = (layers: LayerSpecification[], id: string) =>
+    view(layers.find((l) => view(l).id === id)!).layout?.visibility === 'none'
+
+  test('by default every selection twin is shown, as before', () => {
+    const layers = buildLayers(options)
+    expect(selectTwinIds(layers).length).toBeGreaterThan(20)
+    for (const id of selectTwinIds(layers)) expect(hidden(layers, id)).toBe(false)
+  })
+
+  test('with nothing selected the twins are hidden, and so is nothing else', () => {
+    const layers = buildLayers({ ...options, selectTwins: false })
+    const twins = selectTwinIds(layers)
+    expect(twins.length).toBeGreaterThan(20)
+    for (const id of twins) expect(hidden(layers, id)).toBe(true)
+    // the data, its edit copies and the highlight layers are as they are with a selection
+    const shown = buildLayers(options)
+    expect(layers.map(view).map((l) => l.id)).toEqual(shown.map(view).map((l) => l.id))
+    for (const layer of layers.map(view).filter((l) => !l.id.endsWith('--select')))
+      expect(layer.layout?.visibility).toBe(
+        shown.map(view).find((l) => l.id === layer.id)?.layout?.visibility,
+      )
+  })
+
+  test('a hidden twin keeps its zoom range, so it is also shown with the right floor when a selection comes', () => {
+    const shown = buildLayers(options)
+    const hiddenList = buildLayers({ ...options, selectTwins: false })
+    for (const id of selectTwinIds(shown))
+      expect(view(hiddenList.find((l) => view(l).id === id)!).maxzoom).toBe(
+        view(shown.find((l) => view(l).id === id)!).maxzoom,
+      )
+  })
+
+  test('with selectionOnly the twins are shown whatever selectTwins says (the data is hidden)', () => {
+    const layers = buildLayers({ ...options, selectionOnly: true, selectTwins: false })
+    for (const id of selectTwinIds(layers)) expect(hidden(layers, id)).toBe(false)
+  })
+
+  test('the ids are the same in every state and unique', () => {
+    const states = [
+      options,
+      { ...options, selectTwins: false },
+      { ...options, selectionOnly: true },
+      { ...options, selectTwins: true, selectionOnly: true },
+    ]
+    const lists = states.map((o) => buildLayers(o).map((l) => view(l).id))
+    const first = lists[0] ?? []
+    for (const list of lists) {
+      expect(new Set(list).size).toBe(list.length)
+      expect(list).toEqual(first)
+    }
+  })
+
+  test('the interactive layers are the same in every state: a hidden twin is picked only when it is shown', () => {
+    const ids = interactiveLayerIds(buildLayers({ ...options, selectTwins: false }))
+    expect(ids).toEqual(interactiveLayerIds(buildLayers(options)))
+    expect(ids).toContain('vertex--select')
+    expect(ids).toContain('point-dot--select')
+  })
+
+  test('the twins are shown again when the selection comes back', () => {
+    const layers = buildLayers({ ...options, selectTwins: true })
+    for (const id of selectTwinIds(layers)) expect(hidden(layers, id)).toBe(false)
   })
 })

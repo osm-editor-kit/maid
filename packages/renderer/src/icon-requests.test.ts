@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { iconImagesRequestedAt } from './icon-requests'
-import { buildLayers, type LayerOptions } from './layers'
+import { buildLayers, type LayerOptions, PIN_ZOOM } from './layers'
 
 const options: LayerOptions = {
   fill: 'partial',
@@ -18,9 +18,17 @@ describe('the pin images a tile asks for (the worker rule of iconImagesRequested
       expect(iconImagesRequestedAt(layers, zoom).has('pin-')).toBe(false)
   })
 
-  test('the pin layer lays out from floor(17.5) = 17, so a tile at 17 asks for the pins (the layout floor)', () => {
-    expect(iconImagesRequestedAt(layers, 16).has('pin-')).toBe(false)
-    expect(iconImagesRequestedAt(layers, 17).has('pin-')).toBe(true)
+  test('the pin layer starts at PIN_ZOOM (18), and a tile at 17 asks for no pin: the layout floor is the pin zoom', () => {
+    expect(PIN_ZOOM).toBe(18)
+    for (const zoom of [15, 16, 17])
+      expect(iconImagesRequestedAt(layers, zoom).has('pin-')).toBe(false)
+    expect(iconImagesRequestedAt(layers, 18).has('pin-')).toBe(true)
+  })
+
+  test('the pins of a point are asked for at the pin zoom and not before, at the same zoom they are drawn', () => {
+    const pin = layers.find((l) => l.id === 'point-pin')
+    expect(pin?.minzoom).toBe(PIN_ZOOM)
+    expect(layers.find((l) => l.id === 'point-dot')?.maxzoom).toBe(PIN_ZOOM)
   })
 
   test('the vertex icons are asked for from the load zoom, not the pins', () => {

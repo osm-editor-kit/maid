@@ -6,7 +6,7 @@ import { MapProvider } from 'react-map-gl/maplibre'
 import { BottomDock } from './components/BottomDock'
 import { FetchPauses } from './components/FetchPauses'
 import { FilterButton } from './components/FilterButton'
-import { Inspector } from './components/Inspector'
+import { InspectorSlot } from './components/InspectorSlot'
 import { MapNotices } from './components/MapNotices'
 import { MapView } from './components/MapView'
 import { ModeButtons } from './components/ModeButtons'
@@ -58,7 +58,7 @@ function Editor() {
           }
         />
       }
-      sidebar={<Inspector />}
+      sidebar={<InspectorSlot />}
       sheetOpen={sheet.open}
       onSheetOpenChange={(open) => setSheet({ open, selection: param })}
       dock={<BottomDock />}

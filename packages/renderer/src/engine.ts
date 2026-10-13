@@ -685,6 +685,15 @@ export class MaidEngine {
     return this.selectionOnlyShown
   }
 
+  /**
+   * Whether the selection's copies (the `--select` twins) have anything to draw: something is selected, or the data is
+   * hidden. Read by MapView into `buildLayers` (layers.ts `selectTwins`); a change of the selection or of selectionOnly
+   * calls `changed()`, so the layers follow.
+   */
+  get selectTwins() {
+    return this.selectionOnlyShown || this.selectedIds.length > 0
+  }
+
   setSelectionOnly(on: boolean) {
     if (on === this.selectionOnlyShown) return
     this.selectionOnlyShown = on

@@ -17,7 +17,8 @@ mountEditor(document.getElementById('root')!, app) // returns a function that un
 // apps/maid/src/maid.config.ts
 export const app: AppConfig = {
   id: 'maid', // names what the app stores itself: the journal's database and the logged-in user
-  brand: { name: 'Maid', detail: 'MapLibre iD Editor' },
+  brand: { name: 'Maid', detail: 'MapLibre iD Editor' }, // also the changeset's created_by, with version
+  version: pkg.version, // the app's package.json version (import pkg from '../package.json')
   osm: { devClientId, loginOrigin: 'http://127.0.0.1:5173', envFile: 'apps/maid/.env.local' },
   editor: (config) => ({ modules, presets, filters }), // gets the settings read from the URL
 }

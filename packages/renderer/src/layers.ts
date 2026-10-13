@@ -101,6 +101,13 @@ export type LayerOptions = {
   pins: 'fit' | 'all'
   /** Hides all of the OSM data at every zoom, and draws only the selection. Off by default. */
   selectionOnly?: boolean
+  /**
+   * Whether anything is selected, so the selection's copies have something to draw. Default true (all twins shown).
+   * False hides the twins (`visibility: none`): MapLibre gives no tiles to a source that no visible layer uses
+   * (`TileManager.update`), so an empty selection source costs no worker round trips per zoom step. The zoom is not an
+   * input: a twin above its floor is hidden by its own maxzoom, which costs as little.
+   */
+  selectTwins?: boolean
 }
 
 /**
@@ -113,8 +120,12 @@ function lowZoomThreshold(lat: number) {
 }
 
 const HOVER = '#f6634f'
-/** MapLibre zoom from which points are pins (OSM zoom 18.5); below it they are dots. Chosen on the dense scene: at OSM zoom 17 all its pins cover the map. */
-const PIN_ZOOM = 17.5
+/**
+ * MapLibre zoom from which points are pins (OSM zoom 19); below it they are dots. Chosen on the dense scene: at OSM
+ * zoom 17 all its pins cover the map. It is an integer on purpose: MapLibre lays a layer out from floor(minzoom), so a
+ * tile at the zoom below would ask for every pin image before one is drawn (see docs/research/performance-2026-10-13.md).
+ */
+export const PIN_ZOOM = 18
 /** The address plaque image (packages/shell/src/images.ts) */
 export const ADDRESS_PLAQUE = 'addr-plaque'
 
@@ -125,6 +136,8 @@ export const ADDRESS_PLAQUE = 'addr-plaque'
  */
 export function buildLayers(options: LayerOptions) {
   const selectionOnly = options.selectionOnly === true
+  // with selectionOnly the data is hidden, so the selection's copies are always drawn (at every zoom their layer has)
+  const twinsShown = selectionOnly || options.selectTwins !== false
   // Each layer is followed by its twin on the edit source, so stacking stays the same.
   // The original of a feature that is being edited is hidden through feature state, which
   // costs nothing; taking it out of the big source would re-tile the whole source.
@@ -165,7 +178,7 @@ export function buildLayers(options: LayerOptions) {
         { ...shown, id: `${layer.id}--edit`, source: editSource } as LayerSpecification,
       )
     } else out.push(shown)
-    out.push(selectionTwin(layer, source, floor, selectionOnly))
+    out.push(selectionTwin(layer, source, floor, selectionOnly, twinsShown))
   }
   return out
 }
@@ -187,6 +200,7 @@ function selectionTwin(
   source: string,
   floor: number,
   selectionOnly: boolean,
+  shown: boolean,
 ): LayerSpecification {
   // With selectionOnly the bound is always set, to MapLibre's maximum where the layer has none: MapLibre keeps the
   // old bound when a zoom range is set to undefined, so a switch back would leave the twin stopped at the floor.
@@ -199,6 +213,8 @@ function selectionTwin(
     id: `${layer.id}--select`,
     source: SELECT_OF[source],
     maxzoom,
+    // nothing selected: hidden, so its source is not used and asks for no tiles (see LayerOptions.selectTwins)
+    ...(shown ? {} : { layout: { ...twin.layout, visibility: 'none' as const } }),
   } as LayerSpecification
 }
 

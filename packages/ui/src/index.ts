@@ -15,6 +15,7 @@ export {
 } from './InfoPopover.tsx'
 export { FilterPanel } from './FilterPanel.tsx'
 export { FadeSlideIn, UI_SPRING } from './motion.tsx'
+export { lazyChunksPending, lazyComponent, PANEL_FALLBACK, preloadLazyComponents } from './lazy.tsx'
 export type {
   DockView,
   DockViewProps,

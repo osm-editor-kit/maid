@@ -1,10 +1,10 @@
 import { PhotoIcon } from '@heroicons/react/20/solid'
 import { defineModule } from '@osm-editor-kit/maid-core'
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
+import { lazyComponent, PANEL_FALLBACK } from '@osm-editor-kit/maid-ui'
 import { createElement } from 'react'
 import { backgroundName, usedNames } from './helpers.ts'
 import { ImageryLayers } from './ImageryLayers.tsx'
-import { ImageryPanel } from './ImageryPanel.tsx'
 import { createImageryStore, shownBackgroundId } from './store.ts'
 
 export type ImageryOptions = {
@@ -26,6 +26,14 @@ export function imagery(options: ImageryOptions = {}) {
   const module = defineModule({
     id: 'imagery',
     setup(api) {
+      // the panel's code is a chunk of its own: it loads when the flyout opens (or in idle time after the first view)
+      const Panel = lazyComponent(
+        () =>
+          import('./ImageryPanel.tsx').then((panel) => ({
+            default: () => createElement(panel.ImageryPanel, { store }),
+          })),
+        PANEL_FALLBACK,
+      )
       api.register('map.content', {
         id: 'imagery',
         component: (props: MapContentProps) =>
@@ -35,7 +43,7 @@ export function imagery(options: ImageryOptions = {}) {
         id: 'imagery',
         label: 'Background',
         icon: createElement(PhotoIcon, { 'aria-hidden': true }),
-        component: () => createElement(ImageryPanel, { store }),
+        component: Panel,
         width: 'w-96',
       })
       // what the map shows now, read by the measure and the changeset (the app reads it outside React)

@@ -25,6 +25,7 @@ import { exposeBenchApi } from '../bench'
 import { drawClick } from '../drawing'
 import { addPointWithFavourite, giveFavouriteTagsToNode } from '../favourites'
 import { installMarkerImages } from '../images'
+import { preloadAfterFirstSettle } from '../lazy-chunks'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
 import { dropStack, setStack } from '../stack'
@@ -160,6 +161,7 @@ export function MapView() {
     lat: initialCamera.lat,
     dashes,
     selectionOnly,
+    selectTwins: useEngine((e) => e.selectTwins),
   }
   const interactive = interactiveLayerIds(buildLayers(options))
   const drawing = mode === 'draw-line' ? 'line' : mode === 'draw-area' ? 'area' : undefined
@@ -176,6 +178,8 @@ export function MapView() {
     engine.attach(map)
     engine.setSelected(selectedIds)
     exposeBenchApi(shell, map, { select })
+    // the chunks for the inspector, the panels and the dock: after the first view is drawn, in idle time
+    void preloadAfterFirstSettle(engine)
   }
   const handleMove = (_: ViewStateChangeEvent) => {
     // load while moving, but not on every frame

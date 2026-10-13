@@ -44,13 +44,14 @@ export function FetchPauses(props: { source: PauseSource }) {
     const shown = new Set<ServiceId>()
     const show = (pauses: readonly FetchPause[]) => {
       const now = Date.now()
-      const timeZone = browserTimeZone()
       const paused = new Set(pauses.map((pause) => pause.service))
       for (const service of shown) {
         if (paused.has(service)) continue
         notify.clear(noticeId(service))
         shown.delete(service)
       }
+      // read only when a pause is shown: the first `Intl.DateTimeFormat` call of a page costs about 10 ms at start-up
+      const timeZone = pauses.length > 0 ? browserTimeZone() : ''
       for (const pause of pauses) {
         shown.add(pause.service)
         notify.standing(noticeId(pause.service), pauseText(pause, { now, timeZone }))

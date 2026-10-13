@@ -63,8 +63,9 @@ describe('iconImagesRequestedAt (which icons a tile of a zoom asks for)', () => 
     expect(at16.has('icon-')).toBe(true)
   })
 
-  it('asks for the pins from zoom 17, where the pin layer is laid out (it draws from 17.5)', () => {
-    expect(iconImagesRequestedAt(layers, 17).has('pin-')).toBe(true)
+  it('asks for the pins from zoom 18, where the pin layer starts (it draws from 18, a dot below)', () => {
+    expect(iconImagesRequestedAt(layers, 17).has('pin-')).toBe(false)
+    expect(iconImagesRequestedAt(layers, 18).has('pin-')).toBe(true)
   })
 })
 

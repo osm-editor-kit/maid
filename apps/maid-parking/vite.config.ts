@@ -12,5 +12,15 @@ export default defineConfig({
   // 127.0.0.1, not Vite's default (which is IPv6-only here): the OAuth app on the OSM development
   // server redirects to http://127.0.0.1:5177/land.html. `localhost` still reaches it.
   server: { host: '127.0.0.1', port: PORTS.maidParking, strictPort: true },
+  build: {
+    rolldownOptions: {
+      // packages/ui is a barrel of many modules (inspector fields, tags sheet, ...). Without this, the bundler keeps
+      // every module of it in the entry chunk, also those only the lazy inspector uses. None of them does work at
+      // import time (`extension-points.ts` only declares types), so a module nobody imports can go.
+      treeshake: {
+        moduleSideEffects: [{ test: /[\\/]packages[\\/]ui[\\/]src[\\/]/, sideEffects: false }],
+      },
+    },
+  },
   preview: { port: PORTS.maidParking, strictPort: true },
 })

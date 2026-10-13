@@ -1,4 +1,3 @@
-import { defineModule } from '@osm-editor-kit/maid-core'
 import {
   actionAddMember,
   actionChangeMember,
@@ -8,7 +7,7 @@ import {
   type Action,
 } from '@osm-editor-kit/maid-model'
 import { notify, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
-import { Tooltip, type InspectorSection, type InspectorSectionProps } from '@osm-editor-kit/maid-ui'
+import { Tooltip, type InspectorSectionProps } from '@osm-editor-kit/maid-ui'
 import { Fragment, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { useShell } from '../shell-context'
 import {
@@ -19,7 +18,6 @@ import {
   loadResultSentence,
   memberName,
   memberRows,
-  membersHeadline,
   membershipHint,
   membershipsOf,
   moveTarget,
@@ -463,7 +461,7 @@ function MemberList({
 }
 
 /** The inspected relation's members, in order. */
-function MembersSection({ entity, editor, select }: Props) {
+export function MembersSection({ entity, editor, select }: Props) {
   const { engine } = useShell()
   // loading members merges them into the data: the rows follow the engine's version, not the editor's
   useSyncExternalStore(engine.subscribe, engine.getVersion)
@@ -616,7 +614,7 @@ function AddToRelation({
 }
 
 /** The relations the inspected entity belongs to, and a way to add it to another loaded relation. */
-function RelationsSection({ entity, editor, select }: Props) {
+export function RelationsSection({ entity, editor, select }: Props) {
   const graph = editor.history.staging.graph
   const memberships = membershipsOf(graph, entity.id)
   const candidates = joinableRelations(graph, entity.id)
@@ -660,35 +658,4 @@ function RelationsSection({ entity, editor, select }: Props) {
       )}
     </div>
   )
-}
-
-/** Adds "Members" (for relations) and "Relations" (for every element) to the inspector. */
-export function relations() {
-  return defineModule({
-    id: 'relations',
-    setup(api) {
-      const members: InspectorSection = {
-        id: 'relation-members',
-        title: 'Members',
-        when: (entity) => entity.type === 'relation',
-        disclosure: 'open',
-        detail: (entity, editor) => {
-          const relation = editor.history.staging.graph.hasEntity(entity.id)
-          if (!(relation instanceof OsmRelation)) return undefined
-          return membersHeadline(memberRows(editor.history.staging.graph, relation))
-        },
-        component: MembersSection,
-      }
-      const memberships: InspectorSection = {
-        id: 'relation-memberships',
-        title: 'Relations',
-        // most features are in no relation: folded, with the number in the headline
-        disclosure: 'closed',
-        detail: (entity, editor) => membershipsOf(editor.history.staging.graph, entity.id).length,
-        component: RelationsSection,
-      }
-      api.register('inspector.section', members)
-      api.register('inspector.section', memberships)
-    },
-  })
 }

@@ -195,6 +195,8 @@ The "before" column is the number the previous section recorded. What each image
 
 So nothing clean exists and the layer is unchanged. What a person sees does not differ. Only the creation of the small scene's pin images at load happens earlier than they are drawn.
 
+**Superseded (later the same day):** Tobias decided pins from zoom 18 (`PIN_ZOOM = 18`, see "Layers that take part in a zoom frame" below). The pin layer now starts at 18, so a tile at 17 asks for no pin.
+
 ### What the quiet run must confirm (browser, not run here)
 
 1. After `settled()` at the opening view, the `pin-` and `icon-` images in `window.__maid.map.listImages()` match the table: medium and dense have no `pin-` image at zoom 16, small has 98 at zoom 17.
@@ -296,3 +298,151 @@ Found 2026-10-13: `bun run check-journal` failed in about 4 of 6 runs after d115
 | dense | 326 | 1024 | 757 | 1397 / 1106 | ~1120 / 759 |
 
 The numbers marked "early settled" were measured while `ready()` did nothing and `settled()` did not look at the sources or at a frame after the last update; they are not comparable with the honest column. The improvement over the baseline stands. The honest settled is not slower than the early one in this run, so the early settled did not flatter the numbers by a measurable amount (medians of three runs on one machine; not a statistical result).
+
+## Layers that take part in a zoom frame
+
+What MapLibre 6.12 (`maplibre-gl/dist`) does with a layer on each zoom frame, read from the code:
+
+- `Style.update` (maplibre-gl-shared-dev.mjs) calls `layer.recalculate(parameters)` for **every** layer in `_order`, hidden or not. A hidden layer still pays its paint and layout evaluation (inferred: tens of microseconds for a symbol layer).
+- `StyleLayer.isHidden(zoom)` is true for a layer below its minzoom, at or above its maxzoom, or with `visibility: none`. Hidden layers are not rendered (`prepareForRender`) and do not mark their source as used (`tileManagers[source].used`).
+- `TileManager.update` gives a source that no visible layer uses **no ideal tiles** (`if (!this.used && !this.usedForTerrain) idealTileIDs = []`). So a source feeds the worker and the tile cache only while a visible layer draws it. A visible layer over an empty GeoJSON source still asks for its tiles on each zoom step.
+- Placement (`Style._updatePlacement`) loops over every symbol layer in `_order` and calls `crossTileSymbolIndex.addLayer` for each. `PauseablePlacement.continuePlacement` skips a layer by its minzoom and maxzoom only, not by `visibility`: a symbol layer with `visibility: none` is still placed (cheap when its tiles have no bucket, which is the case for an empty twin).
+- react-map-gl 8.1.3 adds a `<Layer>` that mounts later with `map.addLayer(options, props.beforeId)`: without a `beforeId` it is put on top of the stack. A layer that appears in the middle of the list therefore needs a `beforeId` to keep its place. Visibility changes avoid that.
+
+**Counts** (`buildLayers`, headless, `bun` script; the list has 112 layers: 33 data layers, 33 edit twins, 33 selection twins and the highlight and tool layers. The brief's 115 counted differently.) "In frame" is a layer MapLibre does not treat as hidden at that zoom.
+
+| State | total | select twins shown | in frame z11 / z14 | z15 | z17 / z18 | select sources used (z11) |
+| --- | --- | --- | --- | --- | --- | --- |
+| before (all twins visible, pins from 17.5) | 112 | 33 | 62 | 75 | 77 | 4 |
+| after, no selection | 112 | 0 (hidden) | 53 | 75 | 77 | 0 |
+| after, selection | 112 | 33 | 62 | 75 | 77 | 4 |
+| after, selection-only | 112 | 33 (data hidden) | 44 | 45 | 44 / 45 | 4 |
+
+Above zoom 15 the selection twins were already hidden by their own maxzoom before this change, and their sources were unused. So this change saves the zoom-out work (nine twins that were in frame between 11 and 14, and four sources asking for tiles at every zoom step) and does not reduce the zoom-in work by itself. The zoom-in work left is `Style.update`'s recalculation and the placement loop over the 33 hidden twins: inferred, not measured.
+
+### What changed
+
+- `layers.ts` `buildLayers`: option `selectTwins` (default true, all twins shown as before). With `selectTwins: false` and no `selectionOnly`, each `--select` twin gets `visibility: none`. Ids, order, zoom ranges and the interactive list are unchanged in every state (tests in `layers.test.ts`).
+- `engine.ts`: getter `selectTwins` = `selectionOnlyShown || selectedIds.length > 0`. `setSelected` and `setSelectionOnly` already call `changed()`, so the layers follow.
+- `MapView.tsx`: one added line in the `options` object, `selectTwins: useEngine((e) => e.selectTwins)`.
+- Not done: removing the twins from the list (zoom-dependent or selection-dependent). That needs a `beforeId` for each re-added twin (the next non-twin layer; the label twins have none, so they would go on top of the module layers), and a React re-render at each threshold crossing. Left as the next step, with the numbers above as its target.
+
+### Edit twins: not changed, and why
+
+The edit twins can be hidden only while the live tier is empty and no feature has `editing` state. Both change inside the engine, during a drag or an edit, and the base feature is hidden by feature state in the same step. A hide that waits for React lets the feature vanish for a frame or more. Live data is also not rare: after the first view, every tile that loads (a pan) goes to the live tier until compaction, 2 s after the last change (`touch()` arms `compactTimer`). So the saving is limited to idle browsing. Next step, if wanted: set the twins' `visibility` imperatively in `push(batch, 'live')` before `hideOriginals`, from the renderer package, with a comment on why (the same frame as the feature state). Not tested in a browser.
+
+### Pins from zoom 18
+
+Every use of the pin zoom, `PIN_ZOOM` in `layers.ts` (exported now):
+
+- `point-dot` `maxzoom` (the dot is drawn below it): 17.5 to 18.
+- `point-pin` `minzoom` (unless `pins: 'all'`): 17.5 to 18. Its tiles are laid out from floor(minzoom) = 18, so a tile at 17 asks for no pin image.
+- `point-dot--select`: unchanged, its maxzoom is the dot floor (11).
+- `point-pin--select`: unchanged (maxzoom 15). The active pin (`active-point-pin`, floor 15), the glow `highlight-halo-pin` and the labels do not depend on it.
+- `icon-requests.test.ts` and the `images.test.ts` expectation (`packages/shell/src/images.test.ts`, the one test in that package): pins requested at 18, none at 15 to 17.
+- The only other `17.5` in the code is a path in `ZoomControls.tsx` (an icon), not the zoom.
+
+### What the quiet run must confirm
+
+1. Zoom CPU on dense and small against 434 / 396 ms (dense) and 316 / 400 ms (small): the zoom-out figure should fall, the zoom-in figure may not reach 434 ms until the twins are removed (see above).
+2. At the opening view of small (zoom 17) no `pin-` image is requested: `listImages()` shows no `pin-` at 17, and the first pin appears at 18.
+3. Hover a point at zoom 17: it shows a dot (or its pin from the active source), as before; at 18 it is a pin.
+4. Select a vertex at zoom 14 (below its floor): it is drawn at once after the selection, with no flicker from the visibility change; deselect: it goes.
+5. `check-render`, `check-edit`, `check-interactions` and `check-relations` with a selection below the floor (the twins are switched on by the selection).
+
+### Unsure
+
+- The recalculation and placement costs above are read from the code, not measured.
+- A twin switched from `none` to visible needs its source's tiles reloaded: one worker round trip. A selection made below a floor may draw one or two frames later than before. Not measured.
+
+
+## Start-up: chunks and ready
+
+Measured by me with Playwright and system Chrome against `vite preview` of the production build (port 5190, 127.0.0.1, then stopped), headless, cache disabled, `?scene=small`, 1600x1000, local mock API. Both builds in the same session, alternating in rounds (4 rounds of 5 loads per build and condition = 20 loads each). The machine was **busy** (other agents were running), so absolute numbers are higher than the quiet baseline above (the old build's ready was 357 to 419 ms here against 325 in the quiet run): only the difference between the two builds, measured in the same minutes, means anything. The throttled runs are spread widely (p25 to p75 is 460 ms wide).
+
+### Is Maid's "ready" comparable to iD's?
+
+Roughly, not exactly. `load.readyMs` in `tools/bench/run.ts` is the time from `page.goto` until `window.__bench` exists and `await window.__bench.ready()` has returned.
+
+- **Maid:** `exposeBenchApi` runs in `MapView.handleLoad`, so `__bench` exists after the MapLibre `load` event (all JS evaluated, React rendered the shell, the map and its style are up, a WebGL context exists, the layers are added). `ready()` then waits for the journal to finish looking for stored edits (`journalSettled`, an IndexedDB open): 10 to 15 ms. No tile has been asked for yet; the first data request leaves 10 to 40 ms after `load`.
+- **iD:** `__bench` exists from the adapter on, and `ready()` resolves after `context.ui().ensureLoaded()` and `collapseSidebar()` (`tools/refs/id/adapter.js`): the iD UI is built and its presets are loaded. No WebGL (SVG map), and the first tiles are not asked for yet either (iD asks in an idle callback).
+- **Same:** both stop before the first data request and before any data is drawn; both include the script's download, parse and evaluation and the first render of the UI. **Different:** Maid's includes a WebGL context, a shader program compile and 4 worker starts (about 40 to 60 ms of the profile below); iD's includes loading the presets over the network and building the DOM of a larger UI. So Maid's "ready" is not defined later or earlier in a way that favours one side by design, but the two include different work. I did not change the definition. (Maid's "ready" is not "the map is drawn": `settled` is.)
+
+### What the main thread does before ready (CPU profile, busy machine, one load)
+
+About 250 ms of busy main thread, of which: script compile and top-level evaluation 42 to 87 ms (the long task at 99 ms start), MapLibre (shader program link `_Pe` 19 ms, `_setupPainter` 17 ms, `_containerDimensions` 9 ms, style `clone` 11 ms), `Intl.DateTimeFormat().resolvedOptions()` 10.5 ms (found, removed, see below), the unicode-regex of `@tanstack/hotkeys` at mount 7.6 ms (not changed), marker canvas drawing 8 ms (renderer, not mine). The app's own code (React render of the shell, config) is a minority; **most of the time to ready is MapLibre and the WebGL setup, which iD does not have.**
+
+### Chunks before and after
+
+Module attribution from a temporary `generateBundle` plugin over `chunk.modules` (rolldown's `renderedLength`; no dependency added, the config file was removed after use). Sizes are the files in `dist/assets`.
+
+| | before | after |
+| --- | --- | --- |
+| entry `index-*.js`, raw | 4,363 kB | 3,476 kB |
+| entry, gzip | 1,273 kB | 990 kB |
+| static graph needed before the first paint (entry + 5 shared chunks: zod, floating-ui, jsx runtime, ...), raw | 4,364 kB (2 files) | 4,027 kB (7 files) |
+| same, gzip / brotli | 1,273 kB / 951 kB | 1,170 kB / 887 kB |
+| requests before ready (JS, CSS, workers, tile requests) | 9 | 14 (5 more small files in parallel via `modulepreload`) |
+| lazy chunks of the app | Mapillary/Panoramax viewers, osm-api (92 kB), layer index (563 kB, only when the Background panel opens) | those, and: Inspector 204 kB (type picker, fields, tags sheet, operations, multi-select, reference loader), relations sections 18 kB, surface field 39 kB, street-images field 8 kB, Photos panel 4 kB and dock 10 kB, Background panel 21 kB, Data layers panel 14 kB, Map style panel 6 kB, Notes dock 4 kB |
+
+The entry file lost 887 kB, but 550 kB of that now sits in shared chunks (zod `schemas` 319 kB, floating-ui 217 kB, small runtime chunks), because both the entry and a lazy chunk use them. They are still needed at start and are fetched in parallel through `modulepreload` (see `dist/index.html`). The real saving at start is 337 kB raw, 103 kB gzip (7.7 and 8 percent).
+
+Top 25 modules of the entry chunk before (rendered bytes): country-coder 848 kB, maplibre-gl.mjs 706, maplibre-gl-shared 619, react-dom 530, id-tagging-schema presets 501, translations/en 294, dexie 132, style `id-rules.json` 126, id-tagging-schema fields 118, floating-ui 74, aes-js 66 (comes from `@rapid-sdk/util` through the model), `renderer/engine.ts` 57, tailwind-merge 57, zod core schemas 52, sonner 52, motion-dom projection 39, street-imagery-react 39, bignumber 36, street-imagery 35, `shell/modules/relations.tsx` 34, `module-imagery/ImageryPanel.tsx` 34, polyclip-ts 32, zod classic 27, `presets/presets.ts` 26, surface catalogue 24. **After:** the same first nine, then `engine.ts`, sonner, street-imagery-react, bignumber, street-imagery, polyclip-ts, `presets.ts`, `operations.ts` 23, `MapView.tsx` 21; ImageryPanel, relations, the surface catalogue and all of `packages/ui/src/inspector` and `sheet` are gone from it.
+
+### What is lazy now, and when it loads
+
+- A small helper in `packages/ui/src/lazy.tsx`: `lazyComponent(load, fallback)` is a component with its own `Suspense` (no boundary needed at the call site); `preloadLazyComponents()` loads all of them, one per idle moment; `lazyChunksPending()` resolves when no asked-for chunk is on its way.
+- **When:** (1) on first render of the thing (select a feature, open a panel); (2) **in idle time after the first view is complete**: `MapView.handleLoad` calls `preloadAfterFirstSettle(engine)` (`packages/shell/src/lazy-chunks.ts`), which waits for the first `engine.settled()` and then preloads every lazy chunk. Not before settled, because the main thread is the scarce thing while the first tiles are parsed and drawn. A load with a selection in the URL asks for the inspector at once.
+- **What:** the inspector (`components/InspectorSlot.tsx`: the empty hint is eager and has the real sidebar's label, so the frame does not change; the fallback while the chunk loads is the same sidebar frame), the sections of `relations`, the panels of imagery, data layers and lenses, the street-imagery panel, dock view and field, the surface field, the notes dock. Fallbacks have a fixed height (`PANEL_FALLBACK`, 160 px) in flyouts; a field has none (it is preloaded).
+- **`window.__bench.settled()`** now also awaits the preload that follows the first settle and any other lazy chunk that was asked for, so a check that selects a feature right after `settled` gets the inspector, not its fallback. It does not wait for chunks nobody asked for. `ready()` is unchanged.
+- **Bundler:** `apps/*/vite.config.ts` marks `packages/ui/src` as free of import-time effects (`build.rolldownOptions.treeshake.moduleSideEffects`). Without it the bundler keeps every module of the `maid-ui` barrel in the entry, also those only the lazy inspector uses (with the lazy boundaries alone the entry lost only 136 kB, 4.36 to 4.22 MB). Only `extension-points.ts` is imported for its effect, and it only declares types. Build only; the dev server is unchanged. Other workspace packages measured: marking them too saves 6 kB more, so not done.
+- **`FetchPauses`** called `Intl.DateTimeFormat().resolvedOptions().timeZone` on its first run although no service was paused (10.5 ms self time in the profile, the first Intl call of a page). It now reads it only when there is a pause.
+
+### Measurements (busy machine, medians of 20 loads, p25 to p75, ms)
+
+| | old build | new build | change |
+| --- | --- | --- | --- |
+| FCP | 304 [272 to 316] | 268 [248 to 284] | -36 |
+| `__bench` exists | 400 [360 to 412] | 367 [347 to 380] | -33 |
+| ready | 419 [382 to 443] | 387 [369 to 398] | **-32 (-7.6 percent)**, spread narrower |
+| settled (includes the preload now) | 706 [656 to 735] | 724 [689 to 806] | +18 (within noise; the preload adds about the cost of evaluating 400 kB) |
+| 4x CPU throttle: FCP | 1000 [728 to 1232] | 784 [640 to 984] | -216 |
+| 4x: ready | 1442 [1071 to 1808] | 1114 [962 to 1430] | **-328**, but the distributions overlap strongly |
+| 4x: settled | 2780 [2170 to 3217] | 2277 [2163 to 3063] | -503 (noise) |
+
+Earlier, shorter runs of the same builds in quieter minutes: ready 357 to 340 (n=20), 357 to 331 (n=10). A first, partial state (without the `FetchPauses` change and the notes dock) gave 357 to 340. The saving is **about 17 to 32 ms at full speed**, which is what the evaluation of 340 kB less code and one 10 ms Intl call add up to. It is a first step: most of the 325 ms is MapLibre, WebGL and React, which are needed.
+
+### Does Maid's ready now beat iD's?
+
+Not shown. The quiet figures are Maid 325 / iD 313 (small), 359 (dense). Subtracting what I measured (17 to 32 ms) would put Maid at about 295 to 308 ms, i.e. around iD's 313, **within the noise of a quiet run**. This needs the quiet run to confirm; I would not claim a win from this document. What would move it further (not done, outside my files or too risky):
+
+1. **MapLibre's four workers** each fetch and compile the 510 kB worker script (`setWorkerCount`, `shell.config.workers`). A `modulepreload` of the worker in `index.html` is not possible with a hashed name from the HTML file; a Vite plugin or `?worker&url` import could emit it. Saves nothing measurable on localhost, a round trip on a real network.
+2. **Style clone and layers** (114 layers, `clone` 11 ms) and **shader compile** (19 ms) are in MapLibre and in `layers.ts` (the renderer agent's area).
+3. **Presets, translations and country-coder** (about 1.9 MB raw): needed at the first preset match, which is synchronous (`matchesLocation`, `countryAt`). `maid.config.ts` calls `createPresets(defaultPresetData)` at module level. To move them behind `import()` the builder would have to await presets and the config would have to offer them as a promise. A design change; with the measured 19 ms for `createPresets` plus parse, the gain is perhaps 30 to 60 ms.
+4. **`@tanstack/hotkeys`** registers its keys at mount with a unicode-property regex (7.6 ms). Could be deferred to idle, but the checks press keys right after `ready()`.
+
+### Not split, and why
+
+- Paraglide messages: the four languages are 40 kB of source in total; a lazy locale needs `setLocale` to become asynchronous. Not worth it.
+- The save flow: `osm-api` (92 kB) is already behind `import()`. `SaveButton`, `save/` and the validation rules are small (12 kB, `createValidator` is also used by `maid.config.ts`'s `validation({ rules })`).
+- The restore dialog: 3 kB.
+- Notes panel (`module-notes/notes.tsx`, 16 kB): the panel is a closure inside `setup` that shares state with the layer, so it cannot be moved without a refactor of the module. Only its dock view is lazy.
+- Street imagery map layer (`map.tsx`) and its libraries (`street-imagery`, `street-imagery-react`, 96 kB): `streetImageryClick` is exported from `map.tsx` and used by `MapView`, and the module configures the package in `setup`.
+- `date-fns` (56 kB) and `sonner` (52 kB): used by the shell's toasts and the time display from the first frame.
+- Taginfo client and the reference loader: tiny; the reference loader moved with the inspector.
+- Harness pages: already behind `import.meta.env.DEV`.
+
+### Risks for the browser checks
+
+- The inspector, the relations sections, the module fields and the dock views are separate files. The fallbacks are empty frames. A check that selects a feature before the preload finished waits for its elements as before (Playwright waits), and `__bench.select` only waits for the selection to be drawn on the map, not for the inspector. `__bench.settled()` waits for the chunks, so checks that call `settled()` first are not affected.
+- `settled()` takes up to one preload longer the first time (the idle callbacks, each with a 1 s limit, so at most a few ms of waiting in practice; measured +18 ms median, within the noise).
+- A check that counts requests, or blocks everything but known files, sees 14 instead of 9 requests before ready and about 13 more `.js` files later.
+- The side-effect flag only changes the production build. If a module of `packages/ui/src` ever gets an import-time effect that is imported only for it, the build would drop it silently; `bun run check-config` and the three builds do not catch that.
+- Not run by me (rules): `bun run bench*` and `check-*`. I ran only my own Playwright scripts against the preview: select a way (inspector with fields shows, 0 console errors), open Background, Map style and Data layers right after `ready()` (all three show their content, 0 errors), start with `id=w...` in the URL (inspector shows).
+
+### What the quiet benchmark must confirm
+
+1. `reports/...` small `load.readyMs` below the baseline 353 ms (the old build's median) by at least 15 ms; dense 327 and medium 363 likewise. If not, the savings were hidden by the busy machine.
+2. `settled` does not rise by more than the noise (about 20 ms): the preload runs inside it.
+3. `check-render`, `check-edit`, `check-ops`, `check-relations`, `check-validation`, `check-tags`, `check-interactions` and `check-journal` still green (they select features right after `ready()` and expect the inspector; relations and the tags sheet are lazy).
+4. Request count before ready and the bytes (`bench` records neither today).

@@ -1,11 +1,10 @@
 import { ChatBubbleLeftEllipsisIcon } from '@heroicons/react/20/solid'
 import { defineModule, type Editor } from '@osm-editor-kit/maid-core'
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
-import { notify, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
+import { lazyComponent, notify, PANEL_FALLBACK, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { Time } from '@osm-editor-kit/maid-ui'
 import { useEffect } from 'react'
 import { Layer, Source, useMap, type MapLayerMouseEvent } from 'react-map-gl/maplibre'
-import { NotesDock } from './details.tsx'
 import {
   cellKey,
   cellsOf,
@@ -26,6 +25,12 @@ import {
   useNotesSession,
   useNotesSettings,
 } from './store.ts'
+
+// the dock view (the chosen note, its comments) is a chunk of its own: loaded when it is shown, or in idle time after the first view
+const NotesDock = lazyComponent(
+  () => import('./details.tsx').then((details) => ({ default: details.NotesDock })),
+  PANEL_FALLBACK,
+)
 
 const SOURCE = 'maid-notes'
 const MARKERS = 'maid-notes-markers'
