@@ -1,4 +1,13 @@
-export type { Filter, FilterMatch, FilterSet, FilterState, Geometry, TagMatch, Tags } from './types'
+export type {
+  Filter,
+  FilterKind,
+  FilterMatch,
+  FilterSet,
+  FilterState,
+  Geometry,
+  TagMatch,
+  Tags,
+} from './types'
 export { createFilterSet, fromIdDisableFeatures, matches } from './filters'
 export {
   addressPoints,

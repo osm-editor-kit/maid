@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import { defaultFilters } from './default'
 import { createFilterSet, fromIdDisableFeatures, matches } from './filters'
-import type { Filter, Geometry, Tags } from './types'
+import type { Filter, FilterState, Geometry, Tags } from './types'
 
 const set = createFilterSet(defaultFilters)
 
@@ -124,7 +124,7 @@ describe('default filters follow iD categories', () => {
   })
 })
 
-describe('first match decides', () => {
+describe('rules: the first that matches decides', () => {
   const list: Filter[] = [
     { id: 'first', label: 'First', match: { x: '1' }, state: 'hidden' },
     { id: 'second', label: 'Second', match: '*', state: 'readonly' },
@@ -282,6 +282,152 @@ describe('fromIdDisableFeatures', () => {
     const decided = createFilterSet(defaultFilters, fromIdDisableFeatures('boundaries,buildings'))
     expect(decided.states().boundaries).toBe('hidden')
     expect(decided.states().buildings).toBe('hidden')
+  })
+})
+
+describe('a feature in several categories', () => {
+  // iD: a station mapped as a point is in `points` and in `rail`
+  const station: [Tags, Geometry] = [{ railway: 'station' }, 'point']
+  const railLine: [Tags, Geometry] = [{ railway: 'rail' }, 'line']
+
+  it('is in every category whose rule matches, in list order', () => {
+    const [tags, geometry] = station
+    expect(set.categoriesOf(tags, geometry).map((filter) => filter.id)).toEqual(['rail', 'points'])
+  })
+
+  it('stays visible when rail is hidden and points are shown; the rail line disappears', () => {
+    const decided = createFilterSet(defaultFilters, 'rail:hidden')
+    expect(decided.stateOf(...station)).toBe('editable')
+    expect(decided.stateOf(...railLine)).toBe('hidden')
+  })
+
+  it('is hidden when all of its categories are hidden', () => {
+    const decided = createFilterSet(defaultFilters, 'rail:hidden,points:hidden')
+    expect(decided.stateOf(...station)).toBe('hidden')
+    expect(decided.filterOf(...station)?.id).toBe('rail')
+  })
+
+  it('is editable when one category is editable and another read-only', () => {
+    const decided = createFilterSet(defaultFilters, 'rail:readonly')
+    expect(decided.stateOf(...station)).toBe('editable')
+    expect(decided.stateOf(...railLine)).toBe('readonly')
+  })
+
+  it('is read-only when one category is read-only and another hidden', () => {
+    const decided = createFilterSet(defaultFilters, 'rail:hidden,points:readonly')
+    expect(decided.stateOf(...station)).toBe('readonly')
+    expect(decided.filterOf(...station)?.id).toBe('points')
+  })
+
+  it('is read-only when a category is read-only and the others are hidden', () => {
+    const decided = createFilterSet(defaultFilters, 'rail:readonly,points:hidden')
+    expect(decided.stateOf(...station)).toBe('readonly')
+  })
+
+  it("an object in one category takes that category's state", () => {
+    const decided = createFilterSet(defaultFilters, 'buildings:readonly')
+    expect(decided.stateOf({ building: 'yes' }, 'area')).toBe('readonly')
+    expect(decided.filterOf({ building: 'yes' }, 'area')?.id).toBe('buildings')
+  })
+
+  it('an address point is in address_points only, as in iD', () => {
+    const address: [Tags, Geometry] = [{ 'addr:housenumber': '5' }, 'point']
+    expect(set.categoriesOf(...address).map((filter) => filter.id)).toEqual(['address_points'])
+    expect(createFilterSet(defaultFilters, 'points:hidden').stateOf(...address)).toBe('editable')
+  })
+})
+
+describe('others', () => {
+  const fence: [Tags, Geometry] = [{ barrier: 'fence' }, 'line']
+  const residentialFence: [Tags, Geometry] = [{ highway: 'residential', barrier: 'fence' }, 'line']
+
+  it('takes a line that no other category takes', () => {
+    expect(set.categoriesOf(...fence).map((filter) => filter.id)).toEqual(['others'])
+  })
+
+  it('does not take a line that another category takes', () => {
+    expect(set.categoriesOf(...residentialFence).map((filter) => filter.id)).toEqual([
+      'traffic_roads',
+    ])
+  })
+
+  it('is hidden with others hidden, and a line of another category is not', () => {
+    const decided = createFilterSet(defaultFilters, 'others:hidden')
+    expect(decided.stateOf(...fence)).toBe('hidden')
+    expect(decided.stateOf(...residentialFence)).toBe('editable')
+  })
+
+  it('does not apply when another category, hidden, takes the line', () => {
+    const decided = createFilterSet(defaultFilters, 'traffic_roads:hidden')
+    expect(decided.stateOf(...residentialFence)).toBe('hidden')
+    expect(decided.stateOf(...fence)).toBe('editable')
+  })
+})
+
+describe('rules of the editor, in front of the categories', () => {
+  const cycleway: [Tags, Geometry] = [{ highway: 'cycleway' }, 'line']
+  const footway: [Tags, Geometry] = [{ highway: 'footway' }, 'line']
+  const cycleRule = (state: FilterState): Filter => ({
+    id: 'cycleways',
+    label: 'Cycleways',
+    match: { highway: 'cycleway' },
+    state,
+  })
+
+  it("a rule's state is the object's, even when a category is more permissive", () => {
+    const decided = createFilterSet([cycleRule('hidden'), ...defaultFilters])
+    expect(decided.stateOf(...cycleway)).toBe('hidden')
+    expect(decided.filterOf(...cycleway)?.id).toBe('cycleways')
+    expect(decided.stateOf(...footway)).toBe('editable')
+  })
+
+  it('a rule can make an object editable when its category is hidden', () => {
+    const decided = createFilterSet([cycleRule('editable'), ...defaultFilters], 'paths:hidden')
+    expect(decided.stateOf(...cycleway)).toBe('editable')
+    expect(decided.stateOf(...footway)).toBe('hidden')
+  })
+
+  it('a rule that does not match leaves the categories to decide', () => {
+    const decided = createFilterSet([cycleRule('hidden'), ...defaultFilters], 'paths:readonly')
+    expect(decided.stateOf(...footway)).toBe('readonly')
+    expect(decided.stateOf({ building: 'yes' }, 'area')).toBe('editable')
+  })
+
+  it('a rule decides wherever it sits in the list', () => {
+    const decided = createFilterSet([...defaultFilters, cycleRule('editable')], 'paths:hidden')
+    expect(decided.stateOf(...cycleway)).toBe('editable')
+  })
+
+  it('a rule does not change what categoriesOf reports', () => {
+    const decided = createFilterSet([cycleRule('hidden'), ...defaultFilters])
+    expect(decided.categoriesOf(...cycleway).map((filter) => filter.id)).toEqual(['paths'])
+  })
+
+  it('a filter without a kind is a rule, and the first rule that matches decides', () => {
+    const decided = createFilterSet([
+      { id: 'first', label: 'First', match: { highway: '*' }, state: 'hidden' },
+      cycleRule('editable'),
+      ...defaultFilters,
+    ])
+    expect(decided.stateOf(...cycleway)).toBe('hidden')
+  })
+
+  it('the states of the rules are in the parameter like any other filter', () => {
+    const decided = createFilterSet([cycleRule('hidden'), ...defaultFilters], 'cycleways:editable')
+    expect(decided.stateOf(...cycleway)).toBe('editable')
+    expect(decided.with('cycleways', 'readonly').toParam()).toBe('cycleways:readonly')
+  })
+})
+
+describe('kinds of the default filters', () => {
+  it('every iD category is a category and others is the fallback', () => {
+    for (const filter of defaultFilters) {
+      expect(filter.kind).toBe(filter.id === 'others' ? 'fallback' : 'category')
+    }
+  })
+
+  it('categoriesOf is empty for a vertex, as in iD', () => {
+    expect(set.categoriesOf({ amenity: 'cafe' }, 'vertex')).toEqual([])
   })
 })
 

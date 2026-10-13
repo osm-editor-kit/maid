@@ -104,6 +104,13 @@ type Rule = {
   readonly matcher: Matcher
 }
 
+/** The three lists of a set, each in list order: the rules, the categories and the fallbacks */
+type Parts = {
+  readonly rules: readonly Rule[]
+  readonly categories: readonly Rule[]
+  readonly fallbacks: readonly Rule[]
+}
+
 function makeRules(filters: readonly Filter[], overrides: ReadonlyMap<string, FilterState>) {
   return filters.map((base) => {
     const state = overrides.get(base.id) ?? base.state
@@ -115,12 +122,49 @@ function makeRules(filters: readonly Filter[], overrides: ReadonlyMap<string, Fi
   })
 }
 
-/** The first rule that matches decides; nothing matching is `undefined` */
-function decide(rules: readonly Rule[], tags: Tags, geometry: Geometry) {
+function partition(rules: readonly Rule[]): Parts {
+  const ofRules: Rule[] = []
+  const categories: Rule[] = []
+  const fallbacks: Rule[] = []
   for (const rule of rules) {
+    const kind = rule.filter.kind ?? 'rule'
+    if (kind === 'rule') ofRules.push(rule)
+    else if (kind === 'category') categories.push(rule)
+    else fallbacks.push(rule)
+  }
+  return { rules: ofRules, categories, fallbacks }
+}
+
+/** The more permissive of two states: editable, then readonly, then hidden */
+const rank: Record<FilterState, number> = { hidden: 0, readonly: 1, editable: 2 }
+
+/**
+ * The category that gives the most permissive state among those that match, or undefined when
+ * none matches. The first one in list order wins a tie. Stops at the first editable one.
+ */
+function mostPermissive(categories: readonly Rule[], tags: Tags, geometry: Geometry) {
+  let best: Rule | undefined
+  for (const rule of categories) {
+    if (best !== undefined && best.filter.state === 'editable') break
+    if (!ruleMatches(rule.matcher, tags, geometry)) continue
+    if (best === undefined || rank[rule.filter.state] > rank[best.filter.state]) best = rule
+  }
+  return best
+}
+
+/**
+ * The rule that decides for an object. A rule that matches decides on its own. Otherwise the
+ * categories decide, and a fallback only when no category matches. Nothing matching is undefined.
+ * No allocation here: it runs for every object on load and on every filter change.
+ */
+function decide(parts: Parts, tags: Tags, geometry: Geometry) {
+  for (const rule of parts.rules) {
     if (ruleMatches(rule.matcher, tags, geometry)) return rule
   }
-  return undefined
+  return (
+    mostPermissive(parts.categories, tags, geometry) ??
+    mostPermissive(parts.fallbacks, tags, geometry)
+  )
 }
 
 /** Reads `id:state,id:state`. Unknown ids and unknown states are ignored. */
@@ -144,6 +188,7 @@ function makeSet(
   overrides: ReadonlyMap<string, FilterState>,
 ) {
   const rules = makeRules(filters, overrides)
+  const parts = partition(rules)
 
   const set: FilterSet = {
     filters: rules.map((rule) => rule.filter),
@@ -155,11 +200,21 @@ function makeSet(
     },
 
     filterOf(tags, geometry) {
-      return decide(rules, tags, geometry)?.filter
+      return decide(parts, tags, geometry)?.filter
+    },
+
+    categoriesOf(tags, geometry) {
+      const found = parts.categories
+        .filter((rule) => ruleMatches(rule.matcher, tags, geometry))
+        .map((rule) => rule.filter)
+      if (found.length > 0) return found
+      return parts.fallbacks
+        .filter((rule) => ruleMatches(rule.matcher, tags, geometry))
+        .map((rule) => rule.filter)
     },
 
     stateOf(tags, geometry) {
-      return decide(rules, tags, geometry)?.filter.state ?? 'editable'
+      return decide(parts, tags, geometry)?.filter.state ?? 'editable'
     },
 
     with(id, state) {

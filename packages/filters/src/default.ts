@@ -5,10 +5,14 @@ import type { Filter, Geometry, Tags } from './types'
  * iD's feature categories as Maid's default filters, ported from iD's renderer/features.js
  * (`defineRule` calls). Ids and English names are iD's (data/core.yaml, `feature:`).
  *
- * iD evaluates every rule and an object can belong to several categories. Maid takes the first
- * filter in this list that matches, so the order below decides which category an object gets.
- * It is chosen so that the first match is the category iD's rules would give it, including
- * iD's own exclusions (a road is never rail, a building is never landuse, and so on).
+ * Every default is a `category`, except `others`, which is a `fallback`. An object belongs to every
+ * category whose rule matches it, as in iD, and its state is the most permissive of those states:
+ * it is hidden only when all of its categories are hidden. A station mapped as a point is in
+ * `points` and in `rail`; with `rail` hidden and `points` shown it stays visible.
+ *
+ * iD's exclusions between categories (a road is never rail, a building is never landuse, a
+ * boundary is never a road, and so on) are in the rules themselves, so the order of the list does
+ * not change which categories an object is in.
  *
  * Geometry: iD gives vertices no category at all; a vertex takes the state of its ways, which is
  * the caller's job. Every default filter therefore names its geometries and leaves out `vertex`.
@@ -164,8 +168,6 @@ function isAerialway(tags: Tags) {
   return !!tags.aerialway && tags.aerialway !== 'yes' && tags.aerialway !== 'station'
 }
 
-// The more specific categories come first; the first match decides (see the note at the top).
-
 /** Lifecycle tags. Roads and paths are excluded by the function. */
 export const pastFuture: Filter = {
   id: 'past_future',
@@ -173,6 +175,7 @@ export const pastFuture: Filter = {
   match: isPastFuture,
   geometry: objects,
   state: 'editable',
+  kind: 'category',
 }
 
 /** Points with only address tags. Points only. */
@@ -182,6 +185,7 @@ export const addressPoints: Filter = {
   match: isAddressPoint,
   geometry: ['point'],
   state: 'editable',
+  kind: 'category',
 }
 
 export const buildingParts: Filter = {
@@ -190,6 +194,7 @@ export const buildingParts: Filter = {
   match: { 'building:part': '*' },
   geometry: objects,
   state: 'editable',
+  kind: 'category',
 }
 
 export const indoor: Filter = {
@@ -198,6 +203,7 @@ export const indoor: Filter = {
   match: [{ indoor: '*' }, { indoormark: '*' }],
   geometry: objects,
   state: 'editable',
+  kind: 'category',
 }
 
 export const pistes: Filter = {
@@ -206,6 +212,7 @@ export const pistes: Filter = {
   match: { 'piste:type': '*' },
   geometry: objects,
   state: 'editable',
+  kind: 'category',
 }
 
 export const aerialways: Filter = {
@@ -214,6 +221,7 @@ export const aerialways: Filter = {
   match: isAerialway,
   geometry: objects,
   state: 'editable',
+  kind: 'category',
 }
 
 export const power: Filter = {
@@ -222,6 +230,7 @@ export const power: Filter = {
   match: { power: '*' },
   geometry: objects,
   state: 'editable',
+  kind: 'category',
 }
 
 export const water: Filter = {
@@ -234,18 +243,16 @@ export const water: Filter = {
   ],
   geometry: objects,
   state: 'editable',
+  kind: 'category',
 }
 
-/*
- * The roads come before rail and boundaries: iD leaves road-tagged objects out of rail, and
- * a line with boundary and road tags is a road.
- */
 export const trafficRoads: Filter = {
   id: 'traffic_roads',
   label: 'Traffic Roads',
   match: { highway: trafficHighways },
   geometry: objects,
   state: 'editable',
+  kind: 'category',
 }
 
 export const serviceRoads: Filter = {
@@ -254,6 +261,7 @@ export const serviceRoads: Filter = {
   match: { highway: serviceHighways },
   geometry: objects,
   state: 'editable',
+  kind: 'category',
 }
 
 export const paths: Filter = {
@@ -262,6 +270,7 @@ export const paths: Filter = {
   match: { highway: pathHighways },
   geometry: objects,
   state: 'editable',
+  kind: 'category',
 }
 
 /** iD's `rail`: a railway or a railway landuse, but not on a road or path, and not `railway=disused` and the like */
@@ -279,13 +288,9 @@ export const rail: Filter = {
   match: isRail,
   geometry: objects,
   state: 'editable',
+  kind: 'category',
 }
 
-/*
- * Buildings come before boundaries (iD leaves building-tagged objects out of boundaries) and
- * before landuse (iD leaves buildings out of landuse). Lifecycle values such as
- * `building=construction` are caught by past_future before this filter.
- */
 /** iD's `buildings`: a building value other than `no` and not a lifecycle word, or a building parking */
 function isBuilding(tags: Tags) {
   return (
@@ -303,6 +308,7 @@ export const buildings: Filter = {
   match: isBuilding,
   geometry: objects,
   state: 'editable',
+  kind: 'category',
 }
 
 export const boundaries: Filter = {
@@ -311,6 +317,7 @@ export const boundaries: Filter = {
   match: isBoundary,
   geometry: ['line', 'relation'],
   state: 'editable',
+  kind: 'category',
 }
 
 /** iD's `osmLanduseTags`: any landuse, leisure or natural value, and these amenities */
@@ -354,27 +361,34 @@ export const landuse: Filter = {
   match: isLanduse,
   geometry: ['area'],
   state: 'editable',
+  kind: 'category',
 }
 
-/** Points that are not address points. Address points come before, so this is the rest. */
+/** iD's `points`: a point that is not an address point. A function, because the exclusion is a rule of its own. */
+function isPoint(tags: Tags) {
+  return !isAddressPoint(tags)
+}
+
 export const points: Filter = {
   id: 'points',
   label: 'Points',
-  match: '*',
+  match: isPoint,
   geometry: ['point'],
   state: 'editable',
+  kind: 'category',
 }
 
-/** Lines and areas that no other filter matched. Last, so it only catches what is left. */
+/** Lines and areas that no other category matched (iD's `others`). A fallback, so it only catches what is left. */
 export const others: Filter = {
   id: 'others',
   label: 'Other Features',
   match: '*',
   geometry: ways,
   state: 'editable',
+  kind: 'fallback',
 }
 
-/** iD's categories, all editable, in the order that gives iD's result under first match */
+/** iD's categories, all editable. The order is the order of iD's list; it does not change which categories an object is in. */
 export const defaultFilters: Filter[] = [
   pastFuture,
   addressPoints,

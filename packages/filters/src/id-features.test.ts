@@ -148,11 +148,13 @@ const graph = new Map<string, Entity>(
 
 /**
  * iD's getMatches for one category: does the object belong to it. Each category is judged on its
- * own tags, as in iD. `others` is what no other category takes, so it is the set's first match.
+ * own tags, as in iD. `others` is what no other category takes, so it is read from the set.
  */
 function belongsTo(category: string, id: string): boolean {
   const entity = graph.get(id)!
-  if (category === 'others') return set.filterOf(entity.tags, entity.geometry)?.id === 'others'
+  if (category === 'others') {
+    return set.categoriesOf(entity.tags, entity.geometry).some((filter) => filter.id === 'others')
+  }
   return matches(byId.get(category)!, entity.tags, entity.geometry)
 }
 
@@ -210,9 +212,41 @@ describe('iD.rendererFeatures', () => {
   // wants with with(id, state), so there is no flip to test.
 
   describe('#gatherStats', () => {
-    // needs F-features-1: per-category counts of the objects in view. Maid's builder counts only
-    // the hidden objects (FeatureBuilder.hidden), and iD counts every category an object is in.
-    it.todo('counts features', () => {})
+    // The counting is the matching: every category an object is in counts it once. The viewport
+    // and the resolver are not needed here. F-features-1 (the renderer's own counts) is still open.
+    it('counts features', () => {
+      const counts = new Map<string, number>()
+      const all = [
+        node('point_bar', { amenity: 'bar' }),
+        node('point_dock', { waterway: 'dock' }),
+        node('point_rail_station', { railway: 'station' }),
+        node('point_generator', { power: 'generator' }),
+        node('point_old_rail_station', { 'disused:railway': 'station' }),
+        way('motorway', { highway: 'motorway' }),
+        way('building_yes', { area: 'yes', amenity: 'school', building: 'yes' }),
+        way('boundary', { boundary: 'administrative' }),
+        way('fence', { barrier: 'fence' }),
+      ]
+      for (const entity of all) {
+        for (const filter of set.categoriesOf(entity.tags, entity.geometry)) {
+          counts.set(filter.id, (counts.get(filter.id) ?? 0) + 1)
+        }
+      }
+      const stats = (id: string) => counts.get(id) ?? 0
+
+      expect(stats('boundaries')).toEqual(1)
+      expect(stats('buildings')).toEqual(1)
+      expect(stats('landuse')).toEqual(0)
+      expect(stats('traffic_roads')).toEqual(1)
+      expect(stats('service_roads')).toEqual(0)
+      expect(stats('others')).toEqual(1)
+      expect(stats('past_future')).toEqual(1)
+      expect(stats('paths')).toEqual(0)
+      expect(stats('points')).toEqual(5)
+      expect(stats('power')).toEqual(1)
+      expect(stats('rail')).toEqual(1)
+      expect(stats('water')).toEqual(1)
+    })
   })
 
   describe('matching', () => {
