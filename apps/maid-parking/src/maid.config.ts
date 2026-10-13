@@ -28,6 +28,7 @@ import { defaultRules } from '@osm-editor-kit/maid-validation'
 import dense from '../../../fixtures/dense.meta.json'
 import medium from '../../../fixtures/medium.meta.json'
 import small from '../../../fixtures/small.meta.json'
+import { MAPILLARY_TOKEN } from '../../mapillary-token.ts'
 import { version } from '../package.json'
 
 /**
@@ -77,8 +78,9 @@ function editorConfig(config: Config) {
     dataLayers(),
     // top bar "Map style": lenses that recolour the map for one theme; "Parking" is this app's
     lenses({ lenses: [parkingLens] }),
-    // top bar and dock "Photos": street-level photos; Mapillary needs VITE_MAPILLARY_TOKEN
-    streetImagery({ mapillaryToken: import.meta.env.VITE_MAPILLARY_TOKEN || undefined }),
+    // top bar and dock "Photos": street-level photos; Mapillary uses the apps' token, or the app's own
+    // VITE_MAPILLARY_TOKEN when it is set (apps/mapillary-token.ts)
+    streetImagery({ mapillaryToken: import.meta.env.VITE_MAPILLARY_TOKEN || MAPILLARY_TOKEN }),
     // the parking editor: restriction field, quick buttons, parking sides on the map, its edit operations
     parking({ lenses: useLensStore }),
     // top bar and dock "Notes": OSM notes of the same API the data comes from, read-only.

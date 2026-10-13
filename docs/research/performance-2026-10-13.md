@@ -553,3 +553,27 @@ The benchmark records two load times per editor, and the phases after the load u
 - **Until correct afterwards** is each editor's own definition of a final picture, so the numbers do not measure one thing. Maid waits for MapLibre's `idle`, which fires only when nothing is dirty, so it includes the label and symbol fade-in that MapLibre runs after a change (`fadeDuration`, 300 ms by default). iD waits for its redraw queue and tiles, then one frame and one message task, with no fade. Rapid waits for its draw and tile queues and two quiet frames. A common definition would be "the time until the last frame that changed pixels in the map area", measured from outside with screencast frames or a pixel hash of the map element. It is not built: it needs a readback of the map on every frame, and its cost on a loaded map is not measured yet. For that reason the budget does not compare the settle rows with the other editors (`compare: false` in `tools/bench/metrics.ts`); they only warn against Maid's own baseline.
 - **Tag edit** is measured from the call to the first draw after it. iD's draw runs synchronously inside the call (its `drawn` event fires before `setTag` returns), so its time is the draw itself. Maid's engine hands the change to MapLibre, which draws on its next animation frame, so its time includes that wait, up to 16.7 ms at 60 Hz. Both are the next picture. Maid is not changed for this.
 - **Select by a click** uses the longest roads of the scene whose midpoint lies inside the editor's own map element (`__bench.mapRect()`), inset from its edges and with no control or panel on top (`pageVisibleRoads` in `tools/bench/run.ts`). Maid's map element starts right of its sidebar, so a road under the sidebar is not picked there. A click that does not show the road selected with its inspector within 2 s is a miss, and the report names the road and what the page held: the selection, the inspector, and the element under the pointer.
+
+## The three-editor run of the evening (`2026-10-13-19-18-final`)
+
+Three repetitions, three edit repetitions. **The machine was not quiet**: an agent worked in parallel for most of
+the run, so every editor is slower than in the runs above and the absolute numbers must not be compared with
+them (the budget check warns for that reason). Only the relation between the editors in this run counts.
+
+| Scene | Editor | ready | drawn | settled |
+| --- | --- | --- | --- | --- |
+| small | Maid | 543 | 973 | 1105 |
+| small | iD | 473 | 1525 | 1526 |
+| small | Rapid | 1078 | 1912 | 2025 |
+| medium | Maid | 337 | 1549 | 1648 |
+| medium | iD | 389 | 2773 | 2848 |
+| medium | Rapid | 1123 | 4104 | 4177 |
+| dense | Maid | 281 | 1296 | 1375 |
+| dense | iD | 289 | 2359 | 2373 |
+| dense | Rapid | 766 | 3244 | 3305 |
+
+Medians in ms. "Ready" is ahead of iD on medium and dense and behind on small, where the first run of each
+editor is the cold one; with three repetitions that is not settled either way. Drawn and settled are ahead of both
+editors on every scene. On the small scene iD is faster in tag edit, undo and redo (4 ms against 13 to 16 ms, both
+under one frame); on medium and dense Maid is ahead. To do: repeat on a quiet machine before the budgets are
+updated.
