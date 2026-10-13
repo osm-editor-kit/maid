@@ -38,7 +38,8 @@ describe('iD.uiFieldLocalized', () => {
     expect(languageVariants(name, { 'old_name:de': 'Value' })).toEqual([])
   })
 
-  it.todo('removes the tag when the language is emptied', () => {}) // needs F-ui-10
+  // iD's 'removes the tag when the language is emptied' (F-ui-10) does not apply: decided 2026-10-13,
+  // Maid refuses an emptied language code and points to the remove button (commitLanguageRow).
 
   it('removes the tag when the value is emptied', () => {
     expect(

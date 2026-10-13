@@ -1,18 +1,24 @@
 import { discardedTags } from '@osm-editor-kit/maid-presets/default'
+import { createValidator, osmApiLimits, type Issue } from '@osm-editor-kit/maid-validation'
 import { api } from '../auth'
 import { config, editor } from '../editor'
 import { forgetJournal } from '../journal'
+import { errorSentence } from './blocked'
 import { changesetTags, toOsmChange } from './osm-change'
 
 const VERSION = '0.0.0'
 
-/** Why edits cannot be saved in this session, if so */
-export function saveBlocked(loggedIn: boolean) {
-  // isAutomated() is already folded into config.dev: automation never gets here
-  if (!config.dev)
-    return 'Saving works only on data from the OSM development server: open Maid with ?live=dev. Edits on a fixture stay in this browser.'
-  if (!loggedIn) return 'Log in to save.'
-  return undefined
+/**
+ * The errors the upload would meet: the OSM API limits rule on what is created or changed. It runs
+ * on the values as the person made them. clean-tags.ts never cuts a value, but it adds a space after
+ * each ';' in opening hours, which this check does not count. Deleted entities carry no tags to check.
+ */
+export function uploadErrors(): Issue[] {
+  const changes = editor.history.changes()
+  const ids = [...changes.created, ...changes.modified].map((entity) => entity.id)
+  const validator = createValidator([osmApiLimits])
+  validator.validate(editor.history.stable.graph, ids, [])
+  return validator.issues().filter((issue) => issue.severity === 'error')
 }
 
 /** What would be uploaded now */
@@ -29,6 +35,8 @@ export function pendingChange() {
  */
 export async function uploadEdits(comment: string) {
   if (!config.dev) throw new Error('Saving is only possible on the OSM development server')
+  const [first] = uploadErrors()
+  if (first !== undefined) throw new Error(errorSentence(first))
   const change = pendingChange()
   const OSM = await api()
   // the element shape is osm-api's, without the read-only attributes the server sets itself

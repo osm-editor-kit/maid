@@ -10,11 +10,12 @@ export function isUnsetOption(option: { value: string | undefined }) {
 }
 
 /**
- * What is written to a tag, as iD's utilCleanOsmString: trimmed, in Unicode NFC, cut to 255
- * characters. Empty means the tag is removed.
+ * What is written to a tag: trimmed and in Unicode NFC, as iD's utilCleanOsmString does it. Empty
+ * means the tag is removed. A value longer than MAX_VALUE_LENGTH is not cut: it is written as
+ * typed, the field shows how far over it is (lengthNotice), and saving is blocked (osm_api_limits).
  */
 export function cleanValue(text: string) {
-  const value = Array.from(text.trim().normalize('NFC')).slice(0, MAX_VALUE_LENGTH).join('')
+  const value = text.trim().normalize('NFC')
   return value === '' ? undefined : value
 }
 
@@ -23,11 +24,25 @@ export function valueLength(text: string) {
   return Array.from(text).length
 }
 
-/** The counter under a text input: shown from 10 characters before the limit, amber at the limit. */
+/** How many characters a draft is over the limit: 0 at or under it. */
+export function excessOf(draft: string) {
+  return Math.max(0, valueLength(draft) - MAX_VALUE_LENGTH)
+}
+
+/**
+ * The counter under a text input. Silent until 10 characters before the limit; from there it
+ * shows the length, and `excess` is how many characters are over the limit (0 at or under it, so
+ * the counter is neutral; more is red and says so).
+ */
 export function lengthNotice(draft: string) {
   const length = valueLength(draft)
   if (length < MAX_VALUE_LENGTH - 10) return undefined
-  return { length, atLimit: length >= MAX_VALUE_LENGTH }
+  return { length, excess: excessOf(draft) }
+}
+
+/** The message under an input that is over the limit: "7 characters too long", "1 character too long". */
+export function tooLongText(excess: number) {
+  return `${excess} ${excess === 1 ? 'character' : 'characters'} too long`
 }
 
 const LANGUAGE = /^[a-z]{2,3}(?:[-_][A-Za-z0-9]+)*$/

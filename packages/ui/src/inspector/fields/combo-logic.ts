@@ -34,24 +34,20 @@ export function matchLabel(options: readonly FieldOption[], text: string) {
 }
 
 /**
- * The options that match what is typed, for the list. Empty text lists every option. Otherwise an
- * option matches when its label or its value contains the text (case-insensitively, and a space
- * in the text also matches an underscore in the value). Label prefix matches come first; the
- * order inside each group is the options' order.
+ * The options that match what is typed, for the list, in the options' order (as iD's combobox
+ * does: no ranking). Empty text lists every option. Otherwise an option matches when its label or
+ * its value contains the text (case-insensitively, and a space in the text also matches an
+ * underscore in the value).
  */
 export function filterOptions(options: readonly FieldOption[], text: string) {
   const query = text.trim().toLowerCase()
   if (query === '') return [...options]
   const underscored = query.replace(/ /g, '_')
-  const ranked: { option: FieldOption; rank: number }[] = []
-  for (const option of options) {
+  return options.filter((option) => {
     const label = option.label.toLowerCase()
     const value = option.value.toLowerCase()
-    if (label.startsWith(query)) ranked.push({ option, rank: 0 })
-    else if (label.includes(query) || value.includes(query) || value.includes(underscored))
-      ranked.push({ option, rank: 1 })
-  }
-  return ranked.sort((a, b) => a.rank - b.rank).map((entry) => entry.option)
+    return label.includes(query) || value.includes(query) || value.includes(underscored)
+  })
 }
 
 /**

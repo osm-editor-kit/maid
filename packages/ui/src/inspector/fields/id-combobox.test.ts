@@ -4,14 +4,27 @@
 // filtered list (filterOptions, combo-logic.ts) and writes the text on blur. The inline completion,
 // the highlight on the first match and the keys that accept or cancel are not built or not in a
 // pure function yet, so most of these tests are todos with the feature that is missing.
-import { describe, it } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
+import type { FieldOption } from '@osm-editor-kit/maid-presets'
+import { filterOptions } from './combo-logic.ts'
 
 describe('uiCombobox', () => {
   // n/a: 'adds the combobox-input class' (a D3 class on the input; Maid's input has no such class)
   // n/a: 'adds combobox under container' (D3 appends the list under the container; Maid's list is
   //      a floating portal, placed by floating-ui)
 
-  it.todo('filters entries to those matching the value', () => {}) // needs F-ui-4
+  it('filters entries to those matching the value', () => {
+    // the data of iD's spec, in its order: the matches keep that order (no ranking)
+    const data: FieldOption[] = [
+      { value: 'foobar', label: 'foobar' },
+      { value: 'foo', label: 'foo' },
+      { value: 'bar', label: 'bar' },
+      { value: 'Baz', label: 'Baz' },
+      { value: 'test', label: 'test' },
+    ]
+    const shown = filterOptions(data, 'b').map((option) => option.label)
+    expect(shown).toEqual(['foobar', 'bar', 'Baz'])
+  })
 
   it.todo('shows all entries when activating the combo', () => {}) // needs F-ui-3
 

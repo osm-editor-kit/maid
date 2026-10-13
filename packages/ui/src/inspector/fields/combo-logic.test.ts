@@ -75,13 +75,14 @@ describe('filterOptions', () => {
     expect(filterOptions(TRAFFIC, 'STO').map((o) => o.value)).toEqual(['stop'])
   })
 
-  test('label prefix matches come before other matches', () => {
+  test('the matches keep the options order: a label prefix match does not come first', () => {
+    // as iD's combobox (test/spec/ui/combobox.js: 'foobar' before 'bar' in the data order)
     const options: FieldOption[] = [
       { value: 'a', label: 'Big Stop' },
       { value: 'b', label: 'Stop Sign' },
       { value: 'c', label: 'Other' },
     ]
-    expect(filterOptions(options, 'stop').map((o) => o.value)).toEqual(['b', 'a'])
+    expect(filterOptions(options, 'stop').map((o) => o.value)).toEqual(['a', 'b'])
   })
 
   test('also matches the raw value, and a space matches an underscore', () => {
@@ -155,9 +156,9 @@ describe('valueFromText', () => {
     expect(valueFromText(spec({ options: [] }), 'Hello World')).toEqual({ value: 'hello_world' })
   })
 
-  test('the written value is at most 255 characters', () => {
+  test('the written value is not cut at 255 characters: the field shows the excess and saving is blocked', () => {
     const long = 'a'.repeat(300)
     const write = valueFromText(spec({ options: [] }), long)
-    expect(write).toEqual({ value: 'a'.repeat(255) })
+    expect(write).toEqual({ value: 'a'.repeat(300) })
   })
 })

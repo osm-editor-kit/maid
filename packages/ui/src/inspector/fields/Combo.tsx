@@ -12,10 +12,10 @@ import { useId, useRef, useState, type KeyboardEvent } from 'react'
 import { isUnsetOption } from '../logic.ts'
 import { moveActive } from '../picker-logic.ts'
 import { filterOptions, shownText, valueFromText } from './combo-logic.ts'
-import { LengthNotice } from './DraftInput.tsx'
+import { LengthNotice, useLengthLimit } from './DraftInput.tsx'
 import { FallbackField } from './Fallback.tsx'
 import type { FieldProps } from './shared.ts'
-import { INPUT } from './shared.ts'
+import { INPUT, LIMITED } from './shared.ts'
 
 /**
  * A combobox for a single value (combo, typeCombo, networkCombo). The input shows an option's
@@ -128,6 +128,7 @@ function ComboInput(props: {
   }
 
   const italic = shown.raw && draft === shown.text
+  const limit = useLengthLimit(draft)
 
   return (
     <div className="grid min-w-0 gap-1">
@@ -147,7 +148,9 @@ function ComboInput(props: {
           aria-controls={listVisible ? listId : undefined}
           aria-autocomplete="list"
           aria-activedescendant={listVisible && active >= 0 ? optionId(active) : undefined}
-          className={`${INPUT} ${italic ? 'italic' : ''}`}
+          className={`${INPUT} ${LIMITED} ${italic ? 'italic' : ''}`}
+          aria-invalid={limit.invalid}
+          aria-describedby={limit.describedBy()}
           onChange={(event) => {
             setDraft(event.currentTarget.value)
             setOpen(true)
@@ -166,7 +169,7 @@ function ComboInput(props: {
           }}
         />
       </div>
-      <LengthNotice draft={draft} />
+      <LengthNotice draft={draft} messageId={limit.messageId} />
       <FloatingPortal>
         {listVisible ? (
           <div

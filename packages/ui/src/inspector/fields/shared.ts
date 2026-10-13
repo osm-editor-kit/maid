@@ -46,6 +46,9 @@ const SURFACE =
 export const FRAME = `h-8 ${SURFACE}`
 export const INPUT = `${FRAME} px-2 placeholder:text-zinc-400 read-only:cursor-default dark:placeholder:text-zinc-500`
 export const TEXTAREA = `${SURFACE} px-2 py-1.5 leading-5 placeholder:text-zinc-400 read-only:cursor-default dark:placeholder:text-zinc-500`
+/** Over the length limit a text control has a red border and ring. useLengthLimit sets aria-invalid. */
+export const LIMITED =
+  'aria-[invalid=true]:border-red-500 aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-red-500 dark:aria-[invalid=true]:border-red-400 dark:aria-[invalid=true]:ring-red-400'
 export const LABEL = 'min-w-0 truncate text-sm text-zinc-700 dark:text-zinc-300'
 /** A small icon button in a row's label bar (revert, remove, add a language). */
 export const ROW_BUTTON =

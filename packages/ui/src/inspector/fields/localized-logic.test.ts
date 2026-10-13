@@ -227,12 +227,12 @@ describe('commitLanguageRow', () => {
     ).toEqual({ kind: 'error', message: 'name:de already has a value.' })
   })
 
-  test('the value is cleaned as other text fields: trimmed, and cut to 255 characters', () => {
+  test('the value is cleaned as other text fields: trimmed, and not cut at 255 characters', () => {
     const long = 'x'.repeat(300)
     const commit = commitLanguageRow({ base, tags: {}, code: 'de', value: `  ${long}  ` })
     expect(commit).toEqual({
       kind: 'write',
-      edits: [{ key: 'name:de', value: 'x'.repeat(255) }],
+      edits: [{ key: 'name:de', value: 'x'.repeat(300) }],
     })
   })
 })

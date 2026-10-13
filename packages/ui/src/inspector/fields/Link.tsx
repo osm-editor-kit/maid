@@ -1,10 +1,10 @@
 import { ArrowTopRightOnSquareIcon } from '@heroicons/react/16/solid'
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 import { cleanValue } from '../logic.ts'
-import { DraftInput, LengthNotice, useDraft } from './DraftInput.tsx'
+import { DraftInput, LengthNotice, useDraft, useLengthLimit } from './DraftInput.tsx'
 import { FallbackField } from './Fallback.tsx'
 import type { FieldProps } from './shared.ts'
-import { INPUT } from './shared.ts'
+import { INPUT, LIMITED } from './shared.ts'
 import { identifierLink, isValidUrl, telKey } from './text-logic.ts'
 
 /** A button or link after an input: joined to it, 32 px high, the same surface as the input. */
@@ -38,6 +38,7 @@ type AddonInputProps = Omit<
  */
 export function AddonInput({ tagKey, value, onChange, addons, hint, ...rest }: AddonInputProps) {
   const { draft, setDraft, commit, revert } = useDraft({ tagKey, value, onChange })
+  const limit = useLengthLimit(draft)
   const write = (text: string) => {
     setDraft(text)
     const next = cleanValue(text)
@@ -50,7 +51,9 @@ export function AddonInput({ tagKey, value, onChange, addons, hint, ...rest }: A
       <div className="flex min-w-0">
         <input
           {...rest}
-          className={grouped ? `${INPUT} flex-1 rounded-r-none` : INPUT}
+          className={`${grouped ? `${INPUT} flex-1 rounded-r-none` : INPUT} ${LIMITED}`}
+          aria-invalid={limit.invalid}
+          aria-describedby={limit.describedBy(rest['aria-describedby'])}
           value={draft}
           readOnly={!onChange}
           onChange={(event) => setDraft(event.target.value)}
@@ -66,7 +69,7 @@ export function AddonInput({ tagKey, value, onChange, addons, hint, ...rest }: A
         {addon}
       </div>
       {hint ? hint(draft) : null}
-      <LengthNotice draft={draft} />
+      <LengthNotice draft={draft} messageId={limit.messageId} />
     </>
   )
 }

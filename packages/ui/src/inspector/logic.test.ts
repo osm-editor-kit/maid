@@ -7,6 +7,7 @@ import {
   checkValue,
   cleanValue,
   comboHint,
+  excessOf,
   fieldKeys,
   impliesYes,
   isModified,
@@ -17,6 +18,7 @@ import {
   nextCheckValue,
   removeEdits,
   revertEdits,
+  tooLongText,
   valueLength,
   valueSignature,
 } from './logic.ts'
@@ -48,27 +50,35 @@ describe('cleanValue', () => {
     const value = 'a'.repeat(255)
     expect(cleanValue(value)).toBe(value)
   })
-  it('cuts a value to 255 characters', () => {
-    expect(cleanValue('a'.repeat(300))).toBe('a'.repeat(255))
+  it('does not cut a value longer than 255 characters: it is written as typed', () => {
+    expect(cleanValue('a'.repeat(300))).toBe('a'.repeat(300))
   })
-  it('counts characters, not UTF-16 code units, when it cuts', () => {
-    const cut = cleanValue('😀'.repeat(300))
-    expect(cut).toBe('😀'.repeat(255))
+  it('does not cut emoji either, which count one character each', () => {
+    expect(cleanValue('😀'.repeat(300))).toBe('😀'.repeat(300))
   })
 })
 
 describe('lengthNotice', () => {
   it('is silent until 10 characters before the limit', () => {
     expect(lengthNotice('a'.repeat(244))).toBeUndefined()
-    expect(lengthNotice('a'.repeat(245))).toEqual({ length: 245, atLimit: false })
+    expect(lengthNotice('a'.repeat(245))).toEqual({ length: 245, excess: 0 })
   })
-  it('is amber at the limit and over it', () => {
-    expect(lengthNotice('a'.repeat(254))).toEqual({ length: 254, atLimit: false })
-    expect(lengthNotice('a'.repeat(255))).toEqual({ length: 255, atLimit: true })
-    expect(lengthNotice('a'.repeat(300))).toEqual({ length: 300, atLimit: true })
+  it('is neutral at the limit and under it (excess 0)', () => {
+    expect(lengthNotice('a'.repeat(254))).toEqual({ length: 254, excess: 0 })
+    expect(lengthNotice('a'.repeat(255))).toEqual({ length: 255, excess: 0 })
+  })
+  it('is over the limit from 256 characters, with the excess', () => {
+    expect(lengthNotice('a'.repeat(256))).toEqual({ length: 256, excess: 1 })
+    expect(lengthNotice('a'.repeat(262))).toEqual({ length: 262, excess: 7 })
   })
   it('counts characters, as the limit does', () => {
     expect(valueLength('😀'.repeat(3))).toBe(3)
+    expect(excessOf('😀'.repeat(256))).toBe(1)
+    expect(excessOf('😀'.repeat(255))).toBe(0)
+  })
+  it('says the excess in the singular for 1 and in the plural otherwise', () => {
+    expect(tooLongText(1)).toBe('1 character too long')
+    expect(tooLongText(7)).toBe('7 characters too long')
   })
 })
 

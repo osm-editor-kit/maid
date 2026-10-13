@@ -3,11 +3,11 @@ import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import { useEffect, useRef, useState, type FocusEvent, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Tooltip } from '../../Tooltip.tsx'
-import { DraftInput, LengthNotice } from './DraftInput.tsx'
+import { DraftInput, LengthNotice, useLengthLimit } from './DraftInput.tsx'
 import { FallbackField } from './Fallback.tsx'
 import { commitLanguageRow, languageVariants, type LanguageVariant } from './localized-logic.ts'
 import type { FieldProps } from './shared.ts'
-import { INPUT, ROW_BUTTON } from './shared.ts'
+import { INPUT, LIMITED, ROW_BUTTON } from './shared.ts'
 
 /**
  * A localized name: the base input on the field's key (as TextField), then one row per translation
@@ -156,6 +156,7 @@ function LanguageRow(props: {
     }
   }
 
+  const limit = useLengthLimit(text)
   return (
     <div
       onBlur={onBlur}
@@ -191,9 +192,11 @@ function LanguageRow(props: {
             setMessage(undefined)
           }}
           onKeyDown={onKeyDown}
-          className={INPUT}
+          className={`${INPUT} ${LIMITED}`}
+          aria-invalid={limit.invalid}
+          aria-describedby={limit.describedBy()}
         />
-        <LengthNotice draft={text} />
+        <LengthNotice draft={text} messageId={limit.messageId} />
         {message === undefined ? null : (
           <span aria-live="polite" className="text-xs text-amber-600 dark:text-amber-400">
             {message}

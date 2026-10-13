@@ -3,9 +3,10 @@ import { Flyout, toolButtonClass } from '@osm-editor-kit/maid-ui'
 import { useState } from 'react'
 import { useAuth } from '../auth'
 import { DEV_API } from '../config'
-import { editor, useEngine } from '../editor'
+import { config, editor, useEngine } from '../editor'
+import { saveBlocked } from '../save/blocked'
 import { changesetTags, summaryOf, type ChangeElement } from '../save/osm-change'
-import { pendingChange, saveBlocked, uploadEdits } from '../save/save'
+import { pendingChange, uploadEdits, uploadErrors } from '../save/save'
 
 const LISTED = 12
 
@@ -28,7 +29,9 @@ function SavePanel() {
   >({ kind: 'idle' })
   // read again after every edit
   const change = useEngine(() => pendingChange())
-  const blocked = saveBlocked(auth.user !== undefined)
+  // the OSM API limits on what is changed: a tag too long for the API blocks the upload
+  const errors = useEngine(() => uploadErrors())
+  const blocked = saveBlocked({ dev: config.dev, loggedIn: auth.user !== undefined, errors })
   const rows = [
     ...change.create.map((e) => ['Created', e] as const),
     ...change.modify.map((e) => ['Changed', e] as const),

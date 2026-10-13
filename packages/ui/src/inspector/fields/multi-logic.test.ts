@@ -95,11 +95,10 @@ describe('semiWrite', () => {
     expect(semiWrite([])).toBeUndefined()
   })
 
-  test('cuts the joined text at 255 characters', () => {
+  test('does not cut the joined text at 255 characters: the save is blocked instead', () => {
     const written = semiWrite(['a', 'x'.repeat(300)])
-    expect(written).toBeDefined()
-    expect(Array.from(written ?? '').length).toBe(255)
-    expect(written?.startsWith('a;xxx')).toBe(true)
+    expect(written).toBe(`a;${'x'.repeat(300)}`)
+    expect(Array.from(written ?? '').length).toBe(302)
   })
 
   test('a full list is one where the joined text reaches 255 characters', () => {

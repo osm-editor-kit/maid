@@ -38,8 +38,8 @@ export function afterLastSeparator(text: string) {
 }
 
 /**
- * The tag value for a list of values: joined with ';', cleaned as every tag value is (cut to 255
- * characters). No values removes the tag.
+ * The tag value for a list of values: joined with ';', cleaned as every tag value is (not cut: a
+ * longer text is saved as typed and the save is blocked). No values removes the tag.
  */
 export function semiWrite(values: readonly string[]) {
   return cleanValue(values.join(';'))

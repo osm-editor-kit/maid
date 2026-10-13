@@ -17,8 +17,9 @@ import {
   type StreetOrPlace,
 } from './address-logic.ts'
 import { ComboField } from './Combo.tsx'
-import { useDraft } from './DraftInput.tsx'
+import { LengthNotice, useDraft, useLengthLimit } from './DraftInput.tsx'
 import type { FieldProps } from './shared.ts'
+import { LIMITED } from './shared.ts'
 
 export type AddressFieldProps = FieldProps & {
   /** The feature's country, as an ISO code (`de`). Without it the default layout is used. */
@@ -225,27 +226,33 @@ function TextSlot(props: {
     value,
     onChange: readOnly ? undefined : (_key, text) => onText(text ?? ''),
   })
+  const limit = useLengthLimit(draft)
   return (
-    <input
-      id={id}
-      type="text"
-      autoComplete="off"
-      spellCheck={false}
-      aria-label={label}
-      placeholder={label}
-      value={draft}
-      readOnly={readOnly}
-      className={`${TEXT} ${className}`}
-      onChange={(event) => setDraft(event.currentTarget.value)}
-      onBlur={commit}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') event.currentTarget.blur()
-        if (event.key === 'Escape') {
-          revert()
-          event.stopPropagation()
-        }
-      }}
-    />
+    <>
+      <input
+        id={id}
+        type="text"
+        autoComplete="off"
+        spellCheck={false}
+        aria-label={label}
+        placeholder={label}
+        value={draft}
+        readOnly={readOnly}
+        className={`${TEXT} ${LIMITED} ${className}`}
+        aria-invalid={limit.invalid}
+        aria-describedby={limit.describedBy()}
+        onChange={(event) => setDraft(event.currentTarget.value)}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') event.currentTarget.blur()
+          if (event.key === 'Escape') {
+            revert()
+            event.stopPropagation()
+          }
+        }}
+      />
+      <LengthNotice draft={draft} messageId={limit.messageId} />
+    </>
   )
 }
 

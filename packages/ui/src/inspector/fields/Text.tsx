@@ -1,8 +1,8 @@
 import type { ComponentPropsWithoutRef } from 'react'
-import { DraftInput, LengthNotice, useDraft } from './DraftInput.tsx'
+import { DraftInput, LengthNotice, useDraft, useLengthLimit } from './DraftInput.tsx'
 import { FallbackField } from './Fallback.tsx'
 import type { FieldProps } from './shared.ts'
-import { TEXTAREA } from './shared.ts'
+import { LIMITED, TEXTAREA } from './shared.ts'
 
 /** Free text. Edits `field.key` only; language variants of localized names come later. */
 export function TextField(props: FieldProps) {
@@ -51,13 +51,16 @@ type DraftTextareaProps = Omit<
 /** Two to eight rows, one more per line of the draft. Wrapped lines are not counted. */
 function DraftTextarea({ tagKey, value, onChange, ...rest }: DraftTextareaProps) {
   const { draft, setDraft, commit, revert } = useDraft({ tagKey, value, onChange })
+  const limit = useLengthLimit(draft)
   const lines = draft.split('\n').length
   return (
     <>
       <textarea
         {...rest}
         rows={Math.min(8, Math.max(2, lines))}
-        className={TEXTAREA}
+        className={`${TEXTAREA} ${LIMITED}`}
+        aria-invalid={limit.invalid}
+        aria-describedby={limit.describedBy(rest['aria-describedby'])}
         value={draft}
         readOnly={!onChange}
         onChange={(event) => setDraft(event.target.value)}
@@ -69,7 +72,7 @@ function DraftTextarea({ tagKey, value, onChange, ...rest }: DraftTextareaProps)
           }
         }}
       />
-      <LengthNotice draft={draft} />
+      <LengthNotice draft={draft} messageId={limit.messageId} />
     </>
   )
 }
