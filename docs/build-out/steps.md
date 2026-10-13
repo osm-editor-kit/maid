@@ -220,7 +220,7 @@ Everything that was decided or asked for on 2026-10-13 and is not built yet, so 
 ### Waiting for Tobias
 
 - [ ] C2: try login at `http://127.0.0.1:5173` and saving with `?live=dev`.
-- [ ] Surface and smoothness by photo: the module is built (4c9f6b8) and not switched on. Its data package is GPL-3.0-or-later, Maid is ISC: a licence decision is needed before it is switched on.
+- [ ] Licences: surface and smoothness by photo is switched on (decided 2026-10-13); its data package is GPL-3.0-or-later and Maid is ISC. To be settled.
 - [ ] Look at on screen (nobody has): the ruler icon, the red state of a too long value, the favourite number fields, the toasts on a narrow window, the three places with the shared segmented control, the address dots.
 - [ ] A real background with a minimum zoom: offered and drawn from `#map=<minzoom>`, not one level later (cannot be checked offline).
 
@@ -250,7 +250,7 @@ Everything that was decided or asked for on 2026-10-13 and is not built yet, so 
 
 ### The module system
 
-- [ ] The shell moves from `apps/maid` into a package; `apps/radnetz-berlin` with its own config on port 5176; a contract test every module passes; `bun run check-config` over a matrix of configs (D6).
+- [ ] The shell moves from `apps/maid` into a package; `apps/maid-bicycle` with its own config on port 5176; a contract test every module passes; `bun run check-config` over a matrix of configs (D6).
 - [ ] Radnetz modules: the TILDA bike infrastructure section with its checklist and rule; "extract a side into its own way" and "merge a cycleway and a footway"; age colours and a way's images for the photo layer; infra3D links; the traffic sign field as a Maid field on `@osm-traffic-signs/converter`.
 
 ### Cleanup
