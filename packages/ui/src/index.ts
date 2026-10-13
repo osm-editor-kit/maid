@@ -16,6 +16,7 @@ export {
 export { FilterPanel } from './FilterPanel.tsx'
 export { FadeSlideIn, UI_SPRING } from './motion.tsx'
 export { lazyChunksPending, lazyComponent, PANEL_FALLBACK, preloadLazyComponents } from './lazy.tsx'
+export { fitMiniMap, type LonLat, type MiniMapBox, type MiniMapFrame } from './mini-map.ts'
 export type {
   DockView,
   DockViewProps,
@@ -45,7 +46,7 @@ export {
   type Favourite,
 } from './favourites.ts'
 export { useBearing } from './bearing.ts'
-export { useSettings, type Settings } from './settings.ts'
+export { useSettings, type Server, type Settings } from './settings.ts'
 export { initTheme, useResolvedTheme, useTheme, type Theme } from './theme.ts'
 export { ThemeSwitch } from './ThemeSwitch.tsx'
 export {
@@ -94,3 +95,9 @@ export type {
   SheetProps,
   SheetRow,
 } from './sheet/types.ts'
+export { WikiContext } from './inspector/fields/wiki-context.ts'
+export {
+  createWikiSource,
+  type WikiQueries,
+  type WikiSource,
+} from './inspector/fields/wiki-service.ts'

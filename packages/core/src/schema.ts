@@ -1,10 +1,14 @@
 import { RulesetSchema, type Context, type PresetMatch } from '@osm-editor-kit/maid-model'
 import type { Geometry, Presets } from '@osm-editor-kit/maid-presets'
+import { osmRulesets } from './osm-rulesets.ts'
 
 /**
  * The model's schema lookup, answered from the editor's presets: which preset matches (the model
  * asks when it deletes a way and has to decide about its nodes) and which keys make a closed way
- * an area. Rapid's rulesets (`osm_rulesets.json5`) are not loaded yet.
+ * an area. Rapid's rulesets are merged as well: the model answers "is this a oneway", "is this way
+ * sided", "is this tag uninteresting" and the lifecycle prefixes from them, and answers "no" without.
+ * `osm-rulesets.ts` holds the model's `osm_rulesets.json5` as a module (Vite reads no JSON5); `schema.test.ts`
+ * fails when the two differ.
  */
 export class PresetSchema extends RulesetSchema {
   constructor(
@@ -12,6 +16,7 @@ export class PresetSchema extends RulesetSchema {
     private presets: Presets,
   ) {
     super(context)
+    this.merge(osmRulesets)
     this.getScope('osm').areaKeys = presets.areaKeys()
   }
 

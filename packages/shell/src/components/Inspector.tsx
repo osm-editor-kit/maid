@@ -6,6 +6,7 @@ import {
 } from '@osm-editor-kit/maid-core'
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { m } from '@osm-editor-kit/maid-i18n'
+import { browseOf } from '@osm-editor-kit/maid-presets'
 import type { EntityInfo, MaidEngine } from '@osm-editor-kit/maid-renderer'
 import {
   type FieldFocus,
@@ -21,6 +22,9 @@ import {
   tagChangeOf,
   TagSheet,
   type TagSuggestSource,
+  WikiContext,
+  createWikiSource,
+  type WikiSource,
 } from '@osm-editor-kit/maid-ui'
 import { useEffect, useState } from 'react'
 import {
@@ -52,6 +56,17 @@ const GEOMETRY_LABEL = {
  * Key and value suggestions for the tags sheet, from taginfo as in iD: one client per editor, on its
  * fetch and query cache, and one source per geometry so that the sheet gets the same object each time
  */
+/** The Wikipedia and Wikidata lookups of the two fields: one source per editor, behind its fetch rules */
+const wikiSources = new WeakMap<Editor, WikiSource>()
+function wikiSourceFor(editor: Editor) {
+  let source = wikiSources.get(editor)
+  if (!source) {
+    source = createWikiSource({ fetch: editor.fetch, queries: editor.queries })
+    wikiSources.set(editor, source)
+  }
+  return source
+}
+
 const suggestSources = new WeakMap<Editor, Map<TaginfoGeometry, TagSuggestSource>>()
 function suggestSourceFor(editor: Editor, geometry: TaginfoGeometry) {
   let sources = suggestSources.get(editor)
@@ -195,124 +210,132 @@ export function Inspector() {
   const canChangeType = onChange !== undefined && presets !== undefined
 
   return (
-    <Sidebar label="Selected feature">
-      <SidebarHeader
-        icon={
-          <PresetIcon icon={entity?.preset?.icon} className="fill-zinc-700 dark:fill-zinc-200" />
-        }
-        title={title}
-        subtitle={details}
-        // the wiki's page for the type, beside the head and not inside it
-        info={
-          entity?.preset?.reference ? (
-            <InfoPopover
-              label={kind ?? 'feature type'}
-              reference={entity.preset.reference}
-              load={loadReference}
-              // the look of the swap button next to it
-              buttonClassName="size-8 rounded-md inset-ring-1 inset-ring-zinc-950/10 dark:inset-ring-white/10"
-            />
-          ) : undefined
-        }
-        // as in iD, the feature's head is the button that changes its type
-        onTitleClick={canChangeType ? () => setPicker({ id, open: !picking }) : undefined}
-        expanded={picking}
-        titleAction="Change the feature type"
-        // in a flyout that points at the head, so the fields below stay where they are
-        titleFlyout={
-          entity && presets ? (
-            <div className="p-3">
-              <PresetPicker
-                autoFocus
-                currentId={entity.preset?.id}
-                search={(query) => presets.search(query, entity.geometry, undefined, loc)}
-                renderIcon={(preset) => (
-                  <PresetIcon icon={preset.icon} className="fill-zinc-700 dark:fill-zinc-200" />
-                )}
-                favourites={favourites}
-                onToggleFavourite={(preset) => toggleFavourite(preset, entity.geometry)}
-                onMoveFavourite={(preset, delta) => moveFavourite(preset, entity.geometry, delta)}
-                onSetNumber={(preset, number) =>
-                  setFavouriteNumber(preset, entity.geometry, number)
-                }
-                onPick={(preset) => {
-                  changeType({ editor, engine }, id, preset)
-                  setPicker({ id, open: false })
-                }}
+    <WikiContext value={wikiSourceFor(editor)}>
+      <Sidebar label="Selected feature">
+        <SidebarHeader
+          icon={
+            <PresetIcon icon={entity?.preset?.icon} className="fill-zinc-700 dark:fill-zinc-200" />
+          }
+          title={title}
+          subtitle={details}
+          // the wiki's page for the type, beside the head and not inside it
+          info={
+            entity?.preset?.reference ? (
+              <InfoPopover
+                label={kind ?? 'feature type'}
+                reference={entity.preset.reference}
+                load={loadReference}
+                // the look of the swap button next to it
+                buttonClassName="size-8 rounded-md inset-ring-1 inset-ring-zinc-950/10 dark:inset-ring-white/10"
               />
-            </div>
-          ) : undefined
-        }
-      />
-      {entity && (
-        <SidebarBody>
-          {entity.readOnly ? (
-            <p className="mb-3 rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-800 dark:bg-amber-400/10 dark:text-amber-300">
-              Read-only: a filter protects this feature. Change it under “Filters” in the top bar.
-            </p>
-          ) : (
-            <Operations />
-          )}
-          {/* the groups in their own box; each has a line above it, the first one too, under the edit bar */}
-          <div className="[&>*:first-child]:border-t [&>*:first-child]:pt-2.5">
-            <InspectorSections
-              placement="top"
-              entity={entity}
-              editor={editor}
-              select={select}
-              onFieldFocus={(focus) => showFieldFocus(engine, focus)}
-            />
-            {(fields.length > 0 || moreFields.length > 0) && (
-              <SidebarDisclosure title="Fields" defaultOpen>
-                <PresetFields
-                  // picked fields belong to the feature: a new feature starts with none
-                  key={id}
-                  fields={fields}
-                  moreFields={moreFields}
-                  tags={entity.tags}
-                  address={address}
-                  // what "revert" goes back to; a feature that was added here has nothing to revert to
-                  baseTags={engine.baseTags(id)}
-                  onChange={onChange}
-                  onChangeTags={onChangeTags}
-                  // field types that modules bring (`inspector.field`)
-                  components={fieldTypes}
-                  loadReference={loadReference}
-                  onFieldFocus={(focus) => showFieldFocus(engine, focus)}
-                  // a width field of a single way has the "Measure on the map" button
-                  measure={{
-                    can: (key) =>
-                      onChange !== undefined &&
-                      id.startsWith('w') &&
-                      widthKeyTarget(key) !== undefined,
-                    start: startMeasure,
-                    active: measureKey,
+            ) : undefined
+          }
+          // as in iD, the feature's head is the button that changes its type
+          onTitleClick={canChangeType ? () => setPicker({ id, open: !picking }) : undefined}
+          expanded={picking}
+          titleAction="Change the feature type"
+          // in a flyout that points at the head, so the fields below stay where they are
+          titleFlyout={
+            entity && presets ? (
+              <div className="p-3">
+                <PresetPicker
+                  autoFocus
+                  currentId={entity.preset?.id}
+                  search={(query) => presets.search(query, entity.geometry, undefined, loc)}
+                  browse={browseOf(presets, [entity.geometry], loc)}
+                  texts={{
+                    recent: m.picker_recent(),
+                    expand: m.picker_category_expand(),
+                    collapse: m.picker_category_collapse(),
+                  }}
+                  renderIcon={(preset) => (
+                    <PresetIcon icon={preset.icon} className="fill-zinc-700 dark:fill-zinc-200" />
+                  )}
+                  favourites={favourites}
+                  onToggleFavourite={(preset) => toggleFavourite(preset, entity.geometry)}
+                  onMoveFavourite={(preset, delta) => moveFavourite(preset, entity.geometry, delta)}
+                  onSetNumber={(preset, number) =>
+                    setFavouriteNumber(preset, entity.geometry, number)
+                  }
+                  onPick={(preset) => {
+                    changeType({ editor, engine }, id, preset)
+                    setPicker({ id, open: false })
                   }}
                 />
-              </SidebarDisclosure>
+              </div>
+            ) : undefined
+          }
+        />
+        {entity && (
+          <SidebarBody>
+            {entity.readOnly ? (
+              <p className="mb-3 rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-800 dark:bg-amber-400/10 dark:text-amber-300">
+                Read-only: a filter protects this feature. Change it under “Filters” in the top bar.
+              </p>
+            ) : (
+              <Operations />
             )}
-            <SidebarDisclosure title="Tags" detail={Object.keys(entity.tags).length} defaultOpen>
-              <TagSheet
-                label="Tags"
-                tags={entity.tags}
-                featureKey={id}
-                // a filter made the feature read-only: the sheet is shown, navigable and copyable, not edited
-                readOnly={entity.readOnly}
-                onChangeTags={(tags, label) => engine.setTags(id, tags, label)}
-                suggest={suggestSourceFor(editor, entity.geometry)}
-                onUndo={() => engine.undo()}
-                onRedo={() => engine.redo()}
+            {/* the groups in their own box; each has a line above it, the first one too, under the edit bar */}
+            <div className="[&>*:first-child]:border-t [&>*:first-child]:pt-2.5">
+              <InspectorSections
+                placement="top"
+                entity={entity}
+                editor={editor}
+                select={select}
+                onFieldFocus={(focus) => showFieldFocus(engine, focus)}
               />
-            </SidebarDisclosure>
-            <InspectorSections
-              entity={entity}
-              editor={editor}
-              select={select}
-              onFieldFocus={(focus) => showFieldFocus(engine, focus)}
-            />
-          </div>
-        </SidebarBody>
-      )}
-    </Sidebar>
+              {(fields.length > 0 || moreFields.length > 0) && (
+                <SidebarDisclosure title="Fields" defaultOpen>
+                  <PresetFields
+                    // picked fields belong to the feature: a new feature starts with none
+                    key={id}
+                    fields={fields}
+                    moreFields={moreFields}
+                    tags={entity.tags}
+                    address={address}
+                    // what "revert" goes back to; a feature that was added here has nothing to revert to
+                    baseTags={engine.baseTags(id)}
+                    onChange={onChange}
+                    onChangeTags={onChangeTags}
+                    // field types that modules bring (`inspector.field`)
+                    components={fieldTypes}
+                    loadReference={loadReference}
+                    onFieldFocus={(focus) => showFieldFocus(engine, focus)}
+                    // a width field of a single way has the "Measure on the map" button
+                    measure={{
+                      can: (key) =>
+                        onChange !== undefined &&
+                        id.startsWith('w') &&
+                        widthKeyTarget(key) !== undefined,
+                      start: startMeasure,
+                      active: measureKey,
+                    }}
+                  />
+                </SidebarDisclosure>
+              )}
+              <SidebarDisclosure title="Tags" detail={Object.keys(entity.tags).length} defaultOpen>
+                <TagSheet
+                  label="Tags"
+                  tags={entity.tags}
+                  featureKey={id}
+                  // a filter made the feature read-only: the sheet is shown, navigable and copyable, not edited
+                  readOnly={entity.readOnly}
+                  onChangeTags={(tags, label) => engine.setTags(id, tags, label)}
+                  suggest={suggestSourceFor(editor, entity.geometry)}
+                  onUndo={() => engine.undo()}
+                  onRedo={() => engine.redo()}
+                />
+              </SidebarDisclosure>
+              <InspectorSections
+                entity={entity}
+                editor={editor}
+                select={select}
+                onFieldFocus={(focus) => showFieldFocus(engine, focus)}
+              />
+            </div>
+          </SidebarBody>
+        )}
+      </Sidebar>
+    </WikiContext>
   )
 }

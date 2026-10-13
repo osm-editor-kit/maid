@@ -10,6 +10,10 @@ import { lenses } from '@osm-editor-kit/maid-module-lenses'
 import { notes } from '@osm-editor-kit/maid-module-notes'
 import { streetImagery } from '@osm-editor-kit/maid-module-street-imagery'
 import { surface } from '@osm-editor-kit/maid-module-surface'
+import {
+  turnRestrictionRules,
+  turnRestrictions,
+} from '@osm-editor-kit/maid-module-turn-restrictions'
 import { defaultOperations, pointToArea } from '@osm-editor-kit/maid-operations'
 import { operations } from '@osm-editor-kit/maid-renderer'
 import {
@@ -68,7 +72,8 @@ function editorConfig(config: Config) {
     // inspector sections "Members" and "Relations": what a relation contains, what a feature is in
     relations(),
     // checks what was changed here: inspector section and dock view "Issues"
-    validation({ rules: defaultRules }),
+    validation({ rules: [...defaultRules, ...turnRestrictionRules] }),
+    turnRestrictions(),
     // top bar "Background": aerial imagery and overlays under the OSM data
     background,
     // top bar "Data layers": GeoJSON, PMTiles and vector tiles to look at next to the OSM data

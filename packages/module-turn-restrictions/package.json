@@ -1,0 +1,21 @@
+{
+  "name": "@osm-editor-kit/maid-module-turn-restrictions",
+  "version": "0.0.0",
+  "private": true,
+  "license": "ISC",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@osm-editor-kit/maid-core": "workspace:*",
+    "@osm-editor-kit/maid-i18n": "workspace:*",
+    "@osm-editor-kit/maid-model": "workspace:*",
+    "@osm-editor-kit/maid-ui": "workspace:*",
+    "@osm-editor-kit/maid-validation": "workspace:*",
+    "react": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0"
+  }
+}
