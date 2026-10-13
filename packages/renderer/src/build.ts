@@ -25,6 +25,7 @@ import type { Feature, LineString, MultiPolygon, Point, Polygon, Position } from
 import { addressLabel, isAddressTags } from './address'
 import type { MergeResult, OsmData } from './data'
 import { arrowColour, onewayOf, sidedOf, type OneWay } from './direction'
+import { mapLabelOf } from './label'
 
 export type SourceName = 'areas' | 'lines' | 'points' | 'vertices'
 export type FeatureBatch = Record<SourceName, Feature[]>
@@ -49,6 +50,7 @@ export type LineProps = {
   /** shadow (hover and selection halo) width */
   hw: number
   hwl: number
+  /** the label text (label.ts: the name, else the ref or network and ref), only when there is one */
   name?: string
   /** direction arrows (direction.ts): 1 along the way, -1 against it, 2 both ways */
   oneway?: OneWay
@@ -74,6 +76,7 @@ export type AreaProps = {
   /** rough inner radius of the area in metres: 2 * area / perimeter */
   r: number
   hw: number
+  /** the label text (label.ts), only when there is one */
   name?: string
 }
 
@@ -208,7 +211,8 @@ function lineFeature(
   if (sd) props.sd = sd
   const cd = dashKey(style.casing.dash, style.casing.width)
   if (cd) props.cd = cd
-  if (tags.name) props.name = tags.name
+  const label = mapLabelOf(tags)
+  if (label) props.name = label
   const oneway = onewayOf(tags)
   if (oneway) {
     props.oneway = oneway
@@ -276,7 +280,8 @@ function areaFeature(
     props.fc = style.fill
     props.fo = style.fill.replace(/rgba\(([^,]+),([^,]+),([^,]+),[^)]+\)/, 'rgb($1,$2,$3)')
   }
-  if (tags.name) props.name = tags.name
+  const label = mapLabelOf(tags)
+  if (label) props.name = label
   if (sided) props.side = side
   const geometry: Polygon | MultiPolygon =
     oriented.length === 1
@@ -491,7 +496,8 @@ export class FeatureBuilder {
         this.presets?.match(node.tags, 'point', loc).icon ??
         this.presets?.match(node.tags, 'vertex', loc).icon
       if (icon) props.icon = icon
-      if (node.tags.name) props.name = node.tags.name
+      const label = mapLabelOf(node.tags)
+      if (label) props.name = label
     }
     return { type: 'Feature', id, properties: props, geometry: { type: 'Point', coordinates } }
   }

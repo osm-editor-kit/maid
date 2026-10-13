@@ -1,5 +1,6 @@
 import './extension-points'
 export { dashPatterns, FeatureBuilder, type FeatureBatch } from './build'
+export { labelOf, type LabelFlags } from './label'
 export {
   MaidEngine,
   type EngineMetrics,
