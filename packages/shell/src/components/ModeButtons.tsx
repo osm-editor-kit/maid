@@ -1,4 +1,5 @@
 import { MapPinIcon } from '@heroicons/react/20/solid'
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Mode } from '@osm-editor-kit/maid-renderer'
 import { ToolButton, ToolGroup } from '@osm-editor-kit/maid-ui'
 import { useEngine, useShell } from '../shell-context'
@@ -20,38 +21,46 @@ function AreaIcon() {
   )
 }
 
-const ADD: { mode: Mode; label: string; shortcut: string; text: string; icon: React.ReactNode }[] =
-  [
+/** The three add modes. A function, so that the texts are read in the language of the moment. */
+function addModes(): {
+  mode: Mode
+  label: string
+  shortcut: string
+  text: string
+  icon: React.ReactNode
+}[] {
+  return [
     {
       mode: 'add-point',
-      label: 'Add a point: click the map to place it',
+      label: m.topbar_add_point_hint(),
       shortcut: '1',
-      text: 'Point',
+      text: m.topbar_point(),
       icon: <MapPinIcon />,
     },
     {
       mode: 'draw-line',
-      label: 'Draw a line: click for every node, Enter or a click on the last node finishes',
+      label: m.topbar_draw_line_hint(),
       shortcut: '2',
-      text: 'Line',
+      text: m.topbar_line(),
       icon: <LineIcon />,
     },
     {
       mode: 'draw-area',
-      label: 'Draw an area: click for every node, Enter or a click on the first node finishes',
+      label: m.topbar_draw_area_hint(),
       shortcut: '3',
-      text: 'Area',
+      text: m.topbar_area(),
       icon: <AreaIcon />,
     },
   ]
+}
 
 /** Top bar: what a click on the map adds. Deleting is in the sidebar's edit commands and on right click. */
 export function ModeButtons() {
   const { engine } = useShell()
   const mode = useEngine((e) => e.mode)
   return (
-    <ToolGroup label="Add">
-      {ADD.map((add) => (
+    <ToolGroup label={m.topbar_group_add()}>
+      {addModes().map((add) => (
         <ToolButton
           key={add.mode}
           label={add.label}

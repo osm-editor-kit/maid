@@ -1,7 +1,9 @@
 import { ArrowRightEndOnRectangleIcon, UserCircleIcon } from '@heroicons/react/20/solid'
+import { m } from '@osm-editor-kit/maid-i18n'
 import { Flyout, ThemeSwitch, toolButtonClass } from '@osm-editor-kit/maid-ui'
 import { useAuth } from '../auth'
 import { useShell } from '../shell-context'
+import { LanguageSelect } from './LanguageSelect'
 
 const ACTION =
   'w-full cursor-pointer rounded-lg px-3 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-50'
@@ -16,13 +18,13 @@ export function UserButton() {
   const { login, logout } = useShell().auth
   return (
     <Flyout
-      label="Account and appearance"
+      label={m.topbar_account()}
       placement="bottom-end"
       className="w-80"
       trigger={
         <button
           type="button"
-          title={auth.user ? `Logged in as ${auth.user}` : 'Log in'}
+          title={auth.user ? m.topbar_logged_in_as({ user: auth.user }) : m.topbar_log_in()}
           className={toolButtonClass(true)}
         >
           {auth.user ? (
@@ -33,7 +35,7 @@ export function UserButton() {
           ) : (
             <>
               <ArrowRightEndOnRectangleIcon aria-hidden="true" className="size-5" />
-              <span className="max-sm:sr-only">Log in</span>
+              <span className="max-sm:sr-only">{m.topbar_log_in()}</span>
             </>
           )}
         </button>
@@ -76,9 +78,15 @@ export function UserButton() {
           </p>
         )}
       </div>
-      <div className="flex items-center justify-between gap-3 rounded-b-2xl bg-zinc-50 px-4 py-3 dark:bg-white/5">
-        <span className="font-medium">Appearance</span>
-        <ThemeSwitch />
+      <div className="rounded-b-2xl bg-zinc-50 dark:bg-white/5">
+        <div className="flex items-center justify-between gap-3 px-4 py-3">
+          <span className="font-medium">{m.topbar_appearance()}</span>
+          <ThemeSwitch />
+        </div>
+        <div className="flex items-center justify-between gap-3 border-t border-zinc-950/5 px-4 py-3 dark:border-white/10">
+          <span className="font-medium">{m.topbar_language()}</span>
+          <LanguageSelect />
+        </div>
       </div>
     </Flyout>
   )

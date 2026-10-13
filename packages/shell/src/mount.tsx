@@ -1,3 +1,6 @@
+import { isAutomated } from '@osm-editor-kit/maid-core'
+import { chooseLocale, setLocale, type Locale } from '@osm-editor-kit/maid-i18n'
+import { useSettings } from '@osm-editor-kit/maid-ui'
 import { setWorkerCount } from 'maplibre-gl'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
@@ -5,10 +8,28 @@ import { createShell, type AppConfig } from './shell'
 import { ShellContext } from './shell-context'
 
 /**
+ * The language of this visit (ADR 0009, decision 4): the URL, the stored choice, the browser, English.
+ * Under automation it is always English, so that the browser checks keep their texts.
+ */
+function visitLocale(): Locale {
+  if (isAutomated()) return 'en'
+  return chooseLocale({
+    url: location.href,
+    stored: useSettings.getState().lang,
+    browser: navigator.languages,
+  })
+}
+
+/**
  * The shell's entry: makes the editor from the app's config and renders it into `rootElement`.
  * One editor per page (the packages' stores are singletons). Returns a function that unmounts it.
  */
 export function mountEditor(rootElement: HTMLElement, app: AppConfig) {
+  // before anything is drawn: every text is read when it renders
+  const locale = visitLocale()
+  setLocale(locale)
+  document.documentElement.lang = locale
+
   const shell = createShell(app)
 
   // MapLibre uses one worker by default. Maid's four sources then queue up behind each other.

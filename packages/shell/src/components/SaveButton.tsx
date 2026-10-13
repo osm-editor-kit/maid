@@ -1,4 +1,5 @@
 import { ArrowUpTrayIcon } from '@heroicons/react/20/solid'
+import { m } from '@osm-editor-kit/maid-i18n'
 import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { Flyout, notify, toolButtonClass } from '@osm-editor-kit/maid-ui'
 import { useId, useState, type ReactNode } from 'react'
@@ -178,7 +179,7 @@ export function SaveButton() {
   const [uploading, setUploading] = useState(false)
   return (
     <Flyout
-      label="Save your edits"
+      label={m.topbar_save_edits()}
       placement="bottom-end"
       className="w-[26rem]"
       open={open}
@@ -188,12 +189,12 @@ export function SaveButton() {
       trigger={
         <button
           type="button"
-          title={hasChanges ? 'Save your edits' : 'Nothing to save yet'}
+          title={hasChanges ? m.topbar_save_edits() : m.topbar_nothing_to_save()}
           disabled={!hasChanges}
           className={toolButtonClass(true)}
         >
           <ArrowUpTrayIcon aria-hidden="true" className="size-5" />
-          <span className="max-sm:sr-only">Save</span>
+          <span className="max-sm:sr-only">{m.topbar_save()}</span>
           {hasChanges && (
             // on the corner, so the button keeps its width when the dot comes and goes
             <span

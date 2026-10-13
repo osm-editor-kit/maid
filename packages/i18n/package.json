@@ -1,0 +1,20 @@
+{
+  "name": "@osm-editor-kit/maid-i18n",
+  "version": "0.0.0",
+  "private": true,
+  "license": "ISC",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "compile": "bun scripts/compile.ts"
+  },
+  "dependencies": {
+    "@inlang/paraglide-js": "2.25.4"
+  },
+  "devDependencies": {
+    "@inlang/plugin-m-function-matcher": "2.2.16",
+    "@inlang/plugin-message-format": "4.4.4"
+  }
+}

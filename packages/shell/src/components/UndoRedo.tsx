@@ -1,4 +1,5 @@
 import { ArrowUturnLeftIcon, ArrowUturnRightIcon } from '@heroicons/react/20/solid'
+import { m } from '@osm-editor-kit/maid-i18n'
 import { ToolButton, ToolGroup } from '@osm-editor-kit/maid-ui'
 import { modKey } from '../platform'
 import { useEngine, useShell } from '../shell-context'
@@ -11,16 +12,24 @@ export function UndoRedo() {
   const { engine } = useShell()
   const { canUndo, canRedo, undoLabel, redoLabel } = useEngine((e) => e.undoState())
   return (
-    <ToolGroup label="History">
+    <ToolGroup label={m.topbar_group_history()}>
       <ToolButton
-        label={canUndo ? `Undo: ${undoLabel ?? 'last change'}` : 'Nothing to undo'}
+        label={
+          canUndo
+            ? m.topbar_undo({ change: undoLabel ?? m.topbar_last_change() })
+            : m.topbar_nothing_to_undo()
+        }
         shortcut={canUndo ? UNDO_KEYS : undefined}
         icon={<ArrowUturnLeftIcon className="size-5" />}
         disabled={!canUndo}
         onClick={() => engine.undo()}
       />
       <ToolButton
-        label={canRedo ? `Redo: ${redoLabel ?? 'last change'}` : 'Nothing to redo'}
+        label={
+          canRedo
+            ? m.topbar_redo({ change: redoLabel ?? m.topbar_last_change() })
+            : m.topbar_nothing_to_redo()
+        }
         shortcut={canRedo ? REDO_KEYS : undefined}
         icon={<ArrowUturnRightIcon className="size-5" />}
         disabled={!canRedo}

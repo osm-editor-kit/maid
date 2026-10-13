@@ -32,6 +32,8 @@ export default defineConfig({
     'fixtures/**',
     '**/dist/**',
     '**/generated/**',
+    // Paraglide's output, written by packages/i18n/scripts/compile.ts (git-ignored)
+    'packages/i18n/paraglide/**',
     'packages/shell/public/**',
     'tools/refs/id/**',
     'tools/refs/rapid/**',

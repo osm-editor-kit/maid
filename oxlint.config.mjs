@@ -14,6 +14,8 @@ export default defineConfig({
     'fixtures/**',
     '**/dist/**',
     '**/generated/**',
+    // Paraglide's output, written by packages/i18n/scripts/compile.ts (git-ignored)
+    'packages/i18n/paraglide/**',
     'packages/shell/public/**',
     // host pages and adapters for iD and Rapid: plain browser scripts, not part of our code base
     'tools/refs/id/**',

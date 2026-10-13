@@ -70,7 +70,9 @@ These names are the contract. Agents and docs only reference these.
 
 | Script | What it does |
 | --- | --- |
-| `bun run check` | Type-check, lint and format with fixes (oxlint, oxfmt), unit tests. Run before every commit. |
+| `bun run check` | Compiles the texts, then type-check, lint and format with fixes (oxlint, oxfmt), the missing-texts check, unit tests. Run before every commit. |
+| `bun run i18n-compile` | Paraglide: generates `packages/i18n/paraglide/` from the message files. Runs first in `check`, `check-ci`, `test-run`, `type-check`, `dev`, `dev-maid`, `dev-bicycle` and the apps' `build`; skips when the output is up to date. |
+| `bun run i18n-check` | Lists the keys each language lacks (en is the base) as JSON in `reports/i18n-missing.json`. Exits 1 when a key lacks a language. |
 | `bun run check-ci` | The same, read-only. |
 | `bun run dev` | Both Maid dev servers (`apps/maid` on 5173, `apps/maid-bicycle` on 5176) and the mock OSM API (8090). |
 | `bun run dev-maid` | Only the Maid dev server (`apps/maid`, 5173). |
@@ -115,6 +117,7 @@ apps/compare         page that shows Maid, iD and Rapid side by side
 packages/style       iD's look as data: tag classes, CSS rules
 packages/core        createEditor: the editor's data (context, history), Maid modules, extension points, hooks
 packages/model       the data model, ported from Rapid 3: entities, graph, actions, history (see its README)
+packages/i18n        Maid's texts: Paraglide messages in en, de, fr, es (messages/), the language choice (chooseLocale)
 packages/journal     unsaved edits kept in the browser (IndexedDB), restored after a reload, headless
 packages/filters     which features are editable, read-only or hidden: ordered rules, iD's categories, headless
 packages/operations  the edit menu's operations (reverse, split, merge, ...) on the model, headless

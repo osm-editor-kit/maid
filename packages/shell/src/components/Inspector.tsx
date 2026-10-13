@@ -5,6 +5,7 @@ import {
   type TaginfoGeometry,
 } from '@osm-editor-kit/maid-core'
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { EntityInfo, MaidEngine } from '@osm-editor-kit/maid-renderer'
 import {
   type FieldFocus,
@@ -116,9 +117,7 @@ export function Inspector() {
   if (!id) {
     return (
       <Sidebar label="Inspector">
-        <SidebarEmpty title="Nothing selected">
-          Click a feature on the map to see and edit its tags.
-        </SidebarEmpty>
+        <SidebarEmpty title={m.sidebar_empty_title()}>{m.sidebar_empty_hint()}</SidebarEmpty>
       </Sidebar>
     )
   }

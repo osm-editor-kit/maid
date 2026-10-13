@@ -35,8 +35,8 @@ const good: Settings = {
 
 /** Stores the value as a version 4 record and loads it, as a new visit does */
 async function load(state: unknown, version = 4) {
-  // a page load starts without a position: the earlier test's value must not carry over
-  useSettings.setState({ lastView: undefined })
+  // a page load starts without a position or a chosen language: the earlier test's value must not carry over
+  useSettings.setState({ lastView: undefined, lang: undefined })
   entries.set(KEY, JSON.stringify({ state, version }))
   await useSettings.persist.rehydrate()
   return useSettings.getState()
@@ -182,5 +182,32 @@ describe('the last map position', () => {
     const bad = await load({ ...good, lastView: { lng: 13.4, lat: 52.5, zoom: 17, bearing: 400 } })
     expect(bad.lastView).toEqual({ lng: 13.4, lat: 52.5, zoom: 17 })
     expect(bad.lastView?.bearing).toBeUndefined()
+  })
+})
+
+describe('the chosen language', () => {
+  it('a stored language loads, and a new choice is written in the same shape', async () => {
+    const state = await load({ ...good, lang: 'de' })
+    expect(state.lang).toBe('de')
+
+    state.setLang('fr')
+    const written = JSON.parse(entries.get(KEY) ?? 'null')
+    expect(written.state.lang).toBe('fr')
+    expect(written.version).toBe(4)
+  })
+
+  it('a value stored before the choice existed loads without one, and the rest is kept', async () => {
+    const state = await load(good)
+    expect(state.lang).toBeUndefined()
+    expect(state.favourites).toEqual(good.favourites)
+  })
+
+  it("a language that is not one of Maid's is dropped, and the other fields are kept", async () => {
+    for (const lang of ['it', 'DE', '', 3, null]) {
+      const state = await load({ ...good, lang })
+      expect(state.lang).toBeUndefined()
+      expect(state.favourites).toEqual(good.favourites)
+      expect(state.shown).toEqual(good.shown)
+    }
   })
 })

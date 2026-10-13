@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun --bun vite --port 5176 --strictPort",
-    "build": "bun --bun vite build",
+    "build": "bun run --cwd ../../packages/i18n compile && bun --bun vite build",
     "preview": "bun --bun vite preview --strictPort"
   },
   "dependencies": {
