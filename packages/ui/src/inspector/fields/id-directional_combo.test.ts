@@ -7,7 +7,12 @@
 import { describe, expect, it } from 'bun:test'
 import type { Tags } from '@osm-editor-kit/maid-presets'
 import type { TagEdit } from '../logic.ts'
-import { directionalKeys, directionalValues, directionalWrite } from './directional-logic.ts'
+import {
+  directionalKeys,
+  directionalValues,
+  directionalWrite,
+  sideStates,
+} from './directional-logic.ts'
 
 /** Applies edits to tags as the entity editor does: an undefined value removes the key. */
 function apply(tags: Tags, edits: TagEdit[]): Tags {
@@ -79,8 +84,28 @@ for (const commonKey of ['cycleway', 'cycleway:both']) {
 }
 
 describe('handle multiselection', () => {
-  it.todo('populates the left/right fields using :left/:right and :both', () => {}) // needs F-ui-6
-  it.todo('missing explicit direction tag should be reported like a conflicting value', () => {}) // needs F-ui-6
+  const keys = directionalKeys('cycleway:both')
+
+  it('populates the left/right fields using :left/:right and :both', () => {
+    const features: Tags[] = [
+      { 'cycleway:left': 'lane', 'cycleway:right': 'lane' },
+      { 'cycleway:both': 'lane' },
+    ]
+    const sides = sideStates(keys, {}, undefined, features)
+    expect(sides.left.value).toBe('lane')
+    expect(sides.right.value).toBe('lane')
+    expect(sides.left.mixed).toBeUndefined()
+    expect(sides.right.mixed).toBeUndefined()
+  })
+
+  it('missing explicit direction tag should be reported like a conflicting value', () => {
+    const features: Tags[] = [{ 'cycleway:left': 'lane' }, { 'cycleway:both': 'lane' }]
+    const sides = sideStates(keys, {}, undefined, features)
+    expect(sides.left.value).toBe('lane')
+    // the right side is empty on one feature and lane on the other: mixed, with a feature that lacks it
+    expect(sides.right.value).toBeUndefined()
+    expect(sides.right.mixed).toEqual({ kind: 'mixed', values: ['lane'], missing: true })
+  })
 })
 
 describe('handle `[key]=left|right|both` schema', () => {

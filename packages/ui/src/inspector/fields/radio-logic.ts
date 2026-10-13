@@ -1,5 +1,7 @@
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import { isUnsetOption, type TagEdit } from '../logic.ts'
+import { MULTIPLE_VALUES, mixedOf } from './mixed-logic.ts'
+import type { CombinedTags } from './shared.ts'
 
 /**
  * Radio fields (radio, structureRadio), as iD's radio.js. A radio over one `key` shows its options
@@ -7,8 +9,11 @@ import { isUnsetOption, type TagEdit } from '../logic.ts'
  * key is an option, and the chosen one is the key that is set to something other than `no`.
  */
 
-/** One button of a radio. `raw` marks a value that is no option: shown in quotes and italics. */
-export type RadioChoice = { value: string; label: string; raw: boolean }
+/**
+ * One button of a radio. `raw` marks a value that is no option: shown in quotes and italics. `some` marks a
+ * value that only some of several features have (absent when false).
+ */
+export type RadioChoice = { value: string; label: string; raw: boolean; some?: boolean }
 
 /** The layer a structure gets by default (iD radio.js:333-346). Other structures have none. */
 const DEFAULT_LAYER: Record<string, string> = { bridge: '1', tunnel: '-1' }
@@ -48,8 +53,21 @@ export function radioChosen(field: Field, tags: Tags) {
   return chosen.length === 1 ? chosen[0] : undefined
 }
 
-/** The buttons: the options, plus the chosen value as a raw button when no option has it. */
-export function radioChoices(field: Field, tags: Tags) {
+/**
+ * The values that some of several features have, for a radio: the mixed values of its key, or the keys of a
+ * radio over keys that are mixed. Empty for one feature.
+ */
+export function someValuesOf(field: Field, combined: CombinedTags | undefined): string[] {
+  if (field.key !== undefined) return [...(mixedOf(combined, field.key)?.values ?? [])]
+  return (field.keys ?? []).filter((key) => mixedOf(combined, key) !== undefined)
+}
+
+/**
+ * The buttons: the options, plus the chosen value as a raw button when no option has it. Several features:
+ * a value that some of them have is marked `some`, and a mixed value that no option has is a raw button too.
+ * No button is chosen while the key is mixed (radioChosen gives none).
+ */
+export function radioChoices(field: Field, tags: Tags, combined?: CombinedTags) {
   const choices: RadioChoice[] = radioOptions(field).map((option) => ({ ...option, raw: false }))
   const chosen = radioChosen(field, tags)
   if (field.key !== undefined && chosen !== undefined) {
@@ -57,7 +75,14 @@ export function radioChoices(field: Field, tags: Tags) {
       choices.push({ value: chosen, label: chosen, raw: true })
     }
   }
-  return choices
+  const some = someValuesOf(field, combined)
+  const marked: RadioChoice[] = choices.map((choice) =>
+    some.includes(choice.value) ? { ...choice, some: true } : choice,
+  )
+  const extra: RadioChoice[] = some
+    .filter((value) => !choices.some((choice) => choice.value === value))
+    .map((value) => ({ value, label: value, raw: true, some: true }))
+  return [...marked, ...extra]
 }
 
 /** The edit that makes a key hold `value` (undefined removes it), or none when it holds that already. */
@@ -229,4 +254,20 @@ export function impliedAccess(tags: Tags, key: string) {
   }
   if (key === 'access' && !tags.barrier) return 'yes'
   return undefined
+}
+
+/**
+ * The placeholder of an access row. One feature, or no features given: the implied value (impliedAccess), as
+ * before. Several features: the implied value when all of them agree (undefined when none implies one), else
+ * "Multiple values" (iD access.js 287-301; the features are iD's allTags).
+ */
+export function accessPlaceholder(
+  key: string,
+  tags: Tags,
+  features?: readonly Tags[],
+): string | undefined {
+  if (features === undefined || features.length < 2) return impliedAccess(tags, key)
+  const implied = new Set(features.map((feature) => impliedAccess(feature, key)))
+  if (implied.size === 1) return features.map((feature) => impliedAccess(feature, key))[0]
+  return MULTIPLE_VALUES
 }

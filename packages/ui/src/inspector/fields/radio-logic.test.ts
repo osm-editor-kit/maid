@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import {
   accessOptions,
+  accessPlaceholder,
   impliedAccess,
   radioChoices,
   radioChosen,
@@ -11,6 +12,7 @@ import {
   structureLayer,
   structureTypeEdits,
 } from './radio-logic.ts'
+import type { CombinedTags } from './shared.ts'
 
 function field(overrides: Partial<Field>): Field {
   return {
@@ -328,5 +330,71 @@ describe('accessOptions', () => {
         .at(-1),
     ).toBe('dismount')
     expect(accessOptions('bicycle')).toHaveLength(10)
+  })
+})
+
+describe('radioChoices and radioChosen (several features)', () => {
+  test('a mixed key chooses no button, and each mixed value is marked some', () => {
+    const combined: CombinedTags = {
+      surface: { kind: 'mixed', values: ['paved', 'sett'], missing: false },
+    }
+    expect(radioChosen(surface, {})).toBeUndefined()
+    const choices = radioChoices(surface, {}, combined)
+    expect(choices.filter((choice) => choice.some).map((choice) => choice.value)).toEqual([
+      'paved',
+      'sett',
+    ])
+    // a mixed value that no option has is a raw button, also marked some
+    expect(choices.at(-1)).toEqual({ value: 'sett', label: 'sett', raw: true, some: true })
+  })
+
+  test('without combined tags the choices are as before (no some)', () => {
+    expect(radioChoices(surface, { surface: 'paved' }).some((choice) => choice.some)).toBe(false)
+    expect(radioChoices(surface, {}, undefined)).toEqual(radioChoices(surface, {}))
+  })
+
+  test('a shared value is the chosen button and is not marked some', () => {
+    const choices = radioChoices(surface, { surface: 'paved' }, {})
+    expect(choices.some((choice) => choice.some)).toBe(false)
+    expect(choices.find((choice) => choice.value === 'paved')?.some).toBeUndefined()
+  })
+
+  test('a radio over keys: a key that is mixed is some, and no key is chosen', () => {
+    const combined: CombinedTags = {
+      bridge: { kind: 'mixed', values: ['yes', 'no'], missing: false },
+    }
+    expect(radioChosen(pair, {})).toBeUndefined()
+    const choices = radioChoices(pair, {}, combined)
+    expect(choices.map((choice) => [choice.value, choice.some === true])).toEqual([
+      ['tunnel', false],
+      ['bridge', true],
+    ])
+  })
+})
+
+describe('accessPlaceholder', () => {
+  const features: Tags[] = [
+    { highway: 'primary', foot: 'yes' },
+    { highway: 'primary', foot: 'no' },
+  ]
+
+  test('one feature, or none given: the implied value, as impliedAccess', () => {
+    expect(accessPlaceholder('foot', { highway: 'steps' })).toBe(
+      impliedAccess({ highway: 'steps' }, 'foot'),
+    )
+    expect(accessPlaceholder('foot', { highway: 'steps' }, [{ highway: 'steps' }])).toBe('yes')
+  })
+
+  test('several features that imply different values: "Multiple values"', () => {
+    expect(accessPlaceholder('foot', { highway: 'primary' }, features)).toBe('Multiple values')
+  })
+
+  test('several features that imply the same value: that value', () => {
+    const same: Tags[] = [{ highway: 'steps' }, { highway: 'steps', foot: 'yes' }]
+    expect(accessPlaceholder('foot', {}, same)).toBe('yes')
+  })
+
+  test('several features that imply nothing: no placeholder', () => {
+    expect(accessPlaceholder('horse', {}, [{ name: 'a' }, { name: 'b' }])).toBeUndefined()
   })
 })

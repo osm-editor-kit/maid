@@ -14,29 +14,34 @@ import { PLAIN_INPUT } from '../../plain-input.ts'
 import { moveActive } from '../picker-logic.ts'
 import { CheckBox } from './CheckBox.tsx'
 import { filterOptions, shownText } from './combo-logic.ts'
+import { mixedOf, MULTIPLE_VALUES } from './mixed-logic.ts'
 import {
   acceptSemi,
   afterLastSeparator,
   manyAdd,
   manyCandidates,
-  manyChosen,
+  manyChipsFor,
   manyPick,
   manyRemove,
   multiAdd,
-  multiChosen,
+  multiChipsFor,
   multiOptions,
   multiPrefix,
   multiSuffix,
   multiToggle,
   removeSemi,
+  semiChips,
   semiFull,
-  semiList,
   semiOptions,
   semiWrite,
   type ChipState,
 } from './multi-logic.ts'
 import type { FieldProps } from './shared.ts'
 import { FRAME } from './shared.ts'
+
+/** A chip that only some of several features have: a dashed outline. */
+const SOME_CHIP =
+  'outline outline-1 -outline-offset-1 outline-dashed outline-zinc-400 dark:outline-zinc-500'
 
 // The box is the text input's frame without its fixed height: chips wrap inside it.
 const BOX = `${FRAME.replace(/^h-8 /, '')} flex min-h-8 flex-wrap items-center gap-1 p-1 focus-within:outline-2 focus-within:outline-blue-500`
@@ -55,43 +60,49 @@ const CHIP_REMOVE =
  * Backspace in the empty input removes the last chip. The input hides when the list is full.
  */
 export function SemiComboField(props: FieldProps) {
-  const { field, tags, id, onChange } = props
+  const { field, tags, id, onChange, combined } = props
   const key = field.key
   if (key === undefined) return null
-  const values = semiList(tags[key])
+  // Several features whose lists differ are shown, not edited: one write would give every feature the
+  // same list, and the chips of a value that only some have cannot be removed from those alone.
+  const mixed = mixedOf(combined, key) !== undefined
+  const chips = semiChips(tags[key], mixedOf(combined, key))
+  const values = chips.map((chip) => chip.value)
   const write = (next: readonly string[]) => {
     const written = semiWrite(next)
     if (onChange && written !== tags[key]) onChange(key, written)
   }
+  const editable = onChange !== undefined && !mixed
   return (
     <ChipInput
       id={id}
       label={field.label}
       placeholder={field.placeholder ?? 'Add'}
-      chips={values.map((value, index) => {
-        const shown = shownText(field, value)
+      chips={chips.map((chip, index) => {
+        const shown = shownText(field, chip.value)
         return (
           <Chip
-            key={`${index}-${value}`}
+            key={`${index}-${chip.value}`}
             label={shown.text}
             raw={shown.raw}
-            value={value}
-            onRemove={onChange ? () => write(removeSemi(values, index)) : undefined}
+            value={chip.value}
+            some={chip.some}
+            onRemove={editable ? () => write(removeSemi(values, index)) : undefined}
           />
         )
       })}
       options={semiOptions(field, values)}
       query={afterLastSeparator}
-      inputHidden={semiFull(values)}
+      inputHidden={semiFull(values) || mixed}
       onAccept={
-        onChange
+        editable
           ? (typed, option) => {
               write(acceptSemi(field, values, typed, option))
             }
           : undefined
       }
       onBackspace={
-        onChange && values.length > 0
+        editable && values.length > 0
           ? () => write(removeSemi(values, values.length - 1))
           : undefined
       }
@@ -105,14 +116,14 @@ export function SemiComboField(props: FieldProps) {
  * its × removes the tag. The input adds `prefix + value=yes`. Nothing is written without a suffix.
  */
 export function MultiComboField(props: FieldProps) {
-  const { field, tags, id, onChange } = props
+  const { field, tags, id, onChange, combined } = props
   if (multiPrefix(field) === undefined) return null
-  const chips = multiChosen(field, tags)
+  const chips = multiChipsFor(field, tags, combined)
   return (
     <ChipInput
       id={id}
       label={field.label}
-      placeholder={field.placeholder ?? 'Add'}
+      placeholder={chips.some((chip) => chip.some) ? MULTIPLE_VALUES : (field.placeholder ?? 'Add')}
       chips={chips.map((chip) => (
         <Chip
           key={chip.key}
@@ -120,6 +131,7 @@ export function MultiComboField(props: FieldProps) {
           raw={chip.raw}
           state={chip.state}
           value={chip.value}
+          some={chip.some}
           box
           onToggle={
             onChange
@@ -153,20 +165,21 @@ export function MultiComboField(props: FieldProps) {
  * the key to yes.
  */
 export function ManyComboField(props: FieldProps) {
-  const { field, tags, id, onChange } = props
-  const chips = manyChosen(field, tags)
-  const candidates = manyCandidates(field, tags)
+  const { field, tags, id, onChange, combined } = props
+  const chips = manyChipsFor(field, tags, combined)
+  const candidates = manyCandidates(field, tags, combined)
   return (
     <ChipInput
       id={id}
       label={field.label}
-      placeholder={field.placeholder ?? 'Add'}
+      placeholder={chips.some((chip) => chip.some) ? MULTIPLE_VALUES : (field.placeholder ?? 'Add')}
       chips={chips.map((chip) => (
         <Chip
           key={chip.key}
           label={chip.label}
           state={chip.state}
           value={chip.value}
+          some={chip.some}
           onRemove={
             onChange
               ? () => {
@@ -194,6 +207,8 @@ export function ManyComboField(props: FieldProps) {
 
 type ChipProps = {
   label: string
+  /** Several features: only some of them have it. A dashed outline; the title says so. */
+  some?: boolean
   /** The label is a raw value, not an option's label: shown in italics */
   raw?: boolean
   /** A checkbox state. Absent: a plain chip. No is struck through; other shows its raw value. */
@@ -207,6 +222,7 @@ type ChipProps = {
 
 function Chip({
   label,
+  some = false,
   raw = false,
   state,
   value = '',
@@ -227,7 +243,10 @@ function Chip({
     ) : null
   const showBox = box && state !== undefined
   return (
-    <span className={CHIP}>
+    <span
+      className={`${CHIP} ${some ? SOME_CHIP : ''}`}
+      title={some ? 'On some of the selected features' : undefined}
+    >
       {onToggle ? (
         <button
           type="button"

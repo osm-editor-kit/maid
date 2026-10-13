@@ -12,13 +12,17 @@ import {
   valueSignature,
   type TagEdit,
 } from '../logic.ts'
-import { FallbackField } from './Fallback.tsx'
+import { FallbackField, MixedField } from './Fallback.tsx'
+import { handlesSeveral, mixedKeysOf, mixedSignature } from './mixed-logic.ts'
 import { RelatedAddButtons, RelatedDetails, type RelatedRow } from './Related.tsx'
-import type { FieldComponent, FieldMeasure, FieldProps } from './shared.ts'
+import type { CombinedTags, FieldComponent, FieldMeasure, FieldProps } from './shared.ts'
 import { HINT, LABEL, REVEAL, ROW_BUTTON } from './shared.ts'
 
 /** Field types that take a value from a list of options and show the option's label as a hint. */
 const COMBO_TYPES = new Set(['combo', 'typeCombo', 'networkCombo', 'radio', 'structureRadio'])
+
+/** The hint in the label line of a row whose key is mixed over several features (where a combo's label is). */
+const MIXED_HINT = 'mixed'
 
 /**
  * The "i" among the row's buttons, in their square look. It fades in while the pointer or the
@@ -71,6 +75,10 @@ const STEADY_TYPES = new Set([
 export function FieldRow(props: {
   field: Field
   tags: Tags
+  /** Several features: how each key is over them (FieldProps.combined). Absent for one feature. */
+  combined?: CombinedTags
+  /** Several features: each feature's own tags (FieldProps.features). Absent for one feature. */
+  features?: readonly Tags[]
   /** The tags before any edit. Without them there is no revert button. */
   baseTags?: Tags
   onChange: FieldProps['onChange']
@@ -82,20 +90,50 @@ export function FieldRow(props: {
   /** The measuring tape: the "Measure on the map" button, for the keys that have one. Absent: none. */
   measure?: FieldMeasure
 }) {
-  const { field, tags, baseTags, onChange, registry, related, loadReference, measure } = props
+  const {
+    field,
+    tags,
+    combined,
+    features,
+    baseTags,
+    onChange,
+    registry,
+    related,
+    loadReference,
+    measure,
+  } = props
   const id = useId()
   const labelId = useId()
   // the label bar's container for the control's own buttons: set by a callback ref, so no ref is read in render
   const [labelActions, setLabelActions] = useState<HTMLElement | null>(null)
   const key = field.key
+  // The keys of this row that the features differ on (several features only; none for one feature)
+  const mixedKeys = mixedKeysOf(field, combined)
+  // A type with no several-values control of its own gets the generic mixed control over a mixed key
+  const generic = mixedKeys.length > 0 && !handlesSeveral(field.type)
   // A multi-key field shows only once one of its keys has a value
-  const Control = registry[field.type] ?? FallbackField
+  const Control = generic
+    ? key !== undefined
+      ? MixedField
+      : FallbackField
+    : (registry[field.type] ?? FallbackField)
   // a field over several keys that has no component of its own only shows the keys in use
-  if (Control === FallbackField && key === undefined && keysWithValue(field, tags).length === 0)
+  if (
+    Control === FallbackField &&
+    key === undefined &&
+    keysWithValue(field, tags).length === 0 &&
+    mixedKeys.length === 0
+  )
     return null
   const hint =
-    key !== undefined && COMBO_TYPES.has(field.type) ? comboHint(field, tags[key]) : undefined
-  const present = isPresent(field, tags)
+    mixedKeys.length > 0
+      ? MIXED_HINT
+      : key !== undefined && COMBO_TYPES.has(field.type)
+        ? comboHint(field, tags[key])
+        : undefined
+  // a mixed key has no value in the tags, but removing the field removes it from every feature
+  const present = isPresent(field, tags) || mixedKeys.length > 0
+  // and a mixed key has no single base value to go back to, so there is no revert
   const modified = baseTags !== undefined && isModified(field, tags, baseTags)
   const apply = (edits: TagEdit[]) => {
     for (const edit of edits) onChange?.(edit.key, edit.value)
@@ -146,7 +184,7 @@ export function FieldRow(props: {
             </button>
           ) : null}
           {onChange && related ? <RelatedAddButtons field={field} related={related} /> : null}
-          {onChange && modified && baseTags ? (
+          {onChange && modified && baseTags && mixedKeys.length === 0 ? (
             <button
               type="button"
               aria-label={`Revert ${field.label}`}
@@ -163,7 +201,12 @@ export function FieldRow(props: {
               aria-label={`Remove ${field.label}`}
               title={`Remove ${field.label}`}
               className={ACTION_BUTTON}
-              onClick={() => apply(removeEdits(field, tags))}
+              onClick={() =>
+                apply([
+                  ...removeEdits(field, tags),
+                  ...mixedKeys.map((tagKey) => ({ key: tagKey, value: undefined })),
+                ])
+              }
             >
               <TrashIcon aria-hidden="true" className="size-4" />
             </button>
@@ -173,10 +216,16 @@ export function FieldRow(props: {
       <Control
         // Most controls keep a draft and start over when the tag changes elsewhere. The chip fields
         // show the tags as they are and keep the focus in their input while values are added.
-        key={STEADY_TYPES.has(field.type) ? field.id : valueSignature(field, tags)}
+        key={
+          STEADY_TYPES.has(field.type)
+            ? field.id
+            : `${valueSignature(field, tags)}|${mixedSignature(field, combined)}`
+        }
         id={id}
         field={field}
         tags={tags}
+        combined={combined}
+        features={features}
         onChange={onChange}
         labelActions={labelActions}
       />

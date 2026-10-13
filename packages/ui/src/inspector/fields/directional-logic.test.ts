@@ -6,6 +6,8 @@ import {
   directionalValues,
   directionalWrite,
   type DirectionalSide,
+  sideOnlyWrite,
+  sideStates,
 } from './directional-logic.ts'
 
 /** The keys of the four directionalCombo fields of id-tagging-schema, by their key. */
@@ -245,5 +247,70 @@ describe('directionalWrite (write)', () => {
 
   test('clearing a side when nothing is set changes nothing', () => {
     expect(write(cycleway, {}, 'left', undefined)).toEqual([])
+  })
+})
+
+describe('sideStates (one feature and several)', () => {
+  const keys = directionalKeys('cycleway:both')
+
+  test('one feature: the side values as directionalValues reads them', () => {
+    const sides = sideStates(keys, { cycleway: 'both' })
+    expect(sides.left).toEqual({ value: 'yes', mixed: undefined })
+    expect(sides.right).toEqual({ value: 'yes', mixed: undefined })
+  })
+
+  test('a mixed side key with no features given: mixed, the shared tags lack it', () => {
+    const sides = sideStates(
+      keys,
+      {},
+      { 'cycleway:left': { kind: 'mixed', values: ['lane', 'shoulder'], missing: false } },
+    )
+    expect(sides.left).toEqual({
+      value: undefined,
+      mixed: { kind: 'mixed', values: ['lane', 'shoulder'], missing: false },
+    })
+    expect(sides.right.value).toBeUndefined()
+  })
+
+  test('several features that agree on a side: the value; a side that differs: mixed, most frequent first', () => {
+    const features: Tags[] = [
+      { 'cycleway:left': 'lane' },
+      { 'cycleway:left': 'shoulder' },
+      { 'cycleway:left': 'lane' },
+    ]
+    const sides = sideStates(keys, {}, undefined, features)
+    expect(sides.left).toEqual({
+      value: undefined,
+      mixed: { kind: 'mixed', values: ['lane', 'shoulder'], missing: false },
+    })
+    // the right side is absent on all three: no value and not mixed
+    expect(sides.right).toEqual({ value: undefined, mixed: undefined })
+  })
+
+  test('several features: a side that is `both` on one and absent on another is mixed and missing', () => {
+    const features: Tags[] = [{ cycleway: 'both' }, {}]
+    const sides = sideStates(keys, {}, undefined, features)
+    expect(sides.left).toEqual({
+      value: undefined,
+      mixed: { kind: 'mixed', values: ['yes'], missing: true },
+    })
+  })
+})
+
+describe('sideOnlyWrite (several features)', () => {
+  const keys = directionalKeys('cycleway:both')
+
+  test('writes only the side key, and only when it changes', () => {
+    expect(sideOnlyWrite(keys, {}, 'left', 'lane')).toEqual([
+      { key: 'cycleway:left', value: 'lane' },
+    ])
+    expect(sideOnlyWrite(keys, { 'cycleway:left': 'lane' }, 'left', 'lane')).toEqual([])
+  })
+
+  test('a cleared side removes its own key and leaves the common keys', () => {
+    expect(sideOnlyWrite(keys, { 'cycleway:left': 'lane' }, 'left', undefined)).toEqual([
+      { key: 'cycleway:left', value: undefined },
+    ])
+    expect(sideOnlyWrite(keys, { cycleway: 'both' }, 'right', undefined)).toEqual([])
   })
 })

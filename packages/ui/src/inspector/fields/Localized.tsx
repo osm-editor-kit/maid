@@ -4,10 +4,12 @@ import { useEffect, useRef, useState, type FocusEvent, type KeyboardEvent } from
 import { createPortal } from 'react-dom'
 import { PLAIN_INPUT } from '../../plain-input.ts'
 import { Tooltip } from '../../Tooltip.tsx'
+import { cleanValue } from '../logic.ts'
 import { DraftInput, LengthNotice, useLengthLimit } from './DraftInput.tsx'
 import { FallbackField } from './Fallback.tsx'
 import { commitLanguageRow, languageVariants, type LanguageVariant } from './localized-logic.ts'
-import type { FieldProps } from './shared.ts'
+import { keyDisplay, MULTIPLE_VALUES, mixedKeysOf, mixedOf, mixedTitle } from './mixed-logic.ts'
+import type { FieldProps, MixedValue } from './shared.ts'
 import { INPUT, LIMITED, ROW_BUTTON } from './shared.ts'
 
 /**
@@ -26,10 +28,22 @@ export function LocalizedField(props: FieldProps) {
 }
 
 function LocalizedControl(props: FieldProps) {
-  const { field, tags, id, onChange, labelActions } = props
+  const { field, tags, id, onChange, labelActions, combined } = props
   const key = field.key ?? ''
-  const base = tags[key] ?? ''
-  const variants = languageVariants(field, tags)
+  const shown = keyDisplay(key, tags, combined, field.placeholder ?? 'Unknown')
+  const base = shown.value
+  // the translations: those the tags share, and those that are mixed (their value is empty, see LanguageRow)
+  const variants = [
+    ...languageVariants(field, tags).map((variant) => ({ ...variant, mixed: undefined })),
+    ...mixedKeysOf(field, combined)
+      .filter((tagKey) => tagKey !== key)
+      .map((tagKey) => ({
+        tagKey,
+        code: tagKey.slice(key.length + 1),
+        value: '',
+        mixed: mixedOf(combined, tagKey),
+      })),
+  ].sort((a, b) => (a.code < b.code ? -1 : a.code > b.code ? 1 : 0))
   // Rows being added, newest first. Each has a number that is never reused.
   const [added, setAdded] = useState<number[]>([])
   const lastRow = useRef(0)
@@ -43,12 +57,13 @@ function LocalizedControl(props: FieldProps) {
   return (
     <div className="grid min-w-0 gap-1.5">
       <DraftInput
-        // the draft starts over when the base value changes elsewhere
-        key={base}
+        // the draft starts over when the base value changes elsewhere, or when it becomes mixed
+        key={`${base}|${shown.mixed ? JSON.stringify(shown.mixed) : ''}`}
         id={id}
         tagKey={key}
         value={base}
-        placeholder={field.placeholder ?? 'Unknown'}
+        placeholder={shown.placeholder}
+        title={shown.title}
         onChange={onChange}
       />
       {added.map((row) => (
@@ -61,14 +76,15 @@ function LocalizedControl(props: FieldProps) {
           onSettled={() => setAdded((rows) => rows.filter((item) => item !== row))}
         />
       ))}
-      {variants.map((variant) => (
+      {variants.map(({ mixed, ...variant }) => (
         <LanguageRow
           // a row starts over when its value changes elsewhere, or when its code (the key) does
-          key={`${variant.tagKey}=${variant.value}`}
+          key={`${variant.tagKey}=${variant.value}|${mixed ? 'mixed' : ''}`}
           field={field}
           tags={tags}
           onChange={onChange}
           variant={variant}
+          mixed={mixed}
         />
       ))}
       {onChange && labelActions
@@ -100,11 +116,13 @@ function LanguageRow(props: {
   tags: Tags
   onChange: FieldProps['onChange']
   variant?: LanguageVariant
+  /** Several features: this translation's key is mixed. Its value is empty and a blank writes nothing. */
+  mixed?: MixedValue
   isNew?: boolean
   /** The row has been written or dropped: the parent removes a row being added. */
   onSettled?: () => void
 }) {
-  const { field, tags, onChange, variant, isNew = false, onSettled } = props
+  const { field, tags, onChange, variant, mixed, isNew = false, onSettled } = props
   const base = field.key ?? ''
   const editable = onChange !== undefined
   const codeInput = useRef<HTMLInputElement>(null)
@@ -120,6 +138,12 @@ function LanguageRow(props: {
   /** Writes the row as it is typed, or says why it cannot be written. */
   function settle() {
     if (!onChange) return
+    if (mixed !== undefined && variant !== undefined) {
+      // the value goes to every feature; a blank leaves them as they are (the code is not changed)
+      const value = cleanValue(text)
+      if (value !== undefined) onChange(variant.tagKey, value)
+      return
+    }
     const commit = commitLanguageRow({ base, tags, tagKey: variant?.tagKey, code, value: text })
     if (commit.kind === 'error') {
       setMessage(commit.message)
@@ -175,7 +199,7 @@ function LanguageRow(props: {
         spellCheck={false}
         placeholder="de"
         value={code}
-        readOnly={!editable}
+        readOnly={!editable || mixed !== undefined}
         onChange={(event) => {
           setCode(event.currentTarget.value)
           setMessage(undefined)
@@ -188,6 +212,8 @@ function LanguageRow(props: {
           {...PLAIN_INPUT}
           type="text"
           aria-label={`Translation of ${field.label}`}
+          placeholder={mixed ? MULTIPLE_VALUES : undefined}
+          title={mixed ? mixedTitle(mixed) : undefined}
           value={text}
           readOnly={!editable}
           onChange={(event) => {

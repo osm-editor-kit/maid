@@ -7,6 +7,9 @@ import {
   chipState,
   manyAdd,
   manyCandidates,
+  manyChipsFor,
+  multiChipsFor,
+  semiChips,
   manyChosen,
   manyPick,
   manyRemove,
@@ -24,6 +27,7 @@ import {
   semiValues,
   semiWrite,
 } from './multi-logic.ts'
+import type { CombinedTags, MixedValue } from './shared.ts'
 
 const PAYMENT: FieldOption[] = [
   { value: 'cash', label: 'Cash' },
@@ -341,5 +345,78 @@ describe('manyCombo', () => {
   test('adding sets the key to yes, removing deletes it', () => {
     expect(manyAdd('bus')).toEqual({ key: 'bus', value: 'yes' })
     expect(manyRemove('bus')).toEqual({ key: 'bus', value: undefined })
+  })
+})
+
+describe('several features: semi chips', () => {
+  const mixed = (values: string[], missing = false): MixedValue => ({
+    kind: 'mixed',
+    values,
+    missing,
+  })
+
+  test('without a mixed key the chips are the list, none some', () => {
+    expect(semiChips('bump;hump', undefined)).toEqual([
+      { value: 'bump', some: false },
+      { value: 'hump', some: false },
+    ])
+    expect(semiChips(undefined, undefined)).toEqual([])
+  })
+
+  test('a value that every distinct value of the key has, on all features, is a plain chip', () => {
+    expect(semiChips(undefined, mixed(['bump;hump', 'bump;speed'])).map((chip) => chip)).toEqual([
+      { value: 'bump', some: false },
+      { value: 'hump', some: true },
+      { value: 'speed', some: true },
+    ])
+  })
+
+  test('a key that some features lack makes every chip some, even a shared one', () => {
+    expect(semiChips(undefined, mixed(['bump'], true))).toEqual([{ value: 'bump', some: true }])
+  })
+})
+
+describe('several features: multiCombo and manyCombo chips', () => {
+  test('a mixed key is a chip that is some; a shared one stays plain', () => {
+    const chips = multiChipsFor(
+      multi(),
+      { 'payment:cash': 'yes' },
+      { 'payment:visa': { kind: 'mixed', values: ['yes', 'no'], missing: false } },
+    )
+    expect(chips.map((chip) => [chip.suffix, chip.state, chip.some])).toEqual([
+      ['cash', 'yes', false],
+      ['visa', 'other', true],
+    ])
+  })
+
+  test("a mixed key with one value and missing: the value's state, some", () => {
+    const chips = multiChipsFor(
+      multi(),
+      {},
+      { 'payment:cash': { kind: 'mixed', values: ['no'], missing: true } },
+    )
+    expect(chips.map((chip) => [chip.suffix, chip.state, chip.some])).toEqual([
+      ['cash', 'no', true],
+    ])
+  })
+
+  test('without combined tags a multiCombo is as multiChosen gives it, none some', () => {
+    const tags = { 'payment:cash': 'yes' }
+    expect(multiChipsFor(multi(), tags, undefined).map((chip) => chip.some)).toEqual([false])
+  })
+
+  test('a manyCombo: a mixed key is a some chip and is not a candidate', () => {
+    const combined: CombinedTags = {
+      bus: { kind: 'mixed', values: ['yes', 'no'], missing: false },
+    }
+    const chips = manyChipsFor(many(), { taxi: 'yes' }, combined)
+    expect(chips.map((chip) => [chip.key, chip.some])).toEqual([
+      ['bus', true],
+      ['taxi', false],
+    ])
+    expect(manyCandidates(many(), { taxi: 'yes' }, combined)).toEqual([])
+    expect(manyCandidates(many(), { taxi: 'yes' }).map((candidate) => candidate.value)).toEqual([
+      'bus',
+    ])
   })
 })

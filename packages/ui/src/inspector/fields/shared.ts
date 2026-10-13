@@ -1,9 +1,28 @@
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import type { ReactNode } from 'react'
 
+/**
+ * One key over several features. Mirrors `Combined` in packages/model/src/util/combined-tags.ts (ui does not
+ * depend on the model package, so the shape is declared here; keep the two the same).
+ * `one`: every feature has the key with this value. `mixed`: the features differ; `values` are the distinct
+ * values, most frequent first; `missing` is true when some feature lacks the key.
+ */
+export type Combined = { kind: 'one'; value: string } | MixedValue
+export type MixedValue = { kind: 'mixed'; values: string[]; missing: boolean }
+/** The combined tags of several features: a key no feature has is absent. Mirrors `CombinedTags` in the model. */
+export type CombinedTags = Readonly<Record<string, Combined>>
+
 export type FieldProps = {
   field: Field
+  /** The tags. Several features: the values all of them share (the `one` keys); a mixed key is absent. */
   tags: Tags
+  /** Several features only: how each key is over them. Absent for one feature, and then nothing is mixed. */
+  combined?: CombinedTags
+  /**
+   * Several features only: each feature's own tags, in selection order. Only the fields that need a
+   * feature's own values (access placeholders, directional sides) read it; the rest use `combined`.
+   */
+  features?: readonly Tags[]
   /** The id of the control, for the row's label. Set by PresetFields; components may ignore it. */
   id?: string
   /** Sets or (with undefined) removes one tag. Absent: read-only. */

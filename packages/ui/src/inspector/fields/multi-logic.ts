@@ -1,6 +1,8 @@
 import type { Field, FieldOption, Tags } from '@osm-editor-kit/maid-presets'
 import { cleanValue, isUnsetOption, MAX_VALUE_LENGTH, valueLength } from '../logic.ts'
 import { matchLabel, valueFromText } from './combo-logic.ts'
+import { mixedOf } from './mixed-logic.ts'
+import type { CombinedTags, MixedValue } from './shared.ts'
 
 /*
  * Pure logic of the multi-value combos: semiCombo (one tag, values joined with ';'), multiCombo
@@ -43,6 +45,21 @@ export function afterLastSeparator(text: string) {
  */
 export function semiWrite(values: readonly string[]) {
   return cleanValue(values.join(';'))
+}
+
+/**
+ * The chips of a semiCombo over several features. A value that every feature has is a plain chip; a value that
+ * only some have (it is missing from a distinct value of the key, or some feature lacks the key) is `some`.
+ * Without a mixed key the chips are the one value's list, all plain.
+ */
+export function semiChips(value: string | undefined, mixed: MixedValue | undefined) {
+  if (mixed === undefined) return semiList(value).map((piece) => ({ value: piece, some: false }))
+  const lists = mixed.values.map((text) => semiList(text))
+  const pieces = unique(lists.flat())
+  return pieces.map((piece) => ({
+    value: piece,
+    some: mixed.missing || lists.some((list) => !list.includes(piece)),
+  }))
 }
 
 /** The list fills the 255 characters: no value can be added and the input hides. */
@@ -169,6 +186,12 @@ export function multiChosen(field: Field, tags: Tags) {
   return chips.sort((a, b) => optionRank(field, a.suffix) - optionRank(field, b.suffix))
 }
 
+/** The state of a mixed key's chip: its value when there is one value, else other (a dash). */
+function mixedState(mixed: MixedValue): ChipState {
+  const [only] = mixed.values
+  return mixed.values.length === 1 && only !== undefined ? chipState(only) : 'other'
+}
+
 function optionRank(field: Pick<Field, 'options'>, value: string) {
   const index = field.options.findIndex((option) => option.value === value)
   return index < 0 ? field.options.length : index
@@ -189,6 +212,41 @@ export function multiAdd(field: Field, tags: Tags, suffix: string) {
 /** The write that flips a chip between yes and no (iD's invertMultikey). Anything else becomes yes. */
 export function multiToggle(chip: MultiChip) {
   return { key: chip.key, value: chip.state === 'yes' ? 'no' : 'yes' }
+}
+
+/**
+ * The chips of a multiCombo over several features: the chips of the shared tags, plus a chip for each
+ * suffix whose key is mixed. A mixed chip is `some`; its state is the value when all of them share one
+ * spelling of a yes or no, else `other` (a dash).
+ */
+export function multiChipsFor(
+  field: Field,
+  tags: Tags,
+  combined: CombinedTags | undefined,
+): (MultiChip & { some: boolean })[] {
+  const prefix = multiPrefix(field)
+  const shared = multiChosen(field, tags).map((chip) => ({ ...chip, some: false }))
+  if (prefix === undefined || combined === undefined) return shared
+  const mixedChips: (MultiChip & { some: boolean })[] = []
+  for (const key of Object.keys(combined)) {
+    const mixed = mixedOf(combined, key)
+    if (mixed === undefined || !key.startsWith(prefix)) continue
+    const suffix = key.slice(prefix.length)
+    if (suffix === '') continue
+    const option = field.options.find((candidate) => candidate.value === suffix)
+    mixedChips.push({
+      key,
+      suffix,
+      value: mixed.values.join(', '),
+      label: option?.label ?? suffix,
+      raw: option === undefined,
+      state: mixedState(mixed),
+      some: true,
+    })
+  }
+  return [...shared, ...mixedChips].sort(
+    (a, b) => optionRank(field, a.suffix) - optionRank(field, b.suffix),
+  )
 }
 
 /** The options a multiCombo's input offers: those that have no chip yet. */
@@ -218,10 +276,29 @@ export function manyChosen(field: Field, tags: Tags) {
     })
 }
 
+/**
+ * The chips of a manyCombo over several features: the keys that have a value on all of them, and the keys
+ * that are mixed (some of them have it), in the order of `keys`. A mixed key is `some`.
+ */
+export function manyChipsFor(field: Field, tags: Tags, combined: CombinedTags | undefined) {
+  return (field.keys ?? []).flatMap((key) => {
+    const mixed = mixedOf(combined, key)
+    if (mixed === undefined) {
+      const value = tags[key] ?? ''
+      if (value === '') return []
+      return [{ key, label: manyLabel(field, key), value, state: chipState(value), some: false }]
+    }
+    const state = mixedState(mixed)
+    return [
+      { key, label: manyLabel(field, key), value: mixed.values.join(', '), state, some: true },
+    ]
+  })
+}
+
 /** The keys a manyCombo's input offers: those without a value. Customs are not allowed. */
-export function manyCandidates(field: Field, tags: Tags) {
+export function manyCandidates(field: Field, tags: Tags, combined?: CombinedTags) {
   return (field.keys ?? [])
-    .filter((key) => (tags[key] ?? '') === '')
+    .filter((key) => (tags[key] ?? '') === '' && mixedOf(combined, key) === undefined)
     .map((key) => ({ value: key, label: manyLabel(field, key) }))
 }
 

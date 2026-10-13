@@ -15,7 +15,7 @@
  * they go (select, blur).
  *
  * Order: "sorted" is iD's order. raw_tag_editor.js sorts the keys with `Object.keys(tags).sort()`, which compares
- * UTF-16 code units: digits before letters, capitals before lower case, ':' before letters. TagList.tsx sorted
+ * UTF-16 code units: digits before letters, capitals before lower case, ':' before letters. the old tag list sorted
  * with localeCompare; this is a change. "hold" keeps the order of the rows and puts new keys last.
  */
 import type { Tags } from '@osm-editor-kit/maid-presets'
@@ -229,7 +229,7 @@ export const TAG_COLUMNS: SheetColumn[] = [
   {
     id: 'key',
     header: 'Key',
-    width: '2fr',
+    width: '1fr',
     mono: true,
     unique: true,
     clean: cleanText,
@@ -238,7 +238,7 @@ export const TAG_COLUMNS: SheetColumn[] = [
   {
     id: 'value',
     header: 'Value',
-    width: '3fr',
+    width: '1fr',
     mono: true,
     clean: cleanText,
     validate: lengthMessage,

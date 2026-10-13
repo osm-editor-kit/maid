@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'bun:test'
 import type { Field } from '@osm-editor-kit/maid-presets'
+import type { MixedValue } from './fields/shared.ts'
 import {
+  checkAfterClick,
   checkState,
+  checkStateFor,
   checkCycle,
   checkLabel,
   checkValue,
@@ -192,13 +195,13 @@ describe('checkValue and checkState', () => {
     expect(checkValue('check', '1')).toBe('1')
   })
 
-  it('check: unset is mixed, yes is checked, no is unchecked', () => {
-    expect(checkState('check', undefined)).toBe('mixed')
+  it('check: unset is unset (not mixed), yes is checked, no is unchecked', () => {
+    expect(checkState('check', undefined)).toBe('unset')
     expect(checkState('check', 'yes')).toBe(true)
     expect(checkState('check', 'no')).toBe(false)
   })
 
-  it('defaultCheck: unset is unchecked, it has no mixed state', () => {
+  it('defaultCheck: unset is unchecked, it has no unset state', () => {
     expect(checkState('defaultCheck', undefined)).toBe(false)
     expect(checkState('defaultCheck', 'yes')).toBe(true)
   })
@@ -207,8 +210,54 @@ describe('checkValue and checkState', () => {
     expect(checkState('check', 'limited')).toBe(true)
   })
 
-  it('an implied yes is mixed when unset', () => {
-    expect(checkState('onewayCheck', undefined, true)).toBe('mixed')
+  it('an implied yes is unset when the tag is absent', () => {
+    expect(checkState('onewayCheck', undefined, true)).toBe('unset')
+  })
+})
+
+describe('checkStateFor (several features)', () => {
+  const mixed = (values: string[], missing = false): MixedValue => ({
+    kind: 'mixed',
+    values,
+    missing,
+  })
+
+  it('without a mixed key it is checkState for the shared value', () => {
+    expect(checkStateFor('check', 'yes', false, undefined)).toBe(true)
+    expect(checkStateFor('check', undefined, false, undefined)).toBe('unset')
+    expect(checkStateFor('defaultCheck', undefined, false, undefined)).toBe(false)
+  })
+
+  it('a key whose features differ is mixed, a box in between', () => {
+    expect(checkStateFor('check', undefined, false, mixed(['yes', 'no']))).toBe('mixed')
+    expect(checkStateFor('check', undefined, false, mixed(['yes', 'limited']))).toBe('mixed')
+  })
+
+  it('a key that some features lack is mixed, even with one value', () => {
+    expect(checkStateFor('check', undefined, false, mixed(['yes'], true))).toBe('mixed')
+    expect(checkStateFor('defaultCheck', undefined, false, mixed(['no'], true))).toBe('mixed')
+  })
+
+  it('values that differ only in case or in a oneway spelling are one value', () => {
+    expect(checkStateFor('check', undefined, false, mixed(['Yes', 'yes']))).toBe(true)
+    expect(checkStateFor('onewayCheck', undefined, false, mixed(['1', 'yes']))).toBe(true)
+  })
+
+  it('a key with the same value on all features is not mixed', () => {
+    expect(checkStateFor('check', 'no', false, undefined)).toBe(false)
+  })
+})
+
+describe('checkAfterClick', () => {
+  it('a mixed check is set to yes on all features', () => {
+    expect(checkAfterClick('check', undefined, [undefined, 'yes', 'no'], true)).toBe('yes')
+    expect(checkAfterClick('defaultCheck', undefined, [undefined, 'yes'], true)).toBe('yes')
+  })
+
+  it('any other state moves on along the cycle', () => {
+    expect(checkAfterClick('check', undefined, [undefined, 'yes', 'no'], false)).toBe('yes')
+    expect(checkAfterClick('check', 'yes', [undefined, 'yes', 'no'], false)).toBe('no')
+    expect(checkAfterClick('check', 'no', [undefined, 'yes', 'no'], false)).toBeUndefined()
   })
 })
 

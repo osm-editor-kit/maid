@@ -1,3 +1,4 @@
+import { moduleStorage } from '@osm-editor-kit/maid-core'
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import type { EntityInfo } from '@osm-editor-kit/maid-renderer'
 import {
@@ -11,6 +12,7 @@ import {
   SidebarEmpty,
   SidebarHeader,
   SidebarDisclosure,
+  TagSheet,
 } from '@osm-editor-kit/maid-ui'
 import { useEffect, useState } from 'react'
 import { editor, engine, useEngine } from '../editor'
@@ -24,11 +26,18 @@ import {
 import { fieldOverlayFor, widthKeyTarget } from '../field-overlay'
 import { imageryOnMap } from '../imagery-used'
 import { measureTags } from '../measure-tags'
-import { loadReference } from '../reference'
+import { createReferenceLoader } from '../reference'
 import { useSelection } from '../selection'
 import { Operations } from './Operations'
 import { PresetIcon } from './PresetIcon'
-import { TagList } from './TagList'
+
+/** The OSM Wiki's answers for the "i" buttons: one loader for the app, on the editor's fetch and query cache */
+const loadReference = createReferenceLoader({
+  fetch: editor.fetch,
+  queries: editor.queries,
+  storage: moduleStorage(),
+  now: () => Date.now(),
+})
 
 const GEOMETRY_LABEL = {
   point: 'Point',
@@ -230,7 +239,16 @@ export function Inspector() {
               </SidebarDisclosure>
             )}
             <SidebarDisclosure title="Tags" detail={Object.keys(entity.tags).length} defaultOpen>
-              <TagList tags={entity.tags} onChange={onChange} />
+              <TagSheet
+                label="Tags"
+                tags={entity.tags}
+                featureKey={id}
+                // a filter made the feature read-only: the sheet is shown, navigable and copyable, not edited
+                readOnly={entity.readOnly}
+                onChangeTags={(tags, label) => engine.setTags(id, tags, label)}
+                onUndo={() => engine.undo()}
+                onRedo={() => engine.redo()}
+              />
             </SidebarDisclosure>
             <InspectorSections entity={entity} editor={editor} select={select} />
           </div>

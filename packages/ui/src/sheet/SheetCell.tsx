@@ -60,7 +60,7 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
         aria-invalid={invalid !== undefined ? true : undefined}
         aria-describedby={invalid !== undefined ? messageId : undefined}
         aria-description={mixed ? `${mixed.length} different values` : undefined}
-        title={mixedTitle}
+        title={mixedTitle ?? (editing || value === '' ? undefined : value)}
         placeholder={mixed ? 'Multiple values' : trailing ? column.header : undefined}
         onChange={(event) => setDraft(event.target.value)}
         className={inputClassName({

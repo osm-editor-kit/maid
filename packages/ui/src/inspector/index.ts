@@ -9,6 +9,7 @@ export {
   PresetFields,
   TextField,
   type FieldComponent,
+  type CombinedTags,
   type FieldFocus,
   type FieldProps,
 } from './fields.tsx'

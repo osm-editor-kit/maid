@@ -4,7 +4,8 @@
 // AccessField shows the same options (accessOptions) and the same placeholder (impliedAccess).
 import { describe, expect, it } from 'bun:test'
 import type { Tags } from '@osm-editor-kit/maid-presets'
-import { accessOptions, impliedAccess } from './radio-logic.ts'
+import { MULTIPLE_VALUES } from './mixed-logic.ts'
+import { accessOptions, accessPlaceholder, impliedAccess } from './radio-logic.ts'
 
 const values = (key: string) => accessOptions(key).map((option) => option.value)
 
@@ -94,5 +95,16 @@ describe('iD.uiFieldAccess', () => {
     expect(impliedAccess(tags, 'horse')).toBe('no')
   })
 
-  it.todo('sets correct placeholder on a multi selection', () => {}) // needs F-ui-6
+  it('sets correct placeholder on a multi selection', () => {
+    // iD's tags: highway=primary on both, foot yes and no, bicycle no and absent, vehicle no and absent.
+    // Maid gives the features' own tags to accessPlaceholder; the shared tags hold only highway.
+    const features: Tags[] = [
+      { highway: 'primary', foot: 'yes', bicycle: 'no' },
+      { highway: 'primary', foot: 'no', vehicle: 'no' },
+    ]
+    const shared: Tags = { highway: 'primary' }
+    expect(accessPlaceholder('foot', shared, features)).toBe(MULTIPLE_VALUES)
+    expect(accessPlaceholder('bicycle', shared, features)).toBe('no')
+    expect(accessPlaceholder('motor_vehicle', shared, features)).toBe(MULTIPLE_VALUES)
+  })
 })

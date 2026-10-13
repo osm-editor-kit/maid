@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { PLAIN_INPUT } from '../../plain-input.ts'
 import { FallbackField } from './Fallback.tsx'
 import { ADDON, AddonInput } from './Link.tsx'
+import { keyDisplay } from './mixed-logic.ts'
 import type { FieldProps } from './shared.ts'
 import { colourToHex, isValidDate, pickerDate, showsSetToday, todayIso } from './text-logic.ts'
 
@@ -11,7 +12,7 @@ import { colourToHex, isValidDate, pickerDate, showsSetToday, todayIso } from '.
  * survey:date, a button that sets today. Text that is not a date is still written; a hint shows.
  */
 export function DateField(props: FieldProps) {
-  const { field, tags, id, onChange } = props
+  const { field, tags, id, onChange, combined } = props
   const key = field.key
   const pickerRef = useRef<HTMLInputElement>(null)
   // Taken once per mount: the field remounts whenever its tag changes.
@@ -20,13 +21,15 @@ export function DateField(props: FieldProps) {
   // Safari has no showPicker for date inputs (iD hides the button there too)
   const canPick =
     typeof HTMLInputElement !== 'undefined' && 'showPicker' in HTMLInputElement.prototype
+  const shown = keyDisplay(key, tags, combined, field.placeholder ?? 'YYYY-MM-DD')
   return (
     <AddonInput
       id={id}
       type="text"
       tagKey={key}
-      value={tags[key] ?? ''}
-      placeholder={field.placeholder ?? 'YYYY-MM-DD'}
+      value={shown.value}
+      placeholder={shown.placeholder}
+      title={shown.title}
       onChange={onChange}
       hint={(draft) => {
         const text = draft.trim()
@@ -88,17 +91,19 @@ export function DateField(props: FieldProps) {
  * An invalid text has no swatch.
  */
 export function ColourField(props: FieldProps) {
-  const { field, tags, id, onChange } = props
+  const { field, tags, id, onChange, combined } = props
   const key = field.key
   const pickerRef = useRef<HTMLInputElement>(null)
   if (key === undefined) return <FallbackField {...props} />
+  const shown = keyDisplay(key, tags, combined, field.placeholder ?? 'Unknown')
   return (
     <AddonInput
       id={id}
       type="text"
       tagKey={key}
-      value={tags[key] ?? ''}
-      placeholder={field.placeholder ?? 'Unknown'}
+      value={shown.value}
+      placeholder={shown.placeholder}
+      title={shown.title}
       onChange={onChange}
       addons={({ draft, editable, write }) => {
         const hex = colourToHex(draft)

@@ -19,6 +19,12 @@ const root = createRoot(document.getElementById('root')!)
 // Dev server only: the Tags sheet on its own, for tools/bench/tags-check.ts (see sheet-harness.tsx)
 if (import.meta.env.DEV && new URLSearchParams(location.search).get('harness') === 'tags') {
   void import('./sheet-harness').then(({ TagHarness }) => root.render(<TagHarness />))
+} else if (
+  import.meta.env.DEV &&
+  new URLSearchParams(location.search).get('harness') === 'fields'
+) {
+  // Dev server only: the fields of several features on their own (fields-harness.tsx)
+  void import('./fields-harness').then(({ FieldsHarness }) => root.render(<FieldsHarness />))
 } else {
   root.render(<App />)
 }

@@ -12,6 +12,7 @@ import {
 import { PLAIN_INPUT } from '../../plain-input.ts'
 import { cleanValue } from '../logic.ts'
 import { FallbackField } from './Fallback.tsx'
+import { keyDisplay } from './mixed-logic.ts'
 import {
   canStep,
   formatHeight,
@@ -111,31 +112,45 @@ function keepFocus(event: MouseEvent<HTMLButtonElement>) {
  * Values are clamped to `minValue` and written with a dot. Empty means no tag.
  */
 export function NumberField(props: FieldProps) {
-  const { field, tags, id, onChange } = props
+  const { field, tags, id, onChange, combined } = props
   const key = field.key
   if (key === undefined) return <FallbackField {...props} />
+  const shown = keyDisplay(key, tags, combined, field.placeholder)
   return (
     <NumberControl
       field={field}
       id={id ?? key}
       tagKey={key}
-      value={tags[key] ?? ''}
+      value={shown.value}
+      placeholder={shown.placeholder}
+      title={shown.title}
+      mixed={shown.mixed !== undefined}
       onChange={onChange}
     />
   )
 }
 
+/**
+ * A number over one key. Several features: a mixed key is an empty input with "Multiple values" and its
+ * values as the title, and the steppers do nothing (iD input.js 139-142).
+ */
 function NumberControl({
   field,
   id,
   tagKey,
   value,
+  placeholder,
+  title,
+  mixed,
   onChange,
 }: {
   field: Field
   id: string
   tagKey: string
   value: string
+  placeholder: string | undefined
+  title: string | undefined
+  mixed: boolean
   onChange: FieldProps['onChange']
 }) {
   const parts = useParts(id)
@@ -151,7 +166,7 @@ function NumberControl({
     writeTag(control, next === '' ? undefined : next)
   }
   const step = (direction: StepDirection, part: string) => {
-    if (readOnly) return
+    if (readOnly || mixed) return
     const next = stepValue(draft, direction, {
       increment: field.increment,
       minValue: field.minValue,
@@ -160,7 +175,7 @@ function NumberControl({
     setDraft(next)
     writeTag(control, next, part)
   }
-  const stepDisabled = !canStep(draft, wrap)
+  const stepDisabled = mixed || !canStep(draft, wrap)
   const edit = editKey(() => setDraft(value))
 
   return (
@@ -179,12 +194,13 @@ function NumberControl({
           inputMode="decimal"
           className={readOnly ? INPUT : `${INPUT} rounded-r-none`}
           value={draft}
-          placeholder={field.placeholder}
+          placeholder={placeholder}
+          title={title}
           readOnly={readOnly}
           onChange={(event: ChangeEvent<HTMLInputElement>) => setDraft(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-              if (readOnly) return
+              if (readOnly || mixed) return
               event.preventDefault()
               step(event.key === 'ArrowUp' ? 1 : -1, 'input')
               return
@@ -235,15 +251,18 @@ export function RoadSpeedField({
   defaultUnit = 'km/h',
   ...props
 }: FieldProps & { defaultUnit?: SpeedUnit }) {
-  const { field, tags, id, onChange } = props
+  const { field, tags, id, onChange, combined } = props
   const key = field.key
   if (key === undefined) return <FallbackField {...props} />
+  const shown = keyDisplay(key, tags, combined, field.placeholder)
   return (
     <SpeedControl
       field={field}
       id={id ?? key}
       tagKey={key}
-      value={tags[key] ?? ''}
+      value={shown.value}
+      placeholder={shown.placeholder}
+      title={shown.title}
       defaultUnit={defaultUnit}
       onChange={onChange}
     />
@@ -255,6 +274,8 @@ function SpeedControl({
   id,
   tagKey,
   value,
+  placeholder,
+  title,
   defaultUnit,
   onChange,
 }: {
@@ -262,6 +283,8 @@ function SpeedControl({
   id: string
   tagKey: string
   value: string
+  placeholder: string | undefined
+  title: string | undefined
   defaultUnit: SpeedUnit
   onChange: FieldProps['onChange']
 }) {
@@ -301,7 +324,8 @@ function SpeedControl({
           inputMode="decimal"
           className={INPUT}
           value={number}
-          placeholder={field.placeholder}
+          placeholder={placeholder}
+          title={title}
           readOnly={readOnly}
           onChange={(event) => setNumber(event.target.value)}
           onKeyDown={edit}
@@ -339,15 +363,18 @@ export function RoadHeightField({
   defaultUnit = 'm',
   ...props
 }: FieldProps & { defaultUnit?: HeightUnit }) {
-  const { field, tags, id, onChange } = props
+  const { field, tags, id, onChange, combined } = props
   const key = field.key
   if (key === undefined) return <FallbackField {...props} />
+  const shown = keyDisplay(key, tags, combined, field.placeholder)
   return (
     <HeightControl
       field={field}
       id={id ?? key}
       tagKey={key}
-      value={tags[key] ?? ''}
+      value={shown.value}
+      placeholder={shown.placeholder}
+      title={shown.title}
       defaultUnit={defaultUnit}
       onChange={onChange}
     />
@@ -359,6 +386,8 @@ function HeightControl({
   id,
   tagKey,
   value,
+  placeholder,
+  title,
   defaultUnit,
   onChange,
 }: {
@@ -366,6 +395,8 @@ function HeightControl({
   id: string
   tagKey: string
   value: string
+  placeholder: string | undefined
+  title: string | undefined
   defaultUnit: HeightUnit
   onChange: FieldProps['onChange']
 }) {
@@ -416,7 +447,8 @@ function HeightControl({
           inputMode="decimal"
           className={INPUT}
           value={primary}
-          placeholder={field.placeholder}
+          placeholder={placeholder}
+          title={title}
           readOnly={readOnly}
           onChange={(event) => setPrimary(event.target.value)}
           onKeyDown={edit}

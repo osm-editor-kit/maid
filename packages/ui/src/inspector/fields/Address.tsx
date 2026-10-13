@@ -19,7 +19,8 @@ import {
 } from './address-logic.ts'
 import { ComboField } from './Combo.tsx'
 import { LengthNotice, useDraft, useLengthLimit } from './DraftInput.tsx'
-import type { FieldProps } from './shared.ts'
+import { mixedOf, MULTIPLE_VALUES, mixedTitle } from './mixed-logic.ts'
+import type { CombinedTags, FieldProps, MixedValue } from './shared.ts'
 import { LIMITED } from './shared.ts'
 
 export type AddressFieldProps = FieldProps & {
@@ -64,7 +65,7 @@ function comboRadius({ left, right }: Edges) {
  * (Escape reverts). Street, city and postcode offer the suggestions. Read-only without onChange.
  */
 export function AddressField(props: AddressFieldProps) {
-  const { field, tags, id, onChange, country, suggestions } = props
+  const { field, tags, id, onChange, country, suggestions, combined } = props
   const prefix = addressPrefix(field)
   const rows = addressRows(field, tags, country)
   return (
@@ -82,6 +83,7 @@ export function AddressField(props: AddressFieldProps) {
               prefix={prefix}
               country={country}
               suggestions={suggestions}
+              combined={combined}
               onChange={onChange}
             />
           ))}
@@ -100,12 +102,13 @@ type SlotProps = {
   prefix: string
   country?: string
   suggestions?: AddressSuggestions
+  combined?: CombinedTags
   onChange: FieldProps['onChange']
 }
 
 /** One input of a row: its share of the row's width, then the control. */
 function SlotCell(props: SlotProps) {
-  const { name, share, edges, tags, prefix, country, onChange } = props
+  const { name, share, edges, tags, prefix, country, combined, onChange } = props
   const apply = (edits: TagEdit[]) => {
     for (const edit of edits) onChange?.(edit.key, edit.value)
   }
@@ -119,7 +122,10 @@ function SlotCell(props: SlotProps) {
       </div>
     )
   }
-  const value = slotValue(name, tags, prefix)
+  const tagKey = `${prefix}:${name}`
+  const mixed = mixedOf(combined, tagKey)
+  // a mixed slot is empty, "Multiple values" and its values as the title; the label stays the aria label
+  const value = mixed === undefined ? slotValue(name, tags, prefix) : undefined
   const label = slotPlaceholder(name, country)
   const list = suggestionsFor(name, props.suggestions)
   const readOnly = onChange === undefined
@@ -128,11 +134,12 @@ function SlotCell(props: SlotProps) {
     <div className={wrapper} style={{ flex: `${share} 1 0%` }}>
       {list && list.length > 0 ? (
         <ComboSlot
-          key={value}
+          key={`${value ?? ''}|${mixed ? JSON.stringify(mixed) : ''}`}
           id={props.id}
           label={label}
-          tagKey={`${prefix}:${name}`}
+          tagKey={tagKey}
           value={value}
+          mixed={mixed}
           list={list}
           readOnly={readOnly}
           className={comboRadius(edges)}
@@ -140,10 +147,11 @@ function SlotCell(props: SlotProps) {
         />
       ) : (
         <TextSlot
-          key={value}
+          key={`${value ?? ''}|${mixed ? JSON.stringify(mixed) : ''}`}
           id={props.id}
           label={label}
           value={value}
+          mixed={mixed}
           readOnly={readOnly}
           className={textRadius(edges)}
           onText={onText}
@@ -158,10 +166,12 @@ function SlotCell(props: SlotProps) {
  * the slot holds; switching moves the value to the other key. Keyed by the two keys in SlotCell.
  */
 function StreetPlaceSlot(props: SlotProps & { apply: (edits: TagEdit[]) => void }) {
-  const { edges, id, tags, prefix, country, suggestions, onChange, apply } = props
+  const { edges, id, tags, prefix, country, suggestions, combined, onChange, apply } = props
   const [mode, setMode] = useState<StreetOrPlace>(() => streetPlaceMode(tags, prefix))
   const other: StreetOrPlace = mode === 'street' ? 'place' : 'street'
-  const value = tags[`${prefix}:${mode}`] ?? ''
+  const modeKey = `${prefix}:${mode}`
+  const mixed = mixedOf(combined, modeKey)
+  const value = mixed === undefined ? (tags[modeKey] ?? '') : undefined
   const label = slotPlaceholder(STREET_PLACE, country)
   const list = suggestionsFor(STREET_PLACE, suggestions, mode)
   const readOnly = onChange === undefined
@@ -185,11 +195,12 @@ function StreetPlaceSlot(props: SlotProps & { apply: (edits: TagEdit[]) => void 
       <div className={`-ml-px min-w-0 flex-1 ${list && list.length > 0 ? comboRadius(inner) : ''}`}>
         {list && list.length > 0 ? (
           <ComboSlot
-            key={`${mode}\u0000${value}`}
+            key={`${mode}\u0000${value ?? ''}|${mixed ? JSON.stringify(mixed) : ''}`}
             id={id}
             label={label}
-            tagKey={`${prefix}:${mode}`}
+            tagKey={modeKey}
             value={value}
+            mixed={mixed}
             list={list}
             readOnly={readOnly}
             className=""
@@ -197,10 +208,11 @@ function StreetPlaceSlot(props: SlotProps & { apply: (edits: TagEdit[]) => void 
           />
         ) : (
           <TextSlot
-            key={`${mode}\u0000${value}`}
+            key={`${mode}\u0000${value ?? ''}|${mixed ? JSON.stringify(mixed) : ''}`}
             id={id}
             label={label}
             value={value}
+            mixed={mixed}
             readOnly={readOnly}
             className={textRadius(inner)}
             onText={onText}
@@ -215,16 +227,19 @@ function StreetPlaceSlot(props: SlotProps & { apply: (edits: TagEdit[]) => void 
 function TextSlot(props: {
   id?: string
   label: string
-  value: string
+  /** The slot's value; undefined when it is mixed (the draft starts empty and blank writes nothing) */
+  value: string | undefined
+  /** Several features: the slot's key is mixed, its values */
+  mixed: MixedValue | undefined
   readOnly: boolean
   className: string
   onText: (text: string) => void
 }) {
-  const { id, label, value, readOnly, className, onText } = props
+  const { id, label, value, mixed, readOnly, className, onText } = props
   // The slot has no tag of its own: the text goes to the address, which writes it.
   const { draft, setDraft, commit, revert } = useDraft({
     tagKey: '',
-    value,
+    value: value ?? '',
     onChange: readOnly ? undefined : (_key, text) => onText(text ?? ''),
   })
   const limit = useLengthLimit(draft)
@@ -237,7 +252,8 @@ function TextSlot(props: {
         autoComplete="off"
         spellCheck={false}
         aria-label={label}
-        placeholder={label}
+        placeholder={mixed ? MULTIPLE_VALUES : label}
+        title={mixed ? mixedTitle(mixed) : undefined}
         value={draft}
         readOnly={readOnly}
         className={`${TEXT} ${LIMITED} ${className}`}
@@ -267,13 +283,15 @@ function ComboSlot(props: {
   id?: string
   label: string
   tagKey: string
-  value: string
+  /** The slot's value; undefined when it is mixed */
+  value: string | undefined
+  mixed: MixedValue | undefined
   list: readonly string[]
   readOnly: boolean
   className: string
   onText: (text: string) => void
 }) {
-  const { id, label, tagKey, value, list, readOnly, className, onText } = props
+  const { id, label, tagKey, value, mixed, list, readOnly, className, onText } = props
   const generated = useId()
   const inputId = id ?? generated
   const field: Field = {
@@ -282,7 +300,7 @@ function ComboSlot(props: {
     key: tagKey,
     label,
     placeholder: label,
-    options: suggestionOptions(list, value),
+    options: suggestionOptions(list, value ?? ''),
     universal: false,
     customValues: true,
     snakeCase: false,
@@ -295,7 +313,8 @@ function ComboSlot(props: {
       </label>
       <ComboField
         field={field}
-        tags={{ [tagKey]: value }}
+        tags={{ [tagKey]: value ?? '' }}
+        combined={mixed ? { [tagKey]: mixed } : undefined}
         id={inputId}
         onChange={readOnly ? undefined : (_key, next) => onText(next ?? '')}
       />

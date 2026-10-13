@@ -73,7 +73,10 @@ export function inputClassName(look: {
     'placeholder:text-zinc-400 read-only:cursor-default aria-invalid:text-red-600',
     'dark:text-white dark:placeholder:text-zinc-500 dark:aria-invalid:text-red-400',
   ]
-  if (look.mono) parts.push('font-mono')
+  // monospace is wide: a size smaller, so that keys such as name:etymology fit a sidebar column
+  if (look.mono) parts.push('font-mono text-[13px]')
+  // a text that does not fit ends in an ellipsis while it is only shown; the title has it in full
+  if (!look.editing) parts.push('text-ellipsis')
   if (look.mixed) parts.push('italic placeholder:italic')
   if (look.editing) parts.push('select-text')
   if (look.tone === 'muted') parts.push('text-zinc-500 dark:text-zinc-400')

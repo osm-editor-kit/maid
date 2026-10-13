@@ -21,7 +21,7 @@ import { ManyComboField, MultiComboField, SemiComboField } from './fields/Multi.
 import { NumberField, RoadHeightField, RoadSpeedField } from './fields/Number.tsx'
 import { RadioField, StructureRadioField } from './fields/Radio.tsx'
 import { FieldRow } from './fields/Row.tsx'
-import type { FieldComponent, FieldFocus, FieldMeasure } from './fields/shared.ts'
+import type { CombinedTags, FieldComponent, FieldFocus, FieldMeasure } from './fields/shared.ts'
 import { TextField, TextareaField } from './fields/Text.tsx'
 import { fieldKeys } from './logic.ts'
 import { assignRelatedTags, relatedBaseKeys, relatedButtonKeys } from './related-logic.ts'
@@ -31,7 +31,7 @@ export { ComboField } from './fields/Combo.tsx'
 export { FallbackField } from './fields/Fallback.tsx'
 export { NumberField } from './fields/Number.tsx'
 export { TextField, TextareaField } from './fields/Text.tsx'
-export type { FieldComponent, FieldFocus, FieldProps } from './fields/shared.ts'
+export type { CombinedTags, FieldComponent, FieldFocus, FieldProps } from './fields/shared.ts'
 
 /** iD field type → component. Types not listed use FallbackField. */
 export const defaultFieldComponents: Record<string, FieldComponent> = {
@@ -70,7 +70,15 @@ export const defaultFieldComponents: Record<string, FieldComponent> = {
  */
 export function PresetFields(props: {
   fields: Field[]
+  /** The tags. Several features: the values they all share; a mixed key is absent (see `combined`). */
   tags: Tags
+  /**
+   * Several features only: how each key is over them (combined tags). Absent for one feature, and then every
+   * row behaves as it always did. A mixed key shows "Multiple values"; see fields/mixed-logic.ts.
+   */
+  combined?: CombinedTags
+  /** Several features only: each feature's own tags, for the rows that need them (access, directional sides). */
+  features?: Tags[]
   /** The tags before any edit. Given, the rows get a revert button for what differs from them. */
   baseTags?: Tags
   onChange?: (key: string, value: string | undefined) => void
@@ -92,6 +100,8 @@ export function PresetFields(props: {
   const {
     fields,
     tags,
+    combined,
+    features,
     baseTags,
     onChange,
     components,
@@ -228,6 +238,8 @@ export function PresetFields(props: {
           <FieldRow
             field={field}
             tags={tags}
+            combined={combined}
+            features={features}
             baseTags={baseTags}
             onChange={onChange}
             registry={registry}

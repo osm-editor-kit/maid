@@ -1,5 +1,6 @@
 import type { Field, FieldOption, Tags } from '@osm-editor-kit/maid-presets'
 import { directionalKeys } from './fields/directional-logic.ts'
+import type { MixedValue } from './fields/shared.ts'
 
 /** OSM's limit for a tag value, in Unicode characters (iD's maxCharsForTagValue). */
 export const MAX_VALUE_LENGTH = 255
@@ -196,17 +197,48 @@ function impliesOneway(tags: Tags) {
 }
 
 /**
- * The checkbox state of a check field: true for yes and for any other value, false for no,
- * 'mixed' when unset (defaultCheck is unchecked when unset, it has no third state).
+ * The checkbox state of a check field of one feature: true for yes and for any other value, false for no,
+ * 'unset' when the tag is absent (defaultCheck is unchecked when unset, it has no third state).
  */
 export function checkState(
   type: string,
   value: string | undefined,
   impliedYes = false,
-): boolean | 'mixed' {
+): boolean | 'unset' {
   const current = checkValue(type, value)
-  if (current === undefined) return type === 'defaultCheck' && !impliedYes ? false : 'mixed'
+  if (current === undefined) return type === 'defaultCheck' && !impliedYes ? false : 'unset'
   return current !== 'no'
+}
+
+/**
+ * The checkbox state of a check field over several features. A key that is mixed (the features differ after
+ * checkValue's spelling, or some feature lacks it) is 'mixed': an indeterminate box. A key that is one value
+ * on all features, or absent on all, is the state of checkState for that value.
+ */
+export function checkStateFor(
+  type: string,
+  value: string | undefined,
+  impliedYes: boolean,
+  mixed: MixedValue | undefined,
+): boolean | 'unset' | 'mixed' {
+  if (mixed === undefined) return checkState(type, value, impliedYes)
+  const spellings = new Set(mixed.values.map((text) => checkValue(type, text)))
+  if (spellings.size === 1 && !mixed.missing) return checkState(type, mixed.values[0])
+  return 'mixed'
+}
+
+/**
+ * The value a click on a check field writes. A mixed field is set to yes on every feature (the one value
+ * that is the same wherever it is set); any other state moves on along the cycle (nextCheckValue).
+ */
+export function checkAfterClick(
+  type: string,
+  value: string | undefined,
+  cycle: readonly (string | undefined)[],
+  mixed: boolean,
+) {
+  if (mixed) return 'yes'
+  return nextCheckValue(type, value, cycle)
 }
 
 /**

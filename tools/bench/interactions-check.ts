@@ -1,4 +1,4 @@
-import { checkHelpers, type XY } from './check-helpers'
+import { checkHelpers, pickBuildingAndRoad, type XY } from './check-helpers'
 /**
  * Interaction check for Maid, with real mouse, keyboard and touch events, against what iD does:
  * Shift-click selects several features, the nodes of a selected area and standalone points can be
@@ -1832,6 +1832,105 @@ failed += await runCheck(
   },
   '',
   false,
+)
+
+// --- the Tags section is the sheet: a row per tag and the empty row; a key and a value typed in the empty row add
+// the tag; a paste of two lines is one step; one undo takes the paste back. Clipboard permissions for this block only.
+failed += await runCheck(
+  process.argv[2] ?? 'small',
+  async ({ page, report, settle }) => {
+    const { key, state } = await checkHelpers(page, settle)
+    const settleFrame = () =>
+      page.evaluate(
+        () =>
+          new Promise<void>((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+          ),
+      )
+    const sorted = (tags: Record<string, string>) =>
+      Object.fromEntries(Object.entries(tags).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+    const tagsOf = (id: string) =>
+      page
+        .evaluate((id) => Object.entries(window.__maid.engine.entity(id)?.tags ?? {}), id)
+        .then((entries) => sorted(Object.fromEntries(entries)))
+    const cell = (label: string) => page.locator(`input[aria-label="${label}"]`)
+    const keysShown = () =>
+      page.$$eval('[role="grid"][aria-label="Tags"] [data-row] [data-col="key"] input', (inputs) =>
+        inputs.map((input) => (input instanceof HTMLInputElement ? input.value : '')),
+      )
+    const statusTexts = () => page.locator('[role="status"]').allTextContents()
+
+    const { road } = await pickBuildingAndRoad(page)
+    if (!road) {
+      report('find a residential road', 'found', 'none')
+      return
+    }
+    await page.evaluate((id) => window.__bench.select(id), road)
+    await settle()
+    await settleFrame()
+
+    // (1) the Tags section of the selected road: one row per tag, sorted, and the empty row last
+    const before = await tagsOf(road)
+    report(
+      'the Tags section of a selected road: a row per tag, sorted, and the empty row last',
+      [...Object.keys(before), ''],
+      await keysShown(),
+    )
+
+    // (2) a key and a value typed in the empty row add the tag, as one step with the sheet's label
+    await cell('Key of new row').click()
+    await page.keyboard.type('maid:check')
+    await page.keyboard.press('Tab')
+    await page.keyboard.type('yes')
+    await page.keyboard.press('Enter')
+    await settleFrame()
+    report(
+      'a key and a value typed in the empty row add the tag, as one step labelled "Added a tag"',
+      { tags: sorted({ ...before, 'maid:check': 'yes' }), undo: 'Added a tag' },
+      { tags: await tagsOf(road), undo: (await state()).undo },
+    )
+
+    // (3) a paste of two lines into a key cell: one step, and the line under the sheet says what happened.
+    // The setup gives the road a surface that differs from the pasted one, and no lit tag, so the paste adds one
+    // tag and replaces one. The setup is one step of its own, so the paste is the step after it.
+    await page.evaluate((id) => {
+      const { engine } = window.__maid
+      const next: Record<string, string> = Object.fromEntries(
+        Object.entries(engine.entity(id)?.tags ?? {}).filter(([name]) => name !== 'lit'),
+      )
+      engine.setTags(id, { ...next, surface: 'gravel' }, 'Set up the check')
+    }, road)
+    await settleFrame()
+    const beforePaste = await tagsOf(road)
+    await page.evaluate(() => navigator.clipboard.writeText('lit=yes\nsurface=asphalt'))
+    await cell('Key of surface').click()
+    await page.keyboard.press('ControlOrMeta+V')
+    await settleFrame()
+    report(
+      'a paste of two lines changes the tags in one step, and the line under the sheet says so',
+      {
+        tags: sorted({ ...beforePaste, lit: 'yes', surface: 'asphalt' }),
+        undo: 'Changed tags',
+        status: true,
+      },
+      {
+        tags: await tagsOf(road),
+        undo: (await state()).undo,
+        status: (await statusTexts()).some((text) => text.includes('2 tags pasted, 1 replaced')),
+      },
+    )
+
+    // (4) one undo, from the key outside the sheet, takes the paste back: the tags are those before it
+    await key('Meta+z')
+    report(
+      'one undo restores the tags before the paste, and the step it takes next is the setup',
+      { tags: beforePaste, undo: 'Set up the check' },
+      { tags: await tagsOf(road), undo: (await state()).undo },
+    )
+  },
+  '',
+  false,
+  ['clipboard-read', 'clipboard-write'],
 )
 
 process.exit(failed ? 1 : 0)

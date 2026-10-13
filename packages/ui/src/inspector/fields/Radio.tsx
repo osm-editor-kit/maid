@@ -3,12 +3,14 @@ import { useEffect, useId, useRef, type KeyboardEvent } from 'react'
 import { toolButtonTone } from '../../Toolbar.tsx'
 import type { TagEdit } from '../logic.ts'
 import { ComboField } from './Combo.tsx'
+import { MULTIPLE_VALUES } from './mixed-logic.ts'
 import { NumberField } from './Number.tsx'
 import {
   radioChoices,
   radioChosen,
   radioPick,
   radioWrite,
+  someValuesOf,
   structureTypeEdits,
   type RadioChoice,
 } from './radio-logic.ts'
@@ -45,6 +47,10 @@ const ARROW_STEPS = new Map([
 const BUTTON =
   'relative inline-flex h-8 min-w-0 max-w-full items-center rounded-md px-3 text-sm inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:opacity-60 dark:inset-ring-white/10'
 
+/** A value that only some of several features have: a dashed outline, not chosen. */
+const SOME =
+  'outline outline-1 -outline-offset-1 outline-dashed outline-zinc-400 dark:outline-zinc-500'
+
 /** Focuses the button of `value` in the group, if there is one. */
 function focusButton(group: HTMLElement | null, value: string) {
   const buttons = group?.querySelectorAll<HTMLElement>('[role="radio"]') ?? []
@@ -66,12 +72,14 @@ function RadioGroup(props: {
   field: Field
   choices: RadioChoice[]
   chosen?: string
+  /** Several features and the key is mixed: no button is chosen, and the "None" hint says so. */
+  mixed?: boolean
   /** A click: choosing the chosen one clears it (radioPick). */
   onClick?: (value: string) => void
   /** An arrow key: choose this value (radioWrite). */
   onSelect?: (value: string) => void
 }) {
-  const { field, choices, chosen, onClick, onSelect } = props
+  const { field, choices, chosen, mixed = false, onClick, onSelect } = props
   const group = useRef<HTMLDivElement>(null)
   const tabStop = choices.some((choice) => choice.value === chosen) ? chosen : choices[0]?.value
 
@@ -110,10 +118,16 @@ function RadioGroup(props: {
             aria-checked={checked}
             tabIndex={choice.value === tabStop ? 0 : -1}
             disabled={!onClick}
-            title={choice.raw ? choice.value : undefined}
+            title={
+              choice.some
+                ? 'On some of the selected features'
+                : choice.raw
+                  ? choice.value
+                  : undefined
+            }
             onClick={() => onClick?.(choice.value)}
             onKeyDown={(event) => move(event, index)}
-            className={`${BUTTON} ${toolButtonTone(checked ? 'selected' : 'idle')}`}
+            className={`${BUTTON} ${toolButtonTone(checked ? 'selected' : 'idle')} ${choice.some ? SOME : ''}`}
           >
             <span className={choice.raw ? 'truncate italic' : 'truncate'}>
               {choice.raw ? `"${choice.label}"` : choice.label}
@@ -121,7 +135,9 @@ function RadioGroup(props: {
           </button>
         )
       })}
-      {chosen === undefined ? <span className={HINT}>None</span> : null}
+      {chosen === undefined ? (
+        <span className={HINT}>{mixed ? MULTIPLE_VALUES : 'None'}</span>
+      ) : null}
     </div>
   )
 }
@@ -137,12 +153,13 @@ function applyEdits(onChange: FieldProps['onChange'], edits: TagEdit[]) {
  * There is no free text. Writes are radioWrite / radioPick (radio-logic.ts).
  */
 export function RadioField(props: FieldProps) {
-  const { field, tags, onChange } = props
+  const { field, tags, onChange, combined } = props
   return (
     <RadioGroup
       field={field}
-      choices={radioChoices(field, tags)}
+      choices={radioChoices(field, tags, combined)}
       chosen={radioChosen(field, tags)}
+      mixed={someValuesOf(field, combined).length > 0}
       onClick={
         onChange ? (value) => applyEdits(onChange, radioPick(field, tags, value)) : undefined
       }
@@ -175,7 +192,7 @@ function withoutKey(tags: Tags, key: string) {
  * sub-field.
  */
 export function StructureRadioField(props: FieldProps & { typeField?: Field }) {
-  const { field, tags, onChange, typeField } = props
+  const { field, tags, onChange, typeField, combined } = props
   const layerId = useId()
   const chosen = radioChosen(field, tags)
   const hasSubFields = chosen === 'bridge' || chosen === 'tunnel'
@@ -186,8 +203,9 @@ export function StructureRadioField(props: FieldProps & { typeField?: Field }) {
     <div className="grid min-w-0 gap-2">
       <RadioGroup
         field={field}
-        choices={radioChoices(field, tags)}
+        choices={radioChoices(field, tags, combined)}
         chosen={chosen}
+        mixed={someValuesOf(field, combined).length > 0}
         onClick={
           onChange ? (value) => applyEdits(onChange, radioPick(field, tags, value)) : undefined
         }

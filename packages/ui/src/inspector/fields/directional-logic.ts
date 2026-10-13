@@ -1,5 +1,7 @@
 import type { Tags } from '@osm-editor-kit/maid-presets'
 import type { TagEdit } from '../logic.ts'
+import { mixedOf } from './mixed-logic.ts'
+import type { CombinedTags, MixedValue } from './shared.ts'
 
 /**
  * The keys of a directionalCombo field, named as iD's directional_combo.js names them:
@@ -128,4 +130,60 @@ export function directionalWrite(
     if ((tags[key] ?? '') !== (value ?? '')) edits.push({ key, value })
   }
   return edits
+}
+
+/** What one side shows: its value when every feature has the same one, else the mixed values. */
+export type SideState = { value: string | undefined; mixed: MixedValue | undefined }
+
+/** Summarises one side over several features: the value they share, or the mixed values (most frequent first). */
+function summarize(values: (string | undefined)[]): SideState {
+  const distinct = [...new Set(values)]
+  if (distinct.length <= 1) return { value: distinct[0], mixed: undefined }
+  const counts = new Map<string, number>()
+  let missing = false
+  for (const value of values) {
+    if (value === undefined) missing = true
+    else counts.set(value, (counts.get(value) ?? 0) + 1)
+  }
+  const ranked = [...counts].sort(([, a], [, b]) => b - a).map(([value]) => value)
+  return { value: undefined, mixed: { kind: 'mixed', values: ranked, missing } }
+}
+
+/**
+ * What the two sides show. Several features (`features` given): each side is summarised over every feature's
+ * own tags, so a side with an explicit tag on one feature and the common key on another is one value when
+ * the two agree (iD directional_combo.js, the multiselection tests). One feature: the shared tags, as
+ * directionalValues reads them; a side whose key is mixed is mixed (the shared tags lack it).
+ */
+export function sideStates(
+  keys: DirectionalKeys,
+  tags: Tags,
+  combined?: CombinedTags,
+  features?: readonly Tags[],
+): Record<DirectionalSide, SideState> {
+  const state = (side: DirectionalSide): SideState => {
+    if (features !== undefined && features.length > 0) {
+      return summarize(features.map((feature) => sideValue(keys, feature, side)))
+    }
+    const mixed = mixedOf(combined, sideKeyOf(keys, side))
+    if (mixed !== undefined) return { value: undefined, mixed }
+    return { value: sideValue(keys, tags, side), mixed: undefined }
+  }
+  return { left: state('left'), right: state('right') }
+}
+
+/**
+ * The edit for choosing `value` on one side of several features. Only the side's own key is written, on all
+ * of them: the common keys and the other side are left as each feature has them, because a shared value of
+ * the other side may not be the value each feature has. (One feature: directionalWrite.)
+ */
+export function sideOnlyWrite(
+  keys: DirectionalKeys,
+  tags: Tags,
+  side: DirectionalSide,
+  value: string | undefined,
+): TagEdit[] {
+  const sideKey = sideKeyOf(keys, side)
+  const next = nonEmpty(value) ? value : undefined
+  return (tags[sideKey] ?? '') === (next ?? '') ? [] : [{ key: sideKey, value: next }]
 }

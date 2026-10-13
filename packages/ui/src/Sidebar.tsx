@@ -1,4 +1,5 @@
 import { ArrowsRightLeftIcon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/20/solid'
+import { motion } from 'motion/react'
 import type { ReactNode } from 'react'
 import { Flyout } from './Flyout.tsx'
 import { FadeSlideIn } from './motion.tsx'
@@ -145,9 +146,16 @@ export function SidebarHeader(props: {
   )
 }
 
-/** Scrolling area under the sidebar header. */
+/**
+ * Scrolling area under the sidebar header. `layoutScroll` tells Motion that this element scrolls, so
+ * the layout animations of its rows (the sheet's reorders) are measured from its scroll position.
+ */
 export function SidebarBody(props: { children: ReactNode }) {
-  return <div className="min-h-0 flex-1 overflow-y-auto p-3">{props.children}</div>
+  return (
+    <motion.div layoutScroll className="min-h-0 flex-1 overflow-y-auto p-3">
+      {props.children}
+    </motion.div>
+  )
 }
 
 /** A titled group inside the sidebar body, separated from the group above by a hairline. */

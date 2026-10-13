@@ -4,6 +4,7 @@ import { PLAIN_INPUT } from '../../plain-input.ts'
 import { cleanValue } from '../logic.ts'
 import { DraftInput, LengthNotice, useDraft, useLengthLimit } from './DraftInput.tsx'
 import { FallbackField } from './Fallback.tsx'
+import { keyDisplay } from './mixed-logic.ts'
 import type { FieldProps } from './shared.ts'
 import { INPUT, LIMITED } from './shared.ts'
 import { identifierLink, isValidUrl, telKey } from './text-logic.ts'
@@ -103,16 +104,18 @@ export function OpenLink({ href, label }: { href: string | undefined; label: str
 
 /** A web address. The open button is enabled for a valid http or https URL. */
 export function UrlField(props: FieldProps) {
-  const { field, tags, id, onChange } = props
+  const { field, tags, id, onChange, combined } = props
   const key = field.key
   if (key === undefined) return <FallbackField {...props} />
+  const shown = keyDisplay(key, tags, combined, field.placeholder ?? 'Unknown')
   return (
     <AddonInput
       id={id}
       type="url"
       tagKey={key}
-      value={tags[key] ?? ''}
-      placeholder={field.placeholder ?? 'Unknown'}
+      value={shown.value}
+      placeholder={shown.placeholder}
+      title={shown.title}
       onChange={onChange}
       addons={({ draft, editable }) =>
         editable ? (
@@ -128,17 +131,19 @@ export function UrlField(props: FieldProps) {
  * identifierLink); without them it is a plain text input.
  */
 export function IdentifierField(props: FieldProps) {
-  const { field, tags, id, onChange } = props
+  const { field, tags, id, onChange, combined } = props
   const key = field.key
   if (key === undefined) return <FallbackField {...props} />
   const linkable = field.urlFormat !== undefined && field.pattern !== undefined
+  const shown = keyDisplay(key, tags, combined, field.placeholder ?? 'Unknown')
   return (
     <AddonInput
       id={id}
       type="text"
       tagKey={key}
-      value={tags[key] ?? ''}
-      placeholder={field.placeholder ?? 'Unknown'}
+      value={shown.value}
+      placeholder={shown.placeholder}
+      title={shown.title}
       onChange={onChange}
       addons={
         linkable
@@ -152,16 +157,18 @@ export function IdentifierField(props: FieldProps) {
 
 /** An email address, in a native email input (no check beyond the browser's). */
 export function EmailField(props: FieldProps) {
-  const { field, tags, id, onChange } = props
+  const { field, tags, id, onChange, combined } = props
   const key = field.key
   if (key === undefined) return <FallbackField {...props} />
+  const shown = keyDisplay(key, tags, combined, field.placeholder ?? 'Unknown')
   return (
     <DraftInput
       id={id}
       type="email"
       tagKey={key}
-      value={tags[key] ?? ''}
-      placeholder={field.placeholder ?? 'Unknown'}
+      value={shown.value}
+      placeholder={shown.placeholder}
+      title={shown.title}
       onChange={onChange}
     />
   )
@@ -173,16 +180,18 @@ export function EmailField(props: FieldProps) {
  * placeholder of iD is not available: the field's own placeholder is shown.
  */
 export function TelField(props: FieldProps) {
-  const { field, tags, id, onChange } = props
+  const { field, tags, id, onChange, combined } = props
   const key = telKey(field, tags)
   if (key === undefined) return <FallbackField {...props} />
+  const shown = keyDisplay(key, tags, combined, field.placeholder ?? 'Unknown')
   return (
     <DraftInput
       id={id}
       type="tel"
       tagKey={key}
-      value={tags[key] ?? ''}
-      placeholder={field.placeholder ?? 'Unknown'}
+      value={shown.value}
+      placeholder={shown.placeholder}
+      title={shown.title}
       onChange={onChange}
     />
   )
