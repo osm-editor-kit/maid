@@ -10,6 +10,7 @@
 import {
   isAutomated,
   keys,
+  MaxlagError,
   retryDelayFor,
   SESSION_DATA,
   shouldRetry,
@@ -263,7 +264,9 @@ export function parseWikibasePages(answer: unknown, titles: readonly string[]) {
   const parsed = answerSchema.safeParse(answer)
   if (!parsed.success || !parsed.data.success || parsed.data.error !== undefined) {
     const code = parsed.success ? errorSchema.safeParse(parsed.data.error).data?.code : undefined
-    throw new Error(`The OSM Wiki answered with an error${code === undefined ? '' : ` (${code})`}`)
+    const message = `The OSM Wiki answered with an error${code === undefined ? '' : ` (${code})`}`
+    // a busy wiki: the retry waits the 5 seconds Wikimedia asks for
+    throw code === 'maxlag' ? new MaxlagError(message) : new Error(message)
   }
   const items = itemsByTitle(parsed.data.entities ?? {})
   return new Map<string, PageInfo>(
@@ -383,7 +386,7 @@ export function createReferenceLoader(deps: ReferenceLoaderDeps): ReferenceLoade
         return await requestPages(titles, signal)
       } catch (error) {
         if (!shouldRetry(retries, error)) throw error
-        await sleep(retryDelayFor(retries))
+        await sleep(retryDelayFor(retries, error))
         if (signal.aborted) throw signal.reason
       }
     }

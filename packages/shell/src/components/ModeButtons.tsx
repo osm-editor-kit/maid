@@ -1,7 +1,7 @@
 import { MapPinIcon } from '@heroicons/react/20/solid'
 import type { Mode } from '@osm-editor-kit/maid-renderer'
 import { ToolButton, ToolGroup } from '@osm-editor-kit/maid-ui'
-import { engine, useEngine } from '../editor'
+import { useEngine, useShell } from '../shell-context'
 
 /** iD's line and area icons are in its sprite; these two small drawings stand in for them */
 function LineIcon() {
@@ -47,6 +47,7 @@ const ADD: { mode: Mode; label: string; shortcut: string; text: string; icon: Re
 
 /** Top bar: what a click on the map adds. Deleting is in the sidebar's edit commands and on right click. */
 export function ModeButtons() {
+  const { engine } = useShell()
   const mode = useEngine((e) => e.mode)
   return (
     <ToolGroup label="Add">

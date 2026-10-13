@@ -1,11 +1,12 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { Dock } from '@osm-editor-kit/maid-ui'
-import { config, editor, useEngine } from '../editor'
 import { useSelection } from '../selection'
+import { useEngine, useShell } from '../shell-context'
 import { useCameraParam } from '../url/state'
 
 /** What is loaded: entities by type, and where they come from */
 function LoadedData() {
+  const { config } = useShell()
   const { nodes, ways, relations } = useEngine((e) => e.data.counts())
   const [camera] = useCameraParam()
   const zoom = camera?.zoom ?? config.camera?.zoom
@@ -38,6 +39,7 @@ function LoadedData() {
 
 /** The dock under the map, closed at first: the views of modules, then the editor's own (`dock.view`) */
 export function BottomDock() {
+  const { editor } = useShell()
   const views = useExtensionPoint(editor, 'dock.view')
   const { select } = useSelection()
   return (

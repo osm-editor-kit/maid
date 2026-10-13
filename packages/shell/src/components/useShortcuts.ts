@@ -2,9 +2,9 @@ import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { deleteOperation } from '@osm-editor-kit/maid-operations'
 import { useHotkeys, type UseHotkeyDefinition } from '@tanstack/react-hotkeys'
 import { continueLine, drawClick, drawingKind } from '../drawing'
-import { editor, engine, useEngine } from '../editor'
 import { giveFavouriteType } from '../favourites'
 import { useSelection } from '../selection'
+import { useEngine, useShell } from '../shell-context'
 import { keepsStack, stepStackId, useStack } from '../stack'
 
 /** Screen pixels the arrow keys move the map by, as in iD */
@@ -29,6 +29,7 @@ const PAN = 80
  *   the next one. Not [ and ], which iD uses for the nodes of a way
  */
 export function useShortcuts() {
+  const { editor, engine } = useShell()
   const { ids: selected, select } = useSelection()
   const operations = useExtensionPoint(editor, 'edit.operation')
   // which keys are taken depends on what the editor is doing: read it so that this follows
@@ -44,7 +45,7 @@ export function useShortcuts() {
 
   const finishDrawing = () => {
     const finished = engine.draw.finish()
-    if (finished) giveFavouriteType(finished, engine.mode)
+    if (finished) giveFavouriteType({ engine }, finished, engine.mode)
     engine.setMode('browse')
     if (finished) select(finished)
   }
@@ -69,9 +70,9 @@ export function useShortcuts() {
     if (engine.draw.active) engine.draw.undoLast()
   }
   const space = () => {
-    const kind = drawingKind()
+    const kind = drawingKind(engine)
     const { pointer } = engine
-    if (kind && pointer) void drawClick(select, kind, pointer.point, pointer.layers)
+    if (kind && pointer) void drawClick(engine, select, kind, pointer.point, pointer.layers)
   }
   const copy = () => {
     // text that is marked in the sidebar is what Cmd+C means then
@@ -92,7 +93,7 @@ export function useShortcuts() {
     { hotkey: '1', callback: () => engine.setMode('add-point') },
     { hotkey: '2', callback: () => engine.setMode('draw-line') },
     { hotkey: '3', callback: () => engine.setMode('draw-area') },
-    { hotkey: 'A', callback: () => continueLine(selected) },
+    { hotkey: 'A', callback: () => continueLine(engine, selected) },
     { hotkey: ',', callback: () => stepStack(-1), options: { enabled: stackShown } },
     { hotkey: '.', callback: () => stepStack(1), options: { enabled: stackShown } },
     { hotkey: 'M', callback: () => engine.setMode('move') },

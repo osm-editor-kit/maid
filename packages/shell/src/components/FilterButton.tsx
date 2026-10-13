@@ -1,7 +1,7 @@
 import { FunnelIcon } from '@heroicons/react/20/solid'
 import { createFilterSet } from '@osm-editor-kit/maid-filters'
 import { FilterPanel, Flyout, toolButtonClass, Tooltip, useSettings } from '@osm-editor-kit/maid-ui'
-import { editor, engine, normalizeFilters, useEngine } from '../editor'
+import { useEngine, useShell } from '../shell-context'
 import { differsFromStored, writesFor } from '../url/shown'
 import { useFiltersParam } from '../url/state'
 
@@ -15,6 +15,7 @@ const LINK_BUTTON =
  * "Use mine" goes back to the stored choice.
  */
 function Filters() {
+  const { editor, engine, normalizeFilters } = useShell()
   const [, setParam] = useFiltersParam()
   const filters = useEngine((e) => e.filters)
   const hidden = useEngine((e) => ({ ...e.hiddenCounts() }))
@@ -60,6 +61,7 @@ function Filters() {
  * the stored choice.
  */
 export function FilterButton() {
+  const { editor, normalizeFilters } = useShell()
   const shown = useEngine((e) => e.filters.toParam())
   const stored = useSettings((s) => s.shown.filters)
   if (editor.filters.length === 0) return null

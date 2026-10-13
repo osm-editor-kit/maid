@@ -6,7 +6,6 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./mount": "./src/mount.tsx",
     "./styles.css": "./src/styles.css"
   },
   "dependencies": {

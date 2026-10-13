@@ -1,6 +1,7 @@
 import { notify, Time } from '@osm-editor-kit/maid-ui'
 import { useEffect } from 'react'
-import { answerRestore, useJournal, type RestoreSummary } from '../journal'
+import { useJournal, type RestoreSummary } from '../journal'
+import { useShell } from '../shell-context'
 import { RestoreChanges } from './RestoreChanges'
 
 /** The standing toast of the journal: one, for as long as the edits here are not kept */
@@ -32,6 +33,7 @@ function editsText(summary: RestoreSummary) {
  * storage fails.
  */
 export function RestorePrompt() {
+  const { answerRestore } = useShell().journal
   const journal = useJournal()
   const summary = journal.status === 'pending' ? journal.summary : undefined
 

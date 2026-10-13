@@ -1,6 +1,11 @@
-import { moduleStorage } from '@osm-editor-kit/maid-core'
+import {
+  createTaginfo,
+  moduleStorage,
+  type Editor,
+  type TaginfoGeometry,
+} from '@osm-editor-kit/maid-core'
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
-import type { EntityInfo } from '@osm-editor-kit/maid-renderer'
+import type { EntityInfo, MaidEngine } from '@osm-editor-kit/maid-renderer'
 import {
   type FieldFocus,
   InfoPopover,
@@ -13,9 +18,9 @@ import {
   SidebarHeader,
   SidebarDisclosure,
   TagSheet,
+  type TagSuggestSource,
 } from '@osm-editor-kit/maid-ui'
 import { useEffect, useState } from 'react'
-import { editor, engine, useEngine } from '../editor'
 import {
   changeType,
   moveFavourite,
@@ -28,16 +33,9 @@ import { imageryOnMap } from '../imagery-used'
 import { measureTags } from '../measure-tags'
 import { createReferenceLoader } from '../reference'
 import { useSelection } from '../selection'
+import { useEngine, useShell } from '../shell-context'
 import { Operations } from './Operations'
 import { PresetIcon } from './PresetIcon'
-
-/** The OSM Wiki's answers for the "i" buttons: one loader for the app, on the editor's fetch and query cache */
-const loadReference = createReferenceLoader({
-  fetch: editor.fetch,
-  queries: editor.queries,
-  storage: moduleStorage(),
-  now: () => Date.now(),
-})
 
 const GEOMETRY_LABEL = {
   point: 'Point',
@@ -48,16 +46,57 @@ const GEOMETRY_LABEL = {
 }
 
 /**
+ * Key and value suggestions for the tags sheet, from taginfo as in iD: one client per editor, on its
+ * fetch and query cache, and one source per geometry so that the sheet gets the same object each time
+ */
+const suggestSources = new WeakMap<Editor, Map<TaginfoGeometry, TagSuggestSource>>()
+function suggestSourceFor(editor: Editor, geometry: TaginfoGeometry) {
+  let sources = suggestSources.get(editor)
+  if (!sources) {
+    const taginfo = createTaginfo({ fetch: editor.fetch, queries: editor.queries })
+    sources = new Map(
+      (['point', 'vertex', 'line', 'area', 'relation'] as const).map((kind) => [
+        kind,
+        {
+          keys: (query, signal) => taginfo.keys(query, kind, signal),
+          values: (key, query, signal) => taginfo.values(key, query, kind, signal),
+        },
+      ]),
+    )
+    suggestSources.set(editor, sources)
+  }
+  return sources.get(geometry)
+}
+
+/** The OSM Wiki's answers for the "i" buttons: one loader per editor, on its fetch and query cache */
+const referenceLoaders = new WeakMap<Editor, ReturnType<typeof createReferenceLoader>>()
+function referenceLoaderFor(editor: Editor) {
+  let loader = referenceLoaders.get(editor)
+  if (!loader) {
+    loader = createReferenceLoader({
+      fetch: editor.fetch,
+      queries: editor.queries,
+      storage: moduleStorage(),
+      now: () => Date.now(),
+    })
+    referenceLoaders.set(editor, loader)
+  }
+  return loader
+}
+
+/**
  * The map shows the field that has the focus or the pointer on it, on the selected way: a side line
  * or a width band (field-overlay.ts). Module-level, so its identity is stable for PresetFields.
  */
-function showFieldFocus(focus: FieldFocus | null) {
+function showFieldFocus(engine: MaidEngine, focus: FieldFocus | null) {
   const id = engine.selection[0]
   engine.setFieldOverlay(fieldOverlayFor(focus, id ? engine.entity(id)?.tags : undefined))
 }
 
 /** The sidebar: what the selected feature is (iD preset), its tags and the sections of modules. */
 export function Inspector() {
+  const { editor, engine } = useShell()
+  const loadReference = referenceLoaderFor(editor)
   const { id, ids, select } = useSelection()
   // read again when data arrives: a selection from the URL exists before its feature is loaded
   const entity: EntityInfo | undefined = useEngine((e) => e.entity(id))
@@ -71,7 +110,7 @@ export function Inspector() {
   const [measureKey, setMeasureKey] = useState<string>()
   // a measure is about the features it began on: a change of the selection (or leaving the inspector) ends it
   const selectionKey = ids.join(',')
-  useEffect(() => () => engine.cancelMeasure(), [selectionKey])
+  useEffect(() => () => engine.cancelMeasure(), [selectionKey, engine])
 
   if (!id) {
     return (
@@ -122,7 +161,7 @@ export function Inspector() {
       setMeasureKey(undefined)
       if (metres === undefined || !onChange) return
       // the background when the measure ends is the one it was taken on
-      const changes = measureTags(key, metres, imageryOnMap().background)
+      const changes = measureTags(key, metres, imageryOnMap(editor).background)
       // a measure of no distance (two clicks in one place) writes nothing
       if (Object.keys(changes).length === 0) return
       // the feature's tags as they are now, with the changes: one edit, so one undo step
@@ -192,7 +231,7 @@ export function Inspector() {
                   setFavouriteNumber(preset, entity.geometry, number)
                 }
                 onPick={(preset) => {
-                  changeType(id, preset)
+                  changeType({ editor, engine }, id, preset)
                   setPicker({ id, open: false })
                 }}
               />
@@ -225,7 +264,7 @@ export function Inspector() {
                   // field types that modules bring (`inspector.field`)
                   components={fieldTypes}
                   loadReference={loadReference}
-                  onFieldFocus={showFieldFocus}
+                  onFieldFocus={(focus) => showFieldFocus(engine, focus)}
                   // a width field of a single way has the "Measure on the map" button
                   measure={{
                     can: (key) =>
@@ -246,6 +285,7 @@ export function Inspector() {
                 // a filter made the feature read-only: the sheet is shown, navigable and copyable, not edited
                 readOnly={entity.readOnly}
                 onChangeTags={(tags, label) => engine.setTags(id, tags, label)}
+                suggest={suggestSourceFor(editor, entity.geometry)}
                 onUndo={() => engine.undo()}
                 onRedo={() => engine.redo()}
               />

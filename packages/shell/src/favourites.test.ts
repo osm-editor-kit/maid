@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it, mock } from 'bun:test'
+import { beforeAll, describe, expect, it } from 'bun:test'
 import {
   createPresets,
   type Presets,
@@ -39,6 +39,8 @@ const data: PresetData = {
   },
 }
 
+import * as favourites from './favourites.ts'
+
 const presets: Presets = createPresets(data)
 
 type Stored = { tags: Tags; geometry: 'point'; preset: ReturnType<Presets['match']> }
@@ -65,10 +67,10 @@ const engine = {
   },
 }
 
-await mock.module('./editor.ts', () => ({ editor: { presets }, engine }))
+const parts = { editor: { presets }, engine } as unknown as Parameters<
+  typeof favourites.startFavourite
+>[0]
 
-// the module is loaded after the mock, which replaces the editor
-const favourites = await import('./favourites.ts')
 const { useSettings } = await import('@osm-editor-kit/maid-ui')
 
 /** A point with these tags, its preset matched as the editor matches it */
@@ -81,7 +83,7 @@ function startBench() {
   useSettings.setState({
     favourites: [{ presetId: 'amenity/bench', geometry: 'point', number: '39' }],
   })
-  favourites.startFavourite('39')
+  favourites.startFavourite(parts, '39')
 }
 
 describe('a favourite that is given to a clicked node', () => {
@@ -94,7 +96,7 @@ describe('a favourite that is given to a clicked node', () => {
   it('keeps the value the node has: a field default does not overwrite it', () => {
     node('n1', { amenity: 'bench', backrest: 'no' })
     startBench()
-    favourites.giveFavouriteTagsToNode('n1')
+    favourites.giveFavouriteTagsToNode(parts, 'n1')
     expect(writes.at(-1)).toEqual({
       id: 'n1',
       tags: { amenity: 'bench', backrest: 'no' },
@@ -105,28 +107,28 @@ describe('a favourite that is given to a clicked node', () => {
   it('adds a missing field default', () => {
     node('n2', { amenity: 'picnic_table' })
     startBench()
-    favourites.giveFavouriteTagsToNode('n2')
+    favourites.giveFavouriteTagsToNode(parts, 'n2')
     expect(writes.at(-1)?.tags).toEqual({ amenity: 'bench', backrest: 'yes' })
   })
 
   it('keeps the tags that are not the preset of the node', () => {
     node('n3', { name: 'Park bench', amenity: 'bench' })
     startBench()
-    favourites.giveFavouriteTagsToNode('n3')
+    favourites.giveFavouriteTagsToNode(parts, 'n3')
     expect(writes.at(-1)?.tags).toEqual({ name: 'Park bench', amenity: 'bench', backrest: 'yes' })
   })
 
   it('changes the type as picking it would: the old type goes, the name stays', () => {
     node('n4', { name: 'Kiosk', amenity: 'cafe' })
     startBench()
-    favourites.giveFavouriteTagsToNode('n4')
+    favourites.giveFavouriteTagsToNode(parts, 'n4')
     expect(writes.at(-1)?.tags).toEqual({ name: 'Kiosk', amenity: 'bench', backrest: 'yes' })
   })
 
   it('does nothing when no favourite is pending', () => {
     node('n5', { amenity: 'cafe' })
     const before = writes.length
-    favourites.giveFavouriteTagsToNode('n5')
+    favourites.giveFavouriteTagsToNode(parts, 'n5')
     expect(writes.length).toBe(before)
   })
 })

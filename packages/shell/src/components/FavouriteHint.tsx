@@ -1,6 +1,5 @@
 import { useSettings } from '@osm-editor-kit/maid-ui'
 import { useEffect, useState } from 'react'
-import { editor } from '../editor'
 import { startFavourite } from '../favourites'
 import {
   advance,
@@ -10,6 +9,7 @@ import {
   type SequenceState,
 } from '../favourites-keys'
 import { MAC } from '../platform'
+import { useShell } from '../shell-context'
 
 /** The modifier as the hint shows it: the Option symbol on Apple devices, Alt elsewhere */
 const MODIFIER_LABEL = MAC ? '⌥' : 'Alt'
@@ -31,6 +31,7 @@ function inField(target: EventTarget | null) {
  * so the sequence works wherever the focus is, except in a text field.
  */
 export function FavouriteHint() {
+  const { editor, engine } = useShell()
   const [sequence, setSequence] = useState<SequenceState>(IDLE)
   const favourites = useSettings((state) => state.favourites)
 
@@ -41,7 +42,7 @@ export function FavouriteHint() {
       const step = advance(current.state, event)
       current.state = step.state
       setSequence(step.state)
-      if (step.start !== undefined) startFavourite(step.start)
+      if (step.start !== undefined) startFavourite({ editor, engine }, step.start)
     }
     const input = (event: KeyboardEvent, type: 'keydown' | 'keyup') => ({
       type,
@@ -77,7 +78,7 @@ export function FavouriteHint() {
       window.removeEventListener('keyup', onKeyUp)
       window.removeEventListener('blur', onBlur)
     }
-  }, [])
+  }, [editor, engine])
 
   const { held, digits, cancelled } = sequence
   if (!held || cancelled || digits === '') return null

@@ -1,0 +1,39 @@
+{
+  "name": "@osm-editor-kit/maid-bicycle",
+  "version": "0.0.0",
+  "private": true,
+  "license": "ISC",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --bun vite --port 5176 --strictPort",
+    "build": "bun --bun vite build",
+    "preview": "bun --bun vite preview --strictPort"
+  },
+  "dependencies": {
+    "@osm-editor-kit/maid-core": "workspace:*",
+    "@osm-editor-kit/maid-filters": "workspace:*",
+    "@osm-editor-kit/maid-module-data-layers": "workspace:*",
+    "@osm-editor-kit/maid-module-imagery": "workspace:*",
+    "@osm-editor-kit/maid-module-lenses": "workspace:*",
+    "@osm-editor-kit/maid-module-notes": "workspace:*",
+    "@osm-editor-kit/maid-module-street-imagery": "workspace:*",
+    "@osm-editor-kit/maid-module-surface": "workspace:*",
+    "@osm-editor-kit/maid-module-traffic-signs": "workspace:*",
+    "@osm-editor-kit/maid-operations": "workspace:*",
+    "@osm-editor-kit/maid-presets": "workspace:*",
+    "@osm-editor-kit/maid-renderer": "workspace:*",
+    "@osm-editor-kit/maid-shell": "workspace:*",
+    "@osm-editor-kit/maid-ui": "workspace:*",
+    "@osm-editor-kit/maid-validation": "workspace:*",
+    "@tailwindcss/vite": "^4.3.3",
+    "maplibre-gl": "^6.0.0",
+    "react": "^19.2.0",
+    "tailwindcss": "^4.3.3"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@vitejs/plugin-react": "6.1.0",
+    "oxc-transform-react": "^0.145.0",
+    "vite": "^8.0.0"
+  }
+}

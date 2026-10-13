@@ -1,7 +1,7 @@
 import { ContextMenu } from '@osm-editor-kit/maid-ui'
 import { useEditCommands, usePasteCommand } from '../commands'
-import { engine, useEngine } from '../editor'
 import { useSelection } from '../selection'
+import { useEngine, useShell } from '../shell-context'
 import { dropStack } from '../stack'
 import { featureItems, STACK_CHIP_CLASS, StackCount } from './StackPicker'
 
@@ -30,6 +30,7 @@ export type MenuPlace = {
  * choice that closes it, drops the stack and so the pill too.
  */
 export function MapContextMenu({ place, onClose }: { place: MenuPlace; onClose: () => void }) {
+  const { engine } = useShell()
   const { ids: selected, select } = useSelection()
   const selection = useEditCommands()
   const paste = usePasteCommand(place)
@@ -38,6 +39,7 @@ export function MapContextMenu({ place, onClose }: { place: MenuPlace; onClose: 
   const here = useEngine(() =>
     features.length > 1
       ? featureItems(
+          engine,
           features,
           (id) => selected.includes(id),
           (id) => select(id),

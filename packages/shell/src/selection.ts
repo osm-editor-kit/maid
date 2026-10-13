@@ -1,4 +1,4 @@
-import { engine } from './editor'
+import { useShell } from './shell-context'
 import { dropStackUnless } from './stack'
 import { useSelectedId } from './url/state'
 
@@ -7,6 +7,7 @@ import { useSelectedId } from './url/state'
  * changes both. `id` is the first selected entity, the one the inspector shows.
  */
 export function useSelection() {
+  const { engine } = useShell()
   const [param, setParam] = useSelectedId()
   const ids = param ? param.split(',') : []
   const select = (selection: string | readonly string[] | null) => {

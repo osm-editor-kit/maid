@@ -4,10 +4,10 @@ import { Flyout, notify, toolButtonClass } from '@osm-editor-kit/maid-ui'
 import { useId, useState, type ReactNode } from 'react'
 import { useAuth } from '../auth'
 import { DEV_API } from '../config'
-import { config, editor, useEngine } from '../editor'
 import { saveBlocked } from '../save/blocked'
 import { changesetTags, summaryOf, type ChangeElement, type OsmChange } from '../save/osm-change'
 import { pendingChange, uploadEdits, uploadErrors } from '../save/save'
+import { useEngine, useShell } from '../shell-context'
 
 export const LISTED = 12
 
@@ -69,15 +69,17 @@ function SavePanel(props: {
   onUploading: (uploading: boolean) => void
   onSaved: () => void
 }) {
+  const shell = useShell()
+  const { config, editor } = shell
   const { uploading, onUploading, onSaved } = props
   const auth = useAuth()
   const [comment, setComment] = useState('')
   const [failure, setFailure] = useState<string>()
   const noteId = useId()
   // read again after every edit
-  const change = useEngine(() => pendingChange())
+  const change = useEngine(() => pendingChange(editor))
   // the OSM API limits on what is changed: a tag too long for the API blocks the upload
-  const errors = useEngine(() => uploadErrors())
+  const errors = useEngine(() => uploadErrors(editor))
   const blocked = saveBlocked({ dev: config.dev, loggedIn: auth.user !== undefined, errors })
   const rows = rowsOf(change)
   const hashtags = changesetTags(comment, '').hashtags
@@ -92,7 +94,7 @@ function SavePanel(props: {
         if (blocked || uploading || rows.length === 0 || !comment.trim()) return
         onUploading(true)
         setFailure(undefined)
-        uploadEdits(comment).then(
+        uploadEdits(shell, comment).then(
           (id) => {
             onUploading(false)
             onSaved()
@@ -163,6 +165,7 @@ function SavePanel(props: {
 
 /** The top bar's save button: shows that there are edits and opens the save flyout */
 export function SaveButton() {
+  const { editor } = useShell()
   const hasChanges = useEngine(() => editor.history.hasChanges())
   const [open, setOpen] = useState(false)
   // while an upload runs the flyout cannot close, so its panel stays and no second upload can start

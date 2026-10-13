@@ -10,7 +10,7 @@ import {
 import { notify, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { Tooltip, type InspectorSection, type InspectorSectionProps } from '@osm-editor-kit/maid-ui'
 import { Fragment, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
-import { lateEngine } from '../engine-ref'
+import { useShell } from '../shell-context'
 import {
   joinableRelations,
   loadButtonLabel,
@@ -96,20 +96,21 @@ type RowHighlight = ReturnType<typeof useRelatedWhileHovered>
  * away while highlighted (a member removed with its button) clears it too, so no halo stays behind.
  */
 function useRelatedWhileHovered(ids: () => readonly string[]) {
+  const { engine } = useShell()
   const on = useRef(false)
   useEffect(
     () => () => {
-      if (on.current) lateEngine().setRelated(null)
+      if (on.current) engine.setRelated(null)
     },
-    [],
+    [engine],
   )
   const start = () => {
     on.current = true
-    lateEngine().setRelated(ids())
+    engine.setRelated(ids())
   }
   const stop = () => {
     on.current = false
-    lateEngine().setRelated(null)
+    engine.setRelated(null)
   }
   return { onPointerEnter: start, onPointerLeave: stop, onFocus: start, onBlur: stop }
 }
@@ -264,6 +265,7 @@ function MemberRowView({
   roleList: string
   select: Props['select']
 }) {
+  const { engine } = useShell()
   const highlight = useRelatedWhileHovered(() => [row.id])
   // the member as the relation holds it: its id and type come from the row, the role from the member
   const member = relation.members[row.index]
@@ -302,7 +304,7 @@ function MemberRowView({
       <ZoomButton
         label={`Zoom to ${row.id}`}
         disabled={!row.loaded}
-        onZoom={() => lateEngine().fitTo([row.id])}
+        onZoom={() => engine.fitTo([row.id])}
       />
       <MoveButton
         label={`Move ${row.id} up`}
@@ -365,6 +367,7 @@ function MemberList({
   readOnly: boolean
   select: Props['select']
 }) {
+  const { engine } = useShell()
   const graph = editor.history.staging.graph
   const rows = memberRows(graph, relation)
   const gaps = new Set(routeGaps(graph, relation))
@@ -376,19 +379,17 @@ function MemberList({
   // one request per click: the relation in full, merged like a map tile (engine.loadRelation)
   const loadMembers = () => {
     setLoad({ status: 'loading' })
-    lateEngine()
-      .loadRelation(relation.id)
-      .then(
-        ({ added }) => {
-          const left = notLoadedCount(memberRows(editor.history.staging.graph, relation))
-          setLoad({ status: 'done', added, left })
-        },
-        (error: unknown) =>
-          setLoad({
-            status: 'failed',
-            message: error instanceof Error ? error.message : String(error),
-          }),
-      )
+    engine.loadRelation(relation.id).then(
+      ({ added }) => {
+        const left = notLoadedCount(memberRows(editor.history.staging.graph, relation))
+        setLoad({ status: 'done', added, left })
+      },
+      (error: unknown) =>
+        setLoad({
+          status: 'failed',
+          message: error instanceof Error ? error.message : String(error),
+        }),
+    )
   }
   const result = load.status === 'done' ? loadResultSentence(load.added, load.left) : undefined
   return (
@@ -400,7 +401,7 @@ function MemberList({
               type="button"
               className={`${LINK_BUTTON} disabled:cursor-default disabled:text-zinc-300`}
               disabled={!rows.some((row) => row.loaded)}
-              onClick={() => lateEngine().fitTo([relation.id])}
+              onClick={() => engine.fitTo([relation.id])}
             >
               ◎ Zoom to the relation
             </button>
@@ -463,8 +464,9 @@ function MemberList({
 
 /** The inspected relation's members, in order. */
 function MembersSection({ entity, editor, select }: Props) {
+  const { engine } = useShell()
   // loading members merges them into the data: the rows follow the engine's version, not the editor's
-  useSyncExternalStore(lateEngine().subscribe, lateEngine().getVersion)
+  useSyncExternalStore(engine.subscribe, engine.getVersion)
   const relation = editor.history.staging.graph.hasEntity(entity.id)
   if (!(relation instanceof OsmRelation)) return null
   return (
@@ -494,11 +496,9 @@ function MembershipRow({
   roleList: string
   select: Props['select']
 }) {
+  const { engine } = useShell()
   const { relation, index, role } = membership
-  const highlight = useRelatedWhileHovered(() => [
-    relation.id,
-    ...lateEngine().relatedOf(relation.id),
-  ])
+  const highlight = useRelatedWhileHovered(() => [relation.id, ...engine.relatedOf(relation.id)])
   const member = relation.members[index]
   if (!member) return null
   const hint = membershipHint(relation, index)

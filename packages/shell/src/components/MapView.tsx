@@ -7,6 +7,7 @@ import {
   interactiveLayerIds,
   ModuleLayers,
   OsmLayers,
+  type MaidEngine,
   type LayerOptions,
 } from '@osm-editor-kit/maid-renderer'
 import { useSettings } from '@osm-editor-kit/maid-ui'
@@ -22,10 +23,10 @@ import {
 } from 'react-map-gl/maplibre'
 import { exposeBenchApi } from '../bench'
 import { drawClick } from '../drawing'
-import { config, editor, engine, useEngine } from '../editor'
 import { addPointWithFavourite, giveFavouriteTagsToNode } from '../favourites'
 import { ensureImages } from '../images'
 import { useSelection } from '../selection'
+import { useEngine, useShell } from '../shell-context'
 import { dropStack, setStack } from '../stack'
 import { useCameraParam } from '../url/state'
 import { moveSource, shouldStoreMove, startCamera } from '../url/view'
@@ -69,7 +70,23 @@ function isTyping(target: EventTarget | null) {
  * Where the menu key opens the edit menu: the middle of the selection on screen, as iD opens it
  * at the pointer, which a key does not have. With nothing selected, the middle of the map.
  */
-function keyMenuPlace() {
+/**
+ * The engine is made outside React and these are its settable fields. They are set here, in functions
+ * of their own, because the engine comes from a hook now and the React Compiler does not accept a
+ * write to a value a hook returned inside a component.
+ */
+function setEngineHooks(
+  engine: MaidEngine,
+  hooks: Pick<MaidEngine['options'], 'onStyleChange' | 'prepare'>,
+) {
+  engine.options.onStyleChange = hooks.onStyleChange
+  engine.options.prepare = hooks.prepare
+}
+function setEnginePointer(engine: MaidEngine, pointer: MaidEngine['pointer']) {
+  engine.pointer = pointer
+}
+
+function keyMenuPlace(engine: MaidEngine) {
   const map = engine.map
   if (!map) return null
   const locs: [number, number][] = []
@@ -103,6 +120,8 @@ function keyMenuPlace() {
 }
 
 export function MapView() {
+  const shell = useShell()
+  const { config, editor, engine } = shell
   const [cameraParam, setCameraParam] = useCameraParam()
   const { ids: selectedIds, select } = useSelection()
   // Dash patterns are discovered as data arrives; the layers list them in their expressions.
@@ -145,17 +164,19 @@ export function MapView() {
   const handleLoad = (event: MapEvent) => {
     const map = event.target
     loaded.current = true
-    engine.options.onStyleChange = () => setDashes(new globalThis.Map(dashPatterns))
-    engine.options.prepare = (batch) => {
-      const ids = new Set<string>()
-      for (const f of batch.points)
-        if (!f.properties?.addr) ids.add(`pin-${f.properties?.icon ?? 'none'}`)
-      for (const f of batch.vertices) if (f.properties?.icon) ids.add(`icon-${f.properties.icon}`)
-      return ensureImages(map, ids)
-    }
+    setEngineHooks(engine, {
+      onStyleChange: () => setDashes(new globalThis.Map(dashPatterns)),
+      prepare: (batch) => {
+        const ids = new Set<string>()
+        for (const f of batch.points)
+          if (!f.properties?.addr) ids.add(`pin-${f.properties?.icon ?? 'none'}`)
+        for (const f of batch.vertices) if (f.properties?.icon) ids.add(`icon-${f.properties.icon}`)
+        return ensureImages(map, ids)
+      },
+    })
     engine.attach(map)
     engine.setSelected(selectedIds)
-    exposeBenchApi(map, engine, { select })
+    exposeBenchApi(shell, map, { select })
   }
   const handleMove = (_: ViewStateChangeEvent) => {
     // load while moving, but not on every frame
@@ -229,7 +250,7 @@ export function MapView() {
   }) => {
     const { lng, lat } = event.lngLat
     // keys that act where the pointer is (paste, Space while drawing) read this
-    engine.pointer = { point: event.point, lon: lng, lat, layers: interactive }
+    setEnginePointer(engine, { point: event.point, lon: lng, lat, layers: interactive })
     // a measure follows the pointer and takes nothing else
     if (engine.measuring) {
       engine.measureMove(lng, lat)
@@ -292,11 +313,11 @@ export function MapView() {
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'ContextMenu' || isTyping(event.target)) return
       event.preventDefault() // not the browser's own menu
-      if (engine.mode === 'browse') setMenu(keyMenuPlace())
+      if (engine.mode === 'browse') setMenu(keyMenuPlace(engine))
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [engine.mode, engine])
   // Escape cancels a measure. It is taken in the capture phase on the window, so the editor's own
   // Escape (useShortcuts: it clears the selection) does not see it. The selection stays.
   useEffect(() => {
@@ -308,7 +329,7 @@ export function MapView() {
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [])
+  }, [engine.measuring, engine])
   const handleContextMenu = (event: MapLayerMouseEvent) => {
     event.originalEvent.preventDefault() // not the browser's own menu
     clearTimeout(longPress)
@@ -366,28 +387,28 @@ export function MapView() {
       const on = engine.snapAt(event.point, interactive, new Set())
       if (on?.type === 'node') {
         // a favourite that started this mode tags the node that is there
-        giveFavouriteTagsToNode(on.id)
+        giveFavouriteTagsToNode({ editor, engine }, on.id)
         engine.setMode('browse')
         select(on.id)
         return
       }
       if (on?.type === 'way') {
         const id = engine.addNodeOn(on)
-        giveFavouriteTagsToNode(id)
+        giveFavouriteTagsToNode({ editor, engine }, id)
         engine.setMode('browse')
         select(id)
         return
       }
       // the new point is selected, so the sidebar asks what it is
       // a favourite that started this mode gives the point its tags
-      const id = addPointWithFavourite(event.lngLat.lng, event.lngLat.lat)
+      const id = addPointWithFavourite({ engine }, event.lngLat.lng, event.lngLat.lat)
       engine.setMode('browse')
       select(id)
       return
     }
     if (drawing) {
       guardZoom()
-      void drawClick(select, drawing, event.point, interactive).then(
+      void drawClick(engine, select, drawing, event.point, interactive).then(
         (finished) => finished && guardZoom(),
       )
       return

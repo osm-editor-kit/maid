@@ -9,6 +9,7 @@ const NAMES: Record<ServiceId, { readonly name: string; readonly verb: 'is' | 'a
   mapillary: { name: 'Mapillary', verb: 'is' },
   panoramax: { name: 'Panoramax', verb: 'is' },
   data: { name: "A data layer's server", verb: 'is' },
+  taginfo: { name: 'Taginfo', verb: 'is' },
   local: { name: 'The local server', verb: 'is' },
 }
 

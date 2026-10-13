@@ -65,6 +65,8 @@ export {
 export {
   createEditorQueryClient,
   keys,
+  MAXLAG_RETRY_DELAY_MS,
+  MaxlagError,
   retryDelayFor,
   SESSION_DATA,
   shouldRetry,
@@ -82,3 +84,12 @@ export {
   type ServiceId,
   type ServiceRegistry,
 } from './fetching/services.ts'
+export {
+  createTaginfo,
+  MIN_QUERY_LENGTH,
+  TAGINFO_API,
+  type Taginfo,
+  type TaginfoGeometry,
+  type TaginfoOptions,
+  type TagSuggestion,
+} from './taginfo/taginfo.ts'

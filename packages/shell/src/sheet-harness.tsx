@@ -7,9 +7,9 @@
  */
 import { TagSheet, type TagSheetProps } from '@osm-editor-kit/maid-ui'
 import { NuqsAdapter } from 'nuqs/adapters/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useShortcuts } from './components/useShortcuts'
-import { editor, engine } from './editor'
+import { useShell } from './shell-context'
 
 type Tags = TagSheetProps['tags']
 
@@ -30,7 +30,6 @@ const probe: {
 
 Object.assign(window, {
   __sheet: probe,
-  __maid: { engine, editor },
   __bench: { ready: () => Promise.resolve(), settled: () => Promise.resolve() },
 })
 
@@ -64,6 +63,10 @@ function Harness() {
 }
 
 export function TagHarness() {
+  const { engine, editor } = useShell()
+  useEffect(() => {
+    Object.assign(window, { __maid: { engine, editor } })
+  }, [engine, editor])
   return (
     <NuqsAdapter>
       <Shortcuts />

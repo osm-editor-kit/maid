@@ -16,10 +16,11 @@ import { UndoRedo } from './components/UndoRedo'
 import { UserButton } from './components/UserButton'
 import { useShortcuts } from './components/useShortcuts'
 import { ZoomControls } from './components/ZoomControls'
-import { config, editor } from './editor'
 import { useSelection } from './selection'
+import { useShell } from './shell-context'
 
 function Editor() {
+  const { brand, config } = useShell()
   useShortcuts()
   // On a phone the inspector is a sheet: it opens when something is selected and can be closed
   const { param } = useSelection()
@@ -37,7 +38,7 @@ function Editor() {
     <Shell
       topBar={
         <TopBar
-          start={<Brand name="Maid" detail="MapLibre iD Editor" />}
+          start={<Brand name={brand.name} detail={brand.detail} />}
           center={
             <div className="flex items-center gap-3">
               <ModeButtons />
@@ -68,6 +69,7 @@ function Editor() {
 }
 
 export function App() {
+  const { editor } = useShell()
   return (
     <NuqsAdapter>
       <MapProvider>

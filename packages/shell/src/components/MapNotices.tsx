@@ -1,4 +1,4 @@
-import { config } from '../editor'
+import { useShell } from '../shell-context'
 import { useCameraParam } from '../url/state'
 
 /**
@@ -6,6 +6,7 @@ import { useCameraParam } from '../url/state'
  * and where the data comes from (the attribution OpenStreetMap asks for).
  */
 export function MapNotices() {
+  const { config } = useShell()
   const [camera] = useCameraParam()
   const zoom = camera?.zoom ?? config.camera?.zoom
   const belowDataZoom = zoom !== undefined && zoom < config.minDataZoom

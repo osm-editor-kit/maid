@@ -1,10 +1,8 @@
 import * as model from '@osm-editor-kit/maid-model'
-import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { notify } from '@osm-editor-kit/maid-ui'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import type { BenchApi } from '../../../tools/refs/bench-api'
-import { editor } from './editor'
-import { journalFlushed } from './journal'
+import type { Shell } from './shell'
 
 /**
  * Maid's side of the contract in tools/refs/bench-api.d.ts. Also the debug handle for agents:
@@ -12,8 +10,8 @@ import { journalFlushed } from './journal'
  * classes and actions) and the notices (`notify`), so a check can build data without the UI.
  */
 export function exposeBenchApi(
+  { id, editor, engine, journal }: Pick<Shell, 'id' | 'editor' | 'engine' | 'journal'>,
   map: MapLibreMap,
-  engine: MaidEngine,
   app: { select: (id: string | null) => void },
 ) {
   const api: BenchApi = {
@@ -52,6 +50,6 @@ export function exposeBenchApi(
   // `notify` lets a check or a screenshot show each kind of toast (packages/ui/src/Toast.tsx)
   Object.assign(window, {
     __bench: api,
-    __maid: { map, engine, editor, model, journalFlushed, notify },
+    __maid: { app: id, map, engine, editor, model, journalFlushed: journal.flushed, notify },
   })
 }

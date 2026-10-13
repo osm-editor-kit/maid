@@ -1,9 +1,10 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
+import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import type { ReactNode } from 'react'
 import { commandIcon } from './command-icons'
-import { editor, engine, useEngine } from './editor'
 import { modKey } from './platform'
 import { useSelection } from './selection'
+import { useEngine, useShell } from './shell-context'
 
 /** One entry of the edit menu: in the sidebar, on a right click, and behind its key */
 export type Command = {
@@ -30,7 +31,7 @@ export const PROTECTED_REASON = 'A filter protects this feature'
  * is not asked: the filter that protects its tags protects it as an area or as a line. A vertex
  * follows its ways.
  */
-function protectedBy(id: string) {
+function protectedBy(engine: MaidEngine, id: string): boolean {
   if (engine.isReadOnly(id)) return true
   const { filters } = engine
   const readOnly = (
@@ -43,7 +44,7 @@ function protectedBy(id: string) {
   }
   if (id.startsWith('n')) {
     const ways = engine.data.nodeWays.get(id) ?? []
-    if (ways.length > 0) return ways.some(protectedBy)
+    if (ways.length > 0) return ways.some((way) => protectedBy(engine, way))
     const tags = engine.data.node(id)?.tags
     return tags !== undefined && readOnly(tags, ['point'])
   }
@@ -52,6 +53,7 @@ function protectedBy(id: string) {
 
 /** "Paste" at a place on the map, if something was copied */
 export function usePasteCommand(at: { lon: number; lat: number } | undefined) {
+  const { engine } = useShell()
   const { select } = useSelection()
   const canPaste = useEngine((e) => e.canPaste)
   if (!canPaste || !at) return []
@@ -72,12 +74,13 @@ export function usePasteCommand(at: { lon: number; lat: number } | undefined) {
  * selection. A feature that a filter protects keeps its commands, greyed out with the reason.
  */
 export function useEditCommands() {
+  const { editor, engine } = useShell()
   const operations = useExtensionPoint(editor, 'edit.operation')
   const { ids, select } = useSelection()
   // the version makes this read again after every edit: what applies depends on the data
   return useEngine((e) => {
     if (ids.length === 0) return []
-    const protectedIds = ids.some(protectedBy)
+    const protectedIds = ids.some((id) => protectedBy(engine, id))
     const context = e.operationContext()
     return [
       {

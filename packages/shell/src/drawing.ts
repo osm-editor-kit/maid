@@ -1,5 +1,4 @@
-import type { DrawKind } from '@osm-editor-kit/maid-renderer'
-import { engine } from './editor'
+import type { DrawKind, MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { giveFavouriteType } from './favourites'
 
 type Select = (selection: string | readonly string[] | null) => void
@@ -10,6 +9,7 @@ type Select = (selection: string | readonly string[] | null) => void
  * started it, the favourite's type is already given).
  */
 export async function drawClick(
+  engine: MaidEngine,
   select: Select,
   kind: DrawKind,
   point: { x: number; y: number },
@@ -17,14 +17,14 @@ export async function drawClick(
 ) {
   const finished = await engine.draw.click(kind, point, layers)
   if (!finished) return false
-  giveFavouriteType(finished, kind === 'line' ? 'draw-line' : 'draw-area')
+  giveFavouriteType({ engine }, finished, kind === 'line' ? 'draw-line' : 'draw-area')
   engine.setMode('browse')
   select(finished)
   return true
 }
 
 /** The kind of way the current mode draws, if it is a drawing mode */
-export function drawingKind() {
+export function drawingKind(engine: MaidEngine) {
   return engine.mode === 'draw-line' ? 'line' : engine.mode === 'draw-area' ? 'area' : undefined
 }
 
@@ -32,7 +32,7 @@ export function drawingKind() {
  * iD's A: continues the selected line from its end, or from the selected vertex if that is an
  * end of a line. Returns false if the selection is not something to continue.
  */
-export function continueLine(selected: readonly string[]) {
+export function continueLine(engine: MaidEngine, selected: readonly string[]) {
   const [id] = selected
   if (selected.length !== 1 || !id) return false
   const way = id[0] === 'w' ? engine.data.way(id) : undefined

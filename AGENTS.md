@@ -73,6 +73,8 @@ These names are the contract. Agents and docs only reference these.
 | `bun run check` | Type-check, lint and format with fixes (oxlint, oxfmt), unit tests. Run before every commit. |
 | `bun run check-ci` | The same, read-only. |
 | `bun run dev` | Maid dev server (5173) and the mock OSM API (8090). |
+| `bun run dev-maid` | Only the Maid dev server (`apps/maid`, 5173). |
+| `bun run dev-bicycle` | Only the Maid Bicycle dev server (`apps/maid-bicycle`, 5176): Maid's modules plus the traffic signs module. |
 | `bun run refs-setup` | Clone and build iD and Rapid at their pinned commits into `.reference/`, copy icon sprites into Maid. |
 | `bun run refs-serve` | Serve the built reference editors: iD on 8081, Rapid on 8082. |
 | `bun run bench` | Run all scenarios against all editors and write `reports/<run-id>/`. Starts the servers it needs. Options: `--editor`, `--scene`, `--repeat`, `--label`, `--variant`, `--maid-query`, `--id-query`. |
@@ -102,7 +104,8 @@ Every editor is driven through one contract, `window.__bench` (`tools/refs/bench
 ## Layout
 
 ```
-apps/maid            the default editor: maid.config.ts (which modules, presets, filters), main.tsx, env files; the rest is the shell
+apps/maid            the default editor: maid.config.ts (an AppConfig: modules, presets, filters), main.tsx, env files; the rest is the shell
+apps/maid-bicycle    the second app on port 5176: the same, with the traffic signs module switched on and its own name
 apps/compare         page that shows Maid, iD and Rapid side by side
 packages/style       iD's look as data: tag classes, CSS rules
 packages/core        createEditor: the editor's data (context, history), Maid modules, extension points, hooks

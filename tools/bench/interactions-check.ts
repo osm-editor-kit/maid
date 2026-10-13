@@ -1664,7 +1664,15 @@ failed += await runCheck(
           const a = at(way.nodes[0]!)
           const b = at(way.nodes[1]!)
           const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
-          if (inView(mid) && alone(mid, [id], 8)) building = { id, at: mid }
+          // nothing else there at all, not even another area's fill: which of two things on top of
+          // each other a click takes is not what this step is about
+          const only = map
+            .queryRenderedFeatures([
+              [mid.x - 8, mid.y - 8],
+              [mid.x + 8, mid.y + 8],
+            ])
+            .every((f: any) => String(f.id) === id)
+          if (inView(mid) && only) building = { id, at: mid }
         }
       }
       const free: XY[] = []

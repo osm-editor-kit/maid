@@ -1,8 +1,9 @@
 import { Square2StackIcon } from '@heroicons/react/16/solid'
+import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { ContextMenu, Tooltip } from '@osm-editor-kit/maid-ui'
 import { useEffect, useState } from 'react'
-import { engine, useEngine } from '../editor'
 import { useSelection } from '../selection'
+import { useEngine, useShell } from '../shell-context'
 import { keepsStack, useStack, type Stack } from '../stack'
 import { PresetIcon } from './PresetIcon'
 
@@ -35,6 +36,7 @@ function stackName(total: number, index: number) {
  * focusing it highlights the feature on the map, as a calm halo beside the selection's glow.
  */
 export function featureItems(
+  engine: MaidEngine,
   ids: readonly string[],
   isCurrent: (id: string) => boolean,
   choose: (id: string) => void,
@@ -80,6 +82,7 @@ export function StackCount({ index, total }: { index: number; total: number }) {
  * Escape ends the stack (MapView, stack.ts), and so the pill.
  */
 export function StackPicker() {
+  const { engine } = useShell()
   const stack = useStack()
   const { ids: selected, select } = useSelection()
   const mode = useEngine((e) => e.mode)
@@ -97,12 +100,13 @@ export function StackPicker() {
     return () => {
       map.off('resize', onResize)
     }
-  }, [stack])
+  }, [stack, engine.map])
 
   const shown = stack !== null && keepsStack(stack, selected) && mode === 'browse' && !measuring
   const rows = useEngine(() =>
     shown && list?.stack === stack && stack
       ? featureItems(
+          engine,
           stack.ids,
           (id) => id === selected[0],
           (id) => select(id),

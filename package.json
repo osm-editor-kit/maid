@@ -9,9 +9,10 @@
   ],
   "type": "module",
   "scripts": {
-    "dev": "bun run --parallel dev:*",
-    "dev:maid": "bun run --cwd apps/maid dev",
+    "dev": "bun run --parallel dev-maid dev-bicycle dev:api",
     "dev:api": "bun tools/mock-osm-api/server.ts",
+    "dev-maid": "bun run --cwd apps/maid dev",
+    "dev-bicycle": "bun run --cwd apps/maid-bicycle dev",
     "fixtures-build": "bun tools/fixtures/build.ts",
     "type-check": "tsc -b packages/model && tsc --noEmit && tsc --noEmit -p packages/core/tsconfig.test.json",
     "test-run": "bun test",

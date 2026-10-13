@@ -1,9 +1,10 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { Flyout, toolButtonClass } from '@osm-editor-kit/maid-ui'
-import { editor } from '../editor'
+import { useShell } from '../shell-context'
 
 /** The panels of modules (`topbar.panel`): one icon button each, opening a flyout */
 export function TopBarPanels() {
+  const { editor } = useShell()
   const panels = useExtensionPoint(editor, 'topbar.panel')
   return panels.map((panel) => (
     <Flyout

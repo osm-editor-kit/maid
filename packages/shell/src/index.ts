@@ -1,7 +1,8 @@
-// What an app imports from the shell. The shell's entry, `mountEditor`, is its own subpath
-// (`@osm-editor-kit/maid-shell/mount`): this barrel must not evaluate `editor.ts`, because the
-// app's config imports it (see app-config.ts).
-export { setAppConfig, type AppConfigFactory } from './app-config'
+// What an app imports from the shell: the entry (`mountEditor`), the config type, and the
+// built-in modules an app switches on. Nothing here makes an editor at import time, because the
+// app's config imports this file (see shell.ts, which `mountEditor` calls with that config).
+export { mountEditor } from './mount'
+export type { AppConfig } from './shell'
 export type { Config } from './config'
 export { elementInfo } from './modules/element-info'
 export { relations } from './modules/relations'

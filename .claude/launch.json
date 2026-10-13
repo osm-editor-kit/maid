@@ -8,6 +8,12 @@
       "port": 5173
     },
     {
+      "name": "maid-bicycle",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "apps/maid-bicycle", "dev"],
+      "port": 5176
+    },
+    {
       "name": "mock-osm-api",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["tools/mock-osm-api/server.ts"],

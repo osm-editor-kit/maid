@@ -1,6 +1,7 @@
 import { ArrowRightEndOnRectangleIcon, UserCircleIcon } from '@heroicons/react/20/solid'
 import { Flyout, ThemeSwitch, toolButtonClass } from '@osm-editor-kit/maid-ui'
-import { login, logout, useAuth } from '../auth'
+import { useAuth } from '../auth'
+import { useShell } from '../shell-context'
 
 const ACTION =
   'w-full cursor-pointer rounded-lg px-3 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-50'
@@ -12,6 +13,7 @@ const ACTION =
  */
 export function UserButton() {
   const auth = useAuth()
+  const { login, logout } = useShell().auth
   return (
     <Flyout
       label="Account and appearance"

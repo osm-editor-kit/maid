@@ -1,12 +1,17 @@
+import type { Editor } from '@osm-editor-kit/maid-core'
 import type { Geometry, Preset, Tags } from '@osm-editor-kit/maid-presets'
 import type { Mode } from '@osm-editor-kit/maid-renderer'
+import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import {
   favouritesFor,
   findFavouriteByNumber,
   setFavouriteNumber as setNumberIn,
   useSettings,
 } from '@osm-editor-kit/maid-ui'
-import { editor, engine } from './editor'
+import { useShell } from './shell-context'
+
+/** What the functions here act on: the editor's presets and the engine */
+type Parts = { editor: Editor; engine: MaidEngine }
 
 /** The mode that adds a feature of each geometry. Vertices and relations are not added this way. */
 const ADD_MODE: Partial<Record<Geometry, Mode>> = {
@@ -21,13 +26,17 @@ const ADD_MODE: Partial<Record<Geometry, Mode>> = {
  */
 const pending: { current?: { mode: Mode; preset: Preset; tags: Tags } } = {}
 
-engine.subscribe(() => {
-  if (pending.current && engine.mode !== pending.current.mode) pending.current = undefined
-})
+/** Called once by the shell, when it makes the engine */
+export function watchFavourites(engine: MaidEngine) {
+  engine.subscribe(() => {
+    if (pending.current && engine.mode !== pending.current.mode) pending.current = undefined
+  })
+}
 
 /** The favourites of a geometry as the type picker lists them: their presets, with their numbers */
 export function useFavouriteRows(geometry: Geometry | undefined) {
   const favourites = useSettings((state) => state.favourites)
+  const { editor } = useShell()
   const { presets } = editor
   if (!geometry || !presets) return []
   return favouritesFor(favourites, geometry).flatMap((favourite) => {
@@ -61,7 +70,7 @@ export function setFavouriteNumber(preset: Preset, geometry: Geometry, number: s
  * Gives a feature the type of a preset, as the type picker does: one undo step with the same
  * annotation.
  */
-export function changeType(id: string, preset: Preset) {
+export function changeType({ editor, engine }: Parts, id: string, preset: Preset) {
   const entity = engine.entity(id)
   const { presets } = editor
   if (!entity || !presets) return
@@ -76,7 +85,7 @@ export function changeType(id: string, preset: Preset) {
  * switched on and the feature is made with the favourite's tags. Otherwise, or for a number that
  * no favourite has, it does nothing.
  */
-export function startFavourite(number: string) {
+export function startFavourite({ editor, engine }: Parts, number: string) {
   const favourite = findFavouriteByNumber(useSettings.getState().favourites, number)
   const preset = favourite ? editor.presets?.preset(favourite.presetId) : undefined
   if (!favourite || !preset) return
@@ -87,7 +96,7 @@ export function startFavourite(number: string) {
   if (selected !== undefined) {
     const entity = engine.entity(selected)
     if (entity && !entity.readOnly && entity.geometry === favourite.geometry)
-      changeType(selected, preset)
+      changeType({ editor, engine }, selected, preset)
     return
   }
 
@@ -100,7 +109,7 @@ export function startFavourite(number: string) {
 }
 
 /** Adds a point at a place on the map. A favourite that started the point mode gives it its tags. */
-export function addPointWithFavourite(lon: number, lat: number) {
+export function addPointWithFavourite({ engine }: Pick<Parts, 'engine'>, lon: number, lat: number) {
   const found = pending.current
   if (!found || found.mode !== 'add-point') return engine.addPoint(lon, lat)
   pending.current = undefined
@@ -112,7 +121,7 @@ export function addPointWithFavourite(lon: number, lat: number) {
  * node that was clicked, or a new node on a line. The node keeps the tags it has; the favourite's
  * are added on top, as picking that type would.
  */
-export function giveFavouriteTagsToNode(id: string) {
+export function giveFavouriteTagsToNode({ editor, engine }: Parts, id: string) {
   const found = pending.current
   if (!found || found.mode !== 'add-point') return
   pending.current = undefined
@@ -129,7 +138,7 @@ export function giveFavouriteTagsToNode(id: string) {
  * A line or an area that was just finished in `mode`. A favourite that started that mode gives it
  * its type: a second undo step, as the type picker makes one.
  */
-export function giveFavouriteType(id: string, mode: Mode) {
+export function giveFavouriteType({ engine }: Pick<Parts, 'engine'>, id: string, mode: Mode) {
   const found = pending.current
   if (!found || found.mode !== mode) return
   pending.current = undefined

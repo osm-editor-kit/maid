@@ -19,6 +19,7 @@ import { defaultPresetData } from '@osm-editor-kit/maid-presets/default'
 // import { examplePresetChanges } from './preset-changes.example'
 import { operations } from '@osm-editor-kit/maid-renderer'
 import {
+  type AppConfig,
   type Bbox,
   type Config,
   elementInfo,
@@ -59,7 +60,7 @@ const presets = createPresets(
 const canBeArea = (tags: Record<string, string>) =>
   tags.area !== 'no' && presets.match(tags, 'point').geometry.includes('area')
 
-export function editorConfig(config: Config) {
+function editorConfig(config: Config) {
   // live data and unknown scenes have no fixture area to outline
   const bbox = config.live ? undefined : BBOX[config.scene]
   const modules: MaidModule[] = [
@@ -94,4 +95,16 @@ export function editorConfig(config: Config) {
     // to use the example changes, replace the line above with this one (see preset-changes.example.ts):
     filters: defaultFilters,
   }
+}
+
+/** The app: its name, its login to the OSM development server, and the editor above */
+export const app: AppConfig = {
+  id: 'maid',
+  brand: { name: 'Maid', detail: 'MapLibre iD Editor' },
+  osm: {
+    devClientId: import.meta.env.VITE_OSM_DEV_CLIENT_ID || undefined,
+    loginOrigin: 'http://127.0.0.1:5173',
+    envFile: 'apps/maid/.env.local',
+  },
+  editor: editorConfig,
 }
