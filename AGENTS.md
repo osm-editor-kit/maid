@@ -86,6 +86,7 @@ These names are the contract. Agents and docs only reference these.
 | `bun run check-edit [scene]` | Browser check: add a point, change it, delete it, delete a way, undo and redo, and compare data, lookups and map after each step. Needs `bun run dev`. |
 | `bun run check-filters [scene]` | Browser check: hide buildings, make them read-only, reset, and start with a filter in the URL. Needs `bun run dev`. |
 | `bun run check-journal [scene]` | Browser check: edit, reload, restore the edits from the browser's storage, undo all, reload, discard. Needs `bun run dev`. |
+| `bun run check-tags` | Browser check of the tags sheet on a bare test page, with real keys, mouse and clipboard: typing, moving, renaming, pasting `key=value` lines, copying rows, and that the editor's shortcuts stay out of a cell. Needs `bun run dev`. |
 | `bun run check-interactions [scene]` | Browser check with real mouse, key and touch events against iD's behaviour: Shift-click, dragging nodes and points, double click, drawing keys, move, rotate, copy and paste. Needs `bun run dev`. |
 | `bun run check-ops [scene]` | Browser check: square a building, split a road, merge the parts, undo; data and map after each step. Needs `bun run dev`. |
 | `bun run check-relations [scene]` | Browser check: add a way to a relation, change its role, remove it, undo; move a node of a multipolygon and see its area follow. Needs `bun run dev`. |

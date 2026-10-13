@@ -26,6 +26,8 @@ export async function runCheck(
   query = '',
   /** A browser with a touch screen, for checks that send touch events */
   hasTouch = false,
+  /** Browser permissions the page gets, e.g. `clipboard-read` for a paste check. None by default. */
+  permissions: string[] = [],
 ): Promise<number> {
   const scene = getScene(sceneName)
   const browser = await chromium.launch({ channel: 'chrome', headless: true })
@@ -41,6 +43,7 @@ export async function runCheck(
   }
   try {
     const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, hasTouch })
+    if (permissions.length > 0) await context.grantPermissions(permissions)
     const page = await context.newPage()
     const blocked = new Map<string, number>()
     await context.route(

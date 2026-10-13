@@ -176,6 +176,8 @@ export type SheetProps = {
   describePaste?: (report: PasteReport) => string
   /** Changes when the host re-sorted the rows: the only trigger of the layout animation. */
   orderToken?: string
+  /** A host message for the status line (e.g. "Copied"). A new object shows again. */
+  note?: { text: string }
 }
 
 /**

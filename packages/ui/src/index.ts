@@ -72,3 +72,17 @@ export { errorText, notify, Toaster, type NotifyOptions } from './Toast.tsx'
 export { useResizable } from './useResizable.ts'
 export { useBreakpoint, type Breakpoint } from './useBreakpoint.ts'
 export { PLAIN_INPUT } from './plain-input.ts'
+export { Sheet } from './sheet/Sheet.tsx'
+export { TagSheet, type TagSheetProps } from './sheet/tags/TagSheet.tsx'
+export type {
+  CellRef,
+  CellValue,
+  PasteReport,
+  SheetBatch,
+  SheetCellData,
+  SheetChange,
+  SheetClipboard,
+  SheetColumn,
+  SheetProps,
+  SheetRow,
+} from './sheet/types.ts'
