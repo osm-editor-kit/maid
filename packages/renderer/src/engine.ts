@@ -121,10 +121,15 @@ const y2lat = (y: number) =>
 /** Whether an entity moved between the two sides of a change. A missing side or position counts as moved. */
 function locMoved(base: OsmEntity | undefined, head: OsmEntity | undefined) {
   // only nodes have a position; a way gives undefined and counts as moved (ways are always rebuilt anyway)
-  const from = (base as OsmNode | undefined)?.loc
-  const to = (head as OsmNode | undefined)?.loc
+  const from = base instanceof OsmNode ? base.loc : undefined
+  const to = head instanceof OsmNode ? head.loc : undefined
   if (!from || !to) return true
   return from[0] !== to[0] || from[1] !== to[1]
+}
+
+/** The OSM id of a map or GeoJSON feature: the builder and promoteId make it the entity id, a string such as `w123` */
+function featureId(f: { id?: string | number }) {
+  return typeof f.id === 'string' ? f.id : undefined
 }
 
 /**
@@ -365,7 +370,8 @@ export class MaidEngine {
       this.metrics.features[name] += features.length
       let relatedArrived = false
       for (const f of features) {
-        const id = f.id as string
+        const id = featureId(f)
+        if (id === undefined) continue
         this.featureSource.set(id, name)
         if (tier === 'live') this.live[name].set(id, f)
         // a related feature that was not loaded when it was asked for gets its state now
@@ -378,7 +384,10 @@ export class MaidEngine {
       // a selection made before its feature was loaded (from the URL) is shown once it arrives
       if (
         this.selectedIds.length !== this.shownSelected.length &&
-        features.some((f) => this.selectedIds.includes(f.id as string))
+        features.some((f) => {
+          const id = featureId(f)
+          return id !== undefined && this.selectedIds.includes(id)
+        })
       ) {
         queueMicrotask(() => this.applyHighlight([], 'selected'))
       }
@@ -485,9 +494,10 @@ export class MaidEngine {
       )
       // 2. drop the live copies that were not changed again since, and show the originals
       for (const [name, features] of snapshot) {
-        const done = features
-          .filter((f) => this.live[name].get(f.id as string) === f)
-          .map((f) => f.id as string)
+        const done = features.flatMap((f) => {
+          const id = featureId(f)
+          return id !== undefined && this.live[name].get(id) === f ? [id] : []
+        })
         if (done.length === 0) continue
         for (const id of done) {
           this.live[name].delete(id)
@@ -611,8 +621,8 @@ export class MaidEngine {
   private hideOriginals(batch: FeatureBatch) {
     for (const name of SOURCE_NAMES) {
       for (const f of batch[name]) {
-        const id = f.id as string
-        if (this.editing.has(id) || this.live[name].has(id)) continue
+        const id = featureId(f)
+        if (id === undefined || this.editing.has(id) || this.live[name].has(id)) continue
         this.editing.add(id)
         this.map?.setFeatureState({ source: SOURCES[name], id }, { editing: true })
       }
@@ -929,34 +939,39 @@ export class MaidEngine {
         multipolygons.add(relationId)
     }
     for (const { id, moved } of entities) {
-      if (id[0] === 'n') {
-        const node = this.data.node(id)
-        if (!node) {
-          place(id)
-        } else if (this.data.nodeWays.has(id)) {
-          if (moved)
-            for (const wayId of this.data.nodeWays.get(id) ?? []) {
-              // a way that another node already placed is built already: check before building
-              if (!placed.has(wayId)) {
-                const way = this.data.way(wayId)
-                if (way) place(wayId, this.builder.buildWay(way))
+      switch (id.charAt(0)) {
+        case 'n': {
+          const node = this.data.node(id)
+          if (!node) {
+            place(id)
+          } else if (this.data.nodeWays.has(id)) {
+            if (moved)
+              for (const wayId of this.data.nodeWays.get(id) ?? []) {
+                // a way that another node already placed is built already: check before building
+                if (!placed.has(wayId)) {
+                  const way = this.data.way(wayId)
+                  if (way) place(wayId, this.builder.buildWay(way))
+                }
+                memberOf(wayId)
               }
-              memberOf(wayId)
-            }
-          const vertex = this.builder.refreshVertex(node)
-          place(id, vertex && { source: 'vertices', feature: vertex })
-        } else {
-          const point = this.builder.buildPoint(node)
-          place(id, point && { source: 'points', feature: point })
+            const vertex = this.builder.refreshVertex(node)
+            place(id, vertex && { source: 'vertices', feature: vertex })
+          } else {
+            const point = this.builder.buildPoint(node)
+            place(id, point && { source: 'points', feature: point })
+          }
+          break
         }
-      } else if (id[0] === 'w') {
-        if (!placed.has(id)) {
-          const way = this.data.way(id)
-          place(id, way && this.builder.buildWay(way))
-        }
-        memberOf(id)
-      } else if (id[0] === 'r') {
-        multipolygons.add(id)
+        case 'w':
+          if (!placed.has(id)) {
+            const way = this.data.way(id)
+            place(id, way && this.builder.buildWay(way))
+          }
+          memberOf(id)
+          break
+        case 'r':
+          multipolygons.add(id)
+          break
       }
     }
     // after the ways, so a multipolygon is built once from the new shape of all its members
@@ -1153,32 +1168,37 @@ export class MaidEngine {
     const candidates: SnapTarget[] = []
     const seen = new Set<string>()
     for (const feature of features) {
-      const id = feature.id as string | undefined
+      const id = featureId(feature)
       if (!id || seen.has(id) || skip.has(id) || this.isReadOnly(id)) continue
       seen.add(id)
-      if (id[0] === 'n') {
-        const loc = this.data.node(id)?.loc
-        if (loc) candidates.push({ type: 'node', id, loc: [loc[0], loc[1]] })
-      } else if (id[0] === 'w') {
-        const way = this.data.way(id)
-        const nodes = way ? projectedNodes(this, way) : []
-        // a vertex of the line under the pointer is a node target, as in iD, even where no vertex is drawn
-        for (const n of nodes) {
-          if (skip.has(n.id) || seen.has(n.id) || this.isReadOnly(n.id)) continue
-          if (Math.hypot(n.x - point.x, n.y - point.y) > SNAP_PX) continue
-          const loc = this.data.node(n.id)?.loc
-          if (loc) candidates.push({ type: 'node', id: n.id, loc: [loc[0], loc[1]] })
+      switch (id.charAt(0)) {
+        case 'n': {
+          const loc = this.data.node(id)?.loc
+          if (loc) candidates.push({ type: 'node', id, loc: [loc[0], loc[1]] })
+          break
         }
-        const on = way && nearestOnPolyline(nodes, point, SNAP_PX)
-        if (on) {
-          const at = map.unproject([on.x, on.y])
-          candidates.push({
-            type: 'way',
-            wayId: id,
-            loc: [at.lng, at.lat],
-            edge: on.edge,
-            distance: on.distance,
-          })
+        case 'w': {
+          const way = this.data.way(id)
+          const nodes = way ? projectedNodes(this, way) : []
+          // a vertex of the line under the pointer is a node target, as in iD, even where no vertex is drawn
+          for (const n of nodes) {
+            if (skip.has(n.id) || seen.has(n.id) || this.isReadOnly(n.id)) continue
+            if (Math.hypot(n.x - point.x, n.y - point.y) > SNAP_PX) continue
+            const loc = this.data.node(n.id)?.loc
+            if (loc) candidates.push({ type: 'node', id: n.id, loc: [loc[0], loc[1]] })
+          }
+          const on = way && nearestOnPolyline(nodes, point, SNAP_PX)
+          if (on) {
+            const at = map.unproject([on.x, on.y])
+            candidates.push({
+              type: 'way',
+              wayId: id,
+              loc: [at.lng, at.lat],
+              edge: on.edge,
+              distance: on.distance,
+            })
+          }
+          break
         }
       }
     }
@@ -1547,8 +1567,14 @@ export class MaidEngine {
   private refreshShape() {
     const ways = new Set<string>()
     for (const id of this.selectedIds) {
-      if (id[0] === 'w') ways.add(id)
-      else if (id[0] === 'n') for (const wayId of this.data.nodeWays.get(id) ?? []) ways.add(wayId)
+      switch (id.charAt(0)) {
+        case 'w':
+          ways.add(id)
+          break
+        case 'n':
+          for (const wayId of this.data.nodeWays.get(id) ?? []) ways.add(wayId)
+          break
+      }
     }
     const shape = new Map<string, Feature>()
     // The direction of each selected open highway without arrows of its own: the way's line, drawn
@@ -1557,7 +1583,8 @@ export class MaidEngine {
     for (const wayId of ways) {
       const vertices = wayVertices(this.data, wayId)
       for (const vertex of vertices) {
-        const id = vertex.properties?.id as string
+        const id = vertex.properties?.id
+        if (typeof id !== 'string') continue
         vertex.properties = { id, state: 'shape' }
         shape.set(id, vertex)
       }
@@ -1865,15 +1892,23 @@ export class MaidEngine {
         }
         const ways = new Set<string>()
         for (const id of this.selectedIds) {
-          if (id[0] === 'w') ways.add(id)
-          else if (id[0] === 'n') for (const w of this.data.nodeWays.get(id) ?? []) ways.add(w)
+          switch (id.charAt(0)) {
+            case 'w':
+              ways.add(id)
+              break
+            case 'n':
+              for (const w of this.data.nodeWays.get(id) ?? []) ways.add(w)
+              break
+          }
         }
         for (const wayId of after ? ways : []) {
           const before = graph.hasEntity(wayId)
           const way = after!.hasEntity(wayId)
           if (!(way instanceof OsmWay) || !(before instanceof OsmWay)) continue
-          const locOf = (g: Graph, nodeId: string) =>
-            (g.hasEntity(nodeId) as OsmNode | undefined)?.loc
+          const locOf = (g: Graph, nodeId: string) => {
+            const node = g.hasEntity(nodeId)
+            return node instanceof OsmNode ? node.loc : undefined
+          }
           const coordinates = way.nodes
             .map((nodeId) => locOf(after!, nodeId))
             .filter((loc) => !!loc)
@@ -1921,7 +1956,14 @@ export class MaidEngine {
       ],
       { layers: layerIds },
     )
-    return pickBest(skip ? features.filter((f) => !skip.has(f.id as string)) : features)
+    return pickBest(
+      skip
+        ? features.filter((f) => {
+            const id = featureId(f)
+            return id === undefined || !skip.has(id)
+          })
+        : features,
+    )
   }
 
   /**
@@ -1942,7 +1984,7 @@ export class MaidEngine {
     )
     const candidates = new Map<string, PickCandidate>()
     for (const f of features) {
-      const id = f.id as string | undefined
+      const id = featureId(f)
       if (!id) continue
       // a feature drawn in more than one layer keeps the highest of its priorities, as pick does
       const priority = PRIORITY[f.source] ?? 9
@@ -2042,7 +2084,7 @@ function pickBest(features: MapGeoJSONFeature[]) {
   for (const f of features) {
     if (!best || (PRIORITY[f.source] ?? 9) < (PRIORITY[best.source] ?? 9)) best = f
   }
-  return (best?.id as string | undefined) ?? null
+  return (best && featureId(best)) ?? null
 }
 
 function layersOfSource(map: MapLibreMap, source: string) {

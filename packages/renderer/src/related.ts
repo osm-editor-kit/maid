@@ -64,8 +64,14 @@ export function boundsOf(ids: readonly string[], geometry: GeometryOf): Bounds |
     north = Math.max(north, lat)
   }
   for (const id of targets) {
-    if (id[0] === 'n') include(id)
-    else if (id[0] === 'w') for (const nodeId of geometry.nodesOf(id) ?? []) include(nodeId)
+    switch (id.charAt(0)) {
+      case 'n':
+        include(id)
+        break
+      case 'w':
+        for (const nodeId of geometry.nodesOf(id) ?? []) include(nodeId)
+        break
+    }
   }
   return west <= east ? [west, south, east, north] : undefined
 }

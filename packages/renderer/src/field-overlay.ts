@@ -184,14 +184,14 @@ function frame(origin: LonLat) {
  * so left is the anticlockwise normal). A corner is extended as a miter, up to MITER_LIMIT.
  */
 export function offsetLine(points: Point2[], distance: number) {
-  const normals = points.slice(1).map((p, i) => {
+  const normals: Point2[] = points.slice(1).map((p, i) => {
     const a = points[i]!
     const dx = p[0] - a[0]
     const dy = p[1] - a[1]
     const length = Math.hypot(dx, dy) || 1
-    return [-dy / length, dx / length] as Point2
+    return [-dy / length, dx / length]
   })
-  return points.map((p, i) => {
+  const moved: Point2[] = points.map((p, i) => {
     const before = normals[i - 1] ?? normals[i]!
     const after = normals[i] ?? normals[i - 1]!
     let nx = before[0] + after[0]
@@ -206,8 +206,9 @@ export function offsetLine(points: Point2[], distance: number) {
     }
     const cos = nx * after[0] + ny * after[1]
     const scale = Math.min(1 / Math.max(cos, 1e-6), MITER_LIMIT)
-    return [p[0] + nx * distance * scale, p[1] + ny * distance * scale] as Point2
+    return [p[0] + nx * distance * scale, p[1] + ny * distance * scale]
   })
+  return moved
 }
 
 /** The point a label sits on: the middle of a polyline (the middle vertex, or between the two middle ones) */

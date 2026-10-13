@@ -79,15 +79,20 @@ export class DrawTool {
       const { history } = engine.data
       const cursor = engine.data.node(cursorId)
       if (!cursor) return
-      if (target.type === 'node') {
-        // the existing node takes the place of the preview node
-        const at = this.cursorIndex()
-        history.perform(actionDeleteNode(cursorId, false), actionAddVertex(wayId, target.id, at))
-      } else if (target.type === 'way') {
-        // the preview node becomes a node of the way it was clicked on
-        history.perform(actionAddMidpoint({ loc: target.loc, edge: target.edge }, cursor))
-      } else {
-        history.perform(actionMoveNode(cursorId, target.loc))
+      switch (target.type) {
+        case 'node': {
+          // the existing node takes the place of the preview node
+          const at = this.cursorIndex()
+          history.perform(actionDeleteNode(cursorId, false), actionAddVertex(wayId, target.id, at))
+          break
+        }
+        case 'way':
+          // the preview node becomes a node of the way it was clicked on
+          history.perform(actionAddMidpoint({ loc: target.loc, edge: target.edge }, cursor))
+          break
+        case 'free':
+          history.perform(actionMoveNode(cursorId, target.loc))
+          break
       }
       this.addCursor(target.loc)
     })

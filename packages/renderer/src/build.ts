@@ -314,8 +314,10 @@ function assembleRings(data: OsmData, wayIds: string[]) {
 function pointInRing(point: Position, ring: Position[]) {
   let inside = false
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const [xi, yi] = ring[i] as [number, number]
-    const [xj, yj] = ring[j] as [number, number]
+    const xi = ring[i]![0]!
+    const yi = ring[i]![1]!
+    const xj = ring[j]![0]!
+    const yj = ring[j]![1]!
     if (
       yi > point[1]! !== yj > point[1]! &&
       point[0]! < ((xj - xi) * (point[1]! - yi)) / (yj - yi) + xi
@@ -601,7 +603,7 @@ export class FeatureBuilder {
         type: 'Feature',
         id,
         properties: props,
-        geometry: { type: 'Point', coordinates } as Point,
+        geometry: { type: 'Point', coordinates },
       })
     }
     return out

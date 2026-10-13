@@ -5,7 +5,7 @@
  * The result is in the work in progress of the history while the pointer moves; a click keeps it
  * as one undo step, Escape takes it back.
  */
-import { actionMove, type Action, type Graph, type OsmNode } from '@osm-editor-kit/maid-model'
+import { actionMove, type Action, type Graph, OsmNode } from '@osm-editor-kit/maid-model'
 import type { MaidEngine } from './engine'
 
 export type TransformKind = 'move' | 'rotate'
@@ -23,17 +23,18 @@ const RAD = Math.PI / 180
  * @rapid-sdk/math), so the final locations are the same. Each id may appear once.
  */
 export function actionMoveNodes(moves: readonly (readonly [id: string, to: Loc])[]) {
-  const action = ((graph: Graph, t?: number) => {
+  const action: Action = (graph: Graph, t?: number) => {
     // as actionMoveNode: no or a bad t is the whole move, and t is kept between 0 and 1
     const eased = t === null || t === undefined || !isFinite(t) ? 1 : Math.min(Math.max(+t, 0), 1)
     if (eased === 0) return graph
     const nodes = moves.map(([id, to]) => {
-      const node = graph.entity(id) as OsmNode
+      const node = graph.entity(id)
+      if (!(node instanceof OsmNode)) throw new Error(`${id} is not a node`)
       const from = node.loc!
       return node.move([from[0] + (to[0] - from[0]) * eased, from[1] + (to[1] - from[1]) * eased])
     })
     return graph.replace(nodes).commit()
-  }) as Action
+  }
   action.transitionable = true
   return action
 }
@@ -68,13 +69,20 @@ export function nodesOf(engine: MaidEngine, ids: readonly string[]) {
     for (const nodeId of data.way(id)?.nodes ?? []) nodes.add(nodeId)
   }
   for (const id of ids) {
-    if (id[0] === 'n' && data.node(id)) nodes.add(id)
-    else if (id[0] === 'w') addWay(id)
-    else if (id[0] === 'r')
-      for (const member of data.relation(id)?.members ?? []) {
-        if (member.type === 'node' && data.node(member.id)) nodes.add(member.id)
-        else if (member.type === 'way') addWay(member.id)
-      }
+    switch (id.charAt(0)) {
+      case 'n':
+        if (data.node(id)) nodes.add(id)
+        break
+      case 'w':
+        addWay(id)
+        break
+      case 'r':
+        for (const member of data.relation(id)?.members ?? []) {
+          if (member.type === 'node' && data.node(member.id)) nodes.add(member.id)
+          else if (member.type === 'way') addWay(member.id)
+        }
+        break
+    }
   }
   return nodes
 }

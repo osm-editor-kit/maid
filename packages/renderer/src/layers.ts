@@ -79,16 +79,14 @@ export function buildLayers(options: LayerOptions) {
     symbol: ['icon-opacity', 'text-opacity'],
   }
   return layers.flatMap((layer) => {
-    const editSource = 'source' in layer ? EDIT_OF[layer.source as string] : undefined
+    const source = 'source' in layer ? layer.source : undefined
+    const editSource = typeof source === 'string' ? EDIT_OF[source] : undefined
     if (!editSource) return [layer]
-    const paint: Record<string, unknown> = { ...(layer.paint as Record<string, unknown>) }
+    const paint: Record<string, unknown> = { ...layer.paint }
     for (const prop of OPACITY[layer.type] ?? [])
       paint[prop] = ['case', editing, 0, paint[prop] ?? 1]
-    const original = { ...layer, paint } as LayerSpecification
-    return [
-      original,
-      { ...layer, id: `${layer.id}--edit`, source: editSource } as LayerSpecification,
-    ]
+    const original = { ...layer, paint }
+    return [original, { ...layer, id: `${layer.id}--edit`, source: editSource }]
   })
 }
 
@@ -99,9 +97,11 @@ function buildMainLayers(options: LayerOptions) {
   ] // prettier-ignore
 
   const dashMatch = (prop: string): ExpressionSpecification => {
-    const cases: unknown[] = []
+    const cases: (string | ExpressionSpecification)[] = []
     for (const [key, pattern] of options.dashes) cases.push(key, ['literal', pattern])
     if (cases.length === 0) return ['literal', [1, 0]]
+    // KEEP: the library types match as one fixed tuple with a label and an output at least once; a spread of
+    // pairs (possibly empty before the early return) does not fit it, so the cast stays here
     return [
       'match',
       ['get', prop],
@@ -128,9 +128,9 @@ function buildMainLayers(options: LayerOptions) {
     const metresPerPixelAtZ0 = (40075016.686 * Math.cos((options.lat * Math.PI) / 180)) / 512
     const band = (zoom: number) => [
       'min', ['get', 'fw'], ['*', ['get', 'r'], 2 ** zoom / metresPerPixelAtZ0],
-    ] // prettier-ignore
+    ] satisfies ExpressionSpecification // prettier-ignore
     const stops = (scale: number) => {
-      const out: unknown[] = []
+      const out: (number | ExpressionSpecification)[] = []
       for (let z = 12; z <= 24; z++) out.push(z, ['*', scale, band(z)])
       return out
     }
@@ -147,18 +147,8 @@ function buildMainLayers(options: LayerOptions) {
         // narrow shapes it does not get darker, as it would with a translucent colour.
         'line-color': ['get', 'fo'],
         'line-layer-opacity': 0.3,
-        'line-width': [
-          'interpolate',
-          ['exponential', 2],
-          ['zoom'],
-          ...stops(1),
-        ] as ExpressionSpecification,
-        'line-offset': [
-          'interpolate',
-          ['exponential', 2],
-          ['zoom'],
-          ...stops(0.5),
-        ] as ExpressionSpecification,
+        'line-width': ['interpolate', ['exponential', 2], ['zoom'], ...stops(1)],
+        'line-offset': ['interpolate', ['exponential', 2], ['zoom'], ...stops(0.5)],
       },
     })
   }
@@ -627,7 +617,7 @@ function buildMainLayers(options: LayerOptions) {
   if (options.labels) {
     const text = {
       'text-font': ['Open Sans Semibold'],
-      'text-field': ['get', 'name'] as ExpressionSpecification,
+      'text-field': ['get', 'name'] satisfies ExpressionSpecification,
       'text-size': 12,
     }
     const paint = {
