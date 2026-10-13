@@ -114,4 +114,76 @@ for (const query of ['filters=buildings:hidden', 'disable_features=buildings'])
     query,
   )
 
+// A link's filters hold for the visit: the button marks them, the flyout says so, and "Use mine"
+// goes back to the person's own choice, which is the default here (nothing is stored under automation).
+const LINK_MARK = '[aria-label="From the link you opened"]'
+const LINK_ROW = 'These filters come from the link.'
+failed += await runCheck(
+  sceneName,
+  async ({ page, report }) => {
+    const mark = page.locator(LINK_MARK)
+    const panel = page.getByRole('dialog', { name: 'Filters', exact: true })
+    const row = panel.getByText(LINK_ROW, { exact: true })
+    const useMine = panel.getByRole('button', { name: 'Use mine', exact: true })
+    report('link: the filter button shows the mark', 1, await mark.count())
+    await page.getByRole('button', { name: /^Filters/ }).click()
+    await panel.waitFor()
+    report(
+      'link: the flyout has the row and "Use mine"',
+      [1, 1],
+      [await row.count(), await useMine.count()],
+    )
+    await useMine.click()
+    // the URL is written a moment after the click (nuqs), so wait for the parameter to go
+    await page
+      .waitForFunction(() => !new URL(location.href).searchParams.has('filters'), undefined, {
+        timeout: 3000,
+      })
+      .catch(() => undefined)
+    report(
+      'use mine: the URL has no filters, no mark, no row, buildings shown again',
+      [null, 0, 0, 0],
+      [
+        new URL(page.url()).searchParams.get('filters'),
+        await mark.count(),
+        await row.count(),
+        await page.evaluate(() => window.__maid.engine.hiddenCounts().buildings ?? 0),
+      ],
+    )
+  },
+  'filters=buildings:hidden',
+)
+
+// A change of the person while the link's filters hold: the mark goes, the URL holds the new choice
+failed += await runCheck(
+  sceneName,
+  async ({ page, report }) => {
+    const mark = page.locator(LINK_MARK)
+    const panel = page.getByRole('dialog', { name: 'Filters', exact: true })
+    await page.getByRole('button', { name: /^Filters/ }).click()
+    await panel.waitFor()
+    await panel
+      .getByRole('radiogroup', { name: 'Buildings: what can be done', exact: true })
+      .getByRole('radio', { name: 'Read-only', exact: true })
+      .click()
+    await page
+      .waitForFunction(
+        () => new URL(location.href).searchParams.get('filters') === 'buildings:readonly',
+        undefined,
+        { timeout: 3000 },
+      )
+      .catch(() => undefined)
+    report(
+      'a change while the link holds: no mark, no row, the URL holds the new choice',
+      [0, 0, 'buildings:readonly'],
+      [
+        await mark.count(),
+        await panel.getByText(LINK_ROW, { exact: true }).count(),
+        new URL(page.url()).searchParams.get('filters'),
+      ],
+    )
+  },
+  'filters=buildings:hidden',
+)
+
 process.exit(failed ? 1 : 0)

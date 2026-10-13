@@ -8,6 +8,7 @@
 @source '../../../packages/module-data-layers/src';
 @source '../../../packages/module-lenses/src';
 @source '../../../packages/module-notes/src';
+@source '../../../packages/module-surface/src';
 
 /* dark mode is a class on <html>, set by maid-ui's theme (light, dark or system) */
 @custom-variant dark (&:where(.dark, .dark *));

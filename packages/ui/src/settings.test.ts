@@ -35,6 +35,8 @@ const good: Settings = {
 
 /** Stores the value as a version 4 record and loads it, as a new visit does */
 async function load(state: unknown, version = 4) {
+  // a page load starts without a position: the earlier test's value must not carry over
+  useSettings.setState({ lastView: undefined })
   entries.set(KEY, JSON.stringify({ state, version }))
   await useSettings.persist.rehydrate()
   return useSettings.getState()
@@ -135,5 +137,38 @@ describe('settings store', () => {
     expect(state.theme).toBe('light')
     expect(state.sizes).toEqual({ 'dock-height': 200 })
     expect(state.favourites).toEqual([])
+  })
+})
+
+describe('the last map position', () => {
+  it('a stored position loads, and a new one is written in the same shape', async () => {
+    const state = await load({ ...good, lastView: { lng: 13.4, lat: 52.5, zoom: 17.25 } })
+    expect(state.lastView).toEqual({ lng: 13.4, lat: 52.5, zoom: 17.25 })
+
+    state.setLastView({ lng: 13.5, lat: 52.6, zoom: 18 })
+    const written = JSON.parse(entries.get(KEY) ?? 'null')
+    expect(written.state.lastView).toEqual({ lng: 13.5, lat: 52.6, zoom: 18 })
+    expect(written.version).toBe(4)
+  })
+
+  it('a value stored before the position existed loads without one', async () => {
+    const state = await load(good)
+    expect(state.lastView).toBeUndefined()
+    expect(state.shown).toEqual(good.shown)
+  })
+
+  it('a position that does not fit is dropped, and the other fields are kept', async () => {
+    for (const lastView of [
+      { lng: 13.4, lat: 95, zoom: 17 },
+      { lng: 200, lat: 52, zoom: 17 },
+      { lng: 13.4, lat: 52 },
+      { lng: '13.4', lat: 52, zoom: 17 },
+      'Berlin',
+    ]) {
+      const state = await load({ ...good, lastView })
+      expect(state.lastView).toBeUndefined()
+      expect(state.favourites).toEqual(good.favourites)
+      expect(state.shown).toEqual(good.shown)
+    }
   })
 })

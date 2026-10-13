@@ -1,4 +1,5 @@
-import { createEditor, startSetting } from '@osm-editor-kit/maid-core'
+import { createEditor } from '@osm-editor-kit/maid-core'
+import { createFilterSet } from '@osm-editor-kit/maid-filters'
 import { connectLenses } from '@osm-editor-kit/maid-module-lenses'
 import { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { useSettings } from '@osm-editor-kit/maid-ui'
@@ -6,6 +7,7 @@ import { useSyncExternalStore } from 'react'
 import { readConfig } from './config'
 import { editorConfig } from './maid.config'
 import { migrateIdHash } from './url/id-url'
+import { startShown } from './url/shown'
 
 /**
  * The one editor instance of this app. Module scope is fine for an app with a single map;
@@ -19,16 +21,18 @@ export const config = readConfig(window.location)
 /** The editor's data and modules. What this editor is lives in maid.config.ts. */
 export const editor = createEditor(editorConfig(config))
 
+/** The filter states in the URL's notation, as the editor writes them: the same states are one value */
+export const normalizeFilters = (param: string) => createFilterSet(editor.filters, param).toParam()
+
 /**
- * The filter states the session starts with: the link's if it has any, else the user's own.
- * '' means every filter as the editor defines it.
+ * The filter states the session starts with: the URL's if it has any, else the person's stored
+ * choice, else the editor's own. '' means every filter as the editor defines it. A value from the
+ * URL is not written to storage (docs/adr/0009-decisions-of-2026-10-13.md).
  */
-export const filtersStart = startSetting({
-  fallback: '',
-  stored: useSettings.getState().shown.filters,
-  url: config.filters ?? undefined,
-})
-useSettings.getState().setFromLink('filters', filtersStart.fromUrl)
+export const filtersStart = startShown(
+  { url: config.filters, stored: useSettings.getState().shown.filters, fallback: '' },
+  normalizeFilters,
+)
 
 export const engine = new MaidEngine({
   editor,

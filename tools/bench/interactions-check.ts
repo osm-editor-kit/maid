@@ -108,6 +108,16 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   )
   await click(first.edge, { shift: true })
   report('Shift-click on a selected feature takes it out', [second.id], (await state()).selection)
+  // Shift on open ground keeps the selection, as iD does; a plain click on open ground still clears it
+  await click(first.edge, { shift: true })
+  await click(free(0), { shift: true })
+  report(
+    'Shift-click on open ground keeps both selected',
+    [second.id, first.id],
+    (await state()).selection,
+  )
+  await click(free(0))
+  report('a plain click on open ground clears the selection', [], (await state()).selection)
 
   // --- the nodes of a selected area can be dragged ---
   await click(first.edge)

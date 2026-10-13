@@ -2,11 +2,9 @@ import {
   changesAt,
   createJournal,
   JournalLockedError,
-  type EntityData,
-  type StoredChange,
   type StoredEdits,
 } from '@osm-editor-kit/maid-journal'
-import { createOsmEntity, type ChangesSummary, type Graph } from '@osm-editor-kit/maid-model'
+import { createOsmEntity, type ChangesSummary } from '@osm-editor-kit/maid-model'
 import { discardedTags } from '@osm-editor-kit/maid-presets/default'
 import { useSyncExternalStore } from 'react'
 import { config, editor } from './editor'
@@ -26,12 +24,8 @@ export type RestoreSummary = {
   change: OsmChange
   /** How many features that is */
   features: number
-  /** The entity ids of those features */
-  ids: EntityID[]
   /** The name of the first of them that has one */
   name?: string
-  /** The area the changed positions cover: west, south, east, north. Undefined if none is stored or known. */
-  extent?: [number, number, number, number]
 }
 
 /**
@@ -113,52 +107,8 @@ function summarize(stored: StoredEdits): RestoreSummary {
     })),
     change,
     features,
-    ids: changed.map((c) => c.id),
     name: first?.tags.name,
-    extent: extentOf(changed, editor.history.base.graph),
   }
-}
-
-/** The position of a stored node, [lon, lat], or undefined for anything else */
-function positionOf(data: EntityData | null | undefined): [number, number] | undefined {
-  if (!data || !('loc' in data)) return undefined
-  const loc: unknown = data.loc
-  if (!Array.isArray(loc) || typeof loc[0] !== 'number' || typeof loc[1] !== 'number')
-    return undefined
-  return [loc[0], loc[1]]
-}
-
-/** The node ids of a stored way, or none for anything else */
-function nodesOf(data: EntityData | null | undefined): EntityID[] {
-  if (!data || !('nodes' in data) || !Array.isArray(data.nodes)) return []
-  return data.nodes.filter((id): id is EntityID => typeof id === 'string')
-}
-
-/**
- * The area of the changed positions. A changed way has its nodes' positions from the stored edits or,
- * where those did not change, from the base map if it is loaded. Nothing is fetched for this.
- */
-function extentOf(
-  changed: StoredChange[],
-  base: Graph,
-): [number, number, number, number] | undefined {
-  const positions = new Map<EntityID, [number, number]>()
-  for (const { id, before, after } of changed) {
-    const position = positionOf(after ?? before)
-    if (position) positions.set(id, position)
-  }
-  const points = [...positions.values()]
-  for (const { after, before } of changed) {
-    for (const nodeID of nodesOf(after ?? before)) {
-      if (positions.has(nodeID)) continue
-      const position = positionOf(base.hasEntity(nodeID)?.asJSON())
-      if (position) points.push(position)
-    }
-  }
-  if (points.length === 0) return undefined
-  const lons = points.map(([lon]) => lon)
-  const lats = points.map(([, lat]) => lat)
-  return [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)]
 }
 
 /** Answers the question the `pending` state asks: bring the stored edits back, or forget them */

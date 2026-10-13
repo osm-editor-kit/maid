@@ -7,14 +7,8 @@ import { PLAIN_INPUT } from '../plain-input.ts'
 import { toolButtonClass } from '../Toolbar.tsx'
 import { rowKey, searchFields, sharedLabelIds } from './add-field-logic.ts'
 import { HINT } from './fields/shared.ts'
-import {
-  EMPTY_NOTE,
-  keepFocus,
-  listboxMove,
-  revealRow,
-  ROW_ACTIVE,
-  SEARCH_FIELD,
-} from './listbox.ts'
+import { EMPTY_NOTE, keepFocus, listboxMove, revealRow, ROW_ACTIVE } from './listbox.ts'
+import { SearchField } from './SearchField.tsx'
 
 /**
  * The "Add field" button: it opens a flyout with a search field over the fields that are not rows
@@ -103,7 +97,7 @@ export function AddField(props: { fields: readonly Field[]; onPick: (field: Fiel
       }
     >
       <div className="grid gap-2 p-2">
-        <input
+        <SearchField
           {...PLAIN_INPUT}
           type="search"
           role="combobox"
@@ -115,7 +109,6 @@ export function AddField(props: { fields: readonly Field[]; onPick: (field: Fiel
           aria-controls={results.length > 0 ? listId : undefined}
           aria-autocomplete="list"
           aria-activedescendant={active >= 0 ? optionId(active) : undefined}
-          className={SEARCH_FIELD}
           onChange={(event) => {
             setQuery(event.currentTarget.value)
             setActiveIndex(0)

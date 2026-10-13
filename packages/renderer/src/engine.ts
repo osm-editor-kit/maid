@@ -16,6 +16,8 @@ import {
   actionCopyEntities,
   actionChangeTags,
   actionMoveNode,
+  type CombinedTags,
+  combinedTags,
   type Difference,
   Graph,
   OsmWay,
@@ -35,6 +37,7 @@ import {
   type FeatureBatch,
   type SourceName,
 } from './build'
+import { type ChangeTagsResult, planChangeTags, type TagChangeRequest } from './change-tags'
 import { OsmData } from './data'
 import { onewayOf } from './direction'
 import { installDirectionImages } from './direction-images'
@@ -637,12 +640,50 @@ export class MaidEngine {
    * Local only: nothing is uploaded. The change is one undo step.
    */
   setTag(id: string, key: string, value: string | undefined) {
-    const entity = this.data.history.staging.graph.hasEntity(id)
-    if (!entity || !key || this.isReadOnly(id)) return
-    const tags = { ...entity.tags }
-    if (value === undefined || value === '') delete tags[key]
-    else tags[key] = value
-    this.setTags(id, tags)
+    if (value === undefined || value === '') this.changeTags([id], { remove: [key] })
+    else this.changeTags([id], { set: { [key]: value } })
+  }
+
+  /**
+   * Writes a change to the tags of several features as one undo step, with the label `annotation`.
+   * `set` writes a key to every feature, `remove` deletes it where present (see `cleanTagChange`: an
+   * empty `set` value is dropped, so a blank never clears a key). A feature that the change leaves as
+   * it is is not touched. Refused, with nothing written, when an id is not in the graph or when any
+   * selected feature is read-only: the result says how many of how many are read-only.
+   * Redraws every changed feature, as for any tag change.
+   */
+  changeTags(
+    ids: readonly string[],
+    change: TagChangeRequest,
+    annotation = 'Changed tags',
+  ): ChangeTagsResult {
+    const plan = planChangeTags(this.data.history.staging.graph, ids, change, (id) =>
+      this.isReadOnly(id),
+    )
+    if (!plan.ok) return plan
+    if (plan.changed > 0) {
+      const { history } = this.data
+      this.change(() => {
+        history.perform(...plan.actions)
+        history.commit({ annotation, selectedIDs: [...new Set(ids)] })
+      })
+    }
+    return { ok: true, changed: plan.changed }
+  }
+
+  /**
+   * The combined tags of several features, for the inspector: per key the one value every feature has,
+   * or the values that differ (see `combinedTags` in the model). For one feature every key is `one`.
+   * Reads the staging graph. An id that is not in the graph is left out.
+   */
+  combinedTagsOf(ids: readonly string[]): CombinedTags {
+    const graph = this.data.history.staging.graph
+    const tagsOfEach: Tags[] = []
+    for (const id of ids) {
+      const entity = graph.hasEntity(id)
+      if (entity) tagsOfEach.push(entity.tags)
+    }
+    return combinedTags(tagsOfEach)
   }
 
   /** Replaces all tags of an entity, for example when a preset is chosen. One undo step. */

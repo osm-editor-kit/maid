@@ -12,6 +12,7 @@ import {
   streetImagery,
   streetImageryPresetChanges,
 } from '@osm-editor-kit/maid-module-street-imagery'
+import { surface, surfacePresetChanges } from '@osm-editor-kit/maid-module-surface'
 import { defaultOperations, pointToArea } from '@osm-editor-kit/maid-operations'
 import { createPresets, withChanges } from '@osm-editor-kit/maid-presets'
 import { defaultPresetData } from '@osm-editor-kit/maid-presets/default'
@@ -41,9 +42,10 @@ const BBOX: Record<string, Bbox> = {
  * The presets of this editor: the tagging schema's, with what modules add to them. Further
  * changes are chained the same way: `withChanges(withChanges(data, a), b)`.
  * - street-level images: one field for a feature's image tags (mapillary, panoramax)
+ * - surface and smoothness: one field for both tags on roads and paths, with bundled photos
  */
 const presets = createPresets(
-  withChanges(defaultPresetData, streetImageryPresetChanges),
+  withChanges(withChanges(defaultPresetData, streetImageryPresetChanges), surfacePresetChanges),
   // withChanges(…, examplePresetChanges): see preset-changes.example.ts
 )
 
@@ -75,6 +77,8 @@ export function editorConfig(config: Config) {
     lenses(),
     // top bar and dock "Photos": street-level photos; Mapillary needs VITE_MAPILLARY_TOKEN
     streetImagery({ mapillaryToken: import.meta.env.VITE_MAPILLARY_TOKEN || undefined }),
+    // inspector field "Surface and smoothness" on roads and paths: a photo per value, bundled, no network
+    surface(),
     // top bar and dock "Notes": OSM notes of the same API the data comes from, read-only
     notes({ apiUrl: config.apiUrl, minZoom: config.minDataZoom }),
   ]

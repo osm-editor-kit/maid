@@ -39,6 +39,7 @@ Everything comes from `@osm-editor-kit/surface-smoothness-data` (npm 0.0.0, extr
 - **Photos**: 55 JPEGs (256 × 256). Each file has its own licence in the package's `catalogue.attribution`: CC-BY-SA 4.0, CC-BY-SA 3.0 and 2.0, CC-BY 2.0 and 3.0, CC0, and public domain. The flyouts show the credits (file, licence, source) of the photos they show, under "Photo credits".
 - **Vehicle icons**: 8 SVGs, GPL-3.0-or-later (StreetComplete).
 - **The package itself** is GPL-3.0-or-later. **Maid is ISC.** Shipping the package in Maid's bundle means the distributed app is under GPL-3.0 terms. This needs a decision by the owner before a release; it is not decided by this module.
+- **Status**: decided by Tobias on 2026-10-13, the module is switched on in the default editor now; the licence question for editors that ship the data package (GPL-3.0-or-later) is open and is settled later.
 
 Attribution gaps to check: `images/surface_unpaved_impassable.jpg` is marked public domain with a Google Drive link as its source; `images/surface_paving_stones.jpg` names its author but gives no URL.
 

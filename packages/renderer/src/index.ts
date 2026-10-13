@@ -7,6 +7,7 @@ export {
   type EntityInfo,
   type Mode,
 } from './engine'
+export type { ChangeTagsResult, TagChangeRequest } from './change-tags'
 export { type FieldOverlay, type SideChoice } from './field-overlay'
 export { distanceMetres, formatMetres } from './measure'
 export {

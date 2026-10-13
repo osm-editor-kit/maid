@@ -60,16 +60,19 @@ export function ChangeRows(props: {
   )
 }
 
-/** The inside of the save flyout: what changed, the changeset comment, and the upload */
-function SavePanel() {
+/**
+ * The inside of the save flyout: what changed, the changeset comment, and the upload. A successful
+ * upload closes the flyout (`onSaved`), and the toast tells the changeset. A failure stays here.
+ */
+function SavePanel(props: {
+  uploading: boolean
+  onUploading: (uploading: boolean) => void
+  onSaved: () => void
+}) {
+  const { uploading, onUploading, onSaved } = props
   const auth = useAuth()
   const [comment, setComment] = useState('')
-  const [status, setStatus] = useState<
-    | { kind: 'idle' }
-    | { kind: 'busy' }
-    | { kind: 'done'; id: number }
-    | { kind: 'failed'; text: string }
-  >({ kind: 'idle' })
+  const [failure, setFailure] = useState<string>()
   const noteId = useId()
   // read again after every edit
   const change = useEngine(() => pendingChange())
@@ -79,46 +82,21 @@ function SavePanel() {
   const rows = rowsOf(change)
   const hashtags = changesetTags(comment, '').hashtags
 
-  if (status.kind === 'done') {
-    return (
-      <div className="p-4">
-        <h2 className="text-base font-semibold">Saved</h2>
-        <p className="mt-1 text-zinc-600 dark:text-zinc-400">
-          Your edits are changeset{' '}
-          <a
-            className="font-medium text-blue-600 underline dark:text-blue-400"
-            href={`${DEV_API}/changeset/${status.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {status.id}
-          </a>{' '}
-          on the development server.
-        </p>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="mt-4 w-full cursor-pointer rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-        >
-          Load the map again
-        </button>
-      </div>
-    )
-  }
-
   // a message about this form: the block, or the failed upload. It stays here, next to the button.
-  const note = blocked ?? (status.kind === 'failed' ? status.text : undefined)
+  const note = blocked ?? failure
   return (
     <form
       className="flex flex-col gap-3 p-4"
       onSubmit={(event) => {
         event.preventDefault()
-        if (blocked || status.kind === 'busy' || rows.length === 0 || !comment.trim()) return
-        setStatus({ kind: 'busy' })
+        if (blocked || uploading || rows.length === 0 || !comment.trim()) return
+        onUploading(true)
+        setFailure(undefined)
         uploadEdits(comment).then(
           (id) => {
-            setStatus({ kind: 'done', id })
-            // an event that needs no action: a toast, with the changeset linked (the panel stays, it blocks a second upload)
+            onUploading(false)
+            onSaved()
+            // the one message of a success: a toast, with the changeset linked and the map reloadable
             notify.done(
               <>
                 Your edits are changeset{' '}
@@ -132,13 +110,15 @@ function SavePanel() {
                 </a>{' '}
                 on the development server.
               </>,
+              {
+                action: { label: 'Load the map again', onClick: () => window.location.reload() },
+              },
             )
           },
-          (error: unknown) =>
-            setStatus({
-              kind: 'failed',
-              text: error instanceof Error ? error.message : 'The upload failed.',
-            }),
+          (error: unknown) => {
+            onUploading(false)
+            setFailure(error instanceof Error ? error.message : 'The upload failed.')
+          },
         )
       }}
     >
@@ -166,13 +146,11 @@ function SavePanel() {
       </label>
       <button
         type="submit"
-        disabled={
-          blocked !== undefined || status.kind === 'busy' || rows.length === 0 || !comment.trim()
-        }
+        disabled={blocked !== undefined || uploading || rows.length === 0 || !comment.trim()}
         aria-describedby={note ? noteId : undefined}
         className="w-full cursor-pointer rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 enabled:hover:bg-blue-500 disabled:cursor-default disabled:opacity-50"
       >
-        {status.kind === 'busy' ? 'Uploading…' : 'Upload to the development server'}
+        {uploading ? 'Uploading…' : 'Upload to the development server'}
       </button>
       {note && (
         <p id={noteId} role="status" className="text-xs text-amber-700 dark:text-amber-300">
@@ -186,31 +164,56 @@ function SavePanel() {
 /** The top bar's save button: shows that there are edits and opens the save flyout */
 export function SaveButton() {
   const hasChanges = useEngine(() => editor.history.hasChanges())
+  const [open, setOpen] = useState(false)
+  // while an upload runs the flyout cannot close, so its panel stays and no second upload can start
+  const [uploading, setUploading] = useState(false)
+  // After an upload the edits are still in the history until the page loads the map again (the
+  // answer of the API is not yet written back into the data). Until then nothing can be saved,
+  // or the same edits would be sent a second time.
+  const [saved, setSaved] = useState(false)
   return (
     <Flyout
       label="Save your edits"
       placement="bottom-end"
       className="w-[26rem]"
+      open={open}
+      onOpenChange={(next) => {
+        if (!uploading) setOpen(next)
+      }}
       trigger={
         <button
           type="button"
-          title={hasChanges ? 'Save your edits' : 'Nothing to save yet'}
-          disabled={!hasChanges}
+          title={
+            saved
+              ? 'Saved. Load the map again to go on editing.'
+              : hasChanges
+                ? 'Save your edits'
+                : 'Nothing to save yet'
+          }
+          disabled={!hasChanges || saved}
           className={toolButtonClass(true)}
         >
           <ArrowUpTrayIcon aria-hidden="true" className="size-5" />
           <span className="max-sm:sr-only">Save</span>
-          {hasChanges && (
-            // on the corner, so the button keeps its width when the dot comes and goes
-            <span
-              aria-label="unsaved edits"
-              className="absolute -top-1 -right-1 size-2.5 rounded-full bg-blue-600 ring-2 ring-white dark:ring-zinc-900"
-            />
-          )}
+          {hasChanges &&
+            !saved && (
+              // on the corner, so the button keeps its width when the dot comes and goes
+              <span
+                aria-label="unsaved edits"
+                className="absolute -top-1 -right-1 size-2.5 rounded-full bg-blue-600 ring-2 ring-white dark:ring-zinc-900"
+              />
+            )}
         </button>
       }
     >
-      <SavePanel />
+      <SavePanel
+        uploading={uploading}
+        onUploading={setUploading}
+        onSaved={() => {
+          setSaved(true)
+          setOpen(false)
+        }}
+      />
     </Flyout>
   )
 }

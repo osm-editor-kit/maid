@@ -74,12 +74,6 @@ type Picked = { road: string; vertex: string; building: string }
     await page.evaluate(() => window.__maid.engine.undo())
     const edited = await read()
     report('five edits made, one undone', 4, edited.index)
-    // the vertex as the edits left it: after the reload only the base map has it
-    const vertexLoc = await page.evaluate((id) => {
-      const { model, editor } = window.__maid
-      const node = editor.history.staging.graph.hasEntity(id)
-      return node instanceof model.OsmNode ? node.loc : undefined
-    }, vertex)
 
     await reload()
     await dialog.waitFor()
@@ -96,48 +90,19 @@ type Picked = { road: string; vertex: string; building: string }
       question.includes('Journalstraße'),
     )
 
-    await dialog.getByText('Show the changes').click()
-    const changes = await dialog.locator('ul').first().innerText()
+    // the changed features are listed at once, with no disclosure to open
+    const list = dialog.locator('ul').first()
+    const changes = await list.innerText()
     report(
-      'opening "Show the changes" lists the road and the new point, not the undone delete',
-      [true, true, false],
-      [changes.includes('Journalstraße'), changes.includes('Created'), changes.includes('Deleted')],
-    )
-
-    const state = () =>
-      page.evaluate(() => {
-        const { editor, engine } = window.__maid
-        return {
-          index: editor.history.index,
-          undo: engine.undoState(),
-          selection: engine.selection,
-          staging: Object.keys(editor.history.staging.graph.local.entities).sort(),
-        }
-      })
-    const beforeMap = await state()
-    await dialog.getByRole('button', { name: 'Show on the map' }).click()
-    await dialog.getByRole('button', { name: 'Back' }).waitFor()
-    report('"Show on the map" changes no data and selects nothing', beforeMap, await state())
-    report(
-      'the map is moved to the stored edits',
-      true,
-      vertexLoc
-        ? await page.evaluate(
-            (loc) => window.__maid.map.getBounds().contains([loc[0], loc[1]]),
-            vertexLoc,
-          )
-        : false,
-    )
-    report(
-      'Restore and Discard stay in reach while the map is shown',
-      [true, true],
+      'the changed features are listed without a click: the road and the new point, not the undone delete',
+      [true, true, true, false],
       [
-        await dialog.getByRole('button', { name: 'Restore' }).isVisible(),
-        await dialog.getByRole('button', { name: 'Discard' }).isVisible(),
+        await list.isVisible(),
+        changes.includes('Journalstraße'),
+        changes.includes('Created'),
+        changes.includes('Deleted'),
       ],
     )
-    await dialog.getByRole('button', { name: 'Back' }).click()
-    await dialog.getByText('Show the changes').waitFor()
 
     await dialog.getByRole('button', { name: 'Restore' }).click()
     await dialog.waitFor({ state: 'detached' })

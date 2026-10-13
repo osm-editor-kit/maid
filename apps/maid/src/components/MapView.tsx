@@ -9,9 +9,10 @@ import {
   OsmLayers,
   type LayerOptions,
 } from '@osm-editor-kit/maid-renderer'
+import { useSettings } from '@osm-editor-kit/maid-ui'
 import * as maplibregl from 'maplibre-gl'
 import type { StyleSpecification } from 'maplibre-gl'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Map,
   type MapEvent,
@@ -27,6 +28,7 @@ import { ensureImages } from '../images'
 import { useSelection } from '../selection'
 import { dropStack, setStack } from '../stack'
 import { useCameraParam } from '../url/state'
+import { moveSource, shouldStoreMove, startCamera } from '../url/view'
 import { FavouriteHint } from './FavouriteHint'
 import { MapContextMenu, type MenuPlace } from './MapContextMenu'
 import { StackPicker } from './StackPicker'
@@ -40,6 +42,8 @@ const EMPTY_STYLE: StyleSpecification = {
 }
 
 const FALLBACK_CAMERA = { zoom: 17, lat: 52.389, lng: 13.4 }
+/** The last position is stored once the map has rested this long, not on every move (ms) */
+const LAST_VIEW_DELAY = 1000
 
 let lastTileCheck = 0
 /** The vertex that is being dragged, if any. Not React state: it changes on every pointer event. */
@@ -113,8 +117,19 @@ export function MapView() {
     if (mode !== 'browse' || measuring) dropStack()
   }, [mode, measuring])
 
-  // Start position: the `map` parameter, else iD's `#map=` hash, else a default.
-  const [initialCamera] = useState(() => cameraParam ?? config.camera ?? FALLBACK_CAMERA)
+  // what the last position needs to know about the moves of the map (view.ts)
+  const loaded = useRef(false)
+  const resized = useRef(false)
+  const storeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  // Start position: the `map` parameter (or iD's `#map=` hash), else the last position, else a default.
+  const [initialCamera] = useState(() =>
+    startCamera({
+      url: cameraParam ?? config.camera,
+      stored: useSettings.getState().lastView,
+      fallback: FALLBACK_CAMERA,
+    }),
+  )
 
   const options: LayerOptions = {
     fill: config.fill,
@@ -129,6 +144,7 @@ export function MapView() {
 
   const handleLoad = (event: MapEvent) => {
     const map = event.target
+    loaded.current = true
     engine.options.onStyleChange = () => setDashes(new globalThis.Map(dashPatterns))
     engine.options.prepare = (batch) => {
       const ids = new Set<string>()
@@ -148,11 +164,27 @@ export function MapView() {
     lastTileCheck = now
     engine.loadVisibleTiles()
   }
+  const handleResize = () => {
+    resized.current = true
+  }
   const handleMoveEnd = (event: ViewStateChangeEvent) => {
     engine.loadVisibleTiles()
     const { zoom, latitude, longitude } = event.viewState
     // OSM zoom (256px tiles) is MapLibre zoom plus one
     void setCameraParam({ zoom: zoom + 1, lat: latitude, lng: longitude })
+    // the last position: the person's moves, stored once the map rests (view.ts). Storage keeps OSM zoom.
+    const source = moveSource({
+      loaded: loaded.current,
+      gesture: event.originalEvent !== undefined,
+      resized: resized.current,
+    })
+    resized.current = false
+    if (!shouldStoreMove(source)) return
+    clearTimeout(storeTimer.current)
+    storeTimer.current = setTimeout(
+      () => useSettings.getState().setLastView({ lng: longitude, lat: latitude, zoom: zoom + 1 }),
+      LAST_VIEW_DELAY,
+    )
   }
   // --- pointer: the same for the mouse and for one finger ---
 
@@ -379,9 +411,13 @@ export function MapView() {
     // all the features at the place: the first is what a click selects, as `pick` gives it
     const ids = engine.pickAll(event.point, interactive)
     const id = ids[0] ?? null
-    // Shift adds a feature to the selection or takes it out, as in iD
-    if (event.originalEvent.shiftKey && id) {
-      select(selectedIds.includes(id) ? selectedIds.filter((s) => s !== id) : [...selectedIds, id])
+    // Shift adds a feature to the selection or takes it out, as in iD. Shift on open ground keeps the
+    // selection (iD's behaviour/select.js: targeting nothing changes nothing with Shift); a plain click clears it.
+    if (event.originalEvent.shiftKey) {
+      if (id)
+        select(
+          selectedIds.includes(id) ? selectedIds.filter((s) => s !== id) : [...selectedIds, id],
+        )
       return
     }
     select(id)
@@ -423,6 +459,7 @@ export function MapView() {
       onMoveStart={dropStack}
       onMove={handleMove}
       onMoveEnd={handleMoveEnd}
+      onResize={handleResize}
       onMouseDown={handleMouseDown}
       onMouseUp={release}
       onMouseMove={handleMouseMove}

@@ -8,15 +8,9 @@ import type { Preset } from '@osm-editor-kit/maid-presets'
 import { useId, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { isFavouriteNumber } from '../favourites.ts'
 import { PLAIN_INPUT } from '../plain-input.ts'
-import {
-  EMPTY_NOTE,
-  keepFocus,
-  listboxMove,
-  revealRow,
-  ROW_ACTIVE,
-  SEARCH_FIELD,
-} from './listbox.ts'
+import { EMPTY_NOTE, keepFocus, listboxMove, revealRow, ROW_ACTIVE } from './listbox.ts'
 import { mainTagLabel, pickerRows } from './picker-logic.ts'
+import { SearchField } from './SearchField.tsx'
 
 // the colour is not here: a class of the same property in the same string would be overridden by the
 // order of the generated CSS, so each button adds its own text colour (a favourite's heart is rose)
@@ -276,7 +270,7 @@ export function PresetPicker(props: {
 
   return (
     <div className="flex min-w-0 flex-col gap-2">
-      <input
+      <SearchField
         {...PLAIN_INPUT}
         type="search"
         role="combobox"
@@ -295,7 +289,6 @@ export function PresetPicker(props: {
           setActiveIndex(0)
         }}
         onKeyDown={onKeyDown}
-        className={SEARCH_FIELD}
       />
 
       {results.length === 0 ? (

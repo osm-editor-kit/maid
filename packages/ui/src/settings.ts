@@ -12,6 +12,12 @@ import {
 /** The theme the user picked: fixed light or dark, or whatever the operating system says. */
 export type Theme = 'light' | 'dark' | 'system'
 
+/**
+ * A map position: the centre and the zoom in OSM's convention (256px tiles), the one the URL's
+ * `map=` uses. MapLibre's zoom is one lower; the conversion is made where the map is set.
+ */
+export type LastView = { lng: number; lat: number; zoom: number }
+
 /** What the UI remembers between visits */
 export type Settings = {
   theme: Theme
@@ -24,17 +30,16 @@ export type Settings = {
   shown: Record<string, string>
   /** The favourite feature types, in the order they are listed, each with its number */
   favourites: Favourite[]
+  /**
+   * Where the person last left the map. Used only when the URL names no position. Not written
+   * for a position that came from a link (apps/maid/src/url/view.ts).
+   */
+  lastView?: LastView | undefined
 }
 
 type SettingsStore = Settings & {
-  /**
-   * Not stored. The settings of `shown` whose value in this session comes from the link the
-   * session started with: changes to them stay in the session until the user drops the link's
-   * value or keeps it as their own.
-   */
-  fromLink: Record<string, boolean>
   setShown: (key: string, value: string) => void
-  setFromLink: (key: string, fromLink: boolean) => void
+  setLastView: (view: LastView) => void
   setTheme: (theme: Theme) => void
   setSize: (key: string, size: number) => void
   /** Makes the preset a favourite for the geometry, or takes it out again */
@@ -42,6 +47,13 @@ type SettingsStore = Settings & {
   /** Moves a favourite one place up (-1) or down (+1) among the favourites of its geometry */
   moveFavourite: (presetId: string, geometry: Geometry, delta: 1 | -1) => void
 }
+
+/** A map position as it is stored. Each field is checked on its own by the schema below. */
+const lastViewSchema = z.object({
+  lng: z.number().min(-180).max(180),
+  lat: z.number().min(-90).max(90),
+  zoom: z.number().min(0).max(30),
+})
 
 /** A favourite as it is stored: the same shape as `Favourite`, read field by field */
 const favouriteSchema = z.object({
@@ -68,6 +80,8 @@ const storedSchema = z.object({
       }),
     )
     .catch(() => []),
+  // optional: a value stored before this field existed loads without it
+  lastView: lastViewSchema.optional().catch(undefined),
 })
 
 /** The stored value as settings. A value that is not an object at all gives every default. */
@@ -103,12 +117,10 @@ export const useSettings = create<SettingsStore>()(
       sizes: {},
       shown: {},
       favourites: [],
-      fromLink: {},
       setTheme: (theme) => set({ theme }),
       setSize: (key, size) => set((state) => ({ sizes: { ...state.sizes, [key]: size } })),
       setShown: (key, value) => set((state) => ({ shown: { ...state.shown, [key]: value } })),
-      setFromLink: (key, fromLink) =>
-        set((state) => ({ fromLink: { ...state.fromLink, [key]: fromLink } })),
+      setLastView: (lastView) => set({ lastView }),
       toggleFavourite: (presetId, geometry) =>
         set((state) => ({ favourites: toggleIn(state.favourites, presetId, geometry) })),
       moveFavourite: (presetId, geometry, delta) =>
@@ -125,7 +137,13 @@ export const useSettings = create<SettingsStore>()(
       // runs on every load. With nothing stored, the state stays as it is.
       merge: (stored, current) =>
         stored === undefined ? current : { ...current, ...parseStored(stored) },
-      partialize: ({ theme, sizes, shown, favourites }) => ({ theme, sizes, shown, favourites }),
+      partialize: ({ theme, sizes, shown, favourites, lastView }) => ({
+        theme,
+        sizes,
+        shown,
+        favourites,
+        lastView,
+      }),
     },
   ),
 )
