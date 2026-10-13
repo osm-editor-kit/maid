@@ -18,6 +18,7 @@ import {
   SidebarEmpty,
   SidebarHeader,
   SidebarDisclosure,
+  tagChangeOf,
   TagSheet,
   type TagSuggestSource,
 } from '@osm-editor-kit/maid-ui'
@@ -136,6 +137,11 @@ export function Inspector() {
     entity && !entity.readOnly
       ? (key: string, value: string | undefined) => engine.setTag(id, key, value)
       : undefined
+  // several keys of one choice (a side that splits `both`, a field that is removed): one undo step
+  const onChangeTags = onChange
+    ? (edits: readonly { key: string; value: string | undefined }[]) =>
+        engine.changeTags([id], tagChangeOf(edits))
+    : undefined
   /**
    * The "Measure on the map" button of a width field: the first click on the map sets the start, the
    * second the end. The distance is written into the field, and the background imagery on the map is
@@ -249,6 +255,13 @@ export function Inspector() {
           )}
           {/* the groups in their own box; each has a line above it, the first one too, under the edit bar */}
           <div className="[&>*:first-child]:border-t [&>*:first-child]:pt-2.5">
+            <InspectorSections
+              placement="top"
+              entity={entity}
+              editor={editor}
+              select={select}
+              onFieldFocus={(focus) => showFieldFocus(engine, focus)}
+            />
             {(fields.length > 0 || moreFields.length > 0) && (
               <SidebarDisclosure title="Fields" defaultOpen>
                 <PresetFields
@@ -261,6 +274,7 @@ export function Inspector() {
                   // what "revert" goes back to; a feature that was added here has nothing to revert to
                   baseTags={engine.baseTags(id)}
                   onChange={onChange}
+                  onChangeTags={onChangeTags}
                   // field types that modules bring (`inspector.field`)
                   components={fieldTypes}
                   loadReference={loadReference}
@@ -290,7 +304,12 @@ export function Inspector() {
                 onRedo={() => engine.redo()}
               />
             </SidebarDisclosure>
-            <InspectorSections entity={entity} editor={editor} select={select} />
+            <InspectorSections
+              entity={entity}
+              editor={editor}
+              select={select}
+              onFieldFocus={(focus) => showFieldFocus(engine, focus)}
+            />
           </div>
         </SidebarBody>
       )}

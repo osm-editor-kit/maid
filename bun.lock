@@ -249,6 +249,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-model": "workspace:*",
         "@osm-editor-kit/maid-operations": "workspace:*",
         "@osm-editor-kit/maid-presets": "workspace:*",
         "@osm-editor-kit/maid-renderer": "workspace:*",

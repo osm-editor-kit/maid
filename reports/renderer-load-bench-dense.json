@@ -1,0 +1,38 @@
+{
+  "scene": "dense",
+  "runs": 1,
+  "tiles": 12,
+  "bodyBytes": 11718845,
+  "features": 42024,
+  "distinctImages": 264,
+  "distinctPins": 218,
+  "distinctVertexIcons": 46,
+  "images": {
+    "openingZoom": 16,
+    "all": {
+      "pins": 218,
+      "vertexIcons": 46,
+      "total": 264
+    },
+    "neededAtOpeningZoom": {
+      "pins": 0,
+      "vertexIcons": 46,
+      "total": 46
+    }
+  },
+  "serverStringifyAllTilesMs": 210.2,
+  "coldMs": {
+    "parse": 76,
+    "merge": 217.6,
+    "build": 268.1,
+    "pushBookkeeping": 16.3,
+    "total": 577.9
+  },
+  "medianMs": {
+    "parse": 234.1,
+    "merge": 468.6,
+    "build": 666.8,
+    "pushBookkeeping": 76.6,
+    "total": 1446.1
+  }
+}

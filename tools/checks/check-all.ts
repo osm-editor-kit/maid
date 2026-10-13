@@ -1,5 +1,5 @@
 /**
- * Runs the eleven browser checks one after another against one app, and writes one report.
+ * Runs the browser checks (eleven, and a twelfth for `--app parking`) one after another against one app, and writes one report.
  *
  *   bun run check-all [--app maid|bicycle|parking]
  *
@@ -29,6 +29,7 @@ const CHECKS = [
   'filters',
   'tags',
   'multi',
+  'parking',
 ] as const
 type CheckName = (typeof CHECKS)[number]
 
@@ -49,6 +50,8 @@ const EXPECTED_OK: Record<CheckName, Record<AppName, number>> = {
   filters: { maid: 18, bicycle: 18, parking: 18 },
   tags: { maid: 23, bicycle: 23, parking: 23 },
   multi: { maid: 11, bicycle: 11, parking: 11 },
+  // runs for the parking app only (the others have no parking module): the expected count is 0 elsewhere
+  parking: { maid: 0, bicycle: 0, parking: 28 },
 }
 
 type CheckResult = {
@@ -76,6 +79,8 @@ const startedAt = new Date()
 const results: CheckResult[] = []
 
 for (const name of CHECKS) {
+  // the parking check needs the parking module: only `--app parking` runs it
+  if (name === 'parking' && app !== 'parking') continue
   const expectedOk = EXPECTED_OK[name][app]
   const began = performance.now()
   const proc = Bun.spawn([process.execPath, 'run', `check-${name}`, '--app', app], {

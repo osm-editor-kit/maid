@@ -1,6 +1,6 @@
 import { OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 import type { DifferenceChange, Graph, OsmEntity } from '@osm-editor-kit/maid-model'
-import { boxOf, boxesOverlap } from './geo.ts'
+import { boxOf, boxesOverlap, locationOf } from './geo.ts'
 import type { Box, Point } from './geo.ts'
 import { sharedIssues } from './shared-issues.ts'
 import type { Issue, Rule, RuleContext, Validator } from './types.ts'
@@ -52,6 +52,15 @@ export function createValidator(rules: readonly Rule[]): Validator {
     sorted = undefined
   }
 
+  /** A rule that gives no place gets the first point of the first entity it names, so every issue can be shown on the map */
+  function withLocation(issue: Issue, graph: Graph): Issue {
+    if (issue.loc) return issue
+    const first = issue.entityIds[0]
+    const entity = first === undefined ? undefined : graph.hasEntity(first)
+    const loc = entity ? locationOf(entity, graph) : undefined
+    return loc ? { ...issue, loc } : issue
+  }
+
   /** Runs the rules on `runIds`, the entities of the run's graph to check, with the neighbours of run `stamp` */
   function runRules(
     graph: Graph,
@@ -76,7 +85,8 @@ export function createValidator(rules: readonly Rule[]): Validator {
           // One broken rule must not stop the others: it reports nothing for this entity
           continue
         }
-        for (const issue of found) {
+        for (const reported of found) {
+          const issue = withLocation(reported, graph)
           // The first entity validated wins when two runs find the same crossing
           if (!issues.has(issue.id)) issues.set(issue.id, issue)
         }

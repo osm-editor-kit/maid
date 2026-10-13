@@ -9,13 +9,15 @@ import type { MaidModule } from '@osm-editor-kit/maid-core'
 import { defaultFilters } from '@osm-editor-kit/maid-filters'
 import { dataLayers } from '@osm-editor-kit/maid-module-data-layers'
 import { imagery } from '@osm-editor-kit/maid-module-imagery'
-import { lenses } from '@osm-editor-kit/maid-module-lenses'
+import { lenses, useLensStore } from '@osm-editor-kit/maid-module-lenses'
 import { notes } from '@osm-editor-kit/maid-module-notes'
 import {
+  isGerman,
   parking,
   parkingLens,
   parkingPresetChanges,
   parkingRules,
+  withGermanLabels,
 } from '@osm-editor-kit/maid-module-parking'
 import {
   streetImagery,
@@ -52,23 +54,28 @@ const BBOX: Record<string, Bbox> = {
 /**
  * The presets of this editor: the tagging schema's, with what modules add to them.
  * - street-level images: one field for a feature's image tags (mapillary, panoramax)
- * - parking: the parking fields on roads and the parking presets
+ * - parking: the parking fields on roads and the parking presets; their German names when the visit is German
+ * Made when the editor is made, not at load: the language of the visit is set by then (mount.tsx).
  */
-const presets = createPresets(
-  withChanges(withChanges(defaultPresetData, streetImageryPresetChanges), parkingPresetChanges),
-)
-
-/**
- * Whether a point with these tags has a type that can also be an area: the type the presets
- * give the point lists "area" among its geometries (a playground does, a bench does not).
- */
-const canBeArea = (tags: Record<string, string>) =>
-  tags.area !== 'no' && presets.match(tags, 'point').geometry.includes('area')
+function makePresets() {
+  const data = withChanges(
+    withChanges(defaultPresetData, streetImageryPresetChanges),
+    parkingPresetChanges,
+  )
+  return createPresets(isGerman() ? withGermanLabels(data) : data)
+}
 
 // the imagery module, made once: a `background=custom:` link is shown through its visitBackground
 const background = imagery()
 
 function editorConfig(config: Config) {
+  const presets = makePresets()
+  /**
+   * Whether a point with these tags has a type that can also be an area: the type the presets
+   * give the point lists "area" among its geometries (a playground does, a bench does not).
+   */
+  const canBeArea = (tags: Record<string, string>) =>
+    tags.area !== 'no' && presets.match(tags, 'point').geometry.includes('area')
   // live data and unknown scenes have no fixture area to outline
   const bbox = config.live ? undefined : BBOX[config.scene]
   const modules: MaidModule[] = [
@@ -90,7 +97,7 @@ function editorConfig(config: Config) {
     // top bar and dock "Photos": street-level photos; Mapillary needs VITE_MAPILLARY_TOKEN
     streetImagery({ mapillaryToken: import.meta.env.VITE_MAPILLARY_TOKEN || undefined }),
     // the parking editor: restriction field, quick buttons, parking sides on the map, its edit operations
-    parking(),
+    parking({ lenses: useLensStore }),
     // top bar and dock "Notes": OSM notes of the same API the data comes from, read-only.
     // From OSM zoom 14 (iD and Rapid use 12; the data itself loads from 16). minZoom is an OSM zoom.
     notes({ apiUrl: config.apiUrl, minZoom: 14 }),

@@ -57,7 +57,12 @@ export {
 } from './Toolbar.tsx'
 export { DraftInput, useDraft } from './inspector/fields/DraftInput.tsx'
 /** The class of a single-line text input, as the inspector's fields and the modules use it */
-export { INPUT as INPUT_CLASS } from './inspector/fields/shared.ts'
+export {
+  INPUT as INPUT_CLASS,
+  tagChangeOf,
+  writeEdits,
+  type FieldTagEdit,
+} from './inspector/fields/shared.ts'
 export { Brand, TopBar } from './TopBar.tsx'
 export { Time } from './Time.tsx'
 export {

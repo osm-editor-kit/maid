@@ -2,14 +2,16 @@ import { XMarkIcon } from '@heroicons/react/20/solid'
 import type { Editor } from '@osm-editor-kit/maid-core'
 import type { CombinedTags } from '@osm-editor-kit/maid-model'
 import type { Field } from '@osm-editor-kit/maid-presets'
-import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
+import type { EntityInfo, MaidEngine } from '@osm-editor-kit/maid-renderer'
 import {
+  InspectorSections,
   notify,
   PresetFields,
   Sidebar,
   SidebarBody,
   SidebarDisclosure,
   SidebarHeader,
+  tagChangeOf,
   TagSheet,
   type TagSheetChange,
   type TagSuggestSource,
@@ -48,6 +50,8 @@ type Derived = {
   fields: Field[]
   /** Each selected feature with its tags: what a rename needs to keep each feature's own value. */
   features: { id: string; tags: Record<string, string> }[]
+  /** The selected entities, for the module sections that work on several */
+  entities: EntityInfo[]
   featureTags: Record<string, string>[]
   readOnly: number
 }
@@ -87,6 +91,7 @@ function derive(engine: MaidEngine, editor: Editor, selectionKey: string): Deriv
     shared: sharedTags(combined),
     fields: sharedFields(perFeature),
     features: found.map((f) => ({ id: f.id, tags: f.entity.tags })),
+    entities: found.map((f) => f.entity),
     featureTags: found.map((f) => f.entity.tags),
     readOnly: found.filter((f) => f.entity.readOnly).length,
   }
@@ -177,6 +182,16 @@ export function MultiInspector({
             <MultiType ids={derived.ids} />
           </div>
           <MultiIssues ids={derived.ids} />
+          {derived.entities[0] && (
+            // module sections that declare `multiple` (the parking buttons) and fit every selected feature
+            <InspectorSections
+              placement="top"
+              entity={derived.entities[0]}
+              entities={derived.entities}
+              editor={editor}
+              select={select}
+            />
+          )}
           {derived.fields.length > 0 && (
             <SidebarDisclosure title="Fields" defaultOpen>
               <PresetFields
@@ -186,13 +201,8 @@ export function MultiInspector({
                 tags={derived.shared}
                 combined={derived.combined}
                 features={derived.featureTags}
-                onChange={(key, value) =>
-                  write(
-                    value === undefined || value === ''
-                      ? { remove: [key] }
-                      : { set: { [key]: value } },
-                  )
-                }
+                onChange={(key, value) => write(tagChangeOf([{ key, value }]))}
+                onChangeTags={(edits) => write(tagChangeOf(edits))}
               />
             </SidebarDisclosure>
           )}
@@ -207,6 +217,14 @@ export function MultiInspector({
               onRedo={() => engine.redo()}
             />
           </SidebarDisclosure>
+          {derived.entities[0] && (
+            <InspectorSections
+              entity={derived.entities[0]}
+              entities={derived.entities}
+              editor={editor}
+              select={select}
+            />
+          )}
         </div>
       </SidebarBody>
     </Sidebar>

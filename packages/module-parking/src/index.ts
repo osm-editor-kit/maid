@@ -1,10 +1,28 @@
-import { defineModule } from '@osm-editor-kit/maid-core'
+import { defineModule, isAutomated, moduleStorage } from '@osm-editor-kit/maid-core'
 import { QuickTagsSection } from './buttons/index.ts'
-import { ParkingSidesOnMap } from './lens/index.ts'
-import { parkingOperations } from './operations/index.ts'
+import { isGerman } from './language.ts'
+import { connectParkingSides, ParkingSidesOnMap, type LensSource } from './lens/index.ts'
+import { inGerman, parkingOperations } from './operations/index.ts'
 import { PARKING_RESTRICTION_FIELD_TYPE, RestrictionField } from './restriction/index.ts'
 
-export type ParkingOptions = Record<string, never>
+const FIRST_VISIT_KEY = 'maid:parking:lens-started'
+
+/** The lens store as the module reads it (`import { useLensStore } from '@osm-editor-kit/maid-module-lenses'`) */
+type LensStore = {
+  getState: () => { activeId: string | null; setActive: (id: string | null) => void }
+  subscribe: LensSource['subscribe']
+}
+
+export type ParkingOptions = {
+  /**
+   * The lens store of the lenses module. With it, the parking sides are drawn beside the roads while the "Parking" lens
+   * (`parkingLens`, which the app gives to `lenses({ lenses })`) is the active one, and the lens is switched on at the
+   * first visit. Without it no side line is drawn.
+   */
+  lenses?: LensStore
+  /** Also draw the side of a road that has no parking tag (the gap check). Default: no. */
+  showMissing?: boolean
+}
 
 /**
  * The parking editor's module: registers
@@ -16,7 +34,6 @@ export type ParkingOptions = Record<string, never>
  * here: the app's config applies them, as with the other modules (see README.md).
  */
 export function parking(options: ParkingOptions = {}) {
-  void options
   return defineModule({
     id: 'parking',
     setup(api) {
@@ -28,17 +45,31 @@ export function parking(options: ParkingOptions = {}) {
       api.register('inspector.section', {
         id: 'parking-quick-tags',
         title: 'Parking',
+        // the reason for this editor: above the fields
+        placement: 'top',
+        multiple: true,
         when: (entity) =>
           entity.type === 'way' && entity.geometry === 'line' && 'highway' in entity.tags,
         component: QuickTagsSection,
       })
       api.register('map.content', { id: 'parking-sides', component: ParkingSidesOnMap })
-      for (const operation of parkingOperations) api.register('edit.operation', operation)
+      for (const operation of parkingOperations)
+        api.register('edit.operation', isGerman() ? inGerman(operation) : operation)
+      const { lenses } = options
+      if (!lenses) return
+      // first visit (our own mark is not stored yet) and not under automation: start with the parking lens on, as a
+      // parking editor should. The lenses module stores its choice itself, so a person's "None" is kept afterwards.
+      const storage = moduleStorage()
+      if (!isAutomated() && storage.getItem(FIRST_VISIT_KEY) === null) {
+        storage.setItem(FIRST_VISIT_KEY, '1')
+        if (lenses.getState().activeId === null) lenses.getState().setActive('parking')
+      }
+      return connectParkingSides(lenses, { showMissing: options.showMissing })
     },
   })
 }
 
-export { parkingPresetChanges } from './presets/index.ts'
+export { parkingPresetChanges, withGermanLabels, LABELS_DE } from './presets/index.ts'
 export {
   SIDES,
   sideKey,
@@ -65,3 +96,4 @@ export {
 export { parkingRules } from './validation/index.ts'
 export { parkingOperations } from './operations/index.ts'
 export { PARKING_ICONS, type ParkingIconName } from './icons/index.ts'
+export { isGerman } from './language.ts'

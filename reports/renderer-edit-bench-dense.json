@@ -1,0 +1,10 @@
+{
+  "scene": "dense",
+  "steps": 300,
+  "waysAtNode": 3,
+  "medianMs": {
+    "perform": 0.01,
+    "rebuildFeatures": 0.01,
+    "total": 0.02
+  }
+}

@@ -112,6 +112,8 @@ const HANDLES_SEVERAL = new Set([
   'directionalCombo',
   'address',
   'localized',
+  // a module's field that shows the values of each key itself (the parking restriction, per side)
+  'parkingRestriction',
 ])
 
 /** Whether the field type shows several values itself (see HANDLES_SEVERAL). */

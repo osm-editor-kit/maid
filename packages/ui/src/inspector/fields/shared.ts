@@ -29,6 +29,12 @@ export type FieldProps = {
   /** Sets or (with undefined) removes one tag. Absent: read-only. */
   onChange?: (key: string, value: string | undefined) => void
   /**
+   * Sets and removes several tags as one change: one undo step. A control that writes more than one key for one
+   * choice (a side that splits `both`, a value with its `:conditional`) uses `writeEdits`, which calls this when the
+   * inspector gives it and `onChange` per key otherwise.
+   */
+  onChangeTags?: (edits: readonly FieldTagEdit[]) => void
+  /**
    * The element in the row's label bar, after the "i". A control that has buttons of its own
    * (for the label bar, not below the input) renders them into it with createPortal. Null or
    * absent: none; controls that ignore it are unaffected.
@@ -43,6 +49,30 @@ export type FieldProps = {
  */
 export type AddressContext = { country?: string; candidates?: readonly AddressCandidate[] }
 export type FieldComponent = (props: FieldProps) => ReactNode
+
+/** One edit of one tag: `value` undefined removes the key */
+export type FieldTagEdit = { key: string; value: string | undefined }
+
+/** Writes the edits of one choice: as one change where the inspector gives `onChangeTags`, else key by key */
+export function writeEdits(
+  props: Pick<FieldProps, 'onChange' | 'onChangeTags'>,
+  edits: readonly FieldTagEdit[],
+) {
+  if (edits.length === 0) return
+  if (props.onChangeTags) props.onChangeTags(edits)
+  else for (const edit of edits) props.onChange?.(edit.key, edit.value)
+}
+
+/** The edits as the keys to set and the keys to remove (an empty value removes), as the engine's `changeTags` takes them */
+export function tagChangeOf(edits: readonly FieldTagEdit[]) {
+  const set: Record<string, string> = {}
+  const remove: string[] = []
+  for (const { key, value } of edits) {
+    if (value === undefined || value === '') remove.push(key)
+    else set[key] = value
+  }
+  return { set, remove }
+}
 
 /**
  * The control that has the focus or the pointer on it, as the map needs it (PresetFields

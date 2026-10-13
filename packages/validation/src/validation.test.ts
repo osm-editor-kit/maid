@@ -460,3 +460,40 @@ describe('speed', () => {
     expect(validator.issues()).toHaveLength(5)
   })
 })
+
+describe('the place of an issue', () => {
+  // a module's rule that names an entity and gives no place
+  const noPlace: Rule = {
+    id: 'no_place',
+    label: 'A rule without a place',
+    validate: (entity) => [
+      {
+        id: `no_place:${entity.id}`,
+        rule: 'no_place',
+        severity: 'warning',
+        message: 'somewhere',
+        entityIds: [entity.id],
+        fixes: [],
+      },
+    ],
+  }
+  const own: Rule = {
+    ...noPlace,
+    id: 'own_place',
+    validate: (entity) => [
+      { ...noPlace.validate(entity, undefined as never)[0]!, id: 'own_place:x', loc: [9, 9] },
+    ],
+  }
+
+  it('is the first point of the first entity when the rule gives none', () => {
+    const graph = graphOf(node('n1', 2, 3), node('n2', 4, 5), way('w1', ['n1', 'n2']))
+    const issues = validateWith([noPlace], graph, ['w1'], [wayIn(graph, 'w1')]).issues()
+    expect(issues[0]?.loc).toEqual([2, 3])
+  })
+
+  it('is kept when the rule gives one', () => {
+    const graph = graphOf(node('n1', 2, 3), node('n2', 4, 5), way('w1', ['n1', 'n2']))
+    const issues = validateWith([own], graph, ['w1'], [wayIn(graph, 'w1')]).issues()
+    expect(issues[0]?.loc).toEqual([9, 9])
+  })
+})

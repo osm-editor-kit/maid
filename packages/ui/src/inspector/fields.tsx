@@ -27,6 +27,7 @@ import type {
   FieldComponent,
   FieldFocus,
   FieldMeasure,
+  FieldProps,
 } from './fields/shared.ts'
 import { TextField, TextareaField } from './fields/Text.tsx'
 import { fieldKeys } from './logic.ts'
@@ -88,6 +89,8 @@ export function PresetFields(props: {
   /** The tags before any edit. Given, the rows get a revert button for what differs from them. */
   baseTags?: Tags
   onChange?: (key: string, value: string | undefined) => void
+  /** Several tags as one change, one undo step (FieldProps.onChangeTags). Absent: `onChange` per key. */
+  onChangeTags?: FieldProps['onChangeTags']
   /** Overrides or adds components per field type */
   components?: Record<string, FieldComponent>
   /** The fields the "Add field" list offers (presets.moreFieldsFor). No list without onChange. */
@@ -112,6 +115,7 @@ export function PresetFields(props: {
     features,
     baseTags,
     onChange,
+    onChangeTags,
     components,
     moreFields = [],
     loadReference,
@@ -251,6 +255,7 @@ export function PresetFields(props: {
             features={features}
             baseTags={baseTags}
             onChange={onChange}
+            onChangeTags={onChangeTags}
             registry={registry}
             related={relatedOf(field)}
             loadReference={loadReference}

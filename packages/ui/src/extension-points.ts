@@ -5,7 +5,7 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
 import type { EntityInfo } from '@osm-editor-kit/maid-renderer'
 import type { ComponentType, ReactNode } from 'react'
-import type { FieldComponent } from './inspector/fields/shared.ts'
+import type { FieldComponent, FieldFocus } from './inspector/fields/shared.ts'
 
 /** What a section is given. It edits through `editor.history`; the map follows every change. */
 export type InspectorSectionProps = {
@@ -13,13 +13,30 @@ export type InspectorSectionProps = {
   editor: Editor
   /** Selects another entity (or several, or nothing), for example a member of a relation */
   select: (selection: string | readonly string[] | null) => void
+  /**
+   * Every selected entity, when the section is shown for several (`InspectorSection.multiple`); `entity` is then the
+   * first of them. Absent for a single selection.
+   */
+  entities?: readonly EntityInfo[]
+  /**
+   * Tell the shell which field (and side) the section's control is about, so the map can show that side of the
+   * selected way; null when the pointer or the focus leaves. Absent where the shell cannot show it (several features).
+   */
+  onFieldFocus?: (focus: FieldFocus | null) => void
 }
 
-/** A block in the inspector, below the tag list. Shown when `when` is absent or returns true. */
+/** A block in the inspector, below the tag list (or above the fields: `placement`). Shown when `when` is absent or returns true. */
 export type InspectorSection = {
   id: string
   title: string
   when?: (entity: EntityInfo) => boolean
+  /** `'top'`: above the fields, for the section an editor is made for (the parking buttons). Absent: below the tag list. */
+  placement?: 'top'
+  /**
+   * Also shown when several features are selected, if `when` holds for every one of them. The component then gets
+   * `entities`.
+   */
+  multiple?: boolean
   /** Folds away under its title: `'closed'` starts folded, `'open'` unfolded. Absent: always shown. */
   disclosure?: 'open' | 'closed'
   /** A quiet word after the title that stays readable while folded: a count, an id */

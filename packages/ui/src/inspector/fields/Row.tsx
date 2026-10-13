@@ -22,7 +22,7 @@ import type {
   FieldMeasure,
   FieldProps,
 } from './shared.ts'
-import { HINT, LABEL, REVEAL, ROW_BUTTON } from './shared.ts'
+import { HINT, LABEL, REVEAL, ROW_BUTTON, writeEdits } from './shared.ts'
 
 /** Field types that take a value from a list of options and show the option's label as a hint. */
 const COMBO_TYPES = new Set(['combo', 'typeCombo', 'networkCombo', 'radio', 'structureRadio'])
@@ -76,6 +76,7 @@ const STEADY_TYPES = new Set([
   'streetImages',
   'surfaceSmoothness',
   'trafficSign',
+  'parkingRestriction',
 ])
 
 export function FieldRow(props: {
@@ -88,6 +89,8 @@ export function FieldRow(props: {
   /** The tags before any edit. Without them there is no revert button. */
   baseTags?: Tags
   onChange: FieldProps['onChange']
+  /** Several tags as one change (FieldProps.onChangeTags). Absent: `onChange` per key. */
+  onChangeTags?: FieldProps['onChangeTags']
   registry: Record<string, FieldComponent>
   /** The related tags below the field (lines, add buttons, editors). Absent: none. */
   related?: RelatedRow
@@ -105,6 +108,7 @@ export function FieldRow(props: {
     features,
     baseTags,
     onChange,
+    onChangeTags,
     registry,
     related,
     loadReference,
@@ -144,9 +148,8 @@ export function FieldRow(props: {
   const present = isPresent(field, tags) || mixedKeys.length > 0
   // and a mixed key has no single base value to go back to, so there is no revert
   const modified = baseTags !== undefined && isModified(field, tags, baseTags)
-  const apply = (edits: TagEdit[]) => {
-    for (const edit of edits) onChange?.(edit.key, edit.value)
-  }
+  // revert and remove can touch several keys of the field: one change
+  const apply = (edits: TagEdit[]) => writeEdits({ onChange, onChangeTags }, edits)
   return (
     <div
       role={key === undefined ? 'group' : undefined}
@@ -236,6 +239,7 @@ export function FieldRow(props: {
         combined={combined}
         features={features}
         onChange={onChange}
+        onChangeTags={onChangeTags}
         labelActions={labelActions}
         address={field.type === 'address' ? address : undefined}
       />
