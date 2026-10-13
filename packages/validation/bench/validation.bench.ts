@@ -330,19 +330,25 @@ function waysFor(edit: Edit, head: Graph): readonly OsmWay[] {
 }
 
 /**
- * What the app does after a commit: the difference from the base, then the validator. The difference
- * is part of the timed work, as it is in the app.
+ * What the app does after a commit: the difference from the base (the session), the step (the difference
+ * from the graph of the previous commit, `prev`), then the validator. Both differences are part of the
+ * timed work, as the history makes them in the app.
  */
-function commit(validator: Validator, head: Graph, ways: readonly OsmWay[]): GraphChange {
+function commit(
+  validator: Validator,
+  prev: Graph,
+  head: Graph,
+  ways: readonly OsmWay[],
+): GraphChange {
   const change: GraphChange = { base, head, changes: new Difference(base, head).changes }
-  validator.update(change, ways)
+  validator.update(change, ways, new Difference(prev, head).changes)
   return change
 }
 
 /** A validator that has made the boxes of all ways: the app does this at the first edit after loading */
 function warmValidator(rules: readonly Rule[] = defaultRules): Validator {
   const validator = createValidator(rules)
-  commit(validator, new Graph(base), baseWays)
+  commit(validator, base, new Graph(base), baseWays)
   return validator
 }
 
@@ -369,7 +375,7 @@ const firstEditSamples: number[] = []
 for (let pass = 0; pass < RUNS; pass++) {
   const validator = createValidator(defaultRules)
   const start = now()
-  commit(validator, heads[0]!, waysFor(edits[0]!, heads[0]!))
+  commit(validator, base, heads[0]!, waysFor(edits[0]!, heads[0]!))
   firstEditSamples.push(now() - start)
 }
 const firstEdit = statsOf(firstEditSamples)
@@ -384,6 +390,8 @@ const waysSamples = edits.map(() => [] as number[])
 for (let pass = 0; pass <= RUNS; pass++) {
   const validator = warmValidator()
   const results: EditResult[] = []
+  // the graph the validator has seen last: each edit starts from it
+  let prev = base
   for (const [index, edit] of edits.entries()) {
     const head = heads[index]!
     const start = now()
@@ -394,7 +402,8 @@ for (let pass = 0; pass <= RUNS; pass++) {
       ways = waysOf(head)
       waysMs = now() - t
     }
-    commit(validator, head, ways)
+    commit(validator, prev, head, ways)
+    prev = head
     const ms = now() - start
     const issues = validator.issues()
     results.push({
@@ -465,6 +474,9 @@ type Burst = {
   overFrame: number
   overChunk: number
   checkedLast: number
+  /** median of the first and of the last ten steps: a cost that grows with the session shows here */
+  firstTenMedian: number
+  lastTenMedian: number
 }
 
 /** A series of commits on one warm validator, each validated as the app validates it */
@@ -472,9 +484,11 @@ function burst(label: string, steps: { head: Graph; ways: readonly OsmWay[] }[])
   const validator = warmValidator()
   const samples: number[] = []
   let checkedLast = 0
+  let prev = base
   for (const { head, ways } of steps) {
     const start = now()
-    commit(validator, head, ways)
+    commit(validator, prev, head, ways)
+    prev = head
     samples.push(now() - start)
     checkedLast = entitiesToValidate(new Difference(base, head).changes, base, head).size
   }
@@ -489,6 +503,8 @@ function burst(label: string, steps: { head: Graph; ways: readonly OsmWay[] }[])
     overFrame: samples.filter((s) => s > FRAME_MS).length,
     overChunk: samples.filter((s) => s > CHUNK_MS).length,
     checkedLast,
+    firstTenMedian: round(median(samples.slice(0, 10))),
+    lastTenMedian: round(median(samples.slice(-10))),
   }
 }
 
@@ -526,6 +542,10 @@ for (const b of [dragBurst, tagBurst])
   console.log(
     `  ${b.label.padEnd(34)} per step median ${b.perStep.median} ms  worst ${b.perStep.max} ms  total ${b.total} ms  over ${FRAME_MS} ms: ${b.overFrame}  over ${CHUNK_MS} ms: ${b.overChunk}  entities checked at the end: ${b.checkedLast}`,
   )
+for (const b of [dragBurst, tagBurst])
+  console.log(
+    `  ${b.label.padEnd(34)} growth: median of the first ten steps ${b.firstTenMedian} ms, of the last ten ${b.lastTenMedian} ms`,
+  )
 
 // ---------------------------------------------------------------- profile of the edits
 
@@ -561,8 +581,11 @@ for (const b of [dragBurst, tagBurst])
     },
   }))
   const validator = warmValidator(timedRules)
-  for (const [index, edit] of edits.entries())
-    commit(validator, heads[index]!, waysFor(edit, heads[index]!))
+  let prev = base
+  for (const [index, edit] of edits.entries()) {
+    commit(validator, prev, heads[index]!, waysFor(edit, heads[index]!))
+    prev = heads[index]!
+  }
   console.log(
     `\nprofile of the ${edits.length} edits (rules timed one by one, instrumented: slower than the table)`,
   )

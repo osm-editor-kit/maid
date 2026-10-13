@@ -79,10 +79,20 @@ export type Validator = {
   validate(graph: Graph, entityIds: Iterable<string>, ways: Iterable<OsmWay>): void
   /**
    * Checks what the difference makes necessary to check again (`entitiesToValidate`), replaces the
-   * issues about those entities and drops every other issue. Give the whole difference from the base:
-   * a deletion makes its neighbours checked again, and what is no longer changed is no longer reported.
+   * issues about those entities and drops the issues that name no changed entity. Give the whole
+   * difference from the base as `change`: a deletion makes its neighbours checked again, and what is
+   * no longer changed is no longer reported.
+   *
+   * `step` is what this commit changed, from the graph of the previous update to `change.head` (an
+   * edit, an undo or a redo). With it only the step's entities and their neighbours are checked
+   * again, so the cost of a commit does not grow with the session; the whole difference still decides
+   * what is kept. Without it, everything `change` names is checked again.
    */
-  update(change: GraphChange, ways: Iterable<OsmWay>): void
+  update(
+    change: GraphChange,
+    ways: Iterable<OsmWay>,
+    step?: ReadonlyMap<string, DifferenceChange>,
+  ): void
   /** Drops every issue whose first entity is not in `entityIds`: what is no longer changed is no longer reported */
   keepOnly(entityIds: Iterable<string>): void
   /**

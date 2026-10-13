@@ -1,5 +1,5 @@
 import { defineModule, type Editor, type MaidModule } from '@osm-editor-kit/maid-core'
-import { OsmWay } from '@osm-editor-kit/maid-model'
+import { OsmWay, type Graph } from '@osm-editor-kit/maid-model'
 import type { DockViewProps, InspectorSectionProps } from '@osm-editor-kit/maid-ui'
 import {
   createValidator,
@@ -17,9 +17,8 @@ type Store = {
   version: () => number
 }
 
-/** All ways of the current state: what the rules compare a changed way with */
-function waysOf(editor: Editor): OsmWay[] {
-  const { graph } = editor.history.staging
+/** Every way of a graph: the base ways that no edit replaced, then the ways of the edits */
+function waysOf(graph: Graph): OsmWay[] {
   const ways: OsmWay[] = []
   // an entry in `local` replaces the one in `base`; `undefined` there means deleted
   for (const [id, entity] of graph.base.entities)
@@ -33,27 +32,36 @@ function createStore(editor: Editor, rules: readonly Rule[]): Store & { stop: ()
   const validator = createValidator(rules)
   const listeners = new Set<() => void>()
   let version = 0
-  // After every finished edit, undo or redo: what the person changed is checked again, and
-  // what is no longer changed is no longer reported.
-  // Walking every entity for the list of ways is the expensive part, so the list is kept until
-  // data is loaded or a way is added, removed or changed.
-  let ways: OsmWay[] | undefined
+  // The ways the rules compare with, by id. Read once from the whole graph (after loading, or after a
+  // merge), then changed by each edit's difference: a way that the edit named is set, or deleted.
+  let ways: Map<string, OsmWay> | undefined
   const forget = editor.history.on('merge', () => {
     ways = undefined
     // base data changed other than by edits: the boxes the validator kept are no longer known to be right
     validator.reset()
   })
+  // After every finished edit, undo or redo: what the person changed is checked again, and
+  // what is no longer changed is no longer reported.
   const stopValidating = editor.history.on('stablechange', (difference) => {
-    for (const id of difference.changes.keys()) if (id[0] === 'w') ways = undefined
-    // the whole difference from the base, deletions included: the validator works out what it must check again
+    const head = editor.history.stable.graph
+    if (ways) {
+      for (const id of difference.changes.keys()) {
+        const entity = head.hasEntity(id)
+        if (entity instanceof OsmWay) ways.set(id, entity)
+        else ways.delete(id)
+      }
+    } else if (difference.changes.size > 0) {
+      ways = new Map(waysOf(head).map((way) => [way.id, way]))
+    }
+    // the whole difference from the base decides what is kept; the step (this edit's difference, from
+    // the stable graph before it) is what is checked again. Before the first change there are no ways
+    // to compare with, and an empty step checks nothing.
     const change = {
       base: editor.history.base.graph,
-      head: editor.history.staging.graph,
+      head,
       changes: editor.history.difference().changes,
     }
-    // nothing was changed (the usual case after loading): nothing to compare with
-    if (change.changes.size > 0) ways ??= waysOf(editor)
-    validator.update(change, ways ?? [])
+    validator.update(change, ways?.values() ?? [], difference.changes)
     version++
     for (const listener of listeners) listener()
   })

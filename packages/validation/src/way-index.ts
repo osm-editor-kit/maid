@@ -1,6 +1,8 @@
 // The ways by bounding box, for `waysNear`. A grid of 0.002 degrees (about 135 m by 220 m in Berlin)
 // keeps every way's box from one run to the next: a run recomputes only the boxes that changed, and
 // a neighbour search tests the ways in the cells of its box instead of every way of the list.
+// Neighbours come back in id order, so a result does not depend on the order in which the caller
+// gives the ways (a loaded graph and an edited one list them in different orders).
 import { OsmNode, OsmWay } from '@osm-editor-kit/maid-model'
 import type { Graph } from '@osm-editor-kit/maid-model'
 import { boxOf, boxesOverlap } from './geo.ts'
@@ -22,8 +24,6 @@ type Entry = {
   large: boolean
   /** The run that named it last: only the ways of the current run are neighbours */
   stamp: number
-  /** Its position in the list of the run: the order in which neighbours come back, as the list gives them */
-  order: number
   /** The search that tested it last, so a way in several cells is tested once */
   query: number
 }
@@ -35,7 +35,7 @@ export type WayIndex = {
    * and makes the boxes of the ones that are new or changed, in `graph`. Returns the run's stamp.
    */
   enter(graph: Graph, ways: Iterable<OsmWay>, targets: Iterable<string>): number
-  /** The ways of the run whose box overlaps the box of `way` (in `graph`), without `way` itself */
+  /** The ways of the run whose box overlaps the box of `way` (in `graph`), without `way` itself, in id order */
   near(graph: Graph, way: OsmWay, stamp: number): OsmWay[]
   /** The box of this way must be made again: a node of it, or the way, changed */
   invalidate(id: string): void
@@ -110,7 +110,6 @@ export function createWayIndex(): WayIndex {
 
   function enter(graph: Graph, ways: Iterable<OsmWay>, targets: Iterable<string>): number {
     stamp++
-    let order = 0
     const name = (way: OsmWay): void => {
       let entry = entries.get(way.id)
       if (!entry) {
@@ -121,7 +120,6 @@ export function createWayIndex(): WayIndex {
           cells: [],
           large: false,
           stamp: 0,
-          order: 0,
           query: 0,
         }
         entries.set(way.id, entry)
@@ -133,7 +131,6 @@ export function createWayIndex(): WayIndex {
         dirty.add(entry)
       }
       entry.stamp = stamp
-      entry.order = order++
     }
     for (const way of ways) name(way)
     for (const id of targets) {
@@ -163,7 +160,7 @@ export function createWayIndex(): WayIndex {
       for (let y = y0; y <= y1; y++) cells.get(cellKey(x, y))?.forEach(test)
     }
     large.forEach(test)
-    found.sort((a, b) => a.order - b.order)
+    found.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
     const out: OsmWay[] = []
     for (const entry of found) {
       const current = graph.hasEntity(entry.id)

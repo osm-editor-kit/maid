@@ -148,8 +148,10 @@ function islandOfWay(entity: OsmEntity, context: RuleContext): Map<string, OsmEn
 /**
  * Routable features that form an island with no link to the rest of the network. The island is
  * made of validated features only: an island that reaches a feature this run does not validate is
- * part of the network. The message is about the entity validated. A single feature gets "Delete
- * this feature"; a group gets no fix, because the person has to connect it by hand.
+ * part of the network. The issue is about the island, not about the entity the run started from: its
+ * first entity, and the name in its message, are the island's lowest id, so the same island gives the
+ * same issue whichever of its features is validated first. A single feature gets "Delete this
+ * feature"; a group gets no fix, because the person has to connect it by hand.
  */
 export const disconnectedWay: Rule = {
   id: 'disconnected_way',
@@ -158,22 +160,20 @@ export const disconnectedWay: Rule = {
     const island = islandOfWay(entity, context)
     if (!island) return []
 
-    const members = [...island.values()]
-    const others = members
-      .map((member) => member.id)
-      .filter((id) => id !== entity.id)
-      .sort()
-    const entityIds = [entity.id, ...others]
-    const name = entity.tags.name
+    const members = [...island.values()].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    const [lowest] = members
+    if (!lowest) return []
+    const entityIds = members.map((member) => member.id)
+    const name = lowest.tags.name
 
     return [
       {
-        id: `disconnected_way:${[...entityIds].sort().join(',')}`,
+        id: `disconnected_way:${entityIds.join(',')}`,
         rule: 'disconnected_way',
         severity: 'warning',
         message: `${name || 'This road'} is not connected to other roads`,
         entityIds,
-        fixes: members.length === 1 ? [deleteFeatureFix(entity)] : [],
+        fixes: members.length === 1 ? [deleteFeatureFix(lowest)] : [],
       },
     ]
   },

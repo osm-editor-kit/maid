@@ -2,7 +2,7 @@ import { OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 import type { DifferenceChange, Graph, OsmEntity } from '@osm-editor-kit/maid-model'
 import { boxOf, boxesOverlap } from './geo.ts'
 import type { Box, Point } from './geo.ts'
-import type { GraphChange, Issue, Rule, RuleContext, Validator } from './types.ts'
+import type { Issue, Rule, RuleContext, Validator } from './types.ts'
 import { createWayIndex } from './way-index.ts'
 
 const severityRank: Record<Issue['severity'], number> = { error: 0, warning: 1 }
@@ -20,36 +20,54 @@ export function createValidator(rules: readonly Rule[]): Validator {
   const issues = new Map<string, Issue>()
   // The boxes of the ways, kept from one update to the next (see way-index.ts)
   const wayIndex = createWayIndex()
-  // The graph of the last update and the ids it changed: what changed since then is what the index recomputes
+  // The graph of the last update, and the ids that update was given: what changed since is what the index recomputes
   let lastHead: Graph | undefined
-  let lastChanged: ReadonlySet<string> = new Set()
+  let lastGiven: ReadonlySet<string> = new Set()
+  // The issues sorted, until they change: `issuesFor` is called for every inspector render
+  let sorted: Issue[] | undefined
 
   function allIssues(): Issue[] {
-    return [...issues.values()].sort(
-      (a, b) =>
-        severityRank[a.severity] - severityRank[b.severity] ||
-        compareText(a.rule, b.rule) ||
-        compareText(a.id, b.id),
-    )
+    if (sorted === undefined)
+      sorted = [...issues.values()].sort(
+        (a, b) =>
+          severityRank[a.severity] - severityRank[b.severity] ||
+          compareText(a.rule, b.rule) ||
+          compareText(a.id, b.id),
+      )
+    return sorted
   }
 
-  function validateWith(graph: Graph, entityIds: Iterable<string>, ways: Iterable<OsmWay>): void {
-    const targets = new Set(entityIds)
-
-    // Drop what the validated entities had, and whatever names an entity that left the graph
+  /**
+   * Drops the issues that name an entity in `replaced`, or an entity that left the graph. With
+   * `validated`, also the issues that name no validated entity: nothing that was changed makes them.
+   */
+  function dropStale(
+    graph: Graph,
+    replaced: ReadonlySet<string>,
+    validated?: ReadonlySet<string>,
+  ): void {
     for (const [key, issue] of issues) {
-      const stale = issue.entityIds.some((id) => targets.has(id) || !graph.hasEntity(id))
-      if (stale) issues.delete(key)
+      const stale = issue.entityIds.some((id) => replaced.has(id) || !graph.hasEntity(id))
+      const orphaned = validated !== undefined && !issue.entityIds.some((id) => validated.has(id))
+      if (stale || orphaned) issues.delete(key)
     }
+    sorted = undefined
+  }
 
-    const stamp = wayIndex.enter(graph, ways, targets)
+  /** Runs the rules on `runIds`, the entities of the run's graph to check, with the neighbours of run `stamp` */
+  function runRules(
+    graph: Graph,
+    validated: ReadonlySet<string>,
+    runIds: readonly string[],
+    stamp: number,
+  ): void {
     const context: RuleContext = {
       graph,
-      validated: targets,
+      validated,
       waysNear: (way) => wayIndex.near(graph, way, stamp),
       memo: new Map(),
     }
-    for (const id of targets) {
+    for (const id of runIds) {
       const entity = graph.hasEntity(id)
       if (!entity) continue
       for (const rule of rules) {
@@ -66,6 +84,7 @@ export function createValidator(rules: readonly Rule[]): Validator {
         }
       }
     }
+    sorted = undefined
   }
 
   function keepOnly(entityIds: Iterable<string>): void {
@@ -74,20 +93,30 @@ export function createValidator(rules: readonly Rule[]): Validator {
       const first = issue.entityIds[0]
       if (first === undefined || !keep.has(first)) issues.delete(key)
     }
+    sorted = undefined
   }
 
-  /** Boxes of the ways whose nodes or tags differ between the last update's graph and this one */
-  function invalidateChanged(previous: Graph, change: GraphChange): void {
-    for (const id of new Set([...lastChanged, ...change.changes.keys()])) {
-      const before = previous.hasEntity(id)
-      const after = change.head.hasEntity(id)
-      if (before === after) continue
+  /**
+   * Makes the boxes of the ways whose nodes or tags differ between `previous` and `head` again, for
+   * the ids that may differ. Returns the ids whose box was invalidated (the ways, and the parents of
+   * changed nodes, before and after).
+   */
+  function invalidateChanged(previous: Graph, head: Graph, ids: Iterable<string>): Set<string> {
+    const invalidated = new Set<string>()
+    const invalidate = (id: string): void => {
       wayIndex.invalidate(id)
-      if (before instanceof OsmNode)
-        for (const way of previous.parentWays(before)) wayIndex.invalidate(way.id)
-      if (after instanceof OsmNode)
-        for (const way of change.head.parentWays(after)) wayIndex.invalidate(way.id)
+      invalidated.add(id)
     }
+    for (const id of ids) {
+      const before = previous.hasEntity(id)
+      const after = head.hasEntity(id)
+      if (before === after) continue
+      invalidate(id)
+      if (before instanceof OsmNode)
+        for (const way of previous.parentWays(before)) invalidate(way.id)
+      if (after instanceof OsmNode) for (const way of head.parentWays(after)) invalidate(way.id)
+    }
+    return invalidated
   }
 
   return {
@@ -97,23 +126,61 @@ export function createValidator(rules: readonly Rule[]): Validator {
       // a run of its own: nothing is kept from an earlier one
       wayIndex.clear()
       lastHead = undefined
-      validateWith(graph, entityIds, ways)
+      const targets = new Set(entityIds)
+      dropStale(graph, targets)
+      runRules(graph, targets, [...targets], wayIndex.enter(graph, ways, targets))
     },
 
-    update(change, ways) {
-      const checked = entitiesToValidate(change.changes, change.base, change.head)
-      keepOnly(checked)
-      if (lastHead) invalidateChanged(lastHead, change)
-      else wayIndex.clear()
-      validateWith(change.head, checked, ways)
-      lastHead = change.head
-      lastChanged = new Set(change.changes.keys())
+    update(change, ways, step) {
+      const head = change.head
+      // The entities the session changed, and their neighbours: what counts as validated. Rules such
+      // as disconnected_way compare with it, so it is the whole session's, not the step's.
+      const validated = entitiesToValidate(change.changes, change.base, head)
+
+      if (!lastHead || !step) {
+        // The first update, after a reset, or without a step: everything the session changed is
+        // checked again, as a run of its own over the whole session
+        if (lastHead)
+          invalidateChanged(lastHead, head, new Set([...lastGiven, ...change.changes.keys()]))
+        else wayIndex.clear()
+        dropStale(head, validated, validated)
+        runRules(head, validated, [...validated], wayIndex.enter(head, ways, validated))
+      } else {
+        // The step: what this commit changed, and its neighbours, are checked again
+        const invalidated = invalidateChanged(lastHead, head, step.keys())
+        const replaced = entitiesToValidate(step, lastHead, head)
+        const stamp = wayIndex.enter(head, ways, validated)
+        // A validated way next to a way the commit changed may now cross it or join it: a crossing
+        // depends on the other way's tags as well as its box, so the neighbours are checked again
+        for (const id of invalidated) {
+          const way = head.hasEntity(id)
+          if (!(way instanceof OsmWay)) continue
+          for (const other of wayIndex.near(head, way, stamp))
+            if (validated.has(other.id)) replaced.add(other.id)
+        }
+        // The validated ways of a changed relation: its tags and members decide what they are
+        for (const delta of step.values())
+          for (const entity of [delta.base, delta.head])
+            if (entity instanceof OsmRelation)
+              for (const member of entity.members)
+                if (member.type === 'way' && validated.has(member.id)) replaced.add(member.id)
+        dropStale(head, replaced, validated)
+        runRules(
+          head,
+          validated,
+          [...replaced].filter((id) => validated.has(id)),
+          stamp,
+        )
+      }
+
+      lastHead = head
+      lastGiven = new Set((step ?? change.changes).keys())
     },
 
     reset() {
       wayIndex.clear()
       lastHead = undefined
-      lastChanged = new Set()
+      lastGiven = new Set()
     },
 
     keepOnly,
