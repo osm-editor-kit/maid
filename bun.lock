@@ -37,6 +37,7 @@
         "@osm-editor-kit/maid-validation": "workspace:*",
         "@tailwindcss/vite": "^4.3.3",
         "@tanstack/react-hotkeys": "^0.13.0",
+        "@tanstack/react-query": "5.104.1",
         "maplibre-gl": "^6.0.0",
         "nuqs": "^2.10.1",
         "osm-api": "^4.0.1",
@@ -63,6 +64,7 @@
         "@osm-editor-kit/maid-model": "workspace:*",
         "@osm-editor-kit/maid-presets": "workspace:*",
         "@osm-editor-kit/maid-validation": "workspace:*",
+        "@tanstack/query-core": "5.104.1",
       },
       "devDependencies": {
         "@types/react": "^19.3.0",

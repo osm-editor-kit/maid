@@ -1,4 +1,5 @@
 import { EditHistory, ModelContext } from '@osm-editor-kit/maid-model'
+import { createEditorFetch } from './fetching/editor-fetch.ts'
 import { createHooks } from './hooks.ts'
 import { createRegistry, type Registry } from './registry.ts'
 import { PresetSchema } from './schema.ts'
@@ -28,6 +29,7 @@ export function createEditor(config: EditorConfig = {}): Editor {
   assertUniqueIds(modules)
 
   const hooks = createHooks(onError)
+  const net = createEditorFetch()
   const registries = new Map<string, Registry<{ id: string }>>()
   const active: { id: string; cleanup: () => void }[] = []
   let destroyed = false
@@ -52,6 +54,7 @@ export function createEditor(config: EditorConfig = {}): Editor {
         onError(error, context)
       }
     }
+    net.queries.clear()
   }
 
   function setUp(module: MaidModule) {
@@ -104,6 +107,10 @@ export function createEditor(config: EditorConfig = {}): Editor {
     },
     registry: registryFor,
     moduleIds: modules.map((m) => m.id),
+    queries: net.queries,
+    fetch: net.fetch,
+    services: net.services,
+    fetchPauses: net.fetchPauses,
     destroy,
   }
 

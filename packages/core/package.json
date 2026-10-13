@@ -12,7 +12,8 @@
     "@osm-editor-kit/maid-filters": "workspace:*",
     "@osm-editor-kit/maid-model": "workspace:*",
     "@osm-editor-kit/maid-presets": "workspace:*",
-    "@osm-editor-kit/maid-validation": "workspace:*"
+    "@osm-editor-kit/maid-validation": "workspace:*",
+    "@tanstack/query-core": "5.104.1"
   },
   "devDependencies": {
     "@types/react": "^19.3.0"

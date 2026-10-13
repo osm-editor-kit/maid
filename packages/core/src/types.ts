@@ -6,6 +6,10 @@
 import type { Filter as FeatureFilter } from '@osm-editor-kit/maid-filters'
 import type { Context, EditHistory } from '@osm-editor-kit/maid-model'
 import type { Presets } from '@osm-editor-kit/maid-presets'
+import type { QueryClient } from '@tanstack/query-core'
+import type { FetchPauses } from './fetching/editor-fetch.ts'
+import type { RemoteFetch } from './fetching/remote-fetch.ts'
+import type { ServiceRegistry } from './fetching/services.ts'
 
 /** `experimental` may change in any release. `stable` is deprecated before it is removed. */
 export type Stability = 'experimental' | 'stable'
@@ -149,6 +153,14 @@ export interface Editor {
   registry<K extends PointName>(point: K): ReadonlyRegistry<ExtensionPoints[K] & { id: string }>
   /** Ids of the modules that are set up, in setup order. */
   readonly moduleIds: readonly string[]
+  /** Reference and view data: one query client per editor (fetching-audit.md, Part 5). */
+  readonly queries: QueryClient
+  /** The only way to send a request to a remote host: gated per service, time-limited, refused for remote hosts under automation. */
+  readonly fetch: RemoteFetch
+  /** Which host belongs to which service. The app claims the OSM API's host here. */
+  readonly services: ServiceRegistry
+  /** The services paused for rate limiting, with the time each pause ends. For the app's notice. */
+  readonly fetchPauses: FetchPauses
   /** Cleans up all modules in reverse order. Calling it again does nothing. */
   destroy(): void
 }
