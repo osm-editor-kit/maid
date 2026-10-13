@@ -266,6 +266,36 @@ Built since the queue was written, with the commit and a line on what to try, is
 
 Notes for the parking and the bicycle editor: a TILDA notes module used by both. Its config names the region and the folder id, so that switching it on for a project is one line.
 
+### Where things stand at the end of 2026-10-13
+
+Three editors run from this repository: `apps/maid` (5173), `apps/maid-bicycle` (5176) and `apps/maid-parking` (5177). `bun run check` is green, the three apps build, and `bun run check-all --app <name>` passes for each (eleven browser checks, twelve for parking). Nothing is pushed.
+
+Built after the lists below were written, each with its commit:
+
+- The parking editor: presets, quick-tag buttons, side lines, the restriction field, nine validation rules, three operations, reviewed and corrected (f488630, 8b2a72d; the brief and the review are in [docs/parking/](../parking/README.md)).
+- Imagery series: one row per series with its dates as buttons; the layer index package at 0.2.0 (69647e2).
+- The measuring magnifier, and the width band hidden while measuring (6f2f871).
+- New features are exempt from "too large"; `created_by` names the app and its version (15a52b6).
+- Loading: country checks without area maths, marker images on demand, pins from zoom 18, the pin of a hovered or selected point from its own source, the inspector and the panels after the first picture, the presets after the map is ready (d1158bc, 5c12424, 6539299, 4b01b0e). The analysis and every measurement are in [performance-2026-10-13.md](../research/performance-2026-10-13.md).
+- The benchmark: each app, a lens, edit latency for all three editors, budgets as warnings, a watchdog per phase, "map drawn" apart from "everything fetched" (15b9f1e, 838438e, ddcced1).
+
+What the day's measurements say (quiet machine, medians; the last full comparison is the run labelled `final` in `reports/`):
+
+- Maid loads, pans, zooms and edits faster than Rapid in every measured number, and faster than iD everywhere except "ready", where the two are within a few tens of milliseconds.
+- An edit (dragging a node, changing a tag) is on screen after one frame on every scene; iD takes 75 to 100 ms on the medium and the dense scene, Rapid two frames.
+- Rust is not needed for anything measured: validation costs 0.2 to 0.5 ms per edit. The one candidate would be a check of everything loaded, which Maid does not do.
+
+Open from today, beyond the lists below:
+
+- One benchmark run in 17 stalled for five minutes while loading the dense scene (before the watchdog existed). Not explained. The hover-phase hang was a race in the benchmark's probe and is fixed.
+- The presets chunk is fetched with `prefetch`; whether a real host serves it from the cache on the later import is unchecked (the local preview sends `no-cache`).
+- Two build flags mark `packages/ui/src` and `packages/presets/src` as free of import-time effects. A file there that is imported only for an effect would be dropped from the build without a warning; a check for that is missing.
+- "Select until the inspector shows it" still misses some clicks in Maid and Rapid; the report shows the misses.
+- The parking editor: nobody has mapped with it. Open in it: German for the lens legend, the undo texts of the buttons and iD's own preset names; rules that need a distance (an area next to a road); "parking area from this side"; sign to tags; the cost of the side lines in the browser; whether the 14 rows of buttons should fold.
+- The surface data package: its eight icons from StreetComplete are GPL and are what carries the GPL into `apps/maid` and `apps/maid-bicycle` ([surface-data-licence.md](../research/surface-data-licence.md)).
+
+Recommended order from here: a person maps with the parking editor and saves once on the development server; finish the translations; the TILDA notes module; the Radnetz modules; count the comparison with iD again; cleanup (`/unslop-code` phases 3 to 10, split `engine.ts`).
+
 ### Decided by Tobias on 2026-10-13, evening
 
 - Our own packages (`@osm-editor-kit/*`, `@osm-traffic-signs/*`) are exempt from the five-day wait in `bunfig.toml`, so that a new version lands at once.
