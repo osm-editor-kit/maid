@@ -24,8 +24,6 @@ import { planTagsPaste, serializeTagCells } from './tag-paste.ts'
 import { withTagSuggestions, type TagSuggestSource } from './tag-suggest.ts'
 import { copyAllText, describePaste, TAG_COLUMNS, type ReadOnlyKeys } from './tags.ts'
 
-export type { TagSheetChange } from './tag-combined.ts'
-
 type TagSheetCommon = {
   /** A new feature (or another selection) is a new key: the sheet sorts and starts over. */
   featureKey: string

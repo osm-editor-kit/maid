@@ -1,9 +1,13 @@
 import { defineModule, isAutomated, moduleStorage } from '@osm-editor-kit/maid-core'
-import { QuickTagsSection } from './buttons/index.ts'
+import { QuickTagsSection } from './buttons/QuickTags.tsx'
 import { isGerman } from './language.ts'
-import { connectParkingSides, ParkingSidesOnMap, type LensSource } from './lens/index.ts'
+import { ParkingSidesOnMap } from './lens/side-features.tsx'
+import { connectParkingSides, type LensSource } from './lens/side-state.ts'
 import { inGerman, parkingOperations } from './operations/index.ts'
-import { PARKING_RESTRICTION_FIELD_TYPE, RestrictionField } from './restriction/index.ts'
+import {
+  PARKING_RESTRICTION_FIELD_TYPE,
+  RestrictionField,
+} from './restriction/RestrictionField.tsx'
 
 const FIRST_VISIT_KEY = 'maid:parking:lens-started'
 
@@ -69,7 +73,9 @@ export function parking(options: ParkingOptions = {}) {
   })
 }
 
-export { parkingPresetChanges, withGermanLabels, LABELS_DE } from './presets/index.ts'
+export { parkingPresetChanges } from './presets/index.ts'
+export { withGermanLabels } from './presets/german.ts'
+export { LABELS_DE } from './presets/labels-de.ts'
 export {
   SIDES,
   sideKey,
@@ -79,20 +85,20 @@ export {
   type RealSide,
   type TagEdit,
 } from './sides.ts'
-export { QuickTags, QuickTagsSection, QUICK_TAGS, type QuickTag } from './buttons/index.ts'
-export {
-  parkingLens,
-  parkingSideFeatures,
-  ParkingSidesOnMap,
-  type ParkingSideWay,
-} from './lens/index.ts'
+export { QuickTags, QuickTagsSection } from './buttons/QuickTags.tsx'
+export { QUICK_TAGS, type QuickTag } from './buttons/quick-tags.ts'
+export { parkingLens } from './lens/parking-lens.ts'
+export { parkingSideFeatures, type ParkingWay as ParkingSideWay } from './lens/features.ts'
+export { ParkingSidesOnMap } from './lens/side-features.tsx'
 export {
   RestrictionField,
   PARKING_RESTRICTION_FIELD_TYPE,
+} from './restriction/RestrictionField.tsx'
+export {
   parseConditional,
   formatConditional,
   type ConditionalRule,
-} from './restriction/index.ts'
+} from './restriction/conditional.ts'
 export { parkingRules } from './validation/index.ts'
 export { parkingOperations } from './operations/index.ts'
 export { PARKING_ICONS, type ParkingIconName } from './icons/index.ts'

@@ -9,19 +9,6 @@ import { shoulderWithoutInformal } from './shoulder-informal.ts'
 import { staggeredWithoutBoth } from './staggered-without-both.ts'
 import { weekdayComma } from './weekday-comma.ts'
 
-export { FIXES_DE, MESSAGES_DE } from './messages-de.ts'
-export {
-  bothConflictsSide,
-  conditionalSyntax,
-  feeConditional,
-  legacySchema,
-  reasonWithoutNo,
-  restrictionOnParkingSide,
-  shoulderWithoutInformal,
-  staggeredWithoutBoth,
-  weekdayComma,
-}
-
 /** The rules for parking tags. The app lists them after the default ones: `validation({ rules: [...defaultRules, ...parkingRules] })`. */
 export const parkingRules: Rule[] = [
   restrictionOnParkingSide,

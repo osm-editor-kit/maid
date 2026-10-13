@@ -12,8 +12,6 @@ import { parkingCollection } from './collect.ts'
 import { PARKING_ARROW_IMAGE, PARKING_LAYERS, PARKING_SOURCE, type ParkingLayer } from './layers.ts'
 import { useParkingSides } from './side-state.ts'
 
-export { parkingSideFeatures, type ParkingWay as ParkingSideWay } from './features.ts'
-
 /**
  * The graph of the editor's history, read again after each change of it (a load or an edit). A new snapshot object per
  * change is what the memo below depends on: the graph itself is not a React value.

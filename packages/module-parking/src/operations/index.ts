@@ -4,8 +4,6 @@ import { MESSAGES_DE } from './messages-de.ts'
 import { removeParkingOperation } from './remove-parking.ts'
 import { swapSidesOperation } from './swap-sides.ts'
 
-export { MESSAGES_DE }
-
 /** The edit menu's operations for parking. `parking()` registers them on `edit.operation`. */
 export const parkingOperations: Operation[] = [
   copyParkingOperation('left', 'right'),

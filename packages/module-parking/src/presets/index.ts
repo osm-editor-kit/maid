@@ -2,10 +2,6 @@ import type { PresetChanges } from '@osm-editor-kit/maid-presets'
 import { PARKING_FIELDS } from './fields.ts'
 import { PARKING_PRESET_EDITS, PARKING_PRESETS } from './presets.ts'
 
-export { LABELS_DE } from './labels-de.ts'
-export { withGermanLabels } from './german.ts'
-export { PARKING_FIELDS, PARKING_PRESETS, PARKING_PRESET_EDITS }
-
 /**
  * The app's preset changes: the parking fields (per side on roads, and on areas and crossings), the parking presets
  * and the edits to the road, crossing and car park presets of the data. The app's config applies it with

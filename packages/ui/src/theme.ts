@@ -1,8 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { useSettings, type Theme } from './settings.ts'
 
-export type { Theme } from './settings.ts'
-
 const darkQuery = '(prefers-color-scheme: dark)'
 
 function resolve(value: Theme): 'light' | 'dark' {

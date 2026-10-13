@@ -10,7 +10,7 @@ import {
   type Validator,
 } from '@osm-editor-kit/maid-validation'
 import { useSyncExternalStore } from 'react'
-import { clearIgnoredIssues, ignoredIssueIds, ignoredIssues } from './validation-ignored'
+import { ignoredIssueIds, ignoredIssues } from './validation-ignored'
 
 /** The validator of one editor and a way for React to hear that its issues changed */
 type Store = {
@@ -303,6 +303,3 @@ export function validation({ rules }: { rules: readonly Rule[] }) {
     },
   })
 }
-
-/** Forgets the ignored warnings (for the save flow and the discard of the stored edits: see validation-ignored.ts) */
-export { clearIgnoredIssues }

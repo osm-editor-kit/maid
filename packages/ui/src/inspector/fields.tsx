@@ -42,13 +42,6 @@ import { TextField, TextareaField } from './fields/Text.tsx'
 import { fieldKeys } from './logic.ts'
 import { assignRelatedTags, relatedBaseKeys, relatedButtonKeys } from './related-logic.ts'
 
-export { CheckField } from './fields/Check.tsx'
-export { ComboField } from './fields/Combo.tsx'
-export { FallbackField } from './fields/Fallback.tsx'
-export { NumberField } from './fields/Number.tsx'
-export { TextField, TextareaField } from './fields/Text.tsx'
-export type { CombinedTags, FieldComponent, FieldFocus, FieldProps } from './fields/shared.ts'
-
 // The Wikipedia and Wikidata fields are loaded on first use, not on the start path. Until the chunk is in, the
 // key is a plain text input (FallbackField), as it is when no lookup source is given.
 const WikipediaFieldLazy = lazy(() =>
