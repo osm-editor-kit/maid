@@ -6,6 +6,19 @@ Labels in this file: **[M]** measured in a browser on the dev server (Playwright
 
 Versions: MapLibre GL 6.12.0 (default `maxPitch` 60, `dragRotate` true, `keyboard` true, `touchZoomRotate` true, `touchPitch` true) [R], react-map-gl 8.1.3 [R].
 
+## Built on 2026-10-13 (be55541)
+
+Turning is built: Alt or Control with a drag on open map (the mouse rotate that was off below is on now); Shift with the left and right arrows in steps of 2.5 degrees; two fingers on a touch screen; a compass button, shown while the map is turned, and the key N. A link (`map=zoom/lat/lng/bearing`) and the stored last position keep the bearing. Labels, pins and house numbers stay upright, and street names follow their road. `fitTo` keeps the bearing (3bb1edd). Of the five fixes in Part 4, these are done: 1 (`fitTo`), 2 (URL and stored view) and 3 (the compass). Fix 4 (the notes and imagery boxes) and fix 5 (keep the mouse rotate off) are not: the mouse rotate is on now.
+
+Tilt is not built and stays off. The Part 4 tilt items (the rotate tool's angle under pitch, `maxPitch`, the capped tile cover) are open.
+
+Still broken with a turned map:
+
+- Tiles, notes, imagery and street imagery load for the box around the view, which is larger than the view when turned. More requests than needed (Part 2, the rows for `loadVisibleTiles`, notes and imagery).
+- The "too large" rule (5251d50) uses the view box, so the share in view is not exact with a turned map. In work.
+- Ctrl-click on open map on a Mac no longer opens the menu, because Ctrl with a drag turns the map. Needs a person's test.
+- Shift+Right turns clockwise, as in Rapid. This reverses MapLibre's default. To be confirmed.
+
 ## Verdict
 
 - **Rotation (bearing): yes, with five fixes first.** The editing core is camera-correct for move, rotate-by-angle at bearing, draw, pick, snap and measure [M]. Breaks: `fitTo` resets the bearing [M], the URL and the stored view drop it [R], the rotate tool's angle is off under pitch only [M], and there is no control.

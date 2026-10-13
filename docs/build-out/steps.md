@@ -217,31 +217,62 @@ Results are written under the step. Longer findings go to `docs/research/`, deci
 
 Everything that was decided or asked for on 2026-10-13 and is not built yet, so that nothing is lost between sessions. The decisions are in [ADR 0009](../adr/0009-decisions-of-2026-10-13.md); the studies are named per item. Order inside a group is the proposed order of work.
 
+Built since the queue was written, with the commit and a line on what to try, is listed first. Items that are only partly built stay open, with what is built noted on them.
+
+### Done since the queue was written
+
+- [x] The shell is a package, and `apps/maid` is a config and an entry (steps 0 to 4 of the [shell plan](../research/shell-package-plan.md)); an app is `mountEditor(root, app)`.
+  Result (2026-10-13): built in 5251d50 (the 82 files moved, although that commit's message names only operations), a1eb73e (`apps/maid` as config and entry) and a383355 (the app as an argument). Test for Tobias: `bun run dev`, then open <http://localhost:5173> and <http://localhost:5176>. Both start with their own settings and journal. Login on 5176 says it is unavailable until its redirect is registered.
+- [x] `apps/maid-bicycle` as a second editor on port 5176, with the default modules and the traffic sign module.
+  Result (2026-10-13): built in a383355. Test for Tobias: open <http://localhost:5176/?scene=small>. The top bar says "Maid Bicycle", a placeholder name. The Radnetz features are not in it yet.
+- [x] Operations refuse a feature that is less than 80 % in view ("too large", as iD and Rapid).
+  Result (2026-10-13): built in 5251d50. Test for Tobias: zoom in until a long road runs off the screen, select it and try Straighten, Square, Make round, Disconnect, Extract, Flip or Delete. Each is refused with "not enough of it is currently visible". There is no power-user switch.
+- [x] A custom background, as in the Radnetz fork: add, name, edit and delete from a tile URL template; stored as a list.
+  Result (2026-10-13): built in 05afc8b. Test for Tobias: in the Background panel, add a custom background from a z/x/y template, rename it, change it and delete it. The panel has not been looked at in a browser yet.
+- [x] A background from a link holds for the visit: `background=custom:<template>` shows that background and stores nothing. A refused template gives a toast with the reason.
+  Result (2026-10-13): built in 3bb1edd. Test for Tobias: open the editor with `background=custom:` and a template. The background shows; after a reload the stored choice is back.
+- [x] Presets, fields and defaults that are bound to countries apply only there. The address field takes its layout from the country and offers streets, places, cities, postcodes and house numbers from features within 200 m.
+  Result (2026-10-13): built in 9279de9 (presets and the address logic) and 3bb1edd (the inspector and the field). iD writes `crossing:markings=yes` in every country; the country only changes which field is shown and which options it lists. Test for Tobias: select a footway crossing in the small scene (Berlin). Its marking field lists the Germany options, and the tags written are the same as before. Type a street name near a building in the address field and see the suggestions.
+- [x] Key and value suggestions from taginfo in the tags sheet, as iD.
+  Result (2026-10-13): built in 7a7d1cb. Test for Tobias: in the tags sheet, type three characters of a key. Taginfo's suggestions appear; choose one with the arrow keys. Not tried against the real service yet (see Waiting for Tobias).
+- [x] A test forbids requests that bypass the editor's fetch, and a wiki's `maxlag` refusal waits 5 seconds before the retry.
+  Result (2026-10-13): built in 2c4b73b. Test for Tobias: nothing on screen. `bun run check` runs the scan in `packages/core/src/fetching/no-direct-fetch.test.ts`; a direct request outside the editor's fetch makes it fail.
+- [x] The map can be turned: Alt or Control with a drag on open map; Shift with the left and right arrows in steps of 2.5 degrees; two fingers on a touch screen; a compass button and the key N set north up again; a link and the stored position keep the turn. A zoom to a feature keeps a turned map turned.
+  Result (2026-10-13): built in be55541, and the zoom to a feature in 3bb1edd. Test for Tobias: hold Alt and drag on open map, press Shift+Right, then press N. Tilting is not built; the map is only turned.
+
 ### Waiting for Tobias
 
 - [ ] C2: try login at `http://127.0.0.1:5173` and saving with `?live=dev`.
 - [ ] Licences: surface and smoothness by photo is switched on (decided 2026-10-13); its data package is GPL-3.0-or-later and Maid is ISC. To be settled.
 - [ ] Look at on screen (nobody has): the ruler icon, the red state of a too long value, the favourite number fields, the toasts on a narrow window, the three places with the shared segmented control, the address dots.
 - [ ] A real background with a minimum zoom: offered and drawn from `#map=<minzoom>`, not one level later (cannot be checked offline).
+- [ ] Turned map on a Mac: Ctrl-click on open map no longer opens the menu, because Ctrl with a drag turns the map. Needs a person's test. [rotate-and-tilt.md](../research/rotate-and-tilt.md)
+- [ ] Turned map: Shift+Right turns clockwise, as in Rapid. This reverses MapLibre's default; to confirm.
+- [ ] Custom background: nobody has drawn a real custom background yet.
+- [ ] Second OAuth redirect for port 5176 (a second OAuth app, or a second redirect on Maid's app). Login on 5176 is "unavailable" until then. [shell-package-plan.md](../research/shell-package-plan.md)
+- [ ] Taginfo suggestions: not tried against the real service yet.
+- [ ] "Too large": Rapid's power-user switch and its exemption for unsaved features are not adopted (iD has neither). Tobias may decide.
 
 ### Editing and data
 
-- [ ] Operations refuse a feature that is less than 80 % in view ("too large", as iD and Rapid). First, because the next item needs it. [zoom-study.md](../research/zoom-study.md)
 - [ ] Editing below the load zoom as Rapid; draw the selection at every zoom and the rest down to zoom 12; a switch "show only the selection"; the camera stops at the world view; notes from zoom 14, with a toast when the limit cut the list.
 - [ ] Several features at once: the engine writes one change to all as one undo step; the inspector for several (fields that fit every geometry, "Multiple types", shared issues); the "Multiple values" state in every field; a read-only feature in the selection refuses the whole change with a reason; Shift-click on open ground keeps the selection; lasso. Base built in 49fe526. [multi-selection.md](../research/multi-selection.md)
 - [ ] Tags as a sheet: the React grid and `TagSheet`, the browser check `check-tags`, the inspector switched over (the old tag rows go), suggestions, the mixed state. Core built in b7535df. [sheet-design.md](../research/sheet-design.md)
-- [ ] Address field: the country from the feature's place (`@rapideditor/country-coder`), the format by country, suggestions from loaded data nearby. The same package makes presets, fields and defaults that are bound to countries apply only there (today `crossing:markings=yes` is written everywhere).
+- [ ] Countries: the restore list has no position for ways and relations; multipolygon holes are ignored in "inside the building"; a child app's own presets and fields cannot carry a location set; the country data costs about 0.25 MB gzip at startup, and the first use of large sets about 140 ms (warm when idle?).
+- [ ] Custom background: a key inside a path segment is not redacted in the cited name; the mark on the Background button when a link sets the background is open.
+- [ ] "Too large": point-to-area has no rule.
 - [ ] Wikidata and Wikipedia fields as iD.
 - [ ] Turn restrictions field as iD (large).
 - [ ] "Ignore this issue" on warnings, as iD, in Maid's UI.
 - [ ] "Add field" writes the field's default as iD does (found by the presets comparison).
-- [ ] A custom background as in the Radnetz fork: add, name, edit, delete; stored as a list; a link's template holds for the visit only. [custom-background-and-toasts.md](../research/custom-background-and-toasts.md)
 
 ### Loading and storing
 
-- [ ] Fetching with TanStack Query: one client, reference data fetched once per session, a gate per service (Wikimedia one request at a time), at most two retries and none on 4xx, a pause with a standing toast on 429 and 509, map data tiles with a time limit, cancelling and a wait after an error, street-level photo queries keyed per tile, the photo layer off until switched on, one switch that stops every remote request in automated runs. [fetching-audit.md](../research/fetching-audit.md)
-- [ ] Tag and value suggestions from taginfo as iD, through those rules; off in automated runs.
-- [ ] What a link may do: the URL wins and never writes storage; the filter banner goes; the first change a person makes is stored; a mark at the control when the view differs from the stored choice; the last map position as a fallback; iD's link parameters act for the visit. [state-storage-and-url.md](../research/state-storage-and-url.md)
+- [ ] Fetching with TanStack Query: one client, reference data fetched once per session, a gate per service (Wikimedia one request at a time), at most two retries and none on 4xx, a pause with a standing toast on 429 and 509, map data tiles with a time limit, cancelling and a wait after an error, street-level photo queries keyed per tile, the photo layer off until switched on, one switch that stops every remote request in automated runs. [fetching-audit.md](../research/fetching-audit.md) Built so far: the no-direct-fetch test and the 5 seconds on `maxlag` (2c4b73b, see Done above).
+- [ ] Fetching, open: requests made inside third-party packages (street-level photos, PMTiles, MapLibre tiles) are outside the editor's fetch; the sprite loader in the shell is on the allow list with a TODO.
+- [ ] Taginfo, open: the suggestion list does not scroll the highlighted option into view; keystrokes can queue several requests behind a pause.
+- [ ] Turned map: tiles, notes and imagery load for the box around the view, which is larger than the view (more requests). The "too large" rule with a turned map is in work.
+- [ ] What a link may do: the URL wins and never writes storage; the filter banner goes; the first change a person makes is stored; a mark at the control when the view differs from the stored choice; the last map position as a fallback; iD's link parameters act for the visit. Built so far: a `background=custom:` link holds for the visit (3bb1edd). [state-storage-and-url.md](../research/state-storage-and-url.md)
 
 ### Translations
 
@@ -250,7 +281,8 @@ Everything that was decided or asked for on 2026-10-13 and is not built yet, so 
 
 ### The module system
 
-- [ ] The shell moves from `apps/maid` into a package; `apps/maid-bicycle` with its own config on port 5176; a contract test every module passes; `bun run check-config` over a matrix of configs (D6).
+- [ ] Shell plan, steps 5 and 6: checks for each app (`--app`), a contract test per module, and `bun run check-config` over a matrix of configs (D6), with a dev-only `?modules=` harness. [shell-package-plan.md](../research/shell-package-plan.md)
+- [ ] Shell, open points: the six settings stores keep fixed names, not one set per app; `created_by` is still "Maid 0.0.0" for both apps; browser checks run only against `apps/maid` until step 5.
 - [ ] Radnetz modules: the TILDA bike infrastructure section with its checklist and rule; "extract a side into its own way" and "merge a cycleway and a footway"; age colours and a way's images for the photo layer; infra3D links; the traffic sign field as a Maid field on `@osm-traffic-signs/converter`.
 
 ### Cleanup
@@ -259,4 +291,5 @@ Everything that was decided or asked for on 2026-10-13 and is not built yet, so 
 - [ ] The editor's own tooltip on every icon button (about 60 native `title` attributes left).
 - [ ] Open findings of the two reviews ([review-performance.md](../research/review-performance.md), [review-cleanup.md](../research/review-cleanup.md)), the largest being the split of `engine.ts`.
 - [ ] Small: a length counter in the raw tag rows and the multi-value lists; the upload adding spaces after `;` can push a value over 255; the benchmark handle is exposed in every build; the pill of overlapping features has no animation; a second-tab case in `check-journal`; messages next to their control tied with `aria-describedby`; after undo of a node move the way keeps its cached shape in the model (effect not examined).
+- [ ] Checks: a click on a building edge that lies on another area's fill picked the other area. The check now avoids such places; the pick order there is not examined. The journal timing unit test is flaky under load.
 - [ ] A benchmark of Maid against iD and Rapid on the dense scene at the current state.

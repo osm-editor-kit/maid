@@ -27,13 +27,14 @@ From a review of how other projects do it (web research, 2026-10-11):
 ```
 radnetz-berlin/
   package.json        depends on Maid's npm packages
-  src/main.tsx        createEditor({ ...config, modules: [...] })
+  src/main.tsx        mountEditor(root, app)
+  src/maid.config.ts  app: an AppConfig whose editor(config) returns the modules
   src/modules/        the fork's own modules
 ```
 
 - What a fork changes, it changes through the **config object**, through **modules** that register at extension points, and through **hooks**.
 - Presets are config data: a fork changes them with `withChanges`, see [the presets README](../../packages/presets/README.md#changing-presets-in-a-child-app).
-- Maid's own default editor (`apps/maid`) is built the same way. If the default editor cannot do something through the public API, neither can a fork, and we find out first.
+- Maid's own editors (`apps/maid` and `apps/maid-bicycle`) are built the same way: a config and `mountEditor(root, app)` from `packages/shell`. If they cannot do something through the public API, neither can a fork, and we find out first.
 - A fork never rebases. It updates a dependency version.
 
 ### Inside the monorepo and outside

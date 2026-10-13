@@ -115,7 +115,7 @@ Note on the owner's wording: iD has no maximum zoom for editing. Its only editin
 ### C.3 Maid
 
 - **Editing zoomed out:** allowed at any zoom (no gate) [inferred].
-- **`too_large`:** not implemented. `packages/operations/src/operations.ts:3,583,722` leaves out "too large" because it needs the map. No other `too_large` check exists in `packages/` or `apps/`. [read]
+- **`too_large`:** built in 5251d50 (2026-10-13). `packages/operations/src/extent.ts` gives the share of a feature in view; straighten, square, make round, disconnect, extract, flip and delete refuse a feature that is less than 80 % in view, with iD's wording. There is no power-user switch and no exemption for unsaved features, as in iD. Point-to-area has no rule. The rule uses the view box, so with a turned map it is not yet exact (see [rotate-and-tilt.md](rotate-and-tilt.md)). Before 5251d50 this line read: not implemented. [read]
 - **Loaded data below the load zoom:** still drawn and hit-testable [measured: rendered features at OSM 11; inferred for hit-testing]. The tile set only grows: `engine.ts` removes a tile from `this.tiles` only when its request fails. Data is never unloaded.
 - **Zoom to this:** `engine.fitTo` (`engine.ts:1416-1441`), `POINT_ZOOM` 17 and `FIT_MAX_ZOOM` 18 in MapLibre (= OSM 18 and 19). Not clamped to iD's 20.
 - **Show only the selection:** not implemented. Filters (`packages/filters`) hide by category and cannot isolate a selection.

@@ -4,6 +4,22 @@ Status: planning, 2026-10-13. Read-only: nothing was moved, edited or run in a b
 
 Decision this plans for: `docs/adr/0009-decisions-of-2026-10-13.md` (the paragraph "The apps") and `docs/architecture/02-fork-model.md`. The open step is in `docs/build-out/steps.md`, "The module system".
 
+## What was built (2026-10-13)
+
+Steps 0 to 4 are in. Steps 5 and 6 are open. The plan below is kept as it was written; where the build differs, this section says so.
+
+- `mountEditor(root, app)` (`packages/shell/src/mount.tsx`) makes the editor from an app's config and renders it into `root`. It returns a function that unmounts it. `createShell(app)` (`packages/shell/src/shell.ts`) makes the parts: editor, engine, login and journal. `ShellContext` (`shell-context.ts`) hands them to the components, and `useShell()` reads them.
+- `AppConfig` (`packages/shell/src/shell.ts`): `editor: (config: Config) => EditorConfig` is the one required field (modules, presets, filters). The others are optional: `id` (default `'maid'`, names the journal and the login per app), `brand` (name and detail in the top bar), `osm` (development client id, login origin, env file) and `visitBackground` (for a `background=custom:` link).
+- `packages/shell/src/index.ts` exports `mountEditor`, the types `AppConfig` and `Config`, and the built-in modules `elementInfo`, `relations`, `sceneBounds` and `validation`.
+- Commits: steps 0 to 2 (barrel, styles and public files, the bulk move of 82 files) are in 5251d50, whose message names only operations; the renames are there. a1eb73e holds the config and entry of `apps/maid`, with two late-bound holders for the config and the engine. Step 3 (one app argument instead of singletons) and step 4 (`apps/maid-bicycle` on port 5176, dev scripts, ports) are in a383355, which removed the holders.
+
+Deviations from the plan:
+
+- No `createApp` and no `AppProvider`. `mountEditor(root, app)` and `ShellContext` do that job. The app config is in `shell.ts`, not in a new `app.ts`.
+- `created_by` is still "Maid 0.0.0" for both apps.
+- The six settings stores keep fixed names. Two apps on different ports are different origins, so they do not collide; two apps on one origin would.
+- Steps 5 and 6 are open: `--app` for the checks and `check-all --app`, the contract tests per module, the dev-only `?modules=` harness and `check-config`. Until step 5 the browser checks run against `apps/maid` only.
+
 ## Summary
 
 - Move the shell (App, components, hooks, auth, save, journal wiring, URL, built-in modules, bench handle) from `apps/maid/src` to `packages/shell`. One bulk step moves 71 files, about 7,760 lines, with `git mv`.
