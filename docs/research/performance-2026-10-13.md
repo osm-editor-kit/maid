@@ -577,3 +577,37 @@ editor is the cold one; with three repetitions that is not settled either way. D
 editors on every scene. On the small scene iD is faster in tag edit, undo and redo (4 ms against 13 to 16 ms, both
 under one frame); on medium and dense Maid is ahead. To do: repeat on a quiet machine before the budgets are
 updated.
+
+## The runs of 2026-10-14, after the cleanup (quiet machine)
+
+`2026-10-14-06-25-quiet-after-cleanup`: three editors, three repetitions, no agent working. Medians in ms.
+
+| Scene | Editor | ready | drawn | settled |
+| --- | --- | --- | --- | --- |
+| small | Maid | 271 | 619 | 715 |
+| small | iD | 302 | 1287 | 1288 |
+| small | Rapid | 803 | 1699 | 1780 |
+| medium | Maid | 279 | 1177 | 1271 |
+| medium | iD | 430 | 2338 | 2347 |
+| medium | Rapid | 906 | 3347 | 3405 |
+| dense | Maid | 274 | 1057 | 1153 |
+| dense | iD | 306 | 2421 | 2486 |
+| dense | Rapid | 870 | 3319 | 3386 |
+
+"Ready" is now ahead of iD in all three scenes. The budget check warned against the 2026-10-13 baseline: medium drawn
++38 %, dense zoom-out +107 %, medium drag settle 26 to 77 ms. The suspects were the 1,205 new `ref` labels and the eight
+cone layers. A Maid-only A/B on the same machine right after (`labels-on` / `labels-off`, `?labels=0`) says otherwise:
+
+| Scene | Labels | drawn | load CPU | zoom out | drag settle | pan settle |
+| --- | --- | --- | --- | --- | --- | --- |
+| medium | on | 892 | 727 | 594 | 7 | 153 |
+| medium | off | 845 | 693 | 515 | 7 | 103 |
+| dense | on | 1002 | 782 | 580 | 5 | 184 |
+| dense | off | 955 | 698 | 731 | 3 | 173 |
+
+- Labels cost about 5 % of "drawn" and 5 to 11 % of load CPU. That is the price of iD's labels for `ref`; it is kept.
+- Maid alone draws medium in 892 ms, not 1177: the three-editor run interleaves the editors, and Maid's numbers in it
+  are higher than in a Maid-only run. The baseline in `tools/bench/budget.json` came from a Maid-only run, so the
+  warnings compare two different setups. Drag settle (7 ms alone, 77 ms interleaved) shows the same.
+- Zoom out spreads widely from run to run (515 to 731 ms for the same build), more than the warning's tolerance.
+- To do: write the budget baseline from a three-editor run, or compare only Maid-only runs with it.
