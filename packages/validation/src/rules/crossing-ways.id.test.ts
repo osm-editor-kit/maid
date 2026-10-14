@@ -1,8 +1,10 @@
 // Adopted from iD test/spec/validations/crossing_ways.js (ISC, © iD contributors), at commit 0194f3926.
 import { describe, expect, it } from 'bun:test'
+import { OsmWay } from '@osm-editor-kit/maid-model'
 import { dataOf, graphOf, node, validateChanged, way } from '../id-test-helpers.ts'
 import type { Scene } from '../id-test-helpers.ts'
 import type { Issue } from '../types.ts'
+import { runContext } from '../validator.ts'
 import { crossingWays } from './crossing-ways.ts'
 
 // Numbers in iD's tags (layer: -1) are written as the strings OSM stores: layer: '-1'.
@@ -639,5 +641,40 @@ describe('iD.validations.crossing_ways', () => {
       validate(oneCrossing({ aeroway: 'runway' }, { building: 'hangar' })),
       null,
     )
+  })
+
+  it('finds the same crossings in one run over several ways as in a run of its own for each way', () => {
+    // A road that three roads cross: the segments of A are kept for the run (see segmentsCached), so they must
+    // give the same issues as a run for each way, where nothing is kept
+    const graph = graphOf(
+      node('n-a1', 0, 2),
+      node('n-a2', 4, 2),
+      way('w-a', ['n-a1', 'n-a2'], { highway: 'residential' }),
+      node('n-b1', 1, 0),
+      node('n-b2', 1, 4),
+      way('w-b', ['n-b1', 'n-b2'], { highway: 'residential' }),
+      node('n-c1', 2, 0),
+      node('n-c2', 2, 4),
+      way('w-c', ['n-c1', 'n-c2'], { highway: 'residential' }),
+      node('n-d1', 3, 0),
+      node('n-d2', 3, 4),
+      way('w-d', ['n-d1', 'n-d2'], { highway: 'residential' }),
+    )
+    const ids = ['w-a', 'w-b', 'w-c', 'w-d']
+    const ways = ids
+      .map((id) => graph.entity(id))
+      .filter((entity): entity is OsmWay => entity instanceof OsmWay)
+    const targets = new Set(ids)
+
+    const shared = runContext(graph, ways, targets)
+    const together = ids.flatMap((id) => crossingWays.validate(graph.entity(id), shared))
+    const apart = ids.flatMap((id) =>
+      crossingWays.validate(graph.entity(id), runContext(graph, ways, targets)),
+    )
+
+    expect(together.map((issue) => issue.id).sort()).toEqual(apart.map((issue) => issue.id).sort())
+    // A crosses B, C and D (each found from both ways), and nothing else crosses
+    expect(new Set(together.map((issue) => issue.id)).size).toEqual(3)
+    expect(together).toHaveLength(6)
   })
 })

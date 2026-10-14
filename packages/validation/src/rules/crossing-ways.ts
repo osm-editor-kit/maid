@@ -11,7 +11,7 @@ import {
   railwayValues,
   waterwayValues,
 } from '../tags.ts'
-import type { Fix, Issue, Rule } from '../types.ts'
+import type { Fix, Issue, Rule, RuleContext } from '../types.ts'
 
 // Ported from iD's crossing_ways validator (ISC, © iD contributors), at commit 0194f3926, and from
 // Rapid's version of it. Cut: relations (multipolygon members are not checked), the bridge, tunnel
@@ -58,6 +58,20 @@ function segmentsOf(way: OsmWay, graph: Graph) {
     const a = nodeLoc(graph, from)
     const b = nodeLoc(graph, to)
     if (a && b) segments.push({ from, to, a, b })
+  }
+  return segments
+}
+
+/**
+ * The segments of a way for one run. A busy road is a neighbour of many ways, and each of them asks for its
+ * segments: the run keeps them (its graph does not change), so each way's segments are made once per run.
+ */
+function segmentsCached(way: OsmWay, context: RuleContext) {
+  const key = `crossing_ways:segments:${way.id}`
+  let segments = context.memo.get(key) as Segment[] | undefined
+  if (segments === undefined) {
+    segments = segmentsOf(way, context.graph)
+    context.memo.set(key, segments)
   }
   return segments
 }
@@ -110,11 +124,13 @@ function sharesNode(a: Segment, b: Segment) {
   return a.from === b.from || a.from === b.to || a.to === b.from || a.to === b.to
 }
 
-/** Every proper crossing of the segments of two ways, as the segment of each way and the point */
-function crossingsOf(way: OsmWay, other: OsmWay, graph: Graph) {
+/**
+ * Every proper crossing of the segments of two ways, as the segment of each way and the point. The
+ * segments of the validated way are made once by the caller: they do not change between neighbours.
+ */
+function crossingsOf(segments: readonly Segment[], otherSegments: readonly Segment[]) {
   const found: Array<{ point: Point; segmentA: Segment; segmentB: Segment }> = []
-  const otherSegments = segmentsOf(other, graph)
-  for (const segmentA of segmentsOf(way, graph)) {
+  for (const segmentA of segments) {
     for (const segmentB of otherSegments) {
       if (sharesNode(segmentA, segmentB)) continue
       const point = properIntersection(segmentA.a, segmentA.b, segmentB.a, segmentB.b)
@@ -194,16 +210,22 @@ export const crossingWays: Rule = {
     const type = featureOf(entity, graph)
     if (!type) return []
 
+    const neighbours = context.waysNear(entity)
+    if (neighbours.length === 0) return []
+
     const issues: Issue[] = []
-    for (const other of context.waysNear(entity)) {
+    // fixed for the whole way: made once, not for each neighbour
+    const segments = segmentsCached(entity, context)
+    const line = entity.geometry(graph) === 'line'
+    for (const other of neighbours) {
       const otherType = featureOf(other, graph)
       if (!otherType) continue
 
-      for (const crossing of crossingsOf(entity, other, graph)) {
+      for (const crossing of crossingsOf(segments, segmentsCached(other, context))) {
         const validated: Side = {
           way: entity,
           type,
-          line: entity.geometry(graph) === 'line',
+          line,
           segment: crossing.segmentA,
         }
         const otherSide: Side = {

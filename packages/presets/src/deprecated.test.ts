@@ -44,3 +44,75 @@ describe('deprecatedTagsOf', () => {
     expect(deprecatedIndexOf(undefined).size).toBe(0)
   })
 })
+
+/**
+ * The list read the way iD's getDeprecatedTags reads it, one entry after the other: no index, so this is the
+ * reference the index must agree with.
+ */
+function deprecatedByScan(tags: Record<string, string>, entries: typeof list) {
+  return entries.filter(({ old, replace }) => {
+    const oldKeys = Object.keys(old)
+    if (replace) {
+      const transfer = oldKeys.filter((key) => old[key] === '*')
+      const overwrites = Object.keys(replace).some((replaceKey) => {
+        if (!tags[replaceKey] || old[replaceKey]) return false
+        const replaceValue = replace[replaceKey] ?? ''
+        if (replaceValue === '*') return false
+        if (
+          replaceValue.startsWith('$1') &&
+          tags[replaceKey] === tags[transfer[Number(replaceValue.substring(1)) - 1] ?? '']
+        )
+          return false
+        return replaceValue !== tags[replaceKey]
+      })
+      if (overwrites) return false
+    }
+    return oldKeys.every((oldKey) => {
+      const value = tags[oldKey]
+      if (!value) return false
+      const oldValue = old[oldKey]
+      if (oldValue === '*' || oldValue === value) return true
+      const values = value.split(';').filter(Boolean)
+      return values.length > 1 && values.includes(oldValue ?? '')
+    })
+  })
+}
+
+describe('deprecatedTagsOf agrees with a scan of the list', () => {
+  it('for many tag sets built from the list, with semicolon values and empty values', () => {
+    // every key and value of the list, plus a value that no entry has, in semicolon forms
+    const keys = [...new Set(list.flatMap((entry) => Object.keys(entry.old)))].concat(['name'])
+    const values = (key: string) => {
+      const found = new Set(['other', ''])
+      for (const entry of list) {
+        const value = entry.old[key]
+        if (value === undefined) continue
+        found.add(value === '*' ? 'x' : value)
+        found.add(`${value};other`)
+        found.add(`other;${value}`)
+        found.add(`${value};${value}`)
+      }
+      return [...found]
+    }
+    let state = 7
+    const next = (n: number) => {
+      state = (state * 1103515245 + 12345) & 0x7fffffff
+      return state % n
+    }
+    let matched = 0
+    for (let i = 0; i < 3000; i++) {
+      const tags: Record<string, string> = {}
+      const count = 1 + next(3)
+      for (let k = 0; k < count; k++) {
+        const key = keys[next(keys.length)]!
+        const options = values(key)
+        tags[key] = options[next(options.length)]!
+      }
+      const expected = deprecatedByScan(tags, list)
+      const actual = deprecatedTagsOf(tags, index)
+      matched += actual.length
+      expect(actual).toEqual(expected)
+    }
+    expect(matched).toBeGreaterThan(0)
+  })
+})

@@ -72,6 +72,8 @@ export const mutuallyExclusiveTags: Rule = {
   label: 'Mutually exclusive tags',
   validate(entity, { graph }) {
     const conflicts = conflictsOf(entity.tags)
+    // most features have no conflict: their location is looked up only when one is reported
+    if (conflicts.length === 0) return []
     const loc = locationOf(entity, graph)
     return conflicts.map((conflict) => {
       const { first, second, sameValue } = conflict
