@@ -9,6 +9,8 @@ export const PORTS = {
   maidBuild: 5175,
   // not 5174: that is taken by other Vite projects on this machine
   compare: 5184,
+  /** The react-map-gl benchmark's own page (tools/bench/rmgl), served only while `bun run bench-rmgl` runs */
+  rmglBench: 5186,
   id: 8081,
   rapid: 8082,
   mockApi: 8090,
