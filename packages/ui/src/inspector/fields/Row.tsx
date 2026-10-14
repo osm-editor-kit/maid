@@ -81,6 +81,13 @@ const STEADY_TYPES = new Set([
   'parkingRestriction',
 ])
 
+/**
+ * Yes-or-no fields (iD's check types): the box and its value sit on the title's line, and the row's
+ * buttons go at the line's right end. A narrow sidebar wraps the line: the control then goes under the
+ * title (flex-wrap), and the buttons stay at the right.
+ */
+const COMPACT_TYPES = new Set(['check', 'defaultCheck', 'onewayCheck'])
+
 export function FieldRow(props: {
   field: Field
   tags: Tags
@@ -132,6 +139,8 @@ export function FieldRow(props: {
       ? MixedField
       : FallbackField
     : (registry[field.type] ?? FallbackField)
+  // yes-or-no fields: the control goes on the title's line (COMPACT_TYPES)
+  const compact = key !== undefined && !generic && COMPACT_TYPES.has(field.type)
   // a field over several keys that has no component of its own only shows the keys in use
   if (
     Control === FallbackField &&
@@ -152,13 +161,39 @@ export function FieldRow(props: {
   const modified = baseTags !== undefined && isModified(field, tags, baseTags)
   // revert and remove can touch several keys of the field: one change
   const apply = (edits: TagEdit[]) => writeEdits({ onChange, onChangeTags }, edits)
+  const control = (
+    <Control
+      // Most controls keep a draft and start over when the tag changes elsewhere. The chip fields
+      // show the tags as they are and keep the focus in their input while values are added.
+      key={
+        STEADY_TYPES.has(field.type)
+          ? field.id
+          : `${valueSignature(field, tags)}|${mixedSignature(field, combined)}`
+      }
+      id={id}
+      field={field}
+      tags={tags}
+      combined={combined}
+      features={features}
+      onChange={onChange}
+      onChangeTags={onChangeTags}
+      labelActions={labelActions}
+      address={field.type === 'address' ? address : undefined}
+    />
+  )
   return (
     <div
       role={key === undefined ? 'group' : undefined}
       aria-labelledby={key === undefined ? labelId : undefined}
       className="group/field grid min-w-0 gap-1"
     >
-      <div className="flex min-w-0 items-center justify-between gap-2">
+      <div
+        className={
+          compact
+            ? 'flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1'
+            : 'flex min-w-0 items-center justify-between gap-2'
+        }
+      >
         <div className="flex min-w-0 items-center gap-1">
           {key === undefined ? (
             <span id={labelId} className={LABEL}>
@@ -175,7 +210,8 @@ export function FieldRow(props: {
             className={`flex shrink-0 items-center gap-1 empty:hidden ${REVEAL}`}
           />
         </div>
-        <div className="flex min-w-0 items-center gap-1">
+        {compact ? <div className="max-w-full min-w-0">{control}</div> : null}
+        <div className={`flex min-w-0 items-center gap-1 ${compact ? 'ml-auto' : ''}`}>
           {hint ? <span className={HINT}>{hint}</span> : null}
           {field.reference ? (
             <InfoPopover
@@ -232,24 +268,7 @@ export function FieldRow(props: {
           ) : null}
         </div>
       </div>
-      <Control
-        // Most controls keep a draft and start over when the tag changes elsewhere. The chip fields
-        // show the tags as they are and keep the focus in their input while values are added.
-        key={
-          STEADY_TYPES.has(field.type)
-            ? field.id
-            : `${valueSignature(field, tags)}|${mixedSignature(field, combined)}`
-        }
-        id={id}
-        field={field}
-        tags={tags}
-        combined={combined}
-        features={features}
-        onChange={onChange}
-        onChangeTags={onChangeTags}
-        labelActions={labelActions}
-        address={field.type === 'address' ? address : undefined}
-      />
+      {compact ? null : control}
       {related ? (
         <RelatedDetails field={field} tags={tags} related={related} onChange={onChange} />
       ) : null}

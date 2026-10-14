@@ -1,4 +1,5 @@
 import { checkAfterClick, checkCycle, checkLabel, checkStateFor, impliesYes } from '../logic.ts'
+import { checkBoxOf, checkFieldOf } from './check-logic.ts'
 import { CheckBox } from './CheckBox.tsx'
 import { FallbackField } from './Fallback.tsx'
 import { MULTIPLE_VALUES, mixedOf } from './mixed-logic.ts'
@@ -8,10 +9,14 @@ import type { FieldProps } from './shared.ts'
  * Unset, yes or no, as iD's check fields. A click or Space moves to the next value of the cycle
  * (checkCycle). The box shows yes as a check, unset as a grey dash; the text says which value it is.
  * Several features: a key whose features differ is an indeterminate box, "Multiple values"; a click on it
- * sets yes on all of them (checkAfterClick).
+ * sets yes on all of them (checkAfterClick). The state mapping is in check-logic.ts (checkFieldOf, checkBoxOf).
+ *
+ * The button is the whole control: the box and the value text. Its width is its content (the row puts it
+ * on the title's line, see Row.tsx), so it is w-full of its wrapper, which is as wide as the text.
  */
 export function CheckField(props: FieldProps) {
-  const { field, tags, id, onChange, combined } = props
+  const { id, onChange, combined, tags } = props
+  const field = checkFieldOf(props.field)
   const key = field.key
   if (key === undefined) return <FallbackField {...props} />
   const current = tags[key]
@@ -21,8 +26,7 @@ export function CheckField(props: FieldProps) {
   const label =
     mixed === undefined ? checkLabel(field, field.type, current, implied) : MULTIPLE_VALUES
   const cycle = checkCycle(field)
-  // an unset check is 'mixed' for assistive technology, as it always was here
-  const ariaChecked = checked === 'unset' ? 'mixed' : checked
+  const { box, ariaChecked } = checkBoxOf(checked)
   return (
     <button
       id={id}
@@ -37,17 +41,7 @@ export function CheckField(props: FieldProps) {
       }
       className="flex h-8 w-full min-w-0 items-center gap-2 rounded-md px-1 text-left text-sm text-zinc-950 hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default dark:text-white dark:hover:bg-white/10"
     >
-      <CheckBox
-        state={
-          checked === true
-            ? 'on'
-            : checked === 'mixed'
-              ? 'dash'
-              : checked === 'unset'
-                ? 'unknown'
-                : 'off'
-        }
-      />
+      <CheckBox state={box} />
       <span
         className={`min-w-0 truncate ${current || mixed ? '' : 'text-zinc-500 dark:text-zinc-400'}`}
       >

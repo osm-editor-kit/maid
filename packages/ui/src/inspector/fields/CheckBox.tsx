@@ -4,7 +4,9 @@
  * set but is neither yes nor no), `unknown` a grey dash in an empty box (nothing is set), `off`
  * the empty box. Decoration only: the control around it carries the role and the state.
  */
-export function CheckBox({ state }: { state: 'on' | 'off' | 'dash' | 'unknown' }) {
+export type CheckBoxState = 'on' | 'off' | 'dash' | 'unknown'
+
+export function CheckBox({ state }: { state: CheckBoxState }) {
   const filled = state === 'on' || state === 'dash'
   return (
     <span
