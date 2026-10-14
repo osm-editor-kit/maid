@@ -1,7 +1,7 @@
 import { m } from '@osm-editor-kit/maid-i18n'
 import { Tooltip } from '@osm-editor-kit/maid-ui'
 import type { ReactNode } from 'react'
-import type { JunctionSketch, JunctionTurn } from './junction.ts'
+import { roadLook, type JunctionSketch, type JunctionTurn, type Point } from './junction.ts'
 import type { TurnKind, TurnState } from './turns.ts'
 
 /** The word of a turn kind ("left turn"), as the texts say it in lower case */
@@ -53,6 +53,15 @@ function glyphOf(state: TurnState): string {
   return STATE_CLASS[state].glyph ?? m.turn_restrictions_badge_only()
 }
 
+/** The width of the FROM road's halo, and of the halo under each turn arrow, in SVG units */
+const FROM_HALO_WIDTH = 20
+const TURN_HALO_WIDTH = 7
+
+/** A polyline's points attribute */
+function pointsOf(points: readonly Point[]): string {
+  return points.map(([x, y]) => `${x},${y}`).join(' ')
+}
+
 export type JunctionDiagramProps = {
   sketch: JunctionSketch
   /** The turns of the chosen FROM road (empty until one is chosen) */
@@ -67,10 +76,11 @@ export type JunctionDiagramProps = {
 }
 
 /**
- * The junction: the roads as lines, the turns of the FROM road as arrows, and a button over each arrow (keyboard
- * reachable). The button's tooltip says the turn's state and what a click does; the box has a border and background in
- * both themes, so that its shape shows. A read-only junction keeps its buttons focusable (aria-disabled, not disabled),
- * so that the tooltips still show.
+ * The junction: the roads as wide strokes with a casing, in the colours of their highway class (the map's), the FROM
+ * road under a blue halo, the turns of the FROM road as arrows, and a button at the end of each arrow on its TO road
+ * (keyboard reachable). The button's tooltip says the turn's state and what a click does; the box has a border and
+ * background in both themes, so that its shape shows. A read-only junction keeps its buttons focusable
+ * (aria-disabled, not disabled), so that the tooltips still show.
  */
 export function JunctionDiagram({
   sketch,
@@ -88,7 +98,7 @@ export function JunctionDiagram({
 
   return (
     <div
-      className="relative w-full rounded-md border border-zinc-950/10 bg-zinc-50 dark:border-white/10 dark:bg-zinc-950"
+      className="relative w-full rounded-md border border-zinc-950/10 bg-zinc-100 dark:border-white/10 dark:bg-zinc-950"
       style={{ aspectRatio: `${width} / ${height}` }}
     >
       <svg
@@ -96,40 +106,97 @@ export function JunctionDiagram({
         className="absolute inset-0 size-full"
         aria-hidden="true"
       >
-        {sketch.roads.map((road) => (
-          <polyline
-            key={road.id}
-            points={road.points.map(([x, y]) => `${x},${y}`).join(' ')}
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={road.id === fromID ? 7 : 5}
-            className={
-              road.id === fromID
-                ? 'stroke-blue-600 dark:stroke-blue-400'
-                : 'stroke-zinc-400 dark:stroke-zinc-500'
-            }
-          />
-        ))}
+        {/* the FROM road's halo, under the roads as iD's grey halo marks its FROM way */}
+        {sketch.roads
+          .filter((road) => road.id === fromID)
+          .map((road) => (
+            <polyline
+              key={`halo-${road.id}`}
+              points={pointsOf(road.points)}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={FROM_HALO_WIDTH}
+              className="stroke-blue-500/45 dark:stroke-blue-400/45"
+            />
+          ))}
+        {/* the casings first, so that a casing never covers another road's fill where two roads meet */}
+        {sketch.roads.map((road) => {
+          const look = roadLook(road.highway)
+          if (!look.casing) return null
+          return (
+            <polyline
+              key={`casing-${road.id}`}
+              points={pointsOf(road.points)}
+              fill="none"
+              stroke={look.casing}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={look.casingWidth}
+            />
+          )
+        })}
+        {/* the fills: solid up to the road's real end, dashed on a stub past it (see JunctionRoad.dataEnd) */}
+        {sketch.roads.map((road) => {
+          const look = roadLook(road.highway)
+          const hasStub = road.points.length > road.dataEnd + 1
+          return (
+            <g key={road.id}>
+              <polyline
+                points={pointsOf(road.points.slice(0, road.dataEnd + 1))}
+                fill="none"
+                stroke={look.fill}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={look.width}
+                strokeDasharray={look.dashed ? '5 4' : undefined}
+              />
+              {hasStub ? (
+                <polyline
+                  points={pointsOf(road.points.slice(road.dataEnd))}
+                  fill="none"
+                  stroke={look.fill}
+                  strokeLinecap="butt"
+                  strokeWidth={look.width}
+                  strokeDasharray="3 3"
+                  opacity={0.8}
+                />
+              ) : null}
+            </g>
+          )
+        })}
         {sketch.roads
           .filter((road) => road.canBeFrom)
           .map((road) => (
             <polyline
               key={road.id}
-              points={road.points.map(([x, y]) => `${x},${y}`).join(' ')}
+              points={pointsOf(road.points)}
               fill="none"
               stroke="transparent"
-              strokeWidth={20}
+              strokeWidth={18}
               className="cursor-pointer"
               onClick={() => onChooseFrom(road.id)}
             />
           ))}
+        {/* each arrow has a halo in the box's colour, so that it reads over the roads in both themes */}
+        {turns.map((turn) => (
+          <path
+            key={`halo-${turn.key}`}
+            d={turn.path}
+            fill="none"
+            strokeWidth={TURN_HALO_WIDTH}
+            strokeLinecap="round"
+            pointerEvents="none"
+            opacity={hovered === null || hovered === turn.key ? 1 : 0.35}
+            className="stroke-zinc-100 dark:stroke-zinc-950"
+          />
+        ))}
         {turns.map((turn) => (
           <path
             key={turn.key}
             d={turn.path}
             fill="none"
-            strokeWidth={hovered === turn.key ? 4 : 2.5}
+            strokeWidth={hovered === turn.key ? 5 : 3.5}
             strokeDasharray={turn.indirect ? '4 4' : undefined}
             strokeLinecap="round"
             pointerEvents="none"

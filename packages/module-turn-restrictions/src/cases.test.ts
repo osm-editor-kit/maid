@@ -181,9 +181,9 @@ describe('junctionSketch: what iD shows its field for', () => {
     const from = Object.fromEntries(sketch.roads.map((item) => [item.id, item.canBeFrom]))
     expect(from).toEqual({ ww: true, we: true, away: false })
     // into the oneway is a turn, out of it is none, and it has no U-turn
-    expect(junctionTurns(sketch, i, 'away', 0, 80)).toEqual([])
+    expect(junctionTurns(sketch, i, 'away', 0)).toEqual([])
     expect(
-      junctionTurns(sketch, i, 'ww', 0, 80)
+      junctionTurns(sketch, i, 'ww', 0)
         .map((turn) => turn.to)
         .sort(),
     ).toEqual(['away', 'we', 'ww'])
@@ -302,8 +302,11 @@ describe('via ways', () => {
     const third = intersectionAt(context, only, 'a')
     const sketch = junctionSketch(third, 'a', 30, box)!
     for (const from of sketch.roads.filter((item) => item.canBeFrom)) {
-      const keys = junctionTurns(sketch, third, from.id, 2, 80).map((turn) => turn.key)
+      const keys = junctionTurns(sketch, third, from.id, 2).map((turn) => turn.key)
       expect(new Set(keys).size).toBe(keys.length)
+      // turns through via ways can end on one TO road: their buttons are set beside each other, not on top
+      const buttons = junctionTurns(sketch, third, from.id, 2).map((turn) => turn.at.join(','))
+      expect(new Set(buttons).size).toBe(buttons.length)
     }
   })
 })

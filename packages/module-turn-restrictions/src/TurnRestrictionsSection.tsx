@@ -28,8 +28,6 @@ export type TurnRestrictionsSectionProps = InspectorSectionProps & {
 const DISTANCES: readonly number[] = [10, 20, 30, 50, 75]
 const VIA_CHOICES: readonly number[] = [0, 1, 2]
 const BOX = { width: 400, height: 300, padding: 36 }
-/** SVG units from the junction to where the arrows meet the roads */
-const ARROW_RADIUS = 80
 
 /** The choice of distance and via ways is the person's, and is kept on this device (as iD keeps it) */
 const DISTANCE_KEY = 'maid:turn-restrictions:distance'
@@ -125,9 +123,7 @@ function JunctionEditor({ entity, editor, defaults, onRelated }: TurnRestriction
   const pickedStillThere = sketch?.roads.some((road) => road.id === picked && road.canBeFrom)
   const fromID: EntityID | null = pickedStillThere && picked ? picked : (initialFrom ?? null)
   const turns: JunctionTurn[] =
-    intersection && sketch && fromID
-      ? junctionTurns(sketch, intersection, fromID, maxVia, ARROW_RADIUS)
-      : []
+    intersection && sketch && fromID ? junctionTurns(sketch, intersection, fromID, maxVia) : []
   const hovering = turns.find((turn) => turn.key === hovered)
 
   // the FROM road and, while a turn is hovered or focused, its TO road and via ways: highlighted on the map

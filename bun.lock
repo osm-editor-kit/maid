@@ -339,6 +339,7 @@
         "@osm-editor-kit/maid-core": "workspace:*",
         "@osm-editor-kit/maid-i18n": "workspace:*",
         "@osm-editor-kit/maid-model": "workspace:*",
+        "@osm-editor-kit/maid-style": "workspace:*",
         "@osm-editor-kit/maid-ui": "workspace:*",
         "@osm-editor-kit/maid-validation": "workspace:*",
         "react": "^19.2.0",

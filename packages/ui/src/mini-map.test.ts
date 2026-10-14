@@ -124,3 +124,52 @@ describe('fitMiniMap', () => {
     expect(frame.scale).toBeCloseTo(80 / 20, 6)
   })
 })
+
+describe('fitMiniMap around a point', () => {
+  // 0.001 degrees of latitude is about 111 m; 0.001 degrees of longitude at 50 N is about 71 m
+  const north = [0, 50.001] as const
+  const junction = [0, 50] as const
+
+  it('puts the point at the middle of the box, however lopsided the lines are', () => {
+    const frame = fitMiniMap([[junction, north]], box, 20, 0, junction)!
+    const [x, y] = frame.project(junction)
+    expect(x).toBeCloseTo(100, 6)
+    expect(y).toBeCloseTo(50, 6)
+  })
+
+  it('fills the box on the side with the farthest point: the north road reaches the top padding', () => {
+    // half the height above the junction is 50 - 10 = 40 units, so 111 m fill 80 units of the 2 x 40
+    const frame = fitMiniMap([[junction, north]], box, 20, 0, junction)!
+    const [, top] = frame.project(north)
+    expect(top).toBeCloseTo(10, 6)
+  })
+
+  it('keeps the junction centred when the lines reach one side only', () => {
+    const eastOnly = [
+      [0, 50],
+      [0.001, 50],
+    ] as const
+    const frame = fitMiniMap([eastOnly], box, 20, 0, junction)!
+    const [x] = frame.project(junction)
+    expect(x).toBeCloseTo(100, 6)
+  })
+
+  it('does not blow up a tiny junction: the half-span is at least half of minSpan', () => {
+    const tiny = [
+      [0, 50],
+      [0, 50.00001],
+    ] as const
+    const frame = fitMiniMap([tiny], box, 24, 0, junction)!
+    // half of 24 m, so 12 m fill the 40 units of half the height: at most 40 / 12 units per metre
+    expect(frame.scale).toBeCloseTo(40 / 12, 6)
+  })
+
+  it('turns with the bearing like the bounding box fit does', () => {
+    const turned = fitMiniMap([[junction, north]], box, 20, 90, junction)!
+    const origin = turned.project(junction)
+    const up = turned.project(north)
+    // at 90 the north road points to the left of the junction, at the same height
+    expect(up[0]).toBeLessThan(origin[0])
+    expect(up[1]).toBeCloseTo(origin[1], 6)
+  })
+})

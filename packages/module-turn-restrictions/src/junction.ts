@@ -1,7 +1,8 @@
 /**
  * The junction as a sketch: the roads around a vertex in a small box, and an arrow for every turn of the chosen
- * FROM road. Headless: plain numbers in SVG units, no React. iD draws the same thing with its own map code; here the
- * sketch is north up and fitted to the box (iD's view is fitted to the vertices too, and not rotated).
+ * FROM road. Headless: plain numbers in SVG units, no React. iD draws the same thing with its own map code (its
+ * restriction field, its turn targets 50 px out on the TO road, its grey halo on the FROM road); here the sketch is
+ * centred on the junction, fitted to the farthest road on each side, north up or turned with the map's bearing.
  */
 import {
   OsmNode,
@@ -11,6 +12,7 @@ import {
   type OsmWay,
   type Turn,
 } from '@osm-editor-kit/maid-model'
+import { resolveWayStyle, tagClasses } from '@osm-editor-kit/maid-style'
 import { fitMiniMap, type LonLat, type MiniMapBox } from '@osm-editor-kit/maid-ui'
 import { turnKindOf, turnStateOf, type TurnKind, type TurnState } from './turns.ts'
 
@@ -19,12 +21,48 @@ export type Point = [number, number]
 /** SVG units from the junction at which a road's heading is taken: beyond the first small bend */
 const HEADING_RADIUS = 30
 
+/**
+ * The least length of a road on the sketch, in SVG units. A road that ends nearer is drawn on past its real end, as a
+ * dashed stub, so that its direction and its turn buttons read; the stub is not data (see JunctionRoad.dataEnd).
+ */
+export const MIN_ARM_LENGTH = 90
+
+/**
+ * SVG units from the junction to the turn button on a TO road. iD puts its turn targets at a fixed distance from the
+ * junction on the TO way (50 px), so the buttons form a ring instead of clustering at the centre.
+ */
+export const TURN_BUTTON_RADIUS = 70
+
+/** SVG units from the junction where an arrow leaves the FROM road: clear of the junction's own lines */
+const START_RADIUS = 26
+
+/** SVG units from the junction of the via road a turn bends at */
+const VIA_RADIUS = 40
+
+/** Sideways spacing of two or more buttons on one TO road (several turns through via ways reach the same road) */
+const BUTTON_SPACING = 22
+
+/** Sideways bulge of a U-turn's loop, in SVG units */
+const U_TURN_BULGE = 30
+
+/**
+ * The least half-span of the drawing in metres (the bounds of the roads are at least twice this). A tiny junction, a
+ * few metres of road, is not drawn bigger than this. iD has no such floor: its single-vertex view stays at zoom 22
+ * (about 27 px per metre), which only shows a few metres of the junction.
+ */
+const MIN_HALF_SPAN = 12
+
 export type JunctionRoad = {
   id: EntityID
   /** The road's name, else its ref; undefined when it has neither */
   name: string | undefined
-  /** The road in the box, from the junction outwards */
+  /**
+   * The road in the box, from the junction outwards. Its real points come first, up to `dataEnd`; the points after
+   * that are a stub drawn past a road that ends nearer than MIN_ARM_LENGTH.
+   */
   points: Point[]
+  /** The index of the road's last real point in `points` (the rest is a stub, see above) */
+  dataEnd: number
   /** Whether turns can start on this road (iD: only such a road can be chosen as FROM); a oneway that leaves cannot */
   canBeFrom: boolean
   /** Where the road leaves the junction, in degrees clockwise from north: tells apart two roads of one name */
@@ -39,7 +77,7 @@ export type JunctionSketch = {
   /** Width and height of the box in SVG units */
   width: number
   height: number
-  /** The junction (the vertex) in the box */
+  /** The junction (the vertex) in the box: the middle of the box */
   centre: Point
   roads: JunctionRoad[]
 }
@@ -54,10 +92,46 @@ export type JunctionTurn = {
   kind: TurnKind | undefined
   /** An indirect restriction: drawn lighter and not editable (iD) */
   indirect: boolean
-  /** The arrow as an SVG path */
+  /** The arrow as an SVG path, from the FROM road to the button */
   path: string
-  /** The middle of the arrow: where its button sits */
+  /** The turn's button: on the TO road, TURN_BUTTON_RADIUS out from the junction (the arrow ends there) */
   at: Point
+}
+
+/** How a road is drawn: the colour and width of its fill, and of the casing under it, by its highway class */
+export type RoadLook = {
+  /** The road's colour, the one the map draws its highway class in (packages/style) */
+  fill: string
+  /** The casing's colour, the map's casing for the class; undefined where the map draws none */
+  casing: string | undefined
+  /** Width of the fill in SVG units */
+  width: number
+  /** Width of the casing in SVG units; the casing shows as an outline on both sides of the fill */
+  casingWidth: number
+  /** A path (footway, cycleway, ...) is drawn dashed, as the map draws it */
+  dashed: boolean
+}
+
+/** The colour of a road part the map draws in grey when its class has none (an unknown highway tag) */
+const FALLBACK_FILL = '#a1a1aa'
+
+/**
+ * The look of a road by its highway tag, from the map's own styles: the fill and casing colours, and whether the map
+ * draws it dashed, come from packages/style (the same resolution the map uses), so a change of the map style reaches
+ * the sketch. The widths are the sketch's own: a road is 6 units wide, a dashed path 3. `_link` roads look like their
+ * class (the style matches them so).
+ */
+export function roadLook(highway: string | undefined): RoadLook {
+  const style = resolveWayStyle(tagClasses(highway ? { highway } : {}), 'line')
+  const dashed = style.stroke.dash !== undefined
+  const width = dashed ? 3 : 6
+  return {
+    fill: style.stroke.color ?? FALLBACK_FILL,
+    casing: style.casing.color,
+    width,
+    casingWidth: width + 3,
+    dashed,
+  }
 }
 
 /** Metres between two lon/lat points: enough for the distances of one junction */
@@ -126,11 +200,33 @@ function lengthOf(line: readonly LonLat[]): number {
 }
 
 /**
+ * A road's drawn points, with the last one pushed out along its direction to `minLength` SVG units when the road ends
+ * nearer. The road's real end is `dataEnd`; the points after it are the stub. A road with no direction (its end is
+ * the junction itself) is not extended.
+ */
+export function extendArm(
+  drawn: readonly Point[],
+  centre: Point,
+  minLength: number,
+): { points: Point[]; dataEnd: number } {
+  const last = drawn[drawn.length - 1]
+  if (!last) return { points: [], dataEnd: 0 }
+  const dataEnd = drawn.length - 1
+  const dx = last[0] - centre[0]
+  const dy = last[1] - centre[1]
+  const length = Math.hypot(dx, dy)
+  if (length === 0 || length >= minLength) return { points: [...drawn], dataEnd }
+  const k = minLength / length
+  return { points: [...drawn, [centre[0] + dx * k, centre[1] + dy * k]], dataEnd }
+}
+
+/**
  * The roads of an intersection, fitted into the box. `radius` (metres) is how far from the junction the roads are
- * drawn: the restriction field's distance. `bearing` turns the drawing the way the map is turned (degrees, MapLibre's
- * bearing), so the sketch matches what the person sees; 0 is north up. Undefined when there is no junction to edit, by
- * iD's test for showing its field: the intersection has the chosen vertex and more than two ways (a vertex of two
- * paths, or of roads and footways only, has not).
+ * drawn: the restriction field's distance. The junction is the middle of the box, and the drawing is scaled so that the
+ * farthest road on each side reaches the padding (no lopsided empty half). `bearing` turns the drawing the way the map
+ * is turned (degrees, MapLibre's bearing), so the sketch matches what the person sees; 0 is north up. Undefined when
+ * there is no junction to edit, by iD's test for showing its field: the intersection has the chosen vertex and more
+ * than two ways (a vertex of two paths, or of roads and footways only, has not).
  */
 export function junctionSketch(
   intersection: Intersection,
@@ -156,8 +252,9 @@ export function junctionSketch(
   const frame = fitMiniMap(
     lines.map((road) => road.line),
     box,
-    undefined,
+    2 * MIN_HALF_SPAN,
     bearing,
+    junction,
   )
   if (!frame) return undefined
 
@@ -167,11 +264,16 @@ export function junctionSketch(
     height: box.height,
     centre,
     roads: lines.map((road) => {
-      const points = road.line.map((loc) => frame.project(loc))
+      const { points, dataEnd } = extendArm(
+        road.line.map((loc) => frame.project(loc)),
+        centre,
+        MIN_ARM_LENGTH,
+      )
       return {
         id: road.id,
         name: road.name,
         points,
+        dataEnd,
         canBeFrom: road.canBeFrom,
         heading: headingOf(points, centre, HEADING_RADIUS),
         highway: road.highway,
@@ -182,15 +284,45 @@ export function junctionSketch(
 }
 
 /**
- * The turns from one FROM road, as arrows on the sketch. A turn through via ways bends at the first via road; a U-turn
- * loops on its own road. `arrowRadius` (SVG units) is where the arrows meet the roads.
+ * The point `offset` SVG units to one side of a point on a road, for the buttons that share one TO road: the first
+ * one stays on the road, then one to each side in turn.
+ */
+function beside(point: Point, centre: Point, nth: number): Point {
+  if (nth === 0) return point
+  const dx = point[0] - centre[0]
+  const dy = point[1] - centre[1]
+  const length = Math.hypot(dx, dy)
+  if (length === 0) return point
+  const side = nth % 2 === 1 ? 1 : -1
+  const offset = Math.ceil(nth / 2) * BUTTON_SPACING * side
+  // the road's normal: the radial direction turned by a quarter turn
+  return [point[0] - (dy / length) * offset, point[1] + (dx / length) * offset]
+}
+
+/**
+ * The first spot on a TO road's button position that no placed button covers: the road's own point, then one beside it
+ * on each side in turn. Two roads that run in one line (a via road and the road beyond it) share their points, so the
+ * second button goes beside the first.
+ */
+function freeSpot(onRoad: Point, centre: Point, placed: readonly Point[]): Point {
+  let at = onRoad
+  for (let nth = 0; nth < 16; nth += 1) {
+    at = beside(onRoad, centre, nth)
+    if (!placed.some((p) => Math.hypot(p[0] - at[0], p[1] - at[1]) < BUTTON_SPACING / 2)) break
+  }
+  return at
+}
+
+/**
+ * The turns from one FROM road, as arrows on the sketch, each ending at its button. A button sits on its TO road
+ * TURN_BUTTON_RADIUS out from the junction (where that spot is taken, beside it). A turn through via ways
+ * bends at the first via road; a U-turn loops out on its own road and back to a button on it.
  */
 export function junctionTurns(
   sketch: JunctionSketch,
   intersection: Intersection,
   fromWayID: EntityID,
   maxViaWays: number,
-  arrowRadius: number,
 ): JunctionTurn[] {
   const roadOf = (id: EntityID) => sketch.roads.find((road) => road.id === id)
   const graph = intersection.graph
@@ -199,6 +331,8 @@ export function junctionTurns(
   // an indirect restriction is cut down to the path from its own FROM way, so two walks can end in the same turn:
   // one arrow for one key (iD joins its arrows by the key too)
   const seen = new Set<string>()
+  // the buttons placed so far: a button takes the first free spot on its TO road
+  const placed: Point[] = []
 
   for (const turn of intersection.turns(fromWayID, maxViaWays)) {
     if (seen.has(turn.key)) continue
@@ -207,29 +341,25 @@ export function junctionTurns(
     const toRoad = roadOf(turn.to.way)
     if (!fromRoad || !toRoad) continue
 
-    const start = pointAtRadius(fromRoad.points, centre, arrowRadius)
-    const end = pointAtRadius(toRoad.points, centre, arrowRadius)
+    const at = freeSpot(pointAtRadius(toRoad.points, centre, TURN_BUTTON_RADIUS), centre, placed)
+    placed.push(at)
+    const start = pointAtRadius(fromRoad.points, centre, START_RADIUS)
     let control: Point = centre
-    let stop = end
     if (turn.from.way === turn.to.way) {
-      // U-turn: out along the road and back on the same road, bending away from it
-      stop = pointAtRadius(fromRoad.points, centre, arrowRadius * 0.45)
+      // U-turn: out along the road and back on it, bulging to one side
       const dx = start[0] - centre[0]
       const dy = start[1] - centre[1]
       const length = Math.hypot(dx, dy) || 1
+      const out = TURN_BUTTON_RADIUS * 0.7
       control = [
-        start[0] - (dy / length) * arrowRadius * 0.7,
-        start[1] + (dx / length) * arrowRadius * 0.7,
+        centre[0] + (dx / length) * out - (dy / length) * U_TURN_BULGE,
+        centre[1] + (dy / length) * out + (dx / length) * U_TURN_BULGE,
       ]
     } else if (turn.via.ways && turn.via.ways.length > 0) {
       const viaRoad = roadOf(turn.via.ways[0] ?? '')
-      if (viaRoad) control = pointAtRadius(viaRoad.points, centre, arrowRadius)
+      if (viaRoad) control = pointAtRadius(viaRoad.points, centre, VIA_RADIUS)
     }
 
-    const mid: Point = [
-      (start[0] + 2 * control[0] + stop[0]) / 4,
-      (start[1] + 2 * control[1] + stop[1]) / 4,
-    ]
     const restrictionType = osmInferRestriction(graph, turn)
     turns.push({
       key: turn.key,
@@ -239,8 +369,8 @@ export function junctionTurns(
       state: turnStateOf(turn),
       kind: turnKindOf(restrictionType),
       indirect: turn.direct === false,
-      path: `M ${start[0]} ${start[1]} Q ${control[0]} ${control[1]} ${stop[0]} ${stop[1]}`,
-      at: mid,
+      path: `M ${start[0]} ${start[1]} Q ${control[0]} ${control[1]} ${at[0]} ${at[1]}`,
+      at,
     })
   }
   return turns
