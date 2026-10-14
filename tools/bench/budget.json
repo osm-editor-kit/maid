@@ -1,22 +1,28 @@
 {
   "version": 1,
-  "run": "2026-10-13-13-10-settled-fixed",
-  "git": "8b2a72d",
-  "date": "2026-10-13T13:17:10.582Z",
+  "run": "2026-10-14-13-28-baseline-2026-10-14",
+  "git": "855079e",
+  "date": "2026-10-14T13:57:53.047Z",
   "defaultTolerance": 0.15,
   "scenes": {
     "small": {
+      "load-drawn": {
+        "median": 539
+      },
+      "load-settled": {
+        "median": 620
+      },
       "load-cpu": {
-        "median": 449
+        "median": 431
       },
       "pan-cold-p95": {
-        "median": 16.8
+        "median": 16.7
       },
       "pan-cold-max": {
         "median": 16.8
       },
       "pan-cold-settle": {
-        "median": 125
+        "median": 145
       },
       "pan-warm-p95": {
         "median": 16.7
@@ -28,10 +34,10 @@
         "median": 59.6
       },
       "pan-warm-cpu": {
-        "median": 167
+        "median": 157
       },
       "pan-warm-settle": {
-        "median": 143
+        "median": 144
       },
       "zoom-in-p95": {
         "median": 16.7
@@ -40,31 +46,31 @@
         "median": 16.8
       },
       "zoom-in-settle": {
-        "median": 333
+        "median": 339
       },
       "zoom-out-p95": {
         "median": 16.7
       },
       "zoom-out-settle": {
-        "median": 323
+        "median": 371
       },
       "hover-latency": {
-        "median": 13.5
+        "median": 8.4
       },
       "hover-sweep-p95": {
         "median": 16.7
       },
       "hover-sweep-fps": {
-        "median": 59.5
+        "median": 59.4
       },
       "hover-sweep-cpu": {
-        "median": 119
+        "median": 133
       },
       "select-api": {
-        "median": 30.5
+        "median": 35.3
       },
       "drag-fps": {
-        "median": 60
+        "median": 60.2
       },
       "drag-p95": {
         "median": 16.7
@@ -73,30 +79,51 @@
         "median": 16.8
       },
       "drag-cpu": {
-        "median": 213
+        "median": 203
       },
       "drag-settle": {
         "median": 162
       },
-      "heap": {
-        "median": 42.5
+      "drag-node-median": {
+        "median": 13.5
       },
-      "load-drawn": {
-        "median": 613
+      "drag-node-p95": {
+        "median": 14.5
+      },
+      "tag-edit-median": {
+        "median": 11.5
+      },
+      "tag-edit-p95": {
+        "median": 14
+      },
+      "undo-median": {
+        "median": 15.2
+      },
+      "redo-median": {
+        "median": 15.2
+      },
+      "heap": {
+        "median": 45.5
       }
     },
     "medium": {
+      "load-drawn": {
+        "median": 860
+      },
+      "load-settled": {
+        "median": 939
+      },
       "load-cpu": {
-        "median": 667
+        "median": 708
       },
       "pan-cold-p95": {
-        "median": 16.8
+        "median": 16.7
       },
       "pan-cold-max": {
         "median": 16.8
       },
       "pan-cold-settle": {
-        "median": 315
+        "median": 323
       },
       "pan-warm-p95": {
         "median": 16.7
@@ -108,10 +135,10 @@
         "median": 59.6
       },
       "pan-warm-cpu": {
-        "median": 269
+        "median": 288
       },
       "pan-warm-settle": {
-        "median": 121
+        "median": 164
       },
       "zoom-in-p95": {
         "median": 16.7
@@ -120,28 +147,28 @@
         "median": 16.8
       },
       "zoom-in-settle": {
-        "median": 337
+        "median": 213
       },
       "zoom-out-p95": {
         "median": 16.7
       },
       "zoom-out-settle": {
-        "median": 607
+        "median": 610
       },
       "hover-latency": {
-        "median": 13.6
+        "median": 9.4
       },
       "hover-sweep-p95": {
-        "median": 16.8
+        "median": 16.7
       },
       "hover-sweep-fps": {
-        "median": 59.4
+        "median": 59.5
       },
       "hover-sweep-cpu": {
         "median": 157
       },
       "select-api": {
-        "median": 30.1
+        "median": 35.3
       },
       "drag-fps": {
         "median": 59.8
@@ -153,30 +180,57 @@
         "median": 16.8
       },
       "drag-cpu": {
-        "median": 270
+        "median": 279
       },
       "drag-settle": {
-        "median": 26
+        "median": 72
+      },
+      "drag-node-median": {
+        "median": 12.4
+      },
+      "drag-node-p95": {
+        "median": 15
+      },
+      "tag-edit-median": {
+        "median": 13
+      },
+      "tag-edit-p95": {
+        "median": 17.7
+      },
+      "undo-median": {
+        "median": 14.9
+      },
+      "redo-median": {
+        "median": 15.2
+      },
+      "select-click-median": {
+        "median": 27.1
+      },
+      "select-click-p95": {
+        "median": 27.1
       },
       "heap": {
-        "median": 82.4
-      },
-      "load-drawn": {
-        "median": 856
+        "median": 86.6
       }
     },
     "dense": {
+      "load-drawn": {
+        "median": 1170
+      },
+      "load-settled": {
+        "median": 1265
+      },
       "load-cpu": {
-        "median": 757
+        "median": 884
       },
       "pan-cold-p95": {
-        "median": 16.8
+        "median": 16.7
       },
       "pan-cold-max": {
         "median": 16.8
       },
       "pan-cold-settle": {
-        "median": 176
+        "median": 149
       },
       "pan-warm-p95": {
         "median": 16.7
@@ -185,13 +239,13 @@
         "median": 16.8
       },
       "pan-warm-fps": {
-        "median": 59.4
+        "median": 59.5
       },
       "pan-warm-cpu": {
-        "median": 306
+        "median": 326
       },
       "pan-warm-settle": {
-        "median": 175
+        "median": 176
       },
       "zoom-in-p95": {
         "median": 16.7
@@ -200,16 +254,16 @@
         "median": 16.8
       },
       "zoom-in-settle": {
-        "median": 290
+        "median": 325
       },
       "zoom-out-p95": {
         "median": 16.8
       },
       "zoom-out-settle": {
-        "median": 410
+        "median": 596
       },
       "hover-latency": {
-        "median": 14.1
+        "median": 11.1
       },
       "hover-sweep-p95": {
         "median": 16.7
@@ -218,13 +272,13 @@
         "median": 59.5
       },
       "hover-sweep-cpu": {
-        "median": 148
+        "median": 153
       },
       "select-api": {
-        "median": 33.9
+        "median": 43.6
       },
       "drag-fps": {
-        "median": 59.5
+        "median": 59.6
       },
       "drag-p95": {
         "median": 16.7
@@ -233,18 +287,32 @@
         "median": 16.8
       },
       "drag-cpu": {
-        "median": 287
+        "median": 320
       },
       "drag-settle": {
-        "median": 9
+        "median": 13
+      },
+      "drag-node-median": {
+        "median": 12.1
+      },
+      "drag-node-p95": {
+        "median": 13.2
+      },
+      "tag-edit-median": {
+        "median": 15.6
+      },
+      "tag-edit-p95": {
+        "median": 18.8
+      },
+      "undo-median": {
+        "median": 15.6
+      },
+      "redo-median": {
+        "median": 15
       },
       "heap": {
-        "median": 72.3
-      },
-      "load-drawn": {
-        "median": 1024
+        "median": 86.5
       }
     }
-  },
-  "note": "load-drawn: the median of the old load-settled of run 2026-10-13-13-10-settled-fixed, the time to the complete picture before Maid's lazy chunks were loaded after it. Carried over, not re-measured: replace with bench-budget --update on a quiet machine. There is no baseline for load-settled (everything fetched): it is a warning-only metric without a baseline until then."
+  }
 }
