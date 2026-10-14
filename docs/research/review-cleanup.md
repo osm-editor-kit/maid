@@ -44,7 +44,7 @@ Three copies of the same UI, each with the class string pasted:
 ### 3. `engine.deleteEntity` and `deleteEntities` are only used by the checks; the app deletes another way
 
 - Where: `packages/renderer/src/engine.ts` `deleteEntity`, `deleteEntities` (about lines 896-930, with the imports `actionDeleteNode`, `actionDeleteWay`, `actionDeleteRelation`, `actionDeleteMultiple`).
-- Confirmed: the only callers are `tools/bench/edit-check.ts:80,141`, `filters-check.ts:87`, `journal-check.ts:82`. The app deletes with `engine.runOperation(deleteOperation)` (`apps/maid/src/components/useShortcuts.ts:62`, the edit menu through `commands.ts`). The two paths differ: other annotations ("Deleted a way" against iD's "Deleted a line" in `packages/operations/src/operations.ts:663-669`), and only the operation picks the next selection.
+- Confirmed: the only callers are `tools/bench/edit-check.ts:80,141`, `filters-check.ts:87`, `journal-check.ts:82`. The app deletes with `engine.runOperation(deleteOperation)` (`packages/shell/src/useShortcuts.ts:62`, the edit menu through `commands.ts`). The two paths differ: other annotations ("Deleted a way" against iD's "Deleted a line" in `packages/operations/src/operations.ts:663-669`), and only the operation picks the next selection.
 - So three browser checks test a delete that no person can trigger.
 - Simpler: the checks select the feature and run the `delete` operation (as `ops-check.ts:26-33` finds an operation by id); delete the two engine methods and the four imports.
 - Size: about 40 lines removed in the engine, about 10 changed in the checks (expected undo labels change).

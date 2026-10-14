@@ -2,6 +2,7 @@ import * as maplibregl from 'maplibre-gl'
 import type { Map as MapLibreMap, RasterSourceSpecification, StyleSpecification } from 'maplibre-gl'
 import { useEffect, useRef, useState } from 'react'
 import { Map, type MapRef } from 'react-map-gl/maplibre'
+import { useMeasure } from '../shell-context'
 import {
   crossPath,
   FINGER_REACH,
@@ -12,8 +13,7 @@ import {
   loupeZoom,
   type LoupeOptions,
   type Vec,
-} from '../measure-loupe'
-import { useMeasure } from '../shell-context'
+} from './measure-loupe'
 
 /**
  * The magnifier of the measuring tool (the Radnetz fork's measure_loupe.ts, ported): a round lens of

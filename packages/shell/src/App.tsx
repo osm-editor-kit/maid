@@ -17,10 +17,10 @@ import { SelectionOnlyButton } from './components/SelectionOnlyButton'
 import { TopBarPanels } from './components/TopBarPanels'
 import { UndoRedo } from './components/UndoRedo'
 import { UserButton } from './components/UserButton'
-import { useShortcuts } from './components/useShortcuts'
 import { ZoomControls } from './components/ZoomControls'
 import { useSelection } from './selection'
 import { useShell } from './shell-context'
+import { useShortcuts } from './useShortcuts'
 
 function Editor() {
   const { brand, config } = useShell()

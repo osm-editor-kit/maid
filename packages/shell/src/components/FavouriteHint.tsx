@@ -1,15 +1,15 @@
 import { useSettings } from '@osm-editor-kit/maid-ui'
 import { useEffect, useState } from 'react'
 import { startFavourite } from '../favourites'
+import { MAC } from '../platform'
+import { usePresets, useShell } from '../shell-context'
 import {
   advance,
   IDLE,
   sequenceEventOf,
   type SequenceEvent,
   type SequenceState,
-} from '../favourites-keys'
-import { MAC } from '../platform'
-import { usePresets, useShell } from '../shell-context'
+} from './favourites-keys'
 
 /** The modifier as the hint shows it: the Option symbol on Apple devices, Alt elsewhere */
 const MODIFIER_LABEL = MAC ? '⌥' : 'Alt'

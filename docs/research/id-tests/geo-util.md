@@ -68,7 +68,7 @@ The sums match the inventory: geo 146 and util 137 (283).
 ## Not applicable, by reason
 
 - Maid stores no encrypted value (no token is kept encrypted; the sign-in is a public PKCE client): `util/aes.ts` 5.
-- Maid binds keys with `@tanstack/react-hotkeys` (`apps/maid/src/components/useShortcuts.ts`); iD's `utilKeybinding` mechanics are not Maid's: `util/keybinding.js` 10.
+- Maid binds keys with `@tanstack/react-hotkeys` (`packages/shell/src/useShortcuts.ts`); iD's `utilKeybinding` mechanics are not Maid's: `util/keybinding.js` 10.
 - D3 dispatch helper, which Maid does not use: `util/rebind.js` 1.
 - Maid's journal takes a Web Lock (`navigator.locks`), which the browser releases when the tab closes. iD's localStorage mutex API (`lock`, `locked`, `unlock`, names) does not exist in Maid: `util/session_mutex.js` 9. The guarantee that iD's `returns false when the lock is held by another session` checks is covered in `packages/journal/src/journal.test.ts` (`refuses to start while another tab holds the lock`).
 - iD's extent is an array; Maid's `Extent` has `min` and `max` and no `length`: `geo/extent.js` 1 (`has length 2`).

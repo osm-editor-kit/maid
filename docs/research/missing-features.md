@@ -120,7 +120,7 @@ Columns: what a mapper cannot do or what goes wrong · where it came from · iD 
 | No midpoint handles on the selected way: no node can be added between two nodes by dragging a handle | F-svg-2; interactions gap 5 | 5 | M | renderer and engine | DONE | `packages/renderer/src/midpoints.ts`, layers.ts:489; commit 2a36487. Two of iD's midpoint tests are still todo (`id-midpoints.test.ts`). |
 | A double click on a way adds no node (the double click only zooms in browse) | interactions gap 5 | 0 counted | S | MapView, `actionAddMidpoint` | DONE | `packages/shell/src/components/MapView.tsx:513-523` (`handleDblClick` calls `engine.insertNode`); B5b. |
 | No lasso: Shift-drag does not select what a box covers | F-beh-3; interactions gap 9 | 1 | M | renderer and MapView | OPEN | No box selection in `useShortcuts.ts` or MapView (grep for lasso and box select: nothing). |
-| No vertex and way navigation keys: `[` `]` `{` `}`, Ctrl+↑ parent, Ctrl+↓ child, `\` next parent | F-mode-1 (8); interactions 14 | 8 | M | parent and child lookup in the model | OPEN | The key list in `packages/shell/src/components/useShortcuts.ts` has none of them. |
+| No vertex and way navigation keys: `[` `]` `{` `}`, Ctrl+↑ parent, Ctrl+↓ child, `\` next parent | F-mode-1 (8); interactions 14 | 8 | M | parent and child lookup in the model | OPEN | The key list in `packages/shell/src/useShortcuts.ts` has none of them. |
 | `Z` does not zoom to the selection | interactions 15 | 0 counted | S | map fit | OPEN | No `Z` in `useShortcuts.ts`. |
 | Shift+arrows do not nudge, Shift+`+`/`-` do not scale | interactions 16 | 0 counted | M | the move operation (in the model) | OPEN | Shift+ArrowLeft and Shift+ArrowRight turn the map (be55541); no nudge, no scale key. |
 | `F` does not follow a line while drawing | interactions 18 | 0 counted | M | draw mode | OPEN | No `F` key in `useShortcuts.ts`. |
@@ -196,7 +196,7 @@ Columns: what a mapper cannot do or what goes wrong · where it came from · iD 
 | Account button shows the display name (today the user id) | F-ui-19 (1, missing check) | 1 | S | `UserButton.tsx` (unverified) | DONE | `packages/shell/src/auth.ts:91-92` stores `display_name`. The test "properly escapes user name" is still todo (`id-account.test.ts`). |
 | Transient notices (flash), and the reason for a refused drop, which no UI shows | ui report (flash, n/a row); snapping §1.4 | 1 | M | decision D19 | PARTLY | Toasts built (`packages/ui/src/Toast.tsx`, bb71055, ebe1e95; decision 19). The engine returns the reason of a refused drop (`engine.ts` endDrag, `result.refused`); the display is not checked. |
 | Custom imagery from a URL template (ELI listing only today) | F-ui-17 (3), F-renderer-6 (7) | 10 | M | `packages/module-imagery` | DONE | `packages/module-imagery/src/custom.ts` (05afc8b, 3bb1edd). |
-| Favourites use fixed keys (4 to 9 and 0) | steps Part E, radnetz 3 | not counted | S | decision D8 | DONE | Decision 8: one modifier and a number of any length (`packages/shell/src/favourites-keys.ts`; two digits tested; 5251d50). |
+| Favourites use fixed keys (4 to 9 and 0) | steps Part E, radnetz 3 | not counted | S | decision D8 | DONE | Decision 8: one modifier and a number of any length (`packages/shell/src/components/favourites-keys.ts`; two digits tested; 5251d50). |
 
 ### E. Presets
 
@@ -382,7 +382,7 @@ What the day added that iD does not have. Each line names a file or a commit tha
 - **Turning the map:** Alt or Control with a drag on open map, Shift with the arrows in 2.5-degree steps, two fingers on a touch screen, and a compass key N (be55541; `packages/shell/src/url/bearing.ts`). Tilting is not built.
 - **Tags sheet with paste:** a grid of key and value rows; paste of `key=value` lines, copying rows, typing a value for several features at once (b7535df, 8d69cd8, d0d7c6d; `packages/ui/src/sheet/clipboard.ts`).
 - **Measuring tool with its magnifier:** a "Measure on the map" button on each width field; two clicks on the map; a lens beside the pointer shows the aerial image at the click point (f7d5431, 6f2f871; `packages/renderer/src/measure.ts`).
-- **Favourites by number:** one modifier key and a number of any length, 39 or 888 (5251d50; `packages/shell/src/favourites-keys.ts`).
+- **Favourites by number:** one modifier key and a number of any length, 39 or 888 (5251d50; `packages/shell/src/components/favourites-keys.ts`).
 - **Three states of filters:** editable, read-only or hidden; the URL keeps what differs (B7; `packages/filters/`).
 - **Custom backgrounds list:** add, name, edit and delete from a z/x/y template; a background from a link holds for one visit (05afc8b, 3bb1edd; `packages/module-imagery/src/custom.ts`).
 - **Imagery series as date buttons:** one row per series, its dates as buttons (69647e2; `packages/module-imagery/src/ImageryPanel.tsx`).

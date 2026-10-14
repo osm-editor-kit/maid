@@ -850,7 +850,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   )
 
   // --- favourites by number: hold Alt, type the digits, let Alt go starts the favourite of that
-  // number (packages/shell/src/favourites-keys.ts, components/FavouriteHint.tsx). Under automation the
+  // number (packages/shell/src/components/favourites-keys.ts, components/FavouriteHint.tsx). Under automation the
   // settings are not stored, so the favourites are made in the picker: the building (an area) gets
   // number 3 and the bench (a point) gets 39 ---
   const holdAlt = async (digits: string[]) => {

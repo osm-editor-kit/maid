@@ -9,10 +9,10 @@ import type { Browse, Preset } from '@osm-editor-kit/maid-presets'
 import { useId, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { isFavouriteNumber } from '../favourites.ts'
 import { PLAIN_INPUT } from '../plain-input.ts'
-import { useRecents } from '../recents.ts'
 import { EMPTY_NOTE, keepFocus, listboxMove, revealRow, ROW_ACTIVE } from './listbox.ts'
 import { listRows, type ListRow } from './picker-browse.ts'
 import { mainTagLabel } from './picker-logic.ts'
+import { useRecents } from './recents.ts'
 import { SearchField } from './SearchField.tsx'
 
 // the colour is not here: a class of the same property in the same string would be overridden by the

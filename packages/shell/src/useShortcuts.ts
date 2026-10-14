@@ -1,13 +1,13 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { deleteOperation } from '@osm-editor-kit/maid-operations'
 import { useHotkeys, type UseHotkeyDefinition } from '@tanstack/react-hotkeys'
-import { continueLine, drawClick, drawingKind } from '../drawing'
-import { giveFavouriteType } from '../favourites'
-import { openSearch } from '../search/flyout'
-import { useSelection } from '../selection'
-import { useEngine, useShell } from '../shell-context'
-import { keepsStack, stepStackId, useStack } from '../stack'
-import { turnForKey } from '../url/bearing'
+import { continueLine, drawClick, drawingKind } from './drawing'
+import { giveFavouriteType } from './favourites'
+import { openSearch } from './search/flyout'
+import { useSelection } from './selection'
+import { useEngine, useShell } from './shell-context'
+import { keepsStack, stepStackId, useStack } from './stack'
+import { turnForKey } from './url/bearing'
 
 /** Screen pixels the arrow keys move the map by, as in iD */
 const PAN = 80

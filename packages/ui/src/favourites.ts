@@ -2,7 +2,7 @@ import type { Geometry } from '@osm-editor-kit/maid-presets'
 
 /**
  * A favourite feature type: a preset for one geometry, and the number that starts it. Holding the
- * modifier key and typing the number starts it (packages/shell/src/favourites-keys.ts). The number is
+ * modifier key and typing the number starts it (packages/shell/src/components/favourites-keys.ts). The number is
  * given when the favourite is made and stays until the favourite is removed or the person changes
  * it, so reordering or removing other favourites does not move it.
  */

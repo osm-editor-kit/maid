@@ -34,15 +34,15 @@ import {
   toggleFavourite,
   useFavouriteRows,
 } from '../favourites'
-import { fieldOverlayFor, widthKeyTarget } from '../field-overlay'
 import { imageryOnMap } from '../imagery-used'
-import { measureTags } from '../measure-tags'
-import { createReferenceLoader } from '../reference'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
+import { fieldOverlayFor, widthKeyTarget } from './field-overlay'
+import { measureTags } from './measure-tags'
 import { MultiInspector } from './MultiInspector'
 import { Operations } from './Operations'
 import { PresetIcon } from './PresetIcon'
+import { createReferenceLoader } from './reference'
 
 const GEOMETRY_LABEL = {
   point: 'Point',

@@ -20,7 +20,7 @@ German: the app starts in German where the browser names no language (`AppConfig
 
 Pure files (sides, presets, conditional, rules, operations) must not import the icons: PNG imports belong in components.
 
-The field's side line on the map: a control that belongs to a side sits in an element with `data-focus-key` and `data-focus-side` (`FieldFocus` in maid-ui); fields on `parking:<side>:*` keys get the side line from the key alone (packages/shell/src/field-overlay.ts).
+The field's side line on the map: a control that belongs to a side sits in an element with `data-focus-key` and `data-focus-side` (`FieldFocus` in maid-ui); fields on `parking:<side>:*` keys get the side line from the key alone (packages/shell/src/components/field-overlay.ts).
 
 Tailwind needs `@source '../../module-parking/src';` in `packages/shell/src/styles.css` (done).
 

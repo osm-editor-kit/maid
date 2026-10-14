@@ -35,7 +35,7 @@ Line numbers in `docs/research/interactions-vs-id.md` (for example `engine.ts:97
 | Undo label | "Connected a way to a node", "Connected a point to a way" and so on (`drag_node.js:72-90`); "Moved a node" otherwise. | "Moved a node" for every drag (`engine.ts:1134`). `insertNode` says "Added a node to a way" (`engine.ts:816-831`). | Connect labels missing |
 | Snap distance, ways | The way's touch target is 12 px wide, so about 6 px to each side (`css/20_map.css:60-66`). | 8 px in draw (`draw.ts:28`), 6 px in `pick` for press and hover (`engine.ts:1309-1313`). Drag: no snap. | Maid's draw snaps wider than iD's way target. Node target size: inferred, not read |
 | Snap distance, nodes | The node target is its marker's fill (`css/20_map.css:48-58`). Exact radius: inferred. | 8 px in draw (`draw.ts:28`, `:272-285`). | Similar |
-| Map nudge at the edge while dragging | Pans the map and keeps the node moving (`drag_node.js:50-63`, `:365-369`). | None. The only "nudge" is keyboard (`apps/maid/src/components/useShortcuts.ts`). | Total |
+| Map nudge at the edge while dragging | Pans the map and keeps the node moving (`drag_node.js:50-63`, `:365-369`). | None. The only "nudge" is keyboard (`packages/shell/src/useShortcuts.ts`). | Total |
 
 Draw with a snap is already the closest parity: `draw.ts:54-57` (`move`) snaps the preview node through `target`, the same as iD's `draw_way.js:112-135`.
 

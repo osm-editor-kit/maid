@@ -9,8 +9,8 @@ import type { CombinedTags } from '@osm-editor-kit/maid-model'
 import { TagSheet, type TagSheetChange } from '@osm-editor-kit/maid-ui'
 import { NuqsAdapter } from 'nuqs/adapters/react'
 import { useEffect, useState } from 'react'
-import { useShortcuts } from './components/useShortcuts'
 import { useShell } from './shell-context'
+import { useShortcuts } from './useShortcuts'
 
 type Tags = Record<string, string>
 
