@@ -59,24 +59,31 @@ export function cellStyle(look: CellLook): CSSProperties | undefined {
 export type InputTone = 'default' | 'muted' | 'differs' | 'changed'
 
 /**
- * The classes of a cell's input. Monospace for keys and values that are written as they are; italic for a mixed
- * value; the text is selectable only while it is edited (the grid is not selectable, so a drag selects cells).
+ * The classes of a cell's text area. It grows with its text (`field-sizing: content`), and the row with it: up to
+ * two lines while the cell is only shown, up to six while it is the active cell or edited, then it scrolls. Long
+ * words break anywhere, so a URL wraps too. Monospace for keys and values that are written as they are; italic for
+ * a mixed value; the text is selectable only while it is edited (the grid is not selectable, so a drag selects
+ * cells).
  */
 export function inputClassName(look: {
   mono: boolean
   tone: InputTone
   mixed: boolean
   editing: boolean
+  /** The active cell or the edited one: it may grow to six lines */
+  open: boolean
 }): string {
   const parts = [
-    'h-8 w-full min-w-0 bg-transparent px-2 text-sm text-zinc-950 outline-none',
+    'block min-h-8 w-full min-w-0 resize-none bg-transparent px-2 py-1.5 text-sm/5 text-zinc-950 outline-none',
+    '[field-sizing:content] [overflow-wrap:anywhere]',
     'placeholder:text-zinc-400 read-only:cursor-default aria-invalid:text-red-600',
     'dark:text-white dark:placeholder:text-zinc-500 dark:aria-invalid:text-red-400',
   ]
+  // two lines of 20 px under the top padding (a third line would show in the bottom padding), or six; past that
+  // the text scrolls, only where it can be read in full
+  parts.push(look.open ? 'max-h-[8.25rem] overflow-y-auto' : 'max-h-[2.875rem] overflow-hidden')
   // monospace is wide: a size smaller, so that keys such as name:etymology fit a sidebar column
-  if (look.mono) parts.push('font-mono text-[13px]')
-  // a text that does not fit ends in an ellipsis while it is only shown; the title has it in full
-  if (!look.editing) parts.push('text-ellipsis')
+  if (look.mono) parts.push('font-mono text-[13px]/5')
   if (look.mixed) parts.push('italic placeholder:italic')
   if (look.editing) parts.push('select-text')
   if (look.tone === 'muted') parts.push('text-zinc-500 dark:text-zinc-400')

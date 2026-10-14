@@ -22,8 +22,9 @@ export type SheetCellProps = {
 }
 
 /**
- * One cell: a wrapper with the grid's roles, and one real `<input>` (readOnly outside edit mode, so the editor's
- * shortcuts skip it and the caret keys stay the browser's). The draft is this cell's own state: typing re-renders
+ * One cell: a wrapper with the grid's roles, and one real `<textarea>` (readOnly outside edit mode, so the editor's
+ * shortcuts skip it and the caret keys stay the browser's). It is a text area so that a long value wraps and the
+ * row grows with it (cell-look.ts); Enter still commits (keys.ts), and a pasted line break becomes a space. The draft is this cell's own state: typing re-renders
  * this cell only. The grid reads the input's value when an edit ends.
  *
  * A column with `suggest` shows its list while the cell is edited (SuggestList). Arrows move the highlight; Enter
@@ -41,7 +42,7 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
   const value = editing ? (draft ?? committed) : committed
   const messageId = useId()
   const listId = useId()
-  const [anchor, setAnchor] = useState<HTMLInputElement | null>(null)
+  const [anchor, setAnchor] = useState<HTMLTextAreaElement | null>(null)
   const suggestions = useSuggestions({
     enabled: editing,
     suggest: column.suggest,
@@ -58,8 +59,9 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
   const role = column.role === 'rowheader' ? 'rowheader' : 'gridcell'
   const tone = data?.tone ?? 'default'
   const listShown = suggestions.open && anchor !== null
+  const open = active || editing
 
-  function pick(index: number, input: HTMLInputElement) {
+  function pick(index: number, input: HTMLTextAreaElement) {
     const item = suggestions.items[index]
     if (item === undefined) return
     input.value = item.value
@@ -71,7 +73,7 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
 
   // Runs before the grid's key handler (this input is inside it): a key the list takes stops here, except
   // Enter and Tab after a take, which the grid commits with the taken text.
-  function onKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
+  function onKeyDown(event: ReactKeyboardEvent<HTMLTextAreaElement>) {
     if (!editing) return
     const result = suggestions.keyDown(event.key)
     if (result === undefined) return
@@ -94,10 +96,10 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
       className={cellClassName({ selected })}
       style={cellStyle({ selected, active, editing, invalid: invalid !== undefined, edges })}
     >
-      <input
+      <textarea
         {...PLAIN_INPUT}
         ref={setAnchor}
-        type="text"
+        rows={1}
         value={value}
         readOnly={!editing}
         tabIndex={tabIndex}
@@ -115,13 +117,20 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
         aria-description={mixed ? `${mixed.length} different values` : undefined}
         title={mixedTitle ?? (editing || value === '' ? undefined : value)}
         placeholder={mixed ? 'Multiple values' : trailing ? column.header : undefined}
-        onChange={(event) => setDraft(event.target.value)}
+        // a tag is one line, as in a text input: a pasted line break becomes a space
+        onChange={(event) => setDraft(event.target.value.replace(/\r?\n/g, ' '))}
         onKeyDown={onKeyDown}
+        // a cell closes to two lines after it loses the focus: it shows the start of its text, not the scroll
+        // position the edit left
+        onBlur={(event) => {
+          event.currentTarget.scrollTop = 0
+        }}
         className={inputClassName({
           mono: column.mono === true,
           tone,
           mixed: mixed !== undefined,
           editing,
+          open,
         })}
       />
       {invalid !== undefined ? (

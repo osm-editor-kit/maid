@@ -100,14 +100,14 @@ function cellRefOf(element: Element): CellRef | undefined {
 }
 
 /** The input of a cell in the grid. */
-function cellInput(grid: HTMLElement | null, cell: CellRef): HTMLInputElement | null {
-  const selector = `[data-row="${CSS.escape(cell.row)}"][data-col="${CSS.escape(cell.col)}"] input`
-  return grid?.querySelector<HTMLInputElement>(selector) ?? null
+function cellInput(grid: HTMLElement | null, cell: CellRef): HTMLTextAreaElement | null {
+  const selector = `[data-row="${CSS.escape(cell.row)}"][data-col="${CSS.escape(cell.col)}"] textarea`
+  return grid?.querySelector<HTMLTextAreaElement>(selector) ?? null
 }
 
 /** The input that is writable: the one in an open edit. */
-function openInput(grid: HTMLElement | null): HTMLInputElement | null {
-  return grid?.querySelector<HTMLInputElement>('input:not([readonly])') ?? null
+function openInput(grid: HTMLElement | null): HTMLTextAreaElement | null {
+  return grid?.querySelector<HTMLTextAreaElement>('textarea:not([readonly])') ?? null
 }
 
 /**
@@ -208,7 +208,7 @@ export function Sheet(props: SheetProps) {
   }
 
   /** Ends an edit with the draft (the input's value): one batch, and the state as `after` says. */
-  function leaveEdit(input: HTMLInputElement, after: EndThen, from: SheetState): SheetState {
+  function leaveEdit(input: HTMLTextAreaElement, after: EndThen, from: SheetState): SheetState {
     input.readOnly = true
     const result = commitEdit(from, shape, rows, columns, input.value, after)
     if (result.batch !== undefined && onChange !== undefined) onChange(result.batch)
@@ -219,7 +219,7 @@ export function Sheet(props: SheetProps) {
   }
 
   /** Opens the active cell for typing: the input becomes writable now, so the key's own input goes in. */
-  function beginEdit(input: HTMLInputElement, how: 'replace' | 'keep'): void {
+  function beginEdit(input: HTMLTextAreaElement, how: 'replace' | 'keep'): void {
     const active = state.active
     if (active === null || state.mode === 'edit' || shape.readOnly(active)) return
     input.readOnly = false
@@ -284,7 +284,7 @@ export function Sheet(props: SheetProps) {
    * Runs a paste. Returns false when the plan leaves it to the browser (an open edit, plain text): the caller then
    * does nothing. The paste is one batch; an open edit is dropped, not committed.
    */
-  function pasteText(text: string, editing: boolean, input: HTMLInputElement | null): boolean {
+  function pasteText(text: string, editing: boolean, input: HTMLTextAreaElement | null): boolean {
     const anchor = state.active
     if (anchor === null) return false
     if (!editable) return true
@@ -334,7 +334,7 @@ export function Sheet(props: SheetProps) {
 
   function onKeyDown(event: ReactKeyboardEvent<HTMLDivElement>): void {
     const input = event.target
-    if (!(input instanceof HTMLInputElement) || input.closest('[data-col]') === null) return
+    if (!(input instanceof HTMLTextAreaElement) || input.closest('[data-col]') === null) return
     const result = actionForKey(
       {
         key: event.key,
@@ -403,7 +403,7 @@ export function Sheet(props: SheetProps) {
 
   function onPaste(event: ReactClipboardEvent<HTMLDivElement>): void {
     const input = event.target
-    if (!(input instanceof HTMLInputElement)) return
+    if (!(input instanceof HTMLTextAreaElement)) return
     pasteWait.current = null
     const editing = state.mode === 'edit'
     const text = event.clipboardData.getData('text/plain')
@@ -530,14 +530,15 @@ export function Sheet(props: SheetProps) {
     const leaving = !(next instanceof Node) || grid.current?.contains(next) !== true
     let base = state
     const input = event.target
-    if (input instanceof HTMLInputElement && !input.readOnly) base = leaveEdit(input, 'stay', state)
+    if (input instanceof HTMLTextAreaElement && !input.readOnly)
+      base = leaveEdit(input, 'stay', state)
     if (leaving) base = sheetReducer(base, { type: 'collapse' }, shape)
     if (base !== state) setState(base)
   }
 
   function onInput(event: FormEvent<HTMLDivElement>): void {
     const input = event.target
-    if (!(input instanceof HTMLInputElement) || state.mode !== 'edit') return
+    if (!(input instanceof HTMLTextAreaElement) || state.mode !== 'edit') return
     setDraftNote(counterText(input.value))
   }
 

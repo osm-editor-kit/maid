@@ -71,9 +71,27 @@ describe('cellClassName and inputClassName: the classes decide the look', () => 
   })
 
   it('a key or value in monospace; a mixed value in italics; the text selectable only while edited', () => {
-    const plain = inputClassName({ mono: false, tone: 'default', mixed: false, editing: false })
-    const key = inputClassName({ mono: true, tone: 'default', mixed: false, editing: true })
-    const mixed = inputClassName({ mono: false, tone: 'default', mixed: true, editing: false })
+    const plain = inputClassName({
+      mono: false,
+      tone: 'default',
+      mixed: false,
+      editing: false,
+      open: false,
+    })
+    const key = inputClassName({
+      mono: true,
+      tone: 'default',
+      mixed: false,
+      editing: true,
+      open: true,
+    })
+    const mixed = inputClassName({
+      mono: false,
+      tone: 'default',
+      mixed: true,
+      editing: false,
+      open: false,
+    })
     expect(plain).not.toContain('font-mono')
     expect(key).toContain('font-mono')
     expect(key).toContain('select-text')
@@ -81,13 +99,33 @@ describe('cellClassName and inputClassName: the classes decide the look', () => 
     expect(mixed).toContain('italic')
   })
 
+  it('two lines while only shown, six for the active or edited cell, and it scrolls only then', () => {
+    const shown = inputClassName({
+      mono: false,
+      tone: 'default',
+      mixed: false,
+      editing: false,
+      open: false,
+    })
+    const active = inputClassName({
+      mono: false,
+      tone: 'default',
+      mixed: false,
+      editing: false,
+      open: true,
+    })
+    expect(shown).toContain('max-h-[2.875rem] overflow-hidden')
+    expect(active).toContain('max-h-[8.25rem] overflow-y-auto')
+    expect(shown).toContain('[field-sizing:content]')
+  })
+
   it('a differing value is amber, a muted one grey', () => {
     expect(
-      inputClassName({ mono: false, tone: 'differs', mixed: false, editing: false }),
+      inputClassName({ mono: false, tone: 'differs', mixed: false, editing: false, open: false }),
     ).toContain('text-amber-700')
-    expect(inputClassName({ mono: false, tone: 'muted', mixed: false, editing: false })).toContain(
-      'text-zinc-500',
-    )
+    expect(
+      inputClassName({ mono: false, tone: 'muted', mixed: false, editing: false, open: false }),
+    ).toContain('text-zinc-500')
   })
 })
 

@@ -41,7 +41,7 @@ const code = await runCheck(
       await frame(page)
     }
     const click = async (label: string) => {
-      await page.locator(`input[aria-label="${label}"]`).click()
+      await page.locator(`textarea[aria-label="${label}"]`).click()
       await frame(page)
     }
     const outside = async () => {
@@ -51,8 +51,8 @@ const code = await runCheck(
     const focused = () =>
       page.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? null)
     const keys = () =>
-      page.$$eval('[role="grid"] [data-row] [data-col="key"] input', (inputs) =>
-        inputs.map((input) => (input instanceof HTMLInputElement ? input.value : '')),
+      page.$$eval('[role="grid"] [data-row] [data-col="key"] textarea', (inputs) =>
+        inputs.map((input) => (input instanceof HTMLTextAreaElement ? input.value : '')),
       )
     const tags = () => page.evaluate(() => window.__sheet.tags)
     const calls = () => page.evaluate(() => window.__sheet.calls.length)
@@ -111,7 +111,7 @@ const code = await runCheck(
       false,
       await page.evaluate(() => {
         const active = document.activeElement
-        return active instanceof HTMLInputElement ? active.readOnly : true
+        return active instanceof HTMLTextAreaElement ? active.readOnly : true
       }),
     )
     await press('Escape')
@@ -184,7 +184,7 @@ const code = await runCheck(
     await outside()
     // A removed row plays its exit animation first (AnimatePresence keeps it until then): wait for it
     await page.waitForFunction(
-      () => !document.querySelector('input[aria-label="Key of name"]'),
+      () => !document.querySelector('textarea[aria-label="Key of name"]'),
       undefined,
       {
         timeout: 3000,
@@ -226,8 +226,8 @@ const code = await runCheck(
     )
 
     // Two rows dragged, then copied: two key=value lines
-    const from = page.locator('input[aria-label="Key of foo"]')
-    const to = page.locator('input[aria-label="Value of highway"]')
+    const from = page.locator('textarea[aria-label="Key of foo"]')
+    const to = page.locator('textarea[aria-label="Value of highway"]')
     const a = await from.boundingBox()
     const b = await to.boundingBox()
     if (a && b) {
@@ -288,7 +288,7 @@ const code = await runCheck(
       {
         length: (await tags()).maxspeed?.length,
         invalid: await page
-          .locator('input[aria-label="Value of maxspeed"]')
+          .locator('textarea[aria-label="Value of maxspeed"]')
           .getAttribute('aria-invalid'),
       },
     )

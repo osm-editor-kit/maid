@@ -2181,10 +2181,12 @@ failed += await runCheck(
       page
         .evaluate((id) => Object.entries(window.__maid.engine.entity(id)?.tags ?? {}), id)
         .then((entries) => sorted(Object.fromEntries(entries)))
-    const cell = (label: string) => page.locator(`input[aria-label="${label}"]`)
+    const cell = (label: string) => page.locator(`textarea[aria-label="${label}"]`)
     const keysShown = () =>
-      page.$$eval('[role="grid"][aria-label="Tags"] [data-row] [data-col="key"] input', (inputs) =>
-        inputs.map((input) => (input instanceof HTMLInputElement ? input.value : '')),
+      page.$$eval(
+        '[role="grid"][aria-label="Tags"] [data-row] [data-col="key"] textarea',
+        (inputs) =>
+          inputs.map((input) => (input instanceof HTMLTextAreaElement ? input.value : '')),
       )
     const statusTexts = () => page.locator('[role="status"]').allTextContents()
 
