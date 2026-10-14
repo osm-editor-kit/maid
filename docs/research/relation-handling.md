@@ -159,7 +159,10 @@ Decided by Tobias on 2026-10-14:
 - **Relations of the session:** relations that got a member in this session stay at the top of the picker, also when they are off screen (as Kyle's PR for issue 3622).
 - **Route on the map:** when a route is selected, the map shows gap ends and the direction of its members; nothing changes otherwise.
 - **Reordering members:** the move buttons stay, and members can also be dragged, with motion's `Reorder` (already installed). Each move, by button or by drag, is one undo step.
-- Still open: warnings for broken boundaries and turn restrictions, which routes get the gap check, adding several features at once, and loading all missing members.
+- **Broken boundaries and turn restrictions:** warn, and offer a fix only where it is clearly right (for example removing a member).
+- **Which issues are checked:** as iD's issue options (my edits or everything, what is visible or everywhere), with better guidance: issues that do not come from the person's own edits are shown quieter and folded, and the person can make them regular (or quiet again) at that element.
+- **Several features at once:** both, a section in the multi-selection with the relations all or some of the features are in, and "add to relation" / "remove from relation" in the action bar, using the same logic.
+- **Loading missing members:** iD's rules for when members load, adapted to Maid's interface.
 
 Each item has one open question and the options. Map effects are for mappers, not only for the code.
 
