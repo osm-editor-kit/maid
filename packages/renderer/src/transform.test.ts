@@ -8,6 +8,7 @@ import {
   OsmNode,
   type OsmJsonElement,
 } from '@osm-editor-kit/maid-model'
+import { defaultPresets } from '@osm-editor-kit/maid-presets/default'
 import { OsmData } from './data'
 import type { MaidEngine } from './engine'
 import { actionMoveNodes, toMercator, TransformTool, worldDelta } from './transform'
@@ -137,11 +138,18 @@ describe('TransformTool steps', () => {
     return toolFor(building())
   }
 
-  /** A tool on the data of a history, and the number of steps (engine changes) it has made */
-  function toolFor({ history, data }: { history: EditHistory; data: OsmData }) {
+  /**
+   * A tool on the data of a history, and the number of steps (engine changes) it has made. The presets
+   * are the editor's: without them (`presetsPending`) a point with no direction tag does not turn.
+   */
+  function toolFor(
+    { history, data }: { history: EditHistory; data: OsmData },
+    presets?: typeof defaultPresets,
+  ) {
     let steps = 0
     const engine = {
       data,
+      options: { editor: { presets } },
       isReadOnly: () => false,
       change: (step: () => void) => {
         steps++
@@ -243,13 +251,13 @@ describe('TransformTool steps', () => {
   const SOUTH: [number, number] = [POINT[0], POINT[1] - 0.005]
   const WEST: [number, number] = [POINT[0] - 0.005, POINT[1]]
 
-  /** A history with one point that has these tags, and a tool on it */
-  function pointTool(tags: Record<string, string>) {
+  /** A history with one point that has these tags, and a tool on it (with the presets, when given) */
+  function pointTool(tags: Record<string, string>, presets?: typeof defaultPresets) {
     const context = new ModelContext()
     const history = new EditHistory(context)
     const data = new OsmData(context, history)
     data.merge([{ type: 'node', id: 7, lat: POINT[1], lon: POINT[0], tags }])
-    return toolFor({ history, data })
+    return toolFor({ history, data }, presets)
   }
   const tagsOf = (history: EditHistory) => (history.staging.graph.entity('n7') as OsmNode).tags
 
@@ -339,11 +347,79 @@ describe('TransformTool steps', () => {
   })
 
   test('a point with no direction, or a relative one, does not rotate', () => {
+    // a bench has no direction tag, and no presets to say which tag it would get
     expect(pointTool({ amenity: 'bench' }).transform.begin('rotate', ['n7'])).toBe(false)
     expect(
-      pointTool({ highway: 'give_way', direction: 'forward' }).transform.begin('rotate', ['n7']),
+      pointTool({ highway: 'give_way', direction: 'forward' }, defaultPresets).transform.begin(
+        'rotate',
+        ['n7'],
+      ),
     ).toBe(false)
     expect(pointTool({ direction: '90' }).transform.begin('move', ['n7'])).toBe(true)
+  })
+
+  test('a bench with no direction tag: R turns the direction field of its preset, from the first pointer move', () => {
+    const bench = pointTool({ amenity: 'bench' }, defaultPresets)
+    expect(bench.transform.directionOf(['n7'])?.key).toBe('direction')
+    expect(bench.transform.begin('rotate', ['n7'])).toBe(true)
+    bench.transform.move(...NORTH) // the first position is where the pointer started
+    runFrames()
+    expect(tagsOf(bench.history).direction).toBe('0')
+    bench.transform.move(...EAST)
+    runFrames()
+    expect(tagsOf(bench.history).direction).toBe('90')
+    expect(bench.transform.finish()).toBe(true)
+    expect(tagsOf(bench.history).direction).toBe('90')
+    expect(bench.history.getUndoAnnotation()).toBe('Rotated a point')
+    bench.history.undo()
+    expect(tagsOf(bench.history).direction).toBeUndefined()
+    expect(tagsOf(bench.history).amenity).toBe('bench')
+  })
+
+  test('a bench with no direction tag and no presets (not loaded yet) does not rotate', () => {
+    expect(pointTool({ amenity: 'bench' }).transform.directionOf(['n7'])).toBeUndefined()
+    expect(pointTool({ amenity: 'bench' }).transform.begin('rotate', ['n7'])).toBe(false)
+  })
+
+  test('a point whose preset has no numeric direction field does not rotate', () => {
+    expect(pointTool({ amenity: 'cafe' }, defaultPresets).transform.begin('rotate', ['n7'])).toBe(
+      false,
+    )
+  })
+
+  test('a camera with no direction tag gets the direction field of its preset; a relative value stays', () => {
+    const camera = pointTool({ man_made: 'surveillance' }, defaultPresets)
+    expect(camera.transform.directionOf(['n7'])?.key).toBe('direction')
+    // a direction tag with a relative value is not replaced by the preset's numeric field
+    const relative = pointTool({ man_made: 'surveillance', direction: 'forward' }, defaultPresets)
+    expect(relative.transform.directionOf(['n7'])).toBeUndefined()
+  })
+
+  test('Escape on a point that had no direction tag removes the tag again', () => {
+    const bench = pointTool({ amenity: 'bench' }, defaultPresets)
+    bench.transform.begin('rotate', ['n7'])
+    bench.transform.move(...NORTH)
+    bench.transform.move(...EAST)
+    runFrames()
+    expect(tagsOf(bench.history).direction).toBe('90')
+    bench.transform.cancel()
+    expect(tagsOf(bench.history)).toEqual({ amenity: 'bench' })
+    expect(bench.history.hasWorkInProgress).toBe(false)
+    expect(bench.transform.active).toBe(false)
+  })
+
+  test('a vertex of a way with no direction tag: its preset field turns, the way keeps its shape', () => {
+    const { history, data } = building({ amenity: 'bench' })
+    const node = toolFor({ history, data }, defaultPresets)
+    const before = locs(history)
+    expect(node.transform.directionOf(['n1'])?.key).toBe('direction')
+    expect(node.transform.begin('rotate', ['n1'])).toBe(true)
+    node.transform.move(...NORTH)
+    node.transform.move(...EAST)
+    node.transform.finish()
+    expect((history.staging.graph.entity('n1') as OsmNode).tags.direction).toBe('90')
+    expect(node.history.getUndoAnnotation()).toBe('Rotated a node in a way')
+    expect(locs(history)).toEqual(before)
   })
 
   test('a node of a way turns its own direction; the way keeps its shape', () => {

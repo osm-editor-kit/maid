@@ -1,8 +1,9 @@
 // Rotate (R) for a point with a direction tag: which tag turns, and how its value is written.
 // Ported from iD's branch rotate-point-direction (ISC, © iD contributors): modules/util/direction_degrees.ts,
 // modules/util/direction_field.ts and modules/actions/rotate_point_direction.ts. Headless: plain
-// functions on tags. The preset fallback of iD (a numeric direction field for a point with no tag yet)
-// is not here: operations has no presets, so a point without a direction tag does not turn.
+// functions on tags and on field lists. The presets are read by the caller (the renderer's transform):
+// it passes the key of the preset's numeric direction field, which R uses when the point has no
+// direction tag yet (iD's preset fallback, see numericDirectionFieldKey).
 
 /** Compass names as OSM azimuths, as the data model's `OsmNode.directions` reads them (lower case) */
 const CARDINAL: Record<string, number> = {
@@ -69,15 +70,48 @@ export function isDirectionKey(key: string | undefined): boolean {
 /**
  * The tag that R turns on a point, or undefined. A `*:direction` key with angles wins over
  * `direction` (iD: `camera:direction` before `direction`). Keys with relative values are not turned.
+ * `presetKey` is the key of the preset's numeric direction field (see `numericDirectionFieldKey`).
+ * It is used only when the point has no direction key at all, as iD does: a `direction=forward`
+ * is not replaced by the preset's field.
  */
-export function rotatableDirectionKey(tags: Readonly<Record<string, string>>): string | undefined {
+export function rotatableDirectionKey(
+  tags: Readonly<Record<string, string>>,
+  presetKey?: string,
+): string | undefined {
   let plain: string | undefined
+  let hasDirectionKey = false
   for (const key of Object.keys(tags)) {
-    if (!isDirectionKey(key) || !hasDirectionDegrees(tags[key])) continue
+    if (!isDirectionKey(key)) continue
+    hasDirectionKey = true
+    if (!hasDirectionDegrees(tags[key])) continue
     if (key !== 'direction') return key
     plain = key
   }
-  return plain
+  if (plain) return plain
+  if (!hasDirectionKey && isDirectionKey(presetKey)) return presetKey
+  return undefined
+}
+
+/** The fields of a preset as the caller reads them: the key, the type and the geometry they are for */
+export type DirectionFieldLike = { key?: string; type: string; geometry?: readonly string[] }
+
+/**
+ * The key of the first numeric direction field (`type: number`, key `direction` or `*:direction`)
+ * that applies to the geometry, or undefined. iD's utilDirectionFieldKey: a point with no direction
+ * tag gets this field's tag from R. Relative fields (combo `forward` and `backward`) are not numeric.
+ * The caller passes the fields in iD's order: the preset's fields, then its more fields.
+ */
+export function numericDirectionFieldKey(
+  fields: readonly DirectionFieldLike[],
+  geometry: string,
+): string | undefined {
+  const field = fields.find(
+    (candidate) =>
+      isDirectionKey(candidate.key) &&
+      candidate.type === 'number' &&
+      (candidate.geometry === undefined || candidate.geometry.includes(geometry)),
+  )
+  return field?.key
 }
 
 /**
@@ -104,8 +138,15 @@ export function retargetDirectionValue(value: string | undefined, targetDegrees:
 
 /**
  * Whether the direction field shows the hint that R turns the tag. iD shows it only for a numeric
- * direction field (`type: number`), not for a relative one (`forward` and `backward`).
+ * direction field (`type: number`), not for a relative one (`forward` and `backward`). Without a
+ * field (a raw tag), the hint is shown when the value is an angle.
  */
-export function showsDirectionRotateHint(field: { key?: string; fieldType?: string }): boolean {
-  return isDirectionKey(field.key) && field.fieldType === 'number'
+export function showsDirectionRotateHint(field: {
+  key?: string
+  value?: string
+  fieldType?: string
+}): boolean {
+  if (!isDirectionKey(field.key)) return false
+  if (field.fieldType) return field.fieldType === 'number'
+  return hasDirectionDegrees(field.value)
 }

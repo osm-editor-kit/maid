@@ -2,9 +2,10 @@
  * Moving and rotating the selection with the pointer, as iD's M and R do. The move is iD's move:
  * `actionMove`, so the ways that share a node with the selection but are not selected keep their
  * shape, and a replacement vertex is added where they are bent. Rotating moves the nodes in place.
- * R on one point with a direction tag turns that tag instead (iD's rotate-point-direction): the
+ * R on one point with a direction turns that tag instead (iD's rotate-point-direction): the
  * first angle points at the pointer's bearing from the point, the other angles keep their offset,
- * and the tag keeps its format.
+ * and the tag keeps its format. A point with no direction tag yet gets the key of its preset's
+ * numeric direction field (iD's preset fallback): the tag is written on the first pointer move.
  * The result is in the work in progress of the history while the pointer moves; a click keeps it
  * as one undo step, Escape takes it back.
  */
@@ -16,10 +17,13 @@ import {
   OsmNode,
 } from '@osm-editor-kit/maid-model'
 import {
+  isDirectionKey,
   normalizeAzimuthDegrees,
+  numericDirectionFieldKey,
   retargetDirectionValue,
   rotatableDirectionKey,
 } from '@osm-editor-kit/maid-operations'
+import type { Geometry } from '@osm-editor-kit/maid-presets'
 import type { MaidEngine } from './engine'
 
 export type TransformKind = 'move' | 'rotate'
@@ -183,13 +187,42 @@ export class TransformTool {
 
   /**
    * The direction tag that R turns for this selection: the one tag of one point with a rotatable
-   * direction (see `rotatableDirectionKey`). Undefined for anything else, which R moves or refuses.
+   * direction (see `rotatableDirectionKey`), or the numeric direction field of its preset when the
+   * point has no direction tag. Undefined for anything else, which R moves or refuses.
    */
   directionOf(ids: readonly string[]): DirectionTurn | undefined {
     if (ids.length !== 1 || !ids[0]!.startsWith('n')) return undefined
-    const tags = this.engine.data.node(ids[0]!)?.tags
-    const key = tags ? rotatableDirectionKey(tags) : undefined
-    return tags && key ? { id: ids[0]!, key, tags: { ...tags } } : undefined
+    const id = ids[0]!
+    const node = this.engine.data.node(id)
+    if (!node) return undefined
+    const tags = node.tags
+    const hasDirectionKey = Object.keys(tags).some(isDirectionKey)
+    const key = rotatableDirectionKey(
+      tags,
+      hasDirectionKey ? undefined : this.presetDirectionKey(id),
+    )
+    return key ? { id, key, tags: { ...tags } } : undefined
+  }
+
+  /**
+   * The key of the numeric direction field of the point's preset (iD's utilDirectionFieldKey), read
+   * from the editor's presets: the preset's fields and its more fields, as the inspector offers them.
+   * Undefined while the presets are not there (`editor.presetsPending`), or when the preset has none.
+   */
+  private presetDirectionKey(id: string): string | undefined {
+    const presets = this.engine.options.editor.presets
+    const node = this.engine.data.node(id)
+    if (!presets || !node?.loc) return undefined
+    const { tags, loc } = node
+    const geometry: Geometry = this.engine.data.nodeWays.has(id) ? 'vertex' : 'point'
+    const preset = presets.match(tags, geometry, loc)
+    return numericDirectionFieldKey(
+      [
+        ...presets.fieldsFor(preset, tags, geometry, loc),
+        ...presets.moreFieldsFor(preset, tags, geometry, loc),
+      ],
+      geometry,
+    )
   }
 
   /**

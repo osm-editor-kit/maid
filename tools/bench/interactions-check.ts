@@ -498,6 +498,88 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
     )
   }
 
+  // --- R on a point with no direction tag: the numeric direction field of its preset (a bench's `direction`) is
+  // what R sets, from the first pointer move, as iD's preset fallback. A standalone point in view that has no
+  // direction key is made a bench; Escape takes what R wrote away again (no tag, browse); a turn sets 90. ---
+  await page.waitForFunction(() => window.__maid.editor.presets !== undefined, undefined, {
+    timeout: 20000,
+  })
+  const benchPoint = await page.evaluate(() => {
+    const { map, engine } = window.__maid
+    const box = map.getCanvas().getBoundingClientRect()
+    const inView = (p: { x: number; y: number }) =>
+      p.x > 150 && p.y > 150 && p.x < box.width - 150 && p.y < box.height - 150
+    for (const f of map.queryRenderedFeatures() as any[]) {
+      const id = String(f.id ?? '')
+      if (
+        !id.startsWith('n') ||
+        !f.source.includes('points') ||
+        engine.data.nodeWays.get(id)?.length
+      )
+        continue
+      const node = engine.data.node(id)
+      const tags = node?.tags ?? {}
+      if (Object.keys(tags).some((key) => key === 'direction' || key.endsWith(':direction')))
+        continue
+      if (tags.amenity !== undefined || !node?.loc) continue
+      // only a point that becomes a bench by amenity=bench alone: a shop with an amenity tag stays a shop
+      const becomes = window.__maid.editor.presets?.match(
+        { ...tags, amenity: 'bench' },
+        'point',
+        node.loc,
+      )
+      if (becomes?.id !== 'amenity/bench') continue
+      const p = map.project(node.loc)
+      if (inView(p)) return { id, at: { x: p.x, y: p.y } }
+    }
+    return undefined
+  })
+  report(
+    'find a standalone point in view with no direction to make a bench',
+    true,
+    Boolean(benchPoint),
+  )
+  if (benchPoint) {
+    await page.evaluate((id) => window.__maid.engine.setTag(id, 'amenity', 'bench'), benchPoint.id)
+    await settle()
+    await key('Escape')
+    await page.evaluate((id) => window.__bench.select(id), benchPoint.id)
+    const benchAt = (await where([benchPoint.id]))[0]!
+    const bx = origin.x + Math.round(benchAt.x)
+    const by = origin.y + Math.round(benchAt.y)
+    const benchTag = () =>
+      page.evaluate(
+        (id) => window.__maid.engine.data.node(id)?.tags.direction ?? null,
+        benchPoint.id,
+      )
+    await key('r')
+    await page.mouse.move(bx, by + 90) // south of the bench: the tag is written there, then replaced
+    await page.mouse.move(bx + 90, by, { steps: 4 })
+    await settle()
+    const rotatingMode = (await state()).mode
+    const rotatingTag = await benchTag()
+    await key('Escape')
+    report(
+      'R on a bench with no direction starts at once and writes its direction; Escape takes it away again',
+      ['rotate', true, null, 'browse'],
+      [rotatingMode, rotatingTag !== null, await benchTag(), (await state()).mode],
+    )
+    await page.evaluate((id) => window.__bench.select(id), benchPoint.id)
+    await key('r')
+    await page.mouse.move(bx, by + 90)
+    await page.mouse.move(bx + 90, by, { steps: 4 })
+    await settle()
+    await page.mouse.click(bx + 90, by)
+    await settle()
+    const benchTurned = Number(await benchTag())
+    const benchOff = ((((benchTurned - 90) % 360) + 540) % 360) - 180
+    report(
+      'R on a bench with no direction: the pointer due east of it makes it point east (90)',
+      true,
+      Math.abs(benchOff) <= 3,
+    )
+  }
+
   // --- M on a way that shares a node with an unselected way: that way keeps its shape (iD's move) ---
   // Three ways are built in the middle of the view: `wayW` (selected) crosses `wayU` at `junction`,
   // which is bent there; `wayV` shares nothing.

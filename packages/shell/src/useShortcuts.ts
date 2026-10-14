@@ -23,7 +23,8 @@ const PAN = 80
  * - while drawing: Space places a node where the pointer is, Enter or Escape finishes,
  *   Backspace takes back the last node, Delete drops the way
  * - M moves and R rotates the selection with the pointer (click or Enter to put down, Escape to cancel);
- *   R on one point with a direction turns that direction (iD's rotate-point-direction)
+ *   R on one point with a direction turns that direction (iD's rotate-point-direction); a point with no
+ *   direction tag turns the numeric direction field of its preset (a bench's `direction`), written from the first move
  * - Cmd/Ctrl+C copies the selection, Cmd/Ctrl+V pastes it where the pointer is
  * - Cmd/Ctrl+F opens the search (SearchButton) and focuses its input; the browser's find stays off
  * - Cmd/Ctrl+Backspace or Delete deletes the selection; Escape leaves a mode, then the selection

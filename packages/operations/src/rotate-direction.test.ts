@@ -1,13 +1,15 @@
 // Ported from iD's branch rotate-point-direction: test/spec/util/direction_degrees.ts,
 // test/spec/util/direction_field.ts, test/spec/actions/rotate_point_direction.ts and
-// test/spec/operations/rotate.ts. 19 pass, 4 todo. The todos are iD's preset cases. They need presets,
-// which the operations package does not have. Maid turns the value to the pointer's absolute bearing, as iD does.
+// test/spec/operations/rotate.ts. The preset cases of iD's operation test take the preset's field list here
+// (numericDirectionFieldKey), since the operations package has no presets; the renderer's transform.test.ts
+// reads the real presets. Maid turns the value to the pointer's absolute bearing, as iD does.
 // The vertex and multi-node cases of iD's operation test are in renderer transform.test.ts.
 import { describe, expect, test } from 'bun:test'
 import {
   hasDirectionDegrees,
   isDirectionKey,
   normalizeAzimuthDegrees,
+  numericDirectionFieldKey,
   parseDirectionDegreesSegment,
   retargetDirectionValue,
   rotatableDirectionKey,
@@ -97,9 +99,46 @@ describe('showsDirectionRotateHint', () => {
     expect(showsDirectionRotateHint({ key: 'highway', fieldType: 'number' })).toBe(false)
   })
 
-  // todo: iD also shows the hint for a raw tag by its value (`direction=120` with no field).
-  // Maid's hint belongs to the field's documentation, so there is no field-less case to ask.
-  test.todo('shows the hint for a raw tag whose value is an angle (iD: no field)', () => {})
+  test('a raw tag (no field) shows it when its value is an angle, as iD does', () => {
+    expect(showsDirectionRotateHint({ key: 'direction', value: '120' })).toBe(true)
+    expect(showsDirectionRotateHint({ key: 'direction', value: 'NE' })).toBe(true)
+    expect(showsDirectionRotateHint({ key: 'direction', value: 'forward' })).toBe(false)
+    expect(showsDirectionRotateHint({ key: 'highway', value: '120' })).toBe(false)
+  })
+})
+
+describe('numericDirectionFieldKey (the preset fallback: the field R sets on a point with no tag)', () => {
+  test('a bench: the numeric direction field of its preset', () => {
+    // id-tagging-schema: amenity/bench offers `direction` (type number) under more fields
+    const fields = [
+      { key: 'backrest', type: 'check' },
+      { key: 'direction', type: 'number' },
+    ]
+    expect(numericDirectionFieldKey(fields, 'point')).toBe('direction')
+    expect(numericDirectionFieldKey(fields, 'vertex')).toBe('direction')
+  })
+
+  test('a relative direction field of the preset is not a numeric field', () => {
+    expect(
+      numericDirectionFieldKey([{ key: 'direction', type: 'combo' }], 'vertex'),
+    ).toBeUndefined()
+    expect(numericDirectionFieldKey([{ key: 'highway', type: 'number' }], 'point')).toBeUndefined()
+    expect(numericDirectionFieldKey([], 'point')).toBeUndefined()
+  })
+
+  test('a camera: camera:direction when the preset has it', () => {
+    const fields = [
+      { key: 'surveillance', type: 'combo' },
+      { key: 'camera:direction', type: 'number' },
+    ]
+    expect(numericDirectionFieldKey(fields, 'point')).toBe('camera:direction')
+  })
+
+  test('a field restricted to other geometries does not apply', () => {
+    const fields = [{ key: 'direction', type: 'number', geometry: ['vertex'] }]
+    expect(numericDirectionFieldKey(fields, 'point')).toBeUndefined()
+    expect(numericDirectionFieldKey(fields, 'vertex')).toBe('direction')
+  })
 })
 
 describe('rotatableDirectionKey (which tag R turns on a point)', () => {
@@ -133,13 +172,25 @@ describe('rotatableDirectionKey (which tag R turns on a point)', () => {
     expect(rotatableDirectionKey({ highway: 'give_way', direction: 'forward' })).toBeUndefined()
   })
 
-  test('a point without a direction tag has no key (iD: the preset field, see the todo below)', () => {
+  test('a point without a direction tag turns nothing without its preset key', () => {
     expect(rotatableDirectionKey({ amenity: 'bench' })).toBeUndefined()
   })
 
-  // todo: iD's preset fallback. A bench with no direction tag gets its numeric direction field from
-  // the preset, so R can set the tag. Needs presets in the operations package, which has none.
-  test.todo('a point with no direction tag takes the numeric direction field of its preset (iD)', () => {})
-  test.todo('a relative direction field of the preset is not a numeric field (iD)', () => {})
-  test.todo('the preset field of a camera gives camera:direction (iD)', () => {})
+  test('a point with no direction tag turns the key of its preset field', () => {
+    expect(rotatableDirectionKey({ amenity: 'bench' }, 'direction')).toBe('direction')
+    expect(rotatableDirectionKey({ man_made: 'surveillance' }, 'camera:direction')).toBe(
+      'camera:direction',
+    )
+  })
+
+  test('the preset key is not used when a direction key is there with a relative value', () => {
+    expect(
+      rotatableDirectionKey({ highway: 'give_way', direction: 'forward' }, 'direction'),
+    ).toBeUndefined()
+    expect(rotatableDirectionKey({ 'camera:direction': 'forward' }, 'direction')).toBeUndefined()
+  })
+
+  test('a numeric tag wins over the preset key', () => {
+    expect(rotatableDirectionKey({ direction: '45' }, 'camera:direction')).toBe('direction')
+  })
 })
