@@ -12,7 +12,7 @@ const ACTION =
 /**
  * The account button at the end of the top bar: "Log in" or the user, and in its flyout the
  * log out and the settings that belong to the person, such as light or dark. The account is
- * one on the OSM development server (see auth.ts).
+ * one on OpenStreetMap, or on its development server when the data is the development server's (see auth.ts).
  */
 export function UserButton() {
   const auth = useAuth()
@@ -54,8 +54,8 @@ export function UserButton() {
             {config.source === 'dev'
               ? 'OpenStreetMap development server. Nothing is saved to the real map.'
               : config.source === 'osm'
-                ? 'OpenStreetMap, read only. Logging in and saving need the development server.'
-                : 'Local test data. Nothing is saved.'}
+                ? 'OpenStreetMap. What you save changes the real map.'
+                : 'Local test data. Nothing is saved; the login goes to the development server.'}
           </p>
         </div>
       </div>
@@ -63,7 +63,7 @@ export function UserButton() {
         {auth.user ? (
           <button
             type="button"
-            onClick={() => void logout()}
+            onClick={() => logout()}
             className={`${ACTION} text-zinc-700 ring-1 ring-zinc-950/10 hover:bg-zinc-50 dark:text-zinc-200 dark:ring-white/15 dark:hover:bg-white/5`}
           >
             Log out

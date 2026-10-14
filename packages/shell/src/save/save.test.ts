@@ -8,6 +8,7 @@ import {
   OsmNode,
 } from '@osm-editor-kit/maid-model'
 import type { UploadResult } from 'osm-api'
+import type { DataSource } from '../config.ts'
 import { pendingChange, uploadEdits } from './save.ts'
 
 type Upload = { tags: Record<string, string>; diff: ReturnType<typeof pendingChange> }
@@ -19,7 +20,7 @@ type Shelled = Parameters<typeof uploadEdits>[0]
  */
 function setUp(
   options: {
-    dev?: boolean
+    source?: DataSource
     fail?: boolean
     selectBench?: boolean
     brand?: string
@@ -65,7 +66,7 @@ function setUp(
       reloads.push({ selection: [...selection], delayMs }),
   }
   const shell = {
-    config: { dev: options.dev ?? true },
+    config: { source: options.source ?? 'dev' },
     editor,
     engine,
     auth: { api: async () => OSM },
@@ -129,10 +130,10 @@ describe('uploadEdits', () => {
     expect(reloads).toEqual([])
   })
 
-  it('uploads nothing outside the development server', async () => {
-    const { history, shell, uploads, reloads } = setUp({ dev: false })
+  it('uploads nothing on a fixture', async () => {
+    const { history, shell, uploads, reloads } = setUp({ source: 'fixture' })
 
-    expect(uploadEdits(shell, 'Not here')).rejects.toThrow('development server')
+    expect(uploadEdits(shell, 'Not here')).rejects.toThrow('live data')
 
     expect(uploads).toEqual([])
     expect(history.hasChanges()).toBe(true)

@@ -83,7 +83,7 @@ function editorConfig(config: Config) {
   return { modules, presets, filters: defaultFilters }
 }
 
-/** The app: its name, its login to the OSM development server, and the editor above */
+/** The app: its name, its login to OpenStreetMap and its development server, and the editor above */
 export const app: AppConfig = {
   id: 'maid-parking',
   brand: { name: 'Maid Parking', detail: 'Street-side parking' },
@@ -91,6 +91,7 @@ export const app: AppConfig = {
   // German unless the URL (`?lang=`), the stored choice or the browser names a language; automation stays English
   defaultLocale: 'de',
   osm: {
+    clientId: import.meta.env.VITE_OSM_CLIENT_ID || undefined,
     devClientId: import.meta.env.VITE_OSM_DEV_CLIENT_ID || undefined,
     loginOrigin: 'http://127.0.0.1:5177',
     envFile: 'apps/maid-parking/.env.local',

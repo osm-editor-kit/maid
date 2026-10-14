@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { chooseLiveMode, DEV_API, OSM_API, readConfig } from './config'
+import { chooseLiveMode, DEV_API, OSM_API, parseServers, readConfig } from './config'
 
 /** The data the page starts with: the URL's `live`, then the stored choice, then the build's default */
 describe('chooseLiveMode', () => {
@@ -30,6 +30,15 @@ function at(search: string) {
   return { search } as Location
 }
 
+describe('parseServers', () => {
+  test('one server, both in either order, or both by default', () => {
+    expect(parseServers('dev')).toEqual(['dev'])
+    expect(parseServers('dev, osm')).toEqual(['dev', 'osm'])
+    expect(parseServers(undefined)).toEqual(['osm', 'dev'])
+    expect(parseServers('staging')).toEqual(['osm', 'dev'])
+  })
+})
+
 describe('readConfig', () => {
   test('without a live build and without a URL: the local mock', () => {
     const config = readConfig(at(''), { stored: undefined, liveBuild: false })
@@ -39,10 +48,11 @@ describe('readConfig', () => {
     expect(config.apiUrl).toMatch(/^http:\/\/localhost:\d+\/s\/small$/)
   })
 
-  test('a live build without a URL: OpenStreetMap, read only, and the server choice is offered', () => {
+  test('a live build without a URL: OpenStreetMap, its login, and the server choice is offered', () => {
     const config = readConfig(at(''), { stored: undefined, liveBuild: true })
     expect(config.live).toBe(true)
     expect(config.dev).toBe(false)
+    expect(config.loginServer).toBe('osm')
     expect(config.serverChoice).toBe(true)
     expect(config.apiUrl).toBe(OSM_API)
   })
@@ -57,6 +67,26 @@ describe('readConfig', () => {
     expect(readConfig(at(''), { stored: undefined, liveBuild: false }).source).toBe('fixture')
     expect(readConfig(at('?live=1'), { stored: undefined, liveBuild: false }).source).toBe('osm')
     expect(readConfig(at('?live=dev'), { stored: undefined, liveBuild: false }).source).toBe('dev')
+  })
+
+  test('the login goes to the server of the data, and to the development server with a fixture', () => {
+    expect(readConfig(at('?live=1'), { stored: undefined, liveBuild: false }).loginServer).toBe(
+      'osm',
+    )
+    expect(readConfig(at('?live=dev'), { stored: undefined, liveBuild: false }).loginServer).toBe(
+      'dev',
+    )
+    expect(readConfig(at(''), { stored: undefined, liveBuild: false }).loginServer).toBe('dev')
+  })
+
+  test('a build with one server opens only that one and offers no choice', () => {
+    const staging = { stored: 'osm' as const, liveBuild: true, servers: ['dev' as const] }
+    expect(readConfig(at(''), staging).source).toBe('dev')
+    expect(readConfig(at('?live=1'), staging).source).toBe('dev')
+    expect(readConfig(at(''), staging).serverChoice).toBe(false)
+    const production = { stored: 'dev' as const, liveBuild: true, servers: ['osm' as const] }
+    expect(readConfig(at(''), production).source).toBe('osm')
+    expect(readConfig(at('?live=dev'), production).source).toBe('osm')
   })
 
   test('the build flag is carried for the login origin', () => {

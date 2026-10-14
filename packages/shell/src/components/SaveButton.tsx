@@ -4,7 +4,7 @@ import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { Flyout, notify, toolButtonClass } from '@osm-editor-kit/maid-ui'
 import { useId, useState, type ReactNode } from 'react'
 import { useAuth } from '../auth'
-import { DEV_API } from '../config'
+import { CHANGESET_URL } from '../config'
 import { saveBlocked } from '../save/blocked'
 import { changesetTags, summaryOf, type ChangeElement, type OsmChange } from '../save/osm-change'
 import { pendingChange, uploadEdits, uploadErrors } from '../save/save'
@@ -83,7 +83,8 @@ function SavePanel(props: {
   const change = useEngine(() => pendingChange(editor))
   // the OSM API limits on what is changed: a tag too long for the API blocks the upload
   const errors = useEngine(() => uploadErrors(editor))
-  const blocked = saveBlocked({ dev: config.dev, loggedIn: auth.user !== undefined, errors })
+  const blocked = saveBlocked({ source: config.source, loggedIn: auth.user !== undefined, errors })
+  const toOsm = config.loginServer === 'osm'
   const rows = rowsOf(change)
   const hashtags = changesetTags(comment, '').hashtags
 
@@ -112,7 +113,7 @@ function SavePanel(props: {
                     {i > 0 && ', '}
                     <a
                       className="font-medium underline"
-                      href={`${DEV_API}/changeset/${id}`}
+                      href={`${CHANGESET_URL[config.loginServer]}${id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -120,7 +121,7 @@ function SavePanel(props: {
                     </a>
                   </span>
                 ))}{' '}
-                on the development server.
+                {toOsm ? 'on OpenStreetMap.' : 'on the development server.'}
               </>,
             )
           },
@@ -159,7 +160,11 @@ function SavePanel(props: {
         aria-describedby={note ? noteId : undefined}
         className="w-full cursor-pointer rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 enabled:hover:bg-blue-500 disabled:cursor-default disabled:opacity-50"
       >
-        {uploading ? 'Uploading…' : 'Upload to the development server'}
+        {uploading
+          ? 'Uploading…'
+          : toOsm
+            ? 'Upload to OpenStreetMap'
+            : 'Upload to the development server'}
       </button>
       {note && (
         <p id={noteId} role="status" className="text-xs text-amber-700 dark:text-amber-300">

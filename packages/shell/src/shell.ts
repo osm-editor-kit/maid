@@ -5,7 +5,7 @@ import { connectLenses } from '@osm-editor-kit/maid-module-lenses'
 import { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { getSettings } from '@osm-editor-kit/maid-ui'
 import { createAuth } from './auth'
-import { readConfig, type Config } from './config'
+import { DEV_API, OSM_API, readConfig, type Config } from './config'
 import { watchFavourites } from './favourites'
 import { createShellJournal } from './journal'
 import { migrateIdHash } from './url/id-url'
@@ -15,7 +15,7 @@ import { startShown } from './url/shown'
 export type AppConfig = {
   /**
    * Names what the app stores in the browser: the journal's database and the logged-in user
-   * (`<id>:scene:small`, `<id>:osm-dev-user`). Default 'maid'. The packages' own stores (settings,
+   * (`<id>:scene:small`, `<id>:osm-user:dev`). Default 'maid'. The packages' own stores (settings,
    * notes, lenses, ...) keep fixed names: two apps on one origin would share those.
    */
   id?: string
@@ -31,9 +31,10 @@ export type AppConfig = {
    * e.g. `Maid Parking 0.1.0`. Each app passes its own; the value is checked when a changeset is uploaded.
    */
   version: string
-  /** Login to the OSM development server. Without a client id, "Log in" explains what is missing. */
+  /** Login to OpenStreetMap and its development server. Without a client id, "Log in" explains what is missing. */
   osm?: {
-    /** OAuth client id; not a secret, read from the app's own env file */
+    /** OAuth client ids on openstreetmap.org and on the development server; not secrets, read from the app's env file */
+    clientId?: string
     devClientId?: string
     /** The origin the OAuth redirect is registered for, for example `http://127.0.0.1:5173` */
     loginOrigin?: string
@@ -112,7 +113,10 @@ export function createShell(app: AppConfig) {
     auth: createAuth({
       id,
       envFile: app.osm?.envFile ?? `apps/${id}/.env.local`,
-      clientId: app.osm?.devClientId || undefined,
+      server: config.loginServer,
+      apiUrl: config.loginServer === 'osm' ? OSM_API : DEV_API,
+      clientId:
+        (config.loginServer === 'osm' ? app.osm?.clientId : app.osm?.devClientId) || undefined,
       // a deployed build logs in from the origin it is served from (its redirect is origin + base + land.html);
       // the app's loginOrigin pins local development to 127.0.0.1
       loginOrigin: config.liveBuild ? undefined : app.osm?.loginOrigin,

@@ -2,7 +2,7 @@
 
 **Ma**pLibre **iD** Editor: an iD-inspired OpenStreetMap editor to build your own single-purpose editor on.
 
-**Try it:** https://osm-editor-kit.github.io/maid/ (reads the real map; saving only to the OSM development server)
+**Try it:** https://osm-editor-kit.github.io/maid/ (OpenStreetMap, or its development server for testing: switch in the account menu)
 
 OpenStreetMap data gets more detailed by the minute, and communities form around their topics: road and bike
 infrastructure, street parking, playgrounds, climbing routes. Each deserves an editor made for its topic and limited

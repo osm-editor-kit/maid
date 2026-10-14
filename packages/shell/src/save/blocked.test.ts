@@ -30,26 +30,30 @@ describe('featureName', () => {
 })
 
 describe('saveBlocked', () => {
-  it('is blocked outside the development server, whatever else holds', () => {
-    expect(saveBlocked({ dev: false, loggedIn: true, errors: [] })).toContain('?live=dev')
+  it('is blocked on a fixture, whatever else holds', () => {
+    expect(saveBlocked({ source: 'fixture', loggedIn: true, errors: [] })).toContain('?live=dev')
+  })
+
+  it('is open when logged in on OpenStreetMap with no errors', () => {
+    expect(saveBlocked({ source: 'osm', loggedIn: true, errors: [] })).toBeUndefined()
   })
 
   it('is blocked when logged out, and says so', () => {
-    expect(saveBlocked({ dev: true, loggedIn: false, errors: [] })).toBe('Log in to save.')
+    expect(saveBlocked({ source: 'dev', loggedIn: false, errors: [] })).toBe('Log in to save.')
   })
 
   it('is open when logged in on the development server with no errors', () => {
-    expect(saveBlocked({ dev: true, loggedIn: true, errors: [] })).toBeUndefined()
+    expect(saveBlocked({ source: 'dev', loggedIn: true, errors: [] })).toBeUndefined()
   })
 
   it('is open when every tag is at most 255 characters, emoji included', () => {
     const errors = errorsFor({ note: 'a'.repeat(255), emoji: '😀'.repeat(255) })
-    expect(saveBlocked({ dev: true, loggedIn: true, errors })).toBeUndefined()
+    expect(saveBlocked({ source: 'dev', loggedIn: true, errors })).toBeUndefined()
   })
 
   it('is blocked by a value of 256 characters, and names the feature and the lengths', () => {
     const errors = errorsFor({ description: 'x'.repeat(262) })
-    expect(saveBlocked({ dev: true, loggedIn: true, errors })).toBe(
+    expect(saveBlocked({ source: 'dev', loggedIn: true, errors })).toBe(
       'A tag value is too long: shorten it before saving (new node). The value of description is 262 characters long, the limit is 255.',
     )
   })
@@ -57,14 +61,14 @@ describe('saveBlocked', () => {
   it('is blocked by a key that is too long, with a sentence about the key', () => {
     const key = 'k'.repeat(256)
     const errors = errorsFor({ [key]: 'v' }, 'n42')
-    expect(saveBlocked({ dev: true, loggedIn: true, errors })).toBe(
+    expect(saveBlocked({ source: 'dev', loggedIn: true, errors })).toBe(
       `A tag key is too long: shorten it before saving (node 42). The key ${key} is 256 characters long, the limit is 255.`,
     )
   })
 
   it('shows the error before the login, since the data has to be fixed either way', () => {
     const errors = errorsFor({ description: 'x'.repeat(256) })
-    expect(saveBlocked({ dev: true, loggedIn: false, errors })).toStartWith(
+    expect(saveBlocked({ source: 'dev', loggedIn: false, errors })).toStartWith(
       'A tag value is too long',
     )
   })

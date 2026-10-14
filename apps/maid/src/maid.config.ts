@@ -88,12 +88,13 @@ function editorConfig(config: Config) {
   }
 }
 
-/** The app: its name, its login to the OSM development server, and the editor above */
+/** The app: its name, its login to OpenStreetMap and its development server, and the editor above */
 export const app: AppConfig = {
   id: 'maid',
   brand: { name: 'Maid', detail: 'MapLibre iD Editor' },
   version,
   osm: {
+    clientId: import.meta.env.VITE_OSM_CLIENT_ID || undefined,
     devClientId: import.meta.env.VITE_OSM_DEV_CLIENT_ID || undefined,
     loginOrigin: 'http://127.0.0.1:5173',
     envFile: 'apps/maid/.env.local',

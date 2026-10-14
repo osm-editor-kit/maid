@@ -1,8 +1,9 @@
 name: Pages
 
 # Builds one Maid app and deploys it to GitHub Pages. The app and the path it is served from come from deploy.env,
-# or from the repository variables MAID_APP and MAID_BASE when those are set. The build does not contact OSM: the
-# deployed app reads live data only when a person opens it, and saves only to the development server.
+# or from the repository variables MAID_APP and MAID_BASE when those are set; the servers it offers from MAID_SERVERS.
+# The build does not contact OSM: the deployed app reads live data only when a person opens it, and saves only after
+# that person logged in.
 
 on:
   push:
@@ -29,19 +30,23 @@ jobs:
         env:
           VAR_MAID_APP: ${{ vars.MAID_APP }}
           VAR_MAID_BASE: ${{ vars.MAID_BASE }}
+          VAR_MAID_SERVERS: ${{ vars.MAID_SERVERS }}
         run: |
           app=maid
           base=
+          servers=
           while IFS= read -r line || [ -n "$line" ]; do
             line="${line%$'\r'}"
             case "$line" in
               MAID_APP=*) app="${line#MAID_APP=}" ;;
               MAID_BASE=*) base="${line#MAID_BASE=}" ;;
+              MAID_SERVERS=*) servers="${line#MAID_SERVERS=}" ;;
             esac
           done < deploy.env
           # a repository variable, when it is not empty, wins over deploy.env
           if [ -n "$VAR_MAID_APP" ]; then app="$VAR_MAID_APP"; fi
           if [ -n "$VAR_MAID_BASE" ]; then base="$VAR_MAID_BASE"; fi
+          if [ -n "$VAR_MAID_SERVERS" ]; then servers="$VAR_MAID_SERVERS"; fi
           # an empty base is /<repository name>/, e.g. /maid/
           if [ -z "$base" ]; then base="/${GITHUB_REPOSITORY#*/}/"; fi
           # one leading and one trailing slash: / stays /, maid and /maid/ become /maid/
@@ -60,7 +65,8 @@ jobs:
           fi
           echo "app=$app" >> "$GITHUB_OUTPUT"
           echo "base=$base" >> "$GITHUB_OUTPUT"
-          echo "Deploying apps/$app with base $base" >> "$GITHUB_STEP_SUMMARY"
+          echo "servers=$servers" >> "$GITHUB_OUTPUT"
+          echo "Deploying apps/$app with base $base, servers ${servers:-osm,dev}" >> "$GITHUB_STEP_SUMMARY"
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -72,9 +78,11 @@ jobs:
         working-directory: apps/${{ steps.config.outputs.app }}
         env:
           VITE_BASE: ${{ steps.config.outputs.base }}
-          # the built app reads live OSM data by default, and the person may switch to the development server
+          # the built app reads live OSM data by default, from the servers MAID_SERVERS names
           VITE_MAID_DATA: live
+          VITE_MAID_SERVERS: ${{ steps.config.outputs.servers }}
           # OAuth client ids are not secrets; Maid is a public client (PKCE) and has no client secret
+          VITE_OSM_CLIENT_ID: ${{ vars.OSM_CLIENT_ID }}
           VITE_OSM_DEV_CLIENT_ID: ${{ vars.OSM_DEV_CLIENT_ID }}
           VITE_MAPILLARY_TOKEN: ${{ vars.MAPILLARY_TOKEN }}
         run: bun run build

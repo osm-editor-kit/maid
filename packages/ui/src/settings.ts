@@ -39,8 +39,8 @@ export type Settings = {
   /** The language the person chose in the top bar (ADR 0009, decision 4). Unset: the URL, then the browser. */
   lang?: Lang | undefined
   /**
-   * The data server the person chose in the account flyout: OpenStreetMap (read only) or the
-   * development server (login and saving). Read only by a build that reads live data by default
+   * The data server the person chose in the account flyout: OpenStreetMap or the development server, each
+   * with its own login. Read only by a build that reads live data by default
    * (`VITE_MAID_DATA=live`, packages/shell/src/config.ts). Unset: that build's default.
    */
   server?: Server | undefined
@@ -49,7 +49,7 @@ export type Settings = {
 /** The languages Maid has (packages/i18n: LOCALES) */
 export type Lang = 'en' | 'de' | 'fr' | 'es'
 
-/** The data servers the account flyout offers: the real API, read only, and the development server */
+/** The data servers the account flyout offers: the real OSM and the development server */
 export type Server = 'osm' | 'dev'
 
 /**

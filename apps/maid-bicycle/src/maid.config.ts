@@ -92,12 +92,13 @@ function editorConfig(config: Config) {
   }
 }
 
-/** The app: its name, its login to the OSM development server, and the editor above */
+/** The app: its name, its login to OpenStreetMap and its development server, and the editor above */
 export const app: AppConfig = {
   id: 'maid-bicycle',
   brand: { name: 'Maid Bicycle', detail: 'Cycling infrastructure' },
   version,
   osm: {
+    clientId: import.meta.env.VITE_OSM_CLIENT_ID || undefined,
     devClientId: import.meta.env.VITE_OSM_DEV_CLIENT_ID || undefined,
     loginOrigin: 'http://127.0.0.1:5176',
     envFile: 'apps/maid-bicycle/.env.local',
