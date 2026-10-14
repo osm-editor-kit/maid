@@ -41,6 +41,12 @@ export function chooseLiveMode(input: {
   return input.liveBuild ? '1' : '0'
 }
 
+/**
+ * Where the data of this visit comes from: a fixture of the local mock API, the OSM API (read only), or the OSM
+ * development server. The one answer; the status texts, the journal's name and the account texts read it.
+ */
+export type DataSource = 'fixture' | 'osm' | 'dev'
+
 export type Config = {
   scene: string
   apiUrl: string
@@ -51,6 +57,10 @@ export type Config = {
    * ever saved to the real map from here (AGENTS.md, core rule 1).
    */
   dev: boolean
+  /** The data's source: `dev` when `dev`, `osm` when `live`, else `fixture` */
+  source: DataSource
+  /** This build reads live data by default (a GitHub Pages build): it logs in from the origin it is served from */
+  liveBuild: boolean
   /** The account flyout offers the server choice: in a live build or a live session. Never under automation. */
   serverChoice: boolean
   fill: LayerOptions['fill']
@@ -96,10 +106,13 @@ export function readConfig(
   const automated = isAutomated()
   const live = mode !== '0' && !automated
   const dev = live && mode === 'dev'
+  const source: DataSource = dev ? 'dev' : live ? 'osm' : 'fixture'
   return {
     scene: setup.scene,
     live,
     dev,
+    source,
+    liveBuild: choice.liveBuild,
     serverChoice: !automated && (live || choice.liveBuild),
     apiUrl: dev ? DEV_API : live ? OSM_API : `http://localhost:${PORTS.mockApi}/s/${setup.scene}`,
     fill: setup.fill,

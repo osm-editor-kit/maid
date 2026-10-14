@@ -1,5 +1,6 @@
-import type { DrawKind, MaidEngine } from '@osm-editor-kit/maid-renderer'
+import type { DrawKind, MaidEngine, Mode } from '@osm-editor-kit/maid-renderer'
 import { giveFavouriteType } from './favourites'
+import { markNewFeature } from './new-feature'
 
 type Select = (selection: string | readonly string[] | null) => void
 
@@ -19,13 +20,22 @@ export async function drawClick(
   if (!finished) return false
   giveFavouriteType({ engine }, finished, kind === 'line' ? 'draw-line' : 'draw-area')
   engine.setMode('browse')
+  markNewFeature(finished)
   select(finished)
   return true
 }
 
+/**
+ * The kind of way a mode draws, if it is a drawing mode. The one answer to "is this a drawing mode": the map,
+ * the keys and the draw calls read it, never a comparison of their own.
+ */
+export function drawKindOf(mode: Mode): DrawKind | undefined {
+  return mode === 'draw-line' ? 'line' : mode === 'draw-area' ? 'area' : undefined
+}
+
 /** The kind of way the current mode draws, if it is a drawing mode */
 export function drawingKind(engine: MaidEngine) {
-  return engine.mode === 'draw-line' ? 'line' : engine.mode === 'draw-area' ? 'area' : undefined
+  return drawKindOf(engine.mode)
 }
 
 /**

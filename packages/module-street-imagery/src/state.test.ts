@@ -55,7 +55,8 @@ describe('DAY', () => {
 describe('providers', () => {
   it('offers Mapillary only with a token', () => {
     expect(providerAvailable('mapillary', undefined)).toBe(false)
-    expect(providerAvailable('mapillary', '   ')).toBe(false)
+    // the token is trimmed once, when the module is set up (index.ts): the helper takes it as stored
+    expect(providerAvailable('mapillary', '')).toBe(false)
     expect(providerAvailable('mapillary', 'MLY|x')).toBe(true)
     expect(providerAvailable('panoramax', undefined)).toBe(true)
   })

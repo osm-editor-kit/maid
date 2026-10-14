@@ -16,7 +16,7 @@ export function showBlockedReason(key: string, mapillaryToken: string, automated
   if (automated) return 'Photos are off in automated browsers'
   const provider = providerOfKey(key)
   if (provider === 'panoramax') return 'Panoramax photos cannot be opened by id yet'
-  if (provider === 'mapillary' && mapillaryToken.trim() === '') {
+  if (provider === 'mapillary' && mapillaryToken === '') {
     return 'Mapillary needs a token in this build'
   }
   return null

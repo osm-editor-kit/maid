@@ -7,8 +7,15 @@ import {
   type RemoteFetch,
 } from '@osm-editor-kit/maid-core'
 import { QueryClient, QueryObserver } from '@tanstack/react-query'
-import { NOTES_LIMIT, parseNotes, type Cell } from './model.ts'
-import { cachedNote, failureMessage, isPermanentFailure, notesCell, wantedCells } from './query.ts'
+import { NOTES_LIMIT, NOTES_MIN_ZOOM, parseNotes, type Cell } from './model.ts'
+import {
+  cachedNote,
+  failureMessage,
+  isPermanentFailure,
+  notesCell,
+  notesKey,
+  wantedCells,
+} from './query.ts'
 
 const API = 'https://api.openstreetmap.org'
 const cell = (i: number, j: number): Cell => ({ i, j })
@@ -61,17 +68,29 @@ describe('wantedCells', () => {
 
   test('nothing is wanted while the notes are off, before a view, or below the zoom gate', () => {
     expect(
-      wantedCells({ enabled: false, view: { ...view, bbox: [...view.bbox] }, minZoom: 14 }),
+      wantedCells({
+        enabled: false,
+        view: { ...view, bbox: [...view.bbox] },
+        minZoom: NOTES_MIN_ZOOM,
+      }),
     ).toEqual([])
-    expect(wantedCells({ enabled: true, view: null, minZoom: 14 })).toEqual([])
+    expect(wantedCells({ enabled: true, view: null, minZoom: NOTES_MIN_ZOOM })).toEqual([])
     expect(
-      wantedCells({ enabled: true, view: { bbox: [...view.bbox], zoom: 13.9 }, minZoom: 14 }),
+      wantedCells({
+        enabled: true,
+        view: { bbox: [...view.bbox], zoom: NOTES_MIN_ZOOM - 0.1 },
+        minZoom: NOTES_MIN_ZOOM,
+      }),
     ).toEqual([])
   })
 
   test('from the zoom gate on, the cells of the view are wanted', () => {
     expect(
-      wantedCells({ enabled: true, view: { bbox: [...view.bbox], zoom: 14 }, minZoom: 14 }),
+      wantedCells({
+        enabled: true,
+        view: { bbox: [...view.bbox], zoom: 14 },
+        minZoom: NOTES_MIN_ZOOM,
+      }),
     ).toEqual([cell(0, 0)])
   })
 })
@@ -177,7 +196,7 @@ describe('the cache of the notes', () => {
     const client = new QueryClient()
     const [note] = parseNotes(collection(1)).notes
     if (!note) throw new Error('the fixture has no note')
-    client.setQueryData(['notes', API, 'open|0,0'], { notes: [note], truncated: false })
+    client.setQueryData(notesKey(API, 'open', cell(0, 0)), { notes: [note], truncated: false })
     expect(cachedNote(client, 1)?.id).toBe(1)
     expect(cachedNote(client, 9)).toBeUndefined()
   })

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
+import type { Presets } from '@osm-editor-kit/maid-presets'
 import { defaultPresets } from '@osm-editor-kit/maid-presets/default'
-import { createEditor, lazyPresets } from './index.ts'
+import { canBeArea, createEditor, lazyPresets } from './index.ts'
 
 describe('presets made after the first picture', () => {
   test('a lazy source is not made until it is asked for, then the editor has them and says so once', async () => {
@@ -62,5 +63,27 @@ describe('presets made after the first picture', () => {
     editor.destroy()
     expect(await loading).toBeUndefined()
     expect(editor.presets).toBeUndefined()
+  })
+})
+
+describe('canBeArea', () => {
+  // a presets stand-in: a point is an area type when its `leisure` is `playground`
+  const fake = {
+    match: (tags: Record<string, string>) => ({
+      geometry: tags.leisure === 'playground' ? ['point', 'area'] : ['point'],
+    }),
+  } as unknown as Presets
+
+  test('false until the presets are loaded', () => {
+    expect(canBeArea(lazyPresets(() => fake))({ leisure: 'playground' })).toBe(false)
+  })
+
+  test('true for a point whose type can also be an area, once loaded; area=no refuses', async () => {
+    const presets = lazyPresets(() => fake)
+    await presets.load()
+    const test = canBeArea(presets)
+    expect(test({ leisure: 'playground' })).toBe(true)
+    expect(test({ amenity: 'bench' })).toBe(false)
+    expect(test({ leisure: 'playground', area: 'no' })).toBe(false)
   })
 })

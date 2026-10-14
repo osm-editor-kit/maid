@@ -12,7 +12,7 @@ describe('showBlockedReason', () => {
     expect(showBlockedReason('panoramax', 'token', false)).toBe(
       'Panoramax photos cannot be opened by id yet',
     )
-    expect(showBlockedReason('mapillary:forward', '  ', false)).toBe(
+    expect(showBlockedReason('mapillary:forward', '', false)).toBe(
       'Mapillary needs a token in this build',
     )
   })

@@ -107,6 +107,7 @@ export const keys = {
   imageryIndex: () => ['data', 'imagery-index'] as const,
   photos: (provider: PhotoProvider, z: number, x: number, y: number, filters: KeyParams) =>
     [provider, 'photos', z, x, y, filters] as const,
-  notes: (apiUrl: string, z: number, x: number, y: number, options: KeyParams) =>
-    ['osm', 'notes', originOf(apiUrl), z, x, y, options] as const,
+  /** The notes of one grid cell of the notes module (its cells are 0.05 degrees, not map tiles) and their mode */
+  notes: (apiUrl: string, mode: string, i: number, j: number) =>
+    ['osm', 'notes', originOf(apiUrl), mode, i, j] as const,
 }

@@ -1,4 +1,5 @@
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { mapLibreLocale } from '@osm-editor-kit/maid-i18n'
 import { NOTES_LAYER_IDS } from '@osm-editor-kit/maid-module-notes'
 import { streetImageryClick } from '@osm-editor-kit/maid-module-street-imagery'
 import {
@@ -22,11 +23,12 @@ import {
   type ViewStateChangeEvent,
 } from 'react-map-gl/maplibre'
 import { exposeBenchApi } from '../bench'
-import { drawClick } from '../drawing'
+import { drawClick, drawKindOf } from '../drawing'
 import { addPointWithFavourite, giveFavouriteTagsToNode } from '../favourites'
 import { backgroundSourceOnMap } from '../imagery-used'
 import { installMarkerImages } from '../images'
 import { loadPresetsAfterReady, preloadAfterFirstSettle } from '../lazy-chunks'
+import { markNewFeature } from '../new-feature'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
 import { dropStack, setStack } from '../stack'
@@ -130,6 +132,8 @@ export function MapView() {
   const [cameraParam, setCameraParam] = useCameraParam()
   const { ids: selectedIds, select } = useSelection()
   // Dash patterns are discovered as data arrives; the layers list them in their expressions.
+  // MapLibre's own texts (the attribution control), in the visit's language: read once, the map is made once
+  const [mapLocale] = useState(mapLibreLocale)
   const [dashes, setDashes] = useState(() => new globalThis.Map(dashPatterns))
   const [cursor, setCursor] = useState('grab')
   const mode = useEngine((e) => e.mode)
@@ -173,7 +177,7 @@ export function MapView() {
   // The layers the engine picks from. Not the Map's interactiveLayerIds: the engine picks on every pointer
   // move (pick.ts), and react-map-gl would query the same layers again on each event.
   const interactive = interactiveLayerIds(buildLayers(options))
-  const drawing = mode === 'draw-line' ? 'line' : mode === 'draw-area' ? 'area' : undefined
+  const drawing = drawKindOf(mode)
 
   const handleLoad = (event: MapEvent) => {
     const map = event.target
@@ -467,6 +471,7 @@ export function MapView() {
       if (on?.type === 'way') {
         const id = engine.addNodeOn(on)
         giveFavouriteTagsToNode({ editor, engine }, id)
+        markNewFeature(id)
         engine.setMode('browse')
         select(id)
         return
@@ -474,6 +479,7 @@ export function MapView() {
       // the new point is selected, so the sidebar asks what it is
       // a favourite that started this mode gives the point its tags
       const id = addPointWithFavourite({ engine }, event.lngLat.lng, event.lngLat.lat)
+      if (id) markNewFeature(id)
       engine.setMode('browse')
       select(id)
       return
@@ -545,6 +551,7 @@ export function MapView() {
       minZoom={1}
       maxZoom={23}
       fadeDuration={config.fade}
+      locale={mapLocale}
       attributionControl={false}
       // the turn is by the mouse (startTurnOnOpenMap), by two fingers and by N and Shift+arrows (useShortcuts)
       dragRotate={false}

@@ -4,7 +4,32 @@ The `/unslop-code` run of 2026-10-13/14 (phases 3 to 8) applied only changes wit
 keeps what the phases found and did not apply, so that it can be decided and done step by step. Leads marked
 "unverified" come from agents that searched without running anything; check each before acting on it.
 
-## Decisions for Tobias
+## Decided by Tobias on 2026-10-14
+
+- **Automation (1):** stays as it is. One function (`isAutomated()`) decides; the other places only call it, and moving the
+  call changes the module contract for no gain. The Wiki fields follow their docs: no source under automation.
+- **`isLocalUrl` (2), Taginfo with Zod (7), debug handles only in dev and benchmark builds (5), the magnifier with
+  `useMap`:** done in the round after this list.
+- **Read-only (3):** a cleaner contract where it saves checks; passing a prop down is fine where the rest is simpler.
+- **Fallback presets (4):** as iD and Rapid answer it.
+- **Data fetching (6):** TanStack Query through the editor's query client; hand-written fetching and caching stays only for
+  very good reasons. The notes module keeps only client state in Zustand.
+- **nuqs (8):** stays; Maid has no router.
+- **Zustand stores:** as TkDodo recommends ("Working with Zustand"): only hooks exported, actions grouped, small stores.
+- **Module-level state:** not an issue, a page has one editor.
+- **Validation and presets doing work twice:** measure first, then fix what costs time.
+- **Notes zoom:** one rule, as iD: notes load from zoom 12; only the notes module decides it.
+- **Duplicated helpers:** merge them (Mapillary token, `canBeArea`, the fixture bounds, OSM zoom, draw mode, data source,
+  refusal toasts).
+- **Parking texts:** stay in the module, in the same system: the module brings its own Paraglide messages and follows the
+  app's language; the missing-texts check covers it.
+- **MapLibre's own texts:** translated through the map's `locale`.
+- **engine.ts:** split further after the next benchmark on a quiet machine, with an ADR.
+- **Script names with `:`:** renamed to the stack's naming.
+- **Linter exceptions for floating-ui refs, stable ids for restriction time ranges, one shared Vite tree-shaking block:**
+  do all three.
+
+## The list as it was handed to Tobias
 
 1. **Where automation is decided.** About fifteen places call `isAutomated()` themselves (shell: `auth.ts`, `App.tsx`,
    `SearchButton.tsx`, `components/reference.ts`, `mount.tsx`, `search/flyout.ts`; ui: `inspector/recents.ts`,

@@ -1,7 +1,7 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { deleteOperation } from '@osm-editor-kit/maid-operations'
 import { useHotkeys, type UseHotkeyDefinition } from '@tanstack/react-hotkeys'
-import { continueLine, drawClick, drawingKind } from './drawing'
+import { continueLine, drawClick, drawingKind, drawKindOf } from './drawing'
 import { giveFavouriteType } from './favourites'
 import { openSearch } from './search/flyout'
 import { useSelection } from './selection'
@@ -42,7 +42,7 @@ export function useShortcuts() {
   const drawing = useEngine((e) => e.draw.active)
   // a move or a rotation is put down with Enter, as a click puts it down
   const transforming = useEngine((e) => e.transform.active)
-  const drawMode = useEngine((e) => e.mode === 'draw-line' || e.mode === 'draw-area')
+  const drawMode = useEngine((e) => drawKindOf(e.mode) !== undefined)
   // the features of a click, while one of them is selected: , and . step through them
   const stack = useStack()
   const stackShown = stack !== null && keepsStack(stack, selected)

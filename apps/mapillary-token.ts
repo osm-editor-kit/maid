@@ -10,3 +10,11 @@
  * app's `.env.local` (or as a variable of its deployment), which takes precedence over this one.
  */
 export const MAPILLARY_TOKEN = 'MLY|39514138868200192|9f56cdfee9f25db7c536b4c5aacdfd9b'
+
+/**
+ * The token an app gives the street-imagery module: `VITE_MAPILLARY_TOKEN` when the build sets it, else
+ * this one. The module trims it once (packages/module-street-imagery/src/index.ts); nothing else resolves it.
+ */
+export function mapillaryToken(): string {
+  return import.meta.env.VITE_MAPILLARY_TOKEN || MAPILLARY_TOKEN
+}

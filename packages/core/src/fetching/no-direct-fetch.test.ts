@@ -8,8 +8,9 @@
  * library that fetches on its own is out of reach and is listed here, not scanned:
  * - `@osm-editor-kit/street-imagery` (packages/module-street-imagery): the photo tiles, the Mapillary graph,
  *   the capabilities and the infra3D WFS are fetched inside its `dist`, with no way to pass a fetch in.
- * - `pmtiles` (packages/module-data-layers/src/pmtiles.ts): `new PMTiles(url)` reads with its own default
- *   source, which calls the global fetch. Passing a `Source` that uses `editor.fetch` would move it.
+ * - `pmtiles` is not in this list: packages/module-data-layers/src/pmtiles.ts reads its archive through
+ *   `EditorSource`, a `Source` that sends each range through `editor.fetch`. The library's default source
+ *   (the global fetch) is not used.
  * - MapLibre: raster, vector and GeoJSON sources and the PMTiles protocol are loaded by MapLibre itself.
  *   Maid keeps the lock for these in the modules (`allowedWhenAutomated`, `automated` flags), not in the gate.
  */

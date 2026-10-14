@@ -54,7 +54,7 @@ export function parseStored(value: unknown): StreetImageryStored {
 
 /** Mapillary is offered only when the build has a token; Panoramax always. */
 export function providerAvailable(id: ImageryProviderId, mapillaryToken: string | undefined) {
-  return id === 'panoramax' || (mapillaryToken ?? '').trim() !== ''
+  return id === 'panoramax' || (mapillaryToken ?? '') !== ''
 }
 
 /**

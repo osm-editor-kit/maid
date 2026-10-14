@@ -8,6 +8,7 @@ import {
   AutomationBlockedError,
   HttpError,
   isAutomated,
+  keys,
   RateLimitedError,
   retryDelayFor,
   shouldRetry,
@@ -18,7 +19,6 @@ import { queryOptions, useQueries, useQueryClient, type QueryClient } from '@tan
 import { useSyncExternalStore } from 'react'
 import {
   cellBox,
-  cellKey,
   cellsOf,
   notesUrl,
   NOTES_LIMIT,
@@ -39,9 +39,9 @@ export const NOTES_STALE_MS = 5 * 60_000
 /** What one cell's request gives: its notes, and whether the answer was cut at the API's limit */
 export type CellNotes = { notes: Note[]; truncated: boolean }
 
-/** The key of one cell's query: the API root and the cell (its mode is part of the cell key) */
+/** The key of one cell's query, from the editor's key convention (`keys.notes` in maid-core) */
 export function notesKey(apiUrl: string, mode: NotesMode, cell: Cell) {
-  return ['notes', apiUrl, cellKey(mode, cell)] as const
+  return keys.notes(apiUrl, mode, cell.i, cell.j)
 }
 
 /**
@@ -161,7 +161,7 @@ export function useNotesCells(options: {
  * (its query is not removed), so a chosen note stays in the dock after a pan.
  */
 export function cachedNote(queries: QueryClient, id: number): Note | undefined {
-  for (const [, data] of queries.getQueriesData<CellNotes>({ queryKey: ['notes'] })) {
+  for (const [, data] of queries.getQueriesData<CellNotes>({ queryKey: ['osm', 'notes'] })) {
     const note = data?.notes.find((candidate) => candidate.id === id)
     if (note) return note
   }

@@ -53,7 +53,7 @@ export const useNotesSettings = create<Settings>()(
  * No map object either: the map layer reads `focus` and moves the map itself.
  */
 type Session = {
-  /** The map's box and its zoom in OSM terms (see `osmZoomOf`), or null without a map */
+  /** The map's box and its zoom in OSM terms (see `toOsmZoom` in maid-core), or null without a map */
   view: { bbox: Bbox; zoom: number } | null
   /** Whether the notice of a list cut at the limit is shown for the view that has one */
   noticeShown: boolean

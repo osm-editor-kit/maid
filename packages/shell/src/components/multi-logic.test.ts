@@ -6,6 +6,7 @@ import {
   distinctPresets,
   listedIds,
   readOnlyRefusal,
+  refusalMessage,
   sharedFields,
   sharedTags,
   typeLabel,
@@ -122,6 +123,17 @@ describe('readOnlyRefusal', () => {
   it('says how many of how many are read-only and that nothing changed', () => {
     expect(readOnlyRefusal(1, 3)).toBe(
       '1 of 3 selected features are read-only. Nothing was changed.',
+    )
+  })
+})
+
+describe('refusalMessage', () => {
+  it('names the read-only count, or the feature that is gone', () => {
+    expect(refusalMessage({ reason: 'read-only', readOnly: 1, of: 3 })).toBe(
+      '1 of 3 selected features are read-only. Nothing was changed.',
+    )
+    expect(refusalMessage({ reason: 'missing' })).toBe(
+      'A selected feature is no longer in the data. Nothing was changed.',
     )
   })
 })

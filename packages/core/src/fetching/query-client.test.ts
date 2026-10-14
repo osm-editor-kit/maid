@@ -223,15 +223,14 @@ describe('keys', () => {
     expect(a).toEqual(['mapillary', 'photos', 14, 8800, 5400, { layer: 'photos', sequence: null }])
   })
 
-  test('notes keys carry the origin, the tile and the options', () => {
-    expect(keys.notes(API, 12, 2200, 1350, { closed: 7 })).toEqual([
+  test('notes keys carry the origin, the mode and the grid cell', () => {
+    expect(keys.notes(API, 'all', 2200, 1350)).toEqual([
       'osm',
       'notes',
       'https://api.openstreetmap.org',
-      12,
+      'all',
       2200,
       1350,
-      { closed: 7 },
     ])
   })
 })

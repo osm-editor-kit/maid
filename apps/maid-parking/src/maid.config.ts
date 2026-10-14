@@ -1,4 +1,4 @@
-import { lazyPresets, type MaidModule } from '@osm-editor-kit/maid-core'
+import { canBeArea, lazyPresets, type MaidModule } from '@osm-editor-kit/maid-core'
 /**
  * What this editor is: the modules it is made of, one per line so that one can be commented out.
  * The run-time settings (scene, live data, ...) come from the URL and are read once, in the shell's config.ts.
@@ -20,6 +20,7 @@ import {
   type Bbox,
   type Config,
   elementInfo,
+  fixtureBounds,
   relations,
   sceneBounds,
   validation,
@@ -28,7 +29,7 @@ import { defaultRules } from '@osm-editor-kit/maid-validation'
 import dense from '../../../fixtures/dense.meta.json'
 import medium from '../../../fixtures/medium.meta.json'
 import small from '../../../fixtures/small.meta.json'
-import { MAPILLARY_TOKEN } from '../../mapillary-token.ts'
+import { mapillaryToken } from '../../mapillary-token.ts'
 import { version } from '../package.json'
 
 /**
@@ -53,21 +54,13 @@ function editorConfig(config: Config) {
    * inspector waits.
    */
   const presets = lazyPresets(() => import('./presets').then((module) => module.makePresets()))
-  /**
-   * Whether a point with these tags has a type that can also be an area: the type the presets
-   * give the point lists "area" among its geometries (a playground does, a bench does not).
-   * False while the presets are not there yet.
-   */
-  const canBeArea = (tags: Record<string, string>) =>
-    tags.area !== 'no' && (presets.current?.match(tags, 'point').geometry.includes('area') ?? false)
-  // live data and unknown scenes have no fixture area to outline
-  const bbox = config.live ? undefined : BBOX[config.scene]
+  const bbox = fixtureBounds(config, BBOX)
   const modules: MaidModule[] = [
     // inspector section "Element": id, version and upload state of the selected object
     elementInfo(),
     // the edit menu: reverse, split, merge, straighten, square, make round, disconnect, extract
     // plus "Turn into an area" for a point whose type can also be mapped as an area
-    operations([...defaultOperations, pointToArea({ canBeArea })]),
+    operations([...defaultOperations, pointToArea({ canBeArea: canBeArea(presets) })]),
     // inspector sections "Members" and "Relations": what a relation contains, what a feature is in
     relations(),
     // checks what was changed here: inspector section and dock view "Issues"; the parking rules come last
@@ -78,14 +71,12 @@ function editorConfig(config: Config) {
     dataLayers(),
     // top bar "Map style": lenses that recolour the map for one theme; "Parking" is this app's
     lenses({ lenses: [parkingLens] }),
-    // top bar and dock "Photos": street-level photos; Mapillary uses the apps' token, or the app's own
-    // VITE_MAPILLARY_TOKEN when it is set (apps/mapillary-token.ts)
-    streetImagery({ mapillaryToken: import.meta.env.VITE_MAPILLARY_TOKEN || MAPILLARY_TOKEN }),
+    // top bar and dock "Photos": street-level photos; Mapillary uses the token of apps/mapillary-token.ts
+    streetImagery({ mapillaryToken: mapillaryToken() }),
     // the parking editor: restriction field, quick buttons, parking sides on the map, its edit operations
     parking({ lenses: lensChoice }),
-    // top bar and dock "Notes": OSM notes of the same API the data comes from, read-only.
-    // From OSM zoom 14 (iD and Rapid use 12; the data itself loads from 16). minZoom is an OSM zoom.
-    notes({ apiUrl: config.apiUrl, minZoom: 14 }),
+    // top bar and dock "Notes": OSM notes of the same API the data comes from, read-only, from OSM zoom 12 as iD
+    notes({ apiUrl: config.apiUrl }),
   ]
   // dashed outline around the area the fixture covers
   if (bbox) modules.push(sceneBounds({ bbox }))

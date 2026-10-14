@@ -53,6 +53,17 @@ describe('readConfig', () => {
     expect(config.apiUrl).toBe(DEV_API)
   })
 
+  test('one source for the whole visit: a fixture, the OSM API or the development server', () => {
+    expect(readConfig(at(''), { stored: undefined, liveBuild: false }).source).toBe('fixture')
+    expect(readConfig(at('?live=1'), { stored: undefined, liveBuild: false }).source).toBe('osm')
+    expect(readConfig(at('?live=dev'), { stored: undefined, liveBuild: false }).source).toBe('dev')
+  })
+
+  test('the build flag is carried for the login origin', () => {
+    expect(readConfig(at(''), { stored: undefined, liveBuild: true }).liveBuild).toBe(true)
+    expect(readConfig(at(''), { stored: undefined, liveBuild: false }).liveBuild).toBe(false)
+  })
+
   test('the URL overrides the stored choice in a live build', () => {
     expect(readConfig(at('?live=1'), { stored: 'dev', liveBuild: true }).dev).toBe(false)
     expect(readConfig(at('?live=dev'), { stored: 'osm', liveBuild: true }).dev).toBe(true)

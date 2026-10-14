@@ -21,7 +21,7 @@ import { useEngine, useShell } from '../shell-context'
 import {
   changesPerFeature,
   listedIds,
-  readOnlyRefusal,
+  refusalMessage,
   sharedFields,
   sharedTags,
   withoutId,
@@ -124,11 +124,7 @@ export function MultiInspector({
         ? engine.changeTags(derived.ids, { set: change.set, remove: change.remove }, label)
         : engine.changeTagsEach(changesPerFeature(change, derived.features), label)
     if (result.ok) return
-    notify.failed(
-      result.reason === 'read-only'
-        ? readOnlyRefusal(result.readOnly, result.of)
-        : 'A selected feature is no longer in the data. Nothing was changed.',
-    )
+    notify.failed(refusalMessage(result))
   }
 
   const { shown, more } = listedIds(derived.ids)

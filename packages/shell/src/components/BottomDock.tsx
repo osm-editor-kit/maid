@@ -16,9 +16,9 @@ function LoadedData() {
     ['Relations', relations.toLocaleString('en')],
     [
       'Source',
-      config.dev
+      config.source === 'dev'
         ? 'OSM development server (live)'
-        : config.live
+        : config.source === 'osm'
           ? 'OSM API (live)'
           : `Fixture “${config.scene}”, local mock API`,
     ],

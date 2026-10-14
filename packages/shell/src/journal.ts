@@ -51,7 +51,12 @@ export type JournalState =
 export function createShellJournal(id: string, config: Config, editor: Editor) {
   // One journal per data source: edits made on a fixture must never be restored onto live data
   const journal = createJournal({
-    name: config.dev ? `${id}:osm-dev` : config.live ? `${id}:osm` : `${id}:scene:${config.scene}`,
+    name:
+      config.source === 'dev'
+        ? `${id}:osm-dev`
+        : config.source === 'osm'
+          ? `${id}:osm`
+          : `${id}:scene:${config.scene}`,
     context: editor.context,
     history: editor.history,
     onError: (error) => set({ status: 'failed', message: messageOf(error) }),

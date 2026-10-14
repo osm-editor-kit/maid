@@ -113,3 +113,18 @@ export function sharedFields(perFeature: readonly (readonly Field[])[]): Field[]
 export function readOnlyRefusal(readOnly: number, of: number): string {
   return `${readOnly} of ${of} selected features are read-only. Nothing was changed.`
 }
+
+/** A refused change of several features (the result of `changeTags`, `changeTagsEach` or `changeTypeMany`) */
+export type MultiRefusal =
+  | { readonly reason: 'read-only'; readonly readOnly: number; readonly of: number }
+  | { readonly reason: 'missing' }
+
+/**
+ * The toast text of a refused change of several features. The one mapping: the inspector and the type picker
+ * both show it, each with `notify.failed`.
+ */
+export function refusalMessage(refusal: MultiRefusal): string {
+  return refusal.reason === 'read-only'
+    ? readOnlyRefusal(refusal.readOnly, refusal.of)
+    : 'A selected feature is no longer in the data. Nothing was changed.'
+}

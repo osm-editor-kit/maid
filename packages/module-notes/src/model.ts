@@ -80,10 +80,6 @@ export type Cell = { i: number; j: number }
 /** Which notes a cell holds: open notes only, or open and closed (`closed=0` or `closed=-1`) */
 export type NotesMode = 'open' | 'all'
 
-export function cellKey(mode: NotesMode, cell: Cell) {
-  return `${mode}|${cell.i},${cell.j}`
-}
-
 const round = (value: number) => Math.round(value * 1e6) / 1e6
 
 /** Absorbs the float error of `x / CELL_SIZE` for values that sit on a grid line (13.4 / 0.05 is not exact) */
@@ -205,17 +201,15 @@ export function markersOf(notes: readonly Note[], chosen: number | null) {
 }
 
 /**
- * The map's zoom in OSM terms. MapLibre counts 512 px tiles and OSM 256 px, so OSM zoom is MapLibre
- * zoom plus one (docs/research/zoom-study.md). This is the one place of the conversion: every zoom
- * the notes module compares, and every `minZoom` it takes, is an OSM zoom.
+ * The zoom from which the notes load, in OSM zoom (256 px tiles, as iD and Rapid count): iD's notes `minZoom`
+ * (`.reference/id/modules/svg/notes.js`). The one zoom gate of the notes: the app configs do not set it.
+ * Every zoom the module compares is OSM zoom (`toOsmZoom` in maid-core converts the map's).
  */
-export function osmZoomOf(mapLibreZoom: number) {
-  return mapLibreZoom + 1
-}
+export const NOTES_MIN_ZOOM = 12
 
-/** Whether the notes load at a map zoom (MapLibre's), for a `minZoom` in OSM zoom */
-export function loadsAt(mapLibreZoom: number, minZoom: number) {
-  return osmZoomOf(mapLibreZoom) >= minZoom
+/** Whether the notes load at an OSM zoom */
+export function loadsAt(osmZoom: number, minZoom: number = NOTES_MIN_ZOOM) {
+  return osmZoom >= minZoom
 }
 
 /** The one toast id of the truncated notice: a second one replaces the first, it never stacks */

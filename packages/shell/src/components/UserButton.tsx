@@ -51,9 +51,9 @@ export function UserButton() {
         <div className="min-w-0">
           <p className="truncate font-semibold">{auth.user ?? 'Not logged in'}</p>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            {config.dev
+            {config.source === 'dev'
               ? 'OpenStreetMap development server. Nothing is saved to the real map.'
-              : config.live
+              : config.source === 'osm'
                 ? 'OpenStreetMap, read only. Logging in and saving need the development server.'
                 : 'Local test data. Nothing is saved.'}
           </p>

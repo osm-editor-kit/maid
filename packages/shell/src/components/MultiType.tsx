@@ -5,7 +5,7 @@ import { notify, PresetPicker } from '@osm-editor-kit/maid-ui'
 import { useState } from 'react'
 import { changeTypeMany, presetsForAll, useFavouriteRows } from '../favourites'
 import { useEngine, useShell } from '../shell-context'
-import { distinctPresets, readOnlyRefusal, typeLabel } from './multi-logic'
+import { distinctPresets, refusalMessage, typeLabel } from './multi-logic'
 import { PresetIcon } from './PresetIcon'
 
 /** The types shown as icons on the type line; the rest are counted in the label (as MultiInspector) */
@@ -66,11 +66,7 @@ export function MultiType({ ids }: { ids: readonly string[] }) {
     setOpen(false)
     const result = changeTypeMany({ editor, engine }, ids, preset)
     if (result.ok) return
-    notify.failed(
-      result.reason === 'read-only'
-        ? readOnlyRefusal(result.readOnly, result.of)
-        : 'A selected feature is no longer in the data. Nothing was changed.',
-    )
+    notify.failed(refusalMessage(result))
   }
 
   const shownFeatures = info.distinct.slice(0, TYPE_ICONS)

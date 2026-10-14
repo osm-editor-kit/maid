@@ -85,6 +85,7 @@ export function streetImagery(options: StreetImageryOptions = {}) {
   return defineModule({
     id: 'street-imagery',
     setup(api) {
+      // the one trim of the token: the store and the helpers take it as stored (state.ts, image-actions.ts)
       const token = options.mapillaryToken?.trim() ?? ''
       if (!AUTOMATED) {
         // the package reads its configuration when it fetches; Panoramax needs it too

@@ -2,7 +2,6 @@ import { describe, expect, test } from 'bun:test'
 import {
   boxOf,
   cellBox,
-  cellKey,
   cellsOf,
   markersOf,
   noteWebUrl,
@@ -45,10 +44,6 @@ describe('grid cells', () => {
     expect(cells.length).toBe(4) // 2 columns (13.35-13.40, 13.40-13.45) x 2 rows
     expect(boxOf(cells)).toEqual([13.35, 52.35, 13.45, 52.45])
     expect(cellBox({ i: 268, j: 1048 })).toEqual([13.4, 52.4, 13.45, 52.45])
-  })
-
-  test('cell keys tell the open and the all mode apart', () => {
-    expect(cellKey('open', { i: 1, j: 2 })).not.toBe(cellKey('all', { i: 1, j: 2 }))
   })
 
   test('the request asks for a box, closed=0 for open notes, closed=-1 for all', () => {

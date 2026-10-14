@@ -5,6 +5,7 @@ import {
   HttpError,
   RateLimitedError,
   type RemoteFetch,
+  toOsmZoom,
 } from '@osm-editor-kit/maid-core'
 /**
  * Loads OSM data for the viewport and keeps MapLibre's sources in sync.
@@ -466,9 +467,9 @@ export class MaidEngine {
     this.loadVisibleTiles()
   }
 
-  /** OSM zoom (256px tiles) is MapLibre zoom plus one */
+  /** OSM zoom (256px tiles) of the map (`toOsmZoom` in maid-core) */
   osmZoom() {
-    return (this.map?.getZoom() ?? 0) + 1
+    return toOsmZoom(this.map?.getZoom() ?? 0)
   }
 
   loadVisibleTiles() {

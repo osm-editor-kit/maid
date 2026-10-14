@@ -345,6 +345,8 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
     [drawn.mode, drawn.undo, drawn.zoom],
   )
   const areaId = drawn.selection[0] ?? ''
+  // a new area opens the type picker with its search focused (as in iD): Escape closes it before the next key
+  await key('Escape')
 
   // --- drawing a line: Backspace takes back a node, Escape keeps the way ---
   await key('2')

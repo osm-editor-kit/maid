@@ -1,4 +1,3 @@
-import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { MAP_FEATURE_COLOR, photoTypeColorExpression } from '@osm-editor-kit/street-imagery'
 import {
   queryStreetImageryFeatures,
@@ -9,7 +8,6 @@ import {
   useViewerHfov,
   useViewerLngLat,
 } from '@osm-editor-kit/street-imagery-react'
-import { QueryClientProvider } from '@tanstack/react-query'
 import type { MapLayerMouseEvent } from 'maplibre-gl'
 import { useEffect, useState } from 'react'
 import { useMap, type MapRef } from 'react-map-gl/maplibre'
@@ -90,7 +88,7 @@ function useEaseBridge(mapRef: MapRef | undefined) {
  * the dock. Drawn above the OSM data; the click on a photo is handled by `streetImageryClick`.
  * The box is snapped to the photo tiles (snap.ts), so the package's queries are keyed per tile list.
  */
-export function StreetImageryLayers({ editor }: MapContentProps) {
+export function StreetImageryLayers() {
   const mapRef = useMap()[MAP_ID]
   const stored = useProviders()
   const token = useMapillaryToken()
@@ -104,24 +102,23 @@ export function StreetImageryLayers({ editor }: MapContentProps) {
   const lngLat = useViewerLngLat()
   const providers = activeProviders(stored, token, AUTOMATED)
 
+  // the queries of the package run on the shell's query client (mount.tsx), which provides them to the map content
   return (
-    <QueryClientProvider client={editor.queries}>
-      <StreetLevelImagerySourcesAndLayers
-        providers={providers}
-        bbox={bbox === null ? null : snapBboxToTiles(bbox)}
-        zoom={zoom}
-        filter={{ photoTypes: photoTypesOf(photoKind), date }}
-        options={{
-          minZoom: MIN_ZOOM,
-          photoCircleColor: photoTypeColorExpression,
-          mapFeatureCircleColor: MAP_FEATURE_COLOR,
-          selectedPhoto: openPhoto,
-          showSelectionHighlight: true,
-          showViewCone: true,
-          viewerPov: { bearing, hfov, lngLat },
-        }}
-      />
-    </QueryClientProvider>
+    <StreetLevelImagerySourcesAndLayers
+      providers={providers}
+      bbox={bbox === null ? null : snapBboxToTiles(bbox)}
+      zoom={zoom}
+      filter={{ photoTypes: photoTypesOf(photoKind), date }}
+      options={{
+        minZoom: MIN_ZOOM,
+        photoCircleColor: photoTypeColorExpression,
+        mapFeatureCircleColor: MAP_FEATURE_COLOR,
+        selectedPhoto: openPhoto,
+        showSelectionHighlight: true,
+        showViewCone: true,
+        viewerPov: { bearing, hfov, lngLat },
+      }}
+    />
   )
 }
 

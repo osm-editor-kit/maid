@@ -1,3 +1,4 @@
+import { keepNewFeatureOnly } from './new-feature'
 import { useShell } from './shell-context'
 import { dropStackUnless } from './stack'
 import { useSelectedId } from './url/state'
@@ -14,6 +15,7 @@ export function useSelection() {
     const next = selection === null ? [] : typeof selection === 'string' ? [selection] : selection
     // the features of a click's stack keep it; any other selection drops it (stack.ts)
     dropStackUnless(next)
+    keepNewFeatureOnly(next)
     engine.setSelected(next)
     void setParam(next.length ? next.join(',') : null)
   }

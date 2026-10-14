@@ -5,7 +5,7 @@ import { connectLenses } from '@osm-editor-kit/maid-module-lenses'
 import { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { getSettings } from '@osm-editor-kit/maid-ui'
 import { createAuth } from './auth'
-import { LIVE_BUILD, readConfig, type Config } from './config'
+import { readConfig, type Config } from './config'
 import { watchFavourites } from './favourites'
 import { createShellJournal } from './journal'
 import { migrateIdHash } from './url/id-url'
@@ -115,7 +115,7 @@ export function createShell(app: AppConfig) {
       clientId: app.osm?.devClientId || undefined,
       // a deployed build logs in from the origin it is served from (its redirect is origin + base + land.html);
       // the app's loginOrigin pins local development to 127.0.0.1
-      loginOrigin: LIVE_BUILD ? undefined : app.osm?.loginOrigin,
+      loginOrigin: config.liveBuild ? undefined : app.osm?.loginOrigin,
     }),
     journal: createShellJournal(id, config, editor),
   }

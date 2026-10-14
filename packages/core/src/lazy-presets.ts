@@ -24,3 +24,13 @@ export function lazyPresets(make: () => Presets | Promise<Presets>): PresetsSour
     },
   }
 }
+
+/**
+ * Whether a point with these tags has a type that can also be an area: the type the presets give the point
+ * lists "area" among its geometries (a playground does, a bench does not), and `area=no` says it is not one.
+ * False while the presets are not there yet. For `pointToArea` (packages/operations) in an app's config.
+ */
+export function canBeArea(presets: PresetsSource) {
+  return (tags: Record<string, string>) =>
+    tags.area !== 'no' && (presets.current?.match(tags, 'point').geometry.includes('area') ?? false)
+}

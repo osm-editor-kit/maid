@@ -1,4 +1,5 @@
 import type { FeatureCollection } from 'geojson'
+import { useState } from 'react'
 import { Layer, Source } from 'react-map-gl/maplibre'
 import { BELOW_OSM_LAYER } from './extension-points'
 import {
@@ -32,7 +33,11 @@ type Props = {
  */
 export function OsmLayers({ options, sourceOptions }: Props) {
   const layers = buildLayers(options)
-  const source = { ...SOURCE_OPTIONS, ...sourceOptions }
+  // The source options are read once, when the map is made. react-map-gl calls `setData(data)` on a GeoJSON source
+  // whenever one of its props changes, and that would empty the engine's features. Keying the sources on their
+  // options would not help: react-map-gl removes a source on unmount and MapLibre refuses that while a layer uses
+  // it, and the engine has no path that sends its features again to a new source. A changed option needs a new map.
+  const [source] = useState(() => ({ ...SOURCE_OPTIONS, ...sourceOptions }))
   return (
     <>
       <Source id={SOURCES.areas} type="geojson" data={EMPTY} {...source} />

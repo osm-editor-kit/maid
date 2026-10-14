@@ -519,7 +519,8 @@ async function settle(page: Page, editor: 'id' | 'maid', imagery: boolean) {
 
 /**
  * One editor's capture of the case, cropped around the target. Returns what the pointer and selection saw.
- * Maid's imagery is never captured: its backgrounds are off in automated browsers (navigator.webdriver), by design.
+ * Maid's backgrounds are off in automated browsers (navigator.webdriver), except one from a local template: the
+ * `background=custom:` link to this script's tile server is drawn, so the imagery cases capture Maid too.
  */
 async function captureEditor(
   browser: Browser,
@@ -591,11 +592,7 @@ async function composePair(browser: Browser, c: Case) {
       <div style="font-size:13px;color:#555;margin:4px 0 10px">${escapeHtml(c.ref)} · ${escapeHtml(c.scores)} · ${c.scene}, zoom ${c.zoom}, ${c.lat}/${c.lon}</div>
       <div style="display:flex;gap:16px;align-items:flex-start">
         <figure style="margin:0"><figcaption style="font-weight:600;margin-bottom:4px">iD</figcaption><img src="${img('id')}" style="width:560px;display:block;border:1px solid #bbb"></figure>
-        <figure style="margin:0"><figcaption style="font-weight:600;margin-bottom:4px">Maid</figcaption>${
-          c.imagery !== undefined
-            ? `<div style="width:558px;height:${Math.round(CROP.height * (560 / CROP.width))}px;display:flex;align-items:center;justify-content:center;border:1px dashed #999;box-sizing:border-box;padding:16px;text-align:center;font-size:13px;color:#555">Not captured: Maid turns its backgrounds off in automated browsers, so no imagery loads under Playwright. Looked at by hand, the Maid side would need a person in a normal browser.</div>`
-            : `<img src="${img('maid')}" style="width:560px;display:block;border:1px solid #bbb">`
-        }</figure>
+        <figure style="margin:0"><figcaption style="font-weight:600;margin-bottom:4px">Maid</figcaption><img src="${img('maid')}" style="width:560px;display:block;border:1px solid #bbb"></figure>
       </div>
       <div style="font-size:13px;margin-top:10px;max-width:1168px">${escapeHtml(c.look)}</div>
     </div></body>`)
@@ -664,7 +661,7 @@ sees it) to 5 (the map looks wrong), performance -2 to +2. All performance score
 
 ## Not shown, in general
 
-- Maid's imagery is not captured at all. Maid turns its backgrounds off in automated browsers (\`navigator.webdriver\`, which Playwright sets), so the imagery cases have the iD side only. The script does not get around that gate. Maid's brightness, the only control it has, can be compared by hand in a normal browser with \`?background=custom:<template>\` and the Background flyout.
+- Maid's imagery is the custom template of this script's own tile server (127.0.0.1), the one background Maid draws under automation (\`navigator.webdriver\`, which Playwright sets: every other background stays off). Maid has only brightness; its other values are not shown.
 - iD's sharpen above 1 is an unsharp mask. Maid has no sharpen, contrast or saturation control at all. Sharpness below 1 (a blur) is not shown.
 - The pulse is one frame per editor, with no control over the phase.
 - Farmland and wetland patterns: not in the fixtures in a useful size. Vertices, casing and the wireframe mode are not shown: the document rates them None or not checked.
@@ -761,10 +758,7 @@ try {
     for (const c of selected) {
       const t0 = performance.now()
       const idNotes = await captureEditor(browser, 'id', c, `${c.name}-id.png`)
-      const maidNotes =
-        c.imagery !== undefined
-          ? ['not captured: backgrounds are off in automated browsers']
-          : await captureEditor(browser, 'maid', c, `${c.name}-maid.png`)
+      const maidNotes = await captureEditor(browser, 'maid', c, `${c.name}-maid.png`)
       await composePair(browser, c)
       console.log(
         `${c.name} ok (${Math.round(performance.now() - t0)} ms) iD: ${idNotes.join(' ; ') || '-'} | Maid: ${maidNotes.join(' ; ') || '-'}`,

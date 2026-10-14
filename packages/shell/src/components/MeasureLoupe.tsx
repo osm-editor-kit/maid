@@ -1,3 +1,4 @@
+import { mapLibreLocale } from '@osm-editor-kit/maid-i18n'
 import * as maplibregl from 'maplibre-gl'
 import type { Map as MapLibreMap, RasterSourceSpecification, StyleSpecification } from 'maplibre-gl'
 import { useEffect, useState } from 'react'
@@ -155,6 +156,8 @@ export function MeasureLoupe(props: {
     const centre = map.getCenter()
     return { longitude: centre.lng, latitude: centre.lat, zoom: loupeZoom(map.getZoom()) }
   })
+  // the same texts as the main map, read once with the map
+  const [locale] = useState(mapLibreLocale)
   const style = lensStyle(source, brightness)
   const placed = placeOn(map, spots.start, spots.pointer, view)
   const lon = spots.pointer?.lon
@@ -175,6 +178,7 @@ export function MeasureLoupe(props: {
         initialViewState={start}
         mapStyle={style}
         interactive={false}
+        locale={locale}
         attributionControl={false}
       >
         <LoupeCamera lon={lon} lat={lat} view={view} />

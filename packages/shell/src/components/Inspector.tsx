@@ -35,6 +35,7 @@ import {
   useFavouriteRows,
 } from '../favourites'
 import { imageryOnMap } from '../imagery-used'
+import { useNewFeatureId } from '../new-feature'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
 import { fieldOverlayFor, widthKeyTarget } from './field-overlay'
@@ -110,6 +111,7 @@ export function Inspector() {
   const { id, ids, select } = useSelection()
   // read again when data arrives: a selection from the URL exists before its feature is loaded
   const entity: EntityInfo | undefined = useEngine((e) => e.entity(id))
+  const newFeatureId = useNewFeatureId()
   const moduleFields = useExtensionPoint(editor, 'inspector.field')
   const fieldTypes = Object.fromEntries(moduleFields.map((item) => [item.type, item.component]))
   // the favourites of the feature's geometry, for the type picker
@@ -185,11 +187,13 @@ export function Inspector() {
     presets && loc && [...fields, ...moreFields].some((field) => field.type === 'address')
       ? { country: presets.countryAt(loc), candidates: engine.nearby(id) }
       : undefined
-  // a feature that was just added (negative id) and has no type yet asks for it right away
+  // a feature that was just added and has no type yet asks for it right away, as iD's inspector does for its new
+  // feature. "No type yet" is a fallback preset (no tags, or only area=*), so a new area with area=yes asks too;
+  // selecting it again later shows its fields
   const untagged =
     entity !== undefined &&
-    id.includes('-') &&
-    (!entity.preset || Object.keys(entity.preset.tags).length === 0)
+    newFeatureId === id &&
+    (!entity.preset || (presets !== undefined && presets.isFallback(entity.preset)))
   const picking = onChange !== undefined && (picker?.id === id ? picker.open : untagged)
   const kind = entity ? (entity.preset?.name ?? GEOMETRY_LABEL[entity.geometry]) : undefined
 

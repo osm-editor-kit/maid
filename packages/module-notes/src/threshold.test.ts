@@ -1,31 +1,24 @@
 import { describe, expect, test } from 'bun:test'
+import { toOsmZoom } from '@osm-editor-kit/maid-core'
 import {
   loadsAt,
   NOTES_LIMIT,
-  osmZoomOf,
+  NOTES_MIN_ZOOM,
   TRUNCATED_NOTICE_TEXT,
   truncationNotice,
 } from './model.ts'
 
-describe('the zoom threshold, in both conventions', () => {
-  test('OSM zoom is MapLibre zoom plus one (512 px against 256 px tiles)', () => {
-    expect(osmZoomOf(13)).toBe(14)
-    expect(osmZoomOf(15)).toBe(16)
+describe('the zoom gate of the notes, in OSM zoom (iD: minZoom 12)', () => {
+  test('the gate is OSM zoom 12, as iD has it', () => {
+    expect(NOTES_MIN_ZOOM).toBe(12)
+    expect(loadsAt(12)).toBe(true)
+    expect(loadsAt(11.99)).toBe(false)
   })
 
-  test('the notes load at OSM 14, which is MapLibre 13', () => {
-    expect(loadsAt(13, 14)).toBe(true)
-    // MapLibre 13 read as an OSM zoom would be 13: below 14, so a bug of that kind fails here
-    expect(loadsAt(12.99, 14)).toBe(false)
-  })
-
-  test('the old threshold of 16 (the data zoom) is now MapLibre 15', () => {
-    expect(loadsAt(14.99, 16)).toBe(false)
-    expect(loadsAt(15, 16)).toBe(true)
-  })
-
-  test('a fractional zoom counts from its whole level on the OSM side', () => {
-    expect(loadsAt(13.4, 14)).toBe(true)
+  test('the map zoom is converted first: MapLibre 11 is OSM 12, so the notes load there', () => {
+    expect(loadsAt(toOsmZoom(11))).toBe(true)
+    // MapLibre 10.99 is OSM 11.99: below the gate. Read without the conversion it would pass as 10.99
+    expect(loadsAt(toOsmZoom(10.99))).toBe(false)
   })
 })
 
