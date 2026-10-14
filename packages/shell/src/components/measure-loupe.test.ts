@@ -15,7 +15,7 @@ const R = LOUPE_RADIUS
 const MAP: [number, number] = [1000, 700]
 const dist = (a: [number, number], b: [number, number]) => Math.hypot(a[0] - b[0], a[1] - b[1])
 
-/** A grid of points over the map, with the margin of the test a place a pointer can be at */
+/** A grid of points over the map, inset by the test's margin: places a pointer can be at */
 function grid(step: number) {
   const points: [number, number][] = []
   for (let x = 0; x <= MAP[0]; x += step)

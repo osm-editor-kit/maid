@@ -17,7 +17,7 @@
 export const FAVOURITE_MODIFIER = 'Alt'
 
 /**
- * Where a sequence is. `digits` are the digits typed while the modifier is down: a number without
+ * The state of a sequence. `digits` are the digits typed while the modifier is down: a number without
  * a leading zero, or empty. `cancelled` is set by Escape: nothing starts when the modifier is let go.
  */
 export type SequenceState = {
@@ -28,7 +28,7 @@ export type SequenceState = {
 
 export const IDLE: SequenceState = { held: false, digits: '', cancelled: false }
 
-/** What happened: the modifier went down or up, a digit or Backspace was typed, Escape, or the window lost focus */
+/** One event: the modifier went down or up, a digit or Backspace was typed, Escape, or the window lost focus */
 export type SequenceEvent =
   | { type: 'modifier-down' }
   | { type: 'modifier-up' }

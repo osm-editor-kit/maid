@@ -1,6 +1,6 @@
 /**
  * What a measure on the map writes into a width field: the distance in metres as the field's value,
- * and `source:<key>` with the name of the background that was visible while measuring. Pure: the
+ * and `source:<key>` with the name of the background that was visible while measuring. This module is pure. The
  * Inspector gives the result to the engine in one edit, so it is one undo step.
  */
 

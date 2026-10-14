@@ -120,7 +120,7 @@ export type MultiRefusal =
   | { readonly reason: 'missing' }
 
 /**
- * The toast text of a refused change of several features. The one mapping: the inspector and the type picker
+ * The toast text of a refused change of several features. The inspector and the type picker
  * both show it, each with `notify.failed`.
  */
 export function refusalMessage(refusal: MultiRefusal): string {

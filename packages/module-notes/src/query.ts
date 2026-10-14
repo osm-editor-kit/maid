@@ -112,7 +112,7 @@ export function notesCell(options: {
     queryFn: ({ signal }) => loadCell(remote, apiUrl, mode, cell, signal),
     enabled,
     staleTime: NOTES_STALE_MS,
-    // session data, as before: loaded notes stay in memory for the visit and are not stored
+    // session data: loaded notes stay in memory for the visit and are not stored
     gcTime: Infinity,
     retry: shouldRetry,
     retryDelay: retryDelayFor,

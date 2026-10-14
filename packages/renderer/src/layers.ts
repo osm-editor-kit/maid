@@ -179,7 +179,7 @@ export function buildLayers(options: LayerOptions) {
         { ...shown, id: `${layer.id}--edit`, source: editSource } as LayerSpecification,
       )
     } else out.push(shown)
-    // cones (coneLayers) are drawn above the data floor only: nothing to keep below it, so no selection twin
+    // Cones (coneLayers) are drawn above the data floor only. Nothing is kept below it, so a cone has no selection twin.
     if (!layer.id.startsWith('cone-'))
       out.push(selectionTwin(layer, source, floor, selectionOnly, twinsShown))
   }
@@ -187,11 +187,11 @@ export function buildLayers(options: LayerOptions) {
 }
 
 /**
- * The viewfield cones (viewfield.ts): one symbol layer per slot on each of the vertex and the point source. Each
- * feature with a `d<slot>` bearing gets its cone, rotated to that bearing about its node: the image's bottom edge is the
- * anchor (the tip sits on the node). Drawn under the vertices and points (they are listed after these layers), above the
- * lines and areas, as iD does. The `--edit` twins come from buildLayers, like those of the data, so a cone follows a
- * node that is being dragged.
+ * The viewfield cones (viewfield.ts): one symbol layer per slot on each of the vertex and the point source.
+ * Each feature with a `d<slot>` bearing gets its cone, rotated to that bearing about its node. The image's
+ * bottom edge is the anchor, so the narrow end of the wedge sits 2 units above the node. Drawn under the vertices
+ * and points (they are listed after these layers), above the lines and areas, as iD does. The `--edit` twins come
+ * from buildLayers, like those of the data, so a cone follows a node that is being dragged.
  */
 function coneLayers(): LayerSpecification[] {
   const out: LayerSpecification[] = []

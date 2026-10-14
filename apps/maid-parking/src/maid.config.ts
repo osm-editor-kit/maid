@@ -75,7 +75,7 @@ function editorConfig(config: Config) {
     streetImagery({ mapillaryToken: mapillaryToken() }),
     // the parking editor: restriction field, quick buttons, parking sides on the map, its edit operations
     parking({ lenses: lensChoice }),
-    // top bar and dock "Notes": OSM notes of the same API the data comes from, read-only, from OSM zoom 12 as iD
+    // top bar and dock "Notes": OSM notes from the same API as the data, read-only, shown from zoom 12 as in iD
     notes({ apiUrl: config.apiUrl }),
   ]
   // dashed outline around the area the fixture covers

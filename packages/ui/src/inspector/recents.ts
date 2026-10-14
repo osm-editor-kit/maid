@@ -43,7 +43,7 @@ export function restoreRecents<State extends { ids: string[] }>(
   return stored === undefined ? current : { ...current, ids: storedSchema.parse(stored).ids }
 }
 
-/** The store stays here: components read the ids through `useRecentIds`, the actions through `useRecentsActions` */
+/** The store is private to this file. Components read the ids with `useRecentIds` and the actions with `useRecentsActions`. */
 const useRecentsStore = create<{
   /** The ids of the presets the person chose, most recent first */
   ids: string[]
@@ -67,7 +67,7 @@ const useRecentsStore = create<{
       version: 1,
       storage: createJSONStorage(() => moduleStorage()),
       partialize: ({ ids }) => ({ ids }),
-      // runs on every load: a stored value that does not fit gives no ids, and the state stays as it is with nothing stored
+      // Runs on every load. A stored value that does not fit gives no ids. With nothing stored, the state stays as it is.
       merge: (stored, current) => restoreRecents(stored, current),
     },
   ),

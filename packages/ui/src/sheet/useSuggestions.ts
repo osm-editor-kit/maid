@@ -32,9 +32,9 @@ export type Suggestions = {
 }
 
 /**
- * The suggestions of one editing cell, as a TanStack query: keyed by the cell and the text, the text debounced
- * (the input is debounced, not the query). A new text is a new query, and TanStack aborts the request of the
- * old one; an answer for an old text is never shown. The previous answer stays while the new one is on its way,
+ * The suggestions of one editing cell, as a TanStack query. The query is keyed by the cell and the debounced
+ * text: the input is debounced, not the query. A new text is a new query, and TanStack aborts the request of the
+ * old one. An answer for an old text is never shown. The previous answer stays while the new one is on its way,
  * but only in the same cell. Never retried: a source may be a taginfo request, and a failure is no answer.
  * The list closes for a text by Escape or a pick, and opens again when the text changes.
  */

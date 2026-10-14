@@ -79,7 +79,8 @@ function useNotesView(editor: Editor, apiUrl: string) {
  * The notes module: the notes of the view as markers on the map, a panel to switch them on and
  * list them, and a dock view with the chosen note. Read-only: nothing is sent to the API.
  * `apiUrl` is the API root (the mock API in development and tests, api.openstreetmap.org in
- * production). The notes load from `NOTES_MIN_ZOOM` (OSM zoom 12, as iD): the one zoom gate, set here and not by the app.
+ * production). The notes load from `NOTES_MIN_ZOOM` (OSM zoom 12, as iD). That is the one zoom gate,
+ * set here and not by the app.
  */
 export function notes(options: { apiUrl: string }) {
   const { apiUrl } = options
@@ -131,8 +132,8 @@ export function notes(options: { apiUrl: string }) {
           }
         }, [map])
 
-        // the map moves to the note the panel chose. An effect because the map is the outside world; the
-        // note comes from the cache, so the effect runs once per request (`focus` is a new object each time)
+        // the map moves to the note the panel chose. It is an effect because the map is the outside world.
+        // The note comes from the cache, so the effect runs once per request (`focus` is a new object each time).
         useEffect(() => {
           if (!focus || !map) return
           const note = cachedNote(queries, focus.id)

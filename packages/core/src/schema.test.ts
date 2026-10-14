@@ -22,7 +22,7 @@ describe('PresetSchema.matchTags', () => {
     fields: {},
     translations: {},
   })
-  // the model reads only matchTags here; the context is not used by the presets answer
+  // The model reads only matchTags here. The context is not used for the presets' answer.
   const schema = new PresetSchema({} as Context, presets)
 
   it('is a fallback for a bare point, vertex, area and relation (the generic presets)', () => {

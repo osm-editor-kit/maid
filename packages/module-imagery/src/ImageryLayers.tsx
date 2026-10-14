@@ -21,7 +21,8 @@ type Wanted = { id: string; background: boolean; template: string | null }
 /**
  * Under an automated browser (AGENTS.md, core rule 1) only a background from a local template is drawn: the one a
  * `background=custom:` link names when it points at this machine (the browser checks serve their own tiles). The
- * layers of the index and the overlays stay off. The gate of the requests (remote-fetch.ts) lets local hosts through too.
+ * layers of the index and the overlays stay off. The gate of the requests (`packages/core/src/fetching/remote-fetch.ts`)
+ * lets local hosts through too.
  */
 function allowedUnderAutomation(wanted: Wanted) {
   return wanted.template !== null && isLocalUrl(wanted.template)
@@ -63,7 +64,7 @@ export function drawnShown(
   queries: QueryClient,
   state: Pick<ImageryState, 'visit' | 'backgroundId' | 'custom' | 'overlayIds'>,
 ) {
-  // the device pixel ratio is part of a custom draw's key, as it is when the layer is drawn
+  // the device pixel ratio is part of a custom draw's key; the read and the draw use the same value
   const dpr = typeof window === 'undefined' ? 1 : window.devicePixelRatio
   const read = (wanted: Wanted) =>
     queries.getQueryData<Drawn | null>(drawQuery(wanted, dpr).queryKey) ?? undefined

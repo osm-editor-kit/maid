@@ -1,7 +1,7 @@
 /**
  * The magnifier of the measuring tool: the geometry of the lens, ported from the Radnetz fork's
  * `modules/measure/loupe_position.ts` (where the lens goes, so that it does not cover the tape) and
- * `modules/ui/measure_loupe.ts` (the size, the scale and the tape in the lens). Pure: no DOM and no
+ * `modules/ui/measure_loupe.ts` (the size, the scale and the tape in the lens). This module is pure: no DOM and no
  * MapLibre here. MeasureLoupe.tsx draws it, with a map of the background inside the lens.
  *
  * Coordinates are CSS pixels. The map's pixels are the ones `map.project` gives (relative to the
@@ -24,7 +24,7 @@ const POINTER_REACH = 12
 /** A finger covers a wider area than a pointer, so the lens stays further away from it */
 export const FINGER_REACH = 28
 
-/** Distance of point `p` to the segment `a`–`b` */
+/** Distance of point `p` to the segment from `a` to `b` */
 export function distanceToSegment(p: Vec, a: Vec, b: Vec): number {
   const dx = b[0] - a[0]
   const dy = b[1] - a[1]
@@ -122,7 +122,7 @@ export function loupeTape(handle: Vec, other: Vec, radius = LOUPE_RADIUS, scale 
 }
 
 /**
- * The zoom of the lens's map for the zoom of the main map: `LOUPE_SCALE` times larger is `log2(3)`
+ * The lens map's zoom for a given main map zoom: `LOUPE_SCALE` times larger is `log2(3)`
  * zoom levels deeper, so the lens loads tiles one or two levels deeper than the map and is sharper.
  */
 export function loupeZoom(mapZoom: number, scale = LOUPE_SCALE) {

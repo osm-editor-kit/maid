@@ -75,7 +75,7 @@ const option = (name: string) => {
 const QUICK = argv.includes('--quick')
 const REPS = QUICK ? 1 : Number(option('reps') ?? 5)
 const ONLY = option('only')?.split(',')
-/** Steps of a loop inside one repetition */
+/** Steps of a loop in one repetition. `--quick` caps them at 4. */
 const steps = (n: number) => (QUICK ? Math.min(n, 4) : n)
 /** A partial or quick run does not replace the full report */
 const OUT = join(
@@ -196,7 +196,7 @@ const scenarios: Record<string, (react: Side, raw: Side, rep: number) => Promise
     }
   },
 
-  /** 2. A render of the parent that changes nothing. Raw MapLibre has no such thing: its cost is 0. */
+  /** 2. A render of the parent that changes nothing. Raw MapLibre has no such render, so only React is measured. */
   async rerender(react, _raw, rep) {
     for (const set of SETS) {
       for (const layerMode of ['memo', 'rerender', 'clone'] as const) {

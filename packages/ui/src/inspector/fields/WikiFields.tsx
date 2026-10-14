@@ -102,7 +102,7 @@ function SuggestInput<T>(props: {
   // the text looked up: the typed text once it has been still for SEARCH_DELAY_MS
   const asked = useDebouncedValue(typed, SEARCH_DELAY_MS) ?? ''
   const lookupOptions = search(asked)
-  // keepPreviousData: the answers of the last text stay while the new one is on its way (as before)
+  // keepPreviousData: the answers of the last text stay while the new one is on its way
   const lookup = useQuery({
     ...lookupOptions,
     enabled: asked.trim() !== '' && lookupOptions.enabled !== false,
@@ -279,7 +279,7 @@ function WikipediaEditor(props: FieldProps & { tagKey: string; source: WikiSourc
     writeEdits(props, [{ key: tagKey, value: written }])
     if (written === undefined) return
     const currentWikidata = tags['wikidata']
-    // a failed lookup is no item: the follow-up is then not written
+    // A failed lookup gives no item, so the follow-up is not written.
     void queryClient
       .fetchQuery(source.qidOfArticle(nextLang, nextTitle))
       .catch(() => null)

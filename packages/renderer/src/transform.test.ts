@@ -236,7 +236,7 @@ describe('TransformTool steps', () => {
   })
 
   // R on one point with a direction tag turns that tag (iD's rotate-point-direction). The point is at
-  // (13.4, 52.5); on the Mercator plane north, east and south of it are exact bearings 0, 90 and 180.
+  // (13.4, 52.5). On the Mercator plane, north, east and south of it are the bearings 0, 90 and 180.
   const POINT = [13.4, 52.5] as const
   const NORTH: [number, number] = [POINT[0], POINT[1] + 0.005]
   const EAST: [number, number] = [POINT[0] + 0.005, POINT[1]]

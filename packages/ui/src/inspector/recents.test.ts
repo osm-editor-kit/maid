@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
 import { RECENTS_TO_STORE, recentsActions, restoreRecents, withRecent } from './recents.ts'
 
-// The store reads and writes localStorage under `maid:recents` (version 1); the write shows what is stored.
+// The store reads and writes localStorage under `maid:recents` (version 1). The write shows what is stored.
 const KEY = 'maid:recents'
 const entries = new Map<string, string>()
 const fake = {

@@ -38,7 +38,7 @@ export function useShortcuts() {
   const { editor, engine } = useShell()
   const { ids: selected, select } = useSelection()
   const operations = useExtensionPoint(editor, 'edit.operation')
-  // which keys are taken depends on what the editor is doing: read it so that this follows
+  // which keys are taken depends on what the editor is doing. Read that state so the list follows it
   const drawing = useEngine((e) => e.draw.active)
   // a move or a rotation is put down with Enter, as a click puts it down
   const transforming = useEngine((e) => e.transform.active)

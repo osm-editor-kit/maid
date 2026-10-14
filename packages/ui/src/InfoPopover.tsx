@@ -106,9 +106,10 @@ type Found =
   | { status: 'failed' }
 
 /**
- * The panel's content. Mounted when the popover opens, so the query runs on an opening and on nothing else. Closing
- * the popover unobserves the query, and TanStack aborts the loader's signal then, so no wiki call is left running.
- * The loader retries its own calls (reference.ts: one request per try for both pages), so the query does not retry.
+ * The panel's content. It mounts when the popover opens, so the query runs on an opening and on nothing else.
+ * Closing the popover unobserves the query. TanStack then aborts the loader's signal, so no wiki call is left
+ * running. The loader retries its own calls (packages/shell/src/components/reference.ts: one request per try, for
+ * both pages), so the query does not retry.
  */
 function ReferenceBody(props: { reference: Reference; load?: ReferenceLoader; hint?: string }) {
   const { reference, load, hint } = props

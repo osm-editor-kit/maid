@@ -67,7 +67,7 @@ describe('starting a favourite by its number', () => {
   it('a digit without the modifier does nothing', () => {
     expect(advance(IDLE, digit('3'))).toEqual({ state: IDLE })
     expect(run([digit('3'), digit('9'), up]).starts).toEqual([])
-    // the modifier released after the digits typed without it: nothing either
+    // a digit typed before the modifier goes down, then the modifier is pressed and released: nothing starts
     expect(run([digit('3'), down, up]).starts).toEqual([])
   })
 

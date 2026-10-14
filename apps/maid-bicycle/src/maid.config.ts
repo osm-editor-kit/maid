@@ -79,7 +79,7 @@ function editorConfig(config: Config) {
     surface(),
     // inspector field "Traffic Sign" on roads and paths (what makes this app differ from apps/maid)
     trafficSigns({ country: 'DE' }),
-    // top bar and dock "Notes": OSM notes of the same API the data comes from, read-only, from OSM zoom 12 as iD
+    // top bar and dock "Notes": OSM notes from the same API as the data, read-only, shown from zoom 12 as in iD
     notes({ apiUrl: config.apiUrl }),
   ]
   // dashed outline around the area the fixture covers

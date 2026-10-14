@@ -31,5 +31,5 @@ export { OsmLayers } from './OsmLayers'
 export { OsmData, type MergeResult } from './data'
 export { DrawTool, type DrawKind } from './draw'
 export { TransformTool, type TransformKind } from './transform'
-// the rule for the Rotate (R) hint of a direction field, shared with the documentation popover (ui)
+// The rule for the Rotate (R) hint of a direction field, shared with the documentation popover (ui).
 export { showsDirectionRotateHint } from '@osm-editor-kit/maid-operations'

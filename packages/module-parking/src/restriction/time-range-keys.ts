@@ -1,7 +1,7 @@
 /**
  * The keys of the time ranges in the condition editor: one key per range, so that a row keeps its inputs and its focus
  * when another row is removed. The keys are kept in the editor's component state, never written to OSM. A range without
- * a stored key (its ranges changed in the text) gets its position as the key, as before. Pure.
+ * a stored key (its ranges changed in the text) gets its position as the key. Pure.
  */
 
 /** The keys for `count` ranges: the stored ones, and the position for each range without one */

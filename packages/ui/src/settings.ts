@@ -53,9 +53,8 @@ export type Lang = 'en' | 'de' | 'fr' | 'es'
 export type Server = 'osm' | 'dev'
 
 /**
- * What the UI does with the settings. Components read them through the `useStored*` hooks and call these
- * through `useSettingsActions`; code outside React uses `settingsActions`. Each action is an event the
- * store takes care of, and the object never changes.
+ * The changes the UI can make to the settings. Components read the settings with the `useStored*` hooks and
+ * call the actions through `useSettingsActions`. Code outside React uses `settingsActions`. The object never changes.
  */
 export type SettingsActions = {
   setShown: (key: string, value: string) => void
@@ -130,7 +129,7 @@ function parseStored(value: unknown): Settings {
  * then a value with another version is not read, and the defaults apply. Reading is synchronous: the
  * first paint already has the right theme and sizes. Every stored value is parsed on load (`merge`),
  * not only after a version change. Under automation nothing is read or written (`moduleStorage`).
- * The store itself is private: the hooks and functions below are its only way out.
+ * The store is private. The hooks and functions below are its only way out.
  */
 const useSettingsStore = create<SettingsStore>()(
   persist(

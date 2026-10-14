@@ -76,7 +76,7 @@ function editorConfig(config: Config) {
     streetImagery({ mapillaryToken: mapillaryToken() }),
     // inspector field "Surface and smoothness" on roads and paths: a photo per value, bundled, no network
     surface(),
-    // top bar and dock "Notes": OSM notes of the same API the data comes from, read-only, from OSM zoom 12 as iD
+    // top bar and dock "Notes": OSM notes from the same API as the data, read-only, shown from zoom 12 as in iD
     notes({ apiUrl: config.apiUrl }),
   ]
   // dashed outline around the area the fixture covers

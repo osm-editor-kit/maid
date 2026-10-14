@@ -122,7 +122,7 @@ function sideImage(kind: SideKind) {
 
 /**
  * The viewfield of a node, pointing up (north) at rotation 0. Its box's bottom edge is the node (the layer anchors the
- * image at its bottom, and the tip sits 2 units above it, as in iD). iD's colours: fill #333 and white stroke, both at
+ * image at its bottom). The narrow end of the wedge sits 2 units above it, as in iD. iD's colours: fill #333 and white stroke, both at
  * 0.75. iD has no other colours for viewfields, so the same image is used in the light and the dark map.
  */
 function coneImage() {

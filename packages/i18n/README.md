@@ -64,4 +64,4 @@ and shipped apart from the app. `packages/module-parking` is the model:
 3. Use `m.<id>()` in the module's code. A label on a module-level object is a getter (`get label() { return m.x() }`),
    so the text is read when it is used, after the page's language is set. Never call `m` at module level.
 
-`bun run i18n-compile` and `bun run i18n-check` pick a module up by its `project.inlang` folder (`scripts/projects.ts`).
+`bun run i18n-compile` and `bun run i18n-check` pick a module up by its `project.inlang` folder (`packages/i18n/scripts/projects.ts`).

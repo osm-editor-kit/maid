@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-/** The store stays here: components read the turn through `useBearing`, `setBearing` changes it */
+/** The store is private to this file. Components read the turn with `useBearing` and change it with `setBearing`. */
 const useBearingStore = create<{ bearing: number }>()(() => ({ bearing: 0 }))
 
 /**

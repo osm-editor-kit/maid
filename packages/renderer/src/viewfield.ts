@@ -1,10 +1,10 @@
 /**
  * Viewfields ("Sichtkegel"): the wedge iD draws on a point or vertex that has a direction (a camera, a sign, a bench,
- * traffic signals). One wedge per direction, its tip on the node, pointing that way.
+ * traffic signals). One wedge per direction, its narrow end just above the node, pointing that way.
  *
- * The builder puts the directions into the node's feature as `d0`, `d1` (see `addViewfields`), and layers.ts draws one
+ * The builder puts the directions into the node's feature as `d0`, `d1` (see `addViewfields`). layers.ts draws one
  * symbol layer per slot on the vertex and point sources, rotating the cone image by that property. So a cone is part
- * of its node's feature: it follows the node through the edit tier, the selection copies and the filters, and a tag
+ * of its node's feature. It follows the node through the edit tier, the selection copies and the filters, and a tag
  * change rebuilds it with the node. Nodes without a direction get no property and no work beyond `hasDirectionTags`.
  */
 import type { Graph, OsmNode } from '@osm-editor-kit/maid-model'
@@ -17,8 +17,8 @@ import type { Tags } from '@osm-editor-kit/maid-style'
 export const CONE_ZOOM = 17
 
 /**
- * Directions per node that get a cone. One layer per slot (layers.ts), so the cost is layers, not features. The
- * fixtures have at most two per node, except one node with three in `medium`, which gets two cones.
+ * The number of directions per node that get a cone. One layer per slot (layers.ts), so the cost is layers, not
+ * features. The fixtures have at most two per node, except one node with three in `medium`, which gets two cones.
  * ConeProps must list the same slots.
  */
 export const CONE_SLOTS = 2
@@ -30,9 +30,10 @@ export const CONE_IMAGE = 'viewfield'
 export type ConeProps = { d0?: number; d1?: number }
 
 /**
- * The cheap test for every tagged node, before `directions()` runs: the tags `directions()` reads, `direction`, `stop`
- * (all-way stop on an intersection) and any `*:direction`. Keys are matched without a regex; OSM's direction keys are
- * lower case, so an upper-case `:Direction` key is not seen here (iD's regex is case-insensitive).
+ * The cheap test for every tagged node, before `directions()` runs. It checks the tags that `directions()` reads:
+ * `direction`, `stop` (an all-way stop on an intersection) and any `*:direction`. Keys are matched without a regex.
+ * OSM's direction keys are lower case, so an upper-case `:Direction` key is not seen here. iD's regex is
+ * case-insensitive.
  */
 export function hasDirectionTags(tags: Tags): boolean {
   if (tags.direction !== undefined || tags.stop !== undefined) return true

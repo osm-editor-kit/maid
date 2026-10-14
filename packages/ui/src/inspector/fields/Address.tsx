@@ -135,7 +135,7 @@ function SlotCell(props: SlotProps) {
   const value = mixed === undefined ? slotValue(name, tags, prefix) : undefined
   const label = slotPlaceholder(name, country)
   const list = suggestionsFor(name, props.suggestions)
-  // no onChange: read-only, so the slot gets no onText and its input is read-only
+  // Without onChange the slot is read-only, so it gets no onText and its input is read-only.
   const onText = onChange ? (text: string) => apply(slotEdits(name, text, prefix)) : undefined
   return (
     <div className={wrapper} style={{ flex: `${share} 1 0%` }}>

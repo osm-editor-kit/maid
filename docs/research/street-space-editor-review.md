@@ -4,9 +4,9 @@ Date: 2026-10-13. Read-only review of the osm-editor-kit monorepo (street space 
 
 Tags used in this note:
 
-- [measured]: I read the code, a package file, a licence file or counted lines or files.
-- [inferred]: my reading of names, comments or READMEs. Not run.
-- [not checked]: I did not look, or could not check without the network.
+- [measured]: read in the code, a package file or a licence file, or counted lines or files.
+- [inferred]: a reading of names, comments or READMEs. Not run.
+- [not checked]: not looked at, or not checkable without the network.
 
 ## Summary
 

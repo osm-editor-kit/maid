@@ -15,7 +15,7 @@ interface SearchFlyoutStore {
   started: boolean
 }
 
-/** The store stays here: components read the state through the hooks below, the functions change it */
+/** The store is in this file. Components read the state through the hooks below, and the functions change it */
 const useSearchFlyoutStore = create<SearchFlyoutStore>()(() => ({
   open: false,
   focus: 0,

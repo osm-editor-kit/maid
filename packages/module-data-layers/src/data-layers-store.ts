@@ -10,8 +10,8 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import { dataLayerSchema, type DataLayerConfig, type FileLayer } from './config.ts'
 
 /**
- * What is stored. A broken entry is dropped on its own, not the whole list: a layer that no longer
- * passes the schema becomes `null` and is left out, and a text that is not a string is too.
+ * What is stored. A broken entry is dropped on its own, not the whole list: a layer that fails the
+ * schema becomes `null` and is left out. A text that is not a string is too.
  */
 const storedSchema = z.object({
   added: z
@@ -36,10 +36,9 @@ const storedSchema = z.object({
 export type StoredDataLayers = z.infer<typeof storedSchema>
 
 /**
- * Turns whatever is stored into a valid state. A stored layer that no longer passes the checks is
- * dropped, not repaired; a repeated id keeps its first entry. Used on every load, so a state
- * edited by hand cannot break the map. Anything that is not an
- * object gives an empty state.
+ * Turns whatever is stored into a valid state. A stored layer that fails the checks is dropped,
+ * not repaired. A repeated id keeps its first entry. Used on every load, so a state edited by hand
+ * cannot break the map. Anything that is not an object gives an empty state.
  */
 export function sanitizeStored(value: unknown): StoredDataLayers {
   const result = storedSchema.safeParse(value)

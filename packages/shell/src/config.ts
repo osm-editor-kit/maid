@@ -43,7 +43,7 @@ export function chooseLiveMode(input: {
 
 /**
  * Where the data of this visit comes from: a fixture of the local mock API, the OSM API (read only), or the OSM
- * development server. The one answer; the status texts, the journal's name and the account texts read it.
+ * development server. The status texts, the journal's name and the account texts all read it.
  */
 export type DataSource = 'fixture' | 'osm' | 'dev'
 

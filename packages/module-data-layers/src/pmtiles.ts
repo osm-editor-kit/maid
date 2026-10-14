@@ -78,7 +78,7 @@ export function readPmtilesLayers(url: string, send: RemoteFetch, signal?: Abort
 
 /**
  * The layer names of an archive, as a query per address. The header is read once per session; a failed
- * read is not retried (as before), and is tried again when the layer is shown again.
+ * read is not retried. It is tried again when the layer is shown again.
  */
 export function pmtilesLayersOptions(url: string, send: RemoteFetch) {
   return queryOptions({

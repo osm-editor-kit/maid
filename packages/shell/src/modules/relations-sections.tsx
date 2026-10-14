@@ -719,7 +719,7 @@ export function RelationsSection({ entity, entities, editor, select }: Props) {
     <div className="grid gap-1">
       {memberships.length === 0 && <p className={`text-xs ${SECONDARY}`}>Not in a relation.</p>}
       {memberships.length > 0 && (
-        // the memberships follow the inspected feature, the add below the whole selection (as before)
+        // the memberships follow the inspected feature, the add below the whole selection
         <ReadOnlyContext value={entity.readOnly}>
           <ul>
             {memberships.map((membership) => (

@@ -3,7 +3,7 @@ import type { Tags } from '@osm-editor-kit/maid-style'
 /**
  * What the map shows for the field that has the focus or the pointer on it: a side line for a
  * directional field's side (cycleway:left, sidewalk:right, parking:both:orientation, ...) and a width band for a width field
- * (width, est_width, cycleway:left:width, sidewalk:both:width, ...). Pure: the Inspector hands the
+ * (width, est_width, cycleway:left:width, sidewalk:both:width, ...). This module is pure. The Inspector hands the
  * result to the engine. Rules from the iD fork (WORKDOC.md features 7 and 10; modules/width/
  * width_tags.ts and width_indicator.ts): the band of a side starts at the road's edge, half the
  * road width out, and the road width is the way's width tag or a default by highway type.
@@ -23,7 +23,7 @@ const WIDTH_NO_ONEWAY: Record<string, number> = {
   bus_guideway: 3, track: 2.5, footway: 2.5, path: 2.5, bridleway: 2.5, cycleway: 2, steps: 2,
 } // prettier-ignore
 
-/** Default road width in metres for a oneway road (the fork's HIGHWAY_WIDTH_ONEWAY) */
+/** Default road width in metres for a road tagged oneway (the fork's HIGHWAY_WIDTH_ONEWAY) */
 const WIDTH_ONEWAY: Record<string, number> = {
   ...WIDTH_NO_ONEWAY,
   motorway: 15, trunk: 15, primary: 12, secondary: 9, tertiary: 7,

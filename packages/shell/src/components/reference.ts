@@ -44,7 +44,7 @@ const TIMEOUT_MS = 10_000
 /** Wikimedia's maxlag (etiquette, fetching-audit.md): the server refuses while it lags this many seconds */
 const MAXLAG_SECONDS = 5
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
-/** Storage keys: `maid.reference:` and the wiki page title, as before. The stored shape is unchanged. */
+/** Storage keys: `maid.reference:` and the wiki page title. The stored shape is unchanged. */
 const STORAGE_PREFIX = 'maid.reference:'
 
 /*

@@ -33,10 +33,11 @@ type Props = {
  */
 export function OsmLayers({ options, sourceOptions }: Props) {
   const layers = buildLayers(options)
-  // The source options are read once, when the map is made. react-map-gl calls `setData(data)` on a GeoJSON source
-  // whenever one of its props changes, and that would empty the engine's features. Keying the sources on their
-  // options would not help: react-map-gl removes a source on unmount and MapLibre refuses that while a layer uses
-  // it, and the engine has no path that sends its features again to a new source. A changed option needs a new map.
+  // The source options are read once, when the map is made. react-map-gl calls `setData(data)` on a GeoJSON
+  // source whenever one of its props changes, and that would empty the engine's features. Keying the sources on
+  // their options would not help. react-map-gl removes a source on unmount, MapLibre refuses that while a layer
+  // uses it, and the engine has no path that sends its features again to a new source. A changed option needs
+  // a new map.
   const [source] = useState(() => ({ ...SOURCE_OPTIONS, ...sourceOptions }))
   return (
     <>

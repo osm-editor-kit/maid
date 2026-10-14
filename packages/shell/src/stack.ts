@@ -23,7 +23,7 @@ export function keepsStack(stack: Stack, selection: readonly string[]) {
   return selection.length === 1 && stack.ids.includes(selection[0]!)
 }
 
-/** The one stack. The store stays here: components read it through `useStack`, the functions below change it. */
+/** The one stack is in this file. Components read it through `useStack`, and the functions below change it. */
 const useStackStore = create<{ stack: Stack | null }>()(() => ({ stack: null }))
 
 /** The stack of the last plain click, or null */

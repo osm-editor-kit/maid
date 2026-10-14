@@ -132,7 +132,7 @@ export function MapView() {
   const [cameraParam, setCameraParam] = useCameraParam()
   const { ids: selectedIds, select } = useSelection()
   // Dash patterns are discovered as data arrives; the layers list them in their expressions.
-  // MapLibre's own texts (the attribution control), in the visit's language: read once, the map is made once
+  // MapLibre's own texts (the attribution control) use the visit's language. They are read once, because the map is made once
   const [mapLocale] = useState(mapLibreLocale)
   const [dashes, setDashes] = useState(() => new globalThis.Map(dashPatterns))
   const [cursor, setCursor] = useState('grab')
