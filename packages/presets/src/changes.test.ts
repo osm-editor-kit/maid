@@ -535,3 +535,26 @@ describe('withChanges on the default data', () => {
     ).not.toContain('is_sidepath')
   })
 })
+
+describe('withChanges: a check field defined in the changes', () => {
+  it('its option "undefined" is the unset value "", as for a check field of the schema', () => {
+    const changed = withChanges(base, {
+      fields: {
+        staggered: {
+          type: 'check',
+          label: 'Staggered',
+          key: 'staggered',
+          geometry: ['line'],
+          options: { undefined: 'Unknown', yes: 'Yes', no: 'No' },
+        },
+      },
+      presetEdits: { 'highway/cycleway': { addFields: ['staggered'] } },
+    })
+    const presets = createPresets(changed)
+    expect(presets.field('staggered')?.options).toEqual([
+      { value: '', label: 'Unknown' },
+      { value: 'yes', label: 'Yes' },
+      { value: 'no', label: 'No' },
+    ])
+  })
+})

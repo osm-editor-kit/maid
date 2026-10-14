@@ -412,6 +412,19 @@ function mustGet<T>(value: T | undefined, what: string) {
   return value
 }
 
+/** The check fields: iD's check.ts reads their options (the others have none of the value "undefined"). */
+const CHECK_FIELD_TYPES = new Set(['check', 'defaultCheck', 'onewayCheck'])
+
+/**
+ * The value of a field option. id-tagging-schema lists the unset state of a check field as the option
+ * "undefined" (armrest: ["undefined", "yes", "no"]), and iD maps it to no value (check.ts: `v === 'undefined' ?
+ * undefined : v`). Here it is '', the unset value that isUnsetOption takes. Only check fields do this, as in iD:
+ * an option "undefined" of a combo or a radio is a value. The label is still looked up under "undefined".
+ */
+export function optionValueOf(type: string, value: string): string {
+  return CHECK_FIELD_TYPES.has(type) && value === 'undefined' ? '' : value
+}
+
 export function createPresets(data: PresetData): Presets {
   // One location lookup per presets instance; its location sets are registered when first used.
   const locations = createLocations()
@@ -438,13 +451,14 @@ export function createPresets(data: PresetData): Presets {
       textOf(fieldTexts, fieldId, key) ?? asString(rawFields.get(fieldId)?.[key])
     const label = resolveText(fieldLookup('label'), id)
     const optionOwner = label?.owner ?? id
+    const type = asString(raw.type) ?? ''
     const options: FieldOption[] = (asStrings(raw.options) ?? []).map((value) => ({
-      value,
+      value: optionValueOf(type, value),
       label: optionText(optionOwner, id, value),
     }))
     const field: Field = {
       id,
-      type: asString(raw.type) ?? '',
+      type,
       label: label?.text ?? id,
       options,
       universal: raw.universal === true,

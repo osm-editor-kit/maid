@@ -1,5 +1,5 @@
 import { checkAfterClick, checkCycle, checkLabel, checkStateFor, impliesYes } from '../logic.ts'
-import { checkBoxOf, checkFieldOf } from './check-logic.ts'
+import { checkBoxOf } from './check-logic.ts'
 import { CheckBox } from './CheckBox.tsx'
 import { FallbackField } from './Fallback.tsx'
 import { MULTIPLE_VALUES, mixedOf } from './mixed-logic.ts'
@@ -9,14 +9,14 @@ import type { FieldProps } from './shared.ts'
  * Unset, yes or no, as iD's check fields. A click or Space moves to the next value of the cycle
  * (checkCycle). The box shows yes as a check, unset as a grey dash; the text says which value it is.
  * Several features: a key whose features differ is an indeterminate box, "Multiple values"; a click on it
- * sets yes on all of them (checkAfterClick). The state mapping is in check-logic.ts (checkFieldOf, checkBoxOf).
+ * sets yes on all of them (checkAfterClick). The box mapping is in check-logic.ts (checkBoxOf). The unset
+ * option is already '' here: the presets map id-tagging-schema's "undefined" to it (optionValueOf).
  *
  * The button is the whole control: the box and the value text. Its width is its content (the row puts it
  * on the title's line, see Row.tsx), so it is w-full of its wrapper, which is as wide as the text.
  */
 export function CheckField(props: FieldProps) {
-  const { id, onChange, combined, tags } = props
-  const field = checkFieldOf(props.field)
+  const { id, onChange, combined, tags, field } = props
   const key = field.key
   if (key === undefined) return <FallbackField {...props} />
   const current = tags[key]

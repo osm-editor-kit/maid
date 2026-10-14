@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test'
-import { defaultPresets as presets } from './default.ts'
-import type { Geometry, Preset, Tags } from './types.ts'
+import { defaultPresetData, defaultPresets as presets } from './default.ts'
+import { createPresets, optionValueOf } from './presets.ts'
+import type { Geometry, Preset, PresetData, Tags } from './types.ts'
 
 function presetOf(id: string): Preset {
   const preset = presets.preset(id)
@@ -414,5 +415,84 @@ describe('applyPreset', () => {
     expect(presets.applyPreset({}, presetOf('highway/pedestrian_area'), 'point')).toEqual({
       highway: 'pedestrian',
     })
+  })
+})
+
+describe('the unset option of a check field', () => {
+  it('armrest: the option "undefined" is the unset value "", labelled as iD labels it', () => {
+    expect(presets.field('armrest')?.options).toEqual([
+      { value: '', label: 'Unknown' },
+      { value: 'yes', label: 'One or more armrests' },
+      { value: 'no', label: 'No armrests' },
+    ])
+  })
+
+  it('oneway: the unset option is "" with its label; reversible and alternating stay values', () => {
+    const options = presets.field('oneway')?.options ?? []
+    expect(options).toEqual([
+      { value: '', label: 'Assumed to be No' },
+      { value: 'yes', label: 'Yes' },
+      { value: 'no', label: 'No' },
+      { value: 'reversible', label: 'Reversible' },
+      { value: 'alternating', label: 'Alternating' },
+    ])
+  })
+
+  it('every bundled check field with "undefined" in its schema options maps it, and no bundled field offers "undefined"', () => {
+    let mapped = 0
+    const raws = defaultPresetData.fields as Record<string, { type?: string; options?: string[] }>
+    for (const [id, raw] of Object.entries(raws)) {
+      if (!raw.options?.includes('undefined')) continue
+      expect(['check', 'defaultCheck', 'onewayCheck']).toContain(raw.type ?? '')
+      expect(presets.field(id)?.options.map((option) => option.value)).toContain('')
+      mapped++
+    }
+    expect(mapped).toBeGreaterThan(0)
+    for (const id of Object.keys(raws)) {
+      expect(
+        presets.field(id)?.options.map((option) => option.value),
+        id,
+      ).not.toContain('undefined')
+    }
+  })
+
+  it('the mapping is for the check types only: a combo, radio or multi-combo keeps "undefined" as a value', () => {
+    expect(optionValueOf('check', 'undefined')).toBe('')
+    expect(optionValueOf('defaultCheck', 'undefined')).toBe('')
+    expect(optionValueOf('onewayCheck', 'undefined')).toBe('')
+    expect(optionValueOf('check', 'yes')).toBe('yes')
+    expect(optionValueOf('combo', 'undefined')).toBe('undefined')
+    expect(optionValueOf('radio', 'undefined')).toBe('undefined')
+    expect(optionValueOf('multiCombo', 'undefined')).toBe('undefined')
+  })
+
+  it('a combo with an option "undefined" in a data set keeps it, labelled from its translation', () => {
+    const data: PresetData = {
+      presets: {},
+      fields: {
+        pick: { key: 'pick', type: 'combo', options: ['undefined', 'yes'] },
+        probe: { key: 'probe', type: 'check', options: ['undefined', 'yes', 'no'] },
+      },
+      translations: {
+        en: {
+          presets: {
+            fields: {
+              pick: { label: 'Pick', options: { undefined: 'Odd', yes: 'Yes' } },
+              probe: { label: 'Probe', options: { undefined: 'Unknown' } },
+            },
+          },
+        },
+      },
+    }
+    const built = createPresets(data)
+    expect(built.field('pick')?.options).toEqual([
+      { value: 'undefined', label: 'Odd' },
+      { value: 'yes', label: 'Yes' },
+    ])
+    expect(built.field('probe')?.options).toEqual([
+      { value: '', label: 'Unknown' },
+      { value: 'yes', label: 'yes' },
+      { value: 'no', label: 'no' },
+    ])
   })
 })

@@ -5,7 +5,10 @@ import type { MixedValue } from './fields/shared.ts'
 /** OSM's limit for a tag value, in Unicode characters (iD's maxCharsForTagValue). */
 export const MAX_VALUE_LENGTH = 255
 
-/** iD's unset entry in a field's options has no value (we also accept an empty one). */
+/**
+ * iD's unset entry in a field's options has no value. The presets write it as '' (the check fields'
+ * "undefined" option, presets optionValueOf); an undefined value counts too.
+ */
 export function isUnsetOption(option: { value: string | undefined }) {
   return option.value === undefined || option.value === ''
 }
