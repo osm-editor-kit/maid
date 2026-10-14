@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { PORTS } from '../../tools/ports.ts'
 import { presetsPreload } from '../vite-presets-preload.ts'
+import { treeshake } from '../vite-shared.ts'
 
 export default defineConfig({
   // `/` in development; GitHub Pages builds set VITE_BASE=/<repository>/ (.github/workflows/pages.yml)
@@ -17,17 +18,7 @@ export default defineConfig({
   server: { host: '127.0.0.1', port: PORTS.maidParking, strictPort: true },
   build: {
     rolldownOptions: {
-      // packages/ui is a barrel of many modules (inspector fields, tags sheet, ...). Without this, the bundler keeps
-      // every module of it in the entry chunk, also those only the lazy inspector uses. None of them does work at
-      // import time (`extension-points.ts` only declares types), so a module nobody imports can go.
-      treeshake: {
-        moduleSideEffects: [
-          { test: /[\\/]packages[\\/]ui[\\/]src[\\/]/, sideEffects: false },
-          // the same for the presets package: the shell imports `discardedTags` from its index, which must not keep
-          // the matching code and the country data in the entry
-          { test: /[\\/]packages[\\/]presets[\\/]src[\\/]/, sideEffects: false },
-        ],
-      },
+      treeshake,
     },
   },
   preview: { port: PORTS.maidParking, strictPort: true },

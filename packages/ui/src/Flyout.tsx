@@ -112,17 +112,14 @@ export function Flyout(props: {
 
   return (
     <>
-      {
-        // oxlint-disable-next-line react/refs -- refs.setReference is floating-ui's callback ref, not a .current value read during render
-        cloneElement(
-          trigger,
-          getReferenceProps({
-            ...(trigger.props as object),
-            ref: refs.setReference,
-            'aria-expanded': open,
-          }),
-        )
-      }
+      {cloneElement(
+        trigger,
+        getReferenceProps({
+          ...(trigger.props as object),
+          ref: refs.setReference,
+          'aria-expanded': open,
+        }),
+      )}
       <FloatingPortal>
         <AnimatePresence>
           {open && (
@@ -137,7 +134,6 @@ export function Flyout(props: {
                   'z-40 flex w-96 flex-col rounded-2xl border border-zinc-950/10 bg-white text-sm text-zinc-950 shadow-xl dark:border-white/15 dark:bg-zinc-800 dark:text-white dark:shadow-2xl dark:shadow-black/60',
                   className,
                 )}
-                // oxlint-disable-next-line react/refs -- refs.setFloating is floating-ui's callback ref, not a .current value read during render
                 {...getFloatingProps({ ref: refs.setFloating, style: floatingStyles })}
               >
                 {/* The panel's own colour and border, so the arrow reads as part of it. Tailwind

@@ -149,7 +149,6 @@ export function ComboInput(props: {
 
   return (
     <div className="grid min-w-0 gap-1">
-      {/* oxlint-disable-next-line react/refs -- refs.setReference is floating-ui's callback ref, not a .current value read during render */}
       <div ref={refs.setReference} className="min-w-0">
         <input
           {...PLAIN_INPUT}

@@ -72,15 +72,16 @@ These names are the contract. Agents and docs only reference these.
 | Script | What it does |
 | --- | --- |
 | `bun run check` | Compiles the texts, then type-check, lint and format with fixes (oxlint, oxfmt), the missing-texts check, unit tests. Run before every commit. |
-| `bun run i18n-compile` | Paraglide: generates `packages/i18n/paraglide/` from the message files. Runs first in `check`, `check-ci`, `test-run`, `type-check`, `dev`, `dev-maid`, `dev-bicycle` and the apps' `build`; skips when the output is up to date. |
-| `bun run i18n-check` | Lists the keys each language lacks (en is the base) as JSON in `reports/i18n-missing.json`. Exits 1 when a key lacks a language. |
+| `bun run i18n-compile` | Paraglide: generates `packages/i18n/paraglide/` from the app's message files and `packages/module-*/paraglide/` from each module's own (`project.inlang`, `messages/`; list in `packages/i18n/scripts/projects.ts`). Runs first in `check`, `check-ci`, `test-run`, `type-check`, `dev`, `dev-maid`, `dev-bicycle` and the apps' `build`; skips when the output is up to date. |
+| `bun run i18n-check` | Lists the keys each language lacks (en is the base), for the app and for each module (under `modules`), as JSON in `reports/i18n-missing.json`. Exits 1 when a key lacks a language or a placeholder differs. |
 | `bun run check-ci` | The same, read-only. |
 | `bun run dev` | The three apps' dev servers (`apps/maid` on 5173, `apps/maid-bicycle` on 5176, `apps/maid-parking` on 5177) and the mock OSM API (8090). |
 | `bun run dev-maid` | Only the Maid dev server (`apps/maid`, 5173). |
 | `bun run dev-parking` | Only the Maid Parking dev server (`apps/maid-parking`, 5177): the street-side parking editor, German by default. Checks and the benchmark take it with `--app parking`. |
 | `bun run dev-bicycle` | Only the Maid Bicycle dev server (`apps/maid-bicycle`, 5176): Maid's modules plus the traffic signs module. |
+| `bun run dev-api` | Only the mock OSM API (`tools/mock-osm-api`, 8090), serving the frozen fixtures to the editors. |
 | `bun run refs-setup` | Clone and build iD and Rapid at their pinned commits into `.reference/`, copy icon sprites into Maid. |
-| `bun run refs-serve` | Serve the built reference editors: iD on 8081, Rapid on 8082. |
+| `bun run refs-serve` | Serve the built reference editors: iD on 8081, Rapid on 8082 (`refs-serve-id` and `refs-serve-rapid` serve one each). |
 | `bun run bench` | Run all scenarios against all editors and write `reports/<run-id>/`. Starts the servers it needs. Options: `--editor`, `--scene`, `--repeat`, `--label`, `--variant`, `--maid-query`, `--id-query`, `--app maid\|bicycle\|parking` (the Maid build measured), `--maid-lens <id>` (switch a lens on after load), `--edit-reps` (repetitions of each edit interaction, default 5). |
 | `bun run bench-smoke` | One run per editor on the small scene. |
 | `bun run bench-report [run-id ...]` | Render one or more runs as `report.md` and `report.html`. |
