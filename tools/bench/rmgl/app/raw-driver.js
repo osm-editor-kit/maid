@@ -36,7 +36,7 @@ export async function mountRaw(container, config, options) {
       query(event.point)
     })
   if (options.mouse === 'throttled') {
-    // one query per frame, for the last place of the pointer
+    // one query per frame, at the pointer's last position
     let pending
     map.on('mousemove', (event) => {
       stats.events++

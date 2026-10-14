@@ -26,7 +26,7 @@ export class PresetSchema extends RulesetSchema {
     loc?: readonly [number, number],
   ): PresetMatch {
     const preset = this.presets.match(tags, geometry as Geometry, loc)
-    // the same answer as the presets' own (iD's preset.isFallback): no tags, or only area=*
+    // The same answer as the presets' own (iD's preset.isFallback): no tags, or only area=*
     return { isFallback: () => this.presets.isFallback(preset) }
   }
 }

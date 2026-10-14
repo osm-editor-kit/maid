@@ -13,7 +13,7 @@ describe('osm-rulesets.ts', () => {
 })
 
 describe('PresetSchema.matchTags', () => {
-  // the seeded generic presets come with createPresets; the two tagged ones are what a match can find
+  // createPresets adds the generic presets. The two tagged ones are what a match can find.
   const presets = createPresets({
     presets: {
       bench: { tags: { amenity: 'bench' }, geometry: ['point', 'vertex'] },

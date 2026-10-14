@@ -140,7 +140,7 @@ describe('iD.presetPreset', () => {
       expect(presets.isFallback(get(presets, 'building'))).toEqual(false)
     })
 
-    // the four generic presets are seeded (iD's presets/index.js), so every presetsOf has them
+    // The four generic presets are seeded (iD's presets/index.js), so every presetsOf has them.
     it('is true for the generic point, line and relation presets (no tags)', () => {
       const presets = presetsOf({})
       expect(presets.isFallback(get(presets, 'point'))).toEqual(true)
@@ -165,7 +165,7 @@ describe('iD.presetPreset', () => {
       expect(presets.isFallback(get(presets, 'footway'))).toEqual(false)
     })
 
-    // the model asks the match, not the preset by id: a bare feature matches a fallback, a tagged one does not
+    // The model asks the match, not the preset by id. A bare feature matches a fallback. A tagged one does not.
     it('answers the same for the preset a match finds', () => {
       const presets = presetsOf({
         bench: { tags: { amenity: 'bench' }, geometry: ['point', 'vertex'] },

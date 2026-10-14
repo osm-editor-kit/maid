@@ -1,7 +1,7 @@
 // Ported from iD's branch rotate-point-direction: test/spec/util/direction_degrees.ts,
 // test/spec/util/direction_field.ts, test/spec/actions/rotate_point_direction.ts and
-// test/spec/operations/rotate.ts. 22 pass, 4 todo. The todos are iD's preset cases: they need presets,
-// which the operations package does not have. Maid turns the value to the pointer's absolute bearing, as iD.
+// test/spec/operations/rotate.ts. 19 pass, 4 todo. The todos are iD's preset cases. They need presets,
+// which the operations package does not have. Maid turns the value to the pointer's absolute bearing, as iD does.
 // The vertex and multi-node cases of iD's operation test are in renderer transform.test.ts.
 import { describe, expect, test } from 'bun:test'
 import {

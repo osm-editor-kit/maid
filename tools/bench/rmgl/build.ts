@@ -35,7 +35,7 @@ function versionOf(name: string, from = join(MAID, 'node_modules')) {
 }
 
 export function versions() {
-  // react-map-gl/maplibre re-exports @vis.gl/react-maplibre, which is installed next to it: the audited code
+  // react-map-gl/maplibre re-exports @vis.gl/react-maplibre, which is installed next to it. That is the code the audit in docs/research reads.
   const besideReactMapGl = resolve(realpathSync(join(MAID, 'node_modules/react-map-gl')), '..')
   return {
     'react-map-gl': versionOf('react-map-gl'),
@@ -70,7 +70,7 @@ export async function build(outDir: string) {
       target: 'esnext',
       minify: true,
       sourcemap: false,
-      // MapLibre is one large chunk: not a finding of this build
+      // The MapLibre chunk is large. That size is not a finding of this build.
       chunkSizeWarningLimit: 4000,
     },
   })

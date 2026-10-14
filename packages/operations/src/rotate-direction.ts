@@ -103,8 +103,8 @@ export function retargetDirectionValue(value: string | undefined, targetDegrees:
 }
 
 /**
- * Whether the direction field of a tag should say that R turns it. iD shows the hint only for a
- * numeric direction field (`type: number`), not for a relative one (`forward` and `backward`).
+ * Whether the direction field shows the hint that R turns the tag. iD shows it only for a numeric
+ * direction field (`type: number`), not for a relative one (`forward` and `backward`).
  */
 export function showsDirectionRotateHint(field: { key?: string; fieldType?: string }): boolean {
   return isDirectionKey(field.key) && field.fieldType === 'number'

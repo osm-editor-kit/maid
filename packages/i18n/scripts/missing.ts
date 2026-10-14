@@ -5,9 +5,9 @@
  * The base language (`baseLocale` of the project's settings, English) is the reference. For every other language it
  * lists the keys that are missing or empty (`missing`, with the base text), the keys that the base does not have
  * (`extra`), and the keys whose `{name}` placeholders differ from the base (`placeholderMismatch`). The app's result
- * is at the top level of the report, as before; each module's is under `modules` by its package name.
+ * stays at the top level of the report; each module's is under `modules` by its package name.
  * Writes `reports/i18n-missing.json` and prints the same. Exits 1 when a key lacks a language or a placeholder
- * differs, so the check fails. No network, no machine translation.
+ * differs. No network, no machine translation.
  */
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'

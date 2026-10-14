@@ -1,4 +1,4 @@
-// The page of the react-map-gl benchmark. `?mode=react` builds the map with react-map-gl/maplibre,
+// Page of the react-map-gl benchmark. `?mode=react` builds the map with react-map-gl/maplibre,
 // `?mode=raw` with plain maplibre-gl. Both expose the same `window.__rmgl`, which tools/bench/rmgl/run.ts drives.
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { setWorkerUrl } from 'maplibre-gl'
@@ -69,7 +69,7 @@ window.__rmgl = {
     driver = undefined
   },
   counts: () => ({ sources: config.sources.length, layers: config.layers.length }),
-  /** With `mount({ count: true })`: calls of map.getLayer since the last call of this, on the React side the renders of <Layer> */
+  /** With `mount({ count: true })`, the calls of map.getLayer since the last call. On the React side these are the renders of <Layer>. */
   layerRenders() {
     const count = renders
     renders = 0
@@ -166,7 +166,7 @@ window.__rmgl = {
   camera: () => panAndZoom(driver.map, config.center),
   /**
    * `n` mousemove events on the map's canvas, one every `interval` ms, in a zigzag over the middle of the map.
-   * Dispatched in the page: Playwright's mouse needs a round trip per event, which caps the rate near 30 a second.
+   * Dispatched in the page, because Playwright's mouse needs a round trip per event. That caps the rate near 30 a second.
    */
   async pointer(n, interval) {
     const canvas = driver.map.getCanvas()

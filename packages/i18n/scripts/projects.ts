@@ -3,7 +3,7 @@
  * (`packages/module-*\/project.inlang/settings.json`). `compile.ts` and `missing.ts` read this list, so a new module
  * with texts is picked up by adding its `project.inlang` and `messages/` folders, nothing else.
  *
- * The strategy is what `compile.ts` gives the compiled output. The app keeps the locale in memory (`custom-maid`).
+ * `strategy` is the Paraglide strategy that `compile.ts` passes to the CLI. The app keeps the locale in memory (`custom-maid`).
  * A module's `getLocale` is replaced by the app's (`linkModuleLocale`, src/module.ts), so it only needs `baseLocale`.
  */
 import { existsSync, readdirSync } from 'node:fs'

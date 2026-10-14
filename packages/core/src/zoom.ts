@@ -1,9 +1,9 @@
 /**
  * Zoom numbers. MapLibre counts zoom with 512 px tiles. iD, Rapid and ELI count with 256 px tiles (OSM zoom).
  * For the same view, OSM zoom is MapLibre zoom plus one: MapLibre 13 is OSM 14. ELI's `minzoom` and the
- * notes' zoom gate are in OSM zoom, so a number from `map.getZoom()` goes through `toOsmZoom` before it is
- * compared with one, and a value in OSM zoom goes through `toMapZoom` before MapLibre is given it.
- * This is the one place of the conversion (docs/research/zoom-study.md).
+ * notes' zoom gate are in OSM zoom. A number from `map.getZoom()` goes through `toOsmZoom` before it is
+ * compared with one. A value in OSM zoom goes through `toMapZoom` before MapLibre is given it.
+ * This file is the only place that converts between the two (docs/research/zoom-study.md).
  */
 
 /** OSM (256 px) zoom of a MapLibre (512 px) zoom */

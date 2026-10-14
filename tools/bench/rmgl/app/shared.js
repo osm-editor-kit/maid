@@ -1,4 +1,4 @@
-// What both sides of the comparison share: the style, the data, the layer sets and the waiting helpers.
+// Shared by both sides of the comparison: the style, the data, the layer sets and the waiting helpers.
 // Nothing here knows whether React or plain MapLibre draws the map.
 
 export const EMPTY = { type: 'FeatureCollection', features: [] }
@@ -127,7 +127,7 @@ export function movedLines(lines, index, step) {
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
-/** The map has every layer and nothing left to load. Counts the style's own background layer. */
+/** The map has every layer and nothing left to load. The +1 is the style's background layer. */
 export function whenReady(map, layerCount) {
   return new Promise((resolve) => {
     const check = () => {
@@ -139,7 +139,7 @@ export function whenReady(map, layerCount) {
   })
 }
 
-/** The next frame the map draws, and one task more so timers and React renders it caused have run */
+/** The next frame the map draws, and one more task so that the timers and React renders it caused have run */
 export function nextRender(map) {
   return new Promise((resolve) => {
     let done = false

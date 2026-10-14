@@ -2,8 +2,8 @@
  * Turns the dense fixture into the GeoJSON and the layer list the react-map-gl benchmark draws.
  *
  * The features come from Maid's own feature builder and the layers from Maid's own `buildLayers`, so both
- * sides of the comparison draw what Maid draws: the same sources, the same 113 layers with their filters
- * and expressions. No network: the fixture is a committed file (AGENTS.md, core rule 1).
+ * sides of the comparison draw what Maid draws. Both use the same sources and the same 113 layers, with
+ * their filters and expressions. No network: the fixture is a committed file (AGENTS.md, core rule 1).
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'

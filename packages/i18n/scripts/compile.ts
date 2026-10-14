@@ -4,7 +4,7 @@
  * and `messages/`. Run by `bun run i18n-compile` and by every script that needs the output (the root package.json).
  *
  * It does nothing for a project whose output is newer than its inputs, so scripts that run one after another
- * compile once, and two scripts never write the same folder at the same time.
+ * compile once, and two scripts that start together do not write the same folder at the same time.
  *
  *   bun run --cwd packages/i18n compile          (add --force to compile in any case)
  */

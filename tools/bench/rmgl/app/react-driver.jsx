@@ -17,7 +17,7 @@ import {
 } from './shared.js'
 
 // One store for everything the benchmark changes. A change from outside React goes through
-// `flushSync`, so the time of the render it causes can be read around the call.
+// `flushSync`, so the render it causes finishes inside the call and its time is measured around the call.
 let state = {}
 const listeners = new Set()
 const store = {
@@ -167,7 +167,7 @@ function BenchMap({ s }) {
         hoverData={s.hoverData}
         tick={s.tick}
         // 'memo': the component runs again on a tick, and the compiler's cache keeps its elements.
-        // The other two take the whole state, so they render on every change, a camera frame too.
+        // The other two take the whole state and render on every change, camera frames included.
         stamp={s.layerMode === 'memo' ? s.tick : s}
       />
     </ReactMap>

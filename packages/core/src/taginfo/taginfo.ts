@@ -8,9 +8,9 @@ import type { RemoteFetch } from '../fetching/remote-fetch.ts'
  * iD's `modules/services/taginfo.js` (pinned checkout, `.reference/id`); each copied rule is named in a
  * comment with the iD function it comes from. Maid's own rules: every request goes through the editor's
  * `fetch` (the service gate, the time limit and the automation check: fetching-audit.md 5.3, 5.8), each
- * query is cached for the session in the editor's query client and is asked once: no retry, as taginfo is
- * OSM infrastructure (AGENTS.md, core rule 1). No failure reaches the caller: a failed or refused request is no
- * suggestions.
+ * query is cached for the session in the editor's query client and is asked once. There is no retry, because
+ * taginfo is OSM infrastructure (AGENTS.md, core rule 1). No failure reaches the caller. A failed or refused
+ * request gives no suggestions.
  *
  * Under automation (`isAutomated()`) `remoteFetch` refuses the request before it is sent, so this module
  * makes no request and returns an empty list (AGENTS.md, core rule 1).
