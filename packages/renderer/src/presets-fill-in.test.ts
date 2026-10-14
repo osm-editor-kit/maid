@@ -26,9 +26,10 @@ function engineWithSource() {
 
 /** What waits in the engine's channels (no map is attached, so nothing is sent), by feature id */
 function queued(engine: MaidEngine) {
-  const channels = (
-    engine as unknown as { channels: Record<string, Record<string, { queue: Feature[] }>> }
-  ).channels
+  const channels = engine.sender.channels as unknown as Record<
+    string,
+    Record<string, { queue: Feature[] }>
+  >
   const out = new Map<string, Feature[]>()
   for (const group of Object.values(channels))
     for (const channel of Object.values(group))
@@ -72,7 +73,7 @@ describe('icons and presets that are made after the first picture', () => {
     const { editor, engine } = engineWithSource()
     engine.merge(elements)
     // the time is up before the presets are there
-    ;(engine as unknown as { releaseHeld(): void }).releaseHeld()
+    ;(engine as unknown as { presetsHold: { release(): void } }).presetsHold.release()
     const bare = queued(engine)
     expect(bare.get('n1')).toHaveLength(1)
     expect(bare.get('n1')![0]!.properties?.icon).toBeUndefined()

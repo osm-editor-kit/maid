@@ -2,10 +2,7 @@ import {
   createGates,
   createRemoteFetch,
   type Editor,
-  HttpError,
-  RateLimitedError,
   type RemoteFetch,
-  toOsmZoom,
 } from '@osm-editor-kit/maid-core'
 /**
  * Loads OSM data for the viewport and keeps MapLibre's sources in sync.
@@ -20,12 +17,9 @@ import {
   type Action,
   actionAddEntity,
   actionAddMidpoint,
-  actionConnect,
-  actionCopyEntities,
   actionChangeTags,
   actionMoveNode,
   type CombinedTags,
-  combinedTags,
   type Difference,
   Graph,
   OsmWay,
@@ -33,21 +27,18 @@ import {
   OsmNode,
 } from '@osm-editor-kit/maid-model'
 import type { Operation, OperationContext } from '@osm-editor-kit/maid-operations'
-import type { Geometry, Preset, Presets } from '@osm-editor-kit/maid-presets'
-import { hasInterestingTags, type Lens, type Tags } from '@osm-editor-kit/maid-style'
+import type { Geometry, Preset } from '@osm-editor-kit/maid-presets'
+import type { Lens, Tags } from '@osm-editor-kit/maid-style'
 import type { Feature } from 'geojson'
 import type { GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl'
 import { dashPatterns, FeatureBuilder, type FeatureBatch, type SourceName } from './build'
-import {
-  type ChangeTagsResult,
-  planChangeTags,
-  planChangeTagsEach,
-  type TagChangeEach,
-  type TagChangeRequest,
-} from './change-tags'
-import { type Channel, makeChannels, SOURCE_NAMES } from './channels'
+import { Camera } from './camera'
+import { type ChangeTagsResult, type TagChangeEach, type TagChangeRequest } from './change-tags'
+import { SOURCE_NAMES } from './channels'
+import { Clipboard } from './clipboard'
 import { OsmData } from './data'
 import { installDirectionImages } from './direction-images'
+import { DragTool } from './drag'
 import { DrawTool, nearestOnWay, projectedNodes } from './draw'
 import { drawnCounts } from './drawn-counts'
 import { entityInfo } from './entity-info'
@@ -59,8 +50,8 @@ import {
   type LonLat,
 } from './field-overlay'
 import { ACTIVE_SOURCE, activePinIds, EDIT_SOURCES, SELECT_SOURCES, SOURCES } from './layers'
-import { distanceMetres, measureFeatures as measureOnMap } from './measure'
-import { midpointFeatures, segmentsOf, type MidpointFeature, type Segment } from './midpoints'
+import { MeasureSession } from './measure-session'
+import { MidpointHandles } from './midpoint-handles'
 import {
   boxesOf,
   centreOfBox,
@@ -76,29 +67,16 @@ import {
 import { operationContextOf } from './operation-context'
 import { operationPreview } from './operation-preview'
 import { pickAllFeatures, pickFeature } from './pick'
+import { PresetsHold } from './presets-hold'
 import { movedOf, redrawEntities } from './redraw'
-import { boundsOf, relatedIds } from './related'
+import { relatedIds } from './related'
 import { selectionShape } from './selection-shape'
-import { planSetTagsEach, type TagsOfFeature } from './set-tags-each'
-import type { Loc, Point, SnapTarget } from './snap'
-import { aimAtNode, snapTargetAt } from './snap-aim'
-import { lat2y, lon2x, x2lon, y2lat } from './tile-coords'
-import {
-  createTileLoads,
-  nearestFirst,
-  notePause,
-  outcomeOf,
-  planLoads,
-  resetLoads,
-  settleLoad,
-  TILE_TIMEOUT_MS,
-  tileKey,
-  tileXY,
-  type TileKey,
-  type TileLoads,
-} from './tile-loading'
-import { actionMoveNodes, fromMercator, nodesOf, toMercator, TransformTool } from './transform'
-import { dragTurn, TURN_TOLERANCE } from './turn'
+import { Sender } from './sender'
+import type { TagsOfFeature } from './set-tags-each'
+import type { Loc, Point } from './snap'
+import { TagEdits } from './tag-edits'
+import { TileLoader } from './tile-loader'
+import { TransformTool } from './transform'
 
 export type EngineOptions = {
   /** The editor that owns the OSM data and the edit history. The engine reads and changes them there. */
@@ -158,26 +136,6 @@ export type EntityInfo = {
   readOnly: boolean
 }
 
-/** MapLibre zoom (512 px) of the largest zoom fitTo goes to (OSM 19): a single node or a short way is not zoomed in to the last level */
-const FIT_MAX_ZOOM = 18
-/** MapLibre zoom (512 px) of a single point in fitTo (OSM 18), unless the map is already closer */
-const POINT_ZOOM = 17
-
-/** The MapLibre state that `settled()` waits on, in plain values, for diagnostics */
-function mapState(map: MapLibreMap) {
-  return {
-    loaded: map.loaded(),
-    areTilesLoaded: map.areTilesLoaded(),
-    moving: map.isMoving(),
-    zoom: map.getZoom(),
-  }
-}
-
-/** How long points and vertices wait for presets that are being made before they are drawn without icons */
-const PRESETS_HOLD_MS = 300
-/** After this, an engine that holds features starts the presets itself, if nobody has */
-const PRESETS_START_MS = 100
-
 /**
  * What a click on the map does. `browse` selects and drags; `add-point` places a new point and
  * returns to `browse`; `draw-line` and `draw-area` add a node per click until the way is finished;
@@ -196,12 +154,10 @@ export class MaidEngine {
   private builder: FeatureBuilder
   /** The map the engine draws on, once attached */
   map?: MapLibreMap
-  /** Map data tiles: their state, and the rate-limit pause that holds them (tile-loading.ts) */
-  private tileLoads: TileLoads = createTileLoads()
-  /** The one timer for the next moment a wanted tile may be asked (the end of a wait or of a pause) */
-  private wakeTimer?: ReturnType<typeof setTimeout>
-  private readonly remote: RemoteFetch
-  private inflight = 0
+  /** Map data tiles and relation loads: the requests, their timers and the rate-limit pause (tile-loader.ts) */
+  readonly tiles: TileLoader
+  /** The update channels to MapLibre, the live tier, compaction and the wait for them (sender.ts) */
+  readonly sender: Sender
   private featureSource = new Map<string, SourceName>()
   private dashCount = 0
   private hoverId: string | null = null
@@ -214,32 +170,8 @@ export class MaidEngine {
    * from which the active pin is drawn. Sent whole on each change: a few features.
    */
   private activeCopies = new Map<string, Feature>()
-  private waiters: (() => void)[] = []
-  /** Ids whose original in the big sources is hidden while a newer copy is in the live tier */
-  private editing = new Set<string>()
-  /**
-   * What the live tier holds, by source and id. The live tier is a set of small twin sources
-   * for data that arrived after the first load and for features that were changed. Updating
-   * them re-tiles only that little data; the big sources stay untouched until compaction.
-   */
-  private live: Record<SourceName, Map<string, Feature>> = {
-    areas: new Map(),
-    lines: new Map(),
-    points: new Map(),
-    vertices: new Map(),
-  }
-  private channels = {
-    base: makeChannels(SOURCES),
-    live: makeChannels(EDIT_SOURCES),
-    /** The selection's copies (SELECT_SOURCES): what is drawn below the floor of the data (layers.ts) */
-    select: makeChannels(SELECT_SOURCES),
-  }
   /** Only the selection is drawn, at any zoom. A view option: per visit, not stored. */
   private selectionOnlyShown = false
-  /** After the first view is complete, new data goes to the live tier */
-  private firstLoadDone = false
-  private compacting = false
-  private compactTimer?: ReturnType<typeof setTimeout>
 
   // The data comes from the editor, so the engine and the editor's modules see the same entities.
   // Assigned here, not in field initializers, because the builder needs `data`.
@@ -248,11 +180,66 @@ export class MaidEngine {
     // after OsmData's own listener, so the lookups are right when the redraw reads them
     options.editor.history.on('stagingchange', (difference) => this.onStagingChange(difference))
     this.builder = new FeatureBuilder(this.data, options.editor.presets)
-    // presets that are made after the first picture: the icons of what was built without them are filled in
-    this.stopPresets = options.editor.onPresets((presets) => presets && this.fillInPresets(presets))
+    this.presetsHold = new PresetsHold({
+      editor: options.editor,
+      data: this.data,
+      builder: this.builder,
+      metrics: this.metrics,
+      featureSource: this.featureSource,
+      isLive: (source, id) => this.sender.live[source].has(id),
+      push: (batch, tier) => this.push(batch, tier),
+      wake: () => this.sender.wake(),
+      changed: () => this.changed(),
+    })
     this.filterSet = createFilterSet(options.editor.filters, options.filters)
     this.builder.filters = this.filterSet
-    this.remote = options.fetch ?? standaloneFetch
+    this.tiles = new TileLoader(
+      {
+        apiUrl: options.apiUrl,
+        minDataZoom: options.minDataZoom,
+        metrics: this.metrics,
+        map: () => this.map,
+        merge: (elements) => this.merge(elements),
+        flushAll: () => this.sender.flushAll(),
+        wake: () => this.sender.wake(),
+        touch: () => this.sender.touch(),
+      },
+      options.fetch ?? standaloneFetch,
+    )
+    this.handles = new MidpointHandles({
+      map: () => this.map,
+      data: this.data,
+      mayCompute: () =>
+        this.currentMode === 'browse' &&
+        !this.draw.active &&
+        !this.transform.active &&
+        !this.measuring,
+      selected: () => this.selectedIds,
+      isDrawn: (id) => this.featureSource.has(id),
+      isReadOnly: (id) => this.isReadOnly(id),
+      projected: (way) => projectedNodes(this, way),
+      pushHighlight: () => this.pushHighlight(),
+      busy: () => this.busy(),
+      dragged: () => this.dragged,
+      dragTo: (id, lon, lat, aim) => this.dragTo(id, lon, lat, aim),
+      insertNode: (edge, loc) => {
+        let id = ''
+        this.change(() => {
+          id = this.performNodeOn({ loc, edge })
+        })
+        return id
+      },
+    })
+    this.camera = new Camera({ map: () => this.map, data: this.data, membersOf: this.membersOf })
+    this.sender = new Sender({
+      editor: options.editor,
+      metrics: this.metrics,
+      tiles: this.tiles,
+      map: () => this.map,
+      dragBusy: () => this.dragging.busy,
+      presetsPending: () => this.presetsHold.pending,
+      debugState: () => this.debugState(),
+    })
   }
 
   // --- Reading state from the UI ---
@@ -267,133 +254,14 @@ export class MaidEngine {
   }
   getVersion = () => this.version
 
-  private changed() {
+  /** Tells the components that read the engine (`subscribe`) to read again. Public for the tools that edit (drag.ts). */
+  changed() {
     this.version++
     for (const listener of this.listeners) listener()
   }
 
-  /** The editor's presets: undefined while they are being made (`editor.presetsPending`) */
-  private get presets(): Presets | undefined {
-    return this.options.editor.presets
-  }
-  private stopPresets: () => void
-  /** Slices of the fill-in after the presets arrived that are still to run; `settled()` waits for them */
-  private fillingIn = 0
-  private fillTimer?: ReturnType<typeof setTimeout>
-
-  /**
-   * Points and vertices of tiles that arrived while the presets were still being made. Their icons come from the
-   * presets, so they wait for them (at most `PRESETS_HOLD_MS`) instead of being drawn bare and drawn again: lines and
-   * areas, which do not depend on the presets, go to the map at once. Released when the presets arrive, or when the
-   * time is up (then `fillInPresets` adds the icons later). `settled()` counts them as work in progress.
-   */
-  private held: { id: string; source: 'points' | 'vertices'; tier: 'base' | 'live' }[] = []
-  private holdTimer?: ReturnType<typeof setTimeout>
-  private safetyTimer?: ReturnType<typeof setTimeout>
-
-  /** Takes the points and vertices out of a batch to hold them. Returns the batch as it is to be sent now. */
-  private holdForPresets(batch: FeatureBatch, tier: 'base' | 'live') {
-    if (!this.options.editor.presetsPending) return batch
-    for (const source of ['points', 'vertices'] as const) {
-      for (const feature of batch[source]) {
-        const id = featureId(feature)
-        // an untagged vertex (a junction, the end of a way) has no icon to wait for
-        if (id === undefined || (source === 'vertices' && !feature.properties?.t)) continue
-        this.held.push({ id, source, tier })
-      }
-    }
-    if (this.held.length === 0) return batch
-    const holding = new Set(this.held.map((entry) => entry.id))
-    batch = {
-      ...batch,
-      points: batch.points.filter((f) => !holding.has(String(featureId(f)))),
-      vertices: batch.vertices.filter((f) => !holding.has(String(featureId(f)))),
-    }
-    // The shell starts the presets once `ready` is over (loadPresetsAfterReady) and `settled()` asks for them. This is
-    // the net for an engine that has neither: a little later, not at once, because running the presets chunk in the
-    // task of the first tile would delay whatever else is waiting for the main thread then (`ready`).
-    this.safetyTimer ??= setTimeout(() => void this.options.editor.loadPresets(), PRESETS_START_MS)
-    this.holdTimer ??= setTimeout(() => this.releaseHeld(), PRESETS_HOLD_MS)
-    return batch
-  }
-
-  /** Sends what was held, built again with the presets if they are there (with no icon if the time was up) */
-  private releaseHeld() {
-    clearTimeout(this.holdTimer)
-    this.holdTimer = undefined
-    const held = this.held
-    if (held.length === 0) return
-    this.held = []
-    const sends = new Map<string, FeatureBatch>()
-    for (const { id, source, tier } of held) {
-      const node = this.data.node(id)
-      if (!node) continue
-      const feature =
-        source === 'points' ? this.builder.buildPoint(node) : this.builder.buildVertex(node)
-      if (!feature) continue
-      let batch = sends.get(tier)
-      if (!batch) sends.set(tier, (batch = { areas: [], lines: [], points: [], vertices: [] }))
-      batch[source].push(feature)
-    }
-    for (const [tier, batch] of sends) this.push(batch, tier as 'base' | 'live')
-    this.wake()
-  }
-
-  /**
-   * The presets arrived after features were built without them. Presets only decorate the first picture: they give
-   * a pin or a vertex its icon (nothing else a feature is drawn as depends on them: the geometry class comes from the
-   * style package's own area keys). So the points and vertices that are drawn are built again, and only those that
-   * now have an icon are sent, in slices of about 8 ms with a pause between them, as updates by id (no geometry of a
-   * line or an area is touched). When the presets are there before the first tile, nothing was built and there is
-   * nothing to do. Edited features (live tier) are replaced in the live tier, the others in the big sources.
-   */
-  private fillInPresets(presets: Presets) {
-    this.builder.presets = presets
-    // what is drawn already was built without them (the held features are not drawn yet)
-    const ids: string[] = []
-    for (const [id, source] of this.featureSource) {
-      if (source === 'points' || source === 'vertices') ids.push(id)
-    }
-    // what waited for the presets is built with them, and is not drawn bare at all
-    this.releaseHeld()
-    // the type of a selected feature, read from the presets: whoever shows it reads it again
-    this.changed()
-    if (ids.length === 0) return
-    this.fillingIn++
-    let at = 0
-    const slice = () => {
-      this.fillTimer = undefined
-      const started = performance.now()
-      const base: FeatureBatch = { areas: [], lines: [], points: [], vertices: [] }
-      const live: FeatureBatch = { areas: [], lines: [], points: [], vertices: [] }
-      while (at < ids.length && performance.now() - started < 8) {
-        const id = ids[at++]!
-        const source = this.featureSource.get(id)
-        const node = this.data.node(id)
-        if (
-          (source !== 'points' && source !== 'vertices') ||
-          !node ||
-          !hasInterestingTags(node.tags)
-        )
-          continue
-        const feature =
-          source === 'points' ? this.builder.buildPoint(node) : this.builder.buildVertex(node)
-        // a feature that has no icon with the presets is as it was
-        if (!feature?.properties?.icon) continue
-        ;(this.live[source].has(id) ? live : base)[source].push(feature)
-      }
-      this.push(base, 'base')
-      this.push(live, 'live')
-      this.metrics.fillInMs += performance.now() - started
-      if (at < ids.length) {
-        this.fillTimer = setTimeout(slice, 0)
-        return
-      }
-      this.fillingIn--
-      this.wake()
-    }
-    this.fillTimer = setTimeout(slice, 0)
-  }
+  /** Points and vertices held for the presets, and the fill-in once they arrive (presets-hold.ts) */
+  private presetsHold!: PresetsHold
 
   /** The tags an entity had when it was loaded, before any edit; undefined for one that was added here */
   baseTags(id: string) {
@@ -454,7 +322,7 @@ export class MaidEngine {
     this.map = map
     // a frame drawn after the last data change: `settled()` needs one (see `dataSeq`)
     map.on('render', () => {
-      this.renderedSeq = this.dataSeq
+      this.sender.renderedSeq = this.sender.dataSeq
     })
     this.flushActive()
     // before the first tile is pushed: an image that arrives later does not show in that tile
@@ -462,100 +330,22 @@ export class MaidEngine {
     // the side line of a field depends on the view: its visible part may bend or leave the screen
     map.on('moveend', () => {
       this.refreshFieldOverlay()
-      this.refreshMidpoints()
+      this.handles.refresh()
     })
-    this.loadVisibleTiles()
+    this.tiles.loadVisibleTiles()
   }
 
-  /** OSM zoom (256px tiles) of the map (`toOsmZoom` in maid-core) */
   osmZoom() {
-    return toOsmZoom(this.map?.getZoom() ?? 0)
+    return this.tiles.osmZoom()
   }
-
   loadVisibleTiles() {
-    const { map } = this
-    this.touch()
-    if (!map) return
-    // below the minimum zoom nothing is wanted, so the loads in flight are cancelled
-    const wanted: TileKey[] = []
-    if (this.osmZoom() >= this.options.minDataZoom) {
-      const bounds = map.getBounds()
-      const x0 = lon2x(bounds.getWest())
-      const x1 = lon2x(bounds.getEast())
-      const y0 = lat2y(bounds.getNorth())
-      const y1 = lat2y(bounds.getSouth())
-      const cx = (x0 + x1) / 2
-      const cy = (y0 + y1) / 2
-      const inView: [number, number][] = []
-      for (let x = x0; x <= x1; x++) {
-        for (let y = y0; y <= y1; y++) inView.push([x, y])
-      }
-      // centre first, like a person would want it
-      for (const [x, y] of nearestFirst(inView, [cx, cy])) wanted.push(tileKey(x, y))
-    }
-    this.requestTiles(wanted)
+    this.tiles.loadVisibleTiles()
   }
-
-  /**
-   * Asks for the wanted tiles that may be asked now, in the order given, and cancels the loads of tiles
-   * that are no longer wanted. Then sets the wake-up for the next wait or pause that ends.
-   */
-  private requestTiles(wanted: readonly TileKey[]) {
-    const plan = planLoads(this.tileLoads, wanted, Date.now())
-    for (const { key, controller } of plan.start) void this.loadTile(key, controller)
-    this.scheduleWake(plan.nextWakeAt)
+  loadRelation(id: string) {
+    return this.tiles.loadRelation(id)
   }
-
-  /** One timer for the next moment a wanted tile may be asked. It asks again for the view as it is then. */
-  private scheduleWake(at: number | undefined) {
-    clearTimeout(this.wakeTimer)
-    this.wakeTimer = undefined
-    if (at === undefined) return
-    this.wakeTimer = setTimeout(
-      () => {
-        this.wakeTimer = undefined
-        this.loadVisibleTiles()
-      },
-      Math.max(0, at - Date.now()),
-    )
-  }
-
-  private async loadTile(key: TileKey, controller: AbortController) {
-    const [x, y] = tileXY(key)
-    this.inflight++
-    try {
-      const bbox = [x2lon(x), y2lat(y + 1), x2lon(x + 1), y2lat(y)].join(',')
-      const url = `${this.options.apiUrl}/api/0.6/map.json?bbox=${bbox}`
-      const t0 = performance.now()
-      const res = await this.remote(url, { signal: controller.signal, timeoutMs: TILE_TIMEOUT_MS })
-      if (!res.ok) throw new HttpError(res.status, url)
-      const text = await res.text()
-      const t1 = performance.now()
-      const json = JSON.parse(text) as { elements: OsmJsonElement[] }
-      const t2 = performance.now()
-      // a request that was cancelled meanwhile (the tile left the view) is not used
-      if (!settleLoad(this.tileLoads, key, controller, { kind: 'loaded' }, Date.now())) return
-      this.metrics.tiles++
-      this.metrics.bytes += text.length
-      this.metrics.fetchMs += t1 - t0
-      this.metrics.parseMs += t2 - t1
-      this.merge(json.elements)
-    } catch (error) {
-      const outcome = outcomeOf(error, controller.signal)
-      const current = settleLoad(this.tileLoads, key, controller, outcome, Date.now())
-      if (outcome.kind !== 'aborted') console.error(error)
-      // a failed tile has a wait, and a paused service has an end: plan again when they end
-      const waits = current && (outcome.kind === 'failed' || outcome.kind === 'refused')
-      if (waits || outcome.kind === 'rateLimited') this.loadVisibleTiles()
-    } finally {
-      this.inflight--
-      if (this.inflight === 0) {
-        this.flushAll()
-        // the first view is complete: from now on new data goes to the live tier
-        if (this.metrics.tiles > 0) this.firstLoadDone = true
-        this.wake()
-      }
-    }
+  loadEntity(id: string) {
+    return this.tiles.loadEntity(id)
   }
 
   /** Merges elements of the API into the data and the map. Returns how many entities were new. */
@@ -566,8 +356,8 @@ export class MaidEngine {
     const built = this.builder.build(added)
     const t2 = performance.now()
     // decided now, not when the images are ready: by then the first view may count as complete
-    const tier = this.firstLoadDone ? 'live' : 'base'
-    const batch = this.holdForPresets(built, tier)
+    const tier = this.tiles.firstLoadDone ? 'live' : 'base'
+    const batch = this.presetsHold.hold(built, tier)
     if (this.options.prepare) {
       // Areas and lines need no image, so they go to MapLibre at once and the worker tiles them while the shell
       // makes the pins and icons. Points and vertices wait for their images.
@@ -578,9 +368,9 @@ export class MaidEngine {
         points: batch.points,
         vertices: batch.vertices,
       }
-      this.preparing++
+      this.sender.preparing++
       void this.options.prepare(batch).finally(() => {
-        this.preparing--
+        this.sender.preparing--
         this.push(waiting, tier)
       })
     } else this.push(batch, tier)
@@ -597,7 +387,10 @@ export class MaidEngine {
   }
 
   /** Sends features to MapLibre: to the live tier once the first view is complete, else to the big sources */
-  private push(batch: FeatureBatch, tier: 'base' | 'live' = this.firstLoadDone ? 'live' : 'base') {
+  private push(
+    batch: FeatureBatch,
+    tier: 'base' | 'live' = this.tiles.firstLoadDone ? 'live' : 'base',
+  ) {
     for (const name of SOURCE_NAMES) {
       const features = batch[name]
       if (features.length === 0) continue
@@ -607,7 +400,7 @@ export class MaidEngine {
         const id = featureId(f)
         if (id === undefined) continue
         this.featureSource.set(id, name)
-        if (tier === 'live') this.live[name].set(id, f)
+        if (tier === 'live') this.sender.live[name].set(id, f)
         // a related feature that was not loaded when it was asked for gets its state now
         if (this.wantedRelated.has(id)) {
           this.appliedRelated.delete(id)
@@ -625,14 +418,14 @@ export class MaidEngine {
       ) {
         queueMicrotask(() => this.applyHighlight([], 'selected'))
       }
-      const channel = this.channels[tier][name]
+      const channel = this.sender.channels[tier][name]
       channel.queue = channel.queue.concat(features)
       channel.dirty = true
-      this.scheduleFlush(channel)
+      this.sender.scheduleFlush(channel)
     }
     this.pushSelect(batch)
     this.pushActive(batch)
-    this.touch()
+    this.sender.touch()
   }
 
   /**
@@ -649,10 +442,10 @@ export class MaidEngine {
         return id !== undefined && selected.has(id)
       })
       if (picked.length === 0) continue
-      const channel = this.channels.select[name]
+      const channel = this.sender.channels.select[name]
       channel.queue = channel.queue.concat(picked)
       channel.dirty = true
-      this.scheduleFlush(channel)
+      this.sender.scheduleFlush(channel)
     }
   }
 
@@ -707,14 +500,14 @@ export class MaidEngine {
   private flushActive() {
     const source = this.map?.getSource<GeoJSONSource>(ACTIVE_SOURCE)
     if (!source) return
-    this.dataSeq++
-    this.activeSending++
+    this.sender.dataSeq++
+    this.sender.activeSending++
     void source
       .setData({ type: 'FeatureCollection', features: [...this.activeCopies.values()] })
       .finally(() => {
-        this.activeSending--
-        this.dataSeq++
-        this.wake()
+        this.sender.activeSending--
+        this.sender.dataSeq++
+        this.sender.wake()
       })
   }
 
@@ -735,12 +528,12 @@ export class MaidEngine {
   private dropFromSelectTier(id: string) {
     const name = this.featureSource.get(id)
     if (!name) return
-    const channel = this.channels.select[name]
+    const channel = this.sender.channels.select[name]
     // a copy still waiting to be sent goes too, so the next update does not bring it back
     channel.queue = channel.queue.filter((f) => featureId(f) !== id)
     channel.removals.push(id)
     channel.dirty = true
-    this.scheduleFlush(channel)
+    this.sender.scheduleFlush(channel)
   }
 
   /** Only the selection is drawn, at any zoom, and the data is hidden (layers.ts `selectionOnly`). Per visit. */
@@ -763,69 +556,6 @@ export class MaidEngine {
     this.changed()
   }
 
-  private flushTimer?: ReturnType<typeof setTimeout>
-
-  private scheduleFlush(channel: Channel) {
-    // more tiles of this view are on their way: wait for them, but never longer than 150 ms
-    if (this.inflight > 1) {
-      this.flushTimer ??= setTimeout(() => this.flushAll(), 150)
-      return
-    }
-    void this.flush(channel)
-  }
-
-  private allChannels() {
-    return [
-      ...Object.values(this.channels.base),
-      ...Object.values(this.channels.live),
-      ...Object.values(this.channels.select),
-    ]
-  }
-
-  private flushAll() {
-    clearTimeout(this.flushTimer)
-    this.flushTimer = undefined
-    for (const channel of this.allChannels()) void this.flush(channel)
-  }
-
-  /**
-   * One update per source at a time. Features that arrive while MapLibre's worker is busy
-   * wait and go out together as the next update. Sending overlapping `updateData` calls
-   * left tiles in an inconsistent state (queries threw "feature index out of bounds").
-   */
-  private async flush(channel: Channel) {
-    if (channel.busy || !channel.dirty) return
-    const source = this.map?.getSource<GeoJSONSource>(channel.sourceId)
-    if (!source) return
-    channel.busy = true
-    channel.dirty = false
-    this.metrics.updates++
-    try {
-      const add = channel.queue
-      const remove = channel.removals
-      channel.queue = []
-      channel.removals = []
-      this.dataSeq++
-      await source.updateData({ add, remove })
-      await this.tilesReloaded(channel.sourceId)
-    } finally {
-      this.dataSeq++
-      channel.busy = false
-      if (channel.dirty) void this.flush(channel)
-      else this.wake()
-    }
-  }
-
-  /** Resolves when this channel has nothing queued or in flight */
-  private async channelIdle(channel: Channel) {
-    while (channel.busy || channel.dirty)
-      await new Promise<void>((resolve) => this.waiters.push(resolve))
-  }
-
-  private wake() {
-    for (const done of this.waiters.splice(0)) done()
-  }
-
   /**
    * Starts the data again after an upload. The caller has reset the editor's history, so the data is
    * empty: the features come off the map, the loads in flight are cancelled, and the selection is the
@@ -838,195 +568,18 @@ export class MaidEngine {
     this.data.nodeWays.clear()
     this.data.endpoints.clear()
     this.data.wayMultipolygons.clear()
-    resetLoads(this.tileLoads)
-    for (const entry of this.relationLoads.values()) {
-      entry.controller.abort(new DOMException('the data was reloaded', 'AbortError'))
-    }
-    this.relationLoads.clear()
-    this.firstLoadDone = false
+    this.tiles.restart()
     this.rebuildAll()
     this.setSelected(selection)
-    this.scheduleWake(Date.now() + delayMs)
+    this.tiles.scheduleWake(Date.now() + delayMs)
     this.changed()
   }
 
-  // --- Compaction: move the live tier into the big sources when nothing else is going on ---
-
-  /** Call on any activity. Compaction waits until two seconds have passed without one. */
-  private touch() {
-    clearTimeout(this.compactTimer)
-    this.compactTimer = setTimeout(() => void this.compact(), 2000)
-  }
-
-  private async compact() {
-    const { map } = this
-    if (!map) return
-    // only when the picture is final: compaction must never delay it
-    if (
-      this.compacting ||
-      this.dragBusy ||
-      this.inflight > 0 ||
-      this.pushing() ||
-      map.isMoving() ||
-      !map.loaded()
-    )
-      return this.touch()
-    const snapshot = SOURCE_NAMES.map((name) => [name, [...this.live[name].values()]] as const)
-    if (snapshot.every(([, features]) => features.length === 0)) return
-    this.compacting = true
-    try {
-      // 1. copy into the big sources; the map keeps showing the live copies meanwhile
-      for (const [name, features] of snapshot) {
-        if (features.length === 0) continue
-        const channel = this.channels.base[name]
-        channel.queue = channel.queue.concat(features)
-        channel.dirty = true
-        void this.flush(channel)
-      }
-      await Promise.all(
-        Object.values(this.channels.base).map((channel) => this.channelIdle(channel)),
-      )
-      // 2. drop the live copies that were not changed again since, and show the originals
-      for (const [name, features] of snapshot) {
-        const done = features.flatMap((f) => {
-          const id = featureId(f)
-          return id !== undefined && this.live[name].get(id) === f ? [id] : []
-        })
-        if (done.length === 0) continue
-        for (const id of done) {
-          this.live[name].delete(id)
-          if (this.editing.delete(id))
-            map.removeFeatureState({ source: SOURCES[name], id }, 'editing')
-        }
-        const channel = this.channels.live[name]
-        channel.removals = channel.removals.concat(done)
-        channel.dirty = true
-        void this.flush(channel)
-      }
-      await Promise.all(
-        Object.values(this.channels.live).map((channel) => this.channelIdle(channel)),
-      )
-      this.metrics.compactions++
-    } finally {
-      this.compacting = false
-      this.wake()
-    }
-  }
-
   /**
-   * `updateData` resolves when the worker has the new data, but the visible tiles are still
-   * being rebuilt. A second update during that rebuild is what broke the tiles, so wait for it.
+   * Resolves when all requested tiles are merged and MapLibre has drawn them (see `Sender.settled`).
    */
-  private tilesReloaded(sourceId: string) {
-    const { map } = this
-    if (!map || map.isSourceLoaded(sourceId)) return Promise.resolve()
-    return new Promise<void>((resolve) => {
-      const done = () => {
-        clearTimeout(timer)
-        map.off('sourcedata', check)
-        resolve()
-      }
-      const check = () => map.isSourceLoaded(sourceId) && done()
-      const timer = setTimeout(done, 5000)
-      map.on('sourcedata', check)
-    })
-  }
-
-  private preparing = 0
-  /** Counts every change of what a source holds (start and end of each update). `render` copies it to `renderedSeq`. */
-  private dataSeq = 0
-  private renderedSeq = 0
-  /** Updates of the active source that MapLibre has not confirmed yet */
-  private activeSending = 0
-
-  private pushing() {
-    return (
-      this.preparing > 0 ||
-      this.activeSending > 0 ||
-      this.flushTimer !== undefined ||
-      this.dragBusy ||
-      this.compacting ||
-      this.fillingIn > 0 ||
-      this.held.length > 0 ||
-      this.allChannels().some((channel) => channel.busy || channel.dirty)
-    )
-  }
-
-  /**
-   * Resolves when all requested tiles are merged and MapLibre has drawn them. Every wait in here is bounded (250 ms,
-   * 2 s, or the deadline), so this either resolves or throws with the state that was waiting; it never hangs silently.
-   */
-  async settled(timeoutMs = 60000) {
-    const { map } = this
-    if (!map) throw new Error('Engine is not attached to a map')
-    const deadline = performance.now() + timeoutMs
-    for (;;) {
-      if (performance.now() > deadline) {
-        throw new Error(
-          `Maid did not settle in ${timeoutMs}ms: ${JSON.stringify({
-            map: mapState(map),
-            engine: this.debugState(),
-          })}`,
-        )
-      }
-      this.loadVisibleTiles()
-      // the presets are made after the first picture: they are work in progress until they are there and the
-      // icons of what was drawn without them are filled in (`pushing` counts the fill-in)
-      const { editor } = this.options
-      if (editor.presetsPending) {
-        await editor.loadPresets()
-        continue
-      }
-      if (this.inflight > 0 || this.pushing()) {
-        // woken when work finishes; the timer covers work that ends without sending anything
-        await new Promise<void>((resolve) => {
-          this.waiters.push(resolve)
-          setTimeout(resolve, 250)
-        })
-        continue
-      }
-      // `idle` is MapLibre's "nothing left to draw": tiles are loaded, symbols are placed and
-      // faded in. Waiting for less would call a picture final while pins are still missing.
-      await this.nextIdle(map)
-      // Back to the top (and so to the deadline) unless every condition holds on this very check: nothing in flight,
-      // no update on its way, MapLibre has every source loaded and all tiles, has not moved, and has drawn a frame
-      // after the last change of any source's data. A timer never ends the wait.
-      if (
-        this.inflight === 0 &&
-        !this.pushing() &&
-        map.loaded() &&
-        map.areTilesLoaded() &&
-        !map.isMoving() &&
-        this.sourcesLoaded(map) &&
-        this.renderedSeq === this.dataSeq
-      )
-        return
-    }
-  }
-
-  /** True when MapLibre holds every source the engine feeds as loaded (no tile of it is being rebuilt) */
-  private sourcesLoaded(map: MapLibreMap) {
-    return [ACTIVE_SOURCE, ...this.allChannels().map((channel) => channel.sourceId)].every(
-      (id) => !map.getSource(id) || map.isSourceLoaded(id),
-    )
-  }
-
-  /**
-   * Resolves at MapLibre's next `idle`, or after 2 s if there is none. A frame is requested first, so the state is
-   * looked at again on a frame that is drawn. The listener is removed either way: a timer that wins leaves none behind.
-   * The caller checks the state again after this returns, so a missed idle only costs the 2 s.
-   */
-  private nextIdle(map: MapLibreMap) {
-    return new Promise<void>((resolve) => {
-      const done = () => {
-        clearTimeout(timer)
-        map.off('idle', done)
-        resolve()
-      }
-      const timer = setTimeout(done, 2000)
-      map.on('idle', done)
-      map.triggerRepaint()
-    })
+  settled(timeoutMs = 60000) {
+    return this.sender.settled(timeoutMs)
   }
 
   /**
@@ -1038,7 +591,7 @@ export class MaidEngine {
       string,
       { busy: boolean; dirty: boolean; queued: number; removals: number }
     > = {}
-    for (const [tier, group] of Object.entries(this.channels)) {
+    for (const [tier, group] of Object.entries(this.sender.channels)) {
       for (const [name, channel] of Object.entries(group)) {
         channels[`${tier}/${name}`] = {
           busy: channel.busy,
@@ -1049,29 +602,29 @@ export class MaidEngine {
       }
     }
     const tiles: Record<string, number> = {}
-    for (const state of this.tileLoads.tiles.values()) {
+    for (const state of this.tiles.loads.tiles.values()) {
       tiles[state.status] = (tiles[state.status] ?? 0) + 1
     }
     return {
-      inflight: this.inflight,
-      pushing: this.pushing(),
+      inflight: this.tiles.inflight,
+      pushing: this.sender.pushing(),
       parts: {
-        preparing: this.preparing,
+        preparing: this.sender.preparing,
         presetsPending: this.options.editor.presetsPending,
-        fillingIn: this.fillingIn,
-        held: this.held.length,
-        flushTimer: this.flushTimer !== undefined,
-        activeSending: this.activeSending,
-        dataSeq: this.dataSeq,
-        renderedSeq: this.renderedSeq,
-        dragBusy: this.dragBusy,
-        compacting: this.compacting,
+        fillingIn: this.presetsHold.fillingIn,
+        held: this.presetsHold.heldCount,
+        flushTimer: this.sender.flushTimer !== undefined,
+        activeSending: this.sender.activeSending,
+        dataSeq: this.sender.dataSeq,
+        renderedSeq: this.sender.renderedSeq,
+        dragBusy: this.dragging.busy,
+        compacting: this.sender.compacting,
       },
       channels,
       tiles,
-      pausedUntil: this.tileLoads.pausedUntil,
-      waiters: this.waiters.length,
-      firstLoadDone: this.firstLoadDone,
+      pausedUntil: this.tiles.loads.pausedUntil,
+      waiters: this.sender.waiters.length,
+      firstLoadDone: this.tiles.firstLoadDone,
       selection: [...this.selectedIds],
       shown: { selected: [...this.shownSelected], hovered: this.shownHover },
       metrics: { ...this.metrics },
@@ -1100,7 +653,9 @@ export class MaidEngine {
     const t0 = performance.now()
     // not announced to React: this runs on every pointer move, the commit at the end is announced
     this.change(() => this.data.history.perform(actionMoveNode(id, [lon, lat])), false)
-    await Promise.all(Object.values(this.channels.live).map((channel) => this.channelIdle(channel)))
+    await Promise.all(
+      Object.values(this.sender.channels.live).map((channel) => this.sender.channelIdle(channel)),
+    )
     await new Promise<void>((resolve) => {
       map.triggerRepaint()
       void map.once('render').then(() => resolve())
@@ -1116,107 +671,35 @@ export class MaidEngine {
     for (const name of SOURCE_NAMES) {
       for (const f of batch[name]) {
         const id = featureId(f)
-        if (id === undefined || this.editing.has(id) || this.live[name].has(id)) continue
-        this.editing.add(id)
+        if (id === undefined || this.sender.editing.has(id) || this.sender.live[name].has(id))
+          continue
+        this.sender.editing.add(id)
         this.map?.setFeatureState({ source: SOURCES[name], id }, { editing: true })
       }
     }
   }
 
-  // --- Changing tags ---
+  // --- Changing tags (tag-edits.ts) ---
 
-  /**
-   * Sets or removes one tag of an entity and redraws it with the look the new tags give it.
-   * Local only: nothing is uploaded. The change is one undo step.
-   */
+  readonly tagEdits = new TagEdits(this)
   setTag(id: string, key: string, value: string | undefined) {
-    if (value === undefined || value === '') this.changeTags([id], { remove: [key] })
-    else this.changeTags([id], { set: { [key]: value } })
+    this.tagEdits.setTag(id, key, value)
   }
-
-  /**
-   * Writes a change to the tags of several features as one undo step, with the label `annotation`.
-   * `set` writes a key to every feature, `remove` deletes it where present (see `cleanTagChange`: an
-   * empty `set` value is dropped, so a blank never clears a key). A feature that the change leaves as
-   * it is is not touched. Refused, with nothing written, when an id is not in the graph or when any
-   * selected feature is read-only: the result says how many of how many are read-only.
-   * Redraws every changed feature, as for any tag change.
-   */
   changeTags(
     ids: readonly string[],
     change: TagChangeRequest,
     annotation = 'Changed tags',
   ): ChangeTagsResult {
-    const plan = planChangeTags(this.data.history.staging.graph, ids, change, (id) =>
-      this.isReadOnly(id),
-    )
-    if (!plan.ok) return plan
-    if (plan.changed > 0) {
-      const { history } = this.data
-      this.change(() => {
-        history.perform(...plan.actions)
-        history.commit({ annotation, selectedIDs: [...new Set(ids)] })
-      })
-    }
-    return { ok: true, changed: plan.changed }
+    return this.tagEdits.changeTags(ids, change, annotation)
   }
-
-  /**
-   * `changeTags` with each feature's own change: `changes` lists the features and what each one writes (a
-   * sheet of several features renames a key on each feature and keeps that feature's value). One undo step,
-   * with the same refusals as `changeTags`: nothing is written when a feature is missing or read-only.
-   */
   changeTagsEach(changes: readonly TagChangeEach[], annotation = 'Changed tags'): ChangeTagsResult {
-    const plan = planChangeTagsEach(this.data.history.staging.graph, changes, (id) =>
-      this.isReadOnly(id),
-    )
-    if (!plan.ok) return plan
-    if (plan.changed > 0) {
-      const { history } = this.data
-      const selectedIDs = [...new Set(changes.map((change) => change.id))]
-      this.change(() => {
-        history.perform(...plan.actions)
-        history.commit({ annotation, selectedIDs })
-      })
-    }
-    return { ok: true, changed: plan.changed }
+    return this.tagEdits.changeTagsEach(changes, annotation)
   }
-
-  /**
-   * Writes each feature its own full tags (a key not listed is removed) as one undo step, with the
-   * label `annotation`: the type picker gives each feature the new preset's tags, computed from its
-   * own. Same refusals and result as `changeTags` (see `planSetTagsEach`); a feature whose tags are
-   * already those is not touched. Redraws every changed feature.
-   */
   setTagsEach(changes: readonly TagsOfFeature[], annotation = 'Changed tags'): ChangeTagsResult {
-    const plan = planSetTagsEach(this.data.history.staging.graph, changes, (id) =>
-      this.isReadOnly(id),
-    )
-    if (!plan.ok) return plan
-    if (plan.changed > 0) {
-      const { history } = this.data
-      const selectedIDs = [...new Set(changes.map((change) => change.id))]
-      this.change(() => {
-        history.perform(...plan.actions)
-        history.commit({ annotation, selectedIDs })
-      })
-    }
-    return { ok: true, changed: plan.changed }
+    return this.tagEdits.setTagsEach(changes, annotation)
   }
-
-  /**
-   * The combined tags of several features, for the inspector: per key the one value every feature has,
-   * or the values that differ (see `combinedTags` in the model). For one feature every key is `one`.
-   * Reads the staging graph. An id that is not in the graph is left out.
-   */
   combinedTagsOf(ids: readonly string[]): CombinedTags {
-    const graph = this.data.history.staging.graph
-    const tagsOfEach: Tags[] = []
-    for (const id of ids) {
-      const entity = graph.hasEntity(id)
-      if (entity) tagsOfEach.push(entity.tags)
-    }
-    return combinedTags(tagsOfEach)
+    return this.tagEdits.combinedTagsOf(ids)
   }
 
   /** Replaces all tags of an entity, for example when a preset is chosen. One undo step. */
@@ -1286,29 +769,29 @@ export class MaidEngine {
     for (const name of SOURCE_NAMES) {
       const ids = [...this.featureSource].filter(([, source]) => source === name).map(([id]) => id)
       for (const tier of ['base', 'live', 'select'] as const) {
-        const channel = this.channels[tier][name]
+        const channel = this.sender.channels[tier][name]
         // features that were still waiting to be sent are dropped with the rest
         channel.queue = []
         channel.removals = channel.removals.concat(ids)
         channel.dirty = true
       }
-      this.live[name].clear()
+      this.sender.live[name].clear()
       // only where the state was set: MapLibre throws on its next frame when a key is removed
       // from a feature that has no state in that source
-      for (const id of this.editing) {
+      for (const id of this.sender.editing) {
         const target = { source: SOURCES[name], id }
         if (map?.getFeatureState(target).editing !== undefined)
           map.removeFeatureState(target, 'editing')
       }
     }
-    this.editing.clear()
+    this.sender.editing.clear()
     this.featureSource.clear()
     this.builder.reset()
     // the copies are rebuilt from the data that comes back; a wanted point that is gone leaves no copy
     this.activeCopies.clear()
     this.push(this.builder.build(this.data.all()), 'base')
     this.flushActive()
-    for (const channel of this.allChannels()) void this.flush(channel)
+    for (const channel of this.sender.allChannels()) void this.sender.flush(channel)
     queueMicrotask(() => this.applyHighlight([], 'selected'))
   }
 
@@ -1377,67 +860,23 @@ export class MaidEngine {
       return false
     this.currentMode = mode
     // the handles are for browsing only: none while drawing or moving
-    this.computeMidpoints()
+    this.handles.compute()
     this.pushHighlight()
     this.changed()
     return true
   }
 
-  // --- Copy and paste ---
+  // --- Copy and paste (clipboard.ts) ---
 
-  /** What Cmd+C took: ids and the graph they are read from when pasted */
-  private clipboard?: { ids: string[]; graph: Graph }
-
-  /** True if something was copied and can be pasted */
+  readonly clipboard = new Clipboard(this)
   get canPaste() {
-    return this.clipboard !== undefined
+    return this.clipboard.canPaste
   }
-
-  /** Remembers the selection for `paste`. Returns false if nothing is selected. */
   copy() {
-    if (this.selectedIds.length === 0) return false
-    this.clipboard = { ids: [...this.selectedIds], graph: this.data.history.stable.graph }
-    return true
+    return this.clipboard.copy()
   }
-
-  /**
-   * Adds copies of what was copied, with their middle at this place, as one undo step, and
-   * returns the ids of the copies. Relations are copied with new members, as in iD.
-   */
   paste(lon: number, lat: number) {
-    const { clipboard } = this
-    if (!clipboard || this.draw.active || this.transform.active) return []
-    // the graph is the state at the time of the copy; what was not in it cannot be copied
-    const ids = clipboard.ids.filter((id) => clipboard.graph.hasEntity(id) !== undefined)
-    if (ids.length === 0) return []
-    const action = actionCopyEntities(ids, clipboard.graph)
-    let pasted: string[] = []
-    this.change(() => {
-      const { history } = this.data
-      history.perform(action)
-      const copies = action.copies()
-      pasted = ids.map((id) => copies[id]?.id).filter((id) => id !== undefined)
-      // move the copies as a whole so that their middle is where the pointer is
-      const nodes = [...nodesOf(this, pasted)].map((id) => ({
-        id,
-        at: toMercator(this.data.node(id)?.loc ?? [0, 0]),
-      }))
-      if (nodes.length > 0) {
-        const to = toMercator([lon, lat])
-        const dx = to[0] - nodes.reduce((sum, n) => sum + n.at[0], 0) / nodes.length
-        const dy = to[1] - nodes.reduce((sum, n) => sum + n.at[1], 0) / nodes.length
-        // one action for all the nodes: one commit, not one per node
-        history.perform(
-          actionMoveNodes(
-            nodes.map((n) => [n.id, fromMercator([n.at[0] + dx, n.at[1] + dy])] as const),
-          ),
-        )
-      }
-      const what = pasted.length === 1 ? 'a feature' : `${pasted.length} features`
-      history.commit({ annotation: `Pasted ${what}`, selectedIDs: pasted })
-    })
-    this.setSelected(pasted)
-    return pasted
+    return this.clipboard.paste(lon, lat)
   }
 
   // --- Creating and deleting ---
@@ -1504,12 +943,12 @@ export class MaidEngine {
     for (const [name, featureId] of remove) {
       this.featureSource.delete(featureId)
       for (const tier of ['base', 'live', 'select'] as const) {
-        const channel = this.channels[tier][name]
+        const channel = this.sender.channels[tier][name]
         channel.removals.push(featureId)
         channel.dirty = true
-        void this.flush(channel)
+        void this.sender.flush(channel)
       }
-      this.live[name].delete(featureId)
+      this.sender.live[name].delete(featureId)
       if (this.activeCopies.delete(featureId)) activeChanged = true
     }
     if (activeChanged) this.flushActive()
@@ -1540,7 +979,7 @@ export class MaidEngine {
   private busy() {
     return (
       this.dragged !== undefined ||
-      this.handlePress !== undefined ||
+      this.handles.pressing ||
       this.draw.active ||
       this.transform.active ||
       this.measuring
@@ -1631,149 +1070,37 @@ export class MaidEngine {
     if (relatedGone) queueMicrotask(() => this.syncRelated())
   }
 
-  // --- Dragging a vertex ---
+  // --- Dragging a vertex (drag.ts) ---
 
-  private dragTarget?: { id: string; lon: number; lat: number }
-  /** The vertex being dragged: its moves become one undo step when the drag ends */
-  private dragged?: string
-  private dragBusy = false
-  /**
-   * What the dragged node is over at the last step: a node or a way it would snap to, and the
-   * reason a drop there would be refused. Undefined while nothing is aimed at (Alt, drawing).
-   */
-  private dragAim?: { target?: SnapTarget; refused?: string }
-
-  /** Why the drop at the pointer would be refused, while a drag is over a target that is not allowed */
+  readonly dragging = new DragTool(this)
+  get dragged() {
+    return this.dragging.node
+  }
   get dragRefusal() {
-    return this.dragAim?.refused
+    return this.dragging.refusal
   }
-
-  /**
-   * What a screen point lands on for a snap: a node (a vertex or a point) within SNAP_PX first,
-   * else the line of the nearest way within SNAP_PX. Features in `skip`, read-only features and
-   * anything not in `layers` (the layers a click uses, so no hidden feature) are not targets. One
-   * query of the rendered features around the point.
-   */
   snapAt(point: Point, layers: string[], skip: ReadonlySet<string>) {
-    return snapTargetAt(this, point, layers, skip)
+    return this.dragging.snapAt(point, layers, skip)
   }
-
-  private aimAt(id: string, point: Point, layers: string[]) {
-    return aimAtNode(this, id, point, layers)
-  }
-
-  /** True if this id is a node that can be dragged: a vertex or a standalone point */
   isDraggable(id: string | null): id is string {
-    return !!id && id[0] === 'n' && this.data.node(id) !== undefined && !this.isReadOnly(id)
+    return this.dragging.isDraggable(id)
   }
-
-  /**
-   * Call on every pointer move while a vertex is held. Positions that arrive while the map is
-   * still drawing the previous one are dropped in favour of the latest, so the vertex never
-   * lags behind by more than one update.
-   */
   dragTo(
     id: string,
     lon: number,
     lat: number,
     aim?: { point: Point; layers: string[]; free: boolean },
   ) {
-    // Aimed (a vertex or a point dragged by the map view): the node snaps to what is under the pointer,
-    // unless Alt is held. A refused target keeps the node at the pointer; the drop takes it back.
-    const aimed = aim && !aim.free ? this.aimAt(id, aim.point, aim.layers) : undefined
-    this.dragAim = aimed
-    if (aim) {
-      const hover = aimed?.target
-      this.setHover(hover ? (hover.type === 'node' ? hover.id : hover.wayId) : id)
-    }
-    const at: Loc = aimed?.target && !aimed.refused ? aimed.target.loc : [lon, lat]
-    this.dragTarget = { id, lon: at[0], lat: at[1] }
-    this.dragged = id
-    this.touch()
-    if (this.dragBusy) return
-    this.dragBusy = true
-    void (async () => {
-      try {
-        while (this.dragTarget) {
-          const target = this.dragTarget
-          this.dragTarget = undefined
-          await this.moveNodeStep(target.id, target.lon, target.lat)
-        }
-      } finally {
-        this.dragBusy = false
-      }
-    })()
+    this.dragging.dragTo(id, lon, lat, aim)
   }
-
-  /** Resolves when the moves that were asked for are on the map. Does not end the drag. */
-  async settleDrag() {
-    while (this.dragBusy) await new Promise((resolve) => requestAnimationFrame(resolve))
+  settleDrag() {
+    return this.dragging.settleDrag()
   }
-
-  /** Forgets a move that was not made yet and ends the drag without an undo step */
   stopDrag() {
-    this.dragTarget = undefined
-    this.dragged = undefined
+    this.dragging.stopDrag()
   }
-
-  /**
-   * Call when the vertex is released. The drag is one undo step: the move, and the connection when
-   * the node was dropped on a node or a way (the oldest node of a connected pair survives, as iD does).
-   * A refused drop is taken back, so the node is where the drag started. Resolves with the node the
-   * selection should show after a connection (`selected`), and with the reason of a refusal.
-   */
-  async endDrag() {
-    // a press on a handle that never moved is over: it added nothing
-    this.handlePress = undefined
-    await this.settleDrag()
-    const id = this.dragged
-    const added = this.handleNode
-    const aim = this.dragAim
-    this.handleNode = undefined
-    this.dragged = undefined
-    this.dragAim = undefined
-    const { history } = this.data
-    const result: { selected?: string; refused?: string } = {}
-    if (id && history.hasWorkInProgress) {
-      const target = aim?.target
-      if (aim?.refused) {
-        this.change(() => history.revert())
-        result.refused = aim.refused
-      } else if (target?.type === 'node') {
-        const standalone = !this.data.nodeWays.get(id)?.length
-        this.change(() => {
-          history.perform(actionConnect([id, target.id]))
-          // the connect keeps the oldest of the two: the dragged node, or the one it was dropped on
-          const survivor = history.staging.graph.hasEntity(id) ? id : target.id
-          history.commit({
-            annotation: standalone ? 'Connected a point to a node' : 'Connected a way to a node',
-            selectedIDs: [survivor],
-          })
-          result.selected = survivor
-        })
-      } else if (target?.type === 'way' && this.data.node(id)) {
-        const node = this.data.node(id)!
-        const standalone = !this.data.nodeWays.get(id)?.length
-        this.change(() => {
-          // the dragged node keeps its id and its tags: it is inserted into the way at the snapped place
-          history.perform(actionAddMidpoint({ loc: target.loc, edge: target.edge }, node))
-          history.commit({
-            annotation: standalone ? 'Connected a point to a way' : 'Connected a way to a way',
-            selectedIDs: [id],
-          })
-        })
-      } else {
-        // a node that a handle drag made is a new node of the way, not a moved one
-        const annotation = id === added ? 'Added a node to a way' : 'Moved a node'
-        history.commit({ annotation, selectedIDs: [id] })
-      }
-    }
-    if (id) this.setHover(result.selected ?? id)
-    this.changed()
-    // the moved features stay in the live tier until compaction
-    this.touch()
-    this.wake()
-    return result
+  endDrag() {
+    return this.dragging.endDrag()
   }
 
   // --- Relations: members highlighted, zoom to them, load them in full ------------
@@ -1785,174 +1112,32 @@ export class MaidEngine {
     return relatedIds(id, this.membersOf)
   }
 
-  /** Relation loads in flight by relation id: a second call for the same relation shares the request */
-  private relationLoads = new Map<string, { load: Promise<number>; controller: AbortController }>()
+  // --- The camera: turning and fitting (camera.ts) ---
 
-  /**
-   * Loads a relation in full, as iD's `/relation/ID/full` call does: the relation, its node members,
-   * its way members with their nodes, and its member relations (one level, not their members). One
-   * request to `apiUrl`, merged like a map tile, so the members enter the data and the map. Nothing
-   * is written to the history: loading is not an edit. Resolves with how many entities were new;
-   * rejects with a message when the API cannot be asked or does not answer with the relation.
-   */
-  loadRelation(id: string) {
-    const running = this.relationLoads.get(id)
-    if (running) return running.load.then((added) => ({ added }))
-    // cancelled when the engine is destroyed or the relation is no longer selected (setSelected, destroy)
-    const controller = new AbortController()
-    const load = this.fetchRelation(id, controller.signal)
-    const entry = { load, controller }
-    this.relationLoads.set(id, entry)
-    const forget = () => {
-      if (this.relationLoads.get(id) === entry) this.relationLoads.delete(id)
-    }
-    load.then(forget, forget)
-    return load.then((added) => ({ added }))
+  readonly camera: Camera
+  get turnedAt() {
+    return this.camera.turnedAt
   }
-
-  /**
-   * Loads one entity that is not in the data, as iD's `loadEntity` does: a node by its own call, a way with its
-   * nodes, a relation with its members (`/full`). For the member of a relation that the map tiles did not bring.
-   * Merged like `loadRelation`; resolves with how many entities were new.
-   */
-  async loadEntity(id: string) {
-    if (id.startsWith('r')) return this.loadRelation(id)
-    const match = /^([nw])(\d+)$/.exec(id)
-    if (!match) throw new Error(`Not an OSM element: ${id}`)
-    const path = match[1] === 'n' ? `node/${match[2]}.json` : `way/${match[2]}/full.json`
-    // not kept in `relationLoads`: a member is asked for by a click, and a second click merges the same data again
-    const added = await this.fetchElements(path, new AbortController().signal)
-    return { added }
-  }
-
-  private fetchRelation(id: string, signal: AbortSignal) {
-    const match = /^r(\d+)$/.exec(id)
-    if (!match) throw new Error(`Not a relation: ${id}`)
-    return this.fetchElements(`relation/${match[1]}/full.json`, signal)
-  }
-
-  /** One call to `apiUrl` under `/api/0.6/` that answers with elements, merged into the data */
-  private async fetchElements(path: string, signal: AbortSignal) {
-    const url = `${this.options.apiUrl}/api/0.6/${path}`
-    const t0 = performance.now()
-    const res = await this.remote(url, { signal }).catch((error: unknown) => {
-      if (error instanceof HttpError) throw new Error(`OSM API answered ${error.status}`)
-      if (error instanceof RateLimitedError) {
-        // the service is paused: the map's tiles wait for the same pause
-        notePause(this.tileLoads, error.until)
-        this.loadVisibleTiles()
-        throw new Error(`OSM API answered ${error.status}`)
-      }
-      throw new Error(
-        `no answer from the OSM API (${error instanceof Error ? error.message : String(error)})`,
-      )
-    })
-    if (!res.ok) throw new Error(`OSM API answered ${res.status}`)
-    const text = await res.text()
-    const t1 = performance.now()
-    const json = JSON.parse(text) as { elements: OsmJsonElement[] }
-    const t2 = performance.now()
-    this.metrics.relations++
-    this.metrics.bytes += text.length
-    this.metrics.fetchMs += t1 - t0
-    this.metrics.parseMs += t2 - t1
-    // each element once: the API answers each one once, but a merge must not count one twice
-    const seen = new Set<string>()
-    const elements = json.elements.filter((e) => {
-      const key = `${e.type}${e.id}`
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
-    return this.merge(elements)
-  }
-
-  // --- Turning the map (bearing; tilt is switched off, see MapView) ---
-
-  /** A turn with the mouse in progress: where the press was, where the pointer is, and whether it moved */
-  private turnDrag: { start: Point; last: Point; moved: boolean } | undefined
-  /** When the last turn that moved ended (performance.now). The click MapLibre sends after it is not a click. */
-  turnedAt = Number.NEGATIVE_INFINITY
-
-  /** True from the press to the release of a turn with the mouse */
   get turning() {
-    return this.turnDrag !== undefined
+    return this.camera.turning
   }
-
-  /** A turn with the mouse starts at `point`. The caller has checked that the press is on open map. */
   startTurn(point: Point) {
-    this.turnDrag = { start: point, last: point, moved: false }
+    this.camera.startTurn(point)
   }
-
-  /**
-   * The pointer moved during a turn: the map turns around the centre of the view (turn.ts). Set on the
-   * map directly, because a turn runs on every pointer move and React would render on each one.
-   */
   moveTurn(point: Point) {
-    const drag = this.turnDrag
-    const map = this.map
-    if (!drag || !map) return
-    const { clientWidth, clientHeight } = map.getContainer()
-    const turn = dragTurn(drag.last, point, { x: clientWidth / 2, y: clientHeight / 2 })
-    drag.last = point
-    if (Math.hypot(point.x - drag.start.x, point.y - drag.start.y) > TURN_TOLERANCE)
-      drag.moved = true
-    if (turn !== 0) map.setBearing(map.getBearing() + turn)
+    this.camera.moveTurn(point)
   }
-
-  /** The turn ends with the release of the mouse */
   endTurn() {
-    const drag = this.turnDrag
-    this.turnDrag = undefined
-    if (drag?.moved) this.turnedAt = performance.now()
+    this.camera.endTurn()
   }
-
-  // The camera moves below are imperative: react-map-gl has no prop for a one-off camera move, and the
-  // map is uncontrolled (MapView passes initialViewState once).
-  /** Turns the map by `degrees` in a short ease: the keys (Shift with the arrows) */
   turnBy(degrees: number) {
-    const map = this.map
-    if (map) map.easeTo({ bearing: map.getBearing() + degrees, duration: 100 })
+    this.camera.turnBy(degrees)
   }
-
-  /** Turns the map back to north: the compass button and N */
   resetNorth() {
-    this.map?.easeTo({ bearing: 0, duration: 300 })
+    this.camera.resetNorth()
   }
-
-  /**
-   * Moves the map to show these entities: the bounds of their loaded geometry, with padding. A
-   * relation counts as its members (see relatedIds). Returns false when none of it is loaded.
-   * The zoom limits are MapLibre zoom (POINT_ZOOM, FIT_MAX_ZOOM), one level below iD's and Rapid's.
-   * The turn of the map is kept: MapLibre would otherwise bring it back to north.
-   * Imperative: a one-off camera move, which react-map-gl has no prop for (see turnBy).
-   */
   fitTo(ids: readonly string[]) {
-    const { map } = this
-    const bounds = boundsOf(ids, {
-      loc: (id) => this.data.node(id)?.loc,
-      nodesOf: (id) => this.data.way(id)?.nodes,
-      membersOf: this.membersOf,
-    })
-    if (!map || !bounds) return false
-    const [west, south, east, north] = bounds
-    if (west === east && south === north) {
-      map.easeTo({
-        center: [west, south],
-        zoom: Math.min(Math.max(map.getZoom(), POINT_ZOOM), FIT_MAX_ZOOM),
-        bearing: map.getBearing(),
-        duration: 400,
-      })
-    } else {
-      map.fitBounds(
-        [
-          [west, south],
-          [east, north],
-        ],
-        { padding: 80, maxZoom: FIT_MAX_ZOOM, bearing: map.getBearing(), duration: 400 },
-      )
-    }
-    return true
+    return this.camera.fitTo(ids)
   }
 
   /** Relation members of the selection: a selected relation's members are related */
@@ -2028,11 +1213,7 @@ export class MaidEngine {
     this.selectedIds = ids
     this.syncSelectTier(previous, ids)
     this.syncActive()
-    // a relation load belongs to the selection that asked for it: once that is gone, the load is cancelled
-    for (const [id, entry] of this.relationLoads) {
-      if (!ids.includes(id))
-        entry.controller.abort(new DOMException(`${id} is no longer selected`, 'AbortError'))
-    }
+    this.tiles.keepRelations(ids)
     this.applyHighlight(previous, 'selected')
     this.selectionRelated = this.relatedOfSelection()
     this.syncRelated()
@@ -2044,19 +1225,8 @@ export class MaidEngine {
    * the next request is cleared. For an engine that is not used any more.
    */
   destroy() {
-    this.stopPresets()
-    clearTimeout(this.fillTimer)
-    clearTimeout(this.holdTimer)
-    clearTimeout(this.safetyTimer)
-    this.held = []
-    this.fillingIn = 0
-    clearTimeout(this.wakeTimer)
-    this.wakeTimer = undefined
-    resetLoads(this.tileLoads)
-    for (const entry of this.relationLoads.values()) {
-      entry.controller.abort(new DOMException('the engine was destroyed', 'AbortError'))
-    }
-    this.relationLoads.clear()
+    this.presetsHold.destroy()
+    this.tiles.destroy()
   }
 
   /** The ids that are selected (what was asked for; `selected()` is what the map shows) */
@@ -2110,7 +1280,7 @@ export class MaidEngine {
     this.shapeFeatures = shape.features
     // a preview was for the selection and the data as they were
     this.previewFeatures = []
-    this.computeMidpoints()
+    this.handles.compute()
     this.pushHighlight()
   }
 
@@ -2122,141 +1292,36 @@ export class MaidEngine {
       type: 'FeatureCollection',
       features: [
         ...this.shapeFeatures,
-        ...this.midpointList,
+        ...this.handles.list,
         ...this.previewFeatures,
         ...this.fieldFeatures,
-        ...this.measureList,
+        ...this.measure.features,
       ],
     })
   }
 
-  // --- Midpoint handles: a node added to a selected way by a press on the middle of a segment ---
+  // --- Midpoint handles: a node added to a selected way by a press on the middle of a segment (midpoint-handles.ts) ---
 
-  /** The handles on the map now (midpoints.ts): one per segment of a selected way that is long enough and in view */
-  private midpointList: MidpointFeature[] = []
-
-  /** The handles on the map now. Public for the browser checks. */
+  readonly handles: MidpointHandles
   get midpointFeatures() {
-    return this.midpointList
+    return this.handles.list
   }
-
-  /**
-   * Works out the handles for the selected ways. Only in browse mode, only for ways that are on the map
-   * and can be changed, and only for a segment whose parent ways can all be changed too: the node
-   * of a handle goes into each of them. Nothing is sent: `refreshShape` and `refreshMidpoints` do that.
-   */
-  private computeMidpoints() {
-    const { map } = this
-    this.midpointList = []
-    if (
-      !map ||
-      this.currentMode !== 'browse' ||
-      this.draw.active ||
-      this.transform.active ||
-      this.measuring
-    )
-      return
-    const segments: Segment[] = []
-    for (const id of this.selectedIds) {
-      if (id[0] !== 'w' || !this.featureSource.has(id) || this.isReadOnly(id)) continue
-      const way = this.data.way(id)
-      if (way) segments.push(...segmentsOf(projectedNodes(this, way)))
-    }
-    if (segments.length === 0) return
-    const container = map.getContainer()
-    this.midpointList = midpointFeatures(
-      segments,
-      { width: container.clientWidth, height: container.clientHeight },
-      (p) => {
-        const at = map.unproject([p.x, p.y])
-        return [at.lng, at.lat]
-      },
-    ).filter((f) => this.midpointMayChange(f.properties.edge))
+  midpointAt(point: Point, tolerance?: number) {
+    return this.handles.at(point, tolerance)
   }
-
-  /** True if every way that a node added on this segment would join is on the map and can be changed */
-  private midpointMayChange(edge: readonly [string, string]) {
-    const [a, b] = edge
-    const bWays = new Set(this.data.nodeWays.get(b) ?? [])
-    return (this.data.nodeWays.get(a) ?? []).every(
-      (wayId) => !bWays.has(wayId) || (this.featureSource.has(wayId) && !this.isReadOnly(wayId)),
-    )
-  }
-
-  /** After the view moved: the handles are the ones in view now. Not per frame, and nothing when no way is selected. */
-  private refreshMidpoints() {
-    if (this.selectedIds.length === 0 && this.midpointList.length === 0) return
-    this.computeMidpoints()
-    this.pushHighlight()
-  }
-
-  /** The handle under a screen point, if there is one: its segment and where it is on the ground */
-  midpointAt(
-    point: Point,
-    tolerance = HANDLE_PX,
-  ): { edge: [string, string]; loc: Loc } | undefined {
-    const { map } = this
-    if (!map) return undefined
-    for (const feature of this.midpointList) {
-      const [lon, lat] = feature.geometry.coordinates as Loc
-      const at = map.project([lon, lat])
-      if (Math.hypot(at.x - point.x, at.y - point.y) <= tolerance)
-        return { edge: feature.properties.edge, loc: [lon, lat] }
-    }
-    return undefined
-  }
-
-  /** The press on a handle that has not moved yet. The node is made on the first real move (`moveHandle`). */
-  private handlePress?: { edge: [string, string]; loc: Loc; start: Point }
-  /** The node that a handle drag made, so the drag's undo step is named for what it did */
-  private handleNode?: string
-
-  /** True between a press on a handle and its release */
   get pressingHandle() {
-    return this.handlePress !== undefined
+    return this.handles.pressing
   }
-
-  /**
-   * A press at a screen point: on a handle, it is taken as the start of a handle drag and true is returned.
-   * Nothing is changed by the press itself: a press with no move adds nothing (see endDrag).
-   */
   pressMidpoint(point: Point) {
-    if (this.busy()) return false
-    const handle = this.midpointAt(point)
-    if (!handle) return false
-    this.handlePress = { ...handle, start: point }
-    return true
+    return this.handles.press(point)
   }
-
-  /**
-   * A pointer move while a handle is pressed. Until the pointer is HANDLE_DRAG_PX away from the press, nothing
-   * happens. Then the node is added on the segment (inside the drag's work in progress, so the drag is one
-   * undo step) and the drag goes on as a drag of that node: dragTo, with the same snapping as any node.
-   */
   moveHandle(
     point: Point,
     lon: number,
     lat: number,
     aim?: { point: Point; layers: string[]; free: boolean },
   ) {
-    const press = this.handlePress
-    if (!press) return
-    let id = this.dragged
-    if (id === undefined) {
-      if (Math.hypot(point.x - press.start.x, point.y - press.start.y) < HANDLE_DRAG_PX) return
-      id = this.insertHandleNode(press.edge, press.loc)
-    }
-    this.dragTo(id, lon, lat, aim)
-  }
-
-  /** The node of a handle drag: added on the segment, in the work in progress (the drag commits it) */
-  private insertHandleNode(edge: [string, string], loc: Loc) {
-    let id = ''
-    this.change(() => {
-      id = this.performNodeOn({ loc, edge })
-    })
-    this.handleNode = id
-    return id
+    this.handles.move(point, lon, lat, aim)
   }
 
   private fieldOverlay: FieldOverlay | null = null
@@ -2304,120 +1369,41 @@ export class MaidEngine {
     this.pushHighlight()
   }
 
-  // --- Measuring a distance on the map, for a width field (measure.ts) ---
+  // --- Measuring a distance on the map, for a width field (measure.ts, measure-session.ts) ---
 
-  /** What a measure gives when it ends: the metres of the second click, or undefined when cancelled. Set while measuring. */
-  private measureDone?: (metres: number | undefined) => void
-  /** The first click of the measure, once it is made */
-  private measureStart?: LonLat
-  /** The line and the label from the first click to the pointer: empty until there is a first click and a move */
-  private measureList: Feature[] = []
-  /** Where the pointer is while measuring, and whether it is a finger: the magnifier follows it, before the first click too */
-  private measurePointer?: { lon: number; lat: number; touch: boolean }
-  private measureListeners = new Set<() => void>()
-  private measureVersion = 0
-
-  /**
-   * Subscribes to the measure's moves and clicks. Its own channel: `subscribe` tells every React
-   * component of the editor, and a pointer move while measuring must not make them all read again.
-   */
-  subscribeMeasure = (listener: () => void) => {
-    this.measureListeners.add(listener)
-    return () => this.measureListeners.delete(listener)
-  }
-  getMeasureVersion = () => this.measureVersion
-
-  private measureChanged() {
-    this.measureVersion++
-    for (const listener of this.measureListeners) listener()
-  }
-
-  /**
-   * The measure's first click and the pointer, for the magnifier (MeasureLoupe). `start` is undefined
-   * until the first click; `pointer` is undefined until the pointer has moved over the map.
-   */
+  readonly measure = new MeasureSession({
+    busy: () => this.busy(),
+    clearHover: () => this.setHover(null),
+    refresh: () => {
+      this.handles.compute()
+      this.refreshFieldOverlay()
+      this.pushHighlight()
+      this.changed()
+    },
+    pushHighlight: () => this.pushHighlight(),
+  })
+  subscribeMeasure = this.measure.subscribe
+  getMeasureVersion = this.measure.getVersion
   get measureSpots() {
-    return { start: this.measureStart, pointer: this.measurePointer }
+    return this.measure.spots
   }
-
-  /**
-   * True from startMeasure until the second click or a cancel. While it is, clicks and moves go to the
-   * measure (measureClick, measureMove), and busy() is true: no selection, drag, handle or undo.
-   */
   get measuring() {
-    return this.measureDone !== undefined
+    return this.measure.active
   }
-
-  /** The features of the measure on the map now. Public for the browser checks. */
   get measureFeatures() {
-    return this.measureList
+    return this.measure.features
   }
-
-  /**
-   * Starts a measure: the first click on the map sets its start, the second ends it, and `done` is called
-   * once with the distance on the ground in metres. `cancelMeasure` calls it with undefined. A measure that
-   * is under way is cancelled first. Refused while a drawing, a move, a rotation or a drag is under way: `done`
-   * is then called at once with undefined.
-   */
   startMeasure(done: (metres: number | undefined) => void) {
-    this.cancelMeasure()
-    if (this.busy()) {
-      done(undefined)
-      return
-    }
-    this.measureDone = done
-    // the hover of before the measure does not stay on the feature under it
-    this.setHover(null)
-    this.computeMidpoints()
-    // the field's band is not drawn while the measure runs (drawnFieldOverlay)
-    this.refreshFieldOverlay()
-    this.pushHighlight()
-    this.changed()
+    this.measure.begin(done)
   }
-
-  /** A click on the map while measuring: the first sets the start, the second ends the measure with its distance */
   measureClick(lon: number, lat: number) {
-    if (!this.measureDone) return
-    if (this.measureStart === undefined) {
-      this.measureStart = [lon, lat]
-      this.measureChanged()
-      return
-    }
-    this.finishMeasure(distanceMetres(this.measureStart, [lon, lat]))
+    this.measure.click(lon, lat)
   }
-
-  /**
-   * A pointer move while measuring: the magnifier follows the pointer (`touch`: a finger), and the line
-   * and label run from the start to the pointer, once there is a start.
-   */
   measureMove(lon: number, lat: number, touch = false) {
-    if (!this.measureDone) return
-    this.measurePointer = { lon, lat, touch }
-    this.measureChanged()
-    if (this.measureStart === undefined) return
-    this.measureList = measureOnMap(this.measureStart, [lon, lat])
-    this.pushHighlight()
+    this.measure.move(lon, lat, touch)
   }
-
-  /** Ends a measure without a distance: its `done` gets undefined, and nothing is changed. Nothing when none is under way. */
   cancelMeasure() {
-    this.finishMeasure(undefined)
-  }
-
-  private finishMeasure(metres: number | undefined) {
-    const done = this.measureDone
-    if (!done) return
-    this.measureDone = undefined
-    this.measureStart = undefined
-    this.measurePointer = undefined
-    this.measureList = []
-    this.computeMidpoints()
-    // the field's band comes back if the field still has the focus or the pointer on it
-    this.refreshFieldOverlay()
-    this.pushHighlight()
-    this.changed()
-    this.measureChanged()
-    done(metres)
+    this.measure.cancel()
   }
 
   /**
@@ -2471,8 +1457,3 @@ export class MaidEngine {
     }
   }
 }
-
-/** Pixels around the pointer in which a midpoint handle is hit */
-const HANDLE_PX = 6
-/** Pixels a press on a handle must move before its node is made: a click with a little shake adds nothing */
-const HANDLE_DRAG_PX = 3
