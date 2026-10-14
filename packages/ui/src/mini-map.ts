@@ -26,12 +26,15 @@ const METRES_PER_DEGREE_LATITUDE = 111_320
 
 /**
  * The frame that fits all points of all lines into the box, centred. `minSpan` (metres) keeps one point or a short
- * road from being drawn huge. Undefined when there are no points.
+ * road from being drawn huge. `bearing` turns the frame the way a map is turned: a map at bearing B shows the compass
+ * direction θ at θ - B on the screen (MapLibre's bearing, counter-clockwise), so 0 is north up. The frame fits the
+ * turned points. Undefined when there are no points.
  */
 export function fitMiniMap(
   lines: readonly (readonly LonLat[])[],
   box: MiniMapBox,
   minSpan: number = 20,
+  bearing: number = 0,
 ): MiniMapFrame | undefined {
   const points = lines.flat()
   if (points.length === 0) return undefined
@@ -51,8 +54,32 @@ export function fitMiniMap(
   const centreLat = (minLat + maxLat) / 2
   const metresPerDegreeLongitude =
     METRES_PER_DEGREE_LATITUDE * Math.cos((centreLat * Math.PI) / 180)
-  const spanX = Math.max((maxLon - minLon) * metresPerDegreeLongitude, minSpan)
-  const spanY = Math.max((maxLat - minLat) * METRES_PER_DEGREE_LATITUDE, minSpan)
+
+  // metres east (x) and north (y) of the centre, turned counter-clockwise by the bearing
+  const radians = (bearing * Math.PI) / 180
+  const cos = Math.cos(radians)
+  const sin = Math.sin(radians)
+  const turned = ([lon, lat]: LonLat): [number, number] => {
+    const east = (lon - centreLon) * metresPerDegreeLongitude
+    const north = (lat - centreLat) * METRES_PER_DEGREE_LATITUDE
+    return [east * cos - north * sin, east * sin + north * cos]
+  }
+
+  let minX = Infinity
+  let maxX = -Infinity
+  let minY = Infinity
+  let maxY = -Infinity
+  for (const point of points) {
+    const [x, y] = turned(point)
+    minX = Math.min(minX, x)
+    maxX = Math.max(maxX, x)
+    minY = Math.min(minY, y)
+    maxY = Math.max(maxY, y)
+  }
+  const spanX = Math.max(maxX - minX, minSpan)
+  const spanY = Math.max(maxY - minY, minSpan)
+  const middleX = (minX + maxX) / 2
+  const middleY = (minY + maxY) / 2
 
   const scale = Math.min(
     (box.width - 2 * box.padding) / spanX,
@@ -63,9 +90,9 @@ export function fitMiniMap(
 
   return {
     scale,
-    project: ([lon, lat]) => [
-      originX + (lon - centreLon) * metresPerDegreeLongitude * scale,
-      originY - (lat - centreLat) * METRES_PER_DEGREE_LATITUDE * scale,
-    ],
+    project: (point) => {
+      const [x, y] = turned(point)
+      return [originX + (x - middleX) * scale, originY - (y - middleY) * scale]
+    },
   }
 }

@@ -23,6 +23,11 @@ export type InspectorSectionProps = {
    * selected way; null when the pointer or the focus leaves. Absent where the shell cannot show it (several features).
    */
   onFieldFocus?: (focus: FieldFocus | null) => void
+  /**
+   * Highlight these features on the map as related to the selection (the engine's calmer halo); null clears it.
+   * The turn restrictions section shows its FROM, TO and via ways with it.
+   */
+  onRelated?: (ids: readonly string[] | null) => void
 }
 
 /** A block in the inspector, below the tag list (or above the fields: `placement`). Shown when `when` is absent or returns true. */

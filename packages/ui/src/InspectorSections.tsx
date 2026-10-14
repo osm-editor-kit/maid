@@ -12,6 +12,7 @@ export function InspectorSections({
   select,
   entities,
   onFieldFocus,
+  onRelated,
   placement,
 }: InspectorSectionProps & { placement?: 'top' }) {
   const sections = useExtensionPoint(editor, 'inspector.section')
@@ -35,6 +36,7 @@ export function InspectorSections({
               select={select}
               entities={entities}
               onFieldFocus={onFieldFocus}
+              onRelated={onRelated}
             />
           )
           return section.disclosure ? (

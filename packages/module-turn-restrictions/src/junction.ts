@@ -29,6 +29,10 @@ export type JunctionRoad = {
   canBeFrom: boolean
   /** Where the road leaves the junction, in degrees clockwise from north: tells apart two roads of one name */
   heading: number
+  /** The road's highway tag (`residential`, `primary_link`, ...): the first rule of the FROM road's choice */
+  highway: string | undefined
+  /** Metres of the road in the drawing, from the junction to the search distance: the second rule's length */
+  length: number
 }
 
 export type JunctionSketch = {
@@ -112,17 +116,28 @@ function headingOf(points: readonly Point[], centre: Point, radius: number): num
   return (degrees + 360) % 360
 }
 
+/** The length of a line in metres, along its points */
+function lengthOf(line: readonly LonLat[]): number {
+  let total = 0
+  for (let index = 1; index < line.length; index += 1) {
+    total += metres(line[index - 1]!, line[index]!)
+  }
+  return total
+}
+
 /**
  * The roads of an intersection, fitted into the box. `radius` (metres) is how far from the junction the roads are
- * drawn: the restriction field's distance. Undefined when there is no junction to edit, by iD's test for showing its
- * field: the intersection has the chosen vertex and more than two ways (a vertex of two paths, or of roads and
- * footways only, has not).
+ * drawn: the restriction field's distance. `bearing` turns the drawing the way the map is turned (degrees, MapLibre's
+ * bearing), so the sketch matches what the person sees; 0 is north up. Undefined when there is no junction to edit, by
+ * iD's test for showing its field: the intersection has the chosen vertex and more than two ways (a vertex of two
+ * paths, or of roads and footways only, has not).
  */
 export function junctionSketch(
   intersection: Intersection,
   vertexID: EntityID,
   radius: number,
   box: MiniMapBox,
+  bearing: number = 0,
 ): JunctionSketch | undefined {
   const vertex = intersection.graph.hasEntity(vertexID)
   if (!(vertex instanceof OsmNode)) return undefined
@@ -135,11 +150,14 @@ export function junctionSketch(
     id: way.id,
     name: way.tags.name || way.tags.ref || undefined,
     canBeFrom: Boolean(way.props.__from || way.props.__via),
+    highway: way.tags.highway,
     line: roadFromJunction(intersection.graph, way, junction, radius),
   }))
   const frame = fitMiniMap(
     lines.map((road) => road.line),
     box,
+    undefined,
+    bearing,
   )
   if (!frame) return undefined
 
@@ -156,6 +174,8 @@ export function junctionSketch(
         points,
         canBeFrom: road.canBeFrom,
         heading: headingOf(points, centre, HEADING_RADIUS),
+        highway: road.highway,
+        length: lengthOf(road.line),
       }
     }),
   }
@@ -224,4 +244,21 @@ export function junctionTurns(
     })
   }
   return turns
+}
+
+/**
+ * The ways to highlight on the map for the section's state: the FROM road, and while a turn is hovered or focused its
+ * TO road and its via ways (the same halo as a related feature). Each way once.
+ */
+export function relatedWayIDs(
+  fromID: EntityID | null,
+  hovered: JunctionTurn | undefined,
+): EntityID[] {
+  const ids = new Set<EntityID>()
+  if (fromID) ids.add(fromID)
+  if (hovered) {
+    ids.add(hovered.to)
+    for (const via of hovered.turn.via.ways ?? []) ids.add(via)
+  }
+  return [...ids]
 }

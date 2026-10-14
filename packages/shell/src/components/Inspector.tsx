@@ -324,6 +324,7 @@ export function Inspector() {
                 editor={editor}
                 select={select}
                 onFieldFocus={(focus) => showFieldFocus(engine, focus)}
+                onRelated={(ids) => engine.setRelated(ids)}
               />
             </div>
           </SidebarBody>

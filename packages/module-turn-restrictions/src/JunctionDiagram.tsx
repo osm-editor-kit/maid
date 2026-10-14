@@ -1,4 +1,5 @@
 import { m } from '@osm-editor-kit/maid-i18n'
+import { Tooltip } from '@osm-editor-kit/maid-ui'
 import type { ReactNode } from 'react'
 import type { JunctionSketch, JunctionTurn } from './junction.ts'
 import type { TurnKind, TurnState } from './turns.ts'
@@ -25,6 +26,19 @@ export const NEXT_STATE: Record<TurnState, TurnState> = {
   allowed: 'restricted',
   restricted: 'only',
   only: 'allowed',
+}
+
+/**
+ * What a turn's button says on hover or focus: its state and what a click does ("No left turn. Click for: Only left
+ * turn"), or the note of an indirect restriction. It is the one place of this text: a tooltip on the button, and the
+ * screen reader's live region of the section.
+ */
+export function turnHint(turn: JunctionTurn): string {
+  if (turn.indirect) return m.turn_restrictions_indirect_hint()
+  return m.turn_restrictions_hint({
+    state: stateWords(turn.state, turn.kind),
+    next: stateWords(NEXT_STATE[turn.state], turn.kind),
+  })
 }
 
 const STATE_CLASS: Record<TurnState, { stroke: string; badge: string; glyph: string | undefined }> =
@@ -54,7 +68,9 @@ export type JunctionDiagramProps = {
 
 /**
  * The junction: the roads as lines, the turns of the FROM road as arrows, and a button over each arrow (keyboard
- * reachable, with its words as the label). Light and dark theme through Tailwind classes.
+ * reachable). The button's tooltip says the turn's state and what a click does; the box has a border and background in
+ * both themes, so that its shape shows. A read-only junction keeps its buttons focusable (aria-disabled, not disabled),
+ * so that the tooltips still show.
  */
 export function JunctionDiagram({
   sketch,
@@ -71,7 +87,10 @@ export function JunctionDiagram({
     sketch.roads.find((road) => road.id === id)?.name ?? m.turn_restrictions_unnamed()
 
   return (
-    <div className="relative w-full" style={{ aspectRatio: `${width} / ${height}` }}>
+    <div
+      className="relative w-full rounded-md border border-zinc-950/10 bg-zinc-50 dark:border-white/10 dark:bg-zinc-950"
+      style={{ aspectRatio: `${width} / ${height}` }}
+    >
       <svg
         viewBox={`0 0 ${width} ${height}`}
         className="absolute inset-0 size-full"
@@ -123,28 +142,30 @@ export function JunctionDiagram({
       {turns.map((turn) => {
         const from = nameOf(turn.from)
         const to = nameOf(turn.to)
-        const state = stateWords(turn.state, turn.kind)
         return (
-          <button
-            key={turn.key}
-            type="button"
-            disabled={readOnly}
-            aria-disabled={turn.indirect || undefined}
-            aria-label={m.turn_restrictions_aria_turn({ from, to, state })}
-            title={turn.indirect ? m.turn_restrictions_indirect() : state}
-            onMouseEnter={() => onHover(turn.key)}
-            onMouseLeave={() => onHover(null)}
-            onFocus={() => onHover(turn.key)}
-            onBlur={() => onHover(null)}
-            onClick={() => onChoose(turn)}
-            style={{
-              left: `${(turn.at[0] / width) * 100}%`,
-              top: `${(turn.at[1] / height) * 100}%`,
-            }}
-            className={`absolute grid h-6 min-w-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full px-1.5 text-[11px] leading-none font-semibold text-white shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-60 ${STATE_CLASS[turn.state].badge} ${hovered === turn.key ? 'ring-2 ring-white dark:ring-zinc-900' : ''}`}
-          >
-            <span aria-hidden="true">{glyphOf(turn.state)}</span>
-          </button>
+          <Tooltip key={turn.key} label={turnHint(turn)}>
+            <button
+              type="button"
+              aria-disabled={readOnly || turn.indirect || undefined}
+              aria-label={m.turn_restrictions_aria_turn({
+                from,
+                to,
+                state: stateWords(turn.state, turn.kind),
+              })}
+              onMouseEnter={() => onHover(turn.key)}
+              onMouseLeave={() => onHover(null)}
+              onFocus={() => onHover(turn.key)}
+              onBlur={() => onHover(null)}
+              onClick={() => onChoose(turn)}
+              style={{
+                left: `${(turn.at[0] / width) * 100}%`,
+                top: `${(turn.at[1] / height) * 100}%`,
+              }}
+              className={`absolute grid h-6 min-w-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full px-1.5 text-[11px] leading-none font-semibold text-white shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 aria-disabled:cursor-default aria-disabled:opacity-60 ${STATE_CLASS[turn.state].badge} ${hovered === turn.key ? 'ring-2 ring-white dark:ring-zinc-900' : ''}`}
+            >
+              <span aria-hidden="true">{glyphOf(turn.state)}</span>
+            </button>
+          </Tooltip>
         )
       })}
     </div>

@@ -59,6 +59,65 @@ describe('fitMiniMap', () => {
     expect(Math.abs(x1 - x0)).toBeLessThan(80)
   })
 
+  it('turns with the bearing like a map: at 90 east is up and north is left', () => {
+    const turned = fitMiniMap(
+      [
+        [
+          [0, 50],
+          [0.001, 50],
+          [0, 50.001],
+        ],
+      ],
+      box,
+      20,
+      90,
+    )!
+    const origin = turned.project([0, 50])
+    const east = turned.project([0.001, 50])
+    const north = turned.project([0, 50.001])
+    // east is now straight up from the origin: higher on the screen, same x
+    expect(east[1]).toBeLessThan(origin[1])
+    expect(east[0]).toBeCloseTo(origin[0], 6)
+    // north is now to the left of the origin: smaller x, same y
+    expect(north[0]).toBeLessThan(origin[0])
+    expect(north[1]).toBeCloseTo(origin[1], 6)
+  })
+
+  it('a bearing of 0 is the north-up frame', () => {
+    const line = [
+      [0, 50],
+      [0.001, 50.001],
+    ] as const
+    const plain = fitMiniMap([line], box)!
+    const zero = fitMiniMap([line], box, 20, 0)!
+    expect(zero.project([0.001, 50.001])[0]).toBeCloseTo(plain.project([0.001, 50.001])[0], 9)
+    expect(zero.project([0.001, 50.001])[1]).toBeCloseTo(plain.project([0.001, 50.001])[1], 9)
+  })
+
+  it('fits the turned points into the box', () => {
+    const turned = fitMiniMap(
+      [
+        [
+          [0, 50],
+          [0.001, 50.001],
+        ],
+      ],
+      box,
+      20,
+      45,
+    )!
+    for (const point of [
+      [0, 50],
+      [0.001, 50.001],
+    ] as const) {
+      const [x, y] = turned.project(point)
+      expect(x).toBeGreaterThanOrEqual(0)
+      expect(x).toBeLessThanOrEqual(box.width)
+      expect(y).toBeGreaterThanOrEqual(0)
+      expect(y).toBeLessThanOrEqual(box.height)
+    }
+  })
+
   it('does not zoom in beyond the minimum span', () => {
     const frame = fitMiniMap([[[0, 0]]], box, 20)!
     // the box is 100 units high, 80 of them usable: 20 m fill them
