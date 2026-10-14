@@ -15,7 +15,7 @@ import {
   type ReactNode,
 } from 'react'
 import { PARKING_ICONS, type ParkingIconName } from '../icons/index.ts'
-import { pick } from '../language.ts'
+import { m } from '../messages.ts'
 import {
   clickIsOn,
   focusKeyOf,
@@ -71,10 +71,15 @@ function iconUrl(name: string | undefined) {
     : undefined
 }
 
-/** The history annotation of a click, in English like the other annotations */
+/** The history annotation of a click: the name of the undo step, in the page's language */
 function annotationOf(tag: QuickTag, on: boolean) {
-  if (tag.clearSide) return `Clear the parking tags of the ${tag.clearSide} side`
-  return `${on ? 'Set' : 'Remove'} parking: ${tag.label}`
+  if (tag.clearSide)
+    return tag.clearSide === 'left'
+      ? m.quick_annotation_clear_left()
+      : m.quick_annotation_clear_right()
+  return on
+    ? m.quick_annotation_set({ label: tag.label })
+    : m.quick_annotation_remove({ label: tag.label })
 }
 
 /** The buttons that set the parking tags of the selected road(s): a grid of icons (left, right, both) and the combined ones */
@@ -99,9 +104,7 @@ export function QuickTags({ roads, editor, onFieldFocus }: QuickTagsProps) {
   /** One change for all roads, one undo step. A refusal shows a toast and writes nothing. */
   const press = (tag: QuickTag) => {
     if (readOnly > 0) {
-      notify.failed(
-        `${readOnly} of ${roads.length} selected features are read-only. Nothing was changed.`,
-      )
+      notify.failed(m.quick_read_only({ readOnly, total: roads.length }))
       return
     }
     const on = tag.clearSide !== undefined || clickIsOn(pressedState(tagsOf(roads), tag))
@@ -111,7 +114,7 @@ export function QuickTags({ roads, editor, onFieldFocus }: QuickTagsProps) {
     for (const road of roads) {
       const entity = graph.hasEntity(road.id)
       if (!entity) {
-        notify.failed('A selected feature is no longer in the data. Nothing was changed.')
+        notify.failed(m.quick_entity_missing())
         return
       }
       current.push({ id: road.id, tags: entity.tags })
@@ -130,7 +133,7 @@ export function QuickTags({ roads, editor, onFieldFocus }: QuickTagsProps) {
     const state = stateOf(tag)
     return state === 'mixed' ? 'mixed' : state === 'on'
   }
-  const textOf = (tag: QuickTag) => pick(tag.label, tag.labelDe)
+  const textOf = (tag: QuickTag) => tag.label
 
   const moveTo = (index: number) => {
     setActive(index)
@@ -170,23 +173,14 @@ export function QuickTags({ roads, editor, onFieldFocus }: QuickTagsProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div
-        role="group"
-        aria-label={pick('Parking on the selected road', 'Parken an der gewählten Straße')}
-        ref={gridRef}
-        className={GRID}
-      >
+      <div role="group" aria-label={m.quick_group_label()} ref={gridRef} className={GRID}>
         <span />
         {COLUMNS.map((side) => (
           <span
             key={side}
             className="truncate text-center text-[11px] text-zinc-500 dark:text-zinc-400"
           >
-            {side === 'left'
-              ? pick('left', 'links')
-              : side === 'right'
-                ? pick('right', 'rechts')
-                : pick('both', 'beide')}
+            {side === 'left' ? m.side_left() : side === 'right' ? m.side_right() : m.side_both()}
           </span>
         ))}
         {QUICK_TAG_ROWS.flatMap((row, rowIndex) => [
@@ -194,7 +188,7 @@ export function QuickTags({ roads, editor, onFieldFocus }: QuickTagsProps) {
             key={`${row.id}-label`}
             className="min-w-0 truncate text-xs text-zinc-700 dark:text-zinc-300"
           >
-            {pick(row.label, row.labelDe)}
+            {row.label}
           </span>,
           ...COLUMNS.map((side, colIndex) => {
             const index = rowIndex * COLUMNS.length + colIndex

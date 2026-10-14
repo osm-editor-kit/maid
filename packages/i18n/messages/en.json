@@ -97,5 +97,8 @@
   "relations_download": "Download",
   "relations_downloading": "Downloading…",
   "relations_download_member": "Download {id}",
-  "relations_added_features": "Added {count} features to the relation"
+  "relations_added_features": "Added {count} features to the relation",
+  "maplibre_attribution_toggle": "Toggle attribution",
+  "maplibre_attribution_feedback": "Map feedback",
+  "maplibre_map_title": "Map"
 }

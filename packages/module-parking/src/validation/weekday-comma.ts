@@ -1,4 +1,5 @@
 import type { Issue, Rule } from '@osm-editor-kit/maid-validation'
+import { m } from '../messages.ts'
 import { featureName, isParkingConditionalKey, issueFor, tagsFix } from './shared.ts'
 
 export const RULE_ID = 'parking_weekday_comma'
@@ -21,7 +22,9 @@ export function semicolonBetweenGroups(value: string) {
  */
 export const weekdayComma: Rule = {
   id: RULE_ID,
-  label: 'Comma between weekday groups',
+  get label() {
+    return m.valid_weekday_label()
+  },
   validate(entity) {
     const tags = entity.tags
     const feature = featureName(tags)
@@ -35,16 +38,14 @@ export const weekdayComma: Rule = {
           rule: RULE_ID,
           entity,
           part: `:${key}`,
-          feature,
           tags: `${key}=${value}`,
-          message: `${feature} has ${key}=${value}: weekday groups are separated by a comma; use ; between them`,
+          message: m.valid_weekday_message({ feature, tags: `${key}=${value}` }),
           fixes: [
             tagsFix({
               entityId: entity.id,
               id: 'semicolon_between_groups',
-              label: 'Use ; between the weekday groups',
-              annotation: `Replaced the comma between the weekday groups in ${key}`,
-              subject: key,
+              label: m.valid_fix_semicolon_label(),
+              annotation: m.valid_fix_semicolon_annotation({ key }),
               change: (current) => ({
                 ...current,
                 [key]: semicolonBetweenGroups(current[key] ?? ''),

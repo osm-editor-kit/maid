@@ -1,4 +1,5 @@
 import type { Issue, Rule } from '@osm-editor-kit/maid-validation'
+import { m } from '../messages.ts'
 import { applyEdits, readSide, sideKey, writeSide, type Side } from '../sides.ts'
 import { featureName, issueFor, tagsFix } from './shared.ts'
 
@@ -11,7 +12,9 @@ export const RULE_ID = 'parking_shoulder_without_informal'
  */
 export const shoulderWithoutInformal: Rule = {
   id: RULE_ID,
-  label: 'Shoulder parking without informal=yes',
+  get label() {
+    return m.valid_shoulder_label()
+  },
   validate(entity) {
     const tags = entity.tags
     const feature = featureName(tags)
@@ -30,16 +33,14 @@ export const shoulderWithoutInformal: Rule = {
           rule: RULE_ID,
           entity,
           part: `:${source}`,
-          feature,
           tags: `${parkingKey}=shoulder`,
-          message: `${feature} has ${parkingKey}=shoulder without ${informalKey}=yes: shoulder parking is informal`,
+          message: m.valid_shoulder_message({ feature, tags: `${parkingKey}=shoulder` }),
           fixes: [
             tagsFix({
               entityId: entity.id,
               id: 'add_informal',
-              label: `Add ${informalKey}=yes`,
-              annotation: `Added ${informalKey}=yes to the shoulder parking`,
-              subject: informalKey,
+              label: m.valid_fix_add_informal_label({ key: informalKey }),
+              annotation: m.valid_fix_add_informal_annotation({ key: informalKey }),
               change: (current) =>
                 applyEdits(current, writeSide(current, source, 'informal', 'yes')),
             }),

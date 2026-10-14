@@ -1,4 +1,5 @@
 import type { Rule } from '@osm-editor-kit/maid-validation'
+import { m } from '../messages.ts'
 import { featureName, issueFor } from './shared.ts'
 
 export const RULE_ID = 'parking_staggered_without_both'
@@ -9,7 +10,9 @@ export const RULE_ID = 'parking_staggered_without_both'
  */
 export const staggeredWithoutBoth: Rule = {
   id: RULE_ID,
-  label: 'Staggered parking without a both value',
+  get label() {
+    return m.valid_staggered_label()
+  },
   validate(entity) {
     const tags = entity.tags
     if (tags['parking:both:staggered'] !== 'yes' || tags['parking:both']) return []
@@ -18,9 +21,8 @@ export const staggeredWithoutBoth: Rule = {
       issueFor({
         rule: RULE_ID,
         entity,
-        feature,
         tags: 'parking:both:staggered=yes',
-        message: `${feature} has parking:both:staggered=yes without parking:both: staggered parking is given in addition to parking:both`,
+        message: m.valid_staggered_message({ feature, tags: 'parking:both:staggered=yes' }),
         fixes: [],
       }),
     ]

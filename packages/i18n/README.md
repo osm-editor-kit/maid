@@ -44,3 +44,24 @@ label={m.topbar_undo({ change: undoLabel ?? m.topbar_last_change() })}
 ```
 
 Keep the English text unchanged in `en.json` so that the browser checks, which run in English, keep working.
+
+## A module with texts of its own
+
+A module keeps its texts in its own inlang project and gets its own Paraglide output, so the module can be built
+and shipped apart from the app. `packages/module-parking` is the model:
+
+1. `packages/module-*/project.inlang/settings.json` (the same languages and base as the app, plugins from
+   `../i18n/node_modules`) and `packages/module-*/messages/{en,de,fr,es}.json`. Keys as above. Add the module's
+   `paraglide/` to `.gitignore`.
+2. `packages/module-*/src/messages.ts`: link the module's locale to the app's, and export `m`:
+   ```ts
+   import { linkModuleLocale } from '@osm-editor-kit/maid-i18n'
+   import { overwriteGetLocale } from '../paraglide/runtime.js'
+   linkModuleLocale(overwriteGetLocale)
+   export { m } from '../paraglide/messages.js'
+   ```
+   The module depends on `@osm-editor-kit/maid-i18n` (workspace).
+3. Use `m.<id>()` in the module's code. A label on a module-level object is a getter (`get label() { return m.x() }`),
+   so the text is read when it is used, after the page's language is set. Never call `m` at module level.
+
+`bun run i18n-compile` and `bun run i18n-check` pick a module up by its `project.inlang` folder (`scripts/projects.ts`).

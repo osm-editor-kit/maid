@@ -255,8 +255,9 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
   const rows = async () =>
     (await panel.getByRole('listitem').allInnerTexts()).map((t) => t.split('\n')[0] ?? '')
   const reported = async () =>
-    (await rows()).filter((t) => t.includes('parking:left:reason=narrow, but the left side is not'))
-      .length
+    (await rows()).filter((t) =>
+      t.includes('parking:left:reason=narrow, but that side has parking'),
+    ).length
   await page.waitForTimeout(500)
   report('a reason for no parking on a side with parking is reported', 1, await reported())
   await page.evaluate((id) => window.__maid.engine.setTag(id, 'parking:left', 'no'), road)

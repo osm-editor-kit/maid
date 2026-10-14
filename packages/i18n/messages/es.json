@@ -97,5 +97,8 @@
   "relations_download": "Descargar",
   "relations_downloading": "Descargando…",
   "relations_download_member": "Descargar {id}",
-  "relations_added_features": "{count} objetos añadidos a la relación"
+  "relations_added_features": "{count} objetos añadidos a la relación",
+  "maplibre_attribution_toggle": "Mostrar u ocultar la atribución",
+  "maplibre_attribution_feedback": "Comentarios sobre el mapa",
+  "maplibre_map_title": "Mapa"
 }

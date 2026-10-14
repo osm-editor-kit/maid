@@ -1,9 +1,9 @@
 import { defineModule, isAutomated, moduleStorage } from '@osm-editor-kit/maid-core'
 import { QuickTagsSection } from './buttons/QuickTags.tsx'
-import { isGerman } from './language.ts'
 import { ParkingSidesOnMap } from './lens/side-features.tsx'
 import { connectParkingSides, type LensSource } from './lens/side-state.ts'
-import { inGerman, parkingOperations } from './operations/index.ts'
+import { m } from './messages.ts'
+import { parkingOperations } from './operations/index.ts'
 import {
   PARKING_RESTRICTION_FIELD_TYPE,
   RestrictionField,
@@ -45,7 +45,9 @@ export function parking(options: ParkingOptions = {}) {
       })
       api.register('inspector.section', {
         id: 'parking-quick-tags',
-        title: 'Parking',
+        get title() {
+          return m.section_title()
+        },
         // the reason for this editor: above the fields
         placement: 'top',
         multiple: true,
@@ -54,8 +56,7 @@ export function parking(options: ParkingOptions = {}) {
         component: QuickTagsSection,
       })
       api.register('map.content', { id: 'parking-sides', component: ParkingSidesOnMap })
-      for (const operation of parkingOperations)
-        api.register('edit.operation', isGerman() ? inGerman(operation) : operation)
+      for (const operation of parkingOperations) api.register('edit.operation', operation)
       const { lenses } = options
       if (!lenses) return
       // first visit (our own mark is not stored yet) and not under automation: start with the parking lens on, as a
@@ -71,8 +72,6 @@ export function parking(options: ParkingOptions = {}) {
 }
 
 export { parkingPresetChanges } from './presets/index.ts'
-export { withGermanLabels } from './presets/german.ts'
-export { LABELS_DE } from './presets/labels-de.ts'
 export {
   SIDES,
   sideKey,
@@ -99,4 +98,3 @@ export {
 export { parkingRules } from './validation/index.ts'
 export { parkingOperations } from './operations/index.ts'
 export { PARKING_ICONS, type ParkingIconName } from './icons/index.ts'
-export { isGerman } from './language.ts'

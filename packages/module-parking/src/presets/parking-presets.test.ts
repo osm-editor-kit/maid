@@ -1,11 +1,10 @@
-import { describe, expect, it } from 'bun:test'
+import { afterEach, describe, expect, it } from 'bun:test'
+import { setLocale } from '@osm-editor-kit/maid-i18n'
 import { createPresets, withChanges } from '@osm-editor-kit/maid-presets'
 import type { Geometry, Presets, Tags } from '@osm-editor-kit/maid-presets'
 import { defaultPresetData } from '@osm-editor-kit/maid-presets/default'
-import { PARKING_FIELDS, ROAD_MORE_FIELDS, ROAD_PROMINENT_FIELDS, VEHICLE_KEYS } from './fields.ts'
-import { withGermanLabels } from './german.ts'
+import { ROAD_MORE_FIELDS, ROAD_PROMINENT_FIELDS, VEHICLE_KEYS } from './fields.ts'
 import { parkingPresetChanges } from './index.ts'
-import { LABELS_DE } from './labels-de.ts'
 import { PARKING_PRESETS } from './presets.ts'
 
 const defaults: Presets = createPresets(defaultPresetData)
@@ -345,34 +344,32 @@ describe('every value of parkraumprojekt.xml is offered', () => {
   })
 })
 
-describe('German labels', () => {
-  it('a German label for every new preset and every new field', () => {
-    for (const id of Object.keys(PARKING_PRESETS))
-      expect(LABELS_DE.presets, id).toHaveProperty([id])
-    for (const id of Object.keys(PARKING_FIELDS)) expect(LABELS_DE.fields, id).toHaveProperty([id])
-  })
-})
+describe('the names follow the page language', () => {
+  afterEach(() => setLocale('en'))
 
-describe('withGermanLabels', () => {
-  const german = createPresets(
-    withGermanLabels(withChanges(defaultPresetData, parkingPresetChanges)),
-  )
-
-  it('shows the German names, field labels and option labels of the parking presets', () => {
-    expect(german.preset('amenity/parking/street-side')?.name).toBe(
-      LABELS_DE.presets['amenity/parking/street-side'],
-    )
+  it('shows the German names, field labels and option labels of the parking presets in German', () => {
+    setLocale('de')
+    const german = createPresets(withChanges(defaultPresetData, parkingPresetChanges))
+    expect(german.preset('amenity/parking/street-side')?.name).toBe('Parkplatz (Parkbucht)')
+    expect(german.preset('highway/service/driveway')?.name).toBe('Einfahrt')
     expect(german.field('parking/side/parking')?.label).toBe('Parkposition')
     const lane = german.field('parking/side/parking')?.options.find((o) => o.value === 'lane')
     expect(lane?.label).toBe('Fahrbahn')
+    expect(german.field('crossing')?.label).toBe('Querungsart')
   })
 
-  it('leaves the other presets and the data it was given alone', () => {
-    const base = withChanges(defaultPresetData, parkingPresetChanges)
-    const english = createPresets(base)
-    expect(german.preset('highway/residential')?.name).toBe(
-      english.preset('highway/residential')?.name,
+  it('shows English again when the page is English, and leaves the other presets alone', () => {
+    setLocale('de')
+    createPresets(withChanges(defaultPresetData, parkingPresetChanges))
+    setLocale('en')
+    const english = createPresets(withChanges(defaultPresetData, parkingPresetChanges))
+    expect(english.preset('amenity/parking/street-side')?.name).toBe(
+      'Parking area (street side bay)',
     )
+    expect(english.preset('highway/service/driveway')?.name).toBe('Driveway')
     expect(english.field('parking/side/parking')?.label).toBe('Parking position')
+    expect(english.preset('highway/residential')?.name).toBe(
+      defaults.preset('highway/residential')?.name,
+    )
   })
 })

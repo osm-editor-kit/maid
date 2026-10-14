@@ -10,6 +10,7 @@ playwright-report/
 test-results/
 # Paraglide's compiled output, written by `bun run i18n-compile` (packages/i18n/scripts/compile.ts)
 packages/i18n/paraglide/
+packages/module-parking/paraglide/
 reports/i18n-missing.json
 reports/shots/
 reports/20*

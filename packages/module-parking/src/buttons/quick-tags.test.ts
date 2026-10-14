@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { setLocale } from '@osm-editor-kit/maid-i18n'
 import { parseSideKey } from '../sides.ts'
 import { QUICK_TAG_ROWS, QUICK_TAGS } from './quick-tags.ts'
 
@@ -57,14 +58,17 @@ describe('the 33 source buttons', () => {
     }
   })
 
-  test('each has an icon file of its own name, and labels in English and German', () => {
+  test('each has an icon file of its own name, and a label in English and in German', () => {
     for (const tag of xml) {
       expect(tag.icon).toBe(tag.id)
       expect(existsSync(join(ICON_DIR, `${tag.id}.png`))).toBe(true)
+      setLocale('en')
       expect(tag.label.length).toBeGreaterThan(0)
-      expect(tag.labelDe.length).toBeGreaterThan(0)
+      setLocale('de')
+      expect(tag.label.length).toBeGreaterThan(0)
       expect(tag.origin).toBeUndefined()
     }
+    setLocale('en')
   })
 
   test('the side of each button matches its name, and it has a grid row', () => {

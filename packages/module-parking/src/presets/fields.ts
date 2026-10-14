@@ -2,7 +2,8 @@
  * The parking fields: on a road (per side, `parking:left|right|both:*`) and on a separately mapped area, a
  * crossing and the rest. Values and key names come from the project's presets (parkraumprojekt.xml, value lists
  * `parking_values` … `crossing_side_values`) and the mapping decisions (project-decisions.md, 2.1 to
- * 2.10). English labels here; the German ones are in labels-de.ts.
+ * 2.10). Labels are messages (../messages.ts): each label is a function, read when the presets are made, so the
+ * fields show the page's language. Values are OSM values and stay as they are.
  *
  * Reused from iD (changed or kept): `parking/side/parking` and `parking/side/orientation` (directional combos of
  * the road presets; changed: options, order, labels), `crossing` (changed: the project's three values first; other
@@ -22,19 +23,28 @@
  * - `surface` for `parking:SIDE` values: the decisions say `surface` is for off-street lots, not road sides.
  */
 import type { FieldDefinition, FieldOptions } from '@osm-editor-kit/maid-presets'
+import { m } from '../messages.ts'
 import { sideKey } from '../sides.ts'
 
 type Field = FieldDefinition
 
-/** The options of a list of values, in this order. English labels default to the value. */
-export function options(
-  values: readonly string[],
-  en: Readonly<Record<string, string>> = {},
-): FieldOptions {
-  return values.map((value) => ({ value, label: en[value] ?? value }))
+/** A text that is read when it is used: the page's language at that time */
+export type Text = () => string
+
+/** The label of each value of a list, by value. A value without one shows the value itself. */
+export type ValueLabels = Readonly<Record<string, Text>>
+
+/** The options of a list of values, in this order, with the labels of `labels` (read when the options are used) */
+export function options(values: readonly string[], labels: ValueLabels = {}): FieldOptions {
+  return values.map((value) => ({
+    value,
+    get label() {
+      return labels[value]?.() ?? value
+    },
+  }))
 }
 
-// ---- value lists of parkraumprojekt.xml (the values only; labels are in labels-de.ts) ----
+// ---- value lists of parkraumprojekt.xml (the values only; their labels are the messages below) ----
 
 export const BOOL_VALUES = ['yes', 'no'] as const
 export const ACCESS_VALUES = ['yes', 'private', 'permissive', 'customers', 'no'] as const
@@ -79,7 +89,6 @@ export const VEHICLE_KEYS = [
   'taxi',
   'disabled',
 ] as const
-
 /**
  * The side values of `parking:SIDE`. The project's 2026-02 list is street_side, lane, on_kerb, half_on_kerb,
  * shoulder, no (decision D1); `separate` is the value of the hot buttons; `yes` is kept from iD as the lead asked.
@@ -95,52 +104,68 @@ export const SIDE_PARKING_VALUES = [
   'yes',
 ] as const
 
-/** A field on a side: `parking:both:<suffix>` with the keys of left and right (no suffix: `parking:both`). */
-function side(suffix: string | undefined, label: string, extra: Partial<Field> = {}): Field {
-  return {
-    type: 'directionalCombo',
-    label,
-    key: sideKey('both', suffix),
-    keys: [sideKey('left', suffix), sideKey('right', suffix)],
-    customValues: true,
-    ...extra,
-  }
-}
+// ---- the labels of the values (messages) ----
 
-/** A side field with a fixed list of values */
-function sideList(
-  suffix: string | undefined,
-  label: string,
-  values: readonly string[],
-  extra: Partial<Field> = {},
-): Field {
-  return side(suffix, label, { customValues: false, options: options(values), ...extra })
+const PARKING_LABELS: ValueLabels = {
+  lane: () => m.option_parking_lane(),
+  street_side: () => m.option_parking_street_side(),
+  on_kerb: () => m.option_parking_on_kerb(),
+  half_on_kerb: () => m.option_parking_half_on_kerb(),
+  shoulder: () => m.option_parking_shoulder(),
+  separate: () => m.option_parking_separate(),
+  no: () => m.option_parking_no(),
+  yes: () => m.option_parking_yes(),
 }
-
-/** A free-text side field (the conditional variants, width, capacity, zone, reasons) */
-function sideText(suffix: string, label: string): Field {
-  return side(suffix, label)
+const ORIENTATION_LABELS: ValueLabels = {
+  parallel: () => m.option_orientation_parallel(),
+  diagonal: () => m.option_orientation_diagonal(),
+  perpendicular: () => m.option_orientation_perpendicular(),
 }
-
-/** A plain combo on one key */
-function combo(
-  key: string,
-  label: string,
-  values: readonly string[],
-  extra: Partial<Field> = {},
-): Field {
-  return { type: 'combo', label, key, customValues: false, options: options(values), ...extra }
+const BOOL_LABELS: ValueLabels = { yes: () => m.option_yes(), no: () => m.option_no() }
+const SURFACE_LABELS: ValueLabels = {
+  asphalt: () => m.option_surface_asphalt(),
+  concrete: () => m.option_surface_concrete(),
+  'concrete:plates': () => m.option_surface_concrete_plates(),
+  paving_stones: () => m.option_surface_paving_stones(),
+  sett: () => m.option_surface_sett(),
+  compacted: () => m.option_surface_compacted(),
+  ground: () => m.option_surface_ground(),
 }
-
-/** A plain text field on one key */
-function text(key: string, label: string): Field {
-  return { type: 'text', label, key }
+const MAXSTAY_LABELS: ValueLabels = {
+  '5 minutes': () => m.option_maxstay_5_minutes(),
+  '15 minutes': () => m.option_maxstay_15_minutes(),
+  '30 minutes': () => m.option_maxstay_30_minutes(),
+  '1 hour': () => m.option_maxstay_1_hour(),
+  '2 hours': () => m.option_maxstay_2_hours(),
+  '3 hours': () => m.option_maxstay_3_hours(),
+  '24 hours': () => m.option_maxstay_24_hours(),
+  '7 days': () => m.option_maxstay_7_days(),
 }
-
-/**
- * The reasons for `parking:<side>=no` the documents use: curve (project-decisions D4), narrow (D7), construction
- * (qa-markings S5), structure (O3), dual_carriage (S15). Other reasons can be typed.
- */
+const ACCESS_LABELS: ValueLabels = {
+  yes: () => m.option_access_yes(),
+  private: () => m.option_access_private(),
+  permissive: () => m.option_access_permissive(),
+  customers: () => m.option_access_customers(),
+  no: () => m.option_access_no(),
+}
+const RESTRICTION_LABELS: ValueLabels = {
+  no_parking: () => m.option_restriction_no_parking(),
+  no_stopping: () => m.option_restriction_no_stopping(),
+  loading_only: () => m.option_restriction_loading_only(),
+  charging_only: () => m.option_restriction_charging_only(),
+}
+const CROSSING_LABELS: ValueLabels = {
+  unmarked: () => m.option_crossing_unmarked(),
+  marked: () => m.option_crossing_marked(),
+  traffic_signals: () => m.option_crossing_traffic_signals(),
+}
+const CROSSING_SIDE_LABELS: ValueLabels = {
+  both: () => m.option_side_both(),
+  left: () => m.option_side_left(),
+  right: () => m.option_side_right(),
+}
+/** The reasons for `parking:<side>=no` the documents use: curve (project-decisions D4), narrow (D7), construction
+ * (qa-markings S5), structure (O3), dual_carriage (S15). Other reasons can be typed. */
 export const NO_PARKING_REASONS = [
   'curve',
   'narrow',
@@ -148,16 +173,93 @@ export const NO_PARKING_REASONS = [
   'structure',
   'dual_carriage',
 ] as const
+const REASON_LABELS: ValueLabels = {
+  curve: () => m.option_reason_curve(),
+  narrow: () => m.option_reason_narrow(),
+  construction: () => m.option_reason_construction(),
+  structure: () => m.option_reason_structure(),
+  dual_carriage: () => m.option_reason_dual_carriage(),
+}
 
+const VEHICLE_LABELS: Record<(typeof VEHICLE_KEYS)[number], Text> = {
+  motorcar: () => m.field_vehicle_motorcar(),
+  motorcycle: () => m.field_vehicle_motorcycle(),
+  motorhome: () => m.field_vehicle_motorhome(),
+  goods: () => m.field_vehicle_goods(),
+  hgv: () => m.field_vehicle_hgv(),
+  hgv_articulated: () => m.field_vehicle_hgv_articulated(),
+  bus: () => m.field_vehicle_bus(),
+  taxi: () => m.field_vehicle_taxi(),
+  disabled: () => m.field_vehicle_disabled(),
+}
+
+/** A field on a side: `parking:both:<suffix>` with the keys of left and right (no suffix: `parking:both`). */
+function side(suffix: string | undefined, label: Text, extra: Partial<Field> = {}): Field {
+  return {
+    type: 'directionalCombo',
+    get label() {
+      return label()
+    },
+    key: sideKey('both', suffix),
+    keys: [sideKey('left', suffix), sideKey('right', suffix)],
+    customValues: true,
+    ...extra,
+  }
+}
+/** A side field with a fixed list of values */
+function sideList(
+  suffix: string | undefined,
+  label: Text,
+  values: readonly string[],
+  labels: ValueLabels,
+  extra: Partial<Field> = {},
+): Field {
+  return side(suffix, label, { customValues: false, options: options(values, labels), ...extra })
+}
+/** A free-text side field (the conditional variants, width, capacity, zone, reasons) */
+function sideText(suffix: string, label: Text): Field {
+  return side(suffix, label)
+}
+/** A plain combo on one key */
+function combo(
+  key: string,
+  label: Text,
+  values: readonly string[],
+  labels: ValueLabels,
+  extra: Partial<Field> = {},
+): Field {
+  return {
+    type: 'combo',
+    get label() {
+      return label()
+    },
+    key,
+    customValues: false,
+    options: options(values, labels),
+    ...extra,
+  }
+}
+/** A plain text field on one key */
+function text(key: string, label: Text): Field {
+  return {
+    type: 'text',
+    get label() {
+      return label()
+    },
+    key,
+  }
+}
 /**
  * The restriction builder's field on a road. Its key is the `both` key; `keys` has the side keys and the
  * `:conditional` key of each spelling, which the builder writes too.
  */
-function sideRestriction(label: string, values: readonly string[]): Field {
+function sideRestriction(label: Text, values: readonly string[], labels: ValueLabels): Field {
   const conditional = 'restriction:conditional'
   return {
     type: 'parkingRestriction',
-    label,
+    get label() {
+      return label()
+    },
     key: sideKey('both', 'restriction'),
     keys: [
       sideKey('left', 'restriction'),
@@ -167,7 +269,7 @@ function sideRestriction(label: string, values: readonly string[]): Field {
       sideKey('right', conditional),
     ],
     customValues: false,
-    options: options(values),
+    options: options(values, labels),
   }
 }
 
@@ -177,61 +279,132 @@ function sideRestriction(label: string, values: readonly string[]): Field {
  */
 export const ROAD_SIDE_FIELDS = {
   // the position has no suffix: `parking:both`, `parking:left`, `parking:right`
-  'parking/side/parking': sideList(undefined, 'Parking position', SIDE_PARKING_VALUES),
-  'parking/side/orientation': sideList('orientation', 'Parking orientation', ORIENTATION_VALUES),
-  'parking/side/restriction': sideRestriction('Parking restriction', RESTRICTION_VALUES),
-  'parking/side/restriction_reason': sideText('restriction:reason', 'Restriction reason'),
-  'parking/side/reason': side('reason', 'Reason for no parking', {
-    options: options(NO_PARKING_REASONS),
+  'parking/side/parking': sideList(
+    undefined,
+    () => m.field_side_parking(),
+    SIDE_PARKING_VALUES,
+    PARKING_LABELS,
+  ),
+  'parking/side/orientation': sideList(
+    'orientation',
+    () => m.field_side_orientation(),
+    ORIENTATION_VALUES,
+    ORIENTATION_LABELS,
+  ),
+  'parking/side/restriction': sideRestriction(
+    () => m.field_side_restriction(),
+    RESTRICTION_VALUES,
+    RESTRICTION_LABELS,
+  ),
+  'parking/side/restriction_reason': sideText('restriction:reason', () =>
+    m.field_side_restriction_reason(),
+  ),
+  'parking/side/reason': side('reason', () => m.field_side_reason(), {
+    options: options(NO_PARKING_REASONS, REASON_LABELS),
   }),
-  'parking/side/fee': sideList('fee', 'Parking fee', BOOL_VALUES),
-  'parking/side/fee_conditional': sideText('fee:conditional', 'Parking fee (conditional)'),
-  'parking/side/zone': sideText('zone', 'Parking zone'),
-  'parking/side/maxstay': side('maxstay', 'Maximum stay', {
+  'parking/side/fee': sideList('fee', () => m.field_side_fee(), BOOL_VALUES, BOOL_LABELS),
+  'parking/side/fee_conditional': sideText('fee:conditional', () => m.field_side_fee_conditional()),
+  'parking/side/zone': sideText('zone', () => m.field_side_zone()),
+  'parking/side/maxstay': side('maxstay', () => m.field_side_maxstay(), {
     snakeCase: false,
-    options: options(MAXSTAY_VALUES),
+    options: options(MAXSTAY_VALUES, MAXSTAY_LABELS),
   }),
-  'parking/side/maxstay_conditional': sideText('maxstay:conditional', 'Maximum stay (conditional)'),
-  'parking/side/markings': sideList('markings', 'Parking markings', BOOL_VALUES),
-  'parking/side/access': sideList('access', 'Parking access', ACCESS_VALUES),
-  'parking/side/access_conditional': sideText('access:conditional', 'Parking access (conditional)'),
-  'parking/side/informal': sideList('informal', 'Informal (unpaved shoulder)', BOOL_VALUES),
+  'parking/side/maxstay_conditional': sideText('maxstay:conditional', () =>
+    m.field_side_maxstay_conditional(),
+  ),
+  'parking/side/markings': sideList(
+    'markings',
+    () => m.field_side_markings(),
+    BOOL_VALUES,
+    BOOL_LABELS,
+  ),
+  'parking/side/access': sideList(
+    'access',
+    () => m.field_side_access(),
+    ACCESS_VALUES,
+    ACCESS_LABELS,
+  ),
+  'parking/side/access_conditional': sideText('access:conditional', () =>
+    m.field_side_access_conditional(),
+  ),
+  'parking/side/informal': sideList(
+    'informal',
+    () => m.field_side_informal(),
+    BOOL_VALUES,
+    BOOL_LABELS,
+  ),
   'parking/side/staggered': {
     type: 'check',
-    label: 'Staggered parking (alternating sides)',
+    get label() {
+      return m.field_side_staggered()
+    },
     key: sideKey('both', 'staggered'),
   },
-  'parking/side/width': sideText('width', 'Parking width'),
-  'parking/side/capacity': sideText('capacity', 'Parking capacity'),
-  'parking/side/surface': sideList('surface', 'Parking surface', SURFACE_VALUES),
+  'parking/side/width': sideText('width', () => m.field_side_width()),
+  'parking/side/capacity': sideText('capacity', () => m.field_side_capacity()),
+  'parking/side/surface': sideList(
+    'surface',
+    () => m.field_side_surface(),
+    SURFACE_VALUES,
+    SURFACE_LABELS,
+  ),
 } satisfies Record<string, Field>
 
 /** The fields of a separately mapped parking area (`Parkplatz`), its disabled bay and the rest of the area presets */
 export const AREA_FIELDS = {
-  'parking/area/parking': combo('parking', 'Parking type', PARKING_VALUES),
-  'parking/area/surface': combo('surface', 'Surface', SURFACE_VALUES),
-  'parking/area/fee': combo('fee', 'Fee', BOOL_VALUES),
-  'parking/area/fee_conditional': text('fee:conditional', 'Fee (conditional)'),
-  'parking/area/maxstay': combo('maxstay', 'Maximum stay', MAXSTAY_VALUES, { snakeCase: false }),
-  'parking/area/maxstay_conditional': text('maxstay:conditional', 'Maximum stay (conditional)'),
-  'parking/area/access': combo('access', 'Access', ACCESS_VALUES),
-  'parking/area/access_conditional': text('access:conditional', 'Access (conditional)'),
+  'parking/area/parking': combo(
+    'parking',
+    () => m.field_area_parking(),
+    PARKING_VALUES,
+    PARKING_LABELS,
+  ),
+  'parking/area/surface': combo(
+    'surface',
+    () => m.field_area_surface(),
+    SURFACE_VALUES,
+    SURFACE_LABELS,
+  ),
+  'parking/area/fee': combo('fee', () => m.field_area_fee(), BOOL_VALUES, BOOL_LABELS),
+  'parking/area/fee_conditional': text('fee:conditional', () => m.field_area_fee_conditional()),
+  'parking/area/maxstay': combo(
+    'maxstay',
+    () => m.field_area_maxstay(),
+    MAXSTAY_VALUES,
+    MAXSTAY_LABELS,
+    {
+      snakeCase: false,
+    },
+  ),
+  'parking/area/maxstay_conditional': text('maxstay:conditional', () =>
+    m.field_area_maxstay_conditional(),
+  ),
+  'parking/area/access': combo('access', () => m.field_area_access(), ACCESS_VALUES, ACCESS_LABELS),
+  'parking/area/access_conditional': text('access:conditional', () =>
+    m.field_area_access_conditional(),
+  ),
   // the builder edits `restriction:conditional` too
   'parking/area/restriction': {
     type: 'parkingRestriction',
-    label: 'Restriction',
+    get label() {
+      return m.field_area_restriction()
+    },
     key: 'restriction',
     keys: ['restriction:conditional'],
     customValues: false,
-    options: options(RESTRICTION_VALUES),
+    options: options(RESTRICTION_VALUES, RESTRICTION_LABELS),
   },
-  'parking/area/zone': text('zone', 'Zone'),
-  'parking/area/markings': combo('markings', 'Markings', BOOL_VALUES),
+  'parking/area/zone': text('zone', () => m.field_area_zone()),
+  'parking/area/markings': combo(
+    'markings',
+    () => m.field_area_markings(),
+    BOOL_VALUES,
+    BOOL_LABELS,
+  ),
   // The checkgroup of the XML: one combo per vehicle, whose only value is `designated`. A Maid check writes `yes`.
   ...Object.fromEntries(
     VEHICLE_KEYS.map((vehicle) => [
       `parking/area/vehicle/${vehicle}`,
-      combo(vehicle, `Only ${vehicle} (signposted)`, ['designated']),
+      combo(vehicle, VEHICLE_LABELS[vehicle], ['designated'], {}),
     ]),
   ),
 } satisfies Record<string, Field>
@@ -242,21 +415,26 @@ export const AREA_FIELDS = {
  * value of the project's. The three side fields are the project's additions.
  */
 export const CROSSING_FIELDS = {
-  crossing: combo('crossing', 'Crossing type', CROSSING_VALUES, { customValues: true }),
+  crossing: combo('crossing', () => m.field_crossing(), CROSSING_VALUES, CROSSING_LABELS, {
+    customValues: true,
+  }),
   'parking/crossing/kerb_extension': combo(
     'crossing:kerb_extension',
-    'Kerb extension',
+    () => m.field_crossing_kerb_extension(),
     CROSSING_SIDE_VALUES,
+    CROSSING_SIDE_LABELS,
   ),
   'parking/crossing/buffer_marking': combo(
     'crossing:buffer_marking',
-    'Buffer marking',
+    () => m.field_crossing_buffer_marking(),
     CROSSING_SIDE_VALUES,
+    CROSSING_SIDE_LABELS,
   ),
   'parking/crossing/buffer_protection': combo(
     'crossing:buffer_protection',
-    'Buffer protection',
+    () => m.field_crossing_buffer_protection(),
     CROSSING_SIDE_VALUES,
+    CROSSING_SIDE_LABELS,
   ),
 } satisfies Record<string, Field>
 

@@ -1,10 +1,8 @@
-// Helpers for the parking validation rules. Pure: tags in, issues and fixes out.
+// Helpers for the parking validation rules. Pure: tags in, issues and fixes out. Texts are read when a rule runs.
 import { actionChangeTags } from '@osm-editor-kit/maid-model'
 import type { Fix, Issue, Rule } from '@osm-editor-kit/maid-validation'
-import { isGerman } from '../language.ts'
 import { sideKey } from '../sides.ts'
 import type { Side } from '../sides.ts'
-import { FIXES_DE, MESSAGES_DE } from './messages-de.ts'
 
 export type Entity = Parameters<Rule['validate']>[0]
 export type Graph = Parameters<Fix['actions']>[0]
@@ -31,50 +29,40 @@ export function isParkingConditionalKey(key: string, tags: Tags) {
   return key.endsWith(':conditional') && (key.startsWith('parking:') || tags.amenity === 'parking')
 }
 
-/**
- * One warning about one entity. `message` is the English text; where the page is German the text of MESSAGES_DE for
- * the rule is shown instead.
- */
+/** One warning about one entity. `message` is the text in the page's language (the rule's message). */
 export function issueFor(args: {
   rule: string
   entity: Entity
   /** Tells the issues of one entity apart: appended to its id */
   part?: string
-  feature: string
   /** The tags the issue is about, as `key=value` pairs */
   tags: string
   message: string
   fixes: Fix[]
 }): Issue {
-  const german = isGerman() ? MESSAGES_DE[args.rule] : undefined
   return {
     id: `${args.rule}:${args.entity.id}${args.part ?? ''}`,
     rule: args.rule,
     severity: 'warning',
-    message: german ? german({ feature: args.feature, tags: args.tags }) : args.message,
+    message: args.message,
     entityIds: [args.entity.id],
     fixes: args.fixes,
     data: { tags: args.tags },
   }
 }
 
-/**
- * A fix that changes the tags of one entity, as one undo step. `label` and `annotation` are English; where the page
- * is German the texts of FIXES_DE for the fix id are used, with `subject` (the key the fix is about).
- */
+/** A fix that changes the tags of one entity, as one undo step. `label` and `annotation` are in the page's language. */
 export function tagsFix(args: {
   entityId: string
   id: string
   label: string
   annotation: string
-  subject: string
   change: (tags: Tags) => Record<string, string>
 }): Fix {
-  const german = isGerman() ? FIXES_DE[args.id]?.(args.subject) : undefined
   return {
     id: args.id,
-    label: german?.label ?? args.label,
-    annotation: german?.annotation ?? args.annotation,
+    label: args.label,
+    annotation: args.annotation,
     actions: (graph) => {
       const entity = graph.hasEntity(args.entityId)
       return entity ? [actionChangeTags(args.entityId, args.change(entity.tags))] : []

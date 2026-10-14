@@ -1,5 +1,6 @@
 import type { Issue, Rule } from '@osm-editor-kit/maid-validation'
-import { readSide, sideKey } from '../sides.ts'
+import { m } from '../messages.ts'
+import { readSide } from '../sides.ts'
 import { featureName, issueFor, sourceKey } from './shared.ts'
 
 export const RULE_ID = 'parking_reason_without_no'
@@ -15,7 +16,9 @@ export const RULE_ID = 'parking_reason_without_no'
  */
 export const reasonWithoutNo: Rule = {
   id: RULE_ID,
-  label: 'A reason for no parking on a side that has parking',
+  get label() {
+    return m.valid_reason_no_label()
+  },
   validate(entity) {
     const tags = entity.tags
     const feature = featureName(tags)
@@ -29,9 +32,8 @@ export const reasonWithoutNo: Rule = {
           rule: RULE_ID,
           entity,
           part: `:${side}`,
-          feature,
           tags: described,
-          message: `${feature} has ${described}, but the ${side} side is not ${sideKey(side)}=no: the reason belongs to a side without parking`,
+          message: m.valid_reason_no_message({ feature, tags: described }),
           fixes: [],
         }),
       )

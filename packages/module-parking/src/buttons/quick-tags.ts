@@ -3,17 +3,17 @@
  * (the mapping project's JOSM file street_parking_hot_buttons.xml, group "Street Parking Hot Buttons"), and
  * Maid's additions for the combined buttons the documents ask for (qa-markings-obstacles-process.md, 5.2).
  * Pure data: the logic is in quick-tag-logic.ts, the component in QuickTags.tsx. No icon imports here.
+ * Names are messages (../messages.ts), read when a button is shown: they follow the page's language.
  */
+import { m } from '../messages.ts'
 import { sideKey, type RealSide, type Side, type TagEdit } from '../sides.ts'
 
 /** A button: what it sets on the selected road(s). `edits` are the tags as the source has them (`value` undefined removes a key). */
 export type QuickTag = {
   /** Unique, stable id of the button. The 33 source buttons use the source's `name` (their icon has the same name). */
   id: string
-  /** The English name: shown in the tooltip and read by screen readers */
-  label: string
-  /** The German name */
-  labelDe: string
+  /** The name in the page's language: shown in the tooltip and read by screen readers */
+  readonly label: string
   /** The name of an icon in `PARKING_ICONS` (../icons) */
   icon?: string
   /** The side of the road the button is about: its column in the grid, and the side the map shows while it has the focus */
@@ -43,8 +43,7 @@ export type QuickTagGroup =
 export type QuickTagRow = {
   id: string
   group: QuickTagGroup
-  label: string
-  labelDe: string
+  readonly label: string
 }
 
 type Topic = {
@@ -54,97 +53,86 @@ type Topic = {
   suffix?: string
   value: string
   group: QuickTagGroup
-  label: string
-  labelDe: string
+  label: () => string
 }
 
 /** The 11 topics of the source file, each for the three sides (33 buttons), in the file's order */
 const SOURCE_TOPICS: readonly Topic[] = [
-  { name: 'no', value: 'no', group: 'position', label: 'No parking', labelDe: 'Kein Parken' },
+  { name: 'no', value: 'no', group: 'position', label: () => m.quick_topic_no() },
   {
     name: 'lane',
     value: 'lane',
     group: 'position',
-    label: 'Parking on the carriageway',
-    labelDe: 'Parken auf der Fahrbahn',
+    label: () => m.quick_topic_lane(),
   },
   {
     name: 'separate',
     value: 'separate',
     group: 'position',
-    label: 'Parking as a separate way',
-    labelDe: 'Parken getrennt erfasst',
+    label: () => m.quick_topic_separate(),
   },
   {
     name: 'orientation_parallel',
     suffix: 'orientation',
     value: 'parallel',
     group: 'orientation',
-    label: 'Parallel parking',
-    labelDe: 'Längsparken',
+    label: () => m.quick_topic_parallel(),
   },
   {
     name: 'orientation_diagonal',
     suffix: 'orientation',
     value: 'diagonal',
     group: 'orientation',
-    label: 'Diagonal parking',
-    labelDe: 'Schrägparken',
+    label: () => m.quick_topic_diagonal(),
   },
   {
     name: 'orientation_perpendicular',
     suffix: 'orientation',
     value: 'perpendicular',
     group: 'orientation',
-    label: 'Perpendicular parking',
-    labelDe: 'Querparken',
+    label: () => m.quick_topic_perpendicular(),
   },
   {
     name: 'restriction_no_stopping',
     suffix: 'restriction',
     value: 'no_stopping',
     group: 'restriction',
-    label: 'No stopping',
-    labelDe: 'Halten verboten',
+    label: () => m.quick_topic_no_stopping(),
   },
   {
     name: 'restriction_no_parking',
     suffix: 'restriction',
     value: 'no_parking',
     group: 'restriction',
-    label: 'No parking (restriction)',
-    labelDe: 'Parken verboten',
+    label: () => m.quick_topic_no_parking(),
   },
   {
     name: 'fee_yes',
     suffix: 'fee',
     value: 'yes',
     group: 'fee',
-    label: 'With fee',
-    labelDe: 'Mit Gebühr',
+    label: () => m.quick_topic_fee_yes(),
   },
   {
     name: 'fee_no',
     suffix: 'fee',
     value: 'no',
     group: 'fee',
-    label: 'Without fee',
-    labelDe: 'Ohne Gebühr',
+    label: () => m.quick_topic_fee_no(),
   },
   {
     name: 'markings_yes',
     suffix: 'markings',
     value: 'yes',
     group: 'markings',
-    label: 'With markings',
-    labelDe: 'Mit Markierung',
+    label: () => m.quick_topic_markings_yes(),
   },
 ]
 
-const SIDE_NAMES: Record<Side, { label: string; labelDe: string }> = {
-  left: { label: 'left side', labelDe: 'links' },
-  right: { label: 'right side', labelDe: 'rechts' },
-  both: { label: 'both sides', labelDe: 'beidseitig' },
+const SIDE_NAMES: Record<Side, () => string> = {
+  left: () => m.quick_side_left(),
+  right: () => m.quick_side_right(),
+  both: () => m.quick_side_both(),
 }
 
 /** The 33 source buttons, in the file's order: by topic, then left, right, both */
@@ -152,8 +140,9 @@ const SOURCE_BUTTONS: QuickTag[] = SOURCE_TOPICS.flatMap((topic) =>
   (['left', 'right', 'both'] as const).map(
     (side): QuickTag => ({
       id: `parking_${side}_${topic.name}`,
-      label: `${topic.label}, ${SIDE_NAMES[side].label}`,
-      labelDe: `${topic.labelDe}, ${SIDE_NAMES[side].labelDe}`,
+      get label() {
+        return m.quick_side_label({ topic: topic.label(), side: SIDE_NAMES[side]() })
+      },
       icon: `parking_${side}_${topic.name}`,
       side,
       row: topic.name,
@@ -165,9 +154,9 @@ const SOURCE_BUTTONS: QuickTag[] = SOURCE_TOPICS.flatMap((topic) =>
 
 /** The reasons of "no parking" (qa-markings-obstacles-process.md, 5.1: `parking:<side>:reason`) */
 const REASONS = [
-  { value: 'construction', label: 'construction', labelDe: 'Baustelle' },
-  { value: 'structure', label: 'structure in the way', labelDe: 'Bauwerk im Weg' },
-  { value: 'dual_carriage', label: 'separate carriageways', labelDe: 'getrennte Fahrbahnen' },
+  { value: 'construction', label: () => m.quick_reason_construction() },
+  { value: 'structure', label: () => m.quick_reason_structure() },
+  { value: 'dual_carriage', label: () => m.quick_reason_dual_carriage() },
 ] as const
 
 const REASON_ORIGIN =
@@ -178,8 +167,12 @@ const REASON_BUTTONS: QuickTag[] = REASONS.flatMap((reason) =>
   (['left', 'right', 'both'] as const).map(
     (side): QuickTag => ({
       id: `maid_${side}_no_reason_${reason.value}`,
-      label: `No parking, ${SIDE_NAMES[side].label}, reason: ${reason.label}`,
-      labelDe: `Kein Parken, ${SIDE_NAMES[side].labelDe}, Grund: ${reason.labelDe}`,
+      get label() {
+        return m.quick_no_reason_button({
+          side: SIDE_NAMES[side](),
+          reason: reason.label(),
+        })
+      },
       icon: `parking_${side}_no`,
       side,
       row: `reason-${reason.value}`,
@@ -198,14 +191,16 @@ export const QUICK_TAG_ROWS: readonly QuickTagRow[] = [
   ...SOURCE_TOPICS.map((topic) => ({
     id: topic.name,
     group: topic.group,
-    label: topic.label,
-    labelDe: topic.labelDe,
+    get label() {
+      return topic.label()
+    },
   })),
   ...REASONS.map((reason) => ({
     id: `reason-${reason.value}`,
     group: 'reason' as const,
-    label: `No parking, ${reason.label}`,
-    labelDe: `Kein Parken, ${reason.labelDe}`,
+    get label() {
+      return m.quick_no_reason_row({ reason: reason.label() })
+    },
   })),
 ]
 
@@ -213,8 +208,9 @@ export const QUICK_TAG_ROWS: readonly QuickTagRow[] = [
 const COMBINED_BUTTONS: QuickTag[] = [
   {
     id: 'maid_both_lane_parallel',
-    label: 'Parking on the carriageway, both sides, parallel',
-    labelDe: 'Parken auf der Fahrbahn, beidseitig, Längsparken',
+    get label() {
+      return m.quick_lane_both_parallel()
+    },
     icon: 'parking_both_lane',
     side: 'both',
     edits: [
@@ -230,8 +226,9 @@ const COMBINED_BUTTONS: QuickTag[] = [
   ...(['left', 'right'] as const).map(
     (side): QuickTag => ({
       id: `maid_${side}_lane_parallel`,
-      label: `Parking on the carriageway, ${SIDE_NAMES[side].label}, parallel`,
-      labelDe: `Parken auf der Fahrbahn, ${SIDE_NAMES[side].labelDe}, Längsparken`,
+      get label() {
+        return m.quick_lane_side_parallel({ side: SIDE_NAMES[side]() })
+      },
       icon: `parking_${side}_lane`,
       side,
       edits: [
@@ -246,8 +243,9 @@ const COMBINED_BUTTONS: QuickTag[] = [
   ...(['left', 'right'] as const).map(
     (side): QuickTag => ({
       id: `maid_clear_${side}`,
-      label: `Clear all parking tags of the ${side} side`,
-      labelDe: `Alle Parkplatz-Angaben der ${side === 'left' ? 'linken' : 'rechten'} Seite entfernen`,
+      get label() {
+        return side === 'left' ? m.quick_clear_left() : m.quick_clear_right()
+      },
       side,
       clearSide: side,
       edits: [],

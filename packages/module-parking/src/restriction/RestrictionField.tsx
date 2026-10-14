@@ -33,6 +33,7 @@ import {
   type RuleIssue,
 } from './field-logic.ts'
 import { restrictionLabels, type RestrictionLabels } from './labels.ts'
+import { addRangeKey, keysOf, mintRangeKey, removeRangeKey } from './time-range-keys.ts'
 
 /** The field type the module registers on `inspector.field`; a preset field with this `type` uses RestrictionField */
 export const PARKING_RESTRICTION_FIELD_TYPE = 'parkingRestriction'
@@ -494,6 +495,9 @@ function ConditionEditor(props: {
 }) {
   const { state, labels, onChange } = props
   const readOnly = onChange === undefined
+  // one key per time range, kept here (not in OSM): a row keeps its inputs and focus when another row is removed
+  const [storedKeys, setStoredKeys] = useState<readonly string[]>([])
+  const rangeKeys = keysOf(storedKeys, state.ranges.length)
   const ends = monthEnds(state)
   const monthsOn = monthsAllowed(state) && !readOnly
   return (
@@ -521,7 +525,7 @@ function ConditionEditor(props: {
       <div className="grid gap-1">
         <span className={HINT}>{labels.times}</span>
         {state.ranges.map((range, index) => (
-          <div key={index} className="flex min-w-0 items-center gap-1">
+          <div key={rangeKeys[index]} className="flex min-w-0 items-center gap-1">
             <TimeInput
               key={`from ${range.from}`}
               value={range.from}
@@ -541,7 +545,10 @@ function ConditionEditor(props: {
               type="button"
               className={BUTTON}
               disabled={readOnly}
-              onClick={() => onChange?.(removeRange(state, index))}
+              onClick={() => {
+                setStoredKeys(removeRangeKey(rangeKeys, index))
+                onChange?.(removeRange(state, index))
+              }}
             >
               {labels.removeTime}
             </button>
@@ -552,7 +559,10 @@ function ConditionEditor(props: {
             type="button"
             className={BUTTON}
             disabled={readOnly}
-            onClick={() => onChange?.(addRange(state))}
+            onClick={() => {
+              setStoredKeys(addRangeKey(rangeKeys, mintRangeKey))
+              onChange?.(addRange(state))
+            }}
           >
             {labels.addTime}
           </button>

@@ -6,6 +6,7 @@
  * where the JOSM groups that come later in the file win. Categories with `source: 'maid'` have no JOSM colour: they
  * are Maid's own, and the legend says so.
  */
+import { m } from '../messages.ts'
 import { readSide, type RealSide } from '../sides.ts'
 
 export type CategoryId =
@@ -28,8 +29,8 @@ export type Category = {
   colour: string
   /** The name the MapCSS file uses, when it has one */
   josm?: string
-  /** Legend text (English; the lens rules and the legend read it) */
-  label: string
+  /** Legend text in the page's language (a message, read when it is used) */
+  readonly label: string
   /** 'josm': the colour is the file's. 'maid': a colour Maid picks, the file has none for it */
   source: 'josm' | 'maid'
 }
@@ -39,82 +40,106 @@ export const CATEGORIES: Record<CategoryId, Category> = {
     id: 'warnings',
     colour: '#000000',
     josm: 'black',
-    label: 'Warnings',
+    get label() {
+      return m.lens_category_warnings()
+    },
     source: 'josm',
   },
   loading_only: {
     id: 'loading_only',
     colour: '#e0ffff',
     josm: 'lightcyan',
-    label: 'Loading zone',
+    get label() {
+      return m.lens_category_loading_only()
+    },
     source: 'josm',
   },
   charging_only: {
     id: 'charging_only',
     colour: '#cd7f32',
     josm: '#cd7f32',
-    label: 'Charging',
+    get label() {
+      return m.lens_category_charging_only()
+    },
     source: 'josm',
   },
   disabled: {
     id: 'disabled',
     colour: '#cd7f32',
     josm: '#cd7f32',
-    label: 'Disabled parking',
+    get label() {
+      return m.lens_category_disabled()
+    },
     source: 'josm',
   },
   no_stopping: {
     id: 'no_stopping',
     colour: '#ff0000',
     josm: 'red',
-    label: 'No stopping or no parking',
+    get label() {
+      return m.lens_category_no_stopping()
+    },
     source: 'josm',
   },
   restricted: {
     id: 'restricted',
     colour: '#ff0000',
     josm: 'red',
-    label: 'Restricted',
+    get label() {
+      return m.lens_category_restricted()
+    },
     source: 'josm',
   },
   paid: {
     id: 'paid',
     colour: '#87cefa',
     josm: 'lightskyblue',
-    label: 'Paid parking',
+    get label() {
+      return m.lens_category_paid()
+    },
     source: 'josm',
   },
   time_limit: {
     id: 'time_limit',
     colour: '#1e90ff',
     josm: 'dodgerblue',
-    label: 'Time limit',
+    get label() {
+      return m.lens_category_time_limit()
+    },
     source: 'josm',
   },
   free: {
     id: 'free',
     colour: '#7fff00',
     josm: 'chartreuse',
-    label: 'Free parking',
+    get label() {
+      return m.lens_category_free()
+    },
     source: 'josm',
   },
   // parking without a restriction, a fee or a time limit: the common case, so a strong colour and not a grey
   parked: {
     id: 'parked',
     colour: '#16a34a',
-    label: 'Parked, no further tags',
+    get label() {
+      return m.lens_category_parked()
+    },
     source: 'maid',
   },
   no_parking_side: {
     id: 'no_parking_side',
     colour: '#616161',
-    label: 'No parking on this side',
+    get label() {
+      return m.lens_category_no_parking_side()
+    },
     source: 'maid',
   },
   not_mapped: {
     id: 'not_mapped',
     colour: '#bdbdbd',
-    label: 'Not mapped (dashed)',
+    get label() {
+      return m.lens_category_not_mapped()
+    },
     source: 'maid',
   },
 }

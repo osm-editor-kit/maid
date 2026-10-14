@@ -15,14 +15,16 @@
  *
  * JOSM's `node` is a point and a vertex in Maid, `way` a line, `closedway` an area.
  *
- * Names are English; the German names are in labels-de.ts (LABELS_DE). The German words are also in `terms`, so the
- * search finds them. Fixed tags of the XML are `addTags`.
+ * Names are messages (../messages.ts), read when the presets are made, so they follow the page's language. The `terms`
+ * (search words) keep the German words of the XML, so the search finds them in either language. Fixed tags of the XML are
+ * `addTags`.
  *
  * Berlin-specific: nothing here (zones, LOR areas). The fixed tags `access=no` and `disabled=private` of the
  * Behindertenparkplatz are taken as written; the mapping team lists the personal disabled bay as open
  * (qa-markings-obstacles-process.md S28; josm-setup-presets-styles.md 2.6), so this preset may change.
  */
 import type { PresetDefinition, PresetEdit } from '@osm-editor-kit/maid-presets'
+import { m } from '../messages.ts'
 import {
   AREA_EXTRA_FIELDS,
   CROSSING_EXTRA_FIELDS,
@@ -54,11 +56,12 @@ export function parkplatzId(value: (typeof PARKING_VALUES)[number]) {
   return value === 'street_side' ? 'amenity/parking/street-side' : `parking/area/${value}`
 }
 
-const PARKPLATZ_NAMES: Record<(typeof PARKING_VALUES)[number], string> = {
-  street_side: 'Parking area (street side bay)',
-  lane: 'Parking area (on the carriageway)',
-  on_kerb: 'Parking area (on the kerb)',
-  half_on_kerb: 'Parking area (half on the kerb)',
+/** The names of the Parkplatz presets: messages, read when the presets are made (the page's language) */
+const PARKPLATZ_NAMES: Record<(typeof PARKING_VALUES)[number], () => string> = {
+  street_side: () => m.preset_parkplatz_street_side(),
+  lane: () => m.preset_parkplatz_lane(),
+  on_kerb: () => m.preset_parkplatz_on_kerb(),
+  half_on_kerb: () => m.preset_parkplatz_half_on_kerb(),
 }
 
 /** Parkplatz (JOSM: closedway, mapped separately): one preset per `parking` value */
@@ -66,7 +69,9 @@ const PARKPLATZ_PRESETS: Record<string, PresetDefinition> = Object.fromEntries(
   PARKING_VALUES.map((value) => [
     parkplatzId(value),
     {
-      name: PARKPLATZ_NAMES[value],
+      get name() {
+        return PARKPLATZ_NAMES[value]()
+      },
       tags: { amenity: 'parking', parking: value },
       addTags: { amenity: 'parking', parking: value },
       geometry: ['area'],
@@ -93,7 +98,9 @@ export const PARKING_PRESETS: Record<string, PresetDefinition> = {
   // Behindertenparkplatz mit Ausweisnummer (JOSM: closedway). Fixed tags: access=no, disabled=private, the sign.
   // The match score lets it win over the Parkplatz presets, which match the same area by `parking=*`.
   'parking/area/disabled_permit': {
-    name: 'Disabled parking bay with permit number',
+    get name() {
+      return m.preset_disabled_permit()
+    },
     tags: { amenity: 'parking', disabled: 'private' },
     addTags: {
       amenity: 'parking',
@@ -122,7 +129,9 @@ export const PARKING_PRESETS: Record<string, PresetDefinition> = {
   },
   // Tiefgarageneinfahrt (JOSM: node)
   'parking/entrance_underground': {
-    name: 'Underground car park entrance',
+    get name() {
+      return m.preset_underground_entrance()
+    },
     tags: { amenity: 'parking_entrance', parking: 'underground' },
     addTags: { amenity: 'parking_entrance', parking: 'underground' },
     geometry: ['point', 'vertex'],
@@ -138,7 +147,9 @@ export const PARKING_PRESETS: Record<string, PresetDefinition> = {
   },
   // Hindernis im Parkbereich (JOSM: node, way, closedway)
   'parking/obstacle': {
-    name: 'Obstacle in the parking area',
+    get name() {
+      return m.preset_obstacle()
+    },
     tags: { 'obstacle:parking': 'yes' },
     addTags: { 'obstacle:parking': 'yes' },
     geometry: ['point', 'vertex', 'line', 'area'],
@@ -185,15 +196,36 @@ export const CROSSING_PRESETS = [
   'highway/crossing/traffic_signals',
 ] as const
 
-/** The edits to presets of the data, by id: the roads, the crossings (the project's three extra fields), the car park */
-export const PARKING_PRESET_EDITS: Record<string, PresetEdit> = {
-  ...Object.fromEntries(PARKING_ROADS.map((id) => [id, ROAD_PRESET_EDIT])),
-  ...Object.fromEntries(
-    CROSSING_PRESETS.map((id) => [
-      id,
-      { addFields: [...CROSSING_EXTRA_FIELDS] } satisfies PresetEdit,
-    ]),
-  ),
-  // iD's Parking Lot: what the project tags on a parking area, shown once it has a value or picked under "Add field"
-  'amenity/parking': { addMoreFields: [...AREA_EXTRA_FIELDS] },
+/**
+ * The names of three of iD's presets, which have the tags of the XML's items under the project's names (Einfahrt,
+ * Abgesenkter Bordstein, Querungsstelle). iD's English names are the English here; the messages hold every language.
+ */
+const IDS_NAMES: Record<string, () => string> = {
+  'highway/service/driveway': () => m.preset_driveway(),
+  'barrier/kerb/lowered': () => m.preset_lowered_kerb(),
+  'highway/crossing': () => m.preset_crossing(),
 }
+
+/** The edits to presets of the data, by id: the roads, the crossings (the project's three extra fields), the car park, and the names above */
+export const PARKING_PRESET_EDITS: Record<string, PresetEdit> = (() => {
+  const edits: Record<string, PresetEdit> = {
+    ...Object.fromEntries(PARKING_ROADS.map((id) => [id, ROAD_PRESET_EDIT])),
+    ...Object.fromEntries(
+      CROSSING_PRESETS.map((id) => [
+        id,
+        { addFields: [...CROSSING_EXTRA_FIELDS] } satisfies PresetEdit,
+      ]),
+    ),
+    // iD's Parking Lot: what the project tags on a parking area, shown once it has a value or picked under "Add field"
+    'amenity/parking': { addMoreFields: [...AREA_EXTRA_FIELDS] },
+  }
+  for (const [id, name] of Object.entries(IDS_NAMES)) {
+    edits[id] = {
+      ...edits[id],
+      get name() {
+        return name()
+      },
+    }
+  }
+  return edits
+})()

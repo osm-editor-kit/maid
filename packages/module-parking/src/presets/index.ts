@@ -6,7 +6,7 @@ import { PARKING_PRESET_EDITS, PARKING_PRESETS } from './presets.ts'
  * The app's preset changes: the parking fields (per side on roads, and on areas and crossings), the parking presets
  * and the edits to the road, crossing and car park presets of the data. The app's config applies it with
  * `withChanges(data, parkingPresetChanges)`, after any other module's changes (for example the traffic signs).
- * German labels: LABELS_DE (labels-de.ts), applied by the app with `withGermanLabels(data)` when the visit is German.
+ * The names and labels are messages, read when this is applied: they are in the page's language (see ../messages.ts).
  */
 export const parkingPresetChanges: PresetChanges = {
   fields: PARKING_FIELDS,

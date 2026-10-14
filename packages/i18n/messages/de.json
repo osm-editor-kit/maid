@@ -97,5 +97,8 @@
   "relations_download": "Herunterladen",
   "relations_downloading": "Lade herunter…",
   "relations_download_member": "{id} herunterladen",
-  "relations_added_features": "{count} Objekte zur Relation hinzugefügt"
+  "relations_added_features": "{count} Objekte zur Relation hinzugefügt",
+  "maplibre_attribution_toggle": "Quellenangaben ein- und ausblenden",
+  "maplibre_attribution_feedback": "Rückmeldung zur Karte",
+  "maplibre_map_title": "Karte"
 }

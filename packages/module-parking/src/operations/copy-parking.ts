@@ -1,4 +1,5 @@
 import type { Operation } from '@osm-editor-kit/maid-operations'
+import { m } from '../messages.ts'
 import { readSide } from '../sides.ts'
 import {
   hasParkingOn,
@@ -22,18 +23,35 @@ export function copySide(tags: Tags, from: RealSide, _to: RealSide): Record<stri
  * of this side. Offered for roads that have parking tags on the side; disabled when the copy changes nothing.
  */
 export function copyParkingOperation(from: RealSide, to: RealSide): Operation {
+  // the texts of one direction, read when they are shown or made (the page's language)
+  const texts = from === 'left' ? LEFT_TO_RIGHT : RIGHT_TO_LEFT
   const plan = (context: Parameters<Operation['run']>[0]) =>
     tagChange(
       context,
       (tags) => (hasParkingOn(tags, from) ? copySide(tags, from, to) : { ...tags }),
-      `Copied the ${from} parking to the ${to} side`,
+      texts.annotation(),
     )
   return {
     id: `parking-copy-${from}-to-${to}`,
-    label: `Copy ${from} parking to the ${to} side`,
+    get label() {
+      return texts.label()
+    },
     applies: (context) => selectedRoads(context).some((road) => hasParkingOn(road.tags, from)),
-    disabled: (context) =>
-      plan(context).changes ? undefined : `The ${to} side already has the same parking tags.`,
+    disabled: (context) => (plan(context).changes ? undefined : texts.disabled()),
     run: (context) => plan(context).result,
   }
+}
+
+type CopyTexts = { label: () => string; annotation: () => string; disabled: () => string }
+
+const LEFT_TO_RIGHT: CopyTexts = {
+  label: () => m.operation_copy_left_right_label(),
+  annotation: () => m.operation_copy_left_right_annotation(),
+  disabled: () => m.operation_copy_left_right_disabled(),
+}
+
+const RIGHT_TO_LEFT: CopyTexts = {
+  label: () => m.operation_copy_right_left_label(),
+  annotation: () => m.operation_copy_right_left_annotation(),
+  disabled: () => m.operation_copy_right_left_disabled(),
 }

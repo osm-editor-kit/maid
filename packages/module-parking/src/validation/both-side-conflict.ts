@@ -1,4 +1,5 @@
 import type { Issue, Rule } from '@osm-editor-kit/maid-validation'
+import { m } from '../messages.ts'
 import { featureName, issueFor, tagsFix, type Tags } from './shared.ts'
 
 export const RULE_ID = 'parking_both_conflicts_side'
@@ -30,7 +31,9 @@ export function splitBoth(tags: Tags, suffix: string): Record<string, string> {
  */
 export const bothConflictsSide: Rule = {
   id: RULE_ID,
-  label: 'Both sides and one side of the same tag',
+  get label() {
+    return m.valid_both_side_label()
+  },
   validate(entity) {
     const tags = entity.tags
     const feature = featureName(tags)
@@ -52,16 +55,14 @@ export const bothConflictsSide: Rule = {
           rule: RULE_ID,
           entity,
           part: `:both${suffix}`,
-          feature,
           tags: described,
-          message: `${feature} has ${described}: the value is given for both sides and for one side at once`,
+          message: m.valid_both_side_message({ feature, tags: described }),
           fixes: [
             tagsFix({
               entityId: entity.id,
               id: 'split_both',
-              label: `Split ${bothKey} into the two sides`,
-              annotation: `Split ${bothKey} into the two sides`,
-              subject: bothKey,
+              label: m.valid_fix_split_both_label({ key: bothKey }),
+              annotation: m.valid_fix_split_both_annotation({ key: bothKey }),
               change: (current) => splitBoth(current, suffix),
             }),
           ],

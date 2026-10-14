@@ -1,4 +1,5 @@
 import type { Issue, Rule } from '@osm-editor-kit/maid-validation'
+import { m } from '../messages.ts'
 import { featureName, issueFor } from './shared.ts'
 
 export const RULE_ID = 'parking_legacy_schema'
@@ -13,7 +14,9 @@ const LEGACY_PREFIXES = ['parking:lane:', 'parking:condition:']
  */
 export const legacySchema: Rule = {
   id: RULE_ID,
-  label: 'Old parking schema',
+  get label() {
+    return m.valid_legacy_label()
+  },
   validate(entity) {
     const tags = entity.tags
     const keys = Object.keys(tags)
@@ -25,9 +28,8 @@ export const legacySchema: Rule = {
     const issue: Issue = issueFor({
       rule: RULE_ID,
       entity,
-      feature,
       tags: described,
-      message: `${feature} has ${described}: the parking schema from before 2022 (parking:lane:*, parking:condition:*). It is still common but no longer read, and it is not converted automatically here`,
+      message: m.valid_legacy_message({ feature, tags: described }),
       fixes: [],
     })
     return [issue]

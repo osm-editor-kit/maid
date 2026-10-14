@@ -1,4 +1,5 @@
 import type { Issue, Rule } from '@osm-editor-kit/maid-validation'
+import { m } from '../messages.ts'
 import { splitOutsideParens } from '../restriction/conditional.ts'
 import { featureName, isParkingConditionalKey, issueFor } from './shared.ts'
 
@@ -31,7 +32,9 @@ export function isConditionValue(value: string) {
 
 export const conditionalSyntax: Rule = {
   id: RULE_ID,
-  label: 'Conditional value syntax',
+  get label() {
+    return m.valid_conditional_label()
+  },
   validate(entity) {
     const tags = entity.tags
     const feature = featureName(tags)
@@ -45,9 +48,8 @@ export const conditionalSyntax: Rule = {
           rule: RULE_ID,
           entity,
           part: `:${key}`,
-          feature,
           tags: `${key}=${value}`,
-          message: `${feature} has ${key}=${value}, which is not of the form value @ (condition)`,
+          message: m.valid_conditional_message({ feature, tags: `${key}=${value}` }),
           fixes: [],
         }),
       )

@@ -1,4 +1,5 @@
 import type { Operation } from '@osm-editor-kit/maid-operations'
+import { m } from '../messages.ts'
 import { selectedRoads, tagChange, type Tags } from './shared.ts'
 
 /**
@@ -15,11 +16,13 @@ export function withoutParking(tags: Tags): Record<string, string> {
 /** "Remove parking tags" of the selected roads: every `parking:*` key, one undo step. Offered when a road has one. */
 export const removeParkingOperation: Operation = {
   id: 'parking-remove-tags',
-  label: 'Remove parking tags',
+  get label() {
+    return m.operation_remove_label()
+  },
   applies: (context) =>
     selectedRoads(context).some((road) =>
       Object.keys(road.tags).some((key) => key.startsWith('parking:')),
     ),
   disabled: () => undefined,
-  run: (context) => tagChange(context, withoutParking, 'Removed the parking tags').result,
+  run: (context) => tagChange(context, withoutParking, m.operation_remove_annotation()).result,
 }

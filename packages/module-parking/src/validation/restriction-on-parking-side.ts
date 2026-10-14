@@ -1,4 +1,5 @@
 import type { Issue, Rule } from '@osm-editor-kit/maid-validation'
+import { m } from '../messages.ts'
 import { parseSideKey, readSide } from '../sides.ts'
 import { featureName, issueFor, sourceKey, type Tags } from './shared.ts'
 
@@ -32,7 +33,9 @@ function hasExemption(tags: Tags, side: 'left' | 'right') {
  */
 export const restrictionOnParkingSide: Rule = {
   id: RULE_ID,
-  label: 'Parking and a parking ban on the same side',
+  get label() {
+    return m.valid_restriction_side_label()
+  },
   validate(entity) {
     const tags = entity.tags
     const feature = featureName(tags)
@@ -50,9 +53,8 @@ export const restrictionOnParkingSide: Rule = {
           rule: RULE_ID,
           entity,
           part: `:${side}`,
-          feature,
           tags: described,
-          message: `${feature} has ${described}: a parking ban without a time limit contradicts the parking on the ${side} side`,
+          message: m.valid_restriction_side_message({ feature, tags: described }),
           fixes: [],
         }),
       )

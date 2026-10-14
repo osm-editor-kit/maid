@@ -1,4 +1,5 @@
 import type { Issue, Rule } from '@osm-editor-kit/maid-validation'
+import { m } from '../messages.ts'
 import { sideKey } from '../sides.ts'
 import { featureName, issueFor } from './shared.ts'
 
@@ -11,7 +12,9 @@ export const RULE_ID = 'parking_fee_conditional'
  */
 export const feeConditional: Rule = {
   id: RULE_ID,
-  label: 'Fee and a conditional fee of yes',
+  get label() {
+    return m.valid_fee_label()
+  },
   validate(entity) {
     const tags = entity.tags
     const feature = featureName(tags)
@@ -26,9 +29,8 @@ export const feeConditional: Rule = {
           rule: RULE_ID,
           entity,
           part: `:${side}`,
-          feature,
           tags: described,
-          message: `${feature} has ${described}: the fee is both always and conditionally yes`,
+          message: m.valid_fee_message({ feature, tags: described }),
           fixes: [],
         }),
       )

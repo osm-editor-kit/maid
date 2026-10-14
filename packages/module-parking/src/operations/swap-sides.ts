@@ -1,4 +1,5 @@
 import type { Operation } from '@osm-editor-kit/maid-operations'
+import { m } from '../messages.ts'
 import { readSide } from '../sides.ts'
 import { hasParkingOn, selectedRoads, tagChange, withSides, type Tags } from './shared.ts'
 
@@ -20,11 +21,11 @@ const hasParking = (tags: Tags) => hasParkingOn(tags, 'left') || hasParkingOn(ta
  */
 export const swapSidesOperation: Operation = {
   id: 'parking-swap-sides',
-  label: 'Swap the parking sides',
+  get label() {
+    return m.operation_swap_label()
+  },
   applies: (context) => selectedRoads(context).some((road) => hasParking(road.tags)),
   disabled: (context) =>
-    tagChange(context, swapSides, '').changes
-      ? undefined
-      : 'The left and right sides have the same parking tags, so swapping changes nothing.',
-  run: (context) => tagChange(context, swapSides, 'Swapped the parking sides').result,
+    tagChange(context, swapSides, '').changes ? undefined : m.operation_swap_disabled(),
+  run: (context) => tagChange(context, swapSides, m.operation_swap_annotation()).result,
 }
