@@ -9,12 +9,7 @@ import type {
 } from '@osm-editor-kit/maid-presets'
 import type { ChangeTagsResult, Mode } from '@osm-editor-kit/maid-renderer'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
-import {
-  favouritesFor,
-  findFavouriteByNumber,
-  setFavouriteNumber as setNumberIn,
-  useSettings,
-} from '@osm-editor-kit/maid-ui'
+import { favouritesFor, findFavouriteByNumber, useSettings } from '@osm-editor-kit/maid-ui'
 import { useShell } from './shell-context'
 
 /** What the functions here act on: the editor's presets and the engine */
@@ -73,10 +68,7 @@ export function moveFavourite(preset: Preset, geometry: Geometry, delta: 1 | -1)
  * the two. The settings store keeps the change; an invalid number changes nothing.
  */
 export function setFavouriteNumber(preset: Preset, geometry: Geometry, number: string) {
-  // the store's own action would be the place for this; set state here keeps settings.ts unchanged
-  useSettings.setState((state) => ({
-    favourites: setNumberIn(state.favourites, preset.id, geometry, number),
-  }))
+  useSettings.getState().setFavouriteNumber(preset.id, geometry, number)
 }
 
 /**

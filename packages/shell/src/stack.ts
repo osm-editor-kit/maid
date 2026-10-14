@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react'
+import { create } from 'zustand'
 
 /**
  * The features at one clicked place, in the order a click lists them. The first one is what the
@@ -23,23 +23,16 @@ export function keepsStack(stack: Stack, selection: readonly string[]) {
   return selection.length === 1 && stack.ids.includes(selection[0]!)
 }
 
-/** The one stack, in an object so that it is not a reassigned variable; `listeners` are React's */
-const holder: { stack: Stack | null } = { stack: null }
-const listeners = new Set<() => void>()
-
-function subscribe(listener: () => void) {
-  listeners.add(listener)
-  return () => listeners.delete(listener)
-}
+/** The one stack. The store stays here: components read it through `useStack`, the functions below change it. */
+const useStackStore = create<{ stack: Stack | null }>()(() => ({ stack: null }))
 
 /** The stack of the last plain click, or null */
 export function useStack() {
-  return useSyncExternalStore(subscribe, () => holder.stack)
+  return useStackStore((state) => state.stack)
 }
 
 function setHeld(stack: Stack | null) {
-  holder.stack = stack
-  for (const listener of listeners) listener()
+  useStackStore.setState({ stack })
 }
 
 /** Sets the stack of a plain click (null when the click found one feature or nothing) */
@@ -52,7 +45,7 @@ export function setStack(stack: Stack | null) {
  * showed the stack closed. Without a stack it changes nothing, so it can run on every map frame.
  */
 export function dropStack() {
-  if (holder.stack) setHeld(null)
+  if (useStackStore.getState().stack) setHeld(null)
 }
 
 /**
@@ -61,11 +54,11 @@ export function dropStack() {
  * survives a change that it made itself.
  */
 export function dropStackUnless(selection: readonly string[]) {
-  const { stack } = holder
+  const { stack } = useStackStore.getState()
   if (stack && !keepsStack(stack, selection)) setHeld(null)
 }
 
 /** The current stack, read outside React (for the keys) */
 export function currentStack() {
-  return holder.stack
+  return useStackStore.getState().stack
 }

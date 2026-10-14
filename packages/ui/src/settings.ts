@@ -5,6 +5,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import {
   moveFavourite as moveIn,
+  setFavouriteNumber as setNumberIn,
   toggleFavourite as toggleIn,
   type Favourite,
 } from './favourites.ts'
@@ -62,6 +63,8 @@ type SettingsStore = Settings & {
   toggleFavourite: (presetId: string, geometry: Geometry) => void
   /** Moves a favourite one place up (-1) or down (+1) among the favourites of its geometry */
   moveFavourite: (presetId: string, geometry: Geometry, delta: 1 | -1) => void
+  /** Gives a favourite the number typed in the list; a number another favourite has swaps the two */
+  setFavouriteNumber: (presetId: string, geometry: Geometry, number: string) => void
 }
 
 /** A map position as it is stored. Each field is checked on its own by the schema below. */
@@ -136,6 +139,10 @@ export const useSettings = create<SettingsStore>()(
         set((state) => ({ favourites: toggleIn(state.favourites, presetId, geometry) })),
       moveFavourite: (presetId, geometry, delta) =>
         set((state) => ({ favourites: moveIn(state.favourites, presetId, geometry, delta) })),
+      setFavouriteNumber: (presetId, geometry, number) =>
+        set((state) => ({
+          favourites: setNumberIn(state.favourites, presetId, geometry, number),
+        })),
     }),
     {
       name: 'maid:settings',

@@ -3,38 +3,35 @@
  * app) can set it without a module dependency: `connectParkingSides(useLensStore)` in the app's config, once.
  * The layers are drawn only while the parking lens is the active one (the default).
  */
-import { useSyncExternalStore } from 'react'
+import { create } from 'zustand'
+import { useShallow } from 'zustand/shallow'
 
 export type ParkingSidesState = { shown: boolean; showMissing: boolean }
 
-const holder: { state: ParkingSidesState; listeners: Set<() => void> } = {
-  state: { shown: false, showMissing: false },
-  listeners: new Set(),
-}
+/** A zustand store of its own: the lens sets it through `setParkingSides`, components read `useParkingSides` */
+const useParkingSidesStore = create<ParkingSidesState>()(() => ({
+  shown: false,
+  showMissing: false,
+}))
 
-/** Sets part of the state; the listeners run only when a value changed */
+/** Sets part of the state; the subscribers run only when a value changed */
 export function setParkingSides(next: Partial<ParkingSidesState>) {
-  const state = { ...holder.state, ...next }
-  if (state.shown === holder.state.shown && state.showMissing === holder.state.showMissing) return
-  holder.state = state
-  for (const listener of holder.listeners) listener()
-}
-
-function subscribe(listener: () => void) {
-  holder.listeners.add(listener)
-  return () => {
-    holder.listeners.delete(listener)
-  }
+  const current = useParkingSidesStore.getState()
+  const state = { ...current, ...next }
+  if (state.shown === current.shown && state.showMissing === current.showMissing) return
+  useParkingSidesStore.setState(state)
 }
 
 /** The state outside React */
 export function getParkingSides(): ParkingSidesState {
-  return holder.state
+  return useParkingSidesStore.getState()
 }
 
 /** The state, for components. Changes only when a value changes. */
 export function useParkingSides(): ParkingSidesState {
-  return useSyncExternalStore(subscribe, getParkingSides)
+  return useParkingSidesStore(
+    useShallow((state) => ({ shown: state.shown, showMissing: state.showMissing })),
+  )
 }
 
 /** The part of a lens store that connectParkingSides reads: zustand's `useLensStore` has this shape */
