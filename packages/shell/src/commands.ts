@@ -1,4 +1,5 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import type { ReactNode } from 'react'
 import { commandIcon } from './command-icons'
@@ -14,6 +15,8 @@ export type Command = {
   icon: ReactNode
   /** The key as it is shown, e.g. "M" or "⌘C" */
   shortcut?: string
+  /** What it does, when that is not its label: shown in its tooltip (not when `reason` is set) */
+  description?: string
   /** Why it cannot run now; then it is shown greyed out */
   reason?: string
   run: () => void
@@ -78,10 +81,12 @@ export function useEditCommands() {
   const operations = useExtensionPoint(editor, 'edit.operation')
   const { ids, select } = useSelection()
   // the version makes this read again after every edit: what applies depends on the data
-  return useEngine((e) => {
+  return useEngine((e): Command[] => {
     if (ids.length === 0) return []
     const protectedIds = ids.some((id) => protectedBy(engine, id))
     const context = e.operationContext()
+    // one point with a direction: R turns that direction, as iD's tooltip says
+    const turnsDirection = e.transform.directionOf(ids) !== undefined
     return [
       {
         id: 'move',
@@ -96,6 +101,7 @@ export function useEditCommands() {
         label: 'Rotate',
         icon: commandIcon('rotate'),
         shortcut: 'R',
+        description: turnsDirection ? m.rotate_point_description() : undefined,
         reason: protectedIds ? PROTECTED_REASON : undefined,
         run: () => void engine.setMode('rotate'),
       },

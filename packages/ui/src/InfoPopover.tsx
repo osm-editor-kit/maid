@@ -71,8 +71,10 @@ export function InfoPopover(props: {
   buttonClassName?: string
   /** Which side of the button the panel opens on. Right by default: the sidebar is at the left. */
   placement?: 'bottom-start' | 'bottom-end' | 'right-start' | 'left-start'
+  /** A line about the field below the documentation, for example how to change its value on the map */
+  hint?: string
 }) {
-  const { label, reference, load, buttonClassName, placement = 'right-start' } = props
+  const { label, reference, load, buttonClassName, placement = 'right-start', hint } = props
   const tag = referenceTag(reference)
   return (
     <Flyout
@@ -92,7 +94,7 @@ export function InfoPopover(props: {
         </button>
       }
     >
-      <ReferenceBody reference={reference} load={load} />
+      <ReferenceBody reference={reference} load={load} hint={hint} />
     </Flyout>
   )
 }
@@ -103,8 +105,8 @@ type Found =
   | { status: 'failed' }
 
 /** The panel's content. Mounted when the popover opens, so `load` runs on an opening and on nothing else. */
-function ReferenceBody(props: { reference: Reference; load?: ReferenceLoader }) {
-  const { reference, load } = props
+function ReferenceBody(props: { reference: Reference; load?: ReferenceLoader; hint?: string }) {
+  const { reference, load, hint } = props
   const [found, setFound] = useState<Found>(() =>
     load ? { status: 'loading' } : { status: 'done', info: undefined },
   )
@@ -162,6 +164,11 @@ function ReferenceBody(props: { reference: Reference; load?: ReferenceLoader }) 
           </a>
         ) : null}
       </div>
+      {hint ? (
+        <p className="border-t border-zinc-950/10 pt-3 text-xs leading-5 text-zinc-600 dark:border-white/10 dark:text-zinc-400">
+          {hint}
+        </p>
+      ) : null}
       {/* last: the image arrives after the text, so it grows the panel downwards and nothing above it moves */}
       {info?.imageUrl && !imageFailed ? (
         <img

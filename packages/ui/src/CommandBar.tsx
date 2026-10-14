@@ -11,6 +11,8 @@ export type CommandItem = {
    * text is the description in its tooltip.
    */
   reason?: string
+  /** What the command does, when its label does not say it: the tooltip's text unless `reason` is set */
+  description?: string
   icon: ReactNode
   run: () => void
   /** Called with true while the pointer or the focus is on the command, to show what it would do */
@@ -36,7 +38,7 @@ export function CommandBar(props: { label: string; items: CommandItem[] }) {
             key={item.id}
             label={item.label}
             shortcut={item.shortcut}
-            description={item.reason}
+            description={item.reason ?? item.description}
             placement="top"
           >
             <button

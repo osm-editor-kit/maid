@@ -194,6 +194,8 @@ export function MapView() {
     void preloadAfterFirstSettle(engine)
   }
   const handleMove = (_: ViewStateChangeEvent) => {
+    // a rotation of a direction starts again from the next pointer position (transform.ts viewChanged)
+    engine.transform.viewChanged()
     // load while moving, but not on every frame
     const now = performance.now()
     if (now - lastTileCheck < 100) return

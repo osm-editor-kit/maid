@@ -38,6 +38,8 @@
   "picker_category_collapse": "Ocultar los tipos de elemento de esta categoría",
   "sidebar_empty_title": "Nada seleccionado",
   "sidebar_empty_hint": "Haz clic en un elemento del mapa para ver y editar sus etiquetas.",
+  "rotate_point_description": "Ajusta la etiqueta numérica de dirección de este punto.",
+  "direction_rotate_hint": "Pulsa {key} para ajustar este valor en el mapa.",
   "search_button": "Buscar",
   "search_button_title": "Buscar (Ctrl+F o Cmd+F)",
   "search_panel_label": "Buscar",

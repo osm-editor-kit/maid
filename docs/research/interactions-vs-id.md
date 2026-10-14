@@ -55,6 +55,7 @@ Key: "same" means Maid does the same thing. "missing" means no code for it. "dif
 | Scale | ⇧ + + or - | missing | Scale |
 | Scale more | ⌥⇧ + + or - | missing | Scale |
 | Rotate | R (`operations/rotate.js:75`) | Built (075ec35): the rotate mode | none |
+| Rotate a point's direction | R on a point with a numeric `direction` or `*:direction` (iD: `modes/rotate.js`, `util/direction_field.ts`, branch rotate-point-direction) | Built: `transform.ts` turns the tag by the pointer's bearing from the point, one undo step "Rotated a point" ("Rotated a node in a way" for a vertex), Enter or a click puts it down, Escape restores; the inspector stays open; the value keeps its format (`operations/src/rotate-direction.ts`). As iD: the first angle follows the pointer's absolute bearing from the point, the other angles keep their offset (the "preserve" commit). As iD: the first move after a pan or zoom writes nothing. Not built: iD's preset fallback (a point with no direction tag gets its numeric field) | the preset fallback |
 | Square (iD: orthogonalize) | Q | the key: q (`operations.ts:387`) | none |
 | Straighten | S | the key: s (`operations.ts:317`) | none |
 | Circularize (Maid: Make round) | O | the key: o (`operations.ts:453`) | none |

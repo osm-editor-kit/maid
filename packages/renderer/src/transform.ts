@@ -2,10 +2,24 @@
  * Moving and rotating the selection with the pointer, as iD's M and R do. The move is iD's move:
  * `actionMove`, so the ways that share a node with the selection but are not selected keep their
  * shape, and a replacement vertex is added where they are bent. Rotating moves the nodes in place.
+ * R on one point with a direction tag turns that tag instead (iD's rotate-point-direction): the
+ * first angle points at the pointer's bearing from the point, the other angles keep their offset,
+ * and the tag keeps its format.
  * The result is in the work in progress of the history while the pointer moves; a click keeps it
  * as one undo step, Escape takes it back.
  */
-import { actionMove, type Action, type Graph, OsmNode } from '@osm-editor-kit/maid-model'
+import {
+  actionChangeTags,
+  actionMove,
+  type Action,
+  type Graph,
+  OsmNode,
+} from '@osm-editor-kit/maid-model'
+import {
+  normalizeAzimuthDegrees,
+  retargetDirectionValue,
+  rotatableDirectionKey,
+} from '@osm-editor-kit/maid-operations'
 import type { MaidEngine } from './engine'
 
 export type TransformKind = 'move' | 'rotate'
@@ -87,6 +101,17 @@ export function nodesOf(engine: MaidEngine, ids: readonly string[]) {
   return nodes
 }
 
+/** The direction tag that R turns on one point, with the point's tags as they were when R started */
+type DirectionTurn = { id: string; key: string; tags: Record<string, string> }
+
+/**
+ * The bearing of a point seen from the pivot, in degrees clockwise from north. The Mercator plane is
+ * north-up and conformal: the angle is the one on the ground, whatever the map's bearing on screen.
+ */
+function bearingFrom(pivot: XY, at: XY) {
+  return normalizeAzimuthDegrees(Math.atan2(at[0] - pivot[0], at[1] - pivot[1]) / RAD)
+}
+
 export class TransformTool {
   private kind?: TransformKind
   private ids: string[] = []
@@ -96,6 +121,13 @@ export class TransformTool {
   private pivot: XY = [0, 0]
   /** Where the pointer was first seen: the move is the pointer's distance from there */
   private start?: XY
+  /** Set while R turns the direction of one point, instead of the nodes */
+  private direction?: DirectionTurn
+  /**
+   * Set by a view change: the next pointer position becomes the start and writes nothing, so the
+   * direction does not jump when the map moved under a pointer that did not (iD skips that move).
+   */
+  private rebase = false
   /**
    * actionMove's cache for one move. Every pointer move starts again from the state the move began
    * with and shares this cache, as iD's move mode does, so the replacement vertices keep their ids.
@@ -124,8 +156,9 @@ export class TransformTool {
     // the work in progress would be taken back with it
     if (kind === 'move' && engine.data.history.hasWorkInProgress) return false
     const nodes = nodesOf(engine, ids)
-    // a single node has nothing to rotate around
-    if (nodes.size === 0 || (kind === 'rotate' && nodes.size < 2)) return false
+    // a single node has nothing to rotate around, unless R turns its direction
+    const direction = kind === 'rotate' ? this.directionOf(ids) : undefined
+    if (nodes.size === 0 || (kind === 'rotate' && nodes.size < 2 && !direction)) return false
     this.origin.clear()
     let sumX = 0
     let sumY = 0
@@ -142,8 +175,30 @@ export class TransformTool {
     this.kind = kind
     this.ids = [...ids]
     this.start = undefined
+    this.direction = direction
+    this.rebase = false
     this.moveCache = {}
     return true
+  }
+
+  /**
+   * The direction tag that R turns for this selection: the one tag of one point with a rotatable
+   * direction (see `rotatableDirectionKey`). Undefined for anything else, which R moves or refuses.
+   */
+  directionOf(ids: readonly string[]): DirectionTurn | undefined {
+    if (ids.length !== 1 || !ids[0]!.startsWith('n')) return undefined
+    const tags = this.engine.data.node(ids[0]!)?.tags
+    const key = tags ? rotatableDirectionKey(tags) : undefined
+    return tags && key ? { id: ids[0]!, key, tags: { ...tags } } : undefined
+  }
+
+  /**
+   * The map moved or zoomed without the pointer (a key, a button, a wheel): the pointer's place on
+   * the ground changed while the pointer did not. For a direction the next pointer move writes
+   * nothing, as iD skips the first move after a pan or a zoom. A move of nodes needs no such step.
+   */
+  viewChanged() {
+    if (this.direction) this.rebase = true
   }
 
   /**
@@ -153,6 +208,14 @@ export class TransformTool {
   move(lon: number, lat: number) {
     if (!this.kind) return
     const pointer = toMercator([lon, lat])
+    if (this.rebase) {
+      this.rebase = false
+      // the view changed before this position: nothing is written for it
+      if (this.start) {
+        this.latest = undefined
+        return
+      }
+    }
     this.start ??= pointer
     this.latest = pointer
     this.frame ??= requestAnimationFrame(() => {
@@ -165,8 +228,21 @@ export class TransformTool {
   private apply() {
     const pointer = this.latest
     this.latest = undefined
-    const { kind, engine, pivot, start } = this
+    const { kind, engine, pivot, start, direction } = this
     if (!kind || !pointer || !start) return
+
+    if (kind === 'rotate' && direction) {
+      // as iD's rotate-point-direction: the first angle points at the pointer's bearing from the point,
+      // and the other angles keep their offset from it. Absolute, so the start of the pointer does not
+      // matter and nothing adds up; written from the tags R started with, one tag change per step.
+      const value = retargetDirectionValue(
+        direction.tags[direction.key],
+        bearingFrom(pivot, pointer),
+      )
+      const tags = { ...direction.tags, [direction.key]: value }
+      engine.change(() => engine.data.history.perform(actionChangeTags(direction.id, tags)), false)
+      return
+    }
 
     if (kind === 'move') {
       // as iD: always from the state the move began with, so nothing adds up over many pointer moves
@@ -205,15 +281,24 @@ export class TransformTool {
     // the last pointer position is where the selection is put down: applied before the commit
     this.unschedule()
     this.apply()
-    const { kind, ids, engine } = this
+    const { kind, ids, engine, direction } = this
     if (!kind) return false
     this.kind = undefined
+    this.direction = undefined
     const { history } = engine.data
     if (!history.hasWorkInProgress) return false
-    const what = ids.length === 1 ? 'a feature' : `${ids.length} features`
+    // as iD's annotations: a point's direction is "a point", a node of a way "a node in a way"
+    const what = direction
+      ? engine.data.nodeWays.get(direction.id)?.length
+        ? 'a node in a way'
+        : 'a point'
+      : ids.length === 1
+        ? 'a feature'
+        : `${ids.length} features`
+    const verb = kind === 'move' ? 'Moved' : 'Rotated'
     engine.change(() =>
       history.commit({
-        annotation: `${kind === 'move' ? 'Moved' : 'Rotated'} ${what}`,
+        annotation: `${verb} ${what}`,
         selectedIDs: [...ids],
       }),
     )
@@ -224,6 +309,8 @@ export class TransformTool {
   cancel() {
     if (!this.kind) return
     this.kind = undefined
+    this.direction = undefined
+    this.rebase = false
     this.unschedule()
     this.latest = undefined
     this.engine.change(() => this.engine.data.history.revert())

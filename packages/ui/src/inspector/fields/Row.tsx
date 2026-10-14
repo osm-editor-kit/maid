@@ -1,5 +1,7 @@
 import { ArrowUturnLeftIcon, TrashIcon } from '@heroicons/react/16/solid'
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
+import { showsDirectionRotateHint } from '@osm-editor-kit/maid-renderer'
 import { useId, useState } from 'react'
 import { InfoPopover, type ReferenceLoader } from '../../InfoPopover.tsx'
 import {
@@ -181,6 +183,11 @@ export function FieldRow(props: {
               reference={field.reference}
               load={loadReference}
               buttonClassName={INFO_BUTTON}
+              hint={
+                showsDirectionRotateHint({ key, fieldType: field.type })
+                  ? m.direction_rotate_hint({ key: 'R' })
+                  : undefined
+              }
             />
           ) : null}
           {onChange && key !== undefined && measure?.can(key) ? (

@@ -38,6 +38,8 @@
   "picker_category_collapse": "Hide the feature types in this category",
   "sidebar_empty_title": "Nothing selected",
   "sidebar_empty_hint": "Click a feature on the map to see and edit its tags.",
+  "rotate_point_description": "Adjust this point's numeric direction tag.",
+  "direction_rotate_hint": "Press {key} to adjust this value on the map.",
   "search_button": "Search",
   "search_button_title": "Search (Ctrl+F or Cmd+F)",
   "search_panel_label": "Search",

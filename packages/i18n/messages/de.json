@@ -38,6 +38,8 @@
   "picker_category_collapse": "Objekttypen dieser Kategorie ausblenden",
   "sidebar_empty_title": "Nichts ausgewählt",
   "sidebar_empty_hint": "Klicke auf ein Objekt in der Karte, um seine Tags zu sehen und zu bearbeiten.",
+  "rotate_point_description": "Passt die numerische Richtungsangabe dieses Punktes an.",
+  "direction_rotate_hint": "Drücke {key}, um diesen Wert auf der Karte anzupassen.",
   "search_button": "Suche",
   "search_button_title": "Suche (Strg+F oder Cmd+F)",
   "search_panel_label": "Suche",

@@ -46,13 +46,13 @@ describe('worldDelta', () => {
   })
 })
 
-/** A building of four nodes, in the history, as the editor has it */
-function building() {
+/** A building of four nodes, in the history, as the editor has it. Node 1 may carry tags, as a vertex with a direction. */
+function building(node1Tags?: Record<string, string>) {
   const context = new ModelContext()
   const history = new EditHistory(context)
   const data = new OsmData(context, history)
   const elements: OsmJsonElement[] = [
-    { type: 'node', id: 1, lat: 52.5, lon: 13.4 },
+    { type: 'node', id: 1, lat: 52.5, lon: 13.4, tags: node1Tags },
     { type: 'node', id: 2, lat: 52.5, lon: 13.41 },
     { type: 'node', id: 3, lat: 52.51, lon: 13.41 },
     { type: 'node', id: 4, lat: 52.51, lon: 13.4 },
@@ -134,7 +134,11 @@ describe('TransformTool steps', () => {
 
   /** A tool on a building, and the number of steps (engine changes) it has made */
   function tool() {
-    const { history, data } = building()
+    return toolFor(building())
+  }
+
+  /** A tool on the data of a history, and the number of steps (engine changes) it has made */
+  function toolFor({ history, data }: { history: EditHistory; data: OsmData }) {
     let steps = 0
     const engine = {
       data,
@@ -229,5 +233,152 @@ describe('TransformTool steps', () => {
     expect(locs(cancelled.history)).toEqual(before)
     expect(cancelled.history.hasWorkInProgress).toBe(false)
     expect(cancelled.transform.active).toBe(false)
+  })
+
+  // R on one point with a direction tag turns that tag (iD's rotate-point-direction). The point is at
+  // (13.4, 52.5); on the Mercator plane north, east and south of it are exact bearings 0, 90 and 180.
+  const POINT = [13.4, 52.5] as const
+  const NORTH: [number, number] = [POINT[0], POINT[1] + 0.005]
+  const EAST: [number, number] = [POINT[0] + 0.005, POINT[1]]
+  const SOUTH: [number, number] = [POINT[0], POINT[1] - 0.005]
+  const WEST: [number, number] = [POINT[0] - 0.005, POINT[1]]
+
+  /** A history with one point that has these tags, and a tool on it */
+  function pointTool(tags: Record<string, string>) {
+    const context = new ModelContext()
+    const history = new EditHistory(context)
+    const data = new OsmData(context, history)
+    data.merge([{ type: 'node', id: 7, lat: POINT[1], lon: POINT[0], tags }])
+    return toolFor({ history, data })
+  }
+  const tagsOf = (history: EditHistory) => (history.staging.graph.entity('n7') as OsmNode).tags
+
+  test('a quarter turn of the pointer turns a numeric direction a quarter turn, as one undo step', () => {
+    const point = pointTool({ direction: '0' })
+    expect(point.transform.begin('rotate', ['n7'])).toBe(true)
+    point.transform.move(...NORTH) // the first position is where the pointer started
+    point.transform.move(...EAST)
+    runFrames()
+    expect(point.transform.finish()).toBe(true)
+    expect(tagsOf(point.history).direction).toBe('90')
+    expect(point.history.getUndoAnnotation()).toBe('Rotated a point')
+    point.history.undo()
+    expect(tagsOf(point.history).direction).toBe('0')
+  })
+
+  test('a direction is written one step per frame, with the latest pointer position', () => {
+    const many = pointTool({ direction: '0' })
+    many.transform.begin('rotate', ['n7'])
+    many.transform.move(...NORTH)
+    runFrames()
+    for (const at of [EAST, SOUTH, WEST, EAST]) many.transform.move(...at)
+    runFrames()
+    expect(many.steps()).toBe(2)
+    const direct = pointTool({ direction: '0' })
+    direct.transform.begin('rotate', ['n7'])
+    direct.transform.move(...NORTH)
+    runFrames()
+    direct.transform.move(...EAST)
+    runFrames()
+    expect(tagsOf(many.history).direction).toBe(tagsOf(direct.history).direction)
+    expect(tagsOf(many.history).direction).toBe('90')
+  })
+
+  test('a view change: the first pointer move after it writes nothing, as iD skips it', () => {
+    const point = pointTool({ direction: '0' })
+    point.transform.begin('rotate', ['n7'])
+    point.transform.move(...NORTH)
+    point.transform.move(...EAST)
+    runFrames()
+    expect(tagsOf(point.history).direction).toBe('90')
+    point.transform.viewChanged()
+    const steps = point.steps()
+    point.transform.move(...SOUTH) // the first move after the view changed: skipped
+    runFrames()
+    expect(point.steps()).toBe(steps)
+    expect(tagsOf(point.history).direction).toBe('90')
+    // the next move writes again, at the pointer's absolute bearing: due west is 270
+    point.transform.move(...WEST)
+    runFrames()
+    expect(tagsOf(point.history).direction).toBe('270')
+  })
+
+  test('the direction points at the pointer: due east is 90 from wherever the pointer started', () => {
+    const fromSouth = pointTool({ direction: '0' })
+    fromSouth.transform.begin('rotate', ['n7'])
+    fromSouth.transform.move(...SOUTH)
+    fromSouth.transform.move(...EAST)
+    fromSouth.transform.finish()
+    expect(tagsOf(fromSouth.history).direction).toBe('90')
+  })
+
+  test('a multi-value direction: the first angle follows the pointer, the others keep their offset', () => {
+    const two = pointTool({ direction: '120;300' })
+    two.transform.begin('rotate', ['n7'])
+    two.transform.move(...NORTH)
+    two.transform.move(...EAST)
+    two.transform.finish()
+    expect(tagsOf(two.history).direction).toBe('90;270')
+
+    const cardinal = pointTool({ direction: 'N' })
+    cardinal.transform.begin('rotate', ['n7'])
+    cardinal.transform.move(...NORTH)
+    cardinal.transform.move(...EAST)
+    cardinal.transform.finish()
+    expect(tagsOf(cardinal.history).direction).toBe('90')
+  })
+
+  test('a prefixed direction is the one that turns; the plain direction stays', () => {
+    const point = pointTool({ 'camera:direction': '10', direction: '200' })
+    point.transform.begin('rotate', ['n7'])
+    point.transform.move(...NORTH)
+    point.transform.move(...EAST)
+    point.transform.finish()
+    expect(tagsOf(point.history)['camera:direction']).toBe('90')
+    expect(tagsOf(point.history).direction).toBe('200')
+  })
+
+  test('a point with no direction, or a relative one, does not rotate', () => {
+    expect(pointTool({ amenity: 'bench' }).transform.begin('rotate', ['n7'])).toBe(false)
+    expect(
+      pointTool({ highway: 'give_way', direction: 'forward' }).transform.begin('rotate', ['n7']),
+    ).toBe(false)
+    expect(pointTool({ direction: '90' }).transform.begin('move', ['n7'])).toBe(true)
+  })
+
+  test('a node of a way turns its own direction; the way keeps its shape', () => {
+    const { history, data } = building({ direction: '0' })
+    const before = locs(history)
+    const node = toolFor({ history, data })
+    expect(node.transform.directionOf(['n1'])?.key).toBe('direction')
+    expect(node.transform.begin('rotate', ['n1'])).toBe(true)
+    node.transform.move(...NORTH)
+    node.transform.move(...EAST)
+    node.transform.finish()
+    expect((history.staging.graph.entity('n1') as OsmNode).tags.direction).toBe('90')
+    expect(node.history.getUndoAnnotation()).toBe('Rotated a node in a way')
+    expect(locs(history)).toEqual(before)
+  })
+
+  test('Escape (cancel) puts a direction back, and leaves no work in progress', () => {
+    const point = pointTool({ direction: '0' })
+    point.transform.begin('rotate', ['n7'])
+    point.transform.move(...NORTH)
+    point.transform.move(...EAST)
+    runFrames()
+    expect(tagsOf(point.history).direction).toBe('90')
+    point.transform.cancel()
+    expect(tagsOf(point.history).direction).toBe('0')
+    expect(point.history.hasWorkInProgress).toBe(false)
+    expect(point.transform.active).toBe(false)
+  })
+
+  test('two selected nodes rotate their geometry, not a direction', () => {
+    const { history, data } = building({ direction: '0' })
+    const both = toolFor({ history, data })
+    expect(both.transform.directionOf(['n1', 'n2'])).toBeUndefined()
+    expect(both.transform.begin('rotate', ['n1', 'n2'])).toBe(true)
+    expect(both.transform.begin('rotate', ['n1', 'n2'])).toBe(false) // already active
+    both.transform.cancel()
   })
 })

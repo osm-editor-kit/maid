@@ -22,7 +22,8 @@ const PAN = 80
  *   selected it changes its type, with nothing selected it starts adding a feature of that type
  * - while drawing: Space places a node where the pointer is, Enter or Escape finishes,
  *   Backspace takes back the last node, Delete drops the way
- * - M moves and R rotates the selection with the pointer (click to put down, Escape to cancel)
+ * - M moves and R rotates the selection with the pointer (click or Enter to put down, Escape to cancel);
+ *   R on one point with a direction turns that direction (iD's rotate-point-direction)
  * - Cmd/Ctrl+C copies the selection, Cmd/Ctrl+V pastes it where the pointer is
  * - Cmd/Ctrl+F opens the search (SearchButton) and focuses its input; the browser's find stays off
  * - Cmd/Ctrl+Backspace or Delete deletes the selection; Escape leaves a mode, then the selection
@@ -39,6 +40,8 @@ export function useShortcuts() {
   const operations = useExtensionPoint(editor, 'edit.operation')
   // which keys are taken depends on what the editor is doing: read it so that this follows
   const drawing = useEngine((e) => e.draw.active)
+  // a move or a rotation is put down with Enter, as a click puts it down
+  const transforming = useEngine((e) => e.transform.active)
   const drawMode = useEngine((e) => e.mode === 'draw-line' || e.mode === 'draw-area')
   // the features of a click, while one of them is selected: , and . step through them
   const stack = useStack()
@@ -103,7 +106,11 @@ export function useShortcuts() {
     { hotkey: '.', callback: () => stepStack(1), options: { enabled: stackShown } },
     { hotkey: 'M', callback: () => engine.setMode('move') },
     { hotkey: 'R', callback: () => engine.setMode('rotate') },
-    { hotkey: 'Enter', callback: finishDrawing, options: { enabled: drawing } },
+    {
+      hotkey: 'Enter',
+      callback: () => (engine.transform.active ? engine.setMode('browse') : finishDrawing()),
+      options: { enabled: drawing || transforming },
+    },
     { hotkey: 'Space', callback: space, options: { enabled: drawMode } },
     { hotkey: 'Backspace', callback: backspace, options: { enabled: drawing } },
     { hotkey: 'Escape', callback: escape },

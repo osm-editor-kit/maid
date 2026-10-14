@@ -422,6 +422,80 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
     (await where(ids)).every((p, i) => near(p, afterRotate[i]!)),
   )
 
+  // --- R on a point with a direction turns the direction, not the point (iD's rotate-point-direction): the
+  // direction points at the pointer's bearing from the point, so the pointer due east of it gives 90, from
+  // wherever it started (here due south). The point stays selected, one undo step takes it back to 0, and
+  // Escape cancels a turn. A standalone point in view, away from the edges. ---
+  const turnPoint = await page.evaluate(() => {
+    const { map, engine } = window.__maid
+    const box = map.getCanvas().getBoundingClientRect()
+    const inView = (p: { x: number; y: number }) =>
+      p.x > 150 && p.y > 150 && p.x < box.width - 150 && p.y < box.height - 150
+    for (const f of map.queryRenderedFeatures() as any[]) {
+      const id = String(f.id ?? '')
+      if (
+        !id.startsWith('n') ||
+        !f.source.includes('points') ||
+        engine.data.nodeWays.get(id)?.length
+      )
+        continue
+      const node = engine.data.node(id)
+      const p = node?.loc && map.project(node.loc)
+      // other features nearby do no harm: in rotate mode pointer moves and the finishing click select nothing
+      if (p && inView(p)) return { id, at: { x: p.x, y: p.y } }
+    }
+    return undefined
+  })
+  report('find a standalone point in view to turn', true, Boolean(turnPoint))
+  if (turnPoint) {
+    const tagOf = (id: string) =>
+      page.evaluate((id) => window.__maid.engine.data.node(id)?.tags.direction ?? null, id)
+    await page.evaluate((id) => window.__maid.engine.setTag(id, 'direction', '0'), turnPoint.id)
+    await settle()
+    await key('Escape')
+    await page.evaluate((id) => window.__bench.select(id), turnPoint.id)
+    const at = (await where([turnPoint.id]))[0]!
+    const cx = origin.x + Math.round(at.x)
+    const cy = origin.y + Math.round(at.y)
+    await key('r')
+    await page.mouse.move(cx, cy + 90) // south of the point: where the pointer starts, not the answer
+    await page.mouse.move(cx + 90, cy, { steps: 4 }) // due east of the point: 90 degrees, whatever the start
+    await settle()
+    await page.mouse.click(cx + 90, cy)
+    await settle()
+    const turnedTo = Number(await tagOf(turnPoint.id))
+    // the difference to 90, the short way round: a few degrees for the pixels the pointer is off by
+    const offBy = ((((turnedTo - 90) % 360) + 540) % 360) - 180
+    report(
+      'R on a point with a direction: the pointer due east of it makes it point east (90)',
+      true,
+      Math.abs(offBy) <= 3,
+    )
+    report(
+      'the point stays selected after the turn: the inspector stays open',
+      [turnPoint.id],
+      (await state()).selection,
+    )
+    const undoAfterTurn = (await state()).undo
+    await key('Meta+z')
+    report(
+      'the turn is one undo step, named for the point, and undo takes its direction back to 0',
+      ['Rotated a point', '0', 'Changed tags'],
+      [undoAfterTurn, await tagOf(turnPoint.id), (await state()).undo],
+    )
+    await page.evaluate((id) => window.__bench.select(id), turnPoint.id)
+    await key('r')
+    await page.mouse.move(cx, cy + 90)
+    await page.mouse.move(cx + 90, cy, { steps: 4 })
+    await settle()
+    await key('Escape')
+    report(
+      'Escape cancels a turn of a direction: it is back at 0 and the mode is browse',
+      ['0', 'browse'],
+      [await tagOf(turnPoint.id), (await state()).mode],
+    )
+  }
+
   // --- M on a way that shares a node with an unselected way: that way keeps its shape (iD's move) ---
   // Three ways are built in the middle of the view: `wayW` (selected) crosses `wayU` at `junction`,
   // which is bent there; `wayV` shares nothing.
