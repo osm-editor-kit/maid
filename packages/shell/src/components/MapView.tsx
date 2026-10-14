@@ -172,6 +172,8 @@ export function MapView() {
     selectionOnly,
     selectTwins: useEngine((e) => e.selectTwins),
   }
+  // The layers the engine picks from. Not the Map's interactiveLayerIds: the engine picks on every pointer
+  // move (pick.ts), and react-map-gl would query the same layers again on each event.
   const interactive = interactiveLayerIds(buildLayers(options))
   const drawing = mode === 'draw-line' ? 'line' : mode === 'draw-area' ? 'area' : undefined
 
@@ -487,7 +489,8 @@ export function MapView() {
     }
     // a midpoint handle: a press on it that did not move added nothing, and the click changes nothing
     if (engine.midpointAt(event.point)) return
-    // a photo or a note under the pointer takes the click: it opens, and no feature is selected
+    // a photo or a note under the pointer takes the click: it opens, and no feature is selected.
+    // Both are module layers outside `interactive`, and only a click asks: a query per click, not per move.
     if (streetImageryClick(event)) return
     const noteLayers = NOTES_LAYER_IDS.filter((layer) => event.target.getLayer(layer))
     if (

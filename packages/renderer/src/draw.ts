@@ -269,7 +269,10 @@ export class DrawTool {
     return ends.includes(nodeId) ? way : undefined
   }
 
-  /** What is under a screen position, not counting the way that is being drawn */
+  /**
+   * What is under a screen position, not counting the way that is being drawn. Imperative: the map's
+   * projection gives the screen distance of each node to the pointer, on every move (no React state).
+   */
   private target(point: Point, layers: string[]): Target {
     const { engine } = this
     const map = engine.map

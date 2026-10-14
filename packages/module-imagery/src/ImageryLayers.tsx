@@ -31,6 +31,7 @@ export function ImageryLayers(props: { store: ImageryStore; belowOsm: string }) 
   const key = `${backgroundId ?? ''}\n${template ?? ''}\n${overlayKey}`
   const [loaded, setLoaded] = useState<{ key: string; items: Drawn[] } | null>(null)
 
+  // a child of the map, so react-map-gl gives it no prop for moveend: it listens here, for the panel's view
   useEffect(() => {
     if (!map) return
     const track = () => {

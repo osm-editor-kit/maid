@@ -92,6 +92,7 @@ export function StackPicker() {
   // the sidebar or the window changes the map's place on the page: the pill is placed again
   const [, redraw] = useState(0)
 
+  // a child of the map: the Map's onResize belongs to MapView, so the pill listens here while a stack is shown
   useEffect(() => {
     const map = engine.map
     if (!stack || !map) return

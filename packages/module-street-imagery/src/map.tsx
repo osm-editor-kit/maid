@@ -29,7 +29,10 @@ export const MAP_ID = 'mainMap'
  */
 const MIN_ZOOM = 13
 
-/** Zoom and viewport of the map, updated after every move. */
+/**
+ * Zoom and viewport of the map, updated after every move. A child of the map: it listens to moveend itself,
+ * since the Map's handlers belong to the shell (MapView).
+ */
 function useMapView(mapRef: MapRef | undefined) {
   const [zoom, setZoom] = useState(0)
   const [moves, setMoves] = useState(0)

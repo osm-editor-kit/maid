@@ -1883,7 +1883,10 @@ export class MaidEngine {
     this.turnDrag = { start: point, last: point, moved: false }
   }
 
-  /** The pointer moved during a turn: the map turns around the centre of the view (turn.ts) */
+  /**
+   * The pointer moved during a turn: the map turns around the centre of the view (turn.ts). Set on the
+   * map directly, because a turn runs on every pointer move and React would render on each one.
+   */
   moveTurn(point: Point) {
     const drag = this.turnDrag
     const map = this.map
@@ -1903,6 +1906,8 @@ export class MaidEngine {
     if (drag?.moved) this.turnedAt = performance.now()
   }
 
+  // The camera moves below are imperative: react-map-gl has no prop for a one-off camera move, and the
+  // map is uncontrolled (MapView passes initialViewState once).
   /** Turns the map by `degrees` in a short ease: the keys (Shift with the arrows) */
   turnBy(degrees: number) {
     const map = this.map
@@ -1919,6 +1924,7 @@ export class MaidEngine {
    * relation counts as its members (see relatedIds). Returns false when none of it is loaded.
    * The zoom limits are MapLibre zoom (POINT_ZOOM, FIT_MAX_ZOOM), one level below iD's and Rapid's.
    * The turn of the map is kept: MapLibre would otherwise bring it back to north.
+   * Imperative: a one-off camera move, which react-map-gl has no prop for (see turnBy).
    */
   fitTo(ids: readonly string[]) {
     const { map } = this

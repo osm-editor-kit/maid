@@ -1,5 +1,7 @@
 // Picks at a screen point: the feature a pointer hits, by iD's layer priority (PRIORITY), and every feature under it.
 // Reads the rendered features of the map; pick-order.ts orders the candidates of pickAll.
+// Imperative on purpose: a pick uses the engine's own tolerance box and layer priority, and runs on every
+// pointer move. react-map-gl's interactiveLayerIds would make the Map query the same layers on each event.
 import { isArea } from '@osm-editor-kit/maid-style'
 import type { MapGeoJSONFeature } from 'maplibre-gl'
 import type { OsmData } from './data'

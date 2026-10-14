@@ -1,6 +1,6 @@
 import * as maplibregl from 'maplibre-gl'
 import type { Map as MapLibreMap, RasterSourceSpecification, StyleSpecification } from 'maplibre-gl'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Map, type MapRef } from 'react-map-gl/maplibre'
 import {
   crossPath,
@@ -53,7 +53,10 @@ function viewOf(map: MapLibreMap): View {
   }
 }
 
-/** The main map's zoom, bearing and size, as state: a new value on each move, so the lens follows */
+/**
+ * The main map's zoom, bearing and size, as state: a new value on each move, so the lens follows. The loupe is
+ * a child of the main map, which has no prop for these events in this component, so it listens to the map here.
+ */
 function useMapView(map: MapLibreMap) {
   const [view, setView] = useState(() => viewOf(map))
   useEffect(() => {
@@ -131,7 +134,7 @@ export function MeasureLoupe(props: {
     return { longitude: centre.lng, latitude: centre.lat, zoom: loupeZoom(map.getZoom()) }
   })
   const lens = useRef<MapRef>(null)
-  const style = useMemo(() => lensStyle(source, brightness), [source, brightness])
+  const style = lensStyle(source, brightness)
   const placed = placeOn(map, spots.start, spots.pointer, view)
   const lon = spots.pointer?.lon
   const lat = spots.pointer?.lat

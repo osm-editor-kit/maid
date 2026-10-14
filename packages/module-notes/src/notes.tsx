@@ -78,7 +78,8 @@ export function notes(options: { apiUrl: string; minZoom?: number }) {
             ? cellsOf(view.bbox).some((cell) => cells[cellKey(mode, cell)] === 'truncated')
             : false
 
-        // the map's box after every move; the session keeps it for the panel too
+        // the map's box after every move; the session keeps it for the panel too. A child of the map has no
+        // moveend prop of its own (the Map's handlers are the shell's), so it listens here.
         useEffect(() => {
           if (!map) return
           const update = () => {
@@ -99,7 +100,8 @@ export function notes(options: { apiUrl: string; minZoom?: number }) {
           }
         }, [map])
 
-        // a click on a marker chooses its note; the map's click handler ignores these layers
+        // a click on a marker chooses its note; the map's click handler ignores these layers. Per layer,
+        // because only MapLibre's layer-scoped click tells the marker apart: react-map-gl has no prop for it.
         useEffect(() => {
           if (!map) return
           const choose = (event: MapLayerMouseEvent) => {

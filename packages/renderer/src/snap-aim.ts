@@ -1,5 +1,6 @@
 // Where a dragged node would land: the snap target under the pointer, and why a drop onto a target would be refused.
 // Reads the map and the data through the engine's public members: nothing here changes the engine.
+// Imperative on purpose: the snap is a screen-radius test at the pointer on every move (see pick.ts).
 import { actionConnect } from '@osm-editor-kit/maid-model'
 import { projectedNodes } from './draw'
 import type { MaidEngine } from './engine'
