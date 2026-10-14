@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { journalSettled } from './bench'
+import { journalSettled } from './lazy-chunks'
 
 function fakeJournal(first: string) {
   let status = first

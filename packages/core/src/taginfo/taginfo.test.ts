@@ -105,6 +105,43 @@ describe('keys: iD taginfo.js keys()', () => {
     expect(calls).toHaveLength(0)
   })
 
+  test('a field of the wrong type is dropped, the row stays; a numeric text count still counts', async () => {
+    const { taginfo } = setup((url) =>
+      url.pathname.endsWith('/keys/all')
+        ? json({
+            data: [
+              { key: 'highway', count_all: 'many', in_wiki: true },
+              { key: 'string_count', count_all: '3000000' },
+              { key: 'bad_flag', count_all: 3_000_000, in_wiki: 'yes' },
+              { key: 'tiny', count_all: 'lots', in_wiki: 1 },
+            ],
+          })
+        : defaultRespond(url),
+    )
+    expect((await taginfo.keys('hig', 'point')).map((item) => item.value)).toEqual([
+      'highway',
+      'string_count',
+      'bad_flag',
+    ])
+  })
+
+  test('a row without a text key, or not an object, is skipped; the other rows stay', async () => {
+    const { taginfo } = setup((url) =>
+      url.pathname.endsWith('/keys/all')
+        ? json({
+            data: [
+              { count_all: 3_000_000 },
+              { key: 7, count_all: 3_000_000 },
+              null,
+              'highway',
+              { key: 'highway', count_all: 3_000_000 },
+            ],
+          })
+        : defaultRespond(url),
+    )
+    expect(await taginfo.keys('hig', 'point')).toEqual([{ value: 'highway', title: 'highway' }])
+  })
+
   test('one request for a repeated query; another geometry is another query', async () => {
     const { taginfo, calls } = setup()
     const first = await taginfo.keys('hig', 'point')
@@ -142,6 +179,26 @@ describe('values: iD taginfo.js values()', () => {
 
   test('filters values: no ; or ,, no upper case or *, more than 100 uses; the description is the title', async () => {
     const { taginfo } = setup()
+    expect(await taginfo.values('highway', 'res')).toEqual([
+      { value: 'residential', title: 'residential' },
+      { value: 'service', title: 'Service road' },
+    ])
+  })
+
+  test('a value row: a non-text description is no title, a numeric text count counts, a malformed row is skipped', async () => {
+    const { taginfo } = setup((url) =>
+      url.pathname.endsWith('/key/values')
+        ? json({
+            data: [
+              { value: 'residential', count: 1_000_000, description: 5 },
+              { value: 'service', count: '900000', description: 'Service road' },
+              { value: 3, count: 1_000_000 },
+              { value: 'rare', count: true },
+              { value: 'bigtown', count: 'many' },
+            ],
+          })
+        : defaultRespond(url),
+    )
     expect(await taginfo.values('highway', 'res')).toEqual([
       { value: 'residential', title: 'residential' },
       { value: 'service', title: 'Service road' },
@@ -228,6 +285,26 @@ describe('errors and automation: no suggestions, no throw', () => {
     )
     expect(await taginfo.values('highway', 'res')).toEqual([])
     expect(callsTo(calls, '/key/values')).toHaveLength(0)
+  })
+
+  test('a failed answer (a 500, a network error) is asked once: no retry against taginfo', async () => {
+    const serverError = setup(() => new Response('', { status: 500 }))
+    expect(await serverError.taginfo.keys('hig', 'point')).toEqual([])
+    expect(callsTo(serverError.calls, '/keys/all')).toHaveLength(1)
+
+    const networkError = setup(() => {
+      throw new TypeError('Failed to fetch')
+    })
+    expect(await networkError.taginfo.keys('hig', 'point')).toEqual([])
+    expect(callsTo(networkError.calls, '/keys/all')).toHaveLength(1)
+
+    const failedValues = setup((url) =>
+      url.pathname.endsWith('/key/values')
+        ? new Response('', { status: 500 })
+        : defaultRespond(url),
+    )
+    expect(await failedValues.taginfo.values('highway', 'res')).toEqual([])
+    expect(callsTo(failedValues.calls, '/key/values')).toHaveLength(1)
   })
 
   test('a 404 and a malformed answer give no suggestions', async () => {

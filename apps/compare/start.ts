@@ -31,8 +31,10 @@ await ensure('mock OSM API', PORTS.mockApi, ['bun', 'tools/mock-osm-api/server.t
 await ensure('iD', PORTS.id, ['bun', 'tools/refs/id/serve.ts'])
 await ensure('Rapid', PORTS.rapid, ['bun', 'tools/refs/rapid/serve.ts'])
 if (!(await listening(PORTS.maidBuild))) {
+  // VITE_BENCH=1: the side-by-side page syncs the editors through window.__bench (public/frame-sync.js)
   const build = spawn(['bun', 'run', '--cwd', 'apps/maid', 'build'], {
     cwd: ROOT,
+    env: { ...process.env, VITE_BENCH: '1' },
     stdout: 'ignore',
     stderr: 'inherit',
   })

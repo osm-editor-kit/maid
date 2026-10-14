@@ -1,6 +1,21 @@
 import { preloadLazyComponents } from '@osm-editor-kit/maid-ui'
-import { journalSettled } from './bench'
 import type { Shell } from './shell'
+
+/**
+ * Resolves once the journal is not `checking` (it is looking for stored edits, or restoring them after the person said
+ * yes). `pending` also ends the wait: that is the dialog, which only a person (or a check clicking it) answers.
+ */
+export function journalSettled(journal: Pick<Shell['journal'], 'getState' | 'subscribe'>) {
+  return new Promise<void>((resolve) => {
+    const check = () => {
+      if (journal.getState().status === 'checking') return
+      unsubscribe()
+      resolve()
+    }
+    const unsubscribe = journal.subscribe(check)
+    check()
+  })
+}
 
 /** One preload per engine, started by the first call */
 const preloads = new WeakMap<object, Promise<void>>()

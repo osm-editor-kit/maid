@@ -1222,8 +1222,10 @@ try {
     }
     const appDir = APPS[opts.app].dir
     console.log(`building Maid (${opts.app}: ${appDir})`)
+    // VITE_BENCH=1: the build keeps the debug handles (window.__bench, window.__maid) the benchmark reads
     const build = spawn(['bun', 'run', '--cwd', appDir, 'build'], {
       cwd: ROOT,
+      env: { ...process.env, VITE_BENCH: '1' },
       stdout: 'ignore',
       stderr: 'inherit',
     })

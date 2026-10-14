@@ -24,7 +24,7 @@ OSM infrastructure means everything the OSMF and the community run for mappers: 
 
 - Every workflow has a `bun run <script>` entry point at the repo root. Agents and docs only reference those script names.
 - Every result an agent needs is written to a file in a stable, machine-readable format (JSON first, a rendered report second).
-- Apps expose a debug handle on `window` in dev and test builds so agents and Playwright can inspect state without scraping the DOM.
+- Apps expose a debug handle on `window` (`__bench`, `__maid`) in dev builds and in builds made with `VITE_BENCH=1` (`bun run bench` and `bun run compare` set it; `bun run bench-edit` needs a preview built with it) so agents and Playwright can inspect state without scraping the DOM; a plain production build (GitHub Pages) has none.
 - Commands must be non-interactive, exit non-zero on failure, and print where they wrote their output.
 
 ### 3. References
@@ -86,6 +86,7 @@ These names are the contract. Agents and docs only reference these.
 | `bun run bench-report [run-id ...]` | Render one or more runs as `report.md` and `report.html`. |
 | `bun run bench-budget [run-id ...]` | Check a run against the budgets: Maid against iD and Rapid in the same run (FAIL, exit 1), and against `tools/bench/budget.json` (WARN). `--update` writes that file from the run. Writes `reports/<run>/budget-check.json`. |
 | `bun run bench-edit [scene] [query]` | Maid only: drag a node and measure change-to-screen time. Needs a Maid preview on 5175 (`bun run compare` starts one). |
+| `bun run bench-rmgl [--reps 5] [--only mount,...] [--quick]` | react-map-gl against raw MapLibre with Maid's layers and the dense fixture: mount, re-renders, prop changes, GeoJSON updates, pointer, camera, hover, style swap, `styledata`. Builds and serves its own page on 5186. Writes `reports/rmgl-bench.json` (`--only` and `--quick`: `reports/rmgl-bench-partial.json`), see `docs/research/react-map-gl-performance.md`. |
 | `bun run bench-model [--runs 5] [--browser chromium]` | Time loading each fixture into `maid-model` (JSON to entities, entities into the history), in the browser. Writes `reports/model-load-<browser>.json`. |
 | `bun run bench-validation` | Time every validation rule on the dense fixture, one edit, and bursts of edits. Writes `reports/validation-bench.json`. |
 | `bun run check-undo [scene]` | Browser check: move a vertex, change a tag, undo and redo, and compare data and map after each step. Needs `bun run dev`. |

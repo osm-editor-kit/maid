@@ -1,3 +1,6 @@
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { basename, join } from 'node:path'
+import { deflateSync } from 'node:zlib'
 /**
  * Side-by-side screenshots of iD and Maid for the rendering comparison (docs/research/id-rendering-vs-maplibre-spec.md,
  * sections 2 and 3). Every case opens both editors at the same `map=zoom/lat/lon`, waits until each is settled, crops
@@ -13,9 +16,6 @@
  * tile server, so no tile comes from the network.
  */
 import { chromium, type Browser, type Page } from '@playwright/test'
-import { deflateSync } from 'node:zlib'
-import { mkdirSync, writeFileSync } from 'node:fs'
-import { basename, join } from 'node:path'
 import { spawn, type Subprocess } from 'bun'
 import { PORTS } from '../ports'
 
@@ -115,7 +115,8 @@ const CASES: Case[] = [
     lat: 52.48388,
     zoom: 17,
     look: 'iD: the cemetery pattern in the band. Maid: the plain colour.',
-    notShown: 'Farmland and wetland are not in these fixtures in any size worth a crop (one 14 m2 wetland), so they are not shown.',
+    notShown:
+      'Farmland and wetland are not in these fixtures in any size worth a crop (one 14 m2 wetland), so they are not shown.',
   },
   {
     name: '06-stacking-partial',
@@ -149,7 +150,7 @@ const CASES: Case[] = [
     lon: 13.40091,
     lat: 52.51567,
     zoom: 18,
-    look: 'iD: a wedge on the camera vertex, pointing at its direction (246 degrees). Maid: nothing.',
+    look: 'iD: a wedge on the camera vertex, pointing at its direction (246 degrees). Maid draws the same cone since 0c3e09c.',
   },
   {
     name: '09-layer-stacking',
@@ -185,7 +186,8 @@ const CASES: Case[] = [
     zoom: 18,
     select: 'w43684175',
     look: 'iD: a shadow under the selected road and triangle midpoints. Maid: a circle for each midpoint and a halo, without the pulse.',
-    notShown: 'One frame per editor. iD breathes every 800 ms, and the phase at capture is not controlled, so the shadow width can differ between runs.',
+    notShown:
+      'One frame per editor. iD breathes every 800 ms, and the phase at capture is not controlled, so the shadow width can differ between runs.',
   },
   {
     name: '12-oneway-arrows',
@@ -208,7 +210,8 @@ const CASES: Case[] = [
     lat: 52.3866,
     zoom: 18,
     look: 'The marker sits on one side of the wall. Compare the spacing and the side.',
-    notShown: 'No cliff, embankment or cutting is in the three fixtures, so only the retaining wall is shown.',
+    notShown:
+      'No cliff, embankment or cutting is in the three fixtures, so only the retaining wall is shown.',
   },
   {
     name: '14-pin-hover',
@@ -304,7 +307,8 @@ const CASES: Case[] = [
     zoom: 18,
     imagery: { sharpness: 2.5 },
     look: 'iD: an unsharp mask (a blurred, inverted copy with overlay). Maid has no sharpen control, so its picture is the default one.',
-    notShown: 'Sharpness below 1, which iD draws as a blur, is not shown. Maid has no sharpen control at all.',
+    notShown:
+      'Sharpness below 1, which iD draws as a blur, is not shown. Maid has no sharpen control at all.',
   },
 ]
 
@@ -340,7 +344,8 @@ function pngChunk(type: string, data: Buffer): Buffer {
 function encodePng(width: number, height: number, rgb: Uint8Array): Buffer {
   const stride = width * 3
   const raw = Buffer.alloc((stride + 1) * height)
-  for (let y = 0; y < height; y++) raw.set(rgb.subarray(y * stride, (y + 1) * stride), y * (stride + 1) + 1)
+  for (let y = 0; y < height; y++)
+    raw.set(rgb.subarray(y * stride, (y + 1) * stride), y * (stride + 1) + 1)
   const header = Buffer.alloc(13)
   header.writeUInt32BE(width, 0)
   header.writeUInt32BE(height, 4)
@@ -463,7 +468,9 @@ async function setupId(page: Page, c: Case) {
         sharpness(v: number): void
       }
       const w = window as unknown as {
-        __bench: { _id: { context: { map(): { activeAreaFill(v: string): void }; background(): Background } } }
+        __bench: {
+          _id: { context: { map(): { activeAreaFill(v: string): void }; background(): Background } }
+        }
         iD: { rendererBackgroundSource: { Custom(t: string): unknown } }
       }
       const context = w.__bench._id.context
@@ -487,7 +494,9 @@ async function settle(page: Page, editor: 'id' | 'maid', imagery: boolean) {
     if (editor === 'id') {
       await page.waitForFunction(
         () => {
-          const tiles = [...document.querySelectorAll('.layer-background img')] as HTMLImageElement[]
+          const tiles = [
+            ...document.querySelectorAll('.layer-background img'),
+          ] as HTMLImageElement[]
           return tiles.length > 0 && tiles.every((tile) => tile.complete)
         },
         undefined,
@@ -495,7 +504,10 @@ async function settle(page: Page, editor: 'id' | 'maid', imagery: boolean) {
       )
     } else {
       await page.waitForFunction(
-        () => (window as unknown as { __maid: { map: { areTilesLoaded(): boolean } } }).__maid.map.areTilesLoaded(),
+        () =>
+          (
+            window as unknown as { __maid: { map: { areTilesLoaded(): boolean } } }
+          ).__maid.map.areTilesLoaded(),
         undefined,
         { timeout: 30000, polling: 200 },
       )
@@ -509,7 +521,12 @@ async function settle(page: Page, editor: 'id' | 'maid', imagery: boolean) {
  * One editor's capture of the case, cropped around the target. Returns what the pointer and selection saw.
  * Maid's imagery is never captured: its backgrounds are off in automated browsers (navigator.webdriver), by design.
  */
-async function captureEditor(browser: Browser, editor: 'id' | 'maid', c: Case, file: string): Promise<string[]> {
+async function captureEditor(
+  browser: Browser,
+  editor: 'id' | 'maid',
+  c: Case,
+  file: string,
+): Promise<string[]> {
   const notes: string[] = []
   const imagery = c.imagery !== undefined
   const query =
@@ -519,7 +536,11 @@ async function captureEditor(browser: Browser, editor: 'id' | 'maid', c: Case, f
         (c.fill ? `&fill=${c.fill}` : '') +
         (c.maidQuery ? `&${c.maidQuery}` : '') +
         (imagery ? `&background=${encodeURIComponent(`custom:${TILE_URL}`)}` : '')
-  const url = (editor === 'id' ? ID : MAID) + '/' + query + (editor === 'id' ? `#map=${c.zoom}/${c.lat}/${c.lon}` : '')
+  const url =
+    (editor === 'id' ? ID : MAID) +
+    '/' +
+    query +
+    (editor === 'id' ? `#map=${c.zoom}/${c.lat}/${c.lon}` : '')
   const { context, page } = await openEditor(browser, url)
   try {
     if (editor === 'id') await setupId(page, c)
@@ -529,12 +550,17 @@ async function captureEditor(browser: Browser, editor: 'id' | 'maid', c: Case, f
       await settle(page, editor, imagery)
       notes.push(`selected: ${(await page.evaluate(() => window.__bench.selected())).join(',')}`)
     }
-    const target = await page.evaluate(([lon, lat]) => window.__bench.project(lon, lat), [c.lon, c.lat] as const)
+    const target = await page.evaluate(([lon, lat]) => window.__bench.project(lon, lat), [
+      c.lon,
+      c.lat,
+    ] as const)
     if (c.hover) {
       const dy = editor === 'maid' && c.hover.maidDy !== undefined ? c.hover.maidDy : c.hover.dy
       await page.mouse.move(target.x, target.y - dy)
       await page.waitForTimeout(400)
-      notes.push(`hovered: ${(await page.evaluate(() => window.__bench.hovered())).join(',') || 'none'}`)
+      notes.push(
+        `hovered: ${(await page.evaluate(() => window.__bench.hovered())).join(',') || 'none'}`,
+      )
     }
     const rect = await page.evaluate(() => window.__bench.mapRect())
     const width = Math.min(CROP.width, rect.width)
@@ -548,10 +574,16 @@ async function captureEditor(browser: Browser, editor: 'id' | 'maid', c: Case, f
   }
 }
 
-const escapeHtml = (s: string) => s.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch] ?? ch)
+const escapeHtml = (s: string) =>
+  s.replace(
+    /[&<>"]/g,
+    (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch] ?? ch,
+  )
 
 async function composePair(browser: Browser, c: Case) {
-  const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 })).newPage()
+  const page = await (
+    await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 })
+  ).newPage()
   const img = (editor: string) => `http://127.0.0.1:${TILE_PORT}/out/${c.name}-${editor}.png`
   await page.setContent(`<!doctype html><meta charset="utf-8"><body style="margin:0;background:#fff;font-family:system-ui,sans-serif;color:#111">
     <div id="pair" style="display:inline-block;padding:16px;width:1200px;box-sizing:border-box">
@@ -567,7 +599,11 @@ async function composePair(browser: Browser, c: Case) {
       </div>
       <div style="font-size:13px;margin-top:10px;max-width:1168px">${escapeHtml(c.look)}</div>
     </div></body>`)
-  await page.waitForFunction(() => [...document.images].every((i) => i.complete && i.naturalWidth > 0), undefined, { timeout: 15000 })
+  await page.waitForFunction(
+    () => [...document.images].every((i) => i.complete && i.naturalWidth > 0),
+    undefined,
+    { timeout: 15000 },
+  )
   await page.locator('#pair').screenshot({ path: join(OUT, `${c.name}.png`) })
   await page.context().close()
 }
@@ -653,7 +689,8 @@ It builds the Maid production build and starts the mock API (8090), iD's static 
 // Main
 
 const onlyArg = process.argv.indexOf('--only')
-const only = onlyArg > 0 ? (process.argv[onlyArg + 1] ?? '').split(',').map((s) => s.trim()) : undefined
+const only =
+  onlyArg > 0 ? (process.argv[onlyArg + 1] ?? '').split(',').map((s) => s.trim()) : undefined
 const selected = CASES.filter((c) => !only || only.some((p) => c.name.startsWith(p)))
 
 mkdirSync(OUT, { recursive: true })
@@ -672,7 +709,9 @@ const tileServer = Bun.serve({
         png = imageryTile(Number(tile[2]), Number(tile[3]))
         tiles.set(key, png)
       }
-      return new Response(new Uint8Array(png), { headers: { ...cors, 'Content-Type': 'image/png' } })
+      return new Response(new Uint8Array(png), {
+        headers: { ...cors, 'Content-Type': 'image/png' },
+      })
     }
     if (pathname.startsWith('/out/')) return new Response(Bun.file(join(OUT, basename(pathname))))
     return new Response('not found', { status: 404 })
@@ -682,18 +721,38 @@ const tileServer = Bun.serve({
 const started: Subprocess[] = []
 try {
   if (!(await portOpen(PORTS.mockApi))) {
-    started.push(spawn(['bun', 'tools/mock-osm-api/server.ts'], { cwd: ROOT, stdout: 'ignore', stderr: 'inherit' }))
+    started.push(
+      spawn(['bun', 'tools/mock-osm-api/server.ts'], {
+        cwd: ROOT,
+        stdout: 'ignore',
+        stderr: 'inherit',
+      }),
+    )
     await waitForPort('mock OSM API', PORTS.mockApi)
   }
   if (!(await portOpen(PORTS.id))) {
-    started.push(spawn(['bun', 'tools/refs/id/serve.ts'], { cwd: ROOT, stdout: 'ignore', stderr: 'inherit' }))
+    started.push(
+      spawn(['bun', 'tools/refs/id/serve.ts'], { cwd: ROOT, stdout: 'ignore', stderr: 'inherit' }),
+    )
     await waitForPort('iD', PORTS.id)
   }
-  // the build is always fresh: other agents edit the sources while this runs
-  const build = spawn(['bun', 'run', '--cwd', 'apps/maid', 'build'], { cwd: ROOT, stdout: 'ignore', stderr: 'ignore' })
-  if ((await build.exited) !== 0) throw new Error('the Maid build failed (another agent may be mid-edit: wait and retry)')
+  // the build is always fresh: other agents edit the sources while this runs. VITE_BENCH=1: the debug handles stay in it
+  const build = spawn(['bun', 'run', '--cwd', 'apps/maid', 'build'], {
+    cwd: ROOT,
+    env: { ...process.env, VITE_BENCH: '1' },
+    stdout: 'ignore',
+    stderr: 'ignore',
+  })
+  if ((await build.exited) !== 0)
+    throw new Error('the Maid build failed (another agent may be mid-edit: wait and retry)')
   if (!(await portOpen(PORTS.maidBuild))) {
-    started.push(spawn(['bun', 'run', '--cwd', 'apps/maid', 'preview', '--port', String(PORTS.maidBuild)], { cwd: ROOT, stdout: 'ignore', stderr: 'inherit' }))
+    started.push(
+      spawn(['bun', 'run', '--cwd', 'apps/maid', 'preview', '--port', String(PORTS.maidBuild)], {
+        cwd: ROOT,
+        stdout: 'ignore',
+        stderr: 'inherit',
+      }),
+    )
     await waitForPort('Maid preview', PORTS.maidBuild)
   }
 
@@ -718,7 +777,10 @@ try {
   writeReadme()
   console.log(`wrote ${selected.length} pairs, index.html and README.md to ${OUT}`)
   console.log(`blocked non-localhost requests: ${blockedRequests}`)
-  if (pageErrors.length) console.log(`page errors (${pageErrors.length}):\n${[...new Set(pageErrors)].slice(0, 10).join('\n')}`)
+  if (pageErrors.length)
+    console.log(
+      `page errors (${pageErrors.length}):\n${[...new Set(pageErrors)].slice(0, 10).join('\n')}`,
+    )
 } finally {
   for (const proc of started) proc.kill()
   await tileServer.stop()

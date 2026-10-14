@@ -41,9 +41,23 @@ export interface ServiceRegistry {
   serviceOf(url: URL): ServiceId
 }
 
-/** True for the hosts that are local to the machine: the rule for automated runs (AGENTS.md, core rule 1). */
-export function isLocalUrl(url: URL): boolean {
-  const host = url.hostname
+/**
+ * Whether an address points at this machine: `localhost`, `127.0.0.1`, `[::1]`, and the names ending in
+ * `.localhost` or `.test`. This is the rule for automated runs (AGENTS.md, core rule 1). A relative address,
+ * such as a path on the same server (`/data/x.geojson`), resolves against `page`, so it is local exactly when
+ * the page is. `page` defaults to the page's address in a browser; without a page a relative address is not
+ * local. An address that does not parse is not local.
+ */
+export function isLocalUrl(
+  url: string | URL,
+  page: string | URL | undefined = currentPageHref(),
+): boolean {
+  let host: string
+  try {
+    host = new URL(url, page).hostname
+  } catch {
+    return false
+  }
   return (
     host === 'localhost' ||
     host === '127.0.0.1' ||
@@ -51,6 +65,11 @@ export function isLocalUrl(url: URL): boolean {
     host.endsWith('.localhost') ||
     host.endsWith('.test')
   )
+}
+
+/** The address of the page in a browser; undefined where there is no page (tests, Node). */
+function currentPageHref(): string | undefined {
+  return typeof location === 'undefined' ? undefined : location.href
 }
 
 function domainMatcher(...domains: readonly string[]): (url: URL) => boolean {

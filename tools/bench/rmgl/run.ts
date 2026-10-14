@@ -78,7 +78,10 @@ const ONLY = option('only')?.split(',')
 /** Steps of a loop inside one repetition */
 const steps = (n: number) => (QUICK ? Math.min(n, 4) : n)
 /** A partial or quick run does not replace the full report */
-const OUT = join(ROOT, QUICK || ONLY ? 'reports/rmgl-bench-partial.json' : 'reports/rmgl-bench.json')
+const OUT = join(
+  ROOT,
+  QUICK || ONLY ? 'reports/rmgl-bench-partial.json' : 'reports/rmgl-bench.json',
+)
 if (!Number.isInteger(REPS) || REPS < 1) {
   console.error('--reps needs a whole number above 0')
   process.exit(2)

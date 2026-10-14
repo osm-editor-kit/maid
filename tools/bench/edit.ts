@@ -5,7 +5,7 @@
  *   bun tools/bench/edit.ts [scene] ["maid query"] [label]
  *
  * Needs the mock API and a Maid preview build running (bun run bench starts and stops its own;
- * for this script run `bun run --cwd apps/maid build && bun run --cwd apps/maid preview --port 5175`).
+ * for this script run `VITE_BENCH=1 bun run --cwd apps/maid build && bun run --cwd apps/maid preview --port 5175`).
  */
 import { chromium } from '@playwright/test'
 import { getScene } from '../fixtures/scenes'

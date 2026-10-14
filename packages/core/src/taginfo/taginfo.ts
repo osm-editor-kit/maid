@@ -1,4 +1,5 @@
 import type { QueryClient } from '@tanstack/query-core'
+import { z } from 'zod'
 import { SESSION_DATA } from '../fetching/query-client.ts'
 import type { RemoteFetch } from '../fetching/remote-fetch.ts'
 
@@ -7,8 +8,9 @@ import type { RemoteFetch } from '../fetching/remote-fetch.ts'
  * iD's `modules/services/taginfo.js` (pinned checkout, `.reference/id`); each copied rule is named in a
  * comment with the iD function it comes from. Maid's own rules: every request goes through the editor's
  * `fetch` (the service gate, the time limit and the automation check: fetching-audit.md 5.3, 5.8), each
- * query is cached for the session in the editor's query client, and no failure reaches the caller:
- * a failed or refused request is no suggestions.
+ * query is cached for the session in the editor's query client and is asked once: no retry, as taginfo is
+ * OSM infrastructure (AGENTS.md, core rule 1). No failure reaches the caller: a failed or refused request is no
+ * suggestions.
  *
  * Under automation (`isAutomated()`) `remoteFetch` refuses the request before it is sent, so this module
  * makes no request and returns an empty list (AGENTS.md, core rule 1).
@@ -89,28 +91,52 @@ export interface Taginfo {
   ): Promise<TagSuggestion[]>
 }
 
-type Row = Record<string, unknown>
+/**
+ * The rows of taginfo's answers, as Zod schemas: the fields Maid reads, and no others. A row that lacks its
+ * key or value, or has one of the wrong type, is skipped (`rowsOf`). An optional field of the wrong type is
+ * dropped (`.catch(undefined)`): the row stays, without that field.
+ */
 
-function isRow(value: unknown): value is Row {
-  return typeof value === 'object' && value !== null
-}
+/** iD's `Number(d[count])`: a number or a numeric string. Anything else is no count, and compares as false. */
+const count = z
+  .union([z.number(), z.string().transform((text) => Number(text))])
+  .optional()
+  .catch(undefined)
 
-function stringField(row: Row, name: string): string | undefined {
-  const value = row[name]
-  return typeof value === 'string' ? value : undefined
-}
+/** `keys/all`: the key, its use count (the filter) and whether the wiki has the key. */
+const keyRow = z.object({
+  key: z.string(),
+  count_all: count,
+  in_wiki: z.boolean().optional().catch(undefined),
+})
 
-/** iD's `Number(d[count])`: a count that is not a number compares as false. */
-function numberField(row: Row, name: string): number {
-  const value = row[name]
-  if (typeof value === 'number') return value
-  if (typeof value === 'string') return Number(value)
-  return Number.NaN
+/** `key/values`: the value, its use count (more than 100) and taginfo's description (may be empty). */
+const valueRow = z.object({
+  value: z.string(),
+  count,
+  description: z.string().optional().catch(undefined),
+})
+
+type KeyRow = z.infer<typeof keyRow>
+type ValueRow = z.infer<typeof valueRow>
+
+/**
+ * The rows of an answer `{ data: [...] }` that fit `row`. An answer without a data list throws, and the
+ * caller turns that into no suggestions.
+ */
+function rowsOf<T>(body: unknown, row: z.ZodType<T>): T[] {
+  const { data } = z.object({ data: z.array(z.unknown()) }).parse(body)
+  const rows: T[] = []
+  for (const item of data) {
+    const parsed = row.safeParse(item)
+    if (parsed.success) rows.push(parsed.data)
+  }
+  return rows
 }
 
 /** iD `filterKeys()` with no `filter` (keys() never sets one): more than 2500 ways, nodes and so on, or in the wiki. */
-function passesKeyFilter(row: Row): boolean {
-  return numberField(row, 'count_all') > 2500 || row['in_wiki'] === true
+function passesKeyFilter(row: KeyRow): boolean {
+  return (row.count_all ?? 0) > 2500 || row.in_wiki === true
 }
 
 /** iD `sortKeys`: keys without a colon first; the sort is stable. */
@@ -123,23 +149,11 @@ function sortKeys(a: string, b: string): number {
 }
 
 /** iD `taginfo.js` keys(): the filter, the excluded names, the colon order; `{value, title}` with the key as both. */
-function keyRows(rows: readonly Row[]): TagSuggestion[] {
-  const keyed: { key: string; row: Row }[] = []
-  for (const row of rows) {
-    const key = stringField(row, 'key')
-    if (key !== undefined) keyed.push({ key, row })
-  }
-  return keyed
-    .filter(({ key, row }) => passesKeyFilter(row) && !EXCLUDED_KEY_NAMES.test(key))
+function keyRows(rows: readonly KeyRow[]): TagSuggestion[] {
+  return rows
+    .filter((row) => passesKeyFilter(row) && !EXCLUDED_KEY_NAMES.test(row.key))
     .sort((a, b) => sortKeys(a.key, b.key))
     .map(({ key }) => ({ value: key, title: key }))
-}
-
-/** The answer is `{ data: [...] }`; anything else is an error for the caller to turn into no suggestions. */
-function dataRows(body: unknown): Row[] {
-  if (!isRow(body) || !Array.isArray(body['data']))
-    throw new Error('taginfo: no data list in the answer')
-  return body['data'].filter(isRow)
 }
 
 /**
@@ -169,11 +183,15 @@ export function createTaginfo(options: TaginfoOptions): Taginfo {
   const base = options.apiUrl ?? TAGINFO_API
   const lang = options.lang ?? 'en'
 
-  async function getRows(path: string, params: Record<string, string>): Promise<Row[]> {
+  async function getRows<T>(
+    path: string,
+    params: Record<string, string>,
+    row: z.ZodType<T>,
+  ): Promise<T[]> {
     const url = new URL(path, base)
     url.search = new URLSearchParams(params).toString()
     const response = await send(url.href, { headers: { Accept: 'application/json' } })
-    return dataRows(await response.json())
+    return rowsOf(await response.json(), row)
   }
 
   async function keysOf(
@@ -182,14 +200,18 @@ export function createTaginfo(options: TaginfoOptions): Taginfo {
   ): Promise<TagSuggestion[]> {
     // iD keys(): the geometry only changes the sort; `rp` 10; `sortorder` desc; `page` 1.
     const sort = (geometry && SORT_BY_GEOMETRY[geometry]) ?? 'count_all'
-    const rows = await getRows('keys/all', {
-      rp: String(KEY_ROWS),
-      sortname: sort,
-      sortorder: 'desc',
-      page: '1',
-      lang,
-      query,
-    })
+    const rows = await getRows(
+      'keys/all',
+      {
+        rp: String(KEY_ROWS),
+        sortname: sort,
+        sortorder: 'desc',
+        page: '1',
+        lang,
+        query,
+      },
+      keyRow,
+    )
     return keyRows(rows)
   }
 
@@ -198,14 +220,19 @@ export function createTaginfo(options: TaginfoOptions): Taginfo {
   const popularKeys = () =>
     queries.fetchQuery({
       queryKey: ['taginfo', 'popular-keys'],
+      retry: false,
       queryFn: async () => {
-        const rows = await getRows('keys/all', {
-          rp: String(POPULAR_KEY_ROWS),
-          sortname: 'values_all',
-          sortorder: 'desc',
-          page: '1',
-          lang,
-        })
+        const rows = await getRows(
+          'keys/all',
+          {
+            rp: String(POPULAR_KEY_ROWS),
+            sortname: 'values_all',
+            sortorder: 'desc',
+            page: '1',
+            lang,
+          },
+          keyRow,
+        )
         const names = keyRows(rows).map((item) => item.value)
         return new Set(names.filter((name) => name !== 'opening_hours'))
       },
@@ -229,15 +256,13 @@ export function createTaginfo(options: TaginfoOptions): Taginfo {
     }
     const filter = geometry && FILTER_BY_GEOMETRY[geometry]
     if (filter !== undefined) params['filter'] = filter
-    const rows = await getRows('key/values', params)
+    const rows: ValueRow[] = await getRows('key/values', params, valueRow)
 
     // iD values() filterValues(): no `;` or `,`; no upper-case letters or `*` unless the key allows
     // them (or it is type=associatedStreet); more than 100 uses. Kept in taginfo's order.
     const allowUpperCase = UPPER_CASE_VALUE_KEYS.test(key)
     const result: TagSuggestion[] = []
-    for (const row of rows) {
-      const value = stringField(row, 'value')
-      if (value === undefined) continue
+    for (const { value, count: uses, description } of rows) {
       if (/[;,]/.test(value)) continue
       if (
         !allowUpperCase &&
@@ -245,8 +270,8 @@ export function createTaginfo(options: TaginfoOptions): Taginfo {
         /[A-Z*]/.test(value)
       )
         continue
-      if (!(numberField(row, 'count') > 100)) continue
-      result.push({ value, title: stringField(row, 'description') || value })
+      if (!((uses ?? 0) > 100)) continue
+      result.push({ value, title: description || value })
     }
     return result
   }
@@ -258,6 +283,7 @@ export function createTaginfo(options: TaginfoOptions): Taginfo {
         () =>
           queries.fetchQuery({
             queryKey: ['taginfo', 'keys', geometry ?? 'any', query],
+            retry: false,
             queryFn: () => keysOf(query, geometry),
             ...SESSION_DATA,
           }),
@@ -272,6 +298,7 @@ export function createTaginfo(options: TaginfoOptions): Taginfo {
         if (popular.has(key)) return []
         return queries.fetchQuery({
           queryKey: ['taginfo', 'values', key, geometry ?? 'any', query],
+          retry: false,
           queryFn: () => valuesOf(key, query, geometry),
           ...SESSION_DATA,
         })

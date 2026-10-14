@@ -1,6 +1,6 @@
 import type { Map as MapLibreMap } from 'maplibre-gl'
 /**
- * The debug handle that Maid sets on `window` in dev and test builds (packages/shell/src/bench.ts).
+ * The debug handle that Maid sets on `window` in dev builds and in builds with `VITE_BENCH=1` (packages/shell/src/bench.ts).
  * The browser checks and agents read it inside `page.evaluate`, so its shape is declared once
  * here. The contract for the editor itself is `window.__bench` in tools/refs/bench-api.d.ts.
  *

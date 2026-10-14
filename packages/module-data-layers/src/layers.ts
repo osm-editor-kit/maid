@@ -2,9 +2,9 @@
  * The map layers of a data layer, as plain objects the renderer's `<Source>` and `<Layer>` take.
  * Pure: the component in MapLayers.tsx renders them, the tests check them.
  */
+import { isLocalUrl } from '@osm-editor-kit/maid-core'
 import type { MapLayerItem } from '@osm-editor-kit/maid-renderer'
 import {
-  isLocalUrl,
   PALETTE,
   resolveColors,
   type DataLayer,

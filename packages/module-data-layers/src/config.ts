@@ -41,17 +41,6 @@ export function isSameServerPath(url: string) {
   return url.startsWith('/') && !url.startsWith('//')
 }
 
-/** Whether an address points at this machine. Automated runs may load only these. */
-export function isLocalUrl(url: string) {
-  if (isSameServerPath(url)) return true
-  try {
-    const { hostname } = new URL(url)
-    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]'
-  } catch {
-    return false
-  }
-}
-
 /**
  * An address, trimmed: an https or http URL, or a path on the same server. The message says what
  * is wrong with the text: empty, not a URL at all, or another scheme.

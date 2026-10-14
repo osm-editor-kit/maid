@@ -36,6 +36,35 @@ describe('isLocalUrl', () => {
       expect(isLocalUrl(url(text))).toBe(false)
     }
   })
+
+  test('accepts text as well as URL objects', () => {
+    expect(isLocalUrl('http://localhost:8080/a.geojson')).toBe(true)
+    expect(isLocalUrl('https://example.org/a.geojson')).toBe(false)
+    expect(isLocalUrl('not a url')).toBe(false)
+  })
+
+  test('a relative address is local exactly when the page is', () => {
+    expect(isLocalUrl('/data/a.geojson', 'http://localhost:5173/')).toBe(true)
+    expect(isLocalUrl('/data/a.geojson', 'http://127.0.0.1:5173/maid')).toBe(true)
+    expect(isLocalUrl('/data/a.geojson', 'https://maid.test/')).toBe(true)
+    expect(isLocalUrl('/data/a.geojson', 'https://osm-editor.example.org/')).toBe(false)
+    expect(isLocalUrl('data/a.geojson', 'http://localhost:5173/')).toBe(true)
+  })
+
+  test('a protocol-relative address names another host, so it is not local on a local page', () => {
+    expect(isLocalUrl('//example.org/a.geojson', 'http://localhost:5173/')).toBe(false)
+    expect(isLocalUrl('//localhost:8090/a.geojson', 'https://example.org/')).toBe(true)
+  })
+
+  test('without a page, a relative address is not local', () => {
+    expect(isLocalUrl('/data/a.geojson', undefined)).toBe(false)
+    expect(isLocalUrl('/data/a.geojson')).toBe(false)
+  })
+
+  test('an absolute address is judged by its own host, whatever the page', () => {
+    expect(isLocalUrl('http://localhost:8090/x', 'https://example.org/')).toBe(true)
+    expect(isLocalUrl('https://example.org/x', 'http://localhost:5173/')).toBe(false)
+  })
 })
 
 describe('serviceOf', () => {

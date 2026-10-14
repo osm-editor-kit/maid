@@ -4,7 +4,6 @@ import {
   checkDataLayerConfig,
   checkLayerUrl,
   guessKind,
-  isLocalUrl,
   parseSourceLayers,
   pickColor,
   PALETTE,
@@ -195,21 +194,12 @@ describe('colours', () => {
   })
 })
 
-describe('checkConfigLayers and isLocalUrl', () => {
+describe('checkConfigLayers', () => {
   test('a duplicate id is reported, and all problems come in one error', () => {
     expect(() => checkConfigLayers([GEOJSON, GEOJSON])).toThrow('The id "parking" is used twice.')
     expect(() => checkConfigLayers([{ id: 'x' }, GEOJSON])).toThrow(
       /Data layers: The name must not be empty/,
     )
-  })
-
-  test('local addresses are the ones an automated run may load', () => {
-    expect(isLocalUrl('http://localhost:8080/a.geojson')).toBe(true)
-    expect(isLocalUrl('http://127.0.0.1:9/a')).toBe(true)
-    expect(isLocalUrl('http://[::1]:9/a')).toBe(true)
-    expect(isLocalUrl('/data/a.geojson')).toBe(true)
-    expect(isLocalUrl('https://example.org/a.geojson')).toBe(false)
-    expect(isLocalUrl('not a url')).toBe(false)
   })
 })
 
