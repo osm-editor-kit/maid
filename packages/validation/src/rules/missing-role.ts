@@ -47,7 +47,10 @@ function roleSchemaOf(
   return roles
 }
 
-/** The roles that fit this member: the schema's roles filtered by the presets; the multipolygon fallback as it is */
+/**
+ * The roles that fit this member: the schema's roles filtered by the presets, without a role whose `max` the
+ * relation has reached already (as Kyle's relation validator); the multipolygon fallback as it is.
+ */
 function fittingRoles(
   member: OsmEntity,
   relation: OsmRelation,
@@ -56,7 +59,14 @@ function fittingRoles(
   graph: Graph,
 ) {
   if (roles === multipolygonRoles || presets === undefined) return roles
-  return presets.memberRoles(relation.tags, member.geometry(graph), member.tags)
+  const fitting = presets.memberRoles(relation.tags, member.geometry(graph), member.tags)
+  return Object.fromEntries(
+    Object.entries(fitting).filter(([role, { member: rule }]) => {
+      if (rule.max === undefined) return true
+      const count = relation.members.filter((other) => other.role === role).length
+      return count < rule.max
+    }),
+  )
 }
 
 /** The member at `index` of the relation, when it is still the member the issue is about */

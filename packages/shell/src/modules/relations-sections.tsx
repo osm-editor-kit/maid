@@ -1,3 +1,4 @@
+import { Bars3Icon } from '@heroicons/react/16/solid'
 import { m } from '@osm-editor-kit/maid-i18n'
 import {
   actionAddMember,
@@ -9,20 +10,22 @@ import {
 } from '@osm-editor-kit/maid-model'
 import type { RelationRoles } from '@osm-editor-kit/maid-presets'
 import { notify, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
-import { Tooltip, type InspectorSectionProps } from '@osm-editor-kit/maid-ui'
+import { Tooltip, UI_SPRING, type InspectorSectionProps } from '@osm-editor-kit/maid-ui'
+import { Reorder, useDragControls, useReducedMotion } from 'motion/react'
 import {
   createContext,
-  Fragment,
   useContext,
   useEffect,
   useRef,
   useState,
   useSyncExternalStore,
+  type PointerEvent,
   type ReactNode,
 } from 'react'
 import { usePresets, useShell } from '../shell-context'
 import {
   cannotTakeReason,
+  dropMoveOf,
   geometryOfEntity,
   joinableRelations,
   loadButtonLabel,
@@ -37,6 +40,7 @@ import {
   moveTarget,
   newRelationActions,
   notLoadedCount,
+  pickerNames,
   placementOf,
   placementSentence,
   relationLabel,
@@ -47,12 +51,14 @@ import {
   roleSuggestions,
   roleToAdd,
   routeGaps,
+  sessionFirst,
   type LoadMember,
   type MemberRow,
   type Membership,
   type RelationRules,
   type RoleOption,
 } from './relations-logic.ts'
+import { relationSessionActions, useSessionRelationIDs } from './relations-session-store.ts'
 
 type Props = InspectorSectionProps
 type Editor = Props['editor']
@@ -70,6 +76,9 @@ const NEW_RELATION = 'new'
 
 const ROW =
   'flex min-w-0 items-center gap-2 border-b border-zinc-950/5 py-1 text-xs last:border-0 dark:border-white/5'
+/** A member's row: its content. The list item around it carries the hairline and is what Reorder moves. */
+const ROW_BODY = 'flex min-w-0 items-center gap-2 py-1 text-xs'
+const MEMBER_ITEM = 'border-b border-zinc-950/5 last:border-0 dark:border-white/5'
 const LINK =
   'min-w-0 flex-1 cursor-pointer truncate rounded px-1 text-left hover:underline focus-visible:outline-2 focus-visible:outline-blue-500'
 const SECONDARY = 'text-zinc-500 dark:text-zinc-400'
@@ -225,16 +234,17 @@ function RoleInput({
 function RemoveButton({ label, onRemove }: { label: string; onRemove: () => void }) {
   const readOnly = useReadOnly()
   return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      disabled={readOnly}
-      onClick={onRemove}
-      className={ICON_BUTTON}
-    >
-      ×
-    </button>
+    <Tooltip label={label}>
+      <button
+        type="button"
+        aria-label={label}
+        disabled={readOnly}
+        onClick={onRemove}
+        className={ICON_BUTTON}
+      >
+        ×
+      </button>
+    </Tooltip>
   )
 }
 
@@ -300,25 +310,92 @@ function DownloadButton({ id, load }: { id: EntityID; load: LoadMember }) {
   const [busy, setBusy] = useState(false)
   const label = m.relations_download_member({ id })
   return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      disabled={busy}
-      className={`${LINK_BUTTON} disabled:cursor-default disabled:text-zinc-300`}
-      onClick={() => {
-        setBusy(true)
-        load(id).then(
-          () => setBusy(false),
-          (error: unknown) => {
-            setBusy(false)
-            notify.failed(error)
-          },
-        )
-      }}
+    <Tooltip label={label}>
+      <button
+        type="button"
+        aria-label={label}
+        disabled={busy}
+        className={`${LINK_BUTTON} disabled:cursor-default disabled:text-zinc-300`}
+        onClick={() => {
+          setBusy(true)
+          load(id).then(
+            () => setBusy(false),
+            (error: unknown) => {
+              setBusy(false)
+              notify.failed(error)
+            },
+          )
+        }}
+      >
+        {busy ? m.relations_downloading() : m.relations_download()}
+      </button>
+    </Tooltip>
+  )
+}
+
+/**
+ * The grip that drags a member. Pointer only: the move buttons are the keyboard way to the same move, so the grip is
+ * not in the tab order. Hovering it says what it does.
+ */
+function DragHandle({
+  label,
+  onPointerDown,
+}: {
+  label: string
+  onPointerDown: (event: PointerEvent<HTMLElement>) => void
+}) {
+  return (
+    <Tooltip label={label}>
+      <span
+        aria-hidden="true"
+        onPointerDown={onPointerDown}
+        className="shrink-0 cursor-grab touch-none rounded px-0.5 text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
+      >
+        <Bars3Icon className="size-4" />
+      </span>
+    </Tooltip>
+  )
+}
+
+/**
+ * A member's place in the list: a list item that Reorder moves when its handle is dragged. Only the handle starts a
+ * drag, so the role input and the buttons of the row keep working. `onDrop` runs once the item is let go. Read-only
+ * members get no handle and cannot be dragged.
+ */
+function MemberItem({
+  value,
+  editable,
+  onDrop,
+  children,
+}: {
+  value: MemberRow
+  /** Whether the row gets a handle (not read-only) */
+  editable: boolean
+  onDrop: () => void
+  /** The row, given the handle to draw where it goes (null when read-only) */
+  children: (handle: ReactNode) => ReactNode
+}) {
+  const controls = useDragControls()
+  // as the other motion in the inspector: no sliding when the person asks for reduced motion
+  const reduced = useReducedMotion() === true
+  const handle = editable ? (
+    <DragHandle
+      label={`Drag ${value.id} to reorder`}
+      onPointerDown={(event) => controls.start(event.nativeEvent)}
+    />
+  ) : null
+  return (
+    <Reorder.Item
+      as="li"
+      value={value}
+      dragListener={false}
+      dragControls={controls}
+      onDragEnd={onDrop}
+      transition={reduced ? { duration: 0 } : UI_SPRING}
+      className={MEMBER_ITEM}
     >
-      {busy ? m.relations_downloading() : m.relations_download()}
-    </button>
+      {children(handle)}
+    </Reorder.Item>
   )
 }
 
@@ -338,6 +415,7 @@ function MemberRowView({
   suggestions,
   select,
   load,
+  handle,
 }: {
   editor: Editor
   relation: OsmRelation
@@ -349,6 +427,8 @@ function MemberRowView({
   select: Props['select']
   /** Loads a member that is not in the data; undefined while the engine has no such call */
   load: LoadMember | undefined
+  /** The drag handle, drawn first (null when read-only) */
+  handle: ReactNode
 }) {
   const { engine } = useShell()
   const highlight = useRelatedWhileHovered(() => [row.id])
@@ -376,7 +456,8 @@ function MemberRowView({
   const up = moveTarget(count, row.index, 'up')
   const down = moveTarget(count, row.index, 'down')
   return (
-    <Row highlight={highlight}>
+    <div className={ROW_BODY} {...highlight}>
+      {handle}
       <span className={`w-6 shrink-0 text-right font-mono tabular-nums ${SECONDARY}`}>
         {row.index + 1}
       </span>
@@ -436,7 +517,7 @@ function MemberRowView({
           if (!editor.history.staging.graph.hasEntity(relation.id)) select(null)
         }}
       />
-    </Row>
+    </div>
   )
 }
 
@@ -470,6 +551,25 @@ function MemberList({
   const [showAll, setShowAll] = useState(false)
   const [load, setLoad] = useState<LoadState>({ status: 'idle' })
   const shown = showAll ? rows : rows.slice(0, MEMBER_LIMIT)
+  const readOnly = useReadOnly()
+  // while a member is dragged the list shows the order of the drag; the data changes once, at the drop
+  const [dragged, setDragged] = useState<MemberRow[] | null>(null)
+  const draggedOrder = useRef<MemberRow[] | null>(null)
+  const order = dragged ?? shown
+  // the one edit a drop makes: the dragged member moves to its place in the list (one undo step)
+  const drop = (row: MemberRow) => {
+    const list = draggedOrder.current
+    draggedOrder.current = null
+    setDragged(null)
+    const move = list ? dropMoveOf(list, row.index) : undefined
+    if (move)
+      edit(
+        editor,
+        actionMoveMember(relation.id, move.from, move.to),
+        `Moved a member in ${relationLabel(relation)}`,
+        relation.id,
+      )
+  }
   const roles = relationRolesOf(presets, relation.tags)
   const suggestions = roleSuggestions(relation)
   // one request per click: the relation in full, merged like a map tile (engine.loadRelation)
@@ -504,27 +604,46 @@ function MemberList({
           </Tooltip>
         </div>
       )}
-      <ul>
+      <Reorder.Group
+        as="ul"
+        axis="y"
+        values={order}
+        onReorder={(next) => {
+          draggedOrder.current = next
+          setDragged(next)
+        }}
+      >
         {rows.length === 0 && <li className={`py-1 text-xs ${SECONDARY}`}>No members.</li>}
-        {shown.map((row) => (
-          <Fragment key={`${row.index}:${row.id}:${row.role}`}>
-            <MemberRowView
-              editor={editor}
-              relation={relation}
-              row={row}
-              roles={roles}
-              suggestions={suggestions}
-              select={select}
-              load={(id) => engine.loadEntity(id)}
-            />
-            {gaps.has(row.index) && (
-              <li className={GAP} title="The ends of these two ways do not meet">
-                <span className="h-px flex-1 border-t border-dashed border-amber-500/60" />
-                gap
-                <span className="h-px flex-1 border-t border-dashed border-amber-500/60" />
-              </li>
+        {order.map((row) => (
+          <MemberItem
+            key={`${row.index}:${row.id}:${row.role}`}
+            value={row}
+            editable={!readOnly}
+            onDrop={() => drop(row)}
+          >
+            {(handle) => (
+              <>
+                <MemberRowView
+                  editor={editor}
+                  relation={relation}
+                  row={row}
+                  roles={roles}
+                  suggestions={suggestions}
+                  select={select}
+                  load={(id) => engine.loadEntity(id)}
+                  handle={handle}
+                />
+                {gaps.has(row.index) && (
+                  // a title, not a Tooltip: a line that cannot take focus
+                  <div className={GAP} title="The ends of these two ways do not meet">
+                    <span className="h-px flex-1 border-t border-dashed border-amber-500/60" />
+                    gap
+                    <span className="h-px flex-1 border-t border-dashed border-amber-500/60" />
+                  </div>
+                )}
+              </>
             )}
-          </Fragment>
+          </MemberItem>
         ))}
         {!showAll && rows.length > shown.length && (
           <li className="py-1">
@@ -533,7 +652,7 @@ function MemberList({
             </button>
           </li>
         )}
-      </ul>
+      </Reorder.Group>
       {load.status === 'failed' ? (
         <p className={HINT}>
           {loadFailureSentence(load.message)}{' '}
@@ -606,10 +725,11 @@ function MembershipRow({
   return (
     <>
       <Row highlight={highlight}>
-        <button type="button" className={LINK} onClick={() => select(relation.id)}>
-          <span>{relationLabel(relation)}</span>
-          <span className={`ml-2 font-mono ${SECONDARY}`}>{relation.id}</span>
-        </button>
+        <Tooltip label={relation.id}>
+          <button type="button" className={LINK} onClick={() => select(relation.id)}>
+            <span>{relationLabel(relation)}</span>
+          </button>
+        </Tooltip>
         <RoleInput
           label={`Role in ${relation.id}`}
           role={role}
@@ -660,6 +780,8 @@ function AddToRelation({
   const [role, setRole] = useState('')
   const [first] = entities
   const offered = candidates.slice(0, RELATION_OPTION_LIMIT)
+  // a native select cannot hold a tooltip: the id is in the name only where two relations share a label
+  const names = pickerNames(offered)
   const target = candidates.find((relation) => relation.id === targetID)
   const roles = target ? relationRolesOf(presets, target.tags) : {}
   // as iD: the suggestions follow the geometry of the one feature selected; several may differ, so none is filtered
@@ -681,6 +803,7 @@ function AddToRelation({
         trimmed,
       )
       editAll(editor, actions, 'Created a relation', relation.id)
+      relationSessionActions.touch([relation.id])
       select(relation.id)
     } else {
       const before = editor.history.staging.graph.hasEntity(targetID)
@@ -698,6 +821,7 @@ function AddToRelation({
         members.length === 1 ? 'Added a member' : 'Added members',
         first.id,
       )
+      relationSessionActions.touch([targetID])
       if (members.length === 1) {
         const graph = editor.history.staging.graph
         const after = graph.hasEntity(targetID)
@@ -730,11 +854,10 @@ function AddToRelation({
           {offered.map((relation) => {
             // a disabled entry stays in the list, with its reason, and cannot be picked
             const reason = reasonOf(relation)
+            const name = names.get(relation.id) ?? relationLabel(relation)
             return (
               <option key={relation.id} value={relation.id} disabled={reason !== undefined}>
-                {reason === undefined
-                  ? `${relationLabel(relation)} (${relation.id})`
-                  : `${relationLabel(relation)} (${relation.id}): ${reason}`}
+                {reason === undefined ? name : `${name}: ${reason}`}
               </option>
             )
           })}
@@ -781,9 +904,14 @@ export function RelationsSection({ entity, entities, editor, select }: Props) {
   const graph = editor.history.staging.graph
   const selection = entities ?? [entity]
   const memberships = membershipsOf(graph, entity.id)
-  const candidates = joinableRelations(
-    graph,
-    selection.map((item) => item.id),
+  // the relations that got a member in this session stay at the top of the picker, also when they are far away
+  const sessionIDs = useSessionRelationIDs()
+  const candidates = sessionFirst(
+    joinableRelations(
+      graph,
+      selection.map((item) => item.id),
+    ),
+    sessionIDs,
   )
   // one datalist per relation the entity is in, even when it is in that relation twice
   const parents = [

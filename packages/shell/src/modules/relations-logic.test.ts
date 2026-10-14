@@ -29,7 +29,10 @@ import {
   loadingLabel,
   loadResultSentence,
   memberLoadPath,
+  addSessionIDs,
+  dropMoveOf,
   newRelationActions,
+  pickerNames,
   placementOf,
   placementSentence,
   memberLabel,
@@ -43,6 +46,7 @@ import {
   roleSuggestions,
   routeGaps,
   routeJoins,
+  sessionFirst,
   sortNearbyFirst,
 } from './relations-logic.ts'
 
@@ -1030,5 +1034,118 @@ describe('geometryOfEntity', () => {
 
   it('has no geometry for an entity that is not loaded', () => {
     expect(geometryOfEntity(graph, 'n404')).toBeUndefined()
+  })
+})
+
+describe('addSessionIDs', () => {
+  it('appends the touched relations once each, in the order they were first touched', () => {
+    const first = addSessionIDs([], ['r2', 'r1'])
+    expect(first).toEqual(['r2', 'r1'])
+    expect(addSessionIDs(first, ['r3', 'r2', 'r3'])).toEqual(['r2', 'r1', 'r3'])
+  })
+
+  it('returns the same list when nothing is new', () => {
+    const current = ['r2', 'r1']
+    expect(addSessionIDs(current, ['r1'])).toBe(current)
+    expect(addSessionIDs(current, [])).toBe(current)
+  })
+})
+
+describe('sessionFirst', () => {
+  const picker = [
+    relation('r9', { type: 'route', name: 'Far away' }),
+    relation('r5', { type: 'route', name: 'Near' }),
+    relation('r7', { type: 'route', name: 'Other' }),
+    relation('r3', { type: 'route', name: 'Session, touched second' }),
+  ]
+
+  it('puts the relations of the session first, in the order they were touched, then the rest in their order', () => {
+    const ids = sessionFirst(picker, ['r3', 'r9']).map((item) => item.id)
+    expect(ids).toEqual(['r3', 'r9', 'r5', 'r7'])
+  })
+
+  it('puts a session relation that comes last in the picker first, so the picker limit cannot hide it', () => {
+    const offered = sessionFirst(picker, ['r3']).slice(0, 1)
+    expect(offered.map((item) => item.id)).toEqual(['r3'])
+  })
+
+  it('leaves out a session id that is not among the picker relations (gone from the graph)', () => {
+    const ids = sessionFirst(picker, ['r404', 'r7']).map((item) => item.id)
+    expect(ids).toEqual(['r7', 'r9', 'r5', 'r3'])
+  })
+
+  it('counts a repeated session id once, at its first place', () => {
+    const ids = sessionFirst(picker, ['r7', 'r5', 'r7']).map((item) => item.id)
+    expect(ids).toEqual(['r7', 'r5', 'r9', 'r3'])
+  })
+
+  it('does not change the list it is given, and keeps the order when the session is empty', () => {
+    const before = picker.map((item) => item.id)
+    expect(sessionFirst(picker, []).map((item) => item.id)).toEqual(before)
+    expect(picker.map((item) => item.id)).toEqual(before)
+  })
+})
+
+describe('pickerNames', () => {
+  it('shows only the label when the label is unique in the list', () => {
+    const names = pickerNames([
+      relation('r1', { type: 'route', name: 'Bus 1' }),
+      relation('r2', { type: 'route', name: 'Bus 2' }),
+    ])
+    expect(names.get('r1')).toBe('Bus 1')
+    expect(names.get('r2')).toBe('Bus 2')
+  })
+
+  it('adds the id after the label of every relation whose label repeats in the list', () => {
+    const names = pickerNames([
+      relation('r1', { type: 'route', name: 'Bus 1' }),
+      relation('r2', { type: 'route', name: 'Bus 1' }),
+      relation('r3', { type: 'route', name: 'Tram' }),
+    ])
+    expect(names.get('r1')).toBe('Bus 1 (r1)')
+    expect(names.get('r2')).toBe('Bus 1 (r2)')
+    expect(names.get('r3')).toBe('Tram')
+  })
+
+  it('counts the fallback label too: two relations without a name repeat their type', () => {
+    const names = pickerNames([relation('r1', { type: 'site' }), relation('r2', { type: 'site' })])
+    expect(names.get('r1')).toBe('site (r1)')
+    expect(names.get('r2')).toBe('site (r2)')
+  })
+})
+
+describe('dropMoveOf', () => {
+  // the shown list as a drag leaves it: each row keeps the member index it had before the drag
+  const rows = (indexes: number[]) => indexes.map((index) => ({ index }))
+
+  it('moves a member up or down to its place in the list after the drag', () => {
+    expect(dropMoveOf(rows([1, 0, 2]), 1)).toEqual({ from: 1, to: 0 })
+    expect(dropMoveOf(rows([0, 2, 1]), 1)).toEqual({ from: 1, to: 2 })
+    expect(dropMoveOf(rows([2, 0, 1]), 2)).toEqual({ from: 2, to: 0 })
+  })
+
+  it('makes no move when the member is where it was', () => {
+    expect(dropMoveOf(rows([0, 1, 2]), 1)).toBeUndefined()
+    expect(dropMoveOf(rows([0, 1, 2]), 2)).toBeUndefined()
+  })
+
+  it('makes no move for a member that is not in the list', () => {
+    expect(dropMoveOf(rows([0, 1, 2]), 7)).toBeUndefined()
+  })
+
+  it('gives the same order as the one move it names, for a drag across several places', () => {
+    // members A B C D; A is dragged behind C: the list is B C A D
+    const members = [
+      { id: 'n1', type: 'node' as const, role: 'a' },
+      { id: 'n2', type: 'node' as const, role: 'b' },
+      { id: 'n3', type: 'node' as const, role: 'c' },
+      { id: 'n4', type: 'node' as const, role: 'd' },
+    ]
+    const dragged = [1, 2, 0, 3].map((index) => ({ index }))
+    const move = dropMoveOf(dragged, 0)
+    expect(move).toEqual({ from: 0, to: 2 })
+    if (!move) throw new Error('the drop makes a move')
+    const moved = relation('r1', { type: 'route' }, members).moveMember(move.from, move.to)
+    expect(moved.members.map((member) => member.id)).toEqual(['n2', 'n3', 'n1', 'n4'])
   })
 })

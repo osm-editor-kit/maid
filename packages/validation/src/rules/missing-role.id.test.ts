@@ -173,6 +173,31 @@ describe('iD.validations.missing_role with the relation schema', () => {
     expect(labelsOf(issues[0])).toEqual(['Remove from relation'])
   })
 
+  it('does not offer a role whose maximum the relation has reached', () => {
+    const oneCentre = schemaPresets(() => ({
+      admin_centre: {
+        label: 'Admin centre',
+        member: { role: 'admin_centre', geometry: ['vertex', 'point'], max: 1 },
+      },
+      label: { label: 'Label', member: { role: 'label', geometry: ['vertex', 'point'] } },
+    }))
+    const graph = graphOf(
+      node('n-1', 4, 4),
+      node('n-2', 5, 5),
+      relation(
+        'r-1',
+        [
+          { id: 'n-1', type: 'node', role: 'admin_centre' },
+          { id: 'n-2', type: 'node', role: '' },
+        ],
+        { type: 'boundary' },
+      ),
+    )
+    const issues = uniqueById(validateChanged(rule, graph, ['n-2', 'r-1'], oneCentre))
+    expect(issues).toHaveLength(1)
+    expect(labelsOf(issues[0])).toEqual(['Set as Label', 'Remove from relation'])
+  })
+
   it('offers only the roles valid for the geometry of the member', () => {
     // a node in a way is a vertex: the admin centre fits, the subarea (an area) does not
     const graph = graphOf(

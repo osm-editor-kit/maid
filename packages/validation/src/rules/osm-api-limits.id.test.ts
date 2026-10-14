@@ -1,7 +1,12 @@
 // Adopted from iD test/spec/validations/osm_api_limits.js (ISC, © iD contributors), at commit 0194f3926.
 import { describe, expect, it } from 'bun:test'
-import { graphOf, node, validateChanged, way } from '../id-test-helpers.ts'
-import { createOsmApiLimits, longTags, osmApiLimits } from './osm-api-limits.ts'
+import { graphOf, node, relation, validateChanged, way } from '../id-test-helpers.ts'
+import {
+  createOsmApiLimits,
+  defaultMaxRelationMembers,
+  longTags,
+  osmApiLimits,
+} from './osm-api-limits.ts'
 
 // iD's spec sets the API's maximum to 10 nodes per way (`maxWayNodes = () => 10`). Maid's rule
 // takes its limit as an argument, so the tests build it with 10 too. Maid's Issue has no `type`
@@ -139,5 +144,66 @@ describe('tag keys and values longer than 255 characters (Maid addition)', () =>
       'osm_api_limits:w-1',
       'osm_api_limits:w-1:tags',
     ])
+  })
+})
+
+// Maid addition (iD issue 8960): the OSM API refuses a relation with more members than its `relationmembers` maximum,
+// 32000 in the API's capabilities. The members need not exist for the count: the rule counts the list.
+describe('relations with more members than the API accepts (Maid addition)', () => {
+  /** A relation with `count` members, all of them nodes that are not in the graph: the rule only counts them */
+  function withMembers(count: number) {
+    const members = Array.from({ length: count }, (_, i) => ({
+      id: `n-${i}`,
+      type: 'node' as const,
+      role: '',
+    }))
+    return graphOf(relation('r-1', members, { type: 'boundary' }))
+  }
+
+  it('reports a relation with more members than the limit as an error', () => {
+    const rule = createOsmApiLimits(10, 3)
+    const issues = validateChanged(rule, withMembers(4), ['r-1'])
+    expect(issues).toHaveLength(1)
+    const issue = issues[0]
+    expect(issue?.rule).toEqual('osm_api_limits')
+    expect(issue?.id).toEqual('osm_api_limits:r-1:members')
+    expect(issue?.message).toEqual(
+      'This relation has 4 members, more than the 3 the OSM API accepts in one relation',
+    )
+    expect(issue?.severity).toEqual('error')
+    expect(issue?.entityIds).toEqual(['r-1'])
+    expect(issue?.fixes).toHaveLength(0)
+    expect(issue?.data).toEqual({ members: 4, maxRelationMembers: 3 })
+  })
+
+  it('accepts a relation at the limit', () => {
+    const rule = createOsmApiLimits(10, 3)
+    expect(validateChanged(rule, withMembers(3), ['r-1'])).toHaveLength(0)
+  })
+
+  it('uses the API maximum of 32000 members by default, and accepts a relation at it', () => {
+    expect(defaultMaxRelationMembers).toEqual(32000)
+    expect(validateChanged(osmApiLimits, withMembers(32000), ['r-1'])).toHaveLength(0)
+    const issues = validateChanged(osmApiLimits, withMembers(32001), ['r-1'])
+    expect(issues).toHaveLength(1)
+    expect(issues[0]?.message).toEqual(
+      'This relation has 32001 members, more than the 32000 the OSM API accepts in one relation',
+    )
+  })
+
+  it('does not count the members of a way, and the way limit stays as it was', () => {
+    const nodes = Array.from({ length: 12 }, (_, i) => node(`n-${i}`, i, i))
+    const graph = graphOf(
+      ...nodes,
+      way(
+        'w-1',
+        nodes.map((n) => n.id),
+      ),
+    )
+    const issues = validateChanged(createOsmApiLimits(10, 3), graph, [
+      ...nodes.map((n) => n.id),
+      'w-1',
+    ])
+    expect(issues.map((issue) => issue.id)).toEqual(['osm_api_limits:w-1'])
   })
 })

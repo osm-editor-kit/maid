@@ -117,6 +117,25 @@ export function relationLabel(relation: OsmRelation) {
 }
 
 /**
+ * The name of each relation in the picker: its label, and its id after the label only when another relation in
+ * the same list has the same label (iD's PR 10942). The ids are there to tell same-named relations apart; in a list
+ * of different names they would be noise for newcomers. The id is also shown on hover where the picker is not a select.
+ */
+export function pickerNames(relations: readonly OsmRelation[]) {
+  const counts = new Map<string, number>()
+  for (const relation of relations) {
+    const label = relationLabel(relation)
+    counts.set(label, (counts.get(label) ?? 0) + 1)
+  }
+  return new Map<EntityID, string>(
+    relations.map((relation): [EntityID, string] => {
+      const label = relationLabel(relation)
+      return [relation.id, (counts.get(label) ?? 0) > 1 ? `${label} (${relation.id})` : label]
+    }),
+  )
+}
+
+/**
  * A label for a member in the inspector: its `name`, else its main tag as `key=value`,
  * else undefined (the UI then shows only the type and id).
  */
@@ -215,6 +234,31 @@ export function sortNearbyFirst(
     if (aConnected !== bConnected) return aConnected ? -1 : 1
     return creationOrder(a.id, b.id)
   })
+}
+
+/**
+ * The relations that got a member in this session (`current`) with the ones touched now added at the end, each once,
+ * in the order they were first touched. Returns `current` itself when nothing is new.
+ */
+export function addSessionIDs(current: readonly EntityID[], touched: readonly EntityID[]) {
+  const fresh = [...new Set(touched)].filter((id) => !current.includes(id))
+  return fresh.length === 0 ? current : [...current, ...fresh]
+}
+
+/**
+ * The relations that got a member in this session go to the top of the picker, in the order they were first touched,
+ * as iD's PR 11588 keeps them: also the ones far from the feature. The rest keep their order. `relations` are the
+ * picker's relations, which come from the graph, so a relation that is gone from it is not listed. Returns a new list.
+ */
+export function sessionFirst(relations: readonly OsmRelation[], sessionIDs: readonly EntityID[]) {
+  const rank = new Map<EntityID, number>()
+  sessionIDs.forEach((id, index) => {
+    if (!rank.has(id)) rank.set(id, index)
+  })
+  const inSession = relations
+    .filter((relation) => rank.has(relation.id))
+    .sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0))
+  return [...inSession, ...relations.filter((relation) => !rank.has(relation.id))]
 }
 
 /**
@@ -322,6 +366,18 @@ export function loadFailureSentence(message: string) {
 export function moveTarget(count: number, index: number, direction: 'up' | 'down') {
   const target = direction === 'up' ? index - 1 : index + 1
   return target >= 0 && target < count ? target : undefined
+}
+
+/**
+ * The move a drop makes, in the terms of actionMoveMember: the dragged member's index before the drag (`draggedIndex`)
+ * and its place in the list after it (`rows`, the shown list as the drag left it, each row with its member index).
+ * Undefined when the member is where it was: no edit, so no undo step. A drag changes the place of the dragged
+ * item only, so the other members keep their order and one move is the whole change.
+ */
+export function dropMoveOf(rows: readonly { index: number }[], draggedIndex: number) {
+  const to = rows.findIndex((row) => row.index === draggedIndex)
+  if (to < 0 || to === draggedIndex) return undefined
+  return { from: draggedIndex, to }
 }
 
 /** The way members of a route, in order, with their index in `relation.members`. Stops, platforms and nodes are left out. */

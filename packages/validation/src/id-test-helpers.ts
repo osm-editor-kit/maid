@@ -81,12 +81,22 @@ export function schemaPresets(
     deprecatedTags: unused,
     relationRoles: (tags) => roles(tags),
     allowsDuplicateMembers: () => allowsDuplicates,
-    // the presets filter by geometry and by tag patterns (tested there); the stub filters by geometry only
-    memberRoles: (relationTags, geometry) =>
+    // the presets filter by geometry and by tag patterns, and tested there; the stub does the same for simple patterns:
+    // a key with `*` must be present, any other value must be equal. An undefined geometry or tags skips that filter.
+    memberRoles: (relationTags, geometry, memberTags) =>
       Object.fromEntries(
         Object.entries(roles(relationTags)).filter(
           ([, { member }]) =>
-            geometry === undefined || !member.geometry || member.geometry.includes(geometry),
+            (geometry === undefined || !member.geometry || member.geometry.includes(geometry)) &&
+            (memberTags === undefined ||
+              !member.matchTags ||
+              member.matchTags.some((pattern) =>
+                Object.entries(pattern).every(
+                  ([key, value]) =>
+                    Object.hasOwn(memberTags, key) &&
+                    (value === '*' ? memberTags[key] !== '' : memberTags[key] === value),
+                ),
+              )),
         ),
       ),
   }

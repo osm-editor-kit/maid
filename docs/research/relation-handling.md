@@ -129,6 +129,13 @@ All seven parts are ported, with tests: tag patterns and the relation roles in t
 
 The items below that name these parts are therefore done; they stay listed for the record.
 
+### Done in the first run of sure improvements (2026-10-14)
+
+- Kyle's member rules as subtypes of `relation_members`: too few and too many members of a role, wrong role, needs different tags, wrong geometry, role not allowed (11 of his 12 test blocks; his schema cross-reference does not exist in Maid's presets). A member without a role is reported once, by `missing_role`, whose fixes leave out a role whose maximum is reached.
+- The relation member cap of the OSM API (32000) in `osm_api_limits`.
+- Relations that got a member in this session stay at the top of "Add to a relation"; ids show on hover in the memberships list, and in the picker (native options) only when two relations have the same name.
+- Members can be dragged to a new place (motion `Reorder`, one undo step per drop); the move buttons stay.
+
 ### The five I rate highest
 
 1. **Member rules in a validator** (min and max, wrong role, invalid geometry, role not allowed).
