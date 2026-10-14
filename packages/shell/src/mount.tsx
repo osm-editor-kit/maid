@@ -1,6 +1,7 @@
 import { isAutomated } from '@osm-editor-kit/maid-core'
 import { chooseLocale, setLocale, type Locale } from '@osm-editor-kit/maid-i18n'
-import { useSettings } from '@osm-editor-kit/maid-ui'
+import { getSettings } from '@osm-editor-kit/maid-ui'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { setWorkerCount } from 'maplibre-gl'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
@@ -15,7 +16,7 @@ function visitLocale(fallback?: Locale): Locale {
   if (isAutomated()) return 'en'
   return chooseLocale({
     url: location.href,
-    stored: useSettings.getState().lang,
+    stored: getSettings().lang,
     browser: navigator.languages,
     fallback,
   })
@@ -38,8 +39,13 @@ export function mountEditor(rootElement: HTMLElement, app: AppConfig) {
 
   // No StrictMode: its double mount would create the map twice and distort timings.
   const root = createRoot(rootElement)
+  // The editor's query client serves every panel of the shell: a panel's fetch is a query on it (fetching-audit.md)
   const show = (content: React.ReactNode) =>
-    root.render(<ShellContext value={shell}>{content}</ShellContext>)
+    root.render(
+      <ShellContext value={shell}>
+        <QueryClientProvider client={shell.editor.queries}>{content}</QueryClientProvider>
+      </ShellContext>,
+    )
   const harness = import.meta.env.DEV ? new URLSearchParams(location.search).get('harness') : null
   // Dev server only: the Tags sheet on its own, for tools/bench/tags-check.ts (see sheet-harness.tsx)
   if (harness === 'tags') {

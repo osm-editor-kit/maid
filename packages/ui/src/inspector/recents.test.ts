@@ -1,16 +1,29 @@
-import { afterEach, describe, expect, it } from 'bun:test'
-import { RECENTS_TO_STORE, useRecents, withRecent } from './recents.ts'
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
+import { RECENTS_TO_STORE, recentsActions, restoreRecents, withRecent } from './recents.ts'
 
-// the store's merge reads a stored value, as a new visit does
-function merged(stored: unknown) {
-  const options = useRecents.persist.getOptions()
-  const current = useRecents.getState()
-  return options.merge?.(stored, current) ?? current
+// The store reads and writes localStorage under `maid:recents` (version 1); the write shows what is stored.
+const KEY = 'maid:recents'
+const entries = new Map<string, string>()
+const fake = {
+  getItem: (name: string) => entries.get(name) ?? null,
+  setItem: (name: string, value: string) => void entries.set(name, value),
+  removeItem: (name: string) => void entries.delete(name),
 }
+const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
 
-afterEach(() => {
-  useRecents.setState({ ids: [] })
+beforeAll(() => {
+  Object.defineProperty(globalThis, 'localStorage', { value: fake, configurable: true })
 })
+
+afterAll(() => {
+  if (original) Object.defineProperty(globalThis, 'localStorage', original)
+  else Reflect.deleteProperty(globalThis, 'localStorage')
+})
+
+/** What the store wrote last */
+function written() {
+  return JSON.parse(entries.get(KEY) ?? 'null')
+}
 
 describe('withRecent (iD setMostRecent)', () => {
   it('puts a new preset first', () => {
@@ -41,34 +54,36 @@ describe('withRecent (iD setMostRecent)', () => {
 
 describe('the recents store', () => {
   it('remembers the presets chosen, most recent first', () => {
-    useRecents.getState().remember('amenity/bench')
-    useRecents.getState().remember('shop/bakery')
-    useRecents.getState().remember('amenity/bench')
-    expect(useRecents.getState().ids).toEqual(['amenity/bench', 'shop/bakery'])
+    recentsActions.remember('amenity/bench')
+    recentsActions.remember('shop/bakery')
+    recentsActions.remember('amenity/bench')
+    expect(written().state.ids).toEqual(['amenity/bench', 'shop/bakery'])
+  })
+
+  it('writes only the ids, in the shape it has always had', () => {
+    recentsActions.remember('shop/bakery')
+    expect(written()).toEqual({ state: { ids: ['shop/bakery', 'amenity/bench'] }, version: 1 })
   })
 
   it('reads a stored value: strings only, each once, others left out', () => {
-    expect(merged({ ids: ['a', 1, 'a', '', 'b', null] })).toMatchObject({ ids: ['a', 'b'] })
+    expect(restoreRecents({ ids: ['a', 1, 'a', '', 'b', null] }, { ids: [] as string[] })).toEqual({
+      ids: ['a', 'b'],
+    })
   })
 
-  it('reads a stored value that is not a list of ids as none, and keeps the rest of the state', () => {
-    expect(merged({ ids: 'a' })).toMatchObject({ ids: [] })
-    expect(merged('nothing')).toMatchObject({ ids: [] })
-    expect(merged({})).toMatchObject({ ids: [] })
+  it('reads a stored value that is not a list of ids as none', () => {
+    expect(restoreRecents({ ids: 'a' }, { ids: ['x'] })).toEqual({ ids: [] })
+    expect(restoreRecents('nothing', { ids: ['x'] })).toEqual({ ids: [] })
+    expect(restoreRecents({}, { ids: ['x'] })).toEqual({ ids: [] })
   })
 
   it('keeps the state as it is when nothing is stored', () => {
-    useRecents.setState({ ids: ['a'] })
-    expect(merged(undefined)).toMatchObject({ ids: ['a'] })
+    const current = { ids: ['a'] }
+    expect(restoreRecents(undefined, current)).toBe(current)
   })
 
   it('stores at most 30 ids on load', () => {
     const many = Array.from({ length: 40 }, (_, index) => `p${index}`)
-    expect(merged({ ids: many }).ids).toHaveLength(30)
-  })
-
-  it('stores only the ids, not the functions', () => {
-    const partial = useRecents.persist.getOptions().partialize?.(useRecents.getState())
-    expect(Object.keys(partial ?? {})).toEqual(['ids'])
+    expect(restoreRecents({ ids: many }, { ids: [] as string[] }).ids).toHaveLength(30)
   })
 })

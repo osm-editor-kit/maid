@@ -1,6 +1,7 @@
 import { ArrowTopRightOnSquareIcon, InformationCircleIcon } from '@heroicons/react/16/solid'
 import type { Field } from '@osm-editor-kit/maid-presets'
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Flyout } from './Flyout.tsx'
 
@@ -104,33 +105,29 @@ type Found =
   | { status: 'done'; info: ReferenceInfo | undefined }
   | { status: 'failed' }
 
-/** The panel's content. Mounted when the popover opens, so `load` runs on an opening and on nothing else. */
+/**
+ * The panel's content. Mounted when the popover opens, so the query runs on an opening and on nothing else. Closing
+ * the popover unobserves the query, and TanStack aborts the loader's signal then, so no wiki call is left running.
+ * The loader retries its own calls (reference.ts: one request per try for both pages), so the query does not retry.
+ */
 function ReferenceBody(props: { reference: Reference; load?: ReferenceLoader; hint?: string }) {
   const { reference, load, hint } = props
-  const [found, setFound] = useState<Found>(() =>
-    load ? { status: 'loading' } : { status: 'done', info: undefined },
-  )
+  const lookup = useQuery({
+    queryKey: ['reference', reference.key, reference.value ?? null] as const,
+    queryFn: async ({ signal }) => (await load?.(reference, signal)) ?? null,
+    enabled: load !== undefined,
+    retry: false,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  })
+  const found: Found = !load
+    ? { status: 'done', info: undefined }
+    : lookup.isError
+      ? { status: 'failed' }
+      : lookup.data === undefined
+        ? { status: 'loading' }
+        : { status: 'done', info: lookup.data ?? undefined }
   const [imageFailed, setImageFailed] = useState(false)
-
-  useEffect(() => {
-    if (!load) return
-    // a late answer, for a popover that has closed or moved on, is dropped
-    let current = true
-    // closing the popover (or moving on) aborts the request, so that no wiki call is left running
-    const controller = new AbortController()
-    load(reference, controller.signal).then(
-      (info) => {
-        if (current) setFound({ status: 'done', info })
-      },
-      () => {
-        if (current) setFound({ status: 'failed' })
-      },
-    )
-    return () => {
-      current = false
-      controller.abort()
-    }
-  }, [reference, load])
 
   const info = found.status === 'done' ? found.info : undefined
   const tag = referenceTag(reference)

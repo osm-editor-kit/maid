@@ -10,15 +10,14 @@ import {
 import { getLocale, m } from '@osm-editor-kit/maid-i18n'
 import type { FieldOption } from '@osm-editor-kit/maid-presets'
 import {
-  useCallback,
-  useContext,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type KeyboardEvent,
-} from 'react'
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+  type UseQueryOptions,
+} from '@tanstack/react-query'
+import { useContext, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { PLAIN_INPUT } from '../../plain-input.ts'
+import { useDebouncedValue } from '../../use-debounced-value.ts'
 import {
   comboArrow,
   comboChoose,
@@ -66,21 +65,28 @@ const SEARCH_DELAY_MS = 300
 /** An option of a lookup: its value (the title, or the QID), its label, and a line of detail. */
 type SuggestOption = FieldOption & { detail?: string }
 
+/** The options of a lookup for a text: `source.titles` or `source.items`, as TanStack Query options. */
+type SearchOptions<T> = UseQueryOptions<T[], Error, T[], readonly unknown[]>
+
 /**
- * The input of a field that searches a source: the typed text is searched after a pause, and the answers are
- * the options of a list (listed as given). Keys as the combo's (combo-keys.ts), with the combo's list.
- * `onCommit` gets the final text and the option picked, if one was. The input is shown as `initial` again
- * once committed (the parent re-keys it when the value is written).
+ * The input of a field that searches a source: the typed text is looked up once the typing pauses (the input is
+ * debounced, the query is keyed by the text: TanStack Query's pattern), and the answers are the options of a list
+ * (listed as given). Keys as the combo's (combo-keys.ts), with the combo's list. `onCommit` gets the final text and
+ * the option picked, if one was. The input is shown as `initial` again once committed (the parent re-keys it when
+ * the value is written).
  */
-function SuggestInput(props: {
+function SuggestInput<T>(props: {
   id?: string
   initial: string
   placeholder: string
   label: string
-  search: (text: string) => Promise<SuggestOption[]>
+  /** The lookup of a text: its options. A lookup that is disabled (no text, automation) asks nothing. */
+  search: (text: string) => SearchOptions<T>
+  /** One answer of the lookup, as an option of the list */
+  toOption: (answer: T) => SuggestOption
   onCommit: (text: string, picked: SuggestOption | undefined) => void
 }) {
-  const { id, initial, placeholder, label, search, onCommit } = props
+  const { id, initial, placeholder, label, search, toOption, onCommit } = props
   const baseId = useId()
   const listId = `${baseId}-list`
   const optionId = (index: number) => `${baseId}-option-${index}`
@@ -91,29 +97,21 @@ function SuggestInput(props: {
   // the option a key picked, read by the commit that its blur makes
   const chosen = useRef<SuggestOption | undefined>(undefined)
   const inputRef = useRef<HTMLInputElement>(null)
-  const [found, setFound] = useState<{ text: string; options: SuggestOption[] }>({
-    text: '',
-    options: [],
-  })
   const typed = state.query
 
-  // The search of the typed text, after a pause; an answer to an older text is dropped
-  useEffect(() => {
-    if (typed === undefined || typed.trim() === '') return
-    let cancelled = false
-    const timer = window.setTimeout(() => {
-      void search(typed).then((options) => {
-        if (!cancelled) setFound({ text: typed, options })
-      })
-    }, SEARCH_DELAY_MS)
-    return () => {
-      cancelled = true
-      window.clearTimeout(timer)
-    }
-  }, [typed, search])
+  // the text looked up: the typed text once it has been still for SEARCH_DELAY_MS
+  const asked = useDebouncedValue(typed, SEARCH_DELAY_MS) ?? ''
+  const lookupOptions = search(asked)
+  // keepPreviousData: the answers of the last text stay while the new one is on its way (as before)
+  const lookup = useQuery({
+    ...lookupOptions,
+    enabled: asked.trim() !== '' && lookupOptions.enabled !== false,
+    placeholderData: keepPreviousData,
+  })
 
-  // no text, no list; the answers of the last search otherwise
-  const options = typed !== undefined && typed.trim() !== '' ? found.options : []
+  // no text, no list; the answers of the last lookup otherwise
+  const options: SuggestOption[] =
+    typed !== undefined && typed.trim() !== '' ? (lookup.data ?? []).map(toOption) : []
   const env: ComboKeyEnv = { options, listed: true }
   const results = comboList(env, state)
   const active = state.active < results.length ? state.active : -1
@@ -269,18 +267,11 @@ function WikipediaEditor(props: FieldProps & { tagKey: string; source: WikiSourc
   const { tags, tagKey, source, id } = props
   const current = tags[tagKey]
   const parsed = current === undefined ? undefined : splitWikipediaTag(current)
+  const queryClient = useQueryClient()
   const [revision, setRevision] = useState(0)
   // the language of the tag, or the editor's (the value is written only with a title)
   const [lang, setLang] = useState(parsed?.lang ?? getLocale())
   const [langDraft, setLangDraft] = useState(lang)
-
-  const search = useCallback(
-    (text: string) =>
-      source
-        .searchTitles(lang, text)
-        .then((titles) => titles.map((title) => ({ value: title, label: title }))),
-    [source, lang],
-  )
 
   /** Writes `lang:title` (or removes the tag without a title), then looks up the article's item. */
   function writeArticle(nextLang: string, nextTitle: string) {
@@ -289,11 +280,15 @@ function WikipediaEditor(props: FieldProps & { tagKey: string; source: WikiSourc
     writeEdits(props, [{ key: tagKey, value: written }])
     if (written === undefined) return
     const currentWikidata = tags['wikidata']
-    void source.qidOfArticle(nextLang, nextTitle).then((qid) => {
-      // iD: the follow-up sets the item only when the article has one, and only when it differs
-      const next = wikidataFollowUp(currentWikidata, qid)
-      if (next !== undefined) writeEdits(props, [{ key: 'wikidata', value: next }])
-    })
+    // a failed lookup is no item: the follow-up is then not written
+    void queryClient
+      .fetchQuery(source.qidOfArticle(nextLang, nextTitle))
+      .catch(() => null)
+      .then((qid) => {
+        // iD: the follow-up sets the item only when the article has one, and only when it differs
+        const next = wikidataFollowUp(currentWikidata, qid ?? undefined)
+        if (next !== undefined) writeEdits(props, [{ key: 'wikidata', value: next }])
+      })
   }
 
   function commitTitle(text: string) {
@@ -338,13 +333,14 @@ function WikipediaEditor(props: FieldProps & { tagKey: string; source: WikiSourc
           }}
         />
         <div className="min-w-0 flex-1">
-          <SuggestInput
+          <SuggestInput<string>
             key={`${current ?? ''}:${revision}`}
             id={id}
             initial={parsed?.title ?? ''}
             placeholder={m.wiki_title_placeholder()}
             label={m.wiki_title_label()}
-            search={search}
+            search={(text) => source.titles(lang, text)}
+            toOption={(title) => ({ value: title, label: title })}
             onCommit={(text) => commitTitle(text)}
           />
         </div>
@@ -378,35 +374,9 @@ function WikidataEditor(props: FieldProps & { tagKey: string; source: WikiSource
   const current = tags[tagKey]
   const lang = getLocale()
   const [revision, setRevision] = useState(0)
-  // the item of the current QID, as the lookup answered it (a stale answer is not shown)
-  const [lookup, setLookup] = useState<{ qid: string; item: WikiItem | undefined } | undefined>(
-    undefined,
-  )
-
-  useEffect(() => {
-    if (current === undefined) return
-    let cancelled = false
-    void source.itemOf(current, lang).then((item) => {
-      if (!cancelled) setLookup({ qid: current, item })
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [current, lang, source])
-
-  const item = lookup !== undefined && lookup.qid === current ? lookup.item : undefined
-
-  const search = useCallback(
-    (text: string) =>
-      source.searchItems(text, lang).then((items) =>
-        items.map((found) => ({
-          value: found.id,
-          label: found.label,
-          detail: found.description,
-        })),
-      ),
-    [source, lang],
-  )
+  // the item of the current QID. Its key is the QID, so a previous item is never shown for another one.
+  const lookup = useQuery(source.item(current, lang))
+  const item: WikiItem | undefined = lookup.data ?? undefined
 
   function commitItem(text: string, picked: SuggestOption | undefined) {
     const trimmed = text.trim()
@@ -420,13 +390,14 @@ function WikidataEditor(props: FieldProps & { tagKey: string; source: WikiSource
 
   return (
     <div className="grid min-w-0 gap-1">
-      <SuggestInput
+      <SuggestInput<WikiItem>
         key={`${current ?? ''}:${revision}`}
         id={id}
         initial={current ?? ''}
         placeholder={m.wiki_item_placeholder()}
         label={m.wiki_item_label()}
-        search={search}
+        search={(text) => source.items(text, lang)}
+        toOption={(found) => ({ value: found.id, label: found.label, detail: found.description })}
         onCommit={commitItem}
       />
       {current !== undefined && qidOf(current) !== undefined ? (

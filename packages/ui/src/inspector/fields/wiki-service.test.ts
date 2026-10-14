@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'bun:test'
+import { QueryClient, QueryObserver, type UseQueryOptions } from '@tanstack/react-query'
 import {
   createWikiSource,
   parseEntityIds,
   parseItem,
   parseItems,
   parseTitles,
-  type WikiQueries,
 } from './wiki-service.ts'
 
 /** A fetch that answers with the given body, and records the URLs it was asked for. */
@@ -23,19 +23,31 @@ function fakeFetch(body: unknown, init: { status?: number } = {}) {
   return { fetch, urls }
 }
 
-/** The query client's part the service uses, with a session cache that keeps every answer. */
-function fakeQueries(): WikiQueries & { size: () => number } {
-  const cache = new Map<string, unknown>()
-  return {
-    size: () => cache.size,
-    async fetchQuery<T>(options: { queryKey: readonly unknown[]; queryFn: () => Promise<T> }) {
-      const key = JSON.stringify(options.queryKey)
-      if (cache.has(key)) return cache.get(key) as T
-      const value = await options.queryFn()
-      cache.set(key, value)
-      return value
-    },
+/** The error a promise rejects with, or undefined when it resolves. */
+async function failureOf(promise: Promise<unknown>): Promise<unknown> {
+  try {
+    await promise
+    return undefined
+  } catch (error) {
+    return error
   }
+}
+
+/** A query client for one test: the lookups are kept for the session, as in the editor. */
+function clientForTest() {
+  return new QueryClient({ defaultOptions: { queries: { retry: false } } })
+}
+
+/** A field's way of asking: an observer, which honours `enabled`. Waits a turn, then reports whether it asked. */
+async function observeOnce<T>(
+  client: QueryClient,
+  options: UseQueryOptions<T, Error, T, readonly unknown[]>,
+) {
+  const observer = new QueryObserver(client, options)
+  const off = observer.subscribe(() => undefined)
+  await new Promise((resolve) => setTimeout(resolve, 5))
+  off()
+  return observer.getCurrentResult()
 }
 
 const notAutomated = () => false
@@ -93,8 +105,9 @@ describe('parsing the answers (Zod, the fields the editor reads)', () => {
 describe('createWikiSource', () => {
   it('asks the language’s Wikipedia for titles (iD: list=search, srsearch)', async () => {
     const { fetch, urls } = fakeFetch({ query: { search: [{ title: 'Berlin' }] } })
-    const source = createWikiSource({ fetch, queries: fakeQueries(), isAutomated: notAutomated })
-    expect(await source.searchTitles('de', 'Ber')).toEqual(['Berlin'])
+    const client = clientForTest()
+    const source = createWikiSource({ fetch, isAutomated: notAutomated })
+    expect(await client.fetchQuery(source.titles('de', 'Ber'))).toEqual(['Berlin'])
     expect(urls).toHaveLength(1)
     const url = new URL(urls[0] ?? '')
     expect(url.origin).toBe('https://de.wikipedia.org')
@@ -106,8 +119,8 @@ describe('createWikiSource', () => {
 
   it('asks Wikidata for items in the language (iD: wbsearchentities)', async () => {
     const { fetch, urls } = fakeFetch({ search: [{ id: 'Q64', label: 'Berlin' }] })
-    const source = createWikiSource({ fetch, queries: fakeQueries(), isAutomated: notAutomated })
-    expect(await source.searchItems('Berlin', 'de')).toEqual([
+    const source = createWikiSource({ fetch, isAutomated: notAutomated })
+    expect(await clientForTest().fetchQuery(source.items('Berlin', 'de'))).toEqual([
       { id: 'Q64', label: 'Berlin', description: undefined },
     ])
     const url = new URL(urls[0] ?? '')
@@ -119,8 +132,8 @@ describe('createWikiSource', () => {
 
   it('finds the item of an article by its site and title (iD: itemsByTitle)', async () => {
     const { fetch, urls } = fakeFetch({ entities: { '-1': { id: '-1' }, Q64: { id: 'Q64' } } })
-    const source = createWikiSource({ fetch, queries: fakeQueries(), isAutomated: notAutomated })
-    expect(await source.qidOfArticle('de-at', 'Berlin')).toBe('Q64')
+    const source = createWikiSource({ fetch, isAutomated: notAutomated })
+    expect(await clientForTest().fetchQuery(source.qidOfArticle('de-at', 'Berlin'))).toBe('Q64')
     const url = new URL(urls[0] ?? '')
     expect(url.searchParams.get('sites')).toBe('de_atwiki')
     expect(url.searchParams.get('titles')).toBe('Berlin')
@@ -132,8 +145,8 @@ describe('createWikiSource', () => {
         Q64: { labels: { de: { value: 'Berlin' } }, descriptions: { de: { value: 'Hauptstadt' } } },
       },
     })
-    const source = createWikiSource({ fetch, queries: fakeQueries(), isAutomated: notAutomated })
-    expect(await source.itemOf('Q64', 'de')).toEqual({
+    const source = createWikiSource({ fetch, isAutomated: notAutomated })
+    expect(await clientForTest().fetchQuery(source.item('Q64', 'de'))).toEqual({
       id: 'Q64',
       label: 'Berlin',
       description: 'Hauptstadt',
@@ -143,62 +156,77 @@ describe('createWikiSource', () => {
     expect(url.searchParams.get('props')).toBe('labels|descriptions')
   })
 
-  it('keeps the requests to a session: the same question is asked once', async () => {
+  it('keeps the answers for the session: the same question is asked once', async () => {
     const { fetch, urls } = fakeFetch({ query: { search: [{ title: 'Berlin' }] } })
-    const queries = fakeQueries()
-    const source = createWikiSource({ fetch, queries, isAutomated: notAutomated })
-    await source.searchTitles('de', 'Berlin')
-    await source.searchTitles('de', 'Berlin')
+    const client = clientForTest()
+    const source = createWikiSource({ fetch, isAutomated: notAutomated })
+    await client.fetchQuery(source.titles('de', 'Berlin'))
+    await client.fetchQuery(source.titles('de', ' Berlin '))
     expect(urls).toHaveLength(1)
-    expect(queries.size()).toBe(1)
+    expect(client.getQueryCache().getAll()).toHaveLength(1)
   })
 
-  it('makes no request under automation, and gives no answers', async () => {
+  it('a field that observes an empty text asks nothing; a text with a language asks once it is observed', async () => {
     const { fetch, urls } = fakeFetch({ query: { search: [{ title: 'Berlin' }] } })
-    const source = createWikiSource({ fetch, queries: fakeQueries(), isAutomated: automated })
-    expect(await source.searchTitles('de', 'Berlin')).toEqual([])
-    expect(await source.searchItems('Berlin', 'de')).toEqual([])
-    expect(await source.qidOfArticle('de', 'Berlin')).toBeUndefined()
-    expect(await source.itemOf('Q64', 'de')).toBeUndefined()
+    const client = clientForTest()
+    const source = createWikiSource({ fetch, isAutomated: notAutomated })
+    expect((await observeOnce(client, source.titles('de', '  '))).fetchStatus).toBe('idle')
+    expect(urls).toEqual([])
+    expect((await observeOnce(client, source.titles('de', 'Berlin'))).data).toEqual(['Berlin'])
+    expect(urls).toHaveLength(1)
+  })
+
+  it('makes no request under automation: no lookup is enabled, and a fetch of one answers empty', async () => {
+    const { fetch, urls } = fakeFetch({ query: { search: [{ title: 'Berlin' }] } })
+    const client = clientForTest()
+    const source = createWikiSource({ fetch, isAutomated: automated })
+    expect(source.titles('de', 'Berlin').enabled).toBe(false)
+    expect((await observeOnce(client, source.titles('de', 'Berlin'))).fetchStatus).toBe('idle')
+    expect(await client.fetchQuery(source.titles('de', 'Berlin'))).toEqual([])
+    expect(await client.fetchQuery(source.items('Berlin', 'de'))).toEqual([])
+    expect(await client.fetchQuery(source.qidOfArticle('de', 'Berlin'))).toBeNull()
+    expect(await client.fetchQuery(source.item('Q64', 'de'))).toBeNull()
     expect(urls).toEqual([])
   })
 
   it('asks nothing for a language that is not a code (the host must not change)', async () => {
     const { fetch, urls } = fakeFetch({ query: { search: [] } })
-    const source = createWikiSource({ fetch, queries: fakeQueries(), isAutomated: notAutomated })
-    expect(await source.searchTitles('evil.example/#', 'Berlin')).toEqual([])
-    expect(await source.qidOfArticle('../x', 'Berlin')).toBeUndefined()
+    const client = clientForTest()
+    const source = createWikiSource({ fetch, isAutomated: notAutomated })
+    expect(source.titles('evil.example/#', 'Berlin').enabled).toBe(false)
+    expect(await client.fetchQuery(source.qidOfArticle('../x', 'Berlin'))).toBeNull()
     expect(urls).toEqual([])
   })
 
   it('asks nothing for an item that is not a QID', async () => {
     const { fetch, urls } = fakeFetch({ entities: {} })
-    const source = createWikiSource({ fetch, queries: fakeQueries(), isAutomated: notAutomated })
-    expect(await source.itemOf('Berlin', 'de')).toBeUndefined()
+    const client = clientForTest()
+    const source = createWikiSource({ fetch, isAutomated: notAutomated })
+    expect(source.item('Berlin', 'de').enabled).toBe(false)
+    expect(source.item(undefined, 'de').enabled).toBe(false)
+    expect(await client.fetchQuery(source.item('Berlin', 'de'))).toBeNull()
     expect(urls).toEqual([])
   })
 
-  it('gives no answer for a refused request, a failed one or a malformed one, and never rejects', async () => {
-    const refused = createWikiSource({
-      fetch: fakeFetch({}, { status: 429 }).fetch,
-      queries: fakeQueries(),
-      isAutomated: notAutomated,
-    })
-    expect(await refused.searchTitles('de', 'Berlin')).toEqual([])
+  it('a refused, failed or malformed request is a query error that is not repeated, and it keeps no answer', async () => {
+    const refused = fakeFetch({}, { status: 429 })
+    const client = clientForTest()
+    const source = createWikiSource({ fetch: refused.fetch, isAutomated: notAutomated })
+    expect(await failureOf(client.fetchQuery(source.titles('de', 'Berlin')))).toBeInstanceOf(Error)
+    expect(refused.urls).toHaveLength(1)
 
-    const broken = createWikiSource({
+    const offline = createWikiSource({
       fetch: () => Promise.reject(new Error('offline')),
-      queries: fakeQueries(),
       isAutomated: notAutomated,
     })
-    expect(await broken.searchItems('Berlin', 'de')).toEqual([])
-    expect(await broken.qidOfArticle('de', 'Berlin')).toBeUndefined()
+    expect(
+      await failureOf(clientForTest().fetchQuery(offline.items('Berlin', 'de'))),
+    ).toBeInstanceOf(Error)
 
     const malformed = createWikiSource({
       fetch: fakeFetch({ query: { search: 'nope' } }).fetch,
-      queries: fakeQueries(),
       isAutomated: notAutomated,
     })
-    expect(await malformed.searchTitles('de', 'Berlin')).toEqual([])
+    expect(await clientForTest().fetchQuery(malformed.titles('de', 'Berlin'))).toEqual([])
   })
 })

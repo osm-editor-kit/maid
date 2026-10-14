@@ -3,11 +3,10 @@ import { defineModule, type Editor } from '@osm-editor-kit/maid-core'
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { lazyComponent, notify, PANEL_FALLBACK, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { Time } from '@osm-editor-kit/maid-ui'
-import { useEffect } from 'react'
+import { QueryClientProvider, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { useEffect, type ComponentType } from 'react'
 import { Layer, Source, useMap, type MapLayerMouseEvent } from 'react-map-gl/maplibre'
 import {
-  cellKey,
-  cellsOf,
   markersOf,
   notesIn,
   osmZoomOf,
@@ -15,16 +14,25 @@ import {
   truncationNotice,
   TRUNCATED_NOTICE_ID,
   TRUNCATED_NOTICE_TEXT,
+  type Note,
   type NotesMode,
 } from './model.ts'
-import {
-  abortOutside,
-  abortRequests,
-  missingCells,
-  requestCells,
-  useNotesSession,
-  useNotesSettings,
-} from './store.ts'
+import { cachedNote, failureMessage, useNotesCells, wantedCells } from './query.ts'
+import { useNotesSession, useNotesSettings } from './store.ts'
+
+/**
+ * Gives a root of the module the editor's query client. Each root provides it, as the street imagery
+ * module does: a root outside the module's own renders has no client otherwise.
+ */
+function withQueries<Props extends object>(queries: QueryClient, Component: ComponentType<Props>) {
+  return function WithQueries(props: Props) {
+    return (
+      <QueryClientProvider client={queries}>
+        <Component {...props} />
+      </QueryClientProvider>
+    )
+  }
+}
 
 // the dock view (the chosen note, its comments) is a chunk of its own: loaded when it is shown, or in idle time after the first view
 const NotesDock = lazyComponent(
@@ -47,6 +55,39 @@ export const NOTES_LAYER_IDS: string[] = [MARKERS, RING]
 const OPEN = '#e8421b'
 const CLOSED = '#8e96a3'
 
+/** OSM zoom at which a chosen note is shown */
+const FOCUS_ZOOM = 17
+
+/**
+ * What the notes view shows now: the view, its notes, and whether they are loading, cut short or failed.
+ * The map layer and the panel both call it: they observe the same cell queries, so a cell is asked once.
+ */
+function useNotesView(editor: Editor, apiUrl: string, minZoom: number) {
+  const enabled = useNotesSettings((s) => s.enabled)
+  const showClosed = useNotesSettings((s) => s.showClosed)
+  const view = useNotesSession((s) => s.view)
+  const mode: NotesMode = showClosed ? 'all' : 'open'
+  const active = enabled && view !== null && view.zoom >= minZoom
+  const results = useNotesCells({
+    editor,
+    apiUrl,
+    mode,
+    cells: wantedCells({ enabled, view, minZoom }),
+  })
+  // a note in two neighbouring cells (on their shared edge) is kept once
+  const byId = new Map<number, Note>()
+  for (const result of results) for (const note of result.data?.notes ?? []) byId.set(note.id, note)
+  const failed = results.find((result) => result.isError)
+  return {
+    view,
+    active,
+    notes: [...byId.values()],
+    loading: results.some((result) => result.isFetching),
+    truncated: results.some((result) => result.data?.truncated === true),
+    error: failed ? failureMessage(failed.error) : null,
+  }
+}
+
 /**
  * The notes module: the notes of the view as markers on the map, a panel to switch them on and
  * list them, and a dock view with the chosen note. Read-only: nothing is sent to the API.
@@ -63,20 +104,12 @@ export function notes(options: { apiUrl: string; minZoom?: number }) {
       /** The markers, above the OSM data. Only when on and zoomed in far enough. */
       function NotesOnMap(_props: MapContentProps) {
         const { current: map } = useMap()
-        const enabled = useNotesSettings((s) => s.enabled)
+        const queries = useQueryClient()
         const showClosed = useNotesSettings((s) => s.showClosed)
-        const view = useNotesSession((s) => s.view)
-        const notes = useNotesSession((s) => s.notes)
-        const cells = useNotesSession((s) => s.cells)
-        const paused = useNotesSession((s) => s.paused)
-        const tick = useNotesSession((s) => s.tick)
+        const focus = useNotesSession((s) => s.focus)
         const chosen = useNotesSession((s) => s.chosen)
-        const mode: NotesMode = showClosed ? 'all' : 'open'
-        const active = enabled && view !== null && view.zoom >= minZoom
-        const truncatedInView =
-          active && view !== null
-            ? cellsOf(view.bbox).some((cell) => cells[cellKey(mode, cell)] === 'truncated')
-            : false
+        const { view, active, notes, truncated } = useNotesView(api.editor, apiUrl, minZoom)
+        const truncatedInView = active && truncated
 
         // the map's box after every move; the session keeps it for the panel too. A child of the map has no
         // moveend prop of its own (the Map's handlers are the shell's), so it listens here.
@@ -91,11 +124,9 @@ export function notes(options: { apiUrl: string; minZoom?: number }) {
             })
           }
           update()
-          useNotesSession.getState().setMap(map)
           map.on('moveend', update)
           return () => {
             map.off('moveend', update)
-            useNotesSession.getState().setMap(null)
             useNotesSession.getState().setView(null)
           }
         }, [map])
@@ -114,21 +145,17 @@ export function notes(options: { apiUrl: string; minZoom?: number }) {
           }
         }, [map])
 
-        // a request whose cells left the view, or whose layer went off, is aborted (a cell is then asked again later)
+        // the map moves to the note the panel chose. An effect because the map is the outside world; the
+        // note comes from the cache, so the effect runs once per request (`focus` is a new object each time)
         useEffect(() => {
-          const wanted = active && view ? cellsOf(view.bbox).map((cell) => cellKey(mode, cell)) : []
-          abortOutside(new Set(wanted))
-        }, [active, view, mode])
-
-        // what the view needs and does not have yet: one request for the missing cells, none while the
-        // OSM service is paused for a rate limit, and none for a cell still waiting after a failure
-        // (`tick` changes when such a wait is over)
-        useEffect(() => {
-          if (!active || !view || paused) return
-          const session = useNotesSession.getState()
-          const missing = missingCells(view.bbox, mode, session.cells, session.failures, Date.now())
-          if (missing.length > 0) requestCells(api.editor.fetch, apiUrl, mode, missing)
-        }, [active, view, mode, paused, tick])
+          if (!focus || !map) return
+          const note = cachedNote(queries, focus.id)
+          if (note)
+            map.easeTo({
+              center: [note.lon, note.lat],
+              zoom: Math.max(map.getZoom(), FOCUS_ZOOM - 1),
+            })
+        }, [focus, map, queries])
 
         // the notice of a list cut at the limit: once for a view that has one, not on every move
         useEffect(() => {
@@ -139,11 +166,8 @@ export function notes(options: { apiUrl: string; minZoom?: number }) {
           if (step.notify) notify.info(TRUNCATED_NOTICE_TEXT, { id: TRUNCATED_NOTICE_ID })
         }, [truncatedInView])
 
-        // unmounting (or a development remount) aborts what is in flight
-        useEffect(() => () => abortRequests(), [])
-
         if (!active || !view) return null
-        const shown = Object.values(notes).filter((note) => showClosed || note.status === 'open')
+        const shown = notes.filter((note) => showClosed || note.status === 'open')
         return (
           <Source id={SOURCE} type="geojson" data={markersOf(shown, chosen)}>
             <Layer
@@ -172,23 +196,20 @@ export function notes(options: { apiUrl: string; minZoom?: number }) {
       }
 
       /** The switches, the count in view and the list of the notes in view */
-      function NotesPanel(_props: { editor: Editor }) {
+      function NotesPanel(props: { editor: Editor }) {
         const enabled = useNotesSettings((s) => s.enabled)
         const showClosed = useNotesSettings((s) => s.showClosed)
         const setEnabled = useNotesSettings((s) => s.setEnabled)
         const setShowClosed = useNotesSettings((s) => s.setShowClosed)
-        const view = useNotesSession((s) => s.view)
-        const notes = useNotesSession((s) => s.notes)
-        const cells = useNotesSession((s) => s.cells)
-        const error = useNotesSession((s) => s.error)
         const chosen = useNotesSession((s) => s.chosen)
-        const choose = useNotesSession((s) => s.choose)
-        const mode: NotesMode = showClosed ? 'all' : 'open'
+        const focusOn = useNotesSession((s) => s.focusOn)
+        const { view, notes, loading, truncated, error } = useNotesView(
+          props.editor,
+          apiUrl,
+          minZoom,
+        )
 
-        const inView = view ? notesIn(Object.values(notes), view.bbox, showClosed) : []
-        const states = view ? cellsOf(view.bbox).map((cell) => cells[cellKey(mode, cell)]) : []
-        const loading = states.includes('loading')
-        const truncated = states.includes('truncated')
+        const inView = view ? notesIn(notes, view.bbox, showClosed) : []
 
         let status: string
         if (!enabled) status = 'Notes are off. Nothing is loaded until you switch them on.'
@@ -235,7 +256,7 @@ export function notes(options: { apiUrl: string; minZoom?: number }) {
                     <button
                       type="button"
                       aria-pressed={chosen === note.id}
-                      onClick={() => choose(note.id, true)}
+                      onClick={() => focusOn(note.id)}
                       className={`flex w-full cursor-pointer items-start gap-2 rounded-md border-b border-zinc-950/5 px-2 py-1.5 text-left text-xs last:border-0 hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-white/5 dark:hover:bg-white/5 ${
                         chosen === note.id ? 'bg-zinc-950/5 dark:bg-white/10' : ''
                       }`}
@@ -260,26 +281,22 @@ export function notes(options: { apiUrl: string; minZoom?: number }) {
         )
       }
 
-      api.register('map.content', { id: 'notes', component: NotesOnMap })
+      const queries = api.editor.queries
+      api.register('map.content', { id: 'notes', component: withQueries(queries, NotesOnMap) })
       api.register('topbar.panel', {
         id: 'notes',
         label: 'Notes',
         icon: <ChatBubbleLeftEllipsisIcon />,
-        component: NotesPanel,
+        component: withQueries(queries, NotesPanel),
         width: 'w-80',
       })
-      api.register('dock.view', { id: 'notes', label: 'Notes', component: NotesDock })
-      // a rate limit of the OSM service stops the notes requests until its pause ends
-      const isPaused = (pauses: readonly { service: string }[]) =>
-        pauses.some((pause) => pause.service === 'osm')
-      useNotesSession.getState().setPaused(isPaused(api.editor.fetchPauses.list()))
-      const stopPauses = api.editor.fetchPauses.subscribe((pauses) =>
-        useNotesSession.getState().setPaused(isPaused(pauses)),
-      )
+      api.register('dock.view', {
+        id: 'notes',
+        label: 'Notes',
+        component: withQueries(queries, NotesDock),
+      })
+      // a rate limit pauses the notes through the query's `enabled` (useOsmPaused); nothing to stop here
       return () => {
-        stopPauses()
-        abortRequests()
-        useNotesSession.getState().setPaused(false)
         useNotesSession.getState().setView(null)
       }
     },

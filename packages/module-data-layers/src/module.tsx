@@ -1,6 +1,8 @@
 import { Square3Stack3DIcon } from '@heroicons/react/20/solid'
 import { defineModule } from '@osm-editor-kit/maid-core'
+import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { lazyComponent, PANEL_FALLBACK } from '@osm-editor-kit/maid-ui'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { checkConfigLayers, type DataLayerConfig } from './config.ts'
 import { createMapContent } from './MapLayers.tsx'
 import { createDataLayerStore } from './store.ts'
@@ -21,10 +23,17 @@ export type DataLayersOptions = {
 export function dataLayers(options: DataLayersOptions = {}) {
   const layers = checkConfigLayers(options.layers ?? [])
   const useStore = createDataLayerStore()
-  const MapContent = createMapContent(useStore, layers)
   return defineModule({
     id: 'data-layers',
     setup(api) {
+      // the map layer reads the PMTiles archives through the editor's fetch, and its query client is the editor's
+      const MapContent = createMapContent(useStore, layers, api.editor.fetch)
+      const queries = api.editor.queries
+      const MapContentWithQueries = (props: MapContentProps) => (
+        <QueryClientProvider client={queries}>
+          <MapContent {...props} />
+        </QueryClientProvider>
+      )
       // the form's checks of an address go through the editor's fetch (the `data` gate)
       // the panel's code is a chunk of its own: it loads when the flyout opens (or in idle time after the first view)
       const Panel = lazyComponent(
@@ -34,7 +43,7 @@ export function dataLayers(options: DataLayersOptions = {}) {
           })),
         PANEL_FALLBACK,
       )
-      api.register('map.content', { id: 'data-layers', component: MapContent })
+      api.register('map.content', { id: 'data-layers', component: MapContentWithQueries })
       api.register('topbar.panel', {
         id: 'data-layers',
         label: 'Data layers',

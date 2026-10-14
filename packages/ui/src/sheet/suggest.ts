@@ -1,41 +1,9 @@
 /**
- * Suggestions in the sheet, as logic (no DOM, no React). A cell's suggestion source gets one run at a time:
- * a new run aborts the last one, and an answer that arrives for a run that is no longer current is dropped
- * (docs/research/sheet-design.md, "Suggestions"). Keys while the list is open are `suggestAction`: arrows move
- * the highlight, Enter and Tab take the highlighted item, Escape closes the list and keeps the cell in edit mode.
+ * Suggestions in the sheet, as logic (no DOM, no React). A cell's answers are a TanStack query (useSuggestions.ts):
+ * a new text is a new query, and an answer of an old one is never shown (docs/research/sheet-design.md,
+ * "Suggestions"). Keys while the list is open are `suggestAction`: arrows move the highlight, Enter and Tab take
+ * the highlighted item, Escape closes the list and keeps the cell in edit mode.
  */
-
-export type SuggestRun = {
-  readonly signal: AbortSignal
-  /** False once a newer run started, the run was cancelled, or its signal was aborted. */
-  isCurrent(): boolean
-}
-
-export type SuggestRuns = {
-  /** Starts a run and aborts the previous one. */
-  start(): SuggestRun
-  /** Aborts the current run (the cell stopped editing, or was unmounted). */
-  cancel(): void
-}
-
-export function createSuggestRuns(): SuggestRuns {
-  let current: AbortController | undefined
-  return {
-    start() {
-      current?.abort()
-      const own = new AbortController()
-      current = own
-      return {
-        signal: own.signal,
-        isCurrent: () => current === own && !own.signal.aborted,
-      }
-    },
-    cancel() {
-      current?.abort()
-      current = undefined
-    },
-  }
-}
 
 /** What a key does while the list is open. */
 export type SuggestAction = 'next' | 'previous' | 'take' | 'close'

@@ -25,6 +25,26 @@ export function toMapZoom(osmZoom: number) {
 export type View = { bounds: [number, number, number, number]; zoom: number }
 
 /**
+ * The view the layer listing is computed from, and keyed by. The box is rounded outward to 0.001 degrees
+ * (about 110 m of latitude, about 45 px at zoom 16) and the zoom down to a tenth. So a pan of a few pixels
+ * keeps the same key and asks nothing new. A layer that covers the view is always listed; a layer with a
+ * minzoom between two tenths of a zoom level appears at the next tenth. The listing is computed from this
+ * rounded view, so a key says exactly what it was computed from.
+ */
+export function listingView(view: View): View {
+  const [west, south, east, north] = view.bounds
+  return {
+    bounds: [
+      Math.floor(west * 1000) / 1000,
+      Math.floor(south * 1000) / 1000,
+      Math.ceil(east * 1000) / 1000,
+      Math.ceil(north * 1000) / 1000,
+    ],
+    zoom: Math.floor(view.zoom * 10) / 10,
+  }
+}
+
+/**
  * One saved custom background. A broken entry (no id of the `custom-<n>` form, no template) is
  * dropped; a name of the wrong type is emptied, and the entry stays.
  */

@@ -1,5 +1,5 @@
 import { useEffect, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { useSettings } from './settings.ts'
+import { getSettings, settingsActions } from './settings.ts'
 
 export type ResizableOptions = {
   /** The key the size is saved under in the settings, e.g. `sidebar-width`. */
@@ -47,7 +47,7 @@ function viewportSize(axis: 'x' | 'y') {
 export function useResizable(options: ResizableOptions) {
   const { storageKey, axis, initial, min, max, direction } = options
   const [size, setSize] = useState(() =>
-    clampSize(useSettings.getState().sizes[storageKey] ?? initial, min, max(viewportSize(axis))),
+    clampSize(getSettings().sizes[storageKey] ?? initial, min, max(viewportSize(axis))),
   )
   const [dragging, setDragging] = useState(false)
 
@@ -84,7 +84,7 @@ export function useResizable(options: ResizableOptions) {
       handle.removeEventListener('pointerup', end)
       handle.removeEventListener('pointercancel', end)
       setDragging(false)
-      useSettings.getState().setSize(storageKey, current)
+      settingsActions.setSize(storageKey, current)
     }
 
     handle.addEventListener('pointermove', onPointerMove)
@@ -95,7 +95,7 @@ export function useResizable(options: ResizableOptions) {
   function onDoubleClick() {
     const reset = clampSize(initial, min, max(viewportSize(axis)))
     setSize(reset)
-    useSettings.getState().setSize(storageKey, reset)
+    settingsActions.setSize(storageKey, reset)
   }
 
   return { size, dragging, handleProps: { onPointerDown, onDoubleClick } }

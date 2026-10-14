@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test'
-import { useSettings, type Settings } from './settings.ts'
+import { getSettings, loadStoredSettings, settingsActions, type Settings } from './settings.ts'
 
 // The store reads and writes localStorage under `maid:settings` (version 4). Each test puts a value
 // there, as an earlier visit would have, and loads it through zustand's own rehydrate.
@@ -36,10 +36,11 @@ const good: Settings = {
 /** Stores the value as a version 4 record and loads it, as a new visit does */
 async function load(state: unknown) {
   // a page load starts without a position or a chosen language: the earlier test's value must not carry over
-  useSettings.setState({ lastView: undefined, lang: undefined })
+  settingsActions.setLastView(undefined)
+  settingsActions.setLang(undefined)
   entries.set(KEY, JSON.stringify({ state, version: 4 }))
-  await useSettings.persist.rehydrate()
-  return useSettings.getState()
+  await loadStoredSettings()
+  return getSettings()
 }
 
 describe('settings store', () => {
@@ -50,7 +51,7 @@ describe('settings store', () => {
     expect(state.shown).toEqual(good.shown)
     expect(state.favourites).toEqual(good.favourites)
 
-    state.setTheme('light')
+    settingsActions.setTheme('light')
     const written = JSON.parse(entries.get(KEY) ?? 'null')
     expect(written).toEqual({ state: { ...good, theme: 'light' }, version: 4 })
   })
@@ -124,7 +125,7 @@ describe('the last map position', () => {
     const state = await load({ ...good, lastView: { lng: 13.4, lat: 52.5, zoom: 17.25 } })
     expect(state.lastView).toEqual({ lng: 13.4, lat: 52.5, zoom: 17.25 })
 
-    state.setLastView({ lng: 13.5, lat: 52.6, zoom: 18 })
+    settingsActions.setLastView({ lng: 13.5, lat: 52.6, zoom: 18 })
     const written = JSON.parse(entries.get(KEY) ?? 'null')
     expect(written.state.lastView).toEqual({ lng: 13.5, lat: 52.6, zoom: 18 })
     expect(written.version).toBe(4)
@@ -169,7 +170,7 @@ describe('the chosen language', () => {
     const state = await load({ ...good, lang: 'de' })
     expect(state.lang).toBe('de')
 
-    state.setLang('fr')
+    settingsActions.setLang('fr')
     const written = JSON.parse(entries.get(KEY) ?? 'null')
     expect(written.state.lang).toBe('fr')
     expect(written.version).toBe(4)

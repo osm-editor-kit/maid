@@ -2,11 +2,12 @@ import { PencilIcon, TrashIcon } from '@heroicons/react/20/solid'
 import { isAutomated } from '@osm-editor-kit/maid-core'
 import { PLAIN_INPUT, Tooltip } from '@osm-editor-kit/maid-ui'
 import { toolButtonTone } from '@osm-editor-kit/maid-ui'
-import { useEffect, useId, useState, type FormEvent } from 'react'
+import { keepPreviousData, skipToken, useQuery } from '@tanstack/react-query'
+import { useId, useState, type FormEvent } from 'react'
 import { useStore } from 'zustand'
 import { checkTemplate, isCustomId, shortLabel, type CustomEntry } from './custom.ts'
 import { listView, type Listed } from './eli.ts'
-import { BRIGHTNESS_MIN, matchesQuery, sortListing } from './helpers.ts'
+import { BRIGHTNESS_MIN, listingView, matchesQuery, sortListing } from './helpers.ts'
 import { filterSeriesRows, seriesRows, type SeriesChip, type SeriesRow } from './series.ts'
 import { VISIT_ID, type ImageryStore, type SaveResult } from './store.ts'
 
@@ -96,23 +97,17 @@ function PanelBody(props: { store: ImageryStore }) {
   const [query, setQuery] = useState('')
   const [form, setForm] = useState<FormState>(null)
   const [asking, setAsking] = useState<string | null>(null)
-  const [listed, setListed] = useState<(Listed & { failed: boolean }) | null>(null)
-
-  useEffect(() => {
-    if (!view) return
-    let cancelled = false
-    listView(view).then(
-      (result) => {
-        if (!cancelled) setListed({ ...result, failed: false })
-      },
-      () => {
-        if (!cancelled) setListed({ items: [], series: [], failed: true })
-      },
-    )
-    return () => {
-      cancelled = true
-    }
-  }, [view])
+  // the layers that cover the view, keyed by the rounded view (listingView): a pan of a few pixels asks
+  // nothing new. The last list stays while a new one is computed, so the panel does not flicker.
+  const rounded = view === null ? null : listingView(view)
+  const listing = useQuery({
+    queryKey: ['imagery', 'listing', rounded?.bounds ?? null, rounded?.zoom ?? null],
+    queryFn: rounded === null ? skipToken : (): Promise<Listed> => listView(rounded),
+    staleTime: Infinity,
+    placeholderData: keepPreviousData,
+  })
+  const failed = listing.isError
+  const listed: Listed | null = listing.data ?? (failed ? { items: [], series: [] } : null)
 
   // the last list stays until the new one arrives, so the panel does not flicker while the map moves.
   // The layers are already filtered by the view and its zoom (see `listView`).
@@ -152,13 +147,13 @@ function PanelBody(props: { store: ImageryStore }) {
 
       {listed === null ? (
         <p className="px-4 pb-3 text-sm text-zinc-500 dark:text-zinc-400">Loading backgrounds…</p>
-      ) : listed.failed ? (
+      ) : failed ? (
         <p className="px-4 pb-3 text-sm text-red-700 dark:text-red-400">
           The list of backgrounds could not be loaded.
         </p>
       ) : null}
 
-      {listed !== null && !listed.failed && items.length === 0 ? (
+      {listed !== null && !failed && items.length === 0 ? (
         <p className="px-4 pb-3 text-sm text-zinc-500 dark:text-zinc-400">
           No background covers this view at this zoom.
         </p>

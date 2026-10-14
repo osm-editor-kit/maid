@@ -12,6 +12,7 @@
     "@osm-editor-kit/maid-core": "workspace:*",
     "@osm-editor-kit/maid-renderer": "workspace:*",
     "@osm-editor-kit/maid-ui": "workspace:*",
+    "@tanstack/react-query": "^5",
     "react": "^19.2.0",
     "react-map-gl": "^8.1.3",
     "zod": "4.6.5",

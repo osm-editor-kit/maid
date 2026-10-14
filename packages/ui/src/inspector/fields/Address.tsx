@@ -135,8 +135,8 @@ function SlotCell(props: SlotProps) {
   const value = mixed === undefined ? slotValue(name, tags, prefix) : undefined
   const label = slotPlaceholder(name, country)
   const list = suggestionsFor(name, props.suggestions)
-  const readOnly = onChange === undefined
-  const onText = (text: string) => apply(slotEdits(name, text, prefix))
+  // no onChange: read-only, so the slot gets no onText and its input is read-only
+  const onText = onChange ? (text: string) => apply(slotEdits(name, text, prefix)) : undefined
   return (
     <div className={wrapper} style={{ flex: `${share} 1 0%` }}>
       {list && list.length > 0 ? (
@@ -148,7 +148,6 @@ function SlotCell(props: SlotProps) {
           value={value}
           mixed={mixed}
           list={list}
-          readOnly={readOnly}
           className={comboRadius(edges)}
           onText={onText}
         />
@@ -159,7 +158,6 @@ function SlotCell(props: SlotProps) {
           label={label}
           value={value}
           mixed={mixed}
-          readOnly={readOnly}
           className={textRadius(edges)}
           onText={onText}
         />
@@ -187,7 +185,9 @@ function StreetPlaceSlot(props: SlotProps & { apply: (edits: TagEdit[]) => void 
     setMode(to)
     apply(modeSwitchEdits(tags, prefix, to))
   }
-  const onText = (text: string) => apply(slotEdits(STREET_PLACE, text, prefix, mode))
+  const onText = onChange
+    ? (text: string) => apply(slotEdits(STREET_PLACE, text, prefix, mode))
+    : undefined
   return (
     <div className="flex min-w-0">
       <button
@@ -209,7 +209,6 @@ function StreetPlaceSlot(props: SlotProps & { apply: (edits: TagEdit[]) => void 
             value={value}
             mixed={mixed}
             list={list}
-            readOnly={readOnly}
             className=""
             onText={onText}
           />
@@ -220,7 +219,6 @@ function StreetPlaceSlot(props: SlotProps & { apply: (edits: TagEdit[]) => void 
             label={label}
             value={value}
             mixed={mixed}
-            readOnly={readOnly}
             className={textRadius(inner)}
             onText={onText}
           />
@@ -238,16 +236,17 @@ function TextSlot(props: {
   value: string | undefined
   /** Several features: the slot's key is mixed, its values */
   mixed: MixedValue | undefined
-  readOnly: boolean
   className: string
-  onText: (text: string) => void
+  /** Writes the text. Absent: read-only. */
+  onText: ((text: string) => void) | undefined
 }) {
-  const { id, label, value, mixed, readOnly, className, onText } = props
+  const { id, label, value, mixed, className, onText } = props
+  const readOnly = onText === undefined
   // The slot has no tag of its own: the text goes to the address, which writes it.
   const { draft, setDraft, commit, revert } = useDraft({
     tagKey: '',
     value: value ?? '',
-    onChange: readOnly ? undefined : (_key, text) => onText(text ?? ''),
+    onChange: onText ? (_key, text) => onText(text ?? '') : undefined,
   })
   const limit = useLengthLimit(draft)
   return (
@@ -294,11 +293,11 @@ function ComboSlot(props: {
   value: string | undefined
   mixed: MixedValue | undefined
   list: readonly string[]
-  readOnly: boolean
   className: string
-  onText: (text: string) => void
+  /** Writes the text. Absent: read-only. */
+  onText: ((text: string) => void) | undefined
 }) {
-  const { id, label, tagKey, value, mixed, list, readOnly, className, onText } = props
+  const { id, label, tagKey, value, mixed, list, className, onText } = props
   const generated = useId()
   const inputId = id ?? generated
   const field: Field = {
@@ -323,7 +322,7 @@ function ComboSlot(props: {
         tags={{ [tagKey]: value ?? '' }}
         combined={mixed ? { [tagKey]: mixed } : undefined}
         id={inputId}
-        onChange={readOnly ? undefined : (_key, next) => onText(next ?? '')}
+        onChange={onText ? (_key, next) => onText(next ?? '') : undefined}
       />
     </div>
   )

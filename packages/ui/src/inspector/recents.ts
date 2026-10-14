@@ -32,26 +32,34 @@ const storedIds = z
 /** The stored value: `{ ids }`. A value that is not an object gives no ids. */
 const storedSchema = z.object({ ids: storedIds }).catch(() => ({ ids: [] as string[] }))
 
-export type RecentsState = {
-  /** The ids of the presets the person chose, most recent first */
-  ids: string[]
-  /** Makes the preset the most recent one. Under automation nothing is recorded (see below). */
-  remember: (id: string) => void
+/**
+ * The state from storage, over the current state. Nothing stored keeps the current state; a stored value that
+ * does not fit gives no ids. Pure: the store calls it on every load.
+ */
+export function restoreRecents<State extends { ids: string[] }>(
+  stored: unknown,
+  current: State,
+): State {
+  return stored === undefined ? current : { ...current, ids: storedSchema.parse(stored).ids }
 }
 
-/**
- * The presets the person chose in the type picker, most recent first, kept in localStorage (`maid:recents`).
- * Under automation the list does not change, so that an automated run lists the defaults only, as a fresh
- * visit does: the checks then pick the same rows every time. Nothing is read or written under automation
- * either (`moduleStorage`).
- */
-export const useRecents = create<RecentsState>()(
+/** The store stays here: components read the ids through `useRecentIds`, the actions through `useRecentsActions` */
+const useRecentsStore = create<{
+  /** The ids of the presets the person chose, most recent first */
+  ids: string[]
+  actions: {
+    /** Makes the preset the most recent one. Under automation nothing is recorded (see below). */
+    remember: (id: string) => void
+  }
+}>()(
   persist(
     (set) => ({
       ids: [],
-      remember: (id) => {
-        if (isAutomated()) return
-        set((state) => ({ ids: withRecent(state.ids, id) }))
+      actions: {
+        remember: (id) => {
+          if (isAutomated()) return
+          set((state) => ({ ids: withRecent(state.ids, id) }))
+        },
       },
     }),
     {
@@ -60,8 +68,25 @@ export const useRecents = create<RecentsState>()(
       storage: createJSONStorage(() => moduleStorage()),
       partialize: ({ ids }) => ({ ids }),
       // runs on every load: a stored value that does not fit gives no ids, and the state stays as it is with nothing stored
-      merge: (stored, current) =>
-        stored === undefined ? current : { ...current, ids: storedSchema.parse(stored).ids },
+      merge: (stored, current) => restoreRecents(stored, current),
     },
   ),
 )
+
+/**
+ * The presets the person chose in the type picker, most recent first, kept in localStorage (`maid:recents`).
+ * Under automation the list does not change, so that an automated run lists the defaults only, as a fresh
+ * visit does: the checks then pick the same rows every time. Nothing is read or written under automation
+ * either (`moduleStorage`).
+ */
+export function useRecentIds(): string[] {
+  return useRecentsStore((state) => state.ids)
+}
+
+/** The actions of the recents. They never change. */
+export function useRecentsActions() {
+  return useRecentsStore((state) => state.actions)
+}
+
+/** The actions for code outside React (the tests) */
+export const recentsActions = useRecentsStore.getState().actions

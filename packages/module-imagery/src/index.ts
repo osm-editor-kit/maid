@@ -2,7 +2,8 @@ import { PhotoIcon } from '@heroicons/react/20/solid'
 import { defineModule } from '@osm-editor-kit/maid-core'
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { lazyComponent, PANEL_FALLBACK } from '@osm-editor-kit/maid-ui'
-import { createElement } from 'react'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { createElement, type ReactElement } from 'react'
 import { backgroundName, usedNames } from './helpers.ts'
 import { ImageryLayers } from './ImageryLayers.tsx'
 import { backgroundOnMap, createImageryStore, shownBackgroundId } from './store.ts'
@@ -27,17 +28,21 @@ export function imagery(options: ImageryOptions = {}) {
     id: 'imagery',
     setup(api) {
       // the panel's code is a chunk of its own: it loads when the flyout opens (or in idle time after the first view)
+      // each root of the module gives its components the editor's query client (the street imagery pattern)
+      const queries = api.editor.queries
+      const withQueries = (element: ReactElement) =>
+        createElement(QueryClientProvider, { client: queries }, element)
       const Panel = lazyComponent(
         () =>
           import('./ImageryPanel.tsx').then((panel) => ({
-            default: () => createElement(panel.ImageryPanel, { store }),
+            default: () => withQueries(createElement(panel.ImageryPanel, { store })),
           })),
         PANEL_FALLBACK,
       )
       api.register('map.content', {
         id: 'imagery',
         component: (props: MapContentProps) =>
-          createElement(ImageryLayers, { store, belowOsm: props.belowOsm }),
+          withQueries(createElement(ImageryLayers, { store, belowOsm: props.belowOsm })),
       })
       api.register('topbar.panel', {
         id: 'imagery',

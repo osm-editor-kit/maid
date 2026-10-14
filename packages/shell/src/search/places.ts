@@ -1,11 +1,16 @@
 /**
- * Places by name, from Nominatim (the OpenStreetMap search). One request for the text the person
- * sends (Enter or "Search places", never while typing), made through the editor's fetch: the gate of
- * its service, the time limit and the automation refusal all apply. Answers are kept in memory per
- * query and language, for the session. Under automation no request is made at all (AGENTS.md, core
- * rule 1): `enabled()` is then false and `search` refuses.
+ * Places by name, from Nominatim (the OpenStreetMap search). One query per text the person sends (Enter or
+ * "Search places", never while typing), made through the editor's fetch: the gate of its service, the time
+ * limit and the automation refusal all apply. The query is kept for the session per text and language (TanStack
+ * Query, never retried: a failure is asked again by the next submit). Under automation no request is made at all
+ * (AGENTS.md, core rule 1): the options are disabled, and the query function refuses.
  */
-import { isAutomated as defaultIsAutomated, type RemoteFetch } from '@osm-editor-kit/maid-core'
+import {
+  isAutomated as defaultIsAutomated,
+  SESSION_DATA,
+  type RemoteFetch,
+} from '@osm-editor-kit/maid-core'
+import { queryOptions } from '@tanstack/react-query'
 import { z } from 'zod'
 
 export const NOMINATIM_SEARCH = 'https://nominatim.openstreetmap.org/search'
@@ -39,8 +44,27 @@ export interface PlaceSearchOptions {
 export interface PlaceSearch {
   /** False under automation: the caller shows a hint and asks nothing */
   enabled(): boolean
-  /** The places for a text. One request per text and language; later asks are answered from memory. Rejects on failure. */
-  search(query: string): Promise<Place[]>
+  /**
+   * The query of a text, for `useQuery`: one request per text and language, kept for the session. Its query
+   * function rejects on failure; a text that is empty, or an automated run, asks nothing.
+   */
+  query(text: string): ReturnType<typeof placeQuery>
+}
+
+function placeQuery(text: string, options: PlaceSearchOptions, automated: () => boolean) {
+  const trimmed = text.trim()
+  return queryOptions({
+    queryKey: ['places', keyOf(trimmed, options.language)] as const,
+    // no signal is passed: an answer that is no longer on screen is still kept for the next search of its text
+    queryFn: async (): Promise<Place[]> => {
+      if (automated()) throw new PlaceSearchError('off', 'Place search is off under automation')
+      const response = await options.fetch(placeUrl(trimmed, options.language, options.endpoint))
+      return placesOf(await response.json())
+    },
+    enabled: trimmed !== '' && !automated(),
+    ...SESSION_DATA,
+    retry: false,
+  })
 }
 
 /** The search is off (automation), or the answer did not have the shape the search reads */
@@ -110,31 +134,15 @@ export function placeUrl(query: string, language: string, endpoint = NOMINATIM_S
   return url
 }
 
-/** The key of the memory: the text as the search sees it, and the language */
+/** The key of a places query: the text as the search sees it, and the language */
 function keyOf(query: string, language: string): string {
   return `${language}\u0000${query.trim().replace(/\s+/g, ' ').toLowerCase()}`
 }
 
 export function createPlaceSearch(options: PlaceSearchOptions): PlaceSearch {
   const automated = options.isAutomated ?? defaultIsAutomated
-  const memory = new Map<string, Promise<Place[]>>()
   return {
     enabled: () => !automated(),
-    search(query) {
-      if (automated())
-        return Promise.reject(new PlaceSearchError('off', 'Place search is off under automation'))
-      const key = keyOf(query, options.language)
-      const known = memory.get(key)
-      if (known) return known
-      const url = placeUrl(query.trim(), options.language, options.endpoint)
-      const asked = options
-        .fetch(url)
-        .then((response) => response.json())
-        .then(placesOf)
-      // a failure is not kept: the next Enter asks again
-      asked.catch(() => memory.delete(key))
-      memory.set(key, asked)
-      return asked
-    },
+    query: (text) => placeQuery(text, options, automated),
   }
 }

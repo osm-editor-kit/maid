@@ -52,11 +52,18 @@ export type Lang = 'en' | 'de' | 'fr' | 'es'
 /** The data servers the account flyout offers: the real API, read only, and the development server */
 export type Server = 'osm' | 'dev'
 
-type SettingsStore = Settings & {
+/**
+ * What the UI does with the settings. Components read them through the `useStored*` hooks and call these
+ * through `useSettingsActions`; code outside React uses `settingsActions`. Each action is an event the
+ * store takes care of, and the object never changes.
+ */
+export type SettingsActions = {
   setShown: (key: string, value: string) => void
-  setLastView: (view: LastView) => void
+  /** `undefined` forgets the position */
+  setLastView: (view: LastView | undefined) => void
   setTheme: (theme: Theme) => void
-  setLang: (lang: Lang) => void
+  /** `undefined` forgets the language, so the URL and the browser choose again */
+  setLang: (lang: Lang | undefined) => void
   setServer: (server: Server) => void
   setSize: (key: string, size: number) => void
   /** Makes the preset a favourite for the geometry, or takes it out again */
@@ -66,6 +73,8 @@ type SettingsStore = Settings & {
   /** Gives a favourite the number typed in the list; a number another favourite has swaps the two */
   setFavouriteNumber: (presetId: string, geometry: Geometry, number: string) => void
 }
+
+type SettingsStore = Settings & { actions: SettingsActions }
 
 /** A map position as it is stored. Each field is checked on its own by the schema below. */
 const lastViewSchema = z.object({
@@ -121,28 +130,31 @@ function parseStored(value: unknown): Settings {
  * then a value with another version is not read, and the defaults apply. Reading is synchronous: the
  * first paint already has the right theme and sizes. Every stored value is parsed on load (`merge`),
  * not only after a version change. Under automation nothing is read or written (`moduleStorage`).
+ * The store itself is private: the hooks and functions below are its only way out.
  */
-export const useSettings = create<SettingsStore>()(
+const useSettingsStore = create<SettingsStore>()(
   persist(
     (set) => ({
       theme: 'system',
       sizes: {},
       shown: {},
       favourites: [],
-      setTheme: (theme) => set({ theme }),
-      setLang: (lang) => set({ lang }),
-      setServer: (server) => set({ server }),
-      setSize: (key, size) => set((state) => ({ sizes: { ...state.sizes, [key]: size } })),
-      setShown: (key, value) => set((state) => ({ shown: { ...state.shown, [key]: value } })),
-      setLastView: (lastView) => set({ lastView }),
-      toggleFavourite: (presetId, geometry) =>
-        set((state) => ({ favourites: toggleIn(state.favourites, presetId, geometry) })),
-      moveFavourite: (presetId, geometry, delta) =>
-        set((state) => ({ favourites: moveIn(state.favourites, presetId, geometry, delta) })),
-      setFavouriteNumber: (presetId, geometry, number) =>
-        set((state) => ({
-          favourites: setNumberIn(state.favourites, presetId, geometry, number),
-        })),
+      actions: {
+        setTheme: (theme) => set({ theme }),
+        setLang: (lang) => set({ lang }),
+        setServer: (server) => set({ server }),
+        setSize: (key, size) => set((state) => ({ sizes: { ...state.sizes, [key]: size } })),
+        setShown: (key, value) => set((state) => ({ shown: { ...state.shown, [key]: value } })),
+        setLastView: (lastView) => set({ lastView }),
+        toggleFavourite: (presetId, geometry) =>
+          set((state) => ({ favourites: toggleIn(state.favourites, presetId, geometry) })),
+        moveFavourite: (presetId, geometry, delta) =>
+          set((state) => ({ favourites: moveIn(state.favourites, presetId, geometry, delta) })),
+        setFavouriteNumber: (presetId, geometry, number) =>
+          set((state) => ({
+            favourites: setNumberIn(state.favourites, presetId, geometry, number),
+          })),
+      },
     }),
     {
       name: 'maid:settings',
@@ -163,3 +175,43 @@ export const useSettings = create<SettingsStore>()(
     },
   ),
 )
+
+/** The theme the person stored (`system` when nothing is stored). Re-renders only when it changes. */
+export const useStoredTheme = () => useSettingsStore((state) => state.theme)
+
+/** The language the person chose, or undefined */
+export const useStoredLang = () => useSettingsStore((state) => state.lang)
+
+/** The data server the person chose, or undefined */
+export const useStoredServer = () => useSettingsStore((state) => state.server)
+
+/** The favourite feature types, in the order they are listed */
+export const useStoredFavourites = () => useSettingsStore((state) => state.favourites)
+
+/** The stored filter state under a URL parameter name, e.g. `filters` */
+export const useStoredShown = (key: string) => useSettingsStore((state) => state.shown[key])
+
+/** The actions. They never change, so a component that takes them re-renders only for its own state. */
+export const useSettingsActions = () => useSettingsStore((state) => state.actions)
+
+/** The actions for code outside React (the map view, the favourites keys, the URL setup) */
+export const settingsActions: SettingsActions = useSettingsStore.getState().actions
+
+/** A snapshot of the stored settings for code outside React. Read it when needed; it does not update. */
+export function getSettings(): Settings {
+  const { theme, sizes, shown, favourites, lastView, lang, server } = useSettingsStore.getState()
+  return { theme, sizes, shown, favourites, lastView, lang, server }
+}
+
+/** Calls the listener after any change of the settings. Returns a function that stops it. */
+export function subscribeToSettings(listener: () => void): () => void {
+  return useSettingsStore.subscribe(listener)
+}
+
+/**
+ * Reads the stored value again, as a page load does: the state takes what is stored, and the parts that are
+ * not stored keep their current value. Used by the tests.
+ */
+export async function loadStoredSettings(): Promise<void> {
+  await useSettingsStore.persist.rehydrate()
+}

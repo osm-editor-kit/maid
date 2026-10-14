@@ -1,32 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { createSuggestRuns, stepHighlight, suggestAction } from './suggest.ts'
-
-describe('createSuggestRuns: one live answer per cell', () => {
-  test('a new run aborts the last, and the old answer is no longer current', () => {
-    const runs = createSuggestRuns()
-    const first = runs.start()
-    expect(first.isCurrent()).toBe(true)
-    const second = runs.start()
-    expect(first.signal.aborted).toBe(true)
-    expect(first.isCurrent()).toBe(false)
-    expect(second.signal.aborted).toBe(false)
-    expect(second.isCurrent()).toBe(true)
-  })
-
-  test('cancel aborts the current run; a later run is current again', () => {
-    const runs = createSuggestRuns()
-    const run = runs.start()
-    runs.cancel()
-    expect(run.signal.aborted).toBe(true)
-    expect(run.isCurrent()).toBe(false)
-    expect(runs.start().isCurrent()).toBe(true)
-  })
-
-  test('cancel with nothing running does nothing', () => {
-    const runs = createSuggestRuns()
-    expect(() => runs.cancel()).not.toThrow()
-  })
-})
+import { stepHighlight, suggestAction } from './suggest.ts'
 
 describe('suggestAction: keys while the list is open', () => {
   const open = { open: true, count: 3, highlighted: -1 }

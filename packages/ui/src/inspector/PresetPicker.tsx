@@ -12,7 +12,7 @@ import { PLAIN_INPUT } from '../plain-input.ts'
 import { EMPTY_NOTE, keepFocus, listboxMove, revealRow, ROW_ACTIVE } from './listbox.ts'
 import { listRows, type ListRow } from './picker-browse.ts'
 import { mainTagLabel } from './picker-logic.ts'
-import { useRecents } from './recents.ts'
+import { useRecentIds, useRecentsActions } from './recents.ts'
 import { SearchField } from './SearchField.tsx'
 
 // the colour is not here: a class of the same property in the same string would be overridden by the
@@ -142,8 +142,8 @@ export function PresetPicker(props: {
   const [activeIndex, setActiveIndex] = useState(0)
   // the categories that are open: their members are listed under them, and only while nothing is searched
   const [openCategories, setOpenCategories] = useState<readonly string[]>([])
-  const remember = useRecents((state) => state.remember)
-  const recentIds = useRecents((state) => state.ids)
+  const { remember } = useRecentsActions()
+  const recentIds = useRecentIds()
   const baseId = useId()
   const listId = `${baseId}-list`
   const favouritesHeadingId = `${baseId}-favourites`

@@ -45,8 +45,22 @@ export {
   setFavouriteNumber,
   type Favourite,
 } from './favourites.ts'
-export { useBearing } from './bearing.ts'
-export { useSettings, type Server, type Settings, type Theme } from './settings.ts'
+export { setBearing, useBearing } from './bearing.ts'
+export {
+  getSettings,
+  loadStoredSettings,
+  settingsActions,
+  subscribeToSettings,
+  useSettingsActions,
+  useStoredFavourites,
+  useStoredLang,
+  useStoredServer,
+  useStoredShown,
+  useStoredTheme,
+  type Server,
+  type Settings,
+  type Theme,
+} from './settings.ts'
 export { initTheme, useResolvedTheme, useTheme } from './theme.ts'
 export { ThemeSwitch } from './ThemeSwitch.tsx'
 export {
@@ -97,8 +111,4 @@ export type {
   SheetRow,
 } from './sheet/types.ts'
 export { WikiContext } from './inspector/fields/wiki-context.ts'
-export {
-  createWikiSource,
-  type WikiQueries,
-  type WikiSource,
-} from './inspector/fields/wiki-service.ts'
+export { createWikiSource, type WikiSource } from './inspector/fields/wiki-service.ts'

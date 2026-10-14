@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
-import { createSuggestRuns, stepHighlight, suggestAction, type SuggestAction } from './suggest.ts'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useDebouncedValue } from '../use-debounced-value.ts'
+import { stepHighlight, suggestAction, type SuggestAction } from './suggest.ts'
 import type { ColId, RowId, SheetRow, SheetSuggestion, Suggest } from './types.ts'
 
 export type SuggestionsInput = {
@@ -30,51 +32,41 @@ export type Suggestions = {
 }
 
 /**
- * The suggestions of one editing cell. The answer of a source is kept per cell; a run aborts the previous
- * one when the text changes, and an answer of an old run is ignored (createSuggestRuns, suggest.ts).
+ * The suggestions of one editing cell, as a TanStack query: keyed by the cell and the text, the text debounced
+ * (the input is debounced, not the query). A new text is a new query, and TanStack aborts the request of the
+ * old one; an answer for an old text is never shown. The previous answer stays while the new one is on its way,
+ * but only in the same cell. Never retried: a source may be a taginfo request, and a failure is no answer.
  * The list closes for a text by Escape or a pick, and opens again when the text changes.
  */
 export function useSuggestions(input: SuggestionsInput): Suggestions {
   const { enabled, suggest, delay, cellRow, cellCol, row, text } = input
   const owner = `${cellRow}\u0000${cellCol}`
-  const runs = useMemo(() => createSuggestRuns(), [])
-  const [answer, setAnswer] = useState<{ owner: string; items: readonly SheetSuggestion[] }>({
-    owner: '',
-    items: [],
-  })
+  // The text asked: undefined while the cell is quiet, so that a cell that starts editing waits `delay` too.
+  const asked = useDebouncedValue(enabled ? text : undefined, delay)
   // Both are kept with the cell's owner, so that a close or a highlight in one cell does not reach another.
   const [dismissed, setDismissedState] = useState<{ owner: string; text: string }>()
   const [picked, setPicked] = useState<{ owner: string; text: string; index: number }>()
   const setDismissed = (next: string) => setDismissedState({ owner, text: next })
 
-  useEffect(() => {
-    if (!enabled || suggest === undefined) return undefined
-    const run = runs.start()
-    const ask = () => {
-      let result: ReturnType<Suggest>
+  const answer = useQuery({
+    queryKey: ['sheet-suggest', owner, asked] as const,
+    queryFn: async ({ signal }) => {
+      if (suggest === undefined || asked === undefined) return []
       try {
-        result = suggest({ cell: { row: cellRow, col: cellCol }, row, text }, run.signal)
+        return await suggest({ cell: { row: cellRow, col: cellCol }, row, text: asked }, signal)
       } catch {
-        result = []
+        return []
       }
-      void Promise.resolve(result).then(
-        (items) => {
-          if (run.isCurrent()) setAnswer({ owner, items })
-        },
-        () => {
-          if (run.isCurrent()) setAnswer({ owner, items: [] })
-        },
-      )
-    }
-    if (delay <= 0) ask()
-    const timer = delay > 0 ? setTimeout(ask, delay) : undefined
-    return () => {
-      clearTimeout(timer)
-      runs.cancel()
-    }
-  }, [enabled, suggest, delay, cellRow, cellCol, row, text, owner, runs])
+    },
+    enabled: enabled && suggest !== undefined && asked !== undefined,
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[1] === owner ? keepPreviousData(previous) : undefined,
+    retry: false,
+    // a suggestion is for the text typed now: no copy of it is kept once the cell moves on
+    gcTime: 0,
+  })
 
-  const items = enabled && answer.owner === owner ? answer.items : []
+  const items = enabled && answer.data !== undefined ? answer.data : []
   const highlighted =
     picked !== undefined &&
     picked.owner === owner &&

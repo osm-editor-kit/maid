@@ -1,12 +1,13 @@
 import { MagnifyingGlassIcon } from '@heroicons/react/20/solid'
-import { type Editor, isAutomated } from '@osm-editor-kit/maid-core'
+import { isAutomated } from '@osm-editor-kit/maid-core'
 import { getLocale, m } from '@osm-editor-kit/maid-i18n'
 import { Flyout, toolButtonClass } from '@osm-editor-kit/maid-ui'
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
-import { openSearchAtStart, setSearchOpen, useSearchFlyout } from '../search/flyout'
+import { useQuery } from '@tanstack/react-query'
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { openSearchAtStart, setSearchOpen, useSearchFocus, useSearchOpen } from '../search/flyout'
 import { findLoaded, type LoadedFeature, MIN_LOADED_QUERY } from '../search/loaded'
 import { mapZoomOf, type OsmId, parseSearch, type Position } from '../search/parse'
-import { createPlaceSearch, type Place, type PlaceSearch } from '../search/places'
+import { createPlaceSearch, type Place } from '../search/places'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
 import { useCameraParam } from '../url/state'
@@ -18,7 +19,7 @@ import { useCameraParam } from '../url/state'
  * Ctrl+F / Cmd+F opens it (useShortcuts), Escape closes it (the flyout).
  */
 export function SearchButton() {
-  const open = useSearchFlyout((flyout) => flyout.open)
+  const open = useSearchOpen()
   const [camera] = useCameraParam()
   const hasPosition = camera !== null
   // the first start without a position opens the search once (flyout.ts)
@@ -50,17 +51,6 @@ export function SearchButton() {
   )
 }
 
-/** One place search per editor: its memory of answers lives as long as the page */
-const placeSearches = new WeakMap<Editor, PlaceSearch>()
-function placeSearchFor(editor: Editor): PlaceSearch {
-  let search = placeSearches.get(editor)
-  if (!search) {
-    search = createPlaceSearch({ fetch: editor.fetch, language: getLocale() })
-    placeSearches.set(editor, search)
-  }
-  return search
-}
-
 type Group = 'position' | 'object' | 'loaded' | 'places'
 
 /**
@@ -77,16 +67,11 @@ interface Row {
   run?: () => void
 }
 
-interface PlacesState {
-  query: string
-  /** The number of the search: an answer to an older search is not shown */
-  token: number
+/** The places of the text in the box, once they were asked for */
+interface PlacesView {
   status: 'loading' | 'done' | 'failed'
   places: Place[]
 }
-
-/** The places searches made so far, counted (a handler counts, never a render) */
-const placeSearchCount = { made: 0 }
 
 /** A number for a label: up to six decimals, no trailing zeros */
 function figure(value: number, digits = 6): string {
@@ -96,15 +81,20 @@ function figure(value: number, digits = 6): string {
 function SearchPanel() {
   const { editor, engine } = useShell()
   const { select } = useSelection()
-  const focus = useSearchFlyout((flyout) => flyout.focus)
+  const focus = useSearchFocus()
   const inputRef = useRef<HTMLInputElement>(null)
   const inputId = useId()
   const listId = useId()
   const [text, setText] = useState('')
   const [activeKey, setActiveKey] = useState<string | null>(null)
-  const [places, setPlaces] = useState<PlacesState | null>(null)
+  // the text the person sent (Enter or "Search places"): the places query runs for it, and only for it
+  const [submitted, setSubmitted] = useState<string | null>(null)
   const query = text.trim()
-  const placeSearch = placeSearchFor(editor)
+  const placeSearch = useMemo(
+    () => createPlaceSearch({ fetch: editor.fetch, language: getLocale() }),
+    [editor],
+  )
+  const placesQuery = useQuery(placeSearch.query(submitted ?? ''))
   const parsed = parseSearch(query)
 
   // Ctrl+F while the flyout is open moves the focus back to the input
@@ -170,23 +160,26 @@ function SearchPanel() {
 
   const searchPlaces = () => {
     if (!query || isAutomated()) return
-    placeSearchCount.made += 1
-    const token = placeSearchCount.made
-    setPlaces({ query, token, status: 'loading', places: [] })
-    placeSearch.search(query).then(
-      (answer) =>
-        setPlaces((current) =>
-          current?.token === token ? { query, token, status: 'done', places: answer } : current,
-        ),
-      () =>
-        setPlaces((current) =>
-          current?.token === token ? { query, token, status: 'failed', places: [] } : current,
-        ),
-    )
+    // asked once per text: a text that was asked is answered from the query, and a failure is asked again
+    if (submitted === query) {
+      if (placesQuery.isError) void placesQuery.refetch()
+      return
+    }
+    setSubmitted(query)
   }
 
   // the places of this text, once they were asked for; an answer to another text is not shown
-  const placesFor = places && places.query === query ? places : null
+  const placesFor: PlacesView | null =
+    submitted !== null && submitted === query
+      ? {
+          status: placesQuery.isError
+            ? 'failed'
+            : placesQuery.data === undefined
+              ? 'loading'
+              : 'done',
+          places: placesQuery.data ?? [],
+        }
+      : null
 
   const rows: Row[] = []
   parsed.positions.forEach((position, index) => {

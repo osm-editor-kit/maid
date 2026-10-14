@@ -1,5 +1,6 @@
 import {
   createTaginfo,
+  isAutomated,
   moduleStorage,
   type Editor,
   type TaginfoGeometry,
@@ -24,9 +25,8 @@ import {
   type TagSuggestSource,
   WikiContext,
   createWikiSource,
-  type WikiSource,
 } from '@osm-editor-kit/maid-ui'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   changeType,
   moveFavourite,
@@ -53,37 +53,22 @@ const GEOMETRY_LABEL = {
 }
 
 /**
- * Key and value suggestions for the tags sheet, from taginfo as in iD: one client per editor, on its
- * fetch and query cache, and one source per geometry so that the sheet gets the same object each time
+ * The taginfo suggestions of the tags sheet, one source per geometry, as iD's taginfo.js: one client on the
+ * editor's fetch and query cache. The Inspector keeps them in a memo, so that the sheet gets the same objects.
  */
-/** The Wikipedia and Wikidata lookups of the two fields: one source per editor, behind its fetch rules */
-const wikiSources = new WeakMap<Editor, WikiSource>()
-function wikiSourceFor(editor: Editor) {
-  let source = wikiSources.get(editor)
-  if (!source) {
-    source = createWikiSource({ fetch: editor.fetch, queries: editor.queries })
-    wikiSources.set(editor, source)
+function tagSuggestSourcesOf(editor: Editor): Record<TaginfoGeometry, TagSuggestSource> {
+  const taginfo = createTaginfo({ fetch: editor.fetch, queries: editor.queries })
+  const sourceOf = (kind: TaginfoGeometry): TagSuggestSource => ({
+    keys: (query, signal) => taginfo.keys(query, kind, signal),
+    values: (key, query, signal) => taginfo.values(key, query, kind, signal),
+  })
+  return {
+    point: sourceOf('point'),
+    vertex: sourceOf('vertex'),
+    line: sourceOf('line'),
+    area: sourceOf('area'),
+    relation: sourceOf('relation'),
   }
-  return source
-}
-
-const suggestSources = new WeakMap<Editor, Map<TaginfoGeometry, TagSuggestSource>>()
-function suggestSourceFor(editor: Editor, geometry: TaginfoGeometry) {
-  let sources = suggestSources.get(editor)
-  if (!sources) {
-    const taginfo = createTaginfo({ fetch: editor.fetch, queries: editor.queries })
-    sources = new Map(
-      (['point', 'vertex', 'line', 'area', 'relation'] as const).map((kind) => [
-        kind,
-        {
-          keys: (query, signal) => taginfo.keys(query, kind, signal),
-          values: (key, query, signal) => taginfo.values(key, query, kind, signal),
-        },
-      ]),
-    )
-    suggestSources.set(editor, sources)
-  }
-  return sources.get(geometry)
 }
 
 /** The OSM Wiki's answers for the "i" buttons: one loader per editor, on its fetch and query cache */
@@ -115,6 +100,13 @@ function showFieldFocus(engine: MaidEngine, focus: FieldFocus | null) {
 export function Inspector() {
   const { editor, engine } = useShell()
   const loadReference = referenceLoaderFor(editor)
+  // The Wikipedia and Wikidata lookups of the two fields: none under automation, so that the fields are plain text
+  // inputs there (AGENTS.md, core rule 1). The taginfo sources, one per geometry, for the tags sheet.
+  const wiki = useMemo(
+    () => (isAutomated() ? undefined : createWikiSource({ fetch: editor.fetch })),
+    [editor],
+  )
+  const suggestSources = useMemo(() => tagSuggestSourcesOf(editor), [editor])
   const { id, ids, select } = useSelection()
   // read again when data arrives: a selection from the URL exists before its feature is loaded
   const entity: EntityInfo | undefined = useEngine((e) => e.entity(id))
@@ -141,10 +133,7 @@ export function Inspector() {
   // several features: what they share, in MultiInspector (iD's entity editor for several)
   if (ids.length > 1) {
     return (
-      <MultiInspector
-        ids={ids}
-        suggest={entity ? suggestSourceFor(editor, entity.geometry) : undefined}
-      />
+      <MultiInspector ids={ids} suggest={entity ? suggestSources[entity.geometry] : undefined} />
     )
   }
   // a filter can make a feature read-only: it is shown, its fields and tags cannot be changed
@@ -210,7 +199,7 @@ export function Inspector() {
   const canChangeType = onChange !== undefined && presets !== undefined
 
   return (
-    <WikiContext value={wikiSourceFor(editor)}>
+    <WikiContext value={wiki}>
       <Sidebar label="Selected feature">
         <SidebarHeader
           icon={
@@ -321,7 +310,7 @@ export function Inspector() {
                   // a filter made the feature read-only: the sheet is shown, navigable and copyable, not edited
                   readOnly={entity.readOnly}
                   onChangeTags={(tags, label) => engine.setTags(id, tags, label)}
-                  suggest={suggestSourceFor(editor, entity.geometry)}
+                  suggest={suggestSources[entity.geometry]}
                   onUndo={() => engine.undo()}
                   onRedo={() => engine.redo()}
                 />

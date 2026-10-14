@@ -1,5 +1,11 @@
 import { useSyncExternalStore } from 'react'
-import { useSettings, type Theme } from './settings.ts'
+import {
+  getSettings,
+  subscribeToSettings,
+  useSettingsActions,
+  useStoredTheme,
+  type Theme,
+} from './settings.ts'
 
 const darkQuery = '(prefers-color-scheme: dark)'
 
@@ -9,7 +15,7 @@ function resolve(value: Theme): 'light' | 'dark' {
 }
 
 function applyToDocument() {
-  const resolved = resolve(useSettings.getState().theme)
+  const resolved = resolve(getSettings().theme)
   const root = document.documentElement
   root.classList.toggle('dark', resolved === 'dark')
   root.style.colorScheme = resolved
@@ -27,18 +33,18 @@ function subscribeToSystem(listener: () => void) {
  */
 export function initTheme() {
   applyToDocument()
-  useSettings.subscribe(applyToDocument)
+  subscribeToSettings(applyToDocument)
   subscribeToSystem(applyToDocument)
 }
 
 /** The stored theme and a setter that also saves it. */
 export function useTheme(): [Theme, (theme: Theme) => void] {
-  return [useSettings((settings) => settings.theme), useSettings((settings) => settings.setTheme)]
+  return [useStoredTheme(), useSettingsActions().setTheme]
 }
 
 /** The theme in effect right now: `system` resolved to light or dark. */
 export function useResolvedTheme(): 'light' | 'dark' {
-  const theme = useSettings((settings) => settings.theme)
+  const theme = useStoredTheme()
   // the operating system's setting is outside React
   const systemDark = useSyncExternalStore(
     subscribeToSystem,

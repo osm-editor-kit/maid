@@ -3,6 +3,7 @@ import {
   SESSION_DATA,
   type RemoteFetch,
 } from '@osm-editor-kit/maid-core'
+import { queryOptions } from '@tanstack/react-query'
 import { z } from 'zod'
 import { languageOf, qidFromIds, qidOf } from './wiki-logic.ts'
 
@@ -10,49 +11,19 @@ import { languageOf, qidFromIds, qidOf } from './wiki-logic.ts'
  * The requests of the Wikipedia and Wikidata fields. The endpoints and parameters are iD's
  * `modules/services/wikipedia.js` and `wikidata.js` (pinned checkout, `.reference/id`). Maid's rules: every
  * request goes through the editor's `fetch` (the service gate, the time limit and the automation check, in
- * remote-fetch.ts); the answers are checked with Zod schemas of the fields the editor uses; each answer is
- * cached for the session in the editor's query client; no failure reaches the caller (no answer is an empty
- * list or undefined). Under automation (`isAutomated()`) no request is made (AGENTS.md, core rule 1).
+ * remote-fetch.ts); the answers are checked with Zod schemas of the fields the editor uses. Each lookup is a
+ * `queryOptions` of TanStack Query: the fields use it with `useQuery`, and the answers are kept for the session in
+ * the editor's query client. Under automation no lookup is enabled (AGENTS.md, core rule 1), and the app gives the
+ * fields no source then (wiki-context.ts).
  *
  * The language is checked before it goes into a host name: a code of letters, digits and dashes only.
  */
-
-/** The query client's part the service uses (`editor.queries`, a TanStack QueryClient). */
-export interface WikiQueries {
-  fetchQuery<T>(options: {
-    queryKey: readonly unknown[]
-    queryFn: () => Promise<T>
-    staleTime: number
-    gcTime: number
-  }): Promise<T>
-}
 
 /** An item of Wikidata: its QID, its label and its description, in the language asked for. */
 export interface WikiItem {
   id: string
   label: string
   description?: string
-}
-
-/** The lookups the fields make. Each resolves to an empty answer when it cannot answer; it never rejects. */
-export interface WikiSource {
-  /** Article titles of the language's Wikipedia that match a text (iD: list=search, 10 results). */
-  searchTitles(lang: string, text: string): Promise<string[]>
-  /** The QID of an article, or undefined (iD: wbgetentities by sitelink). */
-  qidOfArticle(lang: string, title: string): Promise<string | undefined>
-  /** Items that match a text (iD: wbsearchentities, 10 results). */
-  searchItems(text: string, lang: string): Promise<WikiItem[]>
-  /** An item's label and description in a language (iD: wbgetentities, labels and descriptions). */
-  itemOf(qid: string, lang: string): Promise<WikiItem | undefined>
-}
-
-export interface WikiSourceOptions {
-  /** The editor's fetch (`editor.fetch`). */
-  fetch: RemoteFetch
-  /** The editor's query client (`editor.queries`): the session cache. */
-  queries: WikiQueries
-  /** Default: the real check (`navigator.webdriver`). Tests set it. */
-  isAutomated?: () => boolean
 }
 
 const WIKIPEDIA_API = (lang: string) => `https://${lang}.wikipedia.org/w/api.php?`
@@ -139,113 +110,162 @@ function query(params: Record<string, string>): string {
   return new URLSearchParams({ ...params, origin: '*' }).toString()
 }
 
-export function createWikiSource(options: WikiSourceOptions): WikiSource {
+/** The options of one lookup: kept for the session, never retried, and never asked under automation. */
+function lookup<T>(
+  key: readonly string[],
+  asked: boolean,
+  empty: T,
+  run: () => Promise<T>,
+  automated: () => boolean,
+) {
+  return queryOptions({
+    queryKey: ['wiki', ...key] as readonly unknown[],
+    // checked here too: a fetchQuery ignores `enabled`, and an automated run asks nothing
+    queryFn: () => (automated() ? Promise.resolve(empty) : run()),
+    enabled: asked && !automated(),
+    ...SESSION_DATA,
+    // a failed request is an error of the query, shown as no answer by the field; it is not repeated
+    retry: false,
+  })
+}
+
+/**
+ * The lookups as query options (`useQuery(source.titles(lang, text))`, or `queryClient.fetchQuery`). A failed
+ * request is an error (not cached); a field shows it as no answer. Under automation every lookup is disabled.
+ */
+export interface WikiSourceOptions {
+  /** The editor's fetch (`editor.fetch`): the gate, the time limit and the automation refusal apply. */
+  fetch: RemoteFetch
+  /** Default: the real check (`navigator.webdriver`). Tests set it. */
+  isAutomated?: () => boolean
+}
+
+export function createWikiSource(options: WikiSourceOptions) {
   const send = options.fetch
-  const queries = options.queries
   const isAutomated = options.isAutomated ?? isAutomatedRun
 
-  /** The answer of one request as JSON, or undefined: a failed or refused request is no answer. */
+  /** The answer of one request as JSON. A failed request throws: the query keeps no answer for it. */
   async function getJson(url: string): Promise<unknown> {
-    try {
-      const response = await send(url, { headers: { Accept: 'application/json' } })
-      if (!response.ok) return undefined
-      return await response.json()
-    } catch {
-      return undefined
-    }
-  }
-
-  /** Cached for the session, and never asked under automation. */
-  function cached<T>(key: readonly unknown[], empty: T, run: () => Promise<T>): Promise<T> {
-    if (isAutomated()) return Promise.resolve(empty)
-    return queries
-      .fetchQuery({ queryKey: ['wiki', ...key], queryFn: run, ...SESSION_DATA })
-      .catch(() => empty)
+    const response = await send(url, { headers: { Accept: 'application/json' } })
+    if (!response.ok) throw new Error(`The wiki answered ${response.status}`)
+    return response.json()
   }
 
   return {
-    searchTitles(lang, text) {
+    /** Article titles of the language's Wikipedia that match a text (iD: list=search, 10 results). */
+    titles(lang: string, text: string) {
       const code = languageOf(lang)
       const trimmed = text.trim()
-      if (code === undefined || trimmed === '') return Promise.resolve([])
-      return cached<string[]>(['titles', code, trimmed], [], async () => {
-        const body = await getJson(
-          WIKIPEDIA_API(code) +
-            query({
-              action: 'query',
-              list: 'search',
-              srlimit: '10',
-              srinfo: 'suggestion',
-              format: 'json',
-              srsearch: trimmed,
-            }),
-        )
-        return parseTitles(body)
-      })
+      return lookup(
+        ['titles', code ?? '', trimmed],
+        code !== undefined && trimmed !== '',
+        [],
+        async () => {
+          if (code === undefined) return []
+          return parseTitles(
+            await getJson(
+              WIKIPEDIA_API(code) +
+                query({
+                  action: 'query',
+                  list: 'search',
+                  srlimit: '10',
+                  srinfo: 'suggestion',
+                  format: 'json',
+                  srsearch: trimmed,
+                }),
+            ),
+          )
+        },
+        isAutomated,
+      )
     },
 
-    qidOfArticle(lang, title) {
+    /** The QID of an article, or null (iD: wbgetentities by sitelink). Null, not undefined: a query needs data. */
+    qidOfArticle(lang: string, title: string) {
       const code = languageOf(lang)
       const trimmed = title.trim()
-      if (code === undefined || trimmed === '') return Promise.resolve(undefined)
-      // null, not undefined: the query client does not cache an undefined answer
-      return cached<string | null>(['article-qid', code, trimmed], null, async () => {
-        const body = await getJson(
-          WIKIDATA_API +
-            query({
-              action: 'wbgetentities',
-              format: 'json',
-              formatversion: '2',
-              sites: `${code.replace(/-/g, '_')}wiki`,
-              titles: trimmed,
-              languages: 'en',
-            }),
-        )
-        return qidFromIds(parseEntityIds(body)) ?? null
-      }).then((qid) => qid ?? undefined)
+      return lookup<string | null>(
+        ['article-qid', code ?? '', trimmed],
+        code !== undefined && trimmed !== '',
+        null,
+        async () => {
+          if (code === undefined) return null
+          const body = await getJson(
+            WIKIDATA_API +
+              query({
+                action: 'wbgetentities',
+                format: 'json',
+                formatversion: '2',
+                sites: `${code.replace(/-/g, '_')}wiki`,
+                titles: trimmed,
+                languages: 'en',
+              }),
+          )
+          return qidFromIds(parseEntityIds(body)) ?? null
+        },
+        isAutomated,
+      )
     },
 
-    searchItems(text, lang) {
+    /** Items that match a text (iD: wbsearchentities, 10 results). */
+    items(text: string, lang: string) {
       const code = languageOf(lang)
       const trimmed = text.trim()
-      if (code === undefined || trimmed === '') return Promise.resolve([])
-      return cached<WikiItem[]>(['items', code, trimmed], [], async () => {
-        const body = await getJson(
-          WIKIDATA_API +
-            query({
-              action: 'wbsearchentities',
-              format: 'json',
-              formatversion: '2',
-              search: trimmed,
-              type: 'item',
-              language: code,
-              uselang: code,
-              limit: '10',
-            }),
-        )
-        return parseItems(body)
-      })
+      return lookup(
+        ['items', code ?? '', trimmed],
+        code !== undefined && trimmed !== '',
+        [],
+        async () => {
+          if (code === undefined) return []
+          return parseItems(
+            await getJson(
+              WIKIDATA_API +
+                query({
+                  action: 'wbsearchentities',
+                  format: 'json',
+                  formatversion: '2',
+                  search: trimmed,
+                  type: 'item',
+                  language: code,
+                  uselang: code,
+                  limit: '10',
+                }),
+            ),
+          )
+        },
+        isAutomated,
+      )
     },
 
-    itemOf(qid, lang) {
+    /** An item's label and description in a language, or null (iD: wbgetentities, labels and descriptions). */
+    item(qid: string | undefined, lang: string) {
       const code = languageOf(lang)
-      const id = qidOf(qid)
-      if (code === undefined || id === undefined) return Promise.resolve(undefined)
-      return cached<WikiItem | null>(['item', code, id], null, async () => {
-        const body = await getJson(
-          WIKIDATA_API +
-            query({
-              action: 'wbgetentities',
-              format: 'json',
-              formatversion: '2',
-              ids: id,
-              props: 'labels|descriptions',
-              languages: code,
-              languagefallback: '1',
-            }),
-        )
-        return parseItem(body, id, code) ?? null
-      }).then((item) => item ?? undefined)
+      const id = qid === undefined ? undefined : qidOf(qid)
+      return lookup<WikiItem | null>(
+        ['item', code ?? '', id ?? ''],
+        code !== undefined && id !== undefined,
+        null,
+        async () => {
+          if (code === undefined || id === undefined) return null
+          const body = await getJson(
+            WIKIDATA_API +
+              query({
+                action: 'wbgetentities',
+                format: 'json',
+                formatversion: '2',
+                ids: id,
+                props: 'labels|descriptions',
+                languages: code,
+                languagefallback: '1',
+              }),
+          )
+          return parseItem(body, id, code) ?? null
+        },
+        isAutomated,
+      )
     },
   }
 }
+
+/** The lookups of the fields: the options of each, from `createWikiSource`. */
+export type WikiSource = ReturnType<typeof createWikiSource>

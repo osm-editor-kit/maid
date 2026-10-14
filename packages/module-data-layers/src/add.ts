@@ -90,7 +90,7 @@ async function checkRemote(send: RemoteFetch, input: AddInput, url: string) {
   }
   if (input.kind === 'pmtiles') {
     try {
-      return await readPmtilesLayers(url)
+      return await readPmtilesLayers(url, send)
     } catch (error) {
       throw describeFailure(error, 'Could not read this PMTiles file')
     }

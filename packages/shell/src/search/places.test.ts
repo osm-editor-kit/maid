@@ -1,5 +1,36 @@
 import { describe, expect, it } from 'bun:test'
-import { createPlaceSearch, PLACE_LIMIT, PlaceSearchError, placeUrl } from './places.ts'
+import { QueryClient, QueryObserver } from '@tanstack/react-query'
+import {
+  createPlaceSearch,
+  PLACE_LIMIT,
+  type PlaceSearchOptions,
+  PlaceSearchError,
+  placeUrl,
+} from './places.ts'
+
+/** The error a promise rejects with, or undefined when it resolves. */
+async function failureOf(promise: Promise<unknown>): Promise<unknown> {
+  try {
+    await promise
+    return undefined
+  } catch (error) {
+    return error
+  }
+}
+
+/**
+ * A place search as a field uses it: `search(text)` is the fetch of the text's query on one client, which keeps the
+ * answer for the session. A failed fetch is not kept, so the next one asks again.
+ */
+function withClient(options: PlaceSearchOptions) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const search = createPlaceSearch(options)
+  return {
+    client,
+    enabled: () => search.enabled(),
+    search: (text: string) => client.fetchQuery(search.query(text)),
+  }
+}
 
 const ANSWER = [
   {
@@ -47,18 +78,39 @@ describe('the request', () => {
 
   it('sends one request for a search', async () => {
     const { calls, fetch } = fakeFetch(ANSWER)
-    const search = createPlaceSearch({ fetch, language: 'en', isAutomated: online })
+    const search = withClient({ fetch, language: 'en', isAutomated: online })
     await search.search('Berlin')
     expect(calls).toHaveLength(1)
     expect(calls[0]).toContain('q=Berlin')
     expect(calls[0]).toContain('accept-language=en')
+  })
+
+  it('asks nothing while the query is only made: a field asks when it fetches or observes it (on submit)', async () => {
+    const { calls, fetch } = fakeFetch(ANSWER)
+    const client = new QueryClient()
+    const options = createPlaceSearch({ fetch, language: 'en', isAutomated: online }).query(
+      'Berlin',
+    )
+    expect(calls).toHaveLength(0)
+    const observer = new QueryObserver(client, options)
+    const off = observer.subscribe(() => undefined)
+    await new Promise((resolve) => setTimeout(resolve, 5))
+    off()
+    expect(calls).toHaveLength(1)
+  })
+
+  it('asks nothing for an empty text', () => {
+    const { calls, fetch } = fakeFetch(ANSWER)
+    const options = createPlaceSearch({ fetch, language: 'en', isAutomated: online }).query('  ')
+    expect(options.enabled).toBe(false)
+    expect(calls).toHaveLength(0)
   })
 })
 
 describe('the answer', () => {
   it('reads the fields the list shows, and the box as south, west, north, east', async () => {
     const { fetch } = fakeFetch(ANSWER)
-    const search = createPlaceSearch({ fetch, language: 'en', isAutomated: online })
+    const search = withClient({ fetch, language: 'en', isAutomated: online })
     const places = await search.search('Berlin')
     expect(places[0]).toEqual({
       id: '1234',
@@ -72,7 +124,7 @@ describe('the answer', () => {
 
   it('gives a place without a box or an id a point id and no bounds', async () => {
     const { fetch } = fakeFetch(ANSWER)
-    const search = createPlaceSearch({ fetch, language: 'en', isAutomated: online })
+    const search = withClient({ fetch, language: 'en', isAutomated: online })
     const [, city] = await search.search('Berlin')
     expect(city).toEqual({
       id: '52.52,13.4',
@@ -84,13 +136,13 @@ describe('the answer', () => {
   })
 
   it('refuses an answer of another shape, or a coordinate out of range', async () => {
-    const shape = createPlaceSearch({
+    const shape = withClient({
       fetch: fakeFetch({ error: 'nope' }).fetch,
       language: 'en',
       isAutomated: online,
     })
     expect(shape.search('x')).rejects.toBeInstanceOf(PlaceSearchError)
-    const range = createPlaceSearch({
+    const range = withClient({
       fetch: fakeFetch([{ display_name: 'x', lat: '95', lon: '1' }]).fetch,
       language: 'en',
       isAutomated: online,
@@ -106,7 +158,7 @@ describe('the answer', () => {
       if (fail) return Promise.reject(new Error('offline'))
       return Promise.resolve(new Response(JSON.stringify(ANSWER)))
     }
-    const search = createPlaceSearch({ fetch: fetch as never, language: 'en', isAutomated: online })
+    const search = withClient({ fetch: fetch as never, language: 'en', isAutomated: online })
     expect(search.search('Berlin')).rejects.toThrow('offline')
     fail = false
     expect(search.search('Berlin')).resolves.toHaveLength(2)
@@ -114,10 +166,10 @@ describe('the answer', () => {
   })
 })
 
-describe('the memory', () => {
-  it('answers a text asked again from memory, whatever its case and spacing', async () => {
+describe('the session answers', () => {
+  it('answers a text asked again from the query, whatever its case and spacing', async () => {
     const { calls, fetch } = fakeFetch(ANSWER)
-    const search = createPlaceSearch({ fetch, language: 'en', isAutomated: online })
+    const search = withClient({ fetch, language: 'en', isAutomated: online })
     await search.search('Berlin')
     await search.search('  berlin ')
     await search.search('BERLIN')
@@ -126,8 +178,8 @@ describe('the memory', () => {
 
   it('keeps the languages apart', async () => {
     const { calls, fetch } = fakeFetch(ANSWER)
-    const english = createPlaceSearch({ fetch, language: 'en', isAutomated: online })
-    const german = createPlaceSearch({ fetch, language: 'de', isAutomated: online })
+    const english = withClient({ fetch, language: 'en', isAutomated: online })
+    const german = withClient({ fetch, language: 'de', isAutomated: online })
     await english.search('Berlin')
     await german.search('Berlin')
     expect(calls).toHaveLength(2)
@@ -137,14 +189,24 @@ describe('the memory', () => {
 describe('automated runs', () => {
   it('sends nothing and refuses to search', async () => {
     const { calls, fetch } = fakeFetch(ANSWER)
-    const search = createPlaceSearch({ fetch, language: 'en', isAutomated: automated })
+    const search = withClient({ fetch, language: 'en', isAutomated: automated })
     expect(search.enabled()).toBe(false)
-    expect(search.search('Berlin')).rejects.toMatchObject({ reason: 'off' })
+    expect(search.client.getQueryCache().getAll()).toHaveLength(0)
+    expect(await failureOf(search.search('Berlin'))).toMatchObject({ reason: 'off' })
+    expect(calls).toHaveLength(0)
+  })
+
+  it('has its query disabled, so that an observing field asks nothing', async () => {
+    const { calls, fetch } = fakeFetch(ANSWER)
+    const options = createPlaceSearch({ fetch, language: 'en', isAutomated: automated }).query(
+      'Berlin',
+    )
+    expect(options.enabled).toBe(false)
     expect(calls).toHaveLength(0)
   })
 
   it('is enabled when not automated', () => {
-    const search = createPlaceSearch({
+    const search = withClient({
       fetch: fakeFetch(ANSWER).fetch,
       language: 'en',
       isAutomated: online,
