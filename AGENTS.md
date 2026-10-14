@@ -1,146 +1,122 @@
 # Working in this repo
 
-This file is for coding agents and for people. Read it before you change anything. `CLAUDE.md` imports it.
+For coding agents and people; `CLAUDE.md` imports it. Read it before you change anything.
 
-Maid is developed agent-first: every task must be doable, checkable and reportable from the command line without a person clicking through a browser. If a step needs manual work, that is a gap in the tooling. Fix the tooling or write the gap down in [docs/build-out/steps.md](docs/build-out/steps.md).
+Maid is developed agent-first: every task must be doable, checkable and reportable from the command line. A step that needs a person clicking is a gap in the tooling: fix the tooling or note the gap in [docs/build-out/steps.md](docs/build-out/steps.md).
 
 ## Core rules
 
-These rules are not up for trade-offs. If a task seems to need an exception, stop and ask.
+Not up for trade-offs. If a task seems to need an exception, stop and ask.
 
-### 1. Keep traffic on OSM infrastructure to an absolute minimum
+### 1. Clear states: automation uses only the fixtures
 
-OSM infrastructure means everything the OSMF and the community run for mappers: `api.openstreetmap.org`, `api06.dev.openstreetmap.org`, `tile.openstreetmap.org`, Nominatim, Overpass instances, taginfo, the OSM wiki.
+OSM infrastructure is everything the OSMF and the community run for mappers: the API and the development API, tiles, Nominatim, Overpass, taginfo, the wiki.
 
-- Automated runs (tests, benchmarks, CI, agent sessions) send **zero** requests to OSM infrastructure. The benchmark browser blocks every non-localhost request and a run fails when an editor tries to reach an OSM host.
-- All three editors (Maid, iD, Rapid) read OSM data from the local mock API in `tools/mock-osm-api`, which serves frozen fixtures.
-- Fixtures are created once, by a person running a script on purpose, from a bulk extract (not from the editing API), and are committed. Regenerating a fixture is a deliberate, reviewed change.
-- Live OSM data is a manual, opt-in mode of the Maid app for a person (`?live=1` reads the real API, `?live=dev` the development server; each can save after a login to that server). It is off by default in development, the default of a deployed build, never used in automation, cached, and only loads at editing zoom levels.
-- Never sign in to OSM from an automated run. Never upload. The mock API rejects writes.
-- **Clear states** (decided by Tobias on 2026-10-14, replacing the rule of 2026-10-12 that nothing is saved to the real map): automated runs (tests, benchmarks, CI, agent sessions) use only the fixtures of the mock API. Tests against the development server (`master.apis.dev.openstreetmap.org`, staging) and against OpenStreetMap (production) are done by a person, never by an agent; an agent builds the feature and a person tries it. Maid is built to be released for both: a deployed build reads, logs in to and saves on the server the person chose, and `VITE_MAID_SERVERS` (`MAID_SERVERS` in `deploy.env`) says which servers a build offers, as iD's `ID_API_CONNECTION`.
-- Do not copy OAuth client ids or secrets from the reference editors into this repo. Maid's own client ids (`VITE_OSM_CLIENT_ID` for openstreetmap.org, `VITE_OSM_DEV_CLIENT_ID` for the development server) are public; they live in `apps/<app>/.env.local` and in the repository variables `OSM_CLIENT_ID` and `OSM_DEV_CLIENT_ID`, so that a fork sets its own. Maid is a public client with PKCE: it has and needs no client secret, and none is ever written into this repo.
+- **Automated runs** (tests, benchmarks, CI, agent sessions) send **zero** requests to OSM infrastructure, never sign in and never upload. Maid, iD and Rapid read the frozen fixtures of the local mock API (`tools/mock-osm-api`), which rejects writes. The benchmark browser blocks every non-localhost request; under automation (`isAutomated()`) Maid always uses the mock.
+- **Fixtures** are cut once by a person from a bulk extract (`bun run fixtures-build`), not from the editing API, and committed. Regenerating one is a reviewed change.
+- **A person** tests against the development server (staging) and OpenStreetMap (production), never an agent. Maid is built to be released for both: `?api=mock|osm|dev` picks the data (the mock is the default in development; a deployed build starts on the editor's first server), and the person logs in to and saves on that server. `osm.servers` in the app's `maid.config.ts` says which servers an editor offers, as iD's `ID_API_CONNECTION`. Decided by Tobias on 2026-10-14.
+- **Environment variables** hold only what each fork sets for itself: the client ids (`VITE_OSM_CLIENT_ID`, `VITE_OSM_DEV_CLIENT_ID` in `apps/<app>/.env.local`; repository variables `OSM_CLIENT_ID`, `OSM_DEV_CLIENT_ID`) and the Pages app and path (`deploy.env`). Client ids are public. Maid is a public PKCE client: no client secret, ever. Never copy ids or secrets from the reference editors.
 
 ### 2. Automation first
 
-- Every workflow has a `bun run <script>` entry point at the repo root. Agents and docs only reference those script names.
-- Every result an agent needs is written to a file in a stable, machine-readable format (JSON first, a rendered report second).
-- Apps expose a debug handle on `window` (`__bench`, `__maid`) in dev builds and in builds made with `VITE_BENCH=1` (`bun run bench` and `bun run compare` set it; `bun run bench-edit` needs a preview built with it) so agents and Playwright can inspect state without scraping the DOM; a plain production build (GitHub Pages) has none.
-- Commands must be non-interactive, exit non-zero on failure, and print where they wrote their output.
+- Every workflow has a `bun run <script>` at the repo root; agents and docs reference only those names.
+- Results an agent needs go to a file in a stable format (JSON first, a rendered report second).
+- Dev builds and builds with `VITE_BENCH=1` (`bun run bench`, `bun run compare`) expose `window.__bench` and `window.__maid`; a deployed build has none.
+- Commands are non-interactive, exit non-zero on failure and print where they wrote their output.
 
 ### 3. References
 
-- iD: https://github.com/openstreetmap/iD
-- Rapid: https://github.com/bhousel/Rapid (Rapid 3). **Never** use `facebook/Rapid` as a reference.
-- Read their code from `.reference/id` and `.reference/rapid`: pinned commits that `bun run refs-setup` clones from GitHub (git-ignored). Benchmarks and ports use these, so everyone works from the same commit. This file names no other location on purpose.
-- **Other repositories are read-only, wherever they are.** That covers `.reference/`, any other checkout of iD, Rapid or another project on the machine, and every repository on GitHub that is not this one. Never edit, commit, push, open or comment on issues and pull requests, or change settings there, even where the account has the rights to. A change we want upstream is prepared here as a draft and handed to a person.
+- iD: https://github.com/openstreetmap/iD. Rapid 3: https://github.com/bhousel/Rapid (**never** `facebook/Rapid`). When in doubt, follow iD.
+- Read their code in `.reference/id` and `.reference/rapid`: pinned commits from `bun run refs-setup` (git-ignored). This file names no other location on purpose.
+- **Other repositories are read-only**, wherever they are, `.reference/` included: never edit, commit, push, open or comment on issues and pull requests, or change settings there. Changes we want upstream are drafted here (`docs/upstream/`) and handed to a person.
 
 ## Stack
 
-Follow the FMC `tech-stack` skill. In short: Bun workspaces, Vite, React 19 with the React Compiler, TypeScript 7, `react-map-gl/maplibre` (see the `react-map-gl` skill: declarative `<Source>`/`<Layer>`, `<Map>` event props, no `map.addLayer` in app code), Zustand for client state, Zod for validation, Tailwind, oxlint and oxfmt, Vitest, Playwright.
-
-Performance experiments may need imperative MapLibre calls that the `react-map-gl` skill forbids for app code (for example `GeoJSONSource.updateData`). Keep those inside the renderer package behind a small API and say why in a comment.
+The FMC `tech-stack` skill: Bun workspaces, Vite, React 19 with the React Compiler, TypeScript 7, `react-map-gl/maplibre` (the `react-map-gl` skill: declarative `<Source>`/`<Layer>`, no `map.addLayer` in app code), Zustand, Zod, TanStack Query, Tailwind, oxlint and oxfmt, Vitest, Playwright. Imperative MapLibre calls needed for performance (for example `GeoJSONSource.updateData`) stay inside the renderer package behind a small API, with a comment saying why.
 
 ## Workflow
 
-1. Pick the next open step in [docs/build-out/steps.md](docs/build-out/steps.md). One step is about an hour and ends with one thing for Tobias to test. (Iteration 1, the proof of concept, is closed: [docs/iteration-1/steps.md](docs/iteration-1/steps.md).)
-2. Do the work. Stay inside the step. Write down new findings in `docs/research/` and decisions in `docs/adr/`.
-3. Run `bun run check` and fix what it reports. For changes to apps or the benchmark also run the script named in the step.
-4. Tick the step, add the result and the test for Tobias under it, and commit (see the `finish-work` skill for the message format: `<Topic>: <outcome>` plus outcome bullets).
+1. Pick the next open step in [docs/build-out/steps.md](docs/build-out/steps.md): about an hour, ending with one thing for Tobias to test.
+2. Stay inside the step. Findings go to `docs/research/`, decisions to `docs/adr/`.
+3. Run `bun run check` and fix what it reports; for apps or the benchmark also the script the step names.
+4. Tick the step with its result and the test for Tobias, and commit (`finish-work` skill: `<Topic>: <outcome>` plus outcome bullets).
 5. Do not push unless asked.
 
 ## Working with subagents
 
-Learned on 2026-10-11 while porting Rapid's data model.
-
-- **Do the mechanical part yourself, with a script.** Copying files and rewriting imports with `cp` and `sed` costs almost nothing and showed in minutes what was really left to do. Hand out what remains.
-- **Measure before you brief.** Run the type-check and the tests first and give the agent the failure list and the done-when command. A brief without a command that proves "done" is not ready.
-- **One folder per agent**, named in the brief, and nothing outside it: no `package.json`, no index files, no `bun install`, no commits. The orchestrator wires things together and commits.
-- **Say what to copy and what to cut.** "Start with `cp`, then delete and edit, do not retype" keeps ported code identical to its source and keeps the agent's context small.
-- **Haiku is the default for subagents; raise its effort before you switch models.** Set the effort in every brief, do not leave it to the default. Low or medium for lookups and measurements, high where the agent has to choose what to keep or design an API. **High is the ceiling: never use max or xhigh.** If high is not enough, split the task. Decided by Tobias on 2026-10-11 from a cost-against-score chart (CursorBench 4.0): Haiku at max effort scores like Sonnet at the same cost, and Haiku is ahead of Sonnet and Opus at every cost below that.
-- **Sonnet only at medium effort**, and only when Haiku at high was not enough. **Opus never at low effort** (Haiku is cheaper there and scores higher). Opus is for orchestration, review and decisions that span packages.
-- **Keep each agent under about 100k tokens of context**: one file or one package per agent, read with `grep -n` and `sed -n` in ranges. Haiku costs more per request above that size. `CLAUDE_CODE_AUTO_COMPACT_WINDOW=100000` enforces it, but it is set per session and would also apply to the orchestrator.
-- **Ask for a short report in a fixed shape**: what changed, what was cut and why, final numbers, what is unsure. Ask the agent to separate what it measured from what it inferred.
-- **Treat reports as leads.** Re-run the done-when commands yourself, count tests and assertions against the source, and grep for skipped tests before accepting. Mark claims you did not check as unchecked in the docs.
-- Agents that depend on each other's API can still run in parallel if the brief fixes the names both sides use.
-- **Agents that run in parallel never run `bun run check`.** Its lint step fixes files across the whole repo (`oxlint --fix --fix-dangerously`) and rewrote half-written files of other agents, for example by adding `throw new Error('Not implemented yet: …')` cases to a switch. In parallel, an agent proves its work with the read-only commands on its own folder (`bun run type-check`, `bunx oxlint --deny-warnings -c oxlint.config.mjs <folder>`, `bun test <folder>`); the orchestrator runs `bun run check` once nobody is editing and reads the diff it makes. Learned on 2026-10-13.
-- **Browser checks and parallel edits do not mix.** The dev server reloads the page whenever a source file changes, so a check run by one agent dies ("Execution context was destroyed") when another agent saves a file. Agents that run in parallel prove their work with unit tests and headless scripts; the orchestrator runs the browser checks once nobody is editing. A check counts only with exit code 0 and the expected number of `ok` lines: an aborted run prints no `FAIL`. Learned on 2026-10-13.
+- **Do the mechanical part yourself, with a script** (`cp`, `sed`), then hand out what remains. Tell agents what to copy and what to cut: "start with `cp`, then delete and edit, do not retype".
+- **Measure before you brief**: give the agent the failure list and the command that proves "done".
+- **One folder per agent**, nothing outside it: no `package.json`, index files, `bun install` or commits. The orchestrator wires and commits.
+- **Models** (Tobias, 2026-10-11): Haiku by default, with the effort set in every brief: low or medium for lookups and measurements, high where it must choose or design. **High is the ceiling, never max or xhigh**; split the task instead. Sonnet only at medium and only when Haiku at high was not enough. Opus never at low; it orchestrates, reviews and decides across packages.
+- **Keep each agent under about 100k tokens**: one file or package, read in ranges (`grep -n`, `sed -n`).
+- **Reports in a fixed shape**: what changed, what was cut and why, final numbers, what is unsure, measured apart from inferred. Treat them as leads: re-run the done-when commands, count tests against the source, grep for skipped tests, and mark unchecked claims in the docs.
+- **Parallel agents never run `bun run check`**: its lint fixes rewrite other agents' half-written files. They use read-only commands on their folder (`bun run type-check`, `bunx oxlint --deny-warnings -c oxlint.config.mjs <folder>`, `bun test <folder>`), and the orchestrator runs `bun run check` when nobody edits.
+- **Parallel agents never run browser checks**: the dev server reloads on every save and kills them. A check counts only with exit code 0 and the expected number of `ok` lines.
 
 ## Scripts
 
-These names are the contract. Agents and docs only reference these.
+These names are the contract.
 
 | Script | What it does |
 | --- | --- |
-| `bun run check` | Compiles the texts, then type-check, lint and format with fixes (oxlint, oxfmt), the missing-texts check, unit tests. Run before every commit. |
-| `bun run i18n-compile` | Paraglide: generates `packages/i18n/paraglide/` from the app's message files and `packages/module-*/paraglide/` from each module's own (`project.inlang`, `messages/`; list in `packages/i18n/scripts/projects.ts`). Runs first in `check`, `check-ci`, `test-run`, `type-check`, `dev`, `dev-maid`, `dev-bicycle` and the apps' `build`; skips when the output is up to date. |
-| `bun run i18n-check` | Lists the keys each language lacks (en is the base), for the app and for each module (under `modules`), as JSON in `reports/i18n-missing.json`. Exits 1 when a key lacks a language or a placeholder differs. |
+| `bun run check` | Compiles the texts, then type-check, lint and format with fixes, the missing-texts check, unit tests. Before every commit. |
 | `bun run check-ci` | The same, read-only. |
-| `bun run dev` | The three apps' dev servers (`apps/maid` on 5173, `apps/maid-bicycle` on 5176, `apps/maid-parking` on 5177) and the mock OSM API (8090). |
-| `bun run dev-maid` | Only the Maid dev server (`apps/maid`, 5173). |
-| `bun run dev-parking` | Only the Maid Parking dev server (`apps/maid-parking`, 5177): the street-side parking editor, German by default. Checks and the benchmark take it with `--app parking`. |
-| `bun run dev-bicycle` | Only the Maid Bicycle dev server (`apps/maid-bicycle`, 5176): Maid's modules plus the traffic signs module. |
-| `bun run dev-api` | Only the mock OSM API (`tools/mock-osm-api`, 8090), serving the frozen fixtures to the editors. |
-| `bun run refs-setup` | Clone and build iD and Rapid at their pinned commits into `.reference/`, copy icon sprites into Maid. |
-| `bun run refs-serve` | Serve the built reference editors: iD on 8081, Rapid on 8082 (`refs-serve-id` and `refs-serve-rapid` serve one each). |
-| `bun run bench` | Run all scenarios against all editors and write `reports/<run-id>/`. Starts the servers it needs. Options: `--editor`, `--scene`, `--repeat`, `--label`, `--variant`, `--maid-query`, `--id-query`, `--app maid\|bicycle\|parking` (the Maid build measured), `--maid-lens <id>` (switch a lens on after load), `--edit-reps` (repetitions of each edit interaction, default 5). |
+| `bun run i18n-compile` | Paraglide output for the app (`packages/i18n`) and each module with its own `project.inlang` (list in `packages/i18n/scripts/projects.ts`). Runs first in `check`, `type-check`, `dev` and the builds; skips when up to date. |
+| `bun run i18n-check` | Keys a language lacks, per project, in `reports/i18n-missing.json`; exits 1 on a missing key or placeholder. |
+| `bun run dev` | The three apps (`maid` 5173, `maid-bicycle` 5176, `maid-parking` 5177) and the mock API (8090). `dev-maid`, `dev-bicycle`, `dev-parking`, `dev-api` start one. |
+| `bun run refs-setup` | Clone and build iD and Rapid at their pinned commits into `.reference/`, copy their sprites. |
+| `bun run refs-serve` | Serve them: iD on 8081, Rapid on 8082 (`refs-serve-id`, `refs-serve-rapid`). |
+| `bun run compare` | The side-by-side page of Maid, iD and Rapid on http://localhost:5184. |
+| `bun run bench` | All scenarios against all editors into `reports/<run-id>/`; starts its servers. Options: `--editor`, `--scene`, `--repeat`, `--label`, `--variant`, `--maid-query`, `--id-query`, `--app`, `--maid-lens <id>`, `--edit-reps`. |
 | `bun run bench-smoke` | One run per editor on the small scene. |
-| `bun run bench-report [run-id ...]` | Render one or more runs as `report.md` and `report.html`. |
-| `bun run bench-budget [run-id ...]` | Check a run against the budgets: Maid against iD and Rapid in the same run (FAIL, exit 1), and against `tools/bench/budget.json` (WARN). `--update` writes that file from the run. Writes `reports/<run>/budget-check.json`. |
-| `bun run bench-edit [scene] [query]` | Maid only: drag a node and measure change-to-screen time. Needs a Maid preview on 5175 (`bun run compare` starts one). |
-| `bun run bench-rmgl [--reps 5] [--only mount,...] [--quick]` | react-map-gl against raw MapLibre with Maid's layers and the dense fixture: mount, re-renders, prop changes, GeoJSON updates, pointer, camera, hover, style swap, `styledata`. Builds and serves its own page on 5186. Writes `reports/rmgl-bench.json` (`--only` and `--quick`: `reports/rmgl-bench-partial.json`), see `docs/research/react-map-gl-performance.md`. |
-| `bun run bench-model [--runs 5] [--browser chromium]` | Time loading each fixture into `maid-model` (JSON to entities, entities into the history), in the browser. Writes `reports/model-load-<browser>.json`. |
-| `bun run bench-validation` | Time every validation rule on the dense fixture, one edit, and bursts of edits. Writes `reports/validation-bench.json`. |
-| `bun run check-undo [scene]` | Browser check: move a vertex, change a tag, undo and redo, and compare data and map after each step. Needs `bun run dev`. |
-| `bun run check-draw` | Browser check with real keys and clicks: draw a line, continue it, snap to a node and a way, draw an area, cancel. Needs `bun run dev`. |
-| `bun run check-edit [scene]` | Browser check: add a point, change it, delete it, delete a way, undo and redo, and compare data, lookups and map after each step. Needs `bun run dev`. |
-| `bun run check-filters [scene]` | Browser check: hide buildings, make them read-only, reset, and start with a filter in the URL. Needs `bun run dev`. |
-| `bun run check-journal [scene]` | Browser check: edit, reload, restore the edits from the browser's storage, undo all, reload, discard. Needs `bun run dev`. |
-| `bun run check-tags` | Browser check of the tags sheet on a bare test page, with real keys, mouse and clipboard: typing, moving, renaming, pasting `key=value` lines, copying rows, and that the editor's shortcuts stay out of a cell. Needs `bun run dev`. |
-| `bun run check-multi [scene]` | Browser check of the inspector for several selected features: two buildings selected, "Multiple values", a value typed for both as one undo step, a new tag for both, and the refusal when they are read-only. Needs `bun run dev`. |
-| `bun run check-parking [scene] --app parking` | Browser check of the parking editor (only for `--app parking`; `check-all` runs it there only): quick buttons on one road and on two (one undo step, pressed state, `both`), the restriction field per side with a typed conditional rule, a parking rule in the Issues dock, the operation "Copy parking to the other side", and the parking lens (side features in the map). Needs the parking app's server on 5177. |
-| `bun run check-interactions [scene]` | Browser check with real mouse, key and touch events against iD's behaviour: Shift-click, dragging nodes and points, double click, drawing keys, move, rotate, copy and paste. Needs `bun run dev`. |
-| `bun run check-ops [scene]` | Browser check: square a building, split a road, merge the parts, undo; data and map after each step. Needs `bun run dev`. |
-| `bun run check-relations [scene]` | Browser check: add a way to a relation, change its role, remove it, undo; move a node of a multipolygon and see its area follow. Needs `bun run dev`. |
-| `bun run check-validation [scene]` | Browser check: add a footway that crosses a road and is connected to nothing, see both reported, use the fix, undo. Needs `bun run dev`. |
-| `bun run check-render <name>` | Compare screenshots and feature counts of all scenes with a reference. Needs `bun run dev`. |
-| `bun run check-render-save <name>` | Save that reference from the current state, before a change to the renderer. |
-| `bun run check-all [--app maid\|bicycle\|parking]` | Runs the eleven browser checks above (and `check-parking` for `--app parking`), one after another, against one app (default maid), with the scene each check uses by default. One line per check (`name exit= ok=`) and its FAIL lines; exits 1 if a check exits non-zero or prints fewer `ok` lines than the table in `tools/checks/check-all.ts`. Writes `reports/check-all-<app>.json` and the full output of each check to `reports/check-all-<app>/`. Needs `bun run dev`. |
-| `bun run check-config` | Contract check of each app's `maid.config.ts` in Bun, without a browser: the modules set up alone with no network request, their extension points exist, their items are removed on destroy, the preset changes apply, and each app's Vite port, strictPort, login origin and the app ids and ports are unique. Writes `reports/config-check.json`. |
-| `bun run compare` | Everything for the side-by-side page on http://localhost:5184. |
-| `bun run fixtures-build <file.osm.pbf>` | Cut fixtures from a local extract. Manual only, see core rule 1. |
+| `bun run bench-report [run-id ...]` | Render runs as `report.md` and `report.html`. |
+| `bun run bench-budget [run-id ...]` | Maid against iD and Rapid in the same run (FAIL) and against `tools/bench/budget.json` (WARN); `--update` rewrites the budget. |
+| `bun run bench-edit [scene] [query]` | Maid only: change-to-screen time of a node drag. Needs a `VITE_BENCH=1` preview on 5175. |
+| `bun run bench-rmgl [--reps 5] [--only ...] [--quick]` | react-map-gl against raw MapLibre with Maid's layers on 5186, into `reports/rmgl-bench*.json` ([docs](docs/research/react-map-gl-performance.md)). |
+| `bun run bench-model [--runs 5] [--browser chromium]` | Loading each fixture into the model, into `reports/model-load-<browser>.json`. |
+| `bun run bench-validation` | Every validation rule on the dense fixture, into `reports/validation-bench.json`. |
+| `bun run check-all [--app maid\|bicycle\|parking]` | The browser checks below, one after another, against one app; fails on a non-zero exit or too few `ok` lines (table in `tools/checks/check-all.ts`). Writes `reports/check-all-<app>.json`. |
+| `bun run check-config` | Each app's `maid.config.ts` without a browser: modules set up with no network request, extension points, cleanup, presets, unique ports and ids. Writes `reports/config-check.json`. |
+| `bun run check-render <name>` | Screenshots and feature counts of all scenes against a reference saved with `check-render-save <name>`. |
+| `bun run fixtures-build <file.osm.pbf>` | Cut fixtures from a local extract. A person only (core rule 1). |
 | `bun run style-generate [iD checkout]` | Regenerate the style data from iD's CSS and presets. |
 
-Every browser check takes `--app maid\|bicycle\|parking` (default maid) and runs against that app's port, for example `bun run check-edit small --app bicycle`. The option is read in one place, `tools/bench/args.ts`; the scene argument keeps its place.
+The browser checks need `bun run dev` and take `[scene]` and `--app maid|bicycle|parking` (read in `tools/bench/args.ts`):
 
-Every editor is driven through one contract, `window.__bench` (`tools/refs/bench-api.d.ts`). Maid also exposes `window.__maid` with the map, the engine, the editor and the data model's module. To look at one editor: `bun tools/bench/shot.ts maid|id|rapid <scene> [zoom]`.
+| Check | What it does, with real input, comparing data and map after each step |
+| --- | --- |
+| `check-interactions` | iD's behaviour: Shift-click, dragging nodes and points, double click, drawing keys, move, rotate, copy and paste |
+| `check-edit` | Add, change and delete a point, delete a way, undo and redo |
+| `check-draw` | Draw a line, continue it, snap to a node and a way, draw an area, cancel |
+| `check-undo` | Move a vertex, change a tag, undo and redo |
+| `check-ops` | Square a building, split a road, merge the parts, undo |
+| `check-relations` | Add a way to a relation, change its role, remove it, undo; a multipolygon follows its moved node |
+| `check-validation` | A footway that crosses a road and connects to nothing: both reported, fix, undo |
+| `check-journal` | Edit, reload, restore from the browser's storage, undo all, reload, discard |
+| `check-filters` | Hide buildings, make them read-only, reset, a filter in the URL |
+| `check-tags` | The tags sheet on a bare page: typing, moving, renaming, pasting and copying `key=value` lines, shortcuts stay out of a cell |
+| `check-multi` | Two buildings selected: "Multiple values", one undo step for both, a new tag for both, refusal when read-only |
+| `check-parking` | `--app parking` only: quick buttons on one and two roads, restriction field, a parking rule, "Copy parking to the other side", the parking lens |
+
+Every editor is driven through `window.__bench` (`tools/refs/bench-api.d.ts`); Maid also has `window.__maid` (map, engine, editor, model). One editor's screenshot: `bun tools/bench/shot.ts maid|id|rapid <scene> [zoom]`.
 
 ## Layout
 
 ```
-apps/maid            the default editor: maid.config.ts (an AppConfig: modules, presets, filters), main.tsx, env files; the rest is the shell
-apps/maid-bicycle    the second app on port 5176: the same, with the traffic signs module switched on and its own name
-apps/maid-parking    the third app on port 5177: street-side parking; the parking module, no surface module, German by default
-apps/compare         page that shows Maid, iD and Rapid side by side
-packages/style       iD's look as data: tag classes, CSS rules
-packages/core        createEditor: the editor's data (context, history), Maid modules, extension points, hooks
-packages/model       the data model, ported from Rapid 3: entities, graph, actions, history (see its README)
-packages/i18n        Maid's texts: Paraglide messages in en, de, fr, es (messages/), the language choice (chooseLocale)
-packages/journal     unsaved edits kept in the browser (IndexedDB), restored after a reload, headless
-packages/filters     which features are editable, read-only or hidden: ordered rules, iD's categories, headless
-packages/operations  the edit menu's operations (reverse, split, merge, ...) on the model, headless
-packages/presets     preset matching and fields on id-tagging-schema, headless
-packages/validation  rules that check what was changed, and their fixes, headless
-packages/shell       the editor's shell (@osm-editor-kit/maid-shell): App, components, URL, save, auth, built-in modules, bench handle, styles and public assets (sprites, fonts, land.html, frame-sync.js)
-packages/ui          the shell's components and the inspector's fields: layout, top bar, sidebar, map controls, dock, theme; declares inspector.section
-packages/module-parking the parking editor's module: presets, quick buttons, lens, restriction field, rules, operations, icons
-packages/module-*    optional modules an editor switches on in its config: imagery, street-imagery, data-layers,
-                     notes, lenses, traffic-signs, surface (the last two are built but not switched on)
-packages/renderer    feature builder, MapLibre layers, engine, module layers; draws from the model
-tools/mock-osm-api   local stand-in for the OSM API, serves fixtures
-tools/refs           pinned iD and Rapid: setup, host pages, bench adapters, notes
-tools/bench          Playwright benchmark, report generator
+apps/maid, maid-bicycle, maid-parking   the editors: maid.config.ts (an AppConfig: modules, presets, filters, servers), main.tsx, env files
+apps/compare         Maid, iD and Rapid side by side
+packages/shell       the editor's shell: App, URL, save, auth, built-in modules, bench handle, styles, public assets
+packages/ui          the shell's components and the inspector's fields
+packages/core        createEditor: data, modules, extension points, hooks
+packages/model       the data model, ported from Rapid 3
+packages/renderer    feature builder, MapLibre layers, engine
+packages/presets, validation, operations, filters, journal   headless: presets on id-tagging-schema, rules and fixes, edit operations, editable/read-only/hidden, unsaved edits in IndexedDB
+packages/style       iD's look as data
+packages/i18n        Paraglide texts in en, de, fr, es
+packages/module-*    modules an app switches on: imagery, street-imagery, data-layers, notes, lenses, parking, turn-restrictions, surface, traffic-signs
+tools/mock-osm-api   local stand-in for the OSM API, serves the fixtures
+tools/refs, tools/bench, tools/checks   pinned iD and Rapid, the benchmark, the browser checks
 fixtures/            frozen OSM data (ODbL, © OpenStreetMap contributors)
-reports/             benchmark output
-docs/                plan, working steps, research, decisions
-.reference/          pinned builds of iD and Rapid (git-ignored)
+docs/                plan, steps, research, decisions, upstream drafts
+reports/             output of benchmarks and checks (mostly git-ignored)
 ```
