@@ -12,6 +12,8 @@ import {
   waterwayValues,
 } from '../tags.ts'
 import type { Fix, Issue, Rule, RuleContext } from '../types.ts'
+import { createSegmentIndex, segmentBox } from './crossing-segments.ts'
+import type { Segment, SegmentEntry, SegmentIndex } from './crossing-segments.ts'
 
 // Ported from iD's crossing_ways validator (ISC, © iD contributors), at commit 0194f3926, and from
 // Rapid's version of it. Cut: relations (multipolygon members are not checked), the bridge, tunnel
@@ -19,10 +21,20 @@ import type { Fix, Issue, Rule, RuleContext } from '../types.ts'
 
 type FeatureType = ConnectionFeature
 
-type Segment = { from: string; to: string; a: Point; b: Point }
-
 /** One way of a crossing, with the segment that crosses */
 type Side = { way: OsmWay; type: FeatureType; line: boolean; segment: Segment }
+
+/**
+ * A way of the run that is a crossing feature, with its segments. `mark` is the check that named
+ * it last: the neighbours of the way being validated are marked, the other ways of the run are not.
+ */
+type WayRecord = {
+  way: OsmWay
+  type: FeatureType
+  line: boolean
+  segments: Segment[]
+  mark: number
+}
 
 /** iD's `osmRoutableAerowayTags` */
 const routableAerowayValues: ReadonlySet<string | undefined> = new Set(['runway', 'taxiway'])
@@ -57,23 +69,63 @@ function segmentsOf(way: OsmWay, graph: Graph) {
     if (from === undefined || to === undefined) continue
     const a = nodeLoc(graph, from)
     const b = nodeLoc(graph, to)
-    if (a && b) segments.push({ from, to, a, b })
+    if (a && b) segments.push({ from, to, a, b, box: segmentBox(a, b) })
   }
   return segments
 }
 
 /**
- * The segments of a way for one run. A busy road is a neighbour of many ways, and each of them asks for its
- * segments: the run keeps them (its graph does not change), so each way's segments are made once per run.
+ * The record of a way for one run, or `null` when it is not a crossing feature. A busy road is a
+ * neighbour of many ways: the run keeps each way's record and its segments (its graph does not change),
+ * and the segments of every feature go into the run's segment index once, when the record is made.
  */
-function segmentsCached(way: OsmWay, context: RuleContext) {
-  const key = `crossing_ways:segments:${way.id}`
-  let segments = context.memo.get(key) as Segment[] | undefined
-  if (segments === undefined) {
-    segments = segmentsOf(way, context.graph)
-    context.memo.set(key, segments)
+function recordOf(way: OsmWay, context: RuleContext, state: RunState) {
+  const cached = state.records.get(way.id)
+  if (cached !== undefined) return cached
+  const type = featureOf(way, context.graph)
+  let record: WayRecord | null = null
+  if (type) {
+    record = {
+      way,
+      type,
+      line: way.geometry(context.graph) === 'line',
+      segments: segmentsOf(way, context.graph),
+      mark: 0,
+    }
+    state.index.add(record, record.segments)
   }
-  return segments
+  state.records.set(way.id, record)
+  return record
+}
+
+/** What the run keeps for crossing_ways: the segment index and the record of each way it has seen */
+type RunState = {
+  index: SegmentIndex<WayRecord>
+  records: Map<string, WayRecord | null>
+}
+
+/** The state of the run, made with the first check of the run */
+function stateOf(context: RuleContext) {
+  const key = 'crossing_ways:run'
+  let state = context.memo.get(key) as RunState | undefined
+  if (state === undefined) {
+    state = { index: createSegmentIndex<WayRecord>(), records: new Map() }
+    context.memo.set(key, state)
+  }
+  return state
+}
+
+/** Numbers the checks, so that a neighbour's mark names the check that marked it */
+let checks = 0
+
+/** A crossing found by the index: the segment of the validated way, the other segment, and the point */
+type Found = {
+  point: Point
+  indexA: number
+  segmentA: Segment
+  owner: WayRecord
+  indexB: number
+  segmentB: Segment
 }
 
 /** iD's `taggedAsIndoor`: indoor features have a level */
@@ -122,22 +174,6 @@ function isLegitCrossing(a: Side, b: Side) {
 
 function sharesNode(a: Segment, b: Segment) {
   return a.from === b.from || a.from === b.to || a.to === b.from || a.to === b.to
-}
-
-/**
- * Every proper crossing of the segments of two ways, as the segment of each way and the point. The
- * segments of the validated way are made once by the caller: they do not change between neighbours.
- */
-function crossingsOf(segments: readonly Segment[], otherSegments: readonly Segment[]) {
-  const found: Array<{ point: Point; segmentA: Segment; segmentB: Segment }> = []
-  for (const segmentA of segments) {
-    for (const segmentB of otherSegments) {
-      if (sharesNode(segmentA, segmentB)) continue
-      const point = properIntersection(segmentA.a, segmentA.b, segmentB.a, segmentB.b)
-      if (point) found.push({ point, segmentA, segmentB })
-    }
-  }
-  return found
 }
 
 function labelOf(side: Side) {
@@ -207,36 +243,75 @@ export const crossingWays: Rule = {
   validate(entity, context) {
     if (!(entity instanceof OsmWay)) return []
     const graph = context.graph
-    const type = featureOf(entity, graph)
-    if (!type) return []
+    if (!featureOf(entity, graph)) return []
 
     const neighbours = context.waysNear(entity)
     if (neighbours.length === 0) return []
 
-    const issues: Issue[] = []
-    // fixed for the whole way: made once, not for each neighbour
-    const segments = segmentsCached(entity, context)
-    const line = entity.geometry(graph) === 'line'
+    // The neighbours' segments are all in the index before the first query: each neighbour is
+    // marked with this check, and a query keeps only the entries of marked ways.
+    const state = stateOf(context)
+    const index = state.index
+    const check = ++checks
     for (const other of neighbours) {
-      const otherType = featureOf(other, graph)
-      if (!otherType) continue
+      const record = recordOf(other, context, state)
+      if (record) record.mark = check
+    }
+    const validated = recordOf(entity, context, state)
+    if (!validated) return []
 
-      for (const crossing of crossingsOf(segments, segmentsCached(other, context))) {
-        const validated: Side = {
-          way: entity,
-          type,
-          line,
-          segment: crossing.segmentA,
-        }
-        const otherSide: Side = {
-          way: other,
-          type: otherType,
-          line: other.geometry(graph) === 'line',
-          segment: crossing.segmentB,
-        }
-        if (isLegitCrossing(validated, otherSide)) continue
-        issues.push(issueFor(validated, otherSide, crossing.point))
+    // Every crossing of a segment of the way with a segment of a neighbour: the box of the segment
+    // selects the candidates, and only they are tested
+    const found: Found[] = []
+    const candidates: SegmentEntry<WayRecord>[] = []
+    const segments = validated.segments
+    for (let indexA = 0; indexA < segments.length; indexA++) {
+      const segmentA = segments[indexA]
+      if (!segmentA) continue
+      index.near(segmentA.box, candidates)
+      for (const entry of candidates) {
+        if (entry.owner.mark !== check) continue
+        const segmentB = entry.segment
+        if (sharesNode(segmentA, segmentB)) continue
+        const point = properIntersection(segmentA.a, segmentA.b, segmentB.a, segmentB.b)
+        if (point)
+          found.push({
+            point,
+            indexA,
+            segmentA,
+            owner: entry.owner,
+            indexB: entry.index,
+            segmentB,
+          })
       }
+    }
+    // The order of the brute-force loops: the neighbours by id (as `waysNear` gives them), then the
+    // segments of the way, then the segments of the neighbour
+    if (found.length > 1) {
+      found.sort(
+        (x, y) =>
+          (x.owner.way.id < y.owner.way.id ? -1 : x.owner.way.id > y.owner.way.id ? 1 : 0) ||
+          x.indexA - y.indexA ||
+          x.indexB - y.indexB,
+      )
+    }
+
+    const issues: Issue[] = []
+    for (const crossing of found) {
+      const side: Side = {
+        way: entity,
+        type: validated.type,
+        line: validated.line,
+        segment: crossing.segmentA,
+      }
+      const otherSide: Side = {
+        way: crossing.owner.way,
+        type: crossing.owner.type,
+        line: crossing.owner.line,
+        segment: crossing.segmentB,
+      }
+      if (isLegitCrossing(side, otherSide)) continue
+      issues.push(issueFor(side, otherSide, crossing.point))
     }
     return issues
   },

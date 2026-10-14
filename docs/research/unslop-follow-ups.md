@@ -32,6 +32,17 @@ come from agents that searched without running anything; check each before actin
   - `crossing_ways`, the segments of the validated way made once per run, not per neighbour, and the neighbours'
     segments kept for the run: **fixed**. Own time about a quarter less (about 1,330 to 1,010 ms, alternating runs). Test:
     one run over four ways gives the same issues as a run for each way.
+  - `crossing_ways`, a segment index per run (`rules/crossing-segments.ts`: a grid of 0.0005 degrees, about 34 m by
+    55 m in Berlin, with a list for segments over 64 cells; the neighbours' segments are all in it before the first
+    query, and a query keeps the entries of the neighbours): **fixed**. Medians of three alternating runs each
+    (before, after): the rule's own time 426 and 274 ms, the whole validate-everything run 932 and 833 ms, the
+    rule's CPU time alone 559 and 326 ms (a script run three alternating times, not kept), one edit 3.6 and 3.2 ms,
+    a move 0.71 and 0.63 ms, a tag edit 4.0 and 3.5 ms. The machine was busy: one run of the new rule took 484 ms,
+    the others 252 and 274. Same digest `467ff2f4194b3c28`, 174 issues. Tests: `crossing-segments.test.ts` (the
+    index against brute force over random segments), `crossing-ways.index.test.ts` (box edges, a crossing on a cell
+    edge, a vertex, shared nodes, long segments, and the rule against brute force over generated ways). Measured and
+    not kept: a cell of 0.002 degrees (the cell of `way-index.ts`) was about 1.5 times slower than 0.0005, and 0.001
+    about 10 % slower; a cap of 16 cells instead of 64 made no difference.
   - `almost_junction`, per neighbour and per end: **not worth it**. Keeping the neighbours' segments for the run made no
     difference beyond the noise (about 70 ms of own time, +/- 20 ms). Reverted.
   - `way-index.near` boxes a way again: **not worth it**. The query way's box is about 1 % of a validate-everything run.
@@ -56,7 +67,8 @@ come from agents that searched without running anything; check each before actin
     clarify the code.
   - Other costs seen in the profiles, not in the leads, not changed: `Graph.hasEntity` (the model package) is the
     largest self time of a validate-everything run; the segment pairs of `crossing_ways` (99 million for the dense
-    fixture, about 18 ns each) are now the largest rule cost, and a spatial index of segments would be the next step;
+    fixture, about 18 ns each) were the largest rule cost; the segment index above is the step taken for them, and it
+    leaves about 270 ms of `crossing_ways` on the dense fixture (the split between building the index and the queries is not measured);
     `missing_tag` takes about 260 ms, and `parentWays` (it allocates an array per call) shows high in the profile;
     `disconnected_way` takes about 500 ms; each validation run makes the boxes of all ways (about 80 ms at the first edit).
 - **engine.ts** (about 2,470 lines): split further after the next benchmark on a quiet machine, with an ADR. The rest
