@@ -138,10 +138,8 @@ export function MapView() {
   const [zoomGuard, setZoomGuard] = useState(false)
   const [menu, setMenu] = useState<MenuPlace | null>(null)
   // the magnifier of a measure is drawn with the background: none without one (MeasureLoupe). `?loupe=blank`
-  // draws it with an empty style, for the browser check, which has no imagery (the imagery module is off there)
-  const [blankLoupe] = useState(
-    () => new URLSearchParams(window.location.search).get('loupe') === 'blank',
-  )
+  // (config.blankLoupe) draws it with an empty style, for the browser check, which has no imagery
+  const blankLoupe = config.blankLoupe
   const background = measuring ? backgroundSourceOnMap(editor) : undefined
   // a stack's pill is for a plain click in browse mode: a draw, a move, a rotation or a measure ends it
   useEffect(() => {

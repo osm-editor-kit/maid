@@ -65,6 +65,8 @@ export type Config = {
   sourceMaxZoom: number
   /** MapLibre's label fade in ms. 0 makes it place symbols on every frame. */
   fade: number
+  /** `?loupe=blank`: the measure's magnifier is drawn with an empty style (the browser check has no imagery) */
+  blankLoupe: boolean
   /** Where the map starts, if the URL says so */
   camera?: Camera
   /** Filter states the URL starts with: Maid's `filters`, or iD's `disable_features` */
@@ -90,13 +92,15 @@ export function readConfig(
 ) {
   const setup = readParams(setupParams, location.search)
   const mode = chooseLiveMode({ url: setup.live, ...choice })
-  const live = mode !== '0' && !isAutomated()
+  // one answer for the whole run: a browser does not become automated while the page is open
+  const automated = isAutomated()
+  const live = mode !== '0' && !automated
   const dev = live && mode === 'dev'
   return {
     scene: setup.scene,
     live,
     dev,
-    serverChoice: !isAutomated() && (live || choice.liveBuild),
+    serverChoice: !automated && (live || choice.liveBuild),
     apiUrl: dev ? DEV_API : live ? OSM_API : `http://localhost:${PORTS.mockApi}/s/${setup.scene}`,
     fill: setup.fill,
     ui: setup.ui,
@@ -108,6 +112,7 @@ export function readConfig(
     tolerance: setup.tolerance,
     sourceMaxZoom: setup.sourceMaxZoom,
     fade: setup.fade,
+    blankLoupe: setup.loupe === 'blank',
     camera: readParams({ map: stateParams.map }, location.search).map ?? undefined,
     filters: readFilters(location.search),
     background: customBackgroundLink(location.search),

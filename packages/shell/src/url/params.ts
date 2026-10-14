@@ -95,6 +95,8 @@ export const setupParams = {
   tolerance: parseAsFloat.withDefault(0),
   sourceMaxZoom: parseAsInteger.withDefault(17),
   fade: parseAsInteger.withDefault(150),
+  /** `blank`: the measure's magnifier is drawn without imagery (the browser check has none), see MapView */
+  loupe: parseAsStringLiteral(['blank']),
 }
 
 type Parsed<T> = {

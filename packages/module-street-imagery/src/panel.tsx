@@ -88,7 +88,6 @@ export function PhotosPanel() {
   const setDate = useStreetImageryStore((state) => state.setDate)
   const stored = useStreetImageryStore((state) => state.providers)
   const token = useStreetImageryStore((state) => state.mapillaryToken)
-  const anyOn = activeProviders(stored, token, AUTOMATED).length > 0
 
   if (AUTOMATED)
     return (
@@ -96,6 +95,8 @@ export function PhotosPanel() {
         Photos are off in automated browsers.
       </p>
     )
+
+  const anyOn = activeProviders(stored, token, AUTOMATED).length > 0
 
   return (
     <div className="maid-street-imagery flex flex-col gap-5 p-4 text-sm">
