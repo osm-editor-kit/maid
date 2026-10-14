@@ -2,11 +2,16 @@ import { PhotoIcon } from '@heroicons/react/20/solid'
 import { defineModule } from '@osm-editor-kit/maid-core'
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { lazyComponent, PANEL_FALLBACK } from '@osm-editor-kit/maid-ui'
-import { QueryClientProvider } from '@tanstack/react-query'
-import { createElement, type ReactElement } from 'react'
+import { createElement } from 'react'
+import type { Drawn } from './eli.ts'
 import { backgroundName, usedNames } from './helpers.ts'
-import { ImageryLayers } from './ImageryLayers.tsx'
-import { backgroundOnMap, createImageryStore, shownBackgroundId } from './store.ts'
+import {
+  createImageryStore,
+  ImageryStoreProvider,
+  shownBackgroundId,
+  type ImageryStoreHook,
+} from './imagery-store.ts'
+import { ImageryLayers, drawnShown } from './ImageryLayers.tsx'
 
 export type ImageryOptions = {
   /** The background before anyone chooses one, by its ELI id. Default: none. */
@@ -23,26 +28,28 @@ export type ImageryOptions = {
  * (see `visit` in the store). It returns why a template is refused, or the id it is shown as.
  */
 export function imagery(options: ImageryOptions = {}) {
-  const store = createImageryStore(options.default ?? null)
+  const store: ImageryStoreHook = createImageryStore(options.default ?? null)
   const module = defineModule({
     id: 'imagery',
     setup(api) {
-      // the panel's code is a chunk of its own: it loads when the flyout opens (or in idle time after the first view)
-      // each root of the module gives its components the editor's query client (the street imagery pattern)
       const queries = api.editor.queries
-      const withQueries = (element: ReactElement) =>
-        createElement(QueryClientProvider, { client: queries }, element)
+      // the panel's code is a chunk of its own: it loads when the flyout opens (or in idle time after the first view)
       const Panel = lazyComponent(
         () =>
           import('./ImageryPanel.tsx').then((panel) => ({
-            default: () => withQueries(createElement(panel.ImageryPanel, { store })),
+            default: () =>
+              createElement(ImageryStoreProvider, { store }, createElement(panel.ImageryPanel)),
           })),
         PANEL_FALLBACK,
       )
       api.register('map.content', {
         id: 'imagery',
         component: (props: MapContentProps) =>
-          withQueries(createElement(ImageryLayers, { store, belowOsm: props.belowOsm })),
+          createElement(
+            ImageryStoreProvider,
+            { store },
+            createElement(ImageryLayers, { belowOsm: props.belowOsm }),
+          ),
       })
       api.register('topbar.panel', {
         id: 'imagery',
@@ -51,24 +58,39 @@ export function imagery(options: ImageryOptions = {}) {
         component: Panel,
         width: 'w-96',
       })
-      // what the map shows now, read by the measure and the changeset (the app reads it outside React)
+      // what the map shows now, read by the measure and the changeset (the app reads it outside React).
+      // The names and the drawn source are the draws' results, read from the query cache.
       api.register('imagery.used', {
         id: 'imagery',
         used: () => {
           const state = store.getState()
-          return usedNames(shownBackgroundId(state), state.overlayIds, state.names)
+          const { background, overlays } = drawnShown(queries, state)
+          const names = namesOf([background, ...overlays])
+          return usedNames(shownBackgroundId(state), state.overlayIds, names)
         },
         background: () => {
           const state = store.getState()
-          return backgroundName(shownBackgroundId(state), state.names)
+          const { background } = drawnShown(queries, state)
+          const names = namesOf([background])
+          return backgroundName(shownBackgroundId(state), names)
         },
         // the background alone, as the measure's magnifier draws it (undefined until it is drawn)
-        backgroundSource: () => backgroundOnMap(store.getState()),
+        backgroundSource: () => {
+          const state = store.getState()
+          const { background } = drawnShown(queries, state)
+          if (!background) return undefined
+          return { source: background.source, brightness: state.brightness }
+        },
       })
     },
   })
   return {
     ...module,
-    visitBackground: (template: string) => store.getState().visitBackground(template),
+    visitBackground: (template: string) => store.getState().actions.visitBackground(template),
   }
+}
+
+/** The name of each drawn layer, by its id */
+function namesOf(drawn: readonly (Drawn | undefined)[]) {
+  return Object.fromEntries(drawn.flatMap((item) => (item ? [[item.id, item.name] as const] : [])))
 }

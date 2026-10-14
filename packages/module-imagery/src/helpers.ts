@@ -6,21 +6,6 @@
 import { z } from 'zod'
 import { CUSTOM_ID, customNumber, isCustomId, type CustomEntry } from './custom.ts'
 
-/**
- * Zoom numbers. MapLibre counts zoom with 512 px tiles. ELI, iD and Rapid count with 256 px tiles
- * (OSM zoom). For the same view, OSM zoom is MapLibre zoom plus one: MapLibre 13 is OSM 14. ELI's
- * `minzoom` is in OSM zoom, so a number from `map.getZoom()` goes through `toOsmZoom` before it is
- * compared with it, and a value from ELI goes through `toMapZoom` before it is given to MapLibre.
- */
-export function toOsmZoom(mapZoom: number) {
-  return mapZoom + 1
-}
-
-/** The inverse of `toOsmZoom`: an OSM (256 px) zoom as MapLibre (512 px) counts it */
-export function toMapZoom(osmZoom: number) {
-  return osmZoom - 1
-}
-
 /** The viewport: `[west, south, east, north]` in degrees, and the zoom in OSM convention */
 export type View = { bounds: [number, number, number, number]; zoom: number }
 
@@ -205,7 +190,7 @@ export function sortListing(items: readonly Listing[]) {
 }
 
 /**
- * Whether a layer is worth listing at this zoom, given in OSM convention (see `toOsmZoom`). ELI's
+ * Whether a layer is worth listing at this zoom, given in OSM convention (see `toOsmZoom` in maid-core). ELI's
  * `maxzoom` is not a limit: MapLibre overzooms the last tiles. Only a layer that starts at a higher
  * zoom is left out.
  */

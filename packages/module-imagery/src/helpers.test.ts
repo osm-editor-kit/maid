@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import { toMapZoom, toOsmZoom } from '@osm-editor-kit/maid-core'
 import { withMapMinzoom } from './eli.ts'
 import {
   BRIGHTNESS_MAX,
@@ -8,8 +9,6 @@ import {
   matchesQuery,
   parseStored,
   sortListing,
-  toMapZoom,
-  toOsmZoom,
   visibleAtZoom,
   type Listing,
 } from './helpers.ts'

@@ -4,12 +4,21 @@ import { PLAIN_INPUT, Tooltip } from '@osm-editor-kit/maid-ui'
 import { toolButtonTone } from '@osm-editor-kit/maid-ui'
 import { keepPreviousData, skipToken, useQuery } from '@tanstack/react-query'
 import { useId, useState, type FormEvent } from 'react'
-import { useStore } from 'zustand'
 import { checkTemplate, isCustomId, shortLabel, type CustomEntry } from './custom.ts'
 import { listView, type Listed } from './eli.ts'
 import { BRIGHTNESS_MIN, listingView, matchesQuery, sortListing } from './helpers.ts'
+import {
+  useBackgroundId,
+  useBrightness,
+  useCustomBackgrounds,
+  useImageryActions,
+  useOverlayIds,
+  useView,
+  useVisit,
+  VISIT_ID,
+  type SaveResult,
+} from './imagery-store.ts'
 import { filterSeriesRows, seriesRows, type SeriesChip, type SeriesRow } from './series.ts'
-import { VISIT_ID, type ImageryStore, type SaveResult } from './store.ts'
 
 /** From this many layers in view on, a search field is shown above the list */
 const SEARCH_FROM = 8
@@ -54,8 +63,7 @@ function classes(...parts: (string | false | null | undefined)[]) {
  * brightness of the background. Mounted only while the flyout is open, so the list is loaded when
  * a person opens it.
  */
-export function ImageryPanel(props: { store: ImageryStore }) {
-  const { store } = props
+export function ImageryPanel() {
   return (
     <div>
       <div className="px-4 pt-4 pb-1">
@@ -67,10 +75,11 @@ export function ImageryPanel(props: { store: ImageryStore }) {
       </div>
       {isAutomated() ? (
         <p className="p-4 text-sm text-zinc-500 dark:text-zinc-400">
-          Backgrounds are off in automated browsers.
+          Backgrounds are off in automated browsers, except a template on this machine (a link with
+          `background=custom:` to localhost).
         </p>
       ) : (
-        <PanelBody store={store} />
+        <PanelBody />
       )}
     </div>
   )
@@ -79,21 +88,22 @@ export function ImageryPanel(props: { store: ImageryStore }) {
 /** The form of a custom background: a new one, or the entry being edited */
 type FormState = { mode: 'add' } | { mode: 'edit'; entry: CustomEntry } | null
 
-function PanelBody(props: { store: ImageryStore }) {
-  const { store } = props
-  const view = useStore(store, (s) => s.view)
-  const backgroundId = useStore(store, (s) => s.backgroundId)
-  const overlayIds = useStore(store, (s) => s.overlayIds)
-  const brightness = useStore(store, (s) => s.brightness)
-  const custom = useStore(store, (s) => s.custom)
-  const visit = useStore(store, (s) => s.visit)
-  const setBackground = useStore(store, (s) => s.setBackground)
-  const setOverlay = useStore(store, (s) => s.setOverlay)
-  const setBrightness = useStore(store, (s) => s.setBrightness)
-  const addCustom = useStore(store, (s) => s.addCustom)
-  const editCustom = useStore(store, (s) => s.editCustom)
-  const deleteCustom = useStore(store, (s) => s.deleteCustom)
-  const leaveVisit = useStore(store, (s) => s.leaveVisit)
+function PanelBody() {
+  const view = useView()
+  const backgroundId = useBackgroundId()
+  const overlayIds = useOverlayIds()
+  const brightness = useBrightness()
+  const custom = useCustomBackgrounds()
+  const visit = useVisit()
+  const {
+    setBackground,
+    setOverlay,
+    setBrightness,
+    addCustom,
+    editCustom,
+    deleteCustom,
+    leaveVisit,
+  } = useImageryActions()
   const [query, setQuery] = useState('')
   const [form, setForm] = useState<FormState>(null)
   const [asking, setAsking] = useState<string | null>(null)

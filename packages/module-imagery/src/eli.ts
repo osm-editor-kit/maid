@@ -1,3 +1,4 @@
+import { toMapZoom } from '@osm-editor-kit/maid-core'
 /**
  * The only file that calls the ELI package. It is loaded with `import()` the first time a person
  * opens the panel or chooses an imagery layer, so the layer index is not in the app's start-up
@@ -10,7 +11,7 @@ import type {
   RasterLayerSpec,
   RasterSourceSpec,
 } from '@osm-editor-kit/maplibre-editor-layer-index'
-import { toMapZoom, visibleAtZoom, type Listing, type View } from './helpers.ts'
+import { visibleAtZoom, type Listing, type View } from './helpers.ts'
 
 const load = () => import('@osm-editor-kit/maplibre-editor-layer-index')
 

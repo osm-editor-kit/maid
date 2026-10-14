@@ -1,11 +1,8 @@
 import { Square3Stack3DIcon } from '@heroicons/react/20/solid'
 import { defineModule } from '@osm-editor-kit/maid-core'
-import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { lazyComponent, PANEL_FALLBACK } from '@osm-editor-kit/maid-ui'
-import { QueryClientProvider } from '@tanstack/react-query'
 import { checkConfigLayers, type DataLayerConfig } from './config.ts'
 import { createMapContent } from './MapLayers.tsx'
-import { createDataLayerStore } from './store.ts'
 
 export type DataLayersOptions = {
   /**
@@ -22,28 +19,21 @@ export type DataLayersOptions = {
  */
 export function dataLayers(options: DataLayersOptions = {}) {
   const layers = checkConfigLayers(options.layers ?? [])
-  const useStore = createDataLayerStore()
   return defineModule({
     id: 'data-layers',
     setup(api) {
       // the map layer reads the PMTiles archives through the editor's fetch, and its query client is the editor's
-      const MapContent = createMapContent(useStore, layers, api.editor.fetch)
-      const queries = api.editor.queries
-      const MapContentWithQueries = (props: MapContentProps) => (
-        <QueryClientProvider client={queries}>
-          <MapContent {...props} />
-        </QueryClientProvider>
-      )
+      const MapContent = createMapContent(layers, api.editor.fetch)
       // the form's checks of an address go through the editor's fetch (the `data` gate)
       // the panel's code is a chunk of its own: it loads when the flyout opens (or in idle time after the first view)
       const Panel = lazyComponent(
         () =>
           import('./Panel.tsx').then((panel) => ({
-            default: panel.createPanel(useStore, layers, api.editor.fetch),
+            default: panel.createPanel(layers, api.editor.fetch),
           })),
         PANEL_FALLBACK,
       )
-      api.register('map.content', { id: 'data-layers', component: MapContentWithQueries })
+      api.register('map.content', { id: 'data-layers', component: MapContent })
       api.register('topbar.panel', {
         id: 'data-layers',
         label: 'Data layers',

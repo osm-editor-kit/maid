@@ -1,6 +1,6 @@
 import { moduleStorage } from '@osm-editor-kit/maid-core'
 import { createContext, createElement, useContext, type ReactNode } from 'react'
-import { create } from 'zustand'
+import { create, useStore } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { checkTemplate, customId, type CustomEntry } from './custom.ts'
 import { clampBrightness, parseStored, type ImageryStored, type View } from './helpers.ts'
@@ -182,7 +182,9 @@ function useImagerySelector<T>(selector: (state: ImageryStore) => T): T {
   if (store === null) {
     throw new Error('The imagery components must be rendered inside their ImageryStoreProvider')
   }
-  return store(selector)
+  // zustand's useStore, not `store(selector)`: the React Compiler takes a call whose name does not start with `use`
+  // for a plain function and may skip it on the next render, which drops the hooks inside it
+  return useStore(store, selector)
 }
 
 /** The stored background choice (`null` for none) */

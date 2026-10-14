@@ -4,8 +4,9 @@
 import type { RemoteFetch } from '@osm-editor-kit/maid-core'
 import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { SegmentedControl } from '@osm-editor-kit/maid-ui'
+import { useQueries } from '@tanstack/react-query'
 import { useId, useMemo, useState, type FormEvent } from 'react'
-import { addDataLayer, type Added, type AddInput } from './add.ts'
+import { addDataLayer, describeFailure, type Added, type AddInput } from './add.ts'
 import { ColorSwatches } from './ColorSwatches.tsx'
 import {
   DATA_LAYER_KINDS,
@@ -16,8 +17,37 @@ import {
   type DataLayerConfig,
   type DataLayerKind,
 } from './config.ts'
+import {
+  useAddedLayers,
+  useDataLayersActions,
+  useFileLayers,
+  useHiddenIds,
+} from './data-layers-store.ts'
 import { layersOf } from './layers.ts'
-import type { DataLayerStoreHook } from './store.ts'
+import { pmtilesLayersOptions } from './pmtiles.ts'
+
+/**
+ * The problems of the PMTiles layers that the map has tried to read: the failed queries of the map
+ * (`pmtilesLayersOptions`), read from the cache. Disabled here, so the panel never starts a read.
+ */
+function useLayerProblems(layers: readonly DataLayer[], send: RemoteFetch): Record<string, string> {
+  const pmtiles = layers.filter(
+    (layer) => layer.kind === 'pmtiles' && layer.sourceLayers === undefined,
+  )
+  return useQueries({
+    queries: pmtiles.map((layer) => ({ ...pmtilesLayersOptions(layer.url, send), enabled: false })),
+    combine: (results) =>
+      Object.fromEntries(
+        results.flatMap((result, index) => {
+          const layer = pmtiles[index]
+          if (!layer || !result.isError) return []
+          return [
+            [layer.id, describeFailure(result.error, 'Could not read this PMTiles file').message],
+          ]
+        }),
+      ),
+  })
+}
 
 const INPUT =
   'h-8 w-full min-w-0 rounded-md border border-zinc-950/10 bg-white px-2 text-sm text-zinc-950 placeholder:text-zinc-400 hover:border-zinc-950/20 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-60 dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:placeholder:text-zinc-500 dark:hover:border-white/20 dark:[color-scheme:dark]'
@@ -277,22 +307,15 @@ function AddLayerForm({
   )
 }
 
-/** The flyout of the module: the layers and the form. The store is the module's own. */
-export function createPanel(
-  useStore: DataLayerStoreHook,
-  config: readonly DataLayerConfig[],
-  send: RemoteFetch,
-) {
+/** The flyout of the module: the layers and the form. */
+export function createPanel(config: readonly DataLayerConfig[], send: RemoteFetch) {
   function DataLayersPanel() {
-    const added = useStore((state) => state.added)
-    const files = useStore((state) => state.files)
-    const hidden = useStore((state) => state.hidden)
-    const problems = useStore((state) => state.problems)
-    const addLayer = useStore((state) => state.addLayer)
-    const addFile = useStore((state) => state.addFile)
-    const remove = useStore((state) => state.remove)
-    const setHidden = useStore((state) => state.setHidden)
+    const added = useAddedLayers()
+    const files = useFileLayers()
+    const hidden = useHiddenIds()
+    const { addLayer, addFile, remove, setHidden } = useDataLayersActions()
     const layers = useMemo(() => layersOf(config, added, files), [added, files])
+    const problems = useLayerProblems(layers, send)
     const colors = useMemo(() => layers.map((layer) => layer.color), [layers])
     return (
       <div>
