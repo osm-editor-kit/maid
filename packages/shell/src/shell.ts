@@ -9,6 +9,7 @@ import { DEPLOYED, DEV_API, OSM_API, readConfig, type Config } from './config'
 import { watchFavourites } from './favourites'
 import { createShellJournal } from './journal'
 import { migrateIdHash } from './url/id-url'
+import { shellUrlParamNames } from './url/params'
 import { startShown } from './url/shown'
 
 /** What an app says about itself. `mountEditor(root, app)` is the shell's one entry. */
@@ -76,7 +77,8 @@ export function createShell(app: AppConfig) {
   })
 
   /** The editor's data and modules. What this editor is comes from the app's config. */
-  const editor = createEditor(app.editor(config))
+  // the shell's own URL parameters are taken: a module that declares one of them fails at setup
+  const editor = createEditor({ ...app.editor(config), reservedUrlParams: shellUrlParamNames() })
 
   // The OSM API is a service of its own: its requests wait in the 'osm' gate, and a pause on it is its own.
   // A local API (the mock, on localhost) is not claimed: it stays with the 'local' gate, as hosts that no

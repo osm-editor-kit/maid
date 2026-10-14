@@ -10,6 +10,7 @@ import type { QueryClient } from '@tanstack/query-core'
 import type { FetchPauses } from './fetching/editor-fetch.ts'
 import type { RemoteFetch } from './fetching/remote-fetch.ts'
 import type { ServiceRegistry } from './fetching/services.ts'
+import type { UrlParamDeclaration, UrlParamHandle, UrlParams } from './url-state.ts'
 
 /** `experimental` may change in any release. `stable` is deprecated before it is removed. */
 export type Stability = 'experimental' | 'stable'
@@ -104,6 +105,11 @@ export interface EditorConfig {
   filters?: readonly FeatureFilter[]
   /** Called for every error a listener, subscriber or cleanup throws. Default: `console.error`. */
   onError?: OnError
+  /**
+   * URL parameters the app owns (its state and setup parameters, and the names iD links map to). A module may not
+   * declare one of these (`api.urlParam` throws). The shell passes its list.
+   */
+  reservedUrlParams?: readonly string[]
 }
 
 /**
@@ -130,6 +136,11 @@ export interface ModuleApi {
   register<K extends PointName>(point: K, item: ExtensionPoints[K]): void
   /** Adds a hook listener. It is removed when the module is cleaned up. */
   on<N extends HookName>(name: N, listener: Listener<N>): void
+  /**
+   * Declares a URL parameter (name, parser, options, optional iD name). Throws when the name is taken by the app or
+   * another module. Returns the handle the module reads it with. It is removed when the module is cleaned up.
+   */
+  urlParam<T>(declaration: UrlParamDeclaration<T>): UrlParamHandle<T>
 }
 
 /** The members are plain functions, not methods, so they can be passed on (to `useSyncExternalStore`). */
@@ -176,6 +187,8 @@ export interface Editor {
    */
   readonly history: EditHistory
   readonly hooks: EditorHooks
+  /** The URL parameters declared by the app and by the modules. Read only. */
+  readonly urlParams: Pick<UrlParams, 'get' | 'list'>
   /** Read access to one extension point. */
   registry<K extends PointName>(point: K): ReadonlyRegistry<ExtensionPoints[K] & { id: string }>
   /** Ids of the modules that are set up, in setup order. */

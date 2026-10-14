@@ -29,7 +29,7 @@ import { backgroundSourceOnMap } from '../imagery-used'
 import { installMarkerImages } from '../images'
 import { loadPresetsAfterReady, preloadAfterFirstSettle } from '../lazy-chunks'
 import { markNewFeature } from '../new-feature'
-import { useSelection } from '../selection'
+import { useSelection, useSelectionMirror } from '../selection'
 import { useEngine, useShell } from '../shell-context'
 import { dropStack, setStack } from '../stack'
 import { normaliseBearing } from '../url/bearing'
@@ -131,6 +131,8 @@ export function MapView() {
   const { config, editor, engine } = shell
   const [cameraParam, setCameraParam] = useCameraParam()
   const { ids: selectedIds, select } = useSelection()
+  // the URL's `id` mirrors the engine's selection (the one writer), and a change of `id` selects in the engine
+  useSelectionMirror(engine)
   // Dash patterns are discovered as data arrives; the layers list them in their expressions.
   // MapLibre's own texts (the attribution control) use the visit's language. They are read once, because the map is made once
   const [mapLocale] = useState(mapLibreLocale)

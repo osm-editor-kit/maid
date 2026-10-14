@@ -116,6 +116,7 @@
         "@osm-editor-kit/maid-presets": "workspace:*",
         "@osm-editor-kit/maid-validation": "workspace:*",
         "@tanstack/query-core": "5.104.1",
+        "nuqs": "^2.10.1",
         "zod": "4.6.5",
       },
       "devDependencies": {

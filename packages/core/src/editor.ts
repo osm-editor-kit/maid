@@ -14,6 +14,7 @@ import type {
   OnError,
   PointName,
 } from './types.ts'
+import { createUrlParams } from './url-state.ts'
 
 const defaultOnError: OnError = (error, context) => {
   console.error(`[maid-core] error in ${context.source} "${context.name}"`, error)
@@ -32,6 +33,7 @@ export function createEditor(config: EditorConfig = {}): Editor {
   const hooks = createHooks(onError)
   const net = createEditorFetch()
   const registries = new Map<string, Registry<{ id: string }>>()
+  const urlParams = createUrlParams(config.reservedUrlParams)
   const active: { id: string; cleanup: () => void }[] = []
   let destroyed = false
 
@@ -73,6 +75,12 @@ export function createEditor(config: EditorConfig = {}): Editor {
       on(name, listener) {
         guard()
         undo.push(hooks.on(name, listener, module.id))
+      },
+      urlParam(declaration) {
+        guard()
+        const { handle, remove } = urlParams.declare(declaration, module.id)
+        undo.push(remove)
+        return handle
       },
     }
     const cleanup = (own?: () => void) => {
@@ -152,6 +160,7 @@ export function createEditor(config: EditorConfig = {}): Editor {
       run: (name, ...args) => hooks.run(name, ...args),
       apply: (name, value, ...args) => hooks.apply(name, value, ...args),
     },
+    urlParams,
     registry: registryFor,
     moduleIds: modules.map((m) => m.id),
     queries: net.queries,

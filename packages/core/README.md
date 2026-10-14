@@ -61,6 +61,32 @@ declareHooks({ 'selection:changed': 'experimental', 'tags:beforeApply': 'experim
 
 A hook needs a consumer and a test with a fake module. See `src/editor.test.ts`.
 
+## URL parameters
+
+A module declares a query parameter it reads and writes, in `setup`. The editor keeps one list, refuses a name that is
+taken (by the app's own parameters, which the app passes as `reservedUrlParams`, or by another module), and maps the
+parameters that name an iD form. No React here: the handle is passed to the shell's hook (`useUrlParam`), which wraps nuqs.
+
+```ts
+const imagery = defineModule({
+  id: 'imagery',
+  setup(api) {
+    const background = api.urlParam({
+      name: 'background', // ?background=... in Maid's links
+      parser: parseAsBackground, // { parse, serialize }: a nuqs parser has this shape
+      options: { history: 'replace', clearOnDefault: false },
+      iD: { name: 'background' }, // #background=... in iD's links
+    })
+  },
+})
+
+// the value the session shows: the URL's, else the stored choice, else the default
+const { value, fromLink } = layered({ url, stored, fallback: 'bing' })
+```
+
+`layered` is the precedence of a setting that a link can change (`fromLink` is true only while the URL differs from the
+person's own choice). A parameter's `iD.fromId` and `toId` convert values when the notations differ.
+
 ## Not there yet
 
 - The other config keys (`api`, `presets`, `filters`, `ui`, ...).

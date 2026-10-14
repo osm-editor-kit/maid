@@ -4,8 +4,16 @@ export { canBeArea, lazyPresets } from './lazy-presets.ts'
 export { toMapZoom, toOsmZoom } from './zoom.ts'
 export { declareHooks, declaredHooks, hookStability } from './hooks.ts'
 export type { HookStabilities } from './hooks.ts'
-export { startSetting, writesStored } from './layers.ts'
-export type { SettingLayers, SettingStart } from './layers.ts'
+export { createUrlParams, layered } from './url-state.ts'
+export type {
+  IdUrlName,
+  LayeredSetting,
+  UrlParamDeclaration,
+  UrlParamHandle,
+  UrlParamOptions,
+  UrlParams,
+  UrlParser,
+} from './url-state.ts'
 export type { Registry } from './registry.ts'
 export { moduleStorage } from './storage.ts'
 export type { ModuleStorage } from './storage.ts'

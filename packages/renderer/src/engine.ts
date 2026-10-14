@@ -1204,7 +1204,12 @@ export class MaidEngine {
     this.syncActive()
   }
 
-  /** Selects one entity, several, or nothing */
+  /**
+   * Selects one entity, several, or nothing. This is the one place that changes the selection, so every
+   * change, whatever its cause (a click, an operation, a filter that hides the feature, a paste, a reload
+   * after an upload), reaches the `subscribe` listeners through `changed()`. The shell's URL mirror relies
+   * on that (selection.ts). A call that changes nothing notifies nobody.
+   */
   setSelected(selection: string | readonly string[] | null) {
     const ids =
       selection === null ? [] : typeof selection === 'string' ? [selection] : [...selection]

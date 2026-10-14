@@ -9,16 +9,30 @@
  * The table below is the contract. iD parameters that Maid has no feature for yet are carried
  * over unchanged (`carried`), so a link survives a round trip and starts working when the
  * feature arrives. Parameters that make no sense in Maid are dropped on purpose.
+ *
+ * A module can add rows: a URL parameter it declares with an iD name (core's `api.urlParam`)
+ * is mapped by `idRules(declared)`, and every function here takes those declared parameters.
  */
+import type { UrlParamHandle } from '@osm-editor-kit/maid-core'
 
-type Rule =
-  | { id: string; maid: string; kind: 'same' }
+/** The iD parameters a module declared, as core's registry lists them */
+export type DeclaredIdParams = readonly Pick<UrlParamHandle<unknown>, 'name' | 'iD'>[]
+
+type Mapped = {
+  id: string
+  maid: string
   /** kept under the same name although Maid does not act on it yet */
-  | { id: string; maid: string; kind: 'carried' }
-  | { id: string; kind: 'dropped'; why: string }
+  kind: 'same' | 'carried'
+  /** iD's value to Maid's notation; the value as it is when absent. `undefined` drops the parameter. */
+  fromId?: (value: string) => string | undefined
+  /** Maid's value to iD's notation; as it is when absent */
+  toId?: (value: string) => string
+}
+type Dropped = { id: string; kind: 'dropped'; why: string }
+export type Rule = Mapped | Dropped
 
 export const ID_URL_RULES: Rule[] = [
-  { id: 'map', maid: 'map', kind: 'same' }, // zoom/lat/lng in both
+  { id: 'map', maid: 'map', kind: 'same', fromId: normaliseMap }, // zoom/lat/lng in both
   { id: 'id', maid: 'id', kind: 'same' }, // n1,w2,r3; Maid selects the first for now
   { id: 'background', maid: 'background', kind: 'carried' },
   { id: 'overlays', maid: 'overlays', kind: 'carried' },
@@ -47,12 +61,36 @@ export const ID_URL_RULES: Rule[] = [
   },
 ]
 
-const TO_MAID = new Map(
-  ID_URL_RULES.flatMap((r) => (r.kind === 'dropped' ? [] : [[r.id, r.maid] as const])),
-)
-const TO_ID = new Map(
-  ID_URL_RULES.flatMap((r) => (r.kind === 'dropped' ? [] : [[r.maid, r.id] as const])),
-)
+/** The names of Maid's query parameters that iD links map onto: the app's own list, see params.ts */
+export function idUrlParamNames(): string[] {
+  return ID_URL_RULES.flatMap((r) => (r.kind === 'dropped' ? [] : [r.maid]))
+}
+
+/**
+ * The full table: the rules above, plus one row per declared parameter that names an iD form. A declared name that
+ * an existing row already uses (on either side, dropped rows included) is refused.
+ */
+export function idRules(declared: DeclaredIdParams = []): Rule[] {
+  const rules: Rule[] = [...ID_URL_RULES]
+  for (const { name, iD } of declared) {
+    if (!iD) continue
+    const iDTaken = rules.find((r) => r.id === iD.name)
+    if (iDTaken) {
+      const meaning = iDTaken.kind === 'dropped' ? 'dropped by Maid' : `"${iDTaken.maid}"`
+      throw new Error(
+        `iD parameter "${iD.name}" (URL parameter "${name}") is already mapped to ${meaning}.`,
+      )
+    }
+    const maidTaken = rules.find((r) => r.kind !== 'dropped' && r.maid === name)
+    if (maidTaken) throw new Error(`URL parameter "${name}" already has an iD mapping.`)
+    rules.push({ id: iD.name, maid: name, kind: 'same', fromId: iD.fromId, toId: iD.toId })
+  }
+  return rules
+}
+
+function mappedRules(rules: Rule[]): Mapped[] {
+  return rules.filter((r): r is Mapped => r.kind !== 'dropped')
+}
 
 /** iD writes `map=17.00/52.52280/13.40230`. Same order as Maid; only the number of digits differs. */
 function normaliseMap(value: string) {
@@ -72,8 +110,10 @@ export type Converted = {
 /**
  * Converts the state of an iD URL to Maid's query parameters.
  * Accepts a full URL or just a hash (`#map=…`). Query parameters that are already there are kept.
+ * `declared` are the iD names of the modules' parameters (see `idRules`).
  */
-export function fromIdUrl(url: string): Converted {
+export function fromIdUrl(url: string, declared: DeclaredIdParams = []): Converted {
+  const rules = idRules(declared)
   const hashAt = url.indexOf('#')
   const hash = hashAt >= 0 ? url.slice(hashAt + 1) : ''
   const queryAt = url.indexOf('?')
@@ -83,16 +123,18 @@ export function fromIdUrl(url: string): Converted {
   // osm.org's edit link carries `editor=id`, which means nothing here
   params.delete('editor')
   for (const [name, value] of new URLSearchParams(hash)) {
-    const target = TO_MAID.get(name)
-    if (!target) {
-      const rule = ID_URL_RULES.find((r) => r.id === name)
-      dropped.push({ name, why: rule?.kind === 'dropped' ? rule.why : 'unknown to Maid' })
+    const rule = rules.find((r) => r.id === name)
+    if (!rule || rule.kind === 'dropped') {
+      dropped.push({
+        name,
+        why: rule?.kind === 'dropped' ? rule.why : 'unknown to Maid',
+      })
       continue
     }
-    if (params.has(target)) continue // an explicit query parameter wins over the hash
-    const converted = name === 'map' ? normaliseMap(value) : value
+    if (params.has(rule.maid)) continue // an explicit query parameter wins over the hash
+    const converted = rule.fromId ? rule.fromId(value) : value
     if (converted === undefined) dropped.push({ name, why: 'could not be read' })
-    else params.set(target, converted)
+    else params.set(rule.maid, converted)
   }
   return { params, dropped }
 }
@@ -101,11 +143,13 @@ export function fromIdUrl(url: string): Converted {
 export function toIdUrl(
   maidSearch: string,
   base = 'https://www.openstreetmap.org/edit?editor=id',
+  declared: DeclaredIdParams = [],
 ): string {
+  const rules = mappedRules(idRules(declared))
   const hash = new URLSearchParams()
   for (const [name, value] of new URLSearchParams(maidSearch)) {
-    const target = TO_ID.get(name)
-    if (target) hash.set(target, value)
+    const rule = rules.find((r) => r.maid === name)
+    if (rule) hash.set(rule.id, rule.toId ? rule.toId(value) : value)
   }
   // iD expects the slashes and commas unescaped
   const text = hash.toString().replace(/%2F/g, '/').replace(/%2C/g, ',')
@@ -116,9 +160,15 @@ export function toIdUrl(
  * Run once before the app renders: if the address has iD-style hash state, rewrite it to
  * Maid's query parameters in place (no reload, no extra history entry).
  */
-export function migrateIdHash(location: Location, history: History) {
-  if (!/(^#|&)(map|id|background|disable_features|comment|hashtags)=/.test(location.hash)) return
-  const { params, dropped } = fromIdUrl(location.href)
+export function migrateIdHash(
+  location: Location,
+  history: History,
+  declared: DeclaredIdParams = [],
+) {
+  const names = ['map', 'id', 'background', 'disable_features', 'comment', 'hashtags']
+  for (const { iD } of declared) if (iD) names.push(iD.name)
+  if (!new RegExp(`(^#|&)(${names.join('|')})=`).test(location.hash)) return
+  const { params, dropped } = fromIdUrl(location.href, declared)
   const text = params.toString().replace(/%2F/g, '/').replace(/%2C/g, ',')
   history.replaceState(history.state, '', `${location.pathname}${text ? `?${text}` : ''}`)
   if (dropped.length) console.info('Maid left out iD URL parameters:', dropped)

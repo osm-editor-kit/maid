@@ -1,9 +1,15 @@
-import { useQueryState } from 'nuqs'
+import { throttle, useQueryState } from 'nuqs'
 import { stateParams } from './params'
 
-/** Map position in the URL. Written on move end, replacing the history entry. */
+/**
+ * Map position in the URL. Written on move end, replacing the history entry. Updates are limited to one per
+ * 300 ms (nuqs' `throttle`, which replaced the deprecated `throttleMs`).
+ */
 export function useCameraParam() {
-  return useQueryState('map', stateParams.map.withOptions({ history: 'replace', throttleMs: 300 }))
+  return useQueryState(
+    'map',
+    stateParams.map.withOptions({ history: 'replace', limitUrlUpdates: throttle(300) }),
+  )
 }
 
 /** Filter states in the URL, only what differs from the editor's filters */

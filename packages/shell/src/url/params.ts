@@ -14,6 +14,7 @@ import {
   parseAsStringLiteral,
 } from 'nuqs'
 import { normaliseBearing, roundDegrees } from './bearing'
+import { idUrlParamNames } from './id-url'
 
 /**
  * OSM zoom (256px tiles), like iD's `map=`. The turn (bearing) and the tilt (pitch) are in degrees;
@@ -75,6 +76,14 @@ export const stateParams = {
   id: parseAsString,
   /** Filter states that differ from the editor's own, e.g. `buildings:readonly,boundaries:hidden` */
   filters: parseAsString,
+}
+
+/**
+ * Every query parameter the app owns: the state and setup parameters, and the names iD links map onto. The editor
+ * refuses these for modules (`reservedUrlParams` in core's createEditor).
+ */
+export function shellUrlParamNames(): string[] {
+  return [...Object.keys(stateParams), ...Object.keys(setupParams), ...idUrlParamNames()]
 }
 
 /** Development and benchmark switches, read once at start */

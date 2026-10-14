@@ -7,17 +7,25 @@
  * no difference.
  */
 
+import { layered, type LayeredSetting } from '@osm-editor-kit/maid-core'
+
 const identity = (value: string) => value
 
-/** The value a session starts with, and whether the link decides it while it differs from the person's own */
+/**
+ * The value a session starts with, and whether the link decides it while it differs from the person's own.
+ * The precedence is core's `layered` (URL, stored, default); this adds the notation and the empty value.
+ */
 export function startShown(
   layers: { url: string | null | undefined; stored: string | undefined; fallback: string },
   normalize: (value: string) => string = identity,
-): { value: string; fromLink: boolean } {
-  const own = layers.stored ?? layers.fallback
-  // an empty parameter is no value: the URL's `filters=` says nothing
-  if (layers.url) return { value: layers.url, fromLink: normalize(layers.url) !== normalize(own) }
-  return { value: own, fromLink: false }
+): LayeredSetting<string> {
+  return layered({
+    // an empty parameter is no value: the URL's `filters=` says nothing
+    url: layers.url || undefined,
+    stored: layers.stored,
+    fallback: layers.fallback,
+    same: (a, b) => normalize(a) === normalize(b),
+  })
 }
 
 /**
