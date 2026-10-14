@@ -13,6 +13,7 @@ import {
   SELECT_SOURCES,
   SOURCES,
 } from './layers'
+import { CONE_ZOOM } from './viewfield'
 
 const options: LayerOptions = {
   fill: 'partial',
@@ -42,7 +43,11 @@ function dataLayers(layers: LayerSpecification[]) {
     .map(view)
     .filter(
       (l) =>
-        l.source !== undefined && DATA_SOURCES.includes(l.source) && !/--(edit|select)$/.test(l.id),
+        l.source !== undefined &&
+        DATA_SOURCES.includes(l.source) &&
+        !/--(edit|select)$/.test(l.id) &&
+        // the viewfield cones have no selection twin (layers.ts coneLayers)
+        !l.id.startsWith('cone-'),
     )
 }
 
@@ -348,5 +353,44 @@ describe('the selection twins when nothing is selected (selectTwins)', () => {
   test('the twins are shown again when the selection comes back', () => {
     const layers = buildLayers({ ...options, selectTwins: true })
     for (const id of selectTwinIds(layers)) expect(hidden(layers, id)).toBe(false)
+  })
+})
+
+describe('the viewfield cones', () => {
+  test('one layer per slot on the vertex and the point source, from the cone zoom, with no selection twin', () => {
+    const layers = buildLayers(options).map(view)
+    const cones = layers.filter((l) => l.id.startsWith('cone-'))
+    expect(cones.map((l) => l.id).sort()).toEqual([
+      'cone-p0',
+      'cone-p0--edit',
+      'cone-p1',
+      'cone-p1--edit',
+      'cone-v0',
+      'cone-v0--edit',
+      'cone-v1',
+      'cone-v1--edit',
+    ])
+    for (const layer of cones) expect(layer.minzoom).toBe(CONE_ZOOM)
+    expect(layers.some((l) => l.id === 'cone-v0--select' || l.id === 'cone-p0--select')).toBe(false)
+  })
+
+  test('each cone layer turns its image by the bearing of its own slot and is not interactive', () => {
+    const layers = buildLayers(options)
+    const cone = layers.find((l) => l.id === 'cone-p1') as unknown as {
+      filter: unknown
+      layout: Record<string, unknown>
+    }
+    expect(cone.filter).toEqual(['has', 'd1'])
+    expect(cone.layout['icon-rotate']).toEqual(['get', 'd1'])
+    expect(cone.layout['icon-rotation-alignment']).toBe('map')
+    expect(interactiveLayerIds(layers).some((id) => id.startsWith('cone-'))).toBe(false)
+  })
+
+  test('the cones are drawn after the lines and before the vertices and points', () => {
+    const ids = buildLayers(options).map((l) => l.id)
+    const at = (id: string) => ids.indexOf(id)
+    expect(at('cone-v0')).toBeGreaterThan(at('area-stroke'))
+    expect(at('cone-v0')).toBeLessThan(at('vertex'))
+    expect(at('cone-p0')).toBeLessThan(at('point-dot'))
   })
 })

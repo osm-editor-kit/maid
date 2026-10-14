@@ -12,6 +12,7 @@ import {
   SIDE_HEIGHT,
   SIDE_IMAGE_PREFIX,
 } from './direction'
+import { CONE_IMAGE, CONE_SLOTS, CONE_ZOOM } from './viewfield'
 
 export const SOURCES = {
   areas: 'osm-areas',
@@ -178,7 +179,45 @@ export function buildLayers(options: LayerOptions) {
         { ...shown, id: `${layer.id}--edit`, source: editSource } as LayerSpecification,
       )
     } else out.push(shown)
-    out.push(selectionTwin(layer, source, floor, selectionOnly, twinsShown))
+    // cones (coneLayers) are drawn above the data floor only: nothing to keep below it, so no selection twin
+    if (!layer.id.startsWith('cone-'))
+      out.push(selectionTwin(layer, source, floor, selectionOnly, twinsShown))
+  }
+  return out
+}
+
+/**
+ * The viewfield cones (viewfield.ts): one symbol layer per slot on each of the vertex and the point source. Each
+ * feature with a `d<slot>` bearing gets its cone, rotated to that bearing about its node: the image's bottom edge is the
+ * anchor (the tip sits on the node). Drawn under the vertices and points (they are listed after these layers), above the
+ * lines and areas, as iD does. The `--edit` twins come from buildLayers, like those of the data, so a cone follows a
+ * node that is being dragged.
+ */
+function coneLayers(): LayerSpecification[] {
+  const out: LayerSpecification[] = []
+  for (let slot = 0; slot < CONE_SLOTS; slot++) {
+    const prop = `d${slot}`
+    for (const [source, kind] of [
+      [SOURCES.vertices, 'v'],
+      [SOURCES.points, 'p'],
+    ] as const) {
+      out.push({
+        id: `cone-${kind}${slot}`,
+        type: 'symbol',
+        source,
+        minzoom: CONE_ZOOM,
+        filter: ['has', prop],
+        layout: {
+          'icon-image': CONE_IMAGE,
+          'icon-rotate': ['get', prop],
+          // the bearing is on the map, so a turned map turns the cone with it
+          'icon-rotation-alignment': 'map',
+          'icon-anchor': 'bottom',
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
+        },
+      })
+    }
   }
   return out
 }
@@ -420,6 +459,9 @@ function buildMainLayers(options: LayerOptions) {
       },
     )
   }
+
+  // --- Viewfields: under the vertices and points, above the lines (coneLayers) ----
+  layers.push(...coneLayers())
 
   // --- Vertices ------------------------------------------------------------
   const vertexRadius = (lowR: number, r: number): ExpressionSpecification => [

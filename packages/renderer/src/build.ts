@@ -26,6 +26,7 @@ import { addressLabel, isAddressTags } from './address'
 import type { MergeResult, OsmData } from './data'
 import { arrowColour, onewayOf, sidedOf, type OneWay } from './direction'
 import { mapLabelOf } from './label'
+import { addViewfields, type ConeProps, hasDirectionTags } from './viewfield'
 
 export type SourceName = 'areas' | 'lines' | 'points' | 'vertices'
 export type FeatureBatch = Record<SourceName, Feature[]>
@@ -81,8 +82,8 @@ export type AreaProps = {
 }
 
 /** `addr`: the text of an address node (iD draws it on a plaque, not as a pin; '' for an address without number or name) */
-export type PointProps = { id: string; icon?: string; name?: string; addr?: string }
-export type VertexProps = { id: string; t: 0 | 1; s: 0 | 1; icon?: string }
+export type PointProps = { id: string; icon?: string; name?: string; addr?: string } & ConeProps
+export type VertexProps = { id: string; t: 0 | 1; s: 0 | 1; icon?: string } & ConeProps
 
 const HIGHWAY_STACK: Record<string, number> = {
   motorway: 0, motorway_link: 1, trunk: 2, trunk_link: 3, primary: 4, primary_link: 5,
@@ -488,6 +489,7 @@ export class FeatureBuilder {
     this.built.add(id)
     if (this.isFiltered(id, node.tags, 'point', first)) return undefined
     const props: PointProps = { id }
+    if (hasDirectionTags(node.tags)) addViewfields(props, node, this.data.history.staging.graph)
     if (isAddressTags(node.tags)) props.addr = addressLabel(node.tags)
     else {
       // a point's extent is the point itself, so its location is the one the presets are matched at
@@ -528,6 +530,7 @@ export class FeatureBuilder {
       t: state[0] === '1' ? 1 : 0,
       s: state[1] === '1' ? 1 : 0,
     }
+    if (hasDirectionTags(node.tags)) addViewfields(props, node, this.data.history.staging.graph)
     const icon = props.t
       ? this.presets?.match(node.tags, 'vertex', [coordinates[0]!, coordinates[1]!]).icon
       : undefined
@@ -607,6 +610,7 @@ export class FeatureBuilder {
       if (!coordinates) continue
       this.vertexState.set(node.id, state)
       const props: VertexProps = { id, t: tagged ? 1 : 0, s: shared ? 1 : 0 }
+      if (hasDirectionTags(node.tags)) addViewfields(props, node, this.data.history.staging.graph)
       const icon = tagged
         ? this.presets?.match(node.tags, 'vertex', [coordinates[0]!, coordinates[1]!]).icon
         : undefined

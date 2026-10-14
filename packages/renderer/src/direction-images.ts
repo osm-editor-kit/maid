@@ -24,6 +24,7 @@ import {
   type ArrowShape,
   type SideKind,
 } from './direction'
+import { CONE_IMAGE } from './viewfield'
 
 type Built = { data: ImageData; options: { pixelRatio: number } }
 
@@ -35,6 +36,10 @@ const ARROW_UNIT = 1.2
 const ARROW_X = (ARROW_SPACING - 10 * ARROW_UNIT) / 2
 /** Side markers: one unit is 4.5 px on the map (iD: markerWidth 1.5 of a 6 px stroke, 2 units wide) */
 const SIDE_UNIT = 4.5
+/** The viewfield wedge (iD defs.ts `ideditor-viewfield-marker`): a 16-unit box, 1.5 px a unit, so 24 px on the map */
+const CONE_D = 'M 6,14 C 8,13.4 8,13.4 10,14 L 16,3 C 12,0 4,0 0,3 z'
+const CONE_UNIT = 1.5
+const CONE_BOX = 16
 
 function canvas(width: number, height: number) {
   const el = document.createElement('canvas')
@@ -115,6 +120,25 @@ function sideImage(kind: SideKind) {
   return { data: ctx.getImageData(0, 0, el.width, el.height), options: { pixelRatio: RATIO } }
 }
 
+/**
+ * The viewfield of a node, pointing up (north) at rotation 0. Its box's bottom edge is the node (the layer anchors the
+ * image at its bottom, and the tip sits 2 units above it, as in iD). iD's colours: fill #333 and white stroke, both at
+ * 0.75. iD has no other colours for viewfields, so the same image is used in the light and the dark map.
+ */
+function coneImage() {
+  const el = canvas(CONE_BOX * CONE_UNIT, CONE_BOX * CONE_UNIT)
+  const ctx = el.getContext('2d')!
+  const s = RATIO * CONE_UNIT
+  ctx.setTransform(s, 0, 0, s, 0, 0)
+  ctx.fillStyle = 'rgba(51, 51, 51, 0.75)'
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)'
+  ctx.lineWidth = 0.5
+  const path = new Path2D(CONE_D)
+  ctx.fill(path)
+  ctx.stroke(path)
+  return { data: ctx.getImageData(0, 0, el.width, el.height), options: { pixelRatio: RATIO } }
+}
+
 /** Built images by id. The pixels are the same for every map, so they are built once. */
 const built = new Map<string, Built>()
 
@@ -131,6 +155,8 @@ function imageFor(id: string) {
   } else if (id.startsWith(SIDE_IMAGE_PREFIX)) {
     const spec = SIDE_KINDS[id.slice(SIDE_IMAGE_PREFIX.length)]
     if (spec) image = sideImage(spec)
+  } else if (id === CONE_IMAGE) {
+    image = coneImage()
   }
   if (image) built.set(id, image)
   return image
@@ -142,6 +168,7 @@ function preloadIds() {
   for (const colour of ARROW_COLOURS)
     ids.push(arrowImageId(1, colour), arrowImageId(-1, colour), arrowImageId(2, colour))
   for (const kind of Object.keys(SIDE_KINDS)) ids.push(`${SIDE_IMAGE_PREFIX}${kind}`)
+  ids.push(CONE_IMAGE)
   return ids
 }
 
