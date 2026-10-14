@@ -74,7 +74,7 @@ export function inputClassName(look: {
   open: boolean
 }): string {
   const parts = [
-    'block min-h-8 w-full min-w-0 resize-none bg-transparent px-2 py-1.5 text-sm/5 text-zinc-950 outline-none',
+    'block min-h-8 w-full min-w-0 resize-none bg-transparent px-2 py-1.5 text-zinc-950 outline-none',
     '[field-sizing:content] [overflow-wrap:anywhere]',
     'placeholder:text-zinc-400 read-only:cursor-default aria-invalid:text-red-600',
     'dark:text-white dark:placeholder:text-zinc-500 dark:aria-invalid:text-red-400',
@@ -82,8 +82,9 @@ export function inputClassName(look: {
   // two lines of 20 px under the top padding (a third line would show in the bottom padding), or six; past that
   // the text scrolls, only where it can be read in full
   parts.push(look.open ? 'max-h-[8.25rem] overflow-y-auto' : 'max-h-[2.875rem] overflow-hidden')
-  // monospace is wide: a size smaller, so that keys such as name:etymology fit a sidebar column
-  if (look.mono) parts.push('font-mono text-[13px]/5')
+  // monospace looks larger than the sans-serif of the form at the same size: smaller, so the sheet matches the labels
+  // and inputs, and keys such as name:etymology fit a sidebar column. One size class only: two would fight.
+  parts.push(look.mono ? 'font-mono text-xs/5' : 'text-sm/5')
   if (look.mixed) parts.push('italic placeholder:italic')
   if (look.editing) parts.push('select-text')
   if (look.tone === 'muted') parts.push('text-zinc-500 dark:text-zinc-400')
