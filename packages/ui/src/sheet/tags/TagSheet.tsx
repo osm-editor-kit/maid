@@ -1,6 +1,6 @@
 import { ClipboardDocumentIcon } from '@heroicons/react/16/solid'
 import type { Tags } from '@osm-editor-kit/maid-presets'
-import { useMemo, useState, type FocusEvent as ReactFocusEvent } from 'react'
+import { useState, type FocusEvent as ReactFocusEvent } from 'react'
 import type { CombinedTags } from '../../inspector/fields/shared.ts'
 import { Tooltip } from '../../Tooltip.tsx'
 import { Sheet } from '../Sheet.tsx'
@@ -115,13 +115,10 @@ export function TagSheet(props: TagSheetProps) {
 
   // The columns are made again when the rows change: the key column leaves out the keys the other rows have, and
   // a mixed value cell offers the values its features have.
-  const columns = useMemo(
-    () =>
-      several || suggest !== undefined
-        ? withTagSuggestions(TAG_COLUMNS, suggest, current.rows.rows)
-        : TAG_COLUMNS,
-    [several, suggest, current.rows.rows],
-  )
+  const columns =
+    several || suggest !== undefined
+      ? withTagSuggestions(TAG_COLUMNS, suggest, current.rows.rows)
+      : TAG_COLUMNS
 
   const clipboard: SheetClipboard = {
     serialize: serializeTagCells,

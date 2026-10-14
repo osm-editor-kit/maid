@@ -1,5 +1,5 @@
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
-import { useId, useMemo, useState } from 'react'
+import { useId, useState } from 'react'
 import { PLAIN_INPUT } from '../../plain-input.ts'
 import type { TagEdit } from '../logic.ts'
 import {
@@ -71,10 +71,8 @@ export function AddressField(props: AddressFieldProps) {
   // the place of the feature gives the country and the lists (PresetFields `address`); explicit props win
   const country = props.country ?? address?.country
   const candidates = address?.candidates
-  const derived = useMemo(
-    () => (candidates ? addressSuggestions(candidates, prefix) : undefined),
-    [candidates, prefix],
-  )
+  // React Compiler memoizes this on candidates and prefix; no effect depends on it
+  const derived = candidates ? addressSuggestions(candidates, prefix) : undefined
   const suggestions = props.suggestions ?? derived
   const rows = addressRows(field, tags, country)
   return (
