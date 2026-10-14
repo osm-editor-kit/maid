@@ -8,7 +8,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { gunzipSync } from 'node:zlib'
-import type { LayerSpecification } from 'maplibre-gl'
 import {
   EditHistory,
   ModelContext,
@@ -26,6 +25,9 @@ import {
   SELECT_SOURCES,
   SOURCES,
 } from '../../../packages/renderer/src/layers.ts'
+
+// MapLibre's layer type, taken from buildLayers: `maplibre-gl` is a dependency of the renderer, not of tools/
+type LayerSpecification = ReturnType<typeof buildLayers>[number]
 
 const ROOT = resolve(import.meta.dir, '../../..')
 
