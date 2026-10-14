@@ -1,5 +1,12 @@
 import { TZDate } from '@date-fns/tz'
-import { differenceInCalendarDays, format, formatDistanceStrict } from 'date-fns'
+import { getLocale, type Locale } from '@osm-editor-kit/maid-i18n'
+import {
+  differenceInCalendarDays,
+  format,
+  formatDistanceStrict,
+  type Locale as DateLocale,
+} from 'date-fns'
+import { de, enGB, es, fr } from 'date-fns/locale'
 
 /**
  * A point in time as the app shows it. `dateOnly` values (`2025-04-01`) have no time and are kept
@@ -13,6 +20,25 @@ const FOUR_WEEKS = 28 * DAY
 
 const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/
 const ISO_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/
+
+/**
+ * date-fns's names for each app language. English is the British form: day first, as the app
+ * writes dates (`Mon, 21 Sep`). The month and weekday names are the same in en-US.
+ */
+const DATE_LOCALES: Record<Locale, DateLocale> = { en: enGB, de, fr, es }
+
+/** `Intl.RelativeTimeFormat` objects, made once per language and numeric style */
+const relativeFormats = new Map<string, Intl.RelativeTimeFormat>()
+
+function relativeFormat(locale: Locale, numeric: 'auto' | 'always') {
+  const key = `${locale}|${numeric}`
+  let formatter = relativeFormats.get(key)
+  if (formatter === undefined) {
+    formatter = new Intl.RelativeTimeFormat(locale, { numeric })
+    relativeFormats.set(key, formatter)
+  }
+  return formatter
+}
 
 /** The time zone of the browser, as IANA name (`Europe/Berlin`). */
 export function browserTimeZone() {
@@ -48,49 +74,57 @@ export function parseTime(value: string | number | Date | undefined) {
 }
 
 /**
- * The local date and time in `timeZone`: `13 Oct 2026, 14:05`. The year is left out when it is
- * the year of `now`, because then the reader knows it; a date-only value has no time.
+ * The local date and time in `timeZone` with the weekday: `Tue, 13 Oct, 14:05`. The year is left
+ * out when it is the year of `now`, because then the reader knows it; a date-only value has no
+ * time (`Tue, 13 Oct`). The names follow the app's language unless `locale` is given.
  */
-export function absoluteTime(value: TimeValue, options: { timeZone: string; now?: Date | number }) {
+export function absoluteTime(
+  value: TimeValue,
+  options: { timeZone: string; now?: Date | number; locale?: Locale },
+) {
   const now = options.now ?? Date.now()
+  const locale = DATE_LOCALES[options.locale ?? getLocale()]
   // a date-only value is local midnight already; a time is shown in the chosen zone
   const at = value.dateOnly ? value.date : new TZDate(value.date.getTime(), options.timeZone)
   const nowAt = value.dateOnly ? new Date(now) : new TZDate(+now, options.timeZone)
-  const day = at.getFullYear() === nowAt.getFullYear() ? 'd MMM' : 'd MMM yyyy'
-  return format(at, value.dateOnly ? day : `${day}, HH:mm`)
+  const day = at.getFullYear() === nowAt.getFullYear() ? 'EEE, d MMM' : 'EEE, d MMM yyyy'
+  return format(at, value.dateOnly ? day : `${day}, HH:mm`, { locale })
 }
 
 /**
- * How long ago, in words: `just now`, `5 minutes ago`, `2 hours ago`, `yesterday`, `4 days ago`,
- * `3 weeks ago`, `5 months ago`. Days are counted in the browser's time zone, so `yesterday` is
- * yesterday on the wall clock. Within 24 hours the exact distance is more useful than the day.
- * date-fns has no week unit, so weeks are counted here.
+ * How long ago, in words: `now`, `5 minutes ago`, `2 hours ago`, `yesterday`, `4 days ago`,
+ * `3 weeks ago`, `5 months ago`, in the app's language unless `locale` is given. Days are counted
+ * in the browser's time zone, so `yesterday` is yesterday on the wall clock. Within 24 hours the
+ * exact distance is more useful than the day. date-fns has no week unit, so weeks are counted
+ * here. The words for the day and the week come from `Intl.RelativeTimeFormat`.
  */
-export function relativeTime(value: TimeValue, now: Date | number) {
+export function relativeTime(value: TimeValue, now: Date | number, locale: Locale = getLocale()) {
   const nowMs = +now
   const diff = nowMs - value.date.getTime()
-  if (Math.abs(diff) < MINUTE) return 'just now'
+  if (Math.abs(diff) < MINUTE) return relativeFormat(locale, 'auto').format(0, 'second')
 
   const zone = browserTimeZone()
   const nowLocal = new TZDate(nowMs, zone)
   const valueLocal = value.dateOnly ? value.date : new TZDate(value.date.getTime(), zone)
   const days = differenceInCalendarDays(nowLocal, valueLocal)
+  const distance = () =>
+    formatDistanceStrict(value.date, new Date(nowMs), {
+      addSuffix: true,
+      locale: DATE_LOCALES[locale],
+    })
 
-  if (!value.dateOnly && Math.abs(diff) < DAY) {
-    return formatDistanceStrict(value.date, new Date(nowMs), { addSuffix: true })
+  if (!value.dateOnly && Math.abs(diff) < DAY) return distance()
+  // `0 - days` rather than `-days`: a plain zero, not -0, which `Intl` would read as a count
+  if (days === 0 || days === 1 || days === -1) {
+    return relativeFormat(locale, 'auto').format(0 - days, 'day')
   }
-  if (days === 0) return 'today'
-  if (days === 1) return 'yesterday'
-  if (days === -1) return 'tomorrow'
 
-  const ago = days > 0
   const count = Math.abs(days)
   if (count >= 7 && count < 28) {
     const weeks = Math.floor(count / 7)
-    const unit = weeks === 1 ? 'week' : 'weeks'
-    return ago ? `${weeks} ${unit} ago` : `in ${weeks} ${unit}`
+    return relativeFormat(locale, 'always').format(days > 0 ? -weeks : weeks, 'week')
   }
-  return formatDistanceStrict(value.date, new Date(nowMs), { addSuffix: true })
+  return distance()
 }
 
 /**

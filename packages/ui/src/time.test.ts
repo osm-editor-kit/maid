@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { setLocale } from '@osm-editor-kit/maid-i18n'
 import { absoluteTime, browserTimeZone, parseTime, preferRelative, relativeTime } from './time.ts'
 
 // "now" is built in local time, so the calendar-day cases do not depend on the machine's zone
@@ -51,24 +52,50 @@ describe('parseTime', () => {
 describe('absoluteTime', () => {
   const value = parseTime('2026-10-13T12:05:00Z')!
 
-  test('shows the local date and time in the given zone, without the year of now', () => {
-    expect(absoluteTime(value, { timeZone: 'Europe/Berlin', now })).toBe('13 Oct, 14:05')
-    expect(absoluteTime(value, { timeZone: 'America/New_York', now })).toBe('13 Oct, 08:05')
+  test('shows the weekday, the local date and time in the given zone, without the year of now', () => {
+    expect(absoluteTime(value, { timeZone: 'Europe/Berlin', now })).toBe('Tue, 13 Oct, 14:05')
+    expect(absoluteTime(value, { timeZone: 'America/New_York', now })).toBe('Tue, 13 Oct, 08:05')
   })
 
   test('shows the year when it is not the year of now', () => {
     const nextYear = new Date(2027, 0, 5)
     expect(absoluteTime(value, { timeZone: 'Europe/Berlin', now: nextYear })).toBe(
-      '13 Oct 2026, 14:05',
+      'Tue, 13 Oct 2026, 14:05',
     )
   })
 
   test('a date-only value has no time and no zone shift', () => {
     const date = parseTime('2025-04-01')!
-    expect(absoluteTime(date, { timeZone: 'America/Los_Angeles', now })).toBe('1 Apr 2025')
+    expect(absoluteTime(date, { timeZone: 'America/Los_Angeles', now })).toBe('Tue, 1 Apr 2025')
     expect(absoluteTime(date, { timeZone: 'Pacific/Auckland', now: new Date(2025, 5, 1) })).toBe(
-      '1 Apr',
+      'Tue, 1 Apr',
     )
+  })
+
+  test('the German form: German weekday and month, the same order', () => {
+    expect(absoluteTime(value, { timeZone: 'Europe/Berlin', now, locale: 'de' })).toBe(
+      'Di., 13 Okt., 14:05',
+    )
+    expect(
+      absoluteTime(value, { timeZone: 'Europe/Berlin', now: new Date(2027, 0, 5), locale: 'de' }),
+    ).toBe('Di., 13 Okt. 2026, 14:05')
+    expect(
+      absoluteTime(parseTime('2025-04-01')!, {
+        timeZone: 'UTC',
+        now: new Date(2025, 5, 1),
+        locale: 'de',
+      }),
+    ).toBe('Di., 1 Apr.')
+  })
+
+  test('follows the app language when no locale is given', () => {
+    setLocale('de')
+    try {
+      expect(absoluteTime(value, { timeZone: 'Europe/Berlin', now })).toBe('Di., 13 Okt., 14:05')
+    } finally {
+      setLocale('en')
+    }
+    expect(absoluteTime(value, { timeZone: 'Europe/Berlin', now })).toBe('Tue, 13 Oct, 14:05')
   })
 })
 
@@ -76,7 +103,7 @@ describe('relativeTime', () => {
   const at = (value: string) => parseTime(value)!
 
   test('minutes and hours within a day are the exact distance', () => {
-    expect(relativeTime(parseTime(minutesAgo(0.5))!, now)).toBe('just now')
+    expect(relativeTime(parseTime(minutesAgo(0.5))!, now)).toBe('now')
     expect(relativeTime(parseTime(minutesAgo(5))!, now)).toBe('5 minutes ago')
     expect(relativeTime(parseTime(minutesAgo(120))!, now)).toBe('2 hours ago')
     expect(relativeTime(parseTime(minutesAgo(-10))!, now)).toBe('in 10 minutes')
@@ -84,6 +111,7 @@ describe('relativeTime', () => {
 
   test('the day before is yesterday, on the wall clock', () => {
     expect(relativeTime(parseTime(new Date(2026, 9, 11, 9, 0))!, now)).toBe('yesterday')
+    expect(relativeTime(parseTime(new Date(2026, 9, 13, 11, 0))!, now)).toBe('tomorrow')
   })
 
   test('days and weeks', () => {
@@ -98,6 +126,19 @@ describe('relativeTime', () => {
   test('a date-only value is today, yesterday or a count of days', () => {
     expect(relativeTime(at('2026-10-12'), now)).toBe('today')
     expect(relativeTime(at('2026-10-11'), now)).toBe('yesterday')
+  })
+
+  test('the German form: the same rules in German', () => {
+    expect(relativeTime(parseTime(minutesAgo(0.5))!, now, 'de')).toBe('jetzt')
+    expect(relativeTime(parseTime(minutesAgo(5))!, now, 'de')).toBe('vor 5 Minuten')
+    expect(relativeTime(parseTime(minutesAgo(-10))!, now, 'de')).toBe('in 10 Minuten')
+    expect(relativeTime(parseTime(new Date(2026, 9, 11, 9, 0))!, now, 'de')).toBe('gestern')
+    expect(relativeTime(parseTime(new Date(2026, 9, 13, 11, 0))!, now, 'de')).toBe('morgen')
+    expect(relativeTime(parseTime(new Date(2026, 9, 9, 10, 0))!, now, 'de')).toBe('vor 3 Tagen')
+    expect(relativeTime(parseTime(new Date(2026, 8, 21, 10, 0))!, now, 'de')).toBe('vor 3 Wochen')
+    expect(relativeTime(parseTime(new Date(2026, 9, 26, 10, 0))!, now, 'de')).toBe('in 2 Wochen')
+    expect(relativeTime(at('2026-05-12'), now, 'de')).toBe('vor 5 Monaten')
+    expect(relativeTime(at('2026-10-11'), now, 'de')).toBe('gestern')
   })
 })
 

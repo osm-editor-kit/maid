@@ -14,7 +14,7 @@ import {
 } from '@osm-editor-kit/street-imagery'
 import { mapillaryAdapter } from '@osm-editor-kit/street-imagery/providers/mapillary'
 import { panoramaxAdapter } from '@osm-editor-kit/street-imagery/providers/panoramax'
-import { createElement } from 'react'
+import { createElement, type ComponentType } from 'react'
 import { STREET_IMAGES_FIELD_TYPE } from './image-keys.ts'
 import { StreetImageryLayers } from './map.tsx'
 import { AUTOMATED, streetImageryActions } from './street-imagery-store.ts'
@@ -46,18 +46,27 @@ export {
   type StreetImagesPresetChanges,
 } from './image-presets.ts'
 
+/** A lazy component in the app's language for the viewer; the wrapper loads with it, not with this file */
+async function inViewerLocale<Props extends object>(component: Promise<ComponentType<Props>>) {
+  const [Component, { withViewerLocale }] = await Promise.all([
+    component,
+    import('./viewer-locale.tsx'),
+  ])
+  return { default: withViewerLocale(Component) }
+}
+
 // The panel, the dock view and the field are chunks of their own (with the photo viewers they use): they load when
 // they are first shown, or in idle time after the first view (lazyComponent).
 const PhotosPanel = lazyComponent(
-  () => import('./panel.tsx').then((panel) => ({ default: panel.PhotosPanel })),
+  () => inViewerLocale(import('./panel.tsx').then((panel) => panel.PhotosPanel)),
   PANEL_FALLBACK,
 )
 const PhotosView = lazyComponent(
-  () => import('./dock.tsx').then((dock) => ({ default: dock.PhotosView })),
+  () => inViewerLocale(import('./dock.tsx').then((dock) => dock.PhotosView)),
   PANEL_FALLBACK,
 )
 const StreetImagesField = lazyComponent(() =>
-  import('./image-field.tsx').then((field) => ({ default: field.StreetImagesField })),
+  inViewerLocale(import('./image-field.tsx').then((field) => field.StreetImagesField)),
 )
 
 /** The icon of the photos button in the top bar */

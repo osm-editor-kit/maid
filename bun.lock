@@ -278,6 +278,7 @@
       "dependencies": {
         "@heroicons/react": "^2.2.0",
         "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-i18n": "workspace:*",
         "@osm-editor-kit/maid-renderer": "workspace:*",
         "@osm-editor-kit/maid-ui": "workspace:*",
         "@osm-editor-kit/street-imagery": "0.1.0-alpha.8",
