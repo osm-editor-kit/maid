@@ -1,27 +1,27 @@
 import { describe, expect, test } from 'bun:test'
-import { chooseLiveMode, DEV_API, OSM_API, parseServers, readConfig } from './config'
+import { chooseSource, DEV_API, OSM_API, readConfig } from './config'
 
-/** The data the page starts with: the URL's `live`, then the stored choice, then the build's default */
-describe('chooseLiveMode', () => {
-  test('a build without VITE_MAID_DATA keeps the mock, as before', () => {
-    expect(chooseLiveMode({ url: null, stored: undefined, liveBuild: false })).toBe('0')
+/** Where the data comes from: the URL's `api`, then the stored choice, then the build's default */
+describe('chooseSource', () => {
+  test('a build that is not deployed keeps the mock', () => {
+    expect(chooseSource({ url: null, stored: undefined, deployed: false })).toBe('mock')
   })
 
-  test('a live build reads the OSM API by default', () => {
-    expect(chooseLiveMode({ url: null, stored: undefined, liveBuild: true })).toBe('1')
+  test('a deployed build reads OpenStreetMap by default', () => {
+    expect(chooseSource({ url: null, stored: undefined, deployed: true })).toBe('osm')
   })
 
-  test('the stored choice decides in a live build, and nowhere else', () => {
-    expect(chooseLiveMode({ url: null, stored: 'dev', liveBuild: true })).toBe('dev')
-    expect(chooseLiveMode({ url: null, stored: 'osm', liveBuild: true })).toBe('1')
-    expect(chooseLiveMode({ url: null, stored: 'dev', liveBuild: false })).toBe('0')
+  test('the stored choice decides in a deployed build, and nowhere else', () => {
+    expect(chooseSource({ url: null, stored: 'dev', deployed: true })).toBe('dev')
+    expect(chooseSource({ url: null, stored: 'osm', deployed: true })).toBe('osm')
+    expect(chooseSource({ url: null, stored: 'dev', deployed: false })).toBe('mock')
   })
 
   test('the URL wins over the stored choice and the build default', () => {
-    expect(chooseLiveMode({ url: '0', stored: 'dev', liveBuild: true })).toBe('0')
-    expect(chooseLiveMode({ url: '1', stored: 'dev', liveBuild: true })).toBe('1')
-    expect(chooseLiveMode({ url: 'dev', stored: 'osm', liveBuild: true })).toBe('dev')
-    expect(chooseLiveMode({ url: 'dev', stored: undefined, liveBuild: false })).toBe('dev')
+    expect(chooseSource({ url: 'mock', stored: 'dev', deployed: true })).toBe('mock')
+    expect(chooseSource({ url: 'osm', stored: 'dev', deployed: true })).toBe('osm')
+    expect(chooseSource({ url: 'dev', stored: 'osm', deployed: true })).toBe('dev')
+    expect(chooseSource({ url: 'dev', stored: undefined, deployed: false })).toBe('dev')
   })
 })
 
@@ -30,79 +30,61 @@ function at(search: string) {
   return { search } as Location
 }
 
-describe('parseServers', () => {
-  test('one server, both in either order, or both by default', () => {
-    expect(parseServers('dev')).toEqual(['dev'])
-    expect(parseServers('dev, osm')).toEqual(['dev', 'osm'])
-    expect(parseServers(undefined)).toEqual(['osm', 'dev'])
-    expect(parseServers('staging')).toEqual(['osm', 'dev'])
-  })
-})
+const local = { stored: undefined, deployed: false }
+const deployed = { stored: undefined, deployed: true }
 
 describe('readConfig', () => {
-  test('without a live build and without a URL: the local mock', () => {
-    const config = readConfig(at(''), { stored: undefined, liveBuild: false })
-    expect(config.live).toBe(false)
-    expect(config.dev).toBe(false)
+  test('a local build without a URL: the mock', () => {
+    const config = readConfig(at(''), local)
+    expect(config.source).toBe('mock')
     expect(config.serverChoice).toBe(false)
     expect(config.apiUrl).toMatch(/^http:\/\/localhost:\d+\/s\/small$/)
   })
 
-  test('a live build without a URL: OpenStreetMap, its login, and the server choice is offered', () => {
-    const config = readConfig(at(''), { stored: undefined, liveBuild: true })
-    expect(config.live).toBe(true)
-    expect(config.dev).toBe(false)
+  test('a deployed build without a URL: OpenStreetMap, its login, and the server choice', () => {
+    const config = readConfig(at(''), deployed)
+    expect(config.source).toBe('osm')
     expect(config.loginServer).toBe('osm')
     expect(config.serverChoice).toBe(true)
     expect(config.apiUrl).toBe(OSM_API)
   })
 
-  test('a live build with the development server stored: saving is possible there', () => {
-    const config = readConfig(at(''), { stored: 'dev', liveBuild: true })
-    expect(config.dev).toBe(true)
+  test('a deployed build with the development server stored: its data and its login', () => {
+    const config = readConfig(at(''), { stored: 'dev', deployed: true })
+    expect(config.source).toBe('dev')
+    expect(config.loginServer).toBe('dev')
     expect(config.apiUrl).toBe(DEV_API)
   })
 
-  test('one source for the whole visit: a fixture, the OSM API or the development server', () => {
-    expect(readConfig(at(''), { stored: undefined, liveBuild: false }).source).toBe('fixture')
-    expect(readConfig(at('?live=1'), { stored: undefined, liveBuild: false }).source).toBe('osm')
-    expect(readConfig(at('?live=dev'), { stored: undefined, liveBuild: false }).source).toBe('dev')
+  test('the URL names the source: the mock, OpenStreetMap or the development server', () => {
+    expect(readConfig(at('?api=mock'), deployed).source).toBe('mock')
+    expect(readConfig(at('?api=osm'), local).source).toBe('osm')
+    expect(readConfig(at('?api=dev'), local).source).toBe('dev')
+    expect(readConfig(at('?api=osm'), { stored: 'dev', deployed: true }).source).toBe('osm')
   })
 
-  test('the login goes to the server of the data, and to the development server with a fixture', () => {
-    expect(readConfig(at('?live=1'), { stored: undefined, liveBuild: false }).loginServer).toBe(
-      'osm',
-    )
-    expect(readConfig(at('?live=dev'), { stored: undefined, liveBuild: false }).loginServer).toBe(
-      'dev',
-    )
-    expect(readConfig(at(''), { stored: undefined, liveBuild: false }).loginServer).toBe('dev')
+  test('the login goes to the server of the data, and to the development server with the mock', () => {
+    expect(readConfig(at('?api=osm'), local).loginServer).toBe('osm')
+    expect(readConfig(at('?api=dev'), local).loginServer).toBe('dev')
+    expect(readConfig(at(''), local).loginServer).toBe('dev')
   })
 
-  test('a build with one server opens only that one and offers no choice', () => {
-    const staging = { stored: 'osm' as const, liveBuild: true, servers: ['dev' as const] }
+  test('an editor with one server opens only that one and offers no choice', () => {
+    const staging = { stored: 'osm' as const, deployed: true, servers: ['dev' as const] }
     expect(readConfig(at(''), staging).source).toBe('dev')
-    expect(readConfig(at('?live=1'), staging).source).toBe('dev')
+    expect(readConfig(at('?api=osm'), staging).source).toBe('dev')
     expect(readConfig(at(''), staging).serverChoice).toBe(false)
-    const production = { stored: 'dev' as const, liveBuild: true, servers: ['osm' as const] }
+    const production = { stored: 'dev' as const, deployed: true, servers: ['osm' as const] }
     expect(readConfig(at(''), production).source).toBe('osm')
-    expect(readConfig(at('?live=dev'), production).source).toBe('osm')
+    expect(readConfig(at('?api=dev'), production).source).toBe('osm')
   })
 
   test('the build flag is carried for the login origin', () => {
-    expect(readConfig(at(''), { stored: undefined, liveBuild: true }).liveBuild).toBe(true)
-    expect(readConfig(at(''), { stored: undefined, liveBuild: false }).liveBuild).toBe(false)
+    expect(readConfig(at(''), deployed).deployed).toBe(true)
+    expect(readConfig(at(''), local).deployed).toBe(false)
   })
 
-  test('the URL overrides the stored choice in a live build', () => {
-    expect(readConfig(at('?live=1'), { stored: 'dev', liveBuild: true }).dev).toBe(false)
-    expect(readConfig(at('?live=dev'), { stored: 'osm', liveBuild: true }).dev).toBe(true)
-    expect(readConfig(at('?live=0'), { stored: 'dev', liveBuild: true }).live).toBe(false)
-  })
-
-  test('a live session in a development build can switch the server too', () => {
-    const config = readConfig(at('?live=1'), { stored: undefined, liveBuild: false })
-    expect(config.live).toBe(true)
-    expect(config.serverChoice).toBe(true)
+  test('a local build on a server can switch the server too', () => {
+    expect(readConfig(at('?api=osm'), local).serverChoice).toBe(true)
   })
 })

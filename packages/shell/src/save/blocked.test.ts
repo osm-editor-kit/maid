@@ -30,8 +30,8 @@ describe('featureName', () => {
 })
 
 describe('saveBlocked', () => {
-  it('is blocked on a fixture, whatever else holds', () => {
-    expect(saveBlocked({ source: 'fixture', loggedIn: true, errors: [] })).toContain('?live=dev')
+  it('is blocked on the mock, whatever else holds', () => {
+    expect(saveBlocked({ source: 'mock', loggedIn: true, errors: [] })).toContain('?api=dev')
   })
 
   it('is open when logged in on OpenStreetMap with no errors', () => {

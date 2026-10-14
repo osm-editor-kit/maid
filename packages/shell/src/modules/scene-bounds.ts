@@ -1,18 +1,19 @@
 import { defineModule } from '@osm-editor-kit/maid-core'
 import type { MapLayerItem } from '@osm-editor-kit/maid-renderer'
+import type { DataSource } from '../config'
 
 /** Bounding box as [west, south, east, north] */
 export type Bbox = [west: number, south: number, east: number, north: number]
 
 /**
  * The extent of the fixture a config's scene is cut from, for `sceneBounds`. `bboxes` is the app's table, from
- * its fixtures' meta files. None for live data and for a scene the table does not know.
+ * its fixtures' meta files. None for a server's data and for a scene the table does not know.
  */
 export function fixtureBounds(
-  config: { live: boolean; scene: string },
+  config: { source: DataSource; scene: string },
   bboxes: Readonly<Record<string, Bbox>>,
 ): Bbox | undefined {
-  return config.live ? undefined : bboxes[config.scene]
+  return config.source === 'mock' ? bboxes[config.scene] : undefined
 }
 
 /** Draws the outline of a bounding box as a dashed line, e.g. the extent of a fixture. */

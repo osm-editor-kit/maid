@@ -33,7 +33,7 @@ export function pendingChange(editor: Editor) {
 }
 
 /**
- * Uploads the edits as one changeset to the server of the live data: OpenStreetMap or its development server
+ * Uploads the edits as one changeset to the server of the data: OpenStreetMap or its development server
  * (`config.loginServer`, the server `auth` is logged in to). Only ever called from a person's
  * click (AGENTS.md, core rule 1). A conflict (someone changed the same element) rejects with the
  * server's message, and then nothing is forgotten.
@@ -56,7 +56,7 @@ export async function uploadEdits(
   }: Pick<Shell, 'config' | 'editor' | 'auth' | 'engine' | 'brand' | 'version'>,
   comment: string,
 ) {
-  if (config.source === 'fixture') throw new Error('Saving is only possible on live data')
+  if (config.source === 'mock') throw new Error('Saving is only possible on a server')
   const [first] = uploadErrors(editor)
   if (first !== undefined) throw new Error(errorSentence(first))
   const change = pendingChange(editor)

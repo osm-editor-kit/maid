@@ -169,7 +169,7 @@ Mutable module objects used the same way: `apps/maid/src/favourites.ts:23` (`pen
 
 ### 17. Scratch scripts in `tools/bench` that nothing references, one without the request block
 
-- `tools/bench/probe.ts`: referenced by nothing (grep over repo and docs). It opens a browser **without** `context.route` blocking non-localhost hosts, unlike every other script, and has the port `5175` typed in instead of `PORTS.maidBuild`. With `?live=1` in its query argument it would be stopped only by `navigator.webdriver`. Delete it, or give it the block.
+- `tools/bench/probe.ts`: referenced by nothing (grep over repo and docs). It opens a browser **without** `context.route` blocking non-localhost hosts, unlike every other script, and has the port `5175` typed in instead of `PORTS.maidBuild`. With `?api=osm` in its query argument it would be stopped only by `navigator.webdriver`. Delete it, or give it the block.
 - `tools/bench/variants.sh`: referenced by nothing; a bash loop with inline Python. Delete or move to a doc.
 - `quick-pan.ts`, `zoom-settle.ts`, `wheel-zoom.ts` are named in ADRs 0006 to 0008 and the iteration 1 report, so they are evidence, not dead; but with `edit.ts`, `shot.ts`, `run.ts` they repeat the same launch, route block and `__bench` wait seven times. A `openMaid(scene, query)` in `check-page.ts` (the first half of `runCheck`) would serve all.
 - `median`, `round`, `statsOf` in `packages/validation/bench/validation.bench.ts:51-72` repeat `tools/bench/stats.ts`.

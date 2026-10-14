@@ -17,9 +17,9 @@ function LoadedData() {
     [
       'Source',
       config.source === 'dev'
-        ? 'OSM development server (live)'
+        ? 'OSM development server'
         : config.source === 'osm'
-          ? 'OSM API (live)'
+          ? 'OpenStreetMap'
           : `Fixture “${config.scene}”, local mock API`,
     ],
     ['Zoom', zoom === undefined ? '–' : zoom.toFixed(1)],

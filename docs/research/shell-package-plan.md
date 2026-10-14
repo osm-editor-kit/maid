@@ -174,7 +174,7 @@ An app imports from `@osm-editor-kit/maid-shell` only, never from the shell's in
 | Field | Today | Kind | New home |
 | --- | --- | --- | --- |
 | `scene` (`scene=`, default small) | URL | runtime | `Runtime`; app sets `defaults.scene` |
-| `live` (`live=0/1/dev`) | URL; off under automation | runtime | `Runtime` |
+| `api` (`api=mock/osm/dev`) | URL; off under automation | runtime | `Runtime` |
 | `dev`, `apiUrl` | derived: DEV_API, OSM, or the mock `localhost:8090/s/<scene>` | runtime | `Runtime`; `DEV_API` stays in the shell |
 | `fill`, `ui`, `labels`, `icons`, `pins`, `workers`, `tolerance`, `sourceMaxZoom`, `fade` | URL (bench switches) | runtime | `Runtime` |
 | `minDataZoom` (default 16) | URL | runtime, app default | `Runtime`; `defaults.minDataZoom` |

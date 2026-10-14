@@ -33,9 +33,9 @@ export function saveBlocked(state: {
   loggedIn: boolean
   errors: readonly Issue[]
 }): string | undefined {
-  // isAutomated() is already folded into config.source: automation always has a fixture
-  if (state.source === 'fixture')
-    return 'Saving works only on live data: open Maid with ?live=1 (OpenStreetMap) or ?live=dev (the development server). Edits on a fixture stay in this browser.'
+  // isAutomated() is already folded into config.source: automation always has the mock
+  if (state.source === 'mock')
+    return 'Saving works only on a server: open Maid with ?api=osm (OpenStreetMap) or ?api=dev (the development server). Edits on the local test data stay in this browser.'
   const error = state.errors.find((issue) => issue.severity === 'error')
   if (error !== undefined) return errorSentence(error)
   if (!state.loggedIn) return 'Log in to save.'

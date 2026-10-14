@@ -94,6 +94,7 @@ export const app: AppConfig = {
   brand: { name: 'Maid', detail: 'MapLibre iD Editor' },
   version,
   osm: {
+    servers: ['osm', 'dev'],
     clientId: import.meta.env.VITE_OSM_CLIENT_ID || undefined,
     devClientId: import.meta.env.VITE_OSM_DEV_CLIENT_ID || undefined,
     loginOrigin: 'http://127.0.0.1:5173',

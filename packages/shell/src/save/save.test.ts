@@ -130,10 +130,10 @@ describe('uploadEdits', () => {
     expect(reloads).toEqual([])
   })
 
-  it('uploads nothing on a fixture', async () => {
-    const { history, shell, uploads, reloads } = setUp({ source: 'fixture' })
+  it('uploads nothing on the mock', async () => {
+    const { history, shell, uploads, reloads } = setUp({ source: 'mock' })
 
-    expect(uploadEdits(shell, 'Not here')).rejects.toThrow('live data')
+    expect(uploadEdits(shell, 'Not here')).rejects.toThrow('on a server')
 
     expect(uploads).toEqual([])
     expect(history.hasChanges()).toBe(true)

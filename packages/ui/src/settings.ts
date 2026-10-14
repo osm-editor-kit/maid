@@ -40,8 +40,8 @@ export type Settings = {
   lang?: Lang | undefined
   /**
    * The data server the person chose in the account flyout: OpenStreetMap or the development server, each
-   * with its own login. Read only by a build that reads live data by default
-   * (`VITE_MAID_DATA=live`, packages/shell/src/config.ts). Unset: that build's default.
+   * with its own login. Read only by a deployed build (`DEPLOYED`, packages/shell/src/config.ts). Unset: the
+   * first server of the editor.
    */
   server?: Server | undefined
 }

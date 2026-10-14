@@ -8,13 +8,10 @@ The workflow `.github/workflows/pages.yml` builds one Maid app and publishes it 
 - `MAID_APP`: the app folder, for example `maid`, `maid-bicycle`, `maid-parking` or your own.
 - `MAID_BASE`: the path the site is served from. Empty means `/<repository name>/`, for example `/maid/`. A fork with its
   own domain sets `/`.
-- `MAID_SERVERS`: the OSM servers the app offers, as iD's `ID_API_CONNECTION`: `osm` (openstreetmap.org, production),
-  `dev` (the development server, staging) or `osm,dev`. The first is the default; with one, the server choice does not
-  show.
 
 **Repository variables** (Settings, Secrets and variables, Actions, Variables) override `deploy.env` when they are set:
 
-- `MAID_APP`, `MAID_BASE`, `MAID_SERVERS`: as above.
+- `MAID_APP`, `MAID_BASE`: as above.
 - `OSM_CLIENT_ID`, `OSM_DEV_CLIENT_ID`: the client ids of your OAuth apps on openstreetmap.org and on the development
   server. They are public. Without one, "Log in" on that server says what is missing.
 - `MAPILLARY_TOKEN`: optional; without it the shared token in `apps/mapillary-token.ts` is used. A fork should set its own.
@@ -34,10 +31,11 @@ Maid is a public OAuth client with PKCE. It has no client secret; never put one 
 
 ## What the deployed editor does
 
-- It reads the data of the first server in `MAID_SERVERS`. In the account menu, "Server" switches between
-  OpenStreetMap and the development server when both are offered; unsaved edits must be saved or undone first.
+- It reads the data of the first server in `osm.servers` of the app's `maid.config.ts` (default: OpenStreetMap, then
+  the development server; `['dev']` for staging only, as iD's `ID_API_CONNECTION`). In the account menu, "Server"
+  switches between them when there are two; unsaved edits must be saved or undone first.
 - "Log in" goes to the server of the data, and edits are saved there. Each server has its own login.
 - The static demo data (the fixtures) exist only locally: they come from the mock API of `bun run dev`. Locally,
-  `?live=0` shows them, `?live=1` OpenStreetMap, `?live=dev` the development server.
+  `?api=mock` shows them, `?api=osm` OpenStreetMap, `?api=dev` the development server.
 
-To build the Pages version locally, in the app folder: `VITE_BASE=/maid/ VITE_MAID_DATA=live bun run build`.
+To build the Pages version locally, in the app folder: `VITE_BASE=/maid/ bun run build`.

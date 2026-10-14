@@ -81,10 +81,10 @@ export const stateParams = {
 export const setupParams = {
   scene: parseAsString.withDefault('small'),
   /**
-   * `0`: the local mock API. `1`: read from the real OSM API. `dev`: read from, and save to, the OSM
-   * development server. Unset (null) gives the build's default and the person's stored server choice (config.ts).
+   * Where the data comes from: `mock` the local mock API, `osm` OpenStreetMap, `dev` the OSM development server.
+   * Unset (null) gives the build's default and the person's stored server choice (config.ts).
    */
-  live: parseAsStringLiteral(['0', '1', 'dev']),
+  api: parseAsStringLiteral(['mock', 'osm', 'dev']),
   ui: parseAsFlag.withDefault(true),
   labels: parseAsFlag.withDefault(true),
   icons: parseAsFlag.withDefault(true),

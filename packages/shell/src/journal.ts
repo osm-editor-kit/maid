@@ -49,7 +49,7 @@ export type JournalState =
  * `id` is the app's id: it prefixes the IndexedDB name.
  */
 export function createShellJournal(id: string, config: Config, editor: Editor) {
-  // One journal per data source: edits made on a fixture must never be restored onto live data
+  // One journal per data source: edits made on a fixture must never be restored onto a server's data
   const journal = createJournal({
     name:
       config.source === 'dev'
