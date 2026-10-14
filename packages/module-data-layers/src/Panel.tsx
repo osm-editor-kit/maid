@@ -197,10 +197,10 @@ function AddLayerForm({
           placeholder="Bike parking"
         />
       </label>
-      <div className="flex flex-col gap-1">
-        <span className={LABEL}>Kind</span>
+      <fieldset className="flex min-w-0 flex-col gap-1">
+        <legend className={LABEL}>Kind</legend>
         <KindChoice kind={kind} chosen={chosen !== undefined} onChoose={setChosen} />
-      </div>
+      </fieldset>
       <label className="flex flex-col gap-1" htmlFor={`${ids}-url`}>
         <span className={LABEL}>Address</span>
         <input

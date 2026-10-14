@@ -238,38 +238,39 @@ export function QuickTags({ roads, editor, onFieldFocus }: QuickTagsProps) {
           }),
         ])}
       </div>
-      <div className="flex flex-col gap-0.5">
+      <ul className="flex flex-col gap-0.5">
         {COMBINED.map((tag) => {
           const name = textOf(tag)
           const url = iconUrl(tag.icon)
           return (
-            <button
-              key={tag.id}
-              type="button"
-              aria-pressed={tag.clearSide ? undefined : pressedAttr(tag)}
-              disabled={disabled}
-              onFocus={() => showSide(tag)}
-              onBlur={hideSide}
-              onPointerEnter={() => showSide(tag)}
-              onPointerLeave={hideSide}
-              onClick={() => press(tag)}
-              className={LIST_BUTTON}
-            >
-              {url ? (
-                <img
-                  src={url}
-                  alt=""
-                  width={20}
-                  height={20}
-                  draggable={false}
-                  className="size-5 shrink-0 object-contain"
-                />
-              ) : null}
-              <span className="min-w-0">{name}</span>
-            </button>
+            <li key={tag.id}>
+              <button
+                type="button"
+                aria-pressed={tag.clearSide ? undefined : pressedAttr(tag)}
+                disabled={disabled}
+                onFocus={() => showSide(tag)}
+                onBlur={hideSide}
+                onPointerEnter={() => showSide(tag)}
+                onPointerLeave={hideSide}
+                onClick={() => press(tag)}
+                className={LIST_BUTTON}
+              >
+                {url ? (
+                  <img
+                    src={url}
+                    alt=""
+                    width={20}
+                    height={20}
+                    draggable={false}
+                    className="size-5 shrink-0 object-contain"
+                  />
+                ) : null}
+                <span className="min-w-0">{name}</span>
+              </button>
+            </li>
           )
         })}
-      </div>
+      </ul>
     </div>
   )
 }
