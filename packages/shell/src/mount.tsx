@@ -7,15 +7,18 @@ import { createRoot } from 'react-dom/client'
 import { App } from './App'
 import { createShell, type AppConfig } from './shell'
 import { ShellContext } from './shell-context'
+import { migrateIdHash } from './url/id-url'
+import { urlLang } from './url/params'
 
 /**
- * The language of this visit (ADR 0009, decision 4): the URL, the stored choice, the browser, the app's `defaultLocale`, English.
+ * The language of this visit (ADR 0009, decision 4): the URL's `lang` (read by the shell's URL parameters, iD's
+ * `locale` included), the stored choice, the browser, the app's `defaultLocale`, English.
  * Under automation it is always English, so that the browser checks keep their texts.
  */
 function visitLocale(fallback?: Locale): Locale {
   if (isAutomated()) return 'en'
   return chooseLocale({
-    url: location.href,
+    lang: urlLang(location.search),
     stored: getSettings().lang,
     browser: navigator.languages,
     fallback,
@@ -27,6 +30,9 @@ function visitLocale(fallback?: Locale): Locale {
  * One editor per page (the packages' stores are singletons). Returns a function that unmounts it.
  */
 export function mountEditor(rootElement: HTMLElement, app: AppConfig) {
+  // an iD link's `locale` becomes Maid's `lang` first, so that the language of the link is the one this visit uses
+  // (the shell's own pass runs again in createShell; it changes nothing the second time)
+  migrateIdHash(location, history)
   // before anything is drawn: every text is read when it renders
   const locale = visitLocale(app.defaultLocale)
   setLocale(locale)

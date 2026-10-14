@@ -15,6 +15,7 @@
  * imagery module's `background` and `overlays` are such rows, so they are not in this table.
  */
 import type { UrlParamHandle } from '@osm-editor-kit/maid-core'
+import { isLocale } from '@osm-editor-kit/maid-i18n'
 
 /** The iD parameters a module declared, as core's registry lists them */
 export type DeclaredIdParams = readonly Pick<UrlParamHandle<unknown>, 'name' | 'iD'>[]
@@ -42,8 +43,12 @@ export const ID_URL_RULES: Rule[] = [
   { id: 'comment', maid: 'comment', kind: 'carried' },
   { id: 'hashtags', maid: 'hashtags', kind: 'carried' },
   { id: 'source', maid: 'source', kind: 'carried' },
-  { id: 'locale', maid: 'locale', kind: 'carried' },
-  { id: 'gpx', maid: 'gpx', kind: 'carried' },
+  { id: 'locale', maid: 'lang', kind: 'same', fromId: localeFromId }, // de-DE in iD, de in Maid
+  {
+    id: 'gpx',
+    kind: 'dropped',
+    why: 'Maid draws GeoJSON, PMTiles and vector tiles, not GPX files',
+  },
   { id: 'photo_overlay', maid: 'photo_overlay', kind: 'carried' },
   { id: 'photo_dates', maid: 'photo_dates', kind: 'carried' },
   { id: 'photo_username', maid: 'photo_username', kind: 'carried' },
@@ -102,6 +107,18 @@ export function idRules(declared: DeclaredIdParams = []): Rule[] {
 
 function mappedRules(rules: Rule[]): Mapped[] {
   return rules.filter((r): r is Mapped => r.kind !== 'dropped')
+}
+
+/**
+ * iD's `locale` is a list of codes in the order they are preferred (`de-DE,en-US`). Maid takes the first one it has,
+ * by its base language (`de-DE` is `de`). A list with none of Maid's languages is left out.
+ */
+function localeFromId(value: string) {
+  for (const code of value.split(',')) {
+    const base = code.trim().split(/[-_]/)[0]?.toLowerCase() ?? ''
+    if (isLocale(base)) return base
+  }
+  return undefined
 }
 
 /** iD writes `map=17.00/52.52280/13.40230`. Same order as Maid; only the number of digits differs. */

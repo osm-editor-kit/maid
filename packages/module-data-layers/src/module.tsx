@@ -3,6 +3,7 @@ import { defineModule } from '@osm-editor-kit/maid-core'
 import { lazyComponent, PANEL_FALLBACK } from '@osm-editor-kit/maid-ui'
 import { checkConfigLayers, type DataLayerConfig } from './config.ts'
 import { createMapContent } from './MapLayers.tsx'
+import { parseAsDataLink } from './url.ts'
 
 export type DataLayersOptions = {
   /**
@@ -16,20 +17,28 @@ export type DataLayersOptions = {
  * The data layers module: other data (GeoJSON, PMTiles, vector tiles) drawn under the OSM data,
  * and a "Data layers" flyout to show, hide, add and remove them. Added layers and what is hidden
  * are stored in the browser under `maid:data-layers`; files are kept until a reload.
+ *
+ * The URL parameter `data` names one remote GeoJSON or PMTiles address that is shown as a layer while the URL
+ * names it (url.ts, link.ts). A link alone writes nothing to storage.
  */
 export function dataLayers(options: DataLayersOptions = {}) {
   const layers = checkConfigLayers(options.layers ?? [])
   return defineModule({
     id: 'data-layers',
     setup(api) {
+      const link = api.urlParam({
+        name: 'data',
+        parser: parseAsDataLink,
+        options: { history: 'replace' },
+      })
       // the map layer reads the PMTiles archives through the editor's fetch, and its query client is the editor's
-      const MapContent = createMapContent(layers, api.editor.fetch)
+      const MapContent = createMapContent(layers, api.editor.fetch, link)
       // the form's checks of an address go through the editor's fetch (the `data` gate)
       // the panel's code is a chunk of its own: it loads when the flyout opens (or in idle time after the first view)
       const Panel = lazyComponent(
         () =>
           import('./Panel.tsx').then((panel) => ({
-            default: panel.createPanel(layers, api.editor.fetch),
+            default: panel.createPanel(layers, api.editor.fetch, link),
           })),
         PANEL_FALLBACK,
       )

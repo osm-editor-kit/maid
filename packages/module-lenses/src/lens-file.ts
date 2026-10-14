@@ -5,6 +5,7 @@
  */
 import { parseColour, type Lens, type LensGeometry } from '@osm-editor-kit/maid-style'
 import { z } from 'zod'
+import { NO_LENS } from './url.ts'
 
 export const MAX_FILE_BYTES = 256 * 1024
 const MAX_RULES = 200
@@ -151,7 +152,9 @@ export function parseLensFile(source: string, reserved: readonly string[] = []):
       return
     }
     const lens = parsed.data
-    if (reserved.includes(lens.id)) problems.push(`${path}.id: "${lens.id}" is a built-in lens`)
+    if (lens.id === NO_LENS) problems.push(`${path}.id: "${NO_LENS}" means no lens in a link`)
+    else if (reserved.includes(lens.id))
+      problems.push(`${path}.id: "${lens.id}" is a built-in lens`)
     else if (seen.has(lens.id)) problems.push(`${path}.id: "${lens.id}" is used twice in the file`)
     seen.add(lens.id)
     lenses.push(lens)

@@ -22,9 +22,12 @@ export function restoreSettings<State extends z.infer<typeof storedSettings>>(
   return stored.success ? { ...current, ...stored.data } : current
 }
 
-/** What the person chose. Kept between visits in localStorage (`maid:notes`, version 1). */
+/**
+ * What the person chose. Kept between visits in localStorage (`maid:notes`, version 1). `enabled` is the choice for the
+ * next visit: the notes shown are the URL's `notes` when it has one (shown.ts). Off by default: nothing is requested
+ * until the person, or a link, switches the notes on.
+ */
 type Settings = z.infer<typeof storedSettings> & {
-  /** Off by default: nothing is requested until the person switches the notes on */
   setEnabled: (enabled: boolean) => void
   setShowClosed: (showClosed: boolean) => void
 }

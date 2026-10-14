@@ -21,31 +21,21 @@ export function isLocale(value: unknown): value is Locale {
   return typeof value === 'string' && (LOCALES as readonly string[]).includes(value)
 }
 
-/** The `lang=` parameter of a page address, when it names a language Maid has */
-function localeFromUrl(url: string): Locale | undefined {
-  try {
-    const value = new URL(url).searchParams.get('lang')
-    return isLocale(value) ? value : undefined
-  } catch {
-    // not an address: nothing is named
-    return undefined
-  }
-}
-
 /**
- * The language of a visit, the first that names one: the `lang=` parameter of the address, the
- * choice stored in the settings, the browser's languages in their order (`de-CH` counts as `de`),
- * and the app's fallback (English if it has none). Pure: the caller reads the address, the storage and `navigator.languages`.
+ * The language of a visit, the first that names one: the `lang` parameter of the address (already read by the
+ * shell's URL parameters, so a value that is not one of Maid's is `null` or `undefined` here), the choice stored
+ * in the settings, the browser's languages in their order (`de-CH` counts as `de`), and the app's fallback
+ * (English if it has none). Pure: the caller reads the address, the storage and `navigator.languages`.
  */
 export function chooseLocale(input: {
-  url: string
+  /** The URL's `lang` parameter, as the shell reads it: a language Maid has, or nothing */
+  lang?: string | null | undefined
   stored?: string | undefined
   browser?: readonly string[] | undefined
   /** The app's own default, used when the address, the stored choice and the browser name no language. Default English. */
   fallback?: Locale | undefined
 }): Locale {
-  const fromUrl = localeFromUrl(input.url)
-  if (fromUrl) return fromUrl
+  if (isLocale(input.lang)) return input.lang
   if (isLocale(input.stored)) return input.stored
   for (const tag of input.browser ?? []) {
     const base = tag.split('-')[0]?.toLowerCase()

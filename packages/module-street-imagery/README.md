@@ -45,6 +45,21 @@ viewer cannot know the selection itself: the app keeps it, and the module may no
   Nothing is requested on render, nothing in an automated browser (`navigator.webdriver`), nothing without a token.
 - Panoramax: no request. "Show" is off for Panoramax ids.
 
+## URL and start
+
+The photos' URL parameters use iD's names and formats (`url.ts`, `.reference/id/modules/renderer/photos.js`):
+
+- `photo_type`: `flat`, `panoramic` or both (`flat,panoramic`) for the photo kind. Declared: its URL value is the live
+  state, and the stored kind is the default when the URL says nothing (`shown.ts`). The URL shows the kind shown once the
+  module has started; a choice writes the URL and the stored kind, a link writes the stored kind never.
+- `photo_overlay` (the providers on, `none` for none), `photo_dates` (`from_to`, `_` for no limit) and `photo` (the open
+  photo, `provider/id`): parsers and tests are in `url.ts`, but **not declared yet**. The shell reserves these three names
+  for its carried iD rows (`packages/shell/src/url/id-url.ts`, the rows `photo_overlay`, `photo_dates`, `photo`), so
+  `api.urlParam` would throw at setup. Declaring them needs that shell change first, then `useSyncedPhotoKind` as the
+  pattern for the providers and dates, and a sync for the open photo (it is opened by id from Mapillary only, and only
+  when the person or a link asks; under automation the URL keeps its photo).
+- `photo_username` is not here: Maid has no username filter.
+
 ## Gaps
 
 - **Dock tab:** "show" puts the photo in the dock's viewer, but does not open the dock's Photos tab: the dock keeps its tab

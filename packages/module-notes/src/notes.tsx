@@ -19,7 +19,9 @@ import {
   type NotesMode,
 } from './model.ts'
 import { cachedNote, failureMessage, useNotesCells, wantedCells } from './query.ts'
+import { useNotesStart, useNotesSwitch } from './shown.ts'
 import { useNotesSession, useNotesSettings } from './store.ts'
+import { ID_NOTES, parseAsNotes } from './url.ts'
 
 // the dock view (the chosen note, its comments) is a chunk of its own: loaded when it is shown, or in idle time after the first view
 const NotesDock = lazyComponent(
@@ -46,11 +48,11 @@ const CLOSED = '#8e96a3'
 const FOCUS_ZOOM = 17
 
 /**
- * What the notes view shows now: the view, its notes, and whether they are loading, cut short or failed.
- * The map layer and the panel both call it: they observe the same cell queries, so a cell is asked once.
+ * What the notes view shows now: the view, its notes, and whether they are loading, cut short or failed. `enabled` is
+ * the switch as the URL and the stored choice give it (shown.ts). The map layer and the panel both call it: they
+ * observe the same cell queries, so a cell is asked once.
  */
-function useNotesView(editor: Editor, apiUrl: string) {
-  const enabled = useNotesSettings((s) => s.enabled)
+function useNotesView(editor: Editor, apiUrl: string, enabled: boolean) {
   const showClosed = useNotesSettings((s) => s.showClosed)
   const view = useNotesSession((s) => s.view)
   const mode: NotesMode = showClosed ? 'all' : 'open'
@@ -88,14 +90,25 @@ export function notes(options: { apiUrl: string }) {
   return defineModule({
     id: 'notes',
     setup(api) {
+      // iD's name, read once at start by iD and written by Maid (url.ts): a link can turn the notes on
+      const notesUrl = api.urlParam<true>({
+        name: 'notes',
+        parser: parseAsNotes,
+        options: { history: 'replace' },
+        iD: ID_NOTES,
+      })
+
       /** The markers, above the OSM data. Only when on and zoomed in far enough. */
       function NotesOnMap(_props: MapContentProps) {
         const { current: map } = useMap()
         const queries = useQueryClient()
+        // the URL says what is shown from the start (this component is mounted with the map)
+        useNotesStart(notesUrl)
+        const { enabled } = useNotesSwitch(notesUrl)
         const showClosed = useNotesSettings((s) => s.showClosed)
         const focus = useNotesSession((s) => s.focus)
         const chosen = useNotesSession((s) => s.chosen)
-        const { view, active, notes, truncated } = useNotesView(api.editor, apiUrl)
+        const { view, active, notes, truncated } = useNotesView(api.editor, apiUrl, enabled)
         const truncatedInView = active && truncated
 
         // the map's box after every move; the session keeps it for the panel too. A child of the map has no
@@ -184,13 +197,16 @@ export function notes(options: { apiUrl: string }) {
 
       /** The switches, the count in view and the list of the notes in view */
       function NotesPanel(props: { editor: Editor }) {
-        const enabled = useNotesSettings((s) => s.enabled)
+        const { enabled, setEnabled } = useNotesSwitch(notesUrl)
         const showClosed = useNotesSettings((s) => s.showClosed)
-        const setEnabled = useNotesSettings((s) => s.setEnabled)
         const setShowClosed = useNotesSettings((s) => s.setShowClosed)
         const chosen = useNotesSession((s) => s.chosen)
         const focusOn = useNotesSession((s) => s.focusOn)
-        const { view, notes, loading, truncated, error } = useNotesView(props.editor, apiUrl)
+        const { view, notes, loading, truncated, error } = useNotesView(
+          props.editor,
+          apiUrl,
+          enabled,
+        )
 
         const inView = view ? notesIn(notes, view.bbox, showClosed) : []
 

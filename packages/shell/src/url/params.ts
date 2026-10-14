@@ -1,3 +1,4 @@
+import { LOCALES } from '@osm-editor-kit/maid-i18n'
 /**
  * Every URL parameter Maid knows, defined once as nuqs parsers. Nothing else in the app
  * reads `location` directly.
@@ -69,6 +70,12 @@ export const parseAsFlag = createParser<boolean>({
   serialize: (value) => (value ? '1' : '0'),
 })
 
+/**
+ * The language of the page: one of Maid's (`LOCALES`), or nothing. iD's `locale` is mapped onto it (id-url.ts),
+ * so an iD link's `de-DE` arrives here as `de`. A value that is not one of Maid's is no opinion (null).
+ */
+export const parseAsLang = parseAsStringLiteral(LOCALES)
+
 /** Public state: part of every Maid URL, safe to share */
 export const stateParams = {
   map: parseAsCamera,
@@ -76,6 +83,8 @@ export const stateParams = {
   id: parseAsString,
   /** Filter states that differ from the editor's own, e.g. `buildings:readonly,boundaries:hidden` */
   filters: parseAsString,
+  /** The language of this page. The account menu's choice writes it too, so the address and the stored choice agree */
+  lang: parseAsLang,
 }
 
 /**
@@ -83,7 +92,9 @@ export const stateParams = {
  * refuses these for modules (`reservedUrlParams` in core's createEditor).
  */
 export function shellUrlParamNames(): string[] {
-  return [...Object.keys(stateParams), ...Object.keys(setupParams), ...idUrlParamNames()]
+  return [
+    ...new Set([...Object.keys(stateParams), ...Object.keys(setupParams), ...idUrlParamNames()]),
+  ]
 }
 
 /** Development and benchmark switches, read once at start */
@@ -110,6 +121,14 @@ export const setupParams = {
 
 type Parsed<T> = {
   [K in keyof T]: T[K] extends { parseServerSide(v: unknown): infer V } ? V : never
+}
+
+/**
+ * The `lang` of an address, outside React (mount.tsx picks the language before React renders): one of Maid's
+ * languages, or `null` when the address names none.
+ */
+export function urlLang(search: string): (typeof LOCALES)[number] | null {
+  return readParams({ lang: stateParams.lang }, search).lang ?? null
 }
 
 /** Reads a group of parameters from a query string, outside React */

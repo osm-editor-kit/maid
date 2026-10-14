@@ -1,5 +1,12 @@
 import { describe, expect, test } from 'bun:test'
-import { parseAsCamera } from './params.ts'
+import {
+  parseAsCamera,
+  parseAsLang,
+  readParams,
+  shellUrlParamNames,
+  stateParams,
+  urlLang,
+} from './params.ts'
 
 describe('map=: zoom/lat/lng, then the turn and the tilt when they are not zero', () => {
   test('three parts, as before: north-up and flat', () => {
@@ -59,5 +66,28 @@ describe('map=: zoom/lat/lng, then the turn and the tilt when they are not zero'
     const plain = { zoom: 18, lat: 52.389, lng: 13.4 }
     expect(parseAsCamera.eq(plain, { ...plain, bearing: 0, pitch: 0 })).toBe(true)
     expect(parseAsCamera.eq(plain, { ...plain, bearing: 5 })).toBe(false)
+  })
+})
+
+describe("lang=: one of Maid's languages, or nothing", () => {
+  test('a language Maid has is read as it is written', () => {
+    expect(urlLang('?lang=fr')).toBe('fr')
+    expect(urlLang('?map=17/1/2&lang=es')).toBe('es')
+    expect(parseAsLang.parse('de')).toBe('de')
+  })
+
+  test('nothing, a language Maid does not have, a case change or a region code give no opinion', () => {
+    expect(urlLang('')).toBeNull()
+    expect(urlLang('?lang=')).toBeNull()
+    expect(urlLang('?lang=it')).toBeNull()
+    expect(urlLang('?lang=DE')).toBeNull()
+    expect(urlLang('?lang=de-DE')).toBeNull()
+  })
+
+  test('it is a public state parameter, and it is reserved for the app once', () => {
+    expect(Object.keys(stateParams)).toContain('lang')
+    const names = shellUrlParamNames()
+    expect(names.filter((name) => name === 'lang')).toHaveLength(1)
+    expect(readParams(stateParams, '?lang=en').lang).toBe('en')
   })
 })

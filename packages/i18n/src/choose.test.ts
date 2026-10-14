@@ -1,38 +1,40 @@
 import { describe, expect, it } from 'bun:test'
 import { chooseLocale, isLocale, LANGUAGE_NAMES, LOCALES } from './choose.ts'
 
-const page = 'http://127.0.0.1:5173/'
-
 describe('chooseLocale', () => {
   it('the lang parameter of the address comes first', () => {
-    expect(chooseLocale({ url: `${page}?lang=fr`, stored: 'de', browser: ['es'] })).toBe('fr')
+    expect(chooseLocale({ lang: 'fr', stored: 'de', browser: ['es'] })).toBe('fr')
   })
 
   it('a stored choice comes before the browser', () => {
-    expect(chooseLocale({ url: page, stored: 'es', browser: ['de-DE'] })).toBe('es')
+    expect(chooseLocale({ stored: 'es', browser: ['de-DE'] })).toBe('es')
+  })
+
+  it('the URL comes before the stored choice, and the stored choice is kept for the next visit', () => {
+    // the URL's value is only what this visit shows: the stored value is still there to be read
+    expect(chooseLocale({ lang: 'fr', stored: 'de' })).toBe('fr')
+    expect(chooseLocale({ lang: undefined, stored: 'de' })).toBe('de')
+    expect(chooseLocale({ lang: null, stored: 'de' })).toBe('de')
   })
 
   it('the browser languages are read in their order, by their base language', () => {
-    expect(chooseLocale({ url: page, browser: ['de-CH', 'fr'] })).toBe('de')
-    expect(chooseLocale({ url: page, browser: ['EN-us'] })).toBe('en')
-    expect(chooseLocale({ url: page, browser: ['it-IT', 'es-MX', 'de'] })).toBe('es')
+    expect(chooseLocale({ browser: ['de-CH', 'fr'] })).toBe('de')
+    expect(chooseLocale({ browser: ['EN-us'] })).toBe('en')
+    expect(chooseLocale({ browser: ['it-IT', 'es-MX', 'de'] })).toBe('es')
   })
 
   it('English when nothing names a language Maid has', () => {
-    expect(chooseLocale({ url: page })).toBe('en')
-    expect(chooseLocale({ url: page, browser: ['it', 'ja-JP'] })).toBe('en')
-    expect(chooseLocale({ url: page, browser: [] })).toBe('en')
+    expect(chooseLocale({})).toBe('en')
+    expect(chooseLocale({ browser: ['it', 'ja-JP'] })).toBe('en')
+    expect(chooseLocale({ browser: [] })).toBe('en')
   })
 
-  it('an unknown lang parameter or stored value is passed over', () => {
-    expect(chooseLocale({ url: `${page}?lang=xx`, stored: 'de', browser: ['fr'] })).toBe('de')
-    expect(chooseLocale({ url: `${page}?lang=`, stored: 'nope', browser: ['fr'] })).toBe('fr')
-    expect(chooseLocale({ url: `${page}?lang=DE`, browser: ['es'] })).toBe('es')
-  })
-
-  it('an address that does not parse names nothing', () => {
-    expect(chooseLocale({ url: 'not a url', stored: 'fr' })).toBe('fr')
-    expect(chooseLocale({ url: '' })).toBe('en')
+  it('a lang that is not one of Maid’s, or a stored value that is not, is passed over', () => {
+    // the shell only passes a language Maid has; anything else here is no opinion
+    expect(chooseLocale({ lang: 'xx', stored: 'de', browser: ['fr'] })).toBe('de')
+    expect(chooseLocale({ lang: '', stored: 'nope', browser: ['fr'] })).toBe('fr')
+    expect(chooseLocale({ lang: 'DE', browser: ['es'] })).toBe('es')
+    expect(chooseLocale({ lang: 'de-DE', browser: ['es'] })).toBe('es')
   })
 })
 
@@ -50,9 +52,9 @@ describe('the language list', () => {
   })
 
   it('uses the fallback of the app last, before English', () => {
-    expect(chooseLocale({ url: page, browser: ['it'], fallback: 'de' })).toBe('de')
-    expect(chooseLocale({ url: page, browser: ['es'], fallback: 'de' })).toBe('es')
-    expect(chooseLocale({ url: `${page}?lang=fr`, stored: 'es', fallback: 'de' })).toBe('fr')
-    expect(chooseLocale({ url: page, stored: 'en', fallback: 'de' })).toBe('en')
+    expect(chooseLocale({ browser: ['it'], fallback: 'de' })).toBe('de')
+    expect(chooseLocale({ browser: ['es'], fallback: 'de' })).toBe('es')
+    expect(chooseLocale({ lang: 'fr', stored: 'es', fallback: 'de' })).toBe('fr')
+    expect(chooseLocale({ stored: 'en', fallback: 'de' })).toBe('en')
   })
 })

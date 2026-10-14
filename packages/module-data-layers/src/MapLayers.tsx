@@ -2,7 +2,7 @@
  * The visible data layers on the map, drawn under the OSM data (`belowOsm`). Only visible layers
  * mount a source, so a hidden layer makes no request.
  */
-import { isAutomated, type RemoteFetch } from '@osm-editor-kit/maid-core'
+import { isAutomated, type RemoteFetch, type UrlParamHandle } from '@osm-editor-kit/maid-core'
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
@@ -10,6 +10,7 @@ import { Layer, Source, useControl } from 'react-map-gl/maplibre'
 import type { DataLayer, DataLayerConfig } from './config.ts'
 import { useAddedLayers, useFileLayers, useHiddenIds } from './data-layers-store.ts'
 import { layerDraw, layersOf, visibleLayers } from './layers.ts'
+import { colorsInUse, useLinkedLayer } from './link.ts'
 import { pmtilesLayersOptions, registerPmtilesProtocol } from './pmtiles.ts'
 
 /**
@@ -64,8 +65,15 @@ function DataLayerDrawing({
   )
 }
 
-/** The map content of the module: registers the protocol once and draws every visible layer */
-export function createMapContent(config: readonly DataLayerConfig[], send: RemoteFetch) {
+/**
+ * The map content of the module: registers the protocol once and draws every visible layer. The layer a link names
+ * (`data`) is loaded here, once per address, and drawn with the others.
+ */
+export function createMapContent(
+  config: readonly DataLayerConfig[],
+  send: RemoteFetch,
+  link: UrlParamHandle<string>,
+) {
   function DataLayersOnMap({ belowOsm }: MapContentProps) {
     useControl(({ mapLib }) => {
       // before any pmtiles:// source is added, which happens in an effect of a child
@@ -75,9 +83,15 @@ export function createMapContent(config: readonly DataLayerConfig[], send: Remot
     const added = useAddedLayers()
     const files = useFileLayers()
     const hidden = useHiddenIds()
+    const linked = useLinkedLayer(link, send, colorsInUse(config, added, files), { load: true })
     const layers = useMemo(
-      () => visibleLayers(layersOf(config, added, files), hidden, isAutomated()),
-      [added, files, hidden],
+      () =>
+        visibleLayers(
+          layersOf(config, added, files, linked.layer ? [linked.layer] : []),
+          hidden,
+          isAutomated(),
+        ),
+      [added, files, hidden, linked.layer],
     )
     return (
       <>

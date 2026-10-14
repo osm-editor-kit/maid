@@ -125,6 +125,10 @@ describe('parseLensFile: wrong shape', () => {
     expect(errorsOf(good, ['my-lens'])).toEqual(['lens.id: "my-lens" is a built-in lens'])
   })
 
+  test('none is no lens in a link, so a file cannot use it as an id', () => {
+    expect(errorsOf({ ...good, id: 'none' })).toEqual(['lens.id: "none" means no lens in a link'])
+  })
+
   test('the built-in lenses are reserved when the module passes them', () => {
     const ids = BUILT_IN_LENSES.map((lens) => lens.id)
     const result = parseLensFile(JSON.stringify({ ...good, id: 'surface' }), ids)

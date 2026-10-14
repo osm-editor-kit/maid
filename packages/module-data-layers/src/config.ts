@@ -167,7 +167,8 @@ export type DataLayer = {
   url: string
   color: string
   sourceLayers?: string[]
-  origin: 'config' | 'added' | 'file'
+  /** `link`: the address a URL names (`?data=`); not stored, shown while the URL names it */
+  origin: 'config' | 'added' | 'file' | 'link'
   data?: GeoJsonData
 }
 

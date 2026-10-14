@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { createUrlParams } from '@osm-editor-kit/maid-core'
 import { fromIdUrl, migrateIdHash, toIdUrl } from './id-url'
-import { shellUrlParamNames } from './params'
+import { shellUrlParamNames, urlLang } from './params'
 
 test('osm.org edit link', () => {
   const { params, dropped } = fromIdUrl(
@@ -220,5 +220,40 @@ describe('the imagery parameters: background, its alias layer, and overlays', ()
     const { urls, history, at } = recorder()
     migrateIdHash(at('https://maid.example/#background=Bing'), history)
     expect(urls).toEqual([])
+  })
+})
+
+describe('iD links: the language and the GPX file', () => {
+  test('locale is the language of the link, by its base language, and the first one Maid has wins', () => {
+    expect(fromIdUrl('#locale=de-DE').params.get('lang')).toBe('de')
+    expect(fromIdUrl('#locale=fr_FR').params.get('lang')).toBe('fr')
+    expect(fromIdUrl('#locale=pt-BR,es-MX,de').params.get('lang')).toBe('es')
+    expect(fromIdUrl('#locale=EN').params.get('lang')).toBe('en')
+  })
+
+  test('a locale Maid does not have is left out, and a lang in the address stays', () => {
+    const { params, dropped } = fromIdUrl('#locale=pt-BR')
+    expect(params.has('lang')).toBe(false)
+    expect(dropped).toEqual([{ name: 'locale', why: 'could not be read' }])
+    expect(fromIdUrl('?lang=fr#locale=de-DE').params.get('lang')).toBe('fr')
+  })
+
+  test("the hand-over reads through the shell's language parameter", () => {
+    expect(urlLang(`?${fromIdUrl('#locale=de-DE').params.toString()}`)).toBe('de')
+  })
+
+  test("Maid writes its language as iD's locale, and the round trip keeps it", () => {
+    expect(toIdUrl('?lang=de')).toBe('https://www.openstreetmap.org/edit?editor=id#locale=de')
+    const id = 'https://www.openstreetmap.org/edit?editor=id#locale=fr'
+    expect(toIdUrl(`?${fromIdUrl(id).params.toString()}`)).toBe(id)
+  })
+
+  test('a GPX file is left out with the reason, not passed on as a Maid parameter', () => {
+    const { params, dropped } = fromIdUrl('#gpx=https://example.org/track.gpx&map=17/1/2')
+    expect(params.has('gpx')).toBe(false)
+    expect(dropped).toEqual([
+      { name: 'gpx', why: 'Maid draws GeoJSON, PMTiles and vector tiles, not GPX files' },
+    ])
+    expect(shellUrlParamNames()).not.toContain('gpx')
   })
 })

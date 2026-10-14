@@ -31,25 +31,31 @@ export type DataLayerDraw = {
   sets: { sourceLayer: string | undefined; layers: LayerSpec[] }[]
 }
 
-/** Whether the automated-run rule lets a layer load. Stored layers never do; files and local config do. */
+/**
+ * Whether the automated-run rule lets a layer load. Stored layers never do, nor a layer a link names (AGENTS.md, core
+ * rule 1); files and local config do.
+ */
 export function allowedWhenAutomated(layer: DataLayer) {
-  if (layer.origin === 'added') return false
+  if (layer.origin === 'added' || layer.origin === 'link') return false
   if (layer.origin === 'file') return true
   return isLocalUrl(layer.url)
 }
 
 /**
- * Every layer in the order it is listed: the config's, then the ones a person added by URL, then
- * the files. Colours are settled over the whole list, so a layer keeps its colour while others come and go.
+ * Every layer in the order it is listed: the config's, then the ones a person added by URL, then the layer a link
+ * names (at most one), then the files. Colours are settled over the whole list, so a layer keeps its colour while
+ * others come and go.
  */
 export function layersOf(
   config: readonly DataLayerConfig[],
   added: readonly DataLayerConfig[],
   files: readonly FileLayer[],
+  linked: readonly DataLayerConfig[] = [],
 ) {
   const pending: (Omit<DataLayer, 'color'> & { color: string | undefined })[] = [
     ...config.map((layer) => ({ ...layer, color: layer.color, origin: 'config' as const })),
     ...added.map((layer) => ({ ...layer, color: layer.color, origin: 'added' as const })),
+    ...linked.map((layer) => ({ ...layer, color: layer.color, origin: 'link' as const })),
     ...files.map((file) => ({
       id: file.id,
       name: file.name,

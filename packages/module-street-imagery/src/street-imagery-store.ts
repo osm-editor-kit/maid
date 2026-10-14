@@ -28,6 +28,11 @@ export type ImageWriter = {
 export type ActiveImage = { rowId: string; key: string }
 
 type Session = {
+  /**
+   * The photo kind the URL shows (`photo_type`, url.ts), once the module has started; null before. Not stored: the
+   * stored `photoKind` is the choice for the next visit. The readers use this value, or the stored one before the start.
+   */
+  shownPhotoKind: PhotoKind | null
   /** The Mapillary token of this build, empty when there is none. Not stored. */
   mapillaryToken: string
   /** The photo open in the dock. Not stored: it is the session's choice. */
@@ -43,7 +48,10 @@ type Session = {
 type Actions = {
   /** Switching a provider off closes a photo that came from it. */
   setProvider: (id: ImageryProviderId, on: boolean) => void
+  /** A choice of the person: remembered for the next visit, and shown now (the URL follows, shown.ts) */
   setPhotoKind: (kind: PhotoKind) => void
+  /** The kind the URL shows: not remembered. Called by the URL sync (shown.ts). */
+  adoptPhotoKind: (kind: PhotoKind) => void
   setDate: (date: StreetImageryStored['date']) => void
   /** Opens a photo in the dock. The viewer then reports the photo it loaded (position, date). */
   showPhoto: (photo: NormalizedPhoto) => void
@@ -75,6 +83,7 @@ const useStreetImageryStore = create<StreetImageryStore>()(
   persist<StreetImageryStore, [], [], StreetImageryStored>(
     (set) => ({
       ...DEFAULT_STORED,
+      shownPhotoKind: null,
       mapillaryToken: '',
       openPhoto: null,
       easeTo: null,
@@ -86,7 +95,8 @@ const useStreetImageryStore = create<StreetImageryStore>()(
             providers: [...state.providers.filter((item) => item !== id), ...(on ? [id] : [])],
             openPhoto: !on && state.openPhoto?.providerId === id ? null : state.openPhoto,
           })),
-        setPhotoKind: (photoKind) => set({ photoKind }),
+        setPhotoKind: (photoKind) => set({ photoKind, shownPhotoKind: photoKind }),
+        adoptPhotoKind: (shownPhotoKind) => set({ shownPhotoKind }),
         setDate: (date) => set({ date }),
         showPhoto: (photo) => set({ openPhoto: photo }),
         closePhoto: () => set({ openPhoto: null }),
@@ -112,8 +122,19 @@ export function useProviders() {
   return useStreetImageryStore((state) => state.providers)
 }
 
+/** The photo kind shown: the URL's, else the stored choice */
 export function usePhotoKind() {
-  return useStreetImageryStore((state) => state.photoKind)
+  return useStreetImageryStore((state) => state.shownPhotoKind ?? state.photoKind)
+}
+
+/** The kind the URL shows, or null before the module has started (for the URL sync) */
+export function useShownPhotoKind() {
+  return useStreetImageryStore((state) => state.shownPhotoKind)
+}
+
+/** The kind the person chose last (the stored choice), for code outside React */
+export function storedPhotoKind(): PhotoKind {
+  return useStreetImageryStore.getState().photoKind
 }
 
 export function useDate() {
@@ -167,6 +188,7 @@ export function getStreetImagery(): StreetImageryState {
   const {
     providers,
     photoKind,
+    shownPhotoKind,
     date,
     mapillaryToken,
     openPhoto,
@@ -176,7 +198,8 @@ export function getStreetImagery(): StreetImageryState {
   } = useStreetImageryStore.getState()
   return {
     providers,
-    photoKind,
+    photoKind: shownPhotoKind ?? photoKind,
+    shownPhotoKind,
     date,
     mapillaryToken,
     openPhoto,

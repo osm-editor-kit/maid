@@ -2,6 +2,10 @@ import { moduleStorage } from '@osm-editor-kit/maid-core'
 /**
  * The lenses the person has chosen and imported, kept in localStorage under `maid:lenses`. The
  * built-in lenses are not stored: the module sets them when it starts.
+ *
+ * Two values of the lens: `activeId` is the choice the person made last (stored, the default for the next visit);
+ * `shownId` is the lens on the map, which the URL decides (`lens`, url.ts and sync.ts). A link alone changes `shownId`
+ * and never `activeId`.
  */
 import type { Lens } from '@osm-editor-kit/maid-style'
 import { z } from 'zod'
@@ -9,6 +13,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { BUILT_IN_LENSES } from './builtin.ts'
 import { lensSchema } from './lens-file.ts'
+import { startLens } from './url.ts'
 
 /** What is stored. Read back with every load: a stored value that does not fit is not used. */
 const storedLenses = z.object({
@@ -25,10 +30,14 @@ export function restoreLenses<State extends Pick<LensState, 'activeId' | 'import
   return stored.success ? { ...current, ...stored.data } : current
 }
 
-/** What the lenses module keeps: the choice, the imported lenses, and the built-in ones */
+/** What the lenses module keeps: the choice, the lens shown, the imported lenses, and the built-in ones */
 export type LensState = {
-  /** The id of the lens on the map, or null for the default look */
+  /** The lens the person chose last (stored), or null for none. The default when the URL says nothing. */
   activeId: string | null
+  /** The lens on the map, or null for the default look. Decided by the URL once the module has started (not stored). */
+  shownId: string | null
+  /** Whether the module has started: from then on the URL and the lens on the map agree (sync.ts) */
+  started: boolean
   /** Lenses the person imported, in the order they were imported */
   imported: Lens[]
   /** Built-in lenses and the ones the app gave the module. Not stored. */
@@ -37,7 +46,13 @@ export type LensState = {
 
 /** The events the lenses module takes. The object never changes. */
 export type LensActions = {
+  /** The person chose a lens, or none: remembered for the next visit, and shown now (the URL follows, sync.ts) */
   setActive: (id: string | null) => void
+  /**
+   * Shows the lens the URL names (`startLens`) and marks the module as started. Returns the lens shown, so that the URL
+   * can be corrected to it. Storage is not written.
+   */
+  showFromUrl: (url: string | null) => string | null
   /** Adds lenses; a lens with the id of an imported one replaces it */
   importLenses: (lenses: Lens[]) => void
   removeLens: (id: string) => void
@@ -49,12 +64,24 @@ type LensStore = LensState & { actions: LensActions }
 /** The store stays here: components read the state through the hooks below, code outside React through `lensChoice` */
 const useLensStore = create<LensStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       activeId: null,
+      shownId: null,
+      started: false,
       imported: [],
       builtIn: BUILT_IN_LENSES,
       actions: {
-        setActive: (activeId) => set({ activeId }),
+        setActive: (activeId) => set({ activeId, shownId: activeId }),
+        showFromUrl: (url) => {
+          const state = get()
+          const shownId = startLens(
+            url,
+            state.activeId,
+            allLenses(state).map((lens) => lens.id),
+          )
+          set({ started: true, shownId })
+          return shownId
+        },
         importLenses: (lenses) =>
           set((state) => {
             const ids = new Set(lenses.map((lens) => lens.id))
@@ -64,6 +91,7 @@ const useLensStore = create<LensStore>()(
           set((state) => ({
             imported: state.imported.filter((lens) => lens.id !== id),
             activeId: state.activeId === id ? null : state.activeId,
+            shownId: state.shownId === id ? null : state.shownId,
           })),
         setBuiltIn: (builtIn) => set({ builtIn }),
       },
@@ -81,7 +109,12 @@ const useLensStore = create<LensStore>()(
 
 /** The id of the lens on the map, or null for the default look */
 export function useActiveLensId(): string | null {
-  return useLensStore((state) => state.activeId)
+  return useLensStore((state) => state.shownId)
+}
+
+/** Whether the module has started (the URL's lens is shown and written from then on) */
+export function useLensStarted(): boolean {
+  return useLensStore((state) => state.started)
 }
 
 /** The built-in lenses and the ones the app gave the module */
@@ -104,18 +137,23 @@ export function useLensActions(): LensActions {
   return useLensStore((state) => state.actions)
 }
 
-/** The actions for code outside React (the lenses module at start) */
+/** The actions for code outside React (the lenses module at start, the URL sync) */
 export const lensActions: LensActions = useLensStore.getState().actions
 
 /**
  * The active lens for code outside React. The parking module reads it, follows it and sets it; the bench sets it.
- * The lens module keeps its choice in storage itself.
+ * A choice made here is remembered like one in the panel.
  */
 export const lensChoice = {
-  getActiveId: (): string | null => useLensStore.getState().activeId,
+  getActiveId: (): string | null => useLensStore.getState().shownId,
   setActive: (id: string | null) => useLensStore.getState().actions.setActive(id),
   /** Calls the listener after any change of the lenses. Returns a function that stops it. */
   subscribe: (listener: () => void): (() => void) => useLensStore.subscribe(listener),
+}
+
+/** The lens the person chose last (the stored default), for code outside React and for tests */
+export function chosenLensId(): string | null {
+  return useLensStore.getState().activeId
 }
 
 /** Every lens the person can choose from: built-in first, then imported */
@@ -123,10 +161,10 @@ export function allLenses(state: Pick<LensState, 'builtIn' | 'imported'>) {
   return [...state.builtIn, ...state.imported]
 }
 
-/** The lens on the map: the active one if it still exists, else null */
-export function activeLens(state: Pick<LensState, 'activeId' | 'builtIn' | 'imported'>) {
-  if (state.activeId === null) return null
-  return allLenses(state).find((lens) => lens.id === state.activeId) ?? null
+/** The lens on the map: the shown one if it still exists, else null */
+export function activeLens(state: Pick<LensState, 'shownId' | 'builtIn' | 'imported'>) {
+  if (state.shownId === null) return null
+  return allLenses(state).find((lens) => lens.id === state.shownId) ?? null
 }
 
 /** The part of the map engine that connectLenses needs */

@@ -44,7 +44,7 @@ export function LensPanel() {
   const fileInput = useRef<HTMLInputElement>(null)
   const noticeId = useId()
 
-  const active = activeLens({ activeId, builtIn, imported })
+  const active = activeLens({ shownId: activeId, builtIn, imported })
   const isOwn = active !== null && imported.some((lens) => lens.id === active.id)
   const reserved = builtIn.map((lens) => lens.id)
 

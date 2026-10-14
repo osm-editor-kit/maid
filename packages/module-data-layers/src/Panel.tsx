@@ -1,7 +1,7 @@
 /**
  * The "Data layers" flyout: the list of layers with a switch each, and the form that adds one.
  */
-import type { RemoteFetch } from '@osm-editor-kit/maid-core'
+import type { RemoteFetch, UrlParamHandle } from '@osm-editor-kit/maid-core'
 import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { SegmentedControl } from '@osm-editor-kit/maid-ui'
 import { useQueries } from '@tanstack/react-query'
@@ -24,6 +24,7 @@ import {
   useHiddenIds,
 } from './data-layers-store.ts'
 import { layersOf } from './layers.ts'
+import { colorsInUse, useLinkedLayer } from './link.ts'
 import { pmtilesLayersOptions } from './pmtiles.ts'
 
 /**
@@ -100,7 +101,9 @@ function LayerRow({
       ? 'From a file, not kept after a reload'
       : layer.origin === 'config'
         ? `Set by the editor · ${layer.url}`
-        : layer.url
+        : layer.origin === 'link'
+          ? `From the link · ${layer.url}`
+          : layer.url
   return (
     <li className="flex items-center gap-3 border-b border-zinc-950/5 py-2 last:border-0 dark:border-white/5">
       <VisibilitySwitch label={layer.name} checked={visible} onChange={onVisible} />
@@ -168,6 +171,17 @@ function KindChoice({
       </p>
     </div>
   )
+}
+
+/** What Remove does for a layer: none for the editor's own, the URL for a link, the store for the rest */
+function removeOf(
+  layer: DataLayer,
+  remove: (id: string) => void,
+  clearLink: () => void,
+): (() => void) | undefined {
+  if (layer.origin === 'config') return undefined
+  if (layer.origin === 'link') return clearLink
+  return () => remove(layer.id)
 }
 
 function AddLayerForm({
@@ -307,14 +321,25 @@ function AddLayerForm({
   )
 }
 
-/** The flyout of the module: the layers and the form. */
-export function createPanel(config: readonly DataLayerConfig[], send: RemoteFetch) {
+/**
+ * The flyout of the module: the layers and the form. The layer a link names is read from the query the map runs
+ * (`enabled: false` here), and removing it clears the link's `data` parameter, so the URL and the list agree.
+ */
+export function createPanel(
+  config: readonly DataLayerConfig[],
+  send: RemoteFetch,
+  link: UrlParamHandle<string>,
+) {
   function DataLayersPanel() {
     const added = useAddedLayers()
     const files = useFileLayers()
     const hidden = useHiddenIds()
     const { addLayer, addFile, remove, setHidden } = useDataLayersActions()
-    const layers = useMemo(() => layersOf(config, added, files), [added, files])
+    const linked = useLinkedLayer(link, send, colorsInUse(config, added, files), { load: false })
+    const layers = useMemo(
+      () => layersOf(config, added, files, linked.layer ? [linked.layer] : []),
+      [added, files, linked.layer],
+    )
     const problems = useLayerProblems(layers, send)
     const colors = useMemo(() => layers.map((layer) => layer.color), [layers])
     return (
@@ -336,11 +361,16 @@ export function createPanel(config: readonly DataLayerConfig[], send: RemoteFetc
                 visible={!hidden.includes(layer.id)}
                 problem={problems[layer.id]}
                 onVisible={(visible) => setHidden(layer.id, !visible)}
-                onRemove={layer.origin === 'config' ? undefined : () => remove(layer.id)}
+                onRemove={removeOf(layer, remove, () => linked.setUrl(null))}
               />
             ))}
           </ul>
         )}
+        {linked.error ? (
+          <p role="alert" className="px-4 pt-2 text-xs text-red-600 dark:text-red-400">
+            The linked data could not be loaded: {linked.error}
+          </p>
+        ) : null}
         <AddLayerForm
           colors={colors}
           send={send}
