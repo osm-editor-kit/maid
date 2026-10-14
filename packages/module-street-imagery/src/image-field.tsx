@@ -20,7 +20,14 @@ import {
   splitIds,
   type ImageProvider,
 } from './image-keys.ts'
-import { AUTOMATED, useStreetImageryStore } from './store.ts'
+import {
+  AUTOMATED,
+  getStreetImagery,
+  streetImageryActions,
+  useIsActiveImage,
+  useMapillaryToken,
+  useStreetImageryActions,
+} from './street-imagery-store.ts'
 
 type FieldProps = Parameters<InspectorFieldType['component']>[0]
 
@@ -50,7 +57,7 @@ export function StreetImagesField({ tags, id, onChange }: FieldProps) {
   const rowId = id ?? generated
   // keys the person picked from the add list that have no value yet; they are rows until a value is added
   const [picked, setPicked] = useState<string[]>([])
-  const setImageWriter = useStreetImageryStore((state) => state.setImageWriter)
+  const { setImageWriter } = useStreetImageryActions()
 
   // registered on every render, so "Use this photo" writes with the tags and change function of this feature
   useEffect(() => {
@@ -61,9 +68,9 @@ export function StreetImagesField({ tags, id, onChange }: FieldProps) {
   // when the row goes (another feature is selected), its writer and its active row go with it
   useEffect(() => {
     return () => {
-      const state = useStreetImageryStore.getState()
-      if (state.imageWriter?.rowId === rowId) state.setImageWriter(null)
-      if (state.activeImage?.rowId === rowId) state.setActiveImage(null)
+      const state = getStreetImagery()
+      if (state.imageWriter?.rowId === rowId) streetImageryActions.setImageWriter(null)
+      if (state.activeImage?.rowId === rowId) streetImageryActions.setActiveImage(null)
     }
   }, [rowId])
 
@@ -117,14 +124,9 @@ function ImageRow({
   onChange: FieldProps['onChange']
 }) {
   const provider: ImageProvider = providerOfKey(imageKey) ?? 'mapillary'
-  const isActive = useStreetImageryStore(
-    (state) =>
-      state.activeImage !== null &&
-      state.activeImage.rowId === rowId &&
-      state.activeImage.key === imageKey,
-  )
-  const mapillaryToken = useStreetImageryStore((state) => state.mapillaryToken)
-  const setActiveImage = useStreetImageryStore((state) => state.setActiveImage)
+  const isActive = useIsActiveImage(rowId, imageKey)
+  const mapillaryToken = useMapillaryToken()
+  const { setActiveImage } = useStreetImageryActions()
   const [text, setText] = useState('')
   const [inputError, setInputError] = useState<string | null>(null)
   const [opening, setOpening] = useState<string | null>(null)

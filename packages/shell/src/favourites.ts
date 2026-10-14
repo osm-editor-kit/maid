@@ -9,7 +9,13 @@ import type {
 } from '@osm-editor-kit/maid-presets'
 import type { ChangeTagsResult, Mode } from '@osm-editor-kit/maid-renderer'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
-import { favouritesFor, findFavouriteByNumber, useSettings } from '@osm-editor-kit/maid-ui'
+import {
+  favouritesFor,
+  findFavouriteByNumber,
+  getSettings,
+  settingsActions,
+  useStoredFavourites,
+} from '@osm-editor-kit/maid-ui'
 import { useShell } from './shell-context'
 
 /** What the functions here act on: the editor's presets and the engine */
@@ -43,7 +49,7 @@ export function watchFavourites(engine: MaidEngine) {
 
 /** The favourites of a geometry as the type picker lists them: their presets, with their numbers */
 export function useFavouriteRows(geometry: Geometry | undefined) {
-  const favourites = useSettings((state) => state.favourites)
+  const favourites = useStoredFavourites()
   const { editor } = useShell()
   const { presets } = editor
   if (!geometry || !presets) return []
@@ -55,12 +61,12 @@ export function useFavouriteRows(geometry: Geometry | undefined) {
 
 /** Makes the preset a favourite for the geometry, or takes it out again */
 export function toggleFavourite(preset: Preset, geometry: Geometry) {
-  useSettings.getState().toggleFavourite(preset.id, geometry)
+  settingsActions.toggleFavourite(preset.id, geometry)
 }
 
 /** Moves a favourite one place up (-1) or down (+1) among the favourites of its geometry */
 export function moveFavourite(preset: Preset, geometry: Geometry, delta: 1 | -1) {
-  useSettings.getState().moveFavourite(preset.id, geometry, delta)
+  settingsActions.moveFavourite(preset.id, geometry, delta)
 }
 
 /**
@@ -68,7 +74,7 @@ export function moveFavourite(preset: Preset, geometry: Geometry, delta: 1 | -1)
  * the two. The settings store keeps the change; an invalid number changes nothing.
  */
 export function setFavouriteNumber(preset: Preset, geometry: Geometry, number: string) {
-  useSettings.getState().setFavouriteNumber(preset.id, geometry, number)
+  settingsActions.setFavouriteNumber(preset.id, geometry, number)
 }
 
 /**
@@ -151,7 +157,7 @@ export function presetsForAll(
  * no favourite has, it does nothing.
  */
 export function startFavourite({ editor, engine }: Parts, number: string) {
-  const favourite = findFavouriteByNumber(useSettings.getState().favourites, number)
+  const favourite = findFavouriteByNumber(getSettings().favourites, number)
   const preset = favourite ? editor.presets?.preset(favourite.presetId) : undefined
   if (!favourite || !preset) return
 

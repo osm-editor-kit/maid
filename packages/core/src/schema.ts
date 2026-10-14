@@ -26,7 +26,7 @@ export class PresetSchema extends RulesetSchema {
     loc?: readonly [number, number],
   ): PresetMatch {
     const preset = this.presets.match(tags, geometry as Geometry, loc)
-    // the generic presets (point, line, area, relation) are the ones without tags
-    return { isFallback: () => Object.keys(preset.tags).length === 0 }
+    // the same answer as the presets' own (iD's preset.isFallback): no tags, or only area=*
+    return { isFallback: () => this.presets.isFallback(preset) }
   }
 }

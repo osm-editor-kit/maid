@@ -10,7 +10,7 @@ import {
   type MaidEngine,
   type LayerOptions,
 } from '@osm-editor-kit/maid-renderer'
-import { useBearing, useSettings } from '@osm-editor-kit/maid-ui'
+import { getSettings, settingsActions, setBearing } from '@osm-editor-kit/maid-ui'
 import * as maplibregl from 'maplibre-gl'
 import type { StyleSpecification } from 'maplibre-gl'
 import { useEffect, useRef, useState } from 'react'
@@ -155,7 +155,7 @@ export function MapView() {
   const [initialCamera] = useState(() =>
     startCamera({
       url: cameraParam ?? config.camera,
-      stored: useSettings.getState().lastView,
+      stored: getSettings().lastView,
       fallback: FALLBACK_CAMERA,
     }),
   )
@@ -178,7 +178,7 @@ export function MapView() {
   const handleLoad = (event: MapEvent) => {
     const map = event.target
     loaded.current = true
-    useBearing.setState({ bearing: map.getBearing() })
+    setBearing(map.getBearing())
     // Marker images are made when MapLibre asks for them, while it lays out a tile (see images.ts): no `prepare`
     installMarkerImages(map)
     setEngineHooks(engine, {
@@ -186,7 +186,11 @@ export function MapView() {
     })
     engine.attach(map)
     engine.setSelected(selectedIds)
-    exposeBenchApi(shell, map, { select })
+    // The debug handles (window.__bench, window.__maid): dev builds and the builds that measure (VITE_BENCH=1).
+    // Any other build drops this call and bench.ts with it (see the comment in bench.ts).
+    if (import.meta.env.DEV || import.meta.env.VITE_BENCH === '1') {
+      exposeBenchApi(shell, map, { select })
+    }
     // the presets (the schema's data and the country data, a chunk of their own) are made after the first picture,
     // once the journal has looked for stored edits (`ready` is that): their pins and icons are filled in when they come
     loadPresetsAfterReady(shell)
@@ -204,7 +208,7 @@ export function MapView() {
   }
   // the compass shows while the map is turned, and its needle turns with the map
   const handleRotate = (event: ViewStateChangeEvent) => {
-    useBearing.setState({ bearing: event.viewState.bearing })
+    setBearing(event.viewState.bearing)
   }
   const handleResize = () => {
     resized.current = true
@@ -226,7 +230,7 @@ export function MapView() {
     clearTimeout(storeTimer.current)
     storeTimer.current = setTimeout(
       () =>
-        useSettings.getState().setLastView({
+        settingsActions.setLastView({
           lng: longitude,
           lat: latitude,
           zoom: zoom + 1,

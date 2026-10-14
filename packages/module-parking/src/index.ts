@@ -11,15 +11,12 @@ import {
 
 const FIRST_VISIT_KEY = 'maid:parking:lens-started'
 
-/** The lens store as the module reads it (`import { useLensStore } from '@osm-editor-kit/maid-module-lenses'`) */
-type LensStore = {
-  getState: () => { activeId: string | null; setActive: (id: string | null) => void }
-  subscribe: LensSource['subscribe']
-}
+/** The lens choice as the module uses it: `lensChoice` from `@osm-editor-kit/maid-module-lenses` has this shape */
+type LensStore = LensSource & { setActive: (id: string | null) => void }
 
 export type ParkingOptions = {
   /**
-   * The lens store of the lenses module. With it, the parking sides are drawn beside the roads while the "Parking" lens
+   * The lens choice of the lenses module (`lensChoice`). With it, the parking sides are drawn beside the roads while the "Parking" lens
    * (`parkingLens`, which the app gives to `lenses({ lenses })`) is the active one, and the lens is switched on at the
    * first visit. Without it no side line is drawn.
    */
@@ -66,7 +63,7 @@ export function parking(options: ParkingOptions = {}) {
       const storage = moduleStorage()
       if (!isAutomated() && storage.getItem(FIRST_VISIT_KEY) === null) {
         storage.setItem(FIRST_VISIT_KEY, '1')
-        if (lenses.getState().activeId === null) lenses.getState().setActive('parking')
+        if (lenses.getActiveId() === null) lenses.setActive('parking')
       }
       return connectParkingSides(lenses, { showMissing: options.showMissing })
     },

@@ -1,5 +1,5 @@
 import { m } from '@osm-editor-kit/maid-i18n'
-import { useSettings, type Server } from '@osm-editor-kit/maid-ui'
+import { useSettingsActions, type Server } from '@osm-editor-kit/maid-ui'
 import { useEngine, useShell } from '../shell-context'
 
 /**
@@ -10,7 +10,7 @@ import { useEngine, useShell } from '../shell-context'
  */
 export function ServerSelect() {
   const { config, editor } = useShell()
-  const setServer = useSettings((settings) => settings.setServer)
+  const { setServer } = useSettingsActions()
   const hasEdits = useEngine(() => editor.history.hasChanges())
   const current: Server = config.dev ? 'dev' : 'osm'
   return (

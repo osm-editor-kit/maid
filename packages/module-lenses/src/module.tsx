@@ -3,7 +3,7 @@ import { defineModule } from '@osm-editor-kit/maid-core'
 import type { Lens } from '@osm-editor-kit/maid-style'
 import { lazyComponent, PANEL_FALLBACK } from '@osm-editor-kit/maid-ui'
 import { BUILT_IN_LENSES } from './builtin.ts'
-import { useLensStore } from './store.ts'
+import { lensActions } from './lens-store.ts'
 
 /**
  * Map style: a topbar panel that restyles the map with a lens (see `connectLenses`). The app
@@ -18,7 +18,7 @@ export function lenses(options: { lenses?: Lens[] } = {}) {
         () => import('./LensPanel.tsx').then((panel) => ({ default: panel.LensPanel })),
         PANEL_FALLBACK,
       )
-      useLensStore.getState().setBuiltIn([...BUILT_IN_LENSES, ...(options.lenses ?? [])])
+      lensActions.setBuiltIn([...BUILT_IN_LENSES, ...(options.lenses ?? [])])
       api.register('topbar.panel', {
         id: 'lenses',
         label: 'Map style',

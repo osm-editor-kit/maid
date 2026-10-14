@@ -244,19 +244,17 @@ function ConditionalEditor({ tagKey, id, stored, mixed, values, linesFor, onWrit
         value={draft.plain}
         values={values}
         mixed={mixed}
-        readOnly={readOnly}
         labels={labels}
-        onCommit={(plain) => commit(setPlain(draft, plain))}
+        onCommit={readOnly ? undefined : (plain) => commit(setPlain(draft, plain))}
       />
       {draft.raw !== undefined ? (
         <DraftText
           key={draft.raw}
           ariaLabel={labels.condition}
           value={draft.raw}
-          readOnly={readOnly}
           invalid
           className="w-full"
-          onCommit={(raw) => commit(setRaw(draft, raw))}
+          onCommit={readOnly ? undefined : (raw) => commit(setRaw(draft, raw))}
         />
       ) : (
         <div className="grid min-w-0 gap-2">
@@ -267,11 +265,16 @@ function ConditionalEditor({ tagKey, id, stored, mixed, values, linesFor, onWrit
               rule={rule}
               issue={issues.find((found) => found.id === rule.id)?.issue}
               ruleValues={values}
-              readOnly={readOnly}
               labels={labels}
-              onValue={(value) => commit(setRuleValue(draft, rule.id, value))}
-              onCondition={(condition) => commit(setRuleCondition(draft, rule.id, condition))}
-              onRemove={() => commit(removeRule(draft, rule.id))}
+              onValue={
+                readOnly ? undefined : (value) => commit(setRuleValue(draft, rule.id, value))
+              }
+              onCondition={
+                readOnly
+                  ? undefined
+                  : (condition) => commit(setRuleCondition(draft, rule.id, condition))
+              }
+              onRemove={readOnly ? undefined : () => commit(removeRule(draft, rule.id))}
             />
           ))}
           <div>
@@ -334,16 +337,17 @@ function issueText(labels: RestrictionLabels, issue: RuleIssue): string {
   }
 }
 
+/** A plain value: a text input, or a list when the field has one. Absent `onCommit`: read-only. */
 function PlainValue(props: {
   id: string | undefined
   value: string
   values: readonly string[] | undefined
   mixed: boolean
-  readOnly: boolean
   labels: RestrictionLabels
-  onCommit: (value: string) => void
+  onCommit: ((value: string) => void) | undefined
 }) {
-  const { id, value, values, mixed, readOnly, labels, onCommit } = props
+  const { id, value, values, mixed, labels, onCommit } = props
+  const readOnly = onCommit === undefined
   if (values === undefined) {
     return (
       <DraftText
@@ -351,7 +355,6 @@ function PlainValue(props: {
         id={id}
         ariaLabel={labels.value}
         value={value}
-        readOnly={readOnly}
         placeholder={mixed ? labels.multiple : labels.notSet}
         className="w-full"
         onCommit={onCommit}
@@ -366,7 +369,7 @@ function PlainValue(props: {
       className={INPUT_CLASS}
       value={value}
       disabled={readOnly}
-      onChange={(event) => onCommit(event.target.value)}
+      onChange={(event) => onCommit?.(event.target.value)}
     >
       <option value="">{mixed ? labels.multiple : labels.notSet}</option>
       {choices.map((choice) => (
@@ -378,30 +381,28 @@ function PlainValue(props: {
   )
 }
 
+/**
+ * One conditional rule. Its three writes come together: all of them, or none when the field is read-only (then
+ * `onValue` is absent, and the rule's controls are off).
+ */
 function RuleRow(props: {
   rule: RuleDraft
   issue: RuleIssue | undefined
   ruleValues: readonly string[] | undefined
-  readOnly: boolean
   labels: RestrictionLabels
-  onValue: (value: string) => void
-  onCondition: (condition: string) => void
-  onRemove: () => void
+  onValue: ((value: string) => void) | undefined
+  onCondition: ((condition: string) => void) | undefined
+  onRemove: (() => void) | undefined
 }) {
-  const { rule, issue, ruleValues, readOnly, labels, onValue, onCondition, onRemove } = props
+  const { rule, issue, ruleValues, labels, onValue, onCondition, onRemove } = props
+  const readOnly = onValue === undefined
   const editor = editorFromCondition(rule.condition)
   const [asText, setAsText] = useState(false)
   const textMode = editor === undefined || asText
   return (
     <div className="grid min-w-0 gap-2 rounded-md border border-zinc-950/10 p-2 dark:border-white/10">
       <div className="flex min-w-0 items-center gap-1.5">
-        <RuleValue
-          value={rule.value}
-          ruleValues={ruleValues}
-          readOnly={readOnly}
-          labels={labels}
-          onCommit={onValue}
-        />
+        <RuleValue value={rule.value} ruleValues={ruleValues} labels={labels} onCommit={onValue} />
         {editor !== undefined ? (
           <button
             type="button"
@@ -423,7 +424,6 @@ function RuleRow(props: {
             key={rule.condition}
             ariaLabel={labels.condition}
             value={rule.condition}
-            readOnly={readOnly}
             placeholder="Mo-Fr 08:00-18:00"
             className="w-full"
             onCommit={onCondition}
@@ -432,9 +432,8 @@ function RuleRow(props: {
       ) : (
         <ConditionEditor
           state={editor}
-          readOnly={readOnly}
           labels={labels}
-          onChange={(next) => onCondition(conditionFromEditor(next))}
+          onChange={onCondition ? (next) => onCondition(conditionFromEditor(next)) : undefined}
         />
       )}
       {issue !== undefined ? (
@@ -446,21 +445,21 @@ function RuleRow(props: {
   )
 }
 
+/** A rule's value, as a text input or a list. Absent `onCommit`: read-only. */
 function RuleValue(props: {
   value: string
   ruleValues: readonly string[] | undefined
-  readOnly: boolean
   labels: RestrictionLabels
-  onCommit: (value: string) => void
+  onCommit: ((value: string) => void) | undefined
 }) {
-  const { value, ruleValues, readOnly, labels, onCommit } = props
+  const { value, ruleValues, labels, onCommit } = props
+  const readOnly = onCommit === undefined
   if (ruleValues === undefined) {
     return (
       <DraftText
         key={value}
         ariaLabel={labels.value}
         value={value}
-        readOnly={readOnly}
         placeholder={labels.chooseValue}
         className="min-w-0 flex-1"
         onCommit={onCommit}
@@ -474,7 +473,7 @@ function RuleValue(props: {
       className={`${INPUT_CLASS} min-w-0 flex-1`}
       value={value}
       disabled={readOnly}
-      onChange={(event) => onCommit(event.target.value)}
+      onChange={(event) => onCommit?.(event.target.value)}
     >
       <option value="">{labels.chooseValue}</option>
       {choices.map((choice) => (
@@ -489,11 +488,12 @@ function RuleValue(props: {
 /** The structured condition: weekday chips, time ranges, months. Each change is written at once. */
 function ConditionEditor(props: {
   state: EditorState
-  readOnly: boolean
   labels: RestrictionLabels
-  onChange: (next: EditorState) => void
+  /** Absent: read-only, every control is off */
+  onChange: ((next: EditorState) => void) | undefined
 }) {
-  const { state, readOnly, labels, onChange } = props
+  const { state, labels, onChange } = props
+  const readOnly = onChange === undefined
   const ends = monthEnds(state)
   const monthsOn = monthsAllowed(state) && !readOnly
   return (
@@ -511,7 +511,7 @@ function ConditionEditor(props: {
               className={CHIP}
               aria-pressed={state.days.includes(day)}
               disabled={readOnly}
-              onClick={() => onChange(toggleDay(state, day))}
+              onClick={() => onChange?.(toggleDay(state, day))}
             >
               {labels.weekdays[day]}
             </button>
@@ -527,7 +527,7 @@ function ConditionEditor(props: {
               value={range.from}
               label={labels.from}
               disabled={readOnly}
-              onCommit={(time) => onChange(setRangeEdge(state, index, 'from', time))}
+              onCommit={(time) => onChange?.(setRangeEdge(state, index, 'from', time))}
             />
             <span className="text-xs text-zinc-500">{labels.to}</span>
             <TimeInput
@@ -535,13 +535,13 @@ function ConditionEditor(props: {
               value={range.to}
               label={labels.to}
               disabled={readOnly}
-              onCommit={(time) => onChange(setRangeEdge(state, index, 'to', time))}
+              onCommit={(time) => onChange?.(setRangeEdge(state, index, 'to', time))}
             />
             <button
               type="button"
               className={BUTTON}
               disabled={readOnly}
-              onClick={() => onChange(removeRange(state, index))}
+              onClick={() => onChange?.(removeRange(state, index))}
             >
               {labels.removeTime}
             </button>
@@ -552,7 +552,7 @@ function ConditionEditor(props: {
             type="button"
             className={BUTTON}
             disabled={readOnly}
-            onClick={() => onChange(addRange(state))}
+            onClick={() => onChange?.(addRange(state))}
           >
             {labels.addTime}
           </button>
@@ -565,7 +565,7 @@ function ConditionEditor(props: {
           className={`${INPUT_CLASS} w-auto`}
           value={ends.from}
           disabled={!monthsOn}
-          onChange={(event) => onChange(setMonthEdge(state, 'from', event.target.value))}
+          onChange={(event) => onChange?.(setMonthEdge(state, 'from', event.target.value))}
         >
           <option value="">{'–'}</option>
           {MONTHS.map((month) => (
@@ -579,7 +579,7 @@ function ConditionEditor(props: {
           className={`${INPUT_CLASS} w-auto`}
           value={ends.to}
           disabled={!monthsOn || ends.from === ''}
-          onChange={(event) => onChange(setMonthEdge(state, 'to', event.target.value))}
+          onChange={(event) => onChange?.(setMonthEdge(state, 'to', event.target.value))}
         >
           <option value="">{'–'}</option>
           {MONTHS.map((month) => (
@@ -622,17 +622,18 @@ function TimeInput(props: {
  * A text control whose draft is written on blur (Enter applies it too). It starts from `value`; the caller gives it
  * `key={value}`, so a value that changes elsewhere starts it over.
  */
+/** A text input that writes on blur when the text changed. Absent `onCommit`: read-only. */
 function DraftText(props: {
   id?: string
   ariaLabel: string
   value: string
-  readOnly: boolean
   invalid?: boolean
   placeholder?: string
   className: string
-  onCommit: (text: string) => void
+  onCommit: ((text: string) => void) | undefined
 }) {
-  const { id, ariaLabel, value, readOnly, invalid, placeholder, className, onCommit } = props
+  const { id, ariaLabel, value, invalid, placeholder, className, onCommit } = props
+  const readOnly = onCommit === undefined
   const [text, setText] = useState(value)
   return (
     <input
@@ -647,7 +648,7 @@ function DraftText(props: {
       readOnly={readOnly}
       onChange={(event) => setText(event.target.value)}
       onBlur={() => {
-        if (text !== value) onCommit(text)
+        if (text !== value) onCommit?.(text)
       }}
       onKeyDown={(event) => {
         if (event.key === 'Enter') event.currentTarget.blur()

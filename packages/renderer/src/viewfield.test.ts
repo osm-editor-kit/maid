@@ -23,32 +23,67 @@ describe('the cones of a standalone point', () => {
   test('a numeric direction gives one cone at that bearing', () => {
     expect(pointProps({ highway: 'traffic_signals', direction: '45' })).toMatchObject({ d0: 45 })
     expect(pointProps({ highway: 'traffic_signals', direction: '45' })).not.toHaveProperty('d1')
-  });
+  })
 
   test('numeric values are kept as they are, as Rapid does (-45, 360, 1000)', () => {
     expect(pointProps({ highway: 'traffic_signals', direction: '-45' })).toMatchObject({ d0: -45 })
     expect(pointProps({ highway: 'traffic_signals', direction: '360' })).toMatchObject({ d0: 360 })
-    expect(pointProps({ highway: 'traffic_signals', direction: '1000' })).toMatchObject({ d0: 1000 })
-  });
+    expect(pointProps({ highway: 'traffic_signals', direction: '1000' })).toMatchObject({
+      d0: 1000,
+    })
+  })
 
   // Rapid's table: every cardinal, full name, short name, upper and mixed case
   const CARDINALS: [string, number][] = [
-    ['n', 0], ['north', 0], ['N', 0], ['NOrth', 0],
-    ['nne', 22], ['northnortheast', 22], ['NnE', 22],
-    ['ne', 45], ['northeast', 45], ['nE', 45],
-    ['ene', 67], ['eastnortheast', 67], ['EnE', 67],
-    ['e', 90], ['east', 90], ['EAst', 90],
-    ['ese', 112], ['eastsoutheast', 112], ['EsE', 112],
-    ['se', 135], ['southeast', 135], ['sE', 135],
-    ['sse', 157], ['southsoutheast', 157], ['SsE', 157],
-    ['s', 180], ['south', 180], ['SOuth', 180],
-    ['ssw', 202], ['southsouthwest', 202], ['SsW', 202],
-    ['sw', 225], ['southwest', 225], ['sW', 225],
-    ['wsw', 247], ['westsouthwest', 247], ['WsW', 247],
-    ['w', 270], ['west', 270], ['WEst', 270],
-    ['wnw', 292], ['westnorthwest', 292], ['WnW', 292],
-    ['nw', 315], ['northwest', 315], ['nW', 315],
-    ['nnw', 337], ['northnorthwest', 337], ['NnW', 337],
+    ['n', 0],
+    ['north', 0],
+    ['N', 0],
+    ['NOrth', 0],
+    ['nne', 22],
+    ['northnortheast', 22],
+    ['NnE', 22],
+    ['ne', 45],
+    ['northeast', 45],
+    ['nE', 45],
+    ['ene', 67],
+    ['eastnortheast', 67],
+    ['EnE', 67],
+    ['e', 90],
+    ['east', 90],
+    ['EAst', 90],
+    ['ese', 112],
+    ['eastsoutheast', 112],
+    ['EsE', 112],
+    ['se', 135],
+    ['southeast', 135],
+    ['sE', 135],
+    ['sse', 157],
+    ['southsoutheast', 157],
+    ['SsE', 157],
+    ['s', 180],
+    ['south', 180],
+    ['SOuth', 180],
+    ['ssw', 202],
+    ['southsouthwest', 202],
+    ['SsW', 202],
+    ['sw', 225],
+    ['southwest', 225],
+    ['sW', 225],
+    ['wsw', 247],
+    ['westsouthwest', 247],
+    ['WsW', 247],
+    ['w', 270],
+    ['west', 270],
+    ['WEst', 270],
+    ['wnw', 292],
+    ['westnorthwest', 292],
+    ['WnW', 292],
+    ['nw', 315],
+    ['northwest', 315],
+    ['nW', 315],
+    ['nnw', 337],
+    ['northnorthwest', 337],
+    ['NnW', 337],
   ]
   for (const [value, bearing] of CARDINALS) {
     test(`the cardinal "${value}" is ${bearing} degrees`, () => {
@@ -63,7 +98,7 @@ describe('the cones of a standalone point', () => {
       d0: 0,
       d1: 90,
     })
-  });
+  })
 
   test('a suffix key such as camera:direction is the direction', () => {
     expect(pointProps({ man_made: 'surveillance', 'camera:direction': '180' })).toMatchObject({
@@ -72,7 +107,7 @@ describe('the cones of a standalone point', () => {
     expect(
       pointProps({ man_made: 'surveillance', direction: '90', 'camera:direction': '180' }),
     ).toMatchObject({ d0: 180 })
-  });
+  })
 
   test('nothing for a node without a direction, or with a value that is not one', () => {
     expect(pointProps({ highway: 'traffic_signals' })).not.toHaveProperty('d0')
@@ -81,7 +116,7 @@ describe('the cones of a standalone point', () => {
       'd0',
     )
     expect(pointProps({ highway: 'traffic_signals', direction: 'NaN' })).not.toHaveProperty('d0')
-  });
+  })
 })
 
 describe('the cones of a vertex of a way', () => {

@@ -5,6 +5,7 @@ import {
   FINGER_REACH,
   LOUPE_RADIUS,
   LOUPE_SCALE,
+  loupeCamera,
   loupeCenter,
   loupeTape,
   loupeZoom,
@@ -110,6 +111,16 @@ describe('loupeZoom', () => {
     expect(LOUPE_SCALE).toBe(3)
     expect(loupeZoom(13)).toBeCloseTo(13 + Math.log2(3), 10)
     expect(2 ** (loupeZoom(13) - 13)).toBeCloseTo(3, 10)
+  })
+})
+
+describe('loupeCamera', () => {
+  test('centred on the pointer, log2(3) deeper than the main map, with the main map bearing', () => {
+    expect(loupeCamera({ lon: 13.4, lat: 52.5 }, { zoom: 15, bearing: 30 })).toEqual({
+      center: [13.4, 52.5],
+      zoom: loupeZoom(15),
+      bearing: 30,
+    })
   })
 })
 

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import type { Lens } from '@osm-editor-kit/maid-style'
-import { restoreLenses } from './store.ts'
+import { restoreLenses } from './lens-store.ts'
 
 const current: { activeId: string | null; imported: Lens[] } = { activeId: null, imported: [] }
 const lens: Lens = {

@@ -1,6 +1,13 @@
 import { FunnelIcon } from '@heroicons/react/20/solid'
 import { createFilterSet } from '@osm-editor-kit/maid-filters'
-import { FilterPanel, Flyout, toolButtonClass, Tooltip, useSettings } from '@osm-editor-kit/maid-ui'
+import {
+  FilterPanel,
+  Flyout,
+  settingsActions,
+  toolButtonClass,
+  Tooltip,
+  useStoredShown,
+} from '@osm-editor-kit/maid-ui'
 import { useEngine, useShell } from '../shell-context'
 import { differsFromStored, writesFor } from '../url/shown'
 import { useFiltersParam } from '../url/state'
@@ -19,7 +26,7 @@ function Filters() {
   const [, setParam] = useFiltersParam()
   const filters = useEngine((e) => e.filters)
   const hidden = useEngine((e) => ({ ...e.hiddenCounts() }))
-  const stored = useSettings((s) => s.shown.filters)
+  const stored = useStoredShown('filters')
   if (editor.filters.length === 0)
     return (
       <p className="p-3 text-xs text-zinc-500 dark:text-zinc-400">This editor has no filters.</p>
@@ -48,7 +55,7 @@ function Filters() {
           const change = writesFor(engine.filters.with(id, state).toParam())
           engine.setFilters(createFilterSet(editor.filters, change.stored))
           void setParam(change.url)
-          useSettings.getState().setShown('filters', change.stored)
+          settingsActions.setShown('filters', change.stored)
         }}
       />
     </>
@@ -63,7 +70,7 @@ function Filters() {
 export function FilterButton() {
   const { editor, normalizeFilters } = useShell()
   const shown = useEngine((e) => e.filters.toParam())
-  const stored = useSettings((s) => s.shown.filters)
+  const stored = useStoredShown('filters')
   if (editor.filters.length === 0) return null
   const changed = shown ? shown.split(',').length : 0
   const fromLink = differsFromStored(shown, stored, '', normalizeFilters)

@@ -10,7 +10,7 @@ import { Layer, Source, useMap, type LayerProps } from 'react-map-gl/maplibre'
 import { arrowPixels, ARROW_PIXEL_RATIO } from './arrow-image.ts'
 import { parkingCollection } from './collect.ts'
 import { PARKING_ARROW_IMAGE, PARKING_LAYERS, PARKING_SOURCE, type ParkingLayer } from './layers.ts'
-import { useParkingSides } from './side-state.ts'
+import { useParkingShowMissing, useParkingShown } from './side-state.ts'
 
 /**
  * The graph of the editor's history, read again after each change of it (a load or an edit). A new snapshot object per
@@ -68,7 +68,8 @@ function toLayerProps(layer: ParkingLayer): LayerProps {
 
 /** The parking sides, arrows, areas, kerbs and obstacles of the loaded data. Renders nothing while the lens is off. */
 export function ParkingSidesOnMap({ editor }: MapContentProps) {
-  const { shown, showMissing } = useParkingSides()
+  const shown = useParkingShown()
+  const showMissing = useParkingShowMissing()
   const snapshot = useHistorySnapshot(editor.history)
   useArrowImage()
   const data = useMemo(

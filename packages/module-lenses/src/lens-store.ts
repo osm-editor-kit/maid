@@ -25,6 +25,7 @@ export function restoreLenses<State extends Pick<LensState, 'activeId' | 'import
   return stored.success ? { ...current, ...stored.data } : current
 }
 
+/** What the lenses module keeps: the choice, the imported lenses, and the built-in ones */
 export type LensState = {
   /** The id of the lens on the map, or null for the default look */
   activeId: string | null
@@ -32,6 +33,10 @@ export type LensState = {
   imported: Lens[]
   /** Built-in lenses and the ones the app gave the module. Not stored. */
   builtIn: Lens[]
+}
+
+/** The events the lenses module takes. The object never changes. */
+export type LensActions = {
   setActive: (id: string | null) => void
   /** Adds lenses; a lens with the id of an imported one replaces it */
   importLenses: (lenses: Lens[]) => void
@@ -39,24 +44,29 @@ export type LensState = {
   setBuiltIn: (lenses: Lens[]) => void
 }
 
-export const useLensStore = create<LensState>()(
+type LensStore = LensState & { actions: LensActions }
+
+/** The store stays here: components read the state through the hooks below, code outside React through `lensChoice` */
+const useLensStore = create<LensStore>()(
   persist(
     (set) => ({
       activeId: null,
       imported: [],
       builtIn: BUILT_IN_LENSES,
-      setActive: (activeId) => set({ activeId }),
-      importLenses: (lenses) =>
-        set((state) => {
-          const ids = new Set(lenses.map((lens) => lens.id))
-          return { imported: [...state.imported.filter((lens) => !ids.has(lens.id)), ...lenses] }
-        }),
-      removeLens: (id) =>
-        set((state) => ({
-          imported: state.imported.filter((lens) => lens.id !== id),
-          activeId: state.activeId === id ? null : state.activeId,
-        })),
-      setBuiltIn: (builtIn) => set({ builtIn }),
+      actions: {
+        setActive: (activeId) => set({ activeId }),
+        importLenses: (lenses) =>
+          set((state) => {
+            const ids = new Set(lenses.map((lens) => lens.id))
+            return { imported: [...state.imported.filter((lens) => !ids.has(lens.id)), ...lenses] }
+          }),
+        removeLens: (id) =>
+          set((state) => ({
+            imported: state.imported.filter((lens) => lens.id !== id),
+            activeId: state.activeId === id ? null : state.activeId,
+          })),
+        setBuiltIn: (builtIn) => set({ builtIn }),
+      },
     }),
     {
       name: 'maid:lenses',
@@ -68,6 +78,45 @@ export const useLensStore = create<LensState>()(
     },
   ),
 )
+
+/** The id of the lens on the map, or null for the default look */
+export function useActiveLensId(): string | null {
+  return useLensStore((state) => state.activeId)
+}
+
+/** The built-in lenses and the ones the app gave the module */
+export function useBuiltInLenses(): Lens[] {
+  return useLensStore((state) => state.builtIn)
+}
+
+/** The lenses the person imported */
+export function useImportedLenses(): Lens[] {
+  return useLensStore((state) => state.imported)
+}
+
+/** The lens on the map, or null. The same object for as long as the lens does not change. */
+export function useActiveLens(): Lens | null {
+  return useLensStore((state) => activeLens(state))
+}
+
+/** The actions. They never change, so a component that takes them re-renders only for its own state. */
+export function useLensActions(): LensActions {
+  return useLensStore((state) => state.actions)
+}
+
+/** The actions for code outside React (the lenses module at start) */
+export const lensActions: LensActions = useLensStore.getState().actions
+
+/**
+ * The active lens for code outside React. The parking module reads it, follows it and sets it; the bench sets it.
+ * The lens module keeps its choice in storage itself.
+ */
+export const lensChoice = {
+  getActiveId: (): string | null => useLensStore.getState().activeId,
+  setActive: (id: string | null) => useLensStore.getState().actions.setActive(id),
+  /** Calls the listener after any change of the lenses. Returns a function that stops it. */
+  subscribe: (listener: () => void): (() => void) => useLensStore.subscribe(listener),
+}
 
 /** Every lens the person can choose from: built-in first, then imported */
 export function allLenses(state: Pick<LensState, 'builtIn' | 'imported'>) {

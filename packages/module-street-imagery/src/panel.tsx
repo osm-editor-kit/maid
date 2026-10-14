@@ -11,7 +11,14 @@ import {
   type ImageryProviderId,
   type PhotoKind,
 } from './state.ts'
-import { AUTOMATED, useStreetImageryStore } from './store.ts'
+import {
+  AUTOMATED,
+  useDate,
+  useMapillaryToken,
+  usePhotoKind,
+  useProviders,
+  useStreetImageryActions,
+} from './street-imagery-store.ts'
 
 const KIND_LABELS: Record<PhotoKind, string> = { all: 'All', flat: 'Flat', pano: '360°' }
 const KIND_OPTIONS = PHOTO_KINDS.map((kind) => ({ value: kind, label: KIND_LABELS[kind] }))
@@ -29,9 +36,9 @@ const MAPILLARY_WITHOUT_TOKEN =
  * are the ones of the notes panel (module-notes), so a switch looks the same in every panel.
  */
 function ProviderRow({ id }: { id: ImageryProviderId }) {
-  const on = useStreetImageryStore((state) => state.providers.includes(id))
-  const token = useStreetImageryStore((state) => state.mapillaryToken)
-  const setProvider = useStreetImageryStore((state) => state.setProvider)
+  const on = useProviders().includes(id)
+  const token = useMapillaryToken()
+  const { setProvider } = useStreetImageryActions()
   const available = providerAvailable(id, token)
   const note = available ? NOTES[id] : MAPILLARY_WITHOUT_TOKEN
   return (
@@ -65,8 +72,8 @@ function ProviderRow({ id }: { id: ImageryProviderId }) {
  * arrow keys move between them and choose.
  */
 function KindChoice() {
-  const photoKind = useStreetImageryStore((state) => state.photoKind)
-  const setPhotoKind = useStreetImageryStore((state) => state.setPhotoKind)
+  const photoKind = usePhotoKind()
+  const { setPhotoKind } = useStreetImageryActions()
   return (
     <SegmentedControl
       label="Which photos"
@@ -84,10 +91,10 @@ function KindChoice() {
  * 360°) and from when. Nothing is requested before a provider is switched on.
  */
 export function PhotosPanel() {
-  const date = useStreetImageryStore((state) => state.date)
-  const setDate = useStreetImageryStore((state) => state.setDate)
-  const stored = useStreetImageryStore((state) => state.providers)
-  const token = useStreetImageryStore((state) => state.mapillaryToken)
+  const date = useDate()
+  const { setDate } = useStreetImageryActions()
+  const stored = useProviders()
+  const token = useMapillaryToken()
 
   if (AUTOMATED)
     return (

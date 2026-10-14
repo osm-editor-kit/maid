@@ -193,7 +193,7 @@ describe('connectParkingSides', () => {
     let activeId: string | null = null
     const listeners = new Set<() => void>()
     const source: LensSource = {
-      getState: () => ({ activeId }),
+      getActiveId: () => activeId,
       subscribe: (listener) => {
         listeners.add(listener)
         return () => {

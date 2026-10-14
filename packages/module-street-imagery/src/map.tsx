@@ -15,7 +15,17 @@ import { useEffect, useState } from 'react'
 import { useMap, type MapRef } from 'react-map-gl/maplibre'
 import { snapBboxToTiles } from './snap.ts'
 import { activeProviders, photoTypesOf } from './state.ts'
-import { AUTOMATED, useStreetImageryStore } from './store.ts'
+import {
+  AUTOMATED,
+  getStreetImagery,
+  streetImageryActions,
+  useDate,
+  useMapillaryToken,
+  useOpenPhoto,
+  usePhotoKind,
+  useProviders,
+  useStreetImageryActions,
+} from './street-imagery-store.ts'
 
 /** The id of the editor's map: `<Map id>` in apps/maid MapView. */
 export const MAP_ID = 'mainMap'
@@ -59,7 +69,7 @@ function useMapView(mapRef: MapRef | undefined) {
 
 /** Lets the dock's viewer move the map to the photo it shows. */
 function useEaseBridge(mapRef: MapRef | undefined) {
-  const setEaseTo = useStreetImageryStore((state) => state.setEaseTo)
+  const { setEaseTo } = useStreetImageryActions()
   useEffect(
     function registerEaseTo() {
       const map = mapRef?.getMap()
@@ -82,11 +92,11 @@ function useEaseBridge(mapRef: MapRef | undefined) {
  */
 export function StreetImageryLayers({ editor }: MapContentProps) {
   const mapRef = useMap()[MAP_ID]
-  const stored = useStreetImageryStore((state) => state.providers)
-  const token = useStreetImageryStore((state) => state.mapillaryToken)
-  const photoKind = useStreetImageryStore((state) => state.photoKind)
-  const date = useStreetImageryStore((state) => state.date)
-  const openPhoto = useStreetImageryStore((state) => state.openPhoto)
+  const stored = useProviders()
+  const token = useMapillaryToken()
+  const photoKind = usePhotoKind()
+  const date = useDate()
+  const openPhoto = useOpenPhoto()
   const { zoom, bbox } = useMapView(mapRef)
   useEaseBridge(mapRef)
   const bearing = useViewerBearing()
@@ -121,7 +131,7 @@ export function StreetImageryLayers({ editor }: MapContentProps) {
  * the photo is drawn above the data. Otherwise `false`, and the click goes on as usual.
  */
 export function streetImageryClick(event: MapLayerMouseEvent) {
-  const state = useStreetImageryStore.getState()
+  const state = getStreetImagery()
   const providers = activeProviders(state.providers, state.mapillaryToken, AUTOMATED)
   if (providers.length === 0) return false
   const map = event.target
@@ -136,7 +146,7 @@ export function streetImageryClick(event: MapLayerMouseEvent) {
   )
   if (!hit?.photoId) return false
   // the viewer loads the date, the type and the exact position of the photo
-  state.showPhoto({
+  streetImageryActions.showPhoto({
     providerId: hit.providerId,
     photoId: hit.photoId,
     sequenceId: hit.sequenceId ?? null,

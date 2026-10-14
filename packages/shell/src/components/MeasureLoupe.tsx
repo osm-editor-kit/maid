@@ -1,13 +1,14 @@
 import * as maplibregl from 'maplibre-gl'
 import type { Map as MapLibreMap, RasterSourceSpecification, StyleSpecification } from 'maplibre-gl'
-import { useEffect, useRef, useState } from 'react'
-import { Map, type MapRef } from 'react-map-gl/maplibre'
+import { useEffect, useState } from 'react'
+import { Map, useMap } from 'react-map-gl/maplibre'
 import { useMeasure } from '../shell-context'
 import {
   crossPath,
   FINGER_REACH,
   LOUPE_RADIUS,
   LOUPE_SIZE,
+  loupeCamera,
   loupeCenter,
   loupeTape,
   loupeZoom,
@@ -32,9 +33,10 @@ import {
  * context exists only then). Without a raster background the parent does not mount this at all; with
  * `?loupe=blank` (the browser check) it is mounted with an empty style, which asks for no tile.
  *
- * `jumpTo` is called through the map ref on each animation frame: react-map-gl has no prop for a camera
- * that changes on every pointer move without a render per move, and a render per move would also
- * re-run the main map's props.
+ * The lens's camera moves by `jumpTo` on each animation frame, from `LoupeCamera`, a child of the lens's
+ * own `<Map>`. It finds the lens's map and the main map with `useMap()` by their ids (the react-map-gl
+ * rule: no ref on `<Map>`). react-map-gl has no prop for a camera that changes on every pointer move
+ * without a render per move, and a render per move would also re-run the main map's props.
  */
 
 /** A finger covers more of the map than a pointer: the lens sits above it, further away */
@@ -117,6 +119,26 @@ function lensStyle(
   }
 }
 
+/**
+ * The lens's camera, inside the lens's own `<Map>`: after each change, one `jumpTo` per animation frame on the lens's
+ * map, centred on the pointer, with the main map's zoom and bearing as they are on that frame. Both maps come from
+ * `useMap()`, by their ids. `view` is the main map's view as the parent keeps it: a new one on each move starts a frame.
+ */
+function LoupeCamera(props: { lon: number | undefined; lat: number | undefined; view: View }) {
+  const { lon, lat, view } = props
+  const { measureLoupe, mainMap } = useMap()
+  useEffect(() => {
+    if (lon === undefined || lat === undefined || !measureLoupe || !mainMap) return
+    const frame = requestAnimationFrame(() => {
+      const main = mainMap.getMap()
+      const camera = loupeCamera({ lon, lat }, { zoom: main.getZoom(), bearing: main.getBearing() })
+      measureLoupe.jumpTo(camera)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [lon, lat, view, measureLoupe, mainMap])
+  return null
+}
+
 export function MeasureLoupe(props: {
   /** The main map: the lens follows its zoom, bearing and size */
   map: MapLibreMap
@@ -133,21 +155,10 @@ export function MeasureLoupe(props: {
     const centre = map.getCenter()
     return { longitude: centre.lng, latitude: centre.lat, zoom: loupeZoom(map.getZoom()) }
   })
-  const lens = useRef<MapRef>(null)
   const style = lensStyle(source, brightness)
   const placed = placeOn(map, spots.start, spots.pointer, view)
   const lon = spots.pointer?.lon
   const lat = spots.pointer?.lat
-
-  // the lens's camera: on the pointer, deeper by log2(3) than the main map, one move per animation frame
-  useEffect(() => {
-    const target = lens.current
-    if (lon === undefined || lat === undefined || !target) return
-    const frame = requestAnimationFrame(() => {
-      target.jumpTo({ center: [lon, lat], zoom: loupeZoom(view.zoom), bearing: view.bearing })
-    })
-    return () => cancelAnimationFrame(frame)
-  }, [lon, lat, view])
 
   const R = LOUPE_RADIUS
   return (
@@ -159,14 +170,15 @@ export function MeasureLoupe(props: {
       style={{ left: placed?.left ?? 0, top: placed?.top ?? 0 }}
     >
       <Map
-        ref={lens}
         id="measureLoupe"
         mapLib={maplibregl}
         initialViewState={start}
         mapStyle={style}
         interactive={false}
         attributionControl={false}
-      />
+      >
+        <LoupeCamera lon={lon} lat={lat} view={view} />
+      </Map>
       <svg
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 z-10"

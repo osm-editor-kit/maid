@@ -3,7 +3,7 @@ import { createFilterSet } from '@osm-editor-kit/maid-filters'
 import type { Locale } from '@osm-editor-kit/maid-i18n'
 import { connectLenses } from '@osm-editor-kit/maid-module-lenses'
 import { MaidEngine } from '@osm-editor-kit/maid-renderer'
-import { useSettings } from '@osm-editor-kit/maid-ui'
+import { getSettings } from '@osm-editor-kit/maid-ui'
 import { createAuth } from './auth'
 import { LIVE_BUILD, readConfig, type Config } from './config'
 import { watchFavourites } from './favourites'
@@ -82,7 +82,7 @@ export function createShell(app: AppConfig) {
    * URL is not written to storage (docs/adr/0009-decisions-of-2026-10-13.md).
    */
   const filtersStart = startShown(
-    { url: config.filters, stored: useSettings.getState().shown.filters, fallback: '' },
+    { url: config.filters, stored: getSettings().shown.filters, fallback: '' },
     normalizeFilters,
   )
 

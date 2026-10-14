@@ -9,7 +9,7 @@ import { lazyPresets, type MaidModule } from '@osm-editor-kit/maid-core'
 import { defaultFilters } from '@osm-editor-kit/maid-filters'
 import { dataLayers } from '@osm-editor-kit/maid-module-data-layers'
 import { imagery } from '@osm-editor-kit/maid-module-imagery'
-import { lenses, useLensStore } from '@osm-editor-kit/maid-module-lenses'
+import { lensChoice, lenses } from '@osm-editor-kit/maid-module-lenses'
 import { notes } from '@osm-editor-kit/maid-module-notes'
 import { parking, parkingLens, parkingRules } from '@osm-editor-kit/maid-module-parking'
 import { streetImagery } from '@osm-editor-kit/maid-module-street-imagery'
@@ -82,7 +82,7 @@ function editorConfig(config: Config) {
     // VITE_MAPILLARY_TOKEN when it is set (apps/mapillary-token.ts)
     streetImagery({ mapillaryToken: import.meta.env.VITE_MAPILLARY_TOKEN || MAPILLARY_TOKEN }),
     // the parking editor: restriction field, quick buttons, parking sides on the map, its edit operations
-    parking({ lenses: useLensStore }),
+    parking({ lenses: lensChoice }),
     // top bar and dock "Notes": OSM notes of the same API the data comes from, read-only.
     // From OSM zoom 14 (iD and Rapid use 12; the data itself loads from 16). minZoom is an OSM zoom.
     notes({ apiUrl: config.apiUrl, minZoom: 14 }),

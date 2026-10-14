@@ -5,10 +5,10 @@ export {
   activeLens,
   allLenses,
   connectLenses,
-  useLensStore,
+  lensChoice,
   type LensState,
   type LensTarget,
-} from './store.ts'
+} from './lens-store.ts'
 export type {
   Lens,
   LensRule,

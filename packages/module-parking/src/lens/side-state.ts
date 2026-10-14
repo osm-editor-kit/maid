@@ -1,14 +1,13 @@
 /**
  * Whether the parking sides are drawn, and whether the gap check is on. Kept outside React so that the lens (or the
- * app) can set it without a module dependency: `connectParkingSides(useLensStore)` in the app's config, once.
+ * app) can set it without a module dependency: `connectParkingSides(lensChoice)` in the app's config, once.
  * The layers are drawn only while the parking lens is the active one (the default).
  */
 import { create } from 'zustand'
-import { useShallow } from 'zustand/shallow'
 
 export type ParkingSidesState = { shown: boolean; showMissing: boolean }
 
-/** A zustand store of its own: the lens sets it through `setParkingSides`, components read `useParkingSides` */
+/** A zustand store of its own: the lens sets it through `setParkingSides`, components read it through the hooks below */
 const useParkingSidesStore = create<ParkingSidesState>()(() => ({
   shown: false,
   showMissing: false,
@@ -27,16 +26,19 @@ export function getParkingSides(): ParkingSidesState {
   return useParkingSidesStore.getState()
 }
 
-/** The state, for components. Changes only when a value changes. */
-export function useParkingSides(): ParkingSidesState {
-  return useParkingSidesStore(
-    useShallow((state) => ({ shown: state.shown, showMissing: state.showMissing })),
-  )
+/** Whether the parking sides are drawn (while the parking lens is the active one) */
+export function useParkingShown(): boolean {
+  return useParkingSidesStore((state) => state.shown)
 }
 
-/** The part of a lens store that connectParkingSides reads: zustand's `useLensStore` has this shape */
+/** Whether the gap check is on: the sides of roads without a parking tag are drawn too */
+export function useParkingShowMissing(): boolean {
+  return useParkingSidesStore((state) => state.showMissing)
+}
+
+/** The part of the lens choice that connectParkingSides reads: `lensChoice` from the lenses module has this shape */
 export type LensSource = {
-  getState: () => { activeId: string | null }
+  getActiveId: () => string | null
   subscribe: (listener: () => void) => () => void
 }
 
@@ -50,7 +52,7 @@ export function connectParkingSides(
 ): () => void {
   const lensId = options.lensId ?? 'parking'
   setParkingSides({ showMissing: options.showMissing ?? false })
-  const apply = () => setParkingSides({ shown: lenses.getState().activeId === lensId })
+  const apply = () => setParkingSides({ shown: lenses.getActiveId() === lensId })
   apply()
   const stop = lenses.subscribe(apply)
   return () => {

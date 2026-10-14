@@ -7,7 +7,7 @@ import { useShell } from '../shell-context'
 export function ZoomControls() {
   const { mainMap } = useMap()
   const { engine } = useShell()
-  const bearing = useBearing((state) => state.bearing)
+  const bearing = useBearing()
   return (
     <MapControls>
       <ControlGroup label="Map">

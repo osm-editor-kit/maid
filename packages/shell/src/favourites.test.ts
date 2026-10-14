@@ -74,7 +74,7 @@ const parts = { editor: { presets }, engine } as unknown as Parameters<
   typeof favourites.startFavourite
 >[0]
 
-const { useSettings } = await import('@osm-editor-kit/maid-ui')
+const { getSettings, settingsActions } = await import('@osm-editor-kit/maid-ui')
 
 /** A point with these tags, its preset matched as the editor matches it */
 function node(id: string, tags: Tags) {
@@ -83,9 +83,11 @@ function node(id: string, tags: Tags) {
 
 /** Starts the favourite of number 39 (the bench) as the keys do: the point mode is on, pending */
 function startBench() {
-  useSettings.setState({
-    favourites: [{ presetId: 'amenity/bench', geometry: 'point', number: '39' }],
-  })
+  // the bench is the only favourite: added once, then numbered 39
+  if (!getSettings().favourites.some((item) => item.presetId === 'amenity/bench')) {
+    settingsActions.toggleFavourite('amenity/bench', 'point')
+  }
+  settingsActions.setFavouriteNumber('amenity/bench', 'point', '39')
   favourites.startFavourite(parts, '39')
 }
 

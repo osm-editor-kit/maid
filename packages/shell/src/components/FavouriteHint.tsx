@@ -1,4 +1,4 @@
-import { useSettings } from '@osm-editor-kit/maid-ui'
+import { useStoredFavourites } from '@osm-editor-kit/maid-ui'
 import { useEffect, useState } from 'react'
 import { startFavourite } from '../favourites'
 import { MAC } from '../platform'
@@ -34,7 +34,7 @@ export function FavouriteHint() {
   const { editor, engine } = useShell()
   const presets = usePresets()
   const [sequence, setSequence] = useState<SequenceState>(IDLE)
-  const favourites = useSettings((state) => state.favourites)
+  const favourites = useStoredFavourites()
 
   useEffect(() => {
     // the state lives here, not in React's state, so a key event sees the one before it at once

@@ -1,7 +1,7 @@
 import { isAutomated } from '@osm-editor-kit/maid-core'
 import { fromIdDisableFeatures } from '@osm-editor-kit/maid-filters'
 import type { LayerOptions } from '@osm-editor-kit/maid-renderer'
-import { useSettings, type Server } from '@osm-editor-kit/maid-ui'
+import { getSettings, type Server } from '@osm-editor-kit/maid-ui'
 import { PORTS } from '../../../tools/ports'
 import { customBackgroundLink } from './url/background'
 import { readParams, setupParams, stateParams, type Camera } from './url/params'
@@ -86,7 +86,7 @@ function readFilters(search: string) {
 export function readConfig(
   location: Location,
   choice: { stored: Server | undefined; liveBuild: boolean } = {
-    stored: useSettings.getState().server,
+    stored: getSettings().server,
     liveBuild: LIVE_BUILD,
   },
 ) {

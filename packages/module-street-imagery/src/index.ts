@@ -17,7 +17,7 @@ import { panoramaxAdapter } from '@osm-editor-kit/street-imagery/providers/panor
 import { createElement } from 'react'
 import { STREET_IMAGES_FIELD_TYPE } from './image-keys.ts'
 import { StreetImageryLayers } from './map.tsx'
-import { AUTOMATED, useStreetImageryStore } from './store.ts'
+import { AUTOMATED, streetImageryActions } from './street-imagery-store.ts'
 
 export { MAP_ID, streetImageryClick } from './map.tsx'
 export {
@@ -90,7 +90,7 @@ export function streetImagery(options: StreetImageryOptions = {}) {
         // the package reads its configuration when it fetches; Panoramax needs it too
         setStreetImageryConfig(createStreetImageryConfig({ mapillaryToken: token }))
         registerProviderAdapters(token ? [panoramaxAdapter, mapillaryAdapter] : [panoramaxAdapter])
-        useStreetImageryStore.setState({ mapillaryToken: token })
+        streetImageryActions.setMapillaryToken(token)
         // The package names its provider queries by these prefixes, and keys them by the box and the
         // zoom. The box is snapped to tiles (snap.ts), so the same tiles are the same key, and a key
         // is asked once for the session: its data is not stale. A rename by the package would stop

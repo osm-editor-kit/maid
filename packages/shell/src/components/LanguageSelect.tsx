@@ -1,5 +1,5 @@
 import { getLocale, LANGUAGE_NAMES, LOCALES, isLocale, m } from '@osm-editor-kit/maid-i18n'
-import { useSettings } from '@osm-editor-kit/maid-ui'
+import { useSettingsActions } from '@osm-editor-kit/maid-ui'
 
 /**
  * The language as a native select in the account flyout, next to the theme. The choice is stored,
@@ -7,7 +7,7 @@ import { useSettings } from '@osm-editor-kit/maid-ui'
  * the reloaded address: it would win over the stored choice.
  */
 export function LanguageSelect() {
-  const setLang = useSettings((settings) => settings.setLang)
+  const { setLang } = useSettingsActions()
   return (
     <select
       aria-label={m.topbar_language()}

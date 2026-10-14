@@ -7,15 +7,25 @@ import { useState } from 'react'
 import { planUse } from './image-keys.ts'
 import { photoPageLink } from './links.ts'
 import { activeProviders } from './state.ts'
-import { AUTOMATED, useStreetImageryStore } from './store.ts'
+import {
+  AUTOMATED,
+  getStreetImagery,
+  useActiveImage,
+  useEaseTo,
+  useImageWriter,
+  useMapillaryToken,
+  useOpenPhoto,
+  useProviders,
+  useStreetImageryActions,
+} from './street-imagery-store.ts'
 
 /**
  * Writes the open photo to the target key of the selected feature: the row last focused in its "Street-level
  * images" field, or the provider's default key. Disabled, with the reason as its tooltip, when that is not possible.
  */
 function UsePhotoButton({ photo }: { photo: NormalizedPhoto }) {
-  const writer = useStreetImageryStore((state) => state.imageWriter)
-  const active = useStreetImageryStore((state) => state.activeImage)
+  const writer = useImageWriter()
+  const active = useActiveImage()
   const provider =
     photo.providerId === 'mapillary' || photo.providerId === 'panoramax' ? photo.providerId : null
   const plan =
@@ -33,7 +43,7 @@ function UsePhotoButton({ photo }: { photo: NormalizedPhoto }) {
       title={plan.ok ? `Adds this photo to ${plan.key}` : plan.reason}
       onClick={() => {
         // read again at the click: the selection may have changed since the render
-        const state = useStreetImageryStore.getState()
+        const state = getStreetImagery()
         if (provider === null || state.imageWriter === null) return
         const next = planUse({
           photoId: photo.photoId,
@@ -53,9 +63,9 @@ function UsePhotoButton({ photo }: { photo: NormalizedPhoto }) {
 /** The photo open in the dock, from the package's viewer, with its link and details. */
 function OpenPhoto({ photo, queries }: { photo: NormalizedPhoto; queries: QueryClient }) {
   const [detailsOpen, setDetailsOpen] = useState(false)
-  const showPhoto = useStreetImageryStore((state) => state.showPhoto)
-  const closePhoto = useStreetImageryStore((state) => state.closePhoto)
-  const easeTo = useStreetImageryStore((state) => state.easeTo)
+  const { showPhoto } = useStreetImageryActions()
+  const { closePhoto } = useStreetImageryActions()
+  const easeTo = useEaseTo()
   const link = photoPageLink(photo)
 
   return (
@@ -109,9 +119,9 @@ function OpenPhoto({ photo, queries }: { photo: NormalizedPhoto; queries: QueryC
 
 /** The photo open in the dock, from the package's viewer. Quiet text while none is chosen. */
 export function PhotosView({ editor }: DockViewProps) {
-  const openPhoto = useStreetImageryStore((state) => state.openPhoto)
-  const stored = useStreetImageryStore((state) => state.providers)
-  const token = useStreetImageryStore((state) => state.mapillaryToken)
+  const openPhoto = useOpenPhoto()
+  const stored = useProviders()
+  const token = useMapillaryToken()
 
   if (AUTOMATED)
     return (

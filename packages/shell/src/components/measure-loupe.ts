@@ -130,6 +130,21 @@ export function loupeZoom(mapZoom: number, scale = LOUPE_SCALE) {
 }
 
 /**
+ * The camera of the lens's map, as `jumpTo` takes it: centred on the pointer, `loupeZoom` deeper than the main
+ * map's zoom, and the main map's bearing.
+ */
+export function loupeCamera(
+  pointer: { lon: number; lat: number },
+  main: { zoom: number; bearing: number },
+) {
+  return {
+    center: [pointer.lon, pointer.lat] as [number, number],
+    zoom: loupeZoom(main.zoom),
+    bearing: main.bearing,
+  }
+}
+
+/**
  * The crosshair in the lens: four arms with a gap at the centre, so that the point under it stays
  * visible. Drawn twice by the lens: a white halo under a blue line.
  */

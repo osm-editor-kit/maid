@@ -39,16 +39,14 @@ const DATA_SOURCES: string[] = [SOURCES.areas, SOURCES.lines, SOURCES.points, SO
 
 /** The layers of the OSM data itself, not their edit or selection copies */
 function dataLayers(layers: LayerSpecification[]) {
-  return layers
-    .map(view)
-    .filter(
-      (l) =>
-        l.source !== undefined &&
-        DATA_SOURCES.includes(l.source) &&
-        !/--(edit|select)$/.test(l.id) &&
-        // the viewfield cones have no selection twin (layers.ts coneLayers)
-        !l.id.startsWith('cone-'),
-    )
+  return layers.map(view).filter(
+    (l) =>
+      l.source !== undefined &&
+      DATA_SOURCES.includes(l.source) &&
+      !/--(edit|select)$/.test(l.id) &&
+      // the viewfield cones have no selection twin (layers.ts coneLayers)
+      !l.id.startsWith('cone-'),
+  )
 }
 
 const twinOf = (layers: LayerSpecification[], id: string) => {

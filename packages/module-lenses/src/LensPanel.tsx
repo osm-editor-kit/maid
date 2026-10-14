@@ -3,7 +3,14 @@ import { notify, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { toolButtonTone } from '@osm-editor-kit/maid-ui'
 import { useId, useRef, useState, type ChangeEvent } from 'react'
 import { MAX_FILE_BYTES, parseLensFile, serialiseLenses } from './lens-file.ts'
-import { activeLens, allLenses, useLensStore } from './store.ts'
+import {
+  activeLens,
+  allLenses,
+  useActiveLensId,
+  useBuiltInLenses,
+  useImportedLenses,
+  useLensActions,
+} from './lens-store.ts'
 
 const REST_TEXT = {
   dim: 'dimmed',
@@ -29,12 +36,10 @@ const BUTTON =
 
 /** The map style flyout: the lenses to choose from, the legend of the chosen one, import and export. */
 export function LensPanel() {
-  const activeId = useLensStore((s) => s.activeId)
-  const builtIn = useLensStore((s) => s.builtIn)
-  const imported = useLensStore((s) => s.imported)
-  const setActive = useLensStore((s) => s.setActive)
-  const importLenses = useLensStore((s) => s.importLenses)
-  const removeLens = useLensStore((s) => s.removeLens)
+  const activeId = useActiveLensId()
+  const builtIn = useBuiltInLenses()
+  const imported = useImportedLenses()
+  const { setActive, importLenses, removeLens } = useLensActions()
   const [notice, setNotice] = useState<Notice | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const noticeId = useId()

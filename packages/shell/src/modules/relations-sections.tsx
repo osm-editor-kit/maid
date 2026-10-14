@@ -9,7 +9,16 @@ import {
 } from '@osm-editor-kit/maid-model'
 import { notify, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { Tooltip, type InspectorSectionProps } from '@osm-editor-kit/maid-ui'
-import { Fragment, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import {
+  createContext,
+  Fragment,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react'
 import { useShell } from '../shell-context'
 import {
   joinableRelations,
@@ -96,6 +105,17 @@ function roleOptionsID(scope: string, id: string) {
   return `${scope}-roles-${id}`
 }
 
+/**
+ * Whether the edit controls of a section (role inputs, move, add and remove buttons) are off because the
+ * features are read-only. The section root provides it, so the controls read it where they are. Zoom,
+ * select and load stay on, as they do for read-only features.
+ */
+const ReadOnlyContext = createContext(false)
+
+function useReadOnly() {
+  return useContext(ReadOnlyContext)
+}
+
 /** One line of a list: the same spacing and hairline for members and memberships. */
 function Row({ children, highlight }: { children: ReactNode; highlight?: RowHighlight }) {
   return (
@@ -148,15 +168,14 @@ function RoleInput({
   label,
   role,
   list,
-  disabled,
   onCommit,
 }: {
   label: string
   role: string
   list: string
-  disabled: boolean
   onCommit: (role: string) => void
 }) {
+  const readOnly = useReadOnly()
   const [draft, setDraft] = useState(role)
   const commit = () => {
     const next = draft.trim()
@@ -168,7 +187,7 @@ function RoleInput({
       aria-label={label}
       placeholder="role"
       list={list}
-      disabled={disabled}
+      disabled={readOnly}
       className={ROLE_INPUT}
       value={draft}
       onChange={(event) => setDraft(event.target.value)}
@@ -184,21 +203,14 @@ function RoleInput({
   )
 }
 
-function RemoveButton({
-  label,
-  disabled,
-  onRemove,
-}: {
-  label: string
-  disabled: boolean
-  onRemove: () => void
-}) {
+function RemoveButton({ label, onRemove }: { label: string; onRemove: () => void }) {
+  const readOnly = useReadOnly()
   return (
     <button
       type="button"
       aria-label={label}
       title={label}
-      disabled={disabled}
+      disabled={readOnly}
       onClick={onRemove}
       className={ICON_BUTTON}
     >
@@ -232,7 +244,7 @@ function ZoomButton({
   )
 }
 
-/** Moves a member one place: an icon button with a tooltip, disabled at the ends. */
+/** Moves a member one place: an icon button with a tooltip, disabled at the ends and when read-only. */
 function MoveButton({
   label,
   glyph,
@@ -241,15 +253,17 @@ function MoveButton({
 }: {
   label: string
   glyph: string
+  /** No move in this direction (the member is at the end) */
   disabled: boolean
   onMove: () => void
 }) {
+  const readOnly = useReadOnly()
   return (
     <Tooltip label={label}>
       <button
         type="button"
         aria-label={label}
-        disabled={disabled}
+        disabled={readOnly || disabled}
         onClick={onMove}
         className={ICON_BUTTON}
       >
@@ -301,7 +315,6 @@ function MemberRowView({
   editor,
   relation,
   row,
-  readOnly,
   roleList,
   select,
   load,
@@ -309,7 +322,6 @@ function MemberRowView({
   editor: Editor
   relation: OsmRelation
   row: MemberRow
-  readOnly: boolean
   roleList: string
   select: Props['select']
   /** Loads a member that is not in the data; undefined while the engine has no such call */
@@ -362,20 +374,19 @@ function MemberRowView({
       <MoveButton
         label={`Move ${row.id} up`}
         glyph="↑"
-        disabled={readOnly || up === undefined}
+        disabled={up === undefined}
         onMove={() => move('up')}
       />
       <MoveButton
         label={`Move ${row.id} down`}
         glyph="↓"
-        disabled={readOnly || down === undefined}
+        disabled={down === undefined}
         onMove={() => move('down')}
       />
       <RoleInput
         label={`Role of ${row.id}`}
         role={member.role}
         list={roleList}
-        disabled={readOnly}
         onCommit={(role) =>
           edit(
             editor,
@@ -387,7 +398,6 @@ function MemberRowView({
       />
       <RemoveButton
         label={`Remove member ${row.id}`}
-        disabled={readOnly}
         onRemove={() => {
           edit(editor, actionDeleteMember(relation.id, row.index), 'Removed a member', relation.id)
           // removing the last member deletes the relation
@@ -412,12 +422,10 @@ type LoadState =
 function MemberList({
   editor,
   relation,
-  readOnly,
   select,
 }: {
   editor: Editor
   relation: OsmRelation
-  readOnly: boolean
   select: Props['select']
 }) {
   const { engine } = useShell()
@@ -469,7 +477,6 @@ function MemberList({
               editor={editor}
               relation={relation}
               row={row}
-              readOnly={readOnly}
               roleList={roleList}
               select={select}
               load={(id) => engine.loadEntity(id)}
@@ -524,13 +531,9 @@ export function MembersSection({ entity, editor, select }: Props) {
   const relation = editor.history.staging.graph.hasEntity(entity.id)
   if (!(relation instanceof OsmRelation)) return null
   return (
-    <MemberList
-      key={relation.id}
-      editor={editor}
-      relation={relation}
-      readOnly={entity.readOnly}
-      select={select}
-    />
+    <ReadOnlyContext value={entity.readOnly}>
+      <MemberList key={relation.id} editor={editor} relation={relation} select={select} />
+    </ReadOnlyContext>
   )
 }
 
@@ -539,14 +542,12 @@ function MembershipRow({
   editor,
   entityID,
   membership,
-  readOnly,
   roleList,
   select,
 }: {
   editor: Editor
   entityID: EntityID
   membership: Membership
-  readOnly: boolean
   roleList: string
   select: Props['select']
 }) {
@@ -567,7 +568,6 @@ function MembershipRow({
           label={`Role in ${relation.id}`}
           role={role}
           list={roleList}
-          disabled={readOnly}
           onCommit={(next) =>
             edit(
               editor,
@@ -579,7 +579,6 @@ function MembershipRow({
         />
         <RemoveButton
           label={`Remove from ${relation.id}`}
-          disabled={readOnly}
           onRemove={() =>
             edit(editor, actionDeleteMember(relation.id, index), 'Removed a member', entityID)
           }
@@ -720,19 +719,21 @@ export function RelationsSection({ entity, entities, editor, select }: Props) {
     <div className="grid gap-1">
       {memberships.length === 0 && <p className={`text-xs ${SECONDARY}`}>Not in a relation.</p>}
       {memberships.length > 0 && (
-        <ul>
-          {memberships.map((membership) => (
-            <MembershipRow
-              key={`${membership.relation.id}:${membership.index}:${membership.role}`}
-              editor={editor}
-              entityID={entity.id}
-              membership={membership}
-              readOnly={entity.readOnly}
-              roleList={roleOptionsID('membership', membership.relation.id)}
-              select={select}
-            />
-          ))}
-        </ul>
+        // the memberships follow the inspected feature, the add below the whole selection (as before)
+        <ReadOnlyContext value={entity.readOnly}>
+          <ul>
+            {memberships.map((membership) => (
+              <MembershipRow
+                key={`${membership.relation.id}:${membership.index}:${membership.role}`}
+                editor={editor}
+                entityID={entity.id}
+                membership={membership}
+                roleList={roleOptionsID('membership', membership.relation.id)}
+                select={select}
+              />
+            ))}
+          </ul>
+        </ReadOnlyContext>
       )}
       {parents.map((relation) => (
         <RoleOptions

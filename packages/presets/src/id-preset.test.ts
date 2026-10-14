@@ -139,6 +139,50 @@ describe('iD.presetPreset', () => {
       const presets = presetsOf({ building: { tags: { area: 'yes', building: 'yes' } } })
       expect(presets.isFallback(get(presets, 'building'))).toEqual(false)
     })
+
+    // the four generic presets are seeded (iD's presets/index.js), so every presetsOf has them
+    it('is true for the generic point, line and relation presets (no tags)', () => {
+      const presets = presetsOf({})
+      expect(presets.isFallback(get(presets, 'point'))).toEqual(true)
+      expect(presets.isFallback(get(presets, 'line'))).toEqual(true)
+      expect(presets.isFallback(get(presets, 'relation'))).toEqual(true)
+    })
+
+    it('is true for the generic area preset (area=yes only)', () => {
+      const presets = presetsOf({})
+      expect(get(presets, 'area').tags).toEqual({ area: 'yes' })
+      expect(presets.isFallback(get(presets, 'area'))).toEqual(true)
+    })
+
+    it('is false for a preset with a tag of its own, on any geometry', () => {
+      const presets = presetsOf({
+        bench: { tags: { amenity: 'bench' }, geometry: ['point', 'vertex'] },
+        route: { tags: { type: 'route' }, geometry: ['relation'] },
+        footway: { tags: { highway: 'footway', area: 'yes' }, geometry: ['area'] },
+      })
+      expect(presets.isFallback(get(presets, 'bench'))).toEqual(false)
+      expect(presets.isFallback(get(presets, 'route'))).toEqual(false)
+      expect(presets.isFallback(get(presets, 'footway'))).toEqual(false)
+    })
+
+    // the model asks the match, not the preset by id: a bare feature matches a fallback, a tagged one does not
+    it('answers the same for the preset a match finds', () => {
+      const presets = presetsOf({
+        bench: { tags: { amenity: 'bench' }, geometry: ['point', 'vertex'] },
+        route: { tags: { type: 'route' }, geometry: ['relation'] },
+      })
+      const answer = (
+        tags: Record<string, string>,
+        geometry: 'point' | 'vertex' | 'area' | 'relation',
+      ) => presets.isFallback(presets.match(tags, geometry))
+      expect(answer({}, 'point')).toEqual(true)
+      expect(answer({}, 'vertex')).toEqual(true)
+      expect(answer({ area: 'yes' }, 'area')).toEqual(true)
+      expect(answer({}, 'relation')).toEqual(true)
+      expect(answer({ amenity: 'bench' }, 'point')).toEqual(false)
+      expect(answer({ amenity: 'bench' }, 'vertex')).toEqual(false)
+      expect(answer({ type: 'route' }, 'relation')).toEqual(false)
+    })
   })
 
   describe('#setTags', () => {

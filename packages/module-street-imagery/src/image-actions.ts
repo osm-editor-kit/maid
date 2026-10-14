@@ -9,7 +9,7 @@ import {
   type NormalizedPhoto,
 } from '@osm-editor-kit/street-imagery'
 import { providerOfKey } from './image-keys.ts'
-import { useStreetImageryStore } from './store.ts'
+import { streetImageryActions } from './street-imagery-store.ts'
 
 /** The reason "show" is off for a key, or null when it works. Pure apart from the arguments. */
 export function showBlockedReason(key: string, mapillaryToken: string, automated: boolean) {
@@ -48,6 +48,6 @@ export async function openImageById(id: string) {
   if (details === undefined) return 'Mapillary has no image with this id'
   const photo = mapillaryPhoto(details)
   if (photo === null) return 'Mapillary gave no position for this image'
-  useStreetImageryStore.getState().showPhoto(photo)
+  streetImageryActions.showPhoto(photo)
   return null
 }
