@@ -11,27 +11,14 @@
 import type { RasterSourceSpec } from '@osm-editor-kit/maplibre-editor-layer-index'
 import type { Drawn } from './eli.ts'
 
-/** A saved custom background. The shape is the Radnetz fork's, so a list can be copied over by hand. */
-export type CustomEntry = { id: string; name: string; template: string }
+/**
+ * A saved custom background: its name, and its template, which is its key (the URL keeps the template, as iD does:
+ * `background=custom:<template>`). The shape is the Radnetz fork's, without the id, so a list can be copied over by hand.
+ */
+export type CustomEntry = { name: string; template: string }
 
 /** Tiles are 256 px, as iD and ELI count them. There is no min or max zoom: MapLibre overzooms. */
 export const TILE_SIZE = 256
-
-/** The id of a saved entry: `custom-1`, `custom-2`, ... */
-export const CUSTOM_ID = /^custom-([1-9]\d*)$/
-
-export function customId(number: number) {
-  return `custom-${number}`
-}
-
-/** The number in a custom id (`custom-7` gives 7); 0 for any other id */
-export function customNumber(id: string) {
-  return Number(CUSTOM_ID.exec(id)?.[1] ?? 0)
-}
-
-export function isCustomId(id: string | null) {
-  return id !== null && CUSTOM_ID.test(id)
-}
 
 export type Translated = { ok: true; source: RasterSourceSpec } | { ok: false; reason: string }
 
@@ -264,6 +251,28 @@ function hash(text: string) {
     value = ((value << 5) + value + text.charCodeAt(index)) | 0
   }
   return (value >>> 0).toString(36)
+}
+
+/** The words a part of a template has when it looks like a key or a token (case-insensitive, `_` and `-` ignored) */
+const KEY_WORDS = ['key', 'token', 'signature', 'secret']
+
+/**
+ * The names in a template that look like a key: the query parameters and the path parts whose name says key, token,
+ * signature or secret (`key=`, `apikey`, `api_key`, `access_token`, `/token/`, ...). Shown as a hint: a shared link
+ * includes the template, so it includes these. A guess by name, not a check of the value.
+ */
+export function keyLikeNames(template: string): string[] {
+  const text = cleanTemplate(template).replace(/#[\s\S]*/u, '')
+  const query = text.indexOf('?')
+  const path = (query === -1 ? text : text.slice(0, query)).replace(/^https?:\/\/[^/]*/i, '')
+  const names: string[] = path.split('/').filter((part) => part !== '')
+  if (query !== -1)
+    for (const [name] of new URLSearchParams(text.slice(query + 1))) names.push(name)
+  const found = names.filter((name) => {
+    const flat = name.toLowerCase().replace(/[^a-z]/g, '')
+    return KEY_WORDS.some((word) => flat.includes(word))
+  })
+  return [...new Set(found)]
 }
 
 /**

@@ -51,7 +51,7 @@ const BBOX: Record<string, Bbox> = {
  */
 const presets = lazyPresets(() => import('./presets').then((module) => module.makePresets()))
 
-// the imagery module, made once: a `background=custom:` link is shown through its visitBackground
+// the imagery module, made once
 const background = imagery()
 
 function editorConfig(config: Config) {
@@ -105,5 +105,4 @@ export const app: AppConfig = {
     envFile: 'apps/maid-bicycle/.env.local',
   },
   editor: editorConfig,
-  visitBackground: (template) => background.visitBackground(template),
 }

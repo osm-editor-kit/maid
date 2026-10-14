@@ -42,7 +42,7 @@ const BBOX: Record<string, Bbox> = {
   dense: dense.bbox as Bbox,
 }
 
-// the imagery module, made once: a `background=custom:` link is shown through its visitBackground
+// the imagery module, made once
 const background = imagery()
 
 function editorConfig(config: Config) {
@@ -98,5 +98,4 @@ export const app: AppConfig = {
     envFile: 'apps/maid-parking/.env.local',
   },
   editor: editorConfig,
-  visitBackground: (template) => background.visitBackground(template),
 }

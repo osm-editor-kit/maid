@@ -85,7 +85,8 @@ const { value, fromLink } = layered({ url, stored, fallback: 'bing' })
 ```
 
 `layered` is the precedence of a setting that a link can change (`fromLink` is true only while the URL differs from the
-person's own choice). A parameter's `iD.fromId` and `toId` convert values when the notations differ.
+person's own choice). A parameter's `iD.fromId` and `toId` convert values when the notations differ. `iD.aliases`
+lists other iD names that are read for the same parameter (iD reads `layer` for `background`); Maid writes only `iD.name`.
 
 ## Not there yet
 

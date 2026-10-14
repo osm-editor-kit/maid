@@ -33,7 +33,7 @@ describe('iD.behaviorHash', () => {
     const text = stateParams.map.serialize({ zoom: 2, lat: 38.9, lng: -77 })
     expect(parseAsCamera.parse(text)).toEqual({ zoom: 2, lat: 38.9, lng: -77 })
     // the other parameters stay in the link
-    expect(toIdUrl(`?map=${text}&background=none`)).toContain('background=none')
+    expect(toIdUrl(`?map=${text}&id=w1`)).toContain('id=w1')
   })
 
   it('accepts default changeset comment as hash parameter', () => {

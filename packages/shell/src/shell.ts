@@ -50,11 +50,6 @@ export type AppConfig = {
   }
   /** What the editor is made of: modules, presets, filters. Gets the settings read from the URL. */
   editor: (config: Config) => EditorConfig
-  /**
-   * Shows a custom background template from a `background=custom:` link, for this visit (the imagery module's
-   * visitBackground). Says why a template is refused. Called once, after the shell is shown; not under automation.
-   */
-  visitBackground?: (template: string) => { ok: true } | { ok: false; reason: string }
 }
 
 /**
@@ -67,7 +62,8 @@ export type Shell = ReturnType<typeof createShell>
 export function createShell(app: AppConfig) {
   const id = app.id ?? 'maid'
 
-  // iD-style hash links become Maid query parameters before anything reads the URL
+  // iD-style hash links become Maid query parameters before anything reads the URL (the shell's own names;
+  // what no rule knows yet waits in the hash for the second pass, below)
   migrateIdHash(window.location, window.history)
 
   const config = readConfig(window.location, {
@@ -79,6 +75,8 @@ export function createShell(app: AppConfig) {
   /** The editor's data and modules. What this editor is comes from the app's config. */
   // the shell's own URL parameters are taken: a module that declares one of them fails at setup
   const editor = createEditor({ ...app.editor(config), reservedUrlParams: shellUrlParamNames() })
+  // the rest of the iD hash: the names the modules declared (background, overlays, ...) become query parameters now
+  migrateIdHash(window.location, window.history, editor.urlParams.list(), { final: true })
 
   // The OSM API is a service of its own: its requests wait in the 'osm' gate, and a pause on it is its own.
   // A local API (the mock, on localhost) is not claimed: it stays with the 'local' gate, as hosts that no
@@ -119,7 +117,6 @@ export function createShell(app: AppConfig) {
     config,
     editor,
     engine,
-    visitBackground: app.visitBackground,
     normalizeFilters,
     filtersStart,
     auth: createAuth({

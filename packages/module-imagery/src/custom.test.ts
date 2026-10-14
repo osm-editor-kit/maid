@@ -3,10 +3,8 @@ import {
   checkTemplate,
   citedName,
   cleanTemplate,
-  customId,
-  customNumber,
   drawCustom,
-  isCustomId,
+  keyLikeNames,
   redactTemplate,
   sameTemplate,
   shortLabel,
@@ -264,16 +262,27 @@ describe('shortLabel', () => {
   })
 })
 
-describe('custom ids', () => {
-  it('builds, reads and checks them', () => {
-    expect(customId(3)).toBe('custom-3')
-    expect(customNumber('custom-12')).toBe(12)
-    expect(customNumber('bing')).toBe(0)
-    expect(customNumber('custom-0')).toBe(0)
-    expect(isCustomId('custom-1')).toBe(true)
-    expect(isCustomId('custom-01')).toBe(false)
-    expect(isCustomId('bing')).toBe(false)
-    expect(isCustomId(null)).toBe(false)
+describe('keyLikeNames: a part of the template that looks like a key', () => {
+  it('finds the query names that say key, token, signature or secret, in any case', () => {
+    expect(keyLikeNames(`${EXAMPLE}/{z}/{x}/{y}.png?apikey={apikey}&style=2`)).toEqual(['apikey'])
+    expect(keyLikeNames(`${EXAMPLE}/{z}/{x}/{y}?api_key=1&accessToken=2&Signature=3`)).toEqual([
+      'api_key',
+      'accessToken',
+      'Signature',
+    ])
+  })
+
+  it('finds a path part that says token, and a placeholder that names a key', () => {
+    expect(keyLikeNames(`${EXAMPLE}/token/{apikey}/{z}/{x}/{y}.png`)).toEqual(['token', '{apikey}'])
+  })
+
+  it('finds nothing in a plain template, or in the host', () => {
+    expect(keyLikeNames(`${EXAMPLE}/{z}/{x}/{y}.png?format=png&style=2`)).toEqual([])
+    expect(keyLikeNames('https://keys.example.org/{z}/{x}/{y}.png')).toEqual([])
+  })
+
+  it('ignores the hash and lists each name once', () => {
+    expect(keyLikeNames(`${EXAMPLE}/{z}/{x}/{y}.png?key=1&key=2#token`)).toEqual(['key'])
   })
 })
 

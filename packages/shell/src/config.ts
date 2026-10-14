@@ -3,7 +3,6 @@ import { fromIdDisableFeatures } from '@osm-editor-kit/maid-filters'
 import type { LayerOptions } from '@osm-editor-kit/maid-renderer'
 import { getSettings, type Server } from '@osm-editor-kit/maid-ui'
 import { PORTS } from '../../../tools/ports'
-import { customBackgroundLink } from './url/background'
 import { readParams, setupParams, stateParams, type Camera } from './url/params'
 
 /**
@@ -96,8 +95,6 @@ export type Config = {
   camera?: Camera
   /** Filter states the URL starts with: Maid's `filters`, or iD's `disable_features` */
   filters: string | null
-  /** The template of a `background=custom:` link, for this visit only (url/background.ts) */
-  background: string | undefined
 }
 
 /** Maid's own parameter wins; a link made for iD hides what it lists in `disable_features` */
@@ -148,6 +145,5 @@ export function readConfig(
     blankLoupe: setup.loupe === 'blank',
     camera: readParams({ map: stateParams.map }, location.search).map ?? undefined,
     filters: readFilters(location.search),
-    background: customBackgroundLink(location.search),
   }
 }

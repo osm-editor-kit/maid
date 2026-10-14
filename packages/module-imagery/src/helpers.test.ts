@@ -7,6 +7,7 @@ import {
   categoryLabel,
   clampBrightness,
   matchesQuery,
+  migrateStored,
   parseStored,
   sortListing,
   visibleAtZoom,
@@ -18,53 +19,116 @@ function item(overrides: Partial<Listing> & { id: string }): Listing {
 }
 
 describe('parseStored', () => {
-  const fallback = { backgroundId: null }
-
   it('uses the defaults for nothing stored', () => {
-    expect(parseStored(undefined, fallback)).toEqual({
-      backgroundId: null,
+    expect(parseStored(undefined)).toEqual({
+      background: null,
       overlayIds: [],
       brightness: 1,
       custom: [],
-      customNext: 1,
     })
   })
 
-  it('keeps the default background when the stored entry has no background', () => {
-    expect(parseStored({}, { backgroundId: 'Bing' }).backgroundId).toBe('Bing')
-  })
-
-  it('keeps a stored choice of none, even when the default is a background', () => {
-    expect(parseStored({ backgroundId: null }, { backgroundId: 'Bing' }).backgroundId).toBeNull()
+  it('keeps a stored choice of none, and a stored custom background as iD writes it', () => {
+    expect(parseStored({ background: 'none' }).background).toBe('none')
+    expect(parseStored({ background: 'custom:https://a.example/{z}/{x}/{y}.png' }).background).toBe(
+      'custom:https://a.example/{z}/{x}/{y}.png',
+    )
   })
 
   it('drops values of the wrong type and duplicate overlays', () => {
-    const stored = parseStored(
-      { backgroundId: 42, overlayIds: ['a', 7, 'a', 'b'], brightness: 'bright' },
-      fallback,
-    )
+    const stored = parseStored({
+      background: 42,
+      overlayIds: ['a', 7, 'a', 'b'],
+      brightness: 'bright',
+    })
     expect(stored).toEqual({
-      backgroundId: null,
+      background: null,
       overlayIds: ['a', 'b'],
       brightness: 1,
       custom: [],
-      customNext: 1,
     })
+  })
+
+  it('keeps one entry per template, and drops a broken one', () => {
+    const stored = parseStored({
+      custom: [
+        { name: 'A', template: 'https://a.example/{z}/{x}/{y}.png' },
+        { name: 'Again', template: 'https://a.example/{z}/{x}/{y}.png' },
+        { name: 'No template' },
+        { name: 42, template: 'https://b.example/{z}/{x}/{y}.png' },
+      ],
+    })
+    expect(stored.custom).toEqual([
+      { name: 'A', template: 'https://a.example/{z}/{x}/{y}.png' },
+      { name: '', template: 'https://b.example/{z}/{x}/{y}.png' },
+    ])
   })
 
   it('clamps a stored brightness', () => {
-    expect(parseStored({ brightness: 0 }, fallback).brightness).toBe(BRIGHTNESS_MIN)
-    expect(parseStored({ brightness: 5 }, fallback).brightness).toBe(BRIGHTNESS_MAX)
+    expect(parseStored({ brightness: 0 }).brightness).toBe(BRIGHTNESS_MIN)
+    expect(parseStored({ brightness: 5 }).brightness).toBe(BRIGHTNESS_MAX)
   })
 
   it('treats non-object storage as nothing stored', () => {
-    expect(parseStored('garbage', fallback)).toEqual({
-      backgroundId: null,
+    expect(parseStored('garbage')).toEqual({
+      background: null,
       overlayIds: [],
       brightness: 1,
       custom: [],
-      customNext: 1,
     })
+  })
+})
+
+describe('migrateStored: version 2 to version 3', () => {
+  const A = 'https://a.example/{z}/{x}/{y}.png'
+  const B = 'https://b.example/{z}/{x}/{y}.png'
+
+  it('turns a custom-N id into custom:<template>, through its entry', () => {
+    const migrated = parseStored(
+      migrateStored(
+        {
+          backgroundId: 'custom-2',
+          overlayIds: ['roads'],
+          brightness: 0.5,
+          custom: [
+            { id: 'custom-1', name: 'Alpha', template: A },
+            { id: 'custom-2', name: 'Beta', template: B },
+          ],
+          customNext: 3,
+        },
+        2,
+      ),
+    )
+    expect(migrated).toEqual({
+      background: `custom:${B}`,
+      overlayIds: ['roads'],
+      brightness: 0.5,
+      custom: [
+        { name: 'Alpha', template: A },
+        { name: 'Beta', template: B },
+      ],
+    })
+  })
+
+  it('keeps an ELI id as it is, and a null background as a choice of none', () => {
+    expect(parseStored(migrateStored({ backgroundId: 'Bing', custom: [] }, 2)).background).toBe(
+      'Bing',
+    )
+    expect(parseStored(migrateStored({ backgroundId: null, custom: [] }, 2)).background).toBe(
+      'none',
+    )
+  })
+
+  it('leaves no choice when the custom entry the id names is gone', () => {
+    expect(
+      parseStored(migrateStored({ backgroundId: 'custom-9', custom: [] }, 2)).background,
+    ).toBeNull()
+  })
+
+  it('returns version 3 as it is, and anything that is not an object', () => {
+    const v3 = { background: 'Bing', overlayIds: [], brightness: 1, custom: [] }
+    expect(migrateStored(v3, 3)).toBe(v3)
+    expect(migrateStored('garbage', 2)).toBe('garbage')
   })
 })
 

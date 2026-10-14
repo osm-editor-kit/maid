@@ -103,6 +103,7 @@ function runEditor(setups: MaidModule[], options: Options): Run {
             points.push(point)
             api.register(point as never, item as never)
           },
+          urlParam: (declaration: never) => api.urlParam(declaration),
         } as unknown as ModuleApi
         return module.setup(spy)
       },

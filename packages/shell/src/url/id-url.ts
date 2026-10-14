@@ -10,8 +10,9 @@
  * over unchanged (`carried`), so a link survives a round trip and starts working when the
  * feature arrives. Parameters that make no sense in Maid are dropped on purpose.
  *
- * A module can add rows: a URL parameter it declares with an iD name (core's `api.urlParam`)
- * is mapped by `idRules(declared)`, and every function here takes those declared parameters.
+ * A module adds its rows: a URL parameter it declares with an iD name (core's `api.urlParam`) is
+ * mapped by `idRules(declared)`, and every function here takes those declared parameters. The
+ * imagery module's `background` and `overlays` are such rows, so they are not in this table.
  */
 import type { UrlParamHandle } from '@osm-editor-kit/maid-core'
 
@@ -23,6 +24,8 @@ type Mapped = {
   maid: string
   /** kept under the same name although Maid does not act on it yet */
   kind: 'same' | 'carried'
+  /** other iD names read for the same parameter (read only); see core's `IdUrlName.aliases` */
+  aliases?: readonly string[]
   /** iD's value to Maid's notation; the value as it is when absent. `undefined` drops the parameter. */
   fromId?: (value: string) => string | undefined
   /** Maid's value to iD's notation; as it is when absent */
@@ -34,8 +37,6 @@ export type Rule = Mapped | Dropped
 export const ID_URL_RULES: Rule[] = [
   { id: 'map', maid: 'map', kind: 'same', fromId: normaliseMap }, // zoom/lat/lng in both
   { id: 'id', maid: 'id', kind: 'same' }, // n1,w2,r3; Maid selects the first for now
-  { id: 'background', maid: 'background', kind: 'carried' },
-  { id: 'overlays', maid: 'overlays', kind: 'carried' },
   { id: 'offset', maid: 'offset', kind: 'carried' },
   { id: 'disable_features', maid: 'disable_features', kind: 'carried' },
   { id: 'comment', maid: 'comment', kind: 'carried' },
@@ -67,23 +68,34 @@ export function idUrlParamNames(): string[] {
 }
 
 /**
- * The full table: the rules above, plus one row per declared parameter that names an iD form. A declared name that
- * an existing row already uses (on either side, dropped rows included) is refused.
+ * The full table: the rules above, plus one row per declared parameter that names an iD form. A declared name (or
+ * alias) that an existing row already uses (on either side, dropped rows included) is refused.
  */
 export function idRules(declared: DeclaredIdParams = []): Rule[] {
   const rules: Rule[] = [...ID_URL_RULES]
   for (const { name, iD } of declared) {
     if (!iD) continue
-    const iDTaken = rules.find((r) => r.id === iD.name)
-    if (iDTaken) {
-      const meaning = iDTaken.kind === 'dropped' ? 'dropped by Maid' : `"${iDTaken.maid}"`
-      throw new Error(
-        `iD parameter "${iD.name}" (URL parameter "${name}") is already mapped to ${meaning}.`,
+    for (const iDName of [iD.name, ...(iD.aliases ?? [])]) {
+      const iDTaken = rules.find(
+        (r) => r.id === iDName || (r.kind !== 'dropped' && r.aliases?.includes(iDName)),
       )
+      if (iDTaken) {
+        const meaning = iDTaken.kind === 'dropped' ? 'dropped by Maid' : `"${iDTaken.maid}"`
+        throw new Error(
+          `iD parameter "${iDName}" (URL parameter "${name}") is already mapped to ${meaning}.`,
+        )
+      }
     }
     const maidTaken = rules.find((r) => r.kind !== 'dropped' && r.maid === name)
     if (maidTaken) throw new Error(`URL parameter "${name}" already has an iD mapping.`)
-    rules.push({ id: iD.name, maid: name, kind: 'same', fromId: iD.fromId, toId: iD.toId })
+    rules.push({
+      id: iD.name,
+      maid: name,
+      kind: 'same',
+      aliases: iD.aliases,
+      fromId: iD.fromId,
+      toId: iD.toId,
+    })
   }
   return rules
 }
@@ -100,11 +112,23 @@ function normaliseMap(value: string) {
   return `${zoom}/${lat}/${lng}`
 }
 
+export type FromIdOptions = {
+  /**
+   * Hash entries no rule knows yet are left in the hash (`kept`) instead of being dropped. The first pass at start
+   * uses this, because a module's iD names are known only after the editor is made (see `migrateIdHash`).
+   */
+  keepUnknown?: boolean
+}
+
 export type Converted = {
   /** Query parameters for Maid */
   params: URLSearchParams
   /** iD parameters that were left out, with the reason */
   dropped: { name: string; why: string }[]
+  /** iD hash entries that were left for a later pass (with `keepUnknown` only) */
+  kept: URLSearchParams
+  /** hash entries that were converted, dropped or left out by a rule: 0 when the hash held none of them */
+  handled: number
 }
 
 /**
@@ -112,7 +136,11 @@ export type Converted = {
  * Accepts a full URL or just a hash (`#map=…`). Query parameters that are already there are kept.
  * `declared` are the iD names of the modules' parameters (see `idRules`).
  */
-export function fromIdUrl(url: string, declared: DeclaredIdParams = []): Converted {
+export function fromIdUrl(
+  url: string,
+  declared: DeclaredIdParams = [],
+  options: FromIdOptions = {},
+): Converted {
   const rules = idRules(declared)
   const hashAt = url.indexOf('#')
   const hash = hashAt >= 0 ? url.slice(hashAt + 1) : ''
@@ -120,15 +148,28 @@ export function fromIdUrl(url: string, declared: DeclaredIdParams = []): Convert
   const query = queryAt >= 0 ? url.slice(queryAt + 1, hashAt >= 0 ? hashAt : undefined) : ''
   const params = new URLSearchParams(query)
   const dropped: Converted['dropped'] = []
+  const kept = new URLSearchParams()
+  let handled = 0
   // osm.org's edit link carries `editor=id`, which means nothing here
   params.delete('editor')
-  for (const [name, value] of new URLSearchParams(hash)) {
-    const rule = rules.find((r) => r.id === name)
-    if (!rule || rule.kind === 'dropped') {
-      dropped.push({
-        name,
-        why: rule?.kind === 'dropped' ? rule.why : 'unknown to Maid',
-      })
+  const hashParams = new URLSearchParams(hash)
+  for (const [name, value] of hashParams) {
+    const rule = rules.find(
+      (r) => r.id === name || (r.kind !== 'dropped' && r.aliases?.includes(name)),
+    )
+    if (!rule) {
+      if (options.keepUnknown) kept.append(name, value)
+      else dropped.push({ name, why: 'unknown to Maid' })
+      continue
+    }
+    handled++
+    if (rule.kind === 'dropped') {
+      dropped.push({ name, why: rule.why })
+      continue
+    }
+    // iD reads `background || layer`: the canonical name wins over an alias
+    if (rule.id !== name && hashParams.has(rule.id)) {
+      dropped.push({ name, why: `${rule.id} is given too` })
       continue
     }
     if (params.has(rule.maid)) continue // an explicit query parameter wins over the hash
@@ -136,7 +177,7 @@ export function fromIdUrl(url: string, declared: DeclaredIdParams = []): Convert
     if (converted === undefined) dropped.push({ name, why: 'could not be read' })
     else params.set(rule.maid, converted)
   }
-  return { params, dropped }
+  return { params, dropped, kept, handled }
 }
 
 /** An iD URL for the same view and selection, for "Open in iD" */
@@ -149,7 +190,10 @@ export function toIdUrl(
   const hash = new URLSearchParams()
   for (const [name, value] of new URLSearchParams(maidSearch)) {
     const rule = rules.find((r) => r.maid === name)
-    if (rule) hash.set(rule.id, rule.toId ? rule.toId(value) : value)
+    if (!rule) continue
+    const converted = rule.toId ? rule.toId(value) : value
+    // an empty value says nothing in iD (its overlays, for one, are written as none here)
+    if (converted !== '') hash.set(rule.id, converted)
   }
   // iD expects the slashes and commas unescaped
   const text = hash.toString().replace(/%2F/g, '/').replace(/%2C/g, ',')
@@ -157,19 +201,30 @@ export function toIdUrl(
 }
 
 /**
- * Run once before the app renders: if the address has iD-style hash state, rewrite it to
- * Maid's query parameters in place (no reload, no extra history entry).
+ * Rewrites iD-style hash state to Maid's query parameters in place (no reload, no extra history entry).
+ *
+ * It runs twice. The first pass (`final` false) runs before the config is read, with the shell's own rules: the
+ * hash entries no rule knows yet (a module's names) stay in the hash. The second pass runs after the editor is made,
+ * with the modules' declared names (`editor.urlParams.list()`) and `final: true`: what is still unknown is dropped
+ * and reported.
  */
 export function migrateIdHash(
   location: Location,
   history: History,
   declared: DeclaredIdParams = [],
+  options: { final?: boolean } = {},
 ) {
-  const names = ['map', 'id', 'background', 'disable_features', 'comment', 'hashtags']
-  for (const { iD } of declared) if (iD) names.push(iD.name)
-  if (!new RegExp(`(^#|&)(${names.join('|')})=`).test(location.hash)) return
-  const { params, dropped } = fromIdUrl(location.href, declared)
+  if (location.hash === '' || location.hash === '#') return
+  const { params, dropped, kept, handled } = fromIdUrl(location.href, declared, {
+    keepUnknown: options.final !== true,
+  })
+  if (handled === 0) return
   const text = params.toString().replace(/%2F/g, '/').replace(/%2C/g, ',')
-  history.replaceState(history.state, '', `${location.pathname}${text ? `?${text}` : ''}`)
+  const rest = kept.toString()
+  history.replaceState(
+    history.state,
+    '',
+    `${location.pathname}${text ? `?${text}` : ''}${rest ? `#${rest}` : ''}`,
+  )
   if (dropped.length) console.info('Maid left out iD URL parameters:', dropped)
 }

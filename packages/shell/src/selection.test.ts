@@ -92,7 +92,7 @@ describe('engine to URL: one write per change of the engine', () => {
     const engine = fakeEngine(['w10'])
     const url = urlWrites('w10')
     let notify: (() => void) | undefined
-    const subscribe = engine.subscribe
+    const subscribe = engine.subscribe.bind(engine)
     engine.subscribe = (listener) => {
       notify = listener
       return subscribe(listener)

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 import { createEditor } from '@osm-editor-kit/maid-core'
 import { backgroundName, usedNames } from './helpers.ts'
-import { VISIT_ID } from './imagery-store.ts'
 import { imagery } from './index.ts'
 
 const names = {
@@ -60,24 +59,6 @@ describe('the imagery module contributes imagery.used', () => {
     expect(items.map((item) => item.id)).toEqual(['imagery'])
     expect(items[0]?.used()).toEqual([])
     expect(items[0]?.background()).toBeUndefined()
-    editor.destroy()
-  })
-
-  it('cites the shown background by the name of its draw, read from the query cache', () => {
-    const module = imagery()
-    const editor = createEditor({ modules: [module] })
-    const template = 'https://tiles.example.org/{z}/{x}/{y}.png'
-    expect(module.visitBackground(template).ok).toBe(true)
-    // the draw's result is the cache's, not the store's: nothing is cited until it is there
-    const source = { type: 'raster' as const, tiles: [template], tileSize: 256 }
-    editor.queries.setQueryData(['imagery', 'custom', VISIT_ID, template, 1], {
-      id: VISIT_ID,
-      name: 'Link background',
-      source,
-    })
-    const item = editor.registry('imagery.used').list()[0]
-    expect(item?.used()).toEqual(['Link background'])
-    expect(item?.background()).toBe('Link background')
     editor.destroy()
   })
 })

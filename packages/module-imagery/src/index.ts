@@ -5,13 +5,10 @@ import { lazyComponent, PANEL_FALLBACK } from '@osm-editor-kit/maid-ui'
 import { createElement } from 'react'
 import type { Drawn } from './eli.ts'
 import { backgroundName, usedNames } from './helpers.ts'
-import {
-  createImageryStore,
-  ImageryStoreProvider,
-  shownBackgroundId,
-  type ImageryStoreHook,
-} from './imagery-store.ts'
-import { ImageryLayers, drawnShown } from './ImageryLayers.tsx'
+import { createImageryStore, ImageryStoreProvider, type ImageryUrls } from './imagery-store.ts'
+import { drawnShown, ImageryLayers } from './ImageryLayers.tsx'
+import { NONE } from './url.ts'
+import { ID_BACKGROUND, ID_OVERLAYS, parseAsBackground, parseAsOverlays } from './url.ts'
 
 export type ImageryOptions = {
   /** The background before anyone chooses one, by its ELI id. Default: none. */
@@ -23,22 +20,40 @@ export type ImageryOptions = {
  * and a brightness, chosen in the top bar's "Background" panel. Built on
  * `@osm-editor-kit/maplibre-editor-layer-index`.
  *
- * The returned module also has `visitBackground(template)`: the app calls it with the template of a
- * `background=custom:<template>` link. It shows that template for this visit only and stores nothing
- * (see `visit` in the store). It returns why a template is refused, or the id it is shown as.
+ * The module declares two URL parameters in iD's names: `background` (an ELI id, `none`, or
+ * `custom:<template>`, with iD's `layer` read too) and `overlays`. The URL is the live state; the store keeps the
+ * choices for the next visit (docs/research/url-state-audit.md, section 3).
  */
 export function imagery(options: ImageryOptions = {}) {
-  const store: ImageryStoreHook = createImageryStore(options.default ?? null)
-  const module = defineModule({
+  const store = createImageryStore(options.default ?? null)
+  return defineModule({
     id: 'imagery',
     setup(api) {
       const queries = api.editor.queries
+      const urls: ImageryUrls = {
+        background: api.urlParam({
+          name: 'background',
+          parser: parseAsBackground,
+          options: { clearOnDefault: false, history: 'replace' },
+          iD: ID_BACKGROUND,
+        }),
+        overlays: api.urlParam({
+          name: 'overlays',
+          parser: parseAsOverlays,
+          options: { clearOnDefault: false, history: 'replace' },
+          iD: ID_OVERLAYS,
+        }),
+      }
       // the panel's code is a chunk of its own: it loads when the flyout opens (or in idle time after the first view)
       const Panel = lazyComponent(
         () =>
           import('./ImageryPanel.tsx').then((panel) => ({
             default: () =>
-              createElement(ImageryStoreProvider, { store }, createElement(panel.ImageryPanel)),
+              createElement(
+                ImageryStoreProvider,
+                { store, urls },
+                createElement(panel.ImageryPanel),
+              ),
           })),
         PANEL_FALLBACK,
       )
@@ -47,7 +62,7 @@ export function imagery(options: ImageryOptions = {}) {
         component: (props: MapContentProps) =>
           createElement(
             ImageryStoreProvider,
-            { store },
+            { store, urls },
             createElement(ImageryLayers, { belowOsm: props.belowOsm }),
           ),
       })
@@ -63,31 +78,35 @@ export function imagery(options: ImageryOptions = {}) {
       api.register('imagery.used', {
         id: 'imagery',
         used: () => {
-          const state = store.getState()
-          const { background, overlays } = drawnShown(queries, state)
+          const shown = store.getState().shown
+          if (shown === null) return []
+          const { background, overlays } = drawnShown(queries, shown)
           const names = namesOf([background, ...overlays])
-          return usedNames(shownBackgroundId(state), state.overlayIds, names)
+          return usedNames(backgroundOf(shown.background), shown.overlays, names)
         },
         background: () => {
-          const state = store.getState()
-          const { background } = drawnShown(queries, state)
+          const shown = store.getState().shown
+          if (shown === null) return undefined
+          const { background } = drawnShown(queries, shown)
           const names = namesOf([background])
-          return backgroundName(shownBackgroundId(state), names)
+          return backgroundName(backgroundOf(shown.background), names)
         },
         // the background alone, as the measure's magnifier draws it (undefined until it is drawn)
         backgroundSource: () => {
-          const state = store.getState()
-          const { background } = drawnShown(queries, state)
+          const shown = store.getState().shown
+          if (shown === null) return undefined
+          const { background } = drawnShown(queries, shown)
           if (!background) return undefined
-          return { source: background.source, brightness: state.brightness }
+          return { source: background.source, brightness: store.getState().brightness }
         },
       })
     },
   })
-  return {
-    ...module,
-    visitBackground: (template: string) => store.getState().actions.visitBackground(template),
-  }
+}
+
+/** The layer id of a background value, or null for none (the helpers take null for none) */
+function backgroundOf(value: string) {
+  return value === NONE ? null : value
 }
 
 /** The name of each drawn layer, by its id */

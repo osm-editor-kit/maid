@@ -10,8 +10,10 @@ describe('the names the app owns', () => {
       expect(names).toContain(name)
     }
     expect(names).toContain('map')
-    expect(names).toContain('background')
     expect(names).toContain('scene')
+    // the imagery module declares background and overlays (its own iD rows), so the app does not own them
+    expect(names).not.toContain('background')
+    expect(names).not.toContain('overlays')
   })
 
   test('iD names Maid drops are not Maid parameters, so they are not reserved', () => {
@@ -23,9 +25,10 @@ describe('the names the app owns', () => {
     expect(() => urlParams.declare({ name: 'map', parser: parseAsCamera }, 'lenses')).toThrow(
       'taken by the app',
     )
+    // a module may declare background: the app's list does not hold it any more
     expect(() =>
       urlParams.declare({ name: 'background', parser: parseAsCamera }, 'imagery'),
-    ).toThrow('taken by the app')
+    ).not.toThrow()
     expect(() =>
       createEditor({
         reservedUrlParams: shellUrlParamNames(),

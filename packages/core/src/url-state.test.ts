@@ -62,6 +62,17 @@ describe('declaring a URL parameter', () => {
     )
   })
 
+  test('an iD alias another declared parameter reads is refused as well', () => {
+    const urlParams = createUrlParams()
+    urlParams.declare(
+      { name: 'background', parser: parseAsCount, iD: { name: 'background', aliases: ['layer'] } },
+      'imagery',
+    )
+    expect(() =>
+      urlParams.declare({ name: 'base', parser: parseAsCount, iD: { name: 'layer' } }, 'other'),
+    ).toThrow('iD parameter "layer" (URL parameter "base", module "other") is already used')
+  })
+
   test('a name that is not a query key is refused', () => {
     const urlParams = createUrlParams()
     expect(() => urlParams.declare({ name: 'a=b', parser: parseAsCount }, 'x')).toThrow(

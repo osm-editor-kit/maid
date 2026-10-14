@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { createUrlParams } from '@osm-editor-kit/maid-core'
-import { fromIdUrl, toIdUrl } from './id-url'
+import { fromIdUrl, migrateIdHash, toIdUrl } from './id-url'
 import { shellUrlParamNames } from './params'
 
 test('osm.org edit link', () => {
@@ -14,10 +14,9 @@ test('osm.org edit link', () => {
 
 test('selection, changeset texts and carried parameters', () => {
   const { params } = fromIdUrl(
-    'https://ideditor.netlify.app/#background=Bing&disable_features=boundaries&hashtags=%23radnetz&id=w123,n4&map=17.25/52.5/13.4',
+    'https://ideditor.netlify.app/#disable_features=boundaries&hashtags=%23radnetz&id=w123,n4&map=17.25/52.5/13.4',
   )
   expect(params.get('id')).toBe('w123,n4')
-  expect(params.get('background')).toBe('Bing')
   expect(params.get('hashtags')).toBe('#radnetz')
   expect(params.get('disable_features')).toBe('boundaries')
 })
@@ -46,7 +45,7 @@ test('open in iD', () => {
 })
 
 test('round trip keeps what both editors understand', () => {
-  const id = 'https://www.openstreetmap.org/edit?editor=id#map=17/52.5/13.4&id=w1&background=Bing'
+  const id = 'https://www.openstreetmap.org/edit?editor=id#map=17/52.5/13.4&id=w1&hashtags=%23x'
   expect(toIdUrl(`?${fromIdUrl(id).params.toString()}`)).toBe(id)
 })
 
@@ -89,14 +88,28 @@ describe('a parameter a module declared with an iD name', () => {
   test('a declared iD name that a shell row already uses is refused', () => {
     const clash = createUrlParams().declare(
       {
-        name: 'my_background',
+        name: 'my_map',
         parser: { parse: (v) => v, serialize: (v) => v },
-        iD: { name: 'background' },
+        iD: { name: 'map' },
       },
       'imagery',
     )
     expect(() => fromIdUrl('#map=1/2/3', [clash.handle])).toThrow(
-      'iD parameter "background" (URL parameter "my_background") is already mapped to "background"',
+      'iD parameter "map" (URL parameter "my_map") is already mapped to "map"',
+    )
+  })
+
+  test('an alias a shell row already uses is refused too', () => {
+    const clash = createUrlParams().declare(
+      {
+        name: 'my_background',
+        parser: { parse: (v) => v, serialize: (v) => v },
+        iD: { name: 'background', aliases: ['id'] },
+      },
+      'imagery',
+    )
+    expect(() => fromIdUrl('#map=1/2/3', [clash.handle])).toThrow(
+      'iD parameter "id" (URL parameter "my_background") is already mapped to "id"',
     )
   })
 
@@ -110,5 +123,102 @@ describe('a parameter a module declared with an iD name', () => {
       'help',
     )
     expect(() => toIdUrl('?map=1/2/3', undefined, [clash.handle])).toThrow('dropped by Maid')
+  })
+})
+
+describe('the imagery parameters: background, its alias layer, and overlays', () => {
+  // the handles the module declares (imagery/index.ts); the values are strings, and overlays' none is an empty iD value
+  const plain = { parse: (v: string) => v, serialize: (v: string) => v }
+  const registry = createUrlParams(shellUrlParamNames())
+  const background = registry.declare(
+    { name: 'background', parser: plain, iD: { name: 'background', aliases: ['layer'] } },
+    'imagery',
+  ).handle
+  const overlays = registry.declare(
+    {
+      name: 'overlays',
+      parser: plain,
+      iD: { name: 'overlays', toId: (v) => (v === 'none' ? '' : v) },
+    },
+    'imagery',
+  ).handle
+  const declared = [background, overlays]
+
+  test('iD background is read as the same name, and a template keeps its characters', () => {
+    const { params, dropped } = fromIdUrl(
+      '#map=17/1/2&background=custom:https://tiles.example.org/{z}/{x}/{y}.png?key=a b',
+      declared,
+    )
+    expect(params.get('background')).toBe(
+      'custom:https://tiles.example.org/{z}/{x}/{y}.png?key=a b',
+    )
+    expect(dropped).toEqual([])
+  })
+
+  test('iD layer is read as background when background is not given', () => {
+    expect(fromIdUrl('#layer=Bing', declared).params.get('background')).toBe('Bing')
+  })
+
+  test('background wins over layer, and the layer is reported', () => {
+    const { params, dropped } = fromIdUrl('#layer=Bing&background=none', declared)
+    expect(params.get('background')).toBe('none')
+    expect(dropped).toEqual([{ name: 'layer', why: 'background is given too' }])
+  })
+
+  test('without the declaration, background and layer are unknown to Maid', () => {
+    expect(fromIdUrl('#background=Bing&layer=Bing').dropped).toEqual([
+      { name: 'background', why: 'unknown to Maid' },
+      { name: 'layer', why: 'unknown to Maid' },
+    ])
+  })
+
+  test('the link is written with iD names, and none is left out of overlays', () => {
+    expect(toIdUrl('?map=17/1/2&background=Bing&overlays=none', undefined, declared)).toBe(
+      'https://www.openstreetmap.org/edit?editor=id#map=17/1/2&background=Bing',
+    )
+    expect(toIdUrl('?background=Bing&overlays=a,b', undefined, declared)).toBe(
+      'https://www.openstreetmap.org/edit?editor=id#background=Bing&overlays=a,b',
+    )
+  })
+
+  /** A history that records the URLs it is given, and a location of an address */
+  function recorder() {
+    const urls: string[] = []
+    const history = {
+      state: null,
+      replaceState: (_state: unknown, _title: string, url: string) => urls.push(url),
+    }
+    const at = (href: string) => {
+      const url = new URL(href)
+      return { href, pathname: url.pathname, hash: url.hash } as Location
+    }
+    return { urls, history: history as unknown as History, at }
+  }
+
+  test('the first pass keeps what no rule knows yet, and the second pass converts it', () => {
+    const { urls, history, at } = recorder()
+    const template = 'custom:https://a.example/{z}/{x}/{y}.png'
+    const start = `https://maid.example/?scene=small#map=17/1/2&background=${encodeURIComponent(template)}&overlays=a,b`
+    migrateIdHash(at(start), history)
+    // map is Maid's now; background and overlays wait in the hash, as the module's names are not declared yet
+    expect(urls).toEqual([
+      '/?scene=small&map=17/1/2#background=custom%3Ahttps%3A%2F%2Fa.example%2F%7Bz%7D%2F%7Bx%7D%2F%7By%7D.png&overlays=a%2Cb',
+    ])
+    migrateIdHash(at(`https://maid.example${urls[0]}`), history, declared, { final: true })
+    expect(urls[1]).toBe(
+      '/?scene=small&map=17/1/2&background=custom%3Ahttps%3A//a.example/%7Bz%7D/%7Bx%7D/%7By%7D.png&overlays=a,b',
+    )
+  })
+
+  test('the final pass drops what is still unknown, and reports it', () => {
+    const { urls, history, at } = recorder()
+    migrateIdHash(at('https://maid.example/#map=1/2/3&whatever=1'), history, [], { final: true })
+    expect(urls).toEqual(['/?map=1/2/3'])
+  })
+
+  test('a hash with nothing of Maid in it is left alone by the first pass', () => {
+    const { urls, history, at } = recorder()
+    migrateIdHash(at('https://maid.example/#background=Bing'), history)
+    expect(urls).toEqual([])
   })
 })

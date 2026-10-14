@@ -4,21 +4,20 @@ import { PLAIN_INPUT, Tooltip } from '@osm-editor-kit/maid-ui'
 import { toolButtonTone } from '@osm-editor-kit/maid-ui'
 import { keepPreviousData, skipToken, useQuery } from '@tanstack/react-query'
 import { useId, useState, type FormEvent } from 'react'
-import { checkTemplate, isCustomId, shortLabel, type CustomEntry } from './custom.ts'
+import { checkTemplate, keyLikeNames, shortLabel, type CustomEntry } from './custom.ts'
 import { listView, type Listed } from './eli.ts'
 import { BRIGHTNESS_MIN, listingView, matchesQuery, sortListing } from './helpers.ts'
 import {
-  useBackgroundId,
   useBrightness,
   useCustomBackgrounds,
   useImageryActions,
-  useOverlayIds,
+  useImagerySelector,
   useView,
-  useVisit,
-  VISIT_ID,
   type SaveResult,
 } from './imagery-store.ts'
 import { filterSeriesRows, seriesRows, type SeriesChip, type SeriesRow } from './series.ts'
+import { useLiveImagery } from './shown.ts'
+import { customValue, isCustomValue, NONE, templateOf } from './url.ts'
 
 /** From this many layers in view on, a search field is shown above the list */
 const SEARCH_FROM = 8
@@ -90,20 +89,11 @@ type FormState = { mode: 'add' } | { mode: 'edit'; entry: CustomEntry } | null
 
 function PanelBody() {
   const view = useView()
-  const backgroundId = useBackgroundId()
-  const overlayIds = useOverlayIds()
   const brightness = useBrightness()
   const custom = useCustomBackgrounds()
-  const visit = useVisit()
-  const {
-    setBackground,
-    setOverlay,
-    setBrightness,
-    addCustom,
-    editCustom,
-    deleteCustom,
-    leaveVisit,
-  } = useImageryActions()
+  const defaultBackground = useImagerySelector((state) => state.defaultBackground)
+  const { shown, chooseBackground, chooseOverlays, setUrlBackground } = useLiveImagery()
+  const { setBrightness, addCustom, editCustom, deleteCustom } = useImageryActions()
   const [query, setQuery] = useState('')
   const [form, setForm] = useState<FormState>(null)
   const [asking, setAsking] = useState<string | null>(null)
@@ -122,17 +112,18 @@ function PanelBody() {
   // the last list stays until the new one arrives, so the panel does not flicker while the map moves.
   // The layers are already filtered by the view and its zoom (see `listView`).
   const items = listed?.items ?? []
-  // the background that is drawn: a link's while a visit shows one, else the stored choice
-  const shownId = visit === null ? backgroundId : VISIT_ID
+  // the background that is shown: the URL's, else the start order's (shown.ts)
+  const shownId = shown.background
   const rows = filterSeriesRows(seriesRows(listed?.series ?? [], shownId), query)
   const overlays = sortListing(items).filter((item) => item.overlay && matchesQuery(item, query))
   const percent = Math.round(brightness * 100)
   const chosenOutOfView =
-    visit === null &&
-    backgroundId !== null &&
-    !isCustomId(backgroundId) &&
+    shownId !== NONE &&
+    !isCustomValue(shownId) &&
     listed !== null &&
-    !items.some((item) => item.id === backgroundId)
+    !items.some((item) => item.id === shownId)
+  const shownTemplate = templateOf(shownId)
+  const shownIsSaved = custom.some((entry) => customValue(entry.template) === shownId)
   // a form saved closes; a refused one keeps its reason in the form
   const save = (result: SaveResult) => {
     if (result.ok) setForm(null)
@@ -178,15 +169,21 @@ function PanelBody() {
 
       {form !== null ? (
         <CustomForm
-          key={form.mode === 'edit' ? form.entry.id : 'add'}
+          key={form.mode === 'edit' ? form.entry.template : 'add'}
           entry={form.mode === 'edit' ? form.entry : null}
-          onSave={(name, template) =>
-            save(
-              form.mode === 'edit'
-                ? editCustom(form.entry.id, name, template)
-                : addCustom(name, template),
-            )
-          }
+          onSave={(name, template) => {
+            if (form.mode === 'edit') {
+              const result = editCustom(form.entry.template, name, template)
+              // the shown background was this entry: the URL follows its new template
+              if (result.ok && shownId === customValue(form.entry.template)) {
+                void setUrlBackground(result.value)
+              }
+              return save(result)
+            }
+            const result = addCustom(name, template)
+            if (result.ok) chooseBackground(result.value)
+            return save(result)
+          }}
           onCancel={() => setForm(null)}
         />
       ) : null}
@@ -195,30 +192,42 @@ function PanelBody() {
         <Choice
           name="None"
           detail="No imagery under the map"
-          selected={shownId === null}
-          onSelect={() => setBackground(null)}
+          selected={shownId === NONE}
+          onSelect={() => chooseBackground(NONE)}
         />
-        {visit !== null ? <LinkRow template={visit.template} onLeave={leaveVisit} /> : null}
+        {isCustomValue(shownId) && !shownIsSaved ? (
+          <Choice
+            name={shortLabel(shownTemplate ?? '') || 'Custom'}
+            detail="Not saved"
+            selected
+            onSelect={() => chooseBackground(shownId)}
+          />
+        ) : null}
         {custom.map((entry) => (
           <CustomRow
-            key={entry.id}
+            key={entry.template}
             entry={entry}
-            selected={shownId === entry.id}
-            asking={asking === entry.id}
-            onSelect={() => setBackground(entry.id)}
+            selected={shownId === customValue(entry.template)}
+            asking={asking === entry.template}
+            onSelect={() => chooseBackground(customValue(entry.template))}
             onEdit={() => setForm({ mode: 'edit', entry })}
-            onAsk={() => setAsking(entry.id)}
+            onAsk={() => setAsking(entry.template)}
             onCancelAsk={() => setAsking(null)}
             onDelete={() => {
-              deleteCustom(entry.id)
+              deleteCustom(entry.template)
+              // the shown background was this entry: the default takes its place, in the URL
+              if (shownId === customValue(entry.template))
+                void setUrlBackground(defaultBackground ?? NONE)
               setAsking(null)
             }}
           />
         ))}
         {rows.map((row) => (
-          <SeriesChoice key={row.key} row={row} onSelect={setBackground} />
+          <SeriesChoice key={row.key} row={row} onSelect={chooseBackground} />
         ))}
       </div>
+
+      {shownTemplate !== null ? <TemplateHint template={shownTemplate} /> : null}
 
       {chosenOutOfView ? (
         <p className="px-4 pb-3 text-xs text-zinc-500 dark:text-zinc-400">
@@ -237,8 +246,15 @@ function PanelBody() {
                     {...PLAIN_INPUT}
                     type="checkbox"
                     className="mt-1 size-4 shrink-0 accent-blue-600"
-                    checked={overlayIds.includes(item.id)}
-                    onChange={(event) => setOverlay(item.id, event.target.checked)}
+                    checked={shown.overlays.includes(item.id)}
+                    onChange={(event) => {
+                      const on = event.target.checked
+                      chooseOverlays(
+                        on
+                          ? [...shown.overlays.filter((id) => id !== item.id), item.id]
+                          : shown.overlays.filter((id) => id !== item.id),
+                      )
+                    }}
                   />
                   <span className="flex min-w-0 flex-col">
                     <span>{item.name}</span>
@@ -253,7 +269,7 @@ function PanelBody() {
         </div>
       ) : null}
 
-      {shownId !== null ? (
+      {shownId !== NONE ? (
         <label className="flex items-center gap-3 border-t border-zinc-950/5 px-4 py-3 text-sm dark:border-white/5">
           <span className="w-20 shrink-0">Brightness</span>
           <input
@@ -276,24 +292,18 @@ function PanelBody() {
   )
 }
 
-/** A background a link named, shown for this visit: the way back to the stored choice is here */
-function LinkRow(props: { template: string; onLeave: () => void }) {
-  const { template, onLeave } = props
+/**
+ * The hint for a template with a part that looks like a key: a shared link includes the template, so it shares the
+ * key too. Shown while the template is the background shown.
+ */
+function TemplateHint(props: { template: string }) {
+  const names = keyLikeNames(props.template)
+  if (names.length === 0) return null
   return (
-    <div
-      className={classes(
-        'flex min-w-0 items-center gap-2 rounded-md px-2.5 py-1.5 text-sm',
-        toolButtonTone('selected'),
-      )}
-    >
-      <span className="flex min-w-0 flex-col">
-        <span className="font-medium">From a link</span>
-        <span className={classes('truncate', MUTED)}>{shortLabel(template) || 'Custom'}</span>
-      </span>
-      <button type="button" className={classes('ml-auto shrink-0', TEXT_BUTTON)} onClick={onLeave}>
-        Back to my choice
-      </button>
-    </div>
+    <p className="px-4 pb-3 text-xs text-amber-800 dark:text-amber-300">
+      This template has a part that looks like a key ({names.join(', ')}). A shared link includes
+      the template, so it shares that key too.
+    </p>
   )
 }
 

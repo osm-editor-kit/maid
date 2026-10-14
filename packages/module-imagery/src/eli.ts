@@ -11,9 +11,44 @@ import type {
   RasterLayerSpec,
   RasterSourceSpec,
 } from '@osm-editor-kit/maplibre-editor-layer-index'
+import { bestIds, type Coverage } from './coverage.ts'
 import { visibleAtZoom, type Listing, type View } from './helpers.ts'
 
-const load = () => import('@osm-editor-kit/maplibre-editor-layer-index')
+type Eli = typeof import('@osm-editor-kit/maplibre-editor-layer-index')
+
+/** The package once it has loaded: `knownLayer` reads it synchronously, after the start order has waited for it */
+let loaded: Eli | undefined
+
+async function load(): Promise<Eli> {
+  if (loaded === undefined) loaded = await import('@osm-editor-kit/maplibre-editor-layer-index')
+  return loaded
+}
+
+/**
+ * Whether the index has a layer with this id. False until the package has loaded, which the start order waits for:
+ * the URL's id is then judged once the index is there.
+ */
+export function knownLayer(id: string): boolean {
+  return loaded?.getLayer(id) !== undefined
+}
+
+/**
+ * The best backgrounds that cover more than half of the view, in the order of the list (iD takes the first). A layer
+ * whose coverage cannot be read does not count.
+ */
+export async function bestBackgrounds(items: readonly Listing[], view: View): Promise<string[]> {
+  const eli = await load()
+  const candidates: { id: string; coverage: Coverage | undefined }[] = []
+  for (const item of items) {
+    if (!item.best || item.overlay) continue
+    try {
+      candidates.push({ id: item.id, coverage: await eli.getGeometry(item.id) })
+    } catch {
+      // no coverage: not counted as best
+    }
+  }
+  return bestIds(candidates, view.bounds)
+}
 
 /**
  * A style layer's `minzoom` is compared with the map's zoom (512 px), but ELI's `minzoom` is in OSM

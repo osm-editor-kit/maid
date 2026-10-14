@@ -33,8 +33,13 @@ export interface UrlParamOptions {
 
 /** The name of the same parameter in iD's hash, and how its value converts. Without conversions the value is the same. */
 export interface IdUrlName {
-  /** iD's name in the hash, e.g. `background` */
+  /** iD's name in the hash, e.g. `background`. Links are written with it (`toIdUrl`). */
   name: string
+  /**
+   * Other names iD reads for the same parameter, read only: a link's value is taken, and Maid writes `name`.
+   * iD reads `layer` for `background` (background.js `init`, `hash.background || hash.layer`).
+   */
+  aliases?: readonly string[]
   /** iD's value to Maid's notation. `undefined` when it cannot be read: the parameter is then left out with a note. */
   fromId?: (value: string) => string | undefined
   /** Maid's value to iD's notation */
@@ -107,10 +112,13 @@ export function createUrlParams(reserved: readonly string[] = []): UrlParams {
         )
       }
       if (iD) {
+        const iDNames = [iD.name, ...(iD.aliases ?? [])]
         for (const entry of declared.values()) {
-          if (entry.handle.iD?.name === iD.name) {
+          const taken = [entry.handle.iD?.name, ...(entry.handle.iD?.aliases ?? [])]
+          const clash = iDNames.find((iDName) => taken.includes(iDName))
+          if (clash !== undefined) {
             throw new Error(
-              `iD parameter "${iD.name}" (URL parameter "${name}", module "${owner}") is already used by "${entry.handle.name}" (module "${entry.owner}").`,
+              `iD parameter "${clash}" (URL parameter "${name}", module "${owner}") is already used by "${entry.handle.name}" (module "${entry.owner}").`,
             )
           }
         }
