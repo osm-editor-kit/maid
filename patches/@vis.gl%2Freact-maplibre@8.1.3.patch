@@ -1,0 +1,42 @@
+diff --git a/dist/components/layer.js b/dist/components/layer.js
+index e2553581f9aaa58cfa2c56b8d508ec3a2532abd6..220b6eb3157eff76feaf70ade2c78f17eeb114a4 100644
+--- a/dist/components/layer.js
++++ b/dist/components/layer.js
+@@ -67,10 +67,15 @@ export function Layer(props) {
+     useEffect(() => {
+         if (map) {
+             const forceUpdate = () => setStyleLoaded(version => version + 1);
+-            map.on('styledata', forceUpdate);
++            // Patched (Maid): a styledata event fires for every style change (an added image, a paint change, a
++            // layer of another component). Re-render only when this layer is missing from a loaded style, as after a
++            // style swap; otherwise every <Layer> renders again on each event.
++            // @ts-ignore
++            const onStyleData = () => { if (!(map.style && map.style._loaded && map.style.getLayer(id))) forceUpdate(); };
++            map.on('styledata', onStyleData);
+             forceUpdate();
+             return () => {
+-                map.off('styledata', forceUpdate);
++                map.off('styledata', onStyleData);
+                 // @ts-ignore
+                 if (map.style && map.style._loaded && map.getLayer(id)) {
+                     map.removeLayer(id);
+diff --git a/dist/components/source.js b/dist/components/source.js
+index f479ca660b9767adea5b86ad3ca22d1b38b51772..17dd774dc926d00b25adad36eed32b63e9627b54 100644
+--- a/dist/components/source.js
++++ b/dist/components/source.js
+@@ -71,10 +71,13 @@ export function Source(props) {
+         if (map) {
+             /* global setTimeout */
+             const forceUpdate = () => setTimeout(() => setStyleLoaded(version => version + 1), 0);
+-            map.on('styledata', forceUpdate);
++            // Patched (Maid): re-render only when this source is missing from a loaded style (see layer.js)
++            // @ts-ignore
++            const onStyleData = () => { if (!(map.style && map.style._loaded && map.style.getSource(id))) forceUpdate(); };
++            map.on('styledata', onStyleData);
+             forceUpdate();
+             return () => {
+-                map.off('styledata', forceUpdate);
++                map.off('styledata', onStyleData);
+                 // @ts-ignore
+                 if (map.style && map.style._loaded && map.getSource(id)) {
+                     // Parent effects are destroyed before child ones, see

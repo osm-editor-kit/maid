@@ -161,7 +161,7 @@ Maid already avoids the costly paths, each in a named place: `updateData` in the
 
 ### Worth patching first
 
-1. **Finding 1, `styledata` renders** (`layer.js:67-73`, `source.js:70-75`): render only when the layer or source is missing. A two-line change per file, low risk, removes 242 `<Layer>` renders per style change. Measure it in Maid's load (`bun run bench`) as well as with `bun run bench-rmgl --only images`, because the benchmark here shows only 0.35 to 1.1 ms per event.
+1. **Finding 1, `styledata` renders** (`layer.js:67-73`, `source.js:70-75`): render only when the layer or source is missing. A two-line change per file, low risk, removes 242 `<Layer>` renders per style change. Tried in Maid, see "Patch tried in Maid" below.
 2. **Camera event allocation** (`maplibre.js:95-105`): look up the handler first and compute `e.viewState` only when there is one. One line, no risk, but no measurable gain here (scenario 6). Do it only together with 1.
 
 ### Not worth it
@@ -171,9 +171,39 @@ Maid already avoids the costly paths, each in a named place: `updateData` in the
 - Throttled hover queries (finding 6), a `transformStyle` for style swaps (finding 4), a faster controlled camera (finding 5): Maid does not use these paths.
 - Replacing `<Source>` and `<Layer>` with imperative calls in Maid: the measured overhead is below a millisecond per event outside finding 1, and the declarative layers are easier to keep right.
 
+## Patch tried in Maid (2026-10-14)
+
+The patch of finding 1 is applied with `bun patch` (`patches/@vis.gl%2Freact-maplibre@8.1.3.patch`, listed in `patchedDependencies` of the root `package.json`). It checks `map.style._loaded && map.style.getLayer(id)` (`getSource(id)` in `source.js`) and renders only when that fails. A draft for upstream is in [docs/upstream/react-map-gl-styledata-rerender.md](../upstream/react-map-gl-styledata-rerender.md).
+
+Counted in Maid before the patch (instrumented run, not kept): the dense load fires 51 `styledata` events (41 of them from `addImage`) and renders `<Layer>` 3,525 times over 31 commits; a zoom-in 99 events and 1,580 renders. The medium load 59 events and 4,499 renders. Maid has 122 `<Layer>` and 15 `<Source>` components.
+
+`bun run bench-rmgl --only images,props,style`, medians of 5, before and after the patch. The machine was busy in both runs (load 6 to 8 on 10 cores), and the raw side, which the patch does not touch, moved by up to 45 % between them, so compare react with raw inside one run:
+
+| Scenario | Before: react / raw | After: react / raw |
+| --- | --- | --- |
+| `<Layer>` renders per added image | 242 | **0** |
+| `<Layer>` renders per burst of 30 images | 242 | **0** |
+| `<Layer>` renders per paint prop change | 242 | 121 (the prop's own render; the parent re-renders all layers in this scenario) |
+| One image per frame, main-thread script per step | 12.27 / 8.22 ms (+49 %) | 5.05 / 4.71 ms (+7 %) |
+| 30 images in one task, script per burst | 9.92 / 8.54 ms (+16 %) | 4.56 / 4.94 ms (same) |
+| Style swap with the `mapStyle` prop, to ready | 1,595 / 2,207 ms (raw re-adds everything) | 979 / 945 ms |
+
+The style swap still works: the layers are missing after the swap, so they render and are added again. Its time moves with the raw side; no gain or loss can be read from it.
+
+`bun run bench --editor maid --scene medium,dense --repeat 5`, medians, against the run before the patch on the same day (`engine-after2`, load 7 to 8 then as well):
+
+| Scene | drawn | settled | load CPU | zoom-in CPU | zoom-in settle |
+| --- | --- | --- | --- | --- | --- |
+| medium | 1,080 → 1,097 ms | 1,173 → 1,195 | 723 → 692 | 512 → 492 | 277 → 255 |
+| dense | 1,059 → 1,001 ms | 1,156 → 1,078 | 798 → 731 | 470 → 430 | 313 → 405 |
+
+The CPU time of load and zoom-in is 4 to 9 % lower in both scenes; the times to drawn and settled are within the noise of a busy machine (one run spreads by 300 ms). Zoom-in settle of dense spread from 95 to 405 ms in the run with the patch. `bun run check`, `bun run check-all --app maid` (11 of 11) and `--app parking` (12 of 12) pass with the patch.
+
+Verdict: the patch removes the renders it targets and costs nothing measurable. In Maid it saves a few percent of main-thread CPU at load and zoom-in, not a visible amount of time. Maid never swaps the style of its main map (`EMPTY_STYLE`), and the measure loupe swaps its style but has no `<Layer>` children, so the path the patch keeps (a missing layer after a swap) is exercised only by the benchmark.
+
 ## Open questions
 
-- How many `styledata` events and React commits does Maid's load cause on the dense scene, and what does the patch of finding 1 save there? Needs one `bun run bench` with a counter on `window.__maid.map` (`map.on('styledata', ...)`), before and after the patch.
+- How many `<Layer>` renders does Maid's load cause with the patch? Not counted; the instrumented counter of the run before was not kept. Expected: the renders of the 41 `addImage` events and of the paint changes vanish.
 - Do the module layers (`map.content`, `map.layer`) change their `<Source>` options at run time anywhere (finding 7)? Read: not in the modules checked, but not proven for every module.
 - A run on a quiet machine is still to do. The numbers come from a busy one.
 
