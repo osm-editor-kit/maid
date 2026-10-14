@@ -24,3 +24,6 @@ reports/config-check.json
 
 # the parking project's brief and source material (internal notes, photos) stay local
 docs/parking/
+
+# local notes and screenshots of detail decisions, kept out of git
+docs/local/
