@@ -7,6 +7,7 @@ import {
   OsmRelation,
   type Action,
 } from '@osm-editor-kit/maid-model'
+import type { RelationRoles } from '@osm-editor-kit/maid-presets'
 import { notify, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { Tooltip, type InspectorSectionProps } from '@osm-editor-kit/maid-ui'
 import {
@@ -19,8 +20,10 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react'
-import { useShell } from '../shell-context'
+import { usePresets, useShell } from '../shell-context'
 import {
+  cannotTakeReason,
+  geometryOfEntity,
   joinableRelations,
   loadButtonLabel,
   loadFailureSentence,
@@ -37,11 +40,18 @@ import {
   placementOf,
   placementSentence,
   relationLabel,
+  relationRolesOf,
+  roleFromText,
+  roleLabel,
+  roleOptionsFor,
   roleSuggestions,
+  roleToAdd,
   routeGaps,
   type LoadMember,
   type MemberRow,
   type Membership,
+  type RelationRules,
+  type RoleOption,
 } from './relations-logic.ts'
 
 type Props = InspectorSectionProps
@@ -152,33 +162,42 @@ function useRelatedWhileHovered(ids: () => readonly string[]) {
   return { onPointerEnter: start, onPointerLeave: stop, onFocus: start, onBlur: stop }
 }
 
-/** The role suggestions as a datalist: the input shows them as the user types, and still takes any text. */
-function RoleOptions({ id, roles }: { id: string; roles: readonly string[] }) {
+/**
+ * The role suggestions as a datalist: the input shows them as the user types, and still takes any text. A role
+ * with a label is offered by its label (the input shows the label, see roleLabel) and the key is the option's label.
+ */
+function RoleOptions({ id, options }: { id: string; options: readonly RoleOption[] }) {
   return (
     <datalist id={id}>
-      {roles.map((role) => (
-        <option key={role} value={role} />
+      {options.map(({ role, label }) => (
+        <option key={role} value={label ?? role} label={label === undefined ? undefined : role} />
       ))}
     </datalist>
   )
 }
 
-/** A role that is edited in place. Applied on Enter or when the field loses focus; Escape restores it. */
+/**
+ * A role that is edited in place. It shows the role's label when the schema has one. Applied on Enter or when the
+ * field loses focus; a typed label is stored as its role. Escape restores the shown text.
+ */
 function RoleInput({
   label,
   role,
+  roles,
   list,
   onCommit,
 }: {
   label: string
   role: string
+  roles: RelationRoles
   list: string
   onCommit: (role: string) => void
 }) {
   const readOnly = useReadOnly()
-  const [draft, setDraft] = useState(role)
+  const shown = roleLabel(roles, role)
+  const [draft, setDraft] = useState(shown)
   const commit = () => {
-    const next = draft.trim()
+    const next = roleFromText(roles, draft)
     if (next !== role) onCommit(next)
   }
   return (
@@ -195,7 +214,7 @@ function RoleInput({
       onKeyDown={(event) => {
         if (event.key === 'Enter') event.currentTarget.blur()
         if (event.key === 'Escape') {
-          setDraft(role)
+          setDraft(shown)
           event.stopPropagation()
         }
       }}
@@ -315,14 +334,18 @@ function MemberRowView({
   editor,
   relation,
   row,
-  roleList,
+  roles,
+  suggestions,
   select,
   load,
 }: {
   editor: Editor
   relation: OsmRelation
   row: MemberRow
-  roleList: string
+  /** The relation's roles with their labels (none without a schema) */
+  roles: RelationRoles
+  /** roleSuggestions of the relation, shared by its rows */
+  suggestions: readonly string[]
   select: Props['select']
   /** Loads a member that is not in the data; undefined while the engine has no such call */
   load: LoadMember | undefined
@@ -332,6 +355,13 @@ function MemberRowView({
   // the member as the relation holds it: its id and type come from the row, the role from the member
   const member = relation.members[row.index]
   if (!member) return null
+  // the role suggestions follow the member's geometry, as iD's member editor (one list per row)
+  const roleList = roleOptionsID('members', `${relation.id}-${row.index}`)
+  const options = roleOptionsFor(
+    suggestions,
+    roles,
+    geometryOfEntity(editor.history.staging.graph, row.id),
+  )
   const count = relation.members.length
   const move = (direction: 'up' | 'down') => {
     const target = moveTarget(count, row.index, direction)
@@ -386,6 +416,7 @@ function MemberRowView({
       <RoleInput
         label={`Role of ${row.id}`}
         role={member.role}
+        roles={roles}
         list={roleList}
         onCommit={(role) =>
           edit(
@@ -396,6 +427,7 @@ function MemberRowView({
           )
         }
       />
+      <RoleOptions id={roleList} options={options} />
       <RemoveButton
         label={`Remove member ${row.id}`}
         onRemove={() => {
@@ -423,10 +455,12 @@ function MemberList({
   editor,
   relation,
   select,
+  presets,
 }: {
   editor: Editor
   relation: OsmRelation
   select: Props['select']
+  presets: RelationRules | undefined
 }) {
   const { engine } = useShell()
   const graph = editor.history.staging.graph
@@ -436,7 +470,8 @@ function MemberList({
   const [showAll, setShowAll] = useState(false)
   const [load, setLoad] = useState<LoadState>({ status: 'idle' })
   const shown = showAll ? rows : rows.slice(0, MEMBER_LIMIT)
-  const roleList = roleOptionsID('members', relation.id)
+  const roles = relationRolesOf(presets, relation.tags)
+  const suggestions = roleSuggestions(relation)
   // one request per click: the relation in full, merged like a map tile (engine.loadRelation)
   const loadMembers = () => {
     setLoad({ status: 'loading' })
@@ -477,7 +512,8 @@ function MemberList({
               editor={editor}
               relation={relation}
               row={row}
-              roleList={roleList}
+              roles={roles}
+              suggestions={suggestions}
               select={select}
               load={(id) => engine.loadEntity(id)}
             />
@@ -498,7 +534,6 @@ function MemberList({
           </li>
         )}
       </ul>
-      <RoleOptions id={roleList} roles={roleSuggestions(relation)} />
       {load.status === 'failed' ? (
         <p className={HINT}>
           {loadFailureSentence(load.message)}{' '}
@@ -528,11 +563,19 @@ export function MembersSection({ entity, editor, select }: Props) {
   const { engine } = useShell()
   // loading members merges them into the data: the rows follow the engine's version, not the editor's
   useSyncExternalStore(engine.subscribe, engine.getVersion)
+  // the roles of the relation come from the presets, which arrive after the first picture
+  const presets = usePresets()
   const relation = editor.history.staging.graph.hasEntity(entity.id)
   if (!(relation instanceof OsmRelation)) return null
   return (
     <ReadOnlyContext value={entity.readOnly}>
-      <MemberList key={relation.id} editor={editor} relation={relation} select={select} />
+      <MemberList
+        key={relation.id}
+        editor={editor}
+        relation={relation}
+        select={select}
+        presets={presets}
+      />
     </ReadOnlyContext>
   )
 }
@@ -542,12 +585,15 @@ function MembershipRow({
   editor,
   entityID,
   membership,
+  roles,
   roleList,
   select,
 }: {
   editor: Editor
   entityID: EntityID
   membership: Membership
+  /** The roles of the membership's relation, with their labels */
+  roles: RelationRoles
   roleList: string
   select: Props['select']
 }) {
@@ -567,6 +613,7 @@ function MembershipRow({
         <RoleInput
           label={`Role in ${relation.id}`}
           role={role}
+          roles={roles}
           list={roleList}
           onCommit={(next) =>
             edit(
@@ -598,6 +645,7 @@ function AddToRelation({
   entities,
   candidates,
   readOnly,
+  presets,
   select,
 }: {
   editor: Editor
@@ -605,6 +653,7 @@ function AddToRelation({
   entities: readonly Props['entity'][]
   candidates: OsmRelation[]
   readOnly: boolean
+  presets: RelationRules | undefined
   select: Props['select']
 }) {
   const [targetID, setTargetID] = useState('')
@@ -612,9 +661,15 @@ function AddToRelation({
   const [first] = entities
   const offered = candidates.slice(0, RELATION_OPTION_LIMIT)
   const target = candidates.find((relation) => relation.id === targetID)
+  const roles = target ? relationRolesOf(presets, target.tags) : {}
+  // as iD: the suggestions follow the geometry of the one feature selected; several may differ, so none is filtered
+  const geometry = entities.length === 1 ? first?.geometry : undefined
   const roleList = roleOptionsID('add', first?.id ?? '')
+  // a relation that cannot take the selection is listed, disabled, with the reason (iD)
+  const reasonOf = (relation: OsmRelation) => cannotTakeReason(relation, entities, presets)
+  const targetReason = target ? reasonOf(target) : undefined
   const add = () => {
-    if (!targetID || !first) return
+    if (!targetID || !first || targetReason !== undefined) return
     const members = entities.map((entity) => ({ id: entity.id, type: entity.type }))
     const trimmed = role.trim()
     if (targetID === NEW_RELATION) {
@@ -630,9 +685,16 @@ function AddToRelation({
     } else {
       const before = editor.history.staging.graph.hasEntity(targetID)
       const beforeMembers = before instanceof OsmRelation ? before.members : []
+      // each feature gets the typed role, or the one role that fits it when none is typed (roleToAdd)
       editAll(
         editor,
-        members.map((member) => actionAddMember(targetID, { ...member, role: trimmed })),
+        entities.map((entity) =>
+          actionAddMember(targetID, {
+            id: entity.id,
+            type: entity.type,
+            role: roleToAdd(roles, trimmed, entity),
+          }),
+        ),
         members.length === 1 ? 'Added a member' : 'Added members',
         first.id,
       )
@@ -665,11 +727,17 @@ function AddToRelation({
         >
           <option value="">Choose a relation</option>
           <option value={NEW_RELATION}>{m.relations_new_relation()}</option>
-          {offered.map((relation) => (
-            <option key={relation.id} value={relation.id}>
-              {relationLabel(relation)} ({relation.id})
-            </option>
-          ))}
+          {offered.map((relation) => {
+            // a disabled entry stays in the list, with its reason, and cannot be picked
+            const reason = reasonOf(relation)
+            return (
+              <option key={relation.id} value={relation.id} disabled={reason !== undefined}>
+                {reason === undefined
+                  ? `${relationLabel(relation)} (${relation.id})`
+                  : `${relationLabel(relation)} (${relation.id}): ${reason}`}
+              </option>
+            )
+          })}
         </select>
         <input
           {...PLAIN_INPUT}
@@ -681,11 +749,19 @@ function AddToRelation({
           value={role}
           onChange={(event) => setRole(event.target.value)}
         />
-        <button type="button" className={BUTTON} disabled={readOnly || !targetID} onClick={add}>
+        <button
+          type="button"
+          className={BUTTON}
+          disabled={readOnly || !targetID || targetReason !== undefined}
+          onClick={add}
+        >
           Add
         </button>
       </div>
-      <RoleOptions id={roleList} roles={target ? roleSuggestions(target) : []} />
+      <RoleOptions
+        id={roleList}
+        options={target ? roleOptionsFor(roleSuggestions(target), roles, geometry) : []}
+      />
       {candidates.length > offered.length && (
         <span className={`text-xs ${SECONDARY}`}>
           Showing {offered.length} of {candidates.length} relations.
@@ -701,6 +777,7 @@ function AddToRelation({
  * first feature's.
  */
 export function RelationsSection({ entity, entities, editor, select }: Props) {
+  const presets = usePresets()
   const graph = editor.history.staging.graph
   const selection = entities ?? [entity]
   const memberships = membershipsOf(graph, entity.id)
@@ -714,6 +791,8 @@ export function RelationsSection({ entity, entities, editor, select }: Props) {
       memberships.map((membership) => [membership.relation.id, membership.relation]),
     ).values(),
   ]
+  // as iD: the role suggestions follow the geometry of the inspected feature when it is the only one selected
+  const geometry = selection.length === 1 ? entity.geometry : undefined
   const readOnly = selection.some((item) => item.readOnly)
   return (
     <div className="grid gap-1">
@@ -728,6 +807,7 @@ export function RelationsSection({ entity, entities, editor, select }: Props) {
                 editor={editor}
                 entityID={entity.id}
                 membership={membership}
+                roles={relationRolesOf(presets, membership.relation.tags)}
                 roleList={roleOptionsID('membership', membership.relation.id)}
                 select={select}
               />
@@ -739,7 +819,11 @@ export function RelationsSection({ entity, entities, editor, select }: Props) {
         <RoleOptions
           key={relation.id}
           id={roleOptionsID('membership', relation.id)}
-          roles={roleSuggestions(relation)}
+          options={roleOptionsFor(
+            roleSuggestions(relation),
+            relationRolesOf(presets, relation.tags),
+            geometry,
+          )}
         />
       ))}
       <AddToRelation
@@ -748,6 +832,7 @@ export function RelationsSection({ entity, entities, editor, select }: Props) {
         entities={selection}
         candidates={candidates}
         readOnly={readOnly}
+        presets={presets}
         select={select}
       />
     </div>

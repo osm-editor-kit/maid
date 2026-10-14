@@ -20,6 +20,7 @@ import {
   referenceOf,
 } from './raw.ts'
 import type { RawRecord } from './raw.ts'
+import { relationSchemaOf, validRelationRoles } from './relation.ts'
 import type {
   Field,
   FieldOption,
@@ -30,6 +31,7 @@ import type {
   PresetData,
   PresetOptions,
   Presets,
+  RelationRoles,
   Tags,
 } from './types.ts'
 
@@ -583,6 +585,8 @@ export function createPresets(data: PresetData): Presets {
     if (locationSet !== undefined) preset.locationSet = locationSet
     const replacement = asString(raw.replacement)
     if (replacement !== undefined) preset.replacement = replacement
+    const relation = relationSchemaOf(raw)
+    if (relation !== undefined) preset.relation = relation
     entries.set(id, {
       preset,
       fallback: isFallbackTags(tags),
@@ -1015,6 +1019,77 @@ export function createPresets(data: PresetData): Presets {
     )
   }
 
+  // iD's utilGetRelationSchema and utilRelationAllowsDuplicateMembers: the preset that owns a relation's schema is
+  // the best one for geometry `relation` when it has a `relation`, else the one matching { type } when that has one.
+  function relationOwnerOf(tags: Tags): Preset | undefined {
+    const best = match(tags, 'relation')
+    if (best.relation !== undefined) return best
+    const type = tags.type
+    if (type === undefined) return undefined
+    const base = match({ type }, 'relation')
+    return base.relation !== undefined ? base : undefined
+  }
+
+  // iD's preset.t('relation.role_labels.<role>'): the English translation of the role's label of a preset
+  function translatedRoleLabel(presetId: string, role: string) {
+    const relation = asRecord(asRecord(own(presetNames, presetId))?.relation)
+    const labels = asRecord(relation?.role_labels)
+    return labels === undefined ? undefined : asString(own(labels, role))
+  }
+
+  // The label of a role of a preset. The translation comes first, then the schema's own text. A reference to
+  // another preset's role label (`{area.role_labels.inner}`) is followed; a reference that does not have that shape,
+  // a loop and an unknown preset give ''.
+  function roleLabelOf(presetId: string, role: string, seen: Set<string> = new Set()): string {
+    const visit = `${presetId}\u0000${role}`
+    if (seen.has(visit)) return ''
+    seen.add(visit)
+    const text =
+      translatedRoleLabel(presetId, role) ??
+      entries.get(presetId)?.preset.relation?.role_labels?.[role]
+    if (text === undefined) return ''
+    const target = referenceOf(text)
+    if (target === undefined) return text
+    const path = /^([^.]+)\.(?:relation\.)?role_labels\.(.+)$/.exec(target)
+    const owner = path?.[1]
+    const ownerRole = path?.[2]
+    if (owner === undefined || ownerRole === undefined) return ''
+    return roleLabelOf(owner, ownerRole, seen)
+  }
+
+  // The roles of a preset's relation, with their labels; the rules are the schema's own objects.
+  function rolesOf(preset: Preset): RelationRoles {
+    const roles: RelationRoles = {}
+    for (const member of preset.relation?.members ?? []) {
+      roles[member.role] = { label: roleLabelOf(preset.id, member.role), member }
+    }
+    return roles
+  }
+
+  // Cached per tags object: iD caches per relation. The tags must not be changed after a call.
+  const rolesCache = new WeakMap<Tags, RelationRoles>()
+  function relationRoles(tags: Tags): RelationRoles {
+    const cached = rolesCache.get(tags)
+    if (cached !== undefined) return cached
+    const owner = relationOwnerOf(tags)
+    const roles = owner === undefined ? {} : rolesOf(owner)
+    rolesCache.set(tags, roles)
+    return roles
+  }
+
+  // iD: `schema?.allowDuplicateMembers !== false`, where the schema is the owner's `relation`
+  function memberRoles(
+    relationTags: Tags,
+    geometry: Geometry | undefined,
+    memberTags: Tags | undefined,
+  ) {
+    return validRelationRoles(relationRoles(relationTags), geometry, memberTags)
+  }
+
+  function allowsDuplicateMembers(tags: Tags) {
+    return relationOwnerOf(tags)?.relation?.allowDuplicateMembers !== false
+  }
+
   // the type picker's defaults per geometry, categories included (defaults.ts)
   const defaults = createDefaults(data, (id) => entries.get(id)?.preset)
 
@@ -1040,5 +1115,8 @@ export function createPresets(data: PresetData): Presets {
     unsetTags: (tags, preset, geometry, ignoringKeys, options) =>
       withoutPresetTags(tags, preset, geometry, ignoringKeys, options),
     applyPreset,
+    relationRoles,
+    allowsDuplicateMembers,
+    memberRoles,
   }
 }

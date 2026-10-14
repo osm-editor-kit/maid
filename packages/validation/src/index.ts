@@ -13,6 +13,7 @@ import { mutuallyExclusiveTags } from './rules/mutually-exclusive-tags.ts'
 import { osmApiLimits } from './rules/osm-api-limits.ts'
 import { outdatedTags } from './rules/outdated-tags.ts'
 import { privateData } from './rules/private-data.ts'
+import { relationMembers } from './rules/relation-members.ts'
 import type { Rule } from './types.ts'
 
 export { createValidator } from './validator.ts'
@@ -30,6 +31,7 @@ export { outdatedTags, tagDiffOf, upgradeTags } from './rules/outdated-tags.ts'
 export type { TagDiff } from './rules/outdated-tags.ts'
 export { osmApiLimits } from './rules/osm-api-limits.ts'
 export { privateData } from './rules/private-data.ts'
+export { relationMembers } from './rules/relation-members.ts'
 export type * from './types.ts'
 
 /** The rules Maid runs unless a caller passes its own */
@@ -47,5 +49,7 @@ export const defaultRules: Rule[] = [
   incompatibleSource,
   privateData,
   missingRole,
+  // the duplicate members of a relation whose schema allows none: needs the presets, as outdatedTags
+  relationMembers,
   osmApiLimits,
 ]

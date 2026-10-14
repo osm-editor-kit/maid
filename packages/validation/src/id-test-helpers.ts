@@ -3,7 +3,7 @@
 // helper `validate()` does: on each changed entity, keeping every issue it returns.
 import { Graph, ModelContext, OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 import type { OsmEntity } from '@osm-editor-kit/maid-model'
-import type { Issue, PresetLookup, Rule } from './types.ts'
+import type { Issue, PresetLookup, RelationRoles, Rule } from './types.ts'
 import { runContext } from './validator.ts'
 
 const context = new ModelContext()
@@ -61,4 +61,38 @@ export function validateChanged(
 export function dataOf(issue: Issue | undefined) {
   if (!issue?.data) throw new Error(`${issue?.id ?? 'issue'} has no data`)
   return issue.data
+}
+
+/**
+ * A PresetLookup with the relation schema only: `roles` gives the roles of a relation with these tags. The other
+ * methods throw, which is right for the rules that read nothing but the schema (missing_role, relation_members).
+ */
+export function schemaPresets(
+  roles: (tags: Readonly<Record<string, string>>) => RelationRoles,
+  allowsDuplicates = true,
+): PresetLookup {
+  const unused = (): never => {
+    throw new Error('this preset lookup has the relation schema only')
+  }
+  return {
+    match: unused,
+    preset: unused,
+    applyPreset: unused,
+    deprecatedTags: unused,
+    relationRoles: (tags) => roles(tags),
+    allowsDuplicateMembers: () => allowsDuplicates,
+    // the presets filter by geometry and by tag patterns (tested there); the stub filters by geometry only
+    memberRoles: (relationTags, geometry) =>
+      Object.fromEntries(
+        Object.entries(roles(relationTags)).filter(
+          ([, { member }]) =>
+            geometry === undefined || !member.geometry || member.geometry.includes(geometry),
+        ),
+      ),
+  }
+}
+
+/** The issues with one entry per id, as the validator keeps them (iD's spec counts each finding, the validator once) */
+export function uniqueById(issues: readonly Issue[]): Issue[] {
+  return [...new Map(issues.map((issue) => [issue.id, issue])).values()]
 }

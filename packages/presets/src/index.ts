@@ -2,6 +2,7 @@ export { createPresets } from './presets.ts'
 export { withChanges } from './changes.ts'
 export { discardedTags } from './discarded.ts'
 export { browseOf, RECENTS_TO_SHOW, type Browse } from './browse.ts'
+export { matchTagPatterns, validRelationRoles } from './relation.ts'
 export { isCategoryRow, MIN_CATEGORY_MEMBERS } from './defaults.ts'
 export type {
   FieldDefinition,
@@ -24,5 +25,8 @@ export type {
   PresetOptions,
   PresetRow,
   Presets,
+  RelationMemberRule,
+  RelationRoles,
+  RelationSchema,
   Tags,
 } from './types.ts'

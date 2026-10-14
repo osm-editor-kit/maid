@@ -143,3 +143,13 @@ iD writes a field's default in `setTags`, and the UI writes it when the user add
 Maid follows all of this, rule 5 included, when a `loc` is given. Without one, every location set holds.
 
 The bundled data has four location-bound fields with a default: `crossing/markings_yes` (every country but BG, DE, AT, CH and PL), and `crossing/markings_yes-PL`, `-DE-AT-CH` and `-BG`. Each has the default `yes` for `crossing:markings`, and the presets `highway/crossing/uncontrolled`, `highway/footway/crossing/uncontrolled`, `highway/cycleway/crossing/uncontrolled` and `highway/path/crossing/uncontrolled` list them through the `@templates/crossing/markings_yes` template. Together the four location sets cover the world, so iD writes `crossing:markings=yes` in every country, each time from the one field that holds there. The location changes which field is shown and which options it lists: in Paris `crossing/markings_yes`, in Berlin `crossing/markings_yes-DE-AT-CH`. The tags written are the same as before.
+
+### Relation members
+
+The schema's `relation` (id-tagging-schema 7.x; the bundled 6.x data has none, so every answer is empty or true until it is updated) is read into `Preset.relation`. Three functions use it, all ported from iD:
+
+- `relationRoles(tags)` (iD's `utilGetRelationSchema`): the roles of the best preset for geometry `relation`, else of the preset matching `{ type }`, else `{}`. A role's `label` is its English translation (`presets.presets[id].relation.role_labels[role]`), else the schema's own text. A reference `{other.role_labels.role}` takes that preset's label; a reference of another shape, a loop or an unknown preset gives `''`. The result is cached per tags object.
+- `allowsDuplicateMembers(tags)` (iD's `utilRelationAllowsDuplicateMembers`): `false` only when that schema says `allowDuplicateMembers: false`.
+- `matchTagPatterns(patterns, tags)` (iD's `osmMatchTags`) and `validRelationRoles(roles, geometry, tags)` (iD's `utilGetValidRelationRoles`): the member filters, in `relation.ts`. An empty value counts as no value, and an own key only: `constructor` is not a tag.
+
+The label references were written from iD's code and the schema's shape, not checked against id-tagging-schema 7.3.0 (not installed yet). Tests: `relation.test.ts`, `relation-roles.test.ts`.

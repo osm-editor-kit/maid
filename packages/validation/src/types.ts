@@ -52,7 +52,34 @@ export type PresetLookup = {
   deprecatedTags(
     tags: Readonly<Record<string, string>>,
   ): { old: Record<string, string>; replace?: Record<string, string> }[]
+  /**
+   * iD's utilGetRelationSchema: the roles of a relation with these tags, with their labels (`label` is '' when there
+   * is none). {} when the relation's preset has no member schema, which is the case for all of id-tagging-schema 6.x.
+   */
+  relationRoles(tags: Readonly<Record<string, string>>): RelationRoles
+  /** iD's utilRelationAllowsDuplicateMembers: false only when the relation's schema says `allowDuplicateMembers: false`. */
+  allowsDuplicateMembers(tags: Readonly<Record<string, string>>): boolean
+  /** The relation's roles that a member with this geometry and these tags fits (the presets filter them) */
+  memberRoles(
+    relationTags: Readonly<Record<string, string>>,
+    geometry: string | undefined,
+    memberTags: Readonly<Record<string, string>> | undefined,
+  ): RelationRoles
 }
+
+/** One member rule of a relation's schema (id-tagging-schema `relation.members[]`): the role, and what a member needs for it */
+export type RelationMemberRule = {
+  role: string
+  /** The geometries a member may have for this role. Absent: any. */
+  geometry?: readonly string[]
+  /** Tag patterns (iD's osmMatchTags) a member must match for this role. Absent: any tags. */
+  matchTags?: readonly Readonly<Record<string, string>>[]
+  min?: number
+  max?: number
+}
+
+/** The roles of a relation: role → its label ('' when there is none) and its member rule */
+export type RelationRoles = Record<string, { label: string; member: RelationMemberRule }>
 
 /** The fields of a preset that the rules read. `addTags` is `tags` itself when the preset has none (as in maid-presets). */
 export type LookupPreset = {

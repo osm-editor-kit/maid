@@ -8,10 +8,21 @@ import {
   OsmRelation,
   OsmWay,
 } from '@osm-editor-kit/maid-model'
+import type { RelationRoles } from '@osm-editor-kit/maid-presets'
 import {
+  cannotTakeReason,
   connectedRelationIds,
   creationOrder,
+  DUPLICATE_REASON,
+  geometryOfEntity,
+  INVALID_REASON,
   joinableRelations,
+  relationRolesOf,
+  roleFromText,
+  roleLabel,
+  roleOptionsFor,
+  roleToAdd,
+  type RelationRules,
   loadButtonLabel,
   loadedRelations,
   loadFailureSentence,
@@ -785,5 +796,239 @@ describe('loading the missing members', () => {
     expect(loadFailureSentence('OSM API answered 404')).toBe(
       'Could not load the members: OSM API answered 404',
     )
+  })
+})
+
+/**
+ * A stub of the presets' relation rules: a restriction-like schema with `from` (label "von", a highway line),
+ * `via` (no label, a vertex or a line) and `to` (label "nach", a highway line). Duplicates are off unless said.
+ */
+const restrictionRoles: RelationRoles = {
+  from: {
+    label: 'von',
+    member: { role: 'from', geometry: ['line'], matchTags: [{ highway: '*' }] },
+  },
+  via: { label: '', member: { role: 'via', geometry: ['vertex', 'line'] } },
+  to: {
+    label: 'nach',
+    member: { role: 'to', geometry: ['line'], matchTags: [{ highway: '*' }] },
+  },
+}
+
+function rules(roles: RelationRoles, allowDuplicates = false): RelationRules {
+  return { relationRoles: () => roles, allowsDuplicateMembers: () => allowDuplicates }
+}
+
+describe('relationRolesOf and roleLabel', () => {
+  it('reads the roles from the presets, and none without presets', () => {
+    expect(relationRolesOf(undefined, { type: 'restriction' })).toEqual({})
+    expect(relationRolesOf(rules(restrictionRoles), { type: 'restriction' })).toBe(restrictionRoles)
+  })
+
+  it('shows the label of a role that has one, and the role itself when it has none', () => {
+    expect(roleLabel(restrictionRoles, 'from')).toBe('von')
+    expect(roleLabel(restrictionRoles, 'via')).toBe('via')
+  })
+
+  it('shows an unknown role as it is stored, and never a prototype property as a label', () => {
+    expect(roleLabel(restrictionRoles, 'stop')).toBe('stop')
+    expect(roleLabel({}, 'constructor')).toBe('constructor')
+  })
+})
+
+describe('roleFromText', () => {
+  it('stores the key of the role whose label is typed', () => {
+    expect(roleFromText(restrictionRoles, 'von')).toBe('from')
+    expect(roleFromText(restrictionRoles, ' nach ')).toBe('to')
+  })
+
+  it('keeps a key as it is, and an unknown role as typed (trimmed)', () => {
+    expect(roleFromText(restrictionRoles, 'from')).toBe('from')
+    expect(roleFromText(restrictionRoles, '  stop ')).toBe('stop')
+  })
+
+  it('never matches an empty label, and matches labels exactly (case counts)', () => {
+    expect(roleFromText(restrictionRoles, '')).toBe('')
+    expect(roleFromText(restrictionRoles, 'Von')).toBe('Von')
+  })
+
+  it('keeps the typed text when there is no schema', () => {
+    expect(roleFromText({}, 'von')).toBe('von')
+  })
+})
+
+describe('roleOptionsFor', () => {
+  const suggestions = ['from', 'via', 'to', 'stop', 'forward']
+
+  it('offers the schema roles that fit the geometry first, with their labels, then the rest', () => {
+    expect(roleOptionsFor(suggestions, restrictionRoles, 'line')).toEqual([
+      { role: 'from', label: 'von' },
+      { role: 'via' },
+      { role: 'to', label: 'nach' },
+      { role: 'stop' },
+      { role: 'forward' },
+    ])
+  })
+
+  it('leaves out only the roles offered first: a schema role that does not fit keeps its label', () => {
+    expect(roleOptionsFor(suggestions, restrictionRoles, 'vertex')).toEqual([
+      { role: 'via' },
+      { role: 'from', label: 'von' },
+      { role: 'to', label: 'nach' },
+      { role: 'stop' },
+      { role: 'forward' },
+    ])
+  })
+
+  it('offers every schema role when there is no geometry (no member, or several features)', () => {
+    expect(roleOptionsFor(suggestions, restrictionRoles, undefined)).toEqual([
+      { role: 'from', label: 'von' },
+      { role: 'via' },
+      { role: 'to', label: 'nach' },
+      { role: 'stop' },
+      { role: 'forward' },
+    ])
+  })
+
+  it('offers nothing from the schema for a geometry no role takes, only the usual suggestions', () => {
+    expect(roleOptionsFor(['stop'], restrictionRoles, 'area')).toEqual([{ role: 'stop' }])
+    expect(roleOptionsFor(['from', 'to', 'stop'], restrictionRoles, 'area')).toEqual([
+      { role: 'from', label: 'von' },
+      { role: 'to', label: 'nach' },
+      { role: 'stop' },
+    ])
+  })
+
+  it('with no schema, only the usual suggestions, as before', () => {
+    expect(roleOptionsFor(['stop', 'forward'], {}, 'line')).toEqual([
+      { role: 'stop' },
+      { role: 'forward' },
+    ])
+  })
+
+  it('does not offer a role twice', () => {
+    const options = roleOptionsFor(['from', 'from', 'via'], restrictionRoles, 'line')
+    expect(options.map((option) => option.role)).toEqual(['from', 'via', 'to'])
+  })
+})
+
+describe('roleToAdd', () => {
+  const road = { geometry: 'line' as const, tags: { highway: 'primary' } }
+
+  it('stores the typed role, and the key of a typed label', () => {
+    expect(roleToAdd(restrictionRoles, 'von', road)).toBe('from')
+    expect(roleToAdd(restrictionRoles, ' stop ', road)).toBe('stop')
+  })
+
+  it('takes the one role that fits when no role is typed', () => {
+    expect(roleToAdd(restrictionRoles, '', { geometry: 'vertex', tags: {} })).toBe('via')
+    // a line without a highway tag fits only the role without a tag rule
+    expect(
+      roleToAdd(restrictionRoles, '  ', { geometry: 'line', tags: { amenity: 'bench' } }),
+    ).toBe('via')
+  })
+
+  it('leaves the role empty when several roles fit, or none does', () => {
+    expect(roleToAdd(restrictionRoles, '', road)).toBe('')
+    expect(roleToAdd(restrictionRoles, '', { geometry: 'area', tags: { building: 'yes' } })).toBe(
+      '',
+    )
+  })
+
+  it('leaves the role empty without a schema, as before', () => {
+    expect(roleToAdd({}, '', road)).toBe('')
+  })
+})
+
+describe('cannotTakeReason', () => {
+  const restriction = relation('r1', { type: 'restriction' }, [
+    { id: 'w1', type: 'way', role: 'from' },
+  ])
+  const onTheRelation = { id: 'w1', geometry: 'line' as const, tags: { highway: 'primary' } }
+  const other = { id: 'w2', geometry: 'line' as const, tags: { highway: 'primary' } }
+  const area = { id: 'w3', geometry: 'area' as const, tags: { building: 'yes' } }
+
+  it('refuses nothing without presets', () => {
+    expect(cannotTakeReason(restriction, [onTheRelation], undefined)).toBeUndefined()
+  })
+
+  it('refuses nothing for a relation with no schema, even one that already has the feature', () => {
+    expect(cannotTakeReason(restriction, [onTheRelation], rules({}, true))).toBeUndefined()
+  })
+
+  it('refuses a feature that is a member already when the schema forbids duplicates', () => {
+    expect(cannotTakeReason(restriction, [onTheRelation], rules(restrictionRoles, false))).toBe(
+      DUPLICATE_REASON,
+    )
+  })
+
+  it('allows the feature again when the schema allows duplicates', () => {
+    expect(
+      cannotTakeReason(restriction, [onTheRelation], rules(restrictionRoles, true)),
+    ).toBeUndefined()
+  })
+
+  it('refuses when one of several features is a member already (duplicates forbidden)', () => {
+    expect(
+      cannotTakeReason(restriction, [other, onTheRelation], rules(restrictionRoles, false)),
+    ).toBe(DUPLICATE_REASON)
+  })
+
+  it('refuses a feature that fits none of the roles', () => {
+    expect(cannotTakeReason(restriction, [area], rules(restrictionRoles, false))).toBe(
+      INVALID_REASON,
+    )
+  })
+
+  it('refuses the selection when one of several features fits no role', () => {
+    expect(cannotTakeReason(restriction, [other, area], rules(restrictionRoles, false))).toBe(
+      INVALID_REASON,
+    )
+  })
+
+  it('allows a feature that fits one role, and a relation that has no member yet', () => {
+    const empty = relation('r2', { type: 'restriction' })
+    expect(cannotTakeReason(empty, [other], rules(restrictionRoles, false))).toBeUndefined()
+  })
+
+  it('reports the duplicate before the invalid member', () => {
+    expect(
+      cannotTakeReason(restriction, [onTheRelation, area], rules(restrictionRoles, false)),
+    ).toBe(DUPLICATE_REASON)
+  })
+})
+
+describe('geometryOfEntity', () => {
+  const graph = new Graph(context, [
+    new OsmNode(context, { id: 'n1', loc: [0, 0], tags: {} }),
+    new OsmNode(context, { id: 'n2', loc: [0, 1], tags: {} }),
+    new OsmNode(context, { id: 'n3', loc: [1, 1], tags: {} }),
+    new OsmNode(context, { id: 'n4', loc: [1, 0], tags: {} }),
+    new OsmNode(context, { id: 'n5', loc: [2, 2], tags: { highway: 'crossing' } }),
+    way('w1', ['n1', 'n2'], { highway: 'primary' }),
+    way('w2', ['n2', 'n3', 'n4', 'n2'], { building: 'yes' }),
+    way('w3', ['n3', 'n4'], { area: 'yes' }),
+    relation('r1', { type: 'multipolygon' }),
+    relation('r2', { type: 'route' }),
+  ])
+
+  it('names a node a point, or a vertex when a way uses it', () => {
+    expect(geometryOfEntity(graph, 'n1')).toBe('vertex')
+    expect(geometryOfEntity(graph, 'n5')).toBe('point')
+  })
+
+  it('names a way an area when it is closed and an area, else a line', () => {
+    expect(geometryOfEntity(graph, 'w1')).toBe('line')
+    expect(geometryOfEntity(graph, 'w2')).toBe('area')
+    expect(geometryOfEntity(graph, 'w3')).toBe('area')
+  })
+
+  it('names a multipolygon an area and any other relation a relation', () => {
+    expect(geometryOfEntity(graph, 'r1')).toBe('area')
+    expect(geometryOfEntity(graph, 'r2')).toBe('relation')
+  })
+
+  it('has no geometry for an entity that is not loaded', () => {
+    expect(geometryOfEntity(graph, 'n404')).toBeUndefined()
   })
 })

@@ -37,7 +37,33 @@ export type Preset = {
   locationSet?: LocationSet
   /** iD's `replacement`: the id of the preset that replaces this one (the preset is deprecated). Absent when there is none. */
   replacement?: string
+  /**
+   * The schema's `relation` (id-tagging-schema 7.x): the member rules of a relation preset. Absent when the preset has
+   * none (and in the bundled 6.x data, which has no `relation` at all). `role_labels` is the schema's text: a label
+   * that refers to another preset (`{area.role_labels.inner}`) is not resolved here, see `Presets.relationRoles`.
+   */
+  relation?: RelationSchema
 }
+
+/** One member rule of a relation preset (id-tagging-schema `relation.members[]`). `geometry` and `matchTags` filter the members it allows. */
+export type RelationMemberRule = {
+  role: string
+  geometry?: Geometry[]
+  matchTags?: Tags[]
+  min?: number
+  max?: number
+}
+
+/** A preset's `relation` as the schema has it (id-tagging-schema). `allowDuplicateMembers` absent means true. */
+export type RelationSchema = {
+  reference?: string
+  allowDuplicateMembers?: boolean
+  role_labels?: Tags
+  members: RelationMemberRule[]
+}
+
+/** The roles of a relation: role → its translated label ('' when there is none) and its member rule (iD's relationSchema). */
+export type RelationRoles = Record<string, { label: string; member: RelationMemberRule }>
 
 export type FieldOption = { value: string; label: string }
 
@@ -183,6 +209,25 @@ export type Presets = {
   matchAllGeometry(preset: Preset, geometries: Geometry[]): boolean
   /** iD's preset.isFallback: the preset has no tags, or only `area=*`. */
   isFallback(preset: Preset): boolean
+  /**
+   * iD's utilGetRelationSchema: the roles of a relation with these tags. The best preset for geometry `relation` is
+   * used when it has a `relation`, else the preset matching `{ type: tags.type }`, else none (`{}`). A role's label is
+   * its English translation (`presets.presets[id].relation.role_labels[role]`); when there is none, the schema's own
+   * text, with a reference `{other.role_labels.role}` followed to that preset's label; '' when nothing resolves.
+   * Cached per `tags` object, so the tags must not be changed after the call.
+   */
+  relationRoles(tags: Tags): RelationRoles
+  /** iD's utilRelationAllowsDuplicateMembers: false only when that schema says `allowDuplicateMembers: false`. */
+  allowsDuplicateMembers(tags: Tags): boolean
+  /**
+   * The roles of a relation with `relationTags` that a member with this geometry and these tags fits (iD's
+   * utilGetValidRelationRoles on utilGetRelationSchema). An undefined geometry or tags skips that filter.
+   */
+  memberRoles(
+    relationTags: Tags,
+    geometry: Geometry | undefined,
+    memberTags: Tags | undefined,
+  ): RelationRoles
   /**
    * iD's setTags: the tags with the preset's addTags (a `*` value becomes `yes` unless the key already has a
    * value), `area=yes` for an area where no tag of the preset makes it one (areaKeys), then the field defaults

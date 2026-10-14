@@ -215,7 +215,7 @@ Columns: what a mapper cannot do or what goes wrong · where it came from · iD 
 | --- | --- | --- | --- | --- | --- | --- |
 | crossing_ways: multipolygon members are checked as the relation | F-validations-1 (8) | 8 | M | `rules/crossing-ways.ts` | OPEN | `crossing-ways.ts:17`: "Cut: relations (multipolygon members are not checked)". |
 | crossing_ways fixes: add bridge, add tunnel, change layer | F-validations-2 (1) | 1 | M | `Fix` in `types.ts` | OPEN | `crossing-ways.ts:17-18`: the bridge, tunnel and layer fixes are cut. |
-| missing_role fixes: set outer or inner, remove the member from the multipolygon | F-validations-3 (no test counted) | 0 | M | membership actions in the model | OPEN | `missing-role.ts:34`: "Maid offers no fix yet". |
+| missing_role fixes: set outer or inner, remove the member from the multipolygon | F-validations-3 (no test counted) | 0 | M | membership actions in the model | DONE | 2026-10-14: "Set as …" from the relation's schema (outer and inner for a multipolygon without one) and "Remove from relation". |
 | osm_api_limits fix: split a way with too many nodes | F-validations-4 (3) | 3 | M | a split in `packages/operations` | OPEN | `osm-api-limits.ts` gives `fixes: []` (lines 55, 73). |
 | impossible_oneway fixes "Continue drawing from start / end" | F-validations-20 (no test counted) | 0 | S to M | a draw mode, which is not a model action | OPEN | `impossible-oneway.ts:9`: the continue fix is not built. The reverse fix is (line 244). |
 | almost_junction: searches the ways beyond a road's end only inside the road's box (see §3) | F-validations-21 (8) | 8 | M | a `RuleContext` query (checked: only `waysNear`, `types.ts:38`) | OPEN | `almost-junction.ts:23-25`: the box limit is still in the code (bug 7). |

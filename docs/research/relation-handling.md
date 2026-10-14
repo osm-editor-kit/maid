@@ -123,9 +123,11 @@ Each idea has: what it is, why people want it, size (small, medium or large), an
 
 Ranked by how clearly right they are and how little they need.
 
-### Done in Maid, per the header of relation.ts
+### Done in Maid: the whole k-yle stack (2026-10-14)
 
-The header names these k-yle stack parts as ported: 12988 (osmMatchTags), 12768 (translated role labels) and 12991 (no duplicate members). I confirmed the schema flag for 12991 in presets.ts. I did not check 12990, 12992, 12993 and 12994 in Maid's code.
+All seven parts are ported, with tests: tag patterns and the relation roles in the presets (12988, 12768: `relationRoles`, `memberRoles`, `allowsDuplicateMembers`), role labels, role suggestions, disabled relations in "Add to a relation" and the role picked when only one fits in the relation sections (12768, 12991, 12992, 12993), `missing_role` from the schema with "Set as …" and "Remove from relation" fixes (12990), and the new rule `relation_members` for duplicate members (12994). The bundled id-tagging-schema 6.19.2 has no member schemas, so only the multipolygon fallback shows now (outer and inner, now with fixes); the rest starts to work with 7.3.0.
+
+The items below that name these parts are therefore done; they stay listed for the record.
 
 ### The five I rate highest
 
@@ -150,6 +152,14 @@ The header names these k-yle stack parts as ported: 12988 (osmMatchTags), 12768 
 Close to sure but not in the top five: keep relations in the picker for the session (issue 3622, PR 11588, 8 reviews, approval not seen). Size small.
 
 ## 4. To think about
+
+Decided by Tobias on 2026-10-14:
+
+- **IDs in the picker:** on hover only (a real tooltip, not a native `title`).
+- **Relations of the session:** relations that got a member in this session stay at the top of the picker, also when they are off screen (as Kyle's PR for issue 3622).
+- **Route on the map:** when a route is selected, the map shows gap ends and the direction of its members; nothing changes otherwise.
+- **Reordering members:** the move buttons stay, and members can also be dragged, with motion's `Reorder` (already installed). Each move, by button or by drag, is one undo step.
+- Still open: warnings for broken boundaries and turn restrictions, which routes get the gap check, adding several features at once, and loading all missing members.
 
 Each item has one open question and the options. Map effects are for mappers, not only for the code.
 

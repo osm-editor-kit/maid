@@ -7,9 +7,17 @@ import {
   type Graph,
   type OsmRelationMember,
 } from '@osm-editor-kit/maid-model'
+import {
+  validRelationRoles,
+  type Geometry,
+  type Presets,
+  type RelationRoles,
+  type Tags,
+} from '@osm-editor-kit/maid-presets'
 // Pure functions behind the relations module: which relations are loaded, how they are named,
 // and where an entity sits in them. No React here, so the tests can build graphs by hand.
 import { labelOf } from '@osm-editor-kit/maid-renderer'
+import { isArea } from '@osm-editor-kit/maid-style'
 
 /** One place where an entity is a member: the relation, the position in its members, and the role. */
 export type Membership = { relation: OsmRelation; index: number; role: string }
@@ -376,6 +384,137 @@ export function roleSuggestions(relation: OsmRelation) {
   const used = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([role]) => role)
   const builtIn = ROLES_BY_TYPE.get(tagValue(relation.tags, 'type') ?? '') ?? []
   return [...new Set([...used, ...builtIn])]
+}
+
+/**
+ * The part of the presets this module reads: the roles of a relation and whether it takes a member twice.
+ * Undefined presets (not made yet) mean no schema: everything behaves as before the schema was read.
+ */
+export type RelationRules = Pick<Presets, 'relationRoles' | 'allowsDuplicateMembers'>
+
+/** The roles of a relation with their labels and member rules; none without presets or without a schema. */
+export function relationRolesOf(presets: RelationRules | undefined, tags: Tags): RelationRoles {
+  return presets ? presets.relationRoles(tags) : {}
+}
+
+/**
+ * The text a role shows as: its translated label when the schema has one (iD's `displayRole`), else the role
+ * itself. An unknown role shows as it is stored.
+ */
+export function roleLabel(roles: RelationRoles, role: string) {
+  const definition = Object.hasOwn(roles, role) ? roles[role] : undefined
+  return definition?.label || role
+}
+
+/**
+ * The role a typed text stands for: the key of the role whose label it is (iD's changeRole), so typing the
+ * label stores the key. A key, or text that is no label, stays as typed (trimmed). The first role with that
+ * label wins.
+ */
+export function roleFromText(roles: RelationRoles, text: string) {
+  const typed = text.trim()
+  for (const [role, { label }] of Object.entries(roles)) {
+    if (label !== '' && label === typed) return role
+  }
+  return typed
+}
+
+/** One suggestion for a role input: the role, and its label when the schema has one (shown in place of the key). */
+export type RoleOption = { role: string; label?: string }
+
+/**
+ * The suggestions for a role input, as iD's member editor builds them. First the schema's roles that fit the
+ * geometry (`validRelationRoles`; a role without a label is offered by its key), then `suggestions` (from
+ * `roleSuggestions`) without the roles already offered. `geometry` undefined (no member, or several features
+ * with different geometries) offers every role of the schema.
+ */
+export function roleOptionsFor(
+  suggestions: readonly string[],
+  roles: RelationRoles,
+  geometry: Geometry | undefined,
+): RoleOption[] {
+  const fitting = validRelationRoles(roles, geometry, undefined)
+  const fromSchema: RoleOption[] = Object.entries(fitting).map(([role, { label }]) =>
+    label ? { role, label } : { role },
+  )
+  const offered = new Set(Object.keys(fitting))
+  // a role used by the relation that the schema knows keeps its label, even where it does not fit this geometry
+  const rest: RoleOption[] = suggestions
+    .filter((role) => !offered.has(role))
+    .map((role) => {
+      const label = Object.hasOwn(roles, role) ? roles[role]?.label : undefined
+      return label ? { role, label } : { role }
+    })
+  return [...fromSchema, ...rest]
+}
+
+/**
+ * The role one feature gets when it is added to a relation (iD's actionAddMembers). A typed role wins (a label
+ * is turned into its key). With no role typed, the feature gets the role when exactly one role of the schema fits
+ * it (its geometry and tags); with none or several, it gets '' as today. Decided per feature.
+ */
+export function roleToAdd(
+  roles: RelationRoles,
+  typed: string,
+  feature: { geometry: Geometry; tags: Tags },
+) {
+  const text = typed.trim()
+  if (text !== '') return roleFromText(roles, text)
+  const fitting = Object.keys(validRelationRoles(roles, feature.geometry, feature.tags))
+  return fitting.length === 1 ? (fitting[0] ?? '') : ''
+}
+
+/** The reason a relation cannot take the features (iD's "Already a member"). */
+export const DUPLICATE_REASON = 'Already a member'
+/** The reason a relation cannot take the features, when one of them fits none of its roles (iD's invalid member). */
+export const INVALID_REASON = 'Not allowed in this type of relation'
+
+/** A feature that is to be added: what its member rules look at. An EntityInfo has all of it. */
+export type FeatureForRules = { id: string; geometry: Geometry; tags: Tags }
+
+/**
+ * Why a relation cannot take the features, or undefined when it can (iD's isDuplicateMembership and
+ * isInvalidMembership). A relation whose schema says `allowDuplicateMembers: false` already has one of the
+ * features as a member: duplicate. A relation with a schema where one feature fits no role: invalid. Duplicate
+ * is checked first. Without a schema nothing is refused.
+ */
+export function cannotTakeReason(
+  relation: OsmRelation,
+  features: readonly FeatureForRules[],
+  presets: RelationRules | undefined,
+): string | undefined {
+  if (!presets) return undefined
+  const ids = new Set(features.map((feature) => feature.id))
+  if (
+    relation.members.some((member) => ids.has(member.id)) &&
+    !presets.allowsDuplicateMembers(relation.tags)
+  )
+    return DUPLICATE_REASON
+  const roles = presets.relationRoles(relation.tags)
+  if (Object.keys(roles).length === 0) return undefined
+  const someFitsNoRole = features.some(
+    (feature) =>
+      Object.keys(validRelationRoles(roles, feature.geometry, feature.tags)).length === 0,
+  )
+  return someFitsNoRole ? INVALID_REASON : undefined
+}
+
+/**
+ * The geometry of a loaded entity as the inspector names it (the same rules as the renderer's entityInfo): a
+ * node is a vertex when a way uses it, else a point; a way is an area or a line; a relation is an area when it is
+ * a multipolygon, else a relation. Undefined when the entity is not loaded.
+ */
+export function geometryOfEntity(graph: Graph, id: EntityID): Geometry | undefined {
+  const entity = graph.hasEntity(id)
+  if (!entity) return undefined
+  if (entity instanceof OsmRelation)
+    return tagValue(entity.tags, 'type') === 'multipolygon' ? 'area' : 'relation'
+  if (entity instanceof OsmWay) {
+    const last = entity.nodes[entity.nodes.length - 1]
+    const closed = entity.nodes.length > 2 && entity.nodes[0] === last
+    return isArea(entity.tags, closed) ? 'area' : 'line'
+  }
+  return graph.parentWays(entity).length > 0 ? 'vertex' : 'point'
 }
 
 /**
