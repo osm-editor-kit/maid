@@ -109,3 +109,12 @@ Columns: what it is and where; what Maid has; how to adopt; effort (S/M/L); lice
 - Whether the monorepo's tests pass. I did not run them.
 - The licence of the `opening_hours` dependency used by `osm-tag-syntax`.
 - Whether Maid's side rendering already uses a screen-based left and right rule.
+
+## Decided by Tobias on 2026-10-15
+
+- **Tag migration (item 1):** later. The warning stays as it is.
+- **Table mode (items in `app/src/modes/table/`):** a dock module for Maid, built from this editor's table mode and the Radnetz iD fork's way table; design in [way-table.md](way-table.md).
+- **Width (items 24, 25):** not adopted. Maid shows the width band on hover and has the measuring tool at the width field; that is Maid's take on the feature.
+- **Lanes (items 26, 27):** to be thought through first; design options in [lanes-ux.md](lanes-ux.md).
+- **Sides on screen (item 4):** the tags stay OSM's left and right, as iD; next to "Left" and "Right" a small arrow shows the way's direction on the map, and the hover highlight stays.
+- **Modes:** no modes as in this editor. A lens changes the map only; the app decides the inspector's sections.
