@@ -351,6 +351,24 @@
         "@types/react": "^19.3.0",
       },
     },
+    "packages/module-way-table": {
+      "name": "@osm-editor-kit/maid-module-way-table",
+      "version": "0.0.0",
+      "dependencies": {
+        "@heroicons/react": "^2.2.0",
+        "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-i18n": "workspace:*",
+        "@osm-editor-kit/maid-model": "workspace:*",
+        "@osm-editor-kit/maid-presets": "workspace:*",
+        "@osm-editor-kit/maid-renderer": "workspace:*",
+        "@osm-editor-kit/maid-ui": "workspace:*",
+        "react": "^19.2.0",
+        "zustand": "^5.0.0",
+      },
+      "devDependencies": {
+        "@types/react": "^19.3.0",
+      },
+    },
     "packages/operations": {
       "name": "@osm-editor-kit/maid-operations",
       "version": "0.0.0",
@@ -386,6 +404,13 @@
         "maplibre-gl": "^6.12.0",
         "react": "^19.3.0",
         "react-map-gl": "^8.1.3",
+      },
+    },
+    "packages/routing": {
+      "name": "@osm-editor-kit/maid-routing",
+      "version": "0.0.0",
+      "dependencies": {
+        "@osm-editor-kit/maid-model": "workspace:*",
       },
     },
     "packages/shell": {
@@ -624,6 +649,8 @@
 
     "@osm-editor-kit/maid-module-turn-restrictions": ["@osm-editor-kit/maid-module-turn-restrictions@workspace:packages/module-turn-restrictions"],
 
+    "@osm-editor-kit/maid-module-way-table": ["@osm-editor-kit/maid-module-way-table@workspace:packages/module-way-table"],
+
     "@osm-editor-kit/maid-operations": ["@osm-editor-kit/maid-operations@workspace:packages/operations"],
 
     "@osm-editor-kit/maid-parking": ["@osm-editor-kit/maid-parking@workspace:apps/maid-parking"],
@@ -631,6 +658,8 @@
     "@osm-editor-kit/maid-presets": ["@osm-editor-kit/maid-presets@workspace:packages/presets"],
 
     "@osm-editor-kit/maid-renderer": ["@osm-editor-kit/maid-renderer@workspace:packages/renderer"],
+
+    "@osm-editor-kit/maid-routing": ["@osm-editor-kit/maid-routing@workspace:packages/routing"],
 
     "@osm-editor-kit/maid-shell": ["@osm-editor-kit/maid-shell@workspace:packages/shell"],
 
