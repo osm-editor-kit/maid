@@ -13,9 +13,9 @@ import {
   cannotTakeReason,
   connectedRelationIds,
   creationOrder,
-  DUPLICATE_REASON,
+  duplicateReason,
   geometryOfEntity,
-  INVALID_REASON,
+  invalidReason,
   joinableRelations,
   relationRolesOf,
   roleFromText,
@@ -962,7 +962,7 @@ describe('cannotTakeReason', () => {
 
   it('refuses a feature that is a member already when the schema forbids duplicates', () => {
     expect(cannotTakeReason(restriction, [onTheRelation], rules(restrictionRoles, false))).toBe(
-      DUPLICATE_REASON,
+      duplicateReason(),
     )
   })
 
@@ -975,18 +975,18 @@ describe('cannotTakeReason', () => {
   it('refuses when one of several features is a member already (duplicates forbidden)', () => {
     expect(
       cannotTakeReason(restriction, [other, onTheRelation], rules(restrictionRoles, false)),
-    ).toBe(DUPLICATE_REASON)
+    ).toBe(duplicateReason())
   })
 
   it('refuses a feature that fits none of the roles', () => {
     expect(cannotTakeReason(restriction, [area], rules(restrictionRoles, false))).toBe(
-      INVALID_REASON,
+      invalidReason(),
     )
   })
 
   it('refuses the selection when one of several features fits no role', () => {
     expect(cannotTakeReason(restriction, [other, area], rules(restrictionRoles, false))).toBe(
-      INVALID_REASON,
+      invalidReason(),
     )
   })
 
@@ -998,7 +998,7 @@ describe('cannotTakeReason', () => {
   it('reports the duplicate before the invalid member', () => {
     expect(
       cannotTakeReason(restriction, [onTheRelation, area], rules(restrictionRoles, false)),
-    ).toBe(DUPLICATE_REASON)
+    ).toBe(duplicateReason())
   })
 })
 

@@ -213,7 +213,7 @@ function RoleInput({
     <input
       {...PLAIN_INPUT}
       aria-label={label}
-      placeholder="role"
+      placeholder={m.relations_role_placeholder()}
       list={list}
       disabled={readOnly}
       className={ROLE_INPUT}
@@ -380,7 +380,7 @@ function MemberItem({
   const reduced = useReducedMotion() === true
   const handle = editable ? (
     <DragHandle
-      label={`Drag ${value.id} to reorder`}
+      label={m.relations_drag_member({ id: value.id })}
       onPointerDown={(event) => controls.start(event.nativeEvent)}
     />
   ) : null
@@ -399,11 +399,18 @@ function MemberItem({
   )
 }
 
-/** The letter for a member's type: N, W or R. */
+/** The letter for a member's type, as the locale writes it (N, W, R in English). */
 function typeLetter(type: Member['type']) {
-  if (type === 'node') return 'N'
-  if (type === 'way') return 'W'
-  return 'R'
+  if (type === 'node') return m.relations_type_node_letter()
+  if (type === 'way') return m.relations_type_way_letter()
+  return m.relations_type_relation_letter()
+}
+
+/** The name of a member's type, for the title of its letter. */
+function typeName(type: Member['type']) {
+  if (type === 'node') return m.relations_type_node()
+  if (type === 'way') return m.relations_type_way()
+  return m.relations_type_relation()
 }
 
 /** A member of the selected relation: its position, type, label, role, moves and a remove button. */
@@ -446,12 +453,11 @@ function MemberRowView({
   const move = (direction: 'up' | 'down') => {
     const target = moveTarget(count, row.index, direction)
     if (target === undefined) return
-    edit(
-      editor,
-      actionMoveMember(relation.id, row.index, target),
-      `Moved a member ${direction} in ${relationLabel(relation)}`,
-      relation.id,
-    )
+    const annotation =
+      direction === 'up'
+        ? m.relations_undo_move_up({ relation: relationLabel(relation) })
+        : m.relations_undo_move_down({ relation: relationLabel(relation) })
+    edit(editor, actionMoveMember(relation.id, row.index, target), annotation, relation.id)
   }
   const up = moveTarget(count, row.index, 'up')
   const down = moveTarget(count, row.index, 'down')
@@ -461,7 +467,10 @@ function MemberRowView({
       <span className={`w-6 shrink-0 text-right font-mono tabular-nums ${SECONDARY}`}>
         {row.index + 1}
       </span>
-      <span title={row.type} className={`w-3 shrink-0 text-center font-mono ${SECONDARY}`}>
+      <span
+        title={typeName(row.type)}
+        className={`w-3 shrink-0 text-center font-mono ${SECONDARY}`}
+      >
         {typeLetter(row.type)}
       </span>
       {row.loaded ? (
@@ -471,31 +480,31 @@ function MemberRowView({
         </button>
       ) : (
         <span className={`min-w-0 flex-1 truncate px-1 font-mono ${SECONDARY}`}>
-          {row.id} <span className="italic">not loaded</span>
+          {row.id} <span className="italic">{m.relations_not_loaded()}</span>
         </span>
       )}
       {!row.loaded && load && memberLoadPath(row.id) !== undefined && (
         <DownloadButton id={row.id} load={load} />
       )}
       <ZoomButton
-        label={`Zoom to ${row.id}`}
+        label={m.relations_zoom_member({ id: row.id })}
         disabled={!row.loaded}
         onZoom={() => engine.fitTo([row.id])}
       />
       <MoveButton
-        label={`Move ${row.id} up`}
+        label={m.relations_move_up({ id: row.id })}
         glyph="↑"
         disabled={up === undefined}
         onMove={() => move('up')}
       />
       <MoveButton
-        label={`Move ${row.id} down`}
+        label={m.relations_move_down({ id: row.id })}
         glyph="↓"
         disabled={down === undefined}
         onMove={() => move('down')}
       />
       <RoleInput
-        label={`Role of ${row.id}`}
+        label={m.relations_role_of({ id: row.id })}
         role={member.role}
         roles={roles}
         list={roleList}
@@ -503,16 +512,21 @@ function MemberRowView({
           edit(
             editor,
             actionChangeMember(relation.id, { ...member, role }, row.index),
-            'Changed a role',
+            m.relations_undo_role(),
             relation.id,
           )
         }
       />
       <RoleOptions id={roleList} options={options} />
       <RemoveButton
-        label={`Remove member ${row.id}`}
+        label={m.relations_remove_member({ id: row.id })}
         onRemove={() => {
-          edit(editor, actionDeleteMember(relation.id, row.index), 'Removed a member', relation.id)
+          edit(
+            editor,
+            actionDeleteMember(relation.id, row.index),
+            m.relations_undo_remove(),
+            relation.id,
+          )
           // removing the last member deletes the relation
           if (!editor.history.staging.graph.hasEntity(relation.id)) select(null)
         }}
@@ -566,7 +580,7 @@ function MemberList({
       edit(
         editor,
         actionMoveMember(relation.id, move.from, move.to),
-        `Moved a member in ${relationLabel(relation)}`,
+        m.relations_undo_move({ relation: relationLabel(relation) }),
         relation.id,
       )
   }
@@ -592,14 +606,14 @@ function MemberList({
     <div className="grid gap-1">
       {rows.length > 0 && (
         <div className="flex justify-end">
-          <Tooltip label="Zoom the map to the members of this relation">
+          <Tooltip label={m.relations_zoom_members_tip()}>
             <button
               type="button"
               className={`${LINK_BUTTON} disabled:cursor-default disabled:text-zinc-300`}
               disabled={!rows.some((row) => row.loaded)}
               onClick={() => engine.fitTo([relation.id])}
             >
-              ◎ Zoom to the relation
+              ◎ {m.relations_zoom_relation()}
             </button>
           </Tooltip>
         </div>
@@ -613,7 +627,9 @@ function MemberList({
           setDragged(next)
         }}
       >
-        {rows.length === 0 && <li className={`py-1 text-xs ${SECONDARY}`}>No members.</li>}
+        {rows.length === 0 && (
+          <li className={`py-1 text-xs ${SECONDARY}`}>{m.relations_no_members()}</li>
+        )}
         {order.map((row) => (
           <MemberItem
             key={`${row.index}:${row.id}:${row.role}`}
@@ -633,14 +649,16 @@ function MemberList({
                   load={(id) => engine.loadEntity(id)}
                   handle={handle}
                 />
-                {gaps.has(row.index) && (
-                  // a title, not a Tooltip: a line that cannot take focus
-                  <div className={GAP} title="The ends of these two ways do not meet">
-                    <span className="h-px flex-1 border-t border-dashed border-amber-500/60" />
-                    gap
-                    <span className="h-px flex-1 border-t border-dashed border-amber-500/60" />
-                  </div>
-                )}
+                {/* the gaps are between members in data order: hidden while the drag shows another order */}
+                {dragged === null &&
+                  gaps.has(row.index) && (
+                    // a title, not a Tooltip: a line that cannot take focus
+                    <div className={GAP} title={m.relations_gap_title()}>
+                      <span className="h-px flex-1 border-t border-dashed border-amber-500/60" />
+                      {m.relations_gap()}
+                      <span className="h-px flex-1 border-t border-dashed border-amber-500/60" />
+                    </div>
+                  )}
               </>
             )}
           </MemberItem>
@@ -648,7 +666,7 @@ function MemberList({
         {!showAll && rows.length > shown.length && (
           <li className="py-1">
             <button type="button" className={LINK_BUTTON} onClick={() => setShowAll(true)}>
-              Show all {rows.length}
+              {m.relations_show_all({ count: rows.length })}
             </button>
           </li>
         )}
@@ -657,7 +675,7 @@ function MemberList({
         <p className={HINT}>
           {loadFailureSentence(load.message)}{' '}
           <button type="button" className={LINK_BUTTON} onClick={loadMembers}>
-            Retry
+            {m.relations_retry()}
           </button>
         </p>
       ) : (
@@ -731,7 +749,7 @@ function MembershipRow({
           </button>
         </Tooltip>
         <RoleInput
-          label={`Role in ${relation.id}`}
+          label={m.relations_role_in({ id: relation.id })}
           role={role}
           roles={roles}
           list={roleList}
@@ -739,15 +757,20 @@ function MembershipRow({
             edit(
               editor,
               actionChangeMember(relation.id, { ...member, role: next }, index),
-              'Changed a role',
+              m.relations_undo_role(),
               entityID,
             )
           }
         />
         <RemoveButton
-          label={`Remove from ${relation.id}`}
+          label={m.relations_remove_from({ id: relation.id })}
           onRemove={() =>
-            edit(editor, actionDeleteMember(relation.id, index), 'Removed a member', entityID)
+            edit(
+              editor,
+              actionDeleteMember(relation.id, index),
+              m.relations_undo_remove(),
+              entityID,
+            )
           }
         />
       </Row>
@@ -802,7 +825,7 @@ function AddToRelation({
         members,
         trimmed,
       )
-      editAll(editor, actions, 'Created a relation', relation.id)
+      editAll(editor, actions, m.relations_undo_create(), relation.id)
       relationSessionActions.touch([relation.id])
       select(relation.id)
     } else {
@@ -818,7 +841,7 @@ function AddToRelation({
             role: roleToAdd(roles, trimmed, entity),
           }),
         ),
-        members.length === 1 ? 'Added a member' : 'Added members',
+        members.length === 1 ? m.relations_undo_add() : m.relations_undo_add_many(),
         first.id,
       )
       relationSessionActions.touch([targetID])
@@ -840,16 +863,16 @@ function AddToRelation({
   }
   return (
     <div className="grid gap-1.5 pt-2">
-      <span className={`text-xs ${SECONDARY}`}>Add to a relation</span>
+      <span className={`text-xs ${SECONDARY}`}>{m.relations_add_to()}</span>
       <div className="flex min-w-0 items-center gap-1.5">
         <select
-          aria-label="Relation to add to"
+          aria-label={m.relations_add_to_label()}
           disabled={readOnly}
           className={`${FIELD} min-w-0 flex-1 cursor-pointer`}
           value={targetID}
           onChange={(event) => setTargetID(event.target.value)}
         >
-          <option value="">Choose a relation</option>
+          <option value="">{m.relations_choose_relation()}</option>
           <option value={NEW_RELATION}>{m.relations_new_relation()}</option>
           {offered.map((relation) => {
             // a disabled entry stays in the list, with its reason, and cannot be picked
@@ -864,8 +887,8 @@ function AddToRelation({
         </select>
         <input
           {...PLAIN_INPUT}
-          aria-label="Role for the new membership"
-          placeholder="role"
+          aria-label={m.relations_new_membership_role()}
+          placeholder={m.relations_role_placeholder()}
           list={roleList}
           disabled={readOnly}
           className={`${FIELD} w-20 shrink-0`}
@@ -878,7 +901,7 @@ function AddToRelation({
           disabled={readOnly || !targetID || targetReason !== undefined}
           onClick={add}
         >
-          Add
+          {m.relations_add()}
         </button>
       </div>
       <RoleOptions
@@ -887,7 +910,7 @@ function AddToRelation({
       />
       {candidates.length > offered.length && (
         <span className={`text-xs ${SECONDARY}`}>
-          Showing {offered.length} of {candidates.length} relations.
+          {m.relations_showing({ shown: offered.length, total: candidates.length })}
         </span>
       )}
     </div>
@@ -924,7 +947,9 @@ export function RelationsSection({ entity, entities, editor, select }: Props) {
   const readOnly = selection.some((item) => item.readOnly)
   return (
     <div className="grid gap-1">
-      {memberships.length === 0 && <p className={`text-xs ${SECONDARY}`}>Not in a relation.</p>}
+      {memberships.length === 0 && (
+        <p className={`text-xs ${SECONDARY}`}>{m.relations_not_in_relation()}</p>
+      )}
       {memberships.length > 0 && (
         // the memberships follow the inspected feature, the add below the whole selection
         <ReadOnlyContext value={entity.readOnly}>

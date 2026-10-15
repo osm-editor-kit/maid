@@ -1,3 +1,4 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import {
   actionAddEntity,
   actionAddMember,
@@ -112,8 +113,10 @@ export function loadedRelations(graph: Graph) {
  * A short name for a relation: the text iD shows (`labelOf`: name, else for a route its network, ref and
  * direction, else the ref), else the `type` tag, else "Relation".
  */
-export function relationLabel(relation: OsmRelation) {
-  return labelOf(relation.tags).trim() || tagValue(relation.tags, 'type') || 'Relation'
+export function relationLabel(relation: OsmRelation): string {
+  return (
+    labelOf(relation.tags).trim() || tagValue(relation.tags, 'type') || m.relations_fallback_name()
+  )
 }
 
 /**
@@ -324,42 +327,47 @@ export function notLoadedCount(rows: readonly MemberRow[]) {
 }
 
 /** The headline of the Members section: "40 members, 12 not loaded" (the second part only if some are missing). */
-export function membersHeadline(rows: readonly MemberRow[]) {
-  const count = `${rows.length} ${rows.length === 1 ? 'member' : 'members'}`
+export function membersHeadline(rows: readonly MemberRow[]): string {
+  const members = membersOf(rows.length)
   const missing = notLoadedCount(rows)
-  return missing > 0 ? `${count}, ${missing} not loaded` : count
+  return missing > 0 ? m.relations_members_headline({ members, missing }) : members
 }
 
 /** "1 member" or "3 members" */
-function membersOf(count: number) {
-  return `${count} ${count === 1 ? 'member' : 'members'}`
+function membersOf(count: number): string {
+  return count === 1 ? m.relations_member_one() : m.relations_member_other({ count })
 }
 
 /** The button that loads the missing members: "Load the 12 missing members" */
-export function loadButtonLabel(missing: number) {
-  return `Load the ${missing} missing ${missing === 1 ? 'member' : 'members'}`
+export function loadButtonLabel(missing: number): string {
+  return missing === 1
+    ? m.relations_load_missing_one()
+    : m.relations_load_missing_other({ count: missing })
 }
 
 /** The button while the members load: "Loading 12 members" */
-export function loadingLabel(missing: number) {
-  return `Loading ${membersOf(missing)}`
+export function loadingLabel(missing: number): string {
+  return m.relations_loading({ members: membersOf(missing) })
 }
 
 /**
  * The line under the button after a load, when some members are still not loaded: the API did not
  * return them, so loading again will not help. Undefined when all are loaded (the button is gone).
  */
-export function loadResultSentence(added: number, left: number) {
+export function loadResultSentence(added: number, left: number): string | undefined {
   if (left === 0) return undefined
-  const notInAPI = left === 1 ? 'is not in the API' : 'are not in the API'
   if (added === 0)
-    return `Loaded nothing: ${left === 1 ? 'the missing member' : `${left} members`} ${notInAPI}.`
-  return `Loaded ${membersOf(added)}; ${left === 1 ? 'the other member' : `${left} members`} ${notInAPI}.`
+    return left === 1
+      ? m.relations_load_nothing_one()
+      : m.relations_load_nothing_other({ count: left })
+  return left === 1
+    ? m.relations_load_partial_one({ added: membersOf(added) })
+    : m.relations_load_partial_other({ added: membersOf(added), count: left })
 }
 
 /** The line under the button when a load failed: the message says why ("OSM API answered 404") */
-export function loadFailureSentence(message: string) {
-  return `Could not load the members: ${message}`
+export function loadFailureSentence(message: string): string {
+  return m.relations_load_failed({ message })
 }
 
 /** The index a member moves to with one step, or undefined when it is at the end already. */
@@ -520,10 +528,17 @@ export function roleToAdd(
   return fitting.length === 1 ? (fitting[0] ?? '') : ''
 }
 
-/** The reason a relation cannot take the features (iD's "Already a member"). */
-export const DUPLICATE_REASON = 'Already a member'
+/**
+ * The reason a relation cannot take the features (iD's "Already a member"). A function, not a constant: the text
+ * follows the locale at the time it is shown.
+ */
+export function duplicateReason(): string {
+  return m.relations_reason_duplicate()
+}
 /** The reason a relation cannot take the features, when one of them fits none of its roles (iD's invalid member). */
-export const INVALID_REASON = 'Not allowed in this type of relation'
+export function invalidReason(): string {
+  return m.relations_reason_invalid()
+}
 
 /** A feature that is to be added: what its member rules look at. An EntityInfo has all of it. */
 export type FeatureForRules = { id: string; geometry: Geometry; tags: Tags }
@@ -545,14 +560,14 @@ export function cannotTakeReason(
     relation.members.some((member) => ids.has(member.id)) &&
     !presets.allowsDuplicateMembers(relation.tags)
   )
-    return DUPLICATE_REASON
+    return duplicateReason()
   const roles = presets.relationRoles(relation.tags)
   if (Object.keys(roles).length === 0) return undefined
   const someFitsNoRole = features.some(
     (feature) =>
       Object.keys(validRelationRoles(roles, feature.geometry, feature.tags)).length === 0,
   )
-  return someFitsNoRole ? INVALID_REASON : undefined
+  return someFitsNoRole ? invalidReason() : undefined
 }
 
 /**
@@ -628,28 +643,36 @@ export function memberName(graph: Graph, member: MemberRef) {
  * The line under "Add to a relation" that says where the way went:
  * "Added as member 7 of 12, between A and B", "... at the start" or "... at the end".
  */
-export function placementSentence(placement: Placement, name: (member: MemberRef) => string) {
-  const position = `member ${placement.index + 1} of ${placement.count}`
-  if (placement.count === 1) return 'Added as the only member'
+export function placementSentence(
+  placement: Placement,
+  name: (member: MemberRef) => string,
+): string {
+  const index = placement.index + 1
+  const count = placement.count
+  if (count === 1) return m.relations_placed_only()
   if (placement.before && placement.after)
-    return `Added as ${position}, between ${name(placement.before)} and ${name(placement.after)}`
-  if (placement.after) return `Added as ${position}, at the start`
-  return `Added as ${position}, at the end`
+    return m.relations_placed_between({
+      index,
+      count,
+      before: name(placement.before),
+      after: name(placement.after),
+    })
+  if (placement.after) return m.relations_placed_start({ index, count })
+  return m.relations_placed_end({ index, count })
 }
 
 /**
  * A warning for a membership whose removal breaks something, or undefined. Information only:
  * the edit is not blocked.
  */
-export function membershipHint(relation: OsmRelation, index: number) {
+export function membershipHint(relation: OsmRelation, index: number): string | undefined {
   const member = relation.members[index]
   if (!member || member.type !== 'way') return undefined
   const type = tagValue(relation.tags, 'type')
   if (type === 'restriction' && (member.role === 'from' || member.role === 'to')) {
     const sameRole = relation.members.filter((m) => m.role === member.role).length
-    if (sameRole === 1) return 'Deleting this way breaks the turn restriction'
+    if (sameRole === 1) return m.relations_hint_restriction()
   }
-  if (type === 'multipolygon' && member.role === 'outer')
-    return 'Deleting this way removes an outer ring of the multipolygon'
+  if (type === 'multipolygon' && member.role === 'outer') return m.relations_hint_outer()
   return undefined
 }
