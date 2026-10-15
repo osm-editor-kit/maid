@@ -17,9 +17,9 @@ import { writeEdits, type CombinedTags, type FieldProps } from './shared.ts'
 /**
  * A directional field and its sub fields as one block (parking:both and parking:both:orientation): under
  * each side, Left and Right, a row per field. A row is that field's combo over the side (DirectionalSideCombo,
- * as the field has it on its own) with its info, revert and remove buttons. A sub field's side is not used when
+ * as the field has it on its own); the info, revert and remove buttons of a field are on its row of the first side. A sub field's side is not used when
  * the parent says so (unusedSides): its combo is disabled and says why. The related tags of each field are
- * shown once below the block; their add buttons are on each row, as the field's own buttons are.
+ * shown once below the block; their add buttons sit with the field's other buttons.
  */
 export function DirectionalGroup(props: {
   /** The parent and its sub fields, in the order of the preset (the parent first) */
@@ -227,7 +227,9 @@ function GroupRow(props: {
       features={features}
       onChange={onChange}
       onChangeTags={onChangeTags}
-      actions={actions}
+      // the buttons act on the whole field: once, on the first side's row (Tobias, 2026-10-15). The other side keeps
+      // the column empty (subgrid), so the combos stay the same width.
+      actions={side === DIRECTIONAL_SIDES[0] ? actions : undefined}
       unusedReason={unusedReason}
     />
   )
