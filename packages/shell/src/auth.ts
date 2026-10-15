@@ -100,10 +100,12 @@ export function createAuth({ id, envFile, server, apiUrl, clientId, loginOrigin 
       const { accessToken } = await OSM.login({
         mode: 'popup',
         clientId,
-        // the redirect the OAuth app is registered for: <origin><base>land.html (base: `/`, or `/<repo>/` on Pages)
+        // the redirect the OAuth app is registered for: <origin><base>land.html (base: `/`, or `/<repo>/` on Pages).
+        // Several apps deployed side by side share the land.html of the site's root (VITE_LOGIN_BASE, pages.yml):
+        // one registered redirect for all of them, as land.html answers any tab of the origin.
         redirectUrl: publicUrl(
           'land.html',
-          import.meta.env.BASE_URL,
+          import.meta.env.VITE_LOGIN_BASE || import.meta.env.BASE_URL,
           loginOrigin ?? window.location.origin,
         ),
         scopes: ['read_prefs', 'write_api', 'write_notes'],

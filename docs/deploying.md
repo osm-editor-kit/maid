@@ -1,11 +1,16 @@
 # Deploying to GitHub Pages
 
-The workflow `.github/workflows/pages.yml` builds one Maid app and publishes it to GitHub Pages, on every push to
-`main` and by hand from the Actions tab. No secret is needed.
+The workflow `.github/workflows/pages.yml` builds Maid apps with `bun run pages-build` (`tools/deploy/build-pages.ts`)
+and publishes them to GitHub Pages, on every push to `main` and by hand from the Actions tab. No secret is needed.
 
 **`deploy.env`** (repository root) says what to deploy:
 
-- `MAID_APP`: the app folder, for example `maid`, `maid-bicycle`, `maid-parking` or your own.
+- `MAID_APP`: the app folder, for example `maid`, `maid-bicycle`, `maid-parking` or your own, or a comma list of them.
+  - One app is served at the path itself, for example `https://osm-editor-kit.github.io/maid/`.
+  - Several apps are each served from a folder of their own (`/maid/maid/`, `/maid/maid-bicycle/`, …), so each can be
+    tested and used on its own. The path shows a page with a link to each. All of them log in through the `land.html`
+    at the path, so the OAuth apps need one redirect URI for all.
+  - This repository deploys all three apps. A fork that names one app keeps the editor at its path.
 - `MAID_BASE`: the path the site is served from. Empty means `/<repository name>/`, for example `/maid/`. A fork with its
   own domain sets `/`.
 
@@ -38,4 +43,5 @@ Maid is a public OAuth client with PKCE. It has no client secret; never put one 
 - The static demo data (the fixtures) exist only locally: they come from the mock API of `bun run dev`. Locally,
   `?api=mock` shows them, `?api=osm` OpenStreetMap, `?api=dev` the development server.
 
-To build the Pages version locally, in the app folder: `VITE_BASE=/maid/ bun run build`.
+To build the Pages site locally: `bun run pages-build` (into `site/`, git-ignored). The settings stored in the browser
+(background, theme and others) are shared between apps on the same address; the unsaved edits are kept per app.

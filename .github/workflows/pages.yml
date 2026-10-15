@@ -1,7 +1,8 @@
 name: Pages
 
-# Builds one Maid app and deploys it to GitHub Pages. The app and the path it is served from come from deploy.env,
-# or from the repository variables MAID_APP and MAID_BASE when those are set.
+# Builds Maid apps and deploys them to GitHub Pages (tools/deploy/build-pages.ts). The apps and the path come from
+# deploy.env, or from the repository variables MAID_APP and MAID_BASE when those are set. One app is served at the
+# path; several are each served from a folder of their own, with a page of links at the path.
 # The build does not contact OSM: the deployed app reads live data only when a person opens it, and saves only after
 # that person logged in.
 
@@ -25,65 +26,28 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Choose the app and its path
-        id: config
-        env:
-          VAR_MAID_APP: ${{ vars.MAID_APP }}
-          VAR_MAID_BASE: ${{ vars.MAID_BASE }}
-        run: |
-          app=maid
-          base=
-          while IFS= read -r line || [ -n "$line" ]; do
-            line="${line%$'\r'}"
-            case "$line" in
-              MAID_APP=*) app="${line#MAID_APP=}" ;;
-              MAID_BASE=*) base="${line#MAID_BASE=}" ;;
-            esac
-          done < deploy.env
-          # a repository variable, when it is not empty, wins over deploy.env
-          if [ -n "$VAR_MAID_APP" ]; then app="$VAR_MAID_APP"; fi
-          if [ -n "$VAR_MAID_BASE" ]; then base="$VAR_MAID_BASE"; fi
-          # an empty base is /<repository name>/, e.g. /maid/
-          if [ -z "$base" ]; then base="/${GITHUB_REPOSITORY#*/}/"; fi
-          # one leading and one trailing slash: / stays /, maid and /maid/ become /maid/
-          inner="${base#/}"
-          inner="${inner%/}"
-          if [ -z "$inner" ]; then base="/"; else base="/$inner/"; fi
-          case "$app" in
-            ""|.|..|*/*)
-              echo "MAID_APP must be the name of a folder under apps/, not '$app'" >&2
-              exit 1
-              ;;
-          esac
-          if [ ! -f "apps/$app/vite.config.ts" ]; then
-            echo "apps/$app/vite.config.ts does not exist: MAID_APP must name an app folder" >&2
-            exit 1
-          fi
-          echo "app=$app" >> "$GITHUB_OUTPUT"
-          echo "base=$base" >> "$GITHUB_OUTPUT"
-          echo "Deploying apps/$app with base $base" >> "$GITHUB_STEP_SUMMARY"
-
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.0
       # no bunfig.toml in CI: the shared package store is for local machines
       - run: bun install --frozen-lockfile --config=/dev/null
 
-      - name: Build the app
-        working-directory: apps/${{ steps.config.outputs.app }}
+      # one app at the path, or several apps each in a folder of its own with a page of links (tools/deploy)
+      - name: Build the apps
         env:
-          VITE_BASE: ${{ steps.config.outputs.base }}
+          MAID_APP: ${{ vars.MAID_APP }}
+          MAID_BASE: ${{ vars.MAID_BASE }}
           # OAuth client ids are not secrets; Maid is a public client (PKCE) and has no client secret
           VITE_OSM_CLIENT_ID: ${{ vars.OSM_CLIENT_ID }}
           VITE_OSM_DEV_CLIENT_ID: ${{ vars.OSM_DEV_CLIENT_ID }}
           VITE_MAPILLARY_TOKEN: ${{ vars.MAPILLARY_TOKEN }}
-        run: bun run build
+        run: bun run pages-build
 
       - uses: actions/configure-pages@v6
 
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: apps/${{ steps.config.outputs.app }}/dist
+          path: site
 
   deploy:
     needs: build

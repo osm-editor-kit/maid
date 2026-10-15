@@ -64,6 +64,7 @@ These names are the contract.
 | `bun run i18n-compile` | Paraglide output for the app (`packages/i18n`) and each module with its own `project.inlang` (list in `packages/i18n/scripts/projects.ts`). Runs first in `check`, `type-check`, `dev` and the builds; skips when up to date. |
 | `bun run i18n-check` | Keys a language lacks, per project, in `reports/i18n-missing.json`; exits 1 on a missing key or placeholder. |
 | `bun run dev` | The three apps (`maid` 5173, `maid-bicycle` 5176, `maid-parking` 5177) and the mock API (8090). `dev-maid`, `dev-bicycle`, `dev-parking`, `dev-api` start one. |
+| `bun run pages-build` | The GitHub Pages site into `site/`: the apps of `MAID_APP` in `deploy.env`, one at the path or several in folders with a page of links ([docs/deploying.md](docs/deploying.md)). |
 | `bun run refs-setup` | Clone and build iD and Rapid at their pinned commits into `.reference/`, copy their sprites. |
 | `bun run refs-serve` | Serve them: iD on 8081, Rapid on 8082 (`refs-serve-id`, `refs-serve-rapid`). |
 | `bun run compare` | The side-by-side page of Maid, iD and Rapid on http://localhost:5184. |

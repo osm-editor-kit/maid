@@ -29,3 +29,6 @@ docs/parking/
 # local notes and screenshots of detail decisions, kept out of git
 docs/local/
 reports/rmgl-bench*.json
+
+# GitHub Pages build output (bun run pages-build)
+/site/
