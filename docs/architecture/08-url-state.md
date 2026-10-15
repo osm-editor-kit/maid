@@ -84,4 +84,4 @@ An explicit query parameter wins over the same parameter in the hash.
 
 - Whether `id` keeps iD's comma list or becomes a repeated parameter.
 - `osm-map-url` in osm-editor-kit already parses `map` and a feature parameter for TanStack Router. Either Maid's parsers move there as the router-free core, or that package adopts them. One place, not two.
-- osm.org's query form of iD links (`?editor=id&node=1&lat=…&lon=…&zoom=…`, `gpx=<trace id>`) is not read yet.
+- osm.org's query form of iD links (`?editor=id&node=1&lat=…&lon=…&zoom=…`, `gpx=<trace id>`) is not read. Noted, not relevant for now (Tobias, 2026-10-15).
