@@ -128,6 +128,78 @@ describe('mine and existing issues', () => {
     expect(validator.existingIssues().map((issue) => issue.id)).toEqual(['flagged:n2'])
   })
 
+  it('keeps an existing issue on an unchanged neighbour existing when an edit next to it is checked', () => {
+    // w2 is flagged in the loaded data; w1 shares n2 with it and is edited (a tag, not a flag). w2 is validated again
+    // by that edit, but nothing about w2 changed: its issue stays existing (both paths of update)
+    const base = graphOf(
+      node('n1', 0, 0),
+      node('n2', 0.001, 0),
+      node('n3', 0.002, 0),
+      way('w1', ['n1', 'n2']),
+      way('w2', ['n2', 'n3'], { flag: 'yes' }),
+    )
+    const head = new Graph(base).replace(way('w1', ['n1', 'n2'], { name: 'edited' }))
+    const changes = new Difference(base, head).changes
+    const validator = createValidator([flagged], { showExisting: () => false })
+    validator.checkExisting(head, ['w2'], [])
+    expect(validator.existingIssues().map((issue) => issue.id)).toEqual(['flagged:w2'])
+    // the first update: no earlier head, so the whole session is checked
+    validator.update({ base, head, changes }, [])
+    expect(validator.existingIssues().map((issue) => issue.id)).toEqual(['flagged:w2'])
+    expect(validator.issues()).toEqual([])
+  })
+
+  it('keeps an existing issue on an unchanged neighbour existing in a step after an earlier update', () => {
+    const base = graphOf(
+      node('n1', 0, 0),
+      node('n2', 0.001, 0),
+      node('n3', 0.002, 0),
+      way('w1', ['n1', 'n2']),
+      way('w2', ['n2', 'n3'], { flag: 'yes' }),
+    )
+    const start = new Graph(base)
+    const head = new Graph(base).replace(way('w1', ['n1', 'n2'], { name: 'edited' }))
+    const changes = new Difference(base, head).changes
+    const validator = createValidator([flagged], { showExisting: () => false })
+    // an update with nothing changed sets the earlier head the next step is compared with
+    validator.update({ base, head: start, changes: new Map() }, [], new Map())
+    validator.checkExisting(head, ['w2'], [])
+    validator.update({ base, head, changes }, [], changes)
+    expect(validator.existingIssues().map((issue) => issue.id)).toEqual(['flagged:w2'])
+    expect(validator.issues()).toEqual([])
+  })
+
+  it("keeps a new issue that an edit makes on a neighbour as the edits' one", () => {
+    // w2 is crowded: flagged once another way is next to it. The edit adds w1 next to it, so w2's issue is new
+    const crowded: Rule = {
+      id: 'crowded',
+      label: 'Crowded',
+      validate(entity, context) {
+        if (!(entity instanceof OsmWay) || entity.tags.crowded !== 'yes') return []
+        if (context.waysNear(entity).length === 0) return []
+        return [
+          {
+            id: `crowded:${entity.id}`,
+            rule: 'crowded',
+            severity: 'warning',
+            message: `${entity.id} has a neighbour`,
+            entityIds: [entity.id],
+            fixes: [],
+          },
+        ]
+      },
+    }
+    const w2 = way('w2', ['n1', 'n2'], { crowded: 'yes' })
+    const base = graphOf(node('n1', 0, 0), node('n2', 0.001, 0), node('n3', 0.002, 0), w2)
+    const w1 = way('w1', ['n2', 'n3'])
+    const head = new Graph(base).replace(w1)
+    const changes = new Difference(base, head).changes
+    const validator = createValidator([crowded], { showExisting: () => false })
+    validator.update({ base, head, changes }, [w2, w1])
+    expect(validator.issues().map((issue) => issue.id)).toEqual(['crowded:w2'])
+    expect(validator.existingIssues()).toEqual([])
+  })
+
   it('a validator without the option, as the save path has, counts the edits only', () => {
     const graph = flaggedNodes()
     const validator = createValidator([flagged])

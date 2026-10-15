@@ -143,6 +143,8 @@ function createStore(
     // existing issues are looked at again for the feature that is selected
     validator.reset()
     checker.forget()
+    // the folded line of the inspector and the Issues list read what was reset: they render again
+    announce()
   })
   // the whole difference from the base: what is kept, and what is checked when no step is given
   const wholeChange = () => ({
@@ -300,7 +302,9 @@ export function IssueRow(props: {
     <li className="flex items-start gap-2 border-b border-zinc-950/5 py-1.5 text-xs last:border-0 dark:border-white/5">
       <span
         role="img"
-        aria-label={issue.severity}
+        aria-label={
+          issue.severity === 'error' ? m.issues_severity_error() : m.issues_severity_warning()
+        }
         className={`mt-1 size-2 shrink-0 rounded-full ${existing ? 'bg-zinc-400' : SEVERITY[issue.severity]}`}
       />
       <div className={`min-w-0 flex-1 ${existing ? 'text-zinc-600 dark:text-zinc-400' : ''}`}>
@@ -469,7 +473,7 @@ export function validation({ rules }: { rules: readonly Rule[] }) {
 
       api.register('inspector.section', {
         id: 'validation-issues',
-        title: 'Issues',
+        title: m.issues_title(),
         // `when` also asks for the check of the feature (once per selection, in idle time): the check is off the
         // click path, and what it finds is read by the section at the next render
         when: (entity) => {
@@ -481,7 +485,7 @@ export function validation({ rules }: { rules: readonly Rule[] }) {
         },
         component: EntityIssues,
       })
-      api.register('dock.view', { id: 'validation', label: 'Issues', component: AllIssues })
+      api.register('dock.view', { id: 'validation', label: m.issues_title(), component: AllIssues })
       return store.stop
     },
   })

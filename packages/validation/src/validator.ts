@@ -34,10 +34,11 @@ export type ValidatorOptions = {
  * its entities is one issue. A run (one `validate` call) looks up each way's bounding box at most
  * once, when a rule first asks for a way's neighbours.
  *
- * Two kinds of issue are kept apart. An issue is the edits' ("mine") when the edits found it: a run
- * over what changed and its neighbours, or a check on demand that names a changed entity. An issue
- * the edits did not find is "existing": `checkExisting` finds those, for the features the person
- * looks at. Existing issues are dropped only by a check that replaces them, or when their data changes.
+ * Two kinds of issue are kept apart. An issue is the edits' ("mine") when the edits found it: a new issue
+ * that a run over what changed and its neighbours finds, or one that names a changed entity. An issue
+ * that existed before a run and names no changed entity stays "existing", even when the run checks it
+ * again as a neighbour of an edit (`mineOf`). `checkExisting` finds existing issues for the features the
+ * person looks at. Existing issues are dropped only by a check that replaces them, or when their data changes.
  */
 // The annotation makes the returned object be checked against the Validator interface
 export function createValidator(rules: readonly Rule[], options: ValidatorOptions = {}): Validator {
@@ -110,14 +111,24 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
   }
 
   /**
-   * Keeps an issue a run found. An issue already kept stays, except that the edits' run turns an existing
-   * one into the edits' (the edits now find it too).
+   * Keeps an issue a run found. An issue already kept stays, except that a run which finds it as the edits'
+   * turns an existing one into the edits' (see `mineOf`).
    */
   function place(issue: Issue, mine: boolean) {
     if (issues.has(issue.id) && !(mine && existing.has(issue.id))) return
     issues.set(issue.id, issue)
     if (mine) existing.delete(issue.id)
     else existing.add(issue.id)
+  }
+
+  /**
+   * Whether a run's issue is the edits': a new issue is (the edits' run found it), and an issue that was existing
+   * before the run is only when the edits changed one of its entities. `wasExisting` is taken before the run drops
+   * anything: the run drops the stale issues, which would otherwise look new when it finds them again.
+   */
+  function mineOf(wasExisting: ReadonlySet<string>) {
+    return (issue: Issue) =>
+      !wasExisting.has(issue.id) || issue.entityIds.some((id) => changed.has(id))
   }
 
   /** The existing issues, not the ignored ones, whatever the options show: for the quiet line of an inspector */
@@ -139,14 +150,14 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
 
   /**
    * Runs the rules on `runIds`, the entities of the run's graph to check, with the neighbours of run `stamp`.
-   * `mine` says whether an issue is the edits' (default: every issue of the run is).
+   * `mine` says whether an issue the run finds is the edits' (see `mineOf`).
    */
   function runRules(
     graph: Graph,
     validated: ReadonlySet<string>,
     runIds: readonly string[],
     stamp: number,
-    mine: (issue: Issue) => boolean = () => true,
+    mine: (issue: Issue) => boolean,
   ) {
     const context: RuleContext = {
       graph,
@@ -212,13 +223,21 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
     rules,
 
     validate(graph, entityIds, ways) {
-      // a run of its own: nothing is kept from an earlier one
+      // a run of its own: the boxes of an earlier run are made again. Its issues are the edits' ones; the existing
+      // issues of other data are kept (checkExisting replaces them)
       wayIndex.clear()
       lastHead = undefined
       const targets = new Set(entityIds)
       changed = targets
+      const wasExisting = new Set(existing)
       dropStale(graph, targets)
-      runRules(graph, targets, [...targets], wayIndex.enter(graph, ways, targets))
+      runRules(
+        graph,
+        targets,
+        [...targets],
+        wayIndex.enter(graph, ways, targets),
+        mineOf(wasExisting),
+      )
     },
 
     update(change, ways, step) {
@@ -227,6 +246,9 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
       // The entities the session changed, and their neighbours: what counts as validated. Rules such
       // as disconnected_way compare with it, so it is the whole session's, not the step's.
       const validated = entitiesToValidate(change.changes, change.base, head)
+      // The existing issues before this update. A neighbour of an edit is validated again, and its existing issue
+      // is found again: it stays existing unless the edits changed one of its entities (`mineOf`)
+      const mine = mineOf(new Set(existing))
 
       if (!lastHead || !step) {
         // The first update, after a reset, or without a step: everything the session changed is
@@ -235,7 +257,7 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
           invalidateChanged(lastHead, head, new Set([...lastGiven, ...change.changes.keys()]))
         else wayIndex.clear()
         dropStale(head, validated, validated)
-        runRules(head, validated, [...validated], wayIndex.enter(head, ways, validated))
+        runRules(head, validated, [...validated], wayIndex.enter(head, ways, validated), mine)
       } else {
         // The step: what this commit changed, and its neighbours, are checked again
         const invalidated = invalidateChanged(lastHead, head, step.keys())
@@ -261,6 +283,7 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
           validated,
           [...replaced].filter((id) => validated.has(id)),
           stamp,
+          mine,
         )
       }
 
@@ -282,6 +305,7 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
       clearExisting()
       const targets = new Set(entityIds)
       const stamp = wayIndex.enter(graph, ways, targets)
+      // an issue on the check's features is the edits' only when the edits changed one of its entities
       runRules(graph, targets, [...targets], stamp, (issue) =>
         issue.entityIds.some((id) => changed.has(id)),
       )

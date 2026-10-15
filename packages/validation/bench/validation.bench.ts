@@ -35,7 +35,7 @@ import { defaultPresetData } from '../../presets/src/default.ts'
 import { createPresets } from '../../presets/src/presets.ts'
 import { boxesOverlap } from '../src/geo.ts'
 import type { Box } from '../src/geo.ts'
-import { createValidator, defaultRules } from '../src/index.ts'
+import { createValidator, defaultRules, neighbourhoodOf } from '../src/index.ts'
 import type { GraphChange, Issue, Rule, RuleContext, Validator } from '../src/index.ts'
 import { entitiesToValidate } from '../src/validator.ts'
 import { boxOfWay } from '../src/way-index.ts'
@@ -606,6 +606,72 @@ for (const b of [dragBurst, tagBurst])
   )
 }
 
+// ---------------------------------------------------------------- checks on demand
+
+const onDemandRowsForReport: {
+  label: string
+  selections: number
+  ms: Stats
+  checkedMedian: number
+  omittedMembers: number
+  existingIssues: number
+  digest: string
+}[] = []
+
+// The app checks a selected feature and its neighbourhood, once per selection and in idle time (validation.tsx,
+// `checkExisting` through validation-idle.ts): the neighbourhood is named by `neighbourhoodOf` and checked against all
+// the ways of the graph. Measured on the warm validator, every check repeated (median of the passes after a warm-up).
+{
+  const relations = allEntities.filter(
+    (entity): entity is OsmRelation => entity instanceof OsmRelation,
+  )
+  const largestRelation = relations.reduce((best, r) =>
+    r.members.length > best.members.length ? r : best,
+  )
+  const selections: { label: string; ids: string[] }[] = [
+    { label: 'one busy road', ids: [featureNeighbours[0]!.id] },
+    { label: '5 roads, one by one', ids: pick(features, 5, 7).map((way) => way.id) },
+    {
+      label: `largest relation (${largestRelation.members.length} members)`,
+      ids: [largestRelation.id],
+    },
+  ]
+  console.log('\nchecks on demand (a selection: neighbourhoodOf, then checkExisting over all ways)')
+  const onDemandRows = selections.map(({ label, ids: selected }) => {
+    const validator = warmValidator()
+    const samples: number[] = []
+    const checked: number[] = []
+    let omitted = 0
+    for (let pass = 0; pass <= RUNS; pass++)
+      for (const entityId of selected) {
+        const start = now()
+        const { ids, omittedMembers } = neighbourhoodOf(base, entityId)
+        validator.checkExisting(base, ids, baseWays)
+        const ms = now() - start
+        if (pass > 0) {
+          samples.push(ms)
+          checked.push(ids.length)
+        }
+        omitted = omittedMembers
+      }
+    const existing = validator.existingIssues()
+    const row = {
+      label,
+      selections: selected.length,
+      ms: statsOf(samples),
+      checkedMedian: median(checked),
+      omittedMembers: omitted,
+      existingIssues: existing.length,
+      digest: digestOf(existing),
+    }
+    console.log(
+      `  ${label.padEnd(36)} per check median ${row.ms.median} ms  worst ${row.ms.max} ms  entities checked: median ${row.checkedMedian}  existing issues ${row.existingIssues}  digest ${row.digest}`,
+    )
+    return row
+  })
+  onDemandRowsForReport.push(...onDemandRows)
+}
+
 // ---------------------------------------------------------------- report
 
 const report = {
@@ -635,6 +701,7 @@ const report = {
   })),
   editResults,
   bursts: [dragBurst, tagBurst],
+  checkOnDemand: onDemandRowsForReport,
   crossingPairs: { perEdit: round(crossingPairsPerEdit, 0), validateEverything: crossingPairsAll },
   issueDigests: editResults.map((r) => `${r.label}:${r.issueDigest}:${r.issues}`),
 }
