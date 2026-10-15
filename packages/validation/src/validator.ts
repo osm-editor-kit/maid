@@ -52,6 +52,9 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
   // The graph of the last update, and the ids that update was given: what changed since is what the index recomputes
   let lastHead: Graph | undefined
   let lastGiven: ReadonlySet<string> = new Set()
+  // The graph the index was warmed on by `prepare`, when no update has run since: the first update checks the boxes
+  // against it instead of making them all again (see `prepare`)
+  let warmGraph: Graph | undefined
   // The issues sorted, until they change: `issuesFor` is called for every inspector render
   let sorted: Issue[] | undefined
 
@@ -227,6 +230,7 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
       // issues of other data are kept (checkExisting replaces them)
       wayIndex.clear()
       lastHead = undefined
+      warmGraph = undefined
       const targets = new Set(entityIds)
       changed = targets
       const wasExisting = new Set(existing)
@@ -255,7 +259,10 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
         // checked again, as a run of its own over the whole session
         if (lastHead)
           invalidateChanged(lastHead, head, new Set([...lastGiven, ...change.changes.keys()]))
+        // warmed by `prepare`: the boxes were made on the base, so what the session changed is made again
+        else if (warmGraph) invalidateChanged(warmGraph, head, change.changes.keys())
         else wayIndex.clear()
+        warmGraph = undefined
         dropStale(head, validated, validated)
         runRules(head, validated, [...validated], wayIndex.enter(head, ways, validated), mine)
       } else {
@@ -291,9 +298,21 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
       lastGiven = new Set((step ?? change.changes).keys())
     },
 
+    prepare(graph, ways) {
+      // once an update has run, the index is the update's own: there is nothing to warm (a late chunk does nothing)
+      if (lastHead) return
+      // a warm-up of another graph is not the same boxes: they are made again
+      if (warmGraph !== graph) {
+        wayIndex.clear()
+        warmGraph = graph
+      }
+      wayIndex.enter(graph, ways, [])
+    },
+
     reset() {
       wayIndex.clear()
       lastHead = undefined
+      warmGraph = undefined
       lastGiven = new Set()
       // the base data changed: what was found about existing data is no longer known to be right
       clearExisting()

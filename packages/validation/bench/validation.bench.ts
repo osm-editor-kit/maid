@@ -389,6 +389,35 @@ console.log(
   `\nthe first edit after loading (makes every box): median ${firstEdit.median} ms, worst ${firstEdit.max} ms`,
 )
 
+// the same first edit, after the app's idle warm-up: the boxes are made in chunks of WARM_CHUNK ways (`prepare`), outside
+// the timer, as idle slices do. The warm-up time is measured per run, and the longest chunk is the longest slice it takes.
+const WARM_CHUNK = 2000
+const warmUpSamples: number[] = []
+const warmChunkMax: number[] = []
+const firstEditWarmSamples: number[] = []
+for (let pass = 0; pass < RUNS; pass++) {
+  const validator = withPresets(defaultRules)
+  let longest = 0
+  const warmStart = now()
+  for (let i = 0; i < baseWays.length; i += WARM_CHUNK) {
+    const t = now()
+    validator.prepare(base, baseWays.slice(i, i + WARM_CHUNK))
+    longest = Math.max(longest, now() - t)
+  }
+  warmUpSamples.push(now() - warmStart)
+  warmChunkMax.push(longest)
+  const start = now()
+  commit(validator, base, heads[0]!, waysFor(edits[0]!, heads[0]!))
+  firstEditWarmSamples.push(now() - start)
+}
+const warmUp = statsOf(warmUpSamples)
+const warmChunk = statsOf(warmChunkMax)
+const firstEditWarm = statsOf(firstEditWarmSamples)
+console.log(
+  `the first edit after loading, index warmed in idle time: median ${firstEditWarm.median} ms, worst ${firstEditWarm.max} ms ` +
+    `(warm-up ${warmUp.median} ms in total, longest chunk of ${WARM_CHUNK} ways ${warmChunk.median} ms)`,
+)
+
 // steady state: the validator has its boxes, and each edit is one commit on it. Pass 0 is a warm-up.
 const passes: EditResult[][] = []
 const editSamples: number[][] = edits.map(() => [])
@@ -692,6 +721,8 @@ const report = {
     perEntityUs: round(perEntityUs, 3),
   },
   firstEdit,
+  firstEditWarmed: firstEditWarm,
+  warmUp: { total: warmUp, longestChunk: warmChunk, chunkWays: WARM_CHUNK },
   edits: editSummary,
   editWays: editWays.map((e) => ({
     id: e.way.id,

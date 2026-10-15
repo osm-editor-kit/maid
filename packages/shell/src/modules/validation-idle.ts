@@ -55,3 +55,42 @@ export function createSelectionChecker(options: {
     },
   }
 }
+
+/**
+ * Warms the validator's boxes in idle time, after the data loads or merges: `prepare` gets `items` a chunk at a time,
+ * one chunk per idle slice, so that no slice is long. Returns the warm-up, whose `cancel` stops the chunks that have not
+ * run (a merge or an edit does it: the validator is then right without the rest, see `Validator.prepare`).
+ */
+export function createWarmUp<T>(options: {
+  /** The items, read in the first idle slice (so the event that starts the warm-up does not pay for them) */
+  items: () => readonly T[]
+  /** Makes the boxes of one chunk */
+  prepare: (chunk: readonly T[]) => void
+  /** Items per idle slice */
+  chunk: number
+  /** Runs a chunk later (default: `whenIdle`) */
+  schedule?: Scheduler
+}) {
+  const schedule = options.schedule ?? whenIdle
+  let items: readonly T[] | undefined
+  let next = 0
+  let cancel: (() => void) | undefined
+  let stopped = false
+  const step = () => {
+    cancel = undefined
+    if (stopped) return
+    items ??= options.items()
+    const chunk = items.slice(next, next + options.chunk)
+    next += chunk.length
+    options.prepare(chunk)
+    if (next < items.length) cancel = schedule(step)
+  }
+  cancel = schedule(step)
+  return {
+    cancel() {
+      stopped = true
+      cancel?.()
+      cancel = undefined
+    },
+  }
+}

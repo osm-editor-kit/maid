@@ -23,7 +23,7 @@ import {
   showsExisting,
   useExistingMode,
 } from './validation-existing-store.ts'
-import { createSelectionChecker, whenIdle } from './validation-idle.ts'
+import { createSelectionChecker, createWarmUp, whenIdle } from './validation-idle.ts'
 import { ignoredIssueIds, ignoredIssues } from './validation-ignored'
 
 /** The reads the views and the inspector's `when` make: the validator's, with the URL's levels applied */
@@ -137,12 +137,30 @@ function createStore(
       announce()
     },
   })
+  // The boxes of the ways are made in idle time after the data loads and after a merge, so that the first edit does
+  // not make them (`Validator.prepare`). A merge or an edit cancels the warm-up that is still pending.
+  let warming: { cancel: () => void } | undefined
+  const stopWarming = () => {
+    warming?.cancel()
+    warming = undefined
+  }
+  const warmUp = () => {
+    stopWarming()
+    const base = editor.history.base.graph
+    warming = createWarmUp({
+      items: () => waysOf(base),
+      prepare: (chunk) => validator.prepare(base, chunk),
+      chunk: WARM_CHUNK,
+    })
+  }
   const forget = editor.history.on('merge', () => {
     ways = undefined
     // base data changed other than by edits: the boxes the validator kept are no longer known to be right, and the
     // existing issues are looked at again for the feature that is selected
+    stopWarming()
     validator.reset()
     checker.forget()
+    warmUp()
     // the folded line of the inspector and the Issues list read what was reset: they render again
     announce()
   })
@@ -156,6 +174,8 @@ function createStore(
   // what is no longer changed is no longer reported.
   const stopValidating = editor.history.on('stablechange', (difference) => {
     const head = editor.history.stable.graph
+    // the edit's update makes the boxes it needs: the rest of the warm-up is not needed (the validator checks either way)
+    stopWarming()
     // an edit of a feature that an issue of existing data names: the person wants to see those (before the update)
     if (
       validator
@@ -198,6 +218,7 @@ function createStore(
     version: () => version,
     stop: () => {
       forget()
+      stopWarming()
       stopValidating()
       stopPresets()
       stopIgnored()
@@ -214,6 +235,9 @@ function useIssues<T>(store: Store, read: (reads: ValidatorReads, version: numbe
   const version = useSyncExternalStore(store.subscribe, store.version)
   return read(store.reads, version)
 }
+
+/** The ways whose boxes one idle slice makes (see `createWarmUp`). Measured: the longest chunk of 2000 took 9 to 13 ms on a loaded machine (the bench) */
+const WARM_CHUNK = 2000
 
 /** The store of each editor that has the validation module, for the inspector of several features */
 const storeOf = new WeakMap<Editor, Store>()

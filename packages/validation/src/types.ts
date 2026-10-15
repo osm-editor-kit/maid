@@ -167,6 +167,13 @@ export type Validator = {
    */
   checkExisting(graph: Graph, entityIds: Iterable<string>, ways: Iterable<OsmWay>): void
   /**
+   * Makes the boxes of these ways, the work the first `update` would do, without validating anything: an idle
+   * warm-up, so that the first edit is fast. Call it with the base graph and the ways of the base, in chunks if
+   * wanted; it does nothing once an update has run. A later `update` (or `reset`, or a new graph) is correct
+   * whether or not the warm-up finished.
+   */
+  prepare(graph: Graph, ways: Iterable<OsmWay>): void
+  /**
    * Forgets what was computed from the graph (the boxes of the ways), and the existing issues. Call it when
    * the base data changed other than by edits, e.g. after a merge: the next update makes the boxes again.
    */

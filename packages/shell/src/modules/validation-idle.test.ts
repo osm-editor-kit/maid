@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'bun:test'
 import { Graph, ModelContext, OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 import { createValidator, neighbourhoodOf, type Rule } from '@osm-editor-kit/maid-validation'
-import { createSelectionChecker, type Scheduler, whenIdle } from './validation-idle.ts'
+import {
+  createSelectionChecker,
+  createWarmUp,
+  type Scheduler,
+  whenIdle,
+} from './validation-idle.ts'
 
 /** The scheduler of a test: the task runs when the test says so, and a cancelled one never runs */
 function queuedScheduler() {
@@ -129,5 +134,43 @@ describe('the on-demand check of a selected feature', () => {
     expect(validator.existingIssues().map((issue) => issue.id)).toEqual(['flagged:n1'])
     checker.select('n9')
     expect(validator.existingIssues().map((issue) => issue.id)).toEqual(['flagged:n9'])
+  })
+})
+
+describe('the warm-up of the validator', () => {
+  it('prepares every item, a chunk per idle slice, and reads the items at the first slice', () => {
+    const queue = queuedScheduler()
+    const chunks: number[][] = []
+    let reads = 0
+    createWarmUp({
+      items: () => {
+        reads++
+        return [1, 2, 3, 4, 5]
+      },
+      prepare: (chunk) => chunks.push([...chunk]),
+      chunk: 2,
+      schedule: queue.scheduler,
+    })
+    expect(reads).toBe(0)
+    while (queue.pending() > 0) queue.run()
+    expect(reads).toBe(1)
+    expect(chunks).toEqual([[1, 2], [3, 4], [5]])
+  })
+
+  it('cancel stops the chunks that have not run, and the warm-up never starts again', () => {
+    const queue = queuedScheduler()
+    const chunks: number[][] = []
+    const warm = createWarmUp({
+      items: () => [1, 2, 3, 4, 5],
+      prepare: (chunk) => chunks.push([...chunk]),
+      chunk: 2,
+      schedule: queue.scheduler,
+    })
+    queue.run()
+    expect(chunks).toEqual([[1, 2]])
+    warm.cancel()
+    expect(queue.pending()).toBe(0)
+    queue.run()
+    expect(chunks).toEqual([[1, 2]])
   })
 })
