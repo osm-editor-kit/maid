@@ -34,6 +34,8 @@ export function useLiveImagery() {
   const actions = useImageryActions()
   const [urlBackground, setUrlBackground] = useUrlParam(urls.background)
   const [urlOverlays, setUrlOverlays] = useUrlParam(urls.overlays)
+  const [urlOffset, setUrlOffset] = useUrlParam(urls.offset)
+  const offsets = useImagerySelector((state) => state.offsets)
   const start = useImagerySelector((state) => state.start)
   const stored = useImagerySelector((state) => state.background)
   const storedOverlays = useImagerySelector((state) => state.overlayIds)
@@ -57,8 +59,15 @@ export function useLiveImagery() {
     urlOverlays,
     setUrlBackground,
     setUrlOverlays,
-    /** A background the person chose: the URL and the remembered choice */
+    /**
+     * A background the person chose: the URL and the remembered choice. The offset belongs to the background, as in iD:
+     * the shift of the one being left is kept for this visit, and the shift the chosen one had comes back (none if none).
+     */
     chooseBackground: (value: string) => {
+      if (value !== shown.background) {
+        actions.rememberOffset(shown.background, urlOffset)
+        void setUrlOffset(offsets[value] ?? null)
+      }
       void setUrlBackground(value)
       actions.rememberBackground(value)
     },

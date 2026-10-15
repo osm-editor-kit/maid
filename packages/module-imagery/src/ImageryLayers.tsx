@@ -1,10 +1,13 @@
-import { isAutomated, isLocalUrl, toOsmZoom } from '@osm-editor-kit/maid-core'
+import { isAutomated, isLocalUrl, toOsmZoom, type RemoteFetch } from '@osm-editor-kit/maid-core'
+import { useUrlParam } from '@osm-editor-kit/maid-core/react'
 import { useQueries, type QueryClient } from '@tanstack/react-query'
-import { Fragment, useEffect } from 'react'
-import { AttributionControl, Layer, Source, useMap } from 'react-map-gl/maplibre'
+import { Fragment, useEffect, useMemo } from 'react'
+import { AttributionControl, Layer, Source, useControl, useMap } from 'react-map-gl/maplibre'
 import { drawCustom } from './custom.ts'
 import { drawLayer, type Drawn } from './eli.ts'
-import { useImageryActions, useView, type Shown } from './imagery-store.ts'
+import { useImageryActions, useImageryContext, useView, type Shown } from './imagery-store.ts'
+import { registerOffsetProtocol, useCannotShift } from './offset-protocol.ts'
+import { isZeroOffset, metersToUnits, NO_OFFSET, shiftedTileUrl, type Meters } from './offset.ts'
 import {
   useImageryStart,
   useLiveBrightness,
@@ -16,6 +19,36 @@ import { NONE, templateOf } from './url.ts'
 
 /** One layer to draw: an index layer (ELI, `template` null) or a custom background from its template */
 type Wanted = { id: string; background: boolean; template: string | null }
+
+/** A layer's source as the layer index gives it (the type of `Drawn.source`) */
+type RasterSource = Drawn['source']
+
+/** A control with nothing in it: `useControl` is how react-map-gl gives a child the map library (see MapLayers.tsx) */
+function silentControl() {
+  return {
+    onAdd: () => {
+      const element = document.createElement('div')
+      element.hidden = true
+      return element
+    },
+    onRemove: () => {},
+  }
+}
+
+/**
+ * The background's source with its tiles shifted: the same source, with each tile URL wrapped for the offset protocol
+ * (offset.ts, offset-protocol.ts). The wrapped source is `xyz`: the protocol gets the tms flip with the tile.
+ */
+function shiftedSource(source: RasterSource, offset: Meters, key: string): RasterSource {
+  const { scheme, ...rest } = source
+  const units = metersToUnits(offset)
+  return {
+    ...rest,
+    tiles: source.tiles.map((template) =>
+      shiftedTileUrl({ template, units, tileSize: source.tileSize, tms: scheme === 'tms', key }),
+    ),
+  }
+}
 
 /**
  * Under an automated browser (AGENTS.md, core rule 1) only a background from a local template is drawn: the one a
@@ -81,19 +114,33 @@ export function drawnShown(queries: QueryClient, shown: Shown) {
  * chosen, and in an automated browser only a background from a local template (see `allowedUnderAutomation`).
  * It also runs the start order once the map has a view (shown.ts), and mirrors what is shown.
  */
-export function ImageryLayers(props: { belowOsm: string }) {
-  const { belowOsm } = props
+export function ImageryLayers(props: { belowOsm: string; send: RemoteFetch }) {
+  const { belowOsm, send } = props
   const map = useMap().current
   const { shown } = useLiveImagery()
   // the URL's brightness (`bg_display`), written here: this is the one instance of the module that writes it
   const { brightness } = useLiveBrightness(true)
+  const { urls } = useImageryContext()
+  const [urlOffset] = useUrlParam(urls.offset)
+  const offset = urlOffset ?? NO_OFFSET
+  // a background whose server refuses the canvas is drawn unshifted (offset-protocol.ts)
+  const cannotShift = useCannotShift(shown.background)
   const view = useView()
   const { setView } = useImageryActions()
   const automated = isAutomated()
 
+  // registers the offset protocol before any shifted source is added (a child's effect). MapLibre has no raster
+  // translate, so the shift is drawn per tile by this protocol; the map library is only known through react-map-gl.
+  useControl(({ mapLib }) => {
+    registerOffsetProtocol(mapLib, send)
+    return silentControl()
+  })
+
   useImageryStart(view)
   useMirrorShown(shown)
   useMirrorBrightness(brightness)
+  // the shift of the background: none with no offset (the plain tile URLs cost nothing), none where it cannot be drawn
+  const shifted = !isZeroOffset(offset) && !cannotShift
 
   // the background is first, so the overlays are drawn above it
   const wanted: Wanted[] = []
@@ -111,6 +158,19 @@ export function ImageryLayers(props: { belowOsm: string }) {
     })),
     combine: drawnItems,
   })
+
+  // the background's tile URLs change with the offset only. Built here, not in the render, a render that changes
+  // nothing would hand react-map-gl new tile URLs and every tile would be requested again.
+  const [east, north] = offset
+  const layers = useMemo(
+    () =>
+      items.map((item) =>
+        item.background && shifted
+          ? { ...item, source: shiftedSource(item.source, [east, north], shown.background) }
+          : item,
+      ),
+    [items, shifted, east, north, shown.background],
+  )
 
   // a child of the map, so react-map-gl gives it no prop for moveend: it listens here, for the panel's view
   useEffect(() => {
@@ -130,10 +190,11 @@ export function ImageryLayers(props: { belowOsm: string }) {
     }
   }, [map, setView])
 
-  if (items.length === 0) return null
+  if (layers.length === 0) return null
   return (
     <>
-      {items.map((item) => (
+      {/* only the background is shifted (see `layers`): the overlays keep their own tiles, as in iD */}
+      {layers.map((item) => (
         <Fragment key={item.sourceId}>
           <Source id={item.sourceId} {...item.source} />
           <Layer

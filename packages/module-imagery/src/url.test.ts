@@ -4,10 +4,12 @@ import { BRIGHTNESS_MAX, BRIGHTNESS_MIN } from './helpers.ts'
 import {
   DISPLAY_RANGES,
   ID_BACKGROUND,
+  ID_OFFSET,
   ID_OVERLAYS,
   NONE,
   parseAsBackground,
   parseAsBgDisplay,
+  parseAsOffset,
   parseAsOverlays,
   readDisplayList,
   customValue,
@@ -169,5 +171,48 @@ describe('the iD names of the parameters', () => {
     expect(display.name).toBe('bg_display')
     expect(display.iD).toBeUndefined()
     expect(display.options.history).toBe('replace')
+  })
+})
+
+describe('offset parser', () => {
+  it('reads east and north in meters, as iD writes them', () => {
+    expect(parseAsOffset.parse('1.5,-2')).toEqual([1.5, -2])
+    expect(parseAsOffset.parse('-0.25,40')).toEqual([-0.25, 40])
+  })
+
+  it('reads a semicolon too, as iD does, and spaces around the numbers', () => {
+    expect(parseAsOffset.parse('1.5;-2')).toEqual([1.5, -2])
+    expect(parseAsOffset.parse(' 3 , 4 ')).toEqual([3, 4])
+  })
+
+  it('rounds to two decimals, as iD writes its hash', () => {
+    expect(parseAsOffset.parse('1.234,-5.678')).toEqual([1.23, -5.68])
+  })
+
+  it('gives no opinion for zero, which is no shift, and for anything that is not two numbers', () => {
+    expect(parseAsOffset.parse('0,0')).toBeNull()
+    expect(parseAsOffset.parse('0.001,0')).toBeNull()
+    expect(parseAsOffset.parse('')).toBeNull()
+    expect(parseAsOffset.parse('5')).toBeNull()
+    expect(parseAsOffset.parse('1,2,3')).toBeNull()
+    expect(parseAsOffset.parse('a,2')).toBeNull()
+    expect(parseAsOffset.parse('1,')).toBeNull()
+    expect(parseAsOffset.parse('Infinity,1')).toBeNull()
+  })
+
+  it('writes two decimals, and compares by the rounded values', () => {
+    expect(parseAsOffset.serialize([1.5, -2])).toBe('1.5,-2')
+    expect(parseAsOffset.serialize([0.333, 1.999])).toBe('0.33,2')
+    expect(parseAsOffset.eq?.([1, 2], [1, 2])).toBe(true)
+    expect(parseAsOffset.eq?.([1, 2], [1, 2.5])).toBe(false)
+  })
+
+  it('round trips through the URL', () => {
+    const value = parseAsOffset.serialize([12.5, -0.75])
+    expect(parseAsOffset.parse(throughUrl('offset', value) ?? '')).toEqual([12.5, -0.75])
+  })
+
+  it("has iD's name, the same name in iD", () => {
+    expect(ID_OFFSET).toEqual({ name: 'offset' })
   })
 })

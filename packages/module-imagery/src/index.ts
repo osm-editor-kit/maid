@@ -9,10 +9,12 @@ import { createImageryStore, ImageryStoreProvider, type ImageryUrls } from './im
 import { drawnShown, ImageryLayers } from './ImageryLayers.tsx'
 import {
   ID_BACKGROUND,
+  ID_OFFSET,
   ID_OVERLAYS,
   NONE,
   parseAsBackground,
   parseAsBgDisplay,
+  parseAsOffset,
   parseAsOverlays,
 } from './url.ts'
 
@@ -27,8 +29,9 @@ export type ImageryOptions = {
  * `@osm-editor-kit/maplibre-editor-layer-index`.
  *
  * The module declares its URL parameters: `bg` (an ELI id, `none`, or `custom:<template>`; iD's `background`, with
- * iD's `layer` read too), `overlays` (iD's name too) and `bg_display` (the brightness, Maid's own name). The URL is the
- * live state; the store keeps the choices for the next visit (docs/research/url-state-audit.md, section 3).
+ * iD's `layer` read too), `overlays` and `offset` (iD's names too, the offset in meters) and `bg_display` (the
+ * brightness, Maid's own name). The URL is the live state; the store keeps the choices for the next visit
+ * (docs/research/url-state-audit.md, section 3). The offset is not stored: iD does not store it either.
  */
 export function imagery(options: ImageryOptions = {}) {
   const store = createImageryStore(options.default ?? null)
@@ -48,6 +51,13 @@ export function imagery(options: ImageryOptions = {}) {
           parser: parseAsOverlays,
           options: { clearOnDefault: false, history: 'replace' },
           iD: ID_OVERLAYS,
+        }),
+        // iD's `offset`, in meters (background.js): live state, not remembered (iD does not remember it either)
+        offset: api.urlParam({
+          name: 'offset',
+          parser: parseAsOffset,
+          options: { history: 'replace' },
+          iD: ID_OFFSET,
         }),
         // no iD name: iD has no such parameter
         display: api.urlParam({
@@ -75,7 +85,7 @@ export function imagery(options: ImageryOptions = {}) {
           createElement(
             ImageryStoreProvider,
             { store, urls },
-            createElement(ImageryLayers, { belowOsm: props.belowOsm }),
+            createElement(ImageryLayers, { belowOsm: props.belowOsm, send: api.editor.fetch }),
           ),
       })
       api.register('topbar.panel', {

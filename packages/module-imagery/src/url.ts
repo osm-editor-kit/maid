@@ -1,6 +1,7 @@
 /**
  * The URL parameters of the imagery module: `bg` (the background; iD calls it `background`), `overlays` (the same
- * name in iD) and `bg_display` (the display settings of the background, Maid's own). The notation is iD's
+ * name in iD), `offset` (the same name and notation in iD, in meters) and `bg_display` (the display settings of the
+ * background, Maid's own). The notation is iD's
  * (`.reference/id/modules/renderer/background.js`): a background is an ELI layer id, `none`, or `custom:<template>`;
  * overlays are a comma list in the order they were chosen; `bg_display` is a comma list of `name:value`.
  *
@@ -8,6 +9,7 @@
  * `setup` (index.ts), and the shell maps the iD names (core's `iD`).
  */
 import type { IdUrlName, UrlParser } from '@osm-editor-kit/maid-core'
+import { isZeroOffset, readOffset, roundOffset, type Meters } from './offset.ts'
 
 /** The background that is no imagery at all */
 export const NONE = 'none'
@@ -79,6 +81,26 @@ export const ID_BACKGROUND: IdUrlName = { name: 'background', aliases: ['layer']
 export const ID_OVERLAYS: IdUrlName = {
   name: 'overlays',
   toId: (value) => (value === NONE ? '' : value),
+}
+
+/** iD's name for the offset: the same name and notation (`offset=east,north` in meters, background.js) */
+export const ID_OFFSET: IdUrlName = { name: 'offset' }
+
+/**
+ * `offset`: the imagery's offset in meters, `east,north` (iD's notation). It is live state: a link sets it, the panel
+ * changes it, and nothing remembers it for the next visit (iD does not either). Two numbers, a comma or a semicolon
+ * between them, rounded to two decimals as iD's hash has them. Anything else, and `0,0`, is no opinion (null).
+ */
+export const parseAsOffset: UrlParser<Meters> = {
+  parse(value) {
+    const meters = readOffset(value)
+    return meters === null || isZeroOffset(meters) ? null : meters
+  },
+  serialize: (meters) => {
+    const [east, north] = roundOffset(meters)
+    return `${east},${north}`
+  },
+  eq: (a, b) => a[0] === b[0] && a[1] === b[1],
 }
 
 /**

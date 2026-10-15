@@ -47,6 +47,27 @@ default (100 %) is shown and no link asked for it (`omitFallback`).
   (`keyLikeNames`), because a shared link includes it.
 - Under automation the start does not run and nothing is written; a local template from a link is still drawn.
 
+## Background offset
+
+iD's `offset` (the same name, `east,north` in meters, rounded to two decimals; iD's `background.js`). It is in the
+panel's "Imagery offset" disclosure: four nudges of half a screen pixel (`NUDGES`, iD's step, divided by 2^zoom), a field
+that takes two numbers (an empty field resets), and a reset. There is no keyboard shortcut: iD has none for the background.
+
+- `offset.ts` is pure: the conversions (iD's `geoMetersToOffset` and `geoOffsetToMeters`, which do not depend on the
+  latitude, as iD's do not), the nudge, the text, and the tile arithmetic. `shiftOf` is iD's pixel offset `offset * 2^z`,
+  scaled to the tile size; `placements` says which of the up to four source tiles overlap an output tile and where.
+- MapLibre has no translate for a raster layer, so a shifted background is drawn tile by tile:
+  `offset-protocol.ts` registers a `maid-offset://` protocol once with the map library (`useControl`, as PMTiles does),
+  fetches the overlapping tiles through the editor's fetch, draws them on a canvas and returns the canvas. With no offset
+  the plain tile URLs are used. Only the background is shifted; overlays are not, as in iD.
+- The offset is live state in the URL and is not stored. As in iD, it belongs to the background: for this visit the
+  shift of the background being left is kept, and the one of the background chosen comes back (`chooseBackground` in
+  `shown.ts`, `offsets` in the store). A link or the start order sets the URL's value and does not swap it.
+- A server without CORS cannot be drawn on a canvas. Its tiles fail, the background is marked, and its layer is drawn
+  unshifted from then on, with "This imagery cannot be shifted" in the panel.
+- Each tile of a shifted layer costs up to four fetches and a canvas draw. A nudge changes the tile URLs, so every
+  visible tile is requested again. Not measured yet.
+
 ## Data
 
 The index's data is bundled in the package and loaded in chunks from the app's own build. Nothing is

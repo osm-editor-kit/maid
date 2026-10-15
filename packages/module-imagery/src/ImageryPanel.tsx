@@ -14,6 +14,7 @@ import {
   useView,
   type SaveResult,
 } from './imagery-store.ts'
+import { OffsetSection } from './OffsetSection.tsx'
 import { filterSeriesRows, seriesRows, type SeriesChip, type SeriesRow } from './series.ts'
 import { useLiveBrightness, useLiveImagery } from './shown.ts'
 import { customValue, isCustomValue, NONE, templateOf } from './url.ts'
@@ -288,6 +289,8 @@ function PanelBody() {
           </span>
         </label>
       ) : null}
+
+      {shownId !== NONE ? <OffsetSection background={shownId} /> : null}
     </>
   )
 }
