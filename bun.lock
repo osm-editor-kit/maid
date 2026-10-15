@@ -55,6 +55,7 @@
         "@osm-editor-kit/maid-module-imagery": "workspace:*",
         "@osm-editor-kit/maid-module-lenses": "workspace:*",
         "@osm-editor-kit/maid-module-notes": "workspace:*",
+        "@osm-editor-kit/maid-module-reroute": "workspace:*",
         "@osm-editor-kit/maid-module-street-imagery": "workspace:*",
         "@osm-editor-kit/maid-module-surface": "workspace:*",
         "@osm-editor-kit/maid-module-traffic-signs": "workspace:*",
@@ -281,6 +282,7 @@
       "dependencies": {
         "@heroicons/react": "^2.2.0",
         "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-i18n": "workspace:*",
         "@osm-editor-kit/maid-model": "workspace:*",
         "@osm-editor-kit/maid-operations": "workspace:*",
         "@osm-editor-kit/maid-renderer": "workspace:*",
@@ -291,6 +293,7 @@
         "zustand": "^5.0.0",
       },
       "devDependencies": {
+        "@types/geojson": "^7946.0.16",
         "@types/react": "^19.3.0",
       },
     },

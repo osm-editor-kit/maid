@@ -8,6 +8,7 @@ import type { Feature, FeatureCollection } from 'geojson'
 import type { RasterSourceSpecification } from 'maplibre-gl'
 import type { ComponentType } from 'react'
 import type { LayerProps } from 'react-map-gl/maplibre'
+import type { MaidEngine } from './engine'
 
 /** Omit per member of a union. A plain `Omit` would keep only one kind of layer. */
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never
@@ -33,6 +34,11 @@ export type MapContentProps = {
   editor: Editor
   /** Pass as `beforeId` to draw under the OSM data */
   belowOsm: typeof BELOW_OSM_LAYER
+  /**
+   * The map engine, for a module that takes the pointer while it works on the map (`engine.enterModuleMode`, see
+   * module-mode.ts). Absent where the app does not pass it to ModuleLayers; such a module does nothing then.
+   */
+  engine?: MaidEngine
 }
 
 /**

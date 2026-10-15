@@ -61,6 +61,8 @@ let lastDrawClick = 0
 let zoomGuardTimer: ReturnType<typeof setTimeout> | undefined
 /** The timer of a long press and where the finger went down */
 let longPress: ReturnType<typeof setTimeout> | undefined
+/** Where the pointer was last, for a module mode's release, which the map sends without a place (touch end) */
+let modulePointer = { lng: 0, lat: 0 }
 let pressedAt: { x: number; y: number } | undefined
 
 type Point = { x: number; y: number }
@@ -287,10 +289,20 @@ export function MapView() {
    */
   const handleMouseDown = (event: MapLayerMouseEvent) => {
     if (event.originalEvent.button !== 0) return
+    // a module mode (rerouting) takes the pointer: a press on one of its handles starts a drag, not a pan
+    if (engine.moduleMode) {
+      if (engine.moduleModePress(event.point, event.lngLat.lng, event.lngLat.lat))
+        event.preventDefault()
+      return
+    }
     if (startTurnOnOpenMap(event)) return
     if (!event.originalEvent.ctrlKey) press(event)
   }
   const release = () => {
+    if (engine.moduleMode) {
+      engine.moduleModeRelease(modulePointer.lng, modulePointer.lat)
+      return
+    }
     if (engine.turning) {
       engine.endTurn()
       setCursor('grab')
@@ -312,6 +324,11 @@ export function MapView() {
     const { lng, lat } = event.lngLat
     // keys that act where the pointer is (paste, Space while drawing) read this
     setEnginePointer(engine, { point: event.point, lon: lng, lat, layers: interactive })
+    if (engine.moduleMode) {
+      modulePointer = { lng, lat }
+      engine.moduleModeMove(lng, lat)
+      return
+    }
     // a turn with the mouse takes the pointer's moves, and nothing else
     if (engine.turning) {
       engine.moveTurn(event.point)
@@ -346,6 +363,10 @@ export function MapView() {
     // a turn whose release was not seen on the map ends here too
     if ((engine.pressingHandle || engine.turning) && event.originalEvent.buttons === 0) release()
     movePointer(event)
+    if (engine.moduleMode) {
+      setCursor(engine.moduleMode.cursor ?? 'crosshair')
+      return
+    }
     if (
       dragging ||
       engine.pressingHandle ||
@@ -407,6 +428,8 @@ export function MapView() {
   const handleContextMenu = (event: MapLayerMouseEvent) => {
     event.originalEvent.preventDefault() // not the browser's own menu
     clearTimeout(longPress)
+    // no edit menu while a module mode has the map
+    if (engine.moduleMode) return
     // the Control press that turns the map on a Mac fires this event too: that press is a turn, not a menu
     if (engine.turning) return
     openMenu(event.point, event.lngLat, {
@@ -418,6 +441,12 @@ export function MapView() {
   const handleTouchStart = (event: MapTouchEvent) => {
     clearTimeout(longPress)
     if (event.points.length !== 1 || engine.measuring) return
+    if (engine.moduleMode) {
+      modulePointer = event.lngLat
+      if (engine.moduleModePress(event.point, event.lngLat.lng, event.lngLat.lat))
+        event.preventDefault()
+      return
+    }
     press(event)
     // iOS sends no contextmenu event for a long press, so it is timed here (iD: 500 ms)
     const touch = event.originalEvent.touches[0]
@@ -453,6 +482,11 @@ export function MapView() {
   const handleClick = (event: MapLayerMouseEvent) => {
     // the click that MapLibre sends after a turn that moved is not a click: the selection stays
     if (performance.now() - engine.turnedAt < 300) return
+    // a click while a module mode is on goes to that mode: it does not select
+    if (engine.moduleMode) {
+      engine.moduleModeClick(event.lngLat.lng, event.lngLat.lat)
+      return
+    }
     if (engine.measuring) {
       // the first click sets the start of the measure, the second ends it: nothing is selected
       guardZoom()
@@ -589,7 +623,7 @@ export function MapView() {
         options={options}
         sourceOptions={{ tolerance: config.tolerance, maxzoom: config.sourceMaxZoom }}
       />
-      <ModuleLayers editor={editor} />
+      <ModuleLayers editor={editor} engine={engine} />
       {/* with a menu open its marker is the count: the pill is not shown twice */}
       {!menu && <StackPicker />}
       <FavouriteHint />

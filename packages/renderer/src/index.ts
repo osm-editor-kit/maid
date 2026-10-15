@@ -11,6 +11,8 @@ export {
 export type { ChangeTagsResult, TagChangeRequest } from './change-tags'
 export { type FieldOverlay, type SideChoice } from './field-overlay'
 export { distanceMetres, formatMetres } from './measure'
+// A module's own map mode: the pointer on the map goes to the module while it is on (module-mode.ts)
+export { CLICK_AFTER_DRAG_MS, type ModuleMode, type ScreenPoint } from './module-mode'
 export {
   BELOW_OSM_LAYER,
   operations,

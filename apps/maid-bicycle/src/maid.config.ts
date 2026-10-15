@@ -8,6 +8,7 @@ import { dataLayers } from '@osm-editor-kit/maid-module-data-layers'
 import { imagery } from '@osm-editor-kit/maid-module-imagery'
 import { lenses } from '@osm-editor-kit/maid-module-lenses'
 import { notes } from '@osm-editor-kit/maid-module-notes'
+import { reroute } from '@osm-editor-kit/maid-module-reroute'
 import { streetImagery } from '@osm-editor-kit/maid-module-street-imagery'
 import { surface } from '@osm-editor-kit/maid-module-surface'
 import { trafficSigns } from '@osm-editor-kit/maid-module-traffic-signs'
@@ -84,6 +85,8 @@ function editorConfig(config: Config) {
     notes({ apiUrl: config.apiUrl }),
     // dock "Way table": the selected way next to the ways before and after it, tag by tag, editable
     wayTable(),
+    // inspector section "Reroute" on a bicycle or hiking route: click two points, the route runs over the loaded ways
+    reroute(),
   ]
   // dashed outline around the area the fixture covers
   if (bbox) modules.push(sceneBounds({ bbox }))

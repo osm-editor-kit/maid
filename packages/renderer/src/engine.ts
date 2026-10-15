@@ -52,6 +52,7 @@ import {
 import { ACTIVE_SOURCE, activePinIds, EDIT_SOURCES, SELECT_SOURCES, SOURCES } from './layers'
 import { MeasureSession } from './measure-session'
 import { MidpointHandles } from './midpoint-handles'
+import { type ModuleMode, ModuleModeSession, type ScreenPoint } from './module-mode'
 import {
   boxesOf,
   centreOfBox,
@@ -211,6 +212,7 @@ export class MaidEngine {
       data: this.data,
       mayCompute: () =>
         this.currentMode === 'browse' &&
+        !this.moduleMode &&
         !this.draw.active &&
         !this.transform.active &&
         !this.measuring,
@@ -845,12 +847,107 @@ export class MaidEngine {
     return this.currentMode
   }
 
+  // --- Module modes (module-mode.ts): a module takes the pointer on the map while its mode is on ---
+
+  private readonly moduleSession = new ModuleModeSession({
+    handleAt: (point, layers) => this.handleAt(point, layers),
+    now: () => performance.now(),
+    changed: () => this.moduleChanged(),
+  })
+  /** Escape ends a module mode: a window listener in the capture phase, so the editor's own Escape does not see it */
+  private moduleEscape?: (event: KeyboardEvent) => void
+
+  /** The module mode under way, if any. While it is, the shell's map view sends its pointer to the moduleMode* methods. */
+  get moduleMode(): ModuleMode | undefined {
+    return this.moduleSession.mode
+  }
+
+  /**
+   * Starts a module mode: the pointer on the map goes to `mode` until it ends (Escape, `exitModuleMode`, `setMode`, or
+   * another mode). A drawing, a measure or a move under way is finished first, as a mode change does. The selection is
+   * kept, and the clicks do not change it.
+   */
+  enterModuleMode(mode: ModuleMode) {
+    this.cancelMeasure()
+    if (this.draw.active) this.draw.finish()
+    if (this.transform.active) this.transform.finish()
+    this.moduleSession.enter(mode)
+    if (this.moduleEscape === undefined && typeof window !== 'undefined') {
+      const onKey = (event: KeyboardEvent) => {
+        if (event.key !== 'Escape' || !this.moduleMode) return
+        event.preventDefault()
+        event.stopPropagation()
+        this.exitModuleMode()
+      }
+      this.moduleEscape = onKey
+      window.addEventListener('keydown', onKey, true)
+    }
+  }
+
+  /** Ends the module mode under way, or only the one with this id (a no-op when another, or none, is under way) */
+  exitModuleMode(id?: string) {
+    this.moduleSession.exit(id)
+  }
+
+  /**
+   * A press on the map while a module mode is on: a handle of the mode starts a drag (true: the map must not pan);
+   * anywhere else nothing happens (false)
+   */
+  moduleModePress(point: ScreenPoint, lon: number, lat: number) {
+    return this.moduleSession.press(point, lon, lat)
+  }
+
+  /** The pointer moved over the map while a module mode is on (a handle drag follows it) */
+  moduleModeMove(lon: number, lat: number) {
+    this.moduleSession.move(lon, lat)
+  }
+
+  /** The button went up while a module mode is on: ends a handle drag */
+  moduleModeRelease(lon: number, lat: number) {
+    this.moduleSession.release(lon, lat)
+  }
+
+  /** A click on the map while a module mode is on: goes to the mode, not to the selection */
+  moduleModeClick(lon: number, lat: number) {
+    this.moduleSession.click(lon, lat)
+  }
+
+  /** Runs after the mode started or ended: cursor, midpoints, highlight, listeners */
+  private moduleChanged() {
+    const mode = this.moduleMode
+    const container = this.map?.getCanvasContainer()
+    if (container) container.style.cursor = mode ? (mode.cursor ?? 'crosshair') : ''
+    if (!mode) this.removeModuleEscape()
+    this.handles.compute()
+    this.pushHighlight()
+    this.changed()
+  }
+
+  private removeModuleEscape() {
+    if (this.moduleEscape !== undefined && typeof window !== 'undefined')
+      window.removeEventListener('keydown', this.moduleEscape, true)
+    this.moduleEscape = undefined
+  }
+
+  /** The handle under a pixel: the `handle` property of the first feature of `layers` there */
+  private handleAt(point: ScreenPoint, layers: readonly string[]): string | undefined {
+    const map = this.map
+    if (!map) return undefined
+    const present = layers.filter((layer) => map.getLayer(layer))
+    if (present.length === 0) return undefined
+    const [feature] = map.queryRenderedFeatures([point.x, point.y], { layers: present })
+    const handle = feature?.properties?.handle
+    return typeof handle === 'string' ? handle : undefined
+  }
+
   /**
    * Changes the mode. A way that is being drawn is finished first, as iD does, and so is a move
    * or rotation. `move` and `rotate` need a selection that can be changed; without one the mode
    * stays as it is and false is returned.
    */
   setMode(mode: Mode) {
+    // a module mode is a mode of its own: a mode the editor changes to ends it, as a measure ends
+    if (this.moduleMode) this.exitModuleMode()
     if (mode === this.currentMode) return true
     // a measure is not a mode of its own: a mode the editor changes to ends it, without a value
     this.cancelMeasure()
@@ -979,6 +1076,7 @@ export class MaidEngine {
   private busy() {
     return (
       this.dragged !== undefined ||
+      this.moduleSession.dragged ||
       this.handles.pressing ||
       this.draw.active ||
       this.transform.active ||
@@ -1243,6 +1341,7 @@ export class MaidEngine {
    * the next request is cleared. For an engine that is not used any more.
    */
   destroy() {
+    this.removeModuleEscape()
     this.presetsHold.destroy()
     this.tiles.destroy()
   }
