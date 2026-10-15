@@ -356,6 +356,8 @@ export class MaidEngine {
     const added = this.data.merge(elements)
     const t1 = performance.now()
     const built = this.builder.build(added)
+    // outlines that a complete multipolygon replaced leave the map before the new features go out (build.ts)
+    this.removeFeatures(this.builder.takeRemoved())
     const t2 = performance.now()
     // decided now, not when the images are ready: by then the first view may count as complete
     const tier = this.tiles.firstLoadDone ? 'live' : 'base'
@@ -791,7 +793,9 @@ export class MaidEngine {
     this.builder.reset()
     // the copies are rebuilt from the data that comes back; a wanted point that is gone leaves no copy
     this.activeCopies.clear()
-    this.push(this.builder.build(this.data.all()), 'base')
+    const rebuilt = this.builder.build(this.data.all())
+    this.removeFeatures(this.builder.takeRemoved())
+    this.push(rebuilt, 'base')
     this.flushActive()
     for (const channel of this.sender.allChannels()) void this.sender.flush(channel)
     queueMicrotask(() => this.applyHighlight([], 'selected'))

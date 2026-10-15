@@ -230,6 +230,44 @@ function lineFeature(
   }
 }
 
+/**
+ * The outline of an untagged member way of a multipolygon that is not complete yet. iD draws such a member
+ * as an edge of its area ('relation area' lines, svg/lines.js), so this takes the stroke that the area's
+ * outline has (areaFeature): the line's stroke for a barrier, else the area's. An area has no casing and
+ * its hover halo is its shadow, so neither is set here. The feature is the way itself, so it is picked as the way.
+ */
+function partialFeature(
+  id: string,
+  coords: Position[],
+  tags: Tags,
+): Feature<LineString, LineProps> {
+  const classes = tagClasses(tags)
+  const area = resolveWayStyle(classes, 'area')
+  const barrier = tags.barrier && tags.barrier !== 'no'
+  const stroke = barrier ? resolveWayStyle(classes, 'line').stroke : area.stroke
+  const layer = wayLayer(tags)
+  const props: LineProps = {
+    id,
+    b: layer < 0 ? -1 : layer > 0 ? 1 : 0,
+    z: layer * 20,
+    sw: stroke.width,
+    swl: stroke.widthLow,
+    cw: 0,
+    cwl: 0,
+    hw: area.shadow.width,
+    hwl: area.shadow.widthLow,
+  }
+  if (stroke.color) props.sc = stroke.color
+  const sd = dashKey(stroke.dash, stroke.width)
+  if (sd) props.sd = sd
+  return {
+    type: 'Feature',
+    id,
+    properties: props,
+    geometry: { type: 'LineString', coordinates: coords },
+  }
+}
+
 /** MapLibre offsets lines to the left of their direction; counter-clockwise rings put the inside on the left. */
 function orient(ring: Position[], counterClockwise: boolean) {
   const { area } = ringMetrics(ring)
@@ -351,6 +389,20 @@ function multipolygon(data: OsmData, relation: OsmRelation) {
   return polygons
 }
 
+/**
+ * The tags an incomplete multipolygon's outline is styled with: its own, or (old style, as build() takes
+ * a complete one) those of a member way that has tags of its own. No tags while none has arrived.
+ */
+function outlineTags(data: OsmData, relation: OsmRelation): Tags {
+  if (!Object.keys(relation.tags).every((k) => k === 'type')) return relation.tags
+  for (const m of relation.members) {
+    if (m.type !== 'way' || m.role === 'inner') continue
+    const way = data.way(m.id)
+    if (way && hasInterestingTags(way.tags)) return way.tags
+  }
+  return {}
+}
+
 /** iD hides boundaries by default (renderer/features.js, rule `boundaries`) */
 function isHiddenBoundary(t: Tags) {
   return (
@@ -367,6 +419,8 @@ export class FeatureBuilder {
   private built = new Set<string>()
   /** Multipolygons whose members were not all loaded yet */
   private pendingRelations = new Set<string>()
+  /** Features that left the map since the last `takeRemoved`: the outline of a member that is now drawn by its area */
+  private leaving: [SourceName, string][] = []
   private vertexState = new Map<string, string>()
 
   /**
@@ -399,8 +453,19 @@ export class FeatureBuilder {
     this.hidden = {}
     this.built.clear()
     this.pendingRelations.clear()
+    this.leaving = []
     this.vertexState.clear()
     this.states.clear()
+  }
+
+  /**
+   * The features that left the map since the last call, as [source, id]. The caller removes them from
+   * MapLibre: an outline of a member way that its multipolygon's area now draws (build). Call after each build.
+   */
+  takeRemoved(): [SourceName, string][] {
+    const out = this.leaving
+    this.leaving = []
+    return out
   }
 
   /** True if the entity has a feature that may be looked at but not changed */
@@ -468,8 +533,12 @@ export class FeatureBuilder {
       const feature = areaFeature(id, [[coords]], tags, tagClasses(tags))
       return { source: 'areas', feature: restyleArea(feature, lens) }
     }
-    // ways that only carry a multipolygon's outline are drawn by the relation's area
-    if (!hasInterestingTags(way.tags) && data.wayMultipolygons.has(way.id)) return undefined
+    // an untagged member of a multipolygon is drawn by the relation's area; while the relation is
+    // incomplete, the loaded members are drawn as its outline instead (partialOutline)
+    if (!hasInterestingTags(tags) && data.wayMultipolygons.has(id)) {
+      const owner = this.waitingOwner(id)
+      return owner === undefined ? undefined : this.partialOutline(id, coords, owner)
+    }
     const feature = lineFeature(id, coords, tags, tagClasses(tags))
     return { source: 'lines', feature: restyleLine(feature, lens) }
   }
@@ -543,20 +612,121 @@ export class FeatureBuilder {
     }
   }
 
+  /** The incomplete multipolygon that draws an untagged member's outline: the first of its relations that waits */
+  private waitingOwner(wayId: string) {
+    for (const relationId of this.data.wayMultipolygons.get(wayId) ?? []) {
+      if (this.pendingRelations.has(relationId)) return relationId
+    }
+    return undefined
+  }
+
+  /** The outline of an untagged member of an incomplete multipolygon, styled by that multipolygon (partialFeature) */
+  private partialOutline(id: string, coords: Position[], relationId: string) {
+    const relation = this.data.relation(relationId)
+    if (!relation) return undefined
+    const tags = outlineTags(this.data, relation)
+    // the member follows the multipolygon's filter, as its area would
+    if (this.isFiltered(id, tags, 'area', false)) return undefined
+    const lens = this.lensOf(tags, 'area')
+    if (lens?.hidden) {
+      this.states.set(id, 'hidden')
+      return undefined
+    }
+    return {
+      source: 'lines' as const,
+      feature: restyleLine(partialFeature(id, coords, tags), lens),
+    }
+  }
+
+  /** Builds a way into the batch, once per build (`seen`): its outline, or its own feature */
+  private outline(way: OsmWay, out: FeatureBatch, seen: Set<string>) {
+    if (seen.has(way.id)) return
+    seen.add(way.id)
+    const drawn = this.buildWay(way)
+    if (drawn) out[drawn.source].push(drawn.feature)
+  }
+
+  /**
+   * Draws the loaded untagged members of an incomplete multipolygon as its outline. `fresh`: the relation
+   * itself came or changed, so every member is drawn again; else only the members that came with this merge.
+   */
+  private outlineMembers(
+    relation: OsmRelation,
+    fresh: boolean,
+    out: FeatureBatch,
+    seen: Set<string>,
+  ) {
+    for (const m of relation.members) {
+      if (m.type !== 'way') continue
+      const way = this.data.way(m.id)
+      if (!way || hasInterestingTags(way.tags)) continue
+      if (!fresh && this.built.has(m.id)) continue
+      if (this.waitingOwner(m.id) !== relation.id) continue
+      this.outline(way, out, seen)
+    }
+  }
+
+  /**
+   * A multipolygon that is complete now draws its members as its area. Their outlines leave the map, unless
+   * another incomplete multipolygon of the member is waiting for it: then the member takes that one's style.
+   */
+  private releaseMembers(relation: OsmRelation, out: FeatureBatch, seen: Set<string>) {
+    for (const m of relation.members) {
+      if (m.type !== 'way') continue
+      const way = this.data.way(m.id)
+      if (!way || hasInterestingTags(way.tags)) continue
+      if (this.waitingOwner(m.id) !== undefined) this.outline(way, out, seen)
+      else if (this.built.has(m.id)) this.leaving.push(['lines', m.id])
+    }
+  }
+
+  /**
+   * The incomplete multipolygons this merge touches, as `fresh` flags: a relation that came with it (true),
+   * or one with a member that came with it (false; true when that member is tagged and gives an old-style
+   * multipolygon its outline). Undefined while no multipolygon waits, so a complete map pays nothing here.
+   */
+  private touchedPending(added: MergeResult) {
+    if (this.pendingRelations.size === 0) return undefined
+    const touched = new Map<string, boolean>()
+    for (const relation of added.relations) {
+      if (this.pendingRelations.has(relation.id)) touched.set(relation.id, true)
+    }
+    for (const way of added.ways) {
+      const relationIds = this.data.wayMultipolygons.get(way.id)
+      if (!relationIds) continue
+      const tagged = hasInterestingTags(way.tags)
+      for (const id of relationIds) {
+        if (!this.pendingRelations.has(id)) continue
+        const oldStyle = Object.keys(this.data.relation(id)?.tags ?? {}).every((k) => k === 'type')
+        const fresh = touched.get(id) ?? false
+        touched.set(id, fresh || (tagged && oldStyle))
+      }
+    }
+    return touched
+  }
+
   /** Features for everything a merge added. Call once per merge, in order. */
   build(added: MergeResult) {
     const { data } = this
     const out: FeatureBatch = { areas: [], lines: [], points: [], vertices: [] }
+    // the ways drawn as outlines of a multipolygon in this build, each once
+    const seen = new Set<string>()
 
     for (const relation of added.relations) {
       if (relation.tags.type === 'multipolygon') this.pendingRelations.add(relation.id)
     }
+    const waiting = this.touchedPending(added)
     for (const id of this.pendingRelations) {
       const relation = data.relation(id)
       if (!relation) continue
       const polygons = multipolygon(data, relation)
-      if (!polygons) continue
+      if (!polygons) {
+        const fresh = waiting?.get(id)
+        if (fresh !== undefined) this.outlineMembers(relation, fresh, out, seen)
+        continue
+      }
       this.pendingRelations.delete(id)
+      this.releaseMembers(relation, out, seen)
       // old-style multipolygons carry their tags on the outer way
       let tags = relation.tags
       if (Object.keys(tags).every((k) => k === 'type')) {

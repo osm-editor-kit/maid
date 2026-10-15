@@ -57,12 +57,44 @@ export function redrawEntities(
     const previous = featureSource.get(id)
     if (previous && previous !== drawn?.source) remove.push([previous, id])
   }
+  // the entities may be an iterator: they are read twice, once for the multipolygons and once for the rest
+  const list = [...entities]
   // the area of a multipolygon is drawn from its member ways: it follows when one of them changes
   const multipolygons = new Set<string>()
   const memberOf = (wayId: string) => {
     for (const relationId of data.wayMultipolygons.get(wayId) ?? []) multipolygons.add(relationId)
   }
-  for (const { id, moved } of entities) {
+  for (const { id, moved } of list) {
+    switch (id.charAt(0)) {
+      case 'n':
+        if (moved && data.node(id) && data.nodeWays.has(id))
+          for (const wayId of data.nodeWays.get(id) ?? []) memberOf(wayId)
+        break
+      case 'w':
+        memberOf(id)
+        break
+      case 'r':
+        multipolygons.add(id)
+        break
+    }
+  }
+  // before the ways: a multipolygon's build decides which of its untagged members are drawn as its outline,
+  // and those are placed here, so the ways below leave them alone. The shape comes from the data, so the order
+  // does not change what is drawn.
+  for (const id of multipolygons) {
+    const relation = data.relation(id)
+    if (!relation || relation.tags.type !== 'multipolygon') {
+      place(id)
+      continue
+    }
+    // build() also returns multipolygons that were waiting for members, and their outlines: those are drawn too
+    const out = builder.build({ nodes: [], ways: [], relations: [relation] })
+    const area = out.areas.find((f) => f.id === id)
+    place(id, area && { source: 'areas', feature: area })
+    for (const f of out.areas) if (f.id !== id) batch.areas.push(f)
+    for (const f of out.lines) place(String(f.id), { source: 'lines', feature: f })
+  }
+  for (const { id, moved } of list) {
     switch (id.charAt(0)) {
       case 'n': {
         const node = data.node(id)
@@ -71,12 +103,11 @@ export function redrawEntities(
         } else if (data.nodeWays.has(id)) {
           if (moved)
             for (const wayId of data.nodeWays.get(id) ?? []) {
-              // a way that another node already placed is built already: check before building
+              // a way that another node or a multipolygon already placed is built already: check before building
               if (!placed.has(wayId)) {
                 const way = data.way(wayId)
                 if (way) place(wayId, builder.buildWay(way))
               }
-              memberOf(wayId)
             }
           const vertex = builder.refreshVertex(node)
           place(id, vertex && { source: 'vertices', feature: vertex })
@@ -91,25 +122,10 @@ export function redrawEntities(
           const way = data.way(id)
           place(id, way && builder.buildWay(way))
         }
-        memberOf(id)
-        break
-      case 'r':
-        multipolygons.add(id)
         break
     }
   }
-  // after the ways, so a multipolygon is built once from the new shape of all its members
-  for (const id of multipolygons) {
-    const relation = data.relation(id)
-    if (!relation || relation.tags.type !== 'multipolygon') {
-      place(id)
-      continue
-    }
-    // build() also returns multipolygons that were waiting for members: those are drawn too
-    const out = builder.build({ nodes: [], ways: [], relations: [relation] })
-    const area = out.areas.find((f) => f.id === id)
-    place(id, area && { source: 'areas', feature: area })
-    for (const f of out.areas) if (f.id !== id) batch.areas.push(f)
-  }
+  // outlines that a complete multipolygon replaced and that were not placed above leave the map
+  for (const [source, id] of builder.takeRemoved()) if (!placed.has(id)) remove.push([source, id])
   return { batch, remove }
 }
