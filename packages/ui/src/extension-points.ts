@@ -54,6 +54,13 @@ export type DockViewProps = {
   editor: Editor
   /** Selects an entity (or several, or nothing), for example the one an issue is about */
   select: (selection: string | readonly string[] | null) => void
+  /** The ids selected now, in selection order (empty: nothing selected) */
+  selected: readonly string[]
+  /**
+   * Marks features on the map while the pointer or the focus is on a row or a column that stands for them, with the
+   * calm halo of related features (the engine's setRelated); null clears it.
+   */
+  highlight: (ids: readonly string[] | null) => void
 }
 
 /** A view in the dock under the map, with its own tab */

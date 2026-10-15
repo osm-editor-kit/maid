@@ -39,16 +39,19 @@ function LoadedData() {
 
 /** The dock under the map, closed at first: the views of modules, then the editor's own (`dock.view`) */
 export function BottomDock() {
-  const { editor } = useShell()
+  const { editor, engine } = useShell()
   const views = useExtensionPoint(editor, 'dock.view')
-  const { select } = useSelection()
+  const { select, ids } = useSelection()
+  const highlight = (ids: readonly string[] | null) => engine.setRelated(ids)
   return (
     <Dock
       tabs={[
         ...views.map((view) => ({
           id: view.id,
           label: view.label,
-          content: <view.component editor={editor} select={select} />,
+          content: (
+            <view.component editor={editor} select={select} selected={ids} highlight={highlight} />
+          ),
         })),
         { id: 'data', label: 'Data', content: <LoadedData /> },
       ]}
