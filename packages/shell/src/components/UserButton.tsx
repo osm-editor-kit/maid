@@ -1,8 +1,9 @@
 import { ArrowRightEndOnRectangleIcon, UserCircleIcon } from '@heroicons/react/20/solid'
 import { m } from '@osm-editor-kit/maid-i18n'
-import { Flyout, ThemeSwitch, toolButtonClass } from '@osm-editor-kit/maid-ui'
+import { Flyout, ThemeSwitch, toolButtonClass, useAppliedTheme } from '@osm-editor-kit/maid-ui'
 import { useAuth } from '../auth'
 import { useShell } from '../shell-context'
+import { useThemeSetting } from '../url/state'
 import { LanguageSelect } from './LanguageSelect'
 import { ServerSelect } from './ServerSelect'
 
@@ -18,6 +19,9 @@ export function UserButton() {
   const auth = useAuth()
   const { auth: authActions, config } = useShell()
   const { login, logout } = authActions
+  // always mounted (the top bar), so the page's theme follows the URL even while the flyout is closed
+  const theme = useThemeSetting()
+  useAppliedTheme(theme.value)
   return (
     <Flyout
       label={m.topbar_account()}
@@ -87,7 +91,7 @@ export function UserButton() {
       <div className="rounded-b-2xl bg-zinc-50 dark:bg-white/5">
         <div className="flex items-center justify-between gap-3 px-4 py-3">
           <span className="font-medium">{m.topbar_appearance()}</span>
-          <ThemeSwitch />
+          <ThemeSwitch value={theme.value} onChange={theme.choose} />
         </div>
         <div className="flex items-center justify-between gap-3 border-t border-zinc-950/5 px-4 py-3 dark:border-white/10">
           <span className="font-medium">{m.topbar_language()}</span>

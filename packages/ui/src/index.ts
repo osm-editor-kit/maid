@@ -61,7 +61,7 @@ export {
   type Settings,
   type Theme,
 } from './settings.ts'
-export { initTheme, useResolvedTheme, useTheme } from './theme.ts'
+export { initTheme, useAppliedTheme, useThemeInEffect } from './theme.ts'
 export { ThemeSwitch } from './ThemeSwitch.tsx'
 export {
   SegmentedControl,

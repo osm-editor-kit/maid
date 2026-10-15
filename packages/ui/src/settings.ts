@@ -21,6 +21,7 @@ export type LastView = { lng: number; lat: number; zoom: number; bearing?: numbe
 
 /** What the UI remembers between visits */
 export type Settings = {
+  /** The person's own choice (`system` when none). A link's `theme` is in the URL and never written here. */
   theme: Theme
   /** Panel sizes in pixels, by the key the panel gave (`sidebar-width`, `dock-height`) */
   sizes: Record<string, number>

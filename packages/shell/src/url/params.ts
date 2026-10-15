@@ -85,6 +85,22 @@ export const stateParams = {
   filters: parseAsString,
   /** The language of this page. The account menu's choice writes it too, so the address and the stored choice agree */
   lang: parseAsLang,
+  /**
+   * Light, dark, or `system` (follow the operating system), as iD's `theme` for light and dark. No key follows the
+   * system: the theme switch writes `system` by removing the key, like `lang`.
+   */
+  theme: parseAsStringLiteral(['light', 'dark', 'system']),
+  /** The changeset's comment, hashtags and source, prefilled from a link as in iD */
+  comment: parseAsString,
+  hashtags: parseAsString,
+  source: parseAsString,
+  /**
+   * The levels of validation rules, as iD's `validationDisable`, `validationWarning` and `validationError`: comma lists
+   * of `type/subtype` with `*`. Read at start; Maid does not write them.
+   */
+  validation_disable: parseAsString,
+  validation_warning: parseAsString,
+  validation_error: parseAsString,
 }
 
 /**

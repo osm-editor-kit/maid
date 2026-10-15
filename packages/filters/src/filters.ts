@@ -261,3 +261,16 @@ export function fromIdDisableFeatures(value: string) {
     .map((id) => `${id}:hidden`)
     .join(',')
 }
+
+/**
+ * This package's parameter as iD's `disable_features`: the hidden filters, `boundaries:hidden,buildings:readonly` is
+ * `boundaries`. iD has no read-only state, so those are left out.
+ */
+export function toIdDisableFeatures(param: string) {
+  return param
+    .split(',')
+    .map((entry) => entry.trim().split(':'))
+    .filter(([id, state]) => id && state === 'hidden')
+    .map(([id]) => id)
+    .join(',')
+}

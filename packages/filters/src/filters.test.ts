@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 import { defaultFilters } from './default'
-import { createFilterSet, fromIdDisableFeatures, matches } from './filters'
+import { createFilterSet, fromIdDisableFeatures, matches, toIdDisableFeatures } from './filters'
 import type { Filter, FilterState, Geometry, Tags } from './types'
 
 const set = createFilterSet(defaultFilters)
@@ -468,5 +468,22 @@ describe('speed', () => {
     const elapsed = performance.now() - start
     console.log(`stateOf x 200,000: ${elapsed.toFixed(1)} ms (${hidden} hidden)`)
     expect(elapsed).toBeLessThan(5000)
+  })
+})
+
+describe('toIdDisableFeatures', () => {
+  it("lists the hidden filters, as iD's disable_features", () => {
+    expect(toIdDisableFeatures('boundaries:hidden,buildings:readonly,water:hidden')).toBe(
+      'boundaries,water',
+    )
+  })
+
+  it('gives an empty text when nothing is hidden', () => {
+    expect(toIdDisableFeatures('buildings:readonly')).toBe('')
+    expect(toIdDisableFeatures('')).toBe('')
+  })
+
+  it('reads back what fromIdDisableFeatures writes', () => {
+    expect(toIdDisableFeatures(fromIdDisableFeatures('points;paths'))).toBe('points,paths')
   })
 })

@@ -15,6 +15,7 @@
  * imagery module's `background` and `overlays` are such rows, so they are not in this table.
  */
 import type { UrlParamHandle } from '@osm-editor-kit/maid-core'
+import { fromIdDisableFeatures, toIdDisableFeatures } from '@osm-editor-kit/maid-filters'
 import { isLocale } from '@osm-editor-kit/maid-i18n'
 
 /** The iD parameters a module declared, as core's registry lists them */
@@ -38,11 +39,27 @@ export type Rule = Mapped | Dropped
 export const ID_URL_RULES: Rule[] = [
   { id: 'map', maid: 'map', kind: 'same', fromId: normaliseMap }, // zoom/lat/lng in both
   { id: 'id', maid: 'id', kind: 'same' }, // n1,w2,r3; Maid selects the first for now
-  { id: 'offset', maid: 'offset', kind: 'carried' },
-  { id: 'disable_features', maid: 'disable_features', kind: 'carried' },
-  { id: 'comment', maid: 'comment', kind: 'carried' },
-  { id: 'hashtags', maid: 'hashtags', kind: 'carried' },
-  { id: 'source', maid: 'source', kind: 'carried' },
+  // iD's hidden features are Maid's filters with the state hidden (iD has no read-only state)
+  {
+    id: 'disable_features',
+    maid: 'filters',
+    kind: 'same',
+    fromId: (value) => fromIdDisableFeatures(value) || undefined,
+    toId: toIdDisableFeatures,
+  },
+  { id: 'comment', maid: 'comment', kind: 'same' }, // the changeset's prefills, as in iD
+  { id: 'hashtags', maid: 'hashtags', kind: 'same' },
+  { id: 'source', maid: 'source', kind: 'same' },
+  { id: 'theme', maid: 'theme', kind: 'same' }, // light or dark
+  // the levels of validation rules, read at start (iD's names in camel case, Maid's in snake case)
+  { id: 'validationDisable', maid: 'validation_disable', kind: 'same' },
+  { id: 'validationWarning', maid: 'validation_warning', kind: 'same' },
+  { id: 'validationError', maid: 'validation_error', kind: 'same' },
+  {
+    id: 'validationSuggestion',
+    kind: 'dropped',
+    why: 'Maid has no suggestion level, only warnings and errors',
+  },
   { id: 'locale', maid: 'lang', kind: 'same', fromId: localeFromId }, // de-DE in iD, de in Maid
   { id: 'photo_username', maid: 'photo_username', kind: 'carried' },
   {

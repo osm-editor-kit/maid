@@ -98,7 +98,7 @@ let failed = await runCheck(sceneName, async ({ page, report, settle, drawnIn })
 })
 
 // a link with a filter starts with it, in Maid's form and in iD's
-for (const query of ['filters=buildings:hidden', 'disable_features=buildings'])
+for (const query of ['filters=buildings:hidden', '#disable_features=buildings'])
   failed += await runCheck(
     sceneName,
     async ({ page, report }) => {

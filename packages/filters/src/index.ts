@@ -8,7 +8,7 @@ export type {
   TagMatch,
   Tags,
 } from './types'
-export { createFilterSet, fromIdDisableFeatures, matches } from './filters'
+export { createFilterSet, fromIdDisableFeatures, matches, toIdDisableFeatures } from './filters'
 export {
   addressPoints,
   aerialways,

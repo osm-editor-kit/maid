@@ -1,29 +1,37 @@
 import { ComputerDesktopIcon, MoonIcon, SunIcon } from '@heroicons/react/20/solid'
-import { useTheme } from './theme'
+import type { Theme } from './settings.ts'
 import { ToolButton, ToolGroup } from './Toolbar'
 
-/** Light, dark and match-system buttons; the current choice is shown as selected. */
-export function ThemeSwitch() {
-  const [theme, setTheme] = useTheme()
+/**
+ * Light, dark and match-system buttons; the theme in effect is shown as selected. Controlled: the shell owns the
+ * value (the URL's `theme`, else the stored choice) and what a choice writes.
+ */
+export function ThemeSwitch({
+  value,
+  onChange,
+}: {
+  value: Theme
+  onChange: (theme: Theme) => void
+}) {
   return (
     <ToolGroup label="Theme">
       <ToolButton
         label="Light theme"
         icon={<SunIcon />}
-        selected={theme === 'light'}
-        onClick={() => setTheme('light')}
+        selected={value === 'light'}
+        onClick={() => onChange('light')}
       />
       <ToolButton
         label="Dark theme"
         icon={<MoonIcon />}
-        selected={theme === 'dark'}
-        onClick={() => setTheme('dark')}
+        selected={value === 'dark'}
+        onClick={() => onChange('dark')}
       />
       <ToolButton
         label="Match system"
         icon={<ComputerDesktopIcon />}
-        selected={theme === 'system'}
-        onClick={() => setTheme('system')}
+        selected={value === 'system'}
+        onClick={() => onChange('system')}
       />
     </ToolGroup>
   )

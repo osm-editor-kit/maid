@@ -122,21 +122,39 @@ describe('createdByValue', () => {
 
 describe('changesetTags', () => {
   it('sets the editor and the trimmed comment', () => {
-    expect(changesetTags('  Added a cafe ', 'Maid 0.1')).toEqual({
+    expect(changesetTags({ comment: '  Added a cafe ' }, 'Maid 0.1')).toEqual({
       created_by: 'Maid 0.1',
       comment: 'Added a cafe',
     })
   })
 
   it('collects hashtags from the comment, each once', () => {
-    expect(changesetTags('Paths #radnetz and #berlin, again #radnetz.', 'Maid 0.1').hashtags).toBe(
-      '#radnetz;#berlin',
-    )
+    expect(
+      changesetTags({ comment: 'Paths #radnetz and #berlin, again #radnetz.' }, 'Maid 0.1')
+        .hashtags,
+    ).toBe('#radnetz;#berlin')
+  })
+
+  it('writes the hashtags value and the source of the draft', () => {
+    expect(
+      changesetTags(
+        { comment: 'Fixed the bench', hashtags: 'mapathon', source: 'survey' },
+        'Maid 0.1',
+      ),
+    ).toEqual({
+      created_by: 'Maid 0.1',
+      comment: 'Fixed the bench',
+      hashtags: '#mapathon',
+      source: 'survey',
+    })
   })
 
   it('writes the imagery on the map as imagery_used, background first', () => {
     expect(
-      changesetTags('Added a cafe', 'Maid 0.1', ['Bing aerial imagery', 'Road overlay']),
+      changesetTags({ comment: 'Added a cafe' }, 'Maid 0.1', [
+        'Bing aerial imagery',
+        'Road overlay',
+      ]),
     ).toEqual({
       created_by: 'Maid 0.1',
       comment: 'Added a cafe',
@@ -145,8 +163,12 @@ describe('changesetTags', () => {
   })
 
   it('leaves imagery_used out when no imagery is on the map', () => {
-    expect(changesetTags('Added a cafe', 'Maid 0.1', [])).not.toHaveProperty('imagery_used')
-    expect(changesetTags('Added a cafe', 'Maid 0.1')).not.toHaveProperty('imagery_used')
+    expect(changesetTags({ comment: 'Added a cafe' }, 'Maid 0.1', [])).not.toHaveProperty(
+      'imagery_used',
+    )
+    expect(changesetTags({ comment: 'Added a cafe' }, 'Maid 0.1')).not.toHaveProperty(
+      'imagery_used',
+    )
   })
 })
 

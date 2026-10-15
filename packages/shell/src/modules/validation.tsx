@@ -3,20 +3,61 @@ import { m } from '@osm-editor-kit/maid-i18n'
 import { OsmWay, type Graph } from '@osm-editor-kit/maid-model'
 import type { DockViewProps, InspectorSectionProps } from '@osm-editor-kit/maid-ui'
 import {
+  applyOverrides,
   createValidator,
   type Fix,
   type Issue,
+  type Overrides,
+  parseOverrides,
   type Rule,
   type Validator,
 } from '@osm-editor-kit/maid-validation'
 import { useSyncExternalStore } from 'react'
+import { readParams, stateParams } from '../url/params'
 import { ignoredIssueIds, ignoredIssues } from './validation-ignored'
+
+/** The reads the views and the inspector's `when` make: the validator's, with the URL's levels applied */
+type ValidatorReads = Pick<Validator, 'issues' | 'issuesFor' | 'issuesForAll' | 'ignoredIssues'>
 
 /** The validator of one editor and a way for React to hear that its issues changed */
 type Store = {
+  /** The validator itself: validated and updated by the store, not read by the views */
   validator: Validator
+  /** What the views read. Every read goes through the URL's levels here, once (iD's `applySeverityOverrides`) */
+  reads: ValidatorReads
   subscribe: (listener: () => void) => () => void
   version: () => number
+}
+
+/**
+ * The levels of the validation rules that the address gives, as iD's `validationDisable`, `validationWarning` and
+ * `validationError` (iD reads them once at start, see `initialHashParams` in core/validator.js). Pure: `search` is
+ * the query string. Maid does not write them back to the address.
+ */
+export function overridesFromSearch(search: string): Overrides {
+  const params = readParams(
+    {
+      validation_disable: stateParams.validation_disable,
+      validation_warning: stateParams.validation_warning,
+      validation_error: stateParams.validation_error,
+    },
+    search,
+  )
+  return parseOverrides({
+    disable: params.validation_disable ?? undefined,
+    warning: params.validation_warning ?? undefined,
+    error: params.validation_error ?? undefined,
+  })
+}
+
+/** The validator's reads, each with the URL's levels applied: the one place the overrides meet the issues */
+function withOverrides(validator: Validator, overrides: Overrides): ValidatorReads {
+  return {
+    issues: () => applyOverrides(validator.issues(), overrides),
+    issuesFor: (entityId) => applyOverrides(validator.issuesFor(entityId), overrides),
+    issuesForAll: (entityIds) => applyOverrides(validator.issuesForAll(entityIds), overrides),
+    ignoredIssues: () => applyOverrides(validator.ignoredIssues(), overrides),
+  }
 }
 
 /** Every way of a graph: the base ways that no edit replaced, then the ways of the edits */
@@ -30,7 +71,11 @@ function waysOf(graph: Graph) {
   return ways
 }
 
-function createStore(editor: Editor, rules: readonly Rule[]): Store & { stop: () => void } {
+function createStore(
+  editor: Editor,
+  rules: readonly Rule[],
+  overrides: Overrides,
+): Store & { stop: () => void } {
   // The presets are read at each run, and the ignored warnings (saved in the browser) are left out of what is shown
   const validator = createValidator(rules, {
     presets: () => editor.presets,
@@ -85,6 +130,7 @@ function createStore(editor: Editor, rules: readonly Rule[]): Store & { stop: ()
   const stopIgnored = ignoredIssues.subscribe(announce)
   return {
     validator,
+    reads: withOverrides(validator, overrides),
     subscribe: (listener) => {
       listeners.add(listener)
       return () => listeners.delete(listener)
@@ -103,17 +149,19 @@ function createStore(editor: Editor, rules: readonly Rule[]): Store & { stop: ()
  * Reads from the validator inside a component. The validator lives outside React, so the React
  * Compiler cannot see that its answers change; passing the version as an argument is what tells it.
  */
-function useIssues<T>(store: Store, read: (validator: Validator, version: number) => T) {
+function useIssues<T>(store: Store, read: (reads: ValidatorReads, version: number) => T) {
   const version = useSyncExternalStore(store.subscribe, store.version)
-  return read(store.validator, version)
+  return read(store.reads, version)
 }
 
 /** The store of each editor that has the validation module, for the inspector of several features */
 const storeOf = new WeakMap<Editor, Store>()
 
 /** Stands in for an editor without the validation module: no issues, and nothing to wait for */
+const NO_VALIDATOR = createValidator([])
 const NO_STORE: Store = {
-  validator: createValidator([]),
+  validator: NO_VALIDATOR,
+  reads: withOverrides(NO_VALIDATOR, parseOverrides({})),
   subscribe: () => () => {},
   version: () => 0,
 }
@@ -240,7 +288,14 @@ export function validation({ rules }: { rules: readonly Rule[] }) {
   return defineModule({
     id: 'validation',
     setup(api) {
-      const store = createStore(api.editor, rules)
+      // read once at start, as iD does; the levels are not written back to the address
+      const overrides = overridesFromSearch(globalThis.location?.search ?? '')
+      if (overrides.unsupported.length > 0)
+        console.info(
+          'Validation: these rules have no level in Maid and are ignored:',
+          overrides.unsupported.map((rule) => rule.source).join(', '),
+        )
+      const store = createStore(api.editor, rules, overrides)
       storeOf.set(api.editor, store)
 
       function EntityIssues({ entity, editor }: InspectorSectionProps) {
@@ -295,7 +350,7 @@ export function validation({ rules }: { rules: readonly Rule[] }) {
       api.register('inspector.section', {
         id: 'validation-issues',
         title: 'Issues',
-        when: (entity) => store.validator.issuesFor(entity.id).length > 0,
+        when: (entity) => store.reads.issuesFor(entity.id).length > 0,
         component: EntityIssues,
       })
       api.register('dock.view', { id: 'validation', label: 'Issues', component: AllIssues })

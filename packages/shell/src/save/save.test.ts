@@ -80,7 +80,7 @@ describe('uploadEdits', () => {
   it('uploads the edits, then forgets them and loads the map again once', async () => {
     const { editor, history, shell, uploads, reloads } = setUp({ selectBench: true })
 
-    const done = await uploadEdits(shell, 'Moved and added')
+    const done = await uploadEdits(shell, { comment: 'Moved and added' })
 
     expect(done.changesets).toEqual([77])
     expect(done.selection).toEqual(['n555'])
@@ -99,12 +99,12 @@ describe('uploadEdits', () => {
 
   it('sends the next edit alone: the saved ones are not sent a second time', async () => {
     const { context, history, shell, uploads } = setUp()
-    await uploadEdits(shell, 'First')
+    await uploadEdits(shell, { comment: 'First' })
 
     const next = new OsmNode(context, { loc: [13.3, 52.3], tags: { amenity: 'bin' } })
     history.perform(actionAddEntity(next))
     history.commit({ annotation: 'Added a bin', selectedIDs: [next.id] })
-    await uploadEdits(shell, 'Second')
+    await uploadEdits(shell, { comment: 'Second' })
 
     expect(uploads).toHaveLength(2)
     expect(uploads[1]?.diff.create.map((e) => e.id)).toEqual([-2])
@@ -115,7 +115,9 @@ describe('uploadEdits', () => {
   it('sends nothing when the app has no version: created_by would be wrong', async () => {
     const { history, shell, uploads } = setUp({ version: '' })
 
-    expect(uploadEdits(shell, 'No version')).rejects.toThrow('created_by needs an app name')
+    expect(uploadEdits(shell, { comment: 'No version' })).rejects.toThrow(
+      'created_by needs an app name',
+    )
 
     expect(uploads).toHaveLength(0)
     expect(history.hasChanges()).toBe(true)
@@ -124,7 +126,7 @@ describe('uploadEdits', () => {
   it('keeps the edits and does not reload the map when the upload fails', async () => {
     const { history, shell, reloads } = setUp({ fail: true })
 
-    expect(uploadEdits(shell, 'Refused')).rejects.toThrow('changed by someone else')
+    expect(uploadEdits(shell, { comment: 'Refused' })).rejects.toThrow('changed by someone else')
 
     expect(history.hasChanges()).toBe(true)
     expect(reloads).toEqual([])
@@ -133,7 +135,7 @@ describe('uploadEdits', () => {
   it('uploads nothing on the mock', async () => {
     const { history, shell, uploads, reloads } = setUp({ source: 'mock' })
 
-    expect(uploadEdits(shell, 'Not here')).rejects.toThrow('on a server')
+    expect(uploadEdits(shell, { comment: 'Not here' })).rejects.toThrow('on a server')
 
     expect(uploads).toEqual([])
     expect(history.hasChanges()).toBe(true)

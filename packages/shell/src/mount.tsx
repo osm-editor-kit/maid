@@ -1,6 +1,6 @@
 import { isAutomated } from '@osm-editor-kit/maid-core'
 import { chooseLocale, setLocale, type Locale } from '@osm-editor-kit/maid-i18n'
-import { getSettings } from '@osm-editor-kit/maid-ui'
+import { getSettings, initTheme } from '@osm-editor-kit/maid-ui'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { setWorkerCount } from 'maplibre-gl'
 import { createRoot } from 'react-dom/client'
@@ -8,7 +8,7 @@ import { App } from './App'
 import { createShell, type AppConfig } from './shell'
 import { ShellContext } from './shell-context'
 import { migrateIdHash } from './url/id-url'
-import { urlLang } from './url/params'
+import { readParams, stateParams, urlLang } from './url/params'
 
 /**
  * The language of this visit (ADR 0009, decision 4): the URL's `lang` (read by the shell's URL parameters, iD's
@@ -37,6 +37,8 @@ export function mountEditor(rootElement: HTMLElement, app: AppConfig) {
   const locale = visitLocale(app.defaultLocale)
   setLocale(locale)
   document.documentElement.lang = locale
+  // before the first render, so the page does not flash in the wrong theme: a link's `theme`, else the stored choice
+  initTheme(readParams({ theme: stateParams.theme }, location.search).theme)
 
   const shell = createShell(app)
 

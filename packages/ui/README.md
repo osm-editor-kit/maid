@@ -14,7 +14,7 @@ The components the shell is built from: layout, top bar, sidebar, map controls, 
 | `CommandBar`, `CommandItem` | Icon-only commands in one hairline-joined group; a command with a `reason` is greyed out and shows the reason |
 | `ResizeHandle`, `useResizable` | A drag strip on the right edge of the sidebar or the top edge of the dock, with the size kept in the settings |
 | `FadeSlideIn`, `UI_SPRING` | The house spring for chrome, and a slide-and-fade entrance |
-| `ThemeSwitch`, `useTheme`, `initTheme` | Light, dark or system, kept in the browser. Dark mode is the class `dark` on `<html>` |
+| `ThemeSwitch`, `initTheme`, `useAppliedTheme`, `useThemeInEffect` | Light, dark or system. The shell keeps the choice in the URL (`theme`) and the browser. Dark mode is the class `dark` on `<html>` |
 | `InspectorSections` | Draws the `inspector.section` extension point, which this package declares |
 
 ## What an app has to do
@@ -26,7 +26,7 @@ The components the shell is built from: layout, top bar, sidebar, map controls, 
   @custom-variant dark (&:where(.dark, .dark *));
   ```
 
-- Call `initTheme()` before the first render.
+- `initTheme(fromLink)` applies the theme before the first render; the shell's `mountEditor` calls it with the link's `theme`, so a link's theme paints first.
 
 ## Where the look comes from
 

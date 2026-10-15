@@ -18,7 +18,16 @@ test('selection, changeset texts and carried parameters', () => {
   )
   expect(params.get('id')).toBe('w123,n4')
   expect(params.get('hashtags')).toBe('#radnetz')
-  expect(params.get('disable_features')).toBe('boundaries')
+  expect(params.get('filters')).toBe('boundaries:hidden')
+})
+
+test("iD's hidden features are Maid's hidden filters, and only those go back to iD", () => {
+  expect(toIdUrl('?filters=boundaries:hidden,buildings:readonly')).toBe(
+    'https://www.openstreetmap.org/edit?editor=id#disable_features=boundaries',
+  )
+  expect(toIdUrl('?filters=buildings:readonly')).toBe(
+    'https://www.openstreetmap.org/edit?editor=id',
+  )
 })
 
 test('dropped and unknown parameters are reported, not passed on', () => {

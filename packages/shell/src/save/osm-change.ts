@@ -5,6 +5,7 @@ import {
   OsmWay,
   type ChangesSummary,
 } from '@osm-editor-kit/maid-model'
+import { cleanTagValue, draftHashtags, TAG_VALUE_MAX, type Draft } from './changeset-draft.ts'
 import { cleanTags, discardTags, type DiscardList } from './clean-tags.ts'
 
 /**
@@ -104,9 +105,6 @@ export function summaryOf(change: OsmChange) {
     .join(', ')
 }
 
-/** OSM's limit for a changeset tag's value, in characters */
-const TAG_VALUE_MAX = 255
-
 /**
  * The value of `imagery_used`: the names, each once, `;`-separated, as iD's `cleanTagValue` gives
  * it (trimmed, NFC, cut to 255 characters). Empty when there are no names.
@@ -134,16 +132,20 @@ export function createdByValue(name: string, version: string) {
 }
 
 /**
- * The changeset's tags. `created_by` (from `createdByValue`) and `comment` as every editor sets them;
- * hashtags are taken from the comment as iD does (`#mapathon` → `hashtags=#mapathon`). `imagery_used`
- * lists the imagery on the map (`imagery` in the order given, background first) as iD writes it; it is
- * left out when there is none, where iD writes `None`.
+ * The changeset's tags, as iD writes them from the draft (changeset-draft.ts): `comment` cleaned, `hashtags` from the
+ * comment and the hashtags the draft keeps, and `source` when there is one. `created_by` (from `createdByValue`) is
+ * set by every editor. `imagery_used` lists the imagery on the map (`imagery` in the order given, background first)
+ * as iD writes it; it is left out when there is none, where iD writes `None`.
  */
-export function changesetTags(comment: string, createdBy: string, imagery: readonly string[] = []) {
-  const text = comment.trim()
-  const tags: Record<string, string> = { created_by: createdBy, comment: text }
-  const hashtags = [...new Set(text.match(/#[^\s#;,.!?]{2,}/g) ?? [])]
-  if (hashtags.length > 0) tags.hashtags = hashtags.join(';')
+export function changesetTags(draft: Draft, createdBy: string, imagery: readonly string[] = []) {
+  const tags: Record<string, string> = {
+    created_by: createdBy,
+    comment: cleanTagValue(draft.comment),
+  }
+  const hashtags = draftHashtags(draft)
+  if (hashtags !== undefined) tags.hashtags = hashtags
+  const source = cleanTagValue(draft.source ?? '')
+  if (source !== '') tags.source = source
   const imageryUsed = imageryUsedValue(imagery)
   if (imageryUsed !== '') tags.imagery_used = imageryUsed
   return tags

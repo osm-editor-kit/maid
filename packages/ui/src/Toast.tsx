@@ -57,7 +57,7 @@ import {
 } from '@heroicons/react/20/solid'
 import type { ReactNode } from 'react'
 import { Toaster as SonnerToaster, toast } from 'sonner'
-import { useResolvedTheme } from './theme.ts'
+import { useThemeInEffect } from './theme.ts'
 
 /** How long a notice of an event stays, and a failure (it is read more slowly) */
 const DONE_MS = 4000
@@ -203,7 +203,7 @@ const ICONS = {
  * there are at most `visibleToasts` (3) of them.
  */
 export function Toaster() {
-  const theme = useResolvedTheme()
+  const theme = useThemeInEffect()
   return (
     <SonnerToaster
       position="top-right"

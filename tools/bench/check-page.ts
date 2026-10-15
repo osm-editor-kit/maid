@@ -69,7 +69,8 @@ export async function runCheck(
       ),
     )
     await page.goto(
-      `http://localhost:${APPS[app].port}/?scene=${sceneName}${query ? `&${query}` : ''}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
+      // a query that starts with # goes into the hash, as iD's links have it
+      `http://localhost:${APPS[app].port}/?scene=${sceneName}${query && !query.startsWith('#') ? `&${query}` : ''}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}${query.startsWith('#') ? `&${query.slice(1)}` : ''}`,
     )
     await page.waitForFunction(() => window.__bench !== undefined, undefined, {
       timeout: 30000,

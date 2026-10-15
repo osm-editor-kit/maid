@@ -1,7 +1,13 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
 import { discardedTags } from '@osm-editor-kit/maid-presets'
-import { createValidator, osmApiLimits, type Issue } from '@osm-editor-kit/maid-validation'
+import {
+  applyOverrides,
+  createValidator,
+  osmApiLimits,
+  type Issue,
+} from '@osm-editor-kit/maid-validation'
 import { imageryOnMap } from '../imagery-used'
+import { overridesFromSearch } from '../modules/validation'
 import { clearIgnoredIssues } from '../modules/validation-ignored'
 import type { Shell } from '../shell'
 import {
@@ -11,6 +17,7 @@ import {
   selectionAfterUpload,
 } from './after-upload'
 import { errorSentence } from './blocked'
+import type { Draft } from './changeset-draft.ts'
 import { changesetTags, createdByValue, toOsmChange } from './osm-change'
 
 /**
@@ -18,12 +25,15 @@ import { changesetTags, createdByValue, toOsmChange } from './osm-change'
  * on the values as the person made them. clean-tags.ts never cuts a value, but it adds a space after
  * each ';' in opening hours, which this check does not count. Deleted entities carry no tags to check.
  */
-export function uploadErrors(editor: Editor): Issue[] {
+export function uploadErrors(editor: Editor, search = globalThis.location?.search ?? ''): Issue[] {
   const changes = editor.history.changes()
   const ids = [...changes.created, ...changes.modified].map((entity) => entity.id)
   const validator = createValidator([osmApiLimits])
   validator.validate(editor.history.stable.graph, ids, [])
-  return validator.issues().filter((issue) => issue.severity === 'error')
+  // a link's validation levels apply here too, as in iD (its validator applies them to every issue)
+  return applyOverrides(validator.issues(), overridesFromSearch(search)).filter(
+    (issue) => issue.severity === 'error',
+  )
 }
 
 /** What would be uploaded now */
@@ -54,7 +64,7 @@ export async function uploadEdits(
     brand,
     version,
   }: Pick<Shell, 'config' | 'editor' | 'auth' | 'engine' | 'brand' | 'version'>,
-  comment: string,
+  draft: Draft,
 ) {
   if (config.source === 'mock') throw new Error('Saving is only possible on a server')
   const [first] = uploadErrors(editor)
@@ -67,7 +77,7 @@ export async function uploadEdits(
   type Diff = Parameters<typeof OSM.uploadChangeset>[1]
   const result = await OSM.uploadChangeset(
     // the imagery on the map now, as iD's imagery_used (the background first)
-    changesetTags(comment, createdBy, imageryOnMap(editor).used),
+    changesetTags(draft, createdBy, imageryOnMap(editor).used),
     change as unknown as Diff,
   )
   const selection = selectionAfterUpload(engine.selection, change, assignedIds(result))

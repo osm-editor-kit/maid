@@ -2,14 +2,32 @@ import { ArrowUpTrayIcon } from '@heroicons/react/20/solid'
 import { m } from '@osm-editor-kit/maid-i18n'
 import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { Flyout, notify, toolButtonClass } from '@osm-editor-kit/maid-ui'
-import { useId, useState, type ReactNode } from 'react'
+import { useQueryStates } from 'nuqs'
+import { useEffect, useId, useState, type ReactNode } from 'react'
 import { useAuth } from '../auth'
 import { CHANGESET_URL } from '../config'
 import { saveBlocked } from '../save/blocked'
-import { changesetTags, summaryOf, type ChangeElement, type OsmChange } from '../save/osm-change'
+import { draftHashtags, linksOf, type Draft } from '../save/changeset-draft'
+import { useChangesetDraft } from '../save/changeset-draft-store'
+import { summaryOf, type ChangeElement, type OsmChange } from '../save/osm-change'
 import { pendingChange, uploadEdits, uploadErrors } from '../save/save'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
+import { stateParams } from '../url/params'
+
+/** The changeset values a link can prefill (iD's hash parameters `comment`, `hashtags`, `source`) */
+const linkParams = {
+  comment: stateParams.comment,
+  hashtags: stateParams.hashtags,
+  source: stateParams.source,
+}
+
+/** The look of the changeset's text fields */
+const FIELD =
+  'w-full rounded-md border border-zinc-950/10 bg-white px-2 py-1.5 text-sm placeholder:text-zinc-400 focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-white/10 dark:bg-zinc-950 dark:placeholder:text-zinc-500'
+
+/** What the panel shows before the draft starts (a single frame, see `SavePanel`) */
+const NO_DRAFT: Draft = { comment: '' }
 
 export const LISTED = 12
 
@@ -76,7 +94,15 @@ function SavePanel(props: {
   const { uploading, onUploading, onSaved } = props
   const auth = useAuth()
   const { select } = useSelection()
-  const [comment, setComment] = useState('')
+  // the changeset's comment, hashtags and source: a draft that starts when the flyout opens (changeset-draft-store.ts)
+  const draft = useChangesetDraft((s) => s.draft) ?? NO_DRAFT
+  const openDraft = useChangesetDraft((s) => s.open)
+  const editDraft = useChangesetDraft((s) => s.edit)
+  const commitDraftFields = useChangesetDraft((s) => s.commit)
+  const resetDraft = useChangesetDraft((s) => s.reset)
+  useEffect(() => {
+    openDraft(Date.now())
+  }, [openDraft])
   const [failure, setFailure] = useState<string>()
   const noteId = useId()
   // read again after every edit
@@ -86,7 +112,7 @@ function SavePanel(props: {
   const blocked = saveBlocked({ source: config.source, loggedIn: auth.user !== undefined, errors })
   const toOsm = config.loginServer === 'osm'
   const rows = rowsOf(change)
-  const hashtags = changesetTags(comment, '').hashtags
+  const hashtags = draftHashtags(draft)
 
   // a message about this form: the block, or the failed upload. It stays here, next to the button.
   const note = blocked ?? failure
@@ -95,12 +121,14 @@ function SavePanel(props: {
       className="flex flex-col gap-3 p-4"
       onSubmit={(event) => {
         event.preventDefault()
-        if (blocked || uploading || rows.length === 0 || !comment.trim()) return
+        if (blocked || uploading || rows.length === 0 || !draft.comment.trim()) return
         onUploading(true)
         setFailure(undefined)
-        uploadEdits(shell, comment).then(
+        uploadEdits(shell, draft).then(
           ({ changesets, selection }) => {
             onUploading(false)
+            // the next changeset starts again from the links (iD's clearSaved and flush)
+            resetDraft()
             onSaved()
             // the features have the ids the server gave them: the URL and the selection follow
             select(selection)
@@ -145,18 +173,32 @@ function SavePanel(props: {
           {...PLAIN_INPUT}
           rows={3}
           maxLength={255}
-          value={comment}
-          onChange={(event) => setComment(event.currentTarget.value)}
+          value={draft.comment}
+          onChange={(event) => editDraft({ comment: event.currentTarget.value })}
+          onBlur={() => commitDraftFields(Date.now())}
           placeholder="What did you change, and from which source?"
-          className="w-full rounded-md border border-zinc-950/10 bg-white px-2 py-1.5 text-sm placeholder:text-zinc-400 focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-white/10 dark:bg-zinc-950 dark:placeholder:text-zinc-500"
+          className={FIELD}
         />
         {hashtags && (
           <span className="text-xs text-zinc-500 dark:text-zinc-400">Hashtags: {hashtags}</span>
         )}
       </label>
+      <label className="flex flex-col gap-1">
+        <span className="font-medium">Source</span>
+        <input
+          {...PLAIN_INPUT}
+          type="text"
+          maxLength={255}
+          value={draft.source ?? ''}
+          onChange={(event) => editDraft({ source: event.currentTarget.value })}
+          onBlur={() => commitDraftFields(Date.now())}
+          placeholder="e.g. survey, Bing aerial imagery"
+          className={FIELD}
+        />
+      </label>
       <button
         type="submit"
-        disabled={blocked !== undefined || uploading || rows.length === 0 || !comment.trim()}
+        disabled={blocked !== undefined || uploading || rows.length === 0 || !draft.comment.trim()}
         aria-describedby={note ? noteId : undefined}
         className="w-full cursor-pointer rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 enabled:hover:bg-blue-500 disabled:cursor-default disabled:opacity-50"
       >
@@ -178,6 +220,15 @@ function SavePanel(props: {
 /** The top bar's save button: shows that there are edits and opens the save flyout */
 export function SaveButton() {
   const { editor } = useShell()
+  // iD reads the address's comment, hashtags and source once, at load, and removes them from it (behavior/hash.js)
+  const [links, setLinks] = useQueryStates(linkParams, { history: 'replace' })
+  const readLinks = useChangesetDraft((s) => s.readLinks)
+  useEffect(() => {
+    readLinks(linksOf(links))
+    if (links.comment !== null || links.hashtags !== null || links.source !== null) {
+      void setLinks({ comment: null, hashtags: null, source: null })
+    }
+  }, [links, readLinks, setLinks])
   const hasChanges = useEngine(() => editor.history.hasChanges())
   const [open, setOpen] = useState(false)
   // while an upload runs the flyout cannot close, so its panel stays and no second upload can start
