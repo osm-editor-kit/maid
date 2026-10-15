@@ -7,6 +7,8 @@
 // covers more than `MAX_CELLS` cells (a long one) sits in a list that every query tests.
 // The grid is exact for crossings: two segments that cross have overlapping boxes, and the boxes are
 // widened a little so that rounding can never hide a crossing.
+import type { Graph, OsmWay } from '@osm-editor-kit/maid-model'
+import { nodeLoc } from '../geo.ts'
 import type { Box, Point } from '../geo.ts'
 
 const CELL = 0.0005
@@ -41,6 +43,26 @@ export function segmentBox(a: Point, b: Point): Box {
     maxLon: Math.max(a[0], b[0]) + EPSILON,
     maxLat: Math.max(a[1], b[1]) + EPSILON,
   }
+}
+
+/** Whether two segments have an end node in common (they meet at a junction, so they do not cross) */
+export function sharesNode(a: Segment, b: Segment) {
+  return a.from === b.from || a.from === b.to || a.to === b.from || a.to === b.to
+}
+
+/** The segments of a way, in the order of its nodes. A closed way lists its first node again at the end. */
+export function segmentsOf(way: OsmWay, graph: Graph) {
+  const segments: Segment[] = []
+  const nodes = way.nodes
+  for (let i = 0; i + 1 < nodes.length; i++) {
+    const from = nodes[i]
+    const to = nodes[i + 1]
+    if (from === undefined || to === undefined) continue
+    const a = nodeLoc(graph, from)
+    const b = nodeLoc(graph, to)
+    if (a && b) segments.push({ from, to, a, b, box: segmentBox(a, b) })
+  }
+  return segments
 }
 
 function cellRange(box: Box) {

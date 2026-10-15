@@ -2,7 +2,7 @@ import { OsmNode, OsmWay, actionAddEntity, actionAddMidpoint } from '@osm-editor
 import type { Graph } from '@osm-editor-kit/maid-model'
 import { connectionTagsFor } from '../connection-tags.ts'
 import type { ConnectionFeature } from '../connection-tags.ts'
-import { nodeLoc, properIntersection } from '../geo.ts'
+import { properIntersection } from '../geo.ts'
 import type { Point } from '../geo.ts'
 import {
   hasTag,
@@ -12,7 +12,7 @@ import {
   waterwayValues,
 } from '../tags.ts'
 import type { Fix, Issue, Rule, RuleContext } from '../types.ts'
-import { createSegmentIndex, segmentBox } from './crossing-segments.ts'
+import { createSegmentIndex, segmentsOf, sharesNode } from './crossing-segments.ts'
 import type { Segment, SegmentEntry, SegmentIndex } from './crossing-segments.ts'
 
 // Ported from iD's crossing_ways validator (ISC, © iD contributors), at commit 0194f3926, and from
@@ -57,21 +57,6 @@ function featureOf(way: OsmWay, graph: Graph) {
   if (hasTag(tags.railway) && railwayValues.has(tags.railway)) return 'railway'
   if (hasTag(tags.waterway) && waterwayValues.has(tags.waterway)) return 'waterway'
   return undefined
-}
-
-/** The segments of a way, in the order of its nodes. A closed way lists its first node again at the end. */
-function segmentsOf(way: OsmWay, graph: Graph) {
-  const segments: Segment[] = []
-  const nodes = way.nodes
-  for (let i = 0; i + 1 < nodes.length; i++) {
-    const from = nodes[i]
-    const to = nodes[i + 1]
-    if (from === undefined || to === undefined) continue
-    const a = nodeLoc(graph, from)
-    const b = nodeLoc(graph, to)
-    if (a && b) segments.push({ from, to, a, b, box: segmentBox(a, b) })
-  }
-  return segments
 }
 
 /**
@@ -170,10 +155,6 @@ function isLegitCrossing(a: Side, b: Side) {
   if (tunnelA !== tunnelB) return true
 
   return (tagsA.layer || '0') !== (tagsB.layer || '0')
-}
-
-function sharesNode(a: Segment, b: Segment) {
-  return a.from === b.from || a.from === b.to || a.to === b.from || a.to === b.to
 }
 
 function labelOf(side: Side) {
