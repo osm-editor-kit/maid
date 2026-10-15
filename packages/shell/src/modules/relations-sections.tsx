@@ -76,6 +76,11 @@ const NEW_RELATION = 'new'
 
 const ROW =
   'flex min-w-0 items-center gap-2 border-b border-zinc-950/5 py-1 text-xs last:border-0 dark:border-white/5'
+/**
+ * The section's grids: one column that may shrink below its content. Without it the column grows to the longest
+ * relation name or picker option and the rows run out of the sidebar instead of truncating.
+ */
+const COLUMN = 'grid grid-cols-[minmax(0,1fr)]'
 /** A member's row: its content. The list item around it carries the hairline and is what Reorder moves. */
 const ROW_BODY = 'flex min-w-0 items-center gap-2 py-1 text-xs'
 const MEMBER_ITEM = 'border-b border-zinc-950/5 last:border-0 dark:border-white/5'
@@ -603,7 +608,7 @@ function MemberList({
   }
   const result = load.status === 'done' ? loadResultSentence(load.added, load.left) : undefined
   return (
-    <div className="grid gap-1">
+    <div className={`${COLUMN} gap-1`}>
       {rows.length > 0 && (
         <div className="flex justify-end">
           <Tooltip label={m.relations_zoom_members_tip()}>
@@ -862,7 +867,7 @@ function AddToRelation({
     setRole('')
   }
   return (
-    <div className="grid gap-1.5 pt-2">
+    <div className={`${COLUMN} gap-1.5 pt-2`}>
       <span className={`text-xs ${SECONDARY}`}>{m.relations_add_to()}</span>
       <div className="flex min-w-0 items-center gap-1.5">
         <select
@@ -946,7 +951,7 @@ export function RelationsSection({ entity, entities, editor, select }: Props) {
   const geometry = selection.length === 1 ? entity.geometry : undefined
   const readOnly = selection.some((item) => item.readOnly)
   return (
-    <div className="grid gap-1">
+    <div className={`${COLUMN} gap-1`}>
       {memberships.length === 0 && (
         <p className={`text-xs ${SECONDARY}`}>{m.relations_not_in_relation()}</p>
       )}
