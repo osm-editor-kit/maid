@@ -60,7 +60,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   tags: { maid: 23, bicycle: 23, parking: 23 },
   multi: { maid: 11, bicycle: 11, parking: 11 },
   // runs for the parking app only (the others have no parking module): the expected count is 0 elsewhere
-  parking: { maid: 0, bicycle: 0, parking: 28 },
+  parking: { maid: 0, bicycle: 0, parking: 29 },
   'relations-scene': { maid: 25, bicycle: 25, parking: 25 },
 }
 

@@ -80,15 +80,71 @@ describe('the 33 source buttons', () => {
     }
   })
 
-  test('the grid is 14 rows of 3 columns: 11 source topics and 3 reasons, every cell filled once', () => {
-    expect(QUICK_TAG_ROWS).toHaveLength(14)
-    const cells = QUICK_TAGS.filter((tag) => tag.row !== undefined).map(
-      (tag) => `${tag.row}/${tag.side}`,
-    )
-    expect(new Set(cells).size).toBe(42)
+  test('the cells of the source buttons: each side of a group, the values in the order of the file', () => {
+    const cellOf = (row: string, side: string) =>
+      QUICK_TAGS.filter((tag) => tag.row === row && tag.side === side).map((tag) => tag.id)
+    expect(cellOf('position', 'left')).toEqual([
+      'parking_left_no',
+      'parking_left_lane',
+      'parking_left_separate',
+    ])
+    expect(cellOf('orientation', 'both')).toEqual([
+      'parking_both_orientation_parallel',
+      'parking_both_orientation_diagonal',
+      'parking_both_orientation_perpendicular',
+    ])
+    expect(cellOf('restriction', 'right')).toEqual([
+      'parking_right_restriction_no_stopping',
+      'parking_right_restriction_no_parking',
+    ])
+    expect(cellOf('fee', 'left')).toEqual(['parking_left_fee_yes', 'parking_left_fee_no'])
+    expect(cellOf('markings', 'both')).toEqual(['parking_both_markings_yes'])
+  })
+})
+
+describe('the grid', () => {
+  test('one row per group: 6 cycling groups, the lane toggle, the clearing row', () => {
+    expect(QUICK_TAG_ROWS.map((row) => row.id)).toEqual([
+      'position',
+      'orientation',
+      'restriction',
+      'fee',
+      'markings',
+      'reason',
+      'lane',
+      'clear',
+    ])
+    expect(QUICK_TAG_ROWS.map((row) => row.cycles)).toEqual([
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+    ])
+  })
+
+  test('every row has a button on each of its three sides, and every button is in a row', () => {
     for (const row of QUICK_TAG_ROWS) {
-      for (const side of ['left', 'right', 'both']) expect(cells).toContain(`${row.id}/${side}`)
+      for (const side of ['left', 'right', 'both'] as const) {
+        expect(QUICK_TAGS.some((tag) => tag.row === row.id && tag.side === side)).toBe(true)
+      }
     }
+    for (const tag of QUICK_TAGS)
+      expect(QUICK_TAG_ROWS.some((row) => row.id === tag.row)).toBe(true)
+  })
+
+  test('the lane row is one toggle per side, the clearing row one clearing button per side', () => {
+    const cellOf = (row: string, side: string) =>
+      QUICK_TAGS.filter((tag) => tag.row === row && tag.side === side).map((tag) => tag.id)
+    expect(cellOf('lane', 'left')).toEqual(['maid_left_lane_parallel'])
+    expect(cellOf('lane', 'right')).toEqual(['maid_right_lane_parallel'])
+    expect(cellOf('lane', 'both')).toEqual(['maid_both_lane_parallel'])
+    expect(cellOf('clear', 'left')).toEqual(['maid_clear_left'])
+    expect(cellOf('clear', 'right')).toEqual(['maid_clear_right'])
+    expect(cellOf('clear', 'both')).toEqual(['maid_clear_both'])
   })
 })
 
@@ -126,11 +182,21 @@ describe("Maid's additions", () => {
     ])
   })
 
-  test('the clearing buttons clear one side and set no tag', () => {
-    for (const side of ['left', 'right'] as const) {
+  test('the clearing buttons clear one side, or both, and set no tag', () => {
+    for (const side of ['left', 'right', 'both'] as const) {
       const clear = QUICK_TAGS.find((tag) => tag.id === `maid_clear_${side}`)
       expect(clear?.clearSide).toBe(side)
       expect(clear?.edits).toEqual([])
+      expect(clear?.icon).toBeUndefined()
     }
+  })
+
+  test('a lane toggle sets the lane and its orientation on its side', () => {
+    const lane = QUICK_TAGS.find((tag) => tag.id === 'maid_left_lane_parallel')
+    expect(lane?.edits).toEqual([
+      { key: 'parking:left', value: 'lane' },
+      { key: 'parking:left:orientation', value: 'parallel' },
+    ])
+    expect(lane?.icon).toBe('parking_left_lane')
   })
 })

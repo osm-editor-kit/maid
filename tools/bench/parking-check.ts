@@ -93,58 +93,66 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
     await settle()
   }
   const sidebar = page.getByRole('complementary')
-  const button = (name: string) => sidebar.getByRole('button', { name, exact: true })
-  const LEFT_LANE = 'Parking on the carriageway, left side'
-  const BOTH_LANE = 'Parking on the carriageway, both sides'
+  /** A cell of the grid by its row and side; its name also says its value and what the next click does */
+  const cell = (row: string, side: 'left' | 'right' | 'both') =>
+    sidebar.getByRole('button', {
+      name: new RegExp(`^${row}, ${side === 'both' ? 'both sides' : `${side} side`}:`),
+    })
+  const LEFT = cell('Position', 'left')
+  const BOTH = cell('Position', 'both')
 
-  // --- the quick buttons on one road ---
+  // --- the quick buttons on one road: each click moves a cell to its next value ---
   await selectOne(road)
   report(
     'the sidebar has the section "Parking"',
     1,
     await sidebar.getByRole('heading', { name: 'Parking', exact: true }).count(),
   )
-  report('the button for parking on the left side is there', 1, await button(LEFT_LANE).count())
-  report('and is not pressed', 'false', await button(LEFT_LANE).getAttribute('aria-pressed'))
+  report('the position cell of the left side is there', 1, await LEFT.count())
+  report('and is not pressed', 'false', await LEFT.getAttribute('aria-pressed'))
 
-  await button(LEFT_LANE).click()
+  await LEFT.click()
   await settle()
   report(
-    'left side on the carriageway writes parking:left=lane',
+    'the first click writes the first value: parking:left=no',
+    { 'parking:left': 'no' },
+    await parkingOf(road),
+  )
+  report('and is one undo step', 'Set parking: No parking, left side', await undoLabel())
+  report('the cell is pressed', 'true', await LEFT.getAttribute('aria-pressed'))
+
+  await LEFT.click()
+  await settle()
+  report(
+    'the second click writes the next value: parking:left=lane',
     { 'parking:left': 'lane' },
     await parkingOf(road),
   )
-  report(
-    'and is one undo step',
-    'Set parking: Parking on the carriageway, left side',
-    await undoLabel(),
-  )
-  report('the button is pressed', 'true', await button(LEFT_LANE).getAttribute('aria-pressed'))
 
-  await button(BOTH_LANE).click()
+  await BOTH.click()
   await settle()
   report(
-    'both sides replaces the left key: parking:both=lane',
-    { 'parking:both': 'lane' },
+    'the both cell writes both sides: parking:both=no',
+    { 'parking:both': 'no' },
     await parkingOf(road),
   )
   report(
-    '`both` presses the left button too',
-    'true',
-    await button(LEFT_LANE).getAttribute('aria-pressed'),
+    'equal sides press the both cell, not the left one',
+    ['true', 'false'],
+    [await BOTH.getAttribute('aria-pressed'), await LEFT.getAttribute('aria-pressed')],
   )
 
-  await button(LEFT_LANE).click()
+  await LEFT.click()
   await settle()
   report(
-    'taking the left side off splits both: the right side keeps its parking',
-    { 'parking:right': 'lane' },
+    'the left cell moves on from the shared value; the right side keeps it',
+    { 'parking:left': 'lane', 'parking:right': 'no' },
     await parkingOf(road),
   )
   await restore()
   report('undo takes all of it back', original, await tagsOf(road))
 
-  // --- the buttons on two roads at once: one change, one undo step ---
+  // --- the cells on two roads at once: one change, one undo step ---
   await selectMany([road, other])
   await settle()
   report(
@@ -152,11 +160,11 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
     1,
     await sidebar.getByRole('heading', { name: 'Parking', exact: true }).count(),
   )
-  await button(LEFT_LANE).click()
+  await LEFT.click()
   await settle()
   report(
-    'a button writes to both roads',
-    [{ 'parking:left': 'lane' }, { 'parking:left': 'lane' }],
+    'a cell writes to both roads',
+    [{ 'parking:left': 'no' }, { 'parking:left': 'no' }],
     [await parkingOf(road), await parkingOf(other)],
   )
   await page.evaluate(() => window.__maid.engine.undo())

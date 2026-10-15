@@ -36,6 +36,8 @@ export function copyParkingOperation(from: RealSide, to: RealSide): Operation {
     get label() {
       return texts.label()
     },
+    // an arrow in the direction of the copy: left to right points right
+    icon: from === 'left' ? 'iD-icon-forward' : 'iD-icon-backward',
     applies: (context) => selectedRoads(context).some((road) => hasParkingOn(road.tags, from)),
     disabled: (context) => (plan(context).changes ? undefined : texts.disabled()),
     run: (context) => plan(context).result,

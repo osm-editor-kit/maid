@@ -118,7 +118,7 @@ export function useEditCommands() {
         .map((operation) => ({
           id: operation.id,
           label: operation.label,
-          icon: commandIcon(operation.id),
+          icon: commandIcon(operation.id, operation.icon),
           // delete has a key with a modifier, which an operation's one-letter shortcut cannot say
           shortcut: operation.id === 'delete' ? modKey('⌫') : operation.shortcut?.toUpperCase(),
           reason: protectedIds ? PROTECTED_REASON : operation.disabled(context),

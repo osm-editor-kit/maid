@@ -20,7 +20,10 @@ const ICON: Record<string, string> = {
   'point-to-area': 'iD-icon-area',
 }
 
-/** The icon of a command, in the current text colour so that a disabled row greys it too */
-export function commandIcon(id: string) {
-  return <PresetIcon icon={ICON[id]} className="size-5 fill-current" />
+/**
+ * The icon of a command, in the current text colour so that a disabled row greys it too: iD's icon for its own
+ * commands, else the icon the operation names (`Operation.icon`, a sprite name).
+ */
+export function commandIcon(id: string, icon?: string) {
+  return <PresetIcon icon={ICON[id] ?? icon} className="size-5 fill-current" />
 }

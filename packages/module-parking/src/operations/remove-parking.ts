@@ -19,6 +19,8 @@ export const removeParkingOperation: Operation = {
   get label() {
     return m.operation_remove_label()
   },
+  // iD's own delete icon: a trash can
+  icon: 'iD-operation-delete',
   applies: (context) =>
     selectedRoads(context).some((road) =>
       Object.keys(road.tags).some((key) => key.startsWith('parking:')),

@@ -44,6 +44,11 @@ export type OperationResult = {
 export type Operation = {
   id: string
   label: string
+  /**
+   * Its icon in the edit menu and the command bar: a name in iD's sprites (`fas-arrow-right`, `temaki-…`). iD's own
+   * operations need none (the shell knows their icons by id); a module's operation without one shows an empty square.
+   */
+  icon?: string
   /** iD's key for it, a single lower-case letter */
   shortcut?: string
   /** Whether this operation makes sense for this selection at all. False: it is not offered. */

@@ -24,6 +24,8 @@ export const swapSidesOperation: Operation = {
   get label() {
     return m.operation_swap_label()
   },
+  // two opposite arrows: each side takes the other's place
+  icon: 'roentgen-exchange',
   applies: (context) => selectedRoads(context).some((road) => hasParking(road.tags)),
   disabled: (context) =>
     tagChange(context, swapSides, '').changes ? undefined : m.operation_swap_disabled(),
