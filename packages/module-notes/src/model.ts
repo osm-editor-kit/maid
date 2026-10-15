@@ -156,6 +156,26 @@ export function parseNotes(json: unknown) {
   return { notes, skipped: features.length - notes.length, count: features.length }
 }
 
+/**
+ * The notes API's URL for one note (`notes/<id>.json`, what iD's `loadEntityNote` asks for). Only ever the editor's
+ * fetch asks it, with the same API root as the notes of a view.
+ */
+export function noteUrl(apiUrl: string, id: number) {
+  return `${apiUrl.replace(/\/+$/, '')}/api/0.6/notes/${id}.json`
+}
+
+/**
+ * The answer for one note: one GeoJSON feature, as iD reads it (`parseNoteJSON` takes a single feature as a list of
+ * one). A collection of one feature is taken too. A note that cannot be read is null, as in `parseNotes`.
+ */
+export function parseNoteAnswer(json: unknown): Note | null {
+  const collection = z
+    .object({ type: z.literal('FeatureCollection'), features: z.array(z.unknown()) })
+    .safeParse(json)
+  const feature = collection.success ? collection.data.features[0] : json
+  return noteFeature.parse(feature)
+}
+
 /** The first line of the first comment, cut to a length that fits one line of a list */
 export function summaryLine(note: Note) {
   const first = note.comments[0]?.text.split('\n').find((line) => line.trim() !== '')

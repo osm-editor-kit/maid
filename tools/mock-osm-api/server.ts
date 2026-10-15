@@ -8,6 +8,7 @@
  *   /api/capabilities(.json)
  *   /api/0.6/map(.json)?bbox=w,s,e,n
  *   /api/0.6/notes.json?bbox=l,b,r,t&closed=0|-1&limit=N (notes of fixtures/notes/<scene>.json)
+ *   /api/0.6/notes/ID(.json) (one note, as a link's `id=note/<id>` loads it)
  *   /api/0.6/node/ID(.json), /api/0.6/{way,relation}/ID(/full)(.json)
  * Every write is rejected with 405. /requests returns a log of what was asked.
  */
@@ -130,6 +131,11 @@ export class SceneIndex {
       features.push(note)
     }
     return JSON.stringify({ type: 'FeatureCollection', features })
+  }
+
+  /** One note by its id, as `/api/0.6/notes/ID.json` answers it, or undefined */
+  note(id: number): NoteFeature | undefined {
+    return this.notes.find((note) => note.properties.id === id)
   }
 
   /**
@@ -266,6 +272,13 @@ export function createHandler(scenes: Map<string, SceneIndex>, options: { latenc
       return new Response(body, { headers: JSON_HEADERS })
     }
     if (!scene) return new Response('Unknown scene', { status: 404, headers: CORS })
+
+    const noteId = path.match(/^\/api\/0\.6\/notes\/(\d+)$/)?.[1]
+    if (noteId !== undefined) {
+      const note = scene.note(Number(noteId))
+      if (!note) return new Response('Note not found', { status: 404, headers: CORS })
+      return new Response(JSON.stringify(note), { headers: JSON_HEADERS })
+    }
 
     if (path === '/api/capabilities' || path === '/api/0.6/capabilities') {
       if (wantsXml)

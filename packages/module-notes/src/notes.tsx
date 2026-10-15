@@ -1,5 +1,6 @@
 import { ChatBubbleLeftEllipsisIcon } from '@heroicons/react/20/solid'
 import { defineModule, toOsmZoom, type Editor } from '@osm-editor-kit/maid-core'
+import { useUrlParam } from '@osm-editor-kit/maid-core/react'
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { lazyComponent, notify, PANEL_FALLBACK, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { Time } from '@osm-editor-kit/maid-ui'
@@ -18,6 +19,7 @@ import {
   type Note,
   type NotesMode,
 } from './model.ts'
+import { noteSelectionFor } from './note-selection.ts'
 import { cachedNote, failureMessage, useNotesCells, wantedCells } from './query.ts'
 import { useNotesSwitch } from './shown.ts'
 import { useNotesSession, useNotesSettings } from './store.ts'
@@ -104,6 +106,14 @@ export function notes(options: { apiUrl: string }) {
         const queries = useQueryClient()
         // the URL says what is shown from the start: this component is mounted with the map, and the switch writes it
         const { enabled } = useNotesSwitch(notesUrl)
+        // a note chosen by a link turns the notes on, in the URL only: a link never writes the stored choice (shown.ts)
+        const [, setNotesOn] = useUrlParam(notesUrl)
+        const turnOn = useNotesSession((s) => s.turnOn)
+        useEffect(() => {
+          if (!turnOn) return
+          void setNotesOn(true)
+          useNotesSession.getState().clearTurnOn()
+        }, [turnOn, setNotesOn])
         const showClosed = useNotesSettings((s) => s.showClosed)
         const focus = useNotesSession((s) => s.focus)
         const chosen = useNotesSession((s) => s.chosen)
@@ -280,6 +290,8 @@ export function notes(options: { apiUrl: string }) {
         )
       }
 
+      // the shell selects and clears the chosen note through this item (selection.ts in the shell)
+      api.register('note.selection', noteSelectionFor({ editor: api.editor, apiUrl }))
       api.register('map.content', { id: 'notes', component: NotesOnMap })
       api.register('topbar.panel', {
         id: 'notes',

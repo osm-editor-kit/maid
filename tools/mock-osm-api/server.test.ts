@@ -54,6 +54,14 @@ describe('mock OSM API', () => {
       }
     })
 
+    test('one note by its id, and 404 for an id the fixture does not have', async () => {
+      const [first] = await notesOf(`bbox=${SMALL}&closed=-1`)
+      const res = await get(`/s/small/api/0.6/notes/${first.properties.id}.json`)
+      expect(res.status).toBe(200)
+      expect((await res.json()).properties.id).toBe(first.properties.id)
+      expect((await get('/s/small/api/0.6/notes/999999999.json')).status).toBe(404)
+    })
+
     test('closed=0 gives open notes only', async () => {
       const all = await notesOf(`bbox=${SMALL}&closed=-1`)
       const open = await notesOf(`bbox=${SMALL}&closed=0`)

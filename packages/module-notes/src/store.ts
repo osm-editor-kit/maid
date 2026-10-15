@@ -70,6 +70,13 @@ type Session = {
   choose: (id: number | null) => void
   /** Chooses a note and asks the map to move to it (a click in the panel's list) */
   focusOn: (id: number) => void
+  /**
+   * A request to turn the notes switch on: a note chosen by a link does that, as iD's layer does (context.ts,
+   * `moveToNote`). A new object for each request. The map layer acts on it and clears it (`clearTurnOn`).
+   */
+  turnOn: { at: number } | null
+  requestTurnOn: () => void
+  clearTurnOn: () => void
 }
 
 export const useNotesSession = create<Session>()((set) => ({
@@ -77,8 +84,11 @@ export const useNotesSession = create<Session>()((set) => ({
   noticeShown: false,
   chosen: null,
   focus: null,
+  turnOn: null,
   setView: (view) => set({ view }),
   setNoticeShown: (noticeShown) => set({ noticeShown }),
   choose: (chosen) => set({ chosen }),
   focusOn: (id) => set({ chosen: id, focus: { id } }),
+  requestTurnOn: () => set({ turnOn: { at: Date.now() } }),
+  clearTurnOn: () => set({ turnOn: null }),
 }))
