@@ -23,3 +23,8 @@ export function useSessionRelationIDs() {
 
 /** Records that these relations got a member. Called from an event handler, never during render. */
 export const relationSessionActions = relationSessionStore.getState().actions
+
+/** The same list read outside React (an edit-menu operation asks it when it runs), the first touched first */
+export function currentSessionRelationIDs(): readonly EntityID[] {
+  return relationSessionStore.getState().ids
+}

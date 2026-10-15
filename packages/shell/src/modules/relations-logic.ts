@@ -2,6 +2,7 @@ import { m } from '@osm-editor-kit/maid-i18n'
 import {
   actionAddEntity,
   actionAddMember,
+  actionDeleteMembers,
   OsmRelation,
   OsmWay,
   type Action,
@@ -810,5 +811,128 @@ export function membershipHint(relation: OsmRelation, index: number): string | u
     if (sameRole === 1) return m.relations_hint_restriction()
   }
   if (type === 'multipolygon' && member.role === 'outer') return m.relations_hint_outer()
+  return undefined
+}
+
+/**
+ * One relation that holds at least one of several selected features: a line of the multi-selection's list (iD PR 11949).
+ * `count` is how many of the selected features it holds, `total` how many are selected. `roles` are the distinct roles
+ * they have in it, in the order they first appear: one role, or several, which the list shows as "mixed".
+ */
+export type MultiMembership = {
+  relation: OsmRelation
+  count: number
+  total: number
+  roles: string[]
+}
+
+/**
+ * Every relation that holds at least one of the selected features. Those that hold all of them come first, each group
+ * in creation order (`creationOrder`). A feature that is selected twice counts once. Needs no presets.
+ */
+export function multiMembershipsOf(graph: Graph, ids: readonly EntityID[]): MultiMembership[] {
+  const selected = [...new Set(ids)]
+  const found = new Map<EntityID, { relation: OsmRelation; held: Set<EntityID>; roles: string[] }>()
+  for (const id of selected) {
+    for (const { relation, role } of membershipsOf(graph, id)) {
+      const entry = found.get(relation.id) ?? { relation, held: new Set<EntityID>(), roles: [] }
+      entry.held.add(id)
+      if (!entry.roles.includes(role)) entry.roles.push(role)
+      found.set(relation.id, entry)
+    }
+  }
+  const total = selected.length
+  return [...found.values()]
+    .map(({ relation, held, roles }) => ({ relation, count: held.size, total, roles }))
+    .sort(
+      (a, b) =>
+        Number(b.count === total) - Number(a.count === total) ||
+        creationOrder(a.relation.id, b.relation.id),
+    )
+}
+
+/** The memberships that hold every selected feature: the relations "Remove from relation" takes them out of. */
+export function sharedMemberships(memberships: readonly MultiMembership[]) {
+  return memberships.filter((membership) => membership.count === membership.total)
+}
+
+/** A selected feature as the plans need it: its id and type (for the member) and what the member rules look at. */
+export type PlanFeature = FeatureForRules & { type: OsmRelationMember['type'] }
+
+/** The selected features of the graph, in the order given. An id that is not loaded is left out. */
+export function planFeaturesOf(graph: Graph, ids: readonly EntityID[]): PlanFeature[] {
+  const features: PlanFeature[] = []
+  for (const id of new Set(ids)) {
+    const entity = graph.hasEntity(id)
+    const geometry = geometryOfEntity(graph, id)
+    const type = entity?.type
+    if (!entity || geometry === undefined) continue
+    if (type !== 'node' && type !== 'way' && type !== 'relation') continue
+    features.push({ id, type, geometry, tags: entity.tags })
+  }
+  return features
+}
+
+/**
+ * What adding the features to a relation takes, as "Add the others" and "Add to relation…" do it: the actions that add
+ * each feature the relation does not hold yet, with the role `roleToAdd` gives it (one undo step when performed
+ * together). `reason` is why the relation cannot take them (`cannotTakeReason`); then there are no actions.
+ */
+export function planAddOthers(
+  relation: OsmRelation,
+  features: readonly PlanFeature[],
+  presets: RelationRules | undefined,
+): { missing: number; reason: string | undefined; actions: Action[] } {
+  const held = new Set(relation.members.map((member) => member.id))
+  const missing = features.filter((feature) => !held.has(feature.id))
+  if (missing.length === 0) return { missing: 0, reason: undefined, actions: [] }
+  const reason = cannotTakeReason(relation, missing, presets)
+  if (reason !== undefined) return { missing: missing.length, reason, actions: [] }
+  const roles = relationRolesOf(presets, relation.tags)
+  return {
+    missing: missing.length,
+    reason: undefined,
+    actions: missing.map((feature) =>
+      actionAddMember(relation.id, {
+        id: feature.id,
+        type: feature.type,
+        role: roleToAdd(roles, '', feature),
+      }),
+    ),
+  }
+}
+
+/**
+ * What taking the features out of a relation takes, as "Remove all" and "Remove from relation" do it: one action that
+ * deletes every member among them (the last one first, so the positions of the others stay right). Nothing when none
+ * of them is a member.
+ */
+export function planRemoveFrom(relation: OsmRelation, ids: readonly EntityID[]): Action[] {
+  const selected = new Set(ids)
+  const indexes: number[] = []
+  relation.members.forEach((member, index) => {
+    if (selected.has(member.id)) indexes.push(index)
+  })
+  return indexes.length === 0 ? [] : [actionDeleteMembers(relation.id, indexes)]
+}
+
+/**
+ * The relation "Add to relation…" adds the features to: the last of the session's relations (`sessionIDs`, the first
+ * touched first) that the graph holds and that can take them (`planAddOthers` has actions for it). Undefined when no
+ * session relation can.
+ */
+export function addTargetOf(
+  graph: Graph,
+  sessionIDs: readonly EntityID[],
+  features: readonly PlanFeature[],
+  presets: RelationRules | undefined,
+): OsmRelation | undefined {
+  for (let index = sessionIDs.length - 1; index >= 0; index--) {
+    const id = sessionIDs[index]
+    if (id === undefined) continue
+    const relation = graph.hasEntity(id)
+    if (!(relation instanceof OsmRelation)) continue
+    if (planAddOthers(relation, features, presets).actions.length > 0) return relation
+  }
   return undefined
 }

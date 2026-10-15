@@ -55,6 +55,12 @@ import {
   routeJoins,
   sessionFirst,
   sortNearbyFirst,
+  addTargetOf,
+  multiMembershipsOf,
+  planAddOthers,
+  planFeaturesOf,
+  planRemoveFrom,
+  sharedMemberships,
 } from './relations-logic.ts'
 
 const context = new ModelContext()
@@ -1365,5 +1371,186 @@ describe('pasteOffersOf', () => {
   it('offers nothing for a copy or an original that is not in the graph', () => {
     expect(pasteOffersOf(graph, 'w9', 'w1', new Set(), [])).toEqual([])
     expect(pasteOffersOf(graph, 'w1c', 'w9', new Set(), [])).toEqual([])
+  })
+})
+
+describe('multi-selection memberships', () => {
+  // r1 holds w1 (from) and w2 (to); r2 holds all three with no role; r3 holds w3 (from)
+  const graph = () =>
+    new Graph(context, [
+      way('w1', ['n1', 'n2'], { highway: 'primary' }),
+      way('w2', ['n2', 'n3'], { highway: 'primary' }),
+      way('w3', ['n3', 'n4'], { highway: 'primary' }),
+      relation('r1', { type: 'restriction' }, [
+        { id: 'w1', type: 'way', role: 'from' },
+        { id: 'w2', type: 'way', role: 'to' },
+      ]),
+      relation('r2', { type: 'route' }, [
+        { id: 'w1', type: 'way', role: '' },
+        { id: 'w2', type: 'way', role: '' },
+        { id: 'w3', type: 'way', role: '' },
+      ]),
+      relation('r3', { type: 'restriction' }, [{ id: 'w3', type: 'way', role: 'from' }]),
+    ])
+
+  it('lists every relation that holds one of the features, the ones that hold all first', () => {
+    const memberships = multiMembershipsOf(graph(), ['w1', 'w3'])
+    expect(memberships.map((membership) => membership.relation.id)).toEqual(['r2', 'r3', 'r1'])
+    expect(memberships.map((membership) => [membership.count, membership.total])).toEqual([
+      [2, 2],
+      [1, 2],
+      [1, 2],
+    ])
+  })
+
+  it('keeps the distinct roles of the held features, so one role or several (mixed)', () => {
+    const r1 = multiMembershipsOf(graph(), ['w1', 'w2']).find(
+      (membership) => membership.relation.id === 'r1',
+    )
+    expect(r1?.roles).toEqual(['from', 'to'])
+    const r2 = multiMembershipsOf(graph(), ['w1', 'w2']).find(
+      (membership) => membership.relation.id === 'r2',
+    )
+    expect(r2?.roles).toEqual([''])
+  })
+
+  it('counts a feature selected twice once', () => {
+    const [only] = multiMembershipsOf(graph(), ['w1', 'w1'])
+    expect([only?.relation.id, only?.count, only?.total]).toEqual(['r2', 1, 1])
+  })
+
+  it('finds no relation for features that are in none', () => {
+    expect(multiMembershipsOf(graph(), ['n9'])).toEqual([])
+  })
+
+  it('shares only the relations that hold every selected feature', () => {
+    const shared = sharedMemberships(multiMembershipsOf(graph(), ['w1', 'w3']))
+    expect(shared.map((membership) => membership.relation.id)).toEqual(['r2'])
+  })
+})
+
+describe('planFeaturesOf', () => {
+  it('reads the selected features and leaves out the ones that are not loaded', () => {
+    const graph = new Graph(context, [way('w1', ['n1', 'n2'], { highway: 'primary' })])
+    expect(planFeaturesOf(graph, ['w1', 'w9'])).toEqual([
+      { id: 'w1', type: 'way', geometry: 'line', tags: { highway: 'primary' } },
+    ])
+  })
+})
+
+describe('planAddOthers', () => {
+  const restriction = () =>
+    new Graph(context, [
+      ...['n1', 'n2', 'n3', 'n4', 'n5', 'n6'].map(
+        (id, index) => new OsmNode(context, { id, loc: [index, index], tags: {} }),
+      ),
+      way('w1', ['n1', 'n2'], { highway: 'primary' }),
+      way('w4', ['n5', 'n6']),
+      way('w3', ['n3', 'n4', 'n5', 'n3'], { building: 'yes' }),
+      relation('r1', { type: 'restriction' }, [{ id: 'w1', type: 'way', role: 'from' }]),
+    ])
+  const features = (graph: Graph, ids: string[]) => planFeaturesOf(graph, ids)
+
+  it('adds only the features the relation does not hold, each with the role that fits it', () => {
+    const graph = restriction()
+    const plan = planAddOthers(
+      relationIn(graph, 'r1'),
+      features(graph, ['w1', 'w4']),
+      rules(restrictionRoles, false),
+    )
+    expect(plan.missing).toBe(1)
+    expect(plan.reason).toBeUndefined()
+    const after = relationIn(applyAll(graph, plan.actions), 'r1')
+    expect(after.members.map((member) => [member.id, member.role])).toEqual([
+      ['w1', 'from'],
+      ['w4', 'via'],
+    ])
+  })
+
+  it('adds with no role when no presets say which role fits', () => {
+    const graph = restriction()
+    const plan = planAddOthers(relationIn(graph, 'r1'), features(graph, ['w4']), undefined)
+    const after = relationIn(applyAll(graph, plan.actions), 'r1')
+    expect(after.members.map((member) => member.role)).toEqual(['from', ''])
+  })
+
+  it('refuses the features when one of them fits no role, and then has no actions', () => {
+    const graph = restriction()
+    const plan = planAddOthers(
+      relationIn(graph, 'r1'),
+      features(graph, ['w3']),
+      rules(restrictionRoles, false),
+    )
+    expect(plan.missing).toBe(1)
+    expect(plan.reason).toBe(invalidReason())
+    expect(plan.actions).toEqual([])
+  })
+
+  it('has nothing to add when the relation holds every feature', () => {
+    const graph = restriction()
+    const plan = planAddOthers(relationIn(graph, 'r1'), features(graph, ['w1']), undefined)
+    expect(plan).toEqual({ missing: 0, reason: undefined, actions: [] })
+  })
+})
+
+describe('planRemoveFrom', () => {
+  it('removes every member among the features, in one plan, and keeps the others', () => {
+    const graph = new Graph(context, [
+      way('w1', ['n1', 'n2']),
+      way('w2', ['n2', 'n3']),
+      way('w3', ['n3', 'n4']),
+      relation('r4', { type: 'route' }, [
+        { id: 'w1', type: 'way', role: 'a' },
+        { id: 'w2', type: 'way', role: 'b' },
+        { id: 'w1', type: 'way', role: 'c' },
+        { id: 'w3', type: 'way', role: 'd' },
+      ]),
+    ])
+    const actions = planRemoveFrom(relationIn(graph, 'r4'), ['w1', 'w3'])
+    expect(actions).toHaveLength(1)
+    const after = relationIn(applyAll(graph, actions), 'r4')
+    expect(after.members.map((member) => member.id)).toEqual(['w2'])
+  })
+
+  it('has no actions when none of the features is a member', () => {
+    const graph = new Graph(context, [relation('r5', { type: 'route' })])
+    expect(planRemoveFrom(relationIn(graph, 'r5'), ['w1'])).toEqual([])
+  })
+})
+
+describe('addTargetOf', () => {
+  const graph = () =>
+    new Graph(context, [
+      way('w1', ['n1', 'n2'], { highway: 'primary' }),
+      way('w2', ['n2', 'n3'], { highway: 'primary' }),
+      way('w3', ['n3', 'n4', 'n5', 'n3'], { building: 'yes' }),
+      relation('r1', { type: 'restriction' }, [{ id: 'w1', type: 'way', role: 'from' }]),
+      relation('r2', { type: 'route' }),
+    ])
+
+  it('takes the last session relation that can take the features', () => {
+    const current = graph()
+    const target = addTargetOf(current, ['r1', 'r2'], planFeaturesOf(current, ['w2']), undefined)
+    expect(target?.id).toBe('r2')
+  })
+
+  it('skips a session relation that holds every feature already', () => {
+    const current = graph()
+    const target = addTargetOf(
+      current,
+      ['r2', 'r1'],
+      planFeaturesOf(current, ['w1']),
+      rules(restrictionRoles, false),
+    )
+    expect(target?.id).toBe('r2')
+  })
+
+  it('finds nothing without a session relation, or when none can take the features', () => {
+    const current = graph()
+    expect(addTargetOf(current, [], planFeaturesOf(current, ['w2']), undefined)).toBeUndefined()
+    expect(addTargetOf(current, ['r9'], planFeaturesOf(current, ['w2']), undefined)).toBeUndefined()
+    expect(
+      addTargetOf(current, ['r1'], planFeaturesOf(current, ['w3']), rules(restrictionRoles, false)),
+    ).toBeUndefined()
   })
 })

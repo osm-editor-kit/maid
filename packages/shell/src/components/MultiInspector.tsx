@@ -5,6 +5,7 @@ import type { Field } from '@osm-editor-kit/maid-presets'
 import type { EntityInfo, MaidEngine } from '@osm-editor-kit/maid-renderer'
 import {
   InspectorSections,
+  lazyComponent,
   notify,
   PresetFields,
   Sidebar,
@@ -29,6 +30,13 @@ import {
 import { MultiIssues } from './MultiIssues'
 import { MultiType } from './MultiType'
 import { Operations } from './Operations'
+
+// The relations of several features: their list and picker are the relations module's (loaded in idle time, as there).
+const MultiRelations = lazyComponent(() =>
+  import('../modules/relations-sections.tsx').then((sections) => ({
+    default: sections.MultiRelationsSection,
+  })),
+)
 
 const GEOMETRY_LABEL = {
   point: 'Point',
@@ -101,8 +109,8 @@ function derive(engine: MaidEngine, editor: Editor, selectionKey: string): Deriv
  * The sidebar for several selected features, as iD's entity editor does for several: a header with the
  * count, the selection list, the type, the fields and the tags that the features share, and the edit
  * bar. A change goes to all of them in one undo step through `engine.changeTags`; a read-only feature
- * among them refuses the whole change with a toast. Not here yet: the feature type change, the shared
- * issues and the relation membership (docs/research/multi-selection.md, 3.1).
+ * among them refuses the whole change with a toast. Not here yet: the feature type change and the shared
+ * issues (docs/research/multi-selection.md, 3.1). The relations are in the module's section (relations-sections.tsx).
  */
 export function MultiInspector({
   ids,
@@ -214,6 +222,15 @@ export function MultiInspector({
               onRedo={() => engine.redo()}
             />
           </SidebarDisclosure>
+          {derived.entities[0] && (
+            <MultiRelations
+              entity={derived.entities[0]}
+              entities={derived.entities}
+              editor={editor}
+              select={select}
+              readOnly={(id) => engine.isReadOnly(id)}
+            />
+          )}
           {derived.entities[0] && (
             <InspectorSections
               entity={derived.entities[0]}
