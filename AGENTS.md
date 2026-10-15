@@ -75,6 +75,7 @@ These names are the contract.
 | `bun run bench-edit [scene] [query]` | Maid only: change-to-screen time of a node drag. Needs a `VITE_BENCH=1` preview on 5175. |
 | `bun run bench-rmgl [--reps 5] [--only ...] [--quick]` | react-map-gl against raw MapLibre with Maid's layers on 5186, into `reports/rmgl-bench*.json` ([docs](docs/research/react-map-gl-performance.md)). |
 | `bun run bench-model [--runs 5] [--browser chromium]` | Loading each fixture into the model, into `reports/model-load-<browser>.json`. |
+| `bun run bench-routing` | The reroute router (`packages/routing`) on the `dense` and `relations` fixtures: graph build and route times, into `reports/routing-bench.json`. |
 | `bun run bench-validation` | Every validation rule on the dense fixture, into `reports/validation-bench.json`. |
 | `bun run check-all [--app maid\|bicycle\|parking]` | The browser checks below, one after another, against one app; fails on a non-zero exit or too few `ok` lines (table in `tools/checks/check-all.ts`). Writes `reports/check-all-<app>.json`. |
 | `bun run check-config` | Each app's `maid.config.ts` without a browser: modules set up with no network request, extension points, cleanup, presets, unique ports and ids. Writes `reports/config-check.json`. |

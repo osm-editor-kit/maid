@@ -437,6 +437,13 @@ What it would take (inferred, in steps; AGENTS.md sets a step at about an hour):
 12. **Licences:** no code from osm-relatify (AGPL) or Waymarked Trails (GPL); no routing servers.
 13. **Packaging:** a standard module, switched on in `maid-bicycle` first; hiking routes follow in `maid`.
 
+### Router measured (2026-10-16)
+
+- Maid's own A* in TypeScript (`packages/routing`, `bun run bench-routing`): from a via point to a route in about 1.4 ms (median and p95) for 2.7 to 2.8 km on the `dense` fixture; the graph builds in about 20 ms. The target was 100 ms. route_snapper is not needed.
+- The fixtures reach at most 2.8 km (`dense`); 5 km was not measurable. A larger fixture would need a person to cut it.
+- The bicycle graph of `dense` has 245 islands; the largest holds 87 % of its nodes. About a quarter of random bicycle pairs have no path, because cycleways are not joined to roads in the data. "No path" will be common, which makes the split step in v1 (decided) and a later connect step more important.
+- The profile factors (`packages/routing/src/profile.ts`) are first guesses, listed at the top of the file for Tobias.
+
 ### Read and inferred, in short
 
 - **Read:** the wiki pages (PT_Assistant routing helper, Relation:route, Relatify) and the osm-relatify README, as summaries; iD issues 1575 and 6465 as page summaries, iD issue 12363 and issues 8415, 8578, 4876 and 4864 as search snippets; JOSM ticket 20634; forum threads on osm-relatify, the relation editor suggestion, unordered bicycle routes and forward and backward roles; npm registry metadata for four libraries; the iD reference checkout (`data/core.yaml`, `modes/select.js`); the Maid code paths listed above; the fixture and budget files.
