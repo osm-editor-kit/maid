@@ -15,6 +15,7 @@ import {
   turnRestrictionRules,
   turnRestrictions,
 } from '@osm-editor-kit/maid-module-turn-restrictions'
+import { wayTable } from '@osm-editor-kit/maid-module-way-table'
 import { defaultOperations, pointToArea } from '@osm-editor-kit/maid-operations'
 import { operations } from '@osm-editor-kit/maid-renderer'
 import {
@@ -81,6 +82,8 @@ function editorConfig(config: Config) {
     trafficSigns({ country: 'DE' }),
     // top bar and dock "Notes": OSM notes from the same API as the data, read-only, shown from zoom 12 as in iD
     notes({ apiUrl: config.apiUrl }),
+    // dock "Way table": the selected way next to the ways before and after it, tag by tag, editable
+    wayTable(),
   ]
   // dashed outline around the area the fixture covers
   if (bbox) modules.push(sceneBounds({ bbox }))

@@ -20,6 +20,7 @@
     "@osm-editor-kit/maid-module-surface": "workspace:*",
     "@osm-editor-kit/maid-module-traffic-signs": "workspace:*",
     "@osm-editor-kit/maid-module-turn-restrictions": "workspace:*",
+    "@osm-editor-kit/maid-module-way-table": "workspace:*",
     "@osm-editor-kit/maid-operations": "workspace:*",
     "@osm-editor-kit/maid-presets": "workspace:*",
     "@osm-editor-kit/maid-renderer": "workspace:*",

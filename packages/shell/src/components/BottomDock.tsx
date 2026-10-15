@@ -43,6 +43,7 @@ export function BottomDock() {
   const views = useExtensionPoint(editor, 'dock.view')
   const { select, ids } = useSelection()
   const highlight = (ids: readonly string[] | null) => engine.setRelated(ids)
+  const readOnly = (id: string) => engine.isReadOnly(id)
   return (
     <Dock
       tabs={[
@@ -50,7 +51,13 @@ export function BottomDock() {
           id: view.id,
           label: view.label,
           content: (
-            <view.component editor={editor} select={select} selected={ids} highlight={highlight} />
+            <view.component
+              editor={editor}
+              select={select}
+              selected={ids}
+              highlight={highlight}
+              readOnly={readOnly}
+            />
           ),
         })),
         { id: 'data', label: 'Data', content: <LoadedData /> },

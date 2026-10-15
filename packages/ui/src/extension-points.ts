@@ -61,6 +61,8 @@ export type DockViewProps = {
    * calm halo of related features (the engine's setRelated); null clears it.
    */
   highlight: (ids: readonly string[] | null) => void
+  /** Whether a filter makes this feature read-only: a view must not write it (the engine's isReadOnly) */
+  readOnly: (id: string) => boolean
 }
 
 /** A view in the dock under the map, with its own tab */
