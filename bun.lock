@@ -362,7 +362,7 @@
       "name": "@osm-editor-kit/maid-presets",
       "version": "0.0.0",
       "dependencies": {
-        "@openstreetmap/id-tagging-schema": "^7.2.0",
+        "@openstreetmap/id-tagging-schema": "^7.3.0",
         "@rapideditor/country-coder": "5.6.1",
         "@rapideditor/location-conflation": "3.0.1",
       },
@@ -431,7 +431,7 @@
       "name": "@osm-editor-kit/maid-style",
       "version": "0.0.0",
       "devDependencies": {
-        "@openstreetmap/id-tagging-schema": "^7.2.0",
+        "@openstreetmap/id-tagging-schema": "^7.3.0",
       },
     },
     "packages/ui": {
@@ -590,7 +590,7 @@
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.2.5", "", { "dependencies": { "@tybys/wasm-util": "^0.10.3" }, "peerDependencies": { "@emnapi/core": "^1.7.1 || ^2.0.0-alpha.4", "@emnapi/runtime": "^1.7.1 || ^2.0.0-alpha.4" } }, "sha512-HshSvXzmBxNzqejd3k/KemgQ3hdREUYFRRrgxOZ+gPljDIsO2SDZrVZMd4Z/HsxudQbE62OVyVFE8z9BCurfjA=="],
 
-    "@openstreetmap/id-tagging-schema": ["@openstreetmap/id-tagging-schema@7.2.0", "", {}, "sha512-7hjV8Xl3CoaO0u+M/Po0u33YIRahL8jEJtOzho189VOqqQQB3L9UGv2o93o/T4G3I0z5sFvQhn0apOz6+j253w=="],
+    "@openstreetmap/id-tagging-schema": ["@openstreetmap/id-tagging-schema@7.3.0", "", {}, "sha512-z2nQgHLNwCjebDxlKBaERjg02UmcJyemAtsXExJFlXNNc4K9l7EdtfkGs064Y0IgzUltmUxM/FeUBRyhb4kv6w=="],
 
     "@osm-editor-kit/maid-app": ["@osm-editor-kit/maid-app@workspace:apps/maid"],
 

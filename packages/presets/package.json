@@ -9,7 +9,7 @@
     "./default": "./src/default.ts"
   },
   "dependencies": {
-    "@openstreetmap/id-tagging-schema": "^7.2.0",
+    "@openstreetmap/id-tagging-schema": "^7.3.0",
     "@rapideditor/country-coder": "5.6.1",
     "@rapideditor/location-conflation": "3.0.1"
   }

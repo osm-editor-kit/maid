@@ -39,8 +39,8 @@ export type Preset = {
   replacement?: string
   /**
    * The schema's `relation` (id-tagging-schema 7.x): the member rules of a relation preset. Absent when the preset has
-   * none. The bundled 7.2.0 data has it on two presets only: `area` and `type/boundary/administrative`. (The 6.x data
-   * had no `relation` key at all.) `role_labels` is the schema's text: a label
+   * none. The bundled 7.3.0 data has it on 19 presets: areas, multipolygons, boundaries, turn restrictions,
+   * destination signs, waterways and climbing sites; not yet on routes. (The 6.x data had no `relation` key at all.) `role_labels` is the schema's text: a label
    * that refers to another preset (`{area.role_labels.inner}`) is not resolved here, see `Presets.relationRoles`.
    */
   relation?: RelationSchema

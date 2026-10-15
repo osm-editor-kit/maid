@@ -1,4 +1,4 @@
-# id-tagging-schema 6.19.2 to 7.2.0: what Maid needs
+# id-tagging-schema 6.19.2 to 7.3.0: what Maid needs
 
 Compared 2026-10-15: the 6.19.2 data (the copy in `.reference/rapid/node_modules`, which is the version Maid had) and the 7.2.0 data (`packages/presets/node_modules/@openstreetmap/id-tagging-schema`, the version Maid now has). 7.3.0 is not installed (section 7). Counts come from reading the two `dist/` folders. Anything read from code and not run is marked **(inferred)**.
 
@@ -69,14 +69,22 @@ Also updated:
 - `relation-roles.test.ts` has new tests on the bundled data: the four roles of an administrative boundary in schema order, their member rules (geometry, matchTags, min, max), their labels from the translation (`Inner`, `Outer`, `Label`, `Admin Center`), `allowDuplicateMembers: false`, and the `area` schema (reference `multipolygon`, outer with min 1).
 - The old test that said the bundled data has no `relation` is replaced.
 - The header comment in `packages/presets/src/types.ts` now says where the 7.2.0 relation data is.
-- Stale comments outside these packages (not edited): `packages/validation/src/types.ts` (lines 56 to 57), `packages/validation/src/rules/missing-role.ts` (lines 15 to 16) and `packages/validation/src/rules/relation-members.schema.id.test.ts` (line 8) say the bundled data has no member schemas.
 - Behaviour change in validation **(inferred)**: admin boundaries now get real roles and member filters from the data. The validation tests still pass, and none of them covers an admin boundary with the bundled data.
 
 ## 7. The style package and 7.3.0
 
 - Only `packages/style/scripts/extract.ts` reads the schema (`presets.json`, for the area keys). The runtime reads the committed `src/generated/*.json`. No style test reads the schema.
 - A read-only re-run of the area-key logic on the 7.2.0 presets gives the same 54 keys with the same values as the committed `area-keys.json` **(inferred: the script was not run, `style-generate` needs an iD checkout)**. So regenerating would not change it.
-- 7.3.0: not installed, and the changelog in `node_modules` ends at 7.2.0. Whether 7.3.0 adds member schemas for routes or anything else is **unknown**. Check its changelog when it is installed (after the 5-day rule).
+- 7.3.0: installed on 2026-10-15. Tobias put the schema on the list of packages that skip the 5-day rule (`bunfig.toml`): Maid follows its releases at once, as iD does.
+
+## 7a. What 7.3.0 changed for Maid
+
+- Member schemas on 19 presets (7.2.0: 2): `area`, `type/multipolygon`, `type/boundary`, `type/boundary/administrative`, `type/restriction` and its ten kinds, `type/destination_sign`, `type/waterway`, `type/site/climbing/area`, `type/site/climbing/crag`.
+- Still none for routes (`type/route/*`, `type/route_master`): stops, platforms and the like stay without rules from the schema.
+- `allowDuplicateMembers: false` now holds for multipolygons, boundaries and turn restrictions.
+- Role labels changed: `Inner Edge`, `Outer Edge`, `Capital / Seat` (was `Inner`, `Outer`, `Admin Center`).
+- Three preset tests were updated to this data (`relation-roles.test.ts`). Nothing else failed.
+- The area keys of the style package were not regenerated for 7.3.0 (`style-generate` needs an iD checkout).
 
 ## 8. Left for other folders
 

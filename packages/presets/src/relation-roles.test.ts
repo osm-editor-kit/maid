@@ -112,13 +112,16 @@ describe('relationRoles (iD utilGetRelationSchema)', () => {
     expect(presets.preset('type/restriction/no_left_turn')?.relation).toBeUndefined()
   })
 
-  it('is empty for type=boundary alone: the bundled schema gives only the administrative boundary a relation', () => {
-    expect(defaultPresets.relationRoles({ type: 'boundary' })).toStrictEqual({})
+  it('reads inner and outer for type=boundary alone (its own schema since id-tagging-schema 7.3.0)', () => {
+    expect(Object.keys(defaultPresets.relationRoles({ type: 'boundary' }))).toStrictEqual([
+      'inner',
+      'outer',
+    ])
   })
 })
 
-// The bundled id-tagging-schema 7.2.0 data (dist/presets.json and translations/en.json), not a fixture.
-describe('relationRoles on the bundled data (id-tagging-schema 7.2.0)', () => {
+// The bundled id-tagging-schema 7.3.0 data (dist/presets.json and translations/en.json), not a fixture.
+describe('relationRoles on the bundled data (id-tagging-schema 7.3.0)', () => {
   it('reads the four member roles of an administrative boundary, in the schema order', () => {
     const roles = defaultPresets.relationRoles({ type: 'boundary', boundary: 'administrative' })
     expect(Object.keys(roles)).toStrictEqual(['inner', 'outer', 'label', 'admin_centre'])
@@ -144,10 +147,10 @@ describe('relationRoles on the bundled data (id-tagging-schema 7.2.0)', () => {
 
   it('takes the labels from the preset translation (relation.role_labels)', () => {
     const roles = defaultPresets.relationRoles({ type: 'boundary', boundary: 'administrative' })
-    expect(roles.inner?.label).toBe('Inner')
-    expect(roles.outer?.label).toBe('Outer')
+    expect(roles.inner?.label).toBe('Inner Edge')
+    expect(roles.outer?.label).toBe('Outer Edge')
     expect(roles.label?.label).toBe('Label')
-    expect(roles.admin_centre?.label).toBe('Admin Center')
+    expect(roles.admin_centre?.label).toBe('Capital / Seat')
   })
 
   it('does not allow duplicate members in an administrative boundary (allowDuplicateMembers: false)', () => {
@@ -182,6 +185,11 @@ describe('allowsDuplicateMembers (iD utilRelationAllowsDuplicateMembers)', () =>
     expect(presets.allowsDuplicateMembers({ type: 'multipolygon' })).toBe(true)
     expect(presets.allowsDuplicateMembers({ type: 'boundary' })).toBe(true)
     expect(presets.allowsDuplicateMembers({ type: 'something' })).toBe(true)
-    expect(defaultPresets.allowsDuplicateMembers({ type: 'restriction' })).toBe(true)
+    expect(defaultPresets.allowsDuplicateMembers({ type: 'route' })).toBe(true)
+  })
+
+  it('is false on the bundled data for multipolygons, boundaries and turn restrictions (id-tagging-schema 7.3.0)', () => {
+    for (const type of ['multipolygon', 'boundary', 'restriction'])
+      expect(defaultPresets.allowsDuplicateMembers({ type })).toBe(false)
   })
 })
