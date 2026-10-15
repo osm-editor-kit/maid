@@ -11,6 +11,7 @@ import {
   actionMoveNode,
 } from '@osm-editor-kit/maid-model'
 import type { Graph, OsmEntity } from '@osm-editor-kit/maid-model'
+import Dexie from 'dexie'
 import type { EditRecord } from './journal.ts'
 import { JournalLockedError, changesAt, createJournal } from './journal.ts'
 import type { LockProvider } from './journal.ts'
@@ -39,6 +40,16 @@ function baseEntities(context: ModelContext): OsmEntity[] {
     new OsmNode(context, { id: 'n3', loc: [13.25, 52.1] }),
     new OsmWay(context, { id: 'w1', nodes: ['n1', 'n2'], tags: { highway: 'residential' } }),
   ]
+}
+
+/** The store of a journal, opened directly: to read what it holds, or to write an entry the way an older version did. */
+function openStore(name: string): Dexie {
+  const db = new Dexie(name, {
+    indexedDB: globalThis.indexedDB,
+    IDBKeyRange: globalThis.IDBKeyRange,
+  })
+  db.version(1).stores({ edits: 'index', meta: 'key' })
+  return db
 }
 
 /** A fresh context and history, with the base data merged in unless `merge` is false. */
@@ -351,9 +362,13 @@ describe('changesAt', () => {
     make(context, history)
     await journal.flushed()
     stop()
-    const stored = await journal.stored()
-    if (!stored) throw new Error('nothing stored')
-    return stored
+    // read the store itself: stored() leaves out what has nothing left to restore
+    const db = openStore(name)
+    const records = await db.table<EditRecord, number>('edits').orderBy('index').toArray()
+    const meta = (await db.table('meta').get('state')) as { pointer: number } | undefined
+    db.close()
+    if (records.length === 0) throw new Error('nothing stored')
+    return { records, pointer: Math.min(meta?.pointer ?? records.length, records.length) }
   }
 
   it('lists what was created and changed, and leaves out what the pointer undid', async () => {
@@ -395,8 +410,11 @@ describe('changesAt', () => {
       history.commit({ annotation: 'moved a node', selectedIDs: ['n1'] })
       history.perform(actionMoveNode('n1', [13.0, 52.0]))
       history.commit({ annotation: 'moved it back', selectedIDs: ['n1'] })
+      // an edit that stays: the store keeps records only while something differs from the base
+      history.perform(actionMoveNode('n3', [13.3, 52.2]))
+      history.commit({ annotation: 'moved n3', selectedIDs: ['n3'] })
     })
-    expect(changesAt(records, pointer)).toEqual([])
+    expect(changesAt(records, pointer).map((change) => change.id)).toEqual(['n3'])
   })
 
   it('compares tags regardless of their order', async () => {
@@ -405,7 +423,133 @@ describe('changesAt', () => {
       history.commit({ annotation: 'tagged', selectedIDs: ['w1'] })
       history.perform(actionChangeTags('w1', { highway: 'residential' }))
       history.commit({ annotation: 'tagged back', selectedIDs: ['w1'] })
+      history.perform(actionMoveNode('n3', [13.3, 52.2]))
+      history.commit({ annotation: 'moved n3', selectedIDs: ['n3'] })
     })
-    expect(changesAt(records, pointer)).toEqual([])
+    expect(changesAt(records, pointer).map((change) => change.id)).toEqual(['n3'])
+  })
+})
+
+describe('nothing to restore when the edits leave nothing changed', () => {
+  it('undoing every edit leaves nothing stored or restorable', async () => {
+    const name = nextName()
+    const first = freshHistory()
+    const journal = createJournal(
+      { name, context: first.context, history: first.history },
+      freeLocks,
+    )
+    const stop = await journal.start()
+    commitThree(first.context, first.history)
+    first.history.undo()
+    first.history.undo()
+    first.history.undo()
+    await journal.flushed()
+    stop()
+
+    const second = freshHistory()
+    const journal2 = createJournal(
+      { name, context: second.context, history: second.history },
+      freeLocks,
+    )
+    expect(await journal2.stored()).toBeUndefined()
+    expect(await journal2.pending()).toBeUndefined()
+  })
+
+  it('redo after undoing every edit stores the edits again, up to the pointer', async () => {
+    const name = nextName()
+    const first = freshHistory()
+    const journal = createJournal(
+      { name, context: first.context, history: first.history },
+      freeLocks,
+    )
+    const stop = await journal.start()
+    commitThree(first.context, first.history)
+    first.history.undo()
+    first.history.undo()
+    first.history.undo()
+    first.history.redo()
+    await journal.flushed()
+    stop()
+
+    const second = freshHistory()
+    const journal2 = createJournal(
+      { name, context: second.context, history: second.history },
+      freeLocks,
+    )
+    const stored = await journal2.stored()
+    expect(stored?.records.map((record) => record.index)).toEqual([1, 2, 3])
+    expect(stored?.pointer).toBe(1)
+    expect(await journal2.restore()).toBe(3)
+    expect(second.history.index).toBe(1)
+  })
+
+  it('keeps the edits when one is left, and restores it with its undo part', async () => {
+    const name = nextName()
+    const first = freshHistory()
+    const journal = createJournal(
+      { name, context: first.context, history: first.history },
+      freeLocks,
+    )
+    const stop = await journal.start()
+    commitThree(first.context, first.history)
+    first.history.undo()
+    first.history.undo()
+    await journal.flushed()
+    stop()
+
+    const second = freshHistory()
+    const journal2 = createJournal(
+      { name, context: second.context, history: second.history },
+      freeLocks,
+    )
+    expect((await journal2.stored())?.pointer).toBe(1)
+    expect(await journal2.restore()).toBe(3)
+    expect(second.history.index).toBe(1)
+  })
+
+  it('stores nothing for edits that cancel out', async () => {
+    const name = nextName()
+    const { context, history } = freshHistory()
+    const journal = createJournal({ name, context, history }, freeLocks)
+    const stop = await journal.start()
+    history.perform(actionMoveNode('n1', [13.1, 52.05]))
+    history.commit({ annotation: 'moved a node', selectedIDs: ['n1'] })
+    history.perform(actionMoveNode('n1', [13.0, 52.0]))
+    history.commit({ annotation: 'moved it back', selectedIDs: ['n1'] })
+    await journal.flushed()
+    stop()
+
+    expect(await journal.stored()).toBeUndefined()
+    expect(await journal.pending()).toBeUndefined()
+  })
+
+  it('an old entry that leaves nothing changed is no prompt, and start() forgets it', async () => {
+    const name = nextName()
+    const { context } = freshHistory()
+    const n1 = new OsmNode(context, { id: 'n1', loc: [13.0, 52.0] }).asJSON()
+    // an entry written before the fix: a record whose state is the base state
+    const db = openStore(name)
+    await db.table('edits').put({
+      index: 1,
+      annotation: 'moved a node',
+      selectedIDs: ['n1'],
+      changes: [{ id: 'n1', before: n1, after: n1 }],
+      savedAt: 1,
+    })
+    await db.table('meta').put({ key: 'state', schema: 1, pointer: 1, sequences: {}, updatedAt: 1 })
+    db.close()
+
+    const second = freshHistory()
+    const journal = createJournal(
+      { name, context: second.context, history: second.history },
+      freeLocks,
+    )
+    expect(await journal.stored()).toBeUndefined()
+    expect(await journal.pending()).toBeUndefined()
+    // start() is allowed: nothing is waiting to be restored, and the old entry goes
+    const stop = await journal.start()
+    await journal.flushed()
+    stop()
+    expect(await journal.pending()).toBeUndefined()
   })
 })

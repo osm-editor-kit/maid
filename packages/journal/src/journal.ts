@@ -1,12 +1,5 @@
-import { createOsmEntity } from '@osm-editor-kit/maid-model'
-import type {
-  Context,
-  Difference,
-  Edit,
-  EditHistory,
-  Graph,
-  OsmEntityProps,
-} from '@osm-editor-kit/maid-model'
+import { createOsmEntity, Difference } from '@osm-editor-kit/maid-model'
+import type { Context, Edit, EditHistory, Graph, OsmEntityProps } from '@osm-editor-kit/maid-model'
 /**
  * The edit journal: the unsaved edits of an editor, kept in IndexedDB so that they survive a reload.
  *
@@ -111,7 +104,8 @@ export type Journal = {
   pending(): Promise<RestoreInfo | undefined>
   /**
    * Reads everything that is stored, without changing anything: what the dialog that asks to restore
-   * shows before anything is restored. Undefined if nothing is stored.
+   * shows before anything is restored. Undefined if nothing is stored, or if what is stored leaves
+   * nothing changed at its pointer (every edit undone, or edits that cancel out): nothing to restore.
    */
   stored(): Promise<StoredEdits | undefined>
   /**
@@ -228,6 +222,29 @@ function replayAction(context: Context, changes: JournalChange[]) {
   }
 }
 
+/**
+ * Whether the history differs from its base, by content as `changesAt` compares: an entity that was
+ * changed and changed back does not count. Reads the difference the history keeps (see `difference()`).
+ */
+function differsFromBase(history: EditHistory) {
+  for (const { base, head } of history.difference().changes.values()) {
+    const before = base ? base.asJSON() : null
+    const after = head ? head.asJSON() : null
+    if (before === null && after === null) continue
+    if (before !== null && after !== null && contentOf(before) === contentOf(after)) continue
+    return true
+  }
+  return false
+}
+
+/**
+ * Whether stored edits can be restored: something must be changed at their pointer. An entry that
+ * leaves nothing changed (everything undone, or edits that cancel out) is not offered, as in iD.
+ */
+function restorable(stored: StoredEdits) {
+  return changesAt(stored.records, stored.pointer).length > 0
+}
+
 function metaRow(pointer: number, sequences: Record<SequenceID, number>) {
   return {
     key: 'state',
@@ -308,6 +325,11 @@ class ChangeJournal implements Journal {
   private touched = new Map<EntityID, number>()
   /** Set by `restore()` on this instance. `start()` refuses stored edits that were not restored. */
   private restored = false
+  /**
+   * True while the store holds the records of the history. False when the history is at its base
+   * (the store is cleared then, see `forget()`) and until `rebuild()` writes the records again.
+   */
+  private saved = false
   /** True while `restore()` replays: the change listener ignores everything */
   private replaying = false
   private running: Running | undefined = undefined
@@ -328,16 +350,19 @@ class ChangeJournal implements Journal {
   }
 
   async pending() {
-    await this.flushed()
-    const keys = await this.db.edits.orderBy('index').keys()
-    const edits = countOf(keys)
-    if (edits === 0) return undefined
-    const last = await this.db.edits.get(edits)
-    return { edits, savedAt: last?.savedAt ?? 0 }
+    const stored = await this.stored()
+    if (!stored) return undefined
+    return { edits: stored.records.length, savedAt: stored.savedAt }
   }
 
   async stored() {
     await this.flushed()
+    const stored = await this.readStored()
+    return stored && restorable(stored) ? stored : undefined
+  }
+
+  /** Everything in the store, as it is: nothing is judged here. Undefined if the store is empty. */
+  private async readStored(): Promise<StoredEdits | undefined> {
     const count = countOf(await this.db.edits.orderBy('index').keys())
     if (count === 0) return undefined
     const meta = await this.readMeta()
@@ -356,13 +381,16 @@ class ChangeJournal implements Journal {
       throw new Error('restore() needs a history without edits: call it before the first edit')
     }
 
-    const keys = await this.db.edits.orderBy('index').keys()
-    const count = countOf(keys)
-    const meta = await this.readMeta()
+    const stored = await this.readStored()
     this.restored = true
-    if (count === 0) return 0
-
-    const records = await this.db.edits.where('index').between(1, count, true, true).toArray()
+    if (!stored || !restorable(stored)) {
+      // nothing is left changed: an entry that is only undone edits or cancelled ones is forgotten
+      if (stored) await this.wipe()
+      return 0
+    }
+    const { records, pointer } = stored
+    const count = records.length
+    const meta = await this.readMeta()
 
     // The base states come first: the entities the edits started from may not be loaded yet.
     const bases = new Map<EntityID, EntityData>()
@@ -383,7 +411,6 @@ class ChangeJournal implements Journal {
         }
       }
       // The person may have undone some edits before the reload: move back to where they were.
-      const pointer = Math.min(meta?.pointer ?? count, count)
       while (history.index > pointer) history.undo()
     } finally {
       this.replaying = false
@@ -402,6 +429,7 @@ class ChangeJournal implements Journal {
         if (change.before !== undefined) this.touched.set(change.id, record.index)
       }
     }
+    this.saved = true
     return count
   }
 
@@ -421,6 +449,7 @@ class ChangeJournal implements Journal {
       )
     }
     this.touched.clear()
+    this.saved = false
     const done = this.chain.then(() => this.wipe())
     this.chain = done.catch((error: unknown) => {
       this.error = error
@@ -434,11 +463,14 @@ class ChangeJournal implements Journal {
 
     const release = await acquireLock(this.locks, this.lockName)
     try {
-      if (!this.restored && (await this.db.edits.count()) > 0) {
+      const stored = this.restored ? undefined : await this.readStored()
+      if (stored && restorable(stored)) {
         throw new Error(
           `The journal "${this.options.name}" has stored edits that were not restored: call restore() or clear() before start()`,
         )
       }
+      // an old entry that leaves nothing changed is not offered, and is forgotten here
+      if (stored) await this.wipe()
     } catch (error) {
       release?.()
       throw error
@@ -471,6 +503,8 @@ class ChangeJournal implements Journal {
 
     // Undo or redo: the edit at this index is one the journal already has. Only the pointer moves.
     if (this.mirror[index] === edit) {
+      if (!differsFromBase(history)) return this.forget()
+      if (!this.saved) return this.rebuild()
       const sequences = { ...context.sequences }
       this.enqueue(() => this.putMeta(index, sequences))
       return
@@ -479,9 +513,7 @@ class ChangeJournal implements Journal {
     // A reset of the history starts a new base: what is stored belongs to an older session.
     if (index === 0) {
       this.mirror = [edit]
-      this.touched.clear()
-      this.enqueue(() => this.wipe())
-      return
+      return this.forget()
     }
 
     // A commit. It replaces the edit at `index`, and drops the redo part above it. The entities that
@@ -493,6 +525,9 @@ class ChangeJournal implements Journal {
     }
     this.mirror.length = index
     this.mirror.push(edit)
+
+    if (!differsFromBase(history)) return this.forget()
+    if (!this.saved) return this.rebuild()
 
     const base = history.base.graph
     const changes: JournalChange[] = []
@@ -517,6 +552,57 @@ class ChangeJournal implements Journal {
     this.enqueue(() => this.putCommit(record, sequences))
   }
 
+  /**
+   * The history is at its base, or its edits cancel out: nothing is left to restore, so the stored
+   * records go. The edits stay in the history, and the next change that differs from the base
+   * writes them again (`rebuild()`), so redo and undo keep working.
+   */
+  private forget() {
+    this.touched.clear()
+    if (this.saved) this.enqueue(() => this.wipe())
+    this.saved = false
+  }
+
+  /**
+   * Writes every edit of the history, from the base, in one transaction. Used when the store was
+   * forgotten and the history differs from its base again. Records above the pointer (redo) are kept.
+   */
+  private rebuild() {
+    const { context, history } = this.options
+    const base = history.base.graph
+    const edits = this.mirror
+    const records: EditRecord[] = []
+    const touched = new Map<EntityID, number>()
+    const savedAt = Date.now()
+    for (let index = 1; index < edits.length; index++) {
+      const previous = edits[index - 1]
+      const current = edits[index]
+      if (!previous || !current) continue
+      const changes: JournalChange[] = []
+      for (const [id, change] of new Difference(previous.graph, current.graph).changes) {
+        const entry: JournalChange = { id, after: change.head ? change.head.asJSON() : null }
+        if (!touched.has(id)) {
+          const original = base.hasEntity(id)
+          entry.before = original ? original.asJSON() : null
+          touched.set(id, index)
+        }
+        changes.push(entry)
+      }
+      records.push({
+        index,
+        annotation: current.annotation,
+        selectedIDs: current.selectedIDs ?? [],
+        changes,
+        savedAt,
+      })
+    }
+    this.touched = touched
+    this.saved = records.length > 0
+    const pointer = history.index
+    const sequences = { ...context.sequences }
+    this.enqueue(() => this.putAll(records, pointer, sequences))
+  }
+
   private enqueue(task: () => Promise<void>) {
     this.chain = this.chain.then(task).catch((error: unknown) => {
       this.error = error
@@ -534,6 +620,18 @@ class ChangeJournal implements Journal {
       await this.db.edits.where('index').above(record.index).delete()
       await this.db.edits.put(record)
       await this.db.meta.put(metaRow(record.index, sequences))
+    })
+  }
+
+  private async putAll(
+    records: EditRecord[],
+    pointer: number,
+    sequences: Record<SequenceID, number>,
+  ) {
+    await this.db.transaction('rw', this.db.edits, this.db.meta, async () => {
+      await this.db.edits.clear()
+      await this.db.edits.bulkPut(records)
+      await this.db.meta.put(metaRow(pointer, sequences))
     })
   }
 

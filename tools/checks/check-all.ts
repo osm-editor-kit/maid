@@ -46,7 +46,7 @@ const EXPECTED_OK: Record<CheckName, Record<AppName, number>> = {
   ops: { maid: 17, bicycle: 17, parking: 17 },
   relations: { maid: 21, bicycle: 21, parking: 21 },
   validation: { maid: 8, bicycle: 8, parking: 8 },
-  journal: { maid: 15, bicycle: 15, parking: 15 },
+  journal: { maid: 17, bicycle: 17, parking: 17 },
   filters: { maid: 18, bicycle: 18, parking: 18 },
   tags: { maid: 23, bicycle: 23, parking: 23 },
   multi: { maid: 11, bicycle: 11, parking: 11 },

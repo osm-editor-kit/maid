@@ -1,8 +1,8 @@
 import { pickBuildingAndRoad, runDelete } from './check-helpers'
 /**
  * Journal check for Maid: edits, reloads, restores the edits from the browser's storage and
- * compares data and map with before the reload; then undoes everything, reloads, discards, and
- * reloads once more to see that nothing is asked.
+ * compares data and map with before the reload; then undoes everything and reloads (nothing is asked), makes one
+ * edit, reloads, discards, and reloads once more to see that nothing is asked.
  *
  *   bun tools/bench/journal-check.ts [scene]
  */
@@ -130,6 +130,19 @@ type Picked = { road: string; vertex: string; building: string }
     )
     report('nothing left to undo', false, undone.undo.canUndo)
 
+    // everything undone leaves nothing to restore: the reload asks nothing (iD stores no empty difference either)
+    await reload()
+    await ready()
+    report('no restore question when everything was undone', 0, await dialog.count())
+    report(
+      'after that reload: nothing to undo or redo',
+      [false, false],
+      [(await read()).undo.canUndo, (await read()).undo.canRedo],
+    )
+
+    // one edit left: the reload asks, and discard forgets it
+    await page.evaluate(() => window.__maid.engine.addPoint(0, 0, {}))
+    await settle()
     await reload()
     await dialog.waitFor()
     await dialog.getByRole('button', { name: 'Discard' }).click()
