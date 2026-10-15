@@ -8,7 +8,6 @@ import { checkTemplate, keyLikeNames, shortLabel, type CustomEntry } from './cus
 import { listView, type Listed } from './eli.ts'
 import { BRIGHTNESS_MIN, listingView, matchesQuery, sortListing } from './helpers.ts'
 import {
-  useBrightness,
   useCustomBackgrounds,
   useImageryActions,
   useImagerySelector,
@@ -16,7 +15,7 @@ import {
   type SaveResult,
 } from './imagery-store.ts'
 import { filterSeriesRows, seriesRows, type SeriesChip, type SeriesRow } from './series.ts'
-import { useLiveImagery } from './shown.ts'
+import { useLiveBrightness, useLiveImagery } from './shown.ts'
 import { customValue, isCustomValue, NONE, templateOf } from './url.ts'
 
 /** From this many layers in view on, a search field is shown above the list */
@@ -75,7 +74,7 @@ export function ImageryPanel() {
       {isAutomated() ? (
         <p className="p-4 text-sm text-zinc-500 dark:text-zinc-400">
           Backgrounds are off in automated browsers, except a template on this machine (a link with
-          `background=custom:` to localhost).
+          `bg=custom:` to localhost).
         </p>
       ) : (
         <PanelBody />
@@ -89,11 +88,12 @@ type FormState = { mode: 'add' } | { mode: 'edit'; entry: CustomEntry } | null
 
 function PanelBody() {
   const view = useView()
-  const brightness = useBrightness()
+  // the brightness is the URL's (`bg_display`); this instance only shows it and chooses, the map layer writes the URL
+  const { brightness, chooseBrightness } = useLiveBrightness(false)
   const custom = useCustomBackgrounds()
   const defaultBackground = useImagerySelector((state) => state.defaultBackground)
   const { shown, chooseBackground, chooseOverlays, setUrlBackground } = useLiveImagery()
-  const { setBrightness, addCustom, editCustom, deleteCustom } = useImageryActions()
+  const { addCustom, editCustom, deleteCustom } = useImageryActions()
   const [query, setQuery] = useState('')
   const [form, setForm] = useState<FormState>(null)
   const [asking, setAsking] = useState<string | null>(null)
@@ -281,7 +281,7 @@ function PanelBody() {
             step={5}
             value={percent}
             aria-valuetext={`${percent}%`}
-            onChange={(event) => setBrightness(Number(event.target.value) / 100)}
+            onChange={(event) => chooseBrightness(Number(event.target.value) / 100)}
           />
           <span className="w-10 shrink-0 text-right text-xs text-zinc-500 tabular-nums dark:text-zinc-400">
             {percent}%

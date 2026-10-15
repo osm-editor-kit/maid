@@ -11,17 +11,14 @@ import {
 import type { MapLayerMouseEvent } from 'maplibre-gl'
 import { useEffect, useState } from 'react'
 import { useMap, type MapRef } from 'react-map-gl/maplibre'
+import { useShownPhotos } from './shown.ts'
 import { snapBboxToTiles } from './snap.ts'
-import { activeProviders, photoTypesOf } from './state.ts'
+import { activeProviders, IMAGERY_PROVIDER_IDS, photoTypesOf } from './state.ts'
 import {
   AUTOMATED,
-  getStreetImagery,
   streetImageryActions,
-  useDate,
   useMapillaryToken,
   useOpenPhoto,
-  usePhotoKind,
-  useProviders,
   useStreetImageryActions,
 } from './street-imagery-store.ts'
 
@@ -90,17 +87,15 @@ function useEaseBridge(mapRef: MapRef | undefined) {
  */
 export function StreetImageryLayers() {
   const mapRef = useMap()[MAP_ID]
-  const stored = useProviders()
+  const shown = useShownPhotos(false)
   const token = useMapillaryToken()
-  const photoKind = usePhotoKind()
-  const date = useDate()
   const openPhoto = useOpenPhoto()
   const { zoom, bbox } = useMapView(mapRef)
   useEaseBridge(mapRef)
   const bearing = useViewerBearing()
   const hfov = useViewerHfov()
   const lngLat = useViewerLngLat()
-  const providers = activeProviders(stored, token, AUTOMATED)
+  const providers = activeProviders(shown.providers, token, AUTOMATED)
 
   // the queries of the package run on the shell's query client (mount.tsx), which provides them to the map content
   return (
@@ -108,7 +103,7 @@ export function StreetImageryLayers() {
       providers={providers}
       bbox={bbox === null ? null : snapBboxToTiles(bbox)}
       zoom={zoom}
-      filter={{ photoTypes: photoTypesOf(photoKind), date }}
+      filter={{ photoTypes: photoTypesOf(shown.kind), date: shown.date }}
       options={{
         minZoom: MIN_ZOOM,
         photoCircleColor: photoTypeColorExpression,
@@ -128,12 +123,11 @@ export function StreetImageryLayers() {
  * the photo is drawn above the data. Otherwise `false`, and the click goes on as usual.
  */
 export function streetImageryClick(event: MapLayerMouseEvent) {
-  const state = getStreetImagery()
-  const providers = activeProviders(state.providers, state.mapillaryToken, AUTOMATED)
-  if (providers.length === 0) return false
+  if (AUTOMATED) return false
   const map = event.target
-  // a layer is only queried once it is in the style (it is added while the map mounts)
-  const layers = streetImageryInteractiveLayerIds(providers).filter(
+  // The layers are the map's own: a provider is in the style while it is shown (the URL's, shown.ts), and its layers are
+  // unmounted with it. So the click asks for the layers in the style, not for a list of providers.
+  const layers = streetImageryInteractiveLayerIds([...IMAGERY_PROVIDER_IDS]).filter(
     (id) => map.getLayer(id) !== undefined,
   )
   if (layers.length === 0) return false

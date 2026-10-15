@@ -27,6 +27,14 @@ function layer(overrides: Partial<DataLayer>): DataLayer {
 }
 
 describe('layerDraw', () => {
+  test('a GPX layer draws its data, and nothing until the data is read', () => {
+    const gpx = layer({ kind: 'gpx', url: 'https://example.org/ride.gpx', origin: 'added' })
+    expect(layerDraw(gpx)).toBeUndefined()
+    const draw = layerDraw({ ...gpx, data: FEATURES })
+    expect(draw?.source).toEqual({ type: 'geojson', data: FEATURES })
+    expect(draw?.sets).toHaveLength(1)
+  })
+
   test('a GeoJSON URL is one source with a fill, a line and a circle layer, filtered by geometry', () => {
     const draw = layerDraw(layer({ id: 'g' }))
     expect(draw?.sourceId).toBe('data-layer:g')

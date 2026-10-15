@@ -169,3 +169,29 @@ export function layered<T>({
   if (url === null || url === undefined) return { value: own, fromLink: false }
   return { value: url, fromLink: !same(url, own) }
 }
+
+/**
+ * What to write to the URL so that it says what is shown: `undefined` when it says so already, `null` to remove the
+ * key, or the value. With `omitFallback` the key is left out when the fallback is shown and no link asked for it (a
+ * brightness of 100 %, notes off); a link's value stays in the URL even when it is the fallback, so that a reload
+ * shows the same.
+ */
+export function urlWrite<T>({
+  url,
+  shown,
+  fallback,
+  fromLink,
+  omitFallback = false,
+  same = Object.is,
+}: {
+  url: T | null
+  shown: T
+  fallback: T
+  fromLink: boolean
+  omitFallback?: boolean
+  same?: (a: T, b: T) => boolean
+}): T | null | undefined {
+  const want = omitFallback && !fromLink && same(shown, fallback) ? null : shown
+  if (want === null) return url === null ? undefined : null
+  return url !== null && same(url, want) ? undefined : want
+}

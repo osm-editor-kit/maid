@@ -13,7 +13,7 @@ import type { Drawn } from './eli.ts'
 
 /**
  * A saved custom background: its name, and its template, which is its key (the URL keeps the template, as iD does:
- * `background=custom:<template>`). The shape is the Radnetz fork's, without the id, so a list can be copied over by hand.
+ * `bg=custom:<template>`). The shape is the Radnetz fork's, without the id, so a list can be copied over by hand.
  */
 export type CustomEntry = { name: string; template: string }
 

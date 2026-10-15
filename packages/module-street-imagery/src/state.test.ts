@@ -6,6 +6,7 @@ import {
   parseStored,
   photoTypesOf,
   providerAvailable,
+  toggleProvider,
 } from './state.ts'
 
 describe('parseStored', () => {
@@ -80,5 +81,19 @@ describe('photoTypesOf', () => {
     expect(photoTypesOf('all')).toBeUndefined()
     expect(photoTypesOf('flat')).toEqual(['flat'])
     expect(photoTypesOf('pano')).toEqual(['pano'])
+  })
+})
+
+describe('toggleProvider', () => {
+  it('switches a provider on last, and off without touching the others', () => {
+    expect(toggleProvider(['panoramax'], 'mapillary', true)).toEqual(['panoramax', 'mapillary'])
+    expect(toggleProvider(['panoramax', 'mapillary'], 'panoramax', false)).toEqual(['mapillary'])
+  })
+
+  it('keeps one entry when the provider is already on, and does not change its input', () => {
+    const list = ['mapillary' as const]
+    expect(toggleProvider(list, 'mapillary', true)).toEqual(['mapillary'])
+    expect(toggleProvider(list, 'panoramax', false)).toEqual(['mapillary'])
+    expect(list).toEqual(['mapillary'])
   })
 })

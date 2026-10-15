@@ -2,6 +2,19 @@ import { describe, expect, test } from 'bun:test'
 import { createUrlParams } from '@osm-editor-kit/maid-core'
 import { parseAsDataLink, linkedLayerId, linkedLayerName } from './url.ts'
 
+describe('the data parameter: a GPX address, and KML refused', () => {
+  test('a GPX address is read as it is, and its layer is named by the file', () => {
+    expect(parseAsDataLink.parse('https://example.org/Ride%20one.gpx?v=2')).toBe(
+      'https://example.org/Ride%20one.gpx?v=2',
+    )
+    expect(linkedLayerName('https://example.org/Ride%20one.gpx?v=2')).toBe('Ride one')
+  })
+
+  test('a KML address gives no opinion, as an address that is not usable does', () => {
+    expect(parseAsDataLink.parse('https://example.org/map.kml')).toBeNull()
+  })
+})
+
 describe('the data parameter: one remote address', () => {
   test('a GeoJSON or PMTiles address, https or a path on this server, is read as it is', () => {
     expect(parseAsDataLink.parse('https://example.org/bike.geojson')).toBe(

@@ -3,17 +3,22 @@
  * data (one request per layer, made only when a person adds it). Errors are plain sentences.
  */
 import { HttpError, RateLimitedError, type RemoteFetch } from '@osm-editor-kit/maid-core'
+import { queryOptions } from '@tanstack/react-query'
 import {
   checkDataLayerConfig,
   checkLayerUrl,
   colorSchema,
+  GPX_PATTERN,
+  KML_MESSAGE,
+  KML_PATTERN,
   parseSourceLayers,
   type Checked,
   type DataLayerConfig,
   type DataLayerKind,
   type FileLayer,
 } from './config.ts'
-import { parseGeoJson } from './geojson.ts'
+import { parseGeoJson, type GeoJsonData } from './geojson.ts'
+import { isGpxText, isKmlText, parseGpx } from './gpx.ts'
 import { readPmtilesLayers } from './pmtiles.ts'
 
 export type AddInput = {
@@ -23,7 +28,7 @@ export type AddInput = {
   /** Vector tiles: the source layers, separated by commas */
   sourceLayers: string
   color: string
-  /** A GeoJSON file from the person's computer. When given, `url` is not used. */
+  /** A GeoJSON or GPX file from the person's computer. When given, `url` is not used. */
   file?: File
 }
 
@@ -34,8 +39,10 @@ export function checkAddInput(input: AddInput) {
   const errors: string[] = []
   if (input.name.trim() === '') errors.push('Give the layer a name.')
   if (input.file) {
-    if (input.kind !== 'geojson')
-      errors.push('A file can only be GeoJSON. Choose GeoJSON, or give an address instead.')
+    if (input.kind !== 'geojson' && input.kind !== 'gpx')
+      errors.push(
+        'A file can only be GeoJSON or GPX. Choose one of them, or give an address instead.',
+      )
   } else {
     const urlError = checkLayerUrl(input.url, input.kind)
     if (urlError) errors.push(urlError)
@@ -76,21 +83,47 @@ async function probe(send: RemoteFetch, url: string): Promise<Response> {
   }
 }
 
+/** The kind a text is read as, and its GeoJSON: a GPX file or a GeoJSON one, and KML is refused */
+type ReadText = { kind: 'geojson' | 'gpx'; data: GeoJsonData }
+
 /**
- * The checks that need the data: GeoJSON is fetched and parsed, PMTiles has its header and layer
- * names read, vector tiles get one test tile. Returns the source layers the layer needs.
+ * Reads the text of a file or of an address. KML is refused. GPX is read as GPX when the form says GPX, when the
+ * name is `.gpx`, or when the text is GPX XML; anything else is GeoJSON. `name` is a file name or an address.
  */
-async function checkRemote(send: RemoteFetch, input: AddInput, url: string) {
-  if (input.kind === 'geojson') {
+async function readText(
+  text: string,
+  name: string,
+  gpxChosen: boolean,
+): Promise<Checked<ReadText>> {
+  if (KML_PATTERN.test(name) || isKmlText(text)) return { ok: false, errors: [KML_MESSAGE] }
+  if (gpxChosen || GPX_PATTERN.test(name) || isGpxText(text)) {
+    const gpx = await parseGpx(text)
+    return gpx.ok ? { ok: true, value: { kind: 'gpx', data: gpx.value } } : gpx
+  }
+  const geojson = parseGeoJson(text)
+  return geojson.ok ? { ok: true, value: { kind: 'geojson', data: geojson.value } } : geojson
+}
+
+/**
+ * The checks that need the data: GeoJSON and GPX are fetched and read (a GeoJSON address that answers with GPX is
+ * a GPX layer), PMTiles has its header and layer names read, vector tiles get one test tile. Returns the kind the
+ * layer has and the source layers it needs.
+ */
+async function checkRemote(
+  send: RemoteFetch,
+  input: AddInput,
+  url: string,
+): Promise<{ kind: DataLayerKind; sourceLayers?: string[] }> {
+  if (input.kind === 'geojson' || input.kind === 'gpx') {
     const response = await probe(send, url)
     if (!response.ok) throw new Error(`The server answered ${response.status}.`)
-    const parsed = parseGeoJson(await response.text())
-    if (!parsed.ok) throw new Error(parsed.errors.join(' '))
-    return undefined
+    const read = await readText(await response.text(), url, input.kind === 'gpx')
+    if (!read.ok) throw new Error(read.errors.join(' '))
+    return { kind: read.value.kind }
   }
   if (input.kind === 'pmtiles') {
     try {
-      return await readPmtilesLayers(url, send)
+      return { kind: 'pmtiles', sourceLayers: await readPmtilesLayers(url, send) }
     } catch (error) {
       throw describeFailure(error, 'Could not read this PMTiles file')
     }
@@ -99,7 +132,30 @@ async function checkRemote(send: RemoteFetch, input: AddInput, url: string) {
   const tile = url.replaceAll('{z}', '0').replaceAll('{x}', '0').replaceAll('{y}', '0')
   const response = await probe(send, tile)
   await response.body?.cancel()
-  return parseSourceLayers(input.sourceLayers)
+  return { kind: 'vector', sourceLayers: parseSourceLayers(input.sourceLayers) }
+}
+
+/**
+ * The data of a GPX layer's address, for the map. A layer keeps its address, not its data, so the map reads it again
+ * here (once per address, through the editor's fetch). Throws with the reason in plain words.
+ */
+export async function readGpxAddress(url: string, send: RemoteFetch): Promise<GeoJsonData> {
+  const response = await probe(send, url)
+  if (!response.ok) throw new Error(`The server answered ${response.status}.`)
+  const read = await parseGpx(await response.text())
+  if (!read.ok) throw new Error(read.errors.join(' '))
+  return read.value
+}
+
+/** The query of a GPX address's data. Kept for the session, like the PMTiles reads (`pmtilesLayersOptions`). */
+export function gpxAddressOptions(url: string, send: RemoteFetch) {
+  return queryOptions({
+    queryKey: ['data-layers', 'gpx', url] as const,
+    queryFn: () => readGpxAddress(url, send),
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: false,
+  })
 }
 
 /**
@@ -112,37 +168,38 @@ export async function addDataLayer(input: AddInput, send: RemoteFetch): Promise<
   const name = input.name.trim()
 
   if (input.file) {
+    const file = input.file
     let text: string
     try {
-      text = await input.file.text()
+      text = await file.text()
     } catch {
-      return { ok: false, errors: [`${input.file.name} could not be read.`] }
+      return { ok: false, errors: [`${file.name} could not be read.`] }
     }
-    const parsed = parseGeoJson(text)
-    if (!parsed.ok) return { ok: false, errors: [`${input.file.name}: ${parsed.errors.join(' ')}`] }
+    const read = await readText(text, file.name, input.kind === 'gpx')
+    if (!read.ok) return { ok: false, errors: [`${file.name}: ${read.errors.join(' ')}`] }
     const layer: FileLayer = {
       id: newLayerId('file'),
       name,
       color: input.color,
-      data: parsed.value,
+      data: read.value.data,
     }
     return { ok: true, value: { kind: 'file', layer } }
   }
 
   const url = input.url.trim()
-  let sourceLayers: string[] | undefined
+  let found: { kind: DataLayerKind; sourceLayers?: string[] }
   try {
-    sourceLayers = await checkRemote(send, input, url)
+    found = await checkRemote(send, input, url)
   } catch (error) {
     return { ok: false, errors: [error instanceof Error ? error.message : String(error)] }
   }
   const checked = checkDataLayerConfig({
     id: newLayerId('user'),
     name,
-    kind: input.kind,
+    kind: found.kind,
     url,
     color: input.color,
-    ...(sourceLayers !== undefined ? { sourceLayers } : {}),
+    ...(found.sourceLayers !== undefined ? { sourceLayers: found.sourceLayers } : {}),
   })
   if (!checked.ok) return { ok: false, errors: checked.errors }
   return { ok: true, value: { kind: 'url', layer: checked.value } }

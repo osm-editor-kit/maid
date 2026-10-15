@@ -52,6 +52,18 @@ export function parseStored(value: unknown): StreetImageryStored {
   return storedSchema.parse(value)
 }
 
+/**
+ * The providers after one is switched on or off: the list without `id`, and `id` last when it is on (the order of
+ * switching on, as the stored list keeps it). A new array; the list given is not changed.
+ */
+export function toggleProvider(
+  list: readonly ImageryProviderId[],
+  id: ImageryProviderId,
+  on: boolean,
+): ImageryProviderId[] {
+  return [...list.filter((item) => item !== id), ...(on ? [id] : [])]
+}
+
 /** Mapillary is offered only when the build has a token; Panoramax always. */
 export function providerAvailable(id: ImageryProviderId, mapillaryToken: string | undefined) {
   return id === 'panoramax' || (mapillaryToken ?? '') !== ''

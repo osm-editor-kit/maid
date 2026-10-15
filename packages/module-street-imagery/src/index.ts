@@ -1,6 +1,6 @@
 import { CameraIcon } from '@heroicons/react/20/solid'
 import { defineModule } from '@osm-editor-kit/maid-core'
-import type { MapContentItem, MapContentProps } from '@osm-editor-kit/maid-renderer'
+import type { MapContentItem } from '@osm-editor-kit/maid-renderer'
 import {
   lazyComponent,
   PANEL_FALLBACK,
@@ -17,10 +17,9 @@ import { panoramaxAdapter } from '@osm-editor-kit/street-imagery/providers/panor
 import { createElement, type ComponentType } from 'react'
 import { STREET_IMAGES_FIELD_TYPE } from './image-keys.ts'
 import { StreetImageryLayers } from './map.tsx'
-import { useSyncedPhotoKind } from './shown.ts'
-import type { PhotoKind } from './state.ts'
+import { PhotoUrlSync } from './shown.ts'
 import { AUTOMATED, streetImageryActions } from './street-imagery-store.ts'
-import { ID_PHOTO_TYPE, parseAsPhotoType } from './url.ts'
+import { PHOTO_PARAM_DECLARATIONS } from './url.ts'
 
 export { MAP_ID, streetImageryClick } from './map.tsx'
 export {
@@ -99,19 +98,14 @@ export function streetImagery(options: StreetImageryOptions = {}) {
     setup(api) {
       // the one trim of the token: the store and the helpers take it as stored (state.ts, image-actions.ts)
       const token = options.mapillaryToken?.trim() ?? ''
-      // iD's name for the photo kind; the rest of the photo URL parameters wait for the shell (url.ts)
-      const photoTypeUrl = api.urlParam<PhotoKind>({
-        name: 'photo_type',
-        parser: parseAsPhotoType,
-        options: { history: 'replace', clearOnDefault: false },
-        iD: ID_PHOTO_TYPE,
-      })
-      // the URL and the kind shown, in step; a component of the map's content, mounted from the start
-      function PhotoTypeUrlSync(_props: MapContentProps) {
-        useSyncedPhotoKind(photoTypeUrl)
-        return null
-      }
-      api.register('map.content', { id: 'street-imagery-url', component: PhotoTypeUrlSync })
+      // iD's four photo parameters (url.ts). The handles the module reads and writes are PHOTO_HANDLES, built from the
+      // same declarations; the registry keeps the names taken and maps the iD links onto them.
+      api.urlParam(PHOTO_PARAM_DECLARATIONS.type)
+      api.urlParam(PHOTO_PARAM_DECLARATIONS.overlay)
+      api.urlParam(PHOTO_PARAM_DECLARATIONS.dates)
+      api.urlParam(PHOTO_PARAM_DECLARATIONS.photo)
+      // the writer of the photo settings and the photo's URL; a component of the map's content, mounted from the start
+      api.register('map.content', { id: 'street-imagery-url', component: PhotoUrlSync })
       if (!AUTOMATED) {
         // the package reads its configuration when it fetches; Panoramax needs it too
         setStreetImageryConfig(createStreetImageryConfig({ mapillaryToken: token }))

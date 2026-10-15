@@ -5,12 +5,13 @@
 import { z } from 'zod'
 import type { GeoJsonData } from './geojson.ts'
 
-export const DATA_LAYER_KINDS = ['geojson', 'pmtiles', 'vector'] as const
+export const DATA_LAYER_KINDS = ['geojson', 'gpx', 'pmtiles', 'vector'] as const
 
 export type DataLayerKind = (typeof DATA_LAYER_KINDS)[number]
 
 export const KIND_LABEL: Record<DataLayerKind, string> = {
   geojson: 'GeoJSON',
+  gpx: 'GPX',
   pmtiles: 'PMTiles',
   vector: 'Vector tiles',
 }
@@ -29,6 +30,12 @@ const ID_MESSAGE = 'The id must be 1 to 64 letters, digits, "-" or "_".'
 const NAME_MESSAGE = 'The name must not be empty.'
 const COLOR_MESSAGE = 'The colour must be a hex value such as #d6007a.'
 const ONLY_VECTOR_AND_PMTILES = 'Source layers only apply to vector tiles and PMTiles.'
+/** KML is not read. Refused before any request, for an address that names it and for a file or response that is KML. */
+export const KML_MESSAGE = 'KML is not supported. Use a GPX or GeoJSON file instead.'
+/** A GPX address or file name, with an optional query or fragment (`track.gpx?x=1`) */
+export const GPX_PATTERN = /\.gpx(?:[?#]|$)/i
+/** A KML address or file name, read as the same as GPX_PATTERN */
+export const KML_PATTERN = /\.kml(?:[?#]|$)/i
 
 /** A `#rrggbb` colour in any case. Stored in lower case. */
 export const colorSchema = z
@@ -58,6 +65,7 @@ const address = z
       },
     }),
   )
+  .refine((text) => !KML_PATTERN.test(text), { error: KML_MESSAGE })
 
 /** Vector tiles also need the `{z}`, `{x}` and `{y}` template in the address */
 const vectorAddress = address.refine(
@@ -71,10 +79,14 @@ export function checkLayerUrl(url: unknown, kind: DataLayerKind) {
   return result.success ? undefined : result.error.issues[0]?.message
 }
 
-/** The kind an address most likely has: `.pmtiles` is PMTiles, `{z}` is vector tiles, else GeoJSON */
-export function guessKind(url: string) {
+/**
+ * The kind an address most likely has: `.pmtiles` is PMTiles, `.gpx` is GPX, `{z}` is vector tiles, else GeoJSON.
+ * A GeoJSON address that answers with GPX is read as GPX too (add.ts).
+ */
+export function guessKind(url: string): DataLayerKind {
   const trimmed = url.trim()
   if (/\.pmtiles(?:[?#]|$)/i.test(trimmed)) return 'pmtiles'
+  if (GPX_PATTERN.test(trimmed)) return 'gpx'
   if (trimmed.includes('{z}')) return 'vector'
   return 'geojson'
 }
@@ -116,7 +128,7 @@ const layerFields = {
 
 /**
  * A data layer as the editor's config, a stored entry or the form gives it. One schema for all
- * three: a GeoJSON layer has no source layers, vector tiles need them, PMTiles may list them.
+ * three: GeoJSON and GPX layers have no source layers, vector tiles need them, PMTiles may list them.
  * Anything that is not an object (`null` and arrays too) is refused first, with its own message.
  */
 export const dataLayerSchema = z.looseObject({}, { error: OBJECT_MESSAGE }).pipe(
@@ -126,6 +138,12 @@ export const dataLayerSchema = z.looseObject({}, { error: OBJECT_MESSAGE }).pipe
       z.object({
         ...layerFields,
         kind: z.literal('geojson'),
+        url: address,
+        sourceLayers: z.undefined({ error: ONLY_VECTOR_AND_PMTILES }).optional(),
+      }),
+      z.object({
+        ...layerFields,
+        kind: z.literal('gpx'),
         url: address,
         sourceLayers: z.undefined({ error: ONLY_VECTOR_AND_PMTILES }).optional(),
       }),

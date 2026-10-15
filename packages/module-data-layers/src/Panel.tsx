@@ -6,7 +6,13 @@ import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { SegmentedControl } from '@osm-editor-kit/maid-ui'
 import { useQueries } from '@tanstack/react-query'
 import { useId, useMemo, useState, type FormEvent } from 'react'
-import { addDataLayer, describeFailure, type Added, type AddInput } from './add.ts'
+import {
+  addDataLayer,
+  describeFailure,
+  gpxAddressOptions,
+  type Added,
+  type AddInput,
+} from './add.ts'
 import { ColorSwatches } from './ColorSwatches.tsx'
 import {
   DATA_LAYER_KINDS,
@@ -28,14 +34,15 @@ import { colorsInUse, useLinkedLayer } from './link.ts'
 import { pmtilesLayersOptions } from './pmtiles.ts'
 
 /**
- * The problems of the PMTiles layers that the map has tried to read: the failed queries of the map
- * (`pmtilesLayersOptions`), read from the cache. Disabled here, so the panel never starts a read.
+ * The problems of the PMTiles and GPX layers that the map has tried to read: the failed queries of the map
+ * (`pmtilesLayersOptions`, `gpxAddressOptions`), read from the cache. Disabled here, so the panel never starts a read.
  */
 function useLayerProblems(layers: readonly DataLayer[], send: RemoteFetch): Record<string, string> {
   const pmtiles = layers.filter(
     (layer) => layer.kind === 'pmtiles' && layer.sourceLayers === undefined,
   )
-  return useQueries({
+  const gpx = layers.filter((layer) => layer.kind === 'gpx' && layer.data === undefined)
+  const pmtilesProblems = useQueries({
     queries: pmtiles.map((layer) => ({ ...pmtilesLayersOptions(layer.url, send), enabled: false })),
     combine: (results) =>
       Object.fromEntries(
@@ -48,6 +55,18 @@ function useLayerProblems(layers: readonly DataLayer[], send: RemoteFetch): Reco
         }),
       ),
   })
+  const gpxProblems = useQueries({
+    queries: gpx.map((layer) => ({ ...gpxAddressOptions(layer.url, send), enabled: false })),
+    combine: (results) =>
+      Object.fromEntries(
+        results.flatMap((result, index) => {
+          const layer = gpx[index]
+          if (!layer || !result.isError) return []
+          return [[layer.id, describeFailure(result.error, 'Could not read this GPX file').message]]
+        }),
+      ),
+  })
+  return { ...pmtilesProblems, ...gpxProblems }
 }
 
 const INPUT =
@@ -141,6 +160,7 @@ const KIND_OPTIONS = DATA_LAYER_KINDS.map((option) => ({
 
 const KIND_HINT: Record<DataLayerKind, string> = {
   geojson: 'An address of GeoJSON, or a file from your computer.',
+  gpx: 'An address of a GPX track or route, or a GPX file from your computer.',
   pmtiles: 'The layer names are read from the file.',
   vector: 'The address has {z}, {x} and {y}. Name the source layers below.',
 }
@@ -257,15 +277,15 @@ function AddLayerForm({
           placeholder={kind === 'vector' ? 'https://…/{z}/{x}/{y}.pbf' : 'https://…'}
         />
       </label>
-      {kind === 'geojson' ? (
+      {kind === 'geojson' || kind === 'gpx' ? (
         <label className="flex flex-col gap-1" htmlFor={`${ids}-file`}>
-          <span className={LABEL}>Or a GeoJSON file</span>
+          <span className={LABEL}>Or a GeoJSON or GPX file</span>
           <input
             {...PLAIN_INPUT}
             key={fileInputKey}
             id={`${ids}-file`}
             type="file"
-            accept=".geojson,.json,application/geo+json,application/json"
+            accept=".geojson,.json,.gpx,application/geo+json,application/json,application/gpx+xml"
             className="block w-full min-w-0 cursor-pointer rounded-md text-sm text-zinc-500 file:mr-3 file:h-8 file:cursor-pointer file:rounded-md file:border file:border-solid file:border-zinc-950/10 file:bg-white file:px-3 file:text-sm file:font-medium file:text-zinc-950 hover:file:border-zinc-950/20 hover:file:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:file:border-white/10 dark:file:bg-white/5 dark:file:text-white dark:hover:file:border-white/20 dark:hover:file:bg-white/10"
             onChange={(event) => {
               const chosenFile = event.target.files?.[0]

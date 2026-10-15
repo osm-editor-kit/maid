@@ -1,8 +1,8 @@
 /**
- * The URL parameter of the data layers module, `data`: the address of a GeoJSON or PMTiles file that a link shows as a
- * layer (`?data=https://…/bike.geojson`). iD's `gpx` is not read: Maid has no GPX reader (id-url.ts leaves it out).
- * iD at its pinned commit reads no `data` parameter and writes none for its data layers, so `data` has no iD name
- * here, and this module writes nothing back for a layer added by hand (docs/research/url-state-audit.md, section 5).
+ * The URL parameter of the data layers module, `data`: the address of a GeoJSON, GPX or PMTiles file that a link shows
+ * as a layer (`?data=https://…/bike.geojson`). Its iD name is `gpx` (module.tsx): iD's `gpx=` link loads the same kind
+ * of file, so an iD link with a GPX track shows it here. KML is not read.
+ * This module writes nothing back for a layer added by hand (docs/research/url-state-audit.md, section 5).
  *
  * Pure: no React, no network. The parser has the shape of core's `UrlParser`.
  */
@@ -10,7 +10,7 @@ import type { UrlParser } from '@osm-editor-kit/maid-core'
 import { checkLayerUrl, guessKind } from './config.ts'
 
 /**
- * A remote data address: GeoJSON or PMTiles, https (or a path on this server). Vector tiles need source layer names
+ * A remote data address: GeoJSON, GPX or PMTiles, https (or a path on this server). Vector tiles need source layer names
  * a link cannot give, so they are no opinion (null), like an address that is not valid. The value is trimmed.
  */
 export const parseAsDataLink: UrlParser<string> = {
@@ -25,7 +25,7 @@ export const parseAsDataLink: UrlParser<string> = {
   eq: (a, b) => a === b,
 }
 
-/** The name of a layer a link adds: its file name without the extension, else "Linked data" */
+/** The name of a layer a link adds: its file name without the extension (.geojson, .json, .gpx, .pmtiles), else "Linked data" */
 export function linkedLayerName(url: string): string {
   const path = url.split(/[?#]/)[0] ?? ''
   const last =
@@ -33,7 +33,7 @@ export function linkedLayerName(url: string): string {
       .split('/')
       .filter((part) => part !== '')
       .pop() ?? ''
-  let name = last.replace(/\.(geojson|json|pmtiles)$/i, '')
+  let name = last.replace(/\.(geojson|json|gpx|pmtiles)$/i, '')
   try {
     name = decodeURIComponent(name)
   } catch {

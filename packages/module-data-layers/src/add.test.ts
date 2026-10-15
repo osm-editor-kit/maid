@@ -1,6 +1,18 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 import { HttpError, RateLimitedError, type RemoteFetch } from '@osm-editor-kit/maid-core'
 import { addDataLayer, checkAddInput, type AddInput } from './add.ts'
+import { installTestDOMParser } from './test-dom.ts'
+
+installTestDOMParser()
+
+const GPX = `<?xml version="1.0"?>
+<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">
+  <wpt lat="52.5" lon="13.4"/>
+  <trk><trkseg><trkpt lat="52.5" lon="13.4"/><trkpt lat="52.501" lon="13.401"/></trkseg></trk>
+</gpx>`
+
+const KML = '<?xml version="1.0"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document/></kml>'
+const KML_MESSAGE = 'KML is not supported. Use a GPX or GeoJSON file instead.'
 
 const BASE: AddInput = {
   name: 'Parking',
@@ -40,7 +52,7 @@ describe('checkAddInput (the form, no network)', () => {
     const file = new File(['{}'], 'a.geojson')
     expect(checkAddInput({ ...BASE, url: '', file })).toEqual([])
     expect(checkAddInput({ ...BASE, kind: 'pmtiles', file })).toEqual([
-      'A file can only be GeoJSON. Choose GeoJSON, or give an address instead.',
+      'A file can only be GeoJSON or GPX. Choose one of them, or give an address instead.',
     ])
   })
 })
@@ -102,5 +114,88 @@ describe('addDataLayer makes no request for input the form already refuses', () 
     expect(urls).toEqual([])
     expect(result.ok).toBe(true)
     if (result.ok) expect(result.value.kind).toBe('file')
+  })
+})
+
+describe('GPX and KML', () => {
+  let urls: string[] = []
+  let respond: () => Promise<Response>
+  const send: RemoteFetch = async (url) => {
+    urls.push(String(url))
+    return respond()
+  }
+  const answer = (text: string) => () => Promise.resolve(new Response(text))
+  const TRACK = { ...BASE, url: 'https://example.org/ride.gpx', kind: 'gpx' as const }
+
+  beforeEach(() => {
+    urls = []
+    respond = answer('{}')
+  })
+
+  test('a GPX address is requested once and becomes a GPX layer, its data read later by the map', async () => {
+    respond = answer(GPX)
+    const result = await addDataLayer(TRACK, send)
+    expect(urls).toEqual([TRACK.url])
+    expect(result.ok).toBe(true)
+    if (result.ok && result.value.kind === 'url') {
+      expect(result.value.layer).toMatchObject({ kind: 'gpx', url: TRACK.url })
+      expect(result.value.layer.sourceLayers).toBeUndefined()
+    } else throw new Error('expected a URL layer')
+  })
+
+  test('a GeoJSON address that answers with GPX XML is a GPX layer too', async () => {
+    respond = answer(GPX)
+    const feed = { ...TRACK, url: 'https://example.org/feed', kind: 'geojson' as const }
+    const result = await addDataLayer(feed, send)
+    expect(result.ok && result.value.kind === 'url' && result.value.layer.kind).toBe('gpx')
+  })
+
+  test('an address named .gpx that answers with GeoJSON says it is not GPX', async () => {
+    respond = answer('{"type":"FeatureCollection","features":[]}')
+    const result = await addDataLayer(TRACK, send)
+    expect(result).toEqual({
+      ok: false,
+      errors: ['This is not GPX: it must be XML with a gpx element at the top.'],
+    })
+  })
+
+  test('a GPX file is read without a request, and is a file layer with features', async () => {
+    const file = new File([GPX], 'ride.gpx')
+    const result = await addDataLayer({ ...TRACK, url: '', file }, send)
+    expect(urls).toEqual([])
+    expect(result.ok && result.value.kind === 'file' && result.value.layer.name).toBe('Parking')
+    if (result.ok && result.value.kind === 'file') {
+      const data = result.value.layer.data
+      const types = data.type === 'FeatureCollection' && data.features.map((f) => f.geometry.type)
+      expect(types).toEqual(['LineString', 'Point'])
+    }
+  })
+
+  test('a GeoJSON file given as GPX says it is not GPX', async () => {
+    const file = new File(['{"type":"FeatureCollection","features":[]}'], 'places.json')
+    const result = await addDataLayer({ ...TRACK, url: '', file }, send)
+    expect(result).toEqual({
+      ok: false,
+      errors: ['places.json: This is not GPX: it must be XML with a gpx element at the top.'],
+    })
+  })
+
+  test('a KML address is refused before any request', async () => {
+    const result = await addDataLayer({ ...BASE, url: 'https://example.org/map.kml?x=1' }, send)
+    expect(result).toEqual({ ok: false, errors: [KML_MESSAGE] })
+    expect(urls).toEqual([])
+  })
+
+  test('a KML file is refused in plain words, with its name', async () => {
+    const file = new File([KML], 'map.kml')
+    const result = await addDataLayer({ ...TRACK, url: '', kind: 'geojson', file }, send)
+    expect(result).toEqual({ ok: false, errors: [`map.kml: ${KML_MESSAGE}`] })
+  })
+
+  test('an address without .kml that answers with KML is refused after its one request', async () => {
+    respond = answer(KML)
+    const result = await addDataLayer({ ...BASE, url: 'https://example.org/feed' }, send)
+    expect(urls).toEqual(['https://example.org/feed'])
+    expect(result).toEqual({ ok: false, errors: [KML_MESSAGE] })
   })
 })

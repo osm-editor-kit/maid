@@ -1,13 +1,17 @@
 import { describe, expect, test } from 'bun:test'
 import {
+  handleOf,
   ID_PHOTO,
   ID_PHOTO_DATES,
   ID_PHOTO_OVERLAY,
   ID_PHOTO_TYPE,
+  PHOTO_HANDLES,
+  PHOTO_PARAM_DECLARATIONS,
   parseAsPhoto,
   parseAsPhotoDates,
   parseAsPhotoOverlay,
   parseAsPhotoType,
+  photoLinkStep,
 } from './url.ts'
 
 describe('iD names', () => {
@@ -117,5 +121,67 @@ describe('photo', () => {
     const ref = { providerId: 'panoramax' as const, photoId: 'x-1' }
     expect(parseAsPhoto.serialize(ref)).toBe('panoramax/x-1')
     expect(parseAsPhoto.parse(parseAsPhoto.serialize(ref))).toEqual(ref)
+  })
+})
+
+describe('declarations and handles', () => {
+  test('the module declares the four parameters under their iD names, replaced in history', () => {
+    const declared = Object.values(PHOTO_PARAM_DECLARATIONS)
+    expect(declared.map((item) => item.name)).toEqual([
+      'photo_type',
+      'photo_overlay',
+      'photo_dates',
+      'photo',
+    ])
+    expect(declared.map((item) => item.iD?.name)).toEqual(declared.map((item) => item.name))
+    expect(declared.every((item) => item.options?.history === 'replace')).toBe(true)
+    expect(PHOTO_PARAM_DECLARATIONS.type.options).toEqual({
+      history: 'replace',
+      clearOnDefault: false,
+    })
+    expect(PHOTO_PARAM_DECLARATIONS.overlay.options).toEqual({ history: 'replace' })
+  })
+
+  test('a handle takes the core default (replace) when the declaration names no history', () => {
+    const handle = handleOf({ name: 'x', parser: parseAsPhotoType })
+    expect(handle.options).toEqual({ history: 'replace' })
+    expect(
+      handleOf({ name: 'x', parser: parseAsPhotoType, options: { history: 'push' } }).options,
+    ).toEqual({
+      history: 'push',
+    })
+  })
+
+  test('the handles are the declarations, built once', () => {
+    expect(PHOTO_HANDLES.photo.name).toBe('photo')
+    expect(PHOTO_HANDLES.dates.options.history).toBe('replace')
+    expect(PHOTO_HANDLES.type.options.clearOnDefault).toBe(false)
+  })
+})
+
+describe('photoLinkStep', () => {
+  const mapillary = { providerId: 'mapillary' as const, photoId: '1' }
+  const panoramax = { providerId: 'panoramax' as const, photoId: 'a' }
+
+  test('no URL photo closes an open one, and does nothing else', () => {
+    expect(photoLinkStep(null, null, ['mapillary'])).toEqual({ kind: 'none' })
+    expect(photoLinkStep(null, mapillary, ['mapillary'])).toEqual({ kind: 'close' })
+  })
+
+  test('the URL photo that is open already does nothing', () => {
+    expect(photoLinkStep(mapillary, { ...mapillary }, ['mapillary'])).toEqual({ kind: 'none' })
+  })
+
+  test('a URL photo whose provider is off waits, and is not opened', () => {
+    expect(photoLinkStep(mapillary, null, [])).toEqual({ kind: 'none' })
+    expect(photoLinkStep(panoramax, mapillary, ['mapillary'])).toEqual({ kind: 'none' })
+  })
+
+  test('a URL photo with its provider on opens, replacing another open photo', () => {
+    expect(photoLinkStep(mapillary, null, ['mapillary'])).toEqual({ kind: 'open', ref: mapillary })
+    expect(photoLinkStep(mapillary, panoramax, ['panoramax', 'mapillary'])).toEqual({
+      kind: 'open',
+      ref: mapillary,
+    })
   })
 })

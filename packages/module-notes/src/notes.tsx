@@ -19,7 +19,7 @@ import {
   type NotesMode,
 } from './model.ts'
 import { cachedNote, failureMessage, useNotesCells, wantedCells } from './query.ts'
-import { useNotesStart, useNotesSwitch } from './shown.ts'
+import { useNotesSwitch } from './shown.ts'
 import { useNotesSession, useNotesSettings } from './store.ts'
 import { ID_NOTES, parseAsNotes } from './url.ts'
 
@@ -91,7 +91,7 @@ export function notes(options: { apiUrl: string }) {
     id: 'notes',
     setup(api) {
       // iD's name, read once at start by iD and written by Maid (url.ts): a link can turn the notes on
-      const notesUrl = api.urlParam<true>({
+      const notesUrl = api.urlParam<boolean>({
         name: 'notes',
         parser: parseAsNotes,
         options: { history: 'replace' },
@@ -102,8 +102,7 @@ export function notes(options: { apiUrl: string }) {
       function NotesOnMap(_props: MapContentProps) {
         const { current: map } = useMap()
         const queries = useQueryClient()
-        // the URL says what is shown from the start (this component is mounted with the map)
-        useNotesStart(notesUrl)
+        // the URL says what is shown from the start: this component is mounted with the map, and the switch writes it
         const { enabled } = useNotesSwitch(notesUrl)
         const showClosed = useNotesSettings((s) => s.showClosed)
         const focus = useNotesSession((s) => s.focus)

@@ -18,8 +18,8 @@ export type DataLayersOptions = {
  * and a "Data layers" flyout to show, hide, add and remove them. Added layers and what is hidden
  * are stored in the browser under `maid:data-layers`; files are kept until a reload.
  *
- * The URL parameter `data` names one remote GeoJSON or PMTiles address that is shown as a layer while the URL
- * names it (url.ts, link.ts). A link alone writes nothing to storage.
+ * The URL parameter `data` names one remote GeoJSON, GPX or PMTiles address that is shown as a layer while the URL
+ * names it (url.ts, link.ts). Its iD name is `gpx`, so iD's GPX links map onto it. A link alone writes nothing to storage.
  */
 export function dataLayers(options: DataLayersOptions = {}) {
   const layers = checkConfigLayers(options.layers ?? [])
@@ -30,6 +30,7 @@ export function dataLayers(options: DataLayersOptions = {}) {
         name: 'data',
         parser: parseAsDataLink,
         options: { history: 'replace' },
+        iD: { name: 'gpx' },
       })
       // the map layer reads the PMTiles archives through the editor's fetch, and its query client is the editor's
       const MapContent = createMapContent(layers, api.editor.fetch, link)

@@ -84,11 +84,13 @@ const SOURCE_PREFIX = 'data-layer:'
 
 /**
  * The draw of one layer. Its `sourceLayers` are the vector layers to draw; a PMTiles layer without
- * them (read from the file, not known yet) draws nothing. Returns `undefined` when there is nothing to draw.
+ * them (read from the file, not known yet) draws nothing. A GPX layer draws its `data`, which the map reads
+ * from its address; without it nothing is drawn yet. Returns `undefined` when there is nothing to draw.
  */
 export function layerDraw(layer: DataLayer): DataLayerDraw | undefined {
   const sourceId = `${SOURCE_PREFIX}${layer.id}`
-  if (layer.kind === 'geojson') {
+  if (layer.kind === 'geojson' || layer.kind === 'gpx') {
+    if (layer.kind === 'gpx' && layer.data === undefined) return undefined
     return {
       sourceId,
       source: { type: 'geojson', data: layer.data ?? layer.url },

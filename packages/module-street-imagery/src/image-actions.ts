@@ -51,3 +51,27 @@ export async function openImageById(id: string) {
   streetImageryActions.showPhoto(photo)
   return null
 }
+
+/**
+ * Whether a photo can be opened by its id now: Mapillary with a token, and never in an automated browser. Panoramax
+ * cannot be opened by id yet (see `showBlockedReason`). Pure.
+ */
+export function canOpenPhotoById(providerId: string, mapillaryToken: string, automated: boolean) {
+  if (automated) return false
+  return providerId === 'mapillary' && mapillaryToken !== ''
+}
+
+/**
+ * The photo of a URL's `provider/id`, loaded for the viewer, or null when it cannot be opened by id. The request is
+ * made only when `canOpenPhotoById` says so: nothing is requested in an automated browser (AGENTS.md, core rule 1).
+ */
+export async function fetchPhotoById(
+  providerId: string,
+  photoId: string,
+  mapillaryToken: string,
+  automated: boolean,
+): Promise<NormalizedPhoto | null> {
+  if (!canOpenPhotoById(providerId, mapillaryToken, automated)) return null
+  const [details] = await fetchMapillaryImages([photoId])
+  return details === undefined ? null : mapillaryPhoto(details)
+}

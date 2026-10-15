@@ -6,13 +6,18 @@
  *   photo_dates    `from_to` as `YYYY-MM-DD`; `_` for no limit (iD reads it that way, and never writes it)
  *   photo          the open photo, `provider/id` (iD's form; the id only, as the audit decided)
  *
- * Only `photo_type` is declared by the module (index.ts). The shell reserves `photo_overlay`, `photo_dates` and `photo`
- * for its carried iD rows (shell `url/id-url.ts`), so declaring them waits for that change; their parsers are here and
- * tested. `photo_username` is not in Maid (it has no username filter).
+ * The module declares all four in setup (index.ts) from `PHOTO_PARAM_DECLARATIONS`, and reads and writes them with
+ * `PHOTO_HANDLES` (the same declarations, built as the core builds the handle `api.urlParam` returns). `photo_username`
+ * is not in Maid (it has no username filter).
  *
  * Pure: no React, no nuqs, no store. The parsers have the shape core's `UrlParser` takes.
  */
-import type { IdUrlName, UrlParser } from '@osm-editor-kit/maid-core'
+import type {
+  IdUrlName,
+  UrlParamDeclaration,
+  UrlParamHandle,
+  UrlParser,
+} from '@osm-editor-kit/maid-core'
 import {
   DAY,
   IMAGERY_PROVIDER_IDS,
@@ -57,7 +62,7 @@ function sameDates(a: PhotoDates, b: PhotoDates) {
   return a.from === b.from && a.to === b.to
 }
 
-function sameRef(a: PhotoRef, b: PhotoRef) {
+export function sameRef(a: PhotoRef, b: PhotoRef) {
   return a.providerId === b.providerId && a.photoId === b.photoId
 }
 
@@ -133,4 +138,85 @@ export const parseAsPhoto: UrlParser<PhotoRef> = {
   },
   serialize: ({ providerId, photoId }) => `${providerId}/${photoId}`,
   eq: sameRef,
+}
+
+/**
+ * The four declarations, as the module passes them to `api.urlParam` in setup. Each carries iD's name, so that an iD
+ * link maps onto it (the shell's id-url.ts). `photo_type` keeps its value in the URL when it is the default (`clearOnDefault:
+ * false`, as before); the other three are `history: 'replace'` (the core default, written out).
+ */
+export const PHOTO_PARAM_DECLARATIONS = {
+  type: {
+    name: 'photo_type',
+    parser: parseAsPhotoType,
+    options: { history: 'replace', clearOnDefault: false },
+    iD: ID_PHOTO_TYPE,
+  },
+  overlay: {
+    name: 'photo_overlay',
+    parser: parseAsPhotoOverlay,
+    options: { history: 'replace' },
+    iD: ID_PHOTO_OVERLAY,
+  },
+  dates: {
+    name: 'photo_dates',
+    parser: parseAsPhotoDates,
+    options: { history: 'replace' },
+    iD: ID_PHOTO_DATES,
+  },
+  photo: {
+    name: 'photo',
+    parser: parseAsPhoto,
+    options: { history: 'replace' },
+    iD: ID_PHOTO,
+  },
+} satisfies {
+  type: UrlParamDeclaration<PhotoKind>
+  overlay: UrlParamDeclaration<ImageryProviderId[]>
+  dates: UrlParamDeclaration<PhotoDates>
+  photo: UrlParamDeclaration<PhotoRef>
+}
+
+/**
+ * The handle of a declaration, built as the core builds the one `api.urlParam` returns (`history` defaults to `replace`).
+ * The readers and the sync take these: a stable object, so that the core's `useUrlParam` keeps its parser.
+ */
+export function handleOf<T>(declaration: UrlParamDeclaration<T>): UrlParamHandle<T> {
+  return {
+    name: declaration.name,
+    parser: declaration.parser,
+    options: { ...declaration.options, history: declaration.options?.history ?? 'replace' },
+    iD: declaration.iD,
+  }
+}
+
+export const PHOTO_HANDLES = {
+  type: handleOf(PHOTO_PARAM_DECLARATIONS.type),
+  overlay: handleOf(PHOTO_PARAM_DECLARATIONS.overlay),
+  dates: handleOf(PHOTO_PARAM_DECLARATIONS.dates),
+  photo: handleOf(PHOTO_PARAM_DECLARATIONS.photo),
+}
+
+/** What the open photo should do, from the URL's photo, the photo open and the providers on */
+export type PhotoLinkStep =
+  /** nothing to do */
+  | { kind: 'none' }
+  /** the photo open is not the URL's: close it (the URL has no photo, or the photo's provider is off) */
+  | { kind: 'close' }
+  /** the URL's photo is not open and its provider is on: open it */
+  | { kind: 'open'; ref: PhotoRef }
+
+/**
+ * The open photo follows the URL (a link, the history). A URL photo whose provider is off waits: it is kept in the URL
+ * and opens when the provider comes on. Pure; the caller loads the photo for `open` (image-actions.ts).
+ */
+export function photoLinkStep(
+  url: PhotoRef | null,
+  open: PhotoRef | null,
+  on: readonly ImageryProviderId[],
+): PhotoLinkStep {
+  if (url === null) return open === null ? { kind: 'none' } : { kind: 'close' }
+  if (open !== null && sameRef(url, open)) return { kind: 'none' }
+  if (!on.includes(url.providerId)) return { kind: 'none' }
+  return { kind: 'open', ref: url }
 }

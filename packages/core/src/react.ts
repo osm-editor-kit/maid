@@ -3,9 +3,9 @@
  * so that the main entry stays free of React.
  */
 import { createParser, useQueryState } from 'nuqs'
-import { useMemo, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import type { Editor, ExtensionPoints, PointName } from './types.ts'
-import type { UrlParamHandle } from './url-state.ts'
+import { layered, urlWrite, type UrlParamHandle } from './url-state.ts'
 
 /**
  * The items modules registered at an extension point, in registration order.
@@ -36,4 +36,51 @@ export function useUrlParam<T>(handle: UrlParamHandle<T>) {
     [handle],
   )
   return useQueryState(handle.name, parser)
+}
+
+export interface UrlSettingOptions<T> {
+  /** The person's stored choice, or `null` when there is none */
+  stored: T | null
+  /** The value without a link and without a stored choice: the editor's default */
+  fallback: T
+  /** Stores a choice of the person for the next visit. A link never calls it. */
+  remember: (value: T) => void
+  /** Turns a value the editor cannot show (an unknown id) into what it shows instead. Default: the value as it is. */
+  resolve?: (value: T) => T
+  /** Nothing is written to the URL before this is true (a start order still running). Default: true. */
+  ready?: boolean
+  /** Leaves the key out while the fallback is shown and no link asked for it (see core's `urlWrite`) */
+  omitFallback?: boolean
+}
+
+/**
+ * A setting a link can set, with one live state (docs/research/url-state-audit.md): the URL decides, the stored
+ * choice is remembered for the next visit, and once `ready` the URL is kept to what is shown (`history: 'replace'`
+ * from the declaration). `choose` is a choice of the person: it writes the URL and remembers the value. A link
+ * never writes storage. `fromLink` is true while the URL shows something other than the person's own choice.
+ */
+export function useUrlSetting<T extends {}>(
+  handle: UrlParamHandle<T>,
+  options: UrlSettingOptions<T>,
+) {
+  const { stored, fallback, remember, resolve, ready = true, omitFallback } = options
+  const [url, setUrl] = useUrlParam(handle)
+  const same = (a: T, b: T) => (handle.parser.eq ? handle.parser.eq(a, b) : Object.is(a, b))
+  const setting = layered({ url, stored, fallback, same })
+  const shown = resolve ? resolve(setting.value) : setting.value
+  const write = urlWrite({ url, shown, fallback, fromLink: setting.fromLink, omitFallback, same })
+
+  useEffect(() => {
+    if (ready && write !== undefined) void setUrl(write)
+  }, [ready, write, setUrl])
+
+  return {
+    value: shown,
+    fromLink: setting.fromLink,
+    /** A choice of the fallback with `omitFallback` removes the key at once, so the parser never writes "off" */
+    choose: (value: T) => {
+      void setUrl(omitFallback && same(value, fallback) ? null : value)
+      remember(value)
+    },
+  }
 }

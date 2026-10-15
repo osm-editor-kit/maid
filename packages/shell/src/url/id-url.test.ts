@@ -126,12 +126,12 @@ describe('a parameter a module declared with an iD name', () => {
   })
 })
 
-describe('the imagery parameters: background, its alias layer, and overlays', () => {
+describe('the imagery parameters: bg (iD background, alias layer) and overlays', () => {
   // the handles the module declares (imagery/index.ts); the values are strings, and overlays' none is an empty iD value
   const plain = { parse: (v: string) => v, serialize: (v: string) => v }
   const registry = createUrlParams(shellUrlParamNames())
   const background = registry.declare(
-    { name: 'background', parser: plain, iD: { name: 'background', aliases: ['layer'] } },
+    { name: 'bg', parser: plain, iD: { name: 'background', aliases: ['layer'] } },
     'imagery',
   ).handle
   const overlays = registry.declare(
@@ -144,24 +144,22 @@ describe('the imagery parameters: background, its alias layer, and overlays', ()
   ).handle
   const declared = [background, overlays]
 
-  test('iD background is read as the same name, and a template keeps its characters', () => {
+  test('iD background is read as bg, and a template keeps its characters', () => {
     const { params, dropped } = fromIdUrl(
       '#map=17/1/2&background=custom:https://tiles.example.org/{z}/{x}/{y}.png?key=a b',
       declared,
     )
-    expect(params.get('background')).toBe(
-      'custom:https://tiles.example.org/{z}/{x}/{y}.png?key=a b',
-    )
+    expect(params.get('bg')).toBe('custom:https://tiles.example.org/{z}/{x}/{y}.png?key=a b')
     expect(dropped).toEqual([])
   })
 
-  test('iD layer is read as background when background is not given', () => {
-    expect(fromIdUrl('#layer=Bing', declared).params.get('background')).toBe('Bing')
+  test('iD layer is read as bg when background is not given', () => {
+    expect(fromIdUrl('#layer=Bing', declared).params.get('bg')).toBe('Bing')
   })
 
   test('background wins over layer, and the layer is reported', () => {
     const { params, dropped } = fromIdUrl('#layer=Bing&background=none', declared)
-    expect(params.get('background')).toBe('none')
+    expect(params.get('bg')).toBe('none')
     expect(dropped).toEqual([{ name: 'layer', why: 'background is given too' }])
   })
 
@@ -173,10 +171,10 @@ describe('the imagery parameters: background, its alias layer, and overlays', ()
   })
 
   test('the link is written with iD names, and none is left out of overlays', () => {
-    expect(toIdUrl('?map=17/1/2&background=Bing&overlays=none', undefined, declared)).toBe(
+    expect(toIdUrl('?map=17/1/2&bg=Bing&overlays=none', undefined, declared)).toBe(
       'https://www.openstreetmap.org/edit?editor=id#map=17/1/2&background=Bing',
     )
-    expect(toIdUrl('?background=Bing&overlays=a,b', undefined, declared)).toBe(
+    expect(toIdUrl('?bg=Bing&overlays=a,b', undefined, declared)).toBe(
       'https://www.openstreetmap.org/edit?editor=id#background=Bing&overlays=a,b',
     )
   })
@@ -206,7 +204,7 @@ describe('the imagery parameters: background, its alias layer, and overlays', ()
     ])
     migrateIdHash(at(`https://maid.example${urls[0]}`), history, declared, { final: true })
     expect(urls[1]).toBe(
-      '/?scene=small&map=17/1/2&background=custom%3Ahttps%3A//a.example/%7Bz%7D/%7Bx%7D/%7By%7D.png&overlays=a,b',
+      '/?scene=small&map=17/1/2&bg=custom%3Ahttps%3A//a.example/%7Bz%7D/%7Bx%7D/%7By%7D.png&overlays=a,b',
     )
   })
 
@@ -248,12 +246,19 @@ describe('iD links: the language and the GPX file', () => {
     expect(toIdUrl(`?${fromIdUrl(id).params.toString()}`)).toBe(id)
   })
 
-  test('a GPX file is left out with the reason, not passed on as a Maid parameter', () => {
-    const { params, dropped } = fromIdUrl('#gpx=https://example.org/track.gpx&map=17/1/2')
-    expect(params.has('gpx')).toBe(false)
-    expect(dropped).toEqual([
-      { name: 'gpx', why: 'Maid draws GeoJSON, PMTiles and vector tiles, not GPX files' },
-    ])
+  test("iD's gpx is the data layers' data, by the module's declaration", () => {
+    const registry = createUrlParams(shellUrlParamNames())
+    const data = registry.declare(
+      {
+        name: 'data',
+        parser: { parse: (v: string) => v, serialize: (v: string) => v },
+        iD: { name: 'gpx' },
+      },
+      'data-layers',
+    ).handle
+    const { params, dropped } = fromIdUrl('#gpx=https://example.org/track.gpx&map=17/1/2', [data])
+    expect(params.get('data')).toBe('https://example.org/track.gpx')
+    expect(dropped).toEqual([])
     expect(shellUrlParamNames()).not.toContain('gpx')
   })
 })

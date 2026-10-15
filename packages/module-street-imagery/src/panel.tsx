@@ -2,23 +2,18 @@ import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { SegmentedControl } from '@osm-editor-kit/maid-ui'
 import { PhotoDateRangeFilter } from '@osm-editor-kit/street-imagery-react'
 import './street-imagery.css'
+import { useShownPhotos } from './shown.ts'
 import {
   activeProviders,
   IMAGERY_PROVIDER_IDS,
   PHOTO_KINDS,
   PROVIDER_LABELS,
   providerAvailable,
+  toggleProvider,
   type ImageryProviderId,
   type PhotoKind,
 } from './state.ts'
-import {
-  AUTOMATED,
-  useDate,
-  useMapillaryToken,
-  usePhotoKind,
-  useProviders,
-  useStreetImageryActions,
-} from './street-imagery-store.ts'
+import { AUTOMATED, useMapillaryToken } from './street-imagery-store.ts'
 
 const KIND_LABELS: Record<PhotoKind, string> = { all: 'All', flat: 'Flat', pano: '360°' }
 const KIND_OPTIONS = PHOTO_KINDS.map((kind) => ({ value: kind, label: KIND_LABELS[kind] }))
@@ -35,10 +30,17 @@ const MAPILLARY_WITHOUT_TOKEN =
  * One provider: a checkbox switch and what it reads from. The row layout and the native switch
  * are the ones of the notes panel (module-notes), so a switch looks the same in every panel.
  */
-function ProviderRow({ id }: { id: ImageryProviderId }) {
-  const on = useProviders().includes(id)
+function ProviderRow({
+  id,
+  on,
+  onSwitch,
+}: {
+  id: ImageryProviderId
+  /** Whether the URL shows this provider (the shown value, not the stored one) */
+  on: boolean
+  onSwitch: (id: ImageryProviderId, on: boolean) => void
+}) {
   const token = useMapillaryToken()
-  const { setProvider } = useStreetImageryActions()
   const available = providerAvailable(id, token)
   const note = available ? NOTES[id] : MAPILLARY_WITHOUT_TOKEN
   return (
@@ -60,7 +62,7 @@ function ProviderRow({ id }: { id: ImageryProviderId }) {
           className="mt-0.5 size-4 shrink-0 cursor-pointer accent-blue-600 disabled:cursor-default dark:accent-blue-500"
           checked={on}
           disabled={!available}
-          onChange={(event) => setProvider(id, event.currentTarget.checked)}
+          onChange={(event) => onSwitch(id, event.currentTarget.checked)}
         />
       </label>
     </li>
@@ -71,15 +73,13 @@ function ProviderRow({ id }: { id: ImageryProviderId }) {
  * The photo kinds (all, flat, 360°) as one group of buttons, from the shared SegmentedControl. The
  * arrow keys move between them and choose.
  */
-function KindChoice() {
-  const photoKind = usePhotoKind()
-  const { setPhotoKind } = useStreetImageryActions()
+function KindChoice({ kind, onSelect }: { kind: PhotoKind; onSelect: (kind: PhotoKind) => void }) {
   return (
     <SegmentedControl
       label="Which photos"
       options={KIND_OPTIONS}
-      value={photoKind}
-      onSelect={setPhotoKind}
+      value={kind}
+      onSelect={onSelect}
       textSize="xs"
       className="mt-1"
     />
@@ -91,9 +91,7 @@ function KindChoice() {
  * 360°) and from when. Nothing is requested before a provider is switched on.
  */
 export function PhotosPanel() {
-  const date = useDate()
-  const { setDate } = useStreetImageryActions()
-  const stored = useProviders()
+  const shown = useShownPhotos(false)
   const token = useMapillaryToken()
 
   if (AUTOMATED)
@@ -103,7 +101,9 @@ export function PhotosPanel() {
       </p>
     )
 
-  const anyOn = activeProviders(stored, token, AUTOMATED).length > 0
+  const anyOn = activeProviders(shown.providers, token, AUTOMATED).length > 0
+  const switchProvider = (id: ImageryProviderId, on: boolean) =>
+    shown.chooseProviders(toggleProvider(shown.providers, id, on))
 
   return (
     <div className="maid-street-imagery flex flex-col gap-5 p-4 text-sm">
@@ -116,18 +116,27 @@ export function PhotosPanel() {
         )}
         <ul className="mt-1 divide-y divide-zinc-950/5 dark:divide-white/5">
           {IMAGERY_PROVIDER_IDS.map((id) => (
-            <ProviderRow key={id} id={id} />
+            <ProviderRow
+              key={id}
+              id={id}
+              on={shown.providers.includes(id)}
+              onSwitch={switchProvider}
+            />
           ))}
         </ul>
       </section>
       <section>
         <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Photos</h3>
-        <KindChoice />
+        <KindChoice kind={shown.kind} onSelect={shown.chooseKind} />
       </section>
       <section>
         <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Taken between</h3>
         <div className="mt-1">
-          <PhotoDateRangeFilter value={date} onChange={setDate} yearLines={[1, 2, 3, 4]} />
+          <PhotoDateRangeFilter
+            value={shown.date}
+            onChange={shown.chooseDate}
+            yearLines={[1, 2, 3, 4]}
+          />
         </div>
       </section>
     </div>

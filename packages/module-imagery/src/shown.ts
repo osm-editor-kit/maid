@@ -1,13 +1,14 @@
 /**
- * The live background and overlays, as React state. The URL is the live state (`background` and `overlays`, read and
- * written through nuqs by core's `useUrlParam`); the store keeps the choices for the next visit. The start order
- * (start.ts) resolves once per session, when the map reports its first view; then the URL is kept to what is shown.
+ * The live background, overlays and brightness, as React state. The URL is the live state (`bg`, `overlays` and
+ * `bg_display`, read and written through nuqs by core's `useUrlParam` and `useUrlSetting`); the store keeps the
+ * choices for the next visit. The start order (start.ts) resolves once per session, when the map reports its first
+ * view; then the URL is kept to what is shown.
  */
 import { isAutomated } from '@osm-editor-kit/maid-core'
-import { useUrlParam } from '@osm-editor-kit/maid-core/react'
+import { useUrlParam, useUrlSetting } from '@osm-editor-kit/maid-core/react'
 import { useEffect } from 'react'
 import { knownLayer, listView, bestBackgrounds } from './eli.ts'
-import { listingView, type View } from './helpers.ts'
+import { BRIGHTNESS_MAX, listingView, type View } from './helpers.ts'
 import {
   useImageryActions,
   useImageryContext,
@@ -136,4 +137,33 @@ export function useMirrorShown(shown: Shown) {
   useEffect(() => {
     actions.setShown({ background, overlays })
   }, [actions, background, overlays])
+}
+
+/**
+ * The brightness of the background as the URL gives it (`bg_display`, a setting with core's `useUrlSetting`): the
+ * value to draw, and `chooseBrightness`, a choice of the person (the URL and the remembered value). The stored
+ * brightness is the default; a link never writes it. Nothing is written before the start order has resolved, as for
+ * the background. `writes` is true in one instance only (the map layer), so the URL is written once.
+ */
+export function useLiveBrightness(writes: boolean) {
+  const { urls } = useImageryContext()
+  const actions = useImageryActions()
+  const stored = useImagerySelector((state) => state.brightness)
+  const started = useImagerySelector((state) => state.start.status === 'ready')
+  const setting = useUrlSetting(urls.display, {
+    stored,
+    fallback: BRIGHTNESS_MAX,
+    remember: actions.setBrightness,
+    ready: writes && started,
+    omitFallback: true,
+  })
+  return { brightness: setting.value, chooseBrightness: setting.choose }
+}
+
+/** Mirrors the brightness drawn into the store, for the measure's magnifier (read outside React), like useMirrorShown */
+export function useMirrorBrightness(brightness: number) {
+  const actions = useImageryActions()
+  useEffect(() => {
+    actions.setShownBrightness(brightness)
+  }, [actions, brightness])
 }

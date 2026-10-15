@@ -49,15 +49,18 @@ viewer cannot know the selection itself: the app keeps it, and the module may no
 
 The photos' URL parameters use iD's names and formats (`url.ts`, `.reference/id/modules/renderer/photos.js`):
 
-- `photo_type`: `flat`, `panoramic` or both (`flat,panoramic`) for the photo kind. Declared: its URL value is the live
-  state, and the stored kind is the default when the URL says nothing (`shown.ts`). The URL shows the kind shown once the
-  module has started; a choice writes the URL and the stored kind, a link writes the stored kind never.
-- `photo_overlay` (the providers on, `none` for none), `photo_dates` (`from_to`, `_` for no limit) and `photo` (the open
-  photo, `provider/id`): parsers and tests are in `url.ts`, but **not declared yet**. The shell reserves these three names
-  for its carried iD rows (`packages/shell/src/url/id-url.ts`, the rows `photo_overlay`, `photo_dates`, `photo`), so
-  `api.urlParam` would throw at setup. Declaring them needs that shell change first, then `useSyncedPhotoKind` as the
-  pattern for the providers and dates, and a sync for the open photo (it is opened by id from Mapillary only, and only
-  when the person or a link asks; under automation the URL keeps its photo).
+All four are declared in `setup` (`PHOTO_PARAM_DECLARATIONS`, `url.ts`) with their iD names and `history: 'replace'`.
+
+- `photo_type`: `flat`, `panoramic` or both (`flat,panoramic`) for the photo kind. Always written, as before.
+- `photo_overlay` (the providers on, `none` for none) and `photo_dates` (`from_to`, `_` for no limit): the URL is the live
+  state and the stored choice is the default when the URL says nothing. Both leave the key out while the default is
+  shown (iD does the same). A choice writes the URL and the store; a link writes the URL only.
+- `photo` (the open photo, `provider/id`): live state, not stored. A photo opened or closed (map, dock, viewer steps)
+  is written to the URL; a link's photo opens once its provider is on. Only Mapillary can be opened by id, and only
+  outside automated browsers; a Panoramax link's photo stays in the URL and is not opened.
+
+The writer is `PhotoUrlSync` (`shown.ts`), in the map's content from the start. Readers call `useShownPhotos(false)`
+and use what it returns; the store's fields are the stored choices, not what is shown.
 - `photo_username` is not here: Maid has no username filter.
 
 ## Gaps

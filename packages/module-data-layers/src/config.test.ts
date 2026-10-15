@@ -77,7 +77,9 @@ describe('checkDataLayerConfig', () => {
     expect(checked.errors).toHaveLength(4)
     expect(checked.errors.join(' ')).toContain('The id must be')
     expect(checked.errors.join(' ')).toContain('The name must not be empty')
-    expect(checked.errors.join(' ')).toContain('The kind must be one of geojson, pmtiles, vector')
+    expect(checked.errors.join(' ')).toContain(
+      'The kind must be one of geojson, gpx, pmtiles, vector',
+    )
     expect(checked.errors.join(' ')).toContain('#d6007a')
   })
 
@@ -157,6 +159,33 @@ describe('guessKind', () => {
   test('anything else is GeoJSON, and an empty address too', () => {
     expect(guessKind('https://example.org/places.geojson')).toBe('geojson')
     expect(guessKind('')).toBe('geojson')
+  })
+
+  test('a .gpx address is GPX, also with a query or a fragment and in capitals', () => {
+    expect(guessKind('https://example.org/ride.gpx')).toBe('gpx')
+    expect(guessKind('https://example.org/ride.GPX?token=1')).toBe('gpx')
+    expect(guessKind(' https://example.org/ride.gpx#map=17/1/2 ')).toBe('gpx')
+    expect(guessKind('https://example.org/gpx-of-places.geojson')).toBe('geojson')
+  })
+})
+
+describe('GPX and KML in the schema and the address check', () => {
+  test('a GPX layer is accepted, without source layers', () => {
+    const gpx: DataLayerConfig = {
+      id: 'ride',
+      name: 'Ride',
+      kind: 'gpx',
+      url: 'https://example.org/ride.gpx',
+    }
+    expect(checkDataLayerConfig(gpx)).toEqual({ ok: true, value: gpx })
+    expect(checkDataLayerConfig({ ...gpx, sourceLayers: ['a'] }).ok).toBe(false)
+  })
+
+  test('a KML address is refused, with the message for it', () => {
+    const message = 'KML is not supported. Use a GPX or GeoJSON file instead.'
+    expect(checkLayerUrl('https://example.org/map.kml', 'geojson')).toBe(message)
+    expect(checkLayerUrl('https://example.org/map.KML?x=1', 'gpx')).toBe(message)
+    expect(checkLayerUrl('https://example.org/map.kmlx', 'geojson')).toBeUndefined()
   })
 })
 

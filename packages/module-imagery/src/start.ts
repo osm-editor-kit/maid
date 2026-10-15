@@ -33,7 +33,7 @@ export function pendingOverlays(url: string[] | null, stored: string[]): string[
 }
 
 export type StartBackgroundInput = {
-  /** The URL's `background`, null when the URL gives none */
+  /** The URL's `bg`, null when the URL gives none */
   url: string | null
   /** The stored choice: the background chosen last, null when none was ever chosen */
   stored: string | null

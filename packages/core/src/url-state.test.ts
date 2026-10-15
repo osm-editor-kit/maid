@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { createEditor } from './editor.ts'
-import { createUrlParams, layered, type UrlParser } from './url-state.ts'
+import { createUrlParams, layered, urlWrite, type UrlParser } from './url-state.ts'
 
 /** A parser of the same shape as a nuqs parser, without nuqs */
 const parseAsCount: UrlParser<number> = {
@@ -230,5 +230,41 @@ describe('layered: URL, then the stored choice, then the default', () => {
       value: 'a,b',
       fromLink: false,
     })
+  })
+})
+
+describe('urlWrite: the URL says what is shown', () => {
+  test('nothing to write when the URL shows it already', () => {
+    expect(urlWrite({ url: 'a', shown: 'a', fallback: 'x', fromLink: false })).toBeUndefined()
+  })
+
+  test('a URL without the key gets the shown value', () => {
+    expect(urlWrite({ url: null, shown: 'a', fallback: 'x', fromLink: false })).toBe('a')
+  })
+
+  test('an unknown value in the URL is corrected to what is shown', () => {
+    expect(urlWrite({ url: 'gone', shown: 'none', fallback: 'x', fromLink: true })).toBe('none')
+  })
+
+  test('omitFallback: the fallback, not from a link, removes the key', () => {
+    expect(
+      urlWrite({ url: 70, shown: 100, fallback: 100, fromLink: false, omitFallback: true }),
+    ).toBeNull()
+    expect(
+      urlWrite({ url: null, shown: 100, fallback: 100, fromLink: false, omitFallback: true }),
+    ).toBeUndefined()
+  })
+
+  test("omitFallback: a link's fallback value stays, so a reload shows the same", () => {
+    expect(
+      urlWrite({ url: 100, shown: 100, fallback: 100, fromLink: true, omitFallback: true }),
+    ).toBeUndefined()
+  })
+
+  test('values are compared with the given same', () => {
+    const same = (a: string[], b: string[]) => a.join() === b.join()
+    expect(
+      urlWrite({ url: ['a'], shown: ['a'], fallback: [], fromLink: false, same }),
+    ).toBeUndefined()
   })
 })

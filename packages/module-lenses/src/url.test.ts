@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { NO_LENS, parseAsLens, startLens } from './url.ts'
+import { NO_LENS, parseAsLens, resolveLens } from './url.ts'
 
 const KNOWN = ['surface', 'lit', 'parking']
 
@@ -14,38 +14,26 @@ describe('parseAsLens', () => {
     expect(parseAsLens.parse('')).toBeNull()
   })
 
-  test('an unknown id is read as it is: whether it is a lens is decided at start', () => {
+  test('an unknown id is read as it is: whether it is a lens is decided by resolveLens', () => {
     expect(parseAsLens.parse('not-a-lens')).toBe('not-a-lens')
   })
 })
 
-describe('startLens: URL, then the stored choice, then none', () => {
-  test('the URL names a lens: it is shown, whatever is stored', () => {
-    expect(startLens('lit', 'surface', KNOWN)).toBe('lit')
-    expect(startLens('lit', null, KNOWN)).toBe('lit')
+describe('resolveLens: an id the editor has is shown, any other id is none', () => {
+  test('a lens here is shown as it is', () => {
+    expect(resolveLens('lit', KNOWN)).toBe('lit')
+    expect(resolveLens('surface', KNOWN)).toBe('surface')
   })
 
-  test('the URL says none: no lens, even when a lens is stored', () => {
-    expect(startLens(NO_LENS, 'surface', KNOWN)).toBeNull()
+  test('none is none', () => {
+    expect(resolveLens(NO_LENS, KNOWN)).toBe(NO_LENS)
   })
 
-  test('the URL says nothing: the stored choice is shown', () => {
-    expect(startLens(null, 'surface', KNOWN)).toBe('surface')
+  test('an unknown id becomes none, so that the URL is corrected to it', () => {
+    expect(resolveLens('removed-import', KNOWN)).toBe(NO_LENS)
   })
 
-  test('nothing in the URL and nothing stored: no lens (the default)', () => {
-    expect(startLens(null, null, KNOWN)).toBeNull()
-  })
-
-  test('an unknown id in the URL is no lens, and it does not fall back to the stored choice', () => {
-    expect(startLens('removed-import', 'surface', KNOWN)).toBeNull()
-  })
-
-  test('a stored choice that is no lens any more is no lens', () => {
-    expect(startLens(null, 'removed-import', KNOWN)).toBeNull()
-  })
-
-  test('no lens is known at all: every id is no lens', () => {
-    expect(startLens('surface', 'surface', [])).toBeNull()
+  test('no lens is known at all: every id is none', () => {
+    expect(resolveLens('surface', [])).toBe(NO_LENS)
   })
 })

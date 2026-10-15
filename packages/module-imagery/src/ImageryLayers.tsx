@@ -4,8 +4,14 @@ import { Fragment, useEffect } from 'react'
 import { AttributionControl, Layer, Source, useMap } from 'react-map-gl/maplibre'
 import { drawCustom } from './custom.ts'
 import { drawLayer, type Drawn } from './eli.ts'
-import { useBrightness, useImageryActions, useView, type Shown } from './imagery-store.ts'
-import { useImageryStart, useLiveImagery, useMirrorShown } from './shown.ts'
+import { useImageryActions, useView, type Shown } from './imagery-store.ts'
+import {
+  useImageryStart,
+  useLiveBrightness,
+  useLiveImagery,
+  useMirrorBrightness,
+  useMirrorShown,
+} from './shown.ts'
 import { NONE, templateOf } from './url.ts'
 
 /** One layer to draw: an index layer (ELI, `template` null) or a custom background from its template */
@@ -13,7 +19,7 @@ type Wanted = { id: string; background: boolean; template: string | null }
 
 /**
  * Under an automated browser (AGENTS.md, core rule 1) only a background from a local template is drawn: the one a
- * `background=custom:` link names when it points at this machine (the browser checks serve their own tiles). The
+ * `bg=custom:` link names when it points at this machine (the browser checks serve their own tiles). The
  * layers of the index and the overlays stay off. The gate of the requests (`packages/core/src/fetching/remote-fetch.ts`)
  * lets local hosts through too.
  */
@@ -79,13 +85,15 @@ export function ImageryLayers(props: { belowOsm: string }) {
   const { belowOsm } = props
   const map = useMap().current
   const { shown } = useLiveImagery()
-  const brightness = useBrightness()
+  // the URL's brightness (`bg_display`), written here: this is the one instance of the module that writes it
+  const { brightness } = useLiveBrightness(true)
   const view = useView()
   const { setView } = useImageryActions()
   const automated = isAutomated()
 
   useImageryStart(view)
   useMirrorShown(shown)
+  useMirrorBrightness(brightness)
 
   // the background is first, so the overlays are drawn above it
   const wanted: Wanted[] = []

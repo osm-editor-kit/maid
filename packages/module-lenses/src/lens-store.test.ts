@@ -1,6 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 import type { Lens } from '@osm-editor-kit/maid-style'
-import { chosenLensId, lensActions, lensChoice, restoreLenses } from './lens-store.ts'
+import {
+  chosenLensId,
+  lensActions,
+  lensChoice,
+  pendingLensChoice,
+  restoreLenses,
+} from './lens-store.ts'
+import { NO_LENS } from './url.ts'
 
 const current: { activeId: string | null; imported: Lens[] } = { activeId: null, imported: [] }
 const lens: Lens = {
@@ -27,48 +34,67 @@ describe('restoreLenses', () => {
   })
 })
 
-describe('the lens on the map and the stored choice', () => {
+describe('the lens on the map, the choice and the stored choice', () => {
+  // the URL sync (sync.ts) writes a request to the URL and remembers it; these tests play its part with the same actions
   const reset = () => {
-    lensActions.setActive(null)
-    lensActions.showFromUrl(null)
+    const pending = pendingLensChoice()
+    if (pending) lensActions.answer(pending)
+    lensActions.remember(NO_LENS)
+    lensActions.setShown(null)
   }
 
   test('a link shows its lens and writes no choice', () => {
     reset()
-    expect(lensActions.showFromUrl('surface')).toBe('surface')
+    lensActions.setShown('surface')
     expect(lensChoice.getActiveId()).toBe('surface')
     expect(chosenLensId()).toBeNull()
   })
 
-  test('a choice is shown and remembered', () => {
+  test('a choice is a request until the URL sync writes it; then it is remembered', () => {
     reset()
     lensChoice.setActive('lit')
+    expect(pendingLensChoice()).toEqual({ id: 'lit' })
+    expect(chosenLensId()).toBeNull()
+    const request = pendingLensChoice()
+    if (request === null) throw new Error('a choice is a request')
+    lensActions.remember('lit')
+    lensActions.setShown('lit')
+    lensActions.answer(request)
+    expect(pendingLensChoice()).toBeNull()
     expect(lensChoice.getActiveId()).toBe('lit')
     expect(chosenLensId()).toBe('lit')
   })
 
-  test('without a URL value the stored choice is shown; a link over it does not change the choice', () => {
+  test('a newer choice is not cleared by the answer to an older one', () => {
     reset()
     lensChoice.setActive('lit')
-    expect(lensActions.showFromUrl(null)).toBe('lit')
-    expect(lensActions.showFromUrl('surface')).toBe('surface')
+    const older = pendingLensChoice()
+    lensChoice.setActive('surface')
+    if (older) lensActions.answer(older)
+    expect(pendingLensChoice()).toEqual({ id: 'surface' })
+  })
+
+  test('a choice of none is remembered as no choice', () => {
+    reset()
+    lensActions.remember('lit')
+    lensActions.remember(NO_LENS)
+    expect(chosenLensId()).toBeNull()
+  })
+
+  test('a link over the stored choice shows the link and keeps the choice', () => {
+    reset()
+    lensActions.remember('lit')
+    lensActions.setShown('surface')
+    expect(lensChoice.getActiveId()).toBe('surface')
     expect(chosenLensId()).toBe('lit')
   })
 
-  test('an unknown id in the URL shows none and keeps the choice', () => {
-    reset()
-    lensChoice.setActive('lit')
-    expect(lensActions.showFromUrl('not-a-lens')).toBeNull()
-    expect(chosenLensId()).toBe('lit')
-  })
-
-  test('removing the lens on the map clears both the choice and what is shown', () => {
+  test('removing the imported lens clears the stored choice that named it', () => {
     reset()
     const imported: Lens = { ...lens, id: 'imported-one' }
     lensActions.importLenses([imported])
-    lensChoice.setActive('imported-one')
+    lensActions.remember('imported-one')
     lensActions.removeLens('imported-one')
-    expect(lensChoice.getActiveId()).toBeNull()
     expect(chosenLensId()).toBeNull()
   })
 })

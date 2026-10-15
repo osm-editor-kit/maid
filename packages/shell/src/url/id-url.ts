@@ -44,15 +44,7 @@ export const ID_URL_RULES: Rule[] = [
   { id: 'hashtags', maid: 'hashtags', kind: 'carried' },
   { id: 'source', maid: 'source', kind: 'carried' },
   { id: 'locale', maid: 'lang', kind: 'same', fromId: localeFromId }, // de-DE in iD, de in Maid
-  {
-    id: 'gpx',
-    kind: 'dropped',
-    why: 'Maid draws GeoJSON, PMTiles and vector tiles, not GPX files',
-  },
-  { id: 'photo_overlay', maid: 'photo_overlay', kind: 'carried' },
-  { id: 'photo_dates', maid: 'photo_dates', kind: 'carried' },
   { id: 'photo_username', maid: 'photo_username', kind: 'carried' },
-  { id: 'photo', maid: 'photo', kind: 'carried' },
   {
     id: 'presets',
     kind: 'dropped',

@@ -27,7 +27,8 @@ export type StartState =
 
 /**
  * What the module keeps in memory. The stored part (`ImageryStored`) is the choice for the next visit; the live
- * background and overlays are in the URL, and `start`, `view` and `shown` are for this visit only.
+ * background, overlays and brightness are in the URL, and `start`, `view`, `shown` and `shownBrightness` are for this
+ * visit only.
  */
 export type ImageryState = ImageryStored & {
   /** The fork's default background (`imagery({ default })`), not stored */
@@ -37,6 +38,8 @@ export type ImageryState = ImageryStored & {
   start: StartState
   /** What the map shows now, mirrored by the map layer for readers outside React (the measure, the changeset) */
   shown: Shown | null
+  /** The brightness the map draws now (the URL's, see shown.ts), mirrored for the magnifier; null until drawn */
+  shownBrightness: number | null
 }
 
 /** The events the module takes. The object never changes. */
@@ -45,6 +48,7 @@ export type ImageryActions = {
   rememberBackground: (value: string) => void
   /** Remembers the overlays the person chose, in the order chosen */
   rememberOverlays: (ids: string[]) => void
+  /** Remembers the brightness the person chose, for the next visit (the URL is written by the caller, see shown.ts) */
   setBrightness: (value: number) => void
   setView: (view: View) => void
   /** Saves a custom background (its template is its key). A template saved already is not saved twice. */
@@ -62,6 +66,8 @@ export type ImageryActions = {
   /** Puts the start back to idle, after a failed listing: the next view tries again */
   abortStart: () => void
   setShown: (shown: Shown) => void
+  /** Mirrors the brightness drawn. It is for this visit only; the stored choice is `setBrightness`. */
+  setShownBrightness: (value: number) => void
 }
 
 export type ImageryStore = ImageryState & { actions: ImageryActions }
@@ -83,6 +89,7 @@ export function createImageryStore(defaultBackground: string | null) {
         view: null,
         start: { status: 'idle' },
         shown: null,
+        shownBrightness: null,
         actions: {
           rememberBackground: (background) => set({ background }),
           rememberOverlays: (overlayIds) => set({ overlayIds }),
@@ -143,6 +150,9 @@ export function createImageryStore(defaultBackground: string | null) {
           abortStart: () => {
             if (get().start.status === 'starting') set({ start: { status: 'idle' } })
           },
+          setShownBrightness: (value) => {
+            if (get().shownBrightness !== value) set({ shownBrightness: value })
+          },
           setShown: (shown) => {
             const current = get().shown
             if (
@@ -180,10 +190,12 @@ export function createImageryStore(defaultBackground: string | null) {
 
 export type ImageryStoreHook = ReturnType<typeof createImageryStore>
 
-/** The URL parameters the module declared (index.ts): the live background and overlays */
+/** The URL parameters the module declared (index.ts): the live background, overlays and display settings */
 export type ImageryUrls = {
   background: UrlParamHandle<string>
   overlays: UrlParamHandle<string[]>
+  /** `bg_display`: the brightness of the background, as a number from 0.2 to 1 */
+  display: UrlParamHandle<number>
 }
 
 export type ImageryContext = { store: ImageryStoreHook; urls: ImageryUrls }
@@ -223,10 +235,6 @@ export function useImagerySelector<T>(selector: (state: ImageryStore) => T): T {
 /** The custom backgrounds saved */
 export function useCustomBackgrounds(): CustomEntry[] {
   return useImagerySelector((state) => state.custom)
-}
-
-export function useBrightness() {
-  return useImagerySelector((state) => state.brightness)
 }
 
 /** The viewport the map layer last reported, or null before the first report */

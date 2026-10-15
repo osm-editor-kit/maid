@@ -7,8 +7,14 @@ import type { Drawn } from './eli.ts'
 import { backgroundName, usedNames } from './helpers.ts'
 import { createImageryStore, ImageryStoreProvider, type ImageryUrls } from './imagery-store.ts'
 import { drawnShown, ImageryLayers } from './ImageryLayers.tsx'
-import { NONE } from './url.ts'
-import { ID_BACKGROUND, ID_OVERLAYS, parseAsBackground, parseAsOverlays } from './url.ts'
+import {
+  ID_BACKGROUND,
+  ID_OVERLAYS,
+  NONE,
+  parseAsBackground,
+  parseAsBgDisplay,
+  parseAsOverlays,
+} from './url.ts'
 
 export type ImageryOptions = {
   /** The background before anyone chooses one, by its ELI id. Default: none. */
@@ -20,9 +26,9 @@ export type ImageryOptions = {
  * and a brightness, chosen in the top bar's "Background" panel. Built on
  * `@osm-editor-kit/maplibre-editor-layer-index`.
  *
- * The module declares two URL parameters in iD's names: `background` (an ELI id, `none`, or
- * `custom:<template>`, with iD's `layer` read too) and `overlays`. The URL is the live state; the store keeps the
- * choices for the next visit (docs/research/url-state-audit.md, section 3).
+ * The module declares its URL parameters: `bg` (an ELI id, `none`, or `custom:<template>`; iD's `background`, with
+ * iD's `layer` read too), `overlays` (iD's name too) and `bg_display` (the brightness, Maid's own name). The URL is the
+ * live state; the store keeps the choices for the next visit (docs/research/url-state-audit.md, section 3).
  */
 export function imagery(options: ImageryOptions = {}) {
   const store = createImageryStore(options.default ?? null)
@@ -32,7 +38,7 @@ export function imagery(options: ImageryOptions = {}) {
       const queries = api.editor.queries
       const urls: ImageryUrls = {
         background: api.urlParam({
-          name: 'background',
+          name: 'bg',
           parser: parseAsBackground,
           options: { clearOnDefault: false, history: 'replace' },
           iD: ID_BACKGROUND,
@@ -42,6 +48,12 @@ export function imagery(options: ImageryOptions = {}) {
           parser: parseAsOverlays,
           options: { clearOnDefault: false, history: 'replace' },
           iD: ID_OVERLAYS,
+        }),
+        // no iD name: iD has no such parameter
+        display: api.urlParam({
+          name: 'bg_display',
+          parser: parseAsBgDisplay,
+          options: { history: 'replace' },
         }),
       }
       // the panel's code is a chunk of its own: it loads when the flyout opens (or in idle time after the first view)
@@ -97,7 +109,10 @@ export function imagery(options: ImageryOptions = {}) {
           if (shown === null) return undefined
           const { background } = drawnShown(queries, shown)
           if (!background) return undefined
-          return { source: background.source, brightness: store.getState().brightness }
+          // the brightness the map draws (the URL's, mirrored by the map layer), not the stored choice
+          const brightness = store.getState().shownBrightness
+          if (brightness === null) return undefined
+          return { source: background.source, brightness }
         },
       })
     },

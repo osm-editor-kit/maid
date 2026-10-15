@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'bun:test'
-import { mapillaryPhoto, showBlockedReason } from './image-actions.ts'
+import {
+  canOpenPhotoById,
+  fetchPhotoById,
+  mapillaryPhoto,
+  showBlockedReason,
+} from './image-actions.ts'
 
 describe('showBlockedReason', () => {
   it('blocks every show in an automated browser', () => {
@@ -52,5 +57,27 @@ describe('mapillaryPhoto', () => {
 
   it('gives no photo without a position', () => {
     expect(mapillaryPhoto({ ...details, lngLat: null })).toBeNull()
+  })
+})
+
+describe('canOpenPhotoById', () => {
+  it('never opens by id in an automated browser, whatever the provider', () => {
+    expect(canOpenPhotoById('mapillary', 'token', true)).toBe(false)
+    expect(canOpenPhotoById('panoramax', 'token', true)).toBe(false)
+  })
+
+  it('opens Mapillary by id with a token, and no other provider yet', () => {
+    expect(canOpenPhotoById('mapillary', 'token', false)).toBe(true)
+    expect(canOpenPhotoById('mapillary', '', false)).toBe(false)
+    expect(canOpenPhotoById('panoramax', 'token', false)).toBe(false)
+  })
+})
+
+describe('fetchPhotoById', () => {
+  it('resolves to null without a request when the photo cannot be opened by id', async () => {
+    // an automated browser and Panoramax both return before any request is made
+    expect(await fetchPhotoById('mapillary', '42', 'token', true)).toBeNull()
+    expect(await fetchPhotoById('panoramax', 'abc', 'token', false)).toBeNull()
+    expect(await fetchPhotoById('mapillary', '42', '', false)).toBeNull()
   })
 })

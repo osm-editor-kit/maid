@@ -11,8 +11,8 @@ import type { UrlParser } from '@osm-editor-kit/maid-core'
 export const NO_LENS = 'none'
 
 /**
- * `lens`: a lens id, or `none`. An empty value is no opinion (null). Whether the id is a lens that exists is checked at
- * start (`startLens`), not here: the list of lenses is known only then.
+ * `lens`: a lens id, or `none`. An empty value is no opinion (null). Whether the id is a lens that exists is decided by
+ * `resolveLens`, where the list of lenses is known.
  */
 export const parseAsLens: UrlParser<string> = {
   parse: (value) => (value === '' ? null : value),
@@ -21,16 +21,10 @@ export const parseAsLens: UrlParser<string> = {
 }
 
 /**
- * The lens on the map at start: the URL's, when the URL names one (`none` is no lens); else the lens chosen last (the
- * stored choice); else no lens. A name in the URL that is not a lens here is no lens, and it does not fall back to the
- * stored choice: the URL says what its author saw. A stored choice that is no lens any more (an import removed) is none.
+ * The lens the URL shows: the id when it is a lens here, else none (`none` is none). An id that is not a lens here (an
+ * import that was removed) is none, and the URL is corrected to it. Nothing falls back to the stored choice: the URL says
+ * what its author saw.
  */
-export function startLens(
-  url: string | null,
-  stored: string | null,
-  known: readonly string[],
-): string | null {
-  const id = url ?? stored
-  if (id === null || id === NO_LENS) return null
-  return known.includes(id) ? id : null
+export function resolveLens(id: string, known: readonly string[]): string {
+  return known.includes(id) ? id : NO_LENS
 }

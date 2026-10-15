@@ -147,6 +147,7 @@ describe('the remembered choices', () => {
     store.getState().actions.setView({ bounds: [0, 0, 1, 1], zoom: 14 })
     store.getState().actions.finishStart(NONE, [])
     store.getState().actions.setShown({ background: NONE, overlays: [] })
+    store.getState().actions.setShownBrightness(0.6)
     const persisted = store.persist.getOptions().partialize?.(store.getState())
     expect(Object.keys(persisted ?? {}).sort()).toEqual([
       'background',
@@ -155,6 +156,17 @@ describe('the remembered choices', () => {
       'overlayIds',
     ])
     expect(stored(storage.items)?.state.background).toBe(NONE)
+  })
+
+  it('mirrors the brightness drawn without storing it, and keeps the stored choice apart', () => {
+    const storage = useStorage()
+    const store = createImageryStore(null)
+    expect(store.getState().shownBrightness).toBeNull()
+    store.getState().actions.setShownBrightness(0.6)
+    store.getState().actions.rememberBackground('Bing')
+    expect(store.getState().shownBrightness).toBe(0.6)
+    expect(store.getState().brightness).toBe(1)
+    expect(stored(storage.items)?.state).not.toHaveProperty('shownBrightness')
   })
 
   it('reads what a store stored, in a new store', () => {

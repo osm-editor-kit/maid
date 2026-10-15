@@ -4,6 +4,7 @@ import { PhotoDetailsDialog } from '@osm-editor-kit/street-imagery-react/photo-d
 import { useState } from 'react'
 import { planUse } from './image-keys.ts'
 import { photoPageLink } from './links.ts'
+import { useShownPhotos } from './shown.ts'
 import { activeProviders } from './state.ts'
 import {
   AUTOMATED,
@@ -13,7 +14,6 @@ import {
   useImageWriter,
   useMapillaryToken,
   useOpenPhoto,
-  useProviders,
   useStreetImageryActions,
 } from './street-imagery-store.ts'
 
@@ -117,7 +117,7 @@ function OpenPhoto({ photo }: { photo: NormalizedPhoto }) {
 /** The photo open in the dock, from the package's viewer. Quiet text while none is chosen. */
 export function PhotosView() {
   const openPhoto = useOpenPhoto()
-  const stored = useProviders()
+  const shown = useShownPhotos(false)
   const token = useMapillaryToken()
 
   if (AUTOMATED)
@@ -128,7 +128,7 @@ export function PhotosView() {
     )
 
   if (!openPhoto) {
-    const anyOn = activeProviders(stored, token, AUTOMATED).length > 0
+    const anyOn = activeProviders(shown.providers, token, AUTOMATED).length > 0
     return (
       <p className="p-3 text-xs text-zinc-500 dark:text-zinc-400">
         {anyOn

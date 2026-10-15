@@ -7,6 +7,7 @@ import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { Layer, Source, useControl } from 'react-map-gl/maplibre'
+import { gpxAddressOptions } from './add.ts'
 import type { DataLayer, DataLayerConfig } from './config.ts'
 import { useAddedLayers, useFileLayers, useHiddenIds } from './data-layers-store.ts'
 import { layerDraw, layersOf, visibleLayers } from './layers.ts'
@@ -42,6 +43,18 @@ function useSourceLayerNames(layer: DataLayer, send: RemoteFetch) {
   return read.data
 }
 
+/**
+ * The data of a GPX layer, read from its address (once per address, `gpxAddressOptions`). Undefined for other
+ * layers, and for a GPX layer until it is read. A layer that has its data (a file) does not read.
+ */
+function useGpxData(layer: DataLayer, send: RemoteFetch) {
+  const read = useQuery({
+    ...gpxAddressOptions(layer.url, send),
+    enabled: layer.kind === 'gpx' && layer.data === undefined,
+  })
+  return read.data
+}
+
 function DataLayerDrawing({
   layer,
   beforeId,
@@ -52,7 +65,11 @@ function DataLayerDrawing({
   send: RemoteFetch
 }) {
   const names = useSourceLayerNames(layer, send)
-  const draw = useMemo(() => layerDraw({ ...layer, sourceLayers: names }), [layer, names])
+  const gpx = useGpxData(layer, send)
+  const draw = useMemo(
+    () => layerDraw({ ...layer, sourceLayers: names, data: layer.data ?? gpx }),
+    [layer, names, gpx],
+  )
   if (!draw) return null
   return (
     <Source id={draw.sourceId} {...draw.source}>
