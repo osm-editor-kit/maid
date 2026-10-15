@@ -990,12 +990,25 @@ export class MaidEngine {
   undo() {
     if (this.busy() || this.data.history.getUndoAnnotation() === undefined) return
     this.change(() => this.data.history.undo())
+    this.keepSelectionAfterStep()
   }
 
   /** Puts back the edit that the last undo took back, and redraws what it changed. */
   redo() {
     if (this.busy() || this.data.history.getRedoAnnotation() === undefined) return
     this.change(() => this.data.history.redo())
+    this.keepSelectionAfterStep()
+  }
+
+  /**
+   * What iD does after an undo or a redo (modes/select.js, `checkSelectedIDs` on the history's `undone` and
+   * `redone` events): the selection stays as it is, without the ids the step took away, and when none is left
+   * iD goes to browse mode, which is an empty selection here. The ids of the edits' `selectedIDs` are not used:
+   * iD keeps them for a saved history only (core/history.js), so an undo selects nothing new.
+   */
+  private keepSelectionAfterStep() {
+    const { graph } = this.data.history.staging
+    this.setSelected(this.selectedIds.filter((id) => graph.hasEntity(id) !== undefined))
   }
 
   /**

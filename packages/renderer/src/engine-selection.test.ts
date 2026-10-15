@@ -100,3 +100,65 @@ describe('the engine tells its listeners about every change of the selection', (
     expect(engine.selection).toEqual(['n5'])
   })
 })
+
+describe('undo and redo keep the selection as iD does: the selected ids that still exist', () => {
+  test('undo of a tag change keeps the feature selected, and redo does too', () => {
+    const { engine } = engineWithData()
+    engine.setSelected('w10')
+    engine.setTags('w10', { highway: 'path' })
+
+    engine.undo()
+    expect(engine.selection).toEqual(['w10'])
+    expect(engine.data.history.staging.graph.entity('w10').tags).toEqual({ highway: 'footway' })
+
+    engine.redo()
+    expect(engine.selection).toEqual(['w10'])
+    expect(engine.data.history.staging.graph.entity('w10').tags).toEqual({ highway: 'path' })
+  })
+
+  test('undo does not select what the edit selected: a selection cleared before stays empty', () => {
+    const { engine } = engineWithData()
+    engine.setSelected('w10')
+    engine.setTags('w10', { highway: 'path' })
+    engine.setSelected(null)
+
+    engine.undo()
+    expect(engine.selection).toEqual([])
+  })
+
+  test('undo of an add selects nothing, and the new point is gone; redo selects nothing either', () => {
+    const { engine } = engineWithData()
+    const id = engine.addPoint(13.002, 52.002)
+    engine.setSelected(id)
+
+    engine.undo()
+    expect(engine.selection).toEqual([])
+    expect(engine.data.history.staging.graph.hasEntity(id)).toBeUndefined()
+
+    engine.redo()
+    expect(engine.selection).toEqual([])
+    expect(engine.data.history.staging.graph.hasEntity(id)).toBeDefined()
+  })
+
+  test('undo of an add takes its point out of a multi-selection and keeps the rest', () => {
+    const { engine } = engineWithData()
+    const id = engine.addPoint(13.002, 52.002)
+    engine.setSelected(['w10', id])
+
+    engine.undo()
+    expect(engine.selection).toEqual(['w10'])
+
+    engine.redo()
+    expect(engine.selection).toEqual(['w10'])
+  })
+
+  test('an undo that changes nothing in the selection notifies no selection change', () => {
+    const { engine } = engineWithData()
+    engine.setSelected('w10')
+    engine.setTags('w10', { highway: 'path' })
+    const { seen } = recordChanges(engine)
+
+    engine.undo()
+    expect(distinct(seen)).toEqual([['w10']])
+  })
+})
