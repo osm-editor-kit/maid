@@ -20,6 +20,7 @@ import {
 // and where an entity sits in them. No React here, so the tests can build graphs by hand.
 import { labelOf } from '@osm-editor-kit/maid-renderer'
 import { isArea } from '@osm-editor-kit/maid-style'
+import { routeJoins as validationRouteJoins } from '@osm-editor-kit/maid-validation'
 
 /** One place where an entity is a member: the relation, the position in its members, and the role. */
 export type Membership = { relation: OsmRelation; index: number; role: string }
@@ -37,9 +38,6 @@ export type MemberRow = {
   /** The `memberLabel` of the loaded entity; undefined when it is not loaded or has no main tag */
   label: string | undefined
 }
-
-/** How a way member joins the next way member of a route. `unknown` when one of them is not loaded. */
-export type RouteJoin = 'connected' | 'gap' | 'unknown'
 
 /** Roles the built-in suggestions offer for each relation type (after the roles the relation uses). */
 const ROLES_BY_TYPE = new Map<string, readonly string[]>([
@@ -525,42 +523,13 @@ export function pasteOffersOf(
 /** An "Also add" offer: the relation, and the role the original had in it */
 export type PasteOffer = { relation: OsmRelation; role: string }
 
-/** The way members of a route, in order, with their index in `relation.members`. Stops, platforms and nodes are left out. */
-type ChainLink = { index: number; way: OsmWay | undefined }
-
-/** The nodes where a way can meet another: its two ends, or every node of a closed way (a roundabout). */
-function touchPoints(way: OsmWay) {
-  if (way.isClosed()) return way.nodes
-  return [way.first(), way.last()].filter((node): node is EntityID => node !== undefined)
-}
-
-/** Whether two loaded ways share a point where they meet. */
-function joinOf(a: OsmWay | undefined, b: OsmWay | undefined) {
-  if (!a || !b || a.nodes.length === 0 || b.nodes.length === 0) return 'unknown'
-  const atB = new Set(touchPoints(b))
-  return touchPoints(a).some((node) => atB.has(node)) ? 'connected' : 'gap'
-}
-
 /**
- * For each pair of consecutive way members of a route (stops, platforms and node members are
- * skipped), whether they connect: keyed by the index of the earlier member. Only `type=route`
- * is checked; other relations, including `route_master`, return nothing.
+ * For each pair of consecutive way members of a route (stops, platforms and node members are skipped), whether they
+ * connect, keyed by the index of the earlier member. The rule is the validation's (`route_gap`), so the sidebar, the
+ * map and the Issues list find the same gaps. Only `type=route` is checked.
  */
 export function routeJoins(graph: Graph, relation: OsmRelation) {
-  if (tagValue(relation.tags, 'type') !== 'route') return []
-  const chain: ChainLink[] = []
-  relation.members.forEach((member, index) => {
-    if (member.type !== 'way' || STOP_OR_PLATFORM_ROLE.test(member.role)) return
-    const entity = graph.hasEntity(member.id)
-    chain.push({ index, way: entity instanceof OsmWay ? entity : undefined })
-  })
-  const joins: { index: number; join: RouteJoin }[] = []
-  let previous: ChainLink | undefined
-  for (const link of chain) {
-    if (previous) joins.push({ index: previous.index, join: joinOf(previous.way, link.way) })
-    previous = link
-  }
-  return joins
+  return validationRouteJoins(graph, relation).map(({ index, join }) => ({ index, join }))
 }
 
 /** The indexes of the members after which a route has a gap: the ends of the two ways do not meet. */

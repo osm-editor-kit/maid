@@ -13,6 +13,15 @@ export function nodeLoc(graph: Graph, id: string) {
   return [node.loc[0], node.loc[1]] satisfies Point
 }
 
+/**
+ * The nodes where a way can meet another: its two ends, or every node of a closed way (a roundabout). Ported from
+ * the route gap rule (rules/route-gap.ts), which the sidebar and the map use through `routeJoins`.
+ */
+export function touchPoints(way: OsmWay): string[] {
+  if (way.isClosed()) return way.nodes
+  return [way.first(), way.last()].filter((node): node is string => node !== undefined)
+}
+
 /** The first point of a feature, to show where the issue is */
 export function locationOf(entity: OsmEntity, graph: Graph) {
   if (entity instanceof OsmNode)

@@ -2,6 +2,7 @@
 // that keeps what they found. No map, no React, no DOM.
 
 import { almostJunction } from './rules/almost-junction.ts'
+import { boundaryNotClosed } from './rules/boundary-not-closed.ts'
 import { crossingWays } from './rules/crossing-ways.ts'
 import { disconnectedWay } from './rules/disconnected-way.ts'
 import { impossibleOneway } from './rules/impossible-oneway.ts'
@@ -16,6 +17,8 @@ import { outdatedTags } from './rules/outdated-tags.ts'
 import { privateData } from './rules/private-data.ts'
 import { relationMembers } from './rules/relation-members.ts'
 import { relationSelfMember } from './rules/relation-self-member.ts'
+import { restrictionBroken } from './rules/restriction-broken.ts'
+import { routeGap } from './rules/route-gap.ts'
 import type { Rule } from './types.ts'
 
 export { createValidator } from './validator.ts'
@@ -39,6 +42,9 @@ export { outdatedTags, tagDiffOf, upgradeTags } from './rules/outdated-tags.ts'
 export type { TagDiff } from './rules/outdated-tags.ts'
 export { osmApiLimits } from './rules/osm-api-limits.ts'
 export { privateData } from './rules/private-data.ts'
+export { boundaryNotClosed } from './rules/boundary-not-closed.ts'
+export { restrictionBroken } from './rules/restriction-broken.ts'
+export { routeGap, routeJoins } from './rules/route-gap.ts'
 export { relationMembers } from './rules/relation-members.ts'
 export { relationSelfMember } from './rules/relation-self-member.ts'
 export type * from './types.ts'
@@ -64,5 +70,11 @@ export const defaultRules: Rule[] = [
   relationSelfMember,
   // the rings of a multipolygon that cross: a warning at the place, no fix
   multipolygonCrossing,
+  // a route whose consecutive ways do not join: a warning at the gap, no fix
+  routeGap,
+  // a boundary whose outer ways do not close: a warning at the open end, no fix
+  boundaryNotClosed,
+  // a turn restriction whose from or to way does not touch the via: a fix only when a from or to way was deleted
+  restrictionBroken,
   osmApiLimits,
 ]
