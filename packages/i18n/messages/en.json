@@ -159,6 +159,11 @@
   "relations_hint_outer": "Deleting this way removes an outer ring of the multipolygon",
   "relations_reason_duplicate": "Already a member",
   "relations_reason_invalid": "Not allowed in this type of relation",
+  "relations_group_stops": "Stops",
+  "relations_group_ways": "Ways",
+  "relations_also_add": "Also add",
+  "relations_also_add_as": "Also add as {role}",
+  "relations_also_dismiss": "Do not add to {relation}",
   "maplibre_attribution_toggle": "Toggle attribution",
   "maplibre_attribution_feedback": "Map feedback",
   "maplibre_map_title": "Map"

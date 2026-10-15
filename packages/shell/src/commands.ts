@@ -2,6 +2,7 @@ import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { m } from '@osm-editor-kit/maid-i18n'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import type { ReactNode } from 'react'
+import { pasteAt } from './clipboard'
 import { commandIcon } from './command-icons'
 import { modKey } from './platform'
 import { useSelection } from './selection'
@@ -66,7 +67,7 @@ export function usePasteCommand(at: { lon: number; lat: number } | undefined) {
       label: 'Paste',
       icon: commandIcon('paste'),
       shortcut: modKey('V'),
-      run: () => select(engine.paste(at.lon, at.lat)),
+      run: () => select(pasteAt(engine, at.lon, at.lat)),
     },
   ]
 }

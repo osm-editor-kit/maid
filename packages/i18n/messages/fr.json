@@ -159,6 +159,11 @@
   "relations_hint_outer": "Supprimer cette voie retire un anneau extérieur du multipolygone",
   "relations_reason_duplicate": "Déjà membre",
   "relations_reason_invalid": "Non autorisé dans ce type de relation",
+  "relations_group_stops": "Arrêts",
+  "relations_group_ways": "Voies",
+  "relations_also_add": "Ajouter aussi",
+  "relations_also_add_as": "Ajouter aussi comme {role}",
+  "relations_also_dismiss": "Ne pas ajouter à {relation}",
   "maplibre_attribution_toggle": "Afficher ou masquer les attributions",
   "maplibre_attribution_feedback": "Commentaires sur la carte",
   "maplibre_map_title": "Carte"

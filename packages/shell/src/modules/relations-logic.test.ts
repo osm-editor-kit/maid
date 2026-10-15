@@ -30,7 +30,14 @@ import {
   loadResultSentence,
   memberLoadPath,
   addSessionIDs,
-  dropMoveOf,
+  colourOf,
+  cssSupportsColour,
+  dotNeedsRing,
+  groupDropMove,
+  memberGroupKey,
+  memberGroups,
+  pasteOffersOf,
+  type MemberRow,
   newRelationActions,
   pickerNames,
   placementOf,
@@ -41,7 +48,7 @@ import {
   membershipHint,
   membershipsOf,
   membersHeadline,
-  moveTarget,
+  moveTargets,
   relationLabel,
   roleSuggestions,
   routeGaps,
@@ -452,14 +459,54 @@ describe('membersHeadline', () => {
   })
 })
 
-describe('moveTarget', () => {
-  it('moves one step up or down, and is undefined at the ends', () => {
-    expect(moveTarget(3, 1, 'up')).toBe(0)
-    expect(moveTarget(3, 1, 'down')).toBe(2)
-    expect(moveTarget(3, 0, 'up')).toBeUndefined()
-    expect(moveTarget(3, 2, 'down')).toBeUndefined()
-    expect(moveTarget(1, 0, 'up')).toBeUndefined()
-    expect(moveTarget(1, 0, 'down')).toBeUndefined()
+describe('moveTargets', () => {
+  /** Member rows as memberRows makes them, for the given members in order */
+  function rowsOf(members: { type: 'node' | 'way'; role: string }[]): MemberRow[] {
+    return members.map((member, index) => ({
+      index,
+      id: `m${index}`,
+      type: member.type,
+      role: member.role,
+      loaded: true,
+      label: undefined,
+    }))
+  }
+
+  it('moves one step up or down, and has no target at the ends', () => {
+    const moves = moveTargets(
+      rowsOf([
+        { type: 'way', role: '' },
+        { type: 'way', role: '' },
+        { type: 'way', role: '' },
+      ]),
+      { type: 'multipolygon' },
+    )
+    expect(moves.get(0)).toEqual({ down: 1 })
+    expect(moves.get(1)).toEqual({ up: 0, down: 2 })
+    expect(moves.get(2)).toEqual({ up: 1 })
+  })
+
+  it('a single member has no target', () => {
+    expect(moveTargets(rowsOf([{ type: 'way', role: '' }]), {}).get(0)).toEqual({})
+  })
+
+  it('moves a route member past the member before or after it in its own group', () => {
+    // 0 way, 1 stop, 2 way, 3 platform, 4 way: the ways 0, 2, 4 move among themselves, the stops 1, 3 among theirs
+    const moves = moveTargets(
+      rowsOf([
+        { type: 'way', role: 'forward' },
+        { type: 'node', role: 'stop' },
+        { type: 'way', role: 'forward' },
+        { type: 'way', role: 'platform' },
+        { type: 'way', role: 'forward' },
+      ]),
+      { type: 'route' },
+    )
+    expect(moves.get(0)).toEqual({ down: 2 })
+    expect(moves.get(2)).toEqual({ up: 0, down: 4 })
+    expect(moves.get(4)).toEqual({ up: 2 })
+    expect(moves.get(1)).toEqual({ down: 3 })
+    expect(moves.get(3)).toEqual({ up: 1 })
   })
 })
 
@@ -1114,23 +1161,31 @@ describe('pickerNames', () => {
   })
 })
 
-describe('dropMoveOf', () => {
+describe('groupDropMove', () => {
   // the shown list as a drag leaves it: each row keeps the member index it had before the drag
   const rows = (indexes: number[]) => indexes.map((index) => ({ index }))
+  /** A drop in a list of one group: the group is the whole list, in data order before the drag */
+  const dropIn = (after: { index: number }[], draggedIndex: number) =>
+    groupDropMove(
+      after,
+      [...after].sort((a, b) => a.index - b.index),
+      after,
+      draggedIndex,
+    )
 
   it('moves a member up or down to its place in the list after the drag', () => {
-    expect(dropMoveOf(rows([1, 0, 2]), 1)).toEqual({ from: 1, to: 0 })
-    expect(dropMoveOf(rows([0, 2, 1]), 1)).toEqual({ from: 1, to: 2 })
-    expect(dropMoveOf(rows([2, 0, 1]), 2)).toEqual({ from: 2, to: 0 })
+    expect(dropIn(rows([1, 0, 2]), 1)).toEqual({ from: 1, to: 0 })
+    expect(dropIn(rows([0, 2, 1]), 1)).toEqual({ from: 1, to: 2 })
+    expect(dropIn(rows([2, 0, 1]), 2)).toEqual({ from: 2, to: 0 })
   })
 
   it('makes no move when the member is where it was', () => {
-    expect(dropMoveOf(rows([0, 1, 2]), 1)).toBeUndefined()
-    expect(dropMoveOf(rows([0, 1, 2]), 2)).toBeUndefined()
+    expect(dropIn(rows([0, 1, 2]), 1)).toBeUndefined()
+    expect(dropIn(rows([0, 1, 2]), 2)).toBeUndefined()
   })
 
   it('makes no move for a member that is not in the list', () => {
-    expect(dropMoveOf(rows([0, 1, 2]), 7)).toBeUndefined()
+    expect(dropIn(rows([0, 1, 2]), 7)).toBeUndefined()
   })
 
   it('gives the same order as the one move it names, for a drag across several places', () => {
@@ -1142,10 +1197,173 @@ describe('dropMoveOf', () => {
       { id: 'n4', type: 'node' as const, role: 'd' },
     ]
     const dragged = [1, 2, 0, 3].map((index) => ({ index }))
-    const move = dropMoveOf(dragged, 0)
+    const move = dropIn(dragged, 0)
     expect(move).toEqual({ from: 0, to: 2 })
     if (!move) throw new Error('the drop makes a move')
     const moved = relation('r1', { type: 'route' }, members).moveMember(move.from, move.to)
     expect(moved.members.map((member) => member.id)).toEqual(['n2', 'n3', 'n1', 'n4'])
+  })
+})
+
+describe('route member groups', () => {
+  const member = (type: 'node' | 'way' | 'relation', role: string) => ({ type, role })
+  function rowsOf(members: { type: 'node' | 'way' | 'relation'; role: string }[]): MemberRow[] {
+    return members.map((item, index) => ({
+      index,
+      id: `m${index}`,
+      type: item.type,
+      role: item.role,
+      loaded: true,
+      label: undefined,
+    }))
+  }
+
+  it('lists a route as stops and ways, each in data order, and leaves out an empty group', () => {
+    const rows = rowsOf([
+      member('way', 'forward'),
+      member('node', ''),
+      member('way', ''),
+      member('way', 'platform'),
+      member('node', 'stop_entry_only'),
+      member('way', 'backward'),
+    ])
+    const groups = memberGroups(rows, { type: 'route' })
+    expect(groups.map((group) => group.key)).toEqual(['stops', 'ways'])
+    expect(groups[0]?.rows.map((row) => row.index)).toEqual([1, 3, 4])
+    expect(groups[1]?.rows.map((row) => row.index)).toEqual([0, 2, 5])
+    expect(memberGroups(rowsOf([member('way', 'forward')]), { type: 'route' })).toEqual([
+      { key: 'ways', rows: rowsOf([member('way', 'forward')]) },
+    ])
+  })
+
+  it('counts point members of a route as stops, whatever their role', () => {
+    expect(memberGroupKey({ type: 'route' }, { type: 'node', role: 'via' })).toBe('stops')
+    expect(memberGroupKey({ type: 'route' }, { type: 'way', role: 'stop_exit_only' })).toBe('stops')
+    expect(memberGroupKey({ type: 'route' }, { type: 'way', role: 'platform_entry_only' })).toBe(
+      'stops',
+    )
+    expect(memberGroupKey({ type: 'route' }, { type: 'way', role: 'forward' })).toBe('ways')
+    expect(memberGroupKey({ type: 'route' }, { type: 'relation', role: '' })).toBe('ways')
+  })
+
+  it('keeps other relations in one group, in data order, and no members in no group', () => {
+    const rows = rowsOf([member('node', 'stop'), member('way', 'outer')])
+    expect(memberGroups(rows, { type: 'multipolygon' })).toEqual([{ key: 'all', rows }])
+    expect(memberGroupKey({ type: 'route_master' }, { type: 'node', role: 'stop' })).toBe('all')
+    expect(memberGroups([], { type: 'route' })).toEqual([])
+  })
+
+  it('moves a member within its group: the drop lands next to the member before it in the group', () => {
+    // data: 0 way, 1 stop, 2 way, 3 way. The ways shown as [0, 2, 3]; 3 is dragged to the top of the ways
+    const shown = [{ index: 0 }, { index: 1 }, { index: 2 }, { index: 3 }]
+    const before = [{ index: 0 }, { index: 2 }, { index: 3 }]
+    expect(groupDropMove(shown, before, [{ index: 3 }, { index: 0 }, { index: 2 }], 3)).toEqual({
+      from: 3,
+      to: 0,
+    })
+    // 0 is dragged behind 2: it lands after 2 and the stop 1 keeps its place
+    const dropped = groupDropMove(shown, before, [{ index: 2 }, { index: 0 }, { index: 3 }], 0)
+    expect(dropped).toEqual({ from: 0, to: 2 })
+    if (!dropped) throw new Error('the drop makes a move')
+    const relationWith = relation(
+      'r1',
+      { type: 'route' },
+      [0, 1, 2, 3].map((index) => ({ id: `m${index}`, type: 'way' as const, role: '' })),
+    ).moveMember(dropped.from, dropped.to)
+    expect(relationWith.members.map((item) => item.id)).toEqual(['m1', 'm2', 'm0', 'm3'])
+  })
+
+  it('makes no move when the group keeps its order, and none for a member alone in its group', () => {
+    const shown = [{ index: 0 }, { index: 1 }, { index: 2 }]
+    const before = [{ index: 0 }, { index: 2 }]
+    expect(groupDropMove(shown, before, [{ index: 0 }, { index: 2 }], 2)).toBeUndefined()
+    expect(groupDropMove(shown, [{ index: 1 }], [{ index: 1 }], 1)).toBeUndefined()
+  })
+})
+
+describe('moveTargets within the groups of a route', () => {
+  it('has no target past the end of a group, though the other group goes on', () => {
+    const rows: MemberRow[] = [
+      { index: 0, id: 'w0', type: 'way', role: '', loaded: true, label: undefined },
+      { index: 1, id: 'n1', type: 'node', role: 'stop', loaded: true, label: undefined },
+      { index: 2, id: 'w2', type: 'way', role: '', loaded: true, label: undefined },
+    ]
+    const moves = moveTargets(rows, { type: 'route' })
+    expect(moves.get(0)).toEqual({ down: 2 })
+    expect(moves.get(1)).toEqual({})
+    expect(moves.get(2)).toEqual({ up: 0 })
+  })
+})
+
+describe('colourOf and dotNeedsRing', () => {
+  const withColour = (colour: string) => relation('r1', { type: 'route', colour })
+
+  it('takes a hex colour as written, trimmed', () => {
+    expect(colourOf(withColour('#ff0000'))).toBe('#ff0000')
+    expect(colourOf(withColour('#F00'))).toBe('#F00')
+    expect(colourOf(withColour('  #1e40af '))).toBe('#1e40af')
+  })
+
+  it('takes a colour name only when the browser knows it', () => {
+    expect(colourOf(withColour('red'), () => true)).toBe('red')
+    expect(colourOf(withColour('redd'), () => false)).toBeUndefined()
+  })
+
+  it('refuses a missing, empty, CSS-wide or invisible colour, and a value that is no colour', () => {
+    const yes = () => true
+    expect(colourOf(relation('r1', { type: 'route' }), yes)).toBeUndefined()
+    expect(colourOf(withColour(''), yes)).toBeUndefined()
+    expect(colourOf(withColour('inherit'), yes)).toBeUndefined()
+    expect(colourOf(withColour('transparent'), yes)).toBeUndefined()
+    expect(colourOf(withColour('#ff00'), () => false)).toBeUndefined()
+    expect(colourOf(withColour('url(x)'), () => false)).toBeUndefined()
+  })
+
+  it('reports whether a value is a colour without a throw where there is no CSS', () => {
+    expect(typeof cssSupportsColour('red')).toBe('boolean')
+  })
+
+  it('gives a hairline ring to light hex colours and to colour names, not to dark ones', () => {
+    expect(dotNeedsRing('#ffffff')).toBe(true)
+    expect(dotNeedsRing('#fff')).toBe(true)
+    expect(dotNeedsRing('#ffff00')).toBe(true)
+    expect(dotNeedsRing('red')).toBe(true)
+    expect(dotNeedsRing('#000000')).toBe(false)
+    expect(dotNeedsRing('#1e40af')).toBe(false)
+    expect(dotNeedsRing('#ff0000')).toBe(false)
+  })
+})
+
+describe('pasteOffersOf', () => {
+  // w1 is the original, w1c its copy. r1 and r2 hold the original, r3 is copied with it, r4 holds the copy already,
+  // r5 holds the original twice, and r2 has been settled.
+  const graph = new Graph(context, [
+    relation('r1', { type: 'route' }, [{ id: 'w1', type: 'way', role: 'forward' }]),
+    relation('r2', { type: 'route' }, [{ id: 'w1', type: 'way', role: '' }]),
+    relation('r3', { type: 'route' }, [{ id: 'w1', type: 'way', role: 'x' }]),
+    relation('r4', { type: 'route' }, [
+      { id: 'w1', type: 'way', role: 'a' },
+      { id: 'w1c', type: 'way', role: 'b' },
+    ]),
+    relation('r5', { type: 'route' }, [
+      { id: 'w1', type: 'way', role: 'a' },
+      { id: 'w1', type: 'way', role: 'b' },
+    ]),
+    way('w1', ['a', 'b']),
+    way('w1c', ['a', 'b']),
+  ])
+
+  it('offers each relation the original is in, with its role, once, and leaves out the rest', () => {
+    const offers = pasteOffersOf(graph, 'w1c', 'w1', new Set(['r3']), ['r2'])
+    expect(
+      offers
+        .map((offer) => `${offer.relation.id} ${offer.role}`)
+        .sort((a, b) => a.localeCompare(b)),
+    ).toEqual(['r1 forward', 'r5 a'])
+  })
+
+  it('offers nothing for a copy or an original that is not in the graph', () => {
+    expect(pasteOffersOf(graph, 'w9', 'w1', new Set(), [])).toEqual([])
+    expect(pasteOffersOf(graph, 'w1c', 'w9', new Set(), [])).toEqual([])
   })
 })

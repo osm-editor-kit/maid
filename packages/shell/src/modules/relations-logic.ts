@@ -370,23 +370,159 @@ export function loadFailureSentence(message: string): string {
   return m.relations_load_failed({ message })
 }
 
-/** The index a member moves to with one step, or undefined when it is at the end already. */
-export function moveTarget(count: number, index: number, direction: 'up' | 'down') {
-  const target = direction === 'up' ? index - 1 : index + 1
-  return target >= 0 && target < count ? target : undefined
+/** Where the move buttons send a member: the member before it (up) or after it (down) in its own group. */
+export type MemberMoves = { up?: number; down?: number }
+
+/**
+ * The move targets of every member, by its index, in the terms of actionMoveMember. A member moves past the member
+ * before or after it in its own group (stops among stops, ways among ways), so the other group keeps its place. A
+ * member at the end of its group has no target that way. For a relation with one group this is one step.
+ */
+export function moveTargets(rows: readonly MemberRow[], tags: Tags): Map<number, MemberMoves> {
+  const moves = new Map<number, MemberMoves>()
+  const previous = new Map<MemberGroupKey, number>()
+  for (const row of rows) {
+    const key = memberGroupKey(tags, row)
+    const before = previous.get(key)
+    moves.set(row.index, { up: before })
+    if (before !== undefined) moves.set(before, { ...moves.get(before), down: row.index })
+    previous.set(key, row.index)
+  }
+  return moves
 }
 
 /**
- * The move a drop makes, in the terms of actionMoveMember: the dragged member's index before the drag (`draggedIndex`)
- * and its place in the list after it (`rows`, the shown list as the drag left it, each row with its member index).
- * Undefined when the member is where it was: no edit, so no undo step. A drag changes the place of the dragged
- * item only, so the other members keep their order and one move is the whole change.
+ * The move a drop makes, in the terms of actionMoveMember, when the dragged member moved within its group.
+ * `shown` is the list in data order (each row with its member index), `before` the group's rows in the order
+ * they had, `after` the group's rows as the drag left them, and `draggedIndex` the member that was dragged.
+ * The member goes right after the member before it in the group (or before the one after it, at the top of the
+ * group), so members of the other group between them keep their place. Undefined when the group's order did
+ * not change (no edit, no undo step) or the member is not in the group.
  */
-export function dropMoveOf(rows: readonly { index: number }[], draggedIndex: number) {
-  const to = rows.findIndex((row) => row.index === draggedIndex)
-  if (to < 0 || to === draggedIndex) return undefined
+export function groupDropMove(
+  shown: readonly { index: number }[],
+  before: readonly { index: number }[],
+  after: readonly { index: number }[],
+  draggedIndex: number,
+) {
+  const at = after.findIndex((row) => row.index === draggedIndex)
+  if (at < 0) return undefined
+  if (before.length === after.length && before.every((row, i) => row.index === after[i]?.index))
+    return undefined
+  const rest = shown.filter((row) => row.index !== draggedIndex)
+  // actionMoveMember takes the place the item ends at, counted in the list without it
+  const previous = after[at - 1]
+  const next = after[at + 1]
+  const to = previous
+    ? rest.findIndex((row) => row.index === previous.index) + 1
+    : rest.findIndex((row) => row.index === next?.index)
+  if (to < 0) return undefined
   return { from: draggedIndex, to }
 }
+
+/** The part of the members list a member is shown in: the stops of a route, its ways (every other member), or all. */
+export type MemberGroupKey = 'stops' | 'ways' | 'all'
+
+export type MemberGroup = { key: MemberGroupKey; rows: MemberRow[] }
+
+/** The group a member of a relation is listed in: for a `type=route`, its stops or its ways; otherwise all of them. */
+export function memberGroupKey(tags: Tags, row: Pick<MemberRow, 'type' | 'role'>): MemberGroupKey {
+  if (tagValue(tags, 'type') !== 'route') return 'all'
+  return isStopRow(row) ? 'stops' : 'ways'
+}
+
+/**
+ * The members of a relation in groups, as the list shows them: a `type=route` has "stops" and "ways", each in data
+ * order; other relations have one group. An empty group is left out. The rows keep their data order and index.
+ */
+export function memberGroups(rows: readonly MemberRow[], tags: Tags): MemberGroup[] {
+  const keys: MemberGroupKey[] = ['stops', 'ways', 'all']
+  return keys
+    .map((key) => ({ key, rows: rows.filter((row) => memberGroupKey(tags, row) === key) }))
+    .filter((group) => group.rows.length > 0)
+}
+
+/** Whether a member of a route is a stop or platform: a point member, or a role of the stop and platform kind. */
+function isStopRow(row: Pick<MemberRow, 'type' | 'role'>) {
+  return row.type === 'node' || STOP_OR_PLATFORM_ROLE.test(row.role)
+}
+
+/** A colour as `colour=*` writes it: `#rgb` or `#rrggbb`. Other colours need the browser to know them. */
+const HEX_COLOUR = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i
+
+/** CSS-wide keywords and the colours that cannot mark a relation (no colour, or none that shows). */
+const NO_COLOUR = new Set(['inherit', 'initial', 'unset', 'revert', 'currentcolor', 'transparent'])
+
+/** Whether the browser reads the value as a colour. False where there is no CSS (tests, Node). */
+export function cssSupportsColour(value: string) {
+  return typeof CSS !== 'undefined' && typeof CSS.supports === 'function'
+    ? CSS.supports('color', value)
+    : false
+}
+
+/**
+ * The colour of a relation from its `colour` tag, when the tag is a valid CSS colour (a hex value or a colour name the
+ * browser knows, `supports`); undefined otherwise, so a stray value never reaches a style. The value is returned as
+ * written, trimmed.
+ */
+export function colourOf(
+  relation: OsmRelation,
+  supports: (value: string) => boolean = cssSupportsColour,
+): string | undefined {
+  const value = relation.tags.colour?.trim()
+  if (!value || NO_COLOUR.has(value.toLowerCase())) return undefined
+  if (HEX_COLOUR.test(value)) return value
+  return supports(value) ? value : undefined
+}
+
+/**
+ * Whether a dot of this colour needs a hairline ring to be seen on the sidebar's white: a light hex colour. A colour
+ * name is not measured here, so it gets the ring too (a ring on a dark colour is hardly visible).
+ */
+export function dotNeedsRing(colour: string) {
+  if (!HEX_COLOUR.test(colour)) return true
+  const digits = colour.slice(1)
+  const full = digits.length === 3 ? digits.replace(/./g, (digit) => digit + digit) : digits
+  const channel = (at: number) => linear(Number.parseInt(full.slice(at, at + 2), 16) / 255)
+  // relative luminance (WCAG); above this a dot is hard to see on white
+  const luminance = 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4)
+  return luminance > 0.6
+}
+
+/** One sRGB channel in 0..1, as linear light (WCAG) */
+function linear(value: number) {
+  return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+}
+
+/**
+ * The relations an "Also add" offer is made for after a paste: each relation the original feature is a member of,
+ * where the copy is not a member yet and the offer was not settled (`settled`, the relations added or dismissed).
+ * A relation that was copied too is left out: the copy is already in its copy. One offer per relation, with the
+ * role the original had there.
+ */
+export function pasteOffersOf(
+  graph: Graph,
+  copyID: EntityID,
+  originalID: EntityID,
+  copiedOriginals: ReadonlySet<EntityID>,
+  settled: readonly EntityID[],
+): PasteOffer[] {
+  if (!graph.hasEntity(copyID)) return []
+  const seen = new Set<EntityID>()
+  const offers: PasteOffer[] = []
+  for (const membership of membershipsOf(graph, originalID)) {
+    const { relation } = membership
+    if (seen.has(relation.id)) continue
+    seen.add(relation.id)
+    if (copiedOriginals.has(relation.id) || settled.includes(relation.id)) continue
+    if (relation.members.some((member) => member.id === copyID)) continue
+    offers.push({ relation, role: membership.role })
+  }
+  return offers
+}
+
+/** An "Also add" offer: the relation, and the role the original had in it */
+export type PasteOffer = { relation: OsmRelation; role: string }
 
 /** The way members of a route, in order, with their index in `relation.members`. Stops, platforms and nodes are left out. */
 type ChainLink = { index: number; way: OsmWay | undefined }

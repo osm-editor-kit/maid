@@ -26,6 +26,8 @@ export {
   type LayerOptions,
 } from './layers'
 export { iconImagePrefix, iconImagesRequestedAt } from './icon-requests'
+// The white arrow of the selected way, preloaded by the engine: a module's line-pattern can use it for its own arrows
+export { SELECTED_ARROW_HEIGHT, SELECTED_ARROW_IMAGE } from './direction'
 export { ModuleLayers } from './ModuleLayers'
 export { OsmLayers } from './OsmLayers'
 export { OsmData, type MergeResult } from './data'

@@ -12,6 +12,17 @@ export class Clipboard {
   /** What Cmd+C took: ids and the graph they are read from when pasted */
   private taken?: { ids: string[]; graph: Graph }
 
+  /** The copies of the last paste (every copied feature, relations too), each with the id it was copied from */
+  private origins: ReadonlyMap<string, string> = new Map()
+
+  /**
+   * The copies of the last `paste`, by copy id, with the id each was copied from. Read right after the paste by the
+   * shell, which offers the originals' relations (the relations module, "Also add"). Empty before any paste.
+   */
+  get lastPasteOrigins(): ReadonlyMap<string, string> {
+    return this.origins
+  }
+
   /** True if something was copied and can be pasted */
   get canPaste() {
     return this.taken !== undefined
@@ -29,6 +40,7 @@ export class Clipboard {
    * returns the ids of the copies. Relations are copied with new members, as in iD.
    */
   paste(lon: number, lat: number) {
+    this.origins = new Map()
     const clipboard = this.taken
     if (!clipboard || this.engine.draw.active || this.engine.transform.active) return []
     // the graph is the state at the time of the copy; what was not in it cannot be copied
@@ -40,6 +52,7 @@ export class Clipboard {
       const { history } = this.engine.data
       history.perform(action)
       const copies = action.copies()
+      this.origins = new Map(Object.entries(copies).map(([from, copy]) => [copy.id, from]))
       pasted = ids.map((id) => copies[id]?.id).filter((id) => id !== undefined)
       // move the copies as a whole so that their middle is where the pointer is
       const nodes = [...nodesOf(this.engine, pasted)].map((id) => ({

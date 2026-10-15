@@ -2,6 +2,7 @@ import { defineModule } from '@osm-editor-kit/maid-core'
 import { OsmRelation } from '@osm-editor-kit/maid-model'
 import { lazyComponent, type InspectorSection } from '@osm-editor-kit/maid-ui'
 import { memberRows, membersHeadline, membershipsOf } from './relations-logic.ts'
+import { RelationsOnMap } from './relations-map.tsx'
 
 // The two sections are drawn inside the inspector, which is itself a chunk of its own. Their code (the member
 // list, the role inputs, "Add to a relation") is another: loaded in idle time after the first view (lazyComponent).
@@ -39,6 +40,7 @@ export function relations() {
       }
       api.register('inspector.section', members)
       api.register('inspector.section', memberships)
+      api.register('map.content', { id: 'relations-map', component: RelationsOnMap })
     },
   })
 }

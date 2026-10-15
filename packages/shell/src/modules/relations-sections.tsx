@@ -25,21 +25,25 @@ import {
 import { usePresets, useShell } from '../shell-context'
 import {
   cannotTakeReason,
-  dropMoveOf,
+  colourOf,
+  dotNeedsRing,
   geometryOfEntity,
+  groupDropMove,
   joinableRelations,
   loadButtonLabel,
   loadFailureSentence,
   loadingLabel,
   loadResultSentence,
+  memberGroups,
   memberLoadPath,
   memberName,
   memberRows,
   membershipHint,
   membershipsOf,
-  moveTarget,
+  moveTargets,
   newRelationActions,
   notLoadedCount,
+  pasteOffersOf,
   pickerNames,
   placementOf,
   placementSentence,
@@ -53,11 +57,16 @@ import {
   routeGaps,
   sessionFirst,
   type LoadMember,
+  type MemberGroupKey,
+  type MemberMoves,
   type MemberRow,
   type Membership,
+  type PasteOffer,
   type RelationRules,
   type RoleOption,
 } from './relations-logic.ts'
+import { setSubRouteHovered } from './relations-map-shapes.ts'
+import { pasteOfferActions, usePasteOffersState } from './relations-paste-store.ts'
 import { relationSessionActions, useSessionRelationIDs } from './relations-session-store.ts'
 
 type Props = InspectorSectionProps
@@ -107,6 +116,8 @@ const GAP =
 const HINT = 'pb-1 pl-1 text-xs text-amber-700 dark:text-amber-400'
 /** A quiet line under the list: what a load left out */
 const SECONDARY_NOTE = `pt-1 text-xs ${SECONDARY}`
+/** The heading of a group of members (stops, ways): small and quiet, so the list stays calm */
+const GROUP_HEADING = `pt-1 pb-0.5 text-[11px] font-medium ${SECONDARY}`
 
 /** Runs the actions as one undo step and commits them with their annotation. */
 function editAll(
@@ -150,6 +161,28 @@ function Row({ children, highlight }: { children: ReactNode; highlight?: RowHigh
 }
 
 type RowHighlight = ReturnType<typeof useRelatedWhileHovered>
+
+/** The row's hover handlers, which also tell the map which sub-route of a superrelation is hovered */
+function withSubRouteHover(handlers: RowHighlight, relationId: string): RowHighlight {
+  return {
+    onPointerEnter: () => {
+      handlers.onPointerEnter()
+      setSubRouteHovered(relationId)
+    },
+    onPointerLeave: () => {
+      handlers.onPointerLeave()
+      setSubRouteHovered(null)
+    },
+    onFocus: () => {
+      handlers.onFocus()
+      setSubRouteHovered(relationId)
+    },
+    onBlur: () => {
+      handlers.onBlur()
+      setSubRouteHovered(null)
+    },
+  }
+}
 
 /**
  * Highlights entities on the map while the pointer or the keyboard focus is on a row: a member
@@ -404,6 +437,22 @@ function MemberItem({
   )
 }
 
+/**
+ * A relation's colour (its `colour` tag) as a small dot before its name. Nothing without a valid colour. A light
+ * colour gets a hairline ring, so it shows on the white of the sidebar. Not in the picker: a native select cannot
+ * show a dot.
+ */
+function ColourDot({ colour }: { colour: string | undefined }) {
+  if (colour === undefined) return null
+  return (
+    <span
+      aria-hidden="true"
+      style={{ backgroundColor: colour }}
+      className={`mr-1.5 inline-block size-2.5 shrink-0 rounded-full align-middle ${dotNeedsRing(colour) ? 'ring-1 ring-zinc-950/15 ring-inset dark:ring-white/25' : ''}`}
+    />
+  )
+}
+
 /** The letter for a member's type, as the locale writes it (N, W, R in English). */
 function typeLetter(type: Member['type']) {
   if (type === 'node') return m.relations_type_node_letter()
@@ -428,6 +477,7 @@ function MemberRowView({
   select,
   load,
   handle,
+  moves,
 }: {
   editor: Editor
   relation: OsmRelation
@@ -441,9 +491,13 @@ function MemberRowView({
   load: LoadMember | undefined
   /** The drag handle, drawn first (null when read-only) */
   handle: ReactNode
+  /** Where the move buttons send the member: within its group (see moveTargets) */
+  moves: MemberMoves
 }) {
   const { engine } = useShell()
-  const highlight = useRelatedWhileHovered(() => [row.id])
+  const related = useRelatedWhileHovered(() => [row.id])
+  // a sub-route row also makes that sub-route the strong one on the map (relations-map.tsx)
+  const highlight = row.type === 'relation' ? withSubRouteHover(related, row.id) : related
   // the member as the relation holds it: its id and type come from the row, the role from the member
   const member = relation.members[row.index]
   if (!member) return null
@@ -454,9 +508,8 @@ function MemberRowView({
     roles,
     geometryOfEntity(editor.history.staging.graph, row.id),
   )
-  const count = relation.members.length
   const move = (direction: 'up' | 'down') => {
-    const target = moveTarget(count, row.index, direction)
+    const target = moves[direction]
     if (target === undefined) return
     const annotation =
       direction === 'up'
@@ -464,8 +517,6 @@ function MemberRowView({
         : m.relations_undo_move_down({ relation: relationLabel(relation) })
     edit(editor, actionMoveMember(relation.id, row.index, target), annotation, relation.id)
   }
-  const up = moveTarget(count, row.index, 'up')
-  const down = moveTarget(count, row.index, 'down')
   return (
     <div className={ROW_BODY} {...highlight}>
       {handle}
@@ -499,13 +550,13 @@ function MemberRowView({
       <MoveButton
         label={m.relations_move_up({ id: row.id })}
         glyph="↑"
-        disabled={up === undefined}
+        disabled={moves.up === undefined}
         onMove={() => move('up')}
       />
       <MoveButton
         label={m.relations_move_down({ id: row.id })}
         glyph="↓"
-        disabled={down === undefined}
+        disabled={moves.down === undefined}
         onMove={() => move('down')}
       />
       <RoleInput
@@ -547,9 +598,13 @@ type LoadState =
   | { status: 'done'; added: number; left: number }
   | { status: 'failed'; message: string }
 
+/** A drag in progress: the group it is in, and the rows of that group in the order the drag leaves them */
+type DragState = { group: MemberGroupKey; rows: MemberRow[] }
+
 /**
- * The members of a relation in order: the first MEMBER_LIMIT, then "Show all N". Members that are
- * not loaded keep their rows. A route shows a gap line where two of its ways do not meet.
+ * The members of a relation in order: the first MEMBER_LIMIT, then "Show all N". A route shows its stops and its ways
+ * in two groups, each in data order (a drag stays in its group). Members that are not loaded keep their rows. A route
+ * shows a gap line where two of its ways do not meet.
  */
 function MemberList({
   editor,
@@ -570,17 +625,20 @@ function MemberList({
   const [showAll, setShowAll] = useState(false)
   const [load, setLoad] = useState<LoadState>({ status: 'idle' })
   const shown = showAll ? rows : rows.slice(0, MEMBER_LIMIT)
+  const groups = memberGroups(shown, relation.tags)
+  // the move buttons follow the groups of the whole relation, not only the rows shown
+  const moves = moveTargets(rows, relation.tags)
   const readOnly = useReadOnly()
-  // while a member is dragged the list shows the order of the drag; the data changes once, at the drop
-  const [dragged, setDragged] = useState<MemberRow[] | null>(null)
-  const draggedOrder = useRef<MemberRow[] | null>(null)
-  const order = dragged ?? shown
-  // the one edit a drop makes: the dragged member moves to its place in the list (one undo step)
+  // while a member is dragged its group shows the order of the drag; the data changes once, at the drop
+  const [dragged, setDragged] = useState<DragState | null>(null)
+  const draggedOrder = useRef<DragState | null>(null)
+  // the one edit a drop makes: the dragged member moves to its place in its group (one undo step)
   const drop = (row: MemberRow) => {
-    const list = draggedOrder.current
+    const drag = draggedOrder.current
     draggedOrder.current = null
     setDragged(null)
-    const move = list ? dropMoveOf(list, row.index) : undefined
+    const group = groups.find((item) => item.key === drag?.group)
+    const move = drag && group ? groupDropMove(shown, group.rows, drag.rows, row.index) : undefined
     if (move)
       edit(
         editor,
@@ -623,59 +681,78 @@ function MemberList({
           </Tooltip>
         </div>
       )}
-      <Reorder.Group
-        as="ul"
-        axis="y"
-        values={order}
-        onReorder={(next) => {
-          draggedOrder.current = next
-          setDragged(next)
-        }}
-      >
-        {rows.length === 0 && (
+      {rows.length === 0 && (
+        <ul>
           <li className={`py-1 text-xs ${SECONDARY}`}>{m.relations_no_members()}</li>
-        )}
-        {order.map((row) => (
-          <MemberItem
-            key={`${row.index}:${row.id}:${row.role}`}
-            value={row}
-            editable={!readOnly}
-            onDrop={() => drop(row)}
-          >
-            {(handle) => (
-              <>
-                <MemberRowView
-                  editor={editor}
-                  relation={relation}
-                  row={row}
-                  roles={roles}
-                  suggestions={suggestions}
-                  select={select}
-                  load={(id) => engine.loadEntity(id)}
-                  handle={handle}
-                />
-                {/* the gaps are between members in data order: hidden while the drag shows another order */}
-                {dragged === null &&
-                  gaps.has(row.index) && (
-                    // a title, not a Tooltip: a line that cannot take focus
-                    <div className={GAP} title={m.relations_gap_title()}>
-                      <span className="h-px flex-1 border-t border-dashed border-amber-500/60" />
-                      {m.relations_gap()}
-                      <span className="h-px flex-1 border-t border-dashed border-amber-500/60" />
-                    </div>
-                  )}
-              </>
+        </ul>
+      )}
+      {groups.map((group) => {
+        // the order this group is shown in: the order of the drag while it is dragged
+        const order = dragged?.group === group.key ? dragged.rows : group.rows
+        return (
+          <div key={group.key}>
+            {group.key !== 'all' && (
+              <p className={GROUP_HEADING}>
+                {group.key === 'stops' ? m.relations_group_stops() : m.relations_group_ways()}
+              </p>
             )}
-          </MemberItem>
-        ))}
-        {!showAll && rows.length > shown.length && (
-          <li className="py-1">
-            <button type="button" className={LINK_BUTTON} onClick={() => setShowAll(true)}>
-              {m.relations_show_all({ count: rows.length })}
-            </button>
-          </li>
-        )}
-      </Reorder.Group>
+            <Reorder.Group
+              as="ul"
+              axis="y"
+              values={order}
+              onReorder={(next) => {
+                const drag: DragState = { group: group.key, rows: next }
+                draggedOrder.current = drag
+                setDragged(drag)
+              }}
+            >
+              {order.map((row) => (
+                <MemberItem
+                  key={`${row.index}:${row.id}:${row.role}`}
+                  value={row}
+                  editable={!readOnly}
+                  onDrop={() => drop(row)}
+                >
+                  {(handle) => (
+                    <>
+                      <MemberRowView
+                        editor={editor}
+                        relation={relation}
+                        row={row}
+                        roles={roles}
+                        suggestions={suggestions}
+                        select={select}
+                        load={(id) => engine.loadEntity(id)}
+                        handle={handle}
+                        moves={moves.get(row.index) ?? {}}
+                      />
+                      {/* the gaps are between members in data order: hidden while the drag shows another order */}
+                      {dragged === null &&
+                        gaps.has(row.index) && (
+                          // a title, not a Tooltip: a line that cannot take focus
+                          <div className={GAP} title={m.relations_gap_title()}>
+                            <span className="h-px flex-1 border-t border-dashed border-amber-500/60" />
+                            {m.relations_gap()}
+                            <span className="h-px flex-1 border-t border-dashed border-amber-500/60" />
+                          </div>
+                        )}
+                    </>
+                  )}
+                </MemberItem>
+              ))}
+            </Reorder.Group>
+          </div>
+        )
+      })}
+      {!showAll && rows.length > shown.length && (
+        <button
+          type="button"
+          className={`${LINK_BUTTON} justify-self-start`}
+          onClick={() => setShowAll(true)}
+        >
+          {m.relations_show_all({ count: rows.length })}
+        </button>
+      )}
       {load.status === 'failed' ? (
         <p className={HINT}>
           {loadFailureSentence(load.message)}{' '}
@@ -750,6 +827,7 @@ function MembershipRow({
       <Row highlight={highlight}>
         <Tooltip label={relation.id}>
           <button type="button" className={LINK} onClick={() => select(relation.id)}>
+            <ColourDot colour={colourOf(relation)} />
             <span>{relationLabel(relation)}</span>
           </button>
         </Tooltip>
@@ -781,6 +859,72 @@ function MembershipRow({
       </Row>
       {hint && <li className={HINT}>{hint}</li>}
     </>
+  )
+}
+
+/**
+ * An "Also add" offer after a paste (iD issue 9359): the relation the copied feature's original is in, with the role the
+ * original had there. "Add" makes the copy a member with that role, in one undo step, and says where it went, as an add
+ * does. The × leaves the offer out. Either way the offer is settled: nothing is added unasked.
+ */
+function PasteOfferRow({
+  editor,
+  entity,
+  offer,
+  roles,
+  readOnly,
+}: {
+  editor: Editor
+  entity: Props['entity']
+  offer: PasteOffer
+  /** The relation's roles with their labels (none without a schema) */
+  roles: RelationRoles
+  readOnly: boolean
+}) {
+  const { relation, role } = offer
+  const label = relationLabel(relation)
+  const add = () => {
+    const before = relation.members
+    edit(
+      editor,
+      actionAddMember(relation.id, { id: entity.id, type: entity.type, role }),
+      m.relations_undo_add(),
+      entity.id,
+    )
+    relationSessionActions.touch([relation.id])
+    pasteOfferActions.settle(entity.id, relation.id)
+    const graph = editor.history.staging.graph
+    const after = graph.hasEntity(relation.id)
+    const placement =
+      after instanceof OsmRelation ? placementOf(before, after.members, entity.id) : undefined
+    if (placement) notify.done(placementSentence(placement, (ref) => memberName(graph, ref)))
+  }
+  return (
+    <Row>
+      <ColourDot colour={colourOf(relation)} />
+      <span className="min-w-0 flex-1 truncate">
+        {label}{' '}
+        <span className={SECONDARY}>
+          —{' '}
+          {role === ''
+            ? m.relations_also_add()
+            : m.relations_also_add_as({ role: roleLabel(roles, role) })}
+        </span>
+      </span>
+      <button type="button" className={BUTTON} disabled={readOnly} onClick={add}>
+        {m.relations_add()}
+      </button>
+      <Tooltip label={m.relations_also_dismiss({ relation: label })}>
+        <button
+          type="button"
+          aria-label={m.relations_also_dismiss({ relation: label })}
+          onClick={() => pasteOfferActions.settle(entity.id, relation.id)}
+          className={ICON_BUTTON}
+        >
+          ×
+        </button>
+      </Tooltip>
+    </Row>
   )
 }
 
@@ -950,6 +1094,19 @@ export function RelationsSection({ entity, entities, editor, select }: Props) {
   // as iD: the role suggestions follow the geometry of the inspected feature when it is the only one selected
   const geometry = selection.length === 1 ? entity.geometry : undefined
   const readOnly = selection.some((item) => item.readOnly)
+  // after a paste: the relations the copied feature's original is in, as offers (see pasteOffersOf)
+  const pasted = usePasteOffersState()
+  const origin = pasted.origins.get(entity.id)
+  const offers =
+    origin === undefined
+      ? []
+      : pasteOffersOf(
+          graph,
+          entity.id,
+          origin.original,
+          origin.copied,
+          pasted.settled.get(entity.id) ?? [],
+        ).filter((offer) => cannotTakeReason(offer.relation, [entity], presets) === undefined)
   return (
     <div className={`${COLUMN} gap-1`}>
       {memberships.length === 0 && (
@@ -984,6 +1141,20 @@ export function RelationsSection({ entity, entities, editor, select }: Props) {
           )}
         />
       ))}
+      {offers.length > 0 && (
+        <ul>
+          {offers.map((offer) => (
+            <PasteOfferRow
+              key={offer.relation.id}
+              editor={editor}
+              entity={entity}
+              offer={offer}
+              roles={relationRolesOf(presets, offer.relation.tags)}
+              readOnly={readOnly}
+            />
+          ))}
+        </ul>
+      )}
       <AddToRelation
         key={selection.map((item) => item.id).join(',')}
         editor={editor}

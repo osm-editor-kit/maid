@@ -1,6 +1,7 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { deleteOperation } from '@osm-editor-kit/maid-operations'
 import { useHotkeys, type UseHotkeyDefinition } from '@tanstack/react-hotkeys'
+import { pasteAt } from './clipboard'
 import { continueLine, drawClick, drawingKind, drawKindOf } from './drawing'
 import { giveFavouriteType } from './favourites'
 import { openSearch } from './search/flyout'
@@ -91,7 +92,7 @@ export function useShortcuts() {
   const paste = () => {
     const center = engine.map?.getCenter()
     const at = engine.pointer ?? (center && { lon: center.lng, lat: center.lat })
-    if (at) select(engine.paste(at.lon, at.lat))
+    if (at) select(pasteAt(engine, at.lon, at.lat))
   }
   const pan = (x: number, y: number) => engine.map?.panBy([x, y], { duration: 100 })
 

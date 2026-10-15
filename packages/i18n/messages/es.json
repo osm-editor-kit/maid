@@ -159,6 +159,11 @@
   "relations_hint_outer": "Borrar esta vía quita un anillo exterior del multipolígono",
   "relations_reason_duplicate": "Ya es miembro",
   "relations_reason_invalid": "No permitido en este tipo de relación",
+  "relations_group_stops": "Paradas",
+  "relations_group_ways": "Vías",
+  "relations_also_add": "Añadir también",
+  "relations_also_add_as": "Añadir también como {role}",
+  "relations_also_dismiss": "No añadir a {relation}",
   "maplibre_attribution_toggle": "Mostrar u ocultar la atribución",
   "maplibre_attribution_feedback": "Comentarios sobre el mapa",
   "maplibre_map_title": "Mapa"

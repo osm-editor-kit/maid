@@ -159,6 +159,11 @@
   "relations_hint_outer": "Das Löschen dieses Weges entfernt einen äußeren Ring des Multipolygons",
   "relations_reason_duplicate": "Bereits Mitglied",
   "relations_reason_invalid": "In diesem Relationstyp nicht erlaubt",
+  "relations_group_stops": "Haltestellen",
+  "relations_group_ways": "Wege",
+  "relations_also_add": "Auch hinzufügen",
+  "relations_also_add_as": "Auch hinzufügen als {role}",
+  "relations_also_dismiss": "Nicht zu {relation} hinzufügen",
   "maplibre_attribution_toggle": "Quellenangaben ein- und ausblenden",
   "maplibre_attribution_feedback": "Rückmeldung zur Karte",
   "maplibre_map_title": "Karte"
