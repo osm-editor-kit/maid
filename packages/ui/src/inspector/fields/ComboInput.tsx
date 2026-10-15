@@ -51,8 +51,12 @@ export function ComboInput(props: {
   /** The input's title (tooltip), e.g. the values of a mixed key. */
   title?: string
   onChange?: FieldProps['onChange']
+  /** The input is disabled: shown with its value, not editable (a directional side that is not used). */
+  disabled?: boolean
+  /** The id of the element that describes the input (the reason it is disabled). */
+  describedBy?: string
 }) {
-  const { id, field, tagKey, value, placeholder, title, onChange } = props
+  const { id, field, tagKey, value, placeholder, title, onChange, disabled, describedBy } = props
   const baseId = useId()
   const listId = `${baseId}-list`
   const optionId = (index: number) => `${baseId}-option-${index}`
@@ -161,6 +165,7 @@ export function ComboInput(props: {
           placeholder={placeholder ?? field.placeholder}
           title={title}
           readOnly={onChange === undefined}
+          disabled={disabled}
           value={state.text}
           aria-expanded={listVisible}
           aria-controls={listVisible ? listId : undefined}
@@ -168,7 +173,7 @@ export function ComboInput(props: {
           aria-activedescendant={listVisible && active >= 0 ? optionId(active) : undefined}
           className={`${INPUT} ${LIMITED} ${italic ? 'italic' : ''}`}
           aria-invalid={limit.invalid}
-          aria-describedby={limit.describedBy()}
+          aria-describedby={limit.describedBy(describedBy)}
           onChange={(event) => {
             const input = event.currentTarget
             apply(

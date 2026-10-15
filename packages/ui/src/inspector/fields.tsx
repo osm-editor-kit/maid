@@ -22,7 +22,9 @@ import { AddressField } from './fields/Address.tsx'
 import { CheckField } from './fields/Check.tsx'
 import { ComboField } from './fields/Combo.tsx'
 import { ColourField, DateField } from './fields/DateColour.tsx'
+import { groupDirectionalFields } from './fields/directional-group-logic.ts'
 import { DirectionalComboField } from './fields/Directional.tsx'
+import { DirectionalGroup } from './fields/DirectionalGroup.tsx'
 import { FallbackField } from './fields/Fallback.tsx'
 import { EmailField, IdentifierField, TelField, UrlField } from './fields/Link.tsx'
 import { LocalizedField } from './fields/Localized.tsx'
@@ -238,6 +240,9 @@ export function PresetFields(props: {
     if (field.key !== undefined && value !== undefined) onChange?.(field.key, value)
   }
 
+  // a directional field with its sub fields (parking:both:orientation) is one block, at the parent's place
+  const blocks = groupDirectionalFields(rows)
+
   if (rows.length === 0 && offer.length === 0) return null
   return (
     <div
@@ -265,31 +270,47 @@ export function PresetFields(props: {
         report()
       }}
     >
-      {rows.map((field) => (
-        // empty: a keyless row without a value renders nothing and must not leave a gap
-        <div
-          key={field.id}
-          data-field-id={field.id}
-          // the row's own key, for the map; a directional side inside it has its own and is the innermost
-          data-focus-key={field.key}
-          className="empty:hidden"
-        >
-          <FieldRow
-            field={field}
-            tags={tags}
-            combined={combined}
-            features={features}
-            baseTags={baseTags}
-            onChange={onChange}
-            onChangeTags={onChangeTags}
-            registry={registry}
-            related={relatedOf(field)}
-            loadReference={loadReference}
-            measure={measure}
-            address={address}
-          />
-        </div>
-      ))}
+      {blocks.map((block) =>
+        block.kind === 'group' ? (
+          <div key={block.parent.id} className="empty:hidden">
+            <DirectionalGroup
+              parent={block.parent}
+              subs={block.subs}
+              tags={tags}
+              combined={combined}
+              features={features}
+              baseTags={baseTags}
+              onChange={onChange}
+              onChangeTags={onChangeTags}
+              loadReference={loadReference}
+              related={relatedOf}
+            />
+          </div>
+        ) : (
+          <div
+            key={block.field.id}
+            data-field-id={block.field.id}
+            // the row's own key, for the map; a directional side inside it has its own and is the innermost
+            data-focus-key={block.field.key}
+            className="empty:hidden"
+          >
+            <FieldRow
+              field={block.field}
+              tags={tags}
+              combined={combined}
+              features={features}
+              baseTags={baseTags}
+              onChange={onChange}
+              onChangeTags={onChangeTags}
+              registry={registry}
+              related={relatedOf(block.field)}
+              loadReference={loadReference}
+              measure={measure}
+              address={address}
+            />
+          </div>
+        ),
+      )}
       {offer.length > 0 ? <AddField fields={offer} onPick={pick} /> : null}
     </div>
   )

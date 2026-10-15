@@ -37,7 +37,7 @@ const MIXED_HINT = 'mixed'
  * focus is in this field's row (the group is named, so a group around all rows does not count),
  * stays while its panel is open, and is always there on touch.
  */
-const INFO_BUTTON = `rounded ${REVEAL}`
+export const INFO_BUTTON = `rounded ${REVEAL}`
 
 /**
  * The "Measure on the map" button: as the "i", it fades in with the row, and it stays while the
@@ -46,7 +46,7 @@ const INFO_BUTTON = `rounded ${REVEAL}`
 const MEASURE_BUTTON = `${ROW_BUTTON} ${REVEAL} aria-pressed:bg-zinc-950/5 aria-pressed:text-blue-600 dark:aria-pressed:bg-white/10 dark:aria-pressed:text-blue-400`
 
 /** Revert and remove: as the other buttons of the label bar, they show with the row */
-const ACTION_BUTTON = `${ROW_BUTTON} ${REVEAL}`
+export const ACTION_BUTTON = `${ROW_BUTTON} ${REVEAL}`
 
 /** A ruler on a diagonal with its ticks, 16 px, in the colour of the text (the row's icons are 16 px too) */
 function RulerIcon() {
