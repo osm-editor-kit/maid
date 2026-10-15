@@ -2,8 +2,8 @@
  * Writes as a plan: which ways change, and how (docs/research/way-table.md, 4.5 and 4.8). Pure.
  *
  * A plan is a list of tag changes, one per way that changes, with the stored keys. The UI performs the plan as one
- * undo step (`planChangeTagsEach` in the renderer, or `engine.changeTagsEach`). A plan with a read-only target is
- * refused as a whole, and nothing is written.
+ * undo step (`planChangeTagsEach` in the renderer, or `engine.changeTagsEach`). A plan in which a read-only target
+ * would change is refused as a whole, and nothing is written.
  *
  * Writes go to the stored key with the value as typed (the text of a cell is the stored value). A display key that is
  * mirrored is written under its stored name: `mirrorKey` of the display key on a reversed way. Mirrored values are
@@ -51,18 +51,17 @@ export function storedKeyOf(displayKey: string, reversed: boolean): string {
 }
 
 /**
- * Runs an edit on each target. Refuses the whole plan when a target is read-only. An empty value is a removal. A
- * target whose change would not change its tags is skipped as `no-change`.
+ * Runs an edit on each target. An empty value is a removal. A target whose change would not change its tags is skipped
+ * as `no-change`, whether or not it is read-only. A read-only target that would change refuses the whole plan, and
+ * nothing is written: the plan names those ids.
  */
 export function planEdit(
   targets: readonly PlanTarget[],
   edit: (target: PlanTarget) => Edit,
 ): PlanResult {
-  const readOnly = targets.filter((target) => target.readOnly).map((target) => target.id)
-  if (readOnly.length > 0) return { ok: false, reason: 'read-only', ids: readOnly }
-
   const changes: PlanChange[] = []
   const skipped: Skipped[] = []
+  const refused: string[] = []
   for (const target of targets) {
     const result = edit(target)
     if ('skip' in result) {
@@ -82,8 +81,13 @@ export function planEdit(
       skipped.push({ id: target.id, reason: 'no-change' })
       continue
     }
+    if (target.readOnly) {
+      refused.push(target.id)
+      continue
+    }
     changes.push({ id: target.id, set, remove: removed })
   }
+  if (refused.length > 0) return { ok: false, reason: 'read-only', ids: refused }
   return { ok: true, changes, skipped }
 }
 

@@ -1,5 +1,6 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { Dock } from '@osm-editor-kit/maid-ui'
+import { useCallback } from 'react'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
 import { useCameraParam } from '../url/state'
@@ -42,8 +43,9 @@ export function BottomDock() {
   const { editor, engine } = useShell()
   const views = useExtensionPoint(editor, 'dock.view')
   const { select, ids } = useSelection()
-  const highlight = (ids: readonly string[] | null) => engine.setRelated(ids)
-  const readOnly = (id: string) => engine.isReadOnly(id)
+  // stable for as long as the engine is: a view memoises on these props
+  const highlight = useCallback((ids: readonly string[] | null) => engine.setRelated(ids), [engine])
+  const readOnly = useCallback((id: string) => engine.isReadOnly(id), [engine])
   return (
     <Dock
       tabs={[

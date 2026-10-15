@@ -185,7 +185,7 @@ export function WayTableCell(props: WayTableCellProps) {
           ref={inputRef}
           value={draft}
           spellCheck={false}
-          aria-label={`${displayKey} of ${column.label}`}
+          aria-label={m.way_table_cell_input_label({ key: displayKey, way: column.label })}
           aria-invalid={tooLong || undefined}
           onChange={(event) => setDraft(event.target.value.replace(/\r?\n/g, ' '))}
           onKeyDown={onInputKeyDown}

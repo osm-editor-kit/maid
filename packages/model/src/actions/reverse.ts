@@ -9,6 +9,14 @@ export interface ReverseOptions {
   reverseOneway?: boolean;
 }
 
+/** Options for reverseValue */
+export interface ReverseValueOptions {
+  /** When `true`, also reverse absolute compass bearings (a node that is reversed itself) */
+  includeAbsolute?: boolean;
+  /** When `true`, also reverse `oneway` values */
+  reverseOneway?: boolean;
+}
+
 /** A reverse action with additional methods */
 export interface ReverseAction extends Action {
   /** Returns a reason string if disabled, or false if not disabled */
@@ -32,6 +40,147 @@ type OnewayReplacements = Record<string, string>;
 /** Compass direction replacement lookup table */
 type CompassReplacements = Record<string, string>;
 
+const IGNORE_KEY = /^.*(_|:)?(description|name|note|website|ref|source|comment|watch|attribution)(_|:)?/;
+const NUMERIC = /^([+\-]?)(?=[\d.])/;
+const DIRECTION_KEY = /direction$/;
+const TURN_LANES = /^turn:lanes:?/;
+// Maid: differs from Rapid here (iD#10736: red_turn:right and red_turn:left are not relative to the way)
+const RED_TURN_KEY = /^red_turn:(right|left):?/;
+
+const KEY_REPLACEMENTS: KeyReplacement[] = [
+  [/:right$/, ':left'],
+  [/:left$/, ':right'],
+  [/:forward$/, ':backward'],
+  [/:backward$/, ':forward'],
+  [/:right:/, ':left:'],
+  [/:left:/, ':right:'],
+  [/:forward:/, ':backward:'],
+  [/:backward:/, ':forward:']
+];
+
+const VALUE_REPLACEMENTS: ValueReplacements = {
+  left: 'right',
+  right: 'left',
+  up: 'down',
+  down: 'up',
+  forward: 'backward',
+  backward: 'forward',
+  forwards: 'backward',
+  backwards: 'forward',
+};
+
+const ROLE_REPLACEMENTS: RoleReplacements = {
+  forward: 'backward',
+  backward: 'forward',
+  forwards: 'backward',
+  backwards: 'forward'
+};
+
+const ONEWAY_REPLACEMENTS: OnewayReplacements = {
+  yes: '-1',
+  '1': '-1',
+  '-1': 'yes'
+};
+
+const COMPASS_REPLACEMENTS: CompassReplacements = {
+  N: 'S',
+  NNE: 'SSW',
+  NE: 'SW',
+  ENE: 'WSW',
+  E: 'W',
+  ESE: 'WNW',
+  SE: 'NW',
+  SSE: 'NNW',
+  S: 'N',
+  SSW: 'NNE',
+  SW: 'NE',
+  WSW: 'ENE',
+  W: 'E',
+  WNW: 'ESE',
+  NW: 'SE',
+  NNW: 'SSE'
+};
+
+/** A lookup that ignores inherited names: `constructor` is a value, not Object.prototype.constructor */
+function lookup(table: Record<string, string>, value: string): string | undefined {
+  return Object.hasOwn(table, value) ? table[value] : undefined;
+}
+
+/**
+ * Applies the key replacement table to swap directional suffixes such as
+ * `:right`/`:left` and `:forward`/`:backward`. Pure. Reversing a key twice gives the key back.
+ * @param   key - The tag key to transform
+ * @return  Transformed key, or the original key if no replacement matched
+ */
+export function reverseKey(key: string): string {
+  if (RED_TURN_KEY.test(key)) return key;  // Maid: differs from Rapid here (see RED_TURN_KEY)
+  for (const replacement of KEY_REPLACEMENTS) {
+    if (replacement[0].test(key)) {
+      return key.replace(replacement[0], replacement[1]);
+    }
+  }
+  return key;  // no change
+}
+
+/**
+ * Transforms a tag value to its directional opposite. Pure.
+ * Handles `left`/`right`, `forward`/`backward`, `up`/`down`, numeric `incline` negation, `oneway` values (when
+ * `reverseOneway` is set), and absolute compass directions on `*direction` keys (when `includeAbsolute` is set).
+ * Keys matching the ignore list (names, descriptions, refs, etc.) are passed through unchanged.
+ * @param   key      - The tag key (used to select the reversal strategy)
+ * @param   value    - The tag value to transform
+ * @param   allTags  - All tags of the entity, to check the tags a value depends on
+ * @param   options  - see ReverseValueOptions
+ * @return  Transformed value, or the original value if no replacement applied
+ */
+export function reverseValue(
+  key: string,
+  value: string,
+  allTags: OsmTags,
+  options: ReverseValueOptions = {},
+): string {
+  if (IGNORE_KEY.test(key)) return value;
+
+  // Turn lanes are left/right to key (not way) direction - iD#5674
+  if (TURN_LANES.test(key)) return value;
+
+  // Maid: differs from Rapid here (iD#10128, the side of a cyclist waiting aid and railway:turnout_side are not relative to the way)
+  if ((key === 'side' && allTags.highway === 'cyclist_waiting_aid') || key === 'railway:turnout_side') return value;
+
+  if (key === 'incline' && NUMERIC.test(value)) {
+    // Maid: differs from Rapid here: a zero stays zero; iD writes '-0', which is not a value and compares as different
+    if (parseFloat(value) === 0) return value.replace(NUMERIC, '');
+    return value.replace(NUMERIC, (_: string, sign: string) => {
+      return sign === '-' ? '' : '-';
+    });
+  }
+
+  if (options.reverseOneway && key === 'oneway') {
+    return lookup(ONEWAY_REPLACEMENTS, value) ?? value;
+  }
+
+  // Maid: differs from Rapid here (iD splits the value on ';' and reverses each part, so 'N;90' becomes 'S;270')
+  if (options.includeAbsolute && DIRECTION_KEY.test(key)) {
+    return value.split(';').map((part: string) => {
+      const compass = lookup(COMPASS_REPLACEMENTS, part);
+      if (compass) return compass;
+
+      let degrees: number = Number(part);  // Number, not parseFloat: '90deg' is not a bearing, as in iD
+      if (Number.isFinite(degrees)) {
+        if (degrees < 180) {
+          degrees += 180;
+        } else {
+          degrees -= 180;
+        }
+        return degrees.toString();
+      }
+      return lookup(VALUE_REPLACEMENTS, part) ?? part;
+    }).join(';');
+  }
+
+  return lookup(VALUE_REPLACEMENTS, value) ?? value;
+}
+
 
 /**
  * Order the nodes of a way in reverse order and reverse any direction dependent tags
@@ -53,137 +202,7 @@ type CompassReplacements = Record<string, string>;
  * @return  An Action function that reverses the given Entity
 */
 export function actionReverse(entityID: EntityID, options?: ReverseOptions): ReverseAction {
-  const ignoreKey = /^.*(_|:)?(description|name|note|website|ref|source|comment|watch|attribution)(_|:)?/;
-  const numeric = /^([+\-]?)(?=[\d.])/;
-  const directionKey = /direction$/;
-  const turn_lanes = /^turn:lanes:?/;
-  // Maid: differs from Rapid here (iD#10736: red_turn:right and red_turn:left are not relative to the way)
-  const red_turn_key = /^red_turn:(right|left):?/;
-
-  const keyReplacements: KeyReplacement[] = [
-    [/:right$/, ':left'],
-    [/:left$/, ':right'],
-    [/:forward$/, ':backward'],
-    [/:backward$/, ':forward'],
-    [/:right:/, ':left:'],
-    [/:left:/, ':right:'],
-    [/:forward:/, ':backward:'],
-    [/:backward:/, ':forward:']
-  ];
-
-  const valueReplacements: ValueReplacements = {
-    left: 'right',
-    right: 'left',
-    up: 'down',
-    down: 'up',
-    forward: 'backward',
-    backward: 'forward',
-    forwards: 'backward',
-    backwards: 'forward',
-  };
-
-  const roleReplacements: RoleReplacements = {
-    forward: 'backward',
-    backward: 'forward',
-    forwards: 'backward',
-    backwards: 'forward'
-  };
-
-  const onewayReplacements: OnewayReplacements = {
-    yes: '-1',
-    '1': '-1',
-    '-1': 'yes'
-  };
-
-  const compassReplacements: CompassReplacements = {
-    N: 'S',
-    NNE: 'SSW',
-    NE: 'SW',
-    ENE: 'WSW',
-    E: 'W',
-    ESE: 'WNW',
-    SE: 'NW',
-    SSE: 'NNW',
-    S: 'N',
-    SSW: 'NNE',
-    SW: 'NE',
-    WSW: 'ENE',
-    W: 'E',
-    WNW: 'ESE',
-    NW: 'SE',
-    NNW: 'SSE'
-  };
-
-
-  /**
-   * Applies the key replacement table to swap directional suffixes such as
-   * `:right`/`:left` and `:forward`/`:backward`.
-   * @param   key - The tag key to transform
-   * @return  Transformed key, or the original key if no replacement matched
-   */
-  function reverseKey(key: string): string {
-    if (red_turn_key.test(key)) return key;  // Maid: differs from Rapid here (see red_turn_key)
-    for (const replacement of keyReplacements) {
-      if (replacement[0].test(key)) {
-        return key.replace(replacement[0], replacement[1]);
-      }
-    }
-    return key;  // no change
-  }
-
-
-  /**
-   * Transforms a tag value to its directional opposite.
-   * Handles `left`/`right`, `forward`/`backward`, numeric `incline` negation,
-   * `oneway` values (when `reverseOneway` option is set), and absolute compass
-   * directions on `*direction` keys (when `includeAbsolute` is set).
-   * Keys matching `ignoreKey` (names, descriptions, refs, etc.) are passed through unchanged.
-   * @param   key             - The tag key (used to select the reversal strategy)
-   * @param   value           - The tag value to transform
-   * @param   allTags         - All tags of the entity, to check the tags a value depends on
-   * @param   includeAbsolute - When `true`, also reverse absolute compass bearings
-   * @return  Transformed value, or the original value if no replacement applied
-   */
-  function reverseValue(key: string, value: string, allTags: OsmTags, includeAbsolute?: boolean): string {
-    if (ignoreKey.test(key)) return value;
-
-    // Turn lanes are left/right to key (not way) direction - iD#5674
-    if (turn_lanes.test(key)) {
-      return value;
-
-    // Maid: differs from Rapid here (iD#10128, the side of a cyclist waiting aid and railway:turnout_side are not relative to the way)
-    } else if ((key === 'side' && allTags.highway === 'cyclist_waiting_aid') || key === 'railway:turnout_side') {
-      return value;
-
-    } else if (key === 'incline' && numeric.test(value)) {
-      return value.replace(numeric, (_: string, sign: string) => {
-        return sign === '-' ? '' : '-';
-      });
-
-    } else if (options && options.reverseOneway && key === 'oneway') {
-      return onewayReplacements[value] || value;
-
-    // Maid: differs from Rapid here (iD splits the value on ';' and reverses each part, so 'N;90' becomes 'S;270')
-    } else if (includeAbsolute && directionKey.test(key)) {
-      return value.split(';').map((part: string) => {
-        if (compassReplacements[part]) return compassReplacements[part];
-
-        let degrees: number = Number(part);  // Number, not parseFloat: '90deg' is not a bearing, as in iD
-        if (Number.isFinite(degrees)) {
-          if (degrees < 180) {
-            degrees += 180;
-          } else {
-            degrees -= 180;
-          }
-          return degrees.toString();
-        }
-        return valueReplacements[part] || part;
-      }).join(';');
-    }
-
-    return valueReplacements[value] || value;
-  }
-
+  const valueOptions = { reverseOneway: options?.reverseOneway };
 
   /**
    * Applies key and value reversal to all tags on the listed nodes, writing
@@ -200,7 +219,10 @@ export function actionReverse(entityID: EntityID, options?: ReverseOptions): Rev
 
       const tags: OsmTags = {};
       for (const [key, value] of Object.entries(node.tags)) {
-        tags[reverseKey(key)] = reverseValue(key, value, node.tags, node.id === entityID);
+        tags[reverseKey(key)] = reverseValue(key, value, node.tags, {
+          ...valueOptions,
+          includeAbsolute: node.id === entityID,
+        });
       }
       graph.replace(node.update({ tags: tags }));
     }
@@ -219,14 +241,14 @@ export function actionReverse(entityID: EntityID, options?: ReverseOptions): Rev
     const tags: OsmTags = {};
 
     for (const [key, value] of Object.entries(way.tags)) {
-      tags[reverseKey(key)] = reverseValue(key, value, way.tags);
+      tags[reverseKey(key)] = reverseValue(key, value, way.tags, valueOptions);
     }
 
     for (let relation of graph.parentRelations(way)) {
       for (const member of relation.indexedMembers()) {
         if (member.id !== way.id) continue;
 
-        const reverseRole: string | undefined = roleReplacements[member.role];
+        const reverseRole: string | undefined = lookup(ROLE_REPLACEMENTS, member.role);
         if (!reverseRole) continue;
 
         relation = relation.updateMember({ role: reverseRole }, member.index);
@@ -265,7 +287,7 @@ export function actionReverse(entityID: EntityID, options?: ReverseOptions): Rev
     if (!entity || entity.type === 'way') return false;
 
     for (const [key, value] of Object.entries(entity.tags)) {
-      if (reverseKey(key) !== key || reverseValue(key, value, entity.tags, true) !== value) {
+      if (reverseKey(key) !== key || reverseValue(key, value, entity.tags, { ...valueOptions, includeAbsolute: true }) !== value) {
         return false;
       }
     }

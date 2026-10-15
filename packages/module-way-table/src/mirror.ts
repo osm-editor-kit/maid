@@ -1,24 +1,43 @@
 /**
  * Mirror of the directional keys and direction-dependent values of a way that points the other way. Pure.
  *
- * Ported from the street space editor's `osm-way-chain/src/traversal/mirror-tags.ts` (MIT, Tobias Jordans), the
- * key part and the value part. Changes against the port:
- * - `placement=left_of:n` on a way without a lane count (no `lanes`, `lanes:forward`, `lanes:backward`) is left
- *   unchanged. The port used the lane number as the total, and then mirror(mirror(x)) was not x.
- * - `:start` and `:end` are mirrored as keys (the design keeps them, section 2.8).
+ * The keys and values follow the Reverse operation's rules (packages/model, reverse.ts: `reverseKey` and
+ * `reverseValue`), so a value the table shows as mirrored is the one Reverse would write. `incline`, `up`/`down`,
+ * `forward`/`backward` and the bare `left`/`right` values of any key are mirrored that way. Where the table goes
+ * further than Reverse, it does so on purpose, as the design asks (docs/research/way-table.md, 2.8, 4.8 and step 7):
+ * - `oneway` is always mirrored. Reverse leaves it unless it is asked to (iD: correcting a backwards oneway is the
+ *   usual reason to reverse). The table compares a reversed neighbour's oneway with the chain's direction.
+ *   `true`, `1` and `reverse` are read as the canonical `yes` and `-1`.
+ * - `placement=left_of:n` follows the lane count of the way, and is left alone without one (no `lanes`, `lanes:forward`
+ *   or `lanes:backward`). The street space editor's port used the lane number as the total, and then mirror(mirror(x))
+ *   was not x.
+ * - Lane pipes (`turn:lanes`, `change:lanes` and every other `*:lanes` key) are reversed in order, and their turn and
+ *   change tokens are mirrored. Reverse keeps turn lanes as they are (iD#5674).
+ * - `:start` and `:end` are mirrored as keys. Reverse does not do this. The design keeps them (2.8); question 7 of the
+ *   design still asks whether Maid does it too.
+ * - A compass bearing (`direction=N`) on a way is not mirrored, as in Reverse: Reverse mirrors bearings only on the
+ *   node it reverses.
+ * - A zero `incline` stays `0` (Reverse writes `-0`, see reverse.ts).
  *
  * Round trips: mirrorKey is an involution for every key. mirrorValue is an involution for canonical values; the
- * synonyms `true`, `1` (for `yes`) and `reverse` (for `-1`) come back as `yes`. That is intended: the value
- * mirror is for display and comparison only. A write never goes through it (see plan.ts).
+ * synonyms `true`, `1` (for `yes`) and `reverse` (for `-1`) come back as `yes` and `-1` respectively. That is intended:
+ * the value mirror is for display and comparison only. A write never goes through it (see plan.ts).
  */
+import { reverseKey, reverseValue } from '@osm-editor-kit/maid-model'
 import type { Tags } from './types.ts'
 
-const LEFT_RIGHT = /:(left|right)(:|$)/g
-const FORWARD_BACKWARD = /:(forward|backward)(:|$)/g
-const START_END = /:(start|end)(:|$)/g
+const START_END = /:(start|end)(?=:|$)/g
 
-const ONEWAY_FORWARD = new Set(['yes', 'true', '1'])
-const ONEWAY_REVERSE = new Set(['-1', 'reverse'])
+/** The values of oneway that mean the way's direction or its reverse, as the canonical values */
+const ONEWAY_CANONICAL: ReadonlyMap<string, string> = new Map([
+  ['yes', 'yes'],
+  ['true', 'yes'],
+  ['1', 'yes'],
+  ['-1', '-1'],
+  ['reverse', '-1'],
+])
+
+const PLACEMENT = /^(left_of|right_of|middle_of):(\d+)$/i
 
 const TURN_SWAP: Readonly<Record<string, string>> = {
   left: 'right',
@@ -31,24 +50,13 @@ const TURN_SWAP: Readonly<Record<string, string>> = {
   merge_to_right: 'merge_to_left',
 }
 
-const PLACEMENT = /^(left_of|right_of|middle_of):(\d+)$/i
+function swapStartEnd(key: string): string {
+  return key.replace(START_END, (_match, pos: string) => `:${pos === 'start' ? 'end' : 'start'}`)
+}
 
 /** The key with its left/right, forward/backward and start/end parts swapped. Applying it twice gives the key back. */
 export function mirrorKey(key: string): string {
-  return key
-    .replace(
-      LEFT_RIGHT,
-      (_match, side: string, suffix: string) => `:${side === 'left' ? 'right' : 'left'}${suffix}`,
-    )
-    .replace(
-      FORWARD_BACKWARD,
-      (_match, dir: string, suffix: string) =>
-        `:${dir === 'forward' ? 'backward' : 'forward'}${suffix}`,
-    )
-    .replace(
-      START_END,
-      (_match, pos: string, suffix: string) => `:${pos === 'start' ? 'end' : 'start'}${suffix}`,
-    )
+  return swapStartEnd(reverseKey(key))
 }
 
 /** True when the key names a direction, so that its mirror is another key */
@@ -62,10 +70,8 @@ function isOnewayKey(key: string): boolean {
 }
 
 function mirrorOneway(value: string): string {
-  const lower = value.trim().toLowerCase()
-  if (ONEWAY_FORWARD.has(lower)) return '-1'
-  if (ONEWAY_REVERSE.has(lower)) return 'yes'
-  return value
+  const canonical = ONEWAY_CANONICAL.get(value.trim().toLowerCase()) ?? value
+  return reverseValue('oneway', canonical, {}, { reverseOneway: true })
 }
 
 function isPlacementKey(key: string): boolean {
@@ -104,17 +110,6 @@ function mirrorPlacement(value: string, laneCount: number): string {
   return `middle_of:${mirrored}`
 }
 
-function isBareSideKey(key: string): boolean {
-  return key === 'sidewalk' || key === 'cycleway' || key === 'busway'
-}
-
-function mirrorBareSide(value: string): string {
-  const lower = value.trim().toLowerCase()
-  if (lower === 'left') return 'right'
-  if (lower === 'right') return 'left'
-  return value
-}
-
 function isLanesPipeKey(key: string): boolean {
   return key.toLowerCase().includes(':lanes')
 }
@@ -143,14 +138,14 @@ function mirrorLanesPipe(key: string, value: string): string {
 
 /**
  * The value as seen from the other direction. `tags` are the way's tags (the lane count of a placement comes from
- * them). A value that does not change is returned as it is. Use `isDirectionDependent` to ask whether it changes.
+ * them, and a `side` value depends on the highway). A value that does not change is returned as it is. Use
+ * `isDirectionDependent` to ask whether it changes.
  */
 export function mirrorValue(key: string, value: string, tags: Tags = {}): string {
   if (isOnewayKey(key)) return mirrorOneway(value)
   if (isPlacementKey(key)) return mirrorPlacement(value, laneCountOf(tags))
-  if (isBareSideKey(key)) return mirrorBareSide(value)
   if (isLanesPipeKey(key)) return mirrorLanesPipe(key, value)
-  return value
+  return reverseValue(key, value, tags)
 }
 
 /** True when the row (key and value) means something else from the other direction */

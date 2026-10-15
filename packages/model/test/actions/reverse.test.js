@@ -693,4 +693,40 @@ describe('actionReverse', () => {
       assert.strictEqual(target.tags['traffic_signals:direction'], 'empty');
     });
   });
+
+  describe('pure helpers (reverseKey, reverseValue)', () => {
+    it('reverseKey swaps the directional suffixes, once per key', () => {
+      assert.strictEqual(Rapid.reverseKey('cycleway:left'), 'cycleway:right');
+      assert.strictEqual(Rapid.reverseKey('parking:right:fee'), 'parking:left:fee');
+      assert.strictEqual(Rapid.reverseKey('lanes:forward'), 'lanes:backward');
+      assert.strictEqual(Rapid.reverseKey('highway'), 'highway');
+      assert.strictEqual(Rapid.reverseKey('red_turn:right'), 'red_turn:right');
+    });
+
+    it('reverseValue reverses incline without making a zero negative', () => {
+      assert.strictEqual(Rapid.reverseValue('incline', '10%', {}), '-10%');
+      assert.strictEqual(Rapid.reverseValue('incline', '-5', {}), '5');
+      assert.strictEqual(Rapid.reverseValue('incline', 'up', {}), 'down');
+      assert.strictEqual(Rapid.reverseValue('incline', '0', {}), '0');
+      assert.strictEqual(Rapid.reverseValue('incline', '-0%', {}), '0%');
+    });
+
+    it('reverseValue reads only the table\'s own names, not Object.prototype', () => {
+      assert.strictEqual(Rapid.reverseValue('operator', 'constructor', {}), 'constructor');
+      assert.strictEqual(Rapid.reverseValue('bus_bay', 'toString', {}), 'toString');
+      assert.strictEqual(Rapid.reverseValue('bus_bay', 'right', {}), 'left');
+    });
+
+    it('reverseValue reverses oneway only when asked', () => {
+      assert.strictEqual(Rapid.reverseValue('oneway', 'yes', {}), 'yes');
+      assert.strictEqual(Rapid.reverseValue('oneway', 'yes', {}, { reverseOneway: true }), '-1');
+    });
+  });
+
+  it('reverses incline 0 to 0 on a way', () => {
+    const w1 = new Rapid.OsmWay(context, { id: 'w1', tags: { 'incline': '0' } });
+    const graph = new Rapid.Graph(new Rapid.Graph(context, [w1]));
+    const result = Rapid.actionReverse('w1')(graph);
+    assert.deepEqual(result.entity('w1').tags, { 'incline': '0' });
+  });
 });

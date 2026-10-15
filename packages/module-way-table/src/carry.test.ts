@@ -145,13 +145,66 @@ describe('planCarry', () => {
     expect(plan.ok && plan.skipped.every((s) => s.reason === 'no-change')).toBe(true)
   })
 
-  test('a read-only target refuses the whole plan, even when it would not change', () => {
+  test('a read-only target that would not change is skipped, and does not refuse the plan', () => {
     const plan = planCarry({
       key: 'surface',
       value: 'asphalt',
       targets: [target('T1', {}), target('T2', { surface: 'asphalt' }, { readOnly: true })],
       mode: 'fill-empty',
     })
+    expect(plan).toEqual({
+      ok: true,
+      changes: [{ id: 'T1', set: { surface: 'asphalt' }, remove: [] }],
+      skipped: [{ id: 'T2', reason: 'same-value' }],
+    })
+  })
+
+  test('a read-only target that would change refuses the whole plan', () => {
+    const plan = planCarry({
+      key: 'surface',
+      value: 'asphalt',
+      targets: [target('T1', {}), target('T2', { surface: 'paving' }, { readOnly: true })],
+      mode: 'overwrite',
+    })
     expect(plan).toEqual({ ok: false, reason: 'read-only', ids: ['T2'] })
+  })
+
+  test('a reversed target does not get an incline or a direction, which would mean the opposite', () => {
+    const reversed = (id: string, tags: Record<string, string>) => ({
+      ...target(id, tags),
+      reversed: true,
+    })
+    const plan = planCarry({
+      key: 'incline',
+      value: 'up',
+      targets: [target('T1', {}), reversed('T2', {})],
+      mode: 'fill-empty',
+    })
+    expect(plan).toEqual({
+      ok: true,
+      changes: [{ id: 'T1', set: { incline: 'up' }, remove: [] }],
+      skipped: [{ id: 'T2', reason: 'direction-dependent' }],
+    })
+    const direction = planCarry({
+      key: 'direction',
+      value: 'forward',
+      targets: [reversed('T3', {})],
+      mode: 'fill-empty',
+    })
+    expect(direction.ok && direction.skipped).toEqual([{ id: 'T3', reason: 'direction-dependent' }])
+  })
+
+  test('a reversed target gets a compass bearing, which Reverse does not change on a way', () => {
+    const plan = planCarry({
+      key: 'direction',
+      value: 'N',
+      targets: [{ ...target('T1', {}), reversed: true }],
+      mode: 'fill-empty',
+    })
+    expect(plan).toEqual({
+      ok: true,
+      changes: [{ id: 'T1', set: { direction: 'N' }, remove: [] }],
+      skipped: [],
+    })
   })
 })

@@ -10,7 +10,7 @@
  *
  * A column without a read-only answer is read-only: the table writes only where the editor says a feature may change.
  */
-import { type Graph, OsmNode, OsmWay } from '@osm-editor-kit/maid-model'
+import { Difference, type Graph, OsmNode, OsmWay } from '@osm-editor-kit/maid-model'
 import { buildAreaChain, isBuildingArea } from './area-chain.ts'
 import { buildWayChain, type WayChain } from './chain.ts'
 import { COLUMN_CAP, type OrderBasis, orderColumns } from './order.ts'
@@ -104,20 +104,15 @@ function singleTable(graph: Graph, way: OsmWay, notWays: number, options: TableO
 function severalTable(
   graph: Graph,
   first: OsmWay,
-  ways: readonly OsmWay[],
   selected: readonly string[],
   options: TableOptions,
 ): TableView {
   const order = orderColumns(graph, selected, COLUMN_CAP)
-  // the direction of each column: from the chain of the selection when it forms one, else every column is forward
+  // the direction of each column: from the chain of the selection when it forms one (orderColumns built it), else every
+  // column is forward
   const reversedOf = new Map<string, boolean>()
   if (order.by === 'chain') {
-    const members = new Set(ways.map((way) => way.id))
-    const chain = buildWayChain(graph, first.id, {
-      maxPerSide: ways.length,
-      candidateFilter: (way) => members.has(way.id),
-    })
-    for (const item of chain?.ways ?? []) reversedOf.set(item.id, item.reversed)
+    for (const item of order.chain?.ways ?? []) reversedOf.set(item.id, item.reversed)
   }
   const columns = order.shown.flatMap((id) =>
     columnOf(graph, id, reversedOf.get(id) ?? false, options),
@@ -132,6 +127,39 @@ function severalTable(
     hidden: order.hidden,
     notWays: order.notWays,
   }
+}
+
+/**
+ * The reference of the table: the first selected way, whatever is selected before it (a node, a relation). Undefined
+ * when no selected feature is a loaded way. The view keys its state (limit, junction choices) by this id.
+ */
+export function referenceOf(graph: Graph, selected: readonly string[]): string | undefined {
+  for (const id of selected) {
+    if (graph.hasEntity(id) instanceof OsmWay) return id
+  }
+  return undefined
+}
+
+/**
+ * True when the change from `before` to `after` cannot change the table of the selection: only nodes changed (moved or
+ * retagged), and no node of a selected way (the order of several ways reads their positions). A changed way, a node
+ * added to or removed from a way, or a new way makes the table out of date. The view keeps the graph it built the table
+ * from while this holds, so a drag of a node the table does not use rebuilds nothing.
+ */
+export function changeKeepsTable(
+  before: Graph,
+  after: Graph,
+  selected: readonly string[],
+): boolean {
+  const difference = new Difference(before, after)
+  const changed = [...difference.created(), ...difference.modified(), ...difference.deleted()]
+  if (changed.some((entity) => !(entity instanceof OsmNode))) return false
+  const ownNodes = new Set<string>()
+  for (const id of selected) {
+    const way = after.hasEntity(id)
+    if (way instanceof OsmWay) for (const node of way.nodes) ownNodes.add(node)
+  }
+  return changed.every((entity) => !ownNodes.has(entity.id))
 }
 
 /** What the table shows for the selected ids (in selection order). Reads the loaded graph only. */
@@ -149,5 +177,5 @@ export function buildTable(
   const [way] = ways
   if (way === undefined) return { kind: 'hint', reason: hintOf(graph, first) }
   if (ways.length === 1) return singleTable(graph, way, selected.length - 1, options)
-  return severalTable(graph, way, ways, selected, options)
+  return severalTable(graph, way, selected, options)
 }

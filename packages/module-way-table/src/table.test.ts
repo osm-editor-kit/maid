@@ -1,8 +1,54 @@
 import { describe, expect, it } from 'bun:test'
-import { buildTable, labelOf, type TableView } from './table.ts'
+import { Graph } from '@osm-editor-kit/maid-model'
+import { buildTable, changeKeepsTable, labelOf, referenceOf, type TableView } from './table.ts'
 import { sceneOf } from './test-graph.ts'
 
 const opts = { maxPerSide: 3 }
+
+describe('changeKeepsTable', () => {
+  const before = sceneOf([
+    { id: 'w1', nodes: ['n1', 'n2'], tags: { highway: 'residential' } },
+    { id: 'w2', nodes: ['n2', 'n3'], tags: { highway: 'residential' } },
+    { id: 'w3', nodes: ['n3', 'n4'], tags: { highway: 'residential' } },
+  ])
+  const moveNode = (graph: Graph, id: string) =>
+    new Graph(graph).replace(graph.hasEntity(id)!.update({ loc: [13.5, 52.5] })).commit()
+
+  it('keeps the table when a node the selection does not use moves (a drag)', () => {
+    expect(changeKeepsTable(before, moveNode(before, 'n4'), ['w2'])).toBe(true)
+  })
+
+  it('rebuilds the table when a node of a selected way moves (the order reads it)', () => {
+    expect(changeKeepsTable(before, moveNode(before, 'n2'), ['w2'])).toBe(false)
+  })
+
+  it('rebuilds the table when a way changes, and when nothing changes it is kept', () => {
+    const retagged = new Graph(before)
+      .replace(before.hasEntity('w3')!.update({ tags: { highway: 'service' } }))
+      .commit()
+    expect(changeKeepsTable(before, retagged, ['w2'])).toBe(false)
+    expect(changeKeepsTable(before, before, ['w2'])).toBe(true)
+  })
+})
+
+describe('referenceOf', () => {
+  const scene = sceneOf([
+    { id: 'w1', nodes: ['n1', 'n2'], tags: { highway: 'residential' } },
+    { id: 'w2', nodes: ['n2', 'n3'], tags: { highway: 'residential' } },
+  ])
+
+  it('is the first selected way, also when a node is selected before it', () => {
+    expect(referenceOf(scene, ['n2', 'w2'])).toBe('w2')
+    expect(referenceOf(scene, ['n2', 'w2', 'w1'])).toBe('w2')
+    const model = buildTable(scene, ['n2', 'w2'], opts)
+    expect(model.kind === 'table' && model.referenceId).toBe('w2')
+  })
+
+  it('is undefined when no selected feature is a loaded way', () => {
+    expect(referenceOf(scene, ['n2'])).toBeUndefined()
+    expect(referenceOf(scene, [])).toBeUndefined()
+  })
+})
 
 /** A chain: w1 (n1-n2) - w2 (n2-n3) - w3 (n3-n4), residential roads with names */
 const road = [

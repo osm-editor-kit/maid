@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { reverseKey, reverseValue } from '@osm-editor-kit/maid-model'
 import {
   isDirectionDependent,
   isDirectionalKey,
@@ -72,11 +73,33 @@ describe('mirrorValue', () => {
     expect(mirrorValue('oneway', mirrorValue('oneway', 'true'))).toBe('yes')
   })
 
-  test('bare side values swap for sidewalk, cycleway and busway only', () => {
+  test('bare side values swap for sidewalk, cycleway and busway', () => {
     expect(mirrorValue('cycleway', 'left')).toBe('right')
     expect(mirrorValue('sidewalk', 'right')).toBe('left')
     expect(mirrorValue('busway', 'both')).toBe('both')
-    expect(mirrorValue('cycleway:left', 'left')).toBe('left')
+  })
+
+  test('a left or right value of any other key swaps too, as Reverse does (bus_bay)', () => {
+    expect(mirrorValue('bus_bay', 'left')).toBe('right')
+    expect(mirrorValue('bus_bay', 'toString')).toBe('toString')
+  })
+
+  test('incline: up and down swap, a number changes its sign, a zero stays zero', () => {
+    expect(mirrorValue('incline', 'up')).toBe('down')
+    expect(mirrorValue('incline', 'down')).toBe('up')
+    expect(mirrorValue('incline', '10%')).toBe('-10%')
+    expect(mirrorValue('incline', '-5')).toBe('5')
+    expect(mirrorValue('incline', '.8°')).toBe('-.8°')
+    expect(mirrorValue('incline', '0')).toBe('0')
+    expect(mirrorValue('incline', '-0%')).toBe('0%')
+    expect(mirrorValue('incline', 'steep')).toBe('steep')
+  })
+
+  test('direction: forward and backward swap; compass bearings stay, as in Reverse on a way', () => {
+    expect(mirrorValue('direction', 'forward')).toBe('backward')
+    expect(mirrorValue('direction', 'backwards')).toBe('forward')
+    expect(mirrorValue('direction', 'N')).toBe('N')
+    expect(mirrorValue('direction', '90')).toBe('90')
   })
 
   test('lane pipes are reversed in order; turn tokens and change tokens are mirrored too', () => {
@@ -133,6 +156,14 @@ describe('isDirectionDependent', () => {
     expect(isDirectionDependent('placement', 'left_of:1', { lanes: '2' })).toBe(true)
   })
 
+  test('incline and direction values are dependent when the mirror changes them', () => {
+    expect(isDirectionDependent('incline', 'up')).toBe(true)
+    expect(isDirectionDependent('incline', '5%')).toBe(true)
+    expect(isDirectionDependent('direction', 'forward')).toBe(true)
+    expect(isDirectionDependent('incline', '0')).toBe(false)
+    expect(isDirectionDependent('direction', 'N')).toBe(false)
+  })
+
   test('a value that stays the same, and a plain key, are not dependent', () => {
     expect(isDirectionDependent('oneway', 'no')).toBe(false)
     expect(isDirectionDependent('highway', 'residential')).toBe(false)
@@ -186,5 +217,49 @@ describe('mirrorTags', () => {
 
   test('mirroring twice gives the tags back (canonical values)', () => {
     expect(mirrorTags(mirrorTags(tags))).toEqual(tags)
+  })
+
+  test('incline and direction on a reversed way are mirrored with the rest', () => {
+    const mirrored = mirrorTags({ incline: 'up', direction: 'forward' })
+    expect(mirrored).toEqual({ incline: 'down', direction: 'backward' })
+    expect(
+      mirrorTags(mirrorTags({ incline: '10%', direction: 'backward', highway: 'path' })),
+    ).toEqual({ incline: '10%', direction: 'backward', highway: 'path' })
+  })
+})
+
+describe('agreement with the Reverse operation (packages/model reverse.ts)', () => {
+  // The keys and values Reverse changes on a way, and the value of each: the table must show the same
+  const cases: [string, string][] = [
+    ['cycleway:left', 'lane'],
+    ['parking:right:fee', 'yes'],
+    ['lanes:forward', '2'],
+    ['incline', 'up'],
+    ['incline', '-7%'],
+    ['incline', '0'],
+    ['direction', 'forward'],
+    ['direction', 'N'],
+    ['bus_bay', 'right'],
+    ['sidewalk', 'left'],
+    ['sidewalk:both:surface', 'paving_stones'],
+    ['name', 'left'],
+    ['note:left', 'up'],
+    ['red_turn:right', 'yes'],
+    ['role', 'forward'],
+  ]
+
+  test('mirrorKey is reverseKey, except for start and end', () => {
+    for (const [key] of cases) expect(mirrorKey(key)).toBe(reverseKey(key))
+    expect(mirrorKey('placement:start')).toBe('placement:end')
+  })
+
+  test('mirrorValue is reverseValue for every key Reverse changes (and for those it keeps)', () => {
+    for (const [key, value] of cases) {
+      expect(mirrorValue(key, value)).toBe(reverseValue(key, value, {}, { reverseOneway: true }))
+    }
+  })
+
+  test('the table shows the reversed incline that Reverse writes', () => {
+    expect(mirrorValue('incline', '3%')).toBe('-3%')
   })
 })

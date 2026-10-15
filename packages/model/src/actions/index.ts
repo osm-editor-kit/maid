@@ -52,7 +52,7 @@ export { actionNoop } from './noop.ts';
 export { actionOrthogonalize } from './orthogonalize.ts';
 export { actionReflect } from './reflect.ts';
 export { actionRestrictTurn } from './restrict_turn.ts';
-export { actionReverse } from './reverse.ts';
+export { actionReverse, reverseKey, reverseValue, type ReverseValueOptions } from './reverse.ts';
 export { actionRevert } from './revert.ts';
 export { actionRotate } from './rotate.ts';
 export { actionScale } from './scale.ts';

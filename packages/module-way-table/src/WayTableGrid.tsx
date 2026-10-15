@@ -1,6 +1,6 @@
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/16/solid'
 import type { Graph } from '@osm-editor-kit/maid-model'
-import { type KeyboardEvent, useState } from 'react'
+import { type KeyboardEvent, useMemo, useState } from 'react'
 import type { Cell } from './cell-state.ts'
 import { REFERENCE_HEADER_CLASS } from './cell-tone.ts'
 import { m } from './messages.ts'
@@ -110,6 +110,20 @@ export function WayTableGrid(props: WayTableGridProps) {
   const [active, setActive] = useState<string | null>(null)
   const chain = table.chain
   const referenceId = table.referenceId
+  // "Set on all" for every row, made once per table: the grid renders again on each focus, and a plan is not free
+  const setAllByRow = useMemo(() => {
+    const plans = new Map<string, PlanResult | undefined>()
+    for (const group of groups) {
+      for (const row of group.rows) {
+        const value = row.cells[referenceId]?.value
+        plans.set(
+          row.key,
+          value !== undefined ? setAllPlan(table.columns, referenceId, row.key) : undefined,
+        )
+      }
+    }
+    return plans
+  }, [groups, table, referenceId])
 
   const slots: Slot[] = [{ kind: 'key' }]
   if (chain) slots.push({ kind: 'end', side: 'backward' })
@@ -142,9 +156,10 @@ export function WayTableGrid(props: WayTableGridProps) {
   function renderRow(row: Row) {
     const referenceCell: Cell | undefined = row.cells[referenceId]
     const referenceValue = referenceCell?.value
-    const setAll =
-      referenceValue !== undefined ? setAllPlan(table.columns, referenceId, row.key) : undefined
+    const setAll = setAllByRow.get(row.key)
     const setAllCount = setAll?.ok ? setAll.changes.length : 0
+    // a read-only way that would change refuses the batch: the button stays, disabled, with the reason beside it
+    const setAllRefused = setAll && !setAll.ok ? setAll.ids.length : 0
     return (
       <tr key={row.key} data-row-key={row.key} className="group/row">
         {slots.map((slot) => {
@@ -166,16 +181,22 @@ export function WayTableGrid(props: WayTableGridProps) {
                   ) : null}
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
-                  {setAllCount > 0 ? (
+                  {setAllCount > 0 || setAllRefused > 0 ? (
                     <button
                       type="button"
-                      className="rounded-md border border-zinc-300 bg-white px-1.5 py-0.5 text-xs text-zinc-900 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-blue-600 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      disabled={setAllRefused > 0}
+                      className="rounded-md border border-zinc-300 bg-white px-1.5 py-0.5 text-xs text-zinc-900 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-blue-600 disabled:opacity-40 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
                       onClick={() =>
                         actions.startPending({ kind: 'set-all', referenceId, key: row.key })
                       }
                     >
-                      {m.way_table_set_all({ count: setAllCount })}
+                      {m.way_table_set_all({ count: setAllCount || setAllRefused })}
                     </button>
+                  ) : null}
+                  {setAllRefused > 0 ? (
+                    <span className="text-[10px] text-amber-800 dark:text-amber-300">
+                      {m.way_table_set_all_read_only({ count: setAllRefused })}
+                    </span>
                   ) : null}
                   {chain && referenceValue !== undefined ? (
                     <button

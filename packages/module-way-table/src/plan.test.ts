@@ -68,6 +68,18 @@ describe('planEdit', () => {
     )
     expect(plan).toEqual({ ok: false, reason: 'read-only', ids: ['B', 'C'] })
   })
+
+  test('a read-only target that would not change is skipped and does not refuse the plan', () => {
+    const plan = planEdit(
+      [plain('A', {}), plain('B', { surface: 'paving' }, { readOnly: true })],
+      () => ({ set: { surface: 'paving' } }),
+    )
+    expect(plan).toEqual({
+      ok: true,
+      changes: [{ id: 'A', set: { surface: 'paving' }, remove: [] }],
+      skipped: [{ id: 'B', reason: 'no-change' }],
+    })
+  })
 })
 
 describe('planCellWrite', () => {

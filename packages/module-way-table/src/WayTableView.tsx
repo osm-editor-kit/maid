@@ -1,11 +1,17 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
 import type { Graph } from '@osm-editor-kit/maid-model'
 import type { DockViewProps } from '@osm-editor-kit/maid-ui'
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { m } from './messages.ts'
 import type { PlanResult } from './plan.ts'
 import { buildRows } from './rows.ts'
-import { buildTable, type HintReason, type TableView } from './table.ts'
+import {
+  buildTable,
+  changeKeepsTable,
+  type HintReason,
+  referenceOf,
+  type TableView,
+} from './table.ts'
 import {
   useWayTableActions,
   useWayTableCarry,
@@ -22,27 +28,34 @@ import { WayTableLegend } from './WayTableLegend.tsx'
 import { changedKeysOf, changedIds, pendingPlanOf, applyPlan } from './write.ts'
 
 /**
- * The dock view's props, and what the module adds: the store, and `readOnly`, which the shell passes when it knows the
- * features a filter makes read-only. Without it every feature is read-only, so the table writes nothing.
+ * The dock view's props, and what the module adds: the store. The dock passes `readOnly` (the features a filter makes
+ * read-only), so the table never writes a feature that a filter protects.
  */
 export type WayTableViewProps = DockViewProps & {
   readonly store: WayTableStore
-  readonly readOnly?: ((id: string) => boolean) | undefined
 }
 
-/** The history's staging graph, read as it changes (an external store: the React Compiler keeps it out of memos) */
-function useStagingGraph(editor: Editor): Graph {
-  return useSyncExternalStore(
-    (listener) => {
-      const offs = [
-        editor.history.on('stagingchange', listener),
-        editor.history.on('stablechange', listener),
-        editor.history.on('historyjump', listener),
-      ]
-      return () => offs.forEach((off) => off())
-    },
-    () => editor.history.staging.graph,
-  )
+/**
+ * The staging graph as the table reads it. It moves on only when a change can change the table (`changeKeepsTable`), so
+ * a drag of a node the table does not use rebuilds nothing. An external store: the graph is read from the history.
+ */
+function useTableGraph(editor: Editor, selected: readonly string[]): Graph {
+  const [graph, setGraph] = useState<Graph>(() => editor.history.staging.graph)
+  useEffect(() => {
+    const update = () =>
+      setGraph((previous) => {
+        const next = editor.history.staging.graph
+        return changeKeepsTable(previous, next, selected) ? previous : next
+      })
+    update()
+    const offs = [
+      editor.history.on('stagingchange', update),
+      editor.history.on('stablechange', update),
+      editor.history.on('historyjump', update),
+    ]
+    return () => offs.forEach((off) => off())
+  }, [editor, selected])
+  return graph
 }
 
 function hintText(reason: HintReason): string {
@@ -72,8 +85,9 @@ function orderText(order: TableView['order']): string | undefined {
  */
 export function WayTableView(props: WayTableViewProps) {
   const { editor, select, selected, highlight, store, readOnly } = props
-  const graph = useStagingGraph(editor)
-  const reference = selected[0] ?? ''
+  const graph = useTableGraph(editor, selected)
+  // the reference is the table's own: the first selected way, whatever is selected before it
+  const reference = referenceOf(graph, selected) ?? ''
   const limit = useWayTableLimit(store, reference)
   const choices = useWayTableChoices(store, reference)
   const onlyDiffering = useWayTableOnlyDiffering(store)
@@ -86,6 +100,11 @@ export function WayTableView(props: WayTableViewProps) {
     readonly text: string
   } | null>(null)
 
+  // a batch waits for the table it was made for: when the reference changes, it ends and does not come back with it
+  useEffect(() => {
+    actions.endPending()
+  }, [reference, actions])
+
   // the highlight is cleared when the table goes; the ref keeps the latest function without a new effect each render
   const highlightRef = useRef(highlight)
   useEffect(() => {
@@ -94,9 +113,28 @@ export function WayTableView(props: WayTableViewProps) {
   useEffect(() => () => highlightRef.current(null), [])
 
   const choose = useMemo(() => new Map(Object.entries(choices)), [choices])
+  const built = useMemo(
+    () => buildTable(graph, selected, { maxPerSide: limit, choose }),
+    [graph, selected, limit, choose],
+  )
+  // Read-only is asked on every render, since a filter can change it without a change of the graph. The answers are a
+  // key, so the table is only re-marked when one of them changes.
+  const readOnlyKey =
+    built.kind === 'table'
+      ? built.columns.map((column) => (readOnly(column.id) ? '1' : '0')).join('')
+      : ''
   const table = useMemo(
-    () => buildTable(graph, selected, { maxPerSide: limit, choose, isReadOnly: readOnly }),
-    [graph, selected, limit, choose, readOnly],
+    () =>
+      built.kind !== 'table'
+        ? built
+        : {
+            ...built,
+            columns: built.columns.map((column, index) => ({
+              ...column,
+              readOnly: readOnlyKey[index] === '1',
+            })),
+          },
+    [built, readOnlyKey],
   )
   const groups = useMemo(
     () =>
@@ -165,7 +203,6 @@ export function WayTableView(props: WayTableViewProps) {
         ) : null}
       </div>
       <div className="flex flex-col gap-0.5 text-xs text-zinc-600 dark:text-zinc-300">
-        {readOnly === undefined ? <span>{m.way_table_editing_off()}</span> : null}
         {table.mode === 'way' && table.columns.length === 1 ? (
           <span>{m.way_table_lone()}</span>
         ) : null}

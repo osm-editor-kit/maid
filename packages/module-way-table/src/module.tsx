@@ -16,8 +16,8 @@ const DEFAULT_MAX_PER_SIDE = 3
  * and its keys as rows, with the colour of each cell against the selected way (docs/research/way-table.md).
  * The dock renders only the open tab, so the table computes nothing while it is closed.
  *
- * The shell's dock gives a view its editor and selection. A `readOnly` answer (the features a filter makes read-only)
- * is not in the dock's props yet: until the shell passes it, the table writes nothing.
+ * The shell's dock gives a view its editor, selection and `readOnly` answer (the features a filter makes read-only). The
+ * table writes nothing to a read-only feature: a plan that would change one is refused as a whole.
  */
 export function wayTable(options: WayTableOptions = {}) {
   return defineModule({

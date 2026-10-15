@@ -12,7 +12,7 @@
  * shows the first ones and says how many are hidden.
  */
 import { type Graph, OsmNode, OsmWay } from '@osm-editor-kit/maid-model'
-import { buildWayChain } from './chain.ts'
+import { buildWayChain, type WayChain } from './chain.ts'
 
 /** The most columns the table shows at once */
 export const COLUMN_CAP = 24
@@ -30,6 +30,8 @@ export type ColumnOrder = {
   readonly hidden: number
   /** Selected features that are not ways (nodes, relations) */
   readonly notWays: number
+  /** The chain the selection forms, when it forms one (the order is `chain` then); the table reuses it */
+  readonly chain: WayChain | undefined
 }
 
 /** The centre of a way: the mean of its node locations (lon, lat). Undefined if a node is missing or has no location. */
@@ -117,6 +119,7 @@ export function orderColumns(
 
   let ids = selectionOrder
   let by: OrderBasis = 'selection'
+  let chainOf: WayChain | undefined
   const first = ways[0]
   if (first && ways.length > 1) {
     const members = new Set(selectionOrder)
@@ -128,6 +131,7 @@ export function orderColumns(
     if (chainIds.length === ways.length) {
       ids = chainIds
       by = 'chain'
+      chainOf = chain
     } else {
       const axis = alongAxis(graph, ways)
       if (axis) {
@@ -138,5 +142,5 @@ export function orderColumns(
   }
 
   const shown = ids.slice(0, cap)
-  return { ids, by, shown, hidden: ids.length - shown.length, notWays }
+  return { ids, by, shown, hidden: ids.length - shown.length, notWays, chain: chainOf }
 }
