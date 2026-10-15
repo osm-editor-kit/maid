@@ -21,16 +21,31 @@ export type ValidatorOptions = {
    * `issuesForAll`, and listed by `ignoredIssues`. Errors are never ignored: an error stops the upload.
    */
   ignored?: () => ReadonlySet<string>
+  /**
+   * Whether the issues in existing data (the ones `checkExisting` finds, not the edits') are part of
+   * `issues`, `issuesFor`, `issuesForAll` and `ignoredIssues`. Read at each call. Absent or false: only the
+   * issues of the edits are, so counts, the save warnings and the Issues totals never see existing data.
+   */
+  showExisting?: () => boolean
 }
 
 /**
  * Creates a validator over these rules. Issues are kept per id, so the same finding from two of
  * its entities is one issue. A run (one `validate` call) looks up each way's bounding box at most
  * once, when a rule first asks for a way's neighbours.
+ *
+ * Two kinds of issue are kept apart. An issue is the edits' ("mine") when the edits found it: a run
+ * over what changed and its neighbours, or a check on demand that names a changed entity. An issue
+ * the edits did not find is "existing": `checkExisting` finds those, for the features the person
+ * looks at. Existing issues are dropped only by a check that replaces them, or when their data changes.
  */
 // The annotation makes the returned object be checked against the Validator interface
 export function createValidator(rules: readonly Rule[], options: ValidatorOptions = {}): Validator {
   const issues = new Map<string, Issue>()
+  // The keys (issue ids) of the issues that are existing data, not the edits'
+  const existing = new Set<string>()
+  // The entities the edits changed, as the validator was last told: an issue that names one of them is the edits'
+  let changed: ReadonlySet<string> = new Set()
   // The boxes of the ways, kept from one update to the next (see way-index.ts)
   const wayIndex = createWayIndex()
   // The graph of the last update, and the ids that update was given: what changed since is what the index recomputes
@@ -38,6 +53,21 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
   let lastGiven: ReadonlySet<string> = new Set()
   // The issues sorted, until they change: `issuesFor` is called for every inspector render
   let sorted: Issue[] | undefined
+
+  function remove(key: string) {
+    issues.delete(key)
+    existing.delete(key)
+  }
+
+  /** Drops every existing issue (the edits' issues stay). Deleting while a Set is walked is safe. */
+  function clearExisting() {
+    for (const key of existing) remove(key)
+  }
+
+  /** The issues that are read: the edits' ones, and the existing ones when the options show them */
+  function visible(issue: Issue) {
+    return options.showExisting?.() === true || !existing.has(issue.id)
+  }
 
   function allIssues() {
     if (sorted === undefined)
@@ -55,25 +85,47 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
     return issue.severity === 'warning' && ignored.has(issue.id)
   }
 
-  /** The issues that are shown: all but the ignored warnings */
+  /** The issues that are shown: all but the ignored warnings, and the existing ones unless they are shown */
   function shownIssues() {
     const ignored = options.ignored?.()
     const all = allIssues()
-    if (!ignored || ignored.size === 0) return all
-    return all.filter((issue) => !isIgnored(issue, ignored))
+    return all.filter((issue) => visible(issue) && !(ignored && isIgnored(issue, ignored)))
   }
 
   /**
    * Drops the issues that name an entity in `replaced`, or an entity that left the graph. With
-   * `validated`, also the issues that name no validated entity: nothing that was changed makes them.
+   * `validated`, also the edits' issues that name no validated entity: nothing that was changed makes
+   * them. Existing issues are not dropped for that: they are about data the edits do not touch.
    */
   function dropStale(graph: Graph, replaced: ReadonlySet<string>, validated?: ReadonlySet<string>) {
     for (const [key, issue] of issues) {
       const stale = issue.entityIds.some((id) => replaced.has(id) || !graph.hasEntity(id))
-      const orphaned = validated !== undefined && !issue.entityIds.some((id) => validated.has(id))
-      if (stale || orphaned) issues.delete(key)
+      const orphaned =
+        validated !== undefined &&
+        !existing.has(key) &&
+        !issue.entityIds.some((id) => validated.has(id))
+      if (stale || orphaned) remove(key)
     }
     sorted = undefined
+  }
+
+  /**
+   * Keeps an issue a run found. An issue already kept stays, except that the edits' run turns an existing
+   * one into the edits' (the edits now find it too).
+   */
+  function place(issue: Issue, mine: boolean) {
+    if (issues.has(issue.id) && !(mine && existing.has(issue.id))) return
+    issues.set(issue.id, issue)
+    if (mine) existing.delete(issue.id)
+    else existing.add(issue.id)
+  }
+
+  /** The existing issues, not the ignored ones, whatever the options show: for the quiet line of an inspector */
+  function existingShown(filter: (issue: Issue) => boolean = () => true) {
+    const ignored = options.ignored?.()
+    return allIssues().filter(
+      (issue) => existing.has(issue.id) && !(ignored && isIgnored(issue, ignored)) && filter(issue),
+    )
   }
 
   /** A rule that gives no place gets the first point of the first entity it names, so every issue can be shown on the map */
@@ -85,12 +137,16 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
     return loc ? { ...issue, loc } : issue
   }
 
-  /** Runs the rules on `runIds`, the entities of the run's graph to check, with the neighbours of run `stamp` */
+  /**
+   * Runs the rules on `runIds`, the entities of the run's graph to check, with the neighbours of run `stamp`.
+   * `mine` says whether an issue is the edits' (default: every issue of the run is).
+   */
   function runRules(
     graph: Graph,
     validated: ReadonlySet<string>,
     runIds: readonly string[],
     stamp: number,
+    mine: (issue: Issue) => boolean = () => true,
   ) {
     const context: RuleContext = {
       graph,
@@ -113,7 +169,7 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
         for (const reported of found) {
           const issue = withLocation(reported, graph)
           // The first entity validated wins when two runs find the same crossing
-          if (!issues.has(issue.id)) issues.set(issue.id, issue)
+          place(issue, mine(issue))
         }
       }
     }
@@ -124,7 +180,7 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
     const keep = new Set(entityIds)
     for (const [key, issue] of issues) {
       const first = issue.entityIds[0]
-      if (first === undefined || !keep.has(first)) issues.delete(key)
+      if (first === undefined || !keep.has(first)) remove(key)
     }
     sorted = undefined
   }
@@ -160,12 +216,14 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
       wayIndex.clear()
       lastHead = undefined
       const targets = new Set(entityIds)
+      changed = targets
       dropStale(graph, targets)
       runRules(graph, targets, [...targets], wayIndex.enter(graph, ways, targets))
     },
 
     update(change, ways, step) {
       const head = change.head
+      changed = new Set(change.changes.keys())
       // The entities the session changed, and their neighbours: what counts as validated. Rules such
       // as disconnected_way compare with it, so it is the whole session's, not the step's.
       const validated = entitiesToValidate(change.changes, change.base, head)
@@ -214,6 +272,19 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
       wayIndex.clear()
       lastHead = undefined
       lastGiven = new Set()
+      // the base data changed: what was found about existing data is no longer known to be right
+      clearExisting()
+      sorted = undefined
+    },
+
+    checkExisting(graph, entityIds, ways) {
+      // the check replaces the existing issues of the last one: what is shown is what is looked at now
+      clearExisting()
+      const targets = new Set(entityIds)
+      const stamp = wayIndex.enter(graph, ways, targets)
+      runRules(graph, targets, [...targets], stamp, (issue) =>
+        issue.entityIds.some((id) => changed.has(id)),
+      )
     },
 
     keepOnly,
@@ -225,7 +296,15 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
     ignoredIssues() {
       const ignored = options.ignored?.()
       if (!ignored || ignored.size === 0) return []
-      return allIssues().filter((issue) => isIgnored(issue, ignored))
+      return allIssues().filter((issue) => visible(issue) && isIgnored(issue, ignored))
+    },
+
+    existingIssues() {
+      return existingShown()
+    },
+
+    existingIssuesFor(entityId) {
+      return existingShown((issue) => issue.entityIds.includes(entityId))
     },
 
     issuesFor(entityId) {

@@ -160,15 +160,32 @@ export type Validator = {
   /** Drops every issue whose first entity is not in `entityIds`: what is no longer changed is no longer reported */
   keepOnly(entityIds: Iterable<string>): void
   /**
-   * Forgets what was computed from the graph (the boxes of the ways), without the issues. Call it when
+   * Checks these entities on demand, as the features the person looks at (`neighbourhoodOf`): the rules run
+   * over them against `graph` (the loaded data, with the edits), and what they find is kept as existing data.
+   * An issue that names an entity the edits changed is the edits' instead. It replaces the existing issues of
+   * the last check. Nothing is fetched: only what `graph` holds is checked.
+   */
+  checkExisting(graph: Graph, entityIds: Iterable<string>, ways: Iterable<OsmWay>): void
+  /**
+   * Forgets what was computed from the graph (the boxes of the ways), and the existing issues. Call it when
    * the base data changed other than by edits, e.g. after a merge: the next update makes the boxes again.
    */
   reset(): void
-  /** All issues that are shown, errors first, then by rule and id. Issues the person ignores are left out. */
+  /**
+   * All issues that are shown, errors first, then by rule and id: the edits' issues, and the existing ones when
+   * `ValidatorOptions.showExisting` says so. Issues the person ignores are left out.
+   */
   issues(): readonly Issue[]
-  /** The warnings the person ignores that are still found: the count of "N ignored" and the list to show again */
+  /**
+   * The warnings the person ignores that are still found (of the edits, and of the existing data when it is shown):
+   * the count of "N ignored" and the list to show again
+   */
   ignoredIssues(): readonly Issue[]
-  /** The issues an entity is part of */
+  /** The existing issues that are found, whatever is shown: errors first. Ignored ones are left out. */
+  existingIssues(): readonly Issue[]
+  /** The existing issues of one entity, whatever is shown: the quiet line of an inspector. Ignored ones are left out. */
+  existingIssuesFor(entityId: string): readonly Issue[]
+  /** The issues an entity is part of, as shown (see `issues`) */
   issuesFor(entityId: string): readonly Issue[]
   /**
    * The issues that involve any of several features, in iD's order for a selection (`sharedIssues`):

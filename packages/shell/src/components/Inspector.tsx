@@ -35,6 +35,7 @@ import {
   useFavouriteRows,
 } from '../favourites'
 import { imageryOnMap } from '../imagery-used'
+import { useIssuesVersion } from '../modules/validation'
 import { useNewFeatureId } from '../new-feature'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
@@ -111,6 +112,8 @@ export function Inspector() {
   const { id, ids, select } = useSelection()
   // read again when data arrives: a selection from the URL exists before its feature is loaded
   const entity: EntityInfo | undefined = useEngine((e) => e.entity(id))
+  // the issues of the selection are checked in idle time: the sections ask again when that check is done
+  useIssuesVersion(editor)
   const newFeatureId = useNewFeatureId()
   const moduleFields = useExtensionPoint(editor, 'inspector.field')
   const fieldTypes = Object.fromEntries(moduleFields.map((item) => [item.type, item.component]))
