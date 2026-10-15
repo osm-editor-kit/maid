@@ -267,9 +267,11 @@ export function findRoute(
     if (goalExit?.piece) pieces.push(goalExit.piece)
   }
 
-  // Merge stretches that continue on the same way in the same direction
+  // Merge stretches that continue on the same way in the same direction. A piece of no length with no split
+  // (a departure or an exit at a point that is a node) adds nothing to the route, and is left out
   const merged: Piece[] = []
   for (const piece of pieces) {
+    if (piece.lengthM === 0 && !piece.start && !piece.end) continue
     const last = merged.at(-1)
     if (
       last &&

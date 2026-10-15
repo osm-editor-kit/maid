@@ -1,7 +1,7 @@
 // The reroute on the map: the preview (a GeoJSON source) and the module mode that takes the pointer while a reroute is
 // under way. Registered on `map.content`; it is the only part that needs the engine, which the app passes in.
 import type { MaidEngine, MapContentProps, ModuleMode } from '@osm-editor-kit/maid-renderer'
-import { useEffect, useMemo, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react'
 import { Layer, Source, type LayerProps } from 'react-map-gl/maplibre'
 import { previewShapes } from './preview-shapes.ts'
 import { readReroute, rerouteActions, type ViaHandle } from './reroute-store.ts'
@@ -81,14 +81,35 @@ function modeFor(relationId: EntityID): ModuleMode {
     const handle = handleOf(name)
     if (handle) rerouteActions.moveVia(handle, { lon, lat })
   }
+  // A drag moves the handle at most once per animation frame: each move finds the route again, so the pointer's
+  // moves between two frames are not all answered. The drop is never delayed (it cancels the frame).
+  let pending: { name: string; lon: number; lat: number } | undefined
+  let frame: number | undefined
+  const cancelFrame = () => {
+    if (frame !== undefined) cancelAnimationFrame(frame)
+    frame = undefined
+    pending = undefined
+  }
+  const flush = () => {
+    frame = undefined
+    if (pending) moveHandle(pending.name, pending.lon, pending.lat)
+    pending = undefined
+  }
   return {
     id: MODE_ID,
     cursor: 'crosshair',
     handleLayers: [HANDLE_LAYER],
     onClick: (lon, lat) => rerouteActions.click({ lon, lat }),
-    onDrag: moveHandle,
-    onDragEnd: moveHandle,
+    onDrag: (name, lon, lat) => {
+      pending = { name, lon, lat }
+      if (frame === undefined) frame = requestAnimationFrame(flush)
+    },
+    onDragEnd: (name, lon, lat) => {
+      cancelFrame()
+      moveHandle(name, lon, lat)
+    },
     onExit: () => {
+      cancelFrame()
       if (readReroute().relationId === relationId) rerouteActions.stop()
     },
   }
@@ -100,7 +121,8 @@ function useSelection(engine: MaidEngine | undefined): readonly string[] {
 }
 
 export function RerouteOnMap({ editor, engine }: MapContentProps) {
-  const { relationId, preview, graph } = useReroute(editor)
+  const readOnly = useCallback((id: EntityID) => engine?.isReadOnly(id) ?? false, [engine])
+  const { relationId, preview, graph } = useReroute(editor, readOnly)
   const selection = useSelection(engine)
 
   // a reroute belongs to the relation that is selected: another selection ends it

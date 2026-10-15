@@ -10,10 +10,13 @@
 //    route's members and may reorder them). Members outside the stretch are not touched at all.
 // 3. The ways are split where the route starts or ends inside a way, as iD does. Other relations of a
 //    split way get the new part (iD's behaviour, listed as `otherRelationsTouched`).
-// 4. The route's ways and its point members go back into the stretch's place, in travel order, with roles.
+// 4. The route's ways and its point members go back into the stretch's place, in the relation's member
+//    order (the route's travel order, reversed when the stretch runs against the member order), with roles.
 //
 // The plan is simulated on a copy of the graph, so the ids of the new parts are known before anything is
 // applied and the plan can be checked (members, parts) in tests and in the preview.
+//
+// A refusal carries a code only: the words for it are the module's texts (RerouteSection), not English here.
 import {
   actionAddEntity,
   actionAddMember,
@@ -30,21 +33,23 @@ import {
 import {
   bicycleProfile,
   haversine,
-  METRES_PER_DEG,
   type RouteResult,
-  type RouteSegment,
   type SplitPoint,
 } from '@osm-editor-kit/maid-routing'
+import { distanceToLineM, nodeLonlat, segmentLine, type Lonlat } from './geometry.ts'
 
 /** Points further than this from the new path are flagged for review, in metres */
-export const FAR_POINT_M = 25
+const FAR_POINT_M = 25
 
-type LonLat = [number, number]
+/** A route shorter than this is a point, not a route: the start and the end are the same place, in metres */
+const SAME_PLACE_M = 1
+
+type LonLat = Lonlat
 
 /** The access profile a route relation uses, from its `route` tag. Undefined: no profile here */
-export type RouteKind = 'bicycle' | 'foot'
+type RouteKind = 'bicycle' | 'foot'
 
-export function routeKindOf(route: string | undefined): RouteKind | undefined {
+function routeKindOf(route: string | undefined): RouteKind | undefined {
   if (route === 'bicycle' || route === 'mtb') return 'bicycle'
   if (route === 'hiking' || route === 'foot' || route === 'walking') return 'foot'
   return undefined
@@ -75,8 +80,11 @@ export interface PlanInput {
   graph: Graph
   /** The route relation to change */
   relationId: EntityID
-  /** Member indexes of the stretch to replace, from the first to the last way member (`from` may equal `to`) */
-  stretch: { from: number; to: number }
+  /**
+   * Member indexes of the stretch to replace, from the first to the last way member (`from` may equal `to`).
+   * `reversed`: the route runs from `to` back to `from`, against the member order of the relation
+   */
+  stretch: { from: number; to: number; reversed?: boolean }
   /** The ids of `members[from..to]` as the preview showed them. Any difference refuses the plan */
   expectedIds: EntityID[]
   /** The router's answer for the new path */
@@ -85,20 +93,40 @@ export interface PlanInput {
   roleChoices?: Record<number, string>
   /** Point members further than this from the new path are flagged. Default `FAR_POINT_M` */
   farM?: number
+  /**
+   * Whether the filters make an entity read-only. When the relation, a way of the stretch or a way the route
+   * splits is read-only, the plan is refused. Absent: nothing is read-only.
+   */
+  readOnly?: (id: EntityID) => boolean
 }
 
 export type PlanRefusal =
   | 'no-route'
+  | 'same-place'
   | 'relation-missing'
   | 'not-a-route'
   | 'unsupported-route'
   | 'bad-stretch'
   | 'relation-changed'
+  | 'read-only'
   | 'way-not-loaded'
   | 'closed-way-split'
   | 'split-way-used-outside'
   | 'split-not-resolved'
   | 'internal'
+
+/**
+ * Why the rules cannot decide a role. The texts are the module's (RerouteSection): `two-way-*` for a two-way
+ * way the data splits between empty and forward, `against-node-order` and `one-way-backward` for a one-way way
+ */
+export type RoleReason =
+  | 'two-way-sidewalk'
+  | 'two-way-sidepath'
+  | 'two-way-cycleway-on-road'
+  | 'not-routed'
+  | 'against-node-order'
+  | 'one-way-backward'
+  | 'loop'
 
 /** A role the rules cannot decide: the preview asks the mapper, with the most common answer first */
 export interface RoleQuestion {
@@ -108,11 +136,12 @@ export interface RoleQuestion {
   wayId: EntityID
   options: string[]
   suggested: string
-  reason: string
+  reason: RoleReason
 }
 
-/** A way the route puts in the stretch, in travel order. Includes ways that were already in the stretch */
+/** A way the route puts in the stretch. Includes ways that were already in the stretch */
 export interface AddedMember {
+  /** Index into `route.segments` (the way is routed in travel order, whatever the order of the relation) */
   segment: number
   /** Index in the route relation after the apply */
   index: number
@@ -159,6 +188,7 @@ export interface PointReview {
 export interface ReroutePlan {
   ok: true
   actions: Action[]
+  /** The ways the route puts in the relation, in the order the relation holds them */
   addedMembers: AddedMember[]
   removedMembers: RemovedMember[]
   splitWays: SplitWay[]
@@ -172,7 +202,46 @@ export interface ReroutePlan {
   lengthM: number
 }
 
-export type PlanResult = ReroutePlan | { ok: false; reason: PlanRefusal; detail: string }
+export type PlanResult = ReroutePlan | { ok: false; reason: PlanRefusal }
+
+/** A way a route runs on, as it is when the route is found: its nodes and tags, to check at the apply */
+export interface RouteWay {
+  id: EntityID
+  nodes: EntityID[]
+  tags: Record<string, string>
+}
+
+/** The ways a route runs on (its segments and the ways it splits), with their nodes and tags now */
+export function routeWaysOf(graph: Graph, route: RouteResult): RouteWay[] {
+  if (!route.ok) return []
+  const ids = new Set<EntityID>()
+  for (const segment of route.segments) ids.add(segment.wayId)
+  for (const split of route.splits) ids.add(split.wayId)
+  return [...ids].map((id) => {
+    const way = graph.hasEntity(id)
+    return way instanceof OsmWay
+      ? { id, nodes: [...way.nodes], tags: { ...way.tags } }
+      : { id, nodes: [], tags: {} }
+  })
+}
+
+/**
+ * The first of the ways whose nodes or tags differ from the route's, or are gone; undefined when none differs.
+ * A route is planned on the ways as they are, so the plan made on a route that changed would be wrong.
+ */
+export function changedRouteWay(graph: Graph, ways: readonly RouteWay[]): EntityID | undefined {
+  return ways.find((route) => {
+    const now = graph.hasEntity(route.id)
+    if (!(now instanceof OsmWay)) return true
+    if (now.nodes.length !== route.nodes.length) return true
+    if (now.nodes.some((id, k) => id !== route.nodes[k])) return true
+    const keys = Object.keys(now.tags)
+    return (
+      keys.length !== Object.keys(route.tags).length ||
+      keys.some((key) => now.tags[key] !== route.tags[key])
+    )
+  })?.id
+}
 
 /** Roles for the two kinds of way, in the order the guided choice shows them */
 const TWO_WAY_OPTIONS = ['', 'forward', 'backward']
@@ -193,7 +262,7 @@ const SIDE_KINDS = new Set([
 
 interface RoleDecision {
   role: string
-  question?: { options: string[]; suggested: string; reason: string }
+  question?: { options: string[]; suggested: string; reason: RoleReason }
 }
 
 /**
@@ -203,8 +272,10 @@ interface RoleDecision {
  * - bicycle, one-way way the route follows in node order: `forward`
  * - bicycle, one-way way the route runs against node order: a question; `backward` is never set
  * - loops and ways the route runs over twice: every member is a question
+ * `forward` is the direction the relation runs over the way, which is the reverse of the travel when the stretch
+ * runs against the member order.
  */
-export function roleFor(
+function roleFor(
   kind: RouteKind,
   tags: Readonly<Record<string, string>>,
   forward: boolean,
@@ -215,17 +286,13 @@ export function roleFor(
   if (!rule) {
     return {
       role: '',
-      question: {
-        options: TWO_WAY_OPTIONS,
-        suggested: '',
-        reason: 'the bicycle profile does not route this way',
-      },
+      question: { options: TWO_WAY_OPTIONS, suggested: '', reason: 'not-routed' },
     }
   }
 
   let role: string
   let options: string[]
-  let reason: string | undefined
+  let reason: RoleReason | undefined
   if (rule.forward && rule.backward) {
     role = ''
     options = TWO_WAY_OPTIONS
@@ -233,93 +300,30 @@ export function roleFor(
   } else if (rule.forward) {
     role = forward ? 'forward' : ''
     options = ONE_WAY_OPTIONS
-    if (!forward)
-      reason = 'the route runs against the node order of a one-way way: forward would be wrong'
+    if (!forward) reason = 'against-node-order'
   } else {
     role = ''
     options = ONE_WAY_BACK_OPTIONS
-    reason =
-      'the way is one-way against its node order (oneway=-1): backward is almost unused in the data'
+    reason = 'one-way-backward'
   }
-  if (reason === undefined && loop) reason = 'the route loops or runs twice over this way'
+  if (reason === undefined && loop) reason = 'loop'
   if (reason === undefined) return { role }
   return { role, question: { options, suggested: role, reason } }
 }
 
 /** Two-way bicycle ways whose kind the data splits between empty and forward: a question, else undefined */
-function unclearTwoWay(tags: Readonly<Record<string, string>>): string | undefined {
-  if (tags.footway === 'sidewalk')
-    return 'a sidewalk: the data splits between empty and forward here'
-  if (tags.is_sidepath === 'yes') return 'a sidepath without a one-way tag'
+function unclearTwoWay(tags: Readonly<Record<string, string>>): RoleReason | undefined {
+  if (tags.footway === 'sidewalk') return 'two-way-sidewalk'
+  if (tags.is_sidepath === 'yes') return 'two-way-sidepath'
   const highway = tags.highway
   const onRoad = highway !== undefined && !SIDE_KINDS.has(highway)
   if (
     onRoad &&
     Object.keys(tags).some((key) => key === 'cycleway' || key.startsWith('cycleway:'))
   ) {
-    return 'cycleway tags on a road: the data splits between empty and forward here'
+    return 'two-way-cycleway-on-road'
   }
   return undefined
-}
-
-function locOf(graph: Graph, id: EntityID): LonLat | undefined {
-  const entity = graph.hasEntity(id)
-  if (!(entity instanceof OsmNode)) return undefined
-  const loc = entity.loc
-  return loc ? [loc[0], loc[1]] : undefined
-}
-
-/** Distance in metres from a point to a polyline, on a local flat map around the point */
-export function distanceToLineM(point: LonLat, line: LonLat[]): number {
-  if (line.length === 0) return Infinity
-  if (line.length === 1) return haversine(point[0], point[1], line[0]![0], line[0]![1])
-  const kx = METRES_PER_DEG * Math.cos((point[1] * Math.PI) / 180)
-  const ky = METRES_PER_DEG
-  let best = Infinity
-  for (let k = 0; k + 1 < line.length; k++) {
-    const a = line[k]!
-    const b = line[k + 1]!
-    best = Math.min(
-      best,
-      distanceToSegmentM(
-        (a[0] - point[0]) * kx,
-        (a[1] - point[1]) * ky,
-        (b[0] - point[0]) * kx,
-        (b[1] - point[1]) * ky,
-      ),
-    )
-  }
-  return best
-}
-
-/** Distance from the origin to the segment from (ax, ay) to (bx, by) */
-function distanceToSegmentM(ax: number, ay: number, bx: number, by: number): number {
-  const dx = bx - ax
-  const dy = by - ay
-  const len2 = dx * dx + dy * dy
-  const t = len2 === 0 ? 0 : Math.min(1, Math.max(0, (-ax * dx - ay * dy) / len2))
-  return Math.hypot(ax + t * dx, ay + t * dy)
-}
-
-/**
- * The locations a route segment covers, in travel order: its split points and the whole nodes between.
- * Undefined when a node of the way is not loaded.
- */
-function segmentLine(graph: Graph, segment: RouteSegment, way: OsmWay): LonLat[] | undefined {
-  const line: LonLat[] = []
-  if (segment.startSplit) line.push(segment.startSplit.loc)
-  const step = segment.forward ? 1 : -1
-  for (
-    let k = segment.fromIndex;
-    segment.forward ? k <= segment.toIndex : k >= segment.toIndex;
-    k += step
-  ) {
-    const loc = locOf(graph, way.nodes[k] ?? '')
-    if (!loc) return undefined
-    line.push(loc)
-  }
-  if (segment.endSplit) line.push(segment.endSplit.loc)
-  return line
 }
 
 function countBy<T>(items: T[]): Map<T, number> {
@@ -335,31 +339,21 @@ function countBy<T>(items: T[]): Map<T, number> {
 export function planReroute(input: PlanInput): PlanResult {
   const { graph, relationId, stretch, expectedIds, route } = input
   const farM = input.farM ?? FAR_POINT_M
-  const refuse = (reason: PlanRefusal, detail: string): PlanResult => ({
-    ok: false,
-    reason,
-    detail,
-  })
+  const refuse = (reason: PlanRefusal): PlanResult => ({ ok: false, reason })
 
   // 1. The route and the relation
-  if (!route.ok) return refuse('no-route', `the router found no route (${route.reason})`)
-  if (route.segments.length === 0)
-    return refuse('no-route', 'the start and the end are the same place')
+  if (!route.ok) return refuse('no-route')
+  if (route.segments.length === 0 || route.lengthM < SAME_PLACE_M) return refuse('same-place')
 
   const relation = graph.hasEntity(relationId)
-  if (!(relation instanceof OsmRelation))
-    return refuse('relation-missing', `relation ${relationId} is not loaded`)
-  if (relation.tags.type !== 'route')
-    return refuse('not-a-route', `relation ${relationId} is not type=route`)
+  if (!(relation instanceof OsmRelation)) return refuse('relation-missing')
+  if (relation.tags.type !== 'route') return refuse('not-a-route')
   const kind = routeKindOf(relation.tags.route)
-  if (!kind)
-    return refuse(
-      'unsupported-route',
-      `route=${relation.tags.route ?? '(none)'} has no access profile here`,
-    )
+  if (!kind) return refuse('unsupported-route')
 
   const members = relation.members
   const { from, to } = stretch
+  const reversed = stretch.reversed === true
   if (
     !Number.isInteger(from) ||
     !Number.isInteger(to) ||
@@ -369,22 +363,32 @@ export function planReroute(input: PlanInput): PlanResult {
     members[from]!.type !== 'way' ||
     members[to]!.type !== 'way'
   ) {
-    return refuse('bad-stretch', `stretch ${from}..${to} must start and end with a way member`)
+    return refuse('bad-stretch')
   }
   const stretchMembers = members.slice(from, to + 1)
   if (
     expectedIds.length !== stretchMembers.length ||
     stretchMembers.some((m, k) => m.id !== expectedIds[k])
   ) {
-    return refuse('relation-changed', 'the members of the stretch changed since the preview')
+    return refuse('relation-changed')
+  }
+
+  // The ways this plan changes: the relation, the ways of the stretch and the ways the route splits
+  const readOnly = input.readOnly
+  if (readOnly) {
+    const changed = [
+      relationId,
+      ...stretchMembers.filter((m) => m.type === 'way').map((m) => m.id),
+      ...route.splits.map((split) => split.wayId),
+    ]
+    if (changed.some((id) => readOnly(id))) return refuse('read-only')
   }
 
   // 2. The ways of the route, and the splits
   const origWays = new Map<EntityID, OsmWay>()
   for (const segment of route.segments) {
     const way = graph.hasEntity(segment.wayId)
-    if (!(way instanceof OsmWay))
-      return refuse('way-not-loaded', `way ${segment.wayId} is not loaded`)
+    if (!(way instanceof OsmWay)) return refuse('way-not-loaded')
     origWays.set(segment.wayId, way)
   }
   const outsideIds = new Set(
@@ -392,24 +396,13 @@ export function planReroute(input: PlanInput): PlanResult {
   )
   for (const split of route.splits) {
     const way = graph.hasEntity(split.wayId)
-    if (!(way instanceof OsmWay))
-      return refuse('way-not-loaded', `way ${split.wayId} is not loaded`)
-    if (way.isClosed())
-      return refuse(
-        'closed-way-split',
-        `way ${split.wayId} is closed: the route would split an area`,
-      )
-    if (outsideIds.has(split.wayId)) {
-      return refuse(
-        'split-way-used-outside',
-        `way ${split.wayId} is also a member of the route outside the stretch`,
-      )
-    }
+    if (!(way instanceof OsmWay)) return refuse('way-not-loaded')
+    if (way.isClosed()) return refuse('closed-way-split')
+    if (outsideIds.has(split.wayId)) return refuse('split-way-used-outside')
     origWays.set(split.wayId, way)
   }
   for (const way of origWays.values()) {
-    if (way.nodes.some((id) => !locOf(graph, id)))
-      return refuse('way-not-loaded', `the nodes of way ${way.id} are not loaded`)
+    if (way.nodes.some((id) => !nodeLonlat(graph, id))) return refuse('way-not-loaded')
   }
 
   // 3. The new nodes, the vertex inserts and the splits, simulated on a copy of the graph
@@ -429,9 +422,8 @@ export function planReroute(input: PlanInput): PlanResult {
     .sort((a, b) => b.split.segment - a.split.segment || b.split.t - a.split.t)
   for (const { split, i } of vertexOrder) {
     const way = origWays.get(split.wayId)!
-    if (split.segment < 0 || split.segment + 1 >= way.nodes.length) {
-      return refuse('split-not-resolved', `split ${i} is not on way ${split.wayId}`)
-    }
+    if (split.segment < 0 || split.segment + 1 >= way.nodes.length)
+      return refuse('split-not-resolved')
     run(actionAddEntity(splitNodes[i]!))
     run(actionAddVertex(split.wayId, splitNodes[i]!.id, split.segment + 1))
   }
@@ -453,8 +445,7 @@ export function planReroute(input: PlanInput): PlanResult {
       const part = sim.hasEntity(id)
       return part instanceof OsmWay && part.nodes.includes(nodeId)
     })
-    if (!holds)
-      return refuse('split-not-resolved', `no part of way ${split.wayId} holds the new node`)
+    if (!holds) return refuse('split-not-resolved')
     run(actionSplit(nodeId, [splitWayIds[i]!]))
     family.set(split.wayId, [...parts, splitWayIds[i]!])
   }
@@ -464,7 +455,7 @@ export function planReroute(input: PlanInput): PlanResult {
     !(afterSplits instanceof OsmRelation) ||
     afterSplits.members.length !== members.length - stretchMembers.length
   ) {
-    return refuse('internal', 'the route relation changed while its ways were split')
+    return refuse('internal')
   }
 
   // 4. The part of each route segment: the part that holds both of its end nodes
@@ -483,33 +474,29 @@ export function planReroute(input: PlanInput): PlanResult {
     }
     const startNode = endNodeOf(segment.startSplit, segment.fromIndex)
     const endNode = endNodeOf(segment.endSplit, segment.toIndex)
-    if (startNode === undefined || endNode === undefined) {
-      return refuse(
-        'split-not-resolved',
-        `the ends of the segment on ${segment.wayId} are not on the way`,
-      )
-    }
+    if (startNode === undefined || endNode === undefined) return refuse('split-not-resolved')
     const part = (family.get(segment.wayId) ?? [segment.wayId]).find((id) => {
       const way = sim.hasEntity(id)
       return way instanceof OsmWay && way.nodes.includes(startNode) && way.nodes.includes(endNode)
     })
-    if (part === undefined)
-      return refuse('split-not-resolved', `no part of way ${segment.wayId} runs between the ends`)
+    if (part === undefined) return refuse('split-not-resolved')
     partIds.push(part)
   }
 
-  // 5. Roles and questions
+  // 5. Roles and questions. The segments are written in the relation's order: travel order, or its reverse
+  // when the stretch runs against the member order (then each segment also runs the other way round)
   const segmentLines: LonLat[][] = []
   for (const [i, segment] of route.segments.entries()) {
-    const line = segmentLine(graph, segment, origWays.get(segment.wayId)!)
-    if (!line || line.length === 0)
-      return refuse('way-not-loaded', `the nodes of the segment on ${segment.wayId} are not loaded`)
+    const line = segmentLine(graph, segment)
+    if (line.length === 0) return refuse('way-not-loaded')
     segmentLines[i] = line
   }
   const first = segmentLines[0]![0]!
   const last = segmentLines[segmentLines.length - 1]!.at(-1)!
   const closedRoute = haversine(first[0], first[1], last[0], last[1]) < 1
   const segmentsOf = countBy(route.segments.map((segment) => segment.wayId))
+  const order = route.segments.map((_, i) => i)
+  if (reversed) order.reverse()
 
   const roles: string[] = []
   const rolesToAsk: RoleQuestion[] = []
@@ -521,7 +508,8 @@ export function planReroute(input: PlanInput): PlanResult {
     }
     const tags = origWays.get(segment.wayId)!.tags
     const loop = closedRoute || (segmentsOf.get(segment.wayId) ?? 0) > 1
-    const decision = roleFor(kind, tags, segment.forward, loop)
+    const forward = reversed ? !segment.forward : segment.forward
+    const decision = roleFor(kind, tags, forward, loop)
     roles[i] = decision.role
     if (decision.question) {
       rolesToAsk.push({ segment: i, wayId: partIds[i]!, ...decision.question })
@@ -532,14 +520,14 @@ export function planReroute(input: PlanInput): PlanResult {
   const before: OsmRelationMember[][] = route.segments.map(() => [])
   const after: OsmRelationMember[][] = route.segments.map(() => [])
   const pointsToReview: PointReview[] = []
-  const lastSegment = route.segments.length - 1
+  const lastInOrder = order[order.length - 1]!
   for (const [k, m] of stretchMembers.entries()) {
     if (m.type === 'way') continue
     const index = from + k
     const kept: OsmRelationMember = { id: m.id, type: m.type, role: m.role }
-    const loc = m.type === 'node' ? locOf(graph, m.id) : undefined
+    const loc = m.type === 'node' ? nodeLonlat(graph, m.id) : undefined
     if (!loc) {
-      after[lastSegment]!.push(kept)
+      after[lastInOrder]!.push(kept)
       pointsToReview.push({
         index,
         id: m.id,
@@ -562,7 +550,9 @@ export function planReroute(input: PlanInput): PlanResult {
     const line = segmentLines[nearest]!
     const nearStart = haversine(loc[0], loc[1], line[0]![0], line[0]![1])
     const nearEnd = haversine(loc[0], loc[1], line.at(-1)![0], line.at(-1)![1])
-    ;(nearStart < nearEnd ? before : after)[nearest]!.push(kept)
+    // the first end in the relation's order is the travel end when the stretch is reversed
+    const nearFirst = reversed ? nearEnd < nearStart : nearStart < nearEnd
+    ;(nearFirst ? before : after)[nearest]!.push(kept)
     pointsToReview.push({
       index,
       id: m.id,
@@ -576,13 +566,13 @@ export function planReroute(input: PlanInput): PlanResult {
   // 7. The new stretch, and the members the relation ends up with
   const newStretch: OsmRelationMember[] = []
   const addedMembers: AddedMember[] = []
-  for (const [i, segment] of route.segments.entries()) {
+  for (const i of order) {
     newStretch.push(...before[i]!)
     addedMembers.push({
       segment: i,
       index: from + newStretch.length,
       id: partIds[i]!,
-      fromWayId: segment.wayId,
+      fromWayId: route.segments[i]!.wayId,
       role: roles[i]!,
     })
     newStretch.push({ id: partIds[i]!, type: 'way', role: roles[i]! })
@@ -594,7 +584,7 @@ export function planReroute(input: PlanInput): PlanResult {
   const result = sim.hasEntity(relationId)
   const expected = [...members.slice(0, from), ...newStretch, ...members.slice(to + 1)]
   if (!(result instanceof OsmRelation) || !sameMembers(result.members, expected)) {
-    return refuse('internal', 'the route relation does not hold the planned members')
+    return refuse('internal')
   }
 
   // 8. What the preview shows

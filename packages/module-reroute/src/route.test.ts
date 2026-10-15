@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { OsmRelation, type Graph } from '@osm-editor-kit/maid-model'
+import { planApply } from './apply-port.ts'
 import { previewReroute, profileOfRoute, requestOf, type RoutePreview } from './route.ts'
 import { graphOf, node, relation, way } from './test-graph.ts'
 
@@ -171,5 +172,90 @@ describe('the preview of a reroute', () => {
         roleChoices: {},
       }),
     ).toBeUndefined()
+  })
+})
+
+describe('the preview is kept while its inputs are the same', () => {
+  test('the same inputs give the same preview; a new role answer plans again on the route that was found', () => {
+    const { graph, rel } = routeGraph(['R'])
+    const input = { start: START, end: END, occurrence: 0, roleChoices: {} }
+    const first = previewReroute(graph, rel, input) as RoutePreview
+    expect(previewReroute(graph, rel, input)).toBe(first)
+
+    const answered = previewReroute(graph, rel, { ...input, roleChoices: { 0: 'forward' } })
+    expect(answered).not.toBe(first)
+    expect(answered?.route).toBe(first.route)
+  })
+
+  test('a read-only check that changes its answer refuses the plan, even after the same inputs were planned', () => {
+    const { graph, rel } = routeGraph(['R'])
+    const input = { start: START, end: END, occurrence: 0, roleChoices: {} }
+    expect((previewReroute(graph, rel, input) as RoutePreview).plan?.ok).toBe(true)
+    const locked = previewReroute(graph, rel, { ...input, readOnly: (id) => id === 'R' })
+    expect(locked?.plan).toEqual({ ok: false, reason: 'read-only' })
+  })
+
+  test('the preview names the ways its route runs on, so the apply can check them', () => {
+    const { graph, rel } = routeGraph(['R'])
+    const preview = previewReroute(graph, rel, {
+      start: START,
+      end: END,
+      occurrence: 0,
+      roleChoices: {},
+    }) as RoutePreview
+    expect(preview.routeWays.map((way) => way.id)).toContain('R')
+  })
+})
+
+describe('the apply writes nothing when a way of the route changed since the preview', () => {
+  // the editor's history, with the graph the apply sees and a record of what it performs
+  function editorOn(graph: Graph) {
+    const record = { performed: 0, committed: 0 }
+    const editor = {
+      history: {
+        staging: { graph },
+        perform: () => {
+          record.performed++
+        },
+        commit: () => {
+          record.committed++
+        },
+      },
+    }
+    return { editor: editor as unknown as Parameters<typeof planApply.apply>[0], record }
+  }
+
+  test('a retagged way of the route refuses with route-changed, and nothing is performed', () => {
+    const { nodes, ways } = network()
+    const rel = relation('Rel', [{ id: 'R', type: 'way', role: '' }], {
+      type: 'route',
+      route: 'bicycle',
+    })
+    const graph = graphOf([...nodes, ...ways, rel])
+    const preview = previewReroute(graph, rel, {
+      start: START,
+      end: END,
+      occurrence: 0,
+      roleChoices: {},
+    }) as RoutePreview
+    const request = requestOf(preview)
+    expect(request).toBeDefined()
+
+    const retagged = graphOf([
+      ...nodes,
+      way('R', ['n0', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6'], { highway: 'service' }),
+      ...ways.filter((w) => w.id !== 'R'),
+      rel,
+    ])
+    const changed = editorOn(retagged)
+    expect(planApply.apply(changed.editor, request!)).toEqual({
+      ok: false,
+      reason: 'route-changed',
+    })
+    expect(changed.record).toEqual({ performed: 0, committed: 0 })
+
+    const same = editorOn(graph)
+    expect(planApply.apply(same.editor, request!)).toEqual({ ok: true })
+    expect(same.record).toEqual({ performed: 1, committed: 1 })
   })
 })

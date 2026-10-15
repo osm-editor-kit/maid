@@ -278,6 +278,7 @@ export function Inspector() {
                 entity={entity}
                 editor={editor}
                 select={select}
+                readOnly={(id) => engine.isReadOnly(id)}
                 onFieldFocus={(focus) => showFieldFocus(engine, focus)}
               />
               {(fields.length > 0 || moreFields.length > 0) && (
@@ -326,6 +327,7 @@ export function Inspector() {
                 entity={entity}
                 editor={editor}
                 select={select}
+                readOnly={(id) => engine.isReadOnly(id)}
                 onFieldFocus={(focus) => showFieldFocus(engine, focus)}
                 onRelated={(ids) => engine.setRelated(ids)}
               />

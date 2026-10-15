@@ -6,15 +6,19 @@
 //
 // Skipped, and counted in `skipped`: via-way restrictions (a via way needs a sequence of transitions,
 // not one), `restriction=` kinds other than `no_*` and `only_*`, relations with missing members, and
-// relations whose from, via or to is not in the routing graph (not loaded, or not routable for the
-// profile). A restriction over a via node that is not a graph node is not needed: two routable ways
-// that meet at a node always make that node a graph node.
+// relations whose from or via is not in the routing graph (not loaded, or not routable for the profile),
+// and `no_*` relations whose to is not (nothing to forbid). An `only_*` whose to is not in the graph is
+// kept with `NO_WAY`: every other exit is forbidden. A restriction over a via node that is not a graph
+// node is not needed: two routable ways that meet at a node always make that node a graph node.
 import type { OsmRelation } from '@osm-editor-kit/maid-model'
+
+/** The `to` of an `only_*` restriction whose way the profile does not route: no exit matches it, so every exit is forbidden */
+export const NO_WAY = -1
 
 export interface Restriction {
   /** Way index of the way the traffic comes from */
   from: number
-  /** Way index of the way it goes to (for `only_*`, the only way it may take) */
+  /** Way index of the way it goes to (for `only_*`, the only way it may take); `NO_WAY` when that way is not routable */
   to: number
   /** `only_*`: every other exit from `from` at the via node is forbidden */
   only: boolean
@@ -106,13 +110,14 @@ export function buildRestrictions(
     const from = lookup.way(fromId)
     const to = lookup.way(toId)
     const via = lookup.node(viaId)
-    if (from === undefined || to === undefined || via === undefined) {
+    // An `only_*` onto a way the profile does not route still forbids every other exit: the router must not take them
+    if (from === undefined || via === undefined || (to === undefined && !only)) {
       table.skipped['not-in-graph']++
       continue
     }
 
     const list = table.byVia.get(via) ?? []
-    list.push({ from, to, only })
+    list.push({ from, to: to ?? NO_WAY, only })
     table.byVia.set(via, list)
     table.applied++
   }

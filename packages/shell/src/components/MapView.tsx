@@ -291,6 +291,7 @@ export function MapView() {
     if (event.originalEvent.button !== 0) return
     // a module mode (rerouting) takes the pointer: a press on one of its handles starts a drag, not a pan
     if (engine.moduleMode) {
+      modulePointer = { lng: event.lngLat.lng, lat: event.lngLat.lat }
       if (engine.moduleModePress(event.point, event.lngLat.lng, event.lngLat.lat))
         event.preventDefault()
       return
@@ -359,6 +360,11 @@ export function MapView() {
     else if (mode === 'move' || mode === 'rotate') engine.transform.move(lng, lat)
   }
   const handleMouseMove = (event: MapLayerMouseEvent) => {
+    // a handle drag of a module mode whose button went up off the map ends here, where the pointer is
+    if (engine.moduleModeDragging && event.originalEvent.buttons === 0) {
+      modulePointer = { lng: event.lngLat.lng, lat: event.lngLat.lat }
+      release()
+    }
     // a handle press whose release was not seen on the map (the button went up off it) ends here: no node is made by a hover
     // a turn whose release was not seen on the map ends here too
     if ((engine.pressingHandle || engine.turning) && event.originalEvent.buttons === 0) release()
@@ -413,6 +419,15 @@ export function MapView() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [engine.mode, engine])
+  // A module's handle drag ends on a button up anywhere: the map sees no up when the pointer left it during the drag.
+  // The session ignores a release that has no drag, so the map's own release (which comes first) makes this a no-op.
+  useEffect(() => {
+    const onUp = () => {
+      if (engine.moduleModeDragging) engine.moduleModeRelease(modulePointer.lng, modulePointer.lat)
+    }
+    window.addEventListener('mouseup', onUp)
+    return () => window.removeEventListener('mouseup', onUp)
+  }, [engine])
   // Escape cancels a measure. It is taken in the capture phase on the window, so the editor's own
   // Escape (useShortcuts: it clears the selection) does not see it. The selection stays.
   useEffect(() => {

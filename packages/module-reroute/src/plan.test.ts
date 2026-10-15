@@ -12,7 +12,9 @@ import {
 } from '@osm-editor-kit/maid-routing'
 import { applyAll, graphOf, member, node, relation, way } from './plan-test-helpers.ts'
 import {
+  changedRouteWay,
   planReroute,
+  routeWaysOf,
   stretchesBetween,
   type PlanInput,
   type PlanResult,
@@ -92,10 +94,23 @@ function planFor(
   })
 }
 
-/** The plan, or a failing test with the refusal's detail */
+/** The plan, or a failing test with the refusal's code */
 function okPlan(result: PlanResult): ReroutePlan {
-  if (!result.ok) throw new Error(`plan refused: ${result.reason}: ${result.detail}`)
+  if (!result.ok) throw new Error(`plan refused: ${result.reason}`)
   return result
+}
+
+/** The router's answer for a route between two points on the map (lon, lat), snapped to the ways */
+function routeBetweenPoints(
+  entities: Entities,
+  from: [number, number],
+  to: [number, number],
+): RouteResult {
+  const rg = buildRoutingGraph(graphOf(entities), bicycleProfile)
+  const a = snapToGraph(rg, from[0], from[1])
+  const b = snapToGraph(rg, to[0], to[1])
+  if (!a || !b) throw new Error('no way at a point')
+  return findRoute(rg, { snap: a }, { snap: b })
 }
 
 function relOf(graph: Graph, id = 'r1'): OsmRelation {
@@ -291,7 +306,7 @@ describe('planReroute: road kinds and the roles', () => {
         wayId: 'ws',
         options: ['', 'forward', 'backward'],
         suggested: '',
-        reason: expect.stringContaining('sidewalk') as unknown as string,
+        reason: 'two-way-sidewalk',
       },
     ])
 
@@ -469,5 +484,115 @@ describe('planReroute: refusals', () => {
       ok: false,
       reason: 'no-route',
     })
+  })
+})
+
+describe('planReroute: a stretch that runs against the member order', () => {
+  // X(p..n0), W1(n0..n3), W2(n3..n6), Y(n6..q) on lat 52.5. The route starts on W2 near n5 and ends on W1 near n1,
+  // so it runs west, against the member order (W1 before W2)
+  const at = (i: number) => 13.4 + i * 0.001
+  const chain: Entities = [
+    node('p', 13.398, 52.5),
+    ...[0, 1, 2, 3, 4, 5, 6].map((i) => node(`n${i}`, at(i), 52.5)),
+    node('q', 13.406, 52.5),
+    way('X', ['p', 'n0'], { highway: 'residential' }),
+    way('W1', ['n0', 'n1', 'n2', 'n3'], { highway: 'secondary' }),
+    way('W2', ['n3', 'n4', 'n5', 'n6'], { highway: 'secondary' }),
+    way('Y', ['n6', 'q'], { highway: 'residential' }),
+    relation('r1', [member('X'), member('W1'), member('W2'), member('Y')], {
+      type: 'route',
+      route: 'bicycle',
+    }),
+  ]
+  const startOn = [at(5) - 0.0002, 52.5] as [number, number] // on W2, between n4 and n5
+  const endOn = [at(1) + 0.0002, 52.5] as [number, number] // on W1, between n1 and n2
+
+  it('writes the new ways in the member order, so the relation runs on in its direction', () => {
+    const route = routeBetweenPoints(chain, startOn, endOn)
+    expect(route.ok && route.segments.map((s) => [s.wayId, s.forward])).toEqual([
+      ['W2', false],
+      ['W1', false],
+    ])
+
+    const graph = graphOf(chain)
+    const plan = okPlan(
+      planFor(graph, route, 1, 2, { stretch: { from: 1, to: 2, reversed: true } }),
+    )
+    const members = relOf(applyAll(graph, plan.actions)).members
+    expect(members).toHaveLength(4)
+    expect(members[0]).toEqual(member('X'))
+    expect(members[3]).toEqual(member('Y'))
+    // the end of the first new way is the start of the second, as the members were before the reroute
+    const [first, second] = [members[1]!, members[2]!]
+    expect(wayOf(applyAll(graph, plan.actions), first.id).nodes.at(-1)).toBe(
+      wayOf(applyAll(graph, plan.actions), second.id).nodes[0],
+    )
+    expect(plan.addedMembers.map((m) => m.segment)).toEqual([1, 0])
+  })
+})
+
+describe('planReroute: read-only ways', () => {
+  const cycleway = way('wc', ['n1', 'c2', 'c3', 'c4', 'n5'], { highway: 'cycleway', oneway: 'yes' })
+  const entities = [...streetEntities(), cycleway]
+  const route = routeOf(entities, bicycleProfile, 'n1', 'n5')
+
+  it('plans when nothing is read-only, and when only a way outside the stretch is', () => {
+    const graph = graphOf(entities)
+    okPlan(planFor(graph, route, 1, 1, { readOnly: () => false }))
+    okPlan(planFor(graph, route, 1, 1, { readOnly: (id) => id === 'w6' }))
+  })
+
+  it('refuses when a way of the stretch is read-only, and when the relation is', () => {
+    const graph = graphOf(entities)
+    expect(planFor(graph, route, 1, 1, { readOnly: (id) => id === 'w1' })).toEqual({
+      ok: false,
+      reason: 'read-only',
+    })
+    expect(planFor(graph, route, 1, 1, { readOnly: (id) => id === 'r1' })).toEqual({
+      ok: false,
+      reason: 'read-only',
+    })
+  })
+})
+
+describe('planReroute: a route of no length', () => {
+  it('refuses when the start and the end are the same place, with the code and nothing more', () => {
+    const entities = streetEntities()
+    const route = routeOf(entities, bicycleProfile, 'n1', 'n1')
+    expect(planFor(graphOf(entities), route, 1, 1)).toEqual({ ok: false, reason: 'same-place' })
+  })
+
+  it('refuses two points snapped to the same spot of a way, which give a route of no length', () => {
+    const entities = streetEntities()
+    const spot: [number, number] = [lon(3), 52.5]
+    const route = routeBetweenPoints(entities, spot, spot)
+    expect(route.ok && route.lengthM).toBeLessThan(1)
+    expect(planFor(graphOf(entities), route, 1, 1)).toEqual({ ok: false, reason: 'same-place' })
+  })
+})
+
+describe('the ways of a route, checked at the apply', () => {
+  it('names the first way of the route whose nodes or tags changed, and none while they are the same', () => {
+    const cycleway = way('wc', ['n1', 'c2', 'c3', 'c4', 'n5'], {
+      highway: 'cycleway',
+      oneway: 'yes',
+    })
+    const entities = [...streetEntities(), cycleway]
+    const route = routeOf(entities, bicycleProfile, 'n1', 'n5')
+    const ways = routeWaysOf(graphOf(entities), route)
+    expect(ways.map((w) => w.id)).toContain('wc')
+
+    expect(changedRouteWay(graphOf(entities), ways)).toBeUndefined()
+    const fewerNodes = [
+      ...streetEntities(),
+      way('wc', ['n1', 'c2', 'c4', 'n5'], { highway: 'cycleway', oneway: 'yes' }),
+    ]
+    expect(changedRouteWay(graphOf(fewerNodes), ways)).toBe('wc')
+    const retagged = [
+      ...streetEntities(),
+      way('wc', ['n1', 'c2', 'c3', 'c4', 'n5'], { highway: 'cycleway' }),
+    ]
+    expect(changedRouteWay(graphOf(retagged), ways)).toBe('wc')
+    expect(changedRouteWay(graphOf(streetEntities()), ways)).toBe('wc')
   })
 })

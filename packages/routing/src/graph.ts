@@ -121,6 +121,9 @@ export interface SegmentGrid {
 
 const CELL_DEG = 0.001
 
+/** A snap this close (metres along its segment) to a way node is that node: see snapToGraph */
+const NODE_SNAP_M = 1
+
 /** Every entity of the graph as the app sees it: edited entities win, deleted ones are left out */
 export function loadedEntities(graph: ModelGraph): OsmEntity[] {
   const out: OsmEntity[] = []
@@ -494,6 +497,12 @@ export function snapToGraph(
   }
   if (best < 0 || bestDist > maxDistanceM) return undefined
 
+  // A point within NODE_SNAP_M of a way node is that node: a split a metre from it would be a sliver
+  const segLen = rg.segLen[best]!
+  let t = bestT
+  if (t * segLen < NODE_SNAP_M) t = 0
+  else if ((1 - t) * segLen < NODE_SNAP_M) t = 1
+
   const edge = rg.segEdge[best]!
   const wayIdx = rg.edgeWay[edge]!
   const lon0 = rg.segLon0[best]!
@@ -504,8 +513,8 @@ export function snapToGraph(
     wayIdx,
     wayId: rg.wayIds[wayIdx]!,
     segment: rg.segPos[best]!,
-    t: bestT,
-    loc: [lon0 + bestT * (rg.segLon1[best]! - lon0), lat0 + bestT * (rg.segLat1[best]! - lat0)],
+    t,
+    loc: [lon0 + t * (rg.segLon1[best]! - lon0), lat0 + t * (rg.segLat1[best]! - lat0)],
     distanceM: bestDist,
   }
 }

@@ -862,6 +862,11 @@ export class MaidEngine {
     return this.moduleSession.mode
   }
 
+  /** True while a handle of the module mode is dragged: the map view ends the drag when the button goes up off the map */
+  get moduleModeDragging(): boolean {
+    return this.moduleSession.dragged
+  }
+
   /**
    * Starts a module mode: the pointer on the map goes to `mode` until it ends (Escape, `exitModuleMode`, `setMode`, or
    * another mode). A drawing, a measure or a move under way is finished first, as a mode change does. The selection is

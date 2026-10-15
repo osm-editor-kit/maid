@@ -120,3 +120,37 @@ describe('turn restrictions', () => {
     expect(table.skipped['unknown-kind']).toBe(1)
   })
 })
+
+describe('an only_* restriction onto a way the profile does not route', () => {
+  it('still forbids every other exit at the via node: the bypass is the only route', () => {
+    // The only way from w1 over C is to a way that is not in the graph (not loaded, or not routable)
+    const onlyUnrouted = relation(
+      'r2',
+      [
+        { id: 'w1', type: 'way', role: 'from' },
+        { id: 'C', type: 'node', role: 'via' },
+        { id: 'wx', type: 'way', role: 'to' },
+      ],
+      { type: 'restriction', restriction: 'only_straight_on' },
+    )
+    const rg = buildRoutingGraph(graphOf([...crossing, onlyUnrouted]), bicycleProfile)
+    expect(rg.restrictions.applied).toBe(1)
+    expect(wayIds(findRoute(rg, { node: 'S' }, { node: 'W' }))).toEqual(['w5'])
+  })
+
+  it('a no_* onto a way that is not in the graph has nothing to forbid, and is skipped', () => {
+    const noUnrouted = relation(
+      'r3',
+      [
+        { id: 'w1', type: 'way', role: 'from' },
+        { id: 'C', type: 'node', role: 'via' },
+        { id: 'wx', type: 'way', role: 'to' },
+      ],
+      { type: 'restriction', restriction: 'no_left_turn' },
+    )
+    const rg = buildRoutingGraph(graphOf([...crossing, noUnrouted]), bicycleProfile)
+    expect(rg.restrictions.applied).toBe(0)
+    expect(rg.restrictions.skipped['not-in-graph']).toBe(1)
+    expect(wayIds(findRoute(rg, { node: 'S' }, { node: 'W' }))).toEqual(['w1', 'w2'])
+  })
+})

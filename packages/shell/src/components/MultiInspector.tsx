@@ -186,6 +186,7 @@ export function MultiInspector({
               entities={derived.entities}
               editor={editor}
               select={select}
+              readOnly={(id) => engine.isReadOnly(id)}
             />
           )}
           {derived.fields.length > 0 && (
@@ -219,6 +220,7 @@ export function MultiInspector({
               entities={derived.entities}
               editor={editor}
               select={select}
+              readOnly={(id) => engine.isReadOnly(id)}
             />
           )}
         </div>

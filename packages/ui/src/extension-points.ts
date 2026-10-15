@@ -19,6 +19,11 @@ export type InspectorSectionProps = {
    */
   entities?: readonly EntityInfo[]
   /**
+   * Whether the filters make an entity read-only (looked at, not changed). A section that changes an entity checks it
+   * before it writes, and says why when it cannot. Absent where the shell does not pass it: nothing is read-only then.
+   */
+  readOnly?: (id: string) => boolean
+  /**
    * Tell the shell which field (and side) the section's control is about, so the map can show that side of the
    * selected way; null when the pointer or the focus leaves. Absent where the shell cannot show it (several features).
    */

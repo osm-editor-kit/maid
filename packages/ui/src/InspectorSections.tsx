@@ -13,6 +13,7 @@ export function InspectorSections({
   entities,
   onFieldFocus,
   onRelated,
+  readOnly,
   placement,
 }: InspectorSectionProps & { placement?: 'top' }) {
   const sections = useExtensionPoint(editor, 'inspector.section')
@@ -37,6 +38,7 @@ export function InspectorSections({
               entities={entities}
               onFieldFocus={onFieldFocus}
               onRelated={onRelated}
+              readOnly={readOnly}
             />
           )
           return section.disclosure ? (

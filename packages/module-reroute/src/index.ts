@@ -43,6 +43,7 @@ export {
   planApply,
   type RerouteApply,
   type RerouteApplyResult,
+  type RerouteRefusal,
   type RerouteRequest,
 } from './apply-port.ts'
 export {

@@ -230,3 +230,31 @@ describe('findRoute: search quality', () => {
     expect(pairs).toBe(16 * 15)
   })
 })
+
+describe('findRoute: a point a metre or less from a node', () => {
+  it('snaps to the node: the route has no split and starts at the node', () => {
+    const rg = build(line)
+    // 0.3 m east of n2 (about 67.7 m per 0.001 degree of longitude at this latitude)
+    const lon = 13.401 + 0.3 / 67700
+    const snap = snapToGraph(rg, lon, 52.5)
+    expect(snap?.t).toBe(0)
+    const result = findRoute(rg, { snap: snap! }, { node: 'n5' })
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.splits).toEqual([])
+    expect(result.segments).toHaveLength(1)
+    expect(result.segments[0]).toMatchObject({
+      wayId: 'w1',
+      fromIndex: 1,
+      toIndex: 4,
+      forward: true,
+    })
+    expect(result.segments[0]!.startSplit).toBeUndefined()
+  })
+
+  it('a point 10 m from the node is still split', () => {
+    const rg = build(line)
+    const result = findRoute(rg, at(rg, 13.401 + 10 / 67700), { node: 'n5' })
+    expect(result.ok && result.splits).toHaveLength(1)
+  })
+})
