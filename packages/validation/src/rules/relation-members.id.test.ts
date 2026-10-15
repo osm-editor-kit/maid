@@ -164,12 +164,12 @@ describe('relation_members (duplicate_member)', () => {
     expect(membersAfter(graph, issue?.fixes[0])).toEqual(['w-1:outer'])
   })
 
-  it('keeps the id when the members change, and is the same from the way and from the relation', () => {
+  it('keeps the id when the members change, and is reported on the relation, not on the way', () => {
     const { graph } = sceneWith(sameRoleTwice)
     const schema = schemaPresets(() => roles, false)
-    const fromWay = validateChanged(rule, graph, ['w-1'], schema)
+    // the validator checks the parent relations of a changed way (entitiesToValidate), so the way adds nothing
+    expect(validateChanged(rule, graph, ['w-1'], schema)).toEqual([])
     const fromRelation = validateChanged(rule, graph, ['r-1'], schema)
-    expect(fromWay.map((issue) => issue.id)).toEqual(['relation_members:duplicate_member:w-1:r-1'])
     expect(fromRelation.map((issue) => issue.id)).toEqual([
       'relation_members:duplicate_member:w-1:r-1',
     ])

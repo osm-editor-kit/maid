@@ -241,13 +241,16 @@ describe("relation_members (schema subtypes, Maid's additions)", () => {
     expect(issues.map(subtypeOf)).toEqual(['wrong_role'])
   })
 
-  it('checks a relation when one of its members changes, not only when the relation does', () => {
+  it('reports on the relation: a changed member reaches it because the validator checks its parent relations', () => {
     const { graph } = sceneWith(
       { type: 'boundary' },
       [at('w-1', 'outer'), at('n-9', 'potatoe')],
       [node('n-9', 6, 6, { place: 'suburb' })],
     )
-    const issues = uniqueById(validateChanged(rule, graph, ['n-9'], presets))
+    // the member alone is not checked against the relation's schema
+    expect(validateChanged(rule, graph, ['n-9'], presets)).toHaveLength(0)
+    // entitiesToValidate adds the parent relation of a changed member
+    const issues = uniqueById(validateChanged(rule, graph, ['n-9', 'r-1'], presets))
     expect(issues).toHaveLength(1)
     expect(subtypeOf(issues[0])).toBe('wrong_role')
   })

@@ -400,28 +400,22 @@ function memberIssue(
 /**
  * Relation members that a relation's schema does not allow, from the schema of the relation (iD's relation validator):
  * duplicate members, too few or too many members of a role, a role that is wrong or not allowed, and a member whose
- * tags or geometry do not fit its role. Checked from both sides: an entity asks its parent relations, and a relation
- * checks itself.
+ * tags or geometry do not fit its role. Checked on the relation only: the validator checks the parent relations of
+ * every changed entity anyway (`entitiesToValidate`), so a member's change reaches its relations without checking
+ * the whole relation once more from each member.
  */
 export const relationMembers: Rule = {
   id: rule,
   label: 'Relation members',
   validate(entity, { graph, presets }) {
-    if (!presets) return []
-
-    const relations = new Map<string, OsmRelation>()
-    for (const relation of graph.parentRelations(entity)) relations.set(relation.id, relation)
-    if (entity instanceof OsmRelation) relations.set(entity.id, entity)
-
+    if (!presets || !(entity instanceof OsmRelation)) return []
+    const roles = presets.relationRoles(entity.tags)
+    if (Object.keys(roles).length === 0) return []
     const issues: Issue[] = []
-    for (const relation of relations.values()) {
-      const roles = presets.relationRoles(relation.tags)
-      if (Object.keys(roles).length === 0) continue
-      if (!presets.allowsDuplicateMembers(relation.tags)) {
-        issues.push(...duplicateIssues(relation, roles, graph))
-      }
-      issues.push(...schemaIssues(relation, roles, graph, presets))
+    if (!presets.allowsDuplicateMembers(entity.tags)) {
+      issues.push(...duplicateIssues(entity, roles, graph))
     }
+    issues.push(...schemaIssues(entity, roles, graph, presets))
     return issues
   },
 }

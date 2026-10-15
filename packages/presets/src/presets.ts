@@ -1029,7 +1029,16 @@ export function createPresets(data: PresetData): Presets {
 
   // iD's utilGetRelationSchema and utilRelationAllowsDuplicateMembers: the preset that owns a relation's schema is
   // the best one for geometry `relation` when it has a `relation`, else the one matching { type } when that has one.
+  // Cached per tags object (null: no owner), as the roles are: the validator asks for every relation on every run.
+  const ownerCache = new WeakMap<Tags, Preset | null>()
   function relationOwnerOf(tags: Tags): Preset | undefined {
+    const cached = ownerCache.get(tags)
+    if (cached !== undefined) return cached ?? undefined
+    const owner = findRelationOwner(tags)
+    ownerCache.set(tags, owner ?? null)
+    return owner
+  }
+  function findRelationOwner(tags: Tags): Preset | undefined {
     const best = match(tags, 'relation')
     if (best.relation !== undefined) return best
     const type = tags.type
@@ -1085,7 +1094,7 @@ export function createPresets(data: PresetData): Presets {
     return roles
   }
 
-  // iD: `schema?.allowDuplicateMembers !== false`, where the schema is the owner's `relation`
+  // iD's utilGetValidRelationRoles on the roles of the relation's schema
   function memberRoles(
     relationTags: Tags,
     geometry: Geometry | undefined,
@@ -1094,6 +1103,7 @@ export function createPresets(data: PresetData): Presets {
     return validRelationRoles(relationRoles(relationTags), geometry, memberTags)
   }
 
+  // iD: `schema?.allowDuplicateMembers !== false`, where the schema is the owner's `relation`
   function allowsDuplicateMembers(tags: Tags) {
     return relationOwnerOf(tags)?.relation?.allowDuplicateMembers !== false
   }

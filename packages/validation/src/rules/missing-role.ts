@@ -57,16 +57,22 @@ function fittingRoles(
   roles: RelationRoles,
   presets: PresetLookup | undefined,
   graph: Graph,
+  counts: ReadonlyMap<string, number>,
 ) {
   if (roles === multipolygonRoles || presets === undefined) return roles
   const fitting = presets.memberRoles(relation.tags, member.geometry(graph), member.tags)
   return Object.fromEntries(
-    Object.entries(fitting).filter(([role, { member: rule }]) => {
-      if (rule.max === undefined) return true
-      const count = relation.members.filter((other) => other.role === role).length
-      return count < rule.max
-    }),
+    Object.entries(fitting).filter(
+      ([role, { member: rule }]) => rule.max === undefined || (counts.get(role) ?? 0) < rule.max,
+    ),
   )
+}
+
+/** How many members of the relation have each role: counted once per relation, not once per member */
+function roleCounts(relation: OsmRelation) {
+  const counts = new Map<string, number>()
+  for (const { role } of relation.members) counts.set(role, (counts.get(role) ?? 0) + 1)
+  return counts
 }
 
 /** The member at `index` of the relation, when it is still the member the issue is about */
@@ -153,9 +159,10 @@ export const missingRole: Rule = {
       for (const relation of graph.parentRelations(entity)) {
         const roles = roleSchemaOf(relation, presets)
         if (!roles) continue
+        const counts = roleCounts(relation)
         relation.members.forEach((member, index) => {
           if (member.id === entity.id && isMissingRole(member.role)) {
-            const options = fittingRoles(entity, relation, roles, presets, graph)
+            const options = fittingRoles(entity, relation, roles, presets, graph, counts)
             issues.push(makeIssue(entity, relation, index, options, graph))
           }
         })
@@ -163,10 +170,11 @@ export const missingRole: Rule = {
     } else if (entity instanceof OsmRelation) {
       const roles = roleSchemaOf(entity, presets)
       if (roles) {
+        const counts = roleCounts(entity)
         entity.members.forEach((member, index) => {
           const memberEntity = graph.hasEntity(member.id)
           if (memberEntity && isMissingRole(member.role)) {
-            const options = fittingRoles(memberEntity, entity, roles, presets, graph)
+            const options = fittingRoles(memberEntity, entity, roles, presets, graph, counts)
             issues.push(makeIssue(memberEntity, entity, index, options, graph))
           }
         })

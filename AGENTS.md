@@ -90,7 +90,7 @@ The browser checks need `bun run dev` and take `[scene]` and `--app maid|bicycle
 | `check-draw` | Draw a line, continue it, snap to a node and a way, draw an area, cancel |
 | `check-undo` | Move a vertex, change a tag, undo and redo |
 | `check-ops` | Square a building, split a road, merge the parts, undo |
-| `check-relations` | Add a way to a relation, change its role, remove it, undo; a multipolygon follows its moved node |
+| `check-relations` | Add a way to a relation, change its role, remove it, undo; a multipolygon follows its moved node. `check-all` runs it on `small` and on `relations` (routes, turn restrictions, boundaries) |
 | `check-validation` | A footway that crosses a road and connects to nothing: both reported, fix, undo |
 | `check-journal` | Edit, reload, restore from the browser's storage, undo all, reload, discard |
 | `check-filters` | Hide buildings, make them read-only, reset, a filter in the URL |

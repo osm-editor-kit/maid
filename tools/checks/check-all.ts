@@ -33,12 +33,21 @@ const CHECKS = [
 ] as const
 type CheckName = (typeof CHECKS)[number]
 
+/** A run of a check: its name in the report, the check, and a scene other than the default (small) */
+type Run = { name: string; check: CheckName; scene?: string }
+
+/** Every check on the default scene, then the relation check on the scene made for relations (fixtures `relations`) */
+const RUNS: Run[] = [
+  ...CHECKS.map((check) => ({ name: check, check })),
+  { name: 'relations-scene', check: 'relations', scene: 'relations' },
+]
+
 /**
  * The `ok` lines each check prints on the default scene (small) when it passes, per app. A check
  * with fewer `ok` lines fails. With more, it passes, and the run prints a note: update this table.
  * Bicycle and parking have the same numbers until a real run says otherwise.
  */
-const EXPECTED_OK: Record<CheckName, Record<AppName, number>> = {
+const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   interactions: { maid: 159, bicycle: 159, parking: 159 },
   edit: { maid: 20, bicycle: 20, parking: 20 },
   draw: { maid: 14, bicycle: 14, parking: 14 },
@@ -52,10 +61,11 @@ const EXPECTED_OK: Record<CheckName, Record<AppName, number>> = {
   multi: { maid: 11, bicycle: 11, parking: 11 },
   // runs for the parking app only (the others have no parking module): the expected count is 0 elsewhere
   parking: { maid: 0, bicycle: 0, parking: 28 },
+  'relations-scene': { maid: 25, bicycle: 25, parking: 25 },
 }
 
 type CheckResult = {
-  name: CheckName
+  name: string
   exitCode: number
   okCount: number
   expectedOk: number
@@ -78,12 +88,13 @@ await mkdir(outDir, { recursive: true })
 const startedAt = new Date()
 const results: CheckResult[] = []
 
-for (const name of CHECKS) {
+for (const { name, check, scene } of RUNS) {
   // the parking check needs the parking module: only `--app parking` runs it
-  if (name === 'parking' && app !== 'parking') continue
-  const expectedOk = EXPECTED_OK[name][app]
+  if (check === 'parking' && app !== 'parking') continue
+  const expectedOk = EXPECTED_OK[name]?.[app] ?? 0
   const began = performance.now()
-  const proc = Bun.spawn([process.execPath, 'run', `check-${name}`, '--app', app], {
+  const args = scene ? [`check-${check}`, scene, '--app', app] : [`check-${check}`, '--app', app]
+  const proc = Bun.spawn([process.execPath, 'run', ...args], {
     cwd: ROOT,
     stdout: 'pipe',
     stderr: 'pipe',
