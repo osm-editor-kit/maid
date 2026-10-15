@@ -18,6 +18,8 @@ import type { Rule } from './types.ts'
 
 export { createValidator } from './validator.ts'
 export { compareSharedIssues, sharedIssues } from './shared-issues.ts'
+export { applyOverrides, parseOverrides, subtypeOf } from './overrides.ts'
+export type { OverrideParams, OverrideRule, Overrides } from './overrides.ts'
 export { missingTag } from './rules/missing-tag.ts'
 export { disconnectedWay } from './rules/disconnected-way.ts'
 export { crossingWays } from './rules/crossing-ways.ts'
