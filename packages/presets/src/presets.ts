@@ -78,6 +78,11 @@ function textOf(section: RawRecord, id: string, key: string) {
   return asString(asRecord(own(section, id))?.[key])
 }
 
+/** The translation's own value of a list (`terms`, `aliases`): a string or an array, else the preset's raw value. */
+function translatedList(section: RawRecord, id: string, key: string, raw: unknown): unknown {
+  return asRecord(own(section, id))?.[key] ?? raw
+}
+
 /**
  * Follows `{other}` references. Returns the id whose text was used and the text itself.
  * iD keeps a label or name that refers to another entry in that entry's translation.
@@ -205,9 +210,12 @@ function isFallbackTags(tags: Tags) {
   return keys.length === 0 || (keys.length === 1 && keys[0] === 'area')
 }
 
-/** A translation list: `text` split on `separator` (iD's `terms` are comma separated, `aliases` newline separated), else the raw array. */
-function wordList(text: string | undefined, separator: string, fallback: unknown) {
-  const words = text !== undefined ? text.split(separator) : (asStrings(fallback) ?? [])
+/**
+ * A list of words: a string is split on `separator` (iD's 6.x `terms` are comma separated, `aliases` newline
+ * separated); an array is taken as it is (id-tagging-schema 7.x stores both as arrays, changelog 7.0.0, migration 4).
+ */
+function wordList(text: unknown, separator: string) {
+  const words = typeof text === 'string' ? text.split(separator) : (asStrings(text) ?? [])
   return words.map((word) => word.trim()).filter((word) => word !== '')
 }
 
@@ -572,10 +580,10 @@ export function createPresets(data: PresetData): Presets {
       removeTags,
       matchScore: score !== undefined && score !== 0 ? score : 1,
       searchable: raw.searchable !== false,
-      terms: wordList(textOf(presetNames, id, 'terms'), ',', raw.terms).map((term) =>
+      terms: wordList(translatedList(presetNames, id, 'terms', raw.terms), ',').map((term) =>
         term.toLowerCase(),
       ),
-      aliases: wordList(textOf(presetNames, id, 'aliases'), '\n', raw.aliases),
+      aliases: wordList(translatedList(presetNames, id, 'aliases', raw.aliases), '\n'),
     }
     const icon = asString(raw.icon)
     if (icon !== undefined) preset.icon = icon

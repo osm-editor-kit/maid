@@ -3,9 +3,8 @@
  * feature 24). One field replaces the schema's plain `surface` field and its `smoothness` field in these presets, so
  * the two tags have one home. The field id is ours (`surface_smoothness`); the keys are OSM's.
  *
- * Only the presets with a field list of their own are edited. Presets that take their list from another preset
- * (`{highway/primary}`, `{highway/residential}`: secondary, tertiary, unclassified, road) inherit the change; editing
- * them as well would show the field twice (the same note as in maid-module-traffic-signs).
+ * Since id-tagging-schema 7 every preset has its field list written out (no `{highway/primary}` references), so each
+ * road is named here (the same list as in maid-module-traffic-signs).
  */
 import type { PresetChanges } from '@osm-editor-kit/maid-presets'
 
@@ -27,14 +26,18 @@ export const SURFACE_SMOOTHNESS_FIELD: SurfaceField = {
 }
 
 /**
- * The roads that have a field list of their own and show `surface` there (the same five as the traffic sign module).
+ * The roads that show `surface` in their fields (the same list as the traffic sign module).
  * The field takes the place of `surface` and sits before `structure`, which follows it in every one of these lists.
  * `smoothness` is in their more fields: it goes out of there.
  */
 export const SURFACE_ROAD_PRESETS = [
   'highway/trunk',
   'highway/primary',
+  'highway/secondary',
+  'highway/tertiary',
+  'highway/unclassified',
   'highway/residential',
+  'highway/road',
   'highway/living_street',
   'highway/service',
 ] as const

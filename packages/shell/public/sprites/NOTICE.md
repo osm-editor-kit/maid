@@ -13,10 +13,11 @@ at run time for preset icons (`packages/shell/src/images.ts`, `PresetIcon.tsx`).
 | `maki-sprite.svg` | Maki | mapbox/maki (`@mapbox/maki` 8.2.0) | CC0 1.0 | `package.json` in `.reference/id/node_modules` |
 | `temaki-sprite.svg` | Temaki | ideditor/temaki (`@rapideditor/temaki` 5.13.0) | CC0 1.0 | `package.json` in `.reference/id/node_modules` |
 | `fa-sprite.svg` | Font Awesome Free icons | fontawesome.com (copied by iD from `svg/fontawesome`) | CC BY 4.0 | `svg/fontawesome/README.md` in iD, and iD's `README.md` attribution list. The Font Awesome version was not confirmed. |
+| `pinhead-sprite.svg` | Pinhead | waysidemapping/pinhead (`@waysidemapping/pinhead` 15.25.0) | CC0 1.0 | `package.json` and `LICENSE` in `.reference/id/node_modules/@waysidemapping/pinhead` |
 | `roentgen-sprite.svg` | Röntgen icons, by Sergey Vartanov | enzet/Roentgen (`@enzet/roentgen`) | CC BY 4.0 | `LICENSE` in `.reference/id/node_modules/@enzet/roentgen`, and iD's `README.md` attribution list |
 
 Attribution, when the icons are shown in a published work: name each set and its licence from the
-table above. Maki and Temaki need no attribution under CC0 1.0. Font Awesome and Röntgen need
+table above. Maki, Temaki and Pinhead need no attribution under CC0 1.0. Font Awesome and Röntgen need
 attribution under CC BY 4.0.
 
-Not copied here: iD's community, Mapillary and pinhead sprites (iD's build also makes them).
+Not copied here: iD's community and Mapillary sprites (iD's build also makes them).

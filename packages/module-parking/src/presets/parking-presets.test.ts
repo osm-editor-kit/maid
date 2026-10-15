@@ -43,7 +43,7 @@ describe('parkingPresetChanges', () => {
   })
 
   it('the other highway presets that show side fields get the same prominent fields', () => {
-    // secondary, tertiary, unclassified and road take these lists from primary and residential through references
+    // every road with side fields is edited on its own (id-tagging-schema 7 has no field references)
     for (const road of [
       'primary',
       'living_street',

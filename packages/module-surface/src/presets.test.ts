@@ -75,7 +75,7 @@ describe('surfacePresetChanges', () => {
     expect(ids.indexOf(SURFACE_SMOOTHNESS_FIELD_ID)).toBeGreaterThan(ids.indexOf('oneway'))
   })
 
-  it('gives the field once to the roads that take their list from primary or residential', () => {
+  it('gives the field once to secondary, tertiary, unclassified and road, each named on its own', () => {
     for (const tags of [
       { highway: 'secondary' },
       { highway: 'tertiary' },

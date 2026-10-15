@@ -13,7 +13,8 @@ function idsOf(query: string, geometry: Geometry, limit?: number): string[] {
   return presets.search(query, geometry, limit).map((preset) => preset.id)
 }
 
-// Expected values were read from the id-tagging-schema 6.19.2 data (dist/*.min.json), not from this code.
+// Expected values were read from the id-tagging-schema 6.19.2 data (dist/*.min.json), not from this code. They hold for
+// 7.2.0 too: the bundled data is what these tests run on.
 
 describe('match', () => {
   it('matches amenity=cafe as a point to amenity/cafe with its name and icon', () => {
@@ -234,7 +235,11 @@ describe('moreFieldsFor', () => {
         .slice()
         .sort((a, b) => a.localeCompare(b)),
     )
-    expect(general.map((field) => field.id)).toContain('website')
+    // website is a field of the bakery since id-tagging-schema 7.2.0 (#2669), so it is no longer offered here
+    const shown = presets.fieldsFor(bakery, { shop: 'bakery' }, 'point').map((field) => field.id)
+    expect(shown).toContain('website')
+    expect(general.map((field) => field.id)).not.toContain('website')
+    expect(general.map((field) => field.id)).toContain('description')
   })
 
   it('offers a universal field only for the geometries it applies to (ele_node: point and vertex)', () => {
@@ -296,6 +301,12 @@ describe('search', () => {
   it('finds amenity/cafe by its term "espresso"', () => {
     expect(presetOf('amenity/cafe').terms).toContain('espresso')
     expect(idsOf('espresso', 'point')).toContain('amenity/cafe')
+  })
+
+  // 7.x stores aliases as an array in the translation (6.x: a newline separated string), see presets.ts wordList
+  it('reads the aliases of tourism/alpine_hut from the array in the translation', () => {
+    expect(presetOf('tourism/alpine_hut').aliases).toContain('Mountain Hut')
+    expect(presetOf('tourism/alpine_hut').aliases).toHaveLength(5)
   })
 
   it('does not offer amenity/cafe for the line geometry', () => {

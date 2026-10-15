@@ -15,7 +15,8 @@ function custom(presetRaw: Record<string, Raw>, fieldRaw: Record<string, Raw> = 
   return createPresets({ presets: presetRaw, fields: fieldRaw, translations: {} })
 }
 
-// Expected values were read from the id-tagging-schema 6.19.2 data (dist/*.min.json), not from this code.
+// Expected values were read from the id-tagging-schema 6.19.2 data (dist/*.min.json), not from this code. They hold for
+// 7.2.0 too: the bundled data is what these tests run on.
 
 describe('preset reference from the schema', () => {
   it('takes the schema key and value for waterway/stream_intermittent', () => {

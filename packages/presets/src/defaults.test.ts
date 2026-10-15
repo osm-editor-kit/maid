@@ -37,7 +37,8 @@ function lookup(presets: Preset[]) {
 
 const ids = (rows: readonly PresetRow[]) => rows.map((row) => row.id)
 
-// Expected values were read from the id-tagging-schema 6.19.2 data (dist/*.min.json), not from this code.
+// Expected values were read from the id-tagging-schema 6.19.2 data (dist/*.min.json), not from this code. They hold for
+// 7.2.0 too: the bundled data is what these tests run on.
 
 describe('offered (iD: searchable and matchAllGeometry)', () => {
   it('offers a searchable preset that matches every geometry', () => {
@@ -214,7 +215,7 @@ describe('createDefaults', () => {
   })
 })
 
-describe('the bundled defaults (id-tagging-schema 6.19.2)', () => {
+describe('the bundled defaults (id-tagging-schema 6.19.2, still true in 7.2.0)', () => {
   it('lists the categories and the presets of the point defaults, the fallback last', () => {
     const rows = defaultPresets.defaults(['point'])
     expect(rows[0]?.id).toBe('category-natural')

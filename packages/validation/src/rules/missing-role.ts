@@ -12,7 +12,7 @@ import type { Fix, Issue, PresetLookup, RelationRoles, Rule } from '../types.ts'
 // Ported from iD's missing_role (ISC, © iD contributors), at PR 12990: a node or a way is checked against the
 // relations it is a member of, and a relation against its members. The roles come from the relation's schema
 // (`presets.relationRoles`); a fix offers the roles that are valid for the member's geometry and tags.
-// The bundled id-tagging-schema 6.x has no member schemas, so a multipolygon without one keeps the roles it always
+// id-tagging-schema 7.2 has no member schema for `type=multipolygon`, so a multipolygon keeps the roles it always
 // had (outer and inner, with no geometry filter): that is the fallback, and it needs no presets.
 
 /** A member without a role, or with only spaces as its role */

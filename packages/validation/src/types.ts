@@ -54,7 +54,8 @@ export type PresetLookup = {
   ): { old: Record<string, string>; replace?: Record<string, string> }[]
   /**
    * iD's utilGetRelationSchema: the roles of a relation with these tags, with their labels (`label` is '' when there
-   * is none). {} when the relation's preset has no member schema, which is the case for all of id-tagging-schema 6.x.
+   * is none). {} when the relation's preset has no member schema (in id-tagging-schema 7.2, only areas and administrative
+   * boundaries have one).
    */
   relationRoles(tags: Readonly<Record<string, string>>): RelationRoles
   /** iD's utilRelationAllowsDuplicateMembers: false only when the relation's schema says `allowDuplicateMembers: false`. */

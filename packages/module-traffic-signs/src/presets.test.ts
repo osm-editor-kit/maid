@@ -26,7 +26,7 @@ describe('trafficSignPresetChanges', () => {
     expect(sign?.label).toBe('Traffic Sign')
   })
 
-  it('shows the way sign on the roads that take their list from primary or residential', () => {
+  it('shows the way sign on secondary, tertiary, unclassified and road, each named on its own', () => {
     expect(fieldIds({ highway: 'secondary' })).toContain('traffic_sign_way')
     expect(fieldIds({ highway: 'tertiary' })).toContain('traffic_sign_way')
     expect(fieldIds({ highway: 'unclassified' })).toContain('traffic_sign_way')

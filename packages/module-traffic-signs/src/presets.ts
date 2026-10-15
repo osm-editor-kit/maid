@@ -57,14 +57,17 @@ export const TRAFFIC_SIGN_FIELDS = {
 } satisfies Record<string, SignField>
 
 /**
- * The roads of the fork's feature 15 ("trunk … living_street, service") that have a field list of their own.
- * In the schema, secondary and tertiary take the list of primary (`{highway/primary}`) and unclassified that of
- * residential, so they show the change too; editing them as well would add every field twice.
+ * The roads of the fork's feature 15 ("trunk … living_street, service"). Since id-tagging-schema 7 every preset has its
+ * field list written out (no `{highway/primary}` references), so each road is named here.
  */
 export const ROAD_PRESETS = [
   'highway/trunk',
   'highway/primary',
+  'highway/secondary',
+  'highway/tertiary',
+  'highway/unclassified',
   'highway/residential',
+  'highway/road',
   'highway/living_street',
   'highway/service',
 ] as const

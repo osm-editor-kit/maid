@@ -168,7 +168,11 @@ export const PARKING_PRESETS: Record<string, PresetDefinition> = {
 /** The roads that show the side fields. Trunk roads and links are left out: parking on them is not mapped. */
 export const PARKING_ROADS = [
   'highway/primary',
+  'highway/secondary',
+  'highway/tertiary',
+  'highway/unclassified',
   'highway/residential',
+  'highway/road',
   'highway/living_street',
   'highway/service',
 ] as const
@@ -177,8 +181,8 @@ export const PARKING_ROADS = [
  * The road presets' edit. A parking editor shows the parking fields first: the prominent side fields go before the
  * road's own fields (name, one way, speed limit, lanes, surface), in the order of ROAD_PROMINENT_FIELDS. Position and
  * orientation are in the schema's `moreFields` and move from there; the rest of the side fields are added to
- * `moreFields`. Unclassified, tertiary, secondary and road take these lists from residential and primary in the schema
- * (`{highway/…}` references), so they show the change too.
+ * `moreFields`. Since id-tagging-schema 7, every road preset has its field list written out (no `{highway/…}`
+ * references), so each road is named in PARKING_ROADS.
  */
 export const ROAD_PRESET_EDIT: PresetEdit = {
   addFields: ROAD_PROMINENT_FIELDS.map((id) => ({ id, before: 'name' })),

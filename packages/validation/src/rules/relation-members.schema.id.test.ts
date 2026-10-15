@@ -5,7 +5,7 @@
 // kept as far as the issue is found, and check that the fix is left out.
 //
 // Not ported: "follows relationCrossReference to find the schema". Maid's presets read `type` for the schema and have no
-// relationCrossReference (the id-tagging-schema 6.x data has no member schemas either).
+// relationCrossReference.
 import { describe, expect, it } from 'bun:test'
 import { Graph } from '@osm-editor-kit/maid-model'
 import type { Action, OsmEntity } from '@osm-editor-kit/maid-model'

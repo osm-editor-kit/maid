@@ -112,8 +112,58 @@ describe('relationRoles (iD utilGetRelationSchema)', () => {
     expect(presets.preset('type/restriction/no_left_turn')?.relation).toBeUndefined()
   })
 
-  it('is empty with the bundled 6.x data, which has no relation field yet', () => {
+  it('is empty for type=boundary alone: the bundled schema gives only the administrative boundary a relation', () => {
     expect(defaultPresets.relationRoles({ type: 'boundary' })).toStrictEqual({})
+  })
+})
+
+// The bundled id-tagging-schema 7.2.0 data (dist/presets.json and translations/en.json), not a fixture.
+describe('relationRoles on the bundled data (id-tagging-schema 7.2.0)', () => {
+  it('reads the four member roles of an administrative boundary, in the schema order', () => {
+    const roles = defaultPresets.relationRoles({ type: 'boundary', boundary: 'administrative' })
+    expect(Object.keys(roles)).toStrictEqual(['inner', 'outer', 'label', 'admin_centre'])
+  })
+
+  it('reads the member rules as the schema has them (geometry, matchTags, min, max)', () => {
+    const roles = defaultPresets.relationRoles({ type: 'boundary', boundary: 'administrative' })
+    expect(roles.inner?.member).toStrictEqual({ role: 'inner', geometry: ['line', 'area'] })
+    expect(roles.outer?.member).toStrictEqual({ role: 'outer', geometry: ['line', 'area'], min: 1 })
+    expect(roles.label?.member).toStrictEqual({
+      role: 'label',
+      geometry: ['point', 'vertex'],
+      matchTags: [{ place: '*' }],
+      max: 1,
+    })
+    expect(roles.admin_centre?.member).toStrictEqual({
+      role: 'admin_centre',
+      geometry: ['point', 'vertex'],
+      matchTags: [{ place: '*' }],
+      max: 1,
+    })
+  })
+
+  it('takes the labels from the preset translation (relation.role_labels)', () => {
+    const roles = defaultPresets.relationRoles({ type: 'boundary', boundary: 'administrative' })
+    expect(roles.inner?.label).toBe('Inner')
+    expect(roles.outer?.label).toBe('Outer')
+    expect(roles.label?.label).toBe('Label')
+    expect(roles.admin_centre?.label).toBe('Admin Center')
+  })
+
+  it('does not allow duplicate members in an administrative boundary (allowDuplicateMembers: false)', () => {
+    const admin = { type: 'boundary', boundary: 'administrative' }
+    expect(defaultPresets.allowsDuplicateMembers(admin)).toBe(false)
+  })
+
+  it('reads the relation of the area preset (reference multipolygon): inner, and outer at least one', () => {
+    const relation = defaultPresets.preset('area')?.relation
+    expect(relation?.reference).toBe('multipolygon')
+    expect(relation?.members.map((member) => member.role)).toStrictEqual(['inner', 'outer'])
+    expect(relation?.members[1]).toStrictEqual({
+      role: 'outer',
+      geometry: ['line', 'area'],
+      min: 1,
+    })
   })
 })
 

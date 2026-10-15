@@ -133,7 +133,8 @@ describe('location sets: a field default is written only where its location set 
 
 describe('location sets: presets that exist in some countries only', () => {
   // amenity/community_centre/chitalishte_BG: Bulgaria only. amenity/townhall/barangay-PH: the Philippines only.
-  // amenity/post_box/post_box-US: the US only; amenity/post_box excludes the US.
+  // highway/motorway_link-US-CA: the US and Canada only; highway/motorway_link excludes them.
+  // (amenity/post_box/post_box-US was merged into amenity/post_box in id-tagging-schema 7.1.0, #2645.)
   it('is matched in Sofia, and the general preset in Paris (iD: matchTags passes over it)', () => {
     const tags = { amenity: 'community_centre', community_centre: 'chitalishte' }
     expect(presets.match(tags, 'point', SOFIA).id).toBe('amenity/community_centre/chitalishte_BG')
@@ -151,10 +152,20 @@ describe('location sets: presets that exist in some countries only', () => {
     expect(presets.match(tags, 'point', PARIS).id).toBe('amenity/townhall')
   })
 
-  it('a US post box is matched in New York, and the general one in Paris', () => {
+  it('a US motorway link is matched in New York, and the general one in Paris', () => {
+    const tags = { highway: 'motorway_link' }
+    expect(presets.match(tags, 'line', NEW_YORK).id).toBe('highway/motorway_link-US-CA')
+    expect(presets.match(tags, 'line', PARIS).id).toBe('highway/motorway_link')
+  })
+
+  it('a post box has one preset in every country: its US drive-through field is shown there only', () => {
     const tags = { amenity: 'post_box' }
-    expect(presets.match(tags, 'point', NEW_YORK).id).toBe('amenity/post_box/post_box-US')
+    expect(presets.match(tags, 'point', NEW_YORK).id).toBe('amenity/post_box')
     expect(presets.match(tags, 'point', PARIS).id).toBe('amenity/post_box')
+    const shownIn = (loc: LonLat) =>
+      fieldIdsOf(presets.fieldsFor(presets.match(tags, 'point', loc), tags, 'point', loc))
+    expect(shownIn(NEW_YORK)).toContain('drive_through-US')
+    expect(shownIn(PARIS)).not.toContain('drive_through-US')
   })
 
   it('is offered by search in Sofia only', () => {

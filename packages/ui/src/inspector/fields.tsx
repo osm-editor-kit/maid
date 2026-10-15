@@ -66,6 +66,8 @@ export const defaultFieldComponents: Record<string, FieldComponent> = {
   wikipedia: lazyField(WikipediaFieldLazy),
   wikidata: lazyField(WikidataFieldLazy),
   text: TextField,
+  // iD draws both with its text input (ui/fields/input.js): opening hours and times, whole numbers
+  schedule: TextField,
   textarea: TextareaField,
   url: UrlField,
   email: EmailField,
@@ -76,6 +78,7 @@ export const defaultFieldComponents: Record<string, FieldComponent> = {
   date: DateField,
   colour: ColourField,
   number: NumberField,
+  integer: NumberField,
   roadspeed: RoadSpeedField,
   roadheight: RoadHeightField,
   combo: ComboField,

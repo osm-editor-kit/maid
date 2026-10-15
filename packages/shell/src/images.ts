@@ -10,6 +10,7 @@ export const SPRITE_OF_PREFIX: Record<string, string> = {
   far: 'fa',
   fab: 'fa',
   roentgen: 'roentgen',
+  pinhead: 'pinhead',
   iD: 'iD',
 }
 
