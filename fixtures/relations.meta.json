@@ -1,0 +1,27 @@
+{
+  "name": "relations",
+  "description": "Köpenick along Müggelheimer Straße: bicycle routes beside the road, a superroute, bus and hiking routes, turn restrictions and multipolygons",
+  "bbox": [
+    13.56058,
+    52.43938,
+    13.5827,
+    52.44837
+  ],
+  "center": [
+    13.5729,
+    52.445
+  ],
+  "zoom": 17,
+  "counts": {
+    "node": 19358,
+    "way": 3420,
+    "relation": 190
+  },
+  "source": {
+    "file": "berlin-latest.osm.pbf",
+    "timestamp": "2026-08-06T20:21:21Z",
+    "osmium": "osmium version 1.19.1"
+  },
+  "attribution": "© OpenStreetMap contributors, ODbL 1.0",
+  "sha256": "db9f153f27a0c2148dbefb5fc83da62bf773933752989d3cc1dc42d0b3fe8f48"
+}

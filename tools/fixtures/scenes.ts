@@ -33,6 +33,14 @@ export const SCENES: Scene[] = [
     center: [13.433, 52.4845],
     zoom: 17,
   },
+  {
+    name: 'relations',
+    description:
+      'Köpenick along Müggelheimer Straße: bicycle routes beside the road, a superroute, bus and hiking routes, turn restrictions and multipolygons',
+    bbox: [13.56058, 52.43938, 13.5827, 52.44837],
+    center: [13.5729, 52.445],
+    zoom: 17,
+  },
 ]
 
 export function getScene(name: string) {

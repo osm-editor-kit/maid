@@ -5,9 +5,12 @@ import { join } from 'node:path'
  * Never downloads anything (core rule 1). Run by a person on purpose:
  *
  *   bun run fixtures-build /path/to/berlin-latest.osm.pbf
+ *   bun run fixtures-build /path/to/berlin-latest.osm.pbf --scene relations
+ *
+ * `--scene` builds only the named scenes (repeatable, or `a,b`); the others stay as they are.
  */
 import { $ } from 'bun'
-import { SCENES } from './scenes'
+import { getScene, SCENES, type Scene } from './scenes'
 
 type Element =
   | {
@@ -109,10 +112,43 @@ export function parseOplLine(line: string): Element | undefined {
   }
 }
 
+/**
+ * The command line: the first argument without a flag is the extract; `--scene name[,name]`
+ * (repeatable) picks scenes, and without it every scene in SCENES is built. An unknown scene
+ * name throws, and the error lists the known names.
+ */
+export function parseBuildArgs(argv: string[]): { source: string | undefined; scenes: Scene[] } {
+  const names: string[] = []
+  const positional: string[] = []
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]!
+    if (arg === '--scene') {
+      const value = argv[++i]
+      if (!value) throw new Error('--scene needs a scene name')
+      names.push(...value.split(','))
+    } else if (arg.startsWith('--scene=')) {
+      names.push(...arg.slice('--scene='.length).split(','))
+    } else if (arg.startsWith('--')) {
+      throw new Error(`Unknown option ${arg}`)
+    } else {
+      positional.push(arg)
+    }
+  }
+  const scenes = names.length ? [...new Set(names)].map((name) => getScene(name)) : SCENES
+  return { source: positional[0], scenes }
+}
+
 if (import.meta.main) {
-  const source = process.argv[2]
+  let parsed: ReturnType<typeof parseBuildArgs>
+  try {
+    parsed = parseBuildArgs(process.argv.slice(2))
+  } catch (error) {
+    console.error((error as Error).message)
+    process.exit(1)
+  }
+  const { source, scenes } = parsed
   if (!source) {
-    console.error('Usage: bun run fixtures-build /path/to/extract.osm.pbf')
+    console.error('Usage: bun run fixtures-build /path/to/extract.osm.pbf [--scene name[,name]]')
     process.exit(1)
   }
   const outDir = join(import.meta.dir, '../../fixtures')
@@ -121,7 +157,7 @@ if (import.meta.main) {
   const sourceTimestamp = info.match(/timestamp=(\S+)/)?.[1] ?? 'unknown'
   const osmiumVersion = (await $`osmium --version`.text()).split('\n')[0]
 
-  for (const scene of SCENES) {
+  for (const scene of scenes) {
     const pbf = join(outDir, `${scene.name}.tmp.osm.pbf`)
     await $`osmium extract -b ${scene.bbox.join(',')} -s complete_ways -O -o ${pbf} ${source}`.quiet()
     const opl = await $`osmium cat -f opl ${pbf}`.quiet().text()
