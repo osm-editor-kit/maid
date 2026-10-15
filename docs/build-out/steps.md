@@ -221,6 +221,9 @@ Built since the queue was written, with the commit and a line on what to try, is
 
 ### Done since the queue was written
 
+- [x] The night of 2026-10-15 to 16: relations (everything decided, see [relation-handling.md](../research/relation-handling.md), "Done in the night"), the way table in maid-bicycle ([way-table.md](../research/way-table.md)), rerouting a route in maid-bicycle, issues in data the person did not edit ([issue-scope-ux.md](../research/issue-scope-ux.md)), all iD URL parameters ([08-url-state.md](../architecture/08-url-state.md)), the background offset, grouped directional fields, the parking quick buttons that cycle, three apps on GitHub Pages ([deploying.md](../deploying.md)).
+  Test for Tobias: <https://osm-editor-kit.github.io/maid/>, then Maid Bicycle: select a road and open "Way table" in the dock; select a bicycle route and use "Reroute a stretch"; select a route and see its gaps and arrows on the map.
+
 - [x] The shell is a package, and `apps/maid` is a config and an entry (steps 0 to 4 of the [shell plan](../research/shell-package-plan.md)); an app is `mountEditor(root, app)`.
   Result (2026-10-13): built in 5251d50 (the 82 files moved, although that commit's message names only operations), a1eb73e (`apps/maid` as config and entry) and a383355 (the app as an argument). Test for Tobias: `bun run dev`, then open <http://localhost:5173> and <http://localhost:5176>. Both start with their own settings and journal. Login on 5176 says it is unavailable until its redirect is registered.
 - [x] `apps/maid-bicycle` as a second editor on port 5176, with the default modules and the traffic sign module.

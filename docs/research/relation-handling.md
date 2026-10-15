@@ -136,6 +136,25 @@ The items below that name these parts are therefore done; they stay listed for t
 - Relations that got a member in this session stay at the top of "Add to a relation"; ids show on hover in the memberships list, and in the picker (native options) only when two relations have the same name.
 - Members can be dragged to a new place (motion `Reorder`, one undo step per drop); the move buttons stay.
 
+### Done in the night of 2026-10-15 to 16
+
+Everything decided in section 4 is built, except lanes (separate topic). In order of the decisions:
+
+- **Schema:** id-tagging-schema 7.3.0, which skips the 5-day wait (c9650d3). Member rules for 19 presets; routes have none yet.
+- **Route on the map:** a selected route shows its gap ends and the travel direction of its ways (3f5d47f).
+- **Superrelations:** own ways strong, sub-routes lighter, a label in each sub-route's colour; hovering a sub-route in the list makes it strong (3f5d47f).
+- **Member list:** stops and ways as two groups in data order; drag and move buttons within a group (3f5d47f).
+- **Relation colour:** a dot before the label in the memberships list; the map uses the same colours (3f5d47f).
+- **Paste:** "Also add" offers the original's relations after a paste (3f5d47f).
+- **Several features:** a Relations section for a multi-selection ("all" / "some N of M", add the others, remove all) and edit-menu operations (5241395).
+- **Warnings:** route gaps (`route_gap`), open boundaries (`boundary_not_closed`), broken turn restrictions (`restriction_broken`), a relation that contains itself, crossing multipolygon rings (a052fc3, 4167eb1). The sidebar, the map and the Issues list find route gaps with one function.
+- **Issue scope:** issues in data the person did not edit are checked on selection and shown quietly; the "…" setting Quiet / This session / Always (c9f26ad, 6fd1ca0).
+- **Incomplete multipolygons:** never filled across a gap (iD 1201 does not apply); their loaded ways are drawn as an outline (37995b0, 1d1e193).
+- **Loading members:** as iD, nothing loads on selection; a download also fetches the parent relations (6fdea93).
+- **Rerouting (section 7):** Maid's own router (d2cf3cf) and the reroute mode in maid-bicycle with click and drag, splitting, roles from the data and one undo step (649dbd3, 474877d).
+
+Open for Tobias: whether incomplete multipolygons with only an inner missing should be filled without the hole (iD does); whether a cycleway branch at a junction should win over the continuing road in the way table (it does now).
+
 ### The five I rate highest
 
 1. **Member rules in a validator** (min and max, wrong role, invalid geometry, role not allowed).
