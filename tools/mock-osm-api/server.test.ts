@@ -34,6 +34,28 @@ describe('mock OSM API', () => {
     expect((await get('/s/nope/api/capabilities.json')).status).toBe(404)
   })
 
+  test('the relations an element is a member of', async () => {
+    // a way that some relation of the scene holds, found from the map's answer
+    const map = await (
+      await get('/s/small/api/0.6/map.json?bbox=13.393,52.385,13.407,52.393')
+    ).json()
+    type Element = { type: string; id: number; members?: { type: string; ref: number }[] }
+    const holder = (map.elements as Element[]).find((e) => e.members?.some((m) => m.type === 'way'))
+    const wayId = holder?.members?.find((m) => m.type === 'way')?.ref
+    expect(wayId).toBeDefined()
+    const res = await get(`/s/small/api/0.6/way/${wayId}/relations.json`)
+    expect(res.status).toBe(200)
+    const elements = (await res.json()).elements as Element[]
+    expect(elements.some((e) => e.id === holder?.id)).toBe(true)
+    expect(
+      elements.every((e) => e.type === 'relation' && e.members?.some((m) => m.ref === wayId)),
+    ).toBe(true)
+    // an element no relation holds gets an empty list
+    expect((await (await get('/s/small/api/0.6/node/1/relations.json')).json()).elements).toEqual(
+      [],
+    )
+  })
+
   describe('notes', () => {
     const SMALL = '13.393,52.385,13.407,52.393'
     const notesOf = async (query: string) => {

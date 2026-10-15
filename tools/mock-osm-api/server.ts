@@ -10,6 +10,7 @@
  *   /api/0.6/notes.json?bbox=l,b,r,t&closed=0|-1&limit=N (notes of fixtures/notes/<scene>.json)
  *   /api/0.6/notes/ID(.json) (one note, as a link's `id=note/<id>` loads it)
  *   /api/0.6/node/ID(.json), /api/0.6/{way,relation}/ID(/full)(.json)
+ *   /api/0.6/{node,way,relation}/ID/relations(.json) (the relations an element is a member of, as iD's download asks)
  * Every write is rejected with 405. /requests returns a log of what was asked.
  */
 import { join } from 'node:path'
@@ -131,6 +132,14 @@ export class SceneIndex {
       features.push(note)
     }
     return JSON.stringify({ type: 'FeatureCollection', features })
+  }
+
+  /** The relations that have this element as a member, as `/api/0.6/{type}/ID/relations` answers */
+  parentRelations(type: 'node' | 'way' | 'relation', id: number): string {
+    const elements = [...this.relations.values()].filter((relation) =>
+      relation.members.some((member) => member.type === type && member.ref === id),
+    )
+    return JSON.stringify({ version: '0.6', elements })
   }
 
   /** One note by its id, as `/api/0.6/notes/ID.json` answers it, or undefined */
@@ -292,6 +301,13 @@ export function createHandler(scenes: Map<string, SceneIndex>, options: { latenc
       if (bbox?.length !== 4 || bbox.some(Number.isNaN))
         return new Response('Bad bbox', { status: 400, headers: CORS })
       return new Response(scene.map(bbox as [number, number, number, number]), {
+        headers: JSON_HEADERS,
+      })
+    }
+    const parents = path.match(/^\/api\/0\.6\/(node|way|relation)\/(\d+)\/relations$/)
+    if (parents) {
+      const type = parents[1] as 'node' | 'way' | 'relation'
+      return new Response(scene.parentRelations(type, Number(parents[2])), {
         headers: JSON_HEADERS,
       })
     }

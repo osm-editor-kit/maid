@@ -798,6 +798,12 @@ function MemberList({
           </button>
         )
       )}
+      {load.status === 'loading' && (
+        // a status for screen readers too: the button is busy and says what it loads
+        <p role="status" className={SECONDARY_NOTE}>
+          {m.relations_loading_members()}
+        </p>
+      )}
       {result && <p className={SECONDARY_NOTE}>{result}</p>}
     </div>
   )

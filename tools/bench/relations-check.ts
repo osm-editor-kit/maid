@@ -269,11 +269,11 @@ process.exit(
       }[]
       const number = target.id.slice(1)
       report(
-        'load a relation: two calls at once make one request to its full answer',
+        'load a relation: two calls at once make one request to its full answer and one for its parent relations, as iD',
         [1, 1],
         [
-          log.length,
           log.filter((r) => r.path.endsWith(`/api/0.6/relation/${number}/full.json`)).length,
+          log.filter((r) => r.path.endsWith(`/api/0.6/relation/${number}/relations.json`)).length,
         ],
       )
       report(

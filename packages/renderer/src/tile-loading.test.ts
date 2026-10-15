@@ -327,9 +327,11 @@ describe('the engine on its own: relation loads through the fetch option', () =>
       return relationAnswer()
     })
     expect(await engine.loadRelation('r5')).toEqual({ added: 1 })
-    expect(calls).toHaveLength(1)
+    // the relation, then its parent relations (as iD's download asks for them); only the relation is counted
+    expect(calls).toHaveLength(2)
     expect(calls[0]?.url).toBe('http://localhost:8090/s/small/api/0.6/relation/5/full.json')
     expect(calls[0]?.signal).toBeInstanceOf(AbortSignal)
+    expect(calls[1]?.url).toBe('http://localhost:8090/s/small/api/0.6/relation/5/relations.json')
   })
 
   test('a rate limit on a relation load rejects with the answer, as today', async () => {
@@ -360,17 +362,18 @@ describe('the engine on its own: relation loads through the fetch option', () =>
   })
 
   test('a relation load that is still selected is not cancelled', async () => {
-    let answer: (response: Response) => void = () => undefined
+    // the relation and its parent relations are both asked for, and both are answered
+    const pending: ((response: Response) => void)[] = []
     const engine = engineWith(
       () =>
         new Promise<Response>((resolve) => {
-          answer = resolve
+          pending.push(resolve)
         }),
     )
     engine.setSelected('r5')
     const load = engine.loadRelation('r5')
     engine.setSelected(['r5', 'n1'])
-    answer(relationAnswer())
+    for (const answer of pending) answer(relationAnswer())
     expect(await load).toEqual({ added: 1 })
   })
 

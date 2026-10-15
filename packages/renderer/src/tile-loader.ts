@@ -9,6 +9,13 @@ import { HttpError, RateLimitedError, type RemoteFetch, toOsmZoom } from '@osm-e
 import type { OsmJsonElement } from '@osm-editor-kit/maid-model'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import type { EngineMetrics } from './engine'
+import {
+  nextParentRelationsSupport,
+  type ParentRelationsAnswer,
+  type ParentRelationsSupport,
+  parentRelationsPath,
+  shouldAskParentRelations,
+} from './parent-relations'
 import { lat2y, lon2x, x2lon, y2lat } from './tile-coords'
 import {
   createTileLoads,
@@ -51,6 +58,8 @@ export class TileLoader {
   private wakeTimer?: ReturnType<typeof setTimeout>
   /** Relation loads in flight by relation id: a second call for the same relation shares the request */
   private relationLoads = new Map<string, { load: Promise<number>; controller: AbortController }>()
+  /** Whether the server answers the parent-relations route (parent-relations.ts): kept for the session */
+  private parentsSupport: ParentRelationsSupport = 'unknown'
 
   constructor(
     private readonly host: TileHost,
@@ -186,7 +195,8 @@ export class TileLoader {
   /**
    * Loads a relation in full, as iD's `/relation/ID/full` call does: the relation, its node members,
    * its way members with their nodes, and its member relations (one level, not their members). One
-   * request to `apiUrl`, merged like a map tile, so the members enter the data and the map. Nothing
+   * request to `apiUrl`, merged like a map tile, so the members enter the data and the map; and, as iD's
+   * download does, the relation's parent relations (`fetchParentRelations`, best effort). Nothing
    * is written to the history: loading is not an edit. Resolves with how many entities were new;
    * rejects with a message when the API cannot be asked or does not answer with the relation.
    */
@@ -216,14 +226,58 @@ export class TileLoader {
     if (!match) throw new Error(`Not an OSM element: ${id}`)
     const path = match[1] === 'n' ? `node/${match[2]}.json` : `way/${match[2]}/full.json`
     // not kept in `relationLoads`: a member is asked for by a click, and a second click merges the same data again
-    const added = await this.fetchElements(path, new AbortController().signal)
+    const signal = new AbortController().signal
+    const added = await this.withParents(id, this.fetchElements(path, signal), signal)
     return { added }
   }
 
   private fetchRelation(id: string, signal: AbortSignal) {
     const match = /^r(\d+)$/.exec(id)
     if (!match) throw new Error(`Not a relation: ${id}`)
-    return this.fetchElements(`relation/${match[1]}/full.json`, signal)
+    return this.withParents(
+      id,
+      this.fetchElements(`relation/${match[1]}/full.json`, signal),
+      signal,
+    )
+  }
+
+  /**
+   * A download and the parent relations of what it downloads, as iD's `context.loadEntity` does both. Resolves
+   * with the download's own count: the parents are merged into the data but do not count as the download's.
+   */
+  private async withParents(id: string, download: Promise<number>, signal: AbortSignal) {
+    // the requests run together, but the parents are merged after the download is merged: the download's count
+    // is its own, even when an element both answers (a relation that is its own parent) is new in one of them
+    const [added, parents] = await Promise.all([download, this.fetchParentRelations(id, signal)])
+    if (parents.length > 0) this.host.merge(parents)
+    return added
+  }
+
+  /**
+   * The parent relations of an entity that was just downloaded, not yet merged. They are a bonus: a failure
+   * here never fails the download itself, and a 404 means the server has no such route, so it is not asked again
+   * this session (parent-relations.ts). Only a failure that is not an abort is reported in the console.
+   */
+  private async fetchParentRelations(id: string, signal: AbortSignal): Promise<OsmJsonElement[]> {
+    const path = parentRelationsPath(id)
+    if (path === undefined || !shouldAskParentRelations(this.parentsSupport)) return []
+    const { host } = this
+    let answer: ParentRelationsAnswer = 'failed'
+    let elements: OsmJsonElement[] = []
+    try {
+      const res = await this.remote(`${host.apiUrl}${path}`, { signal })
+      const text = await res.text()
+      const json = JSON.parse(text) as { elements: OsmJsonElement[] }
+      answer = 'answered'
+      host.metrics.bytes += text.length
+      elements = uniqueElements(json.elements)
+    } catch (error) {
+      if (error instanceof HttpError && error.status === 404) answer = 'not-found'
+      else if (!signal.aborted) console.error(error)
+    } finally {
+      this.parentsSupport = nextParentRelationsSupport(this.parentsSupport, answer)
+    }
+    return elements
   }
 
   /** One call to `apiUrl` under `/api/0.6/` that answers with elements, merged into the data */
@@ -253,14 +307,17 @@ export class TileLoader {
     metrics.bytes += text.length
     metrics.fetchMs += t1 - t0
     metrics.parseMs += t2 - t1
-    // each element once: the API answers each one once, but a merge must not count one twice
-    const seen = new Set<string>()
-    const elements = json.elements.filter((e) => {
-      const key = `${e.type}${e.id}`
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
-    return host.merge(elements)
+    return host.merge(uniqueElements(json.elements))
   }
+}
+
+/** Each element once: the API answers each one once, but a merge must not count one twice */
+function uniqueElements(elements: OsmJsonElement[]) {
+  const seen = new Set<string>()
+  return elements.filter((e) => {
+    const key = `${e.type}${e.id}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }

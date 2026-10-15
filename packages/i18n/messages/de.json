@@ -160,6 +160,7 @@
   "relations_member_other": "{count} Mitglieder",
   "relations_members_headline": "{members}, {missing} nicht geladen",
   "relations_loading": "Lade {members}",
+  "relations_loading_members": "Lade Mitglieder…",
   "relations_load_missing_one": "Das 1 fehlende Mitglied laden",
   "relations_load_missing_other": "Die {count} fehlenden Mitglieder laden",
   "relations_load_nothing_one": "Nichts geladen: Das fehlende Mitglied ist nicht in der API.",

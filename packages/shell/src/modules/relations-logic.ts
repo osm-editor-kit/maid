@@ -281,9 +281,8 @@ export function newRelationActions(
 }
 
 /**
- * Loads one member that is not in the data: the engine's call, which resolves with how many entities
- * were new. There is no such call in the engine yet (it loads whole relations, `loadRelation`); the
- * members section is built against this type and draws no download button until one is given.
+ * Loads one member that is not in the data: the engine's `loadEntity` (tile-loader.ts), which resolves with how
+ * many entities were new. The members section draws no download button until one is given.
  */
 export type LoadMember = (id: EntityID) => Promise<{ added: number }>
 
