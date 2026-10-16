@@ -127,3 +127,47 @@ These proceed unless Tobias says otherwise:
   - the line touches a hole
 - No key.
 - The part with the longer outline keeps the id, and both parts get all the tags.
+
+## Status (2026-10-17)
+
+All five tools are built as modules of `packages/module-shapes` and turned on in `apps/maid-parking`.
+
+- The hooks they use are in [ADR 0011](../../adr/0011-drawing-tool-hooks.md).
+- Each tool has unit tests and a browser check: `check-rectangle`, `check-angle-snap`, `check-merge`, `check-cut` and `check-divide`. All five are in `check-all --app parking`.
+- `check-all` passes for all three apps.
+
+### Found on the way
+
+- Snapping took the first node the map listed, not the nearest one. It now takes the nearest.
+- Letting go of Shift right after dropping a dragged corner moved the corner off its right angle. A dropped corner now stays where it was dropped.
+- A merge leaves no straight points behind. A corner of one area that ends up on a straight edge of the merged outline is removed, as long as it is untagged and used by nothing else. Points along a curve stay.
+
+### For Tobias to test
+
+Run `bun run dev-parking` and open http://localhost:5177.
+
+1. **Rectangle:** press `4`, or use the small arrow next to "Fläche".
+   - Click two corners of a building, then click the depth. The rectangle has right angles and the type search opens.
+   - Try a favourite: Alt plus its number gives the type right away.
+2. **Angle snap:** draw a line or an area with `2` or `3` and hold Shift.
+   - Segments turn in 45° steps, and the last corner of an area locks to a right angle.
+   - Dragging a corner with Shift keeps it square.
+   - Blue dashed lines show the direction.
+3. **Merge:** draw two overlapping rectangles and select both (Shift+click). Press `C`; you get one L-shaped outline.
+   - With different tags, the edit menu says why it refuses.
+4. **Cut:** select an area and choose "Zerschneiden" in the right-click menu.
+   - Click a point outside the area, then one on the other side, then press Enter. You get two areas with the same tags.
+5. **Divide:** select an area with four corners and choose "Teilen" in the right-click menu.
+   - `+` and `-` set the columns, Shift with `+` or `-` the rows. Enter makes the parts and selects all of them.
+   - Then give them all `amenity=parking_space` at once.
+
+Each tool use is one undo step. Escape leaves without a change.
+
+### Open
+
+- **Favourites:** a favourite cannot start the rectangle tool yet. It only gives the type after the drawing.
+- **Help:** the help text for Shift is missing, because the shell's list of keys cannot be extended by a module.
+- **Touch:** Shift needs a keyboard. A touch screen has no way to snap angles.
+- **Merge:** two areas at a time, multipolygons not yet. JOSM's conflict dialog for different tags is not built.
+- **Cut:** exactly two crossings per cut. A line through a concave shape that crosses four times is refused.
+- **Divide:** four corners only. Parking spaces along a street are not made: they stay on the road's `parking:*` tags.

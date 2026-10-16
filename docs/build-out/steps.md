@@ -380,6 +380,16 @@ Also decided: the editor is deployed to GitHub Pages by a workflow, a fork choos
 - [x] Deploying several apps (Tobias, 2026-10-15): `MAID_APP` takes one app or a comma list; several apps go to their own folders with a page of links, and share the `land.html` at the path for the login (`VITE_LOGIN_BASE`). Built with `bun run pages-build` (`tools/deploy/build-pages.ts`). Open: the settings stores have fixed names, so apps on one address share background, theme and the like.
 - [ ] Radnetz modules: the TILDA bike infrastructure section with its checklist and rule; "extract a side into its own way" and "merge a cycleway and a footway"; age colours and a way's images for the photo layer; infra3D links; the traffic sign field as a Maid field on `@osm-traffic-signs/converter`.
 
+### Drawing tools (parking)
+
+- [x] Five drawing tools as modules for the parking app (Tobias, 2026-10-16): three-click rectangle, Shift angle snap, merge areas, cut an area, divide into rows and columns. Research, plan, status and what to test: [drawing-tools/README.md](../research/drawing-tools/README.md). Hooks: [ADR 0011](../adr/0011-drawing-tool-hooks.md). Checks: `check-rectangle`, `check-angle-snap`, `check-merge`, `check-cut`, `check-divide`.
+- [ ] Open:
+  - A favourite that starts the rectangle tool.
+  - A Shift hint in the help.
+  - Merge of multipolygons, and of three or more areas.
+  - A cut through a concave shape.
+  - A touch alternative to Shift.
+
 ### Cleanup
 
 - [ ] `/unslop-code` phases 3 to 10 (re-exports, legacy paths, the skill reviews, component location, decision lift, semantic HTML, leftovers, texts). Phases 1 and 2 are done (44674af, 16129c3, fb0c7eb). When it is finished: a memory entry on what it changed.
