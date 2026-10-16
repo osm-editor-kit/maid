@@ -187,21 +187,44 @@ export function cutPreview(
   return { chord: found.chord.map((slot) => slot.loc) }
 }
 
+/** The outline of a way that can be cut, before any line: its nodes, their positions and their metres */
+interface Outline {
+  /** The multipolygon the way is the outer member of, if it is one */
+  multi?: OsmRelation
+  /** Node ids of the way, without the closing repeat */
+  ids: string[]
+  locs: Loc[]
+  frame: Frame
+  /** The positions in local metres */
+  outline: Pt[]
+}
+
 /**
- * The whole geometric and relation check. Returns the two rings and the chord, or the first reason
- * the cut is refused. Creates no entities and does not change the graph.
+ * Whether a way can be cut at all, before any line is drawn: the menu asks this to offer or refuse "Cut".
+ * The checks are the ones the plan makes first, so a way refused here is refused by the plan too.
  * @param   graph      - The graph that holds the way
- * @param   wayId      - The closed way to cut
- * @param   line       - The drawn line as [lon, lat] points
- * @param   snap       - Snapping distance in metres
- * @return  The analysis, or the refusal
+ * @param   wayId      - The way to cut (for a multipolygon, its outer way)
+ * @param   snapMetres - Snapping distance in metres
+ * @return  The refusal, or `undefined` when a line could be drawn across the way
  */
-function analyse(
+export function cutCheck(
   graph: Graph,
   wayId: string,
-  line: Loc[],
-  snap: number,
-): Analysis | { refused: CutRefusal } {
+  snapMetres = 0.3,
+): { refused: CutRefusal } | undefined {
+  const found = outlineOf(graph, wayId, snapMetres)
+  return 'refused' in found ? found : undefined
+}
+
+/**
+ * The checks that do not depend on the drawn line: the way is an area, is not a route member or a roundabout, and its
+ * outline is simple. Creates no entities and does not change the graph.
+ * @param   graph - The graph that holds the way
+ * @param   wayId - The closed way to cut
+ * @param   snap  - Snapping distance in metres
+ * @return  The outline, or the refusal
+ */
+function outlineOf(graph: Graph, wayId: string, snap: number): Outline | { refused: CutRefusal } {
   const way = graph.hasEntity(wayId)
   if (!(way instanceof OsmWay)) return refuse('not_area')
 
@@ -245,6 +268,28 @@ function analyse(
   }
   if (outlineCrosses(outline)) return refuse('self_intersecting')
   if (Math.abs(signedArea(outline)) <= snap * snap) return refuse('degenerate')
+  return { multi, ids, locs, frame, outline }
+}
+
+/**
+ * The whole geometric and relation check. Returns the two rings and the chord, or the first reason
+ * the cut is refused. Creates no entities and does not change the graph.
+ * @param   graph - The graph that holds the way
+ * @param   wayId - The closed way to cut
+ * @param   line  - The drawn line as [lon, lat] points
+ * @param   snap  - Snapping distance in metres
+ * @return  The analysis, or the refusal
+ */
+function analyse(
+  graph: Graph,
+  wayId: string,
+  line: Loc[],
+  snap: number,
+): Analysis | { refused: CutRefusal } {
+  const found = outlineOf(graph, wayId, snap)
+  if ('refused' in found) return found
+  const { multi, ids, locs, frame, outline } = found
+  const n = outline.length
 
   // The drawn line, without repeated points
   const pts: Pt[] = []

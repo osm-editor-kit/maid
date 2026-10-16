@@ -33,11 +33,25 @@ const CHECKS = [
   'parking',
   'way-table',
   'reroute',
+  'rectangle',
+  'angle-snap',
+  'merge',
+  'cut',
+  'divide',
 ] as const
 type CheckName = (typeof CHECKS)[number]
 
 /** Checks of a module: they run only for the app that switches it on (`only` in RUNS) */
-const MODULE_CHECKS = new Set<CheckName>(['parking', 'way-table', 'reroute'])
+const MODULE_CHECKS = new Set<CheckName>([
+  'parking',
+  'way-table',
+  'reroute',
+  'rectangle',
+  'angle-snap',
+  'merge',
+  'cut',
+  'divide',
+])
 
 /** A run of a check: its name in the report, the check, a scene other than the default (small), the one app it runs for */
 type Run = { name: string; check: CheckName; scene?: string; only?: AppName }
@@ -49,6 +63,12 @@ const RUNS: Run[] = [
   { name: 'parking', check: 'parking', only: 'parking' },
   { name: 'way-table', check: 'way-table', scene: 'relations', only: 'bicycle' },
   { name: 'reroute', check: 'reroute', scene: 'relations', only: 'bicycle' },
+  // the drawing tools of module-shapes, on in the parking app
+  { name: 'rectangle', check: 'rectangle', only: 'parking' },
+  { name: 'angle-snap', check: 'angle-snap', only: 'parking' },
+  { name: 'merge', check: 'merge', only: 'parking' },
+  { name: 'cut', check: 'cut', only: 'parking' },
+  { name: 'divide', check: 'divide', only: 'parking' },
 ]
 
 /**
@@ -73,6 +93,11 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   parking: { maid: 0, bicycle: 0, parking: 29 },
   'way-table': { maid: 0, bicycle: 13, parking: 0 },
   reroute: { maid: 0, bicycle: 12, parking: 0 },
+  rectangle: { maid: 0, bicycle: 0, parking: 21 },
+  'angle-snap': { maid: 0, bicycle: 0, parking: 32 },
+  merge: { maid: 0, bicycle: 0, parking: 29 },
+  cut: { maid: 0, bicycle: 0, parking: 14 },
+  divide: { maid: 0, bicycle: 0, parking: 23 },
 }
 
 type CheckResult = {

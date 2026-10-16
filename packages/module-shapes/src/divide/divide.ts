@@ -180,6 +180,19 @@ function cornersOf(
 }
 
 /**
+ * The corner positions of a way with four corners, in order, for the operation and the preview. Undefined when the way
+ * is not a closed way of four distinct corners with positions.
+ * @param   graph  - The graph
+ * @param   wayId  - The way
+ * @return  The corners, or `undefined`
+ */
+export function cornersOfWay(graph: Graph, wayId: string): Corners | undefined {
+  const way = graph.hasEntity(wayId)
+  if (!(way instanceof OsmWay)) return undefined
+  return cornersOf(graph, way)?.locs
+}
+
+/**
  * Whether four corners in order make a convex quadrilateral. Every turn must go the same way. For
  * four corners this also rules out a self-intersecting (bow-tie) shape, since such a shape turns both
  * ways. Straight corners (no turn) count as not convex.

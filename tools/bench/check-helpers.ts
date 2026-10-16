@@ -161,3 +161,26 @@ export const pickBuildingAndRoad = (page: Page, roadMinNodes = 0) =>
     const vertex = road ? engine.data.way(road)!.nodes[1] : undefined
     return { building, road, vertex }
   }, roadMinNodes)
+
+/**
+ * Moves the view beside the scene's data, where nothing is drawn yet. The drawing tools' checks need open ground,
+ * and a scene has little of it in view: the parking app also draws its parking sides along every road. The view goes
+ * 0.003° east of the scene's box, at its middle latitude, at `zoom`.
+ */
+export async function moveToOpenGround(
+  page: Page,
+  settle: () => Promise<void>,
+  sceneName: string,
+  zoom = 18,
+) {
+  const meta = (await Bun.file(
+    new URL(`../../fixtures/${sceneName}.meta.json`, import.meta.url),
+  ).json()) as { bbox: [number, number, number, number] }
+  const [, south, east, north] = meta.bbox
+  const center: [number, number] = [east + 0.003, (south + north) / 2]
+  await page.evaluate(({ center, zoom }) => window.__maid.map.jumpTo({ center, zoom }), {
+    center,
+    zoom,
+  })
+  await settle()
+}

@@ -3,28 +3,12 @@
  * 45 degrees from the previous segment. At a corner, it locks to the point where the two snapped rays meet.
  * Pure geometry on screen pixels (y down), so it can run on every pointer move without querying the map.
  *
- * The types are local copies of the hook in docs/adr/0011-drawing-tool-hooks.md. The renderer imports them later.
+ * The types are the renderer's own (the `draw.constraint` hook, docs/adr/0011-drawing-tool-hooks.md).
  */
+import type { ConstraintInput, ConstraintResult, Modifiers } from '@osm-editor-kit/maid-renderer'
 
-export type Point = { x: number; y: number }
-
-export type Modifiers = { shift: boolean; alt: boolean; ctrl: boolean; meta: boolean }
-
-export type ConstraintInput = {
-  kind: 'draw' | 'drag'
-  /** The pointer on the screen, in pixels */
-  point: Point
-  /**
-   * The fixed nodes next to the placed node, on the screen. One neighbour for the end of a line,
-   * two for a corner. `before` is the node on the far side of the neighbour, which gives the reference direction.
-   */
-  neighbours: { at: Point; before?: Point }[]
-  modifiers: Modifiers
-  /** The MapLibre bearing in degrees */
-  bearing: number
-}
-
-export type ConstraintResult = { point: Point; guides: [Point, Point][] }
+/** A point on the screen, in pixels (the hook's own type; the renderer does not export it by name) */
+type Point = ConstraintInput['point']
 
 export const ANGLE_STEP = 45
 /** A corner locks only when the pointer is this close to where the two rays meet */

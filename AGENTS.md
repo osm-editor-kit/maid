@@ -101,6 +101,11 @@ The browser checks need `bun run dev` and take `[scene]` and `--app maid|bicycle
 | `check-parking` | `--app parking` only: quick buttons on one and two roads, restriction field, a parking rule, "Copy parking to the other side", the parking lens |
 | `check-way-table` | `--app bicycle`, scene `relations`: the columns and "Different" cells, "Show more", a cell edit and "Set on N", each one undo step |
 | `check-reroute` | `--app bicycle`, scene `relations`: start a reroute, two clicks, the preview and its length, Apply, one undo, Escape ends the mode |
+| `check-rectangle` | `--app parking`: key 4 and the Area dropdown draw a rectangle with three clicks: right angles, also on a turned map, one undo step, Escape leaves nothing, a corner on an existing node reuses it |
+| `check-angle-snap` | `--app parking`: Shift while drawing gives 45° steps and a square area, Shift while dragging a corner keeps it square, guide lines, key press without a move, window blur, a turned map |
+| `check-merge` | `--app parking`: two overlapping areas merged with C into one outline, one undo step; different tags refuse with a reason; a line and an area are not offered |
+| `check-cut` | `--app parking`: "Cut" in the edit menu, a line across an area gives two areas with its tags, one undo step; a line that crosses once is refused |
+| `check-divide` | `--app parking`: "Divide" in the edit menu, columns and rows with the keys, the preview, Enter gives the parts with shared nodes, all selected, one undo step |
 
 Every editor is driven through `window.__bench` (`tools/refs/bench-api.d.ts`); Maid also has `window.__maid` (map, engine, editor, model). One editor's screenshot: `bun tools/bench/shot.ts maid|id|rapid <scene> [zoom]`.
 

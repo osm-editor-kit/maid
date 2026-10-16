@@ -1,12 +1,8 @@
 import { describe, expect, test } from 'bun:test'
-import {
-  ANGLE_STEP,
-  GUIDE_LENGTH_PX,
-  type ConstraintInput,
-  type Modifiers,
-  type Point,
-  constrainAngle,
-} from './angle-snap'
+import type { ConstraintInput, Modifiers } from '@osm-editor-kit/maid-renderer'
+import { ANGLE_STEP, GUIDE_LENGTH_PX, constrainAngle } from './angle-snap'
+
+type Point = ConstraintInput['point']
 
 const none: Modifiers = { shift: false, alt: false, ctrl: false, meta: false }
 const shift: Modifiers = { ...none, shift: true }
