@@ -1,5 +1,6 @@
 /**
- * Runs the browser checks (eleven, and a twelfth for `--app parking`) one after another against one app, and writes one report.
+ * Runs the browser checks one after another against one app, and writes one report. A check of a module runs
+ * only for the app that has the module (parking; way table and reroute in bicycle).
  *
  *   bun run check-all [--app maid|bicycle|parking]
  *
@@ -30,16 +31,24 @@ const CHECKS = [
   'tags',
   'multi',
   'parking',
+  'way-table',
+  'reroute',
 ] as const
 type CheckName = (typeof CHECKS)[number]
 
-/** A run of a check: its name in the report, the check, and a scene other than the default (small) */
-type Run = { name: string; check: CheckName; scene?: string }
+/** Checks of a module: they run only for the app that switches it on (`only` in RUNS) */
+const MODULE_CHECKS = new Set<CheckName>(['parking', 'way-table', 'reroute'])
 
-/** Every check on the default scene, then the relation check on the scene made for relations (fixtures `relations`) */
+/** A run of a check: its name in the report, the check, a scene other than the default (small), the one app it runs for */
+type Run = { name: string; check: CheckName; scene?: string; only?: AppName }
+
+/** The checks of the shell on the default scene, the relation check on the scene made for relations, the module checks */
 const RUNS: Run[] = [
-  ...CHECKS.map((check) => ({ name: check, check })),
+  ...CHECKS.filter((check) => !MODULE_CHECKS.has(check)).map((check) => ({ name: check, check })),
   { name: 'relations-scene', check: 'relations', scene: 'relations' },
+  { name: 'parking', check: 'parking', only: 'parking' },
+  { name: 'way-table', check: 'way-table', scene: 'relations', only: 'bicycle' },
+  { name: 'reroute', check: 'reroute', scene: 'relations', only: 'bicycle' },
 ]
 
 /**
@@ -59,9 +68,11 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   filters: { maid: 18, bicycle: 18, parking: 18 },
   tags: { maid: 23, bicycle: 23, parking: 23 },
   multi: { maid: 11, bicycle: 11, parking: 11 },
-  // runs for the parking app only (the others have no parking module): the expected count is 0 elsewhere
-  parking: { maid: 0, bicycle: 0, parking: 29 },
   'relations-scene': { maid: 25, bicycle: 25, parking: 25 },
+  // module checks run for one app only (`only` in RUNS): the count is 0 elsewhere
+  parking: { maid: 0, bicycle: 0, parking: 29 },
+  'way-table': { maid: 0, bicycle: 13, parking: 0 },
+  reroute: { maid: 0, bicycle: 12, parking: 0 },
 }
 
 type CheckResult = {
@@ -88,9 +99,8 @@ await mkdir(outDir, { recursive: true })
 const startedAt = new Date()
 const results: CheckResult[] = []
 
-for (const { name, check, scene } of RUNS) {
-  // the parking check needs the parking module: only `--app parking` runs it
-  if (check === 'parking' && app !== 'parking') continue
+for (const { name, check, scene, only } of RUNS) {
+  if (only && only !== app) continue
   const expectedOk = EXPECTED_OK[name]?.[app] ?? 0
   const began = performance.now()
   const args = scene ? [`check-${check}`, scene, '--app', app] : [`check-${check}`, '--app', app]

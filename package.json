@@ -43,6 +43,8 @@
     "check-tags": "bun tools/bench/tags-check.ts",
     "check-multi": "bun tools/bench/multi-check.ts",
     "check-parking": "bun tools/bench/parking-check.ts",
+    "check-reroute": "bun tools/bench/reroute-check.ts",
+    "check-way-table": "bun tools/bench/way-table-check.ts",
     "check-all": "bun tools/checks/check-all.ts",
     "check-config": "bun tools/checks/config-check.ts",
     "check-interactions": "bun tools/bench/interactions-check.ts",

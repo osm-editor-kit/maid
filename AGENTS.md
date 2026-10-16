@@ -99,6 +99,8 @@ The browser checks need `bun run dev` and take `[scene]` and `--app maid|bicycle
 | `check-tags` | The tags sheet on a bare page: typing, moving, renaming, pasting and copying `key=value` lines, shortcuts stay out of a cell |
 | `check-multi` | Two buildings selected: "Multiple values", one undo step for both, a new tag for both, refusal when read-only |
 | `check-parking` | `--app parking` only: quick buttons on one and two roads, restriction field, a parking rule, "Copy parking to the other side", the parking lens |
+| `check-way-table` | `--app bicycle`, scene `relations`: the columns and "Different" cells, "Show more", a cell edit and "Set on N", each one undo step |
+| `check-reroute` | `--app bicycle`, scene `relations`: start a reroute, two clicks, the preview and its length, Apply, one undo, Escape ends the mode |
 
 Every editor is driven through `window.__bench` (`tools/refs/bench-api.d.ts`); Maid also has `window.__maid` (map, engine, editor, model). One editor's screenshot: `bun tools/bench/shot.ts maid|id|rapid <scene> [zoom]`.
 
