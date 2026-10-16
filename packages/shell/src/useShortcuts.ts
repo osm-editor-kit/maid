@@ -1,9 +1,11 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { deleteOperation } from '@osm-editor-kit/maid-operations'
 import { useHotkeys, type UseHotkeyDefinition } from '@tanstack/react-hotkeys'
+import { useEffect, useEffectEvent } from 'react'
 import { pasteAt } from './clipboard'
 import { continueLine, drawClick, drawingKind, drawKindOf } from './drawing'
 import { giveFavouriteType } from './favourites'
+import { markNewFeature } from './new-feature'
 import { useSearchActions } from './search/flyout'
 import { useSelection } from './selection'
 import { useEngine, useShell } from './shell-context'
@@ -52,6 +54,17 @@ export function useShortcuts() {
   const stack = useStack()
   const { open: openSearch } = useSearchActions()
   const stackShown = stack !== null && keepsStack(stack, selected)
+  // what a module drew (engine.announceDrawn) is selected as a drawing is: one new way asks for its type
+  const selectDrawn = useEffectEvent((ids: readonly string[]) => {
+    if (ids.length === 1 && ids[0]) markNewFeature(ids[0])
+    select(ids)
+  })
+  useEffect(
+    function selectWaysDrawnByModules() {
+      return engine.onDrawn((ids) => selectDrawn(ids))
+    },
+    [engine],
+  )
   const stepStack = (step: 1 | -1) => {
     const current = selected[0]
     if (stack && current) select(stepStackId(stack.ids, current, step) ?? null)

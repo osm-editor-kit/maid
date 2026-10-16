@@ -86,6 +86,8 @@ The map view passes the screen point to `moduleModeMove` and `moduleModeClick`.
 
 Committing works as in `module-reroute` (`editor.history.perform` and then `commit`): one undo step.
 
+A module that drew new ways calls `engine.announceDrawn(ids)` after its undo step. The shell then selects them, as it does after the drawing tool. One way also counts as new, so the inspector asks for its type.
+
 ### 5. Operations that ask for more input: `Operation.start`
 
 `Operation` gets `start?(context: OperationContext): void`.

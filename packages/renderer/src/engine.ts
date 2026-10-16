@@ -258,6 +258,25 @@ export class MaidEngine {
   }
   getVersion = () => this.version
 
+  private drawnListeners = new Set<(ids: readonly string[]) => void>()
+
+  /**
+   * A module that drew a new way (a rectangle, the parts of a division) hands it over here, after its undo step: the
+   * shell selects it and asks for its type, as after the drawing tool (ADR 0011).
+   */
+  announceDrawn(ids: string | readonly string[]) {
+    const list = typeof ids === 'string' ? [ids] : ids
+    for (const listener of this.drawnListeners) listener(list)
+  }
+
+  /** The shell's side of `announceDrawn`: called with the new ways. Returns the unsubscribe. */
+  onDrawn(listener: (ids: readonly string[]) => void) {
+    this.drawnListeners.add(listener)
+    return () => {
+      this.drawnListeners.delete(listener)
+    }
+  }
+
   /** Tells the components that read the engine (`subscribe`) to read again. Public for the tools that edit (drag.ts). */
   changed() {
     this.version++
