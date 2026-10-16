@@ -5,14 +5,16 @@
  * ImageBitmap there fails with "The source image could not be decoded"). The pure part (the tile arithmetic and the URLs) is offset.ts.
  *
  * The registration is an imperative call, on purpose: `addProtocol` is a static of the map library, not of a map, and
- * react-map-gl has no declarative form for it. It is the same as the PMTiles protocol (module-data-layers/src/pmtiles.ts).
- * The tiles are requested through the editor's `send` (core's RemoteFetch), so the host gate and the automation refusal
- * apply to them as to every request of the editor.
+ * react-map-gl has no declarative form for it. The module's setup makes it (index.ts), once per editor; not a hidden
+ * react-map-gl control, which would exist only to reach the library. It is the same as the PMTiles protocol
+ * (module-data-layers/src/pmtiles.ts). The tiles are requested through the editor's fetch (core's RemoteFetch), so the
+ * host gate and the automation refusal apply to them as to every request of the editor.
  *
  * A server without CORS cannot be drawn on a canvas: its tiles fail, the background is marked (`useCannotShift`), and
  * its layer is drawn unshifted from then on, with a notice in the panel.
  */
 import { HttpError, type RemoteFetch } from '@osm-editor-kit/maid-core'
+import { addProtocol } from 'maplibre-gl'
 import { useSyncExternalStore } from 'react'
 import {
   OFFSET_SCHEME,
@@ -52,27 +54,18 @@ export function useCannotShift(key: string): boolean {
   return failed.has(key)
 }
 
-/** The part of a map library object that registers protocols (its type leaves it out, as in pmtiles.ts) */
-type WithProtocols = {
-  addProtocol?: (
-    name: string,
-    loader: (request: { url: string }, controller: AbortController) => Promise<unknown>,
-  ) => void
-}
-
-/** Libraries (the object react-map-gl hands out) that have the protocol already */
-const registered = new WeakSet<object>()
+/** The function that registers a protocol: maplibre-gl's `addProtocol`, or a stand-in in a test */
+export type AddProtocol = typeof addProtocol
 
 /**
- * Registers the protocol with the map library, once per library object. `send` is the editor's request function (core's
- * RemoteFetch). It must run before a shifted source is added: ImageryLayers calls it from react-map-gl's `useControl`,
- * which runs before its children add their sources.
+ * Registers the protocol with MapLibre. `send` is a getter for the editor's request function, read at each request, so
+ * the fetch in use then is the one that makes the tile requests. It must run before a shifted source is added, which
+ * a child's effect does later. Called from the module's setup, so once per editor. Calling it again only replaces the
+ * registration (MapLibre keeps one loader per name): the latest editor's getter is the one in use.
  */
-export function registerOffsetProtocol(mapLib: object, send: RemoteFetch) {
-  if (registered.has(mapLib)) return
-  registered.add(mapLib)
-  ;(mapLib as WithProtocols).addProtocol?.(OFFSET_SCHEME, (request, controller) =>
-    drawShifted(request.url, send, controller.signal).then((data) => ({ data })),
+export function registerOffsetProtocol(send: () => RemoteFetch, add: AddProtocol = addProtocol) {
+  add(OFFSET_SCHEME, (request, controller) =>
+    drawShifted(request.url, send(), controller.signal).then((data) => ({ data })),
   )
 }
 

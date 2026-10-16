@@ -5,7 +5,7 @@
  * The feature builders live in features.ts (pure); this file has the component and the one imperative call.
  */
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react'
 import { Layer, Source, useMap, type LayerProps } from 'react-map-gl/maplibre'
 import { arrowPixels, ARROW_PIXEL_RATIO } from './arrow-image.ts'
 import { parkingCollection } from './collect.ts'
@@ -13,23 +13,25 @@ import { PARKING_ARROW_IMAGE, PARKING_LAYERS, PARKING_SOURCE, type ParkingLayer 
 import { useParkingShowMissing, useParkingShown } from './side-state.ts'
 
 /**
- * The graph of the editor's history, read again after each change of it (a load or an edit). A new snapshot object per
- * change is what the memo below depends on: the graph itself is not a React value.
+ * The staging graph of the editor's history, read again after each change of it (a load or an edit). The graph is a new
+ * object per change, so it is the snapshot: the memo below depends on it. An external store (react-dev: useSyncExternalStore).
  */
-function useHistorySnapshot(history: MapContentProps['editor']['history']) {
-  const [snapshot, setSnapshot] = useState(() => ({ graph: history.staging.graph }))
-  useEffect(() => {
-    const bump = () => setSnapshot({ graph: history.staging.graph })
-    const stops = [
-      history.on('merge', bump),
-      history.on('stagingchange', bump),
-      history.on('historyjump', bump),
-    ]
-    return () => {
-      for (const stop of stops) stop()
-    }
-  }, [history])
-  return snapshot
+function useStagingGraph(history: MapContentProps['editor']['history']) {
+  // stable for one history: a new subscribe function would make the hook unsubscribe and subscribe on every render
+  const subscribe = useCallback(
+    (listener: () => void) => {
+      const stops = [
+        history.on('merge', listener),
+        history.on('stagingchange', listener),
+        history.on('historyjump', listener),
+      ]
+      return () => {
+        for (const stop of stops) stop()
+      }
+    },
+    [history],
+  )
+  return useSyncExternalStore(subscribe, () => history.staging.graph)
 }
 
 /**
@@ -70,11 +72,11 @@ function toLayerProps(layer: ParkingLayer): LayerProps {
 export function ParkingSidesOnMap({ editor }: MapContentProps) {
   const shown = useParkingShown()
   const showMissing = useParkingShowMissing()
-  const snapshot = useHistorySnapshot(editor.history)
+  const graph = useStagingGraph(editor.history)
   useArrowImage()
   const data = useMemo(
-    () => (shown ? parkingCollection(snapshot.graph, { showMissing }) : null),
-    [shown, showMissing, snapshot],
+    () => (shown ? parkingCollection(graph, { showMissing }) : null),
+    [shown, showMissing, graph],
   )
   if (data === null) return null
   return (

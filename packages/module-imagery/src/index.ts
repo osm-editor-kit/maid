@@ -7,6 +7,7 @@ import type { Drawn } from './eli.ts'
 import { backgroundName, usedNames } from './helpers.ts'
 import { createImageryStore, ImageryStoreProvider, type ImageryUrls } from './imagery-store.ts'
 import { drawnShown, ImageryLayers } from './ImageryLayers.tsx'
+import { registerOffsetProtocol } from './offset-protocol.ts'
 import {
   ID_BACKGROUND,
   ID_OFFSET,
@@ -39,6 +40,9 @@ export function imagery(options: ImageryOptions = {}) {
     id: 'imagery',
     setup(api) {
       const queries = api.editor.queries
+      // the offset protocol is registered before any shifted source is added (in ImageryLayers, under the map); the
+      // getter reads the editor's fetch at each tile request
+      registerOffsetProtocol(() => api.editor.fetch)
       const urls: ImageryUrls = {
         background: api.urlParam({
           name: 'bg',
@@ -85,7 +89,7 @@ export function imagery(options: ImageryOptions = {}) {
           createElement(
             ImageryStoreProvider,
             { store, urls },
-            createElement(ImageryLayers, { belowOsm: props.belowOsm, send: api.editor.fetch }),
+            createElement(ImageryLayers, { belowOsm: props.belowOsm }),
           ),
       })
       api.register('topbar.panel', {

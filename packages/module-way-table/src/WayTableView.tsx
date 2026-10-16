@@ -1,7 +1,15 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
 import type { Graph } from '@osm-editor-kit/maid-model'
 import type { DockViewProps } from '@osm-editor-kit/maid-ui'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 import { m } from './messages.ts'
 import type { PlanResult } from './plan.ts'
 import { buildRows } from './rows.ts'
@@ -37,25 +45,31 @@ export type WayTableViewProps = DockViewProps & {
 
 /**
  * The staging graph as the table reads it. It moves on only when a change can change the table (`changeKeepsTable`), so
- * a drag of a node the table does not use rebuilds nothing. An external store: the graph is read from the history.
+ * a drag of a node the table does not use rebuilds nothing: the snapshot is the graph the table was last given, and a
+ * change that keeps the table returns that graph again (the same value, so no render). An external store: the graph is
+ * read from the history.
  */
 function useTableGraph(editor: Editor, selected: readonly string[]): Graph {
-  const [graph, setGraph] = useState<Graph>(() => editor.history.staging.graph)
-  useEffect(() => {
-    const update = () =>
-      setGraph((previous) => {
-        const next = editor.history.staging.graph
-        return changeKeepsTable(previous, next, selected) ? previous : next
-      })
-    update()
-    const offs = [
-      editor.history.on('stagingchange', update),
-      editor.history.on('stablechange', update),
-      editor.history.on('historyjump', update),
-    ]
-    return () => offs.forEach((off) => off())
-  }, [editor, selected])
-  return graph
+  const { history } = editor
+  // the graph the table was last given: only a change that moves the table on replaces it
+  const given = useRef(history.staging.graph)
+  // stable for one history: a new subscribe function would make the hook unsubscribe and subscribe on every render
+  const subscribe = useCallback(
+    (listener: () => void) => {
+      const offs = [
+        history.on('stagingchange', listener),
+        history.on('stablechange', listener),
+        history.on('historyjump', listener),
+      ]
+      return () => offs.forEach((off) => off())
+    },
+    [history],
+  )
+  return useSyncExternalStore(subscribe, () => {
+    const next = history.staging.graph
+    if (!changeKeepsTable(given.current, next, selected)) given.current = next
+    return given.current
+  })
 }
 
 function hintText(reason: HintReason): string {
@@ -105,12 +119,9 @@ export function WayTableView(props: WayTableViewProps) {
     actions.endPending()
   }, [reference, actions])
 
-  // the highlight is cleared when the table goes; the ref keeps the latest function without a new effect each render
-  const highlightRef = useRef(highlight)
-  useEffect(() => {
-    highlightRef.current = highlight
-  })
-  useEffect(() => () => highlightRef.current(null), [])
+  // the highlight is cleared when the table goes; the effect event reads the latest `highlight` without re-running it
+  const clearHighlight = useEffectEvent(() => highlight(null))
+  useEffect(() => () => clearHighlight(), [])
 
   const choose = useMemo(() => new Map(Object.entries(choices)), [choices])
   const built = useMemo(

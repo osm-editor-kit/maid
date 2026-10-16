@@ -3,6 +3,7 @@ import { defineModule } from '@osm-editor-kit/maid-core'
 import { lazyComponent, PANEL_FALLBACK } from '@osm-editor-kit/maid-ui'
 import { checkConfigLayers, type DataLayerConfig } from './config.ts'
 import { createMapContent } from './MapLayers.tsx'
+import { registerPmtilesProtocol } from './pmtiles.ts'
 import { parseAsDataLink } from './url.ts'
 
 export type DataLayersOptions = {
@@ -26,6 +27,8 @@ export function dataLayers(options: DataLayersOptions = {}) {
   return defineModule({
     id: 'data-layers',
     setup(api) {
+      // the PMTiles protocol, once per editor, before any pmtiles:// layer is drawn (a map content of this module)
+      registerPmtilesProtocol()
       const link = api.urlParam({
         name: 'data',
         parser: parseAsDataLink,

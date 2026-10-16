@@ -6,28 +6,13 @@ import { isAutomated, type RemoteFetch, type UrlParamHandle } from '@osm-editor-
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
-import { Layer, Source, useControl } from 'react-map-gl/maplibre'
+import { Layer, Source } from 'react-map-gl/maplibre'
 import { gpxAddressOptions } from './add.ts'
 import type { DataLayer, DataLayerConfig } from './config.ts'
 import { useAddedLayers, useFileLayers, useHiddenIds } from './data-layers-store.ts'
 import { layerDraw, layersOf, visibleLayers } from './layers.ts'
 import { colorsInUse, useLinkedLayer } from './link.ts'
-import { pmtilesLayersOptions, registerPmtilesProtocol } from './pmtiles.ts'
-
-/**
- * A control with nothing in it. `useControl` is how react-map-gl gives a child of the map the map
- * library it uses (`mapLib`), which the PMTiles protocol is registered with.
- */
-function silentControl() {
-  return {
-    onAdd: () => {
-      const element = document.createElement('div')
-      element.hidden = true
-      return element
-    },
-    onRemove: () => {},
-  }
-}
+import { pmtilesLayersOptions } from './pmtiles.ts'
 
 /**
  * The layer names a PMTiles layer draws. Given in the config, they are used as they are; otherwise
@@ -83,8 +68,9 @@ function DataLayerDrawing({
 }
 
 /**
- * The map content of the module: registers the protocol once and draws every visible layer. The layer a link names
- * (`data`) is loaded here, once per address, and drawn with the others.
+ * The map content of the module: draws every visible layer. The protocol the PMTiles layers need is registered by the
+ * module's setup (index.ts), before any of them. The layer a link names (`data`) is loaded here, once per address, and
+ * drawn with the others.
  */
 export function createMapContent(
   config: readonly DataLayerConfig[],
@@ -92,11 +78,6 @@ export function createMapContent(
   link: UrlParamHandle<string>,
 ) {
   function DataLayersOnMap({ belowOsm }: MapContentProps) {
-    useControl(({ mapLib }) => {
-      // before any pmtiles:// source is added, which happens in an effect of a child
-      registerPmtilesProtocol(mapLib)
-      return silentControl()
-    })
     const added = useAddedLayers()
     const files = useFileLayers()
     const hidden = useHiddenIds()

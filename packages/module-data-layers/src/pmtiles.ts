@@ -4,6 +4,7 @@
  */
 import type { RemoteFetch } from '@osm-editor-kit/maid-core'
 import { queryOptions } from '@tanstack/react-query'
+import { addProtocol } from 'maplibre-gl'
 import { PMTiles, Protocol, TileType, type RangeResponse, type Source } from 'pmtiles'
 import { z } from 'zod'
 
@@ -90,24 +91,15 @@ export function pmtilesLayersOptions(url: string, send: RemoteFetch) {
   })
 }
 
-/** The part of a MapLibre library object that registers protocols (its type leaves it out) */
-type WithProtocols = {
-  addProtocol?: (
-    name: string,
-    loader: (request: { url: string }, controller: AbortController) => Promise<unknown>,
-  ) => void
-}
-
-/** Libraries (the object react-map-gl hands out) that have the protocol already */
-const registered = new WeakSet<object>()
+/** The function that registers a protocol: maplibre-gl's `addProtocol`, or a stand-in in a test */
+export type AddProtocol = typeof addProtocol
 
 /**
- * Registers the `pmtiles` protocol with the map library, once per library object. This is the one
- * imperative MapLibre call of the package: `addProtocol` is a static of the library, not of a map,
- * and react-map-gl has no declarative form for it. It must run before a `pmtiles://` source is added.
+ * Registers the `pmtiles` protocol with MapLibre. This is the one imperative MapLibre call of the package: `addProtocol`
+ * is a static of the library, not of a map, and react-map-gl has no declarative form for it. The module's setup makes
+ * the call, once per editor, and it must run before a `pmtiles://` source is added (a layer's, drawn later). Calling it
+ * again only replaces the loader under the name.
  */
-export function registerPmtilesProtocol(mapLib: object) {
-  if (registered.has(mapLib)) return
-  registered.add(mapLib)
-  ;(mapLib as WithProtocols).addProtocol?.('pmtiles', new Protocol().tile)
+export function registerPmtilesProtocol(add: AddProtocol = addProtocol) {
+  add('pmtiles', new Protocol().tile)
 }

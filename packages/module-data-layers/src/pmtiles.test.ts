@@ -23,20 +23,12 @@ describe('sourceLayerNames', () => {
 })
 
 describe('registerPmtilesProtocol', () => {
-  test('registers the pmtiles protocol once per library object', () => {
+  test('registers the pmtiles protocol with the library it is given', () => {
     const calls: string[] = []
-    const lib = {
-      addProtocol: (name: string) => {
-        calls.push(name)
-      },
-    }
-    registerPmtilesProtocol(lib)
-    registerPmtilesProtocol(lib)
+    registerPmtilesProtocol((name) => {
+      calls.push(name)
+    })
     expect(calls).toEqual(['pmtiles'])
-  })
-
-  test('a library without addProtocol is left alone', () => {
-    expect(() => registerPmtilesProtocol({})).not.toThrow()
   })
 })
 

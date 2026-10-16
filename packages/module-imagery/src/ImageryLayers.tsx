@@ -1,12 +1,12 @@
-import { isAutomated, isLocalUrl, toOsmZoom, type RemoteFetch } from '@osm-editor-kit/maid-core'
+import { isAutomated, isLocalUrl, toOsmZoom } from '@osm-editor-kit/maid-core'
 import { useUrlParam } from '@osm-editor-kit/maid-core/react'
 import { useQueries, type QueryClient } from '@tanstack/react-query'
 import { Fragment, useEffect, useMemo } from 'react'
-import { AttributionControl, Layer, Source, useControl, useMap } from 'react-map-gl/maplibre'
+import { AttributionControl, Layer, Source, useMap } from 'react-map-gl/maplibre'
 import { drawCustom } from './custom.ts'
 import { drawLayer, type Drawn } from './eli.ts'
 import { useImageryActions, useImageryContext, useView, type Shown } from './imagery-store.ts'
-import { registerOffsetProtocol, useCannotShift } from './offset-protocol.ts'
+import { useCannotShift } from './offset-protocol.ts'
 import { isZeroOffset, metersToUnits, NO_OFFSET, shiftedTileUrl, type Meters } from './offset.ts'
 import {
   useImageryStart,
@@ -22,18 +22,6 @@ type Wanted = { id: string; background: boolean; template: string | null }
 
 /** A layer's source as the layer index gives it (the type of `Drawn.source`) */
 type RasterSource = Drawn['source']
-
-/** A control with nothing in it: `useControl` is how react-map-gl gives a child the map library (see MapLayers.tsx) */
-function silentControl() {
-  return {
-    onAdd: () => {
-      const element = document.createElement('div')
-      element.hidden = true
-      return element
-    },
-    onRemove: () => {},
-  }
-}
 
 /**
  * The background's source with its tiles shifted: the same source, with each tile URL wrapped for the offset protocol
@@ -114,8 +102,8 @@ export function drawnShown(queries: QueryClient, shown: Shown) {
  * chosen, and in an automated browser only a background from a local template (see `allowedUnderAutomation`).
  * It also runs the start order once the map has a view (shown.ts), and mirrors what is shown.
  */
-export function ImageryLayers(props: { belowOsm: string; send: RemoteFetch }) {
-  const { belowOsm, send } = props
+export function ImageryLayers(props: { belowOsm: string }) {
+  const { belowOsm } = props
   const map = useMap().current
   const { shown } = useLiveImagery()
   // the URL's brightness (`bg_display`), written here: this is the one instance of the module that writes it
@@ -128,13 +116,6 @@ export function ImageryLayers(props: { belowOsm: string; send: RemoteFetch }) {
   const view = useView()
   const { setView } = useImageryActions()
   const automated = isAutomated()
-
-  // registers the offset protocol before any shifted source is added (a child's effect). MapLibre has no raster
-  // translate, so the shift is drawn per tile by this protocol; the map library is only known through react-map-gl.
-  useControl(({ mapLib }) => {
-    registerOffsetProtocol(mapLib, send)
-    return silentControl()
-  })
 
   useImageryStart(view)
   useMirrorShown(shown)
@@ -197,10 +178,15 @@ export function ImageryLayers(props: { belowOsm: string; send: RemoteFetch }) {
       {layers.map((item) => (
         <Fragment key={item.sourceId}>
           <Source id={item.sourceId} {...item.source} />
+          {/* the paint the index gives stays; a background adds the brightness to it (never `paint` undefined over it) */}
           <Layer
             {...item.layer}
             beforeId={belowOsm}
-            paint={item.background ? { 'raster-brightness-max': brightness } : undefined}
+            paint={
+              item.background
+                ? { ...item.layer.paint, 'raster-brightness-max': brightness }
+                : item.layer.paint
+            }
           />
         </Fragment>
       ))}

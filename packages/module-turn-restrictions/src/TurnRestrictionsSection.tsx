@@ -126,13 +126,25 @@ function JunctionEditor({ entity, editor, defaults, onRelated }: TurnRestriction
     intersection && sketch && fromID ? junctionTurns(sketch, intersection, fromID, maxVia) : []
   const hovering = turns.find((turn) => turn.key === hovered)
 
-  // the FROM road and, while a turn is hovered or focused, its TO road and via ways: highlighted on the map
+  // the FROM road is highlighted on the map, with the TO road and via ways of the hovered or focused turn. The graph,
+  // the distance and the via ways change them without a pointer event (an undo can remove the hovered turn), so an
+  // effect follows the list; it writes once per change.
   const relatedKey = relatedWayIDs(fromID, hovering).join(',')
-  useEffect(() => {
-    if (!onRelated) return undefined
-    onRelated(relatedKey === '' ? null : (relatedKey.split(',') as EntityID[]))
-    return () => onRelated(null)
-  }, [onRelated, relatedKey])
+  useEffect(
+    function highlightRelatedRoads() {
+      onRelated?.(relatedKey === '' ? null : (relatedKey.split(',') as EntityID[]))
+    },
+    [onRelated, relatedKey],
+  )
+  // the section goes (another junction, or the inspector closes): the highlight goes with it
+  useEffect(
+    function clearRelatedOnUnmount() {
+      return () => onRelated?.(null)
+    },
+    [onRelated],
+  )
+
+  const hoverTurn = (key: string | null) => setHovered(key)
 
   const chooseFrom = (id: EntityID) => {
     if (id === fromID) return
@@ -217,7 +229,7 @@ function JunctionEditor({ entity, editor, defaults, onRelated }: TurnRestriction
         fromID={fromID}
         hovered={hovered}
         readOnly={entity.readOnly}
-        onHover={setHovered}
+        onHover={hoverTurn}
         onChooseFrom={chooseFrom}
         onChoose={click}
       />
