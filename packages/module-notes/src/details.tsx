@@ -1,7 +1,7 @@
 import { Time, type DockViewProps } from '@osm-editor-kit/maid-ui'
 import { noteWebUrl, type Note } from './model.ts'
 import { useChosenNote } from './query.ts'
-import { useNotesSession } from './store.ts'
+import { useChosenNoteId } from './store.ts'
 
 const QUIET = 'p-3 text-xs text-zinc-500 dark:text-zinc-400'
 
@@ -76,7 +76,7 @@ function NoteDetails({ note }: { note: Note }) {
 
 /** The dock view "Notes": the chosen note, or a quiet line when none is chosen */
 export function NotesDock(_props: DockViewProps) {
-  const chosen = useNotesSession((s) => s.chosen)
+  const chosen = useChosenNoteId()
   const note = useChosenNote()
   if (chosen === null)
     return <p className={QUIET}>No note chosen. Pick one in the Notes panel or on the map.</p>

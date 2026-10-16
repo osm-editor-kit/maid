@@ -150,7 +150,8 @@ export const lensChoice = {
   getActiveId: (): string | null => useLensStore.getState().shownId,
   setActive: (id: string | null) => useLensStore.getState().actions.setActive(id),
   /** Calls the listener after any change of the lenses. Returns a function that stops it. */
-  subscribe: (listener: () => void): (() => void) => useLensStore.subscribe(listener),
+  // a wrapper, so the store itself is not handed out: the listener gets no arguments
+  subscribe: (listener: () => void): (() => void) => useLensStore.subscribe(() => listener()),
 }
 
 /** The lens the person chose last (the stored default), for code outside React and for tests */

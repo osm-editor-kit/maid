@@ -6,7 +6,8 @@
  *
  * The lens on the map is fed from the hook's value into the store (`setShown`): the one place the map, the panel and
  * the parking module read it. A choice made outside the URL (the panel, the parking module, the bench) is a request in
- * the store; this component writes it through the hook, so it reaches the URL and storage the same way.
+ * the store. While a request is pending the hook writes nothing (`ready`), and the request effect below writes the
+ * choice: one writer at a time, so the result does not depend on the order the effects run in.
  *
  * Mounted once, in the map's content (module.tsx), so that it is there from the start.
  */
@@ -37,17 +38,25 @@ export function useLensUrl(handle: UrlParamHandle<string>): void {
     fallback: NO_LENS,
     remember: lensActions.remember,
     resolve: (id) => resolveLens(id, known),
+    // the hook writes the key only when no request is pending; `choose` below writes regardless
+    ready: request === null,
   })
 
   // the lens on the map is what the URL shows
-  useEffect(() => {
-    lensActions.setShown(value === NO_LENS ? null : value)
-  }, [value])
+  useEffect(
+    function showUrlLens() {
+      lensActions.setShown(value === NO_LENS ? null : value)
+    },
+    [value],
+  )
 
-  // a choice made outside the URL: written after the hook's own write above (effects run in declaration order)
-  useEffect(() => {
-    if (request === null) return
-    choose(request.id ?? NO_LENS)
-    lensActions.answer(request)
-  }, [request, choose])
+  // a choice made outside the URL: this effect is the only writer while it is pending
+  useEffect(
+    function writeRequestedLens() {
+      if (request === null) return
+      choose(request.id ?? NO_LENS)
+      lensActions.answer(request)
+    },
+    [request, choose],
+  )
 }

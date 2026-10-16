@@ -3,7 +3,7 @@ import type { Editor } from '@osm-editor-kit/maid-core'
 import { QueryClient } from '@tanstack/react-query'
 import { noteUrl, parseNoteAnswer } from './model.ts'
 import { noteSelectionFor } from './note-selection.ts'
-import { useNotesSession } from './store.ts'
+import { notesSessionState, resetNotesSession } from './store.ts'
 
 const API = 'https://api.example.test/'
 
@@ -35,7 +35,7 @@ function fakeEditor(answer: (url: string) => unknown) {
 }
 
 beforeEach(() => {
-  useNotesSession.setState({ chosen: null, focus: null, turnOn: null })
+  resetNotesSession()
 })
 
 describe('the note selection', () => {
@@ -50,15 +50,15 @@ describe('the note selection', () => {
     expect(requested).toEqual(['https://api.example.test/api/0.6/notes/5.json'])
     expect(selection.current()).toBe(5)
     expect(seen).toEqual([5])
-    expect(useNotesSession.getState().turnOn).not.toBeNull()
+    expect(notesSessionState().turnOn).not.toBeNull()
     // no move without moveTo: the map stays where the link put it
-    expect(useNotesSession.getState().focus).toBeNull()
+    expect(notesSessionState().focus).toBeNull()
   })
 
   test('moveTo asks the map to move to the note', async () => {
     const { editor } = fakeEditor(() => feature(5))
     await noteSelectionFor({ editor, apiUrl: API }).select(5, { moveTo: true })
-    expect(useNotesSession.getState().focus).toEqual({ id: 5 })
+    expect(notesSessionState().focus).toEqual({ id: 5 })
   })
 
   test('a note that is in the cache is not asked for again', async () => {
@@ -96,7 +96,7 @@ describe('the note selection', () => {
     const selection = noteSelectionFor({ editor, apiUrl: API })
     await selection.select(5, { moveTo: false })
     expect(selection.current()).toBeNull()
-    expect(useNotesSession.getState().turnOn).toBeNull()
+    expect(notesSessionState().turnOn).toBeNull()
   })
 })
 

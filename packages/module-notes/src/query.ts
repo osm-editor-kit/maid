@@ -28,7 +28,7 @@ import {
   type Note,
   type NotesMode,
 } from './model.ts'
-import { useNotesSession } from './store.ts'
+import { useChosenNoteId } from './store.ts'
 
 /**
  * A loaded cell is not asked again for this long. Notes change slowly, and a pan back over a cell
@@ -171,6 +171,6 @@ export function cachedNote(queries: QueryClient, id: number): Note | undefined {
 /** The chosen note (an id in the store), read from the cache */
 export function useChosenNote(): Note | undefined {
   const queries = useQueryClient()
-  const chosen = useNotesSession((s) => s.chosen)
+  const chosen = useChosenNoteId()
   return chosen === null ? undefined : cachedNote(queries, chosen)
 }

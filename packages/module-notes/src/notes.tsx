@@ -22,7 +22,17 @@ import {
 import { noteSelectionFor } from './note-selection.ts'
 import { cachedNote, failureMessage, useNotesCells, wantedCells } from './query.ts'
 import { useNotesSwitch } from './shown.ts'
-import { useNotesSession, useNotesSettings } from './store.ts'
+import {
+  notesSessionActions,
+  useChosenNoteId,
+  useMapView,
+  useNoticeShown,
+  useNotesFocus,
+  useNotesSessionActions,
+  useNotesSettingsActions,
+  useNotesTurnOn,
+  useShowClosedNotes,
+} from './store.ts'
 import { ID_NOTES, parseAsNotes } from './url.ts'
 
 // the dock view (the chosen note, its comments) is a chunk of its own: loaded when it is shown, or in idle time after the first view
@@ -55,8 +65,8 @@ const FOCUS_ZOOM = 17
  * observe the same cell queries, so a cell is asked once.
  */
 function useNotesView(editor: Editor, apiUrl: string, enabled: boolean) {
-  const showClosed = useNotesSettings((s) => s.showClosed)
-  const view = useNotesSession((s) => s.view)
+  const showClosed = useShowClosedNotes()
+  const view = useMapView()
   const mode: NotesMode = showClosed ? 'all' : 'open'
   const active = enabled && view !== null && loadsAt(view.zoom)
   const results = useNotesCells({
@@ -104,19 +114,26 @@ export function notes(options: { apiUrl: string }) {
       function NotesOnMap(_props: MapContentProps) {
         const { current: map } = useMap()
         const queries = useQueryClient()
-        // the URL says what is shown from the start: this component is mounted with the map, and the switch writes it
-        const { enabled } = useNotesSwitch(notesUrl)
+        const session = useNotesSessionActions()
         // a note chosen by a link turns the notes on, in the URL only: a link never writes the stored choice (shown.ts)
+        const turnOn = useNotesTurnOn()
         const [, setNotesOn] = useUrlParam(notesUrl)
-        const turnOn = useNotesSession((s) => s.turnOn)
-        useEffect(() => {
-          if (!turnOn) return
-          void setNotesOn(true)
-          useNotesSession.getState().clearTurnOn()
-        }, [turnOn, setNotesOn])
-        const showClosed = useNotesSettings((s) => s.showClosed)
-        const focus = useNotesSession((s) => s.focus)
-        const chosen = useNotesSession((s) => s.chosen)
+        // This component is the one writer of the `notes` key: mounted with the map, so the URL says what is shown from
+        // the start. While a turn-on request is pending it writes nothing; the effect below writes the key instead, so
+        // the two never race and the result does not depend on the order the effects run in.
+        const { enabled } = useNotesSwitch(notesUrl, { ready: turnOn === null })
+        useEffect(
+          function turnNotesOnForLink() {
+            if (!turnOn) return
+            void setNotesOn(true)
+            session.clearTurnOn()
+          },
+          [turnOn, setNotesOn, session],
+        )
+        const showClosed = useShowClosedNotes()
+        const focus = useNotesFocus()
+        const chosen = useChosenNoteId()
+        const noticeShown = useNoticeShown()
         const { view, active, notes, truncated } = useNotesView(api.editor, apiUrl, enabled)
         const truncatedInView = active && truncated
 
@@ -126,7 +143,7 @@ export function notes(options: { apiUrl: string }) {
           if (!map) return
           const update = () => {
             const bounds = map.getBounds()
-            useNotesSession.getState().setView({
+            session.setView({
               bbox: [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()],
               // the one place of the conversion from MapLibre's zoom to OSM zoom (model.ts)
               zoom: toOsmZoom(map.getZoom()),
@@ -136,9 +153,9 @@ export function notes(options: { apiUrl: string }) {
           map.on('moveend', update)
           return () => {
             map.off('moveend', update)
-            useNotesSession.getState().setView(null)
+            session.setView(null)
           }
-        }, [map])
+        }, [map, session])
 
         // a click on a marker chooses its note; the map's click handler ignores these layers. Per layer,
         // because only MapLibre's layer-scoped click tells the marker apart: react-map-gl has no prop for it.
@@ -146,13 +163,13 @@ export function notes(options: { apiUrl: string }) {
           if (!map) return
           const choose = (event: MapLayerMouseEvent) => {
             const id = event.features?.[0]?.properties.id
-            if (typeof id === 'number') useNotesSession.getState().choose(id)
+            if (typeof id === 'number') session.choose(id)
           }
           for (const layer of NOTES_LAYER_IDS) map.on('click', layer, choose)
           return () => {
             for (const layer of NOTES_LAYER_IDS) map.off('click', layer, choose)
           }
-        }, [map])
+        }, [map, session])
 
         // the map moves to the note the panel chose. It is an effect because the map is the outside world.
         // The note comes from the cache, so the effect runs once per request (`focus` is a new object each time).
@@ -167,13 +184,14 @@ export function notes(options: { apiUrl: string }) {
         }, [focus, map, queries])
 
         // the notice of a list cut at the limit: once for a view that has one, not on every move
-        useEffect(() => {
-          const step = truncationNotice(useNotesSession.getState().noticeShown, truncatedInView)
-          if (step.shown !== useNotesSession.getState().noticeShown) {
-            useNotesSession.getState().setNoticeShown(step.shown)
-          }
-          if (step.notify) notify.info(TRUNCATED_NOTICE_TEXT, { id: TRUNCATED_NOTICE_ID })
-        }, [truncatedInView])
+        useEffect(
+          function noticeOfCutList() {
+            const step = truncationNotice(noticeShown, truncatedInView)
+            if (step.shown !== noticeShown) session.setNoticeShown(step.shown)
+            if (step.notify) notify.info(TRUNCATED_NOTICE_TEXT, { id: TRUNCATED_NOTICE_ID })
+          },
+          [truncatedInView, noticeShown, session],
+        )
 
         if (!active || !view) return null
         const shown = notes.filter((note) => showClosed || note.status === 'open')
@@ -206,11 +224,12 @@ export function notes(options: { apiUrl: string }) {
 
       /** The switches, the count in view and the list of the notes in view */
       function NotesPanel(props: { editor: Editor }) {
-        const { enabled, setEnabled } = useNotesSwitch(notesUrl)
-        const showClosed = useNotesSettings((s) => s.showClosed)
-        const setShowClosed = useNotesSettings((s) => s.setShowClosed)
-        const chosen = useNotesSession((s) => s.chosen)
-        const focusOn = useNotesSession((s) => s.focusOn)
+        // reads and chooses only: the map layer writes the key, so the panel passes `ready: false`
+        const { enabled, setEnabled } = useNotesSwitch(notesUrl, { ready: false })
+        const showClosed = useShowClosedNotes()
+        const { setShowClosed } = useNotesSettingsActions()
+        const chosen = useChosenNoteId()
+        const { focusOn } = useNotesSessionActions()
         const { view, notes, loading, truncated, error } = useNotesView(
           props.editor,
           apiUrl,
@@ -303,7 +322,7 @@ export function notes(options: { apiUrl: string }) {
       api.register('dock.view', { id: 'notes', label: 'Notes', component: NotesDock })
       // a rate limit pauses the notes through the query's `enabled` (useOsmPaused); nothing to stop here
       return () => {
-        useNotesSession.getState().setView(null)
+        notesSessionActions.setView(null)
       }
     },
   })

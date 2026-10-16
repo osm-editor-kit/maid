@@ -8,7 +8,7 @@ import { isAutomated, retryDelayFor, shouldRetry, type Editor } from '@osm-edito
 import type { NoteSelection } from './extension-points.ts'
 import { noteUrl, parseNoteAnswer, type Note } from './model.ts'
 import { cachedNote, NOTES_STALE_MS } from './query.ts'
-import { useNotesSession } from './store.ts'
+import { notesSessionActions, notesSessionState, subscribeChosenNote } from './store.ts'
 
 /**
  * The note with this id: from the cache, else one request for it through the editor's fetch. Under automation nothing
@@ -45,11 +45,8 @@ export function noteSelectionFor(options: { editor: Editor; apiUrl: string }): N
   let latest = 0
   return {
     id: 'notes',
-    current: () => useNotesSession.getState().chosen,
-    subscribe: (listener) =>
-      useNotesSession.subscribe((state, before) => {
-        if (state.chosen !== before.chosen) listener(state.chosen)
-      }),
+    current: () => notesSessionState().chosen,
+    subscribe: subscribeChosenNote,
     async select(id, { moveTo }) {
       const request = ++latest
       let note: Note | undefined
@@ -60,14 +57,13 @@ export function noteSelectionFor(options: { editor: Editor; apiUrl: string }): N
         return
       }
       if (request !== latest || !note) return
-      const session = useNotesSession.getState()
-      session.requestTurnOn()
-      if (moveTo) session.focusOn(id)
-      else session.choose(id)
+      notesSessionActions.requestTurnOn()
+      if (moveTo) notesSessionActions.focusOn(id)
+      else notesSessionActions.choose(id)
     },
     clear() {
       latest++
-      if (useNotesSession.getState().chosen !== null) useNotesSession.getState().choose(null)
+      if (notesSessionState().chosen !== null) notesSessionActions.choose(null)
     },
   }
 }
