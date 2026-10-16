@@ -12,6 +12,13 @@ import { imagery } from '@osm-editor-kit/maid-module-imagery'
 import { lensChoice, lenses } from '@osm-editor-kit/maid-module-lenses'
 import { notes } from '@osm-editor-kit/maid-module-notes'
 import { parking, parkingLens, parkingRules } from '@osm-editor-kit/maid-module-parking'
+import {
+  angleSnap,
+  cutArea,
+  divideArea,
+  mergeAreas,
+  rectangle,
+} from '@osm-editor-kit/maid-module-shapes'
 import { streetImagery } from '@osm-editor-kit/maid-module-street-imagery'
 import { defaultOperations, pointToArea } from '@osm-editor-kit/maid-operations'
 import { operations } from '@osm-editor-kit/maid-renderer'
@@ -75,6 +82,16 @@ function editorConfig(config: Config) {
     streetImagery({ mapillaryToken: mapillaryToken() }),
     // the parking editor: restriction field, quick buttons, parking sides on the map, its edit operations
     parking({ lenses: lensChoice }),
+    // drawing tools for buildings and parking spaces (docs/research/drawing-tools): Shift holds right angles,
+    angleSnap(),
+    // the Area button's "Rectangle" (key 4) draws one with three clicks,
+    rectangle(),
+    // the edit menu merges two areas into one outline,
+    mergeAreas(),
+    // cuts an area along a drawn line,
+    cutArea(),
+    // and divides one into rows and columns of parking spaces
+    divideArea(),
     // top bar and dock "Notes": OSM notes from the same API as the data, read-only, shown from zoom 12 as in iD
     notes({ apiUrl: config.apiUrl }),
   ]
