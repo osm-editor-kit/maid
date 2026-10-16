@@ -75,9 +75,16 @@ Rules for all five:
 - **Texts through Paraglide**, in en, de, fr and es.
 - **Drawing then a preset must be fast.** After a shape is finished, the preset comes from a favourite (Alt + number), and that favourite can also start the rectangle tool directly. The browser checks time this flow.
 
+### Decided by Tobias (2026-10-16)
+
+- **Angle snap:** Shift = 45° steps, relative to the previous segment, corners lock to 90°. No fine step.
+- **Merge:** topology on shared nodes, Maid's own code, no polygon library. Nodes on the outline keep their id and position; only crossing points are new.
+- **Cut:** a plain area is cut into two closed ways, both with all tags.
+- **Scope:** build all five in the order above.
+
 ### Decisions with a proposed default
 
-Tobias decides the four questions asked in chat. The rest proceed with these defaults unless he says otherwise:
+These proceed unless Tobias says otherwise:
 
 **Angle snap:**
 - The reference is the previous segment; the first segment is measured from map east, rotated with the map.
