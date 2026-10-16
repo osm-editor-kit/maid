@@ -1,7 +1,7 @@
 import { mapLibreLocale } from '@osm-editor-kit/maid-i18n'
 import * as maplibregl from 'maplibre-gl'
 import type { Map as MapLibreMap, RasterSourceSpecification, StyleSpecification } from 'maplibre-gl'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { Map, useMap } from 'react-map-gl/maplibre'
 import { useMeasure } from '../shell-context'
 import {
@@ -45,33 +45,63 @@ const TOUCH: LoupeOptions = { up: true, reach: FINGER_REACH }
 const MARK = { stroke: '#2f6bff', halo: '#fff', dot: '#ff2f6b' }
 const CROSS = crossPath()
 
-type View = { zoom: number; bearing: number; size: Vec }
+/** The main map's view as the lens needs it. The centre is in it, so a pan is a change of the view too. */
+type View = { zoom: number; bearing: number; size: Vec; centre: Vec }
 
 function viewOf(map: MapLibreMap): View {
   const box = map.getContainer()
+  const centre = map.getCenter()
   return {
     zoom: map.getZoom(),
     bearing: map.getBearing(),
     size: [box.clientWidth, box.clientHeight],
+    centre: [centre.lng, centre.lat],
+  }
+}
+
+function sameView(a: View, b: View): boolean {
+  return (
+    a.zoom === b.zoom &&
+    a.bearing === b.bearing &&
+    a.size[0] === b.size[0] &&
+    a.size[1] === b.size[1] &&
+    a.centre[0] === b.centre[0] &&
+    a.centre[1] === b.centre[1]
+  )
+}
+
+/**
+ * The main map's view as a store for useSyncExternalStore. A move or a resize tells the component; `getView` gives the
+ * same object until the view has changed, as a snapshot must.
+ */
+function viewStore(map: MapLibreMap) {
+  let view = viewOf(map)
+  return {
+    subscribe: (onChange: () => void) => {
+      const onMove = () => {
+        const next = viewOf(map)
+        if (sameView(view, next)) return
+        view = next
+        onChange()
+      }
+      map.on('move', onMove)
+      map.on('resize', onMove)
+      return () => {
+        map.off('move', onMove)
+        map.off('resize', onMove)
+      }
+    },
+    getView: () => view,
   }
 }
 
 /**
- * The main map's zoom, bearing and size, as state: a new value on each move, so the lens follows. The loupe is
- * a child of the main map, which has no prop for these events in this component, so it listens to the map here.
+ * The main map's view, read again on each move, so the lens follows. The loupe is a child of the main map, which has no
+ * prop for these events in this component, so it reads the map through the store.
  */
-function useMapView(map: MapLibreMap) {
-  const [view, setView] = useState(() => viewOf(map))
-  useEffect(() => {
-    const onMove = () => setView(viewOf(map))
-    map.on('move', onMove)
-    map.on('resize', onMove)
-    return () => {
-      map.off('move', onMove)
-      map.off('resize', onMove)
-    }
-  }, [map])
-  return view
+function useMapView(map: MapLibreMap): View {
+  const store = useMemo(() => viewStore(map), [map])
+  return useSyncExternalStore(store.subscribe, store.getView)
 }
 
 /** The lens's top-left corner on the map, and the tape in the lens; undefined before the pointer is over the map */
@@ -158,7 +188,9 @@ export function MeasureLoupe(props: {
   })
   // the same texts as the main map, read once with the map
   const [locale] = useState(mapLibreLocale)
-  const style = lensStyle(source, brightness)
+  // react-map-gl takes a new mapStyle object as a new style and sets it again: the same object for the same inputs, so
+  // the lens's map is not restyled on each render (one per pointer move while measuring)
+  const style = useMemo(() => lensStyle(source, brightness), [source, brightness])
   const placed = placeOn(map, spots.start, spots.pointer, view)
   const lon = spots.pointer?.lon
   const lat = spots.pointer?.lat

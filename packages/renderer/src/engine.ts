@@ -329,12 +329,16 @@ export class MaidEngine {
     this.flushActive()
     // before the first tile is pushed: an image that arrives later does not show in that tile
     installDirectionImages(map)
-    // the side line of a field depends on the view: its visible part may bend or leave the screen
-    map.on('moveend', () => {
-      this.refreshFieldOverlay()
-      this.handles.refresh()
-    })
     this.tiles.loadVisibleTiles()
+  }
+
+  /**
+   * The map came to rest: what depends on the view is made again (the midpoint handles, and the side line of a field,
+   * whose visible part may bend or leave the screen). The shell's map view calls it on each move end.
+   */
+  refreshForView() {
+    this.refreshFieldOverlay()
+    this.handles.refresh()
   }
 
   osmZoom() {
@@ -921,12 +925,12 @@ export class MaidEngine {
     this.moduleSession.click(lon, lat)
   }
 
-  /** Runs after the mode started or ended: cursor, midpoints, highlight, listeners */
+  /**
+   * Runs after the mode started or ended: midpoints, highlight, listeners. The cursor is not set here: the map view
+   * reads `moduleMode` and gives the map its cursor, so there is one writer of it.
+   */
   private moduleChanged() {
-    const mode = this.moduleMode
-    const container = this.map?.getCanvasContainer()
-    if (container) container.style.cursor = mode ? (mode.cursor ?? 'crosshair') : ''
-    if (!mode) this.removeModuleEscape()
+    if (!this.moduleMode) this.removeModuleEscape()
     this.handles.compute()
     this.pushHighlight()
     this.changed()

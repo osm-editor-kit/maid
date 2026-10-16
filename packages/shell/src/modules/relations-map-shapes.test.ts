@@ -4,6 +4,7 @@ import {
   arrowFeatures,
   drawableColour,
   drawingKind,
+  drawingMemo,
   drawingOf,
   gapFeatures,
   groupFeatures,
@@ -333,5 +334,20 @@ describe('the sub-route the sidebar points at', () => {
     setSubRouteHovered(null)
     expect(subRouteHovered()).toBeNull()
     expect(calls).toBe(1)
+  })
+})
+
+describe('drawingMemo', () => {
+  it('gives the same drawing while what it reads is the same, and a new one when a node of a member moves', () => {
+    const members = [{ id: 'w1' }, { id: 'w2' }]
+    const { graph, relation } = route(members, { w1: ['a', 'b'], w2: ['b', 'c'] })
+    const memo = drawingMemo()
+    const first = memo(graph, relation, null)
+    // an edit elsewhere in the graph: a node that no member uses
+    const elsewhere = new Graph(graph).replace(node('z', 9, 9))
+    expect(memo(elsewhere, relationIn(elsewhere, 'r1'), null)).toBe(first)
+    // a node of a member moves: the drawing is made again
+    const moved = new Graph(graph).replace(node('c', 5, 5))
+    expect(memo(moved, relationIn(moved, 'r1'), null)).not.toBe(first)
   })
 })

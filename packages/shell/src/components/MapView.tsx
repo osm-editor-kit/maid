@@ -61,8 +61,6 @@ let lastDrawClick = 0
 let zoomGuardTimer: ReturnType<typeof setTimeout> | undefined
 /** The timer of a long press and where the finger went down */
 let longPress: ReturnType<typeof setTimeout> | undefined
-/** Where the pointer was last, for a module mode's release, which the map sends without a place (touch end) */
-let modulePointer = { lng: 0, lat: 0 }
 let pressedAt: { x: number; y: number } | undefined
 
 type Point = { x: number; y: number }
@@ -140,6 +138,10 @@ export function MapView() {
   const [mapLocale] = useState(mapLibreLocale)
   const [dashes, setDashes] = useState(() => new globalThis.Map(dashPatterns))
   const [cursor, setCursor] = useState('grab')
+  // Where the pointer was last, for a module mode's release, which the map sends without a place (touch end). Per map.
+  const modulePointer = useRef({ lng: 0, lat: 0 })
+  // A module mode gives the cursor of the map while it is on (the engine does not write it: this is the one writer)
+  const moduleMode = useEngine((e) => e.moduleMode)
   const mode = useEngine((e) => e.mode)
   const measuring = useEngine((e) => e.measuring)
   const selectionOnly = useEngine((e) => e.selectionOnly)
@@ -223,6 +225,7 @@ export function MapView() {
   }
   const handleMoveEnd = (event: ViewStateChangeEvent) => {
     engine.loadVisibleTiles()
+    engine.refreshForView()
     const { zoom, latitude, longitude, bearing } = event.viewState
     const turn = normaliseBearing(bearing)
     // OSM zoom (256px tiles) is MapLibre zoom plus one; the turn is in the URL when it is not zero
@@ -291,7 +294,7 @@ export function MapView() {
     if (event.originalEvent.button !== 0) return
     // a module mode (rerouting) takes the pointer: a press on one of its handles starts a drag, not a pan
     if (engine.moduleMode) {
-      modulePointer = { lng: event.lngLat.lng, lat: event.lngLat.lat }
+      modulePointer.current = { lng: event.lngLat.lng, lat: event.lngLat.lat }
       if (engine.moduleModePress(event.point, event.lngLat.lng, event.lngLat.lat))
         event.preventDefault()
       return
@@ -301,7 +304,7 @@ export function MapView() {
   }
   const release = () => {
     if (engine.moduleMode) {
-      engine.moduleModeRelease(modulePointer.lng, modulePointer.lat)
+      engine.moduleModeRelease(modulePointer.current.lng, modulePointer.current.lat)
       return
     }
     if (engine.turning) {
@@ -326,7 +329,7 @@ export function MapView() {
     // keys that act where the pointer is (paste, Space while drawing) read this
     setEnginePointer(engine, { point: event.point, lon: lng, lat, layers: interactive })
     if (engine.moduleMode) {
-      modulePointer = { lng, lat }
+      modulePointer.current = { lng, lat }
       engine.moduleModeMove(lng, lat)
       return
     }
@@ -362,17 +365,15 @@ export function MapView() {
   const handleMouseMove = (event: MapLayerMouseEvent) => {
     // a handle drag of a module mode whose button went up off the map ends here, where the pointer is
     if (engine.moduleModeDragging && event.originalEvent.buttons === 0) {
-      modulePointer = { lng: event.lngLat.lng, lat: event.lngLat.lat }
+      modulePointer.current = { lng: event.lngLat.lng, lat: event.lngLat.lat }
       release()
     }
     // a handle press whose release was not seen on the map (the button went up off it) ends here: no node is made by a hover
     // a turn whose release was not seen on the map ends here too
     if ((engine.pressingHandle || engine.turning) && event.originalEvent.buttons === 0) release()
     movePointer(event)
-    if (engine.moduleMode) {
-      setCursor(engine.moduleMode.cursor ?? 'crosshair')
-      return
-    }
+    // a module mode has the cursor (see `moduleMode` above)
+    if (engine.moduleMode) return
     if (
       dragging ||
       engine.pressingHandle ||
@@ -418,12 +419,13 @@ export function MapView() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [engine.mode, engine])
+  }, [engine])
   // A module's handle drag ends on a button up anywhere: the map sees no up when the pointer left it during the drag.
   // The session ignores a release that has no drag, so the map's own release (which comes first) makes this a no-op.
   useEffect(() => {
     const onUp = () => {
-      if (engine.moduleModeDragging) engine.moduleModeRelease(modulePointer.lng, modulePointer.lat)
+      if (engine.moduleModeDragging)
+        engine.moduleModeRelease(modulePointer.current.lng, modulePointer.current.lat)
     }
     window.addEventListener('mouseup', onUp)
     return () => window.removeEventListener('mouseup', onUp)
@@ -457,7 +459,7 @@ export function MapView() {
     clearTimeout(longPress)
     if (event.points.length !== 1 || engine.measuring) return
     if (engine.moduleMode) {
-      modulePointer = event.lngLat
+      modulePointer.current = event.lngLat
       if (engine.moduleModePress(event.point, event.lngLat.lng, event.lngLat.lat))
         event.preventDefault()
       return
@@ -587,6 +589,10 @@ export function MapView() {
     select(node)
   }
 
+  // the map's cursor: a module mode's while it is on, else the pointer's in browse mode, else the crosshair
+  let mapCursor = 'crosshair'
+  if (moduleMode) mapCursor = moduleMode.cursor ?? 'crosshair'
+  else if (mode === 'browse' && !measuring) mapCursor = cursor
   return (
     <Map
       id="mainMap"
@@ -612,7 +618,7 @@ export function MapView() {
       touchPitch={false}
       // the keys are the editor's (useShortcuts): MapLibre's would turn by 15 degrees, and tilt
       keyboard={false}
-      cursor={mode === 'browse' && !measuring ? cursor : 'crosshair'}
+      cursor={mapCursor}
       // Shift-drag is not MapLibre's box zoom here: Shift-click selects several features
       boxZoom={false}
       doubleClickZoom={mode === 'browse' && !measuring && !zoomGuard}

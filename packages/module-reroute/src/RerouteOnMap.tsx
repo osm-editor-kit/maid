@@ -142,11 +142,13 @@ export function RerouteOnMap({ editor, engine }: MapContentProps) {
     [graph, preview, relationId],
   )
   if (relationId === undefined || shapes === undefined) return null
+  // flat: the source, then its layers, which name it (react-map-gl skill: flat source and layer)
   return (
-    <Source id={SOURCE} type="geojson" data={shapes}>
+    <>
+      <Source id={SOURCE} type="geojson" data={shapes} />
       {LAYERS.map((layer) => (
-        <Layer key={layer.id} {...layer} />
+        <Layer key={layer.id} {...asLayer({ ...layer, source: SOURCE })} />
       ))}
-    </Source>
+    </>
   )
 }

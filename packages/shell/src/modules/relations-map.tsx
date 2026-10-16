@@ -9,10 +9,10 @@ import { OsmRelation, type Graph } from '@osm-editor-kit/maid-model'
  */
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { SELECTED_ARROW_HEIGHT, SELECTED_ARROW_IMAGE } from '@osm-editor-kit/maid-renderer'
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { useCallback, useState, useSyncExternalStore } from 'react'
 import { Layer, Source, type LayerProps } from 'react-map-gl/maplibre'
 import { useEngine } from '../shell-context'
-import { drawingOf, onSubRouteHovered, subRouteHovered } from './relations-map-shapes.ts'
+import { drawingMemo, onSubRouteHovered, subRouteHovered } from './relations-map-shapes.ts'
 
 const GROUPS = 'relation-map-groups'
 const ARROWS = 'relation-map-arrows'
@@ -31,23 +31,25 @@ function asLayer(spec: object): LayerProps {
 }
 
 /**
- * The graph of the editor's history, read again after each change of it (a load, an edit, undo). The graph itself is not
- * a React value, so each change stores a new snapshot object. The same as the parking lens (side-features.tsx).
+ * The graph of the editor's history, read again after each change of it (a load, an edit, undo). The graph is not a
+ * React value: the history tells the component of each change (`subscribe`), and the component reads the graph it has.
  */
 function useGraph(history: MapContentProps['editor']['history']): Graph {
-  const [snapshot, setSnapshot] = useState(() => ({ graph: history.staging.graph }))
-  useEffect(() => {
-    const bump = () => setSnapshot({ graph: history.staging.graph })
-    const stops = [
-      history.on('merge', bump),
-      history.on('stagingchange', bump),
-      history.on('historyjump', bump),
-    ]
-    return () => {
-      for (const stop of stops) stop()
-    }
-  }, [history])
-  return snapshot.graph
+  const subscribe = useCallback(
+    (listener: () => void) => {
+      const stops = [
+        history.on('merge', listener),
+        history.on('stagingchange', listener),
+        history.on('historyjump', listener),
+      ]
+      return () => {
+        for (const stop of stops) stop()
+      }
+    },
+    [history],
+  )
+  const read = useCallback(() => history.staging.graph, [history])
+  return useSyncExternalStore(subscribe, read)
 }
 
 /**
@@ -59,76 +61,76 @@ export function RelationsOnMap({ editor, belowOsm }: MapContentProps) {
   // the sub-route the sidebar points at (relations-sections.tsx sets it); only a superrelation uses it
   const hovered = useSyncExternalStore(onSubRouteHovered, subRouteHovered)
   const graph = useGraph(editor.history)
-  const drawing = useMemo(() => {
-    if (selection.length !== 1) return undefined
-    const relation = graph.hasEntity(selection[0]!)
-    if (!(relation instanceof OsmRelation)) return undefined
-    return drawingOf(graph, relation, hovered)
-  }, [graph, selection, hovered])
+  // the drawing is kept while what it reads is the same (drawingMemo): an edit elsewhere in the graph does not make it,
+  // nor upload the four sources again
+  const [drawingOf] = useState(drawingMemo)
+  const relation = selection.length === 1 ? graph.hasEntity(selection[0]!) : undefined
+  const drawing = relation instanceof OsmRelation ? drawingOf(graph, relation, hovered) : undefined
   if (!drawing) return null
+  // flat: each source is followed by its layers, which name it (react-map-gl skill: flat source and layer)
   return (
     <>
-      <Source id={GROUPS} type="geojson" data={drawing.groups}>
-        <Layer
-          {...asLayer({
-            id: 'relation-map-glow',
-            type: 'line',
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: {
-              'line-color': ['get', 'colour'],
-              'line-width': ['case', ['==', ['get', 'strong'], 1], 7, 4],
-              'line-opacity': ['case', ['==', ['get', 'strong'], 1], 0.85, 0.3],
-            },
-          })}
-          beforeId={belowOsm}
-        />
-      </Source>
-      <Source id={ARROWS} type="geojson" data={drawing.arrows}>
-        <Layer
-          {...asLayer({
-            id: 'relation-map-arrows',
-            type: 'line',
-            minzoom: ARROWS_MIN_ZOOM,
-            layout: { 'line-cap': 'butt' },
-            // the white arrow of the selected way (renderer direction-images.ts): it points along the line
-            paint: { 'line-pattern': SELECTED_ARROW_IMAGE, 'line-width': SELECTED_ARROW_HEIGHT },
-          })}
-        />
-      </Source>
-      <Source id={GAPS} type="geojson" data={drawing.gaps}>
-        <Layer
-          {...asLayer({
-            id: 'relation-map-gap',
-            type: 'circle',
-            paint: {
-              'circle-radius': 6,
-              'circle-color': '#fff',
-              'circle-stroke-color': GAP_AMBER,
-              'circle-stroke-width': 2.5,
-            },
-          })}
-        />
-      </Source>
-      <Source id={LABELS} type="geojson" data={drawing.labels}>
-        <Layer
-          {...asLayer({
-            id: 'relation-map-label',
-            type: 'symbol',
-            minzoom: 11,
-            layout: {
-              'symbol-placement': 'line',
-              'text-field': ['get', 'label'],
-              'text-font': ['Open Sans Semibold'],
-              'text-size': 12,
-            },
-            paint: {
-              'text-color': ['get', 'colour'],
-              'text-halo-color': '#fff',
-              'text-halo-width': 1.5,
-            },
-          })}
-        />
-      </Source>
+      <Source id={GROUPS} type="geojson" data={drawing.groups} />
+      <Layer
+        {...asLayer({
+          id: 'relation-map-glow',
+          type: 'line',
+          source: GROUPS,
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: {
+            'line-color': ['get', 'colour'],
+            'line-width': ['case', ['==', ['get', 'strong'], 1], 7, 4],
+            'line-opacity': ['case', ['==', ['get', 'strong'], 1], 0.85, 0.3],
+          },
+        })}
+        beforeId={belowOsm}
+      />
+      <Source id={ARROWS} type="geojson" data={drawing.arrows} />
+      <Layer
+        {...asLayer({
+          id: 'relation-map-arrows',
+          type: 'line',
+          source: ARROWS,
+          minzoom: ARROWS_MIN_ZOOM,
+          layout: { 'line-cap': 'butt' },
+          // the white arrow of the selected way (renderer direction-images.ts): it points along the line
+          paint: { 'line-pattern': SELECTED_ARROW_IMAGE, 'line-width': SELECTED_ARROW_HEIGHT },
+        })}
+      />
+      <Source id={GAPS} type="geojson" data={drawing.gaps} />
+      <Layer
+        {...asLayer({
+          id: 'relation-map-gap',
+          type: 'circle',
+          source: GAPS,
+          paint: {
+            'circle-radius': 6,
+            'circle-color': '#fff',
+            'circle-stroke-color': GAP_AMBER,
+            'circle-stroke-width': 2.5,
+          },
+        })}
+      />
+      <Source id={LABELS} type="geojson" data={drawing.labels} />
+      <Layer
+        {...asLayer({
+          id: 'relation-map-label',
+          type: 'symbol',
+          source: LABELS,
+          minzoom: 11,
+          layout: {
+            'symbol-placement': 'line',
+            'text-field': ['get', 'label'],
+            'text-font': ['Open Sans Semibold'],
+            'text-size': 12,
+          },
+          paint: {
+            'text-color': ['get', 'colour'],
+            'text-halo-color': '#fff',
+            'text-halo-width': 1.5,
+          },
+        })}
+      />
     </>
   )
 }

@@ -396,6 +396,54 @@ export function drawingOf(
   return undefined
 }
 
+/**
+ * The entities a drawing of this relation reads from the graph: the relation, its members, the nodes of its way
+ * members, and for a superrelation the same one level down (the members of each sub-route, and their nodes). The
+ * graph is persistent: an entity that is changed is a new object, so the same objects give the same drawing. A missing
+ * entity is undefined, and it is in the list too, so that its arrival counts as a change.
+ */
+export function drawingInputs(graph: Graph, relation: OsmRelation): unknown[] {
+  const inputs: unknown[] = [relation]
+  const addWay = (wayId: EntityID) => {
+    const way = graph.hasEntity(wayId)
+    inputs.push(way)
+    if (way instanceof OsmWay) for (const nodeId of way.nodes) inputs.push(graph.hasEntity(nodeId))
+  }
+  for (const member of relation.members) {
+    if (member.type === 'way') addWay(member.id)
+    else if (member.type === 'relation' && member.id !== relation.id) {
+      const sub = graph.hasEntity(member.id)
+      inputs.push(sub)
+      if (sub instanceof OsmRelation)
+        for (const inner of sub.members)
+          if (inner.type === 'way' && inner.id !== relation.id) addWay(inner.id)
+    }
+  }
+  return inputs
+}
+
+/**
+ * The drawing of a relation, made again only when what it reads (drawingInputs) or the hovered sub-route changed. An
+ * edit elsewhere in the graph gives back the same drawing object, so the map does not upload its sources again. Each
+ * component keeps one memo of its own (the last answer only).
+ */
+export function drawingMemo() {
+  let last:
+    | { inputs: readonly unknown[]; hovered: string | null; drawing: Drawing | undefined }
+    | undefined
+  return (graph: Graph, relation: OsmRelation, hovered: string | null): Drawing | undefined => {
+    const inputs = drawingInputs(graph, relation)
+    if (last && last.hovered === hovered && sameItems(last.inputs, inputs)) return last.drawing
+    const drawing = drawingOf(graph, relation, hovered)
+    last = { inputs, hovered, drawing }
+    return drawing
+  }
+}
+
+function sameItems(a: readonly unknown[], b: readonly unknown[]): boolean {
+  return a.length === b.length && a.every((item, index) => item === b[index])
+}
+
 // --- The sub-route the sidebar points at -----------------------------------------------------------------------
 // A row of a superrelation's member list says which sub-route it is, through here (the sidebar sets it on hover and
 // focus, the map reads it). Plain module state with listeners, so the map can read it with useSyncExternalStore.
