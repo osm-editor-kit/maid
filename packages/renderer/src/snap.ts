@@ -12,7 +12,8 @@ export type Loc = [lon: number, lat: number]
 
 /** What a snap lands on: a node (a vertex or a standalone point), or the line of a way at `loc` */
 export type SnapTarget =
-  | { type: 'node'; id: string; loc: Loc }
+  /** `distance`: screen pixels from the pointer to the node, when known; the nearest node wins */
+  | { type: 'node'; id: string; loc: Loc; distance?: number }
   | { type: 'way'; wayId: string; loc: Loc; edge: [string, string]; distance: number }
 
 /** A node of a way, projected to the screen */
@@ -44,16 +45,18 @@ export function nearestOnPolyline(nodes: readonly Projected[], point: Point, tol
 }
 
 /**
- * The target under the pointer: a node first (a vertex or a point, the first one found), else the
- * nearest way. Several ways that are equally near go to the first one.
+ * The target under the pointer: a node first (a vertex or a point, the nearest one; one without a
+ * distance counts as farthest), else the nearest way. Equally near candidates go to the first one.
  */
 export function chooseTarget(candidates: readonly SnapTarget[]) {
+  let node: Extract<SnapTarget, { type: 'node' }> | undefined
   let way: Extract<SnapTarget, { type: 'way' }> | undefined
   for (const candidate of candidates) {
-    if (candidate.type === 'node') return candidate
-    if (!way || candidate.distance < way.distance) way = candidate
+    if (candidate.type === 'node') {
+      if (!node || (candidate.distance ?? Infinity) < (node.distance ?? Infinity)) node = candidate
+    } else if (!way || candidate.distance < way.distance) way = candidate
   }
-  return way
+  return node ?? way
 }
 
 /**

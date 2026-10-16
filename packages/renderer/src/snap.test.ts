@@ -57,6 +57,12 @@ describe('chooseTarget', () => {
     expect(chooseTarget([wayNear, node])).toBe(node)
   })
 
+  test('among nodes, the nearest one wins, not the first one found', () => {
+    const far: SnapTarget = { type: 'node', id: 'n6', loc: [1, 2], distance: 7.5 }
+    const near: SnapTarget = { type: 'node', id: 'n7', loc: [1, 2], distance: 0.5 }
+    expect(chooseTarget([far, near, wayNear])).toBe(near)
+  })
+
   test('among ways, the nearest one wins', () => {
     expect(chooseTarget([wayFar, wayNear])).toBe(wayNear)
   })

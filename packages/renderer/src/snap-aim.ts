@@ -38,7 +38,11 @@ export function snapTargetAt(
     switch (id.charAt(0)) {
       case 'n': {
         const loc = engine.data.node(id)?.loc
-        if (loc) candidates.push({ type: 'node', id, loc: [loc[0], loc[1]] })
+        if (!loc) break
+        // a pin is drawn above its node, so a hit on it can be farther than SNAP_PX: it stays a candidate
+        const at = map.project([loc[0], loc[1]])
+        const distance = Math.hypot(at.x - point.x, at.y - point.y)
+        candidates.push({ type: 'node', id, loc: [loc[0], loc[1]], distance })
         break
       }
       case 'w': {
@@ -47,9 +51,10 @@ export function snapTargetAt(
         // a vertex of the line under the pointer is a node target, as in iD, even where no vertex is drawn
         for (const n of nodes) {
           if (skip.has(n.id) || seen.has(n.id) || engine.isReadOnly(n.id)) continue
-          if (Math.hypot(n.x - point.x, n.y - point.y) > SNAP_PX) continue
+          const distance = Math.hypot(n.x - point.x, n.y - point.y)
+          if (distance > SNAP_PX) continue
           const loc = engine.data.node(n.id)?.loc
-          if (loc) candidates.push({ type: 'node', id: n.id, loc: [loc[0], loc[1]] })
+          if (loc) candidates.push({ type: 'node', id: n.id, loc: [loc[0], loc[1]], distance })
         }
         const on = way && nearestOnPolyline(nodes, point, SNAP_PX)
         if (on) {

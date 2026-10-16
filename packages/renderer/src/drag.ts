@@ -154,8 +154,10 @@ export class DragTool {
   async endDrag() {
     // a press on a handle that never moved is over: it added nothing
     this.engine.handles.release()
-    await this.settleDrag()
+    // Over from here: a key that changes while the last move settles must not aim the drag again (refresh),
+    // or the release with Shift still held would be undone by the key-up that follows it.
     this.last = undefined
+    await this.settleDrag()
     this.engine.setGuides([])
     const id = this.node
     const added = this.engine.handles.takeNode()
