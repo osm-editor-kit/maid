@@ -14,9 +14,13 @@ import {
 /** The modifier as the hint shows it: the Option symbol on Apple devices, Alt elsewhere */
 const MODIFIER_LABEL = MAC ? '⌥' : 'Alt'
 
-/** True when the keys of a target are a text field's own: a sequence never takes them */
+/**
+ * True when the keys of a target are a text field's own: a sequence never takes them. The type search is the
+ * exception (`data-favourite-keys`): it has the focus right after a drawing, and picking a favourite is what comes next.
+ */
 function inField(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false
+  if (target.dataset.favouriteKeys !== undefined) return false
   return (
     target.isContentEditable ||
     target instanceof HTMLInputElement ||

@@ -384,6 +384,8 @@ export function PresetPicker(props: {
         {...PLAIN_INPUT}
         type="search"
         role="combobox"
+        // Alt and a number pick a favourite here too: the field has the focus right after a drawing (FavouriteHint)
+        data-favourite-keys=""
         autoComplete="off"
         spellCheck={false}
         autoFocus={autoFocus}

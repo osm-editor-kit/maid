@@ -165,7 +165,7 @@ Each tool use is one undo step. Escape leaves without a change.
 
 ### Open
 
-- **Favourites:** a favourite cannot start the rectangle tool yet. It only gives the type after the drawing.
+- **Favourites:** a favourite cannot start the rectangle tool yet. After a drawing the type search has the focus, and Alt plus the favourite's number works there. That gives the drawn shape its type in one step.
 - **Help:** the help text for Shift is missing, because the shell's list of keys cannot be extended by a module.
 - **Touch:** Shift needs a keyboard. A touch screen has no way to snap angles.
 - **Merge:** two areas at a time, multipolygons not yet. JOSM's conflict dialog for different tags is not built.
