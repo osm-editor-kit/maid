@@ -46,5 +46,6 @@
   "cut_refusal_several_outlines": "Ce multipolygone a plusieurs contours.",
   "cut_refusal_through_hole": "La coupe traverserait un trou.",
   "cut_refusal_self_intersecting": "Le contour se coupe lui-même. Corrigez-le d'abord.",
-  "cut_refusal_degenerate": "Une partie serait trop petite pour être une surface."
+  "cut_refusal_degenerate": "Une partie serait trop petite pour être une surface.",
+  "cut_refusal_too_many_nodes": "Le contour a trop de sommets pour être coupé (2000 au maximum)."
 }

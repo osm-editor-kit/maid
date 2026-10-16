@@ -1,8 +1,9 @@
-import { m } from '../messages.ts'
 /**
  * The pure parts of the divide mode: the numbers of columns and rows (kept in range), the key that changes them, and
  * the sentence that says why a division is refused. No React, no engine: tested in division.test.ts.
  */
+import { m } from '../messages.ts'
+import { sentenceOf } from '../shared/refusals.ts'
 import { MAX_PARTS, type DivideRefusal } from './divide.ts'
 
 /** Which number a key changes: the columns (along the first edge) or the rows */
@@ -70,19 +71,11 @@ function deltaOfCode(code: string): 1 | -1 | undefined {
 }
 
 /** The sentence that says why a division is refused, in the page's language (read when it is shown) */
-export function refusalText(reason: DivideRefusal): string {
-  switch (reason) {
-    case 'not_four_corners':
-      return m.divide_refused_not_four_corners()
-    case 'concave':
-      return m.divide_refused_concave()
-    case 'in_relation':
-      return m.divide_refused_in_relation()
-    case 'shared_edge':
-      return m.divide_refused_shared_edge()
-    case 'too_many_parts':
-      return m.divide_refused_too_many_parts({ max: MAX_PARTS })
-    case 'nothing_to_do':
-      return m.divide_refused_nothing_to_do()
-  }
-}
+export const refusalText = sentenceOf<DivideRefusal>({
+  not_four_corners: () => m.divide_refused_not_four_corners(),
+  concave: () => m.divide_refused_concave(),
+  in_relation: () => m.divide_refused_in_relation(),
+  shared_edge: () => m.divide_refused_shared_edge(),
+  too_many_parts: () => m.divide_refused_too_many_parts({ max: MAX_PARTS }),
+  nothing_to_do: () => m.divide_refused_nothing_to_do(),
+})

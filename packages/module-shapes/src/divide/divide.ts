@@ -1,8 +1,9 @@
 import { OsmNode, OsmWay } from '@osm-editor-kit/maid-model'
 import type { Action, Graph } from '@osm-editor-kit/maid-model'
+import { frameAt, toLoc, toMetres, type Loc } from '../shared/metres.ts'
+import { cross, item, sub, type Pt } from '../shared/vector.ts'
 
-/** A position as [lon, lat] */
-export type Loc = [number, number]
+export type { Loc }
 
 /** The four corners of an area, in order */
 export type Corners = [Loc, Loc, Loc, Loc]
@@ -23,65 +24,8 @@ export const MAX_PARTS = 200
 /** Keys of the whole, with their namespaces (`name:de`, `addr:street`, `capacity:disabled`) */
 const NOT_COPIED = new Set(['name', 'ref', 'addr', 'capacity', 'source', 'note', 'fixme'])
 
-/** WGS84 equatorial radius in metres */
-const EARTH_RADIUS = 6378137
-
 /** Smallest cross product (square metres) that still counts as a real turn, not a straight line */
 const MIN_TURN = 1e-6
-
-/** A point in the local frame, in metres */
-type Pt = [number, number]
-
-/**
- * A local flat frame in metres, centred on the corners. Its x and y are linear in lon and lat, so
- * the cut lines are straight in the frame and the areas add up exactly in metres. On the Mercator
- * map a cut line bends by about 0.2 mm over 100 m, and 2 cm over 1 km: invisible at parking-lot scale.
- */
-interface Frame {
-  lon0: number
-  lat0: number
-  kx: number
-  ky: number
-}
-
-/**
- * An element of a list. Throws if the index is out of range, which the code here never allows.
- * @param   list  - The list
- * @param   index - The position
- * @return  The element
- */
-function item<T>(list: readonly T[], index: number): T {
-  const value = list[index]
-  if (value === undefined) throw new RangeError(`No element at ${index}`)
-  return value
-}
-
-/**
- * The frame for a set of corners.
- * @param   corners - Corner positions
- * @return  The frame centred on their mean position
- */
-function frameOf(corners: readonly Loc[]): Frame {
-  const lon0 = corners.reduce((sum, c) => sum + c[0], 0) / corners.length
-  const lat0 = corners.reduce((sum, c) => sum + c[1], 0) / corners.length
-  const deg = Math.PI / 180
-  return {
-    lon0,
-    lat0,
-    kx: EARTH_RADIUS * Math.cos(lat0 * deg) * deg,
-    ky: EARTH_RADIUS * deg,
-  }
-}
-
-/** Converts a position to metres in the frame */
-function toPt(frame: Frame, loc: Loc): Pt {
-  return [(loc[0] - frame.lon0) * frame.kx, (loc[1] - frame.lat0) * frame.ky]
-}
-
-/** Converts metres in the frame back to a position */
-function toLoc(frame: Frame, pt: Pt): Loc {
-  return [frame.lon0 + pt[0] / frame.kx, frame.lat0 + pt[1] / frame.ky]
-}
 
 /**
  * Checks that a division has a usable size.
@@ -114,20 +58,15 @@ function gridPoint(corners: Corners, columns: number, rows: number, i: number, j
   if (i === columns && j === rows) return corners[2]
   if (i === 0 && j === rows) return corners[3]
 
-  const frame = frameOf(corners)
-  const [A, B, C, D] = [
-    toPt(frame, corners[0]),
-    toPt(frame, corners[1]),
-    toPt(frame, corners[2]),
-    toPt(frame, corners[3]),
-  ]
+  const frame = frameAt(corners)
+  const [A, B, C, D] = corners.map((corner) => toMetres(frame, corner)) as [Pt, Pt, Pt, Pt]
   const u = i / columns
   const v = j / rows
   const [w0, w1, w2, w3] = [(1 - u) * (1 - v), u * (1 - v), u * v, (1 - u) * v]
-  return toLoc(frame, [
-    w0 * A[0] + w1 * B[0] + w2 * C[0] + w3 * D[0],
-    w0 * A[1] + w1 * B[1] + w2 * C[1] + w3 * D[1],
-  ])
+  return toLoc(frame, {
+    x: w0 * A.x + w1 * B.x + w2 * C.x + w3 * D.x,
+    y: w0 * A.y + w1 * B.y + w2 * C.y + w3 * D.y,
+  })
 }
 
 /**
@@ -209,9 +148,9 @@ function isConvex(pts: [Pt, Pt, Pt, Pt]): boolean {
   ]
   let sign = 0
   for (const [a, b, c] of turns) {
-    const cross = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0])
-    if (Math.abs(cross) < MIN_TURN) return false
-    const s = Math.sign(cross)
+    const turn = cross(sub(b, a), sub(c, b))
+    if (Math.abs(turn) < MIN_TURN) return false
+    const s = Math.sign(turn)
     if (sign !== 0 && s !== sign) return false
     sign = s
   }
@@ -284,8 +223,8 @@ export function dividePlan(
 
   const corners = cornersOf(graph, source)
   if (!corners) return { refused: 'not_four_corners' }
-  const frame = frameOf(corners.locs)
-  const pts = corners.locs.map((c) => toPt(frame, c)) as [Pt, Pt, Pt, Pt]
+  const frame = frameAt(corners.locs)
+  const pts = corners.locs.map((c) => toMetres(frame, c)) as [Pt, Pt, Pt, Pt]
   if (!isConvex(pts)) return { refused: 'concave' }
   if (graph.parentRelations(source).length > 0) return { refused: 'in_relation' }
 

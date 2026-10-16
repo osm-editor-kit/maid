@@ -4,12 +4,10 @@
  * commits, the four corners of the ring in order A, B, E, D. The mode (mode.ts) feeds it and writes the result.
  * Plan: docs/research/drawing-tools/2-three-click-rectangle.md, sections 2 and 3.
  */
+import { SNAP_PX } from '@osm-editor-kit/maid-renderer'
 import { type Loc, MIN_DEPTH_PX, rectangleCorners, screenDepth } from './rectangle.ts'
 
 type Point = { x: number; y: number }
-
-/** The renderer's snap distance (SNAP_PX in packages/renderer/src/snap.ts), kept here so the math needs no renderer import. Two clicks this close are one spot, and a corner reuses a node only this close. */
-export const SNAP_PX = 8
 
 /**
  * A corner of the rectangle as the pointer found it. A node is reused. A place on a way gets a new node inserted into

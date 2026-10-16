@@ -46,5 +46,6 @@
   "cut_refusal_several_outlines": "Dieses Multipolygon hat mehrere Außenlinien.",
   "cut_refusal_through_hole": "Der Schnitt würde durch ein Loch gehen.",
   "cut_refusal_self_intersecting": "Die Umrisslinie kreuzt sich selbst. Bitte zuerst beheben.",
-  "cut_refusal_degenerate": "Ein Teil wäre zu klein, um eine Fläche zu sein."
+  "cut_refusal_degenerate": "Ein Teil wäre zu klein, um eine Fläche zu sein.",
+  "cut_refusal_too_many_nodes": "Der Umriss hat zu viele Ecken, um ihn zu schneiden (höchstens 2000)."
 }

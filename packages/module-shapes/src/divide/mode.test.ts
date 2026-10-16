@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import type { Editor } from '@osm-editor-kit/maid-core'
 import { Graph, ModelContext, OsmNode, OsmWay } from '@osm-editor-kit/maid-model'
-import type { OperationContext } from '@osm-editor-kit/maid-operations'
 import type { MaidEngine, ModuleMode } from '@osm-editor-kit/maid-renderer'
-import { bindDivideHost, DIVIDE_MODE_ID, startDivide } from './mode.ts'
-import { divideActions, divideStore } from './store.ts'
+import { divideActions, divideSnapshot } from './divide-store.ts'
+import { DIVIDE_MODE_ID, startDivide } from './mode.ts'
 
 const context = new ModelContext()
 const ORIGIN = [13.4, 52.5] as const
@@ -89,6 +88,10 @@ function fakeEngine() {
       state.exited.push(ended.id)
       ended.onExit?.()
     },
+    // the step runs as the real engine runs it; the test does not need the redraw
+    change(step: () => void) {
+      step()
+    },
     announceDrawn(ids: readonly string[]) {
       state.drawn.push([...ids])
     },
@@ -96,35 +99,17 @@ function fakeEngine() {
   return { engine: engine as unknown as MaidEngine, state }
 }
 
-/** The operation's context for the way `w1` */
-function contextOf(graph: Graph): OperationContext {
-  return { graph, selected: ['w1'] }
-}
-
 beforeEach(() => {
-  divideActions.stop()
-  bindDivideHost(undefined)
+  divideActions().stop()
 })
 
 describe('the divide mode: start', () => {
-  it('does nothing until the map content has bound an editor and an engine', () => {
-    const { editor } = fakeEditor(graphOf(RECTANGLE))
-    const { engine, state } = fakeEngine()
-    startDivide(contextOf(graphOf(RECTANGLE)))
-    expect(state.entered).toEqual([])
-    expect(divideStore.getState().wayId).toBeUndefined()
-    bindDivideHost({ editor, engine })
-    startDivide(contextOf(graphOf(RECTANGLE)))
-    expect(state.entered).toEqual([DIVIDE_MODE_ID])
-  })
-
   it('enters the mode on the area, with two columns and one row', () => {
     const graph = graphOf(RECTANGLE)
     const { editor } = fakeEditor(graph)
     const { engine } = fakeEngine()
-    bindDivideHost({ editor, engine })
-    startDivide(contextOf(graph))
-    expect(divideStore.getState()).toMatchObject({ wayId: 'w1', columns: 2, rows: 1 })
+    startDivide({ editor, engine }, 'w1')
+    expect(divideSnapshot()).toMatchObject({ wayId: 'w1', columns: 2, rows: 1 })
   })
 })
 
@@ -133,8 +118,7 @@ describe('the divide mode: Enter applies the division as one undo step', () => {
     const graph = graphOf(RECTANGLE)
     const { editor, state: edited } = fakeEditor(graph)
     const { engine, state: engineState } = fakeEngine()
-    bindDivideHost({ editor, engine })
-    startDivide(contextOf(graph))
+    startDivide({ editor, engine }, 'w1')
     const mode = engineState.mode!
     expect(mode.onKey?.('Enter')).toBe(true)
 
@@ -146,15 +130,14 @@ describe('the divide mode: Enter applies the division as one undo step', () => {
     expect(engineState.drawn).toEqual([parts])
     expect(engineState.exited).toEqual([DIVIDE_MODE_ID])
     // the mode ended, so the store is cleared by the exit
-    expect(divideStore.getState().wayId).toBeUndefined()
+    expect(divideSnapshot().wayId).toBeUndefined()
   })
 
   it('takes Backspace as not its own', () => {
     const graph = graphOf(RECTANGLE)
     const { editor, state: edited } = fakeEditor(graph)
     const { engine, state: engineState } = fakeEngine()
-    bindDivideHost({ editor, engine })
-    startDivide(contextOf(graph))
+    startDivide({ editor, engine }, 'w1')
     expect(engineState.mode?.onKey?.('Backspace')).toBe(false)
     expect(edited.commits).toEqual([])
   })
@@ -163,10 +146,9 @@ describe('the divide mode: Enter applies the division as one undo step', () => {
     const graph = graphOf(CONCAVE)
     const { editor, state: edited } = fakeEditor(graph)
     const { engine, state: engineState } = fakeEngine()
-    bindDivideHost({ editor, engine })
-    startDivide(contextOf(graph))
+    startDivide({ editor, engine }, 'w1')
     expect(engineState.mode?.onKey?.('Enter')).toBe(true)
-    expect(divideStore.getState().refusal).toBe('concave')
+    expect(divideSnapshot().refusal).toBe('concave')
     expect(edited.commits).toEqual([])
     expect(engineState.exited).toEqual([])
     expect(engineState.drawn).toEqual([])
@@ -176,10 +158,9 @@ describe('the divide mode: Enter applies the division as one undo step', () => {
     const graph = graphOf(RECTANGLE)
     const { editor, state: edited } = fakeEditor(graph)
     const { engine, state: engineState } = fakeEngine()
-    bindDivideHost({ editor, engine })
-    startDivide(contextOf(graph))
-    divideActions.set('columns', 4)
-    divideActions.step('rows', 1)
+    startDivide({ editor, engine }, 'w1')
+    divideActions().set('columns', 4)
+    divideActions().step('rows', 1)
     engineState.mode?.onKey?.('Enter')
     expect(edited.commits[0]?.annotation).toBe('Divided an area into 8 parts')
     expect(edited.commits[0]?.selectedIDs?.length).toBe(8)

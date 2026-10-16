@@ -1,8 +1,9 @@
 import { Graph, OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 import type { Action } from '@osm-editor-kit/maid-model'
+import { frameAt, toLoc, toMetres, type Frame, type Loc } from '../shared/metres.ts'
+import { cross, distance, dot, item, sub, type Pt } from '../shared/vector.ts'
 
-/** A position as [lon, lat] */
-export type Loc = [number, number]
+export type { Loc }
 
 /** Why a cut is refused. The data is not changed when one of these is returned. */
 export type CutRefusal =
@@ -18,18 +19,12 @@ export type CutRefusal =
   | 'through_hole'
   | 'self_intersecting'
   | 'degenerate'
+  | 'too_many_nodes'
 
-/** WGS84 equatorial radius in metres, for the local projection */
-const EARTH_RADIUS = 6378137
-
+/** The most nodes an outline may have to be cut: the checks are quadratic in it */
+export const MAX_NODES = 2000
 /** Tolerance for positions along the drawn line and for near-zero lengths, in metres */
 const EPS = 1e-6
-
-/** A point in local metres: x east, y north */
-interface Pt {
-  x: number
-  y: number
-}
 
 /**
  * A node of a ring or of the chord. An existing node has an `id`; a new node has only its position
@@ -66,14 +61,6 @@ interface Analysis {
   chord: Slot[]
   /** The new nodes: the crossings that are not vertices, and the chord's intermediate points */
   created: Slot[]
-}
-
-/** Local equirectangular frame around a set of positions, so that one unit is one metre */
-interface Frame {
-  lon: number
-  lat: number
-  kx: number
-  ky: number
 }
 
 /**
@@ -144,18 +131,6 @@ export function cutPlan(
   }
 
   return { action, pieces }
-}
-
-/**
- * The item at an index the code has already checked is in range; throws if it is not.
- * @param   list - The array
- * @param   i    - The index
- * @return  The item
- */
-function item<T>(list: readonly T[], i: number): T {
-  const value = list[i]
-  if (value === undefined) throw new Error(`index ${i} is out of range`)
-  return value
 }
 
 /**
@@ -256,15 +231,17 @@ function outlineOf(graph: Graph, wayId: string, snap: number): Outline | { refus
 
   // The outline
   const ids = way.nodes.slice(0, -1)
+  // checked first: everything below is quadratic in the nodes, and the menu runs this on each open
+  if (ids.length > MAX_NODES) return refuse('too_many_nodes')
   if (new Set(ids).size !== ids.length) return refuse('self_intersecting')
   if (ids.length < 3) return refuse('degenerate')
   const locs = locsOf(graph, ids)
   if (!locs) return refuse('degenerate')
   const frame = frameAt(locs)
-  const outline = locs.map((loc) => project(frame, loc))
+  const outline = locs.map((loc) => toMetres(frame, loc))
   const n = outline.length
   for (let i = 0; i < n; i++) {
-    if (dist(item(outline, i), item(outline, (i + 1) % n)) <= EPS) return refuse('degenerate')
+    if (distance(item(outline, i), item(outline, (i + 1) % n)) <= EPS) return refuse('degenerate')
   }
   if (outlineCrosses(outline)) return refuse('self_intersecting')
   if (Math.abs(signedArea(outline)) <= snap * snap) return refuse('degenerate')
@@ -295,8 +272,8 @@ function analyse(
   const pts: Pt[] = []
   const lonLat: Loc[] = []
   for (const loc of line) {
-    const p = project(frame, loc)
-    if (pts.length === 0 || dist(item(pts, pts.length - 1), p) > EPS) {
+    const p = toMetres(frame, loc)
+    if (pts.length === 0 || distance(item(pts, pts.length - 1), p) > EPS) {
       pts.push(p)
       lonLat.push(loc)
     }
@@ -304,7 +281,7 @@ function analyse(
   if (pts.length < 2) return refuse('crossings')
   const cum = [0]
   for (let j = 0; j + 1 < pts.length; j++)
-    cum.push(item(cum, j) + dist(item(pts, j), item(pts, j + 1)))
+    cum.push(item(cum, j) + distance(item(pts, j), item(pts, j + 1)))
   const total = item(cum, cum.length - 1)
 
   // Where the line meets the outline
@@ -333,7 +310,7 @@ function analyse(
   const groups: { s: number; p: Pt; hits: typeof hits }[] = []
   for (const hit of hits) {
     const last = groups[groups.length - 1]
-    if (last && dist(last.p, hit.p) <= snap) last.hits.push(hit)
+    if (last && distance(last.p, hit.p) <= snap) last.hits.push(hit)
     else groups.push({ s: hit.s, p: hit.p, hits: [hit] })
   }
   const anchors: Anchor[] = groups.map((group) => {
@@ -341,7 +318,7 @@ function analyse(
     let best = Infinity
     for (const hit of group.hits) {
       for (let i = 0; i < n; i++) {
-        const d = dist(hit.p, item(outline, i))
+        const d = distance(hit.p, item(outline, i))
         if (d <= snap && d < best) {
           best = d
           vertex = i
@@ -406,7 +383,7 @@ function analyse(
   const edgeSlots: { slot: Slot; edge: number; u: number }[] = []
   const slotOf = (anchor: Anchor): Slot => {
     if (anchor.vertex !== undefined) return item(vertexSlots, anchor.vertex)
-    const slot: Slot = { loc: unproject(frame, anchor.p), p: anchor.p }
+    const slot: Slot = { loc: toLoc(frame, anchor.p), p: anchor.p }
     edgeSlots.push({ slot, edge: anchor.edge, u: anchor.u })
     return slot
   }
@@ -436,7 +413,7 @@ function analyse(
       const hole = member.type === 'way' ? closedWay(graph, member.id) : undefined
       const holeLocs = hole ? locsOf(graph, hole.nodes.slice(0, -1)) : undefined
       if (!holeLocs) return refuse('relation_member')
-      const holePts = holeLocs.map((loc) => project(frame, loc))
+      const holePts = holeLocs.map((loc) => toMetres(frame, loc))
       for (let k = 0; k + 1 < chordPts.length; k++) {
         for (let i = 0; i < holePts.length; i++) {
           const hole0 = item(holePts, i)
@@ -554,78 +531,6 @@ function arc(seq: Slot[], from: number, to: number): Slot[] {
 }
 
 /**
- * The frame around a set of positions: its origin and the metres per degree.
- * @param   locs - Positions in [lon, lat]
- * @return  The frame
- */
-function frameAt(locs: Loc[]): Frame {
-  const lon = locs.reduce((sum, loc) => sum + item(loc, 0), 0) / locs.length
-  const lat = locs.reduce((sum, loc) => sum + item(loc, 1), 0) / locs.length
-  const degree = (Math.PI * EARTH_RADIUS) / 180
-  return { lon, lat, kx: degree * Math.cos((lat * Math.PI) / 180), ky: degree }
-}
-
-/**
- * A position in local metres.
- * @param   frame - The frame
- * @param   loc   - Position in [lon, lat]
- * @return  The position in metres
- */
-function project(frame: Frame, loc: Loc): Pt {
-  return { x: (item(loc, 0) - frame.lon) * frame.kx, y: (item(loc, 1) - frame.lat) * frame.ky }
-}
-
-/**
- * A position in [lon, lat] from local metres.
- * @param   frame - The frame
- * @param   p     - Position in metres
- * @return  The position in [lon, lat]
- */
-function unproject(frame: Frame, p: Pt): Loc {
-  return [frame.lon + p.x / frame.kx, frame.lat + p.y / frame.ky]
-}
-
-/**
- * Vector difference a - b.
- * @param   a - First point
- * @param   b - Second point
- * @return  The difference
- */
-function sub(a: Pt, b: Pt): Pt {
-  return { x: a.x - b.x, y: a.y - b.y }
-}
-
-/**
- * Two-dimensional cross product.
- * @param   a - First vector
- * @param   b - Second vector
- * @return  The z component of a x b
- */
-function cross(a: Pt, b: Pt): number {
-  return a.x * b.y - a.y * b.x
-}
-
-/**
- * Dot product.
- * @param   a - First vector
- * @param   b - Second vector
- * @return  The dot product
- */
-function dot(a: Pt, b: Pt): number {
-  return a.x * b.x + a.y * b.y
-}
-
-/**
- * Distance between two points.
- * @param   a - First point
- * @param   b - Second point
- * @return  The distance in metres
- */
-function dist(a: Pt, b: Pt): number {
-  return Math.hypot(a.x - b.x, a.y - b.y)
-}
-
-/**
  * Distance from a point to a segment.
  * @param   p - The point
  * @param   a - One end of the segment
@@ -636,7 +541,7 @@ function distToSegment(p: Pt, a: Pt, b: Pt): number {
   const ab = sub(b, a)
   const l2 = dot(ab, ab)
   const t = l2 === 0 ? 0 : Math.min(1, Math.max(0, dot(sub(p, a), ab) / l2))
-  return dist(p, { x: a.x + ab.x * t, y: a.y + ab.y * t })
+  return distance(p, { x: a.x + ab.x * t, y: a.y + ab.y * t })
 }
 
 /**
@@ -701,7 +606,7 @@ function segmentGap(a: Pt, b: Pt, c: Pt, d: Pt): number {
  * @return  `true` if the drawn segment runs along the edge
  */
 function alongEdge(a: Pt, b: Pt, c: Pt, d: Pt, snap: number): boolean {
-  const l = dist(a, b)
+  const l = distance(a, b)
   if (l === 0) return false
   if (distToLine(c, a, b) > snap || distToLine(d, a, b) > snap) return false
   if (distToLine(a, c, d) > snap || distToLine(b, c, d) > snap) return false
@@ -771,7 +676,7 @@ function signedArea(ring: Pt[]): number {
 function perimeter(ring: Slot[]): number {
   let sum = 0
   for (let i = 0; i < ring.length; i++) {
-    sum += dist(item(ring, i).p, item(ring, (i + 1) % ring.length).p)
+    sum += distance(item(ring, i).p, item(ring, (i + 1) % ring.length).p)
   }
   return sum
 }

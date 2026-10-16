@@ -46,5 +46,6 @@
   "cut_refusal_several_outlines": "This multipolygon has several outlines.",
   "cut_refusal_through_hole": "The cut would cut through a hole.",
   "cut_refusal_self_intersecting": "The outline crosses itself. Fix it first.",
-  "cut_refusal_degenerate": "A piece would be too small to be an area."
+  "cut_refusal_degenerate": "A piece would be too small to be an area.",
+  "cut_refusal_too_many_nodes": "The outline has too many corners to cut (at most 2000)."
 }

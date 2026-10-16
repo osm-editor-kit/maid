@@ -3,37 +3,36 @@
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import type { Feature, FeatureCollection } from 'geojson'
 import { Layer, type LayerProps, Source } from 'react-map-gl/maplibre'
+import { useRectanglePreview } from './rectangle-store.ts'
 import type { Preview } from './state.ts'
-import { useRectanglePreview } from './store.ts'
 
 const SOURCE = 'shapes-rectangle-preview'
 const COLOUR = '#2563eb'
 
-/** The layers as react-map-gl takes them; the filter and the paint are JSON arrays of the style spec */
-function asLayer(spec: object): LayerProps {
-  return spec as unknown as LayerProps
-}
-
-const LAYERS: LayerProps[] = [
-  asLayer({
+/** The layers, each with the source it draws; the filter and the paint are JSON arrays of the style spec */
+const LAYERS = [
+  {
     id: 'shapes-rectangle-fill',
     type: 'fill',
+    source: SOURCE,
     filter: ['==', ['get', 'kind'], 'rectangle'],
     paint: { 'fill-color': COLOUR, 'fill-opacity': 0.15 },
-  }),
-  asLayer({
+  } satisfies LayerProps,
+  {
     id: 'shapes-rectangle-outline',
     type: 'line',
+    source: SOURCE,
     filter: ['==', ['get', 'kind'], 'rectangle'],
     paint: { 'line-color': COLOUR, 'line-width': 2, 'line-dasharray': [2, 2] },
-  }),
-  asLayer({
+  } satisfies LayerProps,
+  {
     id: 'shapes-rectangle-wall',
     type: 'line',
+    source: SOURCE,
     filter: ['==', ['get', 'kind'], 'wall'],
     layout: { 'line-cap': 'round' },
     paint: { 'line-color': COLOUR, 'line-width': 3 },
-  }),
+  } satisfies LayerProps,
 ]
 
 function featuresOf(preview: Preview): FeatureCollection {
@@ -64,7 +63,7 @@ export function RectangleOnMap(_props: MapContentProps) {
     <>
       <Source id={SOURCE} type="geojson" data={featuresOf(preview)} />
       {LAYERS.map((layer) => (
-        <Layer key={(layer as { id: string }).id} {...asLayer({ ...layer, source: SOURCE })} />
+        <Layer key={layer.id} {...layer} />
       ))}
     </>
   )

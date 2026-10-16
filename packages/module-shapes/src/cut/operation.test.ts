@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test'
-import type { OperationContext } from '@osm-editor-kit/maid-operations'
+import type { OperationContext, OperationHost } from '@osm-editor-kit/maid-operations'
 import { m } from '../messages.ts'
+import { cutSnapshot } from './cut-store.ts'
 import { cutCheck } from './cut.ts'
 import { cutOperation } from './operation.ts'
 import { graphOf, node, relation, square, way } from './test-graph.ts'
@@ -135,9 +136,23 @@ describe('cut: the operation makes no change of its own', () => {
     expect(typeof cutOperation.start).toBe('function')
   })
 
-  it('does nothing when no map is bound to draw on', () => {
-    const graph = graphOf(...square())
-    expect(() => cutOperation.start?.(selecting(graph, 'w1'))).not.toThrow()
+  it('starts the mode on the host it is given, and nothing for a multipolygon with no outline', () => {
+    const entered: string[] = []
+    const host = {
+      engine: { enterModuleMode: (mode: { id: string }) => entered.push(mode.id) },
+      editor: undefined,
+    } as unknown as OperationHost
+    cutOperation.start?.(selecting(graphOf(...square()), 'w1'), host)
+    expect(entered).toEqual(['cut-area'])
+    expect(cutSnapshot().wayId).toBe('w1')
+    const noOutline = graphOf(
+      ...square(),
+      relation('r4', { type: 'multipolygon', building: 'yes' }, [
+        { id: 'w1', type: 'way', role: 'inner' },
+      ]),
+    )
+    cutOperation.start?.(selecting(noOutline, 'r4'), host)
+    expect(entered).toEqual(['cut-area'])
   })
 
   it('has its label and sentences in the page language, and no shortcut', () => {

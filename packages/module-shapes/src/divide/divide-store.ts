@@ -1,9 +1,9 @@
 // The division the person is making, as UI state: the area, the columns and rows, and a refusal to show. Private to the
-// module: the panel reads it through `divideStore`, and the mode and the keys change it through `divideActions`. Nothing
-// here touches the data (mode.ts does that when the division is applied).
+// module: the panel reads it through the hooks below, and the mode and the keys change it through `divideActions()`.
+// Nothing here touches the data (mode.ts does that when the division is applied).
 import { create } from 'zustand'
 import type { DivideRefusal } from './divide.ts'
-import { stepDivision, withAxis, type Axis } from './division.ts'
+import { type Axis, stepDivision, withAxis } from './division.ts'
 
 type DivideState = {
   /** The area being divided; undefined when no division is under way */
@@ -31,7 +31,7 @@ type DivideStore = DivideState & { actions: DivideActions }
 
 const CLEARED: DivideState = { wayId: undefined, columns: 2, rows: 1, refusal: undefined }
 
-export const divideStore = create<DivideStore>()((set) => ({
+const useDivideStore = create<DivideStore>()((set) => ({
   ...CLEARED,
   actions: {
     begin: (wayId) => set({ ...CLEARED, wayId }),
@@ -43,5 +43,33 @@ export const divideStore = create<DivideStore>()((set) => ({
   },
 }))
 
-/** The division's actions, for the mode and the panel's handlers */
-export const divideActions = divideStore.getState().actions
+/** The division's actions, for the mode and the panel's handlers. Called from handlers, never during render. */
+export function divideActions(): DivideActions {
+  return useDivideStore.getState().actions
+}
+
+/** The division as it is now, read outside React (the mode applies it this way) */
+export function divideSnapshot(): DivideState {
+  const { wayId, columns, rows, refusal } = useDivideStore.getState()
+  return { wayId, columns, rows, refusal }
+}
+
+/** The area being divided; undefined when no division is under way */
+export function useDivideWayId() {
+  return useDivideStore((state) => state.wayId)
+}
+
+/** The columns along the first edge */
+export function useDivideColumns() {
+  return useDivideStore((state) => state.columns)
+}
+
+/** The rows down the first edge */
+export function useDivideRows() {
+  return useDivideStore((state) => state.rows)
+}
+
+/** Why the last Apply was refused, when it is shown */
+export function useDivideRefusal() {
+  return useDivideStore((state) => state.refusal)
+}

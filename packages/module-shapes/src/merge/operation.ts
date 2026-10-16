@@ -5,10 +5,11 @@
 import { OsmWay } from '@osm-editor-kit/maid-model'
 import type { Operation, OperationContext } from '@osm-editor-kit/maid-operations'
 import { m } from '../messages.ts'
+import { sentenceOf } from '../shared/refusals.ts'
 import { mergePlan, type MergeRefusal } from './merge.ts'
 
 /** The sentence for each reason two areas cannot be merged. Read when shown, so it follows the page's language. */
-const REFUSAL_SENTENCES: Record<MergeRefusal, () => string> = {
+export const refusalSentence = sentenceOf<MergeRefusal>({
   not_two_areas: () => m.merge_refused_not_two_areas(),
   multipolygon: () => m.merge_refused_multipolygon(),
   conflicting_tags: () => m.merge_refused_conflicting_tags(),
@@ -19,12 +20,7 @@ const REFUSAL_SENTENCES: Record<MergeRefusal, () => string> = {
   tagged_nodes: () => m.merge_refused_tagged_nodes(),
   not_simple: () => m.merge_refused_not_simple(),
   too_many_nodes: () => m.merge_refused_too_many_nodes(),
-}
-
-/** The sentence that says why the two areas cannot be merged */
-export function refusalSentence(refusal: MergeRefusal): string {
-  return REFUSAL_SENTENCES[refusal]()
-}
+})
 
 /** Exactly two selected ways that are closed areas. A closed line (a loop of road) is not an area, so it is not offered here. */
 function selectedAreas(context: OperationContext): boolean {

@@ -9,6 +9,8 @@
 
 import { OsmNode, OsmRelation, OsmWay, utilSurvivorID } from '@osm-editor-kit/maid-model'
 import type { Action, Graph } from '@osm-editor-kit/maid-model'
+import { frameAt, toLoc, toMetres, type Frame, type Loc } from '../shared/metres.ts'
+import { cross, distance, dot, item, sub, type Pt } from '../shared/vector.ts'
 
 /** Why two areas cannot be merged */
 export type MergeRefusal =
@@ -33,20 +35,6 @@ const EPS = 1e-9
 const CORNER_DEGREES = 10
 /** A node is straight on the outline when the outline turns there by less than this (degrees) */
 const STRAIGHT_DEGREES = 1
-const EARTH_RADIUS = 6371008.8
-
-/** A location [lon, lat] */
-type Loc = [number, number]
-/** A point in local metres: east and north of the frame's origin */
-type Point = [number, number]
-
-/** Maps locations to local metres around one origin */
-interface Frame {
-  lon0: number
-  lat0: number
-  metresPerLon: number
-  metresPerLat: number
-}
 
 /** The nodes of one way: their ids (without the closing node) and the nodes */
 interface Side {
@@ -57,7 +45,7 @@ interface Side {
 /** One outline in counter-clockwise order: ids and points, and whether the way was clockwise */
 interface Ring {
   ids: EntityID[]
-  pos: Point[]
+  pos: Pt[]
   cw: boolean
 }
 
@@ -69,7 +57,7 @@ interface Work extends Ring {
 
 /** A point of the planar graph: where it is, and the existing node there (none for a crossing) */
 interface PlacedPoint {
-  pos: Point
+  pos: Pt
   id?: EntityID
   /** The turn at this node in each merged way it is an existing node of (in degrees) */
   turns: number[]
@@ -104,7 +92,7 @@ interface Outline {
 
 /** Where two segments meet, and the position of that point along each segment (0 to 1) */
 interface Contact {
-  pos: Point
+  pos: Pt
   t: number
   u: number
 }
@@ -165,14 +153,14 @@ function planOutline(graph: Graph, ids: readonly string[]): Outline | MergeRefus
 
   const locs = [...keep.nodes, ...lose.nodes].map((node) => node.loc)
   if (locs.some((loc) => !loc)) return 'not_simple'
-  const frame = frameFor(locs as Loc[])
+  const frame = frameAt(locs as Loc[])
 
   const first = orientRing(keep, frame)
   const second = orientRing(lose, frame)
   if (hasRepeatedNeighbour(first.pos) || hasRepeatedNeighbour(second.pos)) return 'not_simple'
 
   const points: PlacedPoint[] = []
-  const place = (pos: Point, id?: EntityID, turn?: number): number => {
+  const place = (pos: Pt, id?: EntityID, turn?: number): number => {
     const index = points.findIndex((point) => distance(point.pos, pos) <= SAME_POINT)
     if (index >= 0) {
       const point = at(points, index)
@@ -290,8 +278,8 @@ function applyOutline(graph: Graph, outline: Outline): Graph {
  * @param   i    - The index, may run past the end
  * @return  The item
  */
-function at<T>(list: T[], i: number): T {
-  return list[i % list.length] as T
+function at<T>(list: readonly T[], i: number): T {
+  return item(list, i % list.length)
 }
 
 /**
@@ -352,43 +340,6 @@ function sideOf(graph: Graph, way: OsmWay): Side {
 }
 
 /**
- * Builds the local frame around the centre of the locations, so metres are close to real metres.
- * @param   locs - The locations of all the nodes
- * @return  The frame
- */
-function frameFor(locs: Loc[]): Frame {
-  const lon0 = locs.reduce((sum, loc) => sum + loc[0], 0) / locs.length
-  const lat0 = locs.reduce((sum, loc) => sum + loc[1], 0) / locs.length
-  const perDegree = (Math.PI / 180) * EARTH_RADIUS
-  return {
-    lon0,
-    lat0,
-    metresPerLon: perDegree * Math.cos((lat0 * Math.PI) / 180),
-    metresPerLat: perDegree,
-  }
-}
-
-/**
- * Converts a location to local metres.
- * @param   frame - The frame
- * @param   loc   - A location [lon, lat]
- * @return  The point in metres
- */
-function toMetres(frame: Frame, loc: Loc): Point {
-  return [(loc[0] - frame.lon0) * frame.metresPerLon, (loc[1] - frame.lat0) * frame.metresPerLat]
-}
-
-/**
- * Converts a point in local metres back to a location.
- * @param   frame - The frame
- * @param   point - The point in metres
- * @return  The location [lon, lat]
- */
-function toLoc(frame: Frame, point: Point): Loc {
-  return [frame.lon0 + point[0] / frame.metresPerLon, frame.lat0 + point[1] / frame.metresPerLat]
-}
-
-/**
  * The points of a way in local metres, counter-clockwise. A clockwise way is reversed and flagged, so the
  * outline can be written in the direction the survivor had.
  * @param   side  - The nodes of the way
@@ -409,10 +360,7 @@ function orientRing(side: Side, frame: Frame): Ring {
  * @param   place - Finds or adds a point, returns its index
  * @return  The ring with its vertices and empty splits
  */
-function withVertices(
-  ring: Ring,
-  place: (pos: Point, id?: EntityID, turn?: number) => number,
-): Work {
+function withVertices(ring: Ring, place: (pos: Pt, id?: EntityID, turn?: number) => number): Work {
   const n = ring.pos.length
   return {
     ...ring,
@@ -428,12 +376,12 @@ function withVertices(
  * @param   pts - The corners of a ring
  * @return  The signed area in square metres
  */
-function signedArea(pts: Point[]): number {
+function signedArea(pts: Pt[]): number {
   let sum = 0
   for (let i = 0; i < pts.length; i++) {
     const a = at(pts, i)
     const b = at(pts, i + 1)
-    sum += a[0] * b[1] - b[0] * a[1]
+    sum += cross(a, b)
   }
   return sum / 2
 }
@@ -443,7 +391,7 @@ function signedArea(pts: Point[]): number {
  * @param   pts - The corners of a ring
  * @return  `true` if a corner repeats its neighbour
  */
-function hasRepeatedNeighbour(pts: Point[]): boolean {
+function hasRepeatedNeighbour(pts: Pt[]): boolean {
   return pts.some((pt, i) => distance(pt, at(pts, i + 1)) <= SAME_POINT)
 }
 
@@ -469,23 +417,6 @@ function edgeKey(x: EntityID, y: EntityID): string {
   return x < y ? `${x}|${y}` : `${y}|${x}`
 }
 
-/** Vector helpers on points */
-function sub(a: Point, b: Point): Point {
-  return [a[0] - b[0], a[1] - b[1]]
-}
-
-function dot(a: Point, b: Point): number {
-  return a[0] * b[0] + a[1] * b[1]
-}
-
-function cross(a: Point, b: Point): number {
-  return a[0] * b[1] - a[1] * b[0]
-}
-
-function distance(a: Point, b: Point): number {
-  return Math.hypot(a[0] - b[0], a[1] - b[1])
-}
-
 /**
  * The distance from a point to a segment.
  * @param   p - The point
@@ -493,11 +424,11 @@ function distance(a: Point, b: Point): number {
  * @param   b - The end of the segment
  * @return  The distance in metres
  */
-function distanceToSegment(p: Point, a: Point, b: Point): number {
+function distanceToSegment(p: Pt, a: Pt, b: Pt): number {
   const ab = sub(b, a)
   const len2 = dot(ab, ab)
   const t = len2 === 0 ? 0 : Math.min(1, Math.max(0, dot(sub(p, a), ab) / len2))
-  return distance(p, [a[0] + t * ab[0], a[1] + t * ab[1]])
+  return distance(p, { x: a.x + t * ab.x, y: a.y + t * ab.y })
 }
 
 /**
@@ -507,7 +438,7 @@ function distanceToSegment(p: Point, a: Point, b: Point): number {
  * @param   b - The end of the segment
  * @return  `true` if `p` lies on the segment between `a` and `b`
  */
-function isBetween(a: Point, p: Point, b: Point): boolean {
+function isBetween(a: Pt, p: Pt, b: Pt): boolean {
   const ab = sub(b, a)
   const len2 = dot(ab, ab)
   if (len2 === 0) return false
@@ -524,12 +455,12 @@ function isBetween(a: Point, p: Point, b: Point): boolean {
  * @param   q1 - End of the second segment
  * @return  `false` only when the boxes are apart
  */
-function boxesMeet(p0: Point, p1: Point, q0: Point, q1: Point): boolean {
+function boxesMeet(p0: Pt, p1: Pt, q0: Pt, q1: Pt): boolean {
   return (
-    Math.max(p0[0], p1[0]) + SAME_POINT >= Math.min(q0[0], q1[0]) &&
-    Math.max(q0[0], q1[0]) + SAME_POINT >= Math.min(p0[0], p1[0]) &&
-    Math.max(p0[1], p1[1]) + SAME_POINT >= Math.min(q0[1], q1[1]) &&
-    Math.max(q0[1], q1[1]) + SAME_POINT >= Math.min(p0[1], p1[1])
+    Math.max(p0.x, p1.x) + SAME_POINT >= Math.min(q0.x, q1.x) &&
+    Math.max(q0.x, q1.x) + SAME_POINT >= Math.min(p0.x, p1.x) &&
+    Math.max(p0.y, p1.y) + SAME_POINT >= Math.min(q0.y, q1.y) &&
+    Math.max(q0.y, q1.y) + SAME_POINT >= Math.min(p0.y, p1.y)
   )
 }
 
@@ -541,12 +472,12 @@ function boxesMeet(p0: Point, p1: Point, q0: Point, q1: Point): boolean {
  * @param   q1 - End of the second segment
  * @return  The contacts, possibly none
  */
-function segmentContacts(p0: Point, p1: Point, q0: Point, q1: Point): Contact[] {
+function segmentContacts(p0: Pt, p1: Pt, q0: Pt, q1: Pt): Contact[] {
   const r = sub(p1, p0)
   const s = sub(q1, q0)
   const qp = sub(q0, p0)
-  const lenR = Math.hypot(r[0], r[1])
-  const lenS = Math.hypot(s[0], s[1])
+  const lenR = Math.hypot(r.x, r.y)
+  const lenS = Math.hypot(s.x, s.y)
   const denom = cross(r, s)
   const inRange = (x: number): boolean => x >= -EPS && x <= 1 + EPS
   const clamp = (x: number): number => Math.min(1, Math.max(0, x))
@@ -555,7 +486,7 @@ function segmentContacts(p0: Point, p1: Point, q0: Point, q1: Point): Contact[] 
     const t = cross(qp, s) / denom
     const u = cross(qp, r) / denom
     if (!inRange(t) || !inRange(u)) return []
-    return [{ pos: [p0[0] + t * r[0], p0[1] + t * r[1]], t: clamp(t), u: clamp(u) }]
+    return [{ pos: { x: p0.x + t * r.x, y: p0.y + t * r.y }, t: clamp(t), u: clamp(u) }]
   }
 
   // Parallel: they meet only when they lie on one line, and then at the ends of the shorter stretch
@@ -586,12 +517,12 @@ function segmentContacts(p0: Point, p1: Point, q0: Point, q1: Point): Contact[] 
  * @param   ring - The corners of the ring
  * @return  `true` if the point is inside
  */
-function insideRing(p: Point, ring: Point[]): boolean {
+function insideRing(p: Pt, ring: Pt[]): boolean {
   let inside = false
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const [xi, yi] = at(ring, i)
-    const [xj, yj] = at(ring, j)
-    if (yi > p[1] !== yj > p[1] && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi)
+    const a = at(ring, i)
+    const b = at(ring, j)
+    if (a.y > p.y !== b.y > p.y && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x)
       inside = !inside
   }
   return inside
@@ -602,7 +533,7 @@ function insideRing(p: Point, ring: Point[]): boolean {
  * @param   pts - The corners of the ring, in order
  * @return  `true` if the ring is not simple
  */
-function touchesItself(pts: Point[]): boolean {
+function touchesItself(pts: Pt[]): boolean {
   const n = pts.length
   for (let i = 0; i < n; i++) {
     for (let j = i + 2; j < n; j++) {
@@ -651,8 +582,8 @@ function piecesOf(ring: Work, side: 0 | 1, other: Work, points: PlacedPoint[]): 
  * @param   other - The corners of the other ring
  * @return  The state of the part
  */
-function classify(a: Point, b: Point, other: Point[]): Piece['state'] {
-  const mid: Point = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
+function classify(a: Pt, b: Pt, other: Pt[]): Piece['state'] {
+  const mid: Pt = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
   for (let j = 0; j < other.length; j++) {
     const p = at(other, j)
     const q = at(other, j + 1)
@@ -747,7 +678,7 @@ function dropStraightExisting(
  * @param   b - The corner after
  * @return  The turn in degrees, from 0 to 180
  */
-function turnDegrees(a: Point, p: Point, b: Point): number {
+function turnDegrees(a: Pt, p: Pt, b: Pt): number {
   const v1 = sub(p, a)
   const v2 = sub(b, p)
   return (Math.abs(Math.atan2(cross(v1, v2), dot(v1, v2))) * 180) / Math.PI

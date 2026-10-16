@@ -6,6 +6,7 @@
  * The types are the renderer's own (the `draw.constraint` hook, docs/adr/0011-drawing-tool-hooks.md).
  */
 import type { ConstraintInput, ConstraintResult, Modifiers } from '@osm-editor-kit/maid-renderer'
+import { cross, distance, sub } from '../shared/vector.ts'
 
 /** A point on the screen, in pixels (the hook's own type; the renderer does not export it by name) */
 type Point = ConstraintInput['point']
@@ -115,18 +116,6 @@ function pointAt(ray: Ray, t: number): Point {
 
 function unit(angle: number): Point {
   return { x: Math.cos(angle), y: Math.sin(angle) }
-}
-
-function cross(a: Point, b: Point): number {
-  return a.x * b.y - a.y * b.x
-}
-
-function sub(a: Point, b: Point): Point {
-  return { x: a.x - b.x, y: a.y - b.y }
-}
-
-function distance(a: Point, b: Point): number {
-  return Math.hypot(a.x - b.x, a.y - b.y)
 }
 
 /** Into [-PI, PI), so the snap works across the 180 degree seam */

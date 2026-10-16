@@ -4,8 +4,14 @@
  * (commit.ts) and hands the new way to the shell. Escape ends the mode with nothing written (the engine does that).
  */
 import type { Editor } from '@osm-editor-kit/maid-core'
-import type { MaidEngine, ModuleMode, ModuleModeInfo } from '@osm-editor-kit/maid-renderer'
+import {
+  type MaidEngine,
+  type ModuleMode,
+  SNAP_PX,
+  type SnapTarget,
+} from '@osm-editor-kit/maid-renderer'
 import { commitRectangle } from './commit.ts'
+import { rectangleActions } from './rectangle-store.ts'
 import type { Loc } from './rectangle.ts'
 import {
   type Corner,
@@ -13,17 +19,13 @@ import {
   type RectangleEvent,
   previewOf,
   reduce,
-  SNAP_PX,
   START,
   type Stage,
   type Step,
 } from './state.ts'
-import { rectangleActions } from './store.ts'
 
 /** The id of the tool and of its mode: the Area button's dropdown marks the tool pressed while its mode is on */
 export const RECTANGLE_ID = 'rectangle'
-
-type SnapTarget = NonNullable<ModuleModeInfo['target']>
 
 /**
  * The engine's snap takes every node that its query box touches, so a node found by it can lie farther than SNAP_PX
@@ -37,9 +39,17 @@ function nodeWithinSnap(engine: MaidEngine, node: { loc: Loc }, loc: Loc): boole
   return Math.hypot(p.x - q.x, p.y - q.y) <= SNAP_PX
 }
 
+/**
+ * Whether a corner may reuse this node: it lies within SNAP_PX of the place, and it is not read-only. A corner that
+ * reused a read-only node would change a feature that the person cannot edit, so a new node is made there instead.
+ */
+function mayReuse(engine: MaidEngine, node: { id: string; loc: Loc }, loc: Loc): boolean {
+  return !engine.isReadOnly(node.id) && nodeWithinSnap(engine, node, loc)
+}
+
 /** The corner a click or a move found: the node or the place on a way under the pointer, else open ground */
 function cornerOf(engine: MaidEngine, target: SnapTarget | undefined, loc: Loc): Corner {
-  if (target?.type === 'node' && nodeWithinSnap(engine, target, loc))
+  if (target?.type === 'node' && mayReuse(engine, target, loc))
     return { type: 'node', id: target.id, loc: target.loc }
   // a midpoint is added to the way, so a way that is read-only stays as it is
   if (target?.type === 'way' && !engine.isReadOnly(target.wayId))
@@ -54,7 +64,7 @@ function cornerOf(engine: MaidEngine, target: SnapTarget | undefined, loc: Loc):
 function nodeCornerAt(engine: MaidEngine, screen: { x: number; y: number }, loc: Loc): Corner {
   const layers = engine.pointer?.layers ?? []
   const target = layers.length > 0 ? engine.snapAt(screen, layers, new Set()) : undefined
-  if (target?.type === 'node' && nodeWithinSnap(engine, target, loc))
+  if (target?.type === 'node' && mayReuse(engine, target, loc))
     return { type: 'node', id: target.id, loc: target.loc }
   return { type: 'free', loc }
 }
@@ -83,7 +93,7 @@ export function rectangleMode(editor: Editor, engine: MaidEngine): ModuleMode {
       engine.announceDrawn(wayId)
       return
     }
-    rectangleActions.show(previewOf(stage, env))
+    rectangleActions().show(previewOf(stage, env))
   }
 
   return {
@@ -102,7 +112,7 @@ export function rectangleMode(editor: Editor, engine: MaidEngine): ModuleMode {
     },
     onExit: () => {
       stage = START
-      rectangleActions.clear()
+      rectangleActions().clear()
     },
   }
 }

@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it } from 'bun:test'
 import type { Editor } from '@osm-editor-kit/maid-core'
 import type { Graph, OsmWay } from '@osm-editor-kit/maid-model'
+import type { OperationHost } from '@osm-editor-kit/maid-operations'
 import type { MaidEngine, ModuleMode, ModuleModeInfo } from '@osm-editor-kit/maid-renderer'
 import { m } from '../messages.ts'
-import { bindCut, MODE_ID, startCut } from './mode.ts'
-import { cutActions, cutStore } from './store.ts'
+import { cutActions, cutSnapshot } from './cut-store.ts'
+import { MODE_ID, startCut } from './mode.ts'
 import { at, graphOf, square } from './test-graph.ts'
 
 /** The pointer at a place on the screen, without a snap: what the engine passes to a mode's callbacks */
@@ -15,7 +16,7 @@ const info: ModuleModeInfo = {
 
 /**
  * A fake editor and engine around one graph: the history performs the actions in order, the engine keeps the mode it
- * started and records what the mode asks of it. No map, no shell.
+ * started and records what the mode asks of it. As the real engine, entering a mode ends the one under way. No map, no shell.
  */
 function harness(graph: Graph) {
   const state = {
@@ -39,7 +40,9 @@ function harness(graph: Graph) {
   } as unknown as Editor
   const engine = {
     enterModuleMode(mode: ModuleMode) {
+      const previous = state.mode
       state.mode = mode
+      previous?.onExit?.()
     },
     exitModuleMode(id?: string) {
       const mode = state.mode
@@ -47,18 +50,22 @@ function harness(graph: Graph) {
       state.mode = undefined
       mode.onExit?.()
     },
+    // the step runs as the real engine runs it; the test does not need the redraw
+    change(step: () => void) {
+      step()
+    },
     announceDrawn(ids: readonly string[]) {
       state.announced.push([...ids])
     },
   } as unknown as MaidEngine
-  return { state, editor, engine }
+  const host = { editor, engine } as OperationHost
+  return { state, editor, engine, host }
 }
 
 /** Starts the cut of w1 on a harness and returns the mode as the engine has it */
 function begin(graph = graphOf(...square())) {
   const h = harness(graph)
-  bindCut({ editor: h.editor, engine: h.engine })
-  startCut('w1')
+  startCut(h.host, 'w1')
   return { ...h, mode: h.state.mode as ModuleMode }
 }
 
@@ -68,23 +75,25 @@ function click(mode: ModuleMode, x: number, y: number) {
   mode.onClick?.(lon, lat, info)
 }
 
-// each test starts with no map and no cut under way
+// each test starts with no cut under way
 afterEach(() => {
-  bindCut(undefined)
-  cutActions.end()
+  cutActions().end()
 })
 
 describe('cut mode: the line is drawn by clicks', () => {
   it('starts with nothing clicked, and says how to finish, and the way is the one cut', () => {
     begin()
-    expect(cutStore.getState().wayId).toBe('w1')
-    expect(cutStore.getState().points).toEqual([])
-    expect(cutStore.getState().refusal).toBeUndefined()
+    expect(cutSnapshot().wayId).toBe('w1')
+    expect(cutSnapshot().points).toEqual([])
+    expect(cutSnapshot().refusal).toBeUndefined()
   })
 
-  it('does not start without a bound map: an operation asked then does nothing', () => {
-    expect(() => startCut('w1')).not.toThrow()
-    expect(cutStore.getState().wayId).toBeUndefined()
+  it('a second cut starts with its own way: the mode is entered before the store begins', () => {
+    const h = harness(graphOf(...square()))
+    startCut(h.host, 'w1')
+    startCut(h.host, 'w2')
+    expect(cutSnapshot().wayId).toBe('w2')
+    expect(h.state.mode?.id).toBe(MODE_ID)
   })
 
   it('takes a click at the place of the node it snaps to', () => {
@@ -92,32 +101,32 @@ describe('cut mode: the line is drawn by clicks', () => {
     const [lon, lat] = at(10, 5)
     const snapped = { type: 'node' as const, id: 'n1', loc: [lon, lat] as [number, number] }
     mode.onClick?.(13.4, 52.5, { ...info, target: snapped })
-    expect(cutStore.getState().points).toEqual([[lon, lat]])
+    expect(cutSnapshot().points).toEqual([[lon, lat]])
   })
 
   it('a move only moves the pointer: the rubber band, not a point', () => {
     const { mode } = begin()
     const [lon, lat] = at(3, 3)
     mode.onMove?.(lon, lat, info)
-    expect(cutStore.getState().pointer).toEqual([lon, lat])
-    expect(cutStore.getState().points).toEqual([])
+    expect(cutSnapshot().pointer).toEqual([lon, lat])
+    expect(cutSnapshot().points).toEqual([])
   })
 
   it('shows no reason for one point, and the chord for a line that crosses twice', () => {
     const { mode } = begin()
     click(mode, -5, 5)
-    expect(cutStore.getState().refusal).toBeUndefined()
+    expect(cutSnapshot().refusal).toBeUndefined()
     click(mode, 15, 5)
-    expect(cutStore.getState().refusal).toBeUndefined()
-    expect(cutStore.getState().chord?.length).toBe(2)
+    expect(cutSnapshot().refusal).toBeUndefined()
+    expect(cutSnapshot().chord?.length).toBe(2)
   })
 
   it('shows why a line that crosses once is refused, as the mode goes on', () => {
     const { mode } = begin()
     click(mode, -5, 5)
     click(mode, 5, 5)
-    expect(cutStore.getState().refusal).toBe('crossings')
-    expect(cutStore.getState().chord).toBeUndefined()
+    expect(cutSnapshot().refusal).toBe('crossings')
+    expect(cutSnapshot().chord).toBeUndefined()
   })
 })
 
@@ -134,7 +143,7 @@ describe('cut mode: Enter, Backspace and Escape', () => {
     expect(pieces).toContain('w1')
     expect(state.announced).toEqual([pieces])
     expect(state.mode).toBeUndefined()
-    expect(cutStore.getState().wayId).toBeUndefined()
+    expect(cutSnapshot().wayId).toBeUndefined()
     // both pieces are closed ways with the tags of the square
     for (const id of pieces) {
       const piece = state.graph.entity(id) as OsmWay
@@ -152,7 +161,7 @@ describe('cut mode: Enter, Backspace and Escape', () => {
     expect(state.mode).toBe(mode)
     expect(state.commits).toHaveLength(0)
     expect(state.graph).toBe(before)
-    expect(cutStore.getState().refusal).toBe('crossings')
+    expect(cutSnapshot().refusal).toBe('crossings')
   })
 
   it('Backspace removes the last point, and is taken even with no point to remove', () => {
@@ -161,8 +170,8 @@ describe('cut mode: Enter, Backspace and Escape', () => {
     click(mode, -5, 5)
     click(mode, 15, 5)
     expect(mode.onKey?.('Backspace')).toBe(true)
-    expect(cutStore.getState().points).toHaveLength(1)
-    expect(cutStore.getState().chord).toBeUndefined()
+    expect(cutSnapshot().points).toHaveLength(1)
+    expect(cutSnapshot().chord).toBeUndefined()
   })
 
   it('Escape ends the mode with nothing changed: the engine calls onExit, which clears the cut', () => {
@@ -172,7 +181,7 @@ describe('cut mode: Enter, Backspace and Escape', () => {
     engine.exitModuleMode(MODE_ID)
     expect(state.commits).toHaveLength(0)
     expect(state.announced).toHaveLength(0)
-    expect(cutStore.getState().wayId).toBeUndefined()
-    expect(cutStore.getState().points).toEqual([])
+    expect(cutSnapshot().wayId).toBeUndefined()
+    expect(cutSnapshot().points).toEqual([])
   })
 })

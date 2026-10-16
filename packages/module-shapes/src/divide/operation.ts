@@ -1,6 +1,6 @@
 // The edit menu's "Divide": offered for one selected closed way with four corners. It starts the divide mode (start), which
 // asks for the rows and columns and makes the one undo step. Plan: docs/research/drawing-tools/5-grid-and-rows.md.
-import type { Operation, OperationContext } from '@osm-editor-kit/maid-operations'
+import type { Operation, OperationContext, OperationHost } from '@osm-editor-kit/maid-operations'
 import { m } from '../messages.ts'
 import { cornersOfWay, dividePlan } from './divide.ts'
 import { refusalText } from './division.ts'
@@ -37,5 +37,8 @@ export const divideOperation: Operation = {
   run() {
     return { actions: [], annotation: '' }
   },
-  start: startDivide,
+  start: (context, host: OperationHost) => {
+    const wayId = fourCornerAreaOf(context)
+    if (wayId !== undefined) startDivide(host, wayId)
+  },
 }

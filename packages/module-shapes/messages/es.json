@@ -46,5 +46,6 @@
   "cut_refusal_several_outlines": "Este multipolígono tiene varios contornos.",
   "cut_refusal_through_hole": "El corte atravesaría un agujero.",
   "cut_refusal_self_intersecting": "El contorno se cruza a sí mismo. Corrígelo primero.",
-  "cut_refusal_degenerate": "Una parte sería demasiado pequeña para ser un área."
+  "cut_refusal_degenerate": "Una parte sería demasiado pequeña para ser un área.",
+  "cut_refusal_too_many_nodes": "El contorno tiene demasiados vértices para cortarlo (como máximo 2000)."
 }

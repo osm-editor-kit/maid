@@ -1,6 +1,7 @@
 // The cut as the map shows it: the way being cut, the points clicked so far, the pointer, the chord that Enter would cut
-// and the reason the line is refused. Private to the module. Nothing here touches the data: the mode (mode.ts) does that.
-import { create, useStore } from 'zustand'
+// and the reason the line is refused. Private to the module: the map reads it through the hooks below, and the mode writes
+// it through `cutActions()`, from the mode's callbacks only. Nothing here touches the data: the mode (mode.ts) does that.
+import { create } from 'zustand'
 import type { CutRefusal, Loc } from './cut.ts'
 
 type CutState = {
@@ -42,7 +43,7 @@ const CLEARED: CutState = {
   refusal: undefined,
 }
 
-export const cutStore = create<CutStore>()((set) => ({
+const useCutStore = create<CutStore>()((set) => ({
   ...CLEARED,
   actions: {
     begin: (wayId) => set({ ...CLEARED, wayId }),
@@ -53,10 +54,38 @@ export const cutStore = create<CutStore>()((set) => ({
   },
 }))
 
-/** The actions of the cut. Called from event handlers and the mode, never during render. */
-export const cutActions = cutStore.getState().actions
+/** The actions of the cut. Called from the mode's callbacks, never during render. */
+export function cutActions(): CutActions {
+  return useCutStore.getState().actions
+}
 
-/** The whole state of the cut, read again on each change (the map content and the status text read it) */
-export function useCut(): CutState {
-  return useStore(cutStore)
+/** The state of the cut as it is now, read outside React (the mode and the tests read it this way) */
+export function cutSnapshot(): Omit<CutStore, 'actions'> {
+  const { actions: _actions, ...state } = useCutStore.getState()
+  return state
+}
+
+/** The way being cut, or undefined when no cut is under way */
+export function useCutWayId() {
+  return useCutStore((state) => state.wayId)
+}
+
+/** The points clicked so far */
+export function useCutPoints() {
+  return useCutStore((state) => state.points)
+}
+
+/** Where the pointer is, for the rubber band */
+export function useCutPointer() {
+  return useCutStore((state) => state.pointer)
+}
+
+/** The chord that Enter would cut */
+export function useCutChord() {
+  return useCutStore((state) => state.chord)
+}
+
+/** Why the line is refused, when it is shown */
+export function useCutRefusal() {
+  return useCutStore((state) => state.refusal)
 }
