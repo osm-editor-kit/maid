@@ -81,7 +81,8 @@ export function moduleKeyOf(event: {
   return event.key
 }
 
-function isTextField(target: unknown) {
+/** True for a text input, a text area, a select or an editable element: the editor's keys stay out of them */
+export function isTextField(target: unknown) {
   const element = target as { tagName?: unknown; isContentEditable?: unknown } | null | undefined
   if (element?.isContentEditable === true) return true
   return (
@@ -187,10 +188,21 @@ export class ModuleModeSession {
     return this.current?.onKey?.(key) === true
   }
 
-  /** What a callback is told about the pointer. The snap is asked only by a mode that snaps, and only when a callback runs. */
+  /** What a callback is told about the pointer. The snap is asked only by a mode that snaps, and only when `target` is read. */
   private infoAt(mode: ModuleMode, point: ScreenPoint): ModuleModeInfo {
-    const target = mode.snap ? this.host.snapAt(point, mode.skip?.() ?? NO_SKIP) : undefined
-    return { point, target, modifiers: { ...this.host.modifiers() } }
+    const { host } = this
+    // the snap queries the map: only when a callback reads `target` (a move that only draws a rubber band does not)
+    let target: SnapTarget | undefined
+    let asked = false
+    return {
+      point,
+      get target() {
+        if (!asked && mode.snap) target = host.snapAt(point, mode.skip?.() ?? NO_SKIP)
+        asked = true
+        return target
+      },
+      modifiers: { ...host.modifiers() },
+    }
   }
 
   /** Drops the state (and any drag) and returns the mode that was under way */

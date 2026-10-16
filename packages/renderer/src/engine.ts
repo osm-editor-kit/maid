@@ -843,7 +843,7 @@ export class MaidEngine {
     if (this.draw.active || this.selectedIds.some((id) => this.isReadOnly(id))) return
     if (!operation.applies(context) || operation.disabled(context)) return
     if (operation.start) {
-      operation.start(context)
+      operation.start(context, { engine: this, editor: this.options.editor })
       return this.selectedIds
     }
     const { actions, annotation, select } = operation.run(context)
@@ -1201,6 +1201,8 @@ export class MaidEngine {
   /** Takes back the last edit and redraws what it changed. Does nothing while a vertex is dragged. */
   undo() {
     if (this.busy() || this.data.history.getUndoAnnotation() === undefined) return
+    // a module mode holds ids of what the step may take back (a rectangle's corner): it ends, as iD leaves a mode
+    this.exitModuleMode()
     this.change(() => this.data.history.undo())
     this.keepSelectionAfterStep()
   }
@@ -1208,6 +1210,7 @@ export class MaidEngine {
   /** Puts back the edit that the last undo took back, and redraws what it changed. */
   redo() {
     if (this.busy() || this.data.history.getRedoAnnotation() === undefined) return
+    this.exitModuleMode()
     this.change(() => this.data.history.redo())
     this.keepSelectionAfterStep()
   }

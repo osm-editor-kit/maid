@@ -76,7 +76,8 @@ When any item is registered, the Area button gets a small dropdown next to it wi
 
 `ModuleMode` gets three optional members:
 
-- **`snap: true`:** the callbacks `onMove` and `onClick` get a third argument `info: { point; target?: SnapTarget; modifiers }`.
+- **`snap: true`:** the callbacks `onMove` and `onClick` get a third argument `info: { point; target?: SnapTarget; modifiers }`. The snap target is computed only when a callback reads `target`.
+- **Undo and redo** end a module mode first, since the mode may hold ids of what the step takes back.
   - `target` is what the pointer would snap to (a node, or a place on a way), from the engine's `snapAt` with the click layers.
   - `skip?: () => ReadonlySet<string>` leaves out the mode's own preview entities.
 - **`onKey(key): boolean`:** the mode gets `Enter` and `Backspace` (Escape still ends the mode). True means the key was used.
@@ -90,7 +91,7 @@ A module that drew new ways calls `engine.announceDrawn(ids)` after its undo ste
 
 ### 5. Operations that ask for more input: `Operation.start`
 
-`Operation` gets `start?(context: OperationContext): void`.
+`Operation` gets `start?(context: OperationContext, host: OperationHost): void`. `host` holds the engine and the editor; the renderer adds them to the empty `OperationHost` of maid-operations by declaration merging, so a module needs no reference of its own.
 
 - When it is set, the edit menu and the key call `start` instead of `run`; `run` is then never called and may return no actions.
 - The module starts its own mode from `start`, and that mode makes the one undo step. Cut and Divide use this.

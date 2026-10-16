@@ -126,6 +126,19 @@ describe('the engine sends the pointer to a module mode', () => {
     expect(exits).toEqual(['exit'])
   })
 
+  test('undo ends the module mode first: the mode may hold ids that the step takes back', () => {
+    const { engine } = engineWithData()
+    engine.setTag('w10', 'highway', 'service')
+    const exits: string[] = []
+    engine.enterModuleMode({ id: 'test', onExit: () => exits.push('exit') })
+
+    engine.undo()
+
+    expect(engine.moduleMode).toBeUndefined()
+    expect(exits).toEqual(['exit'])
+    expect(engine.data.way('w10')?.tags.highway).toBe('residential')
+  })
+
   test('a second mode replaces the first, which exits', () => {
     const { engine } = engineWithData()
     const exits: string[] = []
@@ -205,6 +218,7 @@ describe('the keys and the snap a module mode gets', () => {
     engine.setSelected('w10')
     const graph = engine.data.history.staging.graph
     const started: OperationContext[] = []
+    const hosts: boolean[] = []
     const operation: Operation = {
       id: 'ask',
       label: 'Ask',
@@ -213,12 +227,17 @@ describe('the keys and the snap a module mode gets', () => {
       run: () => {
         throw new Error('run is not called for an operation with start')
       },
-      start: (context) => started.push(context),
+      start: (context, host) => {
+        started.push(context)
+        hosts.push(host.engine === engine)
+      },
     }
 
     const next = engine.runOperation(operation)
 
     expect(started.map((context) => context.selected)).toEqual([['w10']])
+    // the operation gets the engine it runs on, so a module needs no reference of its own
+    expect(hosts).toEqual([true])
     expect(next).toEqual(['w10'])
     expect(engine.selection).toEqual(['w10'])
     expect(engine.data.history.staging.graph).toBe(graph)

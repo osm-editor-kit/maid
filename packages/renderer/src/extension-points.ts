@@ -114,6 +114,14 @@ export type DrawToolItem = {
   start(engine: MaidEngine): void
 }
 
+declare module '@osm-editor-kit/maid-operations' {
+  /** An operation's `start` gets the engine and the editor it runs on (ADR 0011, hook 5) */
+  interface OperationHost {
+    engine: MaidEngine
+    editor: Editor
+  }
+}
+
 declare module '@osm-editor-kit/maid-core' {
   interface ExtensionPoints {
     'map.layer': MapLayerItem

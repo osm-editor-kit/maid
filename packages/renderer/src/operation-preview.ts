@@ -13,7 +13,8 @@ export function operationPreview(
 ): Feature[] {
   const features: Feature[] = []
   const { graph } = data.history.staging
-  if (operation.applies(context) && !operation.disabled(context)) {
+  // an operation that asks for more input (`start`) has nothing to show before it starts
+  if (!operation.start && operation.applies(context) && !operation.disabled(context)) {
     let after: Graph | undefined
     try {
       after = operation.run(context).actions.reduce((g, action) => action(g), new Graph(graph))

@@ -14,6 +14,7 @@ export { distanceMetres, formatMetres } from './measure'
 // A module's own map mode: the pointer on the map goes to the module while it is on (module-mode.ts)
 export {
   CLICK_AFTER_DRAG_MS,
+  isTextField,
   type ModuleMode,
   type ModuleModeInfo,
   type ModuleModeKey,
@@ -50,3 +51,6 @@ export { DrawTool, type DrawKind } from './draw'
 export { TransformTool, type TransformKind } from './transform'
 // The rule for the Rotate (R) hint of a direction field, shared with the documentation popover (ui).
 export { showsDirectionRotateHint } from '@osm-editor-kit/maid-operations'
+
+// how far a click or a corner reaches to snap to a node or a way, in screen pixels
+export { SNAP_PX, type SnapTarget } from './snap'
