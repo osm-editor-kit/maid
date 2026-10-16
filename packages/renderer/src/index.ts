@@ -12,14 +12,27 @@ export type { ChangeTagsResult, TagChangeRequest } from './change-tags'
 export { type FieldOverlay, type SideChoice } from './field-overlay'
 export { distanceMetres, formatMetres } from './measure'
 // A module's own map mode: the pointer on the map goes to the module while it is on (module-mode.ts)
-export { CLICK_AFTER_DRAG_MS, type ModuleMode, type ScreenPoint } from './module-mode'
+export {
+  CLICK_AFTER_DRAG_MS,
+  type ModuleMode,
+  type ModuleModeInfo,
+  type ModuleModeKey,
+  type ScreenPoint,
+} from './module-mode'
 export {
   BELOW_OSM_LAYER,
+  drawTools,
   operations,
+  type ConstraintInput,
+  type ConstraintItem,
+  type ConstraintResult,
+  type DrawToolItem,
   type MapContentItem,
   type MapContentProps,
   type MapLayerItem,
 } from './extension-points'
+// The modifier keys that drawing and dragging read (engine.modifiers, ADR 0011)
+export { modifiersOf, NO_MODIFIERS, type Modifiers } from './modifiers'
 export {
   ADDRESS_PLAQUE,
   buildLayers,

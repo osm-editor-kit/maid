@@ -20,6 +20,8 @@ export const SOURCES = {
   points: 'osm-points',
   vertices: 'osm-vertices',
   highlight: 'osm-highlight',
+  /** Guide lines of a constraint while a node is drawn or dragged (engine.setGuides); not interactive */
+  guides: 'osm-guides',
 } as const
 
 /**
@@ -861,6 +863,15 @@ function buildMainLayers(options: LayerOptions) {
       },
     )
   }
+  // The guide lines of a constraint (ADR 0011): dashed blue, like iD's guide. Last in the list, so they draw above
+  // the OSM data and the labels. Not in interactiveLayerIds: a guide never takes the pointer.
+  layers.push({
+    id: 'guides',
+    type: 'line',
+    source: SOURCES.guides,
+    layout: { 'line-cap': 'round' },
+    paint: { 'line-color': '#2b8ff0', 'line-width': 1.5, 'line-dasharray': [4, 3] },
+  })
   return layers
 }
 

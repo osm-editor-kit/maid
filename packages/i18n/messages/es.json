@@ -16,6 +16,7 @@
   "topbar_add_point_hint": "Añadir un punto: haz clic en el mapa para colocarlo",
   "topbar_draw_line_hint": "Dibujar una línea: haz clic en cada nodo; Intro o un clic en el último nodo la termina",
   "topbar_draw_area_hint": "Dibujar un área: haz clic en cada nodo; Intro o un clic en el primer nodo la termina",
+  "topbar_more_area_tools": "Más herramientas de área",
   "topbar_undo": "Deshacer: {change}",
   "topbar_redo": "Rehacer: {change}",
   "topbar_last_change": "último cambio",

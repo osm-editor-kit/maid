@@ -57,4 +57,11 @@ export type Operation = {
   disabled(context: OperationContext): string | undefined
   /** Only called when `applies` is true and `disabled` is undefined */
   run(context: OperationContext): OperationResult
+  /**
+   * For an operation that needs more input than the selection (a rectangle's corners, a cut line). When set, the edit
+   * menu and the key call this instead of `run`, and `run` is never called: no preview either (`run` stays required by
+   * the type, so it returns no actions). The module starts its own mode here, and that mode makes the one undo step
+   * (ADR 0011, hook 5).
+   */
+  start?(context: OperationContext): void
 }

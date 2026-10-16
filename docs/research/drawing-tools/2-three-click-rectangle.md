@@ -157,7 +157,7 @@ Clear rules, so nobody has to guess:
 
 A new `packages/renderer/src/rectangle.ts` with `rectangleCorners(a, b, c)` returning D and E, or undefined when degenerate. Tests in `rectangle.test.ts`:
 
-- A=(0,0), B=(10,0), C=(5,4): D=(10,4), E=(0,4). C=(5,-4): corners on the other side.
+- A=(0,0), B=(10,0), C=(5,4): D=(0,4), E=(10,4) (ring A, B, E, D). C=(5,-4): corners on the other side.
 - C=(20,4) gives the same corners as C=(5,4): only the depth counts.
 - C on the wall (d=0): undefined. A equals B: undefined.
 - All four angles are 90° within 1e-9 for random A, B, C in projected metres.

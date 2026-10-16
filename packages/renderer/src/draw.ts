@@ -13,6 +13,7 @@ import {
   OsmNode,
   OsmWay,
 } from '@osm-editor-kit/maid-model'
+import { drawNeighbours } from './constraint'
 import type { MaidEngine } from './engine'
 import { nearestOnPolyline, SNAP_PX, type Loc, type Point, type Projected } from './snap'
 
@@ -49,7 +50,7 @@ export class DrawTool {
    */
   move(point: Point, layers: string[]) {
     if (!this.cursorId) return
-    const { loc } = this.target(point, layers)
+    const loc = this.placeAt(point, this.target(point, layers))
     this.engine.dragTo(this.cursorId, loc[0], loc[1])
   }
 
@@ -75,6 +76,8 @@ export class DrawTool {
 
     const cursorId = this.cursorId
     const wayId = way.id
+    // where the node goes: the place a constraint gives on open ground, else the target's own place
+    const loc = this.placeAt(point, target)
     engine.change(() => {
       const { history } = engine.data
       const cursor = engine.data.node(cursorId)
@@ -91,10 +94,10 @@ export class DrawTool {
           history.perform(actionAddMidpoint({ loc: target.loc, edge: target.edge }, cursor))
           break
         case 'free':
-          history.perform(actionMoveNode(cursorId, target.loc))
+          history.perform(actionMoveNode(cursorId, loc))
           break
       }
-      this.addCursor(target.loc)
+      this.addCursor(loc)
     })
     return undefined
   }
@@ -184,6 +187,28 @@ export class DrawTool {
     this.wayId = undefined
     this.cursorId = undefined
     this.atStart = false
+    this.engine.setGuides([])
+  }
+
+  /**
+   * Where a node placed by this move or click goes. A snap (a node, a way) is kept as it is and asks no constraint.
+   * On open ground the first `draw.constraint` item that gives a place decides it, with the fixed nodes next to the
+   * node as neighbours (ADR 0011). Without a result the guides are cleared.
+   */
+  private placeAt(point: Point, target: Target): Loc {
+    const { engine } = this
+    const way = this.way
+    if (target.type !== 'free' || !way) {
+      engine.setGuides([])
+      return target.loc
+    }
+    const neighbours = drawNeighbours(
+      this.kind,
+      this.fixedNodes(way),
+      this.atStart,
+      (id) => engine.data.node(id)?.loc,
+    )
+    return engine.constrainPlacement('draw', point, neighbours) ?? target.loc
   }
 
   private start(kind: DrawKind, target: Target) {

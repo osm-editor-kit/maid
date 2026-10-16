@@ -16,6 +16,7 @@
   "topbar_add_point_hint": "Punkt setzen: Klicke auf die Karte, um ihn zu platzieren",
   "topbar_draw_line_hint": "Linie zeichnen: Klicke für jeden Knoten. Enter oder ein Klick auf den letzten Knoten beendet sie",
   "topbar_draw_area_hint": "Fläche zeichnen: Klicke für jeden Knoten. Enter oder ein Klick auf den ersten Knoten beendet sie",
+  "topbar_more_area_tools": "Weitere Werkzeuge für Flächen",
   "topbar_undo": "Rückgängig: {change}",
   "topbar_redo": "Wiederholen: {change}",
   "topbar_last_change": "letzte Änderung",

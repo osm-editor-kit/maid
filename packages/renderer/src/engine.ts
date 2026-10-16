@@ -36,6 +36,7 @@ import { Camera } from './camera'
 import { type ChangeTagsResult, type TagChangeEach, type TagChangeRequest } from './change-tags'
 import { SOURCE_NAMES } from './channels'
 import { Clipboard } from './clipboard'
+import { applyConstraints, type Neighbour } from './constraint'
 import { OsmData } from './data'
 import { installDirectionImages } from './direction-images'
 import { DragTool } from './drag'
@@ -52,7 +53,8 @@ import {
 import { ACTIVE_SOURCE, activePinIds, EDIT_SOURCES, SELECT_SOURCES, SOURCES } from './layers'
 import { MeasureSession } from './measure-session'
 import { MidpointHandles } from './midpoint-handles'
-import { type ModuleMode, ModuleModeSession, type ScreenPoint } from './module-mode'
+import { type Modifiers, NO_MODIFIERS, sameModifiers } from './modifiers'
+import { moduleKeyOf, type ModuleMode, ModuleModeSession, type ScreenPoint } from './module-mode'
 import {
   boxesOf,
   centreOfBox,
@@ -814,12 +816,17 @@ export class MaidEngine {
 
   /**
    * Runs an operation on the selection as one undo step. Returns what is selected afterwards, or
-   * undefined if the operation does not apply or cannot run now.
+   * undefined if the operation does not apply or cannot run now. An operation with `start` asks for more
+   * input: it starts its own mode (ADR 0011), and `run` is not called. The selection is then kept.
    */
   runOperation(operation: Operation) {
     const context = this.operationContext()
     if (this.draw.active || this.selectedIds.some((id) => this.isReadOnly(id))) return
     if (!operation.applies(context) || operation.disabled(context)) return
+    if (operation.start) {
+      operation.start(context)
+      return this.selectedIds
+    }
     const { actions, annotation, select } = operation.run(context)
     let next: readonly string[] = this.selectedIds
     this.change(() => {
@@ -845,6 +852,11 @@ export class MaidEngine {
    * "here" (paste, Space while drawing) use. `layers` are the layers that can be snapped to.
    */
   pointer?: { point: { x: number; y: number }; lon: number; lat: number; layers: string[] }
+  /**
+   * The modifier keys now (modifiers.ts). The map view and a window listener set them; drawing and dragging read them.
+   * `setModifiers` is the one writer that also runs the preview again.
+   */
+  modifiers: Modifiers = { ...NO_MODIFIERS }
   /** Drawing lines and areas */
   readonly draw = new DrawTool(this)
   /** Moving and rotating the selection with the pointer */
@@ -861,9 +873,14 @@ export class MaidEngine {
     handleAt: (point, layers) => this.handleAt(point, layers),
     now: () => performance.now(),
     changed: () => this.moduleChanged(),
+    snapAt: (point, skip) => this.moduleSnap(point, skip),
+    modifiers: () => this.modifiers,
   })
-  /** Escape ends a module mode: a window listener in the capture phase, so the editor's own Escape does not see it */
-  private moduleEscape?: (event: KeyboardEvent) => void
+  /**
+   * Escape, Enter and Backspace end or steer a module mode: a window listener in the capture phase, so the editor's own
+   * keys do not see a key the mode takes
+   */
+  private moduleKeys?: (event: KeyboardEvent) => void
 
   /** The module mode under way, if any. While it is, the shell's map view sends its pointer to the moduleMode* methods. */
   get moduleMode(): ModuleMode | undefined {
@@ -885,14 +902,22 @@ export class MaidEngine {
     if (this.draw.active) this.draw.finish()
     if (this.transform.active) this.transform.finish()
     this.moduleSession.enter(mode)
-    if (this.moduleEscape === undefined && typeof window !== 'undefined') {
+    if (this.moduleKeys === undefined && typeof window !== 'undefined') {
       const onKey = (event: KeyboardEvent) => {
-        if (event.key !== 'Escape' || !this.moduleMode) return
+        if (!this.moduleMode) return
+        if (event.key === 'Escape') {
+          event.preventDefault()
+          event.stopPropagation()
+          this.exitModuleMode()
+          return
+        }
+        // a key the mode takes (Enter, Backspace) is not the editor's: the editor's own handler does not see it
+        const key = moduleKeyOf(event)
+        if (key === undefined || !this.moduleSession.key(key)) return
         event.preventDefault()
         event.stopPropagation()
-        this.exitModuleMode()
       }
-      this.moduleEscape = onKey
+      this.moduleKeys = onKey
       window.addEventListener('keydown', onKey, true)
     }
   }
@@ -910,9 +935,9 @@ export class MaidEngine {
     return this.moduleSession.press(point, lon, lat)
   }
 
-  /** The pointer moved over the map while a module mode is on (a handle drag follows it) */
-  moduleModeMove(lon: number, lat: number) {
-    this.moduleSession.move(lon, lat)
+  /** The pointer moved over the map while a module mode is on (a handle drag follows it). `point` is the pixel. */
+  moduleModeMove(point: ScreenPoint, lon: number, lat: number) {
+    this.moduleSession.move(point, lon, lat)
   }
 
   /** The button went up while a module mode is on: ends a handle drag */
@@ -920,9 +945,18 @@ export class MaidEngine {
     this.moduleSession.release(lon, lat)
   }
 
-  /** A click on the map while a module mode is on: goes to the mode, not to the selection */
-  moduleModeClick(lon: number, lat: number) {
-    this.moduleSession.click(lon, lat)
+  /** A click on the map while a module mode is on: goes to the mode, not to the selection. `point` is the pixel. */
+  moduleModeClick(point: ScreenPoint, lon: number, lat: number) {
+    this.moduleSession.click(point, lon, lat)
+  }
+
+  /**
+   * What a module mode's snap sees: the features under the pixel in the layers the pointer uses (`pointer.layers`, set
+   * by the map view on each move and click). Nothing without a pointer.
+   */
+  private moduleSnap(point: ScreenPoint, skip: ReadonlySet<string>) {
+    const layers = this.pointer?.layers ?? []
+    return layers.length > 0 ? this.snapAt(point, layers, skip) : undefined
   }
 
   /**
@@ -930,16 +964,16 @@ export class MaidEngine {
    * reads `moduleMode` and gives the map its cursor, so there is one writer of it.
    */
   private moduleChanged() {
-    if (!this.moduleMode) this.removeModuleEscape()
+    if (!this.moduleMode) this.removeModuleKeys()
     this.handles.compute()
     this.pushHighlight()
     this.changed()
   }
 
-  private removeModuleEscape() {
-    if (this.moduleEscape !== undefined && typeof window !== 'undefined')
-      window.removeEventListener('keydown', this.moduleEscape, true)
-    this.moduleEscape = undefined
+  private removeModuleKeys() {
+    if (this.moduleKeys !== undefined && typeof window !== 'undefined')
+      window.removeEventListener('keydown', this.moduleKeys, true)
+    this.moduleKeys = undefined
   }
 
   /** The handle under a pixel: the `handle` property of the first feature of `layers` there */
@@ -966,6 +1000,7 @@ export class MaidEngine {
     this.cancelMeasure()
     if (this.draw.active) this.draw.finish()
     if (this.transform.active) this.transform.finish()
+    this.setGuides([])
     if ((mode === 'move' || mode === 'rotate') && !this.transform.begin(mode, this.selectedIds))
       return false
     this.currentMode = mode
@@ -974,6 +1009,53 @@ export class MaidEngine {
     this.pushHighlight()
     this.changed()
     return true
+  }
+
+  /**
+   * The keys changed. While a line or an area is drawn, its preview node is placed again at the pointer, and while a
+   * vertex is dragged the last aimed move is made again, so a key press shows at once (Alt frees a drag, Shift
+   * can start an angle). Nothing is redone when the state is the same.
+   */
+  setModifiers(next: Modifiers) {
+    if (sameModifiers(this.modifiers, next)) return
+    this.modifiers = { ...next }
+    if (this.draw.active && this.pointer) this.draw.move(this.pointer.point, this.pointer.layers)
+    this.dragging.refresh()
+  }
+
+  /**
+   * Asks the `draw.constraint` items where a node placed at this screen point goes. Returns that place in lon/lat, and
+   * shows the guides it gives. Without a result the guides are cleared. ADR 0011.
+   */
+  constrainPlacement(
+    kind: 'draw' | 'drag',
+    point: Point,
+    neighbours: Neighbour[],
+  ): Loc | undefined {
+    const map = this.map
+    const items = this.options.editor.registry('draw.constraint').list()
+    const placed =
+      map && applyConstraints(map, items, { kind, point, neighbours, modifiers: this.modifiers })
+    this.setGuides(placed?.guides ?? [])
+    return placed?.loc
+  }
+
+  /** The guide lines a constraint draws, on their own source (layers.ts `guides`). No lines: the source is emptied. */
+  private guidesShown = false
+  setGuides(lines: [Loc, Loc][]) {
+    // a pointer move with no guides on the map is the common case: no empty update for it
+    if (lines.length === 0 && !this.guidesShown) return
+    const source = this.map?.getSource<GeoJSONSource>(SOURCES.guides)
+    if (!source) return
+    this.guidesShown = lines.length > 0
+    void source.setData({
+      type: 'FeatureCollection',
+      features: lines.map(([a, b]) => ({
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'LineString', coordinates: [a, b] },
+      })),
+    })
   }
 
   // --- Copy and paste (clipboard.ts) ---
@@ -1354,7 +1436,7 @@ export class MaidEngine {
    * the next request is cleared. For an engine that is not used any more.
    */
   destroy() {
-    this.removeModuleEscape()
+    this.removeModuleKeys()
     this.presetsHold.destroy()
     this.tiles.destroy()
   }
@@ -1543,8 +1625,9 @@ export class MaidEngine {
    * Operations that move no node (reverse, split, ...) show nothing.
    */
   previewOperation(operation: Operation | null) {
+    // an operation that asks for input (`start`) has no preview: its `run` is not called
     const features =
-      operation && !this.draw.active
+      operation && !operation.start && !this.draw.active
         ? operationPreview(operation, this.operationContext(), this.data, this.selectedIds)
         : []
     if (features.length === 0 && this.previewFeatures.length === 0) return

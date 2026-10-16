@@ -53,6 +53,8 @@ export function OsmLayers({ options, sourceOptions }: Props) {
         tolerance={0}
         maxzoom={source.maxzoom}
       />
+      {/* the guide lines of a constraint: the engine sets them (engine.setGuides) */}
+      <Source id={SOURCES.guides} type="geojson" data={EMPTY} />
       {/* the hovered and selected points, a few features: the engine sets them (layers.ts ACTIVE_SOURCE) */}
       <Source id={ACTIVE_SOURCE} type="geojson" data={EMPTY} {...source} />
       {Object.values(EDIT_SOURCES).map((id) => (

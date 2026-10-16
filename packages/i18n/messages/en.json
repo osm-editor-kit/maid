@@ -16,6 +16,7 @@
   "topbar_add_point_hint": "Add a point: click the map to place it",
   "topbar_draw_line_hint": "Draw a line: click for every node, Enter or a click on the last node finishes",
   "topbar_draw_area_hint": "Draw an area: click for every node, Enter or a click on the first node finishes",
+  "topbar_more_area_tools": "More area tools",
   "topbar_undo": "Undo: {change}",
   "topbar_redo": "Redo: {change}",
   "topbar_last_change": "last change",

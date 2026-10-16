@@ -30,6 +30,7 @@ const PAN = 80
  * - Cmd/Ctrl+F opens the search (SearchButton) and focuses its input; the browser's find stays off
  * - Cmd/Ctrl+Backspace or Delete deletes the selection; Escape leaves a mode, then the selection
  * - the letters of the edit menu run its operations (V reverse, X split, C merge, ...)
+ * - the keys of a drawing tool of a module (the Area button's dropdown) start it
  * - arrow keys pan the map, + and - zoom
  * - Shift with the left and right arrows turns the map by 2.5 degrees, N turns it back to north
  *   (no key tilts the map: pitch is switched off)
@@ -40,6 +41,8 @@ export function useShortcuts() {
   const { editor, engine } = useShell()
   const { ids: selected, select } = useSelection()
   const operations = useExtensionPoint(editor, 'edit.operation')
+  // a drawing tool's key starts it, as the keys 1, 2 and 3 start their modes (ADR 0011, hook 3)
+  const drawTools = useExtensionPoint(editor, 'draw.tool')
   // which keys are taken depends on what the editor is doing. Read that state so the list follows it
   const drawing = useEngine((e) => e.draw.active)
   // a move or a rotation is put down with Enter, as a click puts it down
@@ -149,6 +152,16 @@ export function useShortcuts() {
                 const next = engine.runOperation(operation)
                 if (next) select(next)
               },
+            },
+          ]
+        : [],
+    ),
+    ...drawTools.flatMap((tool) =>
+      tool.shortcut
+        ? [
+            {
+              hotkey: tool.shortcut.toUpperCase() as UseHotkeyDefinition['hotkey'],
+              callback: () => tool.start(engine),
             },
           ]
         : [],

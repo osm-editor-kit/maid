@@ -5,9 +5,13 @@
  * Same pattern as DrawTool and TransformTool: it works on the engine's public members.
  */
 import { actionAddMidpoint, actionConnect } from '@osm-editor-kit/maid-model'
+import { dragNeighbours, type Neighbour } from './constraint'
 import type { MaidEngine } from './engine'
 import type { Loc, Point, SnapTarget } from './snap'
 import { aimAtNode, snapTargetAt } from './snap-aim'
+
+/** The aim of a map drag: where the pointer is, which layers can be snapped to, and whether Alt makes it free */
+type Aim = { point: Point; layers: string[]; free: boolean }
 
 export class DragTool {
   constructor(private engine: MaidEngine) {}
@@ -21,6 +25,11 @@ export class DragTool {
    * reason a drop there would be refused. Undefined while nothing is aimed at (Alt, drawing).
    */
   private aim?: { target?: SnapTarget; refused?: string }
+  /**
+   * The last move that the map view aimed (not the drawing's cursor). A key that changes makes it again (refresh), so
+   * the drag follows Alt without a mouse move.
+   */
+  private last?: { id: string; lon: number; lat: number; aim: Aim }
 
   /** Why the drop at the pointer would be refused, while a drag is over a target that is not allowed */
   get refusal() {
@@ -56,21 +65,21 @@ export class DragTool {
    * still drawing the previous one are dropped in favour of the latest, so the vertex never
    * lags behind by more than one update.
    */
-  dragTo(
-    id: string,
-    lon: number,
-    lat: number,
-    aim?: { point: Point; layers: string[]; free: boolean },
-  ) {
+  dragTo(id: string, lon: number, lat: number, aim?: Aim) {
     // Aimed (a vertex or a point dragged by the map view): the node snaps to what is under the pointer,
     // unless Alt is held. A refused target keeps the node at the pointer; the drop takes it back.
     const aimed = aim && !aim.free ? this.aimAt(id, aim.point, aim.layers) : undefined
     this.aim = aimed
+    let at: Loc = aimed?.target && !aimed.refused ? aimed.target.loc : [lon, lat]
     if (aim) {
       const hover = aimed?.target
       this.engine.setHover(hover ? (hover.type === 'node' ? hover.id : hover.wayId) : id)
+      this.last = { id, lon, lat, aim }
+      // Free (Alt) or over a snap target: no constraint. Otherwise the vertex is held to its way's constraints (ADR 0011).
+      if (!aim.free && !aimed?.target) {
+        at = this.constrain(id, aim.point) ?? at
+      } else this.engine.setGuides([])
     }
-    const at: Loc = aimed?.target && !aimed.refused ? aimed.target.loc : [lon, lat]
     this.target = { id, lon: at[0], lat: at[1] }
     this.node = id
     this.engine.sender.touch()
@@ -94,10 +103,46 @@ export class DragTool {
     while (this.busy) await new Promise((resolve) => requestAnimationFrame(resolve))
   }
 
+  /** Makes the last aimed move again, with the keys as they are now (the engine calls it when a key changes) */
+  refresh() {
+    const last = this.last
+    if (!last || !this.node) return
+    this.dragTo(last.id, last.lon, last.lat, {
+      ...last.aim,
+      free: this.engine.modifiers.alt,
+    })
+  }
+
+  /** The place a vertex is held to by the constraints, or undefined. The guides are cleared when there is none. */
+  private constrain(id: string, point: Point): Loc | undefined {
+    const neighbours = this.neighboursOf(id)
+    if (!neighbours) {
+      this.engine.setGuides([])
+      return undefined
+    }
+    return this.engine.constrainPlacement('drag', point, neighbours)
+  }
+
+  /**
+   * The neighbours of a vertex with exactly one parent way: the nodes before and after it in that way. A point, or a
+   * vertex that two ways share, has none (ADR 0011).
+   */
+  private neighboursOf(id: string): Neighbour[] | undefined {
+    const { data } = this.engine
+    const parents = data.nodeWays.get(id) ?? []
+    const [parent] = parents
+    if (parents.length !== 1 || parent === undefined) return undefined
+    const way = data.way(parent)
+    if (!way) return undefined
+    return dragNeighbours(id, way.nodes, way.isClosed(), (nid) => data.node(nid)?.loc)
+  }
+
   /** Forgets a move that was not made yet and ends the drag without an undo step */
   stopDrag() {
     this.target = undefined
     this.node = undefined
+    this.last = undefined
+    this.engine.setGuides([])
   }
 
   /**
@@ -110,6 +155,8 @@ export class DragTool {
     // a press on a handle that never moved is over: it added nothing
     this.engine.handles.release()
     await this.settleDrag()
+    this.last = undefined
+    this.engine.setGuides([])
     const id = this.node
     const added = this.engine.handles.takeNode()
     const aim = this.aim

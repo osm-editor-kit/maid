@@ -16,6 +16,7 @@
   "topbar_add_point_hint": "Ajouter un point : cliquez sur la carte pour le placer",
   "topbar_draw_line_hint": "Tracer une ligne : cliquez pour chaque nœud, Entrée ou un clic sur le dernier nœud termine",
   "topbar_draw_area_hint": "Tracer une surface : cliquez pour chaque nœud, Entrée ou un clic sur le premier nœud termine",
+  "topbar_more_area_tools": "Autres outils de surface",
   "topbar_undo": "Annuler : {change}",
   "topbar_redo": "Rétablir : {change}",
   "topbar_last_change": "dernière modification",

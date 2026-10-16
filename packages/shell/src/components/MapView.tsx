@@ -6,7 +6,9 @@ import {
   buildLayers,
   dashPatterns,
   interactiveLayerIds,
+  modifiersOf,
   ModuleLayers,
+  NO_MODIFIERS,
   OsmLayers,
   type MaidEngine,
   type LayerOptions,
@@ -292,6 +294,7 @@ export function MapView() {
    */
   const handleMouseDown = (event: MapLayerMouseEvent) => {
     if (event.originalEvent.button !== 0) return
+    engine.setModifiers(modifiersOf(event.originalEvent))
     // a module mode (rerouting) takes the pointer: a press on one of its handles starts a drag, not a pan
     if (engine.moduleMode) {
       modulePointer.current = { lng: event.lngLat.lng, lat: event.lngLat.lat }
@@ -328,9 +331,11 @@ export function MapView() {
     const { lng, lat } = event.lngLat
     // keys that act where the pointer is (paste, Space while drawing) read this
     setEnginePointer(engine, { point: event.point, lon: lng, lat, layers: interactive })
+    // the keys of this event: a drawn node and a dragged vertex take them (engine.modifiers)
+    engine.setModifiers(modifiersOf(event.originalEvent))
     if (engine.moduleMode) {
       modulePointer.current = { lng, lat }
-      engine.moduleModeMove(lng, lat)
+      engine.moduleModeMove(event.point, lng, lat)
       return
     }
     // a turn with the mouse takes the pointer's moves, and nothing else
@@ -430,6 +435,29 @@ export function MapView() {
     window.addEventListener('mouseup', onUp)
     return () => window.removeEventListener('mouseup', onUp)
   }, [engine])
+  // The modifier keys, for drawing and dragging (engine.modifiers). A key pressed in a text field is the field's, so a
+  // keydown there is left alone; a key that goes up is always read, so none stays held. A blur clears them and the guides.
+  useEffect(
+    function trackModifierKeys() {
+      const onKey = (event: KeyboardEvent) => {
+        if (event.type === 'keydown' && isTyping(event.target)) return
+        engine.setModifiers(modifiersOf(event))
+      }
+      const onBlur = () => {
+        engine.setModifiers(NO_MODIFIERS)
+        engine.setGuides([])
+      }
+      window.addEventListener('keydown', onKey)
+      window.addEventListener('keyup', onKey)
+      window.addEventListener('blur', onBlur)
+      return () => {
+        window.removeEventListener('keydown', onKey)
+        window.removeEventListener('keyup', onKey)
+        window.removeEventListener('blur', onBlur)
+      }
+    },
+    [engine],
+  )
   // Escape cancels a measure. It is taken in the capture phase on the window, so the editor's own
   // Escape (useShortcuts: it clears the selection) does not see it. The selection stays.
   useEffect(() => {
@@ -457,6 +485,7 @@ export function MapView() {
   // one finger drags a node; two fingers are the map's (pinch, pan)
   const handleTouchStart = (event: MapTouchEvent) => {
     clearTimeout(longPress)
+    engine.setModifiers(modifiersOf(event.originalEvent))
     if (event.points.length !== 1 || engine.measuring) return
     if (engine.moduleMode) {
       modulePointer.current = event.lngLat
@@ -499,9 +528,13 @@ export function MapView() {
   const handleClick = (event: MapLayerMouseEvent) => {
     // the click that MapLibre sends after a turn that moved is not a click: the selection stays
     if (performance.now() - engine.turnedAt < 300) return
+    engine.setModifiers(modifiersOf(event.originalEvent))
     // a click while a module mode is on goes to that mode: it does not select
     if (engine.moduleMode) {
-      engine.moduleModeClick(event.lngLat.lng, event.lngLat.lat)
+      // the click's place is the pointer's place for a snap, as a move is (engine.pointer.layers)
+      const { lng, lat } = event.lngLat
+      setEnginePointer(engine, { point: event.point, lon: lng, lat, layers: interactive })
+      engine.moduleModeClick(event.point, lng, lat)
       return
     }
     if (engine.measuring) {

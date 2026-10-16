@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { createEditor, lazyPresets } from '@osm-editor-kit/maid-core'
 import type { OsmJsonElement } from '@osm-editor-kit/maid-model'
+import type { Operation, OperationContext } from '@osm-editor-kit/maid-operations'
 import { defaultPresets } from '@osm-editor-kit/maid-presets/default'
 import { MaidEngine } from './engine'
 import type { ModuleMode } from './module-mode'
@@ -30,11 +31,21 @@ function fakeWindow() {
   return target
 }
 
-/** A key event the engine's listener can read (bun has no KeyboardEvent) */
+/** A key event the engine's listener can read (bun has no KeyboardEvent). Cancelable, so a preventDefault shows in dispatchEvent. */
+function keyEvent(
+  key: string,
+  modifiers: { ctrlKey?: boolean; altKey?: boolean; metaKey?: boolean } = {},
+) {
+  return Object.assign(new Event('keydown', { cancelable: true }), {
+    key,
+    ctrlKey: modifiers.ctrlKey ?? false,
+    altKey: modifiers.altKey ?? false,
+    metaKey: modifiers.metaKey ?? false,
+  })
+}
+
 function escapeEvent() {
-  const event = new Event('keydown') as Event & { key: string }
-  event.key = 'Escape'
-  return event
+  return keyEvent('Escape')
 }
 
 describe('the engine sends the pointer to a module mode', () => {
@@ -53,7 +64,7 @@ describe('the engine sends the pointer to a module mode', () => {
     const clicks: Array<[number, number]> = []
     engine.enterModuleMode({ id: 'test', onClick: (lon, lat) => clicks.push([lon, lat]) })
 
-    engine.moduleModeClick(13.0005, 52.0035)
+    engine.moduleModeClick({ x: 1, y: 2 }, 13.0005, 52.0035)
 
     expect(clicks).toEqual([[13.0005, 52.0035]])
     expect(engine.selection).toEqual(['w10'])
@@ -62,7 +73,7 @@ describe('the engine sends the pointer to a module mode', () => {
   test('a click that the mode does not take (no onClick) selects nothing', () => {
     const { engine } = engineWithData()
     engine.enterModuleMode({ id: 'test' })
-    engine.moduleModeClick(13.0, 52.003)
+    engine.moduleModeClick({ x: 1, y: 2 }, 13.0, 52.003)
     expect(engine.selection).toEqual([])
   })
 
@@ -131,5 +142,103 @@ describe('the engine sends the pointer to a module mode', () => {
     // the listener is gone: an Escape after destroy leaves the mode alone
     target?.dispatchEvent(escapeEvent())
     expect(engine.moduleMode?.id).toBe('test')
+  })
+})
+
+describe('the keys and the snap a module mode gets', () => {
+  let target: EventTarget | undefined
+
+  beforeEach(() => {
+    target = fakeWindow()
+  })
+  afterEach(() => {
+    Reflect.deleteProperty(globalThis, 'window')
+  })
+
+  test('Enter goes to the mode and is swallowed when the mode takes it; the mode stays on', () => {
+    const { engine } = engineWithData()
+    const keys: string[] = []
+    engine.enterModuleMode({
+      id: 'draw',
+      onKey: (key) => {
+        keys.push(key)
+        return key === 'Enter'
+      },
+    })
+
+    expect(target?.dispatchEvent(keyEvent('Enter'))).toBe(false)
+    expect(target?.dispatchEvent(keyEvent('Backspace'))).toBe(true)
+    expect(keys).toEqual(['Enter', 'Backspace'])
+    expect(engine.moduleMode?.id).toBe('draw')
+  })
+
+  test('a key with a modifier does not reach the mode', () => {
+    const { engine } = engineWithData()
+    const keys: string[] = []
+    engine.enterModuleMode({
+      id: 'draw',
+      onKey: (key) => {
+        keys.push(key)
+        return true
+      },
+    })
+    expect(target?.dispatchEvent(keyEvent('Backspace', { metaKey: true }))).toBe(true)
+    expect(keys).toEqual([])
+  })
+
+  test('a click goes to the mode with its pixel and the modifier keys; no map means no snap target', () => {
+    const { engine } = engineWithData()
+    const infos: unknown[] = []
+    engine.enterModuleMode({
+      id: 'draw',
+      snap: true,
+      onClick: (_lon, _lat, info) => infos.push(info),
+    })
+    engine.moduleModeClick({ x: 3, y: 4 }, 13.0005, 52.0035)
+    expect(infos).toEqual([
+      { point: { x: 3, y: 4 }, modifiers: { shift: false, alt: false, ctrl: false, meta: false } },
+    ])
+  })
+
+  test('runOperation of an operation that asks for input starts it, runs nothing and keeps the selection', () => {
+    const { engine } = engineWithData()
+    engine.setSelected('w10')
+    const graph = engine.data.history.staging.graph
+    const started: OperationContext[] = []
+    const operation: Operation = {
+      id: 'ask',
+      label: 'Ask',
+      applies: () => true,
+      disabled: () => undefined,
+      run: () => {
+        throw new Error('run is not called for an operation with start')
+      },
+      start: (context) => started.push(context),
+    }
+
+    const next = engine.runOperation(operation)
+
+    expect(started.map((context) => context.selected)).toEqual([['w10']])
+    expect(next).toEqual(['w10'])
+    expect(engine.selection).toEqual(['w10'])
+    expect(engine.data.history.staging.graph).toBe(graph)
+  })
+
+  test('runOperation without start runs the operation as before', () => {
+    const { engine } = engineWithData()
+    engine.setSelected('w10')
+    let ran = 0
+    const operation: Operation = {
+      id: 'plain',
+      label: 'Plain',
+      applies: () => true,
+      disabled: () => undefined,
+      run: () => {
+        ran++
+        return { actions: [], annotation: 'Did nothing' }
+      },
+    }
+    expect(engine.runOperation(operation)).toEqual(['w10'])
+    expect(ran).toBe(1)
   })
 })
