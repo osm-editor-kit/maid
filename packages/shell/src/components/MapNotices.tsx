@@ -1,5 +1,5 @@
 import { m } from '@osm-editor-kit/maid-i18n'
-import { openSearch } from '../search/flyout'
+import { useSearchActions } from '../search/flyout'
 import { useShell } from '../shell-context'
 import { useCameraParam } from '../url/state'
 
@@ -9,6 +9,7 @@ import { useCameraParam } from '../url/state'
  */
 export function MapNotices() {
   const { config } = useShell()
+  const { open: openSearch } = useSearchActions()
   const [camera] = useCameraParam()
   const zoom = camera?.zoom ?? config.camera?.zoom
   const belowDataZoom = zoom !== undefined && zoom < config.minDataZoom

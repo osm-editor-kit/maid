@@ -75,7 +75,7 @@ import {
   type RoleOption,
 } from './relations-logic.ts'
 import { setSubRouteHovered } from './relations-map-shapes.ts'
-import { pasteOfferActions, usePasteOffersState } from './relations-paste-store.ts'
+import { pasteOfferActions, usePasteOrigins, usePasteSettled } from './relations-paste-store.ts'
 import { relationSessionActions, useSessionRelationIDs } from './relations-session-store.ts'
 
 type Props = InspectorSectionProps
@@ -1127,7 +1127,7 @@ export function RelationsSection({ entity, entities, editor, select }: Props) {
   const geometry = selection.length === 1 ? entity.geometry : undefined
   const readOnly = selection.some((item) => item.readOnly)
   // after a paste: the relations the copied feature's original is in, as offers (see pasteOffersOf)
-  const pasted = usePasteOffersState()
+  const pasted = { origins: usePasteOrigins(), settled: usePasteSettled() }
   const origin = pasted.origins.get(entity.id)
   const offers =
     origin === undefined

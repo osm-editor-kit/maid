@@ -68,6 +68,15 @@ export function createAuth({ id, envFile, server, apiUrl, clientId, loginOrigin 
     }
   }
 
+  /** Removes a key from this browser's storage. Blocked storage has nothing to remove, and the caller goes on. */
+  function forget(key: string) {
+    try {
+      localStorage.removeItem(key)
+    } catch {
+      // blocked: nothing was stored under the key that could be removed
+    }
+  }
+
   function storedUser() {
     if (isAutomated() || !read(TOKEN_KEY)) return undefined
     return read(USER_KEY)
@@ -125,8 +134,9 @@ export function createAuth({ id, envFile, server, apiUrl, clientId, loginOrigin 
   }
 
   function logout() {
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(USER_KEY)
+    forget(TOKEN_KEY)
+    forget(USER_KEY)
+    // the state is reset whether or not the storage could be cleaned
     set({ user: undefined, error: undefined })
   }
 

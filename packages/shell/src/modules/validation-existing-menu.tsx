@@ -1,6 +1,10 @@
 import { m } from '@osm-editor-kit/maid-i18n'
 import { useState } from 'react'
-import { existingActions, type ExistingMode, useExistingMode } from './validation-existing-store.ts'
+import {
+  type ExistingMode,
+  useExistingActions,
+  useExistingMode,
+} from './validation-existing-store.ts'
 
 /** The settings in the order the menu lists them */
 const MODES: readonly ExistingMode[] = ['quiet', 'session', 'always']
@@ -18,6 +22,7 @@ function labelOf(mode: ExistingMode): string {
  */
 export function ExistingMenu() {
   const mode = useExistingMode()
+  const { setMode } = useExistingActions()
   const [open, setOpen] = useState(false)
   return (
     <div className="relative flex justify-end">
@@ -47,7 +52,7 @@ export function ExistingMenu() {
               role="radio"
               aria-checked={mode === item}
               onClick={() => {
-                existingActions.setMode(item)
+                setMode(item)
                 setOpen(false)
               }}
               className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-left text-xs hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-blue-500 dark:hover:bg-zinc-700"

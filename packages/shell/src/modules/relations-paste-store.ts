@@ -41,9 +41,14 @@ const pasteOffersStore = create<PasteOffersStore>()((set) => ({
   },
 }))
 
-/** The offers' state: the origins of the copies and the settled offers */
-export function usePasteOffersState() {
-  return useStore(pasteOffersStore, (state) => state)
+/** The origins of the copies, one hook per part of the state so that a change of the other part does not render */
+export function usePasteOrigins(): ReadonlyMap<EntityID, PasteOrigin> {
+  return useStore(pasteOffersStore, (state) => state.origins)
+}
+
+/** The settled offers, per copy */
+export function usePasteSettled(): ReadonlyMap<EntityID, readonly EntityID[]> {
+  return useStore(pasteOffersStore, (state) => state.settled)
 }
 
 /** Records the copies of a paste. Called from an event handler, never during render. */

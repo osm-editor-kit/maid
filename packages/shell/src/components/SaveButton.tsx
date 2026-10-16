@@ -3,12 +3,12 @@ import { m } from '@osm-editor-kit/maid-i18n'
 import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { Flyout, notify, toolButtonClass } from '@osm-editor-kit/maid-ui'
 import { useQueryStates } from 'nuqs'
-import { useEffect, useId, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useAuth } from '../auth'
 import { CHANGESET_URL } from '../config'
 import { saveBlocked } from '../save/blocked'
 import { draftHashtags, linksOf, type Draft } from '../save/changeset-draft'
-import { useChangesetDraft } from '../save/changeset-draft-store'
+import { useChangesetDraft, useChangesetDraftActions } from '../save/changeset-draft-store'
 import { summaryOf, type ChangeElement, type OsmChange } from '../save/osm-change'
 import { pendingChange, uploadEdits, uploadErrors } from '../save/save'
 import { useSelection } from '../selection'
@@ -94,15 +94,13 @@ function SavePanel(props: {
   const { uploading, onUploading, onSaved } = props
   const auth = useAuth()
   const { select } = useSelection()
-  // the changeset's comment, hashtags and source: a draft that starts when the flyout opens (changeset-draft-store.ts)
-  const draft = useChangesetDraft((s) => s.draft) ?? NO_DRAFT
-  const openDraft = useChangesetDraft((s) => s.open)
-  const editDraft = useChangesetDraft((s) => s.edit)
-  const commitDraftFields = useChangesetDraft((s) => s.commit)
-  const resetDraft = useChangesetDraft((s) => s.reset)
-  useEffect(() => {
-    openDraft(Date.now())
-  }, [openDraft])
+  // the changeset's comment, hashtags and source: a draft that starts when the flyout opens (SaveButton, changeset-draft-store.ts)
+  const draft = useChangesetDraft() ?? NO_DRAFT
+  const {
+    edit: editDraft,
+    commit: commitDraftFields,
+    reset: resetDraft,
+  } = useChangesetDraftActions()
   const [failure, setFailure] = useState<string>()
   const noteId = useId()
   // read again after every edit
@@ -222,13 +220,20 @@ export function SaveButton() {
   const { editor } = useShell()
   // iD reads the address's comment, hashtags and source once, at load, and removes them from it (behavior/hash.js)
   const [links, setLinks] = useQueryStates(linkParams, { history: 'replace' })
-  const readLinks = useChangesetDraft((s) => s.readLinks)
-  useEffect(() => {
-    readLinks(linksOf(links))
-    if (links.comment !== null || links.hashtags !== null || links.source !== null) {
-      void setLinks({ comment: null, hashtags: null, source: null })
-    }
-  }, [links, readLinks, setLinks])
+  const { readLinks, open: openDraft } = useChangesetDraftActions()
+  // read once, at the first render of the page: later changes of the address are not read again
+  const linksRead = useRef(false)
+  useEffect(
+    function readAddressLinks() {
+      if (linksRead.current) return
+      linksRead.current = true
+      readLinks(linksOf(links))
+      if (links.comment !== null || links.hashtags !== null || links.source !== null) {
+        void setLinks({ comment: null, hashtags: null, source: null })
+      }
+    },
+    [links, readLinks, setLinks],
+  )
   const hasChanges = useEngine(() => editor.history.hasChanges())
   const [open, setOpen] = useState(false)
   // while an upload runs the flyout cannot close, so its panel stays and no second upload can start
@@ -240,7 +245,10 @@ export function SaveButton() {
       className="w-[26rem]"
       open={open}
       onOpenChange={(next) => {
-        if (!uploading) setOpen(next)
+        if (uploading) return
+        // the draft starts when the flyout is opened, once per opening (iD's initChangeset), not on each render
+        if (next) openDraft(Date.now())
+        setOpen(next)
       }}
       trigger={
         <button

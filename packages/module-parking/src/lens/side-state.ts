@@ -7,23 +7,37 @@ import { create } from 'zustand'
 
 export type ParkingSidesState = { shown: boolean; showMissing: boolean }
 
-/** A zustand store of its own: the lens sets it through `setParkingSides`, components read it through the hooks below */
-const useParkingSidesStore = create<ParkingSidesState>()(() => ({
-  shown: false,
-  showMissing: false,
-}))
-
-/** Sets part of the state; the subscribers run only when a value changed */
-export function setParkingSides(next: Partial<ParkingSidesState>) {
-  const current = useParkingSidesStore.getState()
-  const state = { ...current, ...next }
-  if (state.shown === current.shown && state.showMissing === current.showMissing) return
-  useParkingSidesStore.setState(state)
+interface ParkingSidesActions {
+  /** Sets part of the state; the subscribers run only when a value changed */
+  set: (next: Partial<ParkingSidesState>) => void
 }
+
+/**
+ * A zustand store of its own: `connectParkingSides` sets it through the store's actions, components read it through the
+ * hooks below. The store is private to this file.
+ */
+const useParkingSidesStore = create<ParkingSidesState & { actions: ParkingSidesActions }>()(
+  (set, get) => ({
+    shown: false,
+    showMissing: false,
+    actions: {
+      set: (next) => {
+        const current = get()
+        const state = {
+          shown: next.shown ?? current.shown,
+          showMissing: next.showMissing ?? current.showMissing,
+        }
+        if (state.shown === current.shown && state.showMissing === current.showMissing) return
+        set(state)
+      },
+    },
+  }),
+)
 
 /** The state outside React */
 export function getParkingSides(): ParkingSidesState {
-  return useParkingSidesStore.getState()
+  const { shown, showMissing } = useParkingSidesStore.getState()
+  return { shown, showMissing }
 }
 
 /** Whether the parking sides are drawn (while the parking lens is the active one) */
@@ -34,6 +48,11 @@ export function useParkingShown(): boolean {
 /** Whether the gap check is on: the sides of roads without a parking tag are drawn too */
 export function useParkingShowMissing(): boolean {
   return useParkingSidesStore((state) => state.showMissing)
+}
+
+/** Sets part of the parking sides' state, through the store's actions */
+function setParkingSides(next: Partial<ParkingSidesState>) {
+  useParkingSidesStore.getState().actions.set(next)
 }
 
 /** The part of the lens choice that connectParkingSides reads: `lensChoice` from the lenses module has this shape */

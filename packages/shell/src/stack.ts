@@ -23,21 +23,48 @@ export function keepsStack(stack: Stack, selection: readonly string[]) {
   return selection.length === 1 && stack.ids.includes(selection[0]!)
 }
 
-/** The one stack is in this file. Components read it through `useStack`, and the functions below change it. */
-const useStackStore = create<{ stack: Stack | null }>()(() => ({ stack: null }))
+interface StackActions {
+  /** Sets the stack of a plain click (null when the click found one feature or nothing) */
+  set: (stack: Stack | null) => void
+  /**
+   * Drops the stack, if there is one: the map moved or changed mode, a drag began, or the menu that
+   * showed the stack closed. Without a stack it changes nothing, so it can run on every map frame.
+   */
+  drop: () => void
+  /**
+   * Called on every selection change: a stack goes unless the new selection is one of its features.
+   * Plain clicks, Shift, the sidebar, undo and the menu all come through here, so the stack only
+   * survives a change that it made itself.
+   */
+  dropUnless: (selection: readonly string[]) => void
+}
+
+/**
+ * The one stack is in this file. Components read it through `useStack`; the functions below change it through the
+ * store's actions.
+ */
+const useStackStore = create<{ stack: Stack | null; actions: StackActions }>()((set, get) => ({
+  stack: null,
+  actions: {
+    set: (stack) => set({ stack }),
+    drop: () => {
+      if (get().stack) set({ stack: null })
+    },
+    dropUnless: (selection) => {
+      const { stack } = get()
+      if (stack && !keepsStack(stack, selection)) set({ stack: null })
+    },
+  },
+}))
 
 /** The stack of the last plain click, or null */
 export function useStack() {
   return useStackStore((state) => state.stack)
 }
 
-function setHeld(stack: Stack | null) {
-  useStackStore.setState({ stack })
-}
-
 /** Sets the stack of a plain click (null when the click found one feature or nothing) */
 export function setStack(stack: Stack | null) {
-  setHeld(stack)
+  useStackStore.getState().actions.set(stack)
 }
 
 /**
@@ -45,7 +72,7 @@ export function setStack(stack: Stack | null) {
  * showed the stack closed. Without a stack it changes nothing, so it can run on every map frame.
  */
 export function dropStack() {
-  if (useStackStore.getState().stack) setHeld(null)
+  useStackStore.getState().actions.drop()
 }
 
 /**
@@ -54,8 +81,7 @@ export function dropStack() {
  * survives a change that it made itself.
  */
 export function dropStackUnless(selection: readonly string[]) {
-  const { stack } = useStackStore.getState()
-  if (stack && !keepsStack(stack, selection)) setHeld(null)
+  useStackStore.getState().actions.dropUnless(selection)
 }
 
 /** The current stack, read outside React (for the keys) */

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'bun:test'
-import { ignoredIssueIds, ignoredIssues, restoreIgnored } from './validation-ignored.ts'
+import {
+  getIgnoredIds,
+  ignoreIssue,
+  ignoredIssueIds,
+  restoreIgnored,
+  showAgainIssues,
+} from './validation-ignored.ts'
 
 describe('the stored ignored warnings', () => {
   it('uses a stored value that fits, and nothing else', () => {
@@ -10,15 +16,15 @@ describe('the stored ignored warnings', () => {
   })
 
   it('keeps each id once, shows them again, and hands the validator the same set until they change', () => {
-    ignoredIssues.showAgain()
-    ignoredIssues.ignore('outdated_tags:w1:deprecated_tags:x')
-    ignoredIssues.ignore('outdated_tags:w1:deprecated_tags:x')
-    expect(ignoredIssues.getIds()).toEqual(['outdated_tags:w1:deprecated_tags:x'])
+    showAgainIssues()
+    ignoreIssue('outdated_tags:w1:deprecated_tags:x')
+    ignoreIssue('outdated_tags:w1:deprecated_tags:x')
+    expect(getIgnoredIds()).toEqual(['outdated_tags:w1:deprecated_tags:x'])
     const first = ignoredIssueIds()
     expect(ignoredIssueIds()).toBe(first)
     expect(first.has('outdated_tags:w1:deprecated_tags:x')).toBe(true)
-    ignoredIssues.showAgain()
-    expect(ignoredIssues.getIds()).toEqual([])
+    showAgainIssues()
+    expect(getIgnoredIds()).toEqual([])
     expect(ignoredIssueIds().size).toBe(0)
   })
 })

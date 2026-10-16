@@ -21,10 +21,16 @@ import {
   existingActions,
   existingMode,
   showsExisting,
+  subscribeExisting,
   useExistingMode,
 } from './validation-existing-store.ts'
 import { createSelectionChecker, createWarmUp, whenIdle } from './validation-idle.ts'
-import { ignoredIssueIds, ignoredIssues } from './validation-ignored'
+import {
+  ignoredIssueIds,
+  ignoreIssue,
+  showAgainIssues,
+  subscribeIgnored,
+} from './validation-ignored'
 
 /** The reads the views and the inspector's `when` make: the validator's, with the URL's levels applied */
 type ValidatorReads = Pick<
@@ -205,8 +211,8 @@ function createStore(
     announce()
   })
   // An ignore or "show again" changes what is shown, and so does the setting of existing data
-  const stopIgnored = ignoredIssues.subscribe(announce)
-  const stopMode = existingActions.subscribe(announce)
+  const stopIgnored = subscribeIgnored(announce)
+  const stopMode = subscribeExisting(announce)
   return {
     validator,
     reads: withOverrides(validator, overrides),
@@ -372,7 +378,7 @@ export function IssueRow(props: {
             {issue.severity === 'warning' && (
               <button
                 type="button"
-                onClick={() => ignoredIssues.ignore(issue.id)}
+                onClick={() => ignoreIssue(issue.id)}
                 className="h-6 cursor-pointer rounded-md px-2 text-zinc-600 inset-ring-1 inset-ring-zinc-950/10 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-300 dark:inset-ring-white/10 dark:hover:bg-zinc-700"
               >
                 {m.issues_ignore()}
@@ -484,7 +490,7 @@ export function validation({ rules }: { rules: readonly Rule[] }) {
                 <span>{m.issues_ignored_count({ count: ignored.length })}</span>
                 <button
                   type="button"
-                  onClick={() => ignoredIssues.showAgain()}
+                  onClick={() => showAgainIssues()}
                   className="cursor-pointer underline hover:no-underline focus-visible:outline-2 focus-visible:outline-blue-500"
                 >
                   {m.issues_show_again()}

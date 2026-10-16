@@ -4,6 +4,7 @@ import {
   existingMode,
   restoreAlways,
   showsExisting,
+  subscribeExisting,
 } from './validation-existing-store.ts'
 
 describe('the stored setting for issues in existing data', () => {
@@ -58,7 +59,7 @@ describe('the setting: Quiet, This session, Always', () => {
 
   it('tells the subscribers of each change', () => {
     let calls = 0
-    const stop = existingActions.subscribe(() => {
+    const stop = subscribeExisting(() => {
       calls++
     })
     existingActions.setMode('quiet')

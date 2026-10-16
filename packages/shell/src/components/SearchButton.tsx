@@ -4,7 +4,7 @@ import { getLocale, m } from '@osm-editor-kit/maid-i18n'
 import { Flyout, toolButtonClass } from '@osm-editor-kit/maid-ui'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import { openSearchAtStart, setSearchOpen, useSearchFocus, useSearchOpen } from '../search/flyout'
+import { useSearchActions, useSearchFocus, useSearchOpen } from '../search/flyout'
 import { findLoaded, type LoadedFeature, MIN_LOADED_QUERY } from '../search/loaded'
 import { mapZoomOf, type OsmId, parseSearch, type Position } from '../search/parse'
 import { createPlaceSearch, type Place } from '../search/places'
@@ -20,12 +20,16 @@ import { useCameraParam } from '../url/state'
  */
 export function SearchButton() {
   const open = useSearchOpen()
+  const { openAtStart: openSearchAtStart, setOpen: setSearchOpen } = useSearchActions()
   const [camera] = useCameraParam()
   const hasPosition = camera !== null
   // the first start without a position opens the search once (flyout.ts)
-  useEffect(() => {
-    openSearchAtStart(hasPosition)
-  }, [hasPosition])
+  useEffect(
+    function openSearchOnFirstStart() {
+      openSearchAtStart(hasPosition)
+    },
+    [hasPosition, openSearchAtStart],
+  )
   return (
     <Flyout
       label={m.search_panel_label()}
@@ -82,6 +86,7 @@ function SearchPanel() {
   const { editor, engine } = useShell()
   const { select } = useSelection()
   const focus = useSearchFocus()
+  const { setOpen: setSearchOpen } = useSearchActions()
   const inputRef = useRef<HTMLInputElement>(null)
   const inputId = useId()
   const listId = useId()

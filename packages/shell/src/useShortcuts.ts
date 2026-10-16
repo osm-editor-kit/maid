@@ -4,7 +4,7 @@ import { useHotkeys, type UseHotkeyDefinition } from '@tanstack/react-hotkeys'
 import { pasteAt } from './clipboard'
 import { continueLine, drawClick, drawingKind, drawKindOf } from './drawing'
 import { giveFavouriteType } from './favourites'
-import { openSearch } from './search/flyout'
+import { useSearchActions } from './search/flyout'
 import { useSelection } from './selection'
 import { useEngine, useShell } from './shell-context'
 import { keepsStack, stepStackId, useStack } from './stack'
@@ -47,6 +47,7 @@ export function useShortcuts() {
   const drawMode = useEngine((e) => drawKindOf(e.mode) !== undefined)
   // the features of a click, while one of them is selected: , and . step through them
   const stack = useStack()
+  const { open: openSearch } = useSearchActions()
   const stackShown = stack !== null && keepsStack(stack, selected)
   const stepStack = (step: 1 | -1) => {
     const current = selected[0]

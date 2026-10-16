@@ -17,6 +17,12 @@ export type ExistingMode = 'quiet' | 'session' | 'always'
 
 const KEY = 'maid:validation-existing'
 
+/**
+ * The version of what is stored. Version 0 (nothing says so) is what the store wrote before it had one: the same
+ * `{ always }` under `state`, read as it always was (`migrate`).
+ */
+const VERSION = 1
+
 /** What is stored: only `always`. Checked on every load; a value that does not fit is Quiet. */
 const storedExisting = z.object({ always: z.boolean() })
 
@@ -33,14 +39,49 @@ type ExistingState = {
   session: boolean
 }
 
-const useExistingStore = create<ExistingState>()(
-  persist((): ExistingState => ({ always: false, session: false }), {
-    name: KEY,
-    storage: createJSONStorage(() => moduleStorage()),
-    partialize: ({ always }) => ({ always }),
-    // runs on every load: with nothing stored, or a value that does not fit, the setting is not Always
-    merge: (persisted, current) => ({ ...current, always: restoreAlways(persisted) }),
-  }),
+interface ExistingActions {
+  /**
+   * Sets the setting. Quiet clears This session as well; Always is stored; This session is not (it ends with the tab).
+   */
+  setMode: (mode: ExistingMode) => void
+  /**
+   * The person used a fix of an issue in existing data, or edited a feature one names: this is the sign that they
+   * want to see them. Quiet becomes This session; Always and This session stay as they are. Returns whether the
+   * setting changed, so the caller shows its notice once.
+   */
+  signal: () => boolean
+}
+
+type ExistingStore = ExistingState & { actions: ExistingActions }
+
+const useExistingStore = create<ExistingStore>()(
+  persist(
+    (set, get) => ({
+      always: false,
+      session: false,
+      actions: {
+        setMode: (mode) => {
+          set({ always: mode === 'always', session: mode === 'session' })
+        },
+        signal: () => {
+          const { always, session } = get()
+          if (always || session) return false
+          set({ session: true })
+          return true
+        },
+      },
+    }),
+    {
+      name: KEY,
+      version: VERSION,
+      storage: createJSONStorage(() => moduleStorage()),
+      partialize: ({ always }) => ({ always }),
+      // a value stored before the version was written (version 0) is read as it always was
+      migrate: (persisted) => ({ always: restoreAlways(persisted) }),
+      // runs on every load: with nothing stored, or a value that does not fit, the setting is not Always
+      merge: (persisted, current) => ({ ...current, always: restoreAlways(persisted) }),
+    },
+  ),
 )
 
 /** The mode of a state: Always wins over This session, which wins over Quiet */
@@ -64,25 +105,15 @@ export function showsExisting(mode: ExistingMode): boolean {
   return mode !== 'quiet'
 }
 
-/** The actions, and the subscription the validator's announcements use. The object never changes. */
-export const existingActions = {
-  /**
-   * Sets the setting. Quiet clears This session as well; Always is stored; This session is not (it ends with the tab).
-   */
-  setMode: (mode: ExistingMode) => {
-    useExistingStore.setState({ always: mode === 'always', session: mode === 'session' })
-  },
-  /**
-   * The person used a fix of an issue in existing data, or edited a feature one names: this is the sign that they
-   * want to see them. Quiet becomes This session; Always and This session stay as they are. Returns whether the
-   * setting changed, so the caller shows its notice once.
-   */
-  signal: (): boolean => {
-    const { always, session } = useExistingStore.getState()
-    if (always || session) return false
-    useExistingStore.setState({ session: true })
-    return true
-  },
-  /** Called when the setting changes */
-  subscribe: (listener: () => void) => useExistingStore.subscribe(listener),
+/** The actions, in a component. The object never changes. */
+export function useExistingActions(): ExistingActions {
+  return useExistingStore((state) => state.actions)
+}
+
+/** The actions outside React (the validator's notices). The object never changes. */
+export const existingActions: ExistingActions = useExistingStore.getState().actions
+
+/** Called when the setting changes: the subscription the validator's announcements use */
+export function subscribeExisting(listener: () => void): () => void {
+  return useExistingStore.subscribe(listener)
 }
