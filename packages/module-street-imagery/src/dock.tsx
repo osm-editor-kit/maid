@@ -4,7 +4,8 @@ import { PhotoDetailsDialog } from '@osm-editor-kit/street-imagery-react/photo-d
 import { useState } from 'react'
 import { planUse } from './image-keys.ts'
 import { photoPageLink } from './links.ts'
-import { useShownPhotos } from './shown.ts'
+import { photoFailureMessage } from './photo-query.ts'
+import { useOpenPhoto, useShownPhotos } from './shown.ts'
 import { activeProviders } from './state.ts'
 import {
   AUTOMATED,
@@ -13,9 +14,9 @@ import {
   useEaseTo,
   useImageWriter,
   useMapillaryToken,
-  useOpenPhoto,
   useStreetImageryActions,
 } from './street-imagery-store.ts'
+import { refOf } from './url.ts'
 
 /**
  * Writes the open photo to the target key of the selected feature: the row last focused in its "Street-level
@@ -61,8 +62,7 @@ function UsePhotoButton({ photo }: { photo: NormalizedPhoto }) {
 /** The photo open in the dock, from the package's viewer, with its link and details. */
 function OpenPhoto({ photo }: { photo: NormalizedPhoto }) {
   const [detailsOpen, setDetailsOpen] = useState(false)
-  const { showPhoto } = useStreetImageryActions()
-  const { closePhoto } = useStreetImageryActions()
+  const { showPhoto, closePhoto } = useStreetImageryActions()
   const easeTo = useEaseTo()
   const link = photoPageLink(photo)
 
@@ -101,7 +101,11 @@ function OpenPhoto({ photo }: { photo: NormalizedPhoto }) {
           groupPhotos={[]}
           onPhotoSelected={() => {}}
           onEaseMapToPoint={(lng, lat) => easeTo?.(lng, lat)}
-          onViewerPhoto={showPhoto}
+          onViewerPhoto={(viewed) => {
+            // the viewer reports the photo it loaded (its position and date): it is the photo the URL shows now
+            const ref = refOf(viewed)
+            if (ref !== null) showPhoto(ref, viewed)
+          }}
         />
       </div>
       <PhotoDetailsDialog
@@ -114,11 +118,15 @@ function OpenPhoto({ photo }: { photo: NormalizedPhoto }) {
   )
 }
 
-/** The photo open in the dock, from the package's viewer. Quiet text while none is chosen. */
+/**
+ * The photo open in the dock, from the package's viewer. Quiet text while none is chosen, while it loads, and when it
+ * did not load (with a line that says why, and a way to close it).
+ */
 export function PhotosView() {
-  const openPhoto = useOpenPhoto()
   const shown = useShownPhotos(false)
   const token = useMapillaryToken()
+  const { closePhoto } = useStreetImageryActions()
+  const open = useOpenPhoto(shown.providers)
 
   if (AUTOMATED)
     return (
@@ -127,7 +135,7 @@ export function PhotosView() {
       </p>
     )
 
-  if (!openPhoto) {
+  if (open.ref === null) {
     const anyOn = activeProviders(shown.providers, token, AUTOMATED).length > 0
     return (
       <p className="p-3 text-xs text-zinc-500 dark:text-zinc-400">
@@ -138,5 +146,24 @@ export function PhotosView() {
     )
   }
 
-  return <OpenPhoto photo={openPhoto} />
+  if (open.error !== null) {
+    return (
+      <div className="flex flex-col items-start gap-2 p-3 text-xs text-zinc-500 dark:text-zinc-400">
+        <p>{photoFailureMessage(open.error, open.ref.providerId)}</p>
+        <button
+          type="button"
+          onClick={closePhoto}
+          className="cursor-pointer rounded-sm font-medium text-zinc-950 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-white"
+        >
+          Close photo
+        </button>
+      </div>
+    )
+  }
+
+  if (open.photo === null) {
+    return <p className="p-3 text-xs text-zinc-500 dark:text-zinc-400">Loading photo…</p>
+  }
+
+  return <OpenPhoto photo={open.photo} />
 }

@@ -4,31 +4,34 @@
  *
  * The URL is the live state. The stored choices (store) are remembered for the next visit only: a choice of the
  * person writes the URL and the store, a link writes the URL alone. `useShownPhotos` is how a component reads what is
- * shown: the hook's value, not the store's.
+ * shown: the hook's value, not the store's. The open photo is the URL's `photo` too (`useOpenPhoto`); its data is a
+ * query (photo-query.ts).
  *
  * One component is the writer, `PhotoUrlSync`, mounted in the map's content (index.ts) from the start, also under
  * automation: it requests nothing and writes only the URL. Every other reader passes `writer: false`, so each
- * parameter is written in one place.
+ * parameter is written in one place. Actions that change the open photo (showPhoto, closePhoto) and the provider
+ * switch write the URL through the writer in the same event, so the URL and the photo never disagree.
  */
+
 import { useUrlParam, useUrlSetting } from '@osm-editor-kit/maid-core/react'
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
-import { useEffect, useMemo, useRef } from 'react'
-import { fetchPhotoById } from './image-actions.ts'
+import { useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
+import { seedPhoto, useOpenPhotoQuery } from './photo-query.ts'
 import { activeProviders, DEFAULT_STORED, type ImageryProviderId, type PhotoKind } from './state.ts'
 import {
   AUTOMATED,
-  getStreetImagery,
   useMapillaryToken,
-  useOpenPhoto,
   useStoredDate,
   useStoredPhotoKind,
   useStoredProviders,
   useStreetImageryActions,
+  type PhotoWriter,
 } from './street-imagery-store.ts'
 import {
-  isProviderId,
   PHOTO_HANDLES,
-  photoLinkStep,
+  shownPhotoRef,
+  switchOffCloses,
   type PhotoDates,
   type PhotoRef,
 } from './url.ts'
@@ -40,6 +43,10 @@ export type ShownPhotos = {
   date: PhotoDates
   /** A choice of the person: shown, written to the URL and remembered for the next visit */
   chooseKind: (kind: PhotoKind) => void
+  /**
+   * A choice of the person. A provider switched off closes the photo of the URL in the same event; a photo whose
+   * provider was never on keeps waiting in the URL.
+   */
   chooseProviders: (ids: ImageryProviderId[]) => void
   chooseDate: (date: PhotoDates) => void
 }
@@ -52,10 +59,11 @@ const NO_PROVIDERS: ImageryProviderId[] = []
  * is shown and no link asked for it (iD does the same); `photo_type` is always written.
  */
 export function useShownPhotos(writer: boolean): ShownPhotos {
-  const { setPhotoKind, setProviders, setDate } = useStreetImageryActions()
+  const { setPhotoKind, setProviders, setDate, closePhoto } = useStreetImageryActions()
   const storedKind = useStoredPhotoKind()
   const storedProviders = useStoredProviders()
   const storedDate = useStoredDate()
+  const [urlPhoto] = useUrlParam(PHOTO_HANDLES.photo)
 
   const kind = useUrlSetting(PHOTO_HANDLES.type, {
     stored: storedKind,
@@ -83,74 +91,54 @@ export function useShownPhotos(writer: boolean): ShownPhotos {
     providers: providers.value,
     date: dates.value,
     chooseKind: kind.choose,
-    chooseProviders: providers.choose,
+    chooseProviders: (ids) => {
+      const closes = switchOffCloses(urlPhoto, providers.value, ids)
+      providers.choose(ids)
+      if (closes) closePhoto()
+    },
     chooseDate: dates.choose,
   }
 }
 
 /**
- * The open photo and the URL's `photo`, in both directions. A link or the history opens the URL's photo (once its
- * provider is on; by id only where that is possible, and never in an automated browser). A photo that is opened or
- * closed in the dock or on the map is written to the URL. A provider switched off closes its photo.
+ * The photo the URL shows, with its data, for the map and the dock. The URL's `photo` shows while its provider is on
+ * (`providers`: the shown ones); `error` is the failure of its query, for the dock to say.
  */
-function usePhotoUrl(providers: readonly ImageryProviderId[]) {
-  const [url, setUrl] = useUrlParam(PHOTO_HANDLES.photo)
-  const open = useOpenPhoto()
+export function useOpenPhoto(providers: readonly ImageryProviderId[]) {
+  const [urlPhoto] = useUrlParam(PHOTO_HANDLES.photo)
   const token = useMapillaryToken()
-  const { showPhoto, closePhoto } = useStreetImageryActions()
+  const ref = shownPhotoRef(urlPhoto, activeProviders(providers, token, AUTOMATED))
+  const { photo, error } = useOpenPhotoQuery(ref, token)
+  return { ref, photo, error }
+}
 
-  // the providers on, as a string: a stable dependency for the effects below
-  const onKey = activeProviders(providers, token, AUTOMATED).join(',')
-  const urlKey = url === null ? null : PHOTO_HANDLES.photo.parser.serialize(url)
-  const openRef = useMemo<PhotoRef | null>(
-    () =>
-      open !== null && isProviderId(open.providerId)
-        ? { providerId: open.providerId, photoId: open.photoId }
-        : null,
-    [open],
+/**
+ * Registers the writer of the URL's photo (store `photoWriter`) while the map is mounted. Opening puts the photo the
+ * caller has in its query, then writes the URL; closing removes the URL's photo. Both are the actions' work: the
+ * component only holds the query client and the URL setter.
+ */
+function usePhotoWriter() {
+  const queries = useQueryClient()
+  const [, setUrlPhoto] = useUrlParam(PHOTO_HANDLES.photo)
+  const { setPhotoWriter } = useStreetImageryActions()
+  useEffect(
+    function registerPhotoWriter() {
+      const writer: PhotoWriter = {
+        open(ref: PhotoRef, photo) {
+          if (photo) seedPhoto(queries, ref, photo)
+          void setUrlPhoto(ref)
+        },
+        close() {
+          void setUrlPhoto(null)
+        },
+      }
+      setPhotoWriter(writer)
+      return function unregisterPhotoWriter() {
+        setPhotoWriter(null)
+      }
+    },
+    [queries, setUrlPhoto, setPhotoWriter],
   )
-  const openKey = openRef === null ? null : PHOTO_HANDLES.photo.parser.serialize(openRef)
-
-  // a provider switched off closes its photo (the URL follows in the effect below)
-  useEffect(() => {
-    const current = getStreetImagery().openPhoto
-    if (current !== null && !onKey.split(',').includes(current.providerId)) closePhoto()
-  }, [onKey, closePhoto])
-
-  // the URL to the open photo: a link opens its photo once the provider is on, and no URL photo closes the open one
-  useEffect(() => {
-    const on = onKey === '' ? [] : onKey.split(',').filter(isProviderId)
-    const want = urlKey === null ? null : PHOTO_HANDLES.photo.parser.parse(urlKey)
-    const current = getStreetImagery().openPhoto
-    const currentRef =
-      current !== null && isProviderId(current.providerId)
-        ? { providerId: current.providerId, photoId: current.photoId }
-        : null
-    const step = photoLinkStep(want, currentRef, on)
-    if (step.kind === 'close') closePhoto()
-    if (step.kind !== 'open') return
-    // a change of the URL, the providers or the token before the photo arrives drops it
-    let cancelled = false
-    fetchPhotoById(step.ref.providerId, step.ref.photoId, token, AUTOMATED).then(
-      (photo) => {
-        if (!cancelled && photo !== null) showPhoto(photo)
-      },
-      () => {
-        // a failed request leaves the photo closed; the URL keeps the link's photo
-      },
-    )
-    return () => {
-      cancelled = true
-    }
-  }, [urlKey, onKey, token, closePhoto, showPhoto])
-
-  // the URL to the open photo, after the person opened or closed one (a change of the open photo, not of the URL)
-  const lastOpen = useRef(openKey)
-  useEffect(() => {
-    if (lastOpen.current === openKey) return
-    lastOpen.current = openKey
-    if (urlKey !== openKey) void setUrl(openRef)
-  }, [openKey, openRef, urlKey, setUrl])
 }
 
 /**
@@ -158,7 +146,7 @@ function usePhotoUrl(providers: readonly ImageryProviderId[]) {
  * start. Renders nothing.
  */
 export function PhotoUrlSync(_props: MapContentProps) {
-  const shown = useShownPhotos(true)
-  usePhotoUrl(shown.providers)
+  useShownPhotos(true)
+  usePhotoWriter()
   return null
 }

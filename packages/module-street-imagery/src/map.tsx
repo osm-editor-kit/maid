@@ -11,16 +11,16 @@ import {
 import type { MapLayerMouseEvent } from 'maplibre-gl'
 import { useEffect, useState } from 'react'
 import { useMap, type MapRef } from 'react-map-gl/maplibre'
-import { useShownPhotos } from './shown.ts'
+import { useOpenPhoto, useShownPhotos } from './shown.ts'
 import { snapBboxToTiles } from './snap.ts'
 import { activeProviders, IMAGERY_PROVIDER_IDS, photoTypesOf } from './state.ts'
 import {
   AUTOMATED,
   streetImageryActions,
   useMapillaryToken,
-  useOpenPhoto,
   useStreetImageryActions,
 } from './street-imagery-store.ts'
+import { refOf } from './url.ts'
 
 /** The id of the editor's map: `<Map id>` in apps/maid MapView. */
 export const MAP_ID = 'mainMap'
@@ -89,7 +89,7 @@ export function StreetImageryLayers() {
   const mapRef = useMap()[MAP_ID]
   const shown = useShownPhotos(false)
   const token = useMapillaryToken()
-  const openPhoto = useOpenPhoto()
+  const { photo: openPhoto } = useOpenPhoto(shown.providers)
   const { zoom, bbox } = useMapView(mapRef)
   useEaseBridge(mapRef)
   const bearing = useViewerBearing()
@@ -136,15 +136,19 @@ export function streetImageryClick(event: MapLayerMouseEvent) {
     (item) => item.kind === 'photo' && item.photoId !== undefined,
   )
   if (!hit?.photoId) return false
-  // the viewer loads the date, the type and the exact position of the photo
-  streetImageryActions.showPhoto({
+  const photo = {
     providerId: hit.providerId,
     photoId: hit.photoId,
     sequenceId: hit.sequenceId ?? null,
     capturedAt: null,
     isPano: null,
     heading: null,
-    lngLat: [event.lngLat.lng, event.lngLat.lat],
-  })
+    lngLat: [event.lngLat.lng, event.lngLat.lat] as [number, number],
+  }
+  const ref = refOf(photo)
+  if (ref === null) return false
+  // the photo is seeded in its query, so it opens without a request; the viewer loads the date, the type and the
+  // exact position of the photo
+  streetImageryActions.showPhoto(ref, photo)
   return true
 }

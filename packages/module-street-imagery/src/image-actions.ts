@@ -48,7 +48,7 @@ export async function openImageById(id: string) {
   if (details === undefined) return 'Mapillary has no image with this id'
   const photo = mapillaryPhoto(details)
   if (photo === null) return 'Mapillary gave no position for this image'
-  streetImageryActions.showPhoto(photo)
+  streetImageryActions.showPhoto({ providerId: 'mapillary', photoId: photo.photoId }, photo)
   return null
 }
 

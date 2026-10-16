@@ -57,10 +57,12 @@ All four are declared in `setup` (`PHOTO_PARAM_DECLARATIONS`, `url.ts`) with the
   shown (iD does the same). A choice writes the URL and the store; a link writes the URL only.
 - `photo` (the open photo, `provider/id`): live state, not stored. A photo opened or closed (map, dock, viewer steps)
   is written to the URL; a link's photo opens once its provider is on. Only Mapillary can be opened by id, and only
-  outside automated browsers; a Panoramax link's photo stays in the URL and is not opened.
+  outside automated browsers; a Panoramax link's photo stays in the URL and the dock says it cannot be opened. The photo
+  itself is a query (`photo-query.ts`), keyed by provider and id; the store holds no photo, only the writer of the URL.
 
 The writer is `PhotoUrlSync` (`shown.ts`), in the map's content from the start. Readers call `useShownPhotos(false)`
-and use what it returns; the store's fields are the stored choices, not what is shown.
+and `useOpenPhoto`, and use what they return; the store's fields are the stored choices, not what is shown. Actions
+that open or close a photo, or switch a provider off, write the URL in the same event.
 - `photo_username` is not here: Maid has no username filter.
 
 ## Gaps

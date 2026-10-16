@@ -197,26 +197,35 @@ export const PHOTO_HANDLES = {
   photo: handleOf(PHOTO_PARAM_DECLARATIONS.photo),
 }
 
-/** What the open photo should do, from the URL's photo, the photo open and the providers on */
-export type PhotoLinkStep =
-  /** nothing to do */
-  | { kind: 'none' }
-  /** the photo open is not the URL's: close it (the URL has no photo, or the photo's provider is off) */
-  | { kind: 'close' }
-  /** the URL's photo is not open and its provider is on: open it */
-  | { kind: 'open'; ref: PhotoRef }
+/**
+ * The photo the URL shows: its `photo` when its provider is on. A URL photo whose provider is off waits: it stays in
+ * the URL and shows when the provider comes on. Pure.
+ */
+export function shownPhotoRef(
+  url: PhotoRef | null,
+  on: readonly ImageryProviderId[],
+): PhotoRef | null {
+  return url !== null && on.includes(url.providerId) ? url : null
+}
 
 /**
- * The open photo follows the URL (a link, the history). A URL photo whose provider is off waits: it is kept in the URL
- * and opens when the provider comes on. Pure; the caller loads the photo for `open` (image-actions.ts).
+ * Whether a change of the providers from `before` to `after` closes the URL's photo: its provider was on and is now off.
+ * A photo that waits (its provider was never on) is not closed by another provider. Pure.
  */
-export function photoLinkStep(
+export function switchOffCloses(
   url: PhotoRef | null,
-  open: PhotoRef | null,
-  on: readonly ImageryProviderId[],
-): PhotoLinkStep {
-  if (url === null) return open === null ? { kind: 'none' } : { kind: 'close' }
-  if (open !== null && sameRef(url, open)) return { kind: 'none' }
-  if (!on.includes(url.providerId)) return { kind: 'none' }
-  return { kind: 'open', ref: url }
+  before: readonly ImageryProviderId[],
+  after: readonly ImageryProviderId[],
+): boolean {
+  return url !== null && before.includes(url.providerId) && !after.includes(url.providerId)
+}
+
+/**
+ * The photo reference of a photo from a provider's data: null for a provider Maid does not offer (such a photo cannot be
+ * opened in the dock). Pure.
+ */
+export function refOf(photo: { providerId: string; photoId: string }): PhotoRef | null {
+  return isProviderId(photo.providerId)
+    ? { providerId: photo.providerId, photoId: photo.photoId }
+    : null
 }

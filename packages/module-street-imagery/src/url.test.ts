@@ -11,7 +11,9 @@ import {
   parseAsPhotoDates,
   parseAsPhotoOverlay,
   parseAsPhotoType,
-  photoLinkStep,
+  refOf,
+  shownPhotoRef,
+  switchOffCloses,
 } from './url.ts'
 
 describe('iD names', () => {
@@ -159,29 +161,52 @@ describe('declarations and handles', () => {
   })
 })
 
-describe('photoLinkStep', () => {
+describe('shownPhotoRef', () => {
   const mapillary = { providerId: 'mapillary' as const, photoId: '1' }
-  const panoramax = { providerId: 'panoramax' as const, photoId: 'a' }
 
-  test('no URL photo closes an open one, and does nothing else', () => {
-    expect(photoLinkStep(null, null, ['mapillary'])).toEqual({ kind: 'none' })
-    expect(photoLinkStep(null, mapillary, ['mapillary'])).toEqual({ kind: 'close' })
+  test('no URL photo shows nothing', () => {
+    expect(shownPhotoRef(null, ['mapillary'])).toBeNull()
   })
 
-  test('the URL photo that is open already does nothing', () => {
-    expect(photoLinkStep(mapillary, { ...mapillary }, ['mapillary'])).toEqual({ kind: 'none' })
+  test('the URL photo shows while its provider is on', () => {
+    expect(shownPhotoRef(mapillary, ['panoramax', 'mapillary'])).toEqual(mapillary)
   })
 
-  test('a URL photo whose provider is off waits, and is not opened', () => {
-    expect(photoLinkStep(mapillary, null, [])).toEqual({ kind: 'none' })
-    expect(photoLinkStep(panoramax, mapillary, ['mapillary'])).toEqual({ kind: 'none' })
+  test('a URL photo whose provider is off waits: it shows once the provider comes on', () => {
+    expect(shownPhotoRef(mapillary, [])).toBeNull()
+    expect(shownPhotoRef(mapillary, ['panoramax'])).toBeNull()
+  })
+})
+
+describe('switchOffCloses', () => {
+  const mapillary = { providerId: 'mapillary' as const, photoId: '1' }
+
+  test('switching the photo provider off closes its photo', () => {
+    expect(switchOffCloses(mapillary, ['mapillary', 'panoramax'], ['panoramax'])).toBe(true)
   })
 
-  test('a URL photo with its provider on opens, replacing another open photo', () => {
-    expect(photoLinkStep(mapillary, null, ['mapillary'])).toEqual({ kind: 'open', ref: mapillary })
-    expect(photoLinkStep(mapillary, panoramax, ['panoramax', 'mapillary'])).toEqual({
-      kind: 'open',
-      ref: mapillary,
+  test('switching another provider does not close it, nor switching the provider on', () => {
+    expect(switchOffCloses(mapillary, ['mapillary'], ['mapillary', 'panoramax'])).toBe(false)
+    expect(switchOffCloses(mapillary, ['panoramax'], ['panoramax', 'mapillary'])).toBe(false)
+    expect(switchOffCloses(mapillary, ['mapillary'], ['panoramax'])).toBe(true)
+  })
+
+  test('a waiting photo (its provider was never on) is not closed; no photo closes nothing', () => {
+    expect(switchOffCloses(mapillary, [], ['panoramax'])).toBe(false)
+    expect(switchOffCloses(null, ['mapillary'], [])).toBe(false)
+  })
+})
+
+describe('refOf', () => {
+  test('a Maid provider gives its reference', () => {
+    const photo = { providerId: 'panoramax', photoId: 'a', sequenceId: null }
+    expect(refOf(photo)).toEqual({
+      providerId: 'panoramax',
+      photoId: 'a',
     })
+  })
+
+  test('another provider gives none', () => {
+    expect(refOf({ providerId: 'kartaview', photoId: '9' })).toBeNull()
   })
 })

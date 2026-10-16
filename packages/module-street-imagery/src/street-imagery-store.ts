@@ -9,6 +9,7 @@ import {
   type PhotoKind,
   type StreetImageryStored,
 } from './state.ts'
+import type { PhotoRef } from './url.ts'
 
 /** Automated browsers get no photos and store nothing (AGENTS.md, core rule 1). */
 export const AUTOMATED = isAutomated()
@@ -28,14 +29,24 @@ export type ImageWriter = {
 export type ActiveImage = { rowId: string; key: string }
 
 /**
- * The session's state. What is shown for the photo settings (kind, providers, dates) is not here: it is the URL's, read
- * with the hooks of shown.ts. The stored choices are in `StreetImageryStored`.
+ * Writes the photo of the URL (`photo`). PhotoUrlSync registers it while it is mounted, with the query client and the
+ * URL setter, so an action changes the URL and the photo in the same event. `photo`, when given, is the photo the
+ * caller already has: it is put in the photo's query, so opening it makes no request.
+ */
+export type PhotoWriter = {
+  open: (ref: PhotoRef, photo?: NormalizedPhoto) => void
+  close: () => void
+}
+
+/**
+ * The session's state. What is shown for the photo settings (kind, providers, dates) and the photo open in the dock is
+ * not here: both are the URL's, read with the hooks of shown.ts. The stored choices are in `StreetImageryStored`.
  */
 export type Session = {
   /** The Mapillary token of this build, empty when there is none. Not stored. */
   mapillaryToken: string
-  /** The photo open in the dock. Not stored: it is the session's choice. */
-  openPhoto: NormalizedPhoto | null
+  /** Writes the URL's photo. Set by PhotoUrlSync while the map is mounted. Not stored. */
+  photoWriter: PhotoWriter | null
   /** Moves the map to a place. Set by the map layer while it is mounted. */
   easeTo: ((lng: number, lat: number) => void) | null
   /** The field's feature, while a "Street-level images" field is shown. Not stored. */
@@ -52,9 +63,14 @@ type Actions = {
   setProviders: (ids: ImageryProviderId[]) => void
   setPhotoKind: (kind: PhotoKind) => void
   setDate: (date: StreetImageryStored['date']) => void
-  /** Opens a photo in the dock. The viewer then reports the photo it loaded (position, date). */
-  showPhoto: (photo: NormalizedPhoto) => void
+  /**
+   * Opens a photo in the dock: the URL's `photo` is written (through the photo writer). The viewer then reports the
+   * photo it loaded (position, date), with the photo.
+   */
+  showPhoto: (ref: PhotoRef, photo?: NormalizedPhoto) => void
+  /** Closes the photo in the dock: the URL's `photo` is removed */
   closePhoto: () => void
+  setPhotoWriter: (writer: PhotoWriter | null) => void
   setEaseTo: (easeTo: Session['easeTo']) => void
   /** Called by the field while it is shown. A field of another feature replaces it. */
   setImageWriter: (writer: ImageWriter | null) => void
@@ -80,10 +96,10 @@ type StreetImageryStore = StreetImageryState & { actions: StreetImageryActions }
  */
 const useStreetImageryStore = create<StreetImageryStore>()(
   persist<StreetImageryStore, [], [], StreetImageryStored>(
-    (set) => ({
+    (set, get) => ({
       ...DEFAULT_STORED,
       mapillaryToken: '',
-      openPhoto: null,
+      photoWriter: null,
       easeTo: null,
       imageWriter: null,
       activeImage: null,
@@ -91,8 +107,9 @@ const useStreetImageryStore = create<StreetImageryStore>()(
         setProviders: (providers) => set({ providers }),
         setPhotoKind: (photoKind) => set({ photoKind }),
         setDate: (date) => set({ date }),
-        showPhoto: (photo) => set({ openPhoto: photo }),
-        closePhoto: () => set({ openPhoto: null }),
+        showPhoto: (ref, photo) => get().photoWriter?.open(ref, photo),
+        closePhoto: () => get().photoWriter?.close(),
+        setPhotoWriter: (photoWriter) => set({ photoWriter }),
         setEaseTo: (easeTo) => set({ easeTo }),
         setImageWriter: (imageWriter) => set({ imageWriter }),
         setActiveImage: (activeImage) => set({ activeImage }),
@@ -130,11 +147,6 @@ export function useMapillaryToken() {
   return useStreetImageryStore((state) => state.mapillaryToken)
 }
 
-/** The photo open in the dock */
-export function useOpenPhoto() {
-  return useStreetImageryStore((state) => state.openPhoto)
-}
-
 /** Moves the map to a place; null while no map is mounted */
 export function useEaseTo() {
   return useStreetImageryStore((state) => state.easeTo)
@@ -170,10 +182,10 @@ export const streetImageryActions: StreetImageryActions = useStreetImageryStore.
 
 /**
  * The session's state for code outside React, as a snapshot. It does not update: read it when needed. It holds no
- * shown photo setting (those are the URL's, shown.ts).
+ * shown photo setting and no open photo (those are the URL's, shown.ts).
  */
 export function getStreetImagery(): Session {
-  const { mapillaryToken, openPhoto, easeTo, imageWriter, activeImage } =
+  const { mapillaryToken, photoWriter, easeTo, imageWriter, activeImage } =
     useStreetImageryStore.getState()
-  return { mapillaryToken, openPhoto, easeTo, imageWriter, activeImage }
+  return { mapillaryToken, photoWriter, easeTo, imageWriter, activeImage }
 }
