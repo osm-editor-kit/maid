@@ -5,7 +5,7 @@
  * Plan: docs/research/drawing-tools/2-three-click-rectangle.md, sections 2 and 3.
  */
 import { SNAP_PX } from '@osm-editor-kit/maid-renderer'
-import { type Loc, MIN_DEPTH_PX, rectangleCorners, screenDepth } from './rectangle.ts'
+import { type Loc, MIN_DEPTH_PX, rectangleCorners, roundWall, screenDepth } from './rectangle.ts'
 
 type Point = { x: number; y: number }
 
@@ -42,6 +42,8 @@ export interface RectangleEnv {
   project(loc: Loc): Point
   /** A corner for D or E: an existing node within the snap distance, else open ground. Never a way. */
   nodeCorner(loc: Loc): Corner
+  /** Shift is held: a free B and the depth are rounded to ROUND_METRES on the ground (rectangle.ts) */
+  round?: boolean
 }
 
 /** The four corners in ring order: A, B, E, D. The ring is closed by the first corner when written. */
@@ -102,16 +104,21 @@ export function reduce(stage: Stage, event: RectangleEvent, env: RectangleEnv): 
       return { stage: { step: 'second', a: event.target, pointer: event.loc } }
 
     case 'second': {
-      if (sameSpot(env, stage.a, event.target)) return { stage, refused: 'same-spot' }
-      if (sharedEdge(stage.a, event.target)) return { stage, refused: 'shared-edge' }
+      // with Shift a free B is moved so that the wall is a whole number of tenths of a metre; a node or a way keeps its place
+      const b: Corner =
+        env.round && event.target.type === 'free'
+          ? { type: 'free', loc: roundWall(stage.a.loc, event.target.loc) }
+          : event.target
+      if (sameSpot(env, stage.a, b)) return { stage, refused: 'same-spot' }
+      if (sharedEdge(stage.a, b)) return { stage, refused: 'shared-edge' }
       return {
-        stage: { step: 'depth', a: stage.a, b: event.target, pointer: event.loc },
+        stage: { step: 'depth', a: stage.a, b, pointer: event.loc },
       }
     }
 
     case 'depth': {
       const { a, b } = stage
-      const shape = rectangleCorners(a.loc, b.loc, event.loc)
+      const shape = rectangleCorners(a.loc, b.loc, event.loc, 0, env.round)
       if (!shape || Math.abs(depthPx(env, a.loc, b.loc, event.loc)) < MIN_DEPTH_PX)
         return { stage: { ...stage, pointer: event.loc }, refused: 'shallow' }
       const ring: Ring = [a, b, env.nodeCorner(shape.e), env.nodeCorner(shape.d)]
@@ -125,10 +132,13 @@ export function reduce(stage: Stage, event: RectangleEvent, env: RectangleEnv): 
 /** What the preview draws for a stage: nothing before A, the wall after A, and the rectangle once it has a depth */
 export function previewOf(stage: Stage, env: RectangleEnv): Preview {
   if (stage.step === 'first' || stage.pointer === undefined) return {}
-  if (stage.step === 'second') return { wall: [stage.a.loc, stage.pointer] }
+  if (stage.step === 'second') {
+    const end = env.round ? roundWall(stage.a.loc, stage.pointer) : stage.pointer
+    return { wall: [stage.a.loc, end] }
+  }
   const { a, b } = stage
   const wall: [Loc, Loc] = [a.loc, b.loc]
-  const shape = rectangleCorners(a.loc, b.loc, stage.pointer)
+  const shape = rectangleCorners(a.loc, b.loc, stage.pointer, 0, env.round)
   if (!shape || Math.abs(depthPx(env, a.loc, b.loc, stage.pointer)) < MIN_DEPTH_PX) return { wall }
   return { wall, rectangle: [a.loc, b.loc, shape.e, shape.d] }
 }

@@ -1,5 +1,12 @@
 import { describe, expect, test } from 'bun:test'
-import { type Loc, MIN_DEPTH_PX, rectangleCorners, screenDepth } from './rectangle'
+import {
+  type Loc,
+  groundMetres,
+  MIN_DEPTH_PX,
+  rectangleCorners,
+  roundWall,
+  screenDepth,
+} from './rectangle'
 
 // Reference Mercator, written apart from rectangle.ts on purpose: a bug in one shows up against the other.
 const R = 6378137
@@ -237,5 +244,41 @@ describe('screenDepth', () => {
 
   test('the preview guard is 16 px', () => {
     expect(MIN_DEPTH_PX).toBe(16)
+  })
+})
+
+describe('rounding to 0.1 m on the ground (Shift)', () => {
+  const COS52 = Math.cos((52 * Math.PI) / 180)
+  const A: Loc = [10, 52]
+
+  test('a wall of 3.04 m due east is 3.0 m on the ground, one of 3.06 m is 3.1 m', () => {
+    const pa = toMerc(A)
+    const east = (metres: number) => fromMerc({ x: pa.x + metres / COS52, y: pa.y })
+    expect(groundMetres(A, east(3.04))).toBeCloseTo(3.04, 9)
+    expect(groundMetres(A, roundWall(A, east(3.04)))).toBeCloseTo(3.0, 9)
+    expect(groundMetres(A, roundWall(A, east(3.06)))).toBeCloseTo(3.1, 9)
+  })
+
+  test('a diagonal wall keeps its direction and is rounded to 5.4 m from 5.37 m', () => {
+    const pa = toMerc(A)
+    const length = 5.37 / COS52
+    const b = fromMerc({
+      x: pa.x + length * Math.cos(Math.PI / 6),
+      y: pa.y + length * Math.sin(Math.PI / 6),
+    })
+    const rounded = toMerc(roundWall(A, b))
+    const angle = (Math.atan2(rounded.y - pa.y, rounded.x - pa.x) * 180) / Math.PI
+    expect(angle).toBeCloseTo(30, 6)
+    expect(groundMetres(A, roundWall(A, b))).toBeCloseTo(5.4, 9)
+  })
+
+  test('the depth is rounded on the ground: 4.04 m is 4.0 m, and without rounding it stays 4.04 m', () => {
+    const pa = toMerc(A)
+    const pb = toMerc(fromMerc({ x: pa.x + 10 / COS52, y: pa.y }))
+    const c = fromMerc({ x: pa.x + 5 / COS52, y: pa.y + 4.04 / COS52 })
+    const exact = rectangleCorners(A, fromMerc(pb), c)!
+    const rounded = rectangleCorners(A, fromMerc(pb), c, 0, true)!
+    expect(groundMetres(fromMerc(pb), exact.e)).toBeCloseTo(4.04, 4)
+    expect(groundMetres(fromMerc(pb), rounded.e)).toBeCloseTo(4.0, 9)
   })
 })

@@ -2,7 +2,9 @@
  * Pure geometry of the three-click rectangle. Clicks A and B give the wall, C sets the depth.
  * Everything is computed in spherical Web Mercator metres, where angles on the map are true angles.
  * Doing the maths in lon/lat degrees would skew right angles by cos(lat).
+ * Lengths on the ground (groundMetres) are measured as the labels measure them (shared/metres.ts).
  */
+import { frameAt, toMetres } from '../shared/metres.ts'
 
 /** [lon, lat] in degrees. */
 export type Loc = [number, number]
@@ -14,6 +16,9 @@ const DEG = Math.PI / 180
 
 /** Walls shorter than this (Mercator metres) count as no wall. */
 const MIN_WALL = 1e-9
+
+/** With Shift, the wall and the depth are whole numbers of this many metres on the ground (ADR 0011, Tobias 2026-10-17) */
+export const ROUND_METRES = 0.1
 
 /** Preview guard: the pointer must be at least this far from the wall, in screen pixels. */
 export const MIN_DEPTH_PX = 16
@@ -51,25 +56,74 @@ function signedDepth(a: Point, b: Point, p: Point): number {
 }
 
 /**
+ * The distance between two places on the ground, in metres: the same measure as the size labels (the local metres of
+ * the two places), so a length that is rounded here reads as rounded on the map.
+ */
+export function groundMetres(a: Loc, b: Loc): number {
+  const frame = frameAt([a, b])
+  const pa = toMetres(frame, a)
+  const pb = toMetres(frame, b)
+  return Math.hypot(pb.x - pa.x, pb.y - pa.y)
+}
+
+/** A length in ground metres, rounded to ROUND_METRES. A length that would round to zero is kept as it is. */
+function roundMetres(metres: number): number {
+  const rounded = Math.round(metres / ROUND_METRES) * ROUND_METRES
+  return rounded > 0 ? rounded : metres
+}
+
+/**
+ * The end B of a wall that starts at A, moved along the same direction, so that the wall is a whole number of
+ * ROUND_METRES on the ground. Used with Shift for a free corner B; a B on a node or a way keeps its place.
+ */
+export function roundWall(a: Loc, b: Loc): Loc {
+  const pa = project(a)
+  const pb = project(b)
+  if (Math.hypot(pb.x - pa.x, pb.y - pa.y) < MIN_WALL) return b
+  const target = roundMetres(groundMetres(a, b))
+  const at = (s: number) => unproject({ x: pa.x + (pb.x - pa.x) * s, y: pa.y + (pb.y - pa.y) * s })
+  // the ground length is not exactly proportional to the Mercator length: a few steps refine the scale
+  let s = 1
+  for (let i = 0; i < 4; i++) {
+    const metres = groundMetres(a, at(s))
+    if (!(metres > 0)) break
+    s *= target / metres
+  }
+  return at(s)
+}
+
+/**
  * The two far corners of the rectangle on the side of C. The ring is A, B, E, D.
  * Returns undefined when A equals B, when C is on the wall, or when C is closer to the wall than minDepthMetres.
  * Only the distance of C from the wall counts, so moving C along the wall keeps the same corners.
+ * With `roundDepth` (Shift), the depth is a whole number of ROUND_METRES on the ground.
  */
 export function rectangleCorners(
   a: Loc,
   b: Loc,
   c: Loc,
   minDepthMetres = 0,
+  roundDepth = false,
 ): { d: Loc; e: Loc; depth: number } | undefined {
   const pa = project(a)
   const pb = project(b)
   const normal = leftNormal(pa, pb)
   if (!normal) return undefined
-  const depth = signedDepth(pa, pb, project(c))
+  let depth = signedDepth(pa, pb, project(c))
   if (depth === 0 || Math.abs(depth) <= minDepthMetres) return undefined
-  const shift = (p: Point): Loc =>
-    unproject({ x: p.x + normal.nx * depth, y: p.y + normal.ny * depth })
-  return { d: shift(pa), e: shift(pb), depth }
+  const shift = (p: Point, by: number): Loc =>
+    unproject({ x: p.x + normal.nx * by, y: p.y + normal.ny * by })
+  if (roundDepth) {
+    // the depth on the ground, from B to the far corner E, as the size label measures it: rounded, then refined
+    const groundDepth = (by: number) => groundMetres(b, shift(pb, by))
+    const target = roundMetres(groundDepth(depth))
+    for (let i = 0; i < 4; i++) {
+      const metres = groundDepth(depth)
+      if (!(metres > 0)) break
+      depth *= target / metres
+    }
+  }
+  return { d: shift(pa, depth), e: shift(pb, depth), depth }
 }
 
 /**

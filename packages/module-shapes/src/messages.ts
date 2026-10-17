@@ -14,3 +14,12 @@ export { m } from '../paraglide/messages.js'
 export function formatNumber(value: number, digits = 1) {
   return new Intl.NumberFormat(getLocale(), { maximumFractionDigits: digits }).format(value)
 }
+
+/** A length on the ground in metres with one decimal, always: "3.0 m" in English, "3,0 m" in German */
+export function formatMetres(metres: number) {
+  const number = new Intl.NumberFormat(getLocale(), {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(metres)
+  return `${number} m`
+}

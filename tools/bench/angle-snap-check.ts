@@ -70,14 +70,41 @@ process.exit(
       )
       return id ? (await positions([id]))[0]! : { x: Number.NaN, y: Number.NaN }
     }
-    /** How many guide lines the map shows (the `osm-guides` source; -1 if the source is missing) */
+    /** How many guide lines the map shows (the `osm-guides` source's lines; -1 if the source is missing) */
     const guides = () =>
       page.evaluate(async () => {
         const source = window.__maid.map.getSource('osm-guides') as unknown as
-          | { getData(): Promise<{ features: unknown[] }> }
+          | { getData(): Promise<{ features: { geometry: { type: string } }[] }> }
           | undefined
-        return source ? (await source.getData()).features.length : -1
+        if (!source) return -1
+        return (await source.getData()).features.filter((f) => f.geometry.type === 'LineString')
+          .length
       }) as Promise<number>
+    /** The labels the map shows (the `osm-guides` points): their text and where they are on the screen */
+    const guideLabels = () =>
+      page.evaluate(async () => {
+        const { map } = window.__maid
+        const source = map.getSource('osm-guides') as unknown as {
+          getData(): Promise<{
+            features: {
+              geometry: { type: string; coordinates: [number, number] }
+              properties: { label?: string }
+            }[]
+          }>
+        }
+        return (await source.getData()).features
+          .filter((f) => f.geometry.type === 'Point')
+          .map((f) => {
+            const p = map.project(f.geometry.coordinates)
+            return { text: f.properties.label ?? '', at: { x: p.x, y: p.y } }
+          })
+      }) as Promise<{ text: string; at: XY }[]>
+    /** The location of each node by id, as [lon, lat] */
+    const locsOf = (ids: string[]) =>
+      page.evaluate(
+        (ids) => ids.map((id) => window.__maid.engine.data.node(id)?.loc ?? null),
+        ids,
+      ) as Promise<([number, number] | null)[]>
 
     /** Moves the pointer to `p` on the map, with whatever keys are held */
     const pointer = async (p: XY) => {
@@ -406,6 +433,67 @@ process.exit(
       await page.keyboard.up('Shift')
       await settle()
       await key('Delete')
+
+      // --- lengths: with Shift a segment is a whole number of tenths of a metre on the ground (7.33 m is 7.3 m) ---
+      // the scale at the middle of the view: Web Mercator, 512 pixel tiles, the equator's 40 075 km
+      const metresPerPixel = await page.evaluate(() => {
+        const { map } = window.__maid
+        const { width, height } = map.getCanvas().getBoundingClientRect()
+        const lat = map.unproject([width / 2, height / 2]).lat
+        return (40075016.686 * Math.cos((lat * Math.PI) / 180)) / (512 * 2 ** map.getZoom())
+      })
+      // the distance on the ground in metres, on the sphere of the map's projection (6378137 m)
+      const groundMetres = ([lon1, lat1]: [number, number], [lon2, lat2]: [number, number]) => {
+        const r = Math.PI / 180
+        const h =
+          Math.sin(((lat2 - lat1) * r) / 2) ** 2 +
+          Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin(((lon2 - lon1) * r) / 2) ** 2
+        return 2 * 6378137 * Math.asin(Math.sqrt(h))
+      }
+      // the pointer's distance for 7.33 m on the ground
+      const reach = 7.33 / metresPerPixel
+      const [o8, b8] = await openGround('length: open ground for a line of 7.33 m at 37 degrees', [
+        { x: 0, y: 0 },
+        { x: reach * Math.cos((37 * Math.PI) / 180), y: reach * Math.sin((37 * Math.PI) / 180) },
+      ])
+      await key('2')
+      await tapAt(o8!)
+      await holding(['Shift'], async () => {
+        await tapAt(b8!)
+      })
+      await key('Enter')
+      const sevenMetres = (await selection())[0] ?? ''
+      await key('Escape')
+      const [n0, n1] = await locsOf((await nodesOf(sevenMetres)).slice(0, 2))
+      report(
+        'length: a segment drawn with Shift at 7.33 m is 7.3 m on the ground (within 1 cm)',
+        true,
+        Boolean(n0 && n1) && Math.abs(groundMetres(n0!, n1!) - 7.3) <= 0.01,
+      )
+
+      // --- lengths: while the pointer draws, its segment's length shows in metres, with no key held ---
+      const [o9, b9] = await openGround(
+        'label: open ground for a line with a label at 37 degrees',
+        [
+          { x: 0, y: 0 },
+          { x: reach * Math.cos((37 * Math.PI) / 180), y: reach * Math.sin((37 * Math.PI) / 180) },
+        ],
+      )
+      await key('2')
+      await tapAt(o9!)
+      await pointer(b9!)
+      const labels = await guideLabels()
+      report(
+        'label: a length in metres shows while the pointer draws, with no key',
+        true,
+        labels.some((label) => /^\d+\.\d m$/.test(label.text)),
+      )
+      report(
+        'label: it sits next to the pointer (within 30 px)',
+        true,
+        labels.some((label) => distance(label.at, b9!) <= 30),
+      )
+      await key('Escape')
 
       // --- bearing 30: map east is at -30 degrees on the screen, so a pointer at 0 degrees snaps to 15 ---
       await page.evaluate(() => {

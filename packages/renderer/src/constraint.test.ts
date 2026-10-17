@@ -3,6 +3,7 @@ import {
   applyConstraints,
   dragNeighbours,
   drawNeighbours,
+  metresPerPixel,
   type ConstraintMap,
   type Neighbour,
 } from './constraint'
@@ -121,6 +122,7 @@ const fakeMap: ConstraintMap = {
   project: ([lng, lat]) => ({ x: lng * 100, y: lat * 100 }),
   unproject: ([x, y]) => ({ lng: x / 100, lat: y / 100 }),
   getBearing: () => 15,
+  getZoom: () => 2,
 }
 
 /** An item that gives the place `point` with one guide, and records what it was asked */
@@ -171,6 +173,7 @@ describe('applyConstraints', () => {
         neighbours: [{ at: { x: 50, y: 50 }, before: { x: 25, y: 25 } }],
         modifiers: { ...NO_MODIFIERS, shift: true },
         bearing: 15,
+        metresPerPixel: metresPerPixel(0.5, 2),
       },
     ])
   })
@@ -198,5 +201,20 @@ describe('applyConstraints', () => {
   test('no item gives a result, or there are no items: no constraint', () => {
     expect(applyConstraints(fakeMap, [itemGiving('none', undefined)], input)).toBeUndefined()
     expect(applyConstraints(fakeMap, [], input)).toBeUndefined()
+  })
+})
+
+describe('metresPerPixel', () => {
+  test('at the equator, zoom 0 is a 512 pixel world: 40075 km over 512 pixels', () => {
+    expect(metresPerPixel(0, 0)).toBeCloseTo(40075016.686 / 512, 3)
+  })
+
+  test('each zoom level halves it, and a latitude of 60 degrees halves it again', () => {
+    expect(metresPerPixel(0, 19)).toBeCloseTo(metresPerPixel(0, 18) / 2, 9)
+    expect(metresPerPixel(60, 19)).toBeCloseTo(metresPerPixel(0, 19) / 2, 9)
+  })
+
+  test('at zoom 19 and latitude 52 a pixel is about 0.09 m on the ground', () => {
+    expect(metresPerPixel(52, 19)).toBeCloseTo(0.0919, 4)
   })
 })

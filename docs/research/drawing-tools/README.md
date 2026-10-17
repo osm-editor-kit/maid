@@ -78,6 +78,7 @@ Rules for all five:
 ### Decided by Tobias (2026-10-16)
 
 - **Angle snap:** Shift = 45° steps, relative to the previous segment, corners lock to 90°. No fine step.
+- **Modifier rule (Tobias, 2026-10-17):** Shift = round values (an angle to 45°, a length on the ground to 0.1 m). Alt = free (no snapping to features, as Alt already does in a drag). See [ADR 0011](../../adr/0011-drawing-tool-hooks.md), section 1.
 - **Merge:** topology on shared nodes, Maid's own code, no polygon library. Nodes on the outline keep their id and position; only crossing points are new.
 - **Cut:** a plain area is cut into two closed ways, both with all tags.
 - **Scope:** build all five in the order above.
@@ -135,6 +136,13 @@ All five tools are built as modules of `packages/module-shapes` and turned on in
 - The hooks they use are in [ADR 0011](../../adr/0011-drawing-tool-hooks.md).
 - Each tool has unit tests and a browser check: `check-rectangle`, `check-angle-snap`, `check-merge`, `check-cut` and `check-divide`. All five are in `check-all --app parking`.
 - `check-all` passes for all three apps.
+
+### Modifier rule (2026-10-17)
+
+- **Shift = round values.** Angle snap rounds a segment's length to 0.1 m on the ground, as well as its angle. A corner lock keeps the exact corner. The rectangle rounds its wall (A to B) and its depth to 0.1 m with Shift on the clicks; a click on a node or a way keeps that node's place, so only free corners are rounded.
+- **Lengths in the parking editor:** `angleSnap({ lengths: true })` shows each segment's length in metres while a line, an area or a dragged vertex is placed, with or without Shift. It is on in `apps/maid-parking` only, as the notes asked for the normal modes to stay quiet.
+- **Alt = free:** the rule is decided; drawing does not yet read Alt for snapping (a drag does).
+- Checks: `check-angle-snap --app parking` (35 ok, exit 0) includes a 7.33 m segment drawn with Shift, which is 7.3 m within 1 cm, and a label next to the pointer. `check-rectangle --app parking` (24 ok, exit 0) includes the wall and depth with Shift.
 
 ### Found on the way
 

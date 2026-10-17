@@ -28,6 +28,7 @@ Five small hooks in core. Each has one first user among the tools.
   - Window `blur` clears it.
 - **`engine.setModifiers(next)`:** when the value changes during a drawing or a drag, it runs the last move again at the last pointer (`engine.pointer`), so the preview follows a key press without a mouse move.
 - **Readers:** `DrawTool.move`, `DrawTool.click` and `DragTool.dragTo`.
+- **The rule for the keys (Tobias, 2026-10-17):** Shift means "round values": an angle snaps to 45 degrees, and a length on the ground is a whole 0.1 m (angle snap, the rectangle's wall and depth). Alt means "free": no snapping to features, as Alt already does in a drag. Shift is the only key a constraint reads for a value; Alt with Shift gives no snap and no rounding.
 
 ### 2. Constraints: extension point `draw.constraint`
 
@@ -45,14 +46,18 @@ type ConstraintInput = {
   neighbours: { at: Point; before?: Point }[]
   modifiers: Modifiers
   bearing: number
+  /** Metres on the ground per screen pixel, at the latitude of the first neighbour (the pointer with none) and the zoom */
+  metresPerPixel: number
 }
-type ConstraintResult = { point: Point; guides: [Point, Point][] }
+type ConstraintResult = { point: Point; guides: [Point, Point][]; labels?: { at: Point; text: string }[] }
 type ConstraintItem = { id: string; constrain(input: ConstraintInput): ConstraintResult | undefined }
 ```
 
 - `before` is the node on the far side of the neighbour along the way, which gives the reference direction.
 - The first item that returns a result wins.
 - Its `guides` are drawn by the renderer as dashed lines (source `osm-guides`, layer `guides`). They are cleared on the next move without a result, at the end of the drawing or drag, and on blur.
+- Its `labels` are texts at a screen place (for example a segment's length in metres). They are points of the same source, drawn by the symbol layer `guides-label` in the rectangle's size-label style. A result may keep the point and give only labels: the parking editor's angle snap does that without Shift, so a constraint is then asked on every free placement. Without a result, or with an empty one, the labels are cleared as the guides are.
+- The renderer computes `metresPerPixel` with the Web Mercator formula for MapLibre's 512 pixel tiles: the equator's circumference times cos(latitude), over 512 times 2^zoom. A constraint that rounds lengths in metres uses it; the pure function is `metresPerPixel` in `packages/renderer/src/constraint.ts`.
 - **Drawing:** the result is where the node goes, and a click places it there. Space places a node the same way.
 - **Dragging:** a constraint applies only to a vertex with exactly one parent way, and only when the drag is not free (Alt).
 
@@ -102,3 +107,6 @@ A module that drew new ways calls `engine.announceDrawn(ids)` after its undo ste
 - Modules stay in their folder; the shell and the renderer carry no tool-specific code.
 - The modifier keys and the constraint run on every pointer move while drawing. The constraint is a pure function over a few points (no map query), so this is cheap.
 - The guides layer is renderer-owned. The renderer updates its source as it does the highlight source, which is allowed inside the renderer by AGENTS.md.
+- The labels (added 2026-10-17) share that source: the engine's `setGuides` takes them as a second argument, and the layer `guides-label` draws them.
+- With labels on, a constraint is asked on every free placement, Shift or not. It is a pure function over a few points, so this stays cheap.
+- Not built yet: Alt does not switch off feature snapping while drawing, as it does in a drag. The rule in section 1 is the decision; the drawing code does not read Alt for snapping yet.

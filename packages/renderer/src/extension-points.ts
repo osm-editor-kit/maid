@@ -84,10 +84,25 @@ export type ConstraintInput = {
   modifiers: Modifiers
   /** The bearing of the map, in degrees */
   bearing: number
+  /**
+   * Metres on the ground per screen pixel, at the latitude and zoom of the first neighbour (or of the pointer with
+   * none). A constraint that rounds lengths in metres converts with it. ADR 0011.
+   */
+  metresPerPixel: number
 }
 
-/** A constrained place on the screen, and the guide lines to draw through it (pairs of points) */
-export type ConstraintResult = { point: Point; guides: [Point, Point][] }
+/** A text on the map at a place on the screen, e.g. the length of a segment in metres (drawn in the guides layer) */
+export type ConstraintLabel = { at: Point; text: string }
+
+/**
+ * A constrained place on the screen, the guide lines to draw through it (pairs of points), and labels to show. A result
+ * may keep the point as it was and give only labels.
+ */
+export type ConstraintResult = {
+  point: Point
+  guides: [Point, Point][]
+  labels?: ConstraintLabel[]
+}
 
 /**
  * A module's rule for where a node goes on open ground. Feature snapping always wins: a constraint is asked only when the

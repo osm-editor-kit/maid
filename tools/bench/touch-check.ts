@@ -51,13 +51,15 @@ process.exit(
         )
         return id ? (await positions([id]))[0]! : NOWHERE
       }
-      /** How many guide lines the map shows (the `osm-guides` source; -1 if the source is missing) */
+      /** How many guide lines the map shows (the `osm-guides` source's lines; -1 if the source is missing) */
       const guides = () =>
         page.evaluate(async () => {
           const source = window.__maid.map.getSource('osm-guides') as unknown as
-            | { getData(): Promise<{ features: unknown[] }> }
+            | { getData(): Promise<{ features: { geometry: { type: string } }[] }> }
             | undefined
-          return source ? (await source.getData()).features.length : -1
+          if (!source) return -1
+          return (await source.getData()).features.filter((f) => f.geometry.type === 'LineString')
+            .length
         }) as Promise<number>
       const shiftHeld = () =>
         page.evaluate(() => window.__maid.engine.modifiers.shift) as Promise<boolean>

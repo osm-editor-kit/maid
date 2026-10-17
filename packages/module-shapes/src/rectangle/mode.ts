@@ -83,6 +83,7 @@ export function rectangleMode(editor: Editor, engine: MaidEngine): ModuleMode {
         return { x: p.x, y: p.y }
       },
       nodeCorner: (loc) => nodeCornerAt(engine, map.project(loc), loc),
+      round: engine.modifiers.shift,
     }
     const step: Step = reduce(stage, event, env)
     stage = step.stage

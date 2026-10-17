@@ -3,7 +3,7 @@
  * chosen here from ids and a location lookup, which needs no map, so the choice is tested alone.
  * `applyConstraints` asks the `draw.constraint` items with the screen positions, and gives the place back in lon/lat.
  */
-import type { ConstraintInput, ConstraintItem } from './extension-points'
+import type { ConstraintInput, ConstraintItem, ConstraintLabel } from './extension-points'
 import type { Modifiers } from './modifiers'
 import type { Loc, Point } from './snap'
 
@@ -83,15 +83,29 @@ export function dragNeighbours(
   ])
 }
 
-/** The part of the map the constraints use: screen and lon/lat, and the bearing */
+/** The part of the map the constraints use: screen and lon/lat, the bearing and the zoom */
 export type ConstraintMap = {
   project(lnglat: [number, number]): { x: number; y: number }
   unproject(point: [number, number]): { lng: number; lat: number }
   getBearing(): number
+  getZoom(): number
 }
 
-/** The place a constraint gives, in lon/lat, and the guides it draws (pairs of lon/lat) */
-export type Constrained = { loc: Loc; guides: [Loc, Loc][] }
+/** The equatorial circumference of the Web Mercator sphere, in metres (the map's own model) */
+const EARTH_CIRCUMFERENCE = 2 * Math.PI * 6378137
+/** MapLibre draws 512 pixel tiles, so zoom z has 512 * 2^z pixels across the world */
+const TILE_PIXELS = 512
+
+/**
+ * Metres on the ground per screen pixel at a latitude and a zoom, on the map's Mercator projection: the length of a
+ * pixel on the ground shrinks with cos(latitude). Used by a constraint that rounds lengths in metres (ADR 0011).
+ */
+export function metresPerPixel(latitude: number, zoom: number): number {
+  return (EARTH_CIRCUMFERENCE * Math.cos((latitude * Math.PI) / 180)) / (TILE_PIXELS * 2 ** zoom)
+}
+
+/** The place a constraint gives, in lon/lat, and the guides and labels it draws (guides: pairs of lon/lat) */
+export type Constrained = { loc: Loc; guides: [Loc, Loc][]; labels?: { at: Loc; text: string }[] }
 
 /**
  * Asks each item in order with the pointer and the neighbours on the screen. The first result wins; its point and guides
@@ -116,6 +130,8 @@ export function applyConstraints(
     const at = map.unproject([p.x, p.y])
     return [at.lng, at.lat]
   }
+  // the scale is taken where the node is placed: at the first neighbour, or at the pointer with none
+  const anchor = input.neighbours[0]?.at ?? toLoc(input.point)
   const constraintInput: ConstraintInput = {
     kind: input.kind,
     point: input.point,
@@ -124,6 +140,7 @@ export function applyConstraints(
     ),
     modifiers: input.modifiers,
     bearing: map.getBearing(),
+    metresPerPixel: metresPerPixel(anchor[1], map.getZoom()),
   }
   for (const item of items) {
     const result = item.constrain(constraintInput)
@@ -131,6 +148,10 @@ export function applyConstraints(
     return {
       loc: toLoc(result.point),
       guides: result.guides.map(([a, b]) => [toLoc(a), toLoc(b)] as [Loc, Loc]),
+      labels: result.labels?.map((label: ConstraintLabel) => ({
+        at: toLoc(label.at),
+        text: label.text,
+      })),
     }
   }
   return undefined

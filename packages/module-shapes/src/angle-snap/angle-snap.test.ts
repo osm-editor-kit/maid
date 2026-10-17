@@ -1,6 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 import type { ConstraintInput, Modifiers } from '@osm-editor-kit/maid-renderer'
-import { ANGLE_STEP, GUIDE_LENGTH_PX, constrainAngle } from './angle-snap'
+import { distance } from '../shared/vector.ts'
+import {
+  ANGLE_STEP,
+  GUIDE_LENGTH_PX,
+  angleConstraint,
+  constrainAngle,
+  roundedLengthPx,
+} from './angle-snap'
 
 type Point = ConstraintInput['point']
 
@@ -27,6 +34,8 @@ function input(overrides: Partial<ConstraintInput>): ConstraintInput {
     neighbours: [{ at: origin }],
     modifiers: shift,
     bearing: 0,
+    // 0.1 m per pixel: a length in pixels is a tenth of its length in metres
+    metresPerPixel: 0.1,
     ...overrides,
   }
 }
@@ -48,9 +57,9 @@ describe('the step rule', () => {
     expect(angleOf(origin, snapOneFromOrigin(-23)!.point)).toBeCloseTo(-45, 6)
   })
 
-  test('snapped points keep the pointer distance from the anchor', () => {
+  test('the length is rounded to 0.1 m: 137.3 px at 0.1 m a pixel is 13.7 m, so 137 px', () => {
     const result = constrainAngle(input({ point: polar(137.3, 10) }))!
-    expect(Math.hypot(result.point.x, result.point.y)).toBeCloseTo(137.3, 9)
+    expect(Math.hypot(result.point.x, result.point.y)).toBeCloseTo(137, 6)
   })
 
   test('the step is ANGLE_STEP degrees', () => {
@@ -145,8 +154,8 @@ describe('corner lock', () => {
         neighbours: [{ at: { x: 0, y: 0 } }, { at: { x: 0, y: 10 } }],
       }),
     )!
-    // Kept at the pointer's distance from the nearer neighbour, on the east ray
-    expect(result.point.x).toBeCloseTo(Math.hypot(30, 2), 6)
+    // Kept at the pointer's distance from the nearer neighbour (30.07 px, 3.0 m), on the east ray
+    expect(result.point.x).toBeCloseTo(30, 6)
     expect(result.point.y).toBeCloseTo(0, 6)
     expect(result.guides).toHaveLength(1)
   })
@@ -160,7 +169,8 @@ describe('corner lock', () => {
         neighbours: [{ at: { x: 0, y: 0 } }, { at: { x: -5, y: 100 } }],
       }),
     )!
-    expect(result.point.x).toBeCloseTo(Math.hypot(10, 2), 6)
+    // 10.2 px is 1.02 m, rounded to 1.0 m, which is 10 px
+    expect(result.point.x).toBeCloseTo(10, 6)
     expect(result.point.y).toBeCloseTo(0, 6)
     expect(result.guides).toHaveLength(1)
   })
@@ -234,5 +244,101 @@ describe('modifier keys', () => {
     ]) {
       expect(constrainAngle(input({ point: polar(100, 37), modifiers }))).toBeUndefined()
     }
+  })
+})
+
+describe('length rounding with Shift', () => {
+  // The length in metres of a snapped segment along screen angle 0, at `metresPerPixel`
+  const lengthAfterSnap = (metres: number, metresPerPixel: number) => {
+    const result = constrainAngle(
+      input({ point: { x: metres / metresPerPixel, y: 0 }, metresPerPixel }),
+    )!
+    return Math.hypot(result.point.x, result.point.y) * metresPerPixel
+  }
+
+  test('3.04 m is 3.0 m and 3.06 m is 3.1 m, at two scales', () => {
+    for (const metresPerPixel of [0.0919, 0.31]) {
+      expect(lengthAfterSnap(3.04, metresPerPixel)).toBeCloseTo(3.0, 9)
+      expect(lengthAfterSnap(3.06, metresPerPixel)).toBeCloseTo(3.1, 9)
+    }
+  })
+
+  test('the direction is still 45 degrees when the length is rounded', () => {
+    const result = constrainAngle(input({ point: polar(90, 37), metresPerPixel: 0.0919 }))!
+    expect(angleOf(origin, result.point)).toBeCloseTo(45, 6)
+  })
+
+  test('roundedLengthPx rounds to whole tenths of a metre, and keeps the length without a scale', () => {
+    expect(roundedLengthPx(137.3, 0.1)).toBeCloseTo(137, 6)
+    expect(roundedLengthPx(12.34, 0)).toBe(12.34)
+  })
+
+  test('a corner keeps its exact place: it is not rounded', () => {
+    const B: Point = { x: 100, y: 0 }
+    const C: Point = { x: 100, y: 100 }
+    const result = constrainAngle(
+      input({
+        point: { x: 3, y: 104 },
+        neighbours: [
+          { at: C, before: B },
+          { at: origin, before: B },
+        ],
+        metresPerPixel: 0.0919,
+      }),
+    )!
+    expect(result.point.x).toBeCloseTo(0, 9)
+    expect(result.point.y).toBeCloseTo(100, 9)
+  })
+})
+
+describe('lengths option: labels while a node is placed', () => {
+  const lengths = angleConstraint({ lengths: true })
+
+  test('without Shift the point stays where the pointer is, with the length as a label', () => {
+    const point = polar(30.4, 37)
+    const result = lengths(input({ point, modifiers: none, metresPerPixel: 0.1 }))!
+    expect(result.point).toEqual(point)
+    expect(result.guides).toEqual([])
+    expect(result.labels).toHaveLength(1)
+    expect(result.labels![0]!.text).toBe('3.0 m')
+  })
+
+  test('the label sits just back from the pointer, on the segment', () => {
+    const point = polar(100, 37)
+    const [label] = lengths(input({ point, modifiers: none }))!.labels!
+    expect(distance(label!.at, point)).toBeCloseTo(18, 6)
+    expect(angleOf(point, label!.at)).toBeCloseTo(angleOf(point, origin), 6)
+  })
+
+  test('a corner gives one label per segment', () => {
+    const B: Point = { x: 100, y: 0 }
+    const C: Point = { x: 100, y: 100 }
+    const result = lengths(
+      input({
+        point: { x: 60, y: 90 },
+        modifiers: none,
+        neighbours: [{ at: C, before: B }, { at: origin }],
+      }),
+    )!
+    expect(result.labels).toHaveLength(2)
+    expect(result.labels!.map((label) => label.text)).toEqual(['4.1 m', '10.8 m'])
+  })
+
+  test('with Shift the labels show the rounded length on the snapped segment', () => {
+    const result = lengths(input({ point: polar(100, 37), metresPerPixel: 0.0919 }))!
+    expect(angleOf(origin, result.point)).toBeCloseTo(45, 6)
+    expect(result.labels![0]!.text).toBe('9.2 m')
+    expect(result.guides).toHaveLength(1)
+  })
+
+  test('no label and no result for a pointer on the anchor, and none with no neighbour', () => {
+    expect(lengths(input({ point: polar(2, 37), modifiers: none }))).toBeUndefined()
+    expect(lengths(input({ point: polar(100, 37), neighbours: [], modifiers: none }))).toBe(
+      undefined,
+    )
+  })
+
+  test('without the option, no Shift gives nothing, as before', () => {
+    expect(angleConstraint()(input({ point: polar(100, 37), modifiers: none }))).toBeUndefined()
   })
 })

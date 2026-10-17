@@ -3,7 +3,7 @@
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import type { Feature, FeatureCollection } from 'geojson'
 import { Layer, type LayerProps, Source } from 'react-map-gl/maplibre'
-import { formatNumber } from '../messages.ts'
+import { formatMetres } from '../messages.ts'
 import { frameAt, toMetres, type Loc } from '../shared/metres.ts'
 import { distance } from '../shared/vector.ts'
 import { useRectanglePreview } from './rectangle-store.ts'
@@ -59,7 +59,7 @@ function sizeLabel(a: Loc, b: Loc): Feature {
   const metres = distance(toMetres(frame, a), toMetres(frame, b))
   return {
     type: 'Feature',
-    properties: { kind: 'size', label: `${formatNumber(metres)} m` },
+    properties: { kind: 'size', label: formatMetres(metres) },
     geometry: { type: 'Point', coordinates: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] },
   }
 }

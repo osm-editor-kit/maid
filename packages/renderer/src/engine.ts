@@ -1072,7 +1072,7 @@ export class MaidEngine {
 
   /**
    * Asks the `draw.constraint` items where a node placed at this screen point goes. Returns that place in lon/lat, and
-   * shows the guides it gives. Without a result the guides are cleared. ADR 0011.
+   * shows the guides and labels it gives. Without a result they are cleared. ADR 0011.
    */
   constrainPlacement(
     kind: 'draw' | 'drag',
@@ -1083,25 +1083,33 @@ export class MaidEngine {
     const items = this.options.editor.registry('draw.constraint').list()
     const placed =
       map && applyConstraints(map, items, { kind, point, neighbours, modifiers: this.modifiers })
-    this.setGuides(placed?.guides ?? [])
+    this.setGuides(placed?.guides ?? [], placed?.labels ?? [])
     return placed?.loc
   }
 
-  /** The guide lines a constraint draws, on their own source (layers.ts `guides`). No lines: the source is emptied. */
+  /** The guide lines and labels a constraint draws, on their own source (layers.ts `guides`). None: the source is emptied. */
   private guidesShown = false
-  setGuides(lines: [Loc, Loc][]) {
+  setGuides(lines: [Loc, Loc][], labels: { at: Loc; text: string }[] = []) {
     // a pointer move with no guides on the map is the common case: no empty update for it
-    if (lines.length === 0 && !this.guidesShown) return
+    if (lines.length === 0 && labels.length === 0 && !this.guidesShown) return
     const source = this.map?.getSource<GeoJSONSource>(SOURCES.guides)
     if (!source) return
-    this.guidesShown = lines.length > 0
+    this.guidesShown = lines.length > 0 || labels.length > 0
     void source.setData({
       type: 'FeatureCollection',
-      features: lines.map(([a, b]) => ({
-        type: 'Feature',
-        properties: {},
-        geometry: { type: 'LineString', coordinates: [a, b] },
-      })),
+      features: [
+        ...lines.map(([a, b]) => ({
+          type: 'Feature' as const,
+          properties: {},
+          geometry: { type: 'LineString' as const, coordinates: [a, b] },
+        })),
+        // the labels are points of the same source; the layers filter them by geometry type
+        ...labels.map(({ at, text }) => ({
+          type: 'Feature' as const,
+          properties: { label: text },
+          geometry: { type: 'Point' as const, coordinates: at },
+        })),
+      ],
     })
   }
 

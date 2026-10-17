@@ -941,13 +941,31 @@ function buildMainLayers(options: LayerOptions) {
   }
   // The guide lines of a constraint (ADR 0011): dashed blue, like iD's guide. Last in the list, so they draw above
   // the OSM data and the labels. Not in interactiveLayerIds: a guide never takes the pointer.
-  layers.push({
-    id: 'guides',
-    type: 'line',
-    source: SOURCES.guides,
-    layout: { 'line-cap': 'round' },
-    paint: { 'line-color': '#2b8ff0', 'line-width': 1.5, 'line-dasharray': [4, 3] },
-  })
+  // Their labels (a length in metres, engine.setGuides) are points of the same source, in the rectangle's size label style.
+  layers.push(
+    {
+      id: 'guides',
+      type: 'line',
+      source: SOURCES.guides,
+      filter: ['==', ['geometry-type'], 'LineString'],
+      layout: { 'line-cap': 'round' },
+      paint: { 'line-color': '#2b8ff0', 'line-width': 1.5, 'line-dasharray': [4, 3] },
+    },
+    {
+      id: 'guides-label',
+      type: 'symbol',
+      source: SOURCES.guides,
+      filter: ['==', ['geometry-type'], 'Point'],
+      layout: {
+        'text-field': ['get', 'label'],
+        'text-font': ['Open Sans Semibold'],
+        'text-size': 12,
+        'text-allow-overlap': true,
+        'text-ignore-placement': true,
+      },
+      paint: { 'text-color': '#ffffff', 'text-halo-color': '#2b8ff0', 'text-halo-width': 2 },
+    },
+  )
   return layers
 }
 

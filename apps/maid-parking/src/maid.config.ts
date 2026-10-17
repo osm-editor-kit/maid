@@ -83,7 +83,8 @@ function editorConfig(config: Config) {
     // the parking editor: restriction field, quick buttons, parking sides on the map, its edit operations
     parking({ lenses: lensChoice }),
     // drawing tools for buildings and parking spaces (docs/research/drawing-tools): Shift holds right angles,
-    angleSnap(),
+    // the lengths of the segments while a node is placed: the parking editor only (too busy in the other modes)
+    angleSnap({ lengths: true }),
     // the Area button's "Rectangle" (key 4) draws one with three clicks,
     rectangle(),
     // the edit menu merges two areas into one outline,

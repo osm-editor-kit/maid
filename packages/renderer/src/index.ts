@@ -26,6 +26,7 @@ export {
   operations,
   type ConstraintInput,
   type ConstraintItem,
+  type ConstraintLabel,
   type ConstraintResult,
   type DrawToolItem,
   type MapContentItem,

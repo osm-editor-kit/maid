@@ -395,6 +395,56 @@ process.exit(
       (onNodeRing?.nodes.slice(1, 4) ?? []).map((id) => id.includes('-')),
     )
 
+    // --- with Shift held on the clicks, the wall (A to B) and the depth are whole tenths of a metre on the ground ---
+    // the distance on the ground in metres, on the sphere of the map's projection (6378137 m)
+    const groundMetres = ([lon1, lat1]: [number, number], [lon2, lat2]: [number, number]) => {
+      const r = Math.PI / 180
+      const h =
+        Math.sin(((lat2 - lat1) * r) / 2) ** 2 +
+        Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin(((lon2 - lon1) * r) / 2) ** 2
+      return 2 * 6378137 * Math.asin(Math.sqrt(h))
+    }
+    const tenth = (metres: number) => Math.abs(metres - Math.round(metres * 10) / 10) <= 0.01
+    await key('Escape')
+    await moveToOpenGround(page, settle, sceneName)
+    const [r5] = await freeRectangles(1, 60, [{ x: junction.x, y: junction.y }])
+    if (!r5) {
+      report('find open ground for the Shift case', 'a rectangle of open ground', 'none')
+    } else {
+      await key('3')
+      await key('3')
+      await page.keyboard.down('Shift')
+      const shifted = await drawThree(r5.a, r5.b, 60, r5.sign).finally(async () => {
+        await page.keyboard.up('Shift')
+        await settle()
+      })
+      const [a5, b5, e5] = (await page.evaluate(
+        (ids) => {
+          const { engine } = window.__maid
+          return ids.map((id: string) => engine.data.node(id)?.loc ?? null)
+        },
+        (shifted.ring?.nodes ?? []).slice(0, 3),
+      )) as ([number, number] | null)[]
+      const wall = a5 && b5 ? groundMetres(a5, b5) : Number.NaN
+      const depth = b5 && e5 ? groundMetres(b5, e5) : Number.NaN
+      report(
+        'Shift: the wall is a whole tenth of a metre on the ground (within 1 cm)',
+        true,
+        tenth(wall) && wall > 0.5,
+      )
+      report(
+        'Shift: the depth is a whole tenth of a metre on the ground (within 1 cm)',
+        true,
+        tenth(depth) && depth > 0.5,
+      )
+      report(
+        'Shift: the rectangle still has four right angles',
+        true,
+        worstDeviation(shifted.ring) < 0.5,
+      )
+      await key('Escape')
+    }
+
     // --- a rectangle on a map turned to 30 degrees: still four right angles on the screen ---
     await moveToOpenGround(page, settle, sceneName)
     await page.evaluate(() => window.__maid.map.setBearing(30))

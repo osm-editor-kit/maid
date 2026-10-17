@@ -5,7 +5,13 @@
  *
  * The types are the renderer's own (the `draw.constraint` hook, docs/adr/0011-drawing-tool-hooks.md).
  */
-import type { ConstraintInput, ConstraintResult, Modifiers } from '@osm-editor-kit/maid-renderer'
+import type {
+  ConstraintInput,
+  ConstraintLabel,
+  ConstraintResult,
+  Modifiers,
+} from '@osm-editor-kit/maid-renderer'
+import { formatMetres } from '../messages.ts'
 import { cross, distance, sub } from '../shared/vector.ts'
 
 /** A point on the screen, in pixels (the hook's own type; the renderer does not export it by name) */
@@ -18,6 +24,10 @@ export const CORNER_RADIUS_PX = 30
 export const MIN_SEGMENT_PX = 4
 /** Each way from the neighbour, long enough to cross any screen */
 export const GUIDE_LENGTH_PX = 2000
+/** With Shift, a segment's length is a whole number of this many metres on the ground */
+export const LENGTH_STEP_M = 0.1
+/** A length label sits this far back from the pointer, along its segment */
+export const LABEL_OFFSET_PX = 18
 
 const STEP = (ANGLE_STEP * Math.PI) / 180
 const TWO_PI = 2 * Math.PI
@@ -27,35 +37,93 @@ const PARALLEL_EPSILON = 1e-9
 /** A line from `anchor` in a direction, as an angle in radians on screen */
 type Ray = { anchor: Point; angle: number }
 
+/** The options of the module: `lengths` shows each segment's length in metres while a node is placed */
+export type AngleSnapOptions = { lengths?: boolean }
+
 /**
- * Snap only for Shift on its own. Alt means a free drag and Ctrl is the right-click on a Mac, so
- * combinations with them keep their own meaning.
+ * The constraint of the module. With Shift: the 45 degree step, a corner lock, and (Shift) the length rounded to
+ * LENGTH_STEP_M on the ground. Without Shift, with `lengths`: the place stays where the pointer is and only the labels
+ * are given. Alt and Ctrl or Meta with Shift keep their own meaning (Alt is a free drag; Ctrl is the right-click on a
+ * Mac), so they get no angle snap and no rounding.
  */
-export function constrainAngle(input: ConstraintInput): ConstraintResult | undefined {
-  if (!isAngleSnapKey(input.modifiers)) return undefined
-  const { point, neighbours, bearing } = input
+export function angleConstraint(options: AngleSnapOptions = {}) {
+  return (input: ConstraintInput): ConstraintResult | undefined => {
+    if (!isAngleSnapKey(input.modifiers)) return options.lengths ? lengthsOnly(input) : undefined
+    return snapped(input, options.lengths === true)
+  }
+}
+
+/** Shift alone, no labels: the constraint of the module without the `lengths` option */
+export const constrainAngle = angleConstraint()
+
+function isAngleSnapKey(modifiers: Modifiers): boolean {
+  return modifiers.shift && !modifiers.alt && !modifiers.ctrl && !modifiers.meta
+}
+
+/** No key for an angle: the place is the pointer, with the labels of the segments */
+function lengthsOnly(input: ConstraintInput): ConstraintResult | undefined {
+  const { point, neighbours, metresPerPixel } = input
+  if (neighbours.length === 0) return undefined
+  if (neighbours.some((neighbour) => distance(point, neighbour.at) < MIN_SEGMENT_PX))
+    return undefined
+  return { point, guides: [], labels: lengthLabels(point, neighbours, metresPerPixel) }
+}
+
+/** Shift: the segment turns in 45 degree steps, and its length is rounded (a corner keeps its exact place) */
+function snapped(input: ConstraintInput, lengths: boolean): ConstraintResult | undefined {
+  const { point, neighbours, bearing, metresPerPixel } = input
   if (neighbours.some((neighbour) => distance(point, neighbour.at) < MIN_SEGMENT_PX))
     return undefined
 
   // A line end has one neighbour and a corner has two. More than two is not a case this tool covers.
   const [first, second, ...rest] = neighbours
   if (!first || rest.length > 0) return undefined
-  if (!second) return alongRay(snapRay(first, point, bearing), point)
+  const withLabels = (result: ConstraintResult): ConstraintResult =>
+    lengths ? { ...result, labels: lengthLabels(result.point, neighbours, metresPerPixel) } : result
+  if (!second) return withLabels(alongRay(snapRay(first, point, bearing), point, metresPerPixel))
 
   const firstRay = snapRay(first, point, bearing)
   const secondRay = snapRay(second, point, bearing)
   const corner = meetAhead(firstRay, secondRay)
   // The corner is a point the pointer may be near. Pointers further away keep one ray only.
   if (corner && distance(corner, point) <= CORNER_RADIUS_PX) {
-    return { point: corner, guides: [guideOf(firstRay), guideOf(secondRay)] }
+    return withLabels({ point: corner, guides: [guideOf(firstRay), guideOf(secondRay)] })
   }
   // Keep the ray of the neighbour nearer the pointer, so the node moves the least.
   const nearer = distance(point, first.at) <= distance(point, second.at) ? firstRay : secondRay
-  return alongRay(nearer, point)
+  return withLabels(alongRay(nearer, point, metresPerPixel))
 }
 
-function isAngleSnapKey(modifiers: Modifiers): boolean {
-  return modifiers.shift && !modifiers.alt && !modifiers.ctrl && !modifiers.meta
+/**
+ * The length of each segment, in metres, one label per neighbour. Each sits on its own segment, just back from the
+ * placed point, so a corner's two labels stay apart.
+ */
+function lengthLabels(
+  point: Point,
+  neighbours: { at: Point }[],
+  metresPerPixel: number,
+): ConstraintLabel[] {
+  return neighbours.map((neighbour) => {
+    const pixels = distance(point, neighbour.at)
+    const back = pixels > 0 ? Math.min(LABEL_OFFSET_PX, pixels / 2) / pixels : 0
+    return {
+      at: {
+        x: point.x + (neighbour.at.x - point.x) * back,
+        y: point.y + (neighbour.at.y - point.y) * back,
+      },
+      text: formatMetres(pixels * metresPerPixel),
+    }
+  })
+}
+
+/**
+ * The length of a segment in pixels, rounded so that it is a whole number of LENGTH_STEP_M on the ground. Without a
+ * usable scale the length is kept.
+ */
+export function roundedLengthPx(pixels: number, metresPerPixel: number): number {
+  if (!(metresPerPixel > 0)) return pixels
+  const metres = Math.round((pixels * metresPerPixel) / LENGTH_STEP_M) * LENGTH_STEP_M
+  return metres / metresPerPixel
 }
 
 /**
@@ -82,9 +150,9 @@ function snapRay(neighbour: { at: Point; before?: Point }, point: Point, bearing
   return { anchor: neighbour.at, angle: reference + steps * STEP }
 }
 
-/** The ray's point at the pointer's distance from its anchor, so the segment keeps its length */
-function alongRay(ray: Ray, point: Point): ConstraintResult {
-  const snapped = pointAt(ray, distance(point, ray.anchor))
+/** The ray's point at the pointer's distance from its anchor, rounded to LENGTH_STEP_M on the ground */
+function alongRay(ray: Ray, point: Point, metresPerPixel: number): ConstraintResult {
+  const snapped = pointAt(ray, roundedLengthPx(distance(point, ray.anchor), metresPerPixel))
   return { point: snapped, guides: [guideOf(ray)] }
 }
 

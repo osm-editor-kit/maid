@@ -1,6 +1,14 @@
 import { describe, expect, test } from 'bun:test'
-import { type Loc } from './rectangle'
-import { type Corner, previewOf, type RectangleEnv, reduce, START, type Stage } from './state'
+import { type Loc, groundMetres } from './rectangle'
+import {
+  type Corner,
+  previewOf,
+  type RectangleEnv,
+  reduce,
+  START,
+  type Stage,
+  type Step,
+} from './state'
 
 // The screen is Web Mercator at one pixel per metre, with y pointing down: the same geometry as the pure maths.
 const R = 6378137
@@ -300,5 +308,71 @@ describe('preview', () => {
 
   test('no clicks: no preview', () => {
     expect(previewOf(START, freeEnv)).toEqual({})
+  })
+})
+
+describe('Shift rounds a free B and the depth to 0.1 m on the ground', () => {
+  const rounded: RectangleEnv = { project, nodeCorner: (loc) => free(loc), round: true }
+  const depthOf = (step: Step) => step.stage as Extract<Stage, { step: 'depth' }>
+
+  test('a free B is moved so that the wall is a whole number of tenths of a metre', () => {
+    const a = at(0, 0)
+    const b = at(73.3, 0)
+    const first = reduce(START, { type: 'click', loc: a, target: free(a) }, rounded)
+    const second = reduce(first.stage, { type: 'click', loc: b, target: free(b) }, rounded)
+    const wall = groundMetres(a, depthOf(second).b.loc)
+    expect(wall).toBeCloseTo(Math.round(groundMetres(a, b) * 10) / 10, 9)
+  })
+
+  test('without Shift, B stays where it was clicked', () => {
+    const a = at(0, 0)
+    const b = at(73.3, 0)
+    const first = reduce(
+      START,
+      { type: 'click', loc: a, target: free(a) },
+      { ...rounded, round: false },
+    )
+    const second = reduce(
+      first.stage,
+      { type: 'click', loc: b, target: free(b) },
+      { ...rounded, round: false },
+    )
+    expect(depthOf(second).b.loc).toEqual(b)
+  })
+
+  test('a B on an existing node keeps the node and its place', () => {
+    const a = at(0, 0)
+    const n = at(73.3, 0)
+    const first = reduce(START, { type: 'click', loc: a, target: free(a) }, rounded)
+    const second = reduce(
+      first.stage,
+      { type: 'click', loc: n, target: { type: 'node', id: 'n5', loc: n } },
+      rounded,
+    )
+    expect(depthOf(second).b).toEqual({ type: 'node', id: 'n5', loc: n })
+  })
+
+  test('the committed rectangle has its depth at a whole tenth of a metre on the ground', () => {
+    const a = at(0, 0)
+    const b = at(700, 0)
+    const c = at(200, 404)
+    let stage: Stage = START
+    stage = reduce(stage, { type: 'click', loc: a, target: free(a) }, rounded).stage
+    stage = reduce(stage, { type: 'click', loc: b, target: free(b) }, rounded).stage
+    const step = reduce(stage, { type: 'click', loc: c, target: free(c) }, rounded)
+    expect(step.commit).toBeDefined()
+    const [, bCorner, eCorner] = step.commit!
+    const depth = groundMetres(bCorner.loc, eCorner.loc)
+    expect(depth).toBeCloseTo(Math.round(depth * 10) / 10, 6)
+  })
+
+  test('the preview of the wall follows the pointer rounded, with Shift', () => {
+    const a = at(0, 0)
+    const pointer = at(73.3, 0)
+    const shown = previewOf({ step: 'second', a: free(a), pointer }, rounded)
+    expect(groundMetres(a, shown.wall![1])).toBeCloseTo(
+      Math.round(groundMetres(a, pointer) * 10) / 10,
+      9,
+    )
   })
 })
