@@ -11,7 +11,6 @@ import {
   actionDeleteMultiple,
   actionDisconnect,
   actionExtract,
-  actionJoin,
   actionOrthogonalize,
   actionReflect,
   actionReverse,
@@ -20,8 +19,13 @@ import {
   actionStraightenWay,
 } from '@osm-editor-kit/maid-model'
 import type { Action, DisconnectAction, Graph, OsmEntity } from '@osm-editor-kit/maid-model'
+import { continueOperation } from './continue.ts'
 import { isTooLargeToEdit } from './extent.ts'
+import { lineToAreaOperation } from './line-to-area.ts'
+import { mergeOperation } from './merge.ts'
 import type { Operation, OperationContext } from './types.ts'
+
+export { mergeOperation } from './merge.ts'
 
 /** Used when an action gives a reason code that has no sentence here */
 const FALLBACK = 'This cannot be done here'
@@ -185,62 +189,7 @@ export const splitOperation: Operation = {
   },
 }
 
-// Merge
-
-const MERGE_REASONS: Record<string, Sentence> = {
-  not_eligible: "These lines can't be merged.",
-  not_adjacent: 'These lines do not share an end node.',
-  paths_intersect: "These lines can't be merged because the result would cross itself.",
-  conflicting_tags:
-    "These lines can't be merged because some of their tags have conflicting values.",
-  conflicting_relations:
-    "These lines can't be merged because they belong to conflicting relations.",
-}
-
-/**
- * Two or more lines, joined end to end. iD's other merges (a point into a line or area, areas
- * into a multipolygon, nodes into one) are not ported: for those selections this does not apply.
- */
-function mergePlan(context: OperationContext) {
-  const entities = resolveSelection(context)
-  if (!entities || entities.length < 2) return undefined
-  if (
-    !entities.every(
-      (entity) => entity instanceof OsmWay && entity.geometry(context.graph) === 'line',
-    )
-  ) {
-    return undefined
-  }
-  const ids = entities.map((entity) => entity.id)
-  return { action: actionJoin(ids), ids }
-}
-
-/** Merge: joins lines that share their end nodes. Afterwards the surviving line is selected. */
-export const mergeOperation: Operation = {
-  id: 'merge',
-  label: 'Merge',
-  shortcut: 'c',
-  applies: (context) => mergePlan(context) !== undefined,
-  disabled: (context) => {
-    const plan = mergePlan(context)
-    if (!plan) return undefined
-    const reason = reasonOf(plan.action, context.graph)
-    return reason === undefined ? undefined : reasonSentence(MERGE_REASONS, reason, plan.ids.length)
-  },
-  run: (context) => {
-    const { action, ids } = mergePlan(context) ?? notApplicable('merge')
-    return {
-      actions: [action],
-      annotation: `Merged ${ids.length} lines`,
-      select: (after) => {
-        const survivors = ids.filter((id) => after.hasEntity(id) !== undefined)
-        // as iD: when several survive, prefer the ones with tags of their own
-        const tagged = survivors.filter((id) => after.hasEntity(id)?.hasInterestingTags() === true)
-        return tagged.length > 0 && survivors.length > 1 ? tagged : survivors
-      },
-    }
-  },
-}
+// Merge: see merge.ts (iD's chain of join, merge, merge polygon and merge nodes)
 
 // Straighten
 
@@ -844,12 +793,14 @@ export const deleteOperation: Operation = {
 
 /** The operations in the order of iD's edit menu */
 export const defaultOperations: Operation[] = [
+  continueOperation,
   reverseOperation,
   splitOperation,
   mergeOperation,
   straightenOperation,
   squareOperation,
   circularizeOperation,
+  lineToAreaOperation,
   disconnectOperation,
   extractOperation,
   reflectLongOperation,

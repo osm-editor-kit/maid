@@ -1,5 +1,7 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { m } from '@osm-editor-kit/maid-i18n'
+import { visibleOperations } from '@osm-editor-kit/maid-operations'
+import type { Operation } from '@osm-editor-kit/maid-operations'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import type { ReactNode } from 'react'
 import { pasteAt } from './clipboard'
@@ -72,10 +74,30 @@ export function usePasteCommand(at: { lon: number; lat: number } | undefined) {
   ]
 }
 
+/** Operations the edit menu lists before Move when they apply: iD's Continue, the default action at the end of a line */
+const LEADING_OPERATIONS = ['continue']
+
 /**
- * What can be done with the selection now, in the order of iD's edit menu: move and rotate,
- * copy, then the operations that apply (`edit.operation`), with delete last. Empty without a
- * selection. A feature that a filter protects keeps its commands, greyed out with the reason.
+ * The items of the edit menu at a place, in order. On open ground (`ground`) only Paste: the selection is not what the
+ * menu is about there. On a feature there is no Paste: pasting another geometry through a feature's menu makes no sense
+ * (Cmd+V still pastes where the pointer is). Otherwise: the features at the place, then the commands of the selection.
+ */
+export function editMenuItems<Here, Selected, Pasted>(
+  place: { ground?: boolean },
+  parts: {
+    here: readonly Here[]
+    selection: readonly Selected[]
+    paste: readonly Pasted[]
+  },
+): (Here | Selected | Pasted)[] {
+  return place.ground ? [...parts.paste] : [...parts.here, ...parts.selection]
+}
+
+/**
+ * What can be done with the selection now, in the order of iD's edit menu: the operations that
+ * lead (Continue, when it applies), move and rotate, copy, then the other operations that apply
+ * (`edit.operation`), with delete last. Empty without a selection. A feature that a filter
+ * protects keeps its commands, greyed out with the reason.
  */
 export function useEditCommands() {
   const { editor, engine } = useShell()
@@ -88,7 +110,24 @@ export function useEditCommands() {
     const context = e.operationContext()
     // one point with a direction: R turns that direction, as iD's tooltip says
     const turnsDirection = e.transform.directionOf(ids) !== undefined
+    // what applies, less the operations a superseding one replaces here (the core Merge under the areas union)
+    const applicable = visibleOperations(operations, context)
+    const commandOf = (operation: Operation): Command => ({
+      id: operation.id,
+      label: operation.label,
+      icon: commandIcon(operation.id, operation.icon),
+      // delete has a key with a modifier, which an operation's one-letter shortcut cannot say
+      shortcut: operation.id === 'delete' ? modKey('⌫') : operation.shortcut?.toUpperCase(),
+      reason: protectedIds ? PROTECTED_REASON : operation.disabled(context),
+      run: () => {
+        engine.previewOperation(null)
+        const next = engine.runOperation(operation)
+        if (next) select(next.length > 0 ? next : null)
+      },
+      preview: (on: boolean) => engine.previewOperation(on ? operation : null),
+    })
     return [
+      ...applicable.filter((operation) => LEADING_OPERATIONS.includes(operation.id)).map(commandOf),
       {
         id: 'move',
         label: 'Move',
@@ -114,22 +153,9 @@ export function useEditCommands() {
         reason: protectedIds ? PROTECTED_REASON : undefined,
         run: () => void engine.copy(),
       },
-      ...operations
-        .filter((operation) => operation.applies(context))
-        .map((operation) => ({
-          id: operation.id,
-          label: operation.label,
-          icon: commandIcon(operation.id, operation.icon),
-          // delete has a key with a modifier, which an operation's one-letter shortcut cannot say
-          shortcut: operation.id === 'delete' ? modKey('⌫') : operation.shortcut?.toUpperCase(),
-          reason: protectedIds ? PROTECTED_REASON : operation.disabled(context),
-          run: () => {
-            engine.previewOperation(null)
-            const next = engine.runOperation(operation)
-            if (next) select(next.length > 0 ? next : null)
-          },
-          preview: (on: boolean) => engine.previewOperation(on ? operation : null),
-        })),
+      ...applicable
+        .filter((operation) => !LEADING_OPERATIONS.includes(operation.id))
+        .map(commandOf),
     ]
   })
 }

@@ -6,7 +6,7 @@ import { OsmWay } from '@osm-editor-kit/maid-model'
 import type { Operation, OperationContext } from '@osm-editor-kit/maid-operations'
 import { m } from '../messages.ts'
 import { sentenceOf } from '../shared/refusals.ts'
-import { mergePlan, type MergeRefusal } from './merge.ts'
+import { geometryRefusal, mergePlan, type MergeRefusal } from './merge.ts'
 
 /** The sentence for each reason two areas cannot be merged. Read when shown, so it follows the page's language. */
 export const refusalSentence = sentenceOf<MergeRefusal>({
@@ -32,7 +32,21 @@ function selectedAreas(context: OperationContext): boolean {
   })
 }
 
-/** Merge areas: the union of two closed areas as one outline. Afterwards the survivor is selected. */
+/**
+ * Two areas that overlap or share an edge, as one outline. Apart areas and an area inside another are not this
+ * operation's: the core Merge makes a multipolygon of them. That is decided by their place alone, so it holds for
+ * any tags: a contained pair with different tags is refused by the tags first, and must not be taken for a union.
+ */
+function unionApplies(context: OperationContext): boolean {
+  if (!selectedAreas(context)) return false
+  const refusal = geometryRefusal(context.graph, context.selected)
+  return refusal !== 'contained' && refusal !== 'not_touching'
+}
+
+/**
+ * Merge areas: the union of two closed areas as one outline. Afterwards the survivor is selected. It supersedes the core
+ * Merge for the areas it applies to, so the edit menu and C show one Merge.
+ */
 export const mergeAreasOperation: Operation = {
   id: 'merge-areas',
   get label() {
@@ -41,9 +55,10 @@ export const mergeAreasOperation: Operation = {
   // iD's merge icon, the one the line merge shows
   icon: 'iD-operation-merge',
   shortcut: 'c',
-  applies: selectedAreas,
+  supersedes: ['merge'],
+  applies: unionApplies,
   disabled: (context) => {
-    if (!selectedAreas(context)) return undefined
+    if (!unionApplies(context)) return undefined
     const plan = mergePlan(context.graph, context.selected)
     return 'refused' in plan ? refusalSentence(plan.refused) : undefined
   },

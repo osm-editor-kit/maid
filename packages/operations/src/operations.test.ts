@@ -84,12 +84,14 @@ function angleAt(a: [number, number], b: [number, number], c: [number, number]):
 describe('the operation list', () => {
   it('offers the operations in iD menu order with their keys', () => {
     expect(defaultOperations.map((op) => [op.id, op.label, op.shortcut])).toEqual([
+      ['continue', 'Continue', 'a'],
       ['reverse', 'Reverse', 'v'],
       ['split', 'Split', 'x'],
       ['merge', 'Merge', 'c'],
       ['straighten', 'Straighten', 's'],
       ['square', 'Square', 'q'],
       ['circularize', 'Make round', 'o'],
+      ['line-to-area', 'Treat as area', undefined],
       ['disconnect', 'Disconnect', 'd'],
       ['extract', 'Extract', 'e'],
       ['reflect-long', 'Flip long', 't'],
@@ -197,7 +199,9 @@ describe('merge', () => {
   it('is disabled for two lines whose ends do not meet', () => {
     const ctx = at(['w1', 'w3'], chain)
     expect(mergeOperation.applies(ctx)).toBe(true)
-    expect(mergeOperation.disabled(ctx)).toBe('These lines do not share an end node.')
+    expect(mergeOperation.disabled(ctx)).toBe(
+      "These features can't be merged because their endpoints aren't connected.",
+    )
   })
 })
 

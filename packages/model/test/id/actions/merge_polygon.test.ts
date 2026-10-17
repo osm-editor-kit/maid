@@ -42,6 +42,15 @@ describe('actionMergePolygon', () => {
     expect(r.memberById('w5')?.role).toEqual('outer');
   });
 
-  // needs F-actions-b-4 (the line-only tags, such as natural=coastline, stay on the outer way; Maid moves all tags of the way to the relation)
-  it.todo('preserves coastline tag on the outer ways when creating a multipolygon');
+  it('preserves coastline tag on the outer ways when creating a multipolygon', () => {
+    let graph = new Rapid.Graph(base);
+    graph = graph.replace(graph.entity('w0').update({ tags: { natural: 'coastline', leisure: 'nature_reserve' }}));
+    const result = Rapid.actionMergePolygon(['w0', 'w1'], 'r')(graph);
+
+    // coastline should stay on the way
+    expect(result.entity('w0').tags).toEqual({ natural: 'coastline' });
+
+    // other tags should move to the relation
+    expect(result.entity('r').tags).toEqual({ type: 'multipolygon', leisure: 'nature_reserve' });
+  });
 });

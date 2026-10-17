@@ -122,12 +122,29 @@ export function mergePlan(
 }
 
 /**
+ * The verdict on the two areas' place alone, without their tags and relations. The union decides whether it applies
+ * with this, so a contained or apart pair is the core Merge's (a multipolygon) whatever their tags; undefined when
+ * the geometry has no refusal, and the other refusals (tags, relations, shape) are the union's to show.
+ * @param   graph - The current graph
+ * @param   ids   - The two ways
+ * @return  The refusal of the geometry, or undefined
+ */
+export function geometryRefusal(graph: Graph, ids: readonly string[]): MergeRefusal | undefined {
+  const outline = planOutline(graph, ids, false)
+  return typeof outline === 'string' ? outline : undefined
+}
+
+/**
  * Checks the two ways and computes the outline of their union.
  * @param   graph - The current graph
  * @param   ids   - The two ways to merge
  * @return  The outline, or the reason it is refused
  */
-function planOutline(graph: Graph, ids: readonly string[]): Outline | MergeRefusal {
+function planOutline(
+  graph: Graph,
+  ids: readonly string[],
+  checkTags = true,
+): Outline | MergeRefusal {
   if (ids.length !== 2 || ids[0] === ids[1]) return 'not_two_areas'
 
   const found = ids.map((id) => graph.hasEntity(id))
@@ -141,8 +158,10 @@ function planOutline(graph: Graph, ids: readonly string[]): Outline | MergeRefus
   if (!(a instanceof OsmWay) || !(b instanceof OsmWay) || !a.isClosed() || !b.isClosed())
     return 'not_two_areas'
 
-  if (!sameTags(withoutArea(a.tags), withoutArea(b.tags))) return 'conflicting_tags'
-  if (!sameMemberships(graph, a, b)) return 'conflicting_relations'
+  if (checkTags) {
+    if (!sameTags(withoutArea(a.tags), withoutArea(b.tags))) return 'conflicting_tags'
+    if (!sameMemberships(graph, a, b)) return 'conflicting_relations'
+  }
 
   // The survivor comes first: its points win where the two outlines share a place
   const keepFirst = (utilSurvivorID([a, b]) ?? a.id) === a.id

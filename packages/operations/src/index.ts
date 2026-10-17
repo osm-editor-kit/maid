@@ -5,6 +5,7 @@ export * from './operations.ts'
 export * from './point-to-area.ts'
 export type { Extent, Operation, OperationContext, OperationResult } from './types.ts'
 export * from './rotate-direction.ts'
+export * from './supersedes.ts'
 
 /**
  * What runs an operation that asks for more input (`Operation.start`). Empty here, because this package knows no map:

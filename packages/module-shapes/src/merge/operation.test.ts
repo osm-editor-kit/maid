@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import { Graph, ModelContext, OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 import type { OsmEntity } from '@osm-editor-kit/maid-model'
-import { mergeOperation } from '@osm-editor-kit/maid-operations'
+import { mergeOperation, visibleOperations } from '@osm-editor-kit/maid-operations'
 import type { OperationContext } from '@osm-editor-kit/maid-operations'
 import type { MergeRefusal } from './merge.ts'
 import { mergeAreasOperation, refusalSentence } from './operation.ts'
@@ -141,10 +141,91 @@ describe('merge-areas: when it is offered', () => {
     expect(mergeAreasOperation.applies(contextOf(graph, ['r1', 'w2']))).toBe(false)
   })
 
-  it('the line merge and this operation never apply to the same selection', () => {
+  it('apart areas and an area inside another are not this operation: the core Merge makes their multipolygon', () => {
+    const apart = contextOf(graphOf(...twoSquares(30, 0)), ['w1', 'w2'])
+    expect(mergeAreasOperation.applies(apart)).toBe(false)
+    expect(mergeOperation.applies(apart)).toBe(true)
+    expect(mergeOperation.disabled(apart)).toBeUndefined()
+
+    const contained = contextOf(
+      graphOf(
+        ...square('a', 0, 0, 20),
+        ...square('b', 5, 5, 5),
+        ring('w1', ['na1', 'na2', 'na3', 'na4'], { area: 'yes' }),
+        ring('w2', ['nb1', 'nb2', 'nb3', 'nb4'], { area: 'yes' }),
+      ),
+      ['w1', 'w2'],
+    )
+    expect(mergeAreasOperation.applies(contained)).toBe(false)
+    expect(mergeOperation.applies(contained)).toBe(true)
+  })
+
+  it('an area inside another with different tags is not the union: the core Merge makes the multipolygon', () => {
+    // the drawn pair: the outer is a building, the inner has only area=yes, so their tags differ as well as their place
+    const contained = contextOf(
+      graphOf(
+        ...square('a', 0, 0, 20),
+        ...square('b', 5, 5, 5),
+        ring('w1', ['na1', 'na2', 'na3', 'na4'], { area: 'yes', building: 'yes' }),
+        ring('w2', ['nb1', 'nb2', 'nb3', 'nb4'], { area: 'yes' }),
+      ),
+      ['w1', 'w2'],
+    )
+    expect(mergeAreasOperation.applies(contained)).toBe(false)
+    expect(mergeOperation.applies(contained)).toBe(true)
+    expect(mergeOperation.disabled(contained)).toBeUndefined()
+    expect(
+      visibleOperations([mergeOperation, mergeAreasOperation], contained).map((op) => op.id),
+    ).toEqual(['merge'])
+  })
+
+  it('apart areas with different tags are not the union either', () => {
+    const apart = contextOf(
+      graphOf(
+        ...square('a', 0, 0, 10),
+        ...square('b', 30, 0, 10),
+        ring('w1', ['na1', 'na2', 'na3', 'na4'], { area: 'yes', building: 'yes' }),
+        ring('w2', ['nb1', 'nb2', 'nb3', 'nb4'], { area: 'yes' }),
+      ),
+      ['w1', 'w2'],
+    )
+    expect(mergeAreasOperation.applies(apart)).toBe(false)
+    expect(mergeOperation.applies(apart)).toBe(true)
+  })
+
+  it('for overlapping areas one Merge is shown: this operation, which supersedes the core Merge', () => {
     const areas = contextOf(graphOf(...twoSquares(7, 7)), ['w1', 'w2'])
-    expect(mergeOperation.applies(areas)).toBe(false)
+    expect(mergeOperation.applies(areas)).toBe(true)
     expect(mergeAreasOperation.applies(areas)).toBe(true)
+    expect(
+      visibleOperations([mergeOperation, mergeAreasOperation], areas).map((op) => op.id),
+    ).toEqual(['merge-areas'])
+  })
+
+  it('a refused union still supersedes the core Merge, so the menu shows its reason and no second Merge', () => {
+    const graph = graphOf(
+      ...square('a', 0, 0, 10),
+      ...square('b', 7, 7, 10),
+      ring('w1', ['na1', 'na2', 'na3', 'na4'], { area: 'yes', building: 'yes' }),
+      ring('w2', ['nb1', 'nb2', 'nb3', 'nb4'], { area: 'yes', building: 'house' }),
+    )
+    const context = contextOf(graph, ['w1', 'w2'])
+    expect(
+      visibleOperations([mergeOperation, mergeAreasOperation], context).map((op) => op.id),
+    ).toEqual(['merge-areas'])
+    expect(mergeAreasOperation.disabled(context)).toBe('These areas have different tags.')
+  })
+
+  it('an area and a line get no Merge at all', () => {
+    const graph = graphOf(
+      ...twoSquares(7, 7),
+      node('nx', 40, 40),
+      node('ny', 60, 40),
+      way('l1', ['nx', 'ny']),
+    )
+    const context = contextOf(graph, ['w1', 'l1'])
+    expect(mergeOperation.applies(context)).toBe(false)
+    expect(visibleOperations([mergeOperation, mergeAreasOperation], context)).toEqual([])
   })
 })
 
@@ -200,16 +281,6 @@ describe('merge-areas: texts of the refusals', () => {
           }),
         ),
       ],
-      [
-        'contained',
-        graphOf(
-          ...square('a', 0, 0, 20),
-          ...square('b', 5, 5, 5),
-          ring('w1', ['na1', 'na2', 'na3', 'na4'], { area: 'yes' }),
-          ring('w2', ['nb1', 'nb2', 'nb3', 'nb4'], { area: 'yes' }),
-        ),
-      ],
-      ['not_touching', graphOf(...twoSquares(30, 0))],
       [
         'shared_nodes_outside',
         graphOf(...twoSquares(7, 7), node('nx', 40, 40), way('w9', ['nb1', 'nx'])),

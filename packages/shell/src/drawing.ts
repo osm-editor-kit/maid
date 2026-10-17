@@ -39,22 +39,6 @@ export function drawingKind(engine: MaidEngine) {
 }
 
 /**
- * iD's A: continues the selected line from its end, or from the selected vertex if that is an
- * end of a line. Returns false if the selection is not something to continue.
- */
-export function continueLine(engine: MaidEngine, selected: readonly string[]) {
-  const [id] = selected
-  if (selected.length !== 1 || !id) return false
-  const way = id[0] === 'w' ? engine.data.way(id) : undefined
-  const nodeId =
-    way && !way.isClosed() ? way.nodes[way.nodes.length - 1] : id[0] === 'n' ? id : undefined
-  if (!nodeId || !engine.setMode('draw-line')) return false
-  if (engine.draw.startAt(nodeId)) return true
-  engine.setMode('browse')
-  return false
-}
-
-/**
  * The key 3: it starts an area. Pressed again before the first click, it steps through the drawing tools of the Area
  * dropdown (33 the first, 333 the second) and then back to the area. Once the first click is made, 3 starts a new
  * area, as it always did.

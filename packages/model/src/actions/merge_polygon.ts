@@ -3,7 +3,7 @@ import { geomPolygonContainsPolygon } from '@rapid-sdk/math';
 import type { Vec2 } from '@rapid-sdk/math';
 import { OsmRelation } from '../data/OsmRelation.ts';
 import { osmJoinWays } from '../lib/multipolygon.ts';
-import { utilArrayGroupBy, utilArrayIntersection, utilObjectOmit } from '@rapid-sdk/util';
+import { utilArrayGroupBy, utilArrayIntersection, utilArrayUnion, utilObjectOmit, utilUnicodeCharsTruncated } from '@rapid-sdk/util';
 import { utilSurvivorID } from '../util/ids.ts';
 
 import type { Action } from './types.ts';
@@ -12,6 +12,7 @@ import type { JoinedWaySequence } from '../lib/multipolygon.ts';
 import type { OsmEntity } from '../data/OsmEntity.ts';
 import type { OsmNode } from '../data/OsmNode.ts';
 import type { OsmRelationMember } from '../data/OsmRelation.ts';
+import type { OsmTags } from '../data/types.ts';
 import type { OsmWay } from '../data/OsmWay.ts';
 
 
@@ -25,6 +26,38 @@ interface EntityData {
 /** Polygon representation with member array and nodes */
 interface MergePolygon extends Array<OsmRelationMember | OsmWay> {
   nodes: OsmNode[];
+}
+
+/**
+ * Tags that stay on an outer way when its area becomes a multipolygon: they describe a line, not an area.
+ * iD's `osmWayOnlyTags` (modules/osm/tags.ts), the same single entry.
+ */
+const osmWayOnlyTags: Record<string, Record<string, true>> = {
+  natural: { coastline: true },
+};
+
+/**
+ * Merges `from` into `into` the way iD's `mergeTags` does: a new key is added, and different values are
+ * joined with ';' (no `building` special case, unlike Rapid's `OsmEntity.mergeTags`).
+ * @param   into  - The tags to merge into
+ * @param   from  - The tags to add
+ * @return  The merged tags, a new object
+ */
+function mergeTagsAsID(into: OsmTags, from: OsmTags): OsmTags {
+  const merged: OsmTags = { ...into };
+  for (const key in from) {
+    const t1 = merged[key];
+    const t2 = from[key];
+    if (!t1) {
+      merged[key] = t2;
+    } else if (t1 !== t2) {
+      merged[key] = utilUnicodeCharsTruncated(
+        utilArrayUnion(t1.split(/;\s*/), t2.split(/;\s*/)).join(';'),
+        255  // avoid exceeding character limit; see also OsmEntity.mergeTags
+      );
+    }
+  }
+  return merged;
 }
 
 
@@ -147,6 +180,8 @@ export function actionMergePolygon(ids: EntityID[], newRelationID?: EntityID): A
 
     // Move all tags to one relation
     // Maid: differs from Rapid here (F-actions-b-3): the oldest existing entity survives
+    // Maid: differs from Rapid here (F-actions-b-3): the oldest existing entity survives, as iD's utilOldestID
+    // (test ids without a version cannot be ordered: the first in the list survives, Rapid's rule)
     let relation = entities.multipolygon[0];
     const oldestID = utilSurvivorID(entities.multipolygon);
     if (oldestID) {
@@ -158,21 +193,33 @@ export function actionMergePolygon(ids: EntityID[], newRelationID?: EntityID): A
 
     const keptID = relation.id;
     entities.multipolygon.filter((m: OsmRelation) => m.id !== keptID).forEach((m: OsmRelation) => {
-      relation = relation.mergeTags(m.tags);
+      relation = relation.update({ tags: mergeTagsAsID(relation.tags, m.tags) });
       graph.remove(m);
     });
 
     entities.closedWay.forEach((way: OsmWay) => {
-      /**
-       *
-       * @param m
-       */
-      function isThisOuter(m: OsmRelationMember): boolean {
-        return m.id === way.id && m.role !== 'inner';
+      const role = members.find((m: OsmRelationMember) => m.id === way.id)?.role;
+      if (role === 'inner') {
+        // an inner ring whose only tag is area=yes gets no tags: the multipolygon already makes it an area
+        const tags = way.tags;
+        if (Object.keys(tags).length === 1 && tags.area === 'yes') {
+          graph.replace(way.update({ tags: {} }));
+        }
+        return;
       }
-      if (members.some(isThisOuter)) {
-        relation = relation.mergeTags(way.tags);
-        graph.replace(way.update({ tags: {} }));
+      if (role === 'outer') {
+        // as iD: the tags move to the relation, except those that describe a line (natural=coastline stays on the way)
+        const areaTags: OsmTags = {};
+        const lineTags: OsmTags = {};
+        for (const key in way.tags) {
+          if (osmWayOnlyTags[key]?.[way.tags[key]]) {
+            lineTags[key] = way.tags[key];
+          } else {
+            areaTags[key] = way.tags[key];
+          }
+        }
+        relation = relation.update({ tags: mergeTagsAsID(relation.tags, areaTags) });
+        graph.replace(way.update({ tags: lineTags }));
       }
     });
 

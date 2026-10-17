@@ -1,10 +1,11 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
-import { deleteOperation } from '@osm-editor-kit/maid-operations'
+import { deleteOperation, supersededIDs } from '@osm-editor-kit/maid-operations'
+import type { Operation } from '@osm-editor-kit/maid-operations'
 import { chooseDisplay } from '@osm-editor-kit/maid-ui'
 import { useHotkeys, type UseHotkeyDefinition } from '@tanstack/react-hotkeys'
 import { useEffect, useEffectEvent } from 'react'
 import { pasteAt } from './clipboard'
-import { continueLine, drawClick, drawingKind, drawKindOf, stepAreaTool } from './drawing'
+import { drawClick, drawingKind, drawKindOf, stepAreaTool } from './drawing'
 import { giveFavouriteType } from './favourites'
 import { markNewFeature } from './new-feature'
 import { useSearchActions } from './search/flyout'
@@ -21,7 +22,7 @@ const PAN = 80
  * keep the browser's own keys.
  *
  * - Cmd/Ctrl+Z undo, Shift+Cmd/Ctrl+Z or Ctrl+Y redo
- * - 1, 2, 3 add a point, a line, an area; A continues the selected line
+ * - 1, 2, 3 add a point, a line, an area; A continues the line at the selected end (the Continue operation)
  * - Alt with digits starts a favourite feature type by its number (FavouriteHint): with a feature
  *   selected it changes its type, with nothing selected it starts adding a feature of that type
  * - while drawing: Space places a node where the pointer is, Enter or Escape finishes,
@@ -116,6 +117,16 @@ export function useShortcuts() {
   }
   const pan = (x: number, y: number) => engine.map?.panBy([x, y], { duration: 100 })
 
+  // the letter keys of the edit menu. One key can belong to several operations (the core Merge and the parking union,
+  // which supersedes it): one hotkey per key runs the first of them that applies and is not superseded
+  const operationKeys = new Map<string, Operation[]>()
+  for (const operation of operations) {
+    if (!operation.shortcut) continue
+    operationKeys.set(operation.shortcut, [
+      ...(operationKeys.get(operation.shortcut) ?? []),
+      operation,
+    ])
+  }
   const keys: UseHotkeyDefinition[] = [
     { hotkey: 'Mod+Z', callback: () => engine.undo() },
     { hotkey: 'Mod+Shift+Z', callback: () => engine.redo() },
@@ -123,7 +134,6 @@ export function useShortcuts() {
     { hotkey: '1', callback: () => engine.setMode('add-point') },
     { hotkey: '2', callback: () => engine.setMode('draw-line') },
     { hotkey: '3', callback: () => stepAreaTool(engine, drawTools) },
-    { hotkey: 'A', callback: () => continueLine(engine, selected) },
     { hotkey: ',', callback: () => stepStack(-1), options: { enabled: stackShown } },
     { hotkey: '.', callback: () => stepStack(1), options: { enabled: stackShown } },
     { hotkey: 'M', callback: () => engine.setMode('move') },
@@ -168,20 +178,20 @@ export function useShortcuts() {
       callback: () => chooseDisplay(engine, engine.display === 'edits' ? 'normal' : 'edits'),
     },
     // the keys of the edit menu
-    ...operations.flatMap((operation) =>
-      operation.shortcut
-        ? [
-            {
-              // the operation's shortcut is a plain string; the hotkey library's type is a union of key names
-              hotkey: operation.shortcut.toUpperCase() as UseHotkeyDefinition['hotkey'],
-              callback: () => {
-                const next = engine.runOperation(operation)
-                if (next) select(next)
-              },
-            },
-          ]
-        : [],
-    ),
+    ...[...operationKeys].map(([shortcut, group]) => ({
+      // the shortcut is a plain string; the hotkey library's type is a union of key names
+      hotkey: shortcut.toUpperCase() as UseHotkeyDefinition['hotkey'],
+      callback: () => {
+        const context = engine.operationContext()
+        const hidden = supersededIDs(operations, context)
+        const operation = group.find(
+          (candidate) => !hidden.has(candidate.id) && candidate.applies(context),
+        )
+        if (!operation) return
+        const next = engine.runOperation(operation)
+        if (next) select(next)
+      },
+    })),
   ]
   useHotkeys(keys, { ignoreInputs: true })
 }

@@ -507,3 +507,19 @@ describe('the unset option of a check field', () => {
     ])
   })
 })
+
+describe('area=yes of a line that is treated as an area', () => {
+  // Maid's "Treat as area" adds area=yes to a closed line; choosing a preset then drops it where the preset's
+  // own tags make an area by themselves (withPresetTags: delete area, add it back only when no key does)
+  it('is removed by a preset whose tags make an area: building=yes', () => {
+    expect(presets.setTags({ area: 'yes' }, presets.preset('building')!, 'area')).toEqual({
+      building: 'yes',
+    })
+  })
+
+  it('stays for the generic Area preset, whose only tag is area=yes', () => {
+    expect(presets.setTags({ area: 'yes' }, presets.preset('area')!, 'area')).toEqual({
+      area: 'yes',
+    })
+  })
+})

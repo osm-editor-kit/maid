@@ -102,11 +102,14 @@ export class DrawTool {
     return undefined
   }
 
-  /** Starts a line at this node; on the end of exactly one line that line is continued (iD's A) */
-  startAt(nodeId: string) {
+  /**
+   * Starts a line at this node. On its end the line is continued (iD's Continue): the line `wayId` names, which the
+   * operation chose among the ways at the node, else the one line that ends there.
+   */
+  startAt(nodeId: string, wayId?: string) {
     const loc = this.engine.data.node(nodeId)?.loc
     if (this.active || !loc) return false
-    this.start('line', { type: 'node', id: nodeId, loc: [loc[0], loc[1]] })
+    this.start('line', { type: 'node', id: nodeId, loc: [loc[0], loc[1]] }, wayId)
     return true
   }
 
@@ -211,7 +214,7 @@ export class DrawTool {
     return engine.constrainPlacement('draw', point, neighbours) ?? target.loc
   }
 
-  private start(kind: DrawKind, target: Target) {
+  private start(kind: DrawKind, target: Target, continueWay?: string) {
     const { engine } = this
     const { context, history } = engine.data
     this.kind = kind
@@ -221,7 +224,7 @@ export class DrawTool {
       let firstId: string
       if (target.type === 'node') {
         firstId = target.id
-        const line = kind === 'line' ? this.lineEndingAt(target.id) : undefined
+        const line = kind === 'line' ? this.lineEndingAt(target.id, continueWay) : undefined
         if (line) {
           // continue this line instead of starting a new one
           this.wayId = line.id
@@ -283,11 +286,17 @@ export class DrawTool {
     return this.kind === 'area' && fixed.length >= 3 && fixed[0] === nodeId
   }
 
-  /** The one unclosed line that starts or ends at this node, if there is exactly one */
-  private lineEndingAt(nodeId: string) {
+  /**
+   * The unclosed line that starts or ends at this node: the line `wayId` names, else the one way at the node if that
+   * is such a line (a vertex on a building and on a line's end has two ways, and then only a named line continues)
+   */
+  private lineEndingAt(nodeId: string, wayId?: string) {
     const { data } = this.engine
-    const ways = (data.nodeWays.get(nodeId) ?? []).map((id) => data.way(id))
-    if (ways.length !== 1) return undefined
+    const ways =
+      wayId !== undefined
+        ? [data.way(wayId)]
+        : (data.nodeWays.get(nodeId) ?? []).map((id) => data.way(id))
+    if (wayId === undefined && ways.length !== 1) return undefined
     const way = ways[0]
     if (!way || way.isClosed() || way.tags.area === 'yes') return undefined
     const ends = [way.nodes[0], way.nodes[way.nodes.length - 1]]

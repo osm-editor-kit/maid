@@ -1,5 +1,5 @@
 import { ContextMenu } from '@osm-editor-kit/maid-ui'
-import { useEditCommands, usePasteCommand } from '../commands'
+import { editMenuItems, useEditCommands, usePasteCommand } from '../commands'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
 import { dropStack } from '../stack'
@@ -22,8 +22,8 @@ export type MenuPlace = {
 /**
  * The edit menu at the pointer, as iD opens it on a right click and on a long press: first the
  * features at the place when there are several ("Here: N features", the selected one marked),
- * then what can be done with the selection, and "Paste" at this place if something was copied.
- * On open ground only "Paste". Shows nothing when there is nothing to choose.
+ * then what can be done with the selection. On open ground only "Paste" at this place, if something was copied:
+ * a feature's menu never pastes. Shows nothing when there is nothing to choose.
  *
  * With several features the count ("2 of 3") is the menu's marker, a chip that moves and flips
  * with the menu. The stack ends with the menu: closing it, by Escape, a press outside or a
@@ -47,8 +47,8 @@ export function MapContextMenu({ place, onClose }: { place: MenuPlace; onClose: 
         )
       : [],
   )
-  // on open ground the selection is not what the menu is about: only Paste, as in iD's browse mode
-  const items = place.ground ? paste : [...here, ...selection, ...paste]
+  // on open ground only Paste; on a feature no Paste (editMenuItems)
+  const items = editMenuItems(place, { here, selection, paste })
   if (items.length === 0) return null
   const marker =
     features.length > 1 ? (

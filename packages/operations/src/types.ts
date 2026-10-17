@@ -65,4 +65,9 @@ export type Operation = {
    * (ADR 0011, hook 5). `host` is what runs it: the renderer declares its members (the engine and the editor).
    */
   start?(context: OperationContext, host: OperationHost): void
+  /**
+   * Ids of operations this one hides in the edit menu, and on their keys, while it applies to the selection (enabled or
+   * not): the superseding one is the one shown and run. See `supersededIDs` in supersedes.ts.
+   */
+  supersedes?: readonly string[]
 }
