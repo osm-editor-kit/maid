@@ -16,6 +16,7 @@ import { getScene } from '../../fixtures/scenes'
 import { createHandler as createMockHandler, loadScenes } from '../../mock-osm-api/server'
 import { PORTS } from '../../ports'
 import { createHandler as createRapidHandler } from './serve'
+import { noBackground } from '../../bench/no-background'
 
 const arg = (name: string) => {
   const i = process.argv.indexOf(`--${name}`)
@@ -109,7 +110,7 @@ try {
   const url = `${rapidUrl}/?scene=${scene.name}${validation ? '&validation=1' : ''}#map=${zoom}/${scene.center[1]}/${scene.center[0]}`
   console.log(`open ${url} (${headed ? 'headed' : 'headless'}, ${VIEWPORT.width}x${VIEWPORT.height})`)
   const t0 = performance.now()
-  await page.goto(url)
+  await page.goto(noBackground(url))
   await page.evaluate(() => window.__bench.ready())
   const tReady = performance.now() - t0
   await page.evaluate(() => window.__bench.settled())

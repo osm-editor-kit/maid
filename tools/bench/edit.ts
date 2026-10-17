@@ -10,6 +10,7 @@
 import { chromium } from '@playwright/test'
 import { getScene } from '../fixtures/scenes'
 import { PORTS } from '../ports'
+import { noBackground } from './no-background'
 import { median, quantile } from './stats'
 
 const [sceneName = 'dense', query = '', label = 'default'] = process.argv.slice(2)
@@ -26,7 +27,9 @@ await context.route(
 const page = await context.newPage()
 page.on('pageerror', (e) => console.log('[pageerror]', e.message))
 await page.goto(
-  `http://localhost:${PORTS.maidBuild}/?scene=${scene.name}&${query}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
+  noBackground(
+    `http://localhost:${PORTS.maidBuild}/?scene=${scene.name}&${query}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
+  ),
 )
 await page.waitForFunction(() => window.__bench !== undefined)
 await page.evaluate(() => window.__bench.settled())

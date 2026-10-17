@@ -16,6 +16,7 @@ import { join } from 'node:path'
 import { PORTS } from '../../ports'
 import { getScene } from '../../fixtures/scenes'
 import { createHandler } from './serve'
+import { noBackground } from '../../bench/no-background'
 
 const arg = (name: string) => {
   const i = process.argv.indexOf(`--${name}`)
@@ -103,7 +104,7 @@ try {
   const url = `${ID}/?scene=${scene.name}${build === 'dev' ? '&build=dev' : ''}${cull ? '' : '&cull=0'}${validation ? '&validation=1' : ''}#map=${zoom}/${scene.center[1]}/${scene.center[0]}`
   console.log(`open ${url}  viewport ${VIEWPORT.width}x${VIEWPORT.height}`)
   const wallStart = performance.now()
-  await page.goto(url, { waitUntil: 'commit' })
+  await page.goto(noBackground(url), { waitUntil: 'commit' })
   await page.waitForFunction(() => typeof window.__bench === 'object')
 
   // ready + settled, timed inside the page (performance.now() is ms since navigation start)

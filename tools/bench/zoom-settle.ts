@@ -6,6 +6,7 @@
 import { chromium } from '@playwright/test'
 import { getScene } from '../fixtures/scenes'
 import { PORTS } from '../ports'
+import { noBackground } from './no-background'
 import { median } from './stats'
 
 const [sceneName = 'dense', query = ''] = process.argv.slice(2)
@@ -21,7 +22,9 @@ await context.route(
 )
 const page = await context.newPage()
 await page.goto(
-  `http://localhost:${PORTS.maidBuild}/?scene=${scene.name}&${query}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
+  noBackground(
+    `http://localhost:${PORTS.maidBuild}/?scene=${scene.name}&${query}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
+  ),
 )
 await page.waitForFunction(() => window.__bench !== undefined)
 await page.evaluate(() => window.__bench.settled())

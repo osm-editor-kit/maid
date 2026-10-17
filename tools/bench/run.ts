@@ -29,6 +29,7 @@ import { spawn, type Subprocess } from 'bun'
 import { getScene, type Scene } from '../fixtures/scenes'
 import { PORTS } from '../ports'
 import { APPS, takeApp, type AppName } from './args'
+import { noBackground } from './no-background'
 import { installProbe, type Recording } from './probe-page'
 import { median, quantile, summarizeFrames, type FrameSummary } from './stats'
 
@@ -711,7 +712,9 @@ async function runOnce(
     // --- Load: from navigation to a complete picture ---
     const t0 = performance.now()
     await page.goto(
-      `http://localhost:${port}/?scene=${scene.name}${query}#map=${scene.zoom}/${lat}/${lng}`,
+      noBackground(
+        `http://localhost:${port}/?scene=${scene.name}${query}#map=${scene.zoom}/${lat}/${lng}`,
+      ),
     )
     await page.waitForFunction(() => window.__bench !== undefined, undefined, { timeout: 60000 })
     await page.evaluate(() => window.__bench.ready())

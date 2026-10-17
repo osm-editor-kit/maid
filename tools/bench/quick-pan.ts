@@ -6,6 +6,7 @@
 import { chromium } from '@playwright/test'
 import { getScene } from '../fixtures/scenes'
 import { PORTS } from '../ports'
+import { noBackground } from './no-background'
 import { installProbe } from './probe-page'
 
 const [editor = 'id', sceneName = 'medium', query = '', runs = '2'] = process.argv.slice(2)
@@ -26,7 +27,9 @@ for (let run = 0; run < Number(runs); run++) {
   const page = await context.newPage()
   const t0 = performance.now()
   await page.goto(
-    `http://localhost:${port}/?scene=${scene.name}${query ? `&${query}` : ''}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
+    noBackground(
+      `http://localhost:${port}/?scene=${scene.name}${query ? `&${query}` : ''}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
+    ),
   )
   await page.waitForFunction(() => window.__bench !== undefined)
   await page.evaluate(() => window.__bench.ready())

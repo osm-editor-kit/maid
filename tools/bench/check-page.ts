@@ -7,6 +7,7 @@ import { chromium, type Page } from '@playwright/test'
 import { EDIT_SOURCES, SOURCES } from '../../packages/renderer/src/layers'
 import { getScene } from '../fixtures/scenes'
 import { APPS, takeApp } from './args'
+import { noBackground } from './no-background'
 
 /**
  * The app the check runs against (`--app maid|bicycle|parking`, default maid). Taken here, when this module
@@ -68,9 +69,11 @@ export async function runCheck(
         error.stack?.split('\n').slice(0, 4).join(' | ') ?? error.message,
       ),
     )
+    // a query that starts with # goes into the hash, as iD's links have it; the background stays off (noBackground)
     await page.goto(
-      // a query that starts with # goes into the hash, as iD's links have it
-      `http://localhost:${APPS[app].port}/?scene=${sceneName}${query && !query.startsWith('#') ? `&${query}` : ''}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}${query.startsWith('#') ? `&${query.slice(1)}` : ''}`,
+      noBackground(
+        `http://localhost:${APPS[app].port}/?scene=${sceneName}${query && !query.startsWith('#') ? `&${query}` : ''}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}${query.startsWith('#') ? `&${query.slice(1)}` : ''}`,
+      ),
     )
     await page.waitForFunction(() => window.__bench !== undefined, undefined, {
       timeout: 30000,

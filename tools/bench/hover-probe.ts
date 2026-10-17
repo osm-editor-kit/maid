@@ -11,6 +11,7 @@
  */
 import { chromium } from '@playwright/test'
 import { getScene } from '../fixtures/scenes'
+import { noBackground } from './no-background'
 import { installProbe } from './probe-page'
 
 const [sceneName = 'dense', roundsArg = '60', portArg = '5173'] = process.argv.slice(2)
@@ -28,7 +29,9 @@ await context.addInitScript(installProbe)
 const page = await context.newPage()
 page.on('pageerror', (e) => console.log('[pageerror]', e.message))
 const [lng, lat] = scene.center
-await page.goto(`http://localhost:${portArg}/?scene=${scene.name}#map=${scene.zoom}/${lat}/${lng}`)
+await page.goto(
+  noBackground(`http://localhost:${portArg}/?scene=${scene.name}#map=${scene.zoom}/${lat}/${lng}`),
+)
 await page.waitForFunction(() => window.__bench !== undefined, undefined, { timeout: 60000 })
 await page.evaluate(() => window.__bench.ready())
 await page.evaluate(() => window.__bench.settled())

@@ -6,6 +6,7 @@
 import { chromium } from '@playwright/test'
 import { getScene } from '../fixtures/scenes'
 import { PORTS } from '../ports'
+import { noBackground } from './no-background'
 
 const [
   editor = 'maid',
@@ -39,7 +40,9 @@ page.on('console', (msg) => {
 page.on('pageerror', (error) => console.log('[pageerror]', error.message))
 const t0 = performance.now()
 await page.goto(
-  `http://localhost:${port}/?scene=${sceneName}${query ? `&${query}` : ''}#map=${zoom}/${scene.center[1]}/${scene.center[0]}`,
+  noBackground(
+    `http://localhost:${port}/?scene=${sceneName}${query ? `&${query}` : ''}#map=${zoom}/${scene.center[1]}/${scene.center[0]}`,
+  ),
 )
 await page.waitForFunction(() => window.__bench !== undefined, undefined, { timeout: 30000 })
 await page.evaluate(() => window.__bench.ready())

@@ -18,6 +18,7 @@ import { deflateSync } from 'node:zlib'
 import { chromium, type Browser, type Page } from '@playwright/test'
 import { spawn, type Subprocess } from 'bun'
 import { PORTS } from '../ports'
+import { noBackground } from './no-background'
 
 const ROOT = join(import.meta.dir, '../..')
 const OUT = join(ROOT, 'docs/local/rendering-comparison')
@@ -450,7 +451,7 @@ async function openEditor(browser: Browser, url: string) {
   )
   const page = await context.newPage()
   page.on('pageerror', (error) => pageErrors.push(`${url}: ${error.message}`))
-  await page.goto(url)
+  await page.goto(noBackground(url))
   await page.waitForFunction(() => window.__bench !== undefined, undefined, { timeout: 30000 })
   await page.evaluate(() => window.__bench.ready())
   return { context, page }

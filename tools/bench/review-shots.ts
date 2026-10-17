@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { chromium, type Browser, type Page } from '@playwright/test'
 import { spawn, type Subprocess } from 'bun'
 import { PORTS } from '../ports'
+import { noBackground } from './no-background'
 /**
  * Screenshots of the static features for Tobias's review (docs/local/review-2026-10-14): the yes/no field row, the
  * turn restrictions sketch, the type picker, viewfield cones, `ref` labels, and the parking app's quick buttons.
@@ -174,7 +175,7 @@ async function capture(browser: Browser, shot: Shot, theme: Theme): Promise<void
   const page = await context.newPage()
   page.on('pageerror', (error) => pageErrors.push(`${shot.name}: ${error.message}`))
   try {
-    await page.goto(`${MAID_URL}/?${shot.query}`)
+    await page.goto(noBackground(`${MAID_URL}/?${shot.query}`))
     await page.waitForFunction(() => window.__bench !== undefined, undefined, { timeout: 30000 })
     await page.evaluate(() => window.__bench.ready())
     await page.evaluate(() => window.__bench.settled())
