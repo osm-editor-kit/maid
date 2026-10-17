@@ -196,5 +196,12 @@
   "relations_op_remove_several": "Les objets sont dans plusieurs relations : retirez-les dans la section Relations",
   "maplibre_attribution_toggle": "Afficher ou masquer les attributions",
   "maplibre_attribution_feedback": "Commentaires sur la carte",
-  "maplibre_map_title": "Carte"
+  "maplibre_map_title": "Carte",
+  "map_display_label": "Affichage",
+  "map_display_normal": "Normal",
+  "map_display_normal_hint": "L'affichage habituel.",
+  "map_display_wireframe": "Fil de fer",
+  "map_display_wireframe_hint": "Contours seulement, lignes fines.",
+  "map_display_edits": "Mettre les modifications en évidence",
+  "map_display_edits_hint": "Objets créés et modifiés en couleur."
 }

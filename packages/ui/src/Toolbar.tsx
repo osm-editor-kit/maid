@@ -1,4 +1,4 @@
-import type { KeyboardEvent, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, KeyboardEvent, ReactNode } from 'react'
 import { twJoin } from 'tailwind-merge'
 import { Tooltip } from './Tooltip.tsx'
 
@@ -148,8 +148,20 @@ export function ToolButton(props: {
   /** The chosen one of a set of choices: shown as pressed, without hover, since a click changes nothing */
   selected?: boolean
   onClick?: () => void
+  /** Pointer and key handlers for a button that takes a long press (the Area button's dropdown) */
+  press?: Pick<
+    ButtonHTMLAttributes<HTMLButtonElement>,
+    | 'onPointerDown'
+    | 'onPointerMove'
+    | 'onPointerUp'
+    | 'onPointerLeave'
+    | 'onPointerCancel'
+    | 'onContextMenu'
+    | 'onKeyDown'
+  >
 }) {
-  const { label, shortcut, description, icon, text, disabled, pressed, selected, onClick } = props
+  const { label, shortcut, description, icon, text, disabled, pressed, selected, onClick, press } =
+    props
   const name = shortcut ? `${label} (${shortcut})` : label
   return (
     <Tooltip label={label} shortcut={shortcut} description={description} placement="bottom">
@@ -159,6 +171,7 @@ export function ToolButton(props: {
         aria-pressed={selected ?? pressed}
         disabled={disabled}
         onClick={onClick}
+        {...press}
         className={toolButtonClass(Boolean(text), selected ? 'selected' : pressed)}
       >
         <span aria-hidden="true" className="inline-flex shrink-0 [&>svg]:size-5">

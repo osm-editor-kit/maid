@@ -43,6 +43,11 @@ export function useFiltersParam() {
   return useQueryState('filters', stateParams.filters.withOptions({ history: 'replace' }))
 }
 
+/** What the map shows of the data in the URL: `wireframe` or `edits`, none for the normal look (url/display.ts) */
+export function useDisplayParam() {
+  return useQueryState('display', stateParams.display.withOptions({ history: 'replace' }))
+}
+
 /** Selected feature in the URL, e.g. `id=w123`, like iD */
 export function useSelectedId() {
   return useQueryState('id', stateParams.id.withOptions({ history: 'replace' }))

@@ -1,5 +1,6 @@
+import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { describeMatch, type Lens } from '@osm-editor-kit/maid-style'
-import { notify, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
+import { MapDisplayChoice, notify, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { toolButtonTone } from '@osm-editor-kit/maid-ui'
 import { useId, useRef, useState, type ChangeEvent } from 'react'
 import { MAX_FILE_BYTES, parseLensFile, serialiseLenses } from './lens-file.ts'
@@ -34,8 +35,11 @@ function download(name: string, lenses: Lens[]) {
 const BUTTON =
   'h-7 cursor-pointer rounded-md bg-white px-2 text-xs font-medium inset-ring-1 inset-ring-zinc-950/10 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:text-zinc-400 dark:bg-zinc-800 dark:inset-ring-white/10 dark:hover:bg-zinc-700 dark:disabled:text-zinc-500'
 
-/** The map style flyout: the lenses to choose from, the legend of the chosen one, import and export. */
-export function LensPanel() {
+/**
+ * The map style flyout: what the map shows of the data (the display: normal, wireframe, changes in colour), the lenses
+ * to choose from, the legend of the chosen one, import and export. The display is the engine's, as the keys set it.
+ */
+export function LensPanel({ engine }: { engine: MaidEngine }) {
   const activeId = useActiveLensId()
   const builtIn = useBuiltInLenses()
   const imported = useImportedLenses()
@@ -72,6 +76,7 @@ export function LensPanel() {
 
   return (
     <div className="flex flex-col gap-4 p-3 text-sm">
+      <MapDisplayChoice engine={engine} />
       <div role="radiogroup" aria-label="Map style" className="flex flex-col gap-1">
         <button
           type="button"

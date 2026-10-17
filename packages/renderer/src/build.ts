@@ -25,6 +25,7 @@ import type { Feature, LineString, MultiPolygon, Point, Polygon, Position } from
 import { addressLabel, isAddressTags } from './address'
 import type { MergeResult, OsmData } from './data'
 import { arrowColour, onewayOf, sidedOf, type OneWay } from './direction'
+import { editKindOf, type EditKind } from './edits'
 import { mapLabelOf } from './label'
 import { addViewfields, type ConeProps, hasDirectionTags } from './viewfield'
 
@@ -59,6 +60,8 @@ export type LineProps = {
   ac?: string
   /** side marker kind (a key of SIDE_KINDS), only on sided lines */
   side?: string
+  /** what an edit changed (edits.ts), only on an edited line: the edits highlight colours it */
+  ed?: EditKind
 }
 
 export type AreaProps = {
@@ -79,11 +82,25 @@ export type AreaProps = {
   hw: number
   /** the label text (label.ts), only when there is one */
   name?: string
+  /** what an edit changed (edits.ts), only on an edited area */
+  ed?: EditKind
 }
 
 /** `addr`: the text of an address node (iD draws it on a plaque, not as a pin; '' for an address without number or name) */
-export type PointProps = { id: string; icon?: string; name?: string; addr?: string } & ConeProps
-export type VertexProps = { id: string; t: 0 | 1; s: 0 | 1; icon?: string } & ConeProps
+export type PointProps = {
+  id: string
+  icon?: string
+  name?: string
+  addr?: string
+  ed?: EditKind
+} & ConeProps
+export type VertexProps = {
+  id: string
+  t: 0 | 1
+  s: 0 | 1
+  icon?: string
+  ed?: EditKind
+} & ConeProps
 
 const HIGHWAY_STACK: Record<string, number> = {
   motorway: 0, motorway_link: 1, trunk: 2, trunk_link: 3, primary: 4, primary_link: 5,
@@ -411,6 +428,16 @@ function isHiddenBoundary(t: Tags) {
   )
 }
 
+/** Sets the `ed` property of a feature (or of its props) when the entity was edited: the edits highlight reads it */
+function markEdit(
+  target: { properties: { ed?: EditKind } } | { ed?: EditKind },
+  ed: EditKind | undefined,
+) {
+  if (!ed) return
+  if ('properties' in target) target.properties.ed = ed
+  else target.ed = ed
+}
+
 export class FeatureBuilder {
   /** Features left out on purpose, by reason */
   hidden: Record<string, number> = {}
@@ -447,6 +474,11 @@ export class FeatureBuilder {
     /** Without presets nothing has an icon; the engine sets them when they arrive (see `Engine.fillInPresets`) */
     public presets?: Presets,
   ) {}
+
+  /** What an edit changed about the entity (edits.ts), for the `ed` property. Undefined when it is as it was loaded. */
+  private editOf(id: string): EditKind | undefined {
+    return editKindOf(this.data.history.staging.graph, id)
+  }
 
   /** Forgets everything that was built, for building all features again (after a filter changed) */
   reset() {
@@ -531,6 +563,7 @@ export class FeatureBuilder {
     }
     if (area) {
       const feature = areaFeature(id, [[coords]], tags, tagClasses(tags))
+      markEdit(feature, this.editOf(id))
       return { source: 'areas', feature: restyleArea(feature, lens) }
     }
     // an untagged member of a multipolygon is drawn by the relation's area; while the relation is
@@ -540,6 +573,7 @@ export class FeatureBuilder {
       return owner === undefined ? undefined : this.partialOutline(id, coords, owner)
     }
     const feature = lineFeature(id, coords, tags, tagClasses(tags))
+    markEdit(feature, this.editOf(id))
     return { source: 'lines', feature: restyleLine(feature, lens) }
   }
 
@@ -558,6 +592,7 @@ export class FeatureBuilder {
     this.built.add(id)
     if (this.isFiltered(id, node.tags, 'point', first)) return undefined
     const props: PointProps = { id }
+    markEdit(props, this.editOf(id))
     if (hasDirectionTags(node.tags)) addViewfields(props, node, this.data.history.staging.graph)
     if (isAddressTags(node.tags)) props.addr = addressLabel(node.tags)
     else {
@@ -599,6 +634,7 @@ export class FeatureBuilder {
       t: state[0] === '1' ? 1 : 0,
       s: state[1] === '1' ? 1 : 0,
     }
+    markEdit(props, this.editOf(node.id))
     if (hasDirectionTags(node.tags)) addViewfields(props, node, this.data.history.staging.graph)
     const icon = props.t
       ? this.presets?.match(node.tags, 'vertex', [coordinates[0]!, coordinates[1]!]).icon
@@ -743,6 +779,7 @@ export class FeatureBuilder {
         continue
       }
       const feature = areaFeature(id, polygons, tags, tagClasses(tags))
+      markEdit(feature, this.editOf(id))
       out.areas.push(restyleArea(feature, lens))
     }
 

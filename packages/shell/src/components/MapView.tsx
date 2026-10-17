@@ -30,6 +30,7 @@ import { addPointWithFavourite, giveFavouriteTagsToNode } from '../favourites'
 import { backgroundSourceOnMap } from '../imagery-used'
 import { installMarkerImages } from '../images'
 import { loadPresetsAfterReady, preloadAfterFirstSettle } from '../lazy-chunks'
+import { LongPress } from '../long-press'
 import { markNewFeature } from '../new-feature'
 import { useSelection, useSelectionMirror } from '../selection'
 import { useEngine, useShell } from '../shell-context'
@@ -61,9 +62,6 @@ let dragging: string | null = null
 /** When a click last went to the drawing tool or to a measure: the double click that follows is not for the map */
 let lastDrawClick = 0
 let zoomGuardTimer: ReturnType<typeof setTimeout> | undefined
-/** The timer of a long press and where the finger went down */
-let longPress: ReturnType<typeof setTimeout> | undefined
-let pressedAt: { x: number; y: number } | undefined
 
 type Point = { x: number; y: number }
 
@@ -142,6 +140,14 @@ export function MapView() {
   const [cursor, setCursor] = useState('grab')
   // Where the pointer was last, for a module mode's release, which the map sends without a place (touch end). Per map.
   const modulePointer = useRef({ lng: 0, lat: 0 })
+  // The long press of one finger, owned by this map (long-press.ts). What it does is decided at the touch down:
+  // 'shift' (a drawing mode, or a selected vertex being dragged) or 'menu' (the edit menu, as in iD).
+  const [longPress] = useState(() => new LongPress())
+  const touchHold = useRef<'shift' | 'menu' | undefined>(undefined)
+  // a long press holds Shift until its finger lifts: the keys of every pointer event keep it (keysOf)
+  const shiftHeld = useRef(false)
+  // the touch that ended a long press sends a click, which is not the map's: handleClick takes it away once
+  const afterHold = useRef(false)
   // A module mode gives the cursor of the map while it is on (the engine does not write it: this is the one writer)
   const moduleMode = useEngine((e) => e.moduleMode)
   const mode = useEngine((e) => e.mode)
@@ -173,7 +179,7 @@ export function MapView() {
   )
 
   const options: LayerOptions = {
-    fill: config.fill,
+    display: useEngine((e) => e.display),
     labels: config.labels,
     icons: config.icons,
     pins: config.pins,
@@ -254,6 +260,19 @@ export function MapView() {
   }
   // --- pointer: the same for the mouse and for one finger ---
 
+  /** The keys of a pointer event. While a long press holds Shift, it is held on top of the keys of the event. */
+  const keysOf = (event: {
+    shiftKey: boolean
+    altKey: boolean
+    ctrlKey: boolean
+    metaKey: boolean
+  }) => (shiftHeld.current ? { ...modifiersOf(event), shift: true } : modifiersOf(event))
+  /** The long press is over: Shift is let go, and the drawing or the drag reads the keys of the pointer again */
+  const endShiftHold = () => {
+    shiftHeld.current = false
+    engine.setModifiers({ ...engine.modifiers, shift: false })
+  }
+
   const press = (event: { point: Point; preventDefault: () => void }) => {
     if (mode !== 'browse' || engine.measuring) return
     // a midpoint handle of the selected way: the press starts a handle drag, which adds a node on first move
@@ -294,7 +313,7 @@ export function MapView() {
    */
   const handleMouseDown = (event: MapLayerMouseEvent) => {
     if (event.originalEvent.button !== 0) return
-    engine.setModifiers(modifiersOf(event.originalEvent))
+    engine.setModifiers(keysOf(event.originalEvent))
     // a module mode (rerouting) takes the pointer: a press on one of its handles starts a drag, not a pan
     if (engine.moduleMode) {
       modulePointer.current = { lng: event.lngLat.lng, lat: event.lngLat.lat }
@@ -332,7 +351,7 @@ export function MapView() {
     // keys that act where the pointer is (paste, Space while drawing) read this
     setEnginePointer(engine, { point: event.point, lon: lng, lat, layers: interactive })
     // the keys of this event: a drawn node and a dragged vertex take them (engine.modifiers)
-    engine.setModifiers(modifiersOf(event.originalEvent))
+    engine.setModifiers(keysOf(event.originalEvent))
     if (engine.moduleMode) {
       modulePointer.current = { lng, lat }
       engine.moduleModeMove(event.point, lng, lat)
@@ -441,7 +460,9 @@ export function MapView() {
     function trackModifierKeys() {
       const onKey = (event: KeyboardEvent) => {
         if (event.type === 'keydown' && isTyping(event.target)) return
-        engine.setModifiers(modifiersOf(event))
+        // a finger held for Shift (long press) stays Shift when a key of a hardware keyboard goes up or down
+        const keys = modifiersOf(event)
+        engine.setModifiers(shiftHeld.current ? { ...keys, shift: true } : keys)
       }
       const onBlur = () => {
         engine.setModifiers(NO_MODIFIERS)
@@ -472,7 +493,13 @@ export function MapView() {
   }, [engine.measuring, engine])
   const handleContextMenu = (event: MapLayerMouseEvent) => {
     event.originalEvent.preventDefault() // not the browser's own menu
-    clearTimeout(longPress)
+    // A finger that is held has its own long press (handleTouchStart). MapLibre sends this event after the same delay
+    // on a touch screen: a Shift hold never opens the menu, and a menu that the press already opened is not opened twice.
+    if (longPress.state !== 'idle') {
+      if (touchHold.current === 'shift' || longPress.state === 'active') return
+      longPress.end()
+      release()
+    }
     // no edit menu while a module mode has the map
     if (engine.moduleMode) return
     // the Control press that turns the map on a Mac fires this event too: that press is a turn, not a menu
@@ -482,11 +509,25 @@ export function MapView() {
       y: event.originalEvent.clientY,
     })
   }
+  /** The hold of a long press: Shift is held, and the drawn node or the dragged vertex is placed again with it */
+  const holdShift = () => {
+    shiftHeld.current = true
+    engine.setModifiers({ ...engine.modifiers, shift: true })
+    const at = engine.pointer
+    if (drawing && engine.draw.active && at) engine.draw.move(at.point, at.layers)
+  }
   // one finger drags a node; two fingers are the map's (pinch, pan)
   const handleTouchStart = (event: MapTouchEvent) => {
-    clearTimeout(longPress)
-    engine.setModifiers(modifiersOf(event.originalEvent))
-    if (event.points.length !== 1 || engine.measuring) return
+    // a new touch is its own gesture: a long press of an earlier one is over, and so is the click it sent
+    longPress.cancel()
+    afterHold.current = false
+    touchHold.current = undefined
+    engine.setModifiers(keysOf(event.originalEvent))
+    // a second finger is the map's (pinch, pan): a Shift hold of the first finger ends
+    if (event.points.length !== 1 || engine.measuring) {
+      if (shiftHeld.current) endShiftHold()
+      return
+    }
     if (engine.moduleMode) {
       modulePointer.current = event.lngLat
       if (engine.moduleModePress(event.point, event.lngLat.lng, event.lngLat.lat))
@@ -494,26 +535,58 @@ export function MapView() {
       return
     }
     press(event)
-    // iOS sends no contextmenu event for a long press, so it is timed here (iD: 500 ms)
-    const touch = event.originalEvent.touches[0]
     const { point, lngLat } = event
-    if (touch) {
-      const screen = { x: touch.clientX, y: touch.clientY }
-      pressedAt = point
-      longPress = setTimeout(() => {
-        release()
-        openMenu(point, lngLat, screen)
-      }, 500)
-    }
+    // the pointer is where the finger is: a drawn node and a dragged vertex are placed there
+    setEnginePointer(engine, { point, lon: lngLat.lng, lat: lngLat.lat, layers: interactive })
+    const touch = event.originalEvent.touches[0]
+    if (!touch) return
+    const screen = { x: touch.clientX, y: touch.clientY }
+    // What a long press does is decided now, by what is under the finger: Shift while drawing, and on a selected
+    // vertex that is dragged (the drag is then constrained). Anywhere else in browse mode it is the edit menu,
+    // as iD's touch long press. iOS sends no contextmenu, so this timer is not MapLibre's alone.
+    const onSelectedVertex = dragging !== null && selectedIds.includes(dragging)
+    touchHold.current = drawing !== undefined || onSelectedVertex ? 'shift' : 'menu'
+    longPress.start(screen, () => {
+      if (touchHold.current === 'shift') {
+        holdShift()
+        return
+      }
+      release()
+      openMenu(point, lngLat, screen)
+    })
   }
   const handleTouchMove = (event: MapTouchEvent) => {
-    // a finger that moves is dragging or panning, not pressing
-    if (pressedAt && Math.hypot(event.point.x - pressedAt.x, event.point.y - pressedAt.y) > 5)
-      clearTimeout(longPress)
+    const touch = event.originalEvent.touches[0]
+    // a finger that moves beyond the tolerance pans or drags: its long press that waits is over (long-press.ts)
+    if (event.points.length !== 1) longPress.cancel()
+    else if (touch) longPress.move({ x: touch.clientX, y: touch.clientY })
+    // a held Shift keeps the map still: the finger moves the node
+    if (shiftHeld.current) event.preventDefault()
     if (event.points.length === 1) movePointer(event)
   }
   const handleTouchEnd = () => {
-    clearTimeout(longPress)
+    // the press is over: a long press that had become active is answered here, and its click is not the map's
+    const held = longPress.end()
+    afterHold.current = held
+    if (!shiftHeld.current) {
+      release()
+      return
+    }
+    // a Shift hold places the node where the finger lifts, with the constraint, as a tap does (drawClick). Shift is let
+    // go only after that, since the constraint reads it when the drawing settles.
+    const at = engine.pointer
+    if (drawing && at) {
+      void drawClick(engine, select, drawing, at.point, at.layers).then(endShiftHold)
+      return
+    }
+    release()
+    endShiftHold()
+  }
+  const handleTouchCancel = () => {
+    // a touch the system takes (a gesture of its own) places nothing
+    longPress.cancel()
+    afterHold.current = false
+    if (shiftHeld.current) endShiftHold()
     release()
   }
 
@@ -528,7 +601,12 @@ export function MapView() {
   const handleClick = (event: MapLayerMouseEvent) => {
     // the click that MapLibre sends after a turn that moved is not a click: the selection stays
     if (performance.now() - engine.turnedAt < 300) return
-    engine.setModifiers(modifiersOf(event.originalEvent))
+    // the click that the touch of a long press sent is not the map's: it placed or selected nothing (afterHold)
+    if (afterHold.current) {
+      afterHold.current = false
+      return
+    }
+    engine.setModifiers(keysOf(event.originalEvent))
     // a click while a module mode is on goes to that mode: it does not select
     if (engine.moduleMode) {
       // the click's place is the pointer's place for a snap, as a move is (engine.pointer.layers)
@@ -668,7 +746,7 @@ export function MapView() {
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchEnd}
+      onTouchCancel={handleTouchCancel}
       onContextMenu={handleContextMenu}
       onClick={handleClick}
       onDblClick={handleDblClick}

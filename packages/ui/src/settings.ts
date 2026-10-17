@@ -7,6 +7,7 @@ import {
   moveFavourite as moveIn,
   setFavouriteNumber as setNumberIn,
   toggleFavourite as toggleIn,
+  withoutReservedNumbers,
   type Favourite,
 } from './favourites.ts'
 
@@ -104,10 +105,12 @@ const storedSchema = z.object({
   favourites: z
     .array(z.unknown())
     .transform((items) =>
-      items.flatMap((item) => {
-        const found = favouriteSchema.safeParse(item)
-        return found.success ? [found.data] : []
-      }),
+      withoutReservedNumbers(
+        items.flatMap((item) => {
+          const found = favouriteSchema.safeParse(item)
+          return found.success ? [found.data] : []
+        }),
+      ),
     )
     .catch(() => []),
   // optional: a value stored before this field existed loads without it

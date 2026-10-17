@@ -38,6 +38,8 @@ const CHECKS = [
   'merge',
   'cut',
   'divide',
+  'display',
+  'touch',
 ] as const
 type CheckName = (typeof CHECKS)[number]
 
@@ -51,6 +53,7 @@ const MODULE_CHECKS = new Set<CheckName>([
   'merge',
   'cut',
   'divide',
+  'touch',
 ])
 
 /** A run of a check: its name in the report, the check, a scene other than the default (small), the one app it runs for */
@@ -69,6 +72,8 @@ const RUNS: Run[] = [
   { name: 'merge', check: 'merge', only: 'parking' },
   { name: 'cut', check: 'cut', only: 'parking' },
   { name: 'divide', check: 'divide', only: 'parking' },
+  // long press on a touch screen: the Area dropdown, the edit menu, Shift while drawing (it needs the rectangle tool)
+  { name: 'touch', check: 'touch', only: 'parking' },
 ]
 
 /**
@@ -77,7 +82,7 @@ const RUNS: Run[] = [
  * Bicycle and parking have the same numbers until a real run says otherwise.
  */
 const EXPECTED_OK: Record<string, Record<AppName, number>> = {
-  interactions: { maid: 159, bicycle: 159, parking: 159 },
+  interactions: { maid: 160, bicycle: 160, parking: 160 },
   edit: { maid: 20, bicycle: 20, parking: 20 },
   draw: { maid: 14, bicycle: 14, parking: 14 },
   undo: { maid: 43, bicycle: 43, parking: 43 },
@@ -96,8 +101,10 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   rectangle: { maid: 0, bicycle: 0, parking: 21 },
   'angle-snap': { maid: 0, bicycle: 0, parking: 32 },
   merge: { maid: 0, bicycle: 0, parking: 29 },
-  cut: { maid: 0, bicycle: 0, parking: 14 },
+  cut: { maid: 0, bicycle: 0, parking: 25 },
   divide: { maid: 0, bicycle: 0, parking: 23 },
+  display: { maid: 12, bicycle: 12, parking: 12 },
+  touch: { maid: 0, bicycle: 0, parking: 14 },
 }
 
 type CheckResult = {

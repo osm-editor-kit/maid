@@ -28,8 +28,8 @@ const good: Settings = {
   sizes: { 'sidebar-width': 320, 'dock-height': 240 },
   shown: { filters: 'buildings' },
   favourites: [
-    { presetId: 'amenity/bench', geometry: 'point', number: '1' },
-    { presetId: 'highway/residential', geometry: 'line', number: '2' },
+    { presetId: 'amenity/bench', geometry: 'point', number: '4' },
+    { presetId: 'highway/residential', geometry: 'line', number: '5' },
   ],
 }
 
@@ -85,11 +85,23 @@ describe('settings store', () => {
     const state = await load({
       ...good,
       favourites: [
-        { presetId: 'amenity/bench', geometry: 'point', number: '1' },
+        { presetId: 'amenity/bench', geometry: 'point', number: '4' },
+        { presetId: 'amenity/bench', geometry: 'point', number: '0' },
         { presetId: 'amenity/bench', geometry: 'point', number: '01' },
         { presetId: 'amenity/bench', geometry: 'road', number: '6' },
         { presetId: 7, geometry: 'line', number: '6' },
         'amenity/bench',
+        { presetId: 'highway/residential', geometry: 'line', number: '5' },
+      ],
+    })
+    expect(state.favourites).toEqual(good.favourites)
+  })
+
+  it("favourites numbered 1 and 2 (the editor's keys) load as 4 and 5", async () => {
+    const state = await load({
+      ...good,
+      favourites: [
+        { presetId: 'amenity/bench', geometry: 'point', number: '1' },
         { presetId: 'highway/residential', geometry: 'line', number: '2' },
       ],
     })

@@ -3,7 +3,6 @@ import { iconImagesRequestedAt } from './icon-requests'
 import { buildLayers, type LayerOptions, PIN_ZOOM } from './layers'
 
 const options: LayerOptions = {
-  fill: 'partial',
   dashes: new Map(),
   lat: 52,
   labels: true,

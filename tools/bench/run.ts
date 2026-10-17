@@ -5,7 +5,7 @@ import { join } from 'node:path'
  * reports/<run-id>/results.json plus screenshots.
  *
  *   bun run bench [--editor maid,id,rapid] [--scene small,medium,dense] [--repeat 3]
- *                 [--label text] [--maid-query "fill=full"] [--variant name]
+ *                 [--label text] [--maid-query "display=edits"] [--variant name]
  *                 [--app maid|bicycle|parking] [--maid-lens <lens id>] [--edit-reps 5]
  *
  * `--app` picks the Maid build that is measured (its production build, on the benchmark's port); iD and Rapid ignore it.

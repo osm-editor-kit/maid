@@ -1,4 +1,4 @@
-import type { DrawKind, MaidEngine, Mode } from '@osm-editor-kit/maid-renderer'
+import type { DrawKind, DrawToolItem, MaidEngine, Mode } from '@osm-editor-kit/maid-renderer'
 import { giveFavouriteType } from './favourites'
 import { markNewFeature } from './new-feature'
 
@@ -52,4 +52,30 @@ export function continueLine(engine: MaidEngine, selected: readonly string[]) {
   if (engine.draw.startAt(nodeId)) return true
   engine.setMode('browse')
   return false
+}
+
+/**
+ * The key 3: it starts an area. Pressed again before the first click, it steps through the drawing tools of the Area
+ * dropdown (33 the first, 333 the second) and then back to the area. Once the first click is made, 3 starts a new
+ * area, as it always did.
+ */
+export function stepAreaTool(
+  engine: Pick<MaidEngine, 'mode' | 'moduleMode' | 'setMode'> & { draw: { active: boolean } },
+  tools: readonly Pick<DrawToolItem, 'id' | 'start'>[],
+) {
+  const at = tools.findIndex((tool) => tool.id === engine.moduleMode?.id)
+  if (at >= 0) {
+    const next = tools[at + 1]
+    if (next) next.start(engine as MaidEngine)
+    else engine.setMode('draw-area')
+    return
+  }
+  const first = tools[0]
+  if (first && engine.mode === 'draw-area' && !engine.draw.active) first.start(engine as MaidEngine)
+  else engine.setMode('draw-area')
+}
+
+/** The key sequence that reaches a tool of the Area dropdown with stepAreaTool: 33 for the first, 333 for the second */
+export function areaToolKeys(index: number) {
+  return '3'.repeat(index + 2)
 }

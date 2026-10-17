@@ -19,11 +19,13 @@ import { UserButton } from './components/UserButton'
 import { ZoomControls } from './components/ZoomControls'
 import { useSelection } from './selection'
 import { useShell } from './shell-context'
+import { useDisplayUrl } from './url/display'
 import { useShortcuts } from './useShortcuts'
 
 function Editor() {
   const { brand, config } = useShell()
   useShortcuts()
+  useDisplayUrl()
   // On a phone the inspector is a sheet: it opens when something is selected and can be closed
   const { param } = useSelection()
   const [sheet, setSheet] = useState({ open: false, selection: param })

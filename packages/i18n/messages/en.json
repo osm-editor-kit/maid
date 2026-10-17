@@ -196,5 +196,12 @@
   "relations_op_remove_several": "The features are in several relations: remove them in the Relations section",
   "maplibre_attribution_toggle": "Toggle attribution",
   "maplibre_attribution_feedback": "Map feedback",
-  "maplibre_map_title": "Map"
+  "maplibre_map_title": "Map",
+  "map_display_label": "Display",
+  "map_display_normal": "Normal",
+  "map_display_normal_hint": "The default look.",
+  "map_display_wireframe": "Wireframe",
+  "map_display_wireframe_hint": "Outlines only, thin lines.",
+  "map_display_edits": "Highlight changes",
+  "map_display_edits_hint": "Created and changed features in colour."
 }

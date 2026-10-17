@@ -8,7 +8,6 @@ import {
 import { installMarkerImages, markerImageState, parseMarkerImage, spriteOf, within } from './images'
 
 const options: LayerOptions = {
-  fill: 'full',
   labels: true,
   icons: true,
   pins: 'fit',

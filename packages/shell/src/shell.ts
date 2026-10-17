@@ -102,6 +102,7 @@ export function createShell(app: AppConfig) {
     apiUrl: config.apiUrl,
     minDataZoom: config.minDataZoom,
     filters: filtersStart.value,
+    display: config.display,
     // the editor's fetch: gated per service, time-limited, paused on a rate limit
     fetch: editor.fetch,
   })

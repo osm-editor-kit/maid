@@ -44,7 +44,6 @@ type Case = {
   lon: number
   lat: number
   zoom: number
-  fill?: 'partial' | 'full'
   /** an imagery case: iD gets all four sliders, Maid only brightness (its one control, 20 to 100 %) */
   imagery?: Settings
   /** extra query for Maid only, e.g. `pins=all` (its default `pins=fit` hides a pin that iD draws) */
@@ -72,18 +71,6 @@ const CASES: Case[] = [
     look: 'iD: a 60 px band along the inside of the outline, clipped to the area. Maid: an inward mitred line of half its width, so it can leave the outline at corners.',
   },
   {
-    name: '02-partial-fill-full',
-    title: 'The same area in full fill',
-    ref: 'Ranked 1; table row 10, full fill',
-    scores: 'aesthetics 3, performance -1',
-    scene: 'medium',
-    lon: 13.39734,
-    lat: 52.52275,
-    zoom: 18,
-    fill: 'full',
-    look: 'Full fill: the whole area takes its colour in both. Compare the outline and the colour, not the band.',
-  },
-  {
     name: '03-area-pattern-wood',
     title: 'Wood with its pattern (partial fill)',
     ref: 'Ranked 2; table row 11',
@@ -93,18 +80,6 @@ const CASES: Case[] = [
     lat: 52.48593,
     zoom: 17,
     look: 'iD: the tree pattern in the band along the edge. Maid: the plain colour.',
-  },
-  {
-    name: '04-area-pattern-wood-full',
-    title: 'Wood with its pattern (full fill)',
-    ref: 'Ranked 2; table row 11, full fill',
-    scores: 'aesthetics 3, performance 0 to -1',
-    scene: 'dense',
-    lon: 13.4194,
-    lat: 52.48593,
-    zoom: 17,
-    fill: 'full',
-    look: 'iD: the pattern over the whole wood. Maid: a flat green with no texture.',
   },
   {
     name: '05-area-pattern-cemetery',
@@ -123,24 +98,12 @@ const CASES: Case[] = [
     name: '06-stacking-partial',
     title: 'A playground inside a park: which area is on top',
     ref: 'Ranked 3; table row 12',
-    scores: 'aesthetics 2 (3 in full fill), performance 0',
+    scores: 'aesthetics 2, performance 0',
     scene: 'dense',
     lon: 13.42177,
     lat: 52.4913,
     zoom: 18,
     look: 'The small playground lies inside the large park. iD draws the smaller area above the larger one; compare where the two overlap.',
-  },
-  {
-    name: '07-stacking-full',
-    title: 'The same place in full fill',
-    ref: 'Ranked 3; table row 12, full fill',
-    scores: 'aesthetics 3, performance 0',
-    scene: 'dense',
-    lon: 13.42177,
-    lat: 52.4913,
-    zoom: 18,
-    fill: 'full',
-    look: 'In full fill the stacking decides the colour of the overlap: iD shows the smaller area, Maid the upper layer of its fills.',
   },
   {
     name: '08-viewfield',
@@ -460,7 +423,7 @@ async function openEditor(browser: Browser, url: string) {
 /** iD: area fill and the custom imagery, set through iD's own context (the adapter's `_id` handle). */
 async function setupId(page: Page, c: Case) {
   await page.evaluate(
-    ({ fill, imagery, template }) => {
+    ({ imagery, template }) => {
       type Background = {
         baseLayerSource(source: unknown): void
         brightness(v: number): void
@@ -475,7 +438,6 @@ async function setupId(page: Page, c: Case) {
         iD: { rendererBackgroundSource: { Custom(t: string): unknown } }
       }
       const context = w.__bench._id.context
-      if (fill) context.map().activeAreaFill(fill)
       if (imagery) {
         const background = context.background()
         background.baseLayerSource(w.iD.rendererBackgroundSource.Custom(template))
@@ -485,7 +447,7 @@ async function setupId(page: Page, c: Case) {
         if (imagery.sharpness !== undefined) background.sharpness(imagery.sharpness)
       }
     },
-    { fill: c.fill ?? null, imagery: c.imagery ?? null, template: TILE_URL },
+    { imagery: c.imagery ?? null, template: TILE_URL },
   )
 }
 
@@ -535,7 +497,6 @@ async function captureEditor(
     editor === 'id'
       ? `?scene=${c.scene}`
       : `?scene=${c.scene}&map=${c.zoom}/${c.lat}/${c.lon}` +
-        (c.fill ? `&fill=${c.fill}` : '') +
         (c.maidQuery ? `&${c.maidQuery}` : '') +
         (imagery ? `&background=${encodeURIComponent(`custom:${TILE_URL}`)}` : '')
   const url =
@@ -647,7 +608,7 @@ function writeReadme() {
       `- Pair: \`${c.name}.png\` (crops: \`${c.name}-id.png\`, \`${c.name}-maid.png\`)\n` +
       `- Where in the spec: ${c.ref}\n` +
       `- Scores from the spec: ${c.scores}\n` +
-      `- Scene and place: ${c.scene}, zoom ${c.zoom}, ${c.lat}/${c.lon}${c.fill ? `, fill ${c.fill}` : ''}${c.select ? `, ${c.select} selected` : ''}${c.hover ? `, pointer ${c.hover.dy} px above the node` : ''}${c.maidQuery ? `, Maid with ${c.maidQuery}` : ''}${c.imagery ? `, imagery ${JSON.stringify(c.imagery)}` : ''}\n` +
+      `- Scene and place: ${c.scene}, zoom ${c.zoom}, ${c.lat}/${c.lon}${c.select ? `, ${c.select} selected` : ''}${c.hover ? `, pointer ${c.hover.dy} px above the node` : ''}${c.maidQuery ? `, Maid with ${c.maidQuery}` : ''}${c.imagery ? `, imagery ${JSON.stringify(c.imagery)}` : ''}\n` +
       `- What to look at: ${c.look}\n` +
       (c.notShown ? `- Not shown: ${c.notShown}\n` : '') +
       '\n',

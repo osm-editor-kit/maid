@@ -1033,12 +1033,19 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   await settle()
   await page.getByRole('button', { name: 'Add Building to favourites', exact: true }).click()
   await settle()
+  // 1, 2 and 3 are the editor's own keys: a favourite cannot have them, the field marks 3 as invalid
   await numberOf('Building').fill('3')
+  report(
+    'number 3 is the area key and is refused for a favourite',
+    'true',
+    await numberOf('Building').getAttribute('aria-invalid'),
+  )
+  await numberOf('Building').fill('4')
   await numberOf('Building').press('Enter')
   await settle()
   report(
-    'the building favourite gets number 3 in the list',
-    '3',
+    'the building favourite gets number 4 in the list',
+    '4',
     await numberOf('Building').inputValue(),
   )
   await key('Escape')
@@ -1050,39 +1057,39 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   await settle()
   await page.getByRole('button', { name: 'Add Bench to favourites', exact: true }).click()
   await settle()
-  await numberOf('Bench').fill('39')
+  await numberOf('Bench').fill('49')
   await numberOf('Bench').press('Enter')
   await settle()
   report(
-    'the bench favourite gets number 39 in the list',
-    '39',
+    'the bench favourite gets number 49 in the list',
+    '49',
     await numberOf('Bench').inputValue(),
   )
   await key('Escape')
 
-  // (1) 3, then 9, then Alt let go: favourite 39 (a point, so add-point), not favourite 3 (an area)
+  // (1) 4, then 9, then Alt let go: favourite 49 (a point, so add-point), not favourite 4 (an area)
   await key('Escape')
-  await holdAlt(['3', '9'])
+  await holdAlt(['4', '9'])
   await settle()
   report(
-    'while typing 3 then 9 the hint shows the bench',
+    'while typing 4 then 9 the hint shows the bench',
     true,
-    (await hint()).includes('39 · Bench'),
+    (await hint()).includes('49 · Bench'),
   )
   await page.keyboard.up('Alt')
   await settle()
   report(
-    'Alt let go after 3 then 9 starts favourite 39, not favourite 3',
+    'Alt let go after 4 then 9 starts favourite 49, not favourite 4',
     'add-point',
     (await state()).mode,
   )
   await key('Escape')
 
-  // (2) 3 alone, then Alt let go: favourite 3, the area
-  await holdAlt(['3'])
+  // (2) 4 alone, then Alt let go: favourite 4, the area
+  await holdAlt(['4'])
   await page.keyboard.up('Alt')
   await settle()
-  report('Alt let go after 3 alone starts favourite 3, the area', 'draw-area', (await state()).mode)
+  report('Alt let go after 4 alone starts favourite 4, the area', 'draw-area', (await state()).mode)
   await key('Escape')
 
   // (4) a number without a favourite: nothing starts, and the hint says so
@@ -1094,7 +1101,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   report('a number without a favourite starts nothing', 'browse', (await state()).mode)
 
   // (5) Escape while holding cancels: the hint goes, and letting Alt go starts nothing
-  await holdAlt(['3', '9'])
+  await holdAlt(['4', '9'])
   await page.keyboard.press('Escape')
   await settle()
   report('Escape while holding clears the hint', '', await hint())
@@ -1102,18 +1109,24 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   await settle()
   report('Escape, then Alt let go, starts nothing', 'browse', (await state()).mode)
 
-  // (6) the same digits typed in the search field of a picker start nothing and change nothing
+  // (6) in the type search, which has the focus right after a drawing, Alt and a number give the selected
+  // feature the favourite's type, and no digit is typed into the search
   await click(first.edge)
   await changeType.click()
   await settle()
   const undoBeforeField = (await state()).undo
-  await holdAlt(['3', '9'])
+  await holdAlt(['4'])
   await page.keyboard.up('Alt')
   await settle()
   report(
-    'digits typed in a text field start no favourite',
-    ['browse', undoBeforeField],
-    [(await state()).mode, (await state()).undo],
+    'Alt and 4 in the type search change the type, and the search stays empty',
+    [true, ''],
+    [
+      (await state()).undo !== undoBeforeField,
+      await search()
+        .inputValue()
+        .catch(() => ''),
+    ],
   )
   await page.keyboard.press('Escape')
   await key('Escape')
@@ -1140,10 +1153,10 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
     (await state()).mode,
   )
   await key('Escape')
-  await holdAlt(['3'])
+  await holdAlt(['4'])
   await page.keyboard.up('Alt')
   await settle()
-  report('number 3 is free now and starts nothing', 'browse', (await state()).mode)
+  report('number 4 is free now and starts nothing', 'browse', (await state()).mode)
 })
 
 // --- snapping: a drop on a node or a way joins it, as iD does, and add point snaps too ---

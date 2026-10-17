@@ -34,6 +34,7 @@ Live state that is not remembered (the selection, the open photo, a data layer f
 | `bg_display` | none | The background's display, `brightness:70`. Later contrast and others join the list | When not at 100 % |
 | `offset` | `offset` | Background offset in metres, `east,north` | When not zero |
 | `filters` | `disable_features` | Filter states that differ from the editor's, `buildings:readonly,water:hidden`. iD's list is the hidden ones | On change |
+| `display` | none | What the map shows of the data: `wireframe` or `edits` (iD's wireframe and highlight changes, keys W and G); no key for the normal look | On every change, once started. Its choice is remembered in the settings (`shown.display`), as the filters' |
 | `lens` | none | The map style (lens) by id; `none` for none | Always, once started |
 | `notes` | `notes` | `1` when the notes are on | When on |
 | `photo_type` | `photo_type` | `flat`, `panoramic`, or both | Always |
@@ -78,7 +79,7 @@ An explicit query parameter wins over the same parameter in the hash.
 
 ## Development switches
 
-`scene`, `ui`, `labels`, `fill`, `workers` and the like exist for experiments and the benchmark (`setupParams`). They are read once at start and are not part of the public contract. They will move behind a prefix or a build flag before anything is released.
+`scene`, `ui`, `labels`, `workers` and the like exist for experiments and the benchmark (`setupParams`). They are read once at start and are not part of the public contract. They will move behind a prefix or a build flag before anything is released.
 
 ## Open
 

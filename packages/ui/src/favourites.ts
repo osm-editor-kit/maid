@@ -18,17 +18,42 @@ export type Favourite = {
  */
 export type FavouriteNumber = string
 
-/** True for a number a favourite can have: digits only, and the first one is not zero */
+/**
+ * The numbers that are the editor's own keys: 1, 2 and 3 add a point, a line and an area (and 33 the next area
+ * tool). A favourite never has one of them, so its number never reads like those keys. Decided by Tobias, 2026-10-17.
+ */
+export const RESERVED_FAVOURITE_NUMBERS: readonly string[] = ['1', '2', '3']
+
+/** True for a number a favourite can have: digits only, the first one not zero, and not one of the editor's keys */
 export function isFavouriteNumber(value: string): boolean {
-  return /^[1-9][0-9]*$/.test(value)
+  return /^[1-9][0-9]*$/.test(value) && !RESERVED_FAVOURITE_NUMBERS.includes(value)
 }
 
-/** The lowest number no favourite uses: 1 when there are none */
+/** The lowest number no favourite uses and the editor does not keep: 4 when there are none */
 export function freeFavouriteNumber(favourites: Favourite[]): FavouriteNumber {
   const taken = new Set(favourites.map((favourite) => favourite.number))
   let number = 1
-  while (taken.has(String(number))) number++
+  while (taken.has(String(number)) || !isFavouriteNumber(String(number))) number++
   return String(number)
+}
+
+/**
+ * Favourites stored before 1, 2 and 3 were kept for the editor: each of them gets the lowest free number instead, in
+ * the order of the list. The others keep theirs.
+ */
+export function withoutReservedNumbers(favourites: Favourite[]): Favourite[] {
+  const kept = favourites.filter((favourite) => isFavouriteNumber(favourite.number))
+  if (kept.length === favourites.length) return favourites
+  const result: Favourite[] = []
+  for (const favourite of favourites) {
+    if (isFavouriteNumber(favourite.number)) {
+      result.push(favourite)
+      continue
+    }
+    const number = freeFavouriteNumber([...kept, ...result])
+    result.push({ ...favourite, number })
+  }
+  return result
 }
 
 /** The favourite that a number starts, if one has that number */

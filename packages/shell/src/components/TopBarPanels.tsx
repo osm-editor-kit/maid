@@ -4,7 +4,7 @@ import { useShell } from '../shell-context'
 
 /** The panels of modules (`topbar.panel`): one icon button each, opening a flyout */
 export function TopBarPanels() {
-  const { editor } = useShell()
+  const { editor, engine } = useShell()
   const panels = useExtensionPoint(editor, 'topbar.panel')
   return panels.map((panel) => (
     <Flyout
@@ -25,7 +25,7 @@ export function TopBarPanels() {
         </button>
       }
     >
-      <panel.component editor={editor} />
+      <panel.component editor={editor} engine={engine} />
     </Flyout>
   ))
 }

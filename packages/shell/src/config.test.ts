@@ -88,3 +88,20 @@ describe('readConfig', () => {
     expect(readConfig(at('?api=osm'), local).serverChoice).toBe(true)
   })
 })
+
+describe('the display at the start', () => {
+  test('the URL names it, then the stored choice, else the normal look', () => {
+    expect(readConfig(at('?display=wireframe'), { ...local, shown: 'edits' }).display).toBe(
+      'wireframe',
+    )
+    expect(readConfig(at(''), { ...local, shown: 'edits' }).display).toBe('edits')
+    expect(readConfig(at(''), local).display).toBe('normal')
+  })
+
+  test('a value that is neither wireframe nor edits is the normal look, a link or a stored one', () => {
+    expect(readConfig(at('?display=full'), local).display).toBe('normal')
+    expect(readConfig(at('?display=full'), { ...local, shown: 'wireframe' }).display).toBe(
+      'wireframe',
+    )
+  })
+})

@@ -14,6 +14,8 @@ export {
   type ReferenceLoader,
 } from './InfoPopover.tsx'
 export { FilterPanel } from './FilterPanel.tsx'
+export { MapDisplayChoice } from './MapDisplayChoice.tsx'
+export { chooseDisplay } from './display.ts'
 export { FadeSlideIn, UI_SPRING } from './motion.tsx'
 export { lazyChunksPending, lazyComponent, PANEL_FALLBACK, preloadLazyComponents } from './lazy.tsx'
 export { fitMiniMap, type LonLat, type MiniMapBox, type MiniMapFrame } from './mini-map.ts'

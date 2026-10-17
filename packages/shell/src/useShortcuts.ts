@@ -1,9 +1,10 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { deleteOperation } from '@osm-editor-kit/maid-operations'
+import { chooseDisplay } from '@osm-editor-kit/maid-ui'
 import { useHotkeys, type UseHotkeyDefinition } from '@tanstack/react-hotkeys'
 import { useEffect, useEffectEvent } from 'react'
 import { pasteAt } from './clipboard'
-import { continueLine, drawClick, drawingKind, drawKindOf } from './drawing'
+import { continueLine, drawClick, drawingKind, drawKindOf, stepAreaTool } from './drawing'
 import { giveFavouriteType } from './favourites'
 import { markNewFeature } from './new-feature'
 import { useSearchActions } from './search/flyout'
@@ -32,7 +33,9 @@ const PAN = 80
  * - Cmd/Ctrl+F opens the search (SearchButton) and focuses its input; the browser's find stays off
  * - Cmd/Ctrl+Backspace or Delete deletes the selection; Escape leaves a mode, then the selection
  * - the letters of the edit menu run its operations (V reverse, X split, C merge, ...)
- * - the keys of a drawing tool of a module (the Area button's dropdown) start it
+ * - 3 again before the first click steps through the drawing tools of the Area dropdown (33, 333) and back
+ * - W toggles the wireframe, G the changes in colour, as iD: each one back to the normal look, and from the other one
+ *   to its own (the URL's `display` follows, url/display.ts)
  * - arrow keys pan the map, + and - zoom
  * - Shift with the left and right arrows turns the map by 2.5 degrees, N turns it back to north
  *   (no key tilts the map: pitch is switched off)
@@ -43,7 +46,7 @@ export function useShortcuts() {
   const { editor, engine } = useShell()
   const { ids: selected, select } = useSelection()
   const operations = useExtensionPoint(editor, 'edit.operation')
-  // a drawing tool's key starts it, as the keys 1, 2 and 3 start their modes (ADR 0011, hook 3)
+  // the drawing tools of the Area dropdown: 3 again steps to them (stepAreaTool, ADR 0011 hook 3)
   const drawTools = useExtensionPoint(editor, 'draw.tool')
   // which keys are taken depends on what the editor is doing. Read that state so the list follows it
   const drawing = useEngine((e) => e.draw.active)
@@ -119,7 +122,7 @@ export function useShortcuts() {
     { hotkey: 'Control+Y', callback: () => engine.redo() },
     { hotkey: '1', callback: () => engine.setMode('add-point') },
     { hotkey: '2', callback: () => engine.setMode('draw-line') },
-    { hotkey: '3', callback: () => engine.setMode('draw-area') },
+    { hotkey: '3', callback: () => stepAreaTool(engine, drawTools) },
     { hotkey: 'A', callback: () => continueLine(engine, selected) },
     { hotkey: ',', callback: () => stepStack(-1), options: { enabled: stackShown } },
     { hotkey: '.', callback: () => stepStack(1), options: { enabled: stackShown } },
@@ -154,6 +157,16 @@ export function useShortcuts() {
     { hotkey: 'Shift+ArrowLeft', callback: () => engine.turnBy(turnForKey('ArrowLeft')) },
     { hotkey: 'Shift+ArrowRight', callback: () => engine.turnBy(turnForKey('ArrowRight')) },
     { hotkey: 'N', callback: () => engine.resetNorth() },
+    // iD's keys for what the map shows (map_data.highlight_edits and area_fill.wireframe)
+    {
+      hotkey: 'W',
+      callback: () =>
+        chooseDisplay(engine, engine.display === 'wireframe' ? 'normal' : 'wireframe'),
+    },
+    {
+      hotkey: 'G',
+      callback: () => chooseDisplay(engine, engine.display === 'edits' ? 'normal' : 'edits'),
+    },
     // the keys of the edit menu
     ...operations.flatMap((operation) =>
       operation.shortcut
@@ -165,16 +178,6 @@ export function useShortcuts() {
                 const next = engine.runOperation(operation)
                 if (next) select(next)
               },
-            },
-          ]
-        : [],
-    ),
-    ...drawTools.flatMap((tool) =>
-      tool.shortcut
-        ? [
-            {
-              hotkey: tool.shortcut.toUpperCase() as UseHotkeyDefinition['hotkey'],
-              callback: () => tool.start(engine),
             },
           ]
         : [],

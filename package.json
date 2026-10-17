@@ -50,6 +50,8 @@
     "check-merge": "bun tools/bench/merge-check.ts",
     "check-cut": "bun tools/bench/cut-check.ts",
     "check-divide": "bun tools/bench/divide-check.ts",
+    "check-display": "bun tools/bench/display-check.ts",
+    "check-touch": "bun tools/bench/touch-check.ts",
     "check-all": "bun tools/checks/check-all.ts",
     "check-config": "bun tools/checks/config-check.ts",
     "check-interactions": "bun tools/bench/interactions-check.ts",

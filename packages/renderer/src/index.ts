@@ -37,10 +37,14 @@ export { modifiersOf, NO_MODIFIERS, type Modifiers } from './modifiers'
 export {
   ADDRESS_PLAQUE,
   buildLayers,
+  DISPLAYS,
+  displayOf,
   interactiveLayerIds,
+  type MapDisplay,
   SOURCES,
   type LayerOptions,
 } from './layers'
+export { editKindOf, type EditKind } from './edits'
 export { iconImagePrefix, iconImagesRequestedAt } from './icon-requests'
 // The white arrow of the selected way, preloaded by the engine: a module's line-pattern can use it for its own arrows
 export { SELECTED_ARROW_HEIGHT, SELECTED_ARROW_IMAGE } from './direction'

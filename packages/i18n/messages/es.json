@@ -196,5 +196,12 @@
   "relations_op_remove_several": "Los objetos están en varias relaciones: quítalos en la sección Relaciones",
   "maplibre_attribution_toggle": "Mostrar u ocultar la atribución",
   "maplibre_attribution_feedback": "Comentarios sobre el mapa",
-  "maplibre_map_title": "Mapa"
+  "maplibre_map_title": "Mapa",
+  "map_display_label": "Visualización",
+  "map_display_normal": "Normal",
+  "map_display_normal_hint": "La vista habitual.",
+  "map_display_wireframe": "Alámbrico",
+  "map_display_wireframe_hint": "Solo contornos, líneas finas.",
+  "map_display_edits": "Resaltar los cambios",
+  "map_display_edits_hint": "Objetos creados y modificados en color."
 }

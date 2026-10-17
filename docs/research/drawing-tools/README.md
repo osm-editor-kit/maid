@@ -93,7 +93,7 @@ These proceed unless Tobias says otherwise:
 - Corners lock within 30 px.
 
 **Rectangle:**
-- Key `4`.
+- Key `33`: 3 starts an area, 3 again before the first click the rectangle (Tobias, 2026-10-17). Favourite numbers start at 4.
 - The preview waits while the depth is under 16 px.
 - No metric minimum.
 - Backspace after the second click comes later.
@@ -146,7 +146,7 @@ All five tools are built as modules of `packages/module-shapes` and turned on in
 
 Run `bun run dev-parking` and open http://localhost:5177.
 
-1. **Rectangle:** press `4`, or use the small arrow next to "Fläche".
+1. **Rectangle:** press `3` twice (`33`), or use the small arrow next to "Fläche".
    - Click two corners of a building, then click the depth. The rectangle has right angles and the type search opens.
    - Try a favourite: Alt plus its number gives the type right away.
 2. **Angle snap:** draw a line or an area with `2` or `3` and hold Shift.

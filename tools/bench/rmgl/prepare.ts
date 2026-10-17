@@ -69,7 +69,6 @@ export function prepare(outDir: string): Prepared {
   const layers: LayerSpecification[] = [
     below,
     ...buildLayers({
-      fill: 'partial',
       labels: true,
       icons: true,
       pins: 'fit',

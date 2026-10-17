@@ -100,8 +100,9 @@ export type ConstraintItem = {
 
 /**
  * A drawing tool that the Area button's dropdown offers beside "Area" (ADR 0011, hook 3). `start` usually enters a
- * module mode (`enterModuleMode`), whose callbacks take the clicks, and the item's `shortcut` starts it as the
- * keys 1, 2 and 3 do.
+ * module mode (`enterModuleMode`), whose callbacks take the clicks. A tool has no key of its own: 3 starts an area,
+ * and 3 again before the first click steps to the first tool (33), the next (333) and back to the area (Tobias,
+ * 2026-10-17).
  */
 export type DrawToolItem = {
   id: string
@@ -109,8 +110,6 @@ export type DrawToolItem = {
   /** Its name in the dropdown and its tooltip. A function, so that the text is read in the language of the moment. */
   label: () => string
   icon?: ComponentType
-  /** A single key, as an operation's */
-  shortcut?: string
   start(engine: MaidEngine): void
 }
 

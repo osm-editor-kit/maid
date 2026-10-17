@@ -4,6 +4,7 @@ import {
   ACTIVE_SOURCE,
   activePinIds,
   buildLayers,
+  displayOf,
   DETAIL_ZOOM,
   DRAW_ZOOM,
   EDIT_SOURCES,
@@ -16,7 +17,6 @@ import {
 import { CONE_ZOOM } from './viewfield'
 
 const options: LayerOptions = {
-  fill: 'partial',
   dashes: new Map(),
   lat: 52,
   labels: true,
@@ -162,8 +162,9 @@ describe('show only the selection', () => {
   })
 
   test('is off by default: the data layers are visible', () => {
-    for (const layer of dataLayers(buildLayers(options)))
-      expect(layer.layout?.visibility).toBeUndefined()
+    // the edit halos are hidden by the display (see the display tests), not by this switch
+    const data = dataLayers(buildLayers(options)).filter((l) => !l.id.startsWith('edit-halo'))
+    for (const layer of data) expect(layer.layout?.visibility ?? 'visible').toBe('visible')
   })
 })
 
@@ -284,10 +285,11 @@ describe('the pin zoom (PIN_ZOOM = 18: the dot below, the pin from 18)', () => {
 })
 
 describe('the selection twins when nothing is selected (selectTwins)', () => {
+  // the edit halos' twins are hidden by the display (the look shows no edits), not by the selection: left out here
   const selectTwinIds = (layers: LayerSpecification[]) =>
     layers
       .map(view)
-      .filter((l) => l.id.endsWith('--select'))
+      .filter((l) => l.id.endsWith('--select') && !l.id.startsWith('edit-halo'))
       .map((l) => l.id)
   const hidden = (layers: LayerSpecification[], id: string) =>
     view(layers.find((l) => view(l).id === id)!).layout?.visibility === 'none'
@@ -390,5 +392,96 @@ describe('the viewfield cones', () => {
     expect(at('cone-v0')).toBeGreaterThan(at('area-stroke'))
     expect(at('cone-v0')).toBeLessThan(at('vertex'))
     expect(at('cone-p0')).toBeLessThan(at('point-dot'))
+  })
+})
+
+describe('display: the wireframe and the changes in colour (iD)', () => {
+  const ids = (layers: LayerSpecification[]) => layers.map((l) => l.id)
+  const byId = (layers: LayerSpecification[], id: string) =>
+    layers.find((l) => l.id === id) as unknown as
+      | {
+          paint?: Record<string, unknown>
+          layout?: { visibility?: string }
+          filter?: unknown
+          source?: string
+        }
+      | undefined
+  // the layers stay in the list in every display (a layer added later would be drawn on top): hidden by visibility
+  const visible = (layers: LayerSpecification[], id: string) =>
+    (byId(layers, id)?.layout?.visibility ?? 'visible') === 'visible'
+
+  test('the look shows the area band and the casings; the wireframe hides them, and keeps them in the list', () => {
+    const look = buildLayers(options)
+    expect(visible(look, 'area-fill-partial')).toBe(true)
+    expect(visible(look, 'line-casing-0')).toBe(true)
+    const wire = buildLayers({ ...options, display: 'wireframe' })
+    expect(visible(wire, 'area-fill-partial')).toBe(false)
+    expect(visible(wire, 'line-casing-0')).toBe(false)
+    expect(ids(wire)).toContain('area-fill-partial')
+  })
+
+  test('the wireframe strokes are 1px at half opacity, and it hides the direction markers', () => {
+    const wire = buildLayers({ ...options, display: 'wireframe' })
+    const stroke = byId(wire, 'line-stroke-0')
+    expect(stroke?.paint?.['line-width']).toBe(1)
+    // the opacity is wrapped by the edit copy's rule (0 while the feature is being edited), so read it as text
+    expect(JSON.stringify(stroke?.paint?.['line-opacity'])).toContain('0.5')
+    expect(byId(wire, 'area-stroke')?.paint?.['line-width']).toBe(1)
+    expect(JSON.stringify(byId(wire, 'area-stroke')?.paint?.['line-opacity'])).toContain('0.5')
+    expect(visible(wire, 'line-oneway')).toBe(false)
+    expect(visible(wire, 'area-sided')).toBe(false)
+    expect(visible(buildLayers(options), 'line-oneway')).toBe(true)
+  })
+
+  test('the wireframe keeps the points and the vertices', () => {
+    const wire = buildLayers({ ...options, display: 'wireframe' })
+    expect(visible(wire, 'vertex')).toBe(true)
+    expect(visible(wire, 'point-dot')).toBe(true)
+  })
+
+  test('the changes in colour draw a halo under the edited features, in the colour of their edit', () => {
+    expect(visible(buildLayers(options), 'edit-halo')).toBe(false)
+    const edits = buildLayers({ ...options, display: 'edits' })
+    const halo = byId(edits, 'edit-halo')
+    expect(halo?.source).toBe(SOURCES.lines)
+    expect(halo?.filter).toEqual(['has', 'ed'])
+    expect(JSON.stringify(halo?.paint)).toContain('#85ff67')
+    expect(JSON.stringify(halo?.paint)).toContain('#fcde5a')
+    expect(visible(edits, 'edit-halo')).toBe(true)
+    expect(visible(edits, 'edit-halo-areas')).toBe(true)
+    expect(visible(edits, 'edit-halo-vertex')).toBe(true)
+    expect(visible(edits, 'edit-halo-points')).toBe(true)
+  })
+
+  test('the edit halos have their selection and edit copies, as the layers they sit under', () => {
+    const edits = ids(buildLayers({ ...options, display: 'edits' }))
+    expect(edits).toContain('edit-halo--select')
+    expect(edits).toContain('edit-halo--edit')
+  })
+
+  test('one display at a time, and an unknown value is the look', () => {
+    const wire = buildLayers({ ...options, display: 'wireframe' })
+    expect(visible(wire, 'edit-halo')).toBe(false)
+    expect(visible(buildLayers({ ...options, display: 'edits' }), 'area-fill-partial')).toBe(true)
+    expect(displayOf('wireframe')).toBe('wireframe')
+    expect(displayOf('edits')).toBe('edits')
+    expect(displayOf('full')).toBe('normal')
+    expect(displayOf(null)).toBe('normal')
+  })
+
+  test('a dashed stroke keeps a data-driven dasharray in every display: the wireframe changes only its outputs', () => {
+    // a constant at runtime breaks the layer in MapLibre (layers.ts dashMatch), so the type must not change
+    const dashed = { ...options, dashes: new Map([['dashed', [4, 3]]]) }
+    for (const id of ['line-stroke-dashed-0', 'area-stroke-dashed']) {
+      for (const display of ['normal', 'wireframe'] as const) {
+        const value = byId(buildLayers({ ...dashed, display }), id)?.paint?.['line-dasharray']
+        expect(Array.isArray(value) && value[0]).toBe('match')
+      }
+      const solid = JSON.stringify(
+        byId(buildLayers({ ...dashed, display: 'wireframe' }), id)?.paint?.['line-dasharray'],
+      )
+      expect(solid).toContain('[1,0]')
+      expect(solid).not.toContain('[4,3]')
+    }
   })
 })

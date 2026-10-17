@@ -91,3 +91,17 @@ describe("lang=: one of Maid's languages, or nothing", () => {
     expect(readParams(stateParams, '?lang=en').lang).toBe('en')
   })
 })
+
+describe('display=: wireframe or edits, none for the normal look (fill is gone)', () => {
+  test('the two values parse, anything else is no value', () => {
+    expect(stateParams.display.parseServerSide('wireframe')).toBe('wireframe')
+    expect(stateParams.display.parseServerSide('edits')).toBe('edits')
+    expect(stateParams.display.parseServerSide('full')).toBeNull()
+    expect(stateParams.display.parseServerSide(undefined)).toBeNull()
+  })
+
+  test('the parameter is public state, and the old fill setup switch is gone', () => {
+    expect(shellUrlParamNames()).toContain('display')
+    expect(shellUrlParamNames()).not.toContain('fill')
+  })
+})

@@ -1,13 +1,14 @@
 import { isAutomated } from '@osm-editor-kit/maid-core'
-import type { LayerOptions } from '@osm-editor-kit/maid-renderer'
+import { displayOf, type LayerOptions, type MapDisplay } from '@osm-editor-kit/maid-renderer'
 import { getSettings, type Server } from '@osm-editor-kit/maid-ui'
 import { PORTS } from '../../../tools/ports'
 import { readParams, setupParams, stateParams, type Camera } from './url/params'
+import { startShown } from './url/shown'
 
 /**
  * What the app is started with. Read once from the URL before React renders, so that
  * experiments and the benchmark run the same build.
- * Example: /?scene=dense&fill=full&map=17/52.4845/13.433
+ * Example: /?scene=dense&display=wireframe&map=17/52.4845/13.433
  */
 /** The OSM development server: its own, nearly empty database, for trying login and saving */
 export const DEV_API = 'https://master.apis.dev.openstreetmap.org'
@@ -76,7 +77,8 @@ export type Config = {
    * Never under automation.
    */
   serverChoice: boolean
-  fill: LayerOptions['fill']
+  /** What the map shows of the data at the start: the URL's `display`, else the person's choice, else the look */
+  display: MapDisplay
   /** Inspector, controls and status bar. `ui=0` leaves only the map. */
   ui: boolean
   labels: boolean
@@ -100,11 +102,24 @@ function readFilters(search: string) {
   return readParams({ filters: stateParams.filters }, search).filters || null
 }
 
+/** The display a link names, else the stored choice (`shown.display`, the URL's notation), else the normal look */
+function readDisplay(search: string, stored: string | undefined): MapDisplay {
+  const url = readParams({ display: stateParams.display }, search).display
+  return displayOf(startShown({ url, stored, fallback: '' }).value)
+}
+
 export function readConfig(
   location: Location,
-  choice: { stored: Server | undefined; deployed: boolean; servers?: readonly Server[] } = {
+  choice: {
+    stored: Server | undefined
+    deployed: boolean
+    servers?: readonly Server[]
+    /** The stored display, in the URL's notation (`shown.display`) */
+    shown?: string | undefined
+  } = {
     stored: getSettings().server,
     deployed: DEPLOYED,
+    shown: getSettings().shown.display,
   },
 ) {
   const setup = readParams(setupParams, location.search)
@@ -127,7 +142,7 @@ export function readConfig(
         : source === 'osm'
           ? OSM_API
           : `http://localhost:${PORTS.mockApi}/s/${setup.scene}`,
-    fill: setup.fill,
+    display: readDisplay(location.search, choice.shown),
     ui: setup.ui,
     labels: setup.labels,
     icons: setup.icons,

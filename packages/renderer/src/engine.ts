@@ -50,7 +50,14 @@ import {
   type FieldOverlay,
   type LonLat,
 } from './field-overlay'
-import { ACTIVE_SOURCE, activePinIds, EDIT_SOURCES, SELECT_SOURCES, SOURCES } from './layers'
+import {
+  ACTIVE_SOURCE,
+  activePinIds,
+  EDIT_SOURCES,
+  type MapDisplay,
+  SELECT_SOURCES,
+  SOURCES,
+} from './layers'
 import { MeasureSession } from './measure-session'
 import { MidpointHandles } from './midpoint-handles'
 import { type Modifiers, NO_MODIFIERS, sameModifiers } from './modifiers'
@@ -102,6 +109,8 @@ export type EngineOptions = {
    * rate limit). Left out, the engine uses the same rules with gates of its own, for use on its own (tests).
    */
   fetch?: RemoteFetch
+  /** What the map shows of the data at the start (`engine.display`). Left out: the normal look. */
+  display?: MapDisplay
 }
 
 /** The engine on its own: the foundation's rules, with gates and a service of its own. */
@@ -175,11 +184,14 @@ export class MaidEngine {
   private activeCopies = new Map<string, Feature>()
   /** Only the selection is drawn, at any zoom. A view option: per visit, not stored. */
   private selectionOnlyShown = false
+  /** What the map shows of the data (layers.ts MapDisplay). Per visit: the URL and the person's choice set it (url/display.ts). */
+  private displayShown: MapDisplay = 'normal'
 
   // The data comes from the editor, so the engine and the editor's modules see the same entities.
   // Assigned here, not in field initializers, because the builder needs `data`.
   constructor(public options: EngineOptions) {
     this.data = new OsmData(options.editor.context, options.editor.history)
+    this.displayShown = options.display ?? 'normal'
     // after OsmData's own listener, so the lookups are right when the redraw reads them
     options.editor.history.on('stagingchange', (difference) => this.onStagingChange(difference))
     this.builder = new FeatureBuilder(this.data, options.editor.presets)
@@ -582,6 +594,22 @@ export class MaidEngine {
   setSelectionOnly(on: boolean) {
     if (on === this.selectionOnlyShown) return
     this.selectionOnlyShown = on
+    this.changed()
+  }
+
+  /**
+   * What the map shows of the data: the look, the wireframe or the edits in colour (layers.ts). Read by MapView into
+   * `buildLayers`, so the layers follow with no feature built again. The built features carry what an edit changed
+   * (the builder's `ed`), so the edits highlight needs no rebuild.
+   */
+  get display(): MapDisplay {
+    return this.displayShown
+  }
+
+  /** Shows the data as `display`. A change tells the components that read the engine (`subscribe`). */
+  setDisplay(display: MapDisplay) {
+    if (display === this.displayShown) return
+    this.displayShown = display
     this.changed()
   }
 

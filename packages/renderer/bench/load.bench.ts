@@ -128,7 +128,6 @@ for (let i = 1; i <= RUNS; i++) runs.push(once())
 // family is asked for, since a layer asks for the icon of every feature it draws).
 const openingZoom = Math.floor(scene.zoom - 1)
 const layerOptions: LayerOptions = {
-  fill: 'full',
   labels: true,
   icons: true,
   pins: 'fit',

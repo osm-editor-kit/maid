@@ -3,7 +3,7 @@
  * The renderer's `map.layer` point is declared in maid-renderer.
  */
 import type { Editor } from '@osm-editor-kit/maid-core'
-import type { EntityInfo } from '@osm-editor-kit/maid-renderer'
+import type { EntityInfo, MaidEngine } from '@osm-editor-kit/maid-renderer'
 import type { ComponentType, ReactNode } from 'react'
 import type { FieldComponent, FieldFocus } from './inspector/fields/shared.ts'
 
@@ -86,7 +86,8 @@ export type TopBarPanel = {
   /** Names the button and the panel */
   label: string
   icon: ReactNode
-  component: ComponentType<{ editor: Editor }>
+  /** Gets the editor and the map engine (for a panel that shows or sets what the map shows) */
+  component: ComponentType<{ editor: Editor; engine: MaidEngine }>
   /** Tailwind width class of the flyout, e.g. `w-96` (the default) */
   width?: string
 }

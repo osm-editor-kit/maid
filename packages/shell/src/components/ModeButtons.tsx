@@ -3,7 +3,9 @@ import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { m } from '@osm-editor-kit/maid-i18n'
 import type { DrawToolItem, Mode } from '@osm-editor-kit/maid-renderer'
 import { Flyout, ToolButton, ToolGroup, toolButtonClass } from '@osm-editor-kit/maid-ui'
-import { Fragment, useState, type ReactNode } from 'react'
+import { Fragment, useRef, useState, type ReactNode } from 'react'
+import { areaToolKeys } from '../drawing'
+import { LongPress } from '../long-press'
 import { useEngine, useShell } from '../shell-context'
 
 /** iD's line and area icons are in its sprite; these two small drawings stand in for them */
@@ -62,23 +64,64 @@ export function ModeButtons() {
   const mode = useEngine((e) => e.mode)
   // the drawing tools that modules add: the Area button gets a dropdown when there are any (ADR 0011, hook 3)
   const drawTools = useExtensionPoint(editor, 'draw.tool')
+  // the dropdown is open by its chevron, or by a long press on the Area button (touch, or a held mouse button)
+  const [areaMenuOpen, setAreaMenuOpen] = useState(false)
+  const [areaPress] = useState(() => new LongPress())
+  // set when a long press opened the dropdown: the click that ends that press starts no area
+  const areaHeld = useRef(false)
+  const pressArea: NonNullable<Parameters<typeof ToolButton>[0]['press']> = {
+    onPointerDown: (event) => {
+      if (event.button !== 0) return
+      areaHeld.current = false
+      areaPress.start({ x: event.clientX, y: event.clientY }, () => {
+        areaHeld.current = true
+        setAreaMenuOpen(true)
+      })
+    },
+    onPointerMove: (event) => areaPress.move({ x: event.clientX, y: event.clientY }),
+    onPointerUp: () => areaPress.end(),
+    onPointerLeave: () => areaPress.end(),
+    onPointerCancel: () => areaPress.end(),
+    // a long press on a touch screen must not open the browser's own menu
+    onContextMenu: (event) => event.preventDefault(),
+    // a key is not a press: a stale flag from a long press must not swallow the key's click
+    onKeyDown: () => {
+      areaHeld.current = false
+    },
+  }
   return (
     <ToolGroup label={m.topbar_group_add()}>
-      {addModes().map((add) => (
-        <Fragment key={add.mode}>
-          <ToolButton
-            label={add.label}
-            shortcut={add.shortcut}
-            text={add.text}
-            icon={add.icon}
-            pressed={mode === add.mode}
-            onClick={() => engine.setMode(mode === add.mode ? 'browse' : add.mode)}
-          />
-          {add.mode === 'draw-area' && drawTools.length > 0 && (
-            <AreaToolsMenu area={add} tools={drawTools} />
-          )}
-        </Fragment>
-      ))}
+      {addModes().map((add) => {
+        const longPressable = add.mode === 'draw-area' && drawTools.length > 0
+        return (
+          <Fragment key={add.mode}>
+            <ToolButton
+              label={add.label}
+              shortcut={add.shortcut}
+              text={add.text}
+              icon={add.icon}
+              pressed={mode === add.mode}
+              press={longPressable ? pressArea : undefined}
+              onClick={() => {
+                // the press that opened the dropdown ends here: its click starts nothing
+                if (areaHeld.current) {
+                  areaHeld.current = false
+                  return
+                }
+                engine.setMode(mode === add.mode ? 'browse' : add.mode)
+              }}
+            />
+            {longPressable && (
+              <AreaToolsMenu
+                area={add}
+                tools={drawTools}
+                open={areaMenuOpen}
+                onOpenChange={setAreaMenuOpen}
+              />
+            )}
+          </Fragment>
+        )
+      })}
     </ToolGroup>
   )
 }
@@ -90,12 +133,13 @@ export function ModeButtons() {
 function AreaToolsMenu(props: {
   area: { shortcut: string; text: string; icon: ReactNode }
   tools: readonly DrawToolItem[]
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }) {
-  const { area, tools } = props
+  const { area, tools, open, onOpenChange: setOpen } = props
   const { engine } = useShell()
   const mode = useEngine((e) => e.mode)
   const moduleId = useEngine((e) => e.moduleMode?.id)
-  const [open, setOpen] = useState(false)
   const toolUnderway = tools.some((tool) => tool.id === moduleId)
   // a choice closes the menu, then starts the mode
   const choose = (start: () => void) => {
@@ -128,14 +172,14 @@ function AreaToolsMenu(props: {
           pressed={!toolUnderway && mode === 'draw-area'}
           onClick={() => choose(() => engine.setMode('draw-area'))}
         />
-        {tools.map((tool) => {
+        {tools.map((tool, index) => {
           const Icon = tool.icon
           return (
             <MenuRow
               key={tool.id}
               icon={Icon ? <Icon /> : undefined}
               label={tool.label()}
-              shortcut={tool.shortcut?.toUpperCase()}
+              shortcut={areaToolKeys(index)}
               pressed={tool.id === moduleId}
               onClick={() => choose(() => tool.start(engine))}
             />

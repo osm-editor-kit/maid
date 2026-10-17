@@ -196,5 +196,12 @@
   "relations_op_remove_several": "Die Objekte sind in mehreren Relationen: Entferne sie im Abschnitt „Relationen“.",
   "maplibre_attribution_toggle": "Quellenangaben ein- und ausblenden",
   "maplibre_attribution_feedback": "Rückmeldung zur Karte",
-  "maplibre_map_title": "Karte"
+  "maplibre_map_title": "Karte",
+  "map_display_label": "Darstellung",
+  "map_display_normal": "Normal",
+  "map_display_normal_hint": "Die übliche Darstellung.",
+  "map_display_wireframe": "Drahtmodell",
+  "map_display_wireframe_hint": "Nur Umrisse, dünne Linien.",
+  "map_display_edits": "Änderungen hervorheben",
+  "map_display_edits_hint": "Neue und geänderte Objekte in Farbe."
 }

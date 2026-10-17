@@ -83,6 +83,11 @@ export const stateParams = {
   id: parseAsString,
   /** Filter states that differ from the editor's own, e.g. `buildings:readonly,boundaries:hidden` */
   filters: parseAsString,
+  /**
+   * What the map shows of the data, as iD's wireframe (W) and highlight changes (G): `wireframe` or `edits`. Absent is the
+   * normal look. The engine holds it; the URL follows it (url/display.ts).
+   */
+  display: parseAsStringLiteral(['wireframe', 'edits']),
   /** The language of this page. The account menu's choice writes it too, so the address and the stored choice agree */
   lang: parseAsLang,
   /**
@@ -125,7 +130,6 @@ export const setupParams = {
   labels: parseAsFlag.withDefault(true),
   icons: parseAsFlag.withDefault(true),
   pins: parseAsStringLiteral(['fit', 'all']).withDefault('fit'),
-  fill: parseAsStringLiteral(['partial', 'full', 'wireframe']).withDefault('partial'),
   workers: parseAsInteger.withDefault(4),
   minDataZoom: parseAsFloat.withDefault(16),
   tolerance: parseAsFloat.withDefault(0),
