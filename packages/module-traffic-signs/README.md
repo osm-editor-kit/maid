@@ -20,16 +20,18 @@ presets: createPresets(withChanges(defaultPresetData, trafficSignPresetChanges))
 
 Tailwind needs the module's sources in `packages/shell/src/styles.css`: `@source '../../module-traffic-signs/src';`.
 
-## Status: not complete
+## Status: the sign picker (step 1)
 
-The module shows the **fallback only**: a text input for the value of the key, committed on blur or Enter. The sign picker is not mounted, for two reasons:
+The field type `trafficSign` mounts `TrafficSignField` from `@osm-editor-kit/osm-traffic-sign-field` (`packages/traffic-sign-field`, built to move to the osm-traffic-sign-tools repository unchanged: no Maid import, texts and country come in as props). One field per key, as the presets have them.
 
-1. **`d3-selection` is missing.** The package's factory (`createTrafficSignField`) returns a function that takes a d3 selection from its host and calls `selectAll`, `data`, `enter`, `merge` and friends. The package does not declare d3 as a peer, and nothing in this repo installs it. To mount the package, add `"d3-selection": "^3.0.0"` to this module's `package.json` dependencies (the package's own dev dependency is `~3.0.0`).
-2. **`@osm-traffic-signs/converter` is missing.** It is a declared peer (`>=0.7.0`) and is not installed. The package loads the sign data and the SVGs through the host's `loadConverter`, `loadCountryCatalogue` and `getSvgAssetUrl`, so no sign data comes from the network unless these adapters do.
+- A row per sign: its bundled SVG (loaded lazily per sign), its name (German names from the DE catalogue), its code in mono, move up/down buttons (or Alt+ArrowUp/ArrowDown in the row) and a remove button. A sign with a value prompt (`274[47]`) has its input in the row. Parts the catalogue does not know stay as rows ("Unknown sign") and are written back as they were.
+- Adding: the search under the rows (name, sign id, code; ranked as the d3 field ranks it). Modifiers (Zusatzzeichen) come through the same search and join the previous sign with a comma. Enter with text that matches nothing adds it as an unknown sign.
+- Every change calls `onChange` once with the whole value (undefined when no sign is left), so one change is one undo step.
+- Read-only: rows only. Several features with different values: "Multiple values", not editable.
+- Loading: the field itself is loaded with `lazy` (the plain text input shows meanwhile), and it imports only the catalogue (`@osm-traffic-signs/converter/data/<CC>`) and the SVG loaders of the module's country. The converter's main entry (all nine catalogues) is used in tests only.
+- Texts: the app's messages (`traffic_sign_*` in `packages/i18n/messages`), imported by a relative path in `src/texts.ts` because this package does not declare `@osm-editor-kit/maid-i18n`. Sign names stay German.
 
-The package's remaining host adapters (iD's combobox, tooltip, icon, `utilRebind`, `utilGetSetValue`, `utilNoAuto`, `utilTotalExtent`, `countryCoder`, `t`, `context.graph`, `context.cleanTagValue`) still have to be written for Maid. Pinning the country: `countryCoder.iso1A2Code` can return the configured country, with `utilTotalExtent` returning a non-null extent; the package then does not read the location.
-
-The fallback loads nothing from the network, so it is safe under automation.
+Next steps (docs/research/traffic-sign-field.md): the tag plan panel ("The traffic sign suggests these tags"), "No sign here" (`none`), the "Open in Traffic Sign Tool" link, drag and drop, the converter's time-restriction normalisation of `opening_hours` prompts and the converter's general redirects (the picker uses the catalogue's own redirects only).
 
 ## What the presets do
 
@@ -43,7 +45,7 @@ The fallback loads nothing from the network, so it is safe under automation.
 - The way's sign goes last among the fields, not after the width as in the fork.
 - Side fields show only when tagged or added by hand. The fork shows them when the bike lane or sidewalk exists (`prerequisiteTag` cannot express "either side").
 - No `cycleway:traffic_sign` (no side), no directions on the side keys, no crossings.
-- No tag suggestions: they come with the package, which is not mounted.
+- No tag suggestions yet (next step).
 - English labels only.
 
 ## Tests

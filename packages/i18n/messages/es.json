@@ -215,5 +215,19 @@
   "map_display_wireframe": "Alámbrico",
   "map_display_wireframe_hint": "Solo contornos, líneas finas.",
   "map_display_edits": "Resaltar los cambios",
-  "map_display_edits_hint": "Objetos creados y modificados en color."
+  "map_display_edits_hint": "Objetos creados y modificados en color.",
+  "traffic_sign_empty": "Todavía no hay señales. Busca abajo por nombre o número para añadir una.",
+  "traffic_sign_add_placeholder": "Añadir señal…",
+  "traffic_sign_search_label": "Buscar señales de tráfico",
+  "traffic_sign_no_results": "Ninguna señal coincide. Pulsa Intro para añadir el texto tal cual.",
+  "traffic_sign_more_results": "{count} más, sigue escribiendo para acotar",
+  "traffic_sign_no_sign": "Sin señal",
+  "traffic_sign_unknown": "Señal desconocida",
+  "traffic_sign_move_up": "Subir",
+  "traffic_sign_move_down": "Bajar",
+  "traffic_sign_moved": "Movida a la posición {position} de {total}",
+  "traffic_sign_remove": "Quitar",
+  "traffic_sign_remove_sign": "Quitar {sign}",
+  "traffic_sign_loading": "Cargando señales…",
+  "traffic_sign_mixed": "Varios valores"
 }

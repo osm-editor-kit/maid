@@ -12,6 +12,7 @@
 @source '../../module-surface/src';
 @source '../../module-parking/src';
 @source '../../module-traffic-signs/src';
+@source '../../traffic-sign-field/src';
 @source '../../module-turn-restrictions/src';
 @source '../../module-way-table/src';
 @source '../../module-reroute/src';

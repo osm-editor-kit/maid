@@ -215,5 +215,19 @@
   "map_display_wireframe": "Wireframe",
   "map_display_wireframe_hint": "Outlines only, thin lines.",
   "map_display_edits": "Highlight changes",
-  "map_display_edits_hint": "Created and changed features in colour."
+  "map_display_edits_hint": "Created and changed features in colour.",
+  "traffic_sign_empty": "No signs yet. Search below by name or sign ID to add one.",
+  "traffic_sign_add_placeholder": "Add sign…",
+  "traffic_sign_search_label": "Search traffic signs",
+  "traffic_sign_no_results": "No sign matches. Press Enter to add the text as it is.",
+  "traffic_sign_more_results": "{count} more, keep typing to narrow down",
+  "traffic_sign_no_sign": "No sign",
+  "traffic_sign_unknown": "Unknown sign",
+  "traffic_sign_move_up": "Move up",
+  "traffic_sign_move_down": "Move down",
+  "traffic_sign_moved": "Moved to position {position} of {total}",
+  "traffic_sign_remove": "Remove",
+  "traffic_sign_remove_sign": "Remove {sign}",
+  "traffic_sign_loading": "Loading signs…",
+  "traffic_sign_mixed": "Multiple values"
 }

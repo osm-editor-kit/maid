@@ -215,5 +215,19 @@
   "map_display_wireframe": "Fil de fer",
   "map_display_wireframe_hint": "Contours seulement, lignes fines.",
   "map_display_edits": "Mettre les modifications en évidence",
-  "map_display_edits_hint": "Objets créés et modifiés en couleur."
+  "map_display_edits_hint": "Objets créés et modifiés en couleur.",
+  "traffic_sign_empty": "Aucun panneau pour l’instant. Cherche ci-dessous par nom ou numéro pour en ajouter un.",
+  "traffic_sign_add_placeholder": "Ajouter un panneau…",
+  "traffic_sign_search_label": "Rechercher des panneaux",
+  "traffic_sign_no_results": "Aucun panneau ne correspond. Appuie sur Entrée pour ajouter le texte tel quel.",
+  "traffic_sign_more_results": "{count} de plus, continue à écrire pour affiner",
+  "traffic_sign_no_sign": "Aucun panneau",
+  "traffic_sign_unknown": "Panneau inconnu",
+  "traffic_sign_move_up": "Monter",
+  "traffic_sign_move_down": "Descendre",
+  "traffic_sign_moved": "Déplacé en position {position} sur {total}",
+  "traffic_sign_remove": "Supprimer",
+  "traffic_sign_remove_sign": "Supprimer {sign}",
+  "traffic_sign_loading": "Chargement des panneaux…",
+  "traffic_sign_mixed": "Valeurs multiples"
 }
