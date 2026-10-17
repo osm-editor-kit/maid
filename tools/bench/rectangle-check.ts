@@ -2,7 +2,7 @@ import { checkHelpers, moveToOpenGround, type XY } from './check-helpers'
 import { runCheck } from './check-page'
 /**
  * Three-click rectangle for Maid (`--app parking`): real key presses and mouse clicks on the small scene. Draws a
- * rectangle with key 4 and checks the new way (four new corners, right angles on the screen, tagged area=yes), the one
+ * rectangle with the keys 3 and 3 (33) and checks the new way (four new corners, right angles on the screen, tagged area=yes), the one
  * undo step, redo, that Escape after the second click writes nothing, the Area dropdown's "Rectangle" entry, a click
  * on an existing node that reuses its id, and a rectangle on a map turned to 30 degrees.
  *
@@ -246,8 +246,9 @@ process.exit(
     }
     const { a: a0, b: b0 } = r0
     const before = await editorState()
-    await key('4')
-    report('key 4 starts the rectangle mode', 'rectangle', (await editorState()).mode)
+    await key('3')
+    await key('3')
+    report('3 and 3 again start the rectangle mode', 'rectangle', (await editorState()).mode)
 
     const first = await drawThree(a0, b0, 60, r0.sign)
     const afterFirst = await editorState()
@@ -314,7 +315,8 @@ process.exit(
     }
     const { a: a1, b: b1 } = r1
     const beforeEscape = await editorState()
-    await key('4')
+    await key('3')
+    await key('3')
     await click(a1)
     await click(b1)
     await key('Escape')
@@ -375,7 +377,8 @@ process.exit(
     }
     const b3 = rj.b
     const previousNode = (await editorState()).selected
-    await key('4')
+    await key('3')
+    await key('3')
     await click({ x: junction.x, y: junction.y })
     await click(b3)
     await click(depthPoint({ x: junction.x, y: junction.y }, b3, 60, rj.sign))
@@ -405,7 +408,8 @@ process.exit(
     if (!r4) {
       report('find open ground on the turned map', 'a rectangle of open ground', 'none')
     } else {
-      await key('4')
+      await key('3')
+      await key('3')
       const turned = await drawThree(r4.a, r4.b, 60, r4.sign)
       report('turned map: four right angles on the screen', true, worstDeviation(turned.ring) < 0.5)
     }

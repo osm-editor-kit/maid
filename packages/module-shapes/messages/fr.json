@@ -33,7 +33,9 @@
   "rectangle_annotation": "Rectangle dessiné",
   "cut_label": "Découper",
   "cut_annotation": "Surface découpée en deux",
-  "cut_hint": "Tracez une ligne à travers la surface. Entrée termine, Retour arrière supprime le dernier point, Échap annule.",
+  "cut_title": "Découper la surface",
+  "cut_hint": "Faites glisser un point ou un milieu, ou cliquez pour déplacer l'extrémité la plus proche. Entrée découpe, Échap annule.",
+  "cut_apply": "Appliquer",
   "cut_no_outline": "Ce multipolygone n'a pas de contour à découper.",
   "cut_refusal_not_area": "Seul un chemin fermé qui est une surface peut être découpé.",
   "cut_refusal_crossings": "La ligne doit couper le contour deux fois.",
@@ -47,5 +49,10 @@
   "cut_refusal_through_hole": "La coupe traverserait un trou.",
   "cut_refusal_self_intersecting": "Le contour se coupe lui-même. Corrigez-le d'abord.",
   "cut_refusal_degenerate": "Une partie serait trop petite pour être une surface.",
-  "cut_refusal_too_many_nodes": "Le contour a trop de sommets pour être coupé (2000 au maximum)."
+  "cut_refusal_too_many_nodes": "Le contour a trop de sommets pour être coupé (2000 au maximum).",
+  "divide_whole": "Total",
+  "divide_each": "Chaque partie",
+  "divide_parts": "Parties",
+  "divide_size": "{length} × {width} m · {area} m²",
+  "divide_area_range": "{smallest} à {largest} m²"
 }

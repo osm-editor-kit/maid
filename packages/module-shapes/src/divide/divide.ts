@@ -1,7 +1,7 @@
 import { OsmNode, OsmWay } from '@osm-editor-kit/maid-model'
 import type { Action, Graph } from '@osm-editor-kit/maid-model'
 import { frameAt, toLoc, toMetres, type Loc } from '../shared/metres.ts'
-import { cross, item, sub, type Pt } from '../shared/vector.ts'
+import { cross, distance, item, sub, type Pt } from '../shared/vector.ts'
 
 export type { Loc }
 
@@ -115,6 +115,12 @@ function cornersOf(
   }
   const [la, lb, lc, ld] = [locOf(a), locOf(b), locOf(c), locOf(d)]
   if (!la || !lb || !lc || !ld) return undefined
+  // columns divide the long sides, whichever corner the way starts at: A-B is made one of the longer pair
+  const frame = frameAt([la, lb, lc, ld])
+  const [pa, pb, pc, pd] = [la, lb, lc, ld].map((loc) => toMetres(frame, loc)) as [Pt, Pt, Pt, Pt]
+  const along = distance(pa, pb) + distance(pc, pd)
+  const across = distance(pb, pc) + distance(pd, pa)
+  if (across > along) return { ids: [b, c, d, a], locs: [lb, lc, ld, la] }
   return { ids: [a, b, c, d], locs: [la, lb, lc, ld] }
 }
 

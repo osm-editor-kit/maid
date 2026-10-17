@@ -33,7 +33,9 @@
   "rectangle_annotation": "Drew a rectangle",
   "cut_label": "Cut",
   "cut_annotation": "Cut an area in two",
-  "cut_hint": "Draw a line across the area. Enter finishes, Backspace removes the last point, Escape cancels.",
+  "cut_title": "Cut area",
+  "cut_hint": "Drag a point or a midpoint, or click to move the nearest end. Enter cuts, Escape cancels.",
+  "cut_apply": "Apply",
   "cut_no_outline": "This multipolygon has no outline to cut.",
   "cut_refusal_not_area": "Only a closed way that is an area can be cut.",
   "cut_refusal_crossings": "The line must cross the outline twice.",
@@ -47,5 +49,10 @@
   "cut_refusal_through_hole": "The cut would cut through a hole.",
   "cut_refusal_self_intersecting": "The outline crosses itself. Fix it first.",
   "cut_refusal_degenerate": "A piece would be too small to be an area.",
-  "cut_refusal_too_many_nodes": "The outline has too many corners to cut (at most 2000)."
+  "cut_refusal_too_many_nodes": "The outline has too many corners to cut (at most 2000).",
+  "divide_whole": "Whole",
+  "divide_each": "Each part",
+  "divide_parts": "Parts",
+  "divide_size": "{length} × {width} m · {area} m²",
+  "divide_area_range": "{smallest} to {largest} m²"
 }

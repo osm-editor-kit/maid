@@ -33,7 +33,9 @@
   "rectangle_annotation": "Rectángulo dibujado",
   "cut_label": "Cortar",
   "cut_annotation": "Área cortada en dos",
-  "cut_hint": "Dibuja una línea a través del área. Intro termina, Retroceso quita el último punto, Escape cancela.",
+  "cut_title": "Cortar el área",
+  "cut_hint": "Arrastra un punto o un punto medio, o haz clic para mover el extremo más cercano. Intro corta, Escape cancela.",
+  "cut_apply": "Aplicar",
   "cut_no_outline": "Este multipolígono no tiene contorno que cortar.",
   "cut_refusal_not_area": "Solo se puede cortar un camino cerrado que sea un área.",
   "cut_refusal_crossings": "La línea debe cruzar el contorno dos veces.",
@@ -47,5 +49,10 @@
   "cut_refusal_through_hole": "El corte atravesaría un agujero.",
   "cut_refusal_self_intersecting": "El contorno se cruza a sí mismo. Corrígelo primero.",
   "cut_refusal_degenerate": "Una parte sería demasiado pequeña para ser un área.",
-  "cut_refusal_too_many_nodes": "El contorno tiene demasiados vértices para cortarlo (como máximo 2000)."
+  "cut_refusal_too_many_nodes": "El contorno tiene demasiados vértices para cortarlo (como máximo 2000).",
+  "divide_whole": "Total",
+  "divide_each": "Cada parte",
+  "divide_parts": "Partes",
+  "divide_size": "{length} × {width} m · {area} m²",
+  "divide_area_range": "{smallest} a {largest} m²"
 }

@@ -3,6 +3,9 @@
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import type { Feature, FeatureCollection } from 'geojson'
 import { Layer, type LayerProps, Source } from 'react-map-gl/maplibre'
+import { formatNumber } from '../messages.ts'
+import { frameAt, toMetres, type Loc } from '../shared/metres.ts'
+import { distance } from '../shared/vector.ts'
 import { useRectanglePreview } from './rectangle-store.ts'
 import type { Preview } from './state.ts'
 
@@ -33,7 +36,33 @@ const LAYERS = [
     layout: { 'line-cap': 'round' },
     paint: { 'line-color': COLOUR, 'line-width': 3 },
   } satisfies LayerProps,
+  {
+    // the length of the wall and the depth, in metres on the ground: the tool measures as it draws
+    id: 'shapes-rectangle-size',
+    type: 'symbol',
+    source: SOURCE,
+    filter: ['==', ['get', 'kind'], 'size'],
+    layout: {
+      'text-field': ['get', 'label'],
+      'text-font': ['Open Sans Semibold'],
+      'text-size': 12,
+      'text-allow-overlap': true,
+      'text-ignore-placement': true,
+    },
+    paint: { 'text-color': '#ffffff', 'text-halo-color': COLOUR, 'text-halo-width': 2 },
+  } satisfies LayerProps,
 ]
+
+/** A label at the middle of a side with its length on the ground, e.g. "5,0 m" in German */
+function sizeLabel(a: Loc, b: Loc): Feature {
+  const frame = frameAt([a, b])
+  const metres = distance(toMetres(frame, a), toMetres(frame, b))
+  return {
+    type: 'Feature',
+    properties: { kind: 'size', label: `${formatNumber(metres)} m` },
+    geometry: { type: 'Point', coordinates: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] },
+  }
+}
 
 function featuresOf(preview: Preview): FeatureCollection {
   const features: Feature[] = []
@@ -43,6 +72,8 @@ function featuresOf(preview: Preview): FeatureCollection {
       properties: { kind: 'wall' },
       geometry: { type: 'LineString', coordinates: [...preview.wall] },
     })
+    // the wall's length while it is drawn; once the rectangle has its depth, its own sides carry the labels
+    if (!preview.rectangle) features.push(sizeLabel(preview.wall[0], preview.wall[1]))
   }
   if (preview.rectangle) {
     // the ring A, B, E, D, closed back at A
@@ -52,6 +83,10 @@ function featuresOf(preview: Preview): FeatureCollection {
       properties: { kind: 'rectangle' },
       geometry: { type: 'Polygon', coordinates: [ring] },
     })
+    // the length on the wall A to B, the depth on the side B to E
+    const [a, b, e] = preview.rectangle
+    if (a && b) features.push(sizeLabel(a, b))
+    if (b && e) features.push(sizeLabel(b, e))
   }
   return { type: 'FeatureCollection', features }
 }

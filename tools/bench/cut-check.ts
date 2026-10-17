@@ -1,14 +1,17 @@
 import { checkHelpers, type XY, moveToOpenGround } from './check-helpers'
 /**
- * Cut check for Maid (`--app parking`), with real mouse and key presses: draws a four-corner area with key 3, then cuts
- * it with the edit menu's "Cut" and a line across it. A line that crosses once is refused and the mode stays on; Enter
- * on a valid line cuts the area into two closed ways with its tags, both selected, as one undo step; undo gives the
- * area back with its own nodes. A selected point has no "Cut" in the menu. Fixtures only: the area is drawn, not loaded.
+ * Cut check for Maid (`--app parking`), with real mouse and key presses. Draws a four-corner area with key 3, then the
+ * edit menu's "Cut" draws the default line across it: two points and a midpoint, both points outside the area. The line
+ * and the handles are read from the module's source data (`map.getSource('cut-preview')`), not from rendered features.
+ * Then: a press on the midpoint adds a point, which is dragged (the cut still works, the shared edge has the bend); a click
+ * beside an end moves that end; Enter cuts the area into two closed ways with its tags, as one undo step. A line that
+ * crosses the outline once is refused: the panel says why and Apply is disabled, and Enter changes nothing. Escape,
+ * and Backspace, change nothing. Fixtures only: the area is drawn, not loaded.
  *
  *   bun tools/bench/cut-check.ts [scene] --app parking
  *
  * Prints one line per check: `ok <check>`, or `FAIL <check>` with expected and actual. Exits 1 on any failure,
- * including a request outside localhost. Expected: 14 ok lines (13 checks, and the runner's request check).
+ * including a request outside localhost. Expected: 25 ok lines (24 checks, and the runner's request check).
  */
 import { app, runCheck } from './check-page'
 
@@ -22,9 +25,16 @@ if (app !== 'parking') {
 
 type Way = { nodes: string[]; tags: Record<string, string> }
 
+/** The preview as the module's source holds it: each point and midpoint with its handle name and screen position */
+type Preview = {
+  points: { handle: string; at: XY }[]
+  midpoints: { handle: string; at: XY }[]
+  pieces: number
+}
+
 process.exit(
   await runCheck(sceneName, async ({ page, report, settle }) => {
-    const { click, key, where, selection } = await checkHelpers(page, settle)
+    const { click, drag, key, near, selection, where } = await checkHelpers(page, settle)
     // beside the scene's data: open ground for the drawings of this check
     await moveToOpenGround(page, settle, sceneName)
 
@@ -40,17 +50,46 @@ process.exit(
       >
     const modeId = () =>
       page.evaluate(() => window.__maid.engine.moduleMode?.id ?? null) as Promise<string | null>
-    const statusText = () =>
-      page.evaluate(() =>
-        [...document.querySelectorAll('[role="status"]')]
-          .map((el) => el.textContent ?? '')
-          .join(' | '),
-      ) as Promise<string>
     const select = async (id: string) => {
       await page.evaluate((id) => window.__bench.select(id), id)
       await settle()
     }
     const cutItem = () => page.getByRole('menuitem', { name: 'Cut', exact: true })
+    const applyButton = () => page.getByRole('button', { name: 'Apply', exact: true })
+    const alertText = () =>
+      page.locator('[data-cut-panel] [role="alert"]').textContent() as Promise<string | null>
+    // the handles and the pieces as the map's source has them now, in screen positions
+    // MapLibre's GeoJSON source returns its data as a Promise, so the read awaits it
+    const preview = () =>
+      page.evaluate(async () => {
+        const { map } = window.__maid
+        const source = map.getSource('cut-preview') as { getData(): Promise<unknown> } | undefined
+        const data = (await source?.getData()) as
+          | {
+              features: {
+                geometry: { type: string; coordinates: any }
+                properties: { kind: string; handle?: string }
+              }[]
+            }
+          | undefined
+        if (!data) return null
+        const at = (coordinates: [number, number]) => {
+          const p = map.project(coordinates)
+          return { x: p.x, y: p.y }
+        }
+        const of = (kind: string) => data.features.filter((f) => f.properties.kind === kind)
+        return {
+          points: of('point').map((f) => ({
+            handle: f.properties.handle ?? '',
+            at: at(f.geometry.coordinates),
+          })),
+          midpoints: of('midpoint').map((f) => ({
+            handle: f.properties.handle ?? '',
+            at: at(f.geometry.coordinates),
+          })),
+          pieces: of('piece').length,
+        }
+      }) as Promise<Preview | null>
 
     // open ground for a 60 px square: no line or point within 60 px of its centre, so no corner or click snaps to one.
     // Fills and labels may be there: they are not snapped to.
@@ -79,9 +118,8 @@ process.exit(
       { x: centre.x + 30, y: centre.y + 30 },
       { x: centre.x - 30, y: centre.y + 30 },
     ]
-    // a line across the square at its middle: it crosses the left and the right edge, and nothing else
-    const left: XY = { x: centre.x - 55, y: centre.y }
-    const right: XY = { x: centre.x + 55, y: centre.y }
+    const outside = (p: XY | undefined) =>
+      !!p && (Math.abs(p.x - centre.x) > 30 || Math.abs(p.y - centre.y) > 30)
 
     // --- draw the area: 3, four corners, a click on the first closes it ---
     await key('3')
@@ -99,45 +137,73 @@ process.exit(
     const originalNodes = area.nodes
     const undoAfterDraw = await undoLabel()
 
-    // --- the edit menu offers Cut for the selected area ---
+    // --- the edit menu offers Cut; Cut draws the default line: two points, one midpoint, two pieces ---
     await select(areaId)
     await click(centre, { button: 'right' })
     const item = cutItem()
-    const offered = (await item.count()) === 1 && !(await item.isDisabled())
-    report('the edit menu offers Cut, enabled', true, offered)
+    report(
+      'the edit menu offers Cut, enabled',
+      true,
+      (await item.count()) === 1 && !(await item.isDisabled()),
+    )
     await item.click()
     await settle()
     report('Cut starts the cut mode', 'cut-area', await modeId())
 
-    // --- a line that crosses the outline once: refused, the mode stays, the status says why ---
-    await click(left)
-    await click(centre)
-    await key('Enter')
-    report('a line that crosses once: the mode stays on', 'cut-area', await modeId())
+    const first = await preview()
     report(
-      'and the status says why',
-      true,
-      (await statusText()).includes('must cross the outline twice'),
+      'the default line: two points, one midpoint between them, two pieces',
+      [2, 1, 2],
+      first ? [first.points.length, first.midpoints.length, first.pieces] : null,
     )
     report(
-      'and nothing changed: same nodes, same undo step',
-      [originalNodes, undoAfterDraw],
-      [(await read(areaId))?.nodes ?? null, await undoLabel()],
+      'the default line: both ends outside the area, through its middle',
+      [true, true, true],
+      [
+        outside(first?.points[0]?.at),
+        outside(first?.points[1]?.at),
+        near(first?.midpoints[0]?.at, centre, 3),
+      ],
     )
-    await key('Escape')
+    const headline = await page.locator('[data-cut-panel] h2').textContent()
     report(
-      'Escape leaves the mode, and nothing changed',
-      [null, originalNodes, undoAfterDraw],
-      [await modeId(), (await read(areaId))?.nodes ?? null, await undoLabel()],
+      'the panel: its headline, and Apply enabled',
+      ['Cut area', false],
+      [headline, await applyButton().isDisabled()],
     )
 
-    // --- a line across the middle: Cut, two clicks, Enter ---
-    await select(areaId)
-    await click(centre, { button: 'right' })
-    await cutItem().click()
-    await settle()
-    await click(left)
-    await click(right)
+    // --- a press on the midpoint adds a point there, and the drag moves it: a bend in the line ---
+    const midpoint = first?.midpoints[0]?.at ?? centre
+    const bend: XY = { x: centre.x + 12, y: centre.y }
+    // a hand's press, 6 px and 5 px off the midpoint's centre (the midpoint's dot is 4 px in radius)
+    await drag({ x: midpoint.x + 6, y: midpoint.y + 5 }, bend)
+    // a click within 300 ms of a drag's end is not a click for the mode, so the next click waits
+    await page.waitForTimeout(400)
+    const bent = await preview()
+    report(
+      'a midpoint drag adds a point: three points, two midpoints, two pieces',
+      [3, 2, 2],
+      bent ? [bent.points.length, bent.midpoints.length, bent.pieces] : null,
+    )
+    report('the new point is the middle one of the three', 'point:1', bent?.points[1]?.handle)
+    report('and it is where the pointer let go', true, near(bent?.points[1]?.at, bend, 3))
+
+    // --- a click beside the far end, outside the area: the nearer end moves there, the other stays ---
+    const far = bent?.points[2]?.at ?? centre
+    const start = bent?.points[0]?.at ?? centre
+    const away = { x: far.x - centre.x, y: far.y - centre.y }
+    const length = Math.hypot(away.x, away.y) || 1
+    const beside: XY = { x: far.x + (away.x / length) * 20, y: far.y + (away.y / length) * 20 }
+    await click(beside)
+    const moved = await preview()
+    report(
+      'a click beside the far end moves that end to the click',
+      true,
+      near(moved?.points[2]?.at, beside, 3),
+    )
+    report('and the other end stays where it was', true, near(moved?.points[0]?.at, start, 3))
+
+    // --- Enter: two closed ways with the tags of the area, one undo step ---
     await key('Enter')
     const selected = (await selection()).filter((id) => id.startsWith('w'))
     const newId = selected.find((id) => id !== areaId) ?? ''
@@ -152,6 +218,12 @@ process.exit(
           JSON.stringify(piece.tags) === JSON.stringify(area.tags),
       ),
     )
+    // the shared edge is the chord: its two crossings and the bend. A closed piece lists its first node twice, so the
+    // nodes are counted once each
+    const sharedNodes = [...new Set(pieces[0]?.nodes ?? [])].filter((id) =>
+      (pieces[1]?.nodes ?? []).includes(id),
+    )
+    report('cut: the two pieces share three nodes, the bend included', 3, sharedNodes.length)
     report(
       'cut: the area keeps its id, the other piece is new',
       [true, true],
@@ -166,6 +238,44 @@ process.exit(
       'undo: the area is back with its own nodes, and the other piece is gone',
       [originalNodes, null],
       [(await read(areaId))?.nodes ?? null, await read(newId)],
+    )
+
+    // --- a line that crosses the outline once: the panel says why, Apply is disabled, Enter changes nothing ---
+    await select(areaId)
+    await click(centre, { button: 'right' })
+    await cutItem().click()
+    await settle()
+    const ends = (await preview())?.points ?? []
+    // the start is dragged into the area: the line then crosses the outline once
+    await drag(ends[0]?.at ?? centre, { x: centre.x, y: centre.y - 10 })
+    report(
+      'a line that crosses once: the panel says why, and Apply is disabled',
+      [true, true],
+      [
+        (await alertText())?.includes('must cross the outline twice') ?? false,
+        await applyButton().isDisabled(),
+      ],
+    )
+    report('while it is refused the preview has no pieces', 0, (await preview())?.pieces)
+    await key('Enter')
+    report('Enter on a refused line keeps the mode', 'cut-area', await modeId())
+    report(
+      'and changes nothing: same nodes, same undo step',
+      [originalNodes, undoAfterDraw],
+      [(await read(areaId))?.nodes ?? null, await undoLabel()],
+    )
+    // Backspace is taken by the mode: it removes nothing, and the mode stays
+    await key('Backspace')
+    report(
+      'Backspace leaves the mode and the area alone',
+      ['cut-area', originalNodes],
+      [await modeId(), (await read(areaId))?.nodes ?? null],
+    )
+    await key('Escape')
+    report(
+      'Escape leaves the mode, and nothing changed',
+      [null, originalNodes, undoAfterDraw],
+      [await modeId(), (await read(areaId))?.nodes ?? null, await undoLabel()],
     )
 
     // --- a point selected: the menu opens, and Cut is not in it ---

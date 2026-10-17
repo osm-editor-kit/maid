@@ -138,11 +138,13 @@ describe('cut: the operation makes no change of its own', () => {
 
   it('starts the mode on the host it is given, and nothing for a multipolygon with no outline', () => {
     const entered: string[] = []
+    const graph = graphOf(...square())
+    // the mode reads the staging graph for the default line, as the editor's history gives it
     const host = {
       engine: { enterModuleMode: (mode: { id: string }) => entered.push(mode.id) },
-      editor: undefined,
+      editor: { history: { staging: { graph } } },
     } as unknown as OperationHost
-    cutOperation.start?.(selecting(graphOf(...square()), 'w1'), host)
+    cutOperation.start?.(selecting(graph, 'w1'), host)
     expect(entered).toEqual(['cut-area'])
     expect(cutSnapshot().wayId).toBe('w1')
     const noOutline = graphOf(

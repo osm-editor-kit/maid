@@ -21,7 +21,6 @@ export function rectangle() {
         geometry: 'area',
         label: () => m.rectangle_label(),
         icon: RectangleIcon,
-        shortcut: '4',
         start(engine: MaidEngine) {
           // a drawing or a move under way ends first, and the editor's own mode is browse while the rectangle is drawn
           engine.setMode('browse')

@@ -1,80 +1,150 @@
-// The cut on the map: the clicked line, the rubber band, the points and the chord (a GeoJSON source), and the status line.
-// It only draws what the store holds; the mode (mode.ts) changes the store and the data.
+// The cut on the map: the line with its points and midpoints, the pieces it would make (a GeoJSON source), and the panel at
+// the top centre, which is DOM inside the map as Divide's panel is. Registered on `map.content` (module.ts). It only draws
+// what the store holds; the mode (mode.ts) changes the store and the data.
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
+import { useEffect, useRef } from 'react'
 import { Layer, type LayerProps, Source } from 'react-map-gl/maplibre'
+import { m } from '../messages.ts'
+import { useCutPieces, useCutPoints, useCutRefusal, useCutWayId } from './cut-store.ts'
 import {
-  useCutChord,
-  useCutPoints,
-  useCutPointer,
-  useCutRefusal,
-  useCutWayId,
-} from './cut-store.ts'
-import { cutShapes } from './line.ts'
+  CUT_SOURCE,
+  cutShapes,
+  HANDLE_HIT_RADIUS,
+  MIDPOINT_HIT_LAYER,
+  MIDPOINT_LAYER,
+  MIDPOINT_RADIUS,
+  POINT_HIT_LAYER,
+  POINT_LAYER,
+  POINT_RADIUS,
+} from './line.ts'
+import { applyCut } from './mode.ts'
 import { hintText, refusalText } from './texts.ts'
 
-const SOURCE = 'cut-preview'
+/** Events the panel does not pass on to the map: a press on a button must not pan the map or move a point */
+const KEPT_FROM_MAP = ['mousedown', 'pointerdown', 'touchstart', 'dblclick', 'wheel'] as const
 
 /**
- * Orange and dashed while it is drawn, red and solid where it is the chord a cut makes (the same colours as the reroute's
- * old and new stretch).
+ * The line's colours: the line solid and orange; the points white with a blue ring, as the map's active vertices; the
+ * midpoints smaller and semi-transparent, so they read as the places a point can be added; the pieces blue, dashed and
+ * lightly filled (as Divide's preview).
  */
 const LAYERS = [
   {
-    id: 'cut-drawn',
+    id: 'cut-piece-fill',
+    type: 'fill',
+    source: CUT_SOURCE,
+    filter: ['==', ['get', 'kind'], 'piece'],
+    paint: { 'fill-color': '#93c5fd', 'fill-opacity': 0.3 },
+  } satisfies LayerProps,
+  {
+    id: 'cut-piece-line',
     type: 'line',
-    source: SOURCE,
-    filter: ['==', ['get', 'kind'], 'drawn'],
+    source: CUT_SOURCE,
+    filter: ['==', ['get', 'kind'], 'piece'],
+    paint: { 'line-color': '#2563eb', 'line-width': 2, 'line-dasharray': [2, 2] },
+  } satisfies LayerProps,
+  {
+    id: 'cut-line',
+    type: 'line',
+    source: CUT_SOURCE,
+    filter: ['==', ['get', 'kind'], 'line'],
     layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': '#ea580c', 'line-width': 3, 'line-dasharray': [2, 2] },
+    paint: { 'line-color': '#ea580c', 'line-width': 3 },
   } satisfies LayerProps,
   {
-    id: 'cut-band',
-    type: 'line',
-    source: SOURCE,
-    filter: ['==', ['get', 'kind'], 'band'],
-    paint: { 'line-color': '#ea580c', 'line-width': 2, 'line-dasharray': [1, 2] },
-  } satisfies LayerProps,
-  {
-    id: 'cut-chord',
-    type: 'line',
-    source: SOURCE,
-    filter: ['==', ['get', 'kind'], 'chord'],
-    layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': '#dc2626', 'line-width': 4 },
-  } satisfies LayerProps,
-  {
-    id: 'cut-point',
+    id: MIDPOINT_LAYER,
     type: 'circle',
-    source: SOURCE,
+    source: CUT_SOURCE,
+    filter: ['==', ['get', 'kind'], 'midpoint'],
+    paint: {
+      'circle-radius': MIDPOINT_RADIUS,
+      'circle-color': '#ffffff',
+      'circle-opacity': 0.6,
+      'circle-stroke-color': '#2563eb',
+      'circle-stroke-opacity': 0.6,
+      'circle-stroke-width': 1.5,
+    },
+  } satisfies LayerProps,
+  {
+    id: POINT_LAYER,
+    type: 'circle',
+    source: CUT_SOURCE,
     filter: ['==', ['get', 'kind'], 'point'],
     paint: {
-      'circle-radius': 4,
+      'circle-radius': POINT_RADIUS,
       'circle-color': '#ffffff',
-      'circle-stroke-color': '#ea580c',
-      'circle-stroke-width': 2,
+      'circle-stroke-color': '#2563eb',
+      'circle-stroke-width': 2.5,
     },
+  } satisfies LayerProps,
+  // the hit areas: invisible, wider than the dots, and last so that a point is taken before a midpoint under it
+  {
+    id: MIDPOINT_HIT_LAYER,
+    type: 'circle',
+    source: CUT_SOURCE,
+    filter: ['==', ['get', 'kind'], 'midpoint'],
+    paint: { 'circle-radius': HANDLE_HIT_RADIUS, 'circle-opacity': 0 },
+  } satisfies LayerProps,
+  {
+    id: POINT_HIT_LAYER,
+    type: 'circle',
+    source: CUT_SOURCE,
+    filter: ['==', ['get', 'kind'], 'point'],
+    paint: { 'circle-radius': HANDLE_HIT_RADIUS, 'circle-opacity': 0 },
   } satisfies LayerProps,
 ]
 
-export function CutOnMap(_props: MapContentProps) {
+export function CutOnMap({ editor, engine }: MapContentProps) {
   const wayId = useCutWayId()
   const points = useCutPoints()
-  const pointer = useCutPointer()
-  const chord = useCutChord()
+  const pieces = useCutPieces()
   const refusal = useCutRefusal()
-  if (wayId === undefined) return null
-  const shapes = cutShapes(points, pointer, chord)
+  const open = wayId !== undefined && points !== undefined && engine !== undefined
+
+  const panel = useRef<HTMLDivElement>(null)
+  useEffect(
+    function keepPanelEvents() {
+      const element = panel.current
+      if (!open || !element) return
+      const keep = (event: Event) => event.stopPropagation()
+      for (const type of KEPT_FROM_MAP) element.addEventListener(type, keep)
+      return () => {
+        for (const type of KEPT_FROM_MAP) element.removeEventListener(type, keep)
+      }
+    },
+    [open],
+  )
+
+  if (!open || wayId === undefined || points === undefined || !engine) return null
   return (
     <>
-      <Source id={SOURCE} type="geojson" data={shapes} />
+      <Source id={CUT_SOURCE} type="geojson" data={cutShapes(points, pieces)} />
       {LAYERS.map((layer) => (
         <Layer key={layer.id} {...layer} />
       ))}
       <div
-        role="status"
-        className="pointer-events-none absolute top-3 left-1/2 z-30 max-w-[90%] -translate-x-1/2 rounded-full bg-white px-3 py-1 text-xs font-medium text-zinc-800 shadow ring-1 ring-zinc-950/10 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-white/10"
+        ref={panel}
+        data-cut-panel
+        className="pointer-events-auto absolute top-3 left-1/2 z-30 w-72 -translate-x-1/2 rounded-xl bg-white p-3 text-sm text-zinc-800 shadow-lg ring-1 ring-zinc-950/10 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-white/10"
       >
-        {refusal ? refusalText(refusal) : hintText()}
+        <h2 className="font-medium">{m.cut_title()}</h2>
+        {refusal ? (
+          <p role="alert" className="mt-2 text-amber-700 dark:text-amber-400">
+            {refusalText(refusal)}
+          </p>
+        ) : (
+          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{hintText()}</p>
+        )}
+        <div className="mt-3 flex justify-end">
+          <button
+            type="button"
+            disabled={refusal !== undefined}
+            onClick={() => applyCut({ editor, engine }, wayId)}
+            className="cursor-pointer rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-blue-600"
+          >
+            {m.cut_apply()}
+          </button>
+        </div>
       </div>
     </>
   )

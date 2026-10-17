@@ -1,14 +1,16 @@
 import { afterEach, describe, expect, it } from 'bun:test'
 import type { Editor } from '@osm-editor-kit/maid-core'
-import type { Graph, OsmWay } from '@osm-editor-kit/maid-model'
+import type { Graph, OsmNode, OsmWay } from '@osm-editor-kit/maid-model'
 import type { OperationHost } from '@osm-editor-kit/maid-operations'
 import type { MaidEngine, ModuleMode, ModuleModeInfo } from '@osm-editor-kit/maid-renderer'
 import { m } from '../messages.ts'
 import { cutActions, cutSnapshot } from './cut-store.ts'
-import { MODE_ID, startCut } from './mode.ts'
+import type { Loc } from './cut.ts'
+import { HANDLE_HIT_LAYERS } from './line.ts'
+import { applyCut, MODE_ID, startCut } from './mode.ts'
 import { at, graphOf, square } from './test-graph.ts'
 
-/** The pointer at a place on the screen, without a snap: what the engine passes to a mode's callbacks */
+/** The pointer at a place on the screen: what the engine passes to a mode's callbacks, without a snap */
 const info: ModuleModeInfo = {
   point: { x: 0, y: 0 },
   modifiers: { shift: false, alt: false, ctrl: false, meta: false },
@@ -62,17 +64,35 @@ function harness(graph: Graph) {
   return { state, editor, engine, host }
 }
 
-/** Starts the cut of w1 on a harness and returns the mode as the engine has it */
+/** Starts the cut of w1 on a harness (a 10 m square) and returns the mode as the engine has it */
 function begin(graph = graphOf(...square())) {
   const h = harness(graph)
   startCut(h.host, 'w1')
   return { ...h, mode: h.state.mode as ModuleMode }
 }
 
-/** A click on the metre position (x, y), as the engine calls the mode with it */
+/** The mode's callbacks take longitude and latitude: this gives the position of a metre point, from the test origin */
+const loc = (x: number, y: number) => at(x, y)
+
+/** Two positions are the same place: within a few micrometres */
+function expectSamePlace(actual: Loc | undefined, expected: Loc) {
+  expect(actual?.[0]).toBeCloseTo(expected[0], 9)
+  expect(actual?.[1]).toBeCloseTo(expected[1], 9)
+}
+
+/** A click on the metre position (x, y) */
 function click(mode: ModuleMode, x: number, y: number) {
-  const [lon, lat] = at(x, y)
+  const [lon, lat] = loc(x, y)
   mode.onClick?.(lon, lat, info)
+}
+
+/** A press on a handle, a drag to (x, y) and back to that place: what the engine sends for a drag */
+function drag(mode: ModuleMode, name: string, from: [number, number], to: [number, number]) {
+  const [fLon, fLat] = loc(...from)
+  mode.onDragStart?.(name, fLon, fLat)
+  const [lon, lat] = loc(...to)
+  mode.onDrag?.(name, lon, lat)
+  mode.onDragEnd?.(name, lon, lat)
 }
 
 // each test starts with no cut under way
@@ -80,61 +100,135 @@ afterEach(() => {
   cutActions().end()
 })
 
-describe('cut mode: the line is drawn by clicks', () => {
-  it('starts with nothing clicked, and says how to finish, and the way is the one cut', () => {
-    begin()
+describe('cut mode: the default line', () => {
+  it('starts with the default line: two points through the centre, both outside, and two pieces', () => {
+    const { state } = begin()
     expect(cutSnapshot().wayId).toBe('w1')
-    expect(cutSnapshot().points).toEqual([])
+    const points = cutSnapshot().points!
+    expect(points).toHaveLength(2)
+    // the square is 10 m: the line runs down x = 5, from y = -3 to y = 13
+    expectSamePlace(points[0], loc(5, -3))
+    expectSamePlace(points[1], loc(5, 13))
+    expect(cutSnapshot().pieces).toHaveLength(2)
     expect(cutSnapshot().refusal).toBeUndefined()
+    expect(state.commits).toHaveLength(0)
   })
 
-  it('a second cut starts with its own way: the mode is entered before the store begins', () => {
+  it('a second cut replaces the first: the mode is entered before the store begins', () => {
     const h = harness(graphOf(...square()))
     startCut(h.host, 'w1')
-    startCut(h.host, 'w2')
-    expect(cutSnapshot().wayId).toBe('w2')
+    startCut(h.host, 'w1')
+    expect(cutSnapshot().wayId).toBe('w1')
     expect(h.state.mode?.id).toBe(MODE_ID)
   })
 
-  it('takes a click at the place of the node it snaps to', () => {
-    const { mode } = begin()
-    const [lon, lat] = at(10, 5)
-    const snapped = { type: 'node' as const, id: 'n1', loc: [lon, lat] as [number, number] }
-    mode.onClick?.(13.4, 52.5, { ...info, target: snapped })
-    expect(cutSnapshot().points).toEqual([[lon, lat]])
-  })
-
-  it('a move only moves the pointer: the rubber band, not a point', () => {
-    const { mode } = begin()
-    const [lon, lat] = at(3, 3)
-    mode.onMove?.(lon, lat, info)
-    expect(cutSnapshot().pointer).toEqual([lon, lat])
-    expect(cutSnapshot().points).toEqual([])
-  })
-
-  it('shows no reason for one point, and the chord for a line that crosses twice', () => {
-    const { mode } = begin()
-    click(mode, -5, 5)
-    expect(cutSnapshot().refusal).toBeUndefined()
-    click(mode, 15, 5)
-    expect(cutSnapshot().refusal).toBeUndefined()
-    expect(cutSnapshot().chord?.length).toBe(2)
-  })
-
-  it('shows why a line that crosses once is refused, as the mode goes on', () => {
-    const { mode } = begin()
-    click(mode, -5, 5)
-    click(mode, 5, 5)
-    expect(cutSnapshot().refusal).toBe('crossings')
-    expect(cutSnapshot().chord).toBeUndefined()
+  it('starts nothing for something that is not a way with an outline', () => {
+    const h = harness(graphOf(...square()))
+    startCut(h.host, 'n0')
+    expect(h.state.mode).toBeUndefined()
+    expect(cutSnapshot().wayId).toBeUndefined()
   })
 })
 
-describe('cut mode: Enter, Backspace and Escape', () => {
+describe('cut mode: a click moves the nearer end', () => {
+  it('moves the end nearer to the click, and leaves the other end where it is', () => {
+    const { mode } = begin()
+    click(mode, 5, 20)
+    const points = cutSnapshot().points!
+    expect(points).toHaveLength(2)
+    expectSamePlace(points[0], loc(5, -3))
+    expectSamePlace(points[1], loc(5, 20))
+  })
+
+  it('moves the start when the click is nearer to it', () => {
+    const { mode } = begin()
+    click(mode, 6, -10)
+    expectSamePlace(cutSnapshot().points![0], loc(6, -10))
+  })
+
+  it('a click that leaves the line crossing once is refused, and the refusal is shown', () => {
+    const { mode } = begin()
+    // the end moved to the middle of the square: the line crosses the top edge once
+    click(mode, 5, 4)
+    expect(cutSnapshot().refusal).toBe('crossings')
+    expect(cutSnapshot().pieces).toBeUndefined()
+  })
+})
+
+describe('cut mode: a press on a handle takes its hit area', () => {
+  it('the mode asks the engine for the handles by their hit layers, not the dots', () => {
+    const { mode } = begin()
+    expect(mode.handleLayers).toEqual([...HANDLE_HIT_LAYERS])
+  })
+})
+
+describe('cut mode: a drag moves a point', () => {
+  it('a press on a point and a drag moves that point, and the preview follows', () => {
+    const { mode } = begin()
+    drag(mode, 'point:0', [5, -3], [3, -6])
+    const points = cutSnapshot().points!
+    expect(points).toHaveLength(2)
+    expectSamePlace(points[0], loc(3, -6))
+    expect(cutSnapshot().pieces).toHaveLength(2)
+  })
+})
+
+describe('cut mode: a press on a midpoint adds a point there', () => {
+  it('a midpoint press inserts a point at the midpoint, and the drag moves that point', () => {
+    const { mode } = begin()
+    const [lon, lat] = loc(5, 5)
+    mode.onDragStart?.('midpoint:0', lon, lat)
+    // a third point, where the midpoint was: it is the one dragged
+    expect(cutSnapshot().points).toHaveLength(3)
+    expectSamePlace(cutSnapshot().points![1], loc(5, 5))
+    const [to, toLat] = loc(6, 5)
+    mode.onDrag?.('midpoint:0', to, toLat)
+    mode.onDragEnd?.('midpoint:0', to, toLat)
+    const points = cutSnapshot().points!
+    expect(points).toHaveLength(3)
+    expectSamePlace(points[0], loc(5, -3))
+    expectSamePlace(points[1], loc(6, 5))
+    expectSamePlace(points[2], loc(5, 13))
+  })
+
+  it('a bent line cuts the way in two: both pieces share the bend, as the chord has three nodes', () => {
+    const { mode, state } = begin()
+    drag(mode, 'midpoint:0', [5, 5], [6, 5])
+    expect(mode.onKey?.('Enter')).toBe(true)
+    expect(state.commits).toHaveLength(1)
+    const pieces = state.commits[0]!.selectedIDs
+    expect(pieces).toHaveLength(2)
+    const nodesOf = (id: string) => (state.graph.entity(id) as OsmWay).nodes.slice(0, -1)
+    const shared = nodesOf(pieces[0]!).filter((id) => nodesOf(pieces[1]!).includes(id))
+    // two crossings of the edges, and the bend
+    expect(shared).toHaveLength(3)
+    const bend = shared.map((id) => (state.graph.entity(id) as OsmNode).loc)
+    expect(bend.some((p) => p !== undefined && Math.abs(p[0] - loc(6, 5)[0]) < 1e-9)).toBe(true)
+    for (const id of pieces) {
+      const piece = state.graph.entity(id) as OsmWay
+      expect(piece.nodes[0]).toBe(piece.nodes[piece.nodes.length - 1])
+      expect(piece.tags).toEqual({ building: 'yes' })
+    }
+  })
+
+  it('a point dragged into the area so the line crosses once is refused: nothing is changed', () => {
+    const { mode, state } = begin()
+    drag(mode, 'midpoint:0', [5, 5], [5, 5])
+    drag(mode, 'point:0', [5, -3], [5, 4])
+    expect(cutSnapshot().points).toHaveLength(3)
+    expect(cutSnapshot().refusal).toBe('crossings')
+    const before = state.graph
+    expect(mode.onKey?.('Enter')).toBe(true)
+    expect(state.commits).toHaveLength(0)
+    expect(state.graph).toBe(before)
+    expect(state.mode).toBe(mode)
+    expect(cutSnapshot().refusal).toBe('crossings')
+  })
+})
+
+describe('cut mode: Enter, Backspace, Escape and Apply', () => {
   it('Enter cuts along the points as one undo step, selects both pieces and ends the mode', () => {
     const { mode, state } = begin()
-    click(mode, -5, 5)
-    click(mode, 15, 5)
     expect(mode.onKey?.('Enter')).toBe(true)
     expect(state.commits).toHaveLength(1)
     expect(state.commits[0]?.annotation).toBe(m.cut_annotation())
@@ -152,36 +246,37 @@ describe('cut mode: Enter, Backspace and Escape', () => {
     }
   })
 
-  it('Enter on a line that cannot be cut keeps the mode and says why; nothing is written', () => {
-    const { mode, state } = begin()
-    const before = state.graph
-    click(mode, -5, 5)
-    click(mode, 5, 5)
-    expect(mode.onKey?.('Enter')).toBe(true)
-    expect(state.mode).toBe(mode)
-    expect(state.commits).toHaveLength(0)
-    expect(state.graph).toBe(before)
-    expect(cutSnapshot().refusal).toBe('crossings')
+  it('Apply in the panel cuts the same way as Enter', () => {
+    const { host, state } = begin()
+    applyCut(host, 'w1')
+    expect(state.commits).toHaveLength(1)
+    expect(state.commits[0]!.selectedIDs).toHaveLength(2)
+    expect(state.mode).toBeUndefined()
   })
 
-  it('Backspace removes the last point, and is taken even with no point to remove', () => {
-    const { mode } = begin()
+  it('applying for another way than the one under way does nothing', () => {
+    const { host, state, mode } = begin()
+    applyCut(host, 'w2')
+    expect(state.commits).toHaveLength(0)
+    expect(state.mode).toBe(mode)
+  })
+
+  it('Backspace is taken and does nothing: the editor does not delete the way being cut', () => {
+    const { mode, state } = begin()
+    const before = cutSnapshot().points
     expect(mode.onKey?.('Backspace')).toBe(true)
-    click(mode, -5, 5)
-    click(mode, 15, 5)
-    expect(mode.onKey?.('Backspace')).toBe(true)
-    expect(cutSnapshot().points).toHaveLength(1)
-    expect(cutSnapshot().chord).toBeUndefined()
+    expect(cutSnapshot().points).toBe(before)
+    expect(state.commits).toHaveLength(0)
+    expect(state.mode).toBe(mode)
   })
 
   it('Escape ends the mode with nothing changed: the engine calls onExit, which clears the cut', () => {
     const { mode, state, engine } = begin()
-    click(mode, -5, 5)
-    click(mode, 15, 5)
+    click(mode, 5, 20)
     engine.exitModuleMode(MODE_ID)
     expect(state.commits).toHaveLength(0)
     expect(state.announced).toHaveLength(0)
     expect(cutSnapshot().wayId).toBeUndefined()
-    expect(cutSnapshot().points).toEqual([])
+    expect(cutSnapshot().points).toBeUndefined()
   })
 })

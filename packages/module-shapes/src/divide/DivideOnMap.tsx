@@ -8,7 +8,7 @@ import { INPUT_CLASS, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import type { Feature, FeatureCollection, LineString } from 'geojson'
 import { useEffect, useReducer, useRef, useSyncExternalStore } from 'react'
 import { Layer, Source } from 'react-map-gl/maplibre'
-import { m } from '../messages.ts'
+import { formatNumber, m } from '../messages.ts'
 import {
   divideActions,
   useDivideColumns,
@@ -18,6 +18,7 @@ import {
 } from './divide-store.ts'
 import { cornersOfWay, divideCells, type Corners } from './divide.ts'
 import { largestFor, refusalText, stepOfKey, type Division } from './division.ts'
+import { divisionSizes, type Size } from './measure.ts'
 import { confirmDivision, DIVIDE_MODE_ID } from './mode.ts'
 
 const SOURCE = 'divide-preview'
@@ -154,6 +155,8 @@ export function DivideOnMap({ editor, engine }: MapContentProps) {
               {...PLAIN_INPUT}
               type="number"
               min={1}
+              // the panel opens with the columns field focused: type a number or use the arrows, then Enter
+              autoFocus
               max={largestFor('columns', division)}
               step={1}
               value={columns}
@@ -180,6 +183,7 @@ export function DivideOnMap({ editor, engine }: MapContentProps) {
         <p className="mt-2 font-medium">
           {count === 1 ? m.divide_count_one() : m.divide_count({ count })}
         </p>
+        {corners && <Sizes corners={corners} columns={columns} rows={rows} />}
         {refusal && (
           <p role="alert" className="mt-2 text-amber-700 dark:text-amber-400">
             {refusalText(refusal)}
@@ -197,12 +201,45 @@ export function DivideOnMap({ editor, engine }: MapContentProps) {
           <button
             type="button"
             onClick={() => confirmDivision({ editor, engine })}
-            className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="cursor-pointer rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
           >
             {m.divide_apply()}
           </button>
         </div>
       </div>
     </>
+  )
+}
+
+/** Length × width and area of a shape, in the app's language */
+function sizeText(size: Size) {
+  return m.divide_size({
+    length: formatNumber(size.length),
+    width: formatNumber(size.width),
+    area: formatNumber(size.area),
+  })
+}
+
+/**
+ * The size of the whole and of each part. Parts of a rectangle or a parallelogram are all alike; parts of a trapezoid
+ * differ, and then their areas are shown as a range.
+ */
+function Sizes({ corners, columns, rows }: { corners: Corners; columns: number; rows: number }) {
+  const { whole, smallest, largest } = divisionSizes(corners, columns, rows)
+  const alike = largest.area - smallest.area <= largest.area * 0.01
+  return (
+    <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-2 text-xs text-zinc-600 tabular-nums dark:text-zinc-300">
+      <dt>{m.divide_whole()}</dt>
+      <dd>{sizeText(whole)}</dd>
+      <dt>{alike ? m.divide_each() : m.divide_parts()}</dt>
+      <dd>
+        {alike
+          ? sizeText(largest)
+          : m.divide_area_range({
+              smallest: formatNumber(smallest.area),
+              largest: formatNumber(largest.area),
+            })}
+      </dd>
+    </dl>
   )
 }
