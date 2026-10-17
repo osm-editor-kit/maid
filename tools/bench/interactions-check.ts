@@ -30,7 +30,13 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
           [p.x - r, p.y - r],
           [p.x + r, p.y + r],
         ])
-        .every((f: any) => f.layer.type === 'fill' || ownIds.includes(String(f.id)))
+        .every(
+          (f: any) =>
+            // the focus glow of an open relation draws nothing without a focus, but MapLibre still finds its wide lines
+            f.layer.type === 'fill' ||
+            f.layer.id.startsWith('focus-') ||
+            ownIds.includes(String(f.id)),
+        )
     const buildings: { id: string; edge: XY; corner: string; nodes: string[] }[] = []
     let point: { id: string; at: XY } | undefined
     let road: { id: string; mid: XY } | undefined
@@ -1204,7 +1210,13 @@ failed += await runCheck(
             [p.x - r, p.y - r],
             [p.x + r, p.y + r],
           ])
-          .every((f: any) => f.layer.type === 'fill' || ownIds.includes(String(f.id)))
+          .every(
+            (f: any) =>
+              // the focus glow of an open relation draws nothing without a focus, but MapLibre still finds its wide lines
+              f.layer.type === 'fill' ||
+              f.layer.id.startsWith('focus-') ||
+              ownIds.includes(String(f.id)),
+          )
       const buildings: { id: string; nodes: string[]; corner: string; edge: P }[] = []
       let road: { id: string; mid: P } | undefined
       let point: { id: string; at: P } | undefined
@@ -1833,7 +1845,13 @@ failed += await runCheck(
             [p.x - r, p.y - r],
             [p.x + r, p.y + r],
           ])
-          .every((f: any) => f.layer.type === 'fill' || ownIds.includes(String(f.id)))
+          .every(
+            (f: any) =>
+              // the focus glow of an open relation draws nothing without a focus, but MapLibre still finds its wide lines
+              f.layer.type === 'fill' ||
+              f.layer.id.startsWith('focus-') ||
+              ownIds.includes(String(f.id)),
+          )
       let road: string | undefined
       let building: { id: string; at: XY } | undefined
       for (const f of map.queryRenderedFeatures()) {

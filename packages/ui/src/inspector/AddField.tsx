@@ -7,7 +7,7 @@ import { PLAIN_INPUT } from '../plain-input.ts'
 import { toolButtonClass } from '../Toolbar.tsx'
 import { rowKey, searchFields, sharedLabelIds } from './add-field-logic.ts'
 import { HINT } from './fields/shared.ts'
-import { EMPTY_NOTE, keepFocus, listboxMove, revealRow, ROW_ACTIVE } from './listbox.ts'
+import { EMPTY_NOTE, keepFocus, listboxMove, listRow, revealRow } from './listbox.ts'
 import { SearchField } from './SearchField.tsx'
 
 /**
@@ -140,9 +140,7 @@ export function AddField(props: { fields: readonly Field[]; onPick: (field: Fiel
                 role="option"
                 aria-selected={index === active}
                 onClick={() => pick(field)}
-                className={`flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 ${
-                  index === active ? ROW_ACTIVE : ''
-                }`}
+                className={`flex h-8 cursor-pointer items-center gap-2 px-2 ${listRow({ active: index === active })}`}
               >
                 <span className="min-w-0 flex-1 truncate">{field.label}</span>
                 {sharedLabels.has(field.id) ? (

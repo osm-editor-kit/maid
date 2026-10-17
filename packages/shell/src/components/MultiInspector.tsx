@@ -4,6 +4,7 @@ import type { CombinedTags } from '@osm-editor-kit/maid-model'
 import type { Field } from '@osm-editor-kit/maid-presets'
 import type { EntityInfo, MaidEngine } from '@osm-editor-kit/maid-renderer'
 import {
+  CopyTagsButton,
   InspectorSections,
   lazyComponent,
   notify,
@@ -211,8 +212,14 @@ export function MultiInspector({
               />
             </SidebarDisclosure>
           )}
-          <SidebarDisclosure title="Tags" detail={Object.keys(derived.combined).length} defaultOpen>
+          <SidebarDisclosure
+            title="Tags"
+            detail={Object.keys(derived.combined).length}
+            defaultOpen
+            actions={<CopyTagsButton combined={derived.combined} />}
+          >
             <TagSheet
+              copyButton={false}
               label="Tags"
               combined={derived.combined}
               featureKey={selectionKey}

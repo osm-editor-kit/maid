@@ -118,11 +118,11 @@ process.exit(
         }, member.wayId)
       await page.evaluate((id) => window.__bench.select(id), member.wayId)
       // the "Relations" group starts folded: its rows exist only once it is open
-      const group = page.locator('details', {
-        has: page.locator('summary', { hasText: 'Relations' }),
+      const toggle = page.locator('[data-stack-heading] button[aria-controls]', {
+        hasText: 'Relations',
       })
-      if ((await group.first().getAttribute('open')) === null)
-        await group.first().locator('summary').click()
+      if ((await toggle.first().getAttribute('aria-expanded')) !== 'true')
+        await toggle.first().click()
       const remove = page.getByRole('button', { name: `Remove from ${member.relationId}` })
       report('sidebar: the membership is listed with a remove button', 1, await remove.count())
       await remove.first().click()

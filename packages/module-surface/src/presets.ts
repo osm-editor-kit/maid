@@ -20,7 +20,7 @@ type SurfacePresetEdit = NonNullable<PresetChanges['presetEdits']>[string]
 /** The field both tags are written by. `keys` lists them; there is no single `key`. */
 export const SURFACE_SMOOTHNESS_FIELD: SurfaceField = {
   type: SURFACE_SMOOTHNESS_FIELD_TYPE,
-  label: 'Surface and smoothness',
+  label: 'Surface and Smoothness',
   keys: ['surface', 'smoothness'],
   geometry: ['line'],
 }

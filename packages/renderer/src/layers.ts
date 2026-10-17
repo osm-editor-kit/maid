@@ -141,6 +141,10 @@ function lowZoomThreshold(lat: number) {
 }
 
 const HOVER = '#f6634f'
+/** The relation column's colour (the focus glow of a relation open beside the inspector) */
+const FOCUS = '#7c3aed'
+/** The focus glow is this many times the halo width (the `related` halo is 1x) */
+const FOCUS_GLOW = 2.2
 /**
  * MapLibre zoom from which points are pins (OSM zoom 19); below it they are dots. Chosen on the dense scene: at OSM
  * zoom 17 all its pins cover the map. It is an integer on purpose: MapLibre lays a layer out from floor(minzoom), so a
@@ -402,6 +406,47 @@ function buildMainLayers(options: LayerOptions) {
     },
   )
 
+  // --- Focus: the relation open beside the inspector (engine.setFocus) ---
+  // A stronger, blurred violet glow under its members: wider and more opaque than `related`, and only
+  // where the `focus` state is set (0 everywhere else, so the layers cost nothing for other features).
+  // The width is the halo width times FOCUS_GLOW, by zoom as byZoom does it. Each layer gets its
+  // `--edit` and `--select` twins from buildLayers, like the halos above.
+  const focusOpacity: ExpressionSpecification = [
+    'case',
+    ['boolean', ['feature-state', 'focus'], false],
+    0.55,
+    0,
+  ]
+  const glowByZoom = (scale: number): ExpressionSpecification => [
+    'step', ['zoom'], ['*', scale, ['get', 'hwl']], low, ['*', scale, ['get', 'hw']],
+  ] // prettier-ignore
+  layers.push(
+    {
+      id: 'focus-halo-areas',
+      type: 'line',
+      source: SOURCES.areas,
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': FOCUS,
+        'line-width': ['*', FOCUS_GLOW, ['get', 'hw']],
+        'line-blur': 2,
+        'line-opacity': focusOpacity,
+      },
+    },
+    {
+      id: 'focus-halo',
+      type: 'line',
+      source: SOURCES.lines,
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': FOCUS,
+        'line-width': glowByZoom(FOCUS_GLOW),
+        'line-blur': 2,
+        'line-opacity': focusOpacity,
+      },
+    },
+  )
+
   // The edits highlight: a halo under each edited line and area, in the colour of its edit (EDIT_COLOUR)
   layers.push(
     {
@@ -541,6 +586,18 @@ function buildMainLayers(options: LayerOptions) {
         'circle-radius': ['step', ['zoom'], 6, 16, ['case', hasIcon, 12, 8]],
         'circle-color': HOVER,
         'circle-opacity': opacity,
+      },
+    },
+    // the focus glow of a relation open beside the inspector (see the focus layers above)
+    {
+      id: 'focus-halo-vertex',
+      type: 'circle',
+      source: SOURCES.vertices,
+      paint: {
+        'circle-radius': ['step', ['zoom'], 9, 16, ['case', hasIcon, 18, 12]],
+        'circle-color': FOCUS,
+        'circle-blur': 0.6,
+        'circle-opacity': focusOpacity,
       },
     },
     {
@@ -758,6 +815,17 @@ function buildMainLayers(options: LayerOptions) {
     paint: { 'circle-radius': 9, 'circle-color': HOVER, 'circle-opacity': opacity },
   })
   layers.push({
+    id: 'focus-halo-points',
+    type: 'circle',
+    source: SOURCES.points,
+    paint: {
+      'circle-radius': 16,
+      'circle-color': FOCUS,
+      'circle-blur': 0.6,
+      'circle-opacity': focusOpacity,
+    },
+  })
+  layers.push({
     id: 'edit-halo-points',
     type: 'circle',
     source: SOURCES.points,
@@ -869,6 +937,20 @@ function buildMainLayers(options: LayerOptions) {
         'circle-blur': 0.4,
         'circle-color': HOVER,
         'circle-opacity': opacity,
+      },
+    })
+    // the focus glow behind a pin's head, as highlight-halo-pin (a point of the relation that is drawn as a pin)
+    layers.push({
+      id: 'focus-halo-pin',
+      type: 'circle',
+      source: SOURCES.points,
+      filter: ['!', ['has', 'addr']],
+      paint: {
+        'circle-radius': 22,
+        'circle-translate': [0, -15],
+        'circle-blur': 0.5,
+        'circle-color': FOCUS,
+        'circle-opacity': focusOpacity,
       },
     })
     layers.push({

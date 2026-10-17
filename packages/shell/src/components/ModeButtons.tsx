@@ -6,6 +6,10 @@ import {
   AreaIcon,
   Flyout,
   LineIcon,
+  ROW_BASE,
+  ROW_CURRENT,
+  ROW_FOCUS,
+  ROW_HOVER,
   ToolButton,
   ToolGroup,
   toolButtonClass,
@@ -187,9 +191,9 @@ function AreaToolsMenu(props: {
 
 /**
  * One choice of the area dropdown, in the look of the Tailwind Plus dropdown items: an icon, its name,
- * and its key on the right. Hover and keyboard focus share one blue background (white text and icon on
- * it), and the focus outline is left out, since the background already shows where the focus is. The
- * choice under way is marked by a check and a semibold name, so it reads as current without the blue.
+ * and its key on the right. The row follows the shared list-row look (`listbox.ts` in maid-ui): a grey
+ * hover, a ring and grey on keyboard focus, and the choice under way (current) in the blue background
+ * with a check and a semibold name.
  */
 function MenuRow(props: {
   icon?: ReactNode
@@ -205,20 +209,18 @@ function MenuRow(props: {
       role="menuitem"
       aria-current={pressed || undefined}
       onClick={onClick}
-      className={`group flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-left text-base/6 text-zinc-950 hover:bg-blue-500 hover:text-white focus-visible:bg-blue-500 focus-visible:text-white focus-visible:outline-none sm:px-3 sm:py-1.5 sm:text-sm/6 dark:text-white ${pressed ? 'font-semibold' : ''}`}
+      className={`flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2.5 text-left text-base/6 text-zinc-950 sm:px-3 sm:py-1.5 sm:text-sm/6 dark:text-white ${ROW_BASE} ${ROW_FOCUS} ${pressed ? `${ROW_CURRENT} font-semibold` : ROW_HOVER}`}
     >
       <span
         aria-hidden="true"
-        className="-ml-0.5 inline-flex size-5 shrink-0 items-center justify-center text-zinc-500 group-hover:text-white group-focus-visible:text-white sm:size-4 dark:text-zinc-400 [&>svg]:size-5 sm:[&>svg]:size-4"
+        className="-ml-0.5 inline-flex size-5 shrink-0 items-center justify-center text-zinc-500 sm:size-4 dark:text-zinc-400 [&>svg]:size-5 sm:[&>svg]:size-4"
       >
         {icon}
       </span>
       <span className="min-w-0 flex-1">{label}</span>
       {pressed && <CheckIcon aria-hidden="true" className="size-5 shrink-0 sm:size-4" />}
       {shortcut && (
-        <kbd className="font-sans text-xs text-zinc-500 group-hover:text-white group-focus-visible:text-white dark:text-zinc-400">
-          {shortcut}
-        </kbd>
+        <kbd className="font-sans text-xs text-zinc-500 dark:text-zinc-400">{shortcut}</kbd>
       )}
     </button>
   )

@@ -60,6 +60,7 @@
     "check-config": "bun tools/checks/config-check.ts",
     "check-interactions": "bun tools/bench/interactions-check.ts",
     "check-ops": "bun tools/bench/ops-check.ts",
+    "check-relation-column": "bun tools/bench/relation-column-check.ts",
     "check-relations": "bun tools/bench/relations-check.ts",
     "check-render": "bun tools/bench/shot-diff.ts check",
     "check-render-save": "bun tools/bench/shot-diff.ts save",

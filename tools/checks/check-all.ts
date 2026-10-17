@@ -25,6 +25,7 @@ const CHECKS = [
   'undo',
   'ops',
   'relations',
+  'relation-column',
   'validation',
   'journal',
   'filters',
@@ -60,13 +61,19 @@ const MODULE_CHECKS = new Set<CheckName>([
   'touch',
 ])
 
+/** Checks that need the relations scene (routes with route masters), for every app */
+const RELATIONS_SCENE_CHECKS = new Set<CheckName>(['relation-column'])
+
 /** A run of a check: its name in the report, the check, a scene other than the default (small), the one app it runs for */
 type Run = { name: string; check: CheckName; scene?: string; only?: AppName }
 
 /** The checks of the shell on the default scene, the relation check on the scene made for relations, the module checks */
 const RUNS: Run[] = [
-  ...CHECKS.filter((check) => !MODULE_CHECKS.has(check)).map((check) => ({ name: check, check })),
+  ...CHECKS.filter((check) => !MODULE_CHECKS.has(check) && !RELATIONS_SCENE_CHECKS.has(check)).map(
+    (check) => ({ name: check, check }),
+  ),
   { name: 'relations-scene', check: 'relations', scene: 'relations' },
+  { name: 'relation-column', check: 'relation-column', scene: 'relations' },
   { name: 'parking', check: 'parking', only: 'parking' },
   { name: 'way-table', check: 'way-table', scene: 'relations', only: 'bicycle' },
   { name: 'reroute', check: 'reroute', scene: 'relations', only: 'bicycle' },
@@ -98,6 +105,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   tags: { maid: 23, bicycle: 23, parking: 23 },
   multi: { maid: 11, bicycle: 11, parking: 11 },
   'relations-scene': { maid: 25, bicycle: 25, parking: 25 },
+  'relation-column': { maid: 31, bicycle: 31, parking: 31 },
   // module checks run for one app only (`only` in RUNS): the count is 0 elsewhere
   parking: { maid: 0, bicycle: 0, parking: 29 },
   'way-table': { maid: 0, bicycle: 13, parking: 0 },

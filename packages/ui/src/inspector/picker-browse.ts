@@ -46,7 +46,7 @@ export type ListInput = {
   expanded: ReadonlySet<string>
 }
 
-function isCategory(row: PresetRow): row is PresetCategory {
+export function isCategory(row: PresetRow): row is PresetCategory {
   return 'members' in row
 }
 

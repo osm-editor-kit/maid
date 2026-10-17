@@ -229,5 +229,19 @@
   "traffic_sign_remove": "Quitar",
   "traffic_sign_remove_sign": "Quitar {sign}",
   "traffic_sign_loading": "Cargando señales…",
-  "traffic_sign_mixed": "Varios valores"
+  "traffic_sign_mixed": "Varios valores",
+  "relations_open": "Abrir",
+  "relations_open_label": "Abrir {relation} junto al inspector",
+  "relations_close": "Cerrar",
+  "relations_close_label": "Cerrar la relación",
+  "relations_column_label": "Relación",
+  "relations_column_not_member": "{name} no forma parte de esta relación.",
+  "relations_column_add_it": "Añadirlo",
+  "relations_column_fly": "Ir",
+  "relations_column_fly_label": "Ir a {name}",
+  "relations_column_fit": "Encuadrar los miembros en el mapa",
+  "relations_column_show_relation": "Mostrar las etiquetas de la relación",
+  "relations_group_routes": "Rutas",
+  "relations_reason_cycle": "Entonces se contendría a sí misma",
+  "relations_column_remove": "Quitar {name} de la relación"
 }

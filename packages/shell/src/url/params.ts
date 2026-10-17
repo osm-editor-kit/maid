@@ -81,6 +81,11 @@ export const stateParams = {
   map: parseAsCamera,
   /** Selected feature, e.g. `w123`, like iD */
   id: parseAsString,
+  /**
+   * The relation open beside the inspector, e.g. `r123`, with `id` the member that is selected in it. Maid only: a link
+   * to iD keeps `id` (the selected feature) and leaves this out (id-url.ts has no rule for it).
+   */
+  relation: parseAsString,
   /** Filter states that differ from the editor's own, e.g. `buildings:readonly,boundaries:hidden` */
   filters: parseAsString,
   /**

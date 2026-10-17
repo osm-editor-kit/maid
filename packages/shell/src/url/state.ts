@@ -52,3 +52,8 @@ export function useDisplayParam() {
 export function useSelectedId() {
   return useQueryState('id', stateParams.id.withOptions({ history: 'replace' }))
 }
+
+/** The relation open beside the inspector in the URL, e.g. `relation=r123` (url/open-relation.ts) */
+export function useOpenRelationParam() {
+  return useQueryState('relation', stateParams.relation.withOptions({ history: 'replace' }))
+}

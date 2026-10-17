@@ -23,11 +23,12 @@ process.exit(
       // --- select the route, open its "Reroute" section, start a reroute ---
       await page.evaluate((id) => window.__maid.engine.setSelected([id]), ROUTE)
       await settle()
-      const group = page.locator('details', {
-        has: page.locator('summary', { hasText: /^Reroute$/ }),
+      // the section's heading: its title button is the switch (aria-expanded), a sticky heading in a scroller
+      const toggle = page.locator('[data-stack-heading] button[aria-controls]', {
+        hasText: /^Reroute$/,
       })
-      if ((await group.first().getAttribute('open')) === null)
-        await group.first().locator('summary').click()
+      if ((await toggle.first().getAttribute('aria-expanded')) !== 'true')
+        await toggle.first().click()
       const start = page.getByRole('button', { name: 'Reroute a stretch', exact: true })
       report('the section offers "Reroute a stretch"', 1, await start.count())
       const modeId = () =>

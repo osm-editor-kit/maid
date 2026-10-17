@@ -4,6 +4,7 @@ import { OsmRelation } from '@osm-editor-kit/maid-model'
 import { lazyComponent, type InspectorSection } from '@osm-editor-kit/maid-ui'
 import { memberRows, membersHeadline, membershipsOf } from './relations-logic.ts'
 import { RelationsOnMap } from './relations-map.tsx'
+import { currentOpenRelationId } from './relations-open-store.ts'
 import { relationOperations } from './relations-operations.ts'
 
 // The two sections are drawn inside the inspector, which is itself a chunk of its own. Their code (the member
@@ -23,7 +24,8 @@ export function relations() {
       const members: InspectorSection = {
         id: 'relation-members',
         title: m.relations_section_members(),
-        when: (entity) => entity.type === 'relation',
+        // not while the relation is open beside the inspector: the column lists its members
+        when: (entity) => entity.type === 'relation' && currentOpenRelationId() !== entity.id,
         disclosure: 'open',
         detail: (entity, editor) => {
           const relation = editor.history.staging.graph.hasEntity(entity.id)

@@ -229,5 +229,19 @@
   "traffic_sign_remove": "Remove",
   "traffic_sign_remove_sign": "Remove {sign}",
   "traffic_sign_loading": "Loading signs…",
-  "traffic_sign_mixed": "Multiple values"
+  "traffic_sign_mixed": "Multiple values",
+  "relations_open": "Open",
+  "relations_open_label": "Open {relation} beside the inspector",
+  "relations_close": "Close",
+  "relations_close_label": "Close the relation",
+  "relations_column_label": "Relation",
+  "relations_column_not_member": "{name} is not in this relation.",
+  "relations_column_add_it": "Add it",
+  "relations_column_fly": "Fly to",
+  "relations_column_fly_label": "Fly to {name}",
+  "relations_column_fit": "Fit the members in the map",
+  "relations_column_show_relation": "Show the tags of the relation",
+  "relations_group_routes": "Routes",
+  "relations_reason_cycle": "It would then contain itself",
+  "relations_column_remove": "Remove {name} from the relation"
 }

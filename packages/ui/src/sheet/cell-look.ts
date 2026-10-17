@@ -37,7 +37,8 @@ export type CellLook = {
 
 /** The classes of the cell's wrapper: its hairline borders, and the fill of a selected cell. */
 export function cellClassName(look: { selected: boolean }): string {
-  const base = 'relative min-w-0 border-r border-b border-zinc-950/10 dark:border-white/10'
+  const base =
+    'relative flex min-w-0 flex-col justify-center border-r border-b border-zinc-950/10 dark:border-white/10'
   return look.selected ? `${base} bg-blue-500/10 dark:bg-blue-400/10` : base
 }
 
@@ -74,7 +75,7 @@ export function inputClassName(look: {
   open: boolean
 }): string {
   const parts = [
-    'block min-h-8 w-full min-w-0 resize-none bg-transparent px-2 py-1.5 text-zinc-950 outline-none',
+    'block min-h-6 w-full min-w-0 resize-none bg-transparent px-1.5 py-1 leading-4 text-zinc-950 outline-none',
     '[field-sizing:content] [overflow-wrap:anywhere]',
     'placeholder:text-zinc-400 read-only:cursor-default aria-invalid:text-red-600',
     'dark:text-white dark:placeholder:text-zinc-500 dark:aria-invalid:text-red-400',

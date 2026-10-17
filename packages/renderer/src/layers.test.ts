@@ -485,3 +485,56 @@ describe('display: the wireframe and the changes in colour (iD)', () => {
     }
   })
 })
+
+describe('the focus glow (a relation open beside the inspector)', () => {
+  type Painted = { id: string; paint?: Record<string, unknown> }
+  const find = (layers: LayerSpecification[], id: string) =>
+    layers.find((l) => l.id === id) as unknown as Painted | undefined
+  const FOCUS_LAYERS = [
+    'focus-halo-areas',
+    'focus-halo',
+    'focus-halo-vertex',
+    'focus-halo-points',
+    'focus-halo-pin',
+  ]
+
+  test('is violet, reads the focus state and nothing else for its opacity', () => {
+    const layers = buildLayers(options)
+    for (const id of FOCUS_LAYERS) {
+      const layer = find(layers, id)!
+      expect(layer).toBeDefined()
+      const colour = layer.paint?.['line-color'] ?? layer.paint?.['circle-color']
+      expect(colour).toBe('#7c3aed')
+      const opacity = JSON.stringify(
+        layer.paint?.['line-opacity'] ?? layer.paint?.['circle-opacity'],
+      )
+      expect(opacity).toContain('"feature-state","focus"')
+      expect(opacity).not.toContain('related')
+      expect(opacity).not.toContain('hover')
+    }
+  })
+
+  test('is wider and more opaque than the related halo', () => {
+    const layers = buildLayers(options)
+    const related = find(layers, 'highlight-halo-areas')!
+    const focus = find(layers, 'focus-halo-areas')!
+    expect(JSON.stringify(focus.paint?.['line-width'])).toContain('2.2')
+    expect(JSON.stringify(related.paint?.['line-width'])).not.toContain('2.2')
+    expect(JSON.stringify(focus.paint?.['line-opacity'])).toContain('0.55')
+  })
+
+  test('each glow layer has its edit and selection twins, so it follows a dragged node', () => {
+    const layers = buildLayers(options)
+    for (const id of FOCUS_LAYERS) {
+      expect(find(layers, `${id}--select`)).toBeDefined()
+      expect(find(layers, `${id}--edit`)).toBeDefined()
+    }
+  })
+
+  test('sits under the data layers, above the related halo', () => {
+    const ids = buildLayers(options).map((l) => l.id)
+    expect(ids.indexOf('focus-halo')).toBeGreaterThan(ids.indexOf('highlight-halo'))
+    expect(ids.indexOf('focus-halo')).toBeLessThan(ids.indexOf('vertex'))
+    expect(ids.indexOf('focus-halo-points')).toBeLessThan(ids.indexOf('point-pin'))
+  })
+})

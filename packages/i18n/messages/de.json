@@ -229,5 +229,19 @@
   "traffic_sign_remove": "Entfernen",
   "traffic_sign_remove_sign": "{sign} entfernen",
   "traffic_sign_loading": "Zeichen werden geladen…",
-  "traffic_sign_mixed": "Mehrere Werte"
+  "traffic_sign_mixed": "Mehrere Werte",
+  "relations_open": "Öffnen",
+  "relations_open_label": "{relation} neben dem Inspector öffnen",
+  "relations_close": "Schließen",
+  "relations_close_label": "Relation schließen",
+  "relations_column_label": "Relation",
+  "relations_column_not_member": "{name} gehört nicht zu dieser Relation.",
+  "relations_column_add_it": "Hinzufügen",
+  "relations_column_fly": "Hinfliegen",
+  "relations_column_fly_label": "Zu {name} fliegen",
+  "relations_column_fit": "Mitglieder in die Karte einpassen",
+  "relations_column_show_relation": "Tags der Relation zeigen",
+  "relations_group_routes": "Routen",
+  "relations_reason_cycle": "Sie würde sich dann selbst enthalten",
+  "relations_column_remove": "{name} aus der Relation entfernen"
 }

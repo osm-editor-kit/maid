@@ -7,6 +7,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from 'react'
+import { ROW_BASE, ROW_CURRENT, ROW_FOCUS } from './inspector/listbox.ts'
 import { UI_SPRING } from './motion.tsx'
 
 /** One entry of a context menu */
@@ -188,7 +189,11 @@ export function ContextMenu(props: {
               onPointerLeave={() => item.preview?.(false)}
               onFocus={() => item.preview?.(true)}
               onBlur={() => item.preview?.(false)}
-              className="flex h-7 w-full cursor-pointer items-center gap-2 rounded-md px-2 text-left focus:bg-zinc-950/5 focus:outline-none enabled:hover:bg-zinc-950/5 disabled:cursor-default disabled:text-zinc-400 dark:focus:bg-white/10 dark:enabled:hover:bg-white/10 dark:disabled:text-zinc-500"
+              className={`flex h-7 w-full cursor-pointer items-center gap-2 px-2 text-left disabled:cursor-default disabled:text-zinc-400 dark:disabled:text-zinc-500 ${ROW_BASE} ${ROW_FOCUS} ${
+                item.current
+                  ? ROW_CURRENT
+                  : 'enabled:hover:bg-zinc-950/5 dark:enabled:hover:bg-white/10'
+              }`}
             >
               <span className="flex size-5 shrink-0 items-center justify-center">{item.icon}</span>
               <span className={`min-w-0 flex-1 truncate ${item.current ? 'font-semibold' : ''}`}>

@@ -75,6 +75,33 @@ export class Camera {
   }
 
   /**
+   * Whether any of these entities' loaded geometry is in the view: their bounds meet the map's bounds (on a turned map,
+   * the box around the view). False when none of it is loaded or there is no map. For "Fly to" buttons, which only show
+   * for what is out of view.
+   */
+  inView(ids: readonly string[]) {
+    const map = this.host.map()
+    const bounds = this.boundsOf(ids)
+    if (!map || !bounds) return false
+    const view = map.getBounds()
+    const [west, south, east, north] = bounds
+    return (
+      east >= view.getWest() &&
+      west <= view.getEast() &&
+      north >= view.getSouth() &&
+      south <= view.getNorth()
+    )
+  }
+
+  private boundsOf(ids: readonly string[]) {
+    return boundsOf(ids, {
+      loc: (id) => this.host.data.node(id)?.loc,
+      nodesOf: (id) => this.host.data.way(id)?.nodes,
+      membersOf: this.host.membersOf,
+    })
+  }
+
+  /**
    * Moves the map to show these entities: the bounds of their loaded geometry, with padding. A
    * relation counts as its members (see relatedIds). Returns false when none of it is loaded.
    * The zoom limits are MapLibre zoom (POINT_ZOOM, FIT_MAX_ZOOM), one level below iD's and Rapid's.
@@ -83,11 +110,7 @@ export class Camera {
    */
   fitTo(ids: readonly string[]) {
     const map = this.host.map()
-    const bounds = boundsOf(ids, {
-      loc: (id) => this.host.data.node(id)?.loc,
-      nodesOf: (id) => this.host.data.way(id)?.nodes,
-      membersOf: this.host.membersOf,
-    })
+    const bounds = this.boundsOf(ids)
     if (!map || !bounds) return false
     const [west, south, east, north] = bounds
     if (west === east && south === north) {

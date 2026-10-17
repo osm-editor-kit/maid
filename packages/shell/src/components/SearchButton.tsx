@@ -1,7 +1,7 @@
 import { MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import { isAutomated } from '@osm-editor-kit/maid-core'
 import { getLocale, m } from '@osm-editor-kit/maid-i18n'
-import { Flyout, toolButtonClass, Tooltip } from '@osm-editor-kit/maid-ui'
+import { Flyout, listRow, toolButtonClass, Tooltip } from '@osm-editor-kit/maid-ui'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useSearchActions, useSearchFocus, useSearchOpen } from '../search/flyout'
@@ -386,21 +386,11 @@ function SearchPanel() {
                           aria-current={row.key === activeKey ? 'true' : undefined}
                           onClick={row.run}
                           onMouseEnter={() => setActiveKey(row.disabled ? null : row.key)}
-                          className={`flex w-full cursor-pointer items-baseline justify-between gap-3 rounded-md px-2 py-1.5 text-left focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:text-zinc-400 ${
-                            row.key === activeKey
-                              ? 'bg-blue-600 text-white'
-                              : 'hover:bg-zinc-950/5 dark:hover:bg-white/10'
-                          }`}
+                          className={`flex w-full cursor-pointer items-baseline justify-between gap-3 px-2 py-1.5 text-left focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:text-zinc-400 ${listRow({ active: row.key === activeKey })}`}
                         >
                           <span className="min-w-0 truncate">{row.label}</span>
                           {row.detail && (
-                            <span
-                              className={`max-w-[45%] shrink-0 truncate text-xs ${
-                                row.key === activeKey
-                                  ? 'text-blue-100'
-                                  : 'text-zinc-500 dark:text-zinc-400'
-                              }`}
-                            >
+                            <span className="max-w-[45%] shrink-0 truncate text-xs text-zinc-500 dark:text-zinc-400">
                               {row.detail}
                             </span>
                           )}

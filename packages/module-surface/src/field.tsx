@@ -6,8 +6,8 @@
  * The tag (`surface=gravel`) shows on a tile or a card only while it is hovered or focused. The clear button removes
  * a tag. Without `onChange` (read-only) the tiles show and nothing opens.
  */
-import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/16/solid'
-import { Flyout, type FieldProps, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
+import { MagnifyingGlassIcon } from '@heroicons/react/16/solid'
+import { Flyout, listRow, type FieldProps, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import {
   creditsFor,
@@ -52,14 +52,9 @@ const SURFACE_OTHERS = surfaceOthers()
 const TILE =
   'group/tile flex w-full min-w-0 flex-col gap-1.5 rounded-lg border border-zinc-950/10 bg-white p-1.5 text-left text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-white/10 dark:bg-zinc-950 dark:text-white'
 const TILE_BUTTON = `${TILE} cursor-pointer hover:border-zinc-950/20 enabled:hover:bg-zinc-50 dark:hover:border-white/20 dark:enabled:hover:bg-zinc-900`
-/** The tag of a tile, over the bottom of its photo while the tile is hovered or focused */
-const TILE_TAG =
-  'pointer-events-none absolute inset-x-0 bottom-0 truncate bg-zinc-950/75 px-1.5 py-0.5 text-left font-mono text-[0.65rem] text-white opacity-0 transition-opacity group-hover/tile:opacity-100 group-focus-visible/tile:opacity-100'
 /** The tag and the description of a card, over the bottom of its photo while the card is hovered or active */
 const CARD_CAPTION =
   'pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-0.5 overflow-hidden rounded-b-md bg-zinc-950/75 px-1.5 py-1 text-left text-white opacity-0 transition-opacity group-hover/option:opacity-100 group-aria-selected/option:opacity-100'
-const PICK_CHOSEN = 'ring-2 ring-inset ring-blue-500'
-const ROW_ACTIVE = 'bg-zinc-950/10 dark:bg-white/15'
 const MUTED = 'text-zinc-500 dark:text-zinc-400'
 
 /** The tag a tile or a card stands for, as the tag is written: `surface=gravel` */
@@ -123,7 +118,7 @@ function TileFace(props: {
   title?: string
   picture?: Picture
 }) {
-  const { name, tagKey, value, title, picture } = props
+  const { name, value, title, picture } = props
   const empty = value === undefined
   const label = title ?? value ?? name
   return (
@@ -135,9 +130,8 @@ function TileFace(props: {
           text={empty ? name : label}
           className="size-full"
         />
-        {empty ? null : <span className={TILE_TAG}>{tagText(tagKey, value)}</span>}
       </span>
-      <span className="min-w-0 truncate text-sm font-medium">{empty ? 'Choose…' : label}</span>
+      <span className="min-w-0 truncate text-sm">{empty ? 'Choose…' : label}</span>
     </>
   )
 }
@@ -180,7 +174,7 @@ function CardOption(props: {
       aria-current={chosen || undefined}
       onMouseDown={(event) => event.preventDefault()}
       onClick={() => onPick(card.value)}
-      className={`group/option flex min-w-0 cursor-pointer flex-col gap-1 rounded-lg p-1 text-left text-zinc-950 hover:bg-zinc-950/5 dark:text-white dark:hover:bg-white/10 ${active ? ROW_ACTIVE : ''} ${chosen ? PICK_CHOSEN : ''}`}
+      className={`group/option flex min-w-0 cursor-pointer flex-col gap-1 p-1 text-left text-zinc-950 dark:text-white ${listRow({ current: chosen, active })}`}
     >
       <span className="relative block aspect-square w-full">
         <Frame picture={card.picture} alt={card.label} text={card.label} className="size-full" />
@@ -218,7 +212,7 @@ function ValueRow(props: {
       aria-current={chosen || undefined}
       onMouseDown={(event) => event.preventDefault()}
       onClick={() => onPick(value)}
-      className={`flex min-w-0 cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-sm text-zinc-950 hover:bg-zinc-950/5 dark:text-white dark:hover:bg-white/10 ${active ? ROW_ACTIVE : ''} ${chosen ? PICK_CHOSEN : ''}`}
+      className={`flex min-w-0 cursor-pointer items-center justify-between gap-3 px-2 py-1.5 text-sm text-zinc-950 dark:text-white ${listRow({ current: chosen, active })}`}
     >
       <span className="min-w-0 truncate font-medium">{label}</span>
       <span className={`min-w-0 truncate font-mono text-xs ${MUTED}`}>{value}</span>
@@ -495,7 +489,7 @@ function SmoothnessPicker(props: {
   )
 }
 
-/** One tile: a flyout with its picker, or a plain frame when read-only. The clear button sits on its corner. */
+/** One tile: a flyout with its picker, or a plain frame when read-only. The field's trash clears it. */
 function ValueTile(props: {
   id?: string
   name: string
@@ -506,11 +500,9 @@ function ValueTile(props: {
   value?: string
   title?: string
   picture?: Picture
-  onClear?: () => void
   children?: ReactNode
 }) {
-  const { id, name, tagKey, picker, open, setOpen, value, title, picture, onClear, children } =
-    props
+  const { id, name, tagKey, picker, open, setOpen, value, title, picture, children } = props
   const face = (
     <TileFace name={name} tagKey={tagKey} value={value} title={title} picture={picture} />
   )
@@ -534,17 +526,6 @@ function ValueTile(props: {
       >
         {children}
       </Flyout>
-      {onClear !== undefined && value !== undefined ? (
-        <button
-          type="button"
-          aria-label={`Clear ${name.toLowerCase()}`}
-          title={`Clear ${name.toLowerCase()}`}
-          onClick={onClear}
-          className="absolute top-1 right-1 grid size-5 cursor-pointer place-items-center rounded-full bg-white/90 text-zinc-600 shadow-xs hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:bg-zinc-900/90 dark:text-zinc-300 dark:hover:text-white"
-        >
-          <XMarkIcon className="size-3.5" />
-        </button>
-      ) : null}
     </div>
   )
 }
@@ -581,7 +562,6 @@ export function SurfaceSmoothnessField(props: FieldProps) {
         value={surface}
         title={surface === undefined ? undefined : surfaceTitle(surface)}
         picture={surface === undefined ? undefined : surfacePicture(surface)}
-        onClear={writable ? () => onChange?.(SURFACE_KEY, undefined) : undefined}
       >
         {writable ? (
           <SurfacePicker chosen={surface} onPick={choose(SURFACE_KEY)} onClose={close} />
@@ -596,7 +576,6 @@ export function SurfaceSmoothnessField(props: FieldProps) {
         value={smoothness}
         title={smoothness === undefined ? undefined : smoothnessTitle(smoothness)}
         picture={smoothness === undefined ? undefined : smoothnessPicture(surface, smoothness)}
-        onClear={writable ? () => onChange?.(SMOOTHNESS_KEY, undefined) : undefined}
       >
         {writable ? (
           <SmoothnessPicker

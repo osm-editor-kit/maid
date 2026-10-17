@@ -6,7 +6,15 @@ import {
 } from '@heroicons/react/16/solid'
 import { StarIcon as StarOutlineIcon } from '@heroicons/react/24/outline'
 import type { Browse, Geometry, Preset } from '@osm-editor-kit/maid-presets'
-import { useContext, useId, useState, type KeyboardEvent, type ReactNode } from 'react'
+import {
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react'
 import {
   ENGLISH_FAVOURITE_TEXTS,
   isDrawnGeometry,
@@ -17,8 +25,8 @@ import { FlyoutPinnedContext } from '../Flyout.tsx'
 import { GeometryIcon } from '../GeometryIcons.tsx'
 import { ICON_BUTTON, ICON_TONE } from '../icon-button.ts'
 import { PLAIN_INPUT } from '../plain-input.ts'
-import { EMPTY_NOTE, keepFocus, listboxMove, revealRow, ROW_ACTIVE } from './listbox.ts'
-import { listRows, type ListRow } from './picker-browse.ts'
+import { EMPTY_NOTE, keepFocus, listboxMove, listRow, revealRow } from './listbox.ts'
+import { isCategory, listRows, type ListRow } from './picker-browse.ts'
 import { mainTagLabel } from './picker-logic.ts'
 import { useRecentIds, useRecentsActions } from './recents.ts'
 import { SearchField } from './SearchField.tsx'
@@ -143,7 +151,7 @@ export function PresetPicker(props: {
     onPick,
     renderIcon,
     currentId,
-    favourites = [],
+    favourites: storedFavourites = [],
     geometry,
     browse,
     texts = ENGLISH_TEXTS,
@@ -153,14 +161,24 @@ export function PresetPicker(props: {
     placeholder = 'Search feature types',
   } = props
   const pinned = useContext(FlyoutPinnedContext)
+  // a relation cannot be drawn, so no favourite fits it: the Favourites row is not shown for it
+  const favourites = geometry === 'relation' ? [] : storedFavourites
 
   const [query, setQuery] = useState('')
-  const [activeIndex, setActiveIndex] = useState(0)
-  // the categories that are open: their members are listed under them, and only while nothing is searched
-  const [openCategories, setOpenCategories] = useState<readonly string[]>([])
+  // the categories that are open: their members are listed under them, and only while nothing is searched. The
+  // picker opens with the current type's category open, so the type is in view
+  const [openCategories, setOpenCategories] = useState<readonly string[]>(() =>
+    currentId && browse
+      ? browse.defaults
+          .filter((row) => isCategory(row) && row.members.some((member) => member.id === currentId))
+          .map((row) => row.id)
+      : [],
+  )
   const [favouritesOpen, setFavouritesOpen] = useState(false)
   const { remember } = useRecentsActions()
   const recentIds = useRecentIds()
+  // the current type is the active row when the picker opens (a keyboard's Enter keeps it); found in the rows below
+  const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const baseId = useId()
   const listId = `${baseId}-list`
   const recentHeadingId = `${baseId}-recent`
@@ -178,10 +196,26 @@ export function PresetPicker(props: {
     favouritesOpen,
     expanded: new Set(openCategories),
   })
-  const active = rows.length === 0 ? -1 : Math.min(activeIndex, rows.length - 1)
+  const currentRow =
+    currentId === undefined
+      ? -1
+      : rows.findIndex(
+          (row) =>
+            row.kind === 'preset' && row.section !== 'favourite' && row.preset.id === currentId,
+        )
+  const active =
+    rows.length === 0
+      ? -1
+      : Math.min(activeIndex ?? (currentRow >= 0 ? currentRow : 0), rows.length - 1)
   // the Favourites row and its members come first, then the recent presets: each part's rows are contiguous
   const favouriteCount = leadingCount(rows, 0, isFavouriteRow)
   const recentCount = leadingCount(rows, favouriteCount, isRecentRow)
+
+  // the current type's row in view when the picker opens (once: later moves reveal their own rows)
+  const firstActive = useRef(active > 0 ? optionId(active) : undefined)
+  useEffect(function revealTheCurrentTypeOnOpen() {
+    if (firstActive.current !== undefined) revealRow(firstActive.current)
+  }, [])
 
   function moveTo(index: number) {
     setActiveIndex(index)
@@ -264,7 +298,7 @@ export function PresetPicker(props: {
       <div
         key={row.key}
         role="presentation"
-        className={`group flex items-center gap-1 ${row.member ? 'pl-6' : ''}`}
+        className={`group flex items-center gap-1 pr-1 ${listRow({ current: preset.id === currentId, active: isActive })} ${row.member ? 'ml-6' : ''}`}
       >
         <div
           id={optionId(index)}
@@ -277,7 +311,7 @@ export function PresetPicker(props: {
           }}
           className={`flex min-w-0 flex-1 items-center gap-3 rounded-lg p-2 text-sm ${
             disabled ? 'cursor-default opacity-50' : 'cursor-pointer'
-          } ${isActive ? ROW_ACTIVE : ''}`}
+          }`}
         >
           <IconBox
             number={number}
@@ -351,7 +385,11 @@ export function PresetPicker(props: {
     const { category } = row
     const isActive = index === active
     return (
-      <div key={row.key} role="presentation" className="group flex items-center gap-1">
+      <div
+        key={row.key}
+        role="presentation"
+        className={`group flex items-center gap-1 pr-1 ${listRow({ active: isActive })}`}
+      >
         <div
           id={optionId(index)}
           role="option"
@@ -362,9 +400,7 @@ export function PresetPicker(props: {
             moveTo(index)
             toggleCategory(category.id)
           }}
-          className={`flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg p-2 text-sm ${
-            isActive ? ROW_ACTIVE : ''
-          }`}
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg p-2 text-sm"
         >
           <IconBox>{renderIcon?.(category)}</IconBox>
           <span className="min-w-0 flex-1">
@@ -390,7 +426,11 @@ export function PresetPicker(props: {
   function renderFavouritesRow(row: Extract<ListRow, { kind: 'favourites' }>, index: number) {
     const isActive = index === active
     return (
-      <div key={row.key} role="presentation" className="group flex items-center gap-1">
+      <div
+        key={row.key}
+        role="presentation"
+        className={`group flex items-center gap-1 pr-1 ${listRow({ active: isActive })}`}
+      >
         <div
           id={optionId(index)}
           role="option"
@@ -401,9 +441,7 @@ export function PresetPicker(props: {
             moveTo(index)
             setFavouritesOpen((open) => !open)
           }}
-          className={`flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg p-2 text-sm ${
-            isActive ? ROW_ACTIVE : ''
-          }`}
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg p-2 text-sm"
         >
           <IconBox>
             <StarSolidIcon className="text-amber-500 dark:text-amber-400" aria-hidden="true" />

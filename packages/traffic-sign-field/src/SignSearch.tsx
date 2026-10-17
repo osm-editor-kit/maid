@@ -177,7 +177,7 @@ export function SignSearch({
                 onMouseMove={() => {
                   if (active !== index) setActive(index)
                 }}
-                className="flex cursor-default items-center gap-2 rounded px-1.5 py-1 aria-selected:bg-zinc-950/5 dark:aria-selected:bg-white/10"
+                className="flex cursor-default items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-zinc-950/5 aria-selected:bg-zinc-950/5 aria-selected:ring-2 aria-selected:ring-blue-500 aria-selected:ring-inset dark:hover:bg-white/10 dark:aria-selected:bg-white/10"
               >
                 <SignImage load={load} country={country} part={sign.osmValuePart} size="size-7" />
                 <span className="min-w-0 flex-1">

@@ -271,3 +271,9 @@ describe('iD links: the language and the GPX file', () => {
     expect(shellUrlParamNames()).not.toContain('gpx')
   })
 })
+
+test('the open relation is Maid only: the iD link keeps the selected member', () => {
+  expect(toIdUrl('?id=w44824013&relation=r2064835')).toBe(
+    'https://www.openstreetmap.org/edit?editor=id#id=w44824013',
+  )
+})

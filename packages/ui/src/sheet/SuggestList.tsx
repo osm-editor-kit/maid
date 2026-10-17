@@ -7,6 +7,7 @@ import {
   size,
   useFloating,
 } from '@floating-ui/react'
+import { listRow } from '../inspector/listbox.ts'
 import type { SheetSuggestion } from './types.ts'
 
 export type SuggestListProps = {
@@ -67,9 +68,7 @@ export function SuggestList(props: SuggestListProps) {
             role="option"
             aria-selected={index === highlighted}
             onClick={() => onPick(index)}
-            className={`flex min-h-7 cursor-pointer items-baseline gap-3 rounded px-2 py-1 ${
-              index === highlighted ? 'bg-zinc-950/5 dark:bg-white/10' : ''
-            }`}
+            className={`flex min-h-7 cursor-pointer items-baseline gap-3 px-2 py-1 ${listRow({ active: index === highlighted })}`}
           >
             <span className="min-w-0 flex-1 truncate">{item.value}</span>
             {item.hint !== undefined ? (

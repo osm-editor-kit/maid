@@ -215,3 +215,26 @@ describe('a preset started as a geometry (the favourites panel)', () => {
     expect(editing.mode).toBe('browse')
   })
 })
+
+describe('a relation is never a favourite', () => {
+  it('toggling a relation type adds no favourite', () => {
+    const bench = presets.preset('amenity/bench') as Preset
+    const before = getSettings().favourites.length
+    favourites.toggleFavourite(bench, 'relation')
+    expect(getSettings().favourites.length).toBe(before)
+    expect(getSettings().favourites.some((item) => item.geometry === 'relation')).toBe(false)
+  })
+
+  it('leaves stored relation favourites out of the entries the picker lists', () => {
+    const stored = [
+      { presetId: 'amenity/bench', number: '4', geometry: 'point' as const },
+      { presetId: 'amenity/cafe', number: '5', geometry: 'relation' as const },
+      { presetId: 'amenity/missing', number: '6', geometry: 'point' as const },
+    ]
+    const entries = favourites.favouriteEntries(stored, presets)
+    expect(entries.map((entry) => [entry.preset.id, entry.geometry, entry.number])).toEqual([
+      ['amenity/bench', 'point', '4'],
+    ])
+    expect(favourites.favouriteEntries(stored, undefined)).toEqual([])
+  })
+})

@@ -27,10 +27,12 @@ import {
   type TagSuggestSource,
   WikiContext,
   createWikiSource,
+  CopyTagsButton,
 } from '@osm-editor-kit/maid-ui'
 import { useEffect, useMemo, useState } from 'react'
 import { changeType, moveFavourite, toggleFavourite, useFavouriteEntries } from '../favourites'
 import { imageryOnMap } from '../imagery-used'
+import { useOpenRelationId } from '../modules/relations-open-store'
 import { useIssuesVersion } from '../modules/validation'
 import { useNewFeatureId } from '../new-feature'
 import { useSelection } from '../selection'
@@ -138,6 +140,8 @@ export function Inspector() {
   const entity: EntityInfo | undefined = useEngine((e) => e.entity(id))
   // the issues of the selection are checked in idle time: the sections ask again when that check is done
   useIssuesVersion(editor)
+  // the relation open beside the inspector: its members section hides then (see `refresh` on the sections below)
+  const openRelation = useOpenRelationId()
   const newFeatureId = useNewFeatureId()
   const moduleFields = useExtensionPoint(editor, 'inspector.field')
   const fieldTypes = Object.fromEntries(moduleFields.map((item) => [item.type, item.component]))
@@ -230,11 +234,16 @@ export function Inspector() {
   const hasName = entity?.tags.name !== undefined
   const details = entity ? (hasName && kind !== title ? kind : undefined) : id
   const canChangeType = onChange !== undefined && presets !== undefined
-  // the controls on the subtitle line, after its text: the wiki's page for the type, and the star that makes the
+  // the controls at the right of the head: the wiki's page for the type, and the star that makes the
   // type a favourite for the geometry (not for a fallback type, which is no type at all)
   const reference = entity?.preset?.reference
+  // a relation cannot be drawn, so its type is never a favourite: no star
   const starred =
-    entity && entity.preset && presets && !presets.isFallback(entity.preset)
+    entity &&
+    entity.preset &&
+    presets &&
+    !presets.isFallback(entity.preset) &&
+    entity.geometry !== 'relation'
       ? { preset: entity.preset, geometry: entity.geometry }
       : undefined
   const isFavourite =
@@ -269,7 +278,7 @@ export function Inspector() {
           }
           title={title}
           subtitle={details}
-          // on the subtitle line, over the head and not inside it
+          // at the right of the head, over it and not inside it
           meta={headMeta}
           // as in iD, the feature's head is the button that changes its type
           onTitleClick={canChangeType ? () => setPicker({ id, open: !picking }) : undefined}
@@ -292,8 +301,9 @@ export function Inspector() {
                   )}
                   favourites={favourites}
                   geometry={entity.geometry}
-                  onToggleFavourite={toggleFavourite}
-                  onMoveFavourite={moveFavourite}
+                  // a relation is no favourite: the picker gets no star and no move buttons for it
+                  onToggleFavourite={entity.geometry === 'relation' ? undefined : toggleFavourite}
+                  onMoveFavourite={entity.geometry === 'relation' ? undefined : moveFavourite}
                   onPick={(preset) => {
                     changeType({ editor, engine }, id, preset)
                     setPicker({ id, open: false })
@@ -351,8 +361,14 @@ export function Inspector() {
                   />
                 </SidebarDisclosure>
               )}
-              <SidebarDisclosure title="Tags" detail={Object.keys(entity.tags).length} defaultOpen>
+              <SidebarDisclosure
+                title="Tags"
+                detail={Object.keys(entity.tags).length}
+                defaultOpen
+                actions={<CopyTagsButton tags={entity.tags} />}
+              >
                 <TagSheet
+                  copyButton={false}
                   label="Tags"
                   tags={entity.tags}
                   featureKey={id}
@@ -365,6 +381,8 @@ export function Inspector() {
                 />
               </SidebarDisclosure>
               <InspectorSections
+                // the members section's `when` reads the open relation: it is asked again when that changes
+                refresh={openRelation}
                 entity={entity}
                 editor={editor}
                 select={select}

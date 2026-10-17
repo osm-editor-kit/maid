@@ -4,8 +4,8 @@ import { useShell } from '../shell-context'
 import { useCameraParam } from '../url/state'
 
 /**
- * What the map has to say for itself, drawn on it: a hint when it is too far out to load data,
- * and where the data comes from (the attribution OpenStreetMap asks for).
+ * What the map has to say for itself, drawn on it: a hint when it is too far out to load data. No line for
+ * OpenStreetMap as the source: an OSM editor shows OSM data (Tobias, 2026-10-17); the imagery's attribution stays.
  */
 export function MapNotices() {
   const { config } = useShell()
@@ -29,9 +29,6 @@ export function MapNotices() {
           </button>
         </div>
       )}
-      <p className="absolute right-0 bottom-0 rounded-tl-md bg-white/80 px-1.5 py-0.5 text-[11px] text-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-300">
-        © OpenStreetMap contributors
-      </p>
     </>
   )
 }

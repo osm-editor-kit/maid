@@ -1,4 +1,5 @@
 export { AddField } from './AddField.tsx'
+export { listRow, ROW_ACTIVE, ROW_BASE, ROW_CURRENT, ROW_FOCUS, ROW_HOVER } from './listbox.ts'
 export { PresetPicker, type PickerFavourite, type PresetPickerTexts } from './PresetPicker.tsx'
 export { defaultFieldComponents, PresetFields } from './fields.tsx'
 export { CheckField } from './fields/Check.tsx'

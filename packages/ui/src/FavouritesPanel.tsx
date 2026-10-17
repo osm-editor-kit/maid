@@ -12,6 +12,7 @@ import {
 } from './favourites.ts'
 import { GeometryIcon } from './GeometryIcons.tsx'
 import { ICON_BUTTON, ICON_TONE } from './icon-button.ts'
+import { listRow } from './inspector/listbox.ts'
 
 /**
  * The favourites as a list: one row each, with the preset's icon and name, the geometries the preset can be drawn as
@@ -64,7 +65,7 @@ function FavouriteItem(props: {
   const geometries = drawableGeometries(preset)
   const favouriteGeometry = isDrawnGeometry(entry.geometry) ? entry.geometry : undefined
   return (
-    <li className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-zinc-950/5 dark:hover:bg-white/5">
+    <li className={`flex items-center gap-2 px-2 py-1.5 ${listRow({})}`}>
       <span className="inline-flex size-9 shrink-0 items-center justify-center text-zinc-600 dark:text-zinc-300 [&>svg]:size-5">
         {renderIcon?.(preset)}
       </span>

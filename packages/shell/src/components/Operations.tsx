@@ -10,9 +10,9 @@ export function Operations() {
   const commands = useEditCommands()
   if (commands.length === 0) return null
   return (
-    // a toolbar row under the header: no headline, the icons speak for themselves. The space under
-    // it sets it off from the sections below.
-    <div className="pb-3">
+    // a toolbar row under the header: no headline, the icons speak for themselves. The space above and under it
+    // sets it off from the head and the sections (the sidebar's body has no top padding, for its sticky headings)
+    <div className="py-3">
       <CommandBar label="Edit" items={commands} />
     </div>
   )

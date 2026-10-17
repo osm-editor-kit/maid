@@ -13,10 +13,17 @@ const sidebarMaxWidth = (viewport: number) => Math.min(640, viewport - 360)
  * Full-height editor frame: top bar, sidebar, map area with the dock below it. Below the `sm`
  * breakpoint the sidebar is not a column: its content is a bottom sheet, opened by a button at the
  * bottom right of the map. The sheet is uncontrolled unless `sheetOpen` is given.
+ *
+ * `sidebarStart` is a column before the sidebar that belongs to it, as an open relation's member list beside the
+ * inspector. While it is there, both share one tinted frame and the sidebar becomes a card inside it, so the sidebar
+ * reads as a part of the column. The sidebar keeps its place in the tree, so it is not mounted again. The column is
+ * not shown in the bottom sheet.
  */
 export function Shell(props: {
   topBar?: ReactNode
   sidebar?: ReactNode
+  /** A column before the sidebar, with the sidebar as a card beside it (see above) */
+  sidebarStart?: ReactNode
   dock?: ReactNode
   children: ReactNode
   /** Whether the bottom sheet is open, below `sm`. Without it the Shell keeps the state itself. */
@@ -25,7 +32,16 @@ export function Shell(props: {
   /** The name of the sheet, and of the button that opens it. */
   sheetLabel?: string
 }) {
-  const { topBar, sidebar, dock, children, sheetOpen, onSheetOpenChange, sheetLabel } = props
+  const {
+    topBar,
+    sidebar,
+    sidebarStart,
+    dock,
+    children,
+    sheetOpen,
+    onSheetOpenChange,
+    sheetLabel,
+  } = props
   const sidebarWidth = useResizable({
     storageKey: 'sidebar-width',
     axis: 'x',
@@ -50,8 +66,28 @@ export function Shell(props: {
       {topBar}
       <div className="flex min-h-0 flex-1">
         {sidebar && wide ? (
-          <div className="relative flex min-h-0 shrink-0" style={{ width: sidebarWidth.size }}>
-            {sidebar}
+          <div
+            className={twJoin(
+              'relative flex min-h-0 shrink-0',
+              sidebarStart &&
+                'border-r border-zinc-950/10 bg-violet-100 dark:border-white/10 dark:bg-violet-950/50',
+            )}
+          >
+            {sidebarStart ?? null}
+            <div
+              className={twJoin('flex min-h-0', sidebarStart && 'py-2 pr-2')}
+              style={{ width: sidebarWidth.size }}
+            >
+              <div
+                className={twJoin(
+                  'flex min-h-0 min-w-0 flex-1',
+                  sidebarStart &&
+                    'overflow-hidden rounded-xl shadow-sm ring-1 ring-zinc-950/10 dark:ring-white/10 [&>aside]:border-r-0',
+                )}
+              >
+                {sidebar}
+              </div>
+            </div>
             <ResizeHandle
               label="Resize sidebar"
               edge="right"

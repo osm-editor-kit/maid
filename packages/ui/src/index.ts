@@ -41,6 +41,8 @@ export {
   SidebarEmpty,
   SidebarHeader,
   SidebarSection,
+  stackedHeadingsCover,
+  useStackedHeadings,
 } from './Sidebar.tsx'
 export {
   DRAWN_GEOMETRIES,
@@ -111,7 +113,7 @@ export { useResizable } from './useResizable.ts'
 export { useBreakpoint, type Breakpoint } from './useBreakpoint.ts'
 export { PLAIN_INPUT } from './plain-input.ts'
 export { Sheet } from './sheet/Sheet.tsx'
-export { TagSheet, type TagSheetProps } from './sheet/tags/TagSheet.tsx'
+export { CopyTagsButton, TagSheet, type TagSheetProps } from './sheet/tags/TagSheet.tsx'
 export type { TagSheetChange } from './sheet/tags/tag-combined.ts'
 export type { TagSuggestSource } from './sheet/tags/tag-suggest.ts'
 export type {

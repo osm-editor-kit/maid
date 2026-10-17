@@ -437,6 +437,7 @@ export class MaidEngine {
       if (features.length === 0) continue
       this.metrics.features[name] += features.length
       let relatedArrived = false
+      let focusArrived = false
       for (const f of features) {
         const id = featureId(f)
         if (id === undefined) continue
@@ -447,8 +448,13 @@ export class MaidEngine {
           this.appliedRelated.delete(id)
           relatedArrived = true
         }
+        if (this.wantedFocus.has(id)) {
+          this.appliedFocus.delete(id)
+          focusArrived = true
+        }
       }
       if (relatedArrived) queueMicrotask(() => this.syncRelated())
+      if (focusArrived) queueMicrotask(() => this.syncFocus())
       // a selection made before its feature was loaded (from the URL) is shown once it arrives
       if (
         this.selectedIds.length !== this.shownSelected.length &&
@@ -1332,9 +1338,13 @@ export class MaidEngine {
     if (remove.some(([, featureId]) => this.selectedIds.includes(featureId)))
       queueMicrotask(() => this.applyHighlight([], 'selected'))
     let relatedGone = false
-    for (const [, featureId] of remove)
+    let focusGone = false
+    for (const [, featureId] of remove) {
       relatedGone = this.appliedRelated.delete(featureId) || relatedGone
+      focusGone = this.appliedFocus.delete(featureId) || focusGone
+    }
     if (relatedGone) queueMicrotask(() => this.syncRelated())
+    if (focusGone) queueMicrotask(() => this.syncFocus())
   }
 
   // --- Dragging a vertex (drag.ts) ---
@@ -1406,6 +1416,10 @@ export class MaidEngine {
   fitTo(ids: readonly string[]) {
     return this.camera.fitTo(ids)
   }
+  /** Whether any of these entities is in the view (Camera.inView); read again after the map moved */
+  inView(ids: readonly string[]) {
+    return this.camera.inView(ids)
+  }
 
   /** Relation members of the selection: a selected relation's members are related */
   private selectionRelated: readonly string[] = []
@@ -1415,6 +1429,12 @@ export class MaidEngine {
   private wantedRelated: ReadonlySet<string> = new Set()
   /** The ids that carry the `related` state on the map */
   private appliedRelated = new Set<string>()
+  /** The ids the relation open beside the inspector asked to be focused (setFocus) */
+  private focusIds: readonly string[] = []
+  /** Every id that should carry the `focus` state now */
+  private wantedFocus: ReadonlySet<string> = new Set()
+  /** The ids that carry the `focus` state on the map */
+  private appliedFocus = new Set<string>()
 
   /**
    * Highlights these entities as related: a calmer halo than hover. Replaces the set given before;
@@ -1429,28 +1449,56 @@ export class MaidEngine {
   /** Sets and clears the `related` state so that the map shows `wantedRelated`; only what changed is touched */
   private syncRelated() {
     this.wantedRelated = new Set([...this.selectionRelated, ...this.hoverRelated])
+    this.syncFeatureState('related', this.wantedRelated, this.appliedRelated)
+  }
+
+  /**
+   * Highlights these entities as the relation open beside the inspector: a stronger violet glow than
+   * `related` (layers.ts, the focus layers), so the relation's members stand out on the map. Replaces the
+   * set given before; `null` clears it. Only the feature state changes: no feature is rebuilt.
+   */
+  setFocus(ids: readonly string[] | null) {
+    this.focusIds = ids ?? []
+    this.syncFocus()
+  }
+
+  /** Sets and clears the `focus` state so that the map shows `wantedFocus`; only what changed is touched */
+  private syncFocus() {
+    this.wantedFocus = new Set(this.focusIds)
+    this.syncFeatureState('focus', this.wantedFocus, this.appliedFocus)
+  }
+
+  /**
+   * Makes the feature state `key` of each loaded id in `wanted` on, and clears it on each id in `applied`
+   * that is no longer wanted. `applied` is kept up to date. Shared by `related` and `focus`.
+   */
+  private syncFeatureState(
+    key: 'related' | 'focus',
+    wanted: ReadonlySet<string>,
+    applied: Set<string>,
+  ) {
     const { map } = this
     if (!map) return
     // deleting the current entry while a Set is walked is safe
-    for (const id of this.appliedRelated) {
-      if (this.wantedRelated.has(id)) continue
-      this.paintRelated(id, false)
-      this.appliedRelated.delete(id)
+    for (const id of applied) {
+      if (wanted.has(id)) continue
+      this.paintState(id, key, false)
+      applied.delete(id)
     }
-    for (const id of this.wantedRelated) {
-      if (this.appliedRelated.has(id) || !this.featureSource.has(id)) continue
-      this.paintRelated(id, true)
-      this.appliedRelated.add(id)
+    for (const id of wanted) {
+      if (applied.has(id) || !this.featureSource.has(id)) continue
+      this.paintState(id, key, true)
+      applied.add(id)
     }
     map.triggerRepaint()
   }
 
-  /** Sets the `related` state of a loaded feature in the big source and in the live tier, as applyHighlight does */
-  private paintRelated(id: string, on: boolean) {
+  /** Sets a feature state of a loaded feature in the big source and in the live tier, as applyHighlight does */
+  private paintState(id: string, key: 'related' | 'focus', on: boolean) {
     const name = this.featureSource.get(id)
     if (!name || !this.map) return
-    this.map.setFeatureState({ source: SOURCES[name], id }, { related: on })
-    this.map.setFeatureState({ source: EDIT_SOURCES[name], id }, { related: on })
+    this.map.setFeatureState({ source: SOURCES[name], id }, { [key]: on })
+    this.map.setFeatureState({ source: EDIT_SOURCES[name], id }, { [key]: on })
   }
 
   /** The members of every selected relation, as the selection's related set */

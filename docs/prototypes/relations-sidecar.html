@@ -1,0 +1,2189 @@
+<title>Maid Relation Column</title>
+<meta name="claude:viewport-fit-sides" content="cover" />
+<style>
+  /* Layout: Maid's shell (top bar, left columns, map), with a relation column that slides in left of the inspector.
+   Example data only, nothing is wired to the editor. */
+  :root {
+    --bg: #f4f4f5;
+    --panel: #ffffff;
+    --fg: #18181b;
+    --muted: #71717a;
+    --faint: #a1a1aa;
+    --line: rgb(9 9 11 / 0.1);
+    --soft: #f4f4f5;
+    --accent: #2563eb;
+    --accent-soft: #dbeafe;
+    --rel: #7c3aed;
+    --rel-soft: #ede9fe;
+    --hover: #f59e0b;
+    --warn: #b45309;
+    --warn-soft: #fef3c7;
+    --map: #e9e7e1;
+    --street: #ffffff;
+    --casing: #c9c5bb;
+    --label: #6b6656;
+    --note: #fef9c3;
+    --note-fg: #713f12;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --bg: #09090b;
+      --panel: #18181b;
+      --fg: #f4f4f5;
+      --muted: #a1a1aa;
+      --faint: #71717a;
+      --line: rgb(255 255 255 / 0.1);
+      --soft: #27272a;
+      --accent: #60a5fa;
+      --accent-soft: rgb(37 99 235 / 0.25);
+      --rel: #a78bfa;
+      --rel-soft: rgb(124 58 237 / 0.25);
+      --hover: #fbbf24;
+      --warn: #fbbf24;
+      --warn-soft: rgb(180 83 9 / 0.25);
+      --map: #26251f;
+      --street: #4a4840;
+      --casing: #1b1a16;
+      --label: #a8a390;
+      --note: rgb(250 204 21 / 0.15);
+      --note-fg: #fde68a;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme='dark'] {
+    --bg: #09090b;
+    --panel: #18181b;
+    --fg: #f4f4f5;
+    --muted: #a1a1aa;
+    --faint: #71717a;
+    --line: rgb(255 255 255 / 0.1);
+    --soft: #27272a;
+    --accent: #60a5fa;
+    --accent-soft: rgb(37 99 235 / 0.25);
+    --rel: #a78bfa;
+    --rel-soft: rgb(124 58 237 / 0.25);
+    --hover: #fbbf24;
+    --warn: #fbbf24;
+    --warn-soft: rgb(180 83 9 / 0.25);
+    --map: #26251f;
+    --street: #4a4840;
+    --casing: #1b1a16;
+    --label: #a8a390;
+    --note: rgb(250 204 21 / 0.15);
+    --note-fg: #fde68a;
+    color-scheme: dark;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+  [hidden] {
+    display: none !important;
+  }
+  html,
+  body {
+    height: 100%;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font:
+      14px/1.4 ui-sans-serif,
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      sans-serif;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    padding: 0;
+  }
+  button:focus-visible,
+  input:focus-visible,
+  a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+    border-radius: 4px;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* prototype controls */
+  .proto {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .proto b {
+    font-weight: 600;
+  }
+  .proto .seg {
+    display: inline-flex;
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px var(--line);
+    background: var(--panel);
+    overflow: hidden;
+  }
+  .proto .seg button {
+    padding: 4px 10px;
+  }
+  .proto .seg button + button {
+    border-left: 1px solid var(--line);
+  }
+  .proto .seg button[aria-pressed='true'] {
+    background: var(--fg);
+    color: var(--panel);
+  }
+  .proto .spacer {
+    flex: 1;
+  }
+
+  /* app frame */
+  .app {
+    flex: 1;
+    min-height: 620px;
+    display: grid;
+    grid-template-rows: 44px 1fr;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1px var(--line),
+      0 8px 30px rgb(0 0 0 / 0.08);
+    background: var(--panel);
+  }
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .topbar .logo {
+    font-weight: 700;
+    color: var(--fg);
+    margin-right: 8px;
+  }
+  .topbar .pill {
+    padding: 3px 9px;
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px var(--line);
+  }
+  .main {
+    display: flex;
+    min-height: 0;
+    position: relative;
+  }
+
+  .col {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--panel);
+    border-right: 1px solid var(--line);
+  }
+  .col-scroll {
+    overflow-y: auto;
+    min-height: 0;
+    flex: 1;
+  }
+  .relcol {
+    width: 0;
+    overflow: hidden;
+    transition: width 0.28s cubic-bezier(0.2, 0.7, 0.2, 1);
+    border-right-color: transparent;
+  }
+  .relcol.open {
+    width: 22rem;
+    border-right-color: var(--line);
+  }
+  .relcol > .inner {
+    width: 22rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .inspector {
+    width: 24rem;
+  }
+
+  /* the relation wraps the inspector: its head spans both, the inspector becomes a card inside it */
+  .workspace {
+    --ws: var(--panel);
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--ws);
+    border-right: 1px solid var(--line);
+    transition: background-color 0.28s;
+  }
+  .workspace.nested {
+    --ws: color-mix(in srgb, var(--rel-soft) 45%, var(--panel));
+  }
+  .workspace .col {
+    border-right: 0;
+    background: transparent;
+  }
+  .wshead {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.28s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .workspace.nested .wshead {
+    max-height: 0;
+  }
+  .bar {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    font-size: 12.5px;
+  }
+  .bar-l {
+    width: 22rem;
+    flex: none;
+    padding: 0 10px 0 14px;
+    min-width: 0;
+  }
+  .bar-r {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-right: 8px;
+    min-width: 0;
+  }
+  .bar .grow {
+    flex: 1;
+  }
+  .bar .stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--muted);
+    padding: 0;
+    background: none;
+  }
+  .bar .stepper b {
+    color: var(--fg);
+    font-weight: 600;
+  }
+  .bar .stepper .iconbtn {
+    color: var(--rel);
+  }
+  .bar .stepper .iconbtn:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+  .closebtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px 4px 7px;
+    border-radius: 6px;
+    font-weight: 500;
+    background: var(--panel);
+    box-shadow: 0 0 0 1px var(--line);
+  }
+  .closebtn:hover {
+    box-shadow: 0 0 0 1px var(--faint);
+  }
+  .closebtn svg {
+    width: 15px;
+    height: 15px;
+  }
+  .relcol .head {
+    border-bottom: 0;
+  }
+  /* the selected member docks onto the inspector card like a tab */
+  .relcol {
+    position: relative;
+    z-index: 1;
+  }
+  #relscroll {
+    scrollbar-width: none;
+  }
+  #relscroll::-webkit-scrollbar {
+    display: none;
+  }
+  .relcol h3.sh {
+    margin-right: 1px;
+  }
+  .section.list {
+    padding-right: 0;
+  }
+  .relcol .mrow {
+    margin-right: 8px;
+  }
+  .relhead-wrap {
+    padding: 10px 0 6px 8px;
+  }
+  .relhead {
+    min-height: 50px;
+    padding-left: 6px;
+    gap: 10px;
+  }
+  .relhead .nm b {
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .backbtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px 8px 3px 3px;
+    border-radius: 6px;
+    color: var(--rel);
+    font-weight: 500;
+  }
+  .backbtn:hover {
+    background: var(--rel-soft);
+  }
+  .backbtn svg {
+    width: 16px;
+    height: 16px;
+  }
+  .relcol .members .mrow {
+    min-height: 40px;
+  }
+  .relcol .members .mrow + .mrow::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 34px;
+    right: 0;
+    height: 1px;
+    background: var(--line);
+  }
+  .relcol .members .mrow.sel::after,
+  .relcol .members .mrow.sel + .mrow::after,
+  .relcol .members .gaprow + .mrow::after {
+    display: none;
+  }
+  .chev {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    color: var(--faint);
+    display: grid;
+    place-items: center;
+  }
+  .chev svg {
+    width: 16px;
+    height: 16px;
+  }
+  .mrow:hover .chev {
+    color: var(--muted);
+  }
+  .mrow.sel .chev {
+    visibility: hidden;
+  }
+  .addhint {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin: 0 8px 6px;
+    padding: 7px 9px;
+    border-radius: 7px;
+    font-size: 12.5px;
+    background: var(--panel);
+    box-shadow: 0 0 0 1px var(--line);
+  }
+  .addhint svg {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+  .relcol .mrow.sel {
+    margin-right: 0;
+    padding-right: 14px;
+    background: var(--panel);
+    border-radius: 8px 0 0 8px;
+    box-shadow:
+      inset 1px 0 var(--line),
+      inset 0 1px var(--line),
+      inset 0 -1px var(--line);
+  }
+  .wsrow {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+  }
+  .inspector {
+    transition:
+      margin 0.28s,
+      border-radius 0.28s,
+      box-shadow 0.28s;
+    overflow: hidden;
+  }
+  .workspace.nested .inspector {
+    background: var(--panel);
+    margin: 8px 8px 8px 0;
+    border-radius: 12px;
+    box-shadow:
+      0 0 0 1px var(--line),
+      0 2px 12px rgb(0 0 0 / 0.08);
+  }
+
+  /* section headings stick to the top and stack there; a click jumps to the section */
+  .col-scroll {
+    position: relative;
+  }
+  h3.sh {
+    position: sticky;
+    z-index: 1;
+    height: 30px;
+    margin: 0;
+    padding: 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+  }
+  .relcol h3.sh {
+    background: var(--ws);
+  }
+  h3.sh:hover {
+    color: var(--fg);
+  }
+  h3.sh .count {
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+  h3.sh .grow {
+    flex: 1;
+  }
+  h3.sh + .section {
+    padding-top: 8px;
+  }
+  .mapwrap {
+    flex: 1;
+    position: relative;
+    min-width: 0;
+    background: var(--map);
+    overflow: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .relcol,
+    .dock,
+    .wshead,
+    .inspector,
+    .workspace {
+      transition: none !important;
+    }
+  }
+
+  /* shared panel parts */
+  .head {
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .head-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .head h2 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sub {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .icon {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+  }
+  .icon svg {
+    width: 20px;
+    height: 20px;
+  }
+  .icon.rel {
+    background: var(--rel-soft);
+    color: var(--rel);
+  }
+  .iconbtn {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+    flex: none;
+  }
+  .iconbtn:hover {
+    background: var(--soft);
+    color: var(--fg);
+  }
+  .iconbtn svg {
+    width: 16px;
+    height: 16px;
+  }
+  .section {
+    border-bottom: 1px solid var(--line);
+    padding: 10px 14px;
+  }
+  .section > h3 {
+    margin: 0 0 8px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .section > h3 .count {
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+  .section > h3 .grow {
+    flex: 1;
+  }
+  .linkbtn {
+    font-size: 12px;
+    color: var(--accent);
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 500;
+  }
+  .linkbtn:hover {
+    text-decoration: underline;
+  }
+
+  .crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .crumbs button {
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--rel);
+    font-weight: 500;
+  }
+  .crumbs button:hover {
+    background: var(--rel-soft);
+  }
+  .crumbs .here {
+    color: var(--fg);
+    padding: 1px 2px;
+  }
+
+  .field {
+    display: grid;
+    gap: 3px;
+    margin-bottom: 8px;
+  }
+  .field label {
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .field input {
+    width: 100%;
+    padding: 5px 8px;
+    border-radius: 6px;
+    border: 0;
+    box-shadow: 0 0 0 1px var(--line);
+    background: var(--panel);
+    color: var(--fg);
+    font: inherit;
+  }
+  .tags {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 3px 10px;
+    font-size: 12.5px;
+    margin: 0;
+  }
+  .tags dt {
+    color: var(--muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px;
+    padding-top: 1px;
+  }
+  .tags dd {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .help {
+    font-size: 12.5px;
+    background: var(--panel);
+    border-radius: 8px;
+    box-shadow: 0 0 0 1px var(--line);
+    padding: 8px 10px;
+    display: grid;
+    gap: 6px;
+  }
+  .help p {
+    margin: 0;
+  }
+  .help a {
+    color: var(--accent);
+  }
+  .help .draft {
+    font-size: 11px;
+    color: var(--faint);
+  }
+
+  .issue {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 12.5px;
+    padding: 7px 9px;
+    border-radius: 7px;
+    background: var(--warn-soft);
+    color: var(--fg);
+  }
+  .issue svg {
+    width: 16px;
+    height: 16px;
+    color: var(--warn);
+    flex: none;
+    margin-top: 1px;
+  }
+  .issue + .issue {
+    margin-top: 6px;
+  }
+  .issue button {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* relation cards in the inspector */
+  .card {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 8px;
+    box-shadow: 0 0 0 1px var(--line);
+    background: var(--panel);
+  }
+  .card + .card {
+    margin-top: 8px;
+  }
+  .card .txt {
+    flex: 1;
+    min-width: 0;
+  }
+  .card .name {
+    font-weight: 500;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .card .meta {
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+  .card.current {
+    box-shadow: 0 0 0 1.5px var(--rel);
+  }
+  .openbtn {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 8px 4px 10px;
+    border-radius: 6px;
+    background: var(--rel);
+    color: #fff;
+  }
+  .openbtn:hover {
+    filter: brightness(1.1);
+  }
+  .openbtn svg {
+    width: 14px;
+    height: 14px;
+  }
+  .badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 99px;
+    background: var(--rel-soft);
+    color: var(--rel);
+  }
+
+  /* member stepper in the inspector */
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: var(--rel-soft);
+    font-size: 12px;
+  }
+  .stepper .lbl {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .stepper .lbl b {
+    font-weight: 600;
+  }
+  .stepper .iconbtn {
+    color: var(--rel);
+  }
+  .stepper .iconbtn:hover {
+    background: var(--panel);
+  }
+  .stepper .iconbtn:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  /* member list */
+  .members {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .mrow {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 34px;
+    padding: 3px 6px 3px 0;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .mrow:hover,
+  .mrow.hl {
+    background: color-mix(in srgb, var(--hover) 18%, transparent);
+  }
+  .mrow.sel {
+    background: var(--accent-soft);
+  }
+  .mrow .gut {
+    position: relative;
+    flex: none;
+    width: 26px;
+    align-self: stretch;
+    display: grid;
+    place-items: center;
+  }
+  .mrow .gut::before {
+    content: '';
+    position: absolute;
+    left: 12px;
+    width: 3px;
+    background: var(--rel);
+    top: 0;
+    bottom: 0;
+    opacity: 0.55;
+  }
+  .mrow.first .gut::before {
+    top: 50%;
+  }
+  .mrow.last .gut::before {
+    bottom: 50%;
+  }
+  .mrow.gap-after .gut::before {
+    bottom: 50%;
+  }
+  .mrow.gap-before .gut::before {
+    top: 50%;
+  }
+  .mrow .dot {
+    position: relative;
+    width: 9px;
+    height: 9px;
+    border-radius: 99px;
+    background: var(--panel);
+    box-shadow: 0 0 0 2.5px var(--rel);
+  }
+  .mrow .dot.stop {
+    width: 11px;
+    height: 11px;
+  }
+  .mrow .dot.sq {
+    border-radius: 2px;
+  }
+  .mrow .idx {
+    width: 18px;
+    text-align: right;
+    font-size: 11px;
+    color: var(--faint);
+    flex: none;
+  }
+  .mrow .nm {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mrow .nm small {
+    color: var(--muted);
+    font-size: 11.5px;
+  }
+  .chip {
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px var(--line);
+    color: var(--muted);
+    background: var(--panel);
+    flex: none;
+  }
+  button.chip:hover {
+    color: var(--fg);
+    box-shadow: 0 0 0 1px var(--faint);
+  }
+  .chip.on {
+    color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  .mrow .warn {
+    width: 15px;
+    height: 15px;
+    color: var(--warn);
+    flex: none;
+  }
+  .flybtn {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 5px;
+    box-shadow: 0 0 0 1px var(--line);
+    background: var(--panel);
+  }
+  .flybtn:hover {
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  .flybtn svg {
+    width: 12px;
+    height: 12px;
+  }
+  .gaprow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    color: var(--warn);
+    padding: 2px 0 2px 4px;
+  }
+  .gaprow .zig {
+    width: 18px;
+    height: 14px;
+    flex: none;
+  }
+  .enter {
+    color: var(--rel);
+  }
+  .empty {
+    padding: 28px 18px;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+    display: grid;
+    gap: 6px;
+  }
+
+  /* map */
+  svg.map {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+    cursor: grab;
+  }
+  svg.map.dragging {
+    cursor: grabbing;
+  }
+  .st-casing {
+    stroke: var(--casing);
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .st-fill {
+    stroke: var(--street);
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .st-hit {
+    stroke: transparent;
+    fill: none;
+    stroke-width: 22;
+    cursor: pointer;
+    stroke-linecap: round;
+  }
+  .st-label {
+    font-size: 13px;
+    fill: var(--label);
+    paint-order: stroke;
+    stroke: var(--map);
+    stroke-width: 3px;
+    pointer-events: none;
+  }
+  .rel-under {
+    stroke: var(--rel);
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.35;
+  }
+  .rel-dim {
+    opacity: 0.15;
+  }
+  .hov {
+    stroke: var(--hover);
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .selw {
+    stroke: var(--accent);
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .gapmark {
+    fill: none;
+    stroke: var(--warn);
+    stroke-width: 2.5;
+    stroke-dasharray: 4 3;
+  }
+  .edge {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 9px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--panel);
+    color: var(--fg);
+    box-shadow:
+      0 0 0 1px var(--line),
+      0 2px 8px rgb(0 0 0 / 0.15);
+    white-space: nowrap;
+    transform: translate(-50%, -50%);
+  }
+  .edge svg {
+    width: 14px;
+    height: 14px;
+    color: var(--hover);
+  }
+  .mapctl {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    display: grid;
+    gap: 6px;
+  }
+  .mapctl button {
+    background: var(--panel);
+    border-radius: 6px;
+    padding: 5px 9px;
+    font-size: 12px;
+    box-shadow:
+      0 0 0 1px var(--line),
+      0 1px 3px rgb(0 0 0 / 0.1);
+  }
+
+  /* dock: only the way table, behind a tab on the bottom edge */
+  .docktab {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 12px 6px;
+    border-radius: 8px 8px 0 0;
+    background: var(--panel);
+    box-shadow:
+      0 0 0 1px var(--line),
+      0 -2px 8px rgb(0 0 0 / 0.08);
+    z-index: 3;
+  }
+  .docktab svg {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.2s;
+  }
+  .docktab[aria-expanded='true'] svg {
+    transform: rotate(180deg);
+  }
+  .dock {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 210px;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    transform: translateY(100%);
+    transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+  }
+  .dock.open {
+    transform: none;
+  }
+  .dock.open + .docktab,
+  .docktab.raised {
+    bottom: 210px;
+  }
+  .dock .dh {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--line);
+  }
+  .dock .dh b {
+    color: var(--fg);
+    font-weight: 600;
+  }
+  .dock .tbl {
+    overflow: auto;
+    flex: 1;
+  }
+  .dock table {
+    border-collapse: collapse;
+    font-size: 12.5px;
+    width: 100%;
+    min-width: 560px;
+  }
+  .dock th,
+  .dock td {
+    text-align: left;
+    padding: 5px 12px;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  .dock th {
+    font-weight: 500;
+    color: var(--muted);
+    position: sticky;
+    top: 0;
+    background: var(--panel);
+  }
+  .dock tr.sel td {
+    background: var(--accent-soft);
+  }
+  .dock tr:hover td {
+    background: color-mix(in srgb, var(--hover) 15%, transparent);
+  }
+  .dock td.diff {
+    color: var(--warn);
+    font-weight: 500;
+  }
+
+  /* notes */
+  .notes {
+    background: var(--note);
+    color: var(--note-fg);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    display: grid;
+    gap: 4px;
+  }
+  .notes h2 {
+    margin: 0 0 2px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .notes ol {
+    margin: 0;
+    padding-left: 20px;
+    display: grid;
+    gap: 2px;
+  }
+
+  /* narrow screens: the app keeps its columns and scrolls sideways inside its frame */
+  .main {
+    overflow-x: auto;
+  }
+  .mapwrap {
+    min-width: 420px;
+  }
+</style>
+
+<div class="proto" role="toolbar" aria-label="Prototype controls">
+  <b>Prototype, not wired</b>
+  <span>Start with:</span>
+  <span class="seg" id="scenarios">
+    <button data-s="way" aria-pressed="true">A road is selected</button>
+    <button data-s="relation">A relation is selected</button>
+    <button data-s="master">Route master</button>
+  </span>
+  <span class="spacer"></span>
+  <button class="seg" id="notesToggle" aria-pressed="true">
+    <span style="padding: 4px 10px">What to try</span>
+  </button>
+</div>
+
+<section class="notes" id="notes">
+  <h2>What to try</h2>
+  <ol>
+    <li>
+      In the inspector, under “Relations”, click <b>Open</b> on the bus route. The relation opens
+      around the inspector: the members on the left, the inspector as a card on the right that keeps
+      the road and looks as before.
+    </li>
+    <li>
+      Every row with › can be clicked. The selected one docks onto the card like a tab. The
+      relation's head is a tab too: click it, and the card shows the relation's help, issues, fields
+      and tags.
+    </li>
+    <li>
+      Point at members: the map highlights them. Members outside the map get a <b>Fly to</b> button
+      and an arrow at the map's edge. Fit and Reroute sit on the route's list (Reroute only for
+      bicycle, hiking and foot routes, as the module supports them).
+    </li>
+    <li>Close with ✕ on the relation's head, <b>Close</b> on its card in the inspector, or Esc.</li>
+    <li>
+      To go up to the route master: select the relation's head, then <b>Open</b> on “Bus 100” under
+      Relations in the card.
+    </li>
+    <li>
+      Click a grey street on the map: a hint above the list says it is not in the relation and
+      offers to add it.
+    </li>
+    <li>
+      Scroll a list: the section headings stick to the top and stack. Click one to jump to its
+      section.
+    </li>
+    <li>The dock only has the way table now, behind the tab at the bottom of the map.</li>
+  </ol>
+</section>
+
+<div class="app">
+  <div class="topbar">
+    <span class="logo">Maid</span><span class="pill">Draw</span><span class="pill">Favourites</span
+    ><span class="pill">Background</span><span style="flex: 1"></span
+    ><span class="pill">Save · 0</span>
+  </div>
+  <div class="main">
+    <div class="workspace" id="workspace">
+      <div class="wshead" id="wshead"></div>
+      <div class="wsrow">
+        <aside class="col relcol" id="relcol" aria-label="Relation">
+          <div class="inner" id="relinner"></div>
+        </aside>
+        <aside class="col inspector" id="inspector" aria-label="Inspector"></aside>
+      </div>
+    </div>
+    <div class="mapwrap" id="mapwrap">
+      <svg class="map" id="map" aria-label="Map sketch"></svg>
+      <div id="edges"></div>
+      <div class="mapctl"><button id="zoomAll">Fit all</button></div>
+      <div class="dock" id="dock" aria-label="Way table"></div>
+      <button class="docktab" id="docktab" aria-expanded="false" aria-controls="dock">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 6l5 6H5z" /></svg>Way table
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---------- example data (Berlin, simplified; not real OSM ids) ----------
+  const ways = {
+    w1: {
+      name: 'Hardenbergplatz',
+      highway: 'Tertiary road',
+      surface: 'asphalt',
+      maxspeed: '30',
+      lanes: '2',
+      pts: [
+        [100, 500],
+        [220, 480],
+      ],
+    },
+    w2: {
+      name: 'Budapester Straße',
+      highway: 'Secondary road',
+      surface: 'asphalt',
+      maxspeed: '50',
+      lanes: '4',
+      pts: [
+        [220, 480],
+        [420, 470],
+      ],
+    },
+    w3: {
+      name: 'Budapester Straße',
+      highway: 'Secondary road',
+      surface: '',
+      maxspeed: '50',
+      lanes: '4',
+      pts: [
+        [420, 470],
+        [560, 430],
+      ],
+    },
+    w4: {
+      name: 'Großer Stern',
+      highway: 'Primary road',
+      surface: 'asphalt',
+      maxspeed: '50',
+      lanes: '3',
+      pts: [
+        [560, 430],
+        [630, 405],
+        [700, 400],
+      ],
+    },
+    w5: {
+      name: 'Straße des 17. Juni',
+      highway: 'Primary road',
+      surface: 'asphalt',
+      maxspeed: '50',
+      lanes: '6',
+      pts: [
+        [700, 400],
+        [900, 380],
+      ],
+    },
+    w6: {
+      name: 'Straße des 17. Juni',
+      highway: 'Primary road',
+      surface: 'asphalt',
+      maxspeed: '50',
+      lanes: '6',
+      pts: [
+        [922, 374],
+        [1080, 360],
+      ],
+    },
+    w7: {
+      name: 'Ebertstraße',
+      highway: 'Secondary road',
+      surface: 'sett',
+      maxspeed: '30',
+      lanes: '2',
+      pts: [
+        [1080, 360],
+        [1180, 300],
+      ],
+    },
+    w8: {
+      name: 'Unter den Linden',
+      highway: 'Primary road',
+      surface: 'asphalt',
+      maxspeed: '50',
+      lanes: '4',
+      pts: [
+        [1180, 300],
+        [1420, 290],
+      ],
+    },
+    w9: {
+      name: 'Unter den Linden',
+      highway: 'Primary road',
+      surface: 'asphalt',
+      maxspeed: '50',
+      lanes: '4',
+      pts: [
+        [1420, 290],
+        [1600, 300],
+      ],
+    },
+    w10: {
+      name: 'Karl-Liebknecht-Straße',
+      highway: 'Primary road',
+      surface: 'asphalt',
+      maxspeed: '50',
+      lanes: '4',
+      pts: [
+        [1600, 300],
+        [1720, 270],
+        [1800, 250],
+      ],
+    },
+    w11: {
+      name: 'Alexanderplatz',
+      highway: 'Tertiary road',
+      surface: 'asphalt',
+      maxspeed: '30',
+      lanes: '2',
+      pts: [
+        [1800, 250],
+        [1900, 230],
+      ],
+    },
+    // not in any relation
+    x1: {
+      name: 'Tiergartenstraße',
+      highway: 'Residential road',
+      surface: 'asphalt',
+      maxspeed: '30',
+      lanes: '2',
+      pts: [
+        [430, 600],
+        [700, 585],
+        [900, 560],
+      ],
+    },
+    x2: {
+      name: 'Friedrichstraße',
+      highway: 'Secondary road',
+      surface: 'asphalt',
+      maxspeed: '30',
+      lanes: '2',
+      pts: [
+        [1400, 140],
+        [1405, 290],
+        [1410, 460],
+      ],
+    },
+    x3: {
+      name: 'Hofjägerallee',
+      highway: 'Secondary road',
+      surface: 'asphalt',
+      maxspeed: '50',
+      lanes: '4',
+      pts: [
+        [630, 405],
+        [650, 560],
+        [660, 700],
+      ],
+    },
+  }
+  const stops = [
+    ['S1', 'S+U Zoologischer Garten', [130, 495]],
+    ['S2', 'Budapester Straße', [400, 470]],
+    ['S3', 'Großer Stern', [630, 415]],
+    ['S4', 'Brandenburger Tor', [1125, 333]],
+    ['S5', 'Unter den Linden/Friedrichstr.', [1400, 290]],
+    ['S6', 'Lustgarten', [1620, 295]],
+    ['S7', 'S+U Alexanderplatz', [1880, 234]],
+  ]
+  const nodes = {}
+  for (const [id, name, p] of stops) {
+    nodes[id + 'p'] = { name, kind: 'stop', pts: [p] }
+    nodes[id + 'q'] = { name, kind: 'platform', pts: [[p[0], p[1] - 16]] }
+  }
+
+  const wayOrder = ['w1', 'w2', 'w3', 'w4', 'w5', 'w6', 'w7', 'w8', 'w9', 'w10', 'w11']
+  const stopOrder = stops.map((s) => s[0])
+  const relations = {
+    r1: {
+      type: 'route',
+      route: 'bus',
+      title: 'Bus 100: Zoologischer Garten → Alexanderplatz',
+      short: 'Zoo → Alex',
+      tags: {
+        type: 'route',
+        route: 'bus',
+        ref: '100',
+        name: 'Bus 100: Zoologischer Garten => S+U Alexanderplatz',
+        from: 'S+U Zoologischer Garten',
+        to: 'S+U Alexanderplatz',
+        network: 'VBB',
+        operator: 'Berliner Verkehrsbetriebe',
+        public_transport: 'version=2',
+        colour: '#A5027D',
+        interval: '10',
+        opening_hours: '24/7',
+        wheelchair: 'yes',
+        'gtfs:route_id': '17289_700',
+      },
+      stops: stopOrder,
+      ways: wayOrder,
+    },
+    r2: {
+      type: 'route',
+      route: 'bus',
+      title: 'Bus 100: Alexanderplatz → Zoologischer Garten',
+      short: 'Alex → Zoo',
+      tags: {
+        type: 'route',
+        route: 'bus',
+        ref: '100',
+        name: 'Bus 100: S+U Alexanderplatz => Zoologischer Garten',
+        from: 'S+U Alexanderplatz',
+        to: 'S+U Zoologischer Garten',
+        network: 'VBB',
+        operator: 'Berliner Verkehrsbetriebe',
+        public_transport: 'version=2',
+        colour: '#A5027D',
+      },
+      stops: [...stopOrder].reverse(),
+      ways: [...wayOrder].reverse(),
+    },
+    rm: {
+      type: 'route_master',
+      route: 'bus',
+      title: 'Bus 100',
+      short: 'Bus 100',
+      tags: {
+        type: 'route_master',
+        route_master: 'bus',
+        ref: '100',
+        name: 'Bus 100',
+        network: 'VBB',
+        operator: 'Berliner Verkehrsbetriebe',
+        colour: '#A5027D',
+      },
+      routes: ['r1', 'r2'],
+    },
+    rb: {
+      type: 'route',
+      route: 'bicycle',
+      title: 'Radroute Ost–West',
+      short: 'Radroute Ost–West',
+      tags: {
+        type: 'route',
+        route: 'bicycle',
+        name: 'Radroute Ost–West',
+        network: 'lcn',
+        ref: 'RR3',
+        cycle_network: 'DE:BE',
+      },
+      stops: [],
+      ways: ['w7', 'w8', 'w9'],
+    },
+  }
+  const help = {
+    bus: [
+      'A bus route lists its stops in the order the bus serves them, then the roads it drives along from start to end.',
+      'Each direction is its own route. A route master groups both directions under the line number.',
+      'https://wiki.openstreetmap.org/wiki/Tag:route%3Dbus',
+    ],
+    route_master: [
+      'A route master groups the routes of one line, usually one per direction. It has no roads or stops of its own; those belong to the routes.',
+      'Tags that are the same for all directions (ref, network, operator, colour) go here.',
+      'https://wiki.openstreetmap.org/wiki/Relation:route_master',
+    ],
+    bicycle: [
+      'A bicycle route lists the roads and paths of a signposted cycle route, in order from one end to the other.',
+      'network says how far it reaches: lcn local, rcn regional, ncn national, icn international.',
+      'https://wiki.openstreetmap.org/wiki/Tag:route%3Dbicycle',
+    ],
+  }
+  const keyTags = {
+    route: ['ref', 'name', 'from', 'to', 'network', 'operator'],
+    route_master: ['ref', 'name', 'network', 'operator'],
+  }
+
+  // ---------- state ----------
+  const S = {
+    selected: 'w8',
+    stack: [],
+    hover: null,
+    dock: false,
+    allTags: false,
+    help: false,
+    notes: true,
+    view: { cx: 560, cy: 430, scale: 1 },
+  }
+
+  const $ = (id) => document.getElementById(id)
+  const esc = (s) =>
+    String(s).replace(
+      /[&<>"]/g,
+      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c],
+    )
+  const I = {
+    bus: '<svg viewBox="0 0 20 20" fill="currentColor"><path d="M5 3h10a2 2 0 012 2v9a1 1 0 01-1 1h-.5v1.5a1 1 0 01-2 0V15h-7v1.5a1 1 0 01-2 0V15H4a1 1 0 01-1-1V5a2 2 0 012-2zm0 3v4h10V6H5zm1.5 6.5a1 1 0 100-2 1 1 0 000 2zm7 0a1 1 0 100-2 1 1 0 000 2z"/></svg>',
+    bike: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="5" cy="13" r="3"/><circle cx="15" cy="13" r="3"/><path d="M5 13l3-6h5l2 6M8 7l2 6h0M11 5h2"/></svg>',
+    master:
+      '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6h14M3 10h14M3 14h14"/><circle cx="6" cy="6" r="1.5" fill="currentColor"/><circle cx="14" cy="14" r="1.5" fill="currentColor"/></svg>',
+    way: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 15l5-6 4 3 5-7"/></svg>',
+    stop: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="5"/><circle cx="10" cy="10" r="1.5" fill="currentColor"/></svg>',
+    platform:
+      '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="7" width="12" height="6" rx="1"/></svg>',
+    x: '<svg viewBox="0 0 20 20" fill="currentColor"><path d="M6.3 5.3L10 9l3.7-3.7 1 1L11 10l3.7 3.7-1 1L10 11l-3.7 3.7-1-1L9 10 5.3 6.3z"/></svg>',
+    chevR:
+      '<svg viewBox="0 0 20 20" fill="currentColor"><path d="M7.5 4.5L13 10l-5.5 5.5-1-1L11 10 6.5 5.5z"/></svg>',
+    chevL:
+      '<svg viewBox="0 0 20 20" fill="currentColor"><path d="M12.5 4.5L7 10l5.5 5.5 1-1L9 10l4.5-4.5z"/></svg>',
+    fly: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 14L14 6M8 6h6v6"/></svg>',
+    fit: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 7V3h4M13 3h4v4M17 13v4h-4M7 17H3v-4"/></svg>',
+    warn: '<svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2.5l8 14H2zm-.9 5v4.5h1.8V7.5zm0 6v1.8h1.8v-1.8z"/></svg>',
+    info: '<svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 110 16 8 8 0 010-16zm-.9 7v5h1.8V9zm0-3v1.8h1.8V6z"/></svg>',
+  }
+
+  // ---------- model helpers ----------
+  const feature = (id) =>
+    ways[id]
+      ? { kind: 'way', ...ways[id] }
+      : nodes[id]
+        ? { kind: nodes[id].kind, ...nodes[id] }
+        : relations[id]
+          ? { kind: 'relation', ...relations[id] }
+          : null
+  const iconOf = (id) => {
+    const f = feature(id)
+    if (!f) return ''
+    if (f.kind === 'relation')
+      return f.type === 'route_master' ? I.master : f.route === 'bicycle' ? I.bike : I.bus
+    return I[f.kind === 'way' ? 'way' : f.kind]
+  }
+  const membersOf = (rid) => {
+    const r = relations[rid]
+    if (r.routes) return r.routes
+    return [...r.stops.flatMap((s) => [s + 'p', s + 'q']), ...r.ways]
+  }
+  const groupOf = (rid, id) => {
+    const r = relations[rid]
+    if (r.routes) return r.routes
+    return ways[id] ? r.ways : r.stops.flatMap((s) => [s + 'p', s + 'q'])
+  }
+  const parentsOf = (id) => Object.keys(relations).filter((rid) => membersOf(rid).includes(id))
+  const roleOf = (rid, id) =>
+    nodes[id]?.kind === 'stop' ? 'stop' : nodes[id]?.kind === 'platform' ? 'platform' : ''
+  const ptsOf = (id) => {
+    if (ways[id]) return ways[id].pts
+    if (nodes[id]) return nodes[id].pts
+    return membersOf(id).flatMap(ptsOf)
+  }
+  const bbox = (pts) => {
+    const xs = pts.map((p) => p[0]),
+      ys = pts.map((p) => p[1])
+    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]
+  }
+  const near = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]) < 1
+  const gapsOf = (rid) => {
+    const w = relations[rid].ways || []
+    const g = new Set()
+    for (let i = 0; i < w.length - 1; i++) {
+      const a = ways[w[i]].pts,
+        b = ways[w[i + 1]].pts
+      const ends = [a[0], a.at(-1)],
+        starts = [b[0], b.at(-1)]
+      if (!ends.some((e) => starts.some((s) => near(e, s)))) g.add(i)
+    }
+    return g
+  }
+  const current = () => S.stack.at(-1) ?? null
+  const issuesOfFeature = (id) =>
+    ways[id] && ways[id].surface === '' && ways[id].highway !== 'Residential road'
+      ? [`${ways[id].name} has no surface. Bus and bike apps rely on it.`]
+      : []
+
+  // ---------- map ----------
+  const mapEl = $('map'),
+    wrap = $('mapwrap')
+  function viewBox() {
+    const w = wrap.clientWidth / S.view.scale,
+      h = wrap.clientHeight / S.view.scale
+    return [S.view.cx - w / 2, S.view.cy - h / 2, w, h]
+  }
+  function inView(id) {
+    const [x, y, w, h] = viewBox()
+    const [a, b, c, d] = bbox(ptsOf(id))
+    return c > x + 20 && a < x + w - 20 && d > y + 20 && b < y + h - 20
+  }
+  const path = (pts) => 'M' + pts.map((p) => p.join(',')).join('L')
+  function wayIdsFor(id) {
+    if (ways[id]) return [id]
+    if (relations[id]) return membersOf(id).flatMap(wayIdsFor)
+    return []
+  }
+  function nodeIdsFor(id) {
+    if (nodes[id]) return [id]
+    if (relations[id]) return membersOf(id).flatMap(nodeIdsFor)
+    return []
+  }
+
+  function renderMap() {
+    const vb = viewBox()
+    mapEl.setAttribute('viewBox', vb.join(' '))
+    const z = 1 / S.view.scale
+    const rel = current()
+    const relWays = new Set(rel ? wayIdsFor(rel) : [])
+    const relNodes = new Set(rel ? nodeIdsFor(rel) : [])
+    let out = ''
+    for (const [id, w] of Object.entries(ways))
+      out += `<path class="st-casing" d="${path(w.pts)}" stroke-width="${12 * z}"/>`
+    for (const [id, w] of Object.entries(ways))
+      out += `<path class="st-fill" d="${path(w.pts)}" stroke-width="${9 * z}"/>`
+    if (rel)
+      for (const id of relWays)
+        out += `<path class="rel-under" d="${path(ways[id].pts)}" stroke-width="${16 * z}"/>`
+    if (rel)
+      for (const g of gapsOf(rel).size ? [...gapsOf(rel)] : []) {
+        const w = relations[rel].ways
+        const a = ways[w[g]].pts.at(-1),
+          b = ways[w[g + 1]].pts[0]
+        out += `<circle class="gapmark" cx="${(a[0] + b[0]) / 2}" cy="${(a[1] + b[1]) / 2}" r="${18 * z}" stroke-width="${2.5 * z}"/>`
+      }
+    const hov = S.hover ? wayIdsFor(S.hover) : []
+    for (const id of hov)
+      out += `<path class="hov" d="${path(ways[id].pts)}" stroke-width="${14 * z}" opacity=".85"/>`
+    if (ways[S.selected])
+      out += `<path class="selw" d="${path(ways[S.selected].pts)}" stroke-width="${6 * z}"/>`
+    // labels
+    const seen = new Set()
+    for (const [id, w] of Object.entries(ways)) {
+      if (seen.has(w.name)) continue
+      seen.add(w.name)
+      const p = w.pts[Math.floor(w.pts.length / 2) - (w.pts.length % 2 ? 0 : 1)],
+        q = w.pts[Math.floor(w.pts.length / 2)]
+      out += `<text class="st-label" x="${(p[0] + q[0]) / 2}" y="${(p[1] + q[1]) / 2 + 22 * z}" font-size="${12 * z}" stroke-width="${3 * z}" text-anchor="middle">${esc(w.name)}</text>`
+    }
+    // stops: shown with their relation, or when selected or hovered
+    const hovNodes = new Set(S.hover ? nodeIdsFor(S.hover) : [])
+    for (const [id, n] of Object.entries(nodes)) {
+      if (!relNodes.has(id) && S.selected !== id && !hovNodes.has(id)) continue
+      const [x, y] = n.pts[0],
+        r = (n.kind === 'stop' ? 6 : 5) * z
+      const sel = S.selected === id,
+        hv = hovNodes.has(id)
+      const fill = sel ? 'var(--accent)' : hv ? 'var(--hover)' : 'var(--panel)'
+      out +=
+        n.kind === 'stop'
+          ? `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="var(--rel)" stroke-width="${2.5 * z}" data-id="${id}" style="cursor:pointer"/>`
+          : `<rect x="${x - r * 1.4}" y="${y - r * 0.7}" width="${r * 2.8}" height="${r * 1.4}" rx="${z}" fill="${fill}" stroke="var(--rel)" stroke-width="${2 * z}" data-id="${id}" style="cursor:pointer"/>`
+    }
+    for (const id of Object.keys(ways))
+      out += `<path class="st-hit" d="${path(ways[id].pts)}" stroke-width="${22 * z}" data-id="${id}"/>`
+    mapEl.innerHTML = out
+    renderEdges()
+  }
+
+  // an arrow at the map's edge toward a hovered member that is outside the view
+  function renderEdges() {
+    const box = $('edges')
+    box.innerHTML = ''
+    if (!S.hover || inView(S.hover)) return
+    const [x, y, w, h] = viewBox()
+    const [a, b, c, d] = bbox(ptsOf(S.hover))
+    const tx = (a + c) / 2,
+      ty = (b + d) / 2,
+      cx = x + w / 2,
+      cy = y + h / 2
+    const dx = tx - cx,
+      dy = ty - cy,
+      k = Math.min(
+        (w / 2 - 70 / S.view.scale) / Math.abs(dx || 1e-6),
+        (h / 2 - 30 / S.view.scale) / Math.abs(dy || 1e-6),
+      )
+    const px = (dx * k + w / 2) * S.view.scale,
+      py = (dy * k + h / 2) * S.view.scale
+    const ang = (Math.atan2(dy, dx) * 180) / Math.PI
+    const f = feature(S.hover)
+    box.innerHTML = `<button class="edge" style="left:${px}px;top:${py}px" data-fly="${S.hover}"><svg viewBox="0 0 20 20" fill="currentColor" style="transform:rotate(${ang}deg)"><path d="M4 9h9l-3-3 1.4-1.4L17 10l-5.6 5.4L10 14l3-3H4z"/></svg>${esc(f.name || f.title)}</button>`
+  }
+
+  function flyTo(id, fit) {
+    const [a, b, c, d] = bbox(ptsOf(id))
+    const tw = c - a + 160,
+      th = d - b + 160
+    const target = {
+      cx: (a + c) / 2,
+      cy: (b + d) / 2,
+      scale: fit
+        ? Math.min(wrap.clientWidth / tw, wrap.clientHeight / th, 1.6)
+        : Math.min(S.view.scale, wrap.clientWidth / tw, wrap.clientHeight / th),
+    }
+    const from = { ...S.view },
+      t0 = performance.now()
+    const dur = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 650
+    const ease = (t) => 1 - Math.pow(1 - t, 3)
+    const step = (now) => {
+      const t = dur ? Math.min(1, (now - t0) / dur) : 1,
+        e = ease(t)
+      S.view = {
+        cx: from.cx + (target.cx - from.cx) * e,
+        cy: from.cy + (target.cy - from.cy) * e,
+        scale: from.scale + (target.scale - from.scale) * e,
+      }
+      renderMap()
+      if (t < 1) requestAnimationFrame(step)
+      else renderRelList()
+    }
+    requestAnimationFrame(step)
+  }
+
+  // ---------- inspector ----------
+  const relTypeName = (r) =>
+    r.type === 'route_master' ? 'Route master' : r.route === 'bus' ? 'Bus route' : 'Bicycle route'
+  const label = (k) => k[0].toUpperCase() + k.slice(1)
+  function renderInspector() {
+    const el = $('inspector'),
+      id = S.selected,
+      rel = current()
+    if (!id) {
+      el.innerHTML = `<div class="empty"><b style="color:var(--fg)">Nothing selected</b><span>Pick a feature on the map.</span></div>`
+      return
+    }
+    const f = feature(id)
+    const typeLine =
+      f.kind === 'way'
+        ? f.highway
+        : f.kind === 'stop'
+          ? 'Bus stop position'
+          : f.kind === 'platform'
+            ? 'Bus stop (platform)'
+            : relTypeName(f) + (f.tags.public_transport ? ' · public transport v2' : '')
+    let h = `<div class="head"><div class="head-row"><span class="icon ${f.kind === 'relation' ? 'rel' : ''}">${iconOf(id)}</span><div style="min-width:0;flex:1"><h2 title="${esc(f.name || f.title)}">${esc(f.name || f.title)}</h2><div class="sub">${typeLine}</div></div>
+    ${f.kind === 'relation' && id !== rel ? `<button class="openbtn" data-open="${id}">Open ${I.chevR}</button>` : ''}</div></div>`
+    h += `<div class="col-scroll">`
+    if (f.kind === 'relation') {
+      const hl = help[f.type === 'route_master' ? 'route_master' : f.route]
+      h += `<div class="section"><h3><span class="grow">How this relation works</span><button class="linkbtn" id="helpToggle">${S.help ? 'Hide' : 'Show'}</button></h3>
+      ${S.help ? `<div class="help"><p>${esc(hl[0])}</p><p>${esc(hl[1])}</p><a href="${hl[2]}" target="_blank" rel="noopener">Read more in the OSM wiki</a><span class="draft">Draft text; the final texts come from the wiki research.</span></div>` : ''}</div>`
+      const gaps = f.ways ? gapsOf(id) : new Set()
+      if (gaps.size)
+        h += `<div class="section"><h3>Issues</h3>${[...gaps].map((g) => `<div class="issue">${I.warn}<span>The route has a gap between way ${g + 1} and ${g + 2} (${esc(ways[f.ways[g]].name)}). <button data-fly="${f.ways[g]}">Show</button></span></div>`).join('')}</div>`
+      h += `<div class="section"><h3>Fields</h3>${(keyTags[f.type] || [])
+        .filter((k) => f.tags[k])
+        .map(
+          (k) =>
+            `<div class="field"><label for="f-${k}">${label(k)}</label><input id="f-${k}" value="${esc(f.tags[k])}"></div>`,
+        )
+        .join('')}</div>`
+    } else {
+      const iss = issuesOfFeature(id)
+      if (iss.length)
+        h += `<div class="section"><h3>Issues</h3>${iss.map((t) => `<div class="issue">${I.warn}<span>${esc(t)}</span></div>`).join('')}</div>`
+      h +=
+        f.kind === 'way'
+          ? `<div class="section"><h3>Fields</h3>
+      <div class="field"><label for="f-name">Name</label><input id="f-name" value="${esc(f.name)}"></div>
+      <div class="field"><label for="f-surface">Surface</label><input id="f-surface" value="${esc(f.surface)}" placeholder="Unknown"></div>
+      <div class="field"><label for="f-speed">Max speed</label><input id="f-speed" value="${esc(f.maxspeed)}"></div>
+      <div class="field"><label for="f-lanes">Lanes</label><input id="f-lanes" value="${esc(f.lanes)}"></div></div>`
+          : `<div class="section"><h3>Fields</h3><div class="field"><label for="f-name">Name</label><input id="f-name" value="${esc(f.name)}"></div>
+      <div class="field"><label for="f-shelter">Shelter</label><input id="f-shelter" value="yes"></div></div>`
+    }
+    const parents = parentsOf(id)
+    h += `<div class="section"><h3>Relations <span class="count">${parents.length}</span></h3>`
+    if (!parents.length) h += `<p class="sub" style="margin:0">Not in any relation.</p>`
+    for (const rid of parents) {
+      const r = relations[rid],
+        list = groupOf(rid, id),
+        pos = list.indexOf(id) + 1,
+        role = roleOf(rid, id)
+      const up = parentsOf(rid)
+      const isCur = S.stack.includes(rid)
+      h += `<div class="card ${isCur ? 'current' : ''}"><span class="icon rel">${iconOf(rid)}</span><div class="txt"><div class="name">${esc(r.title)}</div>
+      <div class="meta tabular">${relTypeName(r)} · ${role ? `role ${role} · ` : ''}${pos} of ${list.length}${up.length ? ` · in ${esc(relations[up[0]].title)}` : ''}</div></div>
+      ${rid === rel ? '<button class="closebtn" data-close="1">Close</button>' : `<button class="openbtn" data-open="${rid}">Open ${I.chevR}</button>`}</div>`
+    }
+    h += `</div><div class="section"><h3>All tags</h3>${
+      f.tags
+        ? `<dl class="tags">${Object.entries(f.tags)
+            .map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`)
+            .join('')}</dl>`
+        : '<p class="sub" style="margin:0">The tag editor, unchanged.</p>'
+    }</div></div>`
+    el.innerHTML = h
+    stackHeads(el.querySelector('.col-scroll'))
+  }
+
+  // ---------- relation column: its head is a tab for the relation itself, below it only the members ----------
+  function renderRelCol() {
+    const col = $('relcol'),
+      rel = current()
+    col.classList.toggle('open', !!rel)
+    $('workspace').classList.toggle('nested', !!rel)
+    if (!rel) return
+    const r = relations[rel]
+    const counts = r.routes
+      ? `${r.routes.length} routes`
+      : `${r.stops.length ? r.stops.length + ' stops · ' : ''}${r.ways.length} ways`
+    $('relinner').innerHTML =
+      `<div class="relhead-wrap"><div class="mrow relhead ${S.selected === rel ? 'sel' : ''}" data-row="${rel}" title="Show the tags of the relation">
+      <span class="icon rel">${iconOf(rel)}</span><span class="nm"><b>${esc(r.title)}</b><br><small>${relTypeName(r)} · ${counts}</small></span>
+      <button class="iconbtn" data-close="1" aria-label="Close the relation (Esc)" title="Close (Esc)">${I.x}</button></div></div>
+    ${S.selected && S.selected !== rel && !membersOf(rel).includes(S.selected) ? `<div class="addhint">${I.info}<span><b>${esc(feature(S.selected).name || feature(S.selected).title)}</b> is not in this relation. <button class="linkbtn">Add it</button></span></div>` : ''}
+    <div class="col-scroll" id="relscroll"><div id="rellist"></div></div>`
+    renderRelList()
+  }
+
+  // the bar above both columns: back to the parent relation, stepping through members, leaving
+  function rowHtml(id, idx, cls, extra) {
+    const f = feature(id)
+    const fly = inView(id)
+      ? ''
+      : `<button class="flybtn" data-fly="${id}" aria-label="Fly to ${esc(f.name || f.title)}">${I.fly}Fly to</button>`
+    return `<li class="mrow ${cls} ${S.selected === id ? 'sel' : ''} ${S.hover === id ? 'hl' : ''}" data-row="${id}">${extra}<span class="idx tabular">${idx}</span>
+    <span class="nm">${esc(f.name || f.title)}</span>${fly}<span class="chev">${I.chevR}</span></li>`
+  }
+
+  const fitBtn = (id) =>
+    `<button class="iconbtn" data-fly="${id}" data-fit="1" aria-label="Fit in the map" title="Fit in the map">${I.fit}</button>`
+  function renderRelList() {
+    const rel = current()
+    if (!rel) return
+    const r = relations[rel]
+    let h = ''
+    if (r.routes) {
+      h += `<div class="section list"><h3>Routes <span class="count">${r.routes.length}</span><span class="grow"></span>${fitBtn(rel)}</h3><ul class="members">`
+      r.routes.forEach((rid, i) => {
+        const f = relations[rid]
+        h += `<li class="mrow ${S.selected === rid ? 'sel' : ''}" data-row="${rid}"><span class="gut"><span class="icon rel" style="width:22px;height:22px">${I.bus}</span></span>
+        <span class="nm">${esc(f.short)}<br><small>${f.stops.length} stops · ${f.ways.length} ways</small></span>
+        <span class="chev">${I.chevR}</span></li>`
+      })
+      h += `</ul></div>`
+    } else {
+      if (r.stops.length) {
+        h += `<div class="section list"><h3>Stops <span class="count">${r.stops.length}</span><span class="grow"></span></h3><ul class="members">`
+        r.stops.forEach((s, i) => {
+          const p = s + 'p',
+            q = s + 'q',
+            selHere = S.selected === p || S.selected === q
+          const f = nodes[p]
+          const fly = inView(p)
+            ? ''
+            : `<button class="flybtn" data-fly="${p}">${I.fly}Fly to</button>`
+          h += `<li class="mrow ${i === 0 ? 'first' : ''} ${i === r.stops.length - 1 ? 'last' : ''} ${selHere ? 'sel' : ''}" data-row="${p}"><span class="gut"><span class="dot stop"></span></span>
+          <span class="idx tabular">${i + 1}</span><span class="nm">${esc(f.name)}</span>
+          <button class="chip ${S.selected === p ? 'on' : ''}" data-sel="${p}" title="The stop position on the road">stop</button>
+          <button class="chip ${S.selected === q ? 'on' : ''}" data-sel="${q}" title="Where people wait">platform</button>${fly}<span class="chev">${I.chevR}</span></li>`
+        })
+        h += `</ul></div>`
+      }
+      const gaps = gapsOf(rel)
+      h += `<div class="section list"><h3>Route <span class="count">${r.ways.length} ways</span><span class="grow"></span>${r.route !== 'bus' ? '<button class="linkbtn" title="Reroute a stretch">Reroute</button>' : ''}${fitBtn(rel)}</h3><ul class="members">`
+      r.ways.forEach((w, i) => {
+        const cls = [
+          i === 0 && 'first',
+          i === r.ways.length - 1 && 'last',
+          gaps.has(i) && 'gap-after',
+          gaps.has(i - 1) && 'gap-before',
+        ]
+          .filter(Boolean)
+          .join(' ')
+        const warn =
+          gaps.has(i) || gaps.has(i - 1)
+            ? `<span class="warn" title="Does not connect">${I.warn}</span>`
+            : ''
+        const iss = issuesOfFeature(w).length
+          ? `<span class="warn" title="${esc(issuesOfFeature(w)[0])}">${I.warn}</span>`
+          : ''
+        h += rowHtml(w, i + 1, cls, `<span class="gut"><span class="dot"></span></span>`)
+          .replace('<span class="nm">', `${''}<span class="nm">`)
+          .replace(/(<\/span>)(<button class="flybtn|<span class="chev")/, `$1${warn || iss}$2`)
+        if (gaps.has(i))
+          h += `<li class="gaprow"><svg class="zig" viewBox="0 0 18 14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 0v4l-4 3 8 0-4 3v4"/></svg>Gap: way ${i + 1} and ${i + 2} do not connect</li>`
+      })
+      h += `</ul></div>`
+    }
+    const el = $('rellist')
+    if (el) el.innerHTML = h
+    stackHeads($('relscroll'))
+  }
+
+  // ---------- dock (way table only) ----------
+  function renderDock() {
+    const rel = current()
+    const list =
+      rel && relations[rel].ways ? relations[rel].ways : ways[S.selected] ? [S.selected] : []
+    const cols = ['name', 'highway', 'surface', 'maxspeed', 'lanes']
+    const diff = (k) => new Set(list.map((w) => ways[w][k])).size > 1
+    $('dock').innerHTML =
+      `<div class="dh"><b>Way table</b><span>${rel ? `the ${list.length} ways of ${esc(relations[rel].short)}, in route order` : list.length ? 'the selected way' : 'Select a way or open a route'}</span></div>
+    <div class="tbl"><table><thead><tr><th>#</th>${cols.map((c) => `<th>${c}</th>`).join('')}</tr></thead><tbody>
+    ${list.map((w, i) => `<tr class="${S.selected === w ? 'sel' : ''}" data-row="${w}"><td class="tabular">${i + 1}</td>${cols.map((c) => `<td class="${c !== 'name' && diff(c) ? 'diff' : ''}">${esc(ways[w][c] || '—')}</td>`).join('')}</tr>`).join('')}
+    </tbody></table></div>`
+    $('dock').classList.toggle('open', S.dock)
+    $('docktab').setAttribute('aria-expanded', S.dock)
+    $('docktab').classList.toggle('raised', S.dock)
+  }
+
+  const HEAD = 30
+  function stackHeads(root) {
+    if (!root) return
+    for (const sec of root.querySelectorAll('.section')) {
+      const h = sec.querySelector(':scope > h3')
+      if (h) {
+        h.classList.add('sh')
+        sec.before(h)
+      }
+    }
+    root.querySelectorAll('h3.sh').forEach((h, i) => {
+      h.style.top = i * HEAD + 'px'
+      h.dataset.i = i
+    })
+  }
+  document.addEventListener('click', (e) => {
+    const h = e.target.closest('h3.sh')
+    if (!h || e.target.closest('button')) return
+    const root = h.closest('.col-scroll'),
+      sec = h.nextElementSibling
+    root.scrollTo({
+      top: sec.offsetTop - (+h.dataset.i + 1) * HEAD,
+      behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+    })
+  })
+
+  function render() {
+    renderInspector()
+    renderRelCol()
+    renderMap()
+    renderDock()
+  }
+
+  // ---------- actions ----------
+  function select(id) {
+    S.selected = id
+    renderInspector()
+    renderRelList()
+    renderMap()
+    renderDock()
+    const row = document.querySelector(`#rellist [data-row="${id}"]`)
+    row?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    const relIssues = document.querySelector('#relscroll .issue')
+    renderRelCol()
+  }
+  function openRel(rid) {
+    const up = parentsOf(rid).filter((p) => relations[p].type === 'route_master')
+    // keep the path from a route master when we came from it, else start a new one
+    if (current() && relations[current()].routes?.includes(rid)) S.stack = [...S.stack, rid]
+    else S.stack = up.length ? [up[0], rid] : [rid]
+    if (!S.selected || !membersOf(rid).includes(S.selected)) S.selected = rid
+    S.help = false
+    S.allTags = false
+    render()
+  }
+  function step(d) {
+    const rel = current(),
+      r = relations[rel]
+    if (S.selected === rel) {
+      if (d > 0) select((r.routes || r.ways)[0])
+      return
+    }
+    const list = groupOf(rel, S.selected),
+      i = list.indexOf(S.selected) + d
+    if (i < 0) {
+      select(rel)
+      return
+    }
+    if (i >= list.length) return
+    select(list[i])
+    if (!inView(list[i])) flyTo(list[i])
+  }
+
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('button, [data-row], [data-id]')
+    if (!t) return
+    if (t.dataset.s) {
+      scenario(t.dataset.s)
+      return
+    }
+    if (t.id === 'notesToggle') {
+      S.notes = !S.notes
+      $('notes').hidden = !S.notes
+      t.setAttribute('aria-pressed', S.notes)
+      return
+    }
+    if (t.dataset.fly) {
+      e.stopPropagation()
+      flyTo(t.dataset.fly, !!t.dataset.fit)
+      return
+    }
+    if (t.dataset.open) {
+      e.stopPropagation()
+      openRel(t.dataset.open)
+      return
+    }
+    if (t.dataset.crumb) {
+      const from = current()
+      S.stack = S.stack.slice(0, +t.dataset.crumb + 1)
+      S.selected = membersOf(current()).includes(from) ? from : current()
+      render()
+      return
+    }
+    if (t.dataset.step) {
+      step(+t.dataset.step)
+      return
+    }
+    if (t.dataset.sel) {
+      e.stopPropagation()
+      select(t.dataset.sel)
+      return
+    }
+    if (t.dataset.close) {
+      S.stack = []
+      render()
+      return
+    }
+    if (t.id === 'helpToggle') {
+      S.help = !S.help
+      renderInspector()
+      return
+    }
+    if (t.id === 'tagsToggle') {
+      S.allTags = !S.allTags
+      renderRelCol()
+      return
+    }
+    if (t.id === 'docktab') {
+      S.dock = !S.dock
+      renderDock()
+      return
+    }
+    if (t.id === 'zoomAll') {
+      flyTo(current() || 'r1', true)
+      return
+    }
+    if (t.dataset.row) {
+      select(t.dataset.row)
+      return
+    }
+  })
+  document.addEventListener('keydown', (e) => {
+    if (e.target.closest('input')) return
+    if (e.key === 'Escape' && current()) {
+      S.stack = []
+      render()
+    }
+  })
+  // hover: members in lists and the way table light up on the map
+  document.addEventListener('pointerover', (e) => {
+    const row = e.target.closest('[data-row]')
+    const id = row?.dataset.row ?? null
+    if (id === S.hover) return
+    S.hover = id
+    renderMap()
+  })
+  // map: drag to pan, click to select
+  let drag = null
+  mapEl.addEventListener('pointerdown', (e) => {
+    drag = { x: e.clientX, y: e.clientY, cx: S.view.cx, cy: S.view.cy, moved: false }
+    mapEl.setPointerCapture(e.pointerId)
+  })
+  mapEl.addEventListener('pointermove', (e) => {
+    if (!drag) {
+      const id = e.target.dataset?.id ?? null
+      if (id !== S.hover) {
+        S.hover = id
+        renderMap()
+      }
+      return
+    }
+    const dx = e.clientX - drag.x,
+      dy = e.clientY - drag.y
+    if (Math.hypot(dx, dy) > 3) {
+      drag.moved = true
+      mapEl.classList.add('dragging')
+    }
+    if (drag.moved) {
+      S.view.cx = drag.cx - dx / S.view.scale
+      S.view.cy = drag.cy - dy / S.view.scale
+      renderMap()
+    }
+  })
+  mapEl.addEventListener('pointerup', (e) => {
+    const d = drag
+    drag = null
+    mapEl.classList.remove('dragging')
+    if (d?.moved) {
+      renderRelList()
+      return
+    }
+    const hit = document.elementsFromPoint(e.clientX, e.clientY).find((n) => n.dataset?.id)
+    if (hit) select(hit.dataset.id)
+  })
+  mapEl.addEventListener(
+    'wheel',
+    (e) => {
+      e.preventDefault()
+      S.view.scale = Math.max(0.25, Math.min(3, S.view.scale * (e.deltaY < 0 ? 1.1 : 1 / 1.1)))
+      renderMap()
+      renderRelList()
+    },
+    { passive: false },
+  )
+  new ResizeObserver(() => {
+    renderMap()
+  }).observe(wrap)
+
+  function scenario(s) {
+    document
+      .querySelectorAll('#scenarios button')
+      .forEach((b) => b.setAttribute('aria-pressed', b.dataset.s === s))
+    S.hover = null
+    S.dock = false
+    S.view = { cx: 560, cy: 430, scale: Math.max(0.4, wrap.clientWidth / 1150) }
+    if (s === 'way') {
+      S.selected = 'w8'
+      S.stack = []
+      S.view.cx = 1100
+      S.view.cy = 360
+    }
+    if (s === 'relation') {
+      S.selected = 'r1'
+      S.stack = ['rm', 'r1']
+    }
+    if (s === 'master') {
+      S.selected = 'rm'
+      S.stack = ['rm']
+    }
+    render()
+  }
+  scenario('way')
+</script>

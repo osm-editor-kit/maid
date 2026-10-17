@@ -2,6 +2,7 @@ import { ClipboardDocumentIcon } from '@heroicons/react/16/solid'
 import type { Tags } from '@osm-editor-kit/maid-presets'
 import { useState, type FocusEvent as ReactFocusEvent } from 'react'
 import type { CombinedTags } from '../../inspector/fields/shared.ts'
+import { notify } from '../../Toast.tsx'
 import { Tooltip } from '../../Tooltip.tsx'
 import { Sheet } from '../Sheet.tsx'
 import type { SheetBatch, SheetClipboard } from '../types.ts'
@@ -37,6 +38,37 @@ type TagSheetCommon = {
   label: string
   /** Key and value suggestions (taginfo, or any source of that shape). Without it the sheet asks nothing. */
   suggest?: TagSuggestSource
+  /** The "Copy all" button under the sheet. Default true; false when the place around it shows `CopyTagsButton`. */
+  copyButton?: boolean
+}
+
+/**
+ * "Copy all" as an icon with a tooltip, for a section heading: every tag as key=value lines, the shared ones of
+ * several features with `combined`. Says "Copied" as a toast.
+ */
+export function CopyTagsButton(props: { tags?: Tags; combined?: CombinedTags }) {
+  const copy = () => {
+    const text =
+      props.combined !== undefined
+        ? copyAllCombinedText(props.combined)
+        : copyAllText(props.tags ?? {})
+    void navigator.clipboard.writeText(text).then(
+      () => notify.done('Copied'),
+      () => notify.info('The browser did not allow the copy'),
+    )
+  }
+  return (
+    <Tooltip label="Copy all tags as key=value lines">
+      <button
+        type="button"
+        aria-label="Copy all"
+        onClick={copy}
+        className="grid size-7 cursor-pointer place-items-center rounded-md text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
+      >
+        <ClipboardDocumentIcon className="size-4" aria-hidden="true" />
+      </button>
+    </Tooltip>
+  )
 }
 
 /**
@@ -161,18 +193,20 @@ export function TagSheet(props: TagSheetProps) {
         onRedo={onRedo}
         note={note}
       />
-      <div className="flex justify-end">
-        <Tooltip label="Copy all tags as key=value lines">
-          <button
-            type="button"
-            onClick={copyAll}
-            className="flex h-6 items-center gap-1 rounded-md px-1.5 text-xs text-zinc-600 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
-          >
-            <ClipboardDocumentIcon className="size-3.5" aria-hidden="true" />
-            Copy all
-          </button>
-        </Tooltip>
-      </div>
+      {props.copyButton === false ? null : (
+        <div className="flex justify-end">
+          <Tooltip label="Copy all tags as key=value lines">
+            <button
+              type="button"
+              onClick={copyAll}
+              className="flex h-6 items-center gap-1 rounded-md px-1.5 text-xs text-zinc-600 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
+            >
+              <ClipboardDocumentIcon className="size-3.5" aria-hidden="true" />
+              Copy all
+            </button>
+          </Tooltip>
+        </div>
+      )}
     </div>
   )
 }

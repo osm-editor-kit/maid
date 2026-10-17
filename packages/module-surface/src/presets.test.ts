@@ -37,7 +37,7 @@ describe('surfacePresetChanges', () => {
     expect(matching).toHaveLength(1)
     expect(matching[0]?.type).toBe(SURFACE_SMOOTHNESS_FIELD_TYPE)
     expect(matching[0]?.keys).toEqual(['surface', 'smoothness'])
-    expect(matching[0]?.label).toBe('Surface and smoothness')
+    expect(matching[0]?.label).toBe('Surface and Smoothness')
   })
 
   it('takes the plain surface field out of the residential road, and places the new one where it was', () => {

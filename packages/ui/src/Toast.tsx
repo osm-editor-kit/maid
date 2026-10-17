@@ -40,7 +40,6 @@
  * | "Could not load the members", "The list of backgrounds could not be loaded.", "The notes could not be loaded" | relations, module-imagery ImageryPanel.tsx, module-notes store | a list fails to load | in its panel | d | the panel's own content |
  * | "These filters come from the link you opened." | components/FilterButton.tsx | the filters come from a link | while from the link | b, not moved | a condition, but the filter banner is being replaced by another change |
  * | Restore dialog | RestorePrompt.tsx | stored edits are found | until answered | not a notice | a question that needs an answer |
- * | "© OpenStreetMap contributors" | MapNotices.tsx | always | always | not a notice | attribution |
  * | "Copied" / "5 tags pasted" | none | none | none | not present | Maid shows no copy confirmation; the undo history names pastes |
  *
  * Sonner (the library behind the toasts) renders its own live region, a `section` with

@@ -1,4 +1,4 @@
-import { EyeIcon, XMarkIcon } from '@heroicons/react/20/solid'
+import { EyeIcon, TrashIcon } from '@heroicons/react/20/solid'
 import { PLAIN_INPUT, openDockView } from '@osm-editor-kit/maid-ui'
 /**
  * The "Street-level images" field: one row per image key of the feature that has a value (`;` separated ids, as
@@ -246,7 +246,7 @@ function ImageRow({
                   aria-label={m.field_remove({ id: imageId })}
                   onClick={() => onChange(imageKey, removeId(value, imageId))}
                 >
-                  <XMarkIcon aria-hidden="true" className="size-4" />
+                  <TrashIcon aria-hidden="true" className="size-4" />
                 </button>
               ) : null}
             </li>

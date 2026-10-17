@@ -59,8 +59,11 @@ export type TooltipProps = {
 const BUBBLE =
   'z-50 w-max max-w-82 rounded-md bg-zinc-900/90 px-2 py-1.5 text-xs text-white shadow-md select-none dark:bg-zinc-100/95 dark:text-zinc-950'
 
-/** The wrapper of a disabled control: it takes the pointer, and the control's corners are its own */
-const DISABLED_WRAP = 'inline-flex [&>*]:pointer-events-none [&>*]:rounded-[inherit]'
+/**
+ * The wrapper of a disabled control: it takes the pointer, and the control takes the wrapper's corners. Those are a
+ * button's (`rounded-md`) on their own; in a joined group the group's rules set them, as for its other buttons.
+ */
+const DISABLED_WRAP = 'inline-flex rounded-md [&>*]:pointer-events-none [&>*]:rounded-[inherit]'
 
 /** The group's box: short, and no overshoot, as the top bar's own changes */
 const GROUP_TRANSITION: Transition = { duration: 0.12, ease: 'easeOut' }

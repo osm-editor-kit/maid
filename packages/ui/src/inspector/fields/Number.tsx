@@ -309,8 +309,9 @@ function SpeedControl({
   const edit = editKey(() => setNumber(parsed.number))
 
   return (
+    // the unit joins the input as the steppers of a number do
     <div
-      className="flex min-w-0 items-center gap-1"
+      className="flex min-w-0 items-center"
       onBlur={(event) => {
         if (leavesControl(event)) commit()
       }}
@@ -322,7 +323,7 @@ function SpeedControl({
           id={id}
           type="text"
           inputMode="decimal"
-          className={INPUT}
+          className={`${INPUT} rounded-r-none`}
           value={number}
           placeholder={placeholder}
           title={title}
@@ -335,7 +336,7 @@ function SpeedControl({
         <select
           ref={registerPart(parts, 'unit')}
           aria-label={`${field.label} unit`}
-          className={`${FRAME} px-2`}
+          className={`${FRAME} rounded-l-none border-l-0 px-2`}
           value={unit}
           disabled={readOnly}
           onChange={(event) => {

@@ -54,16 +54,31 @@ export function watchFavourites(engine: MaidEngine) {
 export function useFavouriteEntries(): FavouriteEntry[] {
   const favourites = useStoredFavourites()
   const { editor } = useShell()
-  const { presets } = editor
+  return favouriteEntries(favourites, editor.presets)
+}
+
+/**
+ * The stored favourites as the picker lists them. A relation is no favourite (it cannot be drawn), so a stored
+ * entry of geometry `relation` is left out, as is one whose preset the presets do not have.
+ */
+export function favouriteEntries(
+  favourites: readonly { presetId: string; number: string; geometry: Geometry }[],
+  presets: Presets | undefined,
+): FavouriteEntry[] {
   if (!presets) return []
   return favourites.flatMap((favourite) => {
+    if (favourite.geometry === 'relation') return []
     const preset = presets.preset(favourite.presetId)
     return preset ? [{ preset, number: favourite.number, geometry: favourite.geometry }] : []
   })
 }
 
-/** Makes the preset a favourite for the geometry, or takes it out again */
+/**
+ * Makes the preset a favourite for the geometry, or takes it out again. A relation cannot be drawn, so it is never
+ * a favourite: nothing happens for geometry `relation`.
+ */
 export function toggleFavourite(preset: Preset, geometry: Geometry) {
+  if (geometry === 'relation') return
   settingsActions.toggleFavourite(preset.id, geometry)
 }
 

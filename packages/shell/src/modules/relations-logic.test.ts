@@ -61,6 +61,7 @@ import {
   planFeaturesOf,
   planRemoveFrom,
   sharedMemberships,
+  wouldContainItself,
 } from './relations-logic.ts'
 
 const context = new ModelContext()
@@ -1552,5 +1553,27 @@ describe('addTargetOf', () => {
     expect(
       addTargetOf(current, ['r1'], planFeaturesOf(current, ['w3']), rules(restrictionRoles, false)),
     ).toBeUndefined()
+  })
+})
+
+describe('wouldContainItself', () => {
+  const graph = new Graph(context, [
+    relation('r1', { type: 'superroute' }, [{ id: 'r2', type: 'relation', role: '' }]),
+    relation('r2', { type: 'superroute' }, [{ id: 'r3', type: 'relation', role: '' }]),
+    relation('r3', { type: 'route' }, [{ id: 'w1', type: 'way', role: '' }]),
+    relation('r4', { type: 'route' }),
+    way('w1', []),
+  ])
+
+  it('refuses the relation itself and every relation that holds it, at any depth', () => {
+    expect(wouldContainItself(graph, 'r3', 'r3')).toBe(true)
+    expect(wouldContainItself(graph, 'r3', 'r2')).toBe(true)
+    expect(wouldContainItself(graph, 'r3', 'r1')).toBe(true)
+  })
+
+  it('takes ways, sub-relations and unrelated relations', () => {
+    expect(wouldContainItself(graph, 'r3', 'w1')).toBe(false)
+    expect(wouldContainItself(graph, 'r1', 'r3')).toBe(false)
+    expect(wouldContainItself(graph, 'r3', 'r4')).toBe(false)
   })
 })

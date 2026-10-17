@@ -18,6 +18,7 @@ import {
 import { useContext, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { PLAIN_INPUT } from '../../plain-input.ts'
 import { useDebouncedValue } from '../../use-debounced-value.ts'
+import { listRow } from '../listbox.ts'
 import {
   comboArrow,
   comboChoose,
@@ -233,9 +234,7 @@ function SuggestInput<T>(props: {
                   apply(comboChoose(latest.current, option.label))
                   inputRef.current?.blur()
                 }}
-                className={`flex min-h-8 cursor-pointer flex-col justify-center rounded px-2 py-1 ${
-                  index === active ? 'bg-zinc-950/5 dark:bg-white/10' : ''
-                }`}
+                className={`flex min-h-8 cursor-pointer flex-col justify-center px-2 py-1 ${listRow({ active: index === active })}`}
               >
                 <span className="min-w-0 truncate">{option.label}</span>
                 {(option as SuggestOption).detail ? (

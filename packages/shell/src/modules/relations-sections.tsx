@@ -1,54 +1,28 @@
-import { Bars3Icon } from '@heroicons/react/16/solid'
+import { TrashIcon } from '@heroicons/react/16/solid'
 import { m } from '@osm-editor-kit/maid-i18n'
 import {
   actionAddMember,
   actionChangeMember,
   actionDeleteMember,
-  actionMoveMember,
   OsmRelation,
   type Action,
 } from '@osm-editor-kit/maid-model'
 import type { RelationRoles } from '@osm-editor-kit/maid-presets'
 import { notify, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
-import {
-  SidebarDisclosure,
-  Tooltip,
-  UI_SPRING,
-  type InspectorSectionProps,
-} from '@osm-editor-kit/maid-ui'
-import { Reorder, useDragControls, useReducedMotion } from 'motion/react'
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-  type PointerEvent,
-  type ReactNode,
-} from 'react'
+import { SidebarDisclosure, Tooltip, type InspectorSectionProps } from '@osm-editor-kit/maid-ui'
+import { createContext, useContext, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { usePresets, useShell } from '../shell-context'
+import { useRelatedWhileHovered, type RowHighlight } from './relations-hover.ts'
 import {
   cannotTakeReason,
   colourOf,
   dotNeedsRing,
-  geometryOfEntity,
-  groupDropMove,
   joinableRelations,
-  loadButtonLabel,
-  loadFailureSentence,
-  loadingLabel,
-  loadResultSentence,
-  memberGroups,
-  memberLoadPath,
   memberName,
-  memberRows,
   membershipHint,
   membershipsOf,
-  moveTargets,
   multiMembershipsOf,
   newRelationActions,
-  notLoadedCount,
   pasteOffersOf,
   pickerNames,
   placementOf,
@@ -62,28 +36,19 @@ import {
   roleOptionsFor,
   roleSuggestions,
   roleToAdd,
-  routeGaps,
   sessionFirst,
-  type LoadMember,
-  type MemberGroupKey,
-  type MemberMoves,
-  type MemberRow,
   type Membership,
   type MultiMembership,
   type PasteOffer,
   type RelationRules,
   type RoleOption,
 } from './relations-logic.ts'
-import { setSubRouteHovered } from './relations-map-shapes.ts'
+import { openRelationActions, useOpenRelationId } from './relations-open-store.ts'
 import { pasteOfferActions, usePasteOrigins, usePasteSettled } from './relations-paste-store.ts'
 import { relationSessionActions, useSessionRelationIDs } from './relations-session-store.ts'
 
 type Props = InspectorSectionProps
 type Editor = Props['editor']
-type Member = OsmRelation['members'][number]
-
-/** Members shown before the list says "Show all N". iD caps its member list at 1000. */
-const MEMBER_LIMIT = 50
 /** Relations offered in the "Add to a relation" select. */
 const RELATION_OPTION_LIMIT = 200
 /**
@@ -99,15 +64,9 @@ const ROW =
  * relation name or picker option and the rows run out of the sidebar instead of truncating.
  */
 const COLUMN = 'grid grid-cols-[minmax(0,1fr)]'
-/** A member's row: its content. The list item around it carries the hairline and is what Reorder moves. */
-const ROW_BODY = 'flex min-w-0 items-center gap-2 py-1 text-xs'
-const MEMBER_ITEM = 'border-b border-zinc-950/5 last:border-0 dark:border-white/5'
 const LINK =
   'min-w-0 flex-1 cursor-pointer truncate rounded px-1 text-left hover:underline focus-visible:outline-2 focus-visible:outline-blue-500'
 const SECONDARY = 'text-zinc-500 dark:text-zinc-400'
-/** A text button in a list, e.g. "Show all 120". */
-const LINK_BUTTON =
-  'cursor-pointer rounded px-1 text-xs text-zinc-500 hover:text-zinc-950 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:text-white'
 /** Inline role input: looks like plain text until hovered or focused, as in TagRow. */
 const ROLE_INPUT =
   'w-20 shrink-0 rounded border border-transparent bg-transparent px-1 py-0.5 hover:border-zinc-950/20 focus:border-blue-500 focus:bg-white focus:outline-none disabled:cursor-default disabled:text-zinc-400 disabled:hover:border-transparent dark:hover:border-white/20 dark:focus:bg-zinc-950'
@@ -118,15 +77,10 @@ const BUTTON =
 /** Icon buttons in a row: move, remove. Quiet until hovered, as the edit buttons are. */
 const ICON_BUTTON =
   'shrink-0 cursor-pointer rounded px-1 text-zinc-400 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:text-zinc-300 disabled:hover:bg-transparent disabled:hover:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-white dark:disabled:text-zinc-700 dark:disabled:hover:bg-transparent dark:disabled:hover:text-zinc-700'
-/** The line between two members of a route whose ways do not meet. */
-const GAP =
-  'flex items-center gap-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400'
 /** A warning under a membership: information only. */
 const HINT = 'pb-1 pl-1 text-xs text-amber-700 dark:text-amber-400'
 /** A quiet line under the list: what a load left out */
 const SECONDARY_NOTE = `pt-1 text-xs ${SECONDARY}`
-/** The heading of a group of members (stops, ways): small and quiet, so the list stays calm */
-const GROUP_HEADING = `pt-1 pb-0.5 text-[11px] font-medium ${SECONDARY}`
 /**
  * A line of the multi-selection's list: the relation, its status and role, and the buttons. Flex-wrap, so a narrow sidebar
  * puts the buttons on a line of their own instead of cutting the name.
@@ -184,55 +138,6 @@ function Row({ children, highlight }: { children: ReactNode; highlight?: RowHigh
       {children}
     </li>
   )
-}
-
-type RowHighlight = ReturnType<typeof useRelatedWhileHovered>
-
-/** The row's hover handlers, which also tell the map which sub-route of a superrelation is hovered */
-function withSubRouteHover(handlers: RowHighlight, relationId: string): RowHighlight {
-  return {
-    onPointerEnter: () => {
-      handlers.onPointerEnter()
-      setSubRouteHovered(relationId)
-    },
-    onPointerLeave: () => {
-      handlers.onPointerLeave()
-      setSubRouteHovered(null)
-    },
-    onFocus: () => {
-      handlers.onFocus()
-      setSubRouteHovered(relationId)
-    },
-    onBlur: () => {
-      handlers.onBlur()
-      setSubRouteHovered(null)
-    },
-  }
-}
-
-/**
- * Highlights entities on the map while the pointer or the keyboard focus is on a row: a member
- * row its member, a relation row the relation and its members. Leaving clears it. A row that goes
- * away while highlighted (a member removed with its button) clears it too, so no halo stays behind.
- */
-function useRelatedWhileHovered(ids: () => readonly string[]) {
-  const { engine } = useShell()
-  const on = useRef(false)
-  useEffect(
-    () => () => {
-      if (on.current) engine.setRelated(null)
-    },
-    [engine],
-  )
-  const start = () => {
-    on.current = true
-    engine.setRelated(ids())
-  }
-  const stop = () => {
-    on.current = false
-    engine.setRelated(null)
-  }
-  return { onPointerEnter: start, onPointerLeave: stop, onFocus: start, onBlur: stop }
 }
 
 /**
@@ -304,162 +209,12 @@ function RemoveButton({ label, onRemove }: { label: string; onRemove: () => void
         aria-label={label}
         disabled={readOnly}
         onClick={onRemove}
-        className={ICON_BUTTON}
+        className={`${ICON_BUTTON} py-0.5`}
       >
-        ×
+        {/* a trash, as everywhere something is taken out of the data; × only clears an input or closes */}
+        <TrashIcon aria-hidden="true" className="size-3.5" />
       </button>
     </Tooltip>
-  )
-}
-
-/** Zooms the map to an entity: an icon button with a tooltip, disabled when it is not loaded. */
-function ZoomButton({
-  label,
-  disabled,
-  onZoom,
-}: {
-  label: string
-  disabled: boolean
-  onZoom: () => void
-}) {
-  return (
-    <Tooltip label={label}>
-      <button
-        type="button"
-        aria-label={label}
-        disabled={disabled}
-        onClick={onZoom}
-        className={ICON_BUTTON}
-      >
-        ◎
-      </button>
-    </Tooltip>
-  )
-}
-
-/** Moves a member one place: an icon button with a tooltip, disabled at the ends and when read-only. */
-function MoveButton({
-  label,
-  glyph,
-  disabled,
-  onMove,
-}: {
-  label: string
-  glyph: string
-  /** No move in this direction (the member is at the end) */
-  disabled: boolean
-  onMove: () => void
-}) {
-  const readOnly = useReadOnly()
-  return (
-    <Tooltip label={label}>
-      <button
-        type="button"
-        aria-label={label}
-        disabled={readOnly || disabled}
-        onClick={onMove}
-        className={ICON_BUTTON}
-      >
-        {glyph}
-      </button>
-    </Tooltip>
-  )
-}
-
-/**
- * Loads a member that is not in the data, as iD's "download" does. Busy until the load ends; the row
- * changes by itself when the data does (the section follows the engine's version).
- */
-function DownloadButton({ id, load }: { id: EntityID; load: LoadMember }) {
-  const [busy, setBusy] = useState(false)
-  const label = m.relations_download_member({ id })
-  return (
-    <Tooltip label={label}>
-      <button
-        type="button"
-        aria-label={label}
-        disabled={busy}
-        className={`${LINK_BUTTON} disabled:cursor-default disabled:text-zinc-300`}
-        onClick={() => {
-          setBusy(true)
-          load(id).then(
-            () => setBusy(false),
-            (error: unknown) => {
-              setBusy(false)
-              notify.failed(error)
-            },
-          )
-        }}
-      >
-        {busy ? m.relations_downloading() : m.relations_download()}
-      </button>
-    </Tooltip>
-  )
-}
-
-/**
- * The grip that drags a member. Pointer only: the move buttons are the keyboard way to the same move, so the grip is
- * not in the tab order. Hovering it says what it does.
- */
-function DragHandle({
-  label,
-  onPointerDown,
-}: {
-  label: string
-  onPointerDown: (event: PointerEvent<HTMLElement>) => void
-}) {
-  return (
-    <Tooltip label={label}>
-      <span
-        aria-hidden="true"
-        onPointerDown={onPointerDown}
-        className="shrink-0 cursor-grab touch-none rounded px-0.5 text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
-      >
-        <Bars3Icon className="size-4" />
-      </span>
-    </Tooltip>
-  )
-}
-
-/**
- * A member's place in the list: a list item that Reorder moves when its handle is dragged. Only the handle starts a
- * drag, so the role input and the buttons of the row keep working. `onDrop` runs once the item is let go. Read-only
- * members get no handle and cannot be dragged.
- */
-function MemberItem({
-  value,
-  editable,
-  onDrop,
-  children,
-}: {
-  value: MemberRow
-  /** Whether the row gets a handle (not read-only) */
-  editable: boolean
-  onDrop: () => void
-  /** The row, given the handle to draw where it goes (null when read-only) */
-  children: (handle: ReactNode) => ReactNode
-}) {
-  const controls = useDragControls()
-  // as the other motion in the inspector: no sliding when the person asks for reduced motion
-  const reduced = useReducedMotion() === true
-  const handle = editable ? (
-    <DragHandle
-      label={m.relations_drag_member({ id: value.id })}
-      onPointerDown={(event) => controls.start(event.nativeEvent)}
-    />
-  ) : null
-  return (
-    <Reorder.Item
-      as="li"
-      value={value}
-      dragListener={false}
-      dragControls={controls}
-      onDragEnd={onDrop}
-      transition={reduced ? { duration: 0 } : UI_SPRING}
-      className={MEMBER_ITEM}
-    >
-      {children(handle)}
-    </Reorder.Item>
   )
 }
 
@@ -474,359 +229,33 @@ function ColourDot({ colour }: { colour: string | undefined }) {
     <span
       aria-hidden="true"
       style={{ backgroundColor: colour }}
-      className={`mr-1.5 inline-block size-2.5 shrink-0 rounded-full align-middle ${dotNeedsRing(colour) ? 'ring-1 ring-zinc-950/15 ring-inset dark:ring-white/25' : ''}`}
+      className={`mr-1.5 inline-block size-2.5 shrink-0 -translate-y-px rounded-full align-middle ${dotNeedsRing(colour) ? 'ring-1 ring-zinc-950/15 ring-inset dark:ring-white/25' : ''}`}
     />
   )
 }
 
-/** The letter for a member's type, as the locale writes it (N, W, R in English). */
-function typeLetter(type: Member['type']) {
-  if (type === 'node') return m.relations_type_node_letter()
-  if (type === 'way') return m.relations_type_way_letter()
-  return m.relations_type_relation_letter()
-}
-
-/** The name of a member's type, for the title of its letter. */
-function typeName(type: Member['type']) {
-  if (type === 'node') return m.relations_type_node()
-  if (type === 'way') return m.relations_type_way()
-  return m.relations_type_relation()
-}
-
-/** A member of the selected relation: its position, type, label, role, moves and a remove button. */
-function MemberRowView({
-  editor,
-  relation,
-  row,
-  roles,
-  suggestions,
-  select,
-  load,
-  handle,
-  moves,
-}: {
-  editor: Editor
-  relation: OsmRelation
-  row: MemberRow
-  /** The relation's roles with their labels (none without a schema) */
-  roles: RelationRoles
-  /** roleSuggestions of the relation, shared by its rows */
-  suggestions: readonly string[]
-  select: Props['select']
-  /** Loads a member that is not in the data; undefined while the engine has no such call */
-  load: LoadMember | undefined
-  /** The drag handle, drawn first (null when read-only) */
-  handle: ReactNode
-  /** Where the move buttons send the member: within its group (see moveTargets) */
-  moves: MemberMoves
-}) {
-  const { engine } = useShell()
-  const related = useRelatedWhileHovered(() => [row.id])
-  // a sub-route row also makes that sub-route the strong one on the map (relations-map.tsx)
-  const highlight = row.type === 'relation' ? withSubRouteHover(related, row.id) : related
-  // the member as the relation holds it: its id and type come from the row, the role from the member
-  const member = relation.members[row.index]
-  if (!member) return null
-  // the role suggestions follow the member's geometry, as iD's member editor (one list per row)
-  const roleList = roleOptionsID('members', `${relation.id}-${row.index}`)
-  const options = roleOptionsFor(
-    suggestions,
-    roles,
-    geometryOfEntity(editor.history.staging.graph, row.id),
-  )
-  const move = (direction: 'up' | 'down') => {
-    const target = moves[direction]
-    if (target === undefined) return
-    const annotation =
-      direction === 'up'
-        ? m.relations_undo_move_up({ relation: relationLabel(relation) })
-        : m.relations_undo_move_down({ relation: relationLabel(relation) })
-    edit(editor, actionMoveMember(relation.id, row.index, target), annotation, relation.id)
-  }
-  return (
-    <div className={ROW_BODY} {...highlight}>
-      {handle}
-      <span className={`w-6 shrink-0 text-right font-mono tabular-nums ${SECONDARY}`}>
-        {row.index + 1}
-      </span>
-      <span
-        title={typeName(row.type)}
-        className={`w-3 shrink-0 text-center font-mono ${SECONDARY}`}
-      >
-        {typeLetter(row.type)}
-      </span>
-      {row.loaded ? (
-        <button type="button" className={LINK} onClick={() => select(row.id)}>
-          <span className="font-mono">{row.id}</span>
-          {row.label && <span className={`ml-2 ${SECONDARY}`}>{row.label}</span>}
-        </button>
-      ) : (
-        <span className={`min-w-0 flex-1 truncate px-1 font-mono ${SECONDARY}`}>
-          {row.id} <span className="italic">{m.relations_not_loaded()}</span>
-        </span>
-      )}
-      {!row.loaded && load && memberLoadPath(row.id) !== undefined && (
-        <DownloadButton id={row.id} load={load} />
-      )}
-      <ZoomButton
-        label={m.relations_zoom_member({ id: row.id })}
-        disabled={!row.loaded}
-        onZoom={() => engine.fitTo([row.id])}
-      />
-      <MoveButton
-        label={m.relations_move_up({ id: row.id })}
-        glyph="↑"
-        disabled={moves.up === undefined}
-        onMove={() => move('up')}
-      />
-      <MoveButton
-        label={m.relations_move_down({ id: row.id })}
-        glyph="↓"
-        disabled={moves.down === undefined}
-        onMove={() => move('down')}
-      />
-      <RoleInput
-        label={m.relations_role_of({ id: row.id })}
-        role={member.role}
-        roles={roles}
-        list={roleList}
-        onCommit={(role) =>
-          edit(
-            editor,
-            actionChangeMember(relation.id, { ...member, role }, row.index),
-            m.relations_undo_role(),
-            relation.id,
-          )
-        }
-      />
-      <RoleOptions id={roleList} options={options} />
-      <RemoveButton
-        label={m.relations_remove_member({ id: row.id })}
-        onRemove={() => {
-          edit(
-            editor,
-            actionDeleteMember(relation.id, row.index),
-            m.relations_undo_remove(),
-            relation.id,
-          )
-          // removing the last member deletes the relation
-          if (!editor.history.staging.graph.hasEntity(relation.id)) select(null)
-        }}
-      />
-    </div>
-  )
-}
-
-/** The loading of the missing members: idle, busy, done (with what is still missing), or failed */
-type LoadState =
-  | { status: 'idle' }
-  | { status: 'loading' }
-  | { status: 'done'; added: number; left: number }
-  | { status: 'failed'; message: string }
-
-/** A drag in progress: the group it is in, and the rows of that group in the order the drag leaves them */
-type DragState = { group: MemberGroupKey; rows: MemberRow[] }
-
-/**
- * The members of a relation in order: the first MEMBER_LIMIT, then "Show all N". A route shows its stops and its ways
- * in two groups, each in data order (a drag stays in its group). Members that are not loaded keep their rows. A route
- * shows a gap line where two of its ways do not meet.
- */
-function MemberList({
-  editor,
-  relation,
-  select,
-  presets,
-}: {
-  editor: Editor
-  relation: OsmRelation
-  select: Props['select']
-  presets: RelationRules | undefined
-}) {
-  const { engine } = useShell()
-  const graph = editor.history.staging.graph
-  const rows = memberRows(graph, relation)
-  const gaps = new Set(routeGaps(graph, relation))
-  const missing = notLoadedCount(rows)
-  const [showAll, setShowAll] = useState(false)
-  const [load, setLoad] = useState<LoadState>({ status: 'idle' })
-  const shown = showAll ? rows : rows.slice(0, MEMBER_LIMIT)
-  const groups = memberGroups(shown, relation.tags)
-  // the move buttons follow the groups of the whole relation, not only the rows shown
-  const moves = moveTargets(rows, relation.tags)
-  const readOnly = useReadOnly()
-  // while a member is dragged its group shows the order of the drag; the data changes once, at the drop
-  const [dragged, setDragged] = useState<DragState | null>(null)
-  const draggedOrder = useRef<DragState | null>(null)
-  // the one edit a drop makes: the dragged member moves to its place in its group (one undo step)
-  const drop = (row: MemberRow) => {
-    const drag = draggedOrder.current
-    draggedOrder.current = null
-    setDragged(null)
-    const group = groups.find((item) => item.key === drag?.group)
-    const move = drag && group ? groupDropMove(shown, group.rows, drag.rows, row.index) : undefined
-    if (move)
-      edit(
-        editor,
-        actionMoveMember(relation.id, move.from, move.to),
-        m.relations_undo_move({ relation: relationLabel(relation) }),
-        relation.id,
-      )
-  }
-  const roles = relationRolesOf(presets, relation.tags)
-  const suggestions = roleSuggestions(relation)
-  // one request per click: the relation in full, merged like a map tile (engine.loadRelation)
-  const loadMembers = () => {
-    setLoad({ status: 'loading' })
-    engine.loadRelation(relation.id).then(
-      ({ added }) => {
-        const left = notLoadedCount(memberRows(editor.history.staging.graph, relation))
-        setLoad({ status: 'done', added, left })
-      },
-      (error: unknown) =>
-        setLoad({
-          status: 'failed',
-          message: error instanceof Error ? error.message : String(error),
-        }),
-    )
-  }
-  const result = load.status === 'done' ? loadResultSentence(load.added, load.left) : undefined
-  return (
-    <div className={`${COLUMN} gap-1`}>
-      {rows.length > 0 && (
-        <div className="flex justify-end">
-          <Tooltip label={m.relations_zoom_members_tip()}>
-            <button
-              type="button"
-              className={`${LINK_BUTTON} disabled:cursor-default disabled:text-zinc-300`}
-              disabled={!rows.some((row) => row.loaded)}
-              onClick={() => engine.fitTo([relation.id])}
-            >
-              ◎ {m.relations_zoom_relation()}
-            </button>
-          </Tooltip>
-        </div>
-      )}
-      {rows.length === 0 && (
-        <ul>
-          <li className={`py-1 text-xs ${SECONDARY}`}>{m.relations_no_members()}</li>
-        </ul>
-      )}
-      {groups.map((group) => {
-        // the order this group is shown in: the order of the drag while it is dragged
-        const order = dragged?.group === group.key ? dragged.rows : group.rows
-        return (
-          <div key={group.key}>
-            {group.key !== 'all' && (
-              <p className={GROUP_HEADING}>
-                {group.key === 'stops' ? m.relations_group_stops() : m.relations_group_ways()}
-              </p>
-            )}
-            <Reorder.Group
-              as="ul"
-              axis="y"
-              values={order}
-              onReorder={(next) => {
-                const drag: DragState = { group: group.key, rows: next }
-                draggedOrder.current = drag
-                setDragged(drag)
-              }}
-            >
-              {order.map((row) => (
-                <MemberItem
-                  key={`${row.index}:${row.id}:${row.role}`}
-                  value={row}
-                  editable={!readOnly}
-                  onDrop={() => drop(row)}
-                >
-                  {(handle) => (
-                    <>
-                      <MemberRowView
-                        editor={editor}
-                        relation={relation}
-                        row={row}
-                        roles={roles}
-                        suggestions={suggestions}
-                        select={select}
-                        load={(id) => engine.loadEntity(id)}
-                        handle={handle}
-                        moves={moves.get(row.index) ?? {}}
-                      />
-                      {/* the gaps are between members in data order: hidden while the drag shows another order */}
-                      {dragged === null &&
-                        gaps.has(row.index) && (
-                          // a title, not a Tooltip: a line that cannot take focus
-                          <div className={GAP} title={m.relations_gap_title()}>
-                            <span className="h-px flex-1 border-t border-dashed border-amber-500/60" />
-                            {m.relations_gap()}
-                            <span className="h-px flex-1 border-t border-dashed border-amber-500/60" />
-                          </div>
-                        )}
-                    </>
-                  )}
-                </MemberItem>
-              ))}
-            </Reorder.Group>
-          </div>
-        )
-      })}
-      {!showAll && rows.length > shown.length && (
-        <button
-          type="button"
-          className={`${LINK_BUTTON} justify-self-start`}
-          onClick={() => setShowAll(true)}
-        >
-          {m.relations_show_all({ count: rows.length })}
-        </button>
-      )}
-      {load.status === 'failed' ? (
-        <p className={HINT}>
-          {loadFailureSentence(load.message)}{' '}
-          <button type="button" className={LINK_BUTTON} onClick={loadMembers}>
-            {m.relations_retry()}
-          </button>
-        </p>
-      ) : (
-        (missing > 0 || load.status === 'loading') && (
-          <button
-            type="button"
-            disabled={load.status === 'loading'}
-            onClick={loadMembers}
-            className={`${BUTTON} justify-self-start`}
-          >
-            {load.status === 'loading' ? loadingLabel(missing) : loadButtonLabel(missing)}
-          </button>
-        )
-      )}
-      {load.status === 'loading' && (
-        // a status for screen readers too: the button is busy and says what it loads
-        <p role="status" className={SECONDARY_NOTE}>
-          {m.relations_loading_members()}
-        </p>
-      )}
-      {result && <p className={SECONDARY_NOTE}>{result}</p>}
-    </div>
-  )
-}
-
 /** The inspected relation's members, in order. */
-export function MembersSection({ entity, editor, select }: Props) {
+export function MembersSection({ entity, editor }: Props) {
   const { engine } = useShell()
   // loading members merges them into the data: the rows follow the engine's version, not the editor's
   useSyncExternalStore(engine.subscribe, engine.getVersion)
-  // the roles of the relation come from the presets, which arrive after the first picture
-  const presets = usePresets()
+  const openID = useOpenRelationId()
   const relation = editor.history.staging.graph.hasEntity(entity.id)
   if (!(relation instanceof OsmRelation)) return null
+  // open beside the inspector, the column lists the members: nothing here then
+  if (openID === entity.id) return null
   return (
     <ReadOnlyContext value={entity.readOnly}>
-      <MemberList
-        key={relation.id}
-        editor={editor}
-        relation={relation}
-        select={select}
-        presets={presets}
-      />
+      <div className="flex justify-end">
+        <button
+          type="button"
+          className={BUTTON}
+          aria-label={m.relations_open_label({ relation: relationLabel(relation) })}
+          onClick={() => openRelationActions.open(entity.id)}
+        >
+          {m.relations_open()}
+        </button>
+      </div>
     </ReadOnlyContext>
   )
 }
@@ -838,7 +267,6 @@ function MembershipRow({
   membership,
   roles,
   roleList,
-  select,
 }: {
   editor: Editor
   entityID: EntityID
@@ -846,11 +274,12 @@ function MembershipRow({
   /** The roles of the membership's relation, with their labels */
   roles: RelationRoles
   roleList: string
-  select: Props['select']
 }) {
   const { engine } = useShell()
   const { relation, index, role } = membership
   const highlight = useRelatedWhileHovered(() => [relation.id, ...engine.relatedOf(relation.id)])
+  // the relation beside the inspector: its name opens it, the button at the end closes it
+  const open = useOpenRelationId() === relation.id
   const member = relation.members[index]
   if (!member) return null
   const hint = membershipHint(relation, index)
@@ -858,7 +287,11 @@ function MembershipRow({
     <>
       <Row highlight={highlight}>
         <Tooltip label={relation.id}>
-          <button type="button" className={LINK} onClick={() => select(relation.id)}>
+          <button
+            type="button"
+            className={LINK}
+            onClick={() => openRelationActions.open(relation.id)}
+          >
             <ColourDot colour={colourOf(relation)} />
             <span>{relationLabel(relation)}</span>
           </button>
@@ -888,6 +321,25 @@ function MembershipRow({
             )
           }
         />
+        {open ? (
+          <button
+            type="button"
+            className={BUTTON}
+            aria-label={m.relations_close_label()}
+            onClick={() => openRelationActions.close()}
+          >
+            {m.relations_close()}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={BUTTON}
+            aria-label={m.relations_open_label({ relation: relationLabel(relation) })}
+            onClick={() => openRelationActions.open(relation.id)}
+          >
+            {m.relations_open()}
+          </button>
+        )}
       </Row>
       {hint && <li className={HINT}>{hint}</li>}
     </>
@@ -1156,7 +608,6 @@ export function RelationsSection({ entity, entities, editor, select }: Props) {
                 membership={membership}
                 roles={relationRolesOf(presets, membership.relation.tags)}
                 roleList={roleOptionsID('membership', membership.relation.id)}
-                select={select}
               />
             ))}
           </ul>

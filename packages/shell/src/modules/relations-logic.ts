@@ -676,6 +676,23 @@ export function cannotTakeReason(
 }
 
 /**
+ * Whether adding `candidateId` to the relation would put the relation inside itself: the candidate is the relation, or
+ * a relation that holds it as a member, directly or further down. Only what is loaded is followed.
+ */
+export function wouldContainItself(graph: Graph, relationId: EntityID, candidateId: EntityID) {
+  const seen = new Set<EntityID>()
+  const holds = (id: EntityID): boolean => {
+    if (id === relationId) return true
+    if (seen.has(id)) return false
+    seen.add(id)
+    const entity = graph.hasEntity(id)
+    if (!(entity instanceof OsmRelation)) return false
+    return entity.members.some((member) => member.type === 'relation' && holds(member.id))
+  }
+  return holds(candidateId)
+}
+
+/**
  * The geometry of a loaded entity as the inspector names it (the same rules as the renderer's entityInfo): a
  * node is a vertex when a way uses it, else a point; a way is an area or a line; a relation is an area when it is
  * a multipolygon, else a relation. Undefined when the entity is not loaded.
