@@ -5,7 +5,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { setWorkerCount } from 'maplibre-gl'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
-import { createShell, type AppConfig } from './shell'
+import { createShell, type AppBrand, type AppConfig } from './shell'
 import { ShellContext } from './shell-context'
 import { migrateIdHash } from './url/id-url'
 import { readParams, stateParams, urlLang } from './url/params'
@@ -25,6 +25,18 @@ function visitLocale(fallback?: Locale): Locale {
   })
 }
 
+/** The tab's title and icon, from the app's brand */
+function showBrandInTab(brand: AppBrand) {
+  document.title = brand.name
+  if (!brand.favicon) return
+  const link =
+    document.querySelector<HTMLLinkElement>('link[rel="icon"]') ?? document.createElement('link')
+  link.rel = 'icon'
+  link.type = 'image/svg+xml'
+  link.href = brand.favicon
+  document.head.append(link)
+}
+
 /**
  * The shell's entry: makes the editor from the app's config and renders it into `rootElement`.
  * One editor per page (the packages' stores are singletons). Returns a function that unmounts it.
@@ -41,6 +53,7 @@ export function mountEditor(rootElement: HTMLElement, app: AppConfig) {
   initTheme(readParams({ theme: stateParams.theme }, location.search).theme)
 
   const shell = createShell(app)
+  showBrandInTab(shell.brand)
 
   // MapLibre uses one worker by default. Maid's four sources then queue up behind each other.
   if (shell.config.workers > 0) setWorkerCount(shell.config.workers)

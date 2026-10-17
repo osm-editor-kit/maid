@@ -12,6 +12,18 @@ import { migrateIdHash } from './url/id-url'
 import { shellUrlParamNames } from './url/params'
 import { startShown } from './url/shown'
 
+/** The app's name and look, see `AppConfig.brand` */
+export type AppBrand = {
+  /** The short name, for example "Maid Parking": the tab's title and the changeset's `created_by` */
+  name: string
+  /** The long name, for example "Street-side parking editor": under the name on hover */
+  detail?: string
+  /** URL of the logo (300 x 285), shown at the top left */
+  logo?: string
+  /** URL of the favicon (square) */
+  favicon?: string
+}
+
 /** What an app says about itself. `mountEditor(root, app)` is the shell's one entry. */
 export type AppConfig = {
   /**
@@ -25,8 +37,13 @@ export type AppConfig = {
    * automation, which is always English.
    */
   defaultLocale?: Locale
-  /** The name and the line under it in the top bar. The name is also the changeset's `created_by` (with `version`) */
-  brand?: { name: string; detail?: string }
+  /**
+   * Who the app is. The top bar shows the logo; its name and detail appear on hover, as the buttons' labels do.
+   * The browser tab shows the favicon and the name. The name is also the changeset's `created_by` (with `version`).
+   * The SVGs are made by `bun run logo-build` into `apps/<app>/src/brand/`; an app imports them, so Vite gives
+   * their URLs. Without a logo the top bar shows the name.
+   */
+  brand?: AppBrand
   /**
    * The app's version, as in its package.json: `created_by` of every changeset is `<brand.name> <version>`,
    * e.g. `Maid Parking 0.1.0`. Each app passes its own; the value is checked when a changeset is uploaded.

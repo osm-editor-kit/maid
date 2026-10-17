@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { TooltipGroup } from './Tooltip.tsx'
+import { Tooltip, TooltipGroup } from './Tooltip.tsx'
 
 /**
  * Top bar with start, centre and end areas. The layout follows the bar's own width (a container query, not the
@@ -36,8 +36,19 @@ export function TopBar(props: { start?: ReactNode; center?: ReactNode; end?: Rea
 const SCROLL_X =
   'overflow-x-auto overscroll-x-contain py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
 
-/** The app name, with an optional quieter detail after it (for example the scene or version). The detail is shown from `sm` up. */
-export function Brand(props: { name: string; detail?: string }) {
+/**
+ * The app at the top left. With a logo only the logo shows, and its name and detail appear on hover, as the
+ * buttons' labels do (the `img` carries the name for screen readers). Without a logo: the name, and the quieter
+ * detail after it from `sm` up.
+ */
+export function Brand(props: { name: string; detail?: string; logo?: string }) {
+  if (props.logo) {
+    return (
+      <Tooltip label={props.name} description={props.detail} placement="bottom">
+        <img src={props.logo} alt={props.name} className="h-8 w-auto shrink-0" />
+      </Tooltip>
+    )
+  }
   return (
     <div className="flex min-w-0 items-baseline gap-2">
       <span className="shrink-0 font-semibold">{props.name}</span>

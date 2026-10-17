@@ -86,6 +86,7 @@ These names are the contract.
 | `bun run check-config` | Each app's `maid.config.ts` without a browser: modules set up with no network request, extension points, cleanup, presets, unique ports and ids. Writes `reports/config-check.json`. |
 | `bun run check-render <name>` | Screenshots and feature counts of all scenes against a reference saved with `check-render-save <name>`. |
 | `bun run fixtures-build <file.osm.pbf>` | Cut fixtures from a local extract. A person only (core rule 1). |
+| `bun run logo-build` | The logo and favicon of each app (`apps/<app>/src/brand/`) from the osmberlin OSM logo in `docs/logo/source/`. |
 | `bun run style-generate [iD checkout]` | Regenerate the style data from iD's CSS and presets. |
 
 The browser checks need `bun run dev` and take `[scene]` and `--app maid|bicycle|parking` (read in `tools/bench/args.ts`):

@@ -68,6 +68,7 @@
     "bench-model": "bun tools/bench/model-load.ts",
     "bench-edit": "bun tools/bench/edit.ts",
     "bench-rmgl": "bun tools/bench/rmgl/run.ts",
+    "logo-build": "bun docs/logo/build.ts",
     "style-generate": "bun run --cwd packages/style generate",
     "lint": "oxlint --fix --fix-dangerously --deny-warnings -c oxlint.config.mjs .",
     "lint-check": "oxlint --deny-warnings -c oxlint.config.mjs .",

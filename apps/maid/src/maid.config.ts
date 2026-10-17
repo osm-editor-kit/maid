@@ -32,6 +32,8 @@ import medium from '../../../fixtures/medium.meta.json'
 import small from '../../../fixtures/small.meta.json'
 import { mapillaryToken } from '../../mapillary-token.ts'
 import { version } from '../package.json'
+import favicon from './brand/favicon.svg'
+import logo from './brand/logo.svg'
 
 /**
  * Extent of each fixture, from its meta file. The casts stay on purpose: JSON imports as number[], not
@@ -91,7 +93,7 @@ function editorConfig(config: Config) {
 /** The app: its name, its login to OpenStreetMap and its development server, and the editor above */
 export const app: AppConfig = {
   id: 'maid',
-  brand: { name: 'Maid', detail: 'MapLibre iD Editor' },
+  brand: { name: 'Maid', detail: 'MapLibre iD Editor', logo, favicon },
   version,
   osm: {
     servers: ['osm', 'dev'],
