@@ -129,6 +129,7 @@ export const mergeOperation: Operation = {
   id: 'merge',
   label: 'Merge',
   shortcut: 'c',
+  group: 'structure',
   applies: (context) => mergePlan(context) !== undefined,
   disabled: (context) => {
     const plan = mergePlan(context)

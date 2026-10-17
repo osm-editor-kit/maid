@@ -44,6 +44,7 @@
   "picker_favourite_only_as": "Solo como {geometry}",
   "favourite_add_as": "Añadir {name} como {geometry}",
   "favourite_remove": "Quitar {name} de favoritos",
+  "favourite_add": "Añadir {name} a favoritos",
   "favourites_button": "Favoritos",
   "favourites_button_hint": "Favoritos: mantén {key} y escribe un número para empezar uno",
   "favourites_intro": "Mantén {key} y escribe un número para empezar un favorito. Los números 1–3 son las teclas de punto, línea y área.",

@@ -1,4 +1,4 @@
-import { ChevronDownIcon, MapPinIcon } from '@heroicons/react/20/solid'
+import { CheckIcon, ChevronDownIcon, MapPinIcon } from '@heroicons/react/20/solid'
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { m } from '@osm-editor-kit/maid-i18n'
 import type { DrawToolItem, Mode } from '@osm-editor-kit/maid-renderer'
@@ -144,19 +144,22 @@ function AreaToolsMenu(props: {
       label={label}
       open={open}
       onOpenChange={setOpen}
+      // as wide as its longest row, and at least 14rem
+      className="w-auto min-w-56"
       trigger={
         <button
           type="button"
           aria-label={label}
           title={label}
           aria-pressed={toolUnderway}
-          className={toolButtonClass(false, toolUnderway)}
+          // shown pressed while the list is open
+          className={toolButtonClass(false, toolUnderway || open)}
         >
           <ChevronDownIcon aria-hidden="true" className="size-4" />
         </button>
       }
     >
-      <div role="menu" className="flex w-56 flex-col p-1">
+      <div role="menu" className="flex w-full flex-col p-1">
         <MenuRow
           icon={area.icon}
           label={area.text}
@@ -182,7 +185,12 @@ function AreaToolsMenu(props: {
   )
 }
 
-/** One choice of the area dropdown: an icon, its name, and its key on the right */
+/**
+ * One choice of the area dropdown, in the look of the Tailwind Plus dropdown items: an icon, its name,
+ * and its key on the right. Hover and keyboard focus share one blue background (white text and icon on
+ * it), and the focus outline is left out, since the background already shows where the focus is. The
+ * choice under way is marked by a check and a semibold name, so it reads as current without the blue.
+ */
 function MenuRow(props: {
   icon?: ReactNode
   label: string
@@ -197,17 +205,20 @@ function MenuRow(props: {
       role="menuitem"
       aria-current={pressed || undefined}
       onClick={onClick}
-      className={`flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-sm text-zinc-800 hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-800 ${pressed ? 'bg-zinc-100 font-semibold dark:bg-zinc-800' : ''}`}
+      className={`group flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-left text-base/6 text-zinc-950 hover:bg-blue-500 hover:text-white focus-visible:bg-blue-500 focus-visible:text-white focus-visible:outline-none sm:px-3 sm:py-1.5 sm:text-sm/6 dark:text-white ${pressed ? 'font-semibold' : ''}`}
     >
       <span
         aria-hidden="true"
-        className="inline-flex size-5 shrink-0 items-center justify-center [&>svg]:size-5"
+        className="-ml-0.5 inline-flex size-5 shrink-0 items-center justify-center text-zinc-500 group-hover:text-white group-focus-visible:text-white sm:size-4 dark:text-zinc-400 [&>svg]:size-5 sm:[&>svg]:size-4"
       >
         {icon}
       </span>
-      <span className="flex-1">{label}</span>
+      <span className="min-w-0 flex-1">{label}</span>
+      {pressed && <CheckIcon aria-hidden="true" className="size-5 shrink-0 sm:size-4" />}
       {shortcut && (
-        <kbd className="font-mono text-xs text-zinc-500 dark:text-zinc-400">{shortcut}</kbd>
+        <kbd className="font-sans text-xs text-zinc-500 group-hover:text-white group-focus-visible:text-white dark:text-zinc-400">
+          {shortcut}
+        </kbd>
       )}
     </button>
   )

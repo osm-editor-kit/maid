@@ -37,6 +37,10 @@ export type OperationResult = {
   select?: (after: Graph) => string[]
 }
 
+/** The groups of the command bar, in their order there (see `Operation.group`) */
+export const OPERATION_GROUPS = ['position', 'shape', 'structure', 'remove'] as const
+export type OperationGroup = (typeof OPERATION_GROUPS)[number]
+
 /**
  * Something the editor can do to the selection, as iD's edit menu offers it. An operation is
  * plain data and functions on the graph: no map, no UI. The editor shows `label` and `shortcut`,
@@ -52,6 +56,12 @@ export type Operation = {
   icon?: string
   /** iD's key for it, a single lower-case letter */
   shortcut?: string
+  /**
+   * Its group in the command bar, which keeps a group's buttons together and puts space between groups: `position`
+   * (move, rotate, copy), `shape` (square, circularize, straighten, reflect), `structure` (split, merge, disconnect,
+   * extract, cut, divide, …), `remove` (delete). Without one it goes into `structure`.
+   */
+  group?: OperationGroup
   /** Whether this operation makes sense for this selection at all. False: it is not offered. */
   applies(context: OperationContext): boolean
   /** Why it cannot run now although it applies, as a sentence for a tooltip. Undefined: it can run. */

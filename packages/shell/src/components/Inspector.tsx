@@ -1,3 +1,5 @@
+import { StarIcon as StarSolidIcon } from '@heroicons/react/16/solid'
+import { StarIcon as StarOutlineIcon } from '@heroicons/react/24/outline'
 import {
   createTaginfo,
   isAutomated,
@@ -7,7 +9,7 @@ import {
 } from '@osm-editor-kit/maid-core'
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { m } from '@osm-editor-kit/maid-i18n'
-import { browseOf } from '@osm-editor-kit/maid-presets'
+import { browseOf, type Geometry, type Preset } from '@osm-editor-kit/maid-presets'
 import type { EntityInfo, MaidEngine } from '@osm-editor-kit/maid-renderer'
 import {
   type FieldFocus,
@@ -91,6 +93,33 @@ function referenceLoaderFor(editor: Editor) {
 function showFieldFocus(engine: MaidEngine, focus: FieldFocus | null) {
   const id = engine.selection[0]
   engine.setFieldOverlay(fieldOverlayFor(focus, id ? engine.entity(id)?.tags : undefined))
+}
+
+/**
+ * The star of the feature's type, as the picker's star: filled when the type is a favourite for the feature's
+ * geometry. A click makes it a favourite or takes it out again, in the same store the picker uses.
+ */
+function FavouriteStar(props: { preset: Preset; geometry: Geometry; on: boolean }) {
+  const { preset, geometry, on } = props
+  const label = on
+    ? m.favourite_remove({ name: preset.name })
+    : m.favourite_add({ name: preset.name })
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      aria-label={label}
+      title={label}
+      onClick={() => toggleFavourite(preset, geometry)}
+      className={`relative grid size-5 shrink-0 cursor-pointer place-items-center rounded-full after:absolute after:-inset-1.5 after:content-[''] hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 dark:hover:bg-white/10 ${on ? 'text-amber-500 dark:text-amber-400' : 'text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white'}`}
+    >
+      {on ? (
+        <StarSolidIcon aria-hidden="true" className="size-4" />
+      ) : (
+        <StarOutlineIcon aria-hidden="true" className="size-4" />
+      )}
+    </button>
+  )
 }
 
 /** The sidebar: what the selected feature is (iD preset), its tags and the sections of modules. */
@@ -195,10 +224,41 @@ export function Inspector() {
   const picking = onChange !== undefined && (picker?.id === id ? picker.open : untagged)
   const kind = entity ? (entity.preset?.name ?? GEOMETRY_LABEL[entity.geometry]) : undefined
 
-  // under the name: what kind of thing it is. Id and node count are in the "Element" group.
+  // the name, and under it the kind of thing when the feature has a name. Without a name the kind is the
+  // title and nothing is under it. Id and node count are in the "Element" group.
   const title = entity ? (entity.tags.name ?? kind ?? 'Feature') : 'Loading…'
-  const details = entity && kind !== title ? kind : entity ? GEOMETRY_LABEL[entity.geometry] : id
+  const hasName = entity?.tags.name !== undefined
+  const details = entity ? (hasName && kind !== title ? kind : undefined) : id
   const canChangeType = onChange !== undefined && presets !== undefined
+  // the controls on the subtitle line, after its text: the wiki's page for the type, and the star that makes the
+  // type a favourite for the geometry (not for a fallback type, which is no type at all)
+  const reference = entity?.preset?.reference
+  const starred =
+    entity && entity.preset && presets && !presets.isFallback(entity.preset)
+      ? { preset: entity.preset, geometry: entity.geometry }
+      : undefined
+  const isFavourite =
+    starred !== undefined &&
+    favourites.some(
+      (item) => item.preset.id === starred.preset.id && item.geometry === starred.geometry,
+    )
+  const headMeta =
+    reference || starred ? (
+      <>
+        {reference ? (
+          <InfoPopover
+            label={kind ?? 'feature type'}
+            reference={reference}
+            load={loadReference}
+            // a small "i", as beside a field's title; its hit area reaches 32 px, as the star's
+            buttonClassName="relative after:absolute after:-inset-1.5 after:content-['']"
+          />
+        ) : null}
+        {starred ? (
+          <FavouriteStar preset={starred.preset} geometry={starred.geometry} on={isFavourite} />
+        ) : null}
+      </>
+    ) : undefined
 
   return (
     <WikiContext value={wiki}>
@@ -209,18 +269,8 @@ export function Inspector() {
           }
           title={title}
           subtitle={details}
-          // the wiki's page for the type, beside the head and not inside it
-          info={
-            entity?.preset?.reference ? (
-              <InfoPopover
-                label={kind ?? 'feature type'}
-                reference={entity.preset.reference}
-                load={loadReference}
-                // the look of the swap button next to it
-                buttonClassName="size-8 rounded-md inset-ring-1 inset-ring-zinc-950/10 dark:inset-ring-white/10"
-              />
-            ) : undefined
-          }
+          // on the subtitle line, over the head and not inside it
+          meta={headMeta}
           // as in iD, the feature's head is the button that changes its type
           onTitleClick={canChangeType ? () => setPicker({ id, open: !picking }) : undefined}
           expanded={picking}

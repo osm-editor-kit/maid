@@ -1,6 +1,6 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { m } from '@osm-editor-kit/maid-i18n'
-import { visibleOperations } from '@osm-editor-kit/maid-operations'
+import { OPERATION_GROUPS, visibleOperations } from '@osm-editor-kit/maid-operations'
 import type { Operation } from '@osm-editor-kit/maid-operations'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import type { ReactNode } from 'react'
@@ -22,9 +22,20 @@ export type Command = {
   description?: string
   /** Why it cannot run now; then it is shown greyed out */
   reason?: string
+  /** Its group in the command bar: one joined segment per run of one group (see `CommandBar`) */
+  group?: string
   run: () => void
   /** Shows on the map what the command would do, or takes that away again */
   preview?: (on: boolean) => void
+}
+
+/** The group of an operation without one: `structure`, as its docs say */
+const DEFAULT_GROUP = 'structure'
+
+/** A command's place among the groups: its index in `OPERATION_GROUPS`; a missing or unknown group counts as `structure` */
+function groupRank(group: string | undefined): number {
+  const rank = (OPERATION_GROUPS as readonly string[]).indexOf(group ?? DEFAULT_GROUP)
+  return rank === -1 ? (OPERATION_GROUPS as readonly string[]).indexOf(DEFAULT_GROUP) : rank
 }
 
 /** Why the commands of a feature that a filter protects cannot run */
@@ -69,6 +80,7 @@ export function usePasteCommand(at: { lon: number; lat: number } | undefined) {
       label: 'Paste',
       icon: commandIcon('paste'),
       shortcut: modKey('V'),
+      group: 'position',
       run: () => select(pasteAt(engine, at.lon, at.lat)),
     },
   ]
@@ -94,10 +106,13 @@ export function editMenuItems<Here, Selected, Pasted>(
 }
 
 /**
- * What can be done with the selection now, in the order of iD's edit menu: the operations that
- * lead (Continue, when it applies), move and rotate, copy, then the other operations that apply
- * (`edit.operation`), with delete last. Empty without a selection. A feature that a filter
- * protects keeps its commands, greyed out with the reason.
+ * What can be done with the selection now. The operations that lead (Continue, when it applies)
+ * come first, as iD's edit menu has them. Then move, rotate and copy (group `position`), then the
+ * other operations that apply (`edit.operation`), sorted by their group in `OPERATION_GROUPS`
+ * (`structure` when they have none), so delete (`remove`) is last. The sort is stable: the order
+ * within a group stays as the operations give it. The same list serves the command bar and the
+ * edit menu. Empty without a selection. A feature that a filter protects keeps its commands,
+ * greyed out with the reason.
  */
 export function useEditCommands() {
   const { editor, engine } = useShell()
@@ -118,6 +133,7 @@ export function useEditCommands() {
       icon: commandIcon(operation.id, operation.icon),
       // delete has a key with a modifier, which an operation's one-letter shortcut cannot say
       shortcut: operation.id === 'delete' ? modKey('⌫') : operation.shortcut?.toUpperCase(),
+      group: operation.group ?? DEFAULT_GROUP,
       reason: protectedIds ? PROTECTED_REASON : operation.disabled(context),
       run: () => {
         engine.previewOperation(null)
@@ -126,13 +142,16 @@ export function useEditCommands() {
       },
       preview: (on: boolean) => engine.previewOperation(on ? operation : null),
     })
-    return [
-      ...applicable.filter((operation) => LEADING_OPERATIONS.includes(operation.id)).map(commandOf),
+    const leading = applicable
+      .filter((operation) => LEADING_OPERATIONS.includes(operation.id))
+      .map(commandOf)
+    const rest: Command[] = [
       {
         id: 'move',
         label: 'Move',
         icon: commandIcon('move'),
         shortcut: 'M',
+        group: 'position',
         reason: protectedIds ? PROTECTED_REASON : undefined,
         run: () => void engine.setMode('move'),
       },
@@ -141,6 +160,7 @@ export function useEditCommands() {
         label: 'Rotate',
         icon: commandIcon('rotate'),
         shortcut: 'R',
+        group: 'position',
         description: turnsDirection ? m.rotate_point_description() : undefined,
         reason: protectedIds ? PROTECTED_REASON : undefined,
         run: () => void engine.setMode('rotate'),
@@ -150,6 +170,7 @@ export function useEditCommands() {
         label: 'Copy',
         icon: commandIcon('copy'),
         shortcut: modKey('C'),
+        group: 'position',
         reason: protectedIds ? PROTECTED_REASON : undefined,
         run: () => void engine.copy(),
       },
@@ -157,5 +178,7 @@ export function useEditCommands() {
         .filter((operation) => !LEADING_OPERATIONS.includes(operation.id))
         .map(commandOf),
     ]
+    // stable: the position commands stay first, and each group keeps the order its operations give
+    return [...leading, ...rest.sort((a, b) => groupRank(a.group) - groupRank(b.group))]
   })
 }

@@ -11,6 +11,9 @@
 import { checkHelpers, pickBuildingAndRoad } from './check-helpers'
 import { runCheck } from './check-page'
 
+/** A click on the inspector head's icon, which opens the type picker */
+const HEAD_ICON = { x: 24, y: 24 }
+
 const sceneName = process.argv[2] ?? 'small'
 
 const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
@@ -25,10 +28,14 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
   }
   const numberOf = (name: string) =>
     page.getByRole('textbox', { name: `Number of ${name}`, exact: true })
+  // the head's icon: the middle of the head can hold its "i" and star, which are buttons of their own
   const changeType = page.getByTitle('Change the feature type')
   const search = () => page.getByRole('combobox', { name: 'Search feature types', exact: true })
+  // the star in the type picker (the inspector head has one too, for its own type)
   const star = (name: string) =>
-    page.getByRole('button', { name: `Add ${name} to favourites`, exact: true })
+    page
+      .getByRole('dialog', { name: 'Change the feature type', exact: true })
+      .getByRole('button', { name: `Add ${name} to favourites`, exact: true })
 
   // a feature is selected by its id in the URL, as the multi-feature check does
   const select = async (id: string) => {
@@ -65,7 +72,7 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
 
   // --- the point: a star in its type picker makes Bench a favourite, numbered 4 (the lowest free one) ---
   await select(point)
-  await changeType.click()
+  await changeType.click({ position: HEAD_ICON })
   await settle()
   await search().fill('Bench')
   await settle()
@@ -100,7 +107,7 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
 
   // --- the building is selected: the point favourite fits no area, so the Favourites row lists it disabled ---
   await select(building)
-  await changeType.click()
+  await changeType.click({ position: HEAD_ICON })
   await settle()
   await page.getByRole('option', { name: 'Favourites', exact: true }).click()
   await settle()
@@ -121,7 +128,7 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
   )
 
   // --- the building: a star makes Building a favourite, numbered 4; its area icon starts drawing an area ---
-  await changeType.click()
+  await changeType.click({ position: HEAD_ICON })
   await settle()
   await search().fill('Building')
   await settle()

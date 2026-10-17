@@ -106,6 +106,7 @@ export const reverseOperation: Operation = {
   id: 'reverse',
   label: 'Reverse',
   shortcut: 'v',
+  group: 'structure',
   applies: (context) => reverseTargets(context).length > 0,
   disabled: () => undefined,
   run: (context) => {
@@ -162,6 +163,7 @@ export const splitOperation: Operation = {
   id: 'split',
   label: 'Split',
   shortcut: 'x',
+  group: 'structure',
   applies: (context) => splitPlan(context) !== undefined,
   disabled: (context) => {
     const plan = splitPlan(context)
@@ -272,6 +274,7 @@ export const straightenOperation: Operation = {
   id: 'straighten',
   label: 'Straighten',
   shortcut: 's',
+  group: 'shape',
   applies: (context) => straightenPlan(context) !== undefined,
   disabled: (context) => {
     const plan = straightenPlan(context)
@@ -349,6 +352,7 @@ export const squareOperation: Operation = {
   id: 'square',
   label: 'Square',
   shortcut: 'q',
+  group: 'shape',
   applies: (context) => squareTargets(context) !== undefined,
   disabled: (context) => {
     const targets = squareTargets(context)
@@ -420,6 +424,7 @@ export const circularizeOperation: Operation = {
   id: 'circularize',
   label: 'Make round',
   shortcut: 'o',
+  group: 'shape',
   applies: (context) => circularizeTargets(context) !== undefined,
   disabled: (context) => {
     const actions = circularizeTargets(context)
@@ -525,6 +530,7 @@ export const disconnectOperation: Operation = {
   id: 'disconnect',
   label: 'Disconnect',
   shortcut: 'd',
+  group: 'structure',
   applies: (context) => disconnectPlan(context) !== undefined,
   disabled: (context) => {
     const plan = disconnectPlan(context)
@@ -583,6 +589,7 @@ export const extractOperation: Operation = {
   id: 'extract',
   label: 'Extract',
   shortcut: 'e',
+  group: 'structure',
   applies: (context) => extractTargets(context) !== undefined,
   disabled: (context) => {
     if (!extractTargets(context)) return undefined
@@ -624,6 +631,7 @@ function reflectOperation(axis: 'long' | 'short') {
     id: `reflect-${axis}`,
     label: axis === 'long' ? 'Flip long' : 'Flip short',
     shortcut: axis === 'long' ? 't' : 'y',
+    group: 'shape',
     applies: (context) => targets(context) !== undefined,
     disabled: (context) => {
       const ids = targets(context)
@@ -761,6 +769,7 @@ function deleteReason(entities: OsmEntity[], graph: Graph) {
 export const deleteOperation: Operation = {
   id: 'delete',
   label: 'Delete',
+  group: 'remove',
   applies: (context) => resolveSelection(context) !== undefined,
   disabled: (context) => {
     const entities = resolveSelection(context)

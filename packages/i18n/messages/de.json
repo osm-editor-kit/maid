@@ -44,6 +44,7 @@
   "picker_favourite_only_as": "Nur als {geometry}",
   "favourite_add_as": "{name} als {geometry} hinzufügen",
   "favourite_remove": "{name} aus den Favoriten entfernen",
+  "favourite_add": "{name} zu den Favoriten hinzufügen",
   "favourites_button": "Favoriten",
   "favourites_button_hint": "Favoriten: Halte {key} und tippe eine Zahl, um einen zu starten",
   "favourites_intro": "Halte {key} und tippe eine Zahl, um einen Favoriten zu starten. Die Zahlen 1–3 sind die Tasten für Punkt, Linie und Fläche.",

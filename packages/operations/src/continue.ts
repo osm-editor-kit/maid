@@ -56,6 +56,7 @@ export const continueOperation: Operation = {
   label: 'Continue',
   icon: 'iD-operation-continue',
   shortcut: 'a',
+  group: 'structure',
   applies: (context) => {
     const selection = selectionOf(context)
     return selection !== undefined && linesEndingAt(context.graph, selection.vertex).length > 0

@@ -1,6 +1,6 @@
-import { ArrowsRightLeftIcon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/20/solid'
+import { ChevronDownIcon, XMarkIcon } from '@heroicons/react/20/solid'
 import { motion } from 'motion/react'
-import type { ReactNode } from 'react'
+import { type ReactNode, useId } from 'react'
 import { Flyout } from './Flyout.tsx'
 import { FadeSlideIn } from './motion.tsx'
 
@@ -26,6 +26,12 @@ export function Sidebar(props: { label: string; children: ReactNode }) {
  * Title row at the top of a sidebar, with an optional close button. With `onTitleClick` the icon
  * and the title are one large button, as iD's feature type button is: it opens what changes
  * the type, and `expanded` says whether that is open.
+ *
+ * With `titleFlyout` the whole row is that button (its hover background, its focus ring, its
+ * `titleAction` tooltip). `meta` lies over the button on the subtitle line, after the subtitle text.
+ * It is not inside the button: the button sits underneath, the text passes clicks through to it,
+ * and the controls take their own clicks, so hovering or clicking them leaves the button alone.
+ * Each control in `meta` must be a button of its own.
  */
 export function SidebarHeader(props: {
   icon?: ReactNode
@@ -41,70 +47,28 @@ export function SidebarHeader(props: {
    * whether it is open and `onTitleClick` toggles it.
    */
   titleFlyout?: ReactNode
-  /** A control beside the title, before the close button, for example the feature type's "i". Not part of the title button. */
-  info?: ReactNode
+  /** Small controls on the subtitle line after the subtitle text, over the head button. Shown with `titleFlyout` only. */
+  meta?: ReactNode
 }) {
-  const { icon, title, subtitle, onClose, onTitleClick, expanded, titleAction, titleFlyout, info } =
+  const { icon, title, subtitle, onClose, onTitleClick, expanded, titleAction, titleFlyout, meta } =
     props
-  const content = (
-    <>
-      {icon ? (
-        <span
-          aria-hidden="true"
-          className={
-            titleFlyout !== undefined
-              ? // part of the header's box: full height, flush with its left edge, not a button of its own
-                'inline-flex w-14 shrink-0 items-center justify-center self-stretch bg-zinc-950/5 text-zinc-600 dark:bg-white/10 dark:text-zinc-300 [&>svg]:size-7'
-              : 'inline-flex size-10 shrink-0 items-center justify-center rounded-md bg-zinc-950/5 text-zinc-600 dark:bg-white/10 dark:text-zinc-300 [&>svg]:size-6'
-          }
-        >
-          {icon}
-        </span>
-      ) : null}
-      <span className={`min-w-0 flex-1 text-left ${titleFlyout !== undefined ? 'py-3' : ''}`}>
-        <span className="block truncate font-semibold">{title}</span>
-        {subtitle ? (
-          <span className="block truncate text-xs text-zinc-500 dark:text-zinc-400">
-            {subtitle}
-          </span>
-        ) : null}
-      </span>
-    </>
-  )
-  // With a flyout the button is the header itself, edge to edge, and says "change" with a swap
-  // icon; a chevron would promise a list that drops down below it.
-  const titleButton = (onClick: (() => void) | undefined) => (
+  // the title and the subtitle name the head button, so that it is read as one button
+  const titleId = useId()
+  const subtitleId = useId()
+  const closeButton = onClose ? (
     <button
       type="button"
-      onClick={onClick}
-      aria-expanded={expanded}
-      title={titleAction}
-      className={
-        titleFlyout !== undefined
-          ? `group flex min-h-14 min-w-0 flex-1 cursor-pointer items-center gap-3 ${info ? 'pr-1' : 'pr-3'} hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 aria-expanded:bg-zinc-950/5 dark:hover:bg-white/5 dark:aria-expanded:bg-white/5`
-          : 'flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg p-1 inset-ring-1 inset-ring-zinc-950/10 hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 dark:inset-ring-white/10 dark:hover:bg-white/5'
-      }
+      aria-label="Close"
+      onClick={onClose}
+      className="relative flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-500 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:text-white"
     >
-      {content}
-      {titleFlyout !== undefined ? (
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-md text-zinc-500 inset-ring-1 inset-ring-zinc-950/10 group-hover:text-zinc-950 dark:text-zinc-400 dark:inset-ring-white/10 dark:group-hover:text-white">
-          <ArrowsRightLeftIcon aria-hidden="true" className="size-4" />
-        </span>
-      ) : (
-        <ChevronDownIcon
-          aria-hidden="true"
-          className={`mr-1 size-4 shrink-0 text-zinc-500 transition dark:text-zinc-400 ${expanded ? 'rotate-180' : ''}`}
-        />
-      )}
+      <XMarkIcon aria-hidden="true" className="size-5" />
     </button>
-  )
-  return (
-    <div
-      className={`group/header flex shrink-0 items-center gap-1 border-b border-zinc-950/10 dark:border-white/10 ${
-        onTitleClick && titleFlyout !== undefined ? '' : 'p-2'
-      }`}
-    >
-      {onTitleClick && titleFlyout !== undefined ? (
+  ) : null
+
+  if (onTitleClick && titleFlyout !== undefined) {
+    return (
+      <div className="relative flex min-h-14 shrink-0 items-center gap-1 border-b border-zinc-950/10 dark:border-white/10">
         <Flyout
           label={titleAction ?? title}
           placement="right-start"
@@ -114,34 +78,97 @@ export function SidebarHeader(props: {
           onOpenChange={(open) => {
             if (open !== (expanded ?? false)) onTitleClick()
           }}
-          trigger={titleButton(undefined)}
+          trigger={
+            // the head button: the whole row, under the text and the controls, with no content of its own
+            <button
+              type="button"
+              aria-labelledby={subtitle ? `${titleId} ${subtitleId}` : titleId}
+              aria-expanded={expanded}
+              title={titleAction}
+              className="absolute inset-0 cursor-pointer hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 aria-expanded:bg-zinc-950/5 dark:hover:bg-white/5 dark:aria-expanded:bg-white/5"
+            />
+          }
         >
           {titleFlyout}
         </Flyout>
-      ) : onTitleClick ? (
-        titleButton(onTitleClick)
+        {/* the head as it looks, over the button: the text passes pointer events through, the controls take theirs */}
+        <div className="pointer-events-none relative flex min-w-0 flex-1 items-stretch gap-3 pr-3">
+          {icon ? (
+            <span
+              aria-hidden="true"
+              className="inline-flex w-14 shrink-0 items-center justify-center bg-zinc-950/5 text-zinc-600 dark:bg-white/10 dark:text-zinc-300 [&>svg]:size-7"
+            >
+              {icon}
+            </span>
+          ) : null}
+          <span className="min-w-0 flex-1 self-center py-3 text-left">
+            <span id={titleId} className="block truncate font-semibold">
+              {title}
+            </span>
+            {subtitle || meta ? (
+              <span className="flex min-w-0 items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                {subtitle ? (
+                  <span id={subtitleId} className="min-w-0 truncate">
+                    {subtitle}
+                  </span>
+                ) : null}
+                {meta ? (
+                  <span className="pointer-events-auto relative z-10 flex shrink-0 items-center gap-1">
+                    {meta}
+                  </span>
+                ) : null}
+              </span>
+            ) : null}
+          </span>
+        </div>
+        {closeButton}
+      </div>
+    )
+  }
+
+  const plainContent = (
+    <>
+      {icon ? (
+        <span
+          aria-hidden="true"
+          className="inline-flex size-10 shrink-0 items-center justify-center rounded-md bg-zinc-950/5 text-zinc-600 dark:bg-white/10 dark:text-zinc-300 [&>svg]:size-6"
+        >
+          {icon}
+        </span>
+      ) : null}
+      <span className="min-w-0 flex-1 text-left">
+        <span className="block truncate font-semibold">{title}</span>
+        {subtitle ? (
+          <span className="block truncate text-xs text-zinc-500 dark:text-zinc-400">
+            {subtitle}
+          </span>
+        ) : null}
+      </span>
+    </>
+  )
+  return (
+    <div className="flex shrink-0 items-center gap-1 border-b border-zinc-950/10 p-2 dark:border-white/10">
+      {onTitleClick ? (
+        <button
+          type="button"
+          onClick={onTitleClick}
+          aria-expanded={expanded}
+          title={titleAction}
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg p-1 inset-ring-1 inset-ring-zinc-950/10 hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 dark:inset-ring-white/10 dark:hover:bg-white/5"
+        >
+          {plainContent}
+          <ChevronDownIcon
+            aria-hidden="true"
+            className={`mr-1 size-4 shrink-0 text-zinc-500 transition dark:text-zinc-400 ${expanded ? 'rotate-180' : ''}`}
+          />
+        </button>
       ) : (
         <div className="flex min-w-0 flex-1 items-center gap-3 p-1">
           {/* a heading when the row is only a title */}
-          <h2 className="contents">{content}</h2>
+          <h2 className="contents">{plainContent}</h2>
         </div>
       )}
-      {/* fades in with the pointer over the header, like the buttons of a field row */}
-      {info ? (
-        <span className="flex shrink-0 items-center pr-3 opacity-0 transition-opacity duration-150 group-focus-within/header:opacity-100 group-hover/header:opacity-100 has-aria-expanded:opacity-100 pointer-coarse:opacity-100">
-          {info}
-        </span>
-      ) : null}
-      {onClose ? (
-        <button
-          type="button"
-          aria-label="Close"
-          onClick={onClose}
-          className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-500 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:text-white"
-        >
-          <XMarkIcon aria-hidden="true" className="size-5" />
-        </button>
-      ) : null}
+      {closeButton}
     </div>
   )
 }

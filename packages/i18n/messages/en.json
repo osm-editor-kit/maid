@@ -44,6 +44,7 @@
   "picker_favourite_only_as": "Only as {geometry}",
   "favourite_add_as": "Add {name} as {geometry}",
   "favourite_remove": "Remove {name} from favourites",
+  "favourite_add": "Add {name} to favourites",
   "favourites_button": "Favourites",
   "favourites_button_hint": "Favourites: hold {key} and type a number to start one",
   "favourites_intro": "Hold {key} and type a number to start a favourite. Numbers 1–3 are the point, line and area keys.",

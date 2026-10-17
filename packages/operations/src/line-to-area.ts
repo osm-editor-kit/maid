@@ -33,6 +33,7 @@ function closedLineOf(context: OperationContext): OsmWay | undefined {
 export const lineToAreaOperation: Operation = {
   id: 'line-to-area',
   label: 'Treat as area',
+  group: 'structure',
   icon: 'iD-icon-area',
   applies: (context) => closedLineOf(context) !== undefined,
   disabled: () => undefined,

@@ -58,6 +58,7 @@ export function pointToArea(options: {
   return {
     id: 'point-to-area',
     label: 'Turn into an area',
+    group: 'structure',
     applies: (context) => {
       const point = standalonePoint(context)
       return point !== undefined && canBeArea(point.tags)

@@ -2,9 +2,13 @@ import type { ButtonHTMLAttributes, KeyboardEvent, ReactNode } from 'react'
 import { twJoin } from 'tailwind-merge'
 import { Tooltip, TooltipGroup } from './Tooltip.tsx'
 
-/** The joined look of a group of buttons: one hairline between them, rounded at the ends. */
+/**
+ * The joined look of a group of buttons: one hairline between them, rounded at the ends. The ends are the first and
+ * last child that is not a helper: an open flyout's trigger leaves floating-ui's focus guards and portal marker (spans with
+ * `aria-hidden` or `data-floating-ui-inert`) after it, and marks the buttons themselves `data-floating-ui-inert` while open.
+ */
 const JOINED =
-  'isolate inline-flex rounded-md shadow-xs dark:shadow-none [&>*]:rounded-none [&>*+*]:-ml-px [&>*:first-child]:rounded-l-md [&>*:last-child]:rounded-r-md'
+  'isolate inline-flex rounded-md shadow-xs dark:shadow-none [&>*]:rounded-none [&>*+*]:-ml-px [&>:nth-child(1_of_:not(span[aria-hidden],span[data-floating-ui-inert]))]:rounded-l-md [&>:nth-last-child(1_of_:not(span[aria-hidden],span[data-floating-ui-inert]))]:rounded-r-md'
 
 /**
  * A row of icon buttons joined into one control, like the Plus icon-only button group. Its buttons

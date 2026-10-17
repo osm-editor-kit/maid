@@ -77,6 +77,7 @@ export const cutOperation: Operation = {
   get label() {
     return m.cut_label()
   },
+  group: 'structure',
   icon: 'iD-operation-split',
   applies: (context) => {
     const entity = single(context)

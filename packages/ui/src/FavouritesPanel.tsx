@@ -14,8 +14,9 @@ import { GeometryIcon } from './GeometryIcons.tsx'
 import { ICON_BUTTON, ICON_TONE } from './icon-button.ts'
 
 /**
- * The favourites as a list: one row each, with the preset's icon and name, its number (a field), the geometries the
- * preset can be drawn as (a button each: it starts the preset as that geometry), and a trash button that removes it.
+ * The favourites as a list: one row each, with the preset's icon and name, the geometries the preset can be drawn as
+ * (a button each: it starts the preset as that geometry), its number (a field) and a trash button that removes it.
+ * The number and the trash sit at the same place in every row, whatever the number of geometry buttons.
  * The editor's flyout holds it (packages/shell/src/components/FavouritesButton.tsx).
  */
 export function FavouritesPanel(props: {
@@ -64,10 +65,10 @@ function FavouriteItem(props: {
   const favouriteGeometry = isDrawnGeometry(entry.geometry) ? entry.geometry : undefined
   return (
     <li className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-zinc-950/5 dark:hover:bg-white/5">
-      <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-zinc-950/5 dark:bg-white/10 [&>svg]:size-5">
+      <span className="inline-flex size-9 shrink-0 items-center justify-center text-zinc-600 dark:text-zinc-300 [&>svg]:size-5">
         {renderIcon?.(preset)}
       </span>
-      <span className="min-w-0 flex-1">
+      <span className="max-w-[60%] min-w-0 shrink">
         <span className="block truncate font-semibold">{preset.name}</span>
         {favouriteGeometry ? (
           <span className="block truncate text-xs text-zinc-500 dark:text-zinc-400">
@@ -75,12 +76,6 @@ function FavouriteItem(props: {
           </span>
         ) : null}
       </span>
-      <FavouriteNumberField
-        name={preset.name}
-        value={entry.number}
-        title={texts.startHint(preset.name, entry.number)}
-        onCommit={(number) => onSetNumber(entry, number)}
-      />
       <span className="flex shrink-0 items-center gap-0.5">
         {geometries.map((geometry) => {
           const label = texts.addAs(preset.name, texts.geometries[geometry])
@@ -104,6 +99,13 @@ function FavouriteItem(props: {
           )
         })}
       </span>
+      <span aria-hidden="true" className="min-w-0 flex-1" />
+      <FavouriteNumberField
+        name={preset.name}
+        value={entry.number}
+        title={texts.startHint(preset.name, entry.number)}
+        onCommit={(number) => onSetNumber(entry, number)}
+      />
       <button
         type="button"
         aria-label={texts.remove(preset.name)}

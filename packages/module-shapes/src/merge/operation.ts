@@ -55,6 +55,7 @@ export const mergeAreasOperation: Operation = {
   // iD's merge icon, the one the line merge shows
   icon: 'iD-operation-merge',
   shortcut: 'c',
+  group: 'structure',
   supersedes: ['merge'],
   applies: unionApplies,
   disabled: (context) => {

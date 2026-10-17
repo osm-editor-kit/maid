@@ -19,6 +19,7 @@ export const divideOperation: Operation = {
   get label() {
     return m.divide_label()
   },
+  group: 'structure',
   // iD's sprite of a grid of cells
   icon: 'fas-th',
   applies(context) {

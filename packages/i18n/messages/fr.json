@@ -44,6 +44,7 @@
   "picker_favourite_only_as": "Seulement comme {geometry}",
   "favourite_add_as": "Ajouter {name} comme {geometry}",
   "favourite_remove": "Retirer {name} des favoris",
+  "favourite_add": "Ajouter {name} aux favoris",
   "favourites_button": "Favoris",
   "favourites_button_hint": "Favoris : maintenez {key} et tapez un nombre pour en démarrer un",
   "favourites_intro": "Maintenez {key} et tapez un nombre pour démarrer un favori. Les nombres 1 à 3 sont les touches Point, Ligne et Surface.",

@@ -120,7 +120,7 @@ merging into `ExtensionPoints` of `@osm-editor-kit/maid-core`, in its `src/exten
 | --- | --- | --- | --- |
 | `map.layer` | renderer | MapLibre source and layers, above or below the OSM data | `sceneBounds` in shell |
 | `map.content` | renderer | A React component inside the map (previews, handles) | parking, shapes |
-| `edit.operation` | renderer | Edit menu, command bar and its key; `supersedes` hides another operation | `operations(defaultOperations)`, shapes merge |
+| `edit.operation` | renderer | Edit menu, command bar and its key; `group` sets its group in the command bar, `supersedes` hides another operation | `operations(defaultOperations)`, shapes merge |
 | `imagery.used` | renderer | The imagery credited in a changeset | imagery |
 | `draw.constraint` | renderer | Where a drawn or dragged node goes on open ground, guide lines and labels | angle snap |
 | `draw.tool` | renderer | The dropdown of the Area button, and the keys 33, 333 | rectangle |

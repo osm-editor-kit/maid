@@ -12,6 +12,9 @@ import { checkHelpers, pickBuildingAndRoad, type XY } from './check-helpers'
  */
 import { runCheck } from './check-page'
 
+/** A click on the inspector head's icon, which opens the type picker */
+const HEAD_ICON = { x: 24, y: 24 }
+
 let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, settle }) => {
   const { origin, abs, click, drag, key, state, where, near } = await checkHelpers(page, settle)
 
@@ -1017,6 +1020,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   }
   const hint = () =>
     page.evaluate(() => document.querySelector('[role="status"]')?.textContent ?? '')
+  // the head's icon: the middle of the head can hold its "i" and star, which are buttons of their own
   const changeType = page.getByTitle('Change the feature type')
   // the numbers are edited in the favourites flyout of the top bar, which lists every favourite (FavouritesButton.tsx);
   // the picker shows a favourite's number as a badge only
@@ -1033,7 +1037,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   // lists only the first 50 presets by name, so "Building" is found by typing it. Its picker lists
   // the area favourites, and the field gives the number
   await click(first.edge)
-  await changeType.click()
+  await changeType.click({ position: HEAD_ICON })
   await settle()
   await search().fill('Building')
   await settle()
@@ -1059,7 +1063,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
 
   // the bench: a point, found by its name in the search field of its picker
   await click(found.point!.at)
-  await changeType.click()
+  await changeType.click({ position: HEAD_ICON })
   await search().fill('Bench')
   await settle()
   await page.getByRole('button', { name: 'Add Bench to favourites', exact: true }).click()
@@ -1120,7 +1124,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   // (6) in the type search, which has the focus right after a drawing, Alt and a number give the selected
   // feature the favourite's type, and no digit is typed into the search
   await click(first.edge)
-  await changeType.click()
+  await changeType.click({ position: HEAD_ICON })
   await settle()
   const undoBeforeField = (await state()).undo
   await holdAlt(['4'])

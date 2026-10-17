@@ -3,7 +3,14 @@
 export * from './extent.ts'
 export * from './operations.ts'
 export * from './point-to-area.ts'
-export type { Extent, Operation, OperationContext, OperationResult } from './types.ts'
+export { OPERATION_GROUPS } from './types.ts'
+export type {
+  Extent,
+  Operation,
+  OperationContext,
+  OperationGroup,
+  OperationResult,
+} from './types.ts'
 export * from './rotate-direction.ts'
 export * from './supersedes.ts'
 
