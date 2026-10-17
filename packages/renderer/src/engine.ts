@@ -1061,12 +1061,15 @@ export class MaidEngine {
   /**
    * The keys changed. While a line or an area is drawn, its preview node is placed again at the pointer, and while a
    * vertex is dragged the last aimed move is made again, so a key press shows at once (Alt frees a drag, Shift
-   * can start an angle). Nothing is redone when the state is the same.
+   * can start an angle). A module mode gets the pointer's move again, so its preview follows too (the rectangle's
+   * rounding). Nothing is redone when the state is the same.
    */
   setModifiers(next: Modifiers) {
     if (sameModifiers(this.modifiers, next)) return
     this.modifiers = { ...next }
-    if (this.draw.active && this.pointer) this.draw.move(this.pointer.point, this.pointer.layers)
+    const at = this.pointer
+    if (this.draw.active && at) this.draw.move(at.point, at.layers)
+    else if (this.moduleMode && at) this.moduleSession.move(at.point, at.lon, at.lat)
     this.dragging.refresh()
   }
 

@@ -94,7 +94,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   relations: { maid: 21, bicycle: 21, parking: 21 },
   validation: { maid: 8, bicycle: 8, parking: 8 },
   journal: { maid: 17, bicycle: 17, parking: 17 },
-  filters: { maid: 18, bicycle: 18, parking: 18 },
+  filters: { maid: 19, bicycle: 19, parking: 19 },
   tags: { maid: 23, bicycle: 23, parking: 23 },
   multi: { maid: 11, bicycle: 11, parking: 11 },
   'relations-scene': { maid: 25, bicycle: 25, parking: 25 },

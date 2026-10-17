@@ -47,7 +47,7 @@ export function SidebarHeader(props: {
    * whether it is open and `onTitleClick` toggles it.
    */
   titleFlyout?: ReactNode
-  /** Small controls on the subtitle line after the subtitle text, over the head button. Shown with `titleFlyout` only. */
+  /** Small controls on the subtitle line after the subtitle text, over the head button; without `titleFlyout`, beside the head */
   meta?: ReactNode
 }) {
   const { icon, title, subtitle, onClose, onTitleClick, expanded, titleAction, titleFlyout, meta } =
@@ -168,6 +168,8 @@ export function SidebarHeader(props: {
           <h2 className="contents">{plainContent}</h2>
         </div>
       )}
+      {/* the same controls as on the head with a flyout, beside a head that is not a button of the picker */}
+      {meta ? <span className="flex shrink-0 items-center gap-1 pr-1">{meta}</span> : null}
       {closeButton}
     </div>
   )

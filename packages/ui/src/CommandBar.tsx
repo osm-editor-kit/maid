@@ -40,8 +40,8 @@ function segmentsOf(items: CommandItem[]): Segment[] {
 
 /**
  * Icon-only commands, grouped. The consecutive items of one `group` are one joined segment: each
- * button's hairline is its own ring, overlapped by one pixel, and the segment is a rounded box, so
- * it is rounded at its start and end. Segments have space between them and wrap onto the next row
+ * button's hairline is its own ring, overlapped by one pixel, and the segment is a rounded box that
+ * clips its buttons, so it is rounded at its start and end. Segments have space between them and wrap onto the next row
  * as a whole when the sidebar is too narrow for the rest of the row. A segment wider than the bar
  * (many buttons in a very narrow panel) wraps inside itself: its outer corners stay rounded, but
  * the ends of its inner rows are square, because CSS alone cannot tell which button starts a row.
@@ -49,15 +49,11 @@ function segmentsOf(items: CommandItem[]): Segment[] {
  */
 export function CommandBar(props: { label: string; items: CommandItem[] }) {
   return (
-    <div
-      role="group"
-      aria-label={props.label}
-      className="@container flex flex-wrap gap-x-2 gap-y-2"
-    >
+    <div role="group" aria-label={props.label} className="flex flex-wrap gap-2">
       {segmentsOf(props.items).map((segment) => (
         <div
           key={segment.items[0]?.id}
-          className="flex max-w-full flex-wrap overflow-hidden rounded-md pt-px pl-px [&>*:first-child]:rounded-l-md [&>*:last-child]:rounded-r-md"
+          className="flex max-w-full flex-wrap overflow-hidden rounded-md pt-px pl-px"
         >
           {segment.items.map((item) => {
             const blocked = Boolean(item.reason)

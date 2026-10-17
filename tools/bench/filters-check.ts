@@ -65,6 +65,26 @@ let failed = await runCheck(sceneName, async ({ page, report, settle, drawnIn })
     [['areas'], true, 0, 'buildings:readonly'],
     [now.building, now.readOnly, now.hidden, now.param],
   )
+  // the head of a read-only feature is no button of the type picker, but keeps the wiki's "i" of its type
+  await page.evaluate((id) => {
+    const url = new URL(location.href)
+    url.searchParams.set('id', id)
+    history.pushState(null, '', url)
+    window.dispatchEvent(new PopStateEvent('popstate'))
+  }, building)
+  await settle()
+  const typeName = await page.evaluate(
+    (id) => window.__maid.engine.entity(id)?.preset?.name,
+    building,
+  )
+  report(
+    'read-only buildings: the head has no type picker, but the wiki "i" of the type',
+    [0, 1],
+    [
+      await page.getByTitle('Change the feature type').count(),
+      await page.getByRole('button', { name: `About ${typeName}`, exact: true }).count(),
+    ],
+  )
   const sameTags = await page.evaluate((id) => {
     const { engine } = window.__maid
     const before = JSON.stringify(engine.entity(id)!.tags)

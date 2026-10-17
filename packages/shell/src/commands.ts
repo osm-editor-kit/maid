@@ -1,7 +1,7 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { m } from '@osm-editor-kit/maid-i18n'
 import { OPERATION_GROUPS, visibleOperations } from '@osm-editor-kit/maid-operations'
-import type { Operation } from '@osm-editor-kit/maid-operations'
+import type { Operation, OperationGroup } from '@osm-editor-kit/maid-operations'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import type { ReactNode } from 'react'
 import { pasteAt } from './clipboard'
@@ -30,13 +30,12 @@ export type Command = {
 }
 
 /** The group of an operation without one: `structure`, as its docs say */
-const DEFAULT_GROUP = 'structure'
+const DEFAULT_GROUP: OperationGroup = 'structure'
 
-/** A command's place among the groups: its index in `OPERATION_GROUPS`; a missing or unknown group counts as `structure` */
-function groupRank(group: string | undefined): number {
-  const rank = (OPERATION_GROUPS as readonly string[]).indexOf(group ?? DEFAULT_GROUP)
-  return rank === -1 ? (OPERATION_GROUPS as readonly string[]).indexOf(DEFAULT_GROUP) : rank
-}
+/** A command's place among the groups: its index in `OPERATION_GROUPS` */
+const GROUP_RANK = new Map<string, number>(OPERATION_GROUPS.map((group, rank) => [group, rank]))
+const groupRank = (group: string | undefined) =>
+  GROUP_RANK.get(group ?? DEFAULT_GROUP) ?? GROUP_RANK.get(DEFAULT_GROUP)!
 
 /** Why the commands of a feature that a filter protects cannot run */
 export const PROTECTED_REASON = 'A filter protects this feature'
