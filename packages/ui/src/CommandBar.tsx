@@ -39,9 +39,9 @@ function segmentsOf(items: CommandItem[]): Segment[] {
 }
 
 /**
- * Icon-only commands, grouped. The consecutive items of one `group` are one joined segment: each
- * button's hairline is its own ring, overlapped by one pixel, and the segment is a rounded box that
- * clips its buttons, so it is rounded at its start and end. Segments have space between them and wrap onto the next row
+ * Icon-only commands, grouped. The consecutive items of one `group` are one joined segment: a
+ * rounded box with its own ring outside, hairlines between the buttons, clipping the buttons' hover
+ * background at its corners (a ring on each button would be cut off there). Segments have space between them and wrap onto the next row
  * as a whole when the sidebar is too narrow for the rest of the row. A segment wider than the bar
  * (many buttons in a very narrow panel) wraps inside itself: its outer corners stay rounded, but
  * the ends of its inner rows are square, because CSS alone cannot tell which button starts a row.
@@ -53,7 +53,7 @@ export function CommandBar(props: { label: string; items: CommandItem[] }) {
       {segmentsOf(props.items).map((segment) => (
         <div
           key={segment.items[0]?.id}
-          className="flex max-w-full flex-wrap overflow-hidden rounded-md pt-px pl-px"
+          className="flex max-w-full flex-wrap divide-x divide-zinc-950/10 overflow-hidden rounded-md bg-white ring-1 ring-zinc-950/10 dark:divide-white/10 dark:bg-zinc-800 dark:ring-white/10"
         >
           {segment.items.map((item) => {
             const blocked = Boolean(item.reason)
@@ -75,7 +75,7 @@ export function CommandBar(props: { label: string; items: CommandItem[] }) {
                   onFocus={() => item.preview?.(true)}
                   onBlur={() => item.preview?.(false)}
                   className={twJoin(
-                    '-mt-px -ml-px flex size-8 shrink-0 cursor-pointer items-center justify-center bg-white text-zinc-950 inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 enabled:hover:bg-zinc-50 disabled:cursor-default disabled:text-zinc-300 dark:bg-zinc-800 dark:text-white dark:inset-ring-white/10 dark:enabled:hover:bg-zinc-700 dark:disabled:text-zinc-600 pointer-coarse:size-10',
+                    'flex size-8 shrink-0 cursor-pointer items-center justify-center text-zinc-950 focus-visible:z-10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 enabled:hover:bg-zinc-50 disabled:cursor-default disabled:text-zinc-300 dark:text-white dark:enabled:hover:bg-zinc-700 dark:disabled:text-zinc-600 pointer-coarse:size-10',
                   )}
                 >
                   <span aria-hidden="true" className="inline-flex shrink-0 [&>svg]:size-5">
