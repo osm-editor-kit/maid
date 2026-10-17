@@ -108,6 +108,10 @@ The browser checks need `bun run dev` and take `[scene]` and `--app maid|bicycle
 | `check-divide` | `--app parking`: "Divide" in the edit menu, columns and rows with the keys, the preview, Enter gives the parts with shared nodes, all selected, one undo step |
 | `check-display` | W turns the wireframe on and off, G highlights what was changed (added, moved, retagged), `display=` in the URL, a reload keeps it |
 | `check-touch` | `--app parking`, touch input: a long press on the Area button opens its dropdown, a long press on a feature opens the edit menu, a long press while drawing works as Shift (45°) |
+| `check-menu` | The edit menu: "Continue" first on the end of a line (and the A key), no "Paste" on a feature, only "Paste" on open ground, "Treat as area" on a closed untagged line |
+| `check-merge-polygon` | An outer and an inner area merged with C into a multipolygon, as iD: roles, tags on the relation, one undo step |
+| `check-favourites` | The star in the type search, the number badge, the favourites panel in the top bar: number, remove, start drawing from it |
+| `check-tooltips` | The tooltips of the top bar and the tool groups: the delay, switching at once between neighbours, the key shown |
 
 Every editor is driven through `window.__bench` (`tools/refs/bench-api.d.ts`); Maid also has `window.__maid` (map, engine, editor, model). One editor's screenshot: `bun tools/bench/shot.ts maid|id|rapid <scene> [zoom]`.
 

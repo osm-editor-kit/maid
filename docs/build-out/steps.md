@@ -393,7 +393,7 @@ Also decided: the editor is deployed to GitHub Pages by a workflow, a fork choos
 ### Cleanup
 
 - [ ] `/unslop-code` phases 3 to 10 (re-exports, legacy paths, the skill reviews, component location, decision lift, semantic HTML, leftovers, texts). Phases 1 and 2 are done (44674af, 16129c3, fb0c7eb). When it is finished: a memory entry on what it changed.
-- [ ] The editor's own tooltip on every icon button (about 60 native `title` attributes left).
+- [ ] The editor's own tooltip on every icon button. Done: the top bar's buttons and the tool rows (Point/Line/Area, undo and redo, the theme switch) share one tooltip group (`TooltipGroup`, `tools/bench/tooltips-check.ts`), with the shortcut in a kbd. Left: about 100 native `title` attributes in `packages` and `apps` (`grep -rn 'title=' packages apps`), most of them in the inspector and the modules.
 - [ ] Open findings of the two reviews ([review-performance.md](../research/review-performance.md), [review-cleanup.md](../research/review-cleanup.md)), the largest being the split of `engine.ts`.
 - [ ] Small: a length counter in the raw tag rows and the multi-value lists; the upload adding spaces after `;` can push a value over 255; the benchmark handle is exposed in every build; the pill of overlapping features has no animation; a second-tab case in `check-journal`; messages next to their control tied with `aria-describedby`; after undo of a node move the way keeps its cached shape in the model (effect not examined).
 - [ ] Checks: a click on a building edge that lies on another area's fill picked the other area. The check now avoids such places; the pick order there is not examined. The journal timing unit test is flaky under load.

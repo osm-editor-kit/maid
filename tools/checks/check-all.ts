@@ -40,6 +40,10 @@ const CHECKS = [
   'divide',
   'display',
   'touch',
+  'menu',
+  'merge-polygon',
+  'favourites',
+  'tooltips',
 ] as const
 type CheckName = (typeof CHECKS)[number]
 
@@ -105,6 +109,10 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   divide: { maid: 0, bicycle: 0, parking: 23 },
   display: { maid: 12, bicycle: 12, parking: 12 },
   touch: { maid: 0, bicycle: 0, parking: 14 },
+  menu: { maid: 12, bicycle: 12, parking: 12 },
+  'merge-polygon': { maid: 23, bicycle: 23, parking: 23 },
+  favourites: { maid: 13, bicycle: 13, parking: 13 },
+  tooltips: { maid: 11, bicycle: 11, parking: 11 },
 }
 
 type CheckResult = {
