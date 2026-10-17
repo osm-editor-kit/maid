@@ -243,5 +243,7 @@
   "relations_column_show_relation": "Show the tags of the relation",
   "relations_group_routes": "Routes",
   "relations_reason_cycle": "It would then contain itself",
-  "relations_column_remove": "Remove {name} from the relation"
+  "relations_column_remove": "Remove {name} from the relation",
+  "relations_column_path": "Relations above",
+  "relations_column_also_in": "Also in:"
 }

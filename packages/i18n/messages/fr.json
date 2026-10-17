@@ -243,5 +243,7 @@
   "relations_column_show_relation": "Afficher les attributs de la relation",
   "relations_group_routes": "Itinéraires",
   "relations_reason_cycle": "Elle se contiendrait alors elle-même",
-  "relations_column_remove": "Retirer {name} de la relation"
+  "relations_column_remove": "Retirer {name} de la relation",
+  "relations_column_path": "Relations au-dessus",
+  "relations_column_also_in": "Aussi dans :"
 }

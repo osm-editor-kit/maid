@@ -676,6 +676,30 @@ export function cannotTakeReason(
 }
 
 /**
+ * The relations above this one, the top first: its parent, the parent's parent, and so on (at most four, as deeper
+ * nesting is not mapped). At each level the first parent is followed; at the first level `prefer` (the relation the
+ * person came from) is followed when it is a parent. `others` are the direct parents not on the path.
+ */
+export function relationPath(graph: Graph, relation: OsmRelation, prefer?: EntityID | null) {
+  const path: OsmRelation[] = []
+  const seen = new Set<EntityID>([relation.id])
+  const direct = graph.parentRelations(relation)
+  let current = relation
+  let wanted = prefer ?? undefined
+  while (path.length < 4) {
+    const parents = graph.parentRelations(current)
+    const next = parents.find((parent) => parent.id === wanted) ?? parents[0]
+    if (!next || seen.has(next.id)) break
+    seen.add(next.id)
+    path.unshift(next)
+    current = next
+    wanted = undefined
+  }
+  const onPath = path.at(-1)?.id
+  return { path, others: direct.filter((parent) => parent.id !== onPath) }
+}
+
+/**
  * Whether adding `candidateId` to the relation would put the relation inside itself: the candidate is the relation, or
  * a relation that holds it as a member, directly or further down. Only what is loaded is followed.
  */

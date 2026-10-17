@@ -61,6 +61,7 @@ import {
   planFeaturesOf,
   planRemoveFrom,
   sharedMemberships,
+  relationPath,
   wouldContainItself,
 } from './relations-logic.ts'
 
@@ -1575,5 +1576,31 @@ describe('wouldContainItself', () => {
     expect(wouldContainItself(graph, 'r3', 'w1')).toBe(false)
     expect(wouldContainItself(graph, 'r1', 'r3')).toBe(false)
     expect(wouldContainItself(graph, 'r3', 'r4')).toBe(false)
+  })
+})
+
+describe('relationPath', () => {
+  const graph = new Graph(context, [
+    relation('r1', { type: 'superroute' }, [{ id: 'r2', type: 'relation', role: '' }]),
+    relation('r2', { type: 'superroute' }, [{ id: 'r3', type: 'relation', role: '' }]),
+    relation('r3', { type: 'route' }),
+    relation('r5', { type: 'superroute' }, [{ id: 'r3', type: 'relation', role: '' }]),
+  ])
+  const route = graph.hasEntity('r3') as OsmRelation
+
+  it('goes up the first parent at each level, the top first, and names the other direct parents', () => {
+    const { path, others } = relationPath(graph, route)
+    expect(path.map((item) => item.id)).toEqual(['r1', 'r2'])
+    expect(others.map((item) => item.id)).toEqual(['r5'])
+  })
+
+  it('follows the relation the person came from at the first level', () => {
+    const { path, others } = relationPath(graph, route, 'r5')
+    expect(path.map((item) => item.id)).toEqual(['r5'])
+    expect(others.map((item) => item.id)).toEqual(['r2'])
+  })
+
+  it('is empty for a relation in no relation', () => {
+    expect(relationPath(graph, graph.hasEntity('r1') as OsmRelation).path).toEqual([])
   })
 })

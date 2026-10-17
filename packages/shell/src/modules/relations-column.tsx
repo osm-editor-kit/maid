@@ -36,6 +36,7 @@ import {
   memberRows,
   notLoadedCount,
   relationLabel,
+  relationPath,
   relationRolesOf,
   roleLabel,
   roleToAdd,
@@ -44,7 +45,7 @@ import {
   type MemberGroup,
   type MemberRow,
 } from './relations-logic.ts'
-import { openRelationActions } from './relations-open-store.ts'
+import { openRelationActions, useOpenRelationFrom } from './relations-open-store.ts'
 import { ColumnDragHandle, ReorderRow, useMemberReorder } from './relations-reorder.tsx'
 import { relationSessionActions } from './relations-session-store.ts'
 
@@ -192,6 +193,14 @@ function ColumnBody({
   const selection = () => [...engine.selection]
   const reorder = useMemberReorder({ editor, relation, rows, groups, selection })
   const missing = notLoadedCount(rows)
+  // the relations above this one, the way the person came first; the others it is also in on a line of their own
+  const from = useOpenRelationFrom()
+  const { path, others } = relationPath(graph, relation, from)
+  // going up opens the parent with the relation we came from selected in its list
+  function openParent(parent: OsmRelation, child: EntityID) {
+    openRelationActions.open(parent.id)
+    select(child)
+  }
   const gaps = new Set(routeGaps(graph, relation))
   const roles = relationRolesOf(presets, relation.tags)
   const members = new Set(relation.members.map((member) => member.id))
@@ -234,6 +243,26 @@ function ColumnBody({
           <XMarkIcon className="size-4" />
         </button>
       </div>
+      {path.length > 0 && (
+        <nav
+          aria-label={m.relations_column_path()}
+          className="flex shrink-0 flex-wrap items-center gap-x-1 px-3 pb-1 text-xs text-zinc-600 dark:text-zinc-400"
+        >
+          {path.map((parent, index) => (
+            <span key={parent.id} className="flex min-w-0 items-center gap-1">
+              <button
+                type="button"
+                className="max-w-40 cursor-pointer truncate rounded hover:text-zinc-950 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:hover:text-white"
+                title={relationLabel(parent)}
+                onClick={() => openParent(parent, path[index + 1]?.id ?? id)}
+              >
+                {relationLabel(parent)}
+              </button>
+              <ChevronRightIcon aria-hidden className="size-3 shrink-0 text-zinc-400" />
+            </span>
+          ))}
+        </nav>
+      )}
       <RelationHead
         relationId={id}
         title={relationLabel(relation)}
@@ -242,6 +271,19 @@ function ColumnBody({
         select={select}
         relatedIds={engine.relatedOf(id)}
       />
+      {others.length > 0 && (
+        <p className="shrink-0 px-3 pb-1 text-xs text-zinc-600 dark:text-zinc-400">
+          {m.relations_column_also_in()}{' '}
+          {others.map((parent, index) => (
+            <span key={parent.id}>
+              {index > 0 && ', '}
+              <button type="button" className={LINK} onClick={() => openParent(parent, id)}>
+                {relationLabel(parent)}
+              </button>
+            </span>
+          ))}
+        </p>
+      )}
       {showHint && selectedEntity && (
         <div className="mx-2 mb-2 flex shrink-0 items-start gap-2 rounded-md bg-white px-2.5 py-2 text-xs text-zinc-700 shadow-sm ring-1 ring-zinc-950/10 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-white/10">
           <InformationCircleIcon className="mt-px size-4 shrink-0 text-zinc-500" />
@@ -494,7 +536,11 @@ function MemberItem({
                 aria-label={name}
                 aria-current={selected || undefined}
                 onClick={() => {
-                  if (row.loaded) select(row.id)
+                  // a sub-route is entered: the column shows its members, the path leads back
+                  if (row.loaded && row.type === 'relation') {
+                    openRelationActions.open(row.id, relationId)
+                    select(row.id)
+                  } else if (row.loaded) select(row.id)
                   else
                     loadMember(() => {
                       select(row.id)

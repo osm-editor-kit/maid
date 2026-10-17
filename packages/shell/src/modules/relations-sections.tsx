@@ -557,6 +557,8 @@ function AddToRelation({
  */
 export function RelationsSection({ entity, entities, editor, select }: Props) {
   const presets = usePresets()
+  // the open relation's own relations are its path in the column: here only "Add to a relation" is left for it
+  const listedInColumn = useOpenRelationId() === entity.id
   const graph = editor.history.staging.graph
   const selection = entities ?? [entity]
   const memberships = membershipsOf(graph, entity.id)
@@ -593,26 +595,27 @@ export function RelationsSection({ entity, entities, editor, select }: Props) {
         ).filter((offer) => cannotTakeReason(offer.relation, [entity], presets) === undefined)
   return (
     <div className={`${COLUMN} gap-1`}>
-      {memberships.length === 0 && (
+      {memberships.length === 0 && !listedInColumn && (
         <p className={`text-xs ${SECONDARY}`}>{m.relations_not_in_relation()}</p>
       )}
-      {memberships.length > 0 && (
-        // the memberships follow the inspected feature, the add below the whole selection
-        <ReadOnlyContext value={entity.readOnly}>
-          <ul>
-            {memberships.map((membership) => (
-              <MembershipRow
-                key={`${membership.relation.id}:${membership.index}:${membership.role}`}
-                editor={editor}
-                entityID={entity.id}
-                membership={membership}
-                roles={relationRolesOf(presets, membership.relation.tags)}
-                roleList={roleOptionsID('membership', membership.relation.id)}
-              />
-            ))}
-          </ul>
-        </ReadOnlyContext>
-      )}
+      {memberships.length > 0 &&
+        !listedInColumn && (
+          // the memberships follow the inspected feature, the add below the whole selection
+          <ReadOnlyContext value={entity.readOnly}>
+            <ul>
+              {memberships.map((membership) => (
+                <MembershipRow
+                  key={`${membership.relation.id}:${membership.index}:${membership.role}`}
+                  editor={editor}
+                  entityID={entity.id}
+                  membership={membership}
+                  roles={relationRolesOf(presets, membership.relation.tags)}
+                  roleList={roleOptionsID('membership', membership.relation.id)}
+                />
+              ))}
+            </ul>
+          </ReadOnlyContext>
+        )}
       {parents.map((relation) => (
         <RoleOptions
           key={relation.id}
