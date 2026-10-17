@@ -49,6 +49,11 @@ The FMC `tech-stack` skill: Bun workspaces, Vite, React 19 with the React Compil
 - **One folder per agent**, nothing outside it: no `package.json`, index files, `bun install` or commits. The orchestrator wires and commits.
 - **Models** (Tobias, 2026-10-11): Haiku by default, with the effort set in every brief: low or medium for lookups and measurements, high where it must choose or design. **High is the ceiling, never max or xhigh**; split the task instead. Sonnet only at medium and only when Haiku at high was not enough. Opus never at low; it orchestrates, reviews and decides across packages.
 - **Keep each agent under about 100k tokens**: one file or package, read in ranges (`grep -n`, `sed -n`).
+- **Watch every Haiku run** (Tobias, 2026-10-17):
+  - Each brief tells the agent to stop and report what it measured once it reaches about 120k tokens without a result, or after three failed tries at the same error.
+  - After the run, the orchestrator compares tokens and tool calls with the outcome.
+  - A waste sign is any of: over 150k tokens, no final report, the same error twice, or causes guessed instead of measured.
+  - On a waste sign, the next task of that kind goes to Sonnet at medium, and the report to Tobias says so.
 - **Reports in a fixed shape**: what changed, what was cut and why, final numbers, what is unsure, measured apart from inferred. Treat them as leads: re-run the done-when commands, count tests against the source, grep for skipped tests, and mark unchecked claims in the docs.
 - **Parallel agents never run `bun run check`**: its lint fixes rewrite other agents' half-written files. They use read-only commands on their folder (`bun run type-check`, `bunx oxlint --deny-warnings -c oxlint.config.mjs <folder>`, `bun test <folder>`), and the orchestrator runs `bun run check` when nobody edits.
 - **Parallel agents never run browser checks**: the dev server reloads on every save and kills them. A check counts only with exit code 0 and the expected number of `ok` lines.
