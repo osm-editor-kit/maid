@@ -1,4 +1,4 @@
-import type { Geometry } from '@osm-editor-kit/maid-presets'
+import type { Geometry, Preset } from '@osm-editor-kit/maid-presets'
 
 /**
  * A favourite feature type: a preset for one geometry, and the number that starts it. Holding the
@@ -130,4 +130,52 @@ export function moveFavourite(
   next[from] = other
   next[to] = moved
   return next
+}
+
+/** The geometries the editor's keys add: a point (1), a line (2) and an area (3), as the top bar's buttons */
+export type DrawnGeometry = 'point' | 'line' | 'area'
+
+export const DRAWN_GEOMETRIES: readonly DrawnGeometry[] = ['point', 'line', 'area']
+
+/** True for a geometry the editor adds with a key or a top bar button */
+export function isDrawnGeometry(geometry: Geometry): geometry is DrawnGeometry {
+  return (DRAWN_GEOMETRIES as readonly Geometry[]).includes(geometry)
+}
+
+/** The geometries a preset can be drawn as, in the order of DRAWN_GEOMETRIES: the ones it allows that the editor draws */
+export function drawableGeometries(preset: Pick<Preset, 'geometry'>): DrawnGeometry[] {
+  return DRAWN_GEOMETRIES.filter((geometry) => preset.geometry.includes(geometry))
+}
+
+/** The key that starts a favourite as the editor names it: the Option symbol on Apple devices, Alt elsewhere */
+export function favouriteModifierLabel(mac: boolean): string {
+  return mac ? '⌥' : 'Alt'
+}
+
+/** The name of each drawn geometry, for the texts that name one */
+export type GeometryNames = Record<DrawnGeometry, string>
+
+/** A favourite with the preset it names, read from the editor's presets: what the picker and the favourites panel list */
+export type FavouriteEntry = { preset: Preset; number: FavouriteNumber; geometry: Geometry }
+
+/**
+ * The texts of favourites that the editor translates (packages/i18n). `startHint` names the key and the number:
+ * "Hold ⌥ and type 4 to start Building". English without them: ENGLISH_FAVOURITE_TEXTS.
+ */
+export type FavouriteTexts = {
+  geometries: GeometryNames
+  startHint: (name: string, number: string) => string
+  /** A favourite whose geometry does not fit the feature: the geometry it is only as */
+  onlyAs: (geometry: string) => string
+  /** Starts the favourite's preset as another of its geometries */
+  addAs: (name: string, geometry: string) => string
+  remove: (name: string) => string
+}
+
+export const ENGLISH_FAVOURITE_TEXTS: FavouriteTexts = {
+  geometries: { point: 'Point', line: 'Line', area: 'Area' },
+  startHint: (name, number) => `Hold Alt and type ${number} to start ${name}`,
+  onlyAs: (geometry) => `Only as ${geometry}`,
+  addAs: (name, geometry) => `Add ${name} as ${geometry}`,
+  remove: (name) => `Remove ${name} from favourites`,
 }

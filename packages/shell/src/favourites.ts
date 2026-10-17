@@ -10,11 +10,11 @@ import type {
 import type { ChangeTagsResult, Mode } from '@osm-editor-kit/maid-renderer'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import {
-  favouritesFor,
   findFavouriteByNumber,
   getSettings,
   settingsActions,
   useStoredFavourites,
+  type FavouriteEntry,
 } from '@osm-editor-kit/maid-ui'
 import { useShell } from './shell-context'
 
@@ -47,15 +47,18 @@ export function watchFavourites(engine: MaidEngine) {
   })
 }
 
-/** The favourites of a geometry as the type picker lists them: their presets, with their numbers */
-export function useFavouriteRows(geometry: Geometry | undefined) {
+/**
+ * Every favourite, whatever its geometry, as the type picker and the favourites panel list them: its preset, its number
+ * and its geometry, in their order. A favourite whose preset the presets do not have is left out.
+ */
+export function useFavouriteEntries(): FavouriteEntry[] {
   const favourites = useStoredFavourites()
   const { editor } = useShell()
   const { presets } = editor
-  if (!geometry || !presets) return []
-  return favouritesFor(favourites, geometry).flatMap((favourite) => {
+  if (!presets) return []
+  return favourites.flatMap((favourite) => {
     const preset = presets.preset(favourite.presetId)
-    return preset ? [{ preset, number: favourite.number }] : []
+    return preset ? [{ preset, number: favourite.number, geometry: favourite.geometry }] : []
   })
 }
 
@@ -171,12 +174,21 @@ export function startFavourite({ editor, engine }: Parts, number: string) {
     return
   }
 
-  const mode = ADD_MODE[favourite.geometry]
+  startAdding({ editor, engine }, preset, favourite.geometry)
+}
+
+/**
+ * Starts adding a feature of a preset in the mode of a geometry: the feature is made with the preset's tags. The
+ * favourites use it, and the favourites panel starts a favourite as any of its geometries. Nothing happens for a
+ * geometry the editor does not add, or when the editor does not switch to its mode.
+ */
+export function startAdding({ editor, engine }: Parts, preset: Preset, geometry: Geometry) {
+  const mode = ADD_MODE[geometry]
   const { presets } = editor
   if (!mode || !presets) return
   // the mode first: switching it can finish a drawing, and that must not see the new favourite
   if (!engine.setMode(mode)) return
-  pending.current = { mode, preset, geometry: favourite.geometry, presets }
+  pending.current = { mode, preset, geometry, presets }
 }
 
 /** Adds a point at a place on the map. A favourite that started the point mode gives it its tags. */

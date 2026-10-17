@@ -1,10 +1,10 @@
-import { m } from '@osm-editor-kit/maid-i18n'
 import { browseOf, type LonLat, type Preset } from '@osm-editor-kit/maid-presets'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { notify, PresetPicker } from '@osm-editor-kit/maid-ui'
 import { useState } from 'react'
-import { changeTypeMany, presetsForAll, useFavouriteRows } from '../favourites'
+import { changeTypeMany, presetsForAll, useFavouriteEntries } from '../favourites'
 import { useEngine, useShell } from '../shell-context'
+import { pickerTexts } from './favourite-texts'
 import { distinctPresets, refusalMessage, typeLabel } from './multi-logic'
 import { PresetIcon } from './PresetIcon'
 
@@ -58,8 +58,8 @@ export function MultiType({ ids }: { ids: readonly string[] }) {
   const { editor, engine } = useShell()
   const [open, setOpen] = useState(false)
   const info = useEngine((current) => typeOf(current, ids))
-  // the favourites are per geometry: with one geometry among the features, they are offered
-  const favourites = useFavouriteRows(info.geometries.length === 1 ? info.geometries[0] : undefined)
+  // every favourite is listed; with one geometry among the features, the ones of that geometry fit
+  const favourites = useFavouriteEntries()
   const { presets } = editor
 
   const pick = (preset: Preset) => {
@@ -100,15 +100,12 @@ export function MultiType({ ids }: { ids: readonly string[] }) {
             currentId={onlyPreset}
             search={(query) => presetsForAll(presets, query, info.geometries, info.loc)}
             browse={browseOf(presets, info.geometries, info.loc)}
-            texts={{
-              recent: m.picker_recent(),
-              expand: m.picker_category_expand(),
-              collapse: m.picker_category_collapse(),
-            }}
+            texts={pickerTexts()}
             renderIcon={(preset) => (
               <PresetIcon icon={preset.icon} className="fill-zinc-700 dark:fill-zinc-200" />
             )}
             favourites={favourites}
+            geometry={info.geometries.length === 1 ? info.geometries[0] : undefined}
             onPick={pick}
           />
         </div>

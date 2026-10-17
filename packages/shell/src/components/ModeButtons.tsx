@@ -2,28 +2,19 @@ import { ChevronDownIcon, MapPinIcon } from '@heroicons/react/20/solid'
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { m } from '@osm-editor-kit/maid-i18n'
 import type { DrawToolItem, Mode } from '@osm-editor-kit/maid-renderer'
-import { Flyout, ToolButton, ToolGroup, toolButtonClass } from '@osm-editor-kit/maid-ui'
+import {
+  AreaIcon,
+  Flyout,
+  LineIcon,
+  ToolButton,
+  ToolGroup,
+  toolButtonClass,
+} from '@osm-editor-kit/maid-ui'
 import { Fragment, useRef, useState, type ReactNode } from 'react'
 import { areaToolKeys } from '../drawing'
 import { LongPress } from '../long-press'
 import { useEngine, useShell } from '../shell-context'
-
-/** iD's line and area icons are in its sprite; these two small drawings stand in for them */
-function LineIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-      <path d="M3 15 8 6l5 7 4-8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-function AreaIcon() {
-  return (
-    <svg viewBox="0 0 20 20" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-      <path d="M4 5h12v10H4z" fill="currentColor" fillOpacity={0.25} strokeLinejoin="round" />
-    </svg>
-  )
-}
+import { FavouritesButton } from './FavouritesButton'
 
 /** The three add modes. A function, so that the texts are read in the language of the moment. */
 function addModes(): {
@@ -91,6 +82,7 @@ export function ModeButtons() {
   }
   return (
     <ToolGroup label={m.topbar_group_add()}>
+      <FavouritesButton />
       {addModes().map((add) => {
         const longPressable = add.mode === 'draw-area' && drawTools.length > 0
         return (

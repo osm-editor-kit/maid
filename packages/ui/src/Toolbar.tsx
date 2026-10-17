@@ -1,17 +1,21 @@
 import type { ButtonHTMLAttributes, KeyboardEvent, ReactNode } from 'react'
 import { twJoin } from 'tailwind-merge'
-import { Tooltip } from './Tooltip.tsx'
+import { Tooltip, TooltipGroup } from './Tooltip.tsx'
 
 /** The joined look of a group of buttons: one hairline between them, rounded at the ends. */
 const JOINED =
   'isolate inline-flex rounded-md shadow-xs dark:shadow-none [&>*]:rounded-none [&>*+*]:-ml-px [&>*:first-child]:rounded-l-md [&>*:last-child]:rounded-r-md'
 
-/** A row of icon buttons joined into one control, like the Plus icon-only button group. */
+/**
+ * A row of icon buttons joined into one control, like the Plus icon-only button group. Its buttons
+ * share one tooltip (TooltipGroup): the first one opens it after a short delay, and the next ones
+ * switch it at once.
+ */
 export function ToolGroup(props: { label: string; children: ReactNode }) {
   // The buttons overlap by one pixel so their inset rings make a single hairline.
   return (
     <div role="group" aria-label={props.label} className={JOINED}>
-      {props.children}
+      <TooltipGroup>{props.children}</TooltipGroup>
     </div>
   )
 }

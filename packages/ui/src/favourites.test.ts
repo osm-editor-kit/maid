@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'bun:test'
 import {
+  drawableGeometries,
   favouritesFor,
+  favouriteModifierLabel,
   findFavouriteByNumber,
   freeFavouriteNumber,
+  isDrawnGeometry,
   isFavouriteNumber,
   moveFavourite,
   setFavouriteNumber,
@@ -183,5 +186,36 @@ describe('lookups', () => {
   it('lists the favourites of one geometry in their order', () => {
     expect(favouritesFor([bench, path, cafe], 'point')).toEqual([bench, cafe])
     expect(favouritesFor([bench, path, cafe], 'area')).toEqual([])
+  })
+})
+
+describe('drawableGeometries', () => {
+  const preset = (geometry: Favourite['geometry'][]) => ({ geometry })
+
+  it('is the geometries the preset allows that the editor draws, point, line, area', () => {
+    expect(drawableGeometries(preset(['area', 'point', 'line']))).toEqual(['point', 'line', 'area'])
+  })
+
+  it('leaves out vertices and relations, which the editor does not add with a key', () => {
+    expect(drawableGeometries(preset(['point', 'vertex']))).toEqual(['point'])
+    expect(drawableGeometries(preset(['relation']))).toEqual([])
+  })
+
+  it('is empty for a preset with no geometry the editor draws', () => {
+    expect(drawableGeometries(preset([]))).toEqual([])
+  })
+
+  it('tells the drawn geometries from the others', () => {
+    expect(
+      ['point', 'line', 'area'].every((g) => isDrawnGeometry(g as Favourite['geometry'])),
+    ).toBe(true)
+    expect(isDrawnGeometry('vertex')).toBe(false)
+  })
+})
+
+describe('favouriteModifierLabel', () => {
+  it('is the Option symbol on Apple devices and Alt elsewhere', () => {
+    expect(favouriteModifierLabel(true)).toBe('⌥')
+    expect(favouriteModifierLabel(false)).toBe('Alt')
   })
 })

@@ -1,7 +1,7 @@
 import { MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import { isAutomated } from '@osm-editor-kit/maid-core'
 import { getLocale, m } from '@osm-editor-kit/maid-i18n'
-import { Flyout, toolButtonClass } from '@osm-editor-kit/maid-ui'
+import { Flyout, toolButtonClass, Tooltip } from '@osm-editor-kit/maid-ui'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useSearchActions, useSearchFocus, useSearchOpen } from '../search/flyout'
@@ -31,27 +31,29 @@ export function SearchButton() {
     [hasPosition, openSearchAtStart],
   )
   return (
-    <Flyout
-      label={m.search_panel_label()}
-      placement="bottom-end"
-      className="w-96"
-      open={open}
-      onOpenChange={setSearchOpen}
-      // the panel focuses its own input, so the flyout does not pick the first button
-      focus={false}
-      trigger={
-        <button
-          type="button"
-          aria-label={m.search_button()}
-          title={m.search_button_title()}
-          className={toolButtonClass(false, open)}
-        >
-          <MagnifyingGlassIcon aria-hidden="true" className="size-5" />
-        </button>
-      }
-    >
-      <SearchPanel />
-    </Flyout>
+    // the shortcut is shown in the tooltip, and it is the one useShortcuts takes (Cmd/Ctrl+F)
+    <Tooltip label={m.search_button()} shortcut="Mod+F" placement="bottom">
+      <Flyout
+        label={m.search_panel_label()}
+        placement="bottom-end"
+        className="w-96"
+        open={open}
+        onOpenChange={setSearchOpen}
+        // the panel focuses its own input, so the flyout does not pick the first button
+        focus={false}
+        trigger={
+          <button
+            type="button"
+            aria-label={m.search_button()}
+            className={toolButtonClass(false, open)}
+          >
+            <MagnifyingGlassIcon aria-hidden="true" className="size-5" />
+          </button>
+        }
+      >
+        <SearchPanel />
+      </Flyout>
+    </Tooltip>
   )
 }
 

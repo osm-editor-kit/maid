@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 import type { Preset, PresetCategory, PresetRow } from '@osm-editor-kit/maid-presets'
+import type { FavouriteEntry } from '../favourites.ts'
 import { listRows, type ListRow } from './picker-browse.ts'
 
 function preset(id: string): Preset {
@@ -21,13 +22,22 @@ function category(id: string, members: Preset[]): PresetCategory {
   return { ...preset(id), tags: {}, members }
 }
 
-/** One label per row: the section (or category), the id, and the marks of a member and an open category */
+/** A favourite of a preset for a geometry, numbered 4 (the number is not what these tests look at) */
+function fav(id: string, geometry: FavouriteEntry['geometry'] = 'point'): FavouriteEntry {
+  return { preset: preset(id), number: '4', geometry }
+}
+
+/**
+ * One label per row: the section (or category, or the Favourites row), the id, and the marks of a member and an
+ * open category or Favourites row
+ */
 function labels(rows: ListRow[]) {
-  return rows.map((row) =>
-    row.kind === 'category'
-      ? `category:${row.category.id}${row.expanded ? '+' : ''}`
-      : `${row.member ? 'member' : row.section}:${row.preset.id}`,
-  )
+  return rows.map((row) => {
+    if (row.kind === 'category') return `category:${row.category.id}${row.expanded ? '+' : ''}`
+    if (row.kind === 'favourites') return `favourites${row.expanded ? '+' : ''}`
+    if (row.section === 'favourite') return `favourite:${row.preset.id}`
+    return `${row.member ? 'member' : row.section}:${row.preset.id}`
+  })
 }
 
 const NONE = new Set<string>()
@@ -39,7 +49,8 @@ describe('listRows with a search', () => {
       found: [preset('a'), preset('b')],
       defaults: [preset('d'), category('cat', [preset('m1'), preset('m2')])],
       recent: [preset('r')],
-      favourites: [preset('b')],
+      favourites: [fav('b')],
+      favouritesOpen: true,
       expanded: new Set(['cat']),
     })
     expect(labels(rows)).toEqual(['search:a', 'search:b'])
@@ -52,47 +63,91 @@ describe('listRows with a search', () => {
       defaults: [category('cat', [preset('m1'), preset('m2')])],
       recent: [],
       favourites: [],
+      favouritesOpen: false,
       expanded: new Set(['cat']),
     })
     expect(rows.some((row) => row.kind === 'category')).toBe(false)
   })
 })
 
-describe('listRows with an empty search', () => {
-  it('lists the favourites, then the recent presets, then the defaults', () => {
+describe('listRows with an empty search: the Favourites row', () => {
+  it('lists the Favourites row first, closed, then the recent presets, then the defaults', () => {
     const rows = listRows({
       searching: false,
       found: [],
       defaults: [preset('d1'), preset('d2')],
       recent: [preset('r1')],
-      favourites: [preset('f1')],
+      favourites: [fav('f1')],
+      favouritesOpen: false,
       expanded: NONE,
     })
-    expect(labels(rows)).toEqual(['favourite:f1', 'recent:r1', 'default:d1', 'default:d2'])
+    expect(labels(rows)).toEqual(['favourites', 'recent:r1', 'default:d1', 'default:d2'])
   })
 
-  it('lists a recent preset that is a favourite only as a favourite', () => {
+  it('lists every favourite, of every geometry, under the open Favourites row, indented', () => {
+    const rows = listRows({
+      searching: false,
+      found: [],
+      defaults: [preset('d1')],
+      recent: [],
+      favourites: [fav('f1'), fav('f2', 'area'), fav('f1', 'line')],
+      favouritesOpen: true,
+      expanded: NONE,
+    })
+    expect(labels(rows)).toEqual([
+      'favourites+',
+      'favourite:f1',
+      'favourite:f2',
+      'favourite:f1',
+      'default:d1',
+    ])
+    const members = rows.slice(1, 4)
+    expect(members.map((row) => (row.kind === 'preset' ? row.geometry : undefined))).toEqual([
+      'point',
+      'area',
+      'line',
+    ])
+    expect(members.every((row) => row.kind === 'preset' && row.member)).toBe(true)
+  })
+
+  it('gives a favourite of two geometries two different keys', () => {
     const rows = listRows({
       searching: false,
       found: [],
       defaults: [],
-      recent: [preset('f1'), preset('r1')],
-      favourites: [preset('f1')],
+      recent: [],
+      favourites: [fav('f1'), fav('f1', 'line')],
+      favouritesOpen: true,
       expanded: NONE,
     })
-    expect(labels(rows)).toEqual(['favourite:f1', 'recent:r1'])
+    const keys = rows.map((row) => row.key)
+    expect(new Set(keys).size).toBe(keys.length)
   })
 
-  it('lists a default that is a favourite or a recent preset only once, where it is first', () => {
+  it('has no Favourites row without favourites', () => {
+    const rows = listRows({
+      searching: false,
+      found: [],
+      defaults: [preset('d1')],
+      recent: [],
+      favourites: [],
+      favouritesOpen: true,
+      expanded: NONE,
+    })
+    expect(labels(rows)).toEqual(['default:d1'])
+  })
+
+  it('lists a favourite where it belongs too: among the recent presets and the defaults', () => {
     const rows = listRows({
       searching: false,
       found: [],
       defaults: [preset('f1'), preset('r1'), preset('d1')],
-      recent: [preset('r1')],
-      favourites: [preset('f1')],
+      recent: [preset('r1'), preset('f1')],
+      favourites: [fav('f1')],
+      favouritesOpen: false,
       expanded: NONE,
     })
-    expect(labels(rows)).toEqual(['favourite:f1', 'recent:r1', 'default:d1'])
+    expect(labels(rows)).toEqual(['favourites', 'recent:r1', 'recent:f1', 'default:d1'])
   })
 
   it('lists a recent preset once even when it is given twice', () => {
@@ -102,22 +157,23 @@ describe('listRows with an empty search', () => {
       defaults: [],
       recent: [preset('r1'), preset('r1')],
       favourites: [],
+      favouritesOpen: false,
       expanded: NONE,
     })
     expect(labels(rows)).toEqual(['recent:r1'])
   })
 
-  it('without a browse list, lists the presets that the empty search gives, favourites first', () => {
-    // the picker passes the empty search's presets as the defaults, and no recents
+  it('lists the presets that the empty search gives, when they are the defaults and there are no recents', () => {
     const rows = listRows({
       searching: false,
       found: [],
       defaults: [preset('a'), preset('b'), preset('c')],
       recent: [],
-      favourites: [preset('c')],
+      favourites: [fav('c')],
+      favouritesOpen: false,
       expanded: NONE,
     })
-    expect(labels(rows)).toEqual(['favourite:c', 'default:a', 'default:b'])
+    expect(labels(rows)).toEqual(['favourites', 'default:a', 'default:b', 'default:c'])
   })
 
   it('lists nothing for an empty search with nothing to list', () => {
@@ -128,6 +184,7 @@ describe('listRows with an empty search', () => {
         defaults: [],
         recent: [],
         favourites: [],
+        favouritesOpen: false,
         expanded: NONE,
       }),
     ).toEqual([])
@@ -145,6 +202,7 @@ describe('categories in the defaults', () => {
       defaults,
       recent: [],
       favourites: [],
+      favouritesOpen: false,
       expanded: NONE,
     })
     expect(labels(rows)).toEqual(['default:d1', 'category:cat', 'default:d2'])
@@ -157,6 +215,7 @@ describe('categories in the defaults', () => {
       defaults,
       recent: [],
       favourites: [],
+      favouritesOpen: false,
       expanded: new Set(['cat']),
     })
     expect(labels(rows)).toEqual([
@@ -175,6 +234,7 @@ describe('categories in the defaults', () => {
       defaults: [category('cat', [preset('m1'), preset('m2')]), preset('m1')],
       recent: [],
       favourites: [],
+      favouritesOpen: false,
       expanded: new Set(['cat']),
     })
     const keys = rows.map((row) => row.key)
@@ -182,17 +242,18 @@ describe('categories in the defaults', () => {
     expect(labels(rows)).toEqual(['category:cat+', 'member:m1', 'member:m2', 'default:m1'])
   })
 
-  it('lists a member of an open category that is a favourite, under the category too', () => {
+  it('lists a member of an open category that is a favourite in its place, and under the Favourites row when open', () => {
     const rows = listRows({
       searching: false,
       found: [],
       defaults,
       recent: [],
-      favourites: [preset('m1')],
+      favourites: [fav('m1')],
+      favouritesOpen: false,
       expanded: new Set(['cat']),
     })
     expect(labels(rows)).toEqual([
-      'favourite:m1',
+      'favourites',
       'default:d1',
       'category:cat+',
       'member:m1',
@@ -208,6 +269,7 @@ describe('categories in the defaults', () => {
       defaults: [preset('d1')],
       recent: [],
       favourites: [],
+      favouritesOpen: false,
       expanded: new Set(['cat']),
     })
     expect(labels(rows)).toEqual(['default:d1'])

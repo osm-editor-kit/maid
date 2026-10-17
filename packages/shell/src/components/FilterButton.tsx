@@ -75,43 +75,49 @@ export function FilterButton() {
   const changed = shown ? shown.split(',').length : 0
   const fromLink = differsFromStored(shown, stored, '', normalizeFilters)
   const base = changed > 0 ? `Filters, ${changed} changed` : 'Filters'
+  const about = 'Filters: what is editable, read-only or hidden'
   return (
-    <Flyout
-      label="Filters"
-      placement="bottom-end"
-      className="w-[46rem]"
-      trigger={
-        <button
-          type="button"
-          aria-label={fromLink ? `${base}, from the link you opened` : base}
-          title="Filters: what is editable, read-only or hidden"
-          className={toolButtonClass(false, changed > 0)}
-        >
-          <FunnelIcon aria-hidden="true" className="size-5" />
-          {changed > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 min-w-4 rounded-full bg-blue-600 px-1 text-center text-[10px] leading-4 font-semibold text-white tabular-nums ring-2 ring-white dark:ring-zinc-900">
-              {changed}
-            </span>
-          )}
-          {fromLink && (
-            // on the corner opposite the count, in the style of the save button's dot
-            <Tooltip label="From the link you opened">
+    <Tooltip
+      label={base}
+      description={fromLink ? `${about}\nFrom the link you opened` : about}
+      placement="bottom"
+    >
+      <Flyout
+        label="Filters"
+        placement="bottom-end"
+        className="w-[46rem]"
+        trigger={
+          <button
+            type="button"
+            aria-label={fromLink ? `${base}, from the link you opened` : base}
+            className={toolButtonClass(false, changed > 0)}
+          >
+            <FunnelIcon aria-hidden="true" className="size-5" />
+            {changed > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-4 rounded-full bg-blue-600 px-1 text-center text-[10px] leading-4 font-semibold text-white tabular-nums ring-2 ring-white dark:ring-zinc-900">
+                {changed}
+              </span>
+            )}
+            {fromLink && (
+              // on the corner opposite the count, in the style of the save button's dot; the tooltip says it
+              // the button's label and the tooltip say it; the data attribute is the mark's hook for checks
               <span
-                aria-label="From the link you opened"
+                aria-hidden="true"
+                data-from-link=""
                 className="absolute -top-1 -left-1 size-2.5 rounded-full bg-blue-600 ring-2 ring-white dark:ring-zinc-900"
               />
-            </Tooltip>
-          )}
-        </button>
-      }
-    >
-      <div className="px-4 pt-4 pb-1">
-        <h2 className="text-base font-semibold">Filters</h2>
-        <p className="text-zinc-500 dark:text-zinc-400">
-          Choose what you can edit, what is only shown, and what is hidden.
-        </p>
-      </div>
-      <Filters />
-    </Flyout>
+            )}
+          </button>
+        }
+      >
+        <div className="px-4 pt-4 pb-1">
+          <h2 className="text-base font-semibold">Filters</h2>
+          <p className="text-zinc-500 dark:text-zinc-400">
+            Choose what you can edit, what is only shown, and what is hidden.
+          </p>
+        </div>
+        <Filters />
+      </Flyout>
+    </Tooltip>
   )
 }

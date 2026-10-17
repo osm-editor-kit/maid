@@ -27,18 +27,13 @@ import {
   createWikiSource,
 } from '@osm-editor-kit/maid-ui'
 import { useEffect, useMemo, useState } from 'react'
-import {
-  changeType,
-  moveFavourite,
-  setFavouriteNumber,
-  toggleFavourite,
-  useFavouriteRows,
-} from '../favourites'
+import { changeType, moveFavourite, toggleFavourite, useFavouriteEntries } from '../favourites'
 import { imageryOnMap } from '../imagery-used'
 import { useIssuesVersion } from '../modules/validation'
 import { useNewFeatureId } from '../new-feature'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
+import { pickerTexts } from './favourite-texts'
 import { fieldOverlayFor, widthKeyTarget } from './field-overlay'
 import { measureTags } from './measure-tags'
 import { MultiInspector } from './MultiInspector'
@@ -117,8 +112,8 @@ export function Inspector() {
   const newFeatureId = useNewFeatureId()
   const moduleFields = useExtensionPoint(editor, 'inspector.field')
   const fieldTypes = Object.fromEntries(moduleFields.map((item) => [item.type, item.component]))
-  // the favourites of the feature's geometry, for the type picker
-  const favourites = useFavouriteRows(entity?.geometry)
+  // the favourites, of every geometry, for the type picker
+  const favourites = useFavouriteEntries()
   // whether the type picker is open, and for which id: selecting something else forgets it
   const [picker, setPicker] = useState<{ id: string; open: boolean } | null>(null)
   // the key whose width is being measured on the map: state here, not a module variable
@@ -235,24 +230,20 @@ export function Inspector() {
             entity && presets ? (
               <div className="p-3">
                 <PresetPicker
+                  // keyed by the feature: another feature's picker starts with no search, so its groups show
+                  key={id}
                   autoFocus
                   currentId={entity.preset?.id}
                   search={(query) => presets.search(query, entity.geometry, undefined, loc)}
                   browse={browseOf(presets, [entity.geometry], loc)}
-                  texts={{
-                    recent: m.picker_recent(),
-                    expand: m.picker_category_expand(),
-                    collapse: m.picker_category_collapse(),
-                  }}
+                  texts={pickerTexts()}
                   renderIcon={(preset) => (
                     <PresetIcon icon={preset.icon} className="fill-zinc-700 dark:fill-zinc-200" />
                   )}
                   favourites={favourites}
-                  onToggleFavourite={(preset) => toggleFavourite(preset, entity.geometry)}
-                  onMoveFavourite={(preset, delta) => moveFavourite(preset, entity.geometry, delta)}
-                  onSetNumber={(preset, number) =>
-                    setFavouriteNumber(preset, entity.geometry, number)
-                  }
+                  geometry={entity.geometry}
+                  onToggleFavourite={toggleFavourite}
+                  onMoveFavourite={moveFavourite}
                   onPick={(preset) => {
                     changeType({ editor, engine }, id, preset)
                     setPicker({ id, open: false })

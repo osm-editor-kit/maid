@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { TooltipGroup } from './Tooltip.tsx'
 
 /**
  * Top bar with start, centre and end areas. The layout follows the bar's own width (a container query, not the
@@ -19,7 +20,8 @@ export function TopBar(props: { start?: ReactNode; center?: ReactNode; end?: Rea
         <div
           className={`flex min-w-0 items-center [justify-content:safe_end] gap-2 [grid-area:end] ${SCROLL_X}`}
         >
-          {props.end}
+          {/* the buttons at the end share one tooltip: the first opens it, the next ones switch it */}
+          <TooltipGroup>{props.end}</TooltipGroup>
         </div>
       </div>
     </header>

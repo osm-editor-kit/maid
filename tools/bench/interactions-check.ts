@@ -1018,6 +1018,12 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   const hint = () =>
     page.evaluate(() => document.querySelector('[role="status"]')?.textContent ?? '')
   const changeType = page.getByTitle('Change the feature type')
+  // the numbers are edited in the favourites flyout of the top bar, which lists every favourite (FavouritesButton.tsx);
+  // the picker shows a favourite's number as a badge only
+  const openFavourites = async () => {
+    await page.getByRole('button', { name: 'Favourites', exact: true }).click()
+    await settle()
+  }
   const numberOf = (name: string) =>
     page.getByRole('textbox', { name: `Number of ${name}`, exact: true })
   // the picker's search field; the page has other comboboxes (the title, the Add field search)
@@ -1033,6 +1039,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   await settle()
   await page.getByRole('button', { name: 'Add Building to favourites', exact: true }).click()
   await settle()
+  await openFavourites()
   // 1, 2 and 3 are the editor's own keys: a favourite cannot have them, the field marks 3 as invalid
   await numberOf('Building').fill('3')
   report(
@@ -1057,6 +1064,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   await settle()
   await page.getByRole('button', { name: 'Add Bench to favourites', exact: true }).click()
   await settle()
+  await openFavourites()
   await numberOf('Bench').fill('49')
   await numberOf('Bench').press('Enter')
   await settle()
@@ -1133,8 +1141,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
 
   // (3) the number of the building is set to 888 in the list; 8, 8, 8 starts it, and 3 starts nothing
   await click(first.edge)
-  if (!(await numberOf('Building').isVisible())) await changeType.click()
-  await settle()
+  await openFavourites()
   await numberOf('Building').fill('888')
   await numberOf('Building').press('Enter')
   await settle()

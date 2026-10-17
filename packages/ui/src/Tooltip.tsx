@@ -12,35 +12,117 @@ import {
   useInteractions,
   useRole,
 } from '@floating-ui/react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { cloneElement, useState, type ReactElement } from 'react'
+import { AnimatePresence, motion, useReducedMotion, type Transition } from 'motion/react'
+import {
+  cloneElement,
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  useReducer,
+  useState,
+  type FocusEvent,
+  type PointerEvent,
+  type ReactElement,
+  type ReactNode,
+} from 'react'
 import { twJoin } from 'tailwind-merge'
 import { UI_SPRING } from './motion.tsx'
+import { formatShortcut, isApplePlatform } from './shortcut-label.ts'
+import {
+  INITIAL_TIP,
+  reduceTip,
+  tipDelay,
+  type TipContent,
+  type TipEvent,
+  type TipPlacement,
+} from './tooltip-group.ts'
 
-type Placement = 'top' | 'bottom' | 'left' | 'right'
+type Placement = TipPlacement
 
 /** The props of the wrapped element that the tooltip reads. */
 type TriggerProps = { disabled?: boolean }
 
-/**
- * A label, shortcut and description that appears next to one element on hover or focus.
- *
- * The tooltip clones its one child and gives it the floating reference and the interaction
- * props. A disabled child gets no mouse events in browsers, so it is wrapped in a `span` that
- * takes the events instead. The child's pointer events are switched off so the span is the hit
- * target, and its corner radius is inherited so that a `ToolGroup` still joins its corners.
- */
-export function Tooltip(props: {
+export type TooltipProps = {
   label: string
   shortcut?: string
   description?: string
   placement?: Placement
+  /**
+   * The control is disabled. A disabled control gets no pointer events in some browsers, so the
+   * tooltip reads them from a wrapper. Read from the child's `disabled` when not given.
+   */
+  disabled?: boolean
   children: ReactElement<TriggerProps>
-}) {
+}
+
+const BUBBLE =
+  'z-50 w-max max-w-82 rounded-md bg-zinc-900/90 px-2 py-1.5 text-xs text-white shadow-md select-none dark:bg-zinc-100/95 dark:text-zinc-950'
+
+/** The wrapper of a disabled control: it takes the pointer, and the control's corners are its own */
+const DISABLED_WRAP = 'inline-flex [&>*]:pointer-events-none [&>*]:rounded-[inherit]'
+
+/** The group's box: short, and no overshoot, as the top bar's own changes */
+const GROUP_TRANSITION: Transition = { duration: 0.12, ease: 'easeOut' }
+
+/**
+ * A label, shortcut and description that appears next to one element on hover or focus.
+ *
+ * Inside a `TooltipGroup` (the top bar, a row of tools) it is the group's box that shows, and it
+ * moves from one button to the next. Outside a group it is its own box, opened by its own hover.
+ *
+ * The tooltip clones its one child and gives it the events. A child that is not a DOM element
+ * (a `Flyout`) or a disabled one is wrapped in a `span` that takes the events instead. The child's
+ * pointer events are switched off so the span is the hit target, and its corner radius is inherited
+ * so that a `ToolGroup` still joins its corners.
+ */
+export function Tooltip(props: TooltipProps) {
+  const group = useContext(TooltipGroupContext)
+  if (group) return <GroupedTooltip {...props} group={group} />
+  return <StandaloneTooltip {...props} />
+}
+
+/** Whether the tooltip takes the events on a wrapper, not on the child itself */
+function needsWrap(children: ReactElement<TriggerProps>, disabled: boolean) {
+  return disabled || typeof children.type !== 'string'
+}
+
+function isDisabled(props: TooltipProps) {
+  return props.disabled ?? props.children.props.disabled === true
+}
+
+/** The text of a tooltip: the label, its shortcut in a `kbd` (for the platform), and the description */
+function TooltipText(props: { label: string; shortcut?: string; description?: string }) {
+  const { label, shortcut, description } = props
+  return (
+    <>
+      <div className="flex items-center gap-2">
+        <span className="font-medium">{label}</span>
+        {shortcut ? (
+          <kbd
+            className={twJoin(
+              'rounded px-1 font-sans text-[11px] leading-4 font-medium',
+              'bg-white/15 text-zinc-200 dark:bg-zinc-950/10 dark:text-zinc-700',
+            )}
+          >
+            {formatShortcut(shortcut, isApplePlatform())}
+          </kbd>
+        ) : null}
+      </div>
+      {description ? (
+        <p className="mt-0.5 whitespace-pre-line text-zinc-300 dark:text-zinc-600">{description}</p>
+      ) : null}
+    </>
+  )
+}
+
+function StandaloneTooltip(props: TooltipProps) {
   const { label, shortcut, description, children } = props
   const preferredPlacement = props.placement ?? 'top'
   const [open, setOpen] = useState(false)
   const reducedMotion = useReducedMotion()
+  const disabled = isDisabled(props)
+  const wrap = needsWrap(children, disabled)
 
   // `transform: false` keeps position on top/left so Motion can own transform (scale/offset).
   const { refs, floatingStyles, context, placement, isPositioned } = useFloating({
@@ -75,12 +157,12 @@ export function Tooltip(props: {
           ? { x: -4 }
           : { y: 4 }
 
-  const disabled = children.props.disabled === true
-  const trigger = disabled ? (
+  const trigger = wrap ? (
     <span
+      // oxlint-disable-next-line react/refs -- refs.setReference is floating-ui's callback ref, not a .current value read during render
       ref={refs.setReference}
       {...getReferenceProps()}
-      className="inline-flex [&>*]:pointer-events-none [&>*]:rounded-[inherit]"
+      className={disabled ? DISABLED_WRAP : 'inline-flex'}
     >
       {children}
     </span>
@@ -106,32 +188,156 @@ export function Tooltip(props: {
               }
               exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, ...enterOffset }}
               transition={reducedMotion ? { duration: 0 } : UI_SPRING}
-              className="z-50 w-max max-w-82 rounded-md bg-zinc-900/90 px-2 py-1.5 text-xs text-white shadow-md select-none dark:bg-zinc-100/95 dark:text-zinc-950"
+              className={BUBBLE}
               // oxlint-disable-next-line react/refs -- refs.setFloating is floating-ui's callback ref, not a .current value read during render
               {...getFloatingProps({ ref: refs.setFloating, style: floatingStyles })}
             >
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{label}</span>
-                {shortcut ? (
-                  <kbd
-                    className={twJoin(
-                      'rounded px-1 font-sans text-[11px] leading-4 font-medium',
-                      'bg-white/15 text-zinc-200 dark:bg-zinc-950/10 dark:text-zinc-700',
-                    )}
-                  >
-                    {shortcut}
-                  </kbd>
-                ) : null}
-              </div>
-              {description ? (
-                <p className="mt-0.5 whitespace-pre-line text-zinc-300 dark:text-zinc-600">
-                  {description}
-                </p>
-              ) : null}
+              <TooltipText label={label} shortcut={shortcut} description={description} />
             </motion.div>
           )}
         </AnimatePresence>
       </FloatingPortal>
     </>
+  )
+}
+
+/** What a group gives its members: the events of a button, and the reference element they are on */
+type GroupApi = { send: (event: TipEvent, element?: Element) => void }
+
+/**
+ * The group a tooltip belongs to. Null outside any group, and inside a `Flyout`'s panel: a
+ * tooltip in a panel is its own, not the top bar's.
+ */
+export const TooltipGroupContext = createContext<GroupApi | null>(null)
+
+type TipHandlers = {
+  onPointerEnter: (event: PointerEvent<Element>) => void
+  onPointerLeave: () => void
+  onPointerDown: () => void
+  onFocus: (event: FocusEvent<Element>) => void
+  onBlur: () => void
+}
+
+/** The child's own handlers run first, then the tooltip's */
+function withHandlers(
+  own: Record<string, unknown>,
+  tip: TipHandlers,
+): TriggerProps & Record<string, unknown> {
+  const merged: TriggerProps & Record<string, unknown> = {}
+  for (const name of Object.keys(tip) as (keyof TipHandlers)[]) {
+    const mine = tip[name] as (event?: unknown) => void
+    const theirs = own[name]
+    merged[name] = (event?: unknown) => {
+      if (typeof theirs === 'function') theirs(event)
+      mine(event)
+    }
+  }
+  return merged
+}
+
+function GroupedTooltip(props: TooltipProps & { group: GroupApi }) {
+  const { label, shortcut, description, children, group } = props
+  const placement = props.placement ?? 'top'
+  const disabled = isDisabled(props)
+  const id = useId()
+  const content: TipContent = { label, shortcut, description, placement }
+  const handlers: TipHandlers = {
+    // a touch does not hover: a tap is a press, and the tooltip of a press is not shown
+    onPointerEnter: (event) => {
+      if (event.pointerType !== 'touch')
+        group.send({ type: 'enter', id, content }, event.currentTarget)
+    },
+    onPointerLeave: () => group.send({ type: 'leave', id }),
+    onPointerDown: () => group.send({ type: 'press', id }),
+    // only the keyboard's focus shows it: a click focuses the button too, and that is not wanted
+    onFocus: (event) => {
+      if (event.target instanceof Element && event.target.matches(':focus-visible')) {
+        group.send({ type: 'focus', id, content }, event.currentTarget)
+      }
+    },
+    onBlur: () => group.send({ type: 'leave', id }),
+  }
+  if (needsWrap(children, disabled)) {
+    return (
+      <span className={disabled ? DISABLED_WRAP : 'inline-flex'} {...handlers}>
+        {children}
+      </span>
+    )
+  }
+  return cloneElement(children, withHandlers(children.props, handlers))
+}
+
+/**
+ * One tooltip for the buttons of a group. The box is drawn once, next to the button that the
+ * pointer or the focus is on, and it moves from one button to the next (a layout animation of
+ * 120 ms; none with reduced motion). Its label changes with the button.
+ *
+ * Wrap the buttons of one row or one region of the top bar. The box is a portal: the buttons keep
+ * their layout.
+ */
+export function TooltipGroup(props: { placement?: Placement; children: ReactNode }) {
+  const [tip, dispatch] = useReducer(reduceTip, INITIAL_TIP)
+  const reducedMotion = useReducedMotion()
+  const { target, timer } = tip
+  const visible = tip.phase === 'open' || tip.phase === 'closing'
+  // `transform: false` keeps position on top/left so Motion can own transform (the glide)
+  const { refs, floatingStyles, isPositioned } = useFloating({
+    open: visible,
+    placement: target?.content.placement ?? props.placement ?? 'bottom',
+    transform: false,
+    whileElementsMounted: autoUpdate,
+    middleware: [offset(8), flip({ padding: 8 }), shift({ padding: 8 })],
+  })
+
+  useEffect(
+    function runTooltipTimer() {
+      if (!timer) return
+      const handle = window.setTimeout(() => dispatch({ type: 'timeout' }), tipDelay(timer.kind))
+      return () => window.clearTimeout(handle)
+    },
+    [timer],
+  )
+
+  const group: GroupApi = {
+    send(event, element) {
+      // oxlint-disable-next-line react/refs -- refs.setReference is floating-ui's callback, called from an event, not during render
+      if (element && (event.type === 'enter' || event.type === 'focus')) refs.setReference(element)
+      dispatch(event)
+    },
+  }
+
+  return (
+    <TooltipGroupContext.Provider value={group}>
+      {props.children}
+      <FloatingPortal>
+        <AnimatePresence>
+          {visible && target ? (
+            <motion.div
+              // one key for the whole group: the box stays mounted and moves when the target changes
+              key="tooltip-group"
+              // Mounted while visible so Floating UI can measure it (it positions only a mounted box, so
+              // gating the mount on `isPositioned` would never show it); it fades in once positioned.
+              // only the position animates: the box's width follows its label at once
+              layout="position"
+              role="tooltip"
+              initial={reducedMotion ? false : { opacity: 0, scale: 0.96 }}
+              animate={isPositioned ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.96 }}
+              exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
+              transition={reducedMotion ? { duration: 0 } : GROUP_TRANSITION}
+              className={twJoin(BUBBLE, 'pointer-events-none')}
+              // oxlint-disable-next-line react/refs -- refs.setFloating is floating-ui's callback ref, not a .current value read during render
+              ref={refs.setFloating}
+              style={floatingStyles}
+            >
+              <TooltipText
+                label={target.content.label}
+                shortcut={target.content.shortcut}
+                description={target.content.description}
+              />
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </FloatingPortal>
+    </TooltipGroupContext.Provider>
   )
 }

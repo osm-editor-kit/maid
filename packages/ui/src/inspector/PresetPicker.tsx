@@ -2,12 +2,19 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   ChevronUpIcon,
-  HeartIcon as HeartSolidIcon,
+  StarIcon as StarSolidIcon,
 } from '@heroicons/react/16/solid'
-import { HeartIcon as HeartOutlineIcon } from '@heroicons/react/24/outline'
-import type { Browse, Preset } from '@osm-editor-kit/maid-presets'
+import { StarIcon as StarOutlineIcon } from '@heroicons/react/24/outline'
+import type { Browse, Geometry, Preset } from '@osm-editor-kit/maid-presets'
 import { useId, useState, type KeyboardEvent, type ReactNode } from 'react'
-import { isFavouriteNumber } from '../favourites.ts'
+import {
+  ENGLISH_FAVOURITE_TEXTS,
+  isDrawnGeometry,
+  type FavouriteEntry,
+  type FavouriteTexts,
+} from '../favourites.ts'
+import { GeometryIcon } from '../GeometryIcons.tsx'
+import { ICON_BUTTON, ICON_TONE } from '../icon-button.ts'
 import { PLAIN_INPUT } from '../plain-input.ts'
 import { EMPTY_NOTE, keepFocus, listboxMove, revealRow, ROW_ACTIVE } from './listbox.ts'
 import { listRows, type ListRow } from './picker-browse.ts'
@@ -15,80 +22,87 @@ import { mainTagLabel } from './picker-logic.ts'
 import { useRecentIds, useRecentsActions } from './recents.ts'
 import { SearchField } from './SearchField.tsx'
 
-// the colour is not here: a class of the same property in the same string would be overridden by the
-// order of the generated CSS, so each button adds its own text colour (a favourite's heart is rose)
-const ICON_BUTTON =
-  'inline-flex size-8 shrink-0 items-center justify-center rounded-lg enabled:cursor-pointer enabled:hover:bg-zinc-950/5 enabled:hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:opacity-40 dark:enabled:hover:bg-white/10 dark:enabled:hover:text-white'
-const ICON_TONE = 'text-zinc-500 dark:text-zinc-400'
-
-/** A favourite as the picker shows it: its preset, and the number that starts it */
-export type PickerFavourite = { preset: Preset; number: string }
+/** A favourite as the picker takes it: its preset, its number and its geometry */
+export type PickerFavourite = FavouriteEntry
 
 /**
  * The texts of the picker that the editor translates (packages/i18n: picker_recent, picker_category_expand,
- * picker_category_collapse). English without them.
+ * picker_category_collapse, picker_favourites, ...). English without them.
  */
-export type PresetPickerTexts = { recent: string; expand: string; collapse: string }
+export type PresetPickerTexts = {
+  recent: string
+  expand: string
+  collapse: string
+  /** The Favourites row, and its hint when it is open or closed */
+  favourites: string
+  favouritesExpand: string
+  favouritesCollapse: string
+} & FavouriteTexts
 
 const ENGLISH_TEXTS: PresetPickerTexts = {
   recent: 'Recently used',
   expand: 'Show the feature types in this category',
   collapse: 'Hide the feature types in this category',
+  favourites: 'Favourites',
+  favouritesExpand: 'Show all your favourites',
+  favouritesCollapse: 'Hide your favourites',
+  ...ENGLISH_FAVOURITE_TEXTS,
 }
 
-/**
- * The number of a favourite, as a field. It is sent on Enter or when the field loses focus, not on
- * every key: a number that another favourite has swaps the two, so a half-typed number must not
- * swap. A number that is empty, zero or starts with zero is invalid: it is shown so, and not sent.
- * Escape gives back the number the favourite has.
- */
-function FavouriteNumberField(props: {
-  name: string
-  value: string
-  onCommit: (next: string) => void
-}) {
-  const { name, value, onCommit } = props
-  const [draft, setDraft] = useState(value)
-  // a number that changed elsewhere (a swap with another favourite) replaces the draft
-  const [shown, setShown] = useState(value)
-  if (shown !== value) {
-    setShown(value)
-    setDraft(value)
-  }
-  const valid = isFavouriteNumber(draft)
-  const commit = () => {
-    if (valid && draft !== value) onCommit(draft)
-  }
+/** The square an icon sits in; a favourite's number sits on its corner, as a small badge */
+function IconBox(props: { children?: ReactNode; number?: string; title?: string }) {
+  const { children, number, title } = props
   return (
-    <input
-      {...PLAIN_INPUT}
-      type="text"
-      inputMode="numeric"
-      autoComplete="off"
-      spellCheck={false}
-      aria-label={`Number of ${name}`}
-      aria-invalid={!valid}
-      title="Hold the modifier key and type this number to start the feature type"
-      value={draft}
-      onChange={(event) => setDraft(event.currentTarget.value)}
-      onBlur={() => {
-        // an invalid number is given up: the favourite keeps the number it had
-        if (valid) commit()
-        else setDraft(value)
-      }}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') {
-          event.preventDefault()
-          commit()
-        } else if (event.key === 'Escape') {
-          event.preventDefault()
-          setDraft(value)
-        }
-      }}
-      className="h-8 w-14 shrink-0 rounded-md border border-zinc-950/10 bg-white px-2 text-center font-mono text-xs text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 aria-invalid:border-rose-500 aria-invalid:text-rose-600 dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:aria-invalid:border-rose-400 dark:aria-invalid:text-rose-400"
-    />
+    <span className="relative inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-zinc-950/5 dark:bg-white/10 [&>svg]:size-5">
+      {children}
+      {number !== undefined ? (
+        <span
+          title={title}
+          className="absolute -right-1 -bottom-1 min-w-5 rounded-full bg-zinc-800 px-1 text-center font-mono text-[10px] leading-4 font-semibold text-white tabular-nums ring-2 ring-white dark:bg-zinc-200 dark:text-zinc-900 dark:ring-zinc-800"
+        >
+          {number}
+        </span>
+      ) : null}
+    </span>
   )
 }
+
+/** The star of a row: filled for a favourite, and a click takes the favourite out again */
+function StarButton(props: { name: string; on: boolean; onClick: () => void }) {
+  const { name, on, onClick } = props
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      aria-label={on ? `Remove ${name} from favourites` : `Add ${name} to favourites`}
+      title={on ? 'Remove from favourites' : 'Add to favourites'}
+      onMouseDown={keepFocus}
+      onClick={onClick}
+      className={`${ICON_BUTTON} ${on ? 'text-amber-500 dark:text-amber-400' : ICON_TONE}`}
+    >
+      {on ? (
+        <StarSolidIcon className="size-4" aria-hidden="true" />
+      ) : (
+        <StarOutlineIcon className="size-4" aria-hidden="true" />
+      )}
+    </button>
+  )
+}
+
+/** The rows of a part of the list that are contiguous: how many, from `start` on, satisfy `test` */
+function leadingCount(rows: readonly ListRow[], start: number, test: (row: ListRow) => boolean) {
+  let count = 0
+  for (let at = start; at < rows.length; at++) {
+    const row = rows[at]
+    if (!row || !test(row)) break
+    count++
+  }
+  return count
+}
+
+const isFavouriteRow = (row: ListRow) =>
+  row.kind === 'favourites' || (row.kind === 'preset' && row.section === 'favourite')
+const isRecentRow = (row: ListRow) => row.kind === 'preset' && row.section === 'recent'
 
 export function PresetPicker(props: {
   /** Returns the presets for a query, best first. Called on every change of the query. */
@@ -99,27 +113,27 @@ export function PresetPicker(props: {
   /** The preset the feature has now, marked in the list */
   currentId?: string
   /**
-   * The favourites for the feature's geometry, in order. With an empty search they are listed
-   * first, under "Favourites", with their numbers.
+   * The favourites, of every geometry, in order. They are listed under the Favourites row, which opens to show them
+   * all. A favourite whose geometry is not `geometry` is shown disabled.
    */
   favourites?: readonly PickerFavourite[]
   /**
+   * The geometry of the feature, when all the features share one. The favourites of this geometry are the ones that
+   * fit; a star on a row makes or takes out a favourite for it. Undefined for several geometries: nothing fits.
+   */
+  geometry?: Geometry
+  /**
    * Given, an empty search lists the recently used presets that fit the feature (under "Recently used", after the
-   * favourites), then the defaults for its geometry: presets, and categories that expand in place to their members
-   * (presets browseOf). Without it, an empty search lists what `search` gives for an empty query.
+   * Favourites row), then the defaults for its geometry: presets, and categories that expand in place to their
+   * members (presets browseOf). Without it, an empty search lists what `search` gives for an empty query.
    */
   browse?: Browse
   /** The texts the picker shows that the editor translates. English without it. */
   texts?: PresetPickerTexts
-  /** Given, every row gets a heart: it makes the preset a favourite, or takes it out again */
-  onToggleFavourite?: (preset: Preset) => void
-  /** Given with `onToggleFavourite`, the favourites in the list get move up and down buttons */
-  onMoveFavourite?: (preset: Preset, delta: 1 | -1) => void
-  /**
-   * Given, every favourite gets a number field: the number the person types is given to the
-   * favourite (a number another favourite has swaps the two). Invalid numbers are not sent.
-   */
-  onSetNumber?: (preset: Preset, number: string) => void
+  /** Given, every row of a geometry the feature has gets a star: it makes the preset a favourite, or takes it out again */
+  onToggleFavourite?: (preset: Preset, geometry: Geometry) => void
+  /** Given with `onToggleFavourite`, the favourites of a geometry in the Favourites row get move up and down buttons */
+  onMoveFavourite?: (preset: Preset, geometry: Geometry, delta: 1 | -1) => void
   autoFocus?: boolean
   placeholder?: string
 }) {
@@ -129,11 +143,11 @@ export function PresetPicker(props: {
     renderIcon,
     currentId,
     favourites = [],
+    geometry,
     browse,
     texts = ENGLISH_TEXTS,
     onToggleFavourite,
     onMoveFavourite,
-    onSetNumber,
     autoFocus = false,
     placeholder = 'Search feature types',
   } = props
@@ -142,32 +156,30 @@ export function PresetPicker(props: {
   const [activeIndex, setActiveIndex] = useState(0)
   // the categories that are open: their members are listed under them, and only while nothing is searched
   const [openCategories, setOpenCategories] = useState<readonly string[]>([])
+  const [favouritesOpen, setFavouritesOpen] = useState(false)
   const { remember } = useRecentsActions()
   const recentIds = useRecentIds()
   const baseId = useId()
   const listId = `${baseId}-list`
-  const favouritesHeadingId = `${baseId}-favourites`
   const recentHeadingId = `${baseId}-recent`
   const optionId = (index: number) => `${baseId}-option-${index}`
 
-  // the favourites and the defaults are listed only while nothing is searched; their numbers show on every row
+  // the favourites and the defaults are listed only while nothing is searched
   const searching = query.trim() !== ''
-  const numberById = new Map(favourites.map((favourite) => [favourite.preset.id, favourite.number]))
   const defaults = browse ? browse.defaults : searching ? [] : search('')
   const rows = listRows({
     searching,
     found: searching ? search(query) : [],
     defaults,
     recent: browse && !searching ? browse.recent(recentIds) : [],
-    favourites: favourites.map((favourite) => favourite.preset),
+    favourites,
+    favouritesOpen,
     expanded: new Set(openCategories),
   })
   const active = rows.length === 0 ? -1 : Math.min(activeIndex, rows.length - 1)
-  // the favourites come first in the list, then the recent presets: their rows are contiguous
-  const favouriteCount = rows.filter(
-    (row) => row.kind === 'preset' && row.section === 'favourite',
-  ).length
-  const recentCount = rows.filter((row) => row.kind === 'preset' && row.section === 'recent').length
+  // the Favourites row and its members come first, then the recent presets: each part's rows are contiguous
+  const favouriteCount = leadingCount(rows, 0, isFavouriteRow)
+  const recentCount = leadingCount(rows, favouriteCount, isRecentRow)
 
   function moveTo(index: number) {
     setActiveIndex(index)
@@ -186,10 +198,16 @@ export function PresetPicker(props: {
     onPick(preset)
   }
 
-  // Enter picks a preset, and opens or closes a category
+  /** A favourite whose geometry is not the feature's cannot be picked: it is shown disabled */
+  function isDisabled(row: ListRow) {
+    return row.kind === 'preset' && row.section === 'favourite' && row.geometry !== geometry
+  }
+
+  // Enter picks a preset, and opens or closes a category or the Favourites row
   function activate(row: ListRow) {
     if (row.kind === 'category') toggleCategory(row.category.id)
-    else pick(row.preset)
+    else if (row.kind === 'favourites') setFavouritesOpen((open) => !open)
+    else if (!isDisabled(row)) pick(row.preset)
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -220,17 +238,26 @@ export function PresetPicker(props: {
   }
 
   /**
-   * One preset row: the option itself, then, outside the option, the buttons that act on the preset.
-   * They sit beside the option so that a button is never inside an element with the option role.
-   * A member of an open category is indented.
+   * One preset row: the option itself, then, outside the option, the buttons that act on the preset. They sit beside
+   * the option so that a button is never inside an element with the option role. A member of an open category is
+   * indented. A favourite's number is a badge on its icon; its geometry is the row's, or the feature's.
    */
   function renderPresetRow(row: Extract<ListRow, { kind: 'preset' }>, index: number) {
     const { preset } = row
     const isActive = index === active
+    const disabled = isDisabled(row)
+    const rowGeometry = row.geometry ?? geometry
+    const entry =
+      rowGeometry === undefined
+        ? undefined
+        : favourites.find((item) => item.preset.id === preset.id && item.geometry === rowGeometry)
+    const number = entry?.number
+    const drawn =
+      row.geometry !== undefined && isDrawnGeometry(row.geometry) ? row.geometry : undefined
     const tag = mainTagLabel(preset)
-    const number = numberById.get(preset.id)
-    const isFavourite = number !== undefined
-    const inFavourites = row.section === 'favourite'
+    // the favourites of the row's geometry, in order: their move buttons are at the ends of this list
+    const ofGeometry = favourites.filter((item) => item.geometry === rowGeometry)
+    const position = ofGeometry.findIndex((item) => item.preset.id === preset.id)
     return (
       <div
         key={row.key}
@@ -241,17 +268,21 @@ export function PresetPicker(props: {
           id={optionId(index)}
           role="option"
           aria-selected={isActive}
+          aria-disabled={disabled || undefined}
           onMouseDown={keepFocus}
-          onClick={() => pick(preset)}
-          className={`flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg p-2 text-sm ${
-            isActive ? ROW_ACTIVE : ''
-          }`}
+          onClick={() => {
+            if (!disabled) pick(preset)
+          }}
+          className={`flex min-w-0 flex-1 items-center gap-3 rounded-lg p-2 text-sm ${
+            disabled ? 'cursor-default opacity-50' : 'cursor-pointer'
+          } ${isActive ? ROW_ACTIVE : ''}`}
         >
-          {renderIcon ? (
-            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-zinc-950/5 dark:bg-white/10 [&>svg]:size-5">
-              {renderIcon(preset)}
-            </span>
-          ) : null}
+          <IconBox
+            number={number}
+            title={number !== undefined ? texts.startHint(preset.name, number) : undefined}
+          >
+            {renderIcon?.(preset)}
+          </IconBox>
           <span className="min-w-0 flex-1">
             <span className="block truncate font-semibold">{preset.name}</span>
             {tag ? (
@@ -260,10 +291,14 @@ export function PresetPicker(props: {
               </span>
             ) : null}
           </span>
-          {number !== undefined && !onSetNumber ? (
-            <kbd className="shrink-0 rounded border border-zinc-950/10 px-1.5 font-mono text-xs text-zinc-600 dark:border-white/10 dark:text-zinc-300">
-              {number}
-            </kbd>
+          {disabled && drawn ? (
+            <span
+              title={texts.onlyAs(texts.geometries[drawn])}
+              className="inline-flex shrink-0 text-zinc-500 dark:text-zinc-400 [&>svg]:size-4"
+            >
+              <GeometryIcon geometry={drawn} />
+              <span className="sr-only">{texts.onlyAs(texts.geometries[drawn])}</span>
+            </span>
           ) : null}
           {preset.id === currentId ? (
             <span className="shrink-0 rounded-full bg-blue-600/10 px-2 py-0.5 text-xs font-semibold text-blue-600 dark:bg-blue-400/10 dark:text-blue-400">
@@ -271,16 +306,16 @@ export function PresetPicker(props: {
             </span>
           ) : null}
         </div>
-        {inFavourites && onMoveFavourite ? (
+        {row.section === 'favourite' && onMoveFavourite && rowGeometry !== undefined ? (
           // shown on hover, and when a button of the row has the keyboard focus
           <span className="flex shrink-0 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100">
             <button
               type="button"
               aria-label={`Move ${preset.name} up`}
               title="Move up"
-              disabled={index === 0}
+              disabled={position <= 0}
               onMouseDown={keepFocus}
-              onClick={() => onMoveFavourite(preset, -1)}
+              onClick={() => onMoveFavourite(preset, rowGeometry, -1)}
               className={`${ICON_BUTTON} ${ICON_TONE}`}
             >
               <ChevronUpIcon className="size-4" aria-hidden="true" />
@@ -289,42 +324,21 @@ export function PresetPicker(props: {
               type="button"
               aria-label={`Move ${preset.name} down`}
               title="Move down"
-              disabled={index === favouriteCount - 1}
+              disabled={position < 0 || position === ofGeometry.length - 1}
               onMouseDown={keepFocus}
-              onClick={() => onMoveFavourite(preset, 1)}
+              onClick={() => onMoveFavourite(preset, rowGeometry, 1)}
               className={`${ICON_BUTTON} ${ICON_TONE}`}
             >
               <ChevronDownIcon className="size-4" aria-hidden="true" />
             </button>
           </span>
         ) : null}
-        {number !== undefined && onSetNumber ? (
-          <FavouriteNumberField
+        {onToggleFavourite && rowGeometry !== undefined ? (
+          <StarButton
             name={preset.name}
-            value={number}
-            onCommit={(next) => onSetNumber(preset, next)}
+            on={entry !== undefined}
+            onClick={() => onToggleFavourite(preset, rowGeometry)}
           />
-        ) : null}
-        {onToggleFavourite ? (
-          <button
-            type="button"
-            aria-pressed={isFavourite}
-            aria-label={
-              isFavourite
-                ? `Remove ${preset.name} from favourites`
-                : `Add ${preset.name} to favourites`
-            }
-            title={isFavourite ? 'Remove from favourites' : 'Add to favourites'}
-            onMouseDown={keepFocus}
-            onClick={() => onToggleFavourite(preset)}
-            className={`${ICON_BUTTON} ${isFavourite ? 'text-rose-600 dark:text-rose-400' : ICON_TONE}`}
-          >
-            {isFavourite ? (
-              <HeartSolidIcon className="size-4" aria-hidden="true" />
-            ) : (
-              <HeartOutlineIcon className="size-4" aria-hidden="true" />
-            )}
-          </button>
         ) : null}
       </div>
     )
@@ -350,11 +364,7 @@ export function PresetPicker(props: {
             isActive ? ROW_ACTIVE : ''
           }`}
         >
-          {renderIcon ? (
-            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-zinc-950/5 dark:bg-white/10 [&>svg]:size-5">
-              {renderIcon(category)}
-            </span>
-          ) : null}
+          <IconBox>{renderIcon?.(category)}</IconBox>
           <span className="min-w-0 flex-1">
             <span className="block truncate font-semibold">{category.name}</span>
           </span>
@@ -374,9 +384,56 @@ export function PresetPicker(props: {
     )
   }
 
-  function renderRow(row: ListRow, index: number) {
-    return row.kind === 'category' ? renderCategoryRow(row, index) : renderPresetRow(row, index)
+  /** The Favourites row: a star, and a chevron that shows whether all the favourites are listed under it */
+  function renderFavouritesRow(row: Extract<ListRow, { kind: 'favourites' }>, index: number) {
+    const isActive = index === active
+    return (
+      <div key={row.key} role="presentation" className="group flex items-center gap-1">
+        <div
+          id={optionId(index)}
+          role="option"
+          aria-selected={isActive}
+          title={row.expanded ? texts.favouritesCollapse : texts.favouritesExpand}
+          onMouseDown={keepFocus}
+          onClick={() => {
+            moveTo(index)
+            setFavouritesOpen((open) => !open)
+          }}
+          className={`flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg p-2 text-sm ${
+            isActive ? ROW_ACTIVE : ''
+          }`}
+        >
+          <IconBox>
+            <StarSolidIcon className="text-amber-500 dark:text-amber-400" aria-hidden="true" />
+          </IconBox>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-semibold">{texts.favourites}</span>
+          </span>
+          {row.expanded ? (
+            <ChevronDownIcon
+              className="size-4 shrink-0 text-zinc-500 dark:text-zinc-400"
+              aria-hidden="true"
+            />
+          ) : (
+            <ChevronRightIcon
+              className="size-4 shrink-0 text-zinc-500 dark:text-zinc-400"
+              aria-hidden="true"
+            />
+          )}
+        </div>
+      </div>
+    )
   }
+
+  function renderRow(row: ListRow, index: number) {
+    if (row.kind === 'category') return renderCategoryRow(row, index)
+    if (row.kind === 'favourites') return renderFavouritesRow(row, index)
+    return renderPresetRow(row, index)
+  }
+
+  const before = rows.slice(0, favouriteCount)
+  const recent = rows.slice(favouriteCount, favouriteCount + recentCount)
+  const rest = rows.slice(favouriteCount + recentCount)
 
   return (
     <div className="flex min-w-0 flex-col gap-2">
@@ -400,6 +457,7 @@ export function PresetPicker(props: {
           setQuery(event.currentTarget.value)
           setActiveIndex(0)
           setOpenCategories([])
+          setFavouritesOpen(false)
         }}
         onKeyDown={onKeyDown}
       />
@@ -414,18 +472,8 @@ export function PresetPicker(props: {
           className="max-h-[26rem] overflow-y-auto"
         >
           {favouriteCount > 0 ? (
-            <div
-              role="group"
-              aria-labelledby={favouritesHeadingId}
-              className="mb-2 border-b border-zinc-950/10 pb-2 dark:border-white/10"
-            >
-              <p
-                id={favouritesHeadingId}
-                className="px-2 pt-1 pb-1 text-xs font-medium text-zinc-500 dark:text-zinc-400"
-              >
-                Favourites
-              </p>
-              {rows.slice(0, favouriteCount).map((row, index) => renderRow(row, index))}
+            <div className="mb-2 border-b border-zinc-950/10 pb-2 dark:border-white/10">
+              {before.map((row, offset) => renderRow(row, offset))}
             </div>
           ) : null}
           {recentCount > 0 ? (
@@ -440,14 +488,10 @@ export function PresetPicker(props: {
               >
                 {texts.recent}
               </p>
-              {rows
-                .slice(favouriteCount, favouriteCount + recentCount)
-                .map((row, offset) => renderRow(row, favouriteCount + offset))}
+              {recent.map((row, offset) => renderRow(row, favouriteCount + offset))}
             </div>
           ) : null}
-          {rows
-            .slice(favouriteCount + recentCount)
-            .map((row, offset) => renderRow(row, favouriteCount + recentCount + offset))}
+          {rest.map((row, offset) => renderRow(row, favouriteCount + recentCount + offset))}
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { useStoredFavourites } from '@osm-editor-kit/maid-ui'
+import { favouriteModifierLabel, useStoredFavourites } from '@osm-editor-kit/maid-ui'
 import { useEffect, useState } from 'react'
 import { startFavourite } from '../favourites'
 import { MAC } from '../platform'
@@ -11,8 +11,8 @@ import {
   type SequenceState,
 } from './favourites-keys'
 
-/** The modifier as the hint shows it: the Option symbol on Apple devices, Alt elsewhere */
-const MODIFIER_LABEL = MAC ? '⌥' : 'Alt'
+/** The modifier as the hint shows it: the Option symbol on Apple devices, Alt elsewhere (the same as the texts name it) */
+const MODIFIER_LABEL = favouriteModifierLabel(MAC)
 
 /**
  * True when the keys of a target are a text field's own: a sequence never takes them. The type search is the

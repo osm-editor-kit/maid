@@ -1,5 +1,5 @@
 export { AddField } from './AddField.tsx'
-export { PresetPicker, type PickerFavourite } from './PresetPicker.tsx'
+export { PresetPicker, type PickerFavourite, type PresetPickerTexts } from './PresetPicker.tsx'
 export { defaultFieldComponents, PresetFields } from './fields.tsx'
 export { CheckField } from './fields/Check.tsx'
 export { ComboField } from './fields/Combo.tsx'

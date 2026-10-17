@@ -116,7 +116,8 @@ for (const query of ['filters=buildings:hidden', '#disable_features=buildings'])
 
 // A link's filters hold for the visit: the button marks them, the flyout says so, and "Use mine"
 // goes back to the person's own choice, which is the default here (nothing is stored under automation).
-const LINK_MARK = '[aria-label="From the link you opened"]'
+// the dot is aria-hidden (the button's label and tooltip carry the meaning), so the check finds it by its data attribute
+const LINK_MARK = '[data-from-link]'
 const LINK_ROW = 'These filters come from the link.'
 failed += await runCheck(
   sceneName,

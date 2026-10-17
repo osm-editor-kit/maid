@@ -18,6 +18,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { cloneElement, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { UI_SPRING } from './motion.tsx'
+import { TooltipGroupContext } from './Tooltip.tsx'
 
 /** The arrow is a square turned by 45°, half of it behind the panel's edge */
 const ARROW_SIZE = 16
@@ -154,7 +155,10 @@ export function Flyout(props: {
                   }}
                 />
                 <div className="relative min-h-0 flex-1 overflow-y-auto rounded-2xl">
-                  {children}
+                  {/* a tooltip inside the panel is its own, not the group of the button that opened it */}
+                  <TooltipGroupContext.Provider value={null}>
+                    {children}
+                  </TooltipGroupContext.Provider>
                 </div>
               </motion.div>
             </FloatingFocusManager>

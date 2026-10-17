@@ -203,3 +203,15 @@ describe('the type of several features', () => {
     expect(favourites.presetsForAll(presets, 'bench', [])).toEqual([])
   })
 })
+
+describe('a preset started as a geometry (the favourites panel)', () => {
+  it('switches on the add mode of that geometry, and nothing for one the editor does not add', () => {
+    const bench = presets.preset('amenity/bench') as Preset
+    editing.mode = 'browse'
+    favourites.startAdding(parts, bench, 'point')
+    expect(editing.mode).toBe('add-point')
+    editing.mode = 'browse'
+    favourites.startAdding(parts, bench, 'vertex' as Preset['geometry'][number])
+    expect(editing.mode).toBe('browse')
+  })
+})

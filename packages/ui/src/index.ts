@@ -42,11 +42,23 @@ export {
   SidebarSection,
 } from './Sidebar.tsx'
 export {
+  DRAWN_GEOMETRIES,
+  ENGLISH_FAVOURITE_TEXTS,
+  drawableGeometries,
+  favouriteModifierLabel,
   favouritesFor,
   findFavouriteByNumber,
+  isDrawnGeometry,
   setFavouriteNumber,
+  type DrawnGeometry,
   type Favourite,
+  type FavouriteEntry,
+  type FavouriteTexts,
+  type GeometryNames,
 } from './favourites.ts'
+export { FavouritesPanel } from './FavouritesPanel.tsx'
+export { FavouriteNumberField } from './FavouriteNumberField.tsx'
+export { AreaIcon, GeometryIcon, LineIcon } from './GeometryIcons.tsx'
 export { setBearing, useBearing } from './bearing.ts'
 export {
   getSettings,
@@ -91,7 +103,8 @@ export {
   relativeTime,
   type TimeValue,
 } from './time.ts'
-export { Tooltip } from './Tooltip.tsx'
+export { Tooltip, TooltipGroup } from './Tooltip.tsx'
+export { formatShortcut } from './shortcut-label.ts'
 export { errorText, notify, Toaster, type NotifyOptions } from './Toast.tsx'
 export { useResizable } from './useResizable.ts'
 export { useBreakpoint, type Breakpoint } from './useBreakpoint.ts'
