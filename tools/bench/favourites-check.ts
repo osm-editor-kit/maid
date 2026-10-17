@@ -29,7 +29,7 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
   const numberOf = (name: string) =>
     page.getByRole('textbox', { name: `Number of ${name}`, exact: true })
   // the head's icon: the middle of the head can hold its "i" and star, which are buttons of their own
-  const changeType = page.getByTitle('Change the feature type')
+  const changeType = page.locator('[aria-description="Change the feature type"]')
   const search = () => page.getByRole('combobox', { name: 'Search feature types', exact: true })
   // the star in the type picker (the inspector head has one too, for its own type)
   const star = (name: string) =>

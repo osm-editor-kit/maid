@@ -6,13 +6,14 @@ import {
 } from '@heroicons/react/16/solid'
 import { StarIcon as StarOutlineIcon } from '@heroicons/react/24/outline'
 import type { Browse, Geometry, Preset } from '@osm-editor-kit/maid-presets'
-import { useId, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useContext, useId, useState, type KeyboardEvent, type ReactNode } from 'react'
 import {
   ENGLISH_FAVOURITE_TEXTS,
   isDrawnGeometry,
   type FavouriteEntry,
   type FavouriteTexts,
 } from '../favourites.ts'
+import { FlyoutPinnedContext } from '../Flyout.tsx'
 import { GeometryIcon } from '../GeometryIcons.tsx'
 import { ICON_BUTTON, ICON_TONE } from '../icon-button.ts'
 import { PLAIN_INPUT } from '../plain-input.ts'
@@ -151,6 +152,7 @@ export function PresetPicker(props: {
     autoFocus = false,
     placeholder = 'Search feature types',
   } = props
+  const pinned = useContext(FlyoutPinnedContext)
 
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
@@ -445,7 +447,9 @@ export function PresetPicker(props: {
         data-favourite-keys=""
         autoComplete="off"
         spellCheck={false}
-        autoFocus={autoFocus}
+        // in a flyout that only shows on hover the field waits for a click; then it is made again with the focus
+        key={pinned ? 'pinned' : 'shown'}
+        autoFocus={autoFocus && pinned}
         placeholder={placeholder}
         aria-label={placeholder}
         aria-expanded={rows.length > 0}

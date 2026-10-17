@@ -81,7 +81,7 @@ let failed = await runCheck(sceneName, async ({ page, report, settle, drawnIn })
     'read-only buildings: the head has no type picker, but the wiki "i" of the type',
     [0, 1],
     [
-      await page.getByTitle('Change the feature type').count(),
+      await page.locator('[aria-description="Change the feature type"]').count(),
       await page.getByRole('button', { name: `About ${typeName}`, exact: true }).count(),
     ],
   )

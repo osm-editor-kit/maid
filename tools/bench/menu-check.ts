@@ -235,7 +235,7 @@ process.exit(
 
       // the type search lists the area presets for the way now: its picker opens from the feature's head
       const search = page.getByRole('combobox', { name: 'Search feature types' })
-      const change = page.getByTitle('Change the feature type')
+      const change = page.locator('[aria-description="Change the feature type"]')
       if ((await search.count()) === 0 && (await change.count()) > 0) await change.first().click()
       let options: string[] = []
       if ((await search.count()) > 0) {

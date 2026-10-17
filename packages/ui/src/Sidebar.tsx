@@ -74,6 +74,8 @@ export function SidebarHeader(props: {
           placement="right-start"
           className="w-[26rem]"
           focus={false}
+          // the picker shows while the pointer rests on the head; a click keeps it
+          hover
           open={expanded ?? false}
           onOpenChange={(open) => {
             if (open !== (expanded ?? false)) onTitleClick()
@@ -84,7 +86,8 @@ export function SidebarHeader(props: {
               type="button"
               aria-labelledby={subtitle ? `${titleId} ${subtitleId}` : titleId}
               aria-expanded={expanded}
-              title={titleAction}
+              // no tooltip: the picker itself shows on hover
+              aria-description={titleAction}
               className="absolute inset-0 cursor-pointer hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 aria-expanded:bg-zinc-950/5 dark:hover:bg-white/5 dark:aria-expanded:bg-white/5"
             />
           }

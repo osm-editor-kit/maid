@@ -10,12 +10,21 @@ import {
   useClick,
   useDismiss,
   useFloating,
+  useHover,
   useInteractions,
+  type OpenChangeReason,
   useRole,
   type Placement,
 } from '@floating-ui/react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { cloneElement, useRef, useState, type ReactElement, type ReactNode } from 'react'
+import {
+  cloneElement,
+  createContext,
+  useRef,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from 'react'
 import { twMerge } from 'tailwind-merge'
 import { UI_SPRING } from './motion.tsx'
 import { TooltipGroupContext } from './Tooltip.tsx'
@@ -33,6 +42,12 @@ const ARROW_SIDE = {
 } as const
 
 /**
+ * False inside a flyout that the pointer opened by hovering and nobody clicked yet: the panel only shows. Its content
+ * then takes no keyboard focus (a search field would swallow the editor's keys while the pointer merely passes by).
+ */
+export const FlyoutPinnedContext = createContext(true)
+
+/**
  * A large panel that opens from one button and points at it with an arrow, in the look of
  * Tailwind Plus's flyout menus: rounded, with a soft shadow. For choices that need more room than
  * a menu, such as the feature type or the filters. A click on the button toggles it; a click
@@ -40,6 +55,10 @@ const ARROW_SIDE = {
  *
  * The flyout clones its one `trigger` child and gives it the floating reference and the click
  * handlers, so the trigger keeps its own look.
+ *
+ * With `hover`, resting the mouse on the trigger opens the panel (it fades in), and leaving both closes it again; the
+ * close waits a moment, so the pointer can cross to the panel. A click pins it: it then stays like a
+ * clicked flyout, and a second click closes it. Touch and pen only click.
  */
 export function Flyout(props: {
   /** Names the panel for screen readers */
@@ -53,11 +72,18 @@ export function Flyout(props: {
   className?: string
   /** Moves the keyboard focus into the panel when it opens. Off for panels that focus a field themselves. */
   focus?: boolean
+  /** Opens on hover as well, see above */
+  hover?: boolean
 }) {
   const { label, trigger, children, placement = 'bottom', className, focus = true } = props
+  const hover = props.hover ?? false
   const [ownOpen, setOwnOpen] = useState(false)
+  // open because the pointer rests on the trigger, and only for that: leaving closes it. Any other way of opening
+  // (a click, the key, the app opening it itself) makes a panel that stays.
+  const [shownByHover, setShownByHover] = useState(false)
   const open = props.open ?? ownOpen
-  const setOpen = (next: boolean) => {
+  const setOpen = (next: boolean, reason?: OpenChangeReason) => {
+    setShownByHover(next && reason === 'hover')
     setOwnOpen(next)
     props.onOpenChange?.(next)
   }
@@ -74,7 +100,7 @@ export function Flyout(props: {
     middlewareData,
   } = useFloating({
     open,
-    onOpenChange: setOpen,
+    onOpenChange: (next, _event, reason) => setOpen(next, reason),
     placement,
     transform: false,
     whileElementsMounted: autoUpdate,
@@ -94,10 +120,22 @@ export function Flyout(props: {
       arrow({ element: arrowRef, padding: 20 }),
     ],
   })
-  const click = useClick(context)
+  const click = useClick(context, { enabled: !hover })
+  const hovered = useHover(context, {
+    enabled: hover && (!open || shownByHover),
+    mouseOnly: true,
+    // the close waits long enough to cross the gap to the panel, and the panel holds it open while the pointer is on it.
+    // No safePolygon: it would keep the panel open while the pointer goes to a control next to the trigger.
+    delay: { open: 150, close: 250 },
+  })
   const dismiss = useDismiss(context)
   const role = useRole(context, { role: 'dialog' })
-  const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role])
+  const { getReferenceProps, getFloatingProps } = useInteractions([click, hovered, dismiss, role])
+  // a hover flyout: a click on a panel that only shows keeps it, otherwise a click toggles it
+  const pinOrToggle = () => {
+    if (open && shownByHover) setShownByHover(false)
+    else setOpen(!open, 'click')
+  }
 
   const side = placed.split('-')[0] as keyof typeof ARROW_SIDE
   const arrowSide = ARROW_SIDE[side]
@@ -119,6 +157,7 @@ export function Flyout(props: {
           ...(trigger.props as object),
           ref: refs.setReference,
           'aria-expanded': open,
+          ...(hover ? { onClick: pinOrToggle } : {}),
         }),
       )}
       <FloatingPortal>
@@ -129,7 +168,11 @@ export function Flyout(props: {
                 aria-label={label}
                 initial={reducedMotion ? false : hidden}
                 animate={isPositioned ? { opacity: 1, scale: 1, x: 0, y: 0 } : hidden}
-                exit={reducedMotion ? { opacity: 0 } : hidden}
+                // closing is a short fade: a spring's long tail keeps a panel that the pointer left on screen
+                exit={{
+                  ...(reducedMotion ? { opacity: 0 } : hidden),
+                  transition: { duration: 0.12 },
+                }}
                 transition={reducedMotion ? { duration: 0 } : UI_SPRING}
                 className={twMerge(
                   'z-40 flex w-96 flex-col rounded-2xl border border-zinc-950/10 bg-white text-sm text-zinc-950 shadow-xl dark:border-white/15 dark:bg-zinc-800 dark:text-white dark:shadow-2xl dark:shadow-black/60',
@@ -157,7 +200,9 @@ export function Flyout(props: {
                 <div className="relative min-h-0 flex-1 overflow-y-auto rounded-2xl">
                   {/* a tooltip inside the panel is its own, not the group of the button that opened it */}
                   <TooltipGroupContext.Provider value={null}>
-                    {children}
+                    <FlyoutPinnedContext.Provider value={!shownByHover}>
+                      {children}
+                    </FlyoutPinnedContext.Provider>
                   </TooltipGroupContext.Provider>
                 </div>
               </motion.div>
