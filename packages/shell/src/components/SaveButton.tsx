@@ -238,6 +238,9 @@ export function SaveButton() {
   const [open, setOpen] = useState(false)
   // while an upload runs the flyout cannot close, so its panel stays and no second upload can start
   const [uploading, setUploading] = useState(false)
+  const auth = useAuth()
+  // Nobody can save before logging in, so the button is not shown then (the hooks above stay: the address links are read either way)
+  if (auth.user === undefined) return null
   return (
     <Tooltip
       label={hasChanges ? m.topbar_save_edits() : m.topbar_nothing_to_save()}

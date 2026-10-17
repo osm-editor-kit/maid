@@ -134,11 +134,25 @@ export function SegmentedControl<T extends string>(props: {
   )
 }
 
+/**
+ * Below 76rem of the top bar (a container query on `TopBar`'s header) a button with `collapseLabel` shows only its
+ * icon: the label stays for screen readers. `!` wins over the padding and width above without relying on the order of
+ * the generated rules. Keep 76rem in step with the steps in TopBar.tsx.
+ */
+const LABEL_GONE_BUTTON = '@max-[76rem]:w-9! @max-[76rem]:px-0! pointer-coarse:@max-[76rem]:w-10!'
+const LABEL_GONE_TEXT = '@max-[76rem]:sr-only'
+
 /** The look of a `ToolButton`, for a button that cannot be one (the trigger of a flyout) */
-export function toolButtonClass(hasText: boolean, state: boolean | 'selected' = false) {
+export function toolButtonClass(
+  hasText: boolean,
+  state: boolean | 'selected' = false,
+  collapseLabel = false,
+) {
   return twJoin(
     'relative inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:text-zinc-300 dark:inset-ring-white/10 dark:disabled:text-zinc-600',
     hasText ? 'h-9 px-3 max-sm:px-2.5 pointer-coarse:h-10' : 'size-9 pointer-coarse:size-10',
+    // the label is gone (see TopBar.tsx), so the button is as wide as an icon button
+    hasText && collapseLabel && LABEL_GONE_BUTTON,
     toolButtonTone(state === 'selected' ? 'selected' : state ? 'pressed' : 'idle'),
   )
 }
@@ -151,6 +165,8 @@ export function ToolButton(props: {
   description?: string
   icon: ReactNode
   text?: string
+  /** The text goes, and the button is an icon button, when the top bar is narrow (see `TopBar`); the label names it */
+  collapseLabel?: boolean
   disabled?: boolean
   pressed?: boolean
   /** The chosen one of a set of choices: shown as pressed, without hover, since a click changes nothing */
@@ -168,8 +184,19 @@ export function ToolButton(props: {
     | 'onKeyDown'
   >
 }) {
-  const { label, shortcut, description, icon, text, disabled, pressed, selected, onClick, press } =
-    props
+  const {
+    label,
+    shortcut,
+    description,
+    icon,
+    text,
+    collapseLabel,
+    disabled,
+    pressed,
+    selected,
+    onClick,
+    press,
+  } = props
   const name = shortcut ? `${label} (${shortcut})` : label
   return (
     <Tooltip label={label} shortcut={shortcut} description={description} placement="bottom">
@@ -180,12 +207,14 @@ export function ToolButton(props: {
         disabled={disabled}
         onClick={onClick}
         {...press}
-        className={toolButtonClass(Boolean(text), selected ? 'selected' : pressed)}
+        className={toolButtonClass(Boolean(text), selected ? 'selected' : pressed, collapseLabel)}
       >
         <span aria-hidden="true" className="inline-flex shrink-0 [&>svg]:size-5">
           {icon}
         </span>
-        {text ? <span className="max-sm:sr-only">{text}</span> : null}
+        {text ? (
+          <span className={twJoin('max-sm:sr-only', collapseLabel && LABEL_GONE_TEXT)}>{text}</span>
+        ) : null}
       </button>
     </Tooltip>
   )

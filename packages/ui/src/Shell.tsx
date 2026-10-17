@@ -10,6 +10,25 @@ import { useResizable } from './useResizable.ts'
 const sidebarMaxWidth = (viewport: number) => Math.min(640, viewport - 360)
 
 /**
+ * Publishes the real width of the sidebar column (the sidebar, and the column before it while there is one) as
+ * `--sidebar-width` on the shell's root, where the top bar reads it to start its tools at the map's left edge. It is
+ * measured, not computed, so the relation column and the frame around the sidebar count. A ref callback and the style
+ * of the root, not React state: no render follows a drag of the handle. The root says 0px without a column.
+ */
+function publishWidth(column: HTMLElement | null) {
+  const root = column?.parentElement?.parentElement
+  if (!column || !root) return
+  const write = () => root.style.setProperty('--sidebar-width', `${column.offsetWidth}px`)
+  write()
+  const observer = new ResizeObserver(write)
+  observer.observe(column)
+  return () => {
+    observer.disconnect()
+    root.style.removeProperty('--sidebar-width')
+  }
+}
+
+/**
  * Full-height editor frame: top bar, sidebar, map area with the dock below it. Below the `sm`
  * breakpoint the sidebar is not a column: its content is a bottom sheet, opened by a button at the
  * bottom right of the map. The sheet is uncontrolled unless `sheetOpen` is given.
@@ -62,11 +81,12 @@ export function Shell(props: {
   const inSheet = Boolean(sidebar) && !wide
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-white text-sm text-zinc-950 dark:bg-zinc-900 dark:text-white">
+    <div className="flex h-full flex-col overflow-hidden bg-white text-sm text-zinc-950 [--sidebar-width:0px] dark:bg-zinc-900 dark:text-white">
       {topBar}
       <div className="flex min-h-0 flex-1">
         {sidebar && wide ? (
           <div
+            ref={publishWidth}
             className={twJoin(
               'relative flex min-h-0 shrink-0',
               sidebarStart &&

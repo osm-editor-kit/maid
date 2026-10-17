@@ -90,15 +90,18 @@ let failed = await runCheck(sceneName, async ({ page, report }) => {
     { ...moved, same: sameBox },
   )
 
-  // a disabled button in the group (nothing to save): its tooltip says why
+  // the last button of the group, after another: its label at once. Save is not there while logged out (automation
+  // never logs in), as "Log in" takes its place
   await pointAt(page, filters)
   await page.waitForTimeout(40)
-  await pointAt(page, save)
-  await page.waitForTimeout(40)
   report(
-    'move to the disabled Save button: its tooltip says why, at once',
-    { count: 1, label: 'Nothing to save yet', kbd: null, kbdTag: null },
-    await readTooltip(page),
+    'move to the Filters button: its label at once, and no Save button while logged out',
+    { count: 1, label: 'Filters', save: 0 },
+    {
+      count: (await readTooltip(page)).count,
+      label: (await readTooltip(page)).label,
+      save: await save.count(),
+    },
   )
 
   // the tool row is a group of its own: the first tool waits for the delay, and shows its key

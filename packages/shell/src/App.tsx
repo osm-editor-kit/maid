@@ -50,10 +50,10 @@ function Editor() {
         <TopBar
           start={<Brand {...brand} />}
           center={
-            <div className="flex items-center gap-3">
+            <>
               <ModeButtons />
               <UndoRedo />
-            </div>
+            </>
           }
           end={
             <>

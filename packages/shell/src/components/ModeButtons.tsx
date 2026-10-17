@@ -95,6 +95,7 @@ export function ModeButtons() {
               label={add.label}
               shortcut={add.shortcut}
               text={add.text}
+              collapseLabel
               icon={add.icon}
               pressed={mode === add.mode}
               press={longPressable ? pressArea : undefined}
