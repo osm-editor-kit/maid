@@ -4,11 +4,9 @@
 // the subtype is `data.subtype`, and the tag diff of iD's reference is `data.tagDiff`.
 import { beforeAll, describe, expect, it } from 'bun:test'
 import { Graph } from '@osm-editor-kit/maid-model'
-// The presets package is not linked into this package's node_modules (that needs a bun install), so the source is
-// imported by its path: its schema data is found from the presets package, as the app's own presets are.
-import { defaultPresetData } from '../../../presets/src/default.ts'
-import { createPresets } from '../../../presets/src/presets.ts'
-import type { Presets } from '../../../presets/src/types.ts'
+import { createPresets } from '@osm-editor-kit/maid-presets'
+import type { Presets } from '@osm-editor-kit/maid-presets'
+import { defaultPresetData } from '@osm-editor-kit/maid-presets/default'
 import { dataOf, graphOf, node, relation, validateChanged, way } from '../id-test-helpers.ts'
 import type { Scene } from '../id-test-helpers.ts'
 import type { Issue } from '../types.ts'

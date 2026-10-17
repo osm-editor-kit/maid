@@ -29,10 +29,9 @@ import {
   entitiesFromOsmJson,
 } from '@osm-editor-kit/maid-model'
 import type { Action, OsmEntity, OsmJsonElement } from '@osm-editor-kit/maid-model'
-// The presets of the tagging schema: the outdated tags rule needs them (without them it reports nothing). The source is
-// imported by path because the presets package is not linked into this package's node_modules (see outdated-tags.test.ts).
-import { defaultPresetData } from '../../presets/src/default.ts'
-import { createPresets } from '../../presets/src/presets.ts'
+import { createPresets } from '@osm-editor-kit/maid-presets'
+// The presets of the tagging schema: the outdated tags rule needs them (without them it reports nothing).
+import { defaultPresetData } from '@osm-editor-kit/maid-presets/default'
 import { boxesOverlap } from '../src/geo.ts'
 import type { Box } from '../src/geo.ts'
 import { createValidator, defaultRules, neighbourhoodOf } from '../src/index.ts'

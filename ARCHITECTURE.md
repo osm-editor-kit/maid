@@ -48,7 +48,9 @@ reports/             output of benchmarks and checks (mostly git-ignored)
 
 All packages are named `@osm-editor-kit/maid-<folder>` ([why](docs/architecture/03-packages.md#package-names)) and are
 imported by that name, through the `exports` in their `package.json`. A package never imports another package's
-files by a relative path.
+files by a relative path, and never imports from `tools/`. The shell, renderer, ui and core never import a module
+package. Built-in modules that every editor needs (element info, relations, validation, scene bounds) live in
+`packages/shell/src/modules/`.
 
 ## The config object
 
@@ -140,6 +142,8 @@ example, the drawing tools needed five such hooks, written down in ADR 0011.
 
 ## Texts and languages
 
+Every text a user sees goes through Paraglide; no English string is written into a component.
+
 Maid's texts are compiled with [Paraglide](https://inlang.com/m/gerre34r/library-inlang-paraglideJs) in English,
 German, French and Spanish. The decisions are in [ADR 0009](docs/adr/0009-decisions-of-2026-10-13.md#translations).
 
@@ -211,6 +215,13 @@ is in [storage and settings](docs/architecture/09-storage-and-settings.md).
 
 Change it in the package that owns the behaviour, with a unit test, in a commit of its own. Run `bun run check-all`
 for all three apps, since every app uses the core. Follow iD where in doubt (rule 3 in [AGENTS.md](AGENTS.md)).
+
+## Where the code does not follow this yet
+
+The code was checked against this file on 2026-10-17. What does not follow it yet (texts in ui, shell and five
+modules; sentences from headless packages; the shell importing three modules) is listed in
+[steps.md, Architecture follow-ups](docs/build-out/steps.md#architecture-follow-ups). Fix the code there, not the
+rule here, unless the rule is wrong.
 
 ## Where to read on
 

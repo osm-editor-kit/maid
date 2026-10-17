@@ -25,7 +25,6 @@
         "@osm-editor-kit/maid-module-notes": "workspace:*",
         "@osm-editor-kit/maid-module-street-imagery": "workspace:*",
         "@osm-editor-kit/maid-module-surface": "workspace:*",
-        "@osm-editor-kit/maid-module-traffic-signs": "workspace:*",
         "@osm-editor-kit/maid-module-turn-restrictions": "workspace:*",
         "@osm-editor-kit/maid-operations": "workspace:*",
         "@osm-editor-kit/maid-presets": "workspace:*",
@@ -538,6 +537,9 @@
       "version": "0.0.0",
       "dependencies": {
         "@osm-editor-kit/maid-model": "workspace:*",
+      },
+      "devDependencies": {
+        "@osm-editor-kit/maid-presets": "workspace:*",
       },
     },
   },

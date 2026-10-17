@@ -104,7 +104,6 @@ export const keys = {
     ['osm', 'relation', originOf(apiUrl), id, 'full'] as const,
   osmUser: (apiUrl: string) => ['osm', 'user', originOf(apiUrl), 'me'] as const,
   osmCapabilities: (apiUrl: string) => ['osm', 'capabilities', originOf(apiUrl)] as const,
-  imageryIndex: () => ['data', 'imagery-index'] as const,
   photos: (provider: PhotoProvider, z: number, x: number, y: number, filters: KeyParams) =>
     [provider, 'photos', z, x, y, filters] as const,
   /** The notes of one grid cell of the notes module, and their mode. The cells are 0.05 degrees, not map tiles. */

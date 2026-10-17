@@ -6,7 +6,7 @@ import { RECTANGLE_ID, rectangleMode } from './mode.ts'
 import { RectangleOnMap } from './RectangleOnMap.tsx'
 
 /**
- * Area dropdown and key 4: three clicks draw a rectangle. Click 1 and 2 set one wall, the pointer's distance from it
+ * Area dropdown and key 33 (3, then 3 again): three clicks draw a rectangle. Click 1 and 2 set one wall, the pointer's distance from it
  * gives the depth and click 3 commits (one undo step). The way is handed to the shell as a new one, so its type is asked.
  * Plan: docs/research/drawing-tools/2-three-click-rectangle.md; hooks: docs/adr/0011-drawing-tool-hooks.md.
  */

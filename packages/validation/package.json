@@ -9,5 +9,8 @@
   },
   "dependencies": {
     "@osm-editor-kit/maid-model": "workspace:*"
+  },
+  "devDependencies": {
+    "@osm-editor-kit/maid-presets": "workspace:*"
   }
 }

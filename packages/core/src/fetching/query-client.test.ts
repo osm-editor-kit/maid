@@ -193,7 +193,6 @@ describe('keys', () => {
   test('keys are [service, resource, ...params]', () => {
     expect(keys.wiki('Key:building')).toEqual(['wikimedia', 'page', 'Key:building'])
     expect(keys.wikidata('Q42')).toEqual(['wikimedia', 'entity', 'Q42'])
-    expect(keys.imageryIndex()).toEqual(['data', 'imagery-index'])
   })
 
   test('the OSM keys carry the origin of the API, and ignore its path', () => {
