@@ -17,6 +17,7 @@ import { panoramaxAdapter } from '@osm-editor-kit/street-imagery/providers/panor
 import { createElement, type ComponentType } from 'react'
 import { STREET_IMAGES_FIELD_TYPE } from './image-keys.ts'
 import { StreetImageryLayers } from './map.tsx'
+import { m } from './messages.ts'
 import { PhotoUrlSync } from './shown.ts'
 import { AUTOMATED, streetImageryActions } from './street-imagery-store.ts'
 import { PHOTO_PARAM_DECLARATIONS } from './url.ts'
@@ -121,14 +122,23 @@ export function streetImagery(options: StreetImageryOptions = {}) {
         const layers: MapContentItem = { id: 'street-imagery', component: StreetImageryLayers }
         api.register('map.content', layers)
       }
+      // the labels are read when shown (getters), in the app's language at that time
       const topBar: TopBarPanel = {
         id: 'street-imagery',
-        label: 'Photos',
+        get label() {
+          return m.photos_label()
+        },
         icon: PHOTOS_ICON,
         component: PhotosPanel,
         width: 'w-[26rem]',
       }
-      const dock: DockView = { id: 'street-imagery', label: 'Photos', component: PhotosView }
+      const dock: DockView = {
+        id: 'street-imagery',
+        get label() {
+          return m.photos_label()
+        },
+        component: PhotosView,
+      }
       api.register('topbar.panel', topBar)
       api.register('dock.view', dock)
       // the field edits tags only: nothing of it is network or automation-sensitive

@@ -20,6 +20,7 @@ import {
   splitIds,
   type ImageProvider,
 } from './image-keys.ts'
+import { m } from './messages.ts'
 import {
   AUTOMATED,
   getStreetImagery,
@@ -41,14 +42,24 @@ export function shortId(id: string) {
   return id.length <= 14 ? id : `${id.slice(0, 6)}…${id.slice(-4)}`
 }
 
-const GROUPS = ['Way', 'Bike lane', 'Sidewalk', 'Panoramax'] as const
+/** The groups of the "Add" list, in its order */
+const GROUPS = ['way', 'bike_lane', 'sidewalk', 'panoramax'] as const
+type Group = (typeof GROUPS)[number]
 
 /** The group of a key in the "Add" list */
-function groupOf(key: string) {
-  if (providerOfKey(key) === 'panoramax') return 'Panoramax'
-  if (key.includes('cycleway:')) return 'Bike lane'
-  if (key.includes('sidewalk:')) return 'Sidewalk'
-  return 'Way'
+function groupOf(key: string): Group {
+  if (providerOfKey(key) === 'panoramax') return 'panoramax'
+  if (key.includes('cycleway:')) return 'bike_lane'
+  if (key.includes('sidewalk:')) return 'sidewalk'
+  return 'way'
+}
+
+/** A group's name in the "Add" list. The Panoramax group is the provider's name, the same in every language. */
+function groupLabel(group: Group) {
+  if (group === 'panoramax') return 'Panoramax'
+  if (group === 'bike_lane') return m.field_group_bike_lane()
+  if (group === 'sidewalk') return m.field_group_sidewalk()
+  return m.field_group_way()
 }
 
 export function StreetImagesField({ tags, id, onChange }: FieldProps) {
@@ -87,7 +98,7 @@ export function StreetImagesField({ tags, id, onChange }: FieldProps) {
       ))}
       {onChange && free.length > 0 ? (
         <select
-          aria-label="Add an image key"
+          aria-label={m.field_add_key_label()}
           className={INPUT}
           value=""
           onChange={(event) => {
@@ -95,9 +106,9 @@ export function StreetImagesField({ tags, id, onChange }: FieldProps) {
             if (key !== '') setPicked((keys) => (keys.includes(key) ? keys : [...keys, key]))
           }}
         >
-          <option value="">Add an image key…</option>
+          <option value="">{m.field_add_key_option()}</option>
           {groups.map(([group, keys]) => (
-            <optgroup key={group} label={group}>
+            <optgroup key={group} label={groupLabel(group)}>
               {keys.map((key) => (
                 <option key={key} value={key}>
                   {key}
@@ -144,7 +155,7 @@ function ImageRow({
       return
     }
     if (hasId(value, parsed.id)) {
-      setInputError('Already in this key')
+      setInputError(m.field_already_in_key())
       return
     }
     onChange(imageKey, appendId(value, parsed.id))
@@ -162,7 +173,7 @@ function ImageRow({
       },
       () => {
         setOpening(null)
-        setOpenError('Could not load this photo')
+        setOpenError(m.field_open_failed())
       },
     )
   }
@@ -181,7 +192,7 @@ function ImageRow({
           {keyLabel(imageKey)}
         </span>
         <span className="shrink-0 truncate font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
-          {isActive ? 'target · ' : ''}
+          {isActive ? `${m.field_target()} · ` : ''}
           {imageKey}
         </span>
       </div>
@@ -202,8 +213,8 @@ function ImageRow({
                 type="button"
                 className={ICON_BUTTON}
                 disabled={blocked !== null || opening !== null}
-                title={blocked ?? (opening === imageId ? 'Loading…' : 'Show in the viewer')}
-                aria-label={`Show ${imageId} in the viewer`}
+                title={blocked ?? (opening === imageId ? m.field_loading() : m.field_show_title())}
+                aria-label={m.field_show_aria({ id: imageId })}
                 onClick={() => show(imageId)}
               >
                 <EyeIcon aria-hidden="true" className="size-4" />
@@ -212,8 +223,8 @@ function ImageRow({
                 <button
                   type="button"
                   className={ICON_BUTTON}
-                  title={`Remove ${imageId}`}
-                  aria-label={`Remove ${imageId}`}
+                  title={m.field_remove({ id: imageId })}
+                  aria-label={m.field_remove({ id: imageId })}
                   onClick={() => onChange(imageKey, removeId(value, imageId))}
                 >
                   <XMarkIcon aria-hidden="true" className="size-4" />
@@ -234,12 +245,12 @@ function ImageRow({
             {...PLAIN_INPUT}
             type="text"
             dir="ltr"
-            aria-label={`Add to ${imageKey}`}
+            aria-label={m.field_add_to_aria({ key: imageKey })}
             aria-invalid={inputError !== null}
             placeholder={
               provider === 'mapillary'
-                ? 'Add an id or a Mapillary link'
-                : 'Add an id or a Panoramax link'
+                ? m.field_placeholder_mapillary()
+                : m.field_placeholder_panoramax()
             }
             value={text}
             className={INPUT}

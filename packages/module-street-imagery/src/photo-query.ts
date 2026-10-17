@@ -9,6 +9,7 @@ import { HttpError, retryDelayFor, SESSION_DATA, shouldRetry } from '@osm-editor
 import type { NormalizedPhoto } from '@osm-editor-kit/street-imagery'
 import { queryOptions, useQuery, type QueryClient } from '@tanstack/react-query'
 import { fetchPhotoById } from './image-actions.ts'
+import { m } from './messages.ts'
 import { PROVIDER_LABELS, type ImageryProviderId } from './state.ts'
 import { AUTOMATED } from './street-imagery-store.ts'
 import type { PhotoRef } from './url.ts'
@@ -55,12 +56,12 @@ export function seedPhoto(queries: QueryClient, ref: PhotoRef, photo: Normalized
 
 /** The line the dock shows for a photo that did not load */
 export function photoFailureMessage(error: unknown, providerId: string): string {
-  const label = PROVIDER_LABELS[providerId as ImageryProviderId] ?? providerId
-  if (error instanceof PhotoNotFoundError) return `${label} has no photo with this id.`
+  const provider = PROVIDER_LABELS[providerId as ImageryProviderId] ?? providerId
+  if (error instanceof PhotoNotFoundError) return m.photo_not_found({ provider })
   if (error instanceof HttpError) {
-    return `The photo could not be loaded from ${label} (HTTP ${error.status}).`
+    return m.photo_load_failed_status({ provider, status: String(error.status) })
   }
-  return `The photo could not be loaded from ${label}.`
+  return m.photo_load_failed({ provider })
 }
 
 /** A key that is never asked: the query of "no photo" is disabled, so it sends nothing */

@@ -6,6 +6,8 @@
  * `[source:][cycleway|sidewalk[:left|:right|:both]:][traffic_sign[:forward|:backward]:]mapillary[:forward|:backward|:<n>]`.
  */
 
+import { m } from './messages.ts'
+
 /** The field type the module registers on `inspector.field` (one type for every image key). */
 export const STREET_IMAGES_FIELD_TYPE = 'streetImages'
 
@@ -71,10 +73,9 @@ export function defaultKey(provider: ImageProvider) {
 }
 
 /**
- * A short label for a key, from its parts: "Right bike lane · traffic sign (source)". Not translated; the
- * key itself is shown next to it.
+ * A short label for a key, from its parts: "Right bike lane · Traffic sign (source)". The key itself is shown next to it.
  */
-export function keyLabel(key: string) {
+export function keyLabel(key: string): string {
   const provider = providerOfKey(key)
   if (provider === 'panoramax') {
     const number = key.match(/:(\d+)$/)?.[1]
@@ -83,26 +84,44 @@ export function keyLabel(key: string) {
   const match = key.match(MAPILLARY_PATTERN)
   if (!match) return key
   const [, source, base, side, sign, signDirection, suffix] = match
-  const sideText =
-    side === 'both' ? 'Both sides' : side === undefined ? undefined : capitalize(side)
-  const baseText = base === 'cycleway' ? 'bike lane' : base === 'sidewalk' ? 'sidewalk' : undefined
-  const head =
-    baseText === undefined ? undefined : capitalize([sideText, baseText].filter(Boolean).join(' '))
+  const head = base === undefined ? undefined : baseLabel(base, side)
   const signText =
-    sign === undefined ? undefined : ['traffic sign', signDirection].filter(Boolean).join(' ')
+    sign === undefined
+      ? undefined
+      : [m.key_sign(), directionLabel(signDirection)].filter(Boolean).join(' ')
   const suffixText =
-    suffix === undefined ? undefined : /^\d+$/.test(suffix) ? `no. ${suffix}` : suffix
+    suffix === undefined
+      ? undefined
+      : /^\d+$/.test(suffix)
+        ? m.key_number({ number: suffix })
+        : directionLabel(suffix)
   // a photo of the way itself, when neither a bike lane, a sidewalk nor a sign names it
-  const way = head === undefined && signText === undefined ? 'Way' : undefined
+  const way = head === undefined && signText === undefined ? m.key_way() : undefined
   const parts = [head ?? way, signText, suffixText].filter(
     (part): part is string => part !== undefined,
   )
   const text = parts.join(' · ')
-  return source === undefined ? text : `${text} (source)`
+  return source === undefined ? text : m.key_source({ label: text })
 }
 
-function capitalize(text: string) {
-  return text.length === 0 ? text : `${text[0]?.toUpperCase() ?? ''}${text.slice(1)}`
+/** "Bike lane", "Left sidewalk" … for a key's base (`cycleway` or `sidewalk`) and its side */
+function baseLabel(base: string, side: string | undefined): string {
+  if (base === 'cycleway') {
+    if (side === 'left') return m.key_bike_lane_left()
+    if (side === 'right') return m.key_bike_lane_right()
+    if (side === 'both') return m.key_bike_lane_both()
+    return m.key_bike_lane()
+  }
+  if (side === 'left') return m.key_sidewalk_left()
+  if (side === 'right') return m.key_sidewalk_right()
+  if (side === 'both') return m.key_sidewalk_both()
+  return m.key_sidewalk()
+}
+
+function directionLabel(direction: string | undefined): string | undefined {
+  if (direction === 'forward') return m.key_forward()
+  if (direction === 'backward') return m.key_backward()
+  return undefined
 }
 
 /** The ids of a value: split at `;`, trimmed, empty parts dropped, order kept. */
@@ -160,14 +179,14 @@ export function idFromText(
   text: string,
 ): { id: string } | { error: string } {
   const trimmed = text.trim()
-  if (trimmed === '') return { error: 'Type an id or paste a link' }
+  if (trimmed === '') return { error: m.key_error_empty() }
   if (/^https?:\/\//i.test(trimmed)) return idFromLink(provider, trimmed)
   if (provider === 'mapillary') {
-    return MAPILLARY_ID.test(trimmed) ? { id: trimmed } : { error: 'Not a Mapillary id' }
+    return MAPILLARY_ID.test(trimmed) ? { id: trimmed } : { error: m.key_error_not_mapillary_id() }
   }
   return PANORAMAX_ID.test(trimmed)
     ? { id: trimmed.toLowerCase() }
-    : { error: 'Not a Panoramax id' }
+    : { error: m.key_error_not_panoramax_id() }
 }
 
 function idFromLink(provider: ImageProvider, link: string) {
@@ -175,12 +194,14 @@ function idFromLink(provider: ImageProvider, link: string) {
   try {
     url = new URL(link)
   } catch {
-    return { error: 'Not a link' }
+    return { error: m.key_error_not_link() }
   }
   const query = url.searchParams
   const hash = new URLSearchParams(url.hash.replace(/^#/, ''))
   if (provider === 'mapillary') {
-    if (!/(^|\.)mapillary\.com$/i.test(url.hostname)) return { error: 'Not a Mapillary link' }
+    if (!/(^|\.)mapillary\.com$/i.test(url.hostname)) {
+      return { error: m.key_error_not_mapillary_link() }
+    }
     const id =
       query.get('pKey') ??
       hash.get('pKey') ??
@@ -188,12 +209,12 @@ function idFromLink(provider: ImageProvider, link: string) {
       null
     return id !== null && MAPILLARY_ID.test(id)
       ? { id }
-      : { error: 'No Mapillary photo in this link' }
+      : { error: m.key_error_no_mapillary_photo() }
   }
   const id = query.get('pic') ?? hash.get('pic')
   return id !== null && PANORAMAX_ID.test(id)
     ? { id: id.toLowerCase() }
-    : { error: 'No Panoramax photo in this link' }
+    : { error: m.key_error_no_panoramax_photo() }
 }
 
 /**
@@ -232,10 +253,10 @@ export function planUse(input: {
 }): UsePlan {
   const { photoId, provider, active, writer } = input
   if (writer === null) {
-    return { ok: false, reason: 'Select a feature that shows the Street-level images field' }
+    return { ok: false, reason: m.dock_use_no_feature() }
   }
   const key = targetKey(provider, active, writer.rowId)
   const current = writer.tags[key]
-  if (hasId(current, photoId)) return { ok: false, key, reason: `${key} already has this photo` }
+  if (hasId(current, photoId)) return { ok: false, key, reason: m.dock_use_already({ key }) }
   return { ok: true, key, value: appendId(current, photoId) }
 }

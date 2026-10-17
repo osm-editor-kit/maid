@@ -4,6 +4,7 @@ import { PhotoDetailsDialog } from '@osm-editor-kit/street-imagery-react/photo-d
 import { useState } from 'react'
 import { planUse } from './image-keys.ts'
 import { photoPageLink } from './links.ts'
+import { m } from './messages.ts'
 import { photoFailureMessage } from './photo-query.ts'
 import { useOpenPhoto, useShownPhotos } from './shown.ts'
 import { activeProviders } from './state.ts'
@@ -31,7 +32,7 @@ function UsePhotoButton({ photo }: { photo: NormalizedPhoto }) {
     provider === null
       ? {
           ok: false as const,
-          reason: 'Only Mapillary and Panoramax photos can be used as image keys',
+          reason: m.dock_use_not_photo(),
         }
       : planUse({ photoId: photo.photoId, provider, active, writer })
 
@@ -39,7 +40,7 @@ function UsePhotoButton({ photo }: { photo: NormalizedPhoto }) {
     <button
       type="button"
       disabled={!plan.ok}
-      title={plan.ok ? `Adds this photo to ${plan.key}` : plan.reason}
+      title={plan.ok ? m.dock_use_title({ key: plan.key }) : plan.reason}
       onClick={() => {
         // read again at the click: the selection may have changed since the render
         const state = getStreetImagery()
@@ -54,7 +55,7 @@ function UsePhotoButton({ photo }: { photo: NormalizedPhoto }) {
       }}
       className="cursor-pointer rounded-sm text-xs font-medium text-zinc-950 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:text-zinc-400 disabled:no-underline dark:text-white dark:disabled:text-zinc-500"
     >
-      Use this photo
+      {m.dock_use_photo()}
     </button>
   )
 }
@@ -85,14 +86,14 @@ function OpenPhoto({ photo }: { photo: NormalizedPhoto }) {
           onClick={() => setDetailsOpen(true)}
           className="cursor-pointer rounded-sm text-xs font-medium text-zinc-950 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-white"
         >
-          Details
+          {m.dock_details()}
         </button>
         <button
           type="button"
           onClick={closePhoto}
           className="cursor-pointer rounded-sm text-xs font-medium text-zinc-950 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-white"
         >
-          Close photo
+          {m.dock_close_photo()}
         </button>
       </div>
       <div className="relative min-h-0 flex-1">
@@ -130,18 +131,14 @@ export function PhotosView() {
 
   if (AUTOMATED)
     return (
-      <p className="p-3 text-xs text-zinc-500 dark:text-zinc-400">
-        Photos are off in automated browsers.
-      </p>
+      <p className="p-3 text-xs text-zinc-500 dark:text-zinc-400">{m.photos_automated_off()}</p>
     )
 
   if (open.ref === null) {
     const anyOn = activeProviders(shown.providers, token, AUTOMATED).length > 0
     return (
       <p className="p-3 text-xs text-zinc-500 dark:text-zinc-400">
-        {anyOn
-          ? 'Click a photo on the map to see it here.'
-          : 'Switch on a provider under Photos in the top bar to see photos on the map.'}
+        {anyOn ? m.dock_hint_click() : m.dock_hint_switch()}
       </p>
     )
   }
@@ -155,14 +152,14 @@ export function PhotosView() {
           onClick={closePhoto}
           className="cursor-pointer rounded-sm font-medium text-zinc-950 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-white"
         >
-          Close photo
+          {m.dock_close_photo()}
         </button>
       </div>
     )
   }
 
   if (open.photo === null) {
-    return <p className="p-3 text-xs text-zinc-500 dark:text-zinc-400">Loading photo…</p>
+    return <p className="p-3 text-xs text-zinc-500 dark:text-zinc-400">{m.dock_loading()}</p>
   }
 
   return <OpenPhoto photo={open.photo} />

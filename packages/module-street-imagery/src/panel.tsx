@@ -2,6 +2,7 @@ import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { SegmentedControl } from '@osm-editor-kit/maid-ui'
 import { PhotoDateRangeFilter } from '@osm-editor-kit/street-imagery-react'
 import './street-imagery.css'
+import { m } from './messages.ts'
 import { useShownPhotos } from './shown.ts'
 import {
   activeProviders,
@@ -15,16 +16,19 @@ import {
 } from './state.ts'
 import { AUTOMATED, useMapillaryToken } from './street-imagery-store.ts'
 
-const KIND_LABELS: Record<PhotoKind, string> = { all: 'All', flat: 'Flat', pano: '360°' }
-const KIND_OPTIONS = PHOTO_KINDS.map((kind) => ({ value: kind, label: KIND_LABELS[kind] }))
-
-const NOTES: Record<ImageryProviderId, string> = {
-  panoramax: 'From api.panoramax.xyz. No account needed.',
-  mapillary: 'From graph.mapillary.com, with the token of this build.',
+/** The photo kinds' labels, read when shown. "360°" is the same in every language. */
+function kindOptions() {
+  return PHOTO_KINDS.map((kind) => ({
+    value: kind,
+    label: kind === 'all' ? m.kind_all() : kind === 'flat' ? m.kind_flat() : '360°',
+  }))
 }
 
-const MAPILLARY_WITHOUT_TOKEN =
-  'No Mapillary token is set in this build, so Mapillary is not offered.'
+/** What a provider reads from, under its name (the Mapillary note says so when no token is set) */
+function providerNote(id: ImageryProviderId, available: boolean) {
+  if (!available) return m.panel_mapillary_no_token()
+  return id === 'panoramax' ? m.panel_note_panoramax() : m.panel_note_mapillary()
+}
 
 /**
  * One provider: a checkbox switch and what it reads from. The row layout and the native switch
@@ -42,7 +46,7 @@ function ProviderRow({
 }) {
   const token = useMapillaryToken()
   const available = providerAvailable(id, token)
-  const note = available ? NOTES[id] : MAPILLARY_WITHOUT_TOKEN
+  const note = providerNote(id, available)
   return (
     <li className="py-2">
       <label
@@ -58,7 +62,7 @@ function ProviderRow({
           {...PLAIN_INPUT}
           type="checkbox"
           role="switch"
-          aria-label={`Show photos from ${PROVIDER_LABELS[id]}`}
+          aria-label={m.panel_provider_switch({ provider: PROVIDER_LABELS[id] })}
           className="mt-0.5 size-4 shrink-0 cursor-pointer accent-blue-600 disabled:cursor-default dark:accent-blue-500"
           checked={on}
           disabled={!available}
@@ -76,8 +80,8 @@ function ProviderRow({
 function KindChoice({ kind, onSelect }: { kind: PhotoKind; onSelect: (kind: PhotoKind) => void }) {
   return (
     <SegmentedControl
-      label="Which photos"
-      options={KIND_OPTIONS}
+      label={m.panel_kind_choice()}
+      options={kindOptions()}
       value={kind}
       onSelect={onSelect}
       textSize="xs"
@@ -96,9 +100,7 @@ export function PhotosPanel() {
 
   if (AUTOMATED)
     return (
-      <p className="p-4 text-xs text-zinc-500 dark:text-zinc-400">
-        Photos are off in automated browsers.
-      </p>
+      <p className="p-4 text-xs text-zinc-500 dark:text-zinc-400">{m.photos_automated_off()}</p>
     )
 
   const anyOn = activeProviders(shown.providers, token, AUTOMATED).length > 0
@@ -108,11 +110,11 @@ export function PhotosPanel() {
   return (
     <div className="maid-street-imagery flex flex-col gap-5 p-4 text-sm">
       <section>
-        <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Show photos from</h3>
+        <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+          {m.panel_providers_heading()}
+        </h3>
         {!anyOn && (
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-            Photos are off. Choose a source to load them.
-          </p>
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{m.panel_providers_off()}</p>
         )}
         <ul className="mt-1 divide-y divide-zinc-950/5 dark:divide-white/5">
           {IMAGERY_PROVIDER_IDS.map((id) => (
@@ -126,11 +128,15 @@ export function PhotosPanel() {
         </ul>
       </section>
       <section>
-        <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Photos</h3>
+        <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+          {m.panel_kinds_heading()}
+        </h3>
         <KindChoice kind={shown.kind} onSelect={shown.chooseKind} />
       </section>
       <section>
-        <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Taken between</h3>
+        <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+          {m.panel_dates_heading()}
+        </h3>
         <div className="mt-1">
           <PhotoDateRangeFilter
             value={shown.date}
