@@ -17,8 +17,9 @@ filters; everything a topic needs beyond that is a module in `packages/`. We bui
 To make your own editor:
 
 1. **Fork** this repository.
-2. **Add your app and modules** next to ours, for example `apps/maid-golf` and `packages/module-golf`. Coding agents
-   work well here: [AGENTS.md](AGENTS.md) gives them the rules, the scripts and the checks.
+2. **Add your app and modules** next to ours, for example `apps/maid-golf` and `packages/module-golf`.
+   [ARCHITECTURE.md](ARCHITECTURE.md) shows how, step by step. Coding agents work well here: [AGENTS.md](AGENTS.md)
+   gives them the rules, the scripts and the checks.
 3. **Deploy:** set `MAID_APP=maid-golf` in `deploy.env` (or as a repository variable) and push; the GitHub Action
    publishes that app to GitHub Pages. See [docs/deploying.md](docs/deploying.md).
 4. **Stay in sync:** merge this repository into your fork now and then. Your work lives in your own app and module
@@ -45,5 +46,5 @@ bun run check-all  # the browser checks
 Everything runs offline against frozen fixtures; automated runs send no request to OSM servers.
 `bun run refs-setup` and `bun run compare` show iD, Rapid and Maid side by side, and `bun run bench` measures them.
 
-More: [AGENTS.md](AGENTS.md) (how to work here), [docs/build-out/steps.md](docs/build-out/steps.md) (what is done and
+More: [ARCHITECTURE.md](ARCHITECTURE.md) (how it is built), [AGENTS.md](AGENTS.md) (how to work here), [docs/build-out/steps.md](docs/build-out/steps.md) (what is done and
 next), [docs/architecture/](docs/architecture/README.md), [docs/adr/](docs/adr/), [docs/research/](docs/research/).

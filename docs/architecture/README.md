@@ -1,8 +1,8 @@
 # Architecture work docs
 
-Proposals for how Maid is built beyond the proof of concept. Written 2026-10-11 after Tobias's notes on the first report. **Nothing here is built unless a chapter says so.** Each chapter ends with what is still open.
+Chapters on single topics of Maid's design, written from 2026-10-11 on: the options, the reasoning and what Tobias decided. **What is built today is described in [ARCHITECTURE.md](../ARCHITECTURE.md)**; where a chapter and that file disagree, the file is right and the chapter needs a fix. Each chapter ends with what is still open.
 
-The starting point is [the extensibility plan](../extensibility-plan.md): one config object, a headless core, replaceable renderer and UI, and code units that forks add. These chapters go deeper on single topics.
+The historic starting point is [the extensibility plan](../extensibility-plan.md).
 
 | # | Chapter | In one line |
 | ---: | --- | --- |

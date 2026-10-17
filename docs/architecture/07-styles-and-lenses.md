@@ -1,6 +1,6 @@
 # Styles and lenses
 
-Status: proposal, following Tobias's notes of 2026-10-11.
+Status: proposal of 2026-10-11, built in part: lenses as data with import and export (`packages/module-lenses`, step D5 in [steps](../build-out/steps.md)). The style export for an external editor is not built.
 
 ## What we have
 

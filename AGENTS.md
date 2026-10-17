@@ -1,6 +1,6 @@
 # Working in this repo
 
-For coding agents and people; `CLAUDE.md` imports it. Read it before you change anything.
+For coding agents and people; `CLAUDE.md` imports it. Read it before you change anything. How the code is built and where to change it: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 Maid is developed agent-first: every task must be doable, checkable and reportable from the command line. A step that needs a person clicking is a gap in the tooling: fix the tooling or note the gap in [docs/build-out/steps.md](docs/build-out/steps.md).
 
@@ -122,21 +122,4 @@ Every editor is driven through `window.__bench` (`tools/refs/bench-api.d.ts`); M
 
 ## Layout
 
-```
-apps/maid, maid-bicycle, maid-parking   the editors: maid.config.ts (an AppConfig: modules, presets, filters, servers), main.tsx, env files
-apps/compare         Maid, iD and Rapid side by side
-packages/shell       the editor's shell: App, URL, save, auth, built-in modules, bench handle, styles, public assets
-packages/ui          the shell's components and the inspector's fields
-packages/core        createEditor: data, modules, extension points, hooks
-packages/model       the data model, ported from Rapid 3
-packages/renderer    feature builder, MapLibre layers, engine
-packages/presets, validation, operations, filters, journal   headless: presets on id-tagging-schema, rules and fixes, edit operations, editable/read-only/hidden, unsaved edits in IndexedDB
-packages/style       iD's look as data
-packages/i18n        Paraglide texts in en, de, fr, es
-packages/module-*    modules an app switches on: imagery, street-imagery, data-layers, notes, lenses, parking, turn-restrictions, surface, traffic-signs
-tools/mock-osm-api   local stand-in for the OSM API, serves the fixtures
-tools/refs, tools/bench, tools/checks   pinned iD and Rapid, the benchmark, the browser checks
-fixtures/            frozen OSM data (ODbL, © OpenStreetMap contributors)
-docs/                plan, steps, research, decisions, upstream drafts
-reports/             output of benchmarks and checks (mostly git-ignored)
-```
+Folders, packages, the config object, modules, extension points, texts and deploying: [ARCHITECTURE.md](ARCHITECTURE.md). Read it before adding an app or a module.

@@ -76,7 +76,7 @@ Both are registered in a module's `setup`.
 
 - Modules are build-time only, never from a URL or the UI ([naming](01-naming.md)).
 - The name is "Maid module", with core modules in the monorepo and external modules in forks ([naming](01-naming.md)).
-- Inside the monorepo: workspace packages. External forks: Maid's npm packages.
+- Inside the monorepo: workspace packages. External forks: Maid's npm packages. Changed on 2026-10-13: a fork copies this repository and adds its app and modules there ([ADR 0009](../adr/0009-decisions-of-2026-10-13.md), [README](../../README.md)); npm packages are the later, second way.
 - A missing hook is patched locally with `bun patch` and upstreamed.
 - The bottom dock is part of the default editor. A fork can switch it off; it is not a module.
 - Replacing a core UI component (the Docusaurus "swizzle" idea) comes later, if at all. Slots and config first.

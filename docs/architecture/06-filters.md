@@ -1,6 +1,6 @@
 # Filtering: which data is on the map, and what can be done with it
 
-Status: proposal, following Tobias's notes of 2026-10-11.
+Status: built on 2026-10-12 as proposed here (`packages/filters`, [steps](../build-out/steps.md)); how an app passes its filters: [ARCHITECTURE.md](../../ARCHITECTURE.md#the-config-object).
 
 ## What iD does
 

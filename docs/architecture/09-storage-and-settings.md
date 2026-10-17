@@ -1,6 +1,6 @@
 # Storage and settings
 
-Status: proposal. Based on a review of iD and Rapid 3 and of the libraries (2026-10-11). Library facts are from the npm registry and the projects' docs; points the review could not verify are marked.
+Status: proposal of 2026-10-11, built in part (settings stores in `packages/ui`, the journal in `packages/journal`); open points are in [steps](../build-out/steps.md#the-module-system). Based on a review of iD and Rapid 3 and of the libraries (2026-10-11). Library facts are from the npm registry and the projects' docs; points the review could not verify are marked.
 
 ## What Maid has to keep in the browser
 

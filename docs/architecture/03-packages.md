@@ -1,6 +1,6 @@
 # Packages: what they are, where they live, where the code comes from
 
-Status: proposal, following Tobias's notes of 2026-10-11.
+Status: decided by Tobias on 2026-10-11 and built: the packages as they are today are listed in [ARCHITECTURE.md](../../ARCHITECTURE.md#packages). Nothing is published to npm yet.
 
 ## Decided by Tobias
 

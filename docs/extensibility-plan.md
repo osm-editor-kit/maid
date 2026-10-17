@@ -1,10 +1,10 @@
 # Work doc: Maid as a kit that forks configure
 
-Status: proposal, 2026-10-10, revised 2026-10-11 after Tobias's notes. Single topics are worked out in [docs/architecture/](architecture/README.md), which also lists what he decided and what is open. Where this document and a chapter disagree, the chapter is newer.
+Status: historic proposal, 2026-10-10, revised 2026-10-11. **What is built is described in [ARCHITECTURE.md](../ARCHITECTURE.md)**; this document keeps the goal and the reasoning. Single topics are worked out in [docs/architecture/](architecture/README.md), which also lists what he decided and what is open. Where this document and a chapter disagree, the chapter is newer.
 
 On the word "plug-in" below: the name is under discussion ([naming](architecture/01-naming.md)); the proposal is "Maid module". Whatever the name, these units are added in code at build time, never through the UI or a URL.
 
-Nothing here is built. It is based on three code reviews done the same day (iD upstream, the Radnetz Berlin and MapRoulette forks, the osm-editor-kit packages). Claims marked "review" come from those reviews and were not re-checked line by line.
+When it was written, nothing was built. It is based on three code reviews done the same day (iD upstream, the Radnetz Berlin and MapRoulette forks, the osm-editor-kit packages). Claims marked "review" come from those reviews and were not re-checked line by line.
 
 ## Goal
 
@@ -47,51 +47,7 @@ Everything a fork wants to add lands in one of those lists, so every fork patche
 
 ## Package structure
 
-A Bun workspace, following the conventions the osm-editor-kit repos already share (review): `packages/*` with source exports in the workspace and `dist` exports at publish, tsup, changesets, oxlint and oxfmt, peers for UI libraries.
-
-Names and sources below were updated on 2026-10-11 to what the [architecture chapters](architecture/README.md) settled: the data layer comes from Rapid, the units are called Maid modules, and package names carry the `maid-` prefix ([packages](architecture/03-packages.md)). The folder is the short name; the package is `@osm-editor-kit/maid-<folder>`.
-
-```
-packages/
-  # headless core: no DOM, no React, no MapLibre
-  model/              entities, graph, difference, actions,          from Rapid data/, lib/, actions/,
-                      history, spatial index, API JSON parser        EditSystem, SpatialSystem (exists)
-  presets/            preset and field matching                      id-tagging-schema, matching code ported
-  validate/           rule engine, rules as separate exports         from Rapid validators/, iD
-  core/               createEditor, registries, module lifecycle, selection, modes, tasks
-
-  # rendering
-  style/              iD's look as data (exists)
-  renderer/           feature builder, MapLibre layers, engine (exists)
-
-  # UI, React 19 + Tailwind
-  ui/                 small shared components: buttons, sections, panes, fields shell
-  ui-inspector/       preset fields, raw tag editor, sections registry
-  ui-map/             map component, controls, hover and select wiring
-  ui-app/             the default shell that composes everything
-
-  # core modules
-  module-imagery/         backgrounds: wraps maplibre-editor-layer-index
-  module-street-imagery/  wraps street-imagery and street-imagery-react
-  module-notes/           OSM notes
-  module-data-layers/     user GeoJSON, PMTiles, vector tiles
-  module-maproulette/     task provider
-  module-live-touched/    presence, wraps @osm-editor-kit/live-touched
-  ...
-
-apps/
-  maid/               the default editor: default config
-  radnetz-berlin/     example: a config plus two modules
-  compare/            (exists)
-```
-
-Outside this repo, used as dependencies: `osm-api`, `osm-oauth`, `osm-changeset`, `@rapid-sdk/math`.
-
-Rules for the boundaries:
-
-- A package in the headless group may import only packages above it in that list.
-- `maid-renderer` and `maid-ui-*` import the headless group, never each other's internals; they meet in `maid-core`'s registries.
-- A `maid-module-*` package imports `maid-core` types and whatever UI it needs. Nothing imports a module except an app.
+The packages as built: [ARCHITECTURE.md](../ARCHITECTURE.md#packages); their names and origins: [packages](architecture/03-packages.md). The two reviews below are kept for their findings.
 
 ### What comes from iD, and what it costs
 
@@ -139,94 +95,11 @@ Two conclusions:
 
 ## The config object
 
-```ts
-import { createEditor } from '@osm-editor-kit/maid-core'
-
-createEditor({
-  container: '#editor',
-
-  api: { url: 'https://api.openstreetmap.org', oauthClientId: '…' },
-
-  // where the editor starts and what it may touch
-  start: { center: [13.4, 52.52], zoom: 17, bounds: berlinBounds },
-
-  // the presets themselves, so a fork can change them: start from the standard set
-  presets: withChanges(defaultPresets, radnetzPresetChanges),
-
-  // ordered: the first filter that matches an object decides. Three states each.
-  filters: [
-    { id: 'cycleways', match: { highway: 'cycleway' }, state: 'editable' },
-    { id: 'buildings', match: { building: '*' }, state: 'readonly' },
-    { id: 'boundaries', match: { boundary: '*' }, state: 'hidden' },
-    ...defaultFilters,
-  ],
-
-  changeset: {
-    hashtags: ['#radnetz'],
-    comment: (ctx) => `Radnetz: ${ctx.summary}`,
-    tags: { source: 'survey;Mapillary' },
-  },
-
-  validation: { rules: [...defaultRules, cyclewaySideOneway], disabled: ['suspicious_name'] },
-
-  ui: { locale: 'de', theme: 'system', toolbarLabels: true, dock: true, brand: { name: 'Radnetz Berlin' } },
-
-  modules: [
-    imagery({ extra: [berlinOrtho2025] }),
-    streetImagery({ providers: ['mapillary', 'panoramax'], highlightUsers: ['…'] }),
-    dataLayers({ layers: [radnetzQaLayer] }),
-    tildaNotes({ baseUrl: 'https://…', region: 'infravelo' }),
-    maproulette({ challenges: [123, 456] }),
-  ],
-})
-```
-
-Preset overlays exist now: `withChanges(base, changes)` in `@osm-editor-kit/maid-presets` takes the raw preset data and returns it changed, and the config passes `createPresets(withChanges(defaultPresetData, changes))`. The one-line `withChanges(defaultPresets, …)` above is the plan. See [the presets README](../packages/presets/README.md#changing-presets-in-a-child-app).
-
-Everything in it is serialisable except functions and modules, so most of a fork's configuration can live in a JSON file. It is never read from the URL: the URL carries state, not configuration ([URL state](architecture/08-url-state.md)).
-
-Presets and filters are the actual data, not references, so a fork changes them with ordinary code ([filters](architecture/06-filters.md)).
-
-## Extension points
-
-Each is one registry in `maid-core`. The right column names what your forks patch in iD today to get the same thing (from the fork review).
-
-| # | Extension point | A plug-in provides | Needed by | Patched in iD today |
-| ---: | --- | --- | --- | --- |
-| 1 | **Map layer** | sources, style layers, optional hit handling and legend | custom data layers, TILDA notes, Mapillary, MapRoulette pins | `svg/layers`, `renderer/map`, `services/vector_tile`, `ui/map_in_map` |
-| 2 | **Imagery source** | background or overlay definitions, dated variants | multiple custom backgrounds, Esri Wayback, hillshade | `renderer/background`, `ui/sections/background_list` |
-| 3 | **Inspector section** | a React component and a `when(entity, preset)` filter | TILDA section, sign groups, related tags, MapRoulette task | `ui/entity_editor`, `ui/sections/preset_fields` |
-| 4 | **Field type** | a React component for a field `type`, title buttons, tag suggestions | traffic sign rows, image fields, surface and smoothness | `presets/field`, `ui/field`, `ui/fields/*` |
-| 5 | **Preset overlay** | data that adds, moves or hides presets and fields | Radnetz customisation | `presets/index`, `presets/field` |
-| 6 | **Issue or task provider** | items with a location, a select mode, a sidebar editor | MapRoulette, Osmose, notes | `modes/select_error`, `ui/sidebar`, `svg/layers` |
-| 7 | **Task workflow** | candidate pool, next, skip, done, finish policy | MapRoulette "next task" | `core/uploader`, `modes/save` |
-| 8 | **Save lifecycle** | hooks before and after upload, changeset tags, commit-panel sections | MapRoulette check-in comment and status | `ui/commit`, `modes/save`, `ui/success` |
-| 9 | **Validation rule** | a rule with fixes and its own "ignore" storage | `cycleway_side_oneway`, about 20 planned TILDA rules | `validations/index`, `core/validator` |
-| 10 | **Lens** | a named restyling: tag classes to colours, with a shortcut | Radnetz QA lens | `svg/tag_classes`, `svg/defs`, `scripts/build_css` |
-| 11 | **Feature category state** | read-only or hidden per category, honoured by hover, select, lasso, snapping | read-only categories | `behavior/hover`, `behavior/lasso`, `ui/sections/map_features` |
-| 12 | **Operation** | availability, label, action, optional hover preview | extract side as own way, merge cycleway and footway | `modes/select` |
-| 13 | **Field-driven map overlay** | a temporary map layer while a field has focus | side arrows, width band, measuring tape | `ui/fields/directional_combo`, width fields |
-| 14 | **URL parameter** | a typed parameter with parse, serialise and default | `lens`, `data_layers`, `way_table`, `maproulette`, `photo_*` | `behavior/hash`, `ui/init`, both HTML files |
-| 15 | **Account access** | the OSM token and user preferences, through an API | MapRoulette key, TILDA, key-value store, live touched | `services/osm` |
-| 16 | **Pane, preference section, toolbar tool** | a React component and a slot name | Map Display and Photos panes, notes buttons | `ui/panes/*`, `ui/tools/*` |
-| 17 | **Dock content** | a view inside the bottom dock, bound to the selection. The dock itself is part of the default editor and can be switched off in the config | way-table | new files plus `ui/init` |
-
-Two of these carry performance rules.
-
-**Map layers (1, 13).** A plug-in does not get the MapLibre map to call `addSource`. It declares sources and layers, and it gets a handle with `add`, `update`, `remove` and `setState`. The engine routes those through the fast paths measured in iteration 1: diff updates, one in flight per source, a small twin source for anything that changes during a gesture, feature state for highlight. See ADR 0002 and 0003. A plug-in that wants raw access can ask for it explicitly and is then on its own.
-
-**Lenses (10).** Maid resolves the look per feature from rules (ADR 0001). A lens is a second prepare step, or a user-made MapLibre style on top; see [styles and lenses](architecture/07-styles-and-lenses.md).
+The sketches of the config object and of the extension points that were here are built differently: see [the config object](../ARCHITECTURE.md#the-config-object) and [Maid modules](../ARCHITECTURE.md#maid-modules) in ARCHITECTURE.md.
 
 ## URL state
 
-iD scatters hash handling over seven modules. Maid uses **nuqs**: there are no pages, so a router buys nothing, and nuqs gives typed parsers, batching and history control per parameter.
-
-- `maid-core` owns the parameters every editor has: `map`, `id`, `background`, `overlays`, `disable_features`, `comment`, `hashtags`, `locale`.
-- A plug-in registers its own through extension point 14 and gets a typed hook back.
-- Map position is written on move end with `history: 'replace'`, as the `react-map-gl` skill prescribes.
-- iD uses the hash (`#map=…`), and existing links and the osm.org "Edit" button rely on that. Maid reads iD's hash format on start and writes search parameters after. Open question below.
-
-`osm-map-url` already parses `map=` and `f=`; it is tied to TanStack Router today and needs a router-free entry.
+Built: [URL state](architecture/08-url-state.md).
 
 ## State and UI conventions
 

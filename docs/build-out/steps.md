@@ -371,12 +371,13 @@ Also decided: the editor is deployed to GitHub Pages by a workflow, a fork choos
 ### Translations
 
 - [ ] Step 1: `packages/i18n` with Paraglide (pinned to 2.25.4), English, German (informal "Du"), French, Spanish; the language choice; the preset texts as one JSON file per language made from the tagging schema; the UI's texts; a script that lists missing keys. [paraglide-study.md](../research/paraglide-study.md)
+  Built: Paraglide for the app and per module, the language choice, `i18n-check` ([ARCHITECTURE.md](../../ARCHITECTURE.md#texts-and-languages)). Open: the preset texts in other languages than English.
 - [ ] Step 2: validation, operations and undo labels return a message id with values; the journal stores those.
 
 ### The module system
 
 - [ ] Shell plan, steps 5 and 6: the checks for each app (`--app`) and `bun run check-config` are built (2a3e9be, see Done). Open: a contract test per module, and the dev-only `?modules=` page, which can be done in each app's entry alone and is not built. [shell-package-plan.md](../research/shell-package-plan.md)
-- [ ] Shell, open points: the six settings stores keep fixed names, not one set per app; `created_by` is still "Maid 0.0.0" for both apps. Browser checks run against both apps since 2a3e9be.
+- [ ] Shell, open points: the six settings stores keep fixed names, not one set per app. (`created_by` names the app and its version since 15a52b6.) Browser checks run against both apps since 2a3e9be.
 - [x] Deploying several apps (Tobias, 2026-10-15): `MAID_APP` takes one app or a comma list; several apps go to their own folders with a page of links, and share the `land.html` at the path for the login (`VITE_LOGIN_BASE`). Built with `bun run pages-build` (`tools/deploy/build-pages.ts`). Open: the settings stores have fixed names, so apps on one address share background, theme and the like.
 - [ ] Radnetz modules: the TILDA bike infrastructure section with its checklist and rule; "extract a side into its own way" and "merge a cycleway and a footway"; age colours and a way's images for the photo layer; infra3D links; the traffic sign field as a Maid field on `@osm-traffic-signs/converter`.
 
