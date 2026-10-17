@@ -15,6 +15,7 @@ import {
 import { mapillaryAdapter } from '@osm-editor-kit/street-imagery/providers/mapillary'
 import { panoramaxAdapter } from '@osm-editor-kit/street-imagery/providers/panoramax'
 import { createElement, type ComponentType } from 'react'
+import { PHOTOS_VIEW_ID } from './image-actions.ts'
 import { STREET_IMAGES_FIELD_TYPE } from './image-keys.ts'
 import { StreetImageryLayers } from './map.tsx'
 import { m } from './messages.ts'
@@ -133,7 +134,7 @@ export function streetImagery(options: StreetImageryOptions = {}) {
         width: 'w-[26rem]',
       }
       const dock: DockView = {
-        id: 'street-imagery',
+        id: PHOTOS_VIEW_ID,
         get label() {
           return m.photos_label()
         },

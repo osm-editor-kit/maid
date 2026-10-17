@@ -84,6 +84,19 @@ export function activeProviders(
   )
 }
 
+/**
+ * The providers whose photo can be opened by its id now, whether or not the person switched them on: Mapillary with a
+ * token (its Graph API gives the photo of an id). Panoramax cannot be opened by id yet. Never in an automated browser.
+ * The eye of a street-level image field uses it, so the photo shows without the map layer being switched on.
+ */
+export function openableProviders(
+  mapillaryToken: string | undefined,
+  automated: boolean,
+): ImageryProviderId[] {
+  if (automated) return []
+  return providerAvailable('mapillary', mapillaryToken) ? ['mapillary'] : []
+}
+
 /** The photo-type filter the layers take for a kind. `undefined` shows both kinds. */
 export function photoTypesOf(kind: PhotoKind): PhotoTypeFilter[] | undefined {
   if (kind === 'flat') return ['flat']

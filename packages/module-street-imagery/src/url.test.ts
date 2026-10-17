@@ -176,6 +176,16 @@ describe('shownPhotoRef', () => {
     expect(shownPhotoRef(mapillary, [])).toBeNull()
     expect(shownPhotoRef(mapillary, ['panoramax'])).toBeNull()
   })
+
+  test('a URL photo that can be opened by its id shows while its provider is off', () => {
+    expect(shownPhotoRef(mapillary, [], ['mapillary'])).toEqual(mapillary)
+    expect(shownPhotoRef(mapillary, ['panoramax'], ['mapillary'])).toEqual(mapillary)
+  })
+
+  test('a photo of another provider does not show because the Mapillary one can be opened', () => {
+    const panoramax = { providerId: 'panoramax' as const, photoId: 'abc' }
+    expect(shownPhotoRef(panoramax, [], ['mapillary'])).toBeNull()
+  })
 })
 
 describe('switchOffCloses', () => {

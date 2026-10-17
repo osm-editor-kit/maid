@@ -54,6 +54,28 @@ export const IMAGE_KEYS: readonly string[] = [
   'panoramax:2',
 ]
 
+/**
+ * The keys the field's "Add" list offers by default: the ones the fork's data and the viewers use (tilda-geo reads
+ * them), and the Panoramax keys. The rest of IMAGE_KEYS is one "More keys…" step away in the field. A subset of
+ * IMAGE_KEYS; a key with a value shows as a row whether it is listed here or not.
+ */
+export const OFFERED_KEYS: readonly string[] = [
+  'mapillary',
+  'mapillary:forward',
+  'mapillary:backward',
+  'cycleway:left:mapillary',
+  'cycleway:right:mapillary',
+  'source:traffic_sign:mapillary',
+  'source:traffic_sign:forward:mapillary',
+  'source:traffic_sign:backward:mapillary',
+  'source:cycleway:left:traffic_sign:mapillary',
+  'source:cycleway:right:traffic_sign:mapillary',
+  'panoramax',
+  'panoramax:0',
+  'panoramax:1',
+  'panoramax:2',
+]
+
 const ORDER = new Map(IMAGE_KEYS.map((key, index) => [key, index]))
 
 /** Which provider a key's photos come from, or null for a key that is no image key. */

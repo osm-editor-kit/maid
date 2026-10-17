@@ -3,6 +3,7 @@ import {
   activeProviders,
   DAY,
   DEFAULT_STORED,
+  openableProviders,
   parseStored,
   photoTypesOf,
   providerAvailable,
@@ -73,6 +74,19 @@ describe('providers', () => {
 
   it('requests nothing in an automated browser', () => {
     expect(activeProviders(['mapillary', 'panoramax'], 'MLY|x', true)).toEqual([])
+  })
+})
+
+describe('openableProviders', () => {
+  it('opens Mapillary by id with a token, whether or not it is switched on', () => {
+    expect(openableProviders('MLY|x', false)).toEqual(['mapillary'])
+    expect(openableProviders('', false)).toEqual([])
+    expect(openableProviders(undefined, false)).toEqual([])
+  })
+
+  it('opens nothing in an automated browser, and never Panoramax (it cannot be opened by id yet)', () => {
+    expect(openableProviders('MLY|x', true)).toEqual([])
+    expect(openableProviders('MLY|x', false)).not.toContain('panoramax')
   })
 })
 

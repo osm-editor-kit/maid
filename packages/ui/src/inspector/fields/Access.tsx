@@ -26,17 +26,21 @@ const ROW_LABELS: Record<string, string> = {
 export function AccessField(props: FieldProps) {
   const { field, tags, onChange, combined, features } = props
   return (
-    <div className="grid min-w-0 gap-1.5">
-      {(field.keys ?? []).map((key) => (
-        <AccessRow
-          key={key}
-          rowKey={key}
-          tags={tags}
-          combined={combined}
-          features={features}
-          onChange={onChange}
-        />
-      ))}
+    // two columns once the sidebar is wide enough for two label-and-input rows side by side (a container query
+    // reads the wrapper, not the grid itself)
+    <div className="@container min-w-0">
+      <div className="grid min-w-0 gap-1.5 @[30rem]:grid-cols-2 @[30rem]:gap-x-4">
+        {(field.keys ?? []).map((key) => (
+          <AccessRow
+            key={key}
+            rowKey={key}
+            tags={tags}
+            combined={combined}
+            features={features}
+            onChange={onChange}
+          />
+        ))}
+      </div>
     </div>
   )
 }

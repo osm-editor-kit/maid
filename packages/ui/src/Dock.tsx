@@ -2,6 +2,7 @@ import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/20/solid'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useId, useState, type ReactNode } from 'react'
 import { twJoin } from 'tailwind-merge'
+import { useDockRequest } from './dock-request.ts'
 import { UI_SPRING } from './motion.tsx'
 import { ResizeHandle } from './ResizeHandle.tsx'
 import { useResizable } from './useResizable.ts'
@@ -16,6 +17,17 @@ export function Dock(props: { tabs: DockTab[]; defaultOpen?: boolean }) {
   const { tabs, defaultOpen = false } = props
   const [open, setOpen] = useState(defaultOpen)
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined)
+  // a module asked for one of its views (openDockView): open on that tab
+  // (state adjusted while rendering, as React advises for a change of an input; no effect)
+  const request = useDockRequest()
+  const [seenRequest, setSeenRequest] = useState(request)
+  if (request !== seenRequest) {
+    setSeenRequest(request)
+    if (request) {
+      setSelectedId(request.viewId)
+      setOpen(true)
+    }
+  }
   const panelHeight = useResizable({
     storageKey: 'dock-height',
     axis: 'y',

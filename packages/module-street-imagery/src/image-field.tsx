@@ -1,5 +1,5 @@
 import { EyeIcon, XMarkIcon } from '@heroicons/react/20/solid'
-import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
+import { PLAIN_INPUT, openDockView } from '@osm-editor-kit/maid-ui'
 /**
  * The "Street-level images" field: one row per image key of the feature that has a value (`;` separated ids, as
  * chips), an input per row to add an id or a link, and a select to add a row for a key without a value. A row
@@ -7,9 +7,10 @@ import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
  */
 import type { InspectorFieldType } from '@osm-editor-kit/maid-ui'
 import { useEffect, useId, useState } from 'react'
-import { showBlockedReason, openImageById } from './image-actions.ts'
+import { PHOTOS_VIEW_ID, showBlockedReason, openImageById } from './image-actions.ts'
 import {
   IMAGE_KEYS,
+  OFFERED_KEYS,
   appendId,
   hasId,
   idFromText,
@@ -46,6 +47,9 @@ export function shortId(id: string) {
 const GROUPS = ['way', 'bike_lane', 'sidewalk', 'panoramax'] as const
 type Group = (typeof GROUPS)[number]
 
+/** The value of the "More keys…" option: no image key has it, so it cannot be picked as a key */
+const MORE_KEYS = 'more-keys'
+
 /** The group of a key in the "Add" list */
 function groupOf(key: string): Group {
   if (providerOfKey(key) === 'panoramax') return 'panoramax'
@@ -68,6 +72,8 @@ export function StreetImagesField({ tags, id, onChange }: FieldProps) {
   const rowId = id ?? generated
   // keys the person picked from the add list that have no value yet; they are rows until a value is added
   const [picked, setPicked] = useState<string[]>([])
+  // the "Add" list offers OFFERED_KEYS; "More keys…" switches it to every key of IMAGE_KEYS (this field only)
+  const [showAll, setShowAll] = useState(false)
   const { setImageWriter } = useStreetImageryActions()
 
   // registered on every render, so "Use this photo" writes with the tags and change function of this feature
@@ -86,7 +92,12 @@ export function StreetImagesField({ tags, id, onChange }: FieldProps) {
   }, [rowId])
 
   const shown = [...new Set([...imageKeysWithValue(tags), ...picked])]
-  const free = IMAGE_KEYS.filter((key) => !shown.includes(key) && splitIds(tags[key]).length === 0)
+  const isFree = (key: string) => !shown.includes(key) && splitIds(tags[key]).length === 0
+  const everyFree = IMAGE_KEYS.filter(isFree)
+  const offeredFree = OFFERED_KEYS.filter(isFree)
+  const free = showAll ? everyFree : offeredFree
+  // "More keys…" is the last option while keys outside OFFERED_KEYS are still free
+  const more = !showAll && everyFree.length > offeredFree.length
   const groups = GROUPS.map(
     (group) => [group, free.filter((key) => groupOf(key) === group)] as const,
   ).filter(([, keys]) => keys.length > 0)
@@ -96,14 +107,15 @@ export function StreetImagesField({ tags, id, onChange }: FieldProps) {
       {shown.map((key) => (
         <ImageRow key={key} rowId={rowId} imageKey={key} value={tags[key]} onChange={onChange} />
       ))}
-      {onChange && free.length > 0 ? (
+      {onChange && (free.length > 0 || more) ? (
         <select
           aria-label={m.field_add_key_label()}
           className={INPUT}
           value=""
           onChange={(event) => {
             const key = event.currentTarget.value
-            if (key !== '') setPicked((keys) => (keys.includes(key) ? keys : [...keys, key]))
+            if (key === MORE_KEYS) setShowAll(true)
+            else if (key !== '') setPicked((keys) => (keys.includes(key) ? keys : [...keys, key]))
           }}
         >
           <option value="">{m.field_add_key_option()}</option>
@@ -116,6 +128,7 @@ export function StreetImagesField({ tags, id, onChange }: FieldProps) {
               ))}
             </optgroup>
           ))}
+          {more ? <option value={MORE_KEYS}>{m.field_add_key_more()}</option> : null}
         </select>
       ) : null}
     </div>
@@ -170,6 +183,8 @@ function ImageRow({
       (error) => {
         setOpening(null)
         setOpenError(error)
+        // the photo is open in the map's viewer now: the dock opens on its photos view (not on a failure)
+        if (error === null) openDockView(PHOTOS_VIEW_ID)
       },
       () => {
         setOpening(null)
@@ -192,10 +207,14 @@ function ImageRow({
           {keyLabel(imageKey)}
         </span>
         <span className="shrink-0 truncate font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
-          {isActive ? `${m.field_target()} · ` : ''}
           {imageKey}
         </span>
       </div>
+      {isActive ? (
+        <p title={m.field_target_title()} className="text-[11px] text-blue-700 dark:text-blue-300">
+          {m.field_target()}
+        </p>
+      ) : null}
       {ids.length > 0 ? (
         <ul className="grid gap-1">
           {ids.map((imageId) => (

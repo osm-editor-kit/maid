@@ -18,7 +18,13 @@ import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { seedPhoto, useOpenPhotoQuery } from './photo-query.ts'
-import { activeProviders, DEFAULT_STORED, type ImageryProviderId, type PhotoKind } from './state.ts'
+import {
+  activeProviders,
+  DEFAULT_STORED,
+  openableProviders,
+  type ImageryProviderId,
+  type PhotoKind,
+} from './state.ts'
 import {
   AUTOMATED,
   useMapillaryToken,
@@ -102,12 +108,17 @@ export function useShownPhotos(writer: boolean): ShownPhotos {
 
 /**
  * The photo the URL shows, with its data, for the map and the dock. The URL's `photo` shows while its provider is on
- * (`providers`: the shown ones); `error` is the failure of its query, for the dock to say.
+ * (`providers`: the shown ones), or while it can be opened by its id (Mapillary with a token: the eye of a field, see
+ * `openableProviders`); `error` is the failure of its query, for the dock to say.
  */
 export function useOpenPhoto(providers: readonly ImageryProviderId[]) {
   const [urlPhoto] = useUrlParam(PHOTO_HANDLES.photo)
   const token = useMapillaryToken()
-  const ref = shownPhotoRef(urlPhoto, activeProviders(providers, token, AUTOMATED))
+  const ref = shownPhotoRef(
+    urlPhoto,
+    activeProviders(providers, token, AUTOMATED),
+    openableProviders(token, AUTOMATED),
+  )
   const { photo, error } = useOpenPhotoQuery(ref, token)
   return { ref, photo, error }
 }

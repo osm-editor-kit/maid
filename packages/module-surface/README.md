@@ -24,13 +24,13 @@ Tailwind needs the module's sources in `packages/shell/src/styles.css`: `@source
 
 ## What the field does
 
-- **Two tiles**, "Surface" and "Smoothness", side by side. Each shows its photo and label, with the tag value in small mono type. An empty tile shows its name and "Choose…". A value that is not in the catalogue shows on the tile as text.
-- **A click on a tile** opens a flyout with a grid of photos. Surfaces: the common ones first (the catalogue's `smoothnessQuest` flag), then the others. Smoothness: for the chosen surface, its reference photos best to worst, each with its description; without a surface, or for a surface without photos, the eight levels with their "usable by" emoji. A value the surface does not offer is shown first and marked "Not offered for this surface".
+- **Two tiles**, "Surface" and "Smoothness", side by side. Each shows its photo and label; the tag (`surface=asphalt`) shows over the photo while the tile is hovered or focused. An empty tile shows its name and "Choose…". A value that is not in the catalogue shows on the tile as text.
+- **A click on a tile** opens a flyout with a search field (it has the focus) above a grid of photos. Surfaces: the common ones first (the catalogue's `smoothnessQuest` flag), then the others. Smoothness: for the chosen surface, its reference photos best to worst, each with its description; without a surface, or for a surface without photos, the eight levels with their "usable by" emoji. A value the surface does not offer is shown first and marked "Not offered for this surface". Hovering a card shows its tag and description over the bottom of its photo.
+- **Typing** filters the cards by name and value ("asphal" finds Asphalt). When no card is left, the list shows the other known values that match (the aliases, salt) and "Use '…'" with the typed text, so any value can be set. The list keeps the height it had with all cards.
 - **Choosing** writes the tag at once and closes the flyout. The clear button on a tile's corner removes its tag.
-- **Keyboard** in a grid: arrow keys move (Left and Right by one, Up and Down by a row), Home and End go to the ends, Enter or Space chooses, Escape closes. The Tab stop is the chosen item, or the first.
+- **Keyboard**: Up and Down move by a row of cards (and by one in the list below them), Left and Right move while the search is empty, Enter chooses the highlighted option, Escape closes.
 - **Changing the surface keeps the smoothness**, as the task asks. The fork's rule is different: it removes a smoothness the new surface does not offer (asphalt `excellent` → sett). Not done here; a kept value that the new surface does not offer shows as "Not offered for this surface" in the picker.
-- **Type a value** (collapsed, opens by itself when a value is not in the catalogue): one combo per tag, with the catalogue's values and aliases (`concrete:plates`, `bricks`, …) as suggestions. Any value can be typed.
-- **Read-only** (no `onChange`): the tiles show, nothing opens and the text fallback is not rendered.
+- **Read-only** (no `onChange`): the tiles show and nothing opens.
 
 ## Where the photos come from, and the licence
 

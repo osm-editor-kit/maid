@@ -198,14 +198,18 @@ export const PHOTO_HANDLES = {
 }
 
 /**
- * The photo the URL shows: its `photo` when its provider is on. A URL photo whose provider is off waits: it stays in
- * the URL and shows when the provider comes on. Pure.
+ * The photo the URL shows: its `photo` when its provider is on, or when the photo can be opened by its id now
+ * (`openable`, see `openableProviders`: a photo opened from a field's eye, without the layer switched on). Any other
+ * URL photo waits: it stays in the URL and shows when the provider comes on. Pure.
  */
 export function shownPhotoRef(
   url: PhotoRef | null,
   on: readonly ImageryProviderId[],
+  openable: readonly ImageryProviderId[] = [],
 ): PhotoRef | null {
-  return url !== null && on.includes(url.providerId) ? url : null
+  return url !== null && (on.includes(url.providerId) || openable.includes(url.providerId))
+    ? url
+    : null
 }
 
 /**

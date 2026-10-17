@@ -10,7 +10,11 @@ import {
 } from '@osm-editor-kit/street-imagery'
 import { providerOfKey } from './image-keys.ts'
 import { m } from './messages.ts'
+import { openableProviders } from './state.ts'
 import { streetImageryActions } from './street-imagery-store.ts'
+
+/** The id of the dock view with the module's photos (index.ts registers it; the field's eye opens it) */
+export const PHOTOS_VIEW_ID = 'street-imagery'
 
 /** The reason "show" is off for a key, or null when it works. Pure apart from the arguments. */
 export function showBlockedReason(
@@ -46,7 +50,7 @@ export function mapillaryPhoto(details: MapillaryImageDetails): NormalizedPhoto 
 
 /**
  * Loads the photo of one id and opens it in the dock's viewer. Returns the message to show, or null when the photo
- * is open. The dock's Photos tab is not opened from here (the dock keeps its tab to itself).
+ * is open. The dock's photos view is opened by the caller (the field's eye), not from here.
  */
 export async function openImageById(id: string): Promise<string | null> {
   const [details] = await fetchMapillaryImages([id])
@@ -62,8 +66,7 @@ export async function openImageById(id: string): Promise<string | null> {
  * cannot be opened by id yet (see `showBlockedReason`). Pure.
  */
 export function canOpenPhotoById(providerId: string, mapillaryToken: string, automated: boolean) {
-  if (automated) return false
-  return providerId === 'mapillary' && mapillaryToken !== ''
+  return openableProviders(mapillaryToken, automated).some((id) => id === providerId)
 }
 
 /**

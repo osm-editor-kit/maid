@@ -1,6 +1,6 @@
 /**
  * The logic of the surface and smoothness field, without React: which photo a value shows, what the pickers
- * offer, the keyboard steps of a grid, the suggestions of the text fallback and the credits of the photos shown.
+ * offer, what a search over them shows, the keyboard steps through their options and the credits of the photos shown.
  *
  * The catalogue is read from `@osm-editor-kit/surface-smoothness-data`, which is the only source of values, labels,
  * descriptions and photo paths. Paths are package-relative (`images/surface_asphalt.jpg`); `photos.ts` maps them to
@@ -89,6 +89,9 @@ function levelEmoji(smoothness: string) {
 
 // ---- pickers ----
 
+/** A value with its label, as the pickers list it */
+export type Named = { value: string; label: string }
+
 export type SurfaceChoice = {
   value: string
   label: string
@@ -156,46 +159,89 @@ export function smoothnessChoices(surface: string | undefined) {
   return { photos: false, choices }
 }
 
-/**
- * The index of the chosen value in a grid, or the first item when nothing is chosen (or the value is not in the grid):
- * the item that takes the Tab stop.
- */
-export function tabStopIndex(values: readonly string[], chosen: string | undefined) {
-  const index = chosen === undefined ? -1 : values.indexOf(chosen)
-  return index === -1 ? 0 : index
+// ---- search ----
+
+/** Lower case, with `_` and runs of spaces alike: `fine_gravel` and `Fine Gravel` read the same */
+function searchKey(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[\s_]+/g, ' ')
+    .trim()
 }
 
 /**
- * The index a grid moves to for a key, or undefined for a key that does not move. Left and Right step by one, Up and
- * Down by a row (`columns`), Home and End go to the first and the last item. The moves stop at the ends; they do not
- * wrap. An index outside the grid is brought in first.
+ * True when the query is part of the value or of the label, case-insensitively: "asphal" finds Asphalt and
+ * "fine gravel" finds `fine_gravel`. An empty query matches everything.
  */
-export function gridStep(index: number, key: string, count: number, columns: number) {
-  if (count <= 0 || columns <= 0) return undefined
-  const last = count - 1
+export function matchesQuery(query: string, value: string, label: string) {
+  const wanted = searchKey(query)
+  if (wanted === '') return true
+  return searchKey(value).includes(wanted) || searchKey(label).includes(wanted)
+}
+
+/** The tag value a typed text stands for: trimmed, lower case, spaces as `_` (as iD writes a combo's value) */
+export function typedValue(query: string) {
+  return query.trim().toLowerCase().replace(/\s+/g, '_')
+}
+
+/**
+ * What a picker lists for a query. Without a query: all its cards. With one: the cards it matches. When no card
+ * matches, the other values it knows that match, and the typed value (`typed`) so that any value can be set, unless
+ * one of those other values already is the typed value.
+ */
+export function pickerView<Card extends Named, Other extends Named>(
+  cards: readonly Card[],
+  others: readonly Other[],
+  query: string,
+): { cards: Card[]; others: Other[]; typed: string | undefined } {
+  if (query.trim() === '') return { cards: [...cards], others: [], typed: undefined }
+  const matched = cards.filter((card) => matchesQuery(query, card.value, card.label))
+  if (matched.length > 0) return { cards: matched, others: [], typed: undefined }
+  const found = others.filter((other) => matchesQuery(query, other.value, other.label))
+  const typed = typedValue(query)
+  const known = typed === '' || found.some((other) => other.value === typed)
+  return { cards: [], others: found, typed: known ? undefined : typed }
+}
+
+/**
+ * The option an arrow key moves the highlight to, in a list of `total` options of which the first `cardCount` are
+ * cards in a grid of `columns`. Up and Down move a card by its row and a value below the cards by one; Down from the
+ * last row of cards goes to the first value below them. The moves stop at the ends. Undefined for any other key.
+ */
+export function optionStep(
+  index: number,
+  key: string,
+  total: number,
+  cardCount: number,
+  columns: number,
+) {
+  if (total <= 0 || (key !== 'ArrowDown' && key !== 'ArrowUp')) return undefined
+  const last = total - 1
   const current = Math.min(Math.max(index, 0), last)
-  switch (key) {
-    case 'ArrowRight':
-      return Math.min(current + 1, last)
-    case 'ArrowLeft':
-      return Math.max(current - 1, 0)
-    case 'ArrowDown':
-      return Math.min(current + columns, last)
-    case 'ArrowUp':
-      return Math.max(current - columns, 0)
-    case 'Home':
-      return 0
-    case 'End':
-      return last
-    default:
-      return undefined
-  }
+  const inCards = current < cardCount
+  const step = inCards ? columns : 1
+  if (key === 'ArrowUp') return Math.max(current - step, 0)
+  const next = current + step
+  return inCards && next >= cardCount ? Math.min(cardCount, last) : Math.min(next, last)
 }
 
-// ---- the text fallback ----
+/**
+ * The surface values with no card of their own: the aliases (`earth`, `brick`, …, with the title of their surface)
+ * and `salt`, which the tagging schema offers and the catalogue has no photo for.
+ */
+export function surfaceOthers(): Named[] {
+  const cards = new Set(Object.keys(catalogue.surfaces))
+  const textOnly: Named[] = [{ value: 'salt', label: 'Salt' }]
+  return [...surfaceOptions().filter((option) => !cards.has(option.value)), ...textOnly]
+}
 
-/** The options of the surface combo: every surface, then the aliases (e.g. `concrete:plates`) with their surface's title */
-export function surfaceOptions() {
+/** The smoothness levels with no card for the surface: the cards show the levels that have a photo for it */
+export function smoothnessOthers(shown: readonly string[]): Named[] {
+  return smoothnessOptions().filter((level) => !shown.includes(level.value))
+}
+
+/** The options of the surface values: every surface, then the aliases (e.g. `concrete:plates`) with their surface's title */
+function surfaceOptions(): Named[] {
   const surfaces = Object.values(catalogue.surfaces).map((info) => ({
     value: info.osmValue,
     label: info.title ?? info.osmValue,
@@ -207,8 +253,8 @@ export function surfaceOptions() {
   return [...surfaces, ...aliases]
 }
 
-/** The options of the smoothness combo: the levels, best to worst */
-export function smoothnessOptions() {
+/** The levels, best to worst */
+function smoothnessOptions(): Named[] {
   return Object.values(catalogue.smoothnessLevels).map((level) => ({
     value: level.osmValue,
     label: level.title ?? level.osmValue,

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import {
   IMAGE_KEYS,
+  OFFERED_KEYS,
   appendId,
   defaultKey,
   idFromText,
@@ -16,6 +17,23 @@ import {
 } from './image-keys.ts'
 
 const PANORAMAX_UUID = '8f2e0c1a-1b2c-4d3e-8f90-123456789abc'
+
+describe('OFFERED_KEYS', () => {
+  it('lists each key once, as valid image keys of IMAGE_KEYS', () => {
+    expect(new Set(OFFERED_KEYS).size).toBe(OFFERED_KEYS.length)
+    for (const key of OFFERED_KEYS) {
+      expect(isImageKey(key)).toBe(true)
+      expect(IMAGE_KEYS).toContain(key)
+    }
+  })
+
+  it('offers the keys the viewers read, and the Panoramax keys', () => {
+    expect(OFFERED_KEYS).toContain('mapillary')
+    expect(OFFERED_KEYS).toContain('source:cycleway:right:traffic_sign:mapillary')
+    expect(OFFERED_KEYS).toContain('panoramax:2')
+    expect(OFFERED_KEYS.length).toBe(14)
+  })
+})
 
 describe('IMAGE_KEYS and isImageKey', () => {
   it('lists each key once: the 216 Mapillary keys of the grammar and four Panoramax keys', () => {
@@ -66,14 +84,14 @@ describe('IMAGE_KEYS and isImageKey', () => {
 
 describe('keyLabel', () => {
   it('builds the label from the parts of the key', () => {
-    expect(keyLabel('mapillary')).toBe('Way')
+    expect(keyLabel('mapillary')).toBe('Photo of the way')
     expect(keyLabel('cycleway:right:mapillary')).toBe('Right bike lane')
     expect(keyLabel('cycleway:both:mapillary:backward')).toBe('Both sides bike lane · backward')
     expect(keyLabel('source:traffic_sign:mapillary')).toBe('traffic sign (source)')
     expect(keyLabel('sidewalk:left:traffic_sign:forward:mapillary')).toBe(
       'Left sidewalk · traffic sign forward',
     )
-    expect(keyLabel('mapillary:2')).toBe('Way · no. 2')
+    expect(keyLabel('mapillary:2')).toBe('Photo of the way · no. 2')
     expect(keyLabel('panoramax:1')).toBe('Panoramax 1')
   })
 })

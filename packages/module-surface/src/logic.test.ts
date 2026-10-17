@@ -3,19 +3,21 @@ import { catalogue } from '@osm-editor-kit/surface-smoothness-data'
 import {
   canonicalSurface,
   creditsFor,
-  gridStep,
   isKnownSmoothness,
   isKnownSurface,
+  matchesQuery,
+  optionStep,
+  pickerView,
   smoothnessChoices,
   smoothnessCell,
-  smoothnessOptions,
+  smoothnessOthers,
   smoothnessPicture,
   smoothnessTitle,
   surfaceGroups,
-  surfaceOptions,
+  surfaceOthers,
   surfacePicture,
   surfaceTitle,
-  tabStopIndex,
+  typedValue,
 } from './logic.ts'
 
 describe('which photo a surface and smoothness shows', () => {
@@ -120,11 +122,20 @@ describe('the pickers', () => {
     expect(choices).toHaveLength(Object.keys(catalogue.smoothnessLevels).length)
   })
 
-  it('lists the surface aliases with the title of their surface, and the levels in order', () => {
-    const options = surfaceOptions()
-    expect(options.find((option) => option.value === 'concrete:plates')?.label).toBe('Concrete')
-    expect(options.find((option) => option.value === 'asphalt')?.label).toBe('Asphalt')
-    expect(smoothnessOptions().map((option) => option.value)).toEqual(
+  it('lists the surface values without a card: the aliases with the title of their surface, and salt', () => {
+    const others = surfaceOthers()
+    expect(others.find((option) => option.value === 'concrete:plates')?.label).toBe('Concrete')
+    expect(others.find((option) => option.value === 'earth')?.label).toBe('Dirt')
+    expect(others.find((option) => option.value === 'salt')?.label).toBe('Salt')
+    expect(others.some((option) => option.value === 'asphalt')).toBe(false)
+  })
+
+  it('lists the levels that have no card for the surface', () => {
+    const shown = smoothnessChoices('asphalt').choices.map((choice) => choice.value)
+    const others = smoothnessOthers(shown).map((option) => option.value)
+    expect(others.length + shown.length).toBe(Object.keys(catalogue.smoothnessLevels).length)
+    expect(others.some((value) => shown.includes(value))).toBe(false)
+    expect(smoothnessOthers([]).map((option) => option.value)).toEqual(
       Object.keys(catalogue.smoothnessLevels),
     )
   })
@@ -154,58 +165,93 @@ describe('values that are not in the catalogue', () => {
   })
 })
 
-describe('gridStep', () => {
-  it('moves left and right by one and stops at the ends', () => {
-    expect(gridStep(0, 'ArrowRight', 5, 4)).toBe(1)
-    expect(gridStep(4, 'ArrowRight', 5, 4)).toBe(4)
-    expect(gridStep(1, 'ArrowLeft', 5, 4)).toBe(0)
-    expect(gridStep(0, 'ArrowLeft', 5, 4)).toBe(0)
+describe('the search of a picker', () => {
+  it('matches a query on the value or the label, case-insensitively', () => {
+    expect(matchesQuery('asphal', 'asphalt', 'Asphalt')).toBe(true)
+    expect(matchesQuery('ASPHALT', 'asphalt', 'Asphalt')).toBe(true)
+    expect(matchesQuery('paving', 'paving_stones', 'Paving Stones')).toBe(true)
+    expect(matchesQuery('mostly', 'good', 'Mostly even')).toBe(true)
+    expect(matchesQuery('good', 'good', 'Mostly even')).toBe(true)
+    expect(matchesQuery('xyz', 'asphalt', 'Asphalt')).toBe(false)
   })
 
-  it('moves up and down by a row and stops at the ends', () => {
-    expect(gridStep(1, 'ArrowDown', 10, 4)).toBe(5)
-    expect(gridStep(8, 'ArrowDown', 10, 4)).toBe(9)
-    expect(gridStep(5, 'ArrowUp', 10, 4)).toBe(1)
-    expect(gridStep(2, 'ArrowUp', 10, 4)).toBe(0)
+  it('reads a space in the query as an underscore in the value, and the other way round', () => {
+    expect(matchesQuery('fine gravel', 'fine_gravel', 'Fine Gravel')).toBe(true)
+    expect(matchesQuery('fine_gravel', 'fine_gravel', 'Fine Gravel')).toBe(true)
+    expect(matchesQuery('  ', 'asphalt', 'Asphalt')).toBe(true)
   })
 
-  it('goes to the first and the last item with Home and End', () => {
-    expect(gridStep(3, 'Home', 7, 3)).toBe(0)
-    expect(gridStep(3, 'End', 7, 3)).toBe(6)
+  it('turns a typed text into the value it stands for', () => {
+    expect(typedValue('  Fine Gravel ')).toBe('fine_gravel')
+    expect(typedValue('concrete:plates')).toBe('concrete:plates')
   })
 
-  it('returns undefined for keys that do not move, and for an empty grid', () => {
-    expect(gridStep(0, 'Enter', 5, 4)).toBeUndefined()
-    expect(gridStep(0, 'a', 5, 4)).toBeUndefined()
-    expect(gridStep(0, 'ArrowRight', 0, 4)).toBeUndefined()
-    expect(gridStep(0, 'ArrowRight', 5, 0)).toBeUndefined()
+  it('shows all cards without a query, and the cards that match with one', () => {
+    const cards = [
+      { value: 'asphalt', label: 'Asphalt' },
+      { value: 'gravel', label: 'Gravel' },
+    ]
+    expect(pickerView(cards, [], '')).toEqual({ cards, others: [], typed: undefined })
+    expect(pickerView(cards, [], 'asphal')).toEqual({
+      cards: [{ value: 'asphalt', label: 'Asphalt' }],
+      others: [],
+      typed: undefined,
+    })
   })
 
-  it('brings an index outside the grid in before it moves', () => {
-    expect(gridStep(-1, 'ArrowRight', 5, 4)).toBe(1)
-    expect(gridStep(9, 'ArrowLeft', 5, 4)).toBe(3)
+  it('shows the other values that match, and the typed value, when no card matches', () => {
+    const cards = [{ value: 'asphalt', label: 'Asphalt' }]
+    const salt = { value: 'salt', label: 'Salt' }
+    const others = [salt, { value: 'earth', label: 'Dirt' }]
+    expect(pickerView(cards, others, 'sal')).toEqual({
+      cards: [],
+      others: [salt],
+      typed: 'sal',
+    })
+    expect(pickerView(cards, others, 'Mud Hole')).toEqual({
+      cards: [],
+      others: [],
+      typed: 'mud_hole',
+    })
   })
 
-  it('walks a grid of 10 items in 4 columns in the expected cells', () => {
-    // row 0: 0 1 2 3, row 1: 4 5 6 7, row 2: 8 9
-    let index = 0
-    index = gridStep(index, 'ArrowDown', 10, 4) ?? index
-    expect(index).toBe(4)
-    index = gridStep(index, 'ArrowDown', 10, 4) ?? index
-    expect(index).toBe(8)
-    index = gridStep(index, 'ArrowRight', 10, 4) ?? index
-    expect(index).toBe(9)
-    index = gridStep(index, 'ArrowUp', 10, 4) ?? index
-    expect(index).toBe(5)
+  it('does not offer the typed value again when a listed value is it', () => {
+    const cards = [{ value: 'asphalt', label: 'Asphalt' }]
+    const salt = { value: 'salt', label: 'Salt' }
+    const others = [salt]
+    expect(pickerView(cards, others, 'salt')).toEqual({
+      cards: [],
+      others: [salt],
+      typed: undefined,
+    })
+    expect(pickerView(cards, others, 'earth')).toEqual({ cards: [], others: [], typed: 'earth' })
   })
-})
 
-describe('tabStopIndex', () => {
-  it('is the chosen item, or the first when nothing or an unknown value is chosen', () => {
-    const values = ['a', 'b', 'c']
-    expect(tabStopIndex(values, 'b')).toBe(1)
-    expect(tabStopIndex(values, undefined)).toBe(0)
-    expect(tabStopIndex(values, 'z')).toBe(0)
+  it('moves through the options by a row in the cards, by one below them, and stops at the ends', () => {
+    const down = 'ArrowDown'
+    const up = 'ArrowUp'
+    // 6 cards in 4 columns, then 2 values below them
+    expect(optionStep(0, down, 8, 6, 4)).toBe(4)
+    expect(optionStep(4, down, 8, 6, 4)).toBe(6)
+    expect(optionStep(5, down, 8, 6, 4)).toBe(6)
+    expect(optionStep(6, down, 8, 6, 4)).toBe(7)
+    expect(optionStep(7, down, 8, 6, 4)).toBe(7)
+    expect(optionStep(7, up, 8, 6, 4)).toBe(6)
+    expect(optionStep(6, up, 8, 6, 4)).toBe(5)
+    expect(optionStep(1, up, 8, 6, 4)).toBe(0)
+    expect(optionStep(0, up, 8, 6, 4)).toBe(0)
+  })
+
+  it('goes down from the last card row to the first value below the cards', () => {
+    expect(optionStep(5, 'ArrowDown', 8, 6, 4)).toBe(6)
+    expect(optionStep(3, 'ArrowDown', 8, 6, 4)).toBe(6)
+  })
+
+  it('moves by one when there are no cards, and ignores other keys', () => {
+    expect(optionStep(0, 'ArrowDown', 3, 0, 4)).toBe(1)
+    expect(optionStep(2, 'ArrowDown', 3, 0, 4)).toBe(2)
+    expect(optionStep(1, 'Enter', 3, 0, 4)).toBeUndefined()
+    expect(optionStep(0, 'ArrowDown', 0, 0, 4)).toBeUndefined()
   })
 })
 
