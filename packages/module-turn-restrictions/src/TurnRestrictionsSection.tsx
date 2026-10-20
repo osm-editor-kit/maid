@@ -1,7 +1,13 @@
 import { moduleStorage, type Editor } from '@osm-editor-kit/maid-core'
 import { m } from '@osm-editor-kit/maid-i18n'
 import { osmIntersection, type Intersection } from '@osm-editor-kit/maid-model'
-import { Tooltip, useBearing, type InspectorSectionProps } from '@osm-editor-kit/maid-ui'
+import {
+  RELATION_CHOSEN,
+  RELATION_SURFACE,
+  Tooltip,
+  useBearing,
+  type InspectorSectionProps,
+} from '@osm-editor-kit/maid-ui'
 import { useEffect, useId, useMemo, useState, useSyncExternalStore } from 'react'
 import { pickFromRoad, type FromCandidate } from './from-road.ts'
 import {
@@ -199,7 +205,7 @@ function JunctionEditor({ entity, editor, defaults, onRelated }: TurnRestriction
     <div className="flex flex-col gap-3">
       <p className="text-xs text-zinc-500 dark:text-zinc-400">{m.turn_restrictions_help_click()}</p>
 
-      <div className="flex flex-col gap-1.5 rounded-md border border-zinc-950/10 bg-zinc-50 p-2 dark:border-white/10 dark:bg-zinc-950">
+      <div className={`flex flex-col gap-1.5 rounded-md border p-2 ${RELATION_SURFACE}`}>
         <span id={captionID} className="text-xs text-zinc-500 dark:text-zinc-400">
           {m.turn_restrictions_from()}
         </span>
@@ -212,7 +218,7 @@ function JunctionEditor({ entity, editor, defaults, onRelated }: TurnRestriction
               onClick={() => chooseFrom(road.id)}
               className={`h-7 rounded-full border px-2.5 text-xs focus-visible:outline-2 focus-visible:outline-blue-500 ${
                 road.id === fromID
-                  ? 'border-blue-600 bg-blue-600 text-white'
+                  ? RELATION_CHOSEN
                   : 'border-zinc-950/10 bg-white text-zinc-700 hover:border-zinc-950/30 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-white/30'
               }`}
             >

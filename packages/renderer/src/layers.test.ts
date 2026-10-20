@@ -514,13 +514,27 @@ describe('the focus glow (a relation open beside the inspector)', () => {
     }
   })
 
-  test('is wider and more opaque than the related halo', () => {
+  test('is wider than the related halo', () => {
     const layers = buildLayers(options)
     const related = find(layers, 'highlight-halo-areas')!
     const focus = find(layers, 'focus-halo-areas')!
     expect(JSON.stringify(focus.paint?.['line-width'])).toContain('2.2')
     expect(JSON.stringify(related.paint?.['line-width'])).not.toContain('2.2')
     expect(JSON.stringify(focus.paint?.['line-opacity'])).toContain('0.55')
+  })
+
+  test('the related halo is violet, hover and selection keep the hover colour', () => {
+    const halo = find(buildLayers(options), 'highlight-halo')!
+    const colour = halo.paint?.['line-color'] as unknown[]
+    expect(colour.slice(0, 7)).toEqual([
+      'case',
+      ['boolean', ['feature-state', 'selected'], false],
+      '#f6634f',
+      ['boolean', ['feature-state', 'hover'], false],
+      '#f6634f',
+      ['boolean', ['feature-state', 'related'], false],
+      '#7c3aed',
+    ])
   })
 
   test('each glow layer has its edit and selection twins, so it follows a dragged node', () => {
@@ -531,9 +545,9 @@ describe('the focus glow (a relation open beside the inspector)', () => {
     }
   })
 
-  test('sits under the data layers, above the related halo', () => {
+  test('sits under the data layers and under the narrow related halo, which stays crisp over it', () => {
     const ids = buildLayers(options).map((l) => l.id)
-    expect(ids.indexOf('focus-halo')).toBeGreaterThan(ids.indexOf('highlight-halo'))
+    expect(ids.indexOf('focus-halo')).toBeLessThan(ids.indexOf('highlight-halo'))
     expect(ids.indexOf('focus-halo')).toBeLessThan(ids.indexOf('vertex'))
     expect(ids.indexOf('focus-halo-points')).toBeLessThan(ids.indexOf('point-pin'))
   })

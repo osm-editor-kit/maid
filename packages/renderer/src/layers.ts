@@ -380,34 +380,8 @@ function buildMainLayers(options: LayerOptions) {
     },
   )
 
-  // --- Hover and selection halo, under the lines like iD's shadow paths ---
-  // `related` (members of a relation): a calmer glow than hover, drawn under it (engine.setRelated)
-  const opacity: ExpressionSpecification = [
-    'case',
-    ['boolean', ['feature-state', 'selected'], false], 0.7,
-    ['boolean', ['feature-state', 'hover'], false], 0.4,
-    ['boolean', ['feature-state', 'related'], false], 0.25,
-    0,
-  ] // prettier-ignore
-  layers.push(
-    {
-      id: 'highlight-halo-areas',
-      type: 'line',
-      source: SOURCES.areas,
-      layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': HOVER, 'line-width': ['get', 'hw'], 'line-opacity': opacity },
-    },
-    {
-      id: 'highlight-halo',
-      type: 'line',
-      source: SOURCES.lines,
-      layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': HOVER, 'line-width': byZoom('hwl', 'hw'), 'line-opacity': opacity },
-    },
-  )
-
   // --- Focus: the relation open beside the inspector (engine.setFocus) ---
-  // A stronger, blurred violet glow under its members: wider and more opaque than `related`, and only
+  // A wide, blurred violet glow under its members, drawn under the narrow `related` halo below, and only
   // where the `focus` state is set (0 everywhere else, so the layers cost nothing for other features).
   // The width is the halo width times FOCUS_GLOW, by zoom as byZoom does it. Each layer gets its
   // `--edit` and `--select` twins from buildLayers, like the halos above.
@@ -443,6 +417,45 @@ function buildMainLayers(options: LayerOptions) {
         'line-width': glowByZoom(FOCUS_GLOW),
         'line-blur': 2,
         'line-opacity': focusOpacity,
+      },
+    },
+  )
+
+  // --- Hover and selection halo, under the lines like iD's shadow paths ---
+  // `related` (members of a relation, a row of the relation UI): a narrow violet halo, the colour of relation editing
+  // (ui relation-tone.ts). It stays crisp over the wide, blurred focus glow of the open relation, so a hovered
+  // member still stands out there. Hover and selection keep iD's colour and win over it.
+  const opacity: ExpressionSpecification = [
+    'case',
+    ['boolean', ['feature-state', 'selected'], false], 0.7,
+    ['boolean', ['feature-state', 'hover'], false], 0.4,
+    ['boolean', ['feature-state', 'related'], false], 0.6,
+    0,
+  ] // prettier-ignore
+  const haloColour: ExpressionSpecification = [
+    'case',
+    ['boolean', ['feature-state', 'selected'], false], HOVER,
+    ['boolean', ['feature-state', 'hover'], false], HOVER,
+    ['boolean', ['feature-state', 'related'], false], FOCUS,
+    HOVER,
+  ] // prettier-ignore
+  layers.push(
+    {
+      id: 'highlight-halo-areas',
+      type: 'line',
+      source: SOURCES.areas,
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': haloColour, 'line-width': ['get', 'hw'], 'line-opacity': opacity },
+    },
+    {
+      id: 'highlight-halo',
+      type: 'line',
+      source: SOURCES.lines,
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': haloColour,
+        'line-width': byZoom('hwl', 'hw'),
+        'line-opacity': opacity,
       },
     },
   )

@@ -32,6 +32,7 @@ export function relations() {
           if (!(relation instanceof OsmRelation)) return undefined
           return membersHeadline(memberRows(editor.history.staging.graph, relation))
         },
+        tone: 'relation',
         component: MembersSection,
       }
       const memberships: InspectorSection = {
@@ -40,6 +41,7 @@ export function relations() {
         // most features are in no relation: folded, with the number in the headline
         disclosure: 'closed',
         detail: (entity, editor) => membershipsOf(editor.history.staging.graph, entity.id).length,
+        tone: 'relation',
         component: RelationsSection,
       }
       api.register('inspector.section', members)

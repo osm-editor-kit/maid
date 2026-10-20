@@ -59,7 +59,8 @@ export function featureItems(
       keepOpen: true,
       section,
       run: () => choose(id),
-      preview: (on: boolean) => engine.setRelated(on ? [id] : null),
+      // the map's own hover: the violet `related` halo is for relations
+      preview: (on: boolean) => engine.setHover(on ? id : null),
     }
   })
 }
@@ -156,7 +157,7 @@ export function StackPicker() {
           items={rows}
           onClose={() => {
             setList(null)
-            engine.setRelated(null)
+            engine.setHover(null)
           }}
         />
       )}

@@ -18,6 +18,7 @@ import {
   SidebarDisclosure,
   stackedHeadingsCover,
   useStackedHeadings,
+  RELATION_HEADING,
 } from '@osm-editor-kit/maid-ui'
 import { motion, Reorder, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } from 'react'
@@ -51,9 +52,6 @@ import { relationSessionActions } from './relations-session-store.ts'
 
 /** Members a group lists before its own "Show all N"; iD's member list stops at 1000 */
 const GROUP_LIMIT = 1000
-/** The group headings: the column's own violet (Shell.tsx), opaque as they stick, with the inspector's dark text */
-const COLUMN_TINT =
-  'bg-violet-100 text-zinc-950 dark:bg-[color-mix(in_srgb,var(--color-violet-950)_50%,var(--color-zinc-900))] dark:text-white'
 /** A row (or the head) that is selected: white as the inspector card that shows it */
 const SELECTED =
   'mr-2 pr-2 rounded-lg bg-white font-medium ring-1 ring-zinc-950/5 dark:bg-zinc-900 dark:ring-white/10'
@@ -335,7 +333,7 @@ function ColumnBody({
               title={groupLabel(group)}
               defaultOpen
               // the scroller's left padding is the heading's; the text keeps its 12px from the column's edge
-              headingClassName={`${COLUMN_TINT} pl-1 pr-2`}
+              headingClassName={`${RELATION_HEADING} pl-1 pr-2`}
               detail={count}
               actions={
                 fitHere && fitIds.length > 0 ? (

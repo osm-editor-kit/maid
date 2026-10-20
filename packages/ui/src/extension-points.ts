@@ -51,6 +51,8 @@ export type InspectorSection = {
   disclosure?: 'open' | 'closed'
   /** A quiet word after the title that stays readable while folded: a count, an id */
   detail?: (entity: EntityInfo, editor: Editor) => string | number | undefined
+  /** `'relation'`: the section edits relations, and its heading has their violet (relation-tone.ts) */
+  tone?: 'relation'
   component: ComponentType<InspectorSectionProps>
 }
 

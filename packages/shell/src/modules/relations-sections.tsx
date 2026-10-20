@@ -8,9 +8,10 @@ import {
   type Action,
 } from '@osm-editor-kit/maid-model'
 import type { RelationRoles } from '@osm-editor-kit/maid-presets'
-import { notify, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
+import { notify, PLAIN_INPUT, RELATION_ICON, RELATION_OPEN_ROW } from '@osm-editor-kit/maid-ui'
 import { SidebarDisclosure, Tooltip, type InspectorSectionProps } from '@osm-editor-kit/maid-ui'
 import { createContext, useContext, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { PresetIcon } from '../components/PresetIcon'
 import { usePresets, useShell } from '../shell-context'
 import { useRelatedWhileHovered, type RowHighlight } from './relations-hover.ts'
 import {
@@ -66,6 +67,9 @@ const ROW =
 const COLUMN = 'grid grid-cols-[minmax(0,1fr)]'
 const LINK =
   'min-w-0 flex-1 cursor-pointer truncate rounded px-1 text-left hover:underline focus-visible:outline-2 focus-visible:outline-blue-500'
+/** A membership's name: up to two lines, so that "Bus 162: …" and "Bus 164: …" stay apart beside the icon and role */
+const MEMBERSHIP_LINK =
+  'min-w-0 flex-1 cursor-pointer rounded px-1 text-left leading-4 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500'
 const SECONDARY = 'text-zinc-500 dark:text-zinc-400'
 /** Inline role input: looks like plain text until hovered or focused, as in TagRow. */
 const ROLE_INPUT =
@@ -132,9 +136,17 @@ function useReadOnly() {
 }
 
 /** One line of a list: the same spacing and hairline for members and memberships. */
-function Row({ children, highlight }: { children: ReactNode; highlight?: RowHighlight }) {
+function Row({
+  children,
+  highlight,
+  className,
+}: {
+  children: ReactNode
+  highlight?: RowHighlight
+  className?: string
+}) {
   return (
-    <li className={ROW} {...highlight}>
+    <li className={className ? `${ROW} ${className}` : ROW} {...highlight}>
       {children}
     </li>
   )
@@ -285,15 +297,26 @@ function MembershipRow({
   const hint = membershipHint(relation, index)
   return (
     <>
-      <Row highlight={highlight}>
+      <Row
+        highlight={highlight}
+        className={open ? `${RELATION_OPEN_ROW} -mx-1 rounded-md px-1` : undefined}
+      >
+        <span
+          aria-hidden="true"
+          className={`grid size-6 shrink-0 place-items-center rounded ${RELATION_ICON}`}
+        >
+          <PresetIcon icon={engine.entity(relation.id)?.preset?.icon} className="size-4" />
+        </span>
         <Tooltip label={relation.id}>
           <button
             type="button"
-            className={LINK}
+            className={MEMBERSHIP_LINK}
             onClick={() => openRelationActions.open(relation.id)}
           >
-            <ColourDot colour={colourOf(relation)} />
-            <span>{relationLabel(relation)}</span>
+            <span className="line-clamp-2 break-words">
+              <ColourDot colour={colourOf(relation)} />
+              {relationLabel(relation)}
+            </span>
           </button>
         </Tooltip>
         <RoleInput

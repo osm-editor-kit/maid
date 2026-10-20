@@ -40,6 +40,7 @@ export function turnRestrictions(options: TurnRestrictionsOptions = {}) {
         // a junction of three or more highways, and a single selected node (iD: a field of the vertex)
         when: (entity) => entity.type === 'node' && isJunction(graph(), entity.id),
         disclosure: 'open',
+        tone: 'relation',
         component: Section,
       })
     },

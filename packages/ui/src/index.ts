@@ -30,6 +30,13 @@ export type {
 } from './extension-points.ts'
 export { InspectorSections } from './InspectorSections.tsx'
 export * from './inspector/index.ts'
+export {
+  RELATION_CHOSEN,
+  RELATION_HEADING,
+  RELATION_ICON,
+  RELATION_OPEN_ROW,
+  RELATION_SURFACE,
+} from './relation-tone.ts'
 export { ControlButton, ControlGroup, MapControls } from './MapControls.tsx'
 export { CommandBar, type CommandItem } from './CommandBar.tsx'
 export { ResizeHandle } from './ResizeHandle.tsx'

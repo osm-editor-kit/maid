@@ -45,7 +45,8 @@ const STATE_CLASS: Record<TurnState, { stroke: string; badge: string; glyph: str
   {
     allowed: { stroke: 'stroke-emerald-600', badge: 'bg-emerald-600', glyph: '✓' },
     restricted: { stroke: 'stroke-red-600', badge: 'bg-red-600', glyph: '✕' },
-    only: { stroke: 'stroke-violet-600', badge: 'bg-violet-600', glyph: undefined },
+    // blue as iD's turn-only arrows: violet is the relation's own colour (the FROM halo)
+    only: { stroke: 'stroke-blue-600', badge: 'bg-blue-600', glyph: undefined },
   }
 
 /** The sign on a turn's button, so that its state is not told by colour alone; the word ONLY is a text */
@@ -77,7 +78,7 @@ export type JunctionDiagramProps = {
 
 /**
  * The junction: the roads as wide strokes with a casing, in the colours of their highway class (the map's), the FROM
- * road under a blue halo, the turns of the FROM road as arrows, and a button at the end of each arrow on its TO road
+ * road under a violet halo (relation-tone.ts), the turns of the FROM road as arrows, and a button at the end of each arrow on its TO road
  * (keyboard reachable). The button's tooltip says the turn's state and what a click does; the box has a border and
  * background in both themes, so that its shape shows. A read-only junction keeps its buttons focusable
  * (aria-disabled, not disabled), so that the tooltips still show.
@@ -98,7 +99,7 @@ export function JunctionDiagram({
 
   return (
     <div
-      className="relative w-full rounded-md border border-zinc-950/10 bg-zinc-100 dark:border-white/10 dark:bg-zinc-950"
+      className="relative w-full rounded-md border border-violet-950/10 bg-violet-50 dark:border-white/10 dark:bg-[color-mix(in_srgb,var(--color-violet-950)_40%,var(--color-zinc-950))]"
       style={{ aspectRatio: `${width} / ${height}` }}
     >
       <svg
@@ -106,7 +107,7 @@ export function JunctionDiagram({
         className="absolute inset-0 size-full"
         aria-hidden="true"
       >
-        {/* the FROM road's halo, under the roads as iD's grey halo marks its FROM way */}
+        {/* the FROM road's halo, under the roads as iD's grey halo marks its FROM way; violet as relation editing */}
         {sketch.roads
           .filter((road) => road.id === fromID)
           .map((road) => (
@@ -117,7 +118,7 @@ export function JunctionDiagram({
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={FROM_HALO_WIDTH}
-              className="stroke-blue-500/45 dark:stroke-blue-400/45"
+              className="stroke-violet-500/45 dark:stroke-violet-400/45"
             />
           ))}
         {/* the casings first, so that a casing never covers another road's fill where two roads meet */}
@@ -188,7 +189,7 @@ export function JunctionDiagram({
             strokeLinecap="round"
             pointerEvents="none"
             opacity={hovered === null || hovered === turn.key ? 1 : 0.35}
-            className="stroke-zinc-100 dark:stroke-zinc-950"
+            className="stroke-violet-50 dark:stroke-[color-mix(in_srgb,var(--color-violet-950)_40%,var(--color-zinc-950))]"
           />
         ))}
         {turns.map((turn) => (

@@ -55,8 +55,11 @@ export const REFERENCE_HEADER_CLASS = 'bg-blue-100 dark:bg-blue-900/50'
 /** The outline of a cell that a carry or set-on-all would change */
 export const PREVIEW_CLASS = 'outline-2 -outline-offset-2 outline-dashed outline-amber-500'
 
-/** The bar at the bottom of a cell changed in this session (against the base data) */
-export const EDITED_BAR_CLASS = 'bg-violet-500 dark:bg-violet-400'
+/**
+ * The bar at the bottom of a cell changed in this session (against the base data): the yellow of a retagged feature in
+ * the map's edits display (G, renderer layers.ts EDIT_COLOUR, iD's visual diff), as a cell edit is a tag change
+ */
+export const EDITED_BAR_CLASS = 'bg-[#fcde5a]'
 
 /** The legend chips, in the order they are shown */
 export const LEGEND_STATES: readonly CellState[] = [
