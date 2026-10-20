@@ -232,6 +232,8 @@ export function SidebarDisclosure(props: {
   title: string
   detail?: ReactNode
   defaultOpen?: boolean
+  /** An icon before the title, drawn for the open or folded state (the relation sections' icon) */
+  icon?: (open: boolean) => ReactNode
   /** Extra classes for the heading, merged last (for example a tinted background) */
   headingClassName?: string
   /** Small icon buttons in the heading, before the chevron, shown while the section is open (e.g. "Copy all") */
@@ -290,6 +292,7 @@ export function SidebarDisclosure(props: {
           onClick={onTitleClick}
           className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500"
         >
+          {props.icon?.(open)}
           <span className="min-w-0 truncate">{props.title}</span>
           {wordDetail && hasDetail ? (
             <span className="min-w-0 truncate text-xs font-normal text-zinc-500 dark:text-zinc-400">

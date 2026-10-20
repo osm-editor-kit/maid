@@ -415,3 +415,11 @@ From the check of the code against [ARCHITECTURE.md](../../ARCHITECTURE.md) on 2
 - [ ] Small: a length counter in the raw tag rows and the multi-value lists; the upload adding spaces after `;` can push a value over 255; the benchmark handle is exposed in every build; the pill of overlapping features has no animation; a second-tab case in `check-journal`; messages next to their control tied with `aria-describedby`; after undo of a node move the way keeps its cached shape in the model (effect not examined).
 - [ ] Checks: a click on a building edge that lies on another area's fill picked the other area. The check now avoids such places; the pick order there is not examined. The journal timing unit test is flaky under load.
 - [ ] A benchmark of Maid against iD and Rapid on the dense scene at the current state.
+
+### Indoor and levels (parked by Tobias, 2026-10-20)
+
+Research: [indoor/README.md](../research/indoor/README.md). Parked for now; three prototypes to build when it is picked up:
+
+- [ ] Prototype: MapLibre `fill-extrusion` per level. Rooms and building parts are extruded by `level` (and `min_level`/`max_level`) in the map, live with unsaved edits, the chosen level opaque and the others faint. Test for Tobias: a building of a fixture in 3D, a level edit shows at once.
+- [ ] Prototype: OSM2World. Its browser build (TeaVM, MIT) and Babylon.js object viewer in a floating panel like the photo panel, fed with the selected building from the editor's data. Measure the conversion time on a fixture, check if geometry edits show without saving, and check the licences of the web build and the tile pipeline.
+- [ ] Prototype: a level mode like the relation column, so that the focus on one level is clearer than the dimming in iD PR 12605. A level picker of the floors in view, as MapComplete builds it from the features in view (`0` always present, ranges, `;`, `repeat_on`). The other levels dimmed and read-only, and a new feature gets the chosen level, as MapComplete does. The chosen level goes in the URL, with a status line saying which level is being edited.

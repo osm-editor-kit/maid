@@ -1,17 +1,23 @@
 /**
- * The violet of relation editing: the relation column beside the inspector (Shell's `sidebarStart`), the inspector
- * sections that edit relations (`InspectorSection.tone`), and on the map the open relation's glow and the related
- * halo (renderer layers.ts). The feature itself keeps the neutral look and blue stays the selection, so violet always
- * says "a relation".
+ * The violet of relation editing: the relation column beside the inspector (Shell's `sidebarStart`), the icon of the
+ * inspector sections that edit relations (`InspectorSection.tone`, violet while open), and on the map the open
+ * relation's glow and the related halo (renderer layers.ts). The feature itself keeps the neutral look and blue stays the
+ * selection, so violet always says "a relation".
  */
 
-/** A section heading about relations: opaque, as it sticks, with the inspector's dark text */
+/** A group heading in the relation column: its violet, opaque as it sticks, with the inspector's dark text */
 export const RELATION_HEADING =
   'bg-violet-100 text-zinc-950 dark:bg-[color-mix(in_srgb,var(--color-violet-950)_50%,var(--color-zinc-900))] dark:text-white'
 
-/** A quiet box inside a relation section (the junction of the turn restrictions) */
+/** The icon before the title of an open relation section; folded it is the chevron's grey */
+export const RELATION_ICON_OPEN = 'text-violet-600 dark:text-violet-400'
+
+/**
+ * A quiet box inside a relation section (the FROM roads and the junction of the turn restrictions); opaque, so that the
+ * junction's arrow halos can take its colour
+ */
 export const RELATION_SURFACE =
-  'border-violet-950/10 bg-violet-50 dark:border-white/10 dark:bg-violet-950/30'
+  'border-violet-950/10 bg-violet-50 dark:border-white/10 dark:bg-[color-mix(in_srgb,var(--color-violet-950)_40%,var(--color-zinc-950))]'
 
 /** The square behind a relation's icon in a list row */
 export const RELATION_ICON =

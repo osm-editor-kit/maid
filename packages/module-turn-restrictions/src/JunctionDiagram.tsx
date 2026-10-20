@@ -78,10 +78,10 @@ export type JunctionDiagramProps = {
 
 /**
  * The junction: the roads as wide strokes with a casing, in the colours of their highway class (the map's), the FROM
- * road under a violet halo (relation-tone.ts), the turns of the FROM road as arrows, and a button at the end of each arrow on its TO road
- * (keyboard reachable). The button's tooltip says the turn's state and what a click does; the box has a border and
- * background in both themes, so that its shape shows. A read-only junction keeps its buttons focusable
- * (aria-disabled, not disabled), so that the tooltips still show.
+ * road under a violet halo (relation-tone.ts), the turns of the FROM road as arrows, and a button at the end of each
+ * arrow on its TO road (keyboard reachable). The button's tooltip says the turn's state and what a click does. The
+ * diagram sits in the section's box (RELATION_SURFACE) under a divider. A read-only junction keeps its buttons
+ * focusable (aria-disabled, not disabled), so that the tooltips still show.
  */
 export function JunctionDiagram({
   sketch,
@@ -99,7 +99,7 @@ export function JunctionDiagram({
 
   return (
     <div
-      className="relative w-full rounded-md border border-violet-950/10 bg-violet-50 dark:border-white/10 dark:bg-[color-mix(in_srgb,var(--color-violet-950)_40%,var(--color-zinc-950))]"
+      className="relative w-full border-t border-violet-950/10 dark:border-white/10"
       style={{ aspectRatio: `${width} / ${height}` }}
     >
       <svg

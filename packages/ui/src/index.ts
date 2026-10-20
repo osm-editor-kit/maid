@@ -34,9 +34,11 @@ export {
   RELATION_CHOSEN,
   RELATION_HEADING,
   RELATION_ICON,
+  RELATION_ICON_OPEN,
   RELATION_OPEN_ROW,
   RELATION_SURFACE,
 } from './relation-tone.ts'
+export { RelationIcon } from './RelationIcon.tsx'
 export { ControlButton, ControlGroup, MapControls } from './MapControls.tsx'
 export { CommandBar, type CommandItem } from './CommandBar.tsx'
 export { ResizeHandle } from './ResizeHandle.tsx'

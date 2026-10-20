@@ -37,3 +37,7 @@ Research for a Maid variant that focuses on building levels and interiors, done 
   - The wiki and blog quotes came through a summarising fetch.
   - Several KDE and indoorequal source files returned 404.
   - The MapComplete source read is from February 2025.
+
+## Next
+
+Parked by Tobias on 2026-10-20. Three prototypes are listed in [steps.md](../../build-out/steps.md) under "Indoor and levels": MapLibre `fill-extrusion` per level, OSM2World in a floating panel, and a level mode like the relation column, with MapComplete's floor picker.

@@ -205,40 +205,43 @@ function JunctionEditor({ entity, editor, defaults, onRelated }: TurnRestriction
     <div className="flex flex-col gap-3">
       <p className="text-xs text-zinc-500 dark:text-zinc-400">{m.turn_restrictions_help_click()}</p>
 
-      <div className={`flex flex-col gap-1.5 rounded-md border p-2 ${RELATION_SURFACE}`}>
-        <span id={captionID} className="text-xs text-zinc-500 dark:text-zinc-400">
-          {m.turn_restrictions_from()}
-        </span>
-        <div role="group" aria-labelledby={captionID} className="flex flex-wrap gap-1.5">
-          {fromRoads.map((road) => (
-            <button
-              key={road.id}
-              type="button"
-              aria-pressed={road.id === fromID}
-              onClick={() => chooseFrom(road.id)}
-              className={`h-7 rounded-full border px-2.5 text-xs focus-visible:outline-2 focus-visible:outline-blue-500 ${
-                road.id === fromID
-                  ? RELATION_CHOSEN
-                  : 'border-zinc-950/10 bg-white text-zinc-700 hover:border-zinc-950/30 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-white/30'
-              }`}
-            >
-              <span aria-hidden="true">{headingArrow(road.heading)} </span>
-              {road.name ?? m.turn_restrictions_unnamed()}
-            </button>
-          ))}
+      {/* one box: the FROM roads above, the junction under a divider, as they belong together */}
+      <div className={`overflow-hidden rounded-md border ${RELATION_SURFACE}`}>
+        <div className="flex flex-col gap-1.5 p-2">
+          <span id={captionID} className="text-xs text-zinc-500 dark:text-zinc-400">
+            {m.turn_restrictions_from()}
+          </span>
+          <div role="group" aria-labelledby={captionID} className="flex flex-wrap gap-1.5">
+            {fromRoads.map((road) => (
+              <button
+                key={road.id}
+                type="button"
+                aria-pressed={road.id === fromID}
+                onClick={() => chooseFrom(road.id)}
+                className={`h-7 rounded-full border px-2.5 text-xs focus-visible:outline-2 focus-visible:outline-blue-500 ${
+                  road.id === fromID
+                    ? RELATION_CHOSEN
+                    : 'border-zinc-950/10 bg-white text-zinc-700 hover:border-zinc-950/30 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-white/30'
+                }`}
+              >
+                <span aria-hidden="true">{headingArrow(road.heading)} </span>
+                {road.name ?? m.turn_restrictions_unnamed()}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <JunctionDiagram
-        sketch={sketch}
-        turns={turns}
-        fromID={fromID}
-        hovered={hovered}
-        readOnly={entity.readOnly}
-        onHover={hoverTurn}
-        onChooseFrom={chooseFrom}
-        onChoose={click}
-      />
+        <JunctionDiagram
+          sketch={sketch}
+          turns={turns}
+          fromID={fromID}
+          hovered={hovered}
+          readOnly={entity.readOnly}
+          onHover={hoverTurn}
+          onChooseFrom={chooseFrom}
+          onChoose={click}
+        />
+      </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-zinc-500 dark:text-zinc-400">
         <label className="flex items-center gap-1.5">

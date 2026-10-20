@@ -1,6 +1,7 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import type { InspectorSectionProps } from './extension-points.ts'
-import { RELATION_HEADING } from './relation-tone.ts'
+import { RELATION_ICON_OPEN } from './relation-tone.ts'
+import { RelationIcon } from './RelationIcon.tsx'
 import { SidebarDisclosure, SidebarSection } from './Sidebar.tsx'
 
 /**
@@ -52,7 +53,15 @@ export function InspectorSections({
               title={section.title}
               detail={section.detail?.(entity, editor)}
               defaultOpen={section.disclosure === 'open'}
-              headingClassName={section.tone === 'relation' ? RELATION_HEADING : undefined}
+              icon={
+                section.tone === 'relation'
+                  ? (open) => (
+                      <RelationIcon
+                        className={`size-4 shrink-0 ${open ? RELATION_ICON_OPEN : 'text-zinc-500 dark:text-zinc-400'}`}
+                      />
+                    )
+                  : undefined
+              }
             >
               {content}
             </SidebarDisclosure>
