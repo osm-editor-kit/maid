@@ -1,3 +1,6 @@
+/** The reason of the edited level's offer: the menu shows it in the current look */
+export const EDITED_REASON = 'edited level'
+
 /**
  * The levels offered for a feature that has no level yet (LevelMenu.tsx). Pure: the engine's data comes in through
  * the input, so the rules can be tested without a map.
@@ -66,7 +69,7 @@ export function suggestLevels(input: {
     for (const id of ids) if (!suggestion.ids.includes(id)) suggestion.ids.push(id)
   }
 
-  if (input.edited !== null) add(String(input.edited), 'edited level')
+  if (input.edited !== null) add(String(input.edited), EDITED_REASON)
 
   // the ways through the feature's nodes, each once (a way can share two nodes), grouped by their level
   const seen = new Set<string>()

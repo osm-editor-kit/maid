@@ -171,7 +171,7 @@ const failed = await runCheck(
       report(
         'its first offer is the edited level',
         true,
-        ((await first.textContent()) ?? '').startsWith('level=0'),
+        (await first.getAttribute('data-level')) === '0',
       )
       await first.click()
       await settle()

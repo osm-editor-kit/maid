@@ -11,6 +11,7 @@ import { ControlGroup, Flyout, ROW_CURRENT, Tooltip } from '@osm-editor-kit/maid
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useMap } from 'react-map-gl/maplibre'
 import { twMerge } from 'tailwind-merge'
+import { buttonClass } from './look.ts'
 import { levelViewActions, useThreeD } from './view-store.ts'
 
 /** From this OSM zoom on the picker shows, as MapComplete's floor selector does */
@@ -105,13 +106,6 @@ export function countLabel(count: number): string {
 
 export function sameFloors(a: readonly number[], b: readonly number[]): boolean {
   return a.length === b.length && a.every((floor, i) => floor === b[i])
-}
-
-const BUTTON =
-  'flex h-9 min-w-9 items-center justify-center px-2 text-sm font-medium tabular-nums tracking-tight text-zinc-950 focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-blue-500 pointer-coarse:h-10 pointer-coarse:min-w-10 dark:text-white'
-
-function buttonClass(pressed: boolean): string {
-  return `${BUTTON} ${pressed ? ROW_CURRENT : 'bg-white hover:bg-zinc-50 dark:bg-zinc-800 dark:hover:bg-zinc-700'}`
 }
 
 // The column hangs from the map's top left corner (the right edge has the zoom and compass buttons): "3D" first, then
