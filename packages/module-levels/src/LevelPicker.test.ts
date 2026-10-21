@@ -5,7 +5,8 @@ import {
   idsInView,
   levelLabel,
   levelPickerShown,
-  levelStatus,
+  levelTip,
+  nextFloors,
   sameFloors,
 } from './LevelPicker.tsx'
 
@@ -68,8 +69,20 @@ describe('labels and status', () => {
     expect(levelLabel(2)).toBe('2')
   })
 
-  test('the status line names the level', () => {
-    expect(levelStatus(0)).toBe('Editing level 0 · other levels dimmed and locked')
+  test('the tooltip says what a level is now, briefly', () => {
+    expect(levelTip(0, 'edited')).toBe('Level 0: editing')
+    expect(levelTip(1, 'shown')).toBe('Level 1: shown, locked')
+    expect(levelTip(3, 'hidden')).toBe('Level 3: hidden')
+    expect(levelTip(2, undefined)).toBe('Level 2')
+  })
+})
+
+describe('nextFloors', () => {
+  test('replaces the list when nothing is edited, only adds to it while a level or 3D is on', () => {
+    expect(nextFloors([-1, 0, 1], [0, 2], false)).toEqual([0, 2])
+    expect(nextFloors([-1, 0, 1], [0, 2], true)).toEqual([-1, 0, 1, 2])
+    const same = [-1, 0, 1]
+    expect(nextFloors(same, [0], true)).toBe(same)
   })
 })
 

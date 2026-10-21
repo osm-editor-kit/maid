@@ -65,6 +65,9 @@ export type LineProps = {
   ed?: EditKind
   /** the floors it is on (markLevels), only when it has levels */
   lv?: string
+  /** The lowest and the highest of those levels, for the levels shown next to the edited one (layers.ts LEVEL_DIM) */
+  lo?: number
+  hi?: number
 }
 
 export type AreaProps = {
@@ -89,6 +92,9 @@ export type AreaProps = {
   ed?: EditKind
   /** the floors it is on (markLevels), only when it has levels */
   lv?: string
+  /** The lowest and the highest of those levels, for the levels shown next to the edited one (layers.ts LEVEL_DIM) */
+  lo?: number
+  hi?: number
 }
 
 /** `addr`: the text of an address node (iD draws it on a plaque, not as a pin; '' for an address without number or name) */
@@ -100,6 +106,9 @@ export type PointProps = {
   ed?: EditKind
   /** the floors it is on (markLevels), only when it has levels */
   lv?: string
+  /** The lowest and the highest of those levels, for the levels shown next to the edited one (layers.ts LEVEL_DIM) */
+  lo?: number
+  hi?: number
 } & ConeProps
 export type VertexProps = {
   id: string
@@ -109,6 +118,9 @@ export type VertexProps = {
   ed?: EditKind
   /** the floors it is on (markLevels), only when it has levels */
   lv?: string
+  /** The lowest and the highest of those levels, for the levels shown next to the edited one (layers.ts LEVEL_DIM) */
+  lo?: number
+  hi?: number
 } & ConeProps
 
 const HIGHWAY_STACK: Record<string, number> = {
@@ -464,8 +476,11 @@ function floorsOf(tags: Tags): readonly number[] {
  * Sets `lv` for layers.ts LEVEL_DIM: ';-1;0;', so a layer tests ';<level>;' with one `index-of`. Without floors
  * there is no `lv` at all, and such a feature is never dimmed. join writes numbers as String() does.
  */
-function markLevels(props: { lv?: string }, floors: readonly number[]) {
-  if (floors.length > 0) props.lv = `;${floors.join(';')};`
+function markLevels(props: { lv?: string; lo?: number; hi?: number }, floors: readonly number[]) {
+  if (floors.length === 0) return
+  props.lv = `;${floors.join(';')};`
+  props.lo = floors[0]
+  props.hi = floors[floors.length - 1]
 }
 
 export class FeatureBuilder {

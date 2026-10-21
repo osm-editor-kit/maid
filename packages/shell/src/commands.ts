@@ -37,8 +37,11 @@ const GROUP_RANK = new Map<string, number>(OPERATION_GROUPS.map((group, rank) =>
 const groupRank = (group: string | undefined) =>
   GROUP_RANK.get(group ?? DEFAULT_GROUP) ?? GROUP_RANK.get(DEFAULT_GROUP)!
 
-/** Why the commands of a feature that a filter protects cannot run */
-export const PROTECTED_REASON = 'A filter protects this feature'
+/** Why the commands of a protected feature cannot run: a filter protects it, or it is on another level than the one edited */
+const PROTECTED_REASON = {
+  filter: 'A filter protects this feature',
+  level: 'This feature is on another level than the one you edit',
+} as const
 
 /**
  * True if a filter protects the entity: it may be looked at, not changed. The builder records
@@ -120,7 +123,12 @@ export function useEditCommands() {
   // the version makes this read again after every edit: what applies depends on the data
   return useEngine((e): Command[] => {
     if (ids.length === 0) return []
-    const protectedIds = ids.some((id) => protectedBy(engine, id))
+    // a level lock first: choosing the feature's level is the quicker way out
+    const protectedReason = ids.some((id) => engine.isOffLevel(id))
+      ? PROTECTED_REASON.level
+      : ids.some((id) => protectedBy(engine, id))
+        ? PROTECTED_REASON.filter
+        : undefined
     const context = e.operationContext()
     // one point with a direction: R turns that direction, as iD's tooltip says
     const turnsDirection = e.transform.directionOf(ids) !== undefined
@@ -133,7 +141,7 @@ export function useEditCommands() {
       // delete has a key with a modifier, which an operation's one-letter shortcut cannot say
       shortcut: operation.id === 'delete' ? modKey('⌫') : operation.shortcut?.toUpperCase(),
       group: operation.group ?? DEFAULT_GROUP,
-      reason: protectedIds ? PROTECTED_REASON : operation.disabled(context),
+      reason: protectedReason ?? operation.disabled(context),
       run: () => {
         engine.previewOperation(null)
         const next = engine.runOperation(operation)
@@ -151,7 +159,7 @@ export function useEditCommands() {
         icon: commandIcon('move'),
         shortcut: 'M',
         group: 'position',
-        reason: protectedIds ? PROTECTED_REASON : undefined,
+        reason: protectedReason,
         run: () => void engine.setMode('move'),
       },
       {
@@ -161,7 +169,7 @@ export function useEditCommands() {
         shortcut: 'R',
         group: 'position',
         description: turnsDirection ? m.rotate_point_description() : undefined,
-        reason: protectedIds ? PROTECTED_REASON : undefined,
+        reason: protectedReason,
         run: () => void engine.setMode('rotate'),
       },
       {
@@ -170,7 +178,7 @@ export function useEditCommands() {
         icon: commandIcon('copy'),
         shortcut: modKey('C'),
         group: 'position',
-        reason: protectedIds ? PROTECTED_REASON : undefined,
+        reason: protectedReason,
         run: () => void engine.copy(),
       },
       ...applicable

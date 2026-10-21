@@ -1,8 +1,9 @@
+import { EyeIcon, EyeSlashIcon, PencilIcon } from '@heroicons/react/16/solid'
 import { toOsmZoom } from '@osm-editor-kit/maid-core'
-import { floorsOf } from '@osm-editor-kit/maid-levels'
+import { floorsOf, levelState, type LevelState } from '@osm-editor-kit/maid-levels'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
-import { ControlGroup, ROW_CURRENT } from '@osm-editor-kit/maid-ui'
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { ControlGroup, ROW_CURRENT, Tooltip } from '@osm-editor-kit/maid-ui'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useMap } from 'react-map-gl/maplibre'
 import { levelViewActions, useThreeD } from './view-store.ts'
 
@@ -51,9 +52,24 @@ export function levelLabel(level: number): string {
   return String(level)
 }
 
-/** The status line while a level is chosen */
-export function levelStatus(level: number): string {
-  return `Editing level ${levelLabel(level)} · other levels dimmed and locked`
+/** A level button's tooltip: what the level is now, in a word (the neighbouring buttons show the rest) */
+export function levelTip(level: number, state: LevelState | undefined): string {
+  const name = `Level ${levelLabel(level)}`
+  if (state === 'edited') return `${name}: editing`
+  if (state === 'shown') return `${name}: shown, locked`
+  if (state === 'hidden') return `${name}: hidden`
+  return name
+}
+
+/** The floors after a new reading: while the person works on a level or in 3D the list only grows, so it does not jump */
+export function nextFloors(
+  previous: readonly number[],
+  read: readonly number[],
+  keep: boolean,
+): readonly number[] {
+  if (!keep) return read
+  const all = new Set([...previous, ...read])
+  return all.size === previous.length ? previous : [...all].sort((a, b) => a - b)
 }
 
 export function sameFloors(a: readonly number[], b: readonly number[]): boolean {
@@ -67,15 +83,16 @@ function buttonClass(pressed: boolean): string {
   return `${BUTTON} ${pressed ? ROW_CURRENT : 'bg-white hover:bg-zinc-50 dark:bg-zinc-800 dark:hover:bg-zinc-700'}`
 }
 
-// The column sits in the middle of the map's right edge, as MapComplete's floor selector, between the zoom and compass
-// buttons above (7rem leaves room for both) and the notices below; a long list of floors scrolls inside that space.
+// The column hangs from the map's top left corner (the right edge has the zoom and compass buttons): "3D" first, then
+// the floors, so a floor that comes or goes moves only what is below it. A long list scrolls above the notices.
 // The column itself lets the pointer through to the map, its controls take it.
 const COLUMN =
-  'pointer-events-none absolute top-28 right-2 bottom-12 z-10 flex flex-col items-end justify-center gap-2'
+  'pointer-events-none absolute top-2 bottom-12 left-2 z-10 flex flex-col items-start gap-2'
 
 /**
- * The floor selector on the map's right edge: the floors of the features in view, highest at the top. Choosing one edits
- * on that level (engine.setLevel), choosing it again or "All" ends the level mode. "3D" turns the extrusion on and off.
+ * The floor selector at the map's top left: "3D", then the floors of the features in view, highest first. Choosing one
+ * edits on that level (engine.setLevel); each floor then shows with an icon whether it is edited, shown and locked, or
+ * hidden (levels shown.ts), and says it in its tooltip. Choosing it again or "All" ends the level mode.
  * The floors come from the map's rendered features, read once per animation frame at most, each time the map has
  * drawn everything (`idle`).
  */
@@ -85,6 +102,14 @@ export function LevelPicker({ engine }: { engine: MaidEngine }) {
   const { current: map } = useMap()
   const [zoom, setZoom] = useState(0)
   const [floors, setFloors] = useState<number[]>([0])
+  // 3D, read by the map's listener below without starting it again
+  const keeping = useRef(threeD)
+  useEffect(
+    function keepTheFloorsIn3D() {
+      keeping.current = threeD
+    },
+    [threeD],
+  )
 
   useEffect(
     function followTheFloorsInView() {
@@ -101,7 +126,11 @@ export function LevelPicker({ engine }: { engine: MaidEngine }) {
           ids,
           (id) => engine.data.node(id) ?? engine.data.way(id) ?? engine.data.relation(id),
         )
-        setFloors((previous) => (sameFloors(previous, next) ? previous : next))
+        const keep = engine.level !== null || keeping.current
+        setFloors((previous) => {
+          const floors = nextFloors(previous, next, keep)
+          return sameFloors(previous, floors) ? previous : [...floors]
+        })
       }
       const later = () => {
         if (!frame) frame = requestAnimationFrame(read)
@@ -122,45 +151,53 @@ export function LevelPicker({ engine }: { engine: MaidEngine }) {
 
   return (
     <div className={COLUMN}>
-      <ControlGroup label="Building levels" className="pointer-events-auto min-h-0 overflow-y-auto">
-        {floorChoices(floors, level).map((floor) => (
-          <button
-            key={floor}
-            type="button"
-            aria-pressed={level === floor}
-            onClick={() => engine.setLevel(level === floor ? null : floor)}
-            className={buttonClass(level === floor)}
-          >
-            {levelLabel(floor)}
-          </button>
-        ))}
-        <button
-          type="button"
-          aria-pressed={level === null}
-          onClick={() => engine.setLevel(null)}
-          className={buttonClass(level === null)}
-        >
-          All
-        </button>
-      </ControlGroup>
-      {level !== null && (
-        <p
-          role="status"
-          className="pointer-events-auto max-w-44 rounded-md bg-white px-2 py-1 text-right text-xs text-zinc-700 shadow-sm ring-1 ring-zinc-950/10 dark:bg-zinc-800 dark:text-zinc-200 dark:ring-white/10"
-        >
-          {levelStatus(level)}
-        </p>
-      )}
       <ControlGroup label="View" className="pointer-events-auto shrink-0">
-        <button
-          type="button"
-          aria-pressed={threeD}
-          onClick={() => levelViewActions.setThreeD(!threeD)}
-          className={buttonClass(threeD)}
-        >
-          3D
-        </button>
+        <Tooltip label={threeD ? 'Flat map' : 'Levels in 3D'} placement="right">
+          <button
+            type="button"
+            aria-pressed={threeD}
+            onClick={() => levelViewActions.setThreeD(!threeD)}
+            className={buttonClass(threeD)}
+          >
+            3D
+          </button>
+        </Tooltip>
+      </ControlGroup>
+      <ControlGroup label="Building levels" className="pointer-events-auto min-h-0 overflow-y-auto">
+        {floorChoices(floors, level).map((floor) => {
+          const state = level === null ? undefined : levelState(floor, level)
+          return (
+            <Tooltip key={floor} label={levelTip(floor, state)} placement="right">
+              <button
+                type="button"
+                aria-pressed={state === 'edited'}
+                data-level-state={state}
+                onClick={() => engine.setLevel(state === 'edited' ? null : floor)}
+                className={`${buttonClass(state === 'edited')} justify-between gap-1.5 ${state === 'hidden' ? 'text-zinc-400 dark:text-zinc-500' : ''}`}
+              >
+                <span>{levelLabel(floor)}</span>
+                {state && <StateIcon state={state} />}
+              </button>
+            </Tooltip>
+          )
+        })}
+        <Tooltip label="All levels" placement="right">
+          <button
+            type="button"
+            aria-pressed={level === null}
+            onClick={() => engine.setLevel(null)}
+            className={buttonClass(level === null)}
+          >
+            All
+          </button>
+        </Tooltip>
       </ControlGroup>
     </div>
   )
+}
+
+/** What a level's button does to it while another is edited: pencil (edited), eye (in view, locked), crossed eye (hidden) */
+function StateIcon({ state }: { state: LevelState }) {
+  const Icon = state === 'edited' ? PencilIcon : state === 'shown' ? EyeIcon : EyeSlashIcon
+  return <Icon aria-hidden="true" className="size-3.5 shrink-0" />
 }

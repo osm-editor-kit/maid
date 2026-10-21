@@ -2,6 +2,7 @@
  * The MapLibre layers that draw OSM data in iD's look. Pure data: no map calls here.
  * Paint values come from feature properties set by the builder (build.ts).
  */
+import { NEIGHBOUR_RANGE } from '@osm-editor-kit/maid-levels'
 import type { ExpressionSpecification, LayerSpecification } from 'maplibre-gl'
 import {
   ARROW_DEFAULT_COLOUR,
@@ -106,24 +107,35 @@ export function displayOf(value: string | null | undefined): MapDisplay {
 
 /** The map's global state with the level being edited (engine.setLevel), as a string; unset: no level mode */
 export const LEVEL_STATE = 'level'
-/** How visible a feature on another level is while a level is edited */
+/** The same level as a number, for the levels next to it (NEIGHBOUR_RANGE) */
+export const LEVEL_NUMBER_STATE = 'levelNumber'
+/** How visible a feature on a level next to the edited one is (it is locked) */
 const OFF_LEVEL_OPACITY = 0.2
 
 /**
- * 1 for a feature on the chosen level, with no level, or when no level is chosen; OFF_LEVEL_OPACITY otherwise. A
- * feature carries its levels as `lv`, `;-1;0;` (build.ts), so a level is found with `index-of`. It reads the global
- * state in paint only: a level change repaints the loaded tiles and builds nothing again (a global state in a filter
- * or layout would reload the source).
+ * The level mode's rule (packages/levels shown.ts): 1 for a feature on the edited level, with no level, or when no level
+ * is edited; OFF_LEVEL_OPACITY for a feature on a level up to NEIGHBOUR_RANGE away; 0 (hidden) for the others. A
+ * feature carries its levels as `lv`, `;-1;0;`, found with `index-of`, and its lowest and highest as `lo` and `hi`
+ * (build.ts). It reads the global state in paint only: a level change repaints the loaded tiles and builds nothing
+ * again (a global state in a filter or layout would reload the source).
  */
 const chosenLevel: ExpressionSpecification = [
   'to-string',
   ['coalesce', ['global-state', LEVEL_STATE], ''],
 ]
+const chosenNumber: ExpressionSpecification = [
+  'to-number',
+  ['coalesce', ['global-state', LEVEL_NUMBER_STATE], 0],
+]
 const LEVEL_DIM: ExpressionSpecification = [
   'case',
   ['any', ['==', chosenLevel, ''], ['!', ['has', 'lv']]], 1,
   ['>=', ['index-of', ['concat', ';', chosenLevel, ';'], ['get', 'lv']], 0], 1,
-  OFF_LEVEL_OPACITY,
+  ['all',
+    ['<=', ['to-number', ['get', 'lo']], ['+', chosenNumber, NEIGHBOUR_RANGE]],
+    ['>=', ['to-number', ['get', 'hi']], ['-', chosenNumber, NEIGHBOUR_RANGE]],
+  ], OFF_LEVEL_OPACITY,
+  0,
 ] // prettier-ignore
 
 /**

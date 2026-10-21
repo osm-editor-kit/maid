@@ -317,7 +317,9 @@ export function Inspector() {
           <SidebarBody>
             {entity.readOnly ? (
               <p className="mb-3 rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-800 dark:bg-amber-400/10 dark:text-amber-300">
-                Read-only: a filter protects this feature. Change it under “Filters” in the top bar.
+                {engine.isOffLevel(entity.id)
+                  ? 'Read-only: this feature is on another level. Choose its level in the level picker on the map.'
+                  : 'Read-only: a filter protects this feature. Change it under “Filters” in the top bar.'}
               </p>
             ) : (
               <Operations />

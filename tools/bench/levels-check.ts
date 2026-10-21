@@ -22,9 +22,12 @@ const failed = await runCheck(
     // --- a link with level=-1 edits on level -1 ---
     report('the link chooses level -1', -1, await engineLevel())
     report(
-      'the map has the level as its global state',
-      '-1',
-      await page.evaluate(() => window.__maid.map.getGlobalState().level),
+      'the map has the level as its global state, as text and as a number',
+      ['-1', -1],
+      await page.evaluate(() => {
+        const state = window.__maid.map.getGlobalState()
+        return [state.level, state.levelNumber]
+      }),
     )
     report('the level picker shows', 1, await picker.count())
     report(
@@ -39,8 +42,23 @@ const failed = await runCheck(
       ),
     )
 
+    // on level -1: -1 is edited, -2 to 0 are shown (and locked), the levels further away are hidden
+    const stateOf = (label: string) =>
+      page.evaluate(
+        (label) =>
+          [...document.querySelectorAll('[role="group"][aria-label="Building levels"] button')]
+            .find((button) => button.textContent?.trim() === label)
+            ?.getAttribute('data-level-state') ?? null,
+        label,
+      )
+    report(
+      'the picker marks -1 edited, -2 and 0 shown, 2 hidden',
+      ['edited', 'shown', 'shown', 'hidden'],
+      [await stateOf('-1'), await stateOf('-2'), await stateOf('0'), await stateOf('2')],
+    )
+
     // --- choosing level 0 in the picker ---
-    await picker.getByRole('button', { name: '0', exact: true }).click()
+    await picker.getByRole('button').filter({ hasText: /^0$/ }).click()
     await settle()
     report('a click on 0 edits on level 0', [0, '0'], [await engineLevel(), await urlLevel()])
 
@@ -82,6 +100,21 @@ const failed = await runCheck(
         false,
         await page.evaluate((id) => window.__maid.engine.selected().includes(id), room.id),
       )
+      // selected by a link, it is shown read-only, and the inspector says why
+      await page.evaluate((id) => {
+        const url = new URL(location.href)
+        url.searchParams.set('id', id)
+        history.pushState(null, '', url)
+        window.dispatchEvent(new PopStateEvent('popstate'))
+      }, room.id)
+      await settle()
+      report(
+        'selected by a link, the inspector says it is on another level',
+        1,
+        await page
+          .getByText('Read-only: this feature is on another level', { exact: false })
+          .count(),
+      )
     }
 
     // --- a point placed now is on level 0 ---
@@ -89,7 +122,7 @@ const failed = await runCheck(
     report('new features get level=0', { level: '0' }, before)
 
     // --- "All" ends the level mode ---
-    await picker.getByRole('button', { name: 'All', exact: true }).click()
+    await picker.getByRole('button').filter({ hasText: /^All$/ }).click()
     await settle()
     report('"All" ends the level mode', [null, null], [await engineLevel(), await urlLevel()])
     if (room)

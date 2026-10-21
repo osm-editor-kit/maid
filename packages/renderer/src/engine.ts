@@ -55,6 +55,7 @@ import {
   ACTIVE_SOURCE,
   activePinIds,
   EDIT_SOURCES,
+  LEVEL_NUMBER_STATE,
   LEVEL_STATE,
   type MapDisplay,
   SELECT_SOURCES,
@@ -630,8 +631,9 @@ export class MaidEngine {
   }
 
   /**
-   * The building level being edited, or null. While a level is chosen, features on other levels are dimmed (the
-   * layers read the map's global state `level`, layers.ts) and cannot be picked or changed (`isOffLevel`).
+   * The building level being edited, or null. While a level is chosen, features on the levels next to it are dimmed,
+   * features further away are hidden (the layers read the map's global state, layers.ts LEVEL_DIM), and none of them
+   * can be picked or changed (`isOffLevel`).
    * Features with no level stay as they are.
    */
   get level(): number | null {
@@ -646,12 +648,16 @@ export class MaidEngine {
     this.changed()
   }
 
-  /** The level as the map's global state: a string, as the features carry their levels (`lv`, build.ts) */
+  /**
+   * The level as the map's global state: a string, as the features carry their levels (`lv`, build.ts), and a number
+   * for the levels next to it (`lo`, `hi`)
+   */
   private applyLevel() {
     this.map?.setGlobalStateProperty(
       LEVEL_STATE,
       this.levelShown === null ? null : String(this.levelShown),
     )
+    this.map?.setGlobalStateProperty(LEVEL_NUMBER_STATE, this.levelShown)
   }
 
   /** The tags a new feature starts with: the level being edited, as MapComplete gives a new point its floor */
