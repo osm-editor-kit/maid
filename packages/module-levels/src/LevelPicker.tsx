@@ -7,7 +7,7 @@ import {
   type LevelState,
 } from '@osm-editor-kit/maid-levels'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
-import { ControlGroup, ROW_CURRENT, Tooltip } from '@osm-editor-kit/maid-ui'
+import { ControlGroup, Flyout, ROW_CURRENT, Tooltip } from '@osm-editor-kit/maid-ui'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useMap } from 'react-map-gl/maplibre'
 import { twMerge } from 'tailwind-merge'
@@ -108,7 +108,7 @@ export function sameFloors(a: readonly number[], b: readonly number[]): boolean 
 }
 
 const BUTTON =
-  'flex h-9 min-w-9 items-center justify-center px-2 text-sm font-medium tabular-nums text-zinc-950 focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-blue-500 pointer-coarse:h-10 pointer-coarse:min-w-10 dark:text-white'
+  'flex h-9 min-w-9 items-center justify-center px-2 text-sm font-medium tabular-nums tracking-tight text-zinc-950 focus-visible:-outline-offset-2 focus-visible:outline-2 focus-visible:outline-blue-500 pointer-coarse:h-10 pointer-coarse:min-w-10 dark:text-white'
 
 function buttonClass(pressed: boolean): string {
   return `${BUTTON} ${pressed ? ROW_CURRENT : 'bg-white hover:bg-zinc-50 dark:bg-zinc-800 dark:hover:bg-zinc-700'}`
@@ -124,8 +124,8 @@ const COLUMN =
  * The floor selector at the map's top left: "3D", then the floors of the features in view, highest first, each with a
  * small count of its features in view, then "none" for the features without a level, then "All". Choosing a floor
  * edits on that level (engine.setLevel); each floor then shows with an icon whether it is edited, shown and locked, or
- * hidden (levels shown.ts). "none" edits the features without a level, to find and fix them; while a level is edited,
- * its eye shows or hides them. The pointer on a floor that shows makes its features stand out on the map.
+ * hidden (levels shown.ts). The "none" row opens a flyout: hide or show the features without a level next to the
+ * edited one, or edit only them, to find and fix them. The pointer on a floor that shows makes its features stand out on the map.
  * The floors come from the map's rendered features, read once per animation frame at most, each time the map has
  * drawn everything (`idle`).
  */
@@ -217,7 +217,7 @@ export function LevelPicker({ engine }: { engine: MaidEngine }) {
       </ControlGroup>
       <ControlGroup
         label="Building levels"
-        className="pointer-events-auto min-h-0 w-36 overflow-y-auto"
+        className="pointer-events-auto min-h-0 w-24 overflow-y-auto"
       >
         {floorChoices(floors, edited).map((floor) => {
           const state =
@@ -246,56 +246,57 @@ export function LevelPicker({ engine }: { engine: MaidEngine }) {
             </Tooltip>
           )
         })}
-        <div className="flex">
-          <Tooltip label={unleveledTip(noneState)} placement="right">
+        {/* the features without a level: one row; its flyout (on hover, pinned by a click) holds the three choices */}
+        <Flyout
+          label="Features without a level"
+          placement="right"
+          hover
+          className="w-56 p-1"
+          trigger={
             <button
               type="button"
               aria-pressed={noneState === 'edited'}
               data-level="none"
               data-level-state={noneState}
-              onClick={() => engine.setLevel(noneState === 'edited' ? null : 'none')}
               {...hover('none', noneState)}
               className={twMerge(
                 buttonClass(noneState === 'edited'),
                 ROW,
-                'flex-1',
                 noneState === 'hidden' && HIDDEN_TEXT,
               )}
             >
               <span>none</span>
-              <CountPill count={counts.unleveled} />
+              <span className="flex items-center gap-1">
+                <CountPill count={counts.unleveled} />
+                {noneState && <StateIcon state={noneState} />}
+              </span>
             </button>
-          </Tooltip>
-          {noneState && noneState !== 'edited' ? (
-            <Tooltip
-              label={
-                unleveledVisible
-                  ? 'Hide the features without a level'
-                  : 'Show the features without a level'
-              }
-              placement="right"
-            >
-              <button
-                type="button"
-                aria-pressed={unleveledVisible}
-                data-unleveled-toggle
-                onClick={() => engine.setUnleveledVisible(!unleveledVisible)}
-                className={twMerge(
-                  buttonClass(false),
-                  'w-8 min-w-8 px-0',
-                  noneState === 'hidden' && HIDDEN_TEXT,
-                )}
-              >
-                <StateIcon state={noneState} />
-                <span className="sr-only">{unleveledVisible ? 'Hide' : 'Show'}</span>
-              </button>
-            </Tooltip>
-          ) : noneState === 'edited' ? (
-            <span className={`${BUTTON} w-8 min-w-8 px-0 ${ROW_CURRENT}`}>
-              <StateIcon state="edited" />
-            </span>
-          ) : null}
-        </div>
+          }
+        >
+          <p className="px-2 pt-1 pb-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+            Features without a level ({countLabel(counts.unleveled)} in view)
+          </p>
+          <UnleveledChoice
+            state="hidden"
+            current={noneState === 'hidden'}
+            disabled={typeof level !== 'number'}
+            label="Hidden"
+            onChoose={() => engine.setUnleveledVisible(false)}
+          />
+          <UnleveledChoice
+            state="shown"
+            current={noneState === 'shown'}
+            disabled={typeof level !== 'number'}
+            label="Shown, locked"
+            onChoose={() => engine.setUnleveledVisible(true)}
+          />
+          <UnleveledChoice
+            state="edited"
+            current={noneState === 'edited'}
+            label={noneState === 'edited' ? 'Stop editing them' : 'Edit only these'}
+            onChoose={() => engine.setLevel(noneState === 'edited' ? null : 'none')}
+          />
+        </Flyout>
         <Tooltip label="All levels" placement="right">
           <button
             type="button"
@@ -311,23 +312,42 @@ export function LevelPicker({ engine }: { engine: MaidEngine }) {
   )
 }
 
-/** A floor's row: the number at the start, the count and the icon at the end, across the list's fixed width (w-36), so nothing moves when a count changes */
+/** A floor's row: the number at the start, the count and the icon at the end, across the list's fixed width (w-24), so nothing moves when a count changes */
 const ROW = 'w-full justify-between gap-1.5'
 const HIDDEN_TEXT = 'text-zinc-400 dark:text-zinc-500'
 
-/** The tooltip of the "none" row */
-function unleveledTip(state: LevelState | undefined): string {
-  if (state === 'edited') return 'Without a level: editing'
-  if (state === 'shown') return 'Without a level: shown, locked'
-  if (state === 'hidden') return 'Without a level: hidden'
-  return 'Edit the features without a level'
+/** One choice in the flyout of the "none" row; hidden and shown need a level that is edited */
+function UnleveledChoice(props: {
+  state: LevelState
+  label: string
+  current: boolean
+  disabled?: boolean
+  onChoose: () => void
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={props.current}
+      data-unleveled-choice={props.state}
+      disabled={props.disabled}
+      onClick={props.onChoose}
+      className={twMerge(
+        'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm',
+        props.current ? ROW_CURRENT : 'hover:bg-zinc-950/5 dark:hover:bg-white/10',
+        props.disabled && 'cursor-default text-zinc-400 hover:bg-transparent dark:text-zinc-500',
+      )}
+    >
+      <StateIcon state={props.state} />
+      {props.label}
+    </button>
+  )
 }
 
 /** How many features of a level are in view, as a small pill; nothing for none */
 function CountPill({ count }: { count: number }) {
   if (count === 0) return null
   return (
-    <span className="rounded-full bg-zinc-950/10 px-1.5 text-[10px] leading-4 font-normal tabular-nums dark:bg-white/15">
+    <span className="rounded-full bg-zinc-950/10 px-1 text-[10px] leading-4 font-normal tracking-tight tabular-nums dark:bg-white/15">
       {countLabel(count)}
     </span>
   )

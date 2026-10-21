@@ -137,17 +137,23 @@ const failed = await runCheck(
       true,
       await page.evaluate((id) => window.__maid.engine.isOffLevel(id), STATION),
     )
-    await picker.locator('button[data-unleveled-toggle]').click()
+    // the "none" row's flyout: a click pins it open
+    const choose = async (choice: string) => {
+      if ((await page.locator(`[data-unleveled-choice="${choice}"]`).count()) === 0)
+        await levelButton('none').click()
+      await page.locator(`[data-unleveled-choice="${choice}"]`).click()
+    }
+    await choose('hidden')
     report(
-      'the eye hides the features without a level',
+      'the "none" flyout hides the features without a level',
       [false, false],
       await page.evaluate(() => [
         window.__maid.engine.unleveledVisible,
         window.__maid.map.getGlobalState().unleveled,
       ]),
     )
-    await picker.locator('button[data-unleveled-toggle]').click()
-    await levelButton('none').click()
+    await choose('shown')
+    await choose('edited')
     await settle()
     report(
       '"none" edits the features without a level: the station is editable, a room is locked',
