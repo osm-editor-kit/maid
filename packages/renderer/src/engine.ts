@@ -199,6 +199,8 @@ export class MaidEngine {
   private unleveledShown = true
   /** The level whose button the pointer is on: its features stand out (layers.ts LEVEL_DIM) */
   private levelHovered: EditedLevel | null = null
+  /** True while `assignLevel` writes: the level lock does not hold for that one change */
+  private levelLockPaused = false
   /** The levels of each entity asked for by `isOffLevel`, until its entity object changes */
   private levelCache = new WeakMap<object, readonly number[]>()
 
@@ -705,10 +707,23 @@ export class MaidEngine {
    */
   isOffLevel(id: string) {
     const level = this.levelShown
-    if (level === null) return false
+    if (level === null || this.levelLockPaused) return false
     const levels = this.levelsOfEntity(id)
     if (level === 'none') return levels.length > 0
     return !levels.includes(level)
+  }
+
+  /**
+   * Gives a feature its level, as one undo step: the "Set level" menu on a locked feature without a level. Only the
+   * level lock is passed over for it, as that is what it lifts; a filter that protects the feature still refuses.
+   */
+  assignLevel(id: string, value: string) {
+    this.levelLockPaused = true
+    try {
+      return this.changeTags([id], { set: { level: value } }, `Set level=${value}`)
+    } finally {
+      this.levelLockPaused = false
+    }
   }
 
   /** The levels of an entity (empty: it has none), for the level picker's counts */

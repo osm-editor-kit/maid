@@ -153,6 +153,47 @@ const failed = await runCheck(
       ]),
     )
     await choose('shown')
+    await page.keyboard.press('Escape')
+
+    // --- a click on the station (no level, locked on level 0) offers levels; choosing one sets it, one undo step ---
+    const at = await page.evaluate((id) => {
+      const { map, engine } = window.__maid
+      const loc = engine.data.node(id)?.loc
+      return loc ? map.project(loc) : undefined
+    }, STATION)
+    const canvasBox = await page.locator('canvas').first().boundingBox()
+    if (at && canvasBox) {
+      await page.mouse.click(canvasBox.x + at.x, canvasBox.y + at.y)
+      await settle()
+      const menu = page.getByRole('menu', { name: 'Set level' })
+      report('a click on the locked station opens "Set level"', 1, await menu.count())
+      const first = menu.getByRole('menuitem').first()
+      report(
+        'its first offer is the edited level',
+        true,
+        ((await first.textContent()) ?? '').startsWith('level=0'),
+      )
+      await first.click()
+      await settle()
+      report(
+        'choosing it sets level=0 and selects the station',
+        ['0', true],
+        await page.evaluate(
+          (id) => [
+            window.__maid.engine.data.node(id)?.tags.level,
+            window.__maid.engine.selected().includes(id),
+          ],
+          STATION,
+        ),
+      )
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z')
+      await settle()
+      report(
+        'one undo takes the level off again',
+        undefined,
+        await page.evaluate((id) => window.__maid.engine.data.node(id)?.tags.level, STATION),
+      )
+    }
     await choose('edited')
     await settle()
     report(

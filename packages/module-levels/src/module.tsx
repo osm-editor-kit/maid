@@ -4,6 +4,7 @@ import type { EditedLevel } from '@osm-editor-kit/maid-levels'
 import type { MapContentProps, MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { useEffect, type ComponentType } from 'react'
 import { LevelExtrusion } from './LevelExtrusion.tsx'
+import { LevelMenu } from './LevelMenu.tsx'
 import { LevelPicker } from './LevelPicker.tsx'
 import { parseAsLevel } from './url.ts'
 
@@ -51,6 +52,8 @@ export function levels() {
       api.register('map.content', { id: 'levels-url', component: withEngine(LevelUrlSync) })
       api.register('map.content', { id: 'levels-picker', component: withEngine(LevelPicker) })
       api.register('map.content', { id: 'levels-extrusion', component: withEngine(LevelExtrusion) })
+      // a click on a locked feature without a level offers the levels around it
+      api.register('map.content', { id: 'levels-menu', component: withEngine(LevelMenu) })
     },
   })
 }
