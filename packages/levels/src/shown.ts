@@ -7,6 +7,9 @@ export const NEIGHBOUR_RANGE = 1
 
 export type LevelState = 'edited' | 'shown' | 'hidden'
 
+/** What the level mode edits: a level, or the features without a level (`'none'`, to find and fix them) */
+export type EditedLevel = number | 'none'
+
 /** The state of `level` while `edited` is the level being edited */
 export function levelState(level: number, edited: number): LevelState {
   if (level === edited) return 'edited'

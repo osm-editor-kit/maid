@@ -73,7 +73,14 @@ function Extrusion({ engine }: { engine: MaidEngine }) {
       // once per animation frame: a burst of changes in one frame cancels the earlier request and scans once
       const frame = requestAnimationFrame(() => {
         const { ways } = engine.data.all()
-        setCollection(extrusionOf(ways, (id) => engine.data.node(id)?.loc, level))
+        // the features without a level have no height: while they are edited, every level shows
+        setCollection(
+          extrusionOf(
+            ways,
+            (id) => engine.data.node(id)?.loc,
+            typeof level === 'number' ? level : null,
+          ),
+        )
       })
       return () => cancelAnimationFrame(frame)
     },

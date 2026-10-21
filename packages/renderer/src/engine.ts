@@ -13,7 +13,7 @@ import {
  * want to avoid (see docs/research/maplibre.md).
  */
 import { createFilterSet, type FilterSet } from '@osm-editor-kit/maid-filters'
-import { levelsOf } from '@osm-editor-kit/maid-levels'
+import { type EditedLevel, levelsOf } from '@osm-editor-kit/maid-levels'
 import {
   type Action,
   actionAddEntity,
@@ -55,11 +55,13 @@ import {
   ACTIVE_SOURCE,
   activePinIds,
   EDIT_SOURCES,
+  LEVEL_HOVER_STATE,
   LEVEL_NUMBER_STATE,
   LEVEL_STATE,
   type MapDisplay,
   SELECT_SOURCES,
   SOURCES,
+  UNLEVELED_STATE,
 } from './layers'
 import { MeasureSession } from './measure-session'
 import { MidpointHandles } from './midpoint-handles'
@@ -115,7 +117,7 @@ export type EngineOptions = {
   /** What the map shows of the data at the start (`engine.display`). Left out: the normal look. */
   display?: MapDisplay
   /** The building level being edited at the start (`engine.level`). Left out: no level mode. */
-  level?: number | null
+  level?: EditedLevel | null
 }
 
 /** The engine on its own: the foundation's rules, with gates and a service of its own. */
@@ -192,7 +194,11 @@ export class MaidEngine {
   /** What the map shows of the data (layers.ts MapDisplay). Per visit: the URL and the person's choice set it (url/display.ts). */
   private displayShown: MapDisplay = 'normal'
   /** The building level being edited (the level mode), or null. Per visit: the URL sets it (url/level.ts). */
-  private levelShown: number | null = null
+  private levelShown: EditedLevel | null = null
+  /** While a level is edited: whether the features without a level stay in view (dimmed and locked) */
+  private unleveledShown = true
+  /** The level whose button the pointer is on: its features stand out (layers.ts LEVEL_DIM) */
+  private levelHovered: EditedLevel | null = null
   /** The levels of each entity asked for by `isOffLevel`, until its entity object changes */
   private levelCache = new WeakMap<object, readonly number[]>()
 
@@ -636,44 +642,78 @@ export class MaidEngine {
    * can be picked or changed (`isOffLevel`).
    * Features with no level stay as they are.
    */
-  get level(): number | null {
+  get level(): EditedLevel | null {
     return this.levelShown
   }
 
-  /** Edits on `level` (null ends the level mode). A change tells the components that read the engine. */
-  setLevel(level: number | null) {
+  /** Edits on `level`, or on the features without a level (`'none'`); null ends the level mode */
+  setLevel(level: EditedLevel | null) {
     if (level === this.levelShown) return
     this.levelShown = level
+    this.levelHovered = null
     this.applyLevel()
     this.changed()
   }
 
+  /** While a level is edited: whether the features without a level stay in view, dimmed and locked */
+  get unleveledVisible() {
+    return this.unleveledShown
+  }
+
+  setUnleveledVisible(shown: boolean) {
+    if (shown === this.unleveledShown) return
+    this.unleveledShown = shown
+    this.applyLevel()
+    this.changed()
+  }
+
+  /** Makes the features of this level stand out while the pointer is on its button; null ends it */
+  hoverLevel(level: EditedLevel | null) {
+    if (level === this.levelHovered) return
+    this.levelHovered = level
+    this.applyLevel()
+  }
+
   /**
-   * The level as the map's global state: a string, as the features carry their levels (`lv`, build.ts), and a number
-   * for the levels next to it (`lo`, `hi`)
+   * The level mode as the map's global state (layers.ts LEVEL_DIM): the edited level as text, as the features carry
+   * their levels (`lv`, build.ts), and as a number for the levels next to it (`lo`, `hi`); whether the features
+   * without a level show; the hovered level
    */
   private applyLevel() {
-    this.map?.setGlobalStateProperty(
-      LEVEL_STATE,
-      this.levelShown === null ? null : String(this.levelShown),
+    const map = this.map
+    if (!map) return
+    const level = this.levelShown
+    map.setGlobalStateProperty(LEVEL_STATE, level === null ? null : String(level))
+    map.setGlobalStateProperty(LEVEL_NUMBER_STATE, typeof level === 'number' ? level : null)
+    map.setGlobalStateProperty(UNLEVELED_STATE, this.unleveledShown)
+    map.setGlobalStateProperty(
+      LEVEL_HOVER_STATE,
+      this.levelHovered === null ? null : String(this.levelHovered),
     )
-    this.map?.setGlobalStateProperty(LEVEL_NUMBER_STATE, this.levelShown)
   }
 
   /** The tags a new feature starts with: the level being edited, as MapComplete gives a new point its floor */
   levelTags(): Tags {
-    return this.levelShown === null ? {} : { level: String(this.levelShown) }
+    return typeof this.levelShown === 'number' ? { level: String(this.levelShown) } : {}
   }
 
   /**
-   * True while a level is chosen and this entity is on other levels only. A node without a level of its own is on
-   * the levels of its ways (a corner of a room). An entity with no level at all is never off.
+   * True while a level is edited and this entity is not on it: it cannot be picked or changed. On a level, the
+   * features on other levels and the features without a level are off; while the features without a level are
+   * edited (`'none'`), every feature with a level is off. A node without a level of its own is on the levels of its
+   * ways (a corner of a room).
    */
   isOffLevel(id: string) {
     const level = this.levelShown
     if (level === null) return false
     const levels = this.levelsOfEntity(id)
-    return levels.length > 0 && !levels.includes(level)
+    if (level === 'none') return levels.length > 0
+    return !levels.includes(level)
+  }
+
+  /** The levels of an entity (empty: it has none), for the level picker's counts */
+  levelsOf(id: string): readonly number[] {
+    return this.levelsOfEntity(id)
   }
 
   private levelsOfEntity(id: string): readonly number[] {

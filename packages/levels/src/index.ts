@@ -5,4 +5,4 @@
  */
 export { levelsOf, parseLevels, type LevelProblem, type Levels } from './parse.ts'
 export { floorsOf } from './floors.ts'
-export { levelState, NEIGHBOUR_RANGE, type LevelState } from './shown.ts'
+export { type EditedLevel, levelState, NEIGHBOUR_RANGE, type LevelState } from './shown.ts'

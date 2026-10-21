@@ -30,35 +30,34 @@ const failed = await runCheck(
       }),
     )
     report('the level picker shows', 1, await picker.count())
+    const levelButton = (level: string) => picker.locator(`button[data-level="${level}"]`)
+    const listed = await picker
+      .locator('button[data-level]')
+      .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('data-level')))
     report(
-      'the picker lists levels -2 to 2 of the station',
+      'the picker lists levels -2 to 2 of the station, highest first, then none',
       true,
-      await page.evaluate(() =>
-        ['-2', '-1', '0', '1', '2'].every((label) =>
-          [
-            ...document.querySelectorAll('[role="group"][aria-label="Building levels"] button'),
-          ].some((button) => button.textContent?.trim() === label),
-        ),
-      ),
+      ['2', '1', '0', '-1', '-2'].every((level) => listed.includes(level)) &&
+        listed.indexOf('2') < listed.indexOf('-2') &&
+        listed.at(-1) === 'none',
     )
 
     // on level -1: -1 is edited, -2 to 0 are shown (and locked), the levels further away are hidden
-    const stateOf = (label: string) =>
-      page.evaluate(
-        (label) =>
-          [...document.querySelectorAll('[role="group"][aria-label="Building levels"] button')]
-            .find((button) => button.textContent?.trim() === label)
-            ?.getAttribute('data-level-state') ?? null,
-        label,
-      )
+    const stateOf = (level: string) => levelButton(level).getAttribute('data-level-state')
     report(
       'the picker marks -1 edited, -2 and 0 shown, 2 hidden',
       ['edited', 'shown', 'shown', 'hidden'],
       [await stateOf('-1'), await stateOf('-2'), await stateOf('0'), await stateOf('2')],
     )
 
+    report(
+      'level 0 shows how many features in view are on it',
+      true,
+      Number((await levelButton('0').textContent())?.replace(/\D+/g, '') || 0) > 0,
+    )
+
     // --- choosing level 0 in the picker ---
-    await picker.getByRole('button').filter({ hasText: /^0$/ }).click()
+    await levelButton('0').click()
     await settle()
     report('a click on 0 edits on level 0', [0, '0'], [await engineLevel(), await urlLevel()])
 
@@ -117,12 +116,58 @@ const failed = await runCheck(
       )
     }
 
+    // --- the pointer on a level that shows makes its features stand out ---
+    await levelButton('1').hover()
+    report(
+      'the pointer on level 1 hovers it on the map',
+      '1',
+      await page.evaluate(() => window.__maid.map.getGlobalState().levelHover),
+    )
+    await page.mouse.move(600, 400)
+    report(
+      'and leaving it ends that',
+      null,
+      await page.evaluate(() => window.__maid.map.getGlobalState().levelHover ?? null),
+    )
+
+    // --- the features without a level: locked on a level, hidden with the eye, edited with "none" ---
+    const STATION = 'n3856100108'
+    report(
+      'on level 0 the U-Bahn station (layer=-3, no level) is locked',
+      true,
+      await page.evaluate((id) => window.__maid.engine.isOffLevel(id), STATION),
+    )
+    await picker.locator('button[data-unleveled-toggle]').click()
+    report(
+      'the eye hides the features without a level',
+      [false, false],
+      await page.evaluate(() => [
+        window.__maid.engine.unleveledVisible,
+        window.__maid.map.getGlobalState().unleveled,
+      ]),
+    )
+    await picker.locator('button[data-unleveled-toggle]').click()
+    await levelButton('none').click()
+    await settle()
+    report(
+      '"none" edits the features without a level: the station is editable, a room is locked',
+      ['none', 'none', false, true],
+      [
+        await engineLevel(),
+        await urlLevel(),
+        await page.evaluate((id) => window.__maid.engine.isOffLevel(id), STATION),
+        room ? await page.evaluate((id) => window.__maid.engine.isOffLevel(id), room.id) : true,
+      ],
+    )
+    await levelButton('0').click()
+    await settle()
+
     // --- a point placed now is on level 0 ---
     const before = await page.evaluate(() => window.__maid.engine.levelTags())
     report('new features get level=0', { level: '0' }, before)
 
     // --- "All" ends the level mode ---
-    await picker.getByRole('button').filter({ hasText: /^All$/ }).click()
+    await picker.getByRole('button', { name: 'All' }).click()
     await settle()
     report('"All" ends the level mode', [null, null], [await engineLevel(), await urlLevel()])
     if (room)

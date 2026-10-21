@@ -1,10 +1,16 @@
 import { EyeIcon, EyeSlashIcon, PencilIcon } from '@heroicons/react/16/solid'
 import { toOsmZoom } from '@osm-editor-kit/maid-core'
-import { floorsOf, levelState, type LevelState } from '@osm-editor-kit/maid-levels'
+import {
+  type EditedLevel,
+  floorsOf,
+  levelState,
+  type LevelState,
+} from '@osm-editor-kit/maid-levels'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { ControlGroup, ROW_CURRENT, Tooltip } from '@osm-editor-kit/maid-ui'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useMap } from 'react-map-gl/maplibre'
+import { twMerge } from 'tailwind-merge'
 import { levelViewActions, useThreeD } from './view-store.ts'
 
 /** From this OSM zoom on the picker shows, as MapComplete's floor selector does */
@@ -72,6 +78,31 @@ export function nextFloors(
   return all.size === previous.length ? previous : [...all].sort((a, b) => a - b)
 }
 
+/** How many features in view are on each level, and how many have no level. A feature without tags (a corner) does not count. */
+export type LevelCounts = { byLevel: ReadonlyMap<number, number>; unleveled: number }
+
+export function countLevels(
+  ids: Iterable<string>,
+  tagsOf: (id: string) => Readonly<Record<string, string>> | undefined,
+  levelsOf: (id: string) => readonly number[],
+): LevelCounts {
+  const byLevel = new Map<number, number>()
+  let unleveled = 0
+  for (const id of ids) {
+    const tags = tagsOf(id)
+    if (!tags || Object.keys(tags).length === 0) continue
+    const levels = levelsOf(id)
+    if (levels.length === 0) unleveled++
+    for (const level of levels) byLevel.set(level, (byLevel.get(level) ?? 0) + 1)
+  }
+  return { byLevel, unleveled }
+}
+
+/** A count in a small pill: `7`, `312`, `1.2k` */
+export function countLabel(count: number): string {
+  return count < 1000 ? String(count) : `${(count / 1000).toFixed(1).replace(/\.0$/, '')}k`
+}
+
 export function sameFloors(a: readonly number[], b: readonly number[]): boolean {
   return a.length === b.length && a.every((floor, i) => floor === b[i])
 }
@@ -90,18 +121,22 @@ const COLUMN =
   'pointer-events-none absolute top-2 bottom-12 left-2 z-10 flex flex-col items-start gap-2'
 
 /**
- * The floor selector at the map's top left: "3D", then the floors of the features in view, highest first. Choosing one
+ * The floor selector at the map's top left: "3D", then the floors of the features in view, highest first, each with a
+ * small count of its features in view, then "none" for the features without a level, then "All". Choosing a floor
  * edits on that level (engine.setLevel); each floor then shows with an icon whether it is edited, shown and locked, or
- * hidden (levels shown.ts), and says it in its tooltip. Choosing it again or "All" ends the level mode.
+ * hidden (levels shown.ts). "none" edits the features without a level, to find and fix them; while a level is edited,
+ * its eye shows or hides them. The pointer on a floor that shows makes its features stand out on the map.
  * The floors come from the map's rendered features, read once per animation frame at most, each time the map has
  * drawn everything (`idle`).
  */
 export function LevelPicker({ engine }: { engine: MaidEngine }) {
   const level = useSyncExternalStore(engine.subscribe, () => engine.level)
+  const unleveledVisible = useSyncExternalStore(engine.subscribe, () => engine.unleveledVisible)
   const threeD = useThreeD()
   const { current: map } = useMap()
   const [zoom, setZoom] = useState(0)
   const [floors, setFloors] = useState<number[]>([0])
+  const [counts, setCounts] = useState<LevelCounts>({ byLevel: new Map(), unleveled: 0 })
   // 3D, read by the map's listener below without starting it again
   const keeping = useRef(threeD)
   useEffect(
@@ -122,10 +157,13 @@ export function LevelPicker({ engine }: { engine: MaidEngine }) {
         // the query walks every rendered feature: it is asked for only where the picker can show
         if (osmZoom < PICKER_MIN_ZOOM) return
         const ids = idsInView(map.queryRenderedFeatures())
-        const next = floorsIn(
+        const read = countLevels(
           ids,
-          (id) => engine.data.node(id) ?? engine.data.way(id) ?? engine.data.relation(id),
+          (id) => (engine.data.node(id) ?? engine.data.way(id) ?? engine.data.relation(id))?.tags,
+          (id) => engine.levelsOf(id),
         )
+        setCounts(read)
+        const next = [...new Set([0, ...read.byLevel.keys()])].sort((a, b) => a - b)
         const keep = engine.level !== null || keeping.current
         setFloors((previous) => {
           const floors = nextFloors(previous, next, keep)
@@ -147,7 +185,21 @@ export function LevelPicker({ engine }: { engine: MaidEngine }) {
     [engine, map],
   )
 
-  if (!levelPickerShown(zoom, floors, level)) return null
+  const edited = typeof level === 'number' ? level : null
+  if (!levelPickerShown(zoom, floors, level === 'none' ? 0 : edited)) return null
+
+  // the pointer on a level that shows makes its features stand out; a hidden level has nothing to show
+  const hover = (target: EditedLevel, state: LevelState | undefined) =>
+    state === 'hidden'
+      ? {}
+      : {
+          onPointerEnter: () => engine.hoverLevel(target),
+          onPointerLeave: () => engine.hoverLevel(null),
+          onFocus: () => engine.hoverLevel(target),
+          onBlur: () => engine.hoverLevel(null),
+        }
+  const noneState: LevelState | undefined =
+    level === null ? undefined : level === 'none' ? 'edited' : unleveledVisible ? 'shown' : 'hidden'
 
   return (
     <div className={COLUMN}>
@@ -163,24 +215,87 @@ export function LevelPicker({ engine }: { engine: MaidEngine }) {
           </button>
         </Tooltip>
       </ControlGroup>
-      <ControlGroup label="Building levels" className="pointer-events-auto min-h-0 overflow-y-auto">
-        {floorChoices(floors, level).map((floor) => {
-          const state = level === null ? undefined : levelState(floor, level)
+      <ControlGroup
+        label="Building levels"
+        className="pointer-events-auto min-h-0 w-36 overflow-y-auto"
+      >
+        {floorChoices(floors, edited).map((floor) => {
+          const state =
+            level === null ? undefined : level === 'none' ? 'hidden' : levelState(floor, level)
           return (
             <Tooltip key={floor} label={levelTip(floor, state)} placement="right">
               <button
                 type="button"
                 aria-pressed={state === 'edited'}
+                data-level={floor}
                 data-level-state={state}
                 onClick={() => engine.setLevel(state === 'edited' ? null : floor)}
-                className={`${buttonClass(state === 'edited')} justify-between gap-1.5 ${state === 'hidden' ? 'text-zinc-400 dark:text-zinc-500' : ''}`}
+                {...hover(floor, state)}
+                className={twMerge(
+                  buttonClass(state === 'edited'),
+                  ROW,
+                  state === 'hidden' && HIDDEN_TEXT,
+                )}
               >
                 <span>{levelLabel(floor)}</span>
-                {state && <StateIcon state={state} />}
+                <span className="flex items-center gap-1">
+                  <CountPill count={counts.byLevel.get(floor) ?? 0} />
+                  {state && <StateIcon state={state} />}
+                </span>
               </button>
             </Tooltip>
           )
         })}
+        <div className="flex">
+          <Tooltip label={unleveledTip(noneState)} placement="right">
+            <button
+              type="button"
+              aria-pressed={noneState === 'edited'}
+              data-level="none"
+              data-level-state={noneState}
+              onClick={() => engine.setLevel(noneState === 'edited' ? null : 'none')}
+              {...hover('none', noneState)}
+              className={twMerge(
+                buttonClass(noneState === 'edited'),
+                ROW,
+                'flex-1',
+                noneState === 'hidden' && HIDDEN_TEXT,
+              )}
+            >
+              <span>none</span>
+              <CountPill count={counts.unleveled} />
+            </button>
+          </Tooltip>
+          {noneState && noneState !== 'edited' ? (
+            <Tooltip
+              label={
+                unleveledVisible
+                  ? 'Hide the features without a level'
+                  : 'Show the features without a level'
+              }
+              placement="right"
+            >
+              <button
+                type="button"
+                aria-pressed={unleveledVisible}
+                data-unleveled-toggle
+                onClick={() => engine.setUnleveledVisible(!unleveledVisible)}
+                className={twMerge(
+                  buttonClass(false),
+                  'w-8 min-w-8 px-0',
+                  noneState === 'hidden' && HIDDEN_TEXT,
+                )}
+              >
+                <StateIcon state={noneState} />
+                <span className="sr-only">{unleveledVisible ? 'Hide' : 'Show'}</span>
+              </button>
+            </Tooltip>
+          ) : noneState === 'edited' ? (
+            <span className={`${BUTTON} w-8 min-w-8 px-0 ${ROW_CURRENT}`}>
+              <StateIcon state="edited" />
+            </span>
+          ) : null}
+        </div>
         <Tooltip label="All levels" placement="right">
           <button
             type="button"
@@ -193,6 +308,28 @@ export function LevelPicker({ engine }: { engine: MaidEngine }) {
         </Tooltip>
       </ControlGroup>
     </div>
+  )
+}
+
+/** A floor's row: the number at the start, the count and the icon at the end, across the list's fixed width (w-36), so nothing moves when a count changes */
+const ROW = 'w-full justify-between gap-1.5'
+const HIDDEN_TEXT = 'text-zinc-400 dark:text-zinc-500'
+
+/** The tooltip of the "none" row */
+function unleveledTip(state: LevelState | undefined): string {
+  if (state === 'edited') return 'Without a level: editing'
+  if (state === 'shown') return 'Without a level: shown, locked'
+  if (state === 'hidden') return 'Without a level: hidden'
+  return 'Edit the features without a level'
+}
+
+/** How many features of a level are in view, as a small pill; nothing for none */
+function CountPill({ count }: { count: number }) {
+  if (count === 0) return null
+  return (
+    <span className="rounded-full bg-zinc-950/10 px-1.5 text-[10px] leading-4 font-normal tabular-nums dark:bg-white/15">
+      {countLabel(count)}
+    </span>
   )
 }
 

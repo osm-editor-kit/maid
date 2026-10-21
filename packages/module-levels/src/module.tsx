@@ -1,5 +1,6 @@
 import { defineModule } from '@osm-editor-kit/maid-core'
 import { useUrlParam } from '@osm-editor-kit/maid-core/react'
+import type { EditedLevel } from '@osm-editor-kit/maid-levels'
 import type { MapContentProps, MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { useEffect, type ComponentType } from 'react'
 import { LevelExtrusion } from './LevelExtrusion.tsx'
@@ -15,7 +16,7 @@ export function levels() {
   return defineModule({
     id: 'levels',
     setup(api) {
-      const levelUrl = api.urlParam<number>({
+      const levelUrl = api.urlParam<EditedLevel>({
         name: 'level',
         parser: parseAsLevel,
         options: { history: 'replace' },

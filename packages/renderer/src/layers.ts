@@ -105,20 +105,19 @@ export function displayOf(value: string | null | undefined): MapDisplay {
   return value === 'wireframe' || value === 'edits' ? value : 'normal'
 }
 
-/** The map's global state with the level being edited (engine.setLevel), as a string; unset: no level mode */
+/** The map's global state with the level being edited (engine.setLevel) as text, `none` for the features without a level; unset: no level mode */
 export const LEVEL_STATE = 'level'
 /** The same level as a number, for the levels next to it (NEIGHBOUR_RANGE) */
 export const LEVEL_NUMBER_STATE = 'levelNumber'
-/** How visible a feature on a level next to the edited one is (it is locked) */
+/** Whether the features without a level show while a level is edited (engine.setUnleveledVisible) */
+export const UNLEVELED_STATE = 'unleveled'
+/** The level whose button the pointer is on, as text (engine.hoverLevel); unset: none */
+export const LEVEL_HOVER_STATE = 'levelHover'
+/** How visible a feature is that shows but is locked: on a level next to the edited one, or without a level */
 const OFF_LEVEL_OPACITY = 0.2
+/** How visible the other features are while a level's button is hovered, so that its features stand out */
+const HOVER_OTHERS_OPACITY = 0.1
 
-/**
- * The level mode's rule (packages/levels shown.ts): 1 for a feature on the edited level, with no level, or when no level
- * is edited; OFF_LEVEL_OPACITY for a feature on a level up to NEIGHBOUR_RANGE away; 0 (hidden) for the others. A
- * feature carries its levels as `lv`, `;-1;0;`, found with `index-of`, and its lowest and highest as `lo` and `hi`
- * (build.ts). It reads the global state in paint only: a level change repaints the loaded tiles and builds nothing
- * again (a global state in a filter or layout would reload the source).
- */
 const chosenLevel: ExpressionSpecification = [
   'to-string',
   ['coalesce', ['global-state', LEVEL_STATE], ''],
@@ -127,21 +126,68 @@ const chosenNumber: ExpressionSpecification = [
   'to-number',
   ['coalesce', ['global-state', LEVEL_NUMBER_STATE], 0],
 ]
-const LEVEL_DIM: ExpressionSpecification = [
+const unleveledShown: ExpressionSpecification = [
+  'to-boolean',
+  ['coalesce', ['global-state', UNLEVELED_STATE], true],
+]
+const hoveredLevel: ExpressionSpecification = [
+  'to-string',
+  ['coalesce', ['global-state', LEVEL_HOVER_STATE], ''],
+]
+const isOn = (level: ExpressionSpecification): ExpressionSpecification => [
+  '>=', ['index-of', ['concat', ';', level, ';'], ['get', 'lv']], 0,
+] // prettier-ignore
+
+/**
+ * The level mode's rule (packages/levels shown.ts), without a hover: 1 for a feature on the edited level, or for every
+ * feature when no level is edited; OFF_LEVEL_OPACITY (shown, locked) for a feature on a level up to NEIGHBOUR_RANGE
+ * away and for a feature without a level while those show; 0 (hidden) for the others. While the features without a
+ * level are edited (`none`), they are 1 and every feature with a level is hidden. A feature carries its levels as
+ * `lv`, `;-1;0;`, and its lowest and highest as `lo` and `hi` (build.ts).
+ */
+const LEVEL_SHOWN: ExpressionSpecification = [
   'case',
-  ['any', ['==', chosenLevel, ''], ['!', ['has', 'lv']]], 1,
-  ['>=', ['index-of', ['concat', ';', chosenLevel, ';'], ['get', 'lv']], 0], 1,
+  ['==', chosenLevel, ''], 1,
+  ['!', ['has', 'lv']], ['case', ['==', chosenLevel, 'none'], 1, unleveledShown, OFF_LEVEL_OPACITY, 0],
+  ['==', chosenLevel, 'none'], 0,
+  isOn(chosenLevel), 1,
   ['all',
     ['<=', ['to-number', ['get', 'lo']], ['+', chosenNumber, NEIGHBOUR_RANGE]],
     ['>=', ['to-number', ['get', 'hi']], ['-', chosenNumber, NEIGHBOUR_RANGE]],
   ], OFF_LEVEL_OPACITY,
   0,
 ] // prettier-ignore
-/** The labels: shown on the edited level only; a dimmed label cannot be read and is noise (Tobias, 2026-10-21) */
+
+/** True for a feature of the hovered level (`none`: a feature without a level) */
+const onHoveredLevel: ExpressionSpecification = [
+  'case',
+  ['==', hoveredLevel, 'none'], ['!', ['has', 'lv']],
+  ['has', 'lv'], isOn(hoveredLevel),
+  false,
+] // prettier-ignore
+
+/**
+ * LEVEL_SHOWN, and while a level's button is hovered its features (if they show) at full opacity and the others faint.
+ * It reads the global state in paint only: a level change repaints the loaded tiles and builds nothing again (a
+ * global state in a filter or layout would reload the source).
+ */
+const LEVEL_DIM: ExpressionSpecification = [
+  'let', 'shown', LEVEL_SHOWN,
+  ['case',
+    ['==', hoveredLevel, ''], ['var', 'shown'],
+    onHoveredLevel, ['case', ['>', ['var', 'shown'], 0], 1, 0],
+    ['min', ['var', 'shown'], HOVER_OTHERS_OPACITY],
+  ],
+] // prettier-ignore
+
+/** The labels: on the edited level only (and on the hovered one); a dimmed label cannot be read and is noise (Tobias, 2026-10-21) */
 const LEVEL_TEXT: ExpressionSpecification = [
   'case',
-  ['any', ['==', chosenLevel, ''], ['!', ['has', 'lv']]], 1,
-  ['>=', ['index-of', ['concat', ';', chosenLevel, ';'], ['get', 'lv']], 0], 1,
+  ['==', chosenLevel, ''], 1,
+  ['all', ['!=', hoveredLevel, ''], onHoveredLevel, ['>', LEVEL_SHOWN, 0]], 1,
+  ['!', ['has', 'lv']], ['case', ['==', chosenLevel, 'none'], 1, 0],
+  ['==', chosenLevel, 'none'], 0,
+  isOn(chosenLevel), 1,
   0,
 ] // prettier-ignore
 
