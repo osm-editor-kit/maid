@@ -115,3 +115,33 @@ export function suggestLevels(input: {
 
   return [...suggestions.values()]
 }
+
+/** The reason of a level that is only in view: nothing next to the feature is on it */
+export const IN_VIEW_REASON = 'in view'
+
+/**
+ * Every level to offer, highest first, as the level picker lists them: the suggestions (the edited level, the levels
+ * around the feature) and every other level of the features in view, because what is around the feature can be wrong
+ * or missing (a sculpture in a room on level 0 that hangs on level 1). A list such as "0;1" sorts by its first level.
+ */
+export function withLevelsInView(
+  suggestions: readonly LevelSuggestion[],
+  idsInView: Iterable<string | number | undefined>,
+  levelsOf: (id: string) => readonly number[],
+): LevelSuggestion[] {
+  const levels = new Set<number>()
+  for (const id of idsInView)
+    if (typeof id === 'string') for (const level of levelsOf(id)) levels.add(level)
+  const known = new Set(suggestions.map((suggestion) => suggestion.value))
+  const more = [...levels]
+    .map(String)
+    .filter((value) => !known.has(value))
+    .map((value): LevelSuggestion => ({ value, reasons: [IN_VIEW_REASON], ids: [] }))
+  const first = (value: string) => Number(value.split(';')[0])
+  return [...suggestions, ...more].sort((a, b) => first(b.value) - first(a.value))
+}
+
+/** True when something around the feature suggests the level (a connected way, a room it is in): shown in bold */
+export function isRecommended(suggestion: LevelSuggestion): boolean {
+  return suggestion.reasons.some((reason) => reason !== EDITED_REASON && reason !== IN_VIEW_REASON)
+}

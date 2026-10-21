@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'bun:test'
-import { pointInPolygon, suggestLevels } from './level-suggestions.ts'
+import {
+  isRecommended,
+  pointInPolygon,
+  suggestLevels,
+  withLevelsInView,
+} from './level-suggestions.ts'
 
 const tagsById: Record<string, Record<string, string>> = {
   w1: {},
@@ -136,5 +141,39 @@ describe('pointInPolygon', () => {
   test('a ring that repeats its first point gives the same answer', () => {
     expect(pointInPolygon([5, 5], [...square, [0, 0]])).toBe(true)
     expect(pointInPolygon([15, 5], [...square, [0, 0]])).toBe(false)
+  })
+})
+
+describe('withLevelsInView', () => {
+  const levels: Record<string, number[]> = { w1: [0], w2: [-1, 0], w3: [2], n4: [] }
+  const levelsOf = (id: string) => levels[id] ?? []
+  test('lists every level in view with the edited level, highest first', () => {
+    const edited = [{ value: '0', reasons: ['edited level'], ids: [] }]
+    expect(
+      withLevelsInView(edited, ['w1', 'w2', 'w3', 'n4', undefined], levelsOf).map((s) => s.value),
+    ).toEqual(['2', '0', '-1'])
+    expect(withLevelsInView([], ['w2'], levelsOf).map((s) => [s.value, s.reasons])).toEqual([
+      ['0', ['in view']],
+      ['-1', ['in view']],
+    ])
+  })
+  test('lists the suggestions with the other levels in view, highest first; a list sorts by its first level', () => {
+    const near = [
+      { value: '-1', reasons: ['connected: 2 corridors'], ids: ['w2'] },
+      { value: '0;1', reasons: ['inside: Treppenhaus'], ids: ['w9'] },
+    ]
+    expect(withLevelsInView(near, ['w2', 'w3'], levelsOf).map((s) => s.value)).toEqual([
+      '2',
+      '0;1',
+      '0',
+      '-1',
+    ])
+  })
+  test('a level suggested by the surroundings is recommended, the edited level and the others in view are not', () => {
+    expect(isRecommended({ value: '-1', reasons: ['connected: 2 corridors'], ids: ['w2'] })).toBe(
+      true,
+    )
+    expect(isRecommended({ value: '2', reasons: ['in view'], ids: [] })).toBe(false)
+    expect(isRecommended({ value: '0', reasons: ['edited level'], ids: [] })).toBe(false)
   })
 })

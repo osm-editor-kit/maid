@@ -167,12 +167,14 @@ const failed = await runCheck(
       await settle()
       const menu = page.getByRole('menu', { name: 'Set level' })
       report('a click on the locked station opens "Set level"', 1, await menu.count())
-      const first = menu.getByRole('menuitem').first()
-      report(
-        'its first offer is the edited level',
-        true,
-        (await first.getAttribute('data-level')) === '0',
-      )
+      const first = menu.locator('[data-level="0"]')
+      report('the edited level 0 is offered', 1, await first.count())
+      // a right click (the edit menu) leaves it open
+      await page.mouse.click(canvasBox.x + 40, canvasBox.y + 300, { button: 'right' })
+      await settle()
+      report('a right click elsewhere leaves it open', 1, await menu.count())
+      await page.keyboard.press('Escape')
+      if ((await menu.count()) === 0) await page.mouse.click(canvasBox.x + at.x, canvasBox.y + at.y)
       await first.click()
       await settle()
       report(

@@ -8,9 +8,11 @@ import { useMap } from 'react-map-gl/maplibre'
 import { twMerge } from 'tailwind-merge'
 import {
   EDITED_REASON,
+  isRecommended,
   type LevelSuggestion,
   pointInPolygon,
   suggestLevels,
+  withLevelsInView,
 } from './level-suggestions.ts'
 import { buttonClass } from './look.ts'
 
@@ -110,7 +112,7 @@ export function LevelMenu({ engine }: { engine: MaidEngine }) {
         if (!picked) return
         const place = placeOf(engine, picked)
         if (!place) return
-        const suggestions = suggestLevels({
+        const suggested = suggestLevels({
           id: picked,
           nodeIds: place.nodeIds,
           edited: typeof level === 'number' ? level : null,
@@ -118,6 +120,12 @@ export function LevelMenu({ engine }: { engine: MaidEngine }) {
           tagsOf: (id) => (engine.data.node(id) ?? engine.data.way(id))?.tags,
           enclosing: enclosingAreas(engine, place.position),
         })
+        // every level in view, highest first, as the picker lists them; the ones around it are bold
+        const suggestions = withLevelsInView(
+          suggested,
+          map.queryRenderedFeatures().map((feature) => feature.id),
+          (id) => engine.levelsOf(id),
+        )
         // left of the pointer, so that the menu of a right click still has its place on the right
         setMenu({
           at: { x: event.originalEvent.clientX - MENU_OFFSET, y: event.originalEvent.clientY },
@@ -143,10 +151,10 @@ export function LevelMenu({ engine }: { engine: MaidEngine }) {
 }
 
 /**
- * The offers as a small column of levels, in the look of the level picker: the edited level in the current look, the
- * reasons ("connected: 2 corridors") in each level's tooltip, and the pointer on one shows that level on the map.
- * "Select" at the end selects the feature as it is (read-only while it is locked). Escape, a press outside or a
- * choice closes it.
+ * The offers as a small column of levels in the order and the look of the level picker: the edited level in the current
+ * look, the levels suggested by the feature's surroundings in bold, the reasons ("connected: 2 corridors") in each
+ * level's tooltip, and the pointer on one shows that level on the map. "Select" at the end selects the feature as it
+ * is (read-only while it is locked). Escape, a left click outside or a choice closes it; a right click does not.
  */
 function SetLevelMenu({
   engine,
@@ -165,8 +173,9 @@ function SetLevelMenu({
       const onKey = (event: KeyboardEvent) => {
         if (event.key === 'Escape') onClose()
       }
+      // a right click (the edit menu) leaves it open beside that menu; a left click elsewhere closes it
       const onPress = (event: PointerEvent) => {
-        if (!frame.current?.contains(event.target as Node)) onClose()
+        if (event.button === 0 && !frame.current?.contains(event.target as Node)) onClose()
       }
       document.addEventListener('keydown', onKey)
       document.addEventListener('pointerdown', onPress, true)
@@ -199,14 +208,24 @@ function SetLevelMenu({
                 data-level={value}
                 onPointerEnter={() => engine.hoverLevel(Number.isFinite(preview) ? preview : null)}
                 onPointerLeave={() => engine.hoverLevel(null)}
-                onFocus={() => engine.hoverLevel(Number.isFinite(preview) ? preview : null)}
+                // the keyboard's focus shows a level too, but not the focus the menu gets when it opens: the map
+                // changes only when the person points at a level
+                onFocus={(event) => {
+                  if (event.currentTarget.matches(':focus-visible'))
+                    engine.hoverLevel(Number.isFinite(preview) ? preview : null)
+                }}
+                onBlur={() => engine.hoverLevel(null)}
                 onClick={() => {
                   engine.assignLevel(id, value)
                   // while fixing, a feature with a level leaves the view (only features without one show)
                   engine.setSelected(fixing ? null : id)
                   onClose()
                 }}
-                className={twMerge(buttonClass(current), 'w-full')}
+                className={twMerge(
+                  buttonClass(current),
+                  'w-full',
+                  isRecommended(suggestion) ? 'font-bold' : 'font-normal',
+                )}
               >
                 {value}
               </button>
