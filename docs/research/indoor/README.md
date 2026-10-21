@@ -8,6 +8,7 @@ Research for a Maid variant that focuses on building levels and interiors, done 
 | [tagging-model.md](tagging-model.md)             | Simple Indoor Tagging, level syntax and edge cases, vertical connections, validation rules (wiki)                  |
 | [id-and-mapcomplete.md](id-and-mapcomplete.md)   | iD (PR 12605 "Focus the selected indoor level", older PRs, id-tagging-schema 563) and MapComplete's floor selector |
 | [editors-and-viewers.md](editors-and-viewers.md) | JOSM IndoorHelper and its level filter, OsmInEdit, iD-indoor, indoorequal, OpenLevelUp                             |
+| [renderer-hooks.md](renderer-hooks.md)           | Where Maid's renderer can dim features by level, block picking and add a fill-extrusion layer                      |
 | [3d-osm2world.md](3d-osm2world.md)               | OSM2World, its object viewer and web build, iD issue 11894, the ways to show 3D in Maid                            |
 
 ## What the sources agree on

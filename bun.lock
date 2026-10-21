@@ -157,6 +157,10 @@
         "fake-indexeddb": "^6.0.0",
       },
     },
+    "packages/levels": {
+      "name": "@osm-editor-kit/maid-levels",
+      "version": "0.0.0",
+    },
     "packages/model": {
       "name": "@osm-editor-kit/maid-model",
       "version": "0.0.0",
@@ -555,6 +559,13 @@
         "@osm-editor-kit/maid-presets": "workspace:*",
       },
     },
+    "tools/osm2world-prototype": {
+      "name": "@osm-editor-kit/osm2world-prototype",
+      "version": "0.0.0",
+      "dependencies": {
+        "babylonjs": "9.28.0",
+      },
+    },
   },
   "patchedDependencies": {
     "maplibre-gl@6.12.0": "patches/maplibre-gl@6.12.0.patch",
@@ -689,6 +700,8 @@
 
     "@osm-editor-kit/maid-journal": ["@osm-editor-kit/maid-journal@workspace:packages/journal"],
 
+    "@osm-editor-kit/maid-levels": ["@osm-editor-kit/maid-levels@workspace:packages/levels"],
+
     "@osm-editor-kit/maid-model": ["@osm-editor-kit/maid-model@workspace:packages/model"],
 
     "@osm-editor-kit/maid-module-data-layers": ["@osm-editor-kit/maid-module-data-layers@workspace:packages/module-data-layers"],
@@ -736,6 +749,8 @@
     "@osm-editor-kit/maplibre-editor-layer-index": ["@osm-editor-kit/maplibre-editor-layer-index@0.2.0", "", { "dependencies": { "@types/geojson": "^7946.0.16" }, "peerDependencies": { "maplibre-gl": ">=4", "react": ">=18", "react-map-gl": ">=7.1" }, "optionalPeers": ["maplibre-gl", "react", "react-map-gl"] }, "sha512-440XSYpPKCHMjl9zhpY7YylODQ+3/P7bOrrHF5m5o25N4nP6cWAVGr96nJmLOPhcKYQSbB9LHsQUSmAEj70Qtg=="],
 
     "@osm-editor-kit/osm-traffic-sign-field": ["@osm-editor-kit/osm-traffic-sign-field@workspace:packages/traffic-sign-field"],
+
+    "@osm-editor-kit/osm2world-prototype": ["@osm-editor-kit/osm2world-prototype@workspace:tools/osm2world-prototype"],
 
     "@osm-editor-kit/street-imagery": ["@osm-editor-kit/street-imagery@0.1.0-alpha.8", "", { "dependencies": { "@mapbox/vector-tile": "^3.0.0", "date-fns": "^4.4.0", "pbf": "^5.1.0" } }, "sha512-6u/IGZSKZuMVae7BsjVX9CtrF0vSo/cg5oRHZSr2xTxM+mdx4qIaAM0kVZFeN6locnjkD/SiIbYUCBwHpDySkw=="],
 
@@ -1106,6 +1121,8 @@
     "assertion-error": ["assertion-error@2.0.1", "", {}, "sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA=="],
 
     "assign-symbols": ["assign-symbols@1.0.0", "", {}, "sha512-Q+JC7Whu8HhmTdBph/Tq59IoRtoy6KAm5zzPv00WdujX82lbAL8K7WVjne7vdCsAmbF4AYaDOPyO3k0kl8qIrw=="],
+
+    "babylonjs": ["babylonjs@9.28.0", "", {}, "sha512-ajOsr6+jtdyZaw9FjkpuA2vEFPHfeniw16qqZcSitfU915/cT6MpOTFtQJUP0oshNVHDEMgfjsJ79NFi/AwDLA=="],
 
     "bidi-js": ["bidi-js@1.1.0", "", { "dependencies": { "require-from-string": "^2.0.2" } }, "sha512-fX1Onk0tdVPC7obPWB5EbJ1z7NVhLq4m2xZLq2YXBkxzMXIGRpNMU88n0EPgWseKl12J7zXs7qrDxPK4sRs2fg=="],
 

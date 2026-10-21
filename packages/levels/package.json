@@ -1,0 +1,10 @@
+{
+  "name": "@osm-editor-kit/maid-levels",
+  "version": "0.0.0",
+  "private": true,
+  "license": "ISC",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

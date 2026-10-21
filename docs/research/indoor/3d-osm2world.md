@@ -141,3 +141,15 @@ Fetched or read on 2026-10-20.
 - Rapid's 3D precedent (local, read only): `.reference/rapid/modules/core/Map3dSystem.ts` lines 646-658
 - Maid's package pins: `packages/renderer/package.json`, `packages/module-imagery/package.json`
 - Maid's indoor tagging model: `docs/research/indoor/tagging-model.md`
+
+## 8. Measured on 2026-10-21 (prototype `bun run osm2world-prototype`)
+
+The web build `0.5.0-SNAPSHOT_2026-06-16` (3.9 MB `.mjs`) and its style converted the `indoor` fixture (Berlin Hauptbahnhof) in the browser, offline, shown with Babylon.js 9.28.0 (`tools/osm2world-prototype`).
+
+- **Works**: buildings with heights, the glass roof, tracks and platforms; the level filter of the prototype shows level -2 alone. Rooms are only drawn inside a building or building part, so the building outline must be part of the input.
+- **Too slow to follow every edit**: 5552 elements (buildings and indoor) took 39 s; one level took 10 to 12 s (2344 to 2747 elements), the same on a second run, so it is not JIT warm-up. About 4 ms per element: a single building of a few hundred elements would take about one to two seconds (inferred, not measured).
+- **The style needs its includes**: `standard.properties` loads `locales/DE-defaults.properties` and two traffic sign files; `loadO2WConfig` needs an absolute URL. Textures are left out (they would come from the tile server); colours only.
+- **Not in Bun**: the build uses `XMLHttpRequest`, so it runs only in a browser.
+- About 90 "Degenerate triangle" errors in the console for small features; the conversion goes on.
+
+So for Maid: a panel that converts the selected building on demand (b), not a live view of every edit; the live 3D of levels stays with MapLibre `fill-extrusion` (a).

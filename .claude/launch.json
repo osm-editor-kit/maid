@@ -30,6 +30,12 @@
       "runtimeExecutable": "bun",
       "runtimeArgs": ["apps/compare/start.ts"],
       "port": 5184
+    },
+    {
+      "name": "osm2world-prototype",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "osm2world-prototype"],
+      "port": 5190
     }
   ]
 }

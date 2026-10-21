@@ -1,0 +1,10 @@
+{
+  "name": "@osm-editor-kit/osm2world-prototype",
+  "version": "0.0.0",
+  "private": true,
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "babylonjs": "9.28.0"
+  }
+}

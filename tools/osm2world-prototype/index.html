@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OSM2World prototype</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        font:
+          13px/1.4 system-ui,
+          sans-serif;
+        background: #18181b;
+        color: #fafafa;
+      }
+      canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+        touch-action: none;
+      }
+      #panel {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: rgb(24 24 27 / 0.85);
+        display: grid;
+        gap: 6px;
+        min-width: 240px;
+      }
+      #panel label {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: space-between;
+      }
+      #status {
+        color: #a1a1aa;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div id="panel">
+      <strong>OSM2World: Berlin Hauptbahnhof</strong>
+      <label
+        >Data
+        <select id="subset">
+          <option value="indoor">Buildings and indoor</option>
+          <option value="all">Whole fixture</option>
+        </select>
+      </label>
+      <label
+        >Level
+        <select id="level">
+          <option value="all">All levels</option>
+        </select>
+      </label>
+      <label
+        >LOD
+        <select id="lod">
+          <option>4</option>
+          <option>3</option>
+        </select></label
+      >
+      <span id="status">Loading…</span>
+    </div>
+    <script src="/babylon.js"></script>
+    <script type="module">
+      // OSM2World converts the fixture's OSM JSON in the browser (its web build, MIT); the meshes go into Babylon.js as
+      // in OSM2World's object viewer (MeshesToBabylon.js, MIT-0), with colours only: textures would need its tile server
+      import { O2WConverter, loadO2WConfig } from '/vendor/osm2world-core-web.mjs'
+
+      const status = document.getElementById('status')
+      const say = (text) => (status.textContent = text)
+
+      /** The levels of a feature, from `level` and `repeat_on`: `;` lists and `a-b` ranges (packages/levels does it fully) */
+      function levelsOf(tags) {
+        const out = new Set()
+        for (const value of [tags?.level, tags?.repeat_on]) {
+          for (const part of (value ?? '').split(';')) {
+            const range = /^(-?\d+)-(-?\d+)$/.exec(part.trim())
+            if (range) for (let l = +range[1]; l <= +range[2]; l++) out.add(l)
+            else if (/^-?\d+(\.\d+)?$/.test(part.trim())) out.add(+part.trim())
+          }
+        }
+        return out
+      }
+
+      const all = await (await fetch('/data.json')).json()
+      const elements = all.elements
+      const floors = [...new Set(elements.flatMap((e) => [...levelsOf(e.tags)]))].sort(
+        (a, b) => a - b,
+      )
+      for (const floor of floors)
+        document.getElementById('level').add(new Option(`Level ${floor}`, String(floor)))
+
+      /**
+       * The data to convert: the chosen subset, on the chosen level (features without a level stay), with their nodes.
+       * Buildings stay in: OSM2World draws rooms only inside a building or building part.
+       */
+      function dataFor(subset, level) {
+        const nodes = new Map(elements.filter((e) => e.type === 'node').map((e) => [e.id, e]))
+        const onLevel = (e) =>
+          level === 'all' ||
+          !e.tags ||
+          !('level' in e.tags || 'repeat_on' in e.tags) ||
+          levelsOf(e.tags).has(+level)
+        const indoor = (e) =>
+          subset === 'all' ||
+          (e.tags &&
+            ('indoor' in e.tags ||
+              'level' in e.tags ||
+              'building' in e.tags ||
+              'building:part' in e.tags ||
+              e.tags.highway === 'elevator'))
+        const ways = elements.filter((e) => e.type === 'way' && indoor(e) && onLevel(e))
+        const wayIds = new Set(ways.map((w) => w.id))
+        const relations = elements.filter(
+          (e) =>
+            e.type === 'relation' &&
+            indoor(e) &&
+            onLevel(e) &&
+            e.members.every((m) => m.type !== 'way' || wayIds.has(m.ref)),
+        )
+        const nodeIds = new Set(ways.flatMap((w) => w.nodes))
+        for (const e of elements)
+          if (e.type === 'node' && e.tags && indoor(e) && onLevel(e)) nodeIds.add(e.id)
+        return {
+          ...all,
+          elements: [
+            ...[...nodeIds].map((id) => nodes.get(id)).filter(Boolean),
+            ...ways,
+            ...relations,
+          ],
+        }
+      }
+
+      const engine = new BABYLON.Engine(document.getElementById('scene'), true)
+      const scene = new BABYLON.Scene(engine)
+      scene.clearColor = new BABYLON.Color4(0.09, 0.09, 0.1, 1)
+      const camera = new BABYLON.ArcRotateCamera(
+        'camera',
+        -Math.PI / 2,
+        Math.PI / 3,
+        400,
+        BABYLON.Vector3.Zero(),
+        scene,
+      )
+      camera.attachControl(document.getElementById('scene'), true)
+      camera.maxZ = 20000
+      new BABYLON.HemisphericLight('sky', new BABYLON.Vector3(0.3, 1, 0.2), scene)
+      engine.runRenderLoop(() => scene.render())
+      addEventListener('resize', () => engine.resize())
+
+      function show(meshes) {
+        while (scene.meshes.length > 0) scene.meshes[0].dispose(false, true)
+        let bounds = null
+        for (const mesh of meshes) {
+          const out = new BABYLON.Mesh(mesh.name(), scene)
+          const vertexData = new BABYLON.VertexData()
+          vertexData.positions = mesh.positions()
+          vertexData.indices = mesh.indices()
+          vertexData.normals = mesh.normals()
+          vertexData.applyToMesh(out)
+          const material = new BABYLON.PBRMaterial(mesh.materialName(), scene)
+          const [r, g, b] = mesh.color()
+          material.albedoColor = new BABYLON.Color3(r, g, b)
+          material.metallic = 0
+          material.roughness = 0.9
+          if (mesh.transparency()) material.alpha = 0.5
+          out.material = material
+          out.computeWorldMatrix(true)
+          if (bounds) bounds.encapsulateBoundingInfo(out.getBoundingInfo())
+          else bounds = out.getBoundingInfo()
+        }
+        if (bounds) camera.setTarget(bounds.boundingBox.center)
+      }
+
+      let converter
+      function loadConfig(lod) {
+        return new Promise((ok, fail) =>
+          loadO2WConfig(
+            `${location.origin}/vendor/standard.properties`,
+            { lod },
+            (config) => {
+              converter = new O2WConverter()
+              converter.setConfig(config)
+              ok()
+            },
+            fail,
+          ),
+        )
+      }
+
+      async function run() {
+        const subset = document.getElementById('subset').value
+        const level = document.getElementById('level').value
+        const data = dataFor(subset, level)
+        say(`Converting ${data.elements.length} elements…`)
+        const start = performance.now()
+        const meshes = await new Promise((ok, fail) =>
+          converter.convertJson(JSON.stringify(data), ok, fail, {}),
+        )
+        const ms = performance.now() - start
+        show(meshes)
+        const shown = performance.now() - start
+        say(
+          `${data.elements.length} elements → ${meshes.length} meshes: converted in ${ms.toFixed(0)} ms, shown after ${shown.toFixed(0)} ms`,
+        )
+        window.__o2w = {
+          subset,
+          level,
+          elements: data.elements.length,
+          meshes: meshes.length,
+          convertMs: Math.round(ms),
+          shownMs: Math.round(shown),
+        }
+      }
+
+      await loadConfig('4')
+      document.getElementById('subset').onchange = run
+      document.getElementById('level').onchange = run
+      document.getElementById('lod').onchange = async (event) => {
+        await loadConfig(event.target.value)
+        run()
+      }
+      run().catch((error) => say(`Error: ${error}`))
+    </script>
+  </body>
+</html>
