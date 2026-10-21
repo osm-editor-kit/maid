@@ -137,23 +137,30 @@ const LEVEL_DIM: ExpressionSpecification = [
   ], OFF_LEVEL_OPACITY,
   0,
 ] // prettier-ignore
+/** The labels: shown on the edited level only; a dimmed label cannot be read and is noise (Tobias, 2026-10-21) */
+const LEVEL_TEXT: ExpressionSpecification = [
+  'case',
+  ['any', ['==', chosenLevel, ''], ['!', ['has', 'lv']]], 1,
+  ['>=', ['index-of', ['concat', ';', chosenLevel, ';'], ['get', 'lv']], 0], 1,
+  0,
+] // prettier-ignore
 
 /**
  * An opacity times LEVEL_DIM. A zoom curve stays on top (MapLibre takes `zoom` only as the input of a top-level
  * `interpolate` or `step`), so each of its outputs is multiplied instead.
  */
-function dimmedByLevel(value: unknown): unknown {
+function dimmedByLevel(value: unknown, factor: ExpressionSpecification = LEVEL_DIM): unknown {
   if (Array.isArray(value) && JSON.stringify(value).includes('"zoom"')) {
     if (value[0] === 'interpolate')
       return value.map((item, index) =>
-        index >= 4 && index % 2 === 0 ? ['*', item, LEVEL_DIM] : item,
+        index >= 4 && index % 2 === 0 ? ['*', item, factor] : item,
       )
     if (value[0] === 'step')
       return value.map((item, index) =>
-        index >= 2 && index % 2 === 0 ? ['*', item, LEVEL_DIM] : item,
+        index >= 2 && index % 2 === 0 ? ['*', item, factor] : item,
       )
   }
-  return ['*', value ?? 1, LEVEL_DIM]
+  return ['*', value ?? 1, factor]
 }
 
 /** iD's visual diff colours (css/20_map.css): created, retagged, moved or re-noded. Read from a feature's `ed` property. */
@@ -237,7 +244,8 @@ export function buildLayers(options: LayerOptions) {
     // selected, and a feature on another level is neither
     const dimmed = source === ACTIVE_SOURCE ? [] : (OPACITY[layer.type] ?? [])
     const leveled: Record<string, unknown> = { ...layer.paint }
-    for (const prop of dimmed) leveled[prop] = dimmedByLevel(leveled[prop])
+    for (const prop of dimmed)
+      leveled[prop] = dimmedByLevel(leveled[prop], prop === 'text-opacity' ? LEVEL_TEXT : LEVEL_DIM)
     const floored = {
       ...layer,
       ...(dimmed.length > 0 ? { paint: leveled } : {}),
