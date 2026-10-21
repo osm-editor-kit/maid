@@ -41,6 +41,14 @@ export const SCENES: Scene[] = [
     center: [13.5729, 52.445],
     zoom: 17,
   },
+  {
+    name: 'indoor',
+    description:
+      'Berlin Hauptbahnhof: rooms, corridors, walls, doors, elevators, stairs and escalators on levels -3 to 7 with mezzanines (-1.7, -1.3, 0.5), for the level mode and 3D',
+    bbox: [13.364, 52.5225, 13.3745, 52.528],
+    center: [13.3694, 52.5251],
+    zoom: 18,
+  },
 ]
 
 export function getScene(name: string) {

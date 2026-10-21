@@ -13,7 +13,7 @@ Not up for trade-offs. If a task seems to need an exception, stop and ask.
 OSM infrastructure is everything the OSMF and the community run for mappers: the API and the development API, tiles, Nominatim, Overpass, taginfo, the wiki.
 
 - **Automated runs** (tests, benchmarks, CI, agent sessions) send **zero** requests to OSM infrastructure, never sign in and never upload. Maid, iD and Rapid read the frozen fixtures of the local mock API (`tools/mock-osm-api`), which rejects writes. The benchmark browser blocks every non-localhost request; under automation (`isAutomated()`) Maid always uses the mock.
-- **Fixtures** are cut once by a person from a bulk extract (`bun run fixtures-build`), not from the editing API, and committed. Regenerating one is a reviewed change.
+- **Fixtures** are cut once by a person from a bulk extract (`bun run fixtures-build`), not from the editing API, and committed. Regenerating one is a reviewed change. A person may let the orchestrator cut one from a local extract for a named purpose (Tobias, 2026-10-21: the `indoor` scene).
 - **A person** tests against the development server (staging) and OpenStreetMap (production), never an agent. Maid is built to be released for both: `?api=mock|osm|dev` picks the data (the mock is the default in development; a deployed build starts on the editor's first server), and the person logs in to and saves on that server. `osm.servers` in the app's `maid.config.ts` says which servers an editor offers, as iD's `ID_API_CONNECTION`. Decided by Tobias on 2026-10-14.
 - **Environment variables** hold only what each fork sets for itself: the client ids (`VITE_OSM_CLIENT_ID`, `VITE_OSM_DEV_CLIENT_ID` in `apps/<app>/.env.local`; repository variables `OSM_CLIENT_ID`, `OSM_DEV_CLIENT_ID`) and the Pages app and path (`deploy.env`). Client ids are public. Maid is a public PKCE client: no client secret, ever. Never copy ids or secrets from the reference editors.
 
@@ -48,9 +48,9 @@ The FMC `tech-stack` skill: Bun workspaces, Vite, React 19 with the React Compil
 - **Measure before you brief**: give the agent the failure list and the command that proves "done".
 - **One folder per agent**, nothing outside it: no `package.json`, index files, `bun install` or commits. The orchestrator wires and commits.
 - **Models** (Tobias, 2026-10-11): Haiku by default, with the effort set in every brief: low or medium for lookups and measurements, high where it must choose or design. **High is the ceiling, never max or xhigh**; split the task instead. Sonnet only at medium and only when Haiku at high was not enough. Opus never at low; it orchestrates, reviews and decides across packages.
-- **Keep each agent under about 100k tokens**: one file or package, read in ranges (`grep -n`, `sed -n`).
+- **Keep each agent's context under about 100k tokens**: one file or package, read in ranges (`grep -n`, `sed -n`).
 - **Watch every Haiku run** (Tobias, 2026-10-17):
-  - Each brief tells the agent to stop and report what it measured once it reaches about 120k tokens without a result, or after three failed tries at the same error.
+  - Each brief tells the agent to write a progress note (done, next, open questions) to a file in its folder at about 90k tokens, so that it carries on after its context is compacted. It keeps running rather than stopping: finishing beats a restart or another model (Tobias, 2026-10-21). It stops and reports only after three failed tries at the same error.
   - After the run, the orchestrator compares tokens and tool calls with the outcome.
   - A waste sign is any of: over 150k tokens, no final report, the same error twice, or causes guessed instead of measured.
   - On a waste sign, the next task of that kind goes to Sonnet at medium, and the report to Tobias says so.
