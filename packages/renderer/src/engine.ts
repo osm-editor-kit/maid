@@ -13,6 +13,7 @@ import {
  * want to avoid (see docs/research/maplibre.md).
  */
 import { createFilterSet, type FilterSet } from '@osm-editor-kit/maid-filters'
+import { levelsOf } from '@osm-editor-kit/maid-levels'
 import {
   type Action,
   actionAddEntity,
@@ -54,6 +55,7 @@ import {
   ACTIVE_SOURCE,
   activePinIds,
   EDIT_SOURCES,
+  LEVEL_STATE,
   type MapDisplay,
   SELECT_SOURCES,
   SOURCES,
@@ -111,6 +113,8 @@ export type EngineOptions = {
   fetch?: RemoteFetch
   /** What the map shows of the data at the start (`engine.display`). Left out: the normal look. */
   display?: MapDisplay
+  /** The building level being edited at the start (`engine.level`). Left out: no level mode. */
+  level?: number | null
 }
 
 /** The engine on its own: the foundation's rules, with gates and a service of its own. */
@@ -186,12 +190,17 @@ export class MaidEngine {
   private selectionOnlyShown = false
   /** What the map shows of the data (layers.ts MapDisplay). Per visit: the URL and the person's choice set it (url/display.ts). */
   private displayShown: MapDisplay = 'normal'
+  /** The building level being edited (the level mode), or null. Per visit: the URL sets it (url/level.ts). */
+  private levelShown: number | null = null
+  /** The levels of each entity asked for by `isOffLevel`, until its entity object changes */
+  private levelCache = new WeakMap<object, readonly number[]>()
 
   // The data comes from the editor, so the engine and the editor's modules see the same entities.
   // Assigned here, not in field initializers, because the builder needs `data`.
   constructor(public options: EngineOptions) {
     this.data = new OsmData(options.editor.context, options.editor.history)
     this.displayShown = options.display ?? 'normal'
+    this.levelShown = options.level ?? null
     // after OsmData's own listener, so the lookups are right when the redraw reads them
     options.editor.history.on('stagingchange', (difference) => this.onStagingChange(difference))
     this.builder = new FeatureBuilder(this.data, options.editor.presets)
@@ -355,6 +364,7 @@ export class MaidEngine {
   /** The node or way with this id in the current graph. Relations and unknown ids give undefined. */
   attach(map: MapLibreMap) {
     this.map = map
+    this.applyLevel()
     // a frame drawn after the last data change: `settled()` needs one (see `dataSeq`)
     map.on('render', () => {
       this.sender.renderedSeq = this.sender.dataSeq
@@ -620,6 +630,68 @@ export class MaidEngine {
   }
 
   /**
+   * The building level being edited, or null. While a level is chosen, features on other levels are dimmed (the
+   * layers read the map's global state `level`, layers.ts) and cannot be picked or changed (`isOffLevel`).
+   * Features with no level stay as they are.
+   */
+  get level(): number | null {
+    return this.levelShown
+  }
+
+  /** Edits on `level` (null ends the level mode). A change tells the components that read the engine. */
+  setLevel(level: number | null) {
+    if (level === this.levelShown) return
+    this.levelShown = level
+    this.applyLevel()
+    this.changed()
+  }
+
+  /** The level as the map's global state: a string, as the features carry their levels (`lv`, build.ts) */
+  private applyLevel() {
+    this.map?.setGlobalStateProperty(
+      LEVEL_STATE,
+      this.levelShown === null ? null : String(this.levelShown),
+    )
+  }
+
+  /** The tags a new feature starts with: the level being edited, as MapComplete gives a new point its floor */
+  levelTags(): Tags {
+    return this.levelShown === null ? {} : { level: String(this.levelShown) }
+  }
+
+  /**
+   * True while a level is chosen and this entity is on other levels only. A node without a level of its own is on
+   * the levels of its ways (a corner of a room). An entity with no level at all is never off.
+   */
+  isOffLevel(id: string) {
+    const level = this.levelShown
+    if (level === null) return false
+    const levels = this.levelsOfEntity(id)
+    return levels.length > 0 && !levels.includes(level)
+  }
+
+  private levelsOfEntity(id: string): readonly number[] {
+    const entity =
+      id[0] === 'n'
+        ? this.data.node(id)
+        : id[0] === 'w'
+          ? this.data.way(id)
+          : this.data.relation(id)
+    if (!entity) return []
+    const cached = this.levelCache.get(entity)
+    if (cached) return cached
+    let levels = levelsOf(entity.tags).levels
+    if (levels.length === 0 && entity.type === 'node') {
+      const of = new Set<number>()
+      for (const way of this.data.nodeWays.get(id) ?? [])
+        for (const l of this.levelsOfEntity(way)) of.add(l)
+      levels = [...of]
+    }
+    this.levelCache.set(entity, levels)
+    return levels
+  }
+
+  /**
    * Starts the data again after an upload. The caller has reset the editor's history, so the data is
    * empty: the features come off the map, the loads in flight are cancelled, and the selection is the
    * one the server gave (`selection`). The visible tiles load again after `delayMs`, as iD and Rapid
@@ -817,7 +889,7 @@ export class MaidEngine {
 
   /** True if the filters let this entity be looked at but not changed */
   isReadOnly(id: string) {
-    return this.builder.isReadOnly(id)
+    return this.builder.isReadOnly(id) || this.isOffLevel(id)
   }
 
   /** How many objects each filter hides, by filter id */
@@ -1173,7 +1245,10 @@ export class MaidEngine {
 
   /** Adds a standalone point and returns its id (negative, as for every new entity). One undo step. */
   addPoint(lon: number, lat: number, tags: Tags = {}) {
-    const node = new OsmNode(this.data.context, { loc: [lon, lat], tags })
+    const node = new OsmNode(this.data.context, {
+      loc: [lon, lat],
+      tags: { ...this.levelTags(), ...tags },
+    })
     this.edit(actionAddEntity(node), 'Added a point', [node.id])
     return node.id
   }

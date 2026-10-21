@@ -45,6 +45,7 @@ const CHECKS = [
   'merge-polygon',
   'favourites',
   'tooltips',
+  'levels',
 ] as const
 type CheckName = (typeof CHECKS)[number]
 
@@ -59,6 +60,7 @@ const MODULE_CHECKS = new Set<CheckName>([
   'cut',
   'divide',
   'touch',
+  'levels',
 ])
 
 /** Checks that need the relations scene (routes with route masters), for every app */
@@ -85,6 +87,9 @@ const RUNS: Run[] = [
   { name: 'divide', check: 'divide', only: 'parking' },
   // long press on a touch screen: the Area dropdown, the edit menu, Shift while drawing (it needs the rectangle tool)
   { name: 'touch', check: 'touch', only: 'parking' },
+  // the level mode of module-levels, on in the maid and the bicycle app, on the indoor scene (Berlin Hauptbahnhof)
+  { name: 'levels', check: 'levels', scene: 'indoor', only: 'maid' },
+  { name: 'levels', check: 'levels', scene: 'indoor', only: 'bicycle' },
 ]
 
 /**
@@ -117,6 +122,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   divide: { maid: 0, bicycle: 0, parking: 23 },
   display: { maid: 12, bicycle: 12, parking: 12 },
   touch: { maid: 0, bicycle: 0, parking: 14 },
+  levels: { maid: 14, bicycle: 14, parking: 0 },
   menu: { maid: 12, bicycle: 12, parking: 12 },
   'merge-polygon': { maid: 23, bicycle: 23, parking: 23 },
   favourites: { maid: 13, bicycle: 13, parking: 13 },

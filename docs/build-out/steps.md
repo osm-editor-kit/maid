@@ -416,10 +416,11 @@ From the check of the code against [ARCHITECTURE.md](../../ARCHITECTURE.md) on 2
 - [ ] Checks: a click on a building edge that lies on another area's fill picked the other area. The check now avoids such places; the pick order there is not examined. The journal timing unit test is flaky under load.
 - [ ] A benchmark of Maid against iD and Rapid on the dense scene at the current state.
 
-### Indoor and levels (parked by Tobias, 2026-10-20)
+### Indoor and levels (started 2026-10-21)
 
-Research: [indoor/README.md](../research/indoor/README.md). Parked for now; three prototypes to build when it is picked up:
+Research: [indoor/README.md](../research/indoor/README.md). Order decided by Tobias on 2026-10-21: the level basics, then the level mode, then 3D.
 
-- [ ] Prototype: MapLibre `fill-extrusion` per level. Rooms and building parts are extruded by `level` (and `min_level`/`max_level`) in the map, live with unsaved edits, the chosen level opaque and the others faint. Test for Tobias: a building of a fixture in 3D, a level edit shows at once.
-- [ ] Prototype: OSM2World. Its browser build (TeaVM, MIT) and Babylon.js object viewer in a floating panel like the photo panel, fed with the selected building from the editor's data. Measure the conversion time on a fixture, check if geometry edits show without saving, and check the licences of the web build and the tile pipeline.
-- [ ] Prototype: a level mode like the relation column, so that the focus on one level is clearer than the dimming in iD PR 12605. A level picker of the floors in view, as MapComplete builds it from the features in view (`0` always present, ranges, `;`, `repeat_on`). The other levels dimmed and read-only, and a new feature gets the chosen level, as MapComplete does. The chosen level goes in the URL, with a status line saying which level is being edited.
+- [x] 2026-10-21: the indoor scene (`indoor`, Berlin Hauptbahnhof, cut from the local Berlin extract with Tobias's permission) and the package `levels`: `level`, `repeat_on`, `min_level`/`max_level` read with their problems, the floors of a set of features (45 tests on every level value of the fixtures).
+- [x] 2026-10-21: prototype OSM2World (`bun run osm2world-prototype`): the station in 3D, offline; one level takes 10 to 12 s to convert, so it fits a panel for one building, not a live view ([3d-osm2world.md](../research/indoor/3d-osm2world.md) section 8).
+- [x] 2026-10-21: the level mode (module `levels`, in the maid and bicycle apps): a floor picker on the map's right edge lists the floors in view (from zoom 17, as MapComplete), choosing one dims the other levels (a global-state paint expression, no rebuild) and locks them (no pick, read-only), new points and lines get the level, `level=` in the URL; "3D" tilts the map and extrudes rooms, floors, stairs and elevator shafts by level, cut at the chosen level. Check `bun run check-levels` (14). Test for Tobias: the links in the chat of 2026-10-21.
+- [ ] Open: the picker's texts in the i18n files; the level a new feature gets is not yet confirmed by the person (MapComplete asks); levels above 3 come from building levels and make the list long (filter to indoor features?); validation rules from [tagging-model.md](../research/indoor/tagging-model.md) (the parser already reports the problems); OSM2World as a panel for the selected building.

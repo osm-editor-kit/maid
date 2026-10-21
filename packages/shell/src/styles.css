@@ -8,6 +8,7 @@
 @source '../../module-street-imagery/node_modules/@osm-editor-kit/street-imagery-react';
 @source '../../module-data-layers/src';
 @source '../../module-lenses/src';
+@source '../../module-levels/src';
 @source '../../module-notes/src';
 @source '../../module-surface/src';
 @source '../../module-parking/src';

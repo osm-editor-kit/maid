@@ -4,6 +4,7 @@
  * expressions stay trivial (`['get', 'sc']`) and forks can change the look in one place.
  */
 import type { FilterSet, FilterState, Geometry } from '@osm-editor-kit/maid-filters'
+import { levelsOf } from '@osm-editor-kit/maid-levels'
 import type { OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 import type { LonLat, Presets } from '@osm-editor-kit/maid-presets'
 import {
@@ -62,6 +63,8 @@ export type LineProps = {
   side?: string
   /** what an edit changed (edits.ts), only on an edited line: the edits highlight colours it */
   ed?: EditKind
+  /** the floors it is on (markLevels), only when it has levels */
+  lv?: string
 }
 
 export type AreaProps = {
@@ -84,6 +87,8 @@ export type AreaProps = {
   name?: string
   /** what an edit changed (edits.ts), only on an edited area */
   ed?: EditKind
+  /** the floors it is on (markLevels), only when it has levels */
+  lv?: string
 }
 
 /** `addr`: the text of an address node (iD draws it on a plaque, not as a pin; '' for an address without number or name) */
@@ -93,6 +98,8 @@ export type PointProps = {
   name?: string
   addr?: string
   ed?: EditKind
+  /** the floors it is on (markLevels), only when it has levels */
+  lv?: string
 } & ConeProps
 export type VertexProps = {
   id: string
@@ -100,6 +107,8 @@ export type VertexProps = {
   s: 0 | 1
   icon?: string
   ed?: EditKind
+  /** the floors it is on (markLevels), only when it has levels */
+  lv?: string
 } & ConeProps
 
 const HIGHWAY_STACK: Record<string, number> = {
@@ -239,6 +248,7 @@ function lineFeature(
   }
   const side = sidedOf(tags)
   if (side) props.side = side
+  markLevels(props, floorsOf(tags))
   return {
     type: 'Feature',
     id,
@@ -277,6 +287,7 @@ function partialFeature(
   if (stroke.color) props.sc = stroke.color
   const sd = dashKey(stroke.dash, stroke.width)
   if (sd) props.sd = sd
+  markLevels(props, floorsOf(tags))
   return {
     type: 'Feature',
     id,
@@ -339,6 +350,7 @@ function areaFeature(
   const label = mapLabelOf(tags)
   if (label) props.name = label
   if (sided) props.side = side
+  markLevels(props, floorsOf(tags))
   const geometry: Polygon | MultiPolygon =
     oriented.length === 1
       ? { type: 'Polygon', coordinates: oriented[0]! }
@@ -436,6 +448,24 @@ function markEdit(
   if (!ed) return
   if ('properties' in target) target.properties.ed = ed
   else target.ed = ed
+}
+
+const NO_FLOORS: readonly number[] = []
+/** The keys levels.ts reads. An entity with none of them is never parsed and gets no floors. */
+const LEVEL_KEYS = ['level', 'repeat_on', 'min_level', 'max_level'] as const
+
+/** The floors an entity's tags give (levels.ts), checking the keys first so most entities allocate nothing */
+function floorsOf(tags: Tags): readonly number[] {
+  for (const key of LEVEL_KEYS) if (tags[key] !== undefined) return levelsOf(tags).levels
+  return NO_FLOORS
+}
+
+/**
+ * Sets `lv` for layers.ts LEVEL_DIM: ';-1;0;', so a layer tests ';<level>;' with one `index-of`. Without floors
+ * there is no `lv` at all, and such a feature is never dimmed. join writes numbers as String() does.
+ */
+function markLevels(props: { lv?: string }, floors: readonly number[]) {
+  if (floors.length > 0) props.lv = `;${floors.join(';')};`
 }
 
 export class FeatureBuilder {
@@ -593,6 +623,7 @@ export class FeatureBuilder {
     if (this.isFiltered(id, node.tags, 'point', first)) return undefined
     const props: PointProps = { id }
     markEdit(props, this.editOf(id))
+    markLevels(props, floorsOf(node.tags))
     if (hasDirectionTags(node.tags)) addViewfields(props, node, this.data.history.staging.graph)
     if (isAddressTags(node.tags)) props.addr = addressLabel(node.tags)
     else {
@@ -606,6 +637,25 @@ export class FeatureBuilder {
       if (label) props.name = label
     }
     return { type: 'Feature', id, properties: props, geometry: { type: 'Point', coordinates } }
+  }
+
+  /**
+   * The floors of a vertex: its own, else the union of its ways' floors (engine.levelsOfEntity: a corner of a room
+   * is on the room's floor). Sorted, so the same ways always give the same `lv`.
+   */
+  private floorsOfVertex(node: OsmNode): readonly number[] {
+    const own = floorsOf(node.tags)
+    if (own.length > 0) return own
+    let union: Set<number> | undefined
+    for (const wayId of this.data.nodeWays.get(node.id) ?? []) {
+      const way = this.data.way(wayId)
+      if (!way) continue
+      for (const floor of floorsOf(way.tags)) {
+        union ??= new Set()
+        union.add(floor)
+      }
+    }
+    return union ? [...union].sort((a, b) => a - b) : NO_FLOORS
   }
 
   /** Re-reads a vertex's tags (tagged or not) and returns its feature, if it has one */
@@ -635,6 +685,7 @@ export class FeatureBuilder {
       s: state[1] === '1' ? 1 : 0,
     }
     markEdit(props, this.editOf(node.id))
+    markLevels(props, this.floorsOfVertex(node))
     if (hasDirectionTags(node.tags)) addViewfields(props, node, this.data.history.staging.graph)
     const icon = props.t
       ? this.presets?.match(node.tags, 'vertex', [coordinates[0]!, coordinates[1]!]).icon
@@ -817,6 +868,7 @@ export class FeatureBuilder {
       if (!coordinates) continue
       this.vertexState.set(node.id, state)
       const props: VertexProps = { id, t: tagged ? 1 : 0, s: shared ? 1 : 0 }
+      markLevels(props, this.floorsOfVertex(node))
       if (hasDirectionTags(node.tags)) addViewfields(props, node, this.data.history.staging.graph)
       const icon = tagged
         ? this.presets?.match(node.tags, 'vertex', [coordinates[0]!, coordinates[1]!]).icon

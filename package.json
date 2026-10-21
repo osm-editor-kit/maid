@@ -35,6 +35,7 @@
     "check-filters": "bun tools/bench/filters-check.ts",
     "check-interactions": "bun tools/bench/interactions-check.ts",
     "check-journal": "bun tools/bench/journal-check.ts",
+    "check-levels": "bun tools/bench/levels-check.ts",
     "check-menu": "bun tools/bench/menu-check.ts",
     "check-merge": "bun tools/bench/merge-check.ts",
     "check-merge-polygon": "bun tools/bench/merge-polygon-check.ts",

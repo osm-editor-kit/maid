@@ -7,6 +7,7 @@ import { defaultFilters } from '@osm-editor-kit/maid-filters'
 import { dataLayers } from '@osm-editor-kit/maid-module-data-layers'
 import { imagery } from '@osm-editor-kit/maid-module-imagery'
 import { lenses } from '@osm-editor-kit/maid-module-lenses'
+import { levels } from '@osm-editor-kit/maid-module-levels'
 import { notes } from '@osm-editor-kit/maid-module-notes'
 import { reroute } from '@osm-editor-kit/maid-module-reroute'
 import { streetImagery } from '@osm-editor-kit/maid-module-street-imagery'
@@ -77,6 +78,8 @@ function editorConfig(config: Config) {
     dataLayers(),
     // top bar "Map style": lenses that recolour the map for one theme (surface, lit, max speed)
     lenses(),
+    // building levels: a floor picker on the map, the other levels dimmed and locked, rooms in 3D (`level=` in the URL)
+    levels(),
     // top bar and dock "Photos": street-level photos; Mapillary uses the token of apps/mapillary-token.ts
     streetImagery({ mapillaryToken: mapillaryToken() }),
     // inspector field "Surface and smoothness" on roads and paths: a photo per value, bundled, no network

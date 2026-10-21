@@ -104,6 +104,46 @@ export function displayOf(value: string | null | undefined): MapDisplay {
   return value === 'wireframe' || value === 'edits' ? value : 'normal'
 }
 
+/** The map's global state with the level being edited (engine.setLevel), as a string; unset: no level mode */
+export const LEVEL_STATE = 'level'
+/** How visible a feature on another level is while a level is edited */
+const OFF_LEVEL_OPACITY = 0.2
+
+/**
+ * 1 for a feature on the chosen level, with no level, or when no level is chosen; OFF_LEVEL_OPACITY otherwise. A
+ * feature carries its levels as `lv`, `;-1;0;` (build.ts), so a level is found with `index-of`. It reads the global
+ * state in paint only: a level change repaints the loaded tiles and builds nothing again (a global state in a filter
+ * or layout would reload the source).
+ */
+const chosenLevel: ExpressionSpecification = [
+  'to-string',
+  ['coalesce', ['global-state', LEVEL_STATE], ''],
+]
+const LEVEL_DIM: ExpressionSpecification = [
+  'case',
+  ['any', ['==', chosenLevel, ''], ['!', ['has', 'lv']]], 1,
+  ['>=', ['index-of', ['concat', ';', chosenLevel, ';'], ['get', 'lv']], 0], 1,
+  OFF_LEVEL_OPACITY,
+] // prettier-ignore
+
+/**
+ * An opacity times LEVEL_DIM. A zoom curve stays on top (MapLibre takes `zoom` only as the input of a top-level
+ * `interpolate` or `step`), so each of its outputs is multiplied instead.
+ */
+function dimmedByLevel(value: unknown): unknown {
+  if (Array.isArray(value) && JSON.stringify(value).includes('"zoom"')) {
+    if (value[0] === 'interpolate')
+      return value.map((item, index) =>
+        index >= 4 && index % 2 === 0 ? ['*', item, LEVEL_DIM] : item,
+      )
+    if (value[0] === 'step')
+      return value.map((item, index) =>
+        index >= 2 && index % 2 === 0 ? ['*', item, LEVEL_DIM] : item,
+      )
+  }
+  return ['*', value ?? 1, LEVEL_DIM]
+}
+
 /** iD's visual diff colours (css/20_map.css): created, retagged, moved or re-noded. Read from a feature's `ed` property. */
 const EDIT_COLOUR: ExpressionSpecification = [
   'match', ['get', 'ed'], 'added', '#85ff67', 'retagged', '#fcde5a', '#ff7e2e',
@@ -181,7 +221,16 @@ export function buildLayers(options: LayerOptions) {
       continue
     }
     const floor = floorOf(layer)
-    const floored = { ...layer, minzoom: Math.max(layer.minzoom ?? 0, floor) } as LayerSpecification
+    // the OSM data is dimmed on other levels than the one being edited (LEVEL_DIM); the active points are hovered or
+    // selected, and a feature on another level is neither
+    const dimmed = source === ACTIVE_SOURCE ? [] : (OPACITY[layer.type] ?? [])
+    const leveled: Record<string, unknown> = { ...layer.paint }
+    for (const prop of dimmed) leveled[prop] = dimmedByLevel(leveled[prop])
+    const floored = {
+      ...layer,
+      ...(dimmed.length > 0 ? { paint: leveled } : {}),
+      minzoom: Math.max(layer.minzoom ?? 0, floor),
+    } as LayerSpecification
     const shown = selectionOnly
       ? ({
           ...floored,
@@ -195,7 +244,7 @@ export function buildLayers(options: LayerOptions) {
     }
     const editSource = EDIT_OF[source]
     if (editSource) {
-      const paint: Record<string, unknown> = { ...layer.paint }
+      const paint: Record<string, unknown> = { ...floored.paint }
       for (const prop of OPACITY[layer.type] ?? [])
         paint[prop] = ['case', editing, 0, paint[prop] ?? 1]
       out.push(

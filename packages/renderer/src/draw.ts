@@ -241,9 +241,10 @@ export class DrawTool {
           history.perform(actionAddMidpoint({ loc: target.loc, edge: target.edge }, first))
       }
       // iD's convention: an area is a closed way with area=yes until it gets its type
+      // and a feature drawn while a level is edited is on that level (engine.levelTags)
       const way = new OsmWay(context, {
         nodes: kind === 'area' ? [firstId, firstId] : [firstId],
-        tags: kind === 'area' ? { area: 'yes' } : {},
+        tags: { ...this.engine.levelTags(), ...(kind === 'area' ? { area: 'yes' } : {}) },
       })
       history.perform(actionAddEntity(way))
       this.wayId = way.id

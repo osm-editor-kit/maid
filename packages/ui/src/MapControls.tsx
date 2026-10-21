@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { twJoin } from 'tailwind-merge'
+import { twJoin, twMerge } from 'tailwind-merge'
 import { Tooltip } from './Tooltip.tsx'
 
 /** Column of map buttons in the top right corner of the map area. */
@@ -8,12 +8,20 @@ export function MapControls(props: { children: ReactNode }) {
 }
 
 /** Vertical group of map buttons with a shared shadow, ring and hairlines between buttons. */
-export function ControlGroup(props: { label: string; children: ReactNode }) {
+export function ControlGroup(props: {
+  label: string
+  children: ReactNode
+  /** Extra classes, merged last (a long group that scrolls: `min-h-0 overflow-y-auto`) */
+  className?: string
+}) {
   return (
     <div
       role="group"
       aria-label={props.label}
-      className="flex flex-col divide-y divide-zinc-950/10 overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-zinc-950/10 dark:divide-white/10 dark:bg-zinc-800 dark:shadow-none dark:ring-white/10"
+      className={twMerge(
+        'flex flex-col divide-y divide-zinc-950/10 overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-zinc-950/10 dark:divide-white/10 dark:bg-zinc-800 dark:shadow-none dark:ring-white/10',
+        props.className,
+      )}
     >
       {props.children}
     </div>

@@ -10,6 +10,7 @@
   "dependencies": {
     "@osm-editor-kit/maid-core": "workspace:*",
     "@osm-editor-kit/maid-filters": "workspace:*",
+    "@osm-editor-kit/maid-levels": "workspace:*",
     "@osm-editor-kit/maid-model": "workspace:*",
     "@osm-editor-kit/maid-operations": "workspace:*",
     "@osm-editor-kit/maid-presets": "workspace:*",
