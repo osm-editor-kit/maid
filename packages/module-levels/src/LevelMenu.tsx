@@ -5,7 +5,16 @@ import { useEffect, useState } from 'react'
 import { useMap } from 'react-map-gl/maplibre'
 import { type LevelSuggestion, pointInPolygon, suggestLevels } from './level-suggestions.ts'
 
-type Menu = { at: { x: number; y: number }; id: string; suggestions: LevelSuggestion[] } | null
+/** `fixing`: opened while the features without a level are edited ("none"), where the click also selected the feature */
+type Menu = {
+  at: { x: number; y: number }
+  id: string
+  suggestions: LevelSuggestion[]
+  fixing: boolean
+} | null
+
+/** The menu's width (ContextMenu's w-52, 208 px) and a gap: it opens left of the pointer */
+const MENU_OFFSET = 216
 
 /** The position of a feature (a node's loc, a way's average node) and the nodes it is made of */
 function placeOf(
@@ -68,7 +77,10 @@ export function LevelMenu({ engine }: { engine: MaidEngine }) {
       if (!map) return
       const onClick = (event: MapMouseEvent) => {
         const level = engine.level
-        if (typeof level !== 'number') return
+        if (level === null) return
+        // on a level: a feature without a level is locked, the menu is the way to put it on one; while the features
+        // without a level are edited ("none"), the click selects it as usual and the menu comes next to it
+        const fixing = level === 'none'
         // a few pixels around the click, as the picking of a thin line needs
         const { x, y } = event.point
         const features = map.queryRenderedFeatures([
@@ -81,7 +93,8 @@ export function LevelMenu({ engine }: { engine: MaidEngine }) {
         for (const id of ids) {
           const entity = engine.data.node(id) ?? engine.data.way(id)
           if (!entity?.tags || Object.keys(entity.tags).length === 0) continue
-          if (engine.levelsOf(id).length !== 0 || !engine.isOffLevel(id)) continue
+          if (engine.levelsOf(id).length !== 0) continue
+          if (!fixing && !engine.isOffLevel(id)) continue
           picked = id
           break
         }
@@ -91,15 +104,17 @@ export function LevelMenu({ engine }: { engine: MaidEngine }) {
         const suggestions = suggestLevels({
           id: picked,
           nodeIds: place.nodeIds,
-          edited: level,
+          edited: typeof level === 'number' ? level : null,
           waysOfNode: (node) => engine.data.nodeWays.get(node) ?? [],
           tagsOf: (id) => (engine.data.node(id) ?? engine.data.way(id))?.tags,
           enclosing: enclosingAreas(engine, place.position),
         })
+        // left of the pointer, so that the menu of a right click still has its place on the right
         setMenu({
-          at: { x: event.originalEvent.clientX, y: event.originalEvent.clientY },
+          at: { x: event.originalEvent.clientX - MENU_OFFSET, y: event.originalEvent.clientY },
           id: picked,
           suggestions,
+          fixing,
         })
       }
       map.on('click', onClick)
@@ -111,7 +126,7 @@ export function LevelMenu({ engine }: { engine: MaidEngine }) {
   )
 
   if (!menu) return null
-  const { id, at, suggestions } = menu
+  const { id, at, suggestions, fixing } = menu
   const items: MenuItem[] = [
     ...suggestions.map((suggestion): MenuItem => {
       const { value } = suggestion
@@ -124,11 +139,21 @@ export function LevelMenu({ engine }: { engine: MaidEngine }) {
         preview: (on) => engine.hoverLevel(on && Number.isFinite(preview) ? preview : null),
         run: () => {
           engine.assignLevel(id, value)
-          engine.setSelected(id)
+          // while fixing, a feature with a level leaves the view (only features without one show): nothing selected
+          engine.setSelected(fixing ? null : id)
         },
       }
     }),
-    { id: 'select', label: 'Select anyway', section: 'Other', run: () => engine.setSelected(id) },
+    ...(fixing
+      ? []
+      : [
+          {
+            id: 'select',
+            label: 'Select anyway',
+            section: 'Other',
+            run: () => engine.setSelected(id),
+          },
+        ]),
   ]
 
   return (

@@ -167,7 +167,8 @@ const onHoveredLevel: ExpressionSpecification = [
 ] // prettier-ignore
 
 /**
- * LEVEL_SHOWN, and while a level's button is hovered its features (if they show) at full opacity and the others faint.
+ * LEVEL_SHOWN, and while a level is hovered (its button in the picker, an offer of the "Set level" menu) its features
+ * at full opacity, also a hidden level's, and the others faint. The picker hovers only the levels that show.
  * It reads the global state in paint only: a level change repaints the loaded tiles and builds nothing again (a
  * global state in a filter or layout would reload the source).
  */
@@ -175,7 +176,7 @@ const LEVEL_DIM: ExpressionSpecification = [
   'let', 'shown', LEVEL_SHOWN,
   ['case',
     ['==', hoveredLevel, ''], ['var', 'shown'],
-    onHoveredLevel, ['case', ['>', ['var', 'shown'], 0], 1, 0],
+    onHoveredLevel, 1,
     ['min', ['var', 'shown'], HOVER_OTHERS_OPACITY],
   ],
 ] // prettier-ignore
@@ -184,7 +185,7 @@ const LEVEL_DIM: ExpressionSpecification = [
 const LEVEL_TEXT: ExpressionSpecification = [
   'case',
   ['==', chosenLevel, ''], 1,
-  ['all', ['!=', hoveredLevel, ''], onHoveredLevel, ['>', LEVEL_SHOWN, 0]], 1,
+  ['all', ['!=', hoveredLevel, ''], onHoveredLevel], 1,
   ['!', ['has', 'lv']], ['case', ['==', chosenLevel, 'none'], 1, 0],
   ['==', chosenLevel, 'none'], 0,
   isOn(chosenLevel), 1,

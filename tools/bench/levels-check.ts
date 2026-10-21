@@ -206,6 +206,38 @@ const failed = await runCheck(
         room ? await page.evaluate((id) => window.__maid.engine.isOffLevel(id), room.id) : true,
       ],
     )
+    // fixing: a click on the station selects it and offers its levels left of the pointer
+    if (at && canvasBox) {
+      await page.keyboard.press('Escape')
+      await page.mouse.click(canvasBox.x + at.x, canvasBox.y + at.y)
+      await settle()
+      const menu = page.getByRole('menu', { name: 'Set level' })
+      const menuBox = await menu.boundingBox()
+      report(
+        'while fixing, a click selects the station and opens "Set level" left of the pointer',
+        [true, 1, true],
+        [
+          await page.evaluate((id) => window.__maid.engine.selected().includes(id), STATION),
+          await menu.count(),
+          menuBox !== null && menuBox.x + menuBox.width <= canvasBox.x + at.x,
+        ],
+      )
+      await menu.getByRole('menuitem').first().click()
+      await settle()
+      report(
+        'choosing a level puts it on that level, and it leaves the view of the features without a level',
+        [true, false],
+        await page.evaluate(
+          (id) => [
+            window.__maid.engine.data.node(id)?.tags.level !== undefined,
+            window.__maid.engine.selected().includes(id),
+          ],
+          STATION,
+        ),
+      )
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z')
+      await settle()
+    }
     await levelButton('0').click()
     await settle()
 
