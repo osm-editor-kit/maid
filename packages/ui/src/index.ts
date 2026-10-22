@@ -5,6 +5,9 @@ export { ContextMenu, type MenuItem } from './ContextMenu.tsx'
 export { Dock, type DockTab } from './Dock.tsx'
 export { openDockView } from './dock-request.ts'
 export { Flyout } from './Flyout.tsx'
+export { Dialog } from './Dialog.tsx'
+export { TagDiff } from './TagDiff.tsx'
+export { serializeTags } from './sheet/clipboard.ts'
 export {
   InfoPopover,
   referenceTag,

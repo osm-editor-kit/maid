@@ -249,5 +249,16 @@
   "relations_reason_cycle": "Sie würde sich dann selbst enthalten",
   "relations_column_remove": "{name} aus der Relation entfernen",
   "relations_column_path": "Übergeordnete Relationen",
-  "relations_column_also_in": "Auch in:"
+  "relations_column_also_in": "Auch in:",
+  "paste_tags_title": "Tags einfügen",
+  "paste_tags_mode_label": "Wie die Tags eingefügt werden",
+  "paste_tags_merge": "Zusammenführen",
+  "paste_tags_replace": "Ersetzen",
+  "paste_tags_merge_hint": "Die kopierten Tags werden ergänzt. Ein Schlüssel, den sie mit dem Objekt gemeinsam haben, bekommt den kopierten Wert; die übrigen Tags bleiben.",
+  "paste_tags_replace_hint": "Das Objekt bekommt genau die kopierten Tags. Seine übrigen Tags werden entfernt.",
+  "paste_tags_more_one": "und ein weiteres Objekt",
+  "paste_tags_more_many": "und {count} weitere Objekte",
+  "paste_tags_cancel": "Abbrechen",
+  "paste_tags_submit": "Einfügen",
+  "paste_tags_refused": "Die Tags konnten nicht eingefügt werden: Ein Objekt ist schreibgeschützt oder nicht mehr vorhanden."
 }

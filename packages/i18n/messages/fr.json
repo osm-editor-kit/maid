@@ -249,5 +249,16 @@
   "relations_reason_cycle": "Elle se contiendrait alors elle-même",
   "relations_column_remove": "Retirer {name} de la relation",
   "relations_column_path": "Relations au-dessus",
-  "relations_column_also_in": "Aussi dans :"
+  "relations_column_also_in": "Aussi dans :",
+  "paste_tags_title": "Coller les étiquettes",
+  "paste_tags_mode_label": "Comment coller les étiquettes",
+  "paste_tags_merge": "Fusionner",
+  "paste_tags_replace": "Remplacer",
+  "paste_tags_merge_hint": "Les étiquettes copiées sont ajoutées. Une clé qu'elles partagent avec l'élément prend la valeur copiée ; les autres étiquettes restent.",
+  "paste_tags_replace_hint": "L'élément reçoit exactement les étiquettes copiées. Ses autres étiquettes sont supprimées.",
+  "paste_tags_more_one": "et 1 autre élément",
+  "paste_tags_more_many": "et {count} autres éléments",
+  "paste_tags_cancel": "Annuler",
+  "paste_tags_submit": "Coller",
+  "paste_tags_refused": "Les étiquettes n'ont pas pu être collées : un élément est en lecture seule ou n'existe plus."
 }

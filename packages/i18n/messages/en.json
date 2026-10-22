@@ -249,5 +249,16 @@
   "relations_reason_cycle": "It would then contain itself",
   "relations_column_remove": "Remove {name} from the relation",
   "relations_column_path": "Relations above",
-  "relations_column_also_in": "Also in:"
+  "relations_column_also_in": "Also in:",
+  "paste_tags_title": "Paste tags",
+  "paste_tags_mode_label": "How to paste the tags",
+  "paste_tags_merge": "Merge",
+  "paste_tags_replace": "Replace",
+  "paste_tags_merge_hint": "The copied tags are added. A key they share with the feature takes the copied value; its other tags stay.",
+  "paste_tags_replace_hint": "The feature gets exactly the copied tags. Its other tags are removed.",
+  "paste_tags_more_one": "and 1 more feature",
+  "paste_tags_more_many": "and {count} more features",
+  "paste_tags_cancel": "Cancel",
+  "paste_tags_submit": "Paste",
+  "paste_tags_refused": "The tags could not be pasted: a feature is read-only or gone."
 }

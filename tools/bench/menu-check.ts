@@ -249,6 +249,55 @@ process.exit(
         options.includes('Buildingbuilding=*'),
       )
       await key('Escape')
+
+      // --- "Copy tags" on one building, "Paste tags" on another: the diff, merge, one undo step ---
+      {
+        const box = (await page.locator('canvas').first().boundingBox())!
+        // the middle of a building's first side: the outline, not a corner (a corner is a node without tags)
+        const menuOn = async (id: string) => {
+          const p = await page.evaluate((id) => {
+            const { map, engine } = window.__maid
+            const [first = '', second = ''] = engine.data.way(id)?.nodes ?? []
+            const a = engine.data.node(first)?.loc ?? [0, 0]
+            const b = engine.data.node(second)?.loc ?? [0, 0]
+            const mid: [number, number] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
+            map.jumpTo({ center: mid, zoom: 19 })
+            engine.setSelected(id)
+            return map.project(mid)
+          }, id)
+          await settle()
+          await page.mouse.click(box.x + p.x, box.y + p.y, { button: 'right' })
+          await settle()
+        }
+        const tagsOf = (id: string) =>
+          page.evaluate((id) => window.__maid.engine.data.way(id)!.tags, id)
+        const [from, to] = ['w229324965', 'w324999563']
+        await menuOn(from)
+        await page.getByRole('menuitem', { name: /^Copy tags/ }).click()
+        await settle()
+        await menuOn(to)
+        await page.getByRole('menuitem', { name: /^Paste tags/ }).click()
+        await settle()
+        const dialog = page.getByRole('dialog', { name: 'Paste tags' })
+        report(
+          '"Paste tags" opens the dialog with the changes',
+          true,
+          (await dialog.getByText('+ ', { exact: false }).count()) > 0,
+        )
+        const before = await tagsOf(to)
+        await dialog.getByRole('button', { name: 'Paste', exact: true }).click()
+        await settle()
+        const copied = await tagsOf(from)
+        const after = await tagsOf(to)
+        report(
+          'merging puts every copied tag on the feature',
+          true,
+          Object.entries(copied).every(([k, v]) => after[k] === v),
+        )
+        await key(process.platform === 'darwin' ? 'Meta+z' : 'Control+z')
+        await settle()
+        report('one undo takes the pasted tags off again', before, await tagsOf(to))
+      }
     },
     '',
     false,

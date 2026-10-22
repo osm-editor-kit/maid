@@ -9,6 +9,7 @@ import { commandIcon } from './command-icons'
 import { modKey } from './platform'
 import { useSelection } from './selection'
 import { useEngine, useShell } from './shell-context'
+import { tagClipboardActions, useCopiedTags } from './tag-clipboard-store'
 
 /** One entry of the edit menu: in the sidebar, on a right click, and behind its key */
 export type Command = {
@@ -70,6 +71,11 @@ function protectedBy(engine: MaidEngine, id: string): boolean {
   return false
 }
 
+/** The tags of a feature in the engine: a node, a way or a relation; none for an unknown id */
+export function tagsOfFeature(engine: MaidEngine, id: string): Readonly<Record<string, string>> {
+  return (engine.data.node(id) ?? engine.data.way(id) ?? engine.data.relation(id))?.tags ?? {}
+}
+
 /** "Paste" at a place on the map, if something was copied */
 export function usePasteCommand(at: { lon: number; lat: number } | undefined) {
   const { engine } = useShell()
@@ -120,6 +126,8 @@ export function useEditCommands() {
   const { editor, engine } = useShell()
   const operations = useExtensionPoint(editor, 'edit.operation')
   const { ids, select } = useSelection()
+  // the copied tags are read here, not in the engine's read below: a hook cannot run inside it
+  const copied = useCopiedTags()
   // the version makes this read again after every edit: what applies depends on the data
   return useEngine((e): Command[] => {
     if (ids.length === 0) return []
@@ -181,6 +189,32 @@ export function useEditCommands() {
         reason: protectedReason,
         run: () => void engine.copy(),
       },
+      // the tags of one feature, as key=value lines on the system clipboard; the paste dialog applies them
+      {
+        id: 'copy-tags',
+        label: 'Copy tags',
+        icon: commandIcon('copy-tags'),
+        group: 'position',
+        reason:
+          ids.length !== 1
+            ? 'Select one feature to copy its tags'
+            : Object.keys(tagsOfFeature(e, ids[0]!)).length === 0
+              ? 'This feature has no tags'
+              : undefined,
+        run: () => tagClipboardActions.copy(tagsOfFeature(engine, ids[0]!)),
+      },
+      ...(copied
+        ? [
+            {
+              id: 'paste-tags',
+              label: 'Paste tags',
+              icon: commandIcon('paste-tags'),
+              group: 'position',
+              reason: protectedReason,
+              run: () => tagClipboardActions.openPaste(ids),
+            },
+          ]
+        : []),
       ...applicable
         .filter((operation) => !LEADING_OPERATIONS.includes(operation.id))
         .map(commandOf),

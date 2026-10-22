@@ -43,6 +43,7 @@ import { FavouriteHint } from './FavouriteHint'
 import { FollowLocation } from './FollowLocation'
 import { MapContextMenu, type MenuPlace } from './MapContextMenu'
 import { MeasureLoupe } from './MeasureLoupe'
+import { PasteTagsDialog } from './PasteTagsDialog'
 import { StackPicker } from './StackPicker'
 
 /** No basemap: the benchmark compares how editors draw OSM data, not imagery. */
@@ -777,6 +778,7 @@ export function MapView() {
         />
       )}
       {menu && <MapContextMenu place={menu} onClose={() => setMenu(null)} />}
+      <PasteTagsDialog />
     </Map>
   )
 }

@@ -249,5 +249,16 @@
   "relations_reason_cycle": "Entonces se contendría a sí misma",
   "relations_column_remove": "Quitar {name} de la relación",
   "relations_column_path": "Relaciones superiores",
-  "relations_column_also_in": "También en:"
+  "relations_column_also_in": "También en:",
+  "paste_tags_title": "Pegar etiquetas",
+  "paste_tags_mode_label": "Cómo pegar las etiquetas",
+  "paste_tags_merge": "Fusionar",
+  "paste_tags_replace": "Reemplazar",
+  "paste_tags_merge_hint": "Se añaden las etiquetas copiadas. Una clave que comparten con el elemento toma el valor copiado; sus otras etiquetas se mantienen.",
+  "paste_tags_replace_hint": "El elemento recibe exactamente las etiquetas copiadas. Sus otras etiquetas se eliminan.",
+  "paste_tags_more_one": "y 1 elemento más",
+  "paste_tags_more_many": "y {count} elementos más",
+  "paste_tags_cancel": "Cancelar",
+  "paste_tags_submit": "Pegar",
+  "paste_tags_refused": "No se pudieron pegar las etiquetas: un elemento es de solo lectura o ya no existe."
 }
