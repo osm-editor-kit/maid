@@ -149,6 +149,8 @@ function SavePanel(props: {
                 ))}{' '}
                 {toOsm ? 'on OpenStreetMap.' : 'on the development server.'}
               </>,
+              // the changeset link is worth opening later: it stays, and closes with its ×
+              { lasting: true },
             )
           },
           (error: unknown) => {

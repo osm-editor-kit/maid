@@ -1,12 +1,26 @@
+import {
+  CameraIcon,
+  ChartBarIcon,
+  CheckBadgeIcon,
+  ClockIcon,
+  MapIcon,
+  Squares2X2Icon,
+} from '@heroicons/react/16/solid'
 import { PencilIcon, TrashIcon } from '@heroicons/react/20/solid'
 import { isAutomated } from '@osm-editor-kit/maid-core'
 import { PLAIN_INPUT, Tooltip } from '@osm-editor-kit/maid-ui'
 import { toolButtonTone } from '@osm-editor-kit/maid-ui'
 import { keepPreviousData, skipToken, useQuery } from '@tanstack/react-query'
-import { useId, useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { checkTemplate, keyLikeNames, shortLabel, type CustomEntry } from './custom.ts'
-import { listView, type Listed } from './eli.ts'
-import { BRIGHTNESS_MIN, listingView, matchesQuery, sortListing } from './helpers.ts'
+import { listLayers, listView, type Listed } from './eli.ts'
+import {
+  BRIGHTNESS_MIN,
+  categoryLabel,
+  listingView,
+  matchesQuery,
+  type Listing,
+} from './helpers.ts'
 import {
   useCustomBackgrounds,
   useImageryActions,
@@ -15,6 +29,14 @@ import {
   type SaveResult,
 } from './imagery-store.ts'
 import { OffsetSection } from './OffsetSection.tsx'
+import {
+  groupRows,
+  layerAge,
+  layerLinks,
+  overlayRows,
+  repeatsName,
+  type LayerLink,
+} from './panel-rows.ts'
 import { filterSeriesRows, seriesRows, type SeriesChip, type SeriesRow } from './series.ts'
 import { useLiveBrightness, useLiveImagery } from './shown.ts'
 import { customValue, isCustomValue, NONE, templateOf } from './url.ts'
@@ -116,7 +138,18 @@ function PanelBody() {
   // the background that is shown: the URL's, else the start order's (shown.ts)
   const shownId = shown.background
   const rows = filterSeriesRows(seriesRows(listed?.series ?? [], shownId), query)
-  const overlays = sortListing(items).filter((item) => item.overlay && matchesQuery(item, query))
+  // the overlays that are on are listed whatever the view, as iD lists the sources in use (`listLayers`)
+  const onNow = useQuery({
+    queryKey: ['imagery', 'overlays-on', shown.overlays.join(',')],
+    queryFn:
+      shown.overlays.length === 0
+        ? skipToken
+        : (): Promise<Listing[]> => listLayers(shown.overlays),
+    staleTime: Infinity,
+  })
+  // only the overlays chosen now (the query may still hold one that was just unchosen)
+  const chosenOverlays = (onNow.data ?? []).filter((item) => shown.overlays.includes(item.id))
+  const overlays = overlayRows(items, chosenOverlays).filter((item) => matchesQuery(item, query))
   const percent = Math.round(brightness * 100)
   const chosenOutOfView =
     shownId !== NONE &&
@@ -223,8 +256,15 @@ function PanelBody() {
             }}
           />
         ))}
-        {rows.map((row) => (
-          <SeriesChoice key={row.key} row={row} onSelect={chooseBackground} />
+        {groupRows(rows).map((group) => (
+          <div key={group.id} role="group" aria-label={group.label} className="flex flex-col gap-1">
+            <h4 className="px-2.5 pt-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              {group.label}
+            </h4>
+            {group.rows.map((row) => (
+              <SeriesChoice key={row.key} row={row} onSelect={chooseBackground} />
+            ))}
+          </div>
         ))}
       </div>
 
@@ -240,32 +280,38 @@ function PanelBody() {
         <div className="border-t border-zinc-950/5 px-4 py-3 dark:border-white/5">
           <h3 className="pb-1 text-sm font-medium">Overlays</h3>
           <ul>
-            {overlays.map((item) => (
-              <li key={item.id} className="py-1">
-                <label className="flex cursor-pointer items-start gap-2.5 text-sm">
-                  <input
-                    {...PLAIN_INPUT}
-                    type="checkbox"
-                    className="mt-1 size-4 shrink-0 accent-blue-600"
-                    checked={shown.overlays.includes(item.id)}
-                    onChange={(event) => {
-                      const on = event.target.checked
-                      chooseOverlays(
-                        on
-                          ? [...shown.overlays.filter((id) => id !== item.id), item.id]
-                          : shown.overlays.filter((id) => id !== item.id),
-                      )
-                    }}
-                  />
-                  <span className="flex min-w-0 flex-col">
-                    <span>{item.name}</span>
-                    {item.attributionText ? (
-                      <span className={MUTED}>{item.attributionText}</span>
-                    ) : null}
-                  </span>
-                </label>
-              </li>
-            ))}
+            {overlays.map((item) => {
+              const on = shown.overlays.includes(item.id)
+              return (
+                <li key={item.id} className="py-1">
+                  <label className="flex cursor-pointer items-center gap-2.5 text-sm">
+                    <input
+                      {...PLAIN_INPUT}
+                      type="checkbox"
+                      className="size-4 shrink-0 accent-blue-600"
+                      checked={on}
+                      onChange={(event) => {
+                        const next = event.target.checked
+                        chooseOverlays(
+                          next
+                            ? [...shown.overlays.filter((id) => id !== item.id), item.id]
+                            : shown.overlays.filter((id) => id !== item.id),
+                        )
+                      }}
+                    />
+                    <span className="min-w-0">{item.name}</span>
+                  </label>
+                  {on ? (
+                    <LayerDetails
+                      name={item.name}
+                      description={item.attributionText}
+                      age={layerAge(item, undefined)}
+                      links={layerLinks(item)}
+                    />
+                  ) : null}
+                </li>
+              )
+            })}
           </ul>
         </div>
       ) : null}
@@ -489,23 +535,27 @@ function CustomForm(props: {
 function SeriesChoice(props: { row: SeriesRow; onSelect: (id: string) => void }) {
   const { row, onSelect } = props
   return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <Choice
+    <Choice
+      name={row.name}
+      category={row.categoryId ?? 'other'}
+      best={row.best}
+      selected={row.selected}
+      onSelect={() => onSelect(row.defaultId)}
+    >
+      <LayerDetails
         name={row.name}
-        detail={row.category}
-        attribution={row.attributionText}
-        best={row.best}
-        selected={row.selected}
-        onSelect={() => onSelect(row.defaultId)}
+        description={row.attributionText}
+        age={row.age}
+        links={row.links}
       />
       {row.chips.length > 0 ? (
-        <div role="group" aria-label={`${row.name}: dates`} className="flex flex-wrap gap-1 pl-2.5">
+        <div role="group" aria-label={`${row.name}: dates`} className="flex flex-wrap gap-1 pl-7">
           {row.chips.map((chip) => (
             <DateChip key={chip.id} chip={chip} onSelect={() => onSelect(chip.id)} />
           ))}
         </div>
       ) : null}
-    </div>
+    </Choice>
   )
 }
 
@@ -533,27 +583,97 @@ function DateChip(props: { chip: SeriesChip; onSelect: () => void }) {
   )
 }
 
-/** One choice of the background: a button that looks chosen when it is, with the layer's attribution */
+/** The icon of each ELI category (heroicons, 16 solid). The category's name is the icon's tooltip. */
+const MUTED_ICON = 'text-zinc-500 dark:text-zinc-400'
+const OTHER_ICON = { Icon: Squares2X2Icon, tone: MUTED_ICON }
+const CATEGORY_ICONS: Record<string, { Icon: typeof CameraIcon; tone: string }> = {
+  photo: { Icon: CameraIcon, tone: MUTED_ICON },
+  map: { Icon: MapIcon, tone: MUTED_ICON },
+  osmbasedmap: { Icon: MapIcon, tone: 'text-blue-700 dark:text-blue-400' },
+  historicmap: { Icon: ClockIcon, tone: MUTED_ICON },
+  historicphoto: { Icon: ClockIcon, tone: MUTED_ICON },
+  elevation: { Icon: ChartBarIcon, tone: MUTED_ICON },
+  qa: { Icon: CheckBadgeIcon, tone: MUTED_ICON },
+  other: OTHER_ICON,
+}
+
+/** The category of a layer as an icon; a category that is not listed is shown as Other */
+function CategoryIcon(props: { category: string }) {
+  const label = categoryLabel(props.category) ?? 'Other'
+  const { Icon, tone } = CATEGORY_ICONS[props.category] ?? OTHER_ICON
+  return (
+    <span role="img" aria-label={label} title={label} className={classes('flex shrink-0', tone)}>
+      <Icon aria-hidden="true" className="size-4" />
+    </span>
+  )
+}
+
+/**
+ * The details of a chosen layer, under its row: the description (not when it repeats the name), the dates and the
+ * links. A link opens in a new window. Nothing is shown when the layer has none of these.
+ */
+function LayerDetails(props: {
+  name: string
+  description?: string
+  age?: string
+  links: LayerLink[]
+}) {
+  const { name, description, age, links } = props
+  const text =
+    description !== undefined && !repeatsName(description, name) ? description : undefined
+  if (text === undefined && age === undefined && links.length === 0) return null
+  return (
+    <div className={classes('flex flex-col gap-0.5 pl-7', MUTED)}>
+      {text !== undefined ? <p className="line-clamp-2">{text}</p> : null}
+      {age !== undefined ? <p className="tabular-nums">{age}</p> : null}
+      {links.length > 0 ? (
+        <p className="flex flex-wrap gap-x-3 gap-y-1">
+          {links.map((link) => (
+            <a
+              key={link.label}
+              href={link.url}
+              target="_blank"
+              rel="noreferrer"
+              className={TEXT_BUTTON}
+            >
+              {link.label}
+            </a>
+          ))}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+/**
+ * One choice of the background: a button that looks chosen when it is. Its name is on one line, with the layer's
+ * category as an icon and the Best mark. The children (the details of the layer) are shown under it only while it is
+ * chosen, so an unchosen row is one line.
+ */
 function Choice(props: {
   name: string
   detail?: string
-  attribution?: string
+  category?: string
   best?: boolean
   selected: boolean
   onSelect: () => void
+  children?: ReactNode
 }) {
-  const { name, detail, attribution, best, selected, onSelect } = props
+  const { name, detail, category, best, selected, onSelect, children } = props
   return (
-    <button
-      type="button"
-      aria-pressed={selected}
-      onClick={onSelect}
+    <div
       className={classes(
-        'flex w-full min-w-0 flex-col items-start gap-0.5 rounded-md px-2.5 py-1.5 text-left text-sm focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-blue-500',
+        'flex w-full min-w-0 flex-col rounded-md',
         toolButtonTone(selected ? 'selected' : 'idle'),
       )}
     >
-      <span className="flex w-full min-w-0 items-center gap-2">
+      <button
+        type="button"
+        aria-pressed={selected}
+        onClick={onSelect}
+        className="flex w-full min-w-0 items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-blue-500"
+      >
+        {category !== undefined ? <CategoryIcon category={category} /> : null}
         <span className="min-w-0 truncate font-medium">{name}</span>
         {best ? (
           <span className="shrink-0 rounded-sm bg-blue-100 px-1 text-[10px] leading-4 font-medium text-blue-800 dark:bg-blue-400/15 dark:text-blue-300">
@@ -563,10 +683,10 @@ function Choice(props: {
         {detail ? (
           <span className={classes('ml-auto shrink-0 truncate', MUTED)}>{detail}</span>
         ) : null}
-      </span>
-      {attribution ? (
-        <span className={classes('line-clamp-2 w-full', MUTED)}>{attribution}</span>
+      </button>
+      {selected && children !== undefined ? (
+        <div className="flex flex-col gap-1 px-2.5 pb-2">{children}</div>
       ) : null}
-    </button>
+    </div>
   )
 }

@@ -61,6 +61,8 @@ import { useThemeInEffect } from './theme.ts'
 /** How long a notice of an event stays, and a failure (it is read more slowly) */
 const DONE_MS = 4000
 const FAILED_MS = 6000
+/** How long a lasting notice stays: a result the person may want to open (the changeset of an upload) */
+const LASTING_MS = 120_000
 const FALLBACK = 'Something went wrong.'
 
 /** Options for one notice. A standing notice is always given its `id`: the condition it is for. */
@@ -69,6 +71,8 @@ export type NotifyOptions = {
   id?: string
   /** One button on the toast, e.g. "Load the map again" */
   action?: { label: string; onClick: () => void }
+  /** Stays two minutes and closes only with its ×, not with a swipe: a result with links, such as an upload's */
+  lasting?: boolean
 }
 
 /**
@@ -98,7 +102,12 @@ const standingTexts = new Map<string, string>()
 export const notify = {
   /** An event that needs no action. Goes away by itself. */
   done(text: ReactNode, options: NotifyOptions = {}): void {
-    toast.success(text, { id: options.id, action: options.action, duration: DONE_MS })
+    toast.success(text, {
+      id: options.id,
+      action: options.action,
+      duration: options.lasting ? LASTING_MS : DONE_MS,
+      ...(options.lasting ? { dismissible: false, closeButton: true } : {}),
+    })
   },
   /** Something that happened and is worth a glance. Goes away by itself. */
   info(text: ReactNode, options: NotifyOptions = {}): void {

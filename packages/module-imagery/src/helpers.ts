@@ -149,6 +149,15 @@ export type Listing = {
   group?: ListingGroup
   /** Plain text: the ELI package gives HTML, which the panel does not render */
   attributionText?: string
+  /** True when the layer has no coverage area: ELI files it under `world` */
+  worldwide?: boolean
+  /** The dates the index gives for the layer, as it writes them */
+  startDate?: string
+  endDate?: string
+  /** The attribution's own page, from the index */
+  attributionUrl?: string
+  /** The licence's page, from the index */
+  licenseUrl?: string
 }
 
 const CATEGORY_LABELS: Record<string, string> = {

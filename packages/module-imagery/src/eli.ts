@@ -95,6 +95,11 @@ function toListing(layer: EliLayer): Listing {
     minzoom: layer.minzoom,
     group: layer.group,
     attributionText: layer.attributionText,
+    worldwide: layer.continents.includes('world'),
+    startDate: layer.startDate,
+    endDate: layer.endDate,
+    attributionUrl: layer.attributionUrl,
+    licenseUrl: layer.licenseUrl,
   }
 }
 
@@ -119,6 +124,16 @@ export async function listView(view: View): Promise<Listed> {
   const items = layers.map(toListing).filter((item) => visibleAtZoom(item, view.zoom))
   const series = eli.groupLayers(items.filter((item) => !item.overlay))
   return { items, series }
+}
+
+/**
+ * The layers with these ids, whatever the view: the overlays that are on now are listed even where they do not
+ * cover the view (iD lists the sources in use this way). An id the index does not know is left out.
+ */
+export async function listLayers(ids: readonly string[]): Promise<Listing[]> {
+  const eli = await load()
+  const layers = await Promise.all(ids.map((id) => eli.getLayerHydrated(id)))
+  return layers.flatMap((layer) => (layer === undefined ? [] : [toListing(layer)]))
 }
 
 /**

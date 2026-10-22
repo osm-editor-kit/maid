@@ -5,6 +5,13 @@
  */
 import type { EliLayerEntry } from '@osm-editor-kit/maplibre-editor-layer-index'
 import { categoryLabel, everyWordIn, type Listing } from './helpers.ts'
+import {
+  backgroundGroup,
+  layerAge,
+  layerLinks,
+  type BackgroundGroupId,
+  type LayerLink,
+} from './panel-rows.ts'
 
 /** One date of a series, shown as a button under its row */
 export type SeriesChip = {
@@ -28,6 +35,10 @@ export type SeriesRow = {
   name: string
   /** The category label of the newest date (the series is filed under it) */
   category: string | undefined
+  /** The category as ELI gives it (`photo`, `historicmap` ...), for the row's icon */
+  categoryId: string | undefined
+  /** The group the row is listed under (see `panel-rows.ts`), from the newest date */
+  group: BackgroundGroupId
   /** The row's Best mark: what a click on the row selects is ELI's best */
   best: boolean
   /** A date of this row is the background drawn now */
@@ -36,6 +47,10 @@ export type SeriesRow = {
   defaultId: string
   /** The attribution of the drawn date, or of the default date while none is drawn */
   attributionText: string | undefined
+  /** The links of the drawn date (or the default date): the attribution's and the licence's */
+  links: LayerLink[]
+  /** The dates of the drawn date, or its series label when the index gives no dates */
+  age: string | undefined
   /** Every date, newest first. Empty for a standalone layer. */
   chips: SeriesChip[]
 }
@@ -65,14 +80,21 @@ export function seriesRows(
             active: variant.id === shownId,
           }))
         : []
+      // filed under the newest date, as its category is
+      const filed = entry.variants[0] ?? entry.defaultVariant
+      const shown = drawn ?? entry.defaultVariant
       return {
         key: entry.id,
         name: entry.name,
-        category: categoryLabel(entry.variants[0]?.category),
+        category: categoryLabel(filed.category),
+        categoryId: filed.category,
+        group: backgroundGroup(filed.category, filed.worldwide),
         best: entry.defaultVariant.best,
         selected: drawn !== undefined,
         defaultId: entry.defaultVariant.id,
-        attributionText: (drawn ?? entry.defaultVariant).attributionText,
+        attributionText: shown.attributionText,
+        links: layerLinks(shown),
+        age: layerAge(shown, entry.grouped ? shown.group?.label : undefined),
         chips,
       }
     })

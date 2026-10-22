@@ -695,6 +695,44 @@ function buildMainLayers(options: LayerOptions) {
   // --- Viewfields: under the vertices and points, above the lines (coneLayers) ----
   layers.push(...coneLayers())
 
+  // --- Labels of lines and areas: under the vertices, points and the selection, so that no text covers what can be
+  // edited (Tobias, 2026-10-22). MapLibre also places the symbols of higher layers first, so the icons win. -----
+  if (options.labels) {
+    const text = {
+      'text-font': ['Open Sans Semibold'],
+      'text-field': ['get', 'name'] satisfies ExpressionSpecification,
+      'text-size': 12,
+    }
+    const paint = {
+      'text-color': '#333',
+      'text-halo-color': 'rgba(255,255,255,0.7)',
+      'text-halo-width': 2.5,
+    }
+    layers.push(
+      {
+        id: 'label-line',
+        type: 'symbol',
+        source: SOURCES.lines,
+        filter: ['has', 'name'],
+        layout: {
+          ...text,
+          'symbol-placement': 'line',
+          'symbol-spacing': 400,
+          'text-max-angle': 30,
+        },
+        paint,
+      },
+      {
+        id: 'label-area',
+        type: 'symbol',
+        source: SOURCES.areas,
+        filter: ['all', ['has', 'name'], ['>', ['get', 'r'], 6]],
+        layout: { ...text, 'text-max-width': 8 },
+        paint,
+      },
+    )
+  }
+
   // --- Vertices ------------------------------------------------------------
   const vertexRadius = (lowR: number, r: number): ExpressionSpecification => [
     'step',
@@ -703,6 +741,54 @@ function buildMainLayers(options: LayerOptions) {
     16,
     r,
   ]
+  // The midpoint handles of the selected ways (midpoints.ts): a press on one adds a node there. Drawn
+  // under the vertices. Not in interactiveLayerIds: the engine finds them itself (midpointAt).
+  layers.push({
+    id: 'highlight-midpoint',
+    type: 'circle',
+    source: SOURCES.highlight,
+    filter: ['==', ['get', 'state'], 'midpoint'],
+    paint: {
+      // smaller and fainter than a vertex: a place where a node could be, not a node
+      'circle-radius': 2.5,
+      'circle-color': '#fff',
+      'circle-opacity': 0.55,
+      'circle-stroke-color': '#666',
+      'circle-stroke-width': 1,
+      'circle-stroke-opacity': 0.55,
+    },
+  })
+
+  // the shape points of a selected way: iD shows all vertices of the selection. Under the data's vertices, so a
+  // selected vertex keeps its icon on top (a crossing's sign); where the data's vertices are not drawn yet (low
+  // zoom) these are the only ones
+  layers.push({
+    id: 'highlight-vertex',
+    type: 'circle',
+    source: SOURCES.highlight,
+    filter: ['all', ['==', ['geometry-type'], 'Point'], ['==', ['get', 'state'], 'shape']],
+    paint: {
+      'circle-radius': vertexRadius(2.5, 3.5),
+      'circle-color': '#fff',
+      'circle-stroke-color': '#666',
+      'circle-stroke-width': 1,
+    },
+  })
+
+  // The direction of the selected highway (engine.ts refreshShape): white arrows with a dark outline,
+  // on the selection's glow, under the vertices so that no arrow covers a vertex's icon. iD does not show a way's direction; Maid does, as the product owner asked.
+  if (options.icons) {
+    layers.push({
+      id: 'highlight-direction',
+      type: 'line',
+      source: SOURCES.highlight,
+      filter: ['==', ['get', 'state'], 'direction'],
+      minzoom: 15,
+      layout: { 'line-cap': 'butt' },
+      paint: { 'line-width': SELECTED_ARROW_HEIGHT, 'line-pattern': SELECTED_ARROW_IMAGE },
+    })
+  }
+
   // From OSM zoom 17 iD draws a tagged vertex with a preset icon as a larger disc with the icon in it.
   const hasIcon: ExpressionSpecification = ['has', 'icon']
   layers.push(
@@ -782,51 +868,6 @@ function buildMainLayers(options: LayerOptions) {
       source: SOURCES.vertices,
       filter: hasIcon,
       paint: { 'circle-radius': vertexRadius(1, 1.5), 'circle-color': '#000' },
-    })
-  }
-  // The midpoint handles of the selected ways (midpoints.ts): a press on one adds a node there. Drawn
-  // under the vertices. Not in interactiveLayerIds: the engine finds them itself (midpointAt).
-  layers.push({
-    id: 'highlight-midpoint',
-    type: 'circle',
-    source: SOURCES.highlight,
-    filter: ['==', ['get', 'state'], 'midpoint'],
-    paint: {
-      // smaller and fainter than a vertex: a place where a node could be, not a node
-      'circle-radius': 2.5,
-      'circle-color': '#fff',
-      'circle-opacity': 0.55,
-      'circle-stroke-color': '#666',
-      'circle-stroke-width': 1,
-      'circle-stroke-opacity': 0.55,
-    },
-  })
-
-  // the shape points of a selected way: iD shows all vertices of the selection
-  layers.push({
-    id: 'highlight-vertex',
-    type: 'circle',
-    source: SOURCES.highlight,
-    filter: ['all', ['==', ['geometry-type'], 'Point'], ['==', ['get', 'state'], 'shape']],
-    paint: {
-      'circle-radius': vertexRadius(2.5, 3.5),
-      'circle-color': '#fff',
-      'circle-stroke-color': '#666',
-      'circle-stroke-width': 1,
-    },
-  })
-
-  // The direction of the selected highway (engine.ts refreshShape): white arrows with a dark outline,
-  // on the selection's glow. iD does not show a way's direction; Maid does, as the product owner asked.
-  if (options.icons) {
-    layers.push({
-      id: 'highlight-direction',
-      type: 'line',
-      source: SOURCES.highlight,
-      filter: ['==', ['get', 'state'], 'direction'],
-      minzoom: 15,
-      layout: { 'line-cap': 'butt' },
-      paint: { 'line-width': SELECTED_ARROW_HEIGHT, 'line-pattern': SELECTED_ARROW_IMAGE },
     })
   }
 
@@ -1099,7 +1140,7 @@ function buildMainLayers(options: LayerOptions) {
     })
   }
 
-  // --- Labels ----------------------------------------------------------------
+  // the labels of points, under their pin
   if (options.labels) {
     const text = {
       'text-font': ['Open Sans Semibold'],
@@ -1111,44 +1152,21 @@ function buildMainLayers(options: LayerOptions) {
       'text-halo-color': 'rgba(255,255,255,0.7)',
       'text-halo-width': 2.5,
     }
-    layers.push(
-      {
-        id: 'label-line',
-        type: 'symbol',
-        source: SOURCES.lines,
-        filter: ['has', 'name'],
-        layout: {
-          ...text,
-          'symbol-placement': 'line',
-          'symbol-spacing': 400,
-          'text-max-angle': 30,
-        },
-        paint,
+    layers.push({
+      id: 'label-point',
+      type: 'symbol',
+      source: SOURCES.points,
+      filter: ['has', 'name'],
+      layout: {
+        ...text,
+        'text-size': 10,
+        'text-anchor': 'top',
+        'text-offset': [0, 0.3],
+        'text-rotation-alignment': 'viewport',
+        'text-pitch-alignment': 'viewport',
       },
-      {
-        id: 'label-area',
-        type: 'symbol',
-        source: SOURCES.areas,
-        filter: ['all', ['has', 'name'], ['>', ['get', 'r'], 6]],
-        layout: { ...text, 'text-max-width': 8 },
-        paint,
-      },
-      {
-        id: 'label-point',
-        type: 'symbol',
-        source: SOURCES.points,
-        filter: ['has', 'name'],
-        layout: {
-          ...text,
-          'text-size': 10,
-          'text-anchor': 'top',
-          'text-offset': [0, 0.3],
-          'text-rotation-alignment': 'viewport',
-          'text-pitch-alignment': 'viewport',
-        },
-        paint,
-      },
-    )
+      paint,
+    })
   }
   // The guide lines of a constraint (ADR 0011): dashed blue, like iD's guide. Last in the list, so they draw above
   // the OSM data and the labels. Not in interactiveLayerIds: a guide never takes the pointer.
