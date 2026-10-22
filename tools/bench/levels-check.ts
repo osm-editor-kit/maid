@@ -258,6 +258,36 @@ const failed = await runCheck(
         await page.evaluate((id) => window.__maid.engine.isOffLevel(id), room.id),
       )
 
+    // --- no level edited, a room selected: its level is marked in the picker, a click edits that level ---
+    if (room) {
+      const roomLevel = await page.evaluate((id) => {
+        window.__maid.engine.setSelected(id)
+        return String(window.__maid.engine.levelsOf(id)[0])
+      }, room.id)
+      await settle()
+      report(
+        "the selected room's level is marked in the picker",
+        'true',
+        await levelButton(roomLevel).getAttribute('data-selected-here'),
+      )
+      await levelButton(roomLevel).click()
+      await settle()
+      report(
+        'a click edits that level and the room stays selected and editable',
+        [roomLevel, true, false],
+        await page.evaluate(
+          (id) => [
+            String(window.__maid.engine.level),
+            window.__maid.engine.selected().includes(id),
+            window.__maid.engine.isOffLevel(id),
+          ],
+          room.id,
+        ),
+      )
+      await picker.getByRole('button', { name: 'All' }).click()
+      await settle()
+    }
+
     // --- 3D ---
     await page.getByRole('button', { name: '3D' }).click()
     await page.waitForTimeout(1200)

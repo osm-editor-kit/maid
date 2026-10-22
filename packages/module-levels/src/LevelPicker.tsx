@@ -126,6 +126,9 @@ const COLUMN =
 export function LevelPicker({ engine }: { engine: MaidEngine }) {
   const level = useSyncExternalStore(engine.subscribe, () => engine.level)
   const unleveledVisible = useSyncExternalStore(engine.subscribe, () => engine.unleveledVisible)
+  // the levels of the selected features, as text so the snapshot stays the same while they do
+  const selectedKey = useSyncExternalStore(engine.subscribe, () => selectedLevelsKey(engine))
+  const selectedLevels = new Set(selectedKey === '' ? [] : selectedKey.split(';').map(Number))
   const threeD = useThreeD()
   const { current: map } = useMap()
   const [zoom, setZoom] = useState(0)
@@ -216,25 +219,43 @@ export function LevelPicker({ engine }: { engine: MaidEngine }) {
         {floorChoices(floors, edited).map((floor) => {
           const state =
             level === null ? undefined : level === 'none' ? 'hidden' : levelState(floor, level)
+          // no level edited: the levels of the selected feature are marked, a click edits that level
+          const selectedHere = level === null && selectedLevels.has(floor)
           return (
-            <Tooltip key={floor} label={levelTip(floor, state)} placement="right">
+            <Tooltip
+              key={floor}
+              label={
+                selectedHere
+                  ? `Level ${levelLabel(floor)}: the selected feature is here`
+                  : levelTip(floor, state)
+              }
+              placement="right"
+            >
               <button
                 type="button"
                 aria-pressed={state === 'edited'}
                 data-level={floor}
                 data-level-state={state}
+                data-selected-here={selectedHere || undefined}
                 onClick={() => engine.setLevel(state === 'edited' ? null : floor)}
                 {...hover(floor, state)}
                 className={twMerge(
                   buttonClass(state === 'edited'),
                   ROW,
                   state === 'hidden' && HIDDEN_TEXT,
+                  selectedHere && 'font-bold',
                 )}
               >
                 <span>{levelLabel(floor)}</span>
                 <span className="flex items-center gap-1">
                   <CountPill count={counts.byLevel.get(floor) ?? 0} />
                   {state && <StateIcon state={state} />}
+                  {selectedHere && (
+                    <PencilIcon
+                      aria-hidden="true"
+                      className="size-3.5 shrink-0 text-zinc-400 dark:text-zinc-500"
+                    />
+                  )}
                 </span>
               </button>
             </Tooltip>
@@ -304,6 +325,13 @@ export function LevelPicker({ engine }: { engine: MaidEngine }) {
       </ControlGroup>
     </div>
   )
+}
+
+/** The levels of the selected features, sorted, as `-1;0`; empty when they have none */
+function selectedLevelsKey(engine: MaidEngine): string {
+  const levels = new Set<number>()
+  for (const id of engine.selected()) for (const level of engine.levelsOf(id)) levels.add(level)
+  return [...levels].sort((a, b) => a - b).join(';')
 }
 
 /** A floor's row: the number at the start, the count and the icon at the end, across the list's fixed width (w-24), so nothing moves when a count changes */
