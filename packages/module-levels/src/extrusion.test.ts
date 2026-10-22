@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { extrusionOf, ROOM_HEIGHT, SLAB_HEIGHT, type WayLike } from './extrusion.ts'
+import { extrusionOf, LEVEL_HEIGHT, ROOM_HEIGHT, SLAB_HEIGHT, type WayLike } from './extrusion.ts'
 
 /** Node locations by id: a square of four corners, and the closed way around it */
 const LOCATIONS: Record<string, [number, number]> = {
@@ -7,6 +7,9 @@ const LOCATIONS: Record<string, [number, number]> = {
   b: [13.41, 52.5],
   c: [13.41, 52.51],
   d: [13.4, 52.51],
+  // two nodes 20 m apart, due east, at latitude 52.5 (one degree of longitude is about 67.8 km there)
+  s1: [13.4, 52.5],
+  s2: [13.4002951, 52.5],
 }
 const locationOf = (id: string) => LOCATIONS[id]
 
@@ -119,5 +122,61 @@ describe('extrusionOf', () => {
       ['room', 4, 4 + ROOM_HEIGHT],
       ['elevator', 0, 8],
     ])
+  })
+
+  it('cuts a flight of steps into 8 slices whose tops rise from the lower level to the upper one', () => {
+    const steps: WayLike = {
+      nodes: ['s1', 's2'],
+      tags: { highway: 'steps', level: '0;1', incline: 'up' },
+    }
+    const { features } = extrusionOf([steps], locationOf, null)
+
+    expect(features).toHaveLength(8)
+    for (const feature of features) {
+      expect(feature.properties.kind).toBe('stairs')
+      expect(feature.properties.base).toBe(0)
+    }
+    const tops = features.map((feature) => feature.properties.top)
+    for (let i = 1; i < tops.length; i++) expect(tops[i]).toBeGreaterThan(tops[i - 1] ?? Infinity)
+    expect(tops[tops.length - 1]).toBeCloseTo(LEVEL_HEIGHT, 10)
+  })
+
+  it('climbs the other way for a flight with incline=down: the tops fall', () => {
+    const steps: WayLike = {
+      nodes: ['s1', 's2'],
+      tags: { highway: 'steps', level: '0;1', incline: 'down' },
+    }
+    const { features } = extrusionOf([steps], locationOf, null)
+
+    expect(features).toHaveLength(8)
+    const tops = features.map((feature) => feature.properties.top)
+    for (let i = 1; i < tops.length; i++) expect(tops[i]).toBeLessThan(tops[i - 1] ?? -Infinity)
+    expect(tops[0]).toBeCloseTo(LEVEL_HEIGHT, 10)
+  })
+
+  it('draws a stairwell on levels -1 and 0 as one block from ground to the top of level 0 and its room', () => {
+    const stairs = square({ indoor: 'room', stairs: 'yes', level: '-1;0' })
+    const { features } = extrusionOf([stairs], locationOf, null)
+
+    expect(features).toHaveLength(1)
+    expect(features[0]?.properties).toEqual({
+      base: 0,
+      top: LEVEL_HEIGHT + ROOM_HEIGHT,
+      kind: 'stairs',
+      chosen: true,
+    })
+  })
+
+  it('adds nothing for a flight of steps on one level', () => {
+    const steps: WayLike = { nodes: ['s1', 's2'], tags: { highway: 'steps', level: '0' } }
+    expect(extrusionOf([steps], locationOf, null).features).toEqual([])
+  })
+
+  it('keeps a flight of steps from 0 to 1 when level 0 is chosen', () => {
+    const steps: WayLike = { nodes: ['s1', 's2'], tags: { highway: 'steps', level: '0;1' } }
+    const { features } = extrusionOf([steps], locationOf, 0)
+
+    expect(features).toHaveLength(8)
+    for (const feature of features) expect(feature.properties.chosen).toBe(true)
   })
 })

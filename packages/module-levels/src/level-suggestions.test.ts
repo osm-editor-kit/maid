@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import {
+  inclineOf,
+  isConnector,
   isRecommended,
   pointInPolygon,
   suggestLevels,
@@ -175,5 +177,90 @@ describe('withLevelsInView', () => {
     )
     expect(isRecommended({ value: '2', reasons: ['in view'], ids: [] })).toBe(false)
     expect(isRecommended({ value: '0', reasons: ['edited level'], ids: [] })).toBe(false)
+  })
+})
+
+describe('connectors between two levels', () => {
+  const ways: Record<string, Record<string, string>> = {
+    s1: { highway: 'steps' },
+    k: { indoor: 'corridor' },
+    c0: { indoor: 'corridor', level: '0' },
+    c1: { indoor: 'corridor', level: '1' },
+    c0b: { indoor: 'corridor', level: '0' },
+  }
+  /** s1 runs from n1 (corridor c0 on level 0) to n2 (corridor c1 on level 1); n3 is on level 0 too */
+  const onNode: Record<string, string[]> = {
+    n1: ['s1', 'k', 'c0'],
+    n2: ['s1', 'k', 'c1'],
+    n3: ['s1', 'c0b'],
+  }
+  const suggest = (id: string, nodeIds: string[], edited: number | null = null) =>
+    suggestLevels({
+      id,
+      nodeIds,
+      edited,
+      waysOfNode: (node) => onNode[node] ?? [],
+      tagsOf: (way) => ways[way],
+      enclosing: [],
+    })
+
+  test('steps from level 0 to level 1 connect 0;1 and go up', () => {
+    const pair = suggest('s1', ['n1', 'n2']).find((s) => s.value === '0;1')
+    expect(pair?.reasons).toEqual(['connects 0 and 1'])
+    expect(pair?.incline).toBe('up')
+    expect(pair?.ids).toEqual(['c0', 'c1'])
+  })
+
+  test('the reversed steps connect 1 and 0 in that order and go down', () => {
+    const pair = suggest('s1', ['n2', 'n1']).find((s) => s.value === '0;1')
+    expect(pair?.reasons).toEqual(['connects 1 and 0'])
+    expect(pair?.incline).toBe('down')
+  })
+
+  test('both ends on level 0 give no pair', () => {
+    expect(suggest('s1', ['n1', 'n3']).map((s) => s.value)).not.toContain('0;1')
+  })
+
+  test('a corridor, which is not a connector, joins no levels', () => {
+    expect(suggest('k', ['n1', 'n2']).map((s) => s.value)).not.toContain('0;1')
+  })
+
+  test('the pair comes right after the edited level and keeps its incline when a room gives the same levels', () => {
+    const result = suggestLevels({
+      id: 's1',
+      nodeIds: ['n1', 'n2'],
+      edited: 0,
+      waysOfNode: (node) => onNode[node] ?? [],
+      tagsOf: (way) => ways[way],
+      enclosing: [{ id: 'r', value: '0;1', name: 'Treppenhaus' }],
+    })
+    expect(result.map((s) => s.value)).toEqual(['0', '0;1', '1'])
+    const pair = result.find((s) => s.value === '0;1')
+    expect(pair?.reasons).toEqual(['connects 0 and 1', 'inside: Treppenhaus'])
+    expect(pair?.incline).toBe('up')
+  })
+})
+
+describe('isConnector and inclineOf', () => {
+  test('steps, conveying, ramp, incline on a footway or path, indoor and other stairs are connectors', () => {
+    expect(isConnector({ highway: 'steps' })).toBe(true)
+    expect(isConnector({ conveying: 'forward' })).toBe(true)
+    expect(isConnector({ ramp: 'yes' })).toBe(true)
+    expect(isConnector({ highway: 'footway', incline: 'up' })).toBe(true)
+    expect(isConnector({ highway: 'path', incline: '10%' })).toBe(true)
+    expect(isConnector({ indoor: 'stairs' })).toBe(true)
+    expect(isConnector({ stairs: 'yes' })).toBe(true)
+  })
+
+  test('a corridor is not a connector, nor a footway without an incline or an incline on a road', () => {
+    expect(isConnector({ indoor: 'corridor' })).toBe(false)
+    expect(isConnector({ highway: 'footway' })).toBe(false)
+    expect(isConnector({ highway: 'primary', incline: 'up' })).toBe(false)
+  })
+
+  test('the incline follows the way from the first level to the last', () => {
+    expect(inclineOf(0, 1)).toBe('up')
+    expect(inclineOf(-1, 0)).toBe('up')
+    expect(inclineOf(1, 0)).toBe('down')
   })
 })

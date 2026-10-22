@@ -714,13 +714,16 @@ export class MaidEngine {
   }
 
   /**
-   * Gives a feature its level, as one undo step: the "Set level" menu on a locked feature without a level. Only the
+   * Gives a feature its level (and stairs their `incline`), as one undo step: the "Set level" menu on a locked
+   * feature without a level, the inspector's level section. Only the
    * level lock is passed over for it, as that is what it lifts; a filter that protects the feature still refuses.
    */
-  assignLevel(id: string, value: string) {
+  assignLevel(id: string, value: string, incline?: 'up' | 'down') {
     this.levelLockPaused = true
     try {
-      return this.changeTags([id], { set: { level: value } }, `Set level=${value}`)
+      // a pair of levels on stairs comes with the direction they climb in (`incline`, along the way)
+      const set: Record<string, string> = incline ? { level: value, incline } : { level: value }
+      return this.changeTags([id], { set }, `Set level=${value}`)
     } finally {
       this.levelLockPaused = false
     }

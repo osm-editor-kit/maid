@@ -76,6 +76,42 @@ function enclosingAreas(engine: MaidEngine, position: [number, number]) {
 }
 
 /**
+ * The levels to offer for a feature: the suggestions of its surroundings (level-suggestions.ts) with the edited level,
+ * and every other level in view, highest first. Undefined for a feature that is not loaded. Also used by the
+ * inspector's level section.
+ */
+export function levelOffersFor(engine: MaidEngine, id: string): LevelSuggestion[] | undefined {
+  const suggested = nearbySuggestionsFor(engine, id)
+  if (!suggested) return undefined
+  return withLevelsInView(
+    suggested,
+    engine.map?.queryRenderedFeatures().map((feature) => feature.id) ?? [],
+    (other) => engine.levelsOf(other),
+  )
+}
+
+/**
+ * Only what the feature's surroundings suggest (connected ways, the rooms it is in, the ends of stairs) and the edited
+ * level, without the levels in view: cheap enough for a render (the inspector's "Use 0 → 1").
+ */
+export function nearbySuggestionsFor(
+  engine: MaidEngine,
+  id: string,
+): LevelSuggestion[] | undefined {
+  const place = placeOf(engine, id)
+  if (!place) return undefined
+  const level = engine.level
+  return suggestLevels({
+    id,
+    nodeIds: place.nodeIds,
+    edited: typeof level === 'number' ? level : null,
+    waysOfNode: (node) => engine.data.nodeWays.get(node) ?? [],
+    tagsOf: (other) => (engine.data.node(other) ?? engine.data.way(other))?.tags,
+    enclosing: enclosingAreas(engine, place.position),
+  })
+}
+
+/**
  * While a level is edited, a click on a feature that has no level and is off that level offers the levels it could
  * get (level-suggestions.ts): a menu at the pointer, one row per suggestion, and "Select anyway".
  */
@@ -110,22 +146,8 @@ export function LevelMenu({ engine }: { engine: MaidEngine }) {
           break
         }
         if (!picked) return
-        const place = placeOf(engine, picked)
-        if (!place) return
-        const suggested = suggestLevels({
-          id: picked,
-          nodeIds: place.nodeIds,
-          edited: typeof level === 'number' ? level : null,
-          waysOfNode: (node) => engine.data.nodeWays.get(node) ?? [],
-          tagsOf: (id) => (engine.data.node(id) ?? engine.data.way(id))?.tags,
-          enclosing: enclosingAreas(engine, place.position),
-        })
-        // every level in view, highest first, as the picker lists them; the ones around it are bold
-        const suggestions = withLevelsInView(
-          suggested,
-          map.queryRenderedFeatures().map((feature) => feature.id),
-          (id) => engine.levelsOf(id),
-        )
+        const suggestions = levelOffersFor(engine, picked)
+        if (!suggestions) return
         // left of the pointer, so that the menu of a right click still has its place on the right
         setMenu({
           at: { x: event.originalEvent.clientX - MENU_OFFSET, y: event.originalEvent.clientY },
@@ -147,7 +169,21 @@ export function LevelMenu({ engine }: { engine: MaidEngine }) {
     setMenu(null)
     engine.hoverLevel(null)
   }
-  return <SetLevelMenu engine={engine} menu={menu} onClose={close} />
+  const { id, at, suggestions, fixing } = menu
+  return (
+    <SetLevelMenu
+      engine={engine}
+      at={at}
+      suggestions={suggestions}
+      onChoose={(suggestion) => {
+        engine.assignLevel(id, suggestion.value, suggestion.incline)
+        // while fixing, a feature with a level leaves the view (only features without one show)
+        engine.setSelected(fixing ? null : id)
+      }}
+      onSelect={fixing ? undefined : () => engine.setSelected(id)}
+      onClose={close}
+    />
+  )
 }
 
 /**
@@ -156,16 +192,23 @@ export function LevelMenu({ engine }: { engine: MaidEngine }) {
  * level's tooltip, and the pointer on one shows that level on the map. "Select" at the end selects the feature as it
  * is (read-only while it is locked). Escape, a left click outside or a choice closes it; a right click does not.
  */
-function SetLevelMenu({
+export function SetLevelMenu({
   engine,
-  menu,
+  at,
+  suggestions,
+  onChoose,
+  onSelect,
   onClose,
 }: {
   engine: MaidEngine
-  menu: NonNullable<Menu>
+  /** Window pixels of the menu's top left corner (it opens there, kept 4 px inside the window) */
+  at: { x: number; y: number }
+  suggestions: readonly LevelSuggestion[]
+  onChoose: (suggestion: LevelSuggestion) => void
+  /** "Select" at the end, when the feature is not selected yet */
+  onSelect?: () => void
   onClose: () => void
 }) {
-  const { id, at, suggestions, fixing } = menu
   const frame = useRef<HTMLDivElement>(null)
   useEffect(
     function closeOnEscapeOrOutside() {
@@ -216,9 +259,7 @@ function SetLevelMenu({
                 }}
                 onBlur={() => engine.hoverLevel(null)}
                 onClick={() => {
-                  engine.assignLevel(id, value)
-                  // while fixing, a feature with a level leaves the view (only features without one show)
-                  engine.setSelected(fixing ? null : id)
+                  onChoose(suggestion)
                   onClose()
                 }}
                 className={twMerge(
@@ -232,14 +273,14 @@ function SetLevelMenu({
             </Tooltip>
           )
         })}
-        {fixing ? null : (
+        {onSelect && (
           <Tooltip label="Select it as it is (read-only)" placement="left">
             <button
               type="button"
               role="menuitem"
               aria-label="Select anyway"
               onClick={() => {
-                engine.setSelected(id)
+                onSelect()
                 onClose()
               }}
               className={twMerge(buttonClass(false), 'w-full')}

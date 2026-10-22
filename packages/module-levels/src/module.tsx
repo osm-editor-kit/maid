@@ -3,9 +3,12 @@ import { useUrlParam } from '@osm-editor-kit/maid-core/react'
 import type { EditedLevel } from '@osm-editor-kit/maid-levels'
 import type { MapContentProps, MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { useEffect, type ComponentType } from 'react'
+import { currentLevelEngine, levelEngineActions } from './engine-store.ts'
+import { isConnector } from './level-suggestions.ts'
 import { LevelExtrusion } from './LevelExtrusion.tsx'
 import { LevelMenu } from './LevelMenu.tsx'
 import { LevelPicker } from './LevelPicker.tsx'
+import { LevelSection } from './LevelSection.tsx'
 import { parseAsLevel } from './url.ts'
 
 /**
@@ -50,17 +53,45 @@ export function levels() {
         return null
       }
       api.register('map.content', { id: 'levels-url', component: withEngine(LevelUrlSync) })
+      api.register('map.content', { id: 'levels-engine', component: withEngine(ShareEngine) })
       api.register('map.content', { id: 'levels-picker', component: withEngine(LevelPicker) })
       api.register('map.content', { id: 'levels-extrusion', component: withEngine(LevelExtrusion) })
+      // the level of the selected feature at the top of the inspector, "from → to" on stairs: shown for a feature with a
+      // level or a connector, and for every feature while a level is edited
+      api.register('inspector.section', {
+        id: 'levels',
+        title: 'Level',
+        placement: 'top',
+        when: (entity) =>
+          LEVEL_KEYS.some((key) => key in entity.tags) ||
+          isConnector(entity.tags) ||
+          (currentLevelEngine()?.level ?? null) !== null,
+        component: LevelSection,
+      })
       // a click on a locked feature without a level offers the levels around it
       api.register('map.content', { id: 'levels-menu', component: withEngine(LevelMenu) })
     },
   })
 }
 
+/** The tags that put a feature on a level (levels levelsOf) */
+const LEVEL_KEYS = ['level', 'repeat_on', 'min_level', 'max_level']
+
 /** The parts of the module need the engine; an app that gives the map content none gets no level mode */
 function withEngine(Part: ComponentType<{ engine: MaidEngine }>) {
   return function WithEngine({ engine }: MapContentProps) {
     return engine ? <Part engine={engine} /> : null
   }
+}
+
+/** Puts the engine where the inspector's level section finds it (engine-store.ts), while the map is there */
+function ShareEngine({ engine }: { engine: MaidEngine }) {
+  useEffect(
+    function shareTheEngine() {
+      levelEngineActions.set(engine)
+      return () => levelEngineActions.set(null)
+    },
+    [engine],
+  )
+  return null
 }

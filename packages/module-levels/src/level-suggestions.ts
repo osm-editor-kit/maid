@@ -1,3 +1,5 @@
+import { levelsOf } from '@osm-editor-kit/maid-levels'
+
 /** The reason of the edited level's offer: the menu shows it in the current look */
 export const EDITED_REASON = 'edited level'
 
@@ -24,7 +26,13 @@ export function pointInPolygon(
   return inside
 }
 
-export type LevelSuggestion = { value: string; reasons: string[]; ids: string[] }
+export type LevelSuggestion = {
+  value: string
+  reasons: string[]
+  ids: string[]
+  /** For a connector that joins two levels (`0;1`): whether its way goes up or down from the first level */
+  incline?: 'up' | 'down'
+}
 
 /** What the connected ways are, for the reason text: singular and plural */
 const KIND_NAMES = {
@@ -36,12 +44,57 @@ const KIND_NAMES = {
 } as const
 type Kind = keyof typeof KIND_NAMES
 
+/**
+ * The level most of the other ways at a node share, with those ways. A way on several levels (`repeat_on`, a range)
+ * does not say which level the node is on, so it does not count.
+ */
+function levelAt(
+  node: string,
+  input: Pick<Parameters<typeof suggestLevels>[0], 'id' | 'waysOfNode' | 'tagsOf'>,
+): { level: number; ids: string[] } | undefined {
+  const byLevel = new Map<number, string[]>()
+  for (const way of input.waysOfNode(node)) {
+    if (way === input.id) continue
+    const tags = input.tagsOf(way)
+    if (!tags) continue
+    const { levels } = levelsOf(tags)
+    const level = levels[0]
+    if (levels.length !== 1 || level === undefined) continue
+    const ids = byLevel.get(level) ?? []
+    ids.push(way)
+    byLevel.set(level, ids)
+  }
+  // on a tie the level met first wins
+  let best: { level: number; ids: string[] } | undefined
+  for (const [level, ids] of byLevel)
+    if (!best || ids.length > best.ids.length) best = { level, ids }
+  return best
+}
+
 function kindOf(tags: Readonly<Record<string, string>>): Kind {
   if (tags.indoor === 'corridor') return 'corridor'
   if (tags.highway === 'steps') return 'step'
   if (tags.highway === 'footway' || tags.highway === 'path') return 'path'
   if (tags.indoor === 'room') return 'room'
   return 'feature'
+}
+
+/**
+ * Whether a way connects two levels: steps, an escalator or moving walkway (`conveying`), a ramp, a footway or path
+ * with an `incline`, indoor or other stairs. A corridor is not one.
+ */
+export function isConnector(tags: Readonly<Record<string, string>>): boolean {
+  if (tags.highway === 'steps') return true
+  if (tags.conveying !== undefined) return true
+  if (tags.ramp === 'yes') return true
+  if (tags.incline !== undefined && (tags.highway === 'footway' || tags.highway === 'path'))
+    return true
+  return tags.indoor === 'stairs' || tags.stairs === 'yes'
+}
+
+/** The incline of a connector from the first level to the last: OSM's `incline` follows the way's direction */
+export function inclineOf(firstLevel: number, lastLevel: number): 'up' | 'down' {
+  return firstLevel < lastLevel ? 'up' : 'down'
 }
 
 /**
@@ -58,8 +111,12 @@ export function suggestLevels(input: {
   enclosing: readonly { id: string; value: string; name: string }[]
 }): LevelSuggestion[] {
   const suggestions = new Map<string, LevelSuggestion>()
-  const add = (value: string, reason: string, ids: readonly string[] = []) => {
-    if (value.trim() === '') return
+  const add = (
+    value: string,
+    reason: string,
+    ids: readonly string[] = [],
+  ): LevelSuggestion | undefined => {
+    if (value.trim() === '') return undefined
     let suggestion = suggestions.get(value)
     if (!suggestion) {
       suggestion = { value, reasons: [], ids: [] }
@@ -67,9 +124,27 @@ export function suggestLevels(input: {
     }
     suggestion.reasons.push(reason)
     for (const id of ids) if (!suggestion.ids.includes(id)) suggestion.ids.push(id)
+    return suggestion
   }
 
   if (input.edited !== null) add(String(input.edited), EDITED_REASON)
+
+  // a connector (steps, a ramp, an escalator) joins the level at its first end and the level at its last end
+  const own = input.tagsOf(input.id)
+  if (own && isConnector(own) && input.nodeIds.length >= 2) {
+    const first = input.nodeIds[0]
+    const last = input.nodeIds.at(-1)
+    const a = first === undefined ? undefined : levelAt(first, input)
+    const b = last === undefined ? undefined : levelAt(last, input)
+    if (a && b && a.level !== b.level) {
+      const pair = add(
+        `${Math.min(a.level, b.level)};${Math.max(a.level, b.level)}`,
+        `connects ${a.level} and ${b.level}`,
+        [...a.ids, ...b.ids],
+      )
+      if (pair) pair.incline ??= inclineOf(a.level, b.level)
+    }
+  }
 
   // the ways through the feature's nodes, each once (a way can share two nodes), grouped by their level
   const seen = new Set<string>()

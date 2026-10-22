@@ -30,7 +30,12 @@ import {
   sceneBounds,
   validation,
 } from '@osm-editor-kit/maid-shell'
-import { defaultRules, missingLevel } from '@osm-editor-kit/maid-validation'
+import {
+  defaultRules,
+  missingLevel,
+  stairsLevelMissing,
+  stairsLevelUnreached,
+} from '@osm-editor-kit/maid-validation'
 import dense from '../../../fixtures/dense.meta.json'
 import medium from '../../../fixtures/medium.meta.json'
 import small from '../../../fixtures/small.meta.json'
@@ -70,8 +75,17 @@ function editorConfig(config: Config) {
     // inspector sections "Members" and "Relations": what a relation contains, what a feature is in
     relations(),
     // checks what was changed here: inspector section and dock view "Issues"
-    // with the level mode: a station or shop with layer but no level gets a hint and can take the layer's value
-    validation({ rules: [...defaultRules, ...turnRestrictionRules, missingLevel] }),
+    // with the level mode: a station or shop with layer but no level gets a hint and can take the layer's value;
+    // stairs between two levels get both levels and the direction they climb in
+    validation({
+      rules: [
+        ...defaultRules,
+        ...turnRestrictionRules,
+        missingLevel,
+        stairsLevelMissing,
+        stairsLevelUnreached,
+      ],
+    }),
     turnRestrictions(),
     // top bar "Background": aerial imagery and overlays under the OSM data
     background,

@@ -288,6 +288,40 @@ const failed = await runCheck(
       await settle()
     }
 
+    // --- the inspector's level section: stairs from → to, the direction swapped in one undo step ---
+    {
+      const STEPS = 'w59804707' // level=0;1, incline=down: from 1 to 0
+      await page.evaluate((id) => window.__maid.engine.setSelected(id), STEPS)
+      await settle()
+      const inspector = page.getByRole('complementary', { name: 'Selected feature', exact: true })
+      report(
+        'the stairs show "from 1 to 0" at the top of the inspector',
+        [1, 1],
+        [
+          await inspector.getByRole('button', { name: 'From level 1' }).count(),
+          await inspector.getByRole('button', { name: 'To level 0' }).count(),
+        ],
+      )
+      await inspector.getByRole('button', { name: 'Swap the direction' }).click()
+      await settle()
+      report(
+        'swapping sets incline=up and keeps the levels',
+        ['up', '0;1'],
+        await page.evaluate((id) => {
+          const tags = window.__maid.engine.data.way(id)?.tags
+          return [tags?.incline, tags?.level]
+        }, STEPS),
+      )
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z')
+      await settle()
+      report(
+        'one undo puts incline=down back',
+        'down',
+        await page.evaluate((id) => window.__maid.engine.data.way(id)?.tags.incline, STEPS),
+      )
+      await page.evaluate(() => window.__maid.engine.setSelected(null))
+    }
+
     // --- 3D ---
     await page.getByRole('button', { name: '3D' }).click()
     await page.waitForTimeout(1200)
