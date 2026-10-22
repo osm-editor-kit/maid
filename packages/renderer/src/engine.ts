@@ -201,7 +201,7 @@ export class MaidEngine {
   private levelHovered: EditedLevel | null = null
   /** True while `assignLevel` writes: the level lock does not hold for that one change */
   private levelLockPaused = false
-  /** The levels of each entity asked for by `isOffLevel`, until its entity object changes */
+  /** The levels of each entity's own tags, asked for by `isOffLevel`, until its entity object changes */
   private levelCache = new WeakMap<object, readonly number[]>()
 
   // The data comes from the editor, so the engine and the editor's modules see the same entities.
@@ -742,17 +742,19 @@ export class MaidEngine {
           ? this.data.way(id)
           : this.data.relation(id)
     if (!entity) return []
-    const cached = this.levelCache.get(entity)
-    if (cached) return cached
-    let levels = levelsOf(entity.tags).levels
-    if (levels.length === 0 && entity.type === 'node') {
-      const of = new Set<number>()
-      for (const way of this.data.nodeWays.get(id) ?? [])
-        for (const l of this.levelsOfEntity(way)) of.add(l)
-      levels = [...of]
+    let own = this.levelCache.get(entity)
+    if (!own) {
+      own = levelsOf(entity.tags).levels
+      this.levelCache.set(entity, own)
     }
-    this.levelCache.set(entity, levels)
-    return levels
+    if (own.length > 0 || entity.type !== 'node') return own
+    // a node without a level of its own is on its ways' levels, asked each time: a way's level can change while the
+    // node object stays the same, so a cached union would go stale
+    const ways = this.data.nodeWays.get(id) ?? []
+    if (ways.length === 0) return own
+    const of = new Set<number>()
+    for (const way of ways) for (const l of this.levelsOfEntity(way)) of.add(l)
+    return of.size === 0 ? own : [...of].sort((a, b) => a - b)
   }
 
   /**

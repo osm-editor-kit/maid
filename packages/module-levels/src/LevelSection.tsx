@@ -9,7 +9,7 @@ import {
   toolButtonClass,
   Tooltip,
 } from '@osm-editor-kit/maid-ui'
-import { type MouseEvent, useState } from 'react'
+import { type MouseEvent, useMemo, useState, useSyncExternalStore } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { useLevelEngine } from './engine-store.ts'
 import {
@@ -34,6 +34,9 @@ type Open = {
   suggestions: LevelSuggestion[]
 }
 
+const noSubscribe = () => () => {}
+const noVersion = () => 0
+
 /** A level in the box: a chip of the inspector's chip fields, as a button that opens the level menu */
 const LEVEL_CHIP = twMerge(
   FIELD_CHIP,
@@ -50,6 +53,19 @@ export function LevelSection({ entity }: InspectorSectionProps) {
   const [opened, setOpen] = useState<(Open & { id: string }) | null>(null)
   // a menu belongs to the feature it was opened for: another selection closes it
   const open = opened?.id === entity.id ? opened : null
+  // the surroundings' suggestions of a connector (the "Use" button), worked out again only when the data or the
+  // feature changes: they walk the loaded ways for the rooms it lies in
+  const version = useSyncExternalStore(
+    engine?.subscribe ?? noSubscribe,
+    engine?.getVersion ?? noVersion,
+  )
+  const connector = isConnector(entity.tags)
+  const offers = useMemo(
+    () => (engine && connector ? (nearbySuggestionsFor(engine, entity.id) ?? []) : []),
+    // the version stands for the data the suggestions read
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+    [engine, connector, entity.id, version],
+  )
   if (!engine) return null
 
   const tags = entity.tags
@@ -123,8 +139,6 @@ export function LevelSection({ entity }: InspectorSectionProps) {
   }
 
   // a connector: the ends in its way's direction, the offers of the feature (for the "Use" button)
-  // the surroundings only: the levels in view would query the whole map on every render
-  const offers = nearbySuggestionsFor(engine, entity.id) ?? []
   const suggested = pairSuggestion(offers)
   const suggestedPair = suggested ? pairOfSuggestion(suggested) : undefined
   const showUse =

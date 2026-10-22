@@ -147,12 +147,17 @@ export function LevelPicker({ engine }: { engine: MaidEngine }) {
     function followTheFloorsInView() {
       if (!map) return
       let frame = 0
+      // what the last reading saw: a repaint of the hover or the selection is `idle` too, but changes neither
+      let seen = ''
       const read = () => {
         frame = 0
         const osmZoom = toOsmZoom(map.getZoom())
         setZoom(osmZoom)
         // the query walks every rendered feature: it is asked for only where the picker can show
         if (osmZoom < PICKER_MIN_ZOOM) return
+        const view = `${engine.getVersion()}:${map.getBounds().toArray().flat().join(',')}`
+        if (view === seen) return
+        seen = view
         const ids = idsInView(map.queryRenderedFeatures())
         const read = countLevels(
           ids,
@@ -181,9 +186,17 @@ export function LevelPicker({ engine }: { engine: MaidEngine }) {
     },
     [engine, map],
   )
-
   const edited = typeof level === 'number' ? level : null
-  if (!levelPickerShown(zoom, floors, level === 'none' ? 0 : edited)) return null
+  const shown = levelPickerShown(zoom, floors, level === 'none' ? 0 : edited)
+  useEffect(
+    function endTheHoverWhenThePickerGoes() {
+      // the picker can go while the pointer is on a level (zoomed out, the mode ended): pointerleave never comes
+      if (!shown) engine.hoverLevel(null)
+      return () => engine.hoverLevel(null)
+    },
+    [engine, shown],
+  )
+  if (!shown) return null
 
   // the pointer on a level that shows makes its features stand out; a hidden level has nothing to show
   const hover = (target: EditedLevel, state: LevelState | undefined) =>

@@ -4,7 +4,10 @@ import type { Rule } from '../types.ts'
 
 export const MISSING_LEVEL_RULE_ID = 'missing_level'
 
-/** Ways and relations where a level is expected: indoor features, shops and amenities, stations and platforms */
+/**
+ * Ways and relations where a level is expected: indoor features, shops and amenities, stations and platforms. Other
+ * ways (roads, waterways, bridges, buildings) are left out: there `layer` is the right tag.
+ */
 function wantsLevel(tags: Readonly<Record<string, string>>) {
   return (
     tags.indoor !== undefined ||
@@ -15,17 +18,6 @@ function wantsLevel(tags: Readonly<Record<string, string>>) {
     tags.railway === 'station'
   )
 }
-
-/** Keys for which `layer` is the right tag, not `level`: a crossing way, a bridge, a tunnel, a building */
-const LAYER_IS_RIGHT = [
-  'highway',
-  'waterway',
-  'power',
-  'bridge',
-  'tunnel',
-  'building',
-  'building:part',
-]
 
 /**
  * A feature with `layer` but no `level`, where a level is expected (Tobias, 2026-10-21): a tagged point, or an
@@ -42,11 +34,6 @@ export const missingLevel: Rule = {
     if (layer === undefined || !/^-?\d+$/.test(layer) || Number(layer) === 0) return []
     if (levelsOf(tags).levels.length > 0) return []
     if (entity.type === 'node' ? Object.keys(tags).length <= 1 : !wantsLevel(tags)) return []
-    if (
-      entity.type !== 'node' &&
-      LAYER_IS_RIGHT.some((key) => tags[key] !== undefined && !wantsLevel(tags))
-    )
-      return []
     const name = tags.name ?? entity.id
     return [
       {
