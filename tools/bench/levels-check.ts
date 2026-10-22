@@ -331,7 +331,7 @@ const failed = await runCheck(
       [true, true],
       await page.evaluate(() => {
         const { map } = window.__maid
-        const extrusion = map.getStyle().layers.some((layer) => layer.type === 'fill-extrusion')
+        const extrusion = map.getLayer('levels-extrusion')?.type === 'fill-extrusion'
         return [map.getPitch() > 30, extrusion]
       }),
     )
