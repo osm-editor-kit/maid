@@ -285,6 +285,16 @@ process.exit(
           (await dialog.getByText('+ ', { exact: false }).count()) > 0,
         )
         const before = await tagsOf(to)
+        // the editor's keys stay off while the dialog is open: no undo, no delete of the feature it is about
+        const mod = process.platform === 'darwin' ? 'Meta' : 'Control'
+        await key(`${mod}+z`)
+        await key(`${mod}+Backspace`)
+        await settle()
+        report(
+          "the editor's keys do nothing while the dialog is open",
+          { open: true, tags: before },
+          { open: await dialog.isVisible(), tags: await tagsOf(to) },
+        )
         await dialog.getByRole('button', { name: 'Paste', exact: true }).click()
         await settle()
         const copied = await tagsOf(from)

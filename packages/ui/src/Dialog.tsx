@@ -35,6 +35,9 @@ export function Dialog({
         event.preventDefault()
         onClose()
       }}
+      // the editor's keys (useShortcuts, on the document) stay off while the dialog is open: Cmd+Z or Delete would
+      // change the features the dialog is about. Escape still reaches `onCancel`, the browser's default action
+      onKeyDown={(event) => event.stopPropagation()}
       onClick={(event) => {
         // a click on the backdrop is a click on the dialog itself: the panel fills it
         if (event.target === event.currentTarget) onClose()

@@ -71,7 +71,7 @@ export type NotifyOptions = {
   id?: string
   /** One button on the toast, e.g. "Load the map again" */
   action?: { label: string; onClick: () => void }
-  /** Stays two minutes and closes only with its ×, not with a swipe: a result with links, such as an upload's */
+  /** Stays two minutes and has a ×: a result with links, such as an upload's. Sonner's × does nothing on a toast that is not `dismissible`, so a swipe closes it too */
   lasting?: boolean
 }
 
@@ -106,7 +106,7 @@ export const notify = {
       id: options.id,
       action: options.action,
       duration: options.lasting ? LASTING_MS : DONE_MS,
-      ...(options.lasting ? { dismissible: false, closeButton: true } : {}),
+      ...(options.lasting ? { closeButton: true } : {}),
     })
   },
   /** Something that happened and is worth a glance. Goes away by itself. */
