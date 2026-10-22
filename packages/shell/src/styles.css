@@ -42,12 +42,13 @@ body {
 }
 
 /* MapLibre's attribution (the "i" on the map): its map font sets 20px lines, too loose for a two-line source name.
-   16px lines with 4px above and below make one line exactly as tall as the 24px "i", so text and button line up. */
+   16px lines with 4px above and below make one line exactly as tall as the 24px "i", so text and button line up.
+   MapLibre's compact box is content-box: its min-height is the text's (16px), the padding comes on top. */
 .maplibregl-ctrl-attrib-inner {
   line-height: 16px;
 }
 .maplibregl-ctrl-attrib.maplibregl-compact {
-  min-height: 24px;
+  min-height: 16px;
   padding-top: 4px;
   padding-bottom: 4px;
 }

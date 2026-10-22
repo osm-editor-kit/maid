@@ -130,16 +130,6 @@ export function valueSignature(field: Field, tags: Tags) {
   return JSON.stringify(keys.map((key) => tags[key] ?? ''))
 }
 
-/**
- * The label of the option the current value stands for, shown next to a combo's label.
- * Nothing when the value has no option, or when the label would only repeat the value.
- */
-export function comboHint(field: Field, value: string | undefined) {
-  if (!value) return undefined
-  const option = field.options.find((candidate) => candidate.value === value)
-  return option && option.label !== value ? option.label : undefined
-}
-
 /** The value a check field works with: lower case, onewayCheck's 1 and -1 are yes, empty is unset. */
 export function checkValue(type: string, value: string | undefined) {
   if (value === undefined || value === '') return undefined

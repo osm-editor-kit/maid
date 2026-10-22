@@ -416,8 +416,11 @@ function CustomForm(props: {
     <form
       onSubmit={submit}
       aria-label={entry ? 'Edit custom background' : 'Add custom background'}
-      className="flex flex-col gap-3 border-y border-zinc-950/5 px-4 py-3 text-sm dark:border-white/5"
+      className="mx-4 my-3 flex flex-col gap-3 rounded-lg border border-zinc-950/10 bg-zinc-50 p-3 text-sm dark:border-white/10 dark:bg-white/5"
     >
+      <h4 className="text-sm font-medium">
+        {entry ? 'Edit custom background' : 'Add custom background'}
+      </h4>
       <label className="flex flex-col gap-1">
         <span>Name (optional)</span>
         <input

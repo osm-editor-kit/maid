@@ -9,7 +9,6 @@ import {
   checkLabel,
   checkValue,
   cleanValue,
-  comboHint,
   excessOf,
   fieldKeys,
   impliesYes,
@@ -390,28 +389,6 @@ describe('checkLabel', () => {
     expect(checkLabel(field({ type: 'onewayCheck', key: 'oneway' }), 'onewayCheck', '-1')).toBe(
       'Yes',
     )
-  })
-})
-
-describe('comboHint', () => {
-  const combo = field({
-    type: 'combo',
-    options: [
-      { value: 'residential', label: 'Residential area' },
-      { value: 'farm', label: 'farm' },
-    ],
-  })
-
-  it('gives the label of the option the value stands for', () => {
-    expect(comboHint(combo, 'residential')).toBe('Residential area')
-  })
-  it('gives nothing when the label only repeats the value', () => {
-    expect(comboHint(combo, 'farm')).toBeUndefined()
-  })
-  it('gives nothing for a free value or for no value', () => {
-    expect(comboHint(combo, 'village')).toBeUndefined()
-    expect(comboHint(combo, '')).toBeUndefined()
-    expect(comboHint(combo, undefined)).toBeUndefined()
   })
 })
 

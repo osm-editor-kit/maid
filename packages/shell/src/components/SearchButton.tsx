@@ -1,9 +1,11 @@
-import { MagnifyingGlassIcon } from '@heroicons/react/20/solid'
+import { MagnifyingGlassIcon, MapPinIcon } from '@heroicons/react/20/solid'
 import { isAutomated } from '@osm-editor-kit/maid-core'
 import { getLocale, m } from '@osm-editor-kit/maid-i18n'
 import { Flyout, listRow, toolButtonClass, Tooltip } from '@osm-editor-kit/maid-ui'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { followActions, useFollowState, useFollowWanted } from '../location-store'
+import { modKey } from '../platform'
 import { useSearchActions, useSearchFocus, useSearchOpen } from '../search/flyout'
 import { findLoaded, type LoadedFeature, MIN_LOADED_QUERY } from '../search/loaded'
 import { mapZoomOf, type OsmId, parseSearch, type Position } from '../search/parse'
@@ -82,6 +84,51 @@ interface PlacesView {
 /** A number for a label: up to six decimals, no trailing zeros */
 function figure(value: number, digits = 6): string {
   return String(Number(value.toFixed(digits)))
+}
+
+/**
+ * "Follow my location": the toggle and its status. The map side is FollowLocation (location-store.ts). In the
+ * background state the button stays pressed, and a press follows again instead of stopping.
+ */
+function FollowRow() {
+  const wanted = useFollowWanted()
+  const state = useFollowState()
+  const status =
+    state === 'waiting'
+      ? m.search_follow_waiting()
+      : state === 'background'
+        ? m.search_follow_background()
+        : state === 'error'
+          ? m.search_follow_error()
+          : null
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1">
+      <button
+        type="button"
+        aria-pressed={wanted}
+        onClick={() => {
+          if (wanted && state === 'background') followActions.refollow()
+          else followActions.setWanted(!wanted)
+        }}
+        className={`inline-flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium focus-visible:outline-2 focus-visible:outline-blue-500 ${
+          wanted
+            ? 'bg-blue-600 text-white hover:bg-blue-500'
+            : 'text-zinc-700 inset-ring-1 inset-ring-zinc-950/10 hover:bg-zinc-950/5 dark:text-zinc-200 dark:inset-ring-white/10 dark:hover:bg-white/5'
+        }`}
+      >
+        <MapPinIcon aria-hidden="true" className="size-4" />
+        {m.search_follow_location()}
+      </button>
+      {status !== null && (
+        <p
+          role="status"
+          className={`text-xs ${state === 'error' ? 'text-red-700 dark:text-red-400' : 'text-zinc-500 dark:text-zinc-400'}`}
+        >
+          {status}
+        </p>
+      )}
+    </div>
+  )
 }
 
 function SearchPanel() {
@@ -359,9 +406,16 @@ function SearchPanel() {
         onKeyDown={onKeyDown}
         className="w-full rounded-lg bg-white px-3 py-2 text-base text-zinc-950 ring-1 ring-zinc-950/15 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-blue-500 dark:bg-zinc-900 dark:text-white dark:ring-white/15 dark:placeholder:text-zinc-500"
       />
-      {query === '' ? (
-        <p className="px-1 pb-1 text-xs text-zinc-500 dark:text-zinc-400">{m.search_hint()}</p>
-      ) : (
+      {query === '' && (
+        <div className="flex items-start justify-between gap-3">
+          <p className="px-1 pb-1 text-xs text-zinc-500 dark:text-zinc-400">{m.search_hint()}</p>
+          <kbd className="mt-0.5 shrink-0 rounded border border-zinc-300 px-1 font-sans text-xs text-zinc-500 dark:border-zinc-600 dark:text-zinc-400">
+            {modKey('F')}
+          </kbd>
+        </div>
+      )}
+      {!isAutomated() && <FollowRow />}
+      {query !== '' && (
         <div id={listId} className="max-h-[60vh] overflow-y-auto">
           {groups.map(({ group, title }) => {
             const groupRows = rows.filter((row) => row.group === group)

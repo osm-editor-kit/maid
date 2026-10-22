@@ -50,6 +50,17 @@ export async function bestBackgrounds(items: readonly Listing[], view: View): Pr
   return bestIds(candidates, view.bounds)
 }
 
+/** The coverage of a layer, `undefined` for a worldwide one. Throws when it cannot be read. */
+export async function coverageOf(id: string): Promise<Coverage | undefined> {
+  const eli = await load()
+  return eli.getGeometry(id)
+}
+
+/** The name of a layer as the index gives it, for the person to read: the id when the index does not know it */
+export function layerName(id: string): string {
+  return loaded?.getLayer(id)?.name ?? id
+}
+
 /**
  * A style layer's `minzoom` is compared with the map's zoom (512 px), but ELI's `minzoom` is in OSM
  * zoom (256 px), so it is converted here. The layer then appears at the view ELI means. The

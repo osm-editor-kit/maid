@@ -5,7 +5,6 @@ import { showsDirectionRotateHint } from '@osm-editor-kit/maid-renderer'
 import { useId, useState } from 'react'
 import { InfoPopover, type ReferenceLoader } from '../../InfoPopover.tsx'
 import {
-  comboHint,
   isModified,
   isPresent,
   keysWithValue,
@@ -25,9 +24,6 @@ import type {
   FieldProps,
 } from './shared.ts'
 import { HINT, LABEL, REVEAL, ROW_BUTTON, writeEdits } from './shared.ts'
-
-/** Field types that take a value from a list of options and show the option's label as a hint. */
-const COMBO_TYPES = new Set(['combo', 'typeCombo', 'networkCombo', 'radio', 'structureRadio'])
 
 /** The hint in the label line of a row whose key is mixed over several features (where a combo's label is). */
 const MIXED_HINT = 'mixed'
@@ -149,12 +145,8 @@ export function FieldRow(props: {
     mixedKeys.length === 0
   )
     return null
-  const hint =
-    mixedKeys.length > 0
-      ? MIXED_HINT
-      : key !== undefined && COMBO_TYPES.has(field.type)
-        ? comboHint(field, tags[key])
-        : undefined
+  // the label bar repeats nothing the control shows: a combo's input shows its option's label already
+  const hint = mixedKeys.length > 0 ? MIXED_HINT : undefined
   // a mixed key has no value in the tags, but removing the field removes it from every feature
   const present = isPresent(field, tags) || mixedKeys.length > 0
   // and a mixed key has no single base value to go back to, so there is no revert

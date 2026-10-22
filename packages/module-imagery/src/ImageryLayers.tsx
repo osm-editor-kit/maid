@@ -14,6 +14,7 @@ import {
   useLiveImagery,
   useMirrorBrightness,
   useMirrorShown,
+  useSwitchOnMove,
 } from './shown.ts'
 import { NONE, templateOf } from './url.ts'
 
@@ -100,7 +101,8 @@ export function drawnShown(queries: QueryClient, shown: Shown) {
  * Draws the chosen background and overlays under the OSM data (`belowOsm`). It is part of the map,
  * so it must be rendered inside the map. Nothing is loaded until a background or an overlay is
  * chosen, and in an automated browser only a background from a local template (see `allowedUnderAutomation`).
- * It also runs the start order once the map has a view (shown.ts), and mirrors what is shown.
+ * It also runs the start order once the map has a view (shown.ts), switches the background when the map moves out of its
+ * coverage, and mirrors what is shown.
  */
 export function ImageryLayers(props: { belowOsm: string }) {
   const { belowOsm } = props
@@ -118,6 +120,7 @@ export function ImageryLayers(props: { belowOsm: string }) {
   const automated = isAutomated()
 
   useImageryStart(view)
+  useSwitchOnMove(view)
   useMirrorShown(shown)
   useMirrorBrightness(brightness)
   // the shift of the background: none with no offset (the plain tile URLs cost nothing), none where it cannot be drawn
@@ -192,6 +195,37 @@ export function ImageryLayers(props: { belowOsm: string }) {
       ))}
       {/* the app turns MapLibre's attribution off; this shows the imagery's own, only while some is drawn */}
       <AttributionControl compact position="bottom-right" />
+      <CollapseAttributionOnMount />
     </>
   )
+}
+
+/**
+ * Starts the compact attribution closed, as the "i" button. MapLibre's `compact` opens it (`.maplibregl-compact-show`)
+ * when the first attribution text arrives and has no option to start closed (maplibre-gl-js#7426). After the control is
+ * mounted (this is its sibling, so its effect runs after `useControl`), the class is removed once, right away or, while
+ * the attribution is still empty, as soon as MapLibre adds `.maplibregl-compact`. A click still opens it, a pan still
+ * closes it. The FMC pattern of tilda-geo and osmcha (react-map-gl skill, map-props-attribution-locale.md).
+ */
+function CollapseAttributionOnMount() {
+  const { current: map } = useMap()
+  useEffect(
+    function collapseTheAttribution() {
+      const attribution = map?.getMap().getContainer().querySelector('.maplibregl-ctrl-attrib')
+      if (!attribution) return
+      const collapse = () => {
+        if (!attribution.classList.contains('maplibregl-compact')) return false
+        attribution.classList.remove('maplibregl-compact-show')
+        return true
+      }
+      if (collapse()) return
+      const observer = new MutationObserver(() => {
+        if (collapse()) observer.disconnect()
+      })
+      observer.observe(attribution, { attributeFilter: ['class'] })
+      return () => observer.disconnect()
+    },
+    [map],
+  )
+  return null
 }

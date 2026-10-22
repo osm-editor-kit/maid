@@ -90,6 +90,18 @@ function needsWrap(children: ReactElement<TriggerProps>, disabled: boolean) {
   return disabled || typeof children.type !== 'string'
 }
 
+/**
+ * True when the control (or the button inside the wrapper) has its panel open (`aria-expanded`, set by Flyout): then its
+ * tooltip does not show, so the two never cover each other. The panel itself says what the tooltip would.
+ */
+function isExpanded(element: Element | null | undefined) {
+  if (!element) return false
+  return (
+    element.getAttribute('aria-expanded') === 'true' ||
+    element.querySelector('[aria-expanded="true"]') !== null
+  )
+}
+
 function isDisabled(props: TooltipProps) {
   return props.disabled ?? props.children.props.disabled === true
 }
@@ -149,6 +161,31 @@ function StandaloneTooltip(props: TooltipProps) {
   const dismiss = useDismiss(context)
   const role = useRole(context, { role: 'tooltip' })
   const { getReferenceProps, getFloatingProps } = useInteractions([hover, focus, dismiss, role])
+
+  // a control whose panel is open shows no tooltip: closed at once, and again when the panel opens while it shows
+  useEffect(
+    function hideWhileThePanelIsOpen() {
+      if (!open) return
+      const element = refs.domReference.current
+      if (!element) return
+      const hide = () => {
+        if (isExpanded(element)) setOpen(false)
+      }
+      // the first look in the next frame (before the bubble fades in), then on every change of the panel's state
+      const frame = requestAnimationFrame(hide)
+      const observer = new MutationObserver(hide)
+      observer.observe(element, {
+        attributes: true,
+        attributeFilter: ['aria-expanded'],
+        subtree: true,
+      })
+      return () => {
+        cancelAnimationFrame(frame)
+        observer.disconnect()
+      }
+    },
+    [open, refs],
+  )
 
   const side = placement.split('-')[0]
   const enterOffset =
@@ -247,14 +284,18 @@ function GroupedTooltip(props: TooltipProps & { group: GroupApi }) {
   const handlers: TipHandlers = {
     // a touch does not hover: a tap is a press, and the tooltip of a press is not shown
     onPointerEnter: (event) => {
-      if (event.pointerType !== 'touch')
+      if (event.pointerType !== 'touch' && !isExpanded(event.currentTarget))
         group.send({ type: 'enter', id, content }, event.currentTarget)
     },
     onPointerLeave: () => group.send({ type: 'leave', id }),
     onPointerDown: () => group.send({ type: 'press', id }),
     // only the keyboard's focus shows it: a click focuses the button too, and that is not wanted
     onFocus: (event) => {
-      if (event.target instanceof Element && event.target.matches(':focus-visible')) {
+      if (
+        event.target instanceof Element &&
+        event.target.matches(':focus-visible') &&
+        !isExpanded(event.currentTarget)
+      ) {
         group.send({ type: 'focus', id, content }, event.currentTarget)
       }
     },
@@ -299,6 +340,30 @@ export function TooltipGroup(props: { placement?: Placement; children: ReactNode
       return () => window.clearTimeout(handle)
     },
     [timer],
+  )
+
+  // the button whose panel opens while its tooltip shows (a click, the panel's key): the tooltip goes, as for a press
+  useEffect(
+    function hideWhenThePanelOpens() {
+      if (!visible || !target) return
+      const element = refs.domReference.current
+      if (!element) return
+      const press = () => {
+        if (isExpanded(element)) dispatch({ type: 'press', id: target.id })
+      }
+      const frame = requestAnimationFrame(press)
+      const observer = new MutationObserver(press)
+      observer.observe(element, {
+        attributes: true,
+        attributeFilter: ['aria-expanded'],
+        subtree: true,
+      })
+      return () => {
+        cancelAnimationFrame(frame)
+        observer.disconnect()
+      }
+    },
+    [visible, target, refs],
   )
 
   const group: GroupApi = {

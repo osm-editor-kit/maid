@@ -40,6 +40,7 @@ import { appUrl } from '../url/public-url'
 import { useCameraParam } from '../url/state'
 import { moveSource, shouldStoreMove, startCamera } from '../url/view'
 import { FavouriteHint } from './FavouriteHint'
+import { FollowLocation } from './FollowLocation'
 import { MapContextMenu, type MenuPlace } from './MapContextMenu'
 import { MeasureLoupe } from './MeasureLoupe'
 import { StackPicker } from './StackPicker'
@@ -759,6 +760,7 @@ export function MapView() {
       {/* with a menu open its marker is the count: the pill is not shown twice */}
       {!menu && <StackPicker />}
       <FavouriteHint />
+      <FollowLocation />
       {measuring && (
         <div
           role="status"

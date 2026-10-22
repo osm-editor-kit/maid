@@ -6,8 +6,9 @@
  */
 import { isAutomated } from '@osm-editor-kit/maid-core'
 import { useUrlParam, useUrlSetting } from '@osm-editor-kit/maid-core/react'
-import { useEffect } from 'react'
-import { knownLayer, listView, bestBackgrounds } from './eli.ts'
+import { notify } from '@osm-editor-kit/maid-ui'
+import { useEffect, useRef } from 'react'
+import { bestBackgrounds, coverageOf, knownLayer, layerName, listView } from './eli.ts'
 import { BRIGHTNESS_MAX, listingView, type View } from './helpers.ts'
 import {
   useImageryActions,
@@ -24,6 +25,8 @@ import {
   startBackground,
   startOverlays,
 } from './start.ts'
+import { isOwnValue } from './url.ts'
+import { switchFor } from './view-switch.ts'
 
 /**
  * What the map shows, and how to change it. A choice writes the URL and remembers the value for the next visit. Before
@@ -52,6 +55,15 @@ export function useLiveImagery() {
           overlays: pendingOverlays(urlOverlays, storedOverlays),
         }
 
+  // the URL and the offset of a background change; the caller decides what is remembered
+  const moveTo = (value: string) => {
+    if (value !== shown.background) {
+      actions.rememberOffset(shown.background, urlOffset)
+      void setUrlOffset(offsets[value] ?? null)
+    }
+    void setUrlBackground(value)
+  }
+
   return {
     shown,
     ready: start.status === 'ready',
@@ -64,13 +76,14 @@ export function useLiveImagery() {
      * the shift of the one being left is kept for this visit, and the shift the chosen one had comes back (none if none).
      */
     chooseBackground: (value: string) => {
-      if (value !== shown.background) {
-        actions.rememberOffset(shown.background, urlOffset)
-        void setUrlOffset(offsets[value] ?? null)
-      }
-      void setUrlBackground(value)
+      moveTo(value)
       actions.rememberBackground(value)
     },
+    /**
+     * A background the app switches to when the map moves out of the chosen one's coverage (useSwitchOnMove). The URL
+     * follows; the remembered choice stays the person's own.
+     */
+    switchBackground: moveTo,
     /** Overlays the person chose, in order: the URL and the remembered list */
     chooseOverlays: (ids: string[]) => {
       void setUrlOverlays(ids)
@@ -137,6 +150,65 @@ export function useImageryStart(view: View | null) {
     if (urlBackground !== background) void setUrlBackground(background)
     if (!sameIds(urlOverlays, overlays)) void setUrlOverlays(overlays)
   }, [ready, urlBackground, urlOverlays, background, overlays, setUrlBackground, setUrlOverlays])
+}
+
+/**
+ * The background to switch to for a view, as the start order would choose it: the best layers that cover more
+ * than half of the view (listed like the start does), else the fork's default (view-switch.ts). Null when the
+ * chosen one stays.
+ */
+async function switchTarget(view: View, chosen: string, fallback: string | null) {
+  if (isOwnValue(chosen)) return null
+  const listed = await listView(listingView(view))
+  if (!knownLayer(chosen)) return null
+  const backgrounds = listed.items.filter((item) => !item.overlay)
+  const best = await bestBackgrounds(backgrounds, view)
+  // a coverage that cannot be read is not guessed: the chosen background stays (the rejection ends the switch)
+  const chosenCoverage = await coverageOf(chosen)
+  return switchFor({
+    bounds: view.bounds,
+    chosen,
+    chosenCoverage,
+    best,
+    fallback,
+    known: knownLayer,
+  })
+}
+
+/**
+ * When the person moves the map (a new view), the chosen background is switched if it does not cover the new view:
+ * once per move end, and only once the start order has resolved. The first view of the session is not switched: the
+ * start order decides it. A choice of the person is not undone by this: it changes the chosen background only, so the
+ * choice stays until the next move. A switch that is overtaken by a newer view or a choice is dropped.
+ */
+export function useSwitchOnMove(view: View | null) {
+  const { shown, ready, switchBackground } = useLiveImagery()
+  const fallback = useImagerySelector((state) => state.defaultBackground)
+  const chosen = shown.background
+  // the view this hook has handled: the same view again (a change of the chosen background) asks nothing new
+  const handled = useRef<View | null>(null)
+  // the chosen background as it is now: a choice the person makes while the switch is looked up wins
+  const current = useRef(chosen)
+  useEffect(() => {
+    current.current = chosen
+  }, [chosen])
+
+  useEffect(() => {
+    if (view === null || handled.current === view) return
+    handled.current = view
+    if (!ready || isAutomated()) return
+    void switchTarget(view, chosen, fallback).then(
+      (target) => {
+        if (target === null || handled.current !== view || current.current !== chosen) return
+        const from = layerName(chosen)
+        switchBackground(target)
+        notify.info(`Background changed to ${layerName(target)}: ${from} does not cover this area`)
+      },
+      () => {
+        // no coverage or no list: the background stays
+      },
+    )
+  }, [view, ready, chosen, fallback, switchBackground])
 }
 
 /** Mirrors what is shown into the store, for readers outside React (the measure and the changeset read it) */
