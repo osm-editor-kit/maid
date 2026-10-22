@@ -37,22 +37,52 @@ const COLOUR_BY_KIND: ExpressionSpecification = [
   COLOUR.room,
 ]
 
+/** The selection's colour on the map (renderer layers.ts HOVER), for the selected feature in 3D */
+const SELECTED_COLOUR = '#f6634f'
+
 const EMPTY: ExtrusionCollection = { type: 'FeatureCollection', features: [] }
 
 /**
  * The extrusion layer. The opacity is a constant: fill-extrusion-opacity cannot be data-driven in MapLibre.
  * Its source and layer are flat, as in the shapes module (RectangleOnMap), and drawn on top of the OSM layers.
  */
-const LAYER: LayerProps = {
-  id: 'levels-extrusion',
-  type: 'fill-extrusion',
-  source: SOURCE,
-  paint: {
-    'fill-extrusion-base': ['get', 'base'],
-    'fill-extrusion-height': ['get', 'top'],
-    'fill-extrusion-color': ['case', ['!', ['get', 'chosen']], COLOUR.other, COLOUR_BY_KIND],
-    'fill-extrusion-opacity': 0.75,
-  },
+function layerFor(selected: readonly string[]): LayerProps {
+  return {
+    id: 'levels-extrusion',
+    type: 'fill-extrusion',
+    source: SOURCE,
+    // the selected features have a layer of their own (selectedLayerFor)
+    filter: ['!', isSelected(selected)],
+    paint: {
+      'fill-extrusion-base': ['get', 'base'],
+      'fill-extrusion-height': ['get', 'top'],
+      'fill-extrusion-color': ['case', ['!', ['get', 'chosen']], COLOUR.other, COLOUR_BY_KIND],
+      'fill-extrusion-opacity': 0.75,
+    },
+  }
+}
+
+/**
+ * The selected features in the map's selection colour, opaque (the opacity of a fill-extrusion layer is one value for
+ * all its features, so the selection has its own layer) and a little higher, so that they stand out of the others
+ */
+function selectedLayerFor(selected: readonly string[]): LayerProps {
+  return {
+    id: 'levels-extrusion-selected',
+    type: 'fill-extrusion',
+    source: SOURCE,
+    filter: isSelected(selected),
+    paint: {
+      'fill-extrusion-base': ['get', 'base'],
+      'fill-extrusion-height': ['+', ['get', 'top'], 0.5],
+      'fill-extrusion-color': SELECTED_COLOUR,
+      'fill-extrusion-opacity': 1,
+    },
+  }
+}
+
+function isSelected(selected: readonly string[]): ExpressionSpecification {
+  return ['in', ['coalesce', ['get', 'id'], ''], ['literal', [...selected]]]
 }
 
 export function LevelExtrusion({ engine }: { engine: MaidEngine }) {
@@ -66,6 +96,7 @@ function Extrusion({ engine }: { engine: MaidEngine }) {
   // `subscribe` fires on every change of the data and of the level, so the version is the change to scan for
   const version = useSyncExternalStore(engine.subscribe, engine.getVersion)
   const level = useSyncExternalStore(engine.subscribe, () => engine.level)
+  const selected = useSyncExternalStore(engine.subscribe, () => engine.selected())
   const [collection, setCollection] = useState<ExtrusionCollection | null>(null)
 
   useEffect(
@@ -90,7 +121,8 @@ function Extrusion({ engine }: { engine: MaidEngine }) {
   return (
     <>
       <Source id={SOURCE} type="geojson" data={collection ?? EMPTY} />
-      <Layer {...LAYER} />
+      <Layer {...layerFor(selected)} />
+      <Layer {...selectedLayerFor(selected)} />
     </>
   )
 }

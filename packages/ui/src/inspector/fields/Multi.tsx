@@ -38,18 +38,14 @@ import {
   type ChipState,
 } from './multi-logic.ts'
 import type { FieldProps } from './shared.ts'
-import { FRAME } from './shared.ts'
+import { CHIP, CHIP_BOX as BOX } from './shared.ts'
 
 /** A chip that only some of several features have: a dashed outline. */
 const SOME_CHIP =
   'outline outline-1 -outline-offset-1 outline-dashed outline-zinc-400 dark:outline-zinc-500'
 
-// The box is the text input's frame without its fixed height: chips wrap inside it.
-const BOX = `${FRAME.replace(/^h-8 /, '')} flex min-h-8 flex-wrap items-center gap-1 p-1 focus-within:outline-2 focus-within:outline-blue-500`
 const TEXT_INPUT =
   'h-6 min-w-0 flex-1 basis-24 bg-transparent px-1 text-sm text-zinc-950 outline-none placeholder:text-zinc-400 dark:text-white dark:placeholder:text-zinc-500 dark:[color-scheme:dark]'
-const CHIP =
-  'flex h-6 max-w-full min-w-0 items-center gap-1 rounded-md bg-zinc-950/5 pl-1 pr-0.5 text-sm text-zinc-950 dark:bg-white/10 dark:text-white'
 const CHIP_TOGGLE =
   'flex min-w-0 items-center gap-1.5 rounded px-0.5 focus-visible:outline-2 focus-visible:outline-blue-500'
 const CHIP_REMOVE =

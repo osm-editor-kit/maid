@@ -100,7 +100,11 @@ export {
 export { DraftInput, useDraft } from './inspector/fields/DraftInput.tsx'
 /** The class of a single-line text input, as the inspector's fields and the modules use it */
 export {
+  CHIP as FIELD_CHIP,
+  CHIP_BOX as FIELD_CHIP_BOX,
+  HINT as FIELD_HINT,
   INPUT as INPUT_CLASS,
+  ROW_BUTTON as FIELD_ROW_BUTTON,
   tagChangeOf,
   writeEdits,
   type FieldTagEdit,

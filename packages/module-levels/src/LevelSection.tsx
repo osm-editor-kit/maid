@@ -1,8 +1,16 @@
 import { ArrowRightIcon, ArrowsRightLeftIcon } from '@heroicons/react/16/solid'
 import { levelsOf } from '@osm-editor-kit/maid-levels'
 import type { InspectorSectionProps } from '@osm-editor-kit/maid-ui'
-import { Tooltip } from '@osm-editor-kit/maid-ui'
+import {
+  FIELD_CHIP,
+  FIELD_CHIP_BOX,
+  FIELD_HINT,
+  FIELD_ROW_BUTTON,
+  toolButtonClass,
+  Tooltip,
+} from '@osm-editor-kit/maid-ui'
 import { type MouseEvent, useState } from 'react'
+import { twMerge } from 'tailwind-merge'
 import { useLevelEngine } from './engine-store.ts'
 import {
   inclineTag,
@@ -15,7 +23,6 @@ import {
 } from './level-section.ts'
 import { isConnector, type LevelSuggestion } from './level-suggestions.ts'
 import { levelOffersFor, nearbySuggestionsFor, SetLevelMenu } from './LevelMenu.tsx'
-import { buttonClass } from './look.ts'
 
 /** The menu's width (w-20, 80 px): it opens left of the button */
 const MENU_OFFSET = 88
@@ -26,6 +33,12 @@ type Open = {
   at: { x: number; y: number }
   suggestions: LevelSuggestion[]
 }
+
+/** A level in the box: a chip of the inspector's chip fields, as a button that opens the level menu */
+const LEVEL_CHIP = twMerge(
+  FIELD_CHIP,
+  'cursor-pointer px-1.5 tracking-tight tabular-nums hover:bg-zinc-950/10 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:hover:bg-zinc-950/5 dark:hover:bg-white/15',
+)
 
 /**
  * The level of the selected feature at the top of the inspector: one button for a feature, and for a connector
@@ -82,18 +95,20 @@ export function LevelSection({ entity }: InspectorSectionProps) {
   if (!isConnector(tags)) {
     const hasLevel = level !== undefined
     return (
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          className={buttonClass(false)}
-          disabled={readOnly}
-          aria-label={hasLevel ? `Level ${level}, change it` : 'No level, set one'}
-          onPointerEnter={() => engine.hoverLevel(readOnly ? null : (firstLevel ?? 'none'))}
-          onPointerLeave={() => engine.hoverLevel(null)}
-          onClick={(event) => openMenu(event, 'single')}
-        >
-          {hasLevel ? level : <span className="text-zinc-500 dark:text-zinc-400">none</span>}
-        </button>
+      <div className="grid gap-1">
+        <div className={FIELD_CHIP_BOX}>
+          <button
+            type="button"
+            className={LEVEL_CHIP}
+            disabled={readOnly}
+            aria-label={hasLevel ? `Level ${level}, change it` : 'No level, set one'}
+            onPointerEnter={() => engine.hoverLevel(readOnly ? null : (firstLevel ?? 'none'))}
+            onPointerLeave={() => engine.hoverLevel(null)}
+            onClick={(event) => openMenu(event, 'single')}
+          >
+            {hasLevel ? level : <span className="text-zinc-500 dark:text-zinc-400">none</span>}
+          </button>
+        </div>
         {open?.end === 'single' && (
           <SetLevelMenu
             engine={engine}
@@ -122,7 +137,7 @@ export function LevelSection({ entity }: InspectorSectionProps) {
     return (
       <button
         type="button"
-        className={buttonClass(false)}
+        className={LEVEL_CHIP}
         disabled={readOnly}
         aria-label={`${end === 'from' ? 'From' : 'To'} level${value === null ? ', none' : ` ${value}`}`}
         onPointerEnter={() => engine?.hoverLevel(readOnly || value === null ? null : value)}
@@ -135,29 +150,19 @@ export function LevelSection({ entity }: InspectorSectionProps) {
   }
 
   return (
-    <div className="flex flex-col items-start gap-1">
-      {showUse && suggestedPair && suggested && (
-        <button
-          type="button"
-          disabled={readOnly}
-          className="rounded-md bg-blue-600/15 px-2 py-0.5 text-xs font-medium text-blue-700 hover:bg-blue-600/20 disabled:opacity-50 dark:text-blue-300 dark:hover:bg-blue-400/25"
-          onClick={() => {
-            engine.assignLevel(entity.id, suggested.value, suggested.incline)
-            setOpen(null)
-          }}
-        >
-          Use {suggestedPair.from} → {suggestedPair.to}
-        </button>
-      )}
-      <div className="flex items-center gap-1">
+    <div className="grid gap-1">
+      <div className={FIELD_CHIP_BOX}>
         {endButton('from', pair.from)}
-        <ArrowRightIcon className="size-4 text-zinc-500 dark:text-zinc-400" aria-hidden />
+        <ArrowRightIcon
+          className="size-3.5 shrink-0 text-zinc-500 dark:text-zinc-400"
+          aria-hidden
+        />
         {endButton('to', pair.to)}
         {level !== undefined && pair.to !== null && !readOnly && (
           <Tooltip label="Swap the direction">
             <button
               type="button"
-              className={buttonClass(false)}
+              className={twMerge(FIELD_ROW_BUTTON, 'ml-auto size-6')}
               aria-label="Swap the direction"
               onClick={() => engine.assignLevel(entity.id, level, nextIncline(incline))}
             >
@@ -165,10 +170,27 @@ export function LevelSection({ entity }: InspectorSectionProps) {
             </button>
           </Tooltip>
         )}
-        {!pair.known && (
-          <span className="pl-1 text-xs text-zinc-500 dark:text-zinc-400">direction unknown</span>
-        )}
       </div>
+      {(!pair.known || showUse) && (
+        <div className="flex items-center gap-2">
+          {!pair.known && <span className={FIELD_HINT}>Direction unknown</span>}
+          {showUse && suggestedPair && suggested && (
+            <Tooltip label={suggested.reasons.join(' · ')}>
+              <button
+                type="button"
+                disabled={readOnly}
+                className={twMerge(toolButtonClass(true, false), 'ml-auto h-7 gap-1 px-2 text-xs')}
+                onClick={() => {
+                  engine.assignLevel(entity.id, suggested.value, suggested.incline)
+                  setOpen(null)
+                }}
+              >
+                Use {suggestedPair.from} → {suggestedPair.to}
+              </button>
+            </Tooltip>
+          )}
+        </div>
+      )}
       {open && open.end !== 'single' && (
         <SetLevelMenu
           engine={engine}

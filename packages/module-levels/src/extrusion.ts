@@ -35,10 +35,14 @@ export type ExtrusionProperties = {
   kind: ExtrusionKind
   /** True when no level is chosen, or the feature is on the chosen level (a shaft: when it serves that level) */
   chosen: boolean
+  /** The way it was made from (WayLike.id) */
+  id?: string
 }
 
 /** The parts of an OSM way that are read: its node ids (the first is the last when it is closed) and its tags */
 export type WayLike = {
+  /** The way's id, carried to its features as `id`, so that the map can mark the selected one */
+  readonly id?: string
   readonly nodes: readonly string[]
   readonly tags: Readonly<Record<string, string>>
 }
@@ -62,7 +66,14 @@ export function extrusionOf(
   const features: ExtrusionFeature[] = []
   let lowest = 0
 
+  // every feature made from a way carries the way's id
+  let current: string | undefined
+  const push = (...made: ExtrusionFeature[]) => {
+    for (const feature of made) if (current !== undefined) feature.properties.id = current
+    features.push(...made)
+  }
   for (const way of ways) {
+    current = way.id
     const kind = kindOf(way.tags, isClosed(way.nodes))
     if (kind === undefined) continue
     const levels = levelsOf(way.tags).levels
@@ -74,7 +85,7 @@ export function extrusionOf(
       const line = locationsOf(way.nodes, locationOf)
       if (line === undefined) continue
       lowest = Math.min(lowest, levels[0] ?? 0)
-      features.push(...stepsOf(line, levels, way.tags.incline === 'down', chosenLevel))
+      push(...stepsOf(line, levels, way.tags.incline === 'down', chosenLevel))
       continue
     }
 
@@ -89,7 +100,7 @@ export function extrusionOf(
       const highest = levels[levels.length - 1] ?? 0
       const serves = chosenLevel === null || levels.includes(chosenLevel)
       if (chosenLevel !== null && bottom > chosenLevel) continue
-      features.push(
+      push(
         featureOf(
           geometry,
           bottom * LEVEL_HEIGHT,
@@ -109,7 +120,7 @@ export function extrusionOf(
       if (chosenLevel !== null && level > chosenLevel) continue
       const base = level * LEVEL_HEIGHT
       const chosen = chosenLevel === null || level === chosenLevel
-      features.push(featureOf(geometry, base, base + height, kind, chosen))
+      push(featureOf(geometry, base, base + height, kind, chosen))
     }
   }
 
