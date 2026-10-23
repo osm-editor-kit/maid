@@ -13,6 +13,7 @@ minimumReleaseAgeExcludes = [
   "@typescript/typescript-linux-x64",
   # our own packages land at once (decided by Tobias, 2026-10-13)
   "@osm-editor-kit/maplibre-editor-layer-index",
+  "@osm-editor-kit/osm-editor-links",
   "@osm-editor-kit/street-imagery",
   "@osm-editor-kit/street-imagery-react",
   "@osm-editor-kit/surface-smoothness-data",
