@@ -195,8 +195,9 @@ describe('other check types with options from the presets', () => {
     expect(drawn(two, 'yes')).toEqual({ box: 'on', ariaChecked: true, label: 'Yes' })
   })
 
-  it('onewayCheck: 1 is yes', () => {
-    expect(drawn(field({ type: 'onewayCheck', key: 'oneway' }), '1')).toEqual({
+  it('onewayCheck: -1 is yes, 1 is not a oneway value (iD #13026)', () => {
+    expect(drawn(field({ type: 'onewayCheck', key: 'oneway' }), '1').label).not.toBe('Yes')
+    expect(drawn(field({ type: 'onewayCheck', key: 'oneway' }), '-1')).toEqual({
       box: 'on',
       ariaChecked: true,
       label: 'Yes',

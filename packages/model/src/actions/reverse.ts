@@ -5,7 +5,7 @@ import type { OsmNode, OsmTags, OsmWay } from '../data/types.ts';
 
 /** Options for the reverse action */
 export interface ReverseOptions {
-  /** Whether to also reverse oneway tags */
+  /** Whether to also reverse the direction values of `oneway` and `conveying` (iD#13026, iD#13027) */
   reverseOneway?: boolean;
 }
 
@@ -13,7 +13,7 @@ export interface ReverseOptions {
 export interface ReverseValueOptions {
   /** When `true`, also reverse absolute compass bearings (a node that is reversed itself) */
   includeAbsolute?: boolean;
-  /** When `true`, also reverse `oneway` values */
+  /** When `true`, also reverse the direction values of `oneway` and `conveying` (iD#13026, iD#13027) */
   reverseOneway?: boolean;
 }
 
@@ -40,7 +40,8 @@ type OnewayReplacements = Record<string, string>;
 /** Compass direction replacement lookup table */
 type CompassReplacements = Record<string, string>;
 
-const IGNORE_KEY = /^.*(_|:)?(description|name|note|website|ref|source|comment|watch|attribution)(_|:)?/;
+// Matches the word as a whole part of the key: `name`, `addr:name`, `note_left`, but not `railway:preferred_direction` (contains `ref`)
+const IGNORE_KEY = /(^|_|:)(description|name|note|website|ref|source|comment|watch|attribution)(_|:|$)/;
 const NUMERIC = /^([+\-]?)(?=[\d.])/;
 const DIRECTION_KEY = /direction$/;
 const TURN_LANES = /^turn:lanes:?/;
@@ -76,10 +77,13 @@ const ROLE_REPLACEMENTS: RoleReplacements = {
   backwards: 'forward'
 };
 
-const ONEWAY_REPLACEMENTS: OnewayReplacements = {
-  yes: '-1',
-  '1': '-1',
-  '-1': 'yes'
+/**
+ * The values that point along a way and their opposite, per key. They turn only with `reverseOneway`: a plain
+ * reverse keeps them, as iD does (iD#13027 for conveying). `oneway=1` is not here: iD dropped it (iD#13026).
+ */
+const DIRECTION_REPLACEMENTS: Record<string, OnewayReplacements> = {
+  oneway: { yes: '-1', '-1': 'yes' },
+  conveying: { forward: 'backward', backward: 'forward' },
 };
 
 const COMPASS_REPLACEMENTS: CompassReplacements = {
@@ -124,8 +128,9 @@ export function reverseKey(key: string): string {
 
 /**
  * Transforms a tag value to its directional opposite. Pure.
- * Handles `left`/`right`, `forward`/`backward`, `up`/`down`, numeric `incline` negation, `oneway` values (when
- * `reverseOneway` is set), and absolute compass directions on `*direction` keys (when `includeAbsolute` is set).
+ * Handles `left`/`right`, `forward`/`backward`, `up`/`down`, numeric `incline` negation, the direction values of `oneway`
+ * and `conveying` (when `reverseOneway` is set; a plain reverse keeps them), and absolute compass directions on
+ * `*direction` keys (when `includeAbsolute` is set).
  * Keys matching the ignore list (names, descriptions, refs, etc.) are passed through unchanged.
  * @param   key      - The tag key (used to select the reversal strategy)
  * @param   value    - The tag value to transform
@@ -155,9 +160,10 @@ export function reverseValue(
     });
   }
 
-  if (options.reverseOneway && key === 'oneway') {
-    return lookup(ONEWAY_REPLACEMENTS, value) ?? value;
-  }
+  // iD#13026, iD#13027: the direction values of oneway and conveying are kept, unless the reverse is asked to turn them
+  const directions = Object.hasOwn(DIRECTION_REPLACEMENTS, key) ? DIRECTION_REPLACEMENTS[key] : undefined;
+  const opposite = directions ? lookup(directions, value) : undefined;
+  if (opposite !== undefined) return options.reverseOneway ? opposite : value;
 
   // Maid: differs from Rapid here (iD splits the value on ';' and reverses each part, so 'N;90' becomes 'S;270')
   if (options.includeAbsolute && DIRECTION_KEY.test(key)) {
@@ -184,8 +190,8 @@ export function reverseValue(
 
 /**
  * Order the nodes of a way in reverse order and reverse any direction dependent tags
- * other than `oneway`. (We assume that correcting a backwards oneway is the primary
- * reason for reversing a way.)
+ * other than `oneway` and `conveying`, which turn only with `reverseOneway`. (We assume that correcting
+ * a backwards oneway is the primary reason for reversing a way.)
  *
  * In addition, numeric-valued `incline` tags are negated.
  *

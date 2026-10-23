@@ -5,9 +5,11 @@
  * `reverseValue`), so a value the table shows as mirrored is the one Reverse would write. `incline`, `up`/`down`,
  * `forward`/`backward` and the bare `left`/`right` values of any key are mirrored that way. Where the table goes
  * further than Reverse, it does so on purpose, as the design asks (docs/research/way-table.md, 2.8, 4.8 and step 7):
- * - `oneway` is always mirrored. Reverse leaves it unless it is asked to (iD: correcting a backwards oneway is the
- *   usual reason to reverse). The table compares a reversed neighbour's oneway with the chain's direction.
- *   `true`, `1` and `reverse` are read as the canonical `yes` and `-1`.
+ * - `oneway` and `conveying` are always mirrored. Reverse leaves them unless it is asked to (iD#13027: a plain reverse
+ *   keeps conveying; iD: correcting a backwards oneway is the usual reason to reverse). The table shows the way's
+ *   direction, so it turns them itself. The table compares a reversed neighbour's oneway with the chain's direction.
+ *   `true` and `reverse` are read as the canonical `yes` and `-1`. `oneway=1` is not a direction (iD#13026), so it
+ *   stays as it is.
  * - `placement=left_of:n` follows the lane count of the way, and is left alone without one (no `lanes`, `lanes:forward`
  *   or `lanes:backward`). The street space editor's port used the lane number as the total, and then mirror(mirror(x))
  *   was not x.
@@ -20,7 +22,7 @@
  * - A zero `incline` stays `0` (Reverse writes `-0`, see reverse.ts).
  *
  * Round trips: mirrorKey is an involution for every key. mirrorValue is an involution for canonical values; the
- * synonyms `true`, `1` (for `yes`) and `reverse` (for `-1`) come back as `yes` and `-1` respectively. That is intended:
+ * synonyms `true` (for `yes`) and `reverse` (for `-1`) come back as `yes` and `-1` respectively. That is intended:
  * the value mirror is for display and comparison only. A write never goes through it (see plan.ts).
  */
 import { reverseKey, reverseValue } from '@osm-editor-kit/maid-model'
@@ -32,7 +34,6 @@ const START_END = /:(start|end)(?=:|$)/g
 const ONEWAY_CANONICAL: ReadonlyMap<string, string> = new Map([
   ['yes', 'yes'],
   ['true', 'yes'],
-  ['1', 'yes'],
   ['-1', '-1'],
   ['reverse', '-1'],
 ])
@@ -145,6 +146,8 @@ export function mirrorValue(key: string, value: string, tags: Tags = {}): string
   if (isOnewayKey(key)) return mirrorOneway(value)
   if (isPlacementKey(key)) return mirrorPlacement(value, laneCountOf(tags))
   if (isLanesPipeKey(key)) return mirrorLanesPipe(key, value)
+  // A plain Reverse keeps conveying (iD#13027); the table shows the way's direction, so it asks for the turn
+  if (key === 'conveying') return reverseValue(key, value, tags, { reverseOneway: true })
   return reverseValue(key, value, tags)
 }
 

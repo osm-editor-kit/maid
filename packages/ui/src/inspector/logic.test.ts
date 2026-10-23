@@ -188,8 +188,8 @@ describe('checkValue and checkState', () => {
     expect(checkValue('check', undefined)).toBeUndefined()
   })
 
-  it('onewayCheck reads 1 and -1 as yes; other checks keep them', () => {
-    expect(checkValue('onewayCheck', '1')).toBe('yes')
+  it('onewayCheck reads -1 as yes, not 1 (iD #13026); other checks keep them', () => {
+    expect(checkValue('onewayCheck', '1')).toBe('1')
     expect(checkValue('onewayCheck', '-1')).toBe('yes')
     expect(checkValue('check', '1')).toBe('1')
   })
@@ -239,7 +239,7 @@ describe('checkStateFor (several features)', () => {
 
   it('values that differ only in case or in a oneway spelling are one value', () => {
     expect(checkStateFor('check', undefined, false, mixed(['Yes', 'yes']))).toBe(true)
-    expect(checkStateFor('onewayCheck', undefined, false, mixed(['1', 'yes']))).toBe(true)
+    expect(checkStateFor('onewayCheck', undefined, false, mixed(['-1', 'yes']))).toBe(true)
   })
 
   it('a key with the same value on all features is not mixed', () => {
@@ -300,9 +300,8 @@ describe('checkCycle and nextCheckValue', () => {
     expect(nextCheckValue('defaultCheck', 'no', cycle)).toBeUndefined()
   })
 
-  it('onewayCheck: 1 is yes, so the next value is no', () => {
+  it('onewayCheck: -1 is yes, so the next value is no', () => {
     const cycle = checkCycle(field({ type: 'onewayCheck', key: 'oneway' }))
-    expect(nextCheckValue('onewayCheck', '1', cycle)).toBe('no')
     expect(nextCheckValue('onewayCheck', '-1', cycle)).toBe('no')
   })
 

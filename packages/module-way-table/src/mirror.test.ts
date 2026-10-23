@@ -68,9 +68,21 @@ describe('mirrorValue', () => {
 
   test('the synonyms of yes and -1 come back as the canonical value', () => {
     expect(mirrorValue('oneway', 'true')).toBe('-1')
-    expect(mirrorValue('oneway', '1')).toBe('-1')
     expect(mirrorValue('oneway', 'reverse')).toBe('yes')
     expect(mirrorValue('oneway', mirrorValue('oneway', 'true'))).toBe('yes')
+  })
+
+  test('oneway=1 is not a direction, as iD dropped it (iD#13026)', () => {
+    expect(mirrorValue('oneway', '1')).toBe('1')
+    expect(isDirectionDependent('oneway', '1')).toBe(false)
+  })
+
+  test('conveying: forward and backward swap, reversible and other values stay', () => {
+    expect(mirrorValue('conveying', 'forward')).toBe('backward')
+    expect(mirrorValue('conveying', 'backward')).toBe('forward')
+    expect(mirrorValue('conveying', 'reversible')).toBe('reversible')
+    expect(isDirectionDependent('conveying', 'forward')).toBe(true)
+    expect(isDirectionDependent('conveying', 'reversible')).toBe(false)
   })
 
   test('bare side values swap for sidewalk, cycleway and busway', () => {
@@ -188,6 +200,7 @@ describe('mirrorTags', () => {
     highway: 'primary',
     name: 'Mill Road',
     oneway: 'yes',
+    conveying: 'forward',
     lanes: '3',
     'lanes:forward': '2',
     'lanes:backward': '1',
@@ -205,6 +218,7 @@ describe('mirrorTags', () => {
     expect(mirrored.highway).toBe('primary')
     expect(mirrored.name).toBe('Mill Road')
     expect(mirrored.oneway).toBe('-1')
+    expect(mirrored.conveying).toBe('backward')
     expect(mirrored['cycleway:right']).toBe('lane')
     expect(mirrored['cycleway:left']).toBe('track')
     expect(mirrored['parking:left:orientation']).toBe('parallel')
@@ -246,6 +260,9 @@ describe('agreement with the Reverse operation (packages/model reverse.ts)', () 
     ['note:left', 'up'],
     ['red_turn:right', 'yes'],
     ['role', 'forward'],
+    ['oneway', 'yes'],
+    ['conveying', 'forward'],
+    ['conveying', 'reversible'],
   ]
 
   test('mirrorKey is reverseKey, except for start and end', () => {

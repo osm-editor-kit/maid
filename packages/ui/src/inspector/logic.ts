@@ -130,11 +130,11 @@ export function valueSignature(field: Field, tags: Tags) {
   return JSON.stringify(keys.map((key) => tags[key] ?? ''))
 }
 
-/** The value a check field works with: lower case, onewayCheck's 1 and -1 are yes, empty is unset. */
+/** The value a check field works with: lower case, onewayCheck's -1 is yes (1 is not a oneway value, iD #13026), empty is unset. */
 export function checkValue(type: string, value: string | undefined) {
   if (value === undefined || value === '') return undefined
   const lower = value.toLowerCase()
-  return type === 'onewayCheck' && (lower === '1' || lower === '-1') ? 'yes' : lower
+  return type === 'onewayCheck' && lower === '-1' ? 'yes' : lower
 }
 
 /**

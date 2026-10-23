@@ -141,8 +141,9 @@ describe('actionReverse', () => {
       result = Rapid.actionReverse('no', { reverseOneway: true })(result);
       assert.deepEqual(result.entity('no').tags, { 'oneway': 'no' }, 'no');
 
+      // iD#13026: oneway=1 is no longer supported, so it is not turned
       result = Rapid.actionReverse('1', { reverseOneway: true })(result);
-      assert.deepEqual(result.entity('1').tags, { 'oneway': '-1' }, '1');
+      assert.deepEqual(result.entity('1').tags, { 'oneway': '1' }, '1');
 
       result = Rapid.actionReverse('-1', { reverseOneway: true })(result);
       assert.deepEqual(result.entity('-1').tags, { 'oneway': 'yes' }, '-1');
@@ -165,6 +166,29 @@ describe('actionReverse', () => {
 
       result = Rapid.actionReverse('dummy', { reverseOneway: true })(result);
       assert.deepEqual(result.entity('dummy').tags, { 'oneway': 'dummy' }, 'dummy');
+    });
+
+    // iD#13027
+    it('preserves conveying tags', () => {
+      const base = new Rapid.Graph(context, [
+        new Rapid.OsmWay(context, { id: 'w1', tags: { conveying: 'forward' } }),
+        new Rapid.OsmWay(context, { id: 'w2', tags: { conveying: 'backward' } })
+      ]);
+
+      assert.deepEqual(Rapid.actionReverse('w1')(new Rapid.Graph(base)).entity('w1').tags, { conveying: 'forward' });
+      assert.deepEqual(Rapid.actionReverse('w2')(new Rapid.Graph(base)).entity('w2').tags, { conveying: 'backward' });
+    });
+
+    it('reverses conveying tags if reverseOneway: true is provided', () => {
+      const base = new Rapid.Graph(context, [
+        new Rapid.OsmWay(context, { id: 'w1', tags: { conveying: 'forward' } }),
+        new Rapid.OsmWay(context, { id: 'w2', tags: { conveying: 'backward' } }),
+        new Rapid.OsmWay(context, { id: 'w3', tags: { conveying: 'reversible' } })
+      ]);
+
+      assert.deepEqual(Rapid.actionReverse('w1', { reverseOneway: true })(new Rapid.Graph(base)).entity('w1').tags, { conveying: 'backward' });
+      assert.deepEqual(Rapid.actionReverse('w2', { reverseOneway: true })(new Rapid.Graph(base)).entity('w2').tags, { conveying: 'forward' });
+      assert.deepEqual(Rapid.actionReverse('w3', { reverseOneway: true })(new Rapid.Graph(base)).entity('w3').tags, { conveying: 'reversible' });
     });
   });
 
@@ -303,35 +327,35 @@ describe('actionReverse', () => {
 
     it('transforms *=forward ⟺ *=backward', () => {
       const base = new Rapid.Graph(context, [
-        new Rapid.OsmWay(context, { id: 'conveyingF', tags: { conveying: 'forward' } }),
         new Rapid.OsmWay(context, { id: 'directionF', tags: { direction: 'forward' } }),
         new Rapid.OsmWay(context, { id: 'priorityF', tags: { priority: 'forward' } }),
         new Rapid.OsmWay(context, { id: 'trolley_wireF', tags: { trolley_wire: 'forward' } }),
-        new Rapid.OsmWay(context, { id: 'conveyingB', tags: { conveying: 'backward' } }),
+        new Rapid.OsmWay(context, { id: 'preferred_directionF', tags: { 'railway:preferred_direction': 'forward' } }),
         new Rapid.OsmWay(context, { id: 'directionB', tags: { direction: 'backward' } }),
         new Rapid.OsmWay(context, { id: 'priorityB', tags: { priority: 'backward' } }),
-        new Rapid.OsmWay(context, { id: 'trolley_wireB', tags: { trolley_wire: 'backward' } })
+        new Rapid.OsmWay(context, { id: 'trolley_wireB', tags: { trolley_wire: 'backward' } }),
+        new Rapid.OsmWay(context, { id: 'preferred_directionB', tags: { 'railway:preferred_direction': 'backward' } })
       ]);
       const graph = new Rapid.Graph(base);
 
       let result = new Rapid.Graph(graph);
-      result = Rapid.actionReverse('conveyingF')(result);
-      assert.deepEqual(result.entity('conveyingF').tags, { conveying: 'backward' }, 'conveyingF');
       result = Rapid.actionReverse('directionF')(result);
       assert.deepEqual(result.entity('directionF').tags, { direction: 'backward' }, 'directionF');
       result = Rapid.actionReverse('priorityF')(result);
       assert.deepEqual(result.entity('priorityF').tags, { priority: 'backward' }, 'priorityF');
       result = Rapid.actionReverse('trolley_wireF')(result);
       assert.deepEqual(result.entity('trolley_wireF').tags, { trolley_wire: 'backward' }, 'trolley_wireF');
+      result = Rapid.actionReverse('preferred_directionF')(result);
+      assert.deepEqual(result.entity('preferred_directionF').tags, { 'railway:preferred_direction': 'backward' }, 'preferred_directionF');
 
-      result = Rapid.actionReverse('conveyingB')(result);
-      assert.deepEqual(result.entity('conveyingB').tags, { conveying: 'forward' }, 'conveyingB');
       result = Rapid.actionReverse('directionB')(result);
       assert.deepEqual(result.entity('directionB').tags, { direction: 'forward' }, 'directionB');
       result = Rapid.actionReverse('priorityB')(result);
       assert.deepEqual(result.entity('priorityB').tags, { priority: 'forward' }, 'priorityB');
       result = Rapid.actionReverse('trolley_wireB')(result);
       assert.deepEqual(result.entity('trolley_wireB').tags, { trolley_wire: 'forward' }, 'trolley_wireB');
+      result = Rapid.actionReverse('preferred_directionB')(result);
+      assert.deepEqual(result.entity('preferred_directionB').tags, { 'railway:preferred_direction': 'forward' }, 'preferred_directionB');
     });
 
     it('drops "s" from forwards/backwards when reversing', () => {
@@ -717,9 +741,13 @@ describe('actionReverse', () => {
       assert.strictEqual(Rapid.reverseValue('bus_bay', 'right', {}), 'left');
     });
 
-    it('reverseValue reverses oneway only when asked', () => {
+    it('reverseValue reverses the direction of oneway and conveying only when asked', () => {
       assert.strictEqual(Rapid.reverseValue('oneway', 'yes', {}), 'yes');
       assert.strictEqual(Rapid.reverseValue('oneway', 'yes', {}, { reverseOneway: true }), '-1');
+      assert.strictEqual(Rapid.reverseValue('oneway', '1', {}, { reverseOneway: true }), '1');
+      assert.strictEqual(Rapid.reverseValue('conveying', 'forward', {}), 'forward');
+      assert.strictEqual(Rapid.reverseValue('conveying', 'forward', {}, { reverseOneway: true }), 'backward');
+      assert.strictEqual(Rapid.reverseValue('conveying', 'reversible', {}, { reverseOneway: true }), 'reversible');
     });
   });
 
