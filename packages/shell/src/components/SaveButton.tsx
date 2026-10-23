@@ -240,6 +240,18 @@ export function SaveButton() {
   const [open, setOpen] = useState(false)
   // while an upload runs the flyout cannot close, so its panel stays and no second upload can start
   const [uploading, setUploading] = useState(false)
+  useEffect(
+    function warnBeforeClosingWhileUploading() {
+      if (!uploading) return
+      // an open changeset would be left behind if the tab closed now, so the browser asks first
+      const onBeforeUnload = (event: BeforeUnloadEvent) => {
+        event.preventDefault()
+      }
+      window.addEventListener('beforeunload', onBeforeUnload)
+      return () => window.removeEventListener('beforeunload', onBeforeUnload)
+    },
+    [uploading],
+  )
   const auth = useAuth()
   // Nobody can save before logging in, so the button is not shown then (the hooks above stay: the address links are read either way)
   if (auth.user === undefined) return null
