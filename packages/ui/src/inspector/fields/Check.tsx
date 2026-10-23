@@ -13,7 +13,7 @@ import type { FieldProps } from './shared.ts'
  * option is already '' here: the presets map id-tagging-schema's "undefined" to it (optionValueOf).
  *
  * The button is the whole control: the box and the value text. Its width is its content (the row puts it
- * on the title's line, see Row.tsx), so it is w-full of its wrapper, which is as wide as the text.
+ * on the title's line, see Row.tsx), so it is w-full of its wrapper, which is as wide as the longest value text.
  */
 export function CheckField(props: FieldProps) {
   const { id, onChange, combined, tags, field } = props
@@ -42,10 +42,21 @@ export function CheckField(props: FieldProps) {
       className="flex h-8 w-full min-w-0 items-center gap-2 rounded-md px-1 text-left text-sm text-zinc-950 hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default dark:text-white dark:hover:bg-white/10"
     >
       <CheckBox state={box} />
-      <span
-        className={`min-w-0 truncate ${current || mixed ? '' : 'text-zinc-500 dark:text-zinc-400'}`}
-      >
-        {label}
+      {/* every label of the cycle sits in the same grid cell, the others invisible: the button is as wide as the
+          longest one, so it stays under the pointer while clicking through the values */}
+      <span className="grid min-w-0">
+        <span
+          className={`col-start-1 row-start-1 truncate ${current || mixed ? '' : 'text-zinc-500 dark:text-zinc-400'}`}
+        >
+          {label}
+        </span>
+        {[...new Set(cycle.map((value) => checkLabel(field, field.type, value, implied)))]
+          .filter((other) => other !== label)
+          .map((other) => (
+            <span key={other} className="invisible col-start-1 row-start-1 truncate" aria-hidden>
+              {other}
+            </span>
+          ))}
       </span>
     </button>
   )

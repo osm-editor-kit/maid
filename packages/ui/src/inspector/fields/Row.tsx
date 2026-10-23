@@ -80,8 +80,8 @@ const STEADY_TYPES = new Set([
 
 /**
  * Yes-or-no fields (iD's check types): the box and its value sit on the title's line, and the row's
- * buttons go at the line's right end. A narrow sidebar wraps the line: the control then goes under the
- * title (flex-wrap), and the buttons stay at the right.
+ * buttons go at the line's right end. The line never wraps: the control is as wide as its longest value (Check.tsx),
+ * so a wrap would move the row's buttons to a line of their own; in a narrow sidebar the value text is cut instead.
  */
 const COMPACT_TYPES = new Set(['check', 'defaultCheck', 'onewayCheck'])
 
@@ -187,11 +187,11 @@ export function FieldRow(props: {
       <div
         className={
           compact
-            ? 'flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1'
+            ? 'flex min-w-0 items-center gap-x-2'
             : 'flex min-w-0 items-center justify-between gap-2'
         }
       >
-        <div className="flex min-w-0 items-center gap-1">
+        <div className={`flex min-w-0 items-center gap-1 ${compact ? 'shrink-0' : ''}`}>
           {key === undefined ? (
             <span id={labelId} className={LABEL}>
               {field.label}
@@ -208,7 +208,7 @@ export function FieldRow(props: {
           />
         </div>
         {compact ? <div className="max-w-full min-w-0">{control}</div> : null}
-        <div className={`flex min-w-0 items-center gap-1 ${compact ? 'ml-auto' : ''}`}>
+        <div className={`flex min-w-0 items-center gap-1 ${compact ? 'ml-auto shrink-0' : ''}`}>
           {hint ? <span className={HINT}>{hint}</span> : null}
           {field.reference ? (
             <InfoPopover
