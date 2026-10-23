@@ -1,0 +1,27 @@
+{
+  "name": "iD",
+  "repo": "https://github.com/openstreetmap/iD.git",
+  "branch": "develop",
+  "base": "1ca95b5b3535bd7961fa7d57a1334ae57f6555e9",
+  "cursor": "1ca95b5b3535bd7961fa7d57a1334ae57f6555e9",
+  "pin": "0194f3926a59d8db8993892880f2a25d366c7099",
+  "noise": [
+    {
+      "name": "translations",
+      "files": "^(data/l10n/|dist/locales/|data/core\\.yaml$)|\\.l10n\\."
+    },
+    {
+      "name": "dependencies",
+      "subject": "^(build\\(deps|chore\\(deps|Bump |Update dependency)"
+    },
+    {
+      "name": "ci",
+      "files": "^\\.github/"
+    },
+    {
+      "name": "changelog",
+      "files": "^CHANGELOG\\.md$"
+    }
+  ],
+  "intents": []
+}

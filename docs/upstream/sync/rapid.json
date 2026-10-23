@@ -1,0 +1,14 @@
+{
+  "name": "Rapid",
+  "repo": "https://github.com/bhousel/Rapid.git",
+  "branch": "main",
+  "base": "413c0519fb803f8b9eb8c7c077906d25b8657f7c",
+  "cursor": "413c0519fb803f8b9eb8c7c077906d25b8657f7c",
+  "noise": [
+    { "name": "translations", "files": "^(data/l10n/|dist/locales/|data/core\\.yaml$)|\\.l10n\\." },
+    { "name": "dependencies", "subject": "^(build\\(deps|chore\\(deps|Bump |Update dependency)" },
+    { "name": "ci", "files": "^\\.github/" },
+    { "name": "changelog", "files": "^CHANGELOG\\.md$" }
+  ],
+  "intents": []
+}
