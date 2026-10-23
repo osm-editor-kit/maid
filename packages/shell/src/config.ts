@@ -73,9 +73,11 @@ export type Config = {
   /** A deployed build (`DEPLOYED`): it logs in from the origin it is served from */
   deployed: boolean
   /**
-   * The account flyout offers the server choice: in a deployed build or on a server, when the editor offers both.
-   * Never under automation.
+   * What the account flyout's server choice offers: the editor's servers, and locally the mock first (so that a
+   * person can switch between the fixtures, OpenStreetMap and the development server while developing).
    */
+  serverOptions: readonly DataSource[]
+  /** Whether the account flyout shows the server choice: more than one option. Never under automation. */
   serverChoice: boolean
   /** What the map shows of the data at the start: the URL's `display`, else the person's choice, else the look */
   display: MapDisplay
@@ -130,12 +132,14 @@ export function readConfig(
     ? 'mock'
     : chooseSource({ url: setup.api, ...choice, servers })
   const loginServer: Server = source === 'osm' ? 'osm' : 'dev'
+  const serverOptions: readonly DataSource[] = choice.deployed ? servers : ['mock', ...servers]
   return {
     scene: setup.scene,
     source,
     loginServer,
     deployed: choice.deployed,
-    serverChoice: !automated && (source !== 'mock' || choice.deployed) && servers.length > 1,
+    serverOptions,
+    serverChoice: !automated && serverOptions.length > 1,
     apiUrl:
       source === 'dev'
         ? DEV_API

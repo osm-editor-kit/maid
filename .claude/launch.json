@@ -5,19 +5,22 @@
       "name": "maid",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "apps/maid", "dev"],
-      "port": 5173
+      "port": 5173,
+      "url": "http://127.0.0.1:5173"
     },
     {
       "name": "maid-bicycle",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "apps/maid-bicycle", "dev"],
-      "port": 5176
+      "port": 5176,
+      "url": "http://127.0.0.1:5176"
     },
     {
       "name": "maid-parking",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "apps/maid-parking", "dev"],
-      "port": 5177
+      "port": 5177,
+      "url": "http://127.0.0.1:5177"
     },
     {
       "name": "mock-osm-api",

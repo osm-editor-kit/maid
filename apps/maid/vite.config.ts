@@ -13,13 +13,19 @@ export default defineConfig({
   publicDir: fileURLToPath(new URL('../../packages/shell/public', import.meta.url)),
   // React Compiler through oxc (not Babel): components are memoised at build time
   plugins: [tailwindcss(), react({ compiler: true }), presetsPreload()],
-  // 127.0.0.1, not Vite's default (which is IPv6-only here): the OAuth app on the OSM development
-  // server redirects to http://127.0.0.1:5173/land.html. `localhost` still reaches it.
-  server: { host: '127.0.0.1', port: PORTS.maid, strictPort: true },
+  // Always 127.0.0.1, never localhost: the OAuth apps on openstreetmap.org and the development server redirect to
+  // http://127.0.0.1:5173/land.html, and the login works on that origin only (browser storage is per origin). HMR is
+  // pinned to the same host, as in tilda-geo, so the page and its websocket never end up on localhost.
+  server: {
+    host: '127.0.0.1',
+    port: PORTS.maid,
+    strictPort: true,
+    hmr: { protocol: 'ws', host: '127.0.0.1', port: PORTS.maid, clientPort: PORTS.maid },
+  },
   build: {
     rolldownOptions: {
       treeshake,
     },
   },
-  preview: { port: PORTS.maid, strictPort: true },
+  preview: { host: '127.0.0.1', port: PORTS.maid, strictPort: true },
 })

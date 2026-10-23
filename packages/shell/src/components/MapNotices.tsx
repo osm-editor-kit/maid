@@ -18,7 +18,7 @@ export function MapNotices() {
       {belowDataZoom && (
         <div className="absolute top-2 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-amber-100 py-1 pr-1 pl-3 text-xs font-medium text-amber-900 shadow ring-1 ring-amber-900/10 dark:bg-amber-400/20 dark:text-amber-200 dark:ring-amber-200/20">
           <p role="status" className="pointer-events-none">
-            Zoom in to load data
+            {m.map_zoom_in_to_load()}
           </p>
           <button
             type="button"

@@ -34,10 +34,11 @@ const local = { stored: undefined, deployed: false }
 const deployed = { stored: undefined, deployed: true }
 
 describe('readConfig', () => {
-  test('a local build without a URL: the mock', () => {
+  test('a local build without a URL: the mock, and the choice of the mock and both servers', () => {
     const config = readConfig(at(''), local)
     expect(config.source).toBe('mock')
-    expect(config.serverChoice).toBe(false)
+    expect(config.serverChoice).toBe(true)
+    expect(config.serverOptions).toEqual(['mock', 'osm', 'dev'])
     expect(config.apiUrl).toMatch(/^http:\/\/localhost:\d+\/s\/small$/)
   })
 
@@ -74,6 +75,7 @@ describe('readConfig', () => {
     expect(readConfig(at(''), staging).source).toBe('dev')
     expect(readConfig(at('?api=osm'), staging).source).toBe('dev')
     expect(readConfig(at(''), staging).serverChoice).toBe(false)
+    expect(readConfig(at(''), staging).serverOptions).toEqual(['dev'])
     const production = { stored: 'dev' as const, deployed: true, servers: ['osm' as const] }
     expect(readConfig(at(''), production).source).toBe('osm')
     expect(readConfig(at('?api=dev'), production).source).toBe('osm')
