@@ -26,7 +26,7 @@ import {
 } from '../save/changeset-suggestions'
 import { changesetWarnings, COPYRIGHT_URL, type ChangesetWarning } from '../save/changeset-warnings'
 import { summaryOf, type ChangeElement, type OsmChange } from '../save/osm-change'
-import { pendingChange, uploadEdits, uploadErrors } from '../save/save'
+import { moduleChangesetComment, pendingChange, uploadEdits, uploadErrors } from '../save/save'
 import { useRecentChangesetValues } from '../save/use-recent-changesets'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
@@ -354,7 +354,8 @@ export function SaveButton() {
         onOpenChange={(next) => {
           if (uploading) return
           // the draft starts when the flyout is opened, once per opening (iD's initChangeset), not on each render
-          if (next) openDraft(Date.now())
+          // a module may suggest the comment (`changeset.tags`: a loaded osmChange file says where it came from)
+          if (next) openDraft(Date.now(), moduleChangesetComment(editor))
           setOpen(next)
         }}
         trigger={

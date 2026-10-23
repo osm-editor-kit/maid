@@ -6,6 +6,7 @@ import {
   osmApiLimits,
   type Issue,
 } from '@osm-editor-kit/maid-validation'
+import '../hooks'
 import { imageryOnMap } from '../imagery-used'
 import { overridesFromSearch } from '../modules/validation'
 import { clearIgnoredIssues } from '../modules/validation-ignored'
@@ -55,6 +56,26 @@ export function pendingChange(editor: Editor) {
  * Resolves with the changesets (one, unless the upload was chunked) and the selection as the server
  * knows it now, which the caller shows.
  */
+/** The tags modules add to the changeset (`changeset.tags`), in module order: a later module's key wins */
+export function moduleChangesetTags(editor: Editor) {
+  return Object.assign(
+    {},
+    ...editor
+      .registry('changeset.tags')
+      .list()
+      .map((item) => item.tags?.() ?? {}),
+  ) as Record<string, string>
+}
+
+/** The comment the first module that has one suggests for the save form (`changeset.tags`) */
+export function moduleChangesetComment(editor: Editor) {
+  for (const item of editor.registry('changeset.tags').list()) {
+    const comment = item.comment?.()
+    if (comment) return comment
+  }
+  return undefined
+}
+
 export async function uploadEdits(
   {
     config,
@@ -77,7 +98,7 @@ export async function uploadEdits(
   type Diff = Parameters<typeof OSM.uploadChangeset>[1]
   const result = await OSM.uploadChangeset(
     // the imagery on the map now, as iD's imagery_used (the background first)
-    changesetTags(draft, createdBy, imageryOnMap(editor).used),
+    changesetTags(draft, createdBy, imageryOnMap(editor).used, moduleChangesetTags(editor)),
     change as unknown as Diff,
   )
   const selection = selectionAfterUpload(engine.selection, change, assignedIds(result))
@@ -85,5 +106,8 @@ export async function uploadEdits(
   // ignored warnings belong to the edits that were just sent (as in iD)
   clearIgnoredIssues()
   engine.reloadAfterUpload(selection, REPLICATION_DELAY_MS)
-  return { changesets: changesetsOf(result), selection }
+  const changesets = changesetsOf(result)
+  // modules let go of what they kept about the uploaded edits (hooks.ts)
+  editor.hooks.run('changeset.uploaded', changesets)
+  return { changesets, selection }
 }

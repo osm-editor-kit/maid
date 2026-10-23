@@ -29,6 +29,8 @@ export type {
   InspectorSection,
   InspectorSectionProps,
   TopBarPanel,
+  AccountMenuItem,
+  ChangesetContribution,
   InspectorFieldType,
 } from './extension-points.ts'
 export { InspectorSections } from './InspectorSections.tsx'

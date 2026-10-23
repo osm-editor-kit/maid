@@ -36,10 +36,16 @@ function setUp(
   history.perform(actionAddEntity(bench))
   history.commit({ annotation: 'Added a point', selectedIDs: [bench.id] })
 
+  // the hooks the upload runs, by name (hooks.ts)
+  const hookRuns: string[] = []
   const editor = {
     context,
     history,
     registry: () => ({ list: () => [] }),
+    hooks: {
+      run: (name: string) => hookRuns.push(name),
+      apply: (_: string, value: unknown) => value,
+    },
   } as unknown as Editor
   const uploads: Upload[] = []
   const reloads: { selection: string[]; delayMs: number }[] = []
@@ -73,14 +79,16 @@ function setUp(
     brand: { name: options.brand ?? 'Maid Parking' },
     version: options.version ?? '0.1.0',
   } as unknown as Shelled
-  return { editor, history, context, shell, uploads, reloads }
+  return { editor, history, context, shell, uploads, reloads, hookRuns }
 }
 
 describe('uploadEdits', () => {
   it('uploads the edits, then forgets them and loads the map again once', async () => {
-    const { editor, history, shell, uploads, reloads } = setUp({ selectBench: true })
+    const { editor, history, shell, uploads, reloads, hookRuns } = setUp({ selectBench: true })
 
     const done = await uploadEdits(shell, { comment: 'Moved and added' })
+    // modules hear of it, once (the import review is cleared)
+    expect(hookRuns).toEqual(['changeset.uploaded'])
 
     expect(done.changesets).toEqual([77])
     expect(done.selection).toEqual(['n555'])

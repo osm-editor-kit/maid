@@ -135,13 +135,25 @@ export function createdByValue(name: string, version: string) {
  * The changeset's tags, as iD writes them from the draft (changeset-draft.ts): `comment` cleaned, `hashtags` from the
  * comment and the hashtags the draft keeps, and `source` when there is one. `created_by` (from `createdByValue`) is
  * set by every editor. `imagery_used` lists the imagery on the map (`imagery` in the order given, background first)
- * as iD writes it; it is left out when there is none, where iD writes `None`.
+ * as iD writes it; it is left out when there is none, where iD writes `None`. `extra` are the tags modules add
+ * (`changeset.tags`): cleaned as the others, and never in place of one of the keys above.
  */
-export function changesetTags(draft: Draft, createdBy: string, imagery: readonly string[] = []) {
-  const tags: Record<string, string> = {
+export function changesetTags(
+  draft: Draft,
+  createdBy: string,
+  imagery: readonly string[] = [],
+  extra: Readonly<Record<string, string>> = {},
+) {
+  const tags: Record<string, string> = {}
+  for (const [key, value] of Object.entries(extra)) {
+    const clean = cleanTagValue(value)
+    if (key.trim() !== '' && clean !== '') tags[key.trim()] = clean
+  }
+  Object.assign(tags, {
     created_by: createdBy,
     comment: cleanTagValue(draft.comment),
-  }
+  })
+  for (const key of ['hashtags', 'source', 'imagery_used']) delete tags[key]
   const hashtags = draftHashtags(draft)
   if (hashtags !== undefined) tags.hashtags = hashtags
   const source = cleanTagValue(draft.source ?? '')

@@ -118,6 +118,17 @@ describe('prefillDraft', () => {
     expect(prefillDraft(stored, {}, NOW)).toEqual(stored)
   })
 
+  it('takes a comment a module suggests only when nothing else gives one', () => {
+    expect(prefillDraft(undefined, {}, NOW, 'Changes from Go Map!!').comment).toBe(
+      'Changes from Go Map!!',
+    )
+    expect(
+      prefillDraft(undefined, { comment: 'linked' }, NOW, 'Changes from Go Map!!').comment,
+    ).toBe('linked')
+    const stored: StoredDraft = { comment: 'typed', commentDate: NOW - HOUR }
+    expect(prefillDraft(stored, {}, NOW, 'Changes from Go Map!!').comment).toBe('typed')
+  })
+
   it('drops a stored draft older than two days', () => {
     const stored: StoredDraft = { comment: 'old', commentDate: NOW - DRAFT_TTL_MS - HOUR }
     expect(prefillDraft(stored, {}, NOW)).toEqual({ comment: '', commentDate: 0 })

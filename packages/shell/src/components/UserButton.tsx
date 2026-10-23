@@ -1,4 +1,5 @@
 import { ArrowRightEndOnRectangleIcon, UserCircleIcon } from '@heroicons/react/20/solid'
+import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { m } from '@osm-editor-kit/maid-i18n'
 import {
   Flyout,
@@ -7,6 +8,7 @@ import {
   Tooltip,
   useAppliedTheme,
 } from '@osm-editor-kit/maid-ui'
+import { useState } from 'react'
 import { useAuth } from '../auth'
 import { useShell } from '../shell-context'
 import { useThemeSetting } from '../url/state'
@@ -20,10 +22,13 @@ const ACTION =
  * The account button at the end of the top bar: "Log in" or the user, and in its flyout the
  * log out and the settings that belong to the person, such as light or dark. The account is
  * one on OpenStreetMap, or on its development server when the data is the development server's (see auth.ts).
+ * Below the login come the entries of modules (`account.item`), for jobs that are rarely needed.
  */
 export function UserButton() {
   const auth = useAuth()
-  const { auth: authActions, config } = useShell()
+  const { auth: authActions, config, editor, engine } = useShell()
+  const items = useExtensionPoint(editor, 'account.item')
+  const [open, setOpen] = useState(false)
   const { login, logout } = authActions
   // always mounted (the top bar), so the page's theme follows the URL even while the flyout is closed
   const theme = useThemeSetting()
@@ -35,6 +40,8 @@ export function UserButton() {
         label={m.topbar_account()}
         placement="bottom-end"
         className="w-80"
+        open={open}
+        onOpenChange={setOpen}
         trigger={
           <button type="button" className={toolButtonClass(true)}>
             {auth.user ? (
@@ -92,6 +99,18 @@ export function UserButton() {
             </p>
           )}
         </div>
+        {items.length > 0 && (
+          <div className="flex flex-col gap-1 border-t border-zinc-950/5 px-2 py-2 dark:border-white/10">
+            {items.map((item) => (
+              <item.component
+                key={item.id}
+                editor={editor}
+                engine={engine}
+                close={() => setOpen(false)}
+              />
+            ))}
+          </div>
+        )}
         <div className="rounded-b-2xl bg-zinc-50 dark:bg-white/5">
           <div className="flex items-center justify-between gap-3 px-4 py-3">
             <span className="font-medium">{m.topbar_appearance()}</span>

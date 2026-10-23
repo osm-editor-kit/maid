@@ -109,9 +109,17 @@ export class Camera {
    * Imperative: a one-off camera move, which react-map-gl has no prop for (see turnBy).
    */
   fitTo(ids: readonly string[]) {
-    const map = this.host.map()
     const bounds = this.boundsOf(ids)
-    if (!map || !bounds) return false
+    return bounds ? this.fitBounds(bounds) : false
+  }
+
+  /**
+   * Moves the map to show a box `[west, south, east, north]` in degrees, as fitTo does for entities: for what is not
+   * in the data yet (the new features of a file a module loads). Returns false without a map.
+   */
+  fitBounds(bounds: readonly [number, number, number, number]) {
+    const map = this.host.map()
+    if (!map) return false
     const [west, south, east, north] = bounds
     if (west === east && south === north) {
       map.easeTo({

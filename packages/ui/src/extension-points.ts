@@ -77,6 +77,15 @@ export type DockView = {
   id: string
   label: string
   component: ComponentType<DockViewProps>
+  /**
+   * Whether the view has something to show now: its tab is left out while `get` is false (Tobias, 2026-10-23: no empty
+   * tabs; the way table without a selected way, the import review before a file is loaded). `get` is asked again on
+   * every change of the selection and whenever `subscribe` calls its listener. Absent: always shown.
+   */
+  available?: {
+    get: (context: { readonly selected: readonly string[] }) => boolean
+    subscribe?: (listener: () => void) => () => void
+  }
 }
 
 /**
@@ -95,6 +104,27 @@ export type TopBarPanel = {
 }
 
 /**
+ * An entry in the account menu of the top bar, below the login: for a job that is rarely needed and does not deserve a
+ * button of its own (loading a file of changes). The component renders its own button; `close` closes the menu.
+ */
+export type AccountMenuItem = {
+  id: string
+  component: ComponentType<{ editor: Editor; engine: MaidEngine; close: () => void }>
+}
+
+/**
+ * What a module adds to the changeset of an upload: tags of its own, and a comment the save form starts with. Read when
+ * the form opens (`comment`) and at the upload (`tags`). A module's tags never replace the ones the shell sets itself
+ * (`created_by`, `comment`, `hashtags`, `source`, `imagery_used`).
+ */
+export type ChangesetContribution = {
+  id: string
+  tags?: () => Readonly<Record<string, string>>
+  /** The comment to start with when the form's comment is empty; undefined for none */
+  comment?: () => string | undefined
+}
+
+/**
  * A field type that a module brings: the component that the inspector's field rows use for
  * fields of this `type` (iD's field type, or a module's own, e.g. `trafficSign`). It gets the
  * same props as the built-in field components.
@@ -107,5 +137,7 @@ declare module '@osm-editor-kit/maid-core' {
     'dock.view': DockView
     'inspector.field': InspectorFieldType
     'topbar.panel': TopBarPanel
+    'account.item': AccountMenuItem
+    'changeset.tags': ChangesetContribution
   }
 }

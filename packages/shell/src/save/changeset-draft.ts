@@ -94,6 +94,8 @@ export function prefillDraft(
   stored: StoredDraft | undefined,
   links: Links,
   now: number,
+  /** A comment a module suggests (`changeset.tags`): only when neither the stored draft nor a link has one */
+  suggested?: string,
 ): StoredDraft {
   const live = stored !== undefined && !expired(stored.commentDate, now) ? stored : undefined
   const draft: StoredDraft = {
@@ -114,6 +116,7 @@ export function prefillDraft(
     draft.hashtags = links.hashtags
     draft.commentDate = now
   }
+  if (draft.comment === '' && suggested) draft.comment = suggested
   if (hashtagsOfComment(draft.comment).length > 0) draft.hashtags = undefined
   return draft
 }

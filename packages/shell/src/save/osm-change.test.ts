@@ -121,6 +121,21 @@ describe('createdByValue', () => {
 })
 
 describe('changesetTags', () => {
+  it('adds the tags of modules, cleaned, never in place of its own keys', () => {
+    expect(
+      changesetTags({ comment: 'Paths' }, 'Maid 0.1', [], {
+        'osmchange:created_by': '  Go Map!! 6.2.1 ',
+        created_by: 'someone else',
+        imagery_used: 'not this',
+        empty: '  ',
+      }),
+    ).toEqual({
+      'osmchange:created_by': 'Go Map!! 6.2.1',
+      created_by: 'Maid 0.1',
+      comment: 'Paths',
+    })
+  })
+
   it('sets the editor and the trimmed comment', () => {
     expect(changesetTags({ comment: '  Added a cafe ' }, 'Maid 0.1')).toEqual({
       created_by: 'Maid 0.1',

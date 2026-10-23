@@ -34,7 +34,7 @@ interface DraftActions {
   /** Reads the address's links once; later calls change nothing (iD's `initialHashParams`) */
   readLinks: (links: Links) => void
   /** iD's `initChangeset`: starts the draft unless there is one already. Kept in memory: a link is a prefill, not a change. */
-  open: (now: number) => void
+  open: (now: number, suggested?: string) => void
   /** A change as the person types it (iD's `onInput`): kept in memory only */
   edit: (patch: Partial<Draft>) => void
   /** A field is left (iD's `changeTags` without `onInput`): cleaned, the hashtags recomputed, stored */
@@ -58,10 +58,15 @@ const useDraftStore = create<DraftState>()((set, get) => ({
     readLinks: (links) => {
       if (get().links === undefined) set({ links })
     },
-    open: (now) => {
+    open: (now, suggested) => {
       if (get().draft !== undefined) return
       // in memory only: the link's values prefill the dialog, and storage is written by the person's own commit (A link never writes storage)
-      const { comment, hashtags, source } = prefillDraft(readStored(), get().links ?? {}, now)
+      const { comment, hashtags, source } = prefillDraft(
+        readStored(),
+        get().links ?? {},
+        now,
+        suggested,
+      )
       set({ draft: { comment, hashtags, source } })
     },
     edit: (patch) => {
