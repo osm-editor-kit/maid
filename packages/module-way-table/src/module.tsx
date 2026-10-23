@@ -33,6 +33,8 @@ export function wayTable(options: WayTableOptions = {}) {
           return m.way_table_tab()
         },
         component: View,
+        // the tab is there while a way is selected
+        available: { get: ({ selected }) => selected.some((id) => id.startsWith('w')) },
       })
     },
   })

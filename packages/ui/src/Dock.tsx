@@ -12,7 +12,10 @@ export type DockTab = { id: string; label: string; content: ReactNode }
 // Module level, so the hook sees the same function on every render.
 const dockMaxHeight = (viewport: number) => viewport * 0.7
 
-/** Tabbed panel below the map. The tab bar stays visible when the panel is collapsed. */
+/**
+ * Tabbed panel below the map. The tabs float as a small bar on the map's lower edge, not as a strip across the whole
+ * width (Tobias, 2026-10-23), so the closed dock covers almost nothing; the panel opens below them, across the width.
+ */
 export function Dock(props: { tabs: DockTab[]; defaultOpen?: boolean }) {
   const { tabs, defaultOpen = false } = props
   const [open, setOpen] = useState(defaultOpen)
@@ -36,6 +39,16 @@ export function Dock(props: { tabs: DockTab[]; defaultOpen?: boolean }) {
     max: dockMaxHeight,
     direction: -1,
   })
+  // the tab shown while open; when it goes away (its view has nothing to show any more) the dock closes rather than
+  // show another one (state adjusted while rendering, as for the request above)
+  const [shownId, setShownId] = useState<string | undefined>(undefined)
+  const shownNow = open ? (tabs.find((tab) => tab.id === selectedId) ?? tabs[0])?.id : undefined
+  if (open && shownId !== undefined && !tabs.some((tab) => tab.id === shownId)) {
+    setOpen(false)
+    setShownId(undefined)
+  } else if (shownNow !== shownId) {
+    setShownId(shownNow)
+  }
   const reducedMotion = useReducedMotion()
   const baseId = useId()
   // Falls back to the first tab until one is picked, and when the picked tab is gone.
@@ -59,7 +72,12 @@ export function Dock(props: { tabs: DockTab[]; defaultOpen?: boolean }) {
   const instant = reducedMotion || panelHeight.dragging
 
   return (
-    <div className="relative shrink-0 border-t border-zinc-950/10 bg-white dark:border-white/10 dark:bg-zinc-900">
+    <div
+      className={twJoin(
+        'relative shrink-0 bg-white dark:bg-zinc-900',
+        open && 'border-t border-zinc-950/10 dark:border-white/10',
+      )}
+    >
       {open ? (
         <ResizeHandle
           label="Resize panel"
@@ -68,11 +86,11 @@ export function Dock(props: { tabs: DockTab[]; defaultOpen?: boolean }) {
           {...panelHeight.handleProps}
         />
       ) : null}
-      <div className="flex h-9 items-stretch justify-between">
+      <div className="absolute bottom-full left-2 z-10 mb-2 flex max-w-[calc(100%-1rem)] items-center gap-0.5 rounded-lg bg-white/95 p-0.5 shadow-md ring-1 ring-zinc-950/10 dark:bg-zinc-900/95 dark:ring-white/10">
         <div
           role="tablist"
           aria-label="Panels"
-          className="flex min-w-0 items-stretch gap-4 overflow-x-auto pl-3"
+          className="flex min-w-0 items-center gap-0.5 overflow-x-auto"
         >
           {tabs.map((tab) => {
             const isSelected = tab.id === selectedTabId
@@ -86,10 +104,10 @@ export function Dock(props: { tabs: DockTab[]; defaultOpen?: boolean }) {
                 aria-controls={open && isSelected ? panelId : undefined}
                 onClick={() => selectTab(tab)}
                 className={twJoin(
-                  'flex shrink-0 cursor-pointer items-center border-b-2 px-1 text-sm font-medium whitespace-nowrap focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500',
-                  isSelected
-                    ? 'border-zinc-950 text-zinc-950 dark:border-white dark:text-white'
-                    : 'border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 dark:text-zinc-400 dark:hover:border-white/20 dark:hover:text-zinc-200',
+                  'shrink-0 cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium whitespace-nowrap focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500',
+                  open && isSelected
+                    ? 'bg-zinc-950 text-white dark:bg-white dark:text-zinc-950'
+                    : 'text-zinc-600 hover:bg-zinc-950/5 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-white',
                 )}
               >
                 {tab.label}
@@ -103,12 +121,12 @@ export function Dock(props: { tabs: DockTab[]; defaultOpen?: boolean }) {
           aria-controls={open ? panelId : undefined}
           aria-label={open ? 'Collapse panel' : 'Expand panel'}
           onClick={() => setOpen(!open)}
-          className="flex size-9 shrink-0 cursor-pointer items-center justify-center text-zinc-500 hover:text-zinc-950 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:text-white"
+          className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
         >
           {open ? (
-            <ChevronDownIcon aria-hidden="true" className="size-5" />
+            <ChevronDownIcon aria-hidden="true" className="size-4" />
           ) : (
-            <ChevronUpIcon aria-hidden="true" className="size-5" />
+            <ChevronUpIcon aria-hidden="true" className="size-4" />
           )}
         </button>
       </div>

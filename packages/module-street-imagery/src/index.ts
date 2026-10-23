@@ -20,7 +20,7 @@ import { STREET_IMAGES_FIELD_TYPE } from './image-keys.ts'
 import { StreetImageryLayers } from './map.tsx'
 import { m } from './messages.ts'
 import { PhotoUrlSync } from './shown.ts'
-import { AUTOMATED, streetImageryActions } from './street-imagery-store.ts'
+import { AUTOMATED, photoOpenState, streetImageryActions } from './street-imagery-store.ts'
 import { PHOTO_PARAM_DECLARATIONS } from './url.ts'
 
 export { MAP_ID, streetImageryClick } from './map.tsx'
@@ -139,6 +139,8 @@ export function streetImagery(options: StreetImageryOptions = {}) {
           return m.photos_label()
         },
         component: PhotosView,
+        // the tab is there while a photo is open (a click on a photo on the map, the eye of a field)
+        available: { get: photoOpenState.get, subscribe: photoOpenState.subscribe },
       }
       api.register('topbar.panel', topBar)
       api.register('dock.view', dock)

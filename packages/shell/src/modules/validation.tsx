@@ -515,7 +515,16 @@ export function validation({ rules }: { rules: readonly Rule[] }) {
         },
         component: EntityIssues,
       })
-      api.register('dock.view', { id: 'validation', label: m.issues_title(), component: AllIssues })
+      api.register('dock.view', {
+        id: 'validation',
+        label: m.issues_title(),
+        component: AllIssues,
+        // the tab is there while there are issues, or ignored ones to show again
+        available: {
+          get: () => store.reads.issues().length > 0 || store.reads.ignoredIssues().length > 0,
+          subscribe: store.subscribe,
+        },
+      })
       return store.stop
     },
   })

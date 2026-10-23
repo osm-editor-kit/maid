@@ -159,5 +159,22 @@ function usePhotoWriter() {
 export function PhotoUrlSync(_props: MapContentProps) {
   useShownPhotos(true)
   usePhotoWriter()
+  usePhotoOpenFlag()
   return null
+}
+
+/**
+ * Tells the store whether the URL names a photo, so that the dock shows its "Photos" tab only then. An effect, as the
+ * URL is read through a hook and the dock asks outside React (`photoOpenState`); PhotoUrlSync is mounted from the start.
+ */
+function usePhotoOpenFlag() {
+  const [urlPhoto] = useUrlParam(PHOTO_HANDLES.photo)
+  const { setPhotoOpen } = useStreetImageryActions()
+  const open = urlPhoto !== null && !AUTOMATED
+  useEffect(
+    function reportWhetherAPhotoIsOpen() {
+      setPhotoOpen(open)
+    },
+    [open, setPhotoOpen],
+  )
 }

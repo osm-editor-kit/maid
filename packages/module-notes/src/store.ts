@@ -125,6 +125,12 @@ export const useMapView = (): NotesSession['view'] => useNotesSessionStore((stat
 /** Whether the notice of a cut list is shown for the view that has one */
 export const useNoticeShown = (): boolean => useNotesSessionStore((state) => state.noticeShown)
 
+/** Whether a note is chosen, for the dock's tab (`DockView.available`, outside React) */
+export const chosenNoteState = {
+  get: () => useNotesSessionStore.getState().chosen !== null,
+  subscribe: (listener: () => void) => useNotesSessionStore.subscribe(listener),
+}
+
 /** The chosen note's id, or null */
 export const useChosenNoteId = (): number | null => useNotesSessionStore((state) => state.chosen)
 

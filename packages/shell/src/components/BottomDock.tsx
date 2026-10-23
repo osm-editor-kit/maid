@@ -1,69 +1,62 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { Dock } from '@osm-editor-kit/maid-ui'
-import { useCallback } from 'react'
+import type { DockView } from '@osm-editor-kit/maid-ui'
+import { useCallback, useSyncExternalStore } from 'react'
 import { useSelection } from '../selection'
-import { useEngine, useShell } from '../shell-context'
-import { useCameraParam } from '../url/state'
+import { useShell } from '../shell-context'
 
-/** What is loaded: entities by type, and where they come from */
-function LoadedData() {
-  const { config } = useShell()
-  const { nodes, ways, relations } = useEngine((e) => e.data.counts())
-  const [camera] = useCameraParam()
-  const zoom = camera?.zoom ?? config.camera?.zoom
-  const rows: [label: string, value: string][] = [
-    ['Nodes', nodes.toLocaleString('en')],
-    ['Ways', ways.toLocaleString('en')],
-    ['Relations', relations.toLocaleString('en')],
-    [
-      'Source',
-      config.source === 'dev'
-        ? 'OSM development server'
-        : config.source === 'osm'
-          ? 'OpenStreetMap'
-          : `Fixture “${config.scene}”, local mock API`,
-    ],
-    ['Zoom', zoom === undefined ? '–' : zoom.toFixed(1)],
-    ['Loads from zoom', String(config.minDataZoom)],
-  ]
-  return (
-    <dl className="grid max-w-md grid-cols-[10rem_1fr] gap-x-4 gap-y-1 p-3 text-xs">
-      {rows.map(([label, value]) => (
-        <div key={label} className="contents">
-          <dt className="text-zinc-500 dark:text-zinc-400">{label}</dt>
-          <dd className="tabular-nums">{value}</dd>
-        </div>
-      ))}
-    </dl>
+/** The ids of the views that have something to show now (`DockView.available`), as one string, so it compares by value */
+function useAvailableIds(views: readonly DockView[], selected: readonly string[]) {
+  const subscribe = useCallback(
+    (listener: () => void) => {
+      const stops = views.flatMap((view) => {
+        const stop = view.available?.subscribe?.(listener)
+        return stop ? [stop] : []
+      })
+      return () => stops.forEach((stop) => stop())
+    },
+    [views],
   )
+  const snapshot = useCallback(
+    () =>
+      views
+        .filter((view) => view.available?.get({ selected }) ?? true)
+        .map((view) => view.id)
+        .join(' '),
+    [views, selected],
+  )
+  return useSyncExternalStore(subscribe, snapshot)
 }
 
-/** The dock under the map, closed at first: the views of modules, then the editor's own (`dock.view`) */
+/**
+ * The dock under the map, closed at first: the views of modules that have something to show now (`dock.view`). With
+ * none, there is no dock at all. The list of what is loaded ("Data") is gone (Tobias, 2026-10-23): nothing a mapper
+ * needs.
+ */
 export function BottomDock() {
   const { editor, engine } = useShell()
-  const views = useExtensionPoint(editor, 'dock.view')
+  const all = useExtensionPoint(editor, 'dock.view')
   const { select, ids } = useSelection()
+  const availableIds = useAvailableIds(all, ids).split(' ')
+  const views = all.filter((view) => availableIds.includes(view.id))
   // stable for as long as the engine is: a view memoises on these props
   const highlight = useCallback((ids: readonly string[] | null) => engine.setRelated(ids), [engine])
   const readOnly = useCallback((id: string) => engine.isReadOnly(id), [engine])
   return (
     <Dock
-      tabs={[
-        ...views.map((view) => ({
-          id: view.id,
-          label: view.label,
-          content: (
-            <view.component
-              editor={editor}
-              select={select}
-              selected={ids}
-              highlight={highlight}
-              readOnly={readOnly}
-            />
-          ),
-        })),
-        { id: 'data', label: 'Data', content: <LoadedData /> },
-      ]}
+      tabs={views.map((view) => ({
+        id: view.id,
+        label: view.label,
+        content: (
+          <view.component
+            editor={editor}
+            select={select}
+            selected={ids}
+            highlight={highlight}
+            readOnly={readOnly}
+          />
+        ),
+      }))}
     />
   )
 }

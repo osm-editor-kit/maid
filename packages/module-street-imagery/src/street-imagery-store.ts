@@ -53,6 +53,8 @@ export type Session = {
   imageWriter: ImageWriter | null
   /** The row last focused or clicked. Not stored. */
   activeImage: ActiveImage | null
+  /** Whether the URL names a photo to show, as PhotoUrlSync reads it: the dock's tab is there only then. Not stored. */
+  photoOpen: boolean
 }
 
 type Actions = {
@@ -77,6 +79,7 @@ type Actions = {
   setActiveImage: (active: ActiveImage | null) => void
   /** The Mapillary token of this build, set when the module starts */
   setMapillaryToken: (token: string) => void
+  setPhotoOpen: (open: boolean) => void
 }
 
 /** The module's state: what the person chose (stored) and the session's (not stored) */
@@ -103,6 +106,7 @@ const useStreetImageryStore = create<StreetImageryStore>()(
       easeTo: null,
       imageWriter: null,
       activeImage: null,
+      photoOpen: false,
       actions: {
         setProviders: (providers) => set({ providers }),
         setPhotoKind: (photoKind) => set({ photoKind }),
@@ -114,6 +118,7 @@ const useStreetImageryStore = create<StreetImageryStore>()(
         setImageWriter: (imageWriter) => set({ imageWriter }),
         setActiveImage: (activeImage) => set({ activeImage }),
         setMapillaryToken: (mapillaryToken) => set({ mapillaryToken }),
+        setPhotoOpen: (photoOpen) => set({ photoOpen }),
       },
     }),
     {
@@ -172,6 +177,12 @@ export function useIsActiveImage(rowId: string, imageKey: string): boolean {
   )
 }
 
+/** Whether a photo is open, for the dock's tab (`DockView.available`, outside React) */
+export const photoOpenState = {
+  get: () => useStreetImageryStore.getState().photoOpen,
+  subscribe: (listener: () => void) => useStreetImageryStore.subscribe(listener),
+}
+
 /** The actions. They never change, so a component that takes them re-renders only for its own state. */
 export function useStreetImageryActions(): StreetImageryActions {
   return useStreetImageryStore((state) => state.actions)
@@ -185,7 +196,7 @@ export const streetImageryActions: StreetImageryActions = useStreetImageryStore.
  * shown photo setting and no open photo (those are the URL's, shown.ts).
  */
 export function getStreetImagery(): Session {
-  const { mapillaryToken, photoWriter, easeTo, imageWriter, activeImage } =
+  const { mapillaryToken, photoWriter, easeTo, imageWriter, activeImage, photoOpen } =
     useStreetImageryStore.getState()
-  return { mapillaryToken, photoWriter, easeTo, imageWriter, activeImage }
+  return { mapillaryToken, photoWriter, easeTo, imageWriter, activeImage, photoOpen }
 }

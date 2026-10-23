@@ -25,6 +25,7 @@ import { useNotesSwitch } from './shown.ts'
 import {
   notesSessionActions,
   useChosenNoteId,
+  chosenNoteState,
   useMapView,
   useNoticeShown,
   useNotesFocus,
@@ -319,7 +320,13 @@ export function notes(options: { apiUrl: string }) {
         component: NotesPanel,
         width: 'w-80',
       })
-      api.register('dock.view', { id: 'notes', label: 'Notes', component: NotesDock })
+      api.register('dock.view', {
+        id: 'notes',
+        label: 'Notes',
+        component: NotesDock,
+        // the tab is there while a note is chosen (on the map or in the panel)
+        available: { get: chosenNoteState.get, subscribe: chosenNoteState.subscribe },
+      })
       // a rate limit pauses the notes through the query's `enabled` (useOsmPaused); nothing to stop here
       return () => {
         notesSessionActions.setView(null)
