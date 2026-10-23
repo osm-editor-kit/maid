@@ -523,3 +523,54 @@ describe('area=yes of a line that is treated as an area', () => {
     })
   })
 })
+
+describe('the schema icons and the options order of the combo fields', () => {
+  // iD: a field's options are listed in the schema's order; the icons are the schema's `icons` (addComboboxIcons)
+  const COMBO_TYPES = new Set(['combo', 'typeCombo', 'networkCombo', 'semiCombo', 'multiCombo'])
+  type RawField = { type?: string; options?: string[]; icons?: Record<string, string> }
+  const raws = defaultPresetData.fields as Record<string, RawField>
+
+  it('crossing/markings: the icons are the schema icons, and the options keep the schema order (zebra first)', () => {
+    const field = presets.field('crossing/markings')
+    expect(field?.icons?.zebra).toBe('iD-crossing_markings-zebra')
+    expect(field?.options.map((option) => option.value)).toEqual(raws['crossing/markings']?.options)
+    expect(field?.options[0]?.value).toBe('zebra')
+  })
+
+  it('every bundled combo field keeps the schema order, and every field with schema icons carries them', () => {
+    let combos = 0
+    let withIcons = 0
+    for (const [id, raw] of Object.entries(raws)) {
+      const field = presets.field(id)
+      if (field === undefined) continue
+      if (COMBO_TYPES.has(raw.type ?? '') && raw.options !== undefined) {
+        combos++
+        expect(
+          field.options.map((option) => option.value),
+          id,
+        ).toEqual(raw.options)
+      }
+      if (raw.icons !== undefined) {
+        withIcons++
+        expect(field.icons, id).toEqual(raw.icons)
+      } else {
+        expect(field.icons, id).toBeUndefined()
+      }
+    }
+    expect(combos).toBeGreaterThan(0)
+    expect(withIcons).toBeGreaterThan(0)
+  })
+
+  it('a schema icons entry that is not a string is left out, and a field without icons has none', () => {
+    const built = createPresets({
+      presets: {},
+      fields: {
+        pick: { key: 'pick', type: 'combo', options: ['a', 'b'], icons: { a: 'maki-cafe', b: 7 } },
+        plain: { key: 'plain', type: 'combo', options: ['a'] },
+      },
+      translations: { en: {} },
+    })
+    expect(built.field('pick')?.icons).toEqual({ a: 'maki-cafe' })
+    expect(built.field('plain')?.icons).toBeUndefined()
+  })
+})

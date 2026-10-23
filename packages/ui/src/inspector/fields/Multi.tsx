@@ -8,13 +8,14 @@ import {
   useFloating,
 } from '@floating-ui/react'
 import { XMarkIcon } from '@heroicons/react/16/solid'
-import type { FieldOption } from '@osm-editor-kit/maid-presets'
+import type { Field, FieldOption } from '@osm-editor-kit/maid-presets'
 import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { PLAIN_INPUT } from '../../plain-input.ts'
 import { listRow } from '../listbox.ts'
 import { moveActive } from '../picker-logic.ts'
 import { CheckBox } from './CheckBox.tsx'
-import { filterOptions, shownText } from './combo-logic.ts'
+import { filterOptions, iconSlotOf, shownText } from './combo-logic.ts'
+import { IconSlot } from './IconSlot.tsx'
 import { mixedOf, MULTIPLE_VALUES } from './mixed-logic.ts'
 import {
   acceptSemi,
@@ -37,7 +38,7 @@ import {
   semiWrite,
   type ChipState,
 } from './multi-logic.ts'
-import type { FieldProps } from './shared.ts'
+import type { FieldProps, IconRenderer } from './shared.ts'
 import { CHIP, CHIP_BOX as BOX } from './shared.ts'
 
 /** A chip that only some of several features have: a dashed outline. */
@@ -57,7 +58,7 @@ const CHIP_REMOVE =
  * Backspace in the empty input removes the last chip. The input hides when the list is full.
  */
 export function SemiComboField(props: FieldProps) {
-  const { field, tags, id, onChange, combined } = props
+  const { field, tags, id, onChange, combined, renderIcon } = props
   const key = field.key
   if (key === undefined) return null
   // Several features whose lists differ are shown, not edited: one write would give every feature the
@@ -84,10 +85,13 @@ export function SemiComboField(props: FieldProps) {
             raw={shown.raw}
             value={chip.value}
             some={chip.some}
+            icon={chipIcon(field, chip.value, renderIcon)}
             onRemove={editable ? () => write(removeSemi(values, index)) : undefined}
           />
         )
       })}
+      field={field}
+      renderIcon={renderIcon}
       options={semiOptions(field, values)}
       query={afterLastSeparator}
       inputHidden={semiFull(values) || mixed}
@@ -113,7 +117,7 @@ export function SemiComboField(props: FieldProps) {
  * its × removes the tag. The input adds `prefix + value=yes`. Nothing is written without a suffix.
  */
 export function MultiComboField(props: FieldProps) {
-  const { field, tags, id, onChange, combined } = props
+  const { field, tags, id, onChange, combined, renderIcon } = props
   if (multiPrefix(field) === undefined) return null
   const chips = multiChipsFor(field, tags, combined)
   return (
@@ -129,6 +133,8 @@ export function MultiComboField(props: FieldProps) {
           state={chip.state}
           value={chip.value}
           some={chip.some}
+          // a multiCombo's options are the suffixes of its keys, so the icon is the suffix's
+          icon={chipIcon(field, chip.suffix, renderIcon)}
           box
           onToggle={
             onChange
@@ -141,6 +147,8 @@ export function MultiComboField(props: FieldProps) {
           onRemove={onChange ? () => onChange(chip.key, undefined) : undefined}
         />
       ))}
+      field={field}
+      renderIcon={renderIcon}
       options={multiOptions(field, chips)}
       onAccept={
         onChange
@@ -215,6 +223,16 @@ type ChipProps = {
   box?: boolean
   onToggle?: () => void
   onRemove?: () => void
+  /** The value's icon, before the text (a field with icons). Absent: none. */
+  icon?: ReactNode
+}
+
+/** A chip's icon: the icon of its value, in its slot, when the field gives one and there is a renderer. */
+function chipIcon(field: Field, value: string, renderIcon: IconRenderer | undefined) {
+  const slot = iconSlotOf(field, value)
+  return renderIcon && slot.icon !== undefined ? (
+    <IconSlot icon={slot.icon} renderIcon={renderIcon} />
+  ) : undefined
 }
 
 function Chip({
@@ -226,6 +244,7 @@ function Chip({
   box = false,
   onToggle,
   onRemove,
+  icon,
 }: ChipProps) {
   const text = (
     <span
@@ -255,12 +274,14 @@ function Chip({
           className={CHIP_TOGGLE}
         >
           {showBox ? <ChipBox state={state} /> : null}
+          {icon}
           {text}
           {detail}
         </button>
       ) : (
         <span className="flex min-w-0 items-center gap-1.5 px-0.5">
           {showBox ? <ChipBox state={state} /> : null}
+          {icon}
           {text}
           {detail}
         </span>
@@ -301,6 +322,10 @@ type ChipInputProps = {
   onAccept?: (typed: string, option: FieldOption | undefined) => void
   /** Backspace in the empty input */
   onBackspace?: () => void
+  /** The field whose options these are: with icons, each option has an icon slot. Absent with renderIcon: none. */
+  field?: Field
+  /** Draws the icons of the options (FieldProps.renderIcon). Absent: no icon slots. */
+  renderIcon?: IconRenderer
 }
 
 /**
@@ -319,6 +344,8 @@ function ChipInput(props: ChipInputProps) {
     inputHidden = false,
     onAccept,
     onBackspace,
+    field,
+    renderIcon,
   } = props
   const baseId = useId()
   const listId = `${baseId}-list`
@@ -398,6 +425,13 @@ function ChipInput(props: ChipInputProps) {
     }
   }
 
+  /** The icon slot of an option: none without icons or without a renderer, else a slot with the value's icon or empty. */
+  function optionSlot(value: string) {
+    if (!field || !renderIcon) return null
+    const slot = iconSlotOf(field, value)
+    return slot.slot ? <IconSlot icon={slot.icon} renderIcon={renderIcon} /> : null
+  }
+
   if (readOnly && chips.length === 0) return null
 
   return (
@@ -469,6 +503,7 @@ function ChipInput(props: ChipInputProps) {
                 }}
                 className={`flex h-8 cursor-pointer items-center gap-3 px-2 ${listRow({ active: index === active })}`}
               >
+                {optionSlot(option.value)}
                 <span className="min-w-0 flex-1 truncate">{option.label}</span>
                 {option.label !== option.value ? (
                   <span className="shrink-0 truncate font-mono text-xs text-zinc-500 dark:text-zinc-400">

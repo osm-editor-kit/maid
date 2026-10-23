@@ -89,6 +89,14 @@ function referenceLoaderFor(editor: Editor) {
 }
 
 /**
+ * The icon of a combo value (the schema's `icons`, fields/Combo.tsx), from the same sprites as the preset icons.
+ * Module-level, so its identity is stable for PresetFields.
+ */
+function renderFieldIcon(icon: string) {
+  return <PresetIcon icon={icon} className="size-5 fill-current" />
+}
+
+/**
  * The map shows the field that has the focus or the pointer on it, on the selected way: a side line
  * or a width band (field-overlay.ts). Module-level, so its identity is stable for PresetFields.
  */
@@ -343,6 +351,8 @@ export function Inspector() {
                     moreFields={moreFields}
                     tags={entity.tags}
                     address={address}
+                    // the icons of the combo values (the schema's `icons`)
+                    renderIcon={renderFieldIcon}
                     // what "revert" goes back to; a feature that was added here has nothing to revert to
                     baseTags={engine.baseTags(id)}
                     onChange={onChange}

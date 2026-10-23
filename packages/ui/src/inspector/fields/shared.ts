@@ -42,7 +42,14 @@ export type FieldProps = {
   labelActions?: HTMLElement | null
   /** The address field's place: its country and the features near the feature. Only the address field reads it. */
   address?: AddressContext
+  /**
+   * Draws a schema icon by its id (`maki-grocery`), given by the shell from its sprites. The combo fields of a
+   * field with `icons` draw their values' icons with it. Absent: no icons, and no icon slots.
+   */
+  renderIcon?: IconRenderer
 }
+/** The shell's icon for an icon id of the schema (`PresetIcon`); see FieldProps.renderIcon */
+export type IconRenderer = (icon: string) => ReactNode
 /**
  * The address field's context from the feature: the countries of its centre (an ISO code, `de`, or the territory
  * and the country, `['hk', 'cn']`), and the features near it (address-logic.ts). Absent: the default layout and no

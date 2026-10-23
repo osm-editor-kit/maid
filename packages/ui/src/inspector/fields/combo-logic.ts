@@ -26,6 +26,21 @@ export function shownText(field: Pick<Field, 'type' | 'options'>, value: string 
   return { text: value, raw: true }
 }
 
+/**
+ * The icon of a value, as iD's addComboboxIcons: a field with `icons` has an icon slot on every option, and the
+ * slot holds the value's icon, or nothing when the value has none (so the labels line up). A field without
+ * `icons` has no slots. `icon` is the icon id to draw (undefined: an empty slot).
+ */
+export function iconSlotOf(
+  field: Pick<Field, 'icons'>,
+  value: string | undefined,
+): { slot: boolean; icon: string | undefined } {
+  if (field.icons === undefined) return { slot: false, icon: undefined }
+  const icon =
+    value !== undefined && Object.hasOwn(field.icons, value) ? field.icons[value] : undefined
+  return { slot: true, icon }
+}
+
 /** The option whose label equals the text, case-insensitively. The first one wins. */
 export function matchLabel(options: readonly FieldOption[], text: string) {
   const wanted = text.trim().toLowerCase()

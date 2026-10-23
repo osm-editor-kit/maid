@@ -22,6 +22,7 @@ import type {
   FieldComponent,
   FieldMeasure,
   FieldProps,
+  IconRenderer,
 } from './shared.ts'
 import { HINT, LABEL, REVEAL, ROW_BUTTON, writeEdits } from './shared.ts'
 
@@ -105,6 +106,8 @@ export function FieldRow(props: {
   measure?: FieldMeasure
   /** The address field's country and nearby features (FieldProps.address). Absent: none. */
   address?: AddressContext
+  /** The icons of the values (FieldProps.renderIcon). Absent: none. */
+  renderIcon?: IconRenderer
 }) {
   const {
     field,
@@ -119,6 +122,7 @@ export function FieldRow(props: {
     loadReference,
     measure,
     address,
+    renderIcon,
   } = props
   const id = useId()
   const labelId = useId()
@@ -171,6 +175,7 @@ export function FieldRow(props: {
       onChangeTags={onChangeTags}
       labelActions={labelActions}
       address={field.type === 'address' ? address : undefined}
+      renderIcon={renderIcon}
     />
   )
   return (

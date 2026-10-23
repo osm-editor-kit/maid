@@ -27,9 +27,10 @@ import {
   type ComboKeyEnv,
   type ComboKeyState,
 } from './combo-keys.ts'
-import { shownText, valueFromText } from './combo-logic.ts'
+import { iconSlotOf, shownText, valueFromText } from './combo-logic.ts'
 import { LengthNotice, useLengthLimit } from './DraftInput.tsx'
-import type { FieldProps } from './shared.ts'
+import { IconSlot } from './IconSlot.tsx'
+import type { FieldProps, IconRenderer } from './shared.ts'
 import { INPUT, LIMITED } from './shared.ts'
 
 /**
@@ -56,8 +57,21 @@ export function ComboInput(props: {
   disabled?: boolean
   /** The id of the element that describes the input (the reason it is disabled). */
   describedBy?: string
+  /** Draws the icons of the values (FieldProps.renderIcon). Absent: no icons, no icon slots. */
+  renderIcon?: IconRenderer
 }) {
-  const { id, field, tagKey, value, placeholder, title, onChange, disabled, describedBy } = props
+  const {
+    id,
+    field,
+    tagKey,
+    value,
+    placeholder,
+    title,
+    onChange,
+    disabled,
+    describedBy,
+    renderIcon,
+  } = props
   const baseId = useId()
   const listId = `${baseId}-list`
   const optionId = (index: number) => `${baseId}-option-${index}`
@@ -149,12 +163,28 @@ export function ComboInput(props: {
     }
   }
 
+  /** The icon slot of an option: none without icons or without a renderer, else a slot with the value's icon or empty. */
+  function optionSlot(value: string) {
+    if (!renderIcon) return null
+    const slot = iconSlotOf(field, value)
+    return slot.slot ? <IconSlot icon={slot.icon} renderIcon={renderIcon} /> : null
+  }
+
   const italic = shown.raw && state.text === shown.text
+  // the chosen value's icon, at the left inside the input (iD's combo input): the committed value, not the draft
+  const inputIcon = renderIcon ? iconSlotOf(field, value).icon : undefined
   const limit = useLengthLimit(state.text)
 
   return (
     <div className="grid min-w-0 gap-1">
-      <div ref={refs.setReference} className="min-w-0">
+      <div ref={refs.setReference} className="relative min-w-0">
+        {renderIcon && inputIcon !== undefined ? (
+          <IconSlot
+            icon={inputIcon}
+            renderIcon={renderIcon}
+            className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2"
+          />
+        ) : null}
         <input
           {...PLAIN_INPUT}
           ref={inputRef}
@@ -172,7 +202,7 @@ export function ComboInput(props: {
           aria-controls={listVisible ? listId : undefined}
           aria-autocomplete="both"
           aria-activedescendant={listVisible && active >= 0 ? optionId(active) : undefined}
-          className={`${INPUT} ${LIMITED} ${italic ? 'italic' : ''}`}
+          className={`${INPUT} ${LIMITED} ${italic ? 'italic' : ''} ${renderIcon && inputIcon !== undefined ? 'pl-10' : ''}`}
           aria-invalid={limit.invalid}
           aria-describedby={limit.describedBy(describedBy)}
           onChange={(event) => {
@@ -221,6 +251,7 @@ export function ComboInput(props: {
                 }}
                 className={`flex h-8 cursor-pointer items-center gap-3 px-2 ${listRow({ active: index === active })}`}
               >
+                {optionSlot(option.value)}
                 <span className="min-w-0 flex-1 truncate">{option.label}</span>
                 {option.label !== option.value ? (
                   <span className="shrink-0 truncate font-mono text-xs text-zinc-500 dark:text-zinc-400">

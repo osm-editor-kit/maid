@@ -79,6 +79,12 @@ export type Field = {
   placeholder?: string
   /** [] when the field has none; label from the translation, else the value */
   options: FieldOption[]
+  /**
+   * iD's `icons`: the icon id (a sprite id such as `maki-grocery`) of each value. Absent when the schema
+   * gives none; a value with no entry has no icon, and the field still has icon slots (iD's addComboboxIcons).
+   */
+  icons?: Record<string, string>
+
   default?: string
   geometry?: Geometry[]
   prerequisiteTag?: {

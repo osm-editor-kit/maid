@@ -15,7 +15,8 @@ import type { FieldProps } from './shared.ts'
 export function ComboField(
   props: FieldProps & { placeholder?: string; disabled?: boolean; describedBy?: string },
 ) {
-  const { field, tags, id, onChange, combined, placeholder, disabled, describedBy } = props
+  const { field, tags, id, onChange, combined, placeholder, disabled, describedBy, renderIcon } =
+    props
   const key = field.key
   if (key === undefined) return <FallbackField {...props} />
   const display = keyDisplay(key, tags, combined, field.placeholder)
@@ -31,6 +32,7 @@ export function ComboField(
       onChange={onChange}
       disabled={disabled}
       describedBy={describedBy}
+      renderIcon={renderIcon}
     />
   )
 }

@@ -39,6 +39,7 @@ import type {
   FieldFocus,
   FieldMeasure,
   FieldProps,
+  IconRenderer,
 } from './fields/shared.ts'
 import { TextField, TextareaField } from './fields/Text.tsx'
 import { fieldKeys } from './logic.ts'
@@ -135,6 +136,8 @@ export function PresetFields(props: {
   measure?: FieldMeasure
   /** The address field's country and the features near the feature (fields/shared.ts AddressContext) */
   address?: AddressContext
+  /** Draws the icons of the values of the combo fields (FieldProps.renderIcon). Absent: no icons. */
+  renderIcon?: IconRenderer
 }) {
   const {
     fields,
@@ -150,6 +153,7 @@ export function PresetFields(props: {
     onFieldFocus,
     measure,
     address,
+    renderIcon,
   } = props
   // the ids picked from "Add field", in the order picked: they are rows although they have no value
   const [picked, setPicked] = useState<string[]>([])
@@ -307,6 +311,7 @@ export function PresetFields(props: {
               loadReference={loadReference}
               measure={measure}
               address={address}
+              renderIcon={renderIcon}
             />
           </div>
         ),

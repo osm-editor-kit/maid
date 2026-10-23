@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test'
-import type { FieldOption } from '@osm-editor-kit/maid-presets'
+import type { Field, FieldOption } from '@osm-editor-kit/maid-presets'
 import {
   filterOptions,
+  iconSlotOf,
   matchLabel,
   shownText,
   valueFromText,
@@ -160,5 +161,34 @@ describe('valueFromText', () => {
     const long = 'a'.repeat(300)
     const write = valueFromText(spec({ options: [] }), long)
     expect(write).toEqual({ value: 'a'.repeat(300) })
+  })
+})
+
+describe('iconSlotOf', () => {
+  // as iD's addComboboxIcons: a field with icons gives every option a slot, filled when the value has an icon
+  const withIcons: Pick<Field, 'icons'> = { icons: { zebra: 'iD-crossing_markings-zebra' } }
+
+  test('a value with an icon has a slot with that icon', () => {
+    expect(iconSlotOf(withIcons, 'zebra')).toEqual({
+      slot: true,
+      icon: 'iD-crossing_markings-zebra',
+    })
+  })
+
+  test('a value without an icon in a field with icons has an empty slot, so the labels line up', () => {
+    expect(iconSlotOf(withIcons, 'lines')).toEqual({ slot: true, icon: undefined })
+  })
+
+  test('no value (an empty input) in a field with icons has an empty slot', () => {
+    expect(iconSlotOf(withIcons, undefined)).toEqual({ slot: true, icon: undefined })
+  })
+
+  test('a field without icons has no slots, whatever the value', () => {
+    expect(iconSlotOf({}, 'zebra')).toEqual({ slot: false, icon: undefined })
+    expect(iconSlotOf({}, undefined)).toEqual({ slot: false, icon: undefined })
+  })
+
+  test('a value that only names an object key is no icon (no prototype lookup)', () => {
+    expect(iconSlotOf(withIcons, 'constructor')).toEqual({ slot: true, icon: undefined })
   })
 })

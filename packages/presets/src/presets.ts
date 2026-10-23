@@ -435,6 +435,18 @@ export function optionValueOf(type: string, value: string): string {
   return CHECK_FIELD_TYPES.has(type) && value === 'undefined' ? '' : value
 }
 
+/** The schema's `icons` (value → icon id), keeping its string entries; undefined when the field has none. */
+function iconsOf(value: unknown): Record<string, string> | undefined {
+  const record = asRecord(value)
+  if (!record) return undefined
+  const icons: Record<string, string> = {}
+  for (const [key, icon] of Object.entries(record)) {
+    const text = asString(icon)
+    if (text !== undefined) icons[key] = text
+  }
+  return icons
+}
+
 export function createPresets(data: PresetData): Presets {
   // One location lookup per presets instance; its location sets are registered when first used.
   const locations = createLocations()
@@ -473,6 +485,8 @@ export function createPresets(data: PresetData): Presets {
       options,
       universal: raw.universal === true,
     }
+    const icons = iconsOf(raw.icons)
+    if (icons !== undefined) field.icons = icons
     const key = asString(raw.key)
     if (key !== undefined) field.key = key
     const keys = asStrings(raw.keys)
