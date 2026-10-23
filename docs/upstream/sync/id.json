@@ -12,7 +12,8 @@
     },
     {
       "name": "dependencies",
-      "subject": "^(build\\(deps|chore\\(deps|Bump |Update dependency)"
+      "subject": "^(build\\(deps|chore\\(deps|Bump |Update dependency)",
+      "except": "id-tagging-schema|name-suggestion-index|editor-layer-index|pinhead|maki|temaki|roentgen|fontawesome"
     },
     {
       "name": "ci",
