@@ -3,7 +3,7 @@
   "repo": "https://github.com/openstreetmap/iD.git",
   "branch": "develop",
   "base": "1ca95b5b3535bd7961fa7d57a1334ae57f6555e9",
-  "cursor": "1ca95b5b3535bd7961fa7d57a1334ae57f6555e9",
+  "cursor": "1f6118db61b86dd3a77bc8b39bd370842777cc3e",
   "pin": "0194f3926a59d8db8993892880f2a25d366c7099",
   "noise": [
     {
@@ -23,5 +23,906 @@
       "files": "^CHANGELOG\\.md$"
     }
   ],
-  "intents": []
+  "intents": [
+    {
+      "id": "noise-changelog-c4c773eff",
+      "title": "changelog: 7 commits",
+      "commits": [
+        "c4c773eff7cf06c715f5295fdddf9a9cd3bd9fd6",
+        "af2209e7ccf835cede35f8376221f59bc7489565",
+        "5087425bef233ddbd63c220e9ab3da414cd6c1f9",
+        "b61008024fde61323111d293fb426cc2ef831694",
+        "32c05ed6f78c83c7f551f27bfc8bb13076613ebf",
+        "e46696082fd1803f8a9e5a8895802dfe1089b8ba",
+        "6ffb78df23af11f3aa09b1939022cdbb941d0b41"
+      ],
+      "decision": "not-relevant",
+      "reason": "noise rule \"changelog\"",
+      "decidedBy": "rule",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "noise-dependencies-636c5f551",
+      "title": "dependencies: 65 commits",
+      "commits": [
+        "636c5f5515ede21fa223d4e312974ec3381af3f5",
+        "cf978af7c138b4602dda4db51d0f706163d1add8",
+        "140dfb362685814c66c3d695525b94e613960db5",
+        "e21f6c7078b03355751e1fa0d9f5f440a146e0ff",
+        "c0971aab30058909491a638210981674130aa6b6",
+        "0f0629c6543b8871c3bd6f2499bc7c0fab4a4652",
+        "7139cab843ca875e7c6b59b8b08cde386fd1deca",
+        "688c92d136ee0cb12201c423f5a1021b4fceb93e",
+        "f0af43412d54d2e3ac209228dcbb6a7c36a1be84",
+        "42b712d8aaa00c14c50223e8eee2589ec1cc014c",
+        "5b6eccbffecdaf147ce80b61fccfd91505f79068",
+        "ac2d98518cc90a79851e08e1fd3d28df6bccc96e",
+        "5fd4cd5d33aa9968d83ccb8a197a488eb632085a",
+        "b119317ddd56d71a3efa66542ee2a4acb649c62b",
+        "9b34caa3f74bd036bca550d85281dc3a4d2cb3f9",
+        "50f7a655de69714a03d5719c02d493bb6b930e22",
+        "f6e09b82bde2edea00fc7313c3381ebc0c7bde33",
+        "1fd1ae34bb5f160116108ab9248b288627dfe72b",
+        "79f587f9b25620fb61d51143cceccb009e2dcdda",
+        "99fc79155364389b68561f224bc1e493375de262",
+        "66987c33e38f70b35c52b23cb122bc2e315ea418",
+        "a7c8073b51c96e88a6b07d14efd6400bc3e0f54d",
+        "353913d27fdf18f245381bd62aba82ea9e8a4749",
+        "be9acce2522b16e5ff44d344b72c3381e0f1dae5",
+        "4ea0412935655a6e011d51b341de98b67c3b9fd6",
+        "b0e40d2b5cfd7ed10efe9b842d76668e3eb11082",
+        "827b2f9bb9a4f55c8b4bd4adac48e38cde5ad803",
+        "f5736f9440065d366c66872340a06248a9753acd",
+        "02d92d76482821e3c02f6636a8cece10158337cd",
+        "71be588e18e4cfd0cef26376b6cdbf335eb18ab5",
+        "ca6ff288cf3d12a719b43ebc49c49ea5e553e973",
+        "6b4f857b71293fe20aa043f9f4275917eda3d3d7",
+        "8e39d23e6d8c316ff8f2f4d6e454abef03f6c289",
+        "09135ec2b3f5009e7ccea2631457b540345f17f6",
+        "e0bd04254851c2eb2b197476094d0b351f077b53",
+        "dafb344e5c136fccc9bdf3ceacdef0058539379f",
+        "8e798c7a648516e3423faee2487bad3f4bb49ee4",
+        "adbab87e698bd28f6bf42edee00801778cee2c04",
+        "dfd1dc0124e687c5db6a49424a63dc29b03c5d0f",
+        "9cece958c5b4e7e932ae2fdd2bd5a442e9ad5412",
+        "fb601bb3c8bd6b4fe28d97aef8ae65e7c2841441",
+        "0d931add317d2f96d6c773ddf0c29b7fead6ccb4",
+        "b08827e5e87a977587f49239fb734a126ac9ea69",
+        "f449a7b709d44a0f7c6b5b269ec989cde2c0f560",
+        "3bbea55b39b309684300731a7378179a9284ee26",
+        "926a7a2530db71b07caccbb838424169c09eecf2",
+        "d3efcea7f4848ca0eea1aeb22dcf4a4cdadc47f6",
+        "369b6c61ad9e96dea24f51ea28ad0c05c001349c",
+        "bb692bcc5f3addb350cf8cb757f709b8970128a5",
+        "086a5e95d471cb893254c5d5b00ff250d9c9bc35",
+        "95105b60472395c657bea31eae4dfbb089b4bc0b",
+        "ec89f1a89fc0413951dcedb8fbc22f4c16bdf187",
+        "e4aa9e8136e045dd88da7dc2dce201ac152a8835",
+        "8f3ef3c0bc6bdec8c589fd9f8312e11a75bc4910",
+        "88a9d7149d4769a23bcc0923f5ceae4a41274a9e",
+        "ab6ca9c5dde3d01564e5c5092cfa1dd0ca932715",
+        "2399caa96e81f8e36e23d83b35e161ab207aa351",
+        "3c5bca53dd33745678150c528c84314b56edbe38",
+        "88f4afab75673fd3d1ed277827f09d64a06599cc",
+        "86379d7a3bb0baad124b9b877b98e76f676d688b",
+        "7b64004a2b10e0290c0f9ac413c7e8e82d994660",
+        "cca144eec72a8fd764fa073140065e940b61cefc",
+        "8f957baff30341e6a612396e6078d80bbb620880",
+        "afbec3fd06c1d93333ca6f2022532f4a8c39fe4e",
+        "138a00d696d202b74cea52c4e90164dadfbe89f7"
+      ],
+      "decision": "not-relevant",
+      "reason": "noise rule \"dependencies\"",
+      "decidedBy": "rule",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "noise-in-pin-faf305267",
+      "title": "in-pin: 5 commits",
+      "commits": [
+        "faf3052670b11e70c8466d1fc95eaf74d066c0a2",
+        "49617166aeb9a57c0caa7ad5e701a1a900b595aa",
+        "b8b10f3168787343959fc829e8f53df7beb8d7c4",
+        "80f412363d2751bff78f4d1316650be7729b1ea0",
+        "37bbff27de3dae205a89fd091bd770249282dea1"
+      ],
+      "decision": "already-have",
+      "reason": "in the pinned commit 0194f3926a59d8db8993892880f2a25d366c7099",
+      "decidedBy": "rule",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "noise-translations-cd9cf0e56",
+      "title": "translations: 4 commits",
+      "commits": [
+        "cd9cf0e56260c8f3d54c9d9bad3f7b572bc71a37",
+        "bce5b78df8a813cc5490a4e853ed09a3a866f733",
+        "ccd3cde65e10b6b172a4c166b5c747e199c7bbc5",
+        "f4cad2b7b84097330a9d00ac9263bd444951af29"
+      ],
+      "decision": "not-relevant",
+      "reason": "noise rule \"translations\"",
+      "decidedBy": "rule",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "noise-ci-881a38a54",
+      "title": "ci: 5 commits",
+      "commits": [
+        "881a38a540e984ab24b9c8f603126d17e8827a89",
+        "8b754591a2d5aef39619b3c663bc68c80b0569f7",
+        "cd3f235356b589b9c91bd415e3f4b45d2a915387",
+        "91e21a29e990bde7d0ba04ebb359e25b73b9215a",
+        "d103399da398aa016efc0a540ecab46d591d99ef"
+      ],
+      "decision": "not-relevant",
+      "reason": "noise rule \"ci\"",
+      "decidedBy": "rule",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "tagging-schema-7.3.0",
+      "title": "Bump @openstreetmap/id-tagging-schema 7.0.1 → 7.3.0",
+      "commits": [
+        "cc454520d4df71ae7eee7bc11a6e094996d4ae86",
+        "10cea45c26420093935bbf0baa7b300acbfbdf2b",
+        "93e451c607ce24ce9cb53268d1dcf8adcdcbc319",
+        "65570604bc64ba96c919ba49f77aa21c5534b9f6"
+      ],
+      "area": "presets",
+      "decision": "already-have",
+      "reason": "packages/presets and packages/style depend on ^7.3.0 (bun.lock: 7.3.0)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-id-1",
+      "title": "Development version number set after the release",
+      "commits": ["09db85c7678d4ae63a3c52eda00fb03f2c5599ca"],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-id-2",
+      "title": "Old MapRules validation code removed (unused, broken)",
+      "commits": ["9b18ef296a1ae04f2072d02f0be5a38e0af74455"],
+      "area": "validation",
+      "decision": "rejected",
+      "reason": "Maid does not build iD's MapCSS maprules service: ADR 0009 decision 15 says 'not built; rules worth having are moved into Maid's own validation'. The validator's defaultRules list has no MapCSS rule, and the URL key is dropped by the id-url migration.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/12679",
+      "where": [
+        "docs/adr/0009-decisions-of-2026-10-13.md:38",
+        "docs/research/missing-features.md:245",
+        "packages/validation/src/index.ts:55"
+      ]
+    },
+    {
+      "id": "2026-10-23-id-3",
+      "title": "Invalid straighten no longer throws a console error",
+      "commits": ["477206743723085ceeea53eb593b29df25de36b8"],
+      "area": "operations",
+      "decision": "already-have",
+      "reason": "Maid never calls disabled() on an operation that does not apply, and disabled() is a pure function, so there is no console error path. Straighten's plan is pure (straightenPlan returns undefined instead of throwing), and the key handler stops at 'if (!operation) return' without a flash. The missing 'unavailable' flash on an unavailable key is a UX difference, not part of this fix.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/12730",
+      "where": [
+        "packages/operations/src/operations.ts:241-295",
+        "packages/renderer/src/engine.ts:1016",
+        "packages/shell/src/useShortcuts.ts:188-190"
+      ]
+    },
+    {
+      "id": "2026-10-23-id-4",
+      "title": "Diameters shown when a feature is selected",
+      "commits": ["4501175a59be8485b32143f0540ecab370e4f6c3"],
+      "area": "renderer",
+      "decision": "later",
+      "reason": "A diameter/radius/circumference circle around a selected point, as a MapLibre circle in metres. Step in docs/build-out/steps.md (Upstream sync).",
+      "decidedBy": "Tobias",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/9732",
+      "where": ["packages/renderer/src/layers.ts:747", "packages/renderer/src/layers.ts:982"]
+    },
+    {
+      "id": "2026-10-23-id-5",
+      "title": "HTML imagery attribution dropped; attribution is plain text",
+      "commits": ["4cc0d585651827aedcb5d7ee13d5ce3bb90075e2"],
+      "area": "imagery",
+      "decision": "already-have",
+      "reason": "Maid has no HTML attribution: a layer's attribution is plain text from the ELI index (attributionText), shown in the imagery panel as text and by MapLibre's attribution control. grep for terms_html and terms_text in packages, tools and apps finds nothing, and no dangerouslySetInnerHTML is used in module-imagery, shell or ui.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/12760",
+      "where": [
+        "packages/module-imagery/src/eli.ts:97",
+        "packages/module-imagery/src/ImageryPanel.tsx:307",
+        "packages/module-imagery/src/ImageryLayers.tsx:197"
+      ]
+    },
+    {
+      "id": "2026-10-23-id-6",
+      "title": "displayLength doc comment no longer says area",
+      "commits": ["c2d84e41a7c9faf17ffa823bcc25f618977caa58"],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-id-7",
+      "title": "Redundant CLDR language-name overrides removed",
+      "commits": ["eefa79000b87dfa4abd3859bd54a5b7d36f6c433"],
+      "area": "i18n",
+      "decision": "not-relevant",
+      "reason": "The CLDR overrides feed iD's generated data/languages.json, which Maid does not use. Maid's language switch has four hand-written names (English, Deutsch, Francais, Espanol) in packages/i18n/src/choose.ts:10. grep for languages.json and fetchLanguages in packages finds no language list; the wiki field accepts any language code (packages/ui/src/inspector/fields/wiki-logic.ts:15).",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/12784",
+      "where": [
+        "packages/i18n/src/choose.ts:10",
+        "packages/ui/src/inspector/fields/wiki-logic.ts:15"
+      ]
+    },
+    {
+      "id": "2026-10-23-id-8",
+      "title": "name:wlp typo removed from language names",
+      "commits": ["67a0202be287468374c67fb07095dc0b82e2587a"],
+      "area": "i18n",
+      "decision": "not-relevant",
+      "reason": "Removes a typo (name:wlp) from iD's generated language data. Maid has no such data: its four language names are hand-written (packages/i18n/src/choose.ts:10), and no name:wlp entry exists in packages.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/12785",
+      "where": ["packages/i18n/src/choose.ts:10"]
+    },
+    {
+      "id": "2026-10-23-id-9",
+      "title": "Language names script converted to TypeScript",
+      "commits": ["b61ff4e1afb3ceaa2014621eefeb0d8cdbe9f3ff"],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-id-10",
+      "title": "Browser tab resize no longer crashes",
+      "commits": ["36de0a544bc4d7073789f898d8cef3d3fe5b2474"],
+      "area": "ui",
+      "decision": "not-relevant",
+      "reason": "The crash is in iD's d3 inspector (modules/ui/inspector.js, presetList called without entity ids). Maid's inspector is React (packages/shell/src/components/Inspector.tsx:128) and no uiInspector or presetList code exists in packages or apps.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/12800",
+      "where": ["packages/shell/src/components/Inspector.tsx:128"]
+    },
+    {
+      "id": "2026-10-23-id-11",
+      "title": "not:*:wikidata may hold several values (outdated tags validator)",
+      "commits": ["aefde7231b1d075d107b67bdb09adc86dde0d26c"],
+      "area": "validation",
+      "decision": "not-relevant",
+      "reason": "The change is in iD's outdated_tags NSI brand-upgrade path (noncanonical_brand), which Maid does not port: the rule header says 'Not ported: iD's name-suggestion-index brand upgrades'. grep for 'brand:wikidata' and 'not:' in packages/ finds no matching code. The combo field change is in iD's UI, not in Maid's validation or operations.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/12737",
+      "where": ["packages/validation/src/rules/outdated-tags.ts:8"]
+    },
+    {
+      "id": "2026-10-23-id-12",
+      "title": "PR preview deploy to a temporary subdomain (reverted)",
+      "commits": [
+        "c80681644c6a34b05345099288913350c433ff86",
+        "501e8be2ebfd133cedfd975cd42c22faa2c9ebfa"
+      ],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-id-13",
+      "title": "Pannellum photo viewer converted to TypeScript",
+      "commits": ["ce970585350b10c377df6293bfbe9181513b3f73"],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-id-14",
+      "title": "Mapillary converted to TypeScript",
+      "commits": ["3d121d55a4360354a5f0c78802fd45d6600896c0"],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-id-15",
+      "title": "Validators converted to TypeScript (parts 2 to 4)",
+      "commits": [
+        "8fb7fe9d352cdcc1382dadf3fa1b119263a5d812",
+        "82707a025be5c88658ab14926b42a5fdeca827f2",
+        "dce662982acd55afbd9d232a9c25ed907d14cb0b"
+      ],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-id-16",
+      "title": "presetManager converted to TypeScript",
+      "commits": ["ed3852f7e6c1d3af9a58acdde047c2f9d22bd6a1"],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-id-17",
+      "title": "NSI converted to TypeScript",
+      "commits": ["8cfca029a650e85c31181e463012311f45717e17"],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-id-18",
+      "title": "Unit tests no longer call the real Panoramax and OSM APIs",
+      "commits": ["045c5fb611c62ca02c55f3a446f87d2fa9920685"],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their unit tests; Maid's automation never calls OSM APIs anyway (core rule 1)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-id-19",
+      "title": "Preset description wording made clearer for users",
+      "commits": ["2b792b573eb96dde476b3271fe075a21506aff42"],
+      "area": "ui",
+      "decision": "not-relevant",
+      "reason": "The commit title promises wording, but its only change in modules/ui/preset_icon.js is code comments about the zigzag route icon; no user-visible string changes. Maid has no zigzag route-icon code (grep for zigzag and routeSegments in packages and apps finds nothing).",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/12833"
+    },
+    {
+      "id": "2026-10-23-id-20",
+      "title": "Nodes at the same coordinate allowed when addr:floor differs",
+      "commits": ["70b17d9dd0f024609ad7d541db0806fa9dfd910d"],
+      "area": "validation",
+      "decision": "later",
+      "reason": "Maid has no close_nodes rule yet; build it with iD's addr:floor/level exception. Step in docs/build-out/steps.md (Upstream sync).",
+      "decidedBy": "Tobias",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/commit/70b17d9dd0f024609ad7d541db0806fa9dfd910d",
+      "where": [
+        "packages/validation/src/index.ts:55-80",
+        "docs/research/id-tests/inventory.md:226-239",
+        "docs/research/indoor/id-and-mapcomplete.md:61"
+      ]
+    },
+    {
+      "id": "2026-10-23-id-21",
+      "title": "ford tag rendered on highway features",
+      "commits": ["bbcc249a0122755a7913d91c0ca6bdd40dbdd4f7"],
+      "area": "renderer",
+      "decision": "later",
+      "reason": "Maid already emits the ford class (ford is a secondary key at packages/style/src/classes.ts:22, as in iD after this commit), but has no ford rules: id-rules.json has none, because the pinned iD css (pin 0194f39) predates bbcc249. Port by moving the pin to bbcc249 or later, then bun run style-generate, and check that id-rules.json gains the ford stroke and casing rules. The pin move is its own step per docs/upstream/sync/README.md. Comes with the next iD pin move and `bun run style-generate` (step \"Move the iD pin\" in docs/build-out/steps.md, Upstream sync)",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/12830",
+      "where": [
+        "packages/style/src/classes.ts:22",
+        "packages/style/src/generated/id-rules.json:1",
+        "packages/style/scripts/extract.ts:17"
+      ]
+    },
+    {
+      "id": "2026-10-23-id-22",
+      "title": "goo.gl shortlinks detected as an incompatible source",
+      "commits": ["eb422cfcb5b16d8f7e9728f757ceb52e81a2a661"],
+      "area": "validation",
+      "decision": "adopted",
+      "reason": "Maid's google rule has the same old regex /(google)/i, so goo.gl shortlinks are not flagged. Copy iD's regex /(google|\\bgoo\\.gl\\b)/i and its exceptRegex (adds sites and goo.gl exceptions), with the test cases of iD's incompatible_source spec. The reference text stays the same.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "ours": ["09b4729f9aa476adb693a35b510d9de1a813a5a8"],
+      "upstream": "https://github.com/openstreetmap/iD/pull/12794",
+      "where": ["packages/validation/src/rules/incompatible-source.ts:27-31"]
+    },
+    {
+      "id": "2026-10-23-id-23",
+      "title": "Raw tag editor: = and Enter move between key and value; = escaped in text mode",
+      "commits": [
+        "5b889e4cc040e1a3046afebeedb10e69816289c1",
+        "729214132fca71d7af0d8c20d9d3d75c8e4fc9fa",
+        "0859a259cad7fdef8521f610bd73184256bd4539"
+      ],
+      "area": "ui",
+      "decision": "rejected",
+      "reason": "Maid's tag sheet works differently on purpose (Enter commits and moves down, sheet-design.md); no '=' jump. The escaping of '=' is already in clipboard.ts.",
+      "decidedBy": "Tobias",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/12828",
+      "where": [
+        "packages/ui/src/sheet/keys.ts:108",
+        "packages/ui/src/sheet/clipboard.ts:365",
+        "packages/ui/src/sheet/clipboard.ts:445",
+        "docs/research/sheet-design.md:166"
+      ]
+    },
+    {
+      "id": "2026-10-23-id-24",
+      "title": "Icon assets updated (fontawesome child, children and user icons)",
+      "commits": ["22b6dbe08785b176420d52b8762c61fe844c3de5"],
+      "area": "renderer",
+      "decision": "later",
+      "reason": "The icon update is after the pin; Maid's fa-sprite.svg is the pinned build. Comes with the next iD pin move and `bun run style-generate` (step \"Move the iD pin\" in docs/build-out/steps.md, Upstream sync)",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/commit/22b6dbe08785b176420d52b8762c61fe844c3de5",
+      "where": [
+        "packages/shell/public/sprites/fa-sprite.svg:1",
+        "packages/shell/public/sprites/NOTICE.md:1"
+      ]
+    },
+    {
+      "id": "2026-10-23-id-25",
+      "title": "Lint: stray console output removed from a test",
+      "commits": ["350ed0d2da4b317dd98c77ddf977ccb2b66183eb"],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-id-26",
+      "title": "Tooltips shown for validation fixes",
+      "commits": ["84044917e206a3b909d788c323ce848fc2f99f68"],
+      "area": "ui",
+      "decision": "not-relevant",
+      "reason": "The commit only adds an optional tooltip field to validationIssueFix and its rendering in entity_issues.js; no rule sets a tooltip in this commit, so nothing visible changes. Maid's Fix type (packages/validation/src/types.ts:6-14) has no tooltip; a later upstream commit (disconnected_way.ts, e.g. 33c4c5a91) is the first visible user and should be checked under its own intent.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/commit/84044917e206a3b909d788c323ce848fc2f99f68",
+      "where": [
+        "packages/validation/src/types.ts:6",
+        "packages/shell/src/modules/validation.tsx:364"
+      ]
+    },
+    {
+      "id": "2026-10-23-id-27",
+      "title": "Wording of the 'connect the features (manually)' fix improved",
+      "commits": ["33c4c5a91fb2741d9d20ffb050e7806bea6fe02c"],
+      "area": "validation",
+      "decision": "rejected",
+      "reason": "Maid deliberately offers no fix for a group of disconnected features, so there is no 'Connect the features (manually)' button whose wording could change. The rule's doc says: 'a group gets no fix, because the person has to connect it by hand' (fixes: members.length === 1 ? delete : []). A tooltip could be added later as a UX decision, but nothing in Maid carries the old wording.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/commit/33c4c5a91fb2741d9d20ffb050e7806bea6fe02c",
+      "where": [
+        "packages/validation/src/rules/disconnected-way.ts:154-155",
+        "packages/validation/src/rules/disconnected-way.ts:177"
+      ]
+    },
+    {
+      "id": "2026-10-23-id-28",
+      "title": "ELI imagery layers older than 20 years allowed",
+      "commits": ["d9879e101917f8f2d768c24934f5c510bf5377ba"],
+      "area": "imagery",
+      "decision": "already-have",
+      "reason": "Maid reads the ELI index through the ELI package (packages/module-imagery/src/eli.ts:123-124) and has no age cutoff: its only filter is the zoom (visibleAtZoom). The 20-year cutoff lived in iD's scripts/update_imagery.js, which Maid does not run. grep for 20 years, cutoff and endDate in the ELI package source finds no cutoff (checked src, not dist).",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/12878",
+      "where": ["packages/module-imagery/src/eli.ts:123", "packages/module-imagery/src/eli.ts:124"]
+    },
+    {
+      "id": "2026-10-23-id-29",
+      "title": "Territory-aware address hints (Hong Kong and Macao formats)",
+      "commits": ["2fc990a940b4b82e9107d3074125a9fade57ad25"],
+      "area": "ui",
+      "decision": "adopted",
+      "reason": "Maid still has iD's old Macao layout (packages/ui/src/inspector/fields/address-formats.ts:88-92) and no Hong Kong layout (grep for 'hk' in that file finds nothing), and countryAt looks up only the country code (packages/presets/src/locations.ts:145-152, used only at packages/shell/src/components/Inspector.tsx:219), so Hong Kong and Macao addresses get the default layout. The change: copy iD's hk and mo layouts from data/address_formats.json, and have countryAt give the territory code then the country code (country-coder iso1A2Code with level 'territory', as iD's address.js) so formatFor (packages/ui/src/inspector/fields/address-logic.ts:72) takes the first code that has a layout.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "ours": ["50ceb773a142213aab9d6323ec128670127f4498"],
+      "upstream": "https://github.com/openstreetmap/iD/pull/12704",
+      "where": [
+        "packages/ui/src/inspector/fields/address-formats.ts:88",
+        "packages/presets/src/locations.ts:145",
+        "packages/ui/src/inspector/fields/address-logic.ts:72",
+        "packages/shell/src/components/Inspector.tsx:219"
+      ]
+    },
+    {
+      "id": "2026-10-23-id-30",
+      "title": "Typo fixed in a context.ts comment",
+      "commits": ["de323925814cc3485605fd0f7cf83f2eacdaf3af"],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-id-31",
+      "title": "Language names fetched from the IANA registry when missing from CLDR",
+      "commits": ["d94d1232ee06e36a4d23531aef6c05e6b412bb8a"],
+      "area": "i18n",
+      "decision": "rejected",
+      "reason": "iD fetches every name:* key from taginfo at build time (scripts/language_names.ts). AGENTS.md core rule 1 forbids automated runs, CI included, from sending requests to OSM infrastructure, and taginfo is listed there. Maid also has no generated language list to fill (packages/i18n/src/choose.ts:10). Deliberate difference.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/12803",
+      "where": ["AGENTS.md:11", "packages/i18n/src/choose.ts:10"]
+    },
+    {
+      "id": "2026-10-23-id-32",
+      "title": "--link-color contrast increased",
+      "commits": ["209291cb0cc3a95a7e365ccdf357fcb3c534614b"],
+      "area": "ui",
+      "decision": "already-have",
+      "reason": "Maid's links already use Tailwind text-blue-600 (oklch 54.6% 0.245 262.9, a different hue from iD's variable), which I computed at 5.26:1 on white, passing WCAG AA; iD's old #7092ff was 2.90:1 and the new #2b4dc5 is 7.07:1. Nothing to change.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/12724",
+      "where": [
+        "packages/ui/src/InfoPopover.tsx:57",
+        "packages/shell/src/modules/relations-column.tsx:64"
+      ]
+    },
+    {
+      "id": "2026-10-23-id-33",
+      "title": "coreHistory converted to TypeScript",
+      "commits": ["c61e18952bb301f69502a02abf0cc2bf7fc909d5"],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-id-34",
+      "title": "@types/d3-selection updated",
+      "commits": ["f362bf4c83166937294f66278f06121d616d7927"],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-id-35",
+      "title": "Browser tab not closed by accident while a changeset uploads",
+      "commits": ["d5bbd012f4b60a0ba3250a37bc40d6e5097b81d2"],
+      "area": "ui",
+      "decision": "adopted",
+      "reason": "Maid has no beforeunload handler (grep for beforeunload, returnValue and addEventListener of before/pagehide finds none in packages or apps), so closing the tab during a changeset upload, which SaveButton starts at packages/shell/src/components/SaveButton.tsx:125 with uploading state at :242, can leave the changeset open as iD's fix prevents. The change: add a beforeunload listener that calls preventDefault while uploading is true and removes it when the upload ends; browsers show their own text, so no new wording is needed.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "ours": ["8f81bfcdb30c3fabbe576a4408bd0520fcd914b7"],
+      "upstream": "https://github.com/openstreetmap/iD/pull/12930",
+      "where": [
+        "packages/shell/src/components/SaveButton.tsx:125",
+        "packages/shell/src/components/SaveButton.tsx:242"
+      ]
+    },
+    {
+      "id": "2026-10-23-id-36",
+      "title": "Label offset typo fixed (85% instead of 95% twice)",
+      "commits": ["db8c5e90e5f4ad6fee92f55f3db37afeadecbc5e"],
+      "area": "renderer",
+      "decision": "not-relevant",
+      "reason": "The offset list is in iD's SVG label placement (modules/svg/labels.js). Maid's line labels are placed by MapLibre (symbol-placement line), so there is no offset list in Maid to fix.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/13009",
+      "where": ["packages/renderer/src/layers.ts:719"]
+    },
+    {
+      "id": "2026-10-23-id-37",
+      "title": "Private data validator shows tag diffs as text, not HTML",
+      "commits": ["69e55ccc970bce173d6427aab487e2918a3af160"],
+      "area": "validation",
+      "decision": "already-have",
+      "reason": "Maid's private-data issue is a plain string message, and no code renders issue text or tag diffs as HTML: grep for dangerouslySetInnerHTML and innerHTML in packages/ finds only packages/shell/src/images.ts (SVG symbols, not issues). Maid has no tag-diff display in this rule.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/commit/69e55ccc970bce173d6427aab487e2918a3af160",
+      "where": [
+        "packages/validation/src/rules/private-data.ts:78",
+        "packages/shell/src/images.ts:115"
+      ]
+    },
+    {
+      "id": "2026-10-23-id-38",
+      "title": "osmMatchTags extracted into a reusable helper",
+      "commits": ["ff670b34d28544360dc2042f9abacfe416f67c4b"],
+      "area": "model",
+      "decision": "not-relevant",
+      "reason": "A refactor (extracting osmMatchTags), which the README says is not-relevant unless it fixes a bug. Maid has no such helper (grep osmMatchTags in packages/ finds nothing) and its reverse keeps a hard-coded side/turnout_side list. The only behaviour change, semicolon lists in the prerequisite, would reach only the cyclist_waiting_aid check, where a multi-value highway is not a real case.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/12988",
+      "where": ["packages/model/src/actions/reverse.ts:147-148"]
+    },
+    {
+      "id": "2026-10-23-id-39",
+      "title": "Broken condition in background panel simplified",
+      "commits": ["c09e2f88849e470d9053c0aac354de6cb2c52e1b"],
+      "area": "ui",
+      "decision": "not-relevant",
+      "reason": "The broken condition is in iD's background panel metadata call (modules/ui/panels/background.js getMetadata). Maid's imagery panel shows no per-source metadata (grep for metadata and getMetadata in packages/module-imagery/src finds none; the panel's listing query is at packages/module-imagery/src/ImageryPanel.tsx:127).",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/13014",
+      "where": ["packages/module-imagery/src/ImageryPanel.tsx:127"]
+    },
+    {
+      "id": "2026-10-23-id-40",
+      "title": "npm package availability documented in README",
+      "commits": ["5d77a2783c684f3f0fea5d9d91a3bc590fc989c3"],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-id-41",
+      "title": "Reverse-direction button has a shortcut tooltip; undo/redo tooltip fixed for it",
+      "commits": [
+        "8cc7e562fc87094cf743b2d45b0c56dbd46dbb12",
+        "b6ace5b1ef4d840619c9bc03d317a0bfef7b0990"
+      ],
+      "area": "ui",
+      "decision": "not-relevant",
+      "reason": "The tooltip and its undo label belong to iD's reverse button in the oneway check field, which Maid lacks: Check.tsx is a plain check button (packages/ui/src/inspector/fields/Check.tsx:19-52) and grep for 'reverse' in packages/ui/src finds nothing. Reversing is the V key in the edit menu (packages/shell/src/useShortcuts.ts:36); adding the field button would be a feature decision for Tobias, not a sync fix.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/12961",
+      "where": [
+        "packages/ui/src/inspector/fields/Check.tsx:19",
+        "packages/shell/src/useShortcuts.ts:36"
+      ]
+    },
+    {
+      "id": "2026-10-23-id-42",
+      "title": "Formatted HTML inputs sanitized with DOMPurify",
+      "commits": ["77162855c1227d5202db2bb60794e40ea57697d3"],
+      "area": "ui",
+      "decision": "not-relevant",
+      "reason": "Maid renders messages as React text; grep for dangerouslySetInnerHTML, innerHTML and DOMPurify in packages and apps finds only packages/shell/src/images.ts:115, which serialises a local sprite symbol. There is no formatted HTML from translations to sanitize.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/commit/77162855c1227d5202db2bb60794e40ea57697d3",
+      "where": ["packages/shell/src/images.ts:115"]
+    },
+    {
+      "id": "2026-10-23-id-43",
+      "title": "Minor lint in the address field",
+      "commits": ["5b277bb33a91efba8d919b73a896e66373bcb408"],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-id-44",
+      "title": "Waterway=dam lines more visible",
+      "commits": ["fe2afb210b204bdc57381de32769d04edfcc4488"],
+      "area": "renderer",
+      "decision": "later",
+      "reason": "Two parts. (a) Stacking: iD ranks waterway=dam at layer 0 (modules/osm/way.ts), Maid ranks it -1, so dam lines sit under water areas; port the one-line exception in both copies of the layer rule. (b) Style: the dam casing (#444, width 10) and stroke width 8 are missing from id-rules.json, which has only the stroke rgb(170, 170, 170) for waterway-dam; these come with the same pin move and style-generate as ford. Caveat: the stacking change is not checked in a browser (rule for agents). Comes with the next iD pin move and `bun run style-generate` (step \"Move the iD pin\" in docs/build-out/steps.md, Upstream sync); the stacking exception in OsmWay.ts/classes.ts is ported in the same step",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/13022",
+      "where": [
+        "packages/model/src/data/OsmWay.ts:246",
+        "packages/style/src/classes.ts:206",
+        "packages/style/src/generated/id-rules.json:1"
+      ]
+    },
+    {
+      "id": "2026-10-23-id-45",
+      "title": "Unique hash for reports from mutually_exclusive_tags",
+      "commits": ["735e51afe888855cc7a701d6c3fc3c4c27072ead"],
+      "area": "validation",
+      "decision": "already-have",
+      "reason": "Maid's issue ids already include both tag keys of the pair, so two conflicts on one feature get two different ids (mutually_exclusive_tags:<id>:<first>:<second>). The collision iD fixed by adding a hash cannot happen here.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/13016",
+      "where": ["packages/validation/src/rules/mutually-exclusive-tags.ts:84"]
+    },
+    {
+      "id": "2026-10-23-id-46",
+      "title": "Text tag editor keeps incomplete lines when the window loses focus",
+      "commits": ["ade4a44ac401a47e165b198548a74e5c2c81bf26"],
+      "area": "ui",
+      "decision": "rejected",
+      "reason": "Maid has no text view: Tobias decided 'No text view' on 2026-10-13 (docs/research/sheet-design.md:313), so the text editor's blur bug cannot occur. Copy and paste of key=value lines go through clipboard.ts instead.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/12958",
+      "where": ["docs/research/sheet-design.md:313", "packages/ui/src/sheet/clipboard.ts:458"]
+    },
+    {
+      "id": "2026-10-23-id-47",
+      "title": "railway:preferred_direction is not a ref when reversing",
+      "commits": ["6ed20b510a42b8b9a1b676f991be5bd0afc107ec"],
+      "area": "operations",
+      "decision": "adopted",
+      "reason": "Maid's IGNORE_KEY is the same old regex, which matches 'ref' inside 'preferred', so railway:preferred_direction is never reversed. Replace it with iD's anchored regex /(^|_|:)(description|name|note|website|ref|source|comment|watch|attribution)(_|:|$)/, and add a reverse test that railway:preferred_direction=forward becomes backward. The change is one line in one function.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "ours": ["aab0490da77edca1972b5285d0aef31239990f5b"],
+      "upstream": "https://github.com/openstreetmap/iD/pull/13018",
+      "where": [
+        "packages/model/src/actions/reverse.ts:43",
+        "packages/model/src/actions/reverse.ts:142"
+      ]
+    },
+    {
+      "id": "2026-10-23-id-48",
+      "title": "SECURITY.md added",
+      "commits": ["321b1a9edd7b31eba99060316c2344717c3764c6"],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-id-49",
+      "title": "@waysidemapping/pinhead updated to 16.26.0",
+      "commits": ["902f58f414f03a10a50468d5a0861f897f1fb200"],
+      "area": "tooling",
+      "decision": "later",
+      "reason": "Pinhead 16 icons reach Maid with the sprites that tools/refs/copy-sprites.ts copies from the pinned iD build: comes with the next iD pin move",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-id-50",
+      "title": "oneway=1 no longer supported",
+      "commits": ["6946c18be7f4ebf5714a5efb285e7d7cb00055c0"],
+      "area": "operations",
+      "decision": "adopted",
+      "reason": "iD drops oneway=1 from reverse. Maid's reverse still maps '1' to '-1' (ONEWAY_REPLACEMENTS), and the way table maps '1' to yes (mirror). Maid's renderer and impossible-oneway rule already ignore oneway=1, so dropping it in reverse makes them consistent. The way table's mapping is a presentation choice that needs a decision, and the reverse tests (packages/model/test/actions/reverse.test.js:132-144) change with it.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "ours": ["aab0490da77edca1972b5285d0aef31239990f5b"],
+      "upstream": "https://github.com/openstreetmap/iD/pull/13026",
+      "where": [
+        "packages/model/src/actions/reverse.ts:79-83",
+        "packages/module-way-table/src/mirror.ts:32-36",
+        "packages/renderer/src/direction.ts:18",
+        "packages/validation/src/rules/impossible-oneway.ts:36"
+      ]
+    },
+    {
+      "id": "2026-10-23-id-51",
+      "title": "conveying=* handled by reverse",
+      "commits": ["b0517c62d32a5d83293ed06e97a3d59c11792bf2"],
+      "area": "operations",
+      "decision": "adopted",
+      "reason": "iD now keeps conveying=forward/backward on a plain reverse and flips them only with reverseOneway. Maid flips them always, through the global forward/backward table (reverse.ts:66, 73), and its Reverse operation passes no options (operations.ts:124). The change also affects the way table mirror, because mirrorValue relies on the plain flip for conveying (mirror.ts:153-160). Maid's tests expect the flip (reverse.test.js:306-348), so the expectation and the mirror need a decision first.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "ours": ["aab0490da77edca1972b5285d0aef31239990f5b"],
+      "upstream": "https://github.com/openstreetmap/iD/pull/13027",
+      "where": [
+        "packages/model/src/actions/reverse.ts:61-76",
+        "packages/model/src/actions/reverse.ts:158-159",
+        "packages/operations/src/operations.ts:124",
+        "packages/module-way-table/src/mirror.ts:144-160",
+        "packages/model/test/actions/reverse.test.js:306-348"
+      ]
+    },
+    {
+      "id": "2026-10-23-id-52",
+      "title": "No console exception when dragging the parent relations list",
+      "commits": ["317e8134e41bdb5b29ab688088b8264ce0e2999a"],
+      "area": "ui",
+      "decision": "not-relevant",
+      "reason": "The exception is iD's map file-drop handler reading dataTransfer.files[0]; grep for dataTransfer, onDrop and drop handlers in packages and apps finds no map file drop. Maid's relation list reorder is pointer-driven (packages/shell/src/modules/relations-reorder.tsx:102-126).",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/13030",
+      "where": ["packages/shell/src/modules/relations-reorder.tsx:126"]
+    },
+    {
+      "id": "2026-10-23-id-53",
+      "title": "RTL regex handles en dash in ranges",
+      "commits": ["3467794fbbd94b833beef1d63aaaa83c97352583"],
+      "area": "i18n",
+      "decision": "not-relevant",
+      "reason": "The regex fixes RTL text on SVG text paths (modules/util/svg_paths_rtl_fix.ts). Maid draws labels in MapLibre with no SVG text paths, and its four languages are all left-to-right (packages/i18n/src/choose.ts:10). grep for rtl in renderer, style, shell, i18n and apps finds only the dropped URL parameter at packages/shell/src/url/id-url.ts:71.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/13032",
+      "where": ["packages/shell/src/url/id-url.ts:71", "packages/i18n/src/choose.ts:10"]
+    },
+    {
+      "id": "2026-10-23-id-54",
+      "title": "onewayCheck field supports keys other than oneway=*",
+      "commits": ["13c8c802d950f80437c0d5ef9aae3295f3984f5b"],
+      "area": "ui",
+      "decision": "not-relevant",
+      "reason": "Every onewayCheck field in the pinned id-tagging-schema 7.3.0 uses key oneway (data/fields/oneway.json and oneway_yes.json, both 'key': 'oneway'), so Maid's presets never give one another key. Maid's checkValue already maps 1 and -1 to yes (packages/ui/src/inspector/logic.ts:134-137).",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/13029",
+      "where": ["packages/ui/src/inspector/logic.ts:134"]
+    },
+    {
+      "id": "2026-10-23-id-55",
+      "title": "CONTRIBUTING explains how to edit on the test server (OAuth hint)",
+      "commits": ["50a4815ccb8f04692e408c4f5b59a959e6b2d1d3"],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-id-56",
+      "title": "Multi-valued selection starts in the checked state",
+      "commits": ["8face7f65b6ec506eb044b4b8ce2beec4a5bada0"],
+      "area": "ui",
+      "decision": "already-have",
+      "reason": "A click on a mixed check writes yes on every feature (checkAfterClick: 'if (mixed) return yes'), the same checked state as iD's values[1] after this commit. Nothing to change.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/commit/8face7f65b6ec506eb044b4b8ce2beec4a5bada0",
+      "where": ["packages/ui/src/inspector/logic.ts:227", "packages/ui/src/inspector/logic.ts:233"]
+    },
+    {
+      "id": "2026-10-23-id-57",
+      "title": "Two functor errors fixed (success screen, zoom and pan)",
+      "commits": ["931daedee83a95e74fc0a0220690306a8cc3d794"],
+      "area": "other",
+      "decision": "not-relevant",
+      "reason": "The two functor errors are in iD's success screen (the community events disclosure) and in d3 zoom setters (modules/util/zoom_pan.js). Maid has no iD success screen (its upload result is a toast, packages/shell/src/components/SaveButton.tsx:134) and no d3 zoom (grep for zoomPan in packages and apps finds nothing).",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/13031",
+      "where": ["packages/shell/src/components/SaveButton.tsx:134"]
+    },
+    {
+      "id": "2026-10-23-id-58",
+      "title": "platform_edge has a dedicated, highly visible rendering",
+      "commits": ["1f6118db61b86dd3a77bc8b39bd370842777cc3e"],
+      "area": "renderer",
+      "decision": "later",
+      "reason": "iD gives railway=platform_edge a yellow stroke with a wider casing and drops its grey stroke (css/30_highways.css, css/40_railways.css). Maid's generated rules still have the pre-change state: id-rules.json has the stroke rule with colour #dca for railway-platform_edge and a casing width of 0. Port by moving the pin to 1f6118d or later and running style-generate. Maid emits the class railway-platform_edge (packages/style/src/classes.ts:65-77), so the rule will match. Comes with the next iD pin move and `bun run style-generate` (step \"Move the iD pin\" in docs/build-out/steps.md, Upstream sync)",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/openstreetmap/iD/pull/13025",
+      "where": ["packages/style/src/generated/id-rules.json:1", "packages/style/src/classes.ts:65"]
+    }
+  ]
 }

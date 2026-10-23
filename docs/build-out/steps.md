@@ -433,3 +433,12 @@ Research: [indoor/README.md](../research/indoor/README.md). Order decided by Tob
 - [x] 2026-10-22: stairs, escalators and ramps between two levels: the "Set level" menu offers the pair of the levels at their ends (and sets `incline` in the way's direction); rules `stairs_level_missing` (fix: both levels and the direction) and `stairs_level_unreached`; in 3D a flight of eight steps along the way, stair areas over all their levels; a "Level" section at the top of the inspector (one level, or "from → to" on stairs with a swap of the direction), whose buttons open the same menu. True slopes would need a custom WebGL layer: MapLibre's fill-extrusion has one base and one top.
 - [ ] Next for stairs: snapping across levels while drawing (a flight drawn on level 0 ends on a way of level 1 and gets `level=0;1`).
 - [ ] Open: the picker's texts in the i18n files; the level a new feature gets is not yet confirmed by the person (MapComplete asks); levels above 3 come from building levels and make the list long (filter to indoor features?); validation rules from [tagging-model.md](../research/indoor/tagging-model.md) (the parser already reports the problems); OSM2World as a panel for the selected building.
+
+### Upstream sync (started 2026-10-23)
+
+The log of iD and Rapid changes since the pins, with the decisions: [docs/upstream/sync/](../upstream/sync/README.md). Skill `upstream-sync`.
+
+- [ ] Move the iD pin to `develop` (1f6118d or later), `bun run refs-setup`, `bun run style-generate`, then `compare`, `bench-smoke`, `check-render`. Brings iD's CSS for `ford` on roads, `waterway=dam` (and port its stacking exception in `OsmWay.ts` and `classes.ts`), `railway=platform_edge`, the updated Font Awesome icons and pinhead 16 (intents id-21, id-24, id-44, id-49, id-58).
+- [ ] The `close_nodes` validation rule, with iD's exception for nodes on different `addr:floor` or `level` (iD 70b17d9, intent id-20; Tobias, 2026-10-23).
+- [ ] A circle from `diameter`, `radius` or `circumference` around a selected point, in metres (iD #9732, intent id-4; Tobias, 2026-10-23).
+- [ ] Later, to optimise: drop a GeoJSON or GPX file on the map. Rapid built a DragAndDropSystem for it; Maid builds its own (intent rapid-6; Tobias, 2026-10-23).

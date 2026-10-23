@@ -3,12 +3,258 @@
   "repo": "https://github.com/bhousel/Rapid.git",
   "branch": "main",
   "base": "413c0519fb803f8b9eb8c7c077906d25b8657f7c",
-  "cursor": "413c0519fb803f8b9eb8c7c077906d25b8657f7c",
+  "cursor": "bc5d50f4830796e13dfea208602f4edea2289706",
   "noise": [
-    { "name": "translations", "files": "^(data/l10n/|dist/locales/|data/core\\.yaml$)|\\.l10n\\." },
-    { "name": "dependencies", "subject": "^(build\\(deps|chore\\(deps|Bump |Update dependency)" },
-    { "name": "ci", "files": "^\\.github/" },
-    { "name": "changelog", "files": "^CHANGELOG\\.md$" }
+    {
+      "name": "translations",
+      "files": "^(data/l10n/|dist/locales/|data/core\\.yaml$)|\\.l10n\\."
+    },
+    {
+      "name": "dependencies",
+      "subject": "^(build\\(deps|chore\\(deps|Bump |Update dependency)"
+    },
+    {
+      "name": "ci",
+      "files": "^\\.github/"
+    },
+    {
+      "name": "changelog",
+      "files": "^CHANGELOG\\.md$"
+    }
   ],
-  "intents": []
+  "intents": [
+    {
+      "id": "noise-dependencies-ebd7d9fc7",
+      "title": "dependencies: 1 commits",
+      "commits": ["ebd7d9fc7b13eeb64e9c9f235384da6568da2bcd"],
+      "decision": "not-relevant",
+      "reason": "noise rule \"dependencies\"",
+      "decidedBy": "rule",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-rapid-1",
+      "title": "UiSuccess screen closes; its text is localizable",
+      "commits": ["97dc50a0aaf51a799ffcf7949b5bf8a7e1e18d8c"],
+      "area": "ui",
+      "decision": "already-have",
+      "reason": "Maid has no sidebar success screen with a close handler that can be dropped: the save result is a lasting toast with a close button, and the changeset links and texts are set in SaveButton, with Paraglide texts. The bug (close X emitting an event after the mode exited) cannot occur in a React toast.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/bhousel/Rapid/commit/97dc50a0aaf51a799ffcf7949b5bf8a7e1e18d8c",
+      "where": [
+        "packages/ui/src/Toast.tsx:74",
+        "packages/ui/src/Toast.tsx:109",
+        "packages/shell/src/components/SaveButton.tsx:125"
+      ]
+    },
+    {
+      "id": "2026-10-23-rapid-2",
+      "title": "Zoom easing no longer flies off (GraphicsSystem._tform)",
+      "commits": ["8c813bc64e8a777795f836a6e468dba99b742ada"],
+      "area": "renderer",
+      "decision": "not-relevant",
+      "reason": "The fix is in Rapid's PixiJS GraphicsSystem tween, which Maid does not have: map zoom and easing are MapLibre's easeTo (grep for flyTo, jumpTo, easeTo, _tform, transformEase found only camera.ts and module-notes). MapLibre interpolates zoom itself, so the log-scale drift cannot happen in Maid.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/bhousel/Rapid/commit/8c813bc64e8a777795f836a6e468dba99b742ada",
+      "where": ["packages/renderer/src/camera.ts:117"]
+    },
+    {
+      "id": "2026-10-23-rapid-3",
+      "title": "utilKeybinding replaced by KeyboardSystem",
+      "commits": ["38c1a0b004cae20bb59048c01a40fd398b6a25ce"],
+      "area": "engine",
+      "decision": "not-relevant",
+      "reason": "Maid's editor keys are one React hook on @tanstack/react-hotkeys (useShortcuts.ts), not utilKeybinding, so the KeyboardSystem class, scopes and rebind API have no counterpart; Rapid's UiRapidInspector A/D/M/R scope exists only in Rapid. Text fields keep their own keys (isTyping in MapView.tsx), and Maid already turns editor keys off behind a dialog (commit 42f286c). Not checked: whether tanstack matches on event.key or event.code.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/bhousel/Rapid/commit/38c1a0b004cae20bb59048c01a40fd398b6a25ce",
+      "where": [
+        "packages/shell/src/useShortcuts.ts:5",
+        "packages/shell/src/components/MapView.tsx:71"
+      ]
+    },
+    {
+      "id": "2026-10-23-rapid-4",
+      "title": "Agent project memory refreshed; one comment in Context.ts updated",
+      "commits": [
+        "72594a9ff41a976e331f2beb3e379a58d50c1cd9",
+        "9ac3f9c3951623424982388e41f7036b66529b31"
+      ],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-rapid-5",
+      "title": "DatabaseSystem wraps IndexedDB: multi-session restore, in-use heartbeat, files stored as Blobs, storage stats (counters reverted, canStoreAsync added)",
+      "commits": [
+        "11a9ac381dfd44c7a9b0aeb7d5a1fbb0e427a4f9",
+        "c28f834fdaa4a1b81793b5e2fc85bc7df8dc32ff",
+        "f726a1628eb867d2969062821d2074fd2ecbc6d1",
+        "9cb032444c2834b32beb3c0fbcf00f326845ed90",
+        "d8f50b431b373c5a43961af7fc01cd82aedd1114",
+        "f0accab54336dc23fd8ea6ebaad2fff9563a7a43",
+        "197aa0a087e5daa0e35b9cc8723d36c684083473"
+      ],
+      "area": "model",
+      "decision": "rejected",
+      "reason": "Multi-session restore is a deliberate difference: docs/architecture/09-storage-and-settings.md section 1 says one tab owns the unsaved edits and that, unlike Rapid, an old journal is migrated rather than refused; Maid keeps one journal per data source (shell journal.ts:54-58), and a second tab is refused by the Web Lock (journal.ts:194-210). The in-use flag is already-have as the Web Lock, released by the browser when the tab closes (journal.ts:464). Files as Blobs is not-relevant: Maid keeps no files (Panel.tsx:297 'a file is kept only until the page is reloaded'). Storage counters and canStoreAsync are already-have as the standing notice when storage fails (RestorePrompt.tsx:41-49, shell journal.ts:62). If Tobias wants a session list, that is a new needs-decision, against the doc.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/bhousel/Rapid/commit/197aa0a08",
+      "where": [
+        "docs/architecture/09-storage-and-settings.md:46",
+        "docs/architecture/09-storage-and-settings.md:48",
+        "packages/shell/src/journal.ts:54",
+        "packages/journal/src/journal.ts:194",
+        "packages/journal/src/journal.ts:464",
+        "packages/shell/src/components/RestorePrompt.tsx:41",
+        "packages/module-data-layers/src/Panel.tsx:297"
+      ]
+    },
+    {
+      "id": "2026-10-23-rapid-6",
+      "title": "Custom Rapid datasets from a picked or dropped file: file picker and drag-and-drop via DragAndDropSystem, file kept in DatabaseSystem, dataset named from the file",
+      "commits": [
+        "a7b6215ed94bedce5a6038d339191fcb8c356c3d",
+        "506efc1ec84665b19b6f30f590d5c400a54ecc91",
+        "a7923fba59373e024f2323b7be7c710423a8b697",
+        "b454d9f30d4373f3fc704161ac8937525439439e",
+        "9a20a12569acad57c314c2459070964f72c2b8a4",
+        "0db92c80a26b1bed4dd99135961c95d97e6b1314"
+      ],
+      "area": "ui",
+      "decision": "later",
+      "reason": "Dropping a GeoJSON/GPX file on the map: Maid will build its own, an optimisation for later. Step in docs/build-out/steps.md (Upstream sync). Rapid's IndexedDB file storage is not wanted (files live until reload).",
+      "decidedBy": "Tobias",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/bhousel/Rapid/commit/0db92c80a26b1bed4dd99135961c95d97e6b1314",
+      "where": [
+        "packages/module-data-layers/src/Panel.tsx:287",
+        "packages/module-data-layers/src/add.ts:170",
+        "packages/shell/src/components/MapView.tsx:71"
+      ]
+    },
+    {
+      "id": "2026-10-23-rapid-7",
+      "title": "Browser bundles built as IIFE, no global-symbol leaks",
+      "commits": ["8a48668e2eb0b3bd53bad5b0c9202b60b9192fa8"],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-rapid-8",
+      "title": "Default imagery selection improved",
+      "commits": ["bcfa3aeaa66108b2f6a4f609c4e460c564c51aec"],
+      "area": "imagery",
+      "decision": "already-have",
+      "reason": "Maid picks the best background only when it covers more than half of the view (coverage.ts:71 coversMoreThanHalf, used by eli.ts:36-50 bestBackgrounds), so a layer that covers only a corner of the view, as San Juan, is not picked; overlays are skipped (eli.ts:43). The stored choice must be valid for the view (start.ts:56) and the order is best, stored, default, first, which matches the upstream order.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/bhousel/Rapid/commit/bcfa3aeaa66108b2f6a4f609c4e460c564c51aec",
+      "where": [
+        "packages/module-imagery/src/start.ts:50",
+        "packages/module-imagery/src/start.ts:56",
+        "packages/module-imagery/src/coverage.ts:71",
+        "packages/module-imagery/src/eli.ts:43"
+      ]
+    },
+    {
+      "id": "2026-10-23-rapid-9",
+      "title": "Eslint warning pacified",
+      "commits": ["5f601e6e9f75314adf3ec73ddebc9e492237ad42"],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-rapid-10",
+      "title": "UiRestore modal cleaned up",
+      "commits": ["fafed82de73dfcf041cf1ded0368f07f08306669"],
+      "area": "ui",
+      "decision": "not-relevant",
+      "reason": "The commit only removes unused CSS and legacy text keys from Rapid's UiRestore modal. Maid's restore dialog is its own React component with its own Paraglide texts (RestorePrompt.tsx:35), so there is nothing to port.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/bhousel/Rapid/commit/fafed82de73dfcf041cf1ded0368f07f08306669",
+      "where": ["packages/shell/src/components/RestorePrompt.tsx:35"]
+    },
+    {
+      "id": "2026-10-23-rapid-11",
+      "title": "NSI startup runs as its own promise chain",
+      "commits": ["71c30d1d66ff142aa18ae89fcee3cf198443dfa4"],
+      "area": "services",
+      "decision": "not-relevant",
+      "reason": "Maid has no name-suggestion-index: the outdated-tags rule says its brand upgrades are not ported because they need NSI data (outdated-tags.ts:8), so there is no NSI startup to reschedule.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/bhousel/Rapid/commit/71c30d1d66ff142aa18ae89fcee3cf198443dfa4",
+      "where": ["packages/validation/src/rules/outdated-tags.ts:8"]
+    },
+    {
+      "id": "2026-10-23-rapid-12",
+      "title": "Imagery data refreshed with bun run imagery",
+      "commits": ["0ce46972cb5f522c5f888fb0a64fb81e2b419445"],
+      "area": "imagery",
+      "decision": "not-relevant",
+      "reason": "Maid keeps no copy of editor_layer_index.json or wayback data (grep for wayback and editor_layer_index found nothing); its imagery index is the npm package @osm-editor-kit/maplibre-editor-layer-index 0.2.0, loaded in eli.ts:22-24, so its data is refreshed in that package. Not checked whether 0.2.0 is current.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/bhousel/Rapid/commit/0ce46972cb5f522c5f888fb0a64fb81e2b419445",
+      "where": ["packages/module-imagery/package.json:15", "packages/module-imagery/src/eli.ts:22"]
+    },
+    {
+      "id": "2026-10-23-rapid-13",
+      "title": "Agent tooling set up for Claude Code; docs refreshed",
+      "commits": ["707e6f89638a8c8ceb24f553cbb2c4f3b1a3cc5f"],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-rapid-14",
+      "title": "Design docs moved from .github/design to design/",
+      "commits": ["1c4fe537fcf978472663dbd38525572185d3d077"],
+      "area": "tooling",
+      "decision": "not-relevant",
+      "reason": "Their tooling, docs or a TypeScript migration without a behaviour change (README: refactors are not relevant)",
+      "decidedBy": "agent",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "2026-10-23-rapid-15",
+      "title": "OSM entities marked seen only once results are delivered; seenIDs and skipSeen removed (PR #4 fixes cancelled loads)",
+      "commits": [
+        "298e1cac7206a4283a212e971b942ce915829784",
+        "eb51d567e581c6be1edd37719b086c57dd8eb9b2",
+        "53f40a208f5a49db7f059c5743cbe58911faf833",
+        "bc5d50f4830796e13dfea208602f4edea2289706"
+      ],
+      "area": "services",
+      "decision": "already-have",
+      "reason": "Maid never marks an entity or tile as seen before its data arrives: a tile becomes loaded only when its answer is parsed, in the same synchronous step as the merge (tile-loader.ts:138-143), and a cancelled or superseded request goes back to idle and merges nothing (tile-loading.ts:125, 181-183, settleLoad rejects a request that is not current). The merge skips entities already in the graph (data.ts:64-67), so there is no seen-set to lose on abort. Leftover: the seenIDs parameter of EditHistory.merge (EditHistory.ts:559, 585-586) is unused by callers, harmless.",
+      "decidedBy": "agent",
+      "date": "2026-10-23",
+      "upstream": "https://github.com/bhousel/Rapid/pull/4",
+      "where": [
+        "packages/renderer/src/tile-loader.ts:138",
+        "packages/renderer/src/tile-loader.ts:143",
+        "packages/renderer/src/tile-loading.ts:125",
+        "packages/renderer/src/tile-loading.ts:181",
+        "packages/renderer/src/data.ts:64",
+        "packages/model/src/edit/EditHistory.ts:559"
+      ]
+    }
+  ]
 }
