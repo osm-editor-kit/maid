@@ -24,7 +24,7 @@
     "@osm-editor-kit/maid-style": "workspace:*",
     "@osm-editor-kit/maid-ui": "workspace:*",
     "@osm-editor-kit/maid-validation": "workspace:*",
-    "@osm-editor-kit/osm-editor-links": "0.1.0-alpha.1",
+    "@osm-editor-kit/osm-editor-links": "0.1.0-alpha.2",
     "@tanstack/react-hotkeys": "^0.13.0",
     "@tanstack/react-query": "^5",
     "maplibre-gl": "^6.0.0",

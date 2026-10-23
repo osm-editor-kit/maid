@@ -506,7 +506,7 @@
         "@osm-editor-kit/maid-style": "workspace:*",
         "@osm-editor-kit/maid-ui": "workspace:*",
         "@osm-editor-kit/maid-validation": "workspace:*",
-        "@osm-editor-kit/osm-editor-links": "0.1.0-alpha.1",
+        "@osm-editor-kit/osm-editor-links": "0.1.0-alpha.2",
         "@tanstack/react-hotkeys": "^0.13.0",
         "@tanstack/react-query": "^5",
         "maplibre-gl": "^6.0.0",
@@ -779,7 +779,7 @@
 
     "@osm-editor-kit/osm-data": ["@osm-editor-kit/osm-data@0.1.0-alpha.1", "", { "dependencies": { "axios": "^1.11.0" } }, "sha512-zeg5ikqp8szNDejc/OKAERzz2/5sVKq65IOTLXbipcufQ08KEBdrb9Z34c4uzCGCQpw5JgHeRR1NCU68Ylx+Dg=="],
 
-    "@osm-editor-kit/osm-editor-links": ["@osm-editor-kit/osm-editor-links@0.1.0-alpha.1", "", { "dependencies": { "@osm-editor-kit/osm-data": "^0.1.0-alpha.1" } }, "sha512-SbBuT2v1TZGWoej2ianCQKPTBvLuBvAzUpZ4Mka3kk4d3BWAL/JAZ1ecnuKaHMKCQNDgZcr38nztJnkBJyKM7w=="],
+    "@osm-editor-kit/osm-editor-links": ["@osm-editor-kit/osm-editor-links@0.1.0-alpha.2", "", { "dependencies": { "@osm-editor-kit/osm-data": "^0.1.0-alpha.1" } }, "sha512-X0bVXopDkmq0qeG3l0ES+eMFociS+jBFNLVTlqzpoc0GvbbjVXTHd1xoH4IBZ+nbiCqc3aK8LLuIVLrbtPv5Vg=="],
 
     "@osm-editor-kit/osm-traffic-sign-field": ["@osm-editor-kit/osm-traffic-sign-field@workspace:packages/traffic-sign-field"],
 
