@@ -204,6 +204,12 @@ describe('keys', () => {
       'full',
     ])
     expect(keys.osmUser(API)).toEqual(['osm', 'user', 'https://api.openstreetmap.org', 'me'])
+    expect(keys.osmChangesets(API, 'Mapper One')).toEqual([
+      'osm',
+      'changesets',
+      'https://api.openstreetmap.org',
+      'Mapper One',
+    ])
     expect(keys.osmCapabilities(API)).toEqual([
       'osm',
       'capabilities',

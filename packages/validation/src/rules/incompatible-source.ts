@@ -39,6 +39,23 @@ function incompatibleRulesFor(source: string) {
   )
 }
 
+/** A mention of a proprietary product in a text: the product's rule, the words that matched, and why it is refused */
+export type IncompatibleMention = { product: string; value: string; reference: string }
+
+/**
+ * The proprietary products a free text names, as iD's `getIncompatibleSources` finds them in a changeset's comment
+ * or source: one mention per product, in the order of the rules. `value` is the first matching words (iD's
+ * `rule.regex.exec(text)[1]`), for the warning "You mentioned "Google" ...". An empty or absent text mentions none.
+ */
+export function incompatibleSourceMentions(text: string | undefined): IncompatibleMention[] {
+  if (!text) return []
+  return incompatibleRulesFor(text).map((rule) => ({
+    product: rule.id,
+    value: rule.regex.exec(text)?.[1] ?? '',
+    reference: rule.reference,
+  }))
+}
+
 /**
  * Features whose `source` tag names a proprietary product (Google, Baidu, Amap). One issue per
  * source value and matching product. The fix is by hand: iD's fix only says "remove proprietary

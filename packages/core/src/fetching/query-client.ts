@@ -103,6 +103,9 @@ export const keys = {
   osmRelation: (apiUrl: string, id: number) =>
     ['osm', 'relation', originOf(apiUrl), id, 'full'] as const,
   osmUser: (apiUrl: string) => ['osm', 'user', originOf(apiUrl), 'me'] as const,
+  /** The recent changesets of one person (the display name), for the save flyout's suggestions */
+  osmChangesets: (apiUrl: string, user: string) =>
+    ['osm', 'changesets', originOf(apiUrl), user] as const,
   osmCapabilities: (apiUrl: string) => ['osm', 'capabilities', originOf(apiUrl)] as const,
   photos: (provider: PhotoProvider, z: number, x: number, y: number, filters: KeyParams) =>
     [provider, 'photos', z, x, y, filters] as const,

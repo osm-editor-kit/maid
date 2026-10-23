@@ -1,7 +1,13 @@
-import { ArrowUpTrayIcon } from '@heroicons/react/20/solid'
+import { ArrowUpTrayIcon, CheckIcon, ExclamationTriangleIcon } from '@heroicons/react/20/solid'
 import { m } from '@osm-editor-kit/maid-i18n'
-import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
-import { Flyout, notify, toolButtonClass, Tooltip } from '@osm-editor-kit/maid-ui'
+import {
+  Flyout,
+  notify,
+  SemiComboField,
+  SuggestTextarea,
+  toolButtonClass,
+  Tooltip,
+} from '@osm-editor-kit/maid-ui'
 import { useQueryStates } from 'nuqs'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useAuth } from '../auth'
@@ -9,8 +15,19 @@ import { CHANGESET_URL } from '../config'
 import { saveBlocked } from '../save/blocked'
 import { draftHashtags, linksOf, type Draft } from '../save/changeset-draft'
 import { useChangesetDraft, useChangesetDraftActions } from '../save/changeset-draft-store'
+import { changesetHistoryActions } from '../save/changeset-history-store'
+import {
+  commentSuggestions,
+  hasSource,
+  sourceChips,
+  sourceField,
+  sourceLabel,
+  toggleSource,
+} from '../save/changeset-suggestions'
+import { changesetWarnings, COPYRIGHT_URL, type ChangesetWarning } from '../save/changeset-warnings'
 import { summaryOf, type ChangeElement, type OsmChange } from '../save/osm-change'
 import { pendingChange, uploadEdits, uploadErrors } from '../save/save'
+import { useRecentChangesetValues } from '../save/use-recent-changesets'
 import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
 import { stateParams } from '../url/params'
@@ -25,6 +42,14 @@ const linkParams = {
 /** The look of the changeset's text fields */
 const FIELD =
   'w-full rounded-md border border-zinc-950/10 bg-white px-2 py-1.5 text-sm placeholder:text-zinc-400 focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-white/10 dark:bg-zinc-950 dark:placeholder:text-zinc-500'
+
+/** A chip that is one click: a recent source, filled when it is in the changeset's source */
+const SOURCE_CHIP =
+  'inline-flex h-6 max-w-full cursor-pointer items-center gap-1 rounded-full border px-2.5 text-xs focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-500'
+const SOURCE_CHIP_OFF =
+  'border-zinc-950/15 text-zinc-700 hover:bg-zinc-950/5 dark:border-white/15 dark:text-zinc-300 dark:hover:bg-white/10'
+const SOURCE_CHIP_ON =
+  'border-blue-600/40 bg-blue-600/10 font-medium text-blue-800 hover:bg-blue-600/20 dark:border-blue-400/40 dark:bg-blue-400/15 dark:text-blue-200 dark:hover:bg-blue-400/25'
 
 /** What the panel shows before the draft starts (a single frame, see `SavePanel`) */
 const NO_DRAFT: Draft = { comment: '' }
@@ -80,6 +105,26 @@ export function ChangeRows(props: {
   )
 }
 
+/** The warnings under a field that names a product OSM must not copy from. They never block the upload. */
+function Warnings(props: { id: string; items: readonly ChangesetWarning[] }) {
+  if (props.items.length === 0) return null
+  return (
+    <ul id={props.id} className="flex flex-col gap-1 text-xs text-amber-700 dark:text-amber-300">
+      {props.items.map((warning) => (
+        <li key={warning.id} className="flex gap-1.5">
+          <ExclamationTriangleIcon aria-hidden="true" className="mt-px size-4 shrink-0" />
+          <span>
+            {warning.text}{' '}
+            <a className="underline" href={COPYRIGHT_URL} target="_blank" rel="noopener noreferrer">
+              OpenStreetMap copyright
+            </a>
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 /**
  * The inside of the save flyout: what changed, the changeset comment, and the upload. A successful
  * upload closes the flyout (`onSaved`), and the toast tells the changeset. A failure stays here.
@@ -103,6 +148,13 @@ function SavePanel(props: {
   } = useChangesetDraftActions()
   const [failure, setFailure] = useState<string>()
   const noteId = useId()
+  const commentId = useId()
+  const sourceId = useId()
+  const warningsId = useId()
+  // what the person uploaded with before, and their recent changesets on the server (as iD's comment and source lists)
+  const recent = useRecentChangesetValues()
+  const sourceInput = sourceField(editor.presets?.field('source'), recent.sources)
+  const warnings = changesetWarnings(draft)
   // read again after every edit
   const change = useEngine(() => pendingChange(editor))
   // the OSM API limits on what is changed: a tag too long for the API blocks the upload
@@ -125,6 +177,8 @@ function SavePanel(props: {
         uploadEdits(shell, draft).then(
           ({ changesets, selection }) => {
             onUploading(false)
+            // the comment and the sources are offered again next time
+            changesetHistoryActions.remember(draft)
             // the next changeset starts again from the links (iD's clearSaved and flush)
             resetDraft()
             onSaved()
@@ -167,35 +221,66 @@ function SavePanel(props: {
         </p>
       </div>
       {rows.length > 0 && <ChangeRows rows={rows} />}
-      <label className="flex flex-col gap-1">
-        <span className="font-medium">Changeset comment</span>
-        <textarea
-          {...PLAIN_INPUT}
+      <div className="flex flex-col gap-1">
+        <label htmlFor={commentId} className="font-medium">
+          Changeset comment
+        </label>
+        <SuggestTextarea
+          id={commentId}
+          label="Your recent comments"
           rows={3}
           maxLength={255}
           value={draft.comment}
-          onChange={(event) => editDraft({ comment: event.currentTarget.value })}
+          suggestions={commentSuggestions(recent.comments, draft.comment)}
+          onChange={(comment) => editDraft({ comment })}
           onBlur={() => commitDraftFields(Date.now())}
           placeholder="What did you change, and from which source?"
           className={FIELD}
+          describedBy={warnings.comment.length > 0 ? `${warningsId}-comment` : undefined}
         />
         {hashtags && (
           <span className="text-xs text-zinc-500 dark:text-zinc-400">Hashtags: {hashtags}</span>
         )}
-      </label>
-      <label className="flex flex-col gap-1">
-        <span className="font-medium">Source</span>
-        <input
-          {...PLAIN_INPUT}
-          type="text"
-          maxLength={255}
-          value={draft.source ?? ''}
-          onChange={(event) => editDraft({ source: event.currentTarget.value })}
-          onBlur={() => commitDraftFields(Date.now())}
-          placeholder="e.g. survey, Bing aerial imagery"
-          className={FIELD}
+        <Warnings id={`${warningsId}-comment`} items={warnings.comment} />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor={sourceId} className="font-medium">
+          Source
+        </label>
+        <SemiComboField
+          id={sourceId}
+          field={sourceInput}
+          tags={draft.source === undefined ? {} : { source: draft.source }}
+          onChange={(_key, source) => {
+            editDraft({ source })
+            commitDraftFields(Date.now())
+          }}
         />
-      </label>
+        {recent.sources.length > 0 && (
+          <div role="group" aria-label="Recent sources" className="flex flex-wrap gap-1.5">
+            {sourceChips(recent.sources).map((value) => {
+              const on = hasSource(draft.source, value)
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={on}
+                  title={value}
+                  onClick={() => {
+                    editDraft({ source: toggleSource(draft.source, value) })
+                    commitDraftFields(Date.now())
+                  }}
+                  className={`${SOURCE_CHIP} ${on ? SOURCE_CHIP_ON : SOURCE_CHIP_OFF}`}
+                >
+                  {on && <CheckIcon aria-hidden="true" className="-ml-1 size-3.5 shrink-0" />}
+                  <span className="min-w-0 truncate">{sourceLabel(sourceInput, value)}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+        <Warnings id={`${warningsId}-source`} items={warnings.source} />
+      </div>
       <button
         type="submit"
         disabled={blocked !== undefined || uploading || rows.length === 0 || !draft.comment.trim()}
