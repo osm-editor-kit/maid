@@ -17,6 +17,7 @@
     "@osm-editor-kit/maid-module-lenses": "workspace:*",
     "@osm-editor-kit/maid-module-levels": "workspace:*",
     "@osm-editor-kit/maid-module-notes": "workspace:*",
+    "@osm-editor-kit/maid-module-osmchange": "workspace:*",
     "@osm-editor-kit/maid-module-reroute": "workspace:*",
     "@osm-editor-kit/maid-module-street-imagery": "workspace:*",
     "@osm-editor-kit/maid-module-surface": "workspace:*",

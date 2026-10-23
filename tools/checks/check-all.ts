@@ -46,6 +46,7 @@ const CHECKS = [
   'favourites',
   'tooltips',
   'levels',
+  'osmchange',
 ] as const
 type CheckName = (typeof CHECKS)[number]
 
@@ -61,6 +62,7 @@ const MODULE_CHECKS = new Set<CheckName>([
   'divide',
   'touch',
   'levels',
+  'osmchange',
 ])
 
 /** Checks that need the relations scene (routes with route masters), for every app */
@@ -90,6 +92,8 @@ const RUNS: Run[] = [
   // the level mode of module-levels, on in the maid and the bicycle app, on the indoor scene (Berlin Hauptbahnhof)
   { name: 'levels', check: 'levels', scene: 'indoor', only: 'maid' },
   { name: 'levels', check: 'levels', scene: 'indoor', only: 'bicycle' },
+  // module-osmchange, on in the bicycle app: an osmChange file merged with the mock and its hand-written history
+  { name: 'osmchange', check: 'osmchange', only: 'bicycle' },
 ]
 
 /**
@@ -127,6 +131,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   'merge-polygon': { maid: 23, bicycle: 23, parking: 23 },
   favourites: { maid: 13, bicycle: 13, parking: 13 },
   tooltips: { maid: 11, bicycle: 11, parking: 11 },
+  osmchange: { maid: 0, bicycle: 31, parking: 0 },
 }
 
 type CheckResult = {

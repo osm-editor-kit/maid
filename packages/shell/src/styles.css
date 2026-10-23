@@ -18,6 +18,7 @@
 @source '../../module-way-table/src';
 @source '../../module-reroute/src';
 @source '../../module-shapes/src';
+@source '../../module-osmchange/src';
 
 /* dark mode is a class on <html>, set by maid-ui's theme (light, dark or system) */
 @custom-variant dark (&:where(.dark, .dark *));

@@ -54,6 +54,7 @@
     "check-undo": "bun tools/bench/undo.ts",
     "check-validation": "bun tools/bench/validation-check.ts",
     "check-way-table": "bun tools/bench/way-table-check.ts",
+    "check-osmchange": "bun tools/bench/osmchange-check.ts",
     "compare": "bun apps/compare/start.ts",
     "dev": "bun run i18n-compile && bun run --parallel dev-maid dev-bicycle dev-parking dev-api",
     "dev-api": "bun tools/mock-osm-api/server.ts",

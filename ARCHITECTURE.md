@@ -44,7 +44,7 @@ reports/             output of benchmarks and checks (mostly git-ignored)
 | Core | `core` | `createEditor`, `defineModule`, registries for extension points, hooks, module URL parameters, fetching |
 | Map | `renderer`, `style` | Features to MapLibre layers, drawing and dragging (the engine), iD's look as data |
 | Interface | `ui`, `shell`, `i18n` | Components and inspector fields; the shell that mounts an app; Paraglide texts |
-| Modules | `module-*` | Imagery, street-level images, data layers, notes, lenses, parking, shapes, surface, traffic signs, turn restrictions, way table, reroute |
+| Modules | `module-*` | Imagery, street-level images, data layers, notes, lenses, parking, shapes, surface, traffic signs, turn restrictions, way table, reroute, osmchange |
 
 All packages are named `@osm-editor-kit/maid-<folder>` ([why](docs/architecture/03-packages.md#package-names)) and are
 imported by that name, through the `exports` in their `package.json`. A package never imports another package's
@@ -70,7 +70,7 @@ What each app turns on today:
 | App | Port | Modules beyond the shared set |
 | --- | --- | --- |
 | `apps/maid` | 5173 | turn restrictions, surface |
-| `apps/maid-bicycle` | 5176 | turn restrictions, surface, traffic signs, way table, reroute |
+| `apps/maid-bicycle` | 5176 | turn restrictions, surface, traffic signs, way table, reroute, osmchange |
 | `apps/maid-parking` | 5177 | parking (with its lens and rules), shapes (angle snap with lengths, rectangle, merge, cut, divide) |
 
 The shared set is the same in all three: element info, operations, relations, validation, imagery, data layers, lenses,
@@ -128,6 +128,8 @@ merging into `ExtensionPoints` of `@osm-editor-kit/maid-core`, in its `src/exten
 | `inspector.field` | ui | The component for a field type | traffic signs |
 | `dock.view` | ui | A tab in the bottom dock | way table |
 | `topbar.panel` | ui | A flyout behind an icon in the top bar | imagery |
+| `account.item` | ui | An entry in the account menu, for a rarely needed job | osmchange |
+| `changeset.tags` | ui | Tags of a module on the changeset of an upload, and a comment the save form starts with | osmchange |
 | `note.selection` | module-notes | What the notes panel shows for a selected note | notes |
 
 `bun run check-config` loads each app's config without a browser and checks the ids and the ports, that each

@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hand-made for check-osmchange: ids of fixtures/small, older versions in tools/mock-osm-api/history/small.json -->
+<osmChange version="0.6" generator="Go Map!! (test)">
+  <create>
+    <node id="-1" lat="52.3866" lon="13.399">
+      <tag k="amenity" v="bicycle_parking"/>
+      <tag k="bicycle_parking" v="stands"/>
+      <tag k="capacity" v="6"/>
+    </node>
+    <node id="-2" lat="52.3868" lon="13.3992"/>
+    <node id="-3" lat="52.3868" lon="13.3997"/>
+    <way id="-4">
+      <nd ref="-2"/>
+      <nd ref="-3"/>
+      <tag k="highway" v="footway"/>
+    </way>
+    <node id="-5" lat="52.3854787" lon="13.3994422">
+      <tag k="addr:city" v="Berlin"/>
+      <tag k="addr:country" v="DE"/>
+      <tag k="addr:housenumber" v="13A"/>
+      <tag k="addr:postcode" v="12307"/>
+      <tag k="addr:street" v="Briesingstraße"/>
+      <tag k="addr:suburb" v="Lichtenrade"/>
+      <tag k="amenity" v="doctors"/>
+      <tag k="check_date" v="2025-01-25"/>
+      <tag k="contact:email" v="info@arztpraxis-zadeh.de"/>
+      <tag k="contact:fax" v="+49 30 744 39 70"/>
+      <tag k="contact:phone" v="+49 30 744 50 50"/>
+      <tag k="contact:website" v="http://www.arztpraxis-mehdi-zadeh.de/"/>
+      <tag k="healthcare" v="doctor"/>
+      <tag k="healthcare:speciality" v="general"/>
+      <tag k="level" v="0"/>
+      <tag k="name" v="Arztpraxis Mehdi Zadeh"/>
+      <tag k="opening_hours" v="We 08:30-11:30 &quot;nur telefonisch&quot;; Mo,Th 08:00-12:00,15:30-18:00; Tu,Fr 08:00-12:00; PH off"/>
+      <tag k="opening_hours:url" v="http://www.arztpraxis-mehdi-zadeh.de/sprechstunden.html"/>
+      <tag k="wheelchair" v="no"/>
+    </node>
+  </create>
+  <modify>
+    <node id="585143211" version="10" lat="52.3865069" lon="13.3936411">
+      <tag k="check_date:opening_hours" v="2026-06-24"/>
+      <tag k="email" v="info@Fahrradladen-Lichtenrade.de"/>
+      <tag k="name" v="Fahrradladen Lichtenrade"/>
+      <tag k="opening_hours" v="Tu-Fr 10:00-18:00; Sa 09:00-14:00; Mo off; PH off"/>
+      <tag k="phone" v="+49 30 28470710"/>
+      <tag k="service:bicycle:repair" v="yes"/>
+      <tag k="shop" v="bicycle"/>
+      <tag k="website" v="http://www.fahrradladen-lichtenrade.de/"/>
+      <tag k="wheelchair" v="yes"/>
+    </node>
+    <node id="364123000" version="21" lat="52.386553" lon="13.3984484">
+      <tag k="amenity" v="toilets"/>
+      <tag k="centralkey" v="eurokey"/>
+      <tag k="description" v="hat 2 frei zugängliche Pissoirs"/>
+      <tag k="fee" v="no"/>
+      <tag k="name" v="City Toilette"/>
+      <tag k="opening_hours" v="24/7"/>
+      <tag k="operator" v="Wall"/>
+      <tag k="operator:wikidata" v="Q1310189"/>
+      <tag k="toilets:wheelchair" v="yes"/>
+      <tag k="unisex" v="yes"/>
+      <tag k="wheelchair" v="limited"/>
+    </node>
+    <node id="420517141" version="14" lat="52.3864845" lon="13.4036823">
+      <tag k="addr:city" v="Berlin"/>
+      <tag k="addr:country" v="DE"/>
+      <tag k="addr:housenumber" v="51"/>
+      <tag k="addr:postcode" v="12305"/>
+      <tag k="addr:street" v="Bahnhofstraße"/>
+      <tag k="amenity" v="doctors"/>
+      <tag k="check_date:opening_hours" v="2025-11-28"/>
+      <tag k="healthcare" v="doctor"/>
+      <tag k="healthcare:speciality" v="general;internal"/>
+      <tag k="name" v="Agnes Kranz"/>
+      <tag k="opening_hours" v="Mo,We,Th 14:00-19:00; Tu,Fr 09:00-13:00"/>
+      <tag k="toilets:wheelchair" v="no"/>
+      <tag k="wheelchair" v="limited"/>
+    </node>
+    <node id="444731308" version="10" lat="52.3879338" lon="13.3973796">
+      <tag k="addr:city" v="Berlin"/>
+      <tag k="addr:housenumber" v="41"/>
+      <tag k="addr:postcode" v="12307"/>
+      <tag k="addr:street" v="Steinstraße"/>
+      <tag k="addr:suburb" v="Lichtenrade"/>
+      <tag k="alt_name" v="Edith-Stein-Bibliothek"/>
+      <tag k="amenity" v="library"/>
+      <tag k="changing_table" v="yes"/>
+      <tag k="contact:email" v="stabi-lichtenrade@ba-ts.berlin.de"/>
+      <tag k="contact:phone" v="+49 30 902778286"/>
+      <tag k="contact:website" v="https://www.berlin.de/stadtbibliothek-tempelhof-schoeneberg/bibliotheken/stadtteilbibliothek-lichtenrade/"/>
+      <tag k="level" v="0,1"/>
+      <tag k="name" v="Stadtteilbibliothek Lichenrade"/>
+      <tag k="opening_hours" v="Mo-Fr 11:00-18:00"/>
+      <tag k="toilets" v="yes"/>
+      <tag k="toilets:access" v="customers"/>
+      <tag k="toilets:wheelchair" v="designated"/>
+      <tag k="wheelchair" v="yes"/>
+      <tag k="wikidata" v="Q125306889"/>
+    </node>
+    <way id="4394952" version="22">
+      <nd ref="3316730880"/>
+      <nd ref="13103664535"/>
+      <nd ref="34648668"/>
+      <tag k="cycleway:both" v="no"/>
+      <tag k="highway" v="residential"/>
+      <tag k="lane_markings" v="no"/>
+      <tag k="lit" v="yes"/>
+      <tag k="mapillary" v="1152590256048370"/>
+      <tag k="maxspeed" v="50"/>
+      <tag k="name" v="Briesingstraße"/>
+      <tag k="name:etymology:wikidata" v="Q98142645"/>
+      <tag k="parking:both" v="no"/>
+      <tag k="postal_code" v="12307"/>
+      <tag k="sidewalk" v="both"/>
+      <tag k="sidewalk:both:surface" v="paving_stones"/>
+      <tag k="source:width" v="Messung aus Punktwolke (Infra3DViewer)"/>
+      <tag k="surface" v="paving_stones"/>
+      <tag k="width" v="8"/>
+    </way>
+  </modify>
+  <delete if-unused="true">
+    <node id="307178734" version="8" lat="52.3871516" lon="13.4064576"/>
+    <node id="421299912" version="12" lat="52.3865106" lon="13.4016296"/>
+  </delete>
+</osmChange>
