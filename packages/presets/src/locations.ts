@@ -12,6 +12,12 @@ const WORLD = '+[Q2]'
 export type Locations = {
   /** ISO 3166-1 alpha-2 code in lower case, or undefined outside every country (iD's iso1A2Code). */
   countryAt(loc: LonLat): string | undefined
+  /**
+   * The countries of a point, most specific first, as iD's address field looks them up: the territory (`hk`, `gl`),
+   * then the country (`cn`, `dk`). Lower case, each once; empty outside every country.
+   * `countryAt` is the country alone.
+   */
+  countryCodesAt(loc: LonLat): readonly string[]
   /** True when there is no location set, or when the set holds at `loc` (iD's `locationSetsAt(loc).has(id)`). */
   matchesLocation(locationSet: LocationSet | undefined, loc: LonLat): boolean
 }
@@ -90,6 +96,7 @@ export function createLocations(): Locations {
     regions?: { loc: LonLat; value: ReadonlySet<string> }
     hits?: { loc: LonLat; value: ReadonlyMap<string, number> }
     country?: { loc: LonLat; value: string | undefined }
+    countries?: { loc: LonLat; value: readonly string[] }
   } = { idByObject: new WeakMap(), idByJson: new Map(), regionSets: new WeakMap() }
 
   function engine() {
@@ -148,6 +155,18 @@ export function createLocations(): Locations {
       const code = iso1A2Code([loc[0], loc[1]])
       const value = code ? code.toLowerCase() : undefined
       state.country = { loc: [loc[0], loc[1]], value }
+      return value
+    },
+    countryCodesAt(loc) {
+      const last = state.countries
+      if (last && last.loc[0] === loc[0] && last.loc[1] === loc[1]) return last.value
+      // iD: iso1A2Code with the territory level first, then the country level (address.js, updateForCountryCodes)
+      const codes = [
+        iso1A2Code([loc[0], loc[1]], { level: 'territory' }),
+        iso1A2Code([loc[0], loc[1]]),
+      ]
+      const value = [...new Set(codes.flatMap((code) => (code ? [code.toLowerCase()] : [])))]
+      state.countries = { loc: [loc[0], loc[1]], value }
       return value
     },
     matchesLocation(locationSet, loc) {

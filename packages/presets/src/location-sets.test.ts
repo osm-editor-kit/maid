@@ -243,6 +243,7 @@ describe('location sets: the API for a caller', () => {
   it('reports the country of a point and whether a location set holds there', () => {
     const api: Presets = presets
     expect(api.countryAt(BERLIN)).toBe('de')
+    expect(api.countryCodesAt(BERLIN)).toEqual(['de'])
     expect(api.matchesLocation({ include: ['DE', 'AT'] }, BERLIN)).toBe(true)
     expect(api.matchesLocation({ include: ['DE', 'AT'] }, PARIS)).toBe(false)
     expect(api.matchesLocation(undefined, PARIS)).toBe(true)

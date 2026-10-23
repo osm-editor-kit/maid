@@ -184,6 +184,11 @@ export type Presets = {
    * undefined outside every country. iD's `countryCoder.iso1A2Code`. The borders ship with the package.
    */
   countryAt(loc: LonLat): string | undefined
+  /**
+   * The territory and then the country of a point, lower case and each once (`['hk', 'cn']`, `['de']`), as iD's address
+   * field tries them; empty outside every country. The address field takes the first one with a layout.
+   */
+  countryCodesAt(loc: LonLat): readonly string[]
   /** iD's area keys: key → values that are NOT areas. Same shape as iD's `areaKeys`. The object is built once; do not mutate it. */
   areaKeys(): Record<string, Record<string, true>>
   /**

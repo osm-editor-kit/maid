@@ -34,6 +34,32 @@ describe('countryAt', () => {
   })
 })
 
+// Hong Kong and Macao lie in China and Greenland in Denmark; the territory comes first, as iD's address field tries it.
+const HONG_KONG: LonLat = [114.1694, 22.3193]
+const MACAO: LonLat = [113.5439, 22.1987]
+const GREENLAND: LonLat = [-51.7214, 64.1836]
+
+describe('countryCodesAt', () => {
+  it('gives the territory, then the country, in lower case and each once', () => {
+    const locations = createLocations()
+    expect(locations.countryCodesAt(HONG_KONG)).toEqual(['hk', 'cn'])
+    expect(locations.countryCodesAt(MACAO)).toEqual(['mo', 'cn'])
+    expect(locations.countryCodesAt(GREENLAND)).toEqual(['gl', 'dk'])
+    expect(locations.countryCodesAt(BERLIN)).toEqual(['de'])
+  })
+
+  it('gives no code outside every country', () => {
+    expect(createLocations().countryCodesAt(OCEAN)).toEqual([])
+  })
+
+  it('keeps countryAt to the country alone', () => {
+    const locations = createLocations()
+    expect(locations.countryAt(HONG_KONG)).toBe('cn')
+    expect(locations.countryAt(GREENLAND)).toBe('dk')
+    expect(locations.countryAt(BERLIN)).toBe('de')
+  })
+})
+
 describe('matchesLocation', () => {
   it('holds everywhere when there is no location set', () => {
     expect(createLocations().matchesLocation(undefined, PARIS)).toBe(true)

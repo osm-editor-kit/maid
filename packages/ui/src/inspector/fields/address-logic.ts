@@ -68,12 +68,28 @@ export function addressPrefix(field: Pick<Field, 'key' | 'keys'>) {
   return DEFAULT_PREFIX
 }
 
-/** The layout of a country (iD's ISO code, in any case). Without a match, or without a country, the default. */
-export function formatFor(country?: string) {
-  const code = country?.toLowerCase()
-  const match =
-    code === undefined ? undefined : ADDRESS_FORMATS.find((f) => f.countryCodes?.includes(code))
-  return match ?? ADDRESS_FORMATS.find((f) => f.countryCodes === undefined) ?? { format: [] }
+/**
+ * The country of a feature: one ISO code (iD's, in any case), or the list of its codes, the territory first and then
+ * the country (`['hk', 'cn']`, as `countryCodesAt`).
+ */
+export type Countries = string | readonly string[]
+
+/** The first code of the countries (the territory when there is one, as iD's placeholders use). */
+function firstCode(country: Countries | undefined) {
+  return typeof country === 'string' ? country : country?.[0]
+}
+
+/**
+ * The layout of a feature: the layout of its first code that has one, as iD's loop over its country codes. Without a
+ * match, or without a country, the default.
+ */
+export function formatFor(country?: Countries) {
+  const codes = typeof country === 'string' ? [country] : (country ?? [])
+  for (const code of codes) {
+    const match = ADDRESS_FORMATS.find((f) => f.countryCodes?.includes(code.toLowerCase()))
+    if (match) return match
+  }
+  return ADDRESS_FORMATS.find((f) => f.countryCodes === undefined) ?? { format: [] }
 }
 
 /** The tag names of an input: `street+place` is `street` and `place`. */
@@ -94,7 +110,7 @@ function nameOf(prefix: string, key: string) {
  * The tag keys the field owns: its keys, plus the keys of every input the country's layout names
  * (a layout can name a key that the schema does not list).
  */
-export function ownedKeys(field: Pick<Field, 'key' | 'keys'>, country?: string) {
+export function ownedKeys(field: Pick<Field, 'key' | 'keys'>, country?: Countries) {
   const prefix = addressPrefix(field)
   const named = formatFor(country)
     .format.flat()
@@ -119,7 +135,7 @@ function equalCells(names: readonly string[]) {
  * does not show but that has a value (nothing is hidden). The street-or-place input shows the
  * street when both have a value, so `place` then needs its own input.
  */
-export function addressRows(field: Field, tags: Tags, country?: string) {
+export function addressRows(field: Field, tags: Tags, country?: Countries) {
   const prefix = addressPrefix(field)
   const layout = formatFor(country)
   const widths = layout.widths ?? DEFAULT_WIDTHS
@@ -187,15 +203,18 @@ export function modeSwitchEdits(tags: Tags, prefix: string, to: StreetOrPlace) {
   ]
 }
 
-/** The placeholder of an input: the country's variant (`name!cc`) when there is one, else the English one. */
-export function placeholderFor(name: string, country?: string) {
-  const code = country?.toLowerCase()
+/**
+ * The placeholder of an input: the variant of its first country (`name!cc`) when there is one, else the English one.
+ * As iD, only the first code is tried.
+ */
+export function placeholderFor(name: string, country?: Countries) {
+  const code = firstCode(country)?.toLowerCase()
   const local = code === undefined ? undefined : ADDRESS_PLACEHOLDERS[`${name}!${code}`]
   return local ?? ADDRESS_PLACEHOLDERS[name] ?? name
 }
 
 /** The placeholder of an input, as iD shows it: `Street / Place` for the street-or-place input. */
-export function slotPlaceholder(name: string, country?: string) {
+export function slotPlaceholder(name: string, country?: Countries) {
   if (name !== STREET_PLACE) return placeholderFor(name, country)
   return `${placeholderFor('street', country)} / ${placeholderFor('place', country)}`
 }

@@ -1121,6 +1121,7 @@ export function createPresets(data: PresetData): Presets {
     matchesLocation: (locationSet, loc) => locations.matchesLocation(locationSet, loc),
     deprecatedTags: (tags) => deprecatedTagsOf(tags, deprecated),
     countryAt: (loc) => locations.countryAt(loc),
+    countryCodesAt: (loc) => locations.countryCodesAt(loc),
     areaKeys: () => areaKeys,
     search,
     matchScore: (preset, tags) => matchScore(preset, tags),

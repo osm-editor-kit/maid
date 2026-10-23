@@ -216,7 +216,7 @@ export function Inspector() {
   // the address field's country and the features near this one: found only when an address field is shown
   const address =
     presets && loc && [...fields, ...moreFields].some((field) => field.type === 'address')
-      ? { country: presets.countryAt(loc), candidates: engine.nearby(id) }
+      ? { country: presets.countryCodesAt(loc), candidates: engine.nearby(id) }
       : undefined
   // a feature that was just added and has no type yet asks for it right away, as iD's inspector does for its new
   // feature. "No type yet" is a fallback preset (no tags, or only area=*), so a new area with area=yes asks too;

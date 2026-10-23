@@ -16,6 +16,7 @@ import {
   suggestionsFor,
   type AddressCell,
   type AddressSuggestions,
+  type Countries,
   type StreetOrPlace,
 } from './address-logic.ts'
 import { ComboField } from './Combo.tsx'
@@ -25,8 +26,11 @@ import type { CombinedTags, FieldProps, MixedValue } from './shared.ts'
 import { LIMITED } from './shared.ts'
 
 export type AddressFieldProps = FieldProps & {
-  /** The feature's country, as an ISO code (`de`). Without it the default layout is used. */
-  country?: string
+  /**
+   * The feature's countries: an ISO code (`de`), or the territory and the country (`['hk', 'cn']`).
+   * Without them the default layout is used.
+   */
+  country?: Countries
   /** Names from the features near this one, for the street, city and postcode inputs. */
   suggestions?: AddressSuggestions
 }
@@ -107,7 +111,7 @@ type SlotProps = {
   id?: string
   tags: Tags
   prefix: string
-  country?: string
+  country?: Countries
   suggestions?: AddressSuggestions
   combined?: CombinedTags
   onChange: FieldProps['onChange']

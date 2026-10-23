@@ -1,4 +1,5 @@
-// Ported from iD data/address_formats.json (ISC, © iD contributors), at commit 0194f3926.
+// Ported from iD data/address_formats.json (ISC, © iD contributors), at commit 0194f3926; the hk and mo layouts
+// from commit 2fc990a94 (territory-aware address hints).
 // The placeholders are id-tagging-schema's English strings for fields.address (ISC, © iD contributors).
 
 /**
@@ -73,6 +74,14 @@ export const ADDRESS_FORMATS: readonly AddressFormat[] = [
     ],
   },
   {
+    countryCodes: ['hk'],
+    format: [
+      ['door', 'floor'],
+      ['unit', 'housename'],
+      ['housenumber', 'street+place'],
+    ],
+  },
+  {
     countryCodes: ['ma'],
     format: [['housename'], ['housenumber', 'street+place'], ['postcode', 'city']],
   },
@@ -86,10 +95,7 @@ export const ADDRESS_FORMATS: readonly AddressFormat[] = [
   },
   {
     countryCodes: ['mo'],
-    format: [
-      ['housenumber', 'street'],
-      ['postcode', 'city'],
-    ],
+    format: [['street', 'housenumber', 'unit'], ['floor']],
   },
   {
     countryCodes: ['nz'],

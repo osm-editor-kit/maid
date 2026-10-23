@@ -118,6 +118,35 @@ describe('formatFor', () => {
     expect(formatFor('fr').format[0]).toEqual(['housenumber', 'street+place'])
   })
 
+  test('Hong Kong and Macao have their own layouts, as iD (2fc990a94), not the one of China', () => {
+    expect(formatFor('hk').format).toEqual([
+      ['door', 'floor'],
+      ['unit', 'housename'],
+      ['housenumber', 'street+place'],
+    ])
+    expect(formatFor('mo').format).toEqual([['street', 'housenumber', 'unit'], ['floor']])
+    expect(formatFor('hk')).not.toEqual(formatFor('cn'))
+  })
+
+  test('a list of codes gives the layout of its first code that has one, as iD (territory first)', () => {
+    // Hong Kong and Macao: the territory has a layout, so the country's (cn) is not used
+    expect(formatFor(['hk', 'cn'])).toEqual(formatFor('hk'))
+    expect(formatFor(['mo', 'cn'])).toEqual(formatFor('mo'))
+    // Greenland has no layout of its own, so the country's (dk) is used, as before the territory lookup
+    expect(formatFor(['gl', 'dk'])).toEqual(formatFor('dk'))
+    expect(formatFor(['de'])).toEqual(formatFor('de'))
+    expect(formatFor(['xx', 'de'])).toEqual(formatFor('de'))
+    expect(formatFor(['xx', 'yy'])).toEqual(formatFor())
+    expect(formatFor([])).toEqual(formatFor())
+  })
+
+  test('the placeholder variant comes from the first code only, as iD', () => {
+    expect(placeholderFor('city', ['cn', 'jp'])).toBe('City/Prefecture/League')
+    expect(placeholderFor('city', ['jp', 'cn'])).toBe('City/Town/Village/Tokyo Special Ward')
+    // the second code has a variant, but iD does not look at it
+    expect(placeholderFor('city', ['xx', 'jp'])).toBe('City')
+  })
+
   test('the country layouts of iD name a country at most once', () => {
     const codes = ADDRESS_FORMATS.flatMap((f) => f.countryCodes ?? [])
     expect(new Set(codes).size).toBe(codes.length)
