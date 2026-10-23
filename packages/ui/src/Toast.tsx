@@ -157,6 +157,14 @@ export const notify = {
  * the top, so neither covers them.
  */
 const OFFSET = { top: 96, right: 64 }
+/*
+ * The stacking order of the floating layers: map controls 10, sidebar headings 20, resize handles and hints 30,
+ * toasts 35, flyouts, the bottom sheet and the stack picker 40, menus, tooltips and lists 50 (a native
+ * <dialog> is in the top layer). Sonner sets 999999999, which put a lasting toast (the uploaded changeset)
+ * above every flyout and menu the person then opened. 35 keeps toasts above the map and the sidebars, below
+ * everything the person opens on purpose.
+ */
+const Z_INDEX = 35
 const MOBILE_OFFSET = { top: 148, left: 16, right: 16 }
 
 /*
@@ -217,6 +225,7 @@ export function Toaster() {
       position="top-right"
       theme={theme}
       offset={OFFSET}
+      style={{ zIndex: Z_INDEX }}
       mobileOffset={MOBILE_OFFSET}
       gap={8}
       expand
