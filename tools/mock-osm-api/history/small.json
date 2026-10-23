@@ -1,0 +1,99 @@
+{
+  "version": "0.6",
+  "note": "Older versions of elements of fixtures/small, written by hand for check-osmchange (not from OSM)",
+  "elements": [
+    {
+      "type": "node",
+      "id": 364123000,
+      "lat": 52.386553,
+      "lon": 13.3984484,
+      "version": 21,
+      "tags": {
+        "amenity": "toilets",
+        "centralkey": "eurokey",
+        "description": "hat 2 frei zugängliche Pissoirs",
+        "fee": "yes",
+        "name": "City Toilette",
+        "opening_hours": "24/7",
+        "operator": "Wall",
+        "operator:wikidata": "Q1310189",
+        "toilets:wheelchair": "yes",
+        "unisex": "yes",
+        "wheelchair": "limited"
+      }
+    },
+    {
+      "type": "node",
+      "id": 420517141,
+      "lat": 52.3864845,
+      "lon": 13.4036823,
+      "version": 14,
+      "tags": {
+        "addr:city": "Berlin",
+        "addr:country": "DE",
+        "addr:housenumber": "51",
+        "addr:postcode": "12305",
+        "addr:street": "Bahnhofstraße",
+        "amenity": "doctors",
+        "check_date:opening_hours": "2025-11-28",
+        "healthcare": "doctor",
+        "healthcare:speciality": "general;internal",
+        "name": "Agnes Kranz",
+        "opening_hours": "Mo,We,Th 14:00-19:00; Tu,Fr 09:00-13:00",
+        "toilets:wheelchair": "no",
+        "wheelchair": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 444731308,
+      "lat": 52.3879038,
+      "lon": 13.3973796,
+      "version": 10,
+      "tags": {
+        "addr:city": "Berlin",
+        "addr:housenumber": "41",
+        "addr:postcode": "12307",
+        "addr:street": "Steinstraße",
+        "addr:suburb": "Lichtenrade",
+        "alt_name": "Edith-Stein-Bibliothek",
+        "amenity": "library",
+        "changing_table": "yes",
+        "contact:email": "stabi-lichtenrade@ba-ts.berlin.de",
+        "contact:phone": "+49 30 902778286",
+        "contact:website": "https://www.berlin.de/stadtbibliothek-tempelhof-schoeneberg/bibliotheken/stadtteilbibliothek-lichtenrade/",
+        "level": "0,1",
+        "name": "Stadtteilbibliothek Lichenrade",
+        "opening_hours": "Mo-Fr 11:00-18:00",
+        "toilets": "yes",
+        "toilets:access": "customers",
+        "toilets:wheelchair": "designated",
+        "wheelchair": "yes",
+        "wikidata": "Q125306889"
+      }
+    },
+    {
+      "type": "node",
+      "id": 421299912,
+      "lat": 52.3865106,
+      "lon": 13.4016296,
+      "version": 12,
+      "tags": {
+        "addr:city": "Berlin",
+        "addr:country": "DE",
+        "addr:postcode": "12305",
+        "addr:street": "Bahnhofstraße",
+        "addr:suburb": "Lichtenrade",
+        "amenity": "bank",
+        "atm": "yes",
+        "brand": "Deutsche Bank",
+        "brand:wikidata": "Q66048",
+        "brand:wikipedia": "en:Deutsche Bank",
+        "name": "Deutsche Bank",
+        "opening_hours": "Fr 10:00-14:00; Mo,Tu,Th 10:00-12:30,14:00-18:00; We 10:00-14:00",
+        "operator": "Deutsche Bank",
+        "wheelchair": "limited"
+      }
+    }
+  ]
+}

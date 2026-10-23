@@ -218,3 +218,15 @@ describe('full (relation and way with their members)', () => {
     expect((await full('/api/0.6/relation/999/full.json')).status).toBe(404)
   })
 })
+
+describe('an element at a version', () => {
+  test('the current version from the fixture, an older one from history/small.json, else 404', async () => {
+    const now = await (await get('/s/small/api/0.6/node/364123000/22.json')).json()
+    expect(now.elements[0]).toMatchObject({ id: 364123000, version: 22 })
+    const older = await (await get('/s/small/api/0.6/node/364123000/21.json')).json()
+    expect(older.elements[0]).toMatchObject({ id: 364123000, version: 21 })
+    expect(older.elements[0].tags.changing_table).toBeUndefined()
+    expect((await get('/s/small/api/0.6/node/364123000/3.json')).status).toBe(404)
+    expect((await get('/s/small/api/0.6/way/4394952/22.json')).status).toBe(200)
+  })
+})

@@ -11,6 +11,8 @@
  *   /api/0.6/notes/ID(.json) (one note, as a link's `id=note/<id>` loads it)
  *   /api/0.6/node/ID(.json), /api/0.6/{way,relation}/ID(/full)(.json)
  *   /api/0.6/{node,way,relation}/ID/relations(.json) (the relations an element is a member of, as iD's download asks)
+ *   /api/0.6/{node,way,relation}/ID/VERSION(.json) (the current version from the fixture; an older one only when
+ *     tools/mock-osm-api/history/<scene>.json has it, written by hand for a check; else 404)
  * Every write is rejected with 405. /requests returns a log of what was asked.
  */
 import { join } from 'node:path'
@@ -39,10 +41,15 @@ export class SceneIndex {
   private memberRelations = new Map<string, number[]>()
   private cache = new Map<string, string>()
 
+  /** Older versions of elements, by `<type>/<id>/<version>` (history/<scene>.json) */
+  private history = new Map<string, Element>()
+
   constructor(
     elements: Element[],
     private readonly notes: NoteFeature[] = [],
+    history: (Element & { version: number })[] = [],
   ) {
+    for (const e of history) this.history.set(`${e.type}/${e.id}/${e.version}`, e)
     for (const e of elements) {
       if (e.type === 'node') {
         this.nodes.set(e.id, e)
@@ -142,6 +149,24 @@ export class SceneIndex {
     return JSON.stringify({ version: '0.6', elements })
   }
 
+  /**
+   * What `/api/0.6/{type}/ID/VERSION` answers: the fixture's element when it has that version, else the hand-written
+   * older version of history/<scene>.json, else undefined (404)
+   */
+  version(type: Element['type'], id: number, version: number) {
+    const now =
+      type === 'node'
+        ? this.nodes.get(id)
+        : type === 'way'
+          ? this.ways.get(id)
+          : this.relations.get(id)
+    const found =
+      now && (now as { version?: number }).version === version
+        ? now
+        : this.history.get(`${type}/${id}/${version}`)
+    return found ? JSON.stringify({ version: '0.6', elements: [found] }) : undefined
+  }
+
   /** One note by its id, as `/api/0.6/notes/ID.json` answers it, or undefined */
   note(id: number): NoteFeature | undefined {
     return this.notes.find((note) => note.properties.id === id)
@@ -232,7 +257,10 @@ export async function loadScenes(names = SCENES.map((s) => s.name)) {
     // notes are optional: a scene without fixtures/notes/<name>.json has none
     const notesFile = Bun.file(join(import.meta.dir, `../../fixtures/notes/${name}.json`))
     const notes: NoteFeature[] = (await notesFile.exists()) ? (await notesFile.json()).features : []
-    scenes.set(name, new SceneIndex(json.elements, notes))
+    // older versions are optional too: hand-written for the checks that need a base version (history/README.md)
+    const historyFile = Bun.file(join(import.meta.dir, `history/${name}.json`))
+    const history = (await historyFile.exists()) ? (await historyFile.json()).elements : []
+    scenes.set(name, new SceneIndex(json.elements, notes, history))
   }
   return scenes
 }
@@ -310,6 +338,16 @@ export function createHandler(scenes: Map<string, SceneIndex>, options: { latenc
       return new Response(scene.parentRelations(type, Number(parents[2])), {
         headers: JSON_HEADERS,
       })
+    }
+    const atVersion = path.match(/^\/api\/0\.6\/(node|way|relation)\/(\d+)\/(\d+)$/)
+    if (atVersion) {
+      const body = scene.version(
+        atVersion[1] as Element['type'],
+        Number(atVersion[2]),
+        Number(atVersion[3]),
+      )
+      if (!body) return new Response('Not found', { status: 404, headers: CORS })
+      return new Response(body, { headers: JSON_HEADERS })
     }
     const entity = path.match(/^\/api\/0\.6\/(node|way|relation)\/(\d+)(\/full)?$/)
     if (entity) {
