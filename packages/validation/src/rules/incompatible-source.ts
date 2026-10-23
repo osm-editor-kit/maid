@@ -3,8 +3,8 @@ import type { Rule } from '../types.ts'
 
 /**
  * Sources that OSM must not use as a reference, from iD's `incompatible_source`. `exceptRegex`
- * excludes the sources that only look like them (Google Books and Drive, Google's open building
- * datasets, Amap's road names).
+ * excludes the sources that only look like them (Google Books, Drive and Sites, Google's open
+ * building datasets, Amap's road names). `goo.gl` is Google's own shortener, so its links count.
  */
 const incompatibleRules: readonly {
   id: string
@@ -25,9 +25,9 @@ const incompatibleRules: readonly {
   },
   {
     id: 'google',
-    regex: /(google)/i,
+    regex: /(google|\bgoo\.gl\b)/i,
     exceptRegex:
-      /((books|drive)\.google|google\s?(books|drive|plus))|(esri\/Google_(Africa|Open)_Buildings)/i,
+      /((books|drive|sites)\.(google|goo\.gl)|google\s?(books|drive|plus))|(esri\/Google_(Africa|Open)_Buildings)/i,
     reference: 'Google products are proprietary and must not be used as references.',
   },
 ]
