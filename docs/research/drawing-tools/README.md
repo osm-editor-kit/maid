@@ -163,6 +163,7 @@ Run `bun run dev-parking` and open http://localhost:5177.
    - Blue dashed lines show the direction.
 3. **Merge:** draw two overlapping rectangles and select both (Shift+click). Press `C`; you get one L-shaped outline.
    - With different tags, the edit menu says why it refuses.
+   - An untagged area merges into a tagged one, and the result keeps the tagged area's tags.
 4. **Cut:** select an area and choose "Zerschneiden" in the right-click menu.
    - Click a point outside the area, then one on the other side, then press Enter. You get two areas with the same tags.
 5. **Divide:** select an area with four corners and choose "Teilen" in the right-click menu.

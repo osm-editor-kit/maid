@@ -158,13 +158,17 @@ function planOutline(
   if (!(a instanceof OsmWay) || !(b instanceof OsmWay) || !a.isClosed() || !b.isClosed())
     return 'not_two_areas'
 
-  if (checkTags) {
+  // An untagged area in no relation (a sketched outline) joins a tagged one: the tagged area survives with its tags
+  const tagged = (way: OsmWay) => Object.keys(withoutArea(way.tags)).length > 0
+  const bare = (way: OsmWay) => !tagged(way) && graph.parentRelations(way).length === 0
+  const taggedSurvivor = bare(a) && tagged(b) ? b : bare(b) && tagged(a) ? a : undefined
+  if (checkTags && taggedSurvivor === undefined) {
     if (!sameTags(withoutArea(a.tags), withoutArea(b.tags))) return 'conflicting_tags'
     if (!sameMemberships(graph, a, b)) return 'conflicting_relations'
   }
 
   // The survivor comes first: its points win where the two outlines share a place
-  const keepFirst = (utilSurvivorID([a, b]) ?? a.id) === a.id
+  const keepFirst = (taggedSurvivor?.id ?? utilSurvivorID([a, b]) ?? a.id) === a.id
   const [keepWay, loseWay]: [OsmWay, OsmWay] = keepFirst ? [a, b] : [b, a]
   const keep = sideOf(graph, keepWay)
   const lose = sideOf(graph, loseWay)
@@ -247,7 +251,8 @@ function planOutline(
   }
   if (droppedNodes.some((node) => node.hasInterestingTags())) return 'tagged_nodes'
 
-  // Tags: the same on both ways, except area=yes, which stays only when the tags do not already make an area
+  // Tags: the survivor's (both ways have the same, or the other has none), except area=yes, which stays only when the
+  // tags do not already make an area
   const rest = withoutArea(keepWay.tags)
   const areaTagged = a.tags.area === 'yes' || b.tags.area === 'yes'
   const tags = !keepWay.tagSuggestingArea(rest) && areaTagged ? { ...rest, area: 'yes' } : rest

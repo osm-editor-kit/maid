@@ -100,6 +100,7 @@ From the [JOSM help page](https://josm.openstreetmap.de/wiki/Help/Action/JoinAre
 | 10 | Areas whose nodes are shared with other ways (row houses, landuse next to building) | Shared nodes kept if the position does not change; not checked. | Refuse if an outline node that moves or disappears is used by a way outside the selection. Shared nodes whose position stays are fine. |
 | 11 | Different tags (for example `building=yes` vs `building=house`) | Refused (`conflicting_tags`). | Refused, same as iD. JOSM's conflict dialog is a later option. |
 | 12 | Same tags (differing only in `area=yes`) | Allowed; `area=yes` dropped when redundant. | Allowed, same rule. |
+| 12a | One area untagged (or only `area=yes`) and in no relation, the other tagged | Refused (`conflicting_tags`). | Allowed (Tobias, 2026-10-24): the tagged area survives with its id, tags and relations, whichever is older. |
 | 13 | Areas that do not overlap and do not touch | Not offered (`available` false). | Not offered. `applies` false, so no menu entry. |
 | 14 | Tagged node on the shared outline | Refused (`tagged_nodes`) if it would drop off the result. | Same rule. |
 | 15 | Result is several disjoint parts | Refused (`invalid_union`). | Same rule. Two parts would need a multipolygon, which is not a plain merge. |

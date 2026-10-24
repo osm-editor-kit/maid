@@ -398,6 +398,45 @@ describe('merge areas: tags and relations', () => {
     expect(outcomeOf(base, ['w1', 'w2'])).toBe('conflicting_tags')
   })
 
+  it('an untagged area merges into a tagged one: the tagged way survives with its tags, even when it is newer', () => {
+    const base = graphOf(
+      ...square('a', 0, 0, 10),
+      ...square('b', 7, 7, 10),
+      ring('w1', ['na1', 'na2', 'na3', 'na4'], {}),
+      ring('w2', ['nb1', 'nb2', 'nb3', 'nb4'], { amenity: 'parking' }),
+    )
+    const result = mergeOf(base, ['w1', 'w2'])
+    expect(result.hasEntity('w1')).toBeUndefined()
+    expect((result.entity('w2') as OsmWay).tags).toEqual({ amenity: 'parking' })
+  })
+
+  it('an area with only area=yes counts as untagged and merges into a tagged one', () => {
+    const base = graphOf(
+      ...square('a', 0, 0, 10),
+      ...square('b', 7, 7, 10),
+      ring('w1', ['na1', 'na2', 'na3', 'na4'], { amenity: 'parking' }),
+      ring('w2', ['nb1', 'nb2', 'nb3', 'nb4'], { area: 'yes' }),
+    )
+    const result = mergeOf(base, ['w1', 'w2'])
+    expect(result.hasEntity('w2')).toBeUndefined()
+    expect((result.entity('w1') as OsmWay).tags).toEqual({ amenity: 'parking', area: 'yes' })
+  })
+
+  it('an untagged area that is a relation member is not merged into a tagged one', () => {
+    const base = graphOf(
+      ...square('a', 0, 0, 10),
+      ...square('b', 7, 7, 10),
+      ring('w1', ['na1', 'na2', 'na3', 'na4'], {}),
+      ring('w2', ['nb1', 'nb2', 'nb3', 'nb4'], { amenity: 'parking' }),
+      new OsmRelation(context, {
+        id: 'r1',
+        tags: { type: 'site' },
+        members: [{ type: 'way', id: 'w1', role: '' }],
+      }),
+    )
+    expect(outcomeOf(base, ['w1', 'w2'])).toBe('conflicting_tags')
+  })
+
   it('area=yes on one way is not a conflict, and the result keeps it when no tag already makes an area', () => {
     // No tag schema in this test, so nothing implies an area and area=yes stays
     const base = graphOf(

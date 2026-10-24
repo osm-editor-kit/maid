@@ -121,7 +121,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   reroute: { maid: 0, bicycle: 12, parking: 0 },
   rectangle: { maid: 0, bicycle: 0, parking: 24 },
   'angle-snap': { maid: 0, bicycle: 0, parking: 35 },
-  merge: { maid: 0, bicycle: 0, parking: 29 },
+  merge: { maid: 0, bicycle: 0, parking: 31 },
   cut: { maid: 0, bicycle: 0, parking: 25 },
   divide: { maid: 0, bicycle: 0, parking: 23 },
   display: { maid: 12, bicycle: 12, parking: 12 },

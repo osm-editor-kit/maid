@@ -111,9 +111,13 @@ process.exit(
     const mergeItems = async () => (await menuItems()).filter((item) => item.label === 'Merge')
 
     // --- different tags: the menu says why, and C changes nothing ---
-    await page.evaluate((id) => {
-      window.__maid.engine.changeTags([id], { set: { building: 'house' } }, 'Setup')
-    }, idB)
+    await page.evaluate(
+      ([a, b]) => {
+        window.__maid.engine.changeTags([a!], { set: { building: 'yes' } }, 'Setup')
+        window.__maid.engine.changeTags([b!], { set: { building: 'house' } }, 'Setup')
+      },
+      [idA, idB],
+    )
     await selectBoth()
     report('two areas selected', both, (await selection()).sort())
     await click(rightOfB, { button: 'right' })
@@ -139,12 +143,32 @@ process.exit(
       [beforeC.undo, snapA, snapB],
       [(await state()).undo, await wayOf(idA), await wayOf(idB)],
     )
-    // the change of the tags is the one undo step: undo it, the tags agree again
+    // the two changes of the tags are the two undo steps: undo them, the tags agree again
+    await key('Meta+z')
     await key('Meta+z')
     report(
-      'undo of the tag change: the second area has its tags again',
-      { area: 'yes' },
-      (await wayOf(idB))?.tags,
+      'undo of the tag changes: both areas have their tags again',
+      [{ area: 'yes' }, { area: 'yes' }],
+      [(await wayOf(idA))?.tags, (await wayOf(idB))?.tags],
+    )
+
+    // --- an untagged area and a tagged one: they merge, the tagged one survives with its tags ---
+    await page.evaluate((id) => {
+      window.__maid.engine.changeTags([id], { set: { building: 'house' } }, 'Setup')
+    }, idB)
+    await selectBoth()
+    await key('c')
+    report(
+      'C with one untagged area: the tagged area survives, selected, with its tags',
+      [[idB], null, 'house'],
+      [await selection(), await wayOf(idA), (await wayOf(idB))?.tags.building],
+    )
+    await key('Meta+z')
+    await key('Meta+z')
+    report(
+      'undo of the merge and the tag change: both areas are back as before',
+      [{ area: 'yes' }, { area: 'yes' }],
+      [(await wayOf(idA))?.tags, (await wayOf(idB))?.tags],
     )
 
     // --- the same two areas: one outline, one undo step, redo ---
