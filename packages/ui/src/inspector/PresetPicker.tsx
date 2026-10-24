@@ -27,7 +27,7 @@ import { ICON_BUTTON, ICON_TONE } from '../icon-button.ts'
 import { PLAIN_INPUT } from '../plain-input.ts'
 import { EMPTY_NOTE, keepFocus, listboxMove, listRow, revealRow } from './listbox.ts'
 import { isCategory, listRows, type ListRow } from './picker-browse.ts'
-import { mainTagLabel } from './picker-logic.ts'
+import { mainTagLabel, startRow } from './picker-logic.ts'
 import { useRecentIds, useRecentsActions } from './recents.ts'
 import { SearchField } from './SearchField.tsx'
 
@@ -203,13 +203,13 @@ export function PresetPicker(props: {
           (row) =>
             row.kind === 'preset' && row.section !== 'favourite' && row.preset.id === currentId,
         )
-  const active =
-    rows.length === 0
-      ? -1
-      : Math.min(activeIndex ?? (currentRow >= 0 ? currentRow : 0), rows.length - 1)
   // the Favourites row and its members come first, then the recent presets: each part's rows are contiguous
   const favouriteCount = leadingCount(rows, 0, isFavouriteRow)
   const recentCount = leadingCount(rows, favouriteCount, isRecentRow)
+  const active =
+    rows.length === 0
+      ? -1
+      : Math.min(activeIndex ?? startRow(currentRow, favouriteCount, recentCount), rows.length - 1)
 
   // the current type's row in view when the picker opens (once: later moves reveal their own rows)
   const firstActive = useRef(active > 0 ? optionId(active) : undefined)

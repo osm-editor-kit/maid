@@ -300,7 +300,13 @@ export function Inspector() {
                   // keyed by the feature: another feature's picker starts with no search, so its groups show
                   key={id}
                   autoFocus
-                  currentId={entity.preset?.id}
+                  // a generic type (a new, untagged feature) is no type to keep: the picker stays at its top, on
+                  // the recently used types, instead of scrolling down to "Area" or "Line"
+                  currentId={
+                    entity.preset && !presets.isFallback(entity.preset)
+                      ? entity.preset.id
+                      : undefined
+                  }
                   search={(query) => presets.search(query, entity.geometry, undefined, loc)}
                   browse={browseOf(presets, [entity.geometry], loc)}
                   texts={pickerTexts()}

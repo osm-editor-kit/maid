@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 import type { Preset } from '@osm-editor-kit/maid-presets'
-import { mainTagLabel, moveActive, pickerRows } from './picker-logic.ts'
+import { mainTagLabel, moveActive, pickerRows, startRow } from './picker-logic.ts'
 
 function preset(tags: Record<string, string>): Preset {
   return {
@@ -76,5 +76,18 @@ describe('pickerRows', () => {
 
   it('does not list a favourite that the search did not find twice', () => {
     expect(pickerRows([b, a], [a], false).map((p) => p.id)).toEqual(['a', 'b'])
+  })
+})
+
+describe('startRow', () => {
+  it("is the feature's type when it is listed", () => {
+    expect(startRow(7, 1, 3)).toBe(7)
+  })
+  it('without a type, is the most recently used type, after the Favourites row', () => {
+    expect(startRow(-1, 1, 3)).toBe(1)
+    expect(startRow(-1, 0, 2)).toBe(0)
+  })
+  it('without a type and without recent ones, is the first row', () => {
+    expect(startRow(-1, 1, 0)).toBe(0)
   })
 })

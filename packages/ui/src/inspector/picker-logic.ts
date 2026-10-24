@@ -31,3 +31,12 @@ export function pickerRows(
   const favouriteIds = new Set(favourites.map((preset) => preset.id))
   return [...favourites, ...found.filter((preset) => !favouriteIds.has(preset.id))]
 }
+
+/**
+ * The row that is active when the picker opens: the feature's type, or without one (a new feature with a generic
+ * type) the most recently used type, so that Enter or one click takes it; else the first row.
+ */
+export function startRow(currentRow: number, favouriteCount: number, recentCount: number) {
+  if (currentRow >= 0) return currentRow
+  return recentCount > 0 ? favouriteCount : 0
+}
