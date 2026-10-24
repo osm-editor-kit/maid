@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import type { Pt } from '../shared/vector.ts'
 import {
   axesOf,
   dominantAngle,
@@ -64,6 +65,27 @@ describe('dominantAngle', () => {
       Math.PI / 6,
       9,
     )
+  })
+
+  it('finds the walls among ten thousand short segments of other directions, quickly', () => {
+    const axes = axesOf(0.4)
+    const walls = [
+      { x: 0, y: 0 },
+      { x: 400, y: 0 },
+      { x: 400, y: 200 },
+      { x: 0, y: 200 },
+    ].map((q) => fromAxes(axes, q))
+    const segments = walls.map((a, i) => [a, walls[(i + 1) % walls.length]!] as const)
+    // a wiggly line of 10 000 segments of 0.01 m in every direction: much less length than the walls
+    const noise: (readonly [Pt, Pt])[] = []
+    for (let i = 0; i < 10_000; i++) {
+      const angle = (i * 2.399963) % (2 * Math.PI)
+      const a = { x: 50, y: 50 }
+      noise.push([a, { x: a.x + 0.01 * Math.cos(angle), y: a.y + 0.01 * Math.sin(angle) }])
+    }
+    const started = performance.now()
+    expect(dominantAngle([...segments, ...noise])).toBeCloseTo(0.4, 9)
+    expect(performance.now() - started).toBeLessThan(200)
   })
 
   it('follows the long walls of a building with a short slanted corner', () => {

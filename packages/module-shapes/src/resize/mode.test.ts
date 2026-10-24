@@ -5,9 +5,11 @@ import type { OperationHost } from '@osm-editor-kit/maid-operations'
 import type { MaidEngine, ModuleMode, ModuleModeInfo } from '@osm-editor-kit/maid-renderer'
 import { at, graphOf, node, way } from '../cut/test-graph.ts'
 import { m } from '../messages.ts'
+import { handleAt, type Handle } from './box.ts'
 import { applyResize, MODE_ID, startResize } from './mode.ts'
 import { resizeOperation } from './operation.ts'
 import { resizeActions, resizeSnapshot } from './resize-store.ts'
+import { locOf } from './resize.ts'
 import { handleName, HANDLE_HIT_LAYERS } from './shapes.ts'
 
 const NONE = { shift: false, alt: false, ctrl: false, meta: false }
@@ -94,12 +96,29 @@ function begin(graph = buildingGraph(), ids = ['w1']) {
   return { ...h, mode: h.state.mode as ModuleMode }
 }
 
-/** A drag of a handle from where it is to the metre place (x, y), with these keys */
-function drag(mode: ModuleMode, handle: string, x: number, y: number, modifiers = NONE) {
+/** Where a handle is now, as [lon, lat] */
+function handlePlace(handle: Handle) {
+  const { box, extent } = resizeSnapshot()
+  return locOf(box!, handleAt(extent!, handle))
+}
+
+/**
+ * A drag of a handle to the metre place (x, y), with these keys. It is grabbed where it is, or at `from` (metres) when
+ * given: the handle keeps the offset from the pointer where it was grabbed.
+ */
+function drag(
+  mode: ModuleMode,
+  handle: Handle,
+  x: number,
+  y: number,
+  modifiers = NONE,
+  from?: { x: number; y: number },
+) {
+  const [lon0, lat0] = from ? at(from.x, from.y) : handlePlace(handle)
   const [lon, lat] = at(x, y)
-  mode.onDragStart?.(handleName(handle as never), lon, lat, { modifiers })
-  mode.onDrag?.(handleName(handle as never), lon, lat, { modifiers })
-  mode.onDragEnd?.(handleName(handle as never), lon, lat, { modifiers })
+  mode.onDragStart?.(handleName(handle), lon0, lat0, { modifiers })
+  mode.onDrag?.(handleName(handle), lon, lat, { modifiers })
+  mode.onDragEnd?.(handleName(handle), lon, lat, { modifiers })
 }
 
 /** Where a node is, in metres from the test origin */
@@ -175,6 +194,16 @@ describe('dragging a handle', () => {
     // Shift with the toggle on stretches freely
     drag(mode, 'ne', 100, 40, SHIFT)
     expectAt(state.graph, 'n3', 100, 40)
+  })
+
+  it('keeps the offset where the handle was grabbed: a press beside it does not make the box jump', () => {
+    const { mode, state } = begin()
+    // the east edge's handle is at (40, 10); grabbed 3 m east of it and let go there, nothing changes
+    drag(mode, 'e', 43, 10, NONE, { x: 43, y: 10 })
+    expectAt(state.graph, 'n2', 40, 0)
+    // grabbed there and moved 10 m east, the edge moves 10 m
+    drag(mode, 'e', 53, 10, NONE, { x: 43, y: 10 })
+    expectAt(state.graph, 'n2', 50, 0)
   })
 
   it('continues each drag from the box the last one left', () => {

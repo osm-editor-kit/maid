@@ -46,6 +46,7 @@ export class Clipboard {
     // the graph is the state at the time of the copy; what was not in it cannot be copied
     const ids = clipboard.ids.filter((id) => clipboard.graph.hasEntity(id) !== undefined)
     if (ids.length === 0) return []
+    this.engine.endModuleEdit()
     const action = actionCopyEntities(ids, clipboard.graph)
     let pasted: string[] = []
     this.engine.change(() => {

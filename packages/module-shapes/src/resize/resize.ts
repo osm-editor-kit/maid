@@ -56,6 +56,19 @@ export function resizeBoxOf(
   graph: Graph,
   ids: readonly string[],
 ): ResizeBox | { refused: ResizeRefusal } {
+  // the edit menu asks after every change (Resize's `disabled`) and the mode again when it starts: one box per state.
+  // A graph's key has its version, which changes when the graph does (a merge of new data changes it in place).
+  const key = `${graph.key} ${ids.join(',')}`
+  if (last?.key === key) return last.result
+  const result = computeBox(graph, ids)
+  last = { key, result }
+  return result
+}
+
+/** The last box made, by the graph's key and the ids */
+let last: { key: string; result: ResizeBox | { refused: ResizeRefusal } } | undefined
+
+function computeBox(graph: Graph, ids: readonly string[]): ResizeBox | { refused: ResizeRefusal } {
   const collected = collect(graph, ids)
   if (!collected) return { refused: 'incomplete' }
   const { locs, segments } = collected

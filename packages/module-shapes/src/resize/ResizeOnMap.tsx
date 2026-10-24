@@ -3,9 +3,9 @@
 // (module.ts). It only draws what the store holds; the mode (mode.ts) changes the store and the data.
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { formatModifiers, isApplePlatform } from '@osm-editor-kit/maid-ui'
-import { useEffect, useRef } from 'react'
 import { Layer, type LayerProps, Source } from 'react-map-gl/maplibre'
 import { formatNumber, m } from '../messages.ts'
+import { keepFromMap } from '../shared/keep-from-map.ts'
 import { heightOf, widthOf } from './box.ts'
 import { applyResize, MODE_ID } from './mode.ts'
 import { resizeActions, useResizeBox, useResizeExtent, useResizeToggles } from './resize-store.ts'
@@ -19,28 +19,23 @@ import {
   RESIZE_SOURCE,
 } from './shapes.ts'
 
-/** Events the panel does not pass on to the map: a press on a button must not pan the map or apply the resize */
-const KEPT_FROM_MAP = ['mousedown', 'pointerdown', 'touchstart', 'dblclick', 'wheel'] as const
-
 const COLOUR = '#2563eb'
 
 /**
  * The box dashed and blue, as the shapes' previews; the handles white with a blue ring, corners a little larger than
  * the edge handles; the size in the rectangle's label style. The hit layer is invisible, wider than the handles, and
- * last.
+ * last. Children of the source, so they take its id.
  */
 const LAYERS = [
   {
     id: 'resize-outline',
     type: 'line',
-    source: RESIZE_SOURCE,
     filter: ['==', ['get', 'kind'], 'outline'],
     paint: { 'line-color': COLOUR, 'line-width': 1.5, 'line-dasharray': [3, 2] },
   } satisfies LayerProps,
   {
     id: 'resize-size',
     type: 'symbol',
-    source: RESIZE_SOURCE,
     filter: ['==', ['get', 'kind'], 'size'],
     layout: {
       'text-field': ['get', 'label'],
@@ -54,7 +49,6 @@ const LAYERS = [
   {
     id: HANDLE_LAYER,
     type: 'circle',
-    source: RESIZE_SOURCE,
     filter: ['in', ['get', 'kind'], ['literal', ['corner', 'edge']]],
     paint: {
       'circle-radius': ['case', ['==', ['get', 'kind'], 'corner'], CORNER_RADIUS, EDGE_RADIUS],
@@ -66,7 +60,6 @@ const LAYERS = [
   {
     id: HANDLE_HIT_LAYER,
     type: 'circle',
-    source: RESIZE_SOURCE,
     filter: ['in', ['get', 'kind'], ['literal', ['corner', 'edge']]],
     paint: { 'circle-radius': HANDLE_HIT_RADIUS, 'circle-opacity': 0 },
   } satisfies LayerProps,
@@ -93,23 +86,7 @@ export function ResizeOnMap({ editor, engine }: MapContentProps) {
   const box = useResizeBox()
   const extent = useResizeExtent()
   const { proportional, centre } = useResizeToggles()
-  const open = box !== undefined && extent !== undefined && engine !== undefined
-
-  const panel = useRef<HTMLDivElement>(null)
-  useEffect(
-    function keepPanelEvents() {
-      const element = panel.current
-      if (!open || !element) return
-      const keep = (event: Event) => event.stopPropagation()
-      for (const type of KEPT_FROM_MAP) element.addEventListener(type, keep)
-      return () => {
-        for (const type of KEPT_FROM_MAP) element.removeEventListener(type, keep)
-      }
-    },
-    [open],
-  )
-
-  if (!open || !box || !extent || !engine) return null
+  if (!box || !extent || !engine) return null
   const size = m.resize_size({
     width: formatNumber(widthOf(extent)),
     height: formatNumber(heightOf(extent)),
@@ -120,12 +97,13 @@ export function ResizeOnMap({ editor, engine }: MapContentProps) {
   })
   return (
     <>
-      <Source id={RESIZE_SOURCE} type="geojson" data={boxShapes(box, extent, size)} />
-      {LAYERS.map((layer) => (
-        <Layer key={layer.id} {...layer} />
-      ))}
+      <Source id={RESIZE_SOURCE} type="geojson" data={boxShapes(box, extent, size)}>
+        {LAYERS.map((layer) => (
+          <Layer key={layer.id} {...layer} />
+        ))}
+      </Source>
       <div
-        ref={panel}
+        ref={keepFromMap}
         data-resize-panel
         className="pointer-events-auto absolute top-3 left-1/2 z-30 w-80 -translate-x-1/2 rounded-xl bg-white p-3 text-sm text-zinc-800 shadow-lg ring-1 ring-zinc-950/10 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-white/10"
       >

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { formatShortcut } from './shortcut-label.ts'
+import { formatModifiers, formatShortcut } from './shortcut-label.ts'
 
 describe('formatShortcut: Apple devices', () => {
   it('writes the command key as ⌘ and the modifiers in Apple order', () => {
@@ -58,5 +58,15 @@ describe('formatShortcut: the labels the editor writes', () => {
     expect(formatShortcut('⇧⌘Z', true)).toBe('⇧⌘Z')
     expect(formatShortcut('Ctrl+Z', false)).toBe('Ctrl+Z')
     expect(formatShortcut('Ctrl+Shift+Z', false)).toBe('Ctrl+Shift+Z')
+  })
+})
+
+describe('formatModifiers: modifier keys alone, for a hint', () => {
+  it('writes every part as a modifier, in the platform order', () => {
+    expect(formatModifiers('Shift', true)).toBe('⇧')
+    expect(formatModifiers('Shift', false)).toBe('Shift')
+    expect(formatModifiers('Shift+Alt', true)).toBe('⌥⇧')
+    expect(formatModifiers('Shift+Alt', false)).toBe('Alt+Shift')
+    expect(formatModifiers('Mod+Shift', false)).toBe('Ctrl+Shift')
   })
 })

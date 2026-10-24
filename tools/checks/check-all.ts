@@ -127,7 +127,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   merge: { maid: 0, bicycle: 0, parking: 29 },
   cut: { maid: 0, bicycle: 0, parking: 25 },
   divide: { maid: 0, bicycle: 0, parking: 23 },
-  resize: { maid: 0, bicycle: 0, parking: 29 },
+  resize: { maid: 0, bicycle: 0, parking: 30 },
   display: { maid: 12, bicycle: 12, parking: 12 },
   touch: { maid: 0, bicycle: 0, parking: 14 },
   levels: { maid: 34, bicycle: 34, parking: 0 },

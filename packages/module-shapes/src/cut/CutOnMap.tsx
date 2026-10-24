@@ -2,9 +2,9 @@
 // the top centre, which is DOM inside the map as Divide's panel is. Registered on `map.content` (module.ts). It only draws
 // what the store holds; the mode (mode.ts) changes the store and the data.
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
-import { useEffect, useRef } from 'react'
 import { Layer, type LayerProps, Source } from 'react-map-gl/maplibre'
 import { m } from '../messages.ts'
+import { keepFromMap } from '../shared/keep-from-map.ts'
 import { useCutPieces, useCutPoints, useCutRefusal, useCutWayId } from './cut-store.ts'
 import {
   CUT_SOURCE,
@@ -19,9 +19,6 @@ import {
 } from './line.ts'
 import { applyCut } from './mode.ts'
 import { hintText, refusalText } from './texts.ts'
-
-/** Events the panel does not pass on to the map: a press on a button must not pan the map or move a point */
-const KEPT_FROM_MAP = ['mousedown', 'pointerdown', 'touchstart', 'dblclick', 'wheel'] as const
 
 /**
  * The line's colours: the line solid and orange; the points white with a blue ring, as the map's active vertices; the
@@ -99,23 +96,7 @@ export function CutOnMap({ editor, engine }: MapContentProps) {
   const points = useCutPoints()
   const pieces = useCutPieces()
   const refusal = useCutRefusal()
-  const open = wayId !== undefined && points !== undefined && engine !== undefined
-
-  const panel = useRef<HTMLDivElement>(null)
-  useEffect(
-    function keepPanelEvents() {
-      const element = panel.current
-      if (!open || !element) return
-      const keep = (event: Event) => event.stopPropagation()
-      for (const type of KEPT_FROM_MAP) element.addEventListener(type, keep)
-      return () => {
-        for (const type of KEPT_FROM_MAP) element.removeEventListener(type, keep)
-      }
-    },
-    [open],
-  )
-
-  if (!open || wayId === undefined || points === undefined || !engine) return null
+  if (wayId === undefined || points === undefined || !engine) return null
   return (
     <>
       <Source id={CUT_SOURCE} type="geojson" data={cutShapes(points, pieces)} />
@@ -123,7 +104,7 @@ export function CutOnMap({ editor, engine }: MapContentProps) {
         <Layer key={layer.id} {...layer} />
       ))}
       <div
-        ref={panel}
+        ref={keepFromMap}
         data-cut-panel
         className="pointer-events-auto absolute top-3 left-1/2 z-30 w-72 -translate-x-1/2 rounded-xl bg-white p-3 text-sm text-zinc-800 shadow-lg ring-1 ring-zinc-950/10 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-white/10"
       >

@@ -3,7 +3,7 @@ import { app, runCheck } from './check-page'
 /**
  * Resize check for the parking editor, with real mouse drags and modifier keys: draws a rectangle, shows Resize in the
  * edit menu and the inspector's command bar (its tooltip lists K, Shift and Alt), and drags the box's handles. An edge
- * stretches one side, Shift on a corner keeps the proportions, Alt keeps the centre, Shift pressed during a drag without
+ * stretches one side and keeps where it was grabbed, Shift on a corner keeps the proportions, Alt keeps the centre, Shift pressed during a drag without
  * a move takes effect at once, and the panel's toggle does what Shift does. After each drag it compares the area's nodes
  * on the screen with the box's handles in the module's source (`map.getSource('resize-box')`, the source's own data, not
  * rendered features) and checks that no undo step was made. Enter keeps the result as one undo step; undo puts the
@@ -13,7 +13,7 @@ import { app, runCheck } from './check-page'
  *
  * Needs open ground in view: the small scene has it. Prints one line per check: `ok <check>`, or `FAIL <check>` with
  * expected and actual. Exits 1 on any failure, including a request outside localhost.
- * Expected: 29 `ok` lines.
+ * Expected: 30 `ok` lines.
  */
 
 const sceneName = process.argv[2] ?? 'small'
@@ -110,11 +110,20 @@ process.exit(
       return pairs.every(([a, b]) => !!a && Math.hypot(a.x - b.x, a.y - b.y) <= 2)
     }
 
-    /** A real drag of a handle by (dx, dy) px, with keys held from before the press to after the release */
-    const dragHandle = async (name: string, dx: number, dy: number, keys: string[] = []) => {
+    /**
+     * A real drag of a handle by (dx, dy) px, with keys held from before the press to after the release. `grab` presses
+     * that far from the handle's centre, within its hit radius.
+     */
+    const dragHandle = async (
+      name: string,
+      dx: number,
+      dy: number,
+      keys: string[] = [],
+      grab: XY = { x: 0, y: 0 },
+    ) => {
       const from = (await handles())[name]
       if (!from) return false
-      const a = abs(from)
+      const a = abs({ x: from.x + grab.x, y: from.y + grab.y })
       for (const k of keys) await page.keyboard.down(k)
       await page.mouse.move(a.x, a.y)
       await page.mouse.down()
@@ -191,6 +200,17 @@ process.exit(
     )
     report('the box follows the area', true, await boxOnArea(areaId))
     report('no undo step yet', undoAfterDraw, await undoLabel())
+
+    // --- grabbed 8 px beside the east handle: the side moves by the drag, it does not jump to the pointer ---
+    await dragHandle('e', 20, 0, [], { x: 8, y: 0 })
+    now = await cornersOf(areaId)
+    report(
+      'e grabbed 8 px off, +20 px: the area is 200 px wide, not 208',
+      200,
+      round(sizeOf(now).w),
+    )
+    await dragHandle('e', -20, 0)
+    now = await cornersOf(areaId)
 
     // --- Shift on the south-east corner: the proportions stay (180 by 80) ---
     const ratio = sizeOf(now).w / sizeOf(now).h

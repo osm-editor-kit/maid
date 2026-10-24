@@ -41,29 +41,48 @@ export function axesOf(angle: number): Axes {
   return { angle, cos: Math.cos(angle), sin: Math.sin(angle) }
 }
 
+/** Directions closer than this, in radians, are one: the walls of a building at right angles fold together */
+const SAME_DIRECTION = 1e-6
+/** The most directions tried as the box's angle: the longest ones. Every direction still counts in each score. */
+const MAX_CANDIDATES = 64
+
 /**
  * The dominant direction of the segments, folded into a quarter turn: the direction that most of the length runs along
- * or across, as Flip long/short finds it (Rapid's geomGetDominantSurroundingRectangle: each edge direction is scored by
- * the length of all edges weighted with |cos 2Δ|). The segments of each way are given on their own, so a group of
- * buildings does not get edges from one building to the next.
+ * or across. The score is Rapid's geomGetDominantSurroundingRectangle, which Flip long/short uses: each direction is
+ * scored by the length of all edges weighted with |cos 2Δ|. Rapid joins all points into one ring, which for a group of
+ * buildings makes edges from one building to the next; here the segments of each way are given on their own.
+ *
+ * Edges of one direction are summed first, so a building costs a handful of directions, and only the longest
+ * MAX_CANDIDATES directions are tried: a relation of ten thousand segments costs a few hundred thousand steps, not 1e8.
+ * The commands ask for the box after every change, a drag frame included.
  * @param   segments - Segments in metres
  * @return  The angle in [0, π/2); 0 (east) when there are no segments of any length
  */
 export function dominantAngle(segments: readonly (readonly [Pt, Pt])[]): number {
-  const edges: { angle: number; length: number }[] = []
+  const directions = new Map<number, { angle: number; length: number }>()
   for (const [a, b] of segments) {
     const length = Math.hypot(b.x - a.x, b.y - a.y)
-    if (length > 0) edges.push({ angle: foldAngle(Math.atan2(b.y - a.y, b.x - a.x)), length })
+    if (length === 0) continue
+    const angle = foldAngle(Math.atan2(b.y - a.y, b.x - a.x))
+    const key = Math.round(angle / SAME_DIRECTION)
+    const direction = directions.get(key)
+    if (direction) direction.length += length
+    else directions.set(key, { angle, length })
   }
+  const all = [...directions.values()]
+  const candidates =
+    all.length <= MAX_CANDIDATES
+      ? all
+      : [...all].sort((a, b) => b.length - a.length).slice(0, MAX_CANDIDATES)
   let best = 0
   let bestScore = -Infinity
-  for (const edge of edges) {
+  for (const candidate of candidates) {
     let score = 0
-    for (const other of edges)
-      score += other.length * Math.abs(Math.cos(2 * (other.angle - edge.angle)))
+    for (const other of all)
+      score += other.length * Math.abs(Math.cos(2 * (other.angle - candidate.angle)))
     if (score > bestScore + 1e-9) {
       bestScore = score
-      best = edge.angle
+      best = candidate.angle
     }
   }
   return best

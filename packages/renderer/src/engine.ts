@@ -1011,9 +1011,11 @@ export class MaidEngine {
    * input: it starts its own mode (ADR 0011), and `run` is not called. The selection is then kept.
    */
   runOperation(operation: Operation) {
-    const context = this.operationContext()
+    let context = this.operationContext()
     if (this.draw.active || this.selectedIds.some((id) => this.isReadOnly(id))) return
     if (!operation.applies(context) || operation.disabled(context)) return
+    // the operation works on the data without the work of a module mode, which ends here
+    if (this.endModuleEdit()) context = this.operationContext()
     if (operation.start) {
       operation.start(context, { engine: this, editor: this.options.editor })
       return this.selectedIds
@@ -1116,6 +1118,18 @@ export class MaidEngine {
   /** Ends the module mode under way, or only the one with this id (a no-op when another, or none, is under way) */
   exitModuleMode(id?: string) {
     this.moduleSession.exit(id)
+  }
+
+  /**
+   * Ends a module mode that holds work in progress (the resize box moves the features in it) before another edit
+   * commits: that commit would take the mode's work in with it, and Escape could no longer take it back. The mode's
+   * `onExit` takes the work back, as on Escape. Called by every edit that commits outside the mode: operations, tags,
+   * paste, new points. True when it ended one.
+   */
+  endModuleEdit(): boolean {
+    if (!this.moduleMode || !this.data.history.hasWorkInProgress) return false
+    this.exitModuleMode()
+    return true
   }
 
   /**
@@ -1322,6 +1336,7 @@ export class MaidEngine {
   /** Performs an action as one undo step and redraws what it changed */
   private edit(action: Action, annotation: string, selectedIDs: string[]) {
     const { history } = this.data
+    this.endModuleEdit()
     this.change(() => {
       history.perform(action)
       history.commit({ annotation, selectedIDs })

@@ -9,7 +9,8 @@
 import type { OperationHost } from '@osm-editor-kit/maid-operations'
 import { actionMoveNodes, type ModuleMode } from '@osm-editor-kit/maid-renderer'
 import { m } from '../messages.ts'
-import { resizeExtent, type Extent, type Handle, type ResizeOptions } from './box.ts'
+import { add, sub, type Pt } from '../shared/vector.ts'
+import { handleAt, resizeExtent, type Extent, type Handle, type ResizeOptions } from './box.ts'
 import { resizeActions, resizeSnapshot } from './resize-store.ts'
 import { axesPointOf, movesFor, resizeBoxOf } from './resize.ts'
 import { handleOf, HANDLE_HIT_LAYERS, insideBox } from './shapes.ts'
@@ -29,7 +30,7 @@ export function startResize(host: OperationHost, ids: readonly string[]): void {
   const box = resizeBoxOf(editor.history.staging.graph, ids)
   if ('refused' in box) return
   // entered before the store begins: entering ends another resize first, and that exit clears the store
-  engine.enterModuleMode(resizeMode(host, [...ids]))
+  engine.enterModuleMode(resizeMode(host))
   resizeActions().begin(ids, box)
 }
 
@@ -55,8 +56,8 @@ export function applyResize(host: OperationHost): void {
     return
   }
   const moves = movesFor(box, extent)
-  // the mode's work in progress is replaced by the final positions and committed as one step; `change` redraws once
-  applied = true
+  // the mode's work in progress is replaced by the final positions and committed as one step; `change` redraws once.
+  // The commit leaves no work in progress, so the mode's onExit has nothing to take back.
   engine.change(() => {
     editor.history.revert()
     editor.history.perform(actionMoveNodes(moves))
@@ -70,22 +71,17 @@ export function applyResize(host: OperationHost): void {
 }
 
 /**
- * Set by `applyResize` just before the mode ends, so that its `onExit` keeps the step it committed. Only one resize
- * runs at a time (one module mode), so one flag is enough.
- */
-let applied = false
-
-/**
  * The mode for one selection. Its callbacks change the store and the work in progress; only `applyResize` commits.
  * @param   host - The editor and the engine
- * @param   ids  - The selected features
  * @return  The module mode
  */
-function resizeMode(host: OperationHost, _ids: readonly string[]): ModuleMode {
+function resizeMode(host: OperationHost): ModuleMode {
   const { editor, engine } = host
-  /** The handle being dragged and the box when its drag started */
-  let drag: { handle: Handle; start: Extent } | undefined
-  applied = false
+  /**
+   * The handle being dragged, the box when its drag started, and where the handle was from the pointer then (along the
+   * box's axes): the handle keeps that offset, so a press beside it does not make the box jump
+   */
+  let drag: { handle: Handle; start: Extent; grip: Pt } | undefined
 
   /** The keys a drag uses: the panel's toggles, each turned round by its key */
   const optionsOf = (modifiers: { shift: boolean; alt: boolean }): ResizeOptions => {
@@ -100,7 +96,7 @@ function resizeMode(host: OperationHost, _ids: readonly string[]): ModuleMode {
     const extent = resizeExtent(
       drag.start,
       drag.handle,
-      axesPointOf(box, [lon, lat]),
+      add(axesPointOf(box, [lon, lat]), drag.grip),
       optionsOf(modifiers),
     )
     resizeActions().show(extent)
@@ -113,10 +109,15 @@ function resizeMode(host: OperationHost, _ids: readonly string[]): ModuleMode {
     id: MODE_ID,
     cursor: 'default',
     handleLayers: [...HANDLE_HIT_LAYERS],
-    onDragStart: (name) => {
+    onDragStart: (name, lon, lat) => {
       const handle = handleOf(name)
-      const { extent } = resizeSnapshot()
-      if (handle && extent) drag = { handle, start: extent }
+      const { box, extent } = resizeSnapshot()
+      if (!handle || !box || !extent) return
+      drag = {
+        handle,
+        start: extent,
+        grip: sub(handleAt(extent, handle), axesPointOf(box, [lon, lat])),
+      }
     },
     onDrag: (_name, lon, lat, info) => follow(lon, lat, info.modifiers),
     onDragEnd: (_name, lon, lat, info) => {
@@ -135,9 +136,8 @@ function resizeMode(host: OperationHost, _ids: readonly string[]): ModuleMode {
       return true
     },
     onExit: () => {
-      // Escape, another mode, undo: whatever the box did is taken back, unless it was just kept
-      if (!applied && editor.history.hasWorkInProgress) engine.change(() => editor.history.revert())
-      applied = false
+      // Escape, another mode, undo, another edit: whatever the box did is taken back (a kept resize left none)
+      if (editor.history.hasWorkInProgress) engine.change(() => editor.history.revert())
       drag = undefined
       resizeActions().end()
     },
