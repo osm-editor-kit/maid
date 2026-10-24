@@ -26,7 +26,7 @@ Research from 2026-10-24 for a new operation, asked for by Tobias: select one or
 
 ### What Maid lacks for this tool
 
-1. **A module mode's drag gets no modifiers.** `onDrag(handle, lon, lat)` has no `info`, and `engine.setModifiers` re-runs the last move only for the draw and drag tools. Resize needs `onDrag` to get `{ point, modifiers }` and to be called again when Shift or Alt changes mid-drag (the same rule as ADR 0011 hook 1). A small change in `module-mode.ts` and the engine.
+1. **A module mode's drag gets no modifiers.** `onDrag(handle, lon, lat)` has no `info`. `engine.setModifiers` already runs a module mode's last move again on a key change, which reaches `onDrag` during a drag, so only the keys are missing. (Built: `ModuleModeDragInfo`.)
 2. **An operation's tooltip cannot list its modifiers.** `Operation` has a label and one letter. The command bar shows `reason ?? description`, but an operation has no `description`. Proposed: `Operation.hints?: () => { keys: string; text: string }[]`, shown under the label with a `kbd` each (the tooltip already renders one `kbd`). Without it, the modifiers can only go into a plain sentence.
 3. **The shell's help list of keys** cannot be extended by a module (already open from the shapes tools).
 
@@ -80,7 +80,7 @@ Nodes shared with features that are not selected **move with the box**, as with 
 
 - **Minimum:** each side stays at least 0.5 m; a handle dragged further stops there. No flipping through the opposite side (Flip does that).
 - **Live size:** width × height in metres on two sides of the box, in the rectangle's label style; the factor in % in the panel.
-- **Precision:** the geometry is computed on the Mercator plane like `transform.ts` (conformal, so proportions on the ground hold at any zoom and latitude), in the box's own axes: translate to the anchor, rotate to the box axes, scale x and y, rotate back. Every move starts from the positions at the start of the drag, so no error accumulates.
+- **Precision:** the geometry is computed in the shapes' local frame in metres (`shared/metres.ts`, as cut, divide and merge), turned to the box's own axes: each axis is stretched on its own, then turned back. Every move places the nodes from where they were when the resize started, so no error adds up.
 
 ### Drawing
 
@@ -90,7 +90,9 @@ Nodes shared with features that are not selected **move with the box**, as with 
 
 K or the menu item → box appears around the selection. Drag handles as often as wanted; each drag continues from the last. Enter, the panel's Apply, or a click outside the box keeps the result as **one undo step** ("Resized a feature" / "Resized N features"); Escape restores everything. Undo and redo end the mode first (ADR 0011).
 
-## 4. Open questions for Tobias
+## 4. Questions for Tobias
+
+All seven answered on 2026-10-24 with the recommendation; shared nodes move as in a manual drag. Tobias will try the modifiers and the orientation by hand.
 
 1. Modifier scheme: Shift = proportions, Alt = from the centre (recommended), or Photoshop's inverted Shift.
 2. Start key: K (recommended), J, or none.

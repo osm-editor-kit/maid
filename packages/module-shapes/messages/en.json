@@ -54,5 +54,19 @@
   "divide_each": "Each part",
   "divide_parts": "Parts",
   "divide_size": "{length} × {width} m · {area} m²",
-  "divide_area_range": "{smallest} to {largest} m²"
+  "divide_area_range": "{smallest} to {largest} m²",
+  "resize_label": "Resize",
+  "resize_title": "Resize",
+  "resize_hint": "Drag a corner or an edge. Enter or a click outside applies, Escape cancels.",
+  "resize_hint_proportional": "Keep proportions",
+  "resize_hint_centre": "From the centre",
+  "resize_size": "{width} × {height} m",
+  "resize_factor": "{width} % × {height} %",
+  "resize_apply": "Apply",
+  "resize_cancel": "Cancel",
+  "resize_annotation_one": "Resized a feature",
+  "resize_annotation": "Resized {count} features",
+  "resize_refused_incomplete": "Not all of it is loaded, so it cannot be resized.",
+  "resize_refused_too_thin": "It is too thin: a straight line has no width to stretch.",
+  "resize_refused_too_large": "Not enough of it is visible. Zoom out to resize it."
 }

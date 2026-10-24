@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { twJoin } from 'tailwind-merge'
+import type { TooltipHint } from './tooltip-group.ts'
 import { Tooltip } from './Tooltip.tsx'
 
 export type CommandItem = {
@@ -13,6 +14,8 @@ export type CommandItem = {
   reason?: string
   /** What the command does, when its label does not say it: the tooltip's text unless `reason` is set */
   description?: string
+  /** Modifier keys and what they do, under the label in the tooltip */
+  hints?: readonly TooltipHint[]
   /**
    * The group the command belongs to. Consecutive items of one group form one joined segment; items
    * without a group form segments of their own when they are next to each other.
@@ -63,6 +66,7 @@ export function CommandBar(props: { label: string; items: CommandItem[] }) {
                 label={item.label}
                 shortcut={item.shortcut}
                 description={item.reason ?? item.description}
+                hints={item.reason ? undefined : item.hints}
                 placement="top"
               >
                 <button

@@ -36,6 +36,14 @@ const APPLE_ORDER: { modifier: Modifier; symbol: string }[] = [
 const WORD_ORDER = ['Ctrl', 'Alt', 'Shift'] as const
 
 /**
+ * Modifier keys alone, as the platform shows them in a tooltip's hint: `formatModifiers('Shift+Alt', true)` is `⌥⇧`,
+ * `formatModifiers('Shift+Alt', false)` is `Alt+Shift`. Unlike `formatShortcut`, the last part is a modifier too.
+ */
+export function formatModifiers(keys: string, apple: boolean): string {
+  return formatShortcut(`${keys}+`, apple).replace(/\+$/, '')
+}
+
+/**
  * The shortcut as the platform shows it. `apple` is true on Apple devices.
  *
  * `formatShortcut('Mod+Shift+Z', true)` is `⇧⌘Z`, `formatShortcut('Mod+Shift+Z', false)` is

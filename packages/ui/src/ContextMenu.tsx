@@ -9,6 +9,15 @@ import {
 } from 'react'
 import { ROW_BASE, ROW_CURRENT, ROW_FOCUS } from './inspector/listbox.ts'
 import { UI_SPRING } from './motion.tsx'
+import { formatModifiers, isApplePlatform } from './shortcut-label.ts'
+import type { TooltipHint } from './tooltip-group.ts'
+
+/** The hints as the lines of a native tooltip: the keys for the platform, then what they do */
+function hintsTitle(hints: readonly TooltipHint[] | undefined): string | undefined {
+  if (!hints || hints.length === 0) return undefined
+  const apple = isApplePlatform()
+  return hints.map((hint) => `${formatModifiers(hint.keys, apple)}  ${hint.text}`).join('\n')
+}
 
 /** One entry of a context menu */
 export type MenuItem = {
@@ -20,6 +29,8 @@ export type MenuItem = {
   shortcut?: string
   /** Why it cannot be chosen now; then it is greyed out and says so in its tooltip */
   reason?: string
+  /** Modifier keys and what they do: the row's tooltip when it can be chosen, one line each */
+  hints?: readonly TooltipHint[]
   run: () => void
   /** Called with true while the pointer or the focus is on the item, to show what it would do */
   preview?: (on: boolean) => void
@@ -180,7 +191,7 @@ export function ContextMenu(props: {
               role="menuitem"
               aria-current={item.current ? 'true' : undefined}
               disabled={item.reason !== undefined}
-              title={item.reason}
+              title={item.reason ?? hintsTitle(item.hints)}
               onClick={() => {
                 if (!item.keepOpen) onClose()
                 item.run()

@@ -54,5 +54,19 @@
   "divide_each": "Je Teil",
   "divide_parts": "Teile",
   "divide_size": "{length} × {width} m · {area} m²",
-  "divide_area_range": "{smallest} bis {largest} m²"
+  "divide_area_range": "{smallest} bis {largest} m²",
+  "resize_label": "Größe ändern",
+  "resize_title": "Größe ändern",
+  "resize_hint": "Ziehe an einer Ecke oder Kante. Enter oder ein Klick daneben übernimmt, Escape bricht ab.",
+  "resize_hint_proportional": "Proportionen beibehalten",
+  "resize_hint_centre": "Von der Mitte aus",
+  "resize_size": "{width} × {height} m",
+  "resize_factor": "{width} % × {height} %",
+  "resize_apply": "Übernehmen",
+  "resize_cancel": "Abbrechen",
+  "resize_annotation_one": "Größe eines Objekts geändert",
+  "resize_annotation": "Größe von {count} Objekten geändert",
+  "resize_refused_incomplete": "Es ist nicht vollständig geladen, daher lässt sich die Größe nicht ändern.",
+  "resize_refused_too_thin": "Es ist zu schmal: Eine gerade Linie hat keine Breite zum Strecken.",
+  "resize_refused_too_large": "Es ist nicht genug davon sichtbar. Zoome heraus, um die Größe zu ändern."
 }

@@ -54,5 +54,19 @@
   "divide_each": "Chaque partie",
   "divide_parts": "Parties",
   "divide_size": "{length} × {width} m · {area} m²",
-  "divide_area_range": "{smallest} à {largest} m²"
+  "divide_area_range": "{smallest} à {largest} m²",
+  "resize_label": "Redimensionner",
+  "resize_title": "Redimensionner",
+  "resize_hint": "Faites glisser un coin ou un bord. Entrée ou un clic à côté applique, Échap annule.",
+  "resize_hint_proportional": "Conserver les proportions",
+  "resize_hint_centre": "Depuis le centre",
+  "resize_size": "{width} × {height} m",
+  "resize_factor": "{width} % × {height} %",
+  "resize_apply": "Appliquer",
+  "resize_cancel": "Annuler",
+  "resize_annotation_one": "Objet redimensionné",
+  "resize_annotation": "{count} objets redimensionnés",
+  "resize_refused_incomplete": "Il n'est pas entièrement chargé, il ne peut donc pas être redimensionné.",
+  "resize_refused_too_thin": "Il est trop étroit : une ligne droite n'a pas de largeur à étirer.",
+  "resize_refused_too_large": "Une trop petite partie est visible. Dézoomez pour le redimensionner."
 }

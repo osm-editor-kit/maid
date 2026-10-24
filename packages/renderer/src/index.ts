@@ -16,6 +16,7 @@ export {
   CLICK_AFTER_DRAG_MS,
   isTextField,
   type ModuleMode,
+  type ModuleModeDragInfo,
   type ModuleModeInfo,
   type ModuleModeKey,
   type ScreenPoint,
@@ -53,7 +54,8 @@ export { ModuleLayers } from './ModuleLayers'
 export { OsmLayers } from './OsmLayers'
 export { OsmData, type MergeResult } from './data'
 export { DrawTool, type DrawKind } from './draw'
-export { TransformTool, type TransformKind } from './transform'
+// actionMoveNodes: many nodes in one commit, as Rotate moves them (the resize box uses it)
+export { actionMoveNodes, TransformTool, type TransformKind } from './transform'
 // The rule for the Rotate (R) hint of a direction field, shared with the documentation popover (ui).
 export { showsDirectionRotateHint } from '@osm-editor-kit/maid-operations'
 

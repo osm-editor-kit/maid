@@ -9,6 +9,7 @@ export type {
   Operation,
   OperationContext,
   OperationGroup,
+  OperationHint,
   OperationResult,
 } from './types.ts'
 export * from './rotate-direction.ts'

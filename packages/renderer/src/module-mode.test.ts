@@ -212,6 +212,35 @@ describe('a mode is told the pixel, the modifier keys and a snap (ADR 0011, hook
     expect(snaps).toEqual([])
   })
 
+  test('a handle drag is told the modifier keys at its start, on each move and at its end', () => {
+    const modifiers: Modifiers = { ...NO_MODIFIERS }
+    const session = new ModuleModeSession({
+      handleAt: () => 'ne',
+      now: () => 1000,
+      changed: () => {},
+      snapAt: () => undefined,
+      modifiers: () => modifiers,
+    })
+    const seen: string[] = []
+    const keys = (info: { modifiers: Modifiers }) =>
+      `${info.modifiers.shift ? 'shift' : ''}${info.modifiers.alt ? 'alt' : ''}` || '-'
+    session.enter({
+      id: 'resize',
+      handleLayers: ['handles'],
+      onDragStart: (handle, _lon, _lat, info) => seen.push(`start ${handle} ${keys(info)}`),
+      onDrag: (handle, _lon, _lat, info) => seen.push(`drag ${handle} ${keys(info)}`),
+      onDragEnd: (handle, _lon, _lat, info) => seen.push(`end ${handle} ${keys(info)}`),
+    })
+    session.press(at, 13.4, 52.5)
+    modifiers.shift = true
+    session.move(at, 13.41, 52.5)
+    modifiers.alt = true
+    session.move(at, 13.41, 52.5)
+    modifiers.shift = false
+    session.release(13.41, 52.5)
+    expect(seen).toEqual(['start ne -', 'drag ne shift', 'drag ne shiftalt', 'end ne alt'])
+  })
+
   test('a snapping mode gets the target under the pixel, and the features it skips are left out', () => {
     const target: SnapTarget = { type: 'node', id: 'n5', loc: [13.4, 52.5] }
     const { session, snaps } = sessionWith({}, { target })
