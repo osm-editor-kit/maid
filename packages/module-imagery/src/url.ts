@@ -2,8 +2,8 @@
  * The URL parameters of the imagery module: `bg` (the background; iD calls it `background`), `overlays` (the same
  * name in iD), `offset` (the same name and notation in iD, in meters) and `bg_display` (the display settings of the
  * background, Maid's own). The notation is iD's
- * (`.reference/id/modules/renderer/background.js`): a background is an ELI layer id, `none`, or `custom:<template>`;
- * overlays are a comma list in the order they were chosen; `bg_display` is a comma list of `name:value`.
+ * (`.reference/id/modules/renderer/background.js`): a background is an ELI layer id, `none`, or `custom:<template>`
+ * (Maid adds `oam:<item id>`, one OpenAerialMap image, see oam.ts); overlays are a comma list in the order they were chosen; `bg_display` is a comma list of `name:value`.
  *
  * Pure: no React and no nuqs. The parsers have the shape core's `UrlParser` takes; the module declares them in
  * `setup` (index.ts), and the shell maps the iD names (core's `iD`).
@@ -30,13 +30,28 @@ export function templateOf(value: string): string | null {
   return isCustomValue(value) ? value.slice(CUSTOM.length) : null
 }
 
-/** A background that needs no index: none, or a custom template (its own tiles) */
-export function isOwnValue(value: string) {
-  return value === NONE || isCustomValue(value)
+const OAM = 'oam:'
+
+/** The value of an OpenAerialMap image: `oam:<item id>`, the id the layer index gives it too */
+export function oamValue(itemId: string) {
+  return `${OAM}${itemId}`
+}
+
+/** Whether a value is an OpenAerialMap image (`oam:<item id>`, with an id) */
+export function isOamValue(value: string) {
+  return value.startsWith(OAM) && value.length > OAM.length
 }
 
 /**
- * `bg`: an ELI id, `none`, or `custom:<template>`. The template keeps its `&`, braces and spaces: the URL
+ * A background that needs no index: none, a custom template (its own tiles) or an OpenAerialMap image (asked for by
+ * its id). These are the person's own choice: the start order keeps them and a move never switches them.
+ */
+export function isOwnValue(value: string) {
+  return value === NONE || isCustomValue(value) || isOamValue(value)
+}
+
+/**
+ * `bg`: an ELI id, `none`, `custom:<template>` or `oam:<item id>`. The template keeps its `&`, braces and spaces: the URL
  * encodes them and nuqs decodes them. Nothing else is checked here; a template that does not work is refused where
  * it is drawn. Empty, or `custom:` with no template, is no opinion (null).
  */
@@ -44,6 +59,7 @@ export const parseAsBackground: UrlParser<string> = {
   parse(value) {
     if (value === '') return null
     if (value === CUSTOM) return null
+    if (value === OAM) return null
     return value
   },
   serialize: (value) => value,

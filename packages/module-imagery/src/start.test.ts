@@ -9,9 +9,10 @@ import {
   startOverlays,
   type StartBackgroundInput,
 } from './start.ts'
-import { customValue, NONE } from './url.ts'
+import { customValue, NONE, oamValue } from './url.ts'
 
 const CUSTOM = customValue('https://a.example/{z}/{x}/{y}.png')
+const OAM = oamValue('1e7cb303-0c37-4904-81bf-374640b500af')
 const KNOWN = new Set([
   'Bing',
   'best-layer',
@@ -37,6 +38,16 @@ describe('startBackground: the start order, as iD picks it', () => {
     ],
     ['the URL names none: none', { url: NONE, best: ['best-layer'] }, NONE],
     ['the URL names a custom template: it is used', { url: CUSTOM, stored: 'Bing' }, CUSTOM],
+    [
+      'the URL names an OpenAerialMap image: it is used, the index does not know it',
+      { url: OAM, best: ['best-layer'] },
+      OAM,
+    ],
+    [
+      'the stored choice is an OpenAerialMap image: it comes back, whatever the view',
+      { stored: OAM, valid: ['first'] },
+      OAM,
+    ],
     [
       'no URL: the best layer that covers more than half of the view',
       { best: ['best-layer', 'other'], stored: 'stored-layer', valid: ['stored-layer'] },

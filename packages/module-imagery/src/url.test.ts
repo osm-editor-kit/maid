@@ -14,7 +14,9 @@ import {
   readDisplayList,
   customValue,
   templateOf,
+  isOamValue,
   isOwnValue,
+  oamValue,
 } from './url.ts'
 
 /** The value the URL carries: nuqs encodes it, and URLSearchParams decodes it, so the round trip goes through both */
@@ -36,6 +38,16 @@ describe('bg parser', () => {
   it('gives no opinion for an empty value or a custom with no template', () => {
     expect(parseAsBackground.parse('')).toBeNull()
     expect(parseAsBackground.parse('custom:')).toBeNull()
+    expect(parseAsBackground.parse('oam:')).toBeNull()
+  })
+
+  it('reads an OpenAerialMap image by its item id', () => {
+    const value = oamValue('1e7cb303-0c37-4904-81bf-374640b500af')
+    expect(value).toBe('oam:1e7cb303-0c37-4904-81bf-374640b500af')
+    expect(parseAsBackground.parse(value)).toBe(value)
+    expect(isOamValue(value)).toBe(true)
+    expect(isOamValue('oam:')).toBe(false)
+    expect(isOamValue('Bing')).toBe(false)
   })
 
   it('round trips a custom template with &, braces and spaces through the URL', () => {
@@ -46,9 +58,10 @@ describe('bg parser', () => {
     expect(templateOf(back ?? '')).toBe(template)
   })
 
-  it('knows its own values: none and custom need no index', () => {
+  it('knows its own values: none, custom and an OpenAerialMap image need no index', () => {
     expect(isOwnValue(NONE)).toBe(true)
     expect(isOwnValue(customValue('https://a.example/{z}/{x}/{y}.png'))).toBe(true)
+    expect(isOwnValue(oamValue('abc'))).toBe(true)
     expect(isOwnValue('Bing')).toBe(false)
     expect(templateOf('Bing')).toBeNull()
   })

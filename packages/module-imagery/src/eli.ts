@@ -11,6 +11,7 @@ import type {
   RasterLayerSpec,
   RasterSourceSpec,
 } from '@osm-editor-kit/maplibre-editor-layer-index'
+import type { OamLayer } from '@osm-editor-kit/maplibre-editor-layer-index/oam'
 import { bestIds, type Coverage } from './coverage.ts'
 import { visibleAtZoom, type Listing, type View } from './helpers.ts'
 
@@ -72,7 +73,7 @@ export function withMapMinzoom<T extends { minzoom?: number }>(layer: T): T {
   return { ...layer, minzoom: Math.max(0, toMapZoom(layer.minzoom)) }
 }
 
-/** A layer ready for react-map-gl: its source and its layer, with the id `eli-<id>` */
+/** A layer ready for react-map-gl: its source and its layer, with the id `eli-<id>` (`oam-<item id>` for an OpenAerialMap image) */
 export type Drawn = {
   /** ELI's id of the layer */
   id: string
@@ -83,6 +84,8 @@ export type Drawn = {
   layer: RasterLayerSpec
   /** The background, drawn with the brightness setting; overlays are not */
   background: boolean
+  /** The image's details, for an OpenAerialMap image (oam.ts) */
+  oam?: OamLayer
 }
 
 function toListing(layer: EliLayer): Listing {

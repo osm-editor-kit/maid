@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 import type { Coverage } from './coverage.ts'
-import { customValue, NONE } from './url.ts'
+import { customValue, NONE, oamValue } from './url.ts'
 import { switchFor, type SwitchInput } from './view-switch.ts'
 
 const KNOWN = new Set(['chosen', 'best', 'fallback', 'other'])
@@ -93,10 +93,12 @@ describe('switchFor', () => {
     expect(switchFor({ ...base, fallback: 'chosen' })).toBeNull()
   })
 
-  it('never switches none or a custom template', () => {
+  it('never switches none, a custom template or an OpenAerialMap image', () => {
     expect(switchFor({ ...base, chosen: NONE, best: ['best'], fallback: 'fallback' })).toBeNull()
     const custom = customValue('https://a.example/{z}/{x}/{y}.png')
     expect(switchFor({ ...base, chosen: custom, best: ['best'], fallback: 'fallback' })).toBeNull()
+    const image = oamValue('abc')
+    expect(switchFor({ ...base, chosen: image, best: ['best'], fallback: 'fallback' })).toBeNull()
   })
 
   it('never switches a chosen id the index does not know', () => {

@@ -6,6 +6,7 @@ import { AttributionControl, Layer, Source, useMap } from 'react-map-gl/maplibre
 import { drawCustom } from './custom.ts'
 import { drawLayer, type Drawn } from './eli.ts'
 import { useImageryActions, useImageryContext, useView, type Shown } from './imagery-store.ts'
+import { oamDrawQuery } from './oam.ts'
 import { useCannotShift } from './offset-protocol.ts'
 import { isZeroOffset, metersToUnits, NO_OFFSET, shiftedTileUrl, type Meters } from './offset.ts'
 import {
@@ -16,9 +17,12 @@ import {
   useMirrorShown,
   useSwitchOnMove,
 } from './shown.ts'
-import { NONE, templateOf } from './url.ts'
+import { isOamValue, NONE, templateOf } from './url.ts'
 
-/** One layer to draw: an index layer (ELI, `template` null) or a custom background from its template */
+/**
+ * One layer to draw: an index layer (ELI, `template` null), an OpenAerialMap image (`oam:<item id>`, `template` null)
+ * or a custom background from its template
+ */
 type Wanted = { id: string; background: boolean; template: string | null }
 
 /** A layer's source as the layer index gives it (the type of `Drawn.source`) */
@@ -52,7 +56,8 @@ function allowedUnderAutomation(wanted: Wanted) {
 /**
  * The query of one drawn layer. The work is local (the layer index is bundled with the app), so the
  * result is kept for the session. Not retried: a draw that fails fails the same way again. `null` for a
- * layer that is unknown or needs a key, because a query's data cannot be `undefined`.
+ * layer that is unknown or needs a key, because a query's data cannot be `undefined`. An OpenAerialMap image is
+ * the one draw that asks a server (its item, once); the answer is kept for the session too.
  */
 function drawQuery(wanted: Wanted, dpr: number) {
   if (wanted.template !== null) {
@@ -63,6 +68,7 @@ function drawQuery(wanted: Wanted, dpr: number) {
     }
   }
   const { id, background } = wanted
+  if (isOamValue(id)) return oamDrawQuery(id, background)
   return {
     queryKey: ['imagery', 'layer', id, background] as const,
     queryFn: async () => (await drawLayer(id, background)) ?? null,

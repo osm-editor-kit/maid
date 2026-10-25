@@ -12,7 +12,7 @@
     "@osm-editor-kit/maid-core": "workspace:*",
     "@osm-editor-kit/maid-renderer": "workspace:*",
     "@osm-editor-kit/maid-ui": "workspace:*",
-    "@osm-editor-kit/maplibre-editor-layer-index": "0.2.0",
+    "@osm-editor-kit/maplibre-editor-layer-index": "0.4.0",
     "@tanstack/react-query": "^5",
     "maplibre-gl": "^6.12.0",
     "react": "^19.2.0",

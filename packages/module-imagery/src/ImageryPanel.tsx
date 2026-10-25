@@ -11,7 +11,7 @@ import { isAutomated } from '@osm-editor-kit/maid-core'
 import { PLAIN_INPUT, Tooltip } from '@osm-editor-kit/maid-ui'
 import { toolButtonTone } from '@osm-editor-kit/maid-ui'
 import { keepPreviousData, skipToken, useQuery } from '@tanstack/react-query'
-import { useId, useState, type FormEvent, type ReactNode } from 'react'
+import { Fragment, useId, useState, type FormEvent, type ReactNode } from 'react'
 import { checkTemplate, keyLikeNames, shortLabel, type CustomEntry } from './custom.ts'
 import { listLayers, listView, type Listed } from './eli.ts'
 import {
@@ -28,6 +28,8 @@ import {
   useView,
   type SaveResult,
 } from './imagery-store.ts'
+import { oamRows, type OamRow } from './oam-rows.ts'
+import { listOam, OAM_MIN_ZOOM, oamDrawQuery } from './oam.ts'
 import { OffsetSection } from './OffsetSection.tsx'
 import {
   groupRows,
@@ -39,7 +41,7 @@ import {
 } from './panel-rows.ts'
 import { filterSeriesRows, seriesRows, type SeriesChip, type SeriesRow } from './series.ts'
 import { useLiveBrightness, useLiveImagery } from './shown.ts'
-import { customValue, isCustomValue, NONE, templateOf } from './url.ts'
+import { customValue, isCustomValue, isOamValue, NONE, templateOf } from './url.ts'
 
 /** From this many layers in view on, a search field is shown above the list */
 const SEARCH_FROM = 8
@@ -130,6 +132,23 @@ function PanelBody() {
     placeholderData: keepPreviousData,
   })
   const failed = listing.isError
+  // OpenAerialMap images, asked for live from zoom 12 on (oam.ts); a new rounded view asks again, an old one is kept
+  // for five minutes, since new images arrive every day
+  const oamView = rounded !== null && rounded.zoom >= OAM_MIN_ZOOM ? rounded : null
+  const oamListing = useQuery({
+    queryKey: ['imagery', 'oam-list', oamView?.bounds ?? null],
+    queryFn: oamView === null ? skipToken : ({ signal }) => listOam(oamView, signal),
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+    retry: false,
+  })
+  // the shown image's details, from the map layer's draw (the same query), so it stays listed out of view
+  const shownOam = useQuery({
+    ...oamDrawQuery(shown.background, true),
+    enabled: isOamValue(shown.background),
+    staleTime: Infinity,
+    retry: false,
+  })
   const listed: Listed | null = listing.data ?? (failed ? { items: [], series: [] } : null)
 
   // the last list stays until the new one arrives, so the panel does not flicker while the map moves.
@@ -138,6 +157,12 @@ function PanelBody() {
   // the background that is shown: the URL's, else the start order's (shown.ts)
   const shownId = shown.background
   const rows = filterSeriesRows(seriesRows(listed?.series ?? [], shownId), query)
+  const oamList = oamRows(
+    oamView === null ? [] : (oamListing.data ?? []),
+    isOamValue(shownId) ? (shownOam.data?.oam ?? undefined) : undefined,
+    shownId,
+    query,
+  )
   // the overlays that are on are listed whatever the view, as iD lists the sources in use (`listLayers`)
   const onNow = useQuery({
     queryKey: ['imagery', 'overlays-on', shown.overlays.join(',')],
@@ -154,10 +179,29 @@ function PanelBody() {
   const chosenOutOfView =
     shownId !== NONE &&
     !isCustomValue(shownId) &&
+    !isOamValue(shownId) &&
     listed !== null &&
     !items.some((item) => item.id === shownId)
   const shownTemplate = templateOf(shownId)
   const shownIsSaved = custom.some((entry) => customValue(entry.template) === shownId)
+  const groups = groupRows(rows)
+  const lastPhotoGroup = groups.findLast((group) => group.id.endsWith('-photo'))?.id
+  const oamGroup = (
+    <div role="group" aria-label="OpenAerialMap" className="flex flex-col gap-1">
+      <h4 className="px-2.5 pt-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+        OpenAerialMap
+      </h4>
+      {oamList.map((row) => (
+        <OamChoice key={row.id} row={row} onSelect={() => chooseBackground(row.id)} />
+      ))}
+      <OamStatus
+        zoomedOut={oamView === null}
+        loading={oamView !== null && oamListing.isPending}
+        failed={oamView !== null && oamListing.isError}
+        empty={oamView !== null && oamListing.isSuccess && oamListing.data.length === 0}
+      />
+    </div>
+  )
   // a form saved closes; a refused one keeps its reason in the form
   const save = (result: SaveResult) => {
     if (result.ok) setForm(null)
@@ -256,16 +300,21 @@ function PanelBody() {
             }}
           />
         ))}
-        {groupRows(rows).map((group) => (
-          <div key={group.id} role="group" aria-label={group.label} className="flex flex-col gap-1">
-            <h4 className="px-2.5 pt-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              {group.label}
-            </h4>
-            {group.rows.map((row) => (
-              <SeriesChoice key={row.key} row={row} onSelect={chooseBackground} />
-            ))}
-          </div>
+        {/* the aerial photos of ELI, then the OpenAerialMap images (photos too), then the maps and the rest */}
+        {groups.map((group) => (
+          <Fragment key={group.id}>
+            <div role="group" aria-label={group.label} className="flex flex-col gap-1">
+              <h4 className="px-2.5 pt-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                {group.label}
+              </h4>
+              {group.rows.map((row) => (
+                <SeriesChoice key={row.key} row={row} onSelect={chooseBackground} />
+              ))}
+            </div>
+            {group.id === lastPhotoGroup ? oamGroup : null}
+          </Fragment>
         ))}
+        {lastPhotoGroup === undefined ? oamGroup : null}
       </div>
 
       {shownTemplate !== null ? <TemplateHint template={shownTemplate} /> : null}
@@ -556,6 +605,61 @@ function SeriesChoice(props: { row: SeriesRow; onSelect: (id: string) => void })
         </div>
       ) : null}
     </Choice>
+  )
+}
+
+/** One OpenAerialMap image: its title and date, and when chosen its thumbnail, provider, resolution and links */
+function OamChoice(props: { row: OamRow; onSelect: () => void }) {
+  const { row, onSelect } = props
+  const facts = [row.provider, row.platform, row.resolution, row.area].filter(Boolean).join(' · ')
+  return (
+    <Choice
+      name={row.name}
+      detail={row.date}
+      category="photo"
+      selected={row.selected}
+      onSelect={onSelect}
+    >
+      {row.thumbnailUrl ? (
+        <img
+          src={row.thumbnailUrl}
+          alt=""
+          loading="lazy"
+          className="ml-7 h-20 w-[calc(100%-1.75rem)] rounded object-cover"
+        />
+      ) : null}
+      <LayerDetails name={row.name} description={facts || undefined} links={row.links} />
+    </Choice>
+  )
+}
+
+/** A line under the OpenAerialMap images: zoom in, loading, none here, or failed */
+function OamStatus(props: {
+  zoomedOut: boolean
+  loading: boolean
+  failed: boolean
+  empty: boolean
+}) {
+  const { zoomedOut, loading, failed, empty } = props
+  const text = zoomedOut
+    ? 'Zoom in to list the OpenAerialMap images of this area.'
+    : loading
+      ? 'Loading OpenAerialMap images…'
+      : failed
+        ? 'The OpenAerialMap images could not be loaded.'
+        : empty
+          ? 'No OpenAerialMap image in this view.'
+          : null
+  if (text === null) return null
+  return (
+    <p
+      className={classes(
+        'px-2.5 pb-1 text-xs',
+        failed ? 'text-red-700 dark:text-red-400' : 'text-zinc-500 dark:text-zinc-400',
+      )}
+    >
+      {text}
+    </p>
   )
 }
 

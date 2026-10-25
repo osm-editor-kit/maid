@@ -7,6 +7,7 @@ import type { Drawn } from './eli.ts'
 import { backgroundName, usedNames } from './helpers.ts'
 import { createImageryStore, ImageryStoreProvider, type ImageryUrls } from './imagery-store.ts'
 import { drawnShown, ImageryLayers } from './ImageryLayers.tsx'
+import { setOamFetch } from './oam.ts'
 import { registerOffsetProtocol } from './offset-protocol.ts'
 import {
   ID_BACKGROUND,
@@ -25,11 +26,11 @@ export type ImageryOptions = {
 }
 
 /**
- * Imagery under the OSM data: a background (an ELI layer or a custom tile URL template), overlays
+ * Imagery under the OSM data: a background (an ELI layer, an OpenAerialMap image or a custom tile URL template), overlays
  * and a brightness, chosen in the top bar's "Background" panel. Built on
  * `@osm-editor-kit/maplibre-editor-layer-index`.
  *
- * The module declares its URL parameters: `bg` (an ELI id, `none`, or `custom:<template>`; iD's `background`, with
+ * The module declares its URL parameters: `bg` (an ELI id, `none`, `custom:<template>` or `oam:<item id>`; iD's `background`, with
  * iD's `layer` read too), `overlays` and `offset` (iD's names too, the offset in meters) and `bg_display` (the
  * brightness, Maid's own name). The URL is the live state; the store keeps the choices for the next visit
  * (docs/research/url-state-audit.md, section 3). The offset is not stored: iD does not store it either.
@@ -43,6 +44,8 @@ export function imagery(options: ImageryOptions = {}) {
       // the offset protocol is registered before any shifted source is added (in ImageryLayers, under the map); the
       // getter reads the editor's fetch at each tile request
       registerOffsetProtocol(() => api.editor.fetch)
+      // OpenAerialMap images are asked for through the editor's fetch too (oam.ts), read at each request
+      setOamFetch(() => api.editor.fetch)
       const urls: ImageryUrls = {
         background: api.urlParam({
           name: 'bg',
