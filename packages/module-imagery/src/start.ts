@@ -12,7 +12,7 @@
  * Until the order has resolved (the index loads after the first render), the pending value stands: the URL's own
  * value when it has one (none, a template), else the stored choice, else the default. Nothing is written then.
  */
-import { isOwnValue, NONE } from './url.ts'
+import { isOamValue, isOwnValue, NONE } from './url.ts'
 
 /** Whether the index has a layer with this id */
 export type Known = (id: string) => boolean
@@ -59,9 +59,14 @@ export function startBackground(input: StartBackgroundInput): string {
   return first ?? NONE
 }
 
+/** An overlay that can be shown: one the index knows, or an OpenAerialMap image (asked for by its id) */
+function showable(known: Known): Known {
+  return (id) => isOamValue(id) || known(id)
+}
+
 /** The overlays the start order picks: the URL's when it has any, else the stored ones; an id the index does not know is dropped */
 export function startOverlays(url: string[] | null, stored: string[], known: Known): string[] {
-  return (url ?? stored).filter(known)
+  return (url ?? stored).filter(showable(known))
 }
 
 /** The background shown once the start has resolved: the URL's while it gives one that can be shown, else the start's */
@@ -72,7 +77,7 @@ export function shownBackground(url: string | null, started: string, known: Know
 
 /** The overlays shown once the start has resolved: the URL's (without unknown ids) while it gives any, else the start's */
 export function shownOverlays(url: string[] | null, started: string[], known: Known): string[] {
-  return url === null ? started : url.filter(known)
+  return url === null ? started : url.filter(showable(known))
 }
 
 /** Two lists of ids, in order. `null` (no value) is never the same as a list. */

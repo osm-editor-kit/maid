@@ -77,7 +77,8 @@ export async function drawOam(value: string, background: boolean): Promise<Drawn
     name: oam.getOamImageryUsedValue(layer),
     sourceId,
     source: oam.getOamRasterSourceSpec(layer),
-    layer: oam.getOamRasterLayerSpec(layer, { source: sourceId }),
+    // an empty paint, as ELI's specs have: the map layer passes the paint on, and MapLibre refuses `paint: undefined`
+    layer: oam.getOamRasterLayerSpec(layer, { source: sourceId, paint: {} }),
     background,
     oam: layer,
   }

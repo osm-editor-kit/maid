@@ -6,6 +6,15 @@ import type { OamLayer } from '@osm-editor-kit/maplibre-editor-layer-index/oam'
 import { everyWordIn } from './helpers.ts'
 import { layerLinks, type LayerLink } from './panel-rows.ts'
 
+/**
+ * The image's page in HOT's STAC Browser, made from its item URL (`…/stac/collections/…` →
+ * `…/browser/stac/collections/…`). Undefined for an item URL of another shape (a mock server).
+ */
+export function oamItemPage(itemUrl: string) {
+  const page = itemUrl.replace('/stac/collections/', '/browser/stac/collections/')
+  return page === itemUrl ? undefined : page
+}
+
 /** One image of the list, as the panel shows it */
 export type OamRow = {
   /** The background value, `oam:<item id>` */
@@ -20,7 +29,6 @@ export type OamRow = {
   resolution?: string
   /** `6,638 m²`, `1.4 km²` */
   area?: string
-  thumbnailUrl?: string
   attributionText: string
   links: LayerLink[]
   selected: boolean
@@ -43,8 +51,8 @@ export function areaText(squareMeters: number | undefined) {
   return `${(Math.round(squareMeters / 100_000) / 10).toLocaleString('en')} km²`
 }
 
-/** One image as a row; `shownId` is the background shown now */
-export function oamRow(layer: OamLayer, shownId: string): OamRow {
+/** One image as a row; `on` are the overlays drawn now */
+export function oamRow(layer: OamLayer, on: readonly string[]): OamRow {
   const resolution = resolutionText(layer.oam.gsd)
   const area = areaText(layer.oam.footprintArea)
   return {
@@ -55,27 +63,30 @@ export function oamRow(layer: OamLayer, shownId: string): OamRow {
     ...(layer.oam.platform ? { platform: layer.oam.platform } : {}),
     ...(resolution ? { resolution } : {}),
     ...(area ? { area } : {}),
-    ...(layer.oam.thumbnailUrl ? { thumbnailUrl: layer.oam.thumbnailUrl } : {}),
     attributionText: layer.attributionText,
-    links: layerLinks(layer),
-    selected: layer.id === shownId,
+    // the attribution of an image is its own page in the catalogue (provider, licence, capture), not OAM's home page
+    links: layerLinks({
+      attributionUrl: oamItemPage(layer.oam.itemUrl),
+      licenseUrl: layer.licenseUrl,
+    }),
+    selected: on.includes(layer.id),
   }
 }
 
 /**
- * The rows of the images in view, in the order the API gives them (newest first), with the shown image first when it
- * is not among them (it stays listed, as a chosen overlay does). Search matches the name, the provider and the date.
+ * The rows of the images in view, in the order the API gives them (newest first). The images that are on now come
+ * first when they are not among them: they stay listed out of view, as chosen overlays do. Search matches the name,
+ * the provider and the date.
  */
 export function oamRows(
   inView: readonly OamLayer[],
-  shown: OamLayer | undefined,
-  shownId: string,
+  onLayers: readonly OamLayer[],
+  on: readonly string[],
   query: string,
 ) {
-  const layers =
-    shown && !inView.some((layer) => layer.id === shown.id) ? [shown, ...inView] : inView
-  return layers
-    .map((layer) => oamRow(layer, shownId))
+  const outOfView = onLayers.filter((layer) => !inView.some((item) => item.id === layer.id))
+  return [...outOfView, ...inView]
+    .map((layer) => oamRow(layer, on))
     .filter((row) =>
       everyWordIn(`${row.name} ${row.provider ?? ''} ${row.date ?? ''} OpenAerialMap`, query),
     )

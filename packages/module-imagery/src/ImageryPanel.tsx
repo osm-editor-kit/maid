@@ -10,8 +10,8 @@ import { PencilIcon, TrashIcon } from '@heroicons/react/20/solid'
 import { isAutomated } from '@osm-editor-kit/maid-core'
 import { PLAIN_INPUT, Tooltip } from '@osm-editor-kit/maid-ui'
 import { toolButtonTone } from '@osm-editor-kit/maid-ui'
-import { keepPreviousData, skipToken, useQuery } from '@tanstack/react-query'
-import { Fragment, useId, useState, type FormEvent, type ReactNode } from 'react'
+import { keepPreviousData, skipToken, useQueries, useQuery } from '@tanstack/react-query'
+import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { checkTemplate, keyLikeNames, shortLabel, type CustomEntry } from './custom.ts'
 import { listLayers, listView, type Listed } from './eli.ts'
 import {
@@ -142,12 +142,14 @@ function PanelBody() {
     placeholderData: keepPreviousData,
     retry: false,
   })
-  // the shown image's details, from the map layer's draw (the same query), so it stays listed out of view
-  const shownOam = useQuery({
-    ...oamDrawQuery(shown.background, true),
-    enabled: isOamValue(shown.background),
-    staleTime: Infinity,
-    retry: false,
+  // the details of the images that are on, from the map layer's draws (the same queries), so they stay listed out of view
+  const onOam = useQueries({
+    queries: shown.overlays.filter(isOamValue).map((id) => ({
+      ...oamDrawQuery(id, false),
+      staleTime: Infinity,
+      retry: false,
+    })),
+    combine: (results) => results.flatMap((result) => (result.data?.oam ? [result.data.oam] : [])),
   })
   const listed: Listed | null = listing.data ?? (failed ? { items: [], series: [] } : null)
 
@@ -159,10 +161,17 @@ function PanelBody() {
   const rows = filterSeriesRows(seriesRows(listed?.series ?? [], shownId), query)
   const oamList = oamRows(
     oamView === null ? [] : (oamListing.data ?? []),
-    isOamValue(shownId) ? (shownOam.data?.oam ?? undefined) : undefined,
-    shownId,
+    onOam,
+    shown.overlays,
     query,
   )
+  /** Turns an overlay on (drawn on top, as the last one chosen) or off */
+  const toggleOverlay = (id: string, on: boolean) =>
+    chooseOverlays(
+      on
+        ? [...shown.overlays.filter((other) => other !== id), id]
+        : shown.overlays.filter((other) => other !== id),
+    )
   // the overlays that are on are listed whatever the view, as iD lists the sources in use (`listLayers`)
   const onNow = useQuery({
     queryKey: ['imagery', 'overlays-on', shown.overlays.join(',')],
@@ -184,24 +193,6 @@ function PanelBody() {
     !items.some((item) => item.id === shownId)
   const shownTemplate = templateOf(shownId)
   const shownIsSaved = custom.some((entry) => customValue(entry.template) === shownId)
-  const groups = groupRows(rows)
-  const lastPhotoGroup = groups.findLast((group) => group.id.endsWith('-photo'))?.id
-  const oamGroup = (
-    <div role="group" aria-label="OpenAerialMap" className="flex flex-col gap-1">
-      <h4 className="px-2.5 pt-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-        OpenAerialMap
-      </h4>
-      {oamList.map((row) => (
-        <OamChoice key={row.id} row={row} onSelect={() => chooseBackground(row.id)} />
-      ))}
-      <OamStatus
-        zoomedOut={oamView === null}
-        loading={oamView !== null && oamListing.isPending}
-        failed={oamView !== null && oamListing.isError}
-        empty={oamView !== null && oamListing.isSuccess && oamListing.data.length === 0}
-      />
-    </div>
-  )
   // a form saved closes; a refused one keeps its reason in the form
   const save = (result: SaveResult) => {
     if (result.ok) setForm(null)
@@ -300,21 +291,16 @@ function PanelBody() {
             }}
           />
         ))}
-        {/* the aerial photos of ELI, then the OpenAerialMap images (photos too), then the maps and the rest */}
-        {groups.map((group) => (
-          <Fragment key={group.id}>
-            <div role="group" aria-label={group.label} className="flex flex-col gap-1">
-              <h4 className="px-2.5 pt-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                {group.label}
-              </h4>
-              {group.rows.map((row) => (
-                <SeriesChoice key={row.key} row={row} onSelect={chooseBackground} />
-              ))}
-            </div>
-            {group.id === lastPhotoGroup ? oamGroup : null}
-          </Fragment>
+        {groupRows(rows).map((group) => (
+          <div key={group.id} role="group" aria-label={group.label} className="flex flex-col gap-1">
+            <h4 className="px-2.5 pt-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              {group.label}
+            </h4>
+            {group.rows.map((row) => (
+              <SeriesChoice key={row.key} row={row} onSelect={chooseBackground} />
+            ))}
+          </div>
         ))}
-        {lastPhotoGroup === undefined ? oamGroup : null}
       </div>
 
       {shownTemplate !== null ? <TemplateHint template={shownTemplate} /> : null}
@@ -364,6 +350,29 @@ function PanelBody() {
           </ul>
         </div>
       ) : null}
+
+      {/* OpenAerialMap images are small: they are overlays, drawn above the background, which gives the context */}
+      <div
+        role="group"
+        aria-label="OpenAerialMap"
+        className="border-t border-zinc-950/5 px-4 py-3 dark:border-white/5"
+      >
+        <h3 className="text-sm font-medium">OpenAerialMap</h3>
+        <p className={classes('pb-1', MUTED)}>
+          Drone and aerial images, drawn above the background.
+        </p>
+        <ul>
+          {oamList.map((row) => (
+            <OamOverlay key={row.id} row={row} onToggle={(on) => toggleOverlay(row.id, on)} />
+          ))}
+        </ul>
+        <OamStatus
+          zoomedOut={oamView === null}
+          loading={oamView !== null && oamListing.isPending}
+          failed={oamView !== null && oamListing.isError}
+          empty={oamView !== null && oamListing.isSuccess && oamListing.data.length === 0}
+        />
+      </div>
 
       {shownId !== NONE ? (
         <label className="flex items-center gap-3 border-t border-zinc-950/5 px-4 py-3 text-sm dark:border-white/5">
@@ -608,28 +617,29 @@ function SeriesChoice(props: { row: SeriesRow; onSelect: (id: string) => void })
   )
 }
 
-/** One OpenAerialMap image: its title and date, and when chosen its thumbnail, provider, resolution and links */
-function OamChoice(props: { row: OamRow; onSelect: () => void }) {
-  const { row, onSelect } = props
+/** One OpenAerialMap image as an overlay: a checkbox with its title and date; on, its provider, resolution and links */
+function OamOverlay(props: { row: OamRow; onToggle: (on: boolean) => void }) {
+  const { row, onToggle } = props
   const facts = [row.provider, row.platform, row.resolution, row.area].filter(Boolean).join(' · ')
   return (
-    <Choice
-      name={row.name}
-      detail={row.date}
-      category="photo"
-      selected={row.selected}
-      onSelect={onSelect}
-    >
-      {row.thumbnailUrl ? (
-        <img
-          src={row.thumbnailUrl}
-          alt=""
-          loading="lazy"
-          className="ml-7 h-20 w-[calc(100%-1.75rem)] rounded object-cover"
+    <li className="py-1">
+      <label className="flex cursor-pointer items-center gap-2.5 text-sm">
+        <input
+          {...PLAIN_INPUT}
+          type="checkbox"
+          className="size-4 shrink-0 accent-blue-600"
+          checked={row.selected}
+          onChange={(event) => onToggle(event.target.checked)}
         />
+        <span className="min-w-0 truncate">{row.name}</span>
+        {row.date ? (
+          <span className={classes('ml-auto shrink-0 tabular-nums', MUTED)}>{row.date}</span>
+        ) : null}
+      </label>
+      {row.selected ? (
+        <LayerDetails name={row.name} description={facts || undefined} links={row.links} />
       ) : null}
-      <LayerDetails name={row.name} description={facts || undefined} links={row.links} />
-    </Choice>
+    </li>
   )
 }
 
@@ -654,7 +664,7 @@ function OamStatus(props: {
   return (
     <p
       className={classes(
-        'px-2.5 pb-1 text-xs',
+        'pt-1 text-xs',
         failed ? 'text-red-700 dark:text-red-400' : 'text-zinc-500 dark:text-zinc-400',
       )}
     >

@@ -1,8 +1,8 @@
 # @osm-editor-kit/maid-module-imagery
 
-Imagery under the OSM data: a background (an ELI layer, an OpenAerialMap image or a custom tile URL template), overlays and a
+Imagery under the OSM data: a background (an ELI layer or a custom tile URL template), overlays (ELI's and OpenAerialMap images) and a
 brightness, chosen in the top bar's "Background" panel. Built on
-`@osm-editor-kit/maplibre-editor-layer-index` (0.2.0).
+`@osm-editor-kit/maplibre-editor-layer-index` (0.5.0).
 
 ## Series (one row, many dates)
 
@@ -70,22 +70,24 @@ that takes two numbers (an empty field resets), and a reset. There is no keyboar
 
 ## OpenAerialMap
 
-The single images of [OpenAerialMap](https://openaerialmap.org/) (drones, planes, 360° orthos) are listed in their
-own group "OpenAerialMap", after the aerial photos of ELI. They come live from HOT's STAC API through the layer index's
-`/oam` entry (`oam.ts` is the only file that calls it), so an image uploaded today is listed today. ELI's single
-"OpenAerialMap Mosaic, by Kontur.io" layer stays in the ELI list.
+The single images of [OpenAerialMap](https://openaerialmap.org/) (drones, planes, 360° orthos) are overlays: drawn
+above the chosen background, which gives the context around them, since they cover small areas (Tobias, 2026-10-25).
+The panel lists them in their own section "OpenAerialMap" before the brightness. They come live from HOT's STAC API
+through the layer index's `/oam` entry (`oam.ts` is the only file that calls it), so an image uploaded today is listed
+today. ELI's single "OpenAerialMap Mosaic, by Kontur.io" layer stays in the ELI list.
 
 - From zoom 12 on (`OAM_MIN_ZOOM`), the panel asks for the 50 newest images in the rounded view (`listingView`), one
   request per new view, kept for five minutes. Below zoom 12 it says to zoom in. Nothing is asked while the panel is
   closed.
-- A row shows the title and the capture date; chosen, it shows the thumbnail, the provider, the platform, the
-  resolution (`gsd`) and the area, and the attribution and licence links (`oam-rows.ts`). Search matches the title, the
-  provider and the date.
-- The value is `bg=oam:<item id>`. Like none and a custom template it is the person's own choice (`isOwnValue`): the
-  start order keeps it, a move never switches it, and it is never picked automatically. A link draws the image after
-  one request for its item; the chosen image stays listed when it is out of view.
+- A row is a checkbox with the title and the capture date; turned on, it shows the provider, the platform, the
+  resolution (`gsd`) and the area, and the links (`oam-rows.ts`): "Attribution" is the image's page in HOT's STAC
+  Browser, "License" its licence. No thumbnail (Tobias, 2026-10-25). Search matches the title, the provider and the
+  date. Several images can be on at once.
+- The value is `oam:<item id>` in `overlays`. The start order keeps it (`showable` in `start.ts`) and it is never
+  turned on automatically. A link draws the image after one request for its item; an image that is on stays listed
+  when it is out of view. An older link with `bg=oam:<item id>` still draws the image as the background.
 - Tiles come from HOT's TiTiler, bounded to the image, with MapLibre overzooming past the image's own resolution.
-  `imagery_used` is `OpenAerialMap (<title>)`. The offset works as for any background.
+  `imagery_used` is `OpenAerialMap (<title>)`.
 - The requests go through the editor's fetch (service `data`), so its gate refuses them under automation.
 
 ## Data

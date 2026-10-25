@@ -122,6 +122,9 @@ describe('the start for the overlays', () => {
     expect(startOverlays(['roads', 'gone'], ['dop'], known)).toEqual(['roads'])
     expect(startOverlays(null, ['dop', 'gone'], known)).toEqual(['dop'])
     expect(startOverlays([], ['dop'], known)).toEqual([])
+    // an OpenAerialMap image is not in the index, and is kept
+    expect(startOverlays([OAM, 'gone'], ['dop'], known)).toEqual([OAM])
+    expect(startOverlays(null, ['dop', OAM], known)).toEqual(['dop', OAM])
   })
 })
 
@@ -136,6 +139,7 @@ describe('what is shown once the start has resolved', () => {
   it('is the URL overlays without the unknown ids, else the start overlays', () => {
     expect(shownOverlays(['roads', 'gone'], ['dop'], known)).toEqual(['roads'])
     expect(shownOverlays(null, ['dop'], known)).toEqual(['dop'])
+    expect(shownOverlays(['roads', OAM], ['dop'], known)).toEqual(['roads', OAM])
   })
 })
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test'
 import { HttpError, type RemoteFetch } from '@osm-editor-kit/maid-core'
 import { areaText, oamRows, resolutionText } from './oam-rows.ts'
 import { drawOam, listOam, OAM_MIN_ZOOM, setOamFetch } from './oam.ts'
-import { NONE, oamValue } from './url.ts'
+import { oamValue } from './url.ts'
 
 /** Item 1e7cb303 as the API gave it on 2026-10-25, cut to what the rows read */
 const ITEM = {
@@ -83,6 +83,7 @@ describe('drawOam: one image for the map', () => {
     )
     expect(drawn.source.bounds).toEqual(ITEM.bbox as [number, number, number, number])
     expect(drawn.layer.source).toBe(drawn.sourceId)
+    expect(drawn.layer.paint).toEqual({})
     expect(drawn.background).toBe(true)
     expect(drawn.oam?.oam.provider).toBe('OSM Verkehrswende')
   })
@@ -94,12 +95,12 @@ describe('drawOam: one image for the map', () => {
 })
 
 describe('the rows of the panel', () => {
-  it('shows the facts of an image, and lists the shown one first when it is out of view', async () => {
+  it('shows the facts of an image, and lists an image that is on first when it is out of view', async () => {
     const search =
       'https://api.imagery.hotosm.org/stac/search?collections=openaerialmap&bbox=7.39%2C48.43%2C7.42%2C48.44&limit=50&sortby=-properties.datetime'
     stubFetch({ [search]: { features: [ITEM] }, [ITEM_URL]: ITEM })
     const [layer] = await listOam({ bounds: [7.39, 48.43, 7.42, 48.44], zoom: 16 })
-    const [row] = oamRows([layer!], undefined, VALUE, '')
+    const [row] = oamRows([layer!], [], [VALUE], '')
     expect(row).toMatchObject({
       id: VALUE,
       date: '2026-10-24',
@@ -107,13 +108,20 @@ describe('the rows of the panel', () => {
       platform: 'uav',
       resolution: '4.5 cm/px',
       area: '6,638 m²',
-      thumbnailUrl: 'https://example.org/thumbnail.png',
       selected: true,
     })
-    expect(row!.links.map((link) => link.label)).toEqual(['Attribution', 'License'])
-    // out of view: the shown image is still listed, first
-    expect(oamRows([], layer, VALUE, '').map((r) => r.id)).toEqual([VALUE])
-    expect(oamRows([layer!], layer, NONE, '')).toHaveLength(1)
+    expect(row!.links).toEqual([
+      {
+        label: 'Attribution',
+        url: `https://api.imagery.hotosm.org/browser/stac/collections/openaerialmap/items/${ITEM.id}`,
+      },
+      { label: 'License', url: 'https://creativecommons.org/licenses/by/4.0/' },
+    ])
+    expect(row).not.toHaveProperty('thumbnailUrl')
+    // out of view: an image that is on is still listed, first
+    expect(oamRows([], [layer!], [VALUE], '').map((r) => r.id)).toEqual([VALUE])
+    expect(oamRows([layer!], [layer!], [], '')).toHaveLength(1)
+    expect(oamRows([layer!], [], [], '')[0]!.selected).toBe(false)
   })
 
   it('searches the name, the provider and the date', async () => {
@@ -121,9 +129,9 @@ describe('the rows of the panel', () => {
       'https://api.imagery.hotosm.org/stac/search?collections=openaerialmap&bbox=7.39%2C48.43%2C7.42%2C48.44&limit=50&sortby=-properties.datetime'
     stubFetch({ [search]: { features: [ITEM] } })
     const layers = await listOam({ bounds: [7.39, 48.43, 7.42, 48.44], zoom: 16 })
-    expect(oamRows(layers, undefined, NONE, 'verkehrswende 2026-10')).toHaveLength(1)
-    expect(oamRows(layers, undefined, NONE, 'odile')).toHaveLength(1)
-    expect(oamRows(layers, undefined, NONE, 'berlin')).toHaveLength(0)
+    expect(oamRows(layers, [], [], 'verkehrswende 2026-10')).toHaveLength(1)
+    expect(oamRows(layers, [], [], 'odile')).toHaveLength(1)
+    expect(oamRows(layers, [], [], 'berlin')).toHaveLength(0)
   })
 
   it('writes resolution and area for people', () => {
