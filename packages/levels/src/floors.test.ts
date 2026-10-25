@@ -50,9 +50,15 @@ describe('floorsOf', () => {
       tags: Record<string, string>
     }[]
 
-    const started = performance.now()
-    const floors = floorsOf(features)
-    const elapsed = performance.now() - started
+    // The fastest of five runs: one run alone can hit a garbage collection or a busy CI machine (236 ms once
+    // against about 4 ms locally), which says nothing about floorsOf
+    let floors: number[] = []
+    let elapsed = Infinity
+    for (let run = 0; run < 5; run++) {
+      const started = performance.now()
+      floors = floorsOf(features)
+      elapsed = Math.min(elapsed, performance.now() - started)
+    }
 
     expect(floors).toEqual([-3, -2, -1.7, -1.3, -1, -0.5, 0, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
     expect(elapsed).toBeLessThan(50)
