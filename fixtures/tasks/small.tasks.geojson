@@ -1,0 +1,1789 @@
+{
+  "type": "FeatureCollection",
+  "maid_tasks": {
+    "version": 1,
+    "list_id": "fixture-small-tasks",
+    "title": "Fixture: check the streets of small",
+    "description": "Tasks cut from the `small` fixture by `bun run tasks-fixture`. Generated, not edited by hand."
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.4049552,
+            52.3877293
+          ],
+          [
+            13.4049758,
+            52.3877291
+          ],
+          [
+            13.4050699,
+            52.3877284
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0001",
+        "title": "Check unnamed service",
+        "description": "**service** street, OpenStreetMap way 1225189900. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1225189900"
+        ],
+        "options": [
+          {
+            "id": "cycle-lane",
+            "label": "It has a marked cycle lane",
+            "set": {
+              "cycleway": "lane"
+            }
+          },
+          {
+            "id": "surface-asphalt",
+            "label": "As mapped: surface=paving_stones",
+            "description": "Compare with the imagery before you pick it.",
+            "set": {
+              "surface": "paving_stones"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.4044679,
+            52.3924075
+          ],
+          [
+            13.4046596,
+            52.3927815
+          ],
+          [
+            13.404681,
+            52.3928564
+          ],
+          [
+            13.4046997,
+            52.3929217
+          ],
+          [
+            13.4047249,
+            52.3932438
+          ],
+          [
+            13.4047261,
+            52.3932689
+          ],
+          [
+            13.4047406,
+            52.3935384
+          ],
+          [
+            13.404745,
+            52.3936139
+          ],
+          [
+            13.4047515,
+            52.3936623
+          ],
+          [
+            13.404766,
+            52.3937718
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0002",
+        "title": "Check Finchleystraße",
+        "description": "**residential** street, OpenStreetMap way 154686474. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/154686474"
+        ],
+        "options": [
+          {
+            "id": "cycle-lane",
+            "label": "It has a marked cycle lane",
+            "description": "Compare with the imagery before you pick it.",
+            "set": {
+              "cycleway": "lane"
+            }
+          },
+          {
+            "id": "lit",
+            "label": "It is lit at night",
+            "set": {
+              "lit": "yes"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.3976496,
+            52.3925776
+          ],
+          [
+            13.3979463,
+            52.39258
+          ],
+          [
+            13.3980587,
+            52.3925807
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0003",
+        "title": "Check Bodmerstraße",
+        "description": "**residential** street, OpenStreetMap way 1425561291. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1425561291"
+        ],
+        "options": [
+          {
+            "id": "sidewalk-both",
+            "label": "No sidewalk tag",
+            "remove": [
+              "sidewalk"
+            ]
+          },
+          {
+            "id": "surface-asphalt",
+            "label": "The surface is asphalt",
+            "description": "Compare with the imagery before you pick it.",
+            "set": {
+              "surface": "asphalt"
+            }
+          },
+          {
+            "id": "no-maxspeed",
+            "label": "The speed limit tag is not needed",
+            "remove": [
+              "maxspeed"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.3954618,
+          52.386556
+        ]
+      },
+      "properties": {
+        "task_id": "t-0004",
+        "title": "Check the traffic_signals at node 7978101855",
+        "description": "**traffic_signals** point, OpenStreetMap node 7978101855. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "node/7978101855"
+        ],
+        "options": [
+          {
+            "id": "zebra",
+            "label": "No crossing:markings tag",
+            "description": "Compare with the imagery before you pick it.",
+            "remove": [
+              "crossing:markings"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.3981036,
+            52.3926576
+          ],
+          [
+            13.398122,
+            52.3926585
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0005",
+        "title": "Check unnamed footway",
+        "description": "**footway** street, OpenStreetMap way 1290911355. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1290911355"
+        ],
+        "options": [
+          {
+            "id": "no-maxspeed",
+            "label": "The speed limit tag is not needed",
+            "remove": [
+              "maxspeed"
+            ]
+          },
+          {
+            "id": "lit",
+            "label": "It is lit at night",
+            "set": {
+              "lit": "yes"
+            }
+          },
+          {
+            "id": "cycle-lane",
+            "label": "It has a marked cycle lane",
+            "set": {
+              "cycleway": "lane"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.3919049,
+            52.3898028
+          ],
+          [
+            13.3920033,
+            52.3898031
+          ],
+          [
+            13.3935631,
+            52.3898073
+          ],
+          [
+            13.3935983,
+            52.3898108
+          ],
+          [
+            13.3936949,
+            52.3898206
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0006",
+        "title": "Check Elisabethstraße",
+        "description": "**residential** street, OpenStreetMap way 1422608936. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1422608936"
+        ],
+        "options": [
+          {
+            "id": "cycle-lane",
+            "label": "It has a marked cycle lane",
+            "set": {
+              "cycleway": "lane"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.3978063,
+            52.3937073
+          ],
+          [
+            13.3978504,
+            52.3936761
+          ],
+          [
+            13.397964,
+            52.3926514
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0007",
+        "title": "Check unnamed footway",
+        "description": "**footway** street, OpenStreetMap way 1284817651. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1284817651"
+        ],
+        "options": [
+          {
+            "id": "sidewalk-both",
+            "label": "It has a sidewalk on both sides",
+            "set": {
+              "sidewalk": "both"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.3953215,
+          52.3868022
+        ]
+      },
+      "properties": {
+        "task_id": "t-0008",
+        "title": "Check the traffic_signals at node 7978101859",
+        "description": "**traffic_signals** point, OpenStreetMap node 7978101859. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "node/7978101859"
+        ],
+        "options": [
+          {
+            "id": "zebra",
+            "label": "It has zebra markings",
+            "set": {
+              "crossing:markings": "zebra"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.4020702,
+            52.3922442
+          ],
+          [
+            13.4020641,
+            52.3921586
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0009",
+        "title": "Check unnamed footway",
+        "description": "**footway** street, OpenStreetMap way 282585010. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/282585010"
+        ],
+        "options": [
+          {
+            "id": "lit",
+            "label": "It is lit at night",
+            "set": {
+              "lit": "yes"
+            }
+          },
+          {
+            "id": "surface-asphalt",
+            "label": "The surface is asphalt",
+            "description": "Compare with the imagery before you pick it.",
+            "set": {
+              "surface": "asphalt"
+            }
+          },
+          {
+            "id": "no-maxspeed",
+            "label": "The speed limit tag is not needed",
+            "remove": [
+              "maxspeed"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.401308,
+            52.3903741
+          ],
+          [
+            13.4014838,
+            52.3903757
+          ],
+          [
+            13.4014776,
+            52.3910399
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0010",
+        "title": "Check unnamed footway",
+        "description": "**footway** street, OpenStreetMap way 648275712. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/648275712"
+        ],
+        "options": [
+          {
+            "id": "cycle-lane",
+            "label": "It has a marked cycle lane",
+            "description": "Compare with the imagery before you pick it.",
+            "set": {
+              "cycleway": "lane"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.3951245,
+            52.3871828
+          ],
+          [
+            13.3950639,
+            52.3871711
+          ],
+          [
+            13.3950338,
+            52.3871653
+          ],
+          [
+            13.3950192,
+            52.3871625
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0011",
+        "title": "Check unnamed service",
+        "description": "**service** street, OpenStreetMap way 1422615798. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1422615798"
+        ],
+        "options": [
+          {
+            "id": "lit",
+            "label": "It is lit at night",
+            "set": {
+              "lit": "yes"
+            }
+          },
+          {
+            "id": "sidewalk-both",
+            "label": "No sidewalk tag",
+            "remove": [
+              "sidewalk"
+            ]
+          },
+          {
+            "id": "cycle-lane",
+            "label": "It has a marked cycle lane",
+            "set": {
+              "cycleway": "lane"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.3920033,
+          52.3898031
+        ]
+      },
+      "properties": {
+        "task_id": "t-0012",
+        "title": "Check the crossing at node 11916329713",
+        "description": "**crossing** point, OpenStreetMap node 11916329713. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "node/11916329713"
+        ],
+        "options": [
+          {
+            "id": "no-crossing-tag",
+            "label": "The crossing tag is not needed",
+            "description": "Compare with the imagery before you pick it.",
+            "remove": [
+              "crossing"
+            ]
+          },
+          {
+            "id": "zebra",
+            "label": "No crossing:markings tag",
+            "remove": [
+              "crossing:markings"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.4052033,
+            52.3883052
+          ],
+          [
+            13.4052088,
+            52.3882528
+          ],
+          [
+            13.4052148,
+            52.3881969
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0013",
+        "title": "Check unnamed footway",
+        "description": "**footway** street, OpenStreetMap way 1284791168. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1284791168"
+        ],
+        "options": [
+          {
+            "id": "lit",
+            "label": "It is lit at night",
+            "set": {
+              "lit": "yes"
+            }
+          },
+          {
+            "id": "cycle-lane",
+            "label": "It has a marked cycle lane",
+            "set": {
+              "cycleway": "lane"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.3982773,
+            52.3879794
+          ],
+          [
+            13.3983526,
+            52.388138
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0014",
+        "title": "Check unnamed service",
+        "description": "**service** street, OpenStreetMap way 1416704582. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1416704582"
+        ],
+        "options": [
+          {
+            "id": "surface-asphalt",
+            "label": "The surface is asphalt",
+            "set": {
+              "surface": "asphalt"
+            }
+          },
+          {
+            "id": "no-maxspeed",
+            "label": "The speed limit tag is not needed",
+            "remove": [
+              "maxspeed"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.3980587,
+            52.3925807
+          ],
+          [
+            13.3980665,
+            52.3925126
+          ],
+          [
+            13.3980827,
+            52.3923531
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0015",
+        "title": "Check Steinstraße",
+        "description": "**residential** street, OpenStreetMap way 30084961. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/30084961"
+        ],
+        "options": [
+          {
+            "id": "no-maxspeed",
+            "label": "The speed limit tag is not needed",
+            "description": "Compare with the imagery before you pick it.",
+            "remove": [
+              "maxspeed"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.3965211,
+          52.384334
+        ]
+      },
+      "properties": {
+        "task_id": "t-0016",
+        "title": "Check the crossing at node 11917780266",
+        "description": "**crossing** point, OpenStreetMap node 11917780266. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "node/11917780266"
+        ],
+        "options": [
+          {
+            "id": "tactile",
+            "label": "It has tactile paving",
+            "set": {
+              "tactile_paving": "yes"
+            }
+          },
+          {
+            "id": "zebra",
+            "label": "No crossing:markings tag",
+            "description": "Compare with the imagery before you pick it.",
+            "remove": [
+              "crossing:markings"
+            ]
+          },
+          {
+            "id": "no-crossing-tag",
+            "label": "The crossing tag is not needed",
+            "description": "Compare with the imagery before you pick it.",
+            "remove": [
+              "crossing"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.4003613,
+            52.3920288
+          ],
+          [
+            13.4003536,
+            52.3925533
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0017",
+        "title": "Check unnamed footway",
+        "description": "**footway** street, OpenStreetMap way 335610855. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/335610855"
+        ],
+        "options": [
+          {
+            "id": "lit",
+            "label": "It is lit at night",
+            "set": {
+              "lit": "yes"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.4022726,
+            52.3916428
+          ],
+          [
+            13.4027027,
+            52.3916467
+          ],
+          [
+            13.4030955,
+            52.3916504
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0018",
+        "title": "Check unnamed footway",
+        "description": "**footway** street, OpenStreetMap way 813606931. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/813606931"
+        ],
+        "options": [
+          {
+            "id": "cycle-lane",
+            "label": "No cycleway tag",
+            "description": "Compare with the imagery before you pick it.",
+            "remove": [
+              "cycleway"
+            ]
+          },
+          {
+            "id": "sidewalk-both",
+            "label": "It has a sidewalk on both sides",
+            "set": {
+              "sidewalk": "both"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.3980135,
+            52.3925113
+          ],
+          [
+            13.3980665,
+            52.3925126
+          ],
+          [
+            13.3981295,
+            52.3925142
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0019",
+        "title": "Check unnamed footway",
+        "description": "**footway** street, OpenStreetMap way 1284817649. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1284817649"
+        ],
+        "options": [
+          {
+            "id": "surface-asphalt",
+            "label": "The surface is asphalt",
+            "description": "Compare with the imagery before you pick it.",
+            "set": {
+              "surface": "asphalt"
+            }
+          },
+          {
+            "id": "cycle-lane",
+            "label": "It has a marked cycle lane",
+            "description": "Compare with the imagery before you pick it.",
+            "set": {
+              "cycleway": "lane"
+            }
+          },
+          {
+            "id": "sidewalk-both",
+            "label": "It has a sidewalk on both sides",
+            "set": {
+              "sidewalk": "both"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.3931648,
+          52.3886084
+        ]
+      },
+      "properties": {
+        "task_id": "t-0020",
+        "title": "Check the bus_stop at node 3274700633",
+        "description": "**bus_stop** point, OpenStreetMap node 3274700633. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "node/3274700633"
+        ],
+        "options": [
+          {
+            "id": "tactile",
+            "label": "It has tactile paving",
+            "set": {
+              "tactile_paving": "yes"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.4001521,
+            52.3925981
+          ],
+          [
+            13.4004272,
+            52.3926037
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0021",
+        "title": "Check John-Locke-Straße",
+        "description": "**residential** street, OpenStreetMap way 1425558880. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1425558880"
+        ],
+        "options": [
+          {
+            "id": "sidewalk-both",
+            "label": "No sidewalk tag",
+            "remove": [
+              "sidewalk"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.4063257,
+            52.3936277
+          ],
+          [
+            13.4063405,
+            52.3935934
+          ],
+          [
+            13.4063968,
+            52.3934568
+          ],
+          [
+            13.4064025,
+            52.3933027
+          ],
+          [
+            13.4064052,
+            52.3932303
+          ],
+          [
+            13.4064158,
+            52.3929448
+          ],
+          [
+            13.4064183,
+            52.3928788
+          ],
+          [
+            13.4064222,
+            52.3927325
+          ],
+          [
+            13.4064342,
+            52.3925091
+          ],
+          [
+            13.406484,
+            52.3914484
+          ],
+          [
+            13.4065054,
+            52.3912716
+          ],
+          [
+            13.406553,
+            52.3910461
+          ],
+          [
+            13.4066167,
+            52.3907986
+          ],
+          [
+            13.4066885,
+            52.3905653
+          ],
+          [
+            13.4067904,
+            52.3903014
+          ],
+          [
+            13.4068414,
+            52.3901774
+          ],
+          [
+            13.4068503,
+            52.3901595
+          ],
+          [
+            13.407007,
+            52.3898442
+          ],
+          [
+            13.4070881,
+            52.389701
+          ],
+          [
+            13.4072186,
+            52.3894973
+          ],
+          [
+            13.407355,
+            52.3892844
+          ],
+          [
+            13.4074844,
+            52.3891081
+          ],
+          [
+            13.4075803,
+            52.3889935
+          ],
+          [
+            13.4076735,
+            52.3888797
+          ],
+          [
+            13.407809,
+            52.3887266
+          ],
+          [
+            13.4080195,
+            52.388502
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0022",
+        "title": "Check unnamed footway",
+        "description": "**footway** street, OpenStreetMap way 1135395520. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1135395520"
+        ],
+        "options": [
+          {
+            "id": "cycle-lane",
+            "label": "It has a marked cycle lane",
+            "set": {
+              "cycleway": "lane"
+            }
+          },
+          {
+            "id": "lit",
+            "label": "It is lit at night",
+            "set": {
+              "lit": "yes"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.4011671,
+            52.3910107
+          ],
+          [
+            13.4011808,
+            52.390372
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0023",
+        "title": "Check unnamed footway",
+        "description": "**footway** street, OpenStreetMap way 648275711. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/648275711"
+        ],
+        "options": [
+          {
+            "id": "no-maxspeed",
+            "label": "The speed limit tag is not needed",
+            "remove": [
+              "maxspeed"
+            ]
+          },
+          {
+            "id": "sidewalk-both",
+            "label": "It has a sidewalk on both sides",
+            "set": {
+              "sidewalk": "both"
+            }
+          },
+          {
+            "id": "cycle-lane",
+            "label": "It has a marked cycle lane",
+            "set": {
+              "cycleway": "lane"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.3941602,
+          52.3886505
+        ]
+      },
+      "properties": {
+        "task_id": "t-0024",
+        "title": "Check the crossing at node 11915099668",
+        "description": "**crossing** point, OpenStreetMap node 11915099668. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "node/11915099668"
+        ],
+        "options": [
+          {
+            "id": "tactile",
+            "label": "As mapped: tactile_paving=no",
+            "set": {
+              "tactile_paving": "no"
+            }
+          },
+          {
+            "id": "no-crossing-tag",
+            "label": "The crossing tag is not needed",
+            "remove": [
+              "crossing"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.398411,
+            52.3867924
+          ],
+          [
+            13.398024,
+            52.3868075
+          ],
+          [
+            13.3975999,
+            52.3868057
+          ],
+          [
+            13.3972946,
+            52.3868189
+          ],
+          [
+            13.3970628,
+            52.3868505
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0025",
+        "title": "Check unnamed footway",
+        "description": "**footway** street, OpenStreetMap way 1499627247. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1499627247"
+        ],
+        "options": [
+          {
+            "id": "cycle-lane",
+            "label": "It has a marked cycle lane",
+            "set": {
+              "cycleway": "lane"
+            }
+          },
+          {
+            "id": "lit",
+            "label": "It is lit at night",
+            "set": {
+              "lit": "yes"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.403241,
+            52.3866801
+          ],
+          [
+            13.403242,
+            52.386758
+          ],
+          [
+            13.4032453,
+            52.3870158
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0026",
+        "title": "Check Rehagener Straße",
+        "description": "**residential** street, OpenStreetMap way 1425545637. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1425545637"
+        ],
+        "options": [
+          {
+            "id": "cycle-lane",
+            "label": "No cycleway tag",
+            "remove": [
+              "cycleway"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.4050649,
+            52.3871228
+          ],
+          [
+            13.4049511,
+            52.3871232
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0027",
+        "title": "Check unnamed service",
+        "description": "**service** street, OpenStreetMap way 1425545635. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1425545635"
+        ],
+        "options": [
+          {
+            "id": "lit",
+            "label": "No lit tag",
+            "description": "Compare with the imagery before you pick it.",
+            "remove": [
+              "lit"
+            ]
+          },
+          {
+            "id": "surface-asphalt",
+            "label": "No surface tag",
+            "remove": [
+              "surface"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.4050616,
+          52.3867617
+        ]
+      },
+      "properties": {
+        "task_id": "t-0028",
+        "title": "Check the crossing at node 7475801174",
+        "description": "**crossing** point, OpenStreetMap node 7475801174. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "node/7475801174"
+        ],
+        "options": [
+          {
+            "id": "tactile",
+            "label": "It has tactile paving",
+            "set": {
+              "tactile_paving": "yes"
+            }
+          },
+          {
+            "id": "zebra",
+            "label": "It has zebra markings",
+            "set": {
+              "crossing:markings": "zebra"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.4049663,
+            52.3867617
+          ],
+          [
+            13.4049598,
+            52.3866788
+          ],
+          [
+            13.4049558,
+            52.3866311
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0029",
+        "title": "Check unnamed footway",
+        "description": "**footway** street, OpenStreetMap way 1284790532. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1284790532"
+        ],
+        "options": [
+          {
+            "id": "cycle-lane",
+            "label": "It has a marked cycle lane",
+            "description": "Compare with the imagery before you pick it.",
+            "set": {
+              "cycleway": "lane"
+            }
+          },
+          {
+            "id": "no-maxspeed",
+            "label": "The speed limit tag is not needed",
+            "remove": [
+              "maxspeed"
+            ]
+          },
+          {
+            "id": "lit",
+            "label": "No lit tag",
+            "remove": [
+              "lit"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.3976637,
+            52.3891709
+          ],
+          [
+            13.3977727,
+            52.389165
+          ],
+          [
+            13.3979313,
+            52.3891679
+          ],
+          [
+            13.3981454,
+            52.3891828
+          ],
+          [
+            13.3982369,
+            52.3892056
+          ],
+          [
+            13.3983231,
+            52.3892231
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0030",
+        "title": "Check unnamed footway",
+        "description": "**footway** street, OpenStreetMap way 1312723761. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1312723761"
+        ],
+        "options": [
+          {
+            "id": "cycle-lane",
+            "label": "It has a marked cycle lane",
+            "set": {
+              "cycleway": "lane"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.3937169,
+            52.3893913
+          ],
+          [
+            13.3936908,
+            52.3893944
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0031",
+        "title": "Check unnamed footway",
+        "description": "**footway** street, OpenStreetMap way 1293357383. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1293357383"
+        ],
+        "options": [
+          {
+            "id": "cycle-lane",
+            "label": "It has a marked cycle lane",
+            "set": {
+              "cycleway": "lane"
+            }
+          },
+          {
+            "id": "lit",
+            "label": "It is lit at night",
+            "set": {
+              "lit": "yes"
+            }
+          },
+          {
+            "id": "surface-asphalt",
+            "label": "The surface is asphalt",
+            "set": {
+              "surface": "asphalt"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.4068575,
+          52.3866121
+        ]
+      },
+      "properties": {
+        "task_id": "t-0032",
+        "title": "Check the street_lamp at node 10829652879",
+        "description": "**street_lamp** point, OpenStreetMap node 10829652879. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "node/10829652879"
+        ],
+        "options": [
+          {
+            "id": "tactile",
+            "label": "It has tactile paving",
+            "set": {
+              "tactile_paving": "yes"
+            }
+          },
+          {
+            "id": "no-crossing-tag",
+            "label": "The crossing tag is not needed",
+            "remove": [
+              "crossing"
+            ]
+          },
+          {
+            "id": "zebra",
+            "label": "It has zebra markings",
+            "set": {
+              "crossing:markings": "zebra"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.3979628,
+            52.3934514
+          ],
+          [
+            13.3979856,
+            52.3932441
+          ],
+          [
+            13.3980505,
+            52.3926553
+          ],
+          [
+            13.3980587,
+            52.3925807
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0033",
+        "title": "Check Steinstraße",
+        "description": "**residential** street, OpenStreetMap way 1425576674. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1425576674"
+        ],
+        "options": [
+          {
+            "id": "no-maxspeed",
+            "label": "The speed limit tag is not needed",
+            "remove": [
+              "maxspeed"
+            ]
+          },
+          {
+            "id": "surface-asphalt",
+            "label": "The surface is asphalt",
+            "description": "Compare with the imagery before you pick it.",
+            "set": {
+              "surface": "asphalt"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.3945696,
+            52.3925639
+          ],
+          [
+            13.3944884,
+            52.3925477
+          ],
+          [
+            13.3941128,
+            52.3924035
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0034",
+        "title": "Check unnamed footway",
+        "description": "**footway** street, OpenStreetMap way 1119564086. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1119564086"
+        ],
+        "options": [
+          {
+            "id": "surface-asphalt",
+            "label": "The surface is asphalt",
+            "set": {
+              "surface": "asphalt"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.3967702,
+            52.386365
+          ],
+          [
+            13.3968133,
+            52.3863749
+          ],
+          [
+            13.3967079,
+            52.3865508
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0035",
+        "title": "Check unnamed footway",
+        "description": "**footway** street, OpenStreetMap way 1299821537. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1299821537"
+        ],
+        "options": [
+          {
+            "id": "no-maxspeed",
+            "label": "The speed limit tag is not needed",
+            "remove": [
+              "maxspeed"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.4066308,
+          52.3908775
+        ]
+      },
+      "properties": {
+        "task_id": "t-0036",
+        "title": "Check the street_lamp at node 10829676723",
+        "description": "**street_lamp** point, OpenStreetMap node 10829676723. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "node/10829676723"
+        ],
+        "options": [
+          {
+            "id": "tactile",
+            "label": "No tactile_paving tag",
+            "remove": [
+              "tactile_paving"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.4068653,
+            52.3926593
+          ],
+          [
+            13.4069681,
+            52.3926584
+          ],
+          [
+            13.4071244,
+            52.3926512
+          ],
+          [
+            13.4076387,
+            52.3926043
+          ],
+          [
+            13.4076441,
+            52.3926517
+          ],
+          [
+            13.4076509,
+            52.3927989
+          ],
+          [
+            13.4071426,
+            52.3927944
+          ],
+          [
+            13.4071244,
+            52.3926512
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0037",
+        "title": "Check unnamed service",
+        "description": "**service** street, OpenStreetMap way 282593024. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/282593024"
+        ],
+        "options": [
+          {
+            "id": "cycle-lane",
+            "label": "It has a marked cycle lane",
+            "description": "Compare with the imagery before you pick it.",
+            "set": {
+              "cycleway": "lane"
+            }
+          },
+          {
+            "id": "lit",
+            "label": "No lit tag",
+            "description": "Compare with the imagery before you pick it.",
+            "remove": [
+              "lit"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.3997246,
+            52.3866829
+          ],
+          [
+            13.3997275,
+            52.3865481
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0038",
+        "title": "Check unnamed footway",
+        "description": "**footway** street, OpenStreetMap way 485265797. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/485265797"
+        ],
+        "options": [
+          {
+            "id": "sidewalk-both",
+            "label": "It has a sidewalk on both sides",
+            "description": "Compare with the imagery before you pick it.",
+            "set": {
+              "sidewalk": "both"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            13.3976618,
+            52.386685
+          ],
+          [
+            13.3982503,
+            52.3866838
+          ],
+          [
+            13.3984497,
+            52.3866833
+          ]
+        ]
+      },
+      "properties": {
+        "task_id": "t-0039",
+        "title": "Check Bahnhofstraße",
+        "description": "**tertiary** street, OpenStreetMap way 1299185411. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "way/1299185411"
+        ],
+        "options": [
+          {
+            "id": "lit",
+            "label": "It is lit at night",
+            "set": {
+              "lit": "yes"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.400771,
+          52.3867679
+        ]
+      },
+      "properties": {
+        "task_id": "t-0040",
+        "title": "Check the crossing at node 7475843361",
+        "description": "**crossing** point, OpenStreetMap node 7475843361. Compare the tags below with the place as it is now.\n\n- Look at the spot in the imagery or on the ground.\n- Pick the option that fits. If none fits, skip the task.",
+        "osm": [
+          "node/7475843361"
+        ],
+        "options": [
+          {
+            "id": "zebra",
+            "label": "It has zebra markings",
+            "set": {
+              "crossing:markings": "zebra"
+            }
+          },
+          {
+            "id": "tactile",
+            "label": "As mapped: tactile_paving=no",
+            "description": "Compare with the imagery before you pick it.",
+            "set": {
+              "tactile_paving": "no"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

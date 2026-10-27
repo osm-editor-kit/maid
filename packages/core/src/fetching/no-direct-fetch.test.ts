@@ -58,6 +58,12 @@ const ALLOWED: readonly Allowed[] = [
     reason:
       'TODO move to editor.fetch. The sprite of an icon set, read from the app\u2019s own origin (its sprites folder under the base path), not from a remote host.',
   },
+  {
+    file: 'packages/osm-prefs/src/transport.ts',
+    text: 'const send: FetchLike = options.fetch ?? ((url, init) => globalThis.fetch(url, init))',
+    reason:
+      'The default of a package meant to work outside Maid too. Maid always passes the editor\u2019s fetch (module-tasks, TasksController.tsx).',
+  },
 ]
 
 interface Hit {

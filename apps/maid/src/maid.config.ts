@@ -11,6 +11,7 @@ import { levels } from '@osm-editor-kit/maid-module-levels'
 import { notes } from '@osm-editor-kit/maid-module-notes'
 import { streetImagery } from '@osm-editor-kit/maid-module-street-imagery'
 import { surface } from '@osm-editor-kit/maid-module-surface'
+import { tasks } from '@osm-editor-kit/maid-module-tasks'
 import {
   turnRestrictionRules,
   turnRestrictions,
@@ -64,6 +65,8 @@ const background = imagery()
 function editorConfig(config: Config) {
   const bbox = fixtureBounds(config, BBOX)
   const modules: MaidModule[] = [
+    // private task lists: a GeoJSON file of features to check, the progress in the OSM user preferences (ADR 0012)
+    tasks(),
     // inspector section "Element": id, version and upload state of the selected object
     elementInfo(),
     // the edit menu: reverse, split, merge, straighten, square, make round, disconnect, extract

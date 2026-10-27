@@ -1,6 +1,6 @@
 import { isAutomated } from '@osm-editor-kit/maid-core'
 import { chooseLocale, setLocale, type Locale } from '@osm-editor-kit/maid-i18n'
-import { getSettings, initTheme } from '@osm-editor-kit/maid-ui'
+import { getSettings, initTheme, OsmAccountProvider } from '@osm-editor-kit/maid-ui'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { setWorkerCount } from 'maplibre-gl'
 import { createRoot } from 'react-dom/client'
@@ -64,7 +64,9 @@ export function mountEditor(rootElement: HTMLElement, app: AppConfig) {
   const show = (content: React.ReactNode) =>
     root.render(
       <ShellContext value={shell}>
-        <QueryClientProvider client={shell.editor.queries}>{content}</QueryClientProvider>
+        <OsmAccountProvider value={shell.account}>
+          <QueryClientProvider client={shell.editor.queries}>{content}</QueryClientProvider>
+        </OsmAccountProvider>
       </ShellContext>,
     )
   const harness = import.meta.env.DEV ? new URLSearchParams(location.search).get('harness') : null

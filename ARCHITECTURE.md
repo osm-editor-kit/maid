@@ -44,7 +44,8 @@ reports/             output of benchmarks and checks (mostly git-ignored)
 | Core | `core` | `createEditor`, `defineModule`, registries for extension points, hooks, module URL parameters, fetching |
 | Map | `renderer`, `style` | Features to MapLibre layers, drawing and dragging (the engine), iD's look as data |
 | Interface | `ui`, `shell`, `i18n` | Components and inspector fields; the shell that mounts an app; Paraglide texts |
-| Modules | `module-*` | Imagery, street-level images, data layers, notes, lenses, parking, shapes, surface, traffic signs, turn restrictions, way table, reroute, osmchange |
+| Modules | `module-*` | Imagery, street-level images, data layers, notes, lenses, parking, shapes, surface, traffic signs, turn restrictions, way table, reroute, osmchange, tasks |
+| Task lists | `tasks`, `osm-prefs` | The task file format and its diff ([FORMAT.md](packages/tasks/FORMAT.md)); small data in the OSM user preferences, split into 255-character values ([ADR 0012](docs/adr/0012-task-lists-in-user-preferences.md)) |
 
 All packages are named `@osm-editor-kit/maid-<folder>` ([why](docs/architecture/03-packages.md#package-names)) and are
 imported by that name, through the `exports` in their `package.json`. A package never imports another package's
@@ -74,7 +75,7 @@ What each app turns on today:
 | `apps/maid-parking` | 5177 | parking (with its lens and rules), shapes (angle snap with lengths, rectangle, merge, cut, divide) |
 
 The shared set is the same in all three: element info, operations, relations, validation, imagery, data layers, lenses,
-street-level images, notes. Read the three config files side by side to see the pattern; they are short.
+street-level images, notes, task lists. Read the three config files side by side to see the pattern; they are short.
 
 **Presets** come from `presets.ts` next to the config: the tagging schema's data with the changes that modules ship
 (`withChanges(defaultPresetData, parkingPresetChanges)`). They are loaded with `lazyPresets(() => import('./presets'))`
