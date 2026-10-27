@@ -288,6 +288,20 @@ export class MaidEngine {
   }
   getVersion = () => this.version
 
+  private hoverListeners = new Set<() => void>()
+
+  /**
+   * Hover changes alone, without `changed()`: a hover must not make every reader of the engine render again. The
+   * relation overview uses it to light the row of the member under the pointer (`useSyncExternalStore` with
+   * `hoverTarget`).
+   */
+  subscribeHover = (listener: () => void) => {
+    this.hoverListeners.add(listener)
+    return () => this.hoverListeners.delete(listener)
+  }
+  /** The id that is hovered, as asked for (a row or the pointer on the map); null when nothing is */
+  hoverTarget = () => this.hoverId
+
   private drawnListeners = new Set<(ids: readonly string[]) => void>()
 
   /**
@@ -1658,6 +1672,7 @@ export class MaidEngine {
     this.hoverId = id
     this.applyHighlight(previous ? [previous] : [], 'hover')
     this.syncActive()
+    for (const listener of this.hoverListeners) listener()
   }
 
   /**
