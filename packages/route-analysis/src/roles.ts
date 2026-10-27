@@ -38,10 +38,16 @@ const POINT_ROLES: Readonly<Record<string, PointKind>> = {
 }
 
 /** What kind of point a node is, from its role first, then from its tags */
-export function pointKindOf(role: string, tags: Readonly<Record<string, string>> | undefined): PointKind {
+export function pointKindOf(
+  role: string,
+  tags: Readonly<Record<string, string>> | undefined,
+): PointKind {
   const fromRole = POINT_ROLES[role]
   if (fromRole && fromRole !== 'other') return fromRole
-  if (tags?.information === 'guidepost' || tags?.tourism === 'information' && tags.information === 'guidepost')
+  if (
+    tags?.information === 'guidepost' ||
+    (tags?.tourism === 'information' && tags.information === 'guidepost')
+  )
     return 'guidepost'
   if (tags?.highway === 'milestone') return 'milestone'
   return 'other'
@@ -101,5 +107,7 @@ export function isTransit(tags: Readonly<Record<string, string>>) {
 
 /** Routes where junction hints for guideposts make sense */
 export function isWaymarked(tags: Readonly<Record<string, string>>) {
-  return /^(hiking|foot|walking|bicycle|mtb|horse|running|inline_skates|ski|canoe)$/.test(tags.route ?? '')
+  return /^(hiking|foot|walking|bicycle|mtb|horse|running|inline_skates|ski|canoe)$/.test(
+    tags.route ?? '',
+  )
 }
