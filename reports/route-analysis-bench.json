@@ -1,0 +1,4298 @@
+{
+  "runs": 5,
+  "date": "2026-10-27T20:26:09.911Z",
+  "generated": [
+    {
+      "name": "generated hiking 100",
+      "ways": 105,
+      "members": 158,
+      "analyseMs": {
+        "median": 0.96,
+        "max": 4.57
+      },
+      "layoutMs": {
+        "median": 0.53,
+        "max": 5.18
+      },
+      "issues": 7,
+      "linear": "yes"
+    },
+    {
+      "name": "generated hiking 1000",
+      "ways": 1007,
+      "members": 1554,
+      "analyseMs": {
+        "median": 8.18,
+        "max": 10.49
+      },
+      "layoutMs": {
+        "median": 4.31,
+        "max": 6.2
+      },
+      "issues": 73,
+      "linear": "yes"
+    },
+    {
+      "name": "generated hiking 5000",
+      "ways": 5005,
+      "members": 7701,
+      "analyseMs": {
+        "median": 48.9,
+        "max": 50.37
+      },
+      "layoutMs": {
+        "median": 20.6,
+        "max": 28.37
+      },
+      "issues": 371,
+      "linear": "yes"
+    },
+    {
+      "name": "generated hiking 20000",
+      "ways": 20006,
+      "members": 30747,
+      "analyseMs": {
+        "median": 273.89,
+        "max": 324.99
+      },
+      "layoutMs": {
+        "median": 81.12,
+        "max": 107.24
+      },
+      "issues": 1503,
+      "linear": "yes"
+    },
+    {
+      "name": "generated bicycle 100",
+      "ways": 105,
+      "members": 158,
+      "analyseMs": {
+        "median": 0.74,
+        "max": 1.24
+      },
+      "layoutMs": {
+        "median": 0.17,
+        "max": 0.36
+      },
+      "issues": 7,
+      "linear": "yes"
+    },
+    {
+      "name": "generated bicycle 1000",
+      "ways": 1007,
+      "members": 1554,
+      "analyseMs": {
+        "median": 7.07,
+        "max": 9.26
+      },
+      "layoutMs": {
+        "median": 3.34,
+        "max": 8.52
+      },
+      "issues": 73,
+      "linear": "yes"
+    },
+    {
+      "name": "generated bicycle 5000",
+      "ways": 5005,
+      "members": 7701,
+      "analyseMs": {
+        "median": 80.94,
+        "max": 89.35
+      },
+      "layoutMs": {
+        "median": 21.45,
+        "max": 24.49
+      },
+      "issues": 371,
+      "linear": "yes"
+    },
+    {
+      "name": "generated bicycle 20000",
+      "ways": 20006,
+      "members": 30747,
+      "analyseMs": {
+        "median": 286.12,
+        "max": 308.43
+      },
+      "layoutMs": {
+        "median": 78.14,
+        "max": 97.14
+      },
+      "issues": 1503,
+      "linear": "yes"
+    },
+    {
+      "name": "generated bus 100",
+      "ways": 140,
+      "members": 180,
+      "analyseMs": {
+        "median": 0.56,
+        "max": 0.84
+      },
+      "layoutMs": {
+        "median": 0.32,
+        "max": 0.59
+      },
+      "issues": 0,
+      "linear": "yes"
+    },
+    {
+      "name": "generated bus 1000",
+      "ways": 1395,
+      "members": 1790,
+      "analyseMs": {
+        "median": 11.5,
+        "max": 12.83
+      },
+      "layoutMs": {
+        "median": 3.94,
+        "max": 6.27
+      },
+      "issues": 0,
+      "linear": "yes"
+    },
+    {
+      "name": "generated bus 5000",
+      "ways": 6968,
+      "members": 8936,
+      "analyseMs": {
+        "median": 67.91,
+        "max": 85.22
+      },
+      "layoutMs": {
+        "median": 19.05,
+        "max": 27
+      },
+      "issues": 0,
+      "linear": "yes"
+    },
+    {
+      "name": "generated bus 20000",
+      "ways": 27880,
+      "members": 35760,
+      "analyseMs": {
+        "median": 350.73,
+        "max": 353.87
+      },
+      "layoutMs": {
+        "median": 91.78,
+        "max": 117.27
+      },
+      "issues": 2,
+      "linear": "yes"
+    }
+  ],
+  "fixtures": [
+    {
+      "name": "relations r156492 bicycle Dahme Radweg",
+      "ways": 62,
+      "members": 677,
+      "analyseMs": {
+        "median": 1.26,
+        "max": 2.24
+      },
+      "layoutMs": {
+        "median": 0.76,
+        "max": 1.42
+      },
+      "issues": 93,
+      "linear": "no"
+    },
+    {
+      "name": "medium r9510274 bus Flixbus N70: Hamburg ZOB => Praha, ÚAN Florenc",
+      "ways": 44,
+      "members": 2260,
+      "analyseMs": {
+        "median": 0.93,
+        "max": 1.32
+      },
+      "layoutMs": {
+        "median": 0.43,
+        "max": 0.45
+      },
+      "issues": 2,
+      "linear": "sorted"
+    },
+    {
+      "name": "relations r11717122 bicycle Rund um den Müggelsee",
+      "ways": 57,
+      "members": 396,
+      "analyseMs": {
+        "median": 0.88,
+        "max": 1.1
+      },
+      "layoutMs": {
+        "median": 0.33,
+        "max": 0.47
+      },
+      "issues": 103,
+      "linear": "no"
+    },
+    {
+      "name": "relations r228027 bus Buslinie 164: Siriusstraße/Uranusstraße => S Köpenick",
+      "ways": 60,
+      "members": 251,
+      "analyseMs": {
+        "median": 0.8,
+        "max": 0.86
+      },
+      "layoutMs": {
+        "median": 0.48,
+        "max": 0.68
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r16490324 bicycle EuroVelo 2 - Germany part 5",
+      "ways": 51,
+      "members": 1567,
+      "analyseMs": {
+        "median": 0.79,
+        "max": 1.16
+      },
+      "layoutMs": {
+        "median": 0.81,
+        "max": 0.87
+      },
+      "issues": 5,
+      "linear": "no"
+    },
+    {
+      "name": "medium r10754341 bus Flixbus N1385: Berlin ZOB => Olsztyn, dworzec główny",
+      "ways": 45,
+      "members": 2283,
+      "analyseMs": {
+        "median": 0.78,
+        "max": 0.86
+      },
+      "layoutMs": {
+        "median": 0.38,
+        "max": 0.58
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "relations r12138360 bicycle D-Netz Route 3",
+      "ways": 52,
+      "members": 729,
+      "analyseMs": {
+        "median": 0.76,
+        "max": 0.79
+      },
+      "layoutMs": {
+        "median": 0.41,
+        "max": 0.7
+      },
+      "issues": 75,
+      "linear": "no"
+    },
+    {
+      "name": "relations r2004392 bus Bus 165: U Märkisches Museum => Köpenick, Müggelschlößchenweg",
+      "ways": 39,
+      "members": 432,
+      "analyseMs": {
+        "median": 0.75,
+        "max": 0.88
+      },
+      "layoutMs": {
+        "median": 0.42,
+        "max": 0.88
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r16487091 bicycle Europaradweg R1 - Abschnitt Deutschland Teil 5",
+      "ways": 51,
+      "members": 1566,
+      "analyseMs": {
+        "median": 0.73,
+        "max": 0.77
+      },
+      "layoutMs": {
+        "median": 0.59,
+        "max": 0.71
+      },
+      "issues": 5,
+      "linear": "no"
+    },
+    {
+      "name": "medium r2512807 bus Bus N40: S+U Hauptbahnhof => Museum Karlshorst",
+      "ways": 70,
+      "members": 432,
+      "analyseMs": {
+        "median": 0.71,
+        "max": 0.89
+      },
+      "layoutMs": {
+        "median": 0.27,
+        "max": 0.33
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r2925917 bus Bus N62: S+U Wuhletal => Wendenschloß",
+      "ways": 62,
+      "members": 361,
+      "analyseMs": {
+        "median": 0.7,
+        "max": 0.95
+      },
+      "layoutMs": {
+        "median": 0.34,
+        "max": 0.5
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r335268 bicycle Spreeradweg",
+      "ways": 52,
+      "members": 790,
+      "analyseMs": {
+        "median": 0.69,
+        "max": 0.86
+      },
+      "layoutMs": {
+        "median": 0.51,
+        "max": 0.81
+      },
+      "issues": 76,
+      "linear": "no"
+    },
+    {
+      "name": "dense r4487804 bus Bus 166: S Schöneweide/Sterndamm => U Boddinstraße",
+      "ways": 119,
+      "members": 279,
+      "analyseMs": {
+        "median": 0.69,
+        "max": 1.2
+      },
+      "layoutMs": {
+        "median": 0.32,
+        "max": 0.42
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r2064835 bus Buslinie 164: S Köpenick => Siriusstraße/Uranusstraße",
+      "ways": 44,
+      "members": 249,
+      "analyseMs": {
+        "median": 0.68,
+        "max": 0.86
+      },
+      "layoutMs": {
+        "median": 0.37,
+        "max": 0.66
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r2084497 tram Tram 63: Landschaftspark Johannisthal => S Köpenick (=> Mahlsdorf, Rahnsdorfer Straße)",
+      "ways": 22,
+      "members": 123,
+      "analyseMs": {
+        "median": 0.67,
+        "max": 0.85
+      },
+      "layoutMs": {
+        "median": 0.38,
+        "max": 0.49
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "relations r6783677 bus Bus 162: Schloßplatz Köpenick=> U Rudow",
+      "ways": 60,
+      "members": 211,
+      "analyseMs": {
+        "median": 0.67,
+        "max": 0.78
+      },
+      "layoutMs": {
+        "median": 0.44,
+        "max": 0.66
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r6652706 road B 2 Berlin",
+      "ways": 80,
+      "members": 801,
+      "analyseMs": {
+        "median": 0.66,
+        "max": 0.71
+      },
+      "layoutMs": {
+        "median": 0.29,
+        "max": 0.36
+      },
+      "issues": 13,
+      "linear": "no"
+    },
+    {
+      "name": "small r3779840 train EC 173: Berlin => Budapest",
+      "ways": 3,
+      "members": 2931,
+      "analyseMs": {
+        "median": 0.66,
+        "max": 2.58
+      },
+      "layoutMs": {
+        "median": 0.57,
+        "max": 1.24
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "dense r13526939 bus Bus M43: Berlin, Tunnelstraße => U Berliner Straße (Berlin)",
+      "ways": 111,
+      "members": 385,
+      "analyseMs": {
+        "median": 0.65,
+        "max": 0.77
+      },
+      "layoutMs": {
+        "median": 0.29,
+        "max": 0.38
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r10744516 bus Flixbus N232 (part GER, CZ): Rostock, Fährhafen => Praha, ÚAN Florenc",
+      "ways": 44,
+      "members": 2350,
+      "analyseMs": {
+        "median": 0.59,
+        "max": 0.88
+      },
+      "layoutMs": {
+        "median": 0.5,
+        "max": 0.54
+      },
+      "issues": 2,
+      "linear": "sorted"
+    },
+    {
+      "name": "dense r2223696 bus Bus 171: Flughafen BER - Terminal 5 => U Hermannplatz",
+      "ways": 75,
+      "members": 388,
+      "analyseMs": {
+        "median": 0.58,
+        "max": 6.65
+      },
+      "layoutMs": {
+        "median": 0.26,
+        "max": 0.45
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2512806 bus Bus N40: Museum Karlshorst => S+U Hauptbahnhof",
+      "ways": 65,
+      "members": 506,
+      "analyseMs": {
+        "median": 0.57,
+        "max": 0.58
+      },
+      "layoutMs": {
+        "median": 0.21,
+        "max": 0.28
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r7187524 bus Flixbus N44: Berlin, Alexanderplatz => Amsterdam Sloterdijk",
+      "ways": 36,
+      "members": 2803,
+      "analyseMs": {
+        "median": 0.57,
+        "max": 0.66
+      },
+      "layoutMs": {
+        "median": 0.41,
+        "max": 0.5
+      },
+      "issues": 3,
+      "linear": "no"
+    },
+    {
+      "name": "relations r2925918 bus Bus N62: Wendenschloß => S+U Wuhletal",
+      "ways": 58,
+      "members": 358,
+      "analyseMs": {
+        "median": 0.56,
+        "max": 0.57
+      },
+      "layoutMs": {
+        "median": 0.3,
+        "max": 0.36
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r14988037 hiking Paul-Gerhardt-Weg Etappe 2",
+      "ways": 55,
+      "members": 206,
+      "analyseMs": {
+        "median": 0.56,
+        "max": 0.68
+      },
+      "layoutMs": {
+        "median": 0.29,
+        "max": 0.41
+      },
+      "issues": 3,
+      "linear": "no"
+    },
+    {
+      "name": "medium r20393001 bicycle Industriekultur Berlin Radroute 1 \"Warmes Licht und kühles Bier\"",
+      "ways": 82,
+      "members": 673,
+      "analyseMs": {
+        "median": 0.56,
+        "max": 1.11
+      },
+      "layoutMs": {
+        "median": 0.28,
+        "max": 0.73
+      },
+      "issues": 9,
+      "linear": "no"
+    },
+    {
+      "name": "medium r10718314 bus Flixbus 1385: Olsztyn, dworzec główny => Berlin ZOB",
+      "ways": 50,
+      "members": 2561,
+      "analyseMs": {
+        "median": 0.55,
+        "max": 0.6
+      },
+      "layoutMs": {
+        "median": 0.42,
+        "max": 0.48
+      },
+      "issues": 3,
+      "linear": "no"
+    },
+    {
+      "name": "medium r10754340 bus Flixbus N1385: Olsztyn, dworzec główny => Berlin ZOB",
+      "ways": 50,
+      "members": 2303,
+      "analyseMs": {
+        "median": 0.55,
+        "max": 0.66
+      },
+      "layoutMs": {
+        "median": 0.41,
+        "max": 0.44
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "medium r3425226 road Bundesstraße 5 (Berlin)",
+      "ways": 75,
+      "members": 814,
+      "analyseMs": {
+        "median": 0.54,
+        "max": 0.71
+      },
+      "layoutMs": {
+        "median": 0.23,
+        "max": 0.4
+      },
+      "issues": 3,
+      "linear": "no"
+    },
+    {
+      "name": "medium r16490324 bicycle EuroVelo 2 - Germany part 5",
+      "ways": 70,
+      "members": 1567,
+      "analyseMs": {
+        "median": 0.54,
+        "max": 0.58
+      },
+      "layoutMs": {
+        "median": 0.37,
+        "max": 0.39
+      },
+      "issues": 6,
+      "linear": "no"
+    },
+    {
+      "name": "medium r6639446 tracks 6109 Berlin Ostbahnhopf - Berlin-Spandau",
+      "ways": 48,
+      "members": 267,
+      "analyseMs": {
+        "median": 0.53,
+        "max": 0.61
+      },
+      "layoutMs": {
+        "median": 0.13,
+        "max": 0.18
+      },
+      "issues": 10,
+      "linear": "no"
+    },
+    {
+      "name": "medium r9515445 bus Flixbus 070: Hamburg ZOB => Dresden, Hbf. Bayrische Straße",
+      "ways": 44,
+      "members": 1662,
+      "analyseMs": {
+        "median": 0.53,
+        "max": 0.63
+      },
+      "layoutMs": {
+        "median": 0.42,
+        "max": 0.72
+      },
+      "issues": 7,
+      "linear": "sorted"
+    },
+    {
+      "name": "medium r10718315 bus Flixbus 1385: Berlin ZOB => Olsztyn, dworzec główny",
+      "ways": 45,
+      "members": 2563,
+      "analyseMs": {
+        "median": 0.53,
+        "max": 0.65
+      },
+      "layoutMs": {
+        "median": 0.47,
+        "max": 0.69
+      },
+      "issues": 3,
+      "linear": "no"
+    },
+    {
+      "name": "medium r10761815 bus Flixbus 125: Leipzig, Hbf. => Göhren, Rügen",
+      "ways": 45,
+      "members": 1945,
+      "analyseMs": {
+        "median": 0.53,
+        "max": 0.69
+      },
+      "layoutMs": {
+        "median": 0.41,
+        "max": 0.83
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "medium r16487091 bicycle Europaradweg R1 - Abschnitt Deutschland Teil 5",
+      "ways": 70,
+      "members": 1566,
+      "analyseMs": {
+        "median": 0.53,
+        "max": 0.6
+      },
+      "layoutMs": {
+        "median": 0.33,
+        "max": 0.45
+      },
+      "issues": 5,
+      "linear": "no"
+    },
+    {
+      "name": "medium r27727 bicycle Berlin-Usedom Radweg",
+      "ways": 62,
+      "members": 1350,
+      "analyseMs": {
+        "median": 0.52,
+        "max": 0.61
+      },
+      "layoutMs": {
+        "median": 0.43,
+        "max": 0.54
+      },
+      "issues": 82,
+      "linear": "no"
+    },
+    {
+      "name": "medium r9518253 bus Flixbus 270: Warnemünde, Strand => Dresden, Hbf. Bayrische Straße",
+      "ways": 44,
+      "members": 1874,
+      "analyseMs": {
+        "median": 0.52,
+        "max": 0.78
+      },
+      "layoutMs": {
+        "median": 0.36,
+        "max": 0.45
+      },
+      "issues": 2,
+      "linear": "sorted"
+    },
+    {
+      "name": "medium r10761816 bus Flixbus 125: Göhren, Rügen => Leipzig, Hbf.",
+      "ways": 50,
+      "members": 1979,
+      "analyseMs": {
+        "median": 0.52,
+        "max": 0.59
+      },
+      "layoutMs": {
+        "median": 0.37,
+        "max": 0.42
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "medium r10762030 bus Flixbus 002: Warnemünde, Strand => Leipzig, Hbf.",
+      "ways": 44,
+      "members": 1835,
+      "analyseMs": {
+        "median": 0.51,
+        "max": 0.56
+      },
+      "layoutMs": {
+        "median": 0.37,
+        "max": 1.94
+      },
+      "issues": 2,
+      "linear": "sorted"
+    },
+    {
+      "name": "relations r2194814 bus Bus N65: S+U Alexanderplatz => Rahnsdorf/Waldschänke",
+      "ways": 37,
+      "members": 628,
+      "analyseMs": {
+        "median": 0.5,
+        "max": 0.7
+      },
+      "layoutMs": {
+        "median": 0.31,
+        "max": 0.37
+      },
+      "issues": 6,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2441960 bus Bus N8: S+U Hermannstraße => Märkisches Viertel, Wilhelmsruher Damm",
+      "ways": 76,
+      "members": 653,
+      "analyseMs": {
+        "median": 0.5,
+        "max": 0.54
+      },
+      "layoutMs": {
+        "median": 0.31,
+        "max": 0.32
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r2084110 tram Tram 68: S Köpenick => Alt-Schmöckwitz",
+      "ways": 16,
+      "members": 98,
+      "analyseMs": {
+        "median": 0.49,
+        "max": 0.67
+      },
+      "layoutMs": {
+        "median": 0.43,
+        "max": 0.62
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "dense r9174090 bus Bus M41: Sonnenallee/Baumschulenstraße => Philharmonie",
+      "ways": 46,
+      "members": 237,
+      "analyseMs": {
+        "median": 0.49,
+        "max": 0.59
+      },
+      "layoutMs": {
+        "median": 0.19,
+        "max": 0.33
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r2405631 bus Bus N63: Köpenick, Müggelschlößchenweg => Bohnsdorf, Waltersdorfer Str./Parchwitzer Str.",
+      "ways": 43,
+      "members": 186,
+      "analyseMs": {
+        "median": 0.48,
+        "max": 0.56
+      },
+      "layoutMs": {
+        "median": 0.27,
+        "max": 0.33
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r11788177 bus Bus N64: S+U Wuhletal => S Adlershof",
+      "ways": 38,
+      "members": 318,
+      "analyseMs": {
+        "median": 0.48,
+        "max": 0.87
+      },
+      "layoutMs": {
+        "median": 0.25,
+        "max": 0.37
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "dense r2205680 bus Bus N7: S+U Rathaus Spandau => Flughafen BER",
+      "ways": 69,
+      "members": 927,
+      "analyseMs": {
+        "median": 0.48,
+        "max": 0.59
+      },
+      "layoutMs": {
+        "median": 0.37,
+        "max": 0.49
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r12138360 bicycle D-Netz Route 3",
+      "ways": 70,
+      "members": 729,
+      "analyseMs": {
+        "median": 0.48,
+        "max": 0.53
+      },
+      "layoutMs": {
+        "median": 0.24,
+        "max": 0.31
+      },
+      "issues": 5,
+      "linear": "no"
+    },
+    {
+      "name": "relations r2077981 tram Tram 61: S-Schöneweide/Sterndamm => Rahnsdorf/Waldschänke",
+      "ways": 23,
+      "members": 151,
+      "analyseMs": {
+        "median": 0.47,
+        "max": 0.53
+      },
+      "layoutMs": {
+        "median": 0.29,
+        "max": 0.31
+      },
+      "issues": 4,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r2084109 tram Tram 68: Alt-Schmöckwitz => S Köpenick",
+      "ways": 23,
+      "members": 105,
+      "analyseMs": {
+        "median": 0.47,
+        "max": 0.61
+      },
+      "layoutMs": {
+        "median": 0.26,
+        "max": 0.34
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "dense r9174089 bus Bus M41: Philharmonie => Sonnenallee/Baumschulenstraße",
+      "ways": 64,
+      "members": 257,
+      "analyseMs": {
+        "median": 0.47,
+        "max": 0.61
+      },
+      "layoutMs": {
+        "median": 0.27,
+        "max": 5.14
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r11721274 bus Flixbus N13: Saarbrücken, Fernbusbahnhof => Berlin, Alexanderplatz",
+      "ways": 35,
+      "members": 3057,
+      "analyseMs": {
+        "median": 0.47,
+        "max": 0.55
+      },
+      "layoutMs": {
+        "median": 0.45,
+        "max": 0.5
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "relations r2078078 tram Tram 62: S Mahlsdorf => Wendenschloß",
+      "ways": 19,
+      "members": 113,
+      "analyseMs": {
+        "median": 0.46,
+        "max": 0.55
+      },
+      "layoutMs": {
+        "median": 0.28,
+        "max": 0.42
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "relations r3001299 hiking Müggel-Spree-Weg",
+      "ways": 28,
+      "members": 761,
+      "analyseMs": {
+        "median": 0.46,
+        "max": 0.51
+      },
+      "layoutMs": {
+        "median": 0.27,
+        "max": 0.34
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r10744515 bus Flixbus N232 (part GER, CS): Praha, ÚAN Florenc => Rostock, Fährhafen",
+      "ways": 41,
+      "members": 2326,
+      "analyseMs": {
+        "median": 0.45,
+        "max": 0.9
+      },
+      "layoutMs": {
+        "median": 0.38,
+        "max": 0.4
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r10754191 bus Flixbus 170: Göhren, Rügen => Dresden, Hbf. Bayrische Straße",
+      "ways": 18,
+      "members": 2041,
+      "analyseMs": {
+        "median": 0.45,
+        "max": 0.55
+      },
+      "layoutMs": {
+        "median": 0.31,
+        "max": 0.35
+      },
+      "issues": 2,
+      "linear": "sorted"
+    },
+    {
+      "name": "medium r2441959 bus Bus N8: Märkisches Viertel, Wilhelmsruher Damm => S+U Hermannstraße",
+      "ways": 81,
+      "members": 659,
+      "analyseMs": {
+        "median": 0.44,
+        "max": 0.58
+      },
+      "layoutMs": {
+        "median": 0.27,
+        "max": 0.32
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r11721273 bus Flixbus N13: Berlin, Alexanderplatz => Saarbrücken, Fernbusbahnhof",
+      "ways": 40,
+      "members": 3020,
+      "analyseMs": {
+        "median": 0.44,
+        "max": 0.48
+      },
+      "layoutMs": {
+        "median": 0.43,
+        "max": 0.47
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "small r3779841 train EC 172: Budapest => Berlin",
+      "ways": 3,
+      "members": 2532,
+      "analyseMs": {
+        "median": 0.44,
+        "max": 0.52
+      },
+      "layoutMs": {
+        "median": 0.65,
+        "max": 0.82
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "dense r13526940 bus Bus M43: U Berliner Straße (Berlin) => Berlin, Tunnelstraße",
+      "ways": 96,
+      "members": 369,
+      "analyseMs": {
+        "median": 0.43,
+        "max": 0.49
+      },
+      "layoutMs": {
+        "median": 0.29,
+        "max": 0.41
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r2078079 tram Tram 62: Wendenschloß => S Mahlsdorf",
+      "ways": 17,
+      "members": 114,
+      "analyseMs": {
+        "median": 0.42,
+        "max": 0.47
+      },
+      "layoutMs": {
+        "median": 0.3,
+        "max": 0.39
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "medium r9510275 bus Flixbus N70: Praha, ÚAN Florenc => Hamburg ZOB",
+      "ways": 41,
+      "members": 2238,
+      "analyseMs": {
+        "median": 0.42,
+        "max": 0.51
+      },
+      "layoutMs": {
+        "median": 0.62,
+        "max": 0.68
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r3418910 hiking Europäischer Fernwanderweg E11, Berlin",
+      "ways": 31,
+      "members": 775,
+      "analyseMs": {
+        "median": 0.41,
+        "max": 0.52
+      },
+      "layoutMs": {
+        "median": 0.32,
+        "max": 0.42
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r28286 bus Bus N2: U Ruhleben => S+U Pankow",
+      "ways": 53,
+      "members": 554,
+      "analyseMs": {
+        "median": 0.41,
+        "max": 0.52
+      },
+      "layoutMs": {
+        "median": 0.22,
+        "max": 0.28
+      },
+      "issues": 3,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r2405630 bus Bus N63: Bohnsdorf, Waltersdorfer Str./Parchwitzer Str. => Köpenick, Müggelschlößchenweg",
+      "ways": 41,
+      "members": 190,
+      "analyseMs": {
+        "median": 0.4,
+        "max": 0.47
+      },
+      "layoutMs": {
+        "median": 0.27,
+        "max": 0.39
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "dense r2205678 bus Bus N7: Flughafen BER => S+U Rathaus Spandau",
+      "ways": 76,
+      "members": 918,
+      "analyseMs": {
+        "median": 0.4,
+        "max": 0.43
+      },
+      "layoutMs": {
+        "median": 0.34,
+        "max": 0.41
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r2077982 tram Tram 61: Rahnsdorf/Waldschänke => S-Schöneweide/Sterndamm",
+      "ways": 15,
+      "members": 138,
+      "analyseMs": {
+        "median": 0.39,
+        "max": 0.45
+      },
+      "layoutMs": {
+        "median": 0.28,
+        "max": 0.29
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "relations r2084498 tram Tram 63: (Mahlsdorf, Rahnsdorfer Straße =>) S Köpenick => Landschaftspark Johannisthal",
+      "ways": 15,
+      "members": 108,
+      "analyseMs": {
+        "median": 0.39,
+        "max": 0.45
+      },
+      "layoutMs": {
+        "median": 0.24,
+        "max": 0.34
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "relations r2194813 bus Bus N65: Rahnsdorf/Waldschänke => S+U Alexanderplatz",
+      "ways": 32,
+      "members": 593,
+      "analyseMs": {
+        "median": 0.39,
+        "max": 0.98
+      },
+      "layoutMs": {
+        "median": 0.43,
+        "max": 0.43
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r2350597 hiking Spreeweg",
+      "ways": 37,
+      "members": 758,
+      "analyseMs": {
+        "median": 0.39,
+        "max": 0.41
+      },
+      "layoutMs": {
+        "median": 0.25,
+        "max": 0.3
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r11788176 bus Bus N64: S Adlershof => S+U Wuhletal",
+      "ways": 40,
+      "members": 310,
+      "analyseMs": {
+        "median": 0.39,
+        "max": 0.42
+      },
+      "layoutMs": {
+        "median": 0.24,
+        "max": 0.34
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r9518252 bus Flixbus 270: Dresden, Hbf. Bayrische Straße => Warnemünde, Strand",
+      "ways": 41,
+      "members": 1767,
+      "analyseMs": {
+        "median": 0.39,
+        "max": 0.48
+      },
+      "layoutMs": {
+        "median": 0.31,
+        "max": 0.35
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "dense r2206454 bus Bus N94: U Magdalenenstraße => U Hermannplatz",
+      "ways": 87,
+      "members": 283,
+      "analyseMs": {
+        "median": 0.38,
+        "max": 0.38
+      },
+      "layoutMs": {
+        "median": 0.36,
+        "max": 3.71
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2466742 train IC 77: Berlin => Amsterdam",
+      "ways": 24,
+      "members": 1225,
+      "analyseMs": {
+        "median": 0.38,
+        "max": 0.46
+      },
+      "layoutMs": {
+        "median": 0.17,
+        "max": 0.25
+      },
+      "issues": 9,
+      "linear": "yes"
+    },
+    {
+      "name": "dense r93502 bus Bus 166: U Boddinstraße =>S Schöneweide/Sterndamm",
+      "ways": 89,
+      "members": 252,
+      "analyseMs": {
+        "median": 0.37,
+        "max": 0.4
+      },
+      "layoutMs": {
+        "median": 0.28,
+        "max": 0.38
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r7187525 bus Flixbus N44: Amsterdam Sloterdijk => Berlin, Alexanderplatz",
+      "ways": 19,
+      "members": 2846,
+      "analyseMs": {
+        "median": 0.37,
+        "max": 0.4
+      },
+      "layoutMs": {
+        "median": 0.36,
+        "max": 0.51
+      },
+      "issues": 3,
+      "linear": "no"
+    },
+    {
+      "name": "medium r10762031 bus Flixbus 002: Leipzig, Hbf. => Warnemünde, Strand",
+      "ways": 41,
+      "members": 1761,
+      "analyseMs": {
+        "median": 0.37,
+        "max": 0.41
+      },
+      "layoutMs": {
+        "median": 0.29,
+        "max": 0.33
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r18616102 train European Sleeper 453: Bruxelles Midi -> Praha hl.n",
+      "ways": 24,
+      "members": 3142,
+      "analyseMs": {
+        "median": 0.37,
+        "max": 0.4
+      },
+      "layoutMs": {
+        "median": 0.41,
+        "max": 0.44
+      },
+      "issues": 6,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r2004451 bus Bus 165: Köpenick, Müggelschlößchenweg => U Märkisches Museum",
+      "ways": 34,
+      "members": 389,
+      "analyseMs": {
+        "median": 0.36,
+        "max": 0.39
+      },
+      "layoutMs": {
+        "median": 0.34,
+        "max": 0.65
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r2077646 tram Tram 27: Krankenhaus Köpenick => Weißensee, Pasedagplatz",
+      "ways": 13,
+      "members": 170,
+      "analyseMs": {
+        "median": 0.36,
+        "max": 0.51
+      },
+      "layoutMs": {
+        "median": 0.2,
+        "max": 0.29
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "dense r2441960 bus Bus N8: S+U Hermannstraße => Märkisches Viertel, Wilhelmsruher Damm",
+      "ways": 67,
+      "members": 653,
+      "analyseMs": {
+        "median": 0.36,
+        "max": 0.58
+      },
+      "layoutMs": {
+        "median": 0.27,
+        "max": 0.92
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r6187328 bus Bus N42: S+U Alexanderplatz => S Südkreuz",
+      "ways": 67,
+      "members": 279,
+      "analyseMs": {
+        "median": 0.36,
+        "max": 0.44
+      },
+      "layoutMs": {
+        "median": 0.23,
+        "max": 0.25
+      },
+      "issues": 4,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r9515446 bus Flixbus 070: Dresden, Hbf. Bayrische Straße => Hamburg ZOB",
+      "ways": 41,
+      "members": 1558,
+      "analyseMs": {
+        "median": 0.36,
+        "max": 0.4
+      },
+      "layoutMs": {
+        "median": 0.3,
+        "max": 0.35
+      },
+      "issues": 7,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r9523808 bus Flixbus 057: Szczecin, dworzec główny => Berlin ZOB",
+      "ways": 50,
+      "members": 713,
+      "analyseMs": {
+        "median": 0.36,
+        "max": 0.4
+      },
+      "layoutMs": {
+        "median": 0.2,
+        "max": 0.25
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "dense r2223697 bus Bus 171: U Hermannplatz => Flughafen BER - Terminal 5",
+      "ways": 67,
+      "members": 368,
+      "analyseMs": {
+        "median": 0.34,
+        "max": 0.48
+      },
+      "layoutMs": {
+        "median": 0.26,
+        "max": 0.48
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r14613 bicycle RR8 - Hellersdorf-Route",
+      "ways": 46,
+      "members": 425,
+      "analyseMs": {
+        "median": 0.34,
+        "max": 0.39
+      },
+      "layoutMs": {
+        "median": 0.24,
+        "max": 0.27
+      },
+      "issues": 5,
+      "linear": "no"
+    },
+    {
+      "name": "medium r2076230 tram Tram M1: Mitte, Am Kupfergraben => Rosenthal Nord",
+      "ways": 30,
+      "members": 150,
+      "analyseMs": {
+        "median": 0.33,
+        "max": 0.37
+      },
+      "layoutMs": {
+        "median": 0.15,
+        "max": 0.21
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "medium r2206192 bus Bus N2: S+U Pankow => U Ruhleben",
+      "ways": 61,
+      "members": 540,
+      "analyseMs": {
+        "median": 0.33,
+        "max": 0.46
+      },
+      "layoutMs": {
+        "median": 0.18,
+        "max": 0.25
+      },
+      "issues": 4,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r6187329 bus Bus N42: S Südkreuz => S+U Alexanderplatz",
+      "ways": 53,
+      "members": 279,
+      "analyseMs": {
+        "median": 0.33,
+        "max": 0.35
+      },
+      "layoutMs": {
+        "median": 0.16,
+        "max": 0.2
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "small r10757934 train NJ 457: Berlin => Graz",
+      "ways": 3,
+      "members": 3388,
+      "analyseMs": {
+        "median": 0.33,
+        "max": 0.36
+      },
+      "layoutMs": {
+        "median": 0.44,
+        "max": 0.51
+      },
+      "issues": 12,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2076228 tram Tram M1: Mitte, Am Kupfergraben => Niederschönhausen, Schillerstraße",
+      "ways": 30,
+      "members": 135,
+      "analyseMs": {
+        "median": 0.32,
+        "max": 0.41
+      },
+      "layoutMs": {
+        "median": 0.15,
+        "max": 0.23
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "relations r2352152 hiking Dahmeweg",
+      "ways": 36,
+      "members": 250,
+      "analyseMs": {
+        "median": 0.31,
+        "max": 0.46
+      },
+      "layoutMs": {
+        "median": 0.17,
+        "max": 0.29
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "dense r2206453 bus Bus N94: U Hermannplatz => U Magdalenenstraße",
+      "ways": 79,
+      "members": 288,
+      "analyseMs": {
+        "median": 0.31,
+        "max": 0.37
+      },
+      "layoutMs": {
+        "median": 0.31,
+        "max": 0.38
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r9884615 bus Bus 300: S+U Warschauer Straße => Tiergarten, Philharmonie Süd",
+      "ways": 50,
+      "members": 214,
+      "analyseMs": {
+        "median": 0.31,
+        "max": 0.37
+      },
+      "layoutMs": {
+        "median": 0.17,
+        "max": 0.19
+      },
+      "issues": 4,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r10088292 bus Flixbus 148: Berlin ZOB => Ahlbeck, Bhf.",
+      "ways": 33,
+      "members": 1145,
+      "analyseMs": {
+        "median": 0.31,
+        "max": 0.4
+      },
+      "layoutMs": {
+        "median": 0.24,
+        "max": 0.27
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "dense r2175634 bus Bus 194: U Hermannplatz => Marzahn, Helene-Weigel-Platz",
+      "ways": 78,
+      "members": 383,
+      "analyseMs": {
+        "median": 0.3,
+        "max": 0.33
+      },
+      "layoutMs": {
+        "median": 0.3,
+        "max": 0.34
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r1085700 train ICE 12: Berlin Ostbahnhof => Interlaken Ost",
+      "ways": 24,
+      "members": 1857,
+      "analyseMs": {
+        "median": 0.3,
+        "max": 0.45
+      },
+      "layoutMs": {
+        "median": 0.28,
+        "max": 0.3
+      },
+      "issues": 18,
+      "linear": "yes"
+    },
+    {
+      "name": "dense r2175633 bus Bus 194: Marzahn, Helene-Weigel-Platz => U Hermannplatz",
+      "ways": 71,
+      "members": 364,
+      "analyseMs": {
+        "median": 0.29,
+        "max": 0.35
+      },
+      "layoutMs": {
+        "median": 0.27,
+        "max": 0.33
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2211985 bus Bus N5: S+U Hauptbahnhof => Hellersdorf, Riesaer Straße",
+      "ways": 38,
+      "members": 500,
+      "analyseMs": {
+        "median": 0.29,
+        "max": 1.54
+      },
+      "layoutMs": {
+        "median": 0.22,
+        "max": 0.24
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r9523809 bus Flixbus 057: Berlin ZOB => Szczecin, dworzec główny",
+      "ways": 45,
+      "members": 671,
+      "analyseMs": {
+        "median": 0.29,
+        "max": 0.36
+      },
+      "layoutMs": {
+        "median": 0.19,
+        "max": 0.24
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "relations r1123356 road",
+      "ways": 9,
+      "members": 161,
+      "analyseMs": {
+        "median": 0.28,
+        "max": 0.29
+      },
+      "layoutMs": {
+        "median": 0.08,
+        "max": 0.37
+      },
+      "issues": 164,
+      "linear": "empty"
+    },
+    {
+      "name": "relations r2077647 tram Tram 27: Weißensee, Pasedagplatz => Krankenhaus Köpenick",
+      "ways": 15,
+      "members": 166,
+      "analyseMs": {
+        "median": 0.28,
+        "max": 0.31
+      },
+      "layoutMs": {
+        "median": 0.16,
+        "max": 0.27
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "relations r2084473 tram Tram 67: Krankenhaus Köpenick => S Schöneweide/Sterndamm",
+      "ways": 13,
+      "members": 89,
+      "analyseMs": {
+        "median": 0.28,
+        "max": 0.32
+      },
+      "layoutMs": {
+        "median": 0.2,
+        "max": 0.27
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "relations r6783678 bus Bus 162: U Rudow => Schloßplatz Köpenick",
+      "ways": 29,
+      "members": 163,
+      "analyseMs": {
+        "median": 0.28,
+        "max": 0.35
+      },
+      "layoutMs": {
+        "median": 0.23,
+        "max": 0.3
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "dense r9030 bicycle Berliner Mauerweg",
+      "ways": 23,
+      "members": 1552,
+      "analyseMs": {
+        "median": 0.28,
+        "max": 0.31
+      },
+      "layoutMs": {
+        "median": 0.26,
+        "max": 0.34
+      },
+      "issues": 34,
+      "linear": "yes"
+    },
+    {
+      "name": "dense r47341 bicycle TR4 Südspange",
+      "ways": 53,
+      "members": 549,
+      "analyseMs": {
+        "median": 0.28,
+        "max": 0.36
+      },
+      "layoutMs": {
+        "median": 0.23,
+        "max": 0.32
+      },
+      "issues": 4,
+      "linear": "no"
+    },
+    {
+      "name": "medium r1798225 train ICE 12: Interlaken Ost => Berlin",
+      "ways": 24,
+      "members": 1858,
+      "analyseMs": {
+        "median": 0.28,
+        "max": 0.37
+      },
+      "layoutMs": {
+        "median": 0.3,
+        "max": 0.5
+      },
+      "issues": 18,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2014012 tram Tram M5: Hohenschönhausen, Zingster Straße => S+U Hauptbahnhof",
+      "ways": 36,
+      "members": 177,
+      "analyseMs": {
+        "median": 0.28,
+        "max": 0.45
+      },
+      "layoutMs": {
+        "median": 0.17,
+        "max": 0.21
+      },
+      "issues": 8,
+      "linear": "yes"
+    },
+    {
+      "name": "small r1200744 bus Bus 172: S Lichtenrade/Blohmstraße => U Rudow",
+      "ways": 36,
+      "members": 324,
+      "analyseMs": {
+        "median": 0.28,
+        "max": 0.29
+      },
+      "layoutMs": {
+        "median": 0.2,
+        "max": 0.23
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "dense r2441959 bus Bus N8: Märkisches Viertel, Wilhelmsruher Damm => S+U Hermannstraße",
+      "ways": 49,
+      "members": 659,
+      "analyseMs": {
+        "median": 0.27,
+        "max": 0.33
+      },
+      "layoutMs": {
+        "median": 0.21,
+        "max": 0.28
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r3734526 bicycle RR7 - Hohenschönhausen-Route",
+      "ways": 46,
+      "members": 379,
+      "analyseMs": {
+        "median": 0.27,
+        "max": 0.29
+      },
+      "layoutMs": {
+        "median": 0.19,
+        "max": 0.37
+      },
+      "issues": 5,
+      "linear": "no"
+    },
+    {
+      "name": "medium r7381338 tracks 6024 Berlin Ostbahnhof - Potsdam Hbf",
+      "ways": 48,
+      "members": 378,
+      "analyseMs": {
+        "median": 0.27,
+        "max": 0.31
+      },
+      "layoutMs": {
+        "median": 0.1,
+        "max": 0.17
+      },
+      "issues": 22,
+      "linear": "no"
+    },
+    {
+      "name": "dense r1993862 bus Bus M41: S+U Hauptbahnhof => Sonnenallee/Baumschulenstraße",
+      "ways": 64,
+      "members": 276,
+      "analyseMs": {
+        "median": 0.26,
+        "max": 0.33
+      },
+      "layoutMs": {
+        "median": 0.26,
+        "max": 0.3
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2014013 tram Tram M5: S+U Hauptbahnhof => Hohenschönhausen, Zingster Straße",
+      "ways": 30,
+      "members": 169,
+      "analyseMs": {
+        "median": 0.25,
+        "max": 0.31
+      },
+      "layoutMs": {
+        "median": 0.14,
+        "max": 0.18
+      },
+      "issues": 5,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2500638 train IC 56: Norddeich => Cottbus",
+      "ways": 24,
+      "members": 1217,
+      "analyseMs": {
+        "median": 0.25,
+        "max": 0.3
+      },
+      "layoutMs": {
+        "median": 0.17,
+        "max": 0.23
+      },
+      "issues": 20,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r9884616 bus Bus 300: Tiergarten, Philharmonie Süd => S+U Warschauer Straße",
+      "ways": 49,
+      "members": 233,
+      "analyseMs": {
+        "median": 0.25,
+        "max": 0.29
+      },
+      "layoutMs": {
+        "median": 0.13,
+        "max": 0.18
+      },
+      "issues": 3,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r10761716 bus Flixbus 065: Berlin, Alexanderplatz => Leipzig, Hbf.",
+      "ways": 36,
+      "members": 863,
+      "analyseMs": {
+        "median": 0.25,
+        "max": 0.31
+      },
+      "layoutMs": {
+        "median": 0.2,
+        "max": 0.23
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "medium r18794221 train ICE 16 Saarbrücken - Frankfurt - Berlin",
+      "ways": 24,
+      "members": 1581,
+      "analyseMs": {
+        "median": 0.25,
+        "max": 0.34
+      },
+      "layoutMs": {
+        "median": 0.24,
+        "max": 0.26
+      },
+      "issues": 10,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r451662 road",
+      "ways": 19,
+      "members": 110,
+      "analyseMs": {
+        "median": 0.24,
+        "max": 3.17
+      },
+      "layoutMs": {
+        "median": 0.36,
+        "max": 2.82
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "dense r2088758 bus Bus M29: U Hermannplatz => Grunewald, Roseneck",
+      "ways": 41,
+      "members": 464,
+      "analyseMs": {
+        "median": 0.24,
+        "max": 0.25
+      },
+      "layoutMs": {
+        "median": 0.2,
+        "max": 0.25
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r294867 bicycle RR2 - Gatow-Route",
+      "ways": 24,
+      "members": 437,
+      "analyseMs": {
+        "median": 0.24,
+        "max": 0.34
+      },
+      "layoutMs": {
+        "median": 0.13,
+        "max": 0.16
+      },
+      "issues": 3,
+      "linear": "no"
+    },
+    {
+      "name": "medium r18799606 train ICE 19: Koblenz => Wuppertal => Berlin",
+      "ways": 24,
+      "members": 1600,
+      "analyseMs": {
+        "median": 0.24,
+        "max": 0.25
+      },
+      "layoutMs": {
+        "median": 0.23,
+        "max": 0.27
+      },
+      "issues": 8,
+      "linear": "yes"
+    },
+    {
+      "name": "small r1201388 bus Bus 172: U Rudow => S Lichtenrade/Blohmstraße",
+      "ways": 33,
+      "members": 329,
+      "analyseMs": {
+        "median": 0.24,
+        "max": 0.28
+      },
+      "layoutMs": {
+        "median": 0.17,
+        "max": 0.24
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r2084474 tram Tram 67: S Schöneweide/sterndamm => Krankenhaus Köpenick",
+      "ways": 15,
+      "members": 83,
+      "analyseMs": {
+        "median": 0.23,
+        "max": 0.35
+      },
+      "layoutMs": {
+        "median": 0.26,
+        "max": 0.41
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "dense r1993863 bus Bus M41: Sonnenallee/Baumschulenstraße => S+U Hauptbahnhof",
+      "ways": 46,
+      "members": 254,
+      "analyseMs": {
+        "median": 0.23,
+        "max": 0.28
+      },
+      "layoutMs": {
+        "median": 0.22,
+        "max": 0.31
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r52459 bicycle RR3 - Spandau-Route",
+      "ways": 24,
+      "members": 478,
+      "analyseMs": {
+        "median": 0.23,
+        "max": 0.25
+      },
+      "layoutMs": {
+        "median": 0.12,
+        "max": 0.2
+      },
+      "issues": 3,
+      "linear": "no"
+    },
+    {
+      "name": "medium r2012421 tram Tram M4: Falkenberg => S Hackescher Markt",
+      "ways": 22,
+      "members": 108,
+      "analyseMs": {
+        "median": 0.23,
+        "max": 0.34
+      },
+      "layoutMs": {
+        "median": 0.07,
+        "max": 0.16
+      },
+      "issues": 6,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r4453630 road B 1 Abschnitt 01 MOL-B",
+      "ways": 39,
+      "members": 732,
+      "analyseMs": {
+        "median": 0.23,
+        "max": 0.26
+      },
+      "layoutMs": {
+        "median": 0.2,
+        "max": 0.25
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "medium r6181528 train IC 56: Cottbus => Norddeich",
+      "ways": 24,
+      "members": 1248,
+      "analyseMs": {
+        "median": 0.23,
+        "max": 0.28
+      },
+      "layoutMs": {
+        "median": 0.21,
+        "max": 0.22
+      },
+      "issues": 20,
+      "linear": "yes"
+    },
+    {
+      "name": "dense r2088757 bus Bus M29: Grunewald, Roseneck => U Hermannplatz",
+      "ways": 42,
+      "members": 480,
+      "analyseMs": {
+        "median": 0.22,
+        "max": 0.28
+      },
+      "layoutMs": {
+        "median": 0.2,
+        "max": 0.28
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r374676 train IC 77: Amsterdam => Berlin",
+      "ways": 24,
+      "members": 1247,
+      "analyseMs": {
+        "median": 0.22,
+        "max": 0.28
+      },
+      "layoutMs": {
+        "median": 0.19,
+        "max": 0.22
+      },
+      "issues": 9,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r10754192 bus Flixbus 170: Dresden, Hbf. Bayrische Straße => Göhren, Rügen",
+      "ways": 11,
+      "members": 2046,
+      "analyseMs": {
+        "median": 0.22,
+        "max": 0.24
+      },
+      "layoutMs": {
+        "median": 0.27,
+        "max": 0.31
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r18794220 train ICE 16: Berlin - Frankfurt - Saarbrücken",
+      "ways": 24,
+      "members": 1590,
+      "analyseMs": {
+        "median": 0.22,
+        "max": 0.27
+      },
+      "layoutMs": {
+        "median": 0.22,
+        "max": 0.24
+      },
+      "issues": 10,
+      "linear": "yes"
+    },
+    {
+      "name": "small r1200099 bus Bus M76: U Walther-Schreiber-Platz => S Lichtenrade",
+      "ways": 27,
+      "members": 273,
+      "analyseMs": {
+        "median": 0.22,
+        "max": 0.27
+      },
+      "layoutMs": {
+        "median": 0.16,
+        "max": 0.27
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "relations r1123332 road",
+      "ways": 5,
+      "members": 68,
+      "analyseMs": {
+        "median": 0.21,
+        "max": 0.3
+      },
+      "layoutMs": {
+        "median": 0.08,
+        "max": 0.15
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "dense r1843581 hiking Innerer Parkring",
+      "ways": 28,
+      "members": 990,
+      "analyseMs": {
+        "median": 0.21,
+        "max": 0.23
+      },
+      "layoutMs": {
+        "median": 0.21,
+        "max": 0.27
+      },
+      "issues": 3,
+      "linear": "no"
+    },
+    {
+      "name": "medium r1986098 bus Bus 200: S+U Zoologischer Garten => Prenzlauer Berg, Michelangelostraße",
+      "ways": 31,
+      "members": 303,
+      "analyseMs": {
+        "median": 0.21,
+        "max": 0.25
+      },
+      "layoutMs": {
+        "median": 0.12,
+        "max": 0.21
+      },
+      "issues": 4,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r10753790 bus Flixbus 370: Berlin, Alexanderplatz => Chemnitz, Busbahnhof",
+      "ways": 15,
+      "members": 1197,
+      "analyseMs": {
+        "median": 0.21,
+        "max": 0.23
+      },
+      "layoutMs": {
+        "median": 0.19,
+        "max": 0.26
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r18799607 train ICE 19: Berlin => Wuppertal => Koblenz",
+      "ways": 24,
+      "members": 1592,
+      "analyseMs": {
+        "median": 0.21,
+        "max": 0.26
+      },
+      "layoutMs": {
+        "median": 0.28,
+        "max": 0.37
+      },
+      "issues": 8,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2076232 tram Tram M1: Rosenthal Nord => Mitte, Am Kupfergraben",
+      "ways": 20,
+      "members": 139,
+      "analyseMs": {
+        "median": 0.2,
+        "max": 0.25
+      },
+      "layoutMs": {
+        "median": 0.13,
+        "max": 0.15
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "small r3422831 road B 96 (Berlin)",
+      "ways": 10,
+      "members": 988,
+      "analyseMs": {
+        "median": 0.2,
+        "max": 0.29
+      },
+      "layoutMs": {
+        "median": 0.23,
+        "max": 0.28
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "medium r2076231 tram Tram M1: Niederschönhausen, Schillerstraße => Mitte, Am Kupfergraben",
+      "ways": 20,
+      "members": 125,
+      "analyseMs": {
+        "median": 0.19,
+        "max": 0.36
+      },
+      "layoutMs": {
+        "median": 0.2,
+        "max": 0.29
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "dense r3418910 hiking Europäischer Fernwanderweg E11, Berlin",
+      "ways": 10,
+      "members": 775,
+      "analyseMs": {
+        "median": 0.18,
+        "max": 0.21
+      },
+      "layoutMs": {
+        "median": 0.12,
+        "max": 0.17
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r326636 train RE7: Senftenberg => Dessau Hbf",
+      "ways": 24,
+      "members": 588,
+      "analyseMs": {
+        "median": 0.18,
+        "max": 0.23
+      },
+      "layoutMs": {
+        "median": 0.12,
+        "max": 0.23
+      },
+      "issues": 26,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r1986097 bus Bus 200: Prenzlauer Berg, Michelangelostraße => S+U Zoologischer Garten",
+      "ways": 36,
+      "members": 286,
+      "analyseMs": {
+        "median": 0.18,
+        "max": 0.31
+      },
+      "layoutMs": {
+        "median": 0.13,
+        "max": 0.17
+      },
+      "issues": 3,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2202596 bus Bus 142: S Ostbahnhof => U Leopoldplatz",
+      "ways": 39,
+      "members": 398,
+      "analyseMs": {
+        "median": 0.18,
+        "max": 0.2
+      },
+      "layoutMs": {
+        "median": 0.12,
+        "max": 0.17
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2350597 hiking Spreeweg",
+      "ways": 52,
+      "members": 758,
+      "analyseMs": {
+        "median": 0.18,
+        "max": 0.21
+      },
+      "layoutMs": {
+        "median": 0.12,
+        "max": 0.17
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r20685869 train EC 57 Wawel: Berlin Hbf → Przemyśl Gł.",
+      "ways": 24,
+      "members": 1151,
+      "analyseMs": {
+        "median": 0.18,
+        "max": 0.24
+      },
+      "layoutMs": {
+        "median": 0.18,
+        "max": 0.2
+      },
+      "issues": 13,
+      "linear": "yes"
+    },
+    {
+      "name": "small r1200098 bus Bus M76: S Lichtenrade => U Walther-Schreiber-Platz",
+      "ways": 26,
+      "members": 267,
+      "analyseMs": {
+        "median": 0.18,
+        "max": 0.28
+      },
+      "layoutMs": {
+        "median": 0.15,
+        "max": 0.19
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "dense r20429646 bicycle Radweg Berlin-Dresden [BE]",
+      "ways": 23,
+      "members": 440,
+      "analyseMs": {
+        "median": 0.17,
+        "max": 0.21
+      },
+      "layoutMs": {
+        "median": 0.12,
+        "max": 0.14
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2194814 bus Bus N65: S+U Alexanderplatz => Rahnsdorf/Waldschänke",
+      "ways": 32,
+      "members": 628,
+      "analyseMs": {
+        "median": 0.17,
+        "max": 0.25
+      },
+      "layoutMs": {
+        "median": 0.16,
+        "max": 0.32
+      },
+      "issues": 6,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2211984 bus Bus N5: Hellersdorf, Riesaer Straße => S+U Hauptbahnhof",
+      "ways": 46,
+      "members": 494,
+      "analyseMs": {
+        "median": 0.17,
+        "max": 0.21
+      },
+      "layoutMs": {
+        "median": 0.14,
+        "max": 0.22
+      },
+      "issues": 3,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r5491473 train ICE 13: Berlin => Frankfurt",
+      "ways": 24,
+      "members": 1019,
+      "analyseMs": {
+        "median": 0.17,
+        "max": 0.24
+      },
+      "layoutMs": {
+        "median": 0.18,
+        "max": 0.19
+      },
+      "issues": 5,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r6188745 train ICE 13: Frankfurt => Berlin",
+      "ways": 24,
+      "members": 1015,
+      "analyseMs": {
+        "median": 0.17,
+        "max": 0.25
+      },
+      "layoutMs": {
+        "median": 0.14,
+        "max": 0.18
+      },
+      "issues": 5,
+      "linear": "yes"
+    },
+    {
+      "name": "small r8865697 train EC 379: Kiel => Praha",
+      "ways": 3,
+      "members": 1668,
+      "analyseMs": {
+        "median": 0.17,
+        "max": 1.75
+      },
+      "layoutMs": {
+        "median": 0.2,
+        "max": 0.28
+      },
+      "issues": 11,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2343465 light_rail S3: S Erkner => S Spandau",
+      "ways": 24,
+      "members": 311,
+      "analyseMs": {
+        "median": 0.16,
+        "max": 7.06
+      },
+      "layoutMs": {
+        "median": 0.09,
+        "max": 0.19
+      },
+      "issues": 31,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r6195246 train EC 95: Berlin => Warszawa",
+      "ways": 24,
+      "members": 614,
+      "analyseMs": {
+        "median": 0.16,
+        "max": 0.16
+      },
+      "layoutMs": {
+        "median": 0.12,
+        "max": 0.15
+      },
+      "issues": 7,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r7797053 train ICE 13: Frankfurt → Berlin",
+      "ways": 24,
+      "members": 1046,
+      "analyseMs": {
+        "median": 0.16,
+        "max": 0.25
+      },
+      "layoutMs": {
+        "median": 0.15,
+        "max": 0.21
+      },
+      "issues": 10,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r7797054 train ICE 13: Berlin → Frankfurt",
+      "ways": 24,
+      "members": 1047,
+      "analyseMs": {
+        "median": 0.16,
+        "max": 0.24
+      },
+      "layoutMs": {
+        "median": 0.19,
+        "max": 0.21
+      },
+      "issues": 10,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r9187708 road Unter den Linden",
+      "ways": 17,
+      "members": 44,
+      "analyseMs": {
+        "median": 0.16,
+        "max": 0.19
+      },
+      "layoutMs": {
+        "median": 0.1,
+        "max": 1.33
+      },
+      "issues": 6,
+      "linear": "no"
+    },
+    {
+      "name": "small r1201555 bus Bus 275: S Schichauweg => Kirchhainer Damm/Stadtgrenze",
+      "ways": 24,
+      "members": 83,
+      "analyseMs": {
+        "median": 0.16,
+        "max": 0.21
+      },
+      "layoutMs": {
+        "median": 0.11,
+        "max": 0.14
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r188380 train RE1: Eisenhüttenstadt, Bahnhof => Magdeburg, Hauptbahnhof",
+      "ways": 24,
+      "members": 511,
+      "analyseMs": {
+        "median": 0.15,
+        "max": 0.17
+      },
+      "layoutMs": {
+        "median": 0.08,
+        "max": 0.13
+      },
+      "issues": 26,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r1231708 bus Bus N60: S+U Alexanderplatz => Flughafen BER",
+      "ways": 30,
+      "members": 541,
+      "analyseMs": {
+        "median": 0.15,
+        "max": 0.16
+      },
+      "layoutMs": {
+        "median": 0.16,
+        "max": 0.22
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r1900691 bus Bus 100: S+U Zoologischer Garten => S+U Alexanderplatz",
+      "ways": 29,
+      "members": 192,
+      "analyseMs": {
+        "median": 0.15,
+        "max": 0.16
+      },
+      "layoutMs": {
+        "median": 0.11,
+        "max": 0.14
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2012422 tram Tram M4: Hohenschönhausen, Zingster Straße => S Hackescher Markt",
+      "ways": 22,
+      "members": 101,
+      "analyseMs": {
+        "median": 0.15,
+        "max": 0.18
+      },
+      "layoutMs": {
+        "median": 0.08,
+        "max": 0.1
+      },
+      "issues": 6,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2202597 bus Bus 142: U Leopoldplatz => S Ostbahnhof",
+      "ways": 46,
+      "members": 379,
+      "analyseMs": {
+        "median": 0.15,
+        "max": 0.19
+      },
+      "layoutMs": {
+        "median": 0.11,
+        "max": 0.18
+      },
+      "issues": 3,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r8922806 train EC 55: Berlin → Gdynia",
+      "ways": 24,
+      "members": 604,
+      "analyseMs": {
+        "median": 0.15,
+        "max": 0.38
+      },
+      "layoutMs": {
+        "median": 0.11,
+        "max": 0.13
+      },
+      "issues": 4,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r9691706 hiking Paul-Gerhardt-Weg Etappe 1",
+      "ways": 22,
+      "members": 233,
+      "analyseMs": {
+        "median": 0.15,
+        "max": 3.92
+      },
+      "layoutMs": {
+        "median": 0.13,
+        "max": 0.17
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "small r8885541 train EC 378: Praha => Kiel",
+      "ways": 3,
+      "members": 1600,
+      "analyseMs": {
+        "median": 0.15,
+        "max": 0.23
+      },
+      "layoutMs": {
+        "median": 0.2,
+        "max": 0.28
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r156479 train RE2: Cottbus => Nauen",
+      "ways": 24,
+      "members": 419,
+      "analyseMs": {
+        "median": 0.14,
+        "max": 0.17
+      },
+      "layoutMs": {
+        "median": 0.1,
+        "max": 0.12
+      },
+      "issues": 18,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r187767 train RE1: Magdeburg, Hauptbahnhof => Eisenhüttenstadt, Bahnhof",
+      "ways": 24,
+      "members": 516,
+      "analyseMs": {
+        "median": 0.14,
+        "max": 0.18
+      },
+      "layoutMs": {
+        "median": 0.09,
+        "max": 0.16
+      },
+      "issues": 27,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r939025 train RE7: Dessau Hbf => Senftenberg",
+      "ways": 24,
+      "members": 591,
+      "analyseMs": {
+        "median": 0.14,
+        "max": 0.19
+      },
+      "layoutMs": {
+        "median": 0.1,
+        "max": 0.17
+      },
+      "issues": 24,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r1900690 bus Bus 100: S+U Alexanderplatz => S+U Zoologischer Garten",
+      "ways": 34,
+      "members": 164,
+      "analyseMs": {
+        "median": 0.14,
+        "max": 0.2
+      },
+      "layoutMs": {
+        "median": 0.09,
+        "max": 0.12
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2389946 light_rail S9: S Spandau => S Flughafen BER",
+      "ways": 24,
+      "members": 341,
+      "analyseMs": {
+        "median": 0.14,
+        "max": 0.15
+      },
+      "layoutMs": {
+        "median": 0.07,
+        "max": 0.1
+      },
+      "issues": 31,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2607467 train RE2: Nauen => Cottbus",
+      "ways": 24,
+      "members": 421,
+      "analyseMs": {
+        "median": 0.14,
+        "max": 0.27
+      },
+      "layoutMs": {
+        "median": 0.11,
+        "max": 1.38
+      },
+      "issues": 18,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r6195247 train EC 95: Warszawa => Berlin",
+      "ways": 24,
+      "members": 615,
+      "analyseMs": {
+        "median": 0.14,
+        "max": 1.56
+      },
+      "layoutMs": {
+        "median": 0.12,
+        "max": 0.17
+      },
+      "issues": 9,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r64050 light_rail S47: S Südkreuz => S Spindlersfeld",
+      "ways": 2,
+      "members": 79,
+      "analyseMs": {
+        "median": 0.13,
+        "max": 0.32
+      },
+      "layoutMs": {
+        "median": 0.09,
+        "max": 0.32
+      },
+      "issues": 10,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r2410717 bus Bus N69: Müggelheim, Odernheimer Straße => Schloßplatz Köpenick",
+      "ways": 24,
+      "members": 107,
+      "analyseMs": {
+        "median": 0.13,
+        "max": 0.19
+      },
+      "layoutMs": {
+        "median": 0.12,
+        "max": 0.16
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2017024 light_rail S7: S Potsdam Hauptbahnhof => S Ahrensfelde",
+      "ways": 24,
+      "members": 302,
+      "analyseMs": {
+        "median": 0.13,
+        "max": 0.13
+      },
+      "layoutMs": {
+        "median": 0.08,
+        "max": 0.11
+      },
+      "issues": 30,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2389945 light_rail S9: S Flughafen BER => S Spandau",
+      "ways": 24,
+      "members": 334,
+      "analyseMs": {
+        "median": 0.13,
+        "max": 0.15
+      },
+      "layoutMs": {
+        "median": 0.08,
+        "max": 0.11
+      },
+      "issues": 31,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r8922805 train EC 54: Gdynia → Berlin",
+      "ways": 24,
+      "members": 599,
+      "analyseMs": {
+        "median": 0.13,
+        "max": 0.14
+      },
+      "layoutMs": {
+        "median": 0.1,
+        "max": 0.13
+      },
+      "issues": 5,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r10761717 bus Flixbus 065: Leipzig, Hbf. => Berlin, Alexanderplatz",
+      "ways": 19,
+      "members": 841,
+      "analyseMs": {
+        "median": 0.13,
+        "max": 0.14
+      },
+      "layoutMs": {
+        "median": 0.15,
+        "max": 0.21
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "medium r15401288 train RB23: Golm => Berlin Ostbahnhof",
+      "ways": 24,
+      "members": 252,
+      "analyseMs": {
+        "median": 0.13,
+        "max": 0.14
+      },
+      "layoutMs": {
+        "median": 0.07,
+        "max": 0.09
+      },
+      "issues": 13,
+      "linear": "yes"
+    },
+    {
+      "name": "small r1201554 bus Bus 275: Kirchhainer Damm/Stadtgrenze => S-Bhf Schichauweg/Illigstraße",
+      "ways": 25,
+      "members": 67,
+      "analyseMs": {
+        "median": 0.13,
+        "max": 0.18
+      },
+      "layoutMs": {
+        "median": 0.09,
+        "max": 0.19
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r74483 bicycle TR7 - Hohenschönhausen-Köpenick",
+      "ways": 3,
+      "members": 327,
+      "analyseMs": {
+        "median": 0.12,
+        "max": 0.21
+      },
+      "layoutMs": {
+        "median": 0.1,
+        "max": 0.23
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r303295 train RB23: Berlin Ostbahnhof => Golm",
+      "ways": 24,
+      "members": 251,
+      "analyseMs": {
+        "median": 0.12,
+        "max": 0.14
+      },
+      "layoutMs": {
+        "median": 0.06,
+        "max": 0.09
+      },
+      "issues": 11,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r377858 train RB14: Nauen => Berlin Ostbahnhof",
+      "ways": 24,
+      "members": 227,
+      "analyseMs": {
+        "median": 0.12,
+        "max": 0.15
+      },
+      "layoutMs": {
+        "median": 0.06,
+        "max": 0.14
+      },
+      "issues": 14,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2017023 light_rail S7: S Ahrensfelde => S Potsdam Hauptbahnhof",
+      "ways": 24,
+      "members": 296,
+      "analyseMs": {
+        "median": 0.12,
+        "max": 0.2
+      },
+      "layoutMs": {
+        "median": 0.06,
+        "max": 0.09
+      },
+      "issues": 30,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2076353 tram Tram M6: Hellersdorf, Riesaer Straße => S Hackescher Markt",
+      "ways": 22,
+      "members": 176,
+      "analyseMs": {
+        "median": 0.12,
+        "max": 0.2
+      },
+      "layoutMs": {
+        "median": 0.08,
+        "max": 0.17
+      },
+      "issues": 6,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r5829219 tram Tram M5: Hohenschönhausen, Zingster Straße => S Hackescher Markt",
+      "ways": 22,
+      "members": 131,
+      "analyseMs": {
+        "median": 0.12,
+        "max": 0.18
+      },
+      "layoutMs": {
+        "median": 0.13,
+        "max": 0.17
+      },
+      "issues": 6,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2015944 light_rail S5: S Strausberg Nord => S Westkreuz",
+      "ways": 24,
+      "members": 258,
+      "analyseMs": {
+        "median": 0.11,
+        "max": 0.17
+      },
+      "layoutMs": {
+        "median": 0.09,
+        "max": 0.13
+      },
+      "issues": 30,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2015959 light_rail S5: S Westkreuz => S Strausberg Nord",
+      "ways": 24,
+      "members": 269,
+      "analyseMs": {
+        "median": 0.11,
+        "max": 0.12
+      },
+      "layoutMs": {
+        "median": 0.08,
+        "max": 0.11
+      },
+      "issues": 30,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2343466 light_rail S3: S Spandau => S Erkner",
+      "ways": 24,
+      "members": 307,
+      "analyseMs": {
+        "median": 0.11,
+        "max": 0.16
+      },
+      "layoutMs": {
+        "median": 0.08,
+        "max": 0.1
+      },
+      "issues": 31,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r5829220 tram Tram M5: S Hackescher Markt => Hohenschönhausen, Zingster Straße",
+      "ways": 19,
+      "members": 128,
+      "analyseMs": {
+        "median": 0.11,
+        "max": 0.15
+      },
+      "layoutMs": {
+        "median": 0.06,
+        "max": 0.12
+      },
+      "issues": 3,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r10753791 bus Flixbus 370: Chemnitz, Busbahnhof => Berlin, Alexanderplatz",
+      "ways": 1,
+      "members": 1138,
+      "analyseMs": {
+        "median": 0.11,
+        "max": 0.13
+      },
+      "layoutMs": {
+        "median": 0.17,
+        "max": 1.13
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r5821013 bus Bus N69: Schloßplatz Köpenick => Müggelheim, Odernheimer Straße",
+      "ways": 13,
+      "members": 95,
+      "analyseMs": {
+        "median": 0.1,
+        "max": 0.16
+      },
+      "layoutMs": {
+        "median": 0.08,
+        "max": 0.11
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r6162 bicycle RR1: Wannsee-Route",
+      "ways": 9,
+      "members": 642,
+      "analyseMs": {
+        "median": 0.1,
+        "max": 1.25
+      },
+      "layoutMs": {
+        "median": 0.15,
+        "max": 0.2
+      },
+      "issues": 5,
+      "linear": "no"
+    },
+    {
+      "name": "medium r28270 tram Tram M2: S+U Alexanderplatz => Heinersdorf",
+      "ways": 9,
+      "members": 72,
+      "analyseMs": {
+        "median": 0.1,
+        "max": 0.13
+      },
+      "layoutMs": {
+        "median": 0.06,
+        "max": 0.08
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2194813 bus Bus N65: Rahnsdorf/Waldschänke => S+U Alexanderplatz",
+      "ways": 15,
+      "members": 593,
+      "analyseMs": {
+        "median": 0.1,
+        "max": 0.12
+      },
+      "layoutMs": {
+        "median": 0.1,
+        "max": 0.18
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2227017 bus Bus 248: U Breitenbachplatz => S Südkreuz => S+U Alexanderplatz",
+      "ways": 25,
+      "members": 392,
+      "analyseMs": {
+        "median": 0.1,
+        "max": 0.15
+      },
+      "layoutMs": {
+        "median": 0.09,
+        "max": 0.12
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "medium r6257264 train RB14: Berlin Ostbahnhof => Nauen",
+      "ways": 24,
+      "members": 231,
+      "analyseMs": {
+        "median": 0.1,
+        "max": 0.13
+      },
+      "layoutMs": {
+        "median": 0.08,
+        "max": 0.11
+      },
+      "issues": 14,
+      "linear": "yes"
+    },
+    {
+      "name": "small r5454292 train RJ 27: Decin => Dresden => Hamburg",
+      "ways": 3,
+      "members": 1068,
+      "analyseMs": {
+        "median": 0.1,
+        "max": 0.15
+      },
+      "layoutMs": {
+        "median": 0.13,
+        "max": 1.06
+      },
+      "issues": 9,
+      "linear": "yes"
+    },
+    {
+      "name": "small r5455739 train RJ 27: Hamburg => Dresden => Děčín",
+      "ways": 3,
+      "members": 1096,
+      "analyseMs": {
+        "median": 0.1,
+        "max": 0.11
+      },
+      "layoutMs": {
+        "median": 0.14,
+        "max": 0.2
+      },
+      "issues": 9,
+      "linear": "yes"
+    },
+    {
+      "name": "small r6279942 bus Bus 175: S Lichtenrade => Nahariyastraße => S Lichtenrade",
+      "ways": 15,
+      "members": 120,
+      "analyseMs": {
+        "median": 0.1,
+        "max": 0.11
+      },
+      "layoutMs": {
+        "median": 0.09,
+        "max": 0.14
+      },
+      "issues": 4,
+      "linear": "sorted"
+    },
+    {
+      "name": "relations r10960101 waterway International waterway E71",
+      "ways": 3,
+      "members": 70,
+      "analyseMs": {
+        "median": 0.09,
+        "max": 0.22
+      },
+      "layoutMs": {
+        "median": 0.05,
+        "max": 0.18
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r35040 bus Bus N60: Flughafen BER => S+U Alexanderplatz",
+      "ways": 14,
+      "members": 501,
+      "analyseMs": {
+        "median": 0.09,
+        "max": 0.11
+      },
+      "layoutMs": {
+        "median": 0.09,
+        "max": 0.14
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2012423 tram Tram M4: S Hackescher Markt => Falkenberg",
+      "ways": 19,
+      "members": 113,
+      "analyseMs": {
+        "median": 0.09,
+        "max": 0.14
+      },
+      "layoutMs": {
+        "median": 0.07,
+        "max": 0.1
+      },
+      "issues": 3,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2012424 tram Tram M4: S Hackescher Markt => Hohenschönhausen, Zingster Straße",
+      "ways": 19,
+      "members": 108,
+      "analyseMs": {
+        "median": 0.09,
+        "max": 0.13
+      },
+      "layoutMs": {
+        "median": 0.06,
+        "max": 0.09
+      },
+      "issues": 3,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2014287 tram Tram 12: Mitte, Am Kupfergraben => Weißensee, Pasedagplatz",
+      "ways": 10,
+      "members": 136,
+      "analyseMs": {
+        "median": 0.09,
+        "max": 0.1
+      },
+      "layoutMs": {
+        "median": 0.06,
+        "max": 0.12
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2076355 tram Tram M6: S Hackescher Markt => Hellersdorf, Riesaer Straße",
+      "ways": 19,
+      "members": 172,
+      "analyseMs": {
+        "median": 0.09,
+        "max": 0.1
+      },
+      "layoutMs": {
+        "median": 0.07,
+        "max": 0.12
+      },
+      "issues": 3,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2227743 subway U5: U Hauptbahnhof => U Hönow",
+      "ways": 9,
+      "members": 100,
+      "analyseMs": {
+        "median": 0.09,
+        "max": 0.11
+      },
+      "layoutMs": {
+        "median": 0.04,
+        "max": 0.07
+      },
+      "issues": 24,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2669183 subway U2: S+U Pankow => U Ruhleben",
+      "ways": 6,
+      "members": 119,
+      "analyseMs": {
+        "median": 0.09,
+        "max": 0.14
+      },
+      "layoutMs": {
+        "median": 0.05,
+        "max": 0.13
+      },
+      "issues": 8,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r7375631 tracks 6032 Berlin Nordbahnhof Strw - Berlin-Schöneberg",
+      "ways": 11,
+      "members": 82,
+      "analyseMs": {
+        "median": 0.09,
+        "max": 0.11
+      },
+      "layoutMs": {
+        "median": 0.03,
+        "max": 0.05
+      },
+      "issues": 12,
+      "linear": "no"
+    },
+    {
+      "name": "small r2269238 light_rail S2: S Blankenfelde => S Bernau",
+      "ways": 8,
+      "members": 253,
+      "analyseMs": {
+        "median": 0.09,
+        "max": 0.13
+      },
+      "layoutMs": {
+        "median": 0.09,
+        "max": 0.12
+      },
+      "issues": 28,
+      "linear": "yes"
+    },
+    {
+      "name": "small r16711313 train IC 17: Rostock => Berlin => Chemnitz",
+      "ways": 3,
+      "members": 962,
+      "analyseMs": {
+        "median": 0.09,
+        "max": 0.11
+      },
+      "layoutMs": {
+        "median": 0.11,
+        "max": 0.16
+      },
+      "issues": 14,
+      "linear": "yes"
+    },
+    {
+      "name": "small r16711314 train IC 17: Chemnitz => Berlin => Rostock",
+      "ways": 3,
+      "members": 957,
+      "analyseMs": {
+        "median": 0.09,
+        "max": 0.11
+      },
+      "layoutMs": {
+        "median": 0.12,
+        "max": 0.17
+      },
+      "issues": 13,
+      "linear": "yes"
+    },
+    {
+      "name": "dense r2679013 subway U8: S+U Hermannstraße => S+U Wittenau",
+      "ways": 6,
+      "members": 69,
+      "analyseMs": {
+        "median": 0.08,
+        "max": 0.09
+      },
+      "layoutMs": {
+        "median": 0.03,
+        "max": 0.13
+      },
+      "issues": 3,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2015441 tram Tram M8: S+U Hauptbahnhof => Ahrensfelde/Stadtgrenze",
+      "ways": 10,
+      "members": 178,
+      "analyseMs": {
+        "median": 0.08,
+        "max": 0.15
+      },
+      "layoutMs": {
+        "median": 0.06,
+        "max": 0.08
+      },
+      "issues": 4,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2227016 bus Bus 248: S+U Alexanderplatz => S Südkreuz => U Breitenbachplatz",
+      "ways": 17,
+      "members": 354,
+      "analyseMs": {
+        "median": 0.08,
+        "max": 0.1
+      },
+      "layoutMs": {
+        "median": 0.09,
+        "max": 0.15
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2669184 subway U2: U Ruhleben => S+U Pankow",
+      "ways": 5,
+      "members": 119,
+      "analyseMs": {
+        "median": 0.08,
+        "max": 0.09
+      },
+      "layoutMs": {
+        "median": 0.04,
+        "max": 0.06
+      },
+      "issues": 8,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r6622626 bus Bus 147: U Leopoldplatz => S Ostbahnhof",
+      "ways": 11,
+      "members": 350,
+      "analyseMs": {
+        "median": 0.08,
+        "max": 0.12
+      },
+      "layoutMs": {
+        "median": 0.06,
+        "max": 0.09
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "small r2269237 light_rail S2: S Bernau => S Blankenfelde",
+      "ways": 7,
+      "members": 258,
+      "analyseMs": {
+        "median": 0.08,
+        "max": 0.15
+      },
+      "layoutMs": {
+        "median": 0.1,
+        "max": 0.13
+      },
+      "issues": 28,
+      "linear": "yes"
+    },
+    {
+      "name": "small r11000317 bus Buslinie 743: S Waßmannsdorf => S Lichtenrade",
+      "ways": 15,
+      "members": 140,
+      "analyseMs": {
+        "median": 0.08,
+        "max": 0.11
+      },
+      "layoutMs": {
+        "median": 0.1,
+        "max": 0.11
+      },
+      "issues": 3,
+      "linear": "no"
+    },
+    {
+      "name": "medium r1981931 tram Tram M2: Am Steinberg => S+U Alexanderplatz",
+      "ways": 9,
+      "members": 50,
+      "analyseMs": {
+        "median": 0.07,
+        "max": 0.08
+      },
+      "layoutMs": {
+        "median": 0.05,
+        "max": 0.09
+      },
+      "issues": 3,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2015440 tram Tram M8: Ahrensfelde/Stadtgrenze => S+U Hauptbahnhof",
+      "ways": 9,
+      "members": 183,
+      "analyseMs": {
+        "median": 0.07,
+        "max": 0.11
+      },
+      "layoutMs": {
+        "median": 0.06,
+        "max": 0.08
+      },
+      "issues": 5,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2203525 bus Bus 147: S Ostbahnhof => U Leopoldplatz",
+      "ways": 10,
+      "members": 362,
+      "analyseMs": {
+        "median": 0.07,
+        "max": 0.1
+      },
+      "layoutMs": {
+        "median": 0.07,
+        "max": 0.12
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2269237 light_rail S2: S Bernau => S Blankenfelde",
+      "ways": 6,
+      "members": 258,
+      "analyseMs": {
+        "median": 0.07,
+        "max": 0.14
+      },
+      "layoutMs": {
+        "median": 0.07,
+        "max": 0.09
+      },
+      "issues": 28,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2269238 light_rail S2: S Blankenfelde => S Bernau",
+      "ways": 5,
+      "members": 253,
+      "analyseMs": {
+        "median": 0.07,
+        "max": 0.14
+      },
+      "layoutMs": {
+        "median": 0.04,
+        "max": 0.07
+      },
+      "issues": 28,
+      "linear": "yes"
+    },
+    {
+      "name": "small r3019044 light_rail S2: S Buch => S Lichtenrade",
+      "ways": 5,
+      "members": 191,
+      "analyseMs": {
+        "median": 0.07,
+        "max": 0.1
+      },
+      "layoutMs": {
+        "median": 0.08,
+        "max": 0.1
+      },
+      "issues": 22,
+      "linear": "yes"
+    },
+    {
+      "name": "small r7375627 tracks 6035 Berlin Yorckstraße Strw - Blankenfelde",
+      "ways": 13,
+      "members": 121,
+      "analyseMs": {
+        "median": 0.07,
+        "max": 0.12
+      },
+      "layoutMs": {
+        "median": 0.04,
+        "max": 0.06
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "small r11000847 bus Buslinie 743: S Lichtenrade => S Waßmannsdorf",
+      "ways": 14,
+      "members": 141,
+      "analyseMs": {
+        "median": 0.07,
+        "max": 0.08
+      },
+      "layoutMs": {
+        "median": 0.06,
+        "max": 0.13
+      },
+      "issues": 5,
+      "linear": "no"
+    },
+    {
+      "name": "relations r18455262 bus ErsatzBus 27,61,62,63,67,68 (S Köpenick > Schloßplatz Köpenick > S Köpenick)",
+      "ways": 43,
+      "members": 110,
+      "analyseMs": {
+        "median": 0.06,
+        "max": 0.09
+      },
+      "layoutMs": {
+        "median": 0.1,
+        "max": 0.17
+      },
+      "issues": 106,
+      "linear": "empty"
+    },
+    {
+      "name": "dense r2678985 subway U7: U Rudow => S+U Rathaus Spandau",
+      "ways": 11,
+      "members": 117,
+      "analyseMs": {
+        "median": 0.06,
+        "max": 0.08
+      },
+      "layoutMs": {
+        "median": 0.04,
+        "max": 0.06
+      },
+      "issues": 4,
+      "linear": "yes"
+    },
+    {
+      "name": "dense r2678986 subway U7: S+U Rathaus Spandau => U Rudow",
+      "ways": 10,
+      "members": 127,
+      "analyseMs": {
+        "median": 0.06,
+        "max": 0.09
+      },
+      "layoutMs": {
+        "median": 0.04,
+        "max": 0.06
+      },
+      "issues": 4,
+      "linear": "yes"
+    },
+    {
+      "name": "dense r11612537 bicycle RR10 - Eichwalde-Route",
+      "ways": 7,
+      "members": 340,
+      "analyseMs": {
+        "median": 0.06,
+        "max": 0.08
+      },
+      "layoutMs": {
+        "median": 0.05,
+        "max": 0.18
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r1929070 light_rail S1: S Oranienburg => S Wannsee",
+      "ways": 6,
+      "members": 295,
+      "analyseMs": {
+        "median": 0.06,
+        "max": 0.08
+      },
+      "layoutMs": {
+        "median": 0.05,
+        "max": 0.12
+      },
+      "issues": 36,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r1929071 light_rail S1: S Wannsee => S Oranienburg",
+      "ways": 5,
+      "members": 294,
+      "analyseMs": {
+        "median": 0.06,
+        "max": 0.08
+      },
+      "layoutMs": {
+        "median": 0.05,
+        "max": 0.12
+      },
+      "issues": 36,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r1981932 tram Tram M2: Heinersdorf => S+U Alexanderplatz",
+      "ways": 9,
+      "members": 72,
+      "analyseMs": {
+        "median": 0.06,
+        "max": 0.08
+      },
+      "layoutMs": {
+        "median": 0.05,
+        "max": 0.07
+      },
+      "issues": 3,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r1981933 tram Tram M2: S+U Alexanderplatz => Am Steinberg",
+      "ways": 9,
+      "members": 51,
+      "analyseMs": {
+        "median": 0.06,
+        "max": 0.12
+      },
+      "layoutMs": {
+        "median": 0.05,
+        "max": 0.13
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2227744 subway U5: U Hönow => U Hauptbahnhof",
+      "ways": 10,
+      "members": 96,
+      "analyseMs": {
+        "median": 0.06,
+        "max": 0.11
+      },
+      "layoutMs": {
+        "median": 0.04,
+        "max": 0.07
+      },
+      "issues": 24,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2422950 light_rail S25: S Hennigsdorf => S Teltow Stadt",
+      "ways": 6,
+      "members": 236,
+      "analyseMs": {
+        "median": 0.06,
+        "max": 0.1
+      },
+      "layoutMs": {
+        "median": 0.04,
+        "max": 0.09
+      },
+      "issues": 28,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2679013 subway U8: S+U Hermannstraße => S+U Wittenau",
+      "ways": 9,
+      "members": 69,
+      "analyseMs": {
+        "median": 0.06,
+        "max": 0.08
+      },
+      "layoutMs": {
+        "median": 0.04,
+        "max": 0.05
+      },
+      "issues": 5,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r3019044 light_rail S2: S Buch => S Lichtenrade",
+      "ways": 6,
+      "members": 191,
+      "analyseMs": {
+        "median": 0.06,
+        "max": 0.06
+      },
+      "layoutMs": {
+        "median": 0.04,
+        "max": 0.05
+      },
+      "issues": 22,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r7794031 light_rail S26: S Teltow Stadt => S Blankenburg",
+      "ways": 5,
+      "members": 164,
+      "analyseMs": {
+        "median": 0.06,
+        "max": 0.09
+      },
+      "layoutMs": {
+        "median": 0.04,
+        "max": 0.07
+      },
+      "issues": 20,
+      "linear": "yes"
+    },
+    {
+      "name": "small r3019045 light_rail S2: S Lichtenrade => S Buch",
+      "ways": 5,
+      "members": 187,
+      "analyseMs": {
+        "median": 0.06,
+        "max": 0.1
+      },
+      "layoutMs": {
+        "median": 0.08,
+        "max": 0.13
+      },
+      "issues": 22,
+      "linear": "yes"
+    },
+    {
+      "name": "small r5372709 tracks 6135 Berlin - Elsterwerda",
+      "ways": 6,
+      "members": 352,
+      "analyseMs": {
+        "median": 0.06,
+        "max": 0.1
+      },
+      "layoutMs": {
+        "median": 0.05,
+        "max": 0.08
+      },
+      "issues": 2,
+      "linear": "no"
+    },
+    {
+      "name": "dense r2679014 subway U8: S+U Wittenau => S+U Hermannstraße",
+      "ways": 8,
+      "members": 83,
+      "analyseMs": {
+        "median": 0.05,
+        "max": 0.07
+      },
+      "layoutMs": {
+        "median": 0.03,
+        "max": 0.05
+      },
+      "issues": 4,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2422951 light_rail S25: S Teltow Stadt => S Hennigsdorf",
+      "ways": 5,
+      "members": 231,
+      "analyseMs": {
+        "median": 0.05,
+        "max": 0.06
+      },
+      "layoutMs": {
+        "median": 0.04,
+        "max": 0.08
+      },
+      "issues": 28,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r7794032 light_rail S26: S Blankenburg => S Teltow Stadt",
+      "ways": 6,
+      "members": 173,
+      "analyseMs": {
+        "median": 0.05,
+        "max": 0.07
+      },
+      "layoutMs": {
+        "median": 0.03,
+        "max": 0.05
+      },
+      "issues": 19,
+      "linear": "yes"
+    },
+    {
+      "name": "small r1728821 train RB10: Nauen => Rangsdorf",
+      "ways": 3,
+      "members": 213,
+      "analyseMs": {
+        "median": 0.05,
+        "max": 0.07
+      },
+      "layoutMs": {
+        "median": 0.06,
+        "max": 0.09
+      },
+      "issues": 14,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2014286 tram Tram 12: Weißensee, Pasedagplatz => Mitte, Am Kupfergraben",
+      "ways": 5,
+      "members": 116,
+      "analyseMs": {
+        "median": 0.04,
+        "max": 0.06
+      },
+      "layoutMs": {
+        "median": 0.05,
+        "max": 0.08
+      },
+      "issues": 3,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r2679014 subway U8: S+U Wittenau => S+U Hermannstraße",
+      "ways": 9,
+      "members": 83,
+      "analyseMs": {
+        "median": 0.04,
+        "max": 0.05
+      },
+      "layoutMs": {
+        "median": 0.03,
+        "max": 0.11
+      },
+      "issues": 5,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r3019045 light_rail S2: S Lichtenrade => S Buch",
+      "ways": 5,
+      "members": 187,
+      "analyseMs": {
+        "median": 0.04,
+        "max": 0.05
+      },
+      "layoutMs": {
+        "median": 0.06,
+        "max": 0.1
+      },
+      "issues": 22,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r11027480 waterway International waterway E70-10",
+      "ways": 1,
+      "members": 33,
+      "analyseMs": {
+        "median": 0.04,
+        "max": 0.07
+      },
+      "layoutMs": {
+        "median": 0.02,
+        "max": 0.03
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r11612537 bicycle RR10 - Eichwalde-Route",
+      "ways": 3,
+      "members": 340,
+      "analyseMs": {
+        "median": 0.04,
+        "max": 0.06
+      },
+      "layoutMs": {
+        "median": 0.06,
+        "max": 0.07
+      },
+      "issues": 2,
+      "linear": "yes"
+    },
+    {
+      "name": "small r15001247 train RE8: Elsterwerda => Elstal",
+      "ways": 3,
+      "members": 309,
+      "analyseMs": {
+        "median": 0.04,
+        "max": 0.06
+      },
+      "layoutMs": {
+        "median": 0.05,
+        "max": 0.08
+      },
+      "issues": 17,
+      "linear": "yes"
+    },
+    {
+      "name": "small r15001252 train RE8: Elstal => Elsterwerda",
+      "ways": 3,
+      "members": 305,
+      "analyseMs": {
+        "median": 0.04,
+        "max": 0.04
+      },
+      "layoutMs": {
+        "median": 0.04,
+        "max": 0.05
+      },
+      "issues": 17,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r2413846 light_rail S47: S Spindlersfeld => S Südkreuz",
+      "ways": 2,
+      "members": 79,
+      "analyseMs": {
+        "median": 0.03,
+        "max": 0.06
+      },
+      "layoutMs": {
+        "median": 0.05,
+        "max": 0.11
+      },
+      "issues": 10,
+      "linear": "yes"
+    },
+    {
+      "name": "small r6924341 train RB10: Rangsdorf => Nauen",
+      "ways": 3,
+      "members": 201,
+      "analyseMs": {
+        "median": 0.03,
+        "max": 0.03
+      },
+      "layoutMs": {
+        "median": 0.05,
+        "max": 0.08
+      },
+      "issues": 13,
+      "linear": "yes"
+    },
+    {
+      "name": "small r19917924 train RE20: Berlin Hauptbahnhof => Cottbus Hauptbahnhof",
+      "ways": 3,
+      "members": 190,
+      "analyseMs": {
+        "median": 0.03,
+        "max": 0.03
+      },
+      "layoutMs": {
+        "median": 0.04,
+        "max": 0.07
+      },
+      "issues": 8,
+      "linear": "yes"
+    },
+    {
+      "name": "small r19920116 train RE20: Cottbus Hauptbahnhof => Berlin Hauptbahnhof",
+      "ways": 3,
+      "members": 190,
+      "analyseMs": {
+        "median": 0.03,
+        "max": 0.03
+      },
+      "layoutMs": {
+        "median": 0.03,
+        "max": 0.03
+      },
+      "issues": 8,
+      "linear": "yes"
+    },
+    {
+      "name": "relations r7379549 tracks 6143 Berlin-Schöneweide - Spindlersfeld",
+      "ways": 3,
+      "members": 25,
+      "analyseMs": {
+        "median": 0.02,
+        "max": 0.03
+      },
+      "layoutMs": {
+        "median": 0.03,
+        "max": 0.07
+      },
+      "issues": 1,
+      "linear": "yes"
+    },
+    {
+      "name": "dense r12484304 foot Geschichte und Gegenwart des Schillerkiezes",
+      "ways": 0,
+      "members": 12,
+      "analyseMs": {
+        "median": 0.02,
+        "max": 0.02
+      },
+      "layoutMs": {
+        "median": 0.01,
+        "max": 0.04
+      },
+      "issues": 1,
+      "linear": "empty"
+    },
+    {
+      "name": "dense r13792735 road",
+      "ways": 2,
+      "members": 2,
+      "analyseMs": {
+        "median": 0.02,
+        "max": 0.02
+      },
+      "layoutMs": {
+        "median": 0.01,
+        "max": 0.03
+      },
+      "issues": 0,
+      "linear": "yes"
+    },
+    {
+      "name": "small r11799594 train FEX: Flughafen BER => Berlin Hauptbahnhof",
+      "ways": 3,
+      "members": 81,
+      "analyseMs": {
+        "median": 0.02,
+        "max": 0.03
+      },
+      "layoutMs": {
+        "median": 0.02,
+        "max": 0.09
+      },
+      "issues": 5,
+      "linear": "yes"
+    },
+    {
+      "name": "small r19972415 train FEX: Berlin Hauptbahnhof => Flughafen BER",
+      "ways": 3,
+      "members": 90,
+      "analyseMs": {
+        "median": 0.02,
+        "max": 0.02
+      },
+      "layoutMs": {
+        "median": 0.02,
+        "max": 0.02
+      },
+      "issues": 5,
+      "linear": "yes"
+    },
+    {
+      "name": "medium r395276 road",
+      "ways": 0,
+      "members": 20,
+      "analyseMs": {
+        "median": 0.01,
+        "max": 0.03
+      },
+      "layoutMs": {
+        "median": 0.01,
+        "max": 0.02
+      },
+      "issues": 20,
+      "linear": "empty"
+    },
+    {
+      "name": "medium r5613994 power",
+      "ways": 3,
+      "members": 19,
+      "analyseMs": {
+        "median": 0.01,
+        "max": 0.01
+      },
+      "layoutMs": {
+        "median": 0.01,
+        "max": 0.01
+      },
+      "issues": 21,
+      "linear": "empty"
+    },
+    {
+      "name": "medium r6054672 power",
+      "ways": 2,
+      "members": 4,
+      "analyseMs": {
+        "median": 0.01,
+        "max": 0.04
+      },
+      "layoutMs": {
+        "median": 0.01,
+        "max": 0.02
+      },
+      "issues": 6,
+      "linear": "empty"
+    },
+    {
+      "name": "medium r6640378 road Bundesstraße 2",
+      "ways": 0,
+      "members": 19,
+      "analyseMs": {
+        "median": 0.01,
+        "max": 0.01
+      },
+      "layoutMs": {
+        "median": 0.01,
+        "max": 0.01
+      },
+      "issues": 19,
+      "linear": "empty"
+    },
+    {
+      "name": "small r22584 road Bundesstraße 96",
+      "ways": 0,
+      "members": 4,
+      "analyseMs": {
+        "median": 0.01,
+        "max": 0.01
+      },
+      "layoutMs": {
+        "median": 0.02,
+        "max": 0.07
+      },
+      "issues": 4,
+      "linear": "empty"
+    },
+    {
+      "name": "small r1360368 road B 96",
+      "ways": 0,
+      "members": 15,
+      "analyseMs": {
+        "median": 0.01,
+        "max": 0.02
+      },
+      "layoutMs": {
+        "median": 0.02,
+        "max": 0.06
+      },
+      "issues": 14,
+      "linear": "empty"
+    },
+    {
+      "name": "medium r3425228 road Bundesstraße 5",
+      "ways": 0,
+      "members": 13,
+      "analyseMs": {
+        "median": 0,
+        "max": 0.01
+      },
+      "layoutMs": {
+        "median": 0.01,
+        "max": 0.03
+      },
+      "issues": 6,
+      "linear": "empty"
+    },
+    {
+      "name": "medium r6054670 power",
+      "ways": 2,
+      "members": 3,
+      "analyseMs": {
+        "median": 0,
+        "max": 0.01
+      },
+      "layoutMs": {
+        "median": 0.01,
+        "max": 0.05
+      },
+      "issues": 5,
+      "linear": "empty"
+    },
+    {
+      "name": "small r19209443 railway Bahnstrecke Berlin-Dresden",
+      "ways": 0,
+      "members": 2,
+      "analyseMs": {
+        "median": 0,
+        "max": 0.02
+      },
+      "layoutMs": {
+        "median": 0.01,
+        "max": 0.01
+      },
+      "issues": 0,
+      "linear": "empty"
+    }
+  ]
+}

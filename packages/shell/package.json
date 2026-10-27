@@ -21,6 +21,7 @@
     "@osm-editor-kit/maid-operations": "workspace:*",
     "@osm-editor-kit/maid-presets": "workspace:*",
     "@osm-editor-kit/maid-renderer": "workspace:*",
+    "@osm-editor-kit/maid-route-analysis": "workspace:*",
     "@osm-editor-kit/maid-style": "workspace:*",
     "@osm-editor-kit/maid-ui": "workspace:*",
     "@osm-editor-kit/maid-validation": "workspace:*",

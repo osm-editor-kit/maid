@@ -292,7 +292,7 @@ export type LayoutOptions = {
   rowHeight?: number
   /** Schematic: height of every section in px (default 12) */
   sectionHeight?: number
-  /** Scaled: px per kilometre (default: chosen so that the line is about 40 px per km, at least `minSectionHeight`) */
+  /** Scaled: px per kilometre (default 40) */
   pxPerKm?: number
   /** Scaled: the smallest section height in px (default 4) */
   minSectionHeight?: number

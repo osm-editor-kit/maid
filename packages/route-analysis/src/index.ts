@@ -1,3 +1,5 @@
 export * from './types.ts'
+export { analyzeRoute } from './analyze.ts'
+export { layoutOverview } from './layout/layout.ts'
 export { classifyMembers, isTransit, isWaymarked, pointKindOf } from './roles.ts'
 export { distance, lineLength, nearestOnSegment } from './geo.ts'

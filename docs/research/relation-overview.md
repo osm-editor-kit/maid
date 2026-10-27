@@ -92,3 +92,26 @@ About an hour each, each with a test for Tobias. Steps 1 and 2 are the headless 
 - Whether the fixtures contain a hiking route with guideposts as members is not measured.
 - Relation:route/hiking, /bicycle, /bus were not read this time (client errors); route-relations-recommendations.md covers them from 2026-10-17.
 - Whether the diagram replaces the "Stops" and "Ways" groups or sits above them: a design question for Tobias after step 4.
+
+## Built so far (2026-10-27)
+
+Package `packages/route-analysis` (plain data in and out, no model classes): `analyzeRoute(input)` classifies every member (a fallback kind `other` with a hint for roles it does not know), chains the main ways from the geometry (relation order where it joins, one gapless reordering otherwise, `forward`/`backward` strands beside the line), places points, stops and platforms on the line, builds side lines, finds junctions with the loaded network and lists the issues with a place on the line. `layoutOverview(analysis, 'schematic' | 'scaled')` gives the rows, sections and lanes of the diagram; every member is in some row or section, every issue on exactly one row. The shell adapter `routeInputOf(graph, relation)` (`packages/shell/src/modules/route-overview/route-input.ts`) reads the staging graph, so unsaved edits count.
+
+Tests: 106 in the package, among them a fuzz test: 180 generated routes (hiking, bicycle, bus) with one to four random mutations each (removed ways, shuffled blocks, reversed ways, duplicates, unloaded members, unknown roles, a far guidepost, swapped stops, no guideposts, a detached branch, a sub-route, an area member). Each mutation names the issues it must cause; order and stop sequence are judged only on a line without gaps (with a gap, the gap must be reported). Generated routes need no download (core rule 1).
+
+### Performance
+
+`bun run bench-route-analysis` writes `reports/route-analysis-bench.json` (median of 5, this container):
+
+| Ways | Analysis, ms | Layout (both modes), ms |
+| --- | --- | --- |
+| 100 | 0.6 to 1 | 0.2 to 0.5 |
+| 1,000 | 7 to 12 | 3 to 4 |
+| 5,000 | 49 to 81 | 19 to 21 |
+| 20,000 | 274 to 351 | 78 to 92 |
+
+The 274 route relations of the fixtures take at most 1.3 ms each, because the fixtures hold only the members inside their box (EuroVelo 2: 51 of 1,567). Real large routes: see the decision on a full fixture in the thread. At 20,000 ways the time goes to the line index (about 125 ms, 150,000 segments), the chain (about 50 ms) and the junctions (about 60 ms); a first fix (a 100 m search before the 2 km one) cut placing 10,000 guideposts from about 190 to 40 ms.
+
+### Worker or WebAssembly
+
+Decision: neither yet. A single route relation rarely has more than about 2,000 ways (long trails are superroutes of stages), which takes about 15 ms here, within a frame. The analysis runs once per change of the relation's data, memoised, not per frame. A worker would have to receive the node positions by structured clone (a copy of every coordinate), which for 20,000 ways costs a good part of what it saves; WebAssembly would add that copy too, and the time is in map lookups and haversine, not in arithmetic that WebAssembly speeds up much. Because input and output are plain data, a worker can be added without changing the analysis: the trigger is a measured analysis over 50 ms on a real relation. Next cheap gains, if needed: compute segment lengths once (the chain and the index both compute them), and integer node ids instead of strings.
