@@ -49,6 +49,7 @@ import {
 import { openRelationActions, useOpenRelationFrom } from './relations-open-store.ts'
 import { ColumnDragHandle, ReorderRow, useMemberReorder } from './relations-reorder.tsx'
 import { relationSessionActions } from './relations-session-store.ts'
+import { RouteOverview } from './route-overview/route-overview.tsx'
 
 /** Members a group lists before its own "Show all N"; iD's member list stops at 1000 */
 const GROUP_LIMIT = 1000
@@ -310,6 +311,9 @@ function ColumnBody({
         // the first group's heading has no line above it, under the head
         className="relative flex min-h-0 flex-1 [scrollbar-width:none] flex-col overflow-y-auto pb-2 pl-2 [&::-webkit-scrollbar]:hidden [&>:first-child>[data-stack-heading]]:border-t-0"
       >
+        {relation.tags.type?.trim() === 'route' && rows.length > 0 && (
+          <RouteOverview relation={relation} select={select} />
+        )}
         {rows.length === 0 && (
           <p className="px-3 py-2 text-xs text-zinc-500 dark:text-zinc-400">
             {m.relations_no_members()}

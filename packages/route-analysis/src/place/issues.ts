@@ -29,13 +29,17 @@ export function collectIssues(
 ): RouteIssue[] {
   const pointRadius = options.pointRadius ?? DEFAULT_POINT_RADIUS_M
   const waymarked = isWaymarked(input.tags)
-  const hasGuidepost = members.some((m) => m.kind === 'point' && m.pointKind === 'guidepost')
+  const isGuidepost = (m: MemberInfo) =>
+    m.member.role.trim() === 'guidepost' || (m.kind === 'point' && m.pointKind === 'guidepost')
+  const hasGuidepost = members.some(isGuidepost)
+  // a guidepost that is not loaded may stand at any junction: then no junction can be judged
+  const guidepostsLoaded = !members.some((m) => m.kind === 'unloaded' && isGuidepost(m))
   const issues: RouteIssue[] = [
     ...gapIssues(input, chain),
     ...orderIssues(members, chain),
     ...notLoadedIssues(members),
     ...pointIssues(points, pointRadius),
-    ...junctionIssues(input, junctions, waymarked && hasGuidepost),
+    ...junctionIssues(input, junctions, waymarked && hasGuidepost && guidepostsLoaded),
     ...noGuidepostIssues(junctions, waymarked, hasGuidepost),
     ...unknownRoleIssues(members),
     ...branchIssues(branches),

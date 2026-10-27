@@ -50,6 +50,7 @@
     "check-render": "bun tools/bench/shot-diff.ts check",
     "check-render-save": "bun tools/bench/shot-diff.ts save",
     "check-reroute": "bun tools/bench/reroute-check.ts",
+    "check-route-overview": "bun tools/bench/route-overview-check.ts",
     "check-tags": "bun tools/bench/tags-check.ts",
     "check-tooltips": "bun tools/bench/tooltips-check.ts",
     "check-touch": "bun tools/bench/touch-check.ts",
