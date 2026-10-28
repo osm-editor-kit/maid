@@ -1,5 +1,12 @@
 import { describe, expect, test } from 'bun:test'
-import { arrowColour, onewayOf, sidedOf, SIDE_KINDS } from './direction'
+import {
+  arrowColour,
+  onewayOf,
+  sidedOf,
+  SIDE_KINDS,
+  SIDE_NEAR_KINDS,
+  sideIconSize,
+} from './direction'
 
 describe('onewayOf (iD isOneWay, isOneWayBackwards, isBiDirectional)', () => {
   test('oneway=yes goes along the way', () => {
@@ -126,5 +133,22 @@ describe('lifecycle prefixes on sided keys (iD sidednessIdentifier)', () => {
 
   test('a prefix that is not a lifecycle prefix is not stripped', () => {
     expect(sidedOf({ 'foo:barrier': 'kerb' })).toBeUndefined()
+  })
+})
+
+describe('side markers near the line', () => {
+  test('the kinds whose markers reach a vertex on the line give way; embankments and cuttings do not', () => {
+    expect(SIDE_NEAR_KINDS).toContain('natural')
+    expect(SIDE_NEAR_KINDS).toContain('barrier')
+    expect(SIDE_NEAR_KINDS).toContain('guard_rail')
+    expect(SIDE_NEAR_KINDS).not.toContain('embankment')
+    expect(SIDE_NEAR_KINDS).not.toContain('cutting-left')
+  })
+
+  test('an icon is one marker long and reaches as far as the marker on both sides of the line', () => {
+    // a cliff's triangle: 1 unit (4.5 px) off the line at its apex, 2 units long
+    expect(sideIconSize(SIDE_KINDS.natural!)).toEqual({ width: 10, height: 10 })
+    // a barrier's: from 1 to 2 units off the line
+    expect(sideIconSize(SIDE_KINDS.barrier!)).toEqual({ width: 10, height: 19 })
   })
 })

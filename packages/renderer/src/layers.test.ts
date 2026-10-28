@@ -436,7 +436,7 @@ describe('display: the wireframe and the changes in colour (iD)', () => {
   test('the arrows never cover a vertex: symbols that keep-out squares on the vertices push away', () => {
     const layers = buildLayers(options).map(view)
     const at = (id: string) => layers.findIndex((l) => l.id === id)
-    for (const id of ['line-oneway', 'highlight-direction']) {
+    for (const id of ['line-oneway', 'highlight-direction', 'line-sided-near', 'area-sided-near']) {
       const arrow = layers[at(id)]!
       expect(arrow.type).toBe('symbol')
       // dropped where something is placed, blocking nothing themselves

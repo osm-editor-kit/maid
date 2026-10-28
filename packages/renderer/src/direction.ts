@@ -185,6 +185,45 @@ export const SELECTED_ARROW_PATTERN = 'maid-selected-arrow-pattern'
 export const KEEPOUT_IMAGE = 'maid-keepout'
 export const KEEPOUT_SIZE = 8
 
+/** One side-marker unit in px (iD: markerWidth 1.5 of a 6 px stroke, 2 units wide) */
+export const SIDE_UNIT = 4.5
+/** A vertex's radius with its outline at OSM 17 and up (layers.ts `vertex`), and a px to spare */
+const VERTEX_REACH = 5.5
+
+/** How far a kind's markers lie from the line, nearest and farthest edge, in units */
+function sideExtent(kind: SideKind) {
+  let inner = Infinity
+  let outer = 0
+  for (const shape of kind.shapes) {
+    const [a, b] = 'at' in shape ? [shape.at - 0.5, shape.at + 0.5] : [shape.base, shape.apex]
+    // a shape that crosses the line starts on it
+    inner = Math.min(inner, Math.sign(a) === Math.sign(b) ? Math.min(Math.abs(a), Math.abs(b)) : 0)
+    outer = Math.max(outer, Math.abs(a), Math.abs(b))
+  }
+  return { inner, outer }
+}
+
+/**
+ * The side kinds whose markers come so close to the line that they would cover a vertex on it (Tobias,
+ * 2026-10-28: "wenn sie überlagern ja, sonst nein"). These are symbols that give way to the vertices, like the
+ * arrows; the others (embankments, cuttings) stay line patterns that never drop a marker.
+ */
+export const SIDE_NEAR_KINDS = Object.keys(SIDE_KINDS).filter(
+  (kind) => sideExtent(SIDE_KINDS[kind]!).inner * SIDE_UNIT < VERTEX_REACH,
+)
+
+/**
+ * A near kind's icon (direction-images.ts) in px: one marker, 2 units along the line, and as high as the marker's
+ * farthest edge on both sides, so the line runs through its middle. MapLibre does not turn a line icon's collision
+ * box with the line: on a line across the screen the box is the marker's, on one up the screen it is longer along
+ * the line than the marker. Either way it holds the marker where it meets a vertex on the line.
+ */
+export function sideIconSize(kind: SideKind) {
+  return { width: 2 * SIDE_UNIT + 1, height: Math.ceil(2 * sideExtent(kind).outer * SIDE_UNIT + 1) }
+}
+/** The near kinds' icons: `maid-side-icon-<kind>`. The patterns keep `maid-side-<kind>`. */
+export const SIDE_ICON_PREFIX = 'maid-side-icon-'
+
 /** The arrow image for a line's direction and colour. layers.ts builds the same id in an expression. */
 export function arrowImageId(oneway: OneWay, colour = ARROW_DEFAULT_COLOUR) {
   return `${ARROW_IMAGE_PREFIX}${SHAPE_OF[oneway]}-${colour}`

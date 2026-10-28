@@ -23,9 +23,13 @@ import {
   SELECTED_ARROW_IMAGE,
   SELECTED_ARROW_PATTERN,
   SIDE_HEIGHT,
+  SIDE_ICON_PREFIX,
   SIDE_IMAGE_PREFIX,
   SIDE_KINDS,
+  SIDE_NEAR_KINDS,
   SIDE_SPACING,
+  SIDE_UNIT,
+  sideIconSize,
   type ArrowShape,
   type SideKind,
 } from './direction'
@@ -37,8 +41,6 @@ const RATIO = 2
 /** iD's arrow is drawn in a 10 x 5 box that is 12 x 6 px on the map (markers in strokeWidth units) */
 const ARROW_D = 'M 6,3 L 0,3 L 0,2 L 6,2 L 5,0 L 10,2.5 L 5,5 z'
 const ARROW_UNIT = 1.2
-/** Side markers: one unit is 4.5 px on the map (iD: markerWidth 1.5 of a 6 px stroke, 2 units wide) */
-const SIDE_UNIT = 4.5
 /** The viewfield wedge (iD defs.ts `ideditor-viewfield-marker`): a 16-unit box, 1.5 px a unit, so 24 px on the map */
 const CONE_D = 'M 6,14 C 8,13.4 8,13.4 10,14 L 16,3 C 12,0 4,0 0,3 z'
 const CONE_UNIT = 1.5
@@ -112,12 +114,13 @@ function keepoutImage() {
  * A side marker in colour. Units run along the way (x) and to its right (y, down on screen when
  * the way runs east), with the line at the middle of the image.
  */
-function sideImage(kind: SideKind) {
-  const el = canvas(SIDE_SPACING, SIDE_HEIGHT)
+function sideImage(kind: SideKind, width = SIDE_SPACING, height = SIDE_HEIGHT, icon = false) {
+  const el = canvas(width, height)
   const ctx = el.getContext('2d')!
   const s = RATIO * SIDE_UNIT
-  // the line runs through the middle of the canvas, and the marker through the middle of its spacing
-  ctx.setTransform(s, 0, 0, s, (RATIO * SIDE_SPACING) / 2, (RATIO * SIDE_HEIGHT) / 2)
+  // the line runs through the middle of the canvas, and the marker through the middle of its spacing. MapLibre
+  // lays an icon on a line with its top on the right-hand side, a pattern with its bottom there: the icon is mirrored.
+  ctx.setTransform(s, 0, 0, icon ? -s : s, (RATIO * width) / 2, (RATIO * height) / 2)
   ctx.fillStyle = kind.color
   ctx.strokeStyle = kind.stroke ?? 'transparent'
   ctx.lineWidth = 0.1
@@ -173,6 +176,11 @@ function imageFor(id: string) {
     image = selectedArrowImage(ARROW_SPACING)
   } else if (id === KEEPOUT_IMAGE) {
     image = keepoutImage()
+  } else if (id.startsWith(SIDE_ICON_PREFIX)) {
+    // the near kinds as symbol icons: one marker (direction.ts sideIconSize)
+    const spec = SIDE_KINDS[id.slice(SIDE_ICON_PREFIX.length)]
+    const size = spec && sideIconSize(spec)
+    if (spec && size) image = sideImage(spec, size.width, size.height, true)
   } else if (id.startsWith(SIDE_IMAGE_PREFIX)) {
     const spec = SIDE_KINDS[id.slice(SIDE_IMAGE_PREFIX.length)]
     if (spec) image = sideImage(spec)
@@ -189,6 +197,7 @@ function preloadIds() {
   for (const colour of ARROW_COLOURS)
     ids.push(arrowImageId(1, colour), arrowImageId(-1, colour), arrowImageId(2, colour))
   for (const kind of Object.keys(SIDE_KINDS)) ids.push(`${SIDE_IMAGE_PREFIX}${kind}`)
+  for (const kind of SIDE_NEAR_KINDS) ids.push(`${SIDE_ICON_PREFIX}${kind}`)
   ids.push(CONE_IMAGE)
   return ids
 }

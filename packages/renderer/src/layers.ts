@@ -12,7 +12,10 @@ import {
   KEEPOUT_SIZE,
   SELECTED_ARROW_IMAGE,
   SIDE_HEIGHT,
+  SIDE_ICON_PREFIX,
   SIDE_IMAGE_PREFIX,
+  SIDE_NEAR_KINDS,
+  SIDE_SPACING,
 } from './direction'
 import { CONE_IMAGE, CONE_SLOTS, CONE_ZOOM } from './viewfield'
 
@@ -661,6 +664,11 @@ function buildMainLayers(options: LayerOptions) {
       ['coalesce', ['get', 'ac'], ARROW_DEFAULT_COLOUR],
     ]
     const side: ExpressionSpecification = ['concat', SIDE_IMAGE_PREFIX, ['get', 'side']]
+    const near: ExpressionSpecification = [
+      'in',
+      ['coalesce', ['get', 'side'], ''],
+      ['literal', SIDE_NEAR_KINDS],
+    ]
     // The arrows are symbols along the line (direction.ts): MapLibre leaves out the one that would cover a
     // vertex, since the keep-out squares below are placed first. They block nothing themselves.
     const arrowLayout = {
@@ -669,8 +677,9 @@ function buildMainLayers(options: LayerOptions) {
       'icon-rotation-alignment': 'map',
       'icon-allow-overlap': false,
       'icon-ignore-placement': true,
-      // MapLibre does not turn an icon's collision box with the line: the padding covers the turned arrow
-      'icon-padding': 1,
+      // MapLibre does not turn a line icon's collision box with the line: the padding makes the 13 x 6 px arrow's
+      // box a square of 15 px, which holds the arrow at every angle
+      'icon-padding': [4.5, 1, 4.5, 1] as number[],
     } as const
     layers.push(
       {
@@ -681,25 +690,39 @@ function buildMainLayers(options: LayerOptions) {
         minzoom: 15,
         layout: { ...arrowLayout, 'icon-image': arrow, visibility: shownIn(!wire) },
       },
-      {
-        id: 'line-sided',
-        type: 'line',
-        source: SOURCES.lines,
-        filter: ['has', 'side'],
-        minzoom: 15,
-        layout: { 'line-cap': 'butt', visibility: shownIn(!wire) },
-        paint: { 'line-width': SIDE_HEIGHT, 'line-pattern': side },
-      },
-      // closed barriers and coastline rings: their outline is the area's (build.ts areaFeature)
-      {
-        id: 'area-sided',
-        type: 'line',
-        source: SOURCES.areas,
-        filter: ['has', 'side'],
-        minzoom: 15,
-        layout: { 'line-cap': 'butt', visibility: shownIn(!wire) },
-        paint: { 'line-width': SIDE_HEIGHT, 'line-pattern': side },
-      },
+      // Side markers. Those of the near kinds would cover a vertex on the line, so they are symbols that give way
+      // like the arrows (direction.ts SIDE_NEAR_KINDS, square icons); the others stay patterns.
+      // Closed barriers and coastline rings: their outline is the area's (build.ts areaFeature).
+      ...(
+        [
+          ['line', SOURCES.lines],
+          ['area', SOURCES.areas],
+        ] as const
+      ).flatMap(([kind, source]): LayerSpecification[] => [
+        {
+          id: `${kind}-sided`,
+          type: 'line',
+          source,
+          filter: ['all', ['has', 'side'], ['!', near]],
+          minzoom: 15,
+          layout: { 'line-cap': 'butt', visibility: shownIn(!wire) },
+          paint: { 'line-width': SIDE_HEIGHT, 'line-pattern': side },
+        },
+        {
+          id: `${kind}-sided-near`,
+          type: 'symbol',
+          source,
+          filter: near,
+          minzoom: 15,
+          layout: {
+            ...arrowLayout,
+            'symbol-spacing': SIDE_SPACING,
+            'icon-image': ['concat', SIDE_ICON_PREFIX, ['get', 'side']],
+            'icon-padding': 0,
+            visibility: shownIn(!wire),
+          },
+        },
+      ]),
       // The direction of the selected highway (engine.ts refreshShape): white arrows with a dark outline, on the
       // selection's glow, under the vertices. iD does not show a way's direction; Maid does, as the product owner asked.
       {
