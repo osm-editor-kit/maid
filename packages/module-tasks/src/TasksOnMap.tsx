@@ -13,11 +13,12 @@ const POINT: Filter = ['==', ['geometry-type'], 'Point']
 
 /**
  * The geometries of the open list on the map: points as circles, lines and polygon outlines as lines, coloured by
- * status (open orange, done green, ignored grey, skipped blue), the current task with a white halo. The data is set
- * once per file; a status change only changes the paint expression.
+ * status (open orange, done green, ignored grey, skipped blue), the current task with a white halo. All under the OSM
+ * data (`belowOsm`), so the way to fix and its handles stay on top. The data is set once per file; a status change
+ * only changes the paint expression (the React Compiler keeps the current task's data while its geometry is the same).
  */
 export function createTasksOnMap(store: TasksStore) {
-  return function TasksOnMap(_props: MapContentProps) {
+  return function TasksOnMap({ belowOsm }: MapContentProps) {
     const geojson = useTasks(store, (state) => state.list?.geojson)
     const statuses = useTasks(store, (state) => state.statuses)
     const currentGeometry = useTasks(store, (state) =>
@@ -30,6 +31,7 @@ export function createTasksOnMap(store: TasksStore) {
         <Source id="tasks" type="geojson" data={geojson}>
           <Layer
             id="tasks-line"
+            beforeId={belowOsm}
             type="line"
             filter={NOT_POINT}
             layout={{ 'line-cap': 'round', 'line-join': 'round' }}
@@ -37,6 +39,7 @@ export function createTasksOnMap(store: TasksStore) {
           />
           <Layer
             id="tasks-circle"
+            beforeId={belowOsm}
             type="circle"
             filter={POINT}
             paint={{
@@ -59,6 +62,7 @@ export function createTasksOnMap(store: TasksStore) {
           >
             <Layer
               id="tasks-current-line"
+              beforeId={belowOsm}
               type="line"
               filter={NOT_POINT}
               layout={{ 'line-cap': 'round', 'line-join': 'round' }}
@@ -66,6 +70,7 @@ export function createTasksOnMap(store: TasksStore) {
             />
             <Layer
               id="tasks-current-circle"
+              beforeId={belowOsm}
               type="circle"
               filter={POINT}
               paint={{

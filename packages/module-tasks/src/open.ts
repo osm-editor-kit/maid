@@ -23,9 +23,12 @@ export async function openTaskText(
   deps: OpenDeps,
   text: string,
   fileName: string,
-  options: { sourceUrl?: string; remember?: boolean } = {},
+  /** `request`: the number `start` gave; when a newer file started meanwhile, this one is not opened */
+  options: { sourceUrl?: string; remember?: boolean; request?: number } = {},
 ): Promise<boolean> {
   const { store, storage, cache } = deps
+  const stale = () => options.request !== undefined && store.getState().request !== options.request
+  if (stale()) return false
   const result = parseTaskFileText(text)
   if (!result.ok) {
     store.getState().actions.fail({ fileName, errors: result.errors, omitted: result.omitted })
@@ -35,6 +38,7 @@ export async function openTaskText(
   const hash = orderHash(file)
   const listKey = listKeyOf(file.maid_tasks.list_id)
   const saved = await readMirror(storage, listKey, hash, file.features.length)
+  if (stale()) return false
   store.getState().actions.open({ file, fileName, sourceUrl: options.sourceUrl }, saved)
   if (options.remember !== false) {
     storage.setItem(LAST_LIST_KEY, listKey)
@@ -55,5 +59,8 @@ export async function restoreLastList(deps: OpenDeps): Promise<boolean> {
   if (key === null) return false
   const cached = await deps.cache.load(key)
   if (!cached) return false
-  return openTaskText(deps, cached.text, cached.fileName, { remember: false })
+  return openTaskText(deps, cached.text, cached.fileName, {
+    remember: false,
+    request: deps.store.getState().request,
+  })
 }

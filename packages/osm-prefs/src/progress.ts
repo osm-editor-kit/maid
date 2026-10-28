@@ -27,9 +27,21 @@ export type Slot = 'a' | 'b'
 /**
  * The meta of one list. The short field names keep it within 255 characters.
  * `v` format version, `s` active slot, `n` chunk count, `c` task count, `r` revision (+1 per save),
- * `u` time of the save in unix seconds, `h` the order hash of the task ids (8 characters).
+ * `u` time of the save in unix seconds, `h` the order hash of the task ids (8 characters), `g` the generation:
+ * 8 random characters set when the list is first saved and kept by every later save. A list that was removed and
+ * saved again has another generation, so its new revisions are not mistaken for old ones; a meta without `g` reads
+ * as `''`.
  */
-export type ListMeta = { v: 1; s: Slot; n: number; c: number; r: number; u: number; h: string }
+export type ListMeta = {
+  v: 1
+  s: Slot
+  n: number
+  c: number
+  r: number
+  u: number
+  h: string
+  g: string
+}
 
 /** A list found by `listAll`: its key (8 characters) and its meta. */
 export type ListEntry = { listKey: string; meta: ListMeta }
@@ -59,6 +71,8 @@ export type ProgressStoreOptions = {
   prefix?: string
   /** Epoch milliseconds, for the meta's `u`. Default `Date.now`. */
   now?: () => number
+  /** The generation of a new list (8 characters of base 36). Default: random from `crypto.getRandomValues`. */
+  generation?: () => string
 }
 
 /** The progress store: every function takes a listKey from `listKeyOf`. */
@@ -124,10 +138,31 @@ export function staleLists(
 /** What to do with one list: `push`, `pull`, `conflict` or `same`. */
 export type SyncAction = 'push' | 'pull' | 'conflict' | 'same'
 
+/** The last state both sides agreed on, and the local revision */
+export type SyncRevisions = {
+  localRevision: number
+  ackedRevision: number
+  /** The generation of the agreed state; undefined when this side never agreed with the server */
+  ackedGeneration?: string
+}
+
 /**
- * Decides what to do with one list. `localRevision` is the revision of the local state, `ackedRevision` the
- * last revision both sides agreed on, and `remoteRevision` the revision on the server (undefined when the
- * server has no meta). Local changes are those above `ackedRevision`; so are remote ones.
+ * Whether the server's meta is past the agreed state: a higher revision, or another generation (the list was
+ * removed and saved again, or it is another account's list). Undefined `remote` (no meta) is never past it.
+ */
+export function remoteChanged(
+  revisions: Pick<SyncRevisions, 'ackedRevision' | 'ackedGeneration'>,
+  remote: Pick<ListMeta, 'r' | 'g'> | undefined,
+): boolean {
+  if (remote === undefined) return false
+  if (revisions.ackedGeneration !== undefined && remote.g !== revisions.ackedGeneration) return true
+  return remote.r > revisions.ackedRevision
+}
+
+/**
+ * Decides what to do with one list. `localRevision` is the revision of the local state, `ackedRevision` and
+ * `ackedGeneration` the last state both sides agreed on, and `remote` the server's meta (undefined when the
+ * server has no meta). Local changes are those above `ackedRevision`; remote ones are told by `remoteChanged`.
  *
  * | local changed | remote changed | result     | meaning                              |
  * | ------------- | -------------- | ---------- | ------------------------------------ |
@@ -137,14 +172,14 @@ export type SyncAction = 'push' | 'pull' | 'conflict' | 'same'
  * | yes           | yes            | `conflict` | both changed: the caller decides     |
  */
 export function reconcile(
-  revisions: { localRevision: number; ackedRevision: number },
-  remoteRevision: number | undefined,
+  revisions: SyncRevisions,
+  remote: Pick<ListMeta, 'r' | 'g'> | undefined,
 ): SyncAction {
   const localChanged = revisions.localRevision > revisions.ackedRevision
-  const remoteChanged = remoteRevision !== undefined && remoteRevision > revisions.ackedRevision
-  if (localChanged && remoteChanged) return 'conflict'
+  const changed = remoteChanged(revisions, remote)
+  if (localChanged && changed) return 'conflict'
   if (localChanged) return 'push'
-  if (remoteChanged) return 'pull'
+  if (changed) return 'pull'
   return 'same'
 }
 
@@ -153,6 +188,7 @@ export function createProgressStore(options: ProgressStoreOptions): ProgressStor
   const { transport } = options
   const prefix = options.prefix ?? DEFAULT_PREFIX
   const now = options.now ?? Date.now
+  const generation = options.generation ?? randomGeneration
   const listPrefix = `${prefix}.`
 
   const metaKeyOf = (listKey: string): string => `${prefix}.${listKey}`
@@ -217,6 +253,8 @@ export function createProgressStore(options: ProgressStoreOptions): ProgressStor
         r: (current?.r ?? 0) + 1,
         u: Math.floor(now() / 1000),
         h: saveOptions.orderHash,
+        // a new list, or one saved before generations: a new one
+        g: current?.g || generation(),
       }
       // checks the whole meta before anything is written
       const metaText = formatMeta(meta)
@@ -253,12 +291,14 @@ export function createProgressStore(options: ProgressStoreOptions): ProgressStor
 /** Checks a value of the meta shape and returns it with its fields in the format's order. Throws when a field is wrong. */
 function asMeta(value: unknown): ListMeta {
   if (typeof value !== 'object' || value === null) throw new Error('The meta is not an object')
-  const { v, s, n, c, r, u, h } = value as Record<string, unknown>
+  const { v, s, n, c, r, u, h, g = '' } = value as Record<string, unknown>
   if (v !== META_VERSION)
     throw new Error(`The meta version is ${String(v)}, expected ${META_VERSION}`)
   if (s !== 'a' && s !== 'b') throw new Error('The meta slot is not a or b')
   if (typeof h !== 'string' || !LIST_KEY.test(h))
     throw new Error('The meta order hash is not 8 characters of base 36')
+  if (typeof g !== 'string' || (g !== '' && !LIST_KEY.test(g)))
+    throw new Error('The meta generation is not 8 characters of base 36')
   return {
     v: META_VERSION,
     s,
@@ -267,6 +307,7 @@ function asMeta(value: unknown): ListMeta {
     r: wholeNumber(r, 'r'),
     u: wholeNumber(u, 'u'),
     h,
+    g,
   }
 }
 
@@ -286,6 +327,12 @@ function fnv1a(text: string): number {
     hash = Math.imul(hash, 0x01000193)
   }
   return hash >>> 0
+}
+
+/** 8 random characters of base 36, for a new list's generation */
+function randomGeneration(): string {
+  const [value = 0] = globalThis.crypto.getRandomValues(new Uint32Array(1))
+  return eightBase36(value)
 }
 
 /** A number in base 36, padded with zeros to 8 characters (a 32-bit value needs at most 7). */

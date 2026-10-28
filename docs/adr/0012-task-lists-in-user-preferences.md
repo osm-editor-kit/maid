@@ -17,8 +17,7 @@ of each before it is applied. Done, ignored and skipped tasks must be remembered
 - **The progress is in the OSM user preferences** of the account the person is logged in to (Tobias, 2026-10-27; not
   the key-value-db service, not the URL, not only the browser). The browser keeps a copy.
 - **Teams use MapRoulette** (Tobias, 2026-10-27). A MapRoulette integration is not part of this work.
-- **Layout of the preferences** (`packages/osm-prefs`): a meta key `maid.tasks.<listKey>` (JSON: slot, chunk count,
-  task count, revision, last change, order hash) and the statuses as a 2-bit field per task, deflated when shorter,
+- **Layout of the preferences** (`packages/osm-prefs`): a meta key `maid.tasks.<listKey>` (JSON: slot, chunk count, task count, revision, last change, order hash, generation) and the statuses as a 2-bit field per task, deflated when shorter,
   base64url, split into values of 255 characters under `maid.tasks.<listKey>.<a|b>.<i>`. A save writes the inactive
   slot first and the meta last, so a failed save leaves the previous state readable.
 - **Never `PUT /api/0.6/user/preferences`**: it replaces every preference of the user, also those of other apps. Only

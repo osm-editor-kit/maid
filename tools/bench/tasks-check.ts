@@ -58,6 +58,11 @@ const code = await runCheck(
         id,
       )
     const undoLabel = () => page.evaluate(() => window.__maid.engine.undoState().undoLabel ?? null)
+    /** After a reload or a new address: the bench API is there again and the map is ready */
+    const ready = async () => {
+      await page.waitForFunction(() => window.__bench !== undefined, undefined, { timeout: 30_000 })
+      await page.evaluate(() => window.__bench.ready())
+    }
     const waitSaved = async () => {
       await page.waitForFunction(
         () =>
@@ -168,6 +173,7 @@ const code = await runCheck(
 
     // --- a reload restores it from the preferences ---
     await page.reload()
+    await ready()
     await byId('tasks-view').waitFor({ timeout: 15_000 })
     await page
       .waitForFunction(
@@ -231,6 +237,7 @@ const code = await runCheck(
       { timeout: 60_000 },
     )
     timings.load20000Ms = Date.now() - start
+    await ready()
     report(
       '20 000 tasks load',
       true,

@@ -166,3 +166,19 @@ describe('opening a file', () => {
     expect(state.list?.geojson.features).toHaveLength(40)
   })
 })
+
+describe('a newer file wins', () => {
+  it('a file that finishes after a newer one started is not opened', async () => {
+    const storage = memoryStorage()
+    const cache = createFileCache(cacheName(), true)
+    const store = createTasksStore()
+    const deps = { store, storage, cache }
+    const older = store.getState().actions.start('a.geojson')
+    const newer = store.getState().actions.start('b.geojson')
+    const a = JSON.stringify(makeFile([{ id: 'a1' }], 'list-a'))
+    const b = JSON.stringify(makeFile([{ id: 'b1' }, { id: 'b2' }], 'list-b'))
+    expect(await openTaskText(deps, b, 'b.geojson', { request: newer })).toBe(true)
+    expect(await openTaskText(deps, a, 'a.geojson', { request: older })).toBe(false)
+    expect(store.getState().list?.fileName).toBe('b.geojson')
+  })
+})

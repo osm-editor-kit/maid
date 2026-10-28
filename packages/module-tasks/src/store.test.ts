@@ -85,23 +85,27 @@ describe('status changes', () => {
     store.getState().actions.setStatus(0, 'done')
     const atSave = store.getState().localRevision
     store.getState().actions.setStatus(1, 'done')
-    expect(withMarkedSaved(store.getState(), 4, atSave)).toEqual({
+    expect(withMarkedSaved(store.getState(), 4, 'gen00001', atSave)).toEqual({
       ackedRevision: 4,
+      ackedGeneration: 'gen00001',
       localRevision: 5,
     })
-    expect(withMarkedSaved({ ...store.getState(), localRevision: atSave }, 4, atSave)).toEqual({
+    expect(
+      withMarkedSaved({ ...store.getState(), localRevision: atSave }, 4, 'gen00001', atSave),
+    ).toEqual({
       ackedRevision: 4,
+      ackedGeneration: 'gen00001',
       localRevision: 4,
     })
   })
 
   it('takeRemote and keepLocal settle the revisions and close the conflict', () => {
-    expect(withRemote(['done'], 7)).toMatchObject({
+    expect(withRemote(['done'], 7, 'gen00001')).toMatchObject({
       ackedRevision: 7,
       localRevision: 7,
       conflict: undefined,
     })
-    expect(withKeepLocal(7)).toMatchObject({
+    expect(withKeepLocal(7, 'gen00001')).toMatchObject({
       ackedRevision: 7,
       localRevision: 8,
       conflictOpen: false,
@@ -136,5 +140,21 @@ describe('close', () => {
     store.getState().actions.setStatus(0, 'done')
     store.getState().actions.close()
     expect(store.getState()).toMatchObject({ ...EMPTY_STATE, actions: expect.anything() })
+  })
+})
+
+describe('applied tasks follow undo and redo', () => {
+  it('undo takes the status back, redo sets done again, a later change by hand stays', () => {
+    const store = openedStore(file)
+    const { actions } = store.getState()
+    actions.addApplied({ index: 0, entityId: 'w1', option: { set: { a: 'b' } }, before: 'open' })
+    actions.setStatus(0, 'done')
+    actions.followApplied(() => false)
+    expect(store.getState().statuses[0]).toBe('open')
+    actions.followApplied(() => true)
+    expect(store.getState().statuses[0]).toBe('done')
+    actions.setStatus(0, 'ignored')
+    actions.followApplied(() => false)
+    expect(store.getState().statuses[0]).toBe('ignored')
   })
 })

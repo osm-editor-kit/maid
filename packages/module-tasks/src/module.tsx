@@ -76,7 +76,8 @@ export function tasks() {
           (state.list === previous.list &&
             state.statuses === previous.statuses &&
             state.localRevision === previous.localRevision &&
-            state.ackedRevision === previous.ackedRevision)
+            state.ackedRevision === previous.ackedRevision &&
+            state.ackedGeneration === previous.ackedGeneration)
         )
           return
         const mine = ++sequence
@@ -88,6 +89,7 @@ export function tasks() {
             statuses: state.statuses,
             localRevision: state.localRevision,
             ackedRevision: state.ackedRevision,
+            ackedGeneration: state.ackedGeneration,
           },
           () => mine === sequence,
         )

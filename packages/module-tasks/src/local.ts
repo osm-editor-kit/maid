@@ -16,7 +16,8 @@ export function mirrorKey(listKey: string): string {
 /** The storage key that names the list to open again after a reload */
 export const LAST_LIST_KEY = 'maid:tasks-last'
 
-type MirrorText = { v: 1; s: string; l: number; a: number; h: string }
+/** `g` is the generation of the account's list the revisions belong to; absent before the first agreement */
+type MirrorText = { v: 1; s: string; l: number; a: number; h: string; g?: string }
 
 /**
  * Writes the progress of a list: the statuses encoded as for the account, the revisions and the order hash.
@@ -35,6 +36,7 @@ export async function writeMirror(
     l: progress.localRevision,
     a: progress.ackedRevision,
     h: orderHash,
+    ...(progress.ackedGeneration === undefined ? {} : { g: progress.ackedGeneration }),
   }
   // encoding is async: a newer write may have started meanwhile, and the older one must not land after it
   if (!stillCurrent()) return
@@ -60,11 +62,17 @@ export async function readMirror(
       text.h !== orderHash ||
       typeof text.s !== 'string' ||
       typeof text.l !== 'number' ||
-      typeof text.a !== 'number'
+      typeof text.a !== 'number' ||
+      (text.g !== undefined && typeof text.g !== 'string')
     )
       return undefined
     const statuses: TaskStatus[] = await decodeStatuses(text.s, count)
-    return { statuses, localRevision: text.l, ackedRevision: text.a }
+    return {
+      statuses,
+      localRevision: text.l,
+      ackedRevision: text.a,
+      ...(text.g === undefined ? {} : { ackedGeneration: text.g }),
+    }
   } catch {
     return undefined
   }

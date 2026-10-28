@@ -155,9 +155,9 @@ describe('pull', () => {
 
   it('does nothing when both sides agree', async () => {
     const transport = memoryTransport()
-    await saveFromOtherDevice(transport, ['done', 'open', 'open'])
+    const saved = await saveFromOtherDevice(transport, ['done', 'open', 'open'])
     const store = openedStore(file)
-    store.getState().actions.takeRemote(['done', 'open', 'open'], 1)
+    store.getState().actions.takeRemote(['done', 'open', 'open'], 1, saved.g)
     const writes = transport.calls.filter((call) => call.method !== 'GET').length
     await startSync(store, transport)
     expect(transport.calls.filter((call) => call.method !== 'GET')).toHaveLength(writes)
@@ -338,5 +338,104 @@ describe('dispose', () => {
     timers.runAll()
     await Bun.sleep(5)
     expect(transport.calls.filter((call) => call.method === 'PUT')).toEqual([])
+  })
+})
+
+describe('review fixes', () => {
+  it('another account, or a list saved again, is a remote change at any revision', async () => {
+    const transport = memoryTransport()
+    // the account holds the list at r=1 of its own generation
+    await saveFromOtherDevice(transport, ['done', 'done', 'open'])
+    const store = openedStore(file)
+    // this browser agreed with another account's list at r=5
+    store.getState().actions.takeRemote(['open', 'open', 'open'], 5, 'zzzzzzzz')
+    await startSync(store, transport)
+    expect(store.getState().statuses).toEqual(['done', 'done', 'open'])
+    expect(store.getState().ackedRevision).toBe(1)
+  })
+
+  it('a local change against another generation asks, and never overwrites', async () => {
+    const transport = memoryTransport()
+    await saveFromOtherDevice(transport, ['done', 'done', 'open'])
+    const store = openedStore(file)
+    store.getState().actions.takeRemote(['open', 'open', 'open'], 5, 'zzzzzzzz')
+    store.getState().actions.setStatus(2, 'ignored')
+    await startSync(store, transport)
+    expect(store.getState().sync.kind).toBe('conflict')
+    expect((await metaOf(transport))?.r).toBe(1)
+  })
+
+  it('retry after a failed first listing reconciles and pulls', async () => {
+    const memory = memoryTransport()
+    await saveFromOtherDevice(memory, ['done', 'open', 'open'])
+    let offline = true
+    const transport: PrefsTransport = {
+      ...memory,
+      list: async () => {
+        if (offline) throw new Error('offline')
+        return memory.list()
+      },
+    }
+    const store = openedStore(file)
+    const { sync } = setup(store, transport)
+    await sync.retry()
+    expect(store.getState().sync.kind).toBe('failed')
+    offline = false
+    await sync.retry()
+    expect(store.getState().sync.kind).toBe('saved')
+    expect(store.getState().statuses).toEqual(['done', 'open', 'open'])
+  })
+
+  it('a change made while the account loads is not overwritten by the pull', async () => {
+    const memory = memoryTransport()
+    await saveFromOtherDevice(memory, ['done', 'open', 'open'])
+    const store = openedStore(file)
+    const progress = createProgressStore({ transport: memory })
+    const listed = await progress.listAll()
+    const slow = {
+      ...progress,
+      load: async (key: string, all?: Record<string, string>) => {
+        store.getState().actions.setStatus(2, 'skipped')
+        return progress.load(key, all)
+      },
+    }
+    const sync = createSync({ store, transport: memory, progress: slow, server: 'dev' })
+    await sync.start(listed)
+    expect(store.getState().sync.kind).toBe('conflict')
+    expect(store.getState().statuses[2]).toBe('skipped')
+  })
+
+  it('a save running at dispose still records its revision', async () => {
+    const memory = memoryTransport()
+    let release: (() => void) | undefined
+    const transport: PrefsTransport = {
+      ...memory,
+      set: async (key, value) => {
+        if (release === undefined) await new Promise<void>((resolve) => (release = resolve))
+        return memory.set(key, value)
+      },
+    }
+    const store = openedStore(file)
+    const { sync } = await startSync(store, transport)
+    store.getState().actions.setStatus(0, 'done')
+    const saving = sync.flush()
+    await Bun.sleep(5)
+    sync.dispose()
+    release?.()
+    await saving
+    expect(store.getState().ackedRevision).toBe(1)
+    expect(store.getState().localRevision).toBe(1)
+    expect(store.getState().ackedGeneration).toBe((await metaOf(memory))?.g)
+  })
+
+  it('a conflict between equal statuses takes the account revision without a question', async () => {
+    const transport = memoryTransport()
+    await saveFromOtherDevice(transport, ['done', 'open', 'open'])
+    const store = openedStore(file)
+    store.getState().actions.setStatus(0, 'done')
+    await startSync(store, transport)
+    expect(store.getState().sync.kind).toBe('saved')
+    expect(store.getState().conflict).toBeUndefined()
+    expect(store.getState().ackedRevision).toBe(1)
   })
 })

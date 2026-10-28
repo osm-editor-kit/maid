@@ -25,9 +25,11 @@ FNV-1a of the id, in base 36.
 | `maid.tasks.<listKey>`           | the meta: compact JSON, the commit point                      |
 | `maid.tasks.<listKey>.<slot>.<i>` | chunk `i` of the text, in slot `a` or `b` (double buffer)     |
 
-The meta is `{"v":1,"s":"a","n":3,"c":2000,"r":7,"u":1700000000,"h":"<8 chars>"}`: `v` format version,
-`s` active slot, `n` chunk count, `c` task count, `r` revision (+1 per save), `u` time of the save (unix
-seconds), `h` hash of the task ids in their order (`orderHashOf`).
+The meta is `{"v":1,"s":"a","n":3,"c":2000,"r":7,"u":1700000000,"h":"<8 chars>","g":"<8 chars>"}`: `v` format
+version, `s` active slot, `n` chunk count, `c` task count, `r` revision (+1 per save), `u` time of the save (unix
+seconds), `h` hash of the task ids in their order (`orderHashOf`), `g` generation (random when the list is first
+saved, then kept). A list that was removed and saved again starts at `r` 1 with a new `g`, so `reconcile` sees it as
+changed and not as older; it also tells another account's list from the one a browser agreed with.
 
 Nothing outside the prefix is read for writing or deleted. Other apps' keys (for example `iD.*`) are never touched.
 

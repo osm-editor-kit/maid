@@ -7,6 +7,7 @@ import {
   type ProgressStore,
 } from '@osm-editor-kit/maid-osm-prefs'
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
+import { isApplied } from '@osm-editor-kit/maid-tasks'
 import { Dialog, openDockView, usePrefsEndpoint } from '@osm-editor-kit/maid-ui'
 import { useEffect, useRef, useState } from 'react'
 import { cleanupOffers } from './cleanup.ts'
@@ -38,7 +39,7 @@ export function createTasksController(
   let cleanupDone = false
 
   return function TasksController({ editor, engine }: MapContentProps) {
-    const [tasksUrl] = useUrlParam(tasksParam)
+    const [tasksUrl, setTasksUrl] = useUrlParam(tasksParam)
     const endpoint = usePrefsEndpoint()
     const list = useTasks(store, (state) => state.list)
     const conflict = useTasks(store, (state) => state.conflict)
@@ -67,7 +68,7 @@ export function createTasksController(
       const controller = new AbortController()
       const name = fileNameOfUrl(tasksUrl)
       const { actions } = store.getState()
-      actions.start(name)
+      const request = actions.start(name)
       openDockView(DOCK_VIEW)
       void (async () => {
         try {
@@ -75,9 +76,9 @@ export function createTasksController(
           if (!response.ok) throw new Error(`HTTP ${response.status}`)
           const text = await response.text()
           if (controller.signal.aborted) return
-          await openTaskText(deps, text, name, { sourceUrl: tasksUrl })
+          await openTaskText(deps, text, name, { sourceUrl: tasksUrl, request })
         } catch (error) {
-          if (controller.signal.aborted) return
+          if (controller.signal.aborted || store.getState().request !== request) return
           const reason = error instanceof Error ? error.message : String(error)
           actions.fail({
             fileName: name,
@@ -87,6 +88,23 @@ export function createTasksController(
       })()
       return () => controller.abort()
     }, [tasksUrl, editor])
+
+    // a list from a file or the cache replaces the one of the link: the link no longer names what is open
+    useEffect(() => {
+      if (list && tasksUrl !== null && list.sourceUrl !== tasksUrl) void setTasksUrl(null)
+    }, [list, tasksUrl, setTasksUrl])
+
+    // undo and redo: a task Apply set to done follows its tags
+    useEffect(() => {
+      const follow = () => {
+        const graph = editor.history.staging.graph
+        store.getState().actions.followApplied((applied) => {
+          const entity = graph.hasEntity(applied.entityId)
+          return entity !== undefined && isApplied(entity.tags, applied.option)
+        })
+      }
+      return editor.history.on('historyjump', follow)
+    }, [editor])
 
     // the account: reconcile once per list and login, then save after each change
     useEffect(() => {

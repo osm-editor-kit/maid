@@ -6,8 +6,11 @@
  * - `start` reconciles once with what the account holds: push, pull, same or conflict.
  * - `schedule` is called after each status change; it saves 2 s later (one save at a time; a change during a save
  *   marks another save).
- * - A save first reads the account's meta: if the account moved on since the last agreement, it is a conflict and
- *   nothing is written.
+ * - A save first reads the account's meta: if the account moved on since the last agreement (a higher revision or
+ *   another generation), it is a conflict and nothing is written. A conflict between equal statuses is no conflict:
+ *   the account's revision is taken (a save whose answer was lost, for example).
+ * - A save that is running when the sync is dropped still records its revision while the same list is open, so
+ *   the next sync does not see its own write as someone else's.
  * - The orderHash (and task count) of the file and of the account must match; if not, the local state is kept and
  *   nothing is synced.
  */
@@ -19,8 +22,14 @@ import {
   type ProgressStore,
   parseMeta,
   reconcile,
+  remoteChanged,
+  type LoadedProgress,
+  type TaskStatus,
 } from '@osm-editor-kit/maid-osm-prefs'
 import type { SyncServer, TasksStore } from './store.ts'
+
+const sameStatuses = (a: readonly TaskStatus[], b: readonly TaskStatus[]) =>
+  a.length === b.length && a.every((status, index) => status === b[index])
 
 /** The wait between the last change and the save */
 export const PUSH_DEBOUNCE_MS = 2000
@@ -42,7 +51,7 @@ export type Sync = {
   schedule: () => void
   /** Saves now, without waiting for the debounce */
   flush: () => Promise<void>
-  /** The retry button: saves now */
+  /** The retry button: reconciles again when the first one failed, else saves now */
   retry: () => Promise<void>
   /** The person's answer to a conflict: the account's statuses or this browser's */
   resolveConflict: (choice: 'remote' | 'local') => Promise<void>
@@ -68,6 +77,8 @@ export function createSync(deps: SyncDeps): Sync {
   let saving = false
   let again = false
   let disposed = false
+  /** The first reconcile went through; until then a retry reconciles again */
+  let started = false
 
   const actions = () => store.getState().actions
   const dirty = () => {
@@ -79,22 +90,35 @@ export function createSync(deps: SyncDeps): Sync {
     timer = undefined
   }
 
-  /** The account's copy goes into the conflict dialog; a copy of another size is a mismatch */
-  async function offerConflict(listKey: string, all?: Record<string, string>) {
-    const list = store.getState().list
-    if (!list) return
-    const remote = await progress.load(listKey, all)
-    if (disposed) return
+  /**
+   * The account's copy against this browser's: equal statuses are taken without a question, others go into the
+   * conflict dialog; a copy of another size is a mismatch
+   */
+  function conflictWith(remote: LoadedProgress | undefined) {
+    const { list, statuses } = store.getState()
+    if (!list || disposed) return
     if (!remote || remote.statuses.length !== list.file.features.length) {
       actions().setSync('mismatch', server)
+      return
+    }
+    if (sameStatuses(remote.statuses, statuses)) {
+      actions().takeRemote(remote.statuses, remote.meta.r, remote.meta.g)
+      actions().setSync('saved', server)
       return
     }
     actions().setConflict({
       statuses: remote.statuses,
       revision: remote.meta.r,
+      generation: remote.meta.g,
       savedAt: remote.meta.u,
     })
     actions().setSync('conflict', server)
+  }
+
+  async function offerConflict(listKey: string, all?: Record<string, string>) {
+    const remote = await progress.load(listKey, all)
+    if (store.getState().list?.listKey !== listKey) return
+    conflictWith(remote)
   }
 
   async function push(): Promise<void> {
@@ -120,7 +144,7 @@ export function createSync(deps: SyncDeps): Sync {
           if (!disposed) actions().setSync('mismatch', server)
           return
         }
-        if (meta.r > store.getState().ackedRevision) {
+        if (remoteChanged(store.getState(), meta)) {
           await offerConflict(list.listKey, all)
           return
         }
@@ -129,8 +153,10 @@ export function createSync(deps: SyncDeps): Sync {
         orderHash: list.orderHash,
         previous: all,
       })
+      // recorded also after a dispose: the account is at this revision now, whoever asks next
+      if (store.getState().list?.listKey !== list.listKey) return
+      actions().markSaved(meta.r, meta.g, revisionAtSave)
       if (disposed) return
-      actions().markSaved(meta.r, revisionAtSave)
       actions().setSync('saved', server)
       saved = true
     } catch (error) {
@@ -158,41 +184,56 @@ export function createSync(deps: SyncDeps): Sync {
     }, debounce)
   }
 
+  async function start(listed: ListAllResult) {
+    const state = store.getState()
+    const list = state.list
+    if (!list || disposed) return
+    actions().setSync(dirty() ? 'pending' : 'saved', server)
+    const entry = listed.lists.find((candidate) => candidate.listKey === list.listKey)
+    if (entry && (entry.meta.h !== list.orderHash || entry.meta.c !== list.file.features.length)) {
+      actions().setSync('mismatch', server)
+      return
+    }
+    const action = reconcile(state, entry?.meta)
+    try {
+      if (action === 'push') await push()
+      else if (action === 'pull') {
+        const revisionAtStart = store.getState().localRevision
+        const remote = await progress.load(list.listKey)
+        if (disposed || store.getState().list !== list) return
+        // a change made while the account's copy loaded is not overwritten: both sides changed
+        if (store.getState().localRevision !== revisionAtStart) conflictWith(remote)
+        else if (!remote || remote.statuses.length !== list.file.features.length) {
+          actions().setSync('mismatch', server)
+        } else {
+          actions().takeRemote(remote.statuses, remote.meta.r, remote.meta.g)
+          actions().setSync('saved', server)
+        }
+      } else if (action === 'conflict') await offerConflict(list.listKey)
+      else actions().setSync('saved', server)
+      started = true
+    } catch (error) {
+      if (!disposed) actions().setSync(isForbidden(error) ? 'forbidden' : 'failed', server)
+    }
+  }
+
   return {
     async start(listed) {
-      const state = store.getState()
-      const list = state.list
-      if (!list || disposed) return
-      actions().setSync(dirty() ? 'pending' : 'saved', server)
-      const entry = listed.lists.find((candidate) => candidate.listKey === list.listKey)
-      if (
-        entry &&
-        (entry.meta.h !== list.orderHash || entry.meta.c !== list.file.features.length)
-      ) {
-        actions().setSync('mismatch', server)
-        return
-      }
-      const action = reconcile(state, entry?.meta.r)
-      try {
-        if (action === 'push') await push()
-        else if (action === 'pull') {
-          const remote = await progress.load(list.listKey)
-          if (disposed) return
-          if (!remote || remote.statuses.length !== list.file.features.length) {
-            actions().setSync('mismatch', server)
-            return
-          }
-          actions().takeRemote(remote.statuses, remote.meta.r)
-          actions().setSync('saved', server)
-        } else if (action === 'conflict') await offerConflict(list.listKey)
-        else actions().setSync('saved', server)
-      } catch (error) {
-        if (!disposed) actions().setSync(isForbidden(error) ? 'forbidden' : 'failed', server)
-      }
+      await start(listed)
     },
     schedule,
     flush: push,
     async retry() {
+      if (disposed) return
+      if (!started) {
+        actions().setSync('saving', server)
+        try {
+          await start(await progress.listAll())
+        } catch (error) {
+          if (!disposed) actions().setSync(isForbidden(error) ? 'forbidden' : 'failed', server)
+        }
+        return
+      }
       if (!dirty()) {
         actions().setSync('saved', server)
         return
@@ -203,10 +244,10 @@ export function createSync(deps: SyncDeps): Sync {
       const conflict = store.getState().conflict
       if (!conflict) return
       if (choice === 'remote') {
-        actions().takeRemote(conflict.statuses, conflict.revision)
+        actions().takeRemote(conflict.statuses, conflict.revision, conflict.generation)
         actions().setSync('saved', server)
       } else {
-        actions().keepLocal(conflict.revision)
+        actions().keepLocal(conflict.revision, conflict.generation)
         await push()
       }
     },

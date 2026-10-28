@@ -6,7 +6,7 @@ const DAY = 86_400
 const NOW = 1_800_000_000
 const entry = (listKey: string, daysAgo: number): ListEntry => ({
   listKey,
-  meta: { v: 1, s: 'a', n: 1, c: 10, r: 1, u: NOW - daysAgo * DAY, h: 'abcdefgh' },
+  meta: { v: 1, s: 'a', n: 1, c: 10, r: 1, u: NOW - daysAgo * DAY, h: 'abcdefgh', g: '' },
 })
 
 describe('cleanupOffers', () => {

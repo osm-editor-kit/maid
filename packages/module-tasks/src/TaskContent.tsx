@@ -92,6 +92,12 @@ export function TaskContent({
     )
     if (outcome.ok) {
       setMessage(undefined)
+      store.getState().actions.addApplied({
+        index,
+        entityId: entity.id,
+        option,
+        before: status,
+      })
       setStatus('done')
     } else {
       setMessage(

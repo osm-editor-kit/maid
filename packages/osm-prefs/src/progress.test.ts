@@ -77,13 +77,31 @@ describe('listKeyOf and orderHashOf', () => {
 })
 
 describe('meta', () => {
-  const meta: ListMeta = { v: 1, s: 'b', n: 3, c: 2000, r: 7, u: 1_700_000_000, h: HASH }
+  const meta: ListMeta = {
+    v: 1,
+    s: 'b',
+    n: 3,
+    c: 2000,
+    r: 7,
+    u: 1_700_000_000,
+    h: HASH,
+    g: 'gen00001',
+  }
 
   it('formats in the field order of the format, and reads back', () => {
     const text = formatMeta(meta)
-    expect(text).toBe(`{"v":1,"s":"b","n":3,"c":2000,"r":7,"u":1700000000,"h":"${HASH}"}`)
+    expect(text).toBe(
+      `{"v":1,"s":"b","n":3,"c":2000,"r":7,"u":1700000000,"h":"${HASH}","g":"gen00001"}`,
+    )
     expect(text.length).toBeLessThanOrEqual(PREF_LIMITS.valueMax)
     expect(parseMeta(text)).toEqual(meta)
+  })
+
+  it('reads a meta without a generation as generation empty, and refuses a wrong one', () => {
+    expect(parseMeta(`{"v":1,"s":"a","n":1,"c":1,"r":1,"u":1,"h":"abcdefgh"}`).g).toBe('')
+    expect(() =>
+      parseMeta(`{"v":1,"s":"a","n":1,"c":1,"r":1,"u":1,"h":"abcdefgh","g":"short"}`),
+    ).toThrow()
   })
 
   it('refuses text that is not JSON, and a field that is wrong', () => {
@@ -123,6 +141,28 @@ describe('save and load', () => {
       })
     }
   }
+
+  it('keeps the generation across saves and gives a removed list a new one', async () => {
+    const transport = memoryTransport()
+    let next = 0
+    const store = createProgressStore({
+      transport,
+      now: () => NOW_MS,
+      generation: () => `gen0000${++next}`,
+    })
+    const statuses = sampleStatuses(10, 'random', 1)
+    const first = await store.save(LIST, statuses, { orderHash: HASH })
+    const second = await store.save(LIST, statuses, { orderHash: HASH })
+    expect([first.g, second.g, second.r]).toEqual(['gen00001', 'gen00001', 2])
+    await store.remove(LIST)
+    const again = await store.save(LIST, statuses, { orderHash: HASH })
+    expect([again.g, again.r]).toEqual(['gen00002', 1])
+  })
+
+  it('gives a new list a random generation of 8 characters', async () => {
+    const saved = await fixture().store.save(LIST, ['open'], { orderHash: HASH })
+    expect(saved.g).toMatch(/^[0-9a-z]{8}$/)
+  })
 
   it('returns undefined for a list without a meta', async () => {
     expect(await fixture().store.load(LIST)).toBeUndefined()
@@ -343,7 +383,7 @@ describe('listAll', () => {
 describe('staleLists', () => {
   const at = (listKey: string, u: number): ListEntry => ({
     listKey,
-    meta: { v: 1, s: 'a', n: 1, c: 1, r: 1, u, h: HASH },
+    meta: { v: 1, s: 'a', n: 1, c: 1, r: 1, u, h: HASH, g: '' },
   })
 
   it('picks the lists whose last save is older than 30 days by default', () => {
@@ -380,7 +420,21 @@ describe('reconcile', () => {
   ]
   for (const [localRevision, ackedRevision, remoteRevision, expected] of cases) {
     it(`local ${localRevision}, acked ${ackedRevision}, remote ${String(remoteRevision)}: ${expected}`, () => {
-      expect(reconcile({ localRevision, ackedRevision }, remoteRevision)).toBe(expected)
+      const remote = remoteRevision === undefined ? undefined : { r: remoteRevision, g: 'gen00001' }
+      expect(reconcile({ localRevision, ackedRevision, ackedGeneration: 'gen00001' }, remote)).toBe(
+        expected,
+      )
     })
   }
+
+  it('another generation is a remote change, also at a lower revision', () => {
+    const acked = { ackedRevision: 7, ackedGeneration: 'gen00001' }
+    expect(reconcile({ ...acked, localRevision: 7 }, { r: 2, g: 'gen00002' })).toBe('pull')
+    expect(reconcile({ ...acked, localRevision: 8 }, { r: 2, g: 'gen00002' })).toBe('conflict')
+  })
+
+  it('without an agreed generation only the revision counts', () => {
+    expect(reconcile({ localRevision: 0, ackedRevision: 0 }, { r: 3, g: 'gen00002' })).toBe('pull')
+    expect(reconcile({ localRevision: 4, ackedRevision: 4 }, { r: 3, g: 'gen00002' })).toBe('same')
+  })
 })

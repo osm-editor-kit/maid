@@ -14,11 +14,11 @@ export function createLoadTasksItem(deps: OpenDeps): AccountMenuItem['component'
     const pick = (file: File | undefined) => {
       if (!file) return
       close()
-      deps.store.getState().actions.start(file.name)
+      const request = deps.store.getState().actions.start(file.name)
       openDockView(DOCK_VIEW)
       void file
         .text()
-        .then((text) => openTaskText(deps, text, file.name))
+        .then((text) => openTaskText(deps, text, file.name, { request }))
         .catch((error: unknown) => {
           deps.store.getState().actions.fail({
             fileName: file.name,
