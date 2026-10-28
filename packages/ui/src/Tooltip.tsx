@@ -136,7 +136,7 @@ function TooltipText(props: {
       {hints && hints.length > 0 ? (
         <ul className="mt-1 space-y-0.5 text-zinc-300 dark:text-zinc-600">
           {hints.map((hint) => (
-            <li key={hint.keys} className="flex items-center gap-1.5">
+            <li key={`${hint.keys} ${hint.text}`} className="flex items-center gap-1.5">
               <kbd className={KBD}>{formatModifiers(hint.keys, apple)}</kbd>
               <span>{hint.text}</span>
             </li>

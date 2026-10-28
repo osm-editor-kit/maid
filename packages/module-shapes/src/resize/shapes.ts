@@ -1,10 +1,11 @@
 /**
- * The resize box as GeoJSON for the map: its outline, its eight handles and the size label, plus the names and sizes of
- * the layers that draw them. Pure: no map, no editor.
+ * The resize box as GeoJSON for the map: its outline, its eight handles, the size label and the features as they would
+ * be, plus the names and sizes of the layers that draw them. Pure: no map, no editor.
  */
 import type { Feature, FeatureCollection } from 'geojson'
+import type { Loc } from '../shared/metres.ts'
 import { cornersOf, handleAt, HANDLES, type Extent, type Handle } from './box.ts'
-import { locOf, type ResizeBox } from './resize.ts'
+import { locOf, type ResizeBox, type ResizePreview } from './resize.ts'
 
 /** The GeoJSON source of the box, and the layers of its handles: a press on one starts a drag (mode.ts) */
 export const RESIZE_SOURCE = 'resize-box'
@@ -77,4 +78,41 @@ export function boxShapes(box: ResizeBox, extent: Extent, label?: string): Featu
  */
 export function insideBox(extent: Extent, q: { x: number; y: number }): boolean {
   return q.x >= extent.minU && q.x <= extent.maxU && q.y >= extent.minV && q.y <= extent.maxV
+}
+
+/**
+ * The features as they would be with the box now: each way of the preview as a line (an area also as a fill) and each
+ * point on its own, kinds `preview-line`, `preview-fill` and `preview-point`. The data stays as it is until the resize is
+ * kept, so the map shows the old shape under the new one.
+ * @param   preview   - The ways and points (`previewOf`)
+ * @param   positions - Where each node of the box is now (`movesFor`)
+ * @return  The features
+ */
+export function previewShapes(
+  preview: ResizePreview,
+  positions: ReadonlyMap<string, Loc>,
+): Feature[] {
+  const features: Feature[] = []
+  const place = (node: string | Loc) => (typeof node === 'string' ? positions.get(node)! : node)
+  for (const way of preview.ways) {
+    const coordinates = way.nodes.map(place)
+    if (way.area)
+      features.push({
+        type: 'Feature',
+        properties: { kind: 'preview-fill' },
+        geometry: { type: 'Polygon', coordinates: [coordinates] },
+      })
+    features.push({
+      type: 'Feature',
+      properties: { kind: 'preview-line' },
+      geometry: { type: 'LineString', coordinates },
+    })
+  }
+  for (const id of preview.points)
+    features.push({
+      type: 'Feature',
+      properties: { kind: 'preview-point' },
+      geometry: { type: 'Point', coordinates: place(id) },
+    })
+  return features
 }

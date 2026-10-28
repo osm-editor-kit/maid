@@ -46,7 +46,6 @@ export class TagEdits {
     )
     if (!plan.ok) return plan
     if (plan.changed > 0) {
-      this.engine.endModuleEdit()
       const { history } = this.engine.data
       this.engine.change(() => {
         history.perform(...plan.actions)
@@ -67,7 +66,6 @@ export class TagEdits {
     )
     if (!plan.ok) return plan
     if (plan.changed > 0) {
-      this.engine.endModuleEdit()
       const { history } = this.engine.data
       const selectedIDs = [...new Set(changes.map((change) => change.id))]
       this.engine.change(() => {
@@ -90,7 +88,6 @@ export class TagEdits {
     )
     if (!plan.ok) return plan
     if (plan.changed > 0) {
-      this.engine.endModuleEdit()
       const { history } = this.engine.data
       const selectedIDs = [...new Set(changes.map((change) => change.id))]
       this.engine.change(() => {

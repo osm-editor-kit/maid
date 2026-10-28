@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { createEditor, lazyPresets } from '@osm-editor-kit/maid-core'
-import { actionMoveNode, type OsmJsonElement } from '@osm-editor-kit/maid-model'
+import type { OsmJsonElement } from '@osm-editor-kit/maid-model'
 import type { Operation, OperationContext } from '@osm-editor-kit/maid-operations'
 import { defaultPresets } from '@osm-editor-kit/maid-presets/default'
 import { MaidEngine } from './engine'
@@ -139,55 +139,27 @@ describe('the engine sends the pointer to a module mode', () => {
     expect(engine.data.way('w10')?.tags.highway).toBe('residential')
   })
 
-  test('an edit ends a mode that holds work in progress, which takes it back: the edit commits only itself', () => {
-    const { editor, engine } = engineWithData()
-    const { history } = editor
-    // a mode like the resize box: it moves a node in the work in progress and takes it back when it ends
-    engine.enterModuleMode({
-      id: 'test',
-      onExit: () => engine.change(() => history.revert()),
-    })
-    engine.change(() => history.perform(actionMoveNode('n4', [13.0002, 52.0031])))
-
+  test('undo and redo end a mode that keeps its work outside the history, and step through nothing', () => {
+    const { engine } = engineWithData()
     engine.setTag('w10', 'highway', 'service')
-
+    const exits: string[] = []
+    engine.enterModuleMode({ id: 'test', endsOnUndo: true, onExit: () => exits.push('undo') })
+    engine.undo()
     expect(engine.moduleMode).toBeUndefined()
     expect(engine.data.way('w10')?.tags.highway).toBe('service')
-    expect(engine.data.node('n4')?.loc).toEqual([13.0, 52.003])
     engine.undo()
     expect(engine.data.way('w10')?.tags.highway).toBe('residential')
-    expect(engine.data.node('n4')?.loc).toEqual([13.0, 52.003])
+    engine.enterModuleMode({ id: 'test', endsOnUndo: true, onExit: () => exits.push('redo') })
+    engine.redo()
+    expect(engine.data.way('w10')?.tags.highway).toBe('residential')
+    expect(exits).toEqual(['undo', 'redo'])
   })
 
-  test('an operation ends a mode that holds work in progress before it runs', () => {
-    const { editor, engine } = engineWithData()
-    const { history } = editor
-    engine.setSelected('w10')
-    engine.enterModuleMode({ id: 'test', onExit: () => engine.change(() => history.revert()) })
-    engine.change(() => history.perform(actionMoveNode('n4', [13.0002, 52.0031])))
-    const seen: (readonly number[] | undefined)[] = []
-    const operation: Operation = {
-      id: 'test-op',
-      label: 'Test',
-      applies: () => true,
-      disabled: () => undefined,
-      run: (context: OperationContext) => {
-        seen.push((context.graph.hasEntity('n4') as { loc?: number[] } | undefined)?.loc)
-        return { actions: [], annotation: 'Tested' }
-      },
-    }
-
-    engine.runOperation(operation)
-
-    expect(engine.moduleMode).toBeUndefined()
-    expect(seen).toEqual([[13.0, 52.003]])
-  })
-
-  test('a mode without work in progress stays on an edit', () => {
+  test('undo ends such a mode also when there is nothing to undo', () => {
     const { engine } = engineWithData()
-    engine.enterModuleMode({ id: 'test' })
-    engine.setTag('w10', 'highway', 'service')
-    expect(engine.moduleMode?.id).toBe('test')
+    engine.enterModuleMode({ id: 'test', endsOnUndo: true })
+    engine.undo()
+    expect(engine.moduleMode).toBeUndefined()
   })
 
   test('a second mode replaces the first, which exits', () => {

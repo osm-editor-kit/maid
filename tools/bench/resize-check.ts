@@ -4,16 +4,17 @@ import { app, runCheck } from './check-page'
  * Resize check for the parking editor, with real mouse drags and modifier keys: draws a rectangle, shows Resize in the
  * edit menu and the inspector's command bar (its tooltip lists K, Shift and Alt), and drags the box's handles. An edge
  * stretches one side and keeps where it was grabbed, Shift on a corner keeps the proportions, Alt keeps the centre, Shift pressed during a drag without
- * a move takes effect at once, and the panel's toggle does what Shift does. After each drag it compares the area's nodes
- * on the screen with the box's handles in the module's source (`map.getSource('resize-box')`, the source's own data, not
- * rendered features) and checks that no undo step was made. Enter keeps the result as one undo step; undo puts the
- * area back; K starts the mode again, Escape leaves the data as it was, and a click outside the box applies.
+ * a move takes effect at once, and the panel's toggle does what Shift does. After each drag it compares the corners the
+ * preview draws with the box's handles, both from the module's source (`map.getSource('resize-box')`, the source's own
+ * data, not rendered features), and checks that neither the data nor the undo steps changed. Enter keeps the result as
+ * one undo step; undo puts the area back; K starts the mode again, Escape leaves the data as it was, undo during a
+ * resize only ends it, and a click outside the box applies.
  *
  *   bun tools/bench/resize-check.ts small --app parking
  *
  * Needs open ground in view: the small scene has it. Prints one line per check: `ok <check>`, or `FAIL <check>` with
  * expected and actual. Exits 1 on any failure, including a request outside localhost.
- * Expected: 30 `ok` lines.
+ * Expected: 32 `ok` lines.
  */
 
 const sceneName = process.argv[2] ?? 'small'
@@ -97,9 +98,30 @@ process.exit(
       h: Math.hypot(corners[2]!.x - corners[1]!.x, corners[2]!.y - corners[1]!.y),
     })
     const round = (n: number) => Math.round(n)
-    /** Whether the box's corner handles sit on the area's corners, within 2 px: the map shows what the data says */
-    const boxOnArea = async (id: string) => {
-      const corners = await cornersOf(id)
+    /**
+     * The area's corners as the preview draws them during the resize, from the source's own data (the fill's ring, in the
+     * way's order); the data changes only when the resize is kept
+     */
+    const drawnCorners = () =>
+      page.evaluate(async () => {
+        const { map } = window.__maid
+        const source = map.getSource('resize-box') as
+          | { getData(): Promise<{ features?: any[] }> }
+          | undefined
+        const features = (await source?.getData())?.features ?? []
+        const fill = features.find((f) => f.properties?.kind === 'preview-fill')
+        const ring = (fill?.geometry.coordinates[0] ?? []) as [number, number][]
+        return ring.slice(0, 4).map((c) => {
+          const p = map.project(c)
+          return { x: p.x, y: p.y }
+        })
+      }) as Promise<XY[]>
+    const sameCorners = (a: XY[], b: XY[]) =>
+      a.length === b.length && a.every((p, i) => Math.hypot(p.x - b[i]!.x, p.y - b[i]!.y) <= 1)
+    /** Whether the box's corner handles sit on the corners the preview draws, within 2 px */
+    const boxOnArea = async () => {
+      const corners = await drawnCorners()
+      if (corners.length < 4) return false
       const h = await handles()
       const pairs: [XY | undefined, XY][] = [
         [h.nw, corners[0]!],
@@ -182,13 +204,13 @@ process.exit(
     await settle()
     report('the resize mode is on', 'resize', await modeId())
     report('the box has eight handles', 8, Object.keys(await handles()).length)
-    report('the box sits on the area', true, await boxOnArea(areaId))
+    report('the box sits on the area', true, await boxOnArea())
     const panel = page.locator('[data-resize-panel]')
     report('the panel is open', 1, await panel.count())
 
     // --- the east edge: only the east side moves, by 60 px ---
     await dragHandle('e', 60, 25)
-    let now = await cornersOf(areaId)
+    let now = await drawnCorners()
     report(
       'e +60 px: the west side stays, the east side moves 60 px, the height stays',
       [true, 180, 80],
@@ -198,35 +220,40 @@ process.exit(
         round(sizeOf(now).h),
       ],
     )
-    report('the box follows the area', true, await boxOnArea(areaId))
+    report('the box follows the area', true, await boxOnArea())
     report('no undo step yet', undoAfterDraw, await undoLabel())
+    report(
+      'the data stays until the resize is kept',
+      true,
+      sameCorners(await cornersOf(areaId), original),
+    )
 
     // --- grabbed 8 px beside the east handle: the side moves by the drag, it does not jump to the pointer ---
     await dragHandle('e', 20, 0, [], { x: 8, y: 0 })
-    now = await cornersOf(areaId)
+    now = await drawnCorners()
     report(
       'e grabbed 8 px off, +20 px: the area is 200 px wide, not 208',
       200,
       round(sizeOf(now).w),
     )
     await dragHandle('e', -20, 0)
-    now = await cornersOf(areaId)
+    now = await drawnCorners()
 
     // --- Shift on the south-east corner: the proportions stay (180 by 80) ---
     const ratio = sizeOf(now).w / sizeOf(now).h
     await dragHandle('se', 90, 10, ['Shift'])
-    now = await cornersOf(areaId)
+    now = await drawnCorners()
     report(
       'se with Shift: the proportions stay and the box grows',
       [true, true],
       [Math.abs(sizeOf(now).w / sizeOf(now).h - ratio) < 0.02, sizeOf(now).w > 200],
     )
-    report('the box follows the area', true, await boxOnArea(areaId))
+    report('the box follows the area', true, await boxOnArea())
 
     // --- Alt on the east edge: the west side moves the other way ---
     const beforeAlt = now
     await dragHandle('e', 20, 0, ['Alt'])
-    now = await cornersOf(areaId)
+    now = await drawnCorners()
     report(
       'e +20 px with Alt: the west side moves 20 px west, the middle stays (within 1.5 px)',
       [true, true],
@@ -237,17 +264,17 @@ process.exit(
     )
 
     // --- Shift pressed during a drag without a move: the box changes at once ---
-    const beforeKey = await cornersOf(areaId)
+    const beforeKey = await drawnCorners()
     const ne = (await handles()).ne!
     const a = abs(ne)
     await page.mouse.move(a.x, a.y)
     await page.mouse.down()
     await page.mouse.move(a.x + 40, a.y - 4, { steps: 4 })
     await settle()
-    const free = sizeOf(await cornersOf(areaId))
+    const free = sizeOf(await drawnCorners())
     await page.keyboard.down('Shift')
     await settle()
-    const held = sizeOf(await cornersOf(areaId))
+    const held = sizeOf(await drawnCorners())
     await page.mouse.up()
     await page.keyboard.up('Shift')
     await settle()
@@ -262,7 +289,7 @@ process.exit(
     )
 
     // --- Enter keeps everything as one undo step, the area still selected ---
-    const final = await cornersOf(areaId)
+    const final = await drawnCorners()
     await key('Enter')
     report('Enter: one undo step, named Resized a feature', 'Resized a feature', await undoLabel())
     report(
@@ -296,7 +323,7 @@ process.exit(
     await key('k')
     report('K starts the resize mode', 'resize', await modeId())
     await dragHandle('n', 0, -50)
-    const stretched = sizeOf(await cornersOf(areaId))
+    const stretched = sizeOf(await drawnCorners())
     report('n -50 px: the area is 130 px high', 130, round(stretched.h))
     await key('Escape')
     const escaped = await cornersOf(areaId)
@@ -310,6 +337,16 @@ process.exit(
       ],
     )
 
+    // --- undo during a resize only ends it: the step before stays ---
+    await key('k')
+    await dragHandle('n', 0, -30)
+    await key('ControlOrMeta+z')
+    report(
+      'undo during a resize: the mode ends, the area is as drawn, the drawing is not undone',
+      [null, true, undoAfterDraw],
+      [await modeId(), sameCorners(await cornersOf(areaId), original), await undoLabel()],
+    )
+
     // --- the panel's toggle keeps the proportions without Shift; a click outside the box applies ---
     await key('k')
     report('K again: the mode is on', 'resize', await modeId())
@@ -321,7 +358,7 @@ process.exit(
       await panel.getByRole('button', { name: /Keep proportions/ }).getAttribute('aria-pressed'),
     )
     await dragHandle('se', 60, 0)
-    const toggled = sizeOf(await cornersOf(areaId))
+    const toggled = sizeOf(await drawnCorners())
     report(
       'se +60 px with the toggle: the proportions stay (3 to 2)',
       true,
@@ -329,7 +366,7 @@ process.exit(
     )
     // a held Shift turns the toggle round: the corner stretches freely
     await dragHandle('se', 0, 40, ['Shift'])
-    const freed = sizeOf(await cornersOf(areaId))
+    const freed = sizeOf(await drawnCorners())
     report(
       'se with Shift and the toggle: the width stays (within 1.5 px), the height grows',
       [true, true],

@@ -68,6 +68,11 @@ export type ModuleMode = {
   onDragStart?: (handle: string, lon: number, lat: number, info: ModuleModeDragInfo) => void
   onDrag?: (handle: string, lon: number, lat: number, info: ModuleModeDragInfo) => void
   onDragEnd?: (handle: string, lon: number, lat: number, info: ModuleModeDragInfo) => void
+  /**
+   * Undo and redo only end the mode, and step through nothing: for a mode whose work is not in the history yet (the
+   * resize box shows its result and commits it at the end), so the key takes back that work and not the edit before.
+   */
+  endsOnUndo?: boolean
   /** The mode ends: Escape, a mode the editor changes to, `exitModuleMode`, or another module mode taking its place */
   onExit?: () => void
 }

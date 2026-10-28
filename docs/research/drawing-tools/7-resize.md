@@ -74,7 +74,7 @@ The box follows **the shape's own orientation**, not the screen: the dominant su
 
 ### Shared nodes
 
-Nodes shared with features that are not selected **move with the box**, as with Rotate (R) in iD and Maid: the connected roads and the neighbouring building stretch along. The live preview shows it. Alternatives (refuse when anything is connected, or keep the shared nodes in place) either block the common case (a building on a landuse edge) or tear the shape.
+Nodes shared with features that are not selected **move with the box**, as with Rotate (R) in iD and Maid: the connected roads and the neighbouring building stretch along. The live preview draws the connected ways too. Alternatives (refuse when anything is connected, or keep the shared nodes in place) either block the common case (a building on a landuse edge) or tear the shape.
 
 ### Sizes and precision
 
@@ -84,11 +84,13 @@ Nodes shared with features that are not selected **move with the box**, as with 
 
 ### Drawing
 
-`map.content` component `ResizeOnMap` with declarative `<Source>`/`<Layer>`: the box as a dashed line, eight square handles (corners and edge midpoints) as a circle or symbol layer with a larger invisible hit layer for touch (as Cut). The resized features themselves are the real data in the history's work in progress, so the map draws them with the normal style.
+`map.content` component `ResizeOnMap` with declarative `<Source>`/`<Layer>`: the box as a dashed line, eight square handles (corners and edge midpoints) as a circle or symbol layer with a larger invisible hit layer for touch (as Cut). The resized features are a preview in the same source, drawn over the unchanged data as Cut's and Divide's pieces (blue, lightly filled): the selection's ways, the ways connected to them and the selected points.
+
+Changed after the code review of 2026-10-28: the first build moved the real data in the history's work in progress, as Move and Rotate do. Every other edit that commits (a tag, an operation, a paste, a module's own commit) then took the resize into its own undo step, undo reached past it, and an operation was checked on the stretched data and run on the reverted data. Ending the mode before each such edit needed a call in each place that commits, and the modules' own commits were missed. The preview holds nothing in the history, so none of that can happen; the data changes once, when the resize is kept.
 
 ### Flow
 
-K or the menu item → box appears around the selection. Drag handles as often as wanted; each drag continues from the last. Enter, the panel's Apply, or a click outside the box keeps the result as **one undo step** ("Resized a feature" / "Resized N features"); Escape restores everything. Undo and redo end the mode first (ADR 0011).
+K or the menu item → box appears around the selection. Drag handles as often as wanted; each drag continues from the last. Enter, the panel's Apply, or a click outside the box keeps the result as **one undo step** ("Resized a feature" / "Resized N features"); Escape ends it with nothing changed. Undo and redo only end the mode and take back no earlier step (`ModuleMode.endsOnUndo`, ADR 0011). The mode also ends when the selection changes or a node of the box changes outside it (an edit in the inspector of something else keeps it). K during a running Move or Rotate finishes that first and takes the box from the result. A press takes the nearest handle, which matters where the handles of a small box overlap.
 
 ## 4. Questions for Tobias
 

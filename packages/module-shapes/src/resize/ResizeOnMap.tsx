@@ -1,14 +1,23 @@
-// The resize on the map: the box with its handles and its size (a GeoJSON source), and the panel at the top centre with
-// the size, the two toggles and Apply, which is DOM inside the map as Cut's panel is. Registered on `map.content`
-// (module.ts). It only draws what the store holds; the mode (mode.ts) changes the store and the data.
+// The resize on the map: the features as they would be, the box with its handles and its size (a GeoJSON source), and
+// the panel at the top centre with the size, the two toggles and Apply, which is DOM inside the map as Cut's panel is.
+// Registered on `map.content` (module.ts). It only draws what the store holds; the mode (mode.ts) changes the store, and
+// the data when the resize is kept.
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { formatModifiers, isApplePlatform } from '@osm-editor-kit/maid-ui'
+import type { FeatureCollection } from 'geojson'
 import { Layer, type LayerProps, Source } from 'react-map-gl/maplibre'
 import { formatNumber, m } from '../messages.ts'
 import { keepFromMap } from '../shared/keep-from-map.ts'
 import { heightOf, widthOf } from './box.ts'
 import { applyResize, MODE_ID } from './mode.ts'
-import { resizeActions, useResizeBox, useResizeExtent, useResizeToggles } from './resize-store.ts'
+import {
+  resizeActions,
+  useResizeBox,
+  useResizeExtent,
+  useResizePreview,
+  useResizeToggles,
+} from './resize-store.ts'
+import { movesFor } from './resize.ts'
 import {
   boxShapes,
   CORNER_RADIUS,
@@ -16,17 +25,38 @@ import {
   HANDLE_HIT_LAYER,
   HANDLE_HIT_RADIUS,
   HANDLE_LAYER,
+  previewShapes,
   RESIZE_SOURCE,
 } from './shapes.ts'
 
 const COLOUR = '#2563eb'
 
 /**
- * The box dashed and blue, as the shapes' previews; the handles white with a blue ring, corners a little larger than
+ * The features as they would be lightly filled and blue, as Cut's and Divide's pieces, under the box; the box dashed and
+ * blue, as the shapes' previews; the handles white with a blue ring, corners a little larger than
  * the edge handles; the size in the rectangle's label style. The hit layer is invisible, wider than the handles, and
  * last. Children of the source, so they take its id.
  */
 const LAYERS = [
+  {
+    id: 'resize-preview-fill',
+    type: 'fill',
+    filter: ['==', ['get', 'kind'], 'preview-fill'],
+    paint: { 'fill-color': '#93c5fd', 'fill-opacity': 0.3 },
+  } satisfies LayerProps,
+  {
+    id: 'resize-preview-line',
+    type: 'line',
+    filter: ['==', ['get', 'kind'], 'preview-line'],
+    layout: { 'line-join': 'round', 'line-cap': 'round' },
+    paint: { 'line-color': COLOUR, 'line-width': 2 },
+  } satisfies LayerProps,
+  {
+    id: 'resize-preview-point',
+    type: 'circle',
+    filter: ['==', ['get', 'kind'], 'preview-point'],
+    paint: { 'circle-radius': 4, 'circle-color': COLOUR },
+  } satisfies LayerProps,
   {
     id: 'resize-outline',
     type: 'line',
@@ -85,8 +115,9 @@ function Toggle(props: { label: string; keys: string; pressed: boolean; onToggle
 export function ResizeOnMap({ editor, engine }: MapContentProps) {
   const box = useResizeBox()
   const extent = useResizeExtent()
+  const preview = useResizePreview()
   const { proportional, centre } = useResizeToggles()
-  if (!box || !extent || !engine) return null
+  if (!box || !extent || !preview || !engine) return null
   const size = m.resize_size({
     width: formatNumber(widthOf(extent)),
     height: formatNumber(heightOf(extent)),
@@ -95,9 +126,16 @@ export function ResizeOnMap({ editor, engine }: MapContentProps) {
     width: formatNumber((100 * widthOf(extent)) / widthOf(box.extent), 0),
     height: formatNumber((100 * heightOf(extent)) / heightOf(box.extent), 0),
   })
+  const data: FeatureCollection = {
+    type: 'FeatureCollection',
+    features: [
+      ...previewShapes(preview, new Map(movesFor(box, extent))),
+      ...boxShapes(box, extent, size).features,
+    ],
+  }
   return (
     <>
-      <Source id={RESIZE_SOURCE} type="geojson" data={boxShapes(box, extent, size)}>
+      <Source id={RESIZE_SOURCE} type="geojson" data={data}>
         {LAYERS.map((layer) => (
           <Layer key={layer.id} {...layer} />
         ))}

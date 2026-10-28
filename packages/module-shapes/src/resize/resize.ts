@@ -116,6 +116,39 @@ function collect(graph: Graph, ids: readonly string[]) {
 }
 
 /**
+ * What the map shows while the box changes: each way that has a node of the box (the selection's ways and the ways
+ * connected to them, such as a footway at a corner) and each node of the box on no way. A way's node is the id of a
+ * node of the box, which moves, or the position of one outside it, which stays.
+ */
+export type ResizePreview = {
+  ways: { area: boolean; nodes: (string | Loc)[] }[]
+  points: string[]
+}
+
+/**
+ * The ways and points the preview draws, from the graph when the resize starts.
+ * @param   graph - The data
+ * @param   box   - The box around the selection
+ * @return  The preview's parts; each frame of a drag only puts positions into them (`previewShapes` in shapes.ts)
+ */
+export function previewOf(graph: Graph, box: ResizeBox): ResizePreview {
+  const ways = new Map<string, OsmWay>()
+  const points: string[] = []
+  for (const id of box.nodes.keys()) {
+    const parents = graph.parentWays(graph.entity(id) as OsmNode) as OsmWay[]
+    if (parents.length === 0) points.push(id)
+    for (const way of parents) ways.set(way.id, way)
+  }
+  return {
+    ways: [...ways.values()].map((way) => ({
+      area: way.isArea(),
+      nodes: way.nodes.map((id) => (box.nodes.has(id) ? id : (graph.entity(id) as OsmNode).loc!)),
+    })),
+    points,
+  }
+}
+
+/**
  * Where each node goes when the box is now `extent`.
  * @param   box    - The box when the resize started
  * @param   extent - The box now

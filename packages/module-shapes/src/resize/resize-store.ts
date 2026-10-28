@@ -1,9 +1,10 @@
 // The resize as the map and the panel show it: the selection, the box when the resize started, the box now, and the two
 // toggles of the panel. Private to the module: the map reads it through the hooks below, and the mode writes it through
-// `resizeActions()`, from the mode's callbacks and the panel's buttons only. The data is written by the mode (mode.ts).
+// `resizeActions()`, from the mode's callbacks and the panel's buttons only. The data changes only when the resize is
+// kept (mode.ts); until then the map draws the store's preview.
 import { create } from 'zustand'
 import type { Extent } from './box.ts'
-import type { ResizeBox } from './resize.ts'
+import type { ResizeBox, ResizePreview } from './resize.ts'
 
 type ResizeState = {
   /** The features being resized; empty when no resize is under way */
@@ -12,14 +13,16 @@ type ResizeState = {
   box: ResizeBox | undefined
   /** The box now */
   extent: Extent | undefined
+  /** The ways and points the map draws as they would be */
+  preview: ResizePreview | undefined
   /** The panel's toggles: a held Shift or Alt turns its toggle round while a handle is dragged */
   proportional: boolean
   centre: boolean
 }
 
 type ResizeActions = {
-  /** A resize of these features starts, with the box around them */
-  begin: (ids: readonly string[], box: ResizeBox) => void
+  /** A resize of these features starts, with the box around them and what the map draws */
+  begin: (ids: readonly string[], box: ResizeBox, preview: ResizePreview) => void
   /** The resize ends: everything is cleared */
   end: () => void
   /** The box as it is now */
@@ -34,6 +37,7 @@ const CLEARED: ResizeState = {
   ids: [],
   box: undefined,
   extent: undefined,
+  preview: undefined,
   proportional: false,
   centre: false,
 }
@@ -41,7 +45,7 @@ const CLEARED: ResizeState = {
 const useResizeStore = create<ResizeStore>()((set) => ({
   ...CLEARED,
   actions: {
-    begin: (ids, box) => set({ ...CLEARED, ids, box, extent: box.extent }),
+    begin: (ids, box, preview) => set({ ...CLEARED, ids, box, extent: box.extent, preview }),
     end: () => set(CLEARED),
     show: (extent) => set({ extent }),
     toggleProportional: () => set((state) => ({ proportional: !state.proportional })),
@@ -68,6 +72,11 @@ export function useResizeBox() {
 /** The box now */
 export function useResizeExtent() {
   return useResizeStore((state) => state.extent)
+}
+
+/** The ways and points the map draws as they would be */
+export function useResizePreview() {
+  return useResizeStore((state) => state.preview)
 }
 
 /** The panel's toggles */
