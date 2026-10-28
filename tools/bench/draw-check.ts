@@ -197,6 +197,62 @@ process.exit(
       )
     }
 
+    // --- a line drawn from a vertex of the selected way takes its tags: select the way, click a vertex, 2, draw ---
+    const source = (await page.evaluate(() => {
+      const { map, engine } = window.__maid
+      const { width, height } = map.getCanvas().getBoundingClientRect()
+      const inView = (p: XY) => p.x > 60 && p.y > 60 && p.x < width - 60 && p.y < height - 60
+      for (const f of map.queryRenderedFeatures()) {
+        const wayId = String(f.id ?? '')
+        const way = wayId.startsWith('w') && !wayId.includes('-') && engine.data.way(wayId)
+        if (!way || !way.tags.highway || way.isClosed() || way.nodes.length < 3) continue
+        // a node inside the way (not an end, which would continue it) that only this way uses
+        for (const id of way.nodes.slice(1, -1)) {
+          if ((engine.data.nodeUses.get(id) ?? 0) !== 1) continue
+          const loc = engine.data.node(id)?.loc
+          if (!loc) continue
+          const p = map.project(loc)
+          if (!inView(p)) continue
+          return { wayId, nodeId: id, at: { x: p.x, y: p.y }, tags: { ...way.tags } }
+        }
+      }
+      return null
+    })) as { wayId: string; nodeId: string; at: XY; tags: Record<string, string> } | null
+    if (!source) {
+      report('find a highway with an inner node', 'one in view', null)
+    } else {
+      // the way is selected directly (a click could land on another feature), the vertex with a real click
+      await page.evaluate((id) => window.__maid.engine.setSelected(id), source.wayId)
+      await settle()
+      await click(source.at)
+      const vertexSelected = await page.evaluate(() => [...window.__maid.engine.selection])
+      await key('2')
+      await click(source.at)
+      await click(at(8))
+      await key('Enter')
+      const drawn = await read()
+      const expected = source.tags
+      report('copy tags: the vertex is selected after the way', [source.nodeId], vertexSelected)
+      report(
+        "copy tags: the new line starts at the vertex and has the way's tags",
+        [source.nodeId, expected],
+        [drawn.nodes[0], drawn.tags],
+      )
+      const toast = page.getByRole('button', { name: 'Remove tags' })
+      report('copy tags: a toast names them', true, await toast.isVisible())
+      await toast.click()
+      await settle()
+      const removed = await read(drawn.id ?? '')
+      report(
+        'copy tags: Remove tags takes them off',
+        [{}, 'Removed the copied tags'],
+        [removed.tags, removed.undo],
+      )
+      await key('Escape')
+      await key('ControlOrMeta+z')
+      await key('ControlOrMeta+z')
+    }
+
     // --- an area: 3, three clicks, a click on the first node closes it ---
     await key('3')
     await click(at(5))

@@ -593,5 +593,7 @@
   "route_overview_label_excursion_start": "Abstecher, hin und zurück",
   "route_overview_label_excursion_end": "Ende des Abstechers",
   "route_overview_label_loop_start": "Abstecher als Runde",
-  "route_overview_label_loop_end": "Zurück auf der Route"
+  "route_overview_label_loop_end": "Zurück auf der Route",
+  "draw_copied_tags": "Alle Tags des markierten Wegs übernommen. Bitte prüfen: {tags}",
+  "draw_copied_tags_remove": "Tags entfernen"
 }

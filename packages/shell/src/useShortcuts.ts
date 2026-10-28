@@ -9,8 +9,14 @@ import {
 } from '@tanstack/react-hotkeys'
 import { useEffect, useEffectEvent } from 'react'
 import { pasteAt } from './clipboard'
-import { drawClick, drawingKind, drawKindOf, isMenuTool, stepAreaTool } from './drawing'
-import { giveFavouriteType } from './favourites'
+import {
+  afterDrawing,
+  drawClick,
+  drawingKind,
+  drawKindOf,
+  isMenuTool,
+  stepAreaTool,
+} from './drawing'
 import { markNewFeature } from './new-feature'
 import { useSearchActions } from './search/flyout'
 import { useSelection } from './selection'
@@ -81,7 +87,7 @@ export function useShortcuts() {
 
   const finishDrawing = () => {
     const finished = engine.draw.finish()
-    if (finished) giveFavouriteType({ engine }, finished, engine.mode)
+    if (finished) afterDrawing(engine, finished, engine.mode)
     engine.setMode('browse')
     if (finished) select(finished)
   }

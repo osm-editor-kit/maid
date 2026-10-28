@@ -593,5 +593,7 @@
   "route_overview_label_excursion_start": "Desvío, ida y vuelta",
   "route_overview_label_excursion_end": "Fin del desvío",
   "route_overview_label_loop_start": "Desvío circular",
-  "route_overview_label_loop_end": "De vuelta en la ruta"
+  "route_overview_label_loop_end": "De vuelta en la ruta",
+  "draw_copied_tags": "Copiadas todas las etiquetas de la vía seleccionada. Revísalas: {tags}",
+  "draw_copied_tags_remove": "Quitar etiquetas"
 }

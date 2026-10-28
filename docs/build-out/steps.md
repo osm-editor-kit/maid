@@ -824,3 +824,13 @@ for `-1`. Decision and reasons: [ADR 0015](../adr/0015-oneway-minus-one-hook-arr
       hooks on the left lane, arrows on the right.
 - [ ] Next: `_lineReversed` for the way itself in the TILDA package
       ([draft](../upstream/tilda-self-line-direction.md)); the iD-Radnetz port of the style, with a performance test.
+
+### A line drawn from a way takes its tags (2026-10-28, on main 2026-11-25)
+
+- [x] 2026-11-25: select a way, click one of its vertices (or keep the way selected), press 2 and start on that vertex:
+      the new line gets all of the way's tags; an area gives none to a line, a favourite still gives its type. A toast
+      lists the copied tags and offers "Remove tags" (one undo step). Rebased from the bundle of 2026-10-28 onto main.
+      `bun run check`; `check-draw` 18 ok, `check-favourites` 13 ok, `check-undo` 43 ok.
+      **Test for Tobias:** https://osm-editor-kit.github.io/maid/maid/?map=19/52.47753/13.43857&id=w47508565
+      (Karl-Marx-Straße): click an end vertex, press 2, draw on: the line looks like the street at once, the toast
+      names its tags. Do not save.
