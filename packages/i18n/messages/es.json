@@ -335,5 +335,7 @@
   "route_overview_issue_duplicate_todo": "Quita uno de los dos.",
   "route_overview_issue_empty_title": "Ningún camino en la línea",
   "route_overview_issue_empty_text": "No hay cargado ningún camino principal de esta ruta, así que no hay línea que dibujar.",
-  "route_overview_issue_empty_todo": "Carga los miembros con el botón de la lista de miembros."
+  "route_overview_issue_empty_todo": "Carga los miembros con el botón de la lista de miembros.",
+  "route_overview_severity_warning": "advertencia",
+  "route_overview_severity_info": "nota"
 }

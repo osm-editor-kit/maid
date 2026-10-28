@@ -335,5 +335,7 @@
   "route_overview_issue_duplicate_todo": "Supprimez l’un des deux.",
   "route_overview_issue_empty_title": "Aucune voie sur la ligne",
   "route_overview_issue_empty_text": "Aucune voie principale de cet itinéraire n’est chargée ; il n’y a donc pas de ligne à tracer.",
-  "route_overview_issue_empty_todo": "Chargez les membres avec le bouton de la liste des membres."
+  "route_overview_issue_empty_todo": "Chargez les membres avec le bouton de la liste des membres.",
+  "route_overview_severity_warning": "avertissement",
+  "route_overview_severity_info": "remarque"
 }

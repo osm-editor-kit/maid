@@ -44,11 +44,17 @@ export function issueParams(issue: RouteIssue) {
 }
 
 /** Kilometres with one decimal in the number format of the locale: `1234` is "1.2" (en) or "1,2" (de) */
+const kmFormats = new Map<string, Intl.NumberFormat>()
+
 export function formatKm(metres: number, locale?: string) {
-  return new Intl.NumberFormat(locale, {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  }).format(metres / 1000)
+  // one formatter per locale: a long route formats hundreds of rows
+  const key = locale ?? ''
+  let format = kmFormats.get(key)
+  if (!format) {
+    format = new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+    kmFormats.set(key, format)
+  }
+  return format.format(metres / 1000)
 }
 
 export type UnplacedGroup = 'unloaded' | 'subroute' | 'other' | 'points' | 'detached' | 'main'

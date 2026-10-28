@@ -117,6 +117,11 @@ const failed = await runCheck(
       stopId,
       await page.evaluate(() => new URL(location.href).searchParams.get('id')),
     )
+    report(
+      'the column keeps its scroll: the diagram stays in view',
+      0,
+      await column.locator('[data-stack-scroll]').evaluate((list) => list.scrollTop),
+    )
 
     // --- an (i) note opens and closes ---
     const note = overview.locator('[data-issue-button]').first()
@@ -129,9 +134,44 @@ const failed = await runCheck(
     report('the (i) button opens its note', 1, await overview.getByRole('dialog').count())
     await page.keyboard.press('Escape')
     report('Escape closes the note', 0, await overview.getByRole('dialog').count())
+    report(
+      'the focus goes back to the (i) button',
+      true,
+      await note.evaluate((button) => button === document.activeElement),
+    )
+    report(
+      'the note is not inside the list',
+      0,
+      await overview.getByRole('list').getByRole('dialog').count(),
+    )
+    await note.click()
+    const hasWarningOrNote = /: (warning|note), /.test(
+      (await note.getAttribute('aria-label')) ?? '',
+    )
+    report('the (i) button names warning or note', true, hasWarningOrNote)
+
+    // --- the fold button, then another relation starts fresh ---
+    const fold = overview.getByRole('button', { name: 'Route overview', exact: true })
+    await fold.click()
+    report('the fold button hides the line', 0, await rows.count())
+    await fold.click()
+    report('and shows it again', true, (await rows.count()) > 0)
 
     // --- a hiking route: junctions and the members that are not loaded ---
+    await note.click()
     await open(HIKING)
+    report(
+      'a note open on the bus route is not open on the next route',
+      0,
+      await overview.getByRole('dialog').count(),
+    )
+    const junction = overview.locator('[data-row-key^="junction:"]').first()
+    await junction.hover()
+    report(
+      'a row without a single member lights while the pointer is on it',
+      'true',
+      await junction.getAttribute('data-lit'),
+    )
     const hikingKeys = await keys()
     report(
       'the line rows come first, the groups below them',

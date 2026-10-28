@@ -117,7 +117,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   multi: { maid: 11, bicycle: 11, parking: 11 },
   'relations-scene': { maid: 25, bicycle: 25, parking: 25 },
   'relation-column': { maid: 31, bicycle: 31, parking: 31 },
-  'route-overview': { maid: 20, bicycle: 20, parking: 20 },
+  'route-overview': { maid: 28, bicycle: 28, parking: 28 },
   // module checks run for one app only (`only` in RUNS): the count is 0 elsewhere
   parking: { maid: 0, bicycle: 0, parking: 29 },
   'way-table': { maid: 0, bicycle: 13, parking: 0 },

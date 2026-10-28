@@ -335,5 +335,7 @@
   "route_overview_issue_duplicate_todo": "Entferne einen davon.",
   "route_overview_issue_empty_title": "Kein Weg auf der Linie",
   "route_overview_issue_empty_text": "Kein Hauptweg dieser Route ist geladen. Es gibt keine Linie zu zeichnen.",
-  "route_overview_issue_empty_todo": "Lade die Mitglieder mit der Schaltfläche in der Mitgliederliste."
+  "route_overview_issue_empty_todo": "Lade die Mitglieder mit der Schaltfläche in der Mitgliederliste.",
+  "route_overview_severity_warning": "Warnung",
+  "route_overview_severity_info": "Hinweis"
 }

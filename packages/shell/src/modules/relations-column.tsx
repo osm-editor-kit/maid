@@ -49,6 +49,7 @@ import {
 import { openRelationActions, useOpenRelationFrom } from './relations-open-store.ts'
 import { ColumnDragHandle, ReorderRow, useMemberReorder } from './relations-reorder.tsx'
 import { relationSessionActions } from './relations-session-store.ts'
+import { takeSelectedFromOverview } from './route-overview/overview-selection.ts'
 import { RouteOverview } from './route-overview/route-overview.tsx'
 
 /** Members a group lists before its own "Show all N"; iD's member list stops at 1000 */
@@ -122,6 +123,8 @@ export function RelationColumn({ id }: { id: EntityID }) {
     function scrollTheSelectedRowIntoView() {
       const list = scroller.current
       if (!selected || !list) return
+      // a click in the route overview keeps the diagram in view
+      if (takeSelectedFromOverview(selected)) return
       const row = list.querySelector<HTMLElement>(`[data-row="${CSS.escape(selected)}"]`)
       if (!row) return
       // only the list scrolls: scrollIntoView would also scroll the page's frame, which hides its overflow
@@ -312,7 +315,7 @@ function ColumnBody({
         className="relative flex min-h-0 flex-1 [scrollbar-width:none] flex-col overflow-y-auto pb-2 pl-2 [&::-webkit-scrollbar]:hidden [&>:first-child>[data-stack-heading]]:border-t-0"
       >
         {relation.tags.type?.trim() === 'route' && rows.length > 0 && (
-          <RouteOverview relation={relation} select={select} />
+          <RouteOverview key={relation.id} relation={relation} select={select} />
         )}
         {rows.length === 0 && (
           <p className="px-3 py-2 text-xs text-zinc-500 dark:text-zinc-400">
