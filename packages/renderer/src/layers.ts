@@ -670,7 +670,7 @@ function buildMainLayers(options: LayerOptions) {
       'icon-allow-overlap': false,
       'icon-ignore-placement': true,
       // MapLibre does not turn an icon's collision box with the line: the padding covers the turned arrow
-      'icon-padding': 3,
+      'icon-padding': 1,
     } as const
     layers.push(
       {
