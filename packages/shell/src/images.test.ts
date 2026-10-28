@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import {
   ADDRESS_PLAQUE,
   buildLayers,
+  PIN_SHADOW,
+  PLAQUE_SHADOW,
   iconImagesRequestedAt,
   type LayerOptions,
 } from '@osm-editor-kit/maid-renderer'
@@ -26,6 +28,11 @@ describe('parseMarkerImage', () => {
     expect(parseMarkerImage('pin-none')).toEqual({ kind: 'pin', icon: 'none' })
     expect(parseMarkerImage('icon-temaki-bus')).toEqual({ kind: 'icon', icon: 'temaki-bus' })
     expect(parseMarkerImage(ADDRESS_PLAQUE)).toEqual({ kind: 'plaque' })
+  })
+
+  it('reads the shadows of a hovered or selected pin and plaque, which are not pins', () => {
+    expect(parseMarkerImage(PIN_SHADOW)).toEqual({ kind: 'shadow', of: 'pin' })
+    expect(parseMarkerImage(PLAQUE_SHADOW)).toEqual({ kind: 'shadow', of: 'plaque' })
   })
 
   it('leaves other images to their own handlers', () => {

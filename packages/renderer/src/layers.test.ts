@@ -10,7 +10,10 @@ import {
   EDIT_SOURCES,
   interactiveLayerIds,
   type LayerOptions,
+  PIN_SHADOW,
   PIN_ZOOM,
+  PLAQUE_SHADOW,
+  SHADOW_PAD,
   SELECT_SOURCES,
   SOURCES,
 } from './layers'
@@ -234,6 +237,72 @@ describe('the active pin (the hovered and selected points)', () => {
   test('without icons there is no active pin layer', () => {
     const ids = buildLayers({ ...options, icons: false }).map((l) => l.id)
     expect(ids).not.toContain('active-point-pin')
+  })
+})
+
+describe('the shadows of the hovered and selected pins and plaques (as iD)', () => {
+  const byId = (layers: LayerSpecification[], id: string) => {
+    const found = layers.find((l) => l.id === id)
+    if (!found) throw new Error(`no ${id} layer`)
+    return found as unknown as {
+      source: string
+      minzoom?: number
+      maxzoom?: number
+      filter: unknown
+      paint: Record<string, unknown>
+      layout: Record<string, unknown>
+    }
+  }
+
+  test('ring the pin from the active source, under the pin, stronger for the selection than for the hover', () => {
+    const layers = buildLayers(options)
+    const ids = layers.map((l) => l.id)
+    const shadow = byId(layers, 'highlight-shadow-pin')
+    expect(shadow.source).toBe(ACTIVE_SOURCE)
+    expect(shadow.layout['icon-image']).toBe(PIN_SHADOW)
+    expect(shadow.layout['icon-offset']).toEqual([0, SHADOW_PAD])
+    expect(shadow.paint['icon-opacity']).toEqual([
+      'case',
+      ['boolean', ['get', 'sel'], false],
+      0.7,
+      0.4,
+    ])
+    expect(JSON.stringify(shadow)).not.toContain('feature-state')
+    expect(ids.indexOf('highlight-shadow-pin')).toBeLessThan(ids.indexOf('active-point-pin'))
+  })
+
+  test('the plaque shadow fits the house number, under the plaque, and takes no room', () => {
+    const layers = buildLayers(options)
+    const ids = layers.map((l) => l.id)
+    const shadow = byId(layers, 'highlight-shadow-plaque')
+    expect(shadow.source).toBe(ACTIVE_SOURCE)
+    expect(shadow.layout['icon-image']).toBe(PLAQUE_SHADOW)
+    expect(shadow.layout['icon-text-fit']).toBe('both')
+    expect(shadow.layout['icon-ignore-placement']).toBe(true)
+    expect(shadow.layout['text-ignore-placement']).toBe(true)
+    expect(shadow.paint['text-opacity']).toBe(0)
+    expect(ids.indexOf('highlight-shadow-plaque')).toBeLessThan(ids.indexOf('point-address'))
+  })
+
+  test('below the floor and in selection-only mode they are drawn on the selection source, at full strength', () => {
+    for (const id of ['highlight-shadow-pin', 'highlight-shadow-plaque']) {
+      const twin = byId(buildLayers(options), `${id}--select`)
+      expect(twin.source).toBe(SELECT_SOURCES.points)
+      expect(twin.maxzoom).toBe(DETAIL_ZOOM)
+      expect(twin.paint['icon-opacity']).toBe(0.7)
+      const only = byId(buildLayers({ ...options, selectionOnly: true }), `${id}--select`)
+      expect(only.layout.visibility).toBeUndefined()
+      expect(byId(buildLayers({ ...options, selectionOnly: true }), id).layout.visibility).toBe(
+        'none',
+      )
+    }
+  })
+
+  test('with icons the circle under a point is left to the addresses: a pin has its own shadow', () => {
+    expect(byId(buildLayers(options), 'highlight-halo-points').filter).toEqual(['has', 'addr'])
+    expect(
+      byId(buildLayers({ ...options, icons: false }), 'highlight-halo-points').filter,
+    ).toBeUndefined()
   })
 })
 

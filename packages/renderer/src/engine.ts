@@ -189,6 +189,8 @@ export class MaidEngine {
    * from which the active pin is drawn. Sent whole on each change: a few features.
    */
   private activeCopies = new Map<string, Feature>()
+  /** The ids of the active copies that were sent as selected (flushActive) */
+  private activeSelectedKey = ''
   /** Only the selection is drawn, at any zoom. A view option: per visit, not stored. */
   private selectionOnlyShown = false
   /** What the map shows of the data (layers.ts MapDisplay). Per visit: the URL and the person's choice set it (url/display.ts). */
@@ -573,22 +575,35 @@ export class MaidEngine {
         changed = true
       }
     }
-    if (changed) this.flushActive()
+    // a hovered point that is clicked keeps its copy, but its shadow changes from the hover's to the selection's
+    const selectedKey = [...this.activeCopies.keys()]
+      .filter((id) => this.selectedIds.includes(id))
+      .join()
+    if (changed || selectedKey !== this.activeSelectedKey) this.flushActive()
   }
 
-  /** Sends the copies to the active source: the whole set, which is a few features */
+  /**
+   * Sends the copies to the active source: the whole set, which is a few features. Each says whether it is selected
+   * (`sel`), for the shadow behind its pin: the source has no feature state (see ACTIVE_SOURCE).
+   */
   private flushActive() {
     const source = this.map?.getSource<GeoJSONSource>(ACTIVE_SOURCE)
     if (!source) return
+    const features: Feature[] = []
+    const selected: string[] = []
+    for (const [id, f] of this.activeCopies) {
+      const sel = this.selectedIds.includes(id)
+      if (sel) selected.push(id)
+      features.push({ ...f, properties: { ...f.properties, sel } })
+    }
+    this.activeSelectedKey = selected.join()
     this.sender.dataSeq++
     this.sender.activeSending++
-    void source
-      .setData({ type: 'FeatureCollection', features: [...this.activeCopies.values()] })
-      .finally(() => {
-        this.sender.activeSending--
-        this.sender.dataSeq++
-        this.sender.wake()
-      })
+    void source.setData({ type: 'FeatureCollection', features }).finally(() => {
+      this.sender.activeSending--
+      this.sender.dataSeq++
+      this.sender.wake()
+    })
   }
 
   /**
