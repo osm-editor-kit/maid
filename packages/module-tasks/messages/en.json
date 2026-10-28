@@ -59,5 +59,16 @@
   "tasks_cleanup_keep": "Keep",
   "tasks_cleanup_later": "Later",
   "tasks_cleanup_failed": "This did not work. Try again later.",
-  "tasks_select_feature": "Select the feature on the map to apply an option."
+  "tasks_select_feature": "Select the feature on the map to apply an option.",
+  "tasks_creates_point": "Adds a new point at the task's place.",
+  "tasks_creates_line": "Adds a new line along the task's geometry.",
+  "tasks_creates_area": "Adds a new area with the task's outline.",
+  "tasks_deletes": "Deletes {count} feature(s):",
+  "tasks_not_loaded": "Not loaded on the map yet.",
+  "tasks_apply_create": "Add it",
+  "tasks_apply_delete": "Delete",
+  "tasks_reopen_to_apply": "The task is done. Reopen it to apply this option again.",
+  "tasks_delete_part_of_relation": "This feature can't be deleted because it is part of a larger relation. Remove it from the relation first.",
+  "tasks_delete_incomplete": "This feature can't be deleted because it hasn't been fully downloaded.",
+  "tasks_delete_wikidata": "This feature can't be deleted because it has a Wikidata tag."
 }

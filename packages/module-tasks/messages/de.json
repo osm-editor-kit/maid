@@ -59,5 +59,16 @@
   "tasks_cleanup_keep": "Behalten",
   "tasks_cleanup_later": "Später",
   "tasks_cleanup_failed": "Das hat nicht geklappt. Versuche es später noch einmal.",
-  "tasks_select_feature": "Wähle das Objekt auf der Karte, um eine Option anzuwenden."
+  "tasks_select_feature": "Wähle das Objekt auf der Karte, um eine Option anzuwenden.",
+  "tasks_creates_point": "Legt einen neuen Punkt an der Stelle der Aufgabe an.",
+  "tasks_creates_line": "Legt eine neue Linie entlang der Geometrie der Aufgabe an.",
+  "tasks_creates_area": "Legt eine neue Fläche mit dem Umriss der Aufgabe an.",
+  "tasks_deletes": "Löscht {count} Objekt(e):",
+  "tasks_not_loaded": "Noch nicht auf der Karte geladen.",
+  "tasks_apply_create": "Anlegen",
+  "tasks_apply_delete": "Löschen",
+  "tasks_reopen_to_apply": "Die Aufgabe ist erledigt. Öffne sie wieder, um diese Option noch einmal anzuwenden.",
+  "tasks_delete_part_of_relation": "Dieses Objekt kann nicht gelöscht werden, weil es Teil einer größeren Relation ist. Entferne es zuerst aus der Relation.",
+  "tasks_delete_incomplete": "Dieses Objekt kann nicht gelöscht werden, weil es nicht vollständig geladen ist.",
+  "tasks_delete_wikidata": "Dieses Objekt kann nicht gelöscht werden, weil es ein Wikidata-Tag hat."
 }

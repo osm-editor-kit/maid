@@ -13,7 +13,8 @@ const POINT: Filter = ['==', ['geometry-type'], 'Point']
 
 /**
  * The geometries of the open list on the map: points as circles, lines and polygon outlines as lines, coloured by
- * status (open orange, done green, ignored grey, skipped blue), the current task with a white halo. All under the OSM
+ * status (open orange, done green, ignored grey, skipped blue), the current task with a white halo (and the place of
+ * each of its "create" options that has a geometry of its own). All under the OSM
  * data (`belowOsm`), so the way to fix and its handles stay on top. The data is set once per file; a status change
  * only changes the paint expression (the React Compiler keeps the current task's data while its geometry is the same).
  */
@@ -21,10 +22,21 @@ export function createTasksOnMap(store: TasksStore) {
   return function TasksOnMap({ belowOsm }: MapContentProps) {
     const geojson = useTasks(store, (state) => state.list?.geojson)
     const statuses = useTasks(store, (state) => state.statuses)
-    const currentGeometry = useTasks(store, (state) =>
-      state.current === null ? undefined : state.list?.file.features[state.current]?.geometry,
+    const current = useTasks(store, (state) =>
+      state.current === null ? undefined : state.list?.file.features[state.current],
     )
     if (!geojson) return null
+    // the current task's geometry, and where its "create" options with a geometry of their own would add a feature
+    const currentData: GeoJSON.FeatureCollection | undefined = current && {
+      type: 'FeatureCollection',
+      features: [current.geometry, ...(current.properties.options ?? []).map((o) => o.geometry)]
+        .filter((geometry) => geometry !== undefined)
+        .map((geometry) => ({
+          type: 'Feature',
+          geometry: geometry as GeoJSON.Geometry,
+          properties: {},
+        })),
+    }
     const colour = colourExpression(statuses) as Colour
     return (
       <>
@@ -50,16 +62,8 @@ export function createTasksOnMap(store: TasksStore) {
             }}
           />
         </Source>
-        {currentGeometry && (
-          <Source
-            id="tasks-current"
-            type="geojson"
-            data={{
-              type: 'Feature',
-              geometry: currentGeometry as GeoJSON.Geometry,
-              properties: {},
-            }}
-          >
+        {currentData && (
+          <Source id="tasks-current" type="geojson" data={currentData}>
             <Layer
               id="tasks-current-line"
               beforeId={belowOsm}

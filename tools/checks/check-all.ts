@@ -133,7 +133,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   favourites: { maid: 13, bicycle: 13, parking: 13 },
   tooltips: { maid: 11, bicycle: 11, parking: 11 },
   osmchange: { maid: 0, bicycle: 31, parking: 0 },
-  tasks: { maid: 23, bicycle: 23, parking: 23 },
+  tasks: { maid: 28, bicycle: 28, parking: 28 },
 }
 
 type CheckResult = {

@@ -94,13 +94,15 @@ export function createTasksController(
       if (list && tasksUrl !== null && list.sourceUrl !== tasksUrl) void setTasksUrl(null)
     }, [list, tasksUrl, setTasksUrl])
 
-    // undo and redo: a task Apply set to done follows its tags
+    // undo and redo: a task Apply set to done follows its edit
     useEffect(() => {
       const follow = () => {
         const graph = editor.history.staging.graph
-        store.getState().actions.followApplied((applied) => {
-          const entity = graph.hasEntity(applied.entityId)
-          return entity !== undefined && isApplied(entity.tags, applied.option)
+        store.getState().actions.followApplied(({ change }) => {
+          if (change.kind === 'delete') return change.entityIds.every((id) => !graph.hasEntity(id))
+          const entity = graph.hasEntity(change.entityId)
+          if (change.kind === 'create') return entity !== undefined
+          return entity !== undefined && isApplied(entity.tags, change.option)
         })
       }
       return editor.history.on('historyjump', follow)

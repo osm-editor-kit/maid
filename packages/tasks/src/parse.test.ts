@@ -481,3 +481,145 @@ describe('error paths and the cap', () => {
     expect(result.omitted).toBeUndefined()
   })
 })
+
+describe('create and delete options', () => {
+  const ok = (input: unknown) => {
+    const result = parseTaskFile(input)
+    if (!result.ok) throw new Error(JSON.stringify(result.errors))
+    return result.file
+  }
+  const lineTask = (properties: Record<string, unknown>) => ({
+    ...pointTask('t-1', properties),
+    geometry: {
+      type: 'LineString',
+      coordinates: [
+        [13.4, 52.39],
+        [13.41, 52.391],
+      ],
+    },
+  })
+
+  test('a create option on a point task, and one with its own geometry, pass', () => {
+    const file = ok(
+      taskFile([
+        pointTask('t-1', {
+          options: [
+            { id: 'add', label: 'Add a bench', action: 'create', set: { amenity: 'bench' } },
+            {
+              id: 'add-area',
+              label: 'Add the playground',
+              action: 'create',
+              set: { leisure: 'playground' },
+              geometry: {
+                type: 'Polygon',
+                coordinates: [
+                  [
+                    [13.4, 52.39],
+                    [13.41, 52.39],
+                    [13.41, 52.391],
+                    [13.4, 52.39],
+                  ],
+                ],
+              },
+            },
+          ],
+        }),
+      ]),
+    )
+    expect(file.features[0]?.properties.options?.[1]?.geometry?.type).toBe('Polygon')
+  })
+
+  test('a create option needs tags and has no remove, osm or a geometry it cannot make', () => {
+    const errors = errorsOf(
+      taskFile([
+        pointTask('t-1', {
+          options: [
+            { id: 'a', label: 'A', action: 'create' },
+            { id: 'b', label: 'B', action: 'create', set: { a: 'b' }, remove: ['c'] },
+            { id: 'c', label: 'C', action: 'create', set: { a: 'b' }, osm: ['node/1'] },
+          ],
+        }),
+      ]),
+    )
+    expect(
+      hasError(errors, 'features[0].properties.options[0].set', 'tags of the new feature'),
+    ).toBe(true)
+    expect(hasError(errors, 'features[0].properties.options[1].remove')).toBe(true)
+    expect(hasError(errors, 'features[0].properties.options[2].osm')).toBe(true)
+    const multi = errorsOf(
+      taskFile([
+        {
+          ...pointTask('t-1', {
+            options: [{ id: 'a', label: 'A', action: 'create', set: { a: 'b' } }],
+          }),
+          geometry: {
+            type: 'MultiLineString',
+            coordinates: [
+              [
+                [13.4, 52.39],
+                [13.41, 52.391],
+              ],
+            ],
+          },
+        },
+      ]),
+    )
+    expect(
+      hasError(multi, 'features[0].properties.options[0]', 'Point, a LineString or a Polygon'),
+    ).toBe(true)
+  })
+
+  test('a delete option deletes the task features, or the ones it names among them', () => {
+    ok(
+      taskFile([
+        lineTask({
+          osm: ['way/1', 'node/2'],
+          options: [
+            { id: 'all', label: 'Delete both', action: 'delete' },
+            { id: 'way', label: 'Delete the way', action: 'delete', osm: ['way/1'] },
+          ],
+        }),
+      ]),
+    )
+  })
+
+  test('a delete option needs features, only nodes and ways, only the task ones, and no tags', () => {
+    const errors = errorsOf(
+      taskFile([
+        lineTask({
+          osm: ['way/1', 'relation/3'],
+          options: [
+            { id: 'a', label: 'A', action: 'delete', set: { a: 'b' } },
+            { id: 'b', label: 'B', action: 'delete', osm: ['way/9'] },
+            { id: 'c', label: 'C', action: 'delete', osm: ['relation/3'] },
+          ],
+        }),
+        pointTask('t-2', { options: [{ id: 'a', label: 'A', action: 'delete' }] }),
+      ]),
+    )
+    expect(hasError(errors, 'features[0].properties.options[0].set')).toBe(true)
+    expect(hasError(errors, 'features[0].properties.osm[1]', 'relations cannot be deleted')).toBe(
+      true,
+    )
+    expect(hasError(errors, 'features[0].properties.options[1].osm[0]', 'not in the task')).toBe(
+      true,
+    )
+    expect(hasError(errors, 'features[0].properties.options[2].osm[0]', 'not relations')).toBe(true)
+    expect(hasError(errors, 'features[1].properties.options[0]', 'needs osm references')).toBe(true)
+  })
+
+  test('an unknown action and a geometry on a tag option are refused', () => {
+    const errors = errorsOf(
+      taskFile([
+        pointTask('t-1', {
+          options: [
+            option({ id: 'a', action: 'move' }),
+            option({ id: 'b', geometry: { type: 'Point', coordinates: [13.4, 52.39] } }),
+          ],
+        }),
+      ]),
+    )
+    expect(hasError(errors, 'features[0].properties.options[0].action')).toBe(true)
+    expect(hasError(errors, 'features[0].properties.options[1].geometry')).toBe(true)
+  })
+})

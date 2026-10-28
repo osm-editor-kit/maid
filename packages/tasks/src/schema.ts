@@ -83,9 +83,32 @@ export const geometrySchema = z.discriminatedUnion('type', [
 /** A GeoJSON geometry of one of the five types */
 export type Geometry = z.infer<typeof geometrySchema>
 
+/** What an option does: change the tags of the task's feature, add a new feature, or delete features */
+export const OPTION_ACTIONS = ['tag', 'create', 'delete'] as const
+export type OptionAction = (typeof OPTION_ACTIONS)[number]
+
+const osmRefSchema = z
+  .string()
+  .regex(OSM_REF_PATTERN, 'an OSM reference must look like way/123, node/5 or relation/7')
+
+/** The geometry of a new feature: a point (a node), a line (a way) or a polygon of one ring (a closed way) */
+export const createGeometrySchema = z.discriminatedUnion('type', [
+  z.looseObject({ type: z.literal('Point'), coordinates: positionSchema }),
+  z.looseObject({ type: z.literal('LineString'), coordinates: lineSchema }),
+  z.looseObject({
+    type: z.literal('Polygon'),
+    coordinates: z.array(ringSchema).length(1, 'a new area has one ring, without holes'),
+  }),
+])
+/** A geometry Maid can create */
+export type CreateGeometry = z.infer<typeof createGeometrySchema>
+
 /**
- * One answer a mapper can pick. `set` adds or changes tags, `remove` deletes keys. A key may not be in both, and
- * at least one of the two must be non-empty.
+ * One answer a mapper can pick. `action` says what it does (default `tag`):
+ * - `tag`: `set` adds or changes tags of the task's feature, `remove` deletes keys. A key may not be in both, and at
+ *   least one of the two must be non-empty.
+ * - `create`: adds a new feature with the tags in `set` (required), at `geometry` or else at the task's geometry.
+ * - `delete`: deletes the features in `osm`, or else all the task's `osm` features. Nodes and ways only.
  */
 export const taskOptionSchema = z
   .looseObject({
@@ -93,6 +116,7 @@ export const taskOptionSchema = z
     label: textField('label', MAX_TITLE),
     /** Markdown; optional */
     description: markdownField('option description').optional(),
+    action: z.enum(OPTION_ACTIONS, 'action must be "tag", "create" or "delete"').optional(),
     set: z
       .record(
         textField('a tag key in set', MAX_TAG_TEXT),
@@ -100,10 +124,45 @@ export const taskOptionSchema = z
       )
       .optional(),
     remove: z.array(textField('a tag key in remove', MAX_TAG_TEXT)).optional(),
+    /** `create` only: where the new feature goes */
+    geometry: createGeometrySchema.optional(),
+    /** `delete` only: which of the task's features to delete */
+    osm: z
+      .array(osmRefSchema)
+      .min(1)
+      .max(MAX_OSM_REFS, `at most ${MAX_OSM_REFS} OSM references`)
+      .optional(),
   })
   .superRefine((option, ctx) => {
     const set = option.set ?? {}
     const remove = option.remove ?? []
+    const action = option.action ?? 'tag'
+    const refuse = (field: string, why: string) =>
+      ctx.addIssue({ code: 'custom', message: why, path: [field], input: option })
+    if (action !== 'create' && option.geometry !== undefined)
+      refuse('geometry', 'only a "create" option has a geometry')
+    if (action !== 'delete' && option.osm !== undefined)
+      refuse('osm', 'only a "delete" option has osm references')
+    if (action === 'create') {
+      if (Object.keys(set).length === 0)
+        refuse('set', 'a "create" option needs the tags of the new feature in set')
+      if (option.remove !== undefined) refuse('remove', 'a "create" option has no remove')
+      return
+    }
+    if (action === 'delete') {
+      if (option.set !== undefined) refuse('set', 'a "delete" option has no set')
+      if (option.remove !== undefined) refuse('remove', 'a "delete" option has no remove')
+      option.osm?.forEach((ref, index) => {
+        if (ref.startsWith('relation/'))
+          ctx.addIssue({
+            code: 'custom',
+            message: 'a "delete" option deletes nodes and ways, not relations',
+            path: ['osm', index],
+            input: option,
+          })
+      })
+      return
+    }
     if (Object.keys(set).length === 0 && remove.length === 0) {
       ctx.addIssue({
         code: 'custom',
@@ -162,11 +221,7 @@ export const taskPropertiesSchema = z
     /** Markdown; may be empty */
     description: markdownField('description'),
     osm: z
-      .array(
-        z
-          .string()
-          .regex(OSM_REF_PATTERN, 'an OSM reference must look like way/123, node/5 or relation/7'),
-      )
+      .array(osmRefSchema)
       .max(MAX_OSM_REFS, `at most ${MAX_OSM_REFS} OSM references`)
       .optional(),
     links: z
@@ -210,11 +265,83 @@ export const taskPropertiesSchema = z
 export type TaskProperties = z.infer<typeof taskPropertiesSchema>
 
 /** One task: a GeoJSON Feature with task properties */
-export const taskSchema = z.looseObject({
-  type: z.literal('Feature', 'type must be "Feature"'),
-  geometry: geometrySchema,
-  properties: taskPropertiesSchema,
-})
+export const taskSchema = z
+  .looseObject({
+    type: z.literal('Feature', 'type must be "Feature"'),
+    geometry: geometrySchema,
+    properties: taskPropertiesSchema,
+  })
+  .superRefine((task, ctx) => {
+    task.properties.options?.forEach((option, index) => {
+      const path = ['properties', 'options', index]
+      const action = option.action ?? 'tag'
+      if (action === 'create' && option.geometry === undefined && !isCreatable(task.geometry)) {
+        ctx.addIssue({
+          code: 'custom',
+          message:
+            'a "create" option without a geometry uses the task\'s, which must be a Point, a LineString or a Polygon of one ring',
+          path,
+          input: option,
+        })
+      }
+      if (action !== 'delete') return
+      const refs = task.properties.osm ?? []
+      if ((option.osm ?? refs).length === 0) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'a "delete" option needs osm references, on the option or on the task',
+          path,
+          input: option,
+        })
+      }
+      if (option.osm === undefined) {
+        refs.forEach((ref, refIndex) => {
+          if (ref.startsWith('relation/'))
+            ctx.addIssue({
+              code: 'custom',
+              message:
+                'a "delete" option without osm deletes all the task\'s features, and relations cannot be deleted: name the nodes and ways in its osm',
+              path: ['properties', 'osm', refIndex],
+              input: ref,
+            })
+        })
+      }
+      option.osm?.forEach((ref, refIndex) => {
+        if (!refs.includes(ref))
+          ctx.addIssue({
+            code: 'custom',
+            message: `"${ref}" is not in the task's osm references`,
+            path: [...path, 'osm', refIndex],
+            input: ref,
+          })
+      })
+    })
+  })
+
+/** Whether Maid can create a feature with this geometry: a Point, a LineString or a Polygon of one ring */
+function isCreatable(geometry: Geometry): geometry is CreateGeometry {
+  return (
+    geometry.type === 'Point' ||
+    geometry.type === 'LineString' ||
+    (geometry.type === 'Polygon' && geometry.coordinates.length === 1)
+  )
+}
+
+/** What the option does (`tag` when it does not say) */
+export function actionOf(option: Pick<TaskOption, 'action'>): OptionAction {
+  return option.action ?? 'tag'
+}
+
+/** The geometry a `create` option adds its feature at: its own, else the task's. Undefined when there is none. */
+export function createGeometryOf(task: Task, option: TaskOption): CreateGeometry | undefined {
+  if (option.geometry) return option.geometry
+  return isCreatable(task.geometry) ? task.geometry : undefined
+}
+
+/** The features a `delete` option deletes: its own `osm`, else the task's */
+export function deleteTargetsOf(task: Task, option: TaskOption): string[] {
+  return option.osm ?? task.properties.osm ?? []
+}
 /** One task of the file */
 export type Task = z.infer<typeof taskSchema>
 

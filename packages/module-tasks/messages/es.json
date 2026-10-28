@@ -59,5 +59,16 @@
   "tasks_cleanup_keep": "Conservar",
   "tasks_cleanup_later": "Más tarde",
   "tasks_cleanup_failed": "No funcionó. Inténtalo más tarde.",
-  "tasks_select_feature": "Selecciona el elemento en el mapa para aplicar una opción."
+  "tasks_select_feature": "Selecciona el elemento en el mapa para aplicar una opción.",
+  "tasks_creates_point": "Añade un punto nuevo en el lugar de la tarea.",
+  "tasks_creates_line": "Añade una línea nueva a lo largo de la geometría de la tarea.",
+  "tasks_creates_area": "Añade un área nueva con el contorno de la tarea.",
+  "tasks_deletes": "Elimina {count} elemento(s):",
+  "tasks_not_loaded": "Aún no está cargado en el mapa.",
+  "tasks_apply_create": "Añadir",
+  "tasks_apply_delete": "Eliminar",
+  "tasks_reopen_to_apply": "La tarea está hecha. Vuelve a abrirla para aplicar esta opción otra vez.",
+  "tasks_delete_part_of_relation": "Este elemento no se puede eliminar porque forma parte de una relación mayor. Quítalo primero de la relación.",
+  "tasks_delete_incomplete": "Este elemento no se puede eliminar porque no se ha descargado por completo.",
+  "tasks_delete_wikidata": "Este elemento no se puede eliminar porque tiene una etiqueta de Wikidata."
 }

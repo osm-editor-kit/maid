@@ -41,11 +41,17 @@ export type Conflict = {
   savedAt: number
 }
 
-/** A task set to done by Apply: undo takes the status back with the tags, redo sets it again */
+/**
+ * A task set to done by Apply: undo takes the status back with the edit, redo sets it again. `change` says how to
+ * tell whether the edit is still there: the option's tags on the feature, the new feature, or the deleted ones gone.
+ */
 export type AppliedTask = {
   index: number
-  entityId: string
-  option: Pick<TaskOption, 'set' | 'remove'>
+  optionId: string
+  change:
+    | { kind: 'tag'; entityId: string; option: Pick<TaskOption, 'set' | 'remove'> }
+    | { kind: 'create'; entityId: string }
+    | { kind: 'delete'; entityIds: string[] }
   /** The status before Apply */
   before: TaskStatus
 }

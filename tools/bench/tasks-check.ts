@@ -10,6 +10,8 @@
  *   characters, never a PUT of the whole collection);
  * - a reload restores the progress from the preferences (under automation the browser keeps nothing);
  * - undo takes the tags back;
+ * - a "create" option adds a tagged node at the task's point, a "delete" option deletes the task's node; each is
+ *   one undo step, and undo also takes the done status back;
  * - performance: a list of 20 000 tasks, from the URL to the counts, and a status click to the new count
  *   (`reports/tasks-perf.json`).
  *
@@ -29,6 +31,8 @@ const TASKS_URL = `${MOCK}/tasks/small.tasks.geojson`
 const PREFS = `${MOCK}/s/${sceneName}/api/0.6/user/preferences`
 /** A large list for the timings, served by the page's route under a local URL (the mock serves only fixtures) */
 const BIG_URL = `${MOCK}/tasks-big/synthetic-20000.geojson`
+/** A list with a "create" and a "delete" option, served the same way */
+const EDIT_URL = `${MOCK}/tasks-edit/create-delete.geojson`
 const REPORT = join(import.meta.dir, '../../reports/tasks-perf.json')
 
 const prefs = async (): Promise<Record<string, string>> =>
@@ -211,6 +215,119 @@ const code = await runCheck(
       await settle()
       report('undo takes the applied tags back', tagsBefore, await tags(wayId))
     }
+
+    // --- create and delete ---
+    const deleteRef = features[3]!.properties.osm![0]!
+    const deleteId = deleteRef.replace('node/', 'n')
+    const editFile = {
+      type: 'FeatureCollection',
+      maid_tasks: {
+        version: 1,
+        list_id: 'check-create-delete',
+        title: 'Create and delete',
+        description: '',
+      },
+      features: [
+        {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [13.4, 52.389] },
+          properties: {
+            task_id: 'add',
+            title: 'Add a bench',
+            description: '',
+            options: [
+              { id: 'bench', label: 'Add the bench', action: 'create', set: { amenity: 'bench' } },
+            ],
+          },
+        },
+        {
+          type: 'Feature',
+          geometry: (file.features as { geometry: unknown }[])[3]!.geometry,
+          properties: {
+            task_id: 'remove',
+            title: 'Delete the node',
+            description: '',
+            osm: [deleteRef],
+            options: [{ id: 'gone', label: 'It is gone', action: 'delete' }],
+          },
+        },
+      ],
+    }
+    await page.route(EDIT_URL, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/geo+json',
+        body: JSON.stringify(editFile),
+        headers: { 'Access-Control-Allow-Origin': '*' },
+      }),
+    )
+    const editUrl = new URL(page.url())
+    editUrl.searchParams.set('tasks', EDIT_URL)
+    editUrl.searchParams.delete('id')
+    await page.goto(editUrl.toString())
+    await ready()
+    await byId('tasks-view').waitFor({ timeout: 15_000 })
+    const discardEdit = page.getByRole('button', { name: 'Discard them' })
+    await discardEdit.waitFor({ timeout: 3_000 }).catch(() => undefined)
+    if (await discardEdit.count()) await discardEdit.click()
+    await byId('tasks-row-add').click()
+    await settle()
+    await byId('tasks-apply-bench').click()
+    await settle()
+    // the edits of this page: only the new node
+    const created = await page.evaluate(() => {
+      const entity = window.__maid.editor.history
+        .difference()
+        .created()
+        .find((each) => each.tags.amenity === 'bench')
+      return entity
+        ? { id: entity.id, tags: { ...entity.tags }, loc: (entity as { loc?: number[] }).loc }
+        : null
+    })
+    report(
+      '"create" adds a node with the tags at the task\'s point',
+      { tags: { amenity: 'bench' }, loc: [13.4, 52.389] },
+      created && { tags: created.tags, loc: created.loc },
+    )
+    report('the create task is done', 1, await count('done'))
+    await page.keyboard.press('Control+z')
+    await settle()
+    const createdAfterUndo = await page.evaluate(
+      (id) => window.__maid.editor.history.staging.graph.hasEntity(id) !== undefined,
+      created?.id ?? '',
+    )
+    report(
+      'undo removes the new node and reopens the task',
+      [false, 0],
+      [createdAfterUndo, await count('done')],
+    )
+
+    await byId('tasks-row-remove').click()
+    await settle()
+    await page.waitForFunction(
+      (id) => window.__maid.editor.history.staging.graph.hasEntity(id) !== undefined,
+      deleteId,
+      { timeout: 10_000 },
+    )
+    await byId('tasks-apply-gone').click()
+    await settle()
+    const exists = () =>
+      page.evaluate(
+        (id) => window.__maid.editor.history.staging.graph.hasEntity(id) !== undefined,
+        deleteId,
+      )
+    report(
+      '"delete" deletes the task\'s node, and the task is done',
+      [false, 1],
+      [await exists(), await count('done')],
+    )
+    await page.keyboard.press('Control+z')
+    await settle()
+    report(
+      'undo brings the node back and reopens the task',
+      [true, 0],
+      [await exists(), await count('done')],
+    )
 
     // --- performance: 20 000 tasks ---
     const big = JSON.stringify(syntheticTasks(20_000, 7))

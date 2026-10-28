@@ -2,7 +2,8 @@
 
 You are writing (or checking) a task file for the Maid map editor. A task file is a list of map tasks. Each task
 points at a place on the map, shows a short title and a Markdown description, and offers one or more options. The
-mapper picks an option, and Maid shows the tag changes before anything is saved. Maid does not fetch the tasks from
+mapper picks an option, and Maid shows the change before anything is saved. An option can change the tags of the
+task's features, add a new feature, or delete features. Moving features or changing their geometry is not possible. Maid does not fetch the tasks from
 anywhere: the file is made by a person or by a language model, then loaded into Maid.
 
 The file is a GeoJSON `FeatureCollection` with one extra top-level member, `maid_tasks`, that describes the list.
@@ -61,11 +62,38 @@ least 4 positions and its last position equals its first.
 | `id`          | string             | required. 1 to 64 characters: letters, digits, `.` `_` `:` `-`. Unique within its task.          |
 | `label`       | string             | required. 1 to 200 characters. The button text.                                                  |
 | `description` | string             | optional. Markdown, at most 10 000 characters.                                                   |
-| `set`         | object             | optional. Tag key to tag value. Each key and each value 1 to 255 characters. Adds or changes tags. |
-| `remove`      | array of strings   | optional. Tag keys to delete. Each 1 to 255 characters.                                          |
+| `action`      | string             | optional. `"tag"` (the default), `"create"` or `"delete"`. See below.                            |
+| `set`         | object             | Tag key to tag value. Each key and each value 1 to 255 characters. `tag`: adds or changes tags; `create`: the tags of the new feature. |
+| `remove`      | array of strings   | `tag` only. Tag keys to delete. Each 1 to 255 characters.                                        |
+| `geometry`    | object             | `create` only, optional. Where the new feature goes: a `Point`, a `LineString` or a `Polygon` with one ring. |
+| `osm`         | array of strings   | `delete` only, optional. Which of the task's `osm` features to delete: `node/<id>` or `way/<id>`. |
 
-Rules of an option: at least one of `set` and `remove` is non-empty. A key may not be in both `set` and `remove`.
-To delete a tag, use `remove`; an empty value is not allowed in `set`.
+#### `"action": "tag"` (the default): change the tags of a feature
+
+The mapper selects the task's feature on the map, and the option changes its tags. At least one of `set` and
+`remove` is non-empty. A key may not be in both `set` and `remove`. To delete a tag, use `remove`; an empty value is
+not allowed in `set`. No `geometry`, no `osm`.
+
+#### `"action": "create"`: add a new feature
+
+`set` holds the tags of the new feature and must not be empty; there is no `remove` and no `osm`. The feature goes at
+the option's `geometry`, or, without one, at the task's geometry:
+
+- a `Point` becomes a node with the tags;
+- a `LineString` becomes a way with the tags, through new untagged nodes;
+- a `Polygon` with one ring (no holes) becomes a closed way. Its tags decide whether it is an area: add `"area": "yes"`
+  when the tags alone do not make one (`building`, `leisure`, `landuse` and the like do).
+
+The new nodes are not joined to existing ones; the mapper connects them afterwards. Without an option `geometry`, the
+task's geometry must be one of the three types above. A task for a missing feature usually has no `osm` at all.
+
+#### `"action": "delete"`: delete features
+
+No `set`, `remove` or `geometry`. The option deletes the features in its `osm`, or, without one, all the task's `osm`
+features. Each must be in the task's `osm`, and only nodes and ways can be deleted (a relation cannot): a task with a
+relation in its `osm` needs an `osm` on its delete option. Maid refuses, as iD does, to delete a way of a route,
+boundary or the outer ring of a multipolygon, and a feature with a `wikidata` tag. A way takes its untagged nodes
+along that no other way uses.
 
 ## Full example
 
@@ -117,6 +145,29 @@ A valid file with one task. Copy it and change it:
           }
         ]
       }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [13.4032, 52.3891] },
+      "properties": {
+        "task_id": "t-0002",
+        "title": "A bench at the bus stop?",
+        "description": "Street-level images show a bench here. Is it there, and is the old one next to it gone?",
+        "osm": ["node/987654"],
+        "options": [
+          {
+            "id": "add-bench",
+            "label": "Add the bench",
+            "action": "create",
+            "set": { "amenity": "bench", "backrest": "yes" }
+          },
+          {
+            "id": "old-bench-gone",
+            "label": "The old bench is gone",
+            "action": "delete"
+          }
+        ]
+      }
     }
   ]
 }
@@ -135,8 +186,10 @@ Before you hand the file over, check each line:
 - [ ] Every `osm` entry is `node/<id>`, `way/<id>` or `relation/<id>`, with no duplicates.
 - [ ] Every `links` entry starts with `https://`.
 - [ ] Every task has at most 10 options, and their ids are unique within the task.
-- [ ] Every option has `set` and/or `remove` with at least one entry.
+- [ ] Every `tag` option (no `action`) has `set` and/or `remove` with at least one entry.
 - [ ] No key is in both `set` and `remove` of the same option.
+- [ ] Every `create` option has tags in `set`, and a `Point`, `LineString` or one-ring `Polygon` as its or its task's geometry.
+- [ ] Every `delete` option has features to delete, nodes and ways only, all of them in its task's `osm`.
 - [ ] No `set` key or value is empty.
 - [ ] Titles are 1 to 200 characters; descriptions are at most 10 000 characters.
 
@@ -163,6 +216,9 @@ what the schema cannot state (unique ids, a key both set and removed).
 - **An option that sets and removes the same key**, for example `"set": {"highway": "cycleway"}, "remove": ["highway"]`.
 - **An empty value** such as `"set": {"maxspeed": ""}`. To delete a tag, put its key in `remove`.
 - **An option with neither `set` nor `remove`**, or with both empty.
+- **A `create` option with `remove`**, or a `delete` option with `set`: each action takes only its own fields.
+- **A `delete` option for a relation**, or for a feature that is not in the task's `osm`.
+- **`"action": "move"`** or any other action: only `tag`, `create` and `delete` exist.
 - **`version` as a string** (`"1"`) or any value other than `1`.
 - **Missing `description`** on a task or on the list. Use `""` when there is nothing to say.
 - **A ring that is not closed** in a `Polygon`: the last position must equal the first.

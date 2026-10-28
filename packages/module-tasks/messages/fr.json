@@ -59,5 +59,16 @@
   "tasks_cleanup_keep": "Garder",
   "tasks_cleanup_later": "Plus tard",
   "tasks_cleanup_failed": "Cela n’a pas fonctionné. Réessayez plus tard.",
-  "tasks_select_feature": "Sélectionnez l’objet sur la carte pour appliquer une option."
+  "tasks_select_feature": "Sélectionnez l’objet sur la carte pour appliquer une option.",
+  "tasks_creates_point": "Ajoute un nouveau point à l'emplacement de la tâche.",
+  "tasks_creates_line": "Ajoute une nouvelle ligne le long de la géométrie de la tâche.",
+  "tasks_creates_area": "Ajoute une nouvelle surface avec le contour de la tâche.",
+  "tasks_deletes": "Supprime {count} objet(s) :",
+  "tasks_not_loaded": "Pas encore chargé sur la carte.",
+  "tasks_apply_create": "Ajouter",
+  "tasks_apply_delete": "Supprimer",
+  "tasks_reopen_to_apply": "La tâche est terminée. Rouvrez-la pour appliquer à nouveau cette option.",
+  "tasks_delete_part_of_relation": "Cet objet ne peut pas être supprimé car il fait partie d'une relation plus grande. Retirez-le d'abord de la relation.",
+  "tasks_delete_incomplete": "Cet objet ne peut pas être supprimé car il n'a pas été entièrement téléchargé.",
+  "tasks_delete_wikidata": "Cet objet ne peut pas être supprimé car il a une étiquette Wikidata."
 }

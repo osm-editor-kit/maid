@@ -14,7 +14,12 @@ describe('FORMAT.md', () => {
   test('its example is a valid task file', async () => {
     const result = parseTaskFile(await exampleOfFormat())
     if (!result.ok) throw new Error(JSON.stringify(result.errors))
-    expect(result.file.features).toHaveLength(1)
+    expect(result.file.features).toHaveLength(2)
     expect(result.file.features[0]?.properties.options).toHaveLength(3)
+    // the second task shows the two other actions
+    expect(result.file.features[1]?.properties.options?.map((option) => option.action)).toEqual([
+      'create',
+      'delete',
+    ])
   })
 })

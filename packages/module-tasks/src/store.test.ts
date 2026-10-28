@@ -147,7 +147,12 @@ describe('applied tasks follow undo and redo', () => {
   it('undo takes the status back, redo sets done again, a later change by hand stays', () => {
     const store = openedStore(file)
     const { actions } = store.getState()
-    actions.addApplied({ index: 0, entityId: 'w1', option: { set: { a: 'b' } }, before: 'open' })
+    actions.addApplied({
+      index: 0,
+      optionId: 'o1',
+      change: { kind: 'tag', entityId: 'w1', option: { set: { a: 'b' } } },
+      before: 'open',
+    })
     actions.setStatus(0, 'done')
     actions.followApplied(() => false)
     expect(store.getState().statuses[0]).toBe('open')
