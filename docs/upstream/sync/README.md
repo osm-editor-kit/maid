@@ -36,6 +36,6 @@ Check the current layout in [ARCHITECTURE.md](../../../ARCHITECTURE.md) before y
 
 ## Rules for a run
 
-- `AGENTS.md` applies in full: core rule 1 (no requests to OSM infrastructure), Haiku agents with progress notes, no `bun run check` or browser checks in parallel agents.
+- `AGENTS.md` applies in full: core rule 1 (no requests to OSM infrastructure) and the subagent rules, for example no `bun run check` or browser checks in parallel agents.
 - An adopted change passes `bun run check`, and the browser check of its area (`bun run check-all` table in `AGENTS.md`).
 - `later` goes to [docs/build-out/steps.md](../../build-out/steps.md) as a step; the intent's reason names it.
