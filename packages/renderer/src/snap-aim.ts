@@ -7,7 +7,7 @@ import type { MaidEngine } from './engine'
 import { featureId } from './feature-id'
 import {
   chooseTarget,
-  followEachOther,
+  collapses,
   nearestOnPolyline,
   type Point,
   type SnapTarget,
@@ -19,6 +19,8 @@ export function snapTargetAt(
   point: Point,
   layers: string[],
   skip: ReadonlySet<string>,
+  /** Ways whose line is not a target, but whose vertices are: the ways of a dragged node */
+  ownWays: ReadonlySet<string> = new Set(),
 ) {
   const { map } = engine
   if (!map) return undefined
@@ -56,7 +58,7 @@ export function snapTargetAt(
           const loc = engine.data.node(n.id)?.loc
           if (loc) candidates.push({ type: 'node', id: n.id, loc: [loc[0], loc[1]], distance })
         }
-        const on = way && nearestOnPolyline(nodes, point, SNAP_PX)
+        const on = way && !ownWays.has(id) && nearestOnPolyline(nodes, point, SNAP_PX)
         if (on) {
           const at = map.unproject([on.x, on.y])
           candidates.push({
@@ -76,8 +78,8 @@ export function snapTargetAt(
 
 /**
  * Why a drop that joins the dragged node to this node would be refused, or undefined if it is
- * allowed: the model's own rule (relations, turn restrictions), a way that would get the node
- * twice in a row, or a way that would change and is read-only.
+ * allowed: the model's own rule (relations, turn restrictions), a way that would be left with too
+ * few nodes, or a way that would change and is read-only.
  */
 export function connectRefusalOf(engine: MaidEngine, dragged: string, target: string) {
   const { staging } = engine.data.history
@@ -91,19 +93,19 @@ export function connectRefusalOf(engine: MaidEngine, dragged: string, target: st
   const lists = (engine.data.nodeWays.get(dragged) ?? []).map(
     (w) => engine.data.way(w)?.nodes ?? [],
   )
-  if (followEachOther(lists, dragged, target))
-    return 'The node would be joined to its neighbour in the same way'
+  if (collapses(lists, dragged, target)) return 'The way would be left with too few nodes'
   if (ways.some((w) => engine.isReadOnly(w))) return 'A way it would change is read-only'
   return undefined
 }
 
 /**
- * The snap of a dragged node at this pointer. The dragged node's own ways are not targets: it
- * cannot be joined to its own line. A node target that the model would refuse carries the reason.
+ * The snap of a dragged node at this pointer. As in iD, the vertices of the dragged node's own ways
+ * are targets (a drop joins the way to itself, or merges two neighbours), their lines are not. A
+ * node target that the model would refuse carries the reason.
  */
 export function aimAtNode(engine: MaidEngine, id: string, point: Point, layers: string[]) {
-  const skip = new Set<string>([id, ...(engine.data.nodeWays.get(id) ?? [])])
-  const target = snapTargetAt(engine, point, layers, skip)
+  const own = new Set<string>(engine.data.nodeWays.get(id) ?? [])
+  const target = snapTargetAt(engine, point, layers, new Set([id]), own)
   if (!target || target.type === 'way') return { target }
   return { target, refused: connectRefusalOf(engine, id, target.id) }
 }

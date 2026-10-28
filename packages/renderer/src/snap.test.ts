@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { chooseTarget, followEachOther, nearestOnPolyline, type SnapTarget } from './snap'
+import { chooseTarget, collapses, nearestOnPolyline, type SnapTarget } from './snap'
 
 const line = [
   { id: 'a', x: 0, y: 0 },
@@ -72,19 +72,24 @@ describe('chooseTarget', () => {
   })
 })
 
-describe('followEachOther', () => {
-  test('two nodes next to each other in one way, either order', () => {
-    expect(followEachOther([['n1', 'n2', 'n3']], 'n2', 'n3')).toBe(true)
-    expect(followEachOther([['n1', 'n2', 'n3']], 'n3', 'n2')).toBe(true)
+describe('collapses', () => {
+  test('two neighbours of a longer way may be joined: the way keeps enough nodes', () => {
+    expect(collapses([['n1', 'n2', 'n3']], 'n2', 'n3')).toBe(false)
+    expect(collapses([['n1', 'n2', 'n3', 'n4', 'n1']], 'n1', 'n2')).toBe(false)
   })
 
-  test('nodes that are only in the same way, not next to each other', () => {
-    expect(followEachOther([['n1', 'n2', 'n3']], 'n1', 'n3')).toBe(false)
+  test('nodes of the same way that are not neighbours', () => {
+    expect(collapses([['n1', 'n2', 'n3', 'n4', 'n1']], 'n1', 'n3')).toBe(false)
+  })
+
+  test('the last edge of a line, or a node of a triangle onto another one, collapses the way', () => {
+    expect(collapses([['n1', 'n2']], 'n1', 'n2')).toBe(true)
+    expect(collapses([['n1', 'n2', 'n3', 'n1']], 'n3', 'n1')).toBe(true)
   })
 
   test('nodes in different ways', () => {
     expect(
-      followEachOther(
+      collapses(
         [
           ['n1', 'n2'],
           ['n2', 'n9'],

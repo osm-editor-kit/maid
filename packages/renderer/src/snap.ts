@@ -60,11 +60,16 @@ export function chooseTarget(candidates: readonly SnapTarget[]) {
 }
 
 /**
- * True if two nodes follow each other in one of the node lists (the node lists of the ways that a
- * node is part of). Connecting such a pair would give a way the same node twice in a row.
+ * True if joining node `a` to node `b` would leave one of these node lists (the ways that `a` is part of) with
+ * too few nodes: a line with one node, an area with two. The join replaces `a` with `b` and drops a node that
+ * repeats its neighbour, as the model's `replaceNode` does. Two neighbours of a longer way may be joined (iD
+ * merges them); the last edge of a line or a triangle may not.
  */
-export function followEachOther(lists: readonly (readonly string[])[], a: string, b: string) {
-  return lists.some((nodes) =>
-    nodes.some((id, i) => (id === a && nodes[i + 1] === b) || (id === b && nodes[i + 1] === a)),
-  )
+export function collapses(lists: readonly (readonly string[])[], a: string, b: string) {
+  return lists.some((nodes) => {
+    if (!nodes.includes(a) || !nodes.includes(b)) return false
+    const closed = nodes.length > 1 && nodes[0] === nodes.at(-1)
+    const unique = new Set(nodes.map((id) => (id === a ? b : id)))
+    return unique.size < (closed ? 3 : 2)
+  })
 }
