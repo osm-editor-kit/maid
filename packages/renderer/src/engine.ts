@@ -1727,7 +1727,14 @@ export class MaidEngine {
     const shown = () => {
       this.shownHover = hoverId
       // only what has a feature is on the map
+      const before = this.shownSelected
       this.shownSelected = selectedIds.filter((id) => this.featureSource.has(id))
+      // `selected()` changed after `changed()` ran: the components that read it (the level picker) read again.
+      // Without this they read it only at the next change, and that can come much later.
+      const same =
+        before.length === this.shownSelected.length &&
+        before.every((id, i) => id === this.shownSelected[i])
+      if (!same) this.changed()
     }
     const set = (id: string | null, on: boolean) => {
       const name = id && this.featureSource.get(id)
