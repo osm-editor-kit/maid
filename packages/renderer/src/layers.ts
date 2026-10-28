@@ -6,9 +6,10 @@ import { NEIGHBOUR_RANGE } from '@osm-editor-kit/maid-levels'
 import type { ExpressionSpecification, LayerSpecification } from 'maplibre-gl'
 import {
   ARROW_DEFAULT_COLOUR,
-  ARROW_HEIGHT,
   ARROW_IMAGE_PREFIX,
-  SELECTED_ARROW_HEIGHT,
+  ARROW_SPACING,
+  KEEPOUT_IMAGE,
+  KEEPOUT_SIZE,
   SELECTED_ARROW_IMAGE,
   SIDE_HEIGHT,
   SIDE_IMAGE_PREFIX,
@@ -660,15 +661,25 @@ function buildMainLayers(options: LayerOptions) {
       ['coalesce', ['get', 'ac'], ARROW_DEFAULT_COLOUR],
     ]
     const side: ExpressionSpecification = ['concat', SIDE_IMAGE_PREFIX, ['get', 'side']]
+    // The arrows are symbols along the line (direction.ts): MapLibre leaves out the one that would cover a
+    // vertex, since the keep-out squares below are placed first. They block nothing themselves.
+    const arrowLayout = {
+      'symbol-placement': 'line',
+      'symbol-spacing': ARROW_SPACING,
+      'icon-rotation-alignment': 'map',
+      'icon-allow-overlap': false,
+      'icon-ignore-placement': true,
+      // MapLibre does not turn an icon's collision box with the line: the padding covers the turned arrow
+      'icon-padding': 3,
+    } as const
     layers.push(
       {
         id: 'line-oneway',
-        type: 'line',
+        type: 'symbol',
         source: SOURCES.lines,
         filter: ['has', 'oneway'],
         minzoom: 15,
-        layout: { 'line-cap': 'butt', visibility: shownIn(!wire) },
-        paint: { 'line-width': ARROW_HEIGHT, 'line-pattern': arrow },
+        layout: { ...arrowLayout, 'icon-image': arrow, visibility: shownIn(!wire) },
       },
       {
         id: 'line-sided',
@@ -688,6 +699,53 @@ function buildMainLayers(options: LayerOptions) {
         minzoom: 15,
         layout: { 'line-cap': 'butt', visibility: shownIn(!wire) },
         paint: { 'line-width': SIDE_HEIGHT, 'line-pattern': side },
+      },
+      // The direction of the selected highway (engine.ts refreshShape): white arrows with a dark outline, on the
+      // selection's glow, under the vertices. iD does not show a way's direction; Maid does, as the product owner asked.
+      {
+        id: 'highlight-direction',
+        type: 'symbol',
+        source: SOURCES.highlight,
+        filter: ['==', ['get', 'state'], 'direction'],
+        minzoom: 15,
+        layout: { ...arrowLayout, 'icon-image': SELECTED_ARROW_IMAGE },
+      },
+    )
+
+    // Keep-out squares on the vertices (direction.ts KEEPOUT_IMAGE): never seen, but in the collision index, so the
+    // arrows above are left out where they would cover a vertex. The nodes always win (Tobias, 2026-10-28). Above the
+    // arrows, so they are placed first; under the labels, so the labels are placed before them and are not moved.
+    // A square is as wide as the vertex's circle with its outline (vertex, highlight-vertex).
+    const keepout = (px: number) => px / KEEPOUT_SIZE
+    const keepoutLayout = {
+      'icon-image': KEEPOUT_IMAGE,
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': false,
+      'icon-padding': 0,
+      'icon-rotation-alignment': 'viewport',
+    } as const
+    layers.push(
+      {
+        id: 'arrow-keepout-vertex',
+        type: 'symbol',
+        source: SOURCES.vertices,
+        layout: {
+          ...keepoutLayout,
+          'icon-size': [
+            'step',
+            ['zoom'],
+            keepout(7),
+            16,
+            ['case', ['has', 'icon'], keepout(18), keepout(9)],
+          ],
+        },
+      },
+      {
+        id: 'arrow-keepout-shape',
+        type: 'symbol',
+        source: SOURCES.highlight,
+        filter: ['all', ['==', ['geometry-type'], 'Point'], ['==', ['get', 'state'], 'shape']],
+        layout: { ...keepoutLayout, 'icon-size': ['step', ['zoom'], keepout(7), 16, keepout(9)] },
       },
     )
   }
@@ -774,20 +832,6 @@ function buildMainLayers(options: LayerOptions) {
       'circle-stroke-width': 1,
     },
   })
-
-  // The direction of the selected highway (engine.ts refreshShape): white arrows with a dark outline,
-  // on the selection's glow, under the vertices so that no arrow covers a vertex's icon. iD does not show a way's direction; Maid does, as the product owner asked.
-  if (options.icons) {
-    layers.push({
-      id: 'highlight-direction',
-      type: 'line',
-      source: SOURCES.highlight,
-      filter: ['==', ['get', 'state'], 'direction'],
-      minzoom: 15,
-      layout: { 'line-cap': 'butt' },
-      paint: { 'line-width': SELECTED_ARROW_HEIGHT, 'line-pattern': SELECTED_ARROW_IMAGE },
-    })
-  }
 
   // From OSM zoom 17 iD draws a tagged vertex with a preset icon as a larger disc with the icon in it.
   const hasIcon: ExpressionSpecification = ['has', 'icon']

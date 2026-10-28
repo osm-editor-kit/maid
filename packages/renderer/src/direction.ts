@@ -147,13 +147,18 @@ export const SIDE_KINDS: Record<string, SideKind> = {
 }
 
 /**
- * The markers are line patterns (layers.ts `line-pattern`), not symbols: MapLibre drops symbols
- * on some lines when they are crowded, a pattern never drops a feature. A pattern image is as
- * wide as the spacing (one marker per image) and as high as the layer's `line-width`, in CSS px.
- * The spacings are iD's (svg/lines.js).
+ * The side markers are line patterns (layers.ts `line-pattern`): a pattern image is as wide as
+ * the spacing (one marker per image) and as high as the layer's `line-width`, in CSS px.
+ *
+ * The arrows are symbols along the line (`symbol-placement: line`), one every ARROW_SPACING px,
+ * so that MapLibre can drop the one that would cover a vertex: the nodes win, an arrow may go
+ * (Tobias, 2026-10-28). They do not block each other or the labels (`icon-ignore-placement`).
+ * An arrow image is as wide as the arrow. The spacings are iD's (svg/lines.js).
  */
 export const ARROW_SPACING = 36
 export const ARROW_HEIGHT = 6
+/** iD's arrow is 10 x 5 units of 1.2 px; half a px more on each side for its outline */
+export const ARROW_WIDTH = 13
 export const SIDE_SPACING = 30
 export const SIDE_HEIGHT = 26
 
@@ -168,9 +173,17 @@ export const ARROW_COLOURS = [ARROW_DEFAULT_COLOUR, '#fff', '#eee']
 /** Image ids (direction-images.ts draws them): `maid-arrow-<shape>-<colour>`, `maid-side-<kind>` */
 export const ARROW_IMAGE_PREFIX = 'maid-arrow-'
 export const SIDE_IMAGE_PREFIX = 'maid-side-'
-/** The selected way's direction (engine.ts, the highlight source): white with a dark outline */
+/** The selected way's direction (engine.ts, the highlight source): white with a dark outline, a symbol icon */
 export const SELECTED_ARROW_IMAGE = 'maid-selected-arrow'
 export const SELECTED_ARROW_HEIGHT = 8
+/** The same arrow as a line pattern, as wide as ARROW_SPACING, for maps without vertices (the relations map) */
+export const SELECTED_ARROW_PATTERN = 'maid-selected-arrow-pattern'
+/**
+ * A transparent square on every drawn vertex (layers.ts `arrow-keepout-*`): it is never seen, but takes
+ * its place in MapLibre's collision index, so no arrow is placed on a vertex.
+ */
+export const KEEPOUT_IMAGE = 'maid-keepout'
+export const KEEPOUT_SIZE = 8
 
 /** The arrow image for a line's direction and colour. layers.ts builds the same id in an expression. */
 export function arrowImageId(oneway: OneWay, colour = ARROW_DEFAULT_COLOUR) {
