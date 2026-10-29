@@ -579,7 +579,7 @@ function MemberItem({
             {editable && (
               <button
                 type="button"
-                className={`${ICON_BUTTON} relative z-10 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100`}
+                className={`${ICON_BUTTON} relative z-10 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100`}
                 aria-label={m.relations_column_remove({ name })}
                 title={m.relations_column_remove({ name })}
                 onClick={onRemove}
