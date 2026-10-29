@@ -9,7 +9,14 @@ type Plugin = {
     handler(
       html: string,
       context: { bundle?: Record<string, Chunk | { type: string }> },
-    ): { tag: string; attrs: Record<string, string | boolean>; injectTo: 'head' }[] | undefined
+    ):
+      | {
+          tag: string
+          attrs?: Record<string, string | boolean>
+          children?: string
+          injectTo: 'head'
+        }[]
+      | undefined
   }
 }
 
@@ -24,6 +31,10 @@ type Plugin = {
  * Prefetch needs a cacheable response (hashed files served with `Cache-Control: immutable`, as a CDN does); with
  * `no-cache`, as `vite preview` answers, the chunk is fetched twice. Without any link the fetch starts when the editor
  * asks, after `ready`. The page is not edited when the app has no such chunk.
+ *
+ * A prefetch shares the line with the entry and MapLibre. On a slow or metered connection (data saver, 2g or 3g as the
+ * browser reports it) that slows the map down for a chunk that is needed only later, so the links are written by a
+ * small inline script that leaves them out there (Tobias, 2026-10-29). Safari reports no connection: it prefetches.
  */
 export function presetsPreload(options: { rel?: 'prefetch' | 'modulepreload' } = {}): Plugin {
   const rel = options.rel ?? 'prefetch'
@@ -47,16 +58,20 @@ export function presetsPreload(options: { rel?: 'prefetch' | 'modulepreload' } =
           files.add(fileName)
           if (rel === 'modulepreload') for (const imported of imports) files.add(imported)
         }
-        return [...files].map((file) => ({
-          tag: 'link',
-          attrs: {
-            rel,
-            ...(rel === 'prefetch' ? { as: 'script' } : {}),
-            crossorigin: true,
-            href: `${base}${file}`,
-          } as Record<string, string | boolean>,
-          injectTo: 'head' as const,
+        if (files.size === 0) return undefined
+        const links = [...files].map((file) => ({
+          rel,
+          ...(rel === 'prefetch' ? { as: 'script' } : {}),
+          crossOrigin: '',
+          href: `${base}${file}`,
         }))
+        return [
+          {
+            tag: 'script',
+            children: `(function(){var c=navigator.connection;if(c&&(c.saveData||/(^|-)(2g|3g)$/.test(c.effectiveType||'')))return;${JSON.stringify(links)}.forEach(function(a){var l=document.createElement('link');Object.assign(l,a);document.head.appendChild(l)})})()`,
+            injectTo: 'head' as const,
+          },
+        ]
       },
     },
   }

@@ -49,4 +49,4 @@ Inspector, notes, relations column, turn restrictions, data layers, lenses, surf
 
 - No browser timing: everything above is bytes. A phone run on a person's device is the next measurement.
 - GitHub Pages serves gzip, not brotli, with a short cache time (general knowledge, the repo has no headers file).
-- motion (about 124 KB raw) is in the Sidebar, Dock, Flyout, Tooltip and BottomSheet, all drawn at the start; replacing it with CSS is a larger refactor.
+- motion (about 124 KB raw) is in the Sidebar, Dock, Flyout, Tooltip and BottomSheet, all drawn at the start. It stays: no refactor to CSS (Tobias, 2026-10-29).

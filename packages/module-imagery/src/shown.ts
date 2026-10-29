@@ -93,7 +93,7 @@ export function useLiveImagery() {
 }
 
 /** The start order's inputs, read when it starts */
-type StartInput = {
+export type StartInput = {
   url: string | null
   urlOverlays: string[] | null
   stored: string | null
@@ -101,14 +101,25 @@ type StartInput = {
   fallback: string | null
 }
 
-/** The start order: the index's layers valid for the view, their best ones, then the order (start.ts) */
-async function resolveStart(
+/** The index reads of the start order, as parameters so that a test can count them (the real ones by default) */
+export type StartSearch = {
+  listView: typeof listView
+  bestBackgrounds: typeof bestBackgrounds
+}
+
+/**
+ * The start order: the index's layers valid for the view, their best ones, then the order (start.ts). The best ones
+ * are looked for only when the URL names no background: each layer's coverage is a download (568 KB gzip for the
+ * Europe index, on a phone's mobile data), and startBackground uses the best ones only then.
+ */
+export async function resolveStart(
   view: View,
   input: StartInput,
+  search: StartSearch = { listView, bestBackgrounds },
 ): Promise<{ background: string; overlays: string[] }> {
-  const listed = await listView(listingView(view))
+  const listed = await search.listView(listingView(view))
   const backgrounds = listed.items.filter((item) => !item.overlay)
-  const best = await bestBackgrounds(backgrounds, view)
+  const best = input.url === null ? await search.bestBackgrounds(backgrounds, view) : []
   return {
     background: startBackground({
       url: input.url,
