@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { chooseTarget, collapses, nearestOnPolyline, type SnapTarget } from './snap'
+import { ModelContext, OsmWay } from '@osm-editor-kit/maid-model'
+import { chooseTarget, nearestOnPolyline, ownWayRefusal, type SnapTarget } from './snap'
 
 const line = [
   { id: 'a', x: 0, y: 0 },
@@ -72,31 +73,34 @@ describe('chooseTarget', () => {
   })
 })
 
-describe('collapses', () => {
-  test('two neighbours of a longer way may be joined: the way keeps enough nodes', () => {
-    expect(collapses([['n1', 'n2', 'n3']], 'n2', 'n3')).toBe(false)
-    expect(collapses([['n1', 'n2', 'n3', 'n4', 'n1']], 'n1', 'n2')).toBe(false)
+describe('ownWayRefusal', () => {
+  const context = new ModelContext()
+  const way = (...nodes: string[]) => new OsmWay(context, { id: 'w1', nodes })
+
+  test('two neighbours of a longer way merge', () => {
+    expect(ownWayRefusal(way('n1', 'n2', 'n3'), 'n2', 'n3')).toBeUndefined()
+    expect(ownWayRefusal(way('n1', 'n2', 'n3', 'n4', 'n1'), 'n1', 'n2')).toBeUndefined()
   })
 
-  test('nodes of the same way that are not neighbours', () => {
-    expect(collapses([['n1', 'n2', 'n3', 'n4', 'n1']], 'n1', 'n3')).toBe(false)
+  test('a line may close, or loop back onto one of its nodes', () => {
+    expect(ownWayRefusal(way('n1', 'n2', 'n3', 'n4'), 'n4', 'n1')).toBeUndefined()
+    expect(ownWayRefusal(way('n1', 'n2', 'n3', 'n4'), 'n4', 'n2')).toBeUndefined()
   })
 
-  test('the last edge of a line, or a node of a triangle onto another one, collapses the way', () => {
-    expect(collapses([['n1', 'n2']], 'n1', 'n2')).toBe(true)
-    expect(collapses([['n1', 'n2', 'n3', 'n1']], 'n3', 'n1')).toBe(true)
+  test('a way left with too few nodes is refused, also a line the join closes', () => {
+    const refused = 'The way would be left with too few nodes'
+    expect(ownWayRefusal(way('n1', 'n2'), 'n1', 'n2')).toBe(refused)
+    expect(ownWayRefusal(way('n1', 'n2', 'n3', 'n1'), 'n3', 'n1')).toBe(refused)
+    expect(ownWayRefusal(way('n1', 'n2', 'n3'), 'n1', 'n3')).toBe(refused)
   })
 
-  test('nodes in different ways', () => {
-    expect(
-      collapses(
-        [
-          ['n1', 'n2'],
-          ['n2', 'n9'],
-        ],
-        'n1',
-        'n9',
-      ),
-    ).toBe(false)
+  test('an area that would touch itself at one node is refused', () => {
+    expect(ownWayRefusal(way('n1', 'n2', 'n3', 'n4', 'n1'), 'n1', 'n3')).toBe(
+      'The area would touch itself at one node',
+    )
+  })
+
+  test('a node of another way is no concern of this one', () => {
+    expect(ownWayRefusal(way('n1', 'n2', 'n3'), 'n2', 'n9')).toBeUndefined()
   })
 })

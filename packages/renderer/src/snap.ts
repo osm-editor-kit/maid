@@ -1,8 +1,9 @@
 /**
  * Snapping a dragged node, or a new point, to what is under the pointer. These are the pure
- * helpers: no map, no data. The engine finds the candidates and calls them, and drawing (`draw.ts`)
+ * helpers: no map, no engine. The engine finds the candidates and calls them, and drawing (`draw.ts`)
  * uses the same distance rule, so a drag and a drawn click snap alike.
  */
+import type { OsmWay } from '@osm-editor-kit/maid-model'
 
 /** Pixels around the pointer in which a node or a way is snapped to (drawing and dragging) */
 export const SNAP_PX = 8
@@ -60,16 +61,16 @@ export function chooseTarget(candidates: readonly SnapTarget[]) {
 }
 
 /**
- * True if joining node `a` to node `b` would leave one of these node lists (the ways that `a` is part of) with
- * too few nodes: a line with one node, an area with two. The join replaces `a` with `b` and drops a node that
- * repeats its neighbour, as the model's `replaceNode` does. Two neighbours of a longer way may be joined (iD
- * merges them); the last edge of a line or a triangle may not.
+ * Why joining node `dragged` to node `target` of the same way would be refused, or undefined. The join is the one
+ * the connect makes (`replaceNode`: the dragged node replaced, a repeated neighbour dropped); a way it leaves with
+ * too few nodes would be deleted by the connect. Two neighbours merge and a line may close or loop on itself, as in
+ * iD; an area that would touch itself at one node is refused, as iD refuses a self-intersection.
  */
-export function collapses(lists: readonly (readonly string[])[], a: string, b: string) {
-  return lists.some((nodes) => {
-    if (!nodes.includes(a) || !nodes.includes(b)) return false
-    const closed = nodes.length > 1 && nodes[0] === nodes.at(-1)
-    const unique = new Set(nodes.map((id) => (id === a ? b : id)))
-    return unique.size < (closed ? 3 : 2)
-  })
+export function ownWayRefusal(way: OsmWay, dragged: string, target: string) {
+  if (!way.contains(dragged) || !way.contains(target)) return undefined
+  if (way.replaceNode(dragged, target).isDegenerate())
+    return 'The way would be left with too few nodes'
+  if (way.isClosed() && !way.isAdjacent(dragged, target))
+    return 'The area would touch itself at one node'
+  return undefined
 }

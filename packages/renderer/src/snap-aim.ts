@@ -7,8 +7,8 @@ import type { MaidEngine } from './engine'
 import { featureId } from './feature-id'
 import {
   chooseTarget,
-  collapses,
   nearestOnPolyline,
+  ownWayRefusal,
   type Point,
   type SnapTarget,
   SNAP_PX,
@@ -79,29 +79,29 @@ export function snapTargetAt(
 /**
  * Why a drop that joins the dragged node to this node would be refused, or undefined if it is
  * allowed: the model's own rule (relations, turn restrictions), a way that would be left with too
- * few nodes, or a way that would change and is read-only.
+ * few nodes (the connect would delete it), an area that would touch itself at one node (iD refuses
+ * that as a self-intersection), or a way that would change and is read-only.
  */
 export function connectRefusalOf(engine: MaidEngine, dragged: string, target: string) {
-  const { staging } = engine.data.history
-  const reason = actionConnect([dragged, target]).disabled?.(staging.graph)
+  const { data } = engine
+  const reason = actionConnect([dragged, target]).disabled?.(data.history.staging.graph)
   if (reason === 'restriction') return 'It would break a turn restriction'
   if (reason) return 'The two nodes have different roles in a relation'
-  const ways = [
-    ...(engine.data.nodeWays.get(dragged) ?? []),
-    ...(engine.data.nodeWays.get(target) ?? []),
-  ]
-  const lists = (engine.data.nodeWays.get(dragged) ?? []).map(
-    (w) => engine.data.way(w)?.nodes ?? [],
-  )
-  if (collapses(lists, dragged, target)) return 'The way would be left with too few nodes'
+  const own = data.nodeWays.get(dragged) ?? []
+  for (const id of own) {
+    const way = data.way(id)
+    const refused = way && ownWayRefusal(way, dragged, target)
+    if (refused) return refused
+  }
+  const ways = [...own, ...(data.nodeWays.get(target) ?? [])]
   if (ways.some((w) => engine.isReadOnly(w))) return 'A way it would change is read-only'
   return undefined
 }
 
 /**
  * The snap of a dragged node at this pointer. As in iD, the vertices of the dragged node's own ways
- * are targets (a drop joins the way to itself, or merges two neighbours), their lines are not. A
- * node target that the model would refuse carries the reason.
+ * are targets (a drop merges two neighbours, or joins a line to itself), their lines are not. A
+ * node target that would be refused carries the reason.
  */
 export function aimAtNode(engine: MaidEngine, id: string, point: Point, layers: string[]) {
   const own = new Set<string>(engine.data.nodeWays.get(id) ?? [])
