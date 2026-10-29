@@ -60,7 +60,7 @@ Second round: medians of 5 runs in ms, one warm-up visit not counted, the varian
 | warm  |       2 |                    280 |      2185 |    2290 |
 | warm  |       1 |                    280 |      2265 |    2355 |
 
-- The number of workers makes no measurable difference: the medians are within 150 ms, single runs of one variant swing from 1.9 to 4.0 s. Maid keeps 4 (decided with Tobias, 2026-10-29). A first round of 3 runs without warm-up looked like "fewer is faster"; that was the slow first visits after the boot.
+- The number of workers makes no measurable difference: the medians are within 150 ms, single runs of one variant swing from 1.9 to 4.0 s. So Maid keeps 4 for now. A first round of 3 runs without warm-up looked like "fewer is faster"; that was the slow first visits after the boot.
 - The first two visits of a round are slower, so `--warmup` is now 2.
 - Cold and warm differ little: the local server has no latency, so parsing and drawing cost the time, not the download.
 - What a cold visit loads before it settles, uncompressed (the script's server does not gzip): 7.2 MB, of it the presets chunk 1.8 MB, MapLibre 1.07 MB, the entry 0.83 MB, ELI's Europe details 0.74 MB, the worker 0.51 MB.
