@@ -88,6 +88,7 @@ These names are the contract.
 | `bun run osm2world-prototype`                          | The indoor fixture in 3D with OSM2World and Babylon.js on http://localhost:5190, offline.                                                                                                                                     |
 | `bun run logo-build`                                   | The logo and favicon of each app (`apps/<app>/src/brand/`) from the osmberlin OSM logo in `docs/logo/source/`.                                                                                                                |
 | `bun run style-generate [iD checkout]`                 | Regenerate the style data from iD's CSS and presets.                                                                                                                                                                          |
+| `bun run sprites-subset`                               | Cuts the icon sprites in `packages/shell/public/sprites` to the icons Maid can show (`tools/refs/icon-names.ts`), from iD's full files in `.reference/sprites-full`.                                                          |
 
 The browser checks (`check-interactions`, `check-edit`, … and what each one tests) are listed in [tools/checks/README.md](tools/checks/README.md).
 

@@ -1,18 +1,9 @@
 import { ADDRESS_PLAQUE } from '@osm-editor-kit/maid-renderer'
 import type { Map as MapLibreMap } from 'maplibre-gl'
+import { SPRITE_OF_PREFIX, spriteOf } from './sprite-sets'
 import { appUrl } from './url/public-url'
 
-/** Which of iD's sprite files holds an icon, by the prefix of its name */
-export const SPRITE_OF_PREFIX: Record<string, string> = {
-  maki: 'maki',
-  temaki: 'temaki',
-  fas: 'fa',
-  far: 'fa',
-  fab: 'fa',
-  roentgen: 'roentgen',
-  pinhead: 'pinhead',
-  iD: 'iD',
-}
+export { SPRITE_OF_PREFIX, spriteOf }
 
 /** A marker image as its id names it: `pin-<preset icon>` (`pin-none` is the empty pin), `icon-<preset icon>`, the plaque */
 export type MarkerImage =
@@ -26,14 +17,6 @@ export function parseMarkerImage(id: string): MarkerImage | undefined {
   if (id.startsWith('pin-')) return { kind: 'pin', icon: id.slice(4) }
   if (id.startsWith('icon-')) return { kind: 'icon', icon: id.slice(5) }
   return undefined
-}
-
-/** The sprite file an icon is in, by its prefix: `maki-restaurant` is in `maki`. Undefined for an unknown prefix. */
-export function spriteOf(icon: string): string | undefined {
-  const dash = icon.indexOf('-')
-  if (dash < 0) return undefined
-  const prefix = icon.slice(0, dash)
-  return Object.hasOwn(SPRITE_OF_PREFIX, prefix) ? SPRITE_OF_PREFIX[prefix] : undefined
 }
 
 /**

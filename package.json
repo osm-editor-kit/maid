@@ -79,6 +79,7 @@
     "refs-serve-id": "bun tools/refs/id/serve.ts",
     "refs-serve-rapid": "bun tools/refs/rapid/serve.ts",
     "refs-setup": "bun tools/refs/id/setup.ts && bun tools/refs/rapid/setup.ts && bun tools/refs/copy-sprites.ts",
+    "sprites-subset": "bun tools/refs/subset-sprites.ts",
     "style-generate": "bun run --cwd packages/style generate",
     "test-run": "bun run i18n-compile && bun test",
     "type-check": "bun run i18n-compile && tsc -b packages/model && tsc --noEmit && tsc --noEmit -p packages/core/tsconfig.test.json"

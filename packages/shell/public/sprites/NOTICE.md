@@ -1,11 +1,15 @@
 # Icon sprites: origin and licences
 
-The SVG files in this folder are copies of the icon sprites that iD builds (`dist/img/*-sprite.svg`
-in the pinned iD checkout, `.reference/id`). They are byte-identical to that build. Maid reads them
-at run time for preset icons (`packages/shell/src/images.ts`, `PresetIcon.tsx`).
+The SVG files in this folder are cut from the icon sprites that iD builds (`dist/img/*-sprite.svg`
+in the pinned iD checkout, `.reference/id`). Each file keeps only the symbols of the icons that Maid
+can show, and the `<defs>` they use; the symbols are byte-identical to iD's. Maid reads them at run
+time for preset icons (`packages/shell/src/images.ts`, `PresetIcon.tsx`).
 
 `tools/refs/copy-sprites.ts` refreshes them. It runs after `bun run refs-setup` (or
-`bun tools/refs/id/setup.ts`) has built iD at the pinned commit. Do not edit the files by hand.
+`bun tools/refs/id/setup.ts`) has built iD at the pinned commit; it copies iD's full files to
+`.reference/sprites-full` and then runs `bun run sprites-subset` (`tools/refs/subset-sprites.ts`),
+which writes this folder. The list of icons is collected by `tools/refs/icon-names.ts`. Do not edit
+the files by hand.
 
 | File | Icon set | Upstream | Licence | Checked |
 | --- | --- | --- | --- | --- |
