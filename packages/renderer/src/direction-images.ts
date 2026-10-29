@@ -1,8 +1,6 @@
 /**
- * The images of the direction arrows and side markers, drawn in code (no image files). The side
- * markers are line patterns (layers.ts): one marker per image, the image as wide as the spacing and
- * as high as the layer's line-width. The arrows are symbol icons, as wide as the arrow (direction.ts).
- * Colours are not tinted, so every colour has its own image.
+ * The images of the direction arrows and side markers, drawn in code (no image files): symbol icons of one
+ * marker each (direction.ts). Colours are not tinted, so every colour has its own image.
  *
  * Imperative on purpose: MapLibre has no declarative way to give a style generated images, and
  * an image has to be in place before a tile is laid out, or the tile never shows it. This is the
@@ -22,12 +20,8 @@ import {
   SELECTED_ARROW_HEIGHT,
   SELECTED_ARROW_IMAGE,
   SELECTED_ARROW_PATTERN,
-  SIDE_HEIGHT,
-  SIDE_ICON_PREFIX,
   SIDE_IMAGE_PREFIX,
   SIDE_KINDS,
-  SIDE_NEAR_KINDS,
-  SIDE_SPACING,
   SIDE_UNIT,
   sideIconSize,
   type ArrowShape,
@@ -111,16 +105,17 @@ function keepoutImage() {
 }
 
 /**
- * A side marker in colour. Units run along the way (x) and to its right (y, down on screen when
- * the way runs east), with the line at the middle of the image.
+ * A side marker in colour, one marker in its icon. Units run along the way (x) and to its right (y),
+ * with the line at the middle of the image.
  */
-function sideImage(kind: SideKind, width = SIDE_SPACING, height = SIDE_HEIGHT, icon = false) {
+function sideImage(kind: SideKind) {
+  const { width, height } = sideIconSize(kind)
   const el = canvas(width, height)
   const ctx = el.getContext('2d')!
   const s = RATIO * SIDE_UNIT
-  // the line runs through the middle of the canvas, and the marker through the middle of its spacing. MapLibre
-  // lays an icon on a line with its top on the right-hand side, a pattern with its bottom there: the icon is mirrored.
-  ctx.setTransform(s, 0, 0, icon ? -s : s, (RATIO * width) / 2, (RATIO * height) / 2)
+  // the line runs through the middle of the canvas. MapLibre lays an icon on a line with its top on the right-hand
+  // side, so the marker is mirrored (units to the right are up)
+  ctx.setTransform(s, 0, 0, -s, (RATIO * width) / 2, (RATIO * height) / 2)
   ctx.fillStyle = kind.color
   ctx.strokeStyle = kind.stroke ?? 'transparent'
   ctx.lineWidth = 0.1
@@ -176,11 +171,6 @@ function imageFor(id: string) {
     image = selectedArrowImage(ARROW_SPACING)
   } else if (id === KEEPOUT_IMAGE) {
     image = keepoutImage()
-  } else if (id.startsWith(SIDE_ICON_PREFIX)) {
-    // the near kinds as symbol icons: one marker (direction.ts sideIconSize)
-    const spec = SIDE_KINDS[id.slice(SIDE_ICON_PREFIX.length)]
-    const size = spec && sideIconSize(spec)
-    if (spec && size) image = sideImage(spec, size.width, size.height, true)
   } else if (id.startsWith(SIDE_IMAGE_PREFIX)) {
     const spec = SIDE_KINDS[id.slice(SIDE_IMAGE_PREFIX.length)]
     if (spec) image = sideImage(spec)
@@ -197,7 +187,6 @@ function preloadIds() {
   for (const colour of ARROW_COLOURS)
     ids.push(arrowImageId(1, colour), arrowImageId(-1, colour), arrowImageId(2, colour))
   for (const kind of Object.keys(SIDE_KINDS)) ids.push(`${SIDE_IMAGE_PREFIX}${kind}`)
-  for (const kind of SIDE_NEAR_KINDS) ids.push(`${SIDE_ICON_PREFIX}${kind}`)
   ids.push(CONE_IMAGE)
   return ids
 }

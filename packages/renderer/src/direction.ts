@@ -147,20 +147,16 @@ export const SIDE_KINDS: Record<string, SideKind> = {
 }
 
 /**
- * The side markers are line patterns (layers.ts `line-pattern`): a pattern image is as wide as
- * the spacing (one marker per image) and as high as the layer's `line-width`, in CSS px.
- *
- * The arrows are symbols along the line (`symbol-placement: line`), one every ARROW_SPACING px,
- * so that MapLibre can drop the one that would cover a vertex: the nodes win, an arrow may go
- * (Tobias, 2026-10-28). They do not block each other or the labels (`icon-ignore-placement`).
- * An arrow image is as wide as the arrow. The spacings are iD's (svg/lines.js).
+ * The arrows and side markers are symbols along the line (`symbol-placement: line`), one every ARROW_SPACING or
+ * SIDE_SPACING px, so that MapLibre can drop the one that would cover a vertex: the nodes win, a marker may go
+ * (Tobias, 2026-10-28). They do not block each other or the labels (`icon-ignore-placement`). An image is one
+ * marker. The spacings are iD's (svg/lines.js).
  */
 export const ARROW_SPACING = 36
 export const ARROW_HEIGHT = 6
 /** iD's arrow is 10 x 5 units of 1.2 px; half a px more on each side for its outline */
 export const ARROW_WIDTH = 13
 export const SIDE_SPACING = 30
-export const SIDE_HEIGHT = 26
 
 /** The arrow's shape, from `oneway`: forward, against the way (mirrored), both ways */
 export type ArrowShape = 'forward' | 'backward' | 'both'
@@ -180,49 +176,42 @@ export const SELECTED_ARROW_HEIGHT = 8
 export const SELECTED_ARROW_PATTERN = 'maid-selected-arrow-pattern'
 /**
  * A transparent square on every drawn vertex (layers.ts `arrow-keepout-*`): it is never seen, but takes
- * its place in MapLibre's collision index, so no arrow is placed on a vertex.
+ * its place in MapLibre's collision index, so no arrow or side marker is placed on a vertex.
  */
 export const KEEPOUT_IMAGE = 'maid-keepout'
 export const KEEPOUT_SIZE = 8
 
+/**
+ * MapLibre does not turn a line icon's collision box with the line. This padding makes an arrow's box (ARROW_WIDTH
+ * by `height`) a square of ARROW_WIDTH + 2 px, which holds the arrow at every angle.
+ */
+export function arrowPadding(height: number): [number, number, number, number] {
+  const vertical = (ARROW_WIDTH + 2 - height) / 2
+  return [vertical, 1, vertical, 1]
+}
+
 /** One side-marker unit in px (iD: markerWidth 1.5 of a 6 px stroke, 2 units wide) */
 export const SIDE_UNIT = 4.5
-/** A vertex's radius with its outline at OSM 17 and up (layers.ts `vertex`), and a px to spare */
-const VERTEX_REACH = 5.5
 
-/** How far a kind's markers lie from the line, nearest and farthest edge, in units */
-function sideExtent(kind: SideKind) {
-  let inner = Infinity
-  let outer = 0
+/** How far a kind's markers reach from the line, in units */
+function sideReach(kind: SideKind) {
+  let reach = 0
   for (const shape of kind.shapes) {
-    const [a, b] = 'at' in shape ? [shape.at - 0.5, shape.at + 0.5] : [shape.base, shape.apex]
-    // a shape that crosses the line starts on it
-    inner = Math.min(inner, Math.sign(a) === Math.sign(b) ? Math.min(Math.abs(a), Math.abs(b)) : 0)
-    outer = Math.max(outer, Math.abs(a), Math.abs(b))
+    const edges = 'at' in shape ? [shape.at - 0.5, shape.at + 0.5] : [shape.base, shape.apex]
+    for (const edge of edges) reach = Math.max(reach, Math.abs(edge))
   }
-  return { inner, outer }
+  return reach
 }
 
 /**
- * The side kinds whose markers come so close to the line that they would cover a vertex on it (Tobias,
- * 2026-10-28: "wenn sie überlagern ja, sonst nein"). These are symbols that give way to the vertices, like the
- * arrows; the others (embankments, cuttings) stay line patterns that never drop a marker.
- */
-export const SIDE_NEAR_KINDS = Object.keys(SIDE_KINDS).filter(
-  (kind) => sideExtent(SIDE_KINDS[kind]!).inner * SIDE_UNIT < VERTEX_REACH,
-)
-
-/**
- * A near kind's icon (direction-images.ts) in px: one marker, 2 units along the line, and as high as the marker's
- * farthest edge on both sides, so the line runs through its middle. MapLibre does not turn a line icon's collision
- * box with the line: on a line across the screen the box is the marker's, on one up the screen it is longer along
- * the line than the marker. Either way it holds the marker where it meets a vertex on the line.
+ * A side marker's icon (direction-images.ts) in px: one marker, 2 units along the line, and as high as the marker's
+ * farthest edge on both sides, so the line runs through its middle. Its collision box is not turned with the line
+ * (arrowPadding): on a line across the screen it is the marker's, on one up the screen it is longer along the line
+ * than the marker. Either way it holds the marker where it meets a vertex on the line.
  */
 export function sideIconSize(kind: SideKind) {
-  return { width: 2 * SIDE_UNIT + 1, height: Math.ceil(2 * sideExtent(kind).outer * SIDE_UNIT + 1) }
+  return { width: 2 * SIDE_UNIT + 1, height: Math.ceil(2 * sideReach(kind) * SIDE_UNIT + 1) }
 }
-/** The near kinds' icons: `maid-side-icon-<kind>`. The patterns keep `maid-side-<kind>`. */
-export const SIDE_ICON_PREFIX = 'maid-side-icon-'
 
 /** The arrow image for a line's direction and colour. layers.ts builds the same id in an expression. */
 export function arrowImageId(oneway: OneWay, colour = ARROW_DEFAULT_COLOUR) {

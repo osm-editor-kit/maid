@@ -1,12 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import {
-  arrowColour,
-  onewayOf,
-  sidedOf,
-  SIDE_KINDS,
-  SIDE_NEAR_KINDS,
-  sideIconSize,
-} from './direction'
+import { arrowColour, onewayOf, sidedOf, SIDE_KINDS, arrowPadding, sideIconSize } from './direction'
 
 describe('onewayOf (iD isOneWay, isOneWayBackwards, isBiDirectional)', () => {
   test('oneway=yes goes along the way', () => {
@@ -136,13 +129,12 @@ describe('lifecycle prefixes on sided keys (iD sidednessIdentifier)', () => {
   })
 })
 
-describe('side markers near the line', () => {
-  test('the kinds whose markers reach a vertex on the line give way; embankments and cuttings do not', () => {
-    expect(SIDE_NEAR_KINDS).toContain('natural')
-    expect(SIDE_NEAR_KINDS).toContain('barrier')
-    expect(SIDE_NEAR_KINDS).toContain('guard_rail')
-    expect(SIDE_NEAR_KINDS).not.toContain('embankment')
-    expect(SIDE_NEAR_KINDS).not.toContain('cutting-left')
+describe('the collision boxes of the markers', () => {
+  test("an arrow's box is a square at either height, so it holds the arrow at every angle", () => {
+    for (const height of [6, 8]) {
+      const [top, right, bottom, left] = arrowPadding(height)
+      expect(13 + left + right).toBe(height + top + bottom)
+    }
   })
 
   test('an icon is one marker long and reaches as far as the marker on both sides of the line', () => {
