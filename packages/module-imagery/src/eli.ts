@@ -12,7 +12,7 @@ import type {
   RasterSourceSpec,
 } from '@osm-editor-kit/maplibre-editor-layer-index'
 import type { OamLayer } from '@osm-editor-kit/maplibre-editor-layer-index/oam'
-import { bestIds, type Coverage } from './coverage.ts'
+import { bestIds, coverageFromBoxes, type Coverage } from './coverage.ts'
 import { visibleAtZoom, type Listing, type View } from './helpers.ts'
 
 type Eli = typeof import('@osm-editor-kit/maplibre-editor-layer-index')
@@ -34,27 +34,32 @@ export function knownLayer(id: string): boolean {
 }
 
 /**
- * The best backgrounds that cover more than half of the view, in the order of the list (iD takes the first). A layer
- * whose coverage cannot be read does not count.
+ * The best backgrounds that cover more than half of the view, in the order of the list (iD takes the first). Judged
+ * by the boxes of the index, so no coverage is downloaded (coverage.ts).
  */
 export async function bestBackgrounds(items: readonly Listing[], view: View): Promise<string[]> {
-  const eli = await load()
+  await load()
   const candidates: { id: string; coverage: Coverage | undefined }[] = []
   for (const item of items) {
     if (!item.best || item.overlay) continue
-    try {
-      candidates.push({ id: item.id, coverage: await eli.getGeometry(item.id) })
-    } catch {
-      // no coverage: not counted as best
-    }
+    candidates.push({ id: item.id, coverage: boxesOf(item.id) })
   }
   return bestIds(candidates, view.bounds)
 }
 
-/** The coverage of a layer, `undefined` for a worldwide one. Throws when it cannot be read. */
+/**
+ * The coverage of a layer as the boxes of the index, `undefined` for a worldwide one or one the index does not know
+ * (as ELI's `getGeometry`). The polygons are not loaded: see coverage.ts.
+ */
 export async function coverageOf(id: string): Promise<Coverage | undefined> {
-  const eli = await load()
-  return eli.getGeometry(id)
+  await load()
+  return boxesOf(id)
+}
+
+function boxesOf(id: string): Coverage | undefined {
+  const row = loaded?.getLayer(id)
+  if (row === undefined || row.geometryId === 'world') return undefined
+  return coverageFromBoxes(row.bboxes)
 }
 
 /** The name of a layer as the index gives it, for the person to read: the id when the index does not know it */

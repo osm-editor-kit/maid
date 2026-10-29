@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { bestIds, coversMoreThanHalf, type Coverage } from './coverage.ts'
+import { bestIds, coverageFromBoxes, coversMoreThanHalf, type Coverage } from './coverage.ts'
 
 /** A rectangle of the coverage, as GeoJSON gives a polygon */
 function box(west: number, south: number, east: number, north: number): Coverage {
@@ -108,5 +108,27 @@ describe('bestIds: the best candidates that cover more than half, in their order
         VIEW,
       ),
     ).toEqual(['worldwide', 'large'])
+  })
+})
+
+describe('coverageFromBoxes', () => {
+  it('a box covers the view it holds, and not one beside it', () => {
+    const coverage = coverageFromBoxes([[13, 52, 14, 53]])
+    expect(coversMoreThanHalf(coverage, [13.2, 52.2, 13.4, 52.4])).toBe(true)
+    expect(coversMoreThanHalf(coverage, [15, 52.2, 15.2, 52.4])).toBe(false)
+  })
+
+  it('boxes far apart count by their part in the view', () => {
+    const coverage = coverageFromBoxes([
+      [-5, 41, 10, 51],
+      [55, -21.5, 56, -20.8],
+    ])
+    expect(coversMoreThanHalf(coverage, [2, 48, 3, 49])).toBe(true)
+    expect(coversMoreThanHalf(coverage, [55.2, -21.2, 55.4, -21])).toBe(true)
+    expect(coversMoreThanHalf(coverage, [20, 0, 21, 1])).toBe(false)
+  })
+
+  it('no boxes covers nothing', () => {
+    expect(coversMoreThanHalf(coverageFromBoxes([]), [0, 0, 1, 1])).toBe(false)
   })
 })

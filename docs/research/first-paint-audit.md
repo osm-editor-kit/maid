@@ -32,8 +32,8 @@ Then, with the map: the MapLibre worker (145 KB), four of them.
 
 ## Ranked by gain on a phone
 
-1. **Imagery coverage geometry, 568 KB**, on every first view. Quick part: skip the best-background search when the address names a background (`shown.ts`). The rest needs a decision: coverage from the bounding boxes already in the 79 KB index, or simplified geometry upstream (ELI is read-only for us: a draft in `docs/upstream/`).
-2. **Presets prefetch, 428 KB**: its own comment measured no gain in ready time. Skip it on slow or save-data connections, or drop it.
+1. **Imagery coverage geometry, 568 KB**, on every first view. Done: the best background is judged by the boxes already in the 79 KB index (`coverageFromBoxes` in `module-imagery/src/coverage.ts`, Tobias, 2026-10-29), and the search is skipped when the address names a background (`shown.ts`). No code loads the polygons any more.
+2. **Presets prefetch, 428 KB**: its own comment measured no gain in ready time. Done: only on fast connections without save-data (`apps/vite-presets-preload.ts`, Tobias, 2026-10-29).
 3. **Lazy panels preloaded when idle, 167 KB**: skip on touch devices, or preload only the Inspector.
 4. **Map after the top bar**: lazy-load `MapView`, so the top bar and the spinner's replacement come before MapLibre's 284 KB and its worker; preload the worker's URL. Two workers instead of four on phones (CPU, not measured).
 5. **Sprites cut to the icons the presets use**: 150 to 250 KB less (_inferred_).
