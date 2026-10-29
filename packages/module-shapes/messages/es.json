@@ -75,7 +75,16 @@
   "divide_area_range": "{smallest} a {largest} m²",
   "resize_label": "Cambiar tamaño",
   "resize_title": "Cambiar tamaño",
-  "resize_hint": "Arrastra una esquina o un borde. Intro o un clic fuera aplica, Escape cancela.",
+  "resize_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Arrastra una esquina o un borde. Toca Aplicar para cambiar el tamaño, o Cancelar para salir.",
+        "input=*": "Arrastra una esquina o un borde. Intro o un clic fuera aplica, Escape cancela."
+      }
+    }
+  ],
   "resize_hint_proportional": "Mantener proporciones",
   "resize_hint_centre": "Desde el centro",
   "resize_size": "{width} × {height} m",

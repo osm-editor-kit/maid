@@ -75,7 +75,16 @@
   "divide_area_range": "{smallest} à {largest} m²",
   "resize_label": "Redimensionner",
   "resize_title": "Redimensionner",
-  "resize_hint": "Faites glisser un coin ou un bord. Entrée ou un clic à côté applique, Échap annule.",
+  "resize_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Faites glisser un coin ou un bord. Touchez Appliquer pour redimensionner, ou Annuler pour arrêter.",
+        "input=*": "Faites glisser un coin ou un bord. Entrée ou un clic à côté applique, Échap annule."
+      }
+    }
+  ],
   "resize_hint_proportional": "Conserver les proportions",
   "resize_hint_centre": "Depuis le centre",
   "resize_size": "{width} × {height} m",

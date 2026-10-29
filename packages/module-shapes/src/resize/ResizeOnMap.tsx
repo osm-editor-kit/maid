@@ -2,6 +2,7 @@
 // the panel at the top centre with the size, the two toggles and Apply, which is DOM inside the map as Cut's panel is.
 // Registered on `map.content` (module.ts). It only draws what the store holds; the mode (mode.ts) changes the store, and
 // the data when the resize is kept.
+import { device } from '@osm-editor-kit/maid-i18n'
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { formatModifiers, isApplePlatform } from '@osm-editor-kit/maid-ui'
 import type { FeatureCollection } from 'geojson'
@@ -151,7 +152,9 @@ export function ResizeOnMap({ editor, engine }: MapContentProps) {
             {size} · {factor}
           </span>
         </div>
-        <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{m.resize_hint()}</p>
+        <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+          {m.resize_hint({ ...device() })}
+        </p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Toggle
             label={m.resize_hint_proportional()}

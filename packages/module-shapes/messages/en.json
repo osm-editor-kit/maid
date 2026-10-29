@@ -75,7 +75,16 @@
   "divide_area_range": "{smallest} to {largest} m²",
   "resize_label": "Resize",
   "resize_title": "Resize",
-  "resize_hint": "Drag a corner or an edge. Enter or a click outside applies, Escape cancels.",
+  "resize_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Drag a corner or an edge. Tap Apply to resize, or Cancel to stop.",
+        "input=*": "Drag a corner or an edge. Enter or a click outside applies, Escape cancels."
+      }
+    }
+  ],
   "resize_hint_proportional": "Keep proportions",
   "resize_hint_centre": "From the centre",
   "resize_size": "{width} × {height} m",
