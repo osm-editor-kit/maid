@@ -3,7 +3,11 @@
  * Paint values come from feature properties set by the builder (build.ts).
  */
 import { NEIGHBOUR_RANGE } from '@osm-editor-kit/maid-levels'
-import type { ExpressionSpecification, LayerSpecification } from 'maplibre-gl'
+import type {
+  ExpressionSpecification,
+  LayerSpecification,
+  SymbolLayerSpecification,
+} from 'maplibre-gl'
 import {
   ARROW_DEFAULT_COLOUR,
   ARROW_HEIGHT,
@@ -1015,14 +1019,44 @@ function buildMainLayers(options: LayerOptions) {
   )
 
   // --- Points ----------------------------------------------------------------
+  // The address plaque: one symbol whose icon stretches to the house number (see point-address below)
+  const plaqueLayout = {
+    'icon-image': ADDRESS_PLAQUE,
+    // upright on the screen when the map is turned or tilted: the plaque and its text
+    'icon-rotation-alignment': 'viewport',
+    'icon-pitch-alignment': 'viewport',
+    'text-rotation-alignment': 'viewport',
+    'text-pitch-alignment': 'viewport',
+    'icon-text-fit': 'both',
+    'icon-text-fit-padding': [2, 4, 2, 4],
+    'icon-anchor': 'center',
+    'text-field': ['get', 'addr'],
+    'text-font': ['Open Sans Semibold'],
+    'text-size': 10,
+    'text-anchor': 'center',
+  } satisfies SymbolLayerSpecification['layout']
+  const plaquePaint = {
+    'text-color': '#333',
+    'text-halo-color': 'rgba(255,255,255,0.7)',
+    'text-halo-width': 2.5,
+  } satisfies SymbolLayerSpecification['paint']
+  // drawn whatever is around it, and taking no room from the others
+  const drawnAlways = {
+    'icon-allow-overlap': true,
+    'icon-ignore-placement': true,
+    'text-allow-overlap': true,
+    'text-ignore-placement': true,
+  } as const
   // Hover and selection: a glow under the dot, as iD's shadow under a point (0.5 on hover, 0.7
-  // when selected). With icons a hovered or selected point is a pin with its own shadow (highlight-shadow-pin), so the
-  // glow is left to the addresses, whose dot has no pin.
+  // when selected). A hovered or selected pin (with icons) and address plaque have their own shadow
+  // (highlight-shadow-pin, highlight-shadow-plaque), so the glow is left to the other dots.
+  const plaque: ExpressionSpecification = ['all', ['has', 'addr'], ['!=', ['get', 'addr'], '']]
+  const noPlaque: ExpressionSpecification = ['!', plaque]
   layers.push({
     id: 'highlight-halo-points',
     type: 'circle',
     source: SOURCES.points,
-    ...(options.icons ? { filter: ['has', 'addr'] as ExpressionSpecification } : {}),
+    filter: options.icons ? ['all', ['has', 'addr'], noPlaque] : noPlaque,
     paint: { 'circle-radius': 9, 'circle-color': HOVER, 'circle-opacity': opacity },
   })
   layers.push({
@@ -1051,24 +1085,12 @@ function buildMainLayers(options: LayerOptions) {
     id: 'highlight-shadow-plaque',
     type: 'symbol',
     source: ACTIVE_SOURCE,
-    filter: ['all', ['has', 'addr'], ['!=', ['get', 'addr'], '']],
+    filter: plaque,
     layout: {
+      ...plaqueLayout,
       'icon-image': PLAQUE_SHADOW,
-      'icon-rotation-alignment': 'viewport',
-      'icon-pitch-alignment': 'viewport',
-      'text-rotation-alignment': 'viewport',
-      'text-pitch-alignment': 'viewport',
-      'icon-text-fit': 'both',
       'icon-text-fit-padding': [2 + SHADOW_PAD, 4 + SHADOW_PAD, 2 + SHADOW_PAD, 4 + SHADOW_PAD],
-      'icon-anchor': 'center',
-      'icon-allow-overlap': true,
-      'icon-ignore-placement': true,
-      'text-field': ['get', 'addr'],
-      'text-font': ['Open Sans Semibold'],
-      'text-size': 10,
-      'text-anchor': 'center',
-      'text-allow-overlap': true,
-      'text-ignore-placement': true,
+      ...drawnAlways,
     },
     paint: { 'icon-opacity': activeShadowOpacity, 'text-opacity': 0 },
   })
@@ -1095,31 +1117,25 @@ function buildMainLayers(options: LayerOptions) {
     id: 'point-address',
     type: 'symbol',
     source: SOURCES.points,
-    filter: ['all', ['has', 'addr'], ['!=', ['get', 'addr'], '']],
+    filter: plaque,
     layout: {
-      'icon-image': ADDRESS_PLAQUE,
-      // upright on the screen when the map is turned or tilted: the plaque and its text
-      'icon-rotation-alignment': 'viewport',
-      'icon-pitch-alignment': 'viewport',
-      'text-rotation-alignment': 'viewport',
-      'text-pitch-alignment': 'viewport',
-      'icon-text-fit': 'both',
-      'icon-text-fit-padding': [2, 4, 2, 4],
-      'icon-anchor': 'center',
+      ...plaqueLayout,
       // neither is optional: the icon and the text are placed together or not at all
       'icon-allow-overlap': false,
-      'text-field': ['get', 'addr'],
-      'text-font': ['Open Sans Semibold'],
-      'text-size': 10,
-      'text-anchor': 'center',
       'text-allow-overlap': false,
       'symbol-sort-key': 1,
     },
-    paint: {
-      'text-color': '#333',
-      'text-halo-color': 'rgba(255,255,255,0.7)',
-      'text-halo-width': 2.5,
-    },
+    paint: plaquePaint,
+  })
+  // The plaque of a hovered or selected address is always drawn, over the plaques around it, also where it gave way to
+  // a neighbour's: its shadow (highlight-shadow-plaque) always has a plaque in it. From the active source, as the pins.
+  layers.push({
+    id: 'active-point-address',
+    type: 'symbol',
+    source: ACTIVE_SOURCE,
+    filter: plaque,
+    layout: { ...plaqueLayout, ...drawnAlways },
+    paint: plaquePaint,
   })
   // As in iD the pin is the point: from PIN_ZOOM on every point is a pin, none is thinned out and
   // no dot is drawn under it. Further out, where pins would cover the map (iD hides all points

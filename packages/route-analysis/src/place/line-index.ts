@@ -1,10 +1,8 @@
-import { distance, nearestOnSegment } from '../geo.ts'
+import { distance, EARTH_RADIUS_M, nearestOnSegment, RAD } from '../geo.ts'
 import type { Chain, ChainStep, LonLat, RouteInput } from '../types.ts'
 
 /** Side of a grid cell, in metres */
 const CELL_M = 250
-const EARTH_RADIUS_M = 6371008.8
-const RAD = Math.PI / 180
 /** Offsets that keep grid keys positive; cells up to about 500,000 km from the origin */
 const KEY_OFFSET = 2 ** 21
 const KEY_STRIDE = 2 ** 22
@@ -127,8 +125,10 @@ function buildGrid(segments: Segment[], atOfNode: Map<string, number>): LineInde
       query++
       const px = p[0] * kx
       const py = p[1] * ky
-      const ix0 = Math.floor((px - radius) / CELL_M)
-      const ix1 = Math.floor((px + radius) / CELL_M)
+      // the grid's x is metres at lat0; at the point's latitude a metre east is more (or fewer) of them
+      const rx = radius * xStretch(kx, ky, p[1])
+      const ix0 = Math.floor((px - rx) / CELL_M)
+      const ix1 = Math.floor((px + rx) / CELL_M)
       const iy0 = Math.floor((py - radius) / CELL_M)
       const iy1 = Math.floor((py + radius) / CELL_M)
       let best: LineHit | undefined
@@ -156,4 +156,12 @@ function buildGrid(segments: Segment[], atOfNode: Map<string, number>): LineInde
 
 function cellKey(ix: number, iy: number): number {
   return (ix + KEY_OFFSET) * KEY_STRIDE + (iy + KEY_OFFSET)
+}
+
+/**
+ * Grid units of x per metre east at `lat`, for a grid whose x is `kx` (metres per degree of longitude at its own
+ * latitude). Above 1 north of that latitude on the northern half: the degrees of a metre grow as the meridians close.
+ */
+export function xStretch(kx: number, ky: number, lat: number): number {
+  return kx / (ky * Math.max(Math.cos(lat * RAD), 1e-6))
 }

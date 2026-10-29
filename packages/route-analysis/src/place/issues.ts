@@ -73,11 +73,15 @@ function gapIssues(input: RouteInput, chain: Chain): RouteIssue[] {
 /** Once, when the ways only join in another order: the main ways whose place differs from their place in the relation */
 function orderIssues(members: readonly MemberInfo[], chain: Chain): RouteIssue[] {
   if (chain.linear !== 'sorted') return []
-  const main = members.filter((m) => m.kind === 'main').map((m) => m.index)
-  const sortedPlace = new Map<number, number>(
-    chain.sortedOrder.map((idx, place) => [idx, place] as const),
+  // the line leaves out the other strand of a one-way pair and a way listed again: both orders are compared over the
+  // ways the line has, each at its first place, so a way left out shifts no other way's place
+  const sorted = [...new Set(chain.sortedOrder)]
+  const inLine = new Set(sorted)
+  const main = members.filter((m) => m.kind === 'main' && inLine.has(m.index)).map((m) => m.index)
+  const sortedPlace = new Map<number, number>(sorted.map((idx, place) => [idx, place] as const))
+  const moved = [...new Set(main)].filter(
+    (idx, relationPlace) => sortedPlace.get(idx) !== relationPlace,
   )
-  const moved = main.filter((idx, relationPlace) => sortedPlace.get(idx) !== relationPlace)
   if (moved.length === 0) return []
   return [{ code: 'order', severity: 'warning', members: moved, detail: { moved: moved.length } }]
 }

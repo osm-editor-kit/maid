@@ -506,6 +506,9 @@
     "packages/route-analysis": {
       "name": "@osm-editor-kit/maid-route-analysis",
       "version": "0.0.0",
+      "dependencies": {
+        "@osm-editor-kit/maid-routing": "workspace:*",
+      },
     },
     "packages/routing": {
       "name": "@osm-editor-kit/maid-routing",

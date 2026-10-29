@@ -30,14 +30,13 @@ export function routeInputOf(graph: Graph, relation: OsmRelation): RouteInput {
       for (const id of entity.nodes) position(id)
     } else if (entity instanceof OsmNode) position(member.id)
   }
-  for (const [wayId, nodeIds] of ways) {
+  for (const nodeIds of ways.values()) {
     for (const id of nodeIds) {
       if (outsideWays.has(id)) continue
       const node = graph.hasEntity(id)
       if (!node) continue
       let outside = 0
-      for (const parent of graph.parentWays(node))
-        if (!memberIds.has(parent.id) && parent.id !== wayId) outside++
+      for (const parent of graph.parentWays(node)) if (!memberIds.has(parent.id)) outside++
       outsideWays.set(id, outside)
     }
   }

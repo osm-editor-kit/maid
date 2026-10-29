@@ -18,6 +18,7 @@ tools/refs/*/smoke*.json
 reports/*.log
 reports/model-load-*.json
 reports/routing-bench.json
+reports/route-analysis-bench.json
 reports/validation-bench.json
 reports/renderer-build-bench.json
 reports/check-all-*

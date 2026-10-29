@@ -298,11 +298,27 @@ describe('the shadows of the hovered and selected pins and plaques (as iD)', () 
     }
   })
 
-  test('with icons the circle under a point is left to the addresses: a pin has its own shadow', () => {
-    expect(byId(buildLayers(options), 'highlight-halo-points').filter).toEqual(['has', 'addr'])
-    expect(
-      byId(buildLayers({ ...options, icons: false }), 'highlight-halo-points').filter,
-    ).toBeUndefined()
+  test('the circle under a point is left to the dots: a pin and a plaque have their own shadow', () => {
+    const plaque = ['all', ['has', 'addr'], ['!=', ['get', 'addr'], '']]
+    expect(byId(buildLayers(options), 'highlight-halo-points').filter).toEqual([
+      'all',
+      ['has', 'addr'],
+      ['!', plaque],
+    ])
+    expect(byId(buildLayers({ ...options, icons: false }), 'highlight-halo-points').filter).toEqual(
+      ['!', plaque],
+    )
+  })
+
+  test('a hovered or selected plaque is always drawn above the others, so its shadow is never empty', () => {
+    const layers = buildLayers(options)
+    const ids = layers.map((l) => l.id)
+    const active = byId(layers, 'active-point-address')
+    expect(active.source).toBe(ACTIVE_SOURCE)
+    expect(active.layout['icon-allow-overlap']).toBe(true)
+    expect(active.layout['text-allow-overlap']).toBe(true)
+    expect(active.layout['icon-image']).toBe(byId(layers, 'point-address').layout['icon-image'])
+    expect(ids.indexOf('active-point-address')).toBeGreaterThan(ids.indexOf('point-address'))
   })
 })
 

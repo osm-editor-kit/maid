@@ -121,10 +121,10 @@ export function RelationColumn({ id }: { id: EntityID }) {
   )
   useEffect(
     function scrollTheSelectedRowIntoView() {
+      // a click in the route overview keeps the diagram in view; the mark is taken on every change, also to nothing
+      const fromOverview = takeSelectedFromOverview(selected)
       const list = scroller.current
-      if (!selected || !list) return
-      // a click in the route overview keeps the diagram in view
-      if (takeSelectedFromOverview(selected)) return
+      if (!selected || !list || fromOverview) return
       const row = list.querySelector<HTMLElement>(`[data-row="${CSS.escape(selected)}"]`)
       if (!row) return
       // only the list scrolls: scrollIntoView would also scroll the page's frame, which hides its overflow

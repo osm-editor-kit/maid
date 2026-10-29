@@ -1,16 +1,13 @@
+import { EARTH_RADIUS_M, haversine } from '@osm-editor-kit/maid-routing'
 import type { LonLat } from './types.ts'
 
-/** Mean earth radius of the haversine formula, in metres (the same sphere as packages/routing) */
-const EARTH_RADIUS_M = 6371008.8
-const RAD = Math.PI / 180
+/** The router's sphere (packages/routing), so a route's length here is the router's */
+export { EARTH_RADIUS_M }
+export const RAD = Math.PI / 180
 
 /** Great-circle distance in metres */
 export function distance(a: LonLat, b: LonLat): number {
-  const dLat = (b[1] - a[1]) * RAD
-  const dLon = (b[0] - a[0]) * RAD
-  const h =
-    Math.sin(dLat / 2) ** 2 + Math.cos(a[1] * RAD) * Math.cos(b[1] * RAD) * Math.sin(dLon / 2) ** 2
-  return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(h)))
+  return haversine(a[0], a[1], b[0], b[1])
 }
 
 /**

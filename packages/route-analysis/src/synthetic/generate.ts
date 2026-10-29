@@ -1,12 +1,10 @@
-import { distance } from '../geo.ts'
+import { distance, EARTH_RADIUS_M, RAD } from '../geo.ts'
 import type { LonLat, RouteInput, RouteMember } from '../types.ts'
 import { at, seededRandom, type Random } from './random.ts'
 
 // A synthetic route for performance measurements and fuzz tests: no data is downloaded, the same seed gives the same
 // relation. The geometry is a local flat approximation, which is good for the few hundred kilometres a route spans.
 
-const EARTH_RADIUS_M = 6371008.8
-const RAD = Math.PI / 180
 const METRES_PER_DEG_LAT = EARTH_RADIUS_M * RAD
 const START: LonLat = [13.57, 52.44]
 
