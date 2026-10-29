@@ -42,6 +42,10 @@ export {
   displayOf,
   interactiveLayerIds,
   type MapDisplay,
+  PIN_SHADOW,
+  PLAQUE_SHADOW,
+  SHADOW_COLOUR,
+  SHADOW_PAD,
   SOURCES,
   type LayerOptions,
 } from './layers'

@@ -314,7 +314,50 @@ function joinAll(runs: readonly Run[]): Run[] | undefined {
       }
     }
   }
-  return undefined
+  // The greedy walk never backtracks, so it can leave a loop behind that a line through all runs takes in the middle.
+  // The runs are connected with at most two odd ends, so such a line exists: Hierholzer's walk finds it.
+  const order = eulerPath(runs, adj)
+  return order?.map(({ run, flip }) => (flip ? reverseRun(run) : run))
+}
+
+/**
+ * A line through every run once (Hierholzer's algorithm over the runs as edges between their end nodes), starting at
+ * an odd end when there is one, preferring the ends of the first run. Undefined if the runs do not form one.
+ */
+function eulerPath(
+  runs: readonly Run[],
+  adj: ReadonlyMap<string, readonly number[]>,
+): Oriented[] | undefined {
+  const first = runs[0]
+  if (!first) return undefined
+  const isOdd = (node: string) => (adj.get(node)?.length ?? 0) % 2 === 1
+  let startNode = first.start
+  if (!isOdd(startNode)) {
+    if (isOdd(first.end)) startNode = first.end
+    else for (const node of adj.keys()) if (isOdd(node)) { startNode = node; break } // prettier-ignore
+  }
+  const used = new Uint8Array(runs.length)
+  const cursor = new Map<string, number>()
+  const stack: { node: string; step?: Oriented }[] = [{ node: startNode }]
+  const path: Oriented[] = []
+  while (stack.length > 0) {
+    const top = stack[stack.length - 1]!
+    const list = adj.get(top.node) ?? []
+    let c = cursor.get(top.node) ?? 0
+    while (c < list.length && used[list[c]!] === 1) c++
+    cursor.set(top.node, c)
+    const j = list[c]
+    const run = j === undefined ? undefined : runs[j]
+    if (j !== undefined && run) {
+      used[j] = 1
+      const forward = run.start === top.node
+      stack.push({ node: forward ? run.end : run.start, step: { run, flip: !forward } })
+    } else {
+      stack.pop()
+      if (top.step) path.push(top.step)
+    }
+  }
+  return path.length === runs.length ? path.reverse() : undefined
 }
 
 /** Adds the metres from the start of the line to each step and each piece. Gaps add nothing. */

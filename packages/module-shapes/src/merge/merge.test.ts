@@ -398,7 +398,7 @@ describe('merge areas: tags and relations', () => {
     expect(outcomeOf(base, ['w1', 'w2'])).toBe('conflicting_tags')
   })
 
-  it('an untagged area merges into a tagged one: the tagged way survives with its tags, even when it is newer', () => {
+  it('an untagged area merges with a tagged one: the older way survives, as in iD, and takes the tags', () => {
     const base = graphOf(
       ...square('a', 0, 0, 10),
       ...square('b', 7, 7, 10),
@@ -406,8 +406,20 @@ describe('merge areas: tags and relations', () => {
       ring('w2', ['nb1', 'nb2', 'nb3', 'nb4'], { amenity: 'parking' }),
     )
     const result = mergeOf(base, ['w1', 'w2'])
-    expect(result.hasEntity('w1')).toBeUndefined()
-    expect((result.entity('w2') as OsmWay).tags).toEqual({ amenity: 'parking' })
+    expect(result.hasEntity('w2')).toBeUndefined()
+    expect((result.entity('w1') as OsmWay).tags).toEqual({ amenity: 'parking' })
+  })
+
+  it('a new outline drawn over an old untagged area keeps the old way and its history', () => {
+    const base = graphOf(
+      ...square('a', 0, 0, 10),
+      ...square('b', 7, 7, 10),
+      ring('w123', ['na1', 'na2', 'na3', 'na4'], {}),
+      ring('w-1', ['nb1', 'nb2', 'nb3', 'nb4'], { building: 'yes' }),
+    )
+    const result = mergeOf(base, ['w-1', 'w123'])
+    expect(result.hasEntity('w-1')).toBeUndefined()
+    expect((result.entity('w123') as OsmWay).tags).toEqual({ building: 'yes' })
   })
 
   it('an area with only area=yes counts as untagged and merges into a tagged one', () => {

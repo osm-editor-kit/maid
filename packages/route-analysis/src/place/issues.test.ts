@@ -90,6 +90,23 @@ describe('collectIssues', () => {
     expect(order[0]?.detail).toEqual({ moved: 2 })
   })
 
+  it('compares the order over the ways the line has: the other strand of a one-way pair shifts nothing', () => {
+    const input = lineWith({
+      members: [
+        member('way', 'w0'),
+        member('way', 'w1', 'forward'),
+        member('way', 'wb', 'backward'),
+        member('way', 'w2'),
+        member('way', 'w3'),
+      ],
+      ways: { wb: ['n2', 'n1'] },
+    })
+    // the line takes w0, w1, then w3 before w2: members 3 and 4 are swapped, the strand wb (2) is not on it
+    const order = byCode(analyse(input, [[0, 1, 4, 3]], 'sorted', [0, 1, 4, 3]), 'order')
+    expect(order[0]?.members).toEqual([3, 4])
+    expect(order[0]?.detail).toEqual({ moved: 2 })
+  })
+
   it('reports no order problem when the ways join in relation order', () => {
     const input = lineWith({})
     expect(byCode(analyse(input, [[0, 1, 2, 3]], 'yes'), 'order')).toEqual([])

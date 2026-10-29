@@ -1,19 +1,31 @@
-import { ADDRESS_PLAQUE } from '@osm-editor-kit/maid-renderer'
+import {
+  ADDRESS_PLAQUE,
+  PIN_SHADOW,
+  PLAQUE_SHADOW,
+  SHADOW_COLOUR,
+  SHADOW_PAD,
+} from '@osm-editor-kit/maid-renderer'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import { SPRITE_OF_PREFIX, spriteOf } from './sprite-sets'
 import { appUrl } from './url/public-url'
 
 export { SPRITE_OF_PREFIX, spriteOf }
 
-/** A marker image as its id names it: `pin-<preset icon>` (`pin-none` is the empty pin), `icon-<preset icon>`, the plaque */
+/**
+ * A marker image as its id names it: `pin-<preset icon>` (`pin-none` is the empty pin), `icon-<preset icon>`, the plaque,
+ * and the shadows of a hovered or selected pin and plaque
+ */
 export type MarkerImage =
   | { kind: 'pin'; icon: string }
   | { kind: 'icon'; icon: string }
   | { kind: 'plaque' }
+  | { kind: 'shadow'; of: 'pin' | 'plaque' }
 
 /** Reads a marker image id. Any other id (the direction arrows, the parking arrow) is not a marker: undefined. */
 export function parseMarkerImage(id: string): MarkerImage | undefined {
   if (id === ADDRESS_PLAQUE) return { kind: 'plaque' }
+  if (id === PIN_SHADOW) return { kind: 'shadow', of: 'pin' }
+  if (id === PLAQUE_SHADOW) return { kind: 'shadow', of: 'plaque' }
   if (id.startsWith('pin-')) return { kind: 'pin', icon: id.slice(4) }
   if (id.startsWith('icon-')) return { kind: 'icon', icon: id.slice(5) }
   return undefined
@@ -159,6 +171,26 @@ async function makePin(icon: string, ratio: number, limitMs: number): Promise<Ma
   }
 }
 
+/**
+ * The shadow of a hovered or selected pin (PIN_SHADOW), as iD draws it: the pin's outline stroked twice SHADOW_PAD wide
+ * and filled, in one colour. The layer sets its opacity. The image is the pin's, grown by SHADOW_PAD on each side.
+ */
+function makePinShadow(ratio: number): Made {
+  const [w, h] = [PIN_W + 2 * SHADOW_PAD, PIN_H + 2 * SHADOW_PAD]
+  const ctx = scratchContext(w * ratio, h * ratio)
+  ctx.scale(ratio, ratio)
+  // where makePin draws the pin, moved in by the pad
+  ctx.translate(1 + SHADOW_PAD, 1.5 + SHADOW_PAD)
+  const path = new Path2D(PIN)
+  ctx.fillStyle = SHADOW_COLOUR
+  ctx.strokeStyle = SHADOW_COLOUR
+  ctx.lineWidth = 2 * SHADOW_PAD
+  ctx.lineJoin = 'round'
+  ctx.fill(path)
+  ctx.stroke(path)
+  return { data: ctx.getImageData(0, 0, w * ratio, h * ratio), pixelRatio: ratio }
+}
+
 /** `icon-<preset icon>`: the bare icon, for tagged vertices */
 async function makeBareIcon(
   icon: string,
@@ -208,12 +240,37 @@ function makePlaque(ratio: number): Made {
   }
 }
 
+/**
+ * The shadow of a hovered or selected address plaque (PLAQUE_SHADOW): a box in one colour with round ends, which the
+ * layer stretches around the plaque as it stretches the plaque. Rounder than the plaque, as a 16 px stroke around it is.
+ */
+const PLAQUE_SHADOW_R = PLAQUE_R + SHADOW_PAD
+const PLAQUE_SHADOW_W = 2 * PLAQUE_SHADOW_R + 4
+function makePlaqueShadow(ratio: number): Made {
+  const [w, h, r] = [PLAQUE_SHADOW_W, 2 * PLAQUE_SHADOW_R + 2, PLAQUE_SHADOW_R]
+  const ctx = scratchContext(w * ratio, h * ratio)
+  ctx.scale(ratio, ratio)
+  ctx.beginPath()
+  ctx.roundRect(0, 0, w, h, r)
+  ctx.fillStyle = SHADOW_COLOUR
+  ctx.fill()
+  return {
+    data: ctx.getImageData(0, 0, w * ratio, h * ratio),
+    pixelRatio: ratio,
+    // MapLibre reads the stretch zones in image pixels: the logical ones times the ratio
+    stretchX: [[r * ratio, (w - r) * ratio]],
+    stretchY: [[r * ratio, (h - r) * ratio]],
+  }
+}
+
 async function makeMarker(
   marker: MarkerImage,
   ratio: number,
   limitMs: number,
 ): Promise<Made | undefined> {
   if (marker.kind === 'plaque') return makePlaque(ratio)
+  if (marker.kind === 'shadow')
+    return marker.of === 'pin' ? makePinShadow(ratio) : makePlaqueShadow(ratio)
   if (marker.kind === 'pin') return makePin(marker.icon, ratio, limitMs)
   return makeBareIcon(marker.icon, ratio, limitMs)
 }
