@@ -29,6 +29,13 @@ body,
   height: 100%;
 }
 
+/* An app, not a page, on a phone: the viewport's maximum-scale=1 (index.html) keeps iOS from zooming into a field
+   under 16px when it gets the focus, and the page itself never zooms by a double tap. The map pinches and
+   double-taps on its own canvas (MapLibre sets the canvas's touch-action). */
+html {
+  touch-action: manipulation;
+}
+
 body {
   @apply bg-white font-sans text-sm text-zinc-950 antialiased dark:bg-zinc-900 dark:text-white;
 }
