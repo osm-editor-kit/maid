@@ -127,7 +127,7 @@ export const LIMITED =
 export const LABEL = 'min-w-0 truncate text-sm text-zinc-700 dark:text-zinc-300'
 /** A small icon button in a row's label bar (revert, remove, add a language). */
 export const ROW_BUTTON =
-  'grid size-5 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white'
+  'grid size-5 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 active:bg-zinc-950/10 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white dark:active:bg-white/15'
 export const HINT = 'min-w-0 truncate text-xs text-zinc-500 dark:text-zinc-400'
 
 /**

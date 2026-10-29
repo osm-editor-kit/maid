@@ -14,8 +14,13 @@ Maid checked against the FMC skill `touch-ipad-review` (its checklist `reference
 | Type picker inside the sheet on a phone                 | `packages/ui/src/Sidebar.tsx` (`SidebarHeader`)                                                                             |
 | The sheet opens only by its button                      | `packages/shell/src/App.tsx`, `packages/ui/src/Shell.tsx` (button 56 px)                                                    |
 | The dock is a bottom sheet with a grab row on a phone   | `packages/ui/src/Dock.tsx`                                                                                                  |
+| Hover-only actions shown on touch (custom background, relation member, favourites order, member handle) | `pointer-coarse:opacity-100` in each |
+| Context menu rows 44 px on touch | `packages/ui/src/ContextMenu.tsx` (`TOUCH_ROW`) |
 | Disabled button no longer bends a group's divider       | `packages/ui/src/Tooltip.tsx` (`DISABLED_WRAP`), `Toolbar.tsx` (`JOINED`)                                                   |
 | Move handle for the selected feature on touch (as react-map-gl-draw's) | `packages/shell/src/components/MoveHandle.tsx`, `move-handle.ts`; `bun run check-move-handle` |
+| Press feedback: `active:` colours on tool buttons, icon buttons, list and menu rows; no text selection or callout on a long press | `Toolbar.tsx` (`toolButtonTone`, `TAP`), `icon-button.ts`, `inspector/listbox.ts`, `ContextMenu.tsx` |
+| Why a menu command is disabled: a second line under the row on touch | `packages/ui/src/ContextMenu.tsx` |
+| The sheet sits above the on-screen keyboard and scrolls a focused field into view (_inferred_: no keyboard in Chromium) | `packages/ui/src/BottomSheet.tsx` (`coveredBottom`) |
 | A spinner before the code has loaded                    | `apps/*/index.html`                                                                                                         |
 | `calc(2rem+env(…))` without spaces around `+`           | `packages/ui/src/Shell.tsx`: written `calc(2rem_+_env(…))`                                                                  |
 
@@ -23,24 +28,20 @@ Maid checked against the FMC skill `touch-ipad-review` (its checklist `reference
 
 Ranked by how much they hurt on a phone.
 
-1. **Actions that only appear on hover** are invisible on touch but still tappable, so a blind tap can delete: custom background Edit/Delete (`packages/module-imagery/src/ImageryPanel.tsx:469`), remove relation member (`packages/shell/src/modules/relations-column.tsx:582`), favourite move up/down (`packages/ui/src/inspector/PresetPicker.tsx:347`), member drag handle (`relations-reorder.tsx:165`). Fix: `pointer-coarse:opacity-100`, or the existing `REVEAL` class (`packages/ui/src/inspector/fields/shared.ts`).
-2. **Context menu rows are 28 px** (`packages/ui/src/ContextMenu.tsx`, `ROW = 28`, also used for placement in JS). It holds Delete and Merge and opens on a long press. Fix: 44 px rows on coarse pointers, `ROW` read from the same media query.
-3. **The keyboard covers fields in the bottom sheet** (_inferred_): no `visualViewport` handling, no scroll into view on focus (`packages/ui/src/BottomSheet.tsx`). Fix: on `focusin` scroll the field into view; better, size the sheet from `visualViewport.height`.
-4. **Small targets without a coarse size**: the inspector's 28 to 32 px fields and buttons (`FRAME`, `ICON_BUTTON`, `Radio`, `Link`, `AddField`), 20 to 24 px icon buttons (`ROW_BUTTON`, info, toast close, sign rows), turn chips of 24 px (`JunctionDiagram.tsx:232`), the 8 px resize handle. Toolbar and map controls grow to 40 px on touch, not 44. Fix: `pointer-coarse:size-11` where the layout allows, else a larger hit area with `before:absolute before:-inset-3`.
-5. **No press feedback**: there is no `active:` style anywhere; hover never fires on touch, so a tap shows nothing. Fix: `active:` colours in `toolButtonTone`, `ICON_BUTTON` and the list rows; `-webkit-tap-highlight-color: transparent` with it.
-6. **Why a command is disabled** is only in `title` (`ContextMenu.tsx`), which a touch device never shows. Fix: the reason as small text under the row.
-7. **Height of the page** (_inferred_): `height: 100%`, no measured `--app-height`; Chrome and Firefox on iOS do not follow `dvh`. Fix per checklist 4b once a device shows the strip or the jump.
-8. **Safe areas**: without `viewport-fit=cover` every `env(safe-area-inset-*)` is 0, so the code's insets do nothing. Decide: stay inside the safe area and drop them, or add `viewport-fit=cover` and pad the floating controls.
+1. **Small targets without a coarse size**: the inspector's 28 to 32 px fields and buttons (`FRAME`, `ICON_BUTTON`, `Radio`, `Link`, `AddField`), 20 to 24 px icon buttons (`ROW_BUTTON`, info, toast close, sign rows), turn chips of 24 px (`JunctionDiagram.tsx:232`), the 8 px resize handle. Toolbar and map controls grow to 40 px on touch, not 44. Fix: `pointer-coarse:size-11` where the layout allows, else a larger hit area with `before:absolute before:-inset-3`.
+2. **Height of the page** (_inferred_): `height: 100%`, no measured `--app-height`; Chrome and Firefox on iOS do not follow `dvh`. Fix per checklist 4b once a device shows the strip or the jump.
+3. **Safe areas**: without `viewport-fit=cover` every `env(safe-area-inset-*)` is 0, so the code's insets do nothing. Decide: stay inside the safe area and drop them, or add `viewport-fit=cover` and pad the floating controls.
 
 ## Open: smaller
 
 - Press and drag in lists highlights nothing (rows highlight on hover and on the keyboard's index only): `onPointerMove` sets the active row.
-- `select-none` and `-webkit-touch-callout: none` on buttons once in `styles.css`, so a long press on a label selects no text.
+- `select-none` and `-webkit-touch-callout: none` are on the tool, menu and radio buttons (`TAP`); a global rule in `styles.css` would cover the modules' buttons too.
 - `overscroll-contain` on the dock, the flyouts and the search results; `max-h-[60vh]` in search and the route overview counts the large viewport on iOS.
-- Toasts at the top right cover Save and the account on a phone: bottom centre below `sm`.
 - `a[href]` has no pointer cursor (desktop only).
 
 ## Checked and fine
+
+- Toasts on a phone: full width below the top bar and the zoom buttons (`MOBILE_OFFSET` in `Toast.tsx`), so they cover neither Save nor the sheet.
 
 - Tailwind 4 puts `hover:` inside `@media (hover: hover)`, so hover styles do not stick after a tap.
 - No Headless UI or Radix: every list is our own (bucket B of the checklist).
