@@ -13,9 +13,36 @@
   "topbar_point": "Point",
   "topbar_line": "Line",
   "topbar_area": "Area",
-  "topbar_add_point_hint": "Add a point: click the map to place it",
-  "topbar_draw_line_hint": "Draw a line: click for every node, Enter or a click on the last node finishes",
-  "topbar_draw_area_hint": "Draw an area: click for every node, Enter or a click on the first node finishes",
+  "topbar_add_point_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Add a point: tap the map to place it",
+        "input=*": "Add a point: click the map to place it"
+      }
+    }
+  ],
+  "topbar_draw_line_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Draw a line: tap for every node, tap the last node to finish",
+        "input=*": "Draw a line: click for every node, Enter or a click on the last node finishes"
+      }
+    }
+  ],
+  "topbar_draw_area_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Draw an area: tap for every node, tap the first node to finish",
+        "input=*": "Draw an area: click for every node, Enter or a click on the first node finishes"
+      }
+    }
+  ],
   "topbar_more_area_tools": "More area tools",
   "topbar_undo": "Undo: {change}",
   "topbar_redo": "Redo: {change}",
@@ -41,28 +68,81 @@
   "picker_favourites": "Favourites",
   "picker_favourites_expand": "Show all your favourites",
   "picker_favourites_collapse": "Hide your favourites",
-  "picker_favourite_start_hint": "Hold {key} and type {number} to start {name}",
+  "picker_favourite_start_hint": [
+    {
+      "declarations": ["input input", "input key", "input name", "input number"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Start {name}",
+        "input=*": "Hold {key} and type {number} to start {name}"
+      }
+    }
+  ],
   "picker_favourite_only_as": "Only as {geometry}",
   "favourite_add_as": "Add {name} as {geometry}",
   "favourite_remove": "Remove {name} from favourites",
   "favourite_add": "Add {name} to favourites",
   "favourites_button": "Favourites",
-  "favourites_button_hint": "Favourites: hold {key} and type a number to start one",
-  "favourites_intro": "Hold {key} and type a number to start a favourite. Numbers 1–3 are the point, line and area keys.",
+  "favourites_button_hint": [
+    {
+      "declarations": ["input input", "input key"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Favourites",
+        "input=*": "Favourites: hold {key} and type a number to start one"
+      }
+    }
+  ],
+  "favourites_intro": [
+    {
+      "declarations": ["input input", "input key"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tap a favourite to start it.",
+        "input=*": "Hold {key} and type a number to start a favourite. Numbers 1–3 are the point, line and area keys."
+      }
+    }
+  ],
   "favourites_empty": "You have no favourites yet. Add one with the star next to a feature type in the type search.",
   "sidebar_empty_title": "Nothing selected",
-  "sidebar_empty_hint": "Click a feature on the map to see and edit its tags.",
+  "sidebar_empty_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tap a feature on the map to see and edit its tags.",
+        "input=*": "Click a feature on the map to see and edit its tags."
+      }
+    }
+  ],
   "rotate_point_description": "Adjust this point's numeric direction tag.",
-  "direction_rotate_hint": "Press {key} to adjust this value on the map.",
+  "direction_rotate_hint": [
+    {
+      "declarations": ["input input", "input key"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tap Rotate to adjust this value on the map.",
+        "input=*": "Press {key} to adjust this value on the map."
+      }
+    }
+  ],
   "directional_side_left": "Left",
   "directional_side_right": "Right",
   "directional_unused_hint": "Not used when {field} is {value}",
   "search_button": "Search",
-  "search_button_title": "Search (Ctrl+F or Cmd+F)",
   "search_panel_label": "Search",
   "search_input_label": "Search for coordinates, an OSM id, a name on the map or a place",
   "search_placeholder": "52.5, 13.4 · w123 · a name · a place",
-  "search_hint": "Type coordinates such as 52.5, 13.4 or 17/52.5/13.4, an OSM id such as w123, a link to the map, or a name on the map. Press Enter to search places.",
+  "search_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Type coordinates such as 52.5, 13.4 or 17/52.5/13.4, an OSM id such as w123, a link to the map, or a name on the map. Tap the return key to search places.",
+        "input=*": "Type coordinates such as 52.5, 13.4 or 17/52.5/13.4, an OSM id such as w123, a link to the map, or a name on the map. Press Enter to search places."
+      }
+    }
+  ],
   "search_group_position": "Position",
   "search_group_object": "OSM object",
   "search_group_loaded": "In the loaded data",
@@ -73,7 +153,16 @@
   "search_object_not_loaded_hint": "Move the map to it first",
   "search_places_action": "Search places",
   "search_places_off": "Off in automated runs",
-  "search_places_enter_hint": "Press Enter to search",
+  "search_places_enter_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tap to search",
+        "input=*": "Press Enter to search"
+      }
+    }
+  ],
   "search_places_loading": "Searching places…",
   "search_places_failed": "The place search failed. Try again.",
   "search_places_none": "No places found",
@@ -83,7 +172,16 @@
   "search_follow_background": "Not following: the map was moved",
   "search_follow_error": "Your location could not be found",
   "turn_restrictions_title": "Turn restrictions",
-  "turn_restrictions_help_click": "Click a turn to change it: allowed, no turn, or only this turn.",
+  "turn_restrictions_help_click": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tap a turn to change it: allowed, no turn, or only this turn.",
+        "input=*": "Click a turn to change it: allowed, no turn, or only this turn."
+      }
+    }
+  ],
   "turn_restrictions_distance_label": "Search distance",
   "turn_restrictions_distance_tip": "How far from the junction the search for connected roads goes.",
   "turn_restrictions_via_label": "Via ways",
@@ -102,7 +200,16 @@
   "turn_restrictions_state_no": "No {turn}",
   "turn_restrictions_state_only": "Only {turn}",
   "turn_restrictions_state_allowed": "{turn} allowed",
-  "turn_restrictions_hint": "{state}. Click for: {next}",
+  "turn_restrictions_hint": [
+    {
+      "declarations": ["input input", "input next", "input state"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "{state}. Tap for: {next}",
+        "input=*": "{state}. Click for: {next}"
+      }
+    }
+  ],
   "turn_restrictions_badge_only": "ONLY",
   "turn_restrictions_indirect_hint": "Indirect: caused by a nearby restriction. Change the direct restriction next to it.",
   "turn_restrictions_aria_turn": "Turn from {from} to {to}: {state}",
@@ -225,7 +332,16 @@
   "traffic_sign_empty": "No signs yet. Search below by name or sign ID to add one.",
   "traffic_sign_add_placeholder": "Add sign…",
   "traffic_sign_search_label": "Search traffic signs",
-  "traffic_sign_no_results": "No sign matches. Press Enter to add the text as it is.",
+  "traffic_sign_no_results": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "No sign matches. Tap the return key to add the text as it is.",
+        "input=*": "No sign matches. Press Enter to add the text as it is."
+      }
+    }
+  ],
   "traffic_sign_more_results": "{count} more, keep typing to narrow down",
   "traffic_sign_no_sign": "No sign",
   "traffic_sign_unknown": "Unknown sign",
@@ -337,5 +453,36 @@
   "route_overview_issue_empty_text": "No main way of this route is loaded, so there is no line to draw.",
   "route_overview_issue_empty_todo": "Load the members with the download button in the member list.",
   "route_overview_severity_warning": "warning",
-  "route_overview_severity_info": "note"
+  "route_overview_severity_info": "note",
+  "map_measure_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tap two points to measure.",
+        "input=*": "Click two points to measure. Escape cancels."
+      }
+    }
+  ],
+  "map_stack_label": "Features at this place",
+  "map_stack_description": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tap to list them.",
+        "input=*": "Click to list them. , takes the previous one and . the next one."
+      }
+    }
+  ],
+  "map_reset_north": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Reset north",
+        "input=*": "Reset north (N)"
+      }
+    }
+  ]
 }

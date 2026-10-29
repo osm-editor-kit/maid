@@ -1,13 +1,18 @@
-import { EyeIcon, EyeSlashIcon, PencilIcon } from '@heroicons/react/16/solid'
+import { EyeSlashIcon, PencilIcon } from '@heroicons/react/16/solid'
 import type { Filter, FilterState } from '@osm-editor-kit/maid-filters'
 import { twJoin } from 'tailwind-merge'
+import { PencilSlashIcon } from './PencilSlashIcon.tsx'
 import { SegmentedControl } from './Toolbar.tsx'
 
-type Option = { state: FilterState; label: string; Icon: typeof PencilIcon }
+type Option = {
+  state: FilterState
+  label: string
+  Icon: (props: React.SVGProps<SVGSVGElement>) => React.ReactNode
+}
 
 const OPTIONS: readonly Option[] = [
   { state: 'editable', label: 'Editable', Icon: PencilIcon },
-  { state: 'readonly', label: 'Read-only', Icon: EyeIcon },
+  { state: 'readonly', label: 'Read-only', Icon: PencilSlashIcon },
   { state: 'hidden', label: 'Hidden', Icon: EyeSlashIcon },
 ]
 

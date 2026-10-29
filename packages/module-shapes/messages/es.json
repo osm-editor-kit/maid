@@ -7,7 +7,16 @@
   "divide_rows": "Filas",
   "divide_count": "{count} partes",
   "divide_count_one": "1 parte",
-  "divide_hint": "+ y - cambian las columnas, con Mayús las filas. Intro aplica, Escape cancela.",
+  "divide_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Cambia las columnas y las filas en los campos. Toca Aplicar para dividir el área, o Cancelar para salir.",
+        "input=*": "+ y - cambian las columnas, con Mayús las filas. Intro aplica, Escape cancela."
+      }
+    }
+  ],
   "divide_apply": "Aplicar",
   "divide_cancel": "Cancelar",
   "divide_annotation": "Área dividida en {count} partes",
@@ -34,7 +43,16 @@
   "cut_label": "Cortar",
   "cut_annotation": "Área cortada en dos",
   "cut_title": "Cortar el área",
-  "cut_hint": "Arrastra un punto o un punto medio, o haz clic para mover el extremo más cercano. Intro corta, Escape cancela.",
+  "cut_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Arrastra un punto o un punto medio, o toca para mover el extremo más cercano. Toca Aplicar para cortar.",
+        "input=*": "Arrastra un punto o un punto medio, o haz clic para mover el extremo más cercano. Intro corta, Escape cancela."
+      }
+    }
+  ],
   "cut_apply": "Aplicar",
   "cut_no_outline": "Este multipolígono no tiene contorno que cortar.",
   "cut_refusal_not_area": "Solo se puede cortar un camino cerrado que sea un área.",

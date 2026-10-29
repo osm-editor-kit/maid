@@ -53,7 +53,7 @@ export type Operation = {
   id: string
   label: string
   /**
-   * Its icon in the edit menu and the command bar: a name in iD's sprites (`fas-arrow-right`, `temaki-…`). iD's own
+   * Its icon in the edit menu and the command bar: a name in iD's sprites (`fas-th`, `temaki-…`). iD's own
    * operations need none (the shell knows their icons by id); a module's operation without one shows an empty square.
    */
   icon?: string

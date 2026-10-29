@@ -152,16 +152,16 @@ process.exit(
       [(await wayOf(idA))?.tags, (await wayOf(idB))?.tags],
     )
 
-    // --- an untagged area and a tagged one: they merge, the tagged one survives with its tags ---
+    // --- an untagged area and a tagged one: they merge, the older way survives (iD's survivor) with the tags ---
     await page.evaluate((id) => {
       window.__maid.engine.changeTags([id], { set: { building: 'house' } }, 'Setup')
     }, idB)
     await selectBoth()
     await key('c')
     report(
-      'C with one untagged area: the tagged area survives, selected, with its tags',
-      [[idB], null, 'house'],
-      [await selection(), await wayOf(idA), (await wayOf(idB))?.tags.building],
+      "C with one untagged area: the older area survives, selected, with the other one's tags",
+      [[idA], null, 'house'],
+      [await selection(), await wayOf(idB), (await wayOf(idA))?.tags.building],
     )
     await key('Meta+z')
     await key('Meta+z')

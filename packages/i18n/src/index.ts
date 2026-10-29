@@ -10,3 +10,15 @@ export { setLocale } from './strategy.ts'
 export { getLocale, locales } from '../paraglide/runtime.js'
 export { linkModuleLocale } from './module.ts'
 export { mapLibreLocale } from './maplibre.ts'
+export {
+  DEFAULT_DEVICE,
+  DEVICE_INPUTS,
+  DEVICE_OSES,
+  detectDevice,
+  device,
+  parseDevice,
+  setDevice,
+  type Device,
+  type DeviceInput,
+  type DeviceOs,
+} from './device.ts'

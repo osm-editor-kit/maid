@@ -11,7 +11,7 @@ import { identifierLink, isValidUrl, telKey } from './text-logic.ts'
 
 /** A button or link after an input: joined to it, 32 px high, the same surface as the input. */
 export const ADDON =
-  '-ml-px grid h-8 shrink-0 place-items-center rounded-none border border-zinc-950/10 bg-white px-2 text-zinc-500 last:rounded-r-md hover:border-zinc-950/20 hover:text-zinc-950 focus-visible:relative focus-visible:outline-2 focus-visible:outline-blue-500 disabled:opacity-40 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:border-white/20 dark:hover:text-white'
+  '-ml-px grid h-8 touch:h-11 touch:w-11 shrink-0 place-items-center rounded-none border border-zinc-950/10 bg-white px-2 text-zinc-500 last:rounded-r-md hover:border-zinc-950/20 hover:text-zinc-950 focus-visible:relative focus-visible:outline-2 focus-visible:outline-blue-500 disabled:opacity-40 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:border-white/20 dark:hover:text-white'
 
 /** What an addon gets: the draft, a write that skips the draft (pickers), and whether the field is editable. */
 export type AddonState = {

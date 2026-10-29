@@ -1,3 +1,4 @@
+import { device } from '@osm-editor-kit/maid-i18n'
 import { motion, useReducedMotion } from 'motion/react'
 import {
   Fragment,
@@ -9,6 +10,7 @@ import {
 } from 'react'
 import { ROW_BASE, ROW_CURRENT, ROW_FOCUS } from './inspector/listbox.ts'
 import { UI_SPRING } from './motion.tsx'
+import { TAP } from './Toolbar.tsx'
 import type { TooltipHint } from './tooltip-group.ts'
 import { Tooltip } from './Tooltip.tsx'
 
@@ -39,24 +41,35 @@ export type MenuItem = {
 const MENU_WIDTH = 208
 const MARGIN = 4
 /**
- * The height of the rows as they are drawn: a row 28 px (h-7), a heading 26 px (text-xs with 6 px
- * above and 4 px below), a divider 9 px (1 px with 4 px around it), and the panel's padding 8 px.
- * The menu's height is worked out from the items, so that the place is known before it is drawn.
+ * The height of the rows as they are drawn: a row 28 px (h-7), 44 px on a touch device (`touch:h-11`, a finger's
+ * size: the menu opens on a long press and holds Delete), 56 px on a touch device for a disabled row with its reason
+ * under the label (`touch:h-14`: a 20 px label and up to two 16 px lines of reason), a heading 26 px (text-xs with 6 px
+ * above and 4 px below), a divider 9 px (1 px with 4 px around it), and the panel's padding 8 px. The menu's height is
+ * worked out from the items, so that the place is known before it is drawn.
  */
 const ROW = 28
+const TOUCH_ROW = 44
+const TOUCH_REASON_ROW = 56
 const HEADING = 26
 const DIVIDER = 9
 const PADDING = 8
 /** The marker of a stack: a chip 24 px high (h-6) with the 4 px gap of the block, 28 px in all */
 const MARKER_BLOCK = 28
 
+/** The height of one row as it is drawn; `touch` is the device's input (`device().input === 'touch'`) */
+function rowHeight(item: MenuItem, touch: boolean) {
+  if (!touch) return ROW
+  return item.reason !== undefined ? TOUCH_REASON_ROW : TOUCH_ROW
+}
+
 function menuHeight(items: readonly MenuItem[]) {
+  const touch = device().input === 'touch'
   let height = PADDING
   items.forEach((item, i) => {
     const previous = items[i - 1]
     if (item.section && item.section !== previous?.section) height += HEADING
     if (!item.section && previous?.section) height += DIVIDER
-    height += ROW
+    height += rowHeight(item, touch)
   })
   return height
 }
@@ -156,6 +169,9 @@ export function ContextMenu(props: {
     height: window.innerHeight,
   })
 
+  // A touch device has no hover to show a reason, so a disabled row with one says it under its label
+  const touch = device().input === 'touch'
+
   const panel = (
     <div
       ref={menu}
@@ -181,18 +197,23 @@ export function ContextMenu(props: {
             onPointerLeave={() => item.preview?.(false)}
             onFocus={() => item.preview?.(true)}
             onBlur={() => item.preview?.(false)}
-            className={`flex h-7 w-full cursor-pointer items-center gap-2 px-2 text-left disabled:cursor-default disabled:text-zinc-400 dark:disabled:text-zinc-500 ${ROW_BASE} ${ROW_FOCUS} ${
+            className={`flex h-7 w-full cursor-pointer items-center gap-2 px-2 text-left disabled:cursor-default disabled:text-zinc-400 dark:disabled:text-zinc-500 ${touch && item.reason !== undefined ? 'touch:h-14' : 'touch:h-11'} ${TAP} ${ROW_BASE} ${ROW_FOCUS} ${
               item.current
                 ? ROW_CURRENT
-                : 'enabled:hover:bg-zinc-950/5 dark:enabled:hover:bg-white/10'
+                : 'enabled:hover:bg-zinc-950/5 enabled:active:bg-zinc-950/10 dark:enabled:hover:bg-white/10 dark:enabled:active:bg-white/15'
             }`}
           >
             <span className="flex size-5 shrink-0 items-center justify-center">{item.icon}</span>
-            <span className={`min-w-0 flex-1 truncate ${item.current ? 'font-semibold' : ''}`}>
-              {item.label}
+            <span className={`min-w-0 flex-1 ${item.current ? 'font-semibold' : ''}`}>
+              <span className="block truncate">{item.label}</span>
+              {touch && item.reason !== undefined && (
+                <span className="line-clamp-2 text-xs leading-4 font-normal text-zinc-500 dark:text-zinc-400">
+                  {item.reason}
+                </span>
+              )}
             </span>
             {item.shortcut && (
-              <kbd className="shrink-0 font-sans text-xs text-zinc-500 dark:text-zinc-400">
+              <kbd className="shrink-0 font-sans text-xs text-zinc-500 dark:text-zinc-400 touch:hidden">
                 {item.shortcut}
               </kbd>
             )}

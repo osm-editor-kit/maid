@@ -32,7 +32,7 @@ import type { FieldProps } from './shared.ts'
 import { FRAME, INPUT } from './shared.ts'
 
 const STEPPER =
-  'grid h-8 w-8 shrink-0 place-items-center border border-l-0 border-zinc-950/10 bg-white text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:relative focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-40 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white'
+  'grid h-8 w-8 touch:h-11 touch:w-11 shrink-0 place-items-center border border-l-0 border-zinc-950/10 bg-white text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:relative focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-40 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white'
 
 /**
  * The part of a control that had focus when a write remounted it. Set just before the write.

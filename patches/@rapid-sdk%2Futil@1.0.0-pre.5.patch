@@ -1,0 +1,41 @@
+diff --git a/package.json b/package.json
+index 10e3b01c8cd62f8908e064893ba3e19403988977..4fcd04c3aebb1d977d94cbe5bc515db6661c3f8a 100644
+--- a/package.json
++++ b/package.json
+@@ -22,10 +22,32 @@
+   "typedocMain": "./src/index.ts",
+   "source": "./src/index.ts",
+   "exports": {
+-    "types": "./dist/index.d.ts",
+-    "bun": "./src/index.ts",
+-    "import": "./dist/index.mjs",
+-    "require": "./dist/index.cjs"
++    ".": {
++      "types": "./dist/index.d.ts",
++      "bun": "./src/index.ts",
++      "import": "./dist/index.mjs",
++      "require": "./dist/index.cjs"
++    },
++    "./array": {
++      "types": "./dist/array.d.ts",
++      "bun": "./src/array.ts",
++      "import": "./src/array.ts"
++    },
++    "./object": {
++      "types": "./dist/object.d.ts",
++      "bun": "./src/object.ts",
++      "import": "./src/object.ts"
++    },
++    "./string": {
++      "types": "./dist/string.d.ts",
++      "bun": "./src/string.ts",
++      "import": "./src/string.ts"
++    },
++    "./osm": {
++      "types": "./dist/osm.d.ts",
++      "bun": "./src/osm.ts",
++      "import": "./src/osm.ts"
++    }
+   },
+   "scripts": {
+     "all": "bun run --sequential clean check build test",

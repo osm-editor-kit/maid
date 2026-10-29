@@ -11,6 +11,7 @@
   "way_table_legend_added": "Solo aquí",
   "way_table_legend_missing": "Falta aquí",
   "way_table_legend_empty": "Sin valor",
+  "way_table_legend_toggle": "Leyenda y ayuda",
   "way_table_legend_edited": "Cambiado en esta sesión",
   "way_table_only_differing": "Solo filas que difieren",
   "way_table_forget_choices": "Olvidar las elecciones de cruce",
@@ -72,5 +73,14 @@
   "way_table_read_only_short": "Solo lectura",
   "way_table_stored_as": "Guardado en esta vía como {key}",
   "way_table_too_long": "Demasiado largo: 255 caracteres como máximo",
-  "way_table_edit_hint": "Haz clic en un valor para cambiarlo. Intro guarda, Escape cancela, Supr elimina la clave."
+  "way_table_edit_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Toca un valor para cambiarlo. Al salir del campo, se guarda.",
+        "input=*": "Haz clic en un valor para cambiarlo. Intro guarda, Escape cancela, Supr elimina la clave."
+      }
+    }
+  ]
 }

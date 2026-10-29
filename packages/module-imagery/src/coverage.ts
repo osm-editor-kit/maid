@@ -4,7 +4,9 @@
  * half of the view. iD does that in degrees (`geoExtent.area()`), and so does this: the planar box, not the area of the
  * shape. Turf is not in the repo, so the clipping is written here (Sutherland-Hodgman against the view's rectangle).
  *
- * Pure: no ELI and no MapLibre. The coverage is ELI's GeoJSON (`getGeometry`), passed in by the caller.
+ * Pure: no ELI and no MapLibre. The coverage is passed in by the caller: the boxes of the index (`coverageFromBoxes`),
+ * not ELI's polygons, which are a 568 KB (gzip) download for Europe on the first view (Tobias, 2026-10-29). A box
+ * counts a little more than its polygon would; for the half-of-the-view test that is the box iD takes anyway.
  */
 
 /** The view's box: `[west, south, east, north]` in degrees */
@@ -12,6 +14,25 @@ export type Bounds = readonly [number, number, number, number]
 
 /** A coverage as GeoJSON gives it. Only the polygon kinds count; a point or a line covers nothing here. */
 export type Coverage = { readonly type: string; readonly coordinates?: unknown }
+
+/** A box of the index: `[west, south, east, north]` in degrees */
+export type Box = readonly [number, number, number, number]
+
+/** The coverage of a layer from its boxes in the index: one rectangle per box. No boxes covers nothing. */
+export function coverageFromBoxes(boxes: readonly Box[]): Coverage {
+  return {
+    type: 'MultiPolygon',
+    coordinates: boxes.map(([west, south, east, north]) => [
+      [
+        [west, south],
+        [east, south],
+        [east, north],
+        [west, north],
+        [west, south],
+      ],
+    ]),
+  }
+}
 
 type Position = readonly [number, number]
 type Ring = readonly Position[]

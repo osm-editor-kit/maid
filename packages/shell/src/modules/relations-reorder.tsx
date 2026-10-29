@@ -162,7 +162,7 @@ export function ColumnDragHandle({
         event.stopPropagation()
         onMove(event.key === 'ArrowUp' ? 'up' : 'down')
       }}
-      className="relative z-10 grid h-6 w-5 shrink-0 cursor-grab touch-none place-items-center rounded text-zinc-400 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 hover:text-zinc-950 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-blue-500 dark:hover:text-white"
+      className="relative z-10 grid h-6 w-5 shrink-0 cursor-grab touch-none place-items-center rounded text-zinc-400 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 hover:text-zinc-950 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-blue-500 dark:hover:text-white touch:opacity-100"
     >
       {children}
     </button>

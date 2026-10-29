@@ -79,7 +79,7 @@ export function CommandBar(props: { label: string; items: CommandItem[] }) {
                   onFocus={() => item.preview?.(true)}
                   onBlur={() => item.preview?.(false)}
                   className={twJoin(
-                    'flex size-8 shrink-0 cursor-pointer items-center justify-center text-zinc-950 focus-visible:z-10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 enabled:hover:bg-zinc-50 disabled:cursor-default disabled:text-zinc-300 dark:text-white dark:enabled:hover:bg-zinc-700 dark:disabled:text-zinc-600 pointer-coarse:size-10',
+                    'flex size-8 shrink-0 cursor-pointer items-center justify-center text-zinc-950 focus-visible:z-10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 enabled:hover:bg-zinc-50 disabled:cursor-default disabled:text-zinc-300 dark:text-white dark:enabled:hover:bg-zinc-700 dark:disabled:text-zinc-600 touch:size-10',
                   )}
                 >
                   <span aria-hidden="true" className="inline-flex shrink-0 [&>svg]:size-5">

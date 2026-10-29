@@ -1,3 +1,4 @@
+import { device, type DeviceInput } from '@osm-editor-kit/maid-i18n'
 import { lazy, Suspense, type ComponentType, type ReactNode } from 'react'
 
 /**
@@ -8,7 +9,8 @@ import { lazy, Suspense, type ComponentType, type ReactNode } from 'react'
  *   own `Suspense` boundary, so a caller needs none. Give the fallback the size of the real thing so that
  *   the layout does not move.
  * - `preloadLazyComponents()` loads every chunk made this way, one per idle moment, so that the first
- *   click does not wait for a download. The shell calls it once the first view is drawn.
+ *   click does not wait for a download. The shell calls it once the first view is drawn. Not on a touch device
+ *   or with data saving on (`shouldPreload`).
  * - `lazyChunksPending()` resolves when every chunk that was asked for (by a render or by the preload)
  *   has arrived. `window.__bench.settled()` waits for it, so a check never sees a half-loaded sidebar.
  *
@@ -56,8 +58,31 @@ function idle(): Promise<void> {
   })
 }
 
+/**
+ * Whether the idle preload runs. Not on a touch device, nor when the person asks to save data: on a phone on mobile
+ * data the preload is ~167 KB (gzip) of panels most visits never open. The Inspector's chunk is not told apart from
+ * them (its `lazyComponent` has no name), so all are skipped; each loads when first opened.
+ */
+export function shouldPreload({
+  input,
+  saveData,
+}: {
+  input: DeviceInput
+  saveData: boolean
+}): boolean {
+  return input !== 'touch' && !saveData
+}
+
+/** Whether the person asked to save data (Network Information API, Chromium; elsewhere there is none: false) */
+function savesData(): boolean {
+  if (typeof navigator === 'undefined') return false
+  const { connection } = navigator as Navigator & { connection?: { saveData?: boolean } }
+  return connection?.saveData === true
+}
+
 /** Loads all lazy chunks that are not loaded yet, one per idle moment. Resolves when all are there. */
 export function preloadLazyComponents(): Promise<void> {
+  if (!shouldPreload({ input: device().input, saveData: savesData() })) return Promise.resolve()
   return track(
     (async () => {
       for (const load of loaders) {

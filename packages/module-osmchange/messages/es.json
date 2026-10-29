@@ -76,7 +76,16 @@
   "osmchange_show_label": "Mostrar {name} en el mapa",
   "osmchange_changeset_comment": "Cambios de {from}, fusionados con el mapa actual en Maid",
   "osmchange_intro_clear": "Los cambios sin conflictos ya están en el editor, como un solo paso para deshacer.",
-  "osmchange_intro_decide": "Una decisión se aplica en cuanto haces clic.",
+  "osmchange_intro_decide": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Una decisión se aplica en cuanto la tocas.",
+        "input=*": "Una decisión se aplica en cuanto haces clic."
+      }
+    }
+  ],
   "osmchange_intro_undo": "Deshacer quita los cambios; Guardar los sube como siempre.",
   "osmchange_note_already_created": "Ya en el servidor como {id}: no se crea de nuevo",
   "osmchange_conflict_duplicate": "Quizá ya mapeado desde entonces: {list}",

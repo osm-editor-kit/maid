@@ -2,7 +2,8 @@ import { actionDeleteMultiple } from './delete_multiple.ts';
 import { createOsmEntity } from '../data/index.ts';
 import deepEqual from 'fast-deep-equal';
 import { diff3Merge, MergeRegion } from 'node-diff3';
-import { utilArrayUnion, utilArrayUniq } from '@rapid-sdk/util';
+// Deep import: the barrel pulls aes-js into the start chunk.
+import { utilArrayUnion, utilArrayUniq } from '@rapid-sdk/util/array';
 import { vecEqual } from '@rapid-sdk/math';
 
 import type { Action } from './types.ts';

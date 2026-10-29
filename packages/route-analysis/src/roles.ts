@@ -44,11 +44,7 @@ export function pointKindOf(
 ): PointKind {
   const fromRole = POINT_ROLES[role]
   if (fromRole && fromRole !== 'other') return fromRole
-  if (
-    tags?.information === 'guidepost' ||
-    (tags?.tourism === 'information' && tags.information === 'guidepost')
-  )
-    return 'guidepost'
+  if (tags?.information === 'guidepost') return 'guidepost'
   if (tags?.highway === 'milestone') return 'milestone'
   return 'other'
 }

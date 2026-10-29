@@ -76,7 +76,16 @@
   "osmchange_show_label": "{name} auf der Karte zeigen",
   "osmchange_changeset_comment": "Änderungen aus {from}, in Maid mit der aktuellen Karte zusammengeführt",
   "osmchange_intro_clear": "Änderungen ohne Konflikte sind schon im Editor, als ein Rückgängig-Schritt.",
-  "osmchange_intro_decide": "Eine Entscheidung wirkt, sobald du sie anklickst.",
+  "osmchange_intro_decide": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Eine Entscheidung wirkt, sobald du darauf tippst.",
+        "input=*": "Eine Entscheidung wirkt, sobald du sie anklickst."
+      }
+    }
+  ],
   "osmchange_intro_undo": "Rückgängig nimmt Änderungen zurück; Speichern lädt sie wie gewohnt hoch.",
   "osmchange_note_already_created": "Schon auf dem Server als {id}: nicht noch einmal angelegt",
   "osmchange_conflict_duplicate": "Möglicherweise inzwischen schon erfasst: {list}",

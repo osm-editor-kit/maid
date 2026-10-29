@@ -12,3 +12,4 @@ One file per decision: what we decided, why, and what we measured. Number them i
 | [0006](0006-wheel-zoom-finish-delay.md) | Shorten MapLibre's wait after a wheel zoom (bun patch) |
 | [0007](0007-workers-and-batched-updates.md) | Four MapLibre workers, and tiles that arrive together go in as one update |
 | [0008](0008-live-tier-for-new-and-changed-data.md) | New and changed data go to a small live tier, merged when idle |
+| [0012](0012-texts-for-the-device.md) | Texts for the device: message variants by input and system, checked by a test |

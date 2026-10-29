@@ -4,17 +4,23 @@
   "photos_automated_off": "In automatisierten Browsern sind Fotos aus.",
   "action_automated_off": "In automatisierten Browsern sind Fotos aus",
   "panel_providers_heading": "Fotos anzeigen von",
-  "panel_providers_off": "Fotos sind aus. Wähle eine Quelle, um sie zu laden.",
   "panel_provider_switch": "Fotos von {provider} anzeigen",
-  "panel_note_panoramax": "Von api.panoramax.xyz. Kein Konto nötig.",
-  "panel_note_mapillary": "Von graph.mapillary.com, mit dem Token dieser Version.",
   "panel_mapillary_no_token": "In dieser Version ist kein Mapillary-Token gesetzt, daher wird Mapillary nicht angeboten.",
   "panel_kinds_heading": "Fotos",
   "panel_kind_choice": "Welche Fotos",
   "kind_all": "Alle",
   "kind_flat": "Flach",
   "panel_dates_heading": "Aufgenommen zwischen",
-  "dock_hint_click": "Klicke auf der Karte auf ein Foto, um es hier zu sehen.",
+  "dock_hint_click": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tippe auf der Karte auf ein Foto, um es hier zu sehen.",
+        "input=*": "Klicke auf der Karte auf ein Foto, um es hier zu sehen."
+      }
+    }
+  ],
   "dock_hint_switch": "Schalte oben unter Fotos eine Quelle ein, um Fotos auf der Karte zu sehen.",
   "dock_loading": "Foto wird geladen…",
   "dock_details": "Details",
@@ -31,7 +37,16 @@
   "field_group_bike_lane": "Radweg",
   "field_group_sidewalk": "Gehweg",
   "field_target": "Ziel für „Dieses Foto verwenden“",
-  "field_target_title": "Klickst du im Betrachter auf „Dieses Foto verwenden“, kommt das Foto in diesen Schlüssel",
+  "field_target_title": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tippst du im Betrachter auf „Dieses Foto verwenden“, kommt das Foto in diesen Schlüssel",
+        "input=*": "Klickst du im Betrachter auf „Dieses Foto verwenden“, kommt das Foto in diesen Schlüssel"
+      }
+    }
+  ],
   "field_show_title": "Im Betrachter zeigen",
   "field_loading": "Lädt…",
   "field_show_aria": "{id} im Betrachter zeigen",

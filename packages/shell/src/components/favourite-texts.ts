@@ -1,4 +1,4 @@
-import { m } from '@osm-editor-kit/maid-i18n'
+import { device, m } from '@osm-editor-kit/maid-i18n'
 import {
   favouriteModifierLabel,
   type FavouriteTexts,
@@ -11,7 +11,7 @@ export function favouriteTexts(): FavouriteTexts {
   const key = favouriteModifierLabel(MAC)
   return {
     geometries: { point: m.topbar_point(), line: m.topbar_line(), area: m.topbar_area() },
-    startHint: (name, number) => m.picker_favourite_start_hint({ key, number, name }),
+    startHint: (name, number) => m.picker_favourite_start_hint({ key, number, name, ...device() }),
     onlyAs: (geometry) => m.picker_favourite_only_as({ geometry }),
     addAs: (name, geometry) => m.favourite_add_as({ name, geometry }),
     remove: (name) => m.favourite_remove({ name }),

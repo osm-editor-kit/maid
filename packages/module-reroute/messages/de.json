@@ -3,10 +3,46 @@
   "reroute_title": "Neu führen",
   "reroute_start": "Abschnitt neu führen",
   "reroute_hint": "Wähle Anfang und Ende. Die Route folgt den Straßen und Wegen dazwischen auf der geladenen Karte.",
-  "reroute_step_start": "Klick auf den Anfang des Abschnitts auf der Karte.",
-  "reroute_step_end": "Klick auf das Ende des Abschnitts. Zieh einen Punkt, um ihn zu verschieben.",
-  "reroute_step_done": "Zieh einen Punkt, um ihn zu verschieben. Ein neuer Klick setzt das Ende neu.",
-  "reroute_no_member": "Kein Weg dieser Route ist in der Nähe eines Punkts. Klick näher an der Route.",
+  "reroute_step_start": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tippe auf den Anfang des Abschnitts auf der Karte.",
+        "input=*": "Klick auf den Anfang des Abschnitts auf der Karte."
+      }
+    }
+  ],
+  "reroute_step_end": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tippe auf das Ende des Abschnitts. Zieh einen Punkt, um ihn zu verschieben.",
+        "input=*": "Klick auf das Ende des Abschnitts. Zieh einen Punkt, um ihn zu verschieben."
+      }
+    }
+  ],
+  "reroute_step_done": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Zieh einen Punkt, um ihn zu verschieben. Ein neues Antippen setzt das Ende neu.",
+        "input=*": "Zieh einen Punkt, um ihn zu verschieben. Ein neuer Klick setzt das Ende neu."
+      }
+    }
+  ],
+  "reroute_no_member": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Kein Weg dieser Route ist in der Nähe eines Punkts. Tippe näher an der Route.",
+        "input=*": "Kein Weg dieser Route ist in der Nähe eines Punkts. Klick näher an der Route."
+      }
+    }
+  ],
   "reroute_length": "Länge: {before} m jetzt, {after} m danach",
   "reroute_added": "Neue Wege: {count}",
   "reroute_removed": "Entfernte Wege: {count}",

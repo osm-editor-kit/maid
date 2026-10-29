@@ -6,6 +6,8 @@ Findings that the plan builds on. Collected 2026-10-10 by research subagents rea
 - [rapid.md](rapid.md): the same for Rapid 3 (`bhousel/Rapid`)
 - [maplibre.md](maplibre.md): what MapLibre offers for editable data, and how to measure it
 - [osm-editor-kit.md](osm-editor-kit.md): our own packages and how they fit
+- [mobile-touch-audit.md](mobile-touch-audit.md): Maid on phones and tablets against the `touch-ipad-review` checklist (2026-10-29)
+- [first-paint-audit.md](first-paint-audit.md): what a first visit loads before and after the first view, and what to cut (2026-10-29)
 
 ## How to read these notes
 

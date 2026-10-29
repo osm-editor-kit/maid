@@ -466,7 +466,7 @@ function CustomRow(props: {
           </button>
         </span>
       ) : (
-        <span className="flex shrink-0 gap-0.5 pr-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+        <span className="flex shrink-0 gap-0.5 pr-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 touch:opacity-100">
           <Tooltip label="Edit custom background">
             <button
               type="button"

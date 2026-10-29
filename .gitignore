@@ -18,10 +18,12 @@ tools/refs/*/smoke*.json
 reports/*.log
 reports/model-load-*.json
 reports/routing-bench.json
+reports/route-analysis-bench.json
 reports/validation-bench.json
 reports/renderer-build-bench.json
 reports/check-all-*
 reports/config-check.json
+reports/sim-measure-*
 
 # the parking project's brief and source material (internal notes, photos) stay local
 docs/parking/
@@ -32,3 +34,4 @@ reports/rmgl-bench*.json
 
 # GitHub Pages build output (bun run pages-build)
 /site/
+reports/sprites-subset.json

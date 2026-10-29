@@ -3,10 +3,46 @@
   "reroute_title": "Refaire le tracé",
   "reroute_start": "Refaire un tronçon",
   "reroute_hint": "Choisissez le début et la fin. L'itinéraire suit les routes et chemins entre les deux sur la carte chargée.",
-  "reroute_step_start": "Cliquez sur le début du tronçon sur la carte.",
-  "reroute_step_end": "Cliquez sur la fin du tronçon. Faites glisser un point pour le déplacer.",
-  "reroute_step_done": "Faites glisser un point pour le déplacer. Un nouveau clic remplace la fin.",
-  "reroute_no_member": "Aucun chemin de cet itinéraire n'est près d'un point. Cliquez plus près de l'itinéraire.",
+  "reroute_step_start": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Touchez le début du tronçon sur la carte.",
+        "input=*": "Cliquez sur le début du tronçon sur la carte."
+      }
+    }
+  ],
+  "reroute_step_end": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Touchez la fin du tronçon. Faites glisser un point pour le déplacer.",
+        "input=*": "Cliquez sur la fin du tronçon. Faites glisser un point pour le déplacer."
+      }
+    }
+  ],
+  "reroute_step_done": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Faites glisser un point pour le déplacer. Un nouvel appui remplace la fin.",
+        "input=*": "Faites glisser un point pour le déplacer. Un nouveau clic remplace la fin."
+      }
+    }
+  ],
+  "reroute_no_member": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Aucun chemin de cet itinéraire n'est près d'un point. Touchez plus près de l'itinéraire.",
+        "input=*": "Aucun chemin de cet itinéraire n'est près d'un point. Cliquez plus près de l'itinéraire."
+      }
+    }
+  ],
   "reroute_length": "Longueur : {before} m maintenant, {after} m après",
   "reroute_added": "Chemins ajoutés : {count}",
   "reroute_removed": "Chemins retirés : {count}",

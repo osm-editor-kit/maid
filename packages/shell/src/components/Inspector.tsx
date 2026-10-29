@@ -8,7 +8,7 @@ import {
   type TaginfoGeometry,
 } from '@osm-editor-kit/maid-core'
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
-import { m } from '@osm-editor-kit/maid-i18n'
+import { device, m } from '@osm-editor-kit/maid-i18n'
 import { browseOf, type Geometry, type Preset } from '@osm-editor-kit/maid-presets'
 import type { EntityInfo, MaidEngine } from '@osm-editor-kit/maid-renderer'
 import {
@@ -166,7 +166,9 @@ export function Inspector() {
   if (!id) {
     return (
       <Sidebar label="Inspector">
-        <SidebarEmpty title={m.sidebar_empty_title()}>{m.sidebar_empty_hint()}</SidebarEmpty>
+        <SidebarEmpty title={m.sidebar_empty_title()}>
+          {m.sidebar_empty_hint({ ...device() })}
+        </SidebarEmpty>
       </Sidebar>
     )
   }

@@ -1,5 +1,14 @@
 import { isAutomated } from '@osm-editor-kit/maid-core'
-import { chooseLocale, setLocale, type Locale } from '@osm-editor-kit/maid-i18n'
+import {
+  chooseLocale,
+  DEFAULT_DEVICE,
+  detectDevice,
+  parseDevice,
+  setDevice,
+  setLocale,
+  type Device,
+  type Locale,
+} from '@osm-editor-kit/maid-i18n'
 import { getSettings, initTheme } from '@osm-editor-kit/maid-ui'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { setWorkerCount } from 'maplibre-gl'
@@ -23,6 +32,26 @@ function visitLocale(fallback?: Locale): Locale {
     browser: navigator.languages,
     fallback,
   })
+}
+
+/**
+ * The device of this visit, for the texts that name a way of working (packages/i18n/src/device.ts): the address's
+ * `device` (`?device=touch-ios` shows a phone's texts on a desktop), else what the browser says. Under automation a
+ * desktop with a keyboard unless the address names one, so that the browser checks keep their texts.
+ */
+function visitDevice(): Device {
+  const detected = isAutomated()
+    ? DEFAULT_DEVICE
+    : detectDevice({
+        // userAgentData is Chromium-only and missing from the DOM types; the optional field makes Navigator assignable
+        platform:
+          (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData
+            ?.platform ?? navigator.platform,
+        userAgent: navigator.userAgent,
+        maxTouchPoints: navigator.maxTouchPoints,
+        finePointer: matchMedia('(any-pointer: fine)').matches,
+      })
+  return parseDevice(new URLSearchParams(location.search).get('device'), detected) ?? detected
 }
 
 /** The tab's title and icon, from the app's brand */
@@ -49,6 +78,11 @@ export function mountEditor(rootElement: HTMLElement, app: AppConfig) {
   const locale = visitLocale(app.defaultLocale)
   setLocale(locale)
   document.documentElement.lang = locale
+  // the texts read the device as they render; the `touch:` and `keyboard:` classes read it from <html> (styles.css)
+  const visit = visitDevice()
+  setDevice(visit)
+  document.documentElement.dataset.input = visit.input
+  document.documentElement.dataset.os = visit.os
   // before the first render, so the page does not flash in the wrong theme: a link's `theme`, else the stored choice
   initTheme(readParams({ theme: stateParams.theme }, location.search).theme)
 

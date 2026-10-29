@@ -1,4 +1,4 @@
-import { EyeIcon, EyeSlashIcon, PencilIcon } from '@heroicons/react/16/solid'
+import { EyeSlashIcon, PencilIcon } from '@heroicons/react/16/solid'
 import { toOsmZoom } from '@osm-editor-kit/maid-core'
 import {
   type EditedLevel,
@@ -7,7 +7,13 @@ import {
   type LevelState,
 } from '@osm-editor-kit/maid-levels'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
-import { ControlGroup, Flyout, ROW_CURRENT, Tooltip } from '@osm-editor-kit/maid-ui'
+import {
+  ControlGroup,
+  Flyout,
+  PencilSlashIcon,
+  ROW_CURRENT,
+  Tooltip,
+} from '@osm-editor-kit/maid-ui'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useMap } from 'react-map-gl/maplibre'
 import { twMerge } from 'tailwind-merge'
@@ -388,8 +394,8 @@ function CountPill({ count }: { count: number }) {
   )
 }
 
-/** What a level's button does to it while another is edited: pencil (edited), eye (in view, locked), crossed eye (hidden) */
+/** What a level's button does to it while another is edited: pencil (edited), crossed pencil (in view, locked), crossed eye (hidden), as the filters */
 function StateIcon({ state }: { state: LevelState }) {
-  const Icon = state === 'edited' ? PencilIcon : state === 'shown' ? EyeIcon : EyeSlashIcon
+  const Icon = state === 'edited' ? PencilIcon : state === 'shown' ? PencilSlashIcon : EyeSlashIcon
   return <Icon aria-hidden="true" className="size-3.5 shrink-0" />
 }

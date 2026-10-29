@@ -39,7 +39,7 @@ export function CheckField(props: FieldProps) {
       onClick={() =>
         onChange?.(key, checkAfterClick(field.type, current, cycle, checked === 'mixed'))
       }
-      className="flex h-8 w-full min-w-0 items-center gap-2 rounded-md px-1 text-left text-sm text-zinc-950 hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default dark:text-white dark:hover:bg-white/10"
+      className="flex h-8 w-full min-w-0 items-center gap-2 rounded-md px-1 text-left text-sm text-zinc-950 hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default dark:text-white dark:hover:bg-white/10 touch:h-11"
     >
       <CheckBox state={box} />
       {/* every label of the cycle sits in the same grid cell, the others invisible: the button is as wide as the

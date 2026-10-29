@@ -1,7 +1,8 @@
 import { Extent, vecCross } from '@rapid-sdk/math';
 import { OsmEntity, OsmEntityProps } from './OsmEntity.ts';
 import { osmLanes } from '../lib/lanes.ts';
-import { utilArrayUniq } from '@rapid-sdk/util';
+// Deep import: the barrel pulls aes-js into the start chunk.
+import { utilArrayUniq } from '@rapid-sdk/util/array';
 
 import type { Context } from '../Context.ts';
 import type { Graph } from '../lib/Graph.ts';

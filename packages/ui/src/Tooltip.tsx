@@ -63,10 +63,12 @@ const BUBBLE =
   'z-50 w-max max-w-82 rounded-md bg-zinc-900/90 px-2 py-1.5 text-xs text-white shadow-md select-none dark:bg-zinc-100/95 dark:text-zinc-950'
 
 /**
- * The wrapper of a disabled control: it takes the pointer, and the control takes the wrapper's corners. Those are a
- * button's (`rounded-md`) on their own; in a joined group the group's rules set them, as for its other buttons.
+ * The wrapper of a disabled control: it takes the pointer, and draws nothing, so the control keeps its own shape. It has
+ * no corners of its own: in a row with hairlines between the buttons (`CommandBar`'s `divide-x`) the hairline is the
+ * wrapper's border, and rounded corners bent it. A joined group shapes its children and passes the shape on through
+ * the wrapper (`data-tooltip-wrap`, Toolbar.tsx's `JOINED`).
  */
-const DISABLED_WRAP = 'inline-flex rounded-md [&>*]:pointer-events-none [&>*]:rounded-[inherit]'
+const DISABLED_WRAP = 'inline-flex [&>*]:pointer-events-none'
 
 /** The group's box: short, and no overshoot, as the top bar's own changes */
 const GROUP_TRANSITION: Transition = { duration: 0.12, ease: 'easeOut' }
@@ -113,6 +115,8 @@ function isDisabled(props: TooltipProps) {
 const KBD = twJoin(
   'rounded px-1 font-sans text-[11px] leading-4 font-medium',
   'bg-white/15 text-zinc-200 dark:bg-zinc-950/10 dark:text-zinc-700',
+  // a finger has no key: the chip is for a keyboard (touch:hidden, shell's styles.css)
+  'touch:hidden',
 )
 
 /**
@@ -221,6 +225,7 @@ function StandaloneTooltip(props: TooltipProps) {
       // oxlint-disable-next-line react/refs -- refs.setReference is floating-ui's callback ref, not a .current value read during render
       ref={refs.setReference}
       {...getReferenceProps()}
+      data-tooltip-wrap=""
       className={disabled ? DISABLED_WRAP : 'inline-flex'}
     >
       {children}
@@ -327,7 +332,7 @@ function GroupedTooltip(props: TooltipProps & { group: GroupApi }) {
   }
   if (needsWrap(children, disabled)) {
     return (
-      <span className={disabled ? DISABLED_WRAP : 'inline-flex'} {...handlers}>
+      <span data-tooltip-wrap="" className={disabled ? DISABLED_WRAP : 'inline-flex'} {...handlers}>
         {children}
       </span>
     )

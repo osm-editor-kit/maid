@@ -5,7 +5,6 @@ import './street-imagery.css'
 import { m } from './messages.ts'
 import { useShownPhotos } from './shown.ts'
 import {
-  activeProviders,
   IMAGERY_PROVIDER_IDS,
   PHOTO_KINDS,
   PROVIDER_LABELS,
@@ -24,10 +23,12 @@ function kindOptions() {
   }))
 }
 
-/** What a provider reads from, under its name (the Mapillary note says so when no token is set) */
-function providerNote(id: ImageryProviderId, available: boolean) {
-  if (!available) return m.panel_mapillary_no_token()
-  return id === 'panoramax' ? m.panel_note_panoramax() : m.panel_note_mapillary()
+/**
+ * A line under the provider's name only when it cannot be switched on (Mapillary without a token). Where a provider
+ * reads from added nothing to the choice (Tobias, 2026-10-29).
+ */
+function providerNote(available: boolean) {
+  return available ? undefined : m.panel_mapillary_no_token()
 }
 
 /**
@@ -46,7 +47,7 @@ function ProviderRow({
 }) {
   const token = useMapillaryToken()
   const available = providerAvailable(id, token)
-  const note = providerNote(id, available)
+  const note = providerNote(available)
   return (
     <li className="py-2">
       <label
@@ -56,7 +57,7 @@ function ProviderRow({
           <span className="block font-medium text-zinc-950 dark:text-white">
             {PROVIDER_LABELS[id]}
           </span>
-          <span className="block text-xs text-zinc-500 dark:text-zinc-400">{note}</span>
+          {note && <span className="block text-xs text-zinc-500 dark:text-zinc-400">{note}</span>}
         </span>
         <input
           {...PLAIN_INPUT}
@@ -96,14 +97,12 @@ function KindChoice({ kind, onSelect }: { kind: PhotoKind; onSelect: (kind: Phot
  */
 export function PhotosPanel() {
   const shown = useShownPhotos(false)
-  const token = useMapillaryToken()
 
   if (AUTOMATED)
     return (
       <p className="p-4 text-xs text-zinc-500 dark:text-zinc-400">{m.photos_automated_off()}</p>
     )
 
-  const anyOn = activeProviders(shown.providers, token, AUTOMATED).length > 0
   const switchProvider = (id: ImageryProviderId, on: boolean) =>
     shown.chooseProviders(toggleProvider(shown.providers, id, on))
 
@@ -113,9 +112,6 @@ export function PhotosPanel() {
         <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
           {m.panel_providers_heading()}
         </h3>
-        {!anyOn && (
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{m.panel_providers_off()}</p>
-        )}
         <ul className="mt-1 divide-y divide-zinc-950/5 dark:divide-white/5">
           {IMAGERY_PROVIDER_IDS.map((id) => (
             <ProviderRow

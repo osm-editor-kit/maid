@@ -130,9 +130,36 @@
   "quick_annotation_clear_right": "Clear the parking tags of the right side",
   "quick_annotation_remove": "Remove parking: {label}",
   "quick_annotation_set": "Set parking: {label}",
-  "quick_cell_label": "{heading}, {side}: {value}. Click: {next}",
-  "quick_cell_mixed": "{heading}, {side}: different on the selected roads. Click: {next}",
-  "quick_cell_unset": "{heading}, {side}: not set. Click: {next}",
+  "quick_cell_label": [
+    {
+      "declarations": ["input input", "input heading", "input next", "input side", "input value"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "{heading}, {side}: {value}. Tap: {next}",
+        "input=*": "{heading}, {side}: {value}. Click: {next}"
+      }
+    }
+  ],
+  "quick_cell_mixed": [
+    {
+      "declarations": ["input input", "input heading", "input next", "input side"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "{heading}, {side}: different on the selected roads. Tap: {next}",
+        "input=*": "{heading}, {side}: different on the selected roads. Click: {next}"
+      }
+    }
+  ],
+  "quick_cell_unset": [
+    {
+      "declarations": ["input input", "input heading", "input next", "input side"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "{heading}, {side}: not set. Tap: {next}",
+        "input=*": "{heading}, {side}: not set. Click: {next}"
+      }
+    }
+  ],
   "quick_clear_both": "Clear all parking tags of both sides",
   "quick_clear_left": "Clear all parking tags of the left side",
   "quick_clear_right": "Clear all parking tags of the right side",

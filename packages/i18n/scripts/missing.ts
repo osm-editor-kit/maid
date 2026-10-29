@@ -4,7 +4,9 @@
  *
  * The base language (`baseLocale` of the project's settings, English) is the reference. For every other language it
  * lists the keys that are missing or empty (`missing`, with the base text), the keys that the base does not have
- * (`extra`), and the keys whose `{name}` placeholders differ from the base (`placeholderMismatch`). The app's result
+ * (`extra`), the keys whose `{name}` placeholders differ from the base (`placeholderMismatch`), and the keys whose
+ * device or other variants differ from the base's (`variantMismatch`: a language must have the same variants, so that
+ * a phone gets its own words in every language; texts.ts reads them). The app's result
  * stays at the top level of the report; each module's is under `modules` by its package name.
  * Writes `reports/i18n-missing.json` and prints the same. Exits 1 when a key lacks a language or a placeholder
  * differs. No network, no machine translation.
@@ -12,25 +14,37 @@
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { PROJECTS, type Project } from './projects.ts'
+import { loadMessages, type Messages, type Variants } from './texts.ts'
 
 const REPORT = join(import.meta.dir, '..', '..', '..', 'reports', 'i18n-missing.json')
 
-type Messages = Record<string, string>
-
 function load(project: Project, locale: string): Messages {
-  const file = join(project.dir, 'messages', `${locale}.json`)
-  const raw = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>
-  const messages: Messages = {}
-  // `$schema` and other keys starting with `$` are not texts
-  for (const [key, value] of Object.entries(raw)) {
-    if (!key.startsWith('$') && typeof value === 'string') messages[key] = value
-  }
-  return messages
+  return loadMessages(project.dir, locale)
 }
 
-/** The `{name}` placeholders of a text, sorted */
-function placeholders(text: string): string[] {
-  return [...text.matchAll(/\{([A-Za-z_][A-Za-z0-9_]*)\}/g)].map((match) => match[1] ?? '').sort()
+/** Whether every variant of a message is empty */
+function empty(variants: Variants | undefined) {
+  return Object.values(variants ?? {}).every((text) => text.trim() === '')
+}
+
+/** The variants' matches, sorted and joined: equal for two languages with the same variants */
+function matches(variants: Variants | undefined) {
+  return Object.keys(variants ?? {})
+    .sort()
+    .join(' | ')
+}
+
+/** The `{name}` placeholders of each variant of a message, sorted, by match */
+function placeholders(variants: Variants | undefined): string[] {
+  return Object.entries(variants ?? {})
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(
+      ([match, text]) =>
+        `${match ? `${match}: ` : ''}${[...text.matchAll(/\{([A-Za-z_][A-Za-z0-9_]*)\}/g)]
+          .map((found) => found[1] ?? '')
+          .sort()
+          .join()}`,
+    )
 }
 
 function checkProject(project: Project) {
@@ -49,26 +63,28 @@ function checkProject(project: Project) {
     others.map((locale) => {
       const texts = found.includes(locale) ? load(project, locale) : {}
       const missing = keys
-        .filter((key) => (texts[key] ?? '').trim() === '')
+        .filter((key) => empty(texts[key]))
         .map((key) => ({ key, [base]: english[key] }))
       const extra = Object.keys(texts).filter((key) => !(key in english))
-      const placeholderMismatch = keys
-        .filter((key) => key in texts && (texts[key] ?? '').trim() !== '')
-        .filter(
-          (key) =>
-            placeholders(english[key] ?? '').join() !== placeholders(texts[key] ?? '').join(),
-        )
+      const present = keys.filter((key) => key in texts && !empty(texts[key]))
+      const variantMismatch = present
+        .filter((key) => matches(english[key]) !== matches(texts[key]))
+        .map((key) => ({ key, [base]: matches(english[key]), [locale]: matches(texts[key]) }))
+      const placeholderMismatch = present
+        .filter((key) => matches(english[key]) === matches(texts[key]))
+        .filter((key) => placeholders(english[key]).join() !== placeholders(texts[key]).join())
         .map((key) => ({
           key,
-          [base]: placeholders(english[key] ?? ''),
-          [locale]: placeholders(texts[key] ?? ''),
+          [base]: placeholders(english[key]),
+          [locale]: placeholders(texts[key]),
         }))
-      return [locale, { missing, extra, placeholderMismatch }]
+      return [locale, { missing, extra, placeholderMismatch, variantMismatch }]
     }),
   )
 
   const problems = Object.values(locales).reduce(
-    (sum, entry) => sum + entry.missing.length + entry.placeholderMismatch.length,
+    (sum, entry) =>
+      sum + entry.missing.length + entry.placeholderMismatch.length + entry.variantMismatch.length,
     0,
   )
   return { base, keys: keys.length, locales, problems, ok: problems === 0 }

@@ -1,6 +1,6 @@
 import { MagnifyingGlassIcon, MapPinIcon } from '@heroicons/react/20/solid'
 import { isAutomated } from '@osm-editor-kit/maid-core'
-import { getLocale, m } from '@osm-editor-kit/maid-i18n'
+import { device, getLocale, m } from '@osm-editor-kit/maid-i18n'
 import { Flyout, listRow, toolButtonClass, Tooltip } from '@osm-editor-kit/maid-ui'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
@@ -293,7 +293,7 @@ function SearchPanel() {
       detail: !enabled
         ? m.search_places_off()
         : placesFor === null
-          ? m.search_places_enter_hint()
+          ? m.search_places_enter_hint({ ...device() })
           : undefined,
       disabled: !enabled,
       run: searchPlaces,
@@ -408,8 +408,10 @@ function SearchPanel() {
       />
       {query === '' && (
         <div className="flex items-start justify-between gap-3">
-          <p className="px-1 pb-1 text-xs text-zinc-500 dark:text-zinc-400">{m.search_hint()}</p>
-          <kbd className="mt-0.5 shrink-0 rounded border border-zinc-300 px-1 font-sans text-xs text-zinc-500 dark:border-zinc-600 dark:text-zinc-400">
+          <p className="px-1 pb-1 text-xs text-zinc-500 dark:text-zinc-400">
+            {m.search_hint({ ...device() })}
+          </p>
+          <kbd className="mt-0.5 shrink-0 rounded border border-zinc-300 px-1 font-sans text-xs text-zinc-500 dark:border-zinc-600 dark:text-zinc-400 touch:hidden">
             {modKey('F')}
           </kbd>
         </div>

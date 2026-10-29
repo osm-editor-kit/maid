@@ -1,5 +1,6 @@
 import { OsmWay } from '../data/OsmWay.ts';
-import { utilArrayIntersection } from '@rapid-sdk/util';
+// Deep import: the barrel pulls aes-js into the start chunk.
+import { utilArrayIntersection } from '@rapid-sdk/util/array';
 
 import type { Action } from './types.ts';
 import type { Graph } from '../lib/Graph.ts';

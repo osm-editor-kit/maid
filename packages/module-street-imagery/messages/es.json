@@ -4,17 +4,23 @@
   "photos_automated_off": "Las fotos están desactivadas en los navegadores automatizados.",
   "action_automated_off": "Las fotos están desactivadas en los navegadores automatizados",
   "panel_providers_heading": "Mostrar fotos de",
-  "panel_providers_off": "Las fotos están desactivadas. Elige una fuente para cargarlas.",
   "panel_provider_switch": "Mostrar fotos de {provider}",
-  "panel_note_panoramax": "De api.panoramax.xyz. No necesitas cuenta.",
-  "panel_note_mapillary": "De graph.mapillary.com, con el token de esta versión.",
   "panel_mapillary_no_token": "Esta versión no tiene token de Mapillary, así que Mapillary no se ofrece.",
   "panel_kinds_heading": "Fotos",
   "panel_kind_choice": "Qué fotos",
   "kind_all": "Todas",
   "kind_flat": "Planas",
   "panel_dates_heading": "Tomadas entre",
-  "dock_hint_click": "Haz clic en una foto del mapa para verla aquí.",
+  "dock_hint_click": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Toca una foto del mapa para verla aquí.",
+        "input=*": "Haz clic en una foto del mapa para verla aquí."
+      }
+    }
+  ],
   "dock_hint_switch": "Activa una fuente en Fotos, en la barra superior, para ver fotos en el mapa.",
   "dock_loading": "Cargando foto…",
   "dock_details": "Detalles",
@@ -31,7 +37,16 @@
   "field_group_bike_lane": "Carril bici",
   "field_group_sidewalk": "Acera",
   "field_target": "Destino de «Usar esta foto»",
-  "field_target_title": "Al pulsar «Usar esta foto» en el visor, la foto se añade a esta clave",
+  "field_target_title": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Al tocar «Usar esta foto» en el visor, la foto se añade a esta clave",
+        "input=*": "Al pulsar «Usar esta foto» en el visor, la foto se añade a esta clave"
+      }
+    }
+  ],
   "field_show_title": "Mostrar en el visor",
   "field_loading": "Cargando…",
   "field_show_aria": "Mostrar {id} en el visor",

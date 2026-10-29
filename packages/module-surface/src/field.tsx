@@ -7,7 +7,13 @@
  * a tag. Without `onChange` (read-only) the tiles show and nothing opens.
  */
 import { MagnifyingGlassIcon } from '@heroicons/react/16/solid'
-import { Flyout, listRow, type FieldProps, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
+import {
+  autoFocusFields,
+  Flyout,
+  listRow,
+  type FieldProps,
+  PLAIN_INPUT,
+} from '@osm-editor-kit/maid-ui'
 import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import {
   creditsFor,
@@ -320,7 +326,7 @@ function Picker(props: {
           {...PLAIN_INPUT}
           type="search"
           role="combobox"
-          autoFocus
+          autoFocus={autoFocusFields()}
           autoComplete="off"
           spellCheck={false}
           placeholder={placeholder}

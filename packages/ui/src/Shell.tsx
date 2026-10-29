@@ -127,11 +127,11 @@ export function Shell(props: {
                 aria-controls={open ? sheetId : undefined}
                 onClick={() => setOpen(!open)}
                 className={twJoin(
-                  'absolute right-3 bottom-[calc(2rem+env(safe-area-inset-bottom))] z-20 flex size-11 cursor-pointer items-center justify-center rounded-full text-zinc-950 shadow-md ring-1 ring-zinc-950/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-white dark:ring-white/10',
+                  'absolute right-3 bottom-[calc(2rem_+_env(safe-area-inset-bottom))] z-20 flex size-14 cursor-pointer items-center justify-center rounded-full text-zinc-950 shadow-md ring-1 ring-zinc-950/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-white dark:ring-white/10',
                   open ? 'bg-zinc-200 dark:bg-zinc-600' : 'bg-white dark:bg-zinc-800',
                 )}
               >
-                <AdjustmentsHorizontalIcon aria-hidden="true" className="size-6" />
+                <AdjustmentsHorizontalIcon aria-hidden="true" className="size-7" />
               </button>
             ) : null}
           </main>

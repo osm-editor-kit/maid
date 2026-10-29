@@ -7,7 +7,16 @@
   "divide_rows": "Rangées",
   "divide_count": "{count} parties",
   "divide_count_one": "1 partie",
-  "divide_hint": "+ et - changent les colonnes, avec Maj les rangées. Entrée applique, Échap annule.",
+  "divide_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Modifiez les colonnes et les rangées dans les champs. Touchez Appliquer pour diviser la surface, ou Annuler pour arrêter.",
+        "input=*": "+ et - changent les colonnes, avec Maj les rangées. Entrée applique, Échap annule."
+      }
+    }
+  ],
   "divide_apply": "Appliquer",
   "divide_cancel": "Annuler",
   "divide_annotation": "Surface divisée en {count} parties",
@@ -34,7 +43,16 @@
   "cut_label": "Découper",
   "cut_annotation": "Surface découpée en deux",
   "cut_title": "Découper la surface",
-  "cut_hint": "Faites glisser un point ou un milieu, ou cliquez pour déplacer l'extrémité la plus proche. Entrée découpe, Échap annule.",
+  "cut_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Faites glisser un point ou un milieu, ou touchez pour déplacer l'extrémité la plus proche. Touchez Appliquer pour découper.",
+        "input=*": "Faites glisser un point ou un milieu, ou cliquez pour déplacer l'extrémité la plus proche. Entrée découpe, Échap annule."
+      }
+    }
+  ],
   "cut_apply": "Appliquer",
   "cut_no_outline": "Ce multipolygone n'a pas de contour à découper.",
   "cut_refusal_not_area": "Seul un chemin fermé qui est une surface peut être découpé.",

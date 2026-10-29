@@ -11,6 +11,7 @@
   "way_table_legend_added": "Nur hier",
   "way_table_legend_missing": "Hier fehlend",
   "way_table_legend_empty": "Nicht gesetzt",
+  "way_table_legend_toggle": "Legende und Hilfe",
   "way_table_legend_edited": "In dieser Sitzung geändert",
   "way_table_only_differing": "Nur Zeilen mit Unterschieden",
   "way_table_forget_choices": "Abzweig-Wahl vergessen",
@@ -72,5 +73,14 @@
   "way_table_read_only_short": "Schreibgeschützt",
   "way_table_stored_as": "Auf diesem Weg gespeichert als {key}",
   "way_table_too_long": "Zu lang: höchstens 255 Zeichen",
-  "way_table_edit_hint": "Klicke auf einen Wert, um ihn zu ändern. Enter speichert, Escape bricht ab, Entf entfernt den Schlüssel."
+  "way_table_edit_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tippe auf einen Wert, um ihn zu ändern. Verlässt du das Feld, wird er gespeichert.",
+        "input=*": "Klicke auf einen Wert, um ihn zu ändern. Enter speichert, Escape bricht ab, Entf entfernt den Schlüssel."
+      }
+    }
+  ]
 }

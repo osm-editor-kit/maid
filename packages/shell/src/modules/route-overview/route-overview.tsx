@@ -257,7 +257,9 @@ export function RouteOverview({ relation, select }: { relation: OsmRelation; sel
 
   // the column keeps its scroll for a selection made here (overview-selection.ts)
   function selectId(id: string) {
-    markSelectedFromOverview(id)
+    // a selection that does not change draws no scroll to take the mark, which would then stop a later one
+    const selection = engine.selection
+    if (selection.length !== 1 || selection[0] !== id) markSelectedFromOverview(id)
     select(id)
   }
   function toggle() {

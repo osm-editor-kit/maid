@@ -125,10 +125,12 @@ const END_GAP = 'gap-2 @max-[67rem]:gap-[0.35rem]'
 /**
  * An area that scrolls sideways when its row is too narrow, without a scrollbar. The areas align with `safe`, which
  * keeps the first item reachable when the content is wider than the area (plain centring would push it out on the
- * left). The padding keeps the buttons' focus rings inside the scrolling box.
+ * left). A scrolling box clips in both directions, so the padding keeps the buttons' focus rings and the badges
+ * that stick out of their corners (the filter count, `-top-1.5`) inside it; the negative margin gives the bar its
+ * height back. Without it Safari on a phone cut the count in half.
  */
 const SCROLL_X =
-  'overflow-x-auto overscroll-x-contain py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+  'overflow-x-auto overscroll-x-contain -my-1.5 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
 
 /**
  * The app at the top left. With a logo only the logo shows, and its name and detail appear on hover, as the

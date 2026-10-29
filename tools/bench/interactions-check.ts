@@ -1344,18 +1344,53 @@ failed += await runCheck(
     )
     await key('Meta+z')
 
-    // --- a corner dropped on its own neighbour in the same way: refused, the node goes back ---
+    // --- a corner dropped on its own neighbour in the same way: the two merge, the older is left (iD) ---
     await click(first.edge)
     const i = first.nodes.indexOf(cornerA)
     const neighbour = first.nodes[i + 1] ?? first.nodes[i - 1]!
     const [nb] = (await where([neighbour])) as XY[]
     const before = await undoOf()
     await drag(a0!, nb!)
-    const refused = (await where([cornerA]))[0]
+    const kept = older(cornerA, neighbour)
+    const merged = await graph([kept, kept === cornerA ? neighbour : cornerA], [first.id])
     report(
-      'a drop on the neighbour in the same way is refused: the node is back where it started',
+      'a drop on the neighbour in the same way merges them: the older is left, the way has one node fewer',
+      [true, false, first.nodes.length - 1, 'Merged two neighbouring nodes of a way'],
+      [...merged.nodes, merged.ways[0]!.length, await undoOf()],
+    )
+    await key('Meta+z')
+    report(
+      'one undo puts the neighbour back',
       [before, true],
-      [await undoOf(), near(refused, a0, 4)],
+      [await undoOf(), near((await where([cornerA]))[0], a0, 4)],
+    )
+
+    // --- a corner that two buildings share, dropped on the next corner of the second one: they merge, both keep it ---
+    await selectBoth()
+    await drag(a0!, b0!)
+    const shared = older(cornerA, cornerB)
+    const j = second.nodes.indexOf(cornerB)
+    const next = second.nodes[j + 1] ?? second.nodes[j - 1]!
+    const [nx] = (await where([next])) as XY[]
+    await drag(b0!, nx!)
+    const left = older(shared, next)
+    const glued = await graph([left, left === shared ? next : shared], [first.id, second.id])
+    report(
+      'a shared corner dropped on the next corner of the second building: one node, the older, in both buildings',
+      [true, false, true, true, 'Merged two neighbouring nodes of a way'],
+      [
+        ...glued.nodes,
+        glued.ways[0]!.includes(left),
+        glued.ways[1]!.includes(left),
+        await undoOf(),
+      ],
+    )
+    await key('Meta+z')
+    await key('Meta+z')
+    report(
+      'two undos put both corners back',
+      [true, true, start],
+      [...(await graph([cornerA, cornerB], [])).nodes, await undoOf()],
     )
 
     // --- add point on a vertex: no second node, the vertex is selected ---

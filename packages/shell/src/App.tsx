@@ -35,7 +35,9 @@ function Editor() {
   const openRelation = useOpenRelationId()
   useOpenRelationUrl(ids)
   const [sheet, setSheet] = useState({ open: false, selection: param })
-  if (sheet.selection !== param) setSheet({ open: Boolean(param), selection: param })
+  // on a phone the sheet opens only by its button (Tobias, 2026-10-29): a tap on the map selects, and the map stays in
+  // view. A selection keeps the sheet as it is; clearing it closes the sheet.
+  if (sheet.selection !== param) setSheet({ open: sheet.open && Boolean(param), selection: param })
   // `ui=0` leaves only the map, for screenshots and measurements of the map alone
   if (!config.ui) {
     return (

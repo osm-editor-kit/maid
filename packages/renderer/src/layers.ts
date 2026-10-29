@@ -3,7 +3,11 @@
  * Paint values come from feature properties set by the builder (build.ts).
  */
 import { NEIGHBOUR_RANGE } from '@osm-editor-kit/maid-levels'
-import type { ExpressionSpecification, LayerSpecification } from 'maplibre-gl'
+import type {
+  ExpressionSpecification,
+  LayerSpecification,
+  SymbolLayerSpecification,
+} from 'maplibre-gl'
 import {
   ARROW_DEFAULT_COLOUR,
   ARROW_HEIGHT,
@@ -247,6 +251,22 @@ function lowZoomThreshold(lat: number) {
 }
 
 const HOVER = '#f6634f'
+/** iD's colour of the hover and selection shadows, for the shadow images the app draws (PIN_SHADOW, PLAQUE_SHADOW) */
+export const SHADOW_COLOUR = HOVER
+/**
+ * The shadow of a hovered or selected pin, as iD's: the pin's outline stroked 16 px wide (svg/points.js, `.shadow`), so
+ * it rings the whole pin. The image is the pin grown by SHADOW_PAD on each side (packages/shell/src/images.ts).
+ */
+export const PIN_SHADOW = 'shadow-pin'
+/** The address plaque's shadow: a box the layer stretches around the plaque, as iD's shadow of the plaque */
+export const PLAQUE_SHADOW = 'shadow-plaque'
+/** How far a shadow reaches beyond its pin or plaque, in px: half of iD's 16 px stroke */
+export const SHADOW_PAD = 8
+/** The opacity of a shadow on the active source, which has no feature state: its copies say whether they are selected */
+const SELECTED_SHADOW_OPACITY = 0.7
+const activeShadowOpacity: ExpressionSpecification = [
+  'case', ['boolean', ['get', 'sel'], false], SELECTED_SHADOW_OPACITY, 0.4,
+] // prettier-ignore
 /** The relation column's colour (the focus glow of a relation open beside the inspector) */
 const FOCUS = '#7c3aed'
 /** The focus glow is this many times the halo width (the `related` halo is 1x) */
@@ -307,6 +327,15 @@ export function buildLayers(options: LayerOptions) {
     // the active source holds only the hovered and selected points: it has no edit or selection twin
     if (source === ACTIVE_SOURCE) {
       out.push(shown)
+      // Below the floor (and with selectionOnly) the selected pins and plaques are the twins on the selection source,
+      // so their shadows are drawn there too: from the point layer's selection source, where every copy is selected.
+      if (layer.id.startsWith('highlight-shadow-')) {
+        const twin = selectionTwin(layer, SOURCES.points, floor, selectionOnly, twinsShown)
+        out.push({
+          ...twin,
+          paint: { ...twin.paint, 'icon-opacity': SELECTED_SHADOW_OPACITY },
+        } as LayerSpecification)
+      }
       continue
     }
     const editSource = EDIT_OF[source]
@@ -759,6 +788,20 @@ function buildMainLayers(options: LayerOptions) {
     },
   })
 
+  // A selected node that is only a shape point (an untagged corner of a building): iD's selection shadow under it, as
+  // highlight-halo-vertex draws it for the vertices of the data (same radius, without icon). The shape marks it `halo`.
+  layers.push({
+    id: 'highlight-halo-shape',
+    type: 'circle',
+    source: SOURCES.highlight,
+    filter: ['all', ['==', ['get', 'state'], 'shape'], ['has', 'halo']],
+    paint: {
+      'circle-radius': ['step', ['zoom'], 6, 16, 8],
+      'circle-color': HOVER,
+      'circle-opacity': 0.7,
+    },
+  })
+
   // the shape points of a selected way: iD shows all vertices of the selection. Under the data's vertices, so a
   // selected vertex keeps its icon on top (a crossing's sign); where the data's vertices are not drawn yet (low
   // zoom) these are the only ones
@@ -976,12 +1019,44 @@ function buildMainLayers(options: LayerOptions) {
   )
 
   // --- Points ----------------------------------------------------------------
+  // The address plaque: one symbol whose icon stretches to the house number (see point-address below)
+  const plaqueLayout = {
+    'icon-image': ADDRESS_PLAQUE,
+    // upright on the screen when the map is turned or tilted: the plaque and its text
+    'icon-rotation-alignment': 'viewport',
+    'icon-pitch-alignment': 'viewport',
+    'text-rotation-alignment': 'viewport',
+    'text-pitch-alignment': 'viewport',
+    'icon-text-fit': 'both',
+    'icon-text-fit-padding': [2, 4, 2, 4],
+    'icon-anchor': 'center',
+    'text-field': ['get', 'addr'],
+    'text-font': ['Open Sans Semibold'],
+    'text-size': 10,
+    'text-anchor': 'center',
+  } satisfies SymbolLayerSpecification['layout']
+  const plaquePaint = {
+    'text-color': '#333',
+    'text-halo-color': 'rgba(255,255,255,0.7)',
+    'text-halo-width': 2.5,
+  } satisfies SymbolLayerSpecification['paint']
+  // drawn whatever is around it, and taking no room from the others
+  const drawnAlways = {
+    'icon-allow-overlap': true,
+    'icon-ignore-placement': true,
+    'text-allow-overlap': true,
+    'text-ignore-placement': true,
+  } as const
   // Hover and selection: a glow under the dot, as iD's shadow under a point (0.5 on hover, 0.7
-  // when selected)
+  // when selected). A hovered or selected pin (with icons) and address plaque have their own shadow
+  // (highlight-shadow-pin, highlight-shadow-plaque), so the glow is left to the other dots.
+  const plaque: ExpressionSpecification = ['all', ['has', 'addr'], ['!=', ['get', 'addr'], '']]
+  const noPlaque: ExpressionSpecification = ['!', plaque]
   layers.push({
     id: 'highlight-halo-points',
     type: 'circle',
     source: SOURCES.points,
+    filter: options.icons ? ['all', ['has', 'addr'], noPlaque] : noPlaque,
     paint: { 'circle-radius': 9, 'circle-color': HOVER, 'circle-opacity': opacity },
   })
   layers.push({
@@ -1002,6 +1077,22 @@ function buildMainLayers(options: LayerOptions) {
     filter: ['has', 'ed'],
     layout: { visibility: shownIn(edits) },
     paint: { 'circle-radius': 9, 'circle-color': EDIT_COLOUR, 'circle-opacity': 0.8 },
+  })
+  // The shadow around the plaque of a hovered or selected address, as iD's: the plaque's box stretched to the house
+  // number as the plaque is, SHADOW_PAD larger on each side. From the active source, like the pin's shadow. Its text
+  // is not drawn; it is there so that the box fits it. It takes no room, so it never pushes a plaque away.
+  layers.push({
+    id: 'highlight-shadow-plaque',
+    type: 'symbol',
+    source: ACTIVE_SOURCE,
+    filter: plaque,
+    layout: {
+      ...plaqueLayout,
+      'icon-image': PLAQUE_SHADOW,
+      'icon-text-fit-padding': [2 + SHADOW_PAD, 4 + SHADOW_PAD, 2 + SHADOW_PAD, 4 + SHADOW_PAD],
+      ...drawnAlways,
+    },
+    paint: { 'icon-opacity': activeShadowOpacity, 'text-opacity': 0 },
   })
   // Address nodes are not pins: iD draws a rounded plaque with the house number on the node, at
   // every zoom it draws points (svg/points.js markerPath, svg/labels.js). The plaque is one symbol
@@ -1026,31 +1117,25 @@ function buildMainLayers(options: LayerOptions) {
     id: 'point-address',
     type: 'symbol',
     source: SOURCES.points,
-    filter: ['all', ['has', 'addr'], ['!=', ['get', 'addr'], '']],
+    filter: plaque,
     layout: {
-      'icon-image': ADDRESS_PLAQUE,
-      // upright on the screen when the map is turned or tilted: the plaque and its text
-      'icon-rotation-alignment': 'viewport',
-      'icon-pitch-alignment': 'viewport',
-      'text-rotation-alignment': 'viewport',
-      'text-pitch-alignment': 'viewport',
-      'icon-text-fit': 'both',
-      'icon-text-fit-padding': [2, 4, 2, 4],
-      'icon-anchor': 'center',
+      ...plaqueLayout,
       // neither is optional: the icon and the text are placed together or not at all
       'icon-allow-overlap': false,
-      'text-field': ['get', 'addr'],
-      'text-font': ['Open Sans Semibold'],
-      'text-size': 10,
-      'text-anchor': 'center',
       'text-allow-overlap': false,
       'symbol-sort-key': 1,
     },
-    paint: {
-      'text-color': '#333',
-      'text-halo-color': 'rgba(255,255,255,0.7)',
-      'text-halo-width': 2.5,
-    },
+    paint: plaquePaint,
+  })
+  // The plaque of a hovered or selected address is always drawn, over the plaques around it, also where it gave way to
+  // a neighbour's: its shadow (highlight-shadow-plaque) always has a plaque in it. From the active source, as the pins.
+  layers.push({
+    id: 'active-point-address',
+    type: 'symbol',
+    source: ACTIVE_SOURCE,
+    filter: plaque,
+    layout: { ...plaqueLayout, ...drawnAlways },
+    paint: plaquePaint,
   })
   // As in iD the pin is the point: from PIN_ZOOM on every point is a pin, none is thinned out and
   // no dot is drawn under it. Further out, where pins would cover the map (iD hides all points
@@ -1092,24 +1177,29 @@ function buildMainLayers(options: LayerOptions) {
       },
     })
     // The hovered or selected point always shows its pin, also where pins are thinned out for
-    // room, with a glow behind the pin's head. The glow is a feature state of the point (invisible
-    // for every other point). The pin is drawn from the active source, which holds only those points
-    // (engine.ts `syncActive`): no feature state, so MapLibre asks for the pins of a few points, not
-    // of every point from the zoom where the layer starts (see docs/research/performance-2026-10-13.md).
+    // room, with iD's shadow around the whole pin. The pin and its shadow are drawn from the active source, which
+    // holds only those points (engine.ts `syncActive`): no feature state, so MapLibre asks for the pins of a few
+    // points, not of every point from the zoom where the layer starts (see docs/research/performance-2026-10-13.md).
+    // Each copy says whether it is selected (`sel`), so the shadow is stronger for the selection than for the hover.
     layers.push({
-      id: 'highlight-halo-pin',
-      type: 'circle',
-      source: SOURCES.points,
+      id: 'highlight-shadow-pin',
+      type: 'symbol',
+      source: ACTIVE_SOURCE,
       filter: ['!', ['has', 'addr']],
-      paint: {
-        'circle-radius': 16,
-        'circle-translate': [0, -15],
-        'circle-blur': 0.4,
-        'circle-color': HOVER,
-        'circle-opacity': opacity,
+      layout: {
+        'icon-image': PIN_SHADOW,
+        'icon-rotation-alignment': 'viewport',
+        'icon-pitch-alignment': 'viewport',
+        'icon-anchor': 'bottom',
+        // the image is the pin grown by SHADOW_PAD: moved down by as much, its tip is on the pin's tip
+        'icon-offset': [0, SHADOW_PAD],
+        'icon-allow-overlap': true,
+        'icon-ignore-placement': true,
+        'icon-padding': 0,
       },
+      paint: { 'icon-opacity': activeShadowOpacity },
     })
-    // the focus glow behind a pin's head, as highlight-halo-pin (a point of the relation that is drawn as a pin)
+    // the focus glow behind a pin's head (a point of the relation that is drawn as a pin)
     layers.push({
       id: 'focus-halo-pin',
       type: 'circle',

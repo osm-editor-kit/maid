@@ -4,17 +4,23 @@
   "photos_automated_off": "Photos are off in automated browsers.",
   "action_automated_off": "Photos are off in automated browsers",
   "panel_providers_heading": "Show photos from",
-  "panel_providers_off": "Photos are off. Choose a source to load them.",
   "panel_provider_switch": "Show photos from {provider}",
-  "panel_note_panoramax": "From api.panoramax.xyz. No account needed.",
-  "panel_note_mapillary": "From graph.mapillary.com, with the token of this build.",
   "panel_mapillary_no_token": "No Mapillary token is set in this build, so Mapillary is not offered.",
   "panel_kinds_heading": "Photos",
   "panel_kind_choice": "Which photos",
   "kind_all": "All",
   "kind_flat": "Flat",
   "panel_dates_heading": "Taken between",
-  "dock_hint_click": "Click a photo on the map to see it here.",
+  "dock_hint_click": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tap a photo on the map to see it here.",
+        "input=*": "Click a photo on the map to see it here."
+      }
+    }
+  ],
   "dock_hint_switch": "Switch on a provider under Photos in the top bar to see photos on the map.",
   "dock_loading": "Loading photo…",
   "dock_details": "Details",
@@ -31,7 +37,16 @@
   "field_group_bike_lane": "Bike lane",
   "field_group_sidewalk": "Sidewalk",
   "field_target": "Target for “Use this photo”",
-  "field_target_title": "Clicking “Use this photo” in the viewer adds that photo to this key",
+  "field_target_title": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tapping “Use this photo” in the viewer adds that photo to this key",
+        "input=*": "Clicking “Use this photo” in the viewer adds that photo to this key"
+      }
+    }
+  ],
   "field_show_title": "Show in the viewer",
   "field_loading": "Loading…",
   "field_show_aria": "Show {id} in the viewer",

@@ -65,6 +65,35 @@ describe('buildChain', () => {
     expect(chain.sortedOrder).toEqual([])
   })
 
+  it('a loop that the greedy walk leaves behind is taken in the middle (sorted, not broken)', () => {
+    const nodes = grid({
+      a: [0, 0],
+      m: [1, 0],
+      b: [2, 0],
+      k: [3, 0],
+      c: [4, 0],
+      q: [2, 1],
+      p: [3, 1],
+    })
+    const ways = [
+      { id: 'w1', nodes: ['b', 'm'] },
+      { id: 'w2', nodes: ['m', 'a'] },
+      { id: 'w3', nodes: ['b', 'k'] },
+      { id: 'w4', nodes: ['k', 'c'] },
+      { id: 'w5', nodes: ['b', 'q', 'p', 'b'] },
+    ]
+    const chain = chainOf(ways, nodes)
+    expect(chain.linear).toBe('sorted')
+    expect(chain.pieces.length).toBe(1)
+    expect(chain.gaps).toEqual([])
+    const steps = chain.pieces[0]?.steps ?? []
+    expect(steps.map((s) => s.wayId).sort()).toEqual(['w1', 'w2', 'w3', 'w4', 'w5'])
+    // the loop starts and ends at b, between the two arms
+    const loop = steps.findIndex((s) => s.wayId === 'w5')
+    expect(loop).toBeGreaterThan(0)
+    expect(loop).toBeLessThan(steps.length - 1)
+  })
+
   it('a way drawn backwards is entered at its end and reported as reversed', () => {
     const ways = [
       { id: 'w1', nodes: ['a', 'b'] },

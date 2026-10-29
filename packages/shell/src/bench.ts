@@ -5,6 +5,7 @@ import type { Map as MapLibreMap } from 'maplibre-gl'
 import type { BenchApi } from '../../../tools/refs/bench-api'
 import { markerImageState } from './images'
 import { journalSettled, preloadAfterFirstSettle } from './lazy-chunks'
+import { startPerfReport } from './perf-report'
 import type { Shell } from './shell'
 
 /** How long a selection may take to be drawn before `select` fails. A frame that does not draw would otherwise wait forever. */
@@ -138,6 +139,8 @@ export function exposeBenchApi(
       debug: () => maidDebugState(map, engine),
     },
   })
+  // `?perf-report=<port>`: the load timings to the measuring script (bun run sim-measure)
+  startPerfReport(api, editor)
 }
 
 /**

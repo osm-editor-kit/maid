@@ -8,9 +8,9 @@ export function markSelectedFromOverview(id: string) {
   fromOverview = id
 }
 
-/** True once when `id` was selected from the overview; the mark is cleared either way */
-export function takeSelectedFromOverview(id: string): boolean {
-  const was = fromOverview === id
+/** True once when `id` was selected from the overview; the mark is cleared either way (also by a selection of nothing) */
+export function takeSelectedFromOverview(id: string | null): boolean {
+  const was = id !== null && fromOverview === id
   fromOverview = null
   return was
 }

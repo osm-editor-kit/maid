@@ -1,5 +1,5 @@
 import { ArrowUturnLeftIcon, TrashIcon } from '@heroicons/react/16/solid'
-import { m } from '@osm-editor-kit/maid-i18n'
+import { device, m } from '@osm-editor-kit/maid-i18n'
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import { showsDirectionRotateHint } from '@osm-editor-kit/maid-renderer'
 import { useId, useState } from 'react'
@@ -34,7 +34,7 @@ const MIXED_HINT = 'mixed'
  * focus is in this field's row (the group is named, so a group around all rows does not count),
  * stays while its panel is open, and is always there on touch.
  */
-export const INFO_BUTTON = `rounded ${REVEAL}`
+export const INFO_BUTTON = `rounded touch:size-11 ${REVEAL}`
 
 /**
  * The "Measure on the map" button: as the "i", it fades in with the row, and it stays while the
@@ -218,7 +218,7 @@ export function FieldRow(props: {
               buttonClassName={INFO_BUTTON}
               hint={
                 showsDirectionRotateHint({ key, fieldType: field.type })
-                  ? m.direction_rotate_hint({ key: 'R' })
+                  ? m.direction_rotate_hint({ key: 'R', ...device() })
                   : undefined
               }
             />

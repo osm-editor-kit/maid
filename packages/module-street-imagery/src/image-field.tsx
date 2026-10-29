@@ -1,4 +1,5 @@
 import { EyeIcon, TrashIcon } from '@heroicons/react/20/solid'
+import { device } from '@osm-editor-kit/maid-i18n'
 import { PLAIN_INPUT, openDockView } from '@osm-editor-kit/maid-ui'
 /**
  * The "Street-level images" field: one row per image key of the feature that has a value (`;` separated ids, as
@@ -211,7 +212,10 @@ function ImageRow({
         </span>
       </div>
       {isActive ? (
-        <p title={m.field_target_title()} className="text-[11px] text-blue-700 dark:text-blue-300">
+        <p
+          title={m.field_target_title({ ...device() })}
+          className="text-[11px] text-blue-700 dark:text-blue-300"
+        >
           {m.field_target()}
         </p>
       ) : null}

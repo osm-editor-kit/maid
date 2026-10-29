@@ -130,9 +130,36 @@
   "quick_annotation_clear_right": "Etiquetas de aparcamiento del lado derecho borradas",
   "quick_annotation_remove": "Aparcamiento eliminado: {label}",
   "quick_annotation_set": "Aparcamiento establecido: {label}",
-  "quick_cell_label": "{heading}, {side}: {value}. Clic: {next}",
-  "quick_cell_mixed": "{heading}, {side}: distinto en las vías seleccionadas. Clic: {next}",
-  "quick_cell_unset": "{heading}, {side}: sin definir. Clic: {next}",
+  "quick_cell_label": [
+    {
+      "declarations": ["input input", "input heading", "input next", "input side", "input value"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "{heading}, {side}: {value}. Toca: {next}",
+        "input=*": "{heading}, {side}: {value}. Clic: {next}"
+      }
+    }
+  ],
+  "quick_cell_mixed": [
+    {
+      "declarations": ["input input", "input heading", "input next", "input side"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "{heading}, {side}: distinto en las vías seleccionadas. Toca: {next}",
+        "input=*": "{heading}, {side}: distinto en las vías seleccionadas. Clic: {next}"
+      }
+    }
+  ],
+  "quick_cell_unset": [
+    {
+      "declarations": ["input input", "input heading", "input next", "input side"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "{heading}, {side}: sin definir. Toca: {next}",
+        "input=*": "{heading}, {side}: sin definir. Clic: {next}"
+      }
+    }
+  ],
   "quick_clear_both": "Borrar todas las etiquetas de aparcamiento de ambos lados",
   "quick_clear_left": "Borrar todas las etiquetas de aparcamiento del lado izquierdo",
   "quick_clear_right": "Borrar todas las etiquetas de aparcamiento del lado derecho",

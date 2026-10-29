@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { shouldDismiss } from './BottomSheet.tsx'
+import { coveredBottom, shouldDismiss } from './BottomSheet.tsx'
 
 describe('shouldDismiss', () => {
   test('a slow drag closes the sheet only past its distance', () => {
@@ -15,5 +15,27 @@ describe('shouldDismiss', () => {
 
   test('a drag up never closes it', () => {
     expect(shouldDismiss(-200, -800)).toBe(false)
+  })
+})
+
+describe('coveredBottom', () => {
+  test('no keyboard: nothing covered', () => {
+    expect(coveredBottom(874, 874, 0, true)).toBe(0)
+  })
+
+  test('a keyboard of 336 px: the bottom 336 px', () => {
+    expect(coveredBottom(874, 538, 0, true)).toBe(336)
+  })
+
+  test('the page scrolled inside the visual viewport: what is below it', () => {
+    expect(coveredBottom(874, 538, 100, true)).toBe(236)
+  })
+
+  test('never below 0', () => {
+    expect(coveredBottom(874, 900, 0, true)).toBe(0)
+  })
+
+  test('a pinch zoom without a focused field is no keyboard', () => {
+    expect(coveredBottom(874, 437, 0, false)).toBe(0)
   })
 })

@@ -8,7 +8,7 @@ import { isAutomated } from '@osm-editor-kit/maid-core'
 import { useUrlParam, useUrlSetting } from '@osm-editor-kit/maid-core/react'
 import { notify } from '@osm-editor-kit/maid-ui'
 import { useEffect, useRef } from 'react'
-import { bestBackgrounds, coverageOf, knownLayer, layerName, listView } from './eli.ts'
+import { bestBackgrounds, coverageOf, knownLayer, layerName, listViewRows } from './eli.ts'
 import { BRIGHTNESS_MAX, listingView, type View } from './helpers.ts'
 import {
   useImageryActions,
@@ -93,7 +93,7 @@ export function useLiveImagery() {
 }
 
 /** The start order's inputs, read when it starts */
-type StartInput = {
+export type StartInput = {
   url: string | null
   urlOverlays: string[] | null
   stored: string | null
@@ -101,14 +101,25 @@ type StartInput = {
   fallback: string | null
 }
 
-/** The start order: the index's layers valid for the view, their best ones, then the order (start.ts) */
-async function resolveStart(
+/** The index reads of the start order, as parameters so that a test can count them (the real ones by default) */
+export type StartSearch = {
+  listView: typeof listViewRows
+  bestBackgrounds: typeof bestBackgrounds
+}
+
+/**
+ * The start order: the index's layers valid for the view, their best ones, then the order (start.ts). Both read the
+ * index's always-loaded rows and boxes, no details and no coverage polygons (eli.ts). The best ones are looked for
+ * only when the URL names no background, as iD does: startBackground uses them only then.
+ */
+export async function resolveStart(
   view: View,
   input: StartInput,
+  search: StartSearch = { listView: listViewRows, bestBackgrounds },
 ): Promise<{ background: string; overlays: string[] }> {
-  const listed = await listView(listingView(view))
+  const listed = await search.listView(listingView(view))
   const backgrounds = listed.items.filter((item) => !item.overlay)
-  const best = await bestBackgrounds(backgrounds, view)
+  const best = input.url === null ? await search.bestBackgrounds(backgrounds, view) : []
   return {
     background: startBackground({
       url: input.url,
@@ -159,7 +170,7 @@ export function useImageryStart(view: View | null) {
  */
 async function switchTarget(view: View, chosen: string, fallback: string | null) {
   if (isOwnValue(chosen)) return null
-  const listed = await listView(listingView(view))
+  const listed = await listViewRows(listingView(view))
   if (!knownLayer(chosen)) return null
   const backgrounds = listed.items.filter((item) => !item.overlay)
   const best = await bestBackgrounds(backgrounds, view)

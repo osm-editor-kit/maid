@@ -118,6 +118,19 @@ describe('lineIndex nearest', () => {
     expect(hit?.at ?? NaN).toBeCloseTo(1.5 * d, 0)
   })
 
+  it("finds the line east of a point far north of the line's middle (the grid is cut at the mean latitude)", () => {
+    const input = makeInput({
+      members: [member('way', 'w0'), member('way', 'w1')],
+      ways: { w0: ['s', 'm'], w1: ['m', 'n'] },
+      nodes: { s: [10, 40], m: [10, 50], n: [10, 60] },
+    })
+    const index = lineIndex(input, makeChain(input, [[0, 1]]))
+    // 1.5 km east of the line at 60°N: about 0.027 degrees of longitude there
+    const east = 1500 / distance([10, 60], [11, 60])
+    const hit = index.nearest([10 + east, 60], 2000)
+    expect(hit?.offset ?? NaN).toBeCloseTo(1500, -1)
+  })
+
   it('returns undefined when nothing is within the radius', () => {
     const input = rowInput()
     const index = lineIndex(input, makeChain(input, [[0, 1, 2]]))

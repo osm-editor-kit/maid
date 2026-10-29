@@ -167,8 +167,13 @@ function planOutline(
     if (!sameMemberships(graph, a, b)) return 'conflicting_relations'
   }
 
-  // The survivor comes first: its points win where the two outlines share a place
-  const keepFirst = (taggedSurvivor?.id ?? utilSurvivorID([a, b]) ?? a.id) === a.id
+  // The survivor is iD's (utilSurvivorID: the way that exists in OSM, the oldest), so its history stays; a bare way
+  // only gives the tags of the other. A tagged way in a relation survives, as the bare one is a member of nothing.
+  // The survivor comes first: its points win where the two outlines share a place.
+  const oldest = utilSurvivorID([a, b]) ?? a.id
+  const keepId =
+    taggedSurvivor && graph.parentRelations(taggedSurvivor).length > 0 ? taggedSurvivor.id : oldest
+  const keepFirst = keepId === a.id
   const [keepWay, loseWay]: [OsmWay, OsmWay] = keepFirst ? [a, b] : [b, a]
   const keep = sideOf(graph, keepWay)
   const lose = sideOf(graph, loseWay)
@@ -251,9 +256,9 @@ function planOutline(
   }
   if (droppedNodes.some((node) => node.hasInterestingTags())) return 'tagged_nodes'
 
-  // Tags: the survivor's (both ways have the same, or the other has none), except area=yes, which stays only when the
+  // Tags: the tagged way's (both ways have the same, or one has none), except area=yes, which stays only when the
   // tags do not already make an area
-  const rest = withoutArea(keepWay.tags)
+  const rest = withoutArea((taggedSurvivor ?? keepWay).tags)
   const areaTagged = a.tags.area === 'yes' || b.tags.area === 'yes'
   const tags = !keepWay.tagSuggestingArea(rest) && areaTagged ? { ...rest, area: 'yes' } : rest
 

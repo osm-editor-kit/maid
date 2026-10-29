@@ -12,6 +12,7 @@ import {
 import { twMerge } from 'tailwind-merge'
 import { Flyout } from './Flyout.tsx'
 import { FadeSlideIn } from './motion.tsx'
+import { useBreakpoint } from './useBreakpoint.ts'
 
 /**
  * Left column for the selection and its properties; a full-height landmark with a hairline on its
@@ -61,6 +62,8 @@ export function SidebarHeader(props: {
 }) {
   const { icon, title, subtitle, onClose, onTitleClick, expanded, titleAction, titleFlyout, meta } =
     props
+  // from `sm` up the sidebar has room beside it for a flyout; below, it is the bottom sheet
+  const wide = useBreakpoint('sm')
   // the title and the subtitle name the head button, so that it is read as one button
   const titleId = useId()
   const subtitleId = useId()
@@ -76,33 +79,40 @@ export function SidebarHeader(props: {
   ) : null
 
   if (onTitleClick && titleFlyout !== undefined) {
-    return (
+    // the head button: the whole row, under the text and the controls, with no content of its own
+    const headButton = (
+      <button
+        type="button"
+        aria-labelledby={subtitle ? `${titleId} ${subtitleId}` : titleId}
+        aria-expanded={expanded}
+        // no tooltip: the picker itself shows on hover
+        aria-description={titleAction}
+        // with a flyout, the flyout takes the click (it pins or closes the panel)
+        onClick={wide ? undefined : onTitleClick}
+        className="absolute inset-0 cursor-pointer hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 aria-expanded:bg-zinc-950/5 dark:hover:bg-white/5 dark:aria-expanded:bg-white/5"
+      />
+    )
+    const head = (
       <div className="relative flex min-h-12 shrink-0 items-center gap-1 border-b border-zinc-950/10 dark:border-white/10">
-        <Flyout
-          label={titleAction ?? title}
-          placement="right-start"
-          className="w-[26rem]"
-          focus={false}
-          // the picker shows while the pointer rests on the head; a click keeps it
-          hover
-          open={expanded ?? false}
-          onOpenChange={(open) => {
-            if (open !== (expanded ?? false)) onTitleClick()
-          }}
-          trigger={
-            // the head button: the whole row, under the text and the controls, with no content of its own
-            <button
-              type="button"
-              aria-labelledby={subtitle ? `${titleId} ${subtitleId}` : titleId}
-              aria-expanded={expanded}
-              // no tooltip: the picker itself shows on hover
-              aria-description={titleAction}
-              className="absolute inset-0 cursor-pointer hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 aria-expanded:bg-zinc-950/5 dark:hover:bg-white/5 dark:aria-expanded:bg-white/5"
-            />
-          }
-        >
-          {titleFlyout}
-        </Flyout>
+        {wide ? (
+          <Flyout
+            label={titleAction ?? title}
+            placement="right-start"
+            className="w-[26rem]"
+            focus={false}
+            // the picker shows while the pointer rests on the head; a click keeps it
+            hover
+            open={expanded ?? false}
+            onOpenChange={(open) => {
+              if (open !== (expanded ?? false)) onTitleClick()
+            }}
+            trigger={headButton}
+          >
+            {titleFlyout}
+          </Flyout>
+        ) : (
+          headButton
+        )}
         {/* the head as it looks, over the button: the text passes pointer events through, the controls take theirs */}
         <div className="pointer-events-none relative flex min-w-0 flex-1 items-stretch gap-3 pr-3">
           {icon ? (
@@ -135,6 +145,18 @@ export function SidebarHeader(props: {
         </div>
         {closeButton}
       </div>
+    )
+    if (wide) return head
+    // a phone: no room beside the sheet for a flyout, so what the head opens comes in under it, as iD's type list
+    return (
+      <>
+        {head}
+        {expanded ? (
+          <div className="shrink-0 border-b border-zinc-950/10 p-3 dark:border-white/10">
+            {titleFlyout}
+          </div>
+        ) : null}
+      </>
     )
   }
 

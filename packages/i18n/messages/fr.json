@@ -13,9 +13,36 @@
   "topbar_point": "Point",
   "topbar_line": "Ligne",
   "topbar_area": "Surface",
-  "topbar_add_point_hint": "Ajouter un point : cliquez sur la carte pour le placer",
-  "topbar_draw_line_hint": "Tracer une ligne : cliquez pour chaque nœud, Entrée ou un clic sur le dernier nœud termine",
-  "topbar_draw_area_hint": "Tracer une surface : cliquez pour chaque nœud, Entrée ou un clic sur le premier nœud termine",
+  "topbar_add_point_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Ajouter un point : touchez la carte pour le placer",
+        "input=*": "Ajouter un point : cliquez sur la carte pour le placer"
+      }
+    }
+  ],
+  "topbar_draw_line_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tracer une ligne : touchez pour chaque nœud, touchez le dernier nœud pour terminer",
+        "input=*": "Tracer une ligne : cliquez pour chaque nœud, Entrée ou un clic sur le dernier nœud termine"
+      }
+    }
+  ],
+  "topbar_draw_area_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tracer une surface : touchez pour chaque nœud, touchez le premier nœud pour terminer",
+        "input=*": "Tracer une surface : cliquez pour chaque nœud, Entrée ou un clic sur le premier nœud termine"
+      }
+    }
+  ],
   "topbar_more_area_tools": "Autres outils de surface",
   "topbar_undo": "Annuler : {change}",
   "topbar_redo": "Rétablir : {change}",
@@ -41,28 +68,81 @@
   "picker_favourites": "Favoris",
   "picker_favourites_expand": "Afficher tous vos favoris",
   "picker_favourites_collapse": "Masquer vos favoris",
-  "picker_favourite_start_hint": "Maintenez {key} et tapez {number} pour démarrer {name}",
+  "picker_favourite_start_hint": [
+    {
+      "declarations": ["input input", "input key", "input name", "input number"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Démarrer {name}",
+        "input=*": "Maintenez {key} et tapez {number} pour démarrer {name}"
+      }
+    }
+  ],
   "picker_favourite_only_as": "Seulement comme {geometry}",
   "favourite_add_as": "Ajouter {name} comme {geometry}",
   "favourite_remove": "Retirer {name} des favoris",
   "favourite_add": "Ajouter {name} aux favoris",
   "favourites_button": "Favoris",
-  "favourites_button_hint": "Favoris : maintenez {key} et tapez un nombre pour en démarrer un",
-  "favourites_intro": "Maintenez {key} et tapez un nombre pour démarrer un favori. Les nombres 1 à 3 sont les touches Point, Ligne et Surface.",
+  "favourites_button_hint": [
+    {
+      "declarations": ["input input", "input key"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Favoris",
+        "input=*": "Favoris : maintenez {key} et tapez un nombre pour en démarrer un"
+      }
+    }
+  ],
+  "favourites_intro": [
+    {
+      "declarations": ["input input", "input key"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Touchez un favori pour le démarrer.",
+        "input=*": "Maintenez {key} et tapez un nombre pour démarrer un favori. Les nombres 1 à 3 sont les touches Point, Ligne et Surface."
+      }
+    }
+  ],
   "favourites_empty": "Vous n'avez pas encore de favoris. Ajoutez-en un avec l'étoile à côté d'un type d'élément dans la recherche de types.",
   "sidebar_empty_title": "Rien de sélectionné",
-  "sidebar_empty_hint": "Cliquez sur un élément de la carte pour voir et modifier ses étiquettes.",
+  "sidebar_empty_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Touchez un élément de la carte pour voir et modifier ses étiquettes.",
+        "input=*": "Cliquez sur un élément de la carte pour voir et modifier ses étiquettes."
+      }
+    }
+  ],
   "rotate_point_description": "Ajuste la direction numérique de ce point.",
-  "direction_rotate_hint": "Appuyez sur {key} pour ajuster cette valeur sur la carte.",
+  "direction_rotate_hint": [
+    {
+      "declarations": ["input input", "input key"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Touchez Rotate pour ajuster cette valeur sur la carte.",
+        "input=*": "Appuyez sur {key} pour ajuster cette valeur sur la carte."
+      }
+    }
+  ],
   "directional_side_left": "Gauche",
   "directional_side_right": "Droite",
   "directional_unused_hint": "Non utilisé avec {field} : {value}",
   "search_button": "Rechercher",
-  "search_button_title": "Rechercher (Ctrl+F ou Cmd+F)",
   "search_panel_label": "Rechercher",
   "search_input_label": "Rechercher des coordonnées, un identifiant OSM, un nom sur la carte ou un lieu",
   "search_placeholder": "52.5, 13.4 · w123 · un nom · un lieu",
-  "search_hint": "Saisissez des coordonnées, comme 52.5, 13.4 ou 17/52.5/13.4, un identifiant OSM comme w123, un lien vers la carte ou un nom sur la carte. Entrée recherche des lieux.",
+  "search_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Saisissez des coordonnées, comme 52.5, 13.4 ou 17/52.5/13.4, un identifiant OSM comme w123, un lien vers la carte ou un nom sur la carte. Touchez Entrée pour rechercher des lieux.",
+        "input=*": "Saisissez des coordonnées, comme 52.5, 13.4 ou 17/52.5/13.4, un identifiant OSM comme w123, un lien vers la carte ou un nom sur la carte. Entrée recherche des lieux."
+      }
+    }
+  ],
   "search_group_position": "Position",
   "search_group_object": "Objet OSM",
   "search_group_loaded": "Dans les données chargées",
@@ -73,7 +153,16 @@
   "search_object_not_loaded_hint": "Déplacez d'abord la carte jusqu'à lui",
   "search_places_action": "Rechercher des lieux",
   "search_places_off": "Désactivé dans les essais automatiques",
-  "search_places_enter_hint": "Entrée pour rechercher",
+  "search_places_enter_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Touchez pour rechercher",
+        "input=*": "Entrée pour rechercher"
+      }
+    }
+  ],
   "search_places_loading": "Recherche de lieux…",
   "search_places_failed": "La recherche de lieux a échoué. Réessayez.",
   "search_places_none": "Aucun lieu trouvé",
@@ -83,7 +172,16 @@
   "search_follow_background": "Suivi désactivé : la carte a été déplacée",
   "search_follow_error": "La position n'a pas pu être obtenue",
   "turn_restrictions_title": "Restrictions de virage",
-  "turn_restrictions_help_click": "Cliquez sur un virage pour le changer : autorisé, interdit, ou seul autorisé.",
+  "turn_restrictions_help_click": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Touchez un virage pour le changer : autorisé, interdit, ou seul autorisé.",
+        "input=*": "Cliquez sur un virage pour le changer : autorisé, interdit, ou seul autorisé."
+      }
+    }
+  ],
   "turn_restrictions_distance_label": "Distance de recherche",
   "turn_restrictions_distance_tip": "Jusqu’où du nœud la recherche des routes connectées va.",
   "turn_restrictions_via_label": "Voies via",
@@ -102,7 +200,16 @@
   "turn_restrictions_state_no": "Interdit : {turn}",
   "turn_restrictions_state_only": "Seulement : {turn}",
   "turn_restrictions_state_allowed": "Autorisé : {turn}",
-  "turn_restrictions_hint": "{state}. Cliquer pour : {next}",
+  "turn_restrictions_hint": [
+    {
+      "declarations": ["input input", "input next", "input state"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "{state}. Toucher pour : {next}",
+        "input=*": "{state}. Cliquer pour : {next}"
+      }
+    }
+  ],
   "turn_restrictions_badge_only": "SEUL",
   "turn_restrictions_indirect_hint": "Indirect : causé par une restriction voisine. Modifiez la restriction directe à côté.",
   "turn_restrictions_aria_turn": "Virage de {from} vers {to} : {state}",
@@ -225,7 +332,16 @@
   "traffic_sign_empty": "Aucun panneau pour l’instant. Cherche ci-dessous par nom ou numéro pour en ajouter un.",
   "traffic_sign_add_placeholder": "Ajouter un panneau…",
   "traffic_sign_search_label": "Rechercher des panneaux",
-  "traffic_sign_no_results": "Aucun panneau ne correspond. Appuie sur Entrée pour ajouter le texte tel quel.",
+  "traffic_sign_no_results": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Aucun panneau ne correspond. Touchez Entrée pour ajouter le texte tel quel.",
+        "input=*": "Aucun panneau ne correspond. Appuie sur Entrée pour ajouter le texte tel quel."
+      }
+    }
+  ],
   "traffic_sign_more_results": "{count} de plus, continue à écrire pour affiner",
   "traffic_sign_no_sign": "Aucun panneau",
   "traffic_sign_unknown": "Panneau inconnu",
@@ -337,5 +453,36 @@
   "route_overview_issue_empty_text": "Aucune voie principale de cet itinéraire n’est chargée ; il n’y a donc pas de ligne à tracer.",
   "route_overview_issue_empty_todo": "Chargez les membres avec le bouton de la liste des membres.",
   "route_overview_severity_warning": "avertissement",
-  "route_overview_severity_info": "remarque"
+  "route_overview_severity_info": "remarque",
+  "map_measure_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Touchez deux points pour mesurer.",
+        "input=*": "Cliquez sur deux points pour mesurer. Échap annule."
+      }
+    }
+  ],
+  "map_stack_label": "Éléments à cet endroit",
+  "map_stack_description": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Touchez pour les lister.",
+        "input=*": "Cliquez pour les lister. , prend le précédent et . le suivant."
+      }
+    }
+  ],
+  "map_reset_north": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Remettre le nord en haut",
+        "input=*": "Remettre le nord en haut (N)"
+      }
+    }
+  ]
 }

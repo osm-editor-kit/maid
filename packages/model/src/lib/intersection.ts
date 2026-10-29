@@ -3,7 +3,8 @@ import { actionReverse } from '../actions/reverse.ts';
 import { actionSplit } from '../actions/split.ts';
 import { Graph } from './Graph.ts';
 import { RAD2DEG, geoSphericalDistance, vecAngle } from '@rapid-sdk/math';
-import { utilArrayDifference, utilArrayUniq } from '@rapid-sdk/util';
+// Deep import: the barrel pulls aes-js into the start chunk.
+import { utilArrayDifference, utilArrayUniq } from '@rapid-sdk/util/array';
 
 import type { Context } from '../Context.ts';
 import type { OsmEntity, OsmNode, OsmRelation, OsmWay } from '../data/types.ts';

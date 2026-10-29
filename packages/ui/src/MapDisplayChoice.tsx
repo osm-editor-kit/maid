@@ -2,7 +2,7 @@ import { m } from '@osm-editor-kit/maid-i18n'
 import type { MaidEngine, MapDisplay } from '@osm-editor-kit/maid-renderer'
 import { useSyncExternalStore } from 'react'
 import { chooseDisplay } from './display.ts'
-import { toolButtonTone } from './Toolbar.tsx'
+import { TAP, toolButtonTone } from './Toolbar.tsx'
 
 /**
  * What the map shows of the data, as a choice: the normal look, the wireframe (W) or the changes in colour (G). The
@@ -35,12 +35,12 @@ export function MapDisplayChoice({ engine }: { engine: MaidEngine }) {
               role="radio"
               aria-checked={checked}
               onClick={() => chooseDisplay(engine, choice.display)}
-              className={`rounded-md px-2 py-1.5 text-left ${toolButtonTone(checked ? 'selected' : 'idle')}`}
+              className={`rounded-md px-2 py-1.5 text-left ${TAP} ${toolButtonTone(checked ? 'selected' : 'idle')}`}
             >
               <span className="flex items-center gap-1.5 font-medium">
                 {choice.name}
                 {choice.key && (
-                  <kbd className="rounded border border-zinc-300 px-1 font-mono text-[10px] font-normal text-zinc-500 dark:border-zinc-600 dark:text-zinc-400">
+                  <kbd className="rounded border border-zinc-300 px-1 font-mono text-[10px] font-normal text-zinc-500 dark:border-zinc-600 dark:text-zinc-400 touch:hidden">
                     {choice.key}
                   </kbd>
                 )}

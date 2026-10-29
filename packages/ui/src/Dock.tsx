@@ -2,9 +2,11 @@ import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/20/solid'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useId, useState, type ReactNode } from 'react'
 import { twJoin } from 'tailwind-merge'
+import { BottomSheet } from './BottomSheet.tsx'
 import { useDockRequest } from './dock-request.ts'
 import { UI_SPRING } from './motion.tsx'
 import { ResizeHandle } from './ResizeHandle.tsx'
+import { useBreakpoint } from './useBreakpoint.ts'
 import { useResizable } from './useResizable.ts'
 
 export type DockTab = { id: string; label: string; content: ReactNode }
@@ -15,6 +17,8 @@ const dockMaxHeight = (viewport: number) => viewport * 0.7
 /**
  * Tabbed panel below the map. The tabs float as a small bar on the map's lower edge, not as a strip across the whole
  * width (Tobias, 2026-10-23), so the closed dock covers almost nothing; the panel opens below them, across the width.
+ * On a phone (below `sm`) the panel is a bottom sheet, as the sidebar there: a grab row to drag it down, the tabs at
+ * its top, the content scrolling under them (Tobias, 2026-10-29: an 8px edge to resize was no handle for a finger).
  */
 export function Dock(props: { tabs: DockTab[]; defaultOpen?: boolean }) {
   const { tabs, defaultOpen = false } = props
@@ -50,6 +54,7 @@ export function Dock(props: { tabs: DockTab[]; defaultOpen?: boolean }) {
     setShownId(shownNow)
   }
   const reducedMotion = useReducedMotion()
+  const wide = useBreakpoint('sm')
   const baseId = useId()
   // Falls back to the first tab until one is picked, and when the picked tab is gone.
   const selected = tabs.find((tab) => tab.id === selectedId) ?? tabs[0]
@@ -66,6 +71,55 @@ export function Dock(props: { tabs: DockTab[]; defaultOpen?: boolean }) {
     }
     setSelectedId(tab.id)
     setOpen(true)
+  }
+
+  const tabList = (
+    <div
+      role="tablist"
+      aria-label="Panels"
+      className="flex min-w-0 items-center gap-0.5 overflow-x-auto"
+    >
+      {tabs.map((tab) => {
+        const isSelected = tab.id === selectedTabId
+        return (
+          <button
+            key={tab.id}
+            id={tabElementId(tab.id)}
+            type="button"
+            role="tab"
+            aria-selected={isSelected}
+            aria-controls={open && isSelected ? panelId : undefined}
+            onClick={() => selectTab(tab)}
+            className={twJoin(
+              'shrink-0 cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium whitespace-nowrap focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 touch:px-3 touch:py-2 touch:text-sm',
+              open && isSelected
+                ? 'bg-zinc-950 text-white dark:bg-white dark:text-zinc-950'
+                : 'text-zinc-600 hover:bg-zinc-950/5 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-white',
+            )}
+          >
+            {tab.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+
+  if (!wide) {
+    return (
+      <div className="relative shrink-0">
+        {open ? null : (
+          <div className="absolute bottom-full left-2 z-10 mb-2 flex max-w-[calc(100%-1rem)] items-center gap-0.5 rounded-lg bg-white/95 p-0.5 shadow-md ring-1 ring-zinc-950/10 dark:bg-zinc-900/95 dark:ring-white/10">
+            {tabList}
+          </div>
+        )}
+        <BottomSheet id={panelId} label={selected.label} open={open} onOpenChange={setOpen}>
+          <div className="sticky top-0 z-10 bg-white px-3 pb-2 dark:bg-zinc-900">{tabList}</div>
+          <div role="tabpanel" aria-labelledby={tabElementId(selectedTabId)} className="px-3 pb-3">
+            {selected.content}
+          </div>
+        </BottomSheet>
+      </div>
+    )
   }
 
   // No animation while the handle is dragged: the panel follows the pointer exactly.
@@ -87,34 +141,7 @@ export function Dock(props: { tabs: DockTab[]; defaultOpen?: boolean }) {
         />
       ) : null}
       <div className="absolute bottom-full left-2 z-10 mb-2 flex max-w-[calc(100%-1rem)] items-center gap-0.5 rounded-lg bg-white/95 p-0.5 shadow-md ring-1 ring-zinc-950/10 dark:bg-zinc-900/95 dark:ring-white/10">
-        <div
-          role="tablist"
-          aria-label="Panels"
-          className="flex min-w-0 items-center gap-0.5 overflow-x-auto"
-        >
-          {tabs.map((tab) => {
-            const isSelected = tab.id === selectedTabId
-            return (
-              <button
-                key={tab.id}
-                id={tabElementId(tab.id)}
-                type="button"
-                role="tab"
-                aria-selected={isSelected}
-                aria-controls={open && isSelected ? panelId : undefined}
-                onClick={() => selectTab(tab)}
-                className={twJoin(
-                  'shrink-0 cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium whitespace-nowrap focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500',
-                  open && isSelected
-                    ? 'bg-zinc-950 text-white dark:bg-white dark:text-zinc-950'
-                    : 'text-zinc-600 hover:bg-zinc-950/5 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-white',
-                )}
-              >
-                {tab.label}
-              </button>
-            )
-          })}
-        </div>
+        {tabList}
         <button
           type="button"
           aria-expanded={open}

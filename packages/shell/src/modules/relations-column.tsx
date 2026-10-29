@@ -121,10 +121,10 @@ export function RelationColumn({ id }: { id: EntityID }) {
   )
   useEffect(
     function scrollTheSelectedRowIntoView() {
+      // a click in the route overview keeps the diagram in view; the mark is taken on every change, also to nothing
+      const fromOverview = takeSelectedFromOverview(selected)
       const list = scroller.current
-      if (!selected || !list) return
-      // a click in the route overview keeps the diagram in view
-      if (takeSelectedFromOverview(selected)) return
+      if (!selected || !list || fromOverview) return
       const row = list.querySelector<HTMLElement>(`[data-row="${CSS.escape(selected)}"]`)
       if (!row) return
       // only the list scrolls: scrollIntoView would also scroll the page's frame, which hides its overflow
@@ -579,7 +579,7 @@ function MemberItem({
             {editable && (
               <button
                 type="button"
-                className={`${ICON_BUTTON} relative z-10 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100`}
+                className={`${ICON_BUTTON} relative z-10 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 touch:opacity-100`}
                 aria-label={m.relations_column_remove({ name })}
                 title={m.relations_column_remove({ name })}
                 onClick={onRemove}

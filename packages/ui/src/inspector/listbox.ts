@@ -23,9 +23,10 @@ export const SEARCH_FIELD = `${FRAME} px-3 placeholder:text-zinc-400 dark:placeh
  * Use `listRow({ current, active })` so a current and an active row never carry two backgrounds.
  */
 export const ROW_BASE = 'rounded-lg'
-export const ROW_HOVER = 'hover:bg-zinc-950/5 dark:hover:bg-white/10'
+export const ROW_HOVER =
+  'hover:bg-zinc-950/5 active:bg-zinc-950/10 dark:hover:bg-white/10 dark:active:bg-white/15'
 export const ROW_CURRENT =
-  'bg-blue-600/15 hover:bg-blue-600/20 dark:bg-blue-400/20 dark:hover:bg-blue-400/25'
+  'bg-blue-600/15 hover:bg-blue-600/20 active:bg-blue-600/25 dark:bg-blue-400/20 dark:hover:bg-blue-400/25 dark:active:bg-blue-400/30'
 const RING = 'ring-2 ring-inset ring-blue-500'
 export const ROW_ACTIVE = `bg-zinc-950/5 dark:bg-white/10 ${RING}`
 

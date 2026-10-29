@@ -1,4 +1,4 @@
-import { distance } from '../geo.ts'
+import { distance, EARTH_RADIUS_M, RAD } from '../geo.ts'
 import type {
   AnalysisOptions,
   Chain,
@@ -8,12 +8,10 @@ import type {
   PlacedPoint,
   RouteInput,
 } from '../types.ts'
-import type { LineIndex } from './line-index.ts'
+import { type LineIndex, xStretch } from './line-index.ts'
 
 /** A junction gets a guidepost within this many metres, unless the options say otherwise */
 const DEFAULT_GUIDEPOST_RADIUS_M = 50
-const EARTH_RADIUS_M = 6371008.8
-const RAD = Math.PI / 180
 
 /**
  * The main-line nodes where other loaded ways (not members) meet the line, in order of `at`. Each one names the nearest
@@ -80,9 +78,11 @@ function guidepostGrid(
     nearest(pos, r) {
       const cx = Math.floor((pos[0] * kx) / cell)
       const cy = Math.floor((pos[1] * ky) / cell)
+      // the grid's x is metres at lat0: away from it the radius spans more or fewer cells east and west
+      const nx = Math.max(1, Math.ceil((r * xStretch(kx, ky, pos[1])) / cell))
       let best: number | undefined
       let bestDistance = Infinity
-      for (let ix = cx - 1; ix <= cx + 1; ix++) {
+      for (let ix = cx - nx; ix <= cx + nx; ix++) {
         for (let iy = cy - 1; iy <= cy + 1; iy++) {
           for (const k of cells.get(cellKey(ix, iy)) ?? []) {
             const post = posts[k]

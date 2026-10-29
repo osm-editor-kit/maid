@@ -3,10 +3,46 @@
   "reroute_title": "Reroute",
   "reroute_start": "Reroute a stretch",
   "reroute_hint": "Pick the start and the end. The route follows the roads and paths between them on the loaded map.",
-  "reroute_step_start": "Click the start of the stretch on the map.",
-  "reroute_step_end": "Click the end of the stretch. Drag a point to move it.",
-  "reroute_step_done": "Drag a point to move it. A new click sets the end again.",
-  "reroute_no_member": "No way of this route is near one of the points. Click closer to the route.",
+  "reroute_step_start": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tap the start of the stretch on the map.",
+        "input=*": "Click the start of the stretch on the map."
+      }
+    }
+  ],
+  "reroute_step_end": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tap the end of the stretch. Drag a point to move it.",
+        "input=*": "Click the end of the stretch. Drag a point to move it."
+      }
+    }
+  ],
+  "reroute_step_done": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Drag a point to move it. A new tap sets the end again.",
+        "input=*": "Drag a point to move it. A new click sets the end again."
+      }
+    }
+  ],
+  "reroute_no_member": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "No way of this route is near one of the points. Tap closer to the route.",
+        "input=*": "No way of this route is near one of the points. Click closer to the route."
+      }
+    }
+  ],
   "reroute_length": "Length: {before} m now, {after} m after",
   "reroute_added": "Ways added: {count}",
   "reroute_removed": "Ways removed: {count}",

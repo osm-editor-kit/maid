@@ -23,10 +23,33 @@
 /* dark mode is a class on <html>, set by maid-ui's theme (light, dark or system) */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* the device's input is an attribute on <html>, set by mount.tsx (packages/i18n/src/device.ts): `touch:hidden` hides a
+   key chip on a phone, `keyboard:hidden` a touch hint on a desktop. Texts choose their words in the messages instead. */
+@custom-variant touch (&:where([data-input='touch'], [data-input='touch'] *));
+@custom-variant keyboard (&:where([data-input='keyboard'], [data-input='keyboard'] *));
+
 html,
 body,
 #root {
   height: 100%;
+}
+
+/* An app, not a page, on a phone: the page never zooms by a double tap. The map pinches and double-taps on its own
+   canvas (MapLibre sets the canvas's touch-action). */
+html {
+  touch-action: manipulation;
+}
+
+/* iOS zooms the page into a field under 16px when it gets the focus, and leaves it zoomed. With fingers as the only
+   pointer every field is at least 16px; a desktop keeps its 14px. Outside a layer, so it wins over `text-sm` and
+   `text-xs`, in every module. A viewport with maximum-scale=1 would stop the zoom too, but blocks pinch-zoom on
+   Android (WCAG 1.4.4). */
+@media not (any-pointer: fine) {
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
 }
 
 body {

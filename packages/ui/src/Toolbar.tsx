@@ -1,14 +1,24 @@
+import { device } from '@osm-editor-kit/maid-i18n'
 import type { ButtonHTMLAttributes, KeyboardEvent, ReactNode } from 'react'
 import { twJoin } from 'tailwind-merge'
 import { Tooltip, TooltipGroup } from './Tooltip.tsx'
 
 /**
+ * For the buttons: a long press selects no text and shows no callout (iOS's magnifier and menu), and a tap shows no
+ * grey flash. Put it in a button's base classes.
+ */
+export const TAP =
+  'select-none [-webkit-touch-callout:none] [-webkit-tap-highlight-color:transparent]'
+
+/**
  * The joined look of a group of buttons: one hairline between them, rounded at the ends. The ends are the first and
  * last child that is not a helper: an open flyout's trigger leaves floating-ui's focus guards and portal marker (spans with
  * `aria-hidden` or `data-floating-ui-inert`) after it, and marks the buttons themselves `data-floating-ui-inert` while open.
+ * A child can be a tooltip's wrapper around the button (`data-tooltip-wrap`, a disabled button): the wrapper takes the
+ * shape and the button inside follows it, so a disabled button in the middle has square corners like the others.
  */
 const JOINED =
-  'isolate inline-flex rounded-md shadow-xs dark:shadow-none [&>*]:rounded-none [&>*+*]:-ml-px [&>:nth-child(1_of_:not(span[aria-hidden],span[data-floating-ui-inert]))]:rounded-l-md [&>:nth-last-child(1_of_:not(span[aria-hidden],span[data-floating-ui-inert]))]:rounded-r-md'
+  'isolate inline-flex rounded-md shadow-xs dark:shadow-none [&>*]:rounded-none [&>[data-tooltip-wrap]>*]:rounded-[inherit] [&>*+*]:-ml-px [&>:nth-child(1_of_:not(span[aria-hidden],span[data-floating-ui-inert]))]:rounded-l-md [&>:nth-last-child(1_of_:not(span[aria-hidden],span[data-floating-ui-inert]))]:rounded-r-md'
 
 /**
  * A row of icon buttons joined into one control, like the Plus icon-only button group. Its buttons
@@ -29,14 +39,15 @@ export function ToolGroup(props: { label: string; children: ReactNode }) {
  * - `idle`: can be clicked
  * - `pressed`: on, and a click turns it off again (a mode, an open flyout)
  * - `selected`: the chosen one of a set (theme, filter state). A click would change nothing, so
- *   it has no hover and no pointer cursor.
+ *   it has no hover, no press and no pointer cursor.
+ * The press (`active:`) is one step further than the hover. On touch there is no hover, so the press is what a tap shows.
  */
 export function toolButtonTone(state: 'idle' | 'pressed' | 'selected') {
   if (state === 'selected')
     return 'cursor-default bg-zinc-200 text-zinc-950 dark:bg-zinc-600 dark:text-white'
   if (state === 'pressed')
-    return 'cursor-pointer bg-zinc-200 text-zinc-950 enabled:hover:bg-zinc-300 dark:bg-zinc-600 dark:text-white dark:enabled:hover:bg-zinc-500'
-  return 'cursor-pointer bg-white text-zinc-950 enabled:hover:bg-zinc-50 dark:bg-zinc-800 dark:text-white dark:enabled:hover:bg-zinc-700'
+    return 'cursor-pointer bg-zinc-200 text-zinc-950 enabled:hover:bg-zinc-300 enabled:active:bg-zinc-400 dark:bg-zinc-600 dark:text-white dark:enabled:hover:bg-zinc-500 dark:enabled:active:bg-zinc-400'
+  return 'cursor-pointer bg-white text-zinc-950 enabled:hover:bg-zinc-50 enabled:active:bg-zinc-100 dark:bg-zinc-800 dark:text-white dark:enabled:hover:bg-zinc-700 dark:enabled:active:bg-zinc-600'
 }
 
 export type SegmentedOption<T extends string> = {
@@ -47,8 +58,7 @@ export type SegmentedOption<T extends string> = {
   icon?: ReactNode
 }
 
-const SEGMENT =
-  'relative inline-flex items-center inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-blue-500 dark:inset-ring-white/10'
+const SEGMENT = `relative inline-flex items-center ${TAP} inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-blue-500 dark:inset-ring-white/10`
 
 /**
  * A row of buttons joined into one, of which one is chosen: a radio group. The chosen button is
@@ -139,7 +149,7 @@ export function SegmentedControl<T extends string>(props: {
  * icon: the label stays for screen readers. `!` wins over the padding and width above without relying on the order of
  * the generated rules. Keep 76rem in step with the steps in TopBar.tsx.
  */
-const LABEL_GONE_BUTTON = '@max-[76rem]:w-9! @max-[76rem]:px-0! pointer-coarse:@max-[76rem]:w-10!'
+const LABEL_GONE_BUTTON = '@max-[76rem]:w-9! @max-[76rem]:px-0! touch:@max-[76rem]:w-10!'
 const LABEL_GONE_TEXT = '@max-[76rem]:sr-only'
 
 /** The look of a `ToolButton`, for a button that cannot be one (the trigger of a flyout) */
@@ -149,8 +159,8 @@ export function toolButtonClass(
   collapseLabel = false,
 ) {
   return twJoin(
-    'relative inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:text-zinc-300 dark:inset-ring-white/10 dark:disabled:text-zinc-600',
-    hasText ? 'h-9 px-3 max-sm:px-2.5 pointer-coarse:h-10' : 'size-9 pointer-coarse:size-10',
+    `relative inline-flex shrink-0 items-center justify-center gap-2 rounded-md ${TAP} text-sm font-medium inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:text-zinc-300 dark:inset-ring-white/10 dark:disabled:text-zinc-600`,
+    hasText ? 'h-9 px-3 max-sm:px-2.5 touch:h-10' : 'size-9 touch:size-10',
     // the label is gone (see TopBar.tsx), so the button is as wide as an icon button
     hasText && collapseLabel && LABEL_GONE_BUTTON,
     toolButtonTone(state === 'selected' ? 'selected' : state ? 'pressed' : 'idle'),
@@ -197,7 +207,8 @@ export function ToolButton(props: {
     onClick,
     press,
   } = props
-  const name = shortcut ? `${label} (${shortcut})` : label
+  // the name says the key only with a keyboard: a touch device has none (the tooltip's chip is hidden too)
+  const name = shortcut && device().input === 'keyboard' ? `${label} (${shortcut})` : label
   return (
     <Tooltip label={label} shortcut={shortcut} description={description} placement="bottom">
       <button

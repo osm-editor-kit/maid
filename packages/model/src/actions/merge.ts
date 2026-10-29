@@ -1,4 +1,5 @@
-import { utilArrayGroupBy, utilArrayUniq } from '@rapid-sdk/util';
+// Deep import: the barrel pulls aes-js into the start chunk.
+import { utilArrayGroupBy, utilArrayUniq } from '@rapid-sdk/util/array';
 import { utilIsExistingEntity, utilIsOrderedEntity, utilSurvivorID } from '../util/ids.ts';
 
 import type { Action } from './types.ts';

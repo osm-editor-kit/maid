@@ -1,3 +1,4 @@
+import { device } from '@osm-editor-kit/maid-i18n'
 import type { NormalizedPhoto } from '@osm-editor-kit/street-imagery'
 import { StreetLevelImageryViewer } from '@osm-editor-kit/street-imagery-react'
 import { PhotoDetailsDialog } from '@osm-editor-kit/street-imagery-react/photo-details'
@@ -138,7 +139,7 @@ export function PhotosView() {
     const anyOn = activeProviders(shown.providers, token, AUTOMATED).length > 0
     return (
       <p className="p-3 text-xs text-zinc-500 dark:text-zinc-400">
-        {anyOn ? m.dock_hint_click() : m.dock_hint_switch()}
+        {anyOn ? m.dock_hint_click({ ...device() }) : m.dock_hint_switch()}
       </p>
     )
   }
