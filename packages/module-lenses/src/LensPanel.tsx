@@ -77,50 +77,58 @@ export function LensPanel({ engine }: { engine: MaidEngine }) {
   return (
     <div className="flex flex-col gap-4 p-3 text-sm">
       <MapDisplayChoice engine={engine} />
-      <div role="radiogroup" aria-label="Map style" className="flex flex-col gap-1">
-        <button
-          type="button"
-          role="radio"
-          aria-checked={active === null}
-          onClick={() => setActive(null)}
-          className={`rounded-md px-2 py-1.5 text-left ${toolButtonTone(active === null ? 'selected' : 'idle')}`}
-        >
-          <span className="block font-medium">None</span>
-          <span className="block text-xs text-zinc-500 dark:text-zinc-400">The default look.</span>
-        </button>
-        {allLenses({ builtIn, imported }).map((lens) => {
-          const checked = active?.id === lens.id
-          const own = imported.some((item) => item.id === lens.id)
-          return (
-            <div key={lens.id} className="flex items-stretch gap-1">
-              <button
-                type="button"
-                role="radio"
-                aria-checked={checked}
-                onClick={() => setActive(lens.id)}
-                className={`min-w-0 flex-1 rounded-md px-2 py-1.5 text-left ${toolButtonTone(checked ? 'selected' : 'idle')}`}
-              >
-                <span className="block font-medium">{lens.name}</span>
-                {lens.description && (
-                  <span className="block text-xs text-zinc-500 dark:text-zinc-400">
-                    {lens.description}
-                  </span>
-                )}
-              </button>
-              {own && (
+      {/* a heading as the display choice above has one: without it the lenses read as more display modes */}
+      <section aria-label="Map style" className="flex flex-col gap-1.5">
+        <h3 className="text-xs font-medium text-zinc-500 uppercase dark:text-zinc-400">
+          Map style
+        </h3>
+        <div role="radiogroup" aria-label="Map style" className="flex flex-col gap-1">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={active === null}
+            onClick={() => setActive(null)}
+            className={`rounded-md px-2 py-1.5 text-left ${toolButtonTone(active === null ? 'selected' : 'idle')}`}
+          >
+            <span className="block font-medium">None</span>
+            <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+              The default look.
+            </span>
+          </button>
+          {allLenses({ builtIn, imported }).map((lens) => {
+            const checked = active?.id === lens.id
+            const own = imported.some((item) => item.id === lens.id)
+            return (
+              <div key={lens.id} className="flex items-stretch gap-1">
                 <button
                   type="button"
-                  aria-label={`Remove ${lens.name}`}
-                  onClick={() => removeLens(lens.id)}
-                  className={`${BUTTON} self-center`}
+                  role="radio"
+                  aria-checked={checked}
+                  onClick={() => setActive(lens.id)}
+                  className={`min-w-0 flex-1 rounded-md px-2 py-1.5 text-left ${toolButtonTone(checked ? 'selected' : 'idle')}`}
                 >
-                  Remove
+                  <span className="block font-medium">{lens.name}</span>
+                  {lens.description && (
+                    <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+                      {lens.description}
+                    </span>
+                  )}
                 </button>
-              )}
-            </div>
-          )
-        })}
-      </div>
+                {own && (
+                  <button
+                    type="button"
+                    aria-label={`Remove ${lens.name}`}
+                    onClick={() => removeLens(lens.id)}
+                    className={`${BUTTON} self-center`}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </section>
 
       {active && (
         <section aria-label="Legend" className="flex flex-col gap-1.5">
