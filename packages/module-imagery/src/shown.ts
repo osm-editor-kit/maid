@@ -8,7 +8,7 @@ import { isAutomated } from '@osm-editor-kit/maid-core'
 import { useUrlParam, useUrlSetting } from '@osm-editor-kit/maid-core/react'
 import { notify } from '@osm-editor-kit/maid-ui'
 import { useEffect, useRef } from 'react'
-import { bestBackgrounds, coverageOf, knownLayer, layerName, listView } from './eli.ts'
+import { bestBackgrounds, coverageOf, knownLayer, layerName, listViewRows } from './eli.ts'
 import { BRIGHTNESS_MAX, listingView, type View } from './helpers.ts'
 import {
   useImageryActions,
@@ -103,7 +103,7 @@ export type StartInput = {
 
 /** The index reads of the start order, as parameters so that a test can count them (the real ones by default) */
 export type StartSearch = {
-  listView: typeof listView
+  listView: typeof listViewRows
   bestBackgrounds: typeof bestBackgrounds
 }
 
@@ -115,7 +115,7 @@ export type StartSearch = {
 export async function resolveStart(
   view: View,
   input: StartInput,
-  search: StartSearch = { listView, bestBackgrounds },
+  search: StartSearch = { listView: listViewRows, bestBackgrounds },
 ): Promise<{ background: string; overlays: string[] }> {
   const listed = await search.listView(listingView(view))
   const backgrounds = listed.items.filter((item) => !item.overlay)
@@ -170,7 +170,7 @@ export function useImageryStart(view: View | null) {
  */
 async function switchTarget(view: View, chosen: string, fallback: string | null) {
   if (isOwnValue(chosen)) return null
-  const listed = await listView(listingView(view))
+  const listed = await listViewRows(listingView(view))
   if (!knownLayer(chosen)) return null
   const backgrounds = listed.items.filter((item) => !item.overlay)
   const best = await bestBackgrounds(backgrounds, view)

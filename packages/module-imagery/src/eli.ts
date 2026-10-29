@@ -135,6 +135,28 @@ export async function listView(view: View): Promise<Listed> {
 }
 
 /**
+ * The layers that cover the view at this zoom, as `listView` lists them, from the index's always-loaded rows alone:
+ * no details (attribution, dates, series) and so no continent's details file (0.74 MB for Europe). The start order and
+ * the switch on a map move need only the ids, `best`, `overlay` and `minzoom`; the panel uses `listView`.
+ */
+export async function listViewRows(view: View): Promise<Listed> {
+  const eli = await load()
+  const items = eli
+    .layersInViewport(view.bounds)
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      category: row.category,
+      best: row.best,
+      overlay: row.overlay,
+      minzoom: row.minzoom,
+      worldwide: row.continents.includes('world'),
+    }))
+    .filter((item) => visibleAtZoom(item, view.zoom))
+  return { items, series: [] }
+}
+
+/**
  * The layers with these ids, whatever the view: the overlays that are on now are listed even where they do not
  * cover the view (iD lists the sources in use this way). An id the index does not know is left out.
  */
