@@ -57,8 +57,18 @@ function fail(message: string): never {
   process.exit(1)
 }
 
+/**
+ * xcrun finds simctl only in Xcode, not in the Command Line Tools that `xcode-select` often points to. Xcode's own
+ * folder is then used for this script alone (`DEVELOPER_DIR`), so the system's choice stays as it is.
+ */
+const XCODE = '/Applications/Xcode.app/Contents/Developer'
+const toolEnv =
+  !process.env.DEVELOPER_DIR && existsSync(XCODE)
+    ? { ...process.env, DEVELOPER_DIR: XCODE }
+    : process.env
+
 function run(cmd: string[], what: string) {
-  const result = spawnSync(cmd, { cwd: ROOT, stdout: 'pipe', stderr: 'pipe' })
+  const result = spawnSync(cmd, { cwd: ROOT, env: toolEnv, stdout: 'pipe', stderr: 'pipe' })
   if (result.exitCode !== 0) fail(`${what} failed: ${result.stderr.toString().trim()}`)
   return result.stdout.toString()
 }
@@ -166,7 +176,9 @@ async function simctlOpener(): Promise<Opener> {
   return {
     async open(url) {
       // a new Safari each time, so the page before is gone and with it its memory
-      spawnSync(['xcrun', 'simctl', 'terminate', device.udid, 'com.apple.mobilesafari'])
+      spawnSync(['xcrun', 'simctl', 'terminate', device.udid, 'com.apple.mobilesafari'], {
+        env: toolEnv,
+      })
       run(['xcrun', 'simctl', 'openurl', device.udid, url], 'simctl openurl')
     },
     async screenshot(path) {
