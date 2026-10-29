@@ -2,7 +2,8 @@ import { actionDeleteRelation } from './delete_relation.ts';
 import { actionDeleteWay } from './delete_way.ts';
 import { geomPathIntersections } from '@rapid-sdk/math';
 import { osmJoinWays } from '../lib/multipolygon.ts';
-import { utilArrayGroupBy, utilArrayIdentical, utilArrayIntersection } from '@rapid-sdk/util';
+// Deep import: the barrel pulls aes-js into the start chunk.
+import { utilArrayGroupBy, utilArrayIdentical, utilArrayIntersection } from '@rapid-sdk/util/array';
 
 import type { Action } from './types.ts';
 import type { EntityType, OsmNode, OsmRelation, OsmTags, OsmWay } from '../data/types.ts';

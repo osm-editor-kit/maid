@@ -92,6 +92,7 @@
   },
   "patchedDependencies": {
     "maplibre-gl@6.12.0": "patches/maplibre-gl@6.12.0.patch",
-    "@vis.gl/react-maplibre@8.1.3": "patches/@vis.gl%2Freact-maplibre@8.1.3.patch"
+    "@vis.gl/react-maplibre@8.1.3": "patches/@vis.gl%2Freact-maplibre@8.1.3.patch",
+    "@rapid-sdk/util@1.0.0-pre.5": "patches/@rapid-sdk%2Futil@1.0.0-pre.5.patch"
   }
 }

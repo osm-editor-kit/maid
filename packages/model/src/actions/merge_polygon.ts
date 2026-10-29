@@ -3,7 +3,10 @@ import { geomPolygonContainsPolygon } from '@rapid-sdk/math';
 import type { Vec2 } from '@rapid-sdk/math';
 import { OsmRelation } from '../data/OsmRelation.ts';
 import { osmJoinWays } from '../lib/multipolygon.ts';
-import { utilArrayGroupBy, utilArrayIntersection, utilArrayUnion, utilObjectOmit, utilUnicodeCharsTruncated } from '@rapid-sdk/util';
+// Deep import: the barrel pulls aes-js into the start chunk.
+import { utilArrayGroupBy, utilArrayIntersection, utilArrayUnion } from '@rapid-sdk/util/array';
+import { utilObjectOmit } from '@rapid-sdk/util/object';
+import { utilUnicodeCharsTruncated } from '@rapid-sdk/util/string';
 import { utilSurvivorID } from '../util/ids.ts';
 
 import type { Action } from './types.ts';

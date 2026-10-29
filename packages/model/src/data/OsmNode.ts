@@ -1,6 +1,7 @@
 import { RAD2DEG, vecAngle } from '@rapid-sdk/math';
 import { OsmEntity, OsmEntityProps } from './OsmEntity.ts';
-import { utilArrayUniq } from '@rapid-sdk/util';
+// Deep import: the barrel pulls aes-js into the start chunk.
+import { utilArrayUniq } from '@rapid-sdk/util/array';
 
 import type { Context } from '../Context.ts';
 import type { GeoJSONObject } from '../lib/types.ts';

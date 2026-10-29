@@ -1,5 +1,6 @@
 import { geomGetDominantSurroundingRectangle, geomReflect, projWorldToWgs84, vecAdd, vecInterp, vecSubtract } from '@rapid-sdk/math';
-import { utilGetAllNodes } from '@rapid-sdk/util';
+// Deep import: the barrel pulls aes-js into the start chunk.
+import { utilGetAllNodes } from '@rapid-sdk/util/osm';
 
 import type { Action } from './types.ts';
 import type { Graph } from '../lib/Graph.ts';

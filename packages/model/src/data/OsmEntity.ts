@@ -1,5 +1,7 @@
 import { AbstractData, AbstractDataProps } from './AbstractData.ts';
-import { utilArrayUnion, utilUnicodeCharsTruncated } from '@rapid-sdk/util';
+// Deep import: the barrel pulls aes-js into the start chunk.
+import { utilArrayUnion } from '@rapid-sdk/util/array';
+import { utilUnicodeCharsTruncated } from '@rapid-sdk/util/string';
 
 import type { Context } from '../Context.ts';
 import type { GeoJSONObject } from '../lib/types.ts';

@@ -1,6 +1,8 @@
 import { osmJoinWays } from '../lib/multipolygon.ts';
 import { OsmWay } from '../data/OsmWay.ts';
-import { utilArrayGroupBy, utilObjectOmit } from '@rapid-sdk/util';
+// Deep import: the barrel pulls aes-js into the start chunk.
+import { utilArrayGroupBy } from '@rapid-sdk/util/array';
+import { utilObjectOmit } from '@rapid-sdk/util/object';
 
 import type { Action } from './types.ts';
 import type { Graph } from '../lib/Graph.ts';

@@ -1,6 +1,7 @@
 import { actionDeleteNode } from './delete_node.ts';
 import { actionDeleteWay } from './delete_way.ts';
-import { utilArrayUniq } from '@rapid-sdk/util';
+// Deep import: the barrel pulls aes-js into the start chunk.
+import { utilArrayUniq } from '@rapid-sdk/util/array';
 import { utilIsExistingEntity, utilSurvivorID } from '../util/ids.ts';
 
 import type { Action } from './types.ts';
