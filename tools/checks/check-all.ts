@@ -45,6 +45,7 @@ const CHECKS = [
   'menu',
   'merge-polygon',
   'favourites',
+  'move-handle',
   'tooltips',
   'levels',
   'osmchange',
@@ -133,6 +134,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   menu: { maid: 16, bicycle: 16, parking: 16 },
   'merge-polygon': { maid: 23, bicycle: 23, parking: 23 },
   favourites: { maid: 13, bicycle: 13, parking: 13 },
+  'move-handle': { maid: 15, bicycle: 15, parking: 15 },
   tooltips: { maid: 11, bicycle: 11, parking: 11 },
   osmchange: { maid: 0, bicycle: 31, parking: 0 },
 }

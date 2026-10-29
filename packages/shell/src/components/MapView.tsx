@@ -43,6 +43,7 @@ import { FavouriteHint } from './FavouriteHint'
 import { FollowLocation } from './FollowLocation'
 import { MapContextMenu, type MenuPlace } from './MapContextMenu'
 import { MeasureLoupe } from './MeasureLoupe'
+import { MoveHandle } from './MoveHandle'
 import { PasteTagsDialog } from './PasteTagsDialog'
 import { StackPicker } from './StackPicker'
 
@@ -762,6 +763,7 @@ export function MapView() {
       {!menu && <StackPicker />}
       <FavouriteHint />
       <FollowLocation />
+      <MoveHandle />
       {measuring && (
         <div
           role="status"

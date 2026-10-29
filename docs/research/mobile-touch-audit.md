@@ -15,6 +15,7 @@ Maid checked against the FMC skill `touch-ipad-review` (its checklist `reference
 | The sheet opens only by its button                      | `packages/shell/src/App.tsx`, `packages/ui/src/Shell.tsx` (button 56 px)                                                    |
 | The dock is a bottom sheet with a grab row on a phone   | `packages/ui/src/Dock.tsx`                                                                                                  |
 | Disabled button no longer bends a group's divider       | `packages/ui/src/Tooltip.tsx` (`DISABLED_WRAP`), `Toolbar.tsx` (`JOINED`)                                                   |
+| Move handle for the selected feature on touch (as react-map-gl-draw's) | `packages/shell/src/components/MoveHandle.tsx`, `move-handle.ts`; `bun run check-move-handle` |
 | A spinner before the code has loaded                    | `apps/*/index.html`                                                                                                         |
 | `calc(2rem+env(…))` without spaces around `+`           | `packages/ui/src/Shell.tsx`: written `calc(2rem_+_env(…))`                                                                  |
 
