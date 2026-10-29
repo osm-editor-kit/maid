@@ -11,9 +11,9 @@ import { parseArgs } from 'node:util'
  * the mock's fixtures and the background is none: no request leaves this machine (AGENTS.md, core rule 1).
  *
  *   bun run sim-measure [--app maid] [--device "iPhone 16"] [--runs 3] [--workers 4,2] [--scene small]
- *                       [--cache cold|warm] [--warmup 1] [--opener simctl|playwright] [--no-build]
+ *                       [--cache cold|warm] [--warmup 2] [--opener simctl|playwright] [--no-build]
  *
- * One warm-up visit (`--warmup`) is not counted: the first Safari after a boot is far slower. The variants take turns
+ * Two warm-up visits (`--warmup`) are not counted: the first visits after a boot are far slower. The variants take turns
  * (4, 2, 4, 2, …), so a slow phase of the machine does not land on one of them.
  *
  * Writes reports/sim-measure-<app>.json (every report, and the medians per variant) and a screenshot per variant.
@@ -37,7 +37,7 @@ const { values: opts } = parseArgs({
     app: { type: 'string', default: 'maid' },
     device: { type: 'string', default: 'iPhone 16' },
     runs: { type: 'string', default: '3' },
-    warmup: { type: 'string', default: '1' },
+    warmup: { type: 'string', default: '2' },
     workers: { type: 'string', default: '4,2' },
     scene: { type: 'string', default: 'small' },
     cache: { type: 'string', default: 'cold' },

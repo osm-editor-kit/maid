@@ -47,17 +47,22 @@ Inspector, notes, relations column, turn restrictions, data layers, lenses, surf
 
 ## Measured on the iOS simulator, 2026-10-29
 
-`bun run sim-measure` on Tobias's Mac: iPhone 17, iOS 26.5, scene `small`, mock data, no background, medians of 3 runs in ms, after the cuts above. A simulator runs on the Mac's CPU, so the times are lower than on a phone; the comparison between variants is what counts.
+`bun run sim-measure` on Tobias's Mac: iPhone 17, iOS 26.5, scene `small`, mock data, no background, after the cuts above. A simulator runs on the Mac's CPU (the page sees 8 cores), so its times are lower than a phone's; the comparison between variants is what counts.
+
+Second round: medians of 5 runs in ms, one warm-up visit not counted, the variants taking turns.
 
 | Cache | Workers | First contentful paint | Map drawn | Settled |
 | ----- | ------: | ---------------------: | --------: | ------: |
-| cold  |       4 |                   1857 |      4115 |    4235 |
-| cold  |       2 |                    477 |      3081 |    3286 |
-| cold  |       1 |                    302 |      2285 |    2369 |
-| warm  |       4 |                    277 |      2014 |    2123 |
-| warm  |       2 |                    229 |      1681 |    1758 |
+| cold  |       4 |                    307 |      2315 |    2408 |
+| cold  |       2 |                    300 |      2187 |    2265 |
+| cold  |       1 |                    330 |      2298 |    2387 |
+| warm  |       4 |                    317 |      2115 |    2213 |
+| warm  |       2 |                    280 |      2185 |    2290 |
+| warm  |       1 |                    280 |      2265 |    2355 |
 
-- Fewer workers were faster in every pair. The cold runs swing (one run per variant near 1.9 s FCP; the first visit after the boot took 19.8 s and is why `--warmup` now exists), so the cold ranking needs more runs.
+- The number of workers makes no measurable difference: the medians are within 150 ms, single runs of one variant swing from 1.9 to 4.0 s. Maid keeps 4 (decided with Tobias, 2026-10-29). A first round of 3 runs without warm-up looked like "fewer is faster"; that was the slow first visits after the boot.
+- The first two visits of a round are slower, so `--warmup` is now 2.
+- Cold and warm differ little: the local server has no latency, so parsing and drawing cost the time, not the download.
 - What a cold visit loads before it settles, uncompressed (the script's server does not gzip): 7.2 MB, of it the presets chunk 1.8 MB, MapLibre 1.07 MB, the entry 0.83 MB, ELI's Europe details 0.74 MB, the worker 0.51 MB.
 
 ## Unsure
