@@ -137,6 +137,18 @@ export class DragTool {
     return dragNeighbours(id, way.nodes, way.isClosed(), (nid) => data.node(nid)?.loc)
   }
 
+  /** The undo label of a drop of a node on a node, as iD names it (`connectAnnotation` in iD's drag_node) */
+  private connectAnnotation(id: string, target: string) {
+    const { data } = this.engine
+    const ways = data.nodeWays.get(id) ?? []
+    if (!ways.length) return 'Connected a point to a node'
+    const shared = ways.find((w) => data.nodeWays.get(target)?.includes(w))
+    if (shared === undefined) return 'Connected a way to a node'
+    return data.way(shared)?.isAdjacent(id, target)
+      ? 'Merged two neighbouring nodes of a way'
+      : 'Connected a way to itself'
+  }
+
   /** Forgets a move that was not made yet and ends the drag without an undo step */
   stopDrag() {
     this.target = undefined
@@ -172,13 +184,13 @@ export class DragTool {
         this.engine.change(() => history.revert())
         result.refused = aim.refused
       } else if (target?.type === 'node') {
-        const standalone = !this.engine.data.nodeWays.get(id)?.length
+        const annotation = this.connectAnnotation(id, target.id)
         this.engine.change(() => {
           history.perform(actionConnect([id, target.id]))
           // the connect keeps the oldest of the two: the dragged node, or the one it was dropped on
           const survivor = history.staging.graph.hasEntity(id) ? id : target.id
           history.commit({
-            annotation: standalone ? 'Connected a point to a node' : 'Connected a way to a node',
+            annotation,
             selectedIDs: [survivor],
           })
           result.selected = survivor
