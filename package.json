@@ -26,6 +26,7 @@
     "check-all": "bun tools/checks/check-all.ts",
     "check-angle-snap": "bun tools/bench/angle-snap-check.ts",
     "check-ci": "bun run i18n-compile && bun run --parallel type-check lint-check format-check i18n-check test-run",
+    "sim-measure": "bun tools/sim/measure.ts",
     "check-config": "bun tools/checks/config-check.ts",
     "check-cut": "bun tools/bench/cut-check.ts",
     "check-display": "bun tools/bench/display-check.ts",

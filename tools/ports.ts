@@ -14,4 +14,7 @@ export const PORTS = {
   id: 8081,
   rapid: 8082,
   mockApi: 8090,
+  /** The build `bun run sim-measure` serves to the iOS simulator, and the server its page reports to */
+  simBuild: 5192,
+  perfReport: 8096,
 } as const
