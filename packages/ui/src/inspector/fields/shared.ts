@@ -113,9 +113,10 @@ export type FieldMeasure = {
 
 const SURFACE =
   'w-full min-w-0 rounded-md border border-zinc-950/10 bg-white text-sm text-zinc-950 hover:border-zinc-950/20 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-60 dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:hover:border-white/20 dark:[color-scheme:dark]'
-export const FRAME = `h-8 ${SURFACE}`
+/** The text input's frame: 32 px, 44 px on a coarse pointer (a finger). Nothing else in the row changes size. */
+export const FRAME = `h-8 pointer-coarse:h-11 ${SURFACE}`
 /** A box of chips: the text input's frame without its fixed height, so the chips wrap inside it (Multi, the level section) */
-export const CHIP_BOX = `${FRAME.replace(/^h-8 /, '')} flex min-h-8 flex-wrap items-center gap-1 p-1 focus-within:outline-2 focus-within:outline-blue-500`
+export const CHIP_BOX = `${SURFACE} flex min-h-8 pointer-coarse:min-h-11 flex-wrap items-center gap-1 p-1 focus-within:outline-2 focus-within:outline-blue-500`
 /** One value in a box of chips */
 export const CHIP =
   'flex h-6 max-w-full min-w-0 items-center gap-1 rounded-md bg-zinc-950/5 pl-1 pr-0.5 text-sm text-zinc-950 dark:bg-white/10 dark:text-white'
@@ -125,9 +126,13 @@ export const TEXTAREA = `${SURFACE} px-2 py-1.5 leading-5 placeholder:text-zinc-
 export const LIMITED =
   'aria-[invalid=true]:border-red-500 aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-red-500 dark:aria-[invalid=true]:border-red-400 dark:aria-[invalid=true]:ring-red-400'
 export const LABEL = 'min-w-0 truncate text-sm text-zinc-700 dark:text-zinc-300'
-/** A small icon button in a row's label bar (revert, remove, add a language). */
+/**
+ * A small icon button in a row's label bar (revert, remove, add a language). On a coarse pointer it is 44 px, not a
+ * hit area: the buttons of a label bar sit 4 px apart and the input is 4 px below, so an enlarged hit area would take
+ * the taps of the neighbour (Revert next to Remove) and of the input's top edge.
+ */
 export const ROW_BUTTON =
-  'grid size-5 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 active:bg-zinc-950/10 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white dark:active:bg-white/15'
+  'grid size-5 pointer-coarse:size-11 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 active:bg-zinc-950/10 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white dark:active:bg-white/15'
 export const HINT = 'min-w-0 truncate text-xs text-zinc-500 dark:text-zinc-400'
 
 /**

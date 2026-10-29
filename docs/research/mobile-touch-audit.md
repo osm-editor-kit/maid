@@ -14,6 +14,7 @@ Maid checked against the FMC skill `touch-ipad-review` (its checklist `reference
 | Type picker inside the sheet on a phone                 | `packages/ui/src/Sidebar.tsx` (`SidebarHeader`)                                                                             |
 | The sheet opens only by its button                      | `packages/shell/src/App.tsx`, `packages/ui/src/Shell.tsx` (button 56 px)                                                    |
 | The dock is a bottom sheet with a grab row on a phone   | `packages/ui/src/Dock.tsx`                                                                                                  |
+| Inspector targets 44 px on a coarse pointer: fields, steppers, radio buttons, icon and label-bar buttons, Add field | `inspector/fields/shared.ts`, `icon-button.ts`, `Radio.tsx`, `Link.tsx`, `AddField.tsx` |
 | Hover-only actions shown on touch (custom background, relation member, favourites order, member handle) | `pointer-coarse:opacity-100` in each |
 | Context menu rows 44 px on touch | `packages/ui/src/ContextMenu.tsx` (`TOUCH_ROW`) |
 | Disabled button no longer bends a group's divider       | `packages/ui/src/Tooltip.tsx` (`DISABLED_WRAP`), `Toolbar.tsx` (`JOINED`)                                                   |
@@ -28,9 +29,8 @@ Maid checked against the FMC skill `touch-ipad-review` (its checklist `reference
 
 Ranked by how much they hurt on a phone.
 
-1. **Small targets without a coarse size**: the inspector's 28 to 32 px fields and buttons (`FRAME`, `ICON_BUTTON`, `Radio`, `Link`, `AddField`), 20 to 24 px icon buttons (`ROW_BUTTON`, info, toast close, sign rows), turn chips of 24 px (`JunctionDiagram.tsx:232`), the 8 px resize handle. Toolbar and map controls grow to 40 px on touch, not 44. Fix: `pointer-coarse:size-11` where the layout allows, else a larger hit area with `before:absolute before:-inset-3`.
-2. **Height of the page** (_inferred_): `height: 100%`, no measured `--app-height`; Chrome and Firefox on iOS do not follow `dvh`. Fix per checklist 4b once a device shows the strip or the jump.
-3. **Safe areas**: without `viewport-fit=cover` every `env(safe-area-inset-*)` is 0, so the code's insets do nothing. Decide: stay inside the safe area and drop them, or add `viewport-fit=cover` and pad the floating controls.
+1. **Height of the page** (_inferred_): `height: 100%`, no measured `--app-height`; Chrome and Firefox on iOS do not follow `dvh`. Fix per checklist 4b once a device shows the strip or the jump.
+2. **Safe areas**: without `viewport-fit=cover` every `env(safe-area-inset-*)` is 0, so the code's insets do nothing. Decide: stay inside the safe area and drop them, or add `viewport-fit=cover` and pad the floating controls.
 
 ## Open: smaller
 

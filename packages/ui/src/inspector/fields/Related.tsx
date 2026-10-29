@@ -42,7 +42,7 @@ const KIND_NAME: Readonly<Record<RelatedCategory, string>> = {
 }
 
 const BUTTON =
-  'grid size-5 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white'
+  'grid size-5 pointer-coarse:size-11 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white'
 
 /** The add buttons in a row's label bar: hidden until the row is hovered or focused, always on touch. */
 const ADD_BUTTON = `${BUTTON} opacity-0 transition-opacity duration-200 group-focus-within/field:opacity-100 group-hover/field:opacity-100 aria-expanded:opacity-100 pointer-coarse:opacity-100`

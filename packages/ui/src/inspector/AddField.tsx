@@ -89,7 +89,10 @@ export function AddField(props: { fields: readonly Field[]; onPick: (field: Fiel
       trigger={
         <button
           type="button" // as high as the buttons of the edit bar under the header, at the right edge of the list
-          className={twMerge(toolButtonClass(true, open), 'h-8 gap-1.5 self-end px-2.5')}
+          className={twMerge(
+            toolButtonClass(true, open),
+            'h-8 gap-1.5 self-end px-2.5 pointer-coarse:h-11',
+          )}
         >
           <PlusIcon aria-hidden="true" className="size-4" />
           Add field

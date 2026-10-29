@@ -44,7 +44,7 @@ const ARROW_STEPS = new Map([
   ['ArrowUp', -1],
 ])
 
-const BUTTON = `relative inline-flex h-8 min-w-0 max-w-full items-center rounded-md ${TAP} px-3 text-sm inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:opacity-60 dark:inset-ring-white/10`
+const BUTTON = `relative inline-flex h-8 pointer-coarse:h-11 min-w-0 max-w-full items-center rounded-md ${TAP} px-3 text-sm inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:opacity-60 dark:inset-ring-white/10`
 
 /** A value that only some of several features have: a dashed outline, not chosen. */
 const SOME =
