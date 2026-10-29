@@ -11,6 +11,7 @@
   "way_table_legend_added": "Seulement ici",
   "way_table_legend_missing": "Absent ici",
   "way_table_legend_empty": "Non renseigné",
+  "way_table_legend_toggle": "Légende et aide",
   "way_table_legend_edited": "Modifié dans cette session",
   "way_table_only_differing": "Seulement les lignes qui diffèrent",
   "way_table_forget_choices": "Oublier les choix aux embranchements",

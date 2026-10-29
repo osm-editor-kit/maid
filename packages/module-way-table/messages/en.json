@@ -11,6 +11,7 @@
   "way_table_legend_added": "Only here",
   "way_table_legend_missing": "Missing here",
   "way_table_legend_empty": "Not set",
+  "way_table_legend_toggle": "Legend and help",
   "way_table_legend_edited": "Changed in this session",
   "way_table_only_differing": "Only rows that differ",
   "way_table_forget_choices": "Forget junction choices",

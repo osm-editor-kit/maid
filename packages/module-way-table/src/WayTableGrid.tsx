@@ -1,6 +1,6 @@
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/16/solid'
 import type { Graph } from '@osm-editor-kit/maid-model'
-import { type KeyboardEvent, useMemo, useState } from 'react'
+import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react'
 import type { Cell } from './cell-state.ts'
 import { REFERENCE_HEADER_CLASS } from './cell-tone.ts'
 import { m } from './messages.ts'
@@ -108,6 +108,20 @@ export function WayTableGrid(props: WayTableGridProps) {
     onHighlight,
   } = props
   const [active, setActive] = useState<string | null>(null)
+  // the reference's column is scrolled into view beside the key column: on a phone the ends and the ways before it
+  // would otherwise fill the screen, and the column the person selected would be off to the right
+  const referenceHeader = useRef<HTMLTableCellElement>(null)
+  useEffect(() => {
+    const header = referenceHeader.current
+    const scroller = header?.closest<HTMLElement>('[data-way-table-scroll]')
+    const key = header?.parentElement?.firstElementChild as HTMLElement | null | undefined
+    if (!header || !scroller || !key) return
+    const left = header.offsetLeft - key.offsetWidth
+    const right = header.offsetLeft + header.offsetWidth
+    if (scroller.scrollLeft > left || scroller.scrollLeft + scroller.clientWidth < right) {
+      scroller.scrollLeft = left
+    }
+  }, [table.referenceId, table.columns.length])
   const chain = table.chain
   const referenceId = table.referenceId
   // "Set on all" for every row, made once per table: the grid renders again on each focus, and a plan is not free
@@ -168,7 +182,7 @@ export function WayTableGrid(props: WayTableGridProps) {
               <th
                 key="key"
                 scope="row"
-                className="sticky left-0 z-10 max-w-56 border-r border-b border-zinc-950/10 bg-white px-2 py-1.5 text-left align-top font-normal dark:border-white/10 dark:bg-zinc-900"
+                className="sticky left-0 z-10 max-w-28 border-r border-b border-zinc-950/10 bg-white px-2 py-1.5 text-left align-top font-normal sm:max-w-56 dark:border-white/10 dark:bg-zinc-900"
               >
                 <div className="flex items-center gap-1">
                   <span className="truncate font-mono text-xs" title={row.key}>
@@ -256,7 +270,7 @@ export function WayTableGrid(props: WayTableGridProps) {
                 <th
                   key="key"
                   scope="col"
-                  className="sticky top-0 left-0 z-30 w-44 border-r border-b border-zinc-950/10 bg-white px-2 py-1.5 text-left font-normal dark:border-white/10 dark:bg-zinc-900"
+                  className="sticky top-0 left-0 z-30 w-28 border-r border-b border-zinc-950/10 bg-white px-2 py-1.5 text-left font-normal sm:w-44 dark:border-white/10 dark:bg-zinc-900"
                 >
                   {chain ? (
                     <div className="flex items-center gap-1">
@@ -296,7 +310,7 @@ export function WayTableGrid(props: WayTableGridProps) {
                 <th
                   key={slot.side}
                   scope="col"
-                  className="w-44 border-r border-b border-zinc-950/10 p-2 text-left font-normal dark:border-white/10"
+                  className="w-28 border-r border-b border-zinc-950/10 p-2 text-left font-normal sm:w-44 dark:border-white/10"
                 >
                   {chain ? (
                     <WayTableEnd
@@ -319,7 +333,8 @@ export function WayTableGrid(props: WayTableGridProps) {
               <th
                 key={column.id}
                 scope="col"
-                className={`w-44 border-r border-b border-zinc-950/10 px-2 py-1.5 text-left align-top font-normal dark:border-white/10 ${isReference ? REFERENCE_HEADER_CLASS : 'bg-white dark:bg-zinc-900'}`}
+                ref={isReference ? referenceHeader : undefined}
+                className={`w-36 border-r border-b border-zinc-950/10 px-2 py-1.5 text-left align-top font-normal sm:w-44 dark:border-white/10 ${isReference ? REFERENCE_HEADER_CLASS : 'bg-white dark:bg-zinc-900'}`}
               >
                 <div className="flex min-w-0 items-center gap-1">
                   <button
@@ -363,16 +378,17 @@ export function WayTableGrid(props: WayTableGridProps) {
         return (
           <tbody key={group.id}>
             <tr>
+              {/* the cell spans the table, so it cannot stick to the left itself: its button does */}
               <th
                 colSpan={span}
                 scope="rowgroup"
-                className="sticky left-0 border-b border-zinc-950/10 bg-zinc-100 px-2 py-1 text-left dark:border-white/10 dark:bg-zinc-800"
+                className="border-b border-zinc-950/10 bg-zinc-100 px-2 py-1 text-left dark:border-white/10 dark:bg-zinc-800"
               >
                 <button
                   type="button"
                   aria-expanded={!isFolded}
                   aria-label={m.way_table_group_toggle({ group: GROUP_NAME[group.id]() })}
-                  className="flex items-center gap-1 text-xs font-semibold text-zinc-800 focus-visible:outline-2 focus-visible:outline-blue-600 dark:text-zinc-100"
+                  className="sticky left-2 flex items-center gap-1 text-xs font-semibold text-zinc-800 focus-visible:outline-2 focus-visible:outline-blue-600 dark:text-zinc-100"
                   onClick={() => actions.toggleGroup(group.id)}
                 >
                   {isFolded ? (

@@ -11,6 +11,7 @@
   "way_table_legend_added": "Solo aquí",
   "way_table_legend_missing": "Falta aquí",
   "way_table_legend_empty": "Sin valor",
+  "way_table_legend_toggle": "Leyenda y ayuda",
   "way_table_legend_edited": "Cambiado en esta sesión",
   "way_table_only_differing": "Solo filas que difieren",
   "way_table_forget_choices": "Olvidar las elecciones de cruce",

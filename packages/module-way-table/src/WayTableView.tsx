@@ -1,7 +1,7 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
 import { device } from '@osm-editor-kit/maid-i18n'
 import type { Graph } from '@osm-editor-kit/maid-model'
-import type { DockViewProps } from '@osm-editor-kit/maid-ui'
+import { useBreakpoint, type DockViewProps } from '@osm-editor-kit/maid-ui'
 import {
   useCallback,
   useEffect,
@@ -110,6 +110,7 @@ export function WayTableView(props: WayTableViewProps) {
   const pending = useWayTablePending(store)
   const carry = useWayTableCarry(store)
   const actions = useWayTableActions(store)
+  const wide = useBreakpoint('sm')
   const [status, setStatus] = useState<{
     readonly reference: string
     readonly text: string
@@ -190,32 +191,56 @@ export function WayTableView(props: WayTableViewProps) {
   }
 
   const order = orderText(table.order)
+  const onlyDifferingBox = (
+    <label className="flex items-center gap-1.5 text-xs pointer-coarse:py-1">
+      <input
+        type="checkbox"
+        checked={onlyDiffering}
+        onChange={actions.toggleOnlyDiffering}
+        className="size-3.5 accent-blue-600 pointer-coarse:size-4"
+      />
+      {m.way_table_only_differing()}
+    </label>
+  )
+  const editHint = (
+    <span className="text-xs text-zinc-500 dark:text-zinc-400">
+      {m.way_table_edit_hint({ ...device() })}
+    </span>
+  )
+  const forgetChoices = hasChoices ? (
+    <button
+      type="button"
+      className="text-xs text-blue-700 underline focus-visible:outline-2 focus-visible:outline-blue-600 dark:text-blue-300"
+      onClick={() => actions.forgetChoices(reference)}
+    >
+      {m.way_table_forget_choices()}
+    </button>
+  ) : null
   return (
     <div className="flex h-full min-h-0 flex-col gap-1.5 p-2 text-sm text-zinc-950 dark:text-white">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <WayTableLegend edited={anyEdited} />
-        <label className="flex items-center gap-1.5 text-xs">
-          <input
-            type="checkbox"
-            checked={onlyDiffering}
-            onChange={actions.toggleOnlyDiffering}
-            className="size-3.5 accent-blue-600"
-          />
-          {m.way_table_only_differing()}
-        </label>
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">
-          {m.way_table_edit_hint({ ...device() })}
-        </span>
-        {hasChoices ? (
-          <button
-            type="button"
-            className="text-xs text-blue-700 underline focus-visible:outline-2 focus-visible:outline-blue-600 dark:text-blue-300"
-            onClick={() => actions.forgetChoices(reference)}
-          >
-            {m.way_table_forget_choices()}
-          </button>
-        ) : null}
-      </div>
+      {wide ? (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <WayTableLegend edited={anyEdited} />
+          {onlyDifferingBox}
+          {editHint}
+          {forgetChoices}
+        </div>
+      ) : (
+        // a phone: the table gets the height; the legend and the hint fold away behind one line
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          {onlyDifferingBox}
+          {forgetChoices}
+          <details className="w-full text-xs">
+            <summary className="cursor-pointer py-1 text-zinc-600 select-none dark:text-zinc-300">
+              {m.way_table_legend_toggle()}
+            </summary>
+            <div className="flex flex-col gap-1.5 pt-1">
+              <WayTableLegend edited={anyEdited} />
+              {editHint}
+            </div>
+          </details>
+        </div>
+      )}
       <div className="flex flex-col gap-0.5 text-xs text-zinc-600 dark:text-zinc-300">
         {table.mode === 'way' && table.columns.length === 1 ? (
           <span>{m.way_table_lone()}</span>
@@ -248,7 +273,7 @@ export function WayTableView(props: WayTableViewProps) {
           onCancel={actions.endPending}
         />
       ) : null}
-      <div className="min-h-0 flex-1 overflow-auto overscroll-contain">
+      <div data-way-table-scroll className="min-h-0 flex-1 overflow-auto overscroll-contain">
         <WayTableGrid
           table={table}
           graph={graph}
