@@ -11,7 +11,10 @@ import { parseArgs } from 'node:util'
  * the mock's fixtures and the background is none: no request leaves this machine (AGENTS.md, core rule 1).
  *
  *   bun run sim-measure [--app maid] [--device "iPhone 16"] [--runs 3] [--workers 4,2] [--scene small]
- *                       [--cache cold|warm] [--opener simctl|playwright] [--no-build]
+ *                       [--cache cold|warm] [--warmup 1] [--opener simctl|playwright] [--no-build]
+ *
+ * One warm-up visit (`--warmup`) is not counted: the first Safari after a boot is far slower. The variants take turns
+ * (4, 2, 4, 2, …), so a slow phase of the machine does not land on one of them.
  *
  * Writes reports/sim-measure-<app>.json (every report, and the medians per variant) and a screenshot per variant.
  */
@@ -34,6 +37,7 @@ const { values: opts } = parseArgs({
     app: { type: 'string', default: 'maid' },
     device: { type: 'string', default: 'iPhone 16' },
     runs: { type: 'string', default: '3' },
+    warmup: { type: 'string', default: '1' },
     workers: { type: 'string', default: '4,2' },
     scene: { type: 'string', default: 'small' },
     cache: { type: 'string', default: 'cold' },
@@ -218,25 +222,32 @@ mkdirSync(outDir, { recursive: true })
 const results: { workers: number; run: number; report: PerfReport }[] = []
 const [lng, lat] = scene.center
 
-for (const count of workers) {
-  for (let i = 0; i < runs; i++) {
-    const url =
-      `http://localhost:${PORTS.simBuild}/?api=mock&scene=${scene.name}&bg=none&workers=${count}` +
-      `&perf-report=${PORTS.perfReport}&visit=${Date.now()}#map=${scene.zoom}/${lat}/${lng}`
-    const report = new Promise<PerfReport>((resolveReport, reject) => {
-      const timer = setTimeout(
-        () => reject(new Error(`no report within ${VISIT_LIMIT_MS} ms`)),
-        VISIT_LIMIT_MS,
-      )
-      waiting = (value) => {
-        clearTimeout(timer)
-        resolveReport(value)
-      }
-    })
-    await opener.open(url)
-    const value = await report.catch((error: Error) =>
-      fail(`workers ${count}, run ${i + 1}: ${error.message}`),
+/** Opens one visit and waits for its report */
+async function visit(count: number, what: string): Promise<PerfReport> {
+  const url =
+    `http://localhost:${PORTS.simBuild}/?api=mock&scene=${scene.name}&bg=none&workers=${count}` +
+    `&perf-report=${PORTS.perfReport}&visit=${Date.now()}#map=${scene.zoom}/${lat}/${lng}`
+  const report = new Promise<PerfReport>((resolveReport, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`no report within ${VISIT_LIMIT_MS} ms`)),
+      VISIT_LIMIT_MS,
     )
+    waiting = (value) => {
+      clearTimeout(timer)
+      resolveReport(value)
+    }
+  })
+  await opener.open(url)
+  return report.catch((error: Error) => fail(`${what}: ${error.message}`))
+}
+
+for (let i = 0; i < Number(opts.warmup); i++) {
+  const value = await visit(workers[0] ?? 4, `warm-up ${i + 1}`)
+  console.log(`warm-up ${i + 1} (not counted): settled ${value.settledMs} ms`)
+}
+for (let i = 0; i < runs; i++) {
+  for (const count of workers) {
+    const value = await visit(count, `workers ${count}, run ${i + 1}`)
     results.push({ workers: count, run: i + 1, report: value })
     console.log(
       `workers ${count} run ${i + 1}: FCP ${value.paint.firstContentfulPaint ?? '-'} ms, map drawn ${value.drawnMs} ms, settled ${value.settledMs} ms`,

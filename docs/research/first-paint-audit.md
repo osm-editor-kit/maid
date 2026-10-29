@@ -45,8 +45,23 @@ Then, with the map: the MapLibre worker (145 KB), four of them.
 
 Inspector, notes, relations column, turn restrictions, data layers, lenses, surface field and imagery panel are lazy (only preloaded, see 3). The Mapillary viewer (268 KB) loads only with the photo panel. `osm-api` only on login or save. GPX, OAM and other ELI regions on use. No external fonts or scripts; assets are hashed.
 
+## Measured on the iOS simulator, 2026-10-29
+
+`bun run sim-measure` on Tobias's Mac: iPhone 17, iOS 26.5, scene `small`, mock data, no background, medians of 3 runs in ms, after the cuts above. A simulator runs on the Mac's CPU, so the times are lower than on a phone; the comparison between variants is what counts.
+
+| Cache | Workers | First contentful paint | Map drawn | Settled |
+| ----- | ------: | ---------------------: | --------: | ------: |
+| cold  |       4 |                   1857 |      4115 |    4235 |
+| cold  |       2 |                    477 |      3081 |    3286 |
+| cold  |       1 |                    302 |      2285 |    2369 |
+| warm  |       4 |                    277 |      2014 |    2123 |
+| warm  |       2 |                    229 |      1681 |    1758 |
+
+- Fewer workers were faster in every pair. The cold runs swing (one run per variant near 1.9 s FCP; the first visit after the boot took 19.8 s and is why `--warmup` now exists), so the cold ranking needs more runs.
+- What a cold visit loads before it settles, uncompressed (the script's server does not gzip): 7.2 MB, of it the presets chunk 1.8 MB, MapLibre 1.07 MB, the entry 0.83 MB, ELI's Europe details 0.74 MB, the worker 0.51 MB.
+
 ## Unsure
 
-- No browser timing: everything above is bytes. A phone run on a person's device is the next measurement.
+- Timings are from the simulator, not a phone. Bytes above the measured section are from the build.
 - GitHub Pages serves gzip, not brotli, with a short cache time (general knowledge, the repo has no headers file).
 - motion (about 124 KB raw) is in the Sidebar, Dock, Flyout, Tooltip and BottomSheet, all drawn at the start. It stays: no refactor to CSS (Tobias, 2026-10-29).
