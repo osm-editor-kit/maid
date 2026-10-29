@@ -91,7 +91,7 @@ export function Dock(props: { tabs: DockTab[]; defaultOpen?: boolean }) {
             aria-controls={open && isSelected ? panelId : undefined}
             onClick={() => selectTab(tab)}
             className={twJoin(
-              'shrink-0 cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium whitespace-nowrap focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 pointer-coarse:px-3 pointer-coarse:py-2 pointer-coarse:text-sm',
+              'shrink-0 cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium whitespace-nowrap focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 touch:px-3 touch:py-2 touch:text-sm',
               open && isSelected
                 ? 'bg-zinc-950 text-white dark:bg-white dark:text-zinc-950'
                 : 'text-zinc-600 hover:bg-zinc-950/5 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-white',

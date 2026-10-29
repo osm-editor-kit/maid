@@ -149,7 +149,7 @@ export function SegmentedControl<T extends string>(props: {
  * icon: the label stays for screen readers. `!` wins over the padding and width above without relying on the order of
  * the generated rules. Keep 76rem in step with the steps in TopBar.tsx.
  */
-const LABEL_GONE_BUTTON = '@max-[76rem]:w-9! @max-[76rem]:px-0! pointer-coarse:@max-[76rem]:w-10!'
+const LABEL_GONE_BUTTON = '@max-[76rem]:w-9! @max-[76rem]:px-0! touch:@max-[76rem]:w-10!'
 const LABEL_GONE_TEXT = '@max-[76rem]:sr-only'
 
 /** The look of a `ToolButton`, for a button that cannot be one (the trigger of a flyout) */
@@ -160,7 +160,7 @@ export function toolButtonClass(
 ) {
   return twJoin(
     `relative inline-flex shrink-0 items-center justify-center gap-2 rounded-md ${TAP} text-sm font-medium inset-ring-1 inset-ring-zinc-950/10 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:text-zinc-300 dark:inset-ring-white/10 dark:disabled:text-zinc-600`,
-    hasText ? 'h-9 px-3 max-sm:px-2.5 pointer-coarse:h-10' : 'size-9 pointer-coarse:size-10',
+    hasText ? 'h-9 px-3 max-sm:px-2.5 touch:h-10' : 'size-9 touch:size-10',
     // the label is gone (see TopBar.tsx), so the button is as wide as an icon button
     hasText && collapseLabel && LABEL_GONE_BUTTON,
     toolButtonTone(state === 'selected' ? 'selected' : state ? 'pressed' : 'idle'),

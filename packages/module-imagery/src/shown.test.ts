@@ -10,7 +10,7 @@ function layer(id: string): Listing {
   return { id, name: id, best: false, overlay: false }
 }
 
-/** The index reads, counted: the listing and the best layers (the coverage downloads) */
+/** The index reads, counted: the listing and the best layers */
 function search(items: Listing[]) {
   const calls = { listed: 0, best: 0 }
   const seams: StartSearch = {
@@ -35,7 +35,7 @@ const START: StartInput = {
 }
 
 describe('resolveStart: the best backgrounds are looked for only when the address names none', () => {
-  it('a background in the address: the best search (the coverage downloads) is not run, and the address starts', async () => {
+  it('a background in the address: the best search is not run, and the address starts', async () => {
     const { calls, seams } = search([layer('first'), layer('best-layer')])
     const result = await resolveStart(VIEW, { ...START, url: TEMPLATE }, seams)
     expect(calls.best).toBe(0)

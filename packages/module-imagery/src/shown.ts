@@ -108,9 +108,9 @@ export type StartSearch = {
 }
 
 /**
- * The start order: the index's layers valid for the view, their best ones, then the order (start.ts). The best ones
- * are looked for only when the URL names no background: each layer's coverage is a download (568 KB gzip for the
- * Europe index, on a phone's mobile data), and startBackground uses the best ones only then.
+ * The start order: the index's layers valid for the view, their best ones, then the order (start.ts). Both read the
+ * index's always-loaded rows and boxes, no details and no coverage polygons (eli.ts). The best ones are looked for
+ * only when the URL names no background, as iD does: startBackground uses them only then.
  */
 export async function resolveStart(
   view: View,

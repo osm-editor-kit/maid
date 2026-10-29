@@ -453,5 +453,36 @@
   "route_overview_issue_empty_text": "No hay cargado ningún camino principal de esta ruta, así que no hay línea que dibujar.",
   "route_overview_issue_empty_todo": "Carga los miembros con el botón de la lista de miembros.",
   "route_overview_severity_warning": "advertencia",
-  "route_overview_severity_info": "nota"
+  "route_overview_severity_info": "nota",
+  "map_measure_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Toca dos puntos para medir.",
+        "input=*": "Haz clic en dos puntos para medir. Escape cancela."
+      }
+    }
+  ],
+  "map_stack_label": "Elementos en este lugar",
+  "map_stack_description": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Toca para verlos en una lista.",
+        "input=*": "Haz clic para verlos en una lista. , toma el anterior y . el siguiente."
+      }
+    }
+  ],
+  "map_reset_north": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Orientar al norte",
+        "input=*": "Orientar al norte (N)"
+      }
+    }
+  ]
 }

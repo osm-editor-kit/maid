@@ -344,7 +344,7 @@ export function PresetPicker(props: {
         </div>
         {row.section === 'favourite' && onMoveFavourite && rowGeometry !== undefined ? (
           // shown on hover, when a button of the row has the keyboard focus, and always on touch (no hover there)
-          <span className="flex shrink-0 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100">
+          <span className="flex shrink-0 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 touch:opacity-100">
             <button
               type="button"
               aria-label={`Move ${preset.name} up`}

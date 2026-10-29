@@ -46,7 +46,7 @@ export function ControlButton(props: {
         disabled={disabled}
         onClick={onClick}
         className={twJoin(
-          'flex size-9 cursor-pointer items-center justify-center text-zinc-950 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:text-zinc-300 dark:text-white dark:disabled:text-zinc-600 pointer-coarse:size-10',
+          'flex size-9 cursor-pointer items-center justify-center text-zinc-950 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:text-zinc-300 dark:text-white dark:disabled:text-zinc-600 touch:size-10',
           pressed
             ? 'bg-zinc-200 enabled:hover:bg-zinc-300 dark:bg-zinc-600 dark:enabled:hover:bg-zinc-500'
             : 'bg-white enabled:hover:bg-zinc-50 dark:bg-zinc-800 dark:enabled:hover:bg-zinc-700',

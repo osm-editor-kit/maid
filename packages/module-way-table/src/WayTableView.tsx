@@ -192,12 +192,12 @@ export function WayTableView(props: WayTableViewProps) {
 
   const order = orderText(table.order)
   const onlyDifferingBox = (
-    <label className="flex items-center gap-1.5 text-xs pointer-coarse:py-1">
+    <label className="flex items-center gap-1.5 text-xs touch:py-1">
       <input
         type="checkbox"
         checked={onlyDiffering}
         onChange={actions.toggleOnlyDiffering}
-        className="size-3.5 accent-blue-600 pointer-coarse:size-4"
+        className="size-3.5 accent-blue-600 touch:size-4"
       />
       {m.way_table_only_differing()}
     </label>

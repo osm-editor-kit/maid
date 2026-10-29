@@ -453,5 +453,36 @@
   "route_overview_issue_empty_text": "Aucune voie principale de cet itinéraire n’est chargée ; il n’y a donc pas de ligne à tracer.",
   "route_overview_issue_empty_todo": "Chargez les membres avec le bouton de la liste des membres.",
   "route_overview_severity_warning": "avertissement",
-  "route_overview_severity_info": "remarque"
+  "route_overview_severity_info": "remarque",
+  "map_measure_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Touchez deux points pour mesurer.",
+        "input=*": "Cliquez sur deux points pour mesurer. Échap annule."
+      }
+    }
+  ],
+  "map_stack_label": "Éléments à cet endroit",
+  "map_stack_description": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Touchez pour les lister.",
+        "input=*": "Cliquez pour les lister. , prend le précédent et . le suivant."
+      }
+    }
+  ],
+  "map_reset_north": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Remettre le nord en haut",
+        "input=*": "Remettre le nord en haut (N)"
+      }
+    }
+  ]
 }

@@ -453,5 +453,36 @@
   "route_overview_issue_empty_text": "Kein Hauptweg dieser Route ist geladen. Es gibt keine Linie zu zeichnen.",
   "route_overview_issue_empty_todo": "Lade die Mitglieder mit der Schaltfläche in der Mitgliederliste.",
   "route_overview_severity_warning": "Warnung",
-  "route_overview_severity_info": "Hinweis"
+  "route_overview_severity_info": "Hinweis",
+  "map_measure_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tippe zwei Punkte an, um zu messen.",
+        "input=*": "Klicke zwei Punkte an, um zu messen. Escape bricht ab."
+      }
+    }
+  ],
+  "map_stack_label": "Objekte an dieser Stelle",
+  "map_stack_description": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tippe, um sie aufzulisten.",
+        "input=*": "Klicke, um sie aufzulisten. , nimmt das vorige und . das nächste."
+      }
+    }
+  ],
+  "map_reset_north": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Nach Norden ausrichten",
+        "input=*": "Nach Norden ausrichten (N)"
+      }
+    }
+  ]
 }

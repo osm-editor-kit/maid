@@ -453,5 +453,36 @@
   "route_overview_issue_empty_text": "No main way of this route is loaded, so there is no line to draw.",
   "route_overview_issue_empty_todo": "Load the members with the download button in the member list.",
   "route_overview_severity_warning": "warning",
-  "route_overview_severity_info": "note"
+  "route_overview_severity_info": "note",
+  "map_measure_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tap two points to measure.",
+        "input=*": "Click two points to measure. Escape cancels."
+      }
+    }
+  ],
+  "map_stack_label": "Features at this place",
+  "map_stack_description": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tap to list them.",
+        "input=*": "Click to list them. , takes the previous one and . the next one."
+      }
+    }
+  ],
+  "map_reset_north": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Reset north",
+        "input=*": "Reset north (N)"
+      }
+    }
+  ]
 }

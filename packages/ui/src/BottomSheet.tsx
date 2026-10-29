@@ -20,19 +20,32 @@ export function shouldDismiss(offsetY: number, velocityY: number) {
 
 /**
  * How much of the window's bottom the on-screen keyboard covers, in CSS px: iOS shrinks only the visual viewport, so a
- * sheet fixed to the bottom of the layout would sit behind the keyboard. 0 without a keyboard.
+ * sheet fixed to the bottom of the layout would sit behind the keyboard. 0 without a keyboard. A pinch zoom shrinks
+ * the visual viewport too, so the gap counts only while a field has the focus (`typing`): then it is the keyboard.
  */
-export function coveredBottom(innerHeight: number, viewportHeight: number, viewportTop: number) {
+export function coveredBottom(
+  innerHeight: number,
+  viewportHeight: number,
+  viewportTop: number,
+  typing: boolean,
+) {
+  if (!typing) return 0
   return Math.max(0, Math.round(innerHeight - viewportHeight - viewportTop))
 }
+
+const TEXT_FIELD = 'input, textarea, select, [contenteditable="true"]'
 
 function subscribeViewport(notify: () => void) {
   const viewport = window.visualViewport
   viewport?.addEventListener('resize', notify)
   viewport?.addEventListener('scroll', notify)
+  window.addEventListener('focusin', notify)
+  window.addEventListener('focusout', notify)
   return () => {
     viewport?.removeEventListener('resize', notify)
     viewport?.removeEventListener('scroll', notify)
+    window.removeEventListener('focusin', notify)
+    window.removeEventListener('focusout', notify)
   }
 }
 
@@ -40,13 +53,32 @@ function subscribeViewport(notify: () => void) {
 function viewportKey() {
   const viewport = window.visualViewport
   if (!viewport) return '0,0'
-  return `${coveredBottom(window.innerHeight, viewport.height, viewport.offsetTop)},${Math.round(viewport.height)}`
+  const typing = document.activeElement?.matches(TEXT_FIELD) ?? false
+  return `${coveredBottom(window.innerHeight, viewport.height, viewport.offsetTop, typing)},${Math.round(viewport.height)}`
+}
+
+/**
+ * The sheets that are open, the last opened last: it is drawn on top and Escape closes it alone. On a phone the
+ * inspector's sheet and the dock's can be open at once (a photo in the inspector opens the dock's photo view).
+ */
+let openSheets: readonly string[] = []
+const sheetListeners = new Set<() => void>()
+
+function setSheetOpen(id: string, open: boolean) {
+  const rest = openSheets.filter((each) => each !== id)
+  openSheets = open ? [...rest, id] : rest
+  for (const listener of sheetListeners) listener()
+}
+
+function subscribeSheets(listener: () => void) {
+  sheetListeners.add(listener)
+  return () => sheetListeners.delete(listener)
 }
 
 /** A field that gets the focus is scrolled into view once the keyboard has opened (it animates in) */
 function revealFocused(event: FocusEvent<HTMLElement>) {
   const target = event.target
-  if (!target.matches('input, textarea, select, [contenteditable="true"]')) return
+  if (!target.matches(TEXT_FIELD)) return
   window.setTimeout(() => target.scrollIntoView({ block: 'nearest' }), 300)
 }
 
@@ -75,14 +107,23 @@ export function BottomSheet(props: {
     .split(',')
     .map(Number)
 
+  const sheets = useSyncExternalStore(subscribeSheets, () => openSheets)
+  const layer = Math.max(0, sheets.indexOf(id))
+  useEffect(() => {
+    if (!open) return
+    setSheetOpen(id, true)
+    return () => setSheetOpen(id, false)
+  }, [id, open])
+
   useEffect(() => {
     if (!open) return
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onOpenChange(false)
+      // the sheet on top closes; the one below waits for the next Escape
+      if (event.key === 'Escape' && openSheets.at(-1) === id) onOpenChange(false)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [open, onOpenChange])
+  }, [id, open, onOpenChange])
 
   return (
     <AnimatePresence>
@@ -93,12 +134,14 @@ export function BottomSheet(props: {
           role="dialog"
           aria-label={label}
           // above the keyboard while one is open, and no taller than the part of the window it leaves
-          style={
-            covered > 0
+          style={{
+            // z-40 and above: the sheet opened last is on top
+            zIndex: 40 + layer,
+            ...(covered > 0
               ? { bottom: covered, maxHeight: Math.round(viewportHeight * 0.7) }
-              : undefined
-          }
-          className="fixed inset-x-0 bottom-0 z-40 flex max-h-[70dvh] flex-col overflow-hidden rounded-t-xl bg-white pb-[env(safe-area-inset-bottom)] text-zinc-950 shadow-xl ring-1 ring-zinc-950/10 dark:bg-zinc-900 dark:text-white dark:ring-white/10"
+              : undefined),
+          }}
+          className="fixed inset-x-0 bottom-0 flex max-h-[70dvh] flex-col overflow-hidden rounded-t-xl bg-white pb-[env(safe-area-inset-bottom)] text-zinc-950 shadow-xl ring-1 ring-zinc-950/10 dark:bg-zinc-900 dark:text-white dark:ring-white/10"
           initial={{ y: '100%' }}
           animate={{ y: 0 }}
           exit={{ y: '100%' }}

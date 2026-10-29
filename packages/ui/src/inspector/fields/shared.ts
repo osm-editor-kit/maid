@@ -114,9 +114,9 @@ export type FieldMeasure = {
 const SURFACE =
   'w-full min-w-0 rounded-md border border-zinc-950/10 bg-white text-sm text-zinc-950 hover:border-zinc-950/20 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-60 dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:hover:border-white/20 dark:[color-scheme:dark]'
 /** The text input's frame: 32 px, 44 px on a coarse pointer (a finger). Nothing else in the row changes size. */
-export const FRAME = `h-8 pointer-coarse:h-11 ${SURFACE}`
+export const FRAME = `h-8 touch:h-11 ${SURFACE}`
 /** A box of chips: the text input's frame without its fixed height, so the chips wrap inside it (Multi, the level section) */
-export const CHIP_BOX = `${SURFACE} flex min-h-8 pointer-coarse:min-h-11 flex-wrap items-center gap-1 p-1 focus-within:outline-2 focus-within:outline-blue-500`
+export const CHIP_BOX = `${SURFACE} flex min-h-8 touch:min-h-11 flex-wrap items-center gap-1 p-1 focus-within:outline-2 focus-within:outline-blue-500`
 /** One value in a box of chips */
 export const CHIP =
   'flex h-6 max-w-full min-w-0 items-center gap-1 rounded-md bg-zinc-950/5 pl-1 pr-0.5 text-sm text-zinc-950 dark:bg-white/10 dark:text-white'
@@ -132,7 +132,7 @@ export const LABEL = 'min-w-0 truncate text-sm text-zinc-700 dark:text-zinc-300'
  * the taps of the neighbour (Revert next to Remove) and of the input's top edge.
  */
 export const ROW_BUTTON =
-  'grid size-5 pointer-coarse:size-11 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 active:bg-zinc-950/10 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white dark:active:bg-white/15'
+  'grid size-5 touch:size-11 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 active:bg-zinc-950/10 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white dark:active:bg-white/15'
 export const HINT = 'min-w-0 truncate text-xs text-zinc-500 dark:text-zinc-400'
 
 /**
@@ -141,4 +141,4 @@ export const HINT = 'min-w-0 truncate text-xs text-zinc-500 dark:text-zinc-400'
  * are always there on touch.
  */
 export const REVEAL =
-  'opacity-0 transition-opacity duration-200 group-focus-within/field:opacity-100 group-hover/field:opacity-100 aria-expanded:opacity-100 aria-pressed:opacity-100 has-[[aria-expanded=true]]:opacity-100 pointer-coarse:opacity-100'
+  'opacity-0 transition-opacity duration-200 group-focus-within/field:opacity-100 group-hover/field:opacity-100 aria-expanded:opacity-100 aria-pressed:opacity-100 has-[[aria-expanded=true]]:opacity-100 touch:opacity-100'

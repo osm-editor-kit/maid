@@ -34,7 +34,7 @@ const MIXED_HINT = 'mixed'
  * focus is in this field's row (the group is named, so a group around all rows does not count),
  * stays while its panel is open, and is always there on touch.
  */
-export const INFO_BUTTON = `rounded pointer-coarse:size-11 ${REVEAL}`
+export const INFO_BUTTON = `rounded touch:size-11 ${REVEAL}`
 
 /**
  * The "Measure on the map" button: as the "i", it fades in with the row, and it stays while the

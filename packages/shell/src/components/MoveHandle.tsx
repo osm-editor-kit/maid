@@ -17,18 +17,23 @@ import { moveHandleAnchor, type Bounds, type HandleShape, type Loc } from './mov
  * Marker and follows the feature as it moves.
  */
 export function MoveHandle() {
+  // the device is fixed for the visit (device.ts): with a keyboard nothing here is read or subscribed to
+  return device().input === 'touch' ? <TouchMoveHandle /> : null
+}
+
+function TouchMoveHandle() {
   const [dragging, setDragging] = useState(false)
   const { zoom, bounds } = useView(useEngine((e) => e.map))
   // the selection is the address's (selection.ts): a change of it alone is no change of the engine's data
   const { ids } = useSelection()
   const anchor = useEngine((engine) => {
-    if (device().input !== 'touch') return undefined
     // while dragging the mode is `move`: the handle stays, or the drag would end with it
     if (!dragging && engine.mode !== 'browse') return undefined
     if (engine.measuring || engine.moduleMode) return undefined
     if (ids.length !== 1 || engine.isReadOnly(ids[0]!)) return undefined
     const shape = shapeOf(engine, ids[0]!, zoom)
-    return shape && moveHandleAnchor(shape, bounds)
+    // while dragging the view is not asked: a handle dragged out of the last view would end the drag with it
+    return shape && moveHandleAnchor(shape, dragging ? undefined : bounds)
   })
   if (!anchor) return null
   return (
@@ -100,6 +105,11 @@ function HandleButton({ onDragging }: { onDragging: (dragging: boolean) => void 
     button.addEventListener('pointerup', up)
     button.addEventListener('pointercancel', up)
     return () => {
+      // the button goes while a finger drags it (the selection was changed from elsewhere): the move ends here
+      if (pointer !== undefined) {
+        engine.setMode('browse')
+        onDragging(false)
+      }
       for (const type of touchEvents) button.removeEventListener(type, stop)
       button.removeEventListener('pointerdown', down)
       button.removeEventListener('pointermove', move)

@@ -15,7 +15,7 @@ Maid checked against the FMC skill `touch-ipad-review` (its checklist `reference
 | The sheet opens only by its button                      | `packages/shell/src/App.tsx`, `packages/ui/src/Shell.tsx` (button 56 px)                                                    |
 | The dock is a bottom sheet with a grab row on a phone   | `packages/ui/src/Dock.tsx`                                                                                                  |
 | Inspector targets 44 px on a coarse pointer: fields, steppers, radio buttons, icon and label-bar buttons, Add field | `inspector/fields/shared.ts`, `icon-button.ts`, `Radio.tsx`, `Link.tsx`, `AddField.tsx` |
-| Hover-only actions shown on touch (custom background, relation member, favourites order, member handle) | `pointer-coarse:opacity-100` in each |
+| Hover-only actions shown on touch (custom background, relation member, favourites order, member handle) | `touch:opacity-100` in each |
 | Context menu rows 44 px on touch | `packages/ui/src/ContextMenu.tsx` (`TOUCH_ROW`) |
 | Disabled button no longer bends a group's divider       | `packages/ui/src/Tooltip.tsx` (`DISABLED_WRAP`), `Toolbar.tsx` (`JOINED`)                                                   |
 | Move handle for the selected feature on touch (as react-map-gl-draw's) | `packages/shell/src/components/MoveHandle.tsx`, `move-handle.ts`; `bun run check-move-handle` |

@@ -224,15 +224,18 @@ const [lng, lat] = scene.center
 
 /** Opens one visit and waits for its report */
 async function visit(count: number, what: string): Promise<PerfReport> {
+  // the visit's own id: a late report of the page before (Safari closed while it sent) is not taken for this one
+  const id = String(Date.now())
   const url =
     `http://localhost:${PORTS.simBuild}/?api=mock&scene=${scene.name}&bg=none&workers=${count}` +
-    `&perf-report=${PORTS.perfReport}&visit=${Date.now()}#map=${scene.zoom}/${lat}/${lng}`
+    `&perf-report=${PORTS.perfReport}&visit=${id}#map=${scene.zoom}/${lat}/${lng}`
   const report = new Promise<PerfReport>((resolveReport, reject) => {
     const timer = setTimeout(
       () => reject(new Error(`no report within ${VISIT_LIMIT_MS} ms`)),
       VISIT_LIMIT_MS,
     )
     waiting = (value) => {
+      if (new URL(value.url).searchParams.get('visit') !== id) return
       clearTimeout(timer)
       resolveReport(value)
     }
@@ -259,9 +262,10 @@ await opener.close()
 void site.stop()
 void reports.stop()
 
+/** The median of the finite values (a visit without a first paint gives none); NaN when there are none */
 const median = (values: number[]) => {
-  const sorted = values.toSorted((a, b) => a - b)
-  return sorted[Math.floor(sorted.length / 2)]
+  const sorted = values.filter(Number.isFinite).toSorted((a, b) => a - b)
+  return sorted.length ? sorted[Math.floor(sorted.length / 2)]! : Number.NaN
 }
 const summary = workers.map((count) => {
   const mine = results.filter((each) => each.workers === count).map((each) => each.report)

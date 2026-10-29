@@ -22,7 +22,10 @@ the phone.
    fails when the text a touch device gets contains the words of a keyboard or a mouse, in each language.
 4. **What is not a text** follows the same device: key chips hide with the `touch:` Tailwind variant (`data-input` on
    `<html>`), fields focus themselves only with a keyboard (`autoFocusFields()`, a search excepted), the context menu's
-   rows are 44 px on touch.
+   rows are 44 px on touch. Sizes and always-visible buttons use `touch:` too, not the `pointer-coarse:` media query:
+   one signal, which `?device=touch` switches as a whole, so a browser check sees the phone's layout with its texts.
+   Only the 16 px field rule against iOS's zoom stays a media query (`styles.css`): it is about the browser, not the
+   person's way of working.
 
 ## Consequences
 
