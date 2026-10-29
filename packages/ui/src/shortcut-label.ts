@@ -36,6 +36,19 @@ const APPLE_ORDER: { modifier: Modifier; symbol: string }[] = [
 const WORD_ORDER = ['Ctrl', 'Alt', 'Shift'] as const
 
 /**
+ * Modifier keys alone, as the platform shows them in a tooltip's hint: `formatModifiers('Shift+Alt', true)` is `⌥⇧`,
+ * `formatModifiers('Shift+Alt', false)` is `Alt+Shift`. Unlike `formatShortcut`, the last part is a modifier too.
+ */
+export function formatModifiers(keys: string, apple: boolean): string {
+  const modifiers = new Set<Modifier>()
+  for (const part of keys.split('+')) {
+    const word = WORDS[part]
+    if (word !== undefined) modifiers.add(word)
+  }
+  return joined(modifiers, '', apple)
+}
+
+/**
  * The shortcut as the platform shows it. `apple` is true on Apple devices.
  *
  * `formatShortcut('Mod+Shift+Z', true)` is `⇧⌘Z`, `formatShortcut('Mod+Shift+Z', false)` is
@@ -57,6 +70,11 @@ export function formatShortcut(shortcut: string, apple: boolean): string {
     if (word !== undefined && index < parts.length - 1) modifiers.add(word)
     else key = rest
   })
+  return joined(modifiers, key, apple)
+}
+
+/** The modifiers in the platform's order and form, then the key (none for `formatModifiers`) */
+function joined(modifiers: ReadonlySet<Modifier>, key: string, apple: boolean): string {
   if (modifiers.size === 0) return key
   if (apple) {
     return APPLE_ORDER.filter((item) => modifiers.has(item.modifier))
@@ -66,7 +84,9 @@ export function formatShortcut(shortcut: string, apple: boolean): string {
   }
   const names = new Set<string>()
   for (const modifier of modifiers) names.add(modifier === 'Mod' ? 'Ctrl' : modifier)
-  return [...WORD_ORDER.filter((name) => names.has(name)), key].join('+')
+  const parts: string[] = WORD_ORDER.filter((name) => names.has(name))
+  if (key !== '') parts.push(key)
+  return parts.join('+')
 }
 
 /** True on Apple devices, read in the browser when a tooltip shows (the same test as platform.ts) */

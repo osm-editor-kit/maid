@@ -1400,7 +1400,10 @@ export class MaidEngine {
 
   /** Takes back the last edit and redraws what it changed. Does nothing while a vertex is dragged. */
   undo() {
-    if (this.busy() || this.data.history.getUndoAnnotation() === undefined) return
+    if (this.busy()) return
+    // a mode that keeps its work outside the history (the resize box): taking that back is the step, so the mode ends
+    if (this.moduleMode?.endsOnUndo) return this.exitModuleMode()
+    if (this.data.history.getUndoAnnotation() === undefined) return
     // a module mode holds ids of what the step may take back (a rectangle's corner): it ends, as iD leaves a mode
     this.exitModuleMode()
     this.change(() => this.data.history.undo())
@@ -1409,7 +1412,9 @@ export class MaidEngine {
 
   /** Puts back the edit that the last undo took back, and redraws what it changed. */
   redo() {
-    if (this.busy() || this.data.history.getRedoAnnotation() === undefined) return
+    if (this.busy()) return
+    if (this.moduleMode?.endsOnUndo) return this.exitModuleMode()
+    if (this.data.history.getRedoAnnotation() === undefined) return
     this.exitModuleMode()
     this.change(() => this.data.history.redo())
     this.keepSelectionAfterStep()

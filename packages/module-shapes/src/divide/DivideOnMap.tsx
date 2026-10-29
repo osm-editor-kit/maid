@@ -6,9 +6,10 @@ import type { OperationHost } from '@osm-editor-kit/maid-operations'
 import { isTextField, type MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { INPUT_CLASS, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import type { Feature, FeatureCollection, LineString } from 'geojson'
-import { useEffect, useReducer, useRef, useSyncExternalStore } from 'react'
+import { useEffect, useReducer, useSyncExternalStore } from 'react'
 import { Layer, Source } from 'react-map-gl/maplibre'
 import { formatNumber, m } from '../messages.ts'
+import { keepFromMap } from '../shared/keep-from-map.ts'
 import {
   divideActions,
   useDivideColumns,
@@ -25,11 +26,6 @@ const SOURCE = 'divide-preview'
 const LAYER = 'divide-preview-lines'
 /** The panel's marker attribute: the keys of the mode are the panel's only where the focus is inside it */
 const PANEL_SELECTOR = '[data-divide-panel]'
-/**
- * Events the panel does not pass on to the map: a drag in a field must not pan the map, and a press on a button must not
- * reach the map's selection. A click is not in the list: the map sees it while the mode is on, and does nothing with it.
- */
-const KEPT_FROM_MAP = ['mousedown', 'pointerdown', 'touchstart', 'dblclick', 'wheel'] as const
 const noSubscribe = () => () => {}
 
 /** The dashed outline of each part, as a closed line, in the order the parts are made */
@@ -111,20 +107,6 @@ export function DivideOnMap({ editor, engine }: MapContentProps) {
     [shown, editor, engine],
   )
 
-  const panel = useRef<HTMLDivElement>(null)
-  useEffect(
-    function keepPanelEvents() {
-      const element = panel.current
-      if (!shown || !element) return
-      const keep = (event: Event) => event.stopPropagation()
-      for (const type of KEPT_FROM_MAP) element.addEventListener(type, keep)
-      return () => {
-        for (const type of KEPT_FROM_MAP) element.removeEventListener(type, keep)
-      }
-    },
-    [shown],
-  )
-
   if (!shown || wayId === undefined || !engine) return null
   const division = { columns, rows }
   const corners = cornersOfWay(graph, wayId)
@@ -143,7 +125,7 @@ export function DivideOnMap({ editor, engine }: MapContentProps) {
         </>
       )}
       <div
-        ref={panel}
+        ref={keepFromMap}
         data-divide-panel
         className="pointer-events-auto absolute top-3 left-1/2 z-30 w-72 -translate-x-1/2 rounded-xl bg-white p-3 text-sm text-zinc-800 shadow-lg ring-1 ring-zinc-950/10 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-white/10"
       >

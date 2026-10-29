@@ -9,6 +9,8 @@ import {
 } from 'react'
 import { ROW_BASE, ROW_CURRENT, ROW_FOCUS } from './inspector/listbox.ts'
 import { UI_SPRING } from './motion.tsx'
+import type { TooltipHint } from './tooltip-group.ts'
+import { Tooltip } from './Tooltip.tsx'
 
 /** One entry of a context menu */
 export type MenuItem = {
@@ -20,6 +22,8 @@ export type MenuItem = {
   shortcut?: string
   /** Why it cannot be chosen now; then it is greyed out and says so in its tooltip */
   reason?: string
+  /** Modifier keys and what they do: the row's tooltip when it can be chosen, one line each */
+  hints?: readonly TooltipHint[]
   run: () => void
   /** Called with true while the pointer or the focus is on the item, to show what it would do */
   preview?: (on: boolean) => void
@@ -162,6 +166,38 @@ export function ContextMenu(props: {
     >
       {items.map((item, i) => {
         const previous = items[i - 1]
+        const row = (
+          <button
+            type="button"
+            role="menuitem"
+            aria-current={item.current ? 'true' : undefined}
+            disabled={item.reason !== undefined}
+            title={item.reason}
+            onClick={() => {
+              if (!item.keepOpen) onClose()
+              item.run()
+            }}
+            onPointerEnter={() => item.preview?.(true)}
+            onPointerLeave={() => item.preview?.(false)}
+            onFocus={() => item.preview?.(true)}
+            onBlur={() => item.preview?.(false)}
+            className={`flex h-7 w-full cursor-pointer items-center gap-2 px-2 text-left disabled:cursor-default disabled:text-zinc-400 dark:disabled:text-zinc-500 ${ROW_BASE} ${ROW_FOCUS} ${
+              item.current
+                ? ROW_CURRENT
+                : 'enabled:hover:bg-zinc-950/5 dark:enabled:hover:bg-white/10'
+            }`}
+          >
+            <span className="flex size-5 shrink-0 items-center justify-center">{item.icon}</span>
+            <span className={`min-w-0 flex-1 truncate ${item.current ? 'font-semibold' : ''}`}>
+              {item.label}
+            </span>
+            {item.shortcut && (
+              <kbd className="shrink-0 font-sans text-xs text-zinc-500 dark:text-zinc-400">
+                {item.shortcut}
+              </kbd>
+            )}
+          </button>
+        )
         return (
           <Fragment key={item.id}>
             {item.section && item.section !== previous?.section && (
@@ -175,36 +211,14 @@ export function ContextMenu(props: {
             {!item.section && previous?.section && (
               <div role="separator" className="my-1 h-px bg-zinc-950/10 dark:bg-white/10" />
             )}
-            <button
-              type="button"
-              role="menuitem"
-              aria-current={item.current ? 'true' : undefined}
-              disabled={item.reason !== undefined}
-              title={item.reason}
-              onClick={() => {
-                if (!item.keepOpen) onClose()
-                item.run()
-              }}
-              onPointerEnter={() => item.preview?.(true)}
-              onPointerLeave={() => item.preview?.(false)}
-              onFocus={() => item.preview?.(true)}
-              onBlur={() => item.preview?.(false)}
-              className={`flex h-7 w-full cursor-pointer items-center gap-2 px-2 text-left disabled:cursor-default disabled:text-zinc-400 dark:disabled:text-zinc-500 ${ROW_BASE} ${ROW_FOCUS} ${
-                item.current
-                  ? ROW_CURRENT
-                  : 'enabled:hover:bg-zinc-950/5 dark:enabled:hover:bg-white/10'
-              }`}
-            >
-              <span className="flex size-5 shrink-0 items-center justify-center">{item.icon}</span>
-              <span className={`min-w-0 flex-1 truncate ${item.current ? 'font-semibold' : ''}`}>
-                {item.label}
-              </span>
-              {item.shortcut && (
-                <kbd className="shrink-0 font-sans text-xs text-zinc-500 dark:text-zinc-400">
-                  {item.shortcut}
-                </kbd>
-              )}
-            </button>
+            {item.hints && item.hints.length > 0 && item.reason === undefined ? (
+              // the keys the command's mode reads, in the tooltip the command bar shows for it
+              <Tooltip label={item.label} hints={item.hints} placement="right">
+                {row}
+              </Tooltip>
+            ) : (
+              row
+            )}
           </Fragment>
         )
       })}

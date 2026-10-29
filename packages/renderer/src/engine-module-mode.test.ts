@@ -139,6 +139,29 @@ describe('the engine sends the pointer to a module mode', () => {
     expect(engine.data.way('w10')?.tags.highway).toBe('residential')
   })
 
+  test('undo and redo end a mode that keeps its work outside the history, and step through nothing', () => {
+    const { engine } = engineWithData()
+    engine.setTag('w10', 'highway', 'service')
+    const exits: string[] = []
+    engine.enterModuleMode({ id: 'test', endsOnUndo: true, onExit: () => exits.push('undo') })
+    engine.undo()
+    expect(engine.moduleMode).toBeUndefined()
+    expect(engine.data.way('w10')?.tags.highway).toBe('service')
+    engine.undo()
+    expect(engine.data.way('w10')?.tags.highway).toBe('residential')
+    engine.enterModuleMode({ id: 'test', endsOnUndo: true, onExit: () => exits.push('redo') })
+    engine.redo()
+    expect(engine.data.way('w10')?.tags.highway).toBe('residential')
+    expect(exits).toEqual(['undo', 'redo'])
+  })
+
+  test('undo ends such a mode also when there is nothing to undo', () => {
+    const { engine } = engineWithData()
+    engine.enterModuleMode({ id: 'test', endsOnUndo: true })
+    engine.undo()
+    expect(engine.moduleMode).toBeUndefined()
+  })
+
   test('a second mode replaces the first, which exits', () => {
     const { engine } = engineWithData()
     const exits: string[] = []

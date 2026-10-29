@@ -37,6 +37,9 @@ export type OperationResult = {
   select?: (after: Graph) => string[]
 }
 
+/** A modifier key of an operation and what it does, for its tooltip (see `Operation.hints`) */
+export type OperationHint = { keys: string; text: string }
+
 /** The groups of the command bar, in their order there (see `Operation.group`) */
 export const OPERATION_GROUPS = ['position', 'shape', 'structure', 'remove'] as const
 export type OperationGroup = (typeof OPERATION_GROUPS)[number]
@@ -56,6 +59,12 @@ export type Operation = {
   icon?: string
   /** iD's key for it, a single lower-case letter */
   shortcut?: string
+  /**
+   * The modifier keys the operation's mode reads, shown in its tooltip under the label: each a key or keys in the neutral
+   * form of the shortcut labels (`Shift`, `Alt`, `Shift+Alt`) and what it does. Asked when the tooltip is made, so the
+   * texts follow the page's language.
+   */
+  hints?(): OperationHint[]
   /**
    * Its group in the command bar, which keeps a group's buttons together and puts space between groups: `position`
    * (move, rotate, copy), `shape` (square, circularize, straighten, reflect), `structure` (split, merge, disconnect,

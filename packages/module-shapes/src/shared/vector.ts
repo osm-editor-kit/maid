@@ -9,6 +9,11 @@ export interface Pt {
   y: number
 }
 
+/** The sum: a moved by b */
+export function add(a: Pt, b: Pt): Pt {
+  return { x: a.x + b.x, y: a.y + b.y }
+}
+
 /** The vector from b to a: a minus b */
 export function sub(a: Pt, b: Pt): Pt {
   return { x: a.x - b.x, y: a.y - b.y }

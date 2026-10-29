@@ -28,7 +28,7 @@ import {
 } from 'react'
 import { twJoin } from 'tailwind-merge'
 import { UI_SPRING } from './motion.tsx'
-import { formatShortcut, isApplePlatform } from './shortcut-label.ts'
+import { formatModifiers, formatShortcut, isApplePlatform } from './shortcut-label.ts'
 import {
   INITIAL_TIP,
   reduceTip,
@@ -36,6 +36,7 @@ import {
   type TipContent,
   type TipEvent,
   type TipPlacement,
+  type TooltipHint,
 } from './tooltip-group.ts'
 
 type Placement = TipPlacement
@@ -47,6 +48,8 @@ export type TooltipProps = {
   label: string
   shortcut?: string
   description?: string
+  /** Modifier keys and what they do, one row each under the label, each key in a `kbd` */
+  hints?: readonly TooltipHint[]
   placement?: Placement
   /**
    * The control is disabled. A disabled control gets no pointer events in some browsers, so the
@@ -106,24 +109,40 @@ function isDisabled(props: TooltipProps) {
   return props.disabled ?? props.children.props.disabled === true
 }
 
-/** The text of a tooltip: the label, its shortcut in a `kbd` (for the platform), and the description */
-function TooltipText(props: { label: string; shortcut?: string; description?: string }) {
-  const { label, shortcut, description } = props
+/** The look of a key in a tooltip */
+const KBD = twJoin(
+  'rounded px-1 font-sans text-[11px] leading-4 font-medium',
+  'bg-white/15 text-zinc-200 dark:bg-zinc-950/10 dark:text-zinc-700',
+)
+
+/**
+ * The text of a tooltip: the label, its shortcut in a `kbd` (for the platform), the hints (a key and what it does, one
+ * row each) and the description
+ */
+function TooltipText(props: {
+  label: string
+  shortcut?: string
+  description?: string
+  hints?: readonly TooltipHint[]
+}) {
+  const { label, shortcut, description, hints } = props
+  const apple = isApplePlatform()
   return (
     <>
       <div className="flex items-center gap-2">
         <span className="font-medium">{label}</span>
-        {shortcut ? (
-          <kbd
-            className={twJoin(
-              'rounded px-1 font-sans text-[11px] leading-4 font-medium',
-              'bg-white/15 text-zinc-200 dark:bg-zinc-950/10 dark:text-zinc-700',
-            )}
-          >
-            {formatShortcut(shortcut, isApplePlatform())}
-          </kbd>
-        ) : null}
+        {shortcut ? <kbd className={KBD}>{formatShortcut(shortcut, apple)}</kbd> : null}
       </div>
+      {hints && hints.length > 0 ? (
+        <ul className="mt-1 space-y-0.5 text-zinc-300 dark:text-zinc-600">
+          {hints.map((hint) => (
+            <li key={`${hint.keys} ${hint.text}`} className="flex items-center gap-1.5">
+              <kbd className={KBD}>{formatModifiers(hint.keys, apple)}</kbd>
+              <span>{hint.text}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       {description ? (
         <p className="mt-0.5 whitespace-pre-line text-zinc-300 dark:text-zinc-600">{description}</p>
       ) : null}
@@ -132,7 +151,7 @@ function TooltipText(props: { label: string; shortcut?: string; description?: st
 }
 
 function StandaloneTooltip(props: TooltipProps) {
-  const { label, shortcut, description, children } = props
+  const { label, shortcut, description, hints, children } = props
   const preferredPlacement = props.placement ?? 'top'
   const [open, setOpen] = useState(false)
   const reducedMotion = useReducedMotion()
@@ -232,7 +251,12 @@ function StandaloneTooltip(props: TooltipProps) {
               // oxlint-disable-next-line react/refs -- refs.setFloating is floating-ui's callback ref, not a .current value read during render
               {...getFloatingProps({ ref: refs.setFloating, style: floatingStyles })}
             >
-              <TooltipText label={label} shortcut={shortcut} description={description} />
+              <TooltipText
+                label={label}
+                shortcut={shortcut}
+                description={description}
+                hints={hints}
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -276,11 +300,11 @@ function withHandlers(
 }
 
 function GroupedTooltip(props: TooltipProps & { group: GroupApi }) {
-  const { label, shortcut, description, children, group } = props
+  const { label, shortcut, description, hints, children, group } = props
   const placement = props.placement ?? 'top'
   const disabled = isDisabled(props)
   const id = useId()
-  const content: TipContent = { label, shortcut, description, placement }
+  const content: TipContent = { label, shortcut, description, hints, placement }
   const handlers: TipHandlers = {
     // a touch does not hover: a tap is a press, and the tooltip of a press is not shown
     onPointerEnter: (event) => {
@@ -401,6 +425,7 @@ export function TooltipGroup(props: { placement?: Placement; children: ReactNode
                 label={target.content.label}
                 shortcut={target.content.shortcut}
                 description={target.content.description}
+                hints={target.content.hints}
               />
             </motion.div>
           ) : null}

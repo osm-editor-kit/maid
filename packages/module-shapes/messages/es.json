@@ -54,5 +54,19 @@
   "divide_each": "Cada parte",
   "divide_parts": "Partes",
   "divide_size": "{length} × {width} m · {area} m²",
-  "divide_area_range": "{smallest} a {largest} m²"
+  "divide_area_range": "{smallest} a {largest} m²",
+  "resize_label": "Cambiar tamaño",
+  "resize_title": "Cambiar tamaño",
+  "resize_hint": "Arrastra una esquina o un borde. Intro o un clic fuera aplica, Escape cancela.",
+  "resize_hint_proportional": "Mantener proporciones",
+  "resize_hint_centre": "Desde el centro",
+  "resize_size": "{width} × {height} m",
+  "resize_factor": "{width} % × {height} %",
+  "resize_apply": "Aplicar",
+  "resize_cancel": "Cancelar",
+  "resize_annotation_one": "Objeto redimensionado",
+  "resize_annotation": "{count} objetos redimensionados",
+  "resize_refused_incomplete": "No está cargado por completo, así que no se puede cambiar su tamaño.",
+  "resize_refused_too_thin": "Es demasiado estrecho: una línea recta no tiene anchura que estirar.",
+  "resize_refused_too_large": "No se ve lo suficiente. Aleja el mapa para cambiar su tamaño."
 }

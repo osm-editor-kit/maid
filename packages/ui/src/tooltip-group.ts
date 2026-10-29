@@ -16,12 +16,17 @@ export const CLOSE_GRACE_MS = 150
 
 export type TipPlacement = 'top' | 'bottom' | 'left' | 'right'
 
+/** A modifier key and what it does: `keys` in the neutral form of shortcut-label.ts (`Shift`, `Shift+Alt`) */
+export type TooltipHint = { keys: string; text: string }
+
 /** What a tooltip says about one button */
 export type TipContent = {
   label: string
   /** A shortcut in the neutral form that shortcut-label.ts reads, e.g. `Mod+F` */
   shortcut?: string
   description?: string
+  /** Modifier keys and what they do, one row each under the label (see `TooltipHint`) */
+  hints?: readonly TooltipHint[]
   placement: TipPlacement
 }
 

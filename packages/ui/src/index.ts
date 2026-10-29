@@ -125,7 +125,8 @@ export {
   type TimeValue,
 } from './time.ts'
 export { Tooltip, TooltipGroup } from './Tooltip.tsx'
-export { formatShortcut } from './shortcut-label.ts'
+export { formatModifiers, formatShortcut, isApplePlatform } from './shortcut-label.ts'
+export type { TooltipHint } from './tooltip-group.ts'
 export { errorText, notify, Toaster, type NotifyOptions } from './Toast.tsx'
 export { useResizable } from './useResizable.ts'
 export { useBreakpoint, type Breakpoint } from './useBreakpoint.ts'

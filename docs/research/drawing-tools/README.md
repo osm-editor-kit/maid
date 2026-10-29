@@ -10,6 +10,8 @@ Five tools for drawing buildings and parking spaces faster, built as modules for
 | [3-merge-areas.md](3-merge-areas.md) | Two touching or overlapping areas become one outline (an L-shaped building from two rectangles) | Right-click menu, Merge (`C`) |
 | [4-cut-areas.md](4-cut-areas.md) | Draw a line across an area to cut it in two | Right-click menu, then draw the line |
 | [5-grid-and-rows.md](5-grid-and-rows.md) | Divide a four-corner area into rows × columns: parking spaces, terraced houses | Right-click menu, then rows and columns |
+| [6-merge-to-multipolygon.md](6-merge-to-multipolygon.md) | An outer and an inner area merged into a multipolygon | Merge (`C`) |
+| [7-resize.md](7-resize.md) | A box with handles around the selection: stretch, keep proportions, from the centre (2026-10-24) | Edit menu and command bar, proposed key `K` |
 
 ## What the research found
 

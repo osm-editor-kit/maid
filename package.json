@@ -30,6 +30,7 @@
     "check-cut": "bun tools/bench/cut-check.ts",
     "check-display": "bun tools/bench/display-check.ts",
     "check-divide": "bun tools/bench/divide-check.ts",
+    "check-resize": "bun tools/bench/resize-check.ts",
     "check-draw": "bun tools/bench/draw-check.ts",
     "check-edit": "bun tools/bench/edit-check.ts",
     "check-favourites": "bun tools/bench/favourites-check.ts",

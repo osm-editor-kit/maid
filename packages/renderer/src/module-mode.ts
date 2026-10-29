@@ -29,6 +29,9 @@ export type ModuleModeInfo = {
   modifiers: Modifiers
 }
 
+/** What a mode's drag callbacks are told besides the place: the modifier keys now */
+export type ModuleModeDragInfo = { modifiers: Modifiers }
+
 /**
  * A mode of a module. Its callbacks get longitude and latitude. Set `id` to something unique to the module: a mode
  * that replaces this one ends it, and `exitModuleMode(id)` ends only this one.
@@ -58,9 +61,18 @@ export type ModuleMode = {
    * took the key, and the editor does not see it (a drawing finishes on Enter, for one).
    */
   onKey?: (key: ModuleModeKey) => boolean
-  onDragStart?: (handle: string, lon: number, lat: number) => void
-  onDrag?: (handle: string, lon: number, lat: number) => void
-  onDragEnd?: (handle: string, lon: number, lat: number) => void
+  /**
+   * A handle drag. `info` holds the modifier keys now; a key pressed or let go during a drag calls `onDrag` again at the
+   * pointer (`engine.setModifiers`), so the result follows the key without a move (the resize box's Shift and Alt).
+   */
+  onDragStart?: (handle: string, lon: number, lat: number, info: ModuleModeDragInfo) => void
+  onDrag?: (handle: string, lon: number, lat: number, info: ModuleModeDragInfo) => void
+  onDragEnd?: (handle: string, lon: number, lat: number, info: ModuleModeDragInfo) => void
+  /**
+   * Undo and redo only end the mode, and step through nothing: for a mode whose work is not in the history yet (the
+   * resize box shows its result and commits it at the end), so the key takes back that work and not the edit before.
+   */
+  endsOnUndo?: boolean
   /** The mode ends: Escape, a mode the editor changes to, `exitModuleMode`, or another module mode taking its place */
   onExit?: () => void
 }
@@ -153,7 +165,7 @@ export class ModuleModeSession {
     const handle = layers.length > 0 ? this.host.handleAt(point, layers) : undefined
     if (handle === undefined) return false
     this.dragging = handle
-    mode.onDragStart?.(handle, lon, lat)
+    mode.onDragStart?.(handle, lon, lat, this.dragInfo())
     return true
   }
 
@@ -161,7 +173,7 @@ export class ModuleModeSession {
   move(point: ScreenPoint, lon: number, lat: number) {
     const mode = this.current
     if (!mode) return
-    if (this.dragging !== undefined) mode.onDrag?.(this.dragging, lon, lat)
+    if (this.dragging !== undefined) mode.onDrag?.(this.dragging, lon, lat, this.dragInfo())
     else mode.onMove?.(lon, lat, this.infoAt(mode, point))
   }
 
@@ -172,7 +184,7 @@ export class ModuleModeSession {
     const handle = this.dragging
     this.dragging = undefined
     this.lastDragEnd = this.host.now()
-    mode.onDragEnd?.(handle, lon, lat)
+    mode.onDragEnd?.(handle, lon, lat, this.dragInfo())
   }
 
   /** A click on the map. Ignored right after a handle drag: MapLibre reports the end of a drag as a click */
@@ -203,6 +215,11 @@ export class ModuleModeSession {
       },
       modifiers: { ...host.modifiers() },
     }
+  }
+
+  /** What a drag callback is told: a copy of the modifier keys now */
+  private dragInfo(): ModuleModeDragInfo {
+    return { modifiers: { ...this.host.modifiers() } }
   }
 
   /** Drops the state (and any drag) and returns the mode that was under way */

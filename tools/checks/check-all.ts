@@ -40,6 +40,7 @@ const CHECKS = [
   'merge',
   'cut',
   'divide',
+  'resize',
   'display',
   'touch',
   'menu',
@@ -61,6 +62,7 @@ const MODULE_CHECKS = new Set<CheckName>([
   'merge',
   'cut',
   'divide',
+  'resize',
   'touch',
   'levels',
   'osmchange',
@@ -89,6 +91,7 @@ const RUNS: Run[] = [
   { name: 'merge', check: 'merge', only: 'parking' },
   { name: 'cut', check: 'cut', only: 'parking' },
   { name: 'divide', check: 'divide', only: 'parking' },
+  { name: 'resize', check: 'resize', only: 'parking' },
   // long press on a touch screen: the Area dropdown, the edit menu, Shift while drawing (it needs the rectangle tool)
   { name: 'touch', check: 'touch', only: 'parking' },
   // the level mode of module-levels, on in the maid and the bicycle app, on the indoor scene (Berlin Hauptbahnhof)
@@ -127,6 +130,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   merge: { maid: 0, bicycle: 0, parking: 31 },
   cut: { maid: 0, bicycle: 0, parking: 25 },
   divide: { maid: 0, bicycle: 0, parking: 23 },
+  resize: { maid: 0, bicycle: 0, parking: 32 },
   display: { maid: 12, bicycle: 12, parking: 12 },
   touch: { maid: 0, bicycle: 0, parking: 14 },
   levels: { maid: 34, bicycle: 34, parking: 0 },

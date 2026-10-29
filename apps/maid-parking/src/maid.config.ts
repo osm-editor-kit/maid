@@ -16,6 +16,7 @@ import {
   angleSnap,
   cutArea,
   divideArea,
+  resize,
   mergeAreas,
   rectangle,
 } from '@osm-editor-kit/maid-module-shapes'
@@ -93,8 +94,10 @@ function editorConfig(config: Config) {
     mergeAreas(),
     // cuts an area along a drawn line,
     cutArea(),
-    // and divides one into rows and columns of parking spaces
+    // divides one into rows and columns of parking spaces,
     divideArea(),
+    // and resizes the selection with a box and handles (K; Shift keeps the proportions, Alt the centre)
+    resize(),
     // top bar and dock "Notes": OSM notes from the same API as the data, read-only, shown from zoom 12 as in iD
     notes({ apiUrl: config.apiUrl }),
   ]

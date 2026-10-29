@@ -1,7 +1,7 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { m } from '@osm-editor-kit/maid-i18n'
 import { OPERATION_GROUPS, visibleOperations } from '@osm-editor-kit/maid-operations'
-import type { Operation, OperationGroup } from '@osm-editor-kit/maid-operations'
+import type { Operation, OperationGroup, OperationHint } from '@osm-editor-kit/maid-operations'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import type { ReactNode } from 'react'
 import { pasteAt } from './clipboard'
@@ -21,6 +21,8 @@ export type Command = {
   shortcut?: string
   /** What it does, when that is not its label: shown in its tooltip (not when `reason` is set) */
   description?: string
+  /** The modifier keys its mode reads and what they do, under the label in its tooltip (`Operation.hints`) */
+  hints?: OperationHint[]
   /** Why it cannot run now; then it is shown greyed out */
   reason?: string
   /** Its group in the command bar: one joined segment per run of one group (see `CommandBar`) */
@@ -149,6 +151,7 @@ export function useEditCommands() {
       // delete has a key with a modifier, which an operation's one-letter shortcut cannot say
       shortcut: operation.id === 'delete' ? modKey('⌫') : operation.shortcut?.toUpperCase(),
       group: operation.group ?? DEFAULT_GROUP,
+      hints: operation.hints?.(),
       reason: protectedReason ?? operation.disabled(context),
       run: () => {
         engine.previewOperation(null)

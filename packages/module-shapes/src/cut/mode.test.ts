@@ -10,6 +10,9 @@ import { HANDLE_HIT_LAYERS } from './line.ts'
 import { applyCut, MODE_ID, startCut } from './mode.ts'
 import { at, graphOf, square } from './test-graph.ts'
 
+/** What the engine tells a drag: no modifier keys */
+const DRAG = { modifiers: { shift: false, alt: false, ctrl: false, meta: false } }
+
 /** The pointer at a place on the screen: what the engine passes to a mode's callbacks, without a snap */
 const info: ModuleModeInfo = {
   point: { x: 0, y: 0 },
@@ -89,10 +92,10 @@ function click(mode: ModuleMode, x: number, y: number) {
 /** A press on a handle, a drag to (x, y) and back to that place: what the engine sends for a drag */
 function drag(mode: ModuleMode, name: string, from: [number, number], to: [number, number]) {
   const [fLon, fLat] = loc(...from)
-  mode.onDragStart?.(name, fLon, fLat)
+  mode.onDragStart?.(name, fLon, fLat, DRAG)
   const [lon, lat] = loc(...to)
-  mode.onDrag?.(name, lon, lat)
-  mode.onDragEnd?.(name, lon, lat)
+  mode.onDrag?.(name, lon, lat, DRAG)
+  mode.onDragEnd?.(name, lon, lat, DRAG)
 }
 
 // each test starts with no cut under way
@@ -177,13 +180,13 @@ describe('cut mode: a press on a midpoint adds a point there', () => {
   it('a midpoint press inserts a point at the midpoint, and the drag moves that point', () => {
     const { mode } = begin()
     const [lon, lat] = loc(5, 5)
-    mode.onDragStart?.('midpoint:0', lon, lat)
+    mode.onDragStart?.('midpoint:0', lon, lat, DRAG)
     // a third point, where the midpoint was: it is the one dragged
     expect(cutSnapshot().points).toHaveLength(3)
     expectSamePlace(cutSnapshot().points![1], loc(5, 5))
     const [to, toLat] = loc(6, 5)
-    mode.onDrag?.('midpoint:0', to, toLat)
-    mode.onDragEnd?.('midpoint:0', to, toLat)
+    mode.onDrag?.('midpoint:0', to, toLat, DRAG)
+    mode.onDragEnd?.('midpoint:0', to, toLat, DRAG)
     const points = cutSnapshot().points!
     expect(points).toHaveLength(3)
     expectSamePlace(points[0], loc(5, -3))
