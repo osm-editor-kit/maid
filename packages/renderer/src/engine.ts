@@ -1767,7 +1767,12 @@ export class MaidEngine {
   }
 
   private refreshShape() {
-    const shape = selectionShape(this.data, this.selectedIds)
+    // a selected vertex of the data's vertex source has its shadow there; the others get it with the shape
+    const shape = selectionShape(
+      this.data,
+      this.selectedIds,
+      (id) => this.featureSource.get(id) === 'vertices',
+    )
     this.shapeNodes = shape.nodes
     this.shapeFeatures = shape.features
     // a preview was for the selection and the data as they were

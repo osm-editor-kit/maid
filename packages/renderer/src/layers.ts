@@ -784,6 +784,20 @@ function buildMainLayers(options: LayerOptions) {
     },
   })
 
+  // A selected node that is only a shape point (an untagged corner of a building): iD's selection shadow under it, as
+  // highlight-halo-vertex draws it for the vertices of the data (same radius, without icon). The shape marks it `halo`.
+  layers.push({
+    id: 'highlight-halo-shape',
+    type: 'circle',
+    source: SOURCES.highlight,
+    filter: ['all', ['==', ['get', 'state'], 'shape'], ['has', 'halo']],
+    paint: {
+      'circle-radius': ['step', ['zoom'], 6, 16, 8],
+      'circle-color': HOVER,
+      'circle-opacity': 0.7,
+    },
+  })
+
   // the shape points of a selected way: iD shows all vertices of the selection. Under the data's vertices, so a
   // selected vertex keeps its icon on top (a crossing's sign); where the data's vertices are not drawn yet (low
   // zoom) these are the only ones

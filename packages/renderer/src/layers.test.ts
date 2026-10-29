@@ -306,6 +306,22 @@ describe('the shadows of the hovered and selected pins and plaques (as iD)', () 
   })
 })
 
+describe('the shadow of a selected node that is only a shape point (a corner of a house)', () => {
+  test('is drawn from the highlight source for the marked shape points, under the shape points', () => {
+    const layers = buildLayers(options)
+    const ids = layers.map((l) => l.id)
+    const halo = layers.find((l) => l.id === 'highlight-halo-shape') as unknown as {
+      source: string
+      filter: unknown
+      paint: Record<string, unknown>
+    }
+    expect(halo.source).toBe(SOURCES.highlight)
+    expect(halo.filter).toEqual(['all', ['==', ['get', 'state'], 'shape'], ['has', 'halo']])
+    expect(halo.paint['circle-opacity']).toBe(0.7)
+    expect(ids.indexOf('highlight-halo-shape')).toBeLessThan(ids.indexOf('highlight-vertex'))
+  })
+})
+
 describe('activePinIds', () => {
   test('the hovered node and the selected nodes, each once', () => {
     expect(activePinIds('n1', ['n2', 'n1'])).toEqual(['n1', 'n2'])
