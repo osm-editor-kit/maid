@@ -130,9 +130,36 @@
   "quick_annotation_clear_right": "Indications de stationnement du côté droit effacées",
   "quick_annotation_remove": "Stationnement retiré : {label}",
   "quick_annotation_set": "Stationnement défini : {label}",
-  "quick_cell_label": "{heading}, {side} : {value}. Clic : {next}",
-  "quick_cell_mixed": "{heading}, {side} : différent sur les objets sélectionnés. Clic : {next}",
-  "quick_cell_unset": "{heading}, {side} : non défini. Clic : {next}",
+  "quick_cell_label": [
+    {
+      "declarations": ["input input", "input heading", "input next", "input side", "input value"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "{heading}, {side} : {value}. Toucher : {next}",
+        "input=*": "{heading}, {side} : {value}. Clic : {next}"
+      }
+    }
+  ],
+  "quick_cell_mixed": [
+    {
+      "declarations": ["input input", "input heading", "input next", "input side"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "{heading}, {side} : différent sur les objets sélectionnés. Toucher : {next}",
+        "input=*": "{heading}, {side} : différent sur les objets sélectionnés. Clic : {next}"
+      }
+    }
+  ],
+  "quick_cell_unset": [
+    {
+      "declarations": ["input input", "input heading", "input next", "input side"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "{heading}, {side} : non défini. Toucher : {next}",
+        "input=*": "{heading}, {side} : non défini. Clic : {next}"
+      }
+    }
+  ],
   "quick_clear_both": "Effacer toutes les indications de stationnement des deux côtés",
   "quick_clear_left": "Effacer toutes les indications de stationnement du côté gauche",
   "quick_clear_right": "Effacer toutes les indications de stationnement du côté droit",

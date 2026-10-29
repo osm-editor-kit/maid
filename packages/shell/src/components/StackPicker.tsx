@@ -1,4 +1,5 @@
 import { Square2StackIcon } from '@heroicons/react/16/solid'
+import { device } from '@osm-editor-kit/maid-i18n'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { ContextMenu, Tooltip } from '@osm-editor-kit/maid-ui'
 import { useEffect, useState } from 'react'
@@ -128,7 +129,11 @@ export function StackPicker() {
       <Tooltip
         label="Features at this place"
         shortcut=", ."
-        description="Click to list them. , takes the previous one and . the next one."
+        description={
+          device().input === 'touch'
+            ? 'Tap to list them.'
+            : 'Click to list them. , takes the previous one and . the next one.'
+        }
       >
         <button
           type="button"

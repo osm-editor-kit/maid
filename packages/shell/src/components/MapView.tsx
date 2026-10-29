@@ -1,5 +1,5 @@
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { mapLibreLocale } from '@osm-editor-kit/maid-i18n'
+import { device, mapLibreLocale } from '@osm-editor-kit/maid-i18n'
 import { NOTES_LAYER_IDS } from '@osm-editor-kit/maid-module-notes'
 import { streetImageryClick } from '@osm-editor-kit/maid-module-street-imagery'
 import {
@@ -767,7 +767,9 @@ export function MapView() {
           role="status"
           className="pointer-events-none absolute top-3 left-1/2 z-30 -translate-x-1/2 rounded-full bg-white px-3 py-1 text-xs font-medium text-zinc-800 shadow ring-1 ring-zinc-950/10 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-white/10"
         >
-          Click two points to measure. Escape cancels.
+          {device().input === 'touch'
+            ? 'Tap two points to measure.'
+            : 'Click two points to measure. Escape cancels.'}
         </div>
       )}
       {measuring && engine.map && (blankLoupe || background) && (

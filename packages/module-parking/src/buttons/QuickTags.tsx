@@ -1,4 +1,5 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
+import { device } from '@osm-editor-kit/maid-i18n'
 import { actionChangeTags } from '@osm-editor-kit/maid-model'
 import {
   notify,
@@ -93,10 +94,17 @@ function cycleName(row: QuickTagRow, side: Side, cell: readonly QuickTag[], stat
   const nextName = next === undefined ? m.quick_next_remove() : (cell[next]?.name ?? '')
   const heading = row.label
   const sideName = sideNameOf(side)
-  if (state.mixed) return m.quick_cell_mixed({ heading, side: sideName, next: nextName })
+  if (state.mixed)
+    return m.quick_cell_mixed({ heading, side: sideName, next: nextName, ...device() })
   const value = state.current === undefined ? undefined : cell[state.current]
-  if (!value) return m.quick_cell_unset({ heading, side: sideName, next: nextName })
-  return m.quick_cell_label({ heading, side: sideName, value: value.name, next: nextName })
+  if (!value) return m.quick_cell_unset({ heading, side: sideName, next: nextName, ...device() })
+  return m.quick_cell_label({
+    heading,
+    side: sideName,
+    value: value.name,
+    next: nextName,
+    ...device(),
+  })
 }
 
 /** A trash can for the clearing cells, drawn here: the sprites have no bin in this style */

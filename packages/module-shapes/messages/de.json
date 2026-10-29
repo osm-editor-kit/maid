@@ -7,7 +7,16 @@
   "divide_rows": "Reihen",
   "divide_count": "{count} Teile",
   "divide_count_one": "1 Teil",
-  "divide_hint": "+ und - ändern die Spalten, mit Shift die Reihen. Enter übernimmt, Escape bricht ab.",
+  "divide_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Ändere die Spalten und Reihen in den Feldern. Tippe auf „Übernehmen“, um die Fläche zu teilen, oder auf „Abbrechen“.",
+        "input=*": "+ und - ändern die Spalten, mit Shift die Reihen. Enter übernimmt, Escape bricht ab."
+      }
+    }
+  ],
   "divide_apply": "Übernehmen",
   "divide_cancel": "Abbrechen",
   "divide_annotation": "Fläche in {count} Teile geteilt",
@@ -34,7 +43,16 @@
   "cut_label": "Zerschneiden",
   "cut_annotation": "Fläche in zwei geschnitten",
   "cut_title": "Fläche zerschneiden",
-  "cut_hint": "Ziehe einen Punkt oder einen Mittelpunkt, oder klicke, um das nächste Ende zu versetzen. Enter schneidet, Escape bricht ab.",
+  "cut_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Ziehe einen Punkt oder einen Mittelpunkt, oder tippe, um das nächste Ende zu versetzen. Tippe auf „Übernehmen“, um zu schneiden.",
+        "input=*": "Ziehe einen Punkt oder einen Mittelpunkt, oder klicke, um das nächste Ende zu versetzen. Enter schneidet, Escape bricht ab."
+      }
+    }
+  ],
   "cut_apply": "Übernehmen",
   "cut_no_outline": "Dieses Multipolygon hat keine Außenlinie zum Schneiden.",
   "cut_refusal_not_area": "Nur ein geschlossener Weg, der eine Fläche ist, kann geschnitten werden.",

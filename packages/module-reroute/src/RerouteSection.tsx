@@ -2,6 +2,7 @@
 // with the steps, the report of what the plan changes, the direction questions, the occurrence choice, and Apply and
 // Cancel. Apply goes through the port, which plans again on the data as it is then. The plan and the port give codes;
 // the words are the module's texts, chosen here.
+import { device } from '@osm-editor-kit/maid-i18n'
 import type { InspectorSectionProps } from '@osm-editor-kit/maid-ui'
 import { useState } from 'react'
 import type { RerouteApply, RerouteRefusal } from './apply-port.ts'
@@ -94,12 +95,12 @@ function metres(value: number): string {
 
 /** What the panel says now: the next step, or the problem with the route between the points */
 function stepText(preview: RoutePreview): string {
-  if (!preview.start) return m.reroute_step_start()
-  if (!preview.end) return m.reroute_step_end()
+  if (!preview.start) return m.reroute_step_start({ ...device() })
+  if (!preview.end) return m.reroute_step_end({ ...device() })
   if (preview.route && !preview.route.ok) return routeReasonText(preview.route.reason)
-  if (!preview.stretch) return m.reroute_no_member()
+  if (!preview.stretch) return m.reroute_no_member({ ...device() })
   if (preview.plan && !preview.plan.ok) return refusalText(preview.plan.reason)
-  return m.reroute_step_done()
+  return m.reroute_step_done({ ...device() })
 }
 
 /** The word for one of the roles the plan offers */

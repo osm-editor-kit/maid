@@ -76,7 +76,16 @@
   "osmchange_show_label": "Show {name} on the map",
   "osmchange_changeset_comment": "Changes from {from}, merged with the current map in Maid",
   "osmchange_intro_clear": "Changes without conflicts are in the editor already, as one undo step.",
-  "osmchange_intro_decide": "A decision takes effect as soon as you click it.",
+  "osmchange_intro_decide": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "A decision takes effect as soon as you tap it.",
+        "input=*": "A decision takes effect as soon as you click it."
+      }
+    }
+  ],
   "osmchange_intro_undo": "Undo takes changes back; Save uploads them as usual.",
   "osmchange_note_already_created": "Already on the server as {id}: not created again",
   "osmchange_conflict_duplicate": "Possibly already mapped since: {list}",

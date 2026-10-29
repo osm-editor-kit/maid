@@ -76,7 +76,16 @@
   "osmchange_show_label": "Afficher {name} sur la carte",
   "osmchange_changeset_comment": "Modifications de {from}, fusionnées avec la carte actuelle dans Maid",
   "osmchange_intro_clear": "Les modifications sans conflit sont déjà dans l'éditeur, en une étape d'annulation.",
-  "osmchange_intro_decide": "Une décision s'applique dès que vous cliquez.",
+  "osmchange_intro_decide": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Une décision s'applique dès que vous la touchez.",
+        "input=*": "Une décision s'applique dès que vous cliquez."
+      }
+    }
+  ],
   "osmchange_intro_undo": "Annuler retire les modifications ; Enregistrer les envoie comme d'habitude.",
   "osmchange_note_already_created": "Déjà sur le serveur sous {id} : pas créé à nouveau",
   "osmchange_conflict_duplicate": "Peut-être déjà cartographié depuis : {list}",

@@ -3,10 +3,46 @@
   "reroute_title": "Recalcular",
   "reroute_start": "Recalcular un tramo",
   "reroute_hint": "Elige el inicio y el final. La ruta sigue las calles y caminos entre ellos en el mapa cargado.",
-  "reroute_step_start": "Haz clic en el inicio del tramo en el mapa.",
-  "reroute_step_end": "Haz clic en el final del tramo. Arrastra un punto para moverlo.",
-  "reroute_step_done": "Arrastra un punto para moverlo. Un clic nuevo vuelve a poner el final.",
-  "reroute_no_member": "Ningún tramo de esta ruta está cerca de un punto. Haz clic más cerca de la ruta.",
+  "reroute_step_start": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Toca el inicio del tramo en el mapa.",
+        "input=*": "Haz clic en el inicio del tramo en el mapa."
+      }
+    }
+  ],
+  "reroute_step_end": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Toca el final del tramo. Arrastra un punto para moverlo.",
+        "input=*": "Haz clic en el final del tramo. Arrastra un punto para moverlo."
+      }
+    }
+  ],
+  "reroute_step_done": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Arrastra un punto para moverlo. Un toque nuevo vuelve a poner el final.",
+        "input=*": "Arrastra un punto para moverlo. Un clic nuevo vuelve a poner el final."
+      }
+    }
+  ],
+  "reroute_no_member": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Ningún tramo de esta ruta está cerca de un punto. Toca más cerca de la ruta.",
+        "input=*": "Ningún tramo de esta ruta está cerca de un punto. Haz clic más cerca de la ruta."
+      }
+    }
+  ],
   "reroute_length": "Longitud: {before} m ahora, {after} m después",
   "reroute_added": "Vías añadidas: {count}",
   "reroute_removed": "Vías quitadas: {count}",

@@ -72,5 +72,14 @@
   "way_table_read_only_short": "Read-only",
   "way_table_stored_as": "Stored as {key} on this way",
   "way_table_too_long": "Too long: 255 characters at most",
-  "way_table_edit_hint": "Click a value to change it. Enter saves, Escape cancels, Delete removes the key."
+  "way_table_edit_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tap a value to change it. Leaving the field saves it.",
+        "input=*": "Click a value to change it. Enter saves, Escape cancels, Delete removes the key."
+      }
+    }
+  ]
 }

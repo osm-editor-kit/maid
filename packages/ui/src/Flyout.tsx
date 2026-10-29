@@ -26,6 +26,7 @@ import {
   type ReactNode,
 } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { autoFocusFields } from './auto-focus.ts'
 import { UI_SPRING } from './motion.tsx'
 import { TooltipGroupContext } from './Tooltip.tsx'
 
@@ -70,7 +71,10 @@ export function Flyout(props: {
   onOpenChange?: (open: boolean) => void
   /** Classes for the panel, mainly its width (`w-96`, `w-[44rem]`) */
   className?: string
-  /** Moves the keyboard focus into the panel when it opens. Off for panels that focus a field themselves. */
+  /**
+   * Moves the keyboard focus into the panel when it opens: to its first field or button with a keyboard, to the
+   * panel itself on a touch device (`autoFocusFields`). Off for panels that focus a field themselves.
+   */
   focus?: boolean
   /** Opens on hover as well, see above */
   hover?: boolean
@@ -163,7 +167,11 @@ export function Flyout(props: {
       <FloatingPortal>
         <AnimatePresence>
           {open && (
-            <FloatingFocusManager context={context} modal={false} initialFocus={focus ? 0 : -1}>
+            <FloatingFocusManager
+              context={context}
+              modal={false}
+              initialFocus={focus ? (autoFocusFields() ? 0 : refs.floating) : -1}
+            >
               <motion.div
                 aria-label={label}
                 initial={reducedMotion ? false : hidden}
@@ -175,9 +183,11 @@ export function Flyout(props: {
                 }}
                 transition={reducedMotion ? { duration: 0 } : UI_SPRING}
                 className={twMerge(
-                  'z-40 flex w-96 flex-col rounded-2xl border border-zinc-950/10 bg-white text-sm text-zinc-950 shadow-xl dark:border-white/15 dark:bg-zinc-800 dark:text-white dark:shadow-2xl dark:shadow-black/60',
+                  'z-40 flex w-96 flex-col rounded-2xl border border-zinc-950/10 bg-white text-sm text-zinc-950 shadow-xl outline-none dark:border-white/15 dark:bg-zinc-800 dark:text-white dark:shadow-2xl dark:shadow-black/60',
                   className,
                 )}
+                // focusable itself, for the focus on a touch device; the panel shows no ring
+                tabIndex={-1}
                 {...getFloatingProps({ ref: refs.setFloating, style: floatingStyles })}
               >
                 {/* The panel's own colour and border, so the arrow reads as part of it. Tailwind

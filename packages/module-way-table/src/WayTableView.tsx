@@ -1,4 +1,5 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
+import { device } from '@osm-editor-kit/maid-i18n'
 import type { Graph } from '@osm-editor-kit/maid-model'
 import type { DockViewProps } from '@osm-editor-kit/maid-ui'
 import {
@@ -202,7 +203,9 @@ export function WayTableView(props: WayTableViewProps) {
           />
           {m.way_table_only_differing()}
         </label>
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">{m.way_table_edit_hint()}</span>
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+          {m.way_table_edit_hint({ ...device() })}
+        </span>
         {hasChoices ? (
           <button
             type="button"

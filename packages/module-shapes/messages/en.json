@@ -7,7 +7,16 @@
   "divide_rows": "Rows",
   "divide_count": "{count} parts",
   "divide_count_one": "1 part",
-  "divide_hint": "+ and - change the columns, Shift with them the rows. Enter applies, Escape cancels.",
+  "divide_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Change the columns and rows in the fields. Tap Apply to divide the area, or Cancel to stop.",
+        "input=*": "+ and - change the columns, Shift with them the rows. Enter applies, Escape cancels."
+      }
+    }
+  ],
   "divide_apply": "Apply",
   "divide_cancel": "Cancel",
   "divide_annotation": "Divided an area into {count} parts",
@@ -34,7 +43,16 @@
   "cut_label": "Cut",
   "cut_annotation": "Cut an area in two",
   "cut_title": "Cut area",
-  "cut_hint": "Drag a point or a midpoint, or click to move the nearest end. Enter cuts, Escape cancels.",
+  "cut_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Drag a point or a midpoint, or tap to move the nearest end. Tap Apply to cut.",
+        "input=*": "Drag a point or a midpoint, or click to move the nearest end. Enter cuts, Escape cancels."
+      }
+    }
+  ],
   "cut_apply": "Apply",
   "cut_no_outline": "This multipolygon has no outline to cut.",
   "cut_refusal_not_area": "Only a closed way that is an area can be cut.",

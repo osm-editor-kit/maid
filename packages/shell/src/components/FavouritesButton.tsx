@@ -1,6 +1,6 @@
 import { ChevronDownIcon } from '@heroicons/react/16/solid'
 import { StarIcon } from '@heroicons/react/20/solid'
-import { m } from '@osm-editor-kit/maid-i18n'
+import { device, m } from '@osm-editor-kit/maid-i18n'
 import {
   favouriteModifierLabel,
   FavouritesPanel,
@@ -43,7 +43,7 @@ export function FavouritesButton() {
         <button
           type="button"
           aria-label={label}
-          title={m.favourites_button_hint({ key })}
+          title={m.favourites_button_hint({ key, ...device() })}
           className={toolButtonClass(true, open)}
         >
           <StarIcon aria-hidden="true" className="size-5 text-amber-500 dark:text-amber-400" />
@@ -53,7 +53,9 @@ export function FavouritesButton() {
     >
       <div className="px-4 pt-4 pb-1">
         <h2 className="text-base font-semibold">{label}</h2>
-        <p className="text-zinc-500 dark:text-zinc-400">{m.favourites_intro({ key })}</p>
+        <p className="text-zinc-500 dark:text-zinc-400">
+          {m.favourites_intro({ key, ...device() })}
+        </p>
       </div>
       <FavouritesPanel
         entries={entries}

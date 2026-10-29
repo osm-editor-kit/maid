@@ -40,7 +40,7 @@ export function MapDisplayChoice({ engine }: { engine: MaidEngine }) {
               <span className="flex items-center gap-1.5 font-medium">
                 {choice.name}
                 {choice.key && (
-                  <kbd className="rounded border border-zinc-300 px-1 font-mono text-[10px] font-normal text-zinc-500 dark:border-zinc-600 dark:text-zinc-400">
+                  <kbd className="rounded border border-zinc-300 px-1 font-mono text-[10px] font-normal text-zinc-500 dark:border-zinc-600 dark:text-zinc-400 touch:hidden">
                     {choice.key}
                   </kbd>
                 )}

@@ -45,6 +45,50 @@ label={m.topbar_undo({ change: undoLabel ?? m.topbar_last_change() })}
 
 Keep the English text unchanged in `en.json` so that the browser checks, which run in English, keep working.
 
+## Texts for a device
+
+Some texts name a way of working: "Hold ⌥ and type a number", "Click a feature", "Press Enter". On a phone they are
+wrong. Such a text gets **variants by device** in the message files, so the wording stays with the other texts, in
+every language, and the code only passes the device on. No `if (touch)` around texts in components.
+
+The device (`src/device.ts`) has two selectors, set once before the first render (`packages/shell/src/mount.tsx`):
+
+- `input`: `keyboard` when a mouse, trackpad or pen is connected (`any-pointer: fine`), else `touch`.
+- `os`: `ios`, `android`, `mac`, `windows` or `other`: for the names of keys and gestures and the system's menus.
+
+A message with variants, in each of `en`, `de`, `fr`, `es` (the inlang message format):
+
+```json
+"favourites_intro": [
+  {
+    "declarations": ["input input", "input key"],
+    "selectors": ["input"],
+    "match": {
+      "input=touch": "Tap a favourite to start it.",
+      "input=*": "Hold {key} and type a number to start a favourite."
+    }
+  }
+]
+```
+
+The catch-all (`*`) comes last and is the keyboard text. Choose by `os` too (`"selectors": ["input", "os"]`,
+matches like `"input=touch, os=android"`) only where iOS and Android really differ. Use it with the device spread into
+the values; the type check fails where it is missing:
+
+```ts
+import { device, m } from '@osm-editor-kit/maid-i18n'
+m.favourites_intro({ key, ...device() })
+```
+
+- `bun run i18n-check` fails when a language has other variants than English (`variantMismatch`).
+- `src/device-words.test.ts` fails when the text a touch device gets names a key or the mouse ("click", "press",
+  "⌥", "Taste", "clavier" …). A text that is right as it is goes into its `ALLOWED` list with the reason.
+- `?device=touch`, `?device=ios`, `?device=touch-android` in the address shows a device's texts on another one.
+  Under automation the device is a desktop with a keyboard unless the address names one.
+- Not a text: a key chip hides on touch with the `touch:hidden` class (`touch:` and `keyboard:` variants from
+  `data-input` on `<html>`, `packages/shell/src/styles.css`); a field that focuses itself asks `autoFocusFields()`
+  (maid-ui), which is false on touch, except a search.
+
 ## A module with texts of its own
 
 A module keeps its texts in its own inlang project and gets its own Paraglide output, so the module can be built

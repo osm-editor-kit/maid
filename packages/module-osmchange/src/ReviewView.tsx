@@ -4,6 +4,7 @@ import {
   ViewfinderCircleIcon,
 } from '@heroicons/react/16/solid'
 import type { Editor } from '@osm-editor-kit/maid-core'
+import { device } from '@osm-editor-kit/maid-i18n'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { type DockViewProps, SidebarDisclosure, TagDiff } from '@osm-editor-kit/maid-ui'
 import { type ReactNode, useSyncExternalStore } from 'react'
@@ -440,7 +441,7 @@ export function createReviewView(store: OsmChangeStore, shared: { engine?: MaidE
           )}
           <ul className="w-full list-disc pl-5 text-xs text-zinc-600 dark:text-zinc-300">
             <li>{m.osmchange_intro_clear()}</li>
-            <li>{m.osmchange_intro_decide()}</li>
+            <li>{m.osmchange_intro_decide({ ...device() })}</li>
             <li>{m.osmchange_intro_undo()}</li>
           </ul>
         </div>

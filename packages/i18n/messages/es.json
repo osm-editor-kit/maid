@@ -13,9 +13,36 @@
   "topbar_point": "Punto",
   "topbar_line": "Línea",
   "topbar_area": "Área",
-  "topbar_add_point_hint": "Añadir un punto: haz clic en el mapa para colocarlo",
-  "topbar_draw_line_hint": "Dibujar una línea: haz clic en cada nodo; Intro o un clic en el último nodo la termina",
-  "topbar_draw_area_hint": "Dibujar un área: haz clic en cada nodo; Intro o un clic en el primer nodo la termina",
+  "topbar_add_point_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Añadir un punto: toca el mapa para colocarlo",
+        "input=*": "Añadir un punto: haz clic en el mapa para colocarlo"
+      }
+    }
+  ],
+  "topbar_draw_line_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Dibujar una línea: toca en cada nodo; toca el último nodo para terminarla",
+        "input=*": "Dibujar una línea: haz clic en cada nodo; Intro o un clic en el último nodo la termina"
+      }
+    }
+  ],
+  "topbar_draw_area_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Dibujar un área: toca en cada nodo; toca el primer nodo para terminarla",
+        "input=*": "Dibujar un área: haz clic en cada nodo; Intro o un clic en el primer nodo la termina"
+      }
+    }
+  ],
   "topbar_more_area_tools": "Más herramientas de área",
   "topbar_undo": "Deshacer: {change}",
   "topbar_redo": "Rehacer: {change}",
@@ -41,28 +68,81 @@
   "picker_favourites": "Favoritos",
   "picker_favourites_expand": "Mostrar todos tus favoritos",
   "picker_favourites_collapse": "Ocultar tus favoritos",
-  "picker_favourite_start_hint": "Mantén {key} y escribe {number} para empezar {name}",
+  "picker_favourite_start_hint": [
+    {
+      "declarations": ["input input", "input key", "input name", "input number"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Empezar {name}",
+        "input=*": "Mantén {key} y escribe {number} para empezar {name}"
+      }
+    }
+  ],
   "picker_favourite_only_as": "Solo como {geometry}",
   "favourite_add_as": "Añadir {name} como {geometry}",
   "favourite_remove": "Quitar {name} de favoritos",
   "favourite_add": "Añadir {name} a favoritos",
   "favourites_button": "Favoritos",
-  "favourites_button_hint": "Favoritos: mantén {key} y escribe un número para empezar uno",
-  "favourites_intro": "Mantén {key} y escribe un número para empezar un favorito. Los números 1–3 son las teclas de punto, línea y área.",
+  "favourites_button_hint": [
+    {
+      "declarations": ["input input", "input key"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Favoritos",
+        "input=*": "Favoritos: mantén {key} y escribe un número para empezar uno"
+      }
+    }
+  ],
+  "favourites_intro": [
+    {
+      "declarations": ["input input", "input key"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Toca un favorito para empezarlo.",
+        "input=*": "Mantén {key} y escribe un número para empezar un favorito. Los números 1–3 son las teclas de punto, línea y área."
+      }
+    }
+  ],
   "favourites_empty": "Aún no tienes favoritos. Añade uno con la estrella junto a un tipo de elemento en la búsqueda de tipos.",
   "sidebar_empty_title": "Nada seleccionado",
-  "sidebar_empty_hint": "Haz clic en un elemento del mapa para ver y editar sus etiquetas.",
+  "sidebar_empty_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Toca un elemento del mapa para ver y editar sus etiquetas.",
+        "input=*": "Haz clic en un elemento del mapa para ver y editar sus etiquetas."
+      }
+    }
+  ],
   "rotate_point_description": "Ajusta la etiqueta numérica de dirección de este punto.",
-  "direction_rotate_hint": "Pulsa {key} para ajustar este valor en el mapa.",
+  "direction_rotate_hint": [
+    {
+      "declarations": ["input input", "input key"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Toca Rotate para ajustar este valor en el mapa.",
+        "input=*": "Pulsa {key} para ajustar este valor en el mapa."
+      }
+    }
+  ],
   "directional_side_left": "Izquierda",
   "directional_side_right": "Derecha",
   "directional_unused_hint": "No se usa con {field}: {value}",
   "search_button": "Buscar",
-  "search_button_title": "Buscar (Ctrl+F o Cmd+F)",
   "search_panel_label": "Buscar",
   "search_input_label": "Buscar coordenadas, un id de OSM, un nombre del mapa o un lugar",
   "search_placeholder": "52.5, 13.4 · w123 · un nombre · un lugar",
-  "search_hint": "Escribe coordenadas, como 52.5, 13.4 o 17/52.5/13.4, un id de OSM como w123, un enlace al mapa o un nombre del mapa. Pulsa Intro para buscar lugares.",
+  "search_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Escribe coordenadas, como 52.5, 13.4 o 17/52.5/13.4, un id de OSM como w123, un enlace al mapa o un nombre del mapa. Toca Intro para buscar lugares.",
+        "input=*": "Escribe coordenadas, como 52.5, 13.4 o 17/52.5/13.4, un id de OSM como w123, un enlace al mapa o un nombre del mapa. Pulsa Intro para buscar lugares."
+      }
+    }
+  ],
   "search_group_position": "Posición",
   "search_group_object": "Objeto de OSM",
   "search_group_loaded": "En los datos cargados",
@@ -73,7 +153,16 @@
   "search_object_not_loaded_hint": "Mueve antes el mapa hasta él",
   "search_places_action": "Buscar lugares",
   "search_places_off": "Desactivado en ejecuciones automáticas",
-  "search_places_enter_hint": "Pulsa Intro para buscar",
+  "search_places_enter_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Toca para buscar",
+        "input=*": "Pulsa Intro para buscar"
+      }
+    }
+  ],
   "search_places_loading": "Buscando lugares…",
   "search_places_failed": "La búsqueda de lugares falló. Inténtalo de nuevo.",
   "search_places_none": "No se encontraron lugares",
@@ -83,7 +172,16 @@
   "search_follow_background": "No se sigue la ubicación: se movió el mapa",
   "search_follow_error": "No se pudo obtener la ubicación",
   "turn_restrictions_title": "Restricciones de giro",
-  "turn_restrictions_help_click": "Pulsa un giro para cambiarlo: permitido, prohibido o solo ese giro.",
+  "turn_restrictions_help_click": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Toca un giro para cambiarlo: permitido, prohibido o solo ese giro.",
+        "input=*": "Pulsa un giro para cambiarlo: permitido, prohibido o solo ese giro."
+      }
+    }
+  ],
   "turn_restrictions_distance_label": "Distancia de búsqueda",
   "turn_restrictions_distance_tip": "Hasta dónde desde el cruce se buscan las vías conectadas.",
   "turn_restrictions_via_label": "Vías intermedias",
@@ -102,7 +200,16 @@
   "turn_restrictions_state_no": "Prohibido: {turn}",
   "turn_restrictions_state_only": "Solo: {turn}",
   "turn_restrictions_state_allowed": "Permitido: {turn}",
-  "turn_restrictions_hint": "{state}. Pulsa para: {next}",
+  "turn_restrictions_hint": [
+    {
+      "declarations": ["input input", "input next", "input state"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "{state}. Tocar para: {next}",
+        "input=*": "{state}. Pulsa para: {next}"
+      }
+    }
+  ],
   "turn_restrictions_badge_only": "SOLO",
   "turn_restrictions_indirect_hint": "Indirecto: lo causa una restricción cercana. Cambia la restricción directa de al lado.",
   "turn_restrictions_aria_turn": "Giro de {from} a {to}: {state}",
@@ -225,7 +332,16 @@
   "traffic_sign_empty": "Todavía no hay señales. Busca abajo por nombre o número para añadir una.",
   "traffic_sign_add_placeholder": "Añadir señal…",
   "traffic_sign_search_label": "Buscar señales de tráfico",
-  "traffic_sign_no_results": "Ninguna señal coincide. Pulsa Intro para añadir el texto tal cual.",
+  "traffic_sign_no_results": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Ninguna señal coincide. Toca Intro para añadir el texto tal cual.",
+        "input=*": "Ninguna señal coincide. Pulsa Intro para añadir el texto tal cual."
+      }
+    }
+  ],
   "traffic_sign_more_results": "{count} más, sigue escribiendo para acotar",
   "traffic_sign_no_sign": "Sin señal",
   "traffic_sign_unknown": "Señal desconocida",

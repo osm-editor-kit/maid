@@ -2,6 +2,7 @@
  * The sentences the cut shows: why it is refused, and what to do in the mode. Each text is read when it is shown, in
  * the language of the moment (see messages.ts).
  */
+import { device } from '@osm-editor-kit/maid-i18n'
 import { m } from '../messages.ts'
 import { sentenceOf } from '../shared/refusals.ts'
 import type { CutRefusal } from './cut.ts'
@@ -28,5 +29,5 @@ export const refusalText = sentenceOf<CutRefusal>({
  * @return  The text, in the language of the moment
  */
 export function hintText(): string {
-  return m.cut_hint()
+  return m.cut_hint({ ...device() })
 }

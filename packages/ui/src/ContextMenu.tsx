@@ -1,3 +1,4 @@
+import { device } from '@osm-editor-kit/maid-i18n'
 import { motion, useReducedMotion } from 'motion/react'
 import {
   Fragment,
@@ -35,11 +36,13 @@ export type MenuItem = {
 const MENU_WIDTH = 208
 const MARGIN = 4
 /**
- * The height of the rows as they are drawn: a row 28 px (h-7), a heading 26 px (text-xs with 6 px
- * above and 4 px below), a divider 9 px (1 px with 4 px around it), and the panel's padding 8 px.
- * The menu's height is worked out from the items, so that the place is known before it is drawn.
+ * The height of the rows as they are drawn: a row 28 px (h-7), 44 px on a touch device (`touch:h-11`, a finger's
+ * size: the menu opens on a long press and holds Delete), a heading 26 px (text-xs with 6 px above and 4 px below), a
+ * divider 9 px (1 px with 4 px around it), and the panel's padding 8 px. The menu's height is worked out from the
+ * items, so that the place is known before it is drawn.
  */
 const ROW = 28
+const TOUCH_ROW = 44
 const HEADING = 26
 const DIVIDER = 9
 const PADDING = 8
@@ -47,12 +50,13 @@ const PADDING = 8
 const MARKER_BLOCK = 28
 
 function menuHeight(items: readonly MenuItem[]) {
+  const row = device().input === 'touch' ? TOUCH_ROW : ROW
   let height = PADDING
   items.forEach((item, i) => {
     const previous = items[i - 1]
     if (item.section && item.section !== previous?.section) height += HEADING
     if (!item.section && previous?.section) height += DIVIDER
-    height += ROW
+    height += row
   })
   return height
 }
@@ -189,7 +193,7 @@ export function ContextMenu(props: {
               onPointerLeave={() => item.preview?.(false)}
               onFocus={() => item.preview?.(true)}
               onBlur={() => item.preview?.(false)}
-              className={`flex h-7 w-full cursor-pointer items-center gap-2 px-2 text-left disabled:cursor-default disabled:text-zinc-400 dark:disabled:text-zinc-500 ${ROW_BASE} ${ROW_FOCUS} ${
+              className={`flex h-7 w-full cursor-pointer items-center gap-2 px-2 text-left disabled:cursor-default disabled:text-zinc-400 dark:disabled:text-zinc-500 touch:h-11 ${ROW_BASE} ${ROW_FOCUS} ${
                 item.current
                   ? ROW_CURRENT
                   : 'enabled:hover:bg-zinc-950/5 dark:enabled:hover:bg-white/10'
@@ -200,7 +204,7 @@ export function ContextMenu(props: {
                 {item.label}
               </span>
               {item.shortcut && (
-                <kbd className="shrink-0 font-sans text-xs text-zinc-500 dark:text-zinc-400">
+                <kbd className="shrink-0 font-sans text-xs text-zinc-500 dark:text-zinc-400 touch:hidden">
                   {item.shortcut}
                 </kbd>
               )}

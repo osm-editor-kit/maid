@@ -4,17 +4,23 @@
   "photos_automated_off": "Les photos sont désactivées dans les navigateurs automatisés.",
   "action_automated_off": "Les photos sont désactivées dans les navigateurs automatisés",
   "panel_providers_heading": "Afficher les photos de",
-  "panel_providers_off": "Les photos sont désactivées. Choisissez une source pour les charger.",
   "panel_provider_switch": "Afficher les photos de {provider}",
-  "panel_note_panoramax": "De api.panoramax.xyz. Aucun compte nécessaire.",
-  "panel_note_mapillary": "De graph.mapillary.com, avec le jeton de cette version.",
   "panel_mapillary_no_token": "Cette version n'a pas de jeton Mapillary, donc Mapillary n'est pas proposé.",
   "panel_kinds_heading": "Photos",
   "panel_kind_choice": "Quelles photos",
   "kind_all": "Toutes",
   "kind_flat": "Plates",
   "panel_dates_heading": "Prises entre",
-  "dock_hint_click": "Cliquez sur une photo de la carte pour la voir ici.",
+  "dock_hint_click": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Touchez une photo de la carte pour la voir ici.",
+        "input=*": "Cliquez sur une photo de la carte pour la voir ici."
+      }
+    }
+  ],
   "dock_hint_switch": "Activez une source sous Photos dans la barre du haut pour voir les photos sur la carte.",
   "dock_loading": "Chargement de la photo…",
   "dock_details": "Détails",
@@ -31,7 +37,16 @@
   "field_group_bike_lane": "Piste cyclable",
   "field_group_sidewalk": "Trottoir",
   "field_target": "Cible de « Utiliser cette photo »",
-  "field_target_title": "Un clic sur « Utiliser cette photo » dans la visionneuse ajoute la photo à cette clé",
+  "field_target_title": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Touchez « Utiliser cette photo » dans la visionneuse : la photo est ajoutée à cette clé",
+        "input=*": "Un clic sur « Utiliser cette photo » dans la visionneuse ajoute la photo à cette clé"
+      }
+    }
+  ],
   "field_show_title": "Afficher dans la visionneuse",
   "field_loading": "Chargement…",
   "field_show_aria": "Afficher {id} dans la visionneuse",

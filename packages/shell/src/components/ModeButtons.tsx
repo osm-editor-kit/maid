@@ -1,6 +1,6 @@
 import { CheckIcon, ChevronDownIcon, MapPinIcon } from '@heroicons/react/20/solid'
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
-import { m } from '@osm-editor-kit/maid-i18n'
+import { device, m } from '@osm-editor-kit/maid-i18n'
 import type { DrawToolItem, Mode } from '@osm-editor-kit/maid-renderer'
 import {
   AreaIcon,
@@ -31,21 +31,21 @@ function addModes(): {
   return [
     {
       mode: 'add-point',
-      label: m.topbar_add_point_hint(),
+      label: m.topbar_add_point_hint({ ...device() }),
       shortcut: '1',
       text: m.topbar_point(),
       icon: <MapPinIcon />,
     },
     {
       mode: 'draw-line',
-      label: m.topbar_draw_line_hint(),
+      label: m.topbar_draw_line_hint({ ...device() }),
       shortcut: '2',
       text: m.topbar_line(),
       icon: <LineIcon />,
     },
     {
       mode: 'draw-area',
-      label: m.topbar_draw_area_hint(),
+      label: m.topbar_draw_area_hint({ ...device() }),
       shortcut: '3',
       text: m.topbar_area(),
       icon: <AreaIcon />,
@@ -221,7 +221,9 @@ function MenuRow(props: {
       <span className="min-w-0 flex-1">{label}</span>
       {pressed && <CheckIcon aria-hidden="true" className="size-5 shrink-0 sm:size-4" />}
       {shortcut && (
-        <kbd className="font-sans text-xs text-zinc-500 dark:text-zinc-400">{shortcut}</kbd>
+        <kbd className="font-sans text-xs text-zinc-500 dark:text-zinc-400 touch:hidden">
+          {shortcut}
+        </kbd>
       )}
     </button>
   )

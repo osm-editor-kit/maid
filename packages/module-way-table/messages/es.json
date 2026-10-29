@@ -72,5 +72,14 @@
   "way_table_read_only_short": "Solo lectura",
   "way_table_stored_as": "Guardado en esta vía como {key}",
   "way_table_too_long": "Demasiado largo: 255 caracteres como máximo",
-  "way_table_edit_hint": "Haz clic en un valor para cambiarlo. Intro guarda, Escape cancela, Supr elimina la clave."
+  "way_table_edit_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Toca un valor para cambiarlo. Al salir del campo, se guarda.",
+        "input=*": "Haz clic en un valor para cambiarlo. Intro guarda, Escape cancela, Supr elimina la clave."
+      }
+    }
+  ]
 }

@@ -1,4 +1,4 @@
-import { m } from '@osm-editor-kit/maid-i18n'
+import { device, m } from '@osm-editor-kit/maid-i18n'
 import { lazyComponent, Sidebar, SidebarEmpty } from '@osm-editor-kit/maid-ui'
 import { useSelection } from '../selection'
 import { usePresetsPending } from '../shell-context'
@@ -28,7 +28,9 @@ export function InspectorSlot() {
   if (ids.length === 0) {
     return (
       <Sidebar label="Inspector">
-        <SidebarEmpty title={m.sidebar_empty_title()}>{m.sidebar_empty_hint()}</SidebarEmpty>
+        <SidebarEmpty title={m.sidebar_empty_title()}>
+          {m.sidebar_empty_hint({ ...device() })}
+        </SidebarEmpty>
       </Sidebar>
     )
   }

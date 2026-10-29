@@ -2,9 +2,10 @@
 // which is DOM inside the map, as the measure's pill is. Registered on `map.content` (module.ts). The panel's keys
 // (+ and - for the columns, Shift for the rows, Enter) are taken here in the capture phase, as the engine takes Enter.
 import type { Editor } from '@osm-editor-kit/maid-core'
+import { device } from '@osm-editor-kit/maid-i18n'
 import type { OperationHost } from '@osm-editor-kit/maid-operations'
 import { isTextField, type MapContentProps } from '@osm-editor-kit/maid-renderer'
-import { INPUT_CLASS, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
+import { autoFocusFields, INPUT_CLASS, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import type { Feature, FeatureCollection, LineString } from 'geojson'
 import { useEffect, useReducer, useRef, useSyncExternalStore } from 'react'
 import { Layer, Source } from 'react-map-gl/maplibre'
@@ -156,7 +157,8 @@ export function DivideOnMap({ editor, engine }: MapContentProps) {
               type="number"
               min={1}
               // the panel opens with the columns field focused: type a number or use the arrows, then Enter
-              autoFocus
+              // (on a touch device the field waits for the tap: its keyboard would cover the map)
+              autoFocus={autoFocusFields()}
               max={largestFor('columns', division)}
               step={1}
               value={columns}
@@ -189,7 +191,9 @@ export function DivideOnMap({ editor, engine }: MapContentProps) {
             {refusalText(refusal)}
           </p>
         )}
-        <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{m.divide_hint()}</p>
+        <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+          {m.divide_hint({ ...device() })}
+        </p>
         <div className="mt-3 flex justify-end gap-2">
           <button
             type="button"

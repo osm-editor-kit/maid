@@ -1,4 +1,5 @@
 import { MinusIcon, PlusIcon } from '@heroicons/react/20/solid'
+import { device } from '@osm-editor-kit/maid-i18n'
 import { ControlButton, ControlGroup, MapControls, useBearing } from '@osm-editor-kit/maid-ui'
 import { useMap } from 'react-map-gl/maplibre'
 import { useShell } from '../shell-context'
@@ -23,7 +24,7 @@ export function ZoomControls() {
         />
         {bearing !== 0 && (
           <ControlButton
-            label="Reset north (N)"
+            label={device().input === 'touch' ? 'Reset north' : 'Reset north (N)'}
             icon={<NorthNeedle bearing={bearing} />}
             onClick={() => engine.resetNorth()}
           />

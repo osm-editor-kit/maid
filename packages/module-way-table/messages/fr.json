@@ -72,5 +72,14 @@
   "way_table_read_only_short": "Lecture seule",
   "way_table_stored_as": "Enregistré sur cette voie sous {key}",
   "way_table_too_long": "Trop long : 255 caractères au maximum",
-  "way_table_edit_hint": "Cliquez sur une valeur pour la modifier. Entrée enregistre, Échap annule, Suppr retire la clé."
+  "way_table_edit_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Touchez une valeur pour la modifier. En quittant le champ, elle est enregistrée.",
+        "input=*": "Cliquez sur une valeur pour la modifier. Entrée enregistre, Échap annule, Suppr retire la clé."
+      }
+    }
+  ]
 }

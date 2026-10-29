@@ -1,5 +1,5 @@
 import { moduleStorage, type Editor } from '@osm-editor-kit/maid-core'
-import { m } from '@osm-editor-kit/maid-i18n'
+import { device, m } from '@osm-editor-kit/maid-i18n'
 import { osmIntersection, type Intersection } from '@osm-editor-kit/maid-model'
 import {
   RELATION_CHOSEN,
@@ -203,7 +203,9 @@ function JunctionEditor({ entity, editor, defaults, onRelated }: TurnRestriction
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">{m.turn_restrictions_help_click()}</p>
+      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+        {m.turn_restrictions_help_click({ ...device() })}
+      </p>
 
       {/* one box: the FROM roads above, the junction under a divider, as they belong together */}
       <div className={`overflow-hidden rounded-md border ${RELATION_SURFACE}`}>
