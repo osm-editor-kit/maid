@@ -11,7 +11,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.4.0
+          bun-version-file: package.json
       # no bunfig.toml in CI: the shared package store is for local machines
       - run: bun install --frozen-lockfile --config=/dev/null
       # the style data is generated from the pinned iD and is committed, so no reference build is needed here
