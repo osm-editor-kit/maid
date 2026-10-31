@@ -65,7 +65,7 @@ Goal: the same frozen data for every editor, with no request leaving the machine
 
 Goal: a fixture on screen in MapLibre as plain geometry. No iD styling yet.
 
-- [ ] **2.1 Evaluate `@osm-editor-kit/osm-data`.** Read it (`osmberlin/street-space-editor`), load the `dense` fixture, measure parse and index time and memory, check for hard-coded hosts. Decide in an ADR: use as is, improve upstream, or write `packages/data` here. Update `docs/research/osm-editor-kit.md`.
+- [ ] **2.1 Evaluate `@osm-editor-kit/osm-data`.** Read it (`osm-editor-kit/street-space-editor`), load the `dense` fixture, measure parse and index time and memory, check for hard-coded hosts. Decide in an ADR: use as is, improve upstream, or write `packages/data` here. Update `docs/research/osm-editor-kit.md`.
   Done when: the ADR exists with the measurements.
 - [ ] **2.2 Data loading.** `apps/maid` loads a scene from the mock API per z16 tile for the viewport, like iD and Rapid do, into the store. The API host comes from config; the default is the mock. A `?scene=` parameter selects the fixture.
   Done when: `window.__maid.stats()` returns node, way and relation counts that match `meta.json` after panning over the whole scene.

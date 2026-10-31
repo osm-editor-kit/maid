@@ -118,7 +118,7 @@ Each step is usable on its own, and after step 2 Maid has undo.
 
 Tobias asked who uses `@osm-editor-kit/osm-data` and whether those users could be adjusted. Checked on 2026-10-11 across the projects on Tobias's machine:
 
-- **One user: the street-space editor** (`osmberlin/street-space-editor`), which is also where the package lives. Its app imports it in about 90 files, and seven sibling packages depend on it (`osm-way-edit`, `osm-way-chain`, `osm-changeset`, `osm-coverage`, `osm-editor-links`, `osm-route-snapper`, `osm-oauth`). No other project on disk uses it. On npm it is at `0.1.0-alpha.0`.
+- **One user: the street-space editor** (`osm-editor-kit/street-space-editor`), which is also where the package lives. Its app imports it in about 90 files, and seven sibling packages depend on it (`osm-way-edit`, `osm-way-chain`, `osm-changeset`, `osm-coverage`, `osm-editor-links`, `osm-route-snapper`, `osm-oauth`). No other project on disk uses it. On npm it is at `0.1.0-alpha.0`.
 - **Nearly all of those imports are types** (`OsmWay`, `OsmTags`, `ParsedOsmData`). The functions (`downloadOsmData`, `parseOsmResp`, `mergeParsedOsm`) are called in a handful of places.
 - **The package is about 100 lines**: the types of the OSM API's JSON, a download, and a parser into five plain maps.
 
