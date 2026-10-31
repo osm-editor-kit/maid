@@ -98,16 +98,14 @@ export function cutShapes(points: Line, pieces: readonly Ring[] | undefined): Fe
       properties: { kind: 'line' satisfies CutShapeKind },
       geometry: { type: 'LineString', coordinates: points.map((loc) => [loc[0], loc[1]]) },
     },
-    ...points.map(
-      (loc, index): Feature<Point> => ({
-        type: 'Feature',
-        properties: {
-          kind: 'point' satisfies CutShapeKind,
-          handle: handleName({ kind: 'point', index }),
-        },
-        geometry: { type: 'Point', coordinates: [loc[0], loc[1]] },
-      }),
-    ),
+    ...points.map((loc, index): Feature<Point> => ({
+      type: 'Feature',
+      properties: {
+        kind: 'point' satisfies CutShapeKind,
+        handle: handleName({ kind: 'point', index }),
+      },
+      geometry: { type: 'Point', coordinates: [loc[0], loc[1]] },
+    })),
     ...points.slice(0, -1).map((_, segment): Feature<Point> => {
       const loc = midpointOf(points, segment)
       return {

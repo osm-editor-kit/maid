@@ -40,14 +40,12 @@ const MIN_ZOOM = 13
  */
 function useMapView(mapRef: MapRef | undefined) {
   const [zoom, setZoom] = useState(0)
-  const [moves, setMoves] = useState(0)
   useEffect(
     function followMoves() {
       const map = mapRef?.getMap()
       if (!map) return
       const update = () => {
         setZoom(map.getZoom())
-        setMoves((count) => count + 1)
       }
       update()
       map.on('moveend', update)
@@ -57,8 +55,8 @@ function useMapView(mapRef: MapRef | undefined) {
     },
     [mapRef],
   )
-  // the bbox is read from the map on every render; `moves` tells the hook when to read it again
-  const bbox = useMapViewportBbox(MAP_ID, moves)
+  // since 1.0 the hook follows moveend itself and keeps the same array while the viewport is the same
+  const bbox = useMapViewportBbox(MAP_ID)
   return { zoom, bbox }
 }
 

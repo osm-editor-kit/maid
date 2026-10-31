@@ -88,9 +88,10 @@ export function loupeCenter(
 
   // close to the point first; farther out when the point is near a map edge or corner
   const candidates = [1, 1.6, 2.3, 3].flatMap((scale) =>
-    directions.map(
-      ([dx, dy]): Vec => [handle[0] + dx * distance * scale, handle[1] + dy * distance * scale],
-    ),
+    directions.map(([dx, dy]): Vec => [
+      handle[0] + dx * distance * scale,
+      handle[1] + dy * distance * scale,
+    ]),
   )
   const inside = (c: Vec) =>
     c[0] - radius >= 0 && c[1] - radius >= 0 && c[0] + radius <= size[0] && c[1] + radius <= size[1]

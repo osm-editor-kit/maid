@@ -131,16 +131,14 @@ function junctionIssues(
   if (!check) return []
   return junctions
     .filter((j) => j.guidepost === undefined)
-    .map(
-      (j): RouteIssue => ({
-        code: 'junction-without-guidepost',
-        severity: 'info',
-        members: [],
-        at: j.at,
-        loc: input.nodes.get(j.node),
-        detail: { ways: j.outside },
-      }),
-    )
+    .map((j): RouteIssue => ({
+      code: 'junction-without-guidepost',
+      severity: 'info',
+      members: [],
+      at: j.at,
+      loc: input.nodes.get(j.node),
+      detail: { ways: j.outside },
+    }))
 }
 
 /** Once, on a waymarked route with junctions but no guidepost member */
@@ -157,14 +155,12 @@ function noGuidepostIssues(
 function unknownRoleIssues(members: readonly MemberInfo[]): RouteIssue[] {
   return members
     .filter((m) => !m.knownRole)
-    .map(
-      (m): RouteIssue => ({
-        code: 'unknown-role',
-        severity: 'info',
-        members: [m.index],
-        detail: { role: m.member.role },
-      }),
-    )
+    .map((m): RouteIssue => ({
+      code: 'unknown-role',
+      severity: 'info',
+      members: [m.index],
+      detail: { role: m.member.role },
+    }))
 }
 
 /** Per side line that touches the main line nowhere */

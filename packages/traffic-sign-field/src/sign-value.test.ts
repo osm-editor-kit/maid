@@ -82,7 +82,7 @@ describe('the same result as the converter (main entry, test only)', () => {
     expect(roundTrip(value)).toBe(signsToTrafficSignTagValue(signs, 'DE'))
     expect(parse(value).map((e) => e.part)).toEqual(signs.map((s) => s.osmValuePart))
     expect(parse(value).map((e) => e.sign !== undefined)).toEqual(
-      signs.map((s) => s.recodgnizedSign),
+      signs.map((s) => s.recodgnizedSign === true),
     )
   })
 })

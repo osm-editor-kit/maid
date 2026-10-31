@@ -14,7 +14,7 @@
     "@osm-editor-kit/maid-style": "workspace:*",
     "@osm-editor-kit/maid-ui": "workspace:*",
     "@osm-editor-kit/maid-validation": "workspace:*",
-    "react": "^19.2.0"
+    "react": "^19.3.1"
   },
   "devDependencies": {
     "@types/react": "^19.3.0"

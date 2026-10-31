@@ -621,24 +621,23 @@ export function RelationsSection({ entity, entities, editor, select }: Props) {
       {memberships.length === 0 && !listedInColumn && (
         <p className={`text-xs ${SECONDARY}`}>{m.relations_not_in_relation()}</p>
       )}
-      {memberships.length > 0 &&
-        !listedInColumn && (
-          // the memberships follow the inspected feature, the add below the whole selection
-          <ReadOnlyContext value={entity.readOnly}>
-            <ul>
-              {memberships.map((membership) => (
-                <MembershipRow
-                  key={`${membership.relation.id}:${membership.index}:${membership.role}`}
-                  editor={editor}
-                  entityID={entity.id}
-                  membership={membership}
-                  roles={relationRolesOf(presets, membership.relation.tags)}
-                  roleList={roleOptionsID('membership', membership.relation.id)}
-                />
-              ))}
-            </ul>
-          </ReadOnlyContext>
-        )}
+      {memberships.length > 0 && !listedInColumn && (
+        // the memberships follow the inspected feature, the add below the whole selection
+        <ReadOnlyContext value={entity.readOnly}>
+          <ul>
+            {memberships.map((membership) => (
+              <MembershipRow
+                key={`${membership.relation.id}:${membership.index}:${membership.role}`}
+                editor={editor}
+                entityID={entity.id}
+                membership={membership}
+                roles={relationRolesOf(presets, membership.relation.tags)}
+                roleList={roleOptionsID('membership', membership.relation.id)}
+              />
+            ))}
+          </ul>
+        </ReadOnlyContext>
+      )}
       {parents.map((relation) => (
         <RoleOptions
           key={relation.id}
