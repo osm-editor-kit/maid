@@ -1,7 +1,7 @@
 import { device } from '@osm-editor-kit/maid-i18n'
 import type { NormalizedPhoto } from '@osm-editor-kit/street-imagery'
-import { StreetLevelImageryViewer } from '@osm-editor-kit/street-imagery-react'
 import { PhotoDetailsDialog } from '@osm-editor-kit/street-imagery-react/photo-details'
+import { StreetLevelImageryViewer } from '@osm-editor-kit/street-imagery-react/viewer'
 import { useState } from 'react'
 import { planUse } from './image-keys.ts'
 import { photoPageLink } from './links.ts'
