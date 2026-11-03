@@ -48,6 +48,7 @@
     "check-osmchange": "bun tools/bench/osmchange-check.ts",
     "check-parking": "bun tools/bench/parking-check.ts",
     "check-rectangle": "bun tools/bench/rectangle-check.ts",
+    "check-room": "bun tools/bench/room-check.ts",
     "check-relation-column": "bun tools/bench/relation-column-check.ts",
     "check-relations": "bun tools/bench/relations-check.ts",
     "check-render": "bun tools/bench/shot-diff.ts check",

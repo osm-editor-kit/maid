@@ -72,7 +72,7 @@ What each app turns on today:
 | `apps/maid` | 5173 | turn restrictions, surface |
 | `apps/maid-bicycle` | 5176 | turn restrictions, surface, traffic signs, way table, reroute, osmchange |
 | `apps/maid-parking` | 5177 | parking (with its lens and rules), shapes (angle snap with lengths, rectangle, merge, cut, divide, resize) |
-| `apps/maid-indoor` | 5178 | levels (with its level rules), shapes (angle snap with lengths, rectangle, merge, cut, divide, resize) |
+| `apps/maid-indoor` | 5178 | levels (with its level rules), shapes (angle snap with lengths, rectangle, room, merge, cut, divide, resize) |
 
 The shared set is the same in all four: element info, operations, relations, validation, imagery, data layers, lenses,
 street-level images, notes. Read the four config files side by side to see the pattern; they are short.
@@ -124,7 +124,7 @@ merging into `ExtensionPoints` of `@osm-editor-kit/maid-core`, in its `src/exten
 | `edit.operation` | renderer | Edit menu, command bar and its key; `group` sets its group in the command bar, `supersedes` hides another operation | `operations(defaultOperations)`, shapes merge |
 | `imagery.used` | renderer | The imagery credited in a changeset | imagery |
 | `draw.constraint` | renderer | Where a drawn or dragged node goes on open ground, guide lines and labels | angle snap |
-| `draw.tool` | renderer | The dropdown of the Area button, and the keys 33, 333 | rectangle |
+| `draw.tool` | renderer | The dropdown of the Area button, and the keys 33, 333; or a button of its own after it (`placement: 'button'`, off while `unavailable` gives a reason) | rectangle; room |
 | `inspector.section` | ui | A block in the sidebar, above or below the fields | parking, relations |
 | `inspector.field` | ui | The component for a field type | traffic signs |
 | `dock.view` | ui | A tab in the bottom dock | way table |

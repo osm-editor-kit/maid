@@ -13,7 +13,7 @@ import {
  * want to avoid (see docs/research/maplibre.md).
  */
 import { createFilterSet, type FilterSet } from '@osm-editor-kit/maid-filters'
-import { type EditedLevel, levelsOf } from '@osm-editor-kit/maid-levels'
+import { type EditedLevel, levelsOf, onEveryLevel } from '@osm-editor-kit/maid-levels'
 import {
   type Action,
   actionAddEntity,
@@ -739,7 +739,19 @@ export class MaidEngine {
     if (level === null || this.levelLockPaused) return false
     const levels = this.levelsOfEntity(id)
     if (level === 'none') return levels.length > 0
-    return !levels.includes(level)
+    if (levels.includes(level)) return false
+    // a building outline without a level stands on every level, and so do its corners (levels onEveryLevel)
+    return !(levels.length === 0 && this.isOnEveryLevel(id))
+  }
+
+  /** A building outline without a level, or a node without a level whose ways are all such outlines */
+  private isOnEveryLevel(id: string): boolean {
+    if (id[0] === 'n') {
+      const ways = this.data.nodeWays.get(id) ?? []
+      return ways.length > 0 && ways.every((way) => this.isOnEveryLevel(way))
+    }
+    const entity = id[0] === 'w' ? this.data.way(id) : this.data.relation(id)
+    return entity !== undefined && onEveryLevel(entity.tags)
   }
 
   /**

@@ -1,4 +1,4 @@
-# Drawing rooms against walls (proposal for Maid Indoor)
+# Drawing rooms against walls (Maid Indoor)
 
 Proposal, 2026-11-03, for Tobias to decide before anything is built. Nothing here is implemented. Sources: Maid's code,
 the indoor research in [../indoor/](../indoor/README.md) (Simple Indoor Tagging, read from the wiki on 2026-10-20), and
@@ -131,3 +131,27 @@ the base for the bent-wall version of tool 1.
 2. Should the far corners be glued to neighbouring rooms automatically (shared nodes), or only to the building outline?
    SIT allows both; shared nodes make doors between rooms easy, separate outlines are easier to edit one by one.
 3. Dropdown and edit menu as recommended, or a button of its own in Maid Indoor?
+
+## Decided and built (2026-11-03)
+
+Tobias chose a variant of tool 2, as a tool of its own: "Room" (`drawRoom()` in `packages/module-shapes/src/room/`).
+
+- **A button of its own** in the add row after Area (`draw.tool` with `placement: 'button'`), off with the tooltip
+  "select one building first" until exactly one building (`building` or `building:part`, a way or a multipolygon) is
+  selected. Its tooltip says what the clicks do.
+- **Clicks:** the first click on a wall of the selected building (a blue point shows where), each click inside adds a
+  corner, a click on a wall ends the room. From the second corner on the preview shows the whole room: from the pointer
+  straight back to the wall it started on (the guided end); Enter, or a click on the last corner again, ends the room
+  along that guide. Backspace takes the last point back, Escape writes nothing.
+- **Angles:** Shift turns the guide in 45° steps, Shift+Alt in 10° steps, measured from the wall for the first segment
+  and from the previous segment after that. Each segment shows its length.
+- **Result:** the smaller of the two pieces the line cuts off becomes a new way `indoor=room` with the edited level
+  (`level=*` from the level mode). It shares its two wall nodes (and the building's corners on its side) with the
+  building, which keeps its shape and tags. One undo step, "Drew a room". The room is selected and shows its fields.
+- **Level mode:** a building outline without any level key now stands on every level (`onEveryLevel` in
+  `packages/levels`): it is not dimmed or locked, so it can be selected on a level.
+- **Refused** with the cut's reasons (a line that leaves the building, a wall shared with another building, a hole
+  of the building inside the room, ...), shown in red at the pointer.
+
+Not built yet: walls shared with a neighbouring building (refused, as in the cut), a room drawn against an existing room
+(the reference is the building only, so a second room may overlap the first), lines (`indoor=wall`), and Follow (F).

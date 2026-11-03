@@ -4,7 +4,7 @@
  * expressions stay trivial (`['get', 'sc']`) and forks can change the look in one place.
  */
 import type { FilterSet, FilterState, Geometry } from '@osm-editor-kit/maid-filters'
-import { levelsOf } from '@osm-editor-kit/maid-levels'
+import { levelsOf, onEveryLevel } from '@osm-editor-kit/maid-levels'
 import type { OsmNode, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 import type { LonLat, Presets } from '@osm-editor-kit/maid-presets'
 import {
@@ -65,6 +65,8 @@ export type LineProps = {
   ed?: EditKind
   /** the floors it is on (markLevels), only when it has levels */
   lv?: string
+  /** 1 for a building outline without a level, which stands on every level (levels onEveryLevel) */
+  al?: 1
   /** The lowest and the highest of those levels, for the levels shown next to the edited one (layers.ts LEVEL_DIM) */
   lo?: number
   hi?: number
@@ -92,6 +94,8 @@ export type AreaProps = {
   ed?: EditKind
   /** the floors it is on (markLevels), only when it has levels */
   lv?: string
+  /** 1 for a building outline without a level, which stands on every level (levels onEveryLevel) */
+  al?: 1
   /** The lowest and the highest of those levels, for the levels shown next to the edited one (layers.ts LEVEL_DIM) */
   lo?: number
   hi?: number
@@ -106,6 +110,8 @@ export type PointProps = {
   ed?: EditKind
   /** the floors it is on (markLevels), only when it has levels */
   lv?: string
+  /** 1 for a building outline without a level, which stands on every level (levels onEveryLevel) */
+  al?: 1
   /** The lowest and the highest of those levels, for the levels shown next to the edited one (layers.ts LEVEL_DIM) */
   lo?: number
   hi?: number
@@ -118,6 +124,8 @@ export type VertexProps = {
   ed?: EditKind
   /** the floors it is on (markLevels), only when it has levels */
   lv?: string
+  /** 1 for a building outline without a level, which stands on every level (levels onEveryLevel) */
+  al?: 1
   /** The lowest and the highest of those levels, for the levels shown next to the edited one (layers.ts LEVEL_DIM) */
   lo?: number
   hi?: number
@@ -260,7 +268,7 @@ function lineFeature(
   }
   const side = sidedOf(tags)
   if (side) props.side = side
-  markLevels(props, floorsOf(tags))
+  markLevels(props, floorsOf(tags), tags)
   return {
     type: 'Feature',
     id,
@@ -299,7 +307,7 @@ function partialFeature(
   if (stroke.color) props.sc = stroke.color
   const sd = dashKey(stroke.dash, stroke.width)
   if (sd) props.sd = sd
-  markLevels(props, floorsOf(tags))
+  markLevels(props, floorsOf(tags), tags)
   return {
     type: 'Feature',
     id,
@@ -362,7 +370,7 @@ function areaFeature(
   const label = mapLabelOf(tags)
   if (label) props.name = label
   if (sided) props.side = side
-  markLevels(props, floorsOf(tags))
+  markLevels(props, floorsOf(tags), tags)
   const geometry: Polygon | MultiPolygon =
     oriented.length === 1
       ? { type: 'Polygon', coordinates: oriented[0]! }
@@ -474,10 +482,18 @@ function floorsOf(tags: Tags): readonly number[] {
 
 /**
  * Sets `lv` for layers.ts LEVEL_DIM: ';-1;0;', so a layer tests ';<level>;' with one `index-of`. Without floors
- * there is no `lv` at all, and such a feature is never dimmed. join writes numbers as String() does.
+ * there is no `lv` at all, and such a feature is dimmed as one without a level, unless it is a building outline
+ * (`al`), which stands on every level. join writes numbers as String() does.
  */
-function markLevels(props: { lv?: string; lo?: number; hi?: number }, floors: readonly number[]) {
-  if (floors.length === 0) return
+function markLevels(
+  props: { lv?: string; lo?: number; hi?: number; al?: 1 },
+  floors: readonly number[],
+  tags?: Tags,
+) {
+  if (floors.length === 0) {
+    if (tags && onEveryLevel(tags)) props.al = 1
+    return
+  }
   props.lv = `;${floors.join(';')};`
   props.lo = floors[0]
   props.hi = floors[floors.length - 1]

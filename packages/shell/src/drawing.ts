@@ -59,6 +59,11 @@ export function stepAreaTool(
   else engine.setMode('draw-area')
 }
 
+/** Whether a drawing tool is an entry of the Area dropdown, not a button of its own */
+export function isMenuTool(tool: Pick<DrawToolItem, 'placement'>) {
+  return tool.placement !== 'button'
+}
+
 /** The key sequence that reaches a tool of the Area dropdown with stepAreaTool: 33 for the first, 333 for the second */
 export function areaToolKeys(index: number) {
   return '3'.repeat(index + 2)

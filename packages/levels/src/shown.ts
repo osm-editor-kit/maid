@@ -15,3 +15,17 @@ export function levelState(level: number, edited: number): LevelState {
   if (level === edited) return 'edited'
   return Math.abs(level - edited) <= NEIGHBOUR_RANGE ? 'shown' : 'hidden'
 }
+
+/** The keys that put a feature on levels; a building outline with none of them stands on every level */
+const LEVEL_KEYS = ['level', 'repeat_on', 'min_level', 'max_level'] as const
+
+/**
+ * True for a building outline without any level: the walls of every floor, so the level mode keeps it in view and
+ * editable on each level instead of locking it with the features that lack a level. The rooms of a level are drawn into
+ * it (the room tool of the indoor editor, Tobias 2026-11-03). A building with `min_level`/`max_level` is on those levels.
+ */
+export function onEveryLevel(tags: Readonly<Record<string, string>>): boolean {
+  const building = tags.building ?? tags['building:part']
+  if (building === undefined || building === 'no') return false
+  return LEVEL_KEYS.every((key) => tags[key] === undefined)
+}

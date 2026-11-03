@@ -147,11 +147,13 @@ const isOn = (level: ExpressionSpecification): ExpressionSpecification => [
  * feature when no level is edited; OFF_LEVEL_OPACITY (shown, locked) for a feature on a level up to NEIGHBOUR_RANGE
  * away and for a feature without a level while those show; 0 (hidden) for the others. While the features without a
  * level are edited (`none`), they are 1 and every feature with a level is hidden. A feature carries its levels as
- * `lv`, `;-1;0;`, and its lowest and highest as `lo` and `hi` (build.ts).
+ * `lv`, `;-1;0;`, and its lowest and highest as `lo` and `hi` (build.ts). A building outline without a level (`al`)
+ * stands on every level and is always 1.
  */
 const LEVEL_SHOWN: ExpressionSpecification = [
   'case',
   ['==', chosenLevel, ''], 1,
+  ['has', 'al'], 1,
   ['!', ['has', 'lv']], ['case', ['==', chosenLevel, 'none'], 1, unleveledShown, OFF_LEVEL_OPACITY, 0],
   ['==', chosenLevel, 'none'], 0,
   isOn(chosenLevel), 1,
