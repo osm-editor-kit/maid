@@ -47,14 +47,14 @@ describe('pages build', () => {
     expect(page).toContain('<li><a href="other/">Other</a> <code>other</code></li>')
   })
 
-  it('has an overview for every deployed app, and the standard editor names indoor', () => {
+  it('has an overview for every deployed app, and the indoor editor names indoor', () => {
     const root = join(import.meta.dir, '../..')
     const env = readDeployEnv(readFileSync(join(root, 'deploy.env'), 'utf8'))
     for (const app of appsOf(env.MAID_APP ?? '')) {
       const overview = readOverview(readFileSync(join(root, 'apps', app, 'overview.json'), 'utf8'))
       expect(overview?.features.length).toBeGreaterThan(0)
     }
-    const maid = readOverview(readFileSync(join(root, 'apps/maid/overview.json'), 'utf8'))
-    expect(maid?.features.some((feature) => feature.startsWith('Indoor'))).toBe(true)
+    const indoor = readOverview(readFileSync(join(root, 'apps/maid-indoor/overview.json'), 'utf8'))
+    expect(indoor?.features.some((feature) => feature.startsWith('Indoor'))).toBe(true)
   })
 })

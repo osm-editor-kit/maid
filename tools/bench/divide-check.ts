@@ -20,8 +20,12 @@ type WayState = { nodes: string[]; tags: Record<string, string> } | null
 
 process.exit(
   await runCheck(sceneName, async ({ page, report, settle }) => {
-    if (app !== 'parking') {
-      report('the check runs on --app parking, where Divide is on', 'parking', app)
+    if (app !== 'parking' && app !== 'indoor') {
+      report(
+        'the check runs on --app parking or indoor, where Divide is on',
+        'parking or indoor',
+        app,
+      )
       return
     }
     const { click, key } = await checkHelpers(page, settle)
