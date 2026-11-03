@@ -25,8 +25,12 @@ const HALF_H = 40
 
 process.exit(
   await runCheck(sceneName, async ({ page, report, settle }) => {
-    if (app !== 'parking') {
-      report('the check runs on --app parking, where Resize is on', 'parking', app)
+    if (app !== 'parking' && app !== 'indoor') {
+      report(
+        'the check runs on --app parking or indoor, where Resize is on',
+        'parking or indoor',
+        app,
+      )
       return
     }
     const { abs, click, key, where, selection } = await checkHelpers(page, settle)

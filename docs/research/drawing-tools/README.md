@@ -12,6 +12,7 @@ Five tools for drawing buildings and parking spaces faster, built as modules for
 | [5-grid-and-rows.md](5-grid-and-rows.md) | Divide a four-corner area into rows × columns: parking spaces, terraced houses | Right-click menu, then rows and columns |
 | [6-merge-to-multipolygon.md](6-merge-to-multipolygon.md) | An outer and an inner area merged into a multipolygon | Merge (`C`) |
 | [7-resize.md](7-resize.md) | A box with handles around the selection: stretch, keep proportions, from the centre (2026-10-24) | Edit menu and command bar, proposed key `K` |
+| [8-draw-against-walls.md](8-draw-against-walls.md) | Rooms drawn against the walls of a building: a rectangle at a wall, split off an area, lines at a right angle to the wall (proposal, 2026-11-03) | Area dropdown and edit menu (proposed) |
 
 ## What the research found
 

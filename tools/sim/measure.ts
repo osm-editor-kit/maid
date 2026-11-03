@@ -28,6 +28,7 @@ const APPS: Record<string, string> = {
   maid: 'apps/maid',
   bicycle: 'apps/maid-bicycle',
   parking: 'apps/maid-parking',
+  indoor: 'apps/maid-indoor',
 }
 /** How long one visit may take until its report arrives */
 const VISIT_LIMIT_MS = 120_000

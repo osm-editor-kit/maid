@@ -1,7 +1,6 @@
 {
   "compared": "Compared with iD",
   "features": [
-    "Indoor and building levels: a floor picker on the map, the other levels dimmed and locked, new points and lines get the chosen level, stairs between two levels, rooms and stairs in 3D, hints for features without a level",
     "Map lenses: the map recoloured for one theme (surface, lit, max speed)",
     "Surface and smoothness: a photo for each value in the inspector"
   ]
