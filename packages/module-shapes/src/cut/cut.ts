@@ -61,6 +61,8 @@ interface Analysis {
   chord: Slot[]
   /** The new nodes: the crossings that are not vertices, and the chord's intermediate points */
   created: Slot[]
+  /** The outline with the crossings in place, in order around the way (used by the split-off plan) */
+  seq: Slot[]
 }
 
 /**
@@ -135,10 +137,10 @@ export function cutPlan(
 
 /**
  * A ring as a way: the first node repeated at the end.
- * @param   ids - Node ids of the ring, without the closing repeat
- * @return  The node ids of a closed way
+ * @param   ids - Node ids (or positions) of the ring, without the closing repeat
+ * @return  The node ids (or positions) of a closed way
  */
-function closed(ids: string[]): string[] {
+function closed<T>(ids: T[]): T[] {
   return [...ids, item(ids, 0)]
 }
 
@@ -160,6 +162,169 @@ export function cutPreview(
   const found = analyse(graph, wayId, line, snapMetres)
   if ('refused' in found) return found
   return { chord: found.chord.map((slot) => slot.loc) }
+}
+
+/**
+ * Plans a split-off: a drawn line that starts and ends on the outline of a building and runs inside it cuts off the
+ * smaller of the two pieces as a new closed way with the given tags. The building keeps its shape and tags; only the
+ * two crossings are added to its outline. Returns the action (pure: it copies the graph it is given), the id of the new
+ * way in the graph the action returns, and the ring of the new way. Returns a reason when the split is not clearly safe.
+ * @param   graph         - The graph that holds the building
+ * @param   wayId         - The closed way the room is drawn into (for a multipolygon, its outer way)
+ * @param   line          - The drawn line as [lon, lat] points; the first and last lie on the outline
+ * @param   tags          - The tags of the new way
+ * @param   snapMetres    - Distance in metres at which a crossing reuses a vertex of the outline
+ * @param   extendMetres  - How far the line is extended past each end, so that it clearly crosses the outline
+ * @return  The action, the new way's id and its ring, or the refusal
+ */
+export function splitOffPlan(
+  graph: Graph,
+  wayId: string,
+  line: Loc[],
+  tags: Record<string, string>,
+  snapMetres = 0.3,
+  extendMetres = 0.5,
+): { action: Action; roomId: string; ring: Loc[] } | { refused: CutRefusal } {
+  const found = splitOffAnalysis(graph, wayId, line, snapMetres, extendMetres)
+  if ('refused' in found) return found
+
+  const context = graph.context
+  const nodeIds = new Map<Slot, string>()
+  const newNodes: { id: string; loc: Loc }[] = []
+  for (const slot of found.created) {
+    const id = 'n-' + context.next('node')
+    nodeIds.set(slot, id)
+    newNodes.push({ id, loc: slot.loc })
+  }
+  const idOf = (slot: Slot): string => slot.id ?? nodeIds.get(slot)!
+  const outlineIds = found.seq.map(idOf)
+  const room = smallerRing(found)
+  const roomIds = room.map(idOf)
+  const roomId = 'w-' + context.next('way')
+
+  const action: Action = (input: Graph): Graph => {
+    const g = new Graph(input)
+    g.replace(newNodes.map((n) => new OsmNode(g.context, { id: n.id, loc: n.loc })))
+
+    // The building keeps its tags, and its relations too: only its outline gains the two crossings
+    const way = g.entity(wayId) as OsmWay
+    const outline = way.update({ nodes: closed(outlineIds) })
+    const piece = new OsmWay(g.context, {
+      id: roomId,
+      nodes: closed(roomIds),
+      tags: { ...tags },
+    })
+    g.replace([outline, piece])
+    return g.commit()
+  }
+
+  return { action, roomId, ring: closed(room.map((slot) => slot.loc)) }
+}
+
+/**
+ * The ring that a split-off along this line would make, for the preview while the line is drawn.
+ * Creates no entities, so the context's id counters do not move.
+ * @param   graph        - The graph that holds the building
+ * @param   wayId        - The closed way the room is drawn into
+ * @param   line         - The drawn line as [lon, lat] points
+ * @param   snapMetres   - Distance in metres at which a crossing reuses a vertex of the outline
+ * @param   extendMetres - How far the line is extended past each end
+ * @return  The new way's ring, closed, or the refusal
+ */
+export function splitOffPreview(
+  graph: Graph,
+  wayId: string,
+  line: Loc[],
+  snapMetres = 0.3,
+  extendMetres = 0.5,
+): { ring: Loc[] } | { refused: CutRefusal } {
+  const found = splitOffAnalysis(graph, wayId, line, snapMetres, extendMetres)
+  if ('refused' in found) return found
+  return { ring: closed(smallerRing(found).map((slot) => slot.loc)) }
+}
+
+/**
+ * The analysis of a split-off: the outline's checks, then the drawn line extended past both ends, then the usual
+ * analysis of the extended line. Creates no entities and does not change the graph.
+ * @param   graph        - The graph that holds the way
+ * @param   wayId        - The closed way the room is drawn into
+ * @param   line         - The drawn line as [lon, lat] points
+ * @param   snap         - Snapping distance in metres
+ * @param   extendMetres - How far the line is extended past each end
+ * @return  The analysis, or the refusal
+ */
+function splitOffAnalysis(
+  graph: Graph,
+  wayId: string,
+  line: Loc[],
+  snap: number,
+  extendMetres: number,
+): Analysis | { refused: CutRefusal } {
+  const found = outlineOf(graph, wayId, snap)
+  if ('refused' in found) return found
+  const extended = extendedLine(line, found.frame, extendMetres)
+  if (!extended) return refuse('crossings')
+  const analysis = analyse(graph, wayId, extended, snap)
+  if ('refused' in analysis) return analysis
+  // a hole of the building (a courtyard) inside the room would be covered by it: the room is refused
+  const room = smallerRing(analysis).map((slot) => slot.p)
+  for (const member of analysis.relation?.membersByRole('inner') ?? []) {
+    const hole = member.type === 'way' ? closedWay(graph, member.id) : undefined
+    const probe = hole ? locsOf(graph, hole.nodes.slice(0, 1)) : undefined
+    if (probe && inPolygon(toMetres(found.frame, item(probe, 0)), room))
+      return refuse('through_hole')
+  }
+  return analysis
+}
+
+/**
+ * The drawn line with its first point moved back along its first segment and its last point moved on along its last
+ * segment, so that the line clearly crosses the outline even when an end was snapped exactly onto it. Repeated points
+ * are dropped first, as the analysis does. Works in the outline's local metres.
+ * @param   line   - The drawn line as [lon, lat] points
+ * @param   frame  - The outline's frame
+ * @param   extend - Distance in metres to move each end
+ * @return  The extended line as [lon, lat] points, or `undefined` when fewer than two distinct points remain
+ */
+function extendedLine(line: Loc[], frame: Frame, extend: number): Loc[] | undefined {
+  const locs: Loc[] = []
+  const pts: Pt[] = []
+  for (const loc of line) {
+    const p = toMetres(frame, loc)
+    if (pts.length === 0 || distance(item(pts, pts.length - 1), p) > EPS) {
+      pts.push(p)
+      locs.push(loc)
+    }
+  }
+  if (pts.length < 2) return undefined
+  const last = pts.length - 1
+  const first = beyond(item(pts, 1), item(pts, 0), extend)
+  const end = beyond(item(pts, last - 1), item(pts, last), extend)
+  return [toLoc(frame, first), ...locs.slice(1, -1), toLoc(frame, end)]
+}
+
+/**
+ * The point a distance beyond `to`, on the line from `from` through `to`.
+ * @param   from   - A point before `to` on the line (not the same as `to`)
+ * @param   to     - The point to move beyond
+ * @param   metres - Distance to move, in metres
+ * @return  The point `metres` past `to`, away from `from`
+ */
+function beyond(from: Pt, to: Pt, metres: number): Pt {
+  const d = sub(to, from)
+  const l = Math.hypot(d.x, d.y)
+  return { x: to.x + (d.x / l) * metres, y: to.y + (d.y / l) * metres }
+}
+
+/**
+ * The smaller of the two rings of an analysis: the piece a split-off cuts off.
+ * @param   found - The analysis
+ * @return  The ring with the smaller area (the first one on a tie)
+ */
+function smallerRing(found: Analysis): Slot[] {
+  const areaA = Math.abs(signedArea(found.ringA.map((slot) => slot.p)))
+  const areaB = Math.abs(signedArea(found.ringB.map((slot) => slot.p)))
+  return areaA <= areaB ? found.ringA : found.ringB
 }
 
 /** The outline of a way that can be cut, before any line: its nodes, their positions and their metres */
@@ -443,6 +608,7 @@ function analyse(
     ringB,
     chord: [slotA, ...mid, slotB],
     created: [...edgeSlots.map((e) => e.slot), ...mid],
+    seq,
   }
 }
 

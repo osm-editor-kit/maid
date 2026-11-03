@@ -95,5 +95,29 @@
   "resize_annotation": "{count} objetos redimensionados",
   "resize_refused_incomplete": "No está cargado por completo, así que no se puede cambiar su tamaño.",
   "resize_refused_too_thin": "Es demasiado estrecho: una línea recta no tiene anchura que estirar.",
-  "resize_refused_too_large": "No se ve lo suficiente. Aleja el mapa para cambiar su tamaño."
+  "resize_refused_too_large": "No se ve lo suficiente. Aleja el mapa para cambiar su tamaño.",
+  "room_label": "Dibujar una habitación",
+  "room_text": "Habitación",
+  "room_description": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Toca una pared del edificio, luego cada esquina de la habitación y al final otra vez una pared. Toca otra vez la última esquina para cerrar la habitación a lo largo de la guía.",
+        "input=*": "Haz clic en una pared del edificio, luego en cada esquina de la habitación y al final otra vez en una pared. Intro cierra la habitación a lo largo de la guía. Mayús: pasos de 45°, Mayús+Alt: pasos de 10°. Esc: cancelar."
+      }
+    }
+  ],
+  "room_select_building": "Dibujar una habitación: primero selecciona un edificio",
+  "room_annotation": "Habitación dibujada",
+  "room_click_wall": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Toca una pared del edificio para empezar la habitación",
+        "input=*": "Haz clic en una pared del edificio para empezar la habitación"
+      }
+    }
+  ]
 }

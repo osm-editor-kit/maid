@@ -37,6 +37,7 @@ const CHECKS = [
   'way-table',
   'reroute',
   'rectangle',
+  'room',
   'angle-snap',
   'merge',
   'cut',
@@ -60,6 +61,7 @@ const MODULE_CHECKS = new Set<CheckName>([
   'way-table',
   'reroute',
   'rectangle',
+  'room',
   'angle-snap',
   'merge',
   'cut',
@@ -96,6 +98,8 @@ const RUNS: Run[] = [
   { name: 'resize', check: 'resize', only: ['parking', 'indoor'] },
   // long press on a touch screen: the Area dropdown, the edit menu, Shift while drawing (it needs the rectangle tool)
   { name: 'touch', check: 'touch', only: ['parking', 'indoor'] },
+  // the room tool of module-shapes, on in the indoor app: a room drawn into a building on open ground
+  { name: 'room', check: 'room', only: ['indoor'] },
   // the level mode of module-levels, on in the indoor app, on the indoor scene (Berlin Hauptbahnhof)
   { name: 'levels', check: 'levels', scene: 'indoor', only: ['indoor'] },
   // module-osmchange, on in the bicycle app: an osmChange file merged with the mock and its hand-written history
@@ -135,6 +139,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   display: { maid: 12, bicycle: 12, parking: 12, indoor: 12 },
   touch: { maid: 0, bicycle: 0, parking: 14, indoor: 14 },
   levels: { maid: 0, bicycle: 0, parking: 0, indoor: 34 },
+  room: { maid: 0, bicycle: 0, parking: 0, indoor: 21 },
   menu: { maid: 16, bicycle: 16, parking: 16, indoor: 16 },
   'merge-polygon': { maid: 23, bicycle: 23, parking: 23, indoor: 23 },
   favourites: { maid: 13, bicycle: 13, parking: 13, indoor: 13 },

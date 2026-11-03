@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { levelState } from './shown.ts'
+import { levelState, onEveryLevel } from './shown.ts'
 
 describe('levelState', () => {
   test('on level 4, 3 to 5 stay in view, the rest is hidden', () => {
@@ -18,5 +18,18 @@ describe('levelState', () => {
       'shown',
       'shown',
     ])
+  })
+})
+
+describe('onEveryLevel', () => {
+  test('is true for a building or building part without any level key', () => {
+    expect(onEveryLevel({ building: 'yes' })).toBe(true)
+    expect(onEveryLevel({ 'building:part': 'yes' })).toBe(true)
+  })
+  test('is false with a level key, for building=no and for other features', () => {
+    expect(onEveryLevel({ building: 'yes', min_level: '0', max_level: '3' })).toBe(false)
+    expect(onEveryLevel({ building: 'yes', level: '0' })).toBe(false)
+    expect(onEveryLevel({ building: 'no' })).toBe(false)
+    expect(onEveryLevel({ indoor: 'room' })).toBe(false)
   })
 })

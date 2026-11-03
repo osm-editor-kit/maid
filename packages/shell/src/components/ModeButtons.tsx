@@ -15,8 +15,9 @@ import {
   toolButtonClass,
 } from '@osm-editor-kit/maid-ui'
 import { Fragment, useRef, useState, type ReactNode } from 'react'
-import { areaToolKeys } from '../drawing'
+import { areaToolKeys, isMenuTool } from '../drawing'
 import { LongPress } from '../long-press'
+import { useSelection } from '../selection'
 import { useEngine, useShell } from '../shell-context'
 import { FavouritesButton } from './FavouritesButton'
 
@@ -57,8 +58,11 @@ function addModes(): {
 export function ModeButtons() {
   const { editor, engine } = useShell()
   const mode = useEngine((e) => e.mode)
-  // the drawing tools that modules add: the Area button gets a dropdown when there are any (ADR 0011, hook 3)
-  const drawTools = useExtensionPoint(editor, 'draw.tool')
+  // the drawing tools that modules add: the Area button gets a dropdown when there are any (ADR 0011, hook 3), and a
+  // tool with `placement: 'button'` gets a button of its own after it
+  const allTools = useExtensionPoint(editor, 'draw.tool')
+  const drawTools = allTools.filter(isMenuTool)
+  const buttonTools = allTools.filter((tool) => !isMenuTool(tool))
   // the dropdown is open by its chevron, or by a long press on the Area button (touch, or a held mouse button)
   const [areaMenuOpen, setAreaMenuOpen] = useState(false)
   const [areaPress] = useState(() => new LongPress())
@@ -119,7 +123,39 @@ export function ModeButtons() {
           </Fragment>
         )
       })}
+      {buttonTools.map((tool) => (
+        <DrawToolButton key={tool.id} tool={tool} />
+      ))}
     </ToolGroup>
+  )
+}
+
+/**
+ * A drawing tool with a button of its own: disabled, with the reason as its tooltip, while the selection does not let it
+ * start; pressed while its mode is on, and a click then ends it. It starts with the selection of the moment.
+ */
+function DrawToolButton(props: { tool: DrawToolItem }) {
+  const { tool } = props
+  const { engine } = useShell()
+  const { ids: selected } = useSelection()
+  const moduleId = useEngine((e) => e.moduleMode?.id)
+  const underway = moduleId === tool.id
+  const reason = underway ? undefined : tool.unavailable?.(selected)
+  const Icon = tool.icon
+  return (
+    <ToolButton
+      label={reason ?? tool.label()}
+      description={reason ? undefined : tool.description?.()}
+      text={tool.text?.()}
+      collapseLabel
+      icon={Icon ? <Icon /> : undefined}
+      disabled={reason !== undefined}
+      pressed={underway}
+      onClick={() => {
+        if (underway) engine.exitModuleMode(tool.id)
+        else tool.start(engine, selected)
+      }}
+    />
   )
 }
 

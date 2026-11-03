@@ -95,5 +95,29 @@
   "resize_annotation": "{count} objets redimensionnés",
   "resize_refused_incomplete": "Il n'est pas entièrement chargé, il ne peut donc pas être redimensionné.",
   "resize_refused_too_thin": "Il est trop étroit : une ligne droite n'a pas de largeur à étirer.",
-  "resize_refused_too_large": "Une trop petite partie est visible. Dézoomez pour le redimensionner."
+  "resize_refused_too_large": "Une trop petite partie est visible. Dézoomez pour le redimensionner.",
+  "room_label": "Dessiner une pièce",
+  "room_text": "Pièce",
+  "room_description": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Touchez un mur du bâtiment, puis chaque coin de la pièce, puis de nouveau un mur. Touchez encore le dernier coin pour fermer la pièce le long du guide.",
+        "input=*": "Cliquez sur un mur du bâtiment, puis sur chaque coin de la pièce, puis de nouveau sur un mur. Entrée ferme la pièce le long du guide. Maj : pas de 45°, Maj+Alt : pas de 10°. Échap : annuler."
+      }
+    }
+  ],
+  "room_select_building": "Dessiner une pièce : sélectionnez d'abord un bâtiment",
+  "room_annotation": "Pièce dessinée",
+  "room_click_wall": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Touchez un mur du bâtiment pour commencer la pièce",
+        "input=*": "Cliquez sur un mur du bâtiment pour commencer la pièce"
+      }
+    }
+  ]
 }

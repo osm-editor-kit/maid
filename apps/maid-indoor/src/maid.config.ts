@@ -18,6 +18,7 @@ import {
   angleSnap,
   cutArea,
   divideArea,
+  drawRoom,
   mergeAreas,
   rectangle,
   resize,
@@ -102,6 +103,9 @@ function editorConfig(config: Config) {
     angleSnap({ lengths: true }),
     // the Area button's "Rectangle" (key 33) draws one with three clicks,
     rectangle(),
+    // the button "Room" beside it, on while one building is selected: a room drawn into it from wall to wall,
+    // tagged indoor=room on the level being edited (Tobias, 2026-11-03)
+    drawRoom(),
     // the edit menu merges two areas into one outline,
     mergeAreas(),
     // cuts an area along a drawn line,

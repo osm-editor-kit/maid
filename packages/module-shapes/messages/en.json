@@ -95,5 +95,29 @@
   "resize_annotation": "Resized {count} features",
   "resize_refused_incomplete": "Not all of it is loaded, so it cannot be resized.",
   "resize_refused_too_thin": "It is too thin: a straight line has no width to stretch.",
-  "resize_refused_too_large": "Not enough of it is visible. Zoom out to resize it."
+  "resize_refused_too_large": "Not enough of it is visible. Zoom out to resize it.",
+  "room_label": "Draw a room",
+  "room_text": "Room",
+  "room_description": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tap a wall of the building, then each corner of the room, then a wall again. Tap the last corner again to end the room along the guide.",
+        "input=*": "Click a wall of the building, then each corner of the room, then a wall again. Enter ends the room along the guide. Shift: 45° steps, Shift+Alt: 10° steps. Escape: cancel."
+      }
+    }
+  ],
+  "room_select_building": "Draw a room: select one building first",
+  "room_annotation": "Drew a room",
+  "room_click_wall": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tap a wall of the building to start the room",
+        "input=*": "Click a wall of the building to start the room"
+      }
+    }
+  ]
 }
