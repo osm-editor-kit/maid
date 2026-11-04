@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { arrowColour, onewayOf, sidedOf, SIDE_KINDS } from './direction'
+import { arrowColour, onewayOf, sidedOf, SIDE_KINDS, arrowPadding, sideIconSize } from './direction'
 
 describe('onewayOf (iD isOneWay, isOneWayBackwards, isBiDirectional)', () => {
   test('oneway=yes goes along the way', () => {
@@ -126,5 +126,21 @@ describe('lifecycle prefixes on sided keys (iD sidednessIdentifier)', () => {
 
   test('a prefix that is not a lifecycle prefix is not stripped', () => {
     expect(sidedOf({ 'foo:barrier': 'kerb' })).toBeUndefined()
+  })
+})
+
+describe('the collision boxes of the markers', () => {
+  test("an arrow's box is a square at either height, so it holds the arrow at every angle", () => {
+    for (const height of [6, 8]) {
+      const [top, right, bottom, left] = arrowPadding(height)
+      expect(13 + left + right).toBe(height + top + bottom)
+    }
+  })
+
+  test('an icon is one marker long and reaches as far as the marker on both sides of the line', () => {
+    // a cliff's triangle: 1 unit (4.5 px) off the line at its apex, 2 units long
+    expect(sideIconSize(SIDE_KINDS.natural!)).toEqual({ width: 10, height: 10 })
+    // a barrier's: from 1 to 2 units off the line
+    expect(sideIconSize(SIDE_KINDS.barrier!)).toEqual({ width: 10, height: 19 })
   })
 })

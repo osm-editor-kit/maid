@@ -1,7 +1,6 @@
 /**
- * The images of the direction arrows and side markers, drawn in code (no image files). They are
- * line patterns (layers.ts): one marker per image, the image as wide as the spacing and as high
- * as the layer's line-width. Colours are not tinted, so every colour has its own image.
+ * The images of the direction arrows and side markers, drawn in code (no image files): symbol icons of one
+ * marker each (direction.ts). Colours are not tinted, so every colour has its own image.
  *
  * Imperative on purpose: MapLibre has no declarative way to give a style generated images, and
  * an image has to be in place before a tile is laid out, or the tile never shows it. This is the
@@ -13,14 +12,18 @@ import {
   ARROW_COLOURS,
   ARROW_HEIGHT,
   ARROW_SPACING,
+  ARROW_WIDTH,
   arrowImageId,
+  KEEPOUT_IMAGE,
+  KEEPOUT_SIZE,
   parseArrowImageId,
   SELECTED_ARROW_HEIGHT,
   SELECTED_ARROW_IMAGE,
-  SIDE_HEIGHT,
+  SELECTED_ARROW_PATTERN,
   SIDE_IMAGE_PREFIX,
   SIDE_KINDS,
-  SIDE_SPACING,
+  SIDE_UNIT,
+  sideIconSize,
   type ArrowShape,
   type SideKind,
 } from './direction'
@@ -32,10 +35,6 @@ const RATIO = 2
 /** iD's arrow is drawn in a 10 x 5 box that is 12 x 6 px on the map (markers in strokeWidth units) */
 const ARROW_D = 'M 6,3 L 0,3 L 0,2 L 6,2 L 5,0 L 10,2.5 L 5,5 z'
 const ARROW_UNIT = 1.2
-/** The arrow's box starts this far from the image's left edge: the arrow is centred in its spacing */
-const ARROW_X = (ARROW_SPACING - 10 * ARROW_UNIT) / 2
-/** Side markers: one unit is 4.5 px on the map (iD: markerWidth 1.5 of a 6 px stroke, 2 units wide) */
-const SIDE_UNIT = 4.5
 /** The viewfield wedge (iD defs.ts `ideditor-viewfield-marker`): a 16-unit box, 1.5 px a unit, so 24 px on the map */
 const CONE_D = 'M 6,14 C 8,13.4 8,13.4 10,14 L 16,3 C 12,0 4,0 0,3 z'
 const CONE_UNIT = 1.5
@@ -49,12 +48,14 @@ function canvas(width: number, height: number) {
 }
 
 /**
- * An arrow, in the given colours, at `offsetY` from the top of the image. `backward` is the
- * arrow mirrored in its box, so it points against the way; `both` draws both on the same place.
+ * An arrow, in the given colours, centred in an image `width` px wide, at `offsetY` from its top.
+ * `backward` is the arrow mirrored in its box, so it points against the way; `both` draws both on
+ * the same place.
  */
 function drawArrow(
   ctx: CanvasRenderingContext2D,
   shape: ArrowShape,
+  width: number,
   offsetY: number,
   fill: string,
   stroke: string,
@@ -67,8 +68,10 @@ function drawArrow(
   ctx.lineWidth = strokeWidth
   ctx.lineJoin = 'round'
   const pieces = shape === 'forward' ? [false] : shape === 'backward' ? [true] : [false, true]
+  // the arrow's box starts this far from the image's left edge
+  const left = (width - 10 * ARROW_UNIT) / 2
   for (const mirrored of pieces) {
-    const x = mirrored ? ARROW_X + 10 * ARROW_UNIT : ARROW_X
+    const x = mirrored ? left + 10 * ARROW_UNIT : left
     ctx.setTransform(mirrored ? -s : s, 0, 0, s, RATIO * x, RATIO * offsetY)
     ctx.fill(path)
     ctx.stroke(path)
@@ -77,30 +80,42 @@ function drawArrow(
 
 /** The arrow of a one-way line, in the colour of its `ac` (or the default) */
 function arrowImage(shape: ArrowShape, colour: string) {
-  const el = canvas(ARROW_SPACING, ARROW_HEIGHT)
+  const el = canvas(ARROW_WIDTH, ARROW_HEIGHT)
   const ctx = el.getContext('2d')!
-  drawArrow(ctx, shape, 0, colour, colour, 0.3)
-  return { data: ctx.getImageData(0, 0, el.width, el.height), options: { pixelRatio: RATIO } }
-}
-
-/** The arrow of the selected way: white with a dark outline, so it reads on the selection's glow */
-function selectedArrowImage() {
-  const el = canvas(ARROW_SPACING, SELECTED_ARROW_HEIGHT)
-  const ctx = el.getContext('2d')!
-  drawArrow(ctx, 'forward', (SELECTED_ARROW_HEIGHT - ARROW_HEIGHT) / 2, '#fff', '#333', 0.5)
+  drawArrow(ctx, shape, ARROW_WIDTH, 0, colour, colour, 0.3)
   return { data: ctx.getImageData(0, 0, el.width, el.height), options: { pixelRatio: RATIO } }
 }
 
 /**
- * A side marker in colour. Units run along the way (x) and to its right (y, down on screen when
- * the way runs east), with the line at the middle of the image.
+ * The arrow of the selected way: white with a dark outline, so it reads on the selection's glow.
+ * `width` is ARROW_WIDTH for the icon, ARROW_SPACING for the line pattern.
+ */
+function selectedArrowImage(width: number) {
+  const el = canvas(width, SELECTED_ARROW_HEIGHT)
+  const ctx = el.getContext('2d')!
+  drawArrow(ctx, 'forward', width, (SELECTED_ARROW_HEIGHT - ARROW_HEIGHT) / 2, '#fff', '#333', 0.5)
+  return { data: ctx.getImageData(0, 0, el.width, el.height), options: { pixelRatio: RATIO } }
+}
+
+/** The vertices' keep-out square: transparent, only its size counts (layers.ts arrow-keepout) */
+function keepoutImage() {
+  const el = canvas(KEEPOUT_SIZE, KEEPOUT_SIZE)
+  const ctx = el.getContext('2d')!
+  return { data: ctx.getImageData(0, 0, el.width, el.height), options: { pixelRatio: RATIO } }
+}
+
+/**
+ * A side marker in colour, one marker in its icon. Units run along the way (x) and to its right (y),
+ * with the line at the middle of the image.
  */
 function sideImage(kind: SideKind) {
-  const el = canvas(SIDE_SPACING, SIDE_HEIGHT)
+  const { width, height } = sideIconSize(kind)
+  const el = canvas(width, height)
   const ctx = el.getContext('2d')!
   const s = RATIO * SIDE_UNIT
-  // the line runs through the middle of the canvas, and the marker through the middle of its spacing
-  ctx.setTransform(s, 0, 0, s, (RATIO * SIDE_SPACING) / 2, (RATIO * SIDE_HEIGHT) / 2)
+  // the line runs through the middle of the canvas. MapLibre lays an icon on a line with its top on the right-hand
+  // side, so the marker is mirrored (units to the right are up)
+  ctx.setTransform(s, 0, 0, -s, (RATIO * width) / 2, (RATIO * height) / 2)
   ctx.fillStyle = kind.color
   ctx.strokeStyle = kind.stroke ?? 'transparent'
   ctx.lineWidth = 0.1
@@ -151,7 +166,11 @@ function imageFor(id: string) {
   if (arrow) {
     image = arrowImage(arrow.shape, arrow.colour)
   } else if (id === SELECTED_ARROW_IMAGE) {
-    image = selectedArrowImage()
+    image = selectedArrowImage(ARROW_WIDTH)
+  } else if (id === SELECTED_ARROW_PATTERN) {
+    image = selectedArrowImage(ARROW_SPACING)
+  } else if (id === KEEPOUT_IMAGE) {
+    image = keepoutImage()
   } else if (id.startsWith(SIDE_IMAGE_PREFIX)) {
     const spec = SIDE_KINDS[id.slice(SIDE_IMAGE_PREFIX.length)]
     if (spec) image = sideImage(spec)
@@ -164,7 +183,7 @@ function imageFor(id: string) {
 
 /** The images that are built ahead: every arrow in the colours the layers use, every side marker */
 function preloadIds() {
-  const ids: string[] = [SELECTED_ARROW_IMAGE]
+  const ids: string[] = [SELECTED_ARROW_IMAGE, SELECTED_ARROW_PATTERN, KEEPOUT_IMAGE]
   for (const colour of ARROW_COLOURS)
     ids.push(arrowImageId(1, colour), arrowImageId(-1, colour), arrowImageId(2, colour))
   for (const kind of Object.keys(SIDE_KINDS)) ids.push(`${SIDE_IMAGE_PREFIX}${kind}`)

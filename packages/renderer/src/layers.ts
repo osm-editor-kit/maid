@@ -10,12 +10,16 @@ import type {
 } from 'maplibre-gl'
 import {
   ARROW_DEFAULT_COLOUR,
-  ARROW_HEIGHT,
   ARROW_IMAGE_PREFIX,
+  ARROW_HEIGHT,
+  ARROW_SPACING,
+  arrowPadding,
+  KEEPOUT_IMAGE,
+  KEEPOUT_SIZE,
   SELECTED_ARROW_HEIGHT,
   SELECTED_ARROW_IMAGE,
-  SIDE_HEIGHT,
   SIDE_IMAGE_PREFIX,
+  SIDE_SPACING,
 } from './direction'
 import { CONE_IMAGE, CONE_SLOTS, CONE_ZOOM } from './viewfield'
 
@@ -405,6 +409,9 @@ function floorOf(layer: LayerSpecification) {
  * the floor the data layer draws the selection, so the twin stops there (its own maxzoom still applies). With
  * `selectionOnly` the data layers are hidden, so the twin draws at every zoom its layer has.
  */
+/** The layers of the arrows and side markers: drawn from OSM 16 only, the selection's copies too */
+const DIRECTION_LAYERS = new Set(['line-oneway', 'line-sided', 'area-sided'])
+
 function selectionTwin(
   layer: LayerSpecification,
   source: string,
@@ -422,6 +429,8 @@ function selectionTwin(
     ...twin,
     id: `${layer.id}--select`,
     source: SELECT_OF[source],
+    // the direction markers keep their own lower bound (OSM 16, as iD); the others draw the selection at every zoom
+    ...(DIRECTION_LAYERS.has(layer.id) ? { minzoom: layer.minzoom } : {}),
     maxzoom,
     // nothing selected: hidden, so its source is not used and asks for no tiles (see LayerOptions.selectTwins)
     ...(shown ? {} : { layout: { ...twin.layout, visibility: 'none' as const } }),
@@ -691,34 +700,104 @@ function buildMainLayers(options: LayerOptions) {
       ['coalesce', ['get', 'ac'], ARROW_DEFAULT_COLOUR],
     ]
     const side: ExpressionSpecification = ['concat', SIDE_IMAGE_PREFIX, ['get', 'side']]
+    // The arrows and side markers are symbols along the line (direction.ts): MapLibre leaves out the one that would
+    // cover a vertex, since the keep-out squares below are placed first. They block nothing themselves.
+    const markerLayout = {
+      'symbol-placement': 'line',
+      'symbol-spacing': ARROW_SPACING,
+      'icon-rotation-alignment': 'map',
+      'icon-allow-overlap': false,
+      'icon-ignore-placement': true,
+      'icon-padding': 0,
+    } as const
     layers.push(
       {
         id: 'line-oneway',
-        type: 'line',
+        type: 'symbol',
         source: SOURCES.lines,
         filter: ['has', 'oneway'],
         minzoom: 15,
-        layout: { 'line-cap': 'butt', visibility: shownIn(!wire) },
-        paint: { 'line-width': ARROW_HEIGHT, 'line-pattern': arrow },
+        layout: {
+          ...markerLayout,
+          'icon-image': arrow,
+          'icon-padding': arrowPadding(ARROW_HEIGHT),
+          visibility: shownIn(!wire),
+        },
+      },
+      // Side markers; closed barriers and coastline rings have theirs on the area's outline (build.ts areaFeature).
+      // All give way, also embankments that start 7 px off the line: a vertex with an icon reaches 9 px.
+      ...(
+        [
+          ['line', SOURCES.lines],
+          ['area', SOURCES.areas],
+        ] as const
+      ).map(
+        ([kind, source]): LayerSpecification => ({
+          id: `${kind}-sided`,
+          type: 'symbol',
+          source,
+          filter: ['has', 'side'],
+          minzoom: 15,
+          layout: {
+            ...markerLayout,
+            'symbol-spacing': SIDE_SPACING,
+            'icon-image': side,
+            visibility: shownIn(!wire),
+          },
+        }),
+      ),
+      // The direction of the selected highway (engine.ts refreshShape): white arrows with a dark outline, on the
+      // selection's glow, under the vertices. iD does not show a way's direction; Maid does, as the product owner asked.
+      {
+        id: 'highlight-direction',
+        type: 'symbol',
+        source: SOURCES.highlight,
+        filter: ['==', ['get', 'state'], 'direction'],
+        minzoom: 15,
+        layout: {
+          ...markerLayout,
+          'icon-image': SELECTED_ARROW_IMAGE,
+          'icon-padding': arrowPadding(SELECTED_ARROW_HEIGHT),
+        },
+      },
+    )
+
+    // Keep-out squares on the vertices (direction.ts KEEPOUT_IMAGE): never seen, but in the collision index, so the
+    // arrows above are left out where they would cover a vertex. The nodes always win (Tobias, 2026-10-28). Above the
+    // arrows, so they are placed first; under the labels, so the labels are placed before them and are not moved.
+    // A square is as wide as the vertex's circle with its outline (vertex, highlight-vertex). Layout cannot read
+    // feature state, so a vertex hidden by it (the original of one being dragged) keeps its square: the arrows leave
+    // a gap at its old place until the drag ends.
+    const keepout = (px: number) => px / KEEPOUT_SIZE
+    const keepoutLayout = {
+      'icon-image': KEEPOUT_IMAGE,
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': false,
+      'icon-padding': 0,
+      'icon-rotation-alignment': 'viewport',
+    } as const
+    layers.push(
+      {
+        id: 'arrow-keepout-vertex',
+        type: 'symbol',
+        source: SOURCES.vertices,
+        layout: {
+          ...keepoutLayout,
+          'icon-size': [
+            'step',
+            ['zoom'],
+            keepout(7),
+            16,
+            ['case', ['has', 'icon'], keepout(18), keepout(9)],
+          ],
+        },
       },
       {
-        id: 'line-sided',
-        type: 'line',
-        source: SOURCES.lines,
-        filter: ['has', 'side'],
-        minzoom: 15,
-        layout: { 'line-cap': 'butt', visibility: shownIn(!wire) },
-        paint: { 'line-width': SIDE_HEIGHT, 'line-pattern': side },
-      },
-      // closed barriers and coastline rings: their outline is the area's (build.ts areaFeature)
-      {
-        id: 'area-sided',
-        type: 'line',
-        source: SOURCES.areas,
-        filter: ['has', 'side'],
-        minzoom: 15,
-        layout: { 'line-cap': 'butt', visibility: shownIn(!wire) },
-        paint: { 'line-width': SIDE_HEIGHT, 'line-pattern': side },
+        id: 'arrow-keepout-shape',
+        type: 'symbol',
+        source: SOURCES.highlight,
+        filter: ['all', ['==', ['geometry-type'], 'Point'], ['==', ['get', 'state'], 'shape']],
+        layout: { ...keepoutLayout, 'icon-size': ['step', ['zoom'], keepout(7), 16, keepout(9)] },
       },
     )
   }
@@ -819,20 +898,6 @@ function buildMainLayers(options: LayerOptions) {
       'circle-stroke-width': 1,
     },
   })
-
-  // The direction of the selected highway (engine.ts refreshShape): white arrows with a dark outline,
-  // on the selection's glow, under the vertices so that no arrow covers a vertex's icon. iD does not show a way's direction; Maid does, as the product owner asked.
-  if (options.icons) {
-    layers.push({
-      id: 'highlight-direction',
-      type: 'line',
-      source: SOURCES.highlight,
-      filter: ['==', ['get', 'state'], 'direction'],
-      minzoom: 15,
-      layout: { 'line-cap': 'butt' },
-      paint: { 'line-width': SELECTED_ARROW_HEIGHT, 'line-pattern': SELECTED_ARROW_IMAGE },
-    })
-  }
 
   // From OSM zoom 17 iD draws a tagged vertex with a preset icon as a larger disc with the icon in it.
   const hasIcon: ExpressionSpecification = ['has', 'icon']
