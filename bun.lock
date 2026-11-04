@@ -26,6 +26,7 @@
         "@osm-editor-kit/maid-module-notes": "workspace:*",
         "@osm-editor-kit/maid-module-street-imagery": "workspace:*",
         "@osm-editor-kit/maid-module-surface": "workspace:*",
+        "@osm-editor-kit/maid-module-tasks": "workspace:*",
         "@osm-editor-kit/maid-module-turn-restrictions": "workspace:*",
         "@osm-editor-kit/maid-operations": "workspace:*",
         "@osm-editor-kit/maid-presets": "workspace:*",
@@ -59,6 +60,7 @@
         "@osm-editor-kit/maid-module-reroute": "workspace:*",
         "@osm-editor-kit/maid-module-street-imagery": "workspace:*",
         "@osm-editor-kit/maid-module-surface": "workspace:*",
+        "@osm-editor-kit/maid-module-tasks": "workspace:*",
         "@osm-editor-kit/maid-module-traffic-signs": "workspace:*",
         "@osm-editor-kit/maid-module-turn-restrictions": "workspace:*",
         "@osm-editor-kit/maid-module-way-table": "workspace:*",
@@ -93,6 +95,7 @@
         "@osm-editor-kit/maid-module-notes": "workspace:*",
         "@osm-editor-kit/maid-module-shapes": "workspace:*",
         "@osm-editor-kit/maid-module-street-imagery": "workspace:*",
+        "@osm-editor-kit/maid-module-tasks": "workspace:*",
         "@osm-editor-kit/maid-operations": "workspace:*",
         "@osm-editor-kit/maid-presets": "workspace:*",
         "@osm-editor-kit/maid-renderer": "workspace:*",
@@ -124,6 +127,7 @@
         "@osm-editor-kit/maid-module-parking": "workspace:*",
         "@osm-editor-kit/maid-module-shapes": "workspace:*",
         "@osm-editor-kit/maid-module-street-imagery": "workspace:*",
+        "@osm-editor-kit/maid-module-tasks": "workspace:*",
         "@osm-editor-kit/maid-operations": "workspace:*",
         "@osm-editor-kit/maid-presets": "workspace:*",
         "@osm-editor-kit/maid-renderer": "workspace:*",
@@ -409,7 +413,7 @@
         "@osm-editor-kit/maid-renderer": "workspace:*",
         "@osm-editor-kit/maid-ui": "workspace:*",
         "@osm-editor-kit/street-imagery": "1.0.0",
-        "@osm-editor-kit/street-imagery-react": "1.0.0",
+        "@osm-editor-kit/street-imagery-react": "1.1.0",
         "@panoramax/web-viewer": "^5",
         "@tanstack/react-query": "^5.105.0",
         "mapillary-js": "^4",
@@ -440,6 +444,32 @@
       },
       "devDependencies": {
         "@types/react": "^19.3.0",
+      },
+    },
+    "packages/module-tasks": {
+      "name": "@osm-editor-kit/maid-module-tasks",
+      "version": "0.0.0",
+      "dependencies": {
+        "@heroicons/react": "^2.2.0",
+        "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-i18n": "workspace:*",
+        "@osm-editor-kit/maid-model": "workspace:*",
+        "@osm-editor-kit/maid-operations": "workspace:*",
+        "@osm-editor-kit/maid-osm-prefs": "workspace:*",
+        "@osm-editor-kit/maid-renderer": "workspace:*",
+        "@osm-editor-kit/maid-tasks": "workspace:*",
+        "@osm-editor-kit/maid-ui": "workspace:*",
+        "dexie": "^4.4.0",
+        "react": "^19.2.0",
+        "react-map-gl": "^8.1.3",
+        "zustand": "^5.0.0",
+      },
+      "devDependencies": {
+        "@types/geojson": "^7946.0.16",
+        "@types/react": "^19.3.0",
+        "@types/react-dom": "^19.2.0",
+        "fake-indexeddb": "^6.0.0",
+        "react-dom": "^19.2.0",
       },
     },
     "packages/module-traffic-signs": {
@@ -501,6 +531,10 @@
       "dependencies": {
         "@osm-editor-kit/maid-model": "workspace:*",
       },
+    },
+    "packages/osm-prefs": {
+      "name": "@osm-editor-kit/maid-osm-prefs",
+      "version": "0.0.0",
     },
     "packages/presets": {
       "name": "@osm-editor-kit/maid-presets",
@@ -567,7 +601,7 @@
         "@osm-editor-kit/maid-style": "workspace:*",
         "@osm-editor-kit/maid-ui": "workspace:*",
         "@osm-editor-kit/maid-validation": "workspace:*",
-        "@osm-editor-kit/osm-editor-links": "1.0.0",
+        "@osm-editor-kit/osm-editor-links": "1.0.1",
         "@tanstack/react-hotkeys": "^0.17.0",
         "@tanstack/react-query": "^5.105.0",
         "maplibre-gl": "^6.0.0",
@@ -593,6 +627,13 @@
       "version": "0.0.0",
       "devDependencies": {
         "@openstreetmap/id-tagging-schema": "^7.3.0",
+      },
+    },
+    "packages/tasks": {
+      "name": "@osm-editor-kit/maid-tasks",
+      "version": "0.0.0",
+      "dependencies": {
+        "zod": "4.6.6",
       },
     },
     "packages/traffic-sign-field": {
@@ -817,6 +858,8 @@
 
     "@osm-editor-kit/maid-module-surface": ["@osm-editor-kit/maid-module-surface@workspace:packages/module-surface"],
 
+    "@osm-editor-kit/maid-module-tasks": ["@osm-editor-kit/maid-module-tasks@workspace:packages/module-tasks"],
+
     "@osm-editor-kit/maid-module-traffic-signs": ["@osm-editor-kit/maid-module-traffic-signs@workspace:packages/module-traffic-signs"],
 
     "@osm-editor-kit/maid-module-turn-restrictions": ["@osm-editor-kit/maid-module-turn-restrictions@workspace:packages/module-turn-restrictions"],
@@ -824,6 +867,8 @@
     "@osm-editor-kit/maid-module-way-table": ["@osm-editor-kit/maid-module-way-table@workspace:packages/module-way-table"],
 
     "@osm-editor-kit/maid-operations": ["@osm-editor-kit/maid-operations@workspace:packages/operations"],
+
+    "@osm-editor-kit/maid-osm-prefs": ["@osm-editor-kit/maid-osm-prefs@workspace:packages/osm-prefs"],
 
     "@osm-editor-kit/maid-parking": ["@osm-editor-kit/maid-parking@workspace:apps/maid-parking"],
 
@@ -839,15 +884,15 @@
 
     "@osm-editor-kit/maid-style": ["@osm-editor-kit/maid-style@workspace:packages/style"],
 
+    "@osm-editor-kit/maid-tasks": ["@osm-editor-kit/maid-tasks@workspace:packages/tasks"],
+
     "@osm-editor-kit/maid-ui": ["@osm-editor-kit/maid-ui@workspace:packages/ui"],
 
     "@osm-editor-kit/maid-validation": ["@osm-editor-kit/maid-validation@workspace:packages/validation"],
 
     "@osm-editor-kit/maplibre-editor-layer-index": ["@osm-editor-kit/maplibre-editor-layer-index@1.0.0", "", { "dependencies": { "@types/geojson": "^7946.0.16" }, "peerDependencies": { "maplibre-gl": ">=4", "react": ">=18", "react-map-gl": ">=7.1" }, "optionalPeers": ["maplibre-gl", "react", "react-map-gl"] }, "sha512-vOEdGDfCiXekaAmwsOn82/XS6tUyI8/5xToXLnyxGCOEAvq2wHHoEt3pdSoyjhLUlwp96HvVAOcH8cAdoY9dUg=="],
 
-    "@osm-editor-kit/osm-data": ["@osm-editor-kit/osm-data@1.0.1", "", {}, "sha512-NZgAZLI7kLust1VCdjt2cOogEaBljvfy5n3biIY9nEjM0WNijNIjpXzon5+2eYUodQF+joL043QGFEtH/RXGiw=="],
-
-    "@osm-editor-kit/osm-editor-links": ["@osm-editor-kit/osm-editor-links@1.0.0", "", { "dependencies": { "@osm-editor-kit/osm-data": "^1.0.0" } }, "sha512-W7REI/E9rMMySzhh5ROhr4ZOmemovrcYvOmoa1ktIukg3rnjEMI6dEUbo6aLuLaCXGc/EQbYluOpuktpzNiqlw=="],
+    "@osm-editor-kit/osm-editor-links": ["@osm-editor-kit/osm-editor-links@1.0.1", "", {}, "sha512-qZGjoHLAhSfpVXW9C9RJ6eAGnBLQH4q+vvnujmUuxdBXkBXaHnZcvbIRuSFwKRa672jW9JSvgeCbgBmCiTabZw=="],
 
     "@osm-editor-kit/osm-traffic-sign-field": ["@osm-editor-kit/osm-traffic-sign-field@workspace:packages/traffic-sign-field"],
 
@@ -855,7 +900,7 @@
 
     "@osm-editor-kit/street-imagery": ["@osm-editor-kit/street-imagery@1.0.0", "", { "dependencies": { "@mapbox/vector-tile": "^3.0.0", "@types/geojson": "^7946.0.16", "date-fns": "^4.4.0", "pbf": "^5.1.0" }, "peerDependencies": { "maplibre-gl": "^6" }, "optionalPeers": ["maplibre-gl"] }, "sha512-809xPDBFvU/kOH4xc5gSjaxzF/pTNCehjYltrBP1/C5PIR0IcE/rXXMXQEhS2038lZFeMwMGK30cDxFrMoGAAw=="],
 
-    "@osm-editor-kit/street-imagery-react": ["@osm-editor-kit/street-imagery-react@1.0.0", "", { "peerDependencies": { "@osm-editor-kit/street-imagery": "^1.0.0", "@panoramax/web-viewer": "^5", "@tanstack/react-query": "^5", "mapillary-js": "^4", "maplibre-gl": "^6", "react": "^19", "react-dom": "^19", "react-map-gl": "^8", "zustand": "^5" }, "optionalPeers": ["@panoramax/web-viewer"] }, "sha512-QtmHW26bmRut/OABxeDzjDdkGhGuRFcPJ0CTJrfz2MUKqVlQNn+9beIY6tIBhBsRVFSxR0T//fSJv4mi6MlZ5A=="],
+    "@osm-editor-kit/street-imagery-react": ["@osm-editor-kit/street-imagery-react@1.1.0", "", { "dependencies": { "@types/geojson": "^7946.0.16" }, "peerDependencies": { "@osm-editor-kit/street-imagery": "^1.0.0", "@panoramax/web-viewer": "^5", "@tanstack/react-query": "^5", "mapillary-js": "^4", "maplibre-gl": "^6", "react": "^19", "react-dom": "^19", "react-map-gl": "^8", "zustand": "^5" }, "optionalPeers": ["@panoramax/web-viewer", "mapillary-js"] }, "sha512-h7QdUI8da8qeeOIthnnLUlLlZUecs2odRcloaldqktymjYNoi31kXpyyCnaFDIWJDqW08zu0I3a/m4F0mBpelw=="],
 
     "@osm-editor-kit/surface-smoothness-data": ["@osm-editor-kit/surface-smoothness-data@1.0.0", "", {}, "sha512-QLo9U3qw40j5qKRv36YtEgCl4tfU999WNqka2Afc48njB7rNR9LV0GkpGEQt8Cke+uBkDs04WcmhRl7qyxIWbw=="],
 
@@ -1572,6 +1617,8 @@
     "@bytecodealliance/preview3-shim/@bytecodealliance/preview2-shim": ["@bytecodealliance/preview2-shim@0.25.0", "", { "dependencies": { "@bytecodealliance/jco-node-fs": "0.3.2" } }, "sha512-6ZSDRJ8hJc/febZepzd68z3KzLcOXyCOKtRm8LB2rgAU88xV7ykq6dMb5I4a+sBh1cuV2Yb1159gDzI1q8UsoQ=="],
 
     "@mapbox/polylabel/tinyqueue": ["tinyqueue@1.2.3", "", {}, "sha512-Qz9RgWuO9l8lT+Y9xvbzhPT2efIUIFd69N7eF7tJ9lnQl0iLj1M7peK7IoUGZL9DJHw9XftqLreccfxcQgYLxA=="],
+
+    "@osm-editor-kit/maid-tasks/zod": ["zod@4.6.6", "", {}, "sha512-4UmzQUF5fxvfcYHlbjBmejU+w+hbDnWFx4aS8kBx7nPBHcO2SqPbpAG8snbdg+Xse4pRefR98hgjFgIMCI/UhA=="],
 
     "@panoramax/web-viewer/@maplibre/geojson-vt": ["@maplibre/geojson-vt@6.1.2", "", { "dependencies": { "kdbush": "^4.1.0" } }, "sha512-2ZYhobdAY+y4/P/z1xe0698165LywD0yDdWugdu3NRUrajgVWut+tLkcz7i/RJguMTURwK7gxwmwYMFJbgbQFw=="],
 

@@ -28,7 +28,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.4.0
+          bun-version-file: package.json
       # no bunfig.toml in CI: the shared package store is for local machines
       - run: bun install --frozen-lockfile --config=/dev/null
 

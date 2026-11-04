@@ -12,7 +12,7 @@ Not up for trade-offs. If a task seems to need an exception, stop and ask.
 
 OSM infrastructure is everything the OSMF and the community run for mappers: the API and the development API, tiles, Nominatim, Overpass, taginfo, the wiki.
 
-- **Automated runs** (tests, benchmarks, CI, agent sessions) send **zero** requests to OSM infrastructure, never sign in and never upload. Maid, iD and Rapid read the frozen fixtures of the local mock API (`tools/mock-osm-api`), which rejects writes. The benchmark browser blocks every non-localhost request; under automation (`isAutomated()`) Maid always uses the mock.
+- **Automated runs** (tests, benchmarks, CI, agent sessions) send **zero** requests to OSM infrastructure, never sign in and never upload. Maid, iD and Rapid read the frozen fixtures of the local mock API (`tools/mock-osm-api`), which rejects writes of map data (it keeps user preferences in memory only, for the task progress, [ADR 0013](docs/adr/0013-task-lists-in-user-preferences.md)). The benchmark browser blocks every non-localhost request; under automation (`isAutomated()`) Maid always uses the mock.
 - **Fixtures** are cut once by a person from a bulk extract (`bun run fixtures-build`), not from the editing API, and committed. Regenerating one is a reviewed change. A person may let the orchestrator cut one from a local extract for a named purpose (Tobias, 2026-10-21: the `indoor` scene).
 - **A person** tests against the development server (staging) and OpenStreetMap (production), never an agent. Maid is built to be released for both: `?api=mock|osm|dev` picks the data (the mock is the default in development; a deployed build starts on the editor's first server), and the person logs in to and saves on that server. `osm.servers` in the app's `maid.config.ts` says which servers an editor offers, as iD's `ID_API_CONNECTION`. Decided by Tobias on 2026-10-14.
 - **Environment variables** hold only what each fork sets for itself: the client ids (`VITE_OSM_CLIENT_ID`, `VITE_OSM_DEV_CLIENT_ID` in `apps/<app>/.env.local`; repository variables `OSM_CLIENT_ID`, `OSM_DEV_CLIENT_ID`) and the Pages app and path (`deploy.env`). Client ids are public. Maid is a public PKCE client: no client secret, ever. Never copy ids or secrets from the reference editors.
@@ -29,6 +29,10 @@ OSM infrastructure is everything the OSMF and the community run for mappers: the
 - iD: https://github.com/openstreetmap/iD. Rapid 3: https://github.com/bhousel/Rapid (**never** `facebook/Rapid`). When in doubt, follow iD.
 - Read their code in `.reference/id` and `.reference/rapid`: pinned commits from `bun run refs-setup` (git-ignored). This file names no other location on purpose.
 - **Other repositories are read-only**, wherever they are, `.reference/` included: never edit, commit, push, open or comment on issues and pull requests, or change settings there. Changes we want upstream are drafted here (`docs/upstream/`) and handed to a person.
+
+## Skills
+
+Repo skills live in `.agents/skills/` (linked from `.claude/skills`). `maid-task-file`: the task file Maid opens as a private task list (and a plain GeoJSON as a data layer), for example a list of OSM ways to fix that another project made.
 
 ## Stack
 
@@ -79,6 +83,9 @@ These names are the contract.
 | `bun run bench-routing`                                | The reroute router (`packages/routing`) on the `dense` and `relations` fixtures: graph build and route times, into `reports/routing-bench.json`.                                                                              |
 | `bun run bench-route-analysis [--runs 5]`             | The route overview's analysis and layout (`packages/route-analysis`) on generated routes of 100 to 20,000 ways and on the fixtures' routes, into `reports/route-analysis-bench.json`.                                                    |
 | `bun run bench-validation`                             | Every validation rule on the dense fixture, into `reports/validation-bench.json`.                                                                                                                                             |
+| `bun run tasks-check <file>`                           | A task list file (GeoJSON, `packages/tasks/FORMAT.md`) against the format, into `reports/tasks-check.json`; exits 1 on an error.                                                                                              |
+| `bun run tasks-fixture`                                | Regenerate `fixtures/tasks/small.tasks.geojson` (40 tasks on the small scene, fixed seed). A reviewed change.                                                                                                                 |
+| `bun run tasks-schema`                                 | Regenerate `packages/tasks/task-file.schema.json` from the Zod schema.                                                                                                                                                        |
 | `bun run check-all [--app maid\|bicycle\|parking\|indoor]` | The browser checks below, one after another, against one app; fails on a non-zero exit or too few `ok` lines (table in `tools/checks/check-all.ts`). Writes `reports/check-all-<app>.json`.                                   |
 | `bun run sim-measure [--device "iPhone 16"] [--workers 4,2]` | A person on a Mac with Xcode: Maid's load in the iOS simulator's Safari, timed by the page itself (`packages/shell/src/perf-report.ts`), mock data, no background, into `reports/sim-measure-<app>.json`. `--opener playwright` runs it in Chromium. |
 | `bun run check-config`                                 | Each app's `maid.config.ts` without a browser: modules set up with no network request, extension points, cleanup, presets, unique ports and ids. Writes `reports/config-check.json`.                                          |

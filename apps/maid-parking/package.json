@@ -19,6 +19,7 @@
     "@osm-editor-kit/maid-module-parking": "workspace:*",
     "@osm-editor-kit/maid-module-shapes": "workspace:*",
     "@osm-editor-kit/maid-module-street-imagery": "workspace:*",
+    "@osm-editor-kit/maid-module-tasks": "workspace:*",
     "@osm-editor-kit/maid-operations": "workspace:*",
     "@osm-editor-kit/maid-presets": "workspace:*",
     "@osm-editor-kit/maid-renderer": "workspace:*",

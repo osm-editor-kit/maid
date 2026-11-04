@@ -56,6 +56,7 @@
     "check-reroute": "bun tools/bench/reroute-check.ts",
     "check-route-overview": "bun tools/bench/route-overview-check.ts",
     "check-tags": "bun tools/bench/tags-check.ts",
+    "check-tasks": "bun tools/bench/tasks-check.ts",
     "check-tooltips": "bun tools/bench/tooltips-check.ts",
     "check-touch": "bun tools/bench/touch-check.ts",
     "check-undo": "bun tools/bench/undo.ts",
@@ -85,6 +86,9 @@
     "refs-setup": "bun tools/refs/id/setup.ts && bun tools/refs/rapid/setup.ts && bun tools/refs/copy-sprites.ts",
     "sprites-subset": "bun tools/refs/subset-sprites.ts",
     "style-generate": "bun run --cwd packages/style generate",
+    "tasks-check": "bun packages/tasks/scripts/check.ts",
+    "tasks-fixture": "bun packages/tasks/scripts/fixture.ts",
+    "tasks-schema": "bun packages/tasks/scripts/json-schema.ts",
     "test-run": "bun run i18n-compile && bun test",
     "type-check": "bun run i18n-compile && tsc -b packages/model && tsc --noEmit && tsc --noEmit -p packages/core/tsconfig.test.json"
   },
@@ -97,6 +101,7 @@
     "oxlint-tsgolint": "7.0.2005",
     "typescript": "^7.0.2"
   },
+  "packageManager": "bun@1.4.4",
   "patchedDependencies": {
     "maplibre-gl@6.16.0": "patches/maplibre-gl@6.16.0.patch",
     "@vis.gl/react-maplibre@8.1.3": "patches/@vis.gl%2Freact-maplibre@8.1.3.patch",

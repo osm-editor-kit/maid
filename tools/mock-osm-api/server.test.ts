@@ -229,4 +229,35 @@ describe('an element at a version', () => {
     expect((await get('/s/small/api/0.6/node/364123000/3.json')).status).toBe(404)
     expect((await get('/s/small/api/0.6/way/4394952/22.json')).status).toBe(200)
   })
+  describe('user preferences', () => {
+    const prefs = '/s/small/api/0.6/user/preferences'
+    test('a key is set, read, listed and deleted; reset empties all', async () => {
+      await get('/prefs/reset')
+      expect((await get(`${prefs}/maid.tasks.x`, { method: 'PUT', body: 'abc' })).status).toBe(200)
+      expect(await (await get(`${prefs}/maid.tasks.x`)).text()).toBe('abc')
+      expect((await (await get(`${prefs}.json`)).json()).preferences).toEqual({
+        'maid.tasks.x': 'abc',
+      })
+      expect((await get(`${prefs}/maid.tasks.x`, { method: 'DELETE' })).status).toBe(200)
+      expect((await get(`${prefs}/maid.tasks.x`)).status).toBe(404)
+      await get(`${prefs}/a`, { method: 'PUT', body: 'b' })
+      await get('/prefs/reset')
+      expect((await (await get(`${prefs}.json`)).json()).preferences).toEqual({})
+    })
+
+    test("OSM's limits: 255 characters pass, 256 and empty values are refused", async () => {
+      expect((await get(`${prefs}/k`, { method: 'PUT', body: 'v'.repeat(255) })).status).toBe(200)
+      expect((await get(`${prefs}/k`, { method: 'PUT', body: 'v'.repeat(256) })).status).toBe(400)
+      expect((await get(`${prefs}/k`, { method: 'PUT', body: '' })).status).toBe(400)
+      expect((await get(`${prefs}/${'k'.repeat(256)}`, { method: 'PUT', body: 'v' })).status).toBe(
+        400,
+      )
+      await get('/prefs/reset')
+    })
+
+    test('the whole collection is never replaced, and the map data stays read-only', async () => {
+      expect((await get(prefs, { method: 'PUT', body: '<osm/>' })).status).toBe(405)
+      expect((await get('/s/small/api/0.6/node/1', { method: 'DELETE' })).status).toBe(405)
+    })
+  })
 })

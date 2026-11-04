@@ -19,6 +19,9 @@ import {
 } from './layers'
 import { CONE_ZOOM } from './viewfield'
 
+/** The data layers whose selection copies keep their own minzoom */
+const DIRECTION = new Set(['line-oneway', 'line-sided', 'area-sided'])
+
 const options: LayerOptions = {
   dashes: new Map(),
   lat: 52,
@@ -34,7 +37,7 @@ type View = {
   source?: string
   minzoom?: number
   maxzoom?: number
-  layout?: { visibility?: string }
+  layout?: { visibility?: string; [key: string]: unknown }
 }
 const view = (layer: LayerSpecification) => layer as unknown as View
 
@@ -79,6 +82,12 @@ describe('zoom floors of the data layers (MapLibre zoom: OSM minus one)', () => 
     expect(oneway.minzoom).toBe(15)
   })
 
+  test('the selection copies of the direction markers start at OSM 16 too', () => {
+    const layers = buildLayers(options).map(view)
+    for (const id of ['line-oneway--select', 'line-sided--select', 'area-sided--select'])
+      expect(layers.find((l) => l.id === id)?.minzoom).toBe(15)
+  })
+
   test('the highlight layers of the selection and the tools are not floored', () => {
     const layers = buildLayers(options).map(view)
     expect(layers.find((l) => l.id === 'highlight-midpoint')?.minzoom).toBeUndefined()
@@ -98,7 +107,8 @@ describe('the selection below the floor', () => {
     for (const layer of dataLayers(layers)) {
       const twin = twinOf(layers, layer.id)
       expect(twin.source).toBe(selectOf[layer.source ?? ''])
-      expect(twin.minzoom).toBeUndefined()
+      // no floor; the direction markers keep their own OSM 16 (test above)
+      expect(twin.minzoom).toBe(DIRECTION.has(layer.id) ? 15 : undefined)
       // up to the data's floor: above it the data draws the selection
       expect(twin.maxzoom).toBeLessThanOrEqual(layer.minzoom ?? 0)
       if (layer.maxzoom !== undefined) expect(twin.maxzoom).toBeLessThanOrEqual(layer.maxzoom)
@@ -153,7 +163,7 @@ describe('show only the selection', () => {
     const layers = buildLayers(only)
     for (const layer of dataLayers(layers)) {
       const twin = twinOf(layers, layer.id)
-      expect(twin.minzoom).toBeUndefined()
+      expect(twin.minzoom).toBe(DIRECTION.has(layer.id) ? 15 : undefined)
       // its own bound, or MapLibre's maximum: always set, so that a toggle back can set it again
       expect(twin.maxzoom).toBe(layer.maxzoom ?? 24)
     }
@@ -532,6 +542,29 @@ describe('display: the wireframe and the changes in colour (iD)', () => {
     expect(visible(wire, 'line-oneway')).toBe(false)
     expect(visible(wire, 'area-sided')).toBe(false)
     expect(visible(buildLayers(options), 'line-oneway')).toBe(true)
+  })
+
+  test('the arrows never cover a vertex: symbols that keep-out squares on the vertices push away', () => {
+    const layers = buildLayers(options).map(view)
+    const at = (id: string) => layers.findIndex((l) => l.id === id)
+    for (const id of ['line-oneway', 'highlight-direction', 'line-sided', 'area-sided']) {
+      const arrow = layers[at(id)]!
+      expect(arrow.type).toBe('symbol')
+      // dropped where something is placed, blocking nothing themselves
+      expect(arrow.layout?.['icon-allow-overlap']).toBe(false)
+      expect(arrow.layout?.['icon-ignore-placement']).toBe(true)
+      // MapLibre places the higher layers first: the keep-out squares before the arrows
+      expect(at('arrow-keepout-vertex')).toBeGreaterThan(at(id))
+      expect(at('arrow-keepout-shape')).toBeGreaterThan(at(id))
+    }
+    // the labels are placed before the squares, so these do not move them
+    expect(at('label-line')).toBeGreaterThan(at('arrow-keepout-vertex'))
+    // on the edit source too: a dragged vertex pushes the arrows of its ways away
+    for (const id of ['line-oneway--edit', 'line-sided--edit', 'area-sided--edit'])
+      expect(at('arrow-keepout-vertex--edit')).toBeGreaterThan(at(id))
+    expect(interactiveLayerIds(buildLayers(options)).some((id) => id.includes('keepout'))).toBe(
+      false,
+    )
   })
 
   test('the wireframe keeps the points and the vertices', () => {

@@ -4,6 +4,9 @@
 
 **Try it:** https://osm-editor-kit.github.io/maid/ (OpenStreetMap, or its development server for testing: switch in the account menu)
 
+> [!NOTE]
+> Claude Opus 5.5 wrote and reviewed the code of this project. [@tordans](https://github.com/tordans) specified what it should do and tested and verified its user-facing behavior.
+
 OpenStreetMap data gets more detailed by the minute, and communities form around their topics: road and bike
 infrastructure, street parking, playgrounds, climbing routes. Each deserves an editor made for its topic and limited
 to it.

@@ -751,7 +751,14 @@ function isProtectedWay(way: OsmWay, graph: Graph) {
  * view first). Not here: `not_downloaded` (needs the tiles loaded) and `connected_to_hidden`
  * (needs the filters).
  */
-function deleteReason(entities: OsmEntity[], graph: Graph) {
+/**
+ * Why features cannot be deleted, as iD refuses it: a way that is part of a protected relation, an incomplete
+ * relation, a Wikidata tag. Undefined when they can be. The view check (too large to edit) is the caller's.
+ */
+export function deleteReason(
+  entities: OsmEntity[],
+  graph: Graph,
+): 'part_of_relation' | 'incomplete_relation' | 'has_wikidata_tag' | undefined {
   if (entities.some((entity) => entity instanceof OsmWay && isProtectedWay(entity, graph)))
     return 'part_of_relation'
   if (entities.some((entity) => entity instanceof OsmRelation && !entity.isComplete(graph)))
