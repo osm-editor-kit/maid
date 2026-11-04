@@ -169,7 +169,7 @@ process.exit(
     report('C: undo label', 'Merged 2 features.', (await state()).undo)
 
     // --- one undo: both areas back with their own tags, no relation ---
-    await key('Meta+z')
+    await key('ControlOrMeta+z')
     report(
       'undo: the outer area has its tags again',
       { area: 'yes', building: 'yes' },
@@ -180,7 +180,7 @@ process.exit(
     report('undo: the undo label is the one before the merge', beforeC.undo, (await state()).undo)
 
     // --- redo: the relation again ---
-    await key('Meta+Shift+Z')
+    await key('ControlOrMeta+Shift+Z')
     // redo runs the same action again: the relation may get a new id, so only its type and members are compared
     const again = await relationOf(outer)
     report(

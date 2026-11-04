@@ -144,8 +144,8 @@ process.exit(
       [(await state()).undo, await wayOf(idA), await wayOf(idB)],
     )
     // the two changes of the tags are the two undo steps: undo them, the tags agree again
-    await key('Meta+z')
-    await key('Meta+z')
+    await key('ControlOrMeta+z')
+    await key('ControlOrMeta+z')
     report(
       'undo of the tag changes: both areas have their tags again',
       [{ area: 'yes' }, { area: 'yes' }],
@@ -163,8 +163,8 @@ process.exit(
       [[idA], null, 'house'],
       [await selection(), await wayOf(idB), (await wayOf(idA))?.tags.building],
     )
-    await key('Meta+z')
-    await key('Meta+z')
+    await key('ControlOrMeta+z')
+    await key('ControlOrMeta+z')
     report(
       'undo of the merge and the tag change: both areas are back as before',
       [{ area: 'yes' }, { area: 'yes' }],
@@ -213,7 +213,7 @@ process.exit(
     )
     report('C: undo label', 'Merged two areas', (await state()).undo)
 
-    await key('Meta+z')
+    await key('ControlOrMeta+z')
     report(
       'undo: both areas are back with their own corners',
       [beforeMerge.a, beforeMerge.b],
@@ -224,7 +224,7 @@ process.exit(
       'Added an area',
       (await state()).undo,
     )
-    await key('Meta+Shift+Z')
+    await key('ControlOrMeta+Shift+Z')
     report(
       'redo: one area again, the other gone',
       true,

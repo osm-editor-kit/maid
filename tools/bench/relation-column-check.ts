@@ -138,7 +138,7 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
     await settle()
     report('"Add it" adds one member', before + 1, await count())
     report('the added road now has its row', 1, await row(stranger).count())
-    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z')
+    await page.keyboard.press(process.platform === 'darwin' ? 'ControlOrMeta+z' : 'Control+z')
     await settle()
     report('one undo takes it out again', before, await count())
   }
@@ -187,7 +187,7 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
         true,
         after.indexOf(second) < after.indexOf(first),
       )
-      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z')
+      await page.keyboard.press(process.platform === 'darwin' ? 'ControlOrMeta+z' : 'Control+z')
       await settle()
       report('one undo restores the order', before, await order())
     }
@@ -211,7 +211,7 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
         second,
       ),
     )
-    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z')
+    await page.keyboard.press(process.platform === 'darwin' ? 'ControlOrMeta+z' : 'Control+z')
     await settle()
     report('one undo restores the order after the key', beforeKeys, await order())
   }
@@ -236,7 +236,7 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
     await target.getByRole('button', { name: /^Remove .* from the relation$/ }).click()
     await settle()
     report('the trash takes the member out', before - 1, await members())
-    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z')
+    await page.keyboard.press(process.platform === 'darwin' ? 'ControlOrMeta+z' : 'Control+z')
     await settle()
     report('one undo puts it back', before, await members())
   }

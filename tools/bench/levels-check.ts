@@ -188,7 +188,7 @@ const failed = await runCheck(
           STATION,
         ),
       )
-      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z')
+      await page.keyboard.press(process.platform === 'darwin' ? 'ControlOrMeta+z' : 'Control+z')
       await settle()
       report(
         'one undo takes the level off again',
@@ -237,7 +237,7 @@ const failed = await runCheck(
           STATION,
         ),
       )
-      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z')
+      await page.keyboard.press(process.platform === 'darwin' ? 'ControlOrMeta+z' : 'Control+z')
       await settle()
     }
     await levelButton('0').click()
@@ -312,7 +312,7 @@ const failed = await runCheck(
           return [tags?.incline, tags?.level]
         }, STEPS),
       )
-      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z')
+      await page.keyboard.press(process.platform === 'darwin' ? 'ControlOrMeta+z' : 'Control+z')
       await settle()
       report(
         'one undo puts incline=down back',
