@@ -30,6 +30,8 @@ export type Session = {
 export type Imported = {
   readonly fileName: string
   readonly generator?: string
+  /** The file's own changeset tags (`<changeset>`), when it has them */
+  readonly changesetTags?: Readonly<Record<string, string>>
   readonly ids: ReadonlySet<string>
 }
 
@@ -104,6 +106,7 @@ export function createOsmChangeStore() {
           imported: {
             fileName: session.fileName,
             ...(session.file.generator ? { generator: session.file.generator } : {}),
+            ...(session.file.changesetTags ? { changesetTags: session.file.changesetTags } : {}),
             ids: new Set([...session.states.keys(), ...created.values()]),
           },
         }),

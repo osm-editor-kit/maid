@@ -18,7 +18,7 @@ import {
   selectionAfterUpload,
 } from './after-upload'
 import { errorSentence } from './blocked'
-import type { Draft } from './changeset-draft.ts'
+import type { ChangesetSuggestion, Draft } from './changeset-draft.ts'
 import { changesetTags, createdByValue, toOsmChange } from './osm-change'
 
 /**
@@ -67,13 +67,14 @@ export function moduleChangesetTags(editor: Editor) {
   ) as Record<string, string>
 }
 
-/** The comment the first module that has one suggests for the save form (`changeset.tags`) */
-export function moduleChangesetComment(editor: Editor) {
+/** The comment and the source the first module that has one suggests for the save form (`changeset.tags`) */
+export function moduleChangesetSuggestion(editor: Editor): ChangesetSuggestion {
+  const suggestion: ChangesetSuggestion = {}
   for (const item of editor.registry('changeset.tags').list()) {
-    const comment = item.comment?.()
-    if (comment) return comment
+    suggestion.comment ??= item.comment?.() || undefined
+    suggestion.source ??= item.source?.() || undefined
   }
-  return undefined
+  return suggestion
 }
 
 export async function uploadEdits(

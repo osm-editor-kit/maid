@@ -17,6 +17,9 @@ export type Draft = { comment: string; hashtags?: string; source?: string }
 /** The draft as it is stored, with the time of its last change (iD's `commentDate`) */
 export type StoredDraft = Draft & { commentDate: number }
 
+/** The comment and source modules suggest for the save form (`changeset.tags`) */
+export type ChangesetSuggestion = { comment?: string; source?: string }
+
 /** The values a link gives. Only the ones the address has, cleaned; an empty one is no value. */
 export type Links = { comment?: string; hashtags?: string; source?: string }
 
@@ -94,8 +97,8 @@ export function prefillDraft(
   stored: StoredDraft | undefined,
   links: Links,
   now: number,
-  /** A comment a module suggests (`changeset.tags`): only when neither the stored draft nor a link has one */
-  suggested?: string,
+  /** What modules suggest (`changeset.tags`): each value only when neither the stored draft nor a link has one */
+  suggested: ChangesetSuggestion = {},
 ): StoredDraft {
   const live = stored !== undefined && !expired(stored.commentDate, now) ? stored : undefined
   const draft: StoredDraft = {
@@ -116,7 +119,8 @@ export function prefillDraft(
     draft.hashtags = links.hashtags
     draft.commentDate = now
   }
-  if (draft.comment === '' && suggested) draft.comment = suggested
+  if (draft.comment === '' && suggested.comment) draft.comment = suggested.comment
+  if (!draft.source && suggested.source) draft.source = suggested.source
   if (hashtagsOfComment(draft.comment).length > 0) draft.hashtags = undefined
   return draft
 }

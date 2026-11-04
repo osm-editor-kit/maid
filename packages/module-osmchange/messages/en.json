@@ -75,6 +75,7 @@
   "osmchange_type_relation": "Relation",
   "osmchange_show_label": "Show {name} on the map",
   "osmchange_changeset_comment": "Changes from {from}, merged with the current map in Maid",
+  "osmchange_changeset_comment_with": "Changes from {from}, merged with the current map in Maid. Comment of the file: {comment}",
   "osmchange_intro_clear": "Changes without conflicts are in the editor already, as one undo step.",
   "osmchange_intro_decide": [
     {
