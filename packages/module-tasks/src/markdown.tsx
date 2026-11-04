@@ -1,6 +1,6 @@
 /**
  * A safe Markdown renderer for the descriptions of tasks and options, at the level of the MapRoulette task text in
- * Tobias's iD fork (`iD--maproulette`, marked with DOMPurify), but without an HTML string:
+ * Tobias's MapRoulette fork of iD (marked with DOMPurify), but without an HTML string:
  *
  * - blocks: paragraphs (a line break stays a line break), `#` to `######` headings, `- ` / `* ` and `1. ` lists,
  *   `> ` quotes, ``` code blocks, `---` rules and `|` tables;
