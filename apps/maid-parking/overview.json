@@ -1,0 +1,9 @@
+{
+  "compared": "Compared with Maid",
+  "features": [
+    "Parking editor: a restriction field, quick buttons, the parking on each side of the street on the map, a parking lens and rules",
+    "Drawing tools: right angles with Shift and segment lengths, rectangles, merge two areas, cut an area along a line, divide it into rows of parking spaces, resize the selection",
+    "German by default",
+    "Leaves out turn restrictions and the surface photos"
+  ]
+}

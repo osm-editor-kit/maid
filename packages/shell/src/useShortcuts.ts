@@ -2,10 +2,14 @@ import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { deleteOperation, supersededIDs } from '@osm-editor-kit/maid-operations'
 import type { Operation } from '@osm-editor-kit/maid-operations'
 import { chooseDisplay } from '@osm-editor-kit/maid-ui'
-import { useHotkeys, type UseHotkeyDefinition } from '@tanstack/react-hotkeys'
+import {
+  useHotkeys,
+  type RegisterableHotkey,
+  type UseHotkeyDefinition,
+} from '@tanstack/react-hotkeys'
 import { useEffect, useEffectEvent } from 'react'
 import { pasteAt } from './clipboard'
-import { drawClick, drawingKind, drawKindOf, stepAreaTool } from './drawing'
+import { drawClick, drawingKind, drawKindOf, isMenuTool, stepAreaTool } from './drawing'
 import { giveFavouriteType } from './favourites'
 import { markNewFeature } from './new-feature'
 import { useSearchActions } from './search/flyout'
@@ -47,8 +51,9 @@ export function useShortcuts() {
   const { editor, engine } = useShell()
   const { ids: selected, select } = useSelection()
   const operations = useExtensionPoint(editor, 'edit.operation')
-  // the drawing tools of the Area dropdown: 3 again steps to them (stepAreaTool, ADR 0011 hook 3)
-  const drawTools = useExtensionPoint(editor, 'draw.tool')
+  // the drawing tools of the Area dropdown: 3 again steps to them (stepAreaTool, ADR 0011 hook 3); a tool with a
+  // button of its own is not one of them
+  const drawTools = useExtensionPoint(editor, 'draw.tool').filter(isMenuTool)
   // which keys are taken depends on what the editor is doing. Read that state so the list follows it
   const drawing = useEngine((e) => e.draw.active)
   // a move or a rotation is put down with Enter, as a click puts it down
@@ -180,7 +185,7 @@ export function useShortcuts() {
     // the keys of the edit menu
     ...[...operationKeys].map(([shortcut, group]) => ({
       // the shortcut is a plain string; the hotkey library's type is a union of key names
-      hotkey: shortcut.toUpperCase() as UseHotkeyDefinition['hotkey'],
+      hotkey: shortcut.toUpperCase() as RegisterableHotkey,
       callback: () => {
         const context = engine.operationContext()
         const hidden = supersededIDs(operations, context)

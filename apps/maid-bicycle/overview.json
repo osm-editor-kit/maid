@@ -1,0 +1,9 @@
+{
+  "compared": "Compared with Maid: everything of Maid, and",
+  "features": [
+    "Traffic signs: a field with the German traffic signs on roads and paths",
+    "Way table: the selected way next to the ways before and after it, tag by tag, editable",
+    "Reroute: on a bicycle or hiking route, click two points and the route runs over the loaded ways",
+    "Load changes from a file: an osmChange file (Go Map!!, JOSM) merged with the data, reviewed and uploaded with the normal save"
+  ]
+}

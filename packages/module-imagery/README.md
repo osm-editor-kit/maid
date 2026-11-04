@@ -2,7 +2,7 @@
 
 Imagery under the OSM data: a background (an ELI layer or a custom tile URL template), overlays (ELI's and OpenAerialMap images) and a
 brightness, chosen in the top bar's "Background" panel. Built on
-`@osm-editor-kit/maplibre-editor-layer-index` (0.5.0).
+`@osm-editor-kit/maplibre-editor-layer-index` (1.0.0).
 
 ## Series (one row, many dates)
 

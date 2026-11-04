@@ -23,6 +23,13 @@
       "url": "http://127.0.0.1:5177"
     },
     {
+      "name": "maid-indoor",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "apps/maid-indoor", "dev"],
+      "port": 5178,
+      "url": "http://127.0.0.1:5178"
+    },
+    {
       "name": "mock-osm-api",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["tools/mock-osm-api/server.ts"],

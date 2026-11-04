@@ -17,9 +17,9 @@
     "@osm-editor-kit/maid-style": "workspace:*",
     "@osm-editor-kit/maid-ui": "workspace:*",
     "@osm-editor-kit/maid-validation": "workspace:*",
-    "react": "^19.2.0",
+    "react": "^19.3.1",
     "react-map-gl": "^8.1.3",
-    "zustand": "^5.0.0"
+    "zustand": "^5.0.16"
   },
   "devDependencies": {
     "@types/geojson": "^7946.0.16",

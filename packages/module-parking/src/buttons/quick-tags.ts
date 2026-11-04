@@ -153,22 +153,20 @@ export function sideNameOf(side: Side): string {
 
 /** The 33 source buttons, in the file's order: by topic, then left, right, both */
 const SOURCE_BUTTONS: QuickTag[] = SOURCE_TOPICS.flatMap((topic) =>
-  SIDES.map(
-    (side): QuickTag => ({
-      id: `parking_${side}_${topic.name}`,
-      get label() {
-        return m.quick_side_label({ topic: topic.label(), side: sideNameOf(side) })
-      },
-      get name() {
-        return topic.label()
-      },
-      icon: `parking_${side}_${topic.name}`,
-      side,
-      row: topic.group,
-      edits: [{ key: sideKey(side, topic.suffix), value: topic.value }],
-      source: 'xml',
-    }),
-  ),
+  SIDES.map((side): QuickTag => ({
+    id: `parking_${side}_${topic.name}`,
+    get label() {
+      return m.quick_side_label({ topic: topic.label(), side: sideNameOf(side) })
+    },
+    get name() {
+      return topic.label()
+    },
+    icon: `parking_${side}_${topic.name}`,
+    side,
+    row: topic.group,
+    edits: [{ key: sideKey(side, topic.suffix), value: topic.value }],
+    source: 'xml',
+  })),
 )
 
 /** The reasons of "no parking" (qa-markings-obstacles-process.md, 5.1: `parking:<side>:reason`), in the cycle's order */
@@ -183,26 +181,24 @@ const REASON_ORIGIN =
 
 /** Maid's additions in the grid: no parking on a side with a reason; the reasons are the values of one cell */
 const REASON_BUTTONS: QuickTag[] = REASONS.flatMap((reason) =>
-  SIDES.map(
-    (side): QuickTag => ({
-      id: `maid_${side}_no_reason_${reason.value}`,
-      get label() {
-        return m.quick_no_reason_button({ side: sideNameOf(side), reason: reason.label() })
-      },
-      get name() {
-        return m.quick_no_reason_row({ reason: reason.label() })
-      },
-      icon: `parking_${side}_no`,
-      side,
-      row: 'reason',
-      edits: [
-        { key: sideKey(side), value: 'no' },
-        { key: sideKey(side, 'reason'), value: reason.value },
-      ],
-      source: 'maid',
-      origin: REASON_ORIGIN,
-    }),
-  ),
+  SIDES.map((side): QuickTag => ({
+    id: `maid_${side}_no_reason_${reason.value}`,
+    get label() {
+      return m.quick_no_reason_button({ side: sideNameOf(side), reason: reason.label() })
+    },
+    get name() {
+      return m.quick_no_reason_row({ reason: reason.label() })
+    },
+    icon: `parking_${side}_no`,
+    side,
+    row: 'reason',
+    edits: [
+      { key: sideKey(side), value: 'no' },
+      { key: sideKey(side, 'reason'), value: reason.value },
+    ],
+    source: 'maid',
+    origin: REASON_ORIGIN,
+  })),
 )
 
 /** The lane-parallel toggles: parking on the carriageway, parallel, on one side or (`both`) on both */
@@ -228,27 +224,25 @@ const LANE_BUTTONS: QuickTag[] = [
     origin:
       "Maid's addition from qa-markings-obstacles-process.md, 5.2 'Lane parking, both sides, parallel' (S9). Equal sides are written as `parking:both`, as the fields do.",
   },
-  ...(['left', 'right'] as const).map(
-    (side): QuickTag => ({
-      id: `maid_${side}_lane_parallel`,
-      get label() {
-        return m.quick_lane_side_parallel({ side: sideNameOf(side) })
-      },
-      get name() {
-        return m.quick_lane_side_parallel({ side: sideNameOf(side) })
-      },
-      icon: `parking_${side}_lane`,
-      side,
-      row: 'lane',
-      edits: [
-        { key: sideKey(side), value: 'lane' },
-        { key: sideKey(side, 'orientation'), value: 'parallel' },
-      ],
-      source: 'maid',
-      origin:
-        "Maid's addition from qa-markings-obstacles-process.md, 5.2 'Lane parking, one side, parallel' (S1: offer it when the carriageway is 5 to 7 m wide)",
-    }),
-  ),
+  ...(['left', 'right'] as const).map((side): QuickTag => ({
+    id: `maid_${side}_lane_parallel`,
+    get label() {
+      return m.quick_lane_side_parallel({ side: sideNameOf(side) })
+    },
+    get name() {
+      return m.quick_lane_side_parallel({ side: sideNameOf(side) })
+    },
+    icon: `parking_${side}_lane`,
+    side,
+    row: 'lane',
+    edits: [
+      { key: sideKey(side), value: 'lane' },
+      { key: sideKey(side, 'orientation'), value: 'parallel' },
+    ],
+    source: 'maid',
+    origin:
+      "Maid's addition from qa-markings-obstacles-process.md, 5.2 'Lane parking, one side, parallel' (S1: offer it when the carriageway is 5 to 7 m wide)",
+  })),
 ]
 
 /** The clearing buttons: every parking key of the left side, of the right side, of both sides */

@@ -44,7 +44,9 @@ function useMapView(mapRef: MapRef | undefined) {
     function followMoves() {
       const map = mapRef?.getMap()
       if (!map) return
-      const update = () => setZoom(map.getZoom())
+      const update = () => {
+        setZoom(map.getZoom())
+      }
       update()
       map.on('moveend', update)
       return () => {
@@ -53,7 +55,7 @@ function useMapView(mapRef: MapRef | undefined) {
     },
     [mapRef],
   )
-  // the hook updates the bbox itself when a move ends
+  // since 1.0 the hook follows moveend itself and keeps the same array while the viewport is the same
   const bbox = useMapViewportBbox(MAP_ID)
   return { zoom, bbox }
 }

@@ -95,5 +95,29 @@
   "resize_annotation": "Größe von {count} Objekten geändert",
   "resize_refused_incomplete": "Es ist nicht vollständig geladen, daher lässt sich die Größe nicht ändern.",
   "resize_refused_too_thin": "Es ist zu schmal: Eine gerade Linie hat keine Breite zum Strecken.",
-  "resize_refused_too_large": "Es ist nicht genug davon sichtbar. Zoome heraus, um die Größe zu ändern."
+  "resize_refused_too_large": "Es ist nicht genug davon sichtbar. Zoome heraus, um die Größe zu ändern.",
+  "room_label": "Raum einzeichnen",
+  "room_text": "Raum",
+  "room_description": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tippe auf eine Wand des Gebäudes, dann auf jede Ecke des Raums und zum Schluss wieder auf eine Wand. Tippe noch einmal auf die letzte Ecke, um den Raum entlang der Hilfslinie zu schließen.",
+        "input=*": "Klicke auf eine Wand des Gebäudes, dann auf jede Ecke des Raums und zum Schluss wieder auf eine Wand. Enter schließt den Raum entlang der Hilfslinie. Shift: 45°-Schritte, Shift+Alt: 10°-Schritte. Escape: abbrechen."
+      }
+    }
+  ],
+  "room_select_building": "Raum einzeichnen: erst ein Gebäude auswählen",
+  "room_annotation": "Einen Raum eingezeichnet",
+  "room_click_wall": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Tippe auf eine Wand des Gebäudes, um den Raum zu beginnen",
+        "input=*": "Klicke auf eine Wand des Gebäudes, um den Raum zu beginnen"
+      }
+    }
+  ]
 }

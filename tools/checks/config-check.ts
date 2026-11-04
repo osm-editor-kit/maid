@@ -90,25 +90,23 @@ function runEditor(setups: MaidModule[], options: Options): Run {
     return refused
   }) as unknown as typeof fetch
   // The module's register is wrapped so that the point it registers at is known
-  const wrapped = setups.map(
-    (module): MaidModule => ({
-      id: module.id,
-      setup(api) {
-        // arrow functions, so that no method is passed on unbound; what a module registers is still
-        // checked by the editor at run time
-        const spy = {
-          editor: api.editor,
-          on: (name: never, listener: never) => api.on(name, listener),
-          register: (point: string, item: object) => {
-            points.push(point)
-            api.register(point as never, item as never)
-          },
-          urlParam: (declaration: never) => api.urlParam(declaration),
-        } as unknown as ModuleApi
-        return module.setup(spy)
-      },
-    }),
-  )
+  const wrapped = setups.map((module): MaidModule => ({
+    id: module.id,
+    setup(api) {
+      // arrow functions, so that no method is passed on unbound; what a module registers is still
+      // checked by the editor at run time
+      const spy = {
+        editor: api.editor,
+        on: (name: never, listener: never) => api.on(name, listener),
+        register: (point: string, item: object) => {
+          points.push(point)
+          api.register(point as never, item as never)
+        },
+        urlParam: (declaration: never) => api.urlParam(declaration),
+      } as unknown as ModuleApi
+      return module.setup(spy)
+    },
+  }))
   try {
     const editor = createEditor({
       modules: wrapped,

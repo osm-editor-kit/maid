@@ -11,10 +11,10 @@
     "compile": "bun scripts/compile.ts"
   },
   "dependencies": {
-    "@inlang/paraglide-js": "2.25.4"
+    "@inlang/paraglide-js": "2.29.2"
   },
   "devDependencies": {
-    "@inlang/plugin-m-function-matcher": "2.2.16",
-    "@inlang/plugin-message-format": "4.4.4"
+    "@inlang/plugin-m-function-matcher": "2.3.4",
+    "@inlang/plugin-message-format": "4.5.5"
   }
 }

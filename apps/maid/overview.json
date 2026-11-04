@@ -1,0 +1,7 @@
+{
+  "compared": "Compared with iD",
+  "features": [
+    "Map lenses: the map recoloured for one theme (surface, lit, max speed)",
+    "Surface and smoothness: a photo for each value in the inspector"
+  ]
+}

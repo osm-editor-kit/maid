@@ -50,14 +50,44 @@ export function appsOf(list: string) {
   ]
 }
 
-/** The page at the path when several apps are deployed: one link per app, with its title */
-export function indexPage(apps: { folder: string; title: string }[], repository: string) {
-  const items = apps
-    .map(
-      (app) =>
-        `      <li><a href="${app.folder}/">${app.title}</a> <code>${app.folder}</code></li>`,
-    )
+/**
+ * What sets one app apart, from `apps/<app>/overview.json`: `compared` says against what (iD for the standard editor,
+ * the standard editor for the others), `features` lists the differences. The page shows them in a row that opens under
+ * the app's link. An app without the file gets no such row.
+ */
+export type Overview = { compared: string; features: string[] }
+
+/** The page's listed app: its folder, its title and what sets it apart */
+export type ListedApp = { folder: string; title: string; overview?: Overview }
+
+function escapeHtml(text: string) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function itemOf(app: ListedApp) {
+  const link = `<a href="${app.folder}/">${escapeHtml(app.title)}</a> <code>${app.folder}</code>`
+  if (!app.overview || app.overview.features.length === 0) return `      <li>${link}</li>`
+  const features = app.overview.features
+    .map((feature) => `            <li>${escapeHtml(feature)}</li>`)
     .join('\n')
+  return `      <li>
+        ${link}
+        <details>
+          <summary>${escapeHtml(app.overview.compared)}</summary>
+          <ul>
+${features}
+          </ul>
+        </details>
+      </li>`
+}
+
+/** The page at the path when several apps are deployed: one link per app, with its title and what sets it apart */
+export function indexPage(apps: ListedApp[], repository: string) {
+  const items = apps.map(itemOf).join('\n')
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -68,10 +98,15 @@ export function indexPage(apps: { folder: string; title: string }[], repository:
       body { font: 16px/1.5 system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem; color: #18181b; background: #fff; }
       a { color: #2563eb; }
       code { color: #71717a; font-size: 0.875em; }
+      body > ul > li { margin-bottom: 0.75rem; }
+      details { color: #52525b; font-size: 0.9375em; }
+      summary { cursor: pointer; }
+      details ul { margin: 0.25rem 0 0; padding-left: 1.25rem; }
       @media (prefers-color-scheme: dark) {
         body { color: #f4f4f5; background: #18181b; }
         a { color: #60a5fa; }
         code { color: #a1a1aa; }
+        details { color: #d4d4d8; }
       }
     </style>
   </head>
@@ -84,6 +119,21 @@ ${items}
   </body>
 </html>
 `
+}
+
+/** `apps/<app>/overview.json`, or undefined when the app has none */
+export function readOverview(text: string | undefined): Overview | undefined {
+  if (text === undefined) return undefined
+  const value = JSON.parse(text) as Partial<Overview>
+  if (typeof value.compared !== 'string' || !Array.isArray(value.features)) {
+    throw new Error('overview.json needs "compared" (a text) and "features" (a list of texts)')
+  }
+  return { compared: value.compared, features: value.features.map(String) }
+}
+
+function overviewOf(app: string) {
+  const file = join(ROOT, 'apps', app, 'overview.json')
+  return readOverview(existsSync(file) ? readFileSync(file, 'utf8') : undefined)
 }
 
 function titleOf(app: string) {
@@ -125,7 +175,11 @@ if (import.meta.main) {
       cpSync(join(ROOT, 'apps', app, 'dist'), join(SITE, app), { recursive: true })
     }
     cpSync(join(ROOT, 'packages/shell/public/land.html'), join(SITE, 'land.html'))
-    const listed = apps.map((app) => ({ folder: app, title: titleOf(app) }))
+    const listed = apps.map((app) => ({
+      folder: app,
+      title: titleOf(app),
+      overview: overviewOf(app),
+    }))
     writeFileSync(join(SITE, 'index.html'), indexPage(listed, repository))
   }
 

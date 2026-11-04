@@ -8,7 +8,7 @@ import { OsmRelation, type Graph } from '@osm-editor-kit/maid-model'
  * component, the graph read after each change, and the layers.
  */
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
-import { SELECTED_ARROW_HEIGHT, SELECTED_ARROW_IMAGE } from '@osm-editor-kit/maid-renderer'
+import { SELECTED_ARROW_HEIGHT, SELECTED_ARROW_PATTERN } from '@osm-editor-kit/maid-renderer'
 import { useCallback, useState, useSyncExternalStore } from 'react'
 import { Layer, Source, type LayerProps } from 'react-map-gl/maplibre'
 import { useEngine } from '../shell-context'
@@ -94,7 +94,7 @@ export function RelationsOnMap({ editor, belowOsm }: MapContentProps) {
           minzoom: ARROWS_MIN_ZOOM,
           layout: { 'line-cap': 'butt' },
           // the white arrow of the selected way (renderer direction-images.ts): it points along the line
-          paint: { 'line-pattern': SELECTED_ARROW_IMAGE, 'line-width': SELECTED_ARROW_HEIGHT },
+          paint: { 'line-pattern': SELECTED_ARROW_PATTERN, 'line-width': SELECTED_ARROW_HEIGHT },
         })}
       />
       <Source id={GAPS} type="geojson" data={drawing.gaps} />

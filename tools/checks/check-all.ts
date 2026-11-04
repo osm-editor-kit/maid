@@ -1,8 +1,9 @@
 /**
  * Runs the browser checks one after another against one app, and writes one report. A check of a module runs
- * only for the app that has the module (parking; way table and reroute in bicycle).
+ * only for the apps that have the module (parking; way table and reroute in bicycle; levels in indoor; the drawing
+ * tools in parking and indoor).
  *
- *   bun run check-all [--app maid|bicycle|parking]
+ *   bun run check-all [--app maid|bicycle|parking|indoor]
  *
  * Each check is started as `bun run check-<name> --app <app>` and must exit 0 with at least the
  * expected number of `ok` lines. Prints one line per check, then its FAIL lines. Writes
@@ -36,6 +37,7 @@ const CHECKS = [
   'way-table',
   'reroute',
   'rectangle',
+  'room',
   'angle-snap',
   'merge',
   'cut',
@@ -54,12 +56,13 @@ const CHECKS = [
 ] as const
 type CheckName = (typeof CHECKS)[number]
 
-/** Checks of a module: they run only for the app that switches it on (`only` in RUNS) */
+/** Checks of a module: they run only for the apps that switch it on (`only` in RUNS) */
 const MODULE_CHECKS = new Set<CheckName>([
   'parking',
   'way-table',
   'reroute',
   'rectangle',
+  'room',
   'angle-snap',
   'merge',
   'cut',
@@ -73,8 +76,8 @@ const MODULE_CHECKS = new Set<CheckName>([
 /** Checks that need the relations scene (routes with route masters), for every app */
 const RELATIONS_SCENE_CHECKS = new Set<CheckName>(['relation-column', 'route-overview'])
 
-/** A run of a check: its name in the report, the check, a scene other than the default (small), the one app it runs for */
-type Run = { name: string; check: CheckName; scene?: string; only?: AppName }
+/** A run of a check: its name in the report, the check, a scene other than the default (small), the apps it runs for */
+type Run = { name: string; check: CheckName; scene?: string; only?: AppName[] }
 
 /** The checks of the shell on the default scene, the relation check on the scene made for relations, the module checks */
 const RUNS: Run[] = [
@@ -84,65 +87,67 @@ const RUNS: Run[] = [
   { name: 'relations-scene', check: 'relations', scene: 'relations' },
   { name: 'relation-column', check: 'relation-column', scene: 'relations' },
   { name: 'route-overview', check: 'route-overview', scene: 'relations' },
-  { name: 'parking', check: 'parking', only: 'parking' },
-  { name: 'way-table', check: 'way-table', scene: 'relations', only: 'bicycle' },
-  { name: 'reroute', check: 'reroute', scene: 'relations', only: 'bicycle' },
-  // the drawing tools of module-shapes, on in the parking app
-  { name: 'rectangle', check: 'rectangle', only: 'parking' },
-  { name: 'angle-snap', check: 'angle-snap', only: 'parking' },
-  { name: 'merge', check: 'merge', only: 'parking' },
-  { name: 'cut', check: 'cut', only: 'parking' },
-  { name: 'divide', check: 'divide', only: 'parking' },
-  { name: 'resize', check: 'resize', only: 'parking' },
+  { name: 'parking', check: 'parking', only: ['parking'] },
+  { name: 'way-table', check: 'way-table', scene: 'relations', only: ['bicycle'] },
+  { name: 'reroute', check: 'reroute', scene: 'relations', only: ['bicycle'] },
+  // the drawing tools of module-shapes, on in the parking and the indoor app
+  { name: 'rectangle', check: 'rectangle', only: ['parking', 'indoor'] },
+  { name: 'angle-snap', check: 'angle-snap', only: ['parking', 'indoor'] },
+  { name: 'merge', check: 'merge', only: ['parking', 'indoor'] },
+  { name: 'cut', check: 'cut', only: ['parking', 'indoor'] },
+  { name: 'divide', check: 'divide', only: ['parking', 'indoor'] },
+  { name: 'resize', check: 'resize', only: ['parking', 'indoor'] },
   // long press on a touch screen: the Area dropdown, the edit menu, Shift while drawing (it needs the rectangle tool)
-  { name: 'touch', check: 'touch', only: 'parking' },
-  // the level mode of module-levels, on in the maid and the bicycle app, on the indoor scene (Berlin Hauptbahnhof)
-  { name: 'levels', check: 'levels', scene: 'indoor', only: 'maid' },
-  { name: 'levels', check: 'levels', scene: 'indoor', only: 'bicycle' },
+  { name: 'touch', check: 'touch', only: ['parking', 'indoor'] },
+  // the room tool of module-shapes, on in the indoor app: a room drawn into a building on open ground
+  { name: 'room', check: 'room', only: ['indoor'] },
+  // the level mode of module-levels, on in the indoor app, on the indoor scene (Berlin Hauptbahnhof)
+  { name: 'levels', check: 'levels', scene: 'indoor', only: ['indoor'] },
   // module-osmchange, on in the bicycle app: an osmChange file merged with the mock and its hand-written history
-  { name: 'osmchange', check: 'osmchange', only: 'bicycle' },
+  { name: 'osmchange', check: 'osmchange', only: ['bicycle'] },
 ]
 
 /**
  * The `ok` lines each check prints on the default scene (small) when it passes, per app. A check
  * with fewer `ok` lines fails. With more, it passes, and the run prints a note: update this table.
- * Bicycle and parking have the same numbers until a real run says otherwise.
+ * Bicycle, parking and indoor have the same numbers until a real run says otherwise.
  */
 const EXPECTED_OK: Record<string, Record<AppName, number>> = {
-  interactions: { maid: 160, bicycle: 160, parking: 160 },
-  edit: { maid: 20, bicycle: 20, parking: 20 },
-  draw: { maid: 14, bicycle: 14, parking: 14 },
-  undo: { maid: 43, bicycle: 43, parking: 43 },
-  ops: { maid: 17, bicycle: 17, parking: 17 },
-  relations: { maid: 21, bicycle: 21, parking: 21 },
-  validation: { maid: 8, bicycle: 8, parking: 8 },
-  journal: { maid: 17, bicycle: 17, parking: 17 },
-  filters: { maid: 19, bicycle: 19, parking: 19 },
-  tags: { maid: 23, bicycle: 23, parking: 23 },
-  multi: { maid: 11, bicycle: 11, parking: 11 },
-  'relations-scene': { maid: 25, bicycle: 25, parking: 25 },
-  'relation-column': { maid: 31, bicycle: 31, parking: 31 },
-  'route-overview': { maid: 28, bicycle: 28, parking: 28 },
-  // module checks run for one app only (`only` in RUNS): the count is 0 elsewhere
-  parking: { maid: 0, bicycle: 0, parking: 29 },
-  'way-table': { maid: 0, bicycle: 13, parking: 0 },
-  reroute: { maid: 0, bicycle: 12, parking: 0 },
-  rectangle: { maid: 0, bicycle: 0, parking: 24 },
-  'angle-snap': { maid: 0, bicycle: 0, parking: 35 },
-  merge: { maid: 0, bicycle: 0, parking: 31 },
-  cut: { maid: 0, bicycle: 0, parking: 25 },
-  divide: { maid: 0, bicycle: 0, parking: 23 },
-  resize: { maid: 0, bicycle: 0, parking: 32 },
-  display: { maid: 12, bicycle: 12, parking: 12 },
-  touch: { maid: 0, bicycle: 0, parking: 14 },
-  levels: { maid: 34, bicycle: 34, parking: 0 },
-  menu: { maid: 16, bicycle: 16, parking: 16 },
-  'merge-polygon': { maid: 23, bicycle: 23, parking: 23 },
-  favourites: { maid: 13, bicycle: 13, parking: 13 },
-  'move-handle': { maid: 15, bicycle: 15, parking: 15 },
-  tooltips: { maid: 11, bicycle: 11, parking: 11 },
-  osmchange: { maid: 0, bicycle: 31, parking: 0 },
-  tasks: { maid: 28, bicycle: 28, parking: 28 },
+  interactions: { maid: 160, bicycle: 160, parking: 160, indoor: 160 },
+  edit: { maid: 20, bicycle: 20, parking: 20, indoor: 20 },
+  draw: { maid: 14, bicycle: 14, parking: 14, indoor: 14 },
+  undo: { maid: 43, bicycle: 43, parking: 43, indoor: 43 },
+  ops: { maid: 17, bicycle: 17, parking: 17, indoor: 17 },
+  relations: { maid: 21, bicycle: 21, parking: 21, indoor: 21 },
+  validation: { maid: 8, bicycle: 8, parking: 8, indoor: 8 },
+  journal: { maid: 17, bicycle: 17, parking: 17, indoor: 17 },
+  filters: { maid: 19, bicycle: 19, parking: 19, indoor: 19 },
+  tags: { maid: 23, bicycle: 23, parking: 23, indoor: 23 },
+  multi: { maid: 11, bicycle: 11, parking: 11, indoor: 11 },
+  'relations-scene': { maid: 25, bicycle: 25, parking: 25, indoor: 25 },
+  'relation-column': { maid: 31, bicycle: 31, parking: 31, indoor: 31 },
+  'route-overview': { maid: 28, bicycle: 28, parking: 28, indoor: 28 },
+  // module checks run only for the apps in `only` (RUNS): the count is 0 elsewhere
+  parking: { maid: 0, bicycle: 0, parking: 29, indoor: 0 },
+  'way-table': { maid: 0, bicycle: 13, parking: 0, indoor: 0 },
+  reroute: { maid: 0, bicycle: 12, parking: 0, indoor: 0 },
+  rectangle: { maid: 0, bicycle: 0, parking: 24, indoor: 24 },
+  'angle-snap': { maid: 0, bicycle: 0, parking: 35, indoor: 35 },
+  merge: { maid: 0, bicycle: 0, parking: 31, indoor: 31 },
+  cut: { maid: 0, bicycle: 0, parking: 25, indoor: 25 },
+  divide: { maid: 0, bicycle: 0, parking: 23, indoor: 23 },
+  resize: { maid: 0, bicycle: 0, parking: 32, indoor: 32 },
+  display: { maid: 12, bicycle: 12, parking: 12, indoor: 12 },
+  touch: { maid: 0, bicycle: 0, parking: 14, indoor: 14 },
+  levels: { maid: 0, bicycle: 0, parking: 0, indoor: 34 },
+  room: { maid: 0, bicycle: 0, parking: 0, indoor: 21 },
+  menu: { maid: 16, bicycle: 16, parking: 16, indoor: 16 },
+  'merge-polygon': { maid: 23, bicycle: 23, parking: 23, indoor: 23 },
+  favourites: { maid: 13, bicycle: 13, parking: 13, indoor: 13 },
+  'move-handle': { maid: 15, bicycle: 15, parking: 15, indoor: 15 },
+  tooltips: { maid: 11, bicycle: 11, parking: 11, indoor: 11 },
+  osmchange: { maid: 0, bicycle: 31, parking: 0, indoor: 0 },
+  tasks: { maid: 28, bicycle: 28, parking: 28, indoor: 28 },
 }
 
 type CheckResult = {
@@ -170,7 +175,7 @@ const startedAt = new Date()
 const results: CheckResult[] = []
 
 for (const { name, check, scene, only } of RUNS) {
-  if (only && only !== app) continue
+  if (only && !only.includes(app)) continue
   const expectedOk = EXPECTED_OK[name]?.[app] ?? 0
   const began = performance.now()
   const args = scene ? [`check-${check}`, scene, '--app', app] : [`check-${check}`, '--app', app]

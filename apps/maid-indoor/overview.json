@@ -1,0 +1,9 @@
+{
+  "compared": "Compared with Maid",
+  "features": [
+    "Indoor and building levels: a floor picker on the map, the other levels dimmed and locked, new points and lines get the chosen level, stairs between two levels, rooms and stairs in 3D, hints for features without a level",
+    "Draw a room: select a building, click a wall, the corners and a wall again; the room shares its wall nodes with the building and gets indoor=room and the level",
+    "Drawing tools for rooms: right angles with Shift and segment lengths, rectangles, merge two areas, cut an area along a line, divide it into rows of rooms, resize the selection",
+    "Leaves out turn restrictions and the surface photos"
+  ]
+}

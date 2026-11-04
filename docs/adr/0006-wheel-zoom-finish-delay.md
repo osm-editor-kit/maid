@@ -25,7 +25,7 @@ Also tried, without effect on this wait: the zoom limit of the sources (15, 16, 
 ## How to patch here
 
 ```bash
-bun patch maplibre-gl@6.12.0          # at the repo root; prepares a private copy
+bun patch maplibre-gl@6.16.0          # at the repo root; prepares a private copy
 # edit node_modules/maplibre-gl/dist/...   (the ROOT node_modules, nowhere else)
 bun patch --commit node_modules/maplibre-gl
 ```

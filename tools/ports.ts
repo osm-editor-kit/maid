@@ -5,6 +5,8 @@ export const PORTS = {
   maidBicycle: 5176,
   /** The third app, apps/maid-parking */
   maidParking: 5177,
+  /** The fourth app, apps/maid-indoor */
+  maidIndoor: 5178,
   /** Production build of Maid, used by the benchmark */
   maidBuild: 5175,
   // not 5174: that is taken by other Vite projects on this machine

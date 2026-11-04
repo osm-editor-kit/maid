@@ -5,6 +5,6 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "babylonjs": "9.28.0"
+    "babylonjs": "9.32.0"
   }
 }

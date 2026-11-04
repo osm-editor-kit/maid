@@ -118,6 +118,9 @@ export type ConstraintItem = {
  * module mode (`enterModuleMode`), whose callbacks take the clicks. A tool has no key of its own: 3 starts an area,
  * and 3 again before the first click steps to the first tool (33), the next (333) and back to the area (Tobias,
  * 2026-10-17).
+ *
+ * With `placement: 'button'` the tool is a button of its own in the add row, after the Area button, instead of an entry
+ * of the dropdown (the room tool of the indoor editor, Tobias 2026-11-03). Such a tool is not reached with 3 again.
  */
 export type DrawToolItem = {
   id: string
@@ -125,7 +128,19 @@ export type DrawToolItem = {
   /** Its name in the dropdown and its tooltip. A function, so that the text is read in the language of the moment. */
   label: () => string
   icon?: ComponentType
-  start(engine: MaidEngine): void
+  /** Where the tool is offered: an entry of the Area dropdown (the default) or a button of its own in the add row */
+  placement?: 'menu' | 'button'
+  /** The short name under the button's icon, for `placement: 'button'`; without it the button shows only its icon */
+  text?: () => string
+  /**
+   * Why the tool cannot start with this selection, shown as the button's tooltip while it is disabled; undefined when it
+   * can. Asked on each change of the selection. Without it the tool can always start.
+   */
+  unavailable?: (selected: readonly string[]) => string | undefined
+  /** The second line of the button's tooltip while the tool can start: what the next click does */
+  description?: () => string
+  /** Starts the tool. `selected` is the selection when it was started, for a tool that works on the selected feature */
+  start(engine: MaidEngine, selected?: readonly string[]): void
 }
 
 declare module '@osm-editor-kit/maid-operations' {

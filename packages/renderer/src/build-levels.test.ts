@@ -33,6 +33,28 @@ describe('lv: the floors of a built feature', () => {
     expect(batch.lines.find((f) => f.id === 'w1')?.properties).not.toHaveProperty('lv')
   })
 
+  it('marks a building outline without a level as on every level (al), and one with levels not', () => {
+    const ring = [...nodes, { type: 'node' as const, id: 4, lat: 1, lon: 0 }]
+    const plain = build([
+      ...ring,
+      { type: 'way', id: 1, nodes: [1, 2, 3, 4, 1], tags: { building: 'yes' } },
+    ])
+    const area = [...plain.areas, ...plain.lines].find((f) => f.id === 'w1')
+    expect(area?.properties).toMatchObject({ al: 1 })
+    expect(area?.properties).not.toHaveProperty('lv')
+    const ranged = build([
+      ...ring,
+      {
+        type: 'way',
+        id: 1,
+        nodes: [1, 2, 3, 4, 1],
+        tags: { building: 'yes', min_level: '0', max_level: '2' },
+      },
+    ])
+    const rangedArea = [...ranged.areas, ...ranged.lines].find((f) => f.id === 'w1')
+    expect(rangedArea?.properties).not.toHaveProperty('al')
+  })
+
   it('takes repeat_on with level for a point', () => {
     const batch = build([
       { ...nodes[0]!, tags: { amenity: 'toilets', repeat_on: '1-2', level: '0' } },

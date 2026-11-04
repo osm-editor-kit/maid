@@ -17,9 +17,9 @@ import { app, runCheck } from './check-page'
 
 const sceneName = process.argv[2] ?? 'small'
 
-// the Cut operation is in the parking editor only (maid-parking's config turns the module on)
-if (app !== 'parking') {
-  console.error('cut-check needs --app parking')
+// the Cut operation is in the parking and the indoor editor only (their configs turn the module on)
+if (app !== 'parking' && app !== 'indoor') {
+  console.error('cut-check needs --app parking or --app indoor')
   process.exit(2)
 }
 

@@ -48,6 +48,7 @@
     "check-osmchange": "bun tools/bench/osmchange-check.ts",
     "check-parking": "bun tools/bench/parking-check.ts",
     "check-rectangle": "bun tools/bench/rectangle-check.ts",
+    "check-room": "bun tools/bench/room-check.ts",
     "check-relation-column": "bun tools/bench/relation-column-check.ts",
     "check-relations": "bun tools/bench/relations-check.ts",
     "check-render": "bun tools/bench/shot-diff.ts check",
@@ -62,9 +63,10 @@
     "check-validation": "bun tools/bench/validation-check.ts",
     "check-way-table": "bun tools/bench/way-table-check.ts",
     "compare": "bun apps/compare/start.ts",
-    "dev": "bun run i18n-compile && bun run --parallel dev-maid dev-bicycle dev-parking dev-api",
+    "dev": "bun run i18n-compile && bun run --parallel dev-maid dev-bicycle dev-parking dev-indoor dev-api",
     "dev-api": "bun tools/mock-osm-api/server.ts",
     "dev-bicycle": "bun run i18n-compile && bun run --cwd apps/maid-bicycle dev",
+    "dev-indoor": "bun run i18n-compile && bun run --cwd apps/maid-indoor dev",
     "dev-maid": "bun run i18n-compile && bun run --cwd apps/maid dev",
     "dev-parking": "bun run i18n-compile && bun run --cwd apps/maid-parking dev",
     "fixtures-build": "bun tools/fixtures/build.ts",
@@ -91,16 +93,17 @@
     "type-check": "bun run i18n-compile && tsc -b packages/model && tsc --noEmit && tsc --noEmit -p packages/core/tsconfig.test.json"
   },
   "devDependencies": {
-    "@playwright/test": "^1.63.0",
-    "@types/bun": "^1.4.2",
-    "oxfmt": "0.60.0",
-    "oxlint": "1.79.0",
-    "oxlint-tsgolint": "7.0.2001",
+    "@playwright/test": "^1.64.1",
+    "@types/bun": "^1.4.4",
+    "@types/node": "^26.6.4",
+    "oxfmt": "0.74.0",
+    "oxlint": "1.89.0",
+    "oxlint-tsgolint": "7.0.2005",
     "typescript": "^7.0.2"
   },
   "packageManager": "bun@1.4.4",
   "patchedDependencies": {
-    "maplibre-gl@6.12.0": "patches/maplibre-gl@6.12.0.patch",
+    "maplibre-gl@6.16.0": "patches/maplibre-gl@6.16.0.patch",
     "@vis.gl/react-maplibre@8.1.3": "patches/@vis.gl%2Freact-maplibre@8.1.3.patch",
     "@rapid-sdk/util@1.0.0-pre.5": "patches/@rapid-sdk%2Futil@1.0.0-pre.5.patch"
   }

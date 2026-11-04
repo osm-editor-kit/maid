@@ -6,7 +6,7 @@ This file is written so that it can be referenced, or copied, when the report is
 
 | What | Where |
 | --- | --- |
-| The fix, as a patch to maplibre-gl 6.12.0 | [`patches/maplibre-gl@6.12.0.patch`](https://github.com/osm-editor-kit/maid/blob/main/patches/maplibre-gl%406.12.0.patch). Search for `_maidLoadSeq` and `_maidRawData`; the readable hunks are the ones for `maplibre-gl-dev.mjs` and `maplibre-gl-worker-dev.mjs`. The same file also holds an unrelated change (a wheel-zoom delay, [ADR 0006](../adr/0006-wheel-zoom-finish-delay.md)) |
+| The fix, as a patch to maplibre-gl 6.16.0 (first written for 6.12.0) | [`patches/maplibre-gl@6.16.0.patch`](https://github.com/osm-editor-kit/maid/blob/main/patches/maplibre-gl%406.16.0.patch). Search for `_maidLoadSeq` and `_maidRawData`; the readable hunks are the ones for `maplibre-gl-dev.mjs` and `maplibre-gl-worker-dev.mjs`. The same file also holds an unrelated change (a wheel-zoom delay, [ADR 0006](../adr/0006-wheel-zoom-finish-delay.md)) |
 | The test case | [`tools/maplibre-repro/updatedata-overlap.html`](https://github.com/osm-editor-kit/maid/blob/main/tools/maplibre-repro/updatedata-overlap.html): one page, no dependencies besides MapLibre |
 | The runner | [`tools/maplibre-repro/run.ts`](https://github.com/osm-editor-kit/maid/blob/main/tools/maplibre-repro/run.ts): opens the page N times in Chrome and prints one JSON line per run |
 
@@ -58,6 +58,8 @@ The same symptom, closed:
 | [#8064](https://github.com/maplibre/maplibre-gl-js/issues/8064) | `map.queryRenderedFeatures` causes "Out of bounds" error again | Closed 2026-08-07 by [#8107](https://github.com/maplibre/maplibre-gl-js/pull/8107) ("Fix worker sources discarding raw tile data after aborted parse") | Same error. The worker answered without raw tile data after an aborted parse. Different trigger (a missing image and a symbol query) |
 
 Both fixes are part of 6.12.0, and our test case still fails on an untouched 6.12.0 in 8 of 30 runs. So they did not close the path described here. A report should be written as a follow-up to those two and link them.
+
+Checked again on 2026-10-31 for the update to 6.16.0 (agent's Linux Chrome, `gap=5&restyle=1`): an untouched 6.16.0 fails in 20 of 20 runs, the same patch ported to 6.16.0 passes 30 of 30. The `loadTile` code of `GeoJSONSource` is unchanged apart from `loadVectorData` taking the style instead of the painter, so the cause is still there.
 
 Related, different mechanism, both in 6.12.0:
 
@@ -131,7 +133,7 @@ Two small changes, both in the GeoJSON path only:
 
 The first change alone could drop the only answer that carries raw data; the second alone would still let an older answer win. Cost of the second: the worker keeps one copy of the raw data per loaded tile, and re-parses send it again.
 
-The exact edits are in `patches/maplibre-gl@6.12.0.patch` (search for `_maidLoadSeq` and `_maidRawData`; the readable version is in the `-dev.mjs` hunks).
+The exact edits are in `patches/maplibre-gl@6.16.0.patch` (search for `_maidLoadSeq` and `_maidRawData`; the readable version is in the `-dev.mjs` hunks).
 
 Not examined: whether `VectorTileSource` can show the same raw-data mismatch through its own reload path.
 

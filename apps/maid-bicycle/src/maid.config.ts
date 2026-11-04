@@ -7,7 +7,6 @@ import { defaultFilters } from '@osm-editor-kit/maid-filters'
 import { dataLayers } from '@osm-editor-kit/maid-module-data-layers'
 import { imagery } from '@osm-editor-kit/maid-module-imagery'
 import { lenses } from '@osm-editor-kit/maid-module-lenses'
-import { levels } from '@osm-editor-kit/maid-module-levels'
 import { notes } from '@osm-editor-kit/maid-module-notes'
 import { osmChange } from '@osm-editor-kit/maid-module-osmchange'
 import { reroute } from '@osm-editor-kit/maid-module-reroute'
@@ -32,12 +31,7 @@ import {
   sceneBounds,
   validation,
 } from '@osm-editor-kit/maid-shell'
-import {
-  defaultRules,
-  missingLevel,
-  stairsLevelMissing,
-  stairsLevelUnreached,
-} from '@osm-editor-kit/maid-validation'
+import { defaultRules } from '@osm-editor-kit/maid-validation'
 import dense from '../../../fixtures/dense.meta.json'
 import medium from '../../../fixtures/medium.meta.json'
 import small from '../../../fixtures/small.meta.json'
@@ -79,17 +73,8 @@ function editorConfig(config: Config) {
     // inspector sections "Members" and "Relations": what a relation contains, what a feature is in
     relations(),
     // checks what was changed here: inspector section and dock view "Issues"
-    // with the level mode: a station or shop with layer but no level gets a hint and can take the layer's value;
-    // stairs between two levels get both levels and the direction they climb in
-    validation({
-      rules: [
-        ...defaultRules,
-        ...turnRestrictionRules,
-        missingLevel,
-        stairsLevelMissing,
-        stairsLevelUnreached,
-      ],
-    }),
+    // (indoor and levels, with their rules, are in apps/maid-indoor)
+    validation({ rules: [...defaultRules, ...turnRestrictionRules] }),
     turnRestrictions(),
     // top bar "Background": aerial imagery and overlays under the OSM data
     background,
@@ -97,8 +82,6 @@ function editorConfig(config: Config) {
     dataLayers(),
     // top bar "Map style": lenses that recolour the map for one theme (surface, lit, max speed)
     lenses(),
-    // building levels: a floor picker on the map, the other levels dimmed and locked, rooms in 3D (`level=` in the URL)
-    levels(),
     // top bar and dock "Photos": street-level photos; Mapillary uses the token of apps/mapillary-token.ts
     streetImagery({ mapillaryToken: mapillaryToken() }),
     // inspector field "Surface and smoothness" on roads and paths: a photo per value, bundled, no network
