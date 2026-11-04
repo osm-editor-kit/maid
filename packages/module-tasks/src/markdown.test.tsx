@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'bun:test'
 import type { ReactElement } from 'react'
-// react-dom is not a dependency of this package yet (package.json is the orchestrator's): the copy of maid-ui is used.
 import * as server from 'react-dom/server'
-import { Markdown, parseMarkdown } from './markdown.tsx'
+import { fillMustache, Markdown, type MarkdownContext, parseMarkdown } from './markdown.tsx'
 
 const renderToStaticMarkup = server.renderToStaticMarkup as (node: ReactElement) => string
-const html = (text: string) => renderToStaticMarkup(<Markdown text={text} />)
+const html = (text: string, context?: MarkdownContext) =>
+  renderToStaticMarkup(<Markdown text={text} context={context} />)
 
 describe('markdown', () => {
   it('renders paragraphs, line breaks and marks', () => {
@@ -53,7 +53,8 @@ describe('markdown', () => {
 
   it('does not nest a link in a link text, and escapes quotes in text', () => {
     const out = html('[a [b](https://x.org)](https://y.org) "quoted" & more')
-    expect(out.match(/<a /g)?.length ?? 0).toBeLessThanOrEqual(1)
+    // the address after the first link is a bare address of its own, never a link inside a link
+    expect(out).not.toMatch(/<a [^>]*>(?:(?!<\/a>).)*<a /)
     expect(out).toContain('&quot;quoted&quot; &amp; more')
   })
 
@@ -68,5 +69,76 @@ describe('markdown', () => {
     const out = html(hostile)
     expect(out).not.toContain('onmouseover="')
     expect(out).not.toContain('<b>')
+  })
+})
+
+describe('markdown at the level of the MapRoulette fork', () => {
+  it('reads headings, numbered lists, quotes, code blocks, rules and tables', () => {
+    const out = html(
+      [
+        '## Aufgabe',
+        '',
+        '1. first',
+        '2. second',
+        '',
+        '> a quote',
+        '',
+        '```',
+        '<b>not bold</b>',
+        '```',
+        '',
+        '---',
+        '',
+        '| key | value |',
+        '| --- | --- |',
+        '| `highway` | footway |',
+      ].join('\n'),
+    )
+    expect(out).toContain('<h2')
+    expect(out).toContain('<ol start="1"')
+    expect(out.match(/<li>/g)?.length).toBe(2)
+    expect(out).toContain('<blockquote')
+    expect(out).toContain('&lt;b&gt;not bold&lt;/b&gt;')
+    expect(out).toContain('<hr')
+    expect(out).toContain('<th')
+    expect(out).toContain('<td')
+  })
+
+  it('fills {{key}} from the task properties, read as text', () => {
+    const out = html('Name: {{name}}, {{missing}}!', {
+      name: '<b>Haupt</b>straße',
+      nested: { a: 1 },
+    })
+    expect(out).toContain('Name: &lt;b&gt;Haupt&lt;/b&gt;straße, !')
+    expect(fillMustache('{{nested}}', { nested: { a: 1 } })).toBe('')
+    expect(fillMustache('{{n}}', { n: 3 })).toBe('3')
+  })
+
+  it('turns element references and openstreetmap.org links into references, not inside words', () => {
+    const blocks = parseMarkdown(
+      'See way/123, `node/5`, https://www.openstreetmap.org/relation/7 and [this](https://openstreetmap.org/way/9). Not xway/1 or a/way/2.',
+    )
+    const refs = JSON.stringify(blocks).match(/"ref":"[^"]+"/g)
+    expect(refs).toEqual([
+      '"ref":"way/123"',
+      '"ref":"node/5"',
+      '"ref":"relation/7"',
+      '"ref":"way/9"',
+    ])
+  })
+
+  it('shows copyable text with a button, images as links, bare https addresses as links', () => {
+    const out = html(
+      '[copyable "highway=footway"] ![photo](https://example.org/p.jpg) https://example.org/x.',
+    )
+    expect(out).toContain('highway=footway')
+    expect(out).toContain('data-testid="tasks-copy"')
+    expect(out).not.toContain('<img')
+    expect(out).toContain('href="https://example.org/p.jpg"')
+    expect(out).toContain('href="https://example.org/x"')
+  })
+
+  it('keeps underscores inside words', () => {
+    expect(html('cycleway_left and _italic_')).toContain('cycleway_left and <em>italic</em>')
   })
 })

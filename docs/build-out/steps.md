@@ -206,7 +206,9 @@ Waiting for a decision by Tobias: bugs in the model that lose data (reverse with
 
 ## Not planned yet
 
-Tasks and MapRoulette (was D4: the task extension points and `maid-module-maproulette`): left out by Tobias on 2026-10-13, because the MapRoulette integration is broken by problems of its API at the moment.
+A local fix list from another project (asked by Tobias through the tilda-geo session on 2026-10-29: Markdown text, select the element, apply a tag change after a click) is covered by the private task lists (section "Private task lists" below); skill `maid-task-file` tells other projects how to write the file, including from MapRoulette's `.geojsonl` Tag Fix form, which Maid does not read itself.
+
+MapRoulette's online API (was D4: the task extension points and `maid-module-maproulette`): left out by Tobias on 2026-10-13, because the MapRoulette integration is broken by problems of its API at the moment. Teams use MapRoulette.
 
 GPX, measurement and history panels, keyboard shortcut help, the published npm packages and their release routine. They are listed so that nobody assumes they are covered. (Translations and turn restrictions stood here until 2026-10-13: both are in work now, see Part F.)
 

@@ -20,7 +20,7 @@ import {
   type DeleteOutcome,
 } from './apply.ts'
 import { entityIdOfRef } from './list.ts'
-import { Markdown } from './markdown.tsx'
+import { Markdown, type MarkdownContext, type OnOsmRef } from './markdown.tsx'
 import { m } from './messages.ts'
 import { type AppliedTask, type TasksStore, useTasks } from './store.ts'
 
@@ -80,6 +80,7 @@ export function TaskContent({
   editor,
   readOnly,
   hasRefs,
+  select,
 }: {
   store: TasksStore
   index: number
@@ -89,6 +90,8 @@ export function TaskContent({
   readOnly?: (id: string) => boolean
   /** The task names OSM elements (so an absent `entity` means "not selected" and not "no feature") */
   hasRefs: boolean
+  /** Selects a feature: an element reference in the text (`way/123`) calls it */
+  select?: (selection: string | readonly string[] | null) => void
 }) {
   const task = useTasks(store, (state) => state.list?.file.features[index])
   const status = useTasks(store, (state) => state.statuses[index])
@@ -154,6 +157,7 @@ export function TaskContent({
   /** Whether this session applied a create or delete option of this task and it is still done */
   const appliedHere = (option: TaskOption) =>
     status === 'done' && applied.some((each) => each.index === index && each.optionId === option.id)
+  const onOsm = select && ((ref: string) => select(entityIdOfRef(ref)))
   const hasTagOption = (p.options ?? []).some((option) => actionOf(option) === 'tag')
 
   return (
@@ -166,7 +170,7 @@ export function TaskContent({
         <h3 className="text-sm/5 font-semibold break-words">{p.title}</h3>
         <StatusBadge status={status} />
       </header>
-      <Markdown text={p.description} />
+      <Markdown text={p.description} context={p} onOsm={onOsm} />
       {p.links && p.links.length > 0 && (
         <div className="flex flex-col gap-1">
           <h4 className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
@@ -222,6 +226,8 @@ export function TaskContent({
                 option={option}
                 entity={entity}
                 editor={editor}
+                context={p}
+                onOsm={onOsm}
                 appliedHere={appliedHere(option)}
                 taskDone={status === 'done'}
                 onApply={() => apply(option)}
@@ -275,11 +281,15 @@ function OptionCard({
   appliedHere,
   taskDone,
   onApply,
+  context,
+  onOsm,
 }: {
   task: Task
   option: TaskOption
   entity?: EntityInfo
   editor: Editor
+  context: MarkdownContext
+  onOsm?: OnOsmRef
   /** A create or delete option this session applied (its edit has no state to compare with) */
   appliedHere: boolean
   /** A create or delete option of a done task is not offered: it would add or delete a second time */
@@ -306,7 +316,7 @@ function OptionCard({
       className="flex flex-col gap-1.5 rounded-lg border border-zinc-950/10 p-2.5 dark:border-white/15"
     >
       <div className="text-sm font-medium break-words">{option.label}</div>
-      {option.description && <Markdown text={option.description} />}
+      {option.description && <Markdown text={option.description} context={context} onOsm={onOsm} />}
       {action === 'create' && !applied && (
         <p className="text-xs text-zinc-500 dark:text-zinc-400">{createdKind(task, option)}</p>
       )}

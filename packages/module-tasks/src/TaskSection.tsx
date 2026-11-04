@@ -9,7 +9,7 @@ const MAX_SHOWN = 5
 
 /** The tasks that name the selected feature, at the top of the inspector */
 export function createTaskSection(store: TasksStore) {
-  return function TaskSection({ entity, editor, readOnly }: InspectorSectionProps) {
+  return function TaskSection({ entity, editor, readOnly, select }: InspectorSectionProps) {
     const refs = useTasks(store, (state) => state.list?.refs)
     const current = useTasks(store, (state) => state.current)
     if (!refs) return null
@@ -28,6 +28,7 @@ export function createTaskSection(store: TasksStore) {
             editor={editor}
             readOnly={readOnly}
             hasRefs
+            select={select}
           />
         ))}
         {indexes.length > MAX_SHOWN && (

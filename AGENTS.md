@@ -30,6 +30,10 @@ OSM infrastructure is everything the OSMF and the community run for mappers: the
 - Read their code in `.reference/id` and `.reference/rapid`: pinned commits from `bun run refs-setup` (git-ignored). This file names no other location on purpose.
 - **Other repositories are read-only**, wherever they are, `.reference/` included: never edit, commit, push, open or comment on issues and pull requests, or change settings there. Changes we want upstream are drafted here (`docs/upstream/`) and handed to a person.
 
+## Skills
+
+Repo skills live in `.agents/skills/` (linked from `.claude/skills`). `maid-task-file`: the task file Maid opens as a private task list (and a plain GeoJSON as a data layer), for example a list of OSM ways to fix that another project made.
+
 ## Stack
 
 The FMC `tech-stack` skill: Bun workspaces, Vite, React 19 with the React Compiler, TypeScript 7, `react-map-gl/maplibre` (the `react-map-gl` skill: declarative `<Source>`/`<Layer>`, no `map.addLayer` in app code), Zustand, Zod, TanStack Query, Tailwind, oxlint and oxfmt, Vitest, Playwright. Imperative MapLibre calls needed for performance (for example `GeoJSONSource.updateData`) stay inside the renderer package behind a small API, with a comment saying why.

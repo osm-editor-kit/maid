@@ -75,7 +75,13 @@ export function createTasksView(store: TasksStore, shared: Shared) {
         {error && <ErrorBanner store={store} />}
         <Head store={store} shared={shared} select={select} />
         <Rows store={store} shared={shared} select={select} />
-        <Current store={store} editor={editor} selected={selected} readOnly={readOnly} />
+        <Current
+          store={store}
+          editor={editor}
+          selected={selected}
+          readOnly={readOnly}
+          select={select}
+        />
       </div>
     )
   }
@@ -298,11 +304,13 @@ function Current({
   editor,
   selected,
   readOnly,
+  select,
 }: {
   store: TasksStore
   editor: DockViewProps['editor']
   selected: readonly string[]
   readOnly: DockViewProps['readOnly']
+  select: DockViewProps['select']
 }) {
   const list = useTasks(store, (state) => state.list)
   const current = useTasks(store, (state) => state.current)
@@ -324,6 +332,7 @@ function Current({
         editor={editor}
         readOnly={readOnly}
         hasRefs={ids.length > 0}
+        select={select}
       />
     </div>
   )

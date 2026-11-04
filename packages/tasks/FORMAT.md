@@ -95,6 +95,24 @@ relation in its `osm` needs an `osm` on its delete option. Maid refuses, as iD d
 boundary or the outer ring of a multipolygon, and a feature with a `wikidata` tag. A way takes its untagged nodes
 along that no other way uses.
 
+## Markdown in descriptions
+
+Every `description` (of the list, of a task, of an option) is Markdown, as in MapRoulette's task instructions. Maid
+shows:
+
+- paragraphs (a single line break stays a line break), headings `#` to `######`, lists with `- ` or `1. `, quotes with
+  `> `, code blocks between ```` ``` ```` lines, rules `---` and tables with `|` and a `| --- |` line;
+- `**bold**`, `*italic*`, `` `code` ``, links `[text](https://…)` and bare `https://…` addresses (links must be
+  `https`);
+- `{{key}}`: the task's property `key`, for example `{{name}}` when the task has `"name": "Hauptstraße"` in its
+  properties. A missing key gives nothing.
+- `way/123`, `node/5`, `relation/7` and `https://www.openstreetmap.org/way/123`: a link that selects the element in
+  Maid.
+- `[copyable "highway=footway"]`: the text with a copy button.
+
+Not shown: raw HTML (it appears as text), images (`![alt](src)` becomes a link to the image) and MapRoulette's
+`[select …]` and `[checkbox …]` answers.
+
 ## Full example
 
 A valid file with one task. Copy it and change it:
@@ -208,8 +226,8 @@ what the schema cannot state (unique ids, a key both set and removed).
 
 - **Coordinates in the wrong order.** GeoJSON is `[longitude, latitude]`. Latitude first puts Berlin in the wrong place
   (Berlin is about `[13.4, 52.5]`).
-- **Raw HTML** in a description (`<b>`, `<a href=...>`). Write Markdown only. The format does not allow raw HTML; the
-  checker does not reject it yet, so check for it yourself.
+- **Raw HTML** in a description (`<b>`, `<a href=...>`). Write Markdown only: Maid shows HTML as text. The checker
+  does not reject it yet, so check for it yourself.
 - **`http://` links**, or relative links, in `links`. Only `https://`.
 - **Duplicate `task_id`**, especially when tasks are generated in batches and the counter restarts.
 - **Duplicate `osm` entries** in one task.
