@@ -731,21 +731,19 @@ function buildMainLayers(options: LayerOptions) {
           ['line', SOURCES.lines],
           ['area', SOURCES.areas],
         ] as const
-      ).map(
-        ([kind, source]): LayerSpecification => ({
-          id: `${kind}-sided`,
-          type: 'symbol',
-          source,
-          filter: ['has', 'side'],
-          minzoom: 15,
-          layout: {
-            ...markerLayout,
-            'symbol-spacing': SIDE_SPACING,
-            'icon-image': side,
-            visibility: shownIn(!wire),
-          },
-        }),
-      ),
+      ).map(([kind, source]): LayerSpecification => ({
+        id: `${kind}-sided`,
+        type: 'symbol',
+        source,
+        filter: ['has', 'side'],
+        minzoom: 15,
+        layout: {
+          ...markerLayout,
+          'symbol-spacing': SIDE_SPACING,
+          'icon-image': side,
+          visibility: shownIn(!wire),
+        },
+      })),
       // The direction of the selected highway (engine.ts refreshShape): white arrows with a dark outline, on the
       // selection's glow, under the vertices. iD does not show a way's direction; Maid does, as the product owner asked.
       {
