@@ -248,7 +248,7 @@ Columns: what a mapper cannot do or what goes wrong · where it came from · iD 
 
 | Gap | From | iD tests | Size | Needs | Evening: status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| GPX and KML files as data layers (GeoJSON only) | F-svg-3 (2) | 2 | M | `packages/module-data-layers` | NOT WANTED | "Not planned yet" in `steps.md` (GPX in general). Two todo in `id-data.test.ts`. |
+| KML files as data layers (GeoJSON and GPX are done) | F-svg-3 (2) | 2 | M | `packages/module-data-layers` | PARTLY | GPX: built (`gpx.ts`, file and address, `?data=`), tracks and routes as lines, waypoints as points. KML: refused on purpose (`KML_MESSAGE`, `config.ts`). Two todo in `id-data.test.ts`. |
 | Labels for the features of a data layer, with a switch | F-svg-4 (2) | 2 | S | `module-data-layers`, `layers.ts` | OPEN | "shows labels by default" and "hides labels" todo (`id-data.test.ts`). |
 | Street photos: the open photo is not kept in the URL | street-imagery-vs-mapillary (table row, "not done") | not counted | M | `apps/maid/src/url/params.ts` (unverified) | OPEN | Not checked: `packages/shell/src/url/id-url.ts:32-35` lists the photo keys; whether the open photo is written is not checked. |
 | Street photo layer: age colours, own users, the selected way's images (radnetz 18) | radnetz 18 | not counted | M | unverified | OPEN | Still in the Radnetz list of `steps.md`. |

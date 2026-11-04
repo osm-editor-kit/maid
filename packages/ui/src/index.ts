@@ -1,5 +1,12 @@
 import './extension-points.ts'
 
+export {
+  OsmAccountProvider,
+  type OsmAccount,
+  type PrefsEndpoint,
+  useOsmAccount,
+  usePrefsEndpoint,
+} from './account.ts'
 export { BottomSheet } from './BottomSheet.tsx'
 export { ContextMenu, type MenuItem } from './ContextMenu.tsx'
 export { Dock, type DockTab } from './Dock.tsx'

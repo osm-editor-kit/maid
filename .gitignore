@@ -24,6 +24,9 @@ reports/renderer-build-bench.json
 reports/check-all-*
 reports/config-check.json
 reports/sim-measure-*
+reports/tasks-check.json
+reports/osm-prefs-size.json
+reports/tasks-perf.json
 
 # the parking project's brief and source material (internal notes, photos) stay local
 docs/parking/

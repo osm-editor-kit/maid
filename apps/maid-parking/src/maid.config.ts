@@ -21,6 +21,7 @@ import {
   rectangle,
 } from '@osm-editor-kit/maid-module-shapes'
 import { streetImagery } from '@osm-editor-kit/maid-module-street-imagery'
+import { tasks } from '@osm-editor-kit/maid-module-tasks'
 import { defaultOperations, pointToArea } from '@osm-editor-kit/maid-operations'
 import { operations } from '@osm-editor-kit/maid-renderer'
 import {
@@ -66,6 +67,8 @@ function editorConfig(config: Config) {
   const presets = lazyPresets(() => import('./presets').then((module) => module.makePresets()))
   const bbox = fixtureBounds(config, BBOX)
   const modules: MaidModule[] = [
+    // private task lists: a GeoJSON file of features to check, the progress in the OSM user preferences (ADR 0013)
+    tasks(),
     // inspector section "Element": id, version and upload state of the selected object
     elementInfo(),
     // the edit menu: reverse, split, merge, straighten, square, make round, disconnect, extract

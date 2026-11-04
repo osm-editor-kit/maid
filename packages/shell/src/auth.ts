@@ -117,7 +117,9 @@ export function createAuth({ id, envFile, server, apiUrl, clientId, loginOrigin 
           import.meta.env.VITE_LOGIN_BASE || import.meta.env.BASE_URL,
           loginOrigin ?? window.location.origin,
         ),
-        scopes: ['read_prefs', 'write_api', 'write_notes'],
+        // write_prefs: modules keep small data of the person in their user preferences (the task list's progress).
+        // A login from before it was asked for lacks it: the module says so and asks to log in again.
+        scopes: ['read_prefs', 'write_prefs', 'write_api', 'write_notes'],
       })
       // the token belongs to this server only: osm-api's own key would hand it to the other server's requests
       localStorage.removeItem(OSM_API_TOKEN_KEY)
@@ -140,9 +142,18 @@ export function createAuth({ id, envFile, server, apiUrl, clientId, loginOrigin 
     set({ user: undefined, error: undefined })
   }
 
+  /** The `Authorization` header of the login, for a request of a module through the editor's fetch; undefined when logged out */
+  function authHeader() {
+    if (isAutomated()) return undefined
+    const token = read(TOKEN_KEY)
+    return token ? `Bearer ${token}` : undefined
+  }
+
   return {
     server,
+    apiUrl,
     api,
+    authHeader,
     login,
     logout,
     getState: () => holder.state,

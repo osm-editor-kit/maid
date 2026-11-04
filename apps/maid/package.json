@@ -19,6 +19,7 @@
     "@osm-editor-kit/maid-module-notes": "workspace:*",
     "@osm-editor-kit/maid-module-street-imagery": "workspace:*",
     "@osm-editor-kit/maid-module-surface": "workspace:*",
+    "@osm-editor-kit/maid-module-tasks": "workspace:*",
     "@osm-editor-kit/maid-module-turn-restrictions": "workspace:*",
     "@osm-editor-kit/maid-operations": "workspace:*",
     "@osm-editor-kit/maid-presets": "workspace:*",

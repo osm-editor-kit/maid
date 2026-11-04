@@ -4,6 +4,7 @@ import type { Locale } from '@osm-editor-kit/maid-i18n'
 import { connectLenses } from '@osm-editor-kit/maid-module-lenses'
 import { MaidEngine } from '@osm-editor-kit/maid-renderer'
 import { getSettings, type Server } from '@osm-editor-kit/maid-ui'
+import { createAccount } from './account'
 import { createAuth } from './auth'
 import { DEPLOYED, DEV_API, OSM_API, readConfig, type Config } from './config'
 import { watchFavourites } from './favourites'
@@ -128,6 +129,18 @@ export function createShell(app: AppConfig) {
   connectLenses(engine)
   watchFavourites(engine)
 
+  const auth = createAuth({
+    id,
+    envFile: app.osm?.envFile ?? `apps/${id}/.env.local`,
+    server: config.loginServer,
+    apiUrl: config.loginServer === 'osm' ? OSM_API : DEV_API,
+    clientId:
+      (config.loginServer === 'osm' ? app.osm?.clientId : app.osm?.devClientId) || undefined,
+    // a deployed build logs in from the origin it is served from (its redirect is origin + base + land.html);
+    // the app's loginOrigin pins local development to 127.0.0.1
+    loginOrigin: config.deployed ? undefined : app.osm?.loginOrigin,
+  })
+
   return {
     id,
     brand: app.brand ?? { name: 'Maid', detail: 'MapLibre iD Editor' },
@@ -137,17 +150,8 @@ export function createShell(app: AppConfig) {
     engine,
     normalizeFilters,
     filtersStart,
-    auth: createAuth({
-      id,
-      envFile: app.osm?.envFile ?? `apps/${id}/.env.local`,
-      server: config.loginServer,
-      apiUrl: config.loginServer === 'osm' ? OSM_API : DEV_API,
-      clientId:
-        (config.loginServer === 'osm' ? app.osm?.clientId : app.osm?.devClientId) || undefined,
-      // a deployed build logs in from the origin it is served from (its redirect is origin + base + land.html);
-      // the app's loginOrigin pins local development to 127.0.0.1
-      loginOrigin: config.deployed ? undefined : app.osm?.loginOrigin,
-    }),
+    auth,
+    account: createAccount(auth, config),
     journal: createShellJournal(id, config, editor),
   }
 }

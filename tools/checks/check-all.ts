@@ -50,6 +50,7 @@ const CHECKS = [
   'tooltips',
   'levels',
   'osmchange',
+  'tasks',
 ] as const
 type CheckName = (typeof CHECKS)[number]
 
@@ -141,6 +142,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   'move-handle': { maid: 15, bicycle: 15, parking: 15 },
   tooltips: { maid: 11, bicycle: 11, parking: 11 },
   osmchange: { maid: 0, bicycle: 31, parking: 0 },
+  tasks: { maid: 28, bicycle: 28, parking: 28 },
 }
 
 type CheckResult = {
