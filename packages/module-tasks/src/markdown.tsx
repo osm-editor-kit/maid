@@ -39,13 +39,26 @@ export type Block =
 /** Values for `{{key}}`: the task's properties. Only strings, numbers and booleans are written. */
 export type MarkdownContext = Readonly<Record<string, unknown>>
 
-const LINK = /^\[([^\]\n]+)\]\(([^)\s]+)\)/
+const LINK = /^\[([^\]\n]+)\]\(([^\s()]*(?:\([^\s()]*\)[^\s()]*)*)\)/
 const IMAGE = /^!\[([^\]\n]*)\]\(([^)\s]+)\)/
 const COPYABLE = /^(?:\[|\{\{\{)copyable[/ ]?"([^"]*)"\s*(?:\]|\}\}\})(?!\()/
 const OSM_REF = /^(node|way|relation)\/([1-9][0-9]*)\b/
 const OSM_URL =
   /^https:\/\/(?:www\.)?openstreetmap\.org\/(node|way|relation)\/([1-9][0-9]*)(?:[#?]\S*)?$/
-const BARE_URL = /^https:\/\/[^\s<>()]+[^\s<>().,;:!?'"]/
+const BARE_URL = /^https:\/\/[^\s<>]+/
+
+/** A bare address without the punctuation after it and without a `)` it did not open (`(see https://x/a_(b))`) */
+function bareUrl(rest: string): string | undefined {
+  let address = BARE_URL.exec(rest)?.[0]
+  while (address) {
+    const last = address.at(-1) ?? ''
+    const open = address.split('(').length - 1
+    const close = address.split(')').length - 1
+    if (/[.,;:!?'"(]/.test(last) || (last === ')' && close > open)) address = address.slice(0, -1)
+    else break
+  }
+  return address && address.length > 'https://'.length ? address : undefined
+}
 const MUSTACHE = /\{\{([\w:]+)\}\}/g
 
 function httpsHref(address: string): string | undefined {
@@ -130,8 +143,8 @@ export function parseInline(text: string, inLink = false): Inline[] {
         i += match[0].length
         continue
       }
-    } else if (char === 'h' && !inLink && atWordStart(text, i) && BARE_URL.test(rest)) {
-      const address = BARE_URL.exec(rest)![0]
+    } else if (char === 'h' && !inLink && atWordStart(text, i) && bareUrl(rest)) {
+      const address = bareUrl(rest)!
       const href = httpsHref(address)
       if (href) {
         const ref = osmRefOfUrl(href)
@@ -158,7 +171,7 @@ export function parseInline(text: string, inLink = false): Inline[] {
         continue
       }
     } else if ((char === '*' || char === '_') && (char === '*' || atWordStart(text, i))) {
-      const end = text.indexOf(char, i + 1)
+      const end = char === '*' ? closingStar(text, i + 1) : text.indexOf(char, i + 1)
       const after = text[end + 1]
       const closes = char === '*' ? after !== '*' : after === undefined || !/\w/.test(after)
       if (end > i + 1 && closes) {
@@ -173,11 +186,34 @@ export function parseInline(text: string, inLink = false): Inline[] {
   return out
 }
 
-const HEADING = /^(#{1,6})\s+(.*?)\s*#*\s*$/
+/** The `*` that closes an italic opened before `from`, skipping `**bold**` inside it; -1 if none */
+function closingStar(text: string, from: number): number {
+  let j = from
+  while (j < text.length) {
+    if (text[j] === '*' && text[j + 1] === '*') {
+      const end = text.indexOf('**', j + 2)
+      if (end < 0) return -1
+      j = end + 2
+    } else if (text[j] === '*') return j
+    else j++
+  }
+  return -1
+}
+
+const HEADING = /^(#{1,6})\s+(.*?)(?:\s+#+)?\s*$/
 const BULLET = /^\s*[-*+]\s+(.*)$/
 const NUMBERED = /^\s*(\d{1,9})[.)]\s+(.*)$/
 const RULE = /^\s*([-*_])(\s*\1){2,}\s*$/
 const FENCE = /^\s*(```|~~~)/
+
+/** The line that closes a code block: only the fence's marker, nothing after it; -1 if none */
+function closingFence(lines: readonly string[], from: number, marker: string): number {
+  for (let j = from; j < lines.length; j++) {
+    const trimmed = (lines[j] ?? '').trim()
+    if (trimmed.startsWith(marker) && /^(`+|~+)$/.test(trimmed)) return j
+  }
+  return -1
+}
 const TABLE_RULE = /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$/
 
 /** The cells of a table row `| a | b |` */
@@ -209,16 +245,12 @@ function parseLines(lines: readonly string[]): Block[] {
       continue
     }
     const fence = FENCE.exec(line)
-    if (fence) {
-      const body: string[] = []
-      i++
-      while (i < lines.length && !(lines[i] ?? '').trim().startsWith(fence[1] ?? '```')) {
-        body.push(lines[i] ?? '')
-        i++
-      }
-      blocks.push({ t: 'pre', text: body.join('\n') })
+    // a fence that is never closed stays text, so that one stray ``` does not turn the rest into code
+    const close = fence ? closingFence(lines, i + 1, fence[1] ?? '```') : -1
+    if (fence && close >= 0) {
+      blocks.push({ t: 'pre', text: lines.slice(i + 1, close).join('\n') })
       open = false
-      i++
+      i = close + 1
       continue
     }
     const heading = HEADING.exec(line)
@@ -245,7 +277,8 @@ function parseLines(lines: readonly string[]): Block[] {
       open = false
       continue
     }
-    if (line.includes('|') && TABLE_RULE.test(lines[i + 1] ?? '')) {
+    const rule = lines[i + 1] ?? ''
+    if (line.includes('|') && rule.includes('|') && TABLE_RULE.test(rule)) {
       const head = cellsOf(line).map((cell) => parseInline(cell))
       const rows: Inline[][][] = []
       i += 2
@@ -289,7 +322,11 @@ const LINK_CLASS = 'text-blue-600 underline dark:text-blue-400'
 const CODE_CLASS = 'rounded bg-zinc-950/5 px-1 font-mono text-[0.9em] dark:bg-white/10'
 
 function CopyText({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false)
+  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle')
+  const show = (next: 'copied' | 'failed') => {
+    setState(next)
+    setTimeout(() => setState('idle'), 2000)
+  }
   return (
     <span className="inline-flex items-center gap-1">
       <code className={CODE_CLASS}>{text}</code>
@@ -298,10 +335,13 @@ function CopyText({ text }: { text: string }) {
         data-testid="tasks-copy"
         className="cursor-pointer rounded border border-zinc-950/10 px-1 text-xs hover:bg-zinc-950/5 dark:border-white/15 dark:hover:bg-white/5"
         onClick={() => {
-          void navigator.clipboard?.writeText(text).then(() => setCopied(true))
+          // refused outside a secure context, without permission or without focus: say so, no unhandled rejection
+          const write = navigator.clipboard?.writeText(text)
+          if (!write) show('failed')
+          else write.then(() => show('copied')).catch(() => show('failed'))
         }}
       >
-        {copied ? '✓' : '⧉'}
+        {state === 'copied' ? '✓' : state === 'failed' ? '✕' : '⧉'}
       </button>
     </span>
   )

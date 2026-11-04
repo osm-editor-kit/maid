@@ -141,4 +141,27 @@ describe('markdown at the level of the MapRoulette fork', () => {
   it('keeps underscores inside words', () => {
     expect(html('cycleway_left and _italic_')).toContain('cycleway_left and <em>italic</em>')
   })
+
+  it('keeps the review cases right: closing hashes, tables, italic with bold, parentheses, fences', () => {
+    expect(parseMarkdown('# Use C#')).toEqual([
+      { t: 'h', level: 1, text: [{ t: 'text', text: 'Use C#' }] },
+    ])
+    expect(parseMarkdown('## Title ##')[0]).toEqual({
+      t: 'h',
+      level: 2,
+      text: [{ t: 'text', text: 'Title' }],
+    })
+    expect(parseMarkdown('a | b\n---').map((b) => b.t)).toEqual(['p', 'hr'])
+    expect(html('*a **b** c*')).toContain('<em>a <strong>b</strong> c</em>')
+    const wiki = html('See https://en.wikipedia.org/wiki/Foo_(bar) now, (and https://x.org/a).')
+    expect(wiki).toContain('href="https://en.wikipedia.org/wiki/Foo_(bar)"')
+    expect(wiki).toContain('href="https://x.org/a"')
+    expect(html('[Foo](https://en.wikipedia.org/wiki/Foo_(bar))')).toContain(
+      'href="https://en.wikipedia.org/wiki/Foo_(bar)"',
+    )
+    expect(parseMarkdown('```\ncode\n\n# Head').map((b) => b.t)).toEqual(['p', 'h'])
+    const fenced = parseMarkdown('```\nx\n```js\ny\n```\nafter')
+    expect(fenced[0]).toEqual({ t: 'pre', text: 'x\n```js\ny' })
+    expect(fenced[1]?.t).toBe('p')
+  })
 })
