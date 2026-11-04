@@ -14,6 +14,7 @@ import {
   commitDraft,
   parseStoredDraft,
   prefillDraft,
+  type ChangesetSuggestion,
   type Draft,
   type Links,
   type StoredDraft,
@@ -34,7 +35,7 @@ interface DraftActions {
   /** Reads the address's links once; later calls change nothing (iD's `initialHashParams`) */
   readLinks: (links: Links) => void
   /** iD's `initChangeset`: starts the draft unless there is one already. Kept in memory: a link is a prefill, not a change. */
-  open: (now: number, suggested?: string) => void
+  open: (now: number, suggested?: ChangesetSuggestion) => void
   /** A change as the person types it (iD's `onInput`): kept in memory only */
   edit: (patch: Partial<Draft>) => void
   /** A field is left (iD's `changeTags` without `onInput`): cleaned, the hashtags recomputed, stored */

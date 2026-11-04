@@ -36,6 +36,8 @@ export type FileChange = {
 export type OsmChangeFile = {
   /** The `generator` attribute (Go Map!!, JOSM, iD, ...) */
   readonly generator?: string
+  /** The tags of the file's `<changeset>` (osm-api's osmChange, iD's draft import): `comment`, `source`, ... */
+  readonly changesetTags?: Readonly<Record<string, string>>
   readonly changes: readonly FileChange[]
 }
 

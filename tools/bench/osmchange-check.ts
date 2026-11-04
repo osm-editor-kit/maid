@@ -10,7 +10,8 @@
  *   new elements, the unchanged ones; what the file changed in words, versions only where they differ;
  * - a new element that equals one on the server (around the new nodes, `map?bbox`) is not created again;
  * - a decision is written as its own undo step, a changed decision replaces it;
- * - the changeset gets `osmchange:created_by` and a comment to start with, while the file's changes are in the editor;
+ * - the changeset gets `osmchange:created_by`, a comment to start with (the file's own after it) and the file's source,
+ *   while the file's changes are in the editor;
  * - the dock tab appears only once a file is picked; "Highlight differences" switches the colours off and on; undo takes it all back; a file over an element changed here
  *   and not saved is refused.
  *
@@ -46,9 +47,17 @@ process.exit(
     const changeset = () =>
       page.evaluate(() => {
         const item = window.__maid.editor.registry('changeset.tags').get('osmchange') as
-          | { tags?: () => Record<string, string>; comment?: () => string | undefined }
+          | {
+              tags?: () => Record<string, string>
+              comment?: () => string | undefined
+              source?: () => string | undefined
+            }
           | undefined
-        return { tags: item?.tags?.() ?? {}, comment: item?.comment?.() ?? null }
+        return {
+          tags: item?.tags?.() ?? {},
+          comment: item?.comment?.() ?? null,
+          source: item?.source?.() ?? null,
+        }
       })
     const panel = page.locator('[role="tabpanel"]')
     const group = (id: string) => page.locator(`[data-osmchange-group="${id}"]`)
@@ -118,10 +127,12 @@ process.exit(
       await changes(),
     )
     report(
-      'the changeset names where the changes came from, and the form starts with a comment',
+      "the changeset names where the changes came from; the form starts with a comment, the file's after it, and the file's source",
       {
         tags: { 'osmchange:created_by': 'Go Map!! (test)' },
-        comment: 'Changes from Go Map!! (test), merged with the current map in Maid',
+        comment:
+          'Changes from Go Map!! (test), merged with the current map in Maid. Comment of the file: Bike parking at the station',
+        source: 'survey',
       },
       await changeset(),
     )
@@ -273,7 +284,7 @@ process.exit(
     report('undo: no change left', { created: 0, modified: 0, deleted: 0 }, await changes())
     report(
       'undo: the changeset no longer names the file',
-      { tags: {}, comment: null },
+      { tags: {}, comment: null, source: null },
       await changeset(),
     )
     report(

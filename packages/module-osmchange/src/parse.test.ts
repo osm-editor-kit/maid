@@ -76,6 +76,22 @@ describe('parseOsmChange', () => {
     })
   })
 
+  test("the file's changeset tags: comment and source, an empty value left out", () => {
+    const result = parseOsmChange(
+      wrap(
+        '<changeset><tag k="comment" v="Bike parking"/><tag k="source" v="survey"/><tag k="hashtags" v=" "/></changeset>' +
+          '<modify><node id="1" version="2" lat="52" lon="13"/></modify>',
+      ),
+    )
+    if (!result.ok) throw new Error(result.error.id)
+    expect(result.file.changesetTags).toEqual({ comment: 'Bike parking', source: 'survey' })
+    const without = parseOsmChange(
+      wrap('<modify><node id="1" version="2" lat="52" lon="13"/></modify>'),
+    )
+    if (!without.ok) throw new Error(without.error.id)
+    expect(without.file.changesetTags).toBeUndefined()
+  })
+
   test('a deleted node may come without a position, a modified one not', () => {
     expect(parseOsmChange(wrap('<delete><node id="1" version="2"/></delete>')).ok).toBe(true)
     expect(errorOf(wrap('<modify><node id="1" version="2"/></modify>')).id).toBe(

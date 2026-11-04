@@ -304,7 +304,7 @@ process.exit(
           true,
           Object.entries(copied).every(([k, v]) => after[k] === v),
         )
-        await key(process.platform === 'darwin' ? 'Meta+z' : 'Control+z')
+        await key(process.platform === 'darwin' ? 'ControlOrMeta+z' : 'Control+z')
         await settle()
         report('one undo takes the pasted tags off again', before, await tagsOf(to))
       }

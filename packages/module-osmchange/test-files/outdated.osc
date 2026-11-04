@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Hand-made for check-osmchange: ids of fixtures/small, older versions in tools/mock-osm-api/history/small.json -->
 <osmChange version="0.6" generator="Go Map!! (test)">
+  <!-- the file's changeset tags, as osm-api writes them: the comment follows Maid's, the source fills an empty form -->
+  <changeset>
+    <tag k="comment" v="Bike parking at the station"/>
+    <tag k="source" v="survey"/>
+  </changeset>
   <create>
     <node id="-1" lat="52.3866" lon="13.399">
       <tag k="amenity" v="bicycle_parking"/>
