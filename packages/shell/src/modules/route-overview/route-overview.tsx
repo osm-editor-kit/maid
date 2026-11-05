@@ -84,6 +84,12 @@ const STATE_TEXT: Record<Linear, () => string> = {
 }
 
 type Texts = { title: string; text: string; todo: string }
+
+/** About the height of an open note, for the room below a short line */
+const NOTE_HEIGHT = 220
+
+/** Stands for the note of a fold of junctions, which is no issue of the analysis: an info, not a warning */
+const FOLD_NOTE: RouteIssue = { code: 'junction-without-guidepost', severity: 'info', members: [] }
 /** The three texts of an issue, with its numbers */
 function issueTexts(issue: RouteIssue): Texts {
   const p = issueParams(issue)
@@ -172,6 +178,7 @@ const GROUP_TEXT: Record<UnplacedGroup, (count: number) => string> = {
 function labelText(label: RowLabel): string {
   if ('name' in label) return label.name
   if ('junction' in label) return m.route_overview_label_junction({ ways: label.junction })
+  if ('junctions' in label) return m.route_overview_label_junctions({ count: label.junctions })
   if ('gap' in label)
     return m.route_overview_label_gap({ distance: m.route_overview_metres({ count: label.gap }) })
   if ('way' in label) return m.route_overview_label_way({ id: label.way })
@@ -224,7 +231,8 @@ export type Prepared = {
   /** Members that are not loaded, before the preview: the preview bar shows while there are some */
   missing: number
   analysis: RouteAnalysis
-  layouts: Partial<Record<OverviewMode, OverviewLayout>>
+  /** By mode and the open folds of junctions (`layoutKey`) */
+  layouts: Map<string, OverviewLayout>
 }
 const analyses = new WeakMap<object, Prepared>()
 
@@ -248,7 +256,7 @@ export function prepared(
       previewed,
       missing: stillMissing(base),
       analysis: analyzeRoute(input),
-      layouts: {},
+      layouts: new Map(),
     }
     analyses.set(key, cached)
   }
@@ -458,13 +466,28 @@ export function RouteDiagram({
   const [showAll, setShowAll] = useState(false)
   const [open, setOpen] = useState<string | null>(null)
   const [openGroup, setOpenGroup] = useState<string | null>(null)
-  const layout = (route.layouts[mode] ??= layoutOverview(analysis, mode))
+  // the folds of junctions without a guidepost that are open: a long trail lists hundreds of junctions otherwise
+  const [openJunctions, setOpenJunctions] = useState<ReadonlySet<string>>(() => new Set())
+  const layoutKey = `${mode}|${[...openJunctions].join(',')}`
+  let layout = route.layouts.get(layoutKey)
+  if (!layout) {
+    layout = layoutOverview(analysis, mode, { openJunctions })
+    route.layouts.set(layoutKey, layout)
+  }
+  function toggleJunctions(key: string) {
+    const next = new Set(openJunctions)
+    if (!next.delete(key)) next.add(key)
+    setOpenJunctions(next)
+  }
   const readOnly = !graph.hasEntity(relationId) || engine.isReadOnly(relationId)
 
   const { placed, shown, unplaced } = splitRows(layout.rows, showAll ? Infinity : ROW_LIMIT)
   const cut = shown.length < placed.length
   const lastShown = shown[shown.length - 1]
   const diagramHeight = lastShown ? lastShown.y + ROW_HEIGHT : 0
+  // an open note hangs below its row: room for it under a short line, which would cut it off in the scroll box
+  const noteRow = open ? shown.find((row) => open.startsWith(`${row.key}#`)) : undefined
+  const noteRoom = noteRow ? Math.max(0, noteRow.y + ROW_HEIGHT + NOTE_HEIGHT - diagramHeight) : 0
   const maxLane = layout.rows.reduce((top, row) => Math.max(top, row.lane), 0)
   const gutter = 40 + LANE_STEP * maxLane
   const left = KM_WIDTH + gutter
@@ -477,6 +500,32 @@ export function RouteDiagram({
   }
 
   const popover = (row: OverviewRow, flow: boolean) => {
+    if (row.kind === 'junctions') {
+      if (open !== `${row.key}#fold`) return null
+      const count = row.folded?.count ?? 0
+      return (
+        <IssuePopover
+          issue={FOLD_NOTE}
+          texts={{
+            title: m.route_overview_junctions_note_title(),
+            text: m.route_overview_junctions_note_text({ count }),
+            todo: m.route_overview_junctions_note_todo(),
+          }}
+          selectLabel={
+            row.folded?.open ? m.route_overview_junctions_hide() : m.route_overview_junctions_show()
+          }
+          flow={flow}
+          top={row.y + ROW_HEIGHT}
+          canRemove={false}
+          onSelect={() => {
+            toggleJunctions(row.key)
+            setOpen(null)
+          }}
+          onRemove={() => undefined}
+          onClose={() => setOpen(null)}
+        />
+      )
+    }
     const issue = row.issues
       .map((i) => ({ i, issue: analysis.issues[i] }))
       .find((x) => `${row.key}#${x.i}` === open)?.issue
@@ -504,7 +553,10 @@ export function RouteDiagram({
   return (
     <>
       {/* a long route scrolls inside the overview, so the members below stay within reach */}
-      <div className={`relative ${scroll ? 'max-h-[60vh] overflow-y-auto' : ''}`}>
+      <div
+        className={`relative ${scroll ? 'max-h-[60vh] overflow-y-auto' : ''}`}
+        style={noteRoom > 0 ? { paddingBottom: noteRoom } : undefined}
+      >
         <div
           role="list"
           aria-label={m.route_overview_list()}
@@ -540,13 +592,14 @@ export function RouteDiagram({
               loadAndSelect={loadAndSelect}
               open={open}
               setOpen={setOpen}
+              toggleJunctions={toggleJunctions}
             />
           ))}
         </div>
         {/* the notes sit beside the list, not in it: a list holds only its rows */}
         {open
           ? shown.map((row) =>
-              row.issues.length > 0 ? (
+              row.issues.length > 0 || row.kind === 'junctions' ? (
                 <Fragment key={row.key}>{popover(row, false)}</Fragment>
               ) : null,
             )
@@ -749,6 +802,23 @@ function IssueButtons({
   open: string | null
   setOpen: (key: string | null) => void
 }) {
+  if (row.kind === 'junctions') {
+    const key = `${row.key}#fold`
+    return (
+      <button
+        type="button"
+        data-issue-button
+        aria-label={m.route_overview_issue_button({
+          name: `${label}: ${m.route_overview_severity_info()}, ${m.route_overview_junctions_note_title()}`,
+        })}
+        aria-expanded={open === key}
+        onClick={() => setOpen(open === key ? null : key)}
+        className={`${ICON_BUTTON} text-zinc-400 dark:text-zinc-500`}
+      >
+        <InformationCircleIcon aria-hidden="true" className="size-4" />
+      </button>
+    )
+  }
   return (
     <>
       {row.issues.map((i) => {
@@ -786,6 +856,7 @@ function Row({
   loadAndSelect,
   open,
   setOpen,
+  toggleJunctions,
 }: {
   row: OverviewRow
   analysis: RouteAnalysis
@@ -797,6 +868,8 @@ function Row({
   loadAndSelect: (id: string) => void
   open: string | null
   setOpen: (key: string | null) => void
+  /** Opens or closes a fold of junctions */
+  toggleJunctions: (key: string) => void
 }) {
   const { engine } = useShell()
   const ids = idsOf(analysis, row.members)
@@ -847,7 +920,20 @@ function Row({
         {km}
       </span>
       <span className="shrink-0" style={{ width: left - KM_WIDTH - 4 }} aria-hidden="true" />
-      {target ? (
+      {row.kind === 'junctions' ? (
+        <button
+          type="button"
+          aria-expanded={row.folded?.open ?? false}
+          onClick={() => toggleJunctions(row.key)}
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-1 rounded text-left text-sm text-zinc-600 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-300"
+        >
+          <ChevronRightIcon
+            aria-hidden="true"
+            className={`size-4 shrink-0 text-zinc-400 ${row.folded?.open ? 'rotate-90' : ''}`}
+          />
+          <span className="min-w-0 truncate">{label}</span>
+        </button>
+      ) : target ? (
         <button
           type="button"
           aria-label={(previewed ? m.route_overview_load_row : m.route_overview_select_row)({
@@ -881,6 +967,8 @@ function Row({
 /** The panel of one issue: what it is, what to do, and the two buttons */
 function IssuePopover({
   issue,
+  texts: given,
+  selectLabel,
   flow,
   top,
   canRemove,
@@ -889,6 +977,10 @@ function IssuePopover({
   onClose,
 }: {
   issue: RouteIssue
+  /** Texts of a note that is not one of the analysis's issues (a fold of junctions) */
+  texts?: Texts
+  /** The first button's text, if it does something else than select */
+  selectLabel?: string
   flow: boolean
   top: number
   canRemove: boolean
@@ -926,7 +1018,7 @@ function IssuePopover({
       if (opener?.isConnected && (lost || note?.contains(document.activeElement))) opener.focus()
     }
   }, [])
-  const texts = issueTexts(issue)
+  const texts = given ?? issueTexts(issue)
   return (
     <div
       ref={ref}
@@ -949,7 +1041,7 @@ function IssuePopover({
           onClick={onSelect}
           className="cursor-pointer rounded-md bg-zinc-950/5 px-2 py-1 text-xs font-medium hover:bg-zinc-950/10 focus-visible:outline-2 focus-visible:outline-blue-500 dark:bg-white/10 dark:hover:bg-white/15"
         >
-          {m.route_overview_issue_select()}
+          {selectLabel ?? m.route_overview_issue_select()}
         </button>
         {canRemove ? (
           <button
@@ -1113,6 +1205,14 @@ function RowSymbol({
       )
     case 'junction':
       return <circle cx={x} cy={y} r={4.5} className={hole} stroke={colour} strokeWidth={2} />
+    case 'junctions':
+      // two open circles on top of each other: several junctions in one row
+      return (
+        <>
+          <circle cx={x} cy={y + 3} r={4} className={hole} stroke={colour} strokeWidth={2} />
+          <circle cx={x} cy={y - 3} r={4} className={hole} stroke={colour} strokeWidth={2} />
+        </>
+      )
     case 'gap':
       return (
         <g stroke={RED} strokeWidth={2} strokeLinecap="round">

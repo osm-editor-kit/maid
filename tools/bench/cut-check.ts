@@ -233,7 +233,7 @@ process.exit(
     report('cut: one undo step, named Cut an area in two', 'Cut an area in two', await undoLabel())
 
     // --- undo: the area has its own nodes again, and the other piece is gone ---
-    await key('Meta+z')
+    await key('ControlOrMeta+z')
     report(
       'undo: the area is back with its own nodes, and the other piece is gone',
       [originalNodes, null],

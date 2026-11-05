@@ -27,7 +27,7 @@ export type Helpers = {
   ) => Promise<void>
   /** Presses the left button at `from`, moves to `to` in steps and releases */
   drag: (from: XY, to: XY) => Promise<void>
-  /** Presses a key (or a chord such as `Meta+z`) and waits for the map */
+  /** Presses a key (or a chord such as `ControlOrMeta+z`: Cmd on macOS, Ctrl elsewhere, as the editor's Mod) and waits for the map */
   key: (name: string) => Promise<void>
   /** The editor's state: selection, zoom (2 decimals), mode, whether a measure runs, undo label */
   state: () => Promise<{

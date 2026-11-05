@@ -104,7 +104,7 @@ process.exit(
     await key('Escape')
     report('continue: same way with one more node', [line.id, 4], [longer.id, longer.nodes.length])
     report('continue: undo label', 'Continued a line', longer.undo)
-    await key('Meta+z')
+    await key('ControlOrMeta+z')
     const again = await read(line.id ?? '')
     report('continue, then undo: three nodes again', line.nodes, again.nodes)
 
@@ -188,7 +188,7 @@ process.exit(
           ),
         ],
       )
-      await key('Meta+z')
+      await key('ControlOrMeta+z')
       const restored = await read(snap.wayId)
       report(
         'snap, then undo: the clicked way has its nodes back',

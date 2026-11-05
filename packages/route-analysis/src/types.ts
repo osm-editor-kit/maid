@@ -230,6 +230,8 @@ export type OverviewRowKind =
   | 'stop'
   | 'platform'
   | 'junction'
+  /** Consecutive junctions without a guidepost, folded into one row (`LayoutOptions.openJunctions` opens it) */
+  | 'junctions'
   | 'gap'
   | 'branch-start'
   | 'branch-end'
@@ -250,6 +252,8 @@ export type OverviewRow = {
   lane: number
   /** For branch rows: index into `RouteAnalysis.branches` */
   branch?: number
+  /** For a `junctions` row: how many junctions it folds, and whether their rows follow it (opened) */
+  folded?: { count: number; open: boolean }
   /** Top of the row, in px */
   y: number
 }
@@ -296,4 +300,9 @@ export type LayoutOptions = {
   pxPerKm?: number
   /** Scaled: the smallest section height in px (default 4) */
   minSectionHeight?: number
+  /**
+   * Keys of the `junctions` rows that are open: their junction rows follow them. Runs of at least
+   * `JUNCTION_FOLD_MIN` junctions without a guidepost are folded, so a long trail does not list hundreds of them.
+   */
+  openJunctions?: ReadonlySet<string>
 }

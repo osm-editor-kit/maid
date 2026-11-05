@@ -286,7 +286,7 @@ process.exit(
     report('the type picker opens for the new way', true, pickerShown)
 
     // --- one undo removes the way and its corners; redo brings them back ---
-    await key('Meta+z')
+    await key('ControlOrMeta+z')
     const undone = await editorState()
     const wayGone = await page.evaluate(
       (ids) => {
@@ -301,7 +301,7 @@ process.exit(
     )
     report('undo removes the way and its corners', { way: false, corners: 0 }, wayGone)
     report('undo goes back to the state before the rectangle', before.undo, undone.undo)
-    await key('Meta+Shift+Z')
+    await key('ControlOrMeta+Shift+Z')
     const redone = await ringOf(first.way ?? '')
     report('redo brings the same way back with the same corners', first.ring?.nodes, redone?.nodes)
 

@@ -139,7 +139,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
     [true, 'Moved a node'],
     [near(moved!, target), (await state()).undo],
   )
-  await key('Meta+z')
+  await key('ControlOrMeta+z')
   report('undo puts the corner back', true, near((await where([first.corner]))[0]!, corner!))
 
   // --- a click on a corner selects the node, and its building keeps its shape points ---
@@ -152,7 +152,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   const pointTarget = { x: found.point.at.x + 25, y: found.point.at.y + 25 }
   await drag(found.point.at, pointTarget)
   report('dragging a point moves it', true, near((await where([found.point.id]))[0]!, pointTarget))
-  await key('Meta+z')
+  await key('ControlOrMeta+z')
 
   // --- double click: on a way it adds a node, on open ground it zooms ---
   const zoom = (await state()).zoom
@@ -176,7 +176,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
       afterDouble.undo,
     ],
   )
-  await key('Meta+z')
+  await key('ControlOrMeta+z')
   await click(free(0), { count: 2 })
   await page.waitForTimeout(600)
   report('double click on open ground zooms in', zoom + 1, (await state()).zoom)
@@ -286,7 +286,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
     [roadBefore.length + 1, true, true, 'Added a node to a way'],
     [roadAfter.length, between, addedAt ? near(addedAt, free(1), 3) : false, (await state()).undo],
   )
-  await key('Meta+z')
+  await key('ControlOrMeta+z')
   report('one undo takes the added node back', roadBefore, await wayNodes(found.road.id))
 
   // a click on a handle, without a move, adds nothing and keeps the road selected
@@ -316,7 +316,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
       afterBuilding.undo,
     ],
   )
-  await key('Meta+z')
+  await key('ControlOrMeta+z')
 
   // a double click on open ground adds nothing: no undo step, nothing selected, and the map zooms in
   const beforeGround = await state()
@@ -374,7 +374,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
     [2, 'browse', 'Added a line'],
     [lineNodes, line.mode, line.undo],
   )
-  await key('Meta+z')
+  await key('ControlOrMeta+z')
 
   // --- M moves the selection with the pointer, R rotates it ---
   await key('Escape')
@@ -488,7 +488,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
       (await state()).selection,
     )
     const undoAfterTurn = (await state()).undo
-    await key('Meta+z')
+    await key('ControlOrMeta+z')
     report(
       'the turn is one undo step, named for the point, and undo takes its direction back to 0',
       ['Rotated a point', '0', 'Changed tags'],
@@ -705,7 +705,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
     [onWay <= 3, onUnselected <= 3],
   )
   report('M: one undo step, labelled as a move', 'Moved a feature', (await state()).undo)
-  await key('Meta+z')
+  await key('ControlOrMeta+z')
   const restored = { w: await where(built.w), u: await where(built.u), v: await where(built.v) }
   report(
     'undo: every node of the three ways is where it was, the unselected way has its three nodes again',
@@ -724,15 +724,15 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
     [true, createdBefore],
     [built.v.every((_, i) => movedBy(movedV[i]!, pre.v[i]!)), await createdNodes()],
   )
-  await key('Meta+z')
+  await key('ControlOrMeta+z')
   // the copy below takes the area that was selected before these checks
   await page.evaluate((id) => window.__bench.select(id), areaId)
   await settle()
 
   // --- Cmd+C, Cmd+V: a copy where the pointer is ---
-  await key('Meta+c')
+  await key('ControlOrMeta+c')
   await page.mouse.move(origin.x + free(4).x, origin.y + free(4).y)
-  await key('Meta+v')
+  await key('ControlOrMeta+v')
   const pasted = await state()
   const copy = await page.evaluate((id) => {
     const { map, engine } = window.__maid
@@ -799,7 +799,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
     [true, 'Deleted an area'],
     [deleted, (await state()).undo],
   )
-  await key('Meta+z')
+  await key('ControlOrMeta+z')
   // free(0): the other places have the drawn area and its copy on them by now
   await rightClick(free(0))
   report(
@@ -815,7 +815,7 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   report('no menu while drawing', 0, await menu.count())
   // the copy lies partly outside the view, so Delete would refuse it ("too large"): undo takes it away
   await key('Escape')
-  await key('Meta+z')
+  await key('ControlOrMeta+z')
 
   // --- the menu on a point and a vertex (both can be dragged), on a second place, a member of a
   // selection, a Control-click and the menu key; open ground keeps the selection ---
@@ -860,11 +860,19 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   await page.mouse.click(control.x, control.y)
   await page.keyboard.up('Control')
   await settle()
-  report(
-    'Control-click (a right click on a Mac) selects the feature and opens its menu',
-    [[second.id], 1],
-    [(await state()).selection, await menu.count()],
-  )
+  // the browser makes a Control-click a right click on a Mac only (a contextmenu event); elsewhere it is a click
+  if (process.platform === 'darwin')
+    report(
+      'Control-click (a right click on a Mac) selects the feature and opens its menu',
+      [[second.id], 1],
+      [(await state()).selection, await menu.count()],
+    )
+  else
+    report(
+      'Control-click (a click off a Mac) selects the feature and opens no menu',
+      [[second.id], 0],
+      [(await state()).selection, await menu.count()],
+    )
   await key('Escape')
   await click(second.edge)
   await key('ContextMenu')
@@ -1295,7 +1303,7 @@ failed += await runCheck(
       ],
     )
     report('the undo label names the connect', 'Connected a way to a node', await undoOf())
-    await key('Meta+z')
+    await key('ControlOrMeta+z')
     const back = await graph([cornerA, cornerB], [])
     report('one undo puts both nodes back', [true, true, start], [...back.nodes, await undoOf()])
 
@@ -1310,7 +1318,7 @@ failed += await runCheck(
       [true, true, 'Moved a node'],
       [...alt.nodes, await undoOf()],
     )
-    await key('Meta+z')
+    await key('ControlOrMeta+z')
 
     // --- a corner dropped on the line of a road: the node joins the road, no node is made ---
     const roadNodesBefore = (await graph([], [road.id])).ways[0]!.length
@@ -1327,7 +1335,7 @@ failed += await runCheck(
         await undoOf(),
       ],
     )
-    await key('Meta+z')
+    await key('ControlOrMeta+z')
 
     // --- a standalone point dropped on a road: it becomes a node of the road, keeps its id and tags ---
     const pointBefore = await graph([point.id], [])
@@ -1342,7 +1350,7 @@ failed += await runCheck(
         await undoOf(),
       ],
     )
-    await key('Meta+z')
+    await key('ControlOrMeta+z')
 
     // --- a corner dropped on its own neighbour in the same way: the two merge, the older is left (iD) ---
     await click(first.edge)
@@ -1358,7 +1366,7 @@ failed += await runCheck(
       [true, false, first.nodes.length - 1, 'Merged two neighbouring nodes of a way'],
       [...merged.nodes, merged.ways[0]!.length, await undoOf()],
     )
-    await key('Meta+z')
+    await key('ControlOrMeta+z')
     report(
       'one undo puts the neighbour back',
       [before, true],
@@ -1385,8 +1393,8 @@ failed += await runCheck(
         await undoOf(),
       ],
     )
-    await key('Meta+z')
-    await key('Meta+z')
+    await key('ControlOrMeta+z')
+    await key('ControlOrMeta+z')
     report(
       'two undos put both corners back',
       [true, true, start],
@@ -1797,7 +1805,7 @@ failed += await runCheck(
         [false, false, null],
         [dragged.menu, dragged.marker, await pillText()],
       )
-      await key('Meta+z')
+      await key('ControlOrMeta+z')
     }
 
     // the same at the lowest 150 px of the map, where the menu flips up: the marker still shows and is not covered
@@ -2039,7 +2047,7 @@ failed += await runCheck(
     report('the measure has ended', false, afterMeasure.measuring)
     report('the selection is unchanged', [road], afterMeasure.selection)
     report('no node was added or moved', nodesBefore, await locsOf(road))
-    await key('Meta+z')
+    await key('ControlOrMeta+z')
     report('one undo removes the value', null, await widthOf(road))
 
     // --- the button, one click, Escape: nothing is written, the selection stays ---
@@ -2328,7 +2336,7 @@ failed += await runCheck(
     )
 
     // (4) one undo, from the key outside the sheet, takes the paste back: the tags are those before it
-    await key('Meta+z')
+    await key('ControlOrMeta+z')
     report(
       'one undo restores the tags before the paste, and the step it takes next is the setup',
       { tags: beforePaste, undo: 'Set up the check' },

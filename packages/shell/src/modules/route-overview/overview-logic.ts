@@ -97,7 +97,13 @@ export function sectionHovered(
  * several members (a side line, a group).
  */
 export function selectableId(analysis: RouteAnalysis, row: OverviewRow) {
-  if (row.kind === 'gap' || row.kind === 'junction' || row.kind === 'unplaced') return undefined
+  if (
+    row.kind === 'gap' ||
+    row.kind === 'junction' ||
+    row.kind === 'junctions' ||
+    row.kind === 'unplaced'
+  )
+    return undefined
   if (row.members.length !== 1) return undefined
   return idsOf(analysis, row.members)[0]
 }
@@ -120,6 +126,7 @@ export type RowLabel =
   | { name: string }
   | { text: TextName }
   | { junction: number }
+  | { junctions: number }
   | { gap: number }
   | { way: string }
   | { relation: string }
@@ -160,6 +167,8 @@ export function rowLabel(
       const node = row.key.slice('junction:'.length)
       return { junction: analysis.junctions.find((j) => j.node === node)?.outside ?? 0 }
     }
+    case 'junctions':
+      return { junctions: row.folded?.count ?? 0 }
     case 'gap': {
       const after = Number(row.key.slice('gap:'.length))
       return { gap: Math.round(analysis.chain.gaps[after]?.distance ?? 0) }

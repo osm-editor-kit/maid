@@ -137,7 +137,7 @@ function junctionIssues(
       members: [],
       at: j.at,
       loc: input.nodes.get(j.node),
-      detail: { ways: j.outside },
+      detail: { ways: j.outside, node: j.node },
     }))
 }
 

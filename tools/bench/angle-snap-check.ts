@@ -382,7 +382,7 @@ process.exit(
         squareness(await positions(area.slice(0, 4))) <= 0.5,
       )
       report('drag: one undo step, named Moved a node', 'Moved a node', (await state()).undo)
-      await key('Meta+z')
+      await key('ControlOrMeta+z')
 
       // --- a drag that starts with Shift held still moves the corner ---
       await tapAt({
@@ -401,7 +401,7 @@ process.exit(
         'Moved a node',
         (await state()).undo,
       )
-      await key('Meta+z')
+      await key('ControlOrMeta+z')
 
       // --- one undo step for the whole area: the two drags are undone, then the area goes ---
       report(
@@ -409,7 +409,7 @@ process.exit(
         'Added an area',
         (await state()).undo,
       )
-      await key('Meta+z')
+      await key('ControlOrMeta+z')
       report('area: one undo removes the whole area', false, await wayExists(areaId))
 
       // --- the window loses focus while Shift is held: the guides go, the preview goes back under the pointer ---

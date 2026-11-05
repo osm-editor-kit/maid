@@ -161,7 +161,7 @@ describe('collectIssues', () => {
     const issues = byCode(analyse(input), 'junction-without-guidepost')
     expect(issues.length).toBe(1)
     expect(issues[0]?.members).toEqual([])
-    expect(issues[0]?.detail).toEqual({ ways: 2 })
+    expect(issues[0]?.detail).toEqual({ ways: 2, node: 'n3' })
     expect(issues[0]?.loc).toEqual([START[0] + 0.003, START[1]])
   })
 

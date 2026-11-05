@@ -2,8 +2,8 @@
  * Check of the route overview in the relation column, with real input: a bus route shows its stops and platforms in
  * travel order and no junction rows; the spacing toggle switches to "To scale" and back; the pointer on a row lights
  * the member on the map, and a member hovered on the map lights its row; a click on a row selects the member; an (i)
- * button opens its note and Escape closes it. A hiking route shows junction rows and a group of members that are not
- * loaded, which opens to list them. Its preview (the mock's Postpass fixture) loads on a press, mutes its rows, draws
+ * button opens its note and Escape closes it. A hiking route folds its junctions without a guidepost into rows that
+ * open and close, with a note that this is no error, and has a group of members that are not loaded, which opens to list them. Its preview (the mock's Postpass fixture) loads on a press, mutes its rows, draws
  * on the map, reloads, comes back from the cache without a request, and a click on a preview row loads the member.
  *
  *   bun tools/bench/route-overview-check.ts [scene] [--app maid|bicycle|parking]
@@ -168,24 +168,53 @@ const failed = await runCheck(
       0,
       await overview.getByRole('dialog').count(),
     )
-    const junction = overview.locator('[data-row-key^="junction:"]').first()
-    await junction.hover()
-    report(
-      'a row without a single member lights while the pointer is on it',
-      'true',
-      await junction.getAttribute('data-lit'),
-    )
     const hikingKeys = await keys()
     report(
       'the line rows come first, the groups below them',
       false,
       hikingKeys.some((key) => key.startsWith('unplaced:')),
     )
+    // junctions without a guidepost one after another are one folded row, not hundreds of rows
+    const folds = hikingKeys.filter((key) => key.startsWith('junctions:'))
+    report('the hiking route folds its junctions without a guidepost', true, folds.length > 0)
     report(
-      'the hiking route shows junctions',
-      true,
-      hikingKeys.some((key) => key.startsWith('junction:')),
+      'no single junction row of a folded run is shown',
+      false,
+      hikingKeys.some((key) => key === `junction:${folds[0]?.slice('junctions:'.length)}`),
     )
+    const foldRow = overview.locator(`[data-row-key="${folds[0]}"]`)
+    await foldRow.hover()
+    report(
+      'a row without a single member lights while the pointer is on it',
+      'true',
+      await foldRow.getAttribute('data-lit'),
+    )
+    const foldButton = foldRow.getByRole('button', {
+      name: /^\d+ junctions with no guidepost in the relation$/,
+    })
+    const count = Number(((await foldButton.innerText()).match(/^\d+/) ?? ['0'])[0])
+    report('the fold says how many junctions it holds', true, count >= 2)
+    report('the fold is closed', 'false', await foldButton.getAttribute('aria-expanded'))
+    await foldButton.click()
+    const openKeys = await keys()
+    const at = openKeys.indexOf(folds[0] ?? '')
+    report(
+      'a click opens it: its junction rows follow it',
+      Array(count).fill(true),
+      openKeys.slice(at + 1, at + 1 + count).map((key) => key.startsWith('junction:')),
+    )
+    report('the fold is open', 'true', await foldButton.getAttribute('aria-expanded'))
+    // its (i): what the list is for, and that it is no error
+    await foldRow.locator('[data-issue-button]').click()
+    const foldNote = overview.getByRole('dialog', { name: 'Junctions without a guidepost' })
+    report('the fold has one (i) note', 1, await foldRow.locator('[data-issue-button]').count())
+    report(
+      'the note says it is no error',
+      true,
+      ((await foldNote.innerText()) ?? '').includes('This is not an error'),
+    )
+    await foldNote.getByRole('button', { name: 'Hide the junctions' }).click()
+    report('"Hide the junctions" in the note folds them again', hikingKeys, await keys())
     const group = overview
       .locator('[data-group-key="unplaced:unloaded"]')
       .getByRole('button')
@@ -229,7 +258,7 @@ const failed = await runCheck(
       .click()
     await settle()
     report('"down" swaps the two variants', [order[1], order[0]], await heads())
-    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z')
+    await page.keyboard.press('ControlOrMeta+z')
     await settle()
     report('one undo brings the order back', order, await heads())
     await column.getByRole('button', { name: 'Done', exact: true }).click()

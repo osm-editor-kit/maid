@@ -363,6 +363,70 @@ describe('layoutOverview: junctions and guideposts', () => {
   })
 })
 
+describe('layoutOverview: folded junctions', () => {
+  /** A line of 1 km with a guidepost at 500 m, junctions at 100, 200, 300 (none near a guidepost), 500 (near it) and 700 */
+  function trail() {
+    const hint = (node: string, at: number) => ({
+      ...issue('junction-without-guidepost', [], at),
+      severity: 'info' as const,
+      detail: { ways: 2, node },
+    })
+    return analysisOf({
+      members: [member(0, 'main'), member(1, 'point', 'guidepost')],
+      chain: chainOf([[[0, 1000]]]),
+      points: [point(1, 500)],
+      junctions: [
+        junction('a', 100),
+        junction('b', 200),
+        junction('c', 300),
+        junction('g', 500, 1),
+        junction('d', 700),
+      ],
+      issues: [hint('a', 100), hint('b', 200), hint('c', 300), hint('d', 700)],
+    })
+  }
+
+  it('folds a run of junctions without a guidepost into one row; a single one and one with a guidepost stay', () => {
+    const layout = layoutOverview(trail(), 'schematic')
+    expect(keysOf(layout)).toEqual([
+      'start',
+      'junctions:a',
+      'junction:g',
+      'point:1',
+      'junction:d',
+      'end',
+    ])
+    expect(rowOf(layout, 'junctions:a').folded).toEqual({ count: 3, open: false })
+    expect(rowOf(layout, 'junctions:a').at).toBe(100)
+  })
+
+  it('a folded row holds the hints of its junctions', () => {
+    const layout = layoutOverview(trail(), 'schematic')
+    expect(rowOf(layout, 'junctions:a').issues).toEqual([0, 1, 2])
+    expect(rowOf(layout, 'junction:d').issues).toEqual([3])
+  })
+
+  it('an open run keeps its row and lists its junctions below it, each with its hint', () => {
+    const layout = layoutOverview(trail(), 'schematic', { openJunctions: new Set(['junctions:a']) })
+    expect(keysOf(layout).slice(0, 5)).toEqual([
+      'start',
+      'junctions:a',
+      'junction:a',
+      'junction:b',
+      'junction:c',
+    ])
+    expect(rowOf(layout, 'junctions:a').folded).toEqual({ count: 3, open: true })
+    expect(rowOf(layout, 'junctions:a').issues).toEqual([])
+    expect(rowOf(layout, 'junction:b').issues).toEqual([1])
+  })
+
+  it('a stretch of the line runs through the folded row: every main way stays in a section', () => {
+    const layout = layoutOverview(trail(), 'schematic')
+    const covered = new Set(layout.sections.flatMap((section) => section.members))
+    expect(covered.has(0)).toBe(true)
+  })
+})
+
 describe('layoutOverview: size', () => {
   it('lays out 20,000 ways, 5,000 junctions and 1,000 points in under 500 ms', () => {
     const wayCount = 20_000
@@ -385,17 +449,20 @@ describe('layoutOverview: size', () => {
       ),
     })
 
+    // every fold open: the most rows (the points split the 5,000 junctions into runs)
+    const folds = layoutOverview(analysis, 'scaled').rows.filter((row) => row.kind === 'junctions')
+    const openJunctions = new Set(folds.map((row) => row.key))
     const times: number[] = []
     let layout: OverviewLayout | undefined
     for (let run = 0; run < 3; run++) {
       const start = performance.now()
-      layout = layoutOverview(analysis, 'scaled')
+      layout = layoutOverview(analysis, 'scaled', { openJunctions })
       times.push(performance.now() - start)
     }
     console.log(
       `layoutOverview: ${wayCount} ways, 5000 junctions, ${pointCount} points: ${times.map((t) => t.toFixed(1)).join(', ')} ms (3 runs)`,
     )
-    expect(layout?.rows.length).toBe(2 + pointCount + 5000 + 2 * branchCount)
+    expect(layout?.rows.length).toBe(2 + pointCount + 5000 + 2 * branchCount + folds.length)
     expect(Math.max(...times)).toBeLessThan(500)
   })
 })
