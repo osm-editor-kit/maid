@@ -10,6 +10,7 @@ export const SERVICE_IDS = [
   'mapillary',
   'panoramax',
   'taginfo',
+  'postpass',
   'data',
   'local',
 ] as const
@@ -25,6 +26,8 @@ export const SERVICES: Readonly<Record<ServiceId, { readonly limit: number }>> =
   panoramax: { limit: 6 },
   // taginfo.openstreetmap.org, asked while a person types a key or a value (taginfo/taginfo.ts). Two at a time: iD sends no limit.
   taginfo: { limit: 2 },
+  // Postpass (postpass.geofabrik.de), SQL over the planet: the route preview of the relation column, one at a time.
+  postpass: { limit: 1 },
   // Added data layers, and every host that no service claims.
   data: { limit: 2 },
   // Local hosts that no service claims, such as the dev server and the mock API when not registered.
@@ -90,6 +93,7 @@ const KNOWN: readonly { readonly id: ServiceId; readonly matches: (url: URL) => 
   { id: 'mapillary', matches: domainMatcher('mapillary.com') },
   { id: 'panoramax', matches: domainMatcher('panoramax.xyz') },
   { id: 'taginfo', matches: domainMatcher('taginfo.openstreetmap.org') },
+  { id: 'postpass', matches: domainMatcher('postpass.geofabrik.de') },
 ]
 
 function hostMatcher(host: HostMatch): (url: URL) => boolean {

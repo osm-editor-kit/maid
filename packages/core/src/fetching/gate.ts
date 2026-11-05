@@ -200,6 +200,7 @@ export function createGates(timing: Pick<GateOptions, 'now' | 'sleep'> = {}): Ga
     mapillary: gate('mapillary'),
     panoramax: gate('panoramax'),
     taginfo: gate('taginfo'),
+    postpass: gate('postpass'),
     data: gate('data'),
     local: gate('local'),
   }
