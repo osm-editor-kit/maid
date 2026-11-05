@@ -1,10 +1,15 @@
-import { describe, expect, it } from 'bun:test'
+import { afterEach, describe, expect, it } from 'bun:test'
 import type { OperationContext, OperationHost } from '@osm-editor-kit/maid-operations'
 import { m } from '../messages.ts'
-import { cutSnapshot } from './cut-store.ts'
+import { cutActions, cutSnapshot } from './cut-store.ts'
 import { cutCheck } from './cut.ts'
 import { cutOperation } from './operation.ts'
 import { graphOf, node, relation, square, way } from './test-graph.ts'
+
+// starting the mode begins a cut in the shared store: end it, so no other test file finds a cut under way
+afterEach(() => {
+  cutActions().end()
+})
 
 /** The selection of one entity in the graph, as the editor's operation context has it */
 function selecting(graph: OperationContext['graph'], ...selected: string[]): OperationContext {
