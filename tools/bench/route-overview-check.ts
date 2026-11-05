@@ -3,7 +3,8 @@
  * travel order and no junction rows; the spacing toggle switches to "To scale" and back; the pointer on a row lights
  * the member on the map, and a member hovered on the map lights its row; a click on a row selects the member; an (i)
  * button opens its note and Escape closes it. A hiking route shows junction rows and a group of members that are not
- * loaded, which opens to list them.
+ * loaded, which opens to list them. Its preview (the mock's Postpass fixture) loads on a press, mutes its rows, draws
+ * on the map, reloads, comes back from the cache without a request, and a click on a preview row loads the member.
  *
  *   bun tools/bench/route-overview-check.ts [scene] [--app maid|bicycle|parking]
  *
@@ -237,6 +238,152 @@ const failed = await runCheck(
       false,
       await column.getByText(/Move the stages into their order/).isVisible(),
     )
+
+    // --- the preview of the members that are not loaded, from the mock's Postpass fixture ---
+    const asked: string[] = []
+    page.on('request', (request) => {
+      if (request.url().includes('/postpass/')) asked.push(request.url())
+    })
+    const bar = overview.locator('[data-preview-bar]')
+    const previewRows = overview.locator('[data-preview]')
+    const previewLines = () =>
+      page.evaluate(() => {
+        const source = (
+          window as unknown as {
+            __maid: {
+              map: { getSource(id: string): { serialize(): { data: unknown } } | undefined }
+            }
+          }
+        ).__maid.map.getSource('route-preview')
+        const data = source?.serialize().data as { features?: unknown[] } | undefined
+        return data?.features?.length ?? 0
+      })
+    await open(HIKING)
+    const load = overview.getByRole('button', { name: /^Load preview of the \d+ missing members$/ })
+    report('a route with missing members offers the preview above and below', 2, await load.count())
+    report('nothing is asked before the press', 0, asked.length)
+    report('no preview rows before the press', 0, await previewRows.count())
+    await load.first().click()
+    await bar.getByText(/^Preview from /).waitFor({ timeout: 8000 })
+    await settle()
+    report('one press asks once', 1, asked.length)
+    report(
+      'the query names the relation',
+      true,
+      (new URL(asked[0] ?? 'http://x').searchParams.get('data') ?? '').startsWith(
+        `-- maid:route-preview ${HIKING.slice(1)}\n`,
+      ),
+    )
+    report('the bar shows when the preview is from, and one bar only', 1, await bar.count())
+    report(
+      'the reload button is there',
+      1,
+      await bar.getByRole('button', { name: 'Reload the preview' }).count(),
+    )
+    report('the preview fills rows, muted', true, (await previewRows.count()) > 0)
+    // the scene is from August, Postpass from today: three ways and a guidepost of the route are gone since
+    report(
+      'the members that are not loaded are now in the line: the group keeps the ones Postpass lacks',
+      'Not loaded (4)',
+      await overview
+        .locator('[data-group-key="unplaced:unloaded"]')
+        .getByRole('button')
+        .first()
+        .innerText(),
+    )
+    report('the map draws the preview lines', true, (await previewLines()) > 0)
+
+    // a reload asks again and keeps the preview while it loads
+    await bar.getByRole('button', { name: 'Reload the preview' }).click()
+    await bar.getByText(/^Preview from /).waitFor({ timeout: 8000 })
+    report('"Reload" asks again', 2, asked.length)
+    report('the preview stays after the reload', true, (await previewRows.count()) > 0)
+
+    // another route and back: the preview is still there, without a request
+    await open(BUS)
+    await open(HIKING)
+    report(
+      'back on the route, the preview is shown at once',
+      1,
+      await bar.getByText(/^Preview from /).count(),
+    )
+    report('and nothing is asked', 2, asked.length)
+
+    // a new page: the stored preview (IndexedDB, 24 hours) comes back without a request
+    await page.reload()
+    await page.waitForFunction(() => window.__bench !== undefined, undefined, { timeout: 30000 })
+    await page.evaluate(() => window.__bench.ready())
+    await settle()
+    const askedBefore = asked.length
+    await open(HIKING)
+    await bar.getByText(/^Preview from /).waitFor({ timeout: 8000 })
+    report(
+      'after a reload of the page the stored preview is shown',
+      true,
+      (await previewRows.count()) > 0,
+    )
+    report('and nothing is asked', askedBefore, asked.length)
+    // a fresh page and no hover yet: the map layer finds the store the overview made after its first render
+    report('the map draws the stored preview without a hover', true, (await previewLines()) > 0)
+
+    // a click on a preview row loads the real member and selects it. The mock has the scene only: the map starts at
+    // the east end of the bus route, so the stop Glienicker Straße (in the scene, further west) is not loaded yet
+    await page.goto(
+      page
+        .url()
+        .replace(/map=[^&]*/, 'map=19.00/52.44434/13.57437')
+        .replace(/[?&](id|relation)=[^&]*/g, '') + `&id=${BUS}&relation=${BUS}`,
+    )
+    await page.waitForFunction(() => window.__bench !== undefined, undefined, { timeout: 30000 })
+    await page.evaluate(() => window.__bench.ready())
+    await settle()
+    await overview.waitFor({ timeout: 8000 })
+    await load.first().click()
+    await bar.getByText(/^Preview from /).waitFor({ timeout: 8000 })
+    const stopButton = overview
+      .getByRole('button', { name: 'Load and select Glienicker Straße' })
+      .first()
+    const stopRowKey = await stopButton.evaluate(
+      (button) => button.closest('[data-row-key]')?.getAttribute('data-row-key') ?? '',
+    )
+    await stopButton.hover()
+    const target = await page.evaluate(() =>
+      (window as unknown as MaidWindow).__maid.engine.hoverTarget(),
+    )
+    report(
+      'the preview row hovers its member (the platform Glienicker Straße)',
+      'w383448939',
+      target,
+    )
+    const previewsBefore = await previewRows.count()
+    await stopButton.click()
+    await page.waitForFunction(
+      (id) => new URL(location.href).searchParams.get('id') === id,
+      target,
+      { timeout: 8000 },
+    )
+    await settle()
+    report(
+      'a click loads the member into the data and selects it',
+      true,
+      await page.evaluate(
+        (id) =>
+          (
+            window as unknown as {
+              __maid: {
+                editor: { history: { staging: { graph: { hasEntity(id: string): unknown } } } }
+              }
+            }
+          ).__maid.editor.history.staging.graph.hasEntity(id ?? '') !== undefined,
+        target,
+      ),
+    )
+    report(
+      'its row is no longer a preview row',
+      0,
+      await overview.locator(`[data-row-key="${stopRowKey}"] [data-preview]`).count(),
+    )
+    report('fewer rows are preview rows', true, (await previewRows.count()) < previewsBefore)
   },
   '',
 )

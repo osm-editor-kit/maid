@@ -13,11 +13,10 @@ import { Layer, Source, type LayerProps } from 'react-map-gl/maplibre'
 import { useShell } from '../../shell-context'
 import { colourOf } from '../relations-logic.ts'
 import { dataVersion } from './data-version.ts'
-import { existingPreviewStore, type PreviewStore } from './preview-store.ts'
+import { previewStoreOf } from './preview-store.ts'
 
 const SOURCE = 'route-preview'
 const NEUTRAL = '#7c3aed'
-const NOTHING = () => () => {}
 
 type Feature = {
   type: 'Feature'
@@ -38,15 +37,19 @@ const drawings = new WeakMap<
 export function RoutePreviewOnMap({ editor, belowOsm }: MapContentProps) {
   'use no memo'
   // not compiled: the graph and the store are objects that stay the same when their contents change
-  const { engine } = useShell()
-  const store: PreviewStore | undefined = existingPreviewStore(editor)
-  useSyncExternalStore(store?.subscribe ?? NOTHING, () =>
-    store ? `${store.shown()}|${store.state(store.shown() ?? '').status}` : '',
+  const shell = useShell()
+  const { engine } = shell
+  // the page's store, made here if the overview has not made it yet: the map draws then as soon as a preview is
+  // shown. Looking it up only, the layer would miss the store made after its first render (making it sends nothing)
+  const store = previewStoreOf(shell)
+  useSyncExternalStore(
+    store.subscribe,
+    () => `${store.shown()}|${store.state(store.shown() ?? '').status}`,
   )
   const hovered = useSyncExternalStore(engine.subscribeHover, engine.hoverTarget)
   const version = dataVersion(editor.history)
-  const id = store?.shown()
-  const state = id ? store?.state(id) : undefined
+  const id = store.shown()
+  const state = id ? store.state(id) : undefined
   const entry = state && 'entry' in state ? state.entry : undefined
   const graph = editor.history.staging.graph
   const relation = id ? graph.hasEntity(id) : undefined

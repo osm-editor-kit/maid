@@ -40,14 +40,19 @@ async function ask(sql: string) {
   return text
 }
 
-/** Exact names only, so the query uses the name index of postpass_line (route relations are lines there) */
+/**
+ * Route and superroute relations with exactly these names, from planet_osm_rels: `@>` can use an index on the tags.
+ * postpass_line has only the relations osm2pgsql builds a geometry for, not the routes.
+ */
 function findSql(names: string[]) {
-  const list = names.map((name) => `'${name.replaceAll("'", "''")}'`).join(', ')
-  return `SELECT osm_id AS id, tags->>'name' AS name, tags->>'route' AS route, tags->>'network' AS network,
-  round(length_m / 1000) AS km
-FROM postpass_line
-WHERE osm_type = 'R' AND tags->>'name' IN (${list})
-ORDER BY length_m DESC
+  const match = names
+    .map((name) => `r.tags @> '${JSON.stringify({ name }).replaceAll("'", "''")}'::jsonb`)
+    .join(' OR ')
+  return `SELECT r.id, r.tags->>'name' AS name, r.tags->>'type' AS type, r.tags->>'route' AS route,
+  r.tags->>'network' AS network, jsonb_array_length(r.members) AS members
+FROM planet_osm_rels r
+WHERE (${match}) AND r.tags->>'type' IN ('route', 'superroute', 'route_master')
+ORDER BY members DESC
 LIMIT 100`
 }
 
@@ -57,7 +62,9 @@ const pause = () => new Promise((resolve) => setTimeout(resolve, PAUSE_MS))
 if (args[0] === '--find') {
   const names = args.slice(1)
   if (names.length === 0) throw new Error('--find needs at least one name')
+  const started = performance.now()
   const answer = JSON.parse(await ask(findSql(names)))
+  console.log(`answered in ${((performance.now() - started) / 1000).toFixed(1)} s`)
   await mkdir(join(ROOT, 'reports'), { recursive: true })
   const out = join(ROOT, 'reports/postpass-find.json')
   await writeFile(out, `${JSON.stringify(answer.result, null, 2)}\n`)
@@ -69,7 +76,9 @@ if (args[0] === '--find') {
   for (const [index, id] of args.entries()) {
     if (index > 0) await pause()
     const number = relationNumber(id)
+    const started = performance.now()
     const text = await ask(routePreviewSql(id))
+    const seconds = ((performance.now() - started) / 1000).toFixed(1)
     const preview = parseRoutePreview(id, text)
     const out = join(ROOT, `fixtures/postpass/route-${number}.json`)
     // one row per line: a reviewer reads the diff of a regenerated fixture
@@ -80,7 +89,7 @@ if (args[0] === '--find') {
       `{"postpass_properties":${JSON.stringify(answer.postpass_properties)},"result":[\n${rows}\n]}\n`,
     )
     console.log(
-      `wrote ${out}: ${preview.relations.size} relations, ${preview.ways.size} ways, ${preview.nodes.size} nodes, ${(text.length / 1e6).toFixed(1)} MB`,
+      `wrote ${out}: ${preview.relations.size} relations, ${preview.ways.size} ways, ${preview.nodes.size} nodes, ${(text.length / 1e6).toFixed(1)} MB, ${seconds} s`,
     )
   }
 }
