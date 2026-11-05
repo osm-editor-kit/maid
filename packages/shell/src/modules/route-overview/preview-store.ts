@@ -202,11 +202,6 @@ export function createPreviewStore(deps: {
 
 const stores = new WeakMap<object, PreviewStore>()
 
-/** The preview store of an editor, if its overview made one (the map's layer only reads) */
-export function existingPreviewStore(editor: object): PreviewStore | undefined {
-  return stores.get(editor)
-}
-
 /** The preview store of a page (one per editor) */
 export function previewStoreOf(shell: {
   editor: { fetch: RemoteFetch }

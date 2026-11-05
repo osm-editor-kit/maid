@@ -118,11 +118,35 @@ Decision: neither yet. A single route relation rarely has more than about 2,000 
 
 ## Preview from Postpass (2026-11-05)
 
-Read in `woodpeck/postpass-ops` (SCHEMA.md, postpass.lua) and in the sister project `osmberlin/osm-boundary-checker-germany` (`report/src/lib/postpass.ts`, `liveOsmCache.ts`), not run against Postpass.
+Read in `woodpeck/postpass-ops` (SCHEMA.md, postpass.lua) and in the sister project `osmberlin/osm-boundary-checker-germany` (`report/src/lib/postpass.ts`, `liveOsmCache.ts`); measured against Postpass on 2026-11-05 (below).
 
 - `planet_osm_rels` (the osm2pgsql middle) has every relation with its members as jsonb (`type` N/W/R, `ref`, `role`) and tags, superroutes and route masters too; `planet_osm_ways` the node ids of every way. So one recursive query brings a superroute, its stages and their members, and the end nodes of each way, which make preview ways chain with loaded ones.
 - `postpass_line`, `postpass_polygon`, `postpass_point` have the geometry of tagged ways and nodes only (osm2pgsql passes untagged objects to no process function). An untagged member way keeps its row without a shape; an untagged node member is missing from the preview.
-- Lookups by `osm_type, osm_id` use btree indexes on all three tables, and `planet_osm_rels`/`planet_osm_ways` by primary key. Finding a relation by name uses the name index of `postpass_line` (route relations are lines there; superroutes are not, so they are found by a stage).
+- Lookups by `osm_type, osm_id` use btree indexes on all three tables, and `planet_osm_rels`/`planet_osm_ways` by primary key. Finding a relation by name: `postpass_line` does **not** have the route relations (measured: "Rheinsteig" found only a 1 km `route=road`), so `fixtures-postpass --find` asks `planet_osm_rels` with `tags @> '{"name": …}'`, which answers four names in about 6 s.
 - The sister project asks one object at a time, no retries, reads at most 8 MB, simplifies on the server and keeps answers 24 hours in IndexedDB. Maid does the same with a 24 MB limit (superroutes are larger) and a 60 s time limit.
-- Not measured yet: the size and time of the query for a real superroute. That needs the Postpass fixtures.
+
+### Measured (2026-11-05)
+
+Eleven requests to postpass.geofabrik.de with Tobias's OK (`bun run fixtures-postpass`, one at a time, 5 s apart): two name searches and eight previews, committed as `fixtures/postpass/route-<id>.json`. Time is from the request to the last byte, on a cloud container; parse is `parseRoutePreview` in Bun (mean of 5).
+
+| Relation | What | Relations | Ways | Nodes | km of ways | Answer | Postpass | Parse |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| r6783678 | Bus 162 | 1 | 143 | 20 | 8 | 0.1 MB | ~1 s | 1.5 ms |
+| r3001299 | Müggel-Spree-Weg | 1 | 692 | 71 | 149 | 0.3 MB | ~1 s | 3.5 ms |
+| r17822 | Bus N65, route master | 3 | 820 | 122 | 44 | 0.8 MB | ~1 s | 8 ms |
+| r6102 | Spreeradweg, superroute | 8 | 2,136 | 25 | 427 | 1.2 MB | ~1 s | 17 ms |
+| r62900 | Westweg, superroute | 24 | 1,969 | 542 | 400 | 1.1 MB | 1.4 s | 14 ms |
+| r18434888 | Elbe Cycle Route, superroute | 20 | 1,976 | 128 | 490 | 0.9 MB | 1.4 s | 16 ms |
+| r2685 | Rheinsteig with its Zuwege, superroute | 149 | 4,329 | 123 | 566 | 1.9 MB | 2.9 s | 29 ms |
+| r2171555 | EuroVelo 15 – Rheinradweg, superroute (three levels) | 63 | 10,652 | 292 | 2,207 | 5.2 MB | 4.6 s | 86 ms |
+
+(The first four were fetched before the script printed times; the whole run of four took 20 s with 15 s of pauses.)
+
+- The largest answer, EuroVelo 15, is a fifth of the 24 MB limit, and Postpass answers it in under 5 s, well inside the 60 s limit. The limits stay.
+- Simplifying to about 5 m keeps the answers small: about 0.5 KB per way.
+- Only one way of the eight previews came without a shape (an untagged way of the Rheinsteig).
+- The `relations` scene is from August 2026, Postpass from today: of the Müggel-Spree-Weg, three ways and a guidepost of the scene are gone from Postpass. They stay in the "Not loaded" group, which is the intended fallback.
+- Parsing EuroVelo 15 takes 86 ms, longer than a frame. It happens once per press (and once per restore from IndexedDB); if it shows, it can move to a worker together with the analysis (above).
+- The browser check `check-route-overview` covers the preview with the mock's fixtures: the bar above and below, one request per press, the time and the reload button, muted rows, the lines on the map, reload, the stored preview after a page reload without a request, and a click on a preview row that loads the real member.
+- Found on the way, not fixed: a link (`?id=r…&relation=r…`) to a relation none of whose members is in view stays at "Loading r…": the column waits for the data, nothing loads the relation itself (iD loads and zooms to it).
 
