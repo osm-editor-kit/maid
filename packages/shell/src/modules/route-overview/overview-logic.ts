@@ -196,3 +196,12 @@ export function splitRows(rows: readonly OverviewRow[], limit: number) {
     unplaced: rows.filter((row) => row.kind === 'unplaced'),
   }
 }
+
+/** Whether every member of a row or a stretch comes from the preview (none is loaded): drawn muted, loaded on a click */
+export function fromPreview(
+  analysis: RouteAnalysis,
+  members: readonly number[],
+  previewed: ReadonlySet<string>,
+) {
+  return members.length > 0 && idsOf(analysis, members).every((id) => previewed.has(id))
+}

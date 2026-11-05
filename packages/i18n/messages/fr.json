@@ -484,5 +484,14 @@
         "input=*": "Remettre le nord en haut (N)"
       }
     }
-  ]
+  ],
+  "route_overview_preview_load": "Charger l’aperçu des {count} membres manquants",
+  "route_overview_preview_loading": "Chargement de l’aperçu…",
+  "route_overview_preview_from": "Aperçu du {time}",
+  "route_overview_preview_data": "Formes simplifiées de Postpass, données OSM du {time}. Lecture seule : choisissez une ligne pour charger le membre.",
+  "route_overview_preview_reload": "Recharger l’aperçu",
+  "route_overview_preview_failed": "L’aperçu n’a pas pu être chargé. Réessayez plus tard.",
+  "route_overview_preview_format": "Postpass a renvoyé une réponse que l’aperçu ne peut pas lire.",
+  "route_overview_preview_too_big": "Cette relation est trop grande pour un aperçu.",
+  "route_overview_load_row": "Charger et sélectionner {name}"
 }

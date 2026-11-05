@@ -6,6 +6,7 @@ import {
   ArrowsUpDownIcon,
   ChevronRightIcon,
   ChevronDownIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/16/solid'
 import { getLocale, m } from '@osm-editor-kit/maid-i18n'
 import { actionDeleteMember, type OsmRelation } from '@osm-editor-kit/maid-model'
@@ -20,7 +21,10 @@ import {
   type RouteAnalysis,
   type RouteInput,
   type RouteIssue,
+  stillMissing,
+  withPreview,
 } from '@osm-editor-kit/maid-route-analysis'
+import { absoluteTime, browserTimeZone, notify } from '@osm-editor-kit/maid-ui'
 import {
   Fragment,
   useEffect,
@@ -37,6 +41,7 @@ import { colourOf } from '../relations-logic.ts'
 import { dataVersion } from './data-version.ts'
 import {
   formatKm,
+  fromPreview,
   groupOf,
   idsOf,
   includesHovered,
@@ -52,6 +57,7 @@ import {
   type UnplacedGroup,
 } from './overview-logic.ts'
 import { markSelectedFromOverview } from './overview-selection.ts'
+import { previewStoreOf, type PreviewEntry, type PreviewState } from './preview-store.ts'
 import { routeInputOf } from './route-input.ts'
 
 type Select = ReturnType<typeof useSelection>['select']
@@ -209,7 +215,13 @@ const STATE_ICON: Record<Linear, ReactNode> = {
 // so the cache is keyed on the relation object and the data version (edits and arriving data, not selection or hover).
 type Cached = {
   version: number
+  /** The preview the input was filled from, if any */
+  entry: PreviewEntry | undefined
   input: RouteInput
+  /** Members whose shape is the preview's */
+  previewed: ReadonlySet<string>
+  /** Members that are not loaded, before the preview: the preview bar shows while there are some */
+  missing: number
   analysis: RouteAnalysis
   layouts: Partial<Record<OverviewMode, OverviewLayout>>
 }
@@ -227,16 +239,40 @@ let overviewOpen = true
 export function RouteOverview({ relation, select }: { relation: OsmRelation; select: Select }) {
   'use no memo'
   // not compiled: it reads the graph and the engine, objects that stay the same when data arrives
-  const { engine, editor } = useShell()
+  const shell = useShell()
+  const { engine, editor } = shell
   const graph = editor.history.staging.graph
   const version = dataVersion(editor.history)
+  const previews = previewStoreOf(shell)
+  const previewState = useSyncExternalStore(previews.subscribe, () => previews.state(relation.id))
+  const entry = 'entry' in previewState ? previewState.entry : undefined
+  useEffect(
+    function showAStoredPreviewAndDrawItOnTheMap() {
+      previews.restore(relation.id)
+      previews.setShown(relation.id)
+      return () => previews.setShown(null)
+    },
+    [previews, relation.id],
+  )
   let cached = analyses.get(relation)
-  if (!cached || cached.version !== version) {
-    const input = routeInputOf(graph, relation)
-    cached = { version, input, analysis: analyzeRoute(input), layouts: {} }
+  if (!cached || cached.version !== version || cached.entry !== entry) {
+    const loaded = routeInputOf(graph, relation)
+    const { input, previewed } = entry
+      ? withPreview(loaded, entry.preview)
+      : { input: loaded, previewed: new Set<string>() }
+    cached = {
+      version,
+      entry,
+      input,
+      previewed,
+      missing: stillMissing(loaded),
+      analysis: analyzeRoute(input),
+      layouts: {},
+    }
     analyses.set(relation, cached)
   }
-  const { analysis, input } = cached
+  const { analysis, input, previewed, missing } = cached
+  const showPreviewBar = previews.enabled && (missing > 0 || entry !== undefined)
   const [expanded, setExpanded] = useState(overviewOpen)
   const [mode, setMode] = useState<OverviewMode>('schematic')
   const [showAll, setShowAll] = useState(false)
@@ -261,6 +297,16 @@ export function RouteOverview({ relation, select }: { relation: OsmRelation; sel
     const selection = engine.selection
     if (selection.length !== 1 || selection[0] !== id) markSelectedFromOverview(id)
     select(id)
+  }
+  // a member of the preview is loaded for real first: it then replaces its preview, and the map goes to it
+  function loadAndSelect(id: string) {
+    engine.loadEntity(id).then(
+      () => {
+        selectId(id)
+        engine.fitTo([id])
+      },
+      (error: unknown) => notify.failed(error),
+    )
   }
   function toggle() {
     overviewOpen = !expanded
@@ -342,6 +388,13 @@ export function RouteOverview({ relation, select }: { relation: OsmRelation; sel
 
       {expanded ? (
         <>
+          {showPreviewBar ? (
+            <PreviewBar
+              state={previewState}
+              missing={missing}
+              onLoad={(refresh) => void previews.load(relation.id, { refresh })}
+            />
+          ) : null}
           {/* a long route scrolls inside the overview, so the members below stay within reach */}
           <div className="relative max-h-[60vh] overflow-y-auto">
             <div
@@ -361,6 +414,7 @@ export function RouteOverview({ relation, select }: { relation: OsmRelation; sel
                   layout={layout}
                   shown={shown}
                   analysis={analysis}
+                  previewed={previewed}
                   colour={colour}
                   laneX={laneX}
                   limitY={diagramHeight}
@@ -374,6 +428,8 @@ export function RouteOverview({ relation, select }: { relation: OsmRelation; sel
                   input={input}
                   left={left}
                   select={selectId}
+                  previewed={fromPreview(analysis, row.members, previewed)}
+                  loadAndSelect={loadAndSelect}
                   open={open}
                   setOpen={setOpen}
                 />
@@ -396,6 +452,14 @@ export function RouteOverview({ relation, select }: { relation: OsmRelation; sel
             >
               {m.route_overview_show_all({ count: placed.length })}
             </button>
+          ) : null}
+          {/* the second button below the line: a long route is often read from its end */}
+          {showPreviewBar && !entry && previewState.status !== 'loading' ? (
+            <PreviewBar
+              state={previewState}
+              missing={missing}
+              onLoad={(refresh) => void previews.load(relation.id, { refresh })}
+            />
           ) : null}
 
           {unplaced.length > 0 ? (
@@ -466,6 +530,76 @@ export function RouteOverview({ relation, select }: { relation: OsmRelation; sel
         </>
       ) : null}
     </section>
+  )
+}
+
+const FAILURE_TEXT: Record<Extract<PreviewState, { status: 'error' }>['reason'], () => string> = {
+  failed: () => m.route_overview_preview_failed(),
+  format: () => m.route_overview_preview_format(),
+  'too-big': () => m.route_overview_preview_too_big(),
+}
+
+/**
+ * The preview line above (and, before a preview is there, below) the diagram: "Load preview" while members are
+ * missing; then when the preview is from, with a small reload button. A failure keeps the earlier preview and says so.
+ */
+function PreviewBar({
+  state,
+  missing,
+  onLoad,
+}: {
+  state: PreviewState
+  missing: number
+  onLoad: (refresh: boolean) => void
+}) {
+  const entry = 'entry' in state ? state.entry : undefined
+  const timeZone = browserTimeZone()
+  const time = (date: Date) => absoluteTime({ date, dateOnly: false }, { timeZone })
+  const dataTime = entry?.preview.timestamp ? new Date(entry.preview.timestamp) : undefined
+  return (
+    <div
+      data-preview-bar
+      aria-live="polite"
+      className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-zinc-500 dark:text-zinc-400"
+    >
+      {state.status === 'loading' ? (
+        <span>{m.route_overview_preview_loading()}</span>
+      ) : entry ? (
+        <>
+          <span
+            title={
+              dataTime && !Number.isNaN(dataTime.getTime())
+                ? m.route_overview_preview_data({ time: time(dataTime) })
+                : undefined
+            }
+          >
+            {m.route_overview_preview_from({ time: time(new Date(entry.loadedAt)) })}
+          </span>
+          <button
+            type="button"
+            aria-label={m.route_overview_preview_reload()}
+            title={m.route_overview_preview_reload()}
+            onClick={() => onLoad(true)}
+            className={`${ICON_BUTTON} size-5`}
+          >
+            <ArrowPathIcon aria-hidden="true" className="size-3.5" />
+          </button>
+        </>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onLoad(false)}
+          className="cursor-pointer rounded-md bg-zinc-950/5 px-2 py-1 font-medium text-zinc-700 hover:bg-zinc-950/10 focus-visible:outline-2 focus-visible:outline-blue-500 dark:bg-white/10 dark:text-zinc-200 dark:hover:bg-white/15"
+        >
+          {m.route_overview_preview_load({ count: missing })}
+        </button>
+      )}
+      {state.status === 'error' ? (
+        <span role="status" className="text-amber-700 dark:text-amber-400">
+          {FAILURE_TEXT[state.reason]()}
+        </span>
+      ) : null}
+    </div>
   )
 }
 
@@ -548,6 +682,8 @@ function Row({
   input,
   left,
   select,
+  previewed,
+  loadAndSelect,
   open,
   setOpen,
 }: {
@@ -556,6 +692,9 @@ function Row({
   input: RouteInput
   left: number
   select: (id: string) => void
+  /** All its members come from the preview: muted, and a click loads the member before selecting it */
+  previewed: boolean
+  loadAndSelect: (id: string) => void
   open: string | null
   setOpen: (key: string | null) => void
 }) {
@@ -611,9 +750,12 @@ function Row({
       {target ? (
         <button
           type="button"
-          aria-label={m.route_overview_select_row({ name: label })}
-          onClick={() => select(target)}
-          className="flex min-w-0 flex-1 cursor-pointer items-baseline gap-2 rounded text-left text-sm focus-visible:outline-2 focus-visible:outline-blue-500"
+          aria-label={(previewed ? m.route_overview_load_row : m.route_overview_select_row)({
+            name: label,
+          })}
+          data-preview={previewed || undefined}
+          onClick={() => (previewed ? loadAndSelect(target) : select(target))}
+          className={`flex min-w-0 flex-1 cursor-pointer items-baseline gap-2 rounded text-left text-sm focus-visible:outline-2 focus-visible:outline-blue-500 ${previewed ? 'text-zinc-500 dark:text-zinc-400' : ''}`}
         >
           <span className="min-w-0 truncate">{label}</span>
           {role ? (
@@ -621,7 +763,10 @@ function Row({
           ) : null}
         </button>
       ) : (
-        <span className="flex min-w-0 flex-1 items-baseline gap-2 text-sm">
+        <span
+          data-preview={previewed || undefined}
+          className={`flex min-w-0 flex-1 items-baseline gap-2 text-sm ${previewed ? 'text-zinc-500 dark:text-zinc-400' : ''}`}
+        >
           <span className="min-w-0 truncate">{label}</span>
           {role ? (
             <span className="shrink-0 text-[11px] text-zinc-500 dark:text-zinc-400">{role}</span>
@@ -732,6 +877,7 @@ function Diagram({
   layout,
   shown,
   analysis,
+  previewed,
   colour,
   laneX,
   limitY,
@@ -739,6 +885,7 @@ function Diagram({
   layout: OverviewLayout
   shown: OverviewRow[]
   analysis: RouteAnalysis
+  previewed: ReadonlySet<string>
   colour: string
   laneX: (lane: number) => number
   limitY: number
@@ -781,6 +928,18 @@ function Diagram({
                 stroke={RED}
                 strokeWidth={2}
                 strokeDasharray="3 3"
+              />
+            ) : fromPreview(analysis, section.members, previewed) ? (
+              // the preview's stretch: dashed and lighter, so the loaded line stands out
+              <line
+                x1={x0}
+                x2={x0}
+                y1={y1}
+                y2={y2}
+                stroke={colour}
+                strokeOpacity={0.5}
+                strokeWidth={3}
+                strokeDasharray="4 3"
               />
             ) : (
               <line x1={x0} x2={x0} y1={y1} y2={y2} stroke={colour} strokeWidth={3} />

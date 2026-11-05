@@ -87,12 +87,15 @@ export function createPreviewCache(name = 'maid-route-previews', now = Date.now)
 export type PreviewStore = {
   /** Whether this page can ask for previews at all (a preview URL in the config) */
   readonly enabled: boolean
-  state(id: string): PreviewState
-  subscribe(listener: () => void): () => void
+  state: (id: string) => PreviewState
+  subscribe: (listener: () => void) => () => void
   /** Shows a stored preview of the last 24 hours, if there is one. Sends nothing; once per relation. */
-  restore(id: string): void
+  restore: (id: string) => void
   /** Asks Postpass (or the mock) and stores the answer. `refresh` skips the stored one. */
-  load(id: string, options?: { refresh?: boolean }): Promise<void>
+  load: (id: string, options?: { refresh?: boolean }) => Promise<void>
+  /** The relation whose overview is on screen, so the map draws its preview (preview-map.tsx) */
+  shown: () => string | null
+  setShown: (id: string | null) => void
 }
 
 async function readLimited(response: Response, limit: number) {
@@ -126,6 +129,7 @@ export function createPreviewStore(deps: {
   const now = deps.now ?? Date.now
   const states = new Map<string, PreviewState>()
   const restored = new Set<string>()
+  let shownId: string | null = null
   const listeners = new Set<() => void>()
   const set = (id: string, state: PreviewState) => {
     states.set(id, state)
@@ -141,6 +145,12 @@ export function createPreviewStore(deps: {
     subscribe(listener) {
       listeners.add(listener)
       return () => listeners.delete(listener)
+    },
+    shown: () => shownId,
+    setShown(id) {
+      if (id === shownId) return
+      shownId = id
+      for (const listener of listeners) listener()
     },
     restore(id) {
       if (!url || restored.has(id)) return
@@ -189,6 +199,11 @@ export function createPreviewStore(deps: {
 }
 
 const stores = new WeakMap<object, PreviewStore>()
+
+/** The preview store of an editor, if its overview made one (the map's layer only reads) */
+export function existingPreviewStore(editor: object): PreviewStore | undefined {
+  return stores.get(editor)
+}
 
 /** The preview store of a page (one per editor) */
 export function previewStoreOf(shell: {

@@ -484,5 +484,14 @@
         "input=*": "Orientar al norte (N)"
       }
     }
-  ]
+  ],
+  "route_overview_preview_load": "Cargar la vista previa de los {count} miembros que faltan",
+  "route_overview_preview_loading": "Cargando la vista previa…",
+  "route_overview_preview_from": "Vista previa del {time}",
+  "route_overview_preview_data": "Formas simplificadas de Postpass, datos de OSM del {time}. Solo lectura: elige una fila para cargar el miembro.",
+  "route_overview_preview_reload": "Recargar la vista previa",
+  "route_overview_preview_failed": "No se pudo cargar la vista previa. Inténtalo más tarde.",
+  "route_overview_preview_format": "Postpass envió una respuesta que la vista previa no puede leer.",
+  "route_overview_preview_too_big": "Esta relación es demasiado grande para una vista previa.",
+  "route_overview_load_row": "Cargar y seleccionar {name}"
 }

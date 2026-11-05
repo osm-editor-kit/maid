@@ -484,5 +484,14 @@
         "input=*": "Reset north (N)"
       }
     }
-  ]
+  ],
+  "route_overview_preview_load": "Load preview of the {count} missing members",
+  "route_overview_preview_loading": "Loading the preview…",
+  "route_overview_preview_from": "Preview from {time}",
+  "route_overview_preview_data": "Simplified shapes from Postpass, OSM data of {time}. Read only: choose a row to load the member.",
+  "route_overview_preview_reload": "Reload the preview",
+  "route_overview_preview_failed": "The preview could not be loaded. Try again later.",
+  "route_overview_preview_format": "Postpass gave an answer the preview cannot read.",
+  "route_overview_preview_too_big": "This relation is too large for a preview.",
+  "route_overview_load_row": "Load and select {name}"
 }

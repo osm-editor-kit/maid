@@ -484,5 +484,14 @@
         "input=*": "Nach Norden ausrichten (N)"
       }
     }
-  ]
+  ],
+  "route_overview_preview_load": "Vorschau der {count} fehlenden Mitglieder laden",
+  "route_overview_preview_loading": "Vorschau wird geladen …",
+  "route_overview_preview_from": "Vorschau vom {time}",
+  "route_overview_preview_data": "Vereinfachte Formen aus Postpass, OSM-Stand {time}. Nur zum Ansehen: Wähle eine Zeile, um das Mitglied zu laden.",
+  "route_overview_preview_reload": "Vorschau neu laden",
+  "route_overview_preview_failed": "Die Vorschau konnte nicht geladen werden. Versuch es später noch einmal.",
+  "route_overview_preview_format": "Postpass hat eine Antwort geschickt, die die Vorschau nicht lesen kann.",
+  "route_overview_preview_too_big": "Diese Relation ist für eine Vorschau zu groß.",
+  "route_overview_load_row": "{name} laden und auswählen"
 }
