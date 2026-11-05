@@ -1,6 +1,6 @@
 /**
  * The preview of the route whose overview is on screen, on the map: the simplified lines of the members that are not
- * loaded, thin and dashed, under the OSM data, so the loaded ways and their arrows stay on top. A row hovered in the
+ * loaded (of a superroute: of its stages), thin and dashed, under the OSM data, so the loaded ways and their arrows stay on top. A row hovered in the
  * overview makes its line strong here (the engine's hover target, which the OSM layers cannot show for a feature that
  * is not loaded). A member that is loaded is not drawn: its real shape replaces the preview.
  *
@@ -55,15 +55,14 @@ export function RoutePreviewOnMap({ editor, belowOsm }: MapContentProps) {
   let drawing = drawings.get(entry)
   if (!drawing || drawing.key !== key) {
     const features: Feature[] = []
-    for (const member of relation.members) {
-      if (member.type !== 'way' || graph.hasEntity(member.id)) continue
-      const line = entry.preview.ways.get(member.id)?.line
-      if (line)
-        features.push({
-          type: 'Feature',
-          properties: { id: member.id },
-          geometry: { type: 'LineString', coordinates: line.map(([lon, lat]) => [lon, lat]) },
-        })
+    // every way of the preview: the route's own, or the stages' of a superroute
+    for (const way of entry.preview.ways.values()) {
+      if (!way.line || graph.hasEntity(way.id)) continue
+      features.push({
+        type: 'Feature',
+        properties: { id: way.id },
+        geometry: { type: 'LineString', coordinates: way.line.map(([lon, lat]) => [lon, lat]) },
+      })
     }
     drawing = { key, data: { type: 'FeatureCollection', features } }
     drawings.set(entry, drawing)

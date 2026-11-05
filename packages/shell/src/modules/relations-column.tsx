@@ -49,8 +49,10 @@ import {
 import { openRelationActions, useOpenRelationFrom } from './relations-open-store.ts'
 import { ColumnDragHandle, ReorderRow, useMemberReorder } from './relations-reorder.tsx'
 import { relationSessionActions } from './relations-session-store.ts'
+import { isRouteGroup } from './route-overview/overview-logic.ts'
 import { takeSelectedFromOverview } from './route-overview/overview-selection.ts'
 import { RouteOverview } from './route-overview/route-overview.tsx'
+import { SuperrouteOverview } from './route-overview/superroute-overview.tsx'
 
 /** Members a group lists before its own "Show all N"; iD's member list stops at 1000 */
 const GROUP_LIMIT = 1000
@@ -316,6 +318,9 @@ function ColumnBody({
       >
         {relation.tags.type?.trim() === 'route' && rows.length > 0 && (
           <RouteOverview key={relation.id} relation={relation} select={select} />
+        )}
+        {isRouteGroup(relation) && (
+          <SuperrouteOverview key={relation.id} relation={relation} select={select} />
         )}
         {rows.length === 0 && (
           <p className="px-3 py-2 text-xs text-zinc-500 dark:text-zinc-400">

@@ -22,7 +22,7 @@ const PREVIEW_TIMEOUT_MS = 60_000
 
 export type PreviewEntry = { preview: RoutePreview; loadedAt: number }
 
-export type PreviewFailure = 'failed' | 'format' | 'too-big'
+export type PreviewFailure = 'failed' | 'format' | 'missing' | 'too-big'
 
 export type PreviewState =
   | { status: 'none' }
@@ -188,7 +188,9 @@ export function createPreviewStore(deps: {
       } catch (error) {
         const reason: PreviewFailure =
           error instanceof PreviewFormatError
-            ? 'format'
+            ? error.missing
+              ? 'missing'
+              : 'format'
             : error instanceof PreviewTooBigError
               ? 'too-big'
               : 'failed'

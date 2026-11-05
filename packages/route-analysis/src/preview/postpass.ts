@@ -103,7 +103,11 @@ JOIN postpass_point p ON refs.t = 'N' AND p.osm_type = 'N' AND p.osm_id = refs.r
 
 /** The answer did not have the shape the preview reads */
 export class PreviewFormatError extends Error {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    /** The answer was fine but had no such relation: new since Postpass's last update, or deleted */
+    readonly missing = false,
+  ) {
     super(message)
     this.name = 'PreviewFormatError'
   }
@@ -233,6 +237,7 @@ export function parseRoutePreview(id: string, text: string): RoutePreview {
       if (at) nodes.set(`n${number}`, { id: `n${number}`, tags, at })
     }
   }
-  if (!relations.has(root)) throw new PreviewFormatError(`Relation ${root} is not in the answer`)
+  if (!relations.has(root))
+    throw new PreviewFormatError(`Relation ${root} is not in the answer`, true)
   return { root, timestamp, relations, ways, nodes }
 }

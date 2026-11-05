@@ -493,5 +493,17 @@
   "route_overview_preview_failed": "No se pudo cargar la vista previa. Inténtalo más tarde.",
   "route_overview_preview_format": "Postpass envió una respuesta que la vista previa no puede leer.",
   "route_overview_preview_too_big": "Esta relación es demasiado grande para una vista previa.",
-  "route_overview_load_row": "Cargar y seleccionar {name}"
+  "route_overview_load_row": "Cargar y seleccionar {name}",
+  "route_overview_stages": "Etapas ({count})",
+  "route_overview_stage_open": "Abrir {name}",
+  "route_overview_stage_not_loaded": "no cargada",
+  "route_overview_stage_show": "Mostrar el trazado de {name}",
+  "route_overview_stage_hide": "Ocultar el trazado de {name}",
+  "route_overview_stage_move": "Mover {name}",
+  "route_overview_reorder_hint": "Pon las etapas en su orden. Cada movimiento se deshace de una vez.",
+  "route_overview_reorder_done": "Listo",
+  "route_overview_reorder_up": "Subir {name}",
+  "route_overview_reorder_down": "Bajar {name}",
+  "route_overview_preview_missing": "Postpass no tiene esta relación: es más reciente que sus datos, o se borró.",
+  "route_overview_variants": "Variantes ({count})"
 }

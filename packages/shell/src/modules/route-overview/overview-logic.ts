@@ -205,3 +205,18 @@ export function fromPreview(
 ) {
   return members.length > 0 && idsOf(analysis, members).every((id) => previewed.has(id))
 }
+
+/**
+ * A relation that groups routes: a `superroute` (the stages of a long trail) or a `route_master` (the variants of a
+ * bus line), with at least one relation member. Its overview lists the routes as groups.
+ */
+export function isRouteGroup(relation: {
+  tags: Readonly<Record<string, string>>
+  members: readonly { type: string }[]
+}) {
+  const type = relation.tags.type?.trim()
+  return (
+    (type === 'superroute' || type === 'route_master') &&
+    relation.members.some((member) => member.type === 'relation')
+  )
+}

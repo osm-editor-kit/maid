@@ -493,5 +493,17 @@
   "route_overview_preview_failed": "The preview could not be loaded. Try again later.",
   "route_overview_preview_format": "Postpass gave an answer the preview cannot read.",
   "route_overview_preview_too_big": "This relation is too large for a preview.",
-  "route_overview_load_row": "Load and select {name}"
+  "route_overview_load_row": "Load and select {name}",
+  "route_overview_stages": "Stages ({count})",
+  "route_overview_stage_open": "Open {name}",
+  "route_overview_stage_not_loaded": "not loaded",
+  "route_overview_stage_show": "Show the line of {name}",
+  "route_overview_stage_hide": "Hide the line of {name}",
+  "route_overview_stage_move": "Move {name}",
+  "route_overview_reorder_hint": "Move the stages into their order. Each move is one undo step.",
+  "route_overview_reorder_done": "Done",
+  "route_overview_reorder_up": "Move {name} up",
+  "route_overview_reorder_down": "Move {name} down",
+  "route_overview_preview_missing": "Postpass does not have this relation: it is newer than Postpass's data, or deleted.",
+  "route_overview_variants": "Variants ({count})"
 }

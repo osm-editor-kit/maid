@@ -493,5 +493,17 @@
   "route_overview_preview_failed": "Die Vorschau konnte nicht geladen werden. Versuch es später noch einmal.",
   "route_overview_preview_format": "Postpass hat eine Antwort geschickt, die die Vorschau nicht lesen kann.",
   "route_overview_preview_too_big": "Diese Relation ist für eine Vorschau zu groß.",
-  "route_overview_load_row": "{name} laden und auswählen"
+  "route_overview_load_row": "{name} laden und auswählen",
+  "route_overview_stages": "Etappen ({count})",
+  "route_overview_stage_open": "{name} öffnen",
+  "route_overview_stage_not_loaded": "nicht geladen",
+  "route_overview_stage_show": "Verlauf von {name} zeigen",
+  "route_overview_stage_hide": "Verlauf von {name} ausblenden",
+  "route_overview_stage_move": "{name} verschieben",
+  "route_overview_reorder_hint": "Bring die Etappen in ihre Reihenfolge. Jede Verschiebung ist ein Rückgängig-Schritt.",
+  "route_overview_reorder_done": "Fertig",
+  "route_overview_reorder_up": "{name} nach oben",
+  "route_overview_reorder_down": "{name} nach unten",
+  "route_overview_preview_missing": "Postpass kennt diese Relation nicht: Sie ist neuer als der Datenstand von Postpass oder gelöscht.",
+  "route_overview_variants": "Varianten ({count})"
 }

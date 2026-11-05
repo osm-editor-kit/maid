@@ -115,3 +115,14 @@ The 274 route relations of the fixtures take at most 1.3 ms each, because the fi
 ### Worker or WebAssembly
 
 Decision: neither yet. A single route relation rarely has more than about 2,000 ways (long trails are superroutes of stages), which takes about 15 ms here, within a frame. The analysis runs once per change of the relation's data, memoised, not per frame. A worker would have to receive the node positions by structured clone (a copy of every coordinate), which for 20,000 ways costs a good part of what it saves; WebAssembly would add that copy too, and the time is in map lookups and haversine, not in arithmetic that WebAssembly speeds up much. Because input and output are plain data, a worker can be added without changing the analysis: the trigger is a measured analysis over 50 ms on a real relation. Next cheap gains, if needed: compute segment lengths once (the chain and the index both compute them), and integer node ids instead of strings.
+
+## Preview from Postpass (2026-11-05)
+
+Read in `woodpeck/postpass-ops` (SCHEMA.md, postpass.lua) and in the sister project `osmberlin/osm-boundary-checker-germany` (`report/src/lib/postpass.ts`, `liveOsmCache.ts`), not run against Postpass.
+
+- `planet_osm_rels` (the osm2pgsql middle) has every relation with its members as jsonb (`type` N/W/R, `ref`, `role`) and tags, superroutes and route masters too; `planet_osm_ways` the node ids of every way. So one recursive query brings a superroute, its stages and their members, and the end nodes of each way, which make preview ways chain with loaded ones.
+- `postpass_line`, `postpass_polygon`, `postpass_point` have the geometry of tagged ways and nodes only (osm2pgsql passes untagged objects to no process function). An untagged member way keeps its row without a shape; an untagged node member is missing from the preview.
+- Lookups by `osm_type, osm_id` use btree indexes on all three tables, and `planet_osm_rels`/`planet_osm_ways` by primary key. Finding a relation by name uses the name index of `postpass_line` (route relations are lines there; superroutes are not, so they are found by a stage).
+- The sister project asks one object at a time, no retries, reads at most 8 MB, simplifies on the server and keeps answers 24 hours in IndexedDB. Maid does the same with a 24 MB limit (superroutes are larger) and a 60 s time limit.
+- Not measured yet: the size and time of the query for a real superroute. That needs the Postpass fixtures.
+

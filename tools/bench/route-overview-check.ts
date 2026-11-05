@@ -13,6 +13,8 @@ import { runCheck } from './check-page'
 
 const BUS = 'r6783678'
 const HIKING = 'r3001299'
+/** Bus N65, a route_master with its two directions */
+const MASTER = 'r17822'
 
 const sceneName = process.argv[2] ?? 'relations'
 
@@ -193,6 +195,47 @@ const failed = await runCheck(
       'the group opens to list its members',
       true,
       (await overview.getByRole('button', { name: /^Select / }).count()) > 10,
+    )
+
+    // --- a route master: its variants as groups, and the order view ---
+    await open(MASTER)
+    const heads = () =>
+      column
+        .locator('[data-stage]')
+        .evaluateAll((all) => all.map((item) => item.getAttribute('data-stage') ?? ''))
+    const order = await heads()
+    report('the route master shows its two variants as groups', 2, order.length)
+    report(
+      'a variant group shows its line',
+      true,
+      (await column.locator('[data-stage] [data-row-key="start"]').count()) >= 1,
+    )
+    await column
+      .getByRole('button', { name: /^Move / })
+      .first()
+      .click()
+    report(
+      'the handle opens the order view, every group folded',
+      [true, 0],
+      [
+        await column.getByText(/Move the stages into their order/).isVisible(),
+        await column.locator('[data-stage] [data-row-key]').count(),
+      ],
+    )
+    await column
+      .getByRole('button', { name: /^Move .* down$/ })
+      .first()
+      .click()
+    await settle()
+    report('"down" swaps the two variants', [order[1], order[0]], await heads())
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z')
+    await settle()
+    report('one undo brings the order back', order, await heads())
+    await column.getByRole('button', { name: 'Done', exact: true }).click()
+    report(
+      '"Done" ends the order view',
+      false,
+      await column.getByText(/Move the stages into their order/).isVisible(),
     )
   },
   '',

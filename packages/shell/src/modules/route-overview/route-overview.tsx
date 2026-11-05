@@ -60,13 +60,13 @@ import { markSelectedFromOverview } from './overview-selection.ts'
 import { previewStoreOf, type PreviewEntry, type PreviewState } from './preview-store.ts'
 import { routeInputOf } from './route-input.ts'
 
-type Select = ReturnType<typeof useSelection>['select']
+export type Select = ReturnType<typeof useSelection>['select']
 
 const ROW_HEIGHT = 28
 const KM_WIDTH = 44
 const LANE_STEP = 14
 const MAIN_X = 14
-const NEUTRAL = '#7c3aed'
+export const NEUTRAL = '#7c3aed'
 const RED = '#dc2626'
 const ROW_HOVER = 'bg-amber-100/60 dark:bg-amber-500/10'
 const ROW_PLAIN =
@@ -204,16 +204,17 @@ function labelText(label: RowLabel): string {
   }
 }
 
-const STATE_ICON: Record<Linear, ReactNode> = {
+export const STATE_ICON: Record<Linear, ReactNode> = {
   yes: <CheckCircleIcon className="size-4 text-emerald-600 dark:text-emerald-400" />,
   sorted: <ArrowsUpDownIcon className="size-4 text-amber-600 dark:text-amber-400" />,
   no: <ExclamationTriangleIcon className="size-4 text-amber-600 dark:text-amber-400" />,
   empty: <NoSymbolIcon className="size-4 text-zinc-400" />,
 }
 
-// The analysis of the relation as it is now, and its layout per spacing. The graph is mutable and keeps its identity,
-// so the cache is keyed on the relation object and the data version (edits and arriving data, not selection or hover).
-type Cached = {
+// The analysis of a route as it is now, and its layout per spacing. The graph is mutable and keeps its identity, so the
+// cache is keyed on an object that stands for the route (the relation, or a stage's preview relation) and the data
+// version (edits and arriving data, not selection or hover) and the preview it was filled from.
+export type Prepared = {
   version: number
   /** The preview the input was filled from, if any */
   entry: PreviewEntry | undefined
@@ -225,72 +226,64 @@ type Cached = {
   analysis: RouteAnalysis
   layouts: Partial<Record<OverviewMode, OverviewLayout>>
 }
-const analyses = new WeakMap<OsmRelation, Cached>()
+const analyses = new WeakMap<object, Prepared>()
 
-// Open or folded, for the whole session: a person who folds it away to work on the members keeps it folded
-let overviewOpen = true
-
-/**
- * The route as a vertical line diagram (like the line sidebars of Wikipedia): the km column, the line with its stops
- * and points, side lines as lanes beside it, and the members the line cannot place in groups at the bottom.
- * The diagram draws the first 300 rows and a "Show all (N)" button (like the member groups of the column), because a
- * scroll listener would have to find the scrolling ancestor; the groups at the bottom are always there.
- */
-export function RouteOverview({ relation, select }: { relation: OsmRelation; select: Select }) {
-  'use no memo'
-  // not compiled: it reads the graph and the engine, objects that stay the same when data arrives
-  const shell = useShell()
-  const { engine, editor } = shell
-  const graph = editor.history.staging.graph
-  const version = dataVersion(editor.history)
-  const previews = previewStoreOf(shell)
-  const previewState = useSyncExternalStore(previews.subscribe, () => previews.state(relation.id))
-  const entry = 'entry' in previewState ? previewState.entry : undefined
-  useEffect(
-    function showAStoredPreviewAndDrawItOnTheMap() {
-      previews.restore(relation.id)
-      previews.setShown(relation.id)
-      return () => previews.setShown(null)
-    },
-    [previews, relation.id],
-  )
-  let cached = analyses.get(relation)
+/** The prepared route of `key`, made again when the data version or the preview changed */
+export function prepared(
+  key: object,
+  version: number,
+  entry: PreviewEntry | undefined,
+  loaded: () => RouteInput,
+): Prepared {
+  let cached = analyses.get(key)
   if (!cached || cached.version !== version || cached.entry !== entry) {
-    const loaded = routeInputOf(graph, relation)
+    const base = loaded()
     const { input, previewed } = entry
-      ? withPreview(loaded, entry.preview)
-      : { input: loaded, previewed: new Set<string>() }
+      ? withPreview(base, entry.preview)
+      : { input: base, previewed: new Set<string>() }
     cached = {
       version,
       entry,
       input,
       previewed,
-      missing: stillMissing(loaded),
+      missing: stillMissing(base),
       analysis: analyzeRoute(input),
       layouts: {},
     }
-    analyses.set(relation, cached)
+    analyses.set(key, cached)
   }
-  const { analysis, input, previewed, missing } = cached
-  const showPreviewBar = previews.enabled && (missing > 0 || entry !== undefined)
-  const [expanded, setExpanded] = useState(overviewOpen)
-  const [mode, setMode] = useState<OverviewMode>('schematic')
-  const [showAll, setShowAll] = useState(false)
-  const [open, setOpen] = useState<string | null>(null)
-  const [openGroup, setOpenGroup] = useState<string | null>(null)
-  const layout = (cached.layouts[mode] ??= layoutOverview(analysis, mode))
-  const readOnly = engine.isReadOnly(relation.id)
-  const colour = colourOf(relation) ?? NEUTRAL
+  return cached
+}
 
-  const { placed, shown, unplaced } = splitRows(layout.rows, showAll ? Infinity : ROW_LIMIT)
-  const cut = shown.length < placed.length
-  const lastShown = shown[shown.length - 1]
-  const diagramHeight = lastShown ? lastShown.y + ROW_HEIGHT : 0
-  const maxLane = layout.rows.reduce((top, row) => Math.max(top, row.lane), 0)
-  const gutter = 40 + LANE_STEP * maxLane
-  const left = KM_WIDTH + gutter
-  const laneX = (lane: number) => MAIN_X + LANE_STEP * lane
+// Open or folded, for the whole session: a person who folds it away to work on the members keeps it folded
+let overviewOpen = true
 
+/** The preview of a relation: its state, a stored one shown at once, and the map drawing it while it is on screen */
+export function usePreview(id: string) {
+  'use no memo'
+  const shell = useShell()
+  const previews = previewStoreOf(shell)
+  const state = useSyncExternalStore(previews.subscribe, () => previews.state(id))
+  useEffect(
+    function showAStoredPreviewAndDrawItOnTheMap() {
+      previews.restore(id)
+      previews.setShown(id)
+      return () => previews.setShown(null)
+    },
+    [previews, id],
+  )
+  return {
+    previews,
+    state,
+    entry: 'entry' in state ? state.entry : undefined,
+    load: (refresh: boolean) => void previews.load(id, { refresh }),
+  }
+}
+
+/** Selecting from the overview: the column keeps its scroll, and a member of the preview is loaded first */
+export function useOverviewSelect(select: Select) {
+  'use no memo'
+  const { engine } = useShell()
   // the column keeps its scroll for a selection made here (overview-selection.ts)
   function selectId(id: string) {
     // a selection that does not change draws no scroll to take the mark, which would then stop a later one
@@ -308,13 +301,178 @@ export function RouteOverview({ relation, select }: { relation: OsmRelation; sel
       (error: unknown) => notify.failed(error),
     )
   }
-  function toggle() {
-    overviewOpen = !expanded
-    setExpanded(!expanded)
-  }
+  return { selectId, loadAndSelect }
+}
+
+/** The fold button, the state of the line and its length, and the spacing toggle: the head of an overview */
+export function OverviewHead({
+  title,
+  expanded,
+  onToggle,
+  analysis,
+  mode,
+  setMode,
+}: {
+  title: string
+  expanded: boolean
+  onToggle: () => void
+  analysis: RouteAnalysis | undefined
+  mode: OverviewMode
+  setMode: (mode: OverviewMode) => void
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pb-2 text-xs">
+      <button
+        type="button"
+        aria-expanded={expanded}
+        onClick={onToggle}
+        className="-ml-1 flex cursor-pointer items-center gap-1 rounded text-[11px] font-semibold tracking-wide text-zinc-700 uppercase focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-300"
+      >
+        <ChevronDownIcon
+          aria-hidden="true"
+          className={`size-4 text-zinc-400 transition-transform motion-reduce:transition-none ${expanded ? '' : '-rotate-90'}`}
+        />
+        {title}
+      </button>
+      {analysis ? (
+        <>
+          <span className="flex items-center gap-1 font-medium" data-testid="route-overview-state">
+            <span aria-hidden="true">{STATE_ICON[analysis.chain.linear]}</span>
+            {STATE_TEXT[analysis.chain.linear]()}
+          </span>
+          <span className="text-zinc-500 tabular-nums dark:text-zinc-400">
+            {m.route_overview_km({ km: formatKm(analysis.chain.length, getLocale()) })}
+          </span>
+        </>
+      ) : null}
+      {expanded ? (
+        <span
+          role="group"
+          aria-label={m.route_overview_mode_label()}
+          className="ml-auto flex rounded-lg bg-zinc-950/5 p-0.5 dark:bg-white/10"
+        >
+          {(['schematic', 'scaled'] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={mode === value}
+              onClick={() => setMode(value)}
+              className={`${TOGGLE} ${mode === value ? 'bg-white shadow-sm dark:bg-zinc-700' : 'text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white'}`}
+            >
+              {value === 'schematic'
+                ? m.route_overview_mode_schematic()
+                : m.route_overview_mode_scaled()}
+            </button>
+          ))}
+        </span>
+      ) : null}
+    </div>
+  )
+}
+
+/**
+ * The route as a vertical line diagram (like the line sidebars of Wikipedia): the km column, the line with its stops
+ * and points, side lines as lanes beside it, and the members the line cannot place in groups at the bottom.
+ * The diagram draws the first 300 rows and a "Show all (N)" button (like the member groups of the column), because a
+ * scroll listener would have to find the scrolling ancestor; the groups at the bottom are always there.
+ */
+export function RouteOverview({ relation, select }: { relation: OsmRelation; select: Select }) {
+  'use no memo'
+  // not compiled: it reads the graph and the engine, objects that stay the same when data arrives
+  const { editor } = useShell()
+  const preview = usePreview(relation.id)
+  const route = prepared(relation, dataVersion(editor.history), preview.entry, () =>
+    routeInputOf(editor.history.staging.graph, relation),
+  )
+  const [expanded, setExpanded] = useState(overviewOpen)
+  const [mode, setMode] = useState<OverviewMode>('schematic')
+  const { selectId, loadAndSelect } = useOverviewSelect(select)
+  const showPreviewBar =
+    preview.previews.enabled && (route.missing > 0 || preview.entry !== undefined)
+  return (
+    <section aria-label={m.route_overview_title()} className="px-3 py-2">
+      <OverviewHead
+        title={m.route_overview_title()}
+        expanded={expanded}
+        onToggle={() => {
+          overviewOpen = !expanded
+          setExpanded(!expanded)
+        }}
+        analysis={route.analysis}
+        mode={mode}
+        setMode={setMode}
+      />
+      {expanded ? (
+        <>
+          {showPreviewBar ? (
+            <PreviewBar state={preview.state} missing={route.missing} onLoad={preview.load} />
+          ) : null}
+          <RouteDiagram
+            route={route}
+            mode={mode}
+            relationId={relation.id}
+            colour={colourOf(relation) ?? NEUTRAL}
+            scroll
+            selectId={selectId}
+            loadAndSelect={loadAndSelect}
+            footer={
+              // the second button below the line: a long route is often read from its end
+              showPreviewBar && !preview.entry && preview.state.status !== 'loading' ? (
+                <PreviewBar state={preview.state} missing={route.missing} onLoad={preview.load} />
+              ) : null
+            }
+          />
+        </>
+      ) : null}
+    </section>
+  )
+}
+
+/**
+ * The line of one route with its rows, notes and groups. `relationId` is the relation the members belong to (a stage
+ * of a superroute shows its own); a duplicate is removed from it. `scroll` keeps a long line inside the overview.
+ */
+export function RouteDiagram({
+  route,
+  mode,
+  relationId,
+  colour,
+  scroll,
+  selectId,
+  loadAndSelect,
+  footer,
+}: {
+  route: Prepared
+  mode: OverviewMode
+  relationId: string
+  colour: string
+  scroll: boolean
+  selectId: (id: string) => void
+  loadAndSelect: (id: string) => void
+  footer?: ReactNode
+}) {
+  'use no memo'
+  const { engine, editor } = useShell()
+  const graph = editor.history.staging.graph
+  const { analysis, input, previewed } = route
+  const [showAll, setShowAll] = useState(false)
+  const [open, setOpen] = useState<string | null>(null)
+  const [openGroup, setOpenGroup] = useState<string | null>(null)
+  const layout = (route.layouts[mode] ??= layoutOverview(analysis, mode))
+  const readOnly = !graph.hasEntity(relationId) || engine.isReadOnly(relationId)
+
+  const { placed, shown, unplaced } = splitRows(layout.rows, showAll ? Infinity : ROW_LIMIT)
+  const cut = shown.length < placed.length
+  const lastShown = shown[shown.length - 1]
+  const diagramHeight = lastShown ? lastShown.y + ROW_HEIGHT : 0
+  const maxLane = layout.rows.reduce((top, row) => Math.max(top, row.lane), 0)
+  const gutter = 40 + LANE_STEP * maxLane
+  const left = KM_WIDTH + gutter
+  const laneX = (lane: number) => MAIN_X + LANE_STEP * lane
+
   function removeDuplicate(issue: RouteIssue) {
     const index = issue.members[1]
-    if (index !== undefined) editor.history.perform(actionDeleteMember(relation.id, index))
+    if (index !== undefined) editor.history.perform(actionDeleteMember(relationId, index))
     setOpen(null)
   }
 
@@ -332,7 +490,9 @@ export function RouteOverview({ relation, select }: { relation: OsmRelation; sel
         onSelect={() => {
           const first = issue.members[0]
           const id = first === undefined ? undefined : analysis.members[first]?.member.id
-          selectId(id && graph.hasEntity(id) ? id : relation.id)
+          if (id && graph.hasEntity(id)) selectId(id)
+          else if (id && previewed.has(id)) loadAndSelect(id)
+          else if (graph.hasEntity(relationId)) selectId(relationId)
           setOpen(null)
         }}
         onRemove={() => removeDuplicate(issue)}
@@ -342,200 +502,140 @@ export function RouteOverview({ relation, select }: { relation: OsmRelation; sel
   }
 
   return (
-    <section aria-label={m.route_overview_title()} className="px-3 py-2">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pb-2 text-xs">
+    <>
+      {/* a long route scrolls inside the overview, so the members below stay within reach */}
+      <div className={`relative ${scroll ? 'max-h-[60vh] overflow-y-auto' : ''}`}>
+        <div
+          role="list"
+          aria-label={m.route_overview_list()}
+          className="relative"
+          style={{ height: diagramHeight }}
+        >
+          <svg
+            aria-hidden="true"
+            width={gutter}
+            height={diagramHeight}
+            className="pointer-events-none absolute top-0"
+            style={{ left: KM_WIDTH }}
+          >
+            <Diagram
+              layout={layout}
+              shown={shown}
+              analysis={analysis}
+              previewed={previewed}
+              colour={colour}
+              laneX={laneX}
+              limitY={diagramHeight}
+            />
+          </svg>
+          {shown.map((row) => (
+            <Row
+              key={row.key}
+              row={row}
+              analysis={analysis}
+              input={input}
+              left={left}
+              select={selectId}
+              previewed={fromPreview(analysis, row.members, previewed)}
+              loadAndSelect={loadAndSelect}
+              open={open}
+              setOpen={setOpen}
+            />
+          ))}
+        </div>
+        {/* the notes sit beside the list, not in it: a list holds only its rows */}
+        {open
+          ? shown.map((row) =>
+              row.issues.length > 0 ? (
+                <Fragment key={row.key}>{popover(row, false)}</Fragment>
+              ) : null,
+            )
+          : null}
+      </div>
+      {cut ? (
         <button
           type="button"
-          aria-expanded={expanded}
-          onClick={toggle}
-          className="-ml-1 flex cursor-pointer items-center gap-1 rounded text-[11px] font-semibold tracking-wide text-zinc-700 uppercase focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-300"
+          onClick={() => setShowAll(true)}
+          className="mt-1 cursor-pointer rounded text-xs font-medium text-blue-600 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-blue-400"
         >
-          <ChevronDownIcon
-            aria-hidden="true"
-            className={`size-4 text-zinc-400 transition-transform motion-reduce:transition-none ${expanded ? '' : '-rotate-90'}`}
-          />
-          {m.route_overview_title()}
+          {m.route_overview_show_all({ count: placed.length })}
         </button>
-        <span className="flex items-center gap-1 font-medium" data-testid="route-overview-state">
-          <span aria-hidden="true">{STATE_ICON[analysis.chain.linear]}</span>
-          {STATE_TEXT[analysis.chain.linear]()}
-        </span>
-        <span className="text-zinc-500 tabular-nums dark:text-zinc-400">
-          {m.route_overview_km({ km: formatKm(analysis.chain.length, getLocale()) })}
-        </span>
-        {expanded ? (
-          <span
-            role="group"
-            aria-label={m.route_overview_mode_label()}
-            className="ml-auto flex rounded-lg bg-zinc-950/5 p-0.5 dark:bg-white/10"
-          >
-            {(['schematic', 'scaled'] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={mode === value}
-                onClick={() => setMode(value)}
-                className={`${TOGGLE} ${mode === value ? 'bg-white shadow-sm dark:bg-zinc-700' : 'text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white'}`}
-              >
-                {value === 'schematic'
-                  ? m.route_overview_mode_schematic()
-                  : m.route_overview_mode_scaled()}
-              </button>
-            ))}
-          </span>
-        ) : null}
-      </div>
-
-      {expanded ? (
-        <>
-          {showPreviewBar ? (
-            <PreviewBar
-              state={previewState}
-              missing={missing}
-              onLoad={(refresh) => void previews.load(relation.id, { refresh })}
-            />
-          ) : null}
-          {/* a long route scrolls inside the overview, so the members below stay within reach */}
-          <div className="relative max-h-[60vh] overflow-y-auto">
-            <div
-              role="list"
-              aria-label={m.route_overview_list()}
-              className="relative"
-              style={{ height: diagramHeight }}
-            >
-              <svg
-                aria-hidden="true"
-                width={gutter}
-                height={diagramHeight}
-                className="pointer-events-none absolute top-0"
-                style={{ left: KM_WIDTH }}
-              >
-                <Diagram
-                  layout={layout}
-                  shown={shown}
-                  analysis={analysis}
-                  previewed={previewed}
-                  colour={colour}
-                  laneX={laneX}
-                  limitY={diagramHeight}
-                />
-              </svg>
-              {shown.map((row) => (
-                <Row
-                  key={row.key}
-                  row={row}
-                  analysis={analysis}
-                  input={input}
-                  left={left}
-                  select={selectId}
-                  previewed={fromPreview(analysis, row.members, previewed)}
-                  loadAndSelect={loadAndSelect}
-                  open={open}
-                  setOpen={setOpen}
-                />
-              ))}
-            </div>
-            {/* the notes sit beside the list, not in it: a list holds only its rows */}
-            {open
-              ? shown.map((row) =>
-                  row.issues.length > 0 ? (
-                    <Fragment key={row.key}>{popover(row, false)}</Fragment>
-                  ) : null,
-                )
-              : null}
-          </div>
-          {cut ? (
-            <button
-              type="button"
-              onClick={() => setShowAll(true)}
-              className="mt-1 cursor-pointer rounded text-xs font-medium text-blue-600 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-blue-400"
-            >
-              {m.route_overview_show_all({ count: placed.length })}
-            </button>
-          ) : null}
-          {/* the second button below the line: a long route is often read from its end */}
-          {showPreviewBar && !entry && previewState.status !== 'loading' ? (
-            <PreviewBar
-              state={previewState}
-              missing={missing}
-              onLoad={(refresh) => void previews.load(relation.id, { refresh })}
-            />
-          ) : null}
-
-          {unplaced.length > 0 ? (
-            <ul className="mt-2 flex flex-col gap-0.5">
-              {unplaced.map((row) => {
-                const group = groupOf(row)
-                const label = labelText(rowLabel(analysis, row, input.memberTags))
-                const expanded = openGroup === row.key
-                return (
-                  <li key={row.key} data-group-key={row.key}>
-                    <div
-                      className={`flex items-center gap-1 px-1 ${ROW_PLAIN}`}
-                      style={{ minHeight: ROW_HEIGHT }}
-                    >
-                      {row.members.length > 0 ? (
-                        <button
-                          type="button"
-                          aria-expanded={expanded}
-                          aria-label={(expanded
-                            ? m.route_overview_group_close
-                            : m.route_overview_group_open)({ group: label })}
-                          onClick={() => setOpenGroup(expanded ? null : row.key)}
-                          className="flex min-w-0 flex-1 cursor-pointer items-center gap-1 rounded py-1 text-left text-sm focus-visible:outline-2 focus-visible:outline-blue-500"
-                        >
-                          <ChevronRightIcon
-                            aria-hidden="true"
-                            className={`size-4 shrink-0 text-zinc-400 ${expanded ? 'rotate-90' : ''}`}
-                          />
-                          <span className="truncate">{label}</span>
-                        </button>
-                      ) : (
-                        <span className="flex-1 truncate py-1 pl-5 text-sm">{label}</span>
-                      )}
-                      <IssueButtons
-                        row={row}
-                        analysis={analysis}
-                        label={label}
-                        open={open}
-                        setOpen={setOpen}
-                      />
-                    </div>
-                    {popover(row, true)}
-                    {expanded && group !== undefined ? (
-                      <ul className="mb-1 ml-5 flex flex-col">
-                        {row.members.map((index) => {
-                          const info = analysis.members[index]
-                          if (!info) return null
-                          const name = labelText(memberName(analysis, index, input.memberTags))
-                          return (
-                            <li key={index}>
-                              <MemberButton
-                                ids={[info.member.id]}
-                                name={name}
-                                role={info.member.role}
-                                disabled={!graph.hasEntity(info.member.id)}
-                                onClick={() => selectId(info.member.id)}
-                              />
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    ) : null}
-                  </li>
-                )
-              })}
-            </ul>
-          ) : null}
-        </>
       ) : null}
-    </section>
+      {footer}
+
+      {unplaced.length > 0 ? (
+        <ul className="mt-2 flex flex-col gap-0.5">
+          {unplaced.map((row) => {
+            const group = groupOf(row)
+            const label = labelText(rowLabel(analysis, row, input.memberTags))
+            const expanded = openGroup === row.key
+            return (
+              <li key={row.key} data-group-key={row.key}>
+                <div
+                  className={`flex items-center gap-1 px-1 ${ROW_PLAIN}`}
+                  style={{ minHeight: ROW_HEIGHT }}
+                >
+                  {row.members.length > 0 ? (
+                    <button
+                      type="button"
+                      aria-expanded={expanded}
+                      aria-label={(expanded
+                        ? m.route_overview_group_close
+                        : m.route_overview_group_open)({ group: label })}
+                      onClick={() => setOpenGroup(expanded ? null : row.key)}
+                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-1 rounded py-1 text-left text-sm focus-visible:outline-2 focus-visible:outline-blue-500"
+                    >
+                      <ChevronRightIcon
+                        aria-hidden="true"
+                        className={`size-4 shrink-0 text-zinc-400 ${expanded ? 'rotate-90' : ''}`}
+                      />
+                      <span className="truncate">{label}</span>
+                    </button>
+                  ) : (
+                    <span className="flex-1 truncate py-1 pl-5 text-sm">{label}</span>
+                  )}
+                  <IssueButtons
+                    row={row}
+                    analysis={analysis}
+                    label={label}
+                    open={open}
+                    setOpen={setOpen}
+                  />
+                </div>
+                {popover(row, true)}
+                {expanded && group !== undefined ? (
+                  <ul className="mb-1 ml-5 flex flex-col">
+                    {row.members.map((index) => {
+                      const info = analysis.members[index]
+                      if (!info) return null
+                      const name = labelText(memberName(analysis, index, input.memberTags))
+                      return (
+                        <li key={index}>
+                          <MemberButton
+                            ids={[info.member.id]}
+                            name={name}
+                            role={info.member.role}
+                            disabled={!graph.hasEntity(info.member.id)}
+                            onClick={() => selectId(info.member.id)}
+                          />
+                        </li>
+                      )
+                    })}
+                  </ul>
+                ) : null}
+              </li>
+            )
+          })}
+        </ul>
+      ) : null}
+    </>
   )
 }
 
 const FAILURE_TEXT: Record<Extract<PreviewState, { status: 'error' }>['reason'], () => string> = {
   failed: () => m.route_overview_preview_failed(),
   format: () => m.route_overview_preview_format(),
+  missing: () => m.route_overview_preview_missing(),
   'too-big': () => m.route_overview_preview_too_big(),
 }
 
@@ -543,7 +643,7 @@ const FAILURE_TEXT: Record<Extract<PreviewState, { status: 'error' }>['reason'],
  * The preview line above (and, before a preview is there, below) the diagram: "Load preview" while members are
  * missing; then when the preview is from, with a small reload button. A failure keeps the earlier preview and says so.
  */
-function PreviewBar({
+export function PreviewBar({
   state,
   missing,
   onLoad,
