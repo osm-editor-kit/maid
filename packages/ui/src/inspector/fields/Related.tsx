@@ -6,6 +6,7 @@ import {
   TrashIcon,
   XMarkIcon,
 } from '@heroicons/react/16/solid'
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import { useId } from 'react'
 import {
@@ -183,7 +184,7 @@ function RelatedEditor(props: {
           <button
             type="button"
             aria-label={`Close ${label}`}
-            title="Close"
+            title={m.ui_close()}
             className={BUTTON}
             onClick={onClose}
           >
@@ -192,7 +193,7 @@ function RelatedEditor(props: {
           <button
             type="button"
             aria-label={`Remove ${label}`}
-            title="Remove"
+            title={m.ui_remove()}
             className={BUTTON}
             onClick={() => {
               if (value !== '') onChange(slot.key, undefined)
@@ -212,7 +213,7 @@ function RelatedEditor(props: {
             id={id}
             tagKey={slot.key}
             value={value}
-            placeholder="Unknown"
+            placeholder={m.ui_unknown()}
             onChange={onChange}
           />
         )}

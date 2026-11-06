@@ -527,5 +527,17 @@
   "ui_pick_date": "Pick a date",
   "ui_pick_date_for": "Pick a date for {label}",
   "ui_pick_colour": "Pick a colour",
-  "ui_pick_colour_for": "Pick a colour for {label}"
+  "ui_pick_colour_for": "Pick a colour for {label}",
+  "ui_changed_from_default": "Changed from the default",
+  "ui_filter_first_match": "The first filter that matches a feature decides.",
+  "ui_move_up": "Move up",
+  "ui_move_down": "Move down",
+  "ui_no_feature_type_found": "No feature type found",
+  "ui_feature_types": "Feature types",
+  "ui_language_code": "Language code",
+  "ui_measure_on_map": "Measure on the map",
+  "ui_close": "Close",
+  "ui_remove": "Remove",
+  "ui_unknown": "Unknown",
+  "ui_loading_description": "Loading the description…"
 }

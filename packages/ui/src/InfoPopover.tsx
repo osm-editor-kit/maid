@@ -1,4 +1,5 @@
 import { ArrowTopRightOnSquareIcon, InformationCircleIcon } from '@heroicons/react/16/solid'
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Field } from '@osm-editor-kit/maid-presets'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -139,7 +140,7 @@ function ReferenceBody(props: { reference: Reference; load?: ReferenceLoader; hi
         {tag}
       </code>
       {found.status === 'loading' ? (
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">Loading the description…</p>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">{m.ui_loading_description()}</p>
       ) : null}
       {info?.description ? (
         <p className="leading-5 text-zinc-700 dark:text-zinc-300">{info.description}</p>

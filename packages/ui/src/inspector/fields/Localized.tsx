@@ -1,4 +1,5 @@
 import { LanguageIcon, TrashIcon } from '@heroicons/react/16/solid'
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Field, Tags } from '@osm-editor-kit/maid-presets'
 import { useEffect, useRef, useState, type FocusEvent, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
@@ -193,7 +194,7 @@ function LanguageRow(props: {
         {...PLAIN_INPUT}
         ref={codeInput}
         type="text"
-        aria-label="Language code"
+        aria-label={m.ui_language_code()}
         aria-invalid={message === undefined ? undefined : true}
         autoComplete="off"
         spellCheck={false}

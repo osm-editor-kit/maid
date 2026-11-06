@@ -228,7 +228,7 @@ export function FieldRow(props: {
               type="button"
               aria-label={`Measure ${field.label} on the map`}
               aria-pressed={measure.active === key}
-              title="Measure on the map"
+              title={m.ui_measure_on_map()}
               className={MEASURE_BUTTON}
               onClick={() => measure?.start(key)}
             >
