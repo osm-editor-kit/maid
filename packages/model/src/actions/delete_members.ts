@@ -14,9 +14,10 @@ import type { Graph } from '../lib/Graph.ts';
 export function actionDeleteMembers(relationID: EntityID, memberIndexes: number[], doDeleteDegenerate: boolean = true): Action {
   return (graph: Graph): Graph => {
     // Remove the members in descending order so removals won't shift what members are at the remaining indexes
-    memberIndexes.sort((a, b) => b - a);
-    for (const i in memberIndexes) {
-      graph = actionDeleteMember(relationID, memberIndexes[i], doDeleteDegenerate)(graph);
+    // Maid: sorts a copy, so the caller's array is not reordered
+    const descending = [...memberIndexes].sort((a, b) => b - a);
+    for (const index of descending) {
+      graph = actionDeleteMember(relationID, index, doDeleteDegenerate)(graph);
     }
     return graph;
   };

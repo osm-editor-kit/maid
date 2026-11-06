@@ -98,13 +98,28 @@ export type PreviewStore = {
   setShown: (id: string | null) => void
 }
 
-async function readLimited(response: Response, limit: number) {
+/**
+ * Reads the answer up to `limit` bytes and until `deadline` (a time of `now`). remote-fetch limits only the wait for
+ * the headers: a body that stalls (a big route whose members are all off screen, so Postpass sends everything) would
+ * otherwise keep the preview "loading" for good, and `load` ignores every press while it is.
+ */
+async function readLimited(response: Response, limit: number, deadline: number, now: () => number) {
   if (!response.body) return response.text()
   const reader = response.body.getReader()
   const chunks: Uint8Array[] = []
   let bytes = 0
   for (;;) {
-    const { done, value } = await reader.read()
+    const left = deadline - now()
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const stalled = new Promise<'stalled'>((resolve) => {
+      timer = setTimeout(() => resolve('stalled'), Math.max(0, left))
+    })
+    const next = await Promise.race([reader.read(), stalled]).finally(() => clearTimeout(timer))
+    if (next === 'stalled') {
+      void reader.cancel().catch(() => undefined)
+      throw new PreviewTimeoutError()
+    }
+    const { done, value } = next
     if (done) break
     bytes += value.byteLength
     if (bytes > limit) {
@@ -117,16 +132,20 @@ async function readLimited(response: Response, limit: number) {
 }
 
 class PreviewTooBigError extends Error {}
+class PreviewTimeoutError extends Error {}
 
 export function createPreviewStore(deps: {
   fetch: RemoteFetch
   url: string | undefined
   cache?: PreviewCache
   now?: () => number
+  /** The whole request, headers and body (tests make it short) */
+  timeoutMs?: number
 }): PreviewStore {
   const { fetch: remoteFetch, url } = deps
   const cache = deps.cache ?? createPreviewCache()
   const now = deps.now ?? Date.now
+  const timeoutMs = deps.timeoutMs ?? PREVIEW_TIMEOUT_MS
   const states = new Map<string, PreviewState>()
   const restored = new Set<string>()
   let shownId: string | null = null
@@ -171,16 +190,18 @@ export function createPreviewStore(deps: {
       }
       set(id, { status: 'loading', ...(previous ? { entry: previous } : {}) })
       try {
+        const deadline = Date.now() + timeoutMs
         const target = new URL(url)
         target.searchParams.set('data', routePreviewSql(id))
         target.searchParams.set('options[geojson]', 'false')
         const response = await remoteFetch(target, {
           credentials: 'omit',
           service: 'postpass',
-          timeoutMs: PREVIEW_TIMEOUT_MS,
+          timeoutMs,
         })
+        const text = await readLimited(response, PREVIEW_MAX_BYTES, deadline, Date.now)
         const entry = {
-          preview: parseRoutePreview(id, await readLimited(response, PREVIEW_MAX_BYTES)),
+          preview: parseRoutePreview(id, text),
           loadedAt: now(),
         }
         await cache.write(id, entry)

@@ -162,10 +162,20 @@ export function createValidator(rules: readonly Rule[], options: ValidatorOption
     stamp: number,
     mine: (issue: Issue) => boolean,
   ) {
+    // The graph and the index stay the same during a run, and several rules (crossing ways, and
+    // almost junction at each end) ask for the neighbours of the same way: each is found once
+    const near = new Map<string, OsmWay[]>()
     const context: RuleContext = {
       graph,
       validated,
-      waysNear: (way) => wayIndex.near(graph, way, stamp),
+      waysNear: (way) => {
+        let found = near.get(way.id)
+        if (!found) {
+          found = wayIndex.near(graph, way, stamp)
+          near.set(way.id, found)
+        }
+        return found
+      },
       memo: new Map(),
       presets: options.presets?.(),
     }

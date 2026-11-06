@@ -23,6 +23,7 @@ import { continueOperation } from './continue.ts'
 import { isTooLargeToEdit } from './extent.ts'
 import { lineToAreaOperation } from './line-to-area.ts'
 import { mergeOperation } from './merge.ts'
+import { reasonOf, resolveSelection } from './selection.ts'
 import type { Operation, OperationContext } from './types.ts'
 
 export { mergeOperation } from './merge.ts'
@@ -41,18 +42,6 @@ function reasonSentence(reasons: Record<string, Sentence>, code: string, count: 
   return count > 1 ? sentence[1] : sentence[0]
 }
 
-/** The entities of the selection, in order. Undefined when there is no selection or an id is not in the graph. */
-function resolveSelection(context: OperationContext) {
-  if (context.selected.length === 0) return undefined
-  const entities: OsmEntity[] = []
-  for (const id of context.selected) {
-    const entity = context.graph.hasEntity(id)
-    if (!entity) return undefined
-    entities.push(entity)
-  }
-  return entities
-}
-
 /** A node that belongs to at least one way (iD's "vertex") */
 function isVertex(entity: OsmEntity, graph: Graph) {
   return entity instanceof OsmNode && entity.geometry(graph) === 'vertex'
@@ -61,11 +50,6 @@ function isVertex(entity: OsmEntity, graph: Graph) {
 /** The ids without repeats, keeping the first occurrence */
 function unique(ids: readonly string[]) {
   return [...new Set(ids)]
-}
-
-/** Why an action cannot run on this graph, or undefined when it can */
-function reasonOf(action: Action, graph: Graph) {
-  return action.disabled?.(graph) || undefined
 }
 
 /** The reason that blocks every action, or undefined when at least one can run. Several different reasons: 'multiple_blockers'. */

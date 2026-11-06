@@ -511,5 +511,13 @@
   "route_overview_reorder_up": "Monter {name}",
   "route_overview_reorder_down": "Descendre {name}",
   "route_overview_preview_missing": "Postpass ne connaît pas cette relation : elle est plus récente que ses données, ou supprimée.",
-  "route_overview_variants": "Variantes ({count})"
+  "route_overview_variants": "Variantes ({count})",
+  "ui_copy_all": "Tout copier",
+  "ui_copy_all_hint": "Copier tous les tags en lignes clé=valeur",
+  "ui_close_message": "Fermer le message",
+  "ui_dock_panels": "Panneaux",
+  "ui_dock_collapse": "Replier le panneau",
+  "ui_dock_expand": "Déplier le panneau",
+  "ui_cell_label": "{column} de {row}",
+  "ui_cell_mixed": "{count} valeurs différentes"
 }

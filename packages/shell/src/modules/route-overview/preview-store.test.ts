@@ -93,6 +93,24 @@ describe('createPreviewStore', () => {
     expect('entry' in state && state.entry !== undefined).toBe(true)
   })
 
+  test('an answer whose body stalls ends as a failure, and a later press asks again', async () => {
+    let calls = 0
+    const store = createPreviewStore({
+      fetch: async () => {
+        calls++
+        // headers arrive, the body never ends: remote-fetch's time limit covers only the headers
+        return new Response(new ReadableStream({ start: () => undefined }))
+      },
+      url: 'http://localhost:8090/postpass/api/interpreter',
+      cache: memoryCache(),
+      timeoutMs: 20,
+    })
+    await store.load('r7')
+    expect(store.state('r7')).toEqual({ status: 'error', reason: 'failed' })
+    await store.load('r7', { refresh: true })
+    expect(calls).toBe(2)
+  })
+
   test('without a preview URL nothing is asked', async () => {
     const asked: string[] = []
     const store = createPreviewStore({

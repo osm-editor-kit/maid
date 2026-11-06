@@ -1,4 +1,5 @@
 import { XMarkIcon } from '@heroicons/react/16/solid'
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { PasteReport } from './types.ts'
 
 /**
@@ -42,8 +43,8 @@ export function SheetStatus(props: {
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close the message"
-          className="grid size-5 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
+          aria-label={m.ui_close_message()}
+          className="grid size-5 shrink-0 place-items-center rounded text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white touch:size-10"
         >
           <XMarkIcon className="size-4" aria-hidden="true" />
         </button>
