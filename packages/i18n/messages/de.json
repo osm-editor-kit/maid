@@ -519,5 +519,13 @@
   "ui_dock_collapse": "Bereich einklappen",
   "ui_dock_expand": "Bereich ausklappen",
   "ui_cell_label": "{column} von {row}",
-  "ui_cell_mixed": "{count} verschiedene Werte"
+  "ui_cell_mixed": "{count} verschiedene Werte",
+  "ui_search_fields": "Felder suchen",
+  "ui_no_field_matches": "Kein Feld passt",
+  "ui_fields_to_add": "Felder zum Hinzufügen",
+  "ui_set_to_today": "Auf heute setzen",
+  "ui_pick_date": "Datum wählen",
+  "ui_pick_date_for": "Datum für {label} wählen",
+  "ui_pick_colour": "Farbe wählen",
+  "ui_pick_colour_for": "Farbe für {label} wählen"
 }

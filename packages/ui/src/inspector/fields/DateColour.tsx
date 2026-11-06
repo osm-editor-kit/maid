@@ -1,4 +1,5 @@
 import { ArrowPathIcon, CalendarIcon, PencilIcon } from '@heroicons/react/16/solid'
+import { m } from '@osm-editor-kit/maid-i18n'
 import { useRef, useState } from 'react'
 import { PLAIN_INPUT } from '../../plain-input.ts'
 import { FallbackField } from './Fallback.tsx'
@@ -47,8 +48,8 @@ export function DateField(props: FieldProps) {
             {showsSetToday(key, draft, today) ? (
               <button
                 type="button"
-                aria-label="Set to today"
-                title="Set to today"
+                aria-label={m.ui_set_to_today()}
+                title={m.ui_set_to_today()}
                 className={ADDON}
                 onClick={() => write(today)}
               >
@@ -59,8 +60,8 @@ export function DateField(props: FieldProps) {
               <>
                 <button
                   type="button"
-                  aria-label={`Pick a date for ${field.label}`}
-                  title="Pick a date"
+                  aria-label={m.ui_pick_date_for({ label: field.label })}
+                  title={m.ui_pick_date()}
                   className={ADDON}
                   onClick={() => pickerRef.current?.showPicker()}
                 >
@@ -120,8 +121,8 @@ export function ColourField(props: FieldProps) {
           <>
             <button
               type="button"
-              aria-label={`Pick a colour for ${field.label}`}
-              title="Pick a colour"
+              aria-label={m.ui_pick_colour_for({ label: field.label })}
+              title={m.ui_pick_colour()}
               className={ADDON}
               onClick={() => pickerRef.current?.showPicker()}
             >

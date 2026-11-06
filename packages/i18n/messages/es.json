@@ -519,5 +519,13 @@
   "ui_dock_collapse": "Contraer el panel",
   "ui_dock_expand": "Expandir el panel",
   "ui_cell_label": "{column} de {row}",
-  "ui_cell_mixed": "{count} valores distintos"
+  "ui_cell_mixed": "{count} valores distintos",
+  "ui_search_fields": "Buscar campos",
+  "ui_no_field_matches": "Ningún campo coincide",
+  "ui_fields_to_add": "Campos para añadir",
+  "ui_set_to_today": "Establecer en hoy",
+  "ui_pick_date": "Elegir una fecha",
+  "ui_pick_date_for": "Elegir una fecha para {label}",
+  "ui_pick_colour": "Elegir un color",
+  "ui_pick_colour_for": "Elegir un color para {label}"
 }
