@@ -114,6 +114,18 @@ export function ContextMenu(props: {
   const menu = useRef<HTMLDivElement>(null)
   const reducedMotion = useReducedMotion()
 
+  // Closing gives the focus back to what had it before the menu opened (a keyboard user stays
+  // where they were), unless the focus has moved on elsewhere meanwhile or the opener is gone.
+  useEffect(() => {
+    const element = frame.current
+    const opener = document.activeElement
+    return () => {
+      const active = document.activeElement
+      const lost = !active || active === document.body || element?.contains(active)
+      if (lost && opener instanceof HTMLElement && opener !== document.body && opener.isConnected)
+        opener.focus()
+    }
+  }, [])
   // Opening moves the focus into the menu. It is not moved on every render: the menu re-renders
   // with every change of the editor, and that would undo the arrow keys. A press outside closes
   // it. Both are about the document, not about rendering, so they are effects.

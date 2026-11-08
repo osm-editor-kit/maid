@@ -17,6 +17,10 @@
  *     made-up user, in memory, shared by all scenes, with OSM's limits: key and value 1..255 characters; a PUT of the
  *     whole collection is refused, as Maid must never send one). /prefs/reset empties them.
  * Task lists for the tasks module: /tasks/<name>.geojson serves fixtures/tasks/<name>.geojson.
+ * Route previews as Postpass answers them: /postpass/api/interpreter?data=<SQL> finds the relation by the SQL's
+ *   `-- maid:route-preview <id>` line (route-analysis `routePreviewSql`) and serves fixtures/postpass/route-<id>.json,
+ *   cut once from Postpass by `bun run fixtures-postpass`. Another relation is an answer without rows, as Postpass
+ *   gives for an id it does not know; another query is a 400.
  * Every other write is rejected with 405: the map data stays frozen. /requests returns a log of what was asked.
  */
 import { join } from 'node:path'
@@ -326,6 +330,19 @@ export function createHandler(scenes: Map<string, SceneIndex>, options: { latenc
       const file = Bun.file(join(import.meta.dir, `../../fixtures/tasks/${taskFile[1]}`))
       if (!(await file.exists())) return new Response('Not found', { status: 404, headers: CORS })
       return new Response(file, { headers: { ...CORS, 'Content-Type': 'application/geo+json' } })
+    }
+    if (url.pathname === '/postpass/api/interpreter') {
+      const relation = /^-- maid:route-preview (\d+)$/m.exec(
+        url.searchParams.get('data') ?? '',
+      )?.[1]
+      if (!relation) return new Response('Only route previews', { status: 400, headers: CORS })
+      const file = Bun.file(join(import.meta.dir, `../../fixtures/postpass/route-${relation}.json`))
+      if (await file.exists())
+        return new Response(file, { headers: { ...CORS, 'Content-Type': 'application/json' } })
+      return Response.json(
+        { postpass_properties: { timestamp: '1970-01-01T00:00:00Z' }, result: [] },
+        { headers: CORS },
+      )
     }
     if (url.pathname === '/scenes') {
       return Response.json(

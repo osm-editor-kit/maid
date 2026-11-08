@@ -99,7 +99,7 @@ export type RuleContext = {
    */
   presets?: PresetLookup
   /** Ways whose bounding box overlaps the one of this way, without the way itself */
-  waysNear(way: OsmWay): OsmWay[]
+  waysNear(way: OsmWay): readonly OsmWay[]
   /**
    * The ids this run validates, which is what was changed. A rule about groups needs it: a road
    * that reaches a road nobody changed is connected to the network.

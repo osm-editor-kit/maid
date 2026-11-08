@@ -261,3 +261,16 @@ describe('an element at a version', () => {
     })
   })
 })
+
+describe('mock Postpass', () => {
+  const ask = (sql: string) =>
+    get(`/postpass/api/interpreter?data=${encodeURIComponent(sql)}&options%5Bgeojson%5D=false`)
+  test('a relation without a fixture is an answer without rows', async () => {
+    const answer = await (await ask('-- maid:route-preview 1\nSELECT 1')).json()
+    expect(answer.result).toEqual([])
+    expect(typeof answer.postpass_properties.timestamp).toBe('string')
+  })
+  test('any other query is refused', async () => {
+    expect((await ask('SELECT * FROM postpass_point')).status).toBe(400)
+  })
+})

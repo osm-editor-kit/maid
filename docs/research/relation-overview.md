@@ -69,7 +69,7 @@ Recommendation: the geometry is the basis and the member list is the tie-breaker
 - **Point kinds.** Stop and platform (bus), guidepost, milestone, information, other node members; the symbol by role and preset. A point more than a threshold (to measure, about 30 m) away from the chain is listed beside the line with its distance.
 - **Spacing switch.** Schematic (equal rows, the default) or scaled (section height proportional to length, with a minimum height). The scaled view shows long stretches without a guidepost.
 - **Branches like a git graph.** `alternative`, `excursion`, `approach` and `connection` sections are lanes beside the main line, leaving and rejoining at their junction rows. Without roles, a way that touches the main chain at two points is drawn the same way and marked "no role".
-- **Junctions.** A node of the chain shared with a way that is not a member (in the loaded data) is a junction row. A junction without a guidepost within a threshold (to measure, about 50 m) is marked "guidepost missing?" for hiking and bicycle routes. Only as complete as the loaded tiles; the panel says so.
+- **Junctions.** A node of the chain shared with a way that is not a member (in the loaded data) is a junction row. A junction without a guidepost within a threshold (to measure, about 50 m) is marked "guidepost missing?" for hiking and bicycle routes. Only as complete as the loaded tiles; the panel says so. Folded (Tobias, 2026-11-05): two or more junctions without a guidepost in a row, with nothing else between them on the line, are one row "N junctions with no guidepost in the relation", which opens to list them (`LayoutOptions.openJunctions`). Its (i) says what the list is for (going through the junctions to add guideposts that are there) and that it is no error: most junctions have none, and nobody should map a guidepost they have not seen. A junction with a guidepost near it, and a single junction, keep their row.
 - **Gaps and states.** WMT's states yes, sorted, no; gaps as a broken line with both ends named.
 - **Interaction.** A row selects the member (as the column does today) and flies to it; later reordering from the diagram.
 
@@ -115,3 +115,38 @@ The 274 route relations of the fixtures take at most 1.3 ms each, because the fi
 ### Worker or WebAssembly
 
 Decision: neither yet. A single route relation rarely has more than about 2,000 ways (long trails are superroutes of stages), which takes about 15 ms here, within a frame. The analysis runs once per change of the relation's data, memoised, not per frame. A worker would have to receive the node positions by structured clone (a copy of every coordinate), which for 20,000 ways costs a good part of what it saves; WebAssembly would add that copy too, and the time is in map lookups and haversine, not in arithmetic that WebAssembly speeds up much. Because input and output are plain data, a worker can be added without changing the analysis: the trigger is a measured analysis over 50 ms on a real relation. Next cheap gains, if needed: compute segment lengths once (the chain and the index both compute them), and integer node ids instead of strings.
+
+## Preview from Postpass (2026-11-05)
+
+Read in `woodpeck/postpass-ops` (SCHEMA.md, postpass.lua) and in the sister project `osmberlin/osm-boundary-checker-germany` (`report/src/lib/postpass.ts`, `liveOsmCache.ts`); measured against Postpass on 2026-11-05 (below).
+
+- `planet_osm_rels` (the osm2pgsql middle) has every relation with its members as jsonb (`type` N/W/R, `ref`, `role`) and tags, superroutes and route masters too; `planet_osm_ways` the node ids of every way. So one recursive query brings a superroute, its stages and their members, and the end nodes of each way, which make preview ways chain with loaded ones.
+- `postpass_line`, `postpass_polygon`, `postpass_point` have the geometry of tagged ways and nodes only (osm2pgsql passes untagged objects to no process function). An untagged member way keeps its row without a shape; an untagged node member is missing from the preview.
+- Lookups by `osm_type, osm_id` use btree indexes on all three tables, and `planet_osm_rels`/`planet_osm_ways` by primary key. Finding a relation by name: `postpass_line` does **not** have the route relations (measured: "Rheinsteig" found only a 1 km `route=road`), so `fixtures-postpass --find` asks `planet_osm_rels` with `tags @> '{"name": …}'`, which answers four names in about 6 s.
+- The sister project asks one object at a time, no retries, reads at most 8 MB, simplifies on the server and keeps answers 24 hours in IndexedDB. Maid does the same with a 24 MB limit (superroutes are larger) and a 60 s time limit.
+
+### Measured (2026-11-05)
+
+Eleven requests to postpass.geofabrik.de with Tobias's OK (`bun run fixtures-postpass`, one at a time, 5 s apart): two name searches and eight previews, committed as `fixtures/postpass/route-<id>.json`. Time is from the request to the last byte, on a cloud container; parse is `parseRoutePreview` in Bun (mean of 5).
+
+| Relation | What | Relations | Ways | Nodes | km of ways | Answer | Postpass | Parse |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| r6783678 | Bus 162 | 1 | 143 | 20 | 8 | 0.1 MB | ~1 s | 1.5 ms |
+| r3001299 | Müggel-Spree-Weg | 1 | 692 | 71 | 149 | 0.3 MB | ~1 s | 3.5 ms |
+| r17822 | Bus N65, route master | 3 | 820 | 122 | 44 | 0.8 MB | ~1 s | 8 ms |
+| r6102 | Spreeradweg, superroute | 8 | 2,136 | 25 | 427 | 1.2 MB | ~1 s | 17 ms |
+| r62900 | Westweg, superroute | 24 | 1,969 | 542 | 400 | 1.1 MB | 1.4 s | 14 ms |
+| r18434888 | Elbe Cycle Route, superroute | 20 | 1,976 | 128 | 490 | 0.9 MB | 1.4 s | 16 ms |
+| r2685 | Rheinsteig with its Zuwege, superroute | 149 | 4,329 | 123 | 566 | 1.9 MB | 2.9 s | 29 ms |
+| r2171555 | EuroVelo 15 – Rheinradweg, superroute (three levels) | 63 | 10,652 | 292 | 2,207 | 5.2 MB | 4.6 s | 86 ms |
+
+(The first four were fetched before the script printed times; the whole run of four took 20 s with 15 s of pauses.)
+
+- The largest answer, EuroVelo 15, is a fifth of the 24 MB limit, and Postpass answers it in under 5 s, well inside the 60 s limit. The limits stay.
+- Simplifying to about 5 m keeps the answers small: about 0.5 KB per way.
+- Only one way of the eight previews came without a shape (an untagged way of the Rheinsteig).
+- The `relations` scene is from August 2026, Postpass from today: of the Müggel-Spree-Weg, three ways and a guidepost of the scene are gone from Postpass. They stay in the "Not loaded" group, which is the intended fallback.
+- Parsing EuroVelo 15 takes 86 ms, longer than a frame. It happens once per press (and once per restore from IndexedDB); if it shows, it can move to a worker together with the analysis (above).
+- The browser check `check-route-overview` covers the preview with the mock's fixtures: the bar above and below, one request per press, the time and the reload button, muted rows, the lines on the map, reload, the stored preview after a page reload without a request, and a click on a preview row that loads the real member.
+- Found on the way, not fixed: a link (`?id=r…&relation=r…`) to a relation none of whose members is in view stays at "Loading r…": the column waits for the data, nothing loads the relation itself (iD loads and zooms to it).
+

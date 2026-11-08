@@ -1,4 +1,4 @@
-# Schedule: open-source repos → first Friday of the month, 07:00 Europe/Berlin.
+# Schedule: open-source repos → first Thursday of the month, 07:00 Europe/Berlin.
 version: 2
 updates:
   - package-ecosystem: bun
@@ -6,7 +6,7 @@ updates:
       - /
     schedule:
       interval: cron
-      cronjob: '0 7 * * FRI#1'
+      cronjob: '0 7 * * THU#1'
       timezone: Europe/Berlin
     cooldown:
       default-days: 5
@@ -76,7 +76,7 @@ updates:
     directory: /
     schedule:
       interval: cron
-      cronjob: '0 7 * * FRI#1'
+      cronjob: '0 7 * * THU#1'
       timezone: Europe/Berlin
     cooldown:
       default-days: 5

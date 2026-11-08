@@ -182,6 +182,8 @@ export class MaidEngine {
   private hoverId: string | null = null
   /** Everything that is selected, in the order it was selected. The first is what the inspector shows. */
   private selectedIds: string[] = []
+  /** `selectedIds` as a set, for lookups in loops over changes; assigned with it in `setSelected` */
+  private selectedSet: ReadonlySet<string> = new Set()
   private shownHover: string | null = null
   private shownSelected: string[] = []
   /**
@@ -495,7 +497,7 @@ export class MaidEngine {
         this.selectedIds.length !== this.shownSelected.length &&
         features.some((f) => {
           const id = featureId(f)
-          return id !== undefined && this.selectedIds.includes(id)
+          return id !== undefined && this.selectedSet.has(id)
         })
       ) {
         queueMicrotask(() => this.applyHighlight([], 'selected'))
@@ -577,7 +579,7 @@ export class MaidEngine {
     }
     // a hovered point that is clicked keeps its copy, but its shadow changes from the hover's to the selection's
     const selectedKey = [...this.activeCopies.keys()]
-      .filter((id) => this.selectedIds.includes(id))
+      .filter((id) => this.selectedSet.has(id))
       .join()
     if (changed || selectedKey !== this.activeSelectedKey) this.flushActive()
   }
@@ -592,7 +594,7 @@ export class MaidEngine {
     const features: Feature[] = []
     const selected: string[] = []
     for (const [id, f] of this.activeCopies) {
-      const sel = this.selectedIds.includes(id)
+      const sel = this.selectedSet.has(id)
       if (sel) selected.push(id)
       features.push({ ...f, properties: { ...f.properties, sel } })
     }
@@ -1502,7 +1504,7 @@ export class MaidEngine {
   private redrawDifferences(differences: Difference[]) {
     // the members of a selected relation are its members now: a member added or removed changes the set
     const relationChanged = differences.some((difference) =>
-      [...difference.changes.keys()].some((id) => id[0] === 'r' && this.selectedIds.includes(id)),
+      [...difference.changes.keys()].some((id) => id[0] === 'r' && this.selectedSet.has(id)),
     )
     if (relationChanged) {
       this.selectionRelated = this.relatedOfSelection()
@@ -1517,12 +1519,12 @@ export class MaidEngine {
     this.sendBatch(batch)
     // the shape points of the selection follow its nodes, when one of them or a selected way changed
     for (const id of moved.keys())
-      if (this.shapeNodes.has(id) || this.selectedIds.includes(id)) {
+      if (this.shapeNodes.has(id) || this.selectedSet.has(id)) {
         this.refreshShape()
         break
       }
     // feature state belongs to a source: a feature that changed its source needs it again
-    if (remove.some(([, featureId]) => this.selectedIds.includes(featureId)))
+    if (remove.some(([, featureId]) => this.selectedSet.has(featureId)))
       queueMicrotask(() => this.applyHighlight([], 'selected'))
     let relatedGone = false
     let focusGone = false
@@ -1719,6 +1721,7 @@ export class MaidEngine {
     const previous = this.selectedIds
     if (ids.length === previous.length && ids.every((id, i) => id === previous[i])) return
     this.selectedIds = ids
+    this.selectedSet = new Set(ids)
     this.syncSelectTier(previous, ids)
     this.syncActive()
     this.tiles.keepRelations(ids)

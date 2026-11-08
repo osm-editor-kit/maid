@@ -1,4 +1,5 @@
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/20/solid'
+import { m } from '@osm-editor-kit/maid-i18n'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useId, useState, type ReactNode } from 'react'
 import { twJoin } from 'tailwind-merge'
@@ -76,7 +77,7 @@ export function Dock(props: { tabs: DockTab[]; defaultOpen?: boolean }) {
   const tabList = (
     <div
       role="tablist"
-      aria-label="Panels"
+      aria-label={m.ui_dock_panels()}
       className="flex min-w-0 items-center gap-0.5 overflow-x-auto"
     >
       {tabs.map((tab) => {
@@ -146,9 +147,9 @@ export function Dock(props: { tabs: DockTab[]; defaultOpen?: boolean }) {
           type="button"
           aria-expanded={open}
           aria-controls={open ? panelId : undefined}
-          aria-label={open ? 'Collapse panel' : 'Expand panel'}
+          aria-label={open ? m.ui_dock_collapse() : m.ui_dock_expand()}
           onClick={() => setOpen(!open)}
-          className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
+          className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white touch:size-10"
         >
           {open ? (
             <ChevronDownIcon aria-hidden="true" className="size-4" />

@@ -1,3 +1,4 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import { memo, useId, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { PLAIN_INPUT } from '../plain-input.ts'
 import { cellClassName, cellStyle, inputClassName } from './cell-look.ts'
@@ -111,10 +112,10 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
         aria-activedescendant={
           listShown && suggestions.highlighted >= 0 ? optionId(suggestions.highlighted) : undefined
         }
-        aria-label={`${column.header} of ${row.label}`}
+        aria-label={m.ui_cell_label({ column: column.header, row: row.label })}
         aria-invalid={invalid !== undefined ? true : undefined}
         aria-describedby={invalid !== undefined ? messageId : undefined}
-        aria-description={mixed ? `${mixed.length} different values` : undefined}
+        aria-description={mixed ? m.ui_cell_mixed({ count: mixed.length }) : undefined}
         title={mixedTitle ?? (editing || value === '' ? undefined : value)}
         placeholder={mixed ? 'Multiple values' : trailing ? column.header : undefined}
         // a tag is one line, as in a text input: a pasted line break becomes a space

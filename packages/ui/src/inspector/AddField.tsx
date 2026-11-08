@@ -1,4 +1,5 @@
 import { PlusIcon } from '@heroicons/react/16/solid'
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Field } from '@osm-editor-kit/maid-presets'
 import { useId, useState, type KeyboardEvent } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -102,8 +103,8 @@ export function AddField(props: { fields: readonly Field[]; onPick: (field: Fiel
           type="search"
           role="combobox"
           spellCheck={false}
-          placeholder="Search fields"
-          aria-label="Search fields"
+          placeholder={m.ui_search_fields()}
+          aria-label={m.ui_search_fields()}
           value={query}
           aria-expanded={results.length > 0}
           aria-controls={results.length > 0 ? listId : undefined}
@@ -118,17 +119,17 @@ export function AddField(props: { fields: readonly Field[]; onPick: (field: Fiel
         {/* what a screen reader hears when the search changes; the visible note is for sighted users */}
         <p aria-live="polite" className="sr-only">
           {results.length === 0
-            ? 'No field matches'
+            ? m.ui_no_field_matches()
             : `${results.length} ${results.length === 1 ? 'field' : 'fields'}`}
         </p>
 
         {results.length === 0 ? (
-          <p className={EMPTY_NOTE}>No field matches</p>
+          <p className={EMPTY_NOTE}>{m.ui_no_field_matches()}</p>
         ) : (
           <div
             id={listId}
             role="listbox"
-            aria-label="Fields to add"
+            aria-label={m.ui_fields_to_add()}
             // keeps the focus in the search field while a row is clicked
             onMouseDown={keepFocus}
             className="grid max-h-80 overflow-y-auto"

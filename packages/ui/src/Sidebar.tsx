@@ -1,4 +1,5 @@
 import { ChevronDownIcon, XMarkIcon } from '@heroicons/react/20/solid'
+import { m } from '@osm-editor-kit/maid-i18n'
 import { motion } from 'motion/react'
 import {
   type MouseEvent,
@@ -70,7 +71,7 @@ export function SidebarHeader(props: {
   const closeButton = onClose ? (
     <button
       type="button"
-      aria-label="Close"
+      aria-label={m.ui_close()}
       onClick={onClose}
       className="relative flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-zinc-500 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:text-white"
     >

@@ -31,6 +31,8 @@ const WELD_TH_METERS = 0.75
 const CLOSE_NODE_TH = EXTEND_TH_METERS - WELD_TH_METERS
 // From the bounding case of perpendicular ways
 const SIG_ANGLE_TH = Math.atan(WELD_TH_METERS / EXTEND_TH_METERS)
+/** Degrees added around the extension's box in connectionFrom's prefilter (about 0.1 mm) */
+const BOX_EPSILON = 1e-9
 
 /** A way end that can be joined to a segment, by extending it */
 type Connection = {
@@ -109,6 +111,13 @@ function connectionFrom(way: OsmWay, endIndex: number, context: RuleContext) {
   const edgeLength = sphericalDistance(midLoc, tipLoc)
   if (edgeLength === 0) return undefined
   const extendedTip = interpolate(midLoc, tipLoc, EXTEND_TH_METERS / edgeLength + 1)
+  // The extension's box, widened by BOX_EPSILON: a segment whose box misses it cannot cross the
+  // extension, so segmentIntersection is skipped for it. The epsilon keeps crossings at a box edge
+  // (rounding in segmentIntersection) found exactly as before.
+  const minX = Math.min(tipLoc[0], extendedTip[0]) - BOX_EPSILON
+  const maxX = Math.max(tipLoc[0], extendedTip[0]) + BOX_EPSILON
+  const minY = Math.min(tipLoc[1], extendedTip[1]) - BOX_EPSILON
+  const maxY = Math.max(tipLoc[1], extendedTip[1]) + BOX_EPSILON
 
   for (const other of [way, ...context.waysNear(way)]) {
     if (!isHighway(other) || !canConnectWays(way, other)) continue
@@ -119,6 +128,13 @@ function connectionFrom(way: OsmWay, endIndex: number, context: RuleContext) {
       const a = nodeLoc(graph, aId)
       const b = nodeLoc(graph, bId)
       if (!a || !b) continue
+      if (
+        (a[0] < minX && b[0] < minX) ||
+        (a[0] > maxX && b[0] > maxX) ||
+        (a[1] < minY && b[1] < minY) ||
+        (a[1] > maxY && b[1] > maxY)
+      )
+        continue
       const crossLoc = segmentIntersection(tipLoc, extendedTip, a, b)
       if (crossLoc)
         return { mid, tip, wayId: other.id, edge: [aId, bId], crossLoc } satisfies Connection

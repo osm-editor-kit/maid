@@ -97,7 +97,13 @@ export function sectionHovered(
  * several members (a side line, a group).
  */
 export function selectableId(analysis: RouteAnalysis, row: OverviewRow) {
-  if (row.kind === 'gap' || row.kind === 'junction' || row.kind === 'unplaced') return undefined
+  if (
+    row.kind === 'gap' ||
+    row.kind === 'junction' ||
+    row.kind === 'junctions' ||
+    row.kind === 'unplaced'
+  )
+    return undefined
   if (row.members.length !== 1) return undefined
   return idsOf(analysis, row.members)[0]
 }
@@ -120,6 +126,7 @@ export type RowLabel =
   | { name: string }
   | { text: TextName }
   | { junction: number }
+  | { junctions: number }
   | { gap: number }
   | { way: string }
   | { relation: string }
@@ -160,6 +167,8 @@ export function rowLabel(
       const node = row.key.slice('junction:'.length)
       return { junction: analysis.junctions.find((j) => j.node === node)?.outside ?? 0 }
     }
+    case 'junctions':
+      return { junctions: row.folded?.count ?? 0 }
     case 'gap': {
       const after = Number(row.key.slice('gap:'.length))
       return { gap: Math.round(analysis.chain.gaps[after]?.distance ?? 0) }
@@ -195,4 +204,28 @@ export function splitRows(rows: readonly OverviewRow[], limit: number) {
     shown: placed.slice(0, limit),
     unplaced: rows.filter((row) => row.kind === 'unplaced'),
   }
+}
+
+/** Whether every member of a row or a stretch comes from the preview (none is loaded): drawn muted, loaded on a click */
+export function fromPreview(
+  analysis: RouteAnalysis,
+  members: readonly number[],
+  previewed: ReadonlySet<string>,
+) {
+  return members.length > 0 && idsOf(analysis, members).every((id) => previewed.has(id))
+}
+
+/**
+ * A relation that groups routes: a `superroute` (the stages of a long trail) or a `route_master` (the variants of a
+ * bus line), with at least one relation member. Its overview lists the routes as groups.
+ */
+export function isRouteGroup(relation: {
+  tags: Readonly<Record<string, string>>
+  members: readonly { type: string }[]
+}) {
+  const type = relation.tags.type?.trim()
+  return (
+    (type === 'superroute' || type === 'route_master') &&
+    relation.members.some((member) => member.type === 'relation')
+  )
 }

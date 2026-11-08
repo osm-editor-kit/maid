@@ -860,11 +860,19 @@ let failed = await runCheck(process.argv[2] ?? 'small', async ({ page, report, s
   await page.mouse.click(control.x, control.y)
   await page.keyboard.up('Control')
   await settle()
-  report(
-    'Control-click (a right click on a Mac) selects the feature and opens its menu',
-    [[second.id], 1],
-    [(await state()).selection, await menu.count()],
-  )
+  // the browser makes a Control-click a right click on a Mac only (a contextmenu event); elsewhere it is a click
+  if (process.platform === 'darwin')
+    report(
+      'Control-click (a right click on a Mac) selects the feature and opens its menu',
+      [[second.id], 1],
+      [(await state()).selection, await menu.count()],
+    )
+  else
+    report(
+      'Control-click (a click off a Mac) selects the feature and opens no menu',
+      [[second.id], 0],
+      [(await state()).selection, await menu.count()],
+    )
   await key('Escape')
   await click(second.edge)
   await key('ContextMenu')

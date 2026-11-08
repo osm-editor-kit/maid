@@ -1,4 +1,5 @@
 import { ClipboardDocumentIcon } from '@heroicons/react/16/solid'
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Tags } from '@osm-editor-kit/maid-presets'
 import { useState, type FocusEvent as ReactFocusEvent } from 'react'
 import type { CombinedTags } from '../../inspector/fields/shared.ts'
@@ -58,10 +59,10 @@ export function CopyTagsButton(props: { tags?: Tags; combined?: CombinedTags }) 
     )
   }
   return (
-    <Tooltip label="Copy all tags as key=value lines">
+    <Tooltip label={m.ui_copy_all_hint()}>
       <button
         type="button"
-        aria-label="Copy all"
+        aria-label={m.ui_copy_all()}
         onClick={copy}
         className="grid size-7 cursor-pointer place-items-center rounded-md text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
       >
@@ -195,14 +196,14 @@ export function TagSheet(props: TagSheetProps) {
       />
       {props.copyButton === false ? null : (
         <div className="flex justify-end">
-          <Tooltip label="Copy all tags as key=value lines">
+          <Tooltip label={m.ui_copy_all_hint()}>
             <button
               type="button"
               onClick={copyAll}
-              className="flex h-6 items-center gap-1 rounded-md px-1.5 text-xs text-zinc-600 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
+              className="flex h-6 items-center gap-1 rounded-md px-1.5 text-xs text-zinc-600 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white touch:h-10 touch:px-3"
             >
               <ClipboardDocumentIcon className="size-3.5" aria-hidden="true" />
-              Copy all
+              {m.ui_copy_all()}
             </button>
           </Tooltip>
         </div>

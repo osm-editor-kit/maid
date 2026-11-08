@@ -12,6 +12,7 @@ import {
   actionMergePolygon,
 } from '@osm-editor-kit/maid-model'
 import type { Action, Graph, OsmEntity } from '@osm-editor-kit/maid-model'
+import { reasonOf, resolveSelection } from './selection.ts'
 import type { Operation, OperationContext } from './types.ts'
 
 /** Used when an action gives a reason code that has no sentence here */
@@ -40,23 +41,6 @@ type Candidate = {
   kind: 'join' | 'merge' | 'polygon' | 'nodes'
   action: Action
   ids: string[]
-}
-
-/** The entities of the selection, in order. Undefined when there is no selection or an id is not in the graph. */
-function resolveSelection(context: OperationContext) {
-  if (context.selected.length === 0) return undefined
-  const entities: OsmEntity[] = []
-  for (const id of context.selected) {
-    const entity = context.graph.hasEntity(id)
-    if (!entity) return undefined
-    entities.push(entity)
-  }
-  return entities
-}
-
-/** Why an action cannot run on this graph, or undefined when it can */
-function reasonOf(action: Action, graph: Graph) {
-  return action.disabled?.(graph) || undefined
 }
 
 /** The actions that the selection has the shape for, in iD's order. A shape check, not the action's own reasons. */

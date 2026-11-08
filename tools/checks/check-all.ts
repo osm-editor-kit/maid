@@ -113,7 +113,7 @@ const RUNS: Run[] = [
  * Bicycle, parking and indoor have the same numbers until a real run says otherwise.
  */
 const EXPECTED_OK: Record<string, Record<AppName, number>> = {
-  interactions: { maid: 160, bicycle: 160, parking: 160, indoor: 160 },
+  interactions: { maid: 163, bicycle: 163, parking: 163, indoor: 163 },
   edit: { maid: 20, bicycle: 20, parking: 20, indoor: 20 },
   draw: { maid: 14, bicycle: 14, parking: 14, indoor: 14 },
   undo: { maid: 43, bicycle: 43, parking: 43, indoor: 43 },
@@ -126,7 +126,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   multi: { maid: 11, bicycle: 11, parking: 11, indoor: 11 },
   'relations-scene': { maid: 25, bicycle: 25, parking: 25, indoor: 25 },
   'relation-column': { maid: 31, bicycle: 31, parking: 31, indoor: 31 },
-  'route-overview': { maid: 28, bicycle: 28, parking: 28, indoor: 28 },
+  'route-overview': { maid: 63, bicycle: 63, parking: 63, indoor: 63 },
   // module checks run only for the apps in `only` (RUNS): the count is 0 elsewhere
   parking: { maid: 0, bicycle: 0, parking: 29, indoor: 0 },
   'way-table': { maid: 0, bicycle: 13, parking: 0, indoor: 0 },

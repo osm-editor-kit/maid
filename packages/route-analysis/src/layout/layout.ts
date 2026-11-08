@@ -21,6 +21,9 @@ const SECTION_HEIGHT = 12
 const PX_PER_KM = 40
 const MIN_SECTION_HEIGHT = 4
 
+/** Consecutive junctions without a guidepost are folded into one row from this many on */
+export const JUNCTION_FOLD_MIN = 2
+
 /** Order of rows at the same metre: gap, junction, branch, point, and the end last. The start is always first. */
 const RANK = { start: 0, gap: 1, junction: 2, branch: 3, point: 4, end: 5 } as const
 
@@ -45,6 +48,10 @@ type Draft = {
   member: number
   /** Third sort key: a branch's start sorts before its end */
   sub: number
+  /** A junction row: its node, and whether a guidepost stands near it */
+  junction?: { node: string; guidepost: boolean }
+  /** A `junctions` row: the nodes it folds, and whether it is open */
+  fold?: { nodes: string[]; open: boolean }
   /** Creation order, the last sort key */
   seq: number
 }
@@ -60,6 +67,8 @@ type IssueContext = {
   /** Gap and junction rows, ascending by metre */
   gapRows: readonly number[]
   junctionRows: readonly number[]
+  /** The row that shows each junction's node: its own row, or the folded row it is in */
+  junctionRow: ReadonlyMap<string, number>
   /** All placed rows, ascending by metre */
   placedRows: readonly number[]
   /** Metres of each placed row, by row index */
@@ -82,7 +91,7 @@ export function layoutOverview(
   const minSectionHeight = options.minSectionHeight ?? MIN_SECTION_HEIGHT
 
   const lanes = assignLanes(analysis.branches)
-  const drafts = placedDrafts(analysis, lanes)
+  const drafts = foldJunctions(placedDrafts(analysis, lanes), options.openJunctions)
   const rows: OverviewRow[] = drafts.map(rowOf)
 
   // Sections: one between each pair of consecutive placed rows. Main ways go into the sections they cover.
@@ -288,6 +297,7 @@ function placedDrafts(analysis: RouteAnalysis, lanes: readonly number[]): Draft[
       rank: RANK.junction,
       member: junction.guidepost ?? NO_MEMBER,
       sub: 0,
+      junction: { node: junction.node, guidepost: junction.guidepost !== undefined },
     })
   }
 
@@ -338,7 +348,44 @@ function rowOf(draft: Draft): OverviewRow {
     y: 0,
   }
   if (draft.branch !== undefined) row.branch = draft.branch
+  if (draft.fold) row.folded = { count: draft.fold.nodes.length, open: draft.fold.open }
   return row
+}
+
+/**
+ * Runs of consecutive junction rows without a guidepost (nothing else between them on the line) become one
+ * `junctions` row at the first one's metre, keyed by its node. An open run keeps its junction rows after that row.
+ * The rows are sorted already; the run stays in place, so the order does not change.
+ */
+function foldJunctions(drafts: Draft[], open: ReadonlySet<string> | undefined): Draft[] {
+  const out: Draft[] = []
+  let run: Draft[] = []
+  const flush = () => {
+    const first = run[0]
+    if (first?.junction && run.length >= JUNCTION_FOLD_MIN) {
+      const key = `junctions:${first.junction.node}`
+      const isOpen = open?.has(key) ?? false
+      out.push({
+        ...first,
+        key,
+        kind: 'junctions',
+        member: NO_MEMBER,
+        junction: undefined,
+        fold: { nodes: run.map((draft) => draft.junction?.node ?? ''), open: isOpen },
+      })
+      if (isOpen) out.push(...run)
+    } else out.push(...run)
+    run = []
+  }
+  for (const draft of drafts) {
+    if (draft.junction && !draft.junction.guidepost && draft.lane === 0) run.push(draft)
+    else {
+      flush()
+      out.push(draft)
+    }
+  }
+  flush()
+  return out
 }
 
 /** The first way of the line, in travel order */
@@ -455,19 +502,26 @@ function issueContext(
 ): IssueContext {
   const gapRows: number[] = []
   const junctionRows: number[] = []
+  const junctionRow = new Map<string, number>()
   const pointRow = new Map<number, number>()
   const placedRows = drafts.map((_, i) => i)
   const placedAt = drafts.map((draft) => draft.at)
   rows.forEach((row, i) => {
     if (i >= drafts.length) return
+    const draft = drafts[i]
     if (row.kind === 'gap') gapRows.push(i)
-    else if (row.kind === 'junction') junctionRows.push(i)
-    else if (row.kind === 'point' || row.kind === 'stop' || row.kind === 'platform') {
+    else if (row.kind === 'junction') {
+      junctionRows.push(i)
+      if (draft?.junction) junctionRow.set(draft.junction.node, i)
+    } else if (row.kind === 'junctions' && draft?.fold && !draft.fold.open) {
+      // a folded run holds the hints of its junctions; an open one leaves them to the junction rows below it
+      for (const node of draft.fold.nodes) junctionRow.set(node, i)
+    } else if (row.kind === 'point' || row.kind === 'stop' || row.kind === 'platform') {
       const member = row.members[0]
       if (member !== undefined) pointRow.set(member, i)
     }
   })
-  return { rowIndex, pointRow, gapRows, junctionRows, placedRows, placedAt }
+  return { rowIndex, pointRow, gapRows, junctionRows, junctionRow, placedRows, placedAt }
 }
 
 /** The row an issue attaches to, or undefined for the start row (the caller's fallback) */
@@ -487,6 +541,10 @@ function targetOf(
   }
   if ((issue.code === 'point-far' || issue.code === 'out-of-sequence') && first !== undefined) {
     const row = context.pointRow.get(first)
+    if (row !== undefined) return row
+  }
+  if (issue.code === 'junction-without-guidepost' && typeof issue.detail?.node === 'string') {
+    const row = context.junctionRow.get(issue.detail.node)
     if (row !== undefined) return row
   }
   if (issue.at === undefined) return undefined

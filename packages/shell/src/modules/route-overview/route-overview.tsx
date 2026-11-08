@@ -6,6 +6,7 @@ import {
   ArrowsUpDownIcon,
   ChevronRightIcon,
   ChevronDownIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/16/solid'
 import { getLocale, m } from '@osm-editor-kit/maid-i18n'
 import { actionDeleteMember, type OsmRelation } from '@osm-editor-kit/maid-model'
@@ -20,7 +21,10 @@ import {
   type RouteAnalysis,
   type RouteInput,
   type RouteIssue,
+  stillMissing,
+  withPreview,
 } from '@osm-editor-kit/maid-route-analysis'
+import { absoluteTime, browserTimeZone, notify } from '@osm-editor-kit/maid-ui'
 import {
   Fragment,
   useEffect,
@@ -37,6 +41,7 @@ import { colourOf } from '../relations-logic.ts'
 import { dataVersion } from './data-version.ts'
 import {
   formatKm,
+  fromPreview,
   groupOf,
   idsOf,
   includesHovered,
@@ -52,15 +57,16 @@ import {
   type UnplacedGroup,
 } from './overview-logic.ts'
 import { markSelectedFromOverview } from './overview-selection.ts'
+import { previewStoreOf, type PreviewEntry, type PreviewState } from './preview-store.ts'
 import { routeInputOf } from './route-input.ts'
 
-type Select = ReturnType<typeof useSelection>['select']
+export type Select = ReturnType<typeof useSelection>['select']
 
 const ROW_HEIGHT = 28
 const KM_WIDTH = 44
 const LANE_STEP = 14
 const MAIN_X = 14
-const NEUTRAL = '#7c3aed'
+export const NEUTRAL = '#7c3aed'
 const RED = '#dc2626'
 const ROW_HOVER = 'bg-amber-100/60 dark:bg-amber-500/10'
 const ROW_PLAIN =
@@ -78,6 +84,12 @@ const STATE_TEXT: Record<Linear, () => string> = {
 }
 
 type Texts = { title: string; text: string; todo: string }
+
+/** About the height of an open note, for the room below a short line */
+const NOTE_HEIGHT = 220
+
+/** Stands for the note of a fold of junctions, which is no issue of the analysis: an info, not a warning */
+const FOLD_NOTE: RouteIssue = { code: 'junction-without-guidepost', severity: 'info', members: [] }
 /** The three texts of an issue, with its numbers */
 function issueTexts(issue: RouteIssue): Texts {
   const p = issueParams(issue)
@@ -166,6 +178,7 @@ const GROUP_TEXT: Record<UnplacedGroup, (count: number) => string> = {
 function labelText(label: RowLabel): string {
   if ('name' in label) return label.name
   if ('junction' in label) return m.route_overview_label_junction({ ways: label.junction })
+  if ('junctions' in label) return m.route_overview_label_junctions({ count: label.junctions })
   if ('gap' in label)
     return m.route_overview_label_gap({ distance: m.route_overview_metres({ count: label.gap }) })
   if ('way' in label) return m.route_overview_label_way({ id: label.way })
@@ -198,25 +211,172 @@ function labelText(label: RowLabel): string {
   }
 }
 
-const STATE_ICON: Record<Linear, ReactNode> = {
+export const STATE_ICON: Record<Linear, ReactNode> = {
   yes: <CheckCircleIcon className="size-4 text-emerald-600 dark:text-emerald-400" />,
   sorted: <ArrowsUpDownIcon className="size-4 text-amber-600 dark:text-amber-400" />,
   no: <ExclamationTriangleIcon className="size-4 text-amber-600 dark:text-amber-400" />,
   empty: <NoSymbolIcon className="size-4 text-zinc-400" />,
 }
 
-// The analysis of the relation as it is now, and its layout per spacing. The graph is mutable and keeps its identity,
-// so the cache is keyed on the relation object and the data version (edits and arriving data, not selection or hover).
-type Cached = {
+// The analysis of a route as it is now, and its layout per spacing. The graph is mutable and keeps its identity, so the
+// cache is keyed on an object that stands for the route (the relation, or a stage's preview relation) and the data
+// version (edits and arriving data, not selection or hover) and the preview it was filled from.
+export type Prepared = {
   version: number
+  /** The preview the input was filled from, if any */
+  entry: PreviewEntry | undefined
   input: RouteInput
+  /** Members whose shape is the preview's */
+  previewed: ReadonlySet<string>
+  /** Members that are not loaded, before the preview: the preview bar shows while there are some */
+  missing: number
   analysis: RouteAnalysis
-  layouts: Partial<Record<OverviewMode, OverviewLayout>>
+  /** By mode and the open folds of junctions (`layoutKey`) */
+  layouts: Map<string, OverviewLayout>
 }
-const analyses = new WeakMap<OsmRelation, Cached>()
+const analyses = new WeakMap<object, Prepared>()
+
+/** The prepared route of `key`, made again when the data version or the preview changed */
+export function prepared(
+  key: object,
+  version: number,
+  entry: PreviewEntry | undefined,
+  loaded: () => RouteInput,
+): Prepared {
+  let cached = analyses.get(key)
+  if (!cached || cached.version !== version || cached.entry !== entry) {
+    const base = loaded()
+    const { input, previewed } = entry
+      ? withPreview(base, entry.preview)
+      : { input: base, previewed: new Set<string>() }
+    cached = {
+      version,
+      entry,
+      input,
+      previewed,
+      missing: stillMissing(base),
+      analysis: analyzeRoute(input),
+      layouts: new Map(),
+    }
+    analyses.set(key, cached)
+  }
+  return cached
+}
 
 // Open or folded, for the whole session: a person who folds it away to work on the members keeps it folded
 let overviewOpen = true
+
+/** The preview of a relation: its state, a stored one shown at once, and the map drawing it while it is on screen */
+export function usePreview(id: string) {
+  'use no memo'
+  const shell = useShell()
+  const previews = previewStoreOf(shell)
+  const state = useSyncExternalStore(previews.subscribe, () => previews.state(id))
+  useEffect(
+    function showAStoredPreviewAndDrawItOnTheMap() {
+      previews.restore(id)
+      previews.setShown(id)
+      return () => previews.setShown(null)
+    },
+    [previews, id],
+  )
+  return {
+    previews,
+    state,
+    entry: 'entry' in state ? state.entry : undefined,
+    load: (refresh: boolean) => void previews.load(id, { refresh }),
+  }
+}
+
+/** Selecting from the overview: the column keeps its scroll, and a member of the preview is loaded first */
+export function useOverviewSelect(select: Select) {
+  'use no memo'
+  const { engine } = useShell()
+  // the column keeps its scroll for a selection made here (overview-selection.ts)
+  function selectId(id: string) {
+    // a selection that does not change draws no scroll to take the mark, which would then stop a later one
+    const selection = engine.selection
+    if (selection.length !== 1 || selection[0] !== id) markSelectedFromOverview(id)
+    select(id)
+  }
+  // a member of the preview is loaded for real first: it then replaces its preview, and the map goes to it
+  function loadAndSelect(id: string) {
+    engine.loadEntity(id).then(
+      () => {
+        selectId(id)
+        engine.fitTo([id])
+      },
+      (error: unknown) => notify.failed(error),
+    )
+  }
+  return { selectId, loadAndSelect }
+}
+
+/** The fold button, the state of the line and its length, and the spacing toggle: the head of an overview */
+export function OverviewHead({
+  title,
+  expanded,
+  onToggle,
+  analysis,
+  mode,
+  setMode,
+}: {
+  title: string
+  expanded: boolean
+  onToggle: () => void
+  analysis: RouteAnalysis | undefined
+  mode: OverviewMode
+  setMode: (mode: OverviewMode) => void
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pb-2 text-xs">
+      <button
+        type="button"
+        aria-expanded={expanded}
+        onClick={onToggle}
+        className="-ml-1 flex cursor-pointer items-center gap-1 rounded text-[11px] font-semibold tracking-wide text-zinc-700 uppercase focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-300"
+      >
+        <ChevronDownIcon
+          aria-hidden="true"
+          className={`size-4 text-zinc-400 transition-transform motion-reduce:transition-none ${expanded ? '' : '-rotate-90'}`}
+        />
+        {title}
+      </button>
+      {analysis ? (
+        <>
+          <span className="flex items-center gap-1 font-medium" data-testid="route-overview-state">
+            <span aria-hidden="true">{STATE_ICON[analysis.chain.linear]}</span>
+            {STATE_TEXT[analysis.chain.linear]()}
+          </span>
+          <span className="text-zinc-500 tabular-nums dark:text-zinc-400">
+            {m.route_overview_km({ km: formatKm(analysis.chain.length, getLocale()) })}
+          </span>
+        </>
+      ) : null}
+      {expanded ? (
+        <span
+          role="group"
+          aria-label={m.route_overview_mode_label()}
+          className="ml-auto flex rounded-lg bg-zinc-950/5 p-0.5 dark:bg-white/10"
+        >
+          {(['schematic', 'scaled'] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={mode === value}
+              onClick={() => setMode(value)}
+              className={`${TOGGLE} ${mode === value ? 'bg-white shadow-sm dark:bg-zinc-700' : 'text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white'}`}
+            >
+              {value === 'schematic'
+                ? m.route_overview_mode_schematic()
+                : m.route_overview_mode_scaled()}
+            </button>
+          ))}
+        </span>
+      ) : null}
+    </div>
+  )
+}
 
 /**
  * The route as a vertical line diagram (like the line sidebars of Wikipedia): the km column, the line with its stops
@@ -227,52 +387,145 @@ let overviewOpen = true
 export function RouteOverview({ relation, select }: { relation: OsmRelation; select: Select }) {
   'use no memo'
   // not compiled: it reads the graph and the engine, objects that stay the same when data arrives
-  const { engine, editor } = useShell()
-  const graph = editor.history.staging.graph
-  const version = dataVersion(editor.history)
-  let cached = analyses.get(relation)
-  if (!cached || cached.version !== version) {
-    const input = routeInputOf(graph, relation)
-    cached = { version, input, analysis: analyzeRoute(input), layouts: {} }
-    analyses.set(relation, cached)
-  }
-  const { analysis, input } = cached
+  const { editor } = useShell()
+  const preview = usePreview(relation.id)
+  const route = prepared(relation, dataVersion(editor.history), preview.entry, () =>
+    routeInputOf(editor.history.staging.graph, relation),
+  )
   const [expanded, setExpanded] = useState(overviewOpen)
   const [mode, setMode] = useState<OverviewMode>('schematic')
+  const { selectId, loadAndSelect } = useOverviewSelect(select)
+  const showPreviewBar =
+    preview.previews.enabled && (route.missing > 0 || preview.entry !== undefined)
+  return (
+    <section aria-label={m.route_overview_title()} className="px-3 py-2">
+      <OverviewHead
+        title={m.route_overview_title()}
+        expanded={expanded}
+        onToggle={() => {
+          overviewOpen = !expanded
+          setExpanded(!expanded)
+        }}
+        analysis={route.analysis}
+        mode={mode}
+        setMode={setMode}
+      />
+      {expanded ? (
+        <>
+          {showPreviewBar ? (
+            <PreviewBar state={preview.state} missing={route.missing} onLoad={preview.load} />
+          ) : null}
+          <RouteDiagram
+            route={route}
+            mode={mode}
+            relationId={relation.id}
+            colour={colourOf(relation) ?? NEUTRAL}
+            scroll
+            selectId={selectId}
+            loadAndSelect={loadAndSelect}
+            footer={
+              // the second button below the line: a long route is often read from its end
+              showPreviewBar && !preview.entry && preview.state.status !== 'loading' ? (
+                <PreviewBar state={preview.state} missing={route.missing} onLoad={preview.load} />
+              ) : null
+            }
+          />
+        </>
+      ) : null}
+    </section>
+  )
+}
+
+/**
+ * The line of one route with its rows, notes and groups. `relationId` is the relation the members belong to (a stage
+ * of a superroute shows its own); a duplicate is removed from it. `scroll` keeps a long line inside the overview.
+ */
+export function RouteDiagram({
+  route,
+  mode,
+  relationId,
+  colour,
+  scroll,
+  selectId,
+  loadAndSelect,
+  footer,
+}: {
+  route: Prepared
+  mode: OverviewMode
+  relationId: string
+  colour: string
+  scroll: boolean
+  selectId: (id: string) => void
+  loadAndSelect: (id: string) => void
+  footer?: ReactNode
+}) {
+  'use no memo'
+  const { engine, editor } = useShell()
+  const graph = editor.history.staging.graph
+  const { analysis, input, previewed } = route
   const [showAll, setShowAll] = useState(false)
   const [open, setOpen] = useState<string | null>(null)
   const [openGroup, setOpenGroup] = useState<string | null>(null)
-  const layout = (cached.layouts[mode] ??= layoutOverview(analysis, mode))
-  const readOnly = engine.isReadOnly(relation.id)
-  const colour = colourOf(relation) ?? NEUTRAL
+  // the folds of junctions without a guidepost that are open: a long trail lists hundreds of junctions otherwise
+  const [openJunctions, setOpenJunctions] = useState<ReadonlySet<string>>(() => new Set())
+  const layoutKey = `${mode}|${[...openJunctions].join(',')}`
+  let layout = route.layouts.get(layoutKey)
+  if (!layout) {
+    layout = layoutOverview(analysis, mode, { openJunctions })
+    route.layouts.set(layoutKey, layout)
+  }
+  function toggleJunctions(key: string) {
+    const next = new Set(openJunctions)
+    if (!next.delete(key)) next.add(key)
+    setOpenJunctions(next)
+  }
+  const readOnly = !graph.hasEntity(relationId) || engine.isReadOnly(relationId)
 
   const { placed, shown, unplaced } = splitRows(layout.rows, showAll ? Infinity : ROW_LIMIT)
   const cut = shown.length < placed.length
   const lastShown = shown[shown.length - 1]
   const diagramHeight = lastShown ? lastShown.y + ROW_HEIGHT : 0
+  // an open note hangs below its row: room for it under a short line, which would cut it off in the scroll box
+  const noteRow = open ? shown.find((row) => open.startsWith(`${row.key}#`)) : undefined
+  const noteRoom = noteRow ? Math.max(0, noteRow.y + ROW_HEIGHT + NOTE_HEIGHT - diagramHeight) : 0
   const maxLane = layout.rows.reduce((top, row) => Math.max(top, row.lane), 0)
   const gutter = 40 + LANE_STEP * maxLane
   const left = KM_WIDTH + gutter
   const laneX = (lane: number) => MAIN_X + LANE_STEP * lane
 
-  // the column keeps its scroll for a selection made here (overview-selection.ts)
-  function selectId(id: string) {
-    // a selection that does not change draws no scroll to take the mark, which would then stop a later one
-    const selection = engine.selection
-    if (selection.length !== 1 || selection[0] !== id) markSelectedFromOverview(id)
-    select(id)
-  }
-  function toggle() {
-    overviewOpen = !expanded
-    setExpanded(!expanded)
-  }
   function removeDuplicate(issue: RouteIssue) {
     const index = issue.members[1]
-    if (index !== undefined) editor.history.perform(actionDeleteMember(relation.id, index))
+    if (index !== undefined) editor.history.perform(actionDeleteMember(relationId, index))
     setOpen(null)
   }
 
   const popover = (row: OverviewRow, flow: boolean) => {
+    if (row.kind === 'junctions') {
+      if (open !== `${row.key}#fold`) return null
+      const count = row.folded?.count ?? 0
+      return (
+        <IssuePopover
+          issue={FOLD_NOTE}
+          texts={{
+            title: m.route_overview_junctions_note_title(),
+            text: m.route_overview_junctions_note_text({ count }),
+            todo: m.route_overview_junctions_note_todo(),
+          }}
+          selectLabel={
+            row.folded?.open ? m.route_overview_junctions_hide() : m.route_overview_junctions_show()
+          }
+          flow={flow}
+          top={row.y + ROW_HEIGHT}
+          canRemove={false}
+          onSelect={() => {
+            toggleJunctions(row.key)
+            setOpen(null)
+          }}
+          onRemove={() => undefined}
+          onClose={() => setOpen(null)}
+        />
+      )
+    }
     const issue = row.issues
       .map((i) => ({ i, issue: analysis.issues[i] }))
       .find((x) => `${row.key}#${x.i}` === open)?.issue
@@ -286,7 +539,9 @@ export function RouteOverview({ relation, select }: { relation: OsmRelation; sel
         onSelect={() => {
           const first = issue.members[0]
           const id = first === undefined ? undefined : analysis.members[first]?.member.id
-          selectId(id && graph.hasEntity(id) ? id : relation.id)
+          if (id && graph.hasEntity(id)) selectId(id)
+          else if (id && previewed.has(id)) loadAndSelect(id)
+          else if (graph.hasEntity(relationId)) selectId(relationId)
           setOpen(null)
         }}
         onRemove={() => removeDuplicate(issue)}
@@ -296,176 +551,208 @@ export function RouteOverview({ relation, select }: { relation: OsmRelation; sel
   }
 
   return (
-    <section aria-label={m.route_overview_title()} className="px-3 py-2">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pb-2 text-xs">
+    <>
+      {/* a long route scrolls inside the overview, so the members below stay within reach */}
+      <div
+        className={`relative ${scroll ? 'max-h-[60vh] overflow-y-auto' : ''}`}
+        style={noteRoom > 0 ? { paddingBottom: noteRoom } : undefined}
+      >
+        <div
+          role="list"
+          aria-label={m.route_overview_list()}
+          className="relative"
+          style={{ height: diagramHeight }}
+        >
+          <svg
+            aria-hidden="true"
+            width={gutter}
+            height={diagramHeight}
+            className="pointer-events-none absolute top-0"
+            style={{ left: KM_WIDTH }}
+          >
+            <Diagram
+              layout={layout}
+              shown={shown}
+              analysis={analysis}
+              previewed={previewed}
+              colour={colour}
+              laneX={laneX}
+              limitY={diagramHeight}
+            />
+          </svg>
+          {shown.map((row) => (
+            <Row
+              key={row.key}
+              row={row}
+              analysis={analysis}
+              input={input}
+              left={left}
+              select={selectId}
+              previewed={fromPreview(analysis, row.members, previewed)}
+              loadAndSelect={loadAndSelect}
+              open={open}
+              setOpen={setOpen}
+              toggleJunctions={toggleJunctions}
+            />
+          ))}
+        </div>
+        {/* the notes sit beside the list, not in it: a list holds only its rows */}
+        {open
+          ? shown.map((row) =>
+              row.issues.length > 0 || row.kind === 'junctions' ? (
+                <Fragment key={row.key}>{popover(row, false)}</Fragment>
+              ) : null,
+            )
+          : null}
+      </div>
+      {cut ? (
         <button
           type="button"
-          aria-expanded={expanded}
-          onClick={toggle}
-          className="-ml-1 flex cursor-pointer items-center gap-1 rounded text-[11px] font-semibold tracking-wide text-zinc-700 uppercase focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-300"
+          onClick={() => setShowAll(true)}
+          className="mt-1 cursor-pointer rounded text-xs font-medium text-blue-600 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-blue-400"
         >
-          <ChevronDownIcon
-            aria-hidden="true"
-            className={`size-4 text-zinc-400 transition-transform motion-reduce:transition-none ${expanded ? '' : '-rotate-90'}`}
-          />
-          {m.route_overview_title()}
+          {m.route_overview_show_all({ count: placed.length })}
         </button>
-        <span className="flex items-center gap-1 font-medium" data-testid="route-overview-state">
-          <span aria-hidden="true">{STATE_ICON[analysis.chain.linear]}</span>
-          {STATE_TEXT[analysis.chain.linear]()}
-        </span>
-        <span className="text-zinc-500 tabular-nums dark:text-zinc-400">
-          {m.route_overview_km({ km: formatKm(analysis.chain.length, getLocale()) })}
-        </span>
-        {expanded ? (
-          <span
-            role="group"
-            aria-label={m.route_overview_mode_label()}
-            className="ml-auto flex rounded-lg bg-zinc-950/5 p-0.5 dark:bg-white/10"
-          >
-            {(['schematic', 'scaled'] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={mode === value}
-                onClick={() => setMode(value)}
-                className={`${TOGGLE} ${mode === value ? 'bg-white shadow-sm dark:bg-zinc-700' : 'text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white'}`}
-              >
-                {value === 'schematic'
-                  ? m.route_overview_mode_schematic()
-                  : m.route_overview_mode_scaled()}
-              </button>
-            ))}
-          </span>
-        ) : null}
-      </div>
-
-      {expanded ? (
-        <>
-          {/* a long route scrolls inside the overview, so the members below stay within reach */}
-          <div className="relative max-h-[60vh] overflow-y-auto">
-            <div
-              role="list"
-              aria-label={m.route_overview_list()}
-              className="relative"
-              style={{ height: diagramHeight }}
-            >
-              <svg
-                aria-hidden="true"
-                width={gutter}
-                height={diagramHeight}
-                className="pointer-events-none absolute top-0"
-                style={{ left: KM_WIDTH }}
-              >
-                <Diagram
-                  layout={layout}
-                  shown={shown}
-                  analysis={analysis}
-                  colour={colour}
-                  laneX={laneX}
-                  limitY={diagramHeight}
-                />
-              </svg>
-              {shown.map((row) => (
-                <Row
-                  key={row.key}
-                  row={row}
-                  analysis={analysis}
-                  input={input}
-                  left={left}
-                  select={selectId}
-                  open={open}
-                  setOpen={setOpen}
-                />
-              ))}
-            </div>
-            {/* the notes sit beside the list, not in it: a list holds only its rows */}
-            {open
-              ? shown.map((row) =>
-                  row.issues.length > 0 ? (
-                    <Fragment key={row.key}>{popover(row, false)}</Fragment>
-                  ) : null,
-                )
-              : null}
-          </div>
-          {cut ? (
-            <button
-              type="button"
-              onClick={() => setShowAll(true)}
-              className="mt-1 cursor-pointer rounded text-xs font-medium text-blue-600 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-blue-400"
-            >
-              {m.route_overview_show_all({ count: placed.length })}
-            </button>
-          ) : null}
-
-          {unplaced.length > 0 ? (
-            <ul className="mt-2 flex flex-col gap-0.5">
-              {unplaced.map((row) => {
-                const group = groupOf(row)
-                const label = labelText(rowLabel(analysis, row, input.memberTags))
-                const expanded = openGroup === row.key
-                return (
-                  <li key={row.key} data-group-key={row.key}>
-                    <div
-                      className={`flex items-center gap-1 px-1 ${ROW_PLAIN}`}
-                      style={{ minHeight: ROW_HEIGHT }}
-                    >
-                      {row.members.length > 0 ? (
-                        <button
-                          type="button"
-                          aria-expanded={expanded}
-                          aria-label={(expanded
-                            ? m.route_overview_group_close
-                            : m.route_overview_group_open)({ group: label })}
-                          onClick={() => setOpenGroup(expanded ? null : row.key)}
-                          className="flex min-w-0 flex-1 cursor-pointer items-center gap-1 rounded py-1 text-left text-sm focus-visible:outline-2 focus-visible:outline-blue-500"
-                        >
-                          <ChevronRightIcon
-                            aria-hidden="true"
-                            className={`size-4 shrink-0 text-zinc-400 ${expanded ? 'rotate-90' : ''}`}
-                          />
-                          <span className="truncate">{label}</span>
-                        </button>
-                      ) : (
-                        <span className="flex-1 truncate py-1 pl-5 text-sm">{label}</span>
-                      )}
-                      <IssueButtons
-                        row={row}
-                        analysis={analysis}
-                        label={label}
-                        open={open}
-                        setOpen={setOpen}
-                      />
-                    </div>
-                    {popover(row, true)}
-                    {expanded && group !== undefined ? (
-                      <ul className="mb-1 ml-5 flex flex-col">
-                        {row.members.map((index) => {
-                          const info = analysis.members[index]
-                          if (!info) return null
-                          const name = labelText(memberName(analysis, index, input.memberTags))
-                          return (
-                            <li key={index}>
-                              <MemberButton
-                                ids={[info.member.id]}
-                                name={name}
-                                role={info.member.role}
-                                disabled={!graph.hasEntity(info.member.id)}
-                                onClick={() => selectId(info.member.id)}
-                              />
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    ) : null}
-                  </li>
-                )
-              })}
-            </ul>
-          ) : null}
-        </>
       ) : null}
-    </section>
+      {footer}
+
+      {unplaced.length > 0 ? (
+        <ul className="mt-2 flex flex-col gap-0.5">
+          {unplaced.map((row) => {
+            const group = groupOf(row)
+            const label = labelText(rowLabel(analysis, row, input.memberTags))
+            const expanded = openGroup === row.key
+            return (
+              <li key={row.key} data-group-key={row.key}>
+                <div
+                  className={`flex items-center gap-1 px-1 ${ROW_PLAIN}`}
+                  style={{ minHeight: ROW_HEIGHT }}
+                >
+                  {row.members.length > 0 ? (
+                    <button
+                      type="button"
+                      aria-expanded={expanded}
+                      aria-label={(expanded
+                        ? m.route_overview_group_close
+                        : m.route_overview_group_open)({ group: label })}
+                      onClick={() => setOpenGroup(expanded ? null : row.key)}
+                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-1 rounded py-1 text-left text-sm focus-visible:outline-2 focus-visible:outline-blue-500"
+                    >
+                      <ChevronRightIcon
+                        aria-hidden="true"
+                        className={`size-4 shrink-0 text-zinc-400 ${expanded ? 'rotate-90' : ''}`}
+                      />
+                      <span className="truncate">{label}</span>
+                    </button>
+                  ) : (
+                    <span className="flex-1 truncate py-1 pl-5 text-sm">{label}</span>
+                  )}
+                  <IssueButtons
+                    row={row}
+                    analysis={analysis}
+                    label={label}
+                    open={open}
+                    setOpen={setOpen}
+                  />
+                </div>
+                {popover(row, true)}
+                {expanded && group !== undefined ? (
+                  <ul className="mb-1 ml-5 flex flex-col">
+                    {row.members.map((index) => {
+                      const info = analysis.members[index]
+                      if (!info) return null
+                      const name = labelText(memberName(analysis, index, input.memberTags))
+                      return (
+                        <li key={index}>
+                          <MemberButton
+                            ids={[info.member.id]}
+                            name={name}
+                            role={info.member.role}
+                            disabled={!graph.hasEntity(info.member.id)}
+                            onClick={() => selectId(info.member.id)}
+                          />
+                        </li>
+                      )
+                    })}
+                  </ul>
+                ) : null}
+              </li>
+            )
+          })}
+        </ul>
+      ) : null}
+    </>
+  )
+}
+
+const FAILURE_TEXT: Record<Extract<PreviewState, { status: 'error' }>['reason'], () => string> = {
+  failed: () => m.route_overview_preview_failed(),
+  format: () => m.route_overview_preview_format(),
+  missing: () => m.route_overview_preview_missing(),
+  'too-big': () => m.route_overview_preview_too_big(),
+}
+
+/**
+ * The preview line above (and, before a preview is there, below) the diagram: "Load preview" while members are
+ * missing; then when the preview is from, with a small reload button. A failure keeps the earlier preview and says so.
+ */
+export function PreviewBar({
+  state,
+  missing,
+  onLoad,
+}: {
+  state: PreviewState
+  missing: number
+  onLoad: (refresh: boolean) => void
+}) {
+  const entry = 'entry' in state ? state.entry : undefined
+  const timeZone = browserTimeZone()
+  const time = (date: Date) => absoluteTime({ date, dateOnly: false }, { timeZone })
+  const dataTime = entry?.preview.timestamp ? new Date(entry.preview.timestamp) : undefined
+  return (
+    <div
+      data-preview-bar
+      aria-live="polite"
+      className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-zinc-500 dark:text-zinc-400"
+    >
+      {state.status === 'loading' ? (
+        <span>{m.route_overview_preview_loading()}</span>
+      ) : entry ? (
+        <>
+          <span
+            title={
+              dataTime && !Number.isNaN(dataTime.getTime())
+                ? m.route_overview_preview_data({ time: time(dataTime) })
+                : undefined
+            }
+          >
+            {m.route_overview_preview_from({ time: time(new Date(entry.loadedAt)) })}
+          </span>
+          <button
+            type="button"
+            aria-label={m.route_overview_preview_reload()}
+            title={m.route_overview_preview_reload()}
+            onClick={() => onLoad(true)}
+            className={`${ICON_BUTTON} size-5`}
+          >
+            <ArrowPathIcon aria-hidden="true" className="size-3.5" />
+          </button>
+        </>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onLoad(false)}
+          className="cursor-pointer rounded-md bg-zinc-950/5 px-2 py-1 font-medium text-zinc-700 hover:bg-zinc-950/10 focus-visible:outline-2 focus-visible:outline-blue-500 dark:bg-white/10 dark:text-zinc-200 dark:hover:bg-white/15"
+        >
+          {m.route_overview_preview_load({ count: missing })}
+        </button>
+      )}
+      {state.status === 'error' ? (
+        <span role="status" className="text-amber-700 dark:text-amber-400">
+          {FAILURE_TEXT[state.reason]()}
+        </span>
+      ) : null}
+    </div>
   )
 }
 
@@ -515,6 +802,23 @@ function IssueButtons({
   open: string | null
   setOpen: (key: string | null) => void
 }) {
+  if (row.kind === 'junctions') {
+    const key = `${row.key}#fold`
+    return (
+      <button
+        type="button"
+        data-issue-button
+        aria-label={m.route_overview_issue_button({
+          name: `${label}: ${m.route_overview_severity_info()}, ${m.route_overview_junctions_note_title()}`,
+        })}
+        aria-expanded={open === key}
+        onClick={() => setOpen(open === key ? null : key)}
+        className={`${ICON_BUTTON} text-zinc-400 dark:text-zinc-500`}
+      >
+        <InformationCircleIcon aria-hidden="true" className="size-4" />
+      </button>
+    )
+  }
   return (
     <>
       {row.issues.map((i) => {
@@ -548,16 +852,24 @@ function Row({
   input,
   left,
   select,
+  previewed,
+  loadAndSelect,
   open,
   setOpen,
+  toggleJunctions,
 }: {
   row: OverviewRow
   analysis: RouteAnalysis
   input: RouteInput
   left: number
   select: (id: string) => void
+  /** All its members come from the preview: muted, and a click loads the member before selecting it */
+  previewed: boolean
+  loadAndSelect: (id: string) => void
   open: string | null
   setOpen: (key: string | null) => void
+  /** Opens or closes a fold of junctions */
+  toggleJunctions: (key: string) => void
 }) {
   const { engine } = useShell()
   const ids = idsOf(analysis, row.members)
@@ -608,12 +920,28 @@ function Row({
         {km}
       </span>
       <span className="shrink-0" style={{ width: left - KM_WIDTH - 4 }} aria-hidden="true" />
-      {target ? (
+      {row.kind === 'junctions' ? (
         <button
           type="button"
-          aria-label={m.route_overview_select_row({ name: label })}
-          onClick={() => select(target)}
-          className="flex min-w-0 flex-1 cursor-pointer items-baseline gap-2 rounded text-left text-sm focus-visible:outline-2 focus-visible:outline-blue-500"
+          aria-expanded={row.folded?.open ?? false}
+          onClick={() => toggleJunctions(row.key)}
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-1 rounded text-left text-sm text-zinc-600 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-300"
+        >
+          <ChevronRightIcon
+            aria-hidden="true"
+            className={`size-4 shrink-0 text-zinc-400 ${row.folded?.open ? 'rotate-90' : ''}`}
+          />
+          <span className="min-w-0 truncate">{label}</span>
+        </button>
+      ) : target ? (
+        <button
+          type="button"
+          aria-label={(previewed ? m.route_overview_load_row : m.route_overview_select_row)({
+            name: label,
+          })}
+          data-preview={previewed || undefined}
+          onClick={() => (previewed ? loadAndSelect(target) : select(target))}
+          className={`flex min-w-0 flex-1 cursor-pointer items-baseline gap-2 rounded text-left text-sm focus-visible:outline-2 focus-visible:outline-blue-500 ${previewed ? 'text-zinc-500 dark:text-zinc-400' : ''}`}
         >
           <span className="min-w-0 truncate">{label}</span>
           {role ? (
@@ -621,7 +949,10 @@ function Row({
           ) : null}
         </button>
       ) : (
-        <span className="flex min-w-0 flex-1 items-baseline gap-2 text-sm">
+        <span
+          data-preview={previewed || undefined}
+          className={`flex min-w-0 flex-1 items-baseline gap-2 text-sm ${previewed ? 'text-zinc-500 dark:text-zinc-400' : ''}`}
+        >
           <span className="min-w-0 truncate">{label}</span>
           {role ? (
             <span className="shrink-0 text-[11px] text-zinc-500 dark:text-zinc-400">{role}</span>
@@ -636,6 +967,8 @@ function Row({
 /** The panel of one issue: what it is, what to do, and the two buttons */
 function IssuePopover({
   issue,
+  texts: given,
+  selectLabel,
   flow,
   top,
   canRemove,
@@ -644,6 +977,10 @@ function IssuePopover({
   onClose,
 }: {
   issue: RouteIssue
+  /** Texts of a note that is not one of the analysis's issues (a fold of junctions) */
+  texts?: Texts
+  /** The first button's text, if it does something else than select */
+  selectLabel?: string
   flow: boolean
   top: number
   canRemove: boolean
@@ -681,7 +1018,7 @@ function IssuePopover({
       if (opener?.isConnected && (lost || note?.contains(document.activeElement))) opener.focus()
     }
   }, [])
-  const texts = issueTexts(issue)
+  const texts = given ?? issueTexts(issue)
   return (
     <div
       ref={ref}
@@ -704,7 +1041,7 @@ function IssuePopover({
           onClick={onSelect}
           className="cursor-pointer rounded-md bg-zinc-950/5 px-2 py-1 text-xs font-medium hover:bg-zinc-950/10 focus-visible:outline-2 focus-visible:outline-blue-500 dark:bg-white/10 dark:hover:bg-white/15"
         >
-          {m.route_overview_issue_select()}
+          {selectLabel ?? m.route_overview_issue_select()}
         </button>
         {canRemove ? (
           <button
@@ -732,6 +1069,7 @@ function Diagram({
   layout,
   shown,
   analysis,
+  previewed,
   colour,
   laneX,
   limitY,
@@ -739,6 +1077,7 @@ function Diagram({
   layout: OverviewLayout
   shown: OverviewRow[]
   analysis: RouteAnalysis
+  previewed: ReadonlySet<string>
   colour: string
   laneX: (lane: number) => number
   limitY: number
@@ -781,6 +1120,18 @@ function Diagram({
                 stroke={RED}
                 strokeWidth={2}
                 strokeDasharray="3 3"
+              />
+            ) : fromPreview(analysis, section.members, previewed) ? (
+              // the preview's stretch: dashed and lighter, so the loaded line stands out
+              <line
+                x1={x0}
+                x2={x0}
+                y1={y1}
+                y2={y2}
+                stroke={colour}
+                strokeOpacity={0.5}
+                strokeWidth={3}
+                strokeDasharray="4 3"
               />
             ) : (
               <line x1={x0} x2={x0} y1={y1} y2={y2} stroke={colour} strokeWidth={3} />
@@ -854,6 +1205,14 @@ function RowSymbol({
       )
     case 'junction':
       return <circle cx={x} cy={y} r={4.5} className={hole} stroke={colour} strokeWidth={2} />
+    case 'junctions':
+      // two open circles on top of each other: several junctions in one row
+      return (
+        <>
+          <circle cx={x} cy={y + 3} r={4} className={hole} stroke={colour} strokeWidth={2} />
+          <circle cx={x} cy={y - 3} r={4} className={hole} stroke={colour} strokeWidth={2} />
+        </>
+      )
     case 'gap':
       return (
         <g stroke={RED} strokeWidth={2} strokeLinecap="round">

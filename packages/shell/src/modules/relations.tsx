@@ -6,6 +6,7 @@ import { memberRows, membersHeadline, membershipsOf } from './relations-logic.ts
 import { RelationsOnMap } from './relations-map.tsx'
 import { currentOpenRelationId } from './relations-open-store.ts'
 import { relationOperations } from './relations-operations.ts'
+import { RoutePreviewOnMap } from './route-overview/preview-map.tsx'
 
 // The two sections are drawn inside the inspector, which is itself a chunk of its own. Their code (the member
 // list, the role inputs, "Add to a relation") is another: loaded in idle time after the first view (lazyComponent).
@@ -47,6 +48,8 @@ export function relations() {
       api.register('inspector.section', members)
       api.register('inspector.section', memberships)
       api.register('map.content', { id: 'relations-map', component: RelationsOnMap })
+      // the preview of a long route's missing members, while its overview is open (route-overview/preview-map.tsx)
+      api.register('map.content', { id: 'route-preview-map', component: RoutePreviewOnMap })
       // the edit menu's "Add to relation…" and "Remove from relation" (for the selection, see relations-operations.ts)
       for (const operation of relationOperations(api.editor))
         api.register('edit.operation', operation)

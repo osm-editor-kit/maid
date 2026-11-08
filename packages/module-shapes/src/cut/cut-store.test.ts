@@ -1,9 +1,14 @@
-import { afterEach, describe, expect, it } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { cutActions, cutSnapshot } from './cut-store.ts'
 import type { Loc } from './cut.ts'
 
 const A: Loc = [13.4, 52.5]
 const B: Loc = [13.401, 52.5]
+
+// bun runs all test files in one process and the store is a module singleton: start from the cleared state
+beforeEach(() => {
+  cutActions().end()
+})
 
 afterEach(() => {
   cutActions().end()

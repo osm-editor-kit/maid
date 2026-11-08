@@ -286,9 +286,8 @@ process.exit(
         )
         const before = await tagsOf(to)
         // the editor's keys stay off while the dialog is open: no undo, no delete of the feature it is about
-        const mod = process.platform === 'darwin' ? 'Meta' : 'Control'
-        await key(`${mod}+z`)
-        await key(`${mod}+Backspace`)
+        await key('ControlOrMeta+z')
+        await key('ControlOrMeta+Backspace')
         await settle()
         report(
           "the editor's keys do nothing while the dialog is open",
@@ -304,7 +303,7 @@ process.exit(
           true,
           Object.entries(copied).every(([k, v]) => after[k] === v),
         )
-        await key(process.platform === 'darwin' ? 'ControlOrMeta+z' : 'Control+z')
+        await key('ControlOrMeta+z')
         await settle()
         report('one undo takes the pasted tags off again', before, await tagsOf(to))
       }

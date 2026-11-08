@@ -211,7 +211,7 @@ const code = await runCheck(
     if (await again.count()) {
       await again.click()
       await settle()
-      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z')
+      await page.keyboard.press('ControlOrMeta+z')
       await settle()
       report('undo takes the applied tags back', tagsBefore, await tags(wayId))
     }
@@ -290,7 +290,7 @@ const code = await runCheck(
       created && { tags: created.tags, loc: created.loc },
     )
     report('the create task is done', 1, await count('done'))
-    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z')
+    await page.keyboard.press('ControlOrMeta+z')
     await settle()
     const createdAfterUndo = await page.evaluate(
       (id) => window.__maid.editor.history.staging.graph.hasEntity(id) !== undefined,
@@ -321,7 +321,7 @@ const code = await runCheck(
       [false, 1],
       [await exists(), await count('done')],
     )
-    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z')
+    await page.keyboard.press('ControlOrMeta+z')
     await settle()
     report(
       'undo brings the node back and reopens the task',

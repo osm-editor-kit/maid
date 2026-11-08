@@ -15,6 +15,8 @@ export const DEV_API = 'https://master.apis.dev.openstreetmap.org'
 
 /** The real OSM API. A person logged in there saves to the real map (decided by Tobias on 2026-10-14). */
 export const OSM_API = 'https://api.openstreetmap.org'
+/** Postpass, SQL over the planet (https://github.com/woodpeck/postpass): the route preview, for OpenStreetMap's data only */
+export const POSTPASS_URL = 'https://postpass.geofabrik.de/api/interpreter'
 
 /** Where a changeset of each server is shown */
 export const CHANGESET_URL = {
@@ -63,6 +65,12 @@ export function chooseSource(input: {
 export type Config = {
   scene: string
   apiUrl: string
+  /**
+   * Where the route overview asks for a preview of the members that are not loaded (Postpass, SQL over the planet):
+   * only for OpenStreetMap's data and the mock, whose fixtures answer like Postpass. The development server's ids are
+   * not the planet's, so it has none.
+   */
+  previewUrl: string | undefined
   /** Where the data comes from. A server only for a person: under automation always the mock (AGENTS.md, core rule 1). */
   source: DataSource
   /**
@@ -146,6 +154,12 @@ export function readConfig(
         : source === 'osm'
           ? OSM_API
           : `http://localhost:${PORTS.mockApi}/s/${setup.scene}`,
+    previewUrl:
+      source === 'osm'
+        ? POSTPASS_URL
+        : source === 'mock'
+          ? `http://localhost:${PORTS.mockApi}/postpass/api/interpreter`
+          : undefined,
     display: readDisplay(location.search, choice.shown),
     ui: setup.ui,
     labels: setup.labels,

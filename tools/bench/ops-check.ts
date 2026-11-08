@@ -111,7 +111,9 @@ process.exit(
         },
         { step, building },
       )
-      await page.waitForTimeout(300)
+      // the map has drawn the preview (or taken it away): a fixed wait was too short on a slow machine
+      await page.evaluate(() => window.__bench.settled())
+      await page.waitForTimeout(100)
       return page.evaluate(() => {
         const { map, editor } = window.__maid
         return [

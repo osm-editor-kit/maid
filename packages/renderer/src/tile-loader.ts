@@ -171,8 +171,9 @@ export class TileLoader {
 
   /** A relation load belongs to the selection that asked for it: once that is gone, the load is cancelled */
   keepRelations(selected: readonly string[]) {
+    const keep = new Set(selected)
     for (const [id, entry] of this.relationLoads) {
-      if (!selected.includes(id))
+      if (!keep.has(id))
         entry.controller.abort(new DOMException(`${id} is no longer selected`, 'AbortError'))
     }
   }

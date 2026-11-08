@@ -1,5 +1,6 @@
 import { EyeSlashIcon, PencilIcon } from '@heroicons/react/16/solid'
 import type { Filter, FilterState } from '@osm-editor-kit/maid-filters'
+import { m } from '@osm-editor-kit/maid-i18n'
 import { twJoin } from 'tailwind-merge'
 import { PencilSlashIcon } from './PencilSlashIcon.tsx'
 import { SegmentedControl } from './Toolbar.tsx'
@@ -39,7 +40,7 @@ export function FilterPanel(props: {
   return (
     <div>
       <div className="flex h-9 items-center justify-between gap-3 px-4 text-xs text-zinc-500 dark:text-zinc-400">
-        <span>The first filter that matches a feature decides.</span>
+        <span>{m.ui_filter_first_match()}</span>
         {differing.length > 0 ? (
           <button
             type="button"
@@ -80,8 +81,8 @@ export function FilterPanel(props: {
               {changed ? (
                 <span
                   role="img"
-                  aria-label="Changed from the default"
-                  title="Changed from the default"
+                  aria-label={m.ui_changed_from_default()}
+                  title={m.ui_changed_from_default()}
                   className="-ml-1.5 size-1.5 shrink-0 rounded-full bg-blue-500"
                 />
               ) : null}

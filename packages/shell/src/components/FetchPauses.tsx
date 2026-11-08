@@ -10,6 +10,7 @@ const NAMES: Record<ServiceId, { readonly name: string; readonly verb: 'is' | 'a
   panoramax: { name: 'Panoramax', verb: 'is' },
   data: { name: "A data layer's server", verb: 'is' },
   taginfo: { name: 'Taginfo', verb: 'is' },
+  postpass: { name: 'Postpass', verb: 'is' },
   local: { name: 'The local server', verb: 'is' },
 }
 

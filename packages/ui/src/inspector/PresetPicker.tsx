@@ -5,6 +5,7 @@ import {
   StarIcon as StarSolidIcon,
 } from '@heroicons/react/16/solid'
 import { StarIcon as StarOutlineIcon } from '@heroicons/react/24/outline'
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { Browse, Geometry, Preset } from '@osm-editor-kit/maid-presets'
 import {
   useContext,
@@ -348,7 +349,7 @@ export function PresetPicker(props: {
             <button
               type="button"
               aria-label={`Move ${preset.name} up`}
-              title="Move up"
+              title={m.ui_move_up()}
               disabled={position <= 0}
               onMouseDown={keepFocus}
               onClick={() => onMoveFavourite(preset, rowGeometry, -1)}
@@ -359,7 +360,7 @@ export function PresetPicker(props: {
             <button
               type="button"
               aria-label={`Move ${preset.name} down`}
-              title="Move down"
+              title={m.ui_move_down()}
               disabled={position < 0 || position === ofGeometry.length - 1}
               onMouseDown={keepFocus}
               onClick={() => onMoveFavourite(preset, rowGeometry, 1)}
@@ -505,12 +506,12 @@ export function PresetPicker(props: {
       />
 
       {rows.length === 0 ? (
-        <p className={EMPTY_NOTE}>No feature type found</p>
+        <p className={EMPTY_NOTE}>{m.ui_no_feature_type_found()}</p>
       ) : (
         <div
           id={listId}
           role="listbox"
-          aria-label="Feature types"
+          aria-label={m.ui_feature_types()}
           className="max-h-[26rem] overflow-y-auto"
         >
           {favouriteCount > 0 ? (
