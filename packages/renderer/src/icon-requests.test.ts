@@ -30,8 +30,8 @@ describe('the pin images a tile asks for (the worker rule of iconImagesRequested
     expect(layers.find((l) => l.id === 'point-dot')?.maxzoom).toBe(PIN_ZOOM)
   })
 
-  test('the vertex icons are asked for from the load zoom, not the pins', () => {
-    expect(iconImagesRequestedAt(layers, 16).has('icon-')).toBe(true)
-    expect(iconImagesRequestedAt(layers, 15).has('icon-')).toBe(false)
+  test('the vertex icons are asked for from the vertex zoom (OSM 18), not the pins', () => {
+    expect(iconImagesRequestedAt(layers, 17).has('icon-')).toBe(true)
+    expect(iconImagesRequestedAt(layers, 16).has('icon-')).toBe(false)
   })
 })

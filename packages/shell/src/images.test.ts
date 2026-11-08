@@ -62,11 +62,12 @@ describe('iconImagesRequestedAt (which icons a tile of a zoom asks for)', () => 
     expect(iconImagesRequestedAt(layers, 14).size).toBe(0)
   })
 
-  it('asks for the vertex icons at zoom 16, and for no pins yet', () => {
+  it('asks for the vertex icons from zoom 17 (OSM 18, where vertices start), and for no pins yet', () => {
     // the pin of a hovered or selected point comes from its own small source, so the points source asks for none
-    const at16 = iconImagesRequestedAt(layers, 16)
-    expect(at16.has('pin-')).toBe(false)
-    expect(at16.has('icon-')).toBe(true)
+    expect(iconImagesRequestedAt(layers, 16).has('icon-')).toBe(false)
+    const at17 = iconImagesRequestedAt(layers, 17)
+    expect(at17.has('pin-')).toBe(false)
+    expect(at17.has('icon-')).toBe(true)
   })
 
   it('asks for the pins from zoom 18, where the pin layer starts (it draws from 18, a dot below)', () => {

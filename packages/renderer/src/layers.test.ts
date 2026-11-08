@@ -16,6 +16,7 @@ import {
   SHADOW_PAD,
   SELECT_SOURCES,
   SOURCES,
+  VERTEX_ZOOM,
 } from './layers'
 import { CONE_ZOOM } from './viewfield'
 
@@ -50,8 +51,9 @@ function dataLayers(layers: LayerSpecification[]) {
       l.source !== undefined &&
       DATA_SOURCES.includes(l.source) &&
       !/--(edit|select)$/.test(l.id) &&
-      // the viewfield cones have no selection twin (layers.ts coneLayers)
-      !l.id.startsWith('cone-'),
+      // the viewfield cones and the hint dots of vertices have no selection twin (layers.ts coneLayers, vertex-hint)
+      !l.id.startsWith('cone-') &&
+      l.id !== 'vertex-hint',
   )
 }
 
@@ -61,20 +63,52 @@ const twinOf = (layers: LayerSpecification[], id: string) => {
   return found
 }
 
+/** The vertex layers that keep the load zoom (layers.ts floorOf) */
+const FROM_DETAIL = new Set([
+  'vertex-hint',
+  'highlight-halo-vertex',
+  'edit-halo-vertex',
+  'focus-halo-vertex',
+])
+
 describe('zoom floors of the data layers (MapLibre zoom: OSM minus one)', () => {
-  test('lines, areas and points draw from OSM 12, vertices and symbols from the load zoom', () => {
+  test('lines, areas and points draw from OSM 12, symbols from the load zoom, vertices from OSM 18', () => {
     const data = dataLayers(buildLayers(options))
     expect(data.length).toBeGreaterThan(20)
     for (const layer of data) {
       const floor =
-        layer.type === 'symbol' || layer.source === SOURCES.vertices ? DETAIL_ZOOM : DRAW_ZOOM
+        layer.source === SOURCES.vertices && !FROM_DETAIL.has(layer.id)
+          ? VERTEX_ZOOM
+          : layer.type === 'symbol'
+            ? DETAIL_ZOOM
+            : DRAW_ZOOM
       expect(layer.minzoom).toBeGreaterThanOrEqual(floor)
     }
   })
 
-  test('the floors are OSM 12 and OSM 16', () => {
+  test('below OSM 18 only the nodes with tags are drawn, as small hint dots; the plaques of addresses start there', () => {
+    const layers = buildLayers(options)
+    const layer = (id: string) => {
+      const found = layers.find((l) => l.id === id)
+      if (!found) throw new Error(`no layer ${id}`)
+      return found as LayerSpecification & { paint: Record<string, unknown>; filter?: unknown }
+    }
+    const hint = layer('vertex-hint')
+    expect([hint.minzoom, hint.maxzoom]).toEqual([DETAIL_ZOOM, VERTEX_ZOOM])
+    expect(hint.filter).toEqual(['==', ['get', 't'], 1])
+    expect(layer('vertex').minzoom).toBe(VERTEX_ZOOM)
+    // a selected vertex is drawn whole by the twin of `vertex`, an edited one keeps its mark around the hint
+    expect(layers.some((l) => l.id === 'vertex-hint--select')).toBe(false)
+    expect(layer('edit-halo-vertex').minzoom).toBe(DETAIL_ZOOM)
+    expect(layer('point-address').minzoom).toBe(VERTEX_ZOOM)
+    const radius = layer('point-dot').paint['circle-radius']
+    expect(radius).toEqual(['step', ['zoom'], 1.5, VERTEX_ZOOM, 3])
+  })
+
+  test('the floors are OSM 12, OSM 16 and OSM 18', () => {
     expect(DRAW_ZOOM).toBe(11)
     expect(DETAIL_ZOOM).toBe(15)
+    expect(VERTEX_ZOOM).toBe(17)
   })
 
   test('a layer keeps its own minzoom where that is higher (oneway arrows stay at OSM 16)', () => {
@@ -121,9 +155,9 @@ describe('the selection below the floor', () => {
     expect(dot.maxzoom).toBe(DRAW_ZOOM)
   })
 
-  test('the twin of an icon on a vertex stops at the load zoom', () => {
+  test('the twin of an icon on a vertex stops at the vertex floor', () => {
     const layers = buildLayers(options)
-    expect(twinOf(layers, 'vertex-icon').maxzoom).toBe(DETAIL_ZOOM)
+    expect(twinOf(layers, 'vertex-icon').maxzoom).toBe(VERTEX_ZOOM)
   })
 
   test('the twin of an edited layer is on the same selection source, not the edit one', () => {
