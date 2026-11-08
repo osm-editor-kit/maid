@@ -4,6 +4,7 @@
  */
 import { NEIGHBOUR_RANGE } from '@osm-editor-kit/maid-levels'
 import type {
+  CircleLayerSpecification,
   ExpressionSpecification,
   LayerSpecification,
   SymbolLayerSpecification,
@@ -99,9 +100,9 @@ export const DRAW_ZOOM = 11
 export const DETAIL_ZOOM = 15
 /**
  * MapLibre zoom from which the nodes on lines and areas (vertices) are drawn: OSM 18. Further out the map is for
- * finding your way, and the lines and areas already show the shapes; a vertex is drawn there only when its way is
- * selected (the selection's twin). Standalone points keep DETAIL_ZOOM, since nothing else shows them (Tobias,
- * 2026-11-08, issue 6).
+ * finding your way, and the lines and areas already show the shapes: a node with tags is a small hint dot there
+ * (vertex-hint), a node without tags is drawn only when its way is selected (the selection's twin). Points are hint
+ * dots there too, and address plaques start here (ADR 0014).
  */
 export const VERTEX_ZOOM = 17
 /** MapLibre's largest zoom (OSM 24) */
@@ -294,9 +295,9 @@ export const PIN_ZOOM = 18
 export const ADDRESS_PLAQUE = 'addr-plaque'
 
 /**
- * The layers of the map, bottom to top. The data layers (the OSM sources) draw from their floor (DRAW_ZOOM, or
- * DETAIL_ZOOM for symbols, VERTEX_ZOOM for vertices) and not below it: there only the selection is drawn, by the twin on the
- * selection source. The highlight layers (the selection's shape, the tools) are never floored.
+ * The layers of the map, bottom to top. The data layers (the OSM sources) draw from their floor (DRAW_ZOOM,
+ * DETAIL_ZOOM for symbols, VERTEX_ZOOM for vertices) and not below it: there only the selection is drawn, by the twin
+ * on the selection source. The highlight layers (the selection's shape, the tools) are never floored.
  */
 export function buildLayers(options: LayerOptions) {
   const selectionOnly = options.selectionOnly === true
@@ -404,10 +405,24 @@ function coneLayers(): LayerSpecification[] {
   return out
 }
 
+/**
+ * Below VERTEX_ZOOM (OSM 18) the map is for finding your way: a point, or a node with tags on a line, is only a hint
+ * that something is there, a small grey dot without outline (ADR 0014).
+ */
+const HINT_RADIUS = 1.5
+const HINT_COLOUR = '#ccc'
+/** A point's dot: the hint below VERTEX_ZOOM, the dot to work with from there on */
+const POINT_DOT_PAINT = {
+  'circle-radius': ['step', ['zoom'], HINT_RADIUS, VERTEX_ZOOM, 3],
+  'circle-color': ['step', ['zoom'], HINT_COLOUR, VERTEX_ZOOM, '#fff'],
+  'circle-stroke-color': '#444',
+  'circle-stroke-width': ['step', ['zoom'], 0, VERTEX_ZOOM, 1],
+} satisfies CircleLayerSpecification['paint']
+
 /** The MapLibre zoom from which a data layer draws: vertices from OSM 18, symbols at the load zoom, the rest from OSM 12 */
 function floorOf(layer: LayerSpecification) {
   const source = 'source' in layer ? layer.source : undefined
-  if (source === SOURCES.vertices) return VERTEX_ZOOM
+  if (source === SOURCES.vertices) return layer.id === 'vertex-hint' ? DETAIL_ZOOM : VERTEX_ZOOM
   return layer.type === 'symbol' ? DETAIL_ZOOM : DRAW_ZOOM
 }
 
@@ -943,6 +958,15 @@ function buildMainLayers(options: LayerOptions) {
         'circle-opacity': 0.8,
       },
     },
+    // below VERTEX_ZOOM a node with tags is a hint dot; one without tags (a junction, the end of a way) is not drawn
+    {
+      id: 'vertex-hint',
+      type: 'circle',
+      source: SOURCES.vertices,
+      filter: ['==', ['get', 't'], 1],
+      maxzoom: VERTEX_ZOOM,
+      paint: { 'circle-radius': HINT_RADIUS, 'circle-color': HINT_COLOUR },
+    },
     {
       id: 'vertex',
       type: 'circle',
@@ -1179,18 +1203,15 @@ function buildMainLayers(options: LayerOptions) {
     type: 'circle',
     source: SOURCES.points,
     filter: ['has', 'addr'],
-    paint: {
-      'circle-radius': 3,
-      'circle-color': '#fff',
-      'circle-stroke-color': '#444',
-      'circle-stroke-width': 1,
-    },
+    paint: POINT_DOT_PAINT,
   })
+  // the plaques from OSM 18, below that the address is the hint dot above
   layers.push({
     id: 'point-address',
     type: 'symbol',
     source: SOURCES.points,
     filter: plaque,
+    minzoom: VERTEX_ZOOM,
     layout: {
       ...plaqueLayout,
       // neither is optional: the icon and the text are placed together or not at all
@@ -1222,12 +1243,7 @@ function buildMainLayers(options: LayerOptions) {
     ...(options.icons && options.pins !== 'all'
       ? { maxzoom: PIN_ZOOM }
       : { maxzoom: options.icons ? 0.1 : 24 }),
-    paint: {
-      'circle-radius': 3,
-      'circle-color': '#fff',
-      'circle-stroke-color': '#444',
-      'circle-stroke-width': 1,
-    },
+    paint: POINT_DOT_PAINT,
   })
   if (options.icons) {
     layers.push({

@@ -68,13 +68,29 @@ describe('zoom floors of the data layers (MapLibre zoom: OSM minus one)', () => 
     expect(data.length).toBeGreaterThan(20)
     for (const layer of data) {
       const floor =
-        layer.source === SOURCES.vertices
+        layer.source === SOURCES.vertices && layer.id !== 'vertex-hint'
           ? VERTEX_ZOOM
           : layer.type === 'symbol'
             ? DETAIL_ZOOM
             : DRAW_ZOOM
       expect(layer.minzoom).toBeGreaterThanOrEqual(floor)
     }
+  })
+
+  test('below OSM 18 only the nodes with tags are drawn, as small hint dots; the plaques of addresses start there', () => {
+    const layers = buildLayers(options)
+    const layer = (id: string) => {
+      const found = layers.find((l) => l.id === id)
+      if (!found) throw new Error(`no layer ${id}`)
+      return found as LayerSpecification & { paint: Record<string, unknown>; filter?: unknown }
+    }
+    const hint = layer('vertex-hint')
+    expect([hint.minzoom, hint.maxzoom]).toEqual([DETAIL_ZOOM, VERTEX_ZOOM])
+    expect(hint.filter).toEqual(['==', ['get', 't'], 1])
+    expect(layer('vertex').minzoom).toBe(VERTEX_ZOOM)
+    expect(layer('point-address').minzoom).toBe(VERTEX_ZOOM)
+    const radius = layer('point-dot').paint['circle-radius']
+    expect(radius).toEqual(['step', ['zoom'], 1.5, VERTEX_ZOOM, 3])
   })
 
   test('the floors are OSM 12, OSM 16 and OSM 18', () => {

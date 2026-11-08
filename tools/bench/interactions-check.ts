@@ -1237,9 +1237,21 @@ failed += await runCheck(
         const way = id.startsWith('w') && engine.data.way(id)
         if (!way || engine.data.wayMultipolygons.has(id)) continue
         if (way.tags.building && buildings.length < 2 && !buildings.some((b) => b.id === id)) {
+          // corners well apart, so a drag from one does not pick its neighbour: the untagged corners of buildings
+          // are not drawn, so `alone` does not see them
+          const pts = way.nodes.map(at)
+          const roomy = pts.every((p: P, i: number) =>
+            pts.every(
+              (q: P, j: number) =>
+                j <= i || way.nodes[i] === way.nodes[j] || Math.hypot(p.x - q.x, p.y - q.y) > 24,
+            ),
+          )
           const corner = way.nodes.find(
             (n: string) =>
-              (engine.data.nodeUses.get(n) ?? 0) === 1 && inView(at(n)) && alone(at(n), [id, n]),
+              (engine.data.nodeUses.get(n) ?? 0) === 1 &&
+              inView(at(n)) &&
+              alone(at(n), [id, n]) &&
+              roomy,
           )
           const a = at(way.nodes[0]!)
           const b = at(way.nodes[1]!)
@@ -1586,7 +1598,14 @@ failed += await runCheck(
       for (let y = 100; y < box.height - 100; y += 6)
         for (let x = 100; x < box.width - 100; x += 6) {
           const ids: string[] = engine.pickAll({ x, y }, layers)
-          if (!place && ids.length >= 2) place = { x, y, ids }
+          // away from the nodes of its ways: a selected way shows them, and they would join the stack
+          const nearNode = ids.some((id) =>
+            (engine.data.way(id)?.nodes ?? []).some((n: string) => {
+              const p = map.project(engine.data.node(n)!.loc!)
+              return Math.hypot(p.x - x, p.y - y) < 16
+            }),
+          )
+          if (!place && ids.length >= 2 && !nearNode) place = { x, y, ids }
           if (!free && ids.length === 0) free = { x, y }
           if (place && free) return { place, free }
         }
