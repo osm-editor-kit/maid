@@ -75,6 +75,7 @@
   "osmchange_type_relation": "Relación",
   "osmchange_show_label": "Mostrar {name} en el mapa",
   "osmchange_changeset_comment": "Cambios de {from}, fusionados con el mapa actual en Maid",
+  "osmchange_changeset_comment_with": "Cambios de {from}, fusionados con el mapa actual en Maid. Comentario del archivo: {comment}",
   "osmchange_intro_clear": "Los cambios sin conflictos ya están en el editor, como un solo paso para deshacer.",
   "osmchange_intro_decide": [
     {

@@ -131,7 +131,7 @@ merging into `ExtensionPoints` of `@osm-editor-kit/maid-core`, in its `src/exten
 | `dock.view` | ui | A tab in the bottom dock | way table |
 | `topbar.panel` | ui | A flyout behind an icon in the top bar | imagery |
 | `account.item` | ui | An entry in the account menu, for a rarely needed job | osmchange |
-| `changeset.tags` | ui | Tags of a module on the changeset of an upload, and a comment the save form starts with | osmchange |
+| `changeset.tags` | ui | Tags of a module on the changeset of an upload, and a comment and a source the save form starts with | osmchange |
 | `note.selection` | module-notes | What the notes panel shows for a selected note | notes |
 
 `bun run check-config` loads each app's config without a browser and checks the ids and the ports, that each

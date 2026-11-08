@@ -77,7 +77,7 @@ process.exit(
 
     /**
      * Open ground for a rectangle drawn with `depth` px on the side `depthPoint` gives: both ends of the wall and both far
-     * corners are open. Open means no line, point or label within 14 px (a fill does not count: only outlines are
+     * corners are open. Open means no line, point or label within 14 px (a fill, a halo and the partial fill do not count: only outlines are
      * snapped to), and no panel of the page over the map. A far corner that lands on a node would be reused, so the
      * whole footprint is checked, not only the wall. Returns up to `count` walls, each end at least `gap` px from
      * `avoid`. `fixedA` puts the first end at a given place (a junction) and only the rest is searched.
@@ -91,7 +91,7 @@ process.exit(
     ) =>
       page.evaluate(
         ({ count, depth, avoid, fixedA, gap }) => {
-          const { map } = window.__maid
+          const { map, engine } = window.__maid
           const canvas = map.getCanvas()
           const box = canvas.getBoundingClientRect()
           const open = (x: number, y: number) => {
@@ -102,18 +102,34 @@ process.exit(
               [x - 14, y - 14],
               [x + 14, y + 14],
             ])
-            return hits.every((f: any) => f.layer.type === 'fill')
+            // the halos of lines and areas draw nothing until a feature is hovered, selected or related, and the
+            // partial fill is a fill; a vertex halo stands for a node, which the click would snap to
+            return hits.every(
+              (f: any) =>
+                f.layer.type === 'fill' ||
+                (f.layer.type === 'line' && /halo|^area-fill/.test(f.layer.id)),
+            )
+          }
+          // the nodes of the data in view, on the screen: the map draws a vertex only where it is shown (a junction,
+          // a hovered or selected way), but a far corner on any node reuses it
+          const nodes: XY[] = []
+          for (const f of map.queryRenderedFeatures()) {
+            const id = String(f.id ?? '')
+            const ids = id.startsWith('w')
+              ? (engine.data.way(id)?.nodes ?? [])
+              : id.startsWith('n')
+                ? [id]
+                : []
+            for (const nodeId of ids) {
+              const loc = engine.data.node(nodeId)?.loc
+              if (loc) nodes.push(map.project([loc[0], loc[1]]))
+            }
           }
           // a far corner is only clicked on the screen, never snapped to a line: it needs no node near it, not open ground
           const clearOfNodes = (x: number, y: number) => {
             if (x < 40 || y < 40 || x > box.width - 40 || y > box.height - 40) return false
             if (document.elementFromPoint(box.left + x, box.top + y) !== canvas) return false
-            return !map
-              .queryRenderedFeatures([
-                [x - 12, y - 12],
-                [x + 12, y + 12],
-              ])
-              .some((f: any) => String(f.id ?? '').startsWith('n'))
+            return !nodes.some((p) => Math.abs(p.x - x) < 12 && Math.abs(p.y - y) < 12)
           }
           const far = (p: XY, q: XY) => Math.hypot(p.x - q.x, p.y - q.y) >= gap
           const used: XY[] = [...avoid]

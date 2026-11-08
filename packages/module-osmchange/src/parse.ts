@@ -141,7 +141,18 @@ export function parseOsmChange(text: string): ParseResult {
     if (root.name !== 'osmChange') fail('osmchange_error_not_osmchange')
     const changes: FileChange[] = []
     const seen = new Set<string>()
+    let changesetTags: Record<string, string> | undefined
     for (const block of root.children) {
+      // the changeset's tags, as osm-api writes them and iD's draft import reads them: `<changeset><tag k v/></changeset>`
+      if (block.name === 'changeset') {
+        changesetTags ??= {}
+        for (const tag of block.children) {
+          const { k, v } = tag.attributes
+          if (tag.name === 'tag' && k !== undefined && v !== undefined && v.trim() !== '')
+            changesetTags[k] = v
+        }
+        continue
+      }
       if (!ACTIONS.has(block.name)) fail('osmchange_error_element', { name: block.name })
       const action = block.name as ChangeAction
       const ifUnused = action === 'delete' && block.attributes['if-unused'] !== undefined
@@ -168,7 +179,8 @@ export function parseOsmChange(text: string): ParseResult {
       }
     }
     const generator = root.attributes.generator
-    return { ok: true, file: { ...(generator ? { generator } : {}), changes } }
+    const tags = changesetTags && Object.keys(changesetTags).length > 0 ? { changesetTags } : {}
+    return { ok: true, file: { ...(generator ? { generator } : {}), ...tags, changes } }
   } catch (error) {
     if (error instanceof ParseError) return { ok: false, error: error.error }
     throw error

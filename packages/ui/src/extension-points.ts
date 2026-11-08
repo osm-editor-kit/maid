@@ -122,6 +122,8 @@ export type ChangesetContribution = {
   tags?: () => Readonly<Record<string, string>>
   /** The comment to start with when the form's comment is empty; undefined for none */
   comment?: () => string | undefined
+  /** The source to start with when the form's source is empty; undefined for none */
+  source?: () => string | undefined
 }
 
 /**

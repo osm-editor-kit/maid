@@ -64,12 +64,18 @@ export function osmChange(options: OsmChangeOptions) {
           const generator = imported()?.generator
           return generator ? { [CREATED_BY_KEY]: generator } : {}
         },
+        // the file's own comment follows Maid's, with a prefix; its source is taken when the form has none (Tobias,
+        // 2026-11-04)
         comment: () => {
           const file = imported()
-          return file
-            ? m.osmchange_changeset_comment({ from: file.generator ?? file.fileName })
-            : undefined
+          if (!file) return undefined
+          const from = file.generator ?? file.fileName
+          const comment = file.changesetTags?.comment?.trim()
+          return comment
+            ? m.osmchange_changeset_comment_with({ from, comment })
+            : m.osmchange_changeset_comment({ from })
         },
+        source: () => imported()?.changesetTags?.source?.trim() || undefined,
       })
       return () => store.getState().actions.close()
     },

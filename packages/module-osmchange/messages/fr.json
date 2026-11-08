@@ -75,6 +75,7 @@
   "osmchange_type_relation": "Relation",
   "osmchange_show_label": "Afficher {name} sur la carte",
   "osmchange_changeset_comment": "Modifications de {from}, fusionnées avec la carte actuelle dans Maid",
+  "osmchange_changeset_comment_with": "Modifications de {from}, fusionnées avec la carte actuelle dans Maid. Commentaire du fichier : {comment}",
   "osmchange_intro_clear": "Les modifications sans conflit sont déjà dans l'éditeur, en une étape d'annulation.",
   "osmchange_intro_decide": [
     {

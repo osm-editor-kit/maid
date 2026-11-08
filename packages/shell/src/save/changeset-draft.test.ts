@@ -119,14 +119,26 @@ describe('prefillDraft', () => {
   })
 
   it('takes a comment a module suggests only when nothing else gives one', () => {
-    expect(prefillDraft(undefined, {}, NOW, 'Changes from Go Map!!').comment).toBe(
+    expect(prefillDraft(undefined, {}, NOW, { comment: 'Changes from Go Map!!' }).comment).toBe(
       'Changes from Go Map!!',
     )
     expect(
-      prefillDraft(undefined, { comment: 'linked' }, NOW, 'Changes from Go Map!!').comment,
+      prefillDraft(undefined, { comment: 'linked' }, NOW, { comment: 'Changes from Go Map!!' })
+        .comment,
     ).toBe('linked')
     const stored: StoredDraft = { comment: 'typed', commentDate: NOW - HOUR }
-    expect(prefillDraft(stored, {}, NOW, 'Changes from Go Map!!').comment).toBe('typed')
+    expect(prefillDraft(stored, {}, NOW, { comment: 'Changes from Go Map!!' }).comment).toBe(
+      'typed',
+    )
+  })
+
+  it('takes a source a module suggests only when nothing else gives one', () => {
+    expect(prefillDraft(undefined, {}, NOW, { source: 'survey' }).source).toBe('survey')
+    expect(prefillDraft(undefined, { source: 'linked' }, NOW, { source: 'survey' }).source).toBe(
+      'linked',
+    )
+    const stored: StoredDraft = { comment: '', source: 'typed', commentDate: NOW - HOUR }
+    expect(prefillDraft(stored, {}, NOW, { source: 'survey' }).source).toBe('typed')
   })
 
   it('drops a stored draft older than two days', () => {
