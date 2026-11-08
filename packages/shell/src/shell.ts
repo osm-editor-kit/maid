@@ -13,6 +13,9 @@ import { migrateIdHash } from './url/id-url'
 import { shellUrlParamNames } from './url/params'
 import { startShown } from './url/shown'
 
+/** The central Maid's pinned issue on what its beta means (Tobias, 2026-11-08) */
+export const BETA_URL = 'https://github.com/osm-editor-kit/maid/issues/9'
+
 /** The app's name and look, see `AppConfig.brand` */
 export type AppBrand = {
   /** The short name, for example "Maid Parking": the tab's title and the changeset's `created_by` */
@@ -45,6 +48,11 @@ export type AppConfig = {
    * their URLs. Without a logo the top bar shows the name.
    */
   brand?: AppBrand
+  /**
+   * Where the "Beta" flag next to the logo links: an issue that says what the beta means. Default: the central
+   * Maid's pinned issue ([BETA_URL]); `false` hides the flag.
+   */
+  beta?: string | false
   /**
    * The app's version, as in its package.json: `created_by` of every changeset is `<brand.name> <version>`,
    * e.g. `Maid Parking 0.1.0`. Each app passes its own; the value is checked when a changeset is uploaded.
@@ -144,6 +152,7 @@ export function createShell(app: AppConfig) {
   return {
     id,
     brand: app.brand ?? { name: 'Maid', detail: 'MapLibre iD Editor' },
+    beta: app.beta === false ? undefined : (app.beta ?? BETA_URL),
     version: app.version,
     config,
     editor,

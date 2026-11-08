@@ -10,18 +10,18 @@ import { Tooltip, TooltipGroup } from './Tooltip.tsx'
  * 2. Less room: the centre moves left, next to the start. This is not a breakpoint: the first grid column is
  *    `minmax(max-content, sidebar)`, and a grid gives such a track the free space up to its maximum before it gives
  *    the rest to the centre, so the centre slides smoothly from the map edge to the logo and never jumps.
- * 3. Below 76rem the labels of the draw buttons go (`ToolButton`'s `collapseLabel`).
- * 4. Below 67rem the gaps between the buttons are 30% smaller.
+ * 3. Below 79rem the labels of the draw buttons go (`ToolButton`'s `collapseLabel`).
+ * 4. Below 70rem the gaps between the buttons are 30% smaller.
  * 5. Two rows only when the start, the centre and the end no longer fit in one row with the centre next to the start
  *    (measured, `useOneRow`): the start and the end in the first row, the centre in the second. An area wider than
  *    its row scrolls sideways. The steps 3 and 4 stay container queries.
  *
  * Measured with the German texts, the longest, in the parking app (the most panel buttons), logged in with a
- * long name (px; padding 24 + start 34 + 16 + centre + 16 + end):
+ * long name (px; padding 24 + start 81 (logo 34, Beta flag 41, gap 6) + 16 + centre + 16 + end):
  * - full labels, normal gaps: centre 452 (draw 369, undo 71, gap 12), end 659 (8 icons of 36, Save 119, account up to 180,
- *   gap 8): 1201 needed, so step 3 begins at 1216 (76rem), 15 px of room for French "Enregistrer";
- * - no labels: centre 292, 1041 needed, so step 4 begins at 1072 (67rem);
- * - compact (gaps 8.4 and 5.6): centre 289, end 638: 1017 needed, so in this case the rows begin at about 1040.
+ *   gap 8): 1248 needed, so step 3 begins at 1264 (79rem), 16 px of room for French "Enregistrer";
+ * - no labels: centre 292, 1088 needed, so step 4 begins at 1120 (70rem);
+ * - compact (gaps 8.4 and 5.6): centre 289, end 638: 1064 needed, so in this case the rows begin at about 1090.
  * Each step begins where the one before stops fitting. Logged out the end is 188 px shorter (Save is hidden), and an
  * app with fewer panel buttons is shorter too: the rows are measured, so they begin later there.
  * Change a text or add a button and measure again.
@@ -118,9 +118,9 @@ function contentWidth(area: HTMLElement) {
   return width
 }
 
-/** The gaps between the groups of the centre (12px) and between the buttons of the end (8px), 30% smaller below 67rem */
-const CENTER_GAP = 'gap-3 @max-[67rem]:gap-[0.525rem]'
-const END_GAP = 'gap-2 @max-[67rem]:gap-[0.35rem]'
+/** The gaps between the groups of the centre (12px) and between the buttons of the end (8px), 30% smaller below 70rem */
+const CENTER_GAP = 'gap-3 @max-[70rem]:gap-[0.525rem]'
+const END_GAP = 'gap-2 @max-[70rem]:gap-[0.35rem]'
 
 /**
  * An area that scrolls sideways when its row is too narrow, without a scrollbar. The areas align with `safe`, which
@@ -135,24 +135,50 @@ const SCROLL_X =
 /**
  * The app at the top left. With a logo only the logo shows, and its name and detail appear on hover, as the
  * buttons' labels do (the `img` carries the name for screen readers). Without a logo: the name, and the quieter
- * detail after it from `sm` up.
+ * detail after it from `sm` up. `beta` adds a small flag after it that links to what the beta means.
  */
-export function Brand(props: { name: string; detail?: string; logo?: string }) {
+export function Brand(props: {
+  name: string
+  detail?: string
+  logo?: string
+  beta?: { label: string; description: string; href: string }
+}) {
+  const flag = props.beta ? <BetaFlag {...props.beta} /> : null
   if (props.logo) {
     return (
-      <Tooltip label={props.name} description={props.detail} placement="bottom">
-        <img src={props.logo} alt={props.name} className="h-8 w-auto shrink-0" />
-      </Tooltip>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <Tooltip label={props.name} description={props.detail} placement="bottom">
+          <img src={props.logo} alt={props.name} className="h-8 w-auto shrink-0" />
+        </Tooltip>
+        {flag}
+      </div>
     )
   }
   return (
     <div className="flex min-w-0 items-baseline gap-2">
       <span className="shrink-0 font-semibold">{props.name}</span>
+      {flag}
       {props.detail ? (
         <span className="hidden truncate text-zinc-500 sm:block dark:text-zinc-400">
           {props.detail}
         </span>
       ) : null}
     </div>
+  )
+}
+
+/** The "Beta" flag: a small pill that opens the page on what the beta means in a new tab */
+function BetaFlag(props: { label: string; description: string; href: string }) {
+  return (
+    <Tooltip label={props.label} description={props.description} placement="bottom">
+      <a
+        href={props.href}
+        target="_blank"
+        rel="noreferrer"
+        className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[0.6875rem] leading-none font-semibold tracking-wide text-amber-900 uppercase ring-1 ring-amber-600/20 ring-inset hover:bg-amber-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 dark:bg-amber-400/15 dark:text-amber-300 dark:ring-amber-400/25 dark:hover:bg-amber-400/25"
+      >
+        {props.label}
+      </a>
+    </Tooltip>
   )
 }

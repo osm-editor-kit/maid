@@ -145,12 +145,12 @@ export function SegmentedControl<T extends string>(props: {
 }
 
 /**
- * Below 76rem of the top bar (a container query on `TopBar`'s header) a button with `collapseLabel` shows only its
+ * Below 79rem of the top bar (a container query on `TopBar`'s header) a button with `collapseLabel` shows only its
  * icon: the label stays for screen readers. `!` wins over the padding and width above without relying on the order of
- * the generated rules. Keep 76rem in step with the steps in TopBar.tsx.
+ * the generated rules. Keep 79rem in step with the steps in TopBar.tsx.
  */
-const LABEL_GONE_BUTTON = '@max-[76rem]:w-9! @max-[76rem]:px-0! touch:@max-[76rem]:w-10!'
-const LABEL_GONE_TEXT = '@max-[76rem]:sr-only'
+const LABEL_GONE_BUTTON = '@max-[79rem]:w-9! @max-[79rem]:px-0! touch:@max-[79rem]:w-10!'
+const LABEL_GONE_TEXT = '@max-[79rem]:sr-only'
 
 /** The look of a `ToolButton`, for a button that cannot be one (the trigger of a flyout) */
 export function toolButtonClass(

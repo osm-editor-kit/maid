@@ -1,3 +1,4 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import { Brand, Shell, Toaster, TopBar } from '@osm-editor-kit/maid-ui'
 import { NuqsAdapter } from 'nuqs/adapters/react'
 import { useState } from 'react'
@@ -26,7 +27,7 @@ import { useOpenRelationUrl } from './url/open-relation'
 import { useShortcuts } from './useShortcuts'
 
 function Editor() {
-  const { brand, config } = useShell()
+  const { brand, beta, config } = useShell()
   useShortcuts()
   useDisplayUrl()
   // On a phone the inspector is a sheet: it opens when something is selected and can be closed
@@ -50,7 +51,16 @@ function Editor() {
     <Shell
       topBar={
         <TopBar
-          start={<Brand {...brand} />}
+          start={
+            <Brand
+              {...brand}
+              beta={
+                beta
+                  ? { label: m.brand_beta(), description: m.brand_beta_description(), href: beta }
+                  : undefined
+              }
+            />
+          }
           center={
             <>
               <ModeButtons />
