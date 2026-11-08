@@ -19,6 +19,8 @@ so the shared corners of row houses and garages were drawn too; iD does not.
 - **What would otherwise not be seen is a hint**: a standalone point, an address, or a node with tags on a way is a
   small grey dot without outline (radius 1.5) below OSM 18. You do not work with it there, you only see that
   something is there. House number plaques start at OSM 18.
+- **The marks around a vertex keep OSM 16**: hover and selection, the edit highlight and a relation's focus are drawn
+  around a hint dot or a selected node as before.
 - **Junctions as iD** (`isConnected`): a node shared by several ways is a junction only when one of them is a line with
   tags. Corners that only buildings or other areas share are not drawn at any zoom.
 

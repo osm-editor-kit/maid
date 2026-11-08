@@ -1246,13 +1246,12 @@ failed += await runCheck(
                 j <= i || way.nodes[i] === way.nodes[j] || Math.hypot(p.x - q.x, p.y - q.y) > 24,
             ),
           )
-          const corner = way.nodes.find(
-            (n: string) =>
-              (engine.data.nodeUses.get(n) ?? 0) === 1 &&
-              inView(at(n)) &&
-              alone(at(n), [id, n]) &&
-              roomy,
-          )
+          const corner =
+            roomy &&
+            way.nodes.find(
+              (n: string) =>
+                (engine.data.nodeUses.get(n) ?? 0) === 1 && inView(at(n)) && alone(at(n), [id, n]),
+            )
           const a = at(way.nodes[0]!)
           const b = at(way.nodes[1]!)
           const edge = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
@@ -1599,13 +1598,16 @@ failed += await runCheck(
         for (let x = 100; x < box.width - 100; x += 6) {
           const ids: string[] = engine.pickAll({ x, y }, layers)
           // away from the nodes of its ways: a selected way shows them, and they would join the stack
-          const nearNode = ids.some((id) =>
-            (engine.data.way(id)?.nodes ?? []).some((n: string) => {
-              const p = map.project(engine.data.node(n)!.loc!)
-              return Math.hypot(p.x - x, p.y - y) < 16
-            }),
-          )
-          if (!place && ids.length >= 2 && !nearNode) place = { x, y, ids }
+          const nearNode = () =>
+            ids.some((id) =>
+              (engine.data.way(id)?.nodes ?? []).some((n: string) => {
+                const loc = engine.data.node(n)?.loc
+                if (!loc) return false
+                const p = map.project(loc)
+                return Math.hypot(p.x - x, p.y - y) < 16
+              }),
+            )
+          if (!place && ids.length >= 2 && !nearNode()) place = { x, y, ids }
           if (!free && ids.length === 0) free = { x, y }
           if (place && free) return { place, free }
         }

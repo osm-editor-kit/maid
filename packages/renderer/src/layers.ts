@@ -363,7 +363,8 @@ export function buildLayers(options: LayerOptions) {
       )
     } else out.push(shown)
     // Cones (coneLayers) are drawn above the data floor only. Nothing is kept below it, so a cone has no selection twin.
-    if (!layer.id.startsWith('cone-'))
+    // Nor has the hint dot of a vertex: a selected vertex is drawn whole by the twin of `vertex`.
+    if (!layer.id.startsWith('cone-') && layer.id !== 'vertex-hint')
       out.push(selectionTwin(layer, source, floor, selectionOnly, twinsShown))
   }
   return out
@@ -419,10 +420,20 @@ const POINT_DOT_PAINT = {
   'circle-stroke-width': ['step', ['zoom'], 0, VERTEX_ZOOM, 1],
 } satisfies CircleLayerSpecification['paint']
 
+/** The vertex layers that draw from DETAIL_ZOOM, not VERTEX_ZOOM (floorOf) */
+const FROM_DETAIL = new Set([
+  'vertex-hint',
+  'highlight-halo-vertex',
+  'edit-halo-vertex',
+  'focus-halo-vertex',
+])
+
 /** The MapLibre zoom from which a data layer draws: vertices from OSM 18, symbols at the load zoom, the rest from OSM 12 */
 function floorOf(layer: LayerSpecification) {
   const source = 'source' in layer ? layer.source : undefined
-  if (source === SOURCES.vertices) return layer.id === 'vertex-hint' ? DETAIL_ZOOM : VERTEX_ZOOM
+  // the hint dots and the marks around a vertex (hover and selection, an edit, a relation's focus) keep the load zoom:
+  // they are drawn only for a vertex that is hinted, selected, edited or in focus
+  if (source === SOURCES.vertices) return FROM_DETAIL.has(layer.id) ? DETAIL_ZOOM : VERTEX_ZOOM
   return layer.type === 'symbol' ? DETAIL_ZOOM : DRAW_ZOOM
 }
 

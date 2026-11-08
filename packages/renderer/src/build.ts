@@ -890,7 +890,7 @@ export class FeatureBuilder {
         continue
       }
       // iD only draws vertices that matter while nothing is selected: tagged, junctions, way ends
-      const shared = uses > 1 && isJunction(data, node.id)
+      const shared = isJunction(data, node.id)
       if (!tagged && !shared && !data.endpoints.has(node.id)) continue
       if (this.isVertexFiltered(id)) continue
       const state = `${tagged ? 1 : 0}${shared ? 1 : 0}`
@@ -921,8 +921,10 @@ export class FeatureBuilder {
  * way passes it twice. Two buildings that share a wall do not make one, so their corners are not drawn.
  */
 function isJunction(data: OsmData, nodeId: string) {
-  const ways = new Set(data.nodeWays.get(nodeId))
-  if (ways.size < 2) return (data.nodeUses.get(nodeId) ?? 0) > 1
+  // nodeWays lists a way once for each time it passes the node
+  const ways = data.nodeWays.get(nodeId) ?? []
+  const first = ways[0]
+  if (ways.every((wayId) => wayId === first)) return ways.length > 1
   for (const wayId of ways) {
     const way = data.way(wayId)
     if (!way || !hasInterestingTags(way.tags)) continue
