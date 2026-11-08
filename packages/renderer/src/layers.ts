@@ -97,6 +97,13 @@ export const DRAW_ZOOM = 11
  * first thing to measure at OSM 12 to 15 (see the notes in docs/research/zoom-study.md).
  */
 export const DETAIL_ZOOM = 15
+/**
+ * MapLibre zoom from which the nodes on lines and areas (vertices) are drawn: OSM 18. Further out the map is for
+ * finding your way, and the lines and areas already show the shapes; a vertex is drawn there only when its way is
+ * selected (the selection's twin). Standalone points keep DETAIL_ZOOM, since nothing else shows them (Tobias,
+ * 2026-11-08, issue 6).
+ */
+export const VERTEX_ZOOM = 17
 /** MapLibre's largest zoom (OSM 24) */
 const MAX_ZOOM = 24
 
@@ -288,7 +295,7 @@ export const ADDRESS_PLAQUE = 'addr-plaque'
 
 /**
  * The layers of the map, bottom to top. The data layers (the OSM sources) draw from their floor (DRAW_ZOOM, or
- * DETAIL_ZOOM for vertices and symbols) and not below it: there only the selection is drawn, by the twin on the
+ * DETAIL_ZOOM for symbols, VERTEX_ZOOM for vertices) and not below it: there only the selection is drawn, by the twin on the
  * selection source. The highlight layers (the selection's shape, the tools) are never floored.
  */
 export function buildLayers(options: LayerOptions) {
@@ -397,10 +404,11 @@ function coneLayers(): LayerSpecification[] {
   return out
 }
 
-/** The MapLibre zoom from which a data layer draws: vertices and symbols at the load zoom, the rest from OSM 12 */
+/** The MapLibre zoom from which a data layer draws: vertices from OSM 18, symbols at the load zoom, the rest from OSM 12 */
 function floorOf(layer: LayerSpecification) {
   const source = 'source' in layer ? layer.source : undefined
-  return layer.type === 'symbol' || source === SOURCES.vertices ? DETAIL_ZOOM : DRAW_ZOOM
+  if (source === SOURCES.vertices) return VERTEX_ZOOM
+  return layer.type === 'symbol' ? DETAIL_ZOOM : DRAW_ZOOM
 }
 
 /**

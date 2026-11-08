@@ -16,6 +16,7 @@ import {
   SHADOW_PAD,
   SELECT_SOURCES,
   SOURCES,
+  VERTEX_ZOOM,
 } from './layers'
 import { CONE_ZOOM } from './viewfield'
 
@@ -62,19 +63,24 @@ const twinOf = (layers: LayerSpecification[], id: string) => {
 }
 
 describe('zoom floors of the data layers (MapLibre zoom: OSM minus one)', () => {
-  test('lines, areas and points draw from OSM 12, vertices and symbols from the load zoom', () => {
+  test('lines, areas and points draw from OSM 12, symbols from the load zoom, vertices from OSM 18', () => {
     const data = dataLayers(buildLayers(options))
     expect(data.length).toBeGreaterThan(20)
     for (const layer of data) {
       const floor =
-        layer.type === 'symbol' || layer.source === SOURCES.vertices ? DETAIL_ZOOM : DRAW_ZOOM
+        layer.source === SOURCES.vertices
+          ? VERTEX_ZOOM
+          : layer.type === 'symbol'
+            ? DETAIL_ZOOM
+            : DRAW_ZOOM
       expect(layer.minzoom).toBeGreaterThanOrEqual(floor)
     }
   })
 
-  test('the floors are OSM 12 and OSM 16', () => {
+  test('the floors are OSM 12, OSM 16 and OSM 18', () => {
     expect(DRAW_ZOOM).toBe(11)
     expect(DETAIL_ZOOM).toBe(15)
+    expect(VERTEX_ZOOM).toBe(17)
   })
 
   test('a layer keeps its own minzoom where that is higher (oneway arrows stay at OSM 16)', () => {
@@ -121,9 +127,9 @@ describe('the selection below the floor', () => {
     expect(dot.maxzoom).toBe(DRAW_ZOOM)
   })
 
-  test('the twin of an icon on a vertex stops at the load zoom', () => {
+  test('the twin of an icon on a vertex stops at the vertex floor', () => {
     const layers = buildLayers(options)
-    expect(twinOf(layers, 'vertex-icon').maxzoom).toBe(DETAIL_ZOOM)
+    expect(twinOf(layers, 'vertex-icon').maxzoom).toBe(VERTEX_ZOOM)
   })
 
   test('the twin of an edited layer is on the same selection source, not the edit one', () => {

@@ -691,7 +691,7 @@ export class FeatureBuilder {
 
   /** Re-reads a vertex's tags (tagged or not) and returns its feature, if it has one */
   refreshVertex(node: OsmNode) {
-    const shared = (this.data.nodeUses.get(node.id) ?? 0) > 1
+    const shared = isJunction(this.data, node.id)
     const tagged = hasInterestingTags(node.tags)
     if (
       (!tagged && !shared && !this.data.endpoints.has(node.id)) ||
@@ -890,7 +890,7 @@ export class FeatureBuilder {
         continue
       }
       // iD only draws vertices that matter while nothing is selected: tagged, junctions, way ends
-      const shared = uses > 1
+      const shared = uses > 1 && isJunction(data, node.id)
       if (!tagged && !shared && !data.endpoints.has(node.id)) continue
       if (this.isVertexFiltered(id)) continue
       const state = `${tagged ? 1 : 0}${shared ? 1 : 0}`
@@ -914,6 +914,23 @@ export class FeatureBuilder {
     }
     return out
   }
+}
+
+/**
+ * iD's `isConnected` (osmNode): a node is a junction when one of its ways is a line with tags, or when its one
+ * way passes it twice. Two buildings that share a wall do not make one, so their corners are not drawn.
+ */
+function isJunction(data: OsmData, nodeId: string) {
+  const ways = new Set(data.nodeWays.get(nodeId))
+  if (ways.size < 2) return (data.nodeUses.get(nodeId) ?? 0) > 1
+  for (const wayId of ways) {
+    const way = data.way(wayId)
+    if (!way || !hasInterestingTags(way.tags)) continue
+    const { nodes } = way
+    const closed = nodes.length > 1 && nodes[0] === nodes[nodes.length - 1]
+    if (!isArea(way.tags, closed)) return true
+  }
+  return false
 }
 
 /** All nodes of a way as vertex features, for showing a selected way's shape points */
