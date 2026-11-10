@@ -82,5 +82,17 @@
         "input=*": "Haz clic en un valor para cambiarlo. Intro guarda, Escape cancela, Supr elimina la clave."
       }
     }
-  ]
+  ],
+  "way_table_show_changes": "Resaltar cambios",
+  "way_table_show_changes_hint": "Muestra lo que cambió en esta sesión: antes → después, las etiquetas eliminadas en filas propias",
+  "way_table_only_changed": "Solo filas cambiadas",
+  "way_table_group_changed": "{count} cambiadas",
+  "way_table_legend_modified": "Cambiado",
+  "way_table_legend_created": "Añadido",
+  "way_table_legend_deleted": "Eliminado",
+  "way_table_cell_modified": "Cambiado de {before} a {after}",
+  "way_table_cell_created": "Añadido: {value}",
+  "way_table_cell_deleted": "Eliminado: {value}",
+  "way_table_row_removed": "Eliminada en esta sesión",
+  "way_table_no_changes": "Estas vías no tienen cambios en esta sesión."
 }

@@ -82,5 +82,17 @@
         "input=*": "Click a value to change it. Enter saves, Escape cancels, Delete removes the key."
       }
     }
-  ]
+  ],
+  "way_table_show_changes": "Highlight changes",
+  "way_table_show_changes_hint": "Shows what changed in this session: before → after, removed tags as their own rows",
+  "way_table_only_changed": "Only changed rows",
+  "way_table_group_changed": "{count} changed",
+  "way_table_legend_modified": "Changed",
+  "way_table_legend_created": "Added",
+  "way_table_legend_deleted": "Removed",
+  "way_table_cell_modified": "Changed from {before} to {after}",
+  "way_table_cell_created": "Added: {value}",
+  "way_table_cell_deleted": "Removed: {value}",
+  "way_table_row_removed": "Removed in this session",
+  "way_table_no_changes": "These ways have no changes in this session."
 }

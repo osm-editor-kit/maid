@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { buildRows, groupOf, GROUPS, globToRegExp, type RowGroup } from './rows.ts'
-import type { Column } from './types.ts'
+import type { Column, Tags } from './types.ts'
 
 const reference: Column = {
   id: 'R',
@@ -160,5 +160,76 @@ describe('buildRows', () => {
     })
     expect(groups.map((group) => group.id)).toEqual(['other'])
     expect(groups[0]?.rows.length).toBe(7)
+  })
+})
+
+describe('buildRows with before: highlight changes', () => {
+  const now: Column = {
+    id: 'A',
+    reversed: false,
+    tags: { highway: 'residential', surface: 'asphalt', maxspeed: '30' },
+  }
+  const other: Column = { id: 'B', reversed: false, tags: { highway: 'residential' } }
+  const before = new Map<string, Tags | null>([
+    ['A', { highway: 'residential', surface: 'sett', lit: 'yes' }],
+    ['B', { highway: 'residential' }],
+  ])
+
+  function rowOf(groups: RowGroup[], key: string) {
+    return groups.flatMap((group) => group.rows).find((row) => row.key === key)
+  }
+
+  test('a changed value, an added key, a removed key as its own row, an unchanged key', () => {
+    const groups = buildRows([now, other], { referenceId: 'A', before })
+    expect(rowOf(groups, 'surface')?.changes?.A).toEqual({
+      kind: 'modified',
+      before: 'sett',
+      after: 'asphalt',
+    })
+    expect(rowOf(groups, 'maxspeed')?.changes?.A).toEqual({ kind: 'created', after: '30' })
+    const lit = rowOf(groups, 'lit')
+    expect(lit?.removed).toBe(true)
+    expect(lit?.changed).toBe(true)
+    expect(lit?.changes?.A).toEqual({ kind: 'deleted', before: 'yes' })
+    expect(lit?.changes?.B).toBeUndefined()
+    const highway = rowOf(groups, 'highway')
+    expect(highway?.changed).toBe(false)
+    expect(highway?.removed).toBe(false)
+    expect(highway?.changes?.B?.kind).toBe('unchanged')
+  })
+
+  test('the group counts the changed rows, and only changed rows filters by them', () => {
+    const all = buildRows([now, other], { referenceId: 'A', before })
+    expect(all.find((group) => group.id === 'road')?.changed).toBe(3)
+    const only = buildRows([now, other], { referenceId: 'A', before, onlyDiffering: true })
+    expect(keysOf(only).sort()).toEqual(['lit', 'maxspeed', 'surface'])
+  })
+
+  test('a way new in this session: every key is added', () => {
+    const groups = buildRows([now], {
+      referenceId: 'A',
+      before: new Map<string, Tags | null>([['A', null]]),
+    })
+    expect(rowOf(groups, 'highway')?.changes?.A?.kind).toBe('created')
+    expect(rowOf(groups, 'lit')).toBeUndefined()
+  })
+
+  test('a reversed column compares its removed keys in the same direction', () => {
+    const reversedNow: Column = { id: 'T', reversed: true, tags: { highway: 'residential' } }
+    const groups = buildRows([reversedNow], {
+      referenceId: 'R',
+      before: new Map<string, Tags | null>([
+        ['T', { highway: 'residential', 'cycleway:right': 'lane' }],
+      ]),
+    })
+    const row = rowOf(groups, 'cycleway:left')
+    expect(row?.removed).toBe(true)
+    expect(row?.changes?.T).toEqual({ kind: 'deleted', before: 'lane' })
+  })
+
+  test('without before: no changes', () => {
+    const groups = buildRows([now], { referenceId: 'A' })
+    expect(rowOf(groups, 'surface')?.changes).toBeUndefined()
+    expect(rowOf(groups, 'lit')).toBeUndefined()
   })
 })

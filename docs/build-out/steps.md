@@ -525,3 +525,11 @@ Tobias, 2026-11-10: the cones end under the map pin; look at both, the circle an
 
 - [x] 2026-11-10: a cone comes out from under what its node is drawn as. On a pin (from OSM 19, or always with `pins: 'all'`) it turns about the centre of the pin's head, moved up on the screen (`icon-translate`, viewport) by `PIN_HEAD_ABOVE`, and starts at the head's edge; iD draws such a point as a vertex instead. On a vertex disc with an icon it starts at the disc's edge (image `viewfield-wide`, 9.5 px gap); on a plain circle or dot it keeps iD's 3 px (`viewfield`). The wedge itself is unchanged (iD's shape, 24 px wide, 21 px long).
       **Test for Tobias:** <https://osm-editor-kit.github.io/maid/maid/#map=20/52.52597/13.39853> (a post box with a direction, as a pin): the cone comes out of the pin's head; turn the map (Shift+Left): the cone turns, the pin stays upright and the cone stays on its head. A camera on a building (`#map=20/52.51567/13.40091`): the cone starts at the disc's edge.
+
+### Way table: highlight changes (2026-11-10)
+
+Tobias, 2026-11-10: does Maid have iD's "Highlight changes"? If not, add it; then combine it with the way table: a toggle at the top of the table, before → after per cell in colour, removed tags as inserted rows, added tags highlighted.
+
+- [x] 2026-11-10: the map had it already (key G, the map data panel, `display=edits` in the URL, iD's colours). The way table has a "Highlight changes" button: each cell shows its change in this session against the loaded data (old struck through → new, yellow; added green; removed orange and struck through), a removed key stays as its own row, "Only changed rows" filters to the changes. Assumptions in [way-table.md](../research/way-table.md) 4.4. `check-way-table --app bicycle` 21 ok (8 new).
+      **Test for Tobias:** on the deployed bicycle app, select a road, open "Way table", change a value in a neighbour column and remove one (Delete) in another, then press "Highlight changes": the changed cell shows old → new, the removed key is a row again with its old value struck through; tick "Only changed rows".
+

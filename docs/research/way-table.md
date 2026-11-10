@@ -244,6 +244,10 @@ Notes:
 - The Sheet's tones do not match these names (section 3). The shared set must grow (section 5.4, item 3).
 - Contrast is not checked. The browser check should check the contrast of each state (section 7, step 4).
 
+#### Highlight changes (added 2026-11-10)
+
+The button "Highlight changes" at the top of the table (iD's highlight edits, key G on the map, there `display=edits`) switches the cells from the comparison with the selected way to what changed in this session against the loaded data (`history.base`): a changed value as the old value struck through, an arrow and the new one (yellow, `~`), an added key in green (`+`), a removed key struck through in orange (`−`). A key that no column has any more stays as its own row, its key struck through, where it sat before. A way new in this session has every key added. "Only rows that differ" becomes "Only changed rows", and the group heads count the changed rows. The colours are the map's edit colours (renderer `EDIT_COLOUR`). Assumptions, not asked: the button belongs to the table alone and does not switch the map's display (dock views get no engine, and the map may be in wireframe); it is off at first and kept for the session, not in the URL; editing works as before while it is on. Logic: `changes.ts`, `buildRows` with `before`; tests in `rows.test.ts`; `check-way-table` checks it in the browser.
+
 ### 4.5 Editing in place
 
 - Every cell of a way is an input of the sheet, including the neighbours. Read-only ways are read-only.

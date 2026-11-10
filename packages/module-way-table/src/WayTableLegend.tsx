@@ -1,5 +1,5 @@
 import type { CellState } from './cell-state.ts'
-import { EDITED_BAR_CLASS, LEGEND_STATES, toneOf } from './cell-tone.ts'
+import { changeToneOf, EDITED_BAR_CLASS, LEGEND_STATES, toneOf } from './cell-tone.ts'
 import { m } from './messages.ts'
 
 function legendLabel(state: CellState): string {
@@ -19,8 +19,45 @@ function legendLabel(state: CellState): string {
   }
 }
 
-/** One line of chips: each state with its fill, mark or border, as the cells show them */
-export function WayTableLegend({ edited }: { readonly edited: boolean }) {
+const CHANGE_KINDS = ['modified', 'created', 'deleted'] as const
+
+function changeLabel(kind: (typeof CHANGE_KINDS)[number]): string {
+  if (kind === 'modified') return m.way_table_legend_modified()
+  if (kind === 'created') return m.way_table_legend_created()
+  return m.way_table_legend_deleted()
+}
+
+/**
+ * One line of chips: each state with its fill, mark or border, as the cells show them. With `showChanges` the chips of
+ * the changes instead (changed, added, removed).
+ */
+export function WayTableLegend({
+  edited,
+  showChanges = false,
+}: {
+  readonly edited: boolean
+  readonly showChanges?: boolean
+}) {
+  if (showChanges) {
+    return (
+      <ul className="flex flex-wrap items-center gap-1 text-xs" aria-label="Legend">
+        {CHANGE_KINDS.map((kind) => {
+          const tone = changeToneOf(kind)
+          return (
+            <li
+              key={kind}
+              className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-zinc-900 dark:text-zinc-100 ${tone.cell}`}
+            >
+              <span aria-hidden className="font-bold">
+                {tone.mark}
+              </span>
+              <span>{changeLabel(kind)}</span>
+            </li>
+          )
+        })}
+      </ul>
+    )
+  }
   return (
     <ul className="flex flex-wrap items-center gap-1 text-xs" aria-label="Legend">
       {LEGEND_STATES.map((state) => {

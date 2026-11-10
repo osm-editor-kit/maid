@@ -1,7 +1,15 @@
 import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { Cell, CellState } from './cell-state.ts'
-import { EDITED_BAR_CLASS, PREVIEW_CLASS, toneOf } from './cell-tone.ts'
+import {
+  AFTER_CLASS,
+  BEFORE_CLASS,
+  changeToneOf,
+  EDITED_BAR_CLASS,
+  PREVIEW_CLASS,
+  toneOf,
+} from './cell-tone.ts'
+import type { CellChange } from './changes.ts'
 import { m } from './messages.ts'
 import { storedKeyOf } from './plan.ts'
 import type { TableColumn } from './table.ts'
@@ -16,6 +24,10 @@ export type WayTableCellProps = {
   readonly referenceValue: string | undefined
   /** Changed in this session against the base data */
   readonly edited: boolean
+  /** "Highlight changes" is on: the cell shows its change instead of the comparison with the selected way */
+  readonly showChanges: boolean
+  /** The cell's change in this session (with `showChanges`); absent: the way has the key neither before nor now */
+  readonly change: CellChange | undefined
   /** A carry or set-on-all would change this cell */
   readonly previewing: boolean
   /** The one cell the grid's arrow keys start from (roving focus) */
@@ -42,6 +54,42 @@ function describe(state: CellState, value: string, reference: string): string {
   }
 }
 
+/** What a screen reader hears for a cell's change */
+function describeChange(change: CellChange | undefined): string {
+  if (!change) return m.way_table_cell_not_set()
+  switch (change.kind) {
+    case 'modified':
+      return m.way_table_cell_modified({ before: change.before ?? '', after: change.after ?? '' })
+    case 'created':
+      return m.way_table_cell_created({ value: change.after ?? '' })
+    case 'deleted':
+      return m.way_table_cell_deleted({ value: change.before ?? '' })
+    case 'unchanged':
+      return change.after ?? ''
+  }
+}
+
+/** The text of a cell with "Highlight changes": before → after, struck through when removed */
+function ChangeText({ change }: { readonly change: CellChange | undefined }) {
+  if (!change) return <span className="text-zinc-400 dark:text-zinc-500">—</span>
+  switch (change.kind) {
+    case 'modified':
+      return (
+        <>
+          <del className={BEFORE_CLASS}>{change.before}</del>
+          <span className="px-1 text-zinc-500 dark:text-zinc-400">→</span>
+          <ins className={`no-underline ${AFTER_CLASS}`}>{change.after}</ins>
+        </>
+      )
+    case 'created':
+      return <ins className={`no-underline ${AFTER_CLASS}`}>{change.after}</ins>
+    case 'deleted':
+      return <del className={BEFORE_CLASS}>{change.before}</del>
+    case 'unchanged':
+      return <span className="text-zinc-950 dark:text-white">{change.after}</span>
+  }
+}
+
 /**
  * One value of the table. Click or Enter edits it: Enter or leaving the cell saves, Escape cancels, Delete removes the
  * key (a read-only column does not edit). The edit is one undo step, made by the grid through `onCommit`.
@@ -53,6 +101,8 @@ export function WayTableCell(props: WayTableCellProps) {
     cell,
     referenceValue,
     edited,
+    showChanges,
+    change,
     previewing,
     tabbable,
     onActivate,
@@ -67,13 +117,19 @@ export function WayTableCell(props: WayTableCellProps) {
   const editable = column.readOnly !== true
   const value = cell.value ?? ''
   const tone = toneOf(cell.state)
+  const changeTone =
+    showChanges && change && change.kind !== 'unchanged' ? changeToneOf(change.kind) : undefined
   const visible = cell.state === 'missing' ? '' : cell.state === 'empty' ? '—' : value
   const tooLong = draft !== null && draft.trim().length > MAX_VALUE_LENGTH
-  const words = [
-    describe(cell.state, value, referenceValue ?? ''),
-    cell.dependent ? m.way_table_cell_depends() : '',
-    edited ? m.way_table_cell_edited() : '',
-  ]
+  const words = (
+    showChanges
+      ? [describeChange(change), cell.dependent ? m.way_table_cell_depends() : '']
+      : [
+          describe(cell.state, value, referenceValue ?? ''),
+          cell.dependent ? m.way_table_cell_depends() : '',
+          edited ? m.way_table_cell_edited() : '',
+        ]
+  )
     .filter(Boolean)
     .join('. ')
   // the tooltip names the stored key of a mirrored cell, and says why an edit is refused
@@ -145,7 +201,7 @@ export function WayTableCell(props: WayTableCellProps) {
   const classes = [
     'relative min-w-40 max-w-72 border-r border-b border-zinc-950/10 p-0 align-top outline-none',
     'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600 dark:border-white/10',
-    tone.cell,
+    showChanges ? (changeTone?.cell ?? '') : tone.cell,
     previewing ? PREVIEW_CLASS : '',
   ]
     .filter(Boolean)
@@ -167,13 +223,13 @@ export function WayTableCell(props: WayTableCellProps) {
       }}
       onKeyDown={onCellKeyDown}
     >
-      {tone.dashed ? (
+      {tone.dashed && !showChanges ? (
         <span
           aria-hidden
           className="pointer-events-none absolute inset-1 border border-dashed border-red-400 dark:border-red-700"
         />
       ) : null}
-      {edited ? (
+      {edited && !showChanges ? (
         <span
           aria-hidden
           className={`pointer-events-none absolute inset-x-0 bottom-0 h-[3px] ${EDITED_BAR_CLASS}`}
@@ -198,15 +254,21 @@ export function WayTableCell(props: WayTableCellProps) {
             aria-hidden
             className="w-3 shrink-0 text-xs font-bold text-amber-700 dark:text-amber-300"
           >
-            {tone.mark}
+            {showChanges ? (changeTone?.mark ?? '') : tone.mark}
           </span>
-          <span
-            aria-hidden
-            title={value === '' ? undefined : value}
-            className={`min-w-0 flex-1 text-sm [overflow-wrap:anywhere] ${tone.text}`}
-          >
-            {visible}
-          </span>
+          {showChanges ? (
+            <span aria-hidden className="min-w-0 flex-1 text-sm [overflow-wrap:anywhere]">
+              <ChangeText change={change} />
+            </span>
+          ) : (
+            <span
+              aria-hidden
+              title={value === '' ? undefined : value}
+              className={`min-w-0 flex-1 text-sm [overflow-wrap:anywhere] ${tone.text}`}
+            >
+              {visible}
+            </span>
+          )}
           {cell.dependent ? (
             <span aria-hidden className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">
               ⇄

@@ -2,7 +2,7 @@ import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/r
 import type { Graph } from '@osm-editor-kit/maid-model'
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react'
 import type { Cell } from './cell-state.ts'
-import { REFERENCE_HEADER_CLASS } from './cell-tone.ts'
+import { REFERENCE_HEADER_CLASS, REMOVED_ROW_KEY_CLASS } from './cell-tone.ts'
 import { m } from './messages.ts'
 import { type PlanResult, storedKeyOf } from './plan.ts'
 import type { GroupId, Row, RowGroup } from './rows.ts'
@@ -20,6 +20,8 @@ export type WayTableGridProps = {
   readonly folded: Readonly<Partial<Record<GroupId, boolean>>>
   /** The stored keys changed in this session, per column id */
   readonly edited: ReadonlyMap<string, ReadonlySet<string>>
+  /** "Highlight changes" is on: the cells show their changes (the rows carry them, buildRows with `before`) */
+  readonly showChanges: boolean
   /** The batch that waits for a confirmation: its row and the cells it would change */
   readonly preview: { readonly rowKey: string; readonly ids: ReadonlySet<string> } | null
   readonly limit: number
@@ -100,6 +102,7 @@ export function WayTableGrid(props: WayTableGridProps) {
     groups,
     folded,
     edited,
+    showChanges,
     preview,
     limit,
     actions,
@@ -185,10 +188,26 @@ export function WayTableGrid(props: WayTableGridProps) {
                 className="sticky left-0 z-10 max-w-28 border-r border-b border-zinc-950/10 bg-white px-2 py-1.5 text-left align-top font-normal sm:max-w-56 dark:border-white/10 dark:bg-zinc-900"
               >
                 <div className="flex items-center gap-1">
-                  <span className="truncate font-mono text-xs" title={row.key}>
+                  <span
+                    className={`truncate font-mono text-xs ${showChanges && row.removed ? REMOVED_ROW_KEY_CLASS : ''}`}
+                    title={
+                      showChanges && row.removed
+                        ? `${row.key}: ${m.way_table_row_removed()}`
+                        : row.key
+                    }
+                  >
                     {row.key}
                   </span>
-                  {row.differs ? (
+                  {showChanges && row.removed ? (
+                    <span className="sr-only">{m.way_table_row_removed()}</span>
+                  ) : null}
+                  {showChanges ? (
+                    row.changed ? (
+                      <span aria-hidden className="text-amber-600 dark:text-amber-400">
+                        •
+                      </span>
+                    ) : null
+                  ) : row.differs ? (
                     <span aria-hidden className="text-amber-600 dark:text-amber-400">
                       •
                     </span>
@@ -246,6 +265,8 @@ export function WayTableGrid(props: WayTableGridProps) {
               cell={cell}
               referenceValue={referenceValue}
               edited={edited.get(column.id)?.has(storedKeyOf(row.key, column.reversed)) ?? false}
+              showChanges={showChanges}
+              change={row.changes?.[column.id]}
               previewing={preview?.rowKey === row.key && preview.ids.has(column.id)}
               tabbable={tabbable === cellKey(row.key, column.id)}
               onActivate={() => setActive(cellKey(row.key, column.id))}
@@ -398,9 +419,13 @@ export function WayTableGrid(props: WayTableGridProps) {
                   )}
                   <span>{GROUP_NAME[group.id]()}</span>
                   <span className="font-normal text-zinc-500 dark:text-zinc-400">
-                    {group.differing > 0
-                      ? m.way_table_group_differ({ count: group.differing })
-                      : ''}
+                    {showChanges
+                      ? group.changed > 0
+                        ? m.way_table_group_changed({ count: group.changed })
+                        : ''
+                      : group.differing > 0
+                        ? m.way_table_group_differ({ count: group.differing })
+                        : ''}
                   </span>
                 </button>
               </th>

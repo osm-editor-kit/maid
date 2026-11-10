@@ -69,3 +69,27 @@ export const LEGEND_STATES: readonly CellState[] = [
   'missing',
   'empty',
 ]
+
+/**
+ * How a cell looks with "Highlight changes" on: the colours of the map's edits display (renderer layers.ts EDIT_COLOUR,
+ * iD's visual diff): green added, yellow changed, orange removed, each with a mark as the second cue. A cell without a
+ * change has no fill, so the changes stand out; the comparison with the selected way is not shown meanwhile.
+ */
+export type ChangeTone = { readonly cell: string; readonly mark: string }
+
+const CHANGE_TONES: Readonly<Record<'created' | 'modified' | 'deleted', ChangeTone>> = {
+  created: { cell: 'bg-[#85ff67]/35 dark:bg-[#85ff67]/15', mark: '+' },
+  modified: { cell: 'bg-[#fcde5a]/45 dark:bg-[#fcde5a]/15', mark: '~' },
+  deleted: { cell: 'bg-[#ff7e2e]/25 dark:bg-[#ff7e2e]/15', mark: '−' },
+}
+
+export function changeToneOf(kind: 'created' | 'modified' | 'deleted'): ChangeTone {
+  return CHANGE_TONES[kind]
+}
+
+/** The value before a change: struck through */
+export const BEFORE_CLASS = 'text-red-800 line-through decoration-red-700/70 dark:text-red-300'
+/** The value after a change */
+export const AFTER_CLASS = 'font-medium text-emerald-900 dark:text-emerald-200'
+/** The key of a row that shows a removed tag */
+export const REMOVED_ROW_KEY_CLASS = 'text-red-800 line-through dark:text-red-300'

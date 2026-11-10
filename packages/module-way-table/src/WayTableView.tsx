@@ -21,6 +21,7 @@ import {
   referenceOf,
   type TableView,
 } from './table.ts'
+import type { Tags } from './types.ts'
 import {
   useWayTableActions,
   useWayTableCarry,
@@ -29,6 +30,7 @@ import {
   useWayTableLimit,
   useWayTableOnlyDiffering,
   useWayTablePending,
+  useWayTableShowChanges,
   type WayTableStore,
 } from './way-table-store.ts'
 import { WayTableBar } from './WayTableBar.tsx'
@@ -106,6 +108,7 @@ export function WayTableView(props: WayTableViewProps) {
   const limit = useWayTableLimit(store, reference)
   const choices = useWayTableChoices(store, reference)
   const onlyDiffering = useWayTableOnlyDiffering(store)
+  const showChanges = useWayTableShowChanges(store)
   const folded = useWayTableFolded(store)
   const pending = useWayTablePending(store)
   const carry = useWayTableCarry(store)
@@ -149,14 +152,22 @@ export function WayTableView(props: WayTableViewProps) {
           },
     [built, readOnlyKey],
   )
+  const base = editor.history.base.graph
+  // "Highlight changes": each column's tags as loaded (null: a way new in this session)
+  const before = useMemo(() => {
+    if (!showChanges || table.kind !== 'table') return undefined
+    const result = new Map<string, Tags | null>()
+    for (const column of table.columns)
+      result.set(column.id, base.hasEntity(column.id)?.tags ?? null)
+    return result
+  }, [showChanges, table, base])
   const groups = useMemo(
     () =>
       table.kind === 'table'
-        ? buildRows(table.columns, { referenceId: table.referenceId, onlyDiffering })
+        ? buildRows(table.columns, { referenceId: table.referenceId, onlyDiffering, before })
         : [],
-    [table, onlyDiffering],
+    [table, onlyDiffering, before],
   )
-  const base = editor.history.base.graph
   const edited = useMemo(() => {
     const result = new Map<string, ReadonlySet<string>>()
     if (table.kind === 'table') {
@@ -191,6 +202,22 @@ export function WayTableView(props: WayTableViewProps) {
   }
 
   const order = orderText(table.order)
+  const showChangesButton = (
+    <button
+      type="button"
+      aria-pressed={showChanges}
+      title={m.way_table_show_changes_hint()}
+      onClick={actions.toggleShowChanges}
+      className={`rounded-md border px-2 py-0.5 text-xs font-medium focus-visible:outline-2 focus-visible:outline-blue-600 touch:py-1 ${
+        showChanges
+          ? 'border-blue-600 bg-blue-600 text-white dark:border-blue-500'
+          : 'border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100'
+      }`}
+    >
+      {m.way_table_show_changes()}
+    </button>
+  )
+  const anyChanged = groups.some((group) => group.changed > 0)
   const onlyDifferingBox = (
     <label className="flex items-center gap-1.5 text-xs touch:py-1">
       <input
@@ -199,7 +226,7 @@ export function WayTableView(props: WayTableViewProps) {
         onChange={actions.toggleOnlyDiffering}
         className="size-3.5 accent-blue-600 touch:size-4"
       />
-      {m.way_table_only_differing()}
+      {showChanges ? m.way_table_only_changed() : m.way_table_only_differing()}
     </label>
   )
   const editHint = (
@@ -220,7 +247,8 @@ export function WayTableView(props: WayTableViewProps) {
     <div className="flex h-full min-h-0 flex-col gap-1.5 p-2 text-sm text-zinc-950 dark:text-white">
       {wide ? (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <WayTableLegend edited={anyEdited} />
+          {showChangesButton}
+          <WayTableLegend edited={anyEdited} showChanges={showChanges} />
           {onlyDifferingBox}
           {editHint}
           {forgetChoices}
@@ -228,6 +256,7 @@ export function WayTableView(props: WayTableViewProps) {
       ) : (
         // a phone: the table gets the height; the legend and the hint fold away behind one line
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          {showChangesButton}
           {onlyDifferingBox}
           {forgetChoices}
           <details className="w-full text-xs">
@@ -235,7 +264,7 @@ export function WayTableView(props: WayTableViewProps) {
               {m.way_table_legend_toggle()}
             </summary>
             <div className="flex flex-col gap-1.5 pt-1">
-              <WayTableLegend edited={anyEdited} />
+              <WayTableLegend edited={anyEdited} showChanges={showChanges} />
               {editHint}
             </div>
           </details>
@@ -254,6 +283,7 @@ export function WayTableView(props: WayTableViewProps) {
             })}
           </span>
         ) : null}
+        {showChanges && !anyChanged ? <span role="status">{m.way_table_no_changes()}</span> : null}
         {table.notWays > 0 ? <span>{m.way_table_not_ways({ count: table.notWays })}</span> : null}
         {shownStatus ? (
           <span role="alert" className="font-medium text-red-700 dark:text-red-300">
@@ -280,6 +310,7 @@ export function WayTableView(props: WayTableViewProps) {
           groups={groups}
           folded={folded}
           edited={edited}
+          showChanges={showChanges}
           preview={preview}
           limit={limit}
           actions={actions}

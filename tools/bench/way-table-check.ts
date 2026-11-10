@@ -2,7 +2,7 @@
  * Way table check for Maid: the dock tab "Way table" on a selected way (way 61231309 on Müggelheimer Straße, the
  * relations scene). It checks the columns and their "Selected" mark, the state words and the ≠ mark of a differing
  * cell, "Show 3 more", a cell edit of a neighbour (one undo step), and "Set on N" for a row with its confirm bar (one
- * undo step). A read-only case is skipped: the table's read-only columns need a filter, which the check does not set.
+ * undo step), and "Highlight changes" (before → after in a cell, a removed tag as its own row). A read-only case is skipped: the table's read-only columns need a filter, which the check does not set.
  *
  *   bun tools/bench/way-table-check.ts [scene] --app bicycle
  *
@@ -213,6 +213,111 @@ process.exit(
         await page.evaluate(() => window.__maid.engine.undo())
         await settle()
         report('one undo restores every neighbour of the batch', before, await snapshot(ids))
+      }
+
+      // --- "Highlight changes": a changed value shows before → after, a removed tag stays as its own row ---
+      {
+        const current = await table()
+        const plain = current.states.filter(
+          (state) =>
+            state.col !== WAY &&
+            !state.dependent &&
+            !current.columns.find((column) => column.id === state.col)?.reversed &&
+            !state.words.startsWith('Missing') &&
+            !state.words.startsWith('Not set') &&
+            // the chain follows these keys: a change to one can drop the column from the table
+            !['name', 'ref', 'highway', 'railway', 'waterway', 'building'].includes(state.key),
+        )
+        const changeTarget = plain[0]
+        // a key that only this one column has, so that removing it leaves a row only the change shows
+        const removeTarget = plain.find(
+          (state) =>
+            state.col !== changeTarget?.col &&
+            state.key !== changeTarget?.key &&
+            current.states.filter((other) => other.key === state.key && other.words !== 'Not set')
+              .length === 1,
+        )
+        if (!changeTarget || !removeTarget) {
+          report('two plain neighbour cells to change and remove', 'found', {
+            changeTarget,
+            removeTarget,
+          })
+        } else {
+          const ids = current.columns.map((column) => column.id)
+          const before = await snapshot(ids)
+          const oldValue = before[changeTarget.col]?.[changeTarget.key] ?? ''
+          const removedValue = before[removeTarget.col]?.[removeTarget.key] ?? ''
+          const changeCell = page.locator(
+            `td[data-cell][data-row-key="${changeTarget.key}"][data-col-id="${changeTarget.col}"]`,
+          )
+          await changeCell.click()
+          const input = changeCell.locator('input')
+          await input.waitFor()
+          await input.fill(TEST_VALUE)
+          await input.press('Enter')
+          await settle()
+          const removeCell = page.locator(
+            `td[data-cell][data-row-key="${removeTarget.key}"][data-col-id="${removeTarget.col}"]`,
+          )
+          await removeCell.focus()
+          await removeCell.press('Delete')
+          await settle()
+          const toggle = panel.getByRole('button', { name: 'Highlight changes' })
+          report(
+            'the "Highlight changes" toggle is off at first',
+            'false',
+            await toggle.getAttribute('aria-pressed'),
+          )
+          const rowGoneBefore = (await table()).states.every(
+            (state) => state.key !== removeTarget.key,
+          )
+          report('without the toggle the removed key has no row', true, rowGoneBefore)
+          await toggle.click()
+          await settle()
+          await openGroups()
+          report('the toggle is pressed', 'true', await toggle.getAttribute('aria-pressed'))
+          const shown = await table()
+          const changed = shown.states.find(
+            (state) => state.key === changeTarget.key && state.col === changeTarget.col,
+          )
+          report(
+            'a changed cell says before and after',
+            `Changed from ${oldValue} to ${TEST_VALUE}`,
+            changed?.words,
+          )
+          const removed = shown.states.find(
+            (state) => state.key === removeTarget.key && state.col === removeTarget.col,
+          )
+          report(
+            'a removed tag is a row again, its cell says what was removed',
+            `Removed: ${removedValue}`,
+            removed?.words,
+          )
+          const marks = await page
+            .locator(
+              `td[data-cell][data-row-key="${changeTarget.key}"][data-col-id="${changeTarget.col}"]`,
+            )
+            .evaluate((td) => ({
+              del: td.querySelector('del')?.textContent,
+              ins: td.querySelector('ins')?.textContent,
+            }))
+          report(
+            'the changed cell strikes the old value through and shows the new one',
+            { del: oldValue, ins: TEST_VALUE },
+            marks,
+          )
+          await toggle.click()
+          await settle()
+          report(
+            'the toggle turns it off again',
+            'false',
+            await toggle.getAttribute('aria-pressed'),
+          )
+          await page.evaluate(() => window.__maid.engine.undo())
+          await page.evaluate(() => window.__maid.engine.undo())
+          await settle()
+          report('two undos restore both ways', before, await snapshot(ids))
+        }
       }
     },
     '',
