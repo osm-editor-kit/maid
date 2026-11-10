@@ -18,7 +18,7 @@ import {
   SOURCES,
   VERTEX_ZOOM,
 } from './layers'
-import { CONE_ZOOM } from './viewfield'
+import { CONE_IMAGE, CONE_IMAGE_WIDE, CONE_ZOOM, PIN_HEAD_ABOVE } from './viewfield'
 
 /** The data layers whose selection copies keep their own minzoom */
 const DIRECTION = new Set(['line-oneway', 'line-sided', 'area-sided'])
@@ -529,6 +529,42 @@ describe('the viewfield cones', () => {
     expect(cone.layout['icon-rotate']).toEqual(['get', 'd1'])
     expect(cone.layout['icon-rotation-alignment']).toBe('map')
     expect(interactiveLayerIds(layers).some((id) => id.startsWith('cone-'))).toBe(false)
+  })
+
+  test('a cone comes out from under its node: a wider gap for a disc with an icon, and out of the head of a pin', () => {
+    const cone = (opts: LayerOptions, id: string) =>
+      buildLayers(opts).find((l) => l.id === id) as unknown as {
+        layout: Record<string, unknown>
+        paint?: Record<string, unknown>
+      }
+    expect(cone(options, 'cone-v0').layout['icon-image']).toEqual([
+      'case',
+      ['has', 'icon'],
+      CONE_IMAGE_WIDE,
+      CONE_IMAGE,
+    ])
+    // a dot below the pin zoom, a pin from there: the cone turns about the pin's head, up on the screen
+    const point = cone(options, 'cone-p0')
+    expect(point.layout['icon-image']).toEqual([
+      'step',
+      ['zoom'],
+      CONE_IMAGE,
+      PIN_ZOOM,
+      CONE_IMAGE_WIDE,
+    ])
+    expect(point.paint?.['icon-translate']).toEqual([
+      'step',
+      ['zoom'],
+      ['literal', [0, 0]],
+      PIN_ZOOM,
+      ['literal', [0, -PIN_HEAD_ABOVE]],
+    ])
+    expect(point.paint?.['icon-translate-anchor']).toBe('viewport')
+    // pins at every zoom, and no pins without icons
+    expect(cone({ ...options, pins: 'all' }, 'cone-p0').layout['icon-image']).toBe(CONE_IMAGE_WIDE)
+    const noIcons = cone({ ...options, icons: false }, 'cone-p0')
+    expect(noIcons.layout['icon-image']).toBe(CONE_IMAGE)
+    expect(noIcons.paint?.['icon-translate']).toBeUndefined()
   })
 
   test('the cones are drawn after the lines and before the vertices and points', () => {

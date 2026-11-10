@@ -22,7 +22,7 @@ import {
   SIDE_IMAGE_PREFIX,
   SIDE_SPACING,
 } from './direction'
-import { CONE_IMAGE, CONE_SLOTS, CONE_ZOOM } from './viewfield'
+import { CONE_IMAGE, CONE_IMAGE_WIDE, CONE_SLOTS, CONE_ZOOM, PIN_HEAD_ABOVE } from './viewfield'
 
 export const SOURCES = {
   areas: 'osm-areas',
@@ -373,11 +373,22 @@ export function buildLayers(options: LayerOptions) {
 /**
  * The viewfield cones (viewfield.ts): one symbol layer per slot on each of the vertex and the point source.
  * Each feature with a `d<slot>` bearing gets its cone, rotated to that bearing about its node. The image's
- * bottom edge is the anchor, so the narrow end of the wedge sits 2 units above the node. Drawn under the vertices
- * and points (they are listed after these layers), above the lines and areas, as iD does. The `--edit` twins come
- * from buildLayers, like those of the data, so a cone follows a node that is being dragged.
+ * bottom edge is the anchor, and the narrow end of the wedge comes out from under what the node is drawn as: a plain
+ * circle (iD's 3 px), a vertex disc with an icon, or a pin. On a pin the cone turns about the centre of the pin's head
+ * (moved up on the screen, as the pin stands upright on a turned map), so it comes out of the head and the pin does
+ * not hide it; iD draws such a point as a vertex instead. Drawn under the vertices and points (they are listed after
+ * these layers), above the lines and areas, as iD does. The `--edit` twins come from buildLayers, like those of the
+ * data, so a cone follows a node that is being dragged.
  */
-function coneLayers(): LayerSpecification[] {
+function coneLayers(options: LayerOptions): LayerSpecification[] {
+  // the zoom from which points are pins (layers of the points below): none without icons
+  const pinFrom = !options.icons ? undefined : options.pins === 'all' ? 0 : PIN_ZOOM
+  const onPin = <T>(dot: T, pin: T): T | ExpressionSpecification =>
+    pinFrom === undefined
+      ? dot
+      : pinFrom === 0
+        ? pin
+        : (['step', ['zoom'], dot, pinFrom, pin] as ExpressionSpecification)
   const out: LayerSpecification[] = []
   for (let slot = 0; slot < CONE_SLOTS; slot++) {
     const prop = `d${slot}`
@@ -385,6 +396,12 @@ function coneLayers(): LayerSpecification[] {
       [SOURCES.vertices, 'v'],
       [SOURCES.points, 'p'],
     ] as const) {
+      const image =
+        kind === 'p'
+          ? onPin(CONE_IMAGE, CONE_IMAGE_WIDE)
+          : options.icons
+            ? ['case', ['has', 'icon'], CONE_IMAGE_WIDE, CONE_IMAGE]
+            : CONE_IMAGE
       out.push({
         id: `cone-${kind}${slot}`,
         type: 'symbol',
@@ -392,7 +409,7 @@ function coneLayers(): LayerSpecification[] {
         minzoom: CONE_ZOOM,
         filter: ['has', prop],
         layout: {
-          'icon-image': CONE_IMAGE,
+          'icon-image': image as ExpressionSpecification,
           'icon-rotate': ['get', prop],
           // the bearing is on the map, so a turned map turns the cone with it
           'icon-rotation-alignment': 'map',
@@ -400,7 +417,19 @@ function coneLayers(): LayerSpecification[] {
           'icon-allow-overlap': true,
           'icon-ignore-placement': true,
         },
-      })
+        ...(kind === 'p' && pinFrom !== undefined
+          ? {
+              paint: {
+                'icon-translate': onPin<unknown>(
+                  ['literal', [0, 0]],
+                  ['literal', [0, -PIN_HEAD_ABOVE]],
+                ),
+                // up on the screen, where the pin's head is, however the map is turned
+                'icon-translate-anchor': 'viewport',
+              },
+            }
+          : {}),
+      } as LayerSpecification)
     }
   }
   return out
@@ -835,7 +864,7 @@ function buildMainLayers(options: LayerOptions) {
   }
 
   // --- Viewfields: under the vertices and points, above the lines (coneLayers) ----
-  layers.push(...coneLayers())
+  layers.push(...coneLayers(options))
 
   // --- Labels of lines and areas: under the vertices, points and the selection, so that no text covers what can be
   // edited (Tobias, 2026-10-22). MapLibre also places the symbols of higher layers first, so the icons win. -----
