@@ -3,7 +3,7 @@
  * only for the apps that have the module (parking; way table, reroute and sidepaths in bicycle; levels in indoor; the drawing
  * tools in parking and indoor).
  *
- *   bun run check-all [--app maid|bicycle|parking|indoor]
+ *   bun run check-all [--app maid|bicycle|parking|indoor|lanes]
  *
  * Each check is started as `bun run check-<name> --app <app>` and must exit 0 with at least the
  * expected number of `ok` lines. Prints one line per check, then its FAIL lines. Writes
