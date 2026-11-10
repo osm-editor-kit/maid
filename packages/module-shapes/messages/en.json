@@ -96,6 +96,26 @@
   "resize_refused_incomplete": "Not all of it is loaded, so it cannot be resized.",
   "resize_refused_too_thin": "It is too thin: a straight line has no width to stretch.",
   "resize_refused_too_large": "Not enough of it is visible. Zoom out to resize it.",
+  "extrude_label": "Extrude",
+  "extrude_title": "Extrude",
+  "extrude_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Drag the dot on a side to pull it out or in. Tap the outline to add a corner. Tap Done when finished.",
+        "input=*": "Drag the dot on a side to pull it out or in. Click the outline to add a corner. Enter, Escape or a click away ends."
+      }
+    }
+  ],
+  "extrude_hint_move": "Move side",
+  "extrude_out": "{distance} out",
+  "extrude_in": "{distance} in",
+  "extrude_done": "Done",
+  "extrude_annotation": "Extruded a side",
+  "extrude_corner_annotation": "Added a corner",
+  "extrude_refused_incomplete": "Not all of it is loaded, so it cannot be extruded.",
+  "extrude_refused_too_large": "Not enough of it is visible. Zoom out to extrude it.",
   "room_label": "Draw a room",
   "room_text": "Room",
   "room_description": [

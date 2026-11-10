@@ -72,7 +72,7 @@ What each app turns on today:
 | --- | --- | --- |
 | `apps/maid` | 5173 | turn restrictions, surface |
 | `apps/maid-bicycle` | 5176 | turn restrictions, surface, traffic signs, way table, reroute, osmchange |
-| `apps/maid-parking` | 5177 | parking (with its lens and rules), shapes (angle snap with lengths, rectangle, merge, cut, divide, resize) |
+| `apps/maid-parking` | 5177 | parking (with its lens and rules), shapes (angle snap with lengths, rectangle, merge, cut, divide, resize, extrude) |
 | `apps/maid-indoor` | 5178 | levels (with its level rules), shapes (angle snap with lengths, rectangle, room, merge, cut, divide, resize) |
 
 The shared set is the same in all four: element info, operations, relations, validation, imagery, data layers, lenses,

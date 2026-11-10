@@ -13,6 +13,7 @@ Five tools for drawing buildings and parking spaces faster, built as modules for
 | [6-merge-to-multipolygon.md](6-merge-to-multipolygon.md) | An outer and an inner area merged into a multipolygon | Merge (`C`) |
 | [7-resize.md](7-resize.md) | A box with handles around the selection: stretch, keep proportions, from the centre (2026-10-24) | Edit menu and command bar, proposed key `K` |
 | [8-draw-against-walls.md](8-draw-against-walls.md) | Rooms drawn against the walls of a building: a rectangle at a wall, split off an area, lines at a right angle to the wall (proposal, 2026-11-03) | Area dropdown and edit menu (proposed) |
+| [9-extrude.md](9-extrude.md) | Pull one side of an area or line out or in, as JOSM's Extrude: a bump with new corners, or the side moved (2026-11-10) | Edit menu and command bar, key `J` |
 
 ## What the research found
 

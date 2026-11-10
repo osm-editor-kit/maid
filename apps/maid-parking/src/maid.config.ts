@@ -16,6 +16,7 @@ import {
   angleSnap,
   cutArea,
   divideArea,
+  extrude,
   resize,
   mergeAreas,
   rectangle,
@@ -101,6 +102,8 @@ function editorConfig(config: Config) {
     divideArea(),
     // and resizes the selection with a box and handles (K; Shift keeps the proportions, Alt the centre)
     resize(),
+    // and pulls one side out or in, as JOSM's Extrude (J; Shift moves the side, a click on the outline adds a corner)
+    extrude(),
     // top bar and dock "Notes": OSM notes from the same API as the data, read-only, shown from zoom 12 as in iD
     notes({ apiUrl: config.apiUrl }),
   ]

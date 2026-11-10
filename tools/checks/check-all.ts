@@ -43,6 +43,7 @@ const CHECKS = [
   'cut',
   'divide',
   'resize',
+  'extrude',
   'display',
   'touch',
   'menu',
@@ -68,6 +69,7 @@ const MODULE_CHECKS = new Set<CheckName>([
   'cut',
   'divide',
   'resize',
+  'extrude',
   'touch',
   'levels',
   'osmchange',
@@ -97,6 +99,8 @@ const RUNS: Run[] = [
   { name: 'cut', check: 'cut', only: ['parking', 'indoor'] },
   { name: 'divide', check: 'divide', only: ['parking', 'indoor'] },
   { name: 'resize', check: 'resize', only: ['parking', 'indoor'] },
+  // extrude of module-shapes, on in the parking app only
+  { name: 'extrude', check: 'extrude', only: ['parking'] },
   // long press on a touch screen: the Area dropdown, the edit menu, Shift while drawing (it needs the rectangle tool)
   { name: 'touch', check: 'touch', only: ['parking', 'indoor'] },
   // the room tool of module-shapes, on in the indoor app: a room drawn into a building on open ground
@@ -137,6 +141,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   cut: { maid: 0, bicycle: 0, parking: 25, indoor: 25 },
   divide: { maid: 0, bicycle: 0, parking: 23, indoor: 23 },
   resize: { maid: 0, bicycle: 0, parking: 32, indoor: 32 },
+  extrude: { maid: 0, bicycle: 0, parking: 20, indoor: 0 },
   display: { maid: 12, bicycle: 12, parking: 12, indoor: 12 },
   touch: { maid: 0, bicycle: 0, parking: 14, indoor: 14 },
   levels: { maid: 0, bicycle: 0, parking: 0, indoor: 34 },
