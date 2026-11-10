@@ -80,6 +80,8 @@ describe('TasksView', () => {
     selected: [] as string[],
     highlight: () => {},
     readOnly: () => false,
+    display: 'normal' as const,
+    setDisplay: () => {},
   }
 
   it('shows the empty state without a list', () => {

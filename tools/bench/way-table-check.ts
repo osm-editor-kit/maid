@@ -276,6 +276,11 @@ process.exit(
           await settle()
           await openGroups()
           report('the toggle is pressed', 'true', await toggle.getAttribute('aria-pressed'))
+          report(
+            'the toggle switches the map to its edits display too (G)',
+            'edits',
+            await page.evaluate(() => window.__maid.engine.display),
+          )
           const shown = await table()
           const changed = shown.states.find(
             (state) => state.key === changeTarget.key && state.col === changeTarget.col,
@@ -313,6 +318,23 @@ process.exit(
             'false',
             await toggle.getAttribute('aria-pressed'),
           )
+          report(
+            'and the map back to its normal look',
+            'normal',
+            await page.evaluate(() => window.__maid.engine.display),
+          )
+          // the map's key G switches the table as well
+          await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+          await page.keyboard.press('g')
+          await settle()
+          report(
+            "the key G presses the table's toggle",
+            'true',
+            await toggle.getAttribute('aria-pressed'),
+          )
+          await page.keyboard.press('g')
+          await settle()
+          report('a second G releases it', 'false', await toggle.getAttribute('aria-pressed'))
           await page.evaluate(() => window.__maid.engine.undo())
           await page.evaluate(() => window.__maid.engine.undo())
           await settle()

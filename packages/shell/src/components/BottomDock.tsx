@@ -1,5 +1,6 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
-import { Dock } from '@osm-editor-kit/maid-ui'
+import type { MapDisplay } from '@osm-editor-kit/maid-renderer'
+import { chooseDisplay, Dock } from '@osm-editor-kit/maid-ui'
 import type { DockView } from '@osm-editor-kit/maid-ui'
 import { useCallback, useSyncExternalStore } from 'react'
 import { useSelection } from '../selection'
@@ -42,6 +43,9 @@ export function BottomDock() {
   // stable for as long as the engine is: a view memoises on these props
   const highlight = useCallback((ids: readonly string[] | null) => engine.setRelated(ids), [engine])
   const readOnly = useCallback((id: string) => engine.isReadOnly(id), [engine])
+  // what the map shows: a view can follow and set it (the way table's "Highlight changes" is the map's G)
+  const display = useSyncExternalStore(engine.subscribe, () => engine.display)
+  const setDisplay = useCallback((next: MapDisplay) => chooseDisplay(engine, next), [engine])
   return (
     <Dock
       tabs={views.map((view) => ({
@@ -54,6 +58,8 @@ export function BottomDock() {
             selected={ids}
             highlight={highlight}
             readOnly={readOnly}
+            display={display}
+            setDisplay={setDisplay}
           />
         ),
       }))}

@@ -37,7 +37,6 @@ export type WayTableActions = {
   readonly choose: (referenceId: string, nodeId: string, wayId: string) => void
   readonly forgetChoices: (referenceId: string) => void
   readonly toggleOnlyDiffering: () => void
-  readonly toggleShowChanges: () => void
   readonly toggleGroup: (group: GroupId) => void
   readonly startPending: (pending: Pending) => void
   readonly endPending: () => void
@@ -51,8 +50,6 @@ export type WayTableState = {
   readonly limits: Readonly<Record<string, number>>
   readonly choices: Readonly<Record<string, Choices>>
   readonly onlyDiffering: boolean
-  /** "Highlight changes": each cell shows its change in this session (before → after), removed tags as rows */
-  readonly showChanges: boolean
   /** True for a group the person folded */
   readonly folded: Readonly<Partial<Record<GroupId, boolean>>>
   readonly pending: Pending | null
@@ -68,7 +65,6 @@ export function createWayTableStore(defaultLimit: number) {
     limits: {},
     choices: {},
     onlyDiffering: false,
-    showChanges: false,
     folded: {},
     pending: null,
     carry: DEFAULT_CARRY,
@@ -91,7 +87,6 @@ export function createWayTableStore(defaultLimit: number) {
         set({ choices: rest })
       },
       toggleOnlyDiffering: () => set({ onlyDiffering: !get().onlyDiffering }),
-      toggleShowChanges: () => set({ showChanges: !get().showChanges }),
       toggleGroup: (group) => {
         const { folded } = get()
         set({ folded: { ...folded, [group]: !folded[group] } })
@@ -116,10 +111,6 @@ export function useWayTableChoices(store: WayTableStore, referenceId: string): C
 
 export function useWayTableOnlyDiffering(store: WayTableStore): boolean {
   return useStore(store, (state) => state.onlyDiffering)
-}
-
-export function useWayTableShowChanges(store: WayTableStore): boolean {
-  return useStore(store, (state) => state.showChanges)
 }
 
 export function useWayTableFolded(store: WayTableStore): WayTableState['folded'] {

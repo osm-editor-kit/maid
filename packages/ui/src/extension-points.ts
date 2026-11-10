@@ -3,7 +3,7 @@
  * The renderer's `map.layer` point is declared in maid-renderer.
  */
 import type { Editor } from '@osm-editor-kit/maid-core'
-import type { EntityInfo, MaidEngine } from '@osm-editor-kit/maid-renderer'
+import type { EntityInfo, MaidEngine, MapDisplay } from '@osm-editor-kit/maid-renderer'
 import type { ComponentType, ReactNode } from 'react'
 import type { FieldComponent, FieldFocus } from './inspector/fields/shared.ts'
 
@@ -70,6 +70,10 @@ export type DockViewProps = {
   highlight: (ids: readonly string[] | null) => void
   /** Whether a filter makes this feature read-only: a view must not write it (the engine's isReadOnly) */
   readOnly: (id: string) => boolean
+  /** What the map shows of the data now (the engine's display: normal, wireframe, or the edits in colour, key G) */
+  display: MapDisplay
+  /** Sets what the map shows, as the keys W and G do (chooseDisplay: remembered in the settings) */
+  setDisplay: (display: MapDisplay) => void
 }
 
 /** A view in the dock under the map, with its own tab */

@@ -133,7 +133,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   'route-overview': { maid: 63, bicycle: 63, parking: 63, indoor: 63 },
   // module checks run only for the apps in `only` (RUNS): the count is 0 elsewhere
   parking: { maid: 0, bicycle: 0, parking: 29, indoor: 0 },
-  'way-table': { maid: 0, bicycle: 21, parking: 0, indoor: 0 },
+  'way-table': { maid: 0, bicycle: 25, parking: 0, indoor: 0 },
   reroute: { maid: 0, bicycle: 12, parking: 0, indoor: 0 },
   rectangle: { maid: 0, bicycle: 0, parking: 24, indoor: 24 },
   'angle-snap': { maid: 0, bicycle: 0, parking: 35, indoor: 35 },

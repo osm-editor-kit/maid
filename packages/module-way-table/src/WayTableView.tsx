@@ -30,7 +30,6 @@ import {
   useWayTableLimit,
   useWayTableOnlyDiffering,
   useWayTablePending,
-  useWayTableShowChanges,
   type WayTableStore,
 } from './way-table-store.ts'
 import { WayTableBar } from './WayTableBar.tsx'
@@ -101,14 +100,15 @@ function orderText(order: TableView['order']): string | undefined {
  * staging graph and writes through the history, one undo step per change.
  */
 export function WayTableView(props: WayTableViewProps) {
-  const { editor, select, selected, highlight, store, readOnly } = props
+  const { editor, select, selected, highlight, store, readOnly, display, setDisplay } = props
   const graph = useTableGraph(editor, selected)
   // the reference is the table's own: the first selected way, whatever is selected before it
   const reference = referenceOf(graph, selected) ?? ''
   const limit = useWayTableLimit(store, reference)
   const choices = useWayTableChoices(store, reference)
   const onlyDiffering = useWayTableOnlyDiffering(store)
-  const showChanges = useWayTableShowChanges(store)
+  // "Highlight changes" is the map's edits display (key G, `display=edits`): the button and the map switch together
+  const showChanges = display === 'edits'
   const folded = useWayTableFolded(store)
   const pending = useWayTablePending(store)
   const carry = useWayTableCarry(store)
@@ -207,7 +207,7 @@ export function WayTableView(props: WayTableViewProps) {
       type="button"
       aria-pressed={showChanges}
       title={m.way_table_show_changes_hint()}
-      onClick={actions.toggleShowChanges}
+      onClick={() => setDisplay(showChanges ? 'normal' : 'edits')}
       className={`rounded-md border px-2 py-0.5 text-xs font-medium focus-visible:outline-2 focus-visible:outline-blue-600 touch:py-1 ${
         showChanges
           ? 'border-blue-600 bg-blue-600 text-white dark:border-blue-500'
