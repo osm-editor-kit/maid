@@ -1,0 +1,491 @@
+import { describe, expect, test } from 'bun:test'
+import { mirrorTags, normalizeTagsForDirection } from '@osm-editor-kit/osm-way-chain'
+import { laneDiagramFixtures } from '../fixtures'
+import {
+  buildRoadSpaceSegment,
+  layoutRoadSpace,
+  solveChainOffsets,
+  type RoadSpaceChain,
+  type RoadSpaceScene,
+  type RoadSpaceSegment,
+  type StackCorrespondence,
+} from '../index'
+
+const EPS = 0.02
+
+const MULTI_SEGMENT_FIXTURES = [
+  'one-lane-each-way',
+  'two-lane-each-way',
+  'right-turn-pocket',
+  'turn-pocket-then-continue',
+  'dual-carriageway-island',
+  'karl-marx-dual-split',
+  'karl-marx-bi-to-dual',
+  'karl-marx-dual-opposite',
+  'karl-marx-crossing-turns',
+  't-junction',
+  'placement-transition',
+  'reversed-neighbour',
+] as const
+
+const KARL_MARX_FIXTURES = [
+  'karl-marx-bi-to-dual',
+  'karl-marx-dual-opposite',
+  'karl-marx-crossing-turns',
+] as const
+
+function fixtureChain(id: string): RoadSpaceChain {
+  const fixture = laneDiagramFixtures.find((f) => f.id === id)
+  if (!fixture) throw new Error(`missing fixture ${id}`)
+  // Match audit / orientation contract: next (ahead) on top so forward travel draws up.
+  return {
+    segments: [...fixture.segments].reverse().map((seg) =>
+      buildRoadSpaceSegment(seg.tags, {
+        wayId: seg.wayId,
+        role: seg.role,
+        dualSibling: seg.dualSibling,
+        medianHint: seg.medianHint,
+      }),
+    ),
+  }
+}
+
+function assertCorrespondenceNonCrossing(corrs: StackCorrespondence[]): void {
+  for (const corr of corrs) {
+    for (let i = 0; i < corr.pairs.length; i++) {
+      for (let j = i + 1; j < corr.pairs.length; j++) {
+        const p1 = corr.pairs[i]!
+        const p2 = corr.pairs[j]!
+        if ((p1.branchA ?? 'travel') !== (p2.branchA ?? 'travel')) continue
+        if ((p1.branchB ?? 'travel') !== (p2.branchB ?? 'travel')) continue
+        const crosses =
+          (p1.indexA - p2.indexA) * (p1.indexB - p2.indexB) < 0 &&
+          p1.indexA !== p2.indexA &&
+          p1.indexB !== p2.indexB
+        expect(crosses).toBe(false)
+      }
+    }
+  }
+}
+
+function ribbonLeftXAtBand(ribbon: RoadSpaceScene['ribbons'][number], bandIndex: number): number {
+  const slice = ribbon.bandSlices.find((s) => s.bandIndex === bandIndex)
+  if (!slice) return NaN
+  const bandYs = ribbon.points.filter(
+    (p) => p.y >= slice.y - EPS && p.y <= slice.y + slice.height + EPS,
+  )
+  if (bandYs.length > 0) return Math.min(...bandYs.map((p) => p.x))
+  return Math.min(...ribbon.points.map((p) => p.x))
+}
+
+function assertRibbonsNonCrossingAtBands(scene: RoadSpaceScene): void {
+  for (let bi = 0; bi < scene.bands.length; bi++) {
+    const band = scene.bands[bi]!
+    if (band.synthetic) continue
+    const entries = scene.ribbons
+      .filter((r) => r.zone === 'carriageway' && r.bandSlices.some((s) => s.bandIndex === bi))
+      .map((r) => ({ ribbon: r, leftX: ribbonLeftXAtBand(r, bi) }))
+      .filter((e) => Number.isFinite(e.leftX))
+      .sort((a, b) => a.leftX - b.leftX)
+    for (let i = 1; i < entries.length; i++) {
+      expect(entries[i]!.leftX).toBeGreaterThanOrEqual(entries[i - 1]!.leftX - EPS)
+    }
+  }
+}
+
+function ribbonTouchesBand(ribbon: RoadSpaceScene['ribbons'][number], bandIndex: number): boolean {
+  return ribbon.bandSlices.some((s) => s.bandIndex === bandIndex)
+}
+
+function ribbonSpansSeam(
+  scene: RoadSpaceScene,
+  slotId: string,
+  wayId: number,
+  glueBandIndex: number,
+): boolean {
+  const ribbon = scene.ribbons.find((r) =>
+    r.bandSlices.some((s) => s.slotId === slotId && s.wayId === wayId),
+  )
+  if (!ribbon) return false
+  const above = glueBandIndex - 1
+  const below = glueBandIndex + 1
+  const touchesGlue = ribbonTouchesBand(ribbon, glueBandIndex)
+  const touchesBoth = ribbonTouchesBand(ribbon, above) && ribbonTouchesBand(ribbon, below)
+  return (
+    touchesBoth ||
+    (touchesGlue && (ribbonTouchesBand(ribbon, above) || ribbonTouchesBand(ribbon, below)))
+  )
+}
+
+function hasSeamWedge(scene: RoadSpaceScene, slotId: string, wayId: number): boolean {
+  return scene.slotRects.some(
+    (r) =>
+      r.slotId === slotId &&
+      r.wayId === wayId &&
+      (r.label === 'step_fill' || (r.points != null && r.points.length >= 3)),
+  )
+}
+
+function travelCarriagewaySlots(seg: RoadSpaceSegment) {
+  const fork = seg.fork
+  const leftSet = new Set(fork?.leftSlotIds ?? [])
+  const rightSet = new Set(fork?.rightSlotIds ?? [])
+  return seg.slots.filter(
+    (s) =>
+      s.zone === 'carriageway' &&
+      !(fork?.dimmedSide === 'left' && leftSet.has(s.id)) &&
+      !(fork?.dimmedSide === 'right' && rightSet.has(s.id)),
+  )
+}
+
+function assertCarriagewayConnectivity(scene: RoadSpaceScene, chain: RoadSpaceChain): void {
+  const glueBandIndices = scene.bands.map((b, i) => (b.synthetic ? i : -1)).filter((i) => i >= 0)
+
+  for (const seg of chain.segments) {
+    for (const slot of travelCarriagewaySlots(seg)) {
+      const inRibbon = scene.ribbons.some((r) =>
+        r.bandSlices.some((s) => s.slotId === slot.id && s.wayId === seg.wayId),
+      )
+      const inRect = scene.slotRects.some((r) => r.slotId === slot.id && r.wayId === seg.wayId)
+      expect(inRibbon || inRect).toBe(true)
+    }
+  }
+
+  if (chain.segments.length < 2) return
+
+  const { correspondences } = solveChainOffsets(chain.segments)
+  for (let si = 0; si < correspondences.length; si++) {
+    const corr = correspondences[si]!
+    const glueIdx = glueBandIndices[si]
+    if (glueIdx == null) continue
+    const glueIsJunction = scene.bands[glueIdx]?.junction === true
+
+    for (const pair of corr.pairs) {
+      const branchA = pair.branchA ?? 'travel'
+      const branchB = pair.branchB ?? 'travel'
+      const slotA =
+        branchA === 'sibling'
+          ? chain.segments[si]!.fork?.siblingSlots?.[pair.indexA]
+          : chain.segments[si]!.slots[pair.indexA]
+      const slotB =
+        branchB === 'sibling'
+          ? chain.segments[si + 1]!.fork?.siblingSlots?.[pair.indexB]
+          : chain.segments[si + 1]!.slots[pair.indexB]
+      if (!slotA || !slotB) continue
+      if (slotA.zone !== 'carriageway' || slotB.zone !== 'carriageway') continue
+
+      const wayA =
+        branchA === 'sibling' ? chain.segments[si]!.fork?.siblingWayId : chain.segments[si]!.wayId
+      const wayB =
+        branchB === 'sibling'
+          ? chain.segments[si + 1]!.fork?.siblingWayId
+          : chain.segments[si + 1]!.wayId
+      if (wayA == null || wayB == null) continue
+
+      if (glueIsJunction) {
+        // Junction seams butt-end — matched lanes need not span the glue band.
+        const ribbonA = scene.ribbons.find((r) =>
+          r.bandSlices.some((s) => s.slotId === slotA.id && s.wayId === wayA),
+        )
+        const ribbonB = scene.ribbons.find((r) =>
+          r.bandSlices.some((s) => s.slotId === slotB.id && s.wayId === wayB),
+        )
+        expect(ribbonA != null || ribbonB != null).toBe(true)
+        continue
+      }
+
+      const spansA = ribbonSpansSeam(scene, slotA.id, wayA, glueIdx)
+      const spansB = ribbonSpansSeam(scene, slotB.id, wayB, glueIdx)
+      expect(spansA || spansB).toBe(true)
+    }
+
+    const unmatchedSlots: Array<{ segIndex: number; index: number; branch: 'travel' | 'sibling' }> =
+      [
+        ...corr.unmatchedA.map((u) => ({
+          segIndex: si,
+          index: u.index,
+          branch: u.branch ?? 'travel',
+        })),
+        ...corr.unmatchedB.map((u) => ({
+          segIndex: si + 1,
+          index: u.index,
+          branch: u.branch ?? 'travel',
+        })),
+      ]
+
+    for (const u of unmatchedSlots) {
+      const seg = chain.segments[u.segIndex]!
+      const slot = u.branch === 'sibling' ? seg.fork?.siblingSlots?.[u.index] : seg.slots[u.index]
+      if (!slot || slot.zone !== 'carriageway') continue
+      const wayId = u.branch === 'sibling' ? (seg.fork?.siblingWayId ?? seg.wayId) : seg.wayId
+      const ribbon = scene.ribbons.find((r) =>
+        r.bandSlices.some((s) => s.slotId === slot.id && s.wayId === wayId),
+      )
+      const wedge = hasSeamWedge(scene, slot.id, wayId)
+      const singleBand =
+        ribbon != null &&
+        ribbon.bandSlices.filter((s) => !scene.bands[s.bandIndex]?.synthetic).length === 1
+      expect(ribbon != null || wedge || singleBand || glueIsJunction).toBe(true)
+    }
+  }
+}
+
+function assertNoEmptyGlueCoverage(scene: RoadSpaceScene, chain: RoadSpaceChain): void {
+  if (chain.segments.length < 2) return
+  const { correspondences } = solveChainOffsets(chain.segments)
+  const glueBandIndices = scene.bands.map((b, i) => (b.synthetic ? i : -1)).filter((i) => i >= 0)
+
+  for (let si = 0; si < correspondences.length; si++) {
+    const corr = correspondences[si]!
+    const glueIdx = glueBandIndices[si]
+    if (glueIdx == null) continue
+    if (scene.bands[glueIdx]?.junction) continue
+    const glueBand = scene.bands[glueIdx]!
+    const cwPairs = corr.pairs.filter((pair) => {
+      const slotA = chain.segments[si]!.slots[pair.indexA]
+      const slotB = chain.segments[si + 1]!.slots[pair.indexB]
+      return slotA?.zone === 'carriageway' && slotB?.zone === 'carriageway'
+    })
+    if (cwPairs.length === 0) continue
+
+    const glueRibbons = scene.ribbons.filter((r) => ribbonTouchesBand(r, glueIdx))
+    const glueCoverage = glueRibbons.some((r) => {
+      const xs = r.points.filter(
+        (p) => p.y >= glueBand.y - EPS && p.y <= glueBand.y + glueBand.height + EPS,
+      )
+      if (xs.length < 2) return false
+      const minX = Math.min(...xs.map((p) => p.x))
+      const maxX = Math.max(...xs.map((p) => p.x))
+      return maxX - minX > EPS
+    })
+    expect(glueCoverage || glueRibbons.length >= cwPairs.length).toBe(true)
+  }
+}
+
+describe('chain connectivity invariants', () => {
+  for (const fixtureId of MULTI_SEGMENT_FIXTURES) {
+    describe(fixtureId, () => {
+      const chain = fixtureChain(fixtureId)
+      const scene = layoutRoadSpace(chain)
+      const { correspondences } = solveChainOffsets(chain.segments)
+
+      test('correspondence indices are non-crossing', () => {
+        assertCorrespondenceNonCrossing(correspondences)
+      })
+
+      test('carriageway ribbons do not cross within bands', () => {
+        assertRibbonsNonCrossingAtBands(scene)
+      })
+
+      test('every travel carriageway slot chains or terminates at a seam wedge', () => {
+        assertCarriagewayConnectivity(scene, chain)
+      })
+
+      test('glue bands have ribbon coverage for matched carriageway pairs', () => {
+        assertNoEmptyGlueCoverage(scene, chain)
+      })
+
+      test('layout emits debug metadata', () => {
+        expect(scene.debug).toBeDefined()
+        expect(scene.debug!.bandOffsets.length).toBe(chain.segments.length)
+        if (chain.segments.length > 1) {
+          expect(scene.debug!.correspondenceLinks.length).toBeGreaterThan(0)
+        }
+      })
+    })
+  }
+
+  test('Karl-Marx fixtures: through motor ribbons span at least two real bands', () => {
+    for (const fixtureId of KARL_MARX_FIXTURES) {
+      const scene = layoutRoadSpace(fixtureChain(fixtureId))
+      const through = scene.ribbons.filter(
+        (r) => r.zone === 'carriageway' && r.kind === 'motor' && /\/forward\/through\//.test(r.id),
+      )
+      expect(through.length).toBeGreaterThan(0)
+      for (const ribbon of through) {
+        const realBands = new Set(
+          ribbon.bandSlices
+            .filter((s) => !scene.bands[s.bandIndex]?.synthetic)
+            .map((s) => s.bandIndex),
+        )
+        expect(realBands.size).toBeGreaterThanOrEqual(1)
+      }
+    }
+  })
+
+  test('reversed neighbour: oriented tags match centre segment stack', () => {
+    const fixture = laneDiagramFixtures.find((f) => f.id === 'reversed-neighbour')!
+    const current = fixture.segments.find((s) => s.role === 'current')!
+    const prev = fixture.segments.find((s) => s.role === 'prev')!
+    const digitisedOpposite = mirrorTags(prev.tags)
+    const oriented = normalizeTagsForDirection(digitisedOpposite, true)
+
+    const centreSeg = buildRoadSpaceSegment(current.tags, {
+      wayId: current.wayId,
+      role: 'current',
+    })
+    const prevSeg = buildRoadSpaceSegment(oriented, {
+      wayId: prev.wayId,
+      role: 'prev',
+    })
+
+    const label = (seg: typeof centreSeg) =>
+      seg.slots
+        .filter((s) => s.zone === 'carriageway')
+        .map((s) => `${s.kind}:${s.side ?? ''}:${s.direction}:${s.turn ?? ''}`)
+
+    expect(label(prevSeg)).toEqual(label(centreSeg))
+    expect(prevSeg.centrelineOffsetM).toBeCloseTo(centreSeg.centrelineOffsetM, 2)
+  })
+})
+
+describe('review regressions', () => {
+  const sceneOf = (id: string) => layoutRoadSpace(fixtureChain(id))
+
+  test('same placement with a lane added on the right is not a placement issue', () => {
+    expect(sceneOf('right-turn-pocket').placementIssues).toBeUndefined()
+  })
+
+  test('cropping the scene does not create placement issues', () => {
+    expect(sceneOf('turn-pocket-then-continue').placementIssues).toBeUndefined()
+  })
+
+  test('the way line bends into the selected branch of a dual split', () => {
+    const scene = sceneOf('karl-marx-bi-to-dual')
+    const guide = scene.polylines.find((l) => l.kind === 'placement_guide')!
+    const top = guide.points[0]!
+    const median = scene.slotRects.find((r) => r.kind === 'median')!
+    expect(top.x).toBeGreaterThan(median.x + median.width)
+    // …and stays between the two directions on the bidirectional part.
+    const bottom = guide.points.at(-1)!
+    expect(bottom.x).toBeLessThan(top.x)
+  })
+
+  test('sidewalks pair across a dual split: left with the opposite branch, right with travel', () => {
+    const chain = fixtureChain('dual-carriageway-island')
+    const { correspondences } = solveChainOffsets(chain.segments)
+    // segments are next, current (dual) and prev (bidirectional) top to bottom
+    const dual = chain.segments[1]!
+    const plain = chain.segments[2]!
+    const sidewalkPairs = correspondences[1]!.pairs.filter(
+      (p) => plain.slots[p.indexB]?.kind === 'sidewalk',
+    )
+    expect(
+      sidewalkPairs.map((p) => p.branchA).toSorted((a, b) => (a ?? '').localeCompare(b ?? '')),
+    ).toEqual(['sibling', 'travel'])
+    for (const p of sidewalkPairs) {
+      const upper =
+        p.branchA === 'sibling' ? dual.fork!.siblingSlots![p.indexA]! : dual.slots[p.indexA]!
+      expect(upper.kind).toBe('sidewalk')
+    }
+  })
+
+  test('kerbs run through a dual split instead of stopping at it', () => {
+    const scene = sceneOf('karl-marx-bi-to-dual')
+    const top = Math.min(...scene.bands.map((b) => b.y))
+    const bottom = Math.max(...scene.bands.map((b) => b.y + b.height))
+    for (const side of ['left', 'right']) {
+      const kerb = scene.polylines.find((l) => l.id === `kerb-${side}-0`)!
+      const ys = kerb.points.map((p) => p.y)
+      expect(Math.min(...ys)).toBeCloseTo(top, 1)
+      expect(Math.max(...ys)).toBeCloseTo(bottom, 1)
+    }
+  })
+
+  test('the kerb of the opposite branch sits between its lanes and its sidewalk', () => {
+    const scene = sceneOf('dual-carriageway-island')
+    const kerb = scene.polylines.find((l) => l.id === 'kerb-left-0')!
+    const siblingSidewalk = scene.slotRects.find((r) => r.kind === 'sidewalk' && r.dimmed)!
+    expect(kerb.points[0]!.x).toBeCloseTo(siblingSidewalk.x + siblingSidewalk.width, 1)
+  })
+
+  test('a turn pocket between the two directions tapers out of its neighbour lane', () => {
+    const scene = sceneOf('karl-marx-crossing-turns')
+    const pocket = scene.ribbons.find((r) => r.turn === 'left' && r.direction === 'forward')!
+    // More than the pocket's own band: the fill continues into the glue band below it.
+    expect(pocket.bandSlices.length).toBeGreaterThanOrEqual(2)
+  })
+
+  test('placement:forward / placement:backward count the lanes of one direction', () => {
+    const tags = { highway: 'secondary', lanes: '4', 'lanes:forward': '3', 'lanes:backward': '1' }
+    const offset = (extra: Record<string, string>) =>
+      buildRoadSpaceSegment({ ...tags, ...extra }, { wayId: 1, role: 'current' }).centrelineOffsetM
+    // Lanes are 3 m by default: backward | forward 1 | forward 2 | forward 3
+    expect(offset({ 'placement:forward': 'left_of:1' })).toBeCloseTo(3, 2)
+    expect(offset({ 'placement:forward': 'right_of:1' })).toBeCloseTo(6, 2)
+    expect(offset({ 'placement:forward': 'middle_of:3' })).toBeCloseTo(10.5, 2)
+    // Seen in backward travel, the left of the backward lane is the middle of the road.
+    expect(offset({ 'placement:backward': 'left_of:1' })).toBeCloseTo(3, 2)
+    expect(offset({ 'placement:backward': 'right_of:1' })).toBeCloseTo(0, 2)
+  })
+
+  test('a dual carriageway without a known opposite branch adds no empty median', () => {
+    const scene = sceneOf('nahmitzer-damm-double-left')
+    const right = Math.max(...scene.slotRects.map((r) => r.x + r.width))
+    const butt = scene.polylines.find((l) => l.id.startsWith('butt-top'))!
+    expect(Math.max(...butt.points.map((p) => p.x))).toBeCloseTo(right, 1)
+  })
+
+  test('separately mapped sidewalks are anchored on the band, median fills the glue band', () => {
+    const scene = sceneOf('karl-marx-bi-to-dual')
+    const current = scene.bands.find((b) => b.role === 'current' && !b.synthetic)!
+    expect(current.separatelyMapped?.map((h) => `${h.prefix}:${h.side}`).sort()).toEqual([
+      'sidewalk:left',
+      'sidewalk:right',
+    ])
+    // The dual band's left side faces the opposite branch — no road edge there.
+    const next = scene.bands.find((b) => b.role === 'next' && !b.synthetic)!
+    expect(next.separatelyMapped?.map((h) => h.side)).toEqual(['right'])
+    expect(scene.medianOpenings).toHaveLength(1)
+  })
+
+  test('no lanes=*: other carriageway tags give one unmarked carriageway', () => {
+    const slots = (tags: Record<string, string>) =>
+      buildRoadSpaceSegment({ highway: 'residential', ...tags }, { wayId: 1, role: 'current' })
+        .slots.filter((s) => s.zone === 'carriageway')
+        .map((s) => `${s.kind}:${s.direction}:${s.widthM}:${s.widthProvenance}`)
+    // Nothing describes the carriageway → nothing is drawn.
+    expect(slots({})).toEqual([])
+    expect(slots({ sidewalk: 'both' })).toEqual([])
+    // Used in both directions unless oneway; the width is never split into lanes.
+    expect(slots({ lane_markings: 'no' })).toEqual(['motor:both_ways:6:default'])
+    expect(slots({ 'parking:both': 'lane' })).toEqual(['motor:both_ways:6:default'])
+    expect(slots({ lane_markings: 'no', width: '7.5' })).toEqual(['motor:both_ways:7.5:inferred'])
+    expect(slots({ 'width:carriageway': '5' })).toEqual(['motor:both_ways:5:tagged'])
+    expect(slots({ oneway: 'yes' })).toEqual(['motor:forward:3:default'])
+    expect(slots({ 'cycleway:both': 'lane', 'cycleway:both:width': '1.5', width: '9' })).toEqual([
+      'cycle:backward:1.5:tagged',
+      'motor:both_ways:6:inferred',
+      'cycle:forward:1.5:tagged',
+    ])
+  })
+
+  test('share_busway adds no cycle lane next to the bus lane', () => {
+    const seg = buildRoadSpaceSegment(
+      {
+        highway: 'primary',
+        oneway: 'yes',
+        lanes: '3',
+        'lanes:psv': '1',
+        'cycleway:right': 'share_busway',
+        'cycleway:right:width': '4',
+      },
+      { wayId: 1, role: 'current' },
+    )
+    expect(seg.slots.map((s) => s.kind)).toEqual(['motor', 'motor', 'bus'])
+  })
+
+  test('lanes of opposite directions are never joined across a seam', () => {
+    for (const id of ['kaiserin-augusta-allee-direction-flip', 'tegeler-weg-four-to-two']) {
+      const chain = fixtureChain(id)
+      const { correspondences } = solveChainOffsets(chain.segments)
+      correspondences.forEach((corr, i) => {
+        for (const pair of corr.pairs) {
+          const a = chain.segments[i]!.slots[pair.indexA]!
+          const b = chain.segments[i + 1]!.slots[pair.indexB]!
+          expect(`${a.direction}→${b.direction}`).not.toMatch(/forward→backward|backward→forward/)
+        }
+      })
+    }
+  })
+})

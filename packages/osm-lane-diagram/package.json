@@ -1,0 +1,15 @@
+{
+  "name": "@osm-editor-kit/osm-lane-diagram",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./fixtures": "./src/fixtures/index.ts"
+  },
+  "dependencies": {
+    "@osm-editor-kit/osm-lanes": "workspace:*",
+    "@osm-editor-kit/osm-way-chain": "1.0.1"
+  }
+}

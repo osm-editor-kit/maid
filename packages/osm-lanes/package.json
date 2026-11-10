@@ -1,0 +1,13 @@
+{
+  "name": "@osm-editor-kit/osm-lanes",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@osm-editor-kit/osm-way-chain": "1.0.1"
+  }
+}
