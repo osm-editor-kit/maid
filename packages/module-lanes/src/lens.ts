@@ -1,0 +1,63 @@
+/**
+ * The map style "Lanes": roads coloured by how much of their lanes is mapped, everything else dimmed. Values per lane
+ * (turn, width, bus, bicycle, access) are green, a lane count alone is amber, a main road without any lane tag is the
+ * warning pink of the lenses. Service roads and living streets without a lane tag are no gap: they stay grey.
+ * Rules: the first match decides.
+ */
+import type { Lens } from '@osm-editor-kit/maid-style'
+import { m } from './messages.ts'
+import { LANE_ROADS, MAIN_ROADS, MINOR_ROADS, RICH_KEYS } from './roads.ts'
+
+export const LANE_COLOURS = {
+  rich: '#16a34a',
+  count: '#d97706',
+  missing: '#e6007e',
+  minor: '#a1a1aa',
+} as const
+
+export const lanesLens: Lens = {
+  id: 'lanes',
+  get name() {
+    return m.lens_name()
+  },
+  get description() {
+    return m.lens_description()
+  },
+  geometry: ['line'],
+  rest: 'dim',
+  rules: [
+    ...RICH_KEYS.map((key, index) => ({
+      match: { highway: LANE_ROADS, [key]: true },
+      color: LANE_COLOURS.rich,
+      ...(index === 0
+        ? {
+            get label() {
+              return m.lens_rich()
+            },
+          }
+        : {}),
+    })),
+    {
+      match: { highway: LANE_ROADS, lanes: true },
+      color: LANE_COLOURS.count,
+      get label() {
+        return m.lens_count()
+      },
+    },
+    { match: { highway: LANE_ROADS, 'lanes:forward': true }, color: LANE_COLOURS.count },
+    {
+      match: { highway: MAIN_ROADS },
+      color: LANE_COLOURS.missing,
+      get label() {
+        return m.lens_missing()
+      },
+    },
+    {
+      match: { highway: MINOR_ROADS },
+      color: LANE_COLOURS.minor,
+      get label() {
+        return m.lens_minor()
+      },
+    },
+  ],
+}

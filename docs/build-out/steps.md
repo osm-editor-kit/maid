@@ -556,3 +556,13 @@ Tobias, 2026-11-10: bring the TILDA box of the iD Radnetz fork, now built on `@t
 - [ ] Field titles coloured by the checklist and "add below" links to the fields (needs a way for a section to point at a field).
 - [ ] The validation rules of `@tilda-geo/bicycle-infrastructure-tagging/validation` as Maid rules.
 - [ ] "Checked" and "Verified" shared through the project's key-value DB (needs the account).
+
+### Lanes (started 2026-11-10)
+
+Tobias, 2026-11-10: lane tooling in a Maid version of its own, in the list of versions, with the focus fully on lanes: on the map, in the diagram and in editing the fields. Background and options in [lanes-ux.md](../research/lanes-ux.md); the lane model and diagram are the street space editor's `osm-lanes` and `osm-lane-diagram`.
+
+- [x] 2026-11-10: `apps/maid-lanes` (port 5179, deployed with the others) with the module `packages/module-lanes`: a section "Lanes" above the fields of a road with the cross-section of the road and the roads before and after it (travel upwards, `sceneToSvg`), and a table with a column per lane (turn, width, bus, bicycle, vehicles, lane change), `+` per direction and `×` per lane. Each change writes only the keys it is about (`edit.ts`; not `serializeWayLanes`, which writes every parsed default back), one undo step; the counts step from the tagged counts, so a cycle lane in the pipes but not in `lanes` stays that way. The model's warnings show under the table (English only, from the package). Lens "Lanes": values per lane green, count only amber, main roads without lane tags pink, residential and service roads without them grey, with a chosen legend. Also on: turn restrictions, traffic signs, way table.
+      **Test for Tobias:** the deployed Maid Lanes at `?scene=dense&map=19/52.48057/13.43568&id=w960167546` (Karl-Marx-Straße): the section shows the cross-section and three forward columns with a cycle lane; set a turn, change a width, press `+` on one direction, then undo three times.
+- [ ] The lane packages from npm instead of the copy in `packages/osm-lanes` and `packages/osm-lane-diagram`, once the street space editor publishes them without the AGPL dependency (patch handed over 2026-11-10).
+- [ ] A diagram of Maid's own (React) with turn arrows, a click on a lane selects its column, and the map overlay of the lanes of the selected road from zoom 18 (lanes-ux.md option D, step 6).
+- [ ] Lane rules in the Issues dock (`validateWayLanes` as validation rules, with translated texts), `check-lanes` in `check-all`, the benchmark with the section open.

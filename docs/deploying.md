@@ -5,7 +5,7 @@ and publishes them to GitHub Pages, on every push to `main` and by hand from the
 
 **`deploy.env`** (repository root) says what to deploy:
 
-- `MAID_APP`: the app folder, for example `maid`, `maid-bicycle`, `maid-parking`, `maid-indoor` or your own, or a comma list of them.
+- `MAID_APP`: the app folder, for example `maid`, `maid-bicycle`, `maid-parking`, `maid-indoor`, `maid-lanes` or your own, or a comma list of them.
   - One app is served at the path itself, for example `https://osm-editor-kit.github.io/maid/`.
   - Several apps are each served from a folder of their own (`/maid/maid/`, `/maid/maid-bicycle/`, …), so each can be
     tested and used on its own. The path shows a page with a link to each. All of them log in through the `land.html`
@@ -33,7 +33,7 @@ Maid is a public OAuth client with PKCE. It has no client secret; never put one 
 3. Register an OAuth app on each server you offer: `https://www.openstreetmap.org/oauth2/applications` and
    `https://master.apis.dev.openstreetmap.org/oauth2/applications`. Redirect URI: your Pages address plus `land.html`
    (for example `https://osm-editor-kit.github.io/maid/land.html`; add `http://127.0.0.1:5173/land.html`,
-   `http://127.0.0.1:5176/land.html`, `http://127.0.0.1:5177/land.html` and `http://127.0.0.1:5178/land.html` to log in
+   `http://127.0.0.1:5176/land.html`, `http://127.0.0.1:5177/land.html`, `http://127.0.0.1:5178/land.html` and `http://127.0.0.1:5179/land.html` to log in
    from local development, one per
    app, as the login popup hands its result only to a tab of the same origin). Not confidential. Scopes `read_prefs`,
    `write_prefs` (the task progress, ADR 0013), `write_api`, `write_notes`. Put the client ids in `OSM_CLIENT_ID` and `OSM_DEV_CLIENT_ID`.
@@ -48,8 +48,8 @@ Registered by Tobias, account `tordans`. The redirect URIs, client ids and scope
 
 Redirect URIs (2026-10-23): `http://127.0.0.1:5173/land.html`, `http://127.0.0.1:5176/land.html`,
 `http://127.0.0.1:5177/land.html` and `https://osm-editor-kit.github.io/maid/land.html`. A new app with a port of its
-own needs its own line: `http://127.0.0.1:5178/land.html` for `maid-indoor` (2026-11-03) is still to be added by
-Tobias. The deployed Maid Indoor logs in through the shared `land.html` and needs nothing new. Locally the client ids go into `apps/<app>/.env.local` (see `.env.example`).
+own needs its own line: `http://127.0.0.1:5178/land.html` for `maid-indoor` (2026-11-03) and `http://127.0.0.1:5179/land.html` for `maid-lanes` (2026-11-10) are still to be added by
+Tobias. The deployed Maid Indoor and Maid Lanes log in through the shared `land.html` and needs nothing new. Locally the client ids go into `apps/<app>/.env.local` (see `.env.example`).
 
 ## What the deployed editor does
 

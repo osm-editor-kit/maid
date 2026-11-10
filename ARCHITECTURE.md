@@ -24,7 +24,7 @@ packages/module-*   the modules an app switches on
 ## Folders
 
 ```
-apps/maid, maid-bicycle, maid-parking, maid-indoor   the editors: maid.config.ts, presets.ts, main.tsx, vite.config.ts, env files
+apps/maid, maid-bicycle, maid-parking, maid-indoor, maid-lanes   the editors: maid.config.ts, presets.ts, main.tsx, vite.config.ts, env files
 apps/compare         Maid, iD and Rapid side by side
 packages/            the packages below
 tools/mock-osm-api   local stand-in for the OSM API, serves the fixtures
@@ -74,9 +74,10 @@ What each app turns on today:
 | `apps/maid-bicycle` | 5176 | turn restrictions, surface, traffic signs, way table, reroute, osmchange, sidepaths, TILDA, bike infrastructure (its default look) |
 | `apps/maid-parking` | 5177 | parking (with its lens and rules), shapes (angle snap with lengths, rectangle, merge, cut, divide, resize, extrude) |
 | `apps/maid-indoor` | 5178 | levels (with its level rules), shapes (angle snap with lengths, rectangle, room, merge, cut, divide, resize) |
+| `apps/maid-lanes` | 5179 | lanes (section with the cross-section and the lane table, and its lens), turn restrictions, traffic signs, way table |
 
-The shared set is the same in all four: element info, operations, relations, validation, imagery, data layers, lenses,
-street-level images, notes, task lists. Read the four config files side by side to see the pattern; they are short.
+The shared set is the same in all five: element info, operations, relations, validation, imagery, data layers, lenses,
+street-level images, notes, task lists. Read the five config files side by side to see the pattern; they are short.
 
 **Presets** come from `presets.ts` next to the config: the tagging schema's data with the changes that modules ship
 (`withChanges(defaultPresetData, parkingPresetChanges)`). They are loaded with `lazyPresets(() => import('./presets'))`

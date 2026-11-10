@@ -27,14 +27,15 @@ const ROAD = d(BASE, 'AZ')
 
 // --- New for Maid ------------------------------------------------------------
 
-type Fork = 'maid' | 'bicycle' | 'parking' | 'indoor'
-const FORKS: Fork[] = ['maid', 'bicycle', 'parking', 'indoor']
+type Fork = 'maid' | 'bicycle' | 'parking' | 'indoor' | 'lanes'
+const FORKS: Fork[] = ['maid', 'bicycle', 'parking', 'indoor', 'lanes']
 // The lane colours: cycle lanes and parking lanes (the blue of the Parkraum lens). maid and indoor have none.
 const ACCENT: Record<Fork, string> = {
   maid: '#f6634f',
   bicycle: '#0d8f6f',
   parking: '#376feb',
   indoor: '#f6634f',
+  lanes: '#f6634f',
 }
 const VERTEX = 'fill="#fff" stroke="#222"'
 
@@ -77,6 +78,14 @@ function way(d: string, fork: Fork, w: number) {
     )
   if (fork === 'bicycle' || fork === 'parking')
     parts.push(`<path d="${d}" stroke="#fff" stroke-width="${w * 1.5}"/>`)
+  // lanes: a wider road with a dashed white line between its two lanes
+  if (fork === 'lanes') {
+    parts.push(`<path d="${d}" stroke="#e08584" stroke-width="${w * 2.2}"/>`)
+    parts.push(
+      `<path d="${d}" stroke="#fff" stroke-width="${w * 0.22}" stroke-dasharray="${w * 0.8} ${w * 0.6}" stroke-linecap="butt"/>`,
+    )
+    return parts.join('')
+  }
   parts.push(`<path d="${d}" stroke="#e08584" stroke-width="${w}"/>`)
   return parts.join('')
 }
@@ -100,6 +109,10 @@ const ICON: Record<Fork, string> = {
     '<circle cx="-10" cy="6" r="4.6" fill="#fff" stroke="#262626" stroke-width="2.2"/><circle cx="10" cy="6" r="4.6" fill="#fff" stroke="#262626" stroke-width="2.2"/>',
   // stairs: three steps, turned upright against the pen's angle
   indoor: '<path fill="#fff" transform="rotate(45)" d="M-15 15H15V-15H5V-5H-5V5H-15Z"/>',
+  // two lanes: two arrows side by side, turned upright against the pen's angle
+  lanes:
+    '<g fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="rotate(45)">' +
+    '<path d="M-8 11V-11m-6 6 6-6 6 6M8 11V-11m-6 6 6-6 6 6"/></g>',
 }
 
 // A pencil the size of the OSM lens, tip at the vertex, pointing down-left.
@@ -139,6 +152,7 @@ const APP_DIR: Record<Fork, string> = {
   bicycle: 'apps/maid-bicycle',
   parking: 'apps/maid-parking',
   indoor: 'apps/maid-indoor',
+  lanes: 'apps/maid-lanes',
 }
 
 const logo = (fork: Fork, viewBox: string) => {
