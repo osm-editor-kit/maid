@@ -96,6 +96,26 @@
   "resize_refused_incomplete": "Il n'est pas entièrement chargé, il ne peut donc pas être redimensionné.",
   "resize_refused_too_thin": "Il est trop étroit : une ligne droite n'a pas de largeur à étirer.",
   "resize_refused_too_large": "Une trop petite partie est visible. Dézoomez pour le redimensionner.",
+  "extrude_label": "Extruder",
+  "extrude_title": "Extruder",
+  "extrude_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Faites glisser le point d’un côté pour le tirer vers l’extérieur ou l’intérieur. Touchez le contour pour ajouter un coin. Touchez Terminé pour finir.",
+        "input=*": "Faites glisser le point d’un côté pour le tirer vers l’extérieur ou l’intérieur. Cliquez sur le contour pour ajouter un coin. Entrée, Échap ou un clic à côté termine."
+      }
+    }
+  ],
+  "extrude_hint_move": "Déplacer le côté",
+  "extrude_out": "{distance} vers l’extérieur",
+  "extrude_in": "{distance} vers l’intérieur",
+  "extrude_done": "Terminé",
+  "extrude_annotation": "Côté extrudé",
+  "extrude_corner_annotation": "Coin ajouté",
+  "extrude_refused_incomplete": "Il n’est pas entièrement chargé, il ne peut donc pas être extrudé.",
+  "extrude_refused_too_large": "Il n’est pas assez visible. Dézoomez pour l’extruder.",
   "room_label": "Dessiner une pièce",
   "room_text": "Pièce",
   "room_description": [

@@ -96,6 +96,26 @@
   "resize_refused_incomplete": "No está cargado por completo, así que no se puede cambiar su tamaño.",
   "resize_refused_too_thin": "Es demasiado estrecho: una línea recta no tiene anchura que estirar.",
   "resize_refused_too_large": "No se ve lo suficiente. Aleja el mapa para cambiar su tamaño.",
+  "extrude_label": "Extruir",
+  "extrude_title": "Extruir",
+  "extrude_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Arrastra el punto de un lado para sacarlo o meterlo. Toca el contorno para añadir una esquina. Toca Hecho para terminar.",
+        "input=*": "Arrastra el punto de un lado para sacarlo o meterlo. Haz clic en el contorno para añadir una esquina. Intro, Escape o un clic fuera termina."
+      }
+    }
+  ],
+  "extrude_hint_move": "Mover el lado",
+  "extrude_out": "{distance} hacia fuera",
+  "extrude_in": "{distance} hacia dentro",
+  "extrude_done": "Hecho",
+  "extrude_annotation": "Lado extruido",
+  "extrude_corner_annotation": "Esquina añadida",
+  "extrude_refused_incomplete": "No está cargado por completo, así que no se puede extruir.",
+  "extrude_refused_too_large": "No se ve lo suficiente. Aleja el mapa para extruirlo.",
   "room_label": "Dibujar una habitación",
   "room_text": "Habitación",
   "room_description": [

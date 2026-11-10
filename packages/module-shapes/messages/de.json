@@ -96,6 +96,26 @@
   "resize_refused_incomplete": "Es ist nicht vollständig geladen, daher lässt sich die Größe nicht ändern.",
   "resize_refused_too_thin": "Es ist zu schmal: Eine gerade Linie hat keine Breite zum Strecken.",
   "resize_refused_too_large": "Es ist nicht genug davon sichtbar. Zoome heraus, um die Größe zu ändern.",
+  "extrude_label": "Extrudieren",
+  "extrude_title": "Extrudieren",
+  "extrude_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Ziehe den Punkt auf einer Seite, um sie heraus- oder hineinzuziehen. Tippe auf den Umriss, um eine Ecke zu setzen. Tippe auf Fertig, wenn du fertig bist.",
+        "input=*": "Ziehe den Punkt auf einer Seite, um sie heraus- oder hineinzuziehen. Klicke auf den Umriss, um eine Ecke zu setzen. Enter, Escape oder ein Klick daneben beendet."
+      }
+    }
+  ],
+  "extrude_hint_move": "Seite verschieben",
+  "extrude_out": "{distance} heraus",
+  "extrude_in": "{distance} hinein",
+  "extrude_done": "Fertig",
+  "extrude_annotation": "Seite extrudiert",
+  "extrude_corner_annotation": "Ecke hinzugefügt",
+  "extrude_refused_incomplete": "Es ist nicht vollständig geladen, daher lässt es sich nicht extrudieren.",
+  "extrude_refused_too_large": "Es ist nicht genug davon sichtbar. Zoome heraus, um es zu extrudieren.",
   "room_label": "Raum einzeichnen",
   "room_text": "Raum",
   "room_description": [
