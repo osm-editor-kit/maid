@@ -23,8 +23,23 @@ export const CONE_ZOOM = 17
  */
 export const CONE_SLOTS = 2
 
-/** The cone image's id (direction-images.ts draws it) */
+/**
+ * The cone images (direction-images.ts draws them). The narrow end of the wedge starts at a gap from the node, so it
+ * comes out from under what the node is drawn as: `viewfield` 3 px from the node, for a plain circle (iD's), and
+ * `viewfield-wide` CONE_GAP_WIDE px, for a vertex disc with an icon (8 px and its outline) and for a pin's head.
+ */
 export const CONE_IMAGE = 'viewfield'
+export const CONE_IMAGE_WIDE = 'viewfield-wide'
+/** The gap of each cone image in px, from the node (or the pin's head) to the narrow end of the wedge */
+export const CONE_GAP = 3
+export const CONE_GAP_WIDE = 9.5
+
+/**
+ * The centre of a pin's head above its node, in screen px: the pin image (shell images.ts makePin, 19 x 26 px) sits
+ * on the node with its bottom edge, and its head is a circle of radius 9 around (9.5, 9.5). A cone on a pin starts
+ * there, so it comes out of the head and is not hidden under the pin.
+ */
+export const PIN_HEAD_ABOVE = 16.5
 
 /** The direction properties of a point or vertex feature: the bearings of its cones, clockwise from north */
 export type ConeProps = { d0?: number; d1?: number }
