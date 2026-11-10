@@ -1,0 +1,16 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "move_sidewalk_both_label": "Tags auf beide Gehwege",
+  "move_sidewalk_left_label": "Tags auf linken Gehweg",
+  "move_sidewalk_right_label": "Tags auf rechten Gehweg",
+  "move_cycleway_both_label": "Tags auf beide Radwege",
+  "move_cycleway_left_label": "Tags auf linken Radweg",
+  "move_cycleway_right_label": "Tags auf rechten Radweg",
+  "move_sidewalk_annotation": "Gehweg-Tags auf den separaten Gehweg verschoben",
+  "move_cycleway_annotation": "Radweg-Tags auf den separaten Radweg verschoben",
+  "move_refused_no_sidewalk": "Auf der {side} Seite dieser Straße wurde kein separater Gehweg gefunden.",
+  "move_refused_no_cycleway": "Auf der {side} Seite dieser Straße wurde kein separater Radweg gefunden.",
+  "move_refused_different_value": "Der separate Weg auf der {side} Seite hat schon einen anderen Wert für {key}.",
+  "side_left": "linken",
+  "side_right": "rechten"
+}

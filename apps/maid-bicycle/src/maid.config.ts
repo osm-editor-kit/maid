@@ -10,6 +10,7 @@ import { lenses } from '@osm-editor-kit/maid-module-lenses'
 import { notes } from '@osm-editor-kit/maid-module-notes'
 import { osmChange } from '@osm-editor-kit/maid-module-osmchange'
 import { reroute } from '@osm-editor-kit/maid-module-reroute'
+import { sidepaths } from '@osm-editor-kit/maid-module-sidepaths'
 import { streetImagery } from '@osm-editor-kit/maid-module-street-imagery'
 import { surface } from '@osm-editor-kit/maid-module-surface'
 import { tasks } from '@osm-editor-kit/maid-module-tasks'
@@ -94,6 +95,9 @@ function editorConfig(config: Config) {
     wayTable(),
     // inspector section "Reroute" on a bicycle or hiking route: click two points, the route runs over the loaded ways
     reroute(),
+    // edit menu "Move sidewalk tags to the … sidewalk": a road with sidewalk:left=separate gives its remaining
+    // sidewalk:left:* tags to the separate way on that side (as the iD fork iD-Radnetz does for TILDA)
+    sidepaths(),
     // account menu "Load changes from a file…": an osmChange file (Go Map!!, JOSM) merged with the current data,
     // reviewed in the dock, applied as one undo step and uploaded with the normal save
     osmChange({ apiUrl: config.apiUrl }),

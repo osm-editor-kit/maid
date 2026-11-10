@@ -1,0 +1,16 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "move_sidewalk_both_label": "Tags vers les deux trottoirs",
+  "move_sidewalk_left_label": "Tags vers trottoir gauche",
+  "move_sidewalk_right_label": "Tags vers trottoir droit",
+  "move_cycleway_both_label": "Tags vers les deux pistes",
+  "move_cycleway_left_label": "Tags vers piste gauche",
+  "move_cycleway_right_label": "Tags vers piste droite",
+  "move_sidewalk_annotation": "Tags de trottoir déplacés vers le trottoir séparé",
+  "move_cycleway_annotation": "Tags de piste cyclable déplacés vers la piste séparée",
+  "move_refused_no_sidewalk": "Aucun trottoir séparé n'a été trouvé du côté {side} de cette route.",
+  "move_refused_no_cycleway": "Aucune piste cyclable séparée n'a été trouvée du côté {side} de cette route.",
+  "move_refused_different_value": "La voie séparée du côté {side} a déjà une autre valeur pour {key}.",
+  "side_left": "gauche",
+  "side_right": "droit"
+}

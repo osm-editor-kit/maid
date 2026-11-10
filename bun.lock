@@ -58,6 +58,7 @@
         "@osm-editor-kit/maid-module-notes": "workspace:*",
         "@osm-editor-kit/maid-module-osmchange": "workspace:*",
         "@osm-editor-kit/maid-module-reroute": "workspace:*",
+        "@osm-editor-kit/maid-module-sidepaths": "workspace:*",
         "@osm-editor-kit/maid-module-street-imagery": "workspace:*",
         "@osm-editor-kit/maid-module-surface": "workspace:*",
         "@osm-editor-kit/maid-module-tasks": "workspace:*",
@@ -401,6 +402,17 @@
       "devDependencies": {
         "@types/geojson": "^7946.0.16",
         "@types/react": "^19.3.0",
+      },
+    },
+    "packages/module-sidepaths": {
+      "name": "@osm-editor-kit/maid-module-sidepaths",
+      "version": "0.0.0",
+      "dependencies": {
+        "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-i18n": "workspace:*",
+        "@osm-editor-kit/maid-model": "workspace:*",
+        "@osm-editor-kit/maid-operations": "workspace:*",
+        "@osm-editor-kit/maid-renderer": "workspace:*",
       },
     },
     "packages/module-street-imagery": {
@@ -854,6 +866,8 @@
     "@osm-editor-kit/maid-module-reroute": ["@osm-editor-kit/maid-module-reroute@workspace:packages/module-reroute"],
 
     "@osm-editor-kit/maid-module-shapes": ["@osm-editor-kit/maid-module-shapes@workspace:packages/module-shapes"],
+
+    "@osm-editor-kit/maid-module-sidepaths": ["@osm-editor-kit/maid-module-sidepaths@workspace:packages/module-sidepaths"],
 
     "@osm-editor-kit/maid-module-street-imagery": ["@osm-editor-kit/maid-module-street-imagery@workspace:packages/module-street-imagery"],
 

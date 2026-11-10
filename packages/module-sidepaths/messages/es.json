@@ -1,0 +1,16 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "move_sidewalk_both_label": "Etiquetas a ambas aceras",
+  "move_sidewalk_left_label": "Etiquetas a acera izquierda",
+  "move_sidewalk_right_label": "Etiquetas a acera derecha",
+  "move_cycleway_both_label": "Etiquetas a ambos carriles bici",
+  "move_cycleway_left_label": "Etiquetas a carril bici izq.",
+  "move_cycleway_right_label": "Etiquetas a carril bici der.",
+  "move_sidewalk_annotation": "Etiquetas de acera movidas a la acera separada",
+  "move_cycleway_annotation": "Etiquetas de carril bici movidas al carril bici separado",
+  "move_refused_no_sidewalk": "No se encontró ninguna acera separada en el lado {side} de esta calle.",
+  "move_refused_no_cycleway": "No se encontró ningún carril bici separado en el lado {side} de esta calle.",
+  "move_refused_different_value": "La vía separada del lado {side} ya tiene otro valor para {key}.",
+  "side_left": "izquierdo",
+  "side_right": "derecho"
+}

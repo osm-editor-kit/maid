@@ -1,0 +1,16 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "move_sidewalk_both_label": "Tags to both sidewalks",
+  "move_sidewalk_left_label": "Tags to left sidewalk",
+  "move_sidewalk_right_label": "Tags to right sidewalk",
+  "move_cycleway_both_label": "Tags to both cycle tracks",
+  "move_cycleway_left_label": "Tags to left cycle track",
+  "move_cycleway_right_label": "Tags to right cycle track",
+  "move_sidewalk_annotation": "Moved sidewalk tags to the separate sidewalk",
+  "move_cycleway_annotation": "Moved cycleway tags to the separate cycle track",
+  "move_refused_no_sidewalk": "No separate sidewalk was found on the {side} side of this road.",
+  "move_refused_no_cycleway": "No separate cycle track was found on the {side} side of this road.",
+  "move_refused_different_value": "The separate way on the {side} side already has another value for {key}.",
+  "side_left": "left",
+  "side_right": "right"
+}
