@@ -62,6 +62,7 @@
         "@osm-editor-kit/maid-module-street-imagery": "workspace:*",
         "@osm-editor-kit/maid-module-surface": "workspace:*",
         "@osm-editor-kit/maid-module-tasks": "workspace:*",
+        "@osm-editor-kit/maid-module-tilda": "workspace:*",
         "@osm-editor-kit/maid-module-traffic-signs": "workspace:*",
         "@osm-editor-kit/maid-module-turn-restrictions": "workspace:*",
         "@osm-editor-kit/maid-module-way-table": "workspace:*",
@@ -484,6 +485,23 @@
         "react-dom": "^19.2.0",
       },
     },
+    "packages/module-tilda": {
+      "name": "@osm-editor-kit/maid-module-tilda",
+      "version": "0.0.0",
+      "dependencies": {
+        "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-i18n": "workspace:*",
+        "@osm-editor-kit/maid-model": "workspace:*",
+        "@osm-editor-kit/maid-ui": "workspace:*",
+        "@tilda-geo/bicycle-infrastructure": "0.2.0",
+        "@tilda-geo/bicycle-infrastructure-tagging": "0.2.0",
+        "react": "^19.3.1",
+        "zustand": "^5.0.16",
+      },
+      "devDependencies": {
+        "@types/react": "^19.3.0",
+      },
+    },
     "packages/module-traffic-signs": {
       "name": "@osm-editor-kit/maid-module-traffic-signs",
       "version": "0.0.0",
@@ -875,6 +893,8 @@
 
     "@osm-editor-kit/maid-module-tasks": ["@osm-editor-kit/maid-module-tasks@workspace:packages/module-tasks"],
 
+    "@osm-editor-kit/maid-module-tilda": ["@osm-editor-kit/maid-module-tilda@workspace:packages/module-tilda"],
+
     "@osm-editor-kit/maid-module-traffic-signs": ["@osm-editor-kit/maid-module-traffic-signs@workspace:packages/module-traffic-signs"],
 
     "@osm-editor-kit/maid-module-turn-restrictions": ["@osm-editor-kit/maid-module-turn-restrictions@workspace:packages/module-turn-restrictions"],
@@ -1188,6 +1208,10 @@
     "@tanstack/react-store": ["@tanstack/react-store@0.11.2", "", { "dependencies": { "@tanstack/store": "0.11.2", "use-sync-external-store": "^1.6.0" }, "peerDependencies": { "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-oj5O5DmiMWE+ih+SioX2ayC1kbK7d3fpLx0B75fPJr9nY3zU+hoW010yr64qXsY/9fyiLVE2bn5mGNV3owm8RQ=="],
 
     "@tanstack/store": ["@tanstack/store@0.11.2", "", {}, "sha512-sJ4mjol8uQsHV0gOJzzjwXfh2Fwm+Sz0+8deqiTm4jGbMdjzNSW+xZCFm0kUa870uhd8yi+DpKnZb5Kc4apa0Q=="],
+
+    "@tilda-geo/bicycle-infrastructure": ["@tilda-geo/bicycle-infrastructure@0.2.0", "", {}, "sha512-s65XqB//bqhBjqFZ5cVxX4cXBpRUXif0Db5Y+RYDxnLsKvwloTCKVJKgaAa0cVDe8yCq0IEPsDluqfC3jUTvMA=="],
+
+    "@tilda-geo/bicycle-infrastructure-tagging": ["@tilda-geo/bicycle-infrastructure-tagging@0.2.0", "", { "dependencies": { "@tilda-geo/bicycle-infrastructure": "0.2.0" } }, "sha512-YT6ONPOsuXFtfyMwE6vpLglmF11Xx8udDZT8emYDTnOi2+VK20nyk2RbcJfb+YXG6VtNef9x5lVEZDw4/G4T2A=="],
 
     "@tmcw/togeojson": ["@tmcw/togeojson@7.1.3", "", {}, "sha512-26QL68Q2Zzkmj0J6uZm5FbZPQ9V/qOC3x6/FR7BMnulPVMK3hRu+MZXJHYYJMi8ygcPfOKjhK0UGf3qdTswLLA=="],
 

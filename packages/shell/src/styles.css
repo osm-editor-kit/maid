@@ -18,6 +18,7 @@
 @source '../../module-turn-restrictions/src';
 @source '../../module-way-table/src';
 @source '../../module-reroute/src';
+@source '../../module-tilda/src';
 @source '../../module-shapes/src';
 @source '../../module-osmchange/src';
 

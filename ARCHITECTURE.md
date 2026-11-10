@@ -44,7 +44,7 @@ reports/             output of benchmarks and checks (mostly git-ignored)
 | Core | `core` | `createEditor`, `defineModule`, registries for extension points, hooks, module URL parameters, fetching |
 | Map | `renderer`, `style` | Features to MapLibre layers, drawing and dragging (the engine), iD's look as data |
 | Interface | `ui`, `shell`, `i18n` | Components and inspector fields; the shell that mounts an app; Paraglide texts |
-| Modules | `module-*` | Imagery, street-level images, data layers, notes, lenses, parking, shapes, surface, traffic signs, turn restrictions, way table, reroute, osmchange, tasks, sidepaths |
+| Modules | `module-*` | Imagery, street-level images, data layers, notes, lenses, parking, shapes, surface, traffic signs, turn restrictions, way table, reroute, osmchange, tasks, sidepaths, TILDA |
 | Task lists | `tasks`, `osm-prefs` | The task file format and its diff ([FORMAT.md](packages/tasks/FORMAT.md)); small data in the OSM user preferences, split into 255-character values ([ADR 0013](docs/adr/0013-task-lists-in-user-preferences.md)) |
 
 All packages are named `@osm-editor-kit/maid-<folder>` ([why](docs/architecture/03-packages.md#package-names)) and are
@@ -71,7 +71,7 @@ What each app turns on today:
 | App | Port | Modules beyond the shared set |
 | --- | --- | --- |
 | `apps/maid` | 5173 | turn restrictions, surface |
-| `apps/maid-bicycle` | 5176 | turn restrictions, surface, traffic signs, way table, reroute, osmchange, sidepaths |
+| `apps/maid-bicycle` | 5176 | turn restrictions, surface, traffic signs, way table, reroute, osmchange, sidepaths, TILDA |
 | `apps/maid-parking` | 5177 | parking (with its lens and rules), shapes (angle snap with lengths, rectangle, merge, cut, divide, resize, extrude) |
 | `apps/maid-indoor` | 5178 | levels (with its level rules), shapes (angle snap with lengths, rectangle, room, merge, cut, divide, resize) |
 

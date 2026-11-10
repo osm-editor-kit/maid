@@ -541,3 +541,13 @@ Tobias, 2026-11-10: port iD-Radnetz's extract and merge of side paths to the bic
       **Test for Tobias:** <https://osm-editor-kit.github.io/maid/maid-bicycle/#map=19/52.51698/13.39521&id=w1171295121> (Bebelplatz, `sidewalk:both:surface=sett`), right click: "Tags to both sidewalks"; the right sidewalk already says `sett`, so the road loses the tag for it, the left one says `paving_stones`, so `sidewalk:left:surface=sett` stays on the road for you to decide.
 - [ ] Extract and extract-and-merge as in iD-Radnetz: needs `@tilda-geo/bicycle-infrastructure-tagging` 0.2.0 (release age until 2026-11-15, or Tobias adds it to `minimumReleaseAgeExcludes`).
 - [ ] The campaign's examples: run the entries on them, tune the search.
+
+### TILDA section (2026-11-10)
+
+Tobias, 2026-11-10: bring the TILDA box of the iD Radnetz fork, now built on `@tilda-geo/bicycle-infrastructure-tagging`, to the bicycle editor. Maid had no TILDA section before, so it is new (rows 8, 32, 33 of [radnetz-features.md](radnetz-features.md)).
+
+- [x] 2026-11-10: module `tilda` (`packages/module-tilda`, bicycle editor only): a section on every highway with a card per side, the open category question, the footway question, "Change to" with the tag diff, the Radnetz Berlin checklist and reminders, "Checked" and "Verified" kept in the browser. 16 unit tests.
+      **Test for Tobias:** <https://osm-editor-kit.github.io/maid/maid-bicycle/#map=18/52.38900/13.40000&id=w30084962> (Bahnhofstraße, Lichtenrade, bike lane on the right), section "TILDA bike infrastructure" below the tags: the right side shows its category and the open rows; press "Checked" on a default, then the pencil on "This way" and choose a kind under "Change to".
+- [ ] Field titles coloured by the checklist and "add below" links to the fields (needs a way for a section to point at a field).
+- [ ] The validation rules of `@tilda-geo/bicycle-infrastructure-tagging/validation` as Maid rules.
+- [ ] "Checked" and "Verified" shared through the project's key-value DB (needs the account).

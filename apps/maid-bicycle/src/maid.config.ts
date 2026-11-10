@@ -14,6 +14,7 @@ import { sidepaths } from '@osm-editor-kit/maid-module-sidepaths'
 import { streetImagery } from '@osm-editor-kit/maid-module-street-imagery'
 import { surface } from '@osm-editor-kit/maid-module-surface'
 import { tasks } from '@osm-editor-kit/maid-module-tasks'
+import { tilda } from '@osm-editor-kit/maid-module-tilda'
 import { trafficSigns } from '@osm-editor-kit/maid-module-traffic-signs'
 import {
   turnRestrictionRules,
@@ -87,6 +88,9 @@ function editorConfig(config: Config) {
     streetImagery({ mapillaryToken: mapillaryToken() }),
     // inspector field "Surface and smoothness" on roads and paths: a photo per value, bundled, no network
     surface(),
+    // inspector section "TILDA bike infrastructure" on highways: TILDA's category per side, the open question,
+    // "Change to" with the tags to apply, and the checklist of the Radnetz Berlin dataset (@tilda-geo packages)
+    tilda(),
     // inspector field "Traffic Sign" on roads and paths (what makes this app differ from apps/maid)
     trafficSigns({ country: 'DE' }),
     // top bar and dock "Notes": OSM notes from the same API as the data, read-only, shown from zoom 12 as in iD

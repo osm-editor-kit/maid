@@ -1,0 +1,23 @@
+{
+  "name": "@osm-editor-kit/maid-module-tilda",
+  "version": "0.0.0",
+  "private": true,
+  "license": "ISC",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@osm-editor-kit/maid-core": "workspace:*",
+    "@osm-editor-kit/maid-i18n": "workspace:*",
+    "@osm-editor-kit/maid-model": "workspace:*",
+    "@osm-editor-kit/maid-ui": "workspace:*",
+    "@tilda-geo/bicycle-infrastructure": "0.2.0",
+    "@tilda-geo/bicycle-infrastructure-tagging": "0.2.0",
+    "react": "^19.3.1",
+    "zustand": "^5.0.16"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0"
+  }
+}
