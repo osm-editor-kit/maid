@@ -10,7 +10,7 @@ import { canBeArea, lazyPresets, type MaidModule } from '@osm-editor-kit/maid-co
 import { defaultFilters } from '@osm-editor-kit/maid-filters'
 import { dataLayers } from '@osm-editor-kit/maid-module-data-layers'
 import { imagery } from '@osm-editor-kit/maid-module-imagery'
-import { lanes, lanesLens } from '@osm-editor-kit/maid-module-lanes'
+import { laneRules, lanes, lanesLens } from '@osm-editor-kit/maid-module-lanes'
 import { lensChoice, lenses } from '@osm-editor-kit/maid-module-lenses'
 import { notes } from '@osm-editor-kit/maid-module-notes'
 import { streetImagery } from '@osm-editor-kit/maid-module-street-imagery'
@@ -76,7 +76,7 @@ function editorConfig(config: Config) {
     // inspector sections "Members" and "Relations": what a relation contains, what a feature is in
     relations(),
     // checks what was changed here: inspector section and dock view "Issues"
-    validation({ rules: [...defaultRules, ...turnRestrictionRules] }),
+    validation({ rules: [...defaultRules, ...turnRestrictionRules, ...laneRules] }),
     // inspector section "Turn restrictions" on a junction: lanes and turns are mapped together
     turnRestrictions(),
     // top bar "Background": aerial imagery and overlays under the OSM data

@@ -200,6 +200,7 @@ export function LanesSection({ entity, editor, readOnly }: InspectorSectionProps
                           }
                           aria-label={m.remove_lane()}
                           title={m.remove_lane()}
+                          data-lane-remove={`${column.direction}:${column.index}`}
                           onClick={() =>
                             write(removeLane(tags, column.direction, column.index), m.undo_remove())
                           }

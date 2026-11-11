@@ -47,6 +47,7 @@
     "check-multi": "bun tools/bench/multi-check.ts",
     "check-ops": "bun tools/bench/ops-check.ts",
     "check-osmchange": "bun tools/bench/osmchange-check.ts",
+    "check-lanes": "bun tools/bench/lanes-check.ts",
     "check-parking": "bun tools/bench/parking-check.ts",
     "check-rectangle": "bun tools/bench/rectangle-check.ts",
     "check-room": "bun tools/bench/room-check.ts",

@@ -13,6 +13,7 @@
     "@osm-editor-kit/maid-model": "workspace:*",
     "@osm-editor-kit/maid-style": "workspace:*",
     "@osm-editor-kit/maid-ui": "workspace:*",
+    "@osm-editor-kit/maid-validation": "workspace:*",
     "@osm-editor-kit/osm-lane-diagram": "workspace:*",
     "@osm-editor-kit/osm-lanes": "workspace:*",
     "@osm-editor-kit/osm-way-chain": "1.0.1",
