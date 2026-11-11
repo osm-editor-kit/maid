@@ -7,10 +7,11 @@ import { BottomSheet } from './BottomSheet.tsx'
 import { useDockRequest } from './dock-request.ts'
 import { UI_SPRING } from './motion.tsx'
 import { ResizeHandle } from './ResizeHandle.tsx'
+import { TASKS_TAB, TASKS_TAB_SELECTED } from './tasks-tone.ts'
 import { useBreakpoint } from './useBreakpoint.ts'
 import { useResizable } from './useResizable.ts'
 
-export type DockTab = { id: string; label: string; content: ReactNode }
+export type DockTab = { id: string; label: string; tone?: 'tasks'; content: ReactNode }
 
 // Module level, so the hook sees the same function on every render.
 const dockMaxHeight = (viewport: number) => viewport * 0.7
@@ -93,9 +94,13 @@ export function Dock(props: { tabs: DockTab[]; defaultOpen?: boolean }) {
             onClick={() => selectTab(tab)}
             className={twJoin(
               'shrink-0 cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium whitespace-nowrap focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500 touch:px-3 touch:py-2 touch:text-sm',
-              open && isSelected
-                ? 'bg-zinc-950 text-white dark:bg-white dark:text-zinc-950'
-                : 'text-zinc-600 hover:bg-zinc-950/5 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-white',
+              tab.tone === 'tasks'
+                ? open && isSelected
+                  ? TASKS_TAB_SELECTED
+                  : TASKS_TAB
+                : open && isSelected
+                  ? 'bg-zinc-950 text-white dark:bg-white dark:text-zinc-950'
+                  : 'text-zinc-600 hover:bg-zinc-950/5 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-white',
             )}
           >
             {tab.label}

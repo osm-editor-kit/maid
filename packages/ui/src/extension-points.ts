@@ -51,8 +51,11 @@ export type InspectorSection = {
   disclosure?: 'open' | 'closed'
   /** A quiet word after the title that stays readable while folded: a count, an id */
   detail?: (entity: EntityInfo, editor: Editor) => string | number | undefined
-  /** `'relation'`: the section edits relations: the relation icon before its title, violet while open (relation-tone.ts) */
-  tone?: 'relation'
+  /**
+   * `'relation'`: the section edits relations: the relation icon before its title, violet while open (relation-tone.ts).
+   * `'tasks'`: the section comes from a task list: an olive box with an olive title (tasks-tone.ts).
+   */
+  tone?: 'relation' | 'tasks'
   component: ComponentType<InspectorSectionProps>
 }
 
@@ -80,6 +83,8 @@ export type DockViewProps = {
 export type DockView = {
   id: string
   label: string
+  /** `'tasks'`: the tab of a task list, olive (tasks-tone.ts) */
+  tone?: 'tasks'
   component: ComponentType<DockViewProps>
   /**
    * Whether the view has something to show now: its tab is left out while `get` is false (Tobias, 2026-10-23: no empty

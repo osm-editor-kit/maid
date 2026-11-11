@@ -51,6 +51,7 @@ export function BottomDock() {
       tabs={views.map((view) => ({
         id: view.id,
         label: view.label,
+        ...(view.tone ? { tone: view.tone } : {}),
         content: (
           <view.component
             editor={editor}

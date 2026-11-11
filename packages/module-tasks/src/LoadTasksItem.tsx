@@ -1,5 +1,5 @@
 import { ClipboardDocumentListIcon } from '@heroicons/react/20/solid'
-import { openDockView } from '@osm-editor-kit/maid-ui'
+import { openDockView, TASKS_MENU_ITEM, TASKS_TEXT } from '@osm-editor-kit/maid-ui'
 import type { AccountMenuItem } from '@osm-editor-kit/maid-ui'
 import { useRef } from 'react'
 import { m } from './messages.ts'
@@ -33,14 +33,14 @@ export function createLoadTasksItem(deps: OpenDeps): AccountMenuItem['component'
         <button
           type="button"
           onClick={() => input.current?.click()}
-          className="flex w-full cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 dark:hover:bg-white/5"
+          className={`flex w-full cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 text-left text-sm focus-visible:outline-2 focus-visible:outline-blue-500 ${TASKS_MENU_ITEM}`}
         >
           <ClipboardDocumentListIcon
             aria-hidden="true"
-            className="mt-0.5 size-4 shrink-0 text-zinc-500"
+            className={`mt-0.5 size-4 shrink-0 ${TASKS_TEXT}`}
           />
           <span>
-            <span className="block font-medium">{m.tasks_menu()}</span>
+            <span className={`block font-medium ${TASKS_TEXT}`}>{m.tasks_menu()}</span>
             <span className="block text-xs text-zinc-500 dark:text-zinc-400">
               {m.tasks_menu_hint()}
             </span>

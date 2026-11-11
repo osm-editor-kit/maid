@@ -53,6 +53,13 @@ export {
   RELATION_SURFACE,
 } from './relation-tone.ts'
 export { RelationIcon } from './RelationIcon.tsx'
+export {
+  TASKS_MENU_ITEM,
+  TASKS_SURFACE,
+  TASKS_TAB,
+  TASKS_TAB_SELECTED,
+  TASKS_TEXT,
+} from './tasks-tone.ts'
 export { ControlButton, ControlGroup, MapControls } from './MapControls.tsx'
 export { CommandBar, type CommandItem } from './CommandBar.tsx'
 export { ResizeHandle } from './ResizeHandle.tsx'

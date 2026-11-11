@@ -39,6 +39,7 @@ export function tasks() {
         get label() {
           return m.tasks_tab()
         },
+        tone: 'tasks',
         component: createTasksView(store, shared),
         // the tab is there from the moment a file is picked: while it loads, with its list, or with its error
         available: {
@@ -55,6 +56,7 @@ export function tasks() {
           return m.tasks_section()
         },
         placement: 'top',
+        tone: 'tasks',
         when: (entity) => {
           const refs = store.getState().list?.refs
           return refs !== undefined && tasksOfEntity(refs, entity.id).length > 0
