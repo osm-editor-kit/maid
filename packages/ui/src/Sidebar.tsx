@@ -240,6 +240,9 @@ export function SidebarSection(props: { title: string; children: ReactNode }) {
   )
 }
 
+/** From this many characters a heading's title may be cut in the sidebar */
+const LONG_TITLE = 30
+
 /**
  * The heading of a group that folds away, and the group under it. Closed unless `defaultOpen`. `detail` is a quiet
  * word after the title, such as a count or an id, which stays readable while folded; a control as `detail` sits
@@ -316,7 +319,13 @@ export function SidebarDisclosure(props: {
           className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500"
         >
           {props.icon?.(open)}
-          <span className="min-w-0 truncate">{props.title}</span>
+          <span
+            className="min-w-0 truncate"
+            // a long title is cut: the whole one as a tooltip (a rough count, no measuring)
+            title={props.title.length > LONG_TITLE ? props.title : undefined}
+          >
+            {props.title}
+          </span>
           {wordDetail && hasDetail ? (
             <span className="min-w-0 truncate text-xs font-normal text-zinc-500 dark:text-zinc-400">
               {detail}
