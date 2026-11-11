@@ -1,10 +1,5 @@
 import { ClipboardDocumentListIcon } from '@heroicons/react/20/solid'
-import {
-  type InspectorSectionProps,
-  SidebarDisclosure,
-  TASKS_HEADING,
-  TASKS_TEXT,
-} from '@osm-editor-kit/maid-ui'
+import { type InspectorSectionProps, SidebarDisclosure, TASKS_TEXT } from '@osm-editor-kit/maid-ui'
 import { tasksOfEntity } from './list.ts'
 import { m } from './messages.ts'
 import { type TasksStore, useTasks } from './store.ts'
@@ -41,19 +36,15 @@ export function createTaskSection(store: TasksStore) {
               key={index}
               title={task.properties.title}
               defaultOpen
-              headingClassName={TASKS_HEADING}
               icon={() => (
                 <ClipboardDocumentListIcon
                   aria-label={m.tasks_section()}
-                  className={`ml-2 size-4 shrink-0 ${TASKS_TEXT}`}
+                  className={`size-4 shrink-0 ${TASKS_TEXT}`}
                 />
               )}
-              detail={
-                <span className="flex items-center gap-1">
-                  <TaskLinks task={task} />
-                  <StatusBadge status={status} />
-                </span>
-              }
+              // as the other groups: the status stays readable while folded, the buttons show while open
+              detail={<StatusBadge status={status} />}
+              actions={<TaskLinks task={task} />}
             >
               <TaskContent
                 store={store}

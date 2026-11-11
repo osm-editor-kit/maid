@@ -28,7 +28,9 @@ import { type AppliedTask, type TasksStore, useTasks } from './store.ts'
 /** A status button in the closing bar: white on the olive, so it reads as a button */
 const STATUS_BUTTON =
   'cursor-pointer rounded-lg border border-olive-700/20 bg-white px-2.5 py-1 text-sm hover:bg-olive-50 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-50 dark:border-white/15 dark:bg-zinc-900 dark:hover:bg-zinc-800'
-const ICON_LINK = `grid size-7 place-items-center rounded-md hover:bg-olive-200 focus-visible:outline-2 focus-visible:outline-blue-500 dark:hover:bg-olive-700 ${TASKS_TEXT}`
+/** As the other buttons in a group's heading (Copy tags) */
+const ICON_LINK =
+  'grid size-7 place-items-center rounded-md text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white'
 
 /** The links of a task (and its Mapillary images) as small icon buttons, for the heading of a task */
 export function TaskLinks({ task }: { task: Task }) {

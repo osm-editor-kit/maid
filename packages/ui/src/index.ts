@@ -55,7 +55,6 @@ export {
 export { RelationIcon } from './RelationIcon.tsx'
 export {
   TASKS_FOOTER,
-  TASKS_HEADING,
   TASKS_MENU_ITEM,
   TASKS_QUOTE,
   TASKS_TAB,
