@@ -29,5 +29,10 @@
   "preset_footway": "Sendero peatonal, bicicletas permitidas",
   "preset_footway_sidewalk": "Acera, bicicletas permitidas",
   "preset_footway_isolated": "Sendero peatonal independiente, bicicletas permitidas",
-  "preset_pedestrian": "Calle peatonal, bicicletas permitidas"
+  "preset_pedestrian": "Calle peatonal, bicicletas permitidas",
+  "legend_on_road": "Etiquetado en la calle (línea central): línea fina en el borde de la calle, sin contorno",
+  "legend_sidepath": "Junto a una calle: dos líneas finas al lado",
+  "legend_sign": "La señal de la vía, girada con ella",
+  "legend_note": "Una selección: lo que este estilo añade al aspecto de iD. El color dice quién la usa, la forma cómo está cartografiada.",
+  "default_description": "El aspecto de iD con la infraestructura ciclista tal como la clasifica TILDA."
 }

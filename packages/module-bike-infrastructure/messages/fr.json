@@ -29,5 +29,10 @@
   "preset_footway": "Chemin piéton, vélos autorisés",
   "preset_footway_sidewalk": "Trottoir, vélos autorisés",
   "preset_footway_isolated": "Chemin piéton indépendant, vélos autorisés",
-  "preset_pedestrian": "Rue piétonne, vélos autorisés"
+  "preset_pedestrian": "Rue piétonne, vélos autorisés",
+  "legend_on_road": "Saisi sur la route (ligne centrale) : ligne fine au bord de la route, sans bordure",
+  "legend_sidepath": "Le long d’une route : deux lignes fines à côté",
+  "legend_sign": "Le panneau de la voie, tourné avec elle",
+  "legend_note": "Une sélection : ce que ce style ajoute à l’apparence d’iD. La couleur dit qui l’utilise, la forme comment c’est cartographié.",
+  "default_description": "L’apparence d’iD avec les aménagements cyclables tels que TILDA les classe."
 }

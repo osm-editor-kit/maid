@@ -29,5 +29,10 @@
   "preset_footway": "Gehweg, Rad frei",
   "preset_footway_sidewalk": "Gehweg straßenbegleitend, Rad frei",
   "preset_footway_isolated": "Gehweg selbstständig geführt, Rad frei",
-  "preset_pedestrian": "Fußgängerzone, Rad frei"
+  "preset_pedestrian": "Fußgängerzone, Rad frei",
+  "legend_on_road": "An der Straße erfasst (Centerline): dünne Linie am Straßenrand, ohne Ummantelung",
+  "legend_sidepath": "Straßenbegleitend (Seitenweg): zwei dünne Linien daneben",
+  "legend_sign": "Das Verkehrszeichen des Wegs, mit ihm gedreht",
+  "legend_note": "Eine Auswahl: was dieser Stil zum iD-Stil hinzufügt. Die Farbe sagt, wer den Weg nutzt, die Form, wie er erfasst ist.",
+  "default_description": "Der iD-Stil mit der Radinfrastruktur, wie TILDA sie einordnet."
 }

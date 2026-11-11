@@ -4,6 +4,7 @@ import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import type { Lens } from '@osm-editor-kit/maid-style'
 import { lazyComponent, PANEL_FALLBACK } from '@osm-editor-kit/maid-ui'
 import { BUILT_IN_LENSES } from './builtin.ts'
+import { type DefaultLook, setDefaultLook } from './default-look.ts'
 import { lensActions } from './lens-store.ts'
 import { useLensUrl } from './sync.ts'
 import { parseAsLens } from './url.ts'
@@ -11,9 +12,10 @@ import { parseAsLens } from './url.ts'
 /**
  * Map style: a topbar panel that restyles the map with a lens (see `connectLenses`). The app
  * gives its own lenses with `options.lenses`; they are listed next to the built-in ones. The lens on the map is
- * the URL's `lens` (`none` for no lens); the stored choice is the default (url.ts, sync.ts).
+ * the URL's `lens` (`none` for no lens); the stored choice is the default (url.ts, sync.ts). `options.defaultLook` is
+ * what the panel says about the look without a lens, when the app's own look adds to iD's (a description, a legend).
  */
-export function lenses(options: { lenses?: Lens[] } = {}) {
+export function lenses(options: { lenses?: Lens[]; defaultLook?: DefaultLook } = {}) {
   return defineModule({
     id: 'lenses',
     setup(api) {
@@ -23,6 +25,7 @@ export function lenses(options: { lenses?: Lens[] } = {}) {
         PANEL_FALLBACK,
       )
       lensActions.setBuiltIn([...BUILT_IN_LENSES, ...(options.lenses ?? [])])
+      setDefaultLook(options.defaultLook ?? {})
       // Maid's own name (iD has no lens). Kept when it is the default, so that a link says which lens its author saw.
       const lensUrl = api.urlParam<string>({
         name: 'lens',

@@ -12,6 +12,8 @@ export {
   withAlpha,
   type Lens,
   type LensGeometry,
+  type LensLegend,
+  type LensLegendEntry,
   type LensMatchValue,
   type LensRule,
   type LensStyle,

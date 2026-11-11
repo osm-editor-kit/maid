@@ -1,3 +1,4 @@
+import { resolveWayStyle, tagClasses } from '@osm-editor-kit/maid-style'
 /**
  * The bicycle infrastructure of one way as GeoJSON features: TILDA's processing (`processBikelanes`) splits the way into
  * its centre line (`self`) and its road sides (`left`, `right`, of the `cycleway` or the `sidewalk`) and gives each its
@@ -39,6 +40,12 @@ export type BikeProperties = {
   sign?: string
   /** `construction`, `temporary`, ... of TILDA: drawn lighter */
   lifecycle?: string
+  /**
+   * For a road side: the width of the road as the editor draws it (iD's casing, in px), from OSM zoom 17 and below it.
+   * The side line sits right at that edge, so it reads as part of the road and not as a way of its own.
+   */
+  road?: number
+  roadLow?: number
 }
 
 /** Highways TILDA looks at; any other way has no bicycle infrastructure and is not processed */
@@ -51,7 +58,14 @@ const SIDEPATH: Record<string, BikeProperties['sidepath']> = {
 }
 
 /** The properties of a sign point: the sign's value and the side it stands on */
-export type SignProperties = { kind: 'sign'; wayId: string; side: Side; sign: string }
+export type SignProperties = {
+  kind: 'sign'
+  wayId: string
+  side: Side
+  sign: string
+  /** Degrees clockwise: the sign turned with the line, kept upright (between -90 and 90) */
+  rotate: number
+}
 
 /** The parts of a `traffic_sign` value that have an image: `DE:239,1022-10` → `DE:239`, `DE:1022-10` */
 export function signParts(value: string): string[] {
@@ -76,13 +90,25 @@ export function signParts(value: string): string[] {
 
 const METERS_PER_DEGREE = 111_320
 /** How far a sign of a road side stands from the centre line, in metres: beside the side line from zoom 18 */
-export const SIGN_SIDE_METERS = 6
+export const SIGN_SIDE_METERS = 4
+
+/** The rotation of a sign on a segment going `east`, `north`: its base along the line, never upside down */
+export function signRotation(east: number, north: number) {
+  const bearing = (Math.atan2(east, north) * 180) / Math.PI
+  let rotate = bearing - 90
+  while (rotate > 90) rotate -= 180
+  while (rotate <= -90) rotate += 180
+  return Math.round(rotate * 10) / 10 + 0
+}
 
 /**
  * Where the sign of a part stands: halfway along the way, moved `SIGN_SIDE_METERS` to its side for a road side (left of
- * the way's direction for `left`). Undefined for a line without length.
+ * the way's direction for `left`), and its rotation along the line there. Undefined for a line without length.
  */
-export function signPoint(coordinates: readonly [number, number][], side: Side) {
+export function signPoint(
+  coordinates: readonly [number, number][],
+  side: Side,
+): { at: [number, number]; rotate: number } | undefined {
   const lengths: number[] = []
   let total = 0
   for (let i = 1; i < coordinates.length; i++) {
@@ -106,18 +132,26 @@ export function signPoint(coordinates: readonly [number, number][], side: Side) 
     const t = length === 0 ? 0 : rest / length
     const lon = a[0] + (b[0] - a[0]) * t
     const lat = a[1] + (b[1] - a[1]) * t
-    if (side === 'self' || length === 0) return [lon, lat] as [number, number]
-    // the unit normal to the left of the segment, in metres east and north
     const scale = Math.cos((lat * Math.PI) / 180)
     const east = (b[0] - a[0]) * scale
     const north = b[1] - a[1]
+    const rotate = signRotation(east, north)
+    if (side === 'self' || length === 0) return { at: [lon, lat], rotate }
+    // the unit normal to the left of the segment, in metres east and north
     const norm = Math.hypot(east, north)
     const sign = side === 'left' ? 1 : -1
     const dEast = ((-north / norm) * sign * SIGN_SIDE_METERS) / METERS_PER_DEGREE
     const dNorth = ((east / norm) * sign * SIGN_SIDE_METERS) / METERS_PER_DEGREE
-    return [lon + dEast / scale, lat + dNorth] as [number, number]
+    return { at: [lon + dEast / scale, lat + dNorth], rotate }
   }
   return undefined
+}
+
+/** The casing of a road as iD's style draws it (the style package caches by class list) */
+function roadCasing(tags: BikeWay['tags']) {
+  const defined: Record<string, string> = {}
+  for (const [key, value] of Object.entries(tags)) if (value !== undefined) defined[key] = value
+  return resolveWayStyle(tagClasses(defined), 'line').casing
 }
 
 export type BikeFeature = Feature<LineString, BikeProperties> | Feature<Point, SignProperties>
@@ -158,17 +192,22 @@ export function bikeWayFeatures(way: BikeWay): BikeFeature[] {
     }
     if (props === undefined) continue
     if (prefix !== undefined && side !== 'self') props.prefix = prefix
+    if (side !== 'self') {
+      const casing = roadCasing(way.tags)
+      props.road = casing.width
+      props.roadLow = casing.widthLow
+    }
     out.push({
       type: 'Feature',
       properties: props,
       geometry: { type: 'LineString', coordinates: way.coordinates },
     })
-    const at = props.sign === undefined ? undefined : signPoint(way.coordinates, side)
-    if (at !== undefined && props.sign !== undefined) {
+    const point = props.sign === undefined ? undefined : signPoint(way.coordinates, side)
+    if (point !== undefined && props.sign !== undefined) {
       out.push({
         type: 'Feature',
-        properties: { kind: 'sign', wayId: way.id, side, sign: props.sign },
-        geometry: { type: 'Point', coordinates: at },
+        properties: { kind: 'sign', wayId: way.id, side, sign: props.sign, rotate: point.rotate },
+        geometry: { type: 'Point', coordinates: point.at },
       })
     }
   }

@@ -88,6 +88,33 @@ const rule = z.object(
   { error: 'expected an object' },
 )
 
+/** A row of a chosen legend (`Lens.legend`) */
+const legendEntry = z.object(
+  {
+    label: text(80),
+    color: colour.optional(),
+    width: z
+      .number({ error: WIDTH_MESSAGE })
+      .gt(0, { error: WIDTH_MESSAGE })
+      .lte(20, { error: WIDTH_MESSAGE })
+      .optional(),
+    dash: dashList.optional(),
+    casing: z.boolean().optional(),
+    kerbs: z.boolean().optional(),
+    road: z.boolean().optional(),
+    sign: z.boolean().optional(),
+  },
+  { error: 'expected an object' },
+)
+
+const legend = z.object(
+  {
+    entries: z.array(legendEntry).min(1).max(20, { error: 'at most 20 legend entries' }),
+    note: text(300).optional(),
+  },
+  { error: 'expected an object with entries' },
+)
+
 /** One lens as the file gives it. The ids that are reserved or used twice are checked by the caller. */
 export const lensSchema = z.object(
   {
@@ -100,6 +127,7 @@ export const lensSchema = z.object(
       .max(MAX_RULES, { error: `at most ${MAX_RULES} rules` }),
     rest: z.enum(REST, { error: 'expected one of dim, normal, hide' }).optional(),
     geometry: geometryList.optional(),
+    legend: legend.optional(),
   },
   { error: 'expected an object' },
 )

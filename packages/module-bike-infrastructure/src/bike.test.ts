@@ -3,7 +3,7 @@ import { createPresets, withChanges } from '@osm-editor-kit/maid-presets'
 import { defaultPresetData } from '@osm-editor-kit/maid-presets/default'
 import { processBikelanes } from '@tilda-geo/bicycle-infrastructure'
 import { bikeCollection, type GraphEntity, type GraphLike } from './collect.ts'
-import { bikeWayFeatures, signParts, signPoint, type BikeWay } from './features.ts'
+import { bikeWayFeatures, signParts, signPoint, signRotation, type BikeWay } from './features.ts'
 import { ALL_CATEGORIES, GROUPS, groupOf, NO_INFRASTRUCTURE } from './groups.ts'
 import { BIKE_LAYERS, sideOffset } from './layers.ts'
 import { bikeInfrastructureLens } from './lens.ts'
@@ -60,7 +60,7 @@ describe('features', () => {
         sidepath: 'yes',
         sign: 'DE:239,1022-10',
       },
-      { kind: 'sign', wayId: 'w1', side: 'self', sign: 'DE:239,1022-10' },
+      { kind: 'sign', wayId: 'w1', side: 'self', sign: 'DE:239,1022-10', rotate: 0 },
     ])
   })
 
@@ -107,11 +107,27 @@ describe('features', () => {
   })
 
   test('the sign of a side stands beside the way: left of an eastbound way is north', () => {
-    const [lon, lat] = signPoint(LINE, 'self')!
+    const [lon, lat] = signPoint(LINE, 'self')!.at
     expect(lon).toBeCloseTo(13.4005, 6)
     expect(lat).toBeCloseTo(52.5, 6)
-    expect(signPoint(LINE, 'left')![1]).toBeGreaterThan(52.5)
-    expect(signPoint(LINE, 'right')![1]).toBeLessThan(52.5)
+    expect(signPoint(LINE, 'left')!.at[1]).toBeGreaterThan(52.5)
+    expect(signPoint(LINE, 'right')!.at[1]).toBeLessThan(52.5)
+  })
+
+  test('a sign turns with its line and is never upside down', () => {
+    // east and west: upright; north and south: a quarter turn; north-east: an eighth turn back
+    expect(signRotation(1, 0)).toBe(0)
+    expect(signRotation(-1, 0)).toBe(0)
+    expect(signRotation(0, 1)).toBe(90)
+    expect(signRotation(0, -1)).toBe(90)
+    expect(signRotation(1, 1)).toBe(-45)
+  })
+
+  test('a road side carries the road width as drawn, a path on its own does not', () => {
+    const [side] = bikeWayFeatures(way({ highway: 'secondary', 'cycleway:right': 'track' }))
+    expect(side?.properties).toMatchObject({ side: 'right', road: 10, roadLow: 7 })
+    const [path] = bikeWayFeatures(way({ highway: 'cycleway', is_sidepath: 'yes' }))
+    expect(path?.properties).not.toHaveProperty('road')
   })
 })
 
@@ -156,20 +172,37 @@ describe('layers', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 
-  test('the right side is offset to the right (positive), a sidewalk further out than a cycleway', () => {
-    const right = sideOffset(1)
-    const sidewalk = sideOffset(1, 5)
-    expect(right[4]).toBe(6)
-    expect(sidewalk[4]).toBe(11)
-    expect(sideOffset(-1)[4]).toBe(-6)
+  test('a side sits at the edge of the road as drawn: right positive, left negative, a sidewalk further out', () => {
+    expect(sideOffset(1)).toEqual([
+      'step',
+      ['zoom'],
+      ['*', 1, ['+', ['/', ['coalesce', ['get', 'roadLow'], 10], 2], 1]],
+      16,
+      ['*', 1, ['+', ['/', ['coalesce', ['get', 'road'], 10], 2], 1.5]],
+    ])
+    expect(sideOffset(-1, 3.5)[4]).toEqual([
+      '*',
+      -1,
+      ['+', ['/', ['coalesce', ['get', 'road'], 10], 2], 5],
+    ])
+  })
+
+  test('only a centre line has the white casing', () => {
+    const casings = BIKE_LAYERS.filter((layer) => layer.id.endsWith('-casing')).map((l) => l.id)
+    expect(casings).toEqual(['bike-self-casing'])
   })
 })
 
 describe('lens', () => {
-  test('the legend lists each group and the separately mapped side, and keeps the highways', () => {
-    const labels = bikeInfrastructureLens.rules.map((rule) => rule.label).filter(Boolean)
-    expect(labels).toHaveLength(GROUPS.length + 1)
-    expect(bikeInfrastructureLens.rules.at(-1)).toEqual({ match: { highway: true }, opacity: 1 })
+  test('the chosen legend: each group, then the shapes; the lens keeps the highways', () => {
+    const entries = bikeInfrastructureLens.legend?.entries ?? []
+    expect(entries).toHaveLength(GROUPS.length + 4)
+    expect(entries.filter((entry) => entry.road).map((entry) => entry.color)).toEqual([
+      '#0098f0',
+      '#174ed9',
+    ])
+    expect(entries.some((entry) => entry.kerbs)).toBe(true)
+    expect(bikeInfrastructureLens.rules).toEqual([{ match: { highway: true }, opacity: 1 }])
   })
 
   test('drawn without a lens and with its own lens, hidden under another', () => {

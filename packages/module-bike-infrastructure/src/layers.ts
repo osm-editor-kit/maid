@@ -5,12 +5,14 @@
  * - Centre line (`self`): the way's own infrastructure (a cycleway, a footway where bicycles are allowed, a bicycle
  *   road) as a line on top of the way, in the colour of its group (groups.ts) over a thin white casing, so it reads on
  *   iD's road colours and on aerial imagery.
- * - Road sides (`left`, `right`): a lane, track or sidewalk that is tagged on the road, offset to its side as the
- *   parking module draws its sides; a sidewalk further out than the cycleway of the same side.
+ * - Road sides (`left`, `right`): a lane, track or sidewalk that is tagged on the road, a thinner line without casing
+ *   right at the edge of the road as drawn, so it reads as part of the road (Tobias, 2026-11-11: it looked like a
+ *   separately mapped way); a sidewalk just outside the cycleway of the same side.
  * - Sidepath (`_adjoining`): two thin lines in its colour along the path, a kerb on each side, so a path that runs along a road
  *   can be told from one on its own (`_isolated`) and from one where TILDA cannot tell (`_adjoiningOrIsolated`).
  * - Separately mapped (`cycleway:<side>=separate`): a thin dotted blue line at the side of the road.
- * - Traffic signs: the sign's image (the signs of the traffic sign field), at the middle of the part, from zoom 17.
+ * - Traffic signs: the sign's image (the signs of the traffic sign field), at the middle of the part, turned with the
+ *   line, from zoom 18.
  *
  * MapLibre's `line-offset`: a positive value is to the right of the line's direction, a negative to the left.
  */
@@ -68,31 +70,28 @@ export const CASING_WIDTH: Expression = [
   11,
 ]
 
+/** Width of a road side's line in px: thinner than a way of its own, and without the white casing */
+export const SIDE_WIDTH: Expression = ['step', ['zoom'], 2, 16, 3]
+
 /**
- * Offset of a road side from the centre line in px, `sign` 1 for the right side and -1 for the left; `extra` moves a
- * sidewalk further out. As in the parking module: just outside the road as the editor draws it (a residential road is
- * 10 px wide at every zoom) up to zoom 17, from 18 on a distance on the ground of about 2.4 m, doubling per level.
+ * Offset of a road side from the centre line in px, `sign` 1 for the right side and -1 for the left: right at the edge
+ * of the road as the editor draws it (its casing, `road` and `roadLow` of the feature; iD draws roads in px, not on the
+ * ground), so the line reads as part of the road and not as a separately mapped way. `extra` moves a sidewalk further
+ * out, past the cycleway of the same side. MapLibre zoom 16 is OSM zoom 17, where iD's wider road style starts.
  */
 export function sideOffset(sign: 1 | -1, extra = 0): Expression {
-  return [
-    'interpolate',
-    ['exponential', 2],
-    ['zoom'],
-    15,
-    sign * (6 + extra),
-    17,
-    sign * (9 + extra),
-    18,
-    sign * (13 + extra),
-    22,
-    sign * (208 + extra * 16),
+  const at = (road: string, half: number): Expression => [
+    '*',
+    sign,
+    ['+', ['/', ['coalesce', ['get', road], 10], 2], half + extra],
   ]
+  return ['step', ['zoom'], at('roadLow', 1), 16, at('road', 1.5)]
 }
 
 /** The offset of a feature: none on the centre line, else by its side and prefix */
 function offsetOf(side: 'self' | 'left' | 'right', prefix: 'cycleway' | 'sidewalk') {
   if (side === 'self') return 0
-  return sideOffset(side === 'right' ? 1 : -1, prefix === 'sidewalk' ? 5 : 0)
+  return sideOffset(side === 'right' ? 1 : -1, prefix === 'sidewalk' ? 3.5 : 0)
 }
 
 /** Construction and other lifecycles are drawn lighter */
@@ -170,7 +169,10 @@ export const BIKE_LAYERS: readonly BikeLayer[] = [
     const offset = offsetOf(part.side, part.prefix)
     const filter = ['all', kindIs('infra'), partFilter(part)]
     const layout = { 'line-join': 'round', 'line-cap': 'butt' }
-    return [
+    // a road side has no casing and a thinner line: it belongs to the road (see sideOffset)
+    const self = part.side === 'self'
+    const width = self ? LINE_WIDTH : SIDE_WIDTH
+    const casing: BikeLayer[] = [
       {
         id: `bike-${partId(part)}-casing`,
         type: 'line',
@@ -185,6 +187,9 @@ export const BIKE_LAYERS: readonly BikeLayer[] = [
           'line-opacity': ['*', 0.85, OPACITY],
         },
       },
+    ]
+    return [
+      ...(self ? casing : []),
       {
         id: `bike-${partId(part)}`,
         type: 'line',
@@ -194,7 +199,7 @@ export const BIKE_LAYERS: readonly BikeLayer[] = [
         layout,
         paint: {
           'line-color': ['get', 'colour'],
-          'line-width': LINE_WIDTH,
+          'line-width': width,
           'line-offset': offset,
           'line-opacity': OPACITY,
         },
@@ -208,7 +213,7 @@ export const BIKE_LAYERS: readonly BikeLayer[] = [
         layout,
         paint: {
           'line-color': ['get', 'colour'],
-          'line-width': LINE_WIDTH,
+          'line-width': width,
           'line-offset': offset,
           'line-opacity': OPACITY,
           'line-dasharray': [2, 1.5],
@@ -218,7 +223,7 @@ export const BIKE_LAYERS: readonly BikeLayer[] = [
   }),
 ]
 
-/** The traffic signs: one image per sign value (the main sign above its additional signs), upright */
+/** The traffic signs: one image per sign value (the main sign above its additional signs), turned with the line */
 export const SIGN_LAYER: BikeLayer = {
   id: 'bike-signs',
   type: 'symbol',
@@ -227,6 +232,8 @@ export const SIGN_LAYER: BikeLayer = {
   filter: ['has', 'image'],
   layout: {
     'icon-image': ['get', 'image'],
+    'icon-rotate': ['get', 'rotate'],
+    'icon-rotation-alignment': 'map',
     // the image's own size at every zoom: a scaled raster image gets blurred
     'icon-allow-overlap': false,
     'icon-padding': 1,

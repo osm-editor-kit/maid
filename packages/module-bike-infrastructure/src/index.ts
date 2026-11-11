@@ -35,6 +35,6 @@ export function bikeInfrastructure(options: BikeInfrastructureOptions = {}) {
 export { bikeCollection } from './collect.ts'
 export { bikeWayFeatures, type BikeProperties, type BikeWay } from './features.ts'
 export { GROUPS, groupOf, type Group, type GroupId } from './groups.ts'
-export { bikeInfrastructureLens } from './lens.ts'
+export { bikeDefaultLook, bikeInfrastructureLens, bikeLegend } from './lens.ts'
 export { BIKE_PRESET_LIST, bikePresetChanges, presetId } from './presets.ts'
 export { BIKE_LENS_ID } from './shown.ts'

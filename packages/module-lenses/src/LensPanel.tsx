@@ -3,6 +3,8 @@ import { describeMatch, type Lens } from '@osm-editor-kit/maid-style'
 import { MapDisplayChoice, notify, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { toolButtonTone } from '@osm-editor-kit/maid-ui'
 import { useId, useRef, useState, type ChangeEvent } from 'react'
+import { defaultLook } from './default-look.ts'
+import { LegendSwatch } from './LegendSwatch.tsx'
 import { MAX_FILE_BYTES, parseLensFile, serialiseLenses } from './lens-file.ts'
 import {
   activeLens,
@@ -49,6 +51,9 @@ export function LensPanel({ engine }: { engine: MaidEngine }) {
   const noticeId = useId()
 
   const active = activeLens({ shownId: activeId, builtIn, imported })
+  const look = defaultLook()
+  // a chosen legend: the active lens's, or without a lens the app's own look's
+  const chosenLegend = active ? active.legend : look.legend
   const isOwn = active !== null && imported.some((lens) => lens.id === active.id)
   const reserved = builtIn.map((lens) => lens.id)
 
@@ -92,7 +97,7 @@ export function LensPanel({ engine }: { engine: MaidEngine }) {
           >
             <span className="block font-medium">None</span>
             <span className="block text-xs text-zinc-500 dark:text-zinc-400">
-              The default look.
+              {look.description ?? 'The default look.'}
             </span>
           </button>
           {allLenses({ builtIn, imported }).map((lens) => {
@@ -130,25 +135,44 @@ export function LensPanel({ engine }: { engine: MaidEngine }) {
         </div>
       </section>
 
-      {active && (
+      {chosenLegend ? (
         <section aria-label="Legend" className="flex flex-col gap-1.5">
           <h3 className="text-xs font-medium text-zinc-500 uppercase dark:text-zinc-400">Legend</h3>
           <ul className="flex flex-col gap-1">
-            {active.rules.map((rule, i) => (
+            {chosenLegend.entries.map((entry, i) => (
               <li key={i} className="flex items-center gap-2 text-xs">
-                <span
-                  aria-hidden="true"
-                  className="inline-block h-2.5 w-5 shrink-0 rounded-sm bg-zinc-300 dark:bg-zinc-600"
-                  style={rule.color ? { backgroundColor: rule.color } : undefined}
-                />
-                <span className="min-w-0">{rule.label ?? describeMatch(rule.match)}</span>
+                <LegendSwatch entry={entry} />
+                <span className="min-w-0">{entry.label}</span>
               </li>
             ))}
           </ul>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Everything else is {REST_TEXT[active.rest ?? 'dim']}.
+            {chosenLegend.note ?? 'A selection: what this style adds to the map.'}
           </p>
         </section>
+      ) : (
+        active && (
+          <section aria-label="Legend" className="flex flex-col gap-1.5">
+            <h3 className="text-xs font-medium text-zinc-500 uppercase dark:text-zinc-400">
+              Legend
+            </h3>
+            <ul className="flex flex-col gap-1">
+              {active.rules.map((rule, i) => (
+                <li key={i} className="flex items-center gap-2 text-xs">
+                  <span
+                    aria-hidden="true"
+                    className="inline-block h-2.5 w-5 shrink-0 rounded-sm bg-zinc-300 dark:bg-zinc-600"
+                    style={rule.color ? { backgroundColor: rule.color } : undefined}
+                  />
+                  <span className="min-w-0">{rule.label ?? describeMatch(rule.match)}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Everything else is {REST_TEXT[active.rest ?? 'dim']}.
+            </p>
+          </section>
+        )
       )}
 
       <section

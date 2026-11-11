@@ -29,10 +29,43 @@ export type LensRule = {
   label?: string
 }
 
+/**
+ * One row of a lens's legend: a text and a small picture of a line. The picture is drawn from data, so it can show what
+ * a lens adds beside its colours: a dash, a white casing, two thin lines along it, a line at the edge of a road.
+ */
+export type LensLegendEntry = {
+  label: string
+  /** The line's colour; without it the row has no line (a row of text, or only a sign) */
+  color?: string
+  /** Line width in px (default 3) */
+  width?: number
+  dash?: number[]
+  /** A white casing under the line */
+  casing?: boolean
+  /** Two thin lines in the line's colour along it (a path that runs along a road) */
+  kerbs?: boolean
+  /** A grey road drawn above the line: the line belongs to that road */
+  road?: boolean
+  /** A round blue traffic sign on the line */
+  sign?: boolean
+}
+
+/**
+ * A legend chosen for the lens, shown in the map style panel instead of the list of its rules: only what matters for
+ * this style and is not clear by itself (for example the casings and side lines of the bicycle infrastructure, or the
+ * colours of building types in a buildings style). Without it the panel lists the rules.
+ */
+export type LensLegend = {
+  entries: LensLegendEntry[]
+  /** A sentence under the entries */
+  note?: string
+}
+
 export type Lens = {
   id: string
   name: string
   description?: string
+  legend?: LensLegend
   /** The first rule that matches a feature decides */
   rules: LensRule[]
   /** What happens to features no rule matches. Default `dim`. */

@@ -29,5 +29,10 @@
   "preset_footway": "Footway, bicycles allowed",
   "preset_footway_sidewalk": "Sidewalk, bicycles allowed",
   "preset_footway_isolated": "Footway on its own, bicycles allowed",
-  "preset_pedestrian": "Pedestrian street, bicycles allowed"
+  "preset_pedestrian": "Pedestrian street, bicycles allowed",
+  "legend_on_road": "Tagged on the road (centre line): a thin line at the road's edge, no casing",
+  "legend_sidepath": "Runs along a road (sidepath): two thin lines beside it",
+  "legend_sign": "The traffic sign of the way, turned with it",
+  "legend_note": "A selection: what this style adds to iD's look. The colour says who uses it, the shape how it is mapped.",
+  "default_description": "iD's look with the bicycle infrastructure as TILDA classifies it."
 }

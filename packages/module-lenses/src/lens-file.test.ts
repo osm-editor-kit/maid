@@ -23,6 +23,22 @@ function errorsOf(value: unknown, reserved: string[] = []) {
 }
 
 describe('parseLensFile: good files', () => {
+  test('a chosen legend comes along; a legend entry with a wrong colour is refused', () => {
+    const withLegend: Lens = {
+      ...good,
+      legend: {
+        entries: [
+          { label: 'Cycle track', color: '#174ed9', casing: true },
+          { label: 'On the road', color: '#0098f0', road: true, dash: [2, 1] },
+        ],
+        note: 'Only what matters here',
+      },
+    }
+    expect(parseLensFile(JSON.stringify(withLegend))).toEqual({ ok: true, lenses: [withLegend] })
+    const wrong = { ...good, legend: { entries: [{ label: 'x', color: 'blue-ish' }] } }
+    expect(errorsOf(wrong)[0]).toStartWith('lens.legend.entries[0].color')
+  })
+
   test('one lens as an object', () => {
     const result = parseLensFile(JSON.stringify(good))
     expect(result).toEqual({ ok: true, lenses: [good] })
