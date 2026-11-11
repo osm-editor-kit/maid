@@ -363,15 +363,30 @@ function thisFeature(id: string): string {
 function FeatureChip({
   id,
   selected,
+  unsure = false,
   select,
   hover,
 }: {
   id: string
   selected: boolean
+  /** The file does not say which of the task's features the option is for: it takes the selected one */
+  unsure?: boolean
   select?: (selection: string | readonly string[] | null) => void
   hover?: (id: string | null) => void
 }) {
   const chip = 'rounded-md px-1.5 py-0.5 text-xs'
+  if (selected && unsure)
+    return (
+      <span
+        data-testid={`tasks-feature-${id}`}
+        data-selected="true"
+        data-unsure="true"
+        title={m.tasks_feature_unsure()}
+        className={`${chip} bg-amber-100 font-medium text-amber-900 dark:bg-amber-950/60 dark:text-amber-100`}
+      >
+        {m.tasks_selected_feature()}
+      </span>
+    )
   if (selected)
     return (
       <span
@@ -482,6 +497,12 @@ function OptionCard({
             key={id}
             id={id}
             selected={id === entity?.id}
+            // a tag option without osm on a task of several features: the file leaves the feature open
+            unsure={
+              action === 'tag' &&
+              tagTargetsOf(option).length === 0 &&
+              (task.properties.osm?.length ?? 0) > 1
+            }
             select={select}
             hover={hover}
           />

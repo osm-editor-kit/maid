@@ -30,6 +30,8 @@
   "tasks_this_way": "cette voie",
   "tasks_this_node": "ce point",
   "tasks_this_relation": "cette relation",
+  "tasks_selected_feature": "voie sélectionnée ?",
+  "tasks_feature_unsure": "Le fichier de tâches ne dit pas à quelle voie cette action s'applique : elle modifie la sélection. Le fichier peut la nommer avec « osm » sur l'action.",
   "tasks_apply": "Appliquer",
   "tasks_applied": "Déjà appliqué",
   "tasks_read_only": "Cet objet est en lecture seule à cause d’un filtre : l’option ne peut pas être appliquée.",

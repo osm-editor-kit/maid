@@ -30,6 +30,8 @@
   "tasks_this_way": "dieser Weg",
   "tasks_this_node": "dieser Punkt",
   "tasks_this_relation": "diese Relation",
+  "tasks_selected_feature": "ausgewählter Weg?",
+  "tasks_feature_unsure": "Die Aufgabendatei sagt nicht, für welchen Weg diese Aktion gedacht ist: Sie ändert, was ausgewählt ist. Die Datei kann es mit „osm“ an der Aktion angeben.",
   "tasks_apply": "Anwenden",
   "tasks_applied": "Bereits angewendet",
   "tasks_read_only": "Dieses Objekt ist wegen eines Filters schreibgeschützt: Die Option kann nicht angewendet werden.",

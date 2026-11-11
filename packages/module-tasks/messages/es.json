@@ -30,6 +30,8 @@
   "tasks_this_way": "esta vía",
   "tasks_this_node": "este punto",
   "tasks_this_relation": "esta relación",
+  "tasks_selected_feature": "¿vía seleccionada?",
+  "tasks_feature_unsure": "El archivo de tareas no dice para qué vía es esta acción: cambia lo seleccionado. El archivo puede indicarla con \"osm\" en la acción.",
   "tasks_apply": "Aplicar",
   "tasks_applied": "Ya aplicado",
   "tasks_read_only": "Este elemento es de solo lectura por un filtro: no se puede aplicar la opción.",

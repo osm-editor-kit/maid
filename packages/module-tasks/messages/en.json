@@ -30,6 +30,8 @@
   "tasks_this_way": "this way",
   "tasks_this_node": "this point",
   "tasks_this_relation": "this relation",
+  "tasks_selected_feature": "selected way?",
+  "tasks_feature_unsure": "The task file does not say which way this action is for: it changes what is selected. The file can name it with \"osm\" on the action.",
   "tasks_apply": "Apply",
   "tasks_applied": "Already applied",
   "tasks_read_only": "This feature is read-only because of a filter: the option cannot be applied.",
