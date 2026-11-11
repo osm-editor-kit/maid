@@ -10,3 +10,19 @@ import { device } from '@osm-editor-kit/maid-i18n'
 export function autoFocusFields(): boolean {
   return device().input === 'keyboard'
 }
+
+let keyboardLast = false
+// on the window in the capture phase, from the start: before any panel's own key handling closes it
+if (typeof window !== 'undefined') {
+  window.addEventListener('keydown', () => (keyboardLast = true), { capture: true })
+  window.addEventListener('pointerdown', () => (keyboardLast = false), { capture: true })
+}
+
+/**
+ * Whether the last input was a key and not a pointer. A panel that closes gives the focus back to its trigger only
+ * then: after a click Safari draws the focus ring on a button it focuses from a script, though the person used the
+ * mouse (Tobias, 2026-11-11). With the keyboard the focus has to go back, so the way through the page goes on.
+ */
+export function lastInputWasKeyboard(): boolean {
+  return keyboardLast
+}

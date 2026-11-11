@@ -20,13 +20,14 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import {
   cloneElement,
   createContext,
+  useEffect,
   useRef,
   useState,
   type ReactElement,
   type ReactNode,
 } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { autoFocusFields } from './auto-focus.ts'
+import { autoFocusFields, lastInputWasKeyboard } from './auto-focus.ts'
 import { UI_SPRING } from './motion.tsx'
 import { TooltipGroupContext } from './Tooltip.tsx'
 
@@ -86,6 +87,9 @@ export function Flyout(props: {
   // (a click, the key, the app opening it itself) makes a panel that stays.
   const [shownByHover, setShownByHover] = useState(false)
   const open = props.open ?? ownOpen
+  // where the focus goes when the panel closes: the trigger after a key, nowhere after a click (Safari would ring the
+  // button it focuses). The focus manager reads it when the panel is gone, after its exit, so it is a ref set on close.
+  const returnTo = useRef<HTMLElement | null>(null)
   const setOpen = (next: boolean, reason?: OpenChangeReason) => {
     setShownByHover(next && reason === 'hover')
     setOwnOpen(next)
@@ -124,6 +128,14 @@ export function Flyout(props: {
       arrow({ element: arrowRef, padding: 20 }),
     ],
   })
+  useEffect(
+    function chooseWhereTheFocusReturns() {
+      if (open) return
+      const trigger = refs.domReference.current
+      returnTo.current = lastInputWasKeyboard() && trigger instanceof HTMLElement ? trigger : null
+    },
+    [open, refs],
+  )
   const click = useClick(context, { enabled: !hover })
   const hovered = useHover(context, {
     enabled: hover && (!open || shownByHover),
@@ -171,6 +183,7 @@ export function Flyout(props: {
               context={context}
               modal={false}
               initialFocus={focus ? (autoFocusFields() ? 0 : refs.floating) : -1}
+              returnFocus={returnTo}
             >
               <motion.div
                 aria-label={label}
