@@ -1,4 +1,9 @@
-import { ArrowTopRightOnSquareIcon, CameraIcon, ChevronDownIcon } from '@heroicons/react/20/solid'
+import {
+  ArrowTopRightOnSquareIcon,
+  CameraIcon,
+  CheckCircleIcon,
+  ChevronDownIcon,
+} from '@heroicons/react/20/solid'
 import type { Editor } from '@osm-editor-kit/maid-core'
 import type { TaskStatus } from '@osm-editor-kit/maid-osm-prefs'
 import type { EntityInfo } from '@osm-editor-kit/maid-renderer'
@@ -107,9 +112,9 @@ function TaskDescription({
   )
 }
 const DANGER =
-  'cursor-pointer rounded-lg bg-red-600 px-2.5 py-1 text-sm font-medium text-white hover:bg-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-default disabled:opacity-50'
+  'cursor-pointer rounded-lg bg-red-600 px-2 py-0.5 text-xs font-medium text-white hover:bg-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-default disabled:opacity-50'
 const PRIMARY =
-  'cursor-pointer rounded-lg bg-blue-600 px-2.5 py-1 text-sm font-medium text-white hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-50'
+  'cursor-pointer rounded-lg bg-blue-600 px-2 py-0.5 text-xs font-medium text-white hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-50'
 
 /** The text of a status, for badges, counts and the filter */
 export function statusLabel(status: TaskStatus): string {
@@ -435,6 +440,7 @@ function OptionCard({
   onApply: () => void
 }) {
   const action = actionOf(option)
+  const [open, setOpen] = useState(false)
   const lookup = (id: string) =>
     id === entity?.id ? entity : editor.history.staging.graph.hasEntity(id)
   // the features a tag option changes: the ones it names, else the selected one
@@ -468,6 +474,82 @@ function OptionCard({
           entity: lookup(entityIdOfRef(ref)),
         }))
       : []
+  const chips =
+    named.length > 0 ? (
+      <span className="flex max-w-1/2 shrink-0 flex-wrap justify-end gap-1">
+        {named.map((id) => (
+          <FeatureChip
+            key={id}
+            id={id}
+            selected={id === entity?.id}
+            select={select}
+            hover={hover}
+          />
+        ))}
+      </span>
+    ) : null
+  const description = option.description && (
+    <Markdown text={option.description} context={context} onOsm={onOsm} />
+  )
+
+  if (applied)
+    // done: folded to one row with the green check; unfolded it shows what the action did
+    return (
+      <li
+        data-testid={`tasks-option-${option.id}`}
+        data-action={action}
+        data-applied="true"
+        className="flex flex-col gap-1.5 rounded-lg border border-emerald-600/25 bg-emerald-50/60 p-2.5 dark:border-emerald-400/20 dark:bg-emerald-950/20"
+      >
+        <div className="flex items-start justify-between gap-2">
+          <button
+            type="button"
+            aria-expanded={open}
+            data-testid={`tasks-applied-${option.id}`}
+            title={m.tasks_applied()}
+            onClick={() => setOpen(!open)}
+            className="flex min-w-0 cursor-pointer items-start gap-1.5 text-left text-sm font-medium break-words focus-visible:outline-2 focus-visible:outline-blue-500"
+          >
+            <CheckCircleIcon
+              aria-label={m.tasks_applied()}
+              className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+            />
+            <span className="min-w-0">{option.label}</span>
+            <ChevronDownIcon
+              aria-hidden="true"
+              className={`mt-0.5 size-4 shrink-0 text-zinc-500 transition ${open ? 'rotate-180' : ''}`}
+            />
+          </button>
+          {chips}
+        </div>
+        {open && (
+          <>
+            {description}
+            {action === 'create' && (
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                {createdKind(task, option)}
+              </p>
+            )}
+            {action === 'tag' && <TagDiff before={appliedBefore(before, option)} after={before} />}
+          </>
+        )}
+      </li>
+    )
+
+  const button = canApply && !blocked && (
+    <button
+      type="button"
+      data-testid={`tasks-apply-${option.id}`}
+      onClick={onApply}
+      className={`shrink-0 self-start ${action === 'delete' ? DANGER : PRIMARY}`}
+    >
+      {action === 'create'
+        ? m.tasks_apply_create()
+        : action === 'delete'
+          ? m.tasks_apply_delete()
+          : m.tasks_apply()}
+    </button>
+  )
   return (
     <li
       data-testid={`tasks-option-${option.id}`}
@@ -476,25 +558,13 @@ function OptionCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="text-sm font-medium break-words">{option.label}</div>
-        {named.length > 0 && (
-          <span className="flex max-w-1/2 shrink-0 flex-wrap justify-end gap-1">
-            {named.map((id) => (
-              <FeatureChip
-                key={id}
-                id={id}
-                selected={id === entity?.id}
-                select={select}
-                hover={hover}
-              />
-            ))}
-          </span>
-        )}
+        {chips}
       </div>
-      {option.description && <Markdown text={option.description} context={context} onOsm={onOsm} />}
-      {action === 'create' && !applied && (
+      {description}
+      {action === 'create' && (
         <p className="text-xs text-zinc-500 dark:text-zinc-400">{createdKind(task, option)}</p>
       )}
-      {action === 'delete' && !applied && (
+      {action === 'delete' && (
         <div className="flex flex-col gap-1">
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
             {m.tasks_deletes({ count: targets.length })}
@@ -513,9 +583,6 @@ function OptionCard({
           </ul>
         </div>
       )}
-      {!applied && changes.length > 0 && (
-        <TagDiff before={before} after={applyOption(before, option)} />
-      )}
       {blocked && (
         <p
           data-testid={`tasks-done-${option.id}`}
@@ -524,31 +591,31 @@ function OptionCard({
           {m.tasks_reopen_to_apply()}
         </p>
       )}
-      {canApply &&
-        !blocked &&
-        (applied ? (
-          <p
-            data-testid={`tasks-applied-${option.id}`}
-            className="text-xs text-emerald-700 dark:text-emerald-300"
-          >
-            {m.tasks_applied()}
-          </p>
-        ) : (
-          <div>
-            <button
-              type="button"
-              data-testid={`tasks-apply-${option.id}`}
-              onClick={onApply}
-              className={action === 'delete' ? DANGER : PRIMARY}
-            >
-              {action === 'create'
-                ? m.tasks_apply_create()
-                : action === 'delete'
-                  ? m.tasks_apply_delete()
-                  : m.tasks_apply()}
-            </button>
+      {changes.length > 0 ? (
+        // the button beside the diff, so the change and its trigger read as one
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <TagDiff before={before} after={applyOption(before, option)} />
           </div>
-        ))}
+          {button}
+        </div>
+      ) : (
+        button
+      )}
     </li>
   )
+}
+
+/**
+ * What the tags looked like before a tag option that is applied now: its `set` keys gone, its `remove` keys there.
+ * The removed values are not known any more, so they show as "…".
+ */
+function appliedBefore(
+  tags: Readonly<Record<string, string>>,
+  option: TaskOption,
+): Record<string, string> {
+  const before: Record<string, string> = { ...tags }
+  for (const key of Object.keys(option.set ?? {})) delete before[key]
+  for (const key of option.remove ?? []) before[key] = '…'
+  return before
 }
