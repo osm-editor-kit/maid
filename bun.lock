@@ -332,7 +332,6 @@
         "@osm-editor-kit/maid-validation": "workspace:*",
         "@osm-editor-kit/osm-lane-diagram": "workspace:*",
         "@osm-editor-kit/osm-lanes": "workspace:*",
-        "@osm-editor-kit/osm-way-chain": "1.0.1",
         "react": "^19.3.1",
         "react-map-gl": "^8.1.3",
       },

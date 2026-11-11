@@ -116,9 +116,8 @@ describe('laneBands', () => {
     ])
     // the leftmost lane in travel is on the right of the way as drawn
     expect(bands.map((band) => band.offsetMetres)).toEqual([1.5, -1.5])
-    // the lane model mirrors the tags of a oneway=-1 road: it reverses the pipes and swaps left and right in turns
-    // (osm-way-chain `mirrorTags`). The bands follow the model, so they match the diagram's slots.
-    expect(bands.map((band) => band.turn)).toEqual(['through', 'right'])
+    // the pipes run in the order of travel and the turns stay as tagged (osm-lanes `reverseWayTags`)
+    expect(bands.map((band) => band.turn)).toEqual(['left', 'through'])
   })
 
   test('width:lanes sets each band, and the bands stay edge to edge', () => {
@@ -182,5 +181,68 @@ describe('laneBands', () => {
     expect(
       ids({ highway: 'primary', oneway: 'yes', lanes: '1', name: undefined } as never),
     ).toEqual(['way/7/lane/forward/0'])
+  })
+})
+
+describe('laneBands with placement', () => {
+  test('placement:forward=left_of:1: the way runs along the left edge of the first forward lane', () => {
+    const bands = laneBands(7, {
+      highway: 'secondary',
+      lanes: '3',
+      'lanes:forward': '2',
+      'lanes:backward': '1',
+      'width:lanes:forward': '3|3',
+      'width:lanes:backward': '3',
+    })
+    const placed = laneBands(7, {
+      highway: 'secondary',
+      lanes: '3',
+      'lanes:forward': '2',
+      'lanes:backward': '1',
+      'width:lanes:forward': '3|3',
+      'width:lanes:backward': '3',
+      'placement:forward': 'left_of:1',
+    })
+    expect(bands.map((band) => band.offsetMetres)).toEqual([-3, 0, 3])
+    expect(placed.map((band) => band.offsetMetres)).toEqual([-1.5, 1.5, 4.5])
+  })
+
+  test('placement=middle_of:2 on a oneway', () => {
+    const placed = laneBands(7, {
+      highway: 'primary',
+      oneway: 'yes',
+      lanes: '3',
+      placement: 'middle_of:2',
+    })
+    expect(placed.map((band) => band.offsetMetres)).toEqual([-3, 0, 3])
+    const right = laneBands(7, {
+      highway: 'primary',
+      oneway: 'yes',
+      lanes: '2',
+      placement: 'right_of:2',
+    })
+    expect(right.map((band) => band.offsetMetres)).toEqual([-4.5, -1.5])
+  })
+
+  test('placement:backward counts from the left in backward travel', () => {
+    const placed = laneBands(7, {
+      highway: 'secondary',
+      lanes: '2',
+      'lanes:forward': '1',
+      'lanes:backward': '1',
+      'placement:backward': 'left_of:1',
+    })
+    // the left edge of the backward lane, in its travel, is its right edge as drawn: the middle of the road
+    expect(placed.map((band) => band.offsetMetres)).toEqual([-1.5, 1.5])
+  })
+
+  test('a placement on a lane that is not there keeps the bands centred', () => {
+    const placed = laneBands(7, {
+      highway: 'primary',
+      oneway: 'yes',
+      lanes: '2',
+      placement: 'left_of:5',
+    })
+    expect(placed.map((band) => band.offsetMetres)).toEqual([-1.5, 1.5])
   })
 })

@@ -309,7 +309,11 @@ function expandOnCarriagewayCycleSlots(
         const token = tokens[i]!.trim().toLowerCase()
         const pipeWidth = parseWidthToken(widthTokens[i])
         if (isCyclewayLanesCycleToken(token)) {
-          rebuilt.push(makeCycleSlot(wayId, direction, ref.next++, pipeWidth, token))
+          // the pipe position is the lane's index in the lane model (and Maid's lane table) when no driving lane
+          // holds that id; else a number of its own from 10000
+          const id = formatLaneSlotId(wayId, direction, i)
+          const free = !motorish.some((m) => m.id === id) && own.some((s) => s.id === id)
+          rebuilt.push(makeCycleSlot(wayId, direction, free ? i : ref.next++, pipeWidth, token))
         } else {
           const src = motorish[motorIdx++]
           if (!src) continue
@@ -367,7 +371,10 @@ function expandOnCarriagewayCycleSlots(
       const token = tokens[i]!.trim().toLowerCase()
       const pipeWidth = parseWidthToken(widthTokens[i])
       if (isCyclewayLanesCycleToken(token)) {
-        rebuilt.push(makeCycleSlot(wayId, 'forward', nextIndex++, pipeWidth, token))
+        // as above: the lane model's index at this pipe position when no driving lane holds it
+        const id = formatLaneSlotId(wayId, 'forward', i)
+        const free = !motorish.some((m) => m.id === id) && carriageway.some((s) => s.id === id)
+        rebuilt.push(makeCycleSlot(wayId, 'forward', free ? i : nextIndex++, pipeWidth, token))
       } else {
         const src = motorish[motorIdx++]
         if (!src) continue

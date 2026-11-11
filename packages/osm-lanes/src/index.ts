@@ -29,6 +29,7 @@ export {
 } from './edit-slots'
 
 export { effectiveTagsForParse, parseWayLanes } from './parse'
+export { reverseWayTags } from './reverse'
 export { serializeWayLanes } from './serialize'
 export { validateWayLanes } from './validate'
 

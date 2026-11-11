@@ -11,11 +11,15 @@
  * way as it is drawn, positive right. A road with `oneway=-1` is parsed in its travel direction (the lane model mirrors
  * the tags, its lanes are `forward`), which runs against the drawing: its offsets are turned round.
  *
- * The bands are centred on the way. `placement=*` (the way drawn along a lane edge, not the road's middle) is not read.
+ * The bands are centred on the way, unless `placement=*` (oneway), `placement:forward` or `placement:backward` says the
+ * way runs along the edge or the middle of a lane (`left_of:1`, `middle_of:2`, `right_of:1`). Lanes are counted from 1,
+ * from the left in their direction of travel, as for the `:lanes` keys; for the plain `placement` of a `oneway=-1` road
+ * that is an assumption (the wiki was not at hand). Values that name no lane are left out, as `transition`.
  */
 import { DEFAULT_WIDTHS_M, formatLaneSlotId } from '@osm-editor-kit/osm-lane-diagram'
 import {
   getDrivingSideFromTags,
+  isOneway,
   parseWayLanes,
   type LaneDirection,
   type LaneSlot,
@@ -93,10 +97,15 @@ export function laneBands(wayId: number, tags: Tags): LaneBand[] {
   const total = sized.reduce((sum, band) => sum + band.width, 0)
   // the lane model's left-to-right runs along travel; on a oneway=-1 road travel is against the drawing
   const sign = isReverseOneway(plain) ? -1 : 1
-  let left = -total / 2
-  return sized.map(({ slot, kind, width }) => {
-    const middle = left + width / 2
-    left += width
+  let edge = -total / 2
+  const spans = sized.map((band) => {
+    const span = { ...band, left: edge, right: edge + band.width }
+    edge += band.width
+    return span
+  })
+  const shift = placementOffset(plain, spans) ?? 0
+  return spans.map(({ slot, kind, width, left }) => {
+    const middle = left + width / 2 - shift
     return {
       slotId: formatLaneSlotId(wayId, slot.direction, slot.index),
       direction: slot.direction,
@@ -108,4 +117,35 @@ export function laneBands(wayId: number, tags: Tags): LaneBand[] {
       ...(slot.turn === undefined ? {} : { turn: slot.turn }),
     }
   })
+}
+
+/**
+ * Where the way runs across the lanes, in the same frame as the spans (travel upwards, 0 the middle of the road), or
+ * undefined to keep the bands centred. Backward lanes are counted from the left in their own travel, which is from the
+ * right in this frame.
+ */
+function placementOffset(
+  tags: Record<string, string>,
+  spans: readonly { slot: LaneSlot; left: number; right: number }[],
+): number | undefined {
+  const oneway = isOneway(tags)
+  const candidates: [string | undefined, LaneDirection][] = [
+    [oneway ? tags.placement : undefined, 'forward'],
+    [tags['placement:forward'], 'forward'],
+    [tags['placement:backward'], 'backward'],
+  ]
+  for (const [value, direction] of candidates) {
+    const match = value ? /^(left_of|right_of|middle_of):(\d+)$/i.exec(value.trim()) : null
+    if (!match) continue
+    const lane = spans
+      .filter((span) => span.slot.direction === direction)
+      .toSorted((a, b) => a.slot.index - b.slot.index)[Number(match[2]) - 1]
+    if (!lane) continue
+    const where = match[1]!.toLowerCase()
+    if (where === 'middle_of') return (lane.left + lane.right) / 2
+    const travelLeft = direction === 'backward' ? lane.right : lane.left
+    const travelRight = direction === 'backward' ? lane.left : lane.right
+    return where === 'left_of' ? travelLeft : travelRight
+  }
+  return undefined
 }

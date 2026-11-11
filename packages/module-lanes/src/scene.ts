@@ -9,7 +9,7 @@ import {
   type RoadSpaceScene,
   type RoadSpaceSegment,
 } from '@osm-editor-kit/osm-lane-diagram'
-import { normalizeTagsForDirection } from '@osm-editor-kit/osm-way-chain'
+import { reverseWayTags } from '@osm-editor-kit/osm-lanes'
 import { plainTags, type Tags } from './edit.ts'
 import { isLaneRoad } from './roads.ts'
 
@@ -59,7 +59,8 @@ export function neighbourAt(
     if (!first && !last) continue
     // after the way's end the neighbour should start there; before its start, end there. Else it runs against it.
     const reversed = atEnd ? last : first
-    return { id: other.id, tags: normalizeTagsForDirection(plainTags(other.tags), reversed) }
+    const tags = plainTags(other.tags)
+    return { id: other.id, tags: reversed ? reverseWayTags(tags) : tags }
   }
   return undefined
 }

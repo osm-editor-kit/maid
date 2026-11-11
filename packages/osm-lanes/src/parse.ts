@@ -1,5 +1,5 @@
-import { mirrorTags } from '@osm-editor-kit/osm-way-chain'
 import { getDrivingSideFromTags } from './driving-side'
+import { reverseWayTags } from './reverse'
 import { buildSlotsFromTags, resolveDirectionCounts } from './slots'
 import { collectSecondaryTags, isOneway } from './tags'
 import type { WayLaneModel } from './types'
@@ -12,7 +12,7 @@ function isReverseOneway(tags: Record<string, string>): boolean {
 
 /** Tags after reverse-oneway remirror — same input `parseWayLanes` uses internally. */
 export function effectiveTagsForParse(tags: Record<string, string>): Record<string, string> {
-  return isReverseOneway(tags) ? mirrorTags(tags) : tags
+  return isReverseOneway(tags) ? reverseWayTags(tags) : tags
 }
 
 export function parseWayLanes(tags: Record<string, string>): WayLaneModel {
