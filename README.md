@@ -42,7 +42,7 @@ Maid is faster than both: the map is ready, drawn and fully loaded sooner in eve
 
 ```bash
 bun install
-bun run dev        # the four apps and the local mock API
+bun run dev        # the five apps and the local mock API
 bun run check      # types, lint, format, texts, unit tests
 bun run check-all  # the browser checks
 ```

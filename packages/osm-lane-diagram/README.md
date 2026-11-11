@@ -39,4 +39,4 @@ No React/JSX and no I/O (no OSM fetch, stores, or app imports). Layout uses clea
 
 Copied on 2026-11-10 from the street space editor (<https://github.com/osmberlin/street-space-editor>, `packages/osm-lane-diagram` at commit `2a0f6f7`), MIT licence in [LICENSE](LICENSE). The package keeps its name, so Maid can switch to the npm release with one line once it is published. Changes here go back to the street space editor too, as long as both copies live.
 
-One change against the original: `src/sidepaths.ts` replaces `@osm-editor-kit/osm-sidepath-tags`, which calls `@tilda-geo/bicycle-infrastructure` (AGPL) and so cannot be part of Maid. The 54 snapshot tests of the original pass unchanged with it.
+One change against the original: `src/sidepaths.ts` replaces `@osm-editor-kit/osm-sidepath-tags` (not on npm), which uses `@tilda-geo/bicycle-infrastructure`, AGPL until 0.1.2 and ISC since 0.2.0. The 54 snapshot tests of the original pass unchanged with it.

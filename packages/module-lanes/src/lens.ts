@@ -23,6 +23,17 @@ export const lanesLens: Lens = {
   get description() {
     return m.lens_description()
   },
+  // the legend names the four colours once; the rules repeat the green for every key that holds values per lane
+  get legend() {
+    return {
+      entries: [
+        { label: m.lens_rich(), color: LANE_COLOURS.rich, width: 4 },
+        { label: m.lens_count(), color: LANE_COLOURS.count, width: 4 },
+        { label: m.lens_missing(), color: LANE_COLOURS.missing, width: 4 },
+        { label: m.lens_minor(), color: LANE_COLOURS.minor, width: 4 },
+      ],
+    }
+  },
   geometry: ['line'],
   rest: 'dim',
   rules: [

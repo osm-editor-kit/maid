@@ -180,7 +180,7 @@ is in [storage and settings](docs/architecture/09-storage-and-settings.md).
 
 ## Build and deploy
 
-- `bun run dev` starts the four apps and the mock API. Ports are in `tools/ports.ts`.
+- `bun run dev` starts the five apps and the mock API. Ports are in `tools/ports.ts`.
 - Each app is built by Vite (`apps/<app>/vite.config.ts`, shared parts in `apps/vite-shared.ts`). The shell's
   `public/` folder is every app's public folder.
 - `bun run pages-build` builds the apps named in `deploy.env` (`MAID_APP`) into `site/`. The GitHub Action
@@ -219,7 +219,7 @@ is in [storage and settings](docs/architecture/09-storage-and-settings.md).
 ### Change the core
 
 Change it in the package that owns the behaviour, with a unit test, in a commit of its own. Run `bun run check-all`
-for all four apps, since every app uses the core. Follow iD where in doubt (rule 3 in [AGENTS.md](AGENTS.md)).
+for all five apps, since every app uses the core. Follow iD where in doubt (rule 3 in [AGENTS.md](AGENTS.md)).
 
 ## Where the code does not follow this yet
 

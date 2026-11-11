@@ -1,9 +1,11 @@
 /**
  * Sidewalks and cycleways tagged on a road (`sidewalk:left=yes`, `cycleway:right=track`, `cycleway=lane`), split into
- * one entry per side with the side's own tags. Written for Maid in place of the street space editor's
- * `@osm-editor-kit/osm-sidepath-tags`, whose `expandSidepaths` calls `@tilda-geo/bicycle-infrastructure` (AGPL), which
- * Maid does not take in (NOTICE.md). Only what `from-tags.ts` and `slot-ids.ts` read is here: the side, the value
- * and the nested keys (`cycleway:left:width` → `width`). Which entries become slots is decided in `from-tags.ts`.
+ * one entry per side with the side's own tags. In the street space editor this comes from
+ * `@osm-editor-kit/osm-sidepath-tags`, which uses `@tilda-geo/bicycle-infrastructure` for it (AGPL until 0.1.2, ISC
+ * since 0.2.0). Written here on 2026-11-10, when the licence did not allow it, and kept: it is small, has no
+ * dependency, and the 54 snapshot tests of the diagram give the same scenes with it. Only what `from-tags.ts` and
+ * `slot-ids.ts` read is here: the side, the value and the nested keys (`cycleway:left:width` → `width`). Which entries
+ * become slots is decided in `from-tags.ts`.
  */
 
 export type SidepathPrefix = 'cycleway' | 'sidewalk'
