@@ -92,6 +92,12 @@ export type TasksState = {
   request: number
   /** The tasks Apply set to done in this session (not kept: the edits of a session are not either) */
   applied: AppliedTask[]
+  /**
+   * The task descriptions are folded: once read, the person works through the list without reading it again (Tobias,
+   * 2026-11-11). Per list, for the browser tab's session (`sessionStorage`), so a reload keeps it and a new list starts
+   * open.
+   */
+  descriptionsFolded: boolean
 }
 
 /** The saved state of a list this browser knew before: statuses and revisions */
@@ -126,6 +132,8 @@ export type TasksActions = {
   keepLocal: (remoteRevision: number, remoteGeneration: string) => void
   /** Apply set a task to done */
   addApplied: (applied: AppliedTask) => void
+  /** Folds or unfolds the descriptions of every task of the list */
+  setDescriptionsFolded: (folded: boolean) => void
   /** Undo or redo: the status of each applied task follows whether its tags are still there */
   followApplied: (isStillApplied: (applied: AppliedTask) => boolean) => void
   close: () => void
@@ -137,6 +145,7 @@ export const EMPTY_STATE: TasksState = {
   list: undefined,
   statuses: [],
   current: null,
+  descriptionsFolded: false,
   filter: 'all',
   localRevision: 0,
   ackedRevision: 0,
@@ -237,6 +246,27 @@ export function withOpened(
     error: undefined,
     loading: undefined,
     applied: [],
+    descriptionsFolded: readFolded(list.listKey),
+  }
+}
+
+const foldedKey = (listKey: string) => `maid.tasks.descriptions-folded.${listKey}`
+
+/** Whether this tab folded the descriptions of the list before; false without session storage */
+function readFolded(listKey: string): boolean {
+  try {
+    return globalThis.sessionStorage?.getItem(foldedKey(listKey)) === '1'
+  } catch {
+    return false
+  }
+}
+
+function writeFolded(listKey: string, folded: boolean) {
+  try {
+    if (folded) globalThis.sessionStorage?.setItem(foldedKey(listKey), '1')
+    else globalThis.sessionStorage?.removeItem(foldedKey(listKey))
+  } catch {
+    // no session storage (a private window): it holds for this page only
   }
 }
 
@@ -280,6 +310,11 @@ export function createTasksStore() {
         if (change) set(change)
       },
       setCurrent: (current) => set({ current }),
+      setDescriptionsFolded: (folded) => {
+        const { list } = get()
+        if (list) writeFolded(list.listKey, folded)
+        set({ descriptionsFolded: folded })
+      },
       setFilter: (filter) => set({ filter }),
       setSync: (kind, server) =>
         set((state) => {

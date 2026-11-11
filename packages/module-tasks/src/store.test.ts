@@ -143,6 +143,17 @@ describe('close', () => {
   })
 })
 
+describe('folded descriptions', () => {
+  it('fold for the whole list and start open for a list this tab has not folded', () => {
+    const store = openedStore(file)
+    expect(store.getState().descriptionsFolded).toBe(false)
+    store.getState().actions.setDescriptionsFolded(true)
+    expect(store.getState().descriptionsFolded).toBe(true)
+    store.getState().actions.setDescriptionsFolded(false)
+    expect(store.getState().descriptionsFolded).toBe(false)
+  })
+})
+
 describe('applied tasks follow undo and redo', () => {
   it('undo takes the status back, redo sets done again, a later change by hand stays', () => {
     const store = openedStore(file)

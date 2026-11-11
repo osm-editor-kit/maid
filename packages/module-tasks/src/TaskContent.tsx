@@ -71,15 +71,19 @@ export function TaskLinks({ task }: { task: Task }) {
 
 /** The description from the file, set apart as a quote; it folds away under its label */
 function TaskDescription({
+  store,
   text,
   context,
   onOsm,
 }: {
+  store: TasksStore
   text: string
   context: MarkdownContext
   onOsm?: OnOsmRef
 }) {
-  const [open, setOpen] = useState(true)
+  // folded once, folded for every task of the list (store.descriptionsFolded)
+  const open = !useTasks(store, (state) => state.descriptionsFolded)
+  const setOpen = (next: boolean) => store.getState().actions.setDescriptionsFolded(!next)
   return (
     <div className="flex flex-col gap-1">
       <button
@@ -267,7 +271,9 @@ export function TaskContent({
           </span>
         </header>
       )}
-      {p.description && <TaskDescription text={p.description} context={p} onOsm={onOsm} />}
+      {p.description && (
+        <TaskDescription store={store} text={p.description} context={p} onOsm={onOsm} />
+      )}
       {p.options && p.options.length > 0 && (
         <div className="flex flex-col gap-2">
           <h4 className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
