@@ -8,6 +8,7 @@ Findings that the plan builds on. Collected 2026-10-10 by research subagents rea
 - [osm-editor-kit.md](osm-editor-kit.md): our own packages and how they fit
 - [mobile-touch-audit.md](mobile-touch-audit.md): Maid on phones and tablets against the `touch-ipad-review` checklist (2026-10-29)
 - [first-paint-audit.md](first-paint-audit.md): what a first visit loads before and after the first view, and what to cut (2026-10-29)
+- [projections-and-coordinates.md](projections-and-coordinates.md): MapLibre's custom projections, precision near the poles and at high zoom, and why Rapid's world coordinates would not save memory (2026-11-11)
 
 ## How to read these notes
 

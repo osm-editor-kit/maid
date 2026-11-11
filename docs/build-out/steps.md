@@ -212,6 +212,8 @@ A local fix list from another project (asked by Tobias through the tilda-geo ses
 
 MapRoulette's online API (was D4: the task extension points and `maid-module-maproulette`): left out by Tobias on 2026-10-13, because the MapRoulette integration is broken by problems of its API at the moment. Teams use MapRoulette.
 
+Editing beyond 85°S (the Antarctic plateau), where Web Mercator ends: possible with MapLibre's experimental `addProjection` and a polar CRS, but without imagery, since no background Maid offers is cut in that CRS. iD and Rapid cannot either ([projections-and-coordinates.md](../research/projections-and-coordinates.md), 2026-11-11).
+
 GPX, measurement and history panels, keyboard shortcut help, the published npm packages and their release routine. They are listed so that nobody assumes they are covered. (Translations and turn restrictions stood here until 2026-10-13: both are in work now, see Part F.)
 
 ## Not doing

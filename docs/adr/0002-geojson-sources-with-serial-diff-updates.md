@@ -29,5 +29,5 @@ The serialisation described above was the workaround before the patch. It stays 
 ## Settings and their trade-offs
 
 - `tolerance: 0`: vertices must sit exactly on their lines. The default (0.375) simplifies lines and moves them away from their vertices.
-- `maxzoom: 17`: tiles are cut up to MapLibre zoom 17 (OSM zoom 18) and overzoomed above. Not yet examined: precision at OSM zoom 22 and beyond.
+- `maxzoom: 17`: tiles are cut up to MapLibre zoom 17 (OSM zoom 18) and overzoomed above. Precision above it, measured 2026-11-11: a drawn node is off its real position by at most 0.68 px at OSM zoom 22, 1.36 px at 23 and 2.71 px at 24 ([projections-and-coordinates.md](../research/projections-and-coordinates.md) section 4).
 - Three stacking bands for lines (below ground, ground, above). iD has one per `layer` value.
