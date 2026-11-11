@@ -1,3 +1,4 @@
+import { ArrowTopRightOnSquareIcon, CameraIcon, ChevronDownIcon } from '@heroicons/react/20/solid'
 import type { Editor } from '@osm-editor-kit/maid-core'
 import type { TaskStatus } from '@osm-editor-kit/maid-osm-prefs'
 import type { EntityInfo } from '@osm-editor-kit/maid-renderer'
@@ -11,7 +12,7 @@ import {
   type Task,
   type TaskOption,
 } from '@osm-editor-kit/maid-tasks'
-import { TagDiff } from '@osm-editor-kit/maid-ui'
+import { TagDiff, TASKS_FOOTER, TASKS_QUOTE, TASKS_TEXT } from '@osm-editor-kit/maid-ui'
 import { useState } from 'react'
 import {
   applyTaskOption,
@@ -24,8 +25,80 @@ import { Markdown, type MarkdownContext, type OnOsmRef } from './markdown.tsx'
 import { m } from './messages.ts'
 import { type AppliedTask, type TasksStore, useTasks } from './store.ts'
 
-const BUTTON =
-  'cursor-pointer rounded-lg border border-zinc-950/10 px-2.5 py-1 text-sm hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-50 dark:border-white/15 dark:hover:bg-white/5'
+/** A status button in the closing bar: white on the olive, so it reads as a button */
+const STATUS_BUTTON =
+  'cursor-pointer rounded-lg border border-olive-700/20 bg-white px-2.5 py-1 text-sm hover:bg-olive-50 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-50 dark:border-white/15 dark:bg-zinc-900 dark:hover:bg-zinc-800'
+const ICON_LINK = `grid size-7 place-items-center rounded-md hover:bg-olive-200 focus-visible:outline-2 focus-visible:outline-blue-500 dark:hover:bg-olive-700 ${TASKS_TEXT}`
+
+/** The links of a task (and its Mapillary images) as small icon buttons, for the heading of a task */
+export function TaskLinks({ task }: { task: Task }) {
+  const { links = [], mapillary = [] } = task.properties
+  if (links.length === 0 && mapillary.length === 0) return null
+  return (
+    <span className="flex items-center" data-testid="tasks-links">
+      {links.map((link) => (
+        <a
+          key={link}
+          href={link}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={link}
+          aria-label={m.tasks_open_link({ link })}
+          className={ICON_LINK}
+        >
+          <ArrowTopRightOnSquareIcon aria-hidden="true" className="size-4" />
+        </a>
+      ))}
+      {mapillary.map((id) => (
+        <a
+          key={id}
+          href={`https://www.mapillary.com/app/?pKey=${id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={m.tasks_mapillary_link({ id })}
+          aria-label={m.tasks_mapillary_link({ id })}
+          className={ICON_LINK}
+        >
+          <CameraIcon aria-hidden="true" className="size-4" />
+        </a>
+      ))}
+    </span>
+  )
+}
+
+/** The description from the file, set apart as a quote; it folds away under its label */
+function TaskDescription({
+  text,
+  context,
+  onOsm,
+}: {
+  text: string
+  context: MarkdownContext
+  onOsm?: OnOsmRef
+}) {
+  const [open, setOpen] = useState(true)
+  return (
+    <div className="flex flex-col gap-1">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        className="flex cursor-pointer items-center gap-1 self-start text-xs font-medium text-zinc-500 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:text-white"
+      >
+        {m.tasks_description()}
+        <ChevronDownIcon
+          aria-hidden="true"
+          className={`size-3.5 transition ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {open && (
+        <blockquote data-testid="tasks-description" className={TASKS_QUOTE}>
+          <Markdown text={text} context={context} onOsm={onOsm} />
+        </blockquote>
+      )}
+    </div>
+  )
+}
 const DANGER =
   'cursor-pointer rounded-lg bg-red-600 px-2.5 py-1 text-sm font-medium text-white hover:bg-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-default disabled:opacity-50'
 const PRIMARY =
@@ -81,6 +154,7 @@ export function TaskContent({
   readOnly,
   hasRefs,
   select,
+  headed = true,
 }: {
   store: TasksStore
   index: number
@@ -92,6 +166,8 @@ export function TaskContent({
   hasRefs: boolean
   /** Selects a feature: an element reference in the text (`way/123`) calls it */
   select?: (selection: string | readonly string[] | null) => void
+  /** Draws the title, the status and the links; `false` where a heading around it shows them (the inspector) */
+  headed?: boolean
 }) {
   const task = useTasks(store, (state) => state.list?.file.features[index])
   const status = useTasks(store, (state) => state.statuses[index])
@@ -166,48 +242,16 @@ export function TaskContent({
       data-status={status}
       className="flex flex-col gap-3"
     >
-      <header className="flex items-start justify-between gap-2">
-        <h3 className="text-sm/5 font-semibold break-words">{p.title}</h3>
-        <StatusBadge status={status} />
-      </header>
-      <Markdown text={p.description} context={p} onOsm={onOsm} />
-      {p.links && p.links.length > 0 && (
-        <div className="flex flex-col gap-1">
-          <h4 className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-            {m.tasks_links()}
-          </h4>
-          <ul className="flex flex-col gap-0.5 text-sm">
-            {p.links.map((link) => (
-              <li key={link}>
-                <a
-                  href={link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="break-all text-blue-600 underline dark:text-blue-400"
-                >
-                  {link}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
+      {headed && (
+        <header className="flex items-start justify-between gap-2">
+          <h3 className="text-sm/5 font-semibold break-words">{p.title}</h3>
+          <span className="flex shrink-0 items-center gap-1">
+            <TaskLinks task={task} />
+            <StatusBadge status={status} />
+          </span>
+        </header>
       )}
-      {p.mapillary && p.mapillary.length > 0 && (
-        <ul className="flex flex-col gap-0.5 text-sm">
-          {p.mapillary.map((id) => (
-            <li key={id}>
-              <a
-                href={`https://www.mapillary.com/app/?pKey=${id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 underline dark:text-blue-400"
-              >
-                {m.tasks_mapillary_link({ id })}
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
+      {p.description && <TaskDescription text={p.description} context={p} onOsm={onOsm} />}
       {p.options && p.options.length > 0 && (
         <div className="flex flex-col gap-2">
           <h4 className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
@@ -245,7 +289,11 @@ export function TaskContent({
           {message}
         </p>
       )}
-      <div className="flex flex-wrap gap-1.5">
+      <footer
+        className={`flex flex-wrap items-center gap-1.5 ${TASKS_FOOTER}`}
+        aria-label={m.tasks_finish()}
+      >
+        <span className={`mr-1 text-xs font-medium ${TASKS_TEXT}`}>{m.tasks_finish()}</span>
         {ACTIONS.map((action) => (
           <button
             key={action.status}
@@ -255,12 +303,12 @@ export function TaskContent({
             aria-pressed={status === action.status}
             disabled={status === action.status}
             onClick={() => setStatus(action.status)}
-            className={BUTTON}
+            className={STATUS_BUTTON}
           >
             {action.label()}
           </button>
         ))}
-      </div>
+      </footer>
     </section>
   )
 }

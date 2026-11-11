@@ -1,9 +1,9 @@
 import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
+import { Fragment } from 'react'
 import type { InspectorSectionProps } from './extension-points.ts'
 import { RELATION_ICON_OPEN } from './relation-tone.ts'
 import { RelationIcon } from './RelationIcon.tsx'
 import { SidebarDisclosure, SidebarSection } from './Sidebar.tsx'
-import { TASKS_SURFACE, TASKS_TEXT } from './tasks-tone.ts'
 
 /**
  * The `inspector.section` items of the editor that apply to this entity. The inspector renders it twice: with
@@ -48,6 +48,7 @@ export function InspectorSections({
               readOnly={readOnly}
             />
           )
+          if (section.frame === 'none') return <Fragment key={section.id}>{content}</Fragment>
           return section.disclosure ? (
             <SidebarDisclosure
               key={section.id}
@@ -67,17 +68,7 @@ export function InspectorSections({
               {content}
             </SidebarDisclosure>
           ) : (
-            <SidebarSection
-              key={section.id}
-              title={section.title}
-              {...(section.tone === 'tasks'
-                ? {
-                    // a box of its own, so the task never runs into the fields under it
-                    className: `${TASKS_SURFACE} my-3 border-t-0 first:pt-2`,
-                    titleClassName: `${TASKS_TEXT} font-semibold`,
-                  }
-                : {})}
-            >
+            <SidebarSection key={section.id} title={section.title}>
               {content}
             </SidebarSection>
           )

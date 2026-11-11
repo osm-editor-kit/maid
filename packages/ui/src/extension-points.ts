@@ -51,11 +51,13 @@ export type InspectorSection = {
   disclosure?: 'open' | 'closed'
   /** A quiet word after the title that stays readable while folded: a count, an id */
   detail?: (entity: EntityInfo, editor: Editor) => string | number | undefined
+  /** `'relation'`: the section edits relations: the relation icon before its title, violet while open (relation-tone.ts) */
+  tone?: 'relation'
   /**
-   * `'relation'`: the section edits relations: the relation icon before its title, violet while open (relation-tone.ts).
-   * `'tasks'`: the section comes from a task list: an olive box with an olive title (tasks-tone.ts).
+   * `'none'`: no title or frame from the inspector; the component draws its own headings (the task list's tasks, each a
+   * SidebarDisclosure of its own). `title` still names the section.
    */
-  tone?: 'relation' | 'tasks'
+  frame?: 'none'
   component: ComponentType<InspectorSectionProps>
 }
 

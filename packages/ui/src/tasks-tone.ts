@@ -1,13 +1,21 @@
 /**
  * The olive of private task lists (module-tasks), Tailwind's `olive` palette (Tobias, 2026-11-11: "olive, mist, gray"):
- * the entry that loads a list in the account menu, its tab in the dock (`DockView.tone`), and the task block at the top
- * of the inspector (`InspectorSection.tone`). Amber stays the changes and TILDA, emerald "done", violet relations and
+ * the entry that loads a list in the account menu, its tab in the dock (`DockView.tone`), and the task at the top
+ * of the inspector (module-tasks draws its own headings there). Amber stays the changes and TILDA, emerald "done", violet relations and
  * blue the selection, so the olive always says "this comes from your task list".
  */
 
-/** The task block in the inspector: a tinted box that sets it apart from the fields under it */
-export const TASKS_SURFACE =
-  'rounded-lg border-l-4 border-olive-500 bg-olive-100 px-3 pt-2 pb-3 ring-1 ring-olive-600/25 dark:border-olive-400 dark:bg-olive-800/70 dark:ring-olive-400/30'
+/** The heading of a task in the inspector (a SidebarDisclosure): opaque, as it sticks */
+export const TASKS_HEADING =
+  'border-olive-600/25 bg-olive-100 text-olive-950 dark:border-olive-400/25 dark:bg-[color-mix(in_srgb,var(--color-olive-800)_75%,var(--color-zinc-900))] dark:text-white'
+
+/** The description of a task: text from the file, set apart as a quote */
+export const TASKS_QUOTE =
+  'rounded-r-lg border-l-4 border-olive-400 bg-olive-50 px-3 py-2 dark:border-olive-500 dark:bg-olive-900/50'
+
+/** The status buttons that close a task: a quiet bar at the end of its group */
+export const TASKS_FOOTER =
+  'rounded-lg bg-olive-100 p-2 ring-1 ring-olive-600/20 dark:bg-olive-800/60 dark:ring-olive-400/20'
 
 /** The heading of the task block and the icon beside the menu entry */
 export const TASKS_TEXT = 'text-olive-700 dark:text-olive-200'

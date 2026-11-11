@@ -54,8 +54,10 @@ export {
 } from './relation-tone.ts'
 export { RelationIcon } from './RelationIcon.tsx'
 export {
+  TASKS_FOOTER,
+  TASKS_HEADING,
   TASKS_MENU_ITEM,
-  TASKS_SURFACE,
+  TASKS_QUOTE,
   TASKS_TAB,
   TASKS_TAB_SELECTED,
   TASKS_TEXT,

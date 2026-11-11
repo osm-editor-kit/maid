@@ -56,7 +56,8 @@ export function tasks() {
           return m.tasks_section()
         },
         placement: 'top',
-        tone: 'tasks',
+        // each task draws its own folding heading, as "Fields" (TaskSection)
+        frame: 'none',
         when: (entity) => {
           const refs = store.getState().list?.refs
           return refs !== undefined && tasksOfEntity(refs, entity.id).length > 0

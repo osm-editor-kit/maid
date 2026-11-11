@@ -231,28 +231,10 @@ export function SidebarBody(props: { children: ReactNode }) {
 }
 
 /** A titled group inside the sidebar body, separated from the group above by a hairline. */
-/** A titled group of the sidebar. `className` and `titleClassName` are merged last (the task list's olive box). */
-export function SidebarSection(props: {
-  title: string
-  className?: string
-  titleClassName?: string
-  children: ReactNode
-}) {
+export function SidebarSection(props: { title: string; children: ReactNode }) {
   return (
-    <section
-      className={twMerge(
-        'border-t border-zinc-950/10 py-3 first:border-t-0 first:pt-0 dark:border-white/10',
-        props.className,
-      )}
-    >
-      <h3
-        className={twMerge(
-          'mb-2 text-xs font-medium text-zinc-500 dark:text-zinc-400',
-          props.titleClassName,
-        )}
-      >
-        {props.title}
-      </h3>
+    <section className="border-t border-zinc-950/10 py-3 first:border-t-0 first:pt-0 dark:border-white/10">
+      <h3 className="mb-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">{props.title}</h3>
       {props.children}
     </section>
   )
