@@ -1,0 +1,24 @@
+{
+  "name": "@osm-editor-kit/maid-module-lanes",
+  "version": "0.0.0",
+  "private": true,
+  "license": "ISC",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@osm-editor-kit/maid-core": "workspace:*",
+    "@osm-editor-kit/maid-i18n": "workspace:*",
+    "@osm-editor-kit/maid-model": "workspace:*",
+    "@osm-editor-kit/maid-style": "workspace:*",
+    "@osm-editor-kit/maid-ui": "workspace:*",
+    "@osm-editor-kit/osm-lane-diagram": "workspace:*",
+    "@osm-editor-kit/osm-lanes": "workspace:*",
+    "@osm-editor-kit/osm-way-chain": "1.0.1",
+    "react": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0"
+  }
+}

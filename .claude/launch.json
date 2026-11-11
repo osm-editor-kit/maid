@@ -30,6 +30,13 @@
       "url": "http://127.0.0.1:5178"
     },
     {
+      "name": "maid-lanes",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "apps/maid-lanes", "dev"],
+      "port": 5179,
+      "url": "http://127.0.0.1:5179"
+    },
+    {
       "name": "mock-osm-api",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["tools/mock-osm-api/server.ts"],

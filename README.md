@@ -15,8 +15,8 @@ to it.
 
 This repository is the central Maid. An editor is an app in `apps/` with a config that picks modules, presets and
 filters; everything a topic needs beyond that is a module in `packages/`. We build our own editors the same way:
-`apps/maid` (general), `apps/maid-bicycle` (road and bike infrastructure), `apps/maid-parking` (street parking) and
-`apps/maid-indoor` (indoor and building levels).
+`apps/maid` (general), `apps/maid-bicycle` (road and bike infrastructure), `apps/maid-parking` (street parking),
+`apps/maid-indoor` (indoor and building levels) and `apps/maid-lanes` (the lanes of roads).
 
 To make your own editor:
 
@@ -42,7 +42,7 @@ Maid is faster than both: the map is ready, drawn and fully loaded sooner in eve
 
 ```bash
 bun install
-bun run dev        # the four apps and the local mock API
+bun run dev        # the five apps and the local mock API
 bun run check      # types, lint, format, texts, unit tests
 bun run check-all  # the browser checks
 ```
