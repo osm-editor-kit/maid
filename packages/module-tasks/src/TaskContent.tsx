@@ -499,7 +499,7 @@ function OptionCard({
         data-testid={`tasks-option-${option.id}`}
         data-action={action}
         data-applied="true"
-        className="flex flex-col gap-1.5 rounded-lg border border-emerald-600/25 bg-emerald-50/60 p-2.5 dark:border-emerald-400/20 dark:bg-emerald-950/20"
+        className="flex flex-col gap-1.5 rounded-lg bg-emerald-100/80 p-2.5 dark:bg-emerald-950/50"
       >
         <div className="flex items-start justify-between gap-2">
           <button
@@ -554,7 +554,7 @@ function OptionCard({
     <li
       data-testid={`tasks-option-${option.id}`}
       data-action={action}
-      className={`flex flex-col gap-1.5 rounded-lg border border-zinc-950/10 p-2.5 dark:border-white/15 ${TASKS_CARD}`}
+      className={`flex flex-col gap-1.5 rounded-lg p-2.5 ${TASKS_CARD}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="text-sm font-medium break-words">{option.label}</div>
