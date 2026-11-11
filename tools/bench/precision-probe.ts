@@ -2,11 +2,13 @@
  * How far from its real position the map draws a node: the model's lon/lat against the position MapLibre keeps in
  * its GeoJSON tiles (quantised to the tile grid). Research for docs/research/projections-and-coordinates.md.
  *
- *   bun tools/bench/precision-probe.ts [scene] [port]
+ *   bun tools/bench/precision-probe.ts [scene] [port] [query]
+ *
+ * `query` goes into the page URL, e.g. `sourceMaxZoom=18` to cut the tiles at another zoom.
  *
  * Needs a Maid page on the port (default 5173: `bun run dev-maid` and `bun run dev-api`). For each MapLibre zoom it
  * reads every vertex and point the map holds in its sources (`querySourceFeatures`, which turns tile units back into
- * lon/lat) and compares it with the node's `loc` in the graph. Writes `reports/precision-probe.json`.
+ * lon/lat) and compares it with the node's `loc` in the graph. Writes `reports/precision-probe[-query].json`.
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { chromium } from '@playwright/test'
@@ -14,7 +16,8 @@ import { SOURCES } from '../../packages/renderer/src/layers'
 import { getScene } from '../fixtures/scenes'
 import { noBackground } from './no-background'
 
-const [sceneName = 'small', portArg = '5173'] = process.argv.slice(2)
+const [sceneName = 'small', portArg = '5173', query = ''] = process.argv.slice(2)
+const tileMaxZoom = Number(new URLSearchParams(query).get('sourceMaxZoom') ?? 17)
 const scene = getScene(sceneName)
 const ZOOMS = [15, 16, 17, 18, 19, 20, 21, 22, 23]
 
@@ -29,7 +32,7 @@ try {
   const page = await context.newPage()
   await page.goto(
     noBackground(
-      `http://localhost:${portArg}/?scene=${sceneName}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
+      `http://localhost:${portArg}/?scene=${sceneName}${query ? `&${query}` : ''}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}`,
     ),
   )
   await page.waitForFunction(() => window.__bench !== undefined, undefined, { timeout: 60000 })
@@ -41,7 +44,7 @@ try {
     await page.evaluate((zoom) => window.__maid.map.jumpTo({ zoom }), zoom)
     await page.evaluate(() => window.__bench.settled())
     const row = await page.evaluate(
-      ({ sources, zoom }) => {
+      ({ sources, zoom, tileMaxZoom }) => {
         const { map, engine } = window.__maid
         const graph = engine.data.history.staging.graph
         const lat0 = map.getCenter().lat
@@ -69,7 +72,7 @@ try {
         return {
           maplibreZoom: zoom,
           osmZoom: zoom + 1,
-          tileZoom: Math.min(zoom, 17),
+          tileZoom: Math.min(zoom, tileMaxZoom),
           samples: errors.length,
           medianCm: +(at(0.5) * 100).toFixed(2),
           p99Cm: +(at(0.99) * 100).toFixed(2),
@@ -78,17 +81,18 @@ try {
           cmPerPx: +(mPerPx * 100).toFixed(3),
         }
       },
-      { sources: [SOURCES.vertices, SOURCES.points], zoom },
+      { sources: [SOURCES.vertices, SOURCES.points], zoom, tileMaxZoom },
     )
     console.log(JSON.stringify(row))
     rows.push(row)
   }
   mkdirSync('reports', { recursive: true })
+  const out = `reports/precision-probe${query ? `-${query.replace(/[^a-z0-9]+/gi, '-')}` : ''}.json`
   writeFileSync(
-    'reports/precision-probe.json',
-    JSON.stringify({ scene: sceneName, latitude: scene.center[1], rows }, null, 2),
+    out,
+    JSON.stringify({ scene: sceneName, query, latitude: scene.center[1], rows }, null, 2),
   )
-  console.log('wrote reports/precision-probe.json')
+  console.log(`wrote ${out}`)
 } catch (error) {
   console.error(error)
   exitCode = 1
