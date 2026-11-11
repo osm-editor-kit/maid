@@ -39,6 +39,27 @@ describe('TaskContent', () => {
     }
   })
 
+  it('names the feature an option changes beside its label: a button that selects it', () => {
+    const store = openedStore(file)
+    const out = render(
+      <TaskContent
+        store={store}
+        index={0}
+        editor={editor}
+        entity={entity({ highway: 'service' })}
+        hasRefs
+        select={() => {}}
+      />,
+    )
+    expect(out).toContain('data-testid="tasks-feature-w1"')
+    // without select it is plain text
+    const plain = render(
+      <TaskContent store={store} index={0} editor={editor} entity={entity({})} hasRefs />,
+    )
+    expect(plain).not.toContain('data-testid="tasks-feature-w1"')
+    expect(plain).toContain('>w1</span>')
+  })
+
   it('says "Already applied" instead of the button when the tags are there', () => {
     const store = openedStore(file)
     const out = render(

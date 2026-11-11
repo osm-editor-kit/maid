@@ -81,6 +81,7 @@ export function createTasksView(store: TasksStore, shared: Shared) {
           selected={selected}
           readOnly={readOnly}
           select={select}
+          hover={(id) => shared.engine?.setHover(id)}
         />
       </div>
     )
@@ -305,12 +306,14 @@ function Current({
   selected,
   readOnly,
   select,
+  hover,
 }: {
   store: TasksStore
   editor: DockViewProps['editor']
   selected: readonly string[]
   readOnly: DockViewProps['readOnly']
   select: DockViewProps['select']
+  hover: (id: string | null) => void
 }) {
   const list = useTasks(store, (state) => state.list)
   const current = useTasks(store, (state) => state.current)
@@ -333,6 +336,7 @@ function Current({
         readOnly={readOnly}
         hasRefs={ids.length > 0}
         select={select}
+        hover={hover}
       />
     </div>
   )

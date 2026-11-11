@@ -66,13 +66,18 @@ least 4 positions and its last position equals its first.
 | `set`         | object             | Tag key to tag value. Each key and each value 1 to 255 characters. `tag`: adds or changes tags; `create`: the tags of the new feature. |
 | `remove`      | array of strings   | `tag` only. Tag keys to delete. Each 1 to 255 characters.                                        |
 | `geometry`    | object             | `create` only, optional. Where the new feature goes: a `Point`, a `LineString` or a `Polygon` with one ring. |
-| `osm`         | array of strings   | `delete` only, optional. Which of the task's `osm` features to delete: `node/<id>` or `way/<id>`. |
+| `osm`         | array of strings   | optional. `tag`: the one task feature the option is for (exactly one). `delete`: which of the task's `osm` features to delete: `node/<id>` or `way/<id>`. |
 
 #### `"action": "tag"` (the default): change the tags of a feature
 
 The mapper selects the task's feature on the map, and the option changes its tags. At least one of `set` and
 `remove` is non-empty. A key may not be in both `set` and `remove`. To delete a tag, use `remove`; an empty value is
-not allowed in `set`. No `geometry`, no `osm`.
+not allowed in `set`. No `geometry`.
+
+`osm` (optional, exactly one reference, one of the task's `osm`) names the feature the option is for: a task about a
+sidewalk and its road can offer one option for each. Maid shows that feature beside the option's label (hover
+highlights it, a click selects it) and Apply changes it, whichever of the task's features is selected. Without `osm`
+the option changes the selected feature.
 
 #### `"action": "create"`: add a new feature
 

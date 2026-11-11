@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { syntheticTasks } from './fixture.ts'
 import { formatPath, MAX_REPORTED_ERRORS, parseTaskFile, parseTaskFileText } from './parse.ts'
+import { tagTargetOf } from './schema.ts'
 import { errorsOf, listInfo, option, pointTask, taskFile } from './test-helpers.ts'
 
 /** Whether an error at `path` exists, and with the message fragment when one is given */
@@ -606,6 +607,38 @@ describe('create and delete options', () => {
     )
     expect(hasError(errors, 'features[0].properties.options[2].osm[0]', 'not relations')).toBe(true)
     expect(hasError(errors, 'features[1].properties.options[0]', 'needs osm references')).toBe(true)
+  })
+
+  test('a tag option may name the one task feature it is for', () => {
+    const file = ok(
+      taskFile([
+        lineTask({
+          osm: ['way/1', 'way/2'],
+          options: [option({ id: 'a', osm: ['way/2'] })],
+        }),
+      ]),
+    )
+    const [first] = file.features[0]?.properties.options ?? []
+    expect(first && tagTargetOf(first)).toBe('way/2')
+    const errors = errorsOf(
+      taskFile([
+        lineTask({
+          osm: ['way/1', 'way/2'],
+          options: [
+            option({ id: 'a', osm: ['way/9'] }),
+            option({ id: 'b', osm: ['way/1', 'way/2'] }),
+          ],
+        }),
+        pointTask('t-2', {
+          options: [{ id: 'c', label: 'C', action: 'create', set: { a: 'b' }, osm: ['way/1'] }],
+        }),
+      ]),
+    )
+    expect(hasError(errors, 'features[0].properties.options[0].osm[0]', 'not in the task')).toBe(
+      true,
+    )
+    expect(hasError(errors, 'features[0].properties.options[1].osm', 'exactly one')).toBe(true)
+    expect(hasError(errors, 'features[1].properties.options[0].osm', 'no osm')).toBe(true)
   })
 
   test('an unknown action and a geometry on a tag option are refused', () => {

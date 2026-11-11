@@ -106,7 +106,8 @@ export type CreateGeometry = z.infer<typeof createGeometrySchema>
 /**
  * One answer a mapper can pick. `action` says what it does (default `tag`):
  * - `tag`: `set` adds or changes tags of the task's feature, `remove` deletes keys. A key may not be in both, and at
- *   least one of the two must be non-empty.
+ *   least one of the two must be non-empty. `osm` (one reference, one of the task's) names the feature it is for;
+ *   without it, it changes the selected feature.
  * - `create`: adds a new feature with the tags in `set` (required), at `geometry` or else at the task's geometry.
  * - `delete`: deletes the features in `osm`, or else all the task's `osm` features. Nodes and ways only.
  */
@@ -126,7 +127,7 @@ export const taskOptionSchema = z
     remove: z.array(textField('a tag key in remove', MAX_TAG_TEXT)).optional(),
     /** `create` only: where the new feature goes */
     geometry: createGeometrySchema.optional(),
-    /** `delete` only: which of the task's features to delete */
+    /** `delete`: which of the task's features to delete; `tag`: the one feature it changes (exactly one) */
     osm: z
       .array(osmRefSchema)
       .min(1)
@@ -141,8 +142,8 @@ export const taskOptionSchema = z
       ctx.addIssue({ code: 'custom', message: why, path: [field], input: option })
     if (action !== 'create' && option.geometry !== undefined)
       refuse('geometry', 'only a "create" option has a geometry')
-    if (action !== 'delete' && option.osm !== undefined)
-      refuse('osm', 'only a "delete" option has osm references')
+    if (action === 'create' && option.osm !== undefined)
+      refuse('osm', 'a "create" option has no osm references')
     if (action === 'create') {
       if (Object.keys(set).length === 0)
         refuse('set', 'a "create" option needs the tags of the new feature in set')
@@ -163,6 +164,8 @@ export const taskOptionSchema = z
       })
       return
     }
+    if (option.osm !== undefined && option.osm.length !== 1)
+      refuse('osm', 'a "tag" option names exactly one feature in osm')
     if (Object.keys(set).length === 0 && remove.length === 0) {
       ctx.addIssue({
         code: 'custom',
@@ -284,8 +287,19 @@ export const taskSchema = z
           input: option,
         })
       }
-      if (action !== 'delete') return
       const refs = task.properties.osm ?? []
+      if (action === 'tag') {
+        option.osm?.forEach((ref, refIndex) => {
+          if (!refs.includes(ref))
+            ctx.addIssue({
+              code: 'custom',
+              message: `"${ref}" is not in the task's osm references`,
+              path: [...path, 'osm', refIndex],
+              input: ref,
+            })
+        })
+      }
+      if (action !== 'delete') return
       if ((option.osm ?? refs).length === 0) {
         ctx.addIssue({
           code: 'custom',
@@ -336,6 +350,11 @@ export function actionOf(option: Pick<TaskOption, 'action'>): OptionAction {
 export function createGeometryOf(task: Task, option: TaskOption): CreateGeometry | undefined {
   if (option.geometry) return option.geometry
   return isCreatable(task.geometry) ? task.geometry : undefined
+}
+
+/** The feature a `tag` option is for (its `osm`), or undefined: then it changes the selected feature */
+export function tagTargetOf(option: TaskOption): string | undefined {
+  return actionOf(option) === 'tag' ? option.osm?.[0] : undefined
 }
 
 /** The features a `delete` option deletes: its own `osm`, else the task's */

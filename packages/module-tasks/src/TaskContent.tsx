@@ -9,6 +9,7 @@ import {
   deleteTargetsOf,
   diffOption,
   isApplied,
+  tagTargetOf,
   type Task,
   type TaskOption,
 } from '@osm-editor-kit/maid-tasks'
@@ -156,6 +157,7 @@ export function TaskContent({
   readOnly,
   hasRefs,
   select,
+  hover,
   headed = true,
 }: {
   store: TasksStore
@@ -168,6 +170,8 @@ export function TaskContent({
   hasRefs: boolean
   /** Selects a feature: an element reference in the text (`way/123`) calls it */
   select?: (selection: string | readonly string[] | null) => void
+  /** Gives a feature the map's hover (a feature named beside an action), null clears it */
+  hover?: (id: string | null) => void
   /** Draws the title, the status and the links; `false` where a heading around it shows them (the inspector) */
   headed?: boolean
 }) {
@@ -226,10 +230,13 @@ export function TaskContent({
       else refuse(outcome.reason)
       return
     }
-    if (!entity) return
-    const locked = entity.readOnly || (readOnly?.(entity.id) ?? false)
-    const outcome = applyTaskOption(editor.history, entity.id, option, annotation(option), locked)
-    if (outcome.ok) done({ kind: 'tag', entityId: entity.id, option }, option)
+    // an option that names its feature changes that one, else the selected feature
+    const target = tagTargetOf(option)
+    const id = target ? entityIdOfRef(target) : entity?.id
+    if (id === undefined) return
+    const locked = (id === entity?.id && entity.readOnly) || (readOnly?.(id) ?? false)
+    const outcome = applyTaskOption(editor.history, id, option, annotation(option), locked)
+    if (outcome.ok) done({ kind: 'tag', entityId: id, option }, option)
     else refuse(outcome.reason)
   }
   /** Whether this session applied a create or delete option of this task and it is still done */
@@ -274,6 +281,8 @@ export function TaskContent({
                 editor={editor}
                 context={p}
                 onOsm={onOsm}
+                select={select}
+                hover={hover}
                 appliedHere={appliedHere(option)}
                 taskDone={status === 'done'}
                 onApply={() => apply(option)}
@@ -315,6 +324,40 @@ export function TaskContent({
   )
 }
 
+/**
+ * A feature an action is about, as `w123`: the pointer on it gives the feature the map's hover, a click selects it.
+ * Without `select` it is plain text.
+ */
+function FeatureChip({
+  id,
+  select,
+  hover,
+}: {
+  id: string
+  select?: (selection: string | readonly string[] | null) => void
+  hover?: (id: string | null) => void
+}) {
+  const chip = 'rounded-md px-1.5 py-0.5 font-mono text-xs text-zinc-600 dark:text-zinc-300'
+  if (!select) return <span className={`${chip} bg-zinc-950/5 dark:bg-white/10`}>{id}</span>
+  return (
+    <button
+      type="button"
+      data-testid={`tasks-feature-${id}`}
+      onClick={() => {
+        hover?.(null)
+        select(id)
+      }}
+      onPointerEnter={() => hover?.(id)}
+      onPointerLeave={() => hover?.(null)}
+      onFocus={() => hover?.(id)}
+      onBlur={() => hover?.(null)}
+      className={`${chip} cursor-pointer bg-zinc-950/5 hover:bg-blue-100 hover:text-blue-900 focus-visible:outline-2 focus-visible:outline-blue-500 dark:bg-white/10 dark:hover:bg-blue-950/60 dark:hover:text-blue-100`}
+    >
+      {id}
+    </button>
+  )
+}
+
 /** What a new feature becomes, from its geometry */
 function createdKind(task: Task, option: TaskOption): string {
   const geometry = createGeometryOf(task, option)
@@ -333,6 +376,8 @@ function OptionCard({
   onApply,
   context,
   onOsm,
+  select,
+  hover,
 }: {
   task: Task
   option: TaskOption
@@ -340,6 +385,8 @@ function OptionCard({
   editor: Editor
   context: MarkdownContext
   onOsm?: OnOsmRef
+  select?: (selection: string | readonly string[] | null) => void
+  hover?: (id: string | null) => void
   /** A create or delete option this session applied (its edit has no state to compare with) */
   appliedHere: boolean
   /** A create or delete option of a done task is not offered: it would add or delete a second time */
@@ -347,16 +394,31 @@ function OptionCard({
   onApply: () => void
 }) {
   const action = actionOf(option)
-  const before = action === 'tag' ? (entity?.tags ?? {}) : {}
+  const lookup = (id: string) => editor.history.staging.graph.hasEntity(id)
+  const target = tagTargetOf(option)
+  // the feature a tag option changes: the one it names, else the selected one
+  const tagged = target ? lookup(entityIdOfRef(target)) : entity
+  const before = action === 'tag' ? (tagged?.tags ?? {}) : {}
   const changes = action === 'delete' ? [] : diffOption(before, option)
-  const applied = action === 'tag' ? (entity ? isApplied(before, option) : false) : appliedHere
+  const applied = action === 'tag' ? (tagged ? isApplied(before, option) : false) : appliedHere
   const blocked = action !== 'tag' && !applied && taskDone
-  const canApply = action !== 'tag' || entity !== undefined
+  const canApply = action !== 'tag' || tagged !== undefined
+  // the features named beside the label: what a tag option changes, what a delete option deletes
+  const named =
+    action === 'tag'
+      ? target
+        ? [entityIdOfRef(target)]
+        : entity
+          ? [entity.id]
+          : []
+      : action === 'delete'
+        ? deleteTargetsOf(task, option).map(entityIdOfRef)
+        : []
   const targets =
     action === 'delete'
       ? deleteTargetsOf(task, option).map((ref) => ({
           ref,
-          entity: editor.history.staging.graph.hasEntity(entityIdOfRef(ref)),
+          entity: lookup(entityIdOfRef(ref)),
         }))
       : []
   return (
@@ -365,7 +427,16 @@ function OptionCard({
       data-action={action}
       className="flex flex-col gap-1.5 rounded-lg border border-zinc-950/10 p-2.5 dark:border-white/15"
     >
-      <div className="text-sm font-medium break-words">{option.label}</div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-sm font-medium break-words">{option.label}</div>
+        {named.length > 0 && (
+          <span className="flex shrink-0 flex-wrap justify-end gap-1">
+            {named.map((id) => (
+              <FeatureChip key={id} id={id} select={select} hover={hover} />
+            ))}
+          </span>
+        )}
+      </div>
       {option.description && <Markdown text={option.description} context={context} onOsm={onOsm} />}
       {action === 'create' && !applied && (
         <p className="text-xs text-zinc-500 dark:text-zinc-400">{createdKind(task, option)}</p>

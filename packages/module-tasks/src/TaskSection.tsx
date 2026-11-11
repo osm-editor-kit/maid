@@ -14,7 +14,13 @@ const MAX_SHOWN = 5
  * status buttons (Tobias, 2026-11-11).
  */
 export function createTaskSection(store: TasksStore) {
-  return function TaskSection({ entity, editor, readOnly, select }: InspectorSectionProps) {
+  return function TaskSection({
+    entity,
+    editor,
+    readOnly,
+    select,
+    onHover,
+  }: InspectorSectionProps) {
     const refs = useTasks(store, (state) => state.list?.refs)
     const features = useTasks(store, (state) => state.list?.file.features)
     const statuses = useTasks(store, (state) => state.statuses)
@@ -54,6 +60,7 @@ export function createTaskSection(store: TasksStore) {
                 readOnly={readOnly}
                 hasRefs
                 select={select}
+                hover={onHover}
                 headed={false}
               />
             </SidebarDisclosure>

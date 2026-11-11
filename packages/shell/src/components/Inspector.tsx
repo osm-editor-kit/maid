@@ -349,6 +349,7 @@ export function Inspector() {
                 select={select}
                 readOnly={(id) => engine.isReadOnly(id)}
                 onFieldFocus={(focus) => showFieldFocus(engine, focus)}
+                onHover={(id) => engine.setHover(id)}
               />
               {(fields.length > 0 || moreFields.length > 0) && (
                 <SidebarDisclosure title="Fields" defaultOpen>
@@ -409,6 +410,7 @@ export function Inspector() {
                 readOnly={(id) => engine.isReadOnly(id)}
                 onFieldFocus={(focus) => showFieldFocus(engine, focus)}
                 onRelated={(ids) => engine.setRelated(ids)}
+                onHover={(id) => engine.setHover(id)}
               />
             </div>
           </SidebarBody>

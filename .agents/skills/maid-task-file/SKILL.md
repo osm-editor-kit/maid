@@ -23,7 +23,7 @@ MultiPolygon; `[lon, lat]`) and `properties` with `task_id`, `title`, `descripti
 
 | `action` | Fields | What Maid does |
 | --- | --- | --- |
-| `tag` (default) | `set` and/or `remove` | changes the tags of the selected task feature, with a tag diff |
+| `tag` (default) | `set` and/or `remove`, optional `osm` (one of the task's) | changes the tags of the feature in `osm`, else of the selected task feature, with a tag diff. Give `osm` when a task has several features and each option is for one of them (sidewalk and road) |
 | `create` | `set` (the new tags), optional `geometry` | adds a node, a way or a closed way at the option's or the task's geometry |
 | `delete` | optional `osm` (a subset of the task's) | deletes the task's nodes and ways as iD's Delete does |
 

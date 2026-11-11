@@ -19,6 +19,7 @@ export function InspectorSections({
   entities,
   onFieldFocus,
   onRelated,
+  onHover,
   readOnly,
   placement,
 }: InspectorSectionProps & { placement?: 'top'; refresh?: unknown }) {
@@ -45,6 +46,7 @@ export function InspectorSections({
               entities={entities}
               onFieldFocus={onFieldFocus}
               onRelated={onRelated}
+              onHover={onHover}
               readOnly={readOnly}
             />
           )

@@ -33,6 +33,8 @@ export type InspectorSectionProps = {
    * The turn restrictions section shows its FROM, TO and via ways with it.
    */
   onRelated?: (ids: readonly string[] | null) => void
+  /** Give a feature the map's hover, as if the pointer were on it (a reference in a section); null clears it */
+  onHover?: (id: string | null) => void
 }
 
 /** A block in the inspector, below the tag list (or above the fields: `placement`). Shown when `when` is absent or returns true. */
