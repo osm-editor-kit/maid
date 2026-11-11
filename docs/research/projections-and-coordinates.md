@@ -2,7 +2,7 @@
 
 Tobias, 2026-11-11: MapLibre can now use any projection. Does that open anything for Maid in accuracy (for example mapping in the Arctic: too few decimal places?) or in speed and memory (Rapid's other coordinate system, which we decided against)? URLs keep the usual `map=zoom/lat/lon`; a change would be internal only. Switch only on clear advantages; otherwise this is research.
 
-**Answer: no switch.** Neither question is helped by another projection or by Rapid's world coordinates. Lon/lat in the model stays (decided 2026-10-11, [data store](../architecture/05-data-store.md) "Decided"). One side finding about drawing precision at the highest zooms is real but small, and has its own fix that is not a projection (section 4).
+**Answer: no switch.** Neither question is helped by another projection or by Rapid's world coordinates. Lon/lat in the model stays (decided 2026-10-11, [data store](../architecture/05-data-store.md) "Decided"). One side finding about drawing precision at the highest zooms is real but small. Its fix is not a projection but a higher tile zoom, which was measured and costs more load time than it is worth for now (section 4).
 
 ## 1. What MapLibre added
 
@@ -55,7 +55,33 @@ Why: the editable sources are cut into tiles up to MapLibre zoom 17 (`SOURCE_OPT
 
 - In pixels this is the same at every latitude: at the poles the grid is finer in metres, and so are the pixels. Formula: max ≈ 0.044 × 2^(zoom − 17) px. A projection cannot change it.
 - Vertices and lines are rounded the same way, so they stay on each other. What can be off is the drawing against the pointer and the imagery: up to 1.4 px at OSM 23 and 2.7 px at OSM 24. At OSM 22 and below it stays under one pixel.
-- The fix, if it is ever visible: raise the source `maxzoom` to 18 or 19 (halves or quarters the offset) at the cost of more tiles per update. Measure with `bun run bench` and `bench-edit` first. Not done here; offered as a follow-up.
+- The fix would be a higher source `maxzoom` (URL parameter `sourceMaxZoom`). Measured on 2026-11-11, see 4.1. **Decision: stays at 17** until someone sees the offset at OSM 23 or 24.
+
+### 4.1 Tiles cut at 18 or 19
+
+Precision, `precision-probe.ts small 5173 sourceMaxZoom=N` (container, headless Chrome):
+
+| Cut at | Max offset | At OSM 22 | At OSM 23 | At OSM 24 |
+| --- | --- | --- | --- | --- |
+| 17 (today) | 1.6 cm | 0.68 px | 1.36 px | 2.71 px |
+| 18 | 0.8 cm | 0.35 px | 0.69 px | 1.38 px |
+| 19 | 0.3 cm | 0.12 px | 0.25 px | 0.49 px |
+
+Speed, `bun run bench --editor maid --scene small,dense --repeat 5 --maid-query sourceMaxZoom=N` on Tobias's Mac (runs `2026-11-11-07-10-smz17`, `-07-21-smz18`, `-07-34-smz19`; in the container every run timed out, including 17, so those numbers are not usable). Medians in ms:
+
+| Metric | small 17 | small 18 | small 19 | dense 17 | dense 18 | dense 19 |
+| --- | --- | --- | --- | --- | --- | --- |
+| Load drawn | 775 | 776 | 747 | 1143 | 1233 | 1367 |
+| Settled | 872 | 874 | 844 | 1236 | 1324 | 1462 |
+| Pan p95 | 16.8 | 16.8 | 16.7 | 16.7 | 16.7 | 16.8 |
+| Zoom out settle | 411 | 451 | 355 | 500 | 772 | 820 |
+| Drag change-to-screen median / p95 | 13.8 / 15.9 | 13.8 / 14.8 | 14.0 / 14.8 | 13.1 / 20.6 | 13.0 / 17.0 | 13.9 / 25.6 |
+| Runs that finished | 5 | 5 | 5 | 3 of 5 | 5 of 5 | 4 of 5 |
+
+- Panning, zooming and dragging stay at 60 fps with all three.
+- On `dense`, each step costs about 100 ms more load (8 % at 18, 18 % at 19) and the settle after zooming out grows from 0.5 to 0.8 s.
+- The gain is under one pixel, and only at OSM 23 and 24. Not worth 8 to 18 % of the load on dense data now.
+- Failed runs, not followed up: at 17 (today's value), dense runs 3 and 4 reported "the selection of w155605276 was not drawn within 10000 ms", with load drawn at about 490 ms instead of 1140 ms, so less was drawn. That looks like a flaky load in the benchmark, not an effect of the cut zoom. At 19, dense run 3 hung in the zoom phase (the page stopped answering), once.
 
 ## 5. What custom projections could do for Maid later
 
