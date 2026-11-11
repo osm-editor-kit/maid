@@ -17,7 +17,7 @@ export type WayTableBarProps = {
 
 const BUTTON =
   'rounded-md border px-2 py-1 text-xs font-medium focus-visible:outline-2 focus-visible:outline-blue-600 disabled:opacity-40'
-const PLAIN = `${BUTTON} border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100`
+const PLAIN = `${BUTTON} border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700`
 const PRESSED = `${BUTTON} border-blue-600 bg-blue-600 text-white dark:border-blue-500 dark:bg-blue-600`
 
 const DIRECTIONS: readonly CarryDirection[] = ['backward', 'both', 'forward']

@@ -218,7 +218,7 @@ export function WayTableGrid(props: WayTableGridProps) {
                     <button
                       type="button"
                       disabled={setAllRefused > 0}
-                      className="rounded-md border border-zinc-300 bg-white px-1.5 py-0.5 text-xs text-zinc-900 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-blue-600 disabled:opacity-40 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="rounded-md border border-zinc-300 bg-white px-1.5 py-0.5 text-xs text-zinc-900 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-blue-600 disabled:opacity-40 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
                       onClick={() =>
                         actions.startPending({ kind: 'set-all', referenceId, key: row.key })
                       }
@@ -234,7 +234,7 @@ export function WayTableGrid(props: WayTableGridProps) {
                   {chain && referenceValue !== undefined ? (
                     <button
                       type="button"
-                      className="rounded-md border border-zinc-300 bg-white px-1.5 py-0.5 text-xs text-zinc-900 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-blue-600 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="rounded-md border border-zinc-300 bg-white px-1.5 py-0.5 text-xs text-zinc-900 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-blue-600 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
                       onClick={() =>
                         actions.startPending({ kind: 'carry', referenceId, key: row.key })
                       }

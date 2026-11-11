@@ -211,7 +211,7 @@ export function WayTableView(props: WayTableViewProps) {
       className={`rounded-md border px-2 py-0.5 text-xs font-medium focus-visible:outline-2 focus-visible:outline-blue-600 touch:py-1 ${
         showChanges
           ? 'border-blue-600 bg-blue-600 text-white dark:border-blue-500'
-          : 'border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100'
+          : 'border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700'
       }`}
     >
       {m.way_table_show_changes()}
