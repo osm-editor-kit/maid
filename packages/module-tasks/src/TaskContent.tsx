@@ -18,7 +18,7 @@ import {
   type Task,
   type TaskOption,
 } from '@osm-editor-kit/maid-tasks'
-import { TagDiff, TASKS_FOOTER, TASKS_QUOTE, TASKS_TEXT } from '@osm-editor-kit/maid-ui'
+import { TagDiff, TASKS_CARD, TASKS_FOOTER, TASKS_QUOTE, TASKS_TEXT } from '@osm-editor-kit/maid-ui'
 import { useState } from 'react'
 import {
   applyTaskOption,
@@ -554,7 +554,7 @@ function OptionCard({
     <li
       data-testid={`tasks-option-${option.id}`}
       data-action={action}
-      className="flex flex-col gap-1.5 rounded-lg border border-zinc-950/10 p-2.5 dark:border-white/15"
+      className={`flex flex-col gap-1.5 rounded-lg border border-zinc-950/10 p-2.5 dark:border-white/15 ${TASKS_CARD}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="text-sm font-medium break-words">{option.label}</div>

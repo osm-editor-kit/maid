@@ -262,6 +262,9 @@ export function SidebarDisclosure(props: {
   icon?: (open: boolean) => ReactNode
   /** Extra classes for the heading, merged last (for example a tinted background) */
   headingClassName?: string
+  /** Extra classes for the heading and for the group while it is open (an open task's olive), merged last */
+  openHeadingClassName?: string
+  openPanelClassName?: string
   /** Small icon buttons in the heading, before the chevron, shown while the section is open (e.g. "Copy all") */
   actions?: ReactNode
   children: ReactNode
@@ -309,6 +312,7 @@ export function SidebarDisclosure(props: {
         className={twMerge(
           'sticky top-0 z-20 flex h-9 shrink-0 items-stretch gap-2 border-t border-zinc-950/10 bg-white text-sm font-semibold text-zinc-950 dark:border-white/10 dark:bg-zinc-900 dark:text-white',
           props.headingClassName,
+          open && props.openHeadingClassName,
         )}
       >
         <button
@@ -356,7 +360,7 @@ export function SidebarDisclosure(props: {
         role="region"
         aria-labelledby={headingId}
         hidden={!open}
-        className="pt-2.5 pb-2.5"
+        className={twMerge('pt-2.5 pb-2.5', open && props.openPanelClassName)}
       >
         {props.children}
       </div>

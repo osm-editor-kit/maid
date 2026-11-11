@@ -1,5 +1,11 @@
 import { ClipboardDocumentListIcon } from '@heroicons/react/20/solid'
-import { type InspectorSectionProps, SidebarDisclosure, TASKS_TEXT } from '@osm-editor-kit/maid-ui'
+import {
+  type InspectorSectionProps,
+  SidebarDisclosure,
+  TASKS_OPEN_HEADING,
+  TASKS_OPEN_PANEL,
+  TASKS_TEXT,
+} from '@osm-editor-kit/maid-ui'
 import { tasksOfEntity } from './list.ts'
 import { m } from './messages.ts'
 import { type TasksStore, useTasks } from './store.ts'
@@ -42,6 +48,9 @@ export function createTaskSection(store: TasksStore) {
               key={index}
               title={task.properties.title}
               defaultOpen
+              // open, the whole task sits on the olive; folded it is a heading as the others
+              openHeadingClassName={TASKS_OPEN_HEADING}
+              openPanelClassName={TASKS_OPEN_PANEL}
               icon={() => (
                 <ClipboardDocumentListIcon
                   aria-label={m.tasks_section()}

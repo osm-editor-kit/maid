@@ -1,5 +1,5 @@
 import type { TaskStatus } from '@osm-editor-kit/maid-osm-prefs'
-import type { DockViewProps } from '@osm-editor-kit/maid-ui'
+import { type DockViewProps, TASKS_SURFACE } from '@osm-editor-kit/maid-ui'
 import { useState } from 'react'
 import {
   FILTERS,
@@ -58,7 +58,10 @@ export function createTasksView(store: TasksStore, shared: Shared) {
     const loading = useTasks(store, (state) => state.loading)
     if (!list) {
       return (
-        <div data-testid="tasks-view" className="flex flex-col gap-3 p-4 text-sm">
+        <div
+          data-testid="tasks-view"
+          className={`flex flex-col gap-3 p-4 text-sm ${TASKS_SURFACE}`}
+        >
           {loading !== undefined && <p>{m.tasks_loading({ file: loading })}</p>}
           {error && <ErrorBanner store={store} />}
           {loading === undefined && !error && (
@@ -70,7 +73,7 @@ export function createTasksView(store: TasksStore, shared: Shared) {
     return (
       <div
         data-testid="tasks-view"
-        className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-4 text-sm"
+        className={`flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-4 text-sm ${TASKS_SURFACE}`}
       >
         {error && <ErrorBanner store={store} />}
         <Head store={store} shared={shared} select={select} />

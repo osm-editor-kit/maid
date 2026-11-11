@@ -54,9 +54,14 @@ export {
 } from './relation-tone.ts'
 export { RelationIcon } from './RelationIcon.tsx'
 export {
+  TASKS_CARD,
+  TASKS_EDGE,
   TASKS_FOOTER,
   TASKS_MENU_ITEM,
+  TASKS_OPEN_HEADING,
+  TASKS_OPEN_PANEL,
   TASKS_QUOTE,
+  TASKS_SURFACE,
   TASKS_TAB,
   TASKS_TAB_SELECTED,
   TASKS_TEXT,
