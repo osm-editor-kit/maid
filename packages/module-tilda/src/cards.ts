@@ -350,3 +350,31 @@ export function mergeSides(
     .filter((card) => card !== right)
     .map((card) => (card === left ? { ...left, twin: right, twins } : card))
 }
+
+/** What a oneway value means where it is offered; the words are chosen in the section */
+export type OnewayMeaning = 'with_line' | 'both' | 'left_with_line'
+
+/**
+ * The oneway values worth offering, with what they mean (the wiki defaults, see tilda-geo's campaign
+ * "Fahrtrichtung der Radinfrastruktur prüfen", Key:cycleway:right:oneway#Implicit_values):
+ * - a way of its own: `yes` or `no`, never `-1`: a way that is ridden against its line is reversed instead
+ * - a road side: the direction follows from the side, so `no` (both ways); on a left side whose default is `-1`
+ *   also `yes`, for a lane on the left that is ridden with the line. No other case needs a direction.
+ * Undefined for every other attribute: its own options stay.
+ */
+export function onewayChoices(
+  attribute: RequiredAttribute,
+  side: ResultSide,
+): { value: string; meaning: OnewayMeaning }[] | undefined {
+  if (attribute.id !== 'oneway') return undefined
+  if (side === 'self')
+    return [
+      { value: 'yes', meaning: 'with_line' },
+      { value: 'no', meaning: 'both' },
+    ]
+  const fallback = attribute.default?.split('=')[1] ?? attribute.tilda
+  const choices: { value: string; meaning: OnewayMeaning }[] = [{ value: 'no', meaning: 'both' }]
+  if (side === 'left' && fallback === '-1')
+    choices.push({ value: 'yes', meaning: 'left_with_line' })
+  return choices
+}

@@ -43,8 +43,10 @@ import {
   gapKey,
   gapUpdate,
   mergeSides,
+  onewayChoices,
   onewayToMove,
   openChoices,
+  type OnewayMeaning,
   openCount,
   reminderCheck,
   toTagChange,
@@ -729,6 +731,7 @@ function Checklist({
           key={`${attribute.id}-${attribute.key}`}
           attribute={attribute}
           twin={card.twins?.get(attribute)}
+          side={card.side}
           tags={tags}
           checkOf={checkOf}
           quickValue={quickValues[attribute.key]}
@@ -754,6 +757,7 @@ function Checklist({
 function AttributeRow({
   attribute,
   twin,
+  side,
   tags,
   checkOf,
   quickValue,
@@ -763,6 +767,7 @@ function AttributeRow({
 }: {
   attribute: RequiredAttribute
   twin: RequiredAttribute | undefined
+  side: ResultSide
   tags: Tags
   checkOf: CheckOf
   quickValue: string | undefined
@@ -786,13 +791,15 @@ function AttributeRow({
   )
   const needsInputs = attribute.state !== 'ok' && attribute.state !== 'inherited'
   const quick = attribute.state === 'missing' ? quickValue : undefined
+  // oneway: only the values that make sense here, each with what it means
+  const oneway = moved || quick || !needsInputs ? undefined : onewayChoices(attribute, side)
   const buttons: string[] = moved
     ? [moved]
     : quick
       ? [quick]
-      : needsInputs && attribute.state !== 'assumed'
-        ? attribute.options.slice(0, MAX_BUTTONS)
-        : attribute.state === 'assumed'
+      : oneway
+        ? []
+        : needsInputs
           ? attribute.options.slice(0, MAX_BUTTONS)
           : []
   const freeInput =
@@ -844,7 +851,7 @@ function AttributeRow({
             {note}
           </span>
         )}
-        {(buttons.length > 0 || freeInput || attribute.state === 'assumed') && (
+        {(buttons.length > 0 || oneway || freeInput || attribute.state === 'assumed') && (
           <span className="flex flex-wrap items-center gap-1">
             {attribute.state === 'assumed' && (
               <button
@@ -864,6 +871,24 @@ function AttributeRow({
                 ✓ {m.tilda_check()}
               </button>
             )}
+            {oneway?.map((choice) => (
+              <OnewayButton
+                key={choice.value}
+                value={choice.value}
+                meaning={choice.meaning}
+                // the left side alone: the right side keeps its default
+                onClick={() =>
+                  onChange(
+                    attributeUpdate(
+                      tags,
+                      attribute,
+                      choice.value,
+                      choice.meaning === 'left_with_line' ? undefined : twin,
+                    ),
+                  )
+                }
+              />
+            ))}
             {buttons.map((value) => (
               <ValueButton
                 key={value}
@@ -895,6 +920,33 @@ function AttributeRow({
         )}
       </div>
     </div>
+  )
+}
+
+const ONEWAY_TEXTS: Record<OnewayMeaning, { label: () => string; tooltip: () => string }> = {
+  with_line: { label: m.tilda_oneway_with_line, tooltip: m.tilda_oneway_with_line_tooltip },
+  both: { label: m.tilda_oneway_both, tooltip: m.tilda_oneway_both_tooltip },
+  left_with_line: {
+    label: m.tilda_oneway_left_with_line,
+    tooltip: m.tilda_oneway_left_with_line_tooltip,
+  },
+}
+
+/** A oneway value with what it means here: the value, and the meaning in words */
+function OnewayButton({
+  value,
+  meaning,
+  onClick,
+}: {
+  value: string
+  meaning: OnewayMeaning
+  onClick: () => void
+}) {
+  const texts = ONEWAY_TEXTS[meaning]
+  return (
+    <button type="button" className={BUTTON} title={texts.tooltip()} onClick={onClick}>
+      <code>{value}</code> · {texts.label()}
+    </button>
   )
 }
 

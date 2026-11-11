@@ -8,6 +8,7 @@ import {
   gapAnswerCategory,
   gapUpdate,
   mergeSides,
+  onewayChoices,
   openChoices,
   openCount,
   toTagChange,
@@ -149,4 +150,46 @@ test('attributeUpdate moves oneway to oneway:bicycle when the value is the same'
 
 test('toTagChange splits sets and removals', () => {
   expect(toTagChange({ a: '1', b: undefined })).toEqual({ set: { a: '1' }, remove: ['b'] })
+})
+
+describe('onewayChoices', () => {
+  const attributes = (tags: Record<string, string>, side: string) =>
+    buildCards(tags, options).find((card) => card.side === side)?.attributes ?? []
+  const oneway = (tags: Record<string, string>, side: string) =>
+    attributes(tags, side).find((attribute) => attribute.id === 'oneway')
+
+  test('a way of its own: yes and no, never -1', () => {
+    const attribute = oneway({ highway: 'cycleway', is_sidepath: 'no' }, 'self')
+    expect(attribute).toBeDefined()
+    if (!attribute) return
+    expect(onewayChoices(attribute, 'self')?.map((choice) => choice.value)).toEqual(['yes', 'no'])
+  })
+
+  test('the left side of a two-way road: both ways, or a left lane ridden with the line', () => {
+    const tags = {
+      highway: 'secondary',
+      'cycleway:both': 'lane',
+      'cycleway:both:lane': 'exclusive',
+    }
+    const left = oneway(tags, 'left')
+    const right = oneway(tags, 'right')
+    if (!left || !right) throw new Error('no oneway row')
+    expect(onewayChoices(left, 'left')).toEqual([
+      { value: 'no', meaning: 'both' },
+      { value: 'yes', meaning: 'left_with_line' },
+    ])
+    expect(onewayChoices(right, 'right')).toEqual([{ value: 'no', meaning: 'both' }])
+  })
+
+  test('the left side of a one-way road runs with the line: only both ways', () => {
+    const tags = {
+      highway: 'secondary',
+      oneway: 'yes',
+      'cycleway:both': 'lane',
+      'cycleway:both:lane': 'exclusive',
+    }
+    const left = oneway(tags, 'left')
+    if (!left) throw new Error('no oneway row')
+    expect(onewayChoices(left, 'left')).toEqual([{ value: 'no', meaning: 'both' }])
+  })
 })
