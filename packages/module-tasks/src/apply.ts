@@ -19,23 +19,30 @@ import {
 export type ApplyOutcome = { ok: true } | { ok: false; reason: 'read-only' | 'missing' | 'applied' }
 
 /**
- * Sets and removes the tags of the option on the feature, as one undo step (`perform`, then `commit` with the
- * annotation and the feature selected). Nothing is changed when the feature is read-only (a filter), is not in the
- * data, or already has the option's tags.
+ * Sets and removes the tags of the option on the features (one, or the several a tag option names), as one undo step
+ * (`perform` for each, then `commit` with the annotation). Afterwards `selectedIDs` is selected, else the features.
+ * Nothing is changed when one of them is read-only (a filter) or not in the data, or when all of them already have
+ * the option's tags; one that has them is left alone.
  */
 export function applyTaskOption(
   history: Editor['history'],
-  id: string,
+  ids: string | readonly string[],
   option: Pick<TaskOption, 'set' | 'remove'>,
   annotation: string,
-  readOnly: boolean,
+  readOnly: boolean | ((id: string) => boolean),
+  selectedIDs?: readonly string[],
 ): ApplyOutcome {
-  if (readOnly) return { ok: false, reason: 'read-only' }
-  const entity = history.staging.graph.hasEntity(id)
-  if (!entity) return { ok: false, reason: 'missing' }
-  if (isApplied(entity.tags, option)) return { ok: false, reason: 'applied' }
-  history.perform(actionChangeTags(id, applyOption(entity.tags, option)))
-  history.commit({ annotation, selectedIDs: [id] })
+  const all = typeof ids === 'string' ? [ids] : ids
+  const locked = (id: string) => (typeof readOnly === 'boolean' ? readOnly : readOnly(id))
+  if (all.some(locked)) return { ok: false, reason: 'read-only' }
+  const entities = all.map((id) => history.staging.graph.hasEntity(id))
+  if (entities.some((entity) => !entity)) return { ok: false, reason: 'missing' }
+  const open = entities.filter((entity) => entity && !isApplied(entity.tags, option))
+  if (open.length === 0) return { ok: false, reason: 'applied' }
+  for (const entity of open) {
+    if (entity) history.perform(actionChangeTags(entity.id, applyOption(entity.tags, option)))
+  }
+  history.commit({ annotation, selectedIDs: [...(selectedIDs ?? all)] })
   return { ok: true }
 }
 

@@ -9,7 +9,7 @@ import {
   deleteTargetsOf,
   diffOption,
   isApplied,
-  tagTargetOf,
+  tagTargetsOf,
   type Task,
   type TaskOption,
 } from '@osm-editor-kit/maid-tasks'
@@ -230,13 +230,20 @@ export function TaskContent({
       else refuse(outcome.reason)
       return
     }
-    // an option that names its feature changes that one, else the selected feature
-    const target = tagTargetOf(option)
-    const id = target ? entityIdOfRef(target) : entity?.id
-    if (id === undefined) return
-    const locked = (id === entity?.id && entity.readOnly) || (readOnly?.(id) ?? false)
-    const outcome = applyTaskOption(editor.history, id, option, annotation(option), locked)
-    if (outcome.ok) done({ kind: 'tag', entityId: id, option }, option)
+    // an option that names its features changes those, else the selected feature; the selection stays
+    const ids = tagIdsOf(option, entity)
+    if (ids.length === 0) return
+    const locked = (id: string) =>
+      (id === entity?.id && entity.readOnly) || (readOnly?.(id) ?? false)
+    const outcome = applyTaskOption(
+      editor.history,
+      ids,
+      option,
+      annotation(option),
+      locked,
+      entity ? [entity.id] : undefined,
+    )
+    if (outcome.ok) done({ kind: 'tag', entityIds: ids, option }, option)
     else refuse(outcome.reason)
   }
   /** Whether this session applied a create or delete option of this task and it is still done */
@@ -324,21 +331,49 @@ export function TaskContent({
   )
 }
 
+/** The features a tag option changes: the ones it names, else the selected one */
+function tagIdsOf(option: TaskOption, entity: EntityInfo | undefined): string[] {
+  const named = tagTargetsOf(option).map(entityIdOfRef)
+  if (named.length > 0) return named
+  return entity ? [entity.id] : []
+}
+
+/** "This way" and its kin, for the selected feature beside an action */
+function thisFeature(id: string): string {
+  if (id.startsWith('n')) return m.tasks_this_node()
+  if (id.startsWith('r')) return m.tasks_this_relation()
+  return m.tasks_this_way()
+}
+
 /**
- * A feature an action is about, as `w123`: the pointer on it gives the feature the map's hover, a click selects it.
- * Without `select` it is plain text.
+ * A feature an action is about. The selected one says "this way"; any other is its id (`w123`): the pointer on it
+ * gives the feature the map's hover, a click selects it. Without `select` it is plain text.
  */
 function FeatureChip({
   id,
+  selected,
   select,
   hover,
 }: {
   id: string
+  selected: boolean
   select?: (selection: string | readonly string[] | null) => void
   hover?: (id: string | null) => void
 }) {
-  const chip = 'rounded-md px-1.5 py-0.5 font-mono text-xs text-zinc-600 dark:text-zinc-300'
-  if (!select) return <span className={`${chip} bg-zinc-950/5 dark:bg-white/10`}>{id}</span>
+  const chip = 'rounded-md px-1.5 py-0.5 text-xs'
+  if (selected)
+    return (
+      <span
+        data-testid={`tasks-feature-${id}`}
+        data-selected="true"
+        title={id}
+        className={`${chip} bg-blue-100 font-medium text-blue-900 dark:bg-blue-950/60 dark:text-blue-100`}
+      >
+        {thisFeature(id)}
+      </span>
+    )
+  const plain = `${chip} font-mono text-zinc-600 dark:text-zinc-300`
+  if (!select) return <span className={`${plain} bg-zinc-950/5 dark:bg-white/10`}>{id}</span>
   return (
     <button
       type="button"
@@ -351,7 +386,7 @@ function FeatureChip({
       onPointerLeave={() => hover?.(null)}
       onFocus={() => hover?.(id)}
       onBlur={() => hover?.(null)}
-      className={`${chip} cursor-pointer bg-zinc-950/5 hover:bg-blue-100 hover:text-blue-900 focus-visible:outline-2 focus-visible:outline-blue-500 dark:bg-white/10 dark:hover:bg-blue-950/60 dark:hover:text-blue-100`}
+      className={`${plain} cursor-pointer bg-zinc-950/5 hover:bg-blue-100 hover:text-blue-900 focus-visible:outline-2 focus-visible:outline-blue-500 dark:bg-white/10 dark:hover:bg-blue-950/60 dark:hover:text-blue-100`}
     >
       {id}
     </button>
@@ -394,23 +429,29 @@ function OptionCard({
   onApply: () => void
 }) {
   const action = actionOf(option)
-  const lookup = (id: string) => editor.history.staging.graph.hasEntity(id)
-  const target = tagTargetOf(option)
-  // the feature a tag option changes: the one it names, else the selected one
-  const tagged = target ? lookup(entityIdOfRef(target)) : entity
-  const before = action === 'tag' ? (tagged?.tags ?? {}) : {}
+  const lookup = (id: string) =>
+    id === entity?.id ? entity : editor.history.staging.graph.hasEntity(id)
+  // the features a tag option changes: the ones it names, else the selected one
+  const tagIds = action === 'tag' ? tagIdsOf(option, entity) : []
+  const tagged = tagIds.map(lookup)
+  const loaded = tagged.flatMap((each) => (each ? [each] : []))
+  // the diff of the selected one when it is among them, else of the first that still needs the change
+  const shown =
+    loaded.find((each) => each.id === entity?.id) ??
+    loaded.find((each) => !isApplied(each.tags, option)) ??
+    loaded[0]
+  const before = action === 'tag' ? (shown?.tags ?? {}) : {}
   const changes = action === 'delete' ? [] : diffOption(before, option)
-  const applied = action === 'tag' ? (tagged ? isApplied(before, option) : false) : appliedHere
+  const applied =
+    action === 'tag'
+      ? loaded.length > 0 && loaded.every((each) => isApplied(each.tags, option))
+      : appliedHere
   const blocked = action !== 'tag' && !applied && taskDone
-  const canApply = action !== 'tag' || tagged !== undefined
+  const canApply = action !== 'tag' || (tagIds.length > 0 && loaded.length === tagIds.length)
   // the features named beside the label: what a tag option changes, what a delete option deletes
   const named =
     action === 'tag'
-      ? target
-        ? [entityIdOfRef(target)]
-        : entity
-          ? [entity.id]
-          : []
+      ? tagIds
       : action === 'delete'
         ? deleteTargetsOf(task, option).map(entityIdOfRef)
         : []
@@ -430,9 +471,15 @@ function OptionCard({
       <div className="flex items-start justify-between gap-2">
         <div className="text-sm font-medium break-words">{option.label}</div>
         {named.length > 0 && (
-          <span className="flex shrink-0 flex-wrap justify-end gap-1">
+          <span className="flex max-w-1/2 shrink-0 flex-wrap justify-end gap-1">
             {named.map((id) => (
-              <FeatureChip key={id} id={id} select={select} hover={hover} />
+              <FeatureChip
+                key={id}
+                id={id}
+                selected={id === entity?.id}
+                select={select}
+                hover={hover}
+              />
             ))}
           </span>
         )}

@@ -34,6 +34,33 @@ describe('applyTaskOption', () => {
     })
   })
 
+  it('changes several features in one undo step and leaves one that has the tags', () => {
+    const edits = history()
+    const context = edits.staging.graph.hasEntity('w1')?.context
+    if (!context) throw new Error('no context')
+    edits.merge([
+      new OsmWay(context, { id: 'w2', nodes: [], tags: { highway: 'service', note: 'x' } }),
+      new OsmWay(context, {
+        id: 'w3',
+        nodes: [],
+        tags: { highway: 'service', surface: 'asphalt' },
+      }),
+    ])
+    expect(applyTaskOption(edits, ['w1', 'w2', 'w3'], option, 'x', false, ['w9'])).toEqual({
+      ok: true,
+    })
+    expect(tagsOf(edits, 'w1')).toEqual({ highway: 'residential', surface: 'asphalt' })
+    expect(tagsOf(edits, 'w2')).toEqual({ highway: 'service', surface: 'asphalt' })
+    expect(edits.index).toBe(1)
+    edits.undo()
+    expect(tagsOf(edits, 'w2')).toEqual({ highway: 'service', note: 'x' })
+    // one read-only feature stops all of them
+    expect(applyTaskOption(edits, ['w1', 'w2'], option, 'x', (id) => id === 'w2')).toEqual({
+      ok: false,
+      reason: 'read-only',
+    })
+  })
+
   it('refuses a read-only feature and changes nothing', () => {
     const edits = history()
     expect(applyTaskOption(edits, 'w1', option, 'x', true)).toEqual({

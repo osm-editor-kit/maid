@@ -150,7 +150,7 @@ describe('applied tasks follow undo and redo', () => {
     actions.addApplied({
       index: 0,
       optionId: 'o1',
-      change: { kind: 'tag', entityId: 'w1', option: { set: { a: 'b' } } },
+      change: { kind: 'tag', entityIds: ['w1'], option: { set: { a: 'b' } } },
       before: 'open',
     })
     actions.setStatus(0, 'done')

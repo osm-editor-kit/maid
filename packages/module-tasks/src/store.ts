@@ -49,7 +49,7 @@ export type AppliedTask = {
   index: number
   optionId: string
   change:
-    | { kind: 'tag'; entityId: string; option: Pick<TaskOption, 'set' | 'remove'> }
+    | { kind: 'tag'; entityIds: string[]; option: Pick<TaskOption, 'set' | 'remove'> }
     | { kind: 'create'; entityId: string }
     | { kind: 'delete'; entityIds: string[] }
   /** The status before Apply */

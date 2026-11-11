@@ -106,8 +106,8 @@ export type CreateGeometry = z.infer<typeof createGeometrySchema>
 /**
  * One answer a mapper can pick. `action` says what it does (default `tag`):
  * - `tag`: `set` adds or changes tags of the task's feature, `remove` deletes keys. A key may not be in both, and at
- *   least one of the two must be non-empty. `osm` (one reference, one of the task's) names the feature it is for;
- *   without it, it changes the selected feature.
+ *   least one of the two must be non-empty. `osm` (the task's) names the features it is for; without it, it
+ *   changes the selected feature.
  * - `create`: adds a new feature with the tags in `set` (required), at `geometry` or else at the task's geometry.
  * - `delete`: deletes the features in `osm`, or else all the task's `osm` features. Nodes and ways only.
  */
@@ -127,7 +127,7 @@ export const taskOptionSchema = z
     remove: z.array(textField('a tag key in remove', MAX_TAG_TEXT)).optional(),
     /** `create` only: where the new feature goes */
     geometry: createGeometrySchema.optional(),
-    /** `delete`: which of the task's features to delete; `tag`: the one feature it changes (exactly one) */
+    /** `delete`: which of the task's features to delete; `tag`: the features it changes */
     osm: z
       .array(osmRefSchema)
       .min(1)
@@ -164,8 +164,6 @@ export const taskOptionSchema = z
       })
       return
     }
-    if (option.osm !== undefined && option.osm.length !== 1)
-      refuse('osm', 'a "tag" option names exactly one feature in osm')
     if (Object.keys(set).length === 0 && remove.length === 0) {
       ctx.addIssue({
         code: 'custom',
@@ -352,9 +350,9 @@ export function createGeometryOf(task: Task, option: TaskOption): CreateGeometry
   return isCreatable(task.geometry) ? task.geometry : undefined
 }
 
-/** The feature a `tag` option is for (its `osm`), or undefined: then it changes the selected feature */
-export function tagTargetOf(option: TaskOption): string | undefined {
-  return actionOf(option) === 'tag' ? option.osm?.[0] : undefined
+/** The features a `tag` option is for (its `osm`); empty: it changes the selected feature */
+export function tagTargetsOf(option: TaskOption): string[] {
+  return actionOf(option) === 'tag' ? (option.osm ?? []) : []
 }
 
 /** The features a `delete` option deletes: its own `osm`, else the task's */
