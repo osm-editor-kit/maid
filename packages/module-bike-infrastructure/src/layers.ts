@@ -19,7 +19,7 @@ export const BIKE_SIGN_SOURCE = 'bike-infrastructure-signs'
 /** OSM zoom 16, the load zoom of the editor (renderer layers.ts DETAIL_ZOOM), as MapLibre counts it */
 export const BIKE_MIN_ZOOM = 15
 /** The signs come later: at zoom 16 they would cover the lines */
-export const SIGN_MIN_ZOOM = 16.5
+export const SIGN_MIN_ZOOM = 17
 
 /** A JSON expression of the style spec. The types live in maplibre-gl, which this package does not depend on. */
 export type Expression = readonly unknown[]
@@ -227,7 +227,7 @@ export const SIGN_LAYER: BikeLayer = {
   filter: ['has', 'image'],
   layout: {
     'icon-image': ['get', 'image'],
-    'icon-size': ['interpolate', ['linear'], ['zoom'], 16.5, 0.6, 19, 1],
+    // the image's own size at every zoom: a scaled raster image gets blurred
     'icon-allow-overlap': false,
     'icon-padding': 1,
   },

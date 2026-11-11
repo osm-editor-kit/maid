@@ -18,6 +18,8 @@ import { SIGN_PIXEL_RATIO, signImage, signImageId } from './sign-images.ts'
  * vertex, a point or a label (renderer layers.ts).
  */
 const BEFORE = ['label-line', 'highlight-midpoint']
+/** The signs go above the labels of lines (see the layer) */
+const SIGN_BEFORE = ['highlight-midpoint']
 
 /**
  * The staging graph of the editor's history and a count of its changes. A load adds to the graph's base in place, so the
@@ -53,10 +55,10 @@ function toLayerProps(layer: BikeLayer): LayerProps {
 }
 
 /** The id of the first editor layer of BEFORE on the map, undefined while there is none */
-function useBeforeId() {
+function useBeforeId(ids: readonly string[] = BEFORE) {
   const { current: map } = useMap()
   if (!map) return undefined
-  return BEFORE.find((id) => map.getLayer(id) !== undefined)
+  return ids.find((id) => map.getLayer(id) !== undefined)
 }
 
 /** Sign values whose images were made (by value), and the ones that have none or are being made */
@@ -124,6 +126,7 @@ export function BikeInfraOnMap({ editor }: MapContentProps) {
   const shown = useBikeInfraShown()
   const { graph, count } = useStagingGraph(editor.history)
   const beforeId = useBeforeId()
+  const signBeforeId = useBeforeId(SIGN_BEFORE)
   // count: a load grows the graph in place (see useStagingGraph)
   // oxlint-disable-next-line react-hooks/exhaustive-deps
   const data = useMemo(() => (shown ? bikeCollection(graph) : null), [shown, graph, count])
@@ -159,7 +162,9 @@ export function BikeInfraOnMap({ editor }: MapContentProps) {
         ))}
       </Source>
       <Source id={BIKE_SIGN_SOURCE} type="geojson" data={signs}>
-        <Layer beforeId={beforeId} {...toLayerProps(SIGN_LAYER)} />
+        {/* above the labels: MapLibre places the symbols of a higher layer first, so a name gives way to a sign
+            instead of hiding it; still under the vertices and points */}
+        <Layer beforeId={signBeforeId} {...toLayerProps(SIGN_LAYER)} />
       </Source>
     </>
   )
