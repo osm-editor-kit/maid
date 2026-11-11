@@ -2,7 +2,7 @@
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "add_lane_to": "Fahrstreifen hinzufügen: {direction}",
   "diagram_alt": "Querschnitt der Straße mit der Straße davor und danach, Fahrtrichtung nach oben",
-  "diagram_help": "Fahrtrichtung nach oben: oben die Straße danach, unten die Straße davor.",
+  "diagram_help": "Fahrtrichtung nach oben: oben die Straße danach, unten die Straße davor. Ein gewählter Fahrstreifen wird in der Tabelle und auf der Karte markiert.",
   "direction_backward": "Gegen die Wegrichtung",
   "direction_both_ways": "Beide Richtungen (Mittelabbiegestreifen)",
   "direction_forward": "In Wegrichtung",

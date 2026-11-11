@@ -1723,7 +1723,7 @@ export const laneDiagramFixtures: readonly DiagramFixture[] = [
         },
       },
     ],
-    note: 'Open: fewer driving lanes are drawn than lanes=3 says.',
+    note: 'The forward pipe rebuilds only the forward lanes; the backward lane and the left cycle lane stay (fixed in Maid 2026-11-11).',
   },
   {
     id: 'bergstrasse-shared-lane',

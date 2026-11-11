@@ -7,23 +7,26 @@
 import type { Editor } from '@osm-editor-kit/maid-core'
 import { actionChangeTags } from '@osm-editor-kit/maid-model'
 import type { InspectorSectionProps } from '@osm-editor-kit/maid-ui'
-import { formatLaneSlotId, sceneToSvg } from '@osm-editor-kit/osm-lane-diagram'
-import { parseWayLanes, type LaneDirection } from '@osm-editor-kit/osm-lanes'
-import { useState, useSyncExternalStore, type KeyboardEvent } from 'react'
+import type { Rule, RuleContext } from '@osm-editor-kit/maid-validation'
+import { formatLaneSlotId } from '@osm-editor-kit/osm-lane-diagram'
+import type { LaneDirection } from '@osm-editor-kit/osm-lanes'
+import { useEffect, useSyncExternalStore, type KeyboardEvent } from 'react'
+import { LaneDiagram } from './diagram/LaneDiagram.tsx'
 import {
   addLane,
   changedTags,
   laneCounts,
   LANE_PROPS,
   pipeKey,
-  plainTags,
   removeLane,
   roadIsOneway,
   setLaneValue,
   taggedCounts,
   type LaneProp,
 } from './edit.ts'
+import { laneFocus } from './hover-store.ts'
 import { m } from './messages.ts'
+import { laneRules } from './rules/lane-rules.ts'
 import { laneScene, osmNumber, type GraphLike } from './scene.ts'
 
 /** The history's staging graph, read as it changes */
@@ -91,13 +94,23 @@ function columnsOf(counts: Record<LaneDirection, number>): Column[] {
 }
 
 const CELL =
-  'h-7 w-full min-w-14 rounded border border-zinc-950/10 bg-white px-1 text-xs text-zinc-950 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:[color-scheme:dark]'
+  'h-7 w-full min-w-20 rounded border border-zinc-950/10 bg-white px-1 text-xs text-zinc-950 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:[color-scheme:dark]'
 const SMALL_BUTTON =
   'inline-flex h-6 min-w-6 items-center justify-center rounded border border-zinc-950/10 bg-white px-1.5 text-xs text-zinc-700 hover:border-zinc-950/30 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-white/30'
 
 export function LanesSection({ entity, editor, readOnly }: InspectorSectionProps) {
   const graph = useStagingGraph(editor) as unknown as GraphLike
-  const [hovered, setHovered] = useState<string | null>(null)
+  const hovered = useSyncExternalStore(laneFocus.subscribe, laneFocus.hovered)
+  const chosen = useSyncExternalStore(laneFocus.subscribe, laneFocus.chosen)
+  const setHovered = laneFocus.setHovered
+  // a lane chosen on one road is not chosen on the next one
+  useEffect(
+    () => () => {
+      laneFocus.setChosen(null)
+      laneFocus.setHovered(null)
+    },
+    [entity.id],
+  )
   const way = graph.hasEntity(entity.id)
   if (!way) return null
   const locked = entity.readOnly || (readOnly?.(entity.id) ?? false)
@@ -106,9 +119,11 @@ export function LanesSection({ entity, editor, readOnly }: InspectorSectionProps
   const counts = laneCounts(tags)
   const tagged = taggedCounts(tags)
   const columns = columnsOf(counts)
-  const warnings = parseWayLanes(plainTags(tags)).warnings
+  // the lane rules of the Issues dock, on this road: the same texts, in the page's language
+  const warnings = laneRules.flatMap((rule) =>
+    rule.validate(way as unknown as Parameters<Rule['validate']>[0], {} as RuleContext),
+  )
   const { scene, before, after } = laneScene(graph, way)
-  const svg = sceneToSvg(scene, { highlightedSlotId: hovered })
   const wayNumber = osmNumber(way.id)
 
   const write = (next: Record<string, string | undefined>, annotation: string) => {
@@ -134,11 +149,14 @@ export function LanesSection({ entity, editor, readOnly }: InspectorSectionProps
     <div className="flex flex-col gap-3" data-lanes-section="">
       <figure className="flex flex-col gap-1">
         <div className="max-h-80 overflow-auto rounded-md border border-zinc-950/10 bg-zinc-50 p-1 dark:border-white/10 dark:bg-zinc-900">
-          <img
-            src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`}
-            alt={m.diagram_alt()}
-            className="mx-auto h-auto max-w-full"
-            data-lanes-diagram=""
+          <LaneDiagram
+            scene={scene}
+            currentWayId={wayNumber}
+            hoveredSlotId={hovered}
+            chosenSlotId={chosen}
+            onHover={setHovered}
+            onChoose={laneFocus.setChosen}
+            labels={{ alt: m.diagram_alt() }}
           />
         </div>
         <figcaption className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -183,9 +201,15 @@ export function LanesSection({ entity, editor, readOnly }: InspectorSectionProps
                     <th
                       key={slotId}
                       scope="col"
-                      className={`rounded px-1 py-0.5 text-center font-normal text-zinc-600 dark:text-zinc-300 ${hovered === slotId ? 'bg-amber-100 dark:bg-amber-900/40' : ''}`}
+                      className={`rounded px-1 py-0.5 text-center font-normal text-zinc-600 dark:text-zinc-300 ${chosen === slotId ? 'bg-blue-100 ring-2 ring-blue-600 dark:bg-blue-900/40' : hovered === slotId ? 'bg-amber-100 dark:bg-amber-900/40' : ''}`}
+                      data-lane-column={slotId}
+                      data-chosen={chosen === slotId ? '' : undefined}
                       onPointerEnter={() => setHovered(slotId)}
                       onPointerLeave={() => setHovered(null)}
+                      onClick={(event) => {
+                        if ((event.target as HTMLElement).closest('button')) return
+                        laneFocus.setChosen(chosen === slotId ? null : slotId)
+                      }}
                     >
                       <span className="flex items-center justify-center gap-1">
                         <span title={directionLabel(column.direction, oneway)}>
@@ -218,7 +242,7 @@ export function LanesSection({ entity, editor, readOnly }: InspectorSectionProps
                 <tr key={row.prop}>
                   <th
                     scope="row"
-                    className="pr-1 text-left font-normal whitespace-nowrap text-zinc-500 dark:text-zinc-400"
+                    className="sticky left-0 z-10 bg-white pr-1 text-left font-normal whitespace-nowrap text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400"
                   >
                     {row.label()}
                   </th>
@@ -286,7 +310,7 @@ export function LanesSection({ entity, editor, readOnly }: InspectorSectionProps
         <ul className="flex flex-col gap-1 text-xs" data-lanes-warnings="">
           {warnings.map((warning) => (
             <li
-              key={warning.code}
+              key={warning.id}
               className={
                 warning.severity === 'error'
                   ? 'text-red-700 dark:text-red-400'

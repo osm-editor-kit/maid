@@ -174,7 +174,10 @@ export const lanesPipeLengthMismatch: Rule = {
   },
 }
 
-/** `placement=*` names a lane the road does not have */
+/**
+ * `placement=*` names a lane the road does not have. Read here, not from osm-lanes: its check takes `left_of:1` for
+ * lane 0 and flags it, though the left edge of lane 1 is a valid placement (the first lane from the left is 1).
+ */
 export const lanesPlacementOutOfRange: Rule = {
   id: LANE_RULE_IDS.placement,
   get label() {
@@ -184,11 +187,17 @@ export const lanesPlacementOutOfRange: Rule = {
     const found = findings(entity)
     if (!found) return []
     const issues: Issue[] = []
-    for (const warning of found.warnings) {
-      if (warning.code !== 'placement_out_of_range') continue
-      const match = /^(\S+)=(\S+) references lane \d+ but \w+ has (\d+) slot/.exec(warning.message)
-      if (!match) continue
-      const [, key = '', value = '', count = ''] = match
+    for (const [key, direction] of [
+      ['placement', 'forward'],
+      ['placement:forward', 'forward'],
+      ['placement:backward', 'backward'],
+    ] as const) {
+      const value = entity.tags[key]
+      const match = value ? /^(?:left_of|right_of|middle_of):(\d+)$/i.exec(value) : null
+      if (!value || !match) continue
+      const count = found.model.slots.filter((slot) => slot.direction === direction).length
+      const lane = Number(match[1])
+      if (count === 0 || (lane >= 1 && lane <= count)) continue
       issues.push(
         issue(
           LANE_RULE_IDS.placement,
@@ -198,7 +207,7 @@ export const lanesPlacementOutOfRange: Rule = {
           m.rule_placement_message({
             feature: featureName(entity.tags),
             tag: `${key}=${value}`,
-            count,
+            count: String(count),
           }),
         ),
       )

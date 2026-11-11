@@ -2,7 +2,7 @@
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "add_lane_to": "Ajouter une voie : {direction}",
   "diagram_alt": "Coupe de la route avec la route avant et après, sens de circulation vers le haut",
-  "diagram_help": "Circulation vers le haut : au-dessus la route suivante, en dessous la précédente.",
+  "diagram_help": "Circulation vers le haut : au-dessus la route suivante, en dessous la précédente. Choisissez une voie pour la marquer dans le tableau et sur la carte.",
   "direction_backward": "Dans le sens contraire",
   "direction_both_ways": "Les deux sens (voie centrale de tourne-à-gauche)",
   "direction_forward": "Dans le sens de la voie",

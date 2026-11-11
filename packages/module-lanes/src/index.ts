@@ -35,6 +35,11 @@ export function lanes(options: LanesOptions = {}) {
           entity.type === 'way' && entity.geometry === 'line' && isLaneRoad(entity.tags),
         component: Section,
       })
+      // the lanes of the selected road as bands on the map, from zoom 17
+      const LanesOnMap = lazyComponent(() =>
+        import('./overlay/LanesOnMap.tsx').then((part) => ({ default: part.LanesOnMap })),
+      )
+      api.register('map.content', { id: 'lanes-bands', component: LanesOnMap })
       const { lenses } = options
       if (!lenses || isAutomated()) return
       // first visit: start with the lanes lens on, as the parking editor does with its lens

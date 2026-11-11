@@ -127,3 +127,20 @@ describe('lanes_placement_out_of_range', () => {
     expect(issues[0]?.message).toContain('placement=middle_of:5')
   })
 })
+
+describe('lanes_placement_out_of_range, valid edges', () => {
+  it('accepts left_of:1, the left edge of the first lane', () => {
+    expect(
+      lanesPlacementOutOfRange.validate(
+        way({
+          ...road,
+          lanes: '3',
+          'lanes:forward': '2',
+          'lanes:backward': '1',
+          'placement:forward': 'left_of:1',
+        }),
+        context,
+      ),
+    ).toHaveLength(0)
+  })
+})

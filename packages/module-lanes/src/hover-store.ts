@@ -18,17 +18,17 @@ export const laneFocus = {
   hovered: () => hovered,
   /** The lane chosen with a click in the diagram or on the map, or null */
   chosen: () => chosen,
-  setHovered(id: string | null) {
+  setHovered: (id: string | null) => {
     if (id === hovered) return
     hovered = id
     emit()
   },
-  setChosen(id: string | null) {
+  setChosen: (id: string | null) => {
     if (id === chosen) return
     chosen = id
     emit()
   },
-  subscribe(listener: Listener) {
+  subscribe: (listener: Listener) => {
     listeners.add(listener)
     return () => {
       listeners.delete(listener)

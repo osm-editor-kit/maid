@@ -2,7 +2,7 @@
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "add_lane_to": "Add a lane: {direction}",
   "diagram_alt": "Cross-section of the road with the road before and after it, travel upwards",
-  "diagram_help": "Travel is upwards: above is the road after this one, below the road before it.",
+  "diagram_help": "Travel is upwards: above is the road after this one, below the road before it. Choose a lane to mark it in the table and on the map.",
   "direction_backward": "Against the way's direction",
   "direction_both_ways": "Both ways (centre turn lane)",
   "direction_forward": "In the way's direction",

@@ -280,6 +280,76 @@ function expandOnCarriagewayCycleSlots(
 
   const pipe = cyclewayLanesPipe(tags)
 
+  // `cycleway:lanes:forward` (or `:backward`) on a road with two directions: only that direction's lanes are
+  // rebuilt from the pipe; the other direction keeps its lanes, and its side's cycle lane (`cycleway:left`) is added
+  // as without a pipe. Before, the forward pipe replaced the whole carriageway and the backward lanes were lost.
+  const directional =
+    tags['cycleway:lanes'] == null &&
+    !isOnewayTag(tags) &&
+    (tags['cycleway:lanes:forward'] != null || tags['cycleway:lanes:backward'] != null)
+  if (directional) {
+    const ref = { next: nextIndex }
+    const rebuildDirection = (direction: 'forward' | 'backward'): RoadSpaceSlot[] => {
+      const own = carriageway.filter((s) => s.direction === direction)
+      const dirPipe = tags[`cycleway:lanes:${direction}`]
+      if (dirPipe == null) return own
+      const motorishAll = own.filter((s) => s.kind === 'motor' || s.kind === 'bus')
+      const cap = parsePositiveIntToken(tags[`lanes:${direction}`]) ?? motorishAll.length
+      // pipe order runs along that direction's travel: for backward lanes that is right to left in the diagram
+      const motorish = (direction === 'backward' ? [...motorishAll].reverse() : motorishAll).slice(
+        0,
+        cap,
+      )
+      const widthPipe = tags[`width:lanes:${direction}`]
+      const widthTokens = widthPipe ? widthPipe.split('|') : []
+      const rebuilt: RoadSpaceSlot[] = []
+      let motorIdx = 0
+      const tokens = dirPipe.split('|')
+      for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i]!.trim().toLowerCase()
+        const pipeWidth = parseWidthToken(widthTokens[i])
+        if (isCyclewayLanesCycleToken(token)) {
+          rebuilt.push(makeCycleSlot(wayId, direction, ref.next++, pipeWidth, token))
+        } else {
+          const src = motorish[motorIdx++]
+          if (!src) continue
+          rebuilt.push(
+            pipeWidth != null ? { ...src, widthM: pipeWidth, widthProvenance: 'tagged' } : src,
+          )
+        }
+      }
+      return direction === 'backward' ? rebuilt.reverse() : rebuilt
+    }
+    const backward = rebuildDirection('backward')
+    const middle = carriageway.filter(
+      (s) => s.direction !== 'forward' && s.direction !== 'backward',
+    )
+    const forward = rebuildDirection('forward')
+    const result = [...backward, ...middle, ...forward]
+    // the side whose direction has no pipe still gets its cycle lane from `cycleway:left|right|both`
+    const sideValueOf = (side: SidepathSide) =>
+      tags[`cycleway:${side}`] ?? tags['cycleway:both'] ?? tags.cycleway
+    const addSide = (side: SidepathSide) => {
+      const value = sideValueOf(side)
+      if (!value || !isOnCarriagewayCycleValue(value) || isShareBuswayValue(value)) return
+      const direction = deriveCarriagewayCycleDirection(tags, side, value)
+      const slot = makeCycleSlot(
+        wayId,
+        direction,
+        ref.next++,
+        sideCycleWidth(tags, side),
+        value,
+        'carriageway',
+        side,
+      )
+      if (side === 'left') result.unshift(slot)
+      else result.push(slot)
+    }
+    if (tags['cycleway:lanes:backward'] == null) addSide('left')
+    if (tags['cycleway:lanes:forward'] == null) addSide('right')
+    return { slots: result, fromPipe: true }
+  }
+
   if (pipe) {
     const tokens = pipe.split('|')
     const motorishAll = carriageway.filter(

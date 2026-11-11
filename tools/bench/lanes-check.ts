@@ -157,9 +157,44 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
   )
   await restore()
 
-  // CHECK-DIAGRAM
+  // --- a lane chosen in the diagram ---
+  const slotId = `way/${road.slice(1)}/lane/forward/0`
+  const slot = section.locator(`[data-lane-slot="${slotId}"]`)
+  report('the diagram has the forward lane as a target', 1, await slot.count())
+  if ((await slot.count()) > 0) await slot.first().click()
+  report(
+    'a click on it marks its column in the table',
+    1,
+    await section.locator(`[data-lane-column="${slotId}"][data-chosen]`).count(),
+  )
+  if ((await slot.count()) > 0) await slot.first().click()
+  report('a second click takes the mark away', 0, await section.locator('[data-chosen]').count())
 
-  // CHECK-MAP
+  // --- the lanes of the selected road on the map ---
+  await page.evaluate((id) => {
+    const { engine, map } = window.__maid
+    const nodes = engine.data.way(id)!.nodes
+    const loc = engine.data.node(nodes[Math.floor(nodes.length / 2)]!)?.loc
+    if (loc) map.jumpTo({ center: [loc[0], loc[1]], zoom: 18 })
+  }, road)
+  await page.evaluate((id) => window.__bench.select(id), road)
+  await settle()
+  let bands: string[] = []
+  for (let i = 0; i < 40 && bands.length < 2; i++) {
+    bands = await page.evaluate(() => {
+      const ids: string[] = window.__maid.map
+        .querySourceFeatures('maid-lanes-bands')
+        .map((f: any) => String(f.properties?.slotId))
+      return [...new Set(ids)].sort()
+    })
+    if (bands.length < 2) await page.waitForTimeout(250)
+  }
+  const wayNumber = road.slice(1)
+  report(
+    'the map has a band for each lane of the selected road',
+    [`way/${wayNumber}/lane/backward/0`, `way/${wayNumber}/lane/forward/0`],
+    bands,
+  )
 
   // --- a lane rule in the Issues dock, and its fix ---
   await page.evaluate((id) => window.__maid.engine.setTag(id, 'lanes', '5'), road)
