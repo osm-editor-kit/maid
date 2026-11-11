@@ -6,6 +6,7 @@
 import { chromium, type Page } from '@playwright/test'
 import { EDIT_SOURCES, SOURCES } from '../../packages/renderer/src/layers'
 import { getScene } from '../fixtures/scenes'
+import { PORTS } from '../ports'
 import { APPS, takeApp } from './args'
 import { noBackground } from './no-background'
 
@@ -62,6 +63,15 @@ export async function runCheck(
         return route.abort()
       },
     )
+    // MAID_MOCK_PORT: the mock API of another port, for a check of a scene the running mock was started without
+    const mockPort = process.env.MAID_MOCK_PORT
+    if (mockPort) {
+      await context.route(`http://localhost:${PORTS.mockApi}/**`, (route) =>
+        route.continue({
+          url: route.request().url().replace(`:${PORTS.mockApi}/`, `:${mockPort}/`),
+        }),
+      )
+    }
     page.on('pageerror', (error) =>
       report(
         'no uncaught page error',

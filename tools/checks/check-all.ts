@@ -37,6 +37,7 @@ const CHECKS = [
   'way-table',
   'reroute',
   'sidepaths',
+  'bike-style',
   'rectangle',
   'room',
   'angle-snap',
@@ -64,6 +65,7 @@ const MODULE_CHECKS = new Set<CheckName>([
   'way-table',
   'reroute',
   'sidepaths',
+  'bike-style',
   'rectangle',
   'room',
   'angle-snap',
@@ -96,6 +98,8 @@ const RUNS: Run[] = [
   { name: 'reroute', check: 'reroute', scene: 'relations', only: ['bicycle'] },
   // module-sidepaths, on in the bicycle app: tags of separately mapped sidewalks move to their way
   { name: 'sidepaths', check: 'sidepaths', scene: 'medium', only: ['bicycle'] },
+  // module-bike-infrastructure, the bicycle app's default look: every case of the made-up scene, signs, preset, lenses
+  { name: 'bike-style', check: 'bike-style', scene: 'bicycle', only: ['bicycle'] },
   // the drawing tools of module-shapes, on in the parking and the indoor app
   { name: 'rectangle', check: 'rectangle', only: ['parking', 'indoor'] },
   { name: 'angle-snap', check: 'angle-snap', only: ['parking', 'indoor'] },
@@ -140,6 +144,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   'way-table': { maid: 0, bicycle: 25, parking: 0, indoor: 0 },
   reroute: { maid: 0, bicycle: 12, parking: 0, indoor: 0 },
   sidepaths: { maid: 0, bicycle: 15, parking: 0, indoor: 0 },
+  'bike-style': { maid: 0, bicycle: 45, parking: 0, indoor: 0 },
   rectangle: { maid: 0, bicycle: 0, parking: 24, indoor: 24 },
   'angle-snap': { maid: 0, bicycle: 0, parking: 35, indoor: 35 },
   merge: { maid: 0, bicycle: 0, parking: 31, indoor: 31 },

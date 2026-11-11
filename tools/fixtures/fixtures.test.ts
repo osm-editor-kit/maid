@@ -5,6 +5,8 @@ import { getScene, SCENES } from './scenes'
 
 const FIXTURES = join(import.meta.dir, '../../fixtures')
 const ATTRIBUTION = '© OpenStreetMap contributors, ODbL 1.0'
+/** A scene made by a script is not OSM data */
+const MADE_UP = 'Made up for the tests, not OSM data'
 
 async function readFixture(name: string) {
   const gz = await Bun.file(join(FIXTURES, `${name}.json.gz`)).arrayBuffer()
@@ -41,7 +43,7 @@ describe('fixture files', () => {
         description: scene.description,
         bbox: scene.bbox,
         center: scene.center,
-        attribution: ATTRIBUTION,
+        attribution: scene.madeBy === undefined ? ATTRIBUTION : MADE_UP,
       })
       // small, medium and dense were cut before the build wrote the zoom: compare it only where it is there
       if (meta.zoom !== undefined) expect(meta.zoom).toBe(scene.zoom)
@@ -58,7 +60,7 @@ describe('parseBuildArgs', () => {
   test('without --scene every scene is built; the first argument is the extract', () => {
     expect(parseBuildArgs(['/x/extract.osm.pbf'])).toEqual({
       source: '/x/extract.osm.pbf',
-      scenes: SCENES,
+      scenes: SCENES.filter((scene) => scene.madeBy === undefined),
     })
   })
 

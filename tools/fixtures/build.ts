@@ -134,7 +134,10 @@ export function parseBuildArgs(argv: string[]): { source: string | undefined; sc
       positional.push(arg)
     }
   }
-  const scenes = names.length ? [...new Set(names)].map((name) => getScene(name)) : SCENES
+  // a made-up scene has its own script (Scene.madeBy): never cut from an extract
+  const scenes = (names.length ? [...new Set(names)].map((name) => getScene(name)) : SCENES).filter(
+    (scene) => scene.madeBy === undefined,
+  )
   return { source: positional[0], scenes }
 }
 

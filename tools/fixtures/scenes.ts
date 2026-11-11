@@ -9,6 +9,11 @@ export type Scene = {
   center: [number, number]
   /** OSM zoom at which scenarios start. Chosen so that the viewport stays inside the data. */
   zoom: number
+  /**
+   * A scene made by a script instead of cut from an extract: the script's `bun run` name. `fixtures-build` leaves it
+   * out, and its data is not OSM data (no ODbL attribution).
+   */
+  madeBy?: string
 }
 
 export const SCENES: Scene[] = [
@@ -48,6 +53,15 @@ export const SCENES: Scene[] = [
     bbox: [13.364, 52.5225, 13.3745, 52.528],
     center: [13.3694, 52.5251],
     zoom: 18,
+  },
+  {
+    name: 'bicycle',
+    description:
+      'Made-up test cases of bicycle infrastructure: every TILDA category and subcategory on its own way, paths on the left, road sides on the right',
+    bbox: [13.3, 52.6, 13.306, 52.6045],
+    center: [13.303, 52.60225],
+    zoom: 18,
+    madeBy: 'fixtures-bicycle',
   },
 ]
 

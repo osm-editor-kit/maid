@@ -12,6 +12,7 @@
   "dependencies": {
     "@osm-editor-kit/maid-core": "workspace:*",
     "@osm-editor-kit/maid-filters": "workspace:*",
+    "@osm-editor-kit/maid-module-bike-infrastructure": "workspace:*",
     "@osm-editor-kit/maid-module-data-layers": "workspace:*",
     "@osm-editor-kit/maid-module-imagery": "workspace:*",
     "@osm-editor-kit/maid-module-lenses": "workspace:*",
