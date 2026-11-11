@@ -196,6 +196,16 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
     bands,
   )
 
+  await page.evaluate(() => window.__maid.map.zoomTo(19, { duration: 0 }))
+  let arrows = 0
+  for (let i = 0; i < 40 && arrows === 0; i++) {
+    arrows = await page.evaluate(
+      () => window.__maid.map.querySourceFeatures('maid-lanes-arrows').length,
+    )
+    if (arrows === 0) await page.waitForTimeout(250)
+  }
+  report('from zoom 18 the lanes have arrows on the map', true, arrows > 0)
+
   // --- a lane rule in the Issues dock, and its fix ---
   await page.evaluate((id) => window.__maid.engine.setTag(id, 'lanes', '5'), road)
   await settle()

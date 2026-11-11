@@ -11,12 +11,13 @@
  * The bands and layers are built in lane-bands.ts and layers.ts (pure); this file reads the editor and draws.
  */
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
-import { useCallback, useMemo, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react'
 import { Layer, Source, useMap, type LayerProps } from 'react-map-gl/maplibre'
 import type { Tags } from '../edit.ts'
 import { laneFocus } from '../hover-store.ts'
 import { isLaneRoad } from '../roads.ts'
 import { osmNumber } from '../scene.ts'
+import { arrowPoints } from './arrows.ts'
 import { laneBands } from './lane-bands.ts'
 import { bandFeatures, LANES_LAYERS, LANES_SOURCE, type LanesLayer } from './layers.ts'
 
@@ -104,12 +105,91 @@ function selectedLaneRoad(graph: Graph, selected: readonly string[]): Entity | u
   return way
 }
 
+const ARROW_IMAGE = 'maid-lanes-arrow'
+const ARROWS_SOURCE = 'maid-lanes-arrows'
+
+/**
+ * The arrow icon: pointing up, its base at the bottom middle (the icon's anchor, so the arrows of `left;through` fan
+ * out from one point), as an SDF so the layer colours it. Drawn on a canvas once.
+ */
+function arrowImage(): ImageData | undefined {
+  const canvas = document.createElement('canvas')
+  canvas.width = 24
+  canvas.height = 40
+  const context = canvas.getContext('2d')
+  if (!context) return undefined
+  context.fillStyle = '#000'
+  context.beginPath()
+  context.moveTo(12, 1) // tip
+  context.lineTo(23, 15)
+  context.lineTo(15.5, 15)
+  context.lineTo(15.5, 39)
+  context.lineTo(8.5, 39)
+  context.lineTo(8.5, 15)
+  context.lineTo(1, 15)
+  context.closePath()
+  context.fill()
+  return context.getImageData(0, 0, canvas.width, canvas.height)
+}
+
+/**
+ * Adds the arrow icon to the map's style, again when a new style dropped it. Imperative on purpose: react-map-gl has no
+ * element for style images, and `addImage` is MapLibre's only way to give a symbol layer an icon of our own.
+ */
+function useArrowImage() {
+  const { current: ref } = useMap()
+  useEffect(() => {
+    const map = ref?.getMap()
+    if (!map) return
+    const add = () => {
+      if (map.hasImage(ARROW_IMAGE)) return
+      const image = arrowImage()
+      if (image) map.addImage(ARROW_IMAGE, image, { sdf: true, pixelRatio: 2 })
+    }
+    const onMissing = (event: { id: string }) => {
+      if (event.id === ARROW_IMAGE) add()
+    }
+    add()
+    map.on('styleimagemissing', onMissing)
+    return () => {
+      map.off('styleimagemissing', onMissing)
+    }
+  }, [ref])
+}
+
+/** The arrows on the bands: white with a dark halo, from zoom 18, rotated with the map */
+const ARROW_LAYER = {
+  id: 'maid-lanes-arrows',
+  type: 'symbol',
+  minzoom: 18,
+  layout: {
+    'icon-image': ARROW_IMAGE,
+    'icon-anchor': 'bottom',
+    'icon-rotate': ['get', 'rotate'],
+    'icon-rotation-alignment': 'map',
+    'icon-allow-overlap': true,
+    'icon-ignore-placement': true,
+    'icon-size': ['interpolate', ['exponential', 2], ['zoom'], 18, 0.7, 21, 2.4],
+  },
+  paint: {
+    'icon-color': '#ffffff',
+    'icon-halo-color': 'rgba(24, 24, 27, 0.75)',
+    'icon-halo-width': 1.5,
+  },
+} as unknown as LayerProps
+
+function isReverseOneway(tags: Tags): boolean {
+  const oneway = tags.oneway?.toLowerCase()
+  return oneway === '-1' || oneway === 'reverse'
+}
+
 /** The lane bands of the selected road. Renders nothing unless exactly one lane road is selected. */
 export function LanesOnMap({ editor, engine }: MapContentProps) {
   const graph = useStagingGraph(editor.history)
   const selected = useSelected(engine)
   const { hovered, chosen } = useLaneFocus()
   const beforeId = useBeforeId()
+  useArrowImage()
   const way = selectedLaneRoad(graph, selected)
   // the bands and the line change only with the way (a new object per edit of it); the focus only recolours them
   const shape = useMemo(
@@ -124,12 +204,33 @@ export function LanesOnMap({ editor, engine }: MapContentProps) {
     () => (shape ? bandFeatures(shape.bands, shape.coordinates, { hovered, chosen }) : undefined),
     [shape, hovered, chosen],
   )
+  const arrows = useMemo(() => {
+    if (!shape || !way) return undefined
+    const points = arrowPoints(shape.bands, shape.coordinates, {
+      reverseOneway: isReverseOneway(way.tags),
+    })
+    return {
+      type: 'FeatureCollection' as const,
+      features: points.map((point) => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: point.coordinates },
+        properties: { rotate: point.rotate, slotId: point.slotId, token: point.token },
+      })),
+    }
+  }, [shape, way])
   if (!data || data.features.length === 0) return null
   return (
-    <Source id={LANES_SOURCE} type="geojson" data={data}>
-      {LANES_LAYERS.map((layer) => (
-        <Layer key={layer.id} beforeId={beforeId} {...toLayerProps(layer)} />
-      ))}
-    </Source>
+    <>
+      <Source id={LANES_SOURCE} type="geojson" data={data}>
+        {LANES_LAYERS.map((layer) => (
+          <Layer key={layer.id} beforeId={beforeId} {...toLayerProps(layer)} />
+        ))}
+      </Source>
+      {arrows && (
+        <Source id={ARROWS_SOURCE} type="geojson" data={arrows}>
+          <Layer beforeId={beforeId} {...ARROW_LAYER} />
+        </Source>
+      )}
+    </>
   )
 }
