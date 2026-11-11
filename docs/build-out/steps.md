@@ -539,7 +539,8 @@ Tobias, 2026-11-10: port iD-Radnetz's extract and merge of side paths to the bic
 
 - [x] 2026-11-10: module `sidepaths` (`packages/module-sidepaths`, bicycle editor only): edit menu "Tags to left sidewalk", "… right sidewalk", "… both sidewalks" and the same for cycle tracks. The attributes of a separate side move from the road to the way found on that side (`sidewalk:both:surface=sett` → `surface=sett`); a value the way has otherwise stays on the road. 16 unit tests; `check-sidepaths medium --app bicycle` 8 ok.
       **Test for Tobias:** <https://osm-editor-kit.github.io/maid/maid-bicycle/#map=19/52.51698/13.39521&id=w1171295121> (Bebelplatz, `sidewalk:both:surface=sett`), right click: "Tags to both sidewalks"; the right sidewalk already says `sett`, so the road loses the tag for it, the left one says `paving_stones`, so `sidewalk:left:surface=sett` stays on the road for you to decide.
-- [ ] Extract and extract-and-merge as in iD-Radnetz: needs `@tilda-geo/bicycle-infrastructure-tagging` 0.2.0 (release age until 2026-11-15, or Tobias adds it to `minimumReleaseAgeExcludes`).
+- [x] 2026-11-11: extract and extract-and-merge as in iD-Radnetz, on TILDA's tagging package and the traffic sign converter: "Extract left cycle track", "… sidewalk", "… as one path", "Extract + merge left|right|both". A step that fails disables the entry with its reason, nothing half done. 19 unit tests; `check-sidepaths medium --app bicycle` 15 ok.
+      **Test for Tobias:** <https://osm-editor-kit.github.io/maid/maid-bicycle/#map=19/52.52033/13.40458&id=w4773465> (Spandauer Straße, `cycleway:right=track`), right click: "Extract right cycle track" draws a new cycleway beside the road; undo, then "Extract + merge right" turns the sidewalk into a foot and cycle path with the track's tags.
 - [ ] The campaign's examples: run the entries on them, tune the search.
 
 ### TILDA section (2026-11-10)

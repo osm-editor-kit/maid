@@ -139,7 +139,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   parking: { maid: 0, bicycle: 0, parking: 29, indoor: 0 },
   'way-table': { maid: 0, bicycle: 25, parking: 0, indoor: 0 },
   reroute: { maid: 0, bicycle: 12, parking: 0, indoor: 0 },
-  sidepaths: { maid: 0, bicycle: 8, parking: 0, indoor: 0 },
+  sidepaths: { maid: 0, bicycle: 15, parking: 0, indoor: 0 },
   rectangle: { maid: 0, bicycle: 0, parking: 24, indoor: 24 },
   'angle-snap': { maid: 0, bicycle: 0, parking: 35, indoor: 35 },
   merge: { maid: 0, bicycle: 0, parking: 31, indoor: 31 },

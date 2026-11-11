@@ -6,6 +6,10 @@
  * - Bebelplatz (w1171295121) has `sidewalk:both=separate` and `sidewalk:both:surface=sett`; its right sidewalk has the
  *   same surface, its left one another: "both" runs, the right side's tag goes, the left one stays on the road as
  *   `sidewalk:left:surface`, the road stays selected; undo restores the road.
+ * - Spandauer Straße (w4773465) has `cycleway:right=track` and a separate sidewalk on the right: the extract entries
+ *   are offered; "Extract + merge right" turns the existing sidewalk into a foot and cycle path, the
+ *   road gets `cycleway:right=separate`, no new way is left; undo restores both. "Extract right cycle track" adds one
+ *   new cycleway, selected.
  * Fixtures only, nothing leaves localhost.
  *
  *   bun tools/bench/sidepaths-check.ts medium --app bicycle
@@ -18,6 +22,7 @@ const sceneName = process.argv[2] ?? 'medium'
 
 const ALEXANDERSTRASSE = { id: 'w112128422', center: [13.41213, 52.52405] as [number, number] }
 const BEBELPLATZ = { id: 'w1171295121', center: [13.39521, 52.51698] as [number, number] }
+const SPANDAUER_STRASSE = { id: 'w4773465', center: [13.40458, 52.52033] as [number, number] }
 const LEFT_DIFFERS = 'The separate way on the left side already has another value for surface.'
 
 process.exit(
@@ -114,5 +119,91 @@ process.exit(
     await page.evaluate(() => window.__maid.engine.undo())
     await settle()
     report('undo restores the road', before, await tags(BEBELPLATZ.id))
+
+    // --- extract, and extract and merge, on Spandauer Straße ---
+    await select(SPANDAUER_STRASSE)
+    const extractEntries = () =>
+      page.evaluate(() => {
+        const { engine, editor } = window.__maid
+        const context = engine.operationContext()
+        return editor
+          .registry('edit.operation')
+          .list()
+          .filter((o) => o.id.startsWith('extract-') && o.applies(context))
+          .map((o) => ({ id: o.id, disabled: o.disabled(context) ?? null }))
+      })
+    // the traffic sign rules load at setup; wait until no entry says so
+    await page.waitForFunction(() => {
+      const { engine, editor } = window.__maid
+      const context = engine.operationContext()
+      return editor
+        .registry('edit.operation')
+        .list()
+        .every(
+          (o) =>
+            !o.id.startsWith('extract-') ||
+            !o.applies(context) ||
+            !o.disabled(context)?.startsWith('Loading'),
+        )
+    })
+    report(
+      'Spandauer Straße: extract the right cycle track, and extract and merge it',
+      [
+        { id: 'extract-cycleway-right', disabled: null },
+        { id: 'extract-merge-right', disabled: null },
+      ],
+      await extractEntries(),
+    )
+    const run = (id: string) =>
+      page.evaluate((id) => {
+        const { engine, editor } = window.__maid
+        const operation = editor
+          .registry('edit.operation')
+          .list()
+          .find((o) => o.id === id)!
+        return engine.runOperation(operation) ?? null
+      }, id)
+    const wayCount = () =>
+      page.evaluate(() => window.__maid.engine.data.history.staging.graph.local.entities.size)
+    const roadBefore = await tags(SPANDAUER_STRASSE.id)
+    const merged = (await run('extract-merge-right')) as string[] | null
+    await settle()
+    const path = merged?.[0] ? await tags(merged[0]) : {}
+    report(
+      'extract and merge: one path selected, for bikes and pedestrians, the road side separate',
+      [1, 'path', 'designated', 'designated', 'separate'],
+      [
+        merged?.length,
+        path.highway,
+        path.bicycle,
+        path.foot,
+        (await tags(SPANDAUER_STRASSE.id))['cycleway:right'],
+      ],
+    )
+    report(
+      'extract and merge: the selected path is the existing sidewalk, no new way',
+      false,
+      merged?.[0]?.startsWith('w-') ?? true,
+    )
+    await page.evaluate(() => window.__maid.engine.undo())
+    await settle()
+    report('undo restores the road', roadBefore, await tags(SPANDAUER_STRASSE.id))
+    await page.evaluate((id) => window.__maid.engine.setSelected([id]), SPANDAUER_STRASSE.id)
+    await settle()
+    const countBefore = await wayCount()
+    const extracted = (await run('extract-cycleway-right')) as string[] | null
+    await settle()
+    const track = extracted?.[0] ? await tags(extracted[0]) : {}
+    report(
+      'extract: a new cycleway, selected, with the tags of the side',
+      [1, true, 'cycleway', 'paving_stones'],
+      [extracted?.length, extracted?.[0]?.startsWith('w-'), track.highway, track.surface],
+    )
+    report('extract: the graph has new entities', true, (await wayCount()) > countBefore)
+    await page.screenshot({ path: 'reports/sidepaths-extract.png' })
+    console.log('screenshot: reports/sidepaths-extract.png')
+    await page.evaluate(() => window.__maid.engine.undo())
+    await settle()
+    report('undo removes the extracted way', roadBefore, await tags(SPANDAUER_STRASSE.id))
   }),
 )

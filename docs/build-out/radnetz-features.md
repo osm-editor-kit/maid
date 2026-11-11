@@ -54,8 +54,8 @@ The Radnetz Berlin editor is an iD fork (branch `radnetz-berlin` of `tordans/iD`
 | 8 | TILDA bike infrastructure helper (`@tilda-geo/bicycle-infrastructure`) | an inspector section | done 2026-11-10: `packages/module-tilda` in `apps/maid-bicycle`, on `@tilda-geo/bicycle-infrastructure-tagging` 0.2.0: a card per side, the open category question, the footway question, "Change to" with the tag diff, the Radnetz Berlin checklist, reminders. Not yet: field titles coloured by the checklist, "add below" links to the fields | yes |
 | 32 | TILDA checklist: defaults to check, `oneway:bicycle`, wrong `cycleway:*:oneway` | the same section plus a validation rule | done in the section 2026-11-10 (defaults to check, `oneway:bicycle`); the validation rules (`/validation` of the tagging package) are not in yet | yes, with 8 |
 | 33 | "I checked this" and "Verified", stored in the key-value DB | the same section; needs the login | in the section, kept in the browser only (`checks-store.ts`); the shared key-value DB is not connected | later (needs the account) |
-| 17 | Extract a side into a separate way | an operation | nothing (Maid has operations and their preview) | yes |
-| 28 | Merge a cycleway and a footway into one path | an operation | nothing | yes |
+| 17 | Extract a side into a separate way | an operation | done 2026-11-11: module `sidepaths`, edit menu entries per side ([sidepaths.md](../research/sidepaths.md)) | yes |
+| 28 | Merge a cycleway and a footway into one path | an operation | partly 2026-11-11: as 'Extract + merge' from the road; merging two selected ways is not an entry yet | yes |
 | 9 | QA rules from TILDA and infraVelo | validation rules and a lens | nothing | later (a plan in the fork too) |
 | 5b | The "Radnetz QA" lens | a lens in the app | nothing | yes, with D5 |
 | 29 | Internal notes from TILDA | a notes provider (D3) | nothing | later (needs the TILDA login) |

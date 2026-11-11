@@ -139,3 +139,45 @@ export function separateWays(
   }
   return result.sort((a, b) => a.id.localeCompare(b.id))
 }
+
+/** Points of a footway this close to the extracted cycle track run along it */
+const FOOT_NEAR_METRES = 7
+
+/**
+ * The footways that run along a cycle track (iD-Radnetz's `sidewalkCandidates`): footways (or paths for pedestrians,
+ * TILDA's `partKind`) of which at least half runs within a few metres of it, or that run along a third of it. A
+ * footway that crosses the cycle track does not stretch along it. In id order.
+ */
+export function footwaysAlong(
+  graph: Graph,
+  bikeWayId: string,
+  isFoot: (tags: Tags) => boolean,
+): string[] {
+  const bike = graph.hasEntity(bikeWayId)
+  if (!(bike instanceof OsmWay)) return []
+  const bikeLocs = locsOf(graph, bike)
+  if (!bikeLocs || bikeLocs.length < 2) return []
+  const bikePoints = samplePoints(bikeLocs, SAMPLE_METRES)
+  const minSpread = Math.min(MIN_SPREAD_METRES, lineLengthMetres(bikeLocs) / 2)
+  const box = boxOf(bikeLocs, FOOT_NEAR_METRES)
+
+  const result: string[] = []
+  for (const way of waysOf(graph)) {
+    if (way.id === bikeWayId || way.isClosed() || !isFoot(way.tags)) continue
+    const locs = locsOf(graph, way)
+    if (!locs || locs.length < 2 || !locs.some((loc) => inBox(loc, box))) continue
+    const points = samplePoints(locs, SAMPLE_METRES)
+    const near = points.filter(
+      (point) => projectOnLine(point, bikeLocs).distance <= FOOT_NEAR_METRES,
+    )
+    if (!near.length) continue
+    const covered = bikePoints.filter(
+      (point) => projectOnLine(point, locs).distance <= FOOT_NEAR_METRES,
+    ).length
+    if (near.length / points.length < NEAR_SHARE && covered / bikePoints.length < COVER_SHARE)
+      continue
+    const along = near.map((point) => projectOnLine(point, bikeLocs).along)
+    if (Math.max(...along) - Math.min(...along) >= minSpread) result.push(way.id)
+  }
+  return result.sort()
+}

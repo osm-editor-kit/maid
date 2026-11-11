@@ -22,7 +22,7 @@ package `@tilda-geo/bicycle-infrastructure-tagging` (FixMyBerlin, 0.2.0). The ge
 
 ## What Maid has now: module `sidepaths`
 
-`packages/module-sidepaths`, on in `apps/maid-bicycle` only. It does not need the TILDA package.
+`packages/module-sidepaths`, on in `apps/maid-bicycle` only. Moving the tags (below) needs no TILDA logic; extracting does.
 
 **Tags to the separate way** ("Tags to left sidewalk", "… right sidewalk", "… both sidewalks", and the same for cycle
 tracks). Offered on one selected road whose side is `separate` (`sidewalk:left`, `sidewalk:both`, plain `sidewalk`) and
@@ -60,14 +60,43 @@ tags to a way on Alexanderstraße and Grunerstraße. All searches together take 
 
 Checks: `bun test packages/module-sidepaths` (16 tests), `bun run check-sidepaths medium --app bicycle` (8 ok).
 
+## Extract, and extract and merge (2026-11-11)
+
+Tobias approved the two `@tilda-geo` packages in `minimumReleaseAgeExcludes` on 2026-11-11 (they came in with
+module-tilda). The port:
+
+- `extract.ts`: `planSidepathExtraction` (TILDA's `planExtraction`, plus the fork's rule that a way whose bikes ride
+  only against the road is drawn reversed with `oneway=yes`) and the action, with the new way on `offsetLine`.
+- `merge.ts`: the fork's `merge_sidepaths.ts`: TILDA's `mergeSelection` and `combinedPathTags`, the cut of a too long
+  way (Maid's `actionAddMidpoint` and `actionSplit`), memberships move to the surviving way.
+- `extract-merge.ts`: one or both sides, and extract and merge in one step. The footway is found as in the fork
+  (`footwaysAlong`, half of it within 7 m of the extracted track).
+- `sign-rules.ts`: the traffic sign converter (`@osm-traffic-signs/converter`, German signs) as TILDA's `recommend` and
+  `joinSigns`, loaded at the module's setup, as the fork's `recommender.ts`. Until it is there the entries say
+  "Loading the traffic sign rules…".
+- Edit menu entries instead of the fork's flyout: "Extract both cycle tracks", "Extract left cycle track", the same for
+  sidewalks and for "… as one path", and "Extract + merge both|left|right". Only the ones the road offers show.
+
+Differences to the fork, decided here:
+
+1. **A plan is tried on a copy of the graph first.** When a step fails (no footway beside the track, lengths too
+   different, different values), the entry is disabled with the reason and nothing changes. The fork keeps a half done
+   extraction and says so in a flash; Maid has no flash, so it refuses as a whole.
+2. **No flash with the changed road tags or the dropped tags.** The undo step and the selection show the result.
+3. **No preview on hover** (the engine's preview only draws selected ways that moved).
+
+Measured on the fixtures with the sign rules: medium 242 sidewalk extractions and 11 extract-and-merges work, 5 merges
+are refused for different lengths; dense 81 and 3, 1 refused. No case throws. Spandauer Straße (w4773465): the track's
+`surface:colour=red`, `width=1` and `segregated=yes` end up on the merged path as `cycleway:surface:colour`,
+`cycleway:width`, and the existing sidewalk keeps its geometry.
+
+Checks: `bun test packages/module-sidepaths` (19 tests), `bun run check-sidepaths medium --app bicycle` (15 ok,
+screenshots `reports/sidepaths-menu.png` and `reports/sidepaths-extract.png`).
+
 ## Open steps
 
-- **Extract** and **extract and merge** as in iD-Radnetz. They need `@tilda-geo/bicycle-infrastructure-tagging`
-  0.2.0, which `bunfig.toml`'s five-day release age blocks until 2026-11-15, unless Tobias adds the two `@tilda-geo`
-  packages to `minimumReleaseAgeExcludes` (asked on 2026-11-10). The plan: `planExtraction` for the tags,
-  `offsetLine` (already in `geometry.ts`) for the new way, `mergeSelection`/`combinedPathTags` and a port of the cut
-  and membership logic of `merge_sidepaths.ts` on Maid's `actionSplit` and `actionAddMidpoint`. The traffic sign
-  recommender of the fork (`loadSignRecommender`) has no counterpart in Maid yet; without it the package reads no signs.
-- A preview of the new way when the entry is hovered: the engine's operation preview only draws selected ways that
-  moved.
 - The campaign's examples, once Tobias sends the link: run the entries on them and tune the search (distance, kinds).
+- Many entries on a road with tracks and sidewalks on both sides (up to 12). A flyout in the edit menu (an extension
+  point for grouped operations) would bring back the fork's "Extract …" menu.
+- Merging two selected ways (a cycleway and a footway) as an entry of its own (feature 28 alone).
+- A preview of the new way when an entry is hovered.
