@@ -18,7 +18,8 @@ export type LaneDiagramProps = {
   chosenSlotId: string | null
   onHover: (id: string | null) => void
   onChoose: (id: string | null) => void
-  labels: { alt: string }
+  /** `slot`: the name of a lane for screen readers, from its slot id */
+  labels: { alt: string; slot?: (slotId: string) => string }
 }
 
 const KIND_FILL: Record<SceneSlotRectKind | 'sibling', string> = {
@@ -113,10 +114,12 @@ function SlotTarget({
   chosen,
   onHover,
   onChoose,
+  label,
 }: {
   slot: SlotShape
   hovered: boolean
   chosen: boolean
+  label: string
   onHover: (id: string | null) => void
   onChoose: (id: string | null) => void
 }): ReactElement {
@@ -131,6 +134,8 @@ function SlotTarget({
     className: `cursor-pointer fill-transparent outline-none focus-visible:stroke-blue-500 ${state}`,
     strokeWidth: chosen || hovered ? 2.5 : 2,
     tabIndex: 0,
+    role: 'button',
+    'aria-label': label,
     'data-lane-slot': slot.slotId,
     'aria-pressed': chosen,
     onPointerEnter: () => onHover(slot.slotId),
@@ -174,7 +179,7 @@ export function LaneDiagram({
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      role="img"
+      role="group"
       aria-label={labels.alt}
       width={shapes.width}
       height={shapes.height}
@@ -294,6 +299,7 @@ export function LaneDiagram({
           chosen={slot.slotId === chosenSlotId}
           onHover={onHover}
           onChoose={onChoose}
+          label={labels.slot?.(slot.slotId) ?? slot.slotId}
         />
       ))}
     </svg>

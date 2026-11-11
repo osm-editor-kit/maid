@@ -156,7 +156,7 @@ export function LanesSection({ entity, editor, readOnly }: InspectorSectionProps
             chosenSlotId={chosen}
             onHover={setHovered}
             onChoose={laneFocus.setChosen}
-            labels={{ alt: m.diagram_alt() }}
+            labels={{ alt: m.diagram_alt(), slot: (id) => slotLabel(id, oneway) }}
           />
         </div>
         <figcaption className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -331,4 +331,14 @@ function directionLabel(direction: LaneDirection, oneway: boolean): string {
   if (direction === 'forward') return m.direction_forward()
   if (direction === 'backward') return m.direction_backward()
   return m.direction_both_ways()
+}
+
+/** The name of a lane of the diagram for screen readers: "↑ 2, In the way's direction", or what it is */
+function slotLabel(slotId: string, oneway: boolean): string {
+  const lane = /\/lane\/(forward|backward|both_ways)\/(\d+)$/.exec(slotId)
+  if (!lane) return m.diagram_side()
+  const direction = lane[1] as LaneDirection
+  const index = Number(lane[2])
+  if (index >= 10_000) return m.diagram_cycle_lane({ direction: directionLabel(direction, oneway) })
+  return `${DIRECTION_ARROW[direction]} ${index + 1}, ${directionLabel(direction, oneway)}`
 }

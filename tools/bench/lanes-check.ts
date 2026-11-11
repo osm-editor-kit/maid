@@ -161,6 +161,11 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
   const slotId = `way/${road.slice(1)}/lane/forward/0`
   const slot = section.locator(`[data-lane-slot="${slotId}"]`)
   report('the diagram has the forward lane as a target', 1, await slot.count())
+  report(
+    'with a name for screen readers',
+    "↑ 1, In the way's direction",
+    await slot.first().getAttribute('aria-label'),
+  )
   if ((await slot.count()) > 0) await slot.first().click()
   report(
     'a click on it marks its column in the table',
