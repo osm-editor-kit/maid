@@ -85,11 +85,11 @@ What a single-purpose editor adds.
 | Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | **Backgrounds** ([docs](../packages/module-imagery/README.md)): The editor layer index, your own tile URLs, and OpenAerialMap's images of the view as overlays. _OpenAerialMap search only in Maid._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Data layers** ([docs](../packages/module-data-layers/README.md)): GeoJSON, GPX, PMTiles and vector tiles under the OSM data, from a file or a link. _iD has no PMTiles or vector tiles; KML only in iD and Rapid._ | ◐ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Data layers** ([docs](../packages/module-data-layers/README.md)): GeoJSON, GPX, PMTiles and vector tiles under the OSM data, from a file or a link. _Each with its own formats: iD GeoJSON, GPX and KML; Rapid also PMTiles and vector tiles; Maid GeoJSON, GPX, PMTiles and vector tiles._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **Private task lists** ([docs](../packages/module-tasks/README.md)): Open a GeoJSON task file from another project: Markdown instructions, one-click tag fixes, progress kept in your OSM account. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **osmChange files** ([docs](../packages/module-osmchange/README.md)): Load changes made in another app (Go Map!!, JOSM), merged with the current map, reviewed, uploaded with the normal save. | – | – | – | ✓ | – | – | – |
 | **OSM notes** ([docs](../packages/module-notes/README.md)): The notes of the view on the map and in a list, with their comments. _Maid shows notes but does not create or comment on them yet._ | ✓ | ✓ | ◐ | ◐ | ◐ | ◐ | ◐ |
-| **Quality assurance services**: Issues from Osmose, KeepRight or MapRoulette on the map. _iD: Osmose. Rapid: Osmose, KeepRight and MapRoulette._ | ◐ | ◐ | – | – | – | – | – |
+| **Quality assurance services**: Issues from Osmose, KeepRight or MapRoulette on the map. _iD: Osmose. Rapid: Osmose, KeepRight and MapRoulette._ | ✓ | ✓ | – | – | – | – | – |
 | **AI-assisted datasets**: Roads and buildings detected from imagery and open datasets (Esri, Overture), to review and add. | – | ✓ | – | – | – | – | – |
 
 ### Interface

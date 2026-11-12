@@ -366,9 +366,9 @@ export const GROUPS: FeatureGroup[] = [
         text: 'GeoJSON, GPX, PMTiles and vector tiles under the OSM data, from a file or a link.',
         maid: { factory: 'dataLayers' },
         pkg: 'module-data-layers',
-        iD: 'partial',
+        iD: 'yes',
         rapid: 'yes',
-        note: 'iD has no PMTiles or vector tiles; KML only in iD and Rapid.',
+        note: 'Each with its own formats: iD GeoJSON, GPX and KML; Rapid also PMTiles and vector tiles; Maid GeoJSON, GPX, PMTiles and vector tiles.',
       },
       {
         title: 'Private task lists',
@@ -401,8 +401,8 @@ export const GROUPS: FeatureGroup[] = [
         text: 'Issues from Osmose, KeepRight or MapRoulette on the map.',
         maid: 'core',
         maidSupport: 'no',
-        iD: 'partial',
-        rapid: 'partial',
+        iD: 'yes',
+        rapid: 'yes',
         note: 'iD: Osmose. Rapid: Osmose, KeepRight and MapRoulette.',
       },
       {
