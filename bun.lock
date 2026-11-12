@@ -85,6 +85,38 @@
         "vite": "^8.3.5",
       },
     },
+    "apps/maid-golf": {
+      "name": "@osm-editor-kit/maid-golf",
+      "version": "0.1.0",
+      "dependencies": {
+        "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-filters": "workspace:*",
+        "@osm-editor-kit/maid-module-data-layers": "workspace:*",
+        "@osm-editor-kit/maid-module-golf": "workspace:*",
+        "@osm-editor-kit/maid-module-imagery": "workspace:*",
+        "@osm-editor-kit/maid-module-lenses": "workspace:*",
+        "@osm-editor-kit/maid-module-notes": "workspace:*",
+        "@osm-editor-kit/maid-module-shapes": "workspace:*",
+        "@osm-editor-kit/maid-module-street-imagery": "workspace:*",
+        "@osm-editor-kit/maid-module-tasks": "workspace:*",
+        "@osm-editor-kit/maid-operations": "workspace:*",
+        "@osm-editor-kit/maid-presets": "workspace:*",
+        "@osm-editor-kit/maid-renderer": "workspace:*",
+        "@osm-editor-kit/maid-shell": "workspace:*",
+        "@osm-editor-kit/maid-ui": "workspace:*",
+        "@osm-editor-kit/maid-validation": "workspace:*",
+        "@tailwindcss/vite": "^4.3.3",
+        "maplibre-gl": "^6.0.0",
+        "react": "^19.3.1",
+        "tailwindcss": "^4.3.3",
+      },
+      "devDependencies": {
+        "@types/react": "^19.2.0",
+        "@vitejs/plugin-react": "6.1.2",
+        "oxc-transform-react": "^0.155.0",
+        "vite": "^8.3.5",
+      },
+    },
     "apps/maid-indoor": {
       "name": "@osm-editor-kit/maid-indoor",
       "version": "0.1.0",
@@ -294,6 +326,23 @@
         "react-map-gl": "^8.1.3",
         "zod": "4.6.7",
         "zustand": "^5.0.16",
+      },
+      "devDependencies": {
+        "@types/react": "^19.3.0",
+      },
+    },
+    "packages/module-golf": {
+      "name": "@osm-editor-kit/maid-module-golf",
+      "version": "0.0.0",
+      "dependencies": {
+        "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-i18n": "workspace:*",
+        "@osm-editor-kit/maid-model": "workspace:*",
+        "@osm-editor-kit/maid-presets": "workspace:*",
+        "@osm-editor-kit/maid-style": "workspace:*",
+        "@osm-editor-kit/maid-ui": "workspace:*",
+        "@osm-editor-kit/maid-validation": "workspace:*",
+        "react": "^19.3.1",
       },
       "devDependencies": {
         "@types/react": "^19.3.0",
@@ -950,6 +999,8 @@
 
     "@osm-editor-kit/maid-filters": ["@osm-editor-kit/maid-filters@workspace:packages/filters"],
 
+    "@osm-editor-kit/maid-golf": ["@osm-editor-kit/maid-golf@workspace:apps/maid-golf"],
+
     "@osm-editor-kit/maid-i18n": ["@osm-editor-kit/maid-i18n@workspace:packages/i18n"],
 
     "@osm-editor-kit/maid-indoor": ["@osm-editor-kit/maid-indoor@workspace:apps/maid-indoor"],
@@ -965,6 +1016,8 @@
     "@osm-editor-kit/maid-module-bike-infrastructure": ["@osm-editor-kit/maid-module-bike-infrastructure@workspace:packages/module-bike-infrastructure"],
 
     "@osm-editor-kit/maid-module-data-layers": ["@osm-editor-kit/maid-module-data-layers@workspace:packages/module-data-layers"],
+
+    "@osm-editor-kit/maid-module-golf": ["@osm-editor-kit/maid-module-golf@workspace:packages/module-golf"],
 
     "@osm-editor-kit/maid-module-imagery": ["@osm-editor-kit/maid-module-imagery@workspace:packages/module-imagery"],
 

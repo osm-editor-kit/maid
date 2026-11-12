@@ -291,6 +291,15 @@ export const GROUPS: FeatureGroup[] = [
         note: 'Rapid has a lanes field marked as an unfinished experiment.',
       },
       {
+        title: 'Golf courses',
+        text: 'The holes as a scorecard (number, par, handicap, length, what is missing), a golf map style, eight golf rules with fixes, and the golf presets first in the type picker. A prototype.',
+        maid: { factory: 'golf' },
+        pkg: 'module-golf',
+        iD: 'partial',
+        rapid: 'partial',
+        note: 'iD and Rapid have the golf presets of the tagging schema; they have no scorecard, golf style or golf rules.',
+      },
+      {
         title: 'Bicycle infrastructure',
         text: 'Every road classified by TILDA\'s processing and drawn by category; a section per side with the open question, "Change to" and the checklist of a dataset.',
         maid: { factories: ['tilda', 'bikeInfrastructure'] },

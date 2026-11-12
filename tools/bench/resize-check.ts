@@ -25,10 +25,10 @@ const HALF_H = 40
 
 process.exit(
   await runCheck(sceneName, async ({ page, report, settle }) => {
-    if (app !== 'parking' && app !== 'indoor') {
+    if (app !== 'parking' && app !== 'indoor' && app !== 'golf') {
       report(
-        'the check runs on --app parking or indoor, where Resize is on',
-        'parking or indoor',
+        'the check runs on --app parking, indoor or golf, where Resize is on',
+        'parking, indoor or golf',
         app,
       )
       return

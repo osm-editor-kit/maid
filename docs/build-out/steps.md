@@ -587,3 +587,20 @@ Tobias, 2026-11-10: lane tooling in a Maid version of its own, in the list of ve
       **Test for Tobias:** Karl-Marx-Straße at `map=20/52.48057/13.43568&id=w960167546`: the status line names the colour; the list button in a turn cell shows all turns. A tertiary road without lane tags shows the two steps to green.
 - [ ] Open: `mirrorTags` in osm-way-chain itself (npm) still mirrors lane pipes and turns, to fix there and hand to a person; whether the plain `placement` of a `oneway=-1` road counts along travel (assumed).
 - [ ] The benchmark with the section open.
+
+### Golf (started 2026-11-12)
+
+Tobias, 2026-11-12: a Maid for golf courses with its own favourites, style, dock list, presets, rules and filters; a plan
+and a prototype to test locally first, not on `main` yet. Plan and sources: [docs/research/golf/plan.md](../research/golf/plan.md).
+
+- [x] 2026-11-12: `apps/maid-golf` (port 5180) with `packages/module-golf`: the golf presets first in the type picker,
+      the lens "Standard: Golf", the dock view "Holes" (scorecard), eight golf rules with fixes, filters that lock roads
+      and buildings, the drawing tools that fit a course, the made-up scene `golf` (`bun run fixtures-golf`), the tile and
+      a row on the overview page.
+      **Test for Tobias:** `bun run dev-api` and `bun run dev-golf`, then
+      http://127.0.0.1:5180/?scene=golf&map=16.6/52.6029/13.3162 : the map style is "Standard: Golf"; open "Holes" in the
+      dock, hole 3 says "par" is missing; choose it, the hole is selected; the Issues dock lists the bunker without sand,
+      the pond without water, "Hole 3" and sport=golf on the fairway, each with a fix; the type picker for an area starts
+      with Green, Fairway, Tee, Bunker.
+- [ ] The next steps of the plan: a "Hole" section above the fields, drawing a hole in one go, rules that compare
+      features, scorecard import, `check-golf`.
