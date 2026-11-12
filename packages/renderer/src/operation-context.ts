@@ -8,6 +8,7 @@ export function operationContextOf(
   map: MapLibreMap | undefined,
   data: OsmData,
   selectedIds: string[],
+  presetOf?: OperationContext['presetOf'],
 ): OperationContext {
   // the view lets an operation refuse a feature that is mostly outside it ("too large", as iD)
   // under a turn the view is a quadrilateral: its four canvas corners, unprojected (pitch is 0); see extent.ts
@@ -38,5 +39,6 @@ export function operationContextOf(
       max: [bounds.getEast(), bounds.getNorth()],
     },
     viewPolygon,
+    presetOf,
   }
 }

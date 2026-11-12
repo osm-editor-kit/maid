@@ -1045,7 +1045,13 @@ export class MaidEngine {
 
   /** What an operation looks at: the current data and the selection */
   operationContext(): OperationContext {
-    return operationContextOf(this.map, this.data, this.selectedIds)
+    // the presets let extract refuse a feature whose point would carry no tags (a building), as iD
+    const presets = this.options.editor.presets
+    const presetOf: OperationContext['presetOf'] =
+      presets &&
+      ((entity, graph) =>
+        presets.match(entity.tags, entity.geometry(graph), this.centreOf(entity.id)))
+    return operationContextOf(this.map, this.data, this.selectedIds, presetOf)
   }
 
   /**

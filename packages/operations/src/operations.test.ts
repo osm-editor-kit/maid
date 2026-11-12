@@ -420,8 +420,38 @@ describe('extract', () => {
     expect(extractOperation.applies(at(['n9'], lone))).toBe(false)
   })
 
-  it('has no disabled state: iD disables extract only for the viewport', () => {
+  it('is enabled for a tagged vertex, whatever the presets say', () => {
     expect(extractOperation.disabled(at(['n2'], signal))).toBeUndefined()
+    expect(
+      extractOperation.disabled({ ...at(['n2'], signal), presetOf: () => areaOnly }),
+    ).toBeUndefined()
+  })
+
+  // iD: only allow extraction from ways if the preset supports points
+  const areaOnly = { name: 'Building', geometry: ['area'] }
+  // area=yes: this test model has no area keys, so a building alone would be a line
+  const school = graphOf(
+    node('a1', 0, 0),
+    node('a2', 0.001, 0),
+    node('a3', 0.001, 0.001),
+    way('w9', ['a1', 'a2', 'a3', 'a1'], { building: 'yes', area: 'yes' }),
+  )
+
+  it('greys out for an area whose preset is not a point (a building), with the reason', () => {
+    const context = { ...at(['w9'], school), presetOf: () => areaOnly }
+    expect(extractOperation.applies(context)).toBe(true)
+    expect(extractOperation.disabled(context)).toBe(
+      'There is nothing to extract: “Building” is not mapped as a point, so the point would have no tags.',
+    )
+  })
+
+  it('is enabled for an area whose preset may be a point', () => {
+    const presetOf = () => ({ name: 'School', geometry: ['point', 'area'] })
+    expect(extractOperation.disabled({ ...at(['w9'], school), presetOf })).toBeUndefined()
+  })
+
+  it('stays enabled for a tagged area without presets', () => {
+    expect(extractOperation.disabled(at(['w9'], school))).toBeUndefined()
   })
 })
 

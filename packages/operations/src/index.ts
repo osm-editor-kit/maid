@@ -8,6 +8,7 @@ export type {
   Extent,
   Operation,
   OperationContext,
+  OperationPreset,
   OperationGroup,
   OperationHint,
   OperationResult,

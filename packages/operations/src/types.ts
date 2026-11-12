@@ -1,4 +1,4 @@
-import type { Action, Graph } from '@osm-editor-kit/maid-model'
+import type { Action, Graph, OsmEntity } from '@osm-editor-kit/maid-model'
 import type { OperationHost } from './index.ts'
 
 /**
@@ -22,7 +22,16 @@ export type OperationContext = {
    * and `viewExtent` is not read by the rule.
    */
   viewPolygon?: [number, number][]
+  /**
+   * The preset a feature's tags match (iD's `presetManager.match`): its name and the geometries it may be drawn as.
+   * Optional: without it (no presets, or not made yet) extract offers a point from every tagged area. The app passes
+   * the editor's presets.
+   */
+  presetOf?: (entity: OsmEntity, graph: Graph) => OperationPreset | undefined
 }
+
+/** What an operation reads of a preset (see `OperationContext.presetOf`); a `Preset` of maid-presets fits this type */
+export type OperationPreset = { name: string; geometry: readonly string[] }
 
 /** What running an operation means: actions that become one undo step */
 export type OperationResult = {

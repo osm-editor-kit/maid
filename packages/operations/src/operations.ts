@@ -1,8 +1,8 @@
 // The edit operations of the edit menu, as plain data and functions on the data model.
 // Ported from iD's modules/operations (ISC, © iD contributors). Applicability and the order of
-// checks follow iD. The view is the one thing the map adds: `too_large` uses the optional
-// `viewExtent` of the context (see extent.ts). Left out: hidden or not downloaded data, the
-// localizer, presets, and iD's OSM connection.
+// checks follow iD. The map adds the view: `too_large` uses the optional `viewExtent` of the
+// context (see extent.ts); the app adds the presets for extract (`presetOf`). Left out: hidden
+// or not downloaded data, the localizer, and iD's OSM connection.
 import {
   OsmNode,
   OsmRelation,
@@ -542,20 +542,34 @@ export const disconnectOperation: Operation = {
 // Extract
 
 /**
- * iD: a vertex with interesting tags, or an area with interesting tags. iD also requires that the
- * preset of the feature allows points; there are no presets here, so every area with tags is offered.
+ * The name of the preset that keeps a point from coming out of this feature, following iD's operationExtract: a
+ * way's preset has to allow points. A building does not: its point would carry no tags, since actionExtract keeps the
+ * building keys on the area. Undefined when a point can come out, for a vertex, and without presets in the context.
  */
+function extractBlockingPreset(entity: OsmEntity, context: OperationContext) {
+  if (entity instanceof OsmNode) return undefined
+  const preset = context.presetOf?.(entity, context.graph)
+  return preset && !preset.geometry.includes('point') ? preset.name : undefined
+}
+
+/**
+ * What extract is offered for: vertices and areas with tags. An area whose preset is not a point keeps a greyed
+ * Extract with the reason (iD hides it). Untagged features and lone points do not get the button, as in iD. Lines
+ * are left out: iD extracts from a line whose preset may be a point, but actionExtract here places the point at the
+ * pole of inaccessibility, which only areas have.
+ */
+function extractOffered(entity: OsmEntity, context: OperationContext) {
+  const graph = context.graph
+  if (!entity.hasInterestingTags()) return false
+  if (entity instanceof OsmNode) return graph.parentWays(entity).length > 0
+  if (!(entity instanceof OsmWay)) return false
+  return entity.geometry(graph) === 'area'
+}
+
 function extractTargets(context: OperationContext) {
   const entities = resolveSelection(context)
   if (!entities) return undefined
-  const graph = context.graph
-  const ok = entities.every((entity) => {
-    if (!entity.hasInterestingTags()) return false
-    if (entity instanceof OsmNode) return graph.parentWays(entity).length > 0
-    if (entity instanceof OsmWay) return entity.geometry(graph) === 'area'
-    return false
-  })
-  return ok ? entities : undefined
+  return entities.every((entity) => extractOffered(entity, context)) ? entities : undefined
 }
 
 const EXTRACT_REASONS: Record<string, Sentence> = {
@@ -563,11 +577,16 @@ const EXTRACT_REASONS: Record<string, Sentence> = {
     "A point can't be extracted because not enough of this feature is visible.",
     "Points can't be extracted because not enough of these features are visible.",
   ],
+  not_a_point: [
+    'There is nothing to extract: “{preset}” is not mapped as a point, so the point would have no tags.',
+    'There is nothing to extract: some of these features are not mapped as points, so their points would have no tags.',
+  ],
 }
 
 /**
- * Extract: pulls a point out of a vertex or an area. The new point is selected. The one reason iD
- * has for extract is about the view: `too_large`.
+ * Extract: pulls a point out of a vertex or an area. The new point is selected. Disabled when a feature's
+ * preset is not a point (iD hides the operation then; Maid greys it out with the reason) and, as iD, when the
+ * feature is mostly outside the view: `too_large`.
  */
 export const extractOperation: Operation = {
   id: 'extract',
@@ -576,10 +595,15 @@ export const extractOperation: Operation = {
   group: 'structure',
   applies: (context) => extractTargets(context) !== undefined,
   disabled: (context) => {
-    if (!extractTargets(context)) return undefined
-    return isTooLargeToEdit(context)
-      ? reasonSentence(EXTRACT_REASONS, 'too_large', context.selected.length)
-      : undefined
+    const targets = extractTargets(context)
+    if (!targets) return undefined
+    const n = context.selected.length
+    for (const entity of targets) {
+      const preset = extractBlockingPreset(entity, context)
+      if (preset !== undefined)
+        return reasonSentence(EXTRACT_REASONS, 'not_a_point', n).replace('{preset}', preset)
+    }
+    return isTooLargeToEdit(context) ? reasonSentence(EXTRACT_REASONS, 'too_large', n) : undefined
   },
   run: (context) => {
     const targets = extractTargets(context) ?? notApplicable('extract')
