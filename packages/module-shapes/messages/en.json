@@ -103,12 +103,13 @@
       "declarations": ["input input"],
       "selectors": ["input"],
       "match": {
-        "input=touch": "Drag the dot on a side to pull it out or in. Tap the outline to add a corner. Tap Done when finished.",
-        "input=*": "Drag the dot on a side to pull it out or in. Click the outline to add a corner. Enter, Escape or a click away ends."
+        "input=touch": "Drag a grip to pull its side out or in; it snaps in line with corners nearby. To pull only part of a side, first tap the outline twice: the part between gets its own grip. Tap Done when finished.",
+        "input=*": "Drag a grip to pull its side out or in; it snaps in line with corners nearby. To pull only part of a side, first click the outline twice: the part between gets its own grip. Enter, Escape or a click away ends."
       }
     }
   ],
   "extrude_hint_move": "Move side",
+  "extrude_hint_free": "Without snapping",
   "extrude_out": "{distance} out",
   "extrude_in": "{distance} in",
   "extrude_done": "Done",

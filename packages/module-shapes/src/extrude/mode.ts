@@ -2,9 +2,10 @@
  * The extrude mode. Each side of the selected way has a handle in its middle (ExtrudeOnMap.tsx); a drag of one pulls the
  * side out or in at a right angle to itself, and the map draws the way as it would be. Letting go keeps the pull as one
  * undo step and the mode stays on with the way as it is now, so the next side can be pulled, as in JOSM. A click on the
- * outline adds a corner there (its own undo step), to bound the part of a wall to pull. The panel's toggle, or a held
+ * outline adds a corner there (its own undo step), to bound the part of a wall to pull. The pulled side snaps into line
+ * with a corner of the way or of a feature nearby, with a guide (Alt pulls freely). The panel's toggle, or a held
  * Shift, moves the side without new corners. Escape, Enter, Done, a click away from the way or another selection end the
- * mode; undo and redo work as usual and the handles follow the data. The operation "Extrude" starts the mode
+ * mode; so do undo and redo (the engine ends every module mode on them), which take back the last pull. The operation "Extrude" starts the mode
  * (`startExtrude`). Plan: docs/research/drawing-tools/9-extrude.md.
  */
 import { actionAddMidpoint, OsmNode, type Graph } from '@osm-editor-kit/maid-model'
@@ -20,6 +21,8 @@ import {
   extrudeWayOf,
   MIN_DISTANCE,
   sidesOf,
+  snapDistance,
+  snapTargets,
   type ExtrudeHow,
   type Side,
 } from './extrude.ts'
@@ -27,6 +30,9 @@ import { HANDLE_HIT_LAYERS, sideIndexOf } from './shapes.ts'
 
 /** The mode's id: `exitModuleMode(MODE_ID)` ends only this mode */
 export const MODE_ID = 'extrude'
+
+/** Pixels on the screen within which the pulled side snaps into line with a corner */
+const SNAP_PX = 8
 
 /**
  * Starts an extrude of one way: the mode takes the pointer until it ends. Nothing starts while another edit is under
@@ -64,8 +70,11 @@ function extrudeMode(
   wayId: string,
 ): ModuleMode & { refresh: () => boolean; watch: () => void } {
   const { editor, engine } = host
-  /** The side being pulled and where the pointer was when the pull started, in the way's metres */
-  let drag: { side: Side; start: Pt } | undefined
+  /**
+   * The side being pulled, where the pointer was when the pull started (in the way's metres), and the corners nearby it
+   * can line up with
+   */
+  let drag: { side: Side; start: Pt; targets: Pt[] } | undefined
   let unwatch: (() => void) | undefined
   let seen: Graph | undefined
 
@@ -83,16 +92,28 @@ function extrudeMode(
   const howOf = (shift: boolean): ExtrudeHow =>
     extrudeSnapshot().moveSide !== shift ? 'move' : 'corners'
 
-  /** The pull for the pointer at this place; undefined without a drag */
-  const pullAt = (lon: number, lat: number, shift: boolean) => {
+  /** Metres a few pixels make on the screen at the map's zoom: how close a corner must be to snap */
+  const tolerance = (lat: number): number => {
+    const zoom = engine.map?.getZoom()
+    if (zoom === undefined) return 0
+    const metresPerPixel = (40075016.686 * Math.cos((lat * Math.PI) / 180)) / (512 * 2 ** zoom)
+    return SNAP_PX * metresPerPixel
+  }
+
+  /** The pull for the pointer at this place; undefined without a drag. Alt pulls freely, without snapping. */
+  const pullAt = (lon: number, lat: number, modifiers: { shift: boolean; alt: boolean }) => {
     const { way } = extrudeSnapshot()
     if (!drag || !way) return undefined
     const moved = sub(toMetres(way.frame, [lon, lat]), drag.start)
-    const pulled = dot(moved, drag.side.normal)
+    const free = dot(moved, drag.side.normal)
+    const snapped = modifiers.alt
+      ? { distance: free }
+      : snapDistance(way, drag.side, free, drag.targets, tolerance(lat))
     return {
       side: drag.side,
-      distance: pulled,
-      result: extrude(way, drag.side, pulled, howOf(shift)),
+      distance: snapped.distance,
+      result: extrude(way, drag.side, snapped.distance, howOf(modifiers.shift)),
+      target: snapped.target,
     }
   }
 
@@ -130,13 +151,13 @@ function extrudeMode(
       const side = sides.reduce((best, s) =>
         distance(s.middle, start) < distance(best.middle, start) ? s : best,
       )
-      drag = { side, start }
+      drag = { side, start, targets: snapTargets(editor.history.staging.graph, way, side) }
     },
     onDrag: (_name, lon, lat, info) => {
-      extrudeActions().pull(pullAt(lon, lat, info.modifiers.shift))
+      extrudeActions().pull(pullAt(lon, lat, info.modifiers))
     },
     onDragEnd: (_name, lon, lat, info) => {
-      const pull = pullAt(lon, lat, info.modifiers.shift)
+      const pull = pullAt(lon, lat, info.modifiers)
       const { way } = extrudeSnapshot()
       drag = undefined
       extrudeActions().pull(undefined)

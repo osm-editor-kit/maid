@@ -5,14 +5,15 @@ import { app, runCheck } from './check-page'
  * inspector's command bar (its tooltip lists J and Shift) and pulls sides with the handles of the module's source
  * (`map.getSource('extrude-sides')`, the source's own data). The east side pulled out makes the rectangle longer with no
  * new corner and the panel shows the distance; two clicks on the outline add two corners and the part between pulled
- * out is a bump with two new corners; Shift moves the bump's side without new corners. Each pull and each corner is one
+ * out is a bump with two new corners; Shift moves the bump's side without new corners; a second bump snaps in line with
+ * the first and shows a guide, Alt pulls it freely. Each pull and each corner is one
  * undo step and the mode stays on; Enter ends it with the area selected; J starts it again and Escape ends it.
  *
  *   bun tools/bench/extrude-check.ts small --app parking
  *
  * Needs open ground in view: the small scene has it. Prints one line per check: `ok <check>`, or `FAIL <check>` with
  * expected and actual. Exits 1 on any failure, including a request outside localhost.
- * Expected: 20 `ok` lines.
+ * Expected: 22 `ok` lines.
  */
 
 const sceneName = process.argv[2] ?? 'small'
@@ -96,6 +97,7 @@ process.exit(
         undefined,
       )
     /** A real drag from a handle by (dx, dy) px, with keys held from before the press to after the release */
+    let lastGuide = false
     const dragFrom = async (from: XY, dx: number, dy: number, keys: string[] = []) => {
       const a = abs(from)
       for (const k of keys) await page.keyboard.down(k)
@@ -105,6 +107,14 @@ process.exit(
       await page.mouse.move(a.x + dx, a.y + dy, { steps: 4 })
       await settle()
       const shown = await page.locator('[data-extrude-distance]').allInnerTexts()
+      // whether the pull snapped: the module's source has a guide line during the drag
+      lastGuide = await page.evaluate(async () => {
+        const source = window.__maid.map.getSource('extrude-sides') as
+          | { getData(): Promise<{ features?: any[] }> }
+          | undefined
+        const features = (await source?.getData())?.features ?? []
+        return features.some((f) => f.properties?.kind === 'guide')
+      })
       await page.mouse.up()
       for (const k of [...keys].reverse()) await page.keyboard.up(k)
       await settle()
@@ -240,12 +250,40 @@ process.exit(
       [near(undone[0], { x: centre.x - 30, y: top - 40 }), await undoLabel()],
     )
 
-    // --- J again, Escape: the mode ends, nothing changes ---
+    // --- J again: a second bump right of the first, pulled 37 px, snaps in line with the first (40 px) ---
     await page.evaluate((id) => window.__bench.select(id), areaId)
     await settle()
-    const before = await undoLabel()
     await key('j')
     report('J starts it again', 'extrude', await modeId())
+    await click({ x: centre.x + 30, y: top })
+    await click({ x: centre.x + 60, y: top })
+    const second = await handleNear({ x: centre.x + 45, y: top })
+    await dragFrom(second!, 0, -37)
+    let nodes2 = await nodesOf(areaId)
+    let twin = (await where(nodes2.slice(6, 8))) as XY[]
+    report(
+      'pulled 37 px near the first bump: it snaps to 40 px, with a guide during the pull',
+      [true, true, true],
+      [
+        lastGuide,
+        near(twin[0], { x: centre.x + 30, y: top - 40 }),
+        near(twin[1], { x: centre.x + 60, y: top - 40 }),
+      ],
+    )
+    // Alt pulls freely: the same pull stays at 37 px
+    // undo ends the mode (as every module mode, engine.undo); J starts it again
+    await key('ControlOrMeta+z')
+    await key('j')
+    const again = await handleNear({ x: centre.x + 45, y: top })
+    await dragFrom(again!, 0, -37, ['Alt'])
+    nodes2 = await nodesOf(areaId)
+    twin = (await where(nodes2.slice(6, 8))) as XY[]
+    report(
+      'with Alt: no snap, the bump is 37 px high and no guide',
+      [false, true],
+      [lastGuide, near(twin[0], { x: centre.x + 30, y: top - 37 })],
+    )
+    const before = await undoLabel()
     await key('Escape')
     report(
       'Escape: the mode ends with no undo step',

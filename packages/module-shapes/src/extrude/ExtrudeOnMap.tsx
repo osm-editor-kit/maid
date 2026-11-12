@@ -7,6 +7,7 @@ import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { formatModifiers, isApplePlatform } from '@osm-editor-kit/maid-ui'
 import { Layer, type LayerProps, Source } from 'react-map-gl/maplibre'
 import { formatMetres, m } from '../messages.ts'
+import { GRIP_IMAGE, useHandleImages } from '../shared/handle-images.ts'
 import { keepFromMap } from '../shared/keep-from-map.ts'
 import {
   extrudeActions,
@@ -21,7 +22,6 @@ import {
   HANDLE_HIT_LAYER,
   HANDLE_HIT_RADIUS,
   HANDLE_LAYER,
-  HANDLE_RADIUS,
 } from './shapes.ts'
 
 const COLOUR = '#2563eb'
@@ -46,6 +46,14 @@ const LAYERS = [
     paint: { 'line-color': COLOUR, 'line-width': 2 },
   } satisfies LayerProps,
   {
+    id: 'extrude-guide',
+    type: 'line',
+    filter: ['==', ['get', 'kind'], 'guide'],
+    layout: { 'line-cap': 'round' },
+    // the guides' look of the renderer (layers.ts, `guides`): dashed blue, as iD's
+    paint: { 'line-color': '#2b8ff0', 'line-width': 1.5, 'line-dasharray': [4, 3] },
+  } satisfies LayerProps,
+  {
     id: 'extrude-distance',
     type: 'symbol',
     filter: ['==', ['get', 'kind'], 'distance'],
@@ -55,18 +63,21 @@ const LAYERS = [
       'text-size': 12,
       'text-allow-overlap': true,
       'text-ignore-placement': true,
+      'text-offset': [0, 1.6],
     },
     paint: { 'text-color': '#ffffff', 'text-halo-color': COLOUR, 'text-halo-width': 2 },
   } satisfies LayerProps,
   {
+    // a grip along the side, not a round dot: dots are nodes (shared/handle-images.ts)
     id: HANDLE_LAYER,
-    type: 'circle',
+    type: 'symbol',
     filter: ['==', ['get', 'kind'], 'handle'],
-    paint: {
-      'circle-radius': HANDLE_RADIUS,
-      'circle-color': '#ffffff',
-      'circle-stroke-color': COLOUR,
-      'circle-stroke-width': 2,
+    layout: {
+      'icon-image': GRIP_IMAGE,
+      'icon-rotate': ['get', 'rotate'],
+      'icon-rotation-alignment': 'map',
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
     },
   } satisfies LayerProps,
   {
@@ -78,6 +89,7 @@ const LAYERS = [
 ]
 
 export function ExtrudeOnMap({ editor, engine }: MapContentProps) {
+  useHandleImages()
   const { way, sides } = useExtrudeWay()
   const pull = useExtrudePull()
   const moveSide = useExtrudeMoveSide()

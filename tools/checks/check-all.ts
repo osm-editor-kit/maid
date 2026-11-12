@@ -159,7 +159,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   cut: { maid: 0, bicycle: 0, parking: 25, indoor: 25, lanes: 0 },
   divide: { maid: 0, bicycle: 0, parking: 23, indoor: 23, lanes: 0 },
   resize: { maid: 0, bicycle: 0, parking: 32, indoor: 32, lanes: 0 },
-  extrude: { maid: 0, bicycle: 0, parking: 20, indoor: 0, lanes: 0 },
+  extrude: { maid: 0, bicycle: 0, parking: 22, indoor: 0, lanes: 0 },
   display: { maid: 12, bicycle: 12, parking: 12, indoor: 12, lanes: 12 },
   touch: { maid: 0, bicycle: 0, parking: 14, indoor: 14, lanes: 0 },
   levels: { maid: 0, bicycle: 0, parking: 0, indoor: 34, lanes: 0 },

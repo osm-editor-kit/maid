@@ -3,10 +3,14 @@
 // `extrudeActions()`, from the mode's callbacks and the panel's button only. The data changes when a pull ends
 // (mode.ts); during a pull the map draws the store's result.
 import { create } from 'zustand'
+import type { Pt } from '../shared/vector.ts'
 import type { ExtrudeResult, ExtrudeWay, Side } from './extrude.ts'
 
-/** The side being pulled, how far, and the way it would make */
-export type ExtrudePull = { side: Side; distance: number; result: ExtrudeResult }
+/**
+ * The side being pulled, how far, the way it would make, and the corner it lines up with when it snapped (the map
+ * draws a guide from there to the side)
+ */
+export type ExtrudePull = { side: Side; distance: number; result: ExtrudeResult; target?: Pt }
 
 type ExtrudeState = {
   /** The way being extruded, in metres; undefined when no extrude is under way */

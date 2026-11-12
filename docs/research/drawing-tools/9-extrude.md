@@ -37,7 +37,7 @@ Known complaints: extruding the side of a rectangle used to leave nodes on a str
 - **Default, "new corners":** the old corners stay and two new ones are made, the bump of JOSM. But at a corner whose next side already runs at about a right angle to the pulled side (within 10°), that corner moves along it instead of getting a new one, so pulling a side of a rectangle makes the rectangle longer, and no node is left on a straight line.
 - **Toggle "Move side" (Shift):** no new corners; each end of the side slides along its neighbouring side, so the neighbours keep their direction (JOSM's Ctrl with dual align). An end without a neighbour (the end of a line), or with a neighbour almost parallel to the side, moves at a right angle. The panel toggle is there for touch; a held Shift turns it round during a drag.
 - **Click on the outline:** adds a corner there (its own undo step), so the post's flow, two nodes then pull the part between, happens in one mode. This replaces JOSM's double-click.
-- **End:** Escape, Enter, Done, a click away from the way, or another selection. Undo and redo work as usual while the mode is on: the handles follow the data.
+- **End:** Escape, Enter, Done, a click away from the way, or another selection. Undo and redo take back a pull and end the mode, as for every module mode (`engine.undo`); J starts it again.
 - **Connected ways** at a moved corner move with it, as with any drag of a node. New corners belong to this way only.
 
 **Why not a mode without an operation** (handles on every selected area all the time): it would cross the midpoint handles that add a node, and a module cannot take a drag in browse mode. Resize, Cut and Divide all start from the edit menu, so this one does too.
@@ -66,3 +66,9 @@ Texts in en, de, fr and es. A browser check `check-extrude` (draws a rectangle, 
 ## 6. Built (2026-11-10)
 
 As planned, without the tick. `packages/module-shapes/src/extrude/`, `extrude()` in `apps/maid-parking` only. The icon is `fas-chevron-circle-up` (the sprites are cut to the icons Maid shows, and have no better arrow). 23 unit tests (`extrude.test.ts`, `mode.test.ts`); `bun run check-extrude --app parking`, 20 ok, run in the agent's Linux Chromium. Not run by a person yet.
+
+## 7. After Tobias's first try (2026-11-12)
+
+- **Help text:** it took a while to see that new corners give a new handle. The panel now says: to pull only part of a side, click the outline twice, and the part between gets its own grip.
+- **Handles:** round dots are nodes on the map, so a handle that takes a side is a grip: a short white bar with a blue rim and three lines across, laid along its side (`shared/handle-images.ts`, made on a canvas and added with `addImage`). Resize uses the same grip on its edges and small squares at its corners.
+- **Snapping:** the pulled side snaps into line with a corner when that corner is within 8 px of the side's line: the way's own corners and those of every node within 80 m (collected once when the pull starts). A dashed guide in the look of the renderer's guides runs from that corner to the nearer end of the side. Alt pulls freely. The distance label now sits 1.6 em below the grip instead of up to 4 m out, which was far away at high zoom.

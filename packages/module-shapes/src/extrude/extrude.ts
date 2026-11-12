@@ -258,3 +258,63 @@ export function extrudeAction(way: ExtrudeWay, result: ExtrudeResult): Action {
     return graph.commit()
   }
 }
+
+/** How far around the pulled side corners count for snapping (m): a building or a parking lot, not the whole map */
+const SNAP_RADIUS = 80
+
+/**
+ * The places the pulled side can line up with: the corners of the way and of everything nearby, within SNAP_RADIUS of
+ * the side's middle, without the side's own two ends. Asked once when a pull starts.
+ * @param   graph - The data
+ * @param   way   - The way in metres
+ * @param   side  - The side being pulled
+ * @return  The places in the way's metres
+ */
+export function snapTargets(graph: Graph, way: ExtrudeWay, side: Side): Pt[] {
+  const targets: Pt[] = []
+  const seen = new Set<string>([side.a, side.b])
+  const take = (id: string, loc: Loc | undefined) => {
+    if (seen.has(id) || !loc) return
+    seen.add(id)
+    const p = toMetres(way.frame, loc)
+    if (Math.hypot(p.x - side.middle.x, p.y - side.middle.y) <= SNAP_RADIUS) targets.push(p)
+  }
+  // the way's own corners first: when two places are as good, its own wins
+  for (const id of way.nodes)
+    take(id, way.points.has(id) ? toLoc(way.frame, way.points.get(id)!) : undefined)
+  // an entry in `local` replaces the one in `base`; `undefined` there means deleted (as OsmData.all)
+  for (const [id, entity] of graph.base.entities)
+    if (!graph.local.entities.has(id) && entity instanceof OsmNode) take(id, entity.loc)
+  for (const entity of graph.local.entities.values())
+    if (entity instanceof OsmNode) take(entity.id, entity.loc)
+  return targets
+}
+
+/**
+ * The pull's distance after snapping: a place within `tolerance` of the moved side's line puts the side through it,
+ * so it lines up with a corner of the way or of a feature nearby. The nearest wins.
+ * @param   way       - The way in metres
+ * @param   side      - The side being pulled
+ * @param   distance  - The distance the pointer gives
+ * @param   targets   - The places to line up with (`snapTargets`)
+ * @param   tolerance - How close a place must be to the line, in metres (a few pixels on the screen)
+ * @return  The distance, and the place it lines up with, if any
+ */
+export function snapDistance(
+  way: ExtrudeWay,
+  side: Side,
+  distance: number,
+  targets: readonly Pt[],
+  tolerance: number,
+): { distance: number; target?: Pt } {
+  const a = way.points.get(side.a)!
+  let best: { distance: number; target: Pt; off: number } | undefined
+  for (const q of targets) {
+    const along = dot(sub(q, a), side.normal)
+    if (Math.abs(along) < MIN_DISTANCE) continue
+    const off = Math.abs(along - distance)
+    if (off <= tolerance && (!best || off < best.off - 1e-9))
+      best = { distance: along, target: q, off }
+  }
+  return best ? { distance: best.distance, target: best.target } : { distance }
+}

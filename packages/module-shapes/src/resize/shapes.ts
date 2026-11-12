@@ -3,6 +3,7 @@
  * be, plus the names and sizes of the layers that draw them. Pure: no map, no editor.
  */
 import type { Feature, FeatureCollection } from 'geojson'
+import { gripRotation } from '../shared/handle-images.ts'
 import type { Loc } from '../shared/metres.ts'
 import { cornersOf, handleAt, HANDLES, type Extent, type Handle } from './box.ts'
 import { locOf, type ResizeBox, type ResizePreview } from './resize.ts'
@@ -13,9 +14,6 @@ export const HANDLE_LAYER = 'resize-handle'
 /** The invisible layer over the handles: a press within HANDLE_HIT_RADIUS pixels takes the handle, for a finger too */
 export const HANDLE_HIT_LAYER = 'resize-handle-hit'
 export const HANDLE_HIT_LAYERS: readonly string[] = [HANDLE_HIT_LAYER]
-/** The radius of a corner handle and of an edge handle, in pixels (ResizeOnMap.tsx draws them) */
-export const CORNER_RADIUS = 6
-export const EDGE_RADIUS = 5
 export const HANDLE_HIT_RADIUS = 14
 
 const PREFIX = 'resize:'
@@ -49,10 +47,20 @@ export function boxShapes(box: ResizeBox, extent: Extent, label?: string): Featu
       geometry: { type: 'LineString', coordinates: [...ring, ring[0]!] },
     },
   ]
+  // the box's u axis in metres (x east, y north): an edge handle on n or s lies along it, one on e or w across it
+  const u = { x: box.axes.cos, y: box.axes.sin }
+  const v = { x: -box.axes.sin, y: box.axes.cos }
   for (const handle of HANDLES) {
+    const corner = handle.length === 2
+    const along = handle === 'n' || handle === 's' ? u : v
     features.push({
       type: 'Feature',
-      properties: { kind: handle.length === 2 ? 'corner' : 'edge', handle: handleName(handle) },
+      properties: {
+        kind: corner ? 'corner' : 'edge',
+        handle: handleName(handle),
+        // corners are squares turned with the box, edges grips along their side (shared/handle-images.ts)
+        rotate: gripRotation(corner ? u : along),
+      },
       geometry: { type: 'Point', coordinates: locOf(box, handleAt(extent, handle)) },
     })
   }
