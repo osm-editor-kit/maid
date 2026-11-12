@@ -472,6 +472,10 @@
       }
     }
   ],
+  "rotate_panel_title": "Girar",
+  "rotate_panel_hint": "Arrastra el tirador redondo alrededor del centro o gira con dos dedos. Toca Listo o el mapa cuando encaje.",
+  "rotate_panel_done": "Listo",
+  "rotate_panel_cancel": "Cancelar",
   "map_stack_label": "Elementos en este lugar",
   "map_stack_description": [
     {

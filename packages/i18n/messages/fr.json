@@ -472,6 +472,10 @@
       }
     }
   ],
+  "rotate_panel_title": "Pivoter",
+  "rotate_panel_hint": "Faites glisser la poignée ronde autour du centre ou tournez avec deux doigts. Touchez Terminé ou la carte quand c’est bon.",
+  "rotate_panel_done": "Terminé",
+  "rotate_panel_cancel": "Annuler",
   "map_stack_label": "Éléments à cet endroit",
   "map_stack_description": [
     {

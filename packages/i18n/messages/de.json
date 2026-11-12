@@ -472,6 +472,10 @@
       }
     }
   ],
+  "rotate_panel_title": "Drehen",
+  "rotate_panel_hint": "Ziehe den runden Anfasser um die Mitte oder drehe mit zwei Fingern. Tippe auf Fertig oder in die Karte, wenn es passt.",
+  "rotate_panel_done": "Fertig",
+  "rotate_panel_cancel": "Abbrechen",
   "map_stack_label": "Objekte an dieser Stelle",
   "map_stack_description": [
     {
