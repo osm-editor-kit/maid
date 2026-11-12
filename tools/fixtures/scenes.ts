@@ -63,6 +63,15 @@ export const SCENES: Scene[] = [
     zoom: 18,
     madeBy: 'fixtures-bicycle',
   },
+  {
+    name: 'golf',
+    description:
+      'A made-up golf course of three holes: tees, fairways, greens, pins, bunkers, water, rough, a cart path and the lines of play, with some mistakes for the golf rules',
+    bbox: [13.31, 52.6, 13.322, 52.606],
+    center: [13.316, 52.6028],
+    zoom: 17,
+    madeBy: 'fixtures-golf',
+  },
 ]
 
 export function getScene(name: string) {

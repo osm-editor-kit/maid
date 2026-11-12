@@ -16,7 +16,7 @@ to it.
 This repository is the central Maid. An editor is an app in `apps/` with a config that picks modules, presets and
 filters; everything a topic needs beyond that is a module in `packages/`. We build our own editors the same way:
 `apps/maid` (general), `apps/maid-bicycle` (road and bike infrastructure), `apps/maid-parking` (street parking),
-`apps/maid-indoor` (indoor and building levels) and `apps/maid-lanes` (the lanes of roads).
+`apps/maid-indoor` (indoor and building levels), `apps/maid-lanes` (the lanes of roads) and `apps/maid-golf` (golf courses, a prototype).
 
 To make your own editor:
 

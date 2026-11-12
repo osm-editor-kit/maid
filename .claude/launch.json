@@ -37,6 +37,13 @@
       "url": "http://127.0.0.1:5179"
     },
     {
+      "name": "maid-golf",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "apps/maid-golf", "dev"],
+      "port": 5180,
+      "url": "http://127.0.0.1:5180"
+    },
+    {
       "name": "mock-osm-api",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["tools/mock-osm-api/server.ts"],

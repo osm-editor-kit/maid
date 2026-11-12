@@ -1,0 +1,25 @@
+{
+  "name": "golf",
+  "description": "A made-up golf course of three holes: tees, fairways, greens, pins, bunkers, water, rough, a cart path and the lines of play, with some mistakes for the golf rules",
+  "bbox": [
+    13.31,
+    52.6,
+    13.322,
+    52.606
+  ],
+  "center": [
+    13.316,
+    52.6028
+  ],
+  "zoom": 17,
+  "counts": {
+    "node": 184,
+    "way": 26,
+    "relation": 0
+  },
+  "source": {
+    "script": "tools/fixtures/golf.ts"
+  },
+  "attribution": "Made up for the tests, not OSM data",
+  "sha256": "786fae6336612900cc97063a409cf3c4b3d57f6c998b7d698914e5c10461e14d"
+}

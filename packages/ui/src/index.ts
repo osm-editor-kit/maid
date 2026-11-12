@@ -103,6 +103,7 @@ export {
   loadStoredSettings,
   settingsActions,
   subscribeToSettings,
+  suggestedFavourites,
   useSettingsActions,
   useStoredFavourites,
   useStoredLang,
@@ -111,6 +112,7 @@ export {
   useStoredTheme,
   type Server,
   type Settings,
+  type SuggestedFavourite,
   type Theme,
 } from './settings.ts'
 export { initTheme, useAppliedTheme, useThemeInEffect } from './theme.ts'

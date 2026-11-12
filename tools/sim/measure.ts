@@ -30,6 +30,7 @@ const APPS: Record<string, string> = {
   parking: 'apps/maid-parking',
   indoor: 'apps/maid-indoor',
   lanes: 'apps/maid-lanes',
+  golf: 'apps/maid-golf',
 }
 /** How long one visit may take until its report arrives */
 const VISIT_LIMIT_MS = 120_000
