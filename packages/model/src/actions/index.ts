@@ -50,6 +50,7 @@ export { actionMoveMember } from './move_member.ts';
 export { actionMoveNode } from './move_node.ts';
 export { actionNoop } from './noop.ts';
 export { actionOrthogonalize } from './orthogonalize.ts';
+export { actionOrthogonalizeWays } from './orthogonalize_ways.ts';
 export { actionReflect } from './reflect.ts';
 export { actionRestrictTurn } from './restrict_turn.ts';
 export { actionReverse, reverseKey, reverseValue, type ReverseValueOptions } from './reverse.ts';

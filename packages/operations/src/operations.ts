@@ -12,6 +12,7 @@ import {
   actionDisconnect,
   actionExtract,
   actionOrthogonalize,
+  actionOrthogonalizeWays,
   actionReflect,
   actionReverse,
   actionSplit,
@@ -304,31 +305,61 @@ const SQUARE_REASONS: Record<string, Sentence> = {
   ],
 }
 
-type SquareTarget = { corner: boolean; action: Action }
+type SquareTarget = { corner: boolean; action: Action; count: number }
 
 /**
  * iD: each selected entity is either a way with more than two nodes (its whole outline is squared)
  * or a vertex on exactly one way (that corner is squared). Corners and whole features are not mixed.
+ * Maid, not iD: selected ways that share nodes (a row of buildings) are squared together, as one
+ * shape (`actionOrthogonalizeWays`), so the walls between them end square and stay put.
  */
 function squareTargets(context: OperationContext) {
   const entities = resolveSelection(context)
   if (!entities) return undefined
   const graph = context.graph
   const targets: SquareTarget[] = []
+  const ways: OsmWay[] = []
   for (const entity of entities) {
     if (entity instanceof OsmWay && unique(entity.nodes).length > 2) {
-      targets.push({ corner: false, action: actionOrthogonalize(entity.id) })
+      ways.push(entity)
     } else if (isVertex(entity, graph)) {
       const parents = graph.parentWays(entity)
       const parent = parents.length === 1 ? parents[0] : undefined
       if (!parent) return undefined
-      targets.push({ corner: true, action: actionOrthogonalize(parent.id, entity.id) })
+      targets.push({ corner: true, action: actionOrthogonalize(parent.id, entity.id), count: 1 })
     } else {
       return undefined
     }
   }
+  for (const group of connectedWays(ways)) {
+    targets.push({
+      corner: false,
+      action:
+        group.length === 1
+          ? actionOrthogonalize(group[0]!.id)
+          : actionOrthogonalizeWays(group.map((way) => way.id)),
+      count: group.length,
+    })
+  }
   if (new Set(targets.map((target) => target.corner)).size > 1) return undefined
   return targets
+}
+
+/** The ways in groups that share nodes, each group in selection order */
+function connectedWays(ways: OsmWay[]): OsmWay[][] {
+  const groups: { ways: OsmWay[]; nodes: Set<string> }[] = []
+  for (const way of ways) {
+    const touching = groups.filter((group) => way.nodes.some((id) => group.nodes.has(id)))
+    const merged = { ways: [way], nodes: new Set(way.nodes) }
+    for (const group of touching) {
+      merged.ways.unshift(...group.ways)
+      for (const id of group.nodes) merged.nodes.add(id)
+      groups.splice(groups.indexOf(group), 1)
+    }
+    groups.push(merged)
+  }
+  const order = new Map(ways.map((way, i) => [way.id, i]))
+  return groups.map((group) => group.ways.sort((a, b) => order.get(a.id)! - order.get(b.id)!))
 }
 
 /** Square: makes the corners of a closed way (or of a line) right angles, or one corner */
@@ -355,12 +386,13 @@ export const squareOperation: Operation = {
     // as iD: each action runs on the graph left by the ones before, and is left out when disabled there
     let graph = context.graph.snapshot()
     const actions: Action[] = []
+    let n = 0
     for (const target of targets) {
       if (reasonOf(target.action, graph) !== undefined) continue
       actions.push(target.action)
       graph = target.action(graph)
+      n += target.count
     }
-    const n = actions.length
     const corner = targets.some((target) => target.corner)
     let annotation: string
     if (corner) {

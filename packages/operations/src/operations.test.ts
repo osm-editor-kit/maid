@@ -271,6 +271,44 @@ describe('square', () => {
     })
   })
 
+  // Maid: two buildings that share a slightly tilted wall (n2–n5), and one apart
+  const row = graphOf(
+    node('n1', 0, 0),
+    node('n2', 0.002, 0.00003),
+    node('n3', 0.002, -0.002),
+    node('n4', 0, -0.002),
+    node('n5', 0.002, 0.002),
+    node('n6', 0, 0.002),
+    way('w1', ['n1', 'n2', 'n3', 'n4', 'n1'], { building: 'yes' }),
+    way('w2', ['n1', 'n6', 'n5', 'n2', 'n1'], { building: 'yes' }),
+    node('m1', 0.01, 0),
+    node('m2', 0.012, 0),
+    node('m3', 0.0123, 0.002),
+    node('m4', 0.01, 0.002),
+    way('w3', ['m1', 'm2', 'm3', 'm4', 'm1'], { building: 'yes' }),
+  )
+
+  it('squares buildings that share a wall together, and the shared wall too', () => {
+    const { after, result } = run(squareOperation, row, ['w1', 'w2', 'w3'])
+    expect(result.annotation).toBe('Squared the corners of 3 features')
+    for (const id of ['w1', 'w2', 'w3']) {
+      const corners = wayIn(after, id)
+        .nodes.slice(0, -1)
+        .map((n) => locOf(after, n))
+      corners.forEach((corner, i) => {
+        const prev = corners[(i + corners.length - 1) % corners.length]
+        const next = corners[(i + 1) % corners.length]
+        if (!prev || !next) throw new Error('missing corner')
+        expect(Math.abs(angleAt(prev, corner, next) - 90)).toBeLessThan(0.01)
+      })
+    }
+    // a second press has nothing left to do (iD moved the shared wall again on every press)
+    const again = at(['w1', 'w2', 'w3'], new Graph(after))
+    expect(squareOperation.disabled(again)).toBe(
+      "These can't be made more square than they already are.",
+    )
+  })
+
   it('does not apply to a point that is not on a way', () => {
     expect(squareOperation.applies(at(['n1'], graphOf(node('n1', 0, 0))))).toBe(false)
   })
