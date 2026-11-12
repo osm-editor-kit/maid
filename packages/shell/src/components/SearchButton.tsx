@@ -411,7 +411,7 @@ function SearchPanel() {
           <p className="px-1 pb-1 text-xs text-zinc-500 dark:text-zinc-400">
             {m.search_hint({ ...device() })}
           </p>
-          <kbd className="mt-0.5 shrink-0 rounded border border-zinc-300 px-1 font-sans text-xs text-zinc-500 dark:border-zinc-600 dark:text-zinc-400 touch:hidden">
+          <kbd className="mt-0.5 shrink-0 rounded border border-zinc-300 px-1 font-sans text-xs text-zinc-500 dark:border-zinc-600 dark:text-zinc-400 nokeys:hidden">
             {modKey('F')}
           </kbd>
         </div>

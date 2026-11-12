@@ -225,7 +225,7 @@ export function ContextMenu(props: {
               )}
             </span>
             {item.shortcut && (
-              <kbd className="shrink-0 font-sans text-xs text-zinc-500 dark:text-zinc-400 touch:hidden">
+              <kbd className="shrink-0 font-sans text-xs text-zinc-500 dark:text-zinc-400 nokeys:hidden">
                 {item.shortcut}
               </kbd>
             )}

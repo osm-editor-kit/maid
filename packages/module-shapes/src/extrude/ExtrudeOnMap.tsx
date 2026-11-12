@@ -118,7 +118,7 @@ export function ExtrudeOnMap({ editor, engine }: MapContentProps) {
             className="flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 text-xs ring-1 ring-zinc-950/10 hover:bg-zinc-50 aria-pressed:bg-blue-50 aria-pressed:text-blue-700 aria-pressed:ring-blue-600/40 dark:ring-white/10 dark:hover:bg-zinc-700 dark:aria-pressed:bg-blue-950 dark:aria-pressed:text-blue-300"
           >
             <span>{m.extrude_hint_move()}</span>
-            <kbd className="font-sans text-[11px] text-zinc-500 dark:text-zinc-400">
+            <kbd className="font-sans text-[11px] text-zinc-500 dark:text-zinc-400 nokeys:hidden">
               {formatModifiers('Shift', isApplePlatform())}
             </kbd>
           </button>
