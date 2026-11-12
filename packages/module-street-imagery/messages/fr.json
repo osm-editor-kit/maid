@@ -10,21 +10,8 @@
   "panel_kind_choice": "Quelles photos",
   "kind_all": "Toutes",
   "kind_flat": "Plates",
-  "panel_dates_heading": "Prises entre",
-  "dock_hint_click": [
-    {
-      "declarations": ["input input"],
-      "selectors": ["input"],
-      "match": {
-        "input=touch": "Touchez une photo de la carte pour la voir ici.",
-        "input=*": "Cliquez sur une photo de la carte pour la voir ici."
-      }
-    }
-  ],
-  "dock_hint_switch": "Activez une source sous Photos dans la barre du haut pour voir les photos sur la carte.",
+  "panel_dates_heading": "Prises",
   "dock_loading": "Chargement de la photo…",
-  "dock_details": "Détails",
-  "dock_close_photo": "Fermer la photo",
   "dock_use_photo": "Utiliser cette photo",
   "dock_use_title": "Ajoute cette photo à {key}",
   "dock_use_not_photo": "Seules les photos Mapillary et Panoramax peuvent servir de clés d'image",
@@ -84,5 +71,31 @@
   "photo_not_found": "{provider} n'a pas de photo avec cet identifiant.",
   "photo_load_failed_status": "La photo n'a pas pu être chargée depuis {provider} (HTTP {status}).",
   "photo_load_failed": "La photo n'a pas pu être chargée depuis {provider}.",
-  "link_open_on": "Ouvrir sur {site}"
+  "link_open_on": "Ouvrir sur {site}",
+  "panel_signs_label": "Panneaux",
+  "panel_signs_switch": "Afficher les panneaux de Mapillary",
+  "panel_sign_groups": "Quels panneaux",
+  "sign_group_parking": "Stationnement",
+  "sign_group_bike": "Vélo",
+  "sign_group_speed": "Vitesse",
+  "sign_group_access": "Accès",
+  "sign_group_other": "Autres",
+  "panel_color_heading": "Couleur selon",
+  "panel_color_choice": "Couleur des photos",
+  "color_age": "Âge",
+  "color_type": "Type",
+  "legend_age_current": "moins de 2 ans",
+  "legend_age_mid": "2–4 ans",
+  "legend_age_old": "plus de 4 ans",
+  "legend_unknown": "sans date",
+  "panel_dates_since": "{from} à aujourd’hui",
+  "panel_dates_between": "{from} au {to}",
+  "panel_dates_until": "jusqu’au {to}",
+  "panel_dates_all": "toutes les dates",
+  "panel_dates_reset": "Toutes les dates",
+  "viewer_title_sign": "Panneau",
+  "viewer_sign_loading": "Chargement des photos du panneau…",
+  "viewer_sign_failed": "Les photos de ce panneau n’ont pas pu être chargées.",
+  "viewer_pano": "360°",
+  "viewer_flat": "plate"
 }

@@ -15,6 +15,11 @@
   color: #ffffff;
 }
 
+/* Date filter: the package's range line under the slider; the panel's heading says the range (Tobias, 2026-11-12) */
+.maid-date-filter > div > div.mt-1.flex.items-baseline {
+  display: none;
+}
+
 /* Date filter: the grey texts (text-slate-500/600/700/800/900) */
 .dark .maid-street-imagery details,
 .dark .maid-street-imagery .text-slate-500,

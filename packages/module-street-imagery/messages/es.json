@@ -10,21 +10,8 @@
   "panel_kind_choice": "Qué fotos",
   "kind_all": "Todas",
   "kind_flat": "Planas",
-  "panel_dates_heading": "Tomadas entre",
-  "dock_hint_click": [
-    {
-      "declarations": ["input input"],
-      "selectors": ["input"],
-      "match": {
-        "input=touch": "Toca una foto del mapa para verla aquí.",
-        "input=*": "Haz clic en una foto del mapa para verla aquí."
-      }
-    }
-  ],
-  "dock_hint_switch": "Activa una fuente en Fotos, en la barra superior, para ver fotos en el mapa.",
+  "panel_dates_heading": "Tomadas",
   "dock_loading": "Cargando foto…",
-  "dock_details": "Detalles",
-  "dock_close_photo": "Cerrar foto",
   "dock_use_photo": "Usar esta foto",
   "dock_use_title": "Añade esta foto a {key}",
   "dock_use_not_photo": "Solo las fotos de Mapillary y Panoramax pueden usarse como claves de imagen",
@@ -84,5 +71,31 @@
   "photo_not_found": "{provider} no tiene ninguna foto con este ID.",
   "photo_load_failed_status": "No se pudo cargar la foto de {provider} (HTTP {status}).",
   "photo_load_failed": "No se pudo cargar la foto de {provider}.",
-  "link_open_on": "Abrir en {site}"
+  "link_open_on": "Abrir en {site}",
+  "panel_signs_label": "Señales",
+  "panel_signs_switch": "Mostrar las señales de Mapillary",
+  "panel_sign_groups": "Qué señales",
+  "sign_group_parking": "Aparcamiento",
+  "sign_group_bike": "Bici",
+  "sign_group_speed": "Velocidad",
+  "sign_group_access": "Acceso",
+  "sign_group_other": "Otras",
+  "panel_color_heading": "Color según",
+  "panel_color_choice": "Color de las fotos",
+  "color_age": "Edad",
+  "color_type": "Tipo",
+  "legend_age_current": "menos de 2 años",
+  "legend_age_mid": "2–4 años",
+  "legend_age_old": "más de 4 años",
+  "legend_unknown": "sin fecha",
+  "panel_dates_since": "{from} hasta hoy",
+  "panel_dates_between": "{from} a {to}",
+  "panel_dates_until": "hasta {to}",
+  "panel_dates_all": "todas las fechas",
+  "panel_dates_reset": "Todas las fechas",
+  "viewer_title_sign": "Señal",
+  "viewer_sign_loading": "Cargando las fotos de la señal…",
+  "viewer_sign_failed": "No se pudieron cargar las fotos de esta señal.",
+  "viewer_pano": "360°",
+  "viewer_flat": "plana"
 }

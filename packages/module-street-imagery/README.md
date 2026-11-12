@@ -45,6 +45,25 @@ viewer cannot know the selection itself: the app keeps it, and the module may no
   Nothing is requested on render, nothing in an automated browser (`navigator.webdriver`), nothing without a token.
 - Panoramax: no request. "Show" is off for Panoramax ids.
 
+## Viewer, signs and colours
+
+- **Viewer:** the package's `FloatingPhotoViewer` over the map (`viewer.tsx`, a `map.content` item), not the bottom dock
+  any more (Tobias, 2026-11-12: the photo did not fit the dock's height and the map took the scroll). It is moved by its
+  header, sized at its left edge, minimised, and remembers its place in the browser (`maid:photo-viewer`). Title: the
+  provider or "Traffic sign"; the info button opens the package's details dialog; the footer has the date, type and
+  author, "Use this photo" and the provider's page.
+- **Traffic signs:** iD's layer `mapillary-signs` (in `photo_overlay`), switched under Mapillary in the photos panel and
+  independent of the photo layer. Dots from the package (`mapillarySignsAdapter`, vector tiles from zoom 14) with the
+  sign's icon above them (`sign-icons.ts`: the SVGs of `@rapideditor/mapillary_sprite_source` from jsDelivr, loaded on
+  `styleimagemissing`). Chips filter by the package's sign groups (parking, bike, speed, access, other) with the count in
+  view; the date filter applies as in iD (seen within the range). A click selects the sign (`selectedSign`, session
+  only): the viewer shows the package's `MapillaryFeatureBar` (a button per capture day), opens the best photo of the
+  newest day within the date filter, turns to the sign and outlines it; the map rings it and draws the line from the
+  camera (`SelectedMapFeatureLayer`). Three Graph API requests per selected sign (the package's).
+- **Colours:** by age (default: newer than 2 years, 2 to 4, older; the package's steps) or by type, stored only
+  (`colorBy`). A legend with the count of photos in view. The date slider shows the photos in view as a chart
+  (`capturedAt`, from the layers' queries: no request of its own) and its range in the heading.
+
 ## URL and start
 
 The photos' URL parameters use iD's names and formats (`url.ts`, `.reference/id/modules/renderer/photos.js`):
@@ -55,9 +74,9 @@ All four are declared in `setup` (`PHOTO_PARAM_DECLARATIONS`, `url.ts`) with the
 - `photo_overlay` (the providers on, `none` for none) and `photo_dates` (`from_to`, `_` for no limit): the URL is the live
   state and the stored choice is the default when the URL says nothing. Both leave the key out while the default is
   shown (iD does the same). A choice writes the URL and the store; a link writes the URL only.
-- `photo` (the open photo, `provider/id`): live state, not stored. A photo opened or closed (map, dock, viewer steps)
+- `photo` (the open photo, `provider/id`): live state, not stored. A photo opened or closed (map, viewer, viewer steps)
   is written to the URL; a link's photo opens once its provider is on. Only Mapillary can be opened by id, and only
-  outside automated browsers; a Panoramax link's photo stays in the URL and the dock says it cannot be opened. The photo
+  outside automated browsers; a Panoramax link's photo stays in the URL and the viewer says it cannot be opened. The photo
   itself is a query (`photo-query.ts`), keyed by provider and id; the store holds no photo, only the writer of the URL.
 
 The writer is `PhotoUrlSync` (`shown.ts`), in the map's content from the start. Readers call `useShownPhotos(false)`
@@ -67,8 +86,10 @@ that open or close a photo, or switch a provider off, write the URL in the same 
 
 ## Gaps
 
-- **Dock tab:** "show" puts the photo in the dock's viewer, but does not open the dock's Photos tab: the dock keeps its tab
-  to itself and offers no API for it.
+- **Sign in the URL:** the selected sign is not in the URL (iD's Radnetz fork has `photo_sign`); a reload keeps the photo
+  only.
+- **Sign tagging:** the fork's buttons that write `traffic_sign`, `maxspeed` and `source:traffic_sign:mapillary` from a
+  sign are not here yet (research: `docs/research/traffic-signs-mapillary.md`).
 - **Selection and undo:** "Use this photo" writes through the field's `onChange`, so the field must be on screen. A feature
   without the field cannot be a target. An `Editor` (or dock props) with the selection and an annotated tag write would make
   this direct, and give the write its own undo annotation.

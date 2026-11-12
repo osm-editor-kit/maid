@@ -46,8 +46,16 @@ describe('photo_type', () => {
 describe('photo_overlay', () => {
   test('the providers on, in the order chosen; iD layers Maid does not have are left out', () => {
     expect(parseAsPhotoOverlay.parse('mapillary,panoramax')).toEqual(['mapillary', 'panoramax'])
-    expect(parseAsPhotoOverlay.parse('panoramax,kartaview,mapillary-signs,panoramax')).toEqual([
-      'panoramax',
+    expect(
+      parseAsPhotoOverlay.parse('panoramax,kartaview,mapillary-map-features,panoramax'),
+    ).toEqual(['panoramax'])
+  })
+
+  test("Mapillary's traffic signs are a layer of their own, with iD's name", () => {
+    expect(parseAsPhotoOverlay.parse('mapillary-signs')).toEqual(['mapillary-signs'])
+    expect(parseAsPhotoOverlay.parse('mapillary,mapillary-signs')).toEqual([
+      'mapillary',
+      'mapillary-signs',
     ])
   })
 

@@ -10,21 +10,8 @@
   "panel_kind_choice": "Which photos",
   "kind_all": "All",
   "kind_flat": "Flat",
-  "panel_dates_heading": "Taken between",
-  "dock_hint_click": [
-    {
-      "declarations": ["input input"],
-      "selectors": ["input"],
-      "match": {
-        "input=touch": "Tap a photo on the map to see it here.",
-        "input=*": "Click a photo on the map to see it here."
-      }
-    }
-  ],
-  "dock_hint_switch": "Switch on a provider under Photos in the top bar to see photos on the map.",
+  "panel_dates_heading": "Taken",
   "dock_loading": "Loading photo…",
-  "dock_details": "Details",
-  "dock_close_photo": "Close photo",
   "dock_use_photo": "Use this photo",
   "dock_use_title": "Adds this photo to {key}",
   "dock_use_not_photo": "Only Mapillary and Panoramax photos can be used as image keys",
@@ -84,5 +71,31 @@
   "photo_not_found": "{provider} has no photo with this id.",
   "photo_load_failed_status": "The photo could not be loaded from {provider} (HTTP {status}).",
   "photo_load_failed": "The photo could not be loaded from {provider}.",
-  "link_open_on": "Open on {site}"
+  "link_open_on": "Open on {site}",
+  "panel_signs_label": "Traffic signs",
+  "panel_signs_switch": "Show Mapillary's traffic signs",
+  "panel_sign_groups": "Which signs",
+  "sign_group_parking": "Parking",
+  "sign_group_bike": "Bicycle",
+  "sign_group_speed": "Speed",
+  "sign_group_access": "Access",
+  "sign_group_other": "Other",
+  "panel_color_heading": "Colour by",
+  "panel_color_choice": "Colour of the photos",
+  "color_age": "Age",
+  "color_type": "Type",
+  "legend_age_current": "under 2 years",
+  "legend_age_mid": "2–4 years",
+  "legend_age_old": "over 4 years",
+  "legend_unknown": "no date",
+  "panel_dates_since": "{from} to today",
+  "panel_dates_between": "{from} to {to}",
+  "panel_dates_until": "until {to}",
+  "panel_dates_all": "all dates",
+  "panel_dates_reset": "All dates",
+  "viewer_title_sign": "Traffic sign",
+  "viewer_sign_loading": "Loading the sign's photos…",
+  "viewer_sign_failed": "The photos of this sign could not be loaded.",
+  "viewer_pano": "360°",
+  "viewer_flat": "flat"
 }

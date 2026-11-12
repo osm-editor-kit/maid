@@ -22,7 +22,7 @@ import {
   activeProviders,
   DEFAULT_STORED,
   openableProviders,
-  type ImageryProviderId,
+  type OverlayId,
   type PhotoKind,
 } from './state.ts'
 import {
@@ -45,7 +45,8 @@ import {
 /** What is shown for the photo settings, and the choices of the person */
 export type ShownPhotos = {
   kind: PhotoKind
-  providers: readonly ImageryProviderId[]
+  /** The layers on: photo providers and Mapillary's traffic signs */
+  providers: readonly OverlayId[]
   date: PhotoDates
   /** A choice of the person: shown, written to the URL and remembered for the next visit */
   chooseKind: (kind: PhotoKind) => void
@@ -53,11 +54,11 @@ export type ShownPhotos = {
    * A choice of the person. A provider switched off closes the photo of the URL in the same event; a photo whose
    * provider was never on keeps waiting in the URL.
    */
-  chooseProviders: (ids: ImageryProviderId[]) => void
+  chooseProviders: (ids: OverlayId[]) => void
   chooseDate: (date: PhotoDates) => void
 }
 
-const NO_PROVIDERS: ImageryProviderId[] = []
+const NO_PROVIDERS: OverlayId[] = []
 
 /**
  * The photo settings as shown. `writer` is true in PhotoUrlSync only (see the file comment). The URL's value wins; a
@@ -111,7 +112,7 @@ export function useShownPhotos(writer: boolean): ShownPhotos {
  * (`providers`: the shown ones), or while it can be opened by its id (Mapillary with a token: the eye of a field, see
  * `openableProviders`); `error` is the failure of its query, for the dock to say.
  */
-export function useOpenPhoto(providers: readonly ImageryProviderId[]) {
+export function useOpenPhoto(providers: readonly OverlayId[]) {
   const [urlPhoto] = useUrlParam(PHOTO_HANDLES.photo)
   const token = useMapillaryToken()
   const ref = shownPhotoRef(
@@ -159,22 +160,5 @@ function usePhotoWriter() {
 export function PhotoUrlSync(_props: MapContentProps) {
   useShownPhotos(true)
   usePhotoWriter()
-  usePhotoOpenFlag()
   return null
-}
-
-/**
- * Tells the store whether the URL names a photo, so that the dock shows its "Photos" tab only then. An effect, as the
- * URL is read through a hook and the dock asks outside React (`photoOpenState`); PhotoUrlSync is mounted from the start.
- */
-function usePhotoOpenFlag() {
-  const [urlPhoto] = useUrlParam(PHOTO_HANDLES.photo)
-  const { setPhotoOpen } = useStreetImageryActions()
-  const open = urlPhoto !== null && !AUTOMATED
-  useEffect(
-    function reportWhetherAPhotoIsOpen() {
-      setPhotoOpen(open)
-    },
-    [open, setPhotoOpen],
-  )
 }

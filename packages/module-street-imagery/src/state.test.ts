@@ -7,6 +7,7 @@ import {
   parseStored,
   photoTypesOf,
   providerAvailable,
+  signsActive,
   toggleProvider,
 } from './state.ts'
 
@@ -27,6 +28,8 @@ describe('parseStored', () => {
     expect(stored).toEqual({
       providers: ['panoramax', 'mapillary'],
       photoKind: 'pano',
+      colorBy: 'age',
+      signGroups: ['parking', 'bike', 'speed', 'access'],
       date: { from: '2024-04-01' },
     })
   })
@@ -39,8 +42,16 @@ describe('parseStored', () => {
     expect(parseStored({ providers: ['mapillary'] })).toEqual({
       providers: ['mapillary'],
       photoKind: 'all',
+      colorBy: 'age',
+      signGroups: ['parking', 'bike', 'speed', 'access'],
       date: {},
     })
+  })
+
+  it('colours by age unless the type was chosen', () => {
+    expect(parseStored({}).colorBy).toBe('age')
+    expect(parseStored({ colorBy: 'type' }).colorBy).toBe('type')
+    expect(parseStored({ colorBy: 'rainbow' }).colorBy).toBe('age')
   })
 })
 
@@ -109,5 +120,24 @@ describe('toggleProvider', () => {
     expect(toggleProvider(list, 'mapillary', true)).toEqual(['mapillary'])
     expect(toggleProvider(list, 'panoramax', false)).toEqual(['mapillary'])
     expect(list).toEqual(['mapillary'])
+  })
+})
+
+describe('traffic signs', () => {
+  it('are shown when switched on, with a token, outside automation, without the photo layer', () => {
+    expect(signsActive(['mapillary-signs'], 'token', false)).toBe(true)
+    expect(signsActive(['mapillary-signs'], '', false)).toBe(false)
+    expect(signsActive(['mapillary-signs'], 'token', true)).toBe(false)
+    expect(signsActive(['mapillary'], 'token', false)).toBe(false)
+  })
+
+  it('are not a photo provider', () => {
+    expect(activeProviders(['mapillary-signs', 'panoramax'], 'token', false)).toEqual(['panoramax'])
+  })
+
+  it('keep the stored sign groups, and start without "other"', () => {
+    expect(parseStored({}).signGroups).toEqual(['parking', 'bike', 'speed', 'access'])
+    expect(parseStored({ signGroups: ['bike', 'bike'] }).signGroups).toEqual(['bike'])
+    expect(parseStored({ providers: ['mapillary-signs'] }).providers).toEqual(['mapillary-signs'])
   })
 })

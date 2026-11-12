@@ -59,7 +59,7 @@ column follows the modules the app's config calls.
 | **Turn restrictions** ([docs](../packages/module-turn-restrictions/README.md)): A junction's turns as a diagram: click to forbid or allow, with a rule for incomplete restrictions. _Rapid's turn restriction field waits for a rewrite on its new renderer and is not shown._ | ✓ | – | ✓ | ✓ | – | – | ✓ | – | – |
 | **Surface and smoothness by photo** ([docs](../packages/module-surface/README.md)): Choose the surface and the smoothness from photos of real roads. | – | – | ✓ | ✓ | – | – | – | – | – |
 | **Traffic sign field** ([docs](../packages/module-traffic-signs/README.md)): Pick signs with their pictures, search by name or number, add the plates under them. | – | – | – | ✓ | – | – | ✓ | – | – |
-| **Street-level photos** ([docs](../packages/module-street-imagery/README.md)): Mapillary and Panoramax in a viewer in the bottom dock, and a field that keeps the photo of a feature. ✦ _Rethought: The viewer sits in the bottom dock, and a field keeps the photo ids of a feature._ _iD and Rapid have more providers._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Street-level photos** ([docs](../packages/module-street-imagery/README.md)): Mapillary and Panoramax in a viewer over the map, coloured by age, Mapillary's traffic signs with their photos, and a field that keeps the photo of a feature. ✦ _Rethought: The viewer floats over the map; a click on a traffic sign opens its photos by day and outlines the sign; a field keeps the photo ids of a feature._ _iD and Rapid have more providers._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 ### Topic editors
 

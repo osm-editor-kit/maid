@@ -248,13 +248,13 @@ export const GROUPS: FeatureGroup[] = [
       },
       {
         title: 'Street-level photos',
-        text: 'Mapillary and Panoramax in a viewer in the bottom dock, and a field that keeps the photo of a feature.',
+        text: "Mapillary and Panoramax in a viewer over the map, coloured by age, Mapillary's traffic signs with their photos, and a field that keeps the photo of a feature.",
         maid: { factory: 'streetImagery' },
         pkg: 'module-street-imagery',
         iD: 'yes',
         rapid: 'yes',
         rethought:
-          'The viewer sits in the bottom dock, and a field keeps the photo ids of a feature.',
+          'The viewer floats over the map; a click on a traffic sign opens its photos by day and outlines the sign; a field keeps the photo ids of a feature.',
         note: 'iD and Rapid have more providers.',
       },
     ],

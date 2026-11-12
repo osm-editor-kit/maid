@@ -625,3 +625,20 @@ Tobias, 2026-11-12: a Maid for climbing and bouldering, with MapLibre's 3D view 
 - [x] 2026-11-12: compass shown while the map is tilted too (every app; a click or N turns north and lays flat); BetaWatch's rules read ([betawatch.md](../research/climbing-sources/betawatch.md)); style fields follow PR 2793's head; on `main` and on the overview page.
       **Test for Tobias:** https://osm-editor-kit.github.io/maid/maid-climbing/?map=17/49.6666/14.2517&id=r14297763&terrain=3d : Velká (Vltavská žula) in 3D with its routes in the section "Klettern"; tilt or turn the map, the compass shows, a click lays it flat.
 - [ ] Next (climbing.md, "Next steps"): a climbing lens, batch adding routes, rules, point crag to relation, a per-source terrain notice, a browser check `check-climbing`.
+
+### Traffic signs and the photo viewer (2026-11-12)
+
+Tobias, 2026-11-12: traffic signs from Mapillary under Mapillary in the photos panel with the same filters, the package's
+detail view instead of the dock (the photo did not fit and could not be scrolled), the date chart and the range in the
+heading, and colours by age. Research: [traffic-signs-mapillary.md](../research/traffic-signs-mapillary.md).
+
+- [x] 2026-11-12: `mapillary-signs` in `photo_overlay` with icons, group chips with counts and the date filter; a click
+      opens the sign's photos by day in the package's floating viewer, turned to the sign with its outline; the viewer
+      floats over the map in every app (the dock's Photos tab is gone); photos coloured by age (default) or type with a
+      legend; the date slider's chart from the photos in view, the range in the heading. No browser check: photos are
+      off in automated browsers (core rule 1).
+      **Test for Tobias:** https://osm-editor-kit.github.io/maid/maid/?map=18/52.49930/13.41850&photo_overlay=mapillary,mapillary-signs :
+      the panel "Fotos" shows Verkehrszeichen under Mapillary with chips; click a sign: the viewer shows its days and
+      outlines it; the date chart has bars; "Farbe nach" switches age and type.
+- [ ] Next: the fork's sign tagging buttons, auto-show on select, the selected sign in the URL (research doc).
+

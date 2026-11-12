@@ -13,9 +13,6 @@ import { m } from './messages.ts'
 import { openableProviders } from './state.ts'
 import { streetImageryActions } from './street-imagery-store.ts'
 
-/** The id of the dock view with the module's photos (index.ts registers it; the field's eye opens it) */
-export const PHOTOS_VIEW_ID = 'street-imagery'
-
 /** The reason "show" is off for a key, or null when it works. Pure apart from the arguments. */
 export function showBlockedReason(
   key: string,

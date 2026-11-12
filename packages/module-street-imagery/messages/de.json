@@ -10,21 +10,8 @@
   "panel_kind_choice": "Welche Fotos",
   "kind_all": "Alle",
   "kind_flat": "Flach",
-  "panel_dates_heading": "Aufgenommen zwischen",
-  "dock_hint_click": [
-    {
-      "declarations": ["input input"],
-      "selectors": ["input"],
-      "match": {
-        "input=touch": "Tippe auf der Karte auf ein Foto, um es hier zu sehen.",
-        "input=*": "Klicke auf der Karte auf ein Foto, um es hier zu sehen."
-      }
-    }
-  ],
-  "dock_hint_switch": "Schalte oben unter Fotos eine Quelle ein, um Fotos auf der Karte zu sehen.",
+  "panel_dates_heading": "Aufgenommen",
   "dock_loading": "Foto wird geladen…",
-  "dock_details": "Details",
-  "dock_close_photo": "Foto schließen",
   "dock_use_photo": "Dieses Foto verwenden",
   "dock_use_title": "Fügt dieses Foto zu {key} hinzu",
   "dock_use_not_photo": "Nur Fotos von Mapillary und Panoramax können als Bildschlüssel verwendet werden",
@@ -84,5 +71,31 @@
   "photo_not_found": "{provider} hat kein Foto mit dieser ID.",
   "photo_load_failed_status": "Das Foto konnte nicht von {provider} geladen werden (HTTP {status}).",
   "photo_load_failed": "Das Foto konnte nicht von {provider} geladen werden.",
-  "link_open_on": "Auf {site} öffnen"
+  "link_open_on": "Auf {site} öffnen",
+  "panel_signs_label": "Verkehrszeichen",
+  "panel_signs_switch": "Verkehrszeichen von Mapillary anzeigen",
+  "panel_sign_groups": "Welche Zeichen",
+  "sign_group_parking": "Parken",
+  "sign_group_bike": "Rad",
+  "sign_group_speed": "Tempo",
+  "sign_group_access": "Zufahrt",
+  "sign_group_other": "Andere",
+  "panel_color_heading": "Farbe nach",
+  "panel_color_choice": "Farbe der Fotos",
+  "color_age": "Alter",
+  "color_type": "Typ",
+  "legend_age_current": "unter 2 J.",
+  "legend_age_mid": "2–4 J.",
+  "legend_age_old": "über 4 J.",
+  "legend_unknown": "ohne Datum",
+  "panel_dates_since": "{from} bis heute",
+  "panel_dates_between": "{from} bis {to}",
+  "panel_dates_until": "bis {to}",
+  "panel_dates_all": "alle Daten",
+  "panel_dates_reset": "Alle Daten",
+  "viewer_title_sign": "Verkehrszeichen",
+  "viewer_sign_loading": "Fotos des Zeichens werden geladen…",
+  "viewer_sign_failed": "Die Fotos dieses Zeichens konnten nicht geladen werden.",
+  "viewer_pano": "360°",
+  "viewer_flat": "flach"
 }

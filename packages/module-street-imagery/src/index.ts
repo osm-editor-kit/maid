@@ -1,26 +1,21 @@
 import { CameraIcon } from '@heroicons/react/20/solid'
 import { defineModule } from '@osm-editor-kit/maid-core'
 import type { MapContentItem } from '@osm-editor-kit/maid-renderer'
-import {
-  lazyComponent,
-  PANEL_FALLBACK,
-  type DockView,
-  type TopBarPanel,
-} from '@osm-editor-kit/maid-ui'
+import { lazyComponent, PANEL_FALLBACK, type TopBarPanel } from '@osm-editor-kit/maid-ui'
 import {
   createStreetImageryConfig,
   registerProviderAdapters,
   setStreetImageryConfig,
 } from '@osm-editor-kit/street-imagery'
 import { mapillaryAdapter } from '@osm-editor-kit/street-imagery/providers/mapillary'
+import { mapillarySignsAdapter } from '@osm-editor-kit/street-imagery/providers/mapillary-signs'
 import { panoramaxAdapter } from '@osm-editor-kit/street-imagery/providers/panoramax'
 import { createElement, type ComponentType } from 'react'
-import { PHOTOS_VIEW_ID } from './image-actions.ts'
 import { STREET_IMAGES_FIELD_TYPE } from './image-keys.ts'
 import { StreetImageryLayers } from './map.tsx'
 import { m } from './messages.ts'
 import { PhotoUrlSync } from './shown.ts'
-import { AUTOMATED, photoOpenState, streetImageryActions } from './street-imagery-store.ts'
+import { AUTOMATED, streetImageryActions } from './street-imagery-store.ts'
 import { PHOTO_PARAM_DECLARATIONS } from './url.ts'
 
 export { MAP_ID, streetImageryClick } from './map.tsx'
@@ -59,15 +54,14 @@ async function inViewerLocale<Props extends object>(component: Promise<Component
   return { default: withViewerLocale(Component) }
 }
 
-// The panel, the dock view and the field are chunks of their own (with the photo viewers they use): they load when
+// The panel, the viewer and the field are chunks of their own (with the photo viewers they use): they load when
 // they are first shown, or in idle time after the first view (lazyComponent).
 const PhotosPanel = lazyComponent(
   () => inViewerLocale(import('./panel.tsx').then((panel) => panel.PhotosPanel)),
   PANEL_FALLBACK,
 )
-const PhotosView = lazyComponent(
-  () => inViewerLocale(import('./dock.tsx').then((dock) => dock.PhotosView)),
-  PANEL_FALLBACK,
+const PhotoViewerBox = lazyComponent(() =>
+  inViewerLocale(import('./viewer.tsx').then((viewer) => viewer.PhotoViewerBox)),
 )
 const StreetImagesField = lazyComponent(() =>
   inViewerLocale(import('./image-field.tsx').then((field) => field.StreetImagesField)),
@@ -89,7 +83,7 @@ export type StreetImageryOptions = {
 
 /**
  * Street-level photos: the photos of the switched-on providers on the map, the photo open in the
- * dock, and the switches and filters in the top bar. Everything is off until a person switches a
+ * viewer over the map, Mapillary's traffic signs, and the switches and filters in the top bar. Everything is off until a person switches a
  * provider on; in automated browsers nothing is registered for the map and no photo is requested.
  * It also brings the "Street-level images" field type (`streetImages`): its preset change is
  * `streetImageryPresetChanges`.
@@ -111,7 +105,9 @@ export function streetImagery(options: StreetImageryOptions = {}) {
       if (!AUTOMATED) {
         // the package reads its configuration when it fetches; Panoramax needs it too
         setStreetImageryConfig(createStreetImageryConfig({ mapillaryToken: token }))
-        registerProviderAdapters(token ? [panoramaxAdapter, mapillaryAdapter] : [panoramaxAdapter])
+        registerProviderAdapters(
+          token ? [panoramaxAdapter, mapillaryAdapter, mapillarySignsAdapter] : [panoramaxAdapter],
+        )
         streetImageryActions.setMapillaryToken(token)
         // The package names its provider queries by these prefixes, and keys them by the box and the
         // zoom. The box is snapped to tiles (snap.ts), so the same tiles are the same key, and a key
@@ -122,6 +118,9 @@ export function streetImagery(options: StreetImageryOptions = {}) {
         }
         const layers: MapContentItem = { id: 'street-imagery', component: StreetImageryLayers }
         api.register('map.content', layers)
+        // the viewer floats over the map (the package's box), not in the bottom dock: there the photo did not fit
+        // its height, and the map took the scroll (Tobias, 2026-11-12)
+        api.register('map.content', { id: 'street-imagery-viewer', component: PhotoViewerBox })
       }
       // the labels are read when shown (getters), in the app's language at that time
       const topBar: TopBarPanel = {
@@ -133,17 +132,7 @@ export function streetImagery(options: StreetImageryOptions = {}) {
         component: PhotosPanel,
         width: 'w-[26rem]',
       }
-      const dock: DockView = {
-        id: PHOTOS_VIEW_ID,
-        get label() {
-          return m.photos_label()
-        },
-        component: PhotosView,
-        // the tab is there while a photo is open (a click on a photo on the map, the eye of a field)
-        available: { get: photoOpenState.get, subscribe: photoOpenState.subscribe },
-      }
       api.register('topbar.panel', topBar)
-      api.register('dock.view', dock)
       // the field edits tags only: nothing of it is network or automation-sensitive
       api.register('inspector.field', {
         id: 'street-imagery-images',

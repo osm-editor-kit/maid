@@ -21,7 +21,9 @@ import type {
 import {
   DAY,
   IMAGERY_PROVIDER_IDS,
+  OVERLAY_IDS,
   type ImageryProviderId,
+  type OverlayId,
   type PhotoKind,
   type StreetImageryStored,
 } from './state.ts'
@@ -43,6 +45,10 @@ export type PhotoRef = { providerId: ImageryProviderId; photoId: string }
 
 export function isProviderId(value: string): value is ImageryProviderId {
   return (IMAGERY_PROVIDER_IDS as readonly string[]).includes(value)
+}
+
+export function isOverlayId(value: string): value is OverlayId {
+  return (OVERLAY_IDS as readonly string[]).includes(value)
 }
 
 /** A list as iD writes and reads it: separated by commas, or by semicolons (photos.js) */
@@ -88,10 +94,10 @@ export const parseAsPhotoType: UrlParser<PhotoKind> = {
  * `photo_overlay`: the providers on, in the order chosen. Names that are not Maid's providers (iD's other layers) are
  * left out; a value with none of Maid's is no opinion (null). `none` is the explicit empty list.
  */
-export const parseAsPhotoOverlay: UrlParser<ImageryProviderId[]> = {
+export const parseAsPhotoOverlay: UrlParser<OverlayId[]> = {
   parse(value) {
     if (value === NONE) return []
-    const ids = [...new Set(listOf(value).filter(isProviderId))]
+    const ids = [...new Set(listOf(value).filter(isOverlayId))]
     return ids.length > 0 ? ids : null
   },
   serialize: (ids) => (ids.length === 0 ? NONE : ids.join(',')),
@@ -172,7 +178,7 @@ export const PHOTO_PARAM_DECLARATIONS = {
   },
 } satisfies {
   type: UrlParamDeclaration<PhotoKind>
-  overlay: UrlParamDeclaration<ImageryProviderId[]>
+  overlay: UrlParamDeclaration<OverlayId[]>
   dates: UrlParamDeclaration<PhotoDates>
   photo: UrlParamDeclaration<PhotoRef>
 }
@@ -218,8 +224,8 @@ export function shownPhotoRef(
  */
 export function switchOffCloses(
   url: PhotoRef | null,
-  before: readonly ImageryProviderId[],
-  after: readonly ImageryProviderId[],
+  before: readonly OverlayId[],
+  after: readonly OverlayId[],
 ): boolean {
   return url !== null && before.includes(url.providerId) && !after.includes(url.providerId)
 }

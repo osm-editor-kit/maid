@@ -5,7 +5,8 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import {
   DEFAULT_STORED,
   parseStored,
-  type ImageryProviderId,
+  type ColorMode,
+  type OverlayId,
   type PhotoKind,
   type StreetImageryStored,
 } from './state.ts'
@@ -53,8 +54,8 @@ export type Session = {
   imageWriter: ImageWriter | null
   /** The row last focused or clicked. Not stored. */
   activeImage: ActiveImage | null
-  /** Whether the URL names a photo to show, as PhotoUrlSync reads it: the dock's tab is there only then. Not stored. */
-  photoOpen: boolean
+  /** The traffic sign whose photos the viewer shows (its Mapillary id). Not stored. */
+  selectedSign: string | null
 }
 
 type Actions = {
@@ -62,8 +63,14 @@ type Actions = {
    * Remembers a choice of the person for the next visit. The value shown is the URL's (shown.ts), which the choice
    * writes too: these actions never change what is shown by themselves. A link never calls them.
    */
-  setProviders: (ids: ImageryProviderId[]) => void
+  setProviders: (ids: OverlayId[]) => void
   setPhotoKind: (kind: PhotoKind) => void
+  /** What colours the photos on the map. Stored only: no URL parameter, as iD has none. */
+  setColorBy: (colorBy: ColorMode) => void
+  /** The sign groups shown. Stored only, as `colorBy`. */
+  setSignGroups: (groups: string[]) => void
+  /** Selects a traffic sign (its Mapillary id): its photos open in the viewer. Null clears it. */
+  selectSign: (featureId: string | null) => void
   setDate: (date: StreetImageryStored['date']) => void
   /**
    * Opens a photo in the dock: the URL's `photo` is written (through the photo writer). The viewer then reports the
@@ -79,7 +86,6 @@ type Actions = {
   setActiveImage: (active: ActiveImage | null) => void
   /** The Mapillary token of this build, set when the module starts */
   setMapillaryToken: (token: string) => void
-  setPhotoOpen: (open: boolean) => void
 }
 
 /** The module's state: what the person chose (stored) and the session's (not stored) */
@@ -106,10 +112,13 @@ const useStreetImageryStore = create<StreetImageryStore>()(
       easeTo: null,
       imageWriter: null,
       activeImage: null,
-      photoOpen: false,
+      selectedSign: null,
       actions: {
         setProviders: (providers) => set({ providers }),
         setPhotoKind: (photoKind) => set({ photoKind }),
+        setColorBy: (colorBy) => set({ colorBy }),
+        setSignGroups: (signGroups) => set({ signGroups }),
+        selectSign: (selectedSign) => set({ selectedSign }),
         setDate: (date) => set({ date }),
         showPhoto: (ref, photo) => get().photoWriter?.open(ref, photo),
         closePhoto: () => get().photoWriter?.close(),
@@ -118,14 +127,19 @@ const useStreetImageryStore = create<StreetImageryStore>()(
         setImageWriter: (imageWriter) => set({ imageWriter }),
         setActiveImage: (activeImage) => set({ activeImage }),
         setMapillaryToken: (mapillaryToken) => set({ mapillaryToken }),
-        setPhotoOpen: (photoOpen) => set({ photoOpen }),
       },
     }),
     {
       name: 'maid:street-imagery',
       version: 1,
       storage: createJSONStorage(() => moduleStorage()),
-      partialize: ({ providers, photoKind, date }) => ({ providers, photoKind, date }),
+      partialize: ({ providers, photoKind, colorBy, signGroups, date }) => ({
+        providers,
+        photoKind,
+        colorBy,
+        signGroups,
+        date,
+      }),
       // every stored value is checked on load, not only after a version change
       merge: (stored, current) => ({ ...current, ...parseStored(stored) }),
     },
@@ -142,6 +156,21 @@ export function useStoredProviders() {
 
 export function useStoredPhotoKind() {
   return useStreetImageryStore((state) => state.photoKind)
+}
+
+/** What colours the photos on the map: shown as stored (no URL parameter) */
+export function useColorBy() {
+  return useStreetImageryStore((state) => state.colorBy)
+}
+
+/** The sign groups shown */
+export function useSignGroups() {
+  return useStreetImageryStore((state) => state.signGroups)
+}
+
+/** The selected traffic sign (its Mapillary id), or null */
+export function useSelectedSign() {
+  return useStreetImageryStore((state) => state.selectedSign)
 }
 
 export function useStoredDate() {
@@ -177,12 +206,6 @@ export function useIsActiveImage(rowId: string, imageKey: string): boolean {
   )
 }
 
-/** Whether a photo is open, for the dock's tab (`DockView.available`, outside React) */
-export const photoOpenState = {
-  get: () => useStreetImageryStore.getState().photoOpen,
-  subscribe: (listener: () => void) => useStreetImageryStore.subscribe(listener),
-}
-
 /** The actions. They never change, so a component that takes them re-renders only for its own state. */
 export function useStreetImageryActions(): StreetImageryActions {
   return useStreetImageryStore((state) => state.actions)
@@ -196,7 +219,14 @@ export const streetImageryActions: StreetImageryActions = useStreetImageryStore.
  * shown photo setting and no open photo (those are the URL's, shown.ts).
  */
 export function getStreetImagery(): Session {
-  const { mapillaryToken, photoWriter, easeTo, imageWriter, activeImage, photoOpen } =
+  const { mapillaryToken, photoWriter, easeTo, imageWriter, activeImage, selectedSign } =
     useStreetImageryStore.getState()
-  return { mapillaryToken, photoWriter, easeTo, imageWriter, activeImage, photoOpen }
+  return {
+    mapillaryToken,
+    photoWriter,
+    easeTo,
+    imageWriter,
+    activeImage,
+    selectedSign,
+  }
 }

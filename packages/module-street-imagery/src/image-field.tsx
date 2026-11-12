@@ -1,6 +1,6 @@
 import { EyeIcon, TrashIcon } from '@heroicons/react/20/solid'
 import { device } from '@osm-editor-kit/maid-i18n'
-import { PLAIN_INPUT, openDockView } from '@osm-editor-kit/maid-ui'
+import { PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 /**
  * The "Street-level images" field: one row per image key of the feature that has a value (`;` separated ids, as
  * chips), an input per row to add an id or a link, and a select to add a row for a key without a value. A row
@@ -8,7 +8,7 @@ import { PLAIN_INPUT, openDockView } from '@osm-editor-kit/maid-ui'
  */
 import type { InspectorFieldType } from '@osm-editor-kit/maid-ui'
 import { useEffect, useId, useState } from 'react'
-import { PHOTOS_VIEW_ID, showBlockedReason, openImageById } from './image-actions.ts'
+import { showBlockedReason, openImageById } from './image-actions.ts'
 import {
   IMAGE_KEYS,
   OFFERED_KEYS,
@@ -184,8 +184,6 @@ function ImageRow({
       (error) => {
         setOpening(null)
         setOpenError(error)
-        // the photo is open in the map's viewer now: the dock opens on its photos view (not on a failure)
-        if (error === null) openDockView(PHOTOS_VIEW_ID)
       },
       () => {
         setOpening(null)
