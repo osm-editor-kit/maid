@@ -37,6 +37,10 @@
   "rule_sum_label": "Le nombre de voies ne correspond pas",
   "rule_sum_message": "{feature} : lanes={total}, mais les voies par sens font {sum}",
   "section_title": "Voies",
+  "status_label": "Couleur dans le style de carte Voies : {label}",
+  "status_set_count": "Mettre lanes={count}",
+  "status_todo_count": "D’abord ajouter les voies : + à côté de chaque sens.",
+  "status_todo_values": "Ajouter une valeur par voie dans le tableau, une direction ou une largeur par exemple. La route devient alors verte.",
   "undo_add": "Voie ajoutée",
   "undo_remove": "Voie supprimée",
   "undo_value": "Valeur de voie modifiée"

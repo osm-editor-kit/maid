@@ -37,6 +37,10 @@
   "rule_sum_label": "Fahrstreifenzahl geht nicht auf",
   "rule_sum_message": "{feature}: lanes={total}, aber die Fahrstreifen je Richtung ergeben {sum}",
   "section_title": "Fahrstreifen",
+  "status_label": "Farbe im Kartenstil Fahrstreifen: {label}",
+  "status_set_count": "lanes={count} setzen",
+  "status_todo_count": "Zuerst die Fahrstreifen ergänzen: + neben jeder Richtung.",
+  "status_todo_values": "Einen Wert pro Fahrstreifen in der Tabelle ergänzen, zum Beispiel Abbiegen oder Breite. Dann wird die Straße grün.",
   "undo_add": "Fahrstreifen hinzugefügt",
   "undo_remove": "Fahrstreifen entfernt",
   "undo_value": "Fahrstreifen-Wert geändert"

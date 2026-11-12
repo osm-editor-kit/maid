@@ -37,6 +37,10 @@
   "rule_sum_label": "Lane count does not add up",
   "rule_sum_message": "{feature}: lanes={total}, but the lanes per direction add up to {sum}",
   "section_title": "Lanes",
+  "status_label": "Colour in the Lanes map style: {label}",
+  "status_set_count": "Set lanes={count}",
+  "status_todo_count": "Add the lanes first: + next to each direction.",
+  "status_todo_values": "Add a value per lane in the table, a turn or a width for example. That makes the road green.",
   "undo_add": "Added a lane",
   "undo_remove": "Removed a lane",
   "undo_value": "Changed a lane value"

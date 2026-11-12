@@ -4,7 +4,7 @@
  * warning pink of the lenses. Service roads and living streets without a lane tag are no gap: they stay grey.
  * Rules: the first match decides.
  */
-import type { Lens } from '@osm-editor-kit/maid-style'
+import { matchesTags, type Lens } from '@osm-editor-kit/maid-style'
 import { m } from './messages.ts'
 import { LANE_ROADS, MAIN_ROADS, MINOR_ROADS, RICH_KEYS } from './roads.ts'
 
@@ -71,4 +71,21 @@ export const lanesLens: Lens = {
       },
     },
   ],
+}
+
+export type LaneStatus = keyof typeof LANE_COLOURS
+
+const STATUS_OF_COLOUR = new Map<string, LaneStatus>(
+  Object.entries(LANE_COLOURS).map(([status, colour]) => [colour, status as LaneStatus]),
+)
+
+/**
+ * The colour the lens gives a road, as its name: the lens's own rules decide, so the section's status and the map
+ * never disagree. Null for a way the lens does not colour.
+ */
+export function laneStatus(tags: Readonly<Record<string, string | undefined>>): LaneStatus | null {
+  const rule = lanesLens.rules.find((candidate) =>
+    matchesTags(candidate.match, tags as Record<string, string>),
+  )
+  return (rule?.color && STATUS_OF_COLOUR.get(rule.color)) || null
 }

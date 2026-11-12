@@ -113,6 +113,20 @@ const failed = await runCheck(
       section.locator(`[data-row="${row}"][data-col="${lane(direction, index)}"]`)
     const laneCells = () => section.locator('[data-row="turn"][data-col^="way/"]').count()
     report('and a column per lane in the sheet', 2, await laneCells())
+    const statusOf = () =>
+      section
+        .locator('[data-lanes-status]')
+        .evaluate((el) => [
+          (el as HTMLElement).dataset.lanesStatus,
+          [...el.querySelectorAll<HTMLElement>('[data-lanes-todo]')].map(
+            (t) => t.dataset.lanesTodo,
+          ),
+        ])
+    report(
+      'a count alone: the colour of the lens, and the step to green',
+      ['count', ['values']],
+      await statusOf(),
+    )
 
     // --- a value per lane ---
     // the list button of the cell lists every turn; one is taken with a click
@@ -128,6 +142,7 @@ const failed = await runCheck(
       await lanesOf(),
     )
     report('as one undo step', 'Changed a lane value', await undoLabel())
+    report('a value per lane: green, nothing left to do', ['rich', []], await statusOf())
 
     // a width is typed: the first key opens the cell, Enter writes it
     await cell('width', 'backward', 0).locator('textarea').click()

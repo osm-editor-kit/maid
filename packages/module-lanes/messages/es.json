@@ -37,6 +37,10 @@
   "rule_sum_label": "El número de carriles no cuadra",
   "rule_sum_message": "{feature}: lanes={total}, pero los carriles por sentido suman {sum}",
   "section_title": "Carriles",
+  "status_label": "Color en el estilo de mapa Carriles: {label}",
+  "status_set_count": "Poner lanes={count}",
+  "status_todo_count": "Primero añadir los carriles: + junto a cada sentido.",
+  "status_todo_values": "Añadir un valor por carril en la tabla, un giro o una anchura por ejemplo. Así la calle se vuelve verde.",
   "undo_add": "Carril añadido",
   "undo_remove": "Carril quitado",
   "undo_value": "Valor de carril cambiado"

@@ -31,6 +31,7 @@ import {
   type LaneProp,
 } from './edit.ts'
 import { laneFocus } from './hover-store.ts'
+import { LANE_COLOURS, laneStatus, type LaneStatus } from './lens.ts'
 import { m } from './messages.ts'
 import { laneRules } from './rules/lane-rules.ts'
 import { laneScene, osmNumber, type GraphLike } from './scene.ts'
@@ -163,8 +164,22 @@ export function LanesSection({ entity, editor, readOnly }: InspectorSectionProps
       ? ['backward', 'both_ways', 'forward']
       : ['backward', 'forward']
 
+  const status = laneStatus(tags)
+
   return (
     <div className="flex flex-col gap-3" data-lanes-section="">
+      {status && (
+        <LaneStatusNote
+          status={status}
+          count={tagged.total}
+          onSetCount={
+            locked
+              ? undefined
+              : () => write({ ...tags, lanes: String(tagged.total) }, m.undo_value())
+          }
+        />
+      )}
+
       <figure className="flex flex-col gap-1">
         <div className="max-h-80 overflow-auto rounded-md border border-zinc-950/10 bg-zinc-50 p-1 dark:border-white/10 dark:bg-zinc-900">
           <LaneDiagram
@@ -204,7 +219,10 @@ export function LanesSection({ entity, editor, readOnly }: InspectorSectionProps
       </div>
 
       {columns.length === 0 ? (
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">{m.no_lanes()}</p>
+        // the status above already asks for the lanes on a main road
+        status === 'missing' ? null : (
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">{m.no_lanes()}</p>
+        )
       ) : (
         <div
           className="overflow-x-auto"
@@ -328,6 +346,59 @@ export function LanesSection({ entity, editor, readOnly }: InspectorSectionProps
             </li>
           ))}
         </ul>
+      )}
+    </div>
+  )
+}
+
+const STATUS_LABEL: Record<LaneStatus, () => string> = {
+  rich: () => m.lens_rich(),
+  count: () => m.lens_count(),
+  missing: () => m.lens_missing(),
+  minor: () => m.lens_minor(),
+}
+
+/**
+ * What the colour of the "Lanes" map style says about this road, and what makes it green: the same swatch and words
+ * as the lens legend, then the next step when lane tags are missing (in the manner of the TILDA section's checklist,
+ * but only the open items).
+ */
+function LaneStatusNote({
+  status,
+  count,
+  onSetCount,
+}: {
+  status: LaneStatus
+  count: number
+  onSetCount: (() => void) | undefined
+}) {
+  return (
+    <div
+      className="flex flex-col gap-1 text-xs text-zinc-700 dark:text-zinc-300"
+      data-lanes-status={status}
+    >
+      <p className="flex items-center gap-2">
+        <span
+          aria-hidden="true"
+          className="h-1 w-5 shrink-0 rounded-full"
+          style={{ background: LANE_COLOURS[status] }}
+        />
+        <span>{m.status_label({ label: STATUS_LABEL[status]() })}</span>
+      </p>
+      {status === 'missing' && (
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-7" data-lanes-todo="count">
+          <span>{m.status_todo_count()}</span>
+          {onSetCount && count > 0 && (
+            <button type="button" className={SMALL_BUTTON} onClick={onSetCount}>
+              {m.status_set_count({ count })}
+            </button>
+          )}
+        </p>
+      )}
+      {(status === 'missing' || status === 'count') && (
+        <p className="pl-7" data-lanes-todo="values">
+          {m.status_todo_values()}
+        </p>
       )}
     </div>
   )
