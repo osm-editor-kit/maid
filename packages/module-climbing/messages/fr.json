@@ -1,0 +1,21 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "climbing_section_title": "Escalade",
+  "climbing_crag_routes": "{count} voies",
+  "climbing_area_crags": "{count} falaises",
+  "climbing_metres": "{value} m",
+  "climbing_bolts": "{count} points",
+  "climbing_unnamed": "Sans nom",
+  "climbing_not_loaded": "Non chargé",
+  "climbing_no_grade": "–",
+  "climbing_order_hint": "Numérotées de gauche à droite comme sur le rocher : l’ordre des membres. Faites-les glisser dans la liste des membres pour les réordonner.",
+  "climbing_crag_point_hint": "Cette falaise est un point et ne peut pas lister ses voies. Cartographiez-la comme relation (type=site) pour regrouper les voies.",
+  "climbing_route_in_crag": "Voie {number} sur {count} à {crag}",
+  "climbing_select_crag": "Falaise",
+  "climbing_route_no_crag": "Cette voie n’appartient encore à aucune falaise.",
+  "climbing_no_crag_near": "Aucune falaise chargée à moins de 500 m.",
+  "climbing_add_to_crag": "Ajouter",
+  "climbing_added_to_crag": "Voie ajoutée à {crag}",
+  "climbing_new_crag": "Nouvelle falaise avec cette voie",
+  "climbing_new_crag_done": "Falaise créée"
+}

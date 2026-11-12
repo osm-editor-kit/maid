@@ -1,0 +1,15 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "terrain_label": "Terreno",
+  "terrain_mode_off": "Apagado",
+  "terrain_mode_relief": "Relieve",
+  "terrain_mode_3d": "3D",
+  "terrain_heights": "Alturas",
+  "terrain_tilt": "Inclinación",
+  "terrain_tilt_hint": "Dos dedos también inclinan el mapa. Edita los puntos en terreno empinado con el mapa plano.",
+  "terrain_automated": "Apagado en ejecuciones automáticas: no se piden teselas de terreno.",
+  "terrain_off_hint": "El relieve sombrea el terreno bajo los datos; 3D lo eleva e inclina el mapa. Alturas de Mapterhorn.",
+  "terrain_notice_title": "Alturas de Mapterhorn: para mirar, no para mapear",
+  "terrain_notice_text": "Mapterhorn combina muchas fuentes de altura. No se sabe si todas sus licencias son compatibles con OpenStreetMap. No derives datos de OSM de estas alturas (calcar, curvas de nivel, etiquetas ele).",
+  "terrain_notice_link": "Fuentes y licencias"
+}

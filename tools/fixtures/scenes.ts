@@ -63,6 +63,15 @@ export const SCENES: Scene[] = [
     zoom: 18,
     madeBy: 'fixtures-bicycle',
   },
+  {
+    name: 'climbing',
+    description:
+      'Made-up climbing at the Kampenwand (Chiemgau): an area with two crags, routes as lines and as start points, a boulder, a route in no crag, cliffs and the path up',
+    bbox: [12.354, 47.7515, 12.368, 47.7575],
+    center: [12.3612, 47.7546],
+    zoom: 17,
+    madeBy: 'fixtures-climbing',
+  },
 ]
 
 export function getScene(name: string) {

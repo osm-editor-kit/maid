@@ -1,0 +1,12 @@
+{
+  "tagline": "Climbing and bouldering",
+  "description": "Crags, boulders and their routes, with the terrain in relief and 3D. A crag lists its routes in the order of the rock with their grades; a route finds its crag. German by default.",
+  "highlights": [
+    "A crag's routes left to right with grade, length and bolts",
+    "Add a route to a crag nearby, or start a new crag with it",
+    "The climbing fields of id-tagging-schema PR 2793",
+    "Terrain relief and a tilted 3D view (Mapterhorn, with a licence notice)",
+    "The relation column to order and check the routes"
+  ],
+  "open": "map=17/47.7546/12.3612&terrain=3d"
+}

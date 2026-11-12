@@ -1,0 +1,21 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "climbing_section_title": "Klettern",
+  "climbing_crag_routes": "{count} Routen",
+  "climbing_area_crags": "{count} Felsen",
+  "climbing_metres": "{value} m",
+  "climbing_bolts": "{count} Haken",
+  "climbing_unnamed": "Ohne Namen",
+  "climbing_not_loaded": "Nicht geladen",
+  "climbing_no_grade": "–",
+  "climbing_order_hint": "Von links nach rechts nummeriert wie am Fels: die Reihenfolge der Mitglieder. Zum Umsortieren in der Mitgliederliste ziehen.",
+  "climbing_crag_point_hint": "Dieser Fels ist ein Punkt und kann seine Routen nicht auflisten. Als Fels-Relation (type=site) erfassen, um die Routen zu gruppieren.",
+  "climbing_route_in_crag": "Route {number} von {count} am {crag}",
+  "climbing_select_crag": "Fels",
+  "climbing_route_no_crag": "Diese Route gehört noch zu keinem Fels.",
+  "climbing_no_crag_near": "Kein Fels im Umkreis von 500 m geladen.",
+  "climbing_add_to_crag": "Hinzufügen",
+  "climbing_added_to_crag": "Route zu {crag} hinzugefügt",
+  "climbing_new_crag": "Neuer Fels mit dieser Route",
+  "climbing_new_crag_done": "Fels angelegt"
+}

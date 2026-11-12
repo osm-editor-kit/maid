@@ -1,0 +1,25 @@
+{
+  "name": "climbing",
+  "description": "Made-up climbing at the Kampenwand (Chiemgau): an area with two crags, routes as lines and as start points, a boulder, a route in no crag, cliffs and the path up",
+  "bbox": [
+    12.354,
+    47.7515,
+    12.368,
+    47.7575
+  ],
+  "center": [
+    12.3612,
+    47.7546
+  ],
+  "zoom": 17,
+  "counts": {
+    "node": 34,
+    "way": 9,
+    "relation": 3
+  },
+  "source": {
+    "script": "tools/fixtures/climbing.ts"
+  },
+  "attribution": "Made up for the tests, not OSM data",
+  "sha256": "f28c2d077125c3f80297ec00c482158ab2298a7c10971e641e494109cadb996b"
+}

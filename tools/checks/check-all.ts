@@ -3,7 +3,7 @@
  * only for the apps that have the module (parking; way table, reroute and sidepaths in bicycle; levels in indoor; the drawing
  * tools in parking and indoor).
  *
- *   bun run check-all [--app maid|bicycle|parking|indoor|lanes]
+ *   bun run check-all [--app maid|bicycle|parking|indoor|lanes|climbing]
  *
  * Each check is started as `bun run check-<name> --app <app>` and must exit 0 with at least the
  * expected number of `ok` lines. Prints one line per check, then its FAIL lines. Writes
@@ -131,50 +131,50 @@ const RUNS: Run[] = [
 /**
  * The `ok` lines each check prints on the default scene (small) when it passes, per app. A check
  * with fewer `ok` lines fails. With more, it passes, and the run prints a note: update this table.
- * Bicycle, parking, indoor and lanes have the same numbers until a real run says otherwise.
+ * Bicycle, parking, indoor, lanes and climbing have the same numbers until a real run says otherwise.
  */
 const EXPECTED_OK: Record<string, Record<AppName, number>> = {
-  interactions: { maid: 163, bicycle: 163, parking: 163, indoor: 163, lanes: 163 },
-  edit: { maid: 20, bicycle: 20, parking: 20, indoor: 20, lanes: 20 },
-  draw: { maid: 14, bicycle: 14, parking: 14, indoor: 14, lanes: 14 },
-  undo: { maid: 43, bicycle: 43, parking: 43, indoor: 43, lanes: 43 },
-  ops: { maid: 17, bicycle: 17, parking: 17, indoor: 17, lanes: 17 },
-  relations: { maid: 21, bicycle: 21, parking: 21, indoor: 21, lanes: 21 },
-  validation: { maid: 8, bicycle: 8, parking: 8, indoor: 8, lanes: 8 },
-  'close-nodes': { maid: 8, bicycle: 8, parking: 8, indoor: 8, lanes: 8 },
-  journal: { maid: 17, bicycle: 17, parking: 17, indoor: 17, lanes: 17 },
-  filters: { maid: 19, bicycle: 19, parking: 19, indoor: 19, lanes: 0 },
-  tags: { maid: 23, bicycle: 23, parking: 23, indoor: 23, lanes: 23 },
-  multi: { maid: 11, bicycle: 11, parking: 11, indoor: 11, lanes: 11 },
-  'relations-scene': { maid: 25, bicycle: 25, parking: 25, indoor: 25, lanes: 25 },
-  'relation-column': { maid: 31, bicycle: 31, parking: 31, indoor: 31, lanes: 31 },
-  'route-overview': { maid: 63, bicycle: 63, parking: 63, indoor: 63, lanes: 63 },
+  interactions: { maid: 163, bicycle: 163, parking: 163, indoor: 163, lanes: 163, climbing: 163 },
+  edit: { maid: 20, bicycle: 20, parking: 20, indoor: 20, lanes: 20, climbing: 20 },
+  draw: { maid: 14, bicycle: 14, parking: 14, indoor: 14, lanes: 14, climbing: 14 },
+  undo: { maid: 43, bicycle: 43, parking: 43, indoor: 43, lanes: 43, climbing: 43 },
+  ops: { maid: 17, bicycle: 17, parking: 17, indoor: 17, lanes: 17, climbing: 17 },
+  relations: { maid: 21, bicycle: 21, parking: 21, indoor: 21, lanes: 21, climbing: 21 },
+  validation: { maid: 8, bicycle: 8, parking: 8, indoor: 8, lanes: 8, climbing: 8 },
+  'close-nodes': { maid: 8, bicycle: 8, parking: 8, indoor: 8, lanes: 8, climbing: 8 },
+  journal: { maid: 17, bicycle: 17, parking: 17, indoor: 17, lanes: 17, climbing: 17 },
+  filters: { maid: 19, bicycle: 19, parking: 19, indoor: 19, lanes: 0, climbing: 19 },
+  tags: { maid: 23, bicycle: 23, parking: 23, indoor: 23, lanes: 23, climbing: 23 },
+  multi: { maid: 11, bicycle: 11, parking: 11, indoor: 11, lanes: 11, climbing: 11 },
+  'relations-scene': { maid: 25, bicycle: 25, parking: 25, indoor: 25, lanes: 25, climbing: 25 },
+  'relation-column': { maid: 31, bicycle: 31, parking: 31, indoor: 31, lanes: 31, climbing: 31 },
+  'route-overview': { maid: 63, bicycle: 63, parking: 63, indoor: 63, lanes: 63, climbing: 63 },
   // module checks run only for the apps in `only` (RUNS): the count is 0 elsewhere
-  parking: { maid: 0, bicycle: 0, parking: 29, indoor: 0, lanes: 0 },
-  lanes: { maid: 0, bicycle: 0, parking: 0, indoor: 0, lanes: 27 },
-  'way-table': { maid: 0, bicycle: 25, parking: 0, indoor: 0, lanes: 25 },
-  reroute: { maid: 0, bicycle: 12, parking: 0, indoor: 0, lanes: 0 },
-  sidepaths: { maid: 0, bicycle: 15, parking: 0, indoor: 0, lanes: 0 },
-  'bike-style': { maid: 0, bicycle: 45, parking: 0, indoor: 0, lanes: 0 },
-  rectangle: { maid: 0, bicycle: 0, parking: 24, indoor: 24, lanes: 0 },
-  'angle-snap': { maid: 0, bicycle: 0, parking: 35, indoor: 35, lanes: 0 },
-  merge: { maid: 0, bicycle: 0, parking: 31, indoor: 31, lanes: 0 },
-  cut: { maid: 0, bicycle: 0, parking: 25, indoor: 25, lanes: 0 },
-  divide: { maid: 0, bicycle: 0, parking: 23, indoor: 23, lanes: 0 },
-  resize: { maid: 0, bicycle: 0, parking: 32, indoor: 32, lanes: 0 },
-  extrude: { maid: 0, bicycle: 0, parking: 22, indoor: 0, lanes: 0 },
-  display: { maid: 12, bicycle: 12, parking: 12, indoor: 12, lanes: 12 },
-  touch: { maid: 0, bicycle: 0, parking: 14, indoor: 14, lanes: 0 },
-  levels: { maid: 0, bicycle: 0, parking: 0, indoor: 34, lanes: 0 },
-  room: { maid: 0, bicycle: 0, parking: 0, indoor: 21, lanes: 0 },
-  menu: { maid: 16, bicycle: 16, parking: 16, indoor: 16, lanes: 16 },
-  'merge-polygon': { maid: 23, bicycle: 23, parking: 23, indoor: 23, lanes: 23 },
-  favourites: { maid: 13, bicycle: 13, parking: 13, indoor: 13, lanes: 13 },
-  'move-handle': { maid: 15, bicycle: 15, parking: 15, indoor: 15, lanes: 15 },
-  'rotate-handle': { maid: 22, bicycle: 22, parking: 22, indoor: 22, lanes: 22 },
-  tooltips: { maid: 10, bicycle: 10, parking: 10, indoor: 10, lanes: 10 },
-  osmchange: { maid: 0, bicycle: 31, parking: 0, indoor: 0, lanes: 0 },
-  tasks: { maid: 28, bicycle: 28, parking: 28, indoor: 28, lanes: 28 },
+  parking: { maid: 0, bicycle: 0, parking: 29, indoor: 0, lanes: 0, climbing: 0 },
+  lanes: { maid: 0, bicycle: 0, parking: 0, indoor: 0, lanes: 27, climbing: 0 },
+  'way-table': { maid: 0, bicycle: 25, parking: 0, indoor: 0, lanes: 25, climbing: 0 },
+  reroute: { maid: 0, bicycle: 12, parking: 0, indoor: 0, lanes: 0, climbing: 0 },
+  sidepaths: { maid: 0, bicycle: 15, parking: 0, indoor: 0, lanes: 0, climbing: 0 },
+  'bike-style': { maid: 0, bicycle: 45, parking: 0, indoor: 0, lanes: 0, climbing: 0 },
+  rectangle: { maid: 0, bicycle: 0, parking: 24, indoor: 24, lanes: 0, climbing: 0 },
+  'angle-snap': { maid: 0, bicycle: 0, parking: 35, indoor: 35, lanes: 0, climbing: 0 },
+  merge: { maid: 0, bicycle: 0, parking: 31, indoor: 31, lanes: 0, climbing: 0 },
+  cut: { maid: 0, bicycle: 0, parking: 25, indoor: 25, lanes: 0, climbing: 0 },
+  divide: { maid: 0, bicycle: 0, parking: 23, indoor: 23, lanes: 0, climbing: 0 },
+  resize: { maid: 0, bicycle: 0, parking: 32, indoor: 32, lanes: 0, climbing: 0 },
+  extrude: { maid: 0, bicycle: 0, parking: 22, indoor: 0, lanes: 0, climbing: 0 },
+  display: { maid: 12, bicycle: 12, parking: 12, indoor: 12, lanes: 12, climbing: 12 },
+  touch: { maid: 0, bicycle: 0, parking: 14, indoor: 14, lanes: 0, climbing: 0 },
+  levels: { maid: 0, bicycle: 0, parking: 0, indoor: 34, lanes: 0, climbing: 0 },
+  room: { maid: 0, bicycle: 0, parking: 0, indoor: 21, lanes: 0, climbing: 0 },
+  menu: { maid: 16, bicycle: 16, parking: 16, indoor: 16, lanes: 16, climbing: 16 },
+  'merge-polygon': { maid: 23, bicycle: 23, parking: 23, indoor: 23, lanes: 23, climbing: 23 },
+  favourites: { maid: 13, bicycle: 13, parking: 13, indoor: 13, lanes: 13, climbing: 13 },
+  'move-handle': { maid: 15, bicycle: 15, parking: 15, indoor: 15, lanes: 15, climbing: 15 },
+  'rotate-handle': { maid: 22, bicycle: 22, parking: 22, indoor: 22, lanes: 22, climbing: 22 },
+  tooltips: { maid: 10, bicycle: 10, parking: 10, indoor: 10, lanes: 10, climbing: 10 },
+  osmchange: { maid: 0, bicycle: 31, parking: 0, indoor: 0, lanes: 0, climbing: 0 },
+  tasks: { maid: 28, bicycle: 28, parking: 28, indoor: 28, lanes: 28, climbing: 28 },
 }
 
 type CheckResult = {

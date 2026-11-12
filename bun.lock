@@ -85,6 +85,38 @@
         "vite": "^8.3.5",
       },
     },
+    "apps/maid-climbing": {
+      "name": "@osm-editor-kit/maid-climbing",
+      "version": "0.1.0",
+      "dependencies": {
+        "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-filters": "workspace:*",
+        "@osm-editor-kit/maid-module-climbing": "workspace:*",
+        "@osm-editor-kit/maid-module-data-layers": "workspace:*",
+        "@osm-editor-kit/maid-module-imagery": "workspace:*",
+        "@osm-editor-kit/maid-module-lenses": "workspace:*",
+        "@osm-editor-kit/maid-module-notes": "workspace:*",
+        "@osm-editor-kit/maid-module-street-imagery": "workspace:*",
+        "@osm-editor-kit/maid-module-tasks": "workspace:*",
+        "@osm-editor-kit/maid-module-terrain": "workspace:*",
+        "@osm-editor-kit/maid-operations": "workspace:*",
+        "@osm-editor-kit/maid-presets": "workspace:*",
+        "@osm-editor-kit/maid-renderer": "workspace:*",
+        "@osm-editor-kit/maid-shell": "workspace:*",
+        "@osm-editor-kit/maid-ui": "workspace:*",
+        "@osm-editor-kit/maid-validation": "workspace:*",
+        "@tailwindcss/vite": "^4.3.3",
+        "maplibre-gl": "^6.0.0",
+        "react": "^19.3.1",
+        "tailwindcss": "^4.3.3",
+      },
+      "devDependencies": {
+        "@types/react": "^19.2.0",
+        "@vitejs/plugin-react": "6.1.2",
+        "oxc-transform-react": "^0.155.0",
+        "vite": "^8.3.5",
+      },
+    },
     "apps/maid-indoor": {
       "name": "@osm-editor-kit/maid-indoor",
       "version": "0.1.0",
@@ -275,6 +307,23 @@
       },
       "devDependencies": {
         "@types/geojson": "^7946.0.16",
+        "@types/react": "^19.3.0",
+      },
+    },
+    "packages/module-climbing": {
+      "name": "@osm-editor-kit/maid-module-climbing",
+      "version": "0.0.0",
+      "dependencies": {
+        "@heroicons/react": "^2.2.0",
+        "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-i18n": "workspace:*",
+        "@osm-editor-kit/maid-model": "workspace:*",
+        "@osm-editor-kit/maid-presets": "workspace:*",
+        "@osm-editor-kit/maid-renderer": "workspace:*",
+        "@osm-editor-kit/maid-ui": "workspace:*",
+        "react": "^19.3.1",
+      },
+      "devDependencies": {
         "@types/react": "^19.3.0",
       },
     },
@@ -561,6 +610,24 @@
         "@types/react-dom": "^19.2.0",
         "fake-indexeddb": "^6.0.0",
         "react-dom": "^19.2.0",
+      },
+    },
+    "packages/module-terrain": {
+      "name": "@osm-editor-kit/maid-module-terrain",
+      "version": "0.0.0",
+      "dependencies": {
+        "@heroicons/react": "^2.2.0",
+        "@osm-editor-kit/maid-core": "workspace:*",
+        "@osm-editor-kit/maid-i18n": "workspace:*",
+        "@osm-editor-kit/maid-renderer": "workspace:*",
+        "@osm-editor-kit/maid-ui": "workspace:*",
+        "maplibre-gl": "^6.0.0",
+        "react": "^19.3.1",
+        "react-map-gl": "^8.1.3",
+        "zustand": "^5.0.16",
+      },
+      "devDependencies": {
+        "@types/react": "^19.3.0",
       },
     },
     "packages/module-tilda": {
@@ -946,6 +1013,8 @@
 
     "@osm-editor-kit/maid-bicycle": ["@osm-editor-kit/maid-bicycle@workspace:apps/maid-bicycle"],
 
+    "@osm-editor-kit/maid-climbing": ["@osm-editor-kit/maid-climbing@workspace:apps/maid-climbing"],
+
     "@osm-editor-kit/maid-core": ["@osm-editor-kit/maid-core@workspace:packages/core"],
 
     "@osm-editor-kit/maid-filters": ["@osm-editor-kit/maid-filters@workspace:packages/filters"],
@@ -963,6 +1032,8 @@
     "@osm-editor-kit/maid-model": ["@osm-editor-kit/maid-model@workspace:packages/model"],
 
     "@osm-editor-kit/maid-module-bike-infrastructure": ["@osm-editor-kit/maid-module-bike-infrastructure@workspace:packages/module-bike-infrastructure"],
+
+    "@osm-editor-kit/maid-module-climbing": ["@osm-editor-kit/maid-module-climbing@workspace:packages/module-climbing"],
 
     "@osm-editor-kit/maid-module-data-layers": ["@osm-editor-kit/maid-module-data-layers@workspace:packages/module-data-layers"],
 
@@ -991,6 +1062,8 @@
     "@osm-editor-kit/maid-module-surface": ["@osm-editor-kit/maid-module-surface@workspace:packages/module-surface"],
 
     "@osm-editor-kit/maid-module-tasks": ["@osm-editor-kit/maid-module-tasks@workspace:packages/module-tasks"],
+
+    "@osm-editor-kit/maid-module-terrain": ["@osm-editor-kit/maid-module-terrain@workspace:packages/module-terrain"],
 
     "@osm-editor-kit/maid-module-tilda": ["@osm-editor-kit/maid-module-tilda@workspace:packages/module-tilda"],
 

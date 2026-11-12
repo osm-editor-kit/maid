@@ -1,0 +1,21 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "climbing_section_title": "Escalada",
+  "climbing_crag_routes": "{count} vías",
+  "climbing_area_crags": "{count} paredes",
+  "climbing_metres": "{value} m",
+  "climbing_bolts": "{count} chapas",
+  "climbing_unnamed": "Sin nombre",
+  "climbing_not_loaded": "No cargado",
+  "climbing_no_grade": "–",
+  "climbing_order_hint": "Numeradas de izquierda a derecha como en la roca: el orden de los miembros. Arrástralas en la lista de miembros para reordenarlas.",
+  "climbing_crag_point_hint": "Esta pared es un punto y no puede listar sus vías. Mapéala como relación (type=site) para agrupar las vías.",
+  "climbing_route_in_crag": "Vía {number} de {count} en {crag}",
+  "climbing_select_crag": "Pared",
+  "climbing_route_no_crag": "Esta vía aún no pertenece a ninguna pared.",
+  "climbing_no_crag_near": "Ninguna pared cargada a menos de 500 m.",
+  "climbing_add_to_crag": "Añadir",
+  "climbing_added_to_crag": "Vía añadida a {crag}",
+  "climbing_new_crag": "Nueva pared con esta vía",
+  "climbing_new_crag_done": "Pared creada"
+}

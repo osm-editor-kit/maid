@@ -1,0 +1,15 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "terrain_label": "Terrain",
+  "terrain_mode_off": "Off",
+  "terrain_mode_relief": "Relief",
+  "terrain_mode_3d": "3D",
+  "terrain_heights": "Heights",
+  "terrain_tilt": "Tilt",
+  "terrain_tilt_hint": "Two fingers tilt the map too. Edit with the map flat when points sit on steep ground.",
+  "terrain_automated": "Off in automated runs: no terrain tiles are requested.",
+  "terrain_off_hint": "Relief shades the ground under the map data; 3D raises it and tilts the map. Elevation from Mapterhorn.",
+  "terrain_notice_title": "Elevation from Mapterhorn: for looking, not for mapping",
+  "terrain_notice_text": "Mapterhorn combines many elevation sources. Not all of their licences are known to be compatible with OpenStreetMap. Do not derive OSM data from these heights (tracing, contours, ele tags).",
+  "terrain_notice_link": "Sources and licences"
+}

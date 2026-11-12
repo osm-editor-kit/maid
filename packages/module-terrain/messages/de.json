@@ -1,0 +1,15 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "terrain_label": "Gelände",
+  "terrain_mode_off": "Aus",
+  "terrain_mode_relief": "Relief",
+  "terrain_mode_3d": "3D",
+  "terrain_heights": "Höhen",
+  "terrain_tilt": "Neigung",
+  "terrain_tilt_hint": "Zwei Finger neigen die Karte auch. Punkte an steilen Hängen besser mit flacher Karte bearbeiten.",
+  "terrain_automated": "In automatischen Läufen aus: es werden keine Geländekacheln geladen.",
+  "terrain_off_hint": "Relief schattiert das Gelände unter den Kartendaten; 3D hebt es an und neigt die Karte. Höhen von Mapterhorn.",
+  "terrain_notice_title": "Höhen von Mapterhorn: zum Ansehen, nicht zum Kartieren",
+  "terrain_notice_text": "Mapterhorn kombiniert viele Höhenquellen. Nicht für alle ist bekannt, dass ihre Lizenz mit OpenStreetMap vereinbar ist. Keine OSM-Daten aus diesen Höhen ableiten (Nachzeichnen, Höhenlinien, ele-Tags).",
+  "terrain_notice_link": "Quellen und Lizenzen"
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "terrain_label": "Relief",
+  "terrain_mode_off": "Désactivé",
+  "terrain_mode_relief": "Ombrage",
+  "terrain_mode_3d": "3D",
+  "terrain_heights": "Hauteurs",
+  "terrain_tilt": "Inclinaison",
+  "terrain_tilt_hint": "Deux doigts inclinent aussi la carte. Modifiez les points sur terrain raide avec la carte à plat.",
+  "terrain_automated": "Désactivé lors des exécutions automatisées : aucune tuile de relief n’est demandée.",
+  "terrain_off_hint": "L’ombrage montre le relief sous les données ; la 3D le soulève et incline la carte. Altitudes de Mapterhorn.",
+  "terrain_notice_title": "Altitudes de Mapterhorn : pour regarder, pas pour cartographier",
+  "terrain_notice_text": "Mapterhorn combine de nombreuses sources d’altitude. Leurs licences ne sont pas toutes connues comme compatibles avec OpenStreetMap. Ne dérivez pas de données OSM de ces altitudes (traçage, courbes, tags ele).",
+  "terrain_notice_link": "Sources et licences"
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "climbing_section_title": "Climbing",
+  "climbing_crag_routes": "{count} routes",
+  "climbing_area_crags": "{count} crags",
+  "climbing_metres": "{value} m",
+  "climbing_bolts": "{count} bolts",
+  "climbing_unnamed": "Unnamed",
+  "climbing_not_loaded": "Not loaded",
+  "climbing_no_grade": "–",
+  "climbing_order_hint": "Numbered left to right as on the rock: the order of the members. Drag them in the member list to reorder.",
+  "climbing_crag_point_hint": "This crag is a point, so it cannot list its routes. Map it as a crag relation (type=site) to group the routes.",
+  "climbing_route_in_crag": "Route {number} of {count} at {crag}",
+  "climbing_select_crag": "Crag",
+  "climbing_route_no_crag": "This route is in no crag yet.",
+  "climbing_no_crag_near": "No crag loaded within 500 m.",
+  "climbing_add_to_crag": "Add",
+  "climbing_added_to_crag": "Added a route to {crag}",
+  "climbing_new_crag": "New crag with this route",
+  "climbing_new_crag_done": "Made a crag"
+}

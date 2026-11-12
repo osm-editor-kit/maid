@@ -587,3 +587,12 @@ Tobias, 2026-11-10: lane tooling in a Maid version of its own, in the list of ve
       **Test for Tobias:** Karl-Marx-Straße at `map=20/52.48057/13.43568&id=w960167546`: the status line names the colour; the list button in a turn cell shows all turns. A tertiary road without lane tags shows the two steps to green.
 - [ ] Open: `mirrorTags` in osm-way-chain itself (npm) still mirrors lane pipes and turns, to fix there and hand to a person; whether the plain `placement` of a `oneway=-1` road counts along travel (assumed).
 - [ ] The benchmark with the section open.
+
+### Climbing (started 2026-11-12)
+
+Tobias, 2026-11-12: a Maid for climbing and bouldering, with MapLibre's 3D view and relation editing for crags and routes. Plan and research: [climbing.md](../research/climbing.md).
+
+- [x] 2026-11-12: prototype `apps/maid-climbing` (port 5181) with `packages/module-climbing` (section "Climbing": a crag's routes in rock order with grade, length, bolts; an area's crags; a route's crag, "Add" to a crag within 500 m, "New crag with this route"; the fields of id-tagging-schema PR 2793) and `packages/module-terrain` (panel "Terrain": Off, Relief, 3D from Mapterhorn with heights ×1 to ×2, tilt up to 60°, a notice that Mapterhorn's sources are not all known to be compatible with OSM; nothing requested under automation). Core: `map.view` lets a module raise `maxPitch`; the tilt goes into `map=`. Made-up scene `climbing` (`bun run fixtures-climbing`). ELI has no elevation source with heights, only shaded images, so 3D cannot use it. No browser check yet.
+      **Test for Tobias:** `bun run dev-climbing` and `bun run dev-api`, then http://127.0.0.1:5181/?scene=climbing&map=18/47.7547/12.3622&id=r2000000025 (the Ostgipfel: five routes with grades), select "Einsame Linie" east of it and press "Hinzufügen", then undo; open "Gelände" in the top bar and choose 3D (loads Mapterhorn tiles, so it needs the network).
+- [ ] Next (climbing.md, "Next steps"): a climbing lens, batch adding routes, rules, point crag to relation, a per-source terrain notice, a browser check `check-climbing`.
+
