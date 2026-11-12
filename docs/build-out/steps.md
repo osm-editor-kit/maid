@@ -588,11 +588,38 @@ Tobias, 2026-11-10: lane tooling in a Maid version of its own, in the list of ve
 - [ ] Open: `mirrorTags` in osm-way-chain itself (npm) still mirrors lane pipes and turns, to fix there and hand to a person; whether the plain `placement` of a `oneway=-1` road counts along travel (assumed).
 - [ ] The benchmark with the section open.
 
+### Golf (started 2026-11-12)
+
+Tobias, 2026-11-12: a Maid for golf courses with its own favourites, style, dock list, presets, rules and filters; a plan
+and a prototype to test locally first. Then (same day) the OSM wiki pages as PDFs, the Carto style of the jgruca diary,
+suggested favourites from the config, English and German, and "bring to main as one app". Plan and sources: [docs/research/golf/plan.md](../research/golf/plan.md).
+
+- [x] 2026-11-12: `apps/maid-golf` (port 5180) with `packages/module-golf`: the golf presets first in the type picker,
+      the lens "Standard: Golf", the dock view "Holes" (scorecard), eight golf rules with fixes, filters that lock roads
+      and buildings, the drawing tools that fit a course, the made-up scene `golf` (`bun run fixtures-golf`), the tile and
+      a row on the overview page.
+      **Test for Tobias:** `bun run dev-api` and `bun run dev-golf`, then
+      http://127.0.0.1:5180/?scene=golf&map=16.6/52.6029/13.3162 : the map style is "Standard: Golf"; open "Holes" in the
+      dock, hole 3 says "par" is missing; choose it, the hole is selected; the Issues dock lists the bunker without sand,
+      the pond without water, "Hole 3" and sport=golf on the fairway, each with a fix; the type picker for an area starts
+      with Green, Fairway, Tee, Bunker.
+- [x] 2026-11-12: from the wiki pages Tobias saved: bunkers with `surface=sand` (not `natural=sand`), presets for
+      out of bounds and `golf:course`/`golf:par`, three new rules (`golf_hole` instead of `ref`, points = par − 1, a hole
+      sharing nodes with a green or fairway), generic names like "18th Hole". The lens in OSM Carto 5.4's colours with hole
+      numbers on the map (lens rules can now set `fillColor` and `fillOpacity`). `favourites` in the app config: suggested
+      while a person has none (`settingsActions.suggestFavourites`). On `main` and on the overview page.
+      **Test for Tobias:** https://osm-editor-kit.github.io/maid/maid-golf/#map=16/56.3480/-2.8150 : the style colours
+      greens, fairways and bunkers like OSM Carto, hole numbers sit on the holes, the star menu has eight golf favourites
+      in a browser that had none.
+- [ ] The next steps of the plan: a "Hole" section above the fields, drawing a hole in one go, rules that compare
+      features, scorecard import, `check-golf`.
+
 ### Climbing (started 2026-11-12)
 
 Tobias, 2026-11-12: a Maid for climbing and bouldering, with MapLibre's 3D view and relation editing for crags and routes. Plan and research: [climbing.md](../research/climbing.md).
 
 - [x] 2026-11-12: prototype `apps/maid-climbing` (port 5181) with `packages/module-climbing` (section "Climbing": a crag's routes in rock order with grade, length, bolts; an area's crags; a route's crag, "Add" to a crag within 500 m, "New crag with this route"; the fields of id-tagging-schema PR 2793) and `packages/module-terrain` (panel "Terrain": Off, Relief, 3D from Mapterhorn with heights ×1 to ×2, tilt up to 60°, a notice that Mapterhorn's sources are not all known to be compatible with OSM; nothing requested under automation). Core: `map.view` lets a module raise `maxPitch`; the tilt goes into `map=`. Made-up scene `climbing` (`bun run fixtures-climbing`). ELI has no elevation source with heights, only shaded images, so 3D cannot use it. No browser check yet.
       **Test for Tobias:** `bun run dev-climbing` and `bun run dev-api`, then http://127.0.0.1:5181/?scene=climbing&map=18/47.7547/12.3622&id=r2000000025 (the Ostgipfel: five routes with grades), select "Einsame Linie" east of it and press "Hinzufügen", then undo; open "Gelände" in the top bar and choose 3D (loads Mapterhorn tiles, so it needs the network).
+- [x] 2026-11-12: compass shown while the map is tilted too (every app; a click or N turns north and lays flat); BetaWatch's rules read ([betawatch.md](../research/climbing-sources/betawatch.md)); style fields follow PR 2793's head; on `main` and on the overview page.
+      **Test for Tobias:** https://osm-editor-kit.github.io/maid/maid-climbing/?map=17/49.6666/14.2517&id=r14297763&terrain=3d : Velká (Vltavská žula) in 3D with its routes in the section "Klettern"; tilt or turn the map, the compass shows, a click lays it flat.
 - [ ] Next (climbing.md, "Next steps"): a climbing lens, batch adding routes, rules, point crag to relation, a per-source terrain notice, a browser check `check-climbing`.
-

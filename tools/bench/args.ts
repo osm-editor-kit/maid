@@ -17,6 +17,7 @@ export const APPS = {
   parking: { dir: 'apps/maid-parking', port: PORTS.maidParking },
   indoor: { dir: 'apps/maid-indoor', port: PORTS.maidIndoor },
   lanes: { dir: 'apps/maid-lanes', port: PORTS.maidLanes },
+  golf: { dir: 'apps/maid-golf', port: PORTS.maidGolf },
   climbing: { dir: 'apps/maid-climbing', port: PORTS.maidClimbing },
 } as const
 

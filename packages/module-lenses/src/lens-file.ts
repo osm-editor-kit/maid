@@ -83,6 +83,12 @@ const rule = z.object(
       .max(1, { error: OPACITY_MESSAGE })
       .optional(),
     dash: dashList.optional(),
+    fillColor: colour.optional(),
+    fillOpacity: z
+      .number({ error: OPACITY_MESSAGE })
+      .min(0, { error: OPACITY_MESSAGE })
+      .max(1, { error: OPACITY_MESSAGE })
+      .optional(),
     label: text(60).optional(),
   },
   { error: 'expected an object' },

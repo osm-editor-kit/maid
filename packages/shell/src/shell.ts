@@ -1,9 +1,14 @@
-import { createEditor, isLocalUrl, type EditorConfig } from '@osm-editor-kit/maid-core'
+import { createEditor, isAutomated, isLocalUrl, type EditorConfig } from '@osm-editor-kit/maid-core'
 import { createFilterSet } from '@osm-editor-kit/maid-filters'
 import type { Locale } from '@osm-editor-kit/maid-i18n'
 import { connectLenses } from '@osm-editor-kit/maid-module-lenses'
 import { MaidEngine } from '@osm-editor-kit/maid-renderer'
-import { getSettings, type Server } from '@osm-editor-kit/maid-ui'
+import {
+  getSettings,
+  settingsActions,
+  type Server,
+  type SuggestedFavourite,
+} from '@osm-editor-kit/maid-ui'
 import { createAccount } from './account'
 import { createAuth } from './auth'
 import { DEPLOYED, DEV_API, OSM_API, readConfig, type Config } from './config'
@@ -76,6 +81,12 @@ export type AppConfig = {
   }
   /** What the editor is made of: modules, presets, filters. Gets the settings read from the URL. */
   editor: (config: Config) => EditorConfig
+  /**
+   * Favourites this editor suggests (Tobias, 2026-11-12): taken while the person has no favourites, on the first visit
+   * and again after they removed all of theirs; from then on they are the person's own to change. In order, numbered
+   * from 4. Not under automation, where the settings start empty for every check.
+   */
+  favourites?: readonly SuggestedFavourite[]
 }
 
 /**
@@ -101,6 +112,7 @@ export function createShell(app: AppConfig) {
   /** The editor's data and modules. What this editor is comes from the app's config. */
   // the shell's own URL parameters are taken: a module that declares one of them fails at setup
   const editor = createEditor({ ...app.editor(config), reservedUrlParams: shellUrlParamNames() })
+  if (app.favourites && !isAutomated()) settingsActions.suggestFavourites(app.favourites)
   // the rest of the iD hash: the names the modules declared (background, overlays, ...) become query parameters now
   migrateIdHash(window.location, window.history, editor.urlParams.list(), { final: true })
 

@@ -9,7 +9,9 @@ export const PORTS = {
   maidIndoor: 5178,
   /** The fifth app, apps/maid-lanes */
   maidLanes: 5179,
-  /** apps/maid-climbing (5180 is apps/maid-golf) */
+  /** The sixth app, apps/maid-golf */
+  maidGolf: 5180,
+  /** apps/maid-climbing (the seventh app) */
   maidClimbing: 5181,
   /** Production build of Maid, used by the benchmark */
   maidBuild: 5175,

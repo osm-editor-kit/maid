@@ -16,6 +16,7 @@
 @source '../../module-climbing/src';
 @source '../../module-terrain/src';
 @source '../../module-lanes/src';
+@source '../../module-golf/src';
 @source '../../module-traffic-signs/src';
 @source '../../traffic-sign-field/src';
 @source '../../module-turn-restrictions/src';

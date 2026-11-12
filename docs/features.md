@@ -13,6 +13,7 @@ same data makes the overview page of the deployed site (https://osm-editor-kit.g
 | **Maid Parking** ([config](../apps/maid-parking/src/maid.config.ts)) | Street-side parking. Maps the parking on both sides of every street, the way the Berlin parking project does it. German by default. | `angleSnap` `cutArea` `dataLayers` `divideArea` `elementInfo` `extrude` `imagery` `lenses` `mergeAreas` `notes` `operations` `parking` `rectangle` `relations` `resize` `streetImagery` `tasks` `validation` |
 | **Maid Indoor** ([config](../apps/maid-indoor/src/maid.config.ts)) | Indoor and building levels. For stations, malls and public buildings: edit one floor at a time while the others are dimmed and locked, and draw rooms that share their walls with the building. | `angleSnap` `cutArea` `dataLayers` `divideArea` `drawRoom` `elementInfo` `imagery` `lenses` `levels` `mergeAreas` `notes` `operations` `rectangle` `relations` `resize` `streetImagery` `tasks` `validation` |
 | **Maid Lanes** ([config](../apps/maid-lanes/src/maid.config.ts)) | Lanes of roads. Every lane of a road at a glance: a cross-section with turn arrows, a table with a column per lane, and the lanes drawn on the map. German by default. | `dataLayers` `elementInfo` `imagery` `lanes` `lenses` `notes` `operations` `relations` `streetImagery` `tasks` `trafficSigns` `turnRestrictions` `validation` `wayTable` |
+| **Maid Golf** ([config](../apps/maid-golf/src/maid.config.ts)) | Golf courses. Maps golf courses hole by hole: greens, fairways, tees, bunkers, water and the line of play, with the scorecard data (number, par, handicap) that golf apps read. A prototype. | `angleSnap` `cutArea` `dataLayers` `elementInfo` `golf` `imagery` `lenses` `mergeAreas` `notes` `operations` `rectangle` `relations` `resize` `streetImagery` `tasks` `validation` |
 | **Maid Climbing** ([config](../apps/maid-climbing/src/maid.config.ts)) | Climbing and bouldering. Crags, boulders and their routes, with the terrain in relief and 3D. A crag lists its routes in the order of the rock with their grades; a route finds its crag. German by default. | `climbing` `dataLayers` `elementInfo` `imagery` `lenses` `notes` `operations` `relations` `streetImagery` `tasks` `terrain` `validation` |
 
 ## Features compared with iD and Rapid
@@ -23,96 +24,97 @@ column follows the modules the app's config calls.
 
 ### The map
 
-| Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes | Climbing |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **WebGL map** ([docs](../packages/renderer/README.md)): The data is drawn on the graphics card, so large and dense areas stay smooth. _iD draws SVG; Rapid draws with PixiJS on WebGL, Maid with MapLibre GL._ | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Turn the map** ([docs](../packages/shell/README.md)): Alt or Ctrl and drag, two fingers, or Shift and the arrow keys; N sets north up again. | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Lenses** ([docs](../packages/module-lenses/README.md)): Recolour the map for one question: surface, lighting, max speed, or a lens the editor brings (parking, lanes, bicycle infrastructure). Export and import your own. _Rapid has an experiment with colour-blind modes and a high-contrast colour scheme for the whole map, merged but switched off; a larger colour scheme system was closed for now._ ([source](https://github.com/facebook/Rapid/pull/1384)) | – | ◐ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Loaded data stays visible when zoomed out** ([docs](../packages/renderer/README.md)): Lines, areas and points stay drawn down to zoom 12; below zoom 18 the map is quiet and shows vertices only on the selected way. _iD and Rapid ask you to zoom in to edit below zoom 16._ | ◐ | ◐ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Highlight edits** ([docs](../packages/renderer/README.md)): Your changes in colour on the map (key G), and cell by cell in the way table. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Directions on the map** ([docs](../packages/renderer/README.md)): One-way arrows, sided line styles and view cones of cameras and signs, in iD's look. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes | Golf | Climbing |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **WebGL map** ([docs](../packages/renderer/README.md)): The data is drawn on the graphics card, so large and dense areas stay smooth. _iD draws SVG; Rapid draws with PixiJS on WebGL, Maid with MapLibre GL._ | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Turn the map** ([docs](../packages/shell/README.md)): Alt or Ctrl and drag, two fingers, or Shift and the arrow keys; N sets north up again. | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Lenses** ([docs](../packages/module-lenses/README.md)): Recolour the map for one question: surface, lighting, max speed, or a lens the editor brings (parking, lanes, bicycle infrastructure). Export and import your own. _Rapid has an experiment with colour-blind modes and a high-contrast colour scheme for the whole map, merged but switched off; a larger colour scheme system was closed for now._ ([source](https://github.com/facebook/Rapid/pull/1384)) | – | ◐ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Loaded data stays visible when zoomed out** ([docs](../packages/renderer/README.md)): Lines, areas and points stay drawn down to zoom 12; below zoom 18 the map is quiet and shows vertices only on the selected way. _iD and Rapid ask you to zoom in to edit below zoom 16._ | ◐ | ◐ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Highlight edits** ([docs](../packages/renderer/README.md)): Your changes in colour on the map (key G), and cell by cell in the way table. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Directions on the map** ([docs](../packages/renderer/README.md)): One-way arrows, sided line styles and view cones of cameras and signs, in iD's look. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 ### Editing
 
-| Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes | Climbing |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **iD's operations and keys** ([docs](../packages/operations/README.md)): Draw, move, rotate, reflect, circularise, square, straighten, split, merge, disconnect, extract, copy and paste, with the keys mappers know. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Preview before you click** ([docs](../packages/renderer/README.md)): Hover a command and the map shows the result: the circle, the square, the flipped shape. _iD shows the result of straighten, square, circularise and reflect while the button is hovered._ ([source](https://github.com/openstreetmap/iD/pull/11778)) | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Several features at once** ([docs](../packages/shell/README.md)): Select several and edit the fields and tags they share; one change is one undo step. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Lasso selection**: Select the nodes inside a drawn shape. | ✓ | ✓ | – | – | – | – | – | – |
-| **Measuring tape for widths** ([docs](../packages/renderer/README.md)): A width field measures on the map with a magnifier and writes the value. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Right angles and lengths while drawing** ([docs](../packages/module-shapes/README.md)): Shift snaps the next segment to right angles and shows its length. | – | – | – | – | ✓ | ✓ | – | – |
-| **Rectangles, merge, cut and divide areas** ([docs](../packages/module-shapes/README.md)): A rectangle in three clicks; merge two areas, cut one along a line, divide one into rows of parking spaces or rooms. | – | – | – | – | ✓ | ✓ | – | – |
-| **Resize** ([docs](../packages/module-shapes/README.md)): A box with eight handles stretches the selection in its own axes (key K). | – | – | – | – | ✓ | ✓ | – | – |
-| **Extrude** ([docs](../packages/module-shapes/README.md)): Pull one side of an area out or in at a right angle, as in JOSM (key J). | – | – | – | – | ✓ | – | – | – |
+| Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes | Golf | Climbing |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **iD's operations and keys** ([docs](../packages/operations/README.md)): Draw, move, rotate, reflect, circularise, square, straighten, split, merge, disconnect, extract, copy and paste, with the keys mappers know. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Preview before you click** ([docs](../packages/renderer/README.md)): Hover a command and the map shows the result: the circle, the square, the flipped shape. _iD shows the result of straighten, square, circularise and reflect while the button is hovered._ ([source](https://github.com/openstreetmap/iD/pull/11778)) | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Several features at once** ([docs](../packages/shell/README.md)): Select several and edit the fields and tags they share; one change is one undo step. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Lasso selection**: Select the nodes inside a drawn shape. | ✓ | ✓ | – | – | – | – | – | – | – |
+| **Measuring tape for widths** ([docs](../packages/renderer/README.md)): A width field measures on the map with a magnifier and writes the value. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Right angles and lengths while drawing** ([docs](../packages/module-shapes/README.md)): Shift snaps the next segment to right angles and shows its length. | – | – | – | – | ✓ | ✓ | – | ✓ | – |
+| **Rectangles, merge, cut and divide areas** ([docs](../packages/module-shapes/README.md)): A rectangle in three clicks; merge two areas, cut one along a line, divide one into rows of parking spaces or rooms. | – | – | – | – | ✓ | ✓ | – | ✓ | – |
+| **Resize** ([docs](../packages/module-shapes/README.md)): A box with eight handles stretches the selection in its own axes (key K). | – | – | – | – | ✓ | ✓ | – | ✓ | – |
+| **Extrude** ([docs](../packages/module-shapes/README.md)): Pull one side of an area out or in at a right angle, as in JOSM (key J). | – | – | – | – | ✓ | – | – | – | – |
 
 ### Fields and tags
 
-| Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes | Climbing |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **Presets and fields of the tagging schema** ([docs](../packages/presets/README.md)): iD's feature types with their fields, country rules, related tags and favourites. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Tags as a table** ([docs](../packages/ui/README.md)): The raw tags as an editable grid with key and value suggestions from taginfo. ✦ _Rethought: A spreadsheet-like grid in place of the list and text views, shared with the way table and the lanes table._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **The side on the map** ([docs](../packages/ui/README.md)): While a field for one side of a road has the focus, the map marks that side and its width. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Wikidata and Wikipedia fields** ([docs](../packages/ui/README.md)): Find the article and the item, with the info from the OSM wiki on request. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Turn restrictions** ([docs](../packages/module-turn-restrictions/README.md)): A junction's turns as a diagram: click to forbid or allow, with a rule for incomplete restrictions. _Rapid's turn restriction field waits for a rewrite on its new renderer and is not shown._ | ✓ | – | ✓ | ✓ | – | – | ✓ | – |
-| **Surface and smoothness by photo** ([docs](../packages/module-surface/README.md)): Choose the surface and the smoothness from photos of real roads. | – | – | ✓ | ✓ | – | – | – | – |
-| **Traffic sign field** ([docs](../packages/module-traffic-signs/README.md)): Pick signs with their pictures, search by name or number, add the plates under them. | – | – | – | ✓ | – | – | ✓ | – |
-| **Street-level photos** ([docs](../packages/module-street-imagery/README.md)): Mapillary and Panoramax in a viewer in the bottom dock, and a field that keeps the photo of a feature. ✦ _Rethought: The viewer sits in the bottom dock, and a field keeps the photo ids of a feature._ _iD and Rapid have more providers._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes | Golf | Climbing |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **Presets and fields of the tagging schema** ([docs](../packages/presets/README.md)): iD's feature types with their fields, country rules, related tags and favourites. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Tags as a table** ([docs](../packages/ui/README.md)): The raw tags as an editable grid with key and value suggestions from taginfo. ✦ _Rethought: A spreadsheet-like grid in place of the list and text views, shared with the way table and the lanes table._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **The side on the map** ([docs](../packages/ui/README.md)): While a field for one side of a road has the focus, the map marks that side and its width. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Wikidata and Wikipedia fields** ([docs](../packages/ui/README.md)): Find the article and the item, with the info from the OSM wiki on request. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Turn restrictions** ([docs](../packages/module-turn-restrictions/README.md)): A junction's turns as a diagram: click to forbid or allow, with a rule for incomplete restrictions. _Rapid's turn restriction field waits for a rewrite on its new renderer and is not shown._ | ✓ | – | ✓ | ✓ | – | – | ✓ | – | – |
+| **Surface and smoothness by photo** ([docs](../packages/module-surface/README.md)): Choose the surface and the smoothness from photos of real roads. | – | – | ✓ | ✓ | – | – | – | – | – |
+| **Traffic sign field** ([docs](../packages/module-traffic-signs/README.md)): Pick signs with their pictures, search by name or number, add the plates under them. | – | – | – | ✓ | – | – | ✓ | – | – |
+| **Street-level photos** ([docs](../packages/module-street-imagery/README.md)): Mapillary and Panoramax in a viewer in the bottom dock, and a field that keeps the photo of a feature. ✦ _Rethought: The viewer sits in the bottom dock, and a field keeps the photo ids of a feature._ _iD and Rapid have more providers._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 ### Topic editors
 
 What a single-purpose editor adds.
 
-| Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes | Climbing |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **Street parking** ([docs](../packages/module-parking/README.md)): Quick buttons per side, a restriction field with conditions, the parking of each street side on the map, a parking lens and nine rules. | – | – | – | – | ✓ | – | – | – |
-| **Indoor and building levels** ([docs](../packages/module-levels/README.md)): A floor picker on the map; the other levels dimmed and locked; new features get the level; stairs between two levels; rooms in 3D; rules for missing levels. _Rapid has a 3D view of buildings, but no levels._ | – | – | – | – | – | ✓ | – | – |
-| **Draw a room** ([docs](../packages/module-shapes/README.md)): Click a wall, the corners and a wall again: the room shares its wall with the building and gets its level. | – | – | – | – | – | ✓ | – | – |
-| **Lanes** ([docs](../packages/module-lanes/README.md)): A road's cross-section with turn arrows and a table with a column per lane; add and remove lanes; the lanes as bands on the map; a lanes lens. _Rapid has a lanes field marked as an unfinished experiment._ | – | – | – | – | – | – | ✓ | – |
-| **Bicycle infrastructure** ([docs](../packages/module-tilda/README.md)): Every road classified by TILDA's processing and drawn by category; a section per side with the open question, "Change to" and the checklist of a dataset. | – | – | – | ✓ | – | – | – | – |
-| **Climbing** ([docs](../packages/module-climbing/README.md)): A crag's routes left to right with grade, length and bolts; a route's crag, or a crag nearby to add it to, or a new crag; the climbing fields of id-tagging-schema PR 2793. _iD and Rapid have the climbing presets and fields, but no view of a crag and its routes._ | ◐ | ◐ | – | – | – | – | – | ✓ |
-| **Terrain in relief and 3D** ([docs](../packages/module-terrain/README.md)): The relief of the ground under the data, and the ground in 3D on a tilted map, from Mapterhorn, with a notice that its sources are not all known to be compatible with OSM. _An exploration in a fork of iD adds a Mapterhorn hillshade and an elevation profile._ ([source](https://github.com/tordans/iD/pull/3)) | – | – | – | – | – | – | – | ✓ |
-| **Side paths** ([docs](../packages/module-sidepaths/README.md)): Move sidewalk and cycle track tags from the road to the separate way, or extract a side into a way of its own. | – | – | – | ✓ | – | – | – | – |
-| **Way table** ([docs](../packages/module-way-table/README.md)): The selected way next to the ways before and after it, tag by tag, editable, with changes highlighted. | – | – | – | ✓ | – | – | ✓ | – |
+| Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes | Golf | Climbing |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **Street parking** ([docs](../packages/module-parking/README.md)): Quick buttons per side, a restriction field with conditions, the parking of each street side on the map, a parking lens and nine rules. | – | – | – | – | ✓ | – | – | – | – |
+| **Indoor and building levels** ([docs](../packages/module-levels/README.md)): A floor picker on the map; the other levels dimmed and locked; new features get the level; stairs between two levels; rooms in 3D; rules for missing levels. _Rapid has a 3D view of buildings, but no levels._ | – | – | – | – | – | ✓ | – | – | – |
+| **Draw a room** ([docs](../packages/module-shapes/README.md)): Click a wall, the corners and a wall again: the room shares its wall with the building and gets its level. | – | – | – | – | – | ✓ | – | – | – |
+| **Lanes** ([docs](../packages/module-lanes/README.md)): A road's cross-section with turn arrows and a table with a column per lane; add and remove lanes; the lanes as bands on the map; a lanes lens. _Rapid has a lanes field marked as an unfinished experiment._ | – | – | – | – | – | – | ✓ | – | – |
+| **Golf courses** ([docs](../packages/module-golf/README.md)): The holes as a scorecard (number, par, handicap, length, what is missing), a golf map style, eight golf rules with fixes, and the golf presets first in the type picker. A prototype. _iD and Rapid have the golf presets of the tagging schema; they have no scorecard, golf style or golf rules._ | ◐ | ◐ | – | – | – | – | – | ✓ | – |
+| **Bicycle infrastructure** ([docs](../packages/module-tilda/README.md)): Every road classified by TILDA's processing and drawn by category; a section per side with the open question, "Change to" and the checklist of a dataset. | – | – | – | ✓ | – | – | – | – | – |
+| **Climbing** ([docs](../packages/module-climbing/README.md)): A crag's routes left to right with grade, length and bolts; a route's crag, or a crag nearby to add it to, or a new crag; the climbing fields of id-tagging-schema PR 2793. _iD and Rapid have the climbing presets and fields, but no view of a crag and its routes._ | ◐ | ◐ | – | – | – | – | – | – | ✓ |
+| **Terrain in relief and 3D** ([docs](../packages/module-terrain/README.md)): The relief of the ground under the data, and the ground in 3D on a tilted map, from Mapterhorn, with a notice that its sources are not all known to be compatible with OSM. _An exploration in a fork of iD adds a Mapterhorn hillshade and an elevation profile._ ([source](https://github.com/tordans/iD/pull/3)) | – | – | – | – | – | – | – | – | ✓ |
+| **Side paths** ([docs](../packages/module-sidepaths/README.md)): Move sidewalk and cycle track tags from the road to the separate way, or extract a side into a way of its own. | – | – | – | ✓ | – | – | – | – | – |
+| **Way table** ([docs](../packages/module-way-table/README.md)): The selected way next to the ways before and after it, tag by tag, editable, with changes highlighted. | – | – | – | ✓ | – | – | ✓ | – | – |
 
 ### Relations and routes
 
-| Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes | Climbing |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **Relation editing** ([docs](../packages/shell/README.md)): Add to and remove from relations, reorder members, see the members on the map. ✦ _Rethought: A relation opens in a column beside the inspector, which keeps the selected feature._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Route overview** ([docs](../packages/route-analysis/README.md)): A route as a line diagram like a railway sidebar: stops, guideposts, junctions, gaps, with kilometres; the whole route previewed from Postpass before it is loaded. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Reroute a route** ([docs](../packages/module-reroute/README.md)): Click two points and a bicycle or hiking route runs over the loaded ways, turn restrictions respected. | – | – | – | ✓ | – | – | – | – |
+| Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes | Golf | Climbing |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **Relation editing** ([docs](../packages/shell/README.md)): Add to and remove from relations, reorder members, see the members on the map. ✦ _Rethought: A relation opens in a column beside the inspector, which keeps the selected feature._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Route overview** ([docs](../packages/route-analysis/README.md)): A route as a line diagram like a railway sidebar: stops, guideposts, junctions, gaps, with kilometres; the whole route previewed from Postpass before it is loaded. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Reroute a route** ([docs](../packages/module-reroute/README.md)): Click two points and a bicycle or hiking route runs over the loaded ways, turn restrictions respected. | – | – | – | ✓ | – | – | – | – | – |
 
 ### Data, tasks and files
 
-| Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes | Climbing |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **Backgrounds** ([docs](../packages/module-imagery/README.md)): The editor layer index, your own tile URLs, and OpenAerialMap's images of the view as overlays. _OpenAerialMap search only in Maid._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Data layers** ([docs](../packages/module-data-layers/README.md)): GeoJSON, GPX, PMTiles and vector tiles under the OSM data, from a file or a link. _Each with its own formats: iD GeoJSON, GPX and KML; Rapid also PMTiles and vector tiles; Maid GeoJSON, GPX, PMTiles and vector tiles._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Private task lists** ([docs](../packages/module-tasks/README.md)): Open a GeoJSON task file from another project: Markdown instructions, one-click tag fixes, progress kept in your OSM account. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **osmChange files** ([docs](../packages/module-osmchange/README.md)): Load changes made in another app (Go Map!!, JOSM), merged with the current map, reviewed, uploaded with the normal save. | – | – | – | ✓ | – | – | – | – |
-| **OSM notes** ([docs](../packages/module-notes/README.md)): The notes of the view on the map and in a list, with their comments. _Maid shows notes but does not create or comment on them yet._ | ✓ | ✓ | ◐ | ◐ | ◐ | ◐ | ◐ | ◐ |
-| **Quality assurance services**: Issues from Osmose, KeepRight or MapRoulette on the map. _iD: Osmose. Rapid: Osmose, KeepRight and MapRoulette._ | ✓ | ✓ | – | – | – | – | – | – |
-| **AI-assisted datasets**: Roads and buildings detected from imagery and open datasets (Esri, Overture), to review and add. | – | ✓ | – | – | – | – | – | – |
+| Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes | Golf | Climbing |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **Backgrounds** ([docs](../packages/module-imagery/README.md)): The editor layer index, your own tile URLs, and OpenAerialMap's images of the view as overlays. _OpenAerialMap search only in Maid._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Data layers** ([docs](../packages/module-data-layers/README.md)): GeoJSON, GPX, PMTiles and vector tiles under the OSM data, from a file or a link. _Each with its own formats: iD GeoJSON, GPX and KML; Rapid also PMTiles and vector tiles; Maid GeoJSON, GPX, PMTiles and vector tiles._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Private task lists** ([docs](../packages/module-tasks/README.md)): Open a GeoJSON task file from another project: Markdown instructions, one-click tag fixes, progress kept in your OSM account. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **osmChange files** ([docs](../packages/module-osmchange/README.md)): Load changes made in another app (Go Map!!, JOSM), merged with the current map, reviewed, uploaded with the normal save. | – | – | – | ✓ | – | – | – | – | – |
+| **OSM notes** ([docs](../packages/module-notes/README.md)): The notes of the view on the map and in a list, with their comments. _Maid shows notes but does not create or comment on them yet._ | ✓ | ✓ | ◐ | ◐ | ◐ | ◐ | ◐ | ◐ | ◐ |
+| **Quality assurance services**: Issues from Osmose, KeepRight or MapRoulette on the map. _iD: Osmose. Rapid: Osmose, KeepRight and MapRoulette._ | ✓ | ✓ | – | – | – | – | – | – | – |
+| **AI-assisted datasets**: Roads and buildings detected from imagery and open datasets (Esri, Overture), to review and add. | – | ✓ | – | – | – | – | – | – | – |
 
 ### Interface
 
-| Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes | Climbing |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **Light and dark theme** ([docs](../packages/shell/README.md)): The interface follows the system or your choice. | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Phones and tablets** ([docs](../packages/shell/README.md)): A layout for small screens with the inspector behind a button, long press for the edit menu. | ◐ | ◐ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Validation** ([docs](../packages/validation/README.md)): Issues in the inspector and in a list, with fixes and "ignore this issue". | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Unsaved work survives** ([docs](../packages/journal/README.md)): Edits are kept in the browser and restored after a reload, safe with two tabs. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Place search** ([docs](../packages/shell/README.md)): Find a place by name, an id or coordinates. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Interface languages** ([docs](../packages/i18n/README.md)): The interface and the presets in your language. _Maid: English, German, French, Spanish. iD and Rapid: about 100 languages._ | ✓ | ✓ | ◐ | ◐ | ◐ | ◐ | ◐ | ◐ |
-| **Walkthrough, shortcut help, history and measurement panels**: iD's tutorial and info panels. _Maid has none of them yet; the walkthrough is not planned._ | ✓ | ✓ | – | – | – | – | – | – |
+| Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes | Golf | Climbing |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **Light and dark theme** ([docs](../packages/shell/README.md)): The interface follows the system or your choice. | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Phones and tablets** ([docs](../packages/shell/README.md)): A layout for small screens with the inspector behind a button, long press for the edit menu. | ◐ | ◐ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Validation** ([docs](../packages/validation/README.md)): Issues in the inspector and in a list, with fixes and "ignore this issue". | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Unsaved work survives** ([docs](../packages/journal/README.md)): Edits are kept in the browser and restored after a reload, safe with two tabs. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Place search** ([docs](../packages/shell/README.md)): Find a place by name, an id or coordinates. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Interface languages** ([docs](../packages/i18n/README.md)): The interface and the presets in your language. _Maid: English, German, French, Spanish. iD and Rapid: about 100 languages._ | ✓ | ✓ | ◐ | ◐ | ◐ | ◐ | ◐ | ◐ | ◐ |
+| **Walkthrough, shortcut help, history and measurement panels**: iD's tutorial and info panels. _Maid has none of them yet; the walkthrough is not planned._ | ✓ | ✓ | – | – | – | – | – | – | – |
 
 ### For people who build editors
 
-| Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes | Climbing |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **An editor from a config** ([docs](../packages/core/README.md)): Modules, presets and filters in one file; modules add to fixed extension points and clean up after themselves. _iD and Rapid are forked as a whole._ | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Several editors from one repository** ([docs](../packages/shell/README.md)): Every app deploys to its own folder on GitHub Pages with one login setup. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes | Golf | Climbing |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **An editor from a config** ([docs](../packages/core/README.md)): Modules, presets and filters in one file; modules add to fixed extension points and clean up after themselves. _iD and Rapid are forked as a whole._ | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Several editors from one repository** ([docs](../packages/shell/README.md)): Every app deploys to its own folder on GitHub Pages with one login setup. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 ## Packages
 
@@ -129,20 +131,21 @@ with the apps that call them; the other packages are shared by the apps and modu
 | [model](../packages/model/README.md) | The data model of Maid: OSM entities, the graph, differences, geometry, the edit actions, and (in progress) undo history, the spatial index and the tagging-schema lookup. | shared |
 | [module-bike-infrastructure](../packages/module-bike-infrastructure/README.md) | The default look of the bicycle editor: the bicycle infrastructure as [TILDA](https://tilda-geo.de) classifies it, drawn over iD's style. Every highway goes through TILDA's processing (`processBikelanes` of `@tilda-geo/bicycle-infrastructure`), which splits it into the way itself and its road sides and gives each part a category. | maid-bicycle |
 | [module-climbing](../packages/module-climbing/README.md) | The climbing section of Maid Climbing (`apps/maid-climbing`): crags, boulders and their routes. Plan and research: [docs/research/climbing.md](../../docs/research/climbing.md). | maid-climbing |
-| [module-data-layers](../packages/module-data-layers/README.md) | Other data drawn under the OSM data: GeoJSON, GPX, PMTiles and vector tiles. A "Data layers" flyout in the top bar lists the layers, switches them on and off, and adds new ones. The editor's config can bring layers of its own. | maid, maid-bicycle, maid-parking, maid-indoor, maid-lanes, maid-climbing |
-| [module-imagery](../packages/module-imagery/README.md) | Imagery under the OSM data: a background (an ELI layer or a custom tile URL template), overlays (ELI's and OpenAerialMap images) and a brightness, chosen in the top bar's "Background" panel. Built on `@osm-editor-kit/maplibre-editor-layer-index` (1.0.0). | maid, maid-bicycle, maid-parking, maid-indoor, maid-lanes, maid-climbing |
+| [module-data-layers](../packages/module-data-layers/README.md) | Other data drawn under the OSM data: GeoJSON, GPX, PMTiles and vector tiles. A "Data layers" flyout in the top bar lists the layers, switches them on and off, and adds new ones. The editor's config can bring layers of its own. | maid, maid-bicycle, maid-parking, maid-indoor, maid-lanes, maid-golf, maid-climbing |
+| [module-golf](../packages/module-golf/README.md) | The golf editor of Maid Golf (`apps/maid-golf`), a prototype. The plan behind it, and what comes next: [docs/research/golf/plan.md](../../docs/research/golf/plan.md). | maid-golf |
+| [module-imagery](../packages/module-imagery/README.md) | Imagery under the OSM data: a background (an ELI layer or a custom tile URL template), overlays (ELI's and OpenAerialMap images) and a brightness, chosen in the top bar's "Background" panel. Built on `@osm-editor-kit/maplibre-editor-layer-index` (1.0.0). | maid, maid-bicycle, maid-parking, maid-indoor, maid-lanes, maid-golf, maid-climbing |
 | [module-lanes](../packages/module-lanes/README.md) | The lanes editor of Maid Lanes (`apps/maid-lanes`). A road's lanes are edited as a cross-section, a table with a column per lane and a map overlay, in the OSM `turn:lanes`, `width:lanes`, `lanes` and related keys. | maid-lanes |
-| [module-lenses](../packages/module-lenses/README.md) | Map style: a lens restyles the map for one mapping theme or quality check, for example roads by their surface. A lens is data, not code, so it can be imported and exported as a file. The module adds a "Map style" flyout in the top bar and the URL parameter `lens`. | maid, maid-bicycle, maid-parking, maid-indoor, maid-lanes, maid-climbing |
+| [module-lenses](../packages/module-lenses/README.md) | Map style: a lens restyles the map for one mapping theme or quality check, for example roads by their surface. A lens is data, not code, so it can be imported and exported as a file. The module adds a "Map style" flyout in the top bar and the URL parameter `lens`. | maid, maid-bicycle, maid-parking, maid-indoor, maid-lanes, maid-golf, maid-climbing |
 | [module-levels](../packages/module-levels/README.md) | The level mode for buildings: pick a floor on the map, edit only that floor, and see the rooms in 3D. The level is kept in the URL, so a link opens on the same floor. It is the module of the indoor editor (`apps/maid-indoor`). | maid-indoor |
-| [module-notes](../packages/module-notes/README.md) | The OSM notes of the editor's API as markers on the map, with a panel to switch them on and list them, and a dock view with the chosen note and its comments. Read-only: the module sends no note to the API. | maid, maid-bicycle, maid-parking, maid-indoor, maid-lanes, maid-climbing |
+| [module-notes](../packages/module-notes/README.md) | The OSM notes of the editor's API as markers on the map, with a panel to switch them on and list them, and a dock view with the chosen note and its comments. Read-only: the module sends no note to the API. | maid, maid-bicycle, maid-parking, maid-indoor, maid-lanes, maid-golf, maid-climbing |
 | [module-osmchange](../packages/module-osmchange/README.md) | Loads an osmChange file (`.osc`, from Go Map!!, JOSM or another editor) into Maid. Maid asks the server for the current state of each element, merges the file with it, and lists what needs a decision. Nothing is uploaded here: the changes become ordinary edits, and the person saves them with the normal save. | maid-bicycle |
 | [module-parking](../packages/module-parking/README.md) | The street-side parking editor's module for Maid . Comments in this package cite the brief it was built from by document and entry (`josm-setup-presets-styles.md`, `qa-traffic-signs.md`, `qa-markings-obstacles-process.md`, `project-decisions.md`): summaries of the mapping project's internal material, which are kept outside this repository. `src/index.ts` composes the parts into `parking(options)`. | maid-parking |
 | [module-reroute](../packages/module-reroute/README.md) | Reroutes a stretch of a route relation over the ways that are loaded. The person clicks a start and an end on the map, Maid routes between them, shows the new path as a preview, and writes it into the relation as one undo step. Route types: bicycle and mtb (bicycle profile), hiking, foot and walking (foot profile). | maid-bicycle |
-| [module-shapes](../packages/module-shapes/README.md) | Drawing and editing tools for buildings, parking spaces and rooms: a right-angle guide, a three-click rectangle, merge, cut, divide, resize, extrude and a room drawn into a building. The package holds eight modules, one per tool, so an app turns on each one by itself. | maid-parking, maid-indoor |
+| [module-shapes](../packages/module-shapes/README.md) | Drawing and editing tools for buildings, parking spaces and rooms: a right-angle guide, a three-click rectangle, merge, cut, divide, resize, extrude and a room drawn into a building. The package holds eight modules, one per tool, so an app turns on each one by itself. | maid-parking, maid-indoor, maid-golf |
 | [module-sidepaths](../packages/module-sidepaths/README.md) | Side paths for the bicycle editor, as the iD fork iD-Radnetz (FixMyBerlin) handles them. A road with a cycle track or a sidewalk mapped as its own way gets edit-menu entries to extract that side into a new way, to merge it with the footway beside it, and to move the side's attributes to the separate way. | maid-bicycle |
-| [module-street-imagery](../packages/module-street-imagery/README.md) | The photos module's part for image tags: a "Street-level images" field for `mapillary`, `panoramax` and their keys (`cycleway:right:mapillary`, `source:traffic_sign:mapillary`, `mapillary:forward`…), and "Use this photo" in the viewer. The field follows the Radnetz fork (WORKDOC features 19 and 20), without infra3D. | maid, maid-bicycle, maid-parking, maid-indoor, maid-lanes, maid-climbing |
+| [module-street-imagery](../packages/module-street-imagery/README.md) | The photos module's part for image tags: a "Street-level images" field for `mapillary`, `panoramax` and their keys (`cycleway:right:mapillary`, `source:traffic_sign:mapillary`, `mapillary:forward`…), and "Use this photo" in the viewer. The field follows the Radnetz fork (WORKDOC features 19 and 20), without infra3D. | maid, maid-bicycle, maid-parking, maid-indoor, maid-lanes, maid-golf, maid-climbing |
 | [module-surface](../packages/module-surface/README.md) | The `surface` and `smoothness` field for roads, cycleways, paths and footways in Maid, chosen by photo, the way the Radnetz fork shows it (WORKDOC feature 24). Two parts: | maid, maid-bicycle |
-| [module-tasks](../packages/module-tasks/README.md) | Private task lists in Maid: the person loads a task file (format: [packages/tasks/FORMAT.md](../tasks/FORMAT.md)), works through it in the dock, sees each task and its options in the inspector, and the progress stays in this browser and in their OSM preferences ([packages/osm-prefs](../osm-prefs/README.md)). | maid, maid-bicycle, maid-parking, maid-indoor, maid-lanes, maid-climbing |
+| [module-tasks](../packages/module-tasks/README.md) | Private task lists in Maid: the person loads a task file (format: [packages/tasks/FORMAT.md](../tasks/FORMAT.md)), works through it in the dock, sees each task and its options in the inspector, and the progress stays in this browser and in their OSM preferences ([packages/osm-prefs](../osm-prefs/README.md)). | maid, maid-bicycle, maid-parking, maid-indoor, maid-lanes, maid-golf, maid-climbing |
 | [module-terrain](../packages/module-terrain/README.md) | The ground's relief under the OSM data and the ground in 3D, for editors where height matters (Maid Climbing). Research: [docs/research/climbing.md](../../docs/research/climbing.md), "Terrain". | none |
 | [module-tilda](../packages/module-tilda/README.md) | The TILDA bike infrastructure section for highways. It shows how TILDA (tilda-geo.de) classifies a way and each of its sides, asks the open question that makes an incomplete category exact, and plans the tags for another category. It is the UX of the TILDA box of the iD Radnetz Berlin fork. The logic comes from the `@tilda-geo/*` packages. No network request: everything runs on the tags of the loaded data. | maid-bicycle |
 | [module-traffic-signs](../packages/module-traffic-signs/README.md) | The traffic sign field for `traffic_sign` tags in Maid, the way the Radnetz fork shows it (WORKDOC features 2, 15 and 27). Two parts: | maid-bicycle, maid-lanes |
