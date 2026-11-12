@@ -97,6 +97,22 @@ function compareRefs(a: HoleRow, b: HoleRow) {
   return a.ref.localeCompare(b.ref)
 }
 
+/** The lines of the holes that have a number, as [lon, lat] pairs, for the labels on the map */
+export function holeLines(graph: GraphLike): { ref: string; coordinates: [number, number][] }[] {
+  const lines: { ref: string; coordinates: [number, number][] }[] = []
+  for (const way of holesOf(graph)) {
+    const ref = way.tags.ref?.trim()
+    if (!ref) continue
+    const coordinates: [number, number][] = []
+    for (const id of way.nodes ?? []) {
+      const loc = graph.hasEntity(id)?.loc
+      if (loc && loc.length >= 2) coordinates.push([loc[0]!, loc[1]!])
+    }
+    if (coordinates.length >= 2) lines.push({ ref, coordinates })
+  }
+  return lines
+}
+
 export function scorecard(graph: GraphLike): Scorecard {
   const rows: HoleRow[] = []
   for (const way of holesOf(graph)) {

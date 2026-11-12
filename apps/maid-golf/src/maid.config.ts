@@ -10,7 +10,7 @@ import { canBeArea, lazyPresets, type MaidModule } from '@osm-editor-kit/maid-co
  */
 import { defaultFilters, type FilterState } from '@osm-editor-kit/maid-filters'
 import { dataLayers } from '@osm-editor-kit/maid-module-data-layers'
-import { golf, golfLens, golfRules } from '@osm-editor-kit/maid-module-golf'
+import { GOLF_FAVOURITES, golf, golfLens, golfRules } from '@osm-editor-kit/maid-module-golf'
 import { imagery } from '@osm-editor-kit/maid-module-imagery'
 import { lenses } from '@osm-editor-kit/maid-module-lenses'
 import { notes } from '@osm-editor-kit/maid-module-notes'
@@ -149,4 +149,6 @@ export const app: AppConfig = {
     envFile: 'apps/maid-golf/.env.local',
   },
   editor: editorConfig,
+  // the favourites a golf mapper starts with, while they have none of their own (packages/module-golf presets.ts)
+  favourites: GOLF_FAVOURITES,
 }

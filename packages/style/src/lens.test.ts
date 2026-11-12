@@ -133,6 +133,10 @@ describe('colours', () => {
   test('lensFill: a rule colour fills at the fill alpha, an area without fill gets none', () => {
     expect(lensFill({ color: '#ff0000' }, 'rgba(0, 0, 0, 0.5)')).toBe('rgba(255, 0, 0, 0.3)')
     expect(lensFill({ color: '#ff0000' }, undefined)).toBeUndefined()
+    // a fill colour of its own and a fill alpha: a map-like fill with a darker outline
+    expect(
+      lensFill({ color: '#ff0000', fillColor: '#00ff00', fillOpacity: 0.6 }, 'rgba(0, 0, 0, 0.5)'),
+    ).toBe('rgba(0, 255, 0, 0.6)')
     expect(lensFill({ opacity: DIM_OPACITY }, 'rgba(10, 20, 30, 0.5)')).toBe(
       'rgba(10, 20, 30, 0.125)',
     )

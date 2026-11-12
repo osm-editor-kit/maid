@@ -13,13 +13,13 @@
   ],
   "zoom": 17,
   "counts": {
-    "node": 181,
-    "way": 25,
+    "node": 184,
+    "way": 26,
     "relation": 0
   },
   "source": {
     "script": "tools/fixtures/golf.ts"
   },
   "attribution": "Made up for the tests, not OSM data",
-  "sha256": "455b0d440881d0064755a17188e08ef750e82c51672363fea3314a021278de9e"
+  "sha256": "786fae6336612900cc97063a409cf3c4b3d57f6c998b7d698914e5c10461e14d"
 }

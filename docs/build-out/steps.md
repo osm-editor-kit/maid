@@ -591,7 +591,8 @@ Tobias, 2026-11-10: lane tooling in a Maid version of its own, in the list of ve
 ### Golf (started 2026-11-12)
 
 Tobias, 2026-11-12: a Maid for golf courses with its own favourites, style, dock list, presets, rules and filters; a plan
-and a prototype to test locally first, not on `main` yet. Plan and sources: [docs/research/golf/plan.md](../research/golf/plan.md).
+and a prototype to test locally first. Then (same day) the OSM wiki pages as PDFs, the Carto style of the jgruca diary,
+suggested favourites from the config, English and German, and "bring to main as one app". Plan and sources: [docs/research/golf/plan.md](../research/golf/plan.md).
 
 - [x] 2026-11-12: `apps/maid-golf` (port 5180) with `packages/module-golf`: the golf presets first in the type picker,
       the lens "Standard: Golf", the dock view "Holes" (scorecard), eight golf rules with fixes, filters that lock roads
@@ -602,5 +603,13 @@ and a prototype to test locally first, not on `main` yet. Plan and sources: [doc
       dock, hole 3 says "par" is missing; choose it, the hole is selected; the Issues dock lists the bunker without sand,
       the pond without water, "Hole 3" and sport=golf on the fairway, each with a fix; the type picker for an area starts
       with Green, Fairway, Tee, Bunker.
+- [x] 2026-11-12: from the wiki pages Tobias saved: bunkers with `surface=sand` (not `natural=sand`), presets for
+      out of bounds and `golf:course`/`golf:par`, three new rules (`golf_hole` instead of `ref`, points = par − 1, a hole
+      sharing nodes with a green or fairway), generic names like "18th Hole". The lens in OSM Carto 5.4's colours with hole
+      numbers on the map (lens rules can now set `fillColor` and `fillOpacity`). `favourites` in the app config: suggested
+      while a person has none (`settingsActions.suggestFavourites`). On `main` and on the overview page.
+      **Test for Tobias:** https://osm-editor-kit.github.io/maid/maid-golf/#map=16/56.3480/-2.8150 : the style colours
+      greens, fairways and bunkers like OSM Carto, hole numbers sit on the holes, the star menu has eight golf favourites
+      in a browser that had none.
 - [ ] The next steps of the plan: a "Hole" section above the fields, drawing a hole in one go, rules that compare
       features, scorecard import, `check-golf`.

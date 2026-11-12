@@ -2,10 +2,10 @@
   "tagline": "Golf courses",
   "description": "Maps golf courses hole by hole: greens, fairways, tees, bunkers, water and the line of play, with the scorecard data (number, par, handicap) that golf apps read. A prototype.",
   "highlights": [
-    "Golf presets first in the type picker, bunkers with natural=sand and water hazards with natural=water",
-    "A golf map style: each part of the course in its colour, holes without number or par in amber",
+    "Golf presets first in the type picker and suggested favourites, bunkers with surface=sand, out of bounds and pin",
+    "A golf map style in OSM Carto's colours, hole numbers on the map, holes without number or par in amber",
     "The holes as a scorecard in the dock: par, handicap, length, what is missing",
-    "Eight golf rules with fixes, roads and buildings locked by the filters",
+    "Eleven golf rules from the wiki, with fixes, roads and buildings locked by the filters",
     "Drawing tools: right angles, rectangles, merge, cut, resize"
   ],
   "open": "map=16/56.3480/-2.8150"

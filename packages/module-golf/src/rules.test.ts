@@ -5,8 +5,11 @@ import {
   golfCoursePoint,
   golfGenericName,
   golfHoleHandicap,
+  golfHoleKey,
   golfHolePar,
+  golfHolePoints,
   golfHoleRef,
+  golfHoleSharedNodes,
   golfSport,
   golfWaterNatural,
   isGenericName,
@@ -19,12 +22,15 @@ function entityOf(
   type: 'way' | 'node',
   tags: Record<string, string>,
   id = type === 'way' ? 'w1' : 'n1',
+  nodes: string[] = [],
 ): Entity {
   const made = {
     id,
     type,
     tags,
-    update: (props: { tags?: Record<string, string> }) => entityOf(type, props.tags ?? tags, id),
+    nodes,
+    update: (props: { tags?: Record<string, string> }) =>
+      entityOf(type, props.tags ?? tags, id, nodes),
   }
   return made as unknown as Entity
 }
@@ -78,11 +84,11 @@ describe('golf holes', () => {
 })
 
 describe('companion tags', () => {
-  it('a bunker without natural=sand is flagged and the fix adds it', () => {
+  it('a bunker without surface is flagged and the fix adds surface=sand', () => {
     const bunker = way({ golf: 'bunker' })
     expect(golfBunkerSand.validate(bunker, context)).toHaveLength(1)
-    expect(fixed(golfBunkerSand, bunker)).toEqual({ golf: 'bunker', natural: 'sand' })
-    expect(golfBunkerSand.validate(way({ golf: 'bunker', natural: 'sand' }), context)).toHaveLength(
+    expect(fixed(golfBunkerSand, bunker)).toEqual({ golf: 'bunker', surface: 'sand' })
+    expect(golfBunkerSand.validate(way({ golf: 'bunker', surface: 'sand' }), context)).toHaveLength(
       0,
     )
   })
@@ -102,7 +108,16 @@ describe('companion tags', () => {
 
 describe('names and sport', () => {
   it('knows generic names', () => {
-    for (const name of ['Bunker', 'green 3', 'Hole 12', 'Loch Nr. 7', 'Abschlag', 'Sand trap'])
+    for (const name of [
+      'Bunker',
+      'green 3',
+      'Hole 12',
+      'Loch Nr. 7',
+      'Abschlag',
+      'Sand trap',
+      'fairway 1',
+      '18th Hole',
+    ])
       expect(isGenericName(name)).toBe(true)
     for (const name of ['Swilcan Burn', 'Hell Bunker', 'Road Hole Bunker'])
       expect(isGenericName(name)).toBe(false)
@@ -125,5 +140,39 @@ describe('names and sport', () => {
   it('flags a golf course mapped as a point', () => {
     expect(golfCoursePoint.validate(node({ leisure: 'golf_course' }), context)).toHaveLength(1)
     expect(golfCoursePoint.validate(way({ leisure: 'golf_course' }), context)).toHaveLength(0)
+  })
+})
+
+describe('the line of play', () => {
+  it('moves golf_hole to ref', () => {
+    const hole = way({ golf: 'hole', golf_hole: '7' })
+    expect(fixed(golfHoleKey, hole)).toEqual({ golf: 'hole', ref: '7' })
+    expect(
+      golfHoleKey.validate(way({ golf: 'hole', golf_hole: '7', ref: '8' }), context)[0]?.fixes,
+    ).toEqual([])
+  })
+
+  it('has one point fewer than its par', () => {
+    const withNodes = (nodes: string[], par: string) =>
+      entityOf('way', { golf: 'hole', par }, 'w1', nodes)
+    expect(golfHolePoints.validate(withNodes(['a', 'b'], '3'), context)).toHaveLength(0)
+    expect(golfHolePoints.validate(withNodes(['a', 'b', 'c'], '4'), context)).toHaveLength(0)
+    expect(golfHolePoints.validate(withNodes(['a', 'b', 'c'], '3'), context)).toHaveLength(1)
+  })
+
+  it('shares no node with a golf feature on the ground', () => {
+    const hole = entityOf('way', { golf: 'hole' }, 'w1', ['n1', 'n2'])
+    const green = { id: 'w2', tags: { golf: 'green' } }
+    const road = { id: 'w3', tags: { highway: 'path' } }
+    const contextWith = (parents: { id: string; tags: Record<string, string> }[]) =>
+      ({
+        graph: {
+          hasEntity: (id: string) => ({ id }),
+          parentWays: (node: { id: string }) => (node.id === 'n2' ? [hole, ...parents] : [hole]),
+        },
+      }) as unknown as RuleContext
+    expect(golfHoleSharedNodes.validate(hole, contextWith([road]))).toHaveLength(0)
+    const [issue] = golfHoleSharedNodes.validate(hole, contextWith([green]))
+    expect(issue?.entityIds).toEqual(['w1', 'w2'])
   })
 })

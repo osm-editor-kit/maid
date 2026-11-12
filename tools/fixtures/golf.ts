@@ -2,7 +2,7 @@
  * The made-up scene `golf`: a small course of three holes with everything Maid Golf shows and checks. Each hole has a
  * tee, a fairway, a green with its pin and the line of play; around them rough, bunkers, a pond and a stream, a cart path
  * and the clubhouse, and outside the course a street and a house that the golf filters lock. Some features carry the
- * mistakes the golf rules find (a bunker without natural=sand, a pond without natural=water, a hole without par and with a
+ * mistakes the golf rules find (a bunker without surface, a pond without natural=water, a hole without par and with a
  * generic name, sport=golf on a fairway), so the Issues dock and the scorecard have something to show.
  *
  * Not OSM data: written here, so it needs no extract and no person (core rule 1 is about OSM infrastructure).
@@ -119,9 +119,9 @@ function build() {
   area(box(tee1, 18, 12, 80), { golf: 'tee', tee: 'white;yellow;red' })
   area(band([[175, 165], bend1, [235, 425]], 40), { golf: 'fairway' })
   area(oval(green1, 18, 14, 20), { golf: 'green' })
-  area(oval([268, 440], 8, 5, 70), { golf: 'bunker', natural: 'sand' })
+  area(oval([268, 440], 8, 5, 70), { golf: 'bunker', surface: 'sand' })
   area(oval([214, 462], 7, 5, 30), { golf: 'bunker' })
-  area(oval([170, 330], 9, 6, 80), { golf: 'bunker', natural: 'sand', name: 'Bunker' })
+  area(oval([170, 330], 9, 6, 80), { golf: 'bunker', surface: 'sand', name: 'Bunker' })
   node([242, 452], { golf: 'pin', ref: '1' })
   line([tee1, bend1, green1], { golf: 'hole', ref: '1', par: '4', handicap: '5' })
 
@@ -131,7 +131,7 @@ function build() {
   area(box(tee2, 16, 12, 10), { golf: 'tee', tee: 'white;yellow' })
   area(oval([375, 528], 34, 22), { golf: 'water_hazard' })
   area(oval(green2, 16, 14), { golf: 'green' })
-  area(oval([455, 516], 8, 4), { golf: 'bunker', natural: 'sand' })
+  area(oval([455, 516], 8, 4), { golf: 'bunker', surface: 'sand' })
   node([452, 541], { golf: 'pin', ref: '2' })
   line([tee2, green2], { golf: 'hole', ref: '2', par: '3', handicap: '9' })
 
@@ -153,7 +153,7 @@ function build() {
     { golf: 'rough' },
   )
   area(oval(green3, 20, 15, -10), { golf: 'green' })
-  area(oval([690, 150], 9, 6, 10), { golf: 'bunker', natural: 'sand' })
+  area(oval([690, 150], 9, 6, 10), { golf: 'bunker', surface: 'sand' })
   area(
     band(
       [
@@ -168,6 +168,16 @@ function build() {
   )
   node([660, 142], { golf: 'pin', ref: '3' })
   line([tee3, bend3, green3], { golf: 'hole', ref: '3', handicap: '1', name: 'Hole 3' })
+
+  // out of bounds along the east side of hole 3, on the white stakes
+  line(
+    [
+      [748, 620],
+      [748, 330],
+      [748, 60],
+    ],
+    { golf: 'out_of_bounds', ref: '3' },
+  )
 
   // the driving range by the clubhouse
   area(

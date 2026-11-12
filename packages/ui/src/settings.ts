@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import {
+  freeFavouriteNumber,
   moveFavourite as moveIn,
   setFavouriteNumber as setNumberIn,
   toggleFavourite as toggleIn,
@@ -73,6 +74,24 @@ export type SettingsActions = {
   moveFavourite: (presetId: string, geometry: Geometry, delta: 1 | -1) => void
   /** Gives a favourite the number typed in the list; a number another favourite has swaps the two */
   setFavouriteNumber: (presetId: string, geometry: Geometry, number: string) => void
+  /**
+   * The editor's suggested favourites (`favourites` in the app's config), taken only while the person has none: on the
+   * first visit, and again after they removed all of theirs. Each gets the lowest free number, in the order given.
+   */
+  suggestFavourites: (list: readonly SuggestedFavourite[]) => void
+}
+
+/** A favourite an editor suggests in its config: a preset id for one geometry; the number is given when it is taken */
+export type SuggestedFavourite = { presetId: string; geometry: Geometry }
+
+/** The favourites of a suggestion, numbered from 4 as the person's own would be; repeats are left out */
+export function suggestedFavourites(list: readonly SuggestedFavourite[]): Favourite[] {
+  const result: Favourite[] = []
+  for (const { presetId, geometry } of list) {
+    if (result.some((item) => item.presetId === presetId && item.geometry === geometry)) continue
+    result.push({ presetId, geometry, number: freeFavouriteNumber(result) })
+  }
+  return result
 }
 
 type SettingsStore = Settings & { actions: SettingsActions }
@@ -157,6 +176,12 @@ const useSettingsStore = create<SettingsStore>()(
           set((state) => ({
             favourites: setNumberIn(state.favourites, presetId, geometry, number),
           })),
+        suggestFavourites: (list) =>
+          set((state) =>
+            state.favourites.length > 0 || list.length === 0
+              ? {}
+              : { favourites: suggestedFavourites(list) },
+          ),
       },
     }),
     {

@@ -25,6 +25,13 @@ export type LensRule = {
   opacity?: number
   /** Dash lengths in px, like CSS `stroke-dasharray` */
   dash?: number[]
+  /**
+   * The fill of an area, when it differs from `color`: a map-like fill with a darker outline (Maid Golf's green).
+   * Areas only; an area that has no fill in the style still gets none.
+   */
+  fillColor?: string
+  /** Alpha of the area fill, 0 to 1. Default: FILL_ALPHA (times `opacity`), close to iD's fills */
+  fillOpacity?: number
   /** Text for the legend; without it the legend describes the match */
   label?: string
 }
@@ -80,6 +87,8 @@ export type LensStyle = {
   width?: number
   dash?: number[]
   opacity?: number
+  fillColor?: string
+  fillOpacity?: number
   /** `rest: 'hide'`: the feature is not drawn at all */
   hidden?: boolean
 }
@@ -119,6 +128,8 @@ export function lensStyle(lens: Lens, tags: Tags, geometry: LensGeometry): LensS
     if (rule.width !== undefined) style.width = rule.width
     if (rule.dash !== undefined) style.dash = rule.dash
     if (rule.opacity !== undefined) style.opacity = rule.opacity
+    if (rule.fillColor !== undefined) style.fillColor = rule.fillColor
+    if (rule.fillOpacity !== undefined) style.fillOpacity = rule.fillOpacity
     return style
   }
   const rest = lens.rest ?? 'dim'
@@ -183,12 +194,14 @@ export function lensColour(style: LensStyle, colour: string | undefined) {
 }
 
 /**
- * The fill of an area under a lens. A rule colour fills at FILL_ALPHA, like iD's fills; an area
- * without a fill keeps none, so the lens never adds fills iD does not draw.
+ * The fill of an area under a lens. A rule colour (`fillColor`, else `color`) fills at `fillOpacity`, else at
+ * FILL_ALPHA like iD's fills; an area without a fill keeps none, so the lens never adds fills iD does not draw.
  */
 export function lensFill(style: LensStyle, fill: string | undefined) {
   if (fill === undefined) return undefined
-  if (style.color !== undefined) return withAlpha(style.color, FILL_ALPHA * (style.opacity ?? 1))
+  const colour = style.fillColor ?? style.color
+  if (colour !== undefined)
+    return withAlpha(colour, style.fillOpacity ?? FILL_ALPHA * (style.opacity ?? 1))
   if (style.opacity === undefined) return fill
   return scaleAlpha(fill, style.opacity)
 }
