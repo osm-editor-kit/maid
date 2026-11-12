@@ -64,7 +64,9 @@ export const GROUPS: FeatureGroup[] = [
         maid: { factory: 'lenses' },
         pkg: 'module-lenses',
         iD: 'no',
-        rapid: 'no',
+        rapid: 'partial',
+        note: 'Rapid has an experiment with colour-blind modes and a high-contrast colour scheme for the whole map, merged but switched off; a larger colour scheme system was closed for now.',
+        noteUrl: 'https://github.com/facebook/Rapid/pull/1384',
       },
       {
         title: 'Loaded data stays visible when zoomed out',
@@ -110,7 +112,9 @@ export const GROUPS: FeatureGroup[] = [
         text: 'Hover a command and the map shows the result: the circle, the square, the flipped shape.',
         maid: 'core',
         pkg: 'renderer',
-        iD: 'no',
+        note: 'iD shows the result of straighten, square, circularise and reflect while the button is hovered.',
+        noteUrl: 'https://github.com/openstreetmap/iD/pull/11778',
+        iD: 'yes',
         rapid: 'no',
       },
       {

@@ -78,7 +78,9 @@ export function featuresDoc(apps: ListedApp[]) {
   const groups = GROUPS.map((group) => {
     const rows = group.rows.map((row) => {
       const docs = row.pkg ? ` ([docs](../packages/${row.pkg}/README.md))` : ''
-      const note = row.note ? ` _${row.note}_` : ''
+      const note = row.note
+        ? ` _${row.note}_${row.noteUrl ? ` ([source](${row.noteUrl}))` : ''}`
+        : ''
       const cells = [row.iD, row.rapid, ...apps.map((app) => supportOf(row, app))].map(
         (support) => MARK[support],
       )

@@ -70,7 +70,8 @@ function comparison(apps: ListedApp[], repository: string) {
           cell(row.rapid),
           ...apps.map((app) => cell(supportOf(row, app))),
         ]
-        const note = row.note ? `<span class="note">${escapeHtml(row.note)}</span>` : ''
+        const source = row.noteUrl ? ` <a href="${row.noteUrl}">source</a>` : ''
+        const note = row.note ? `<span class="note">${escapeHtml(row.note)}${source}</span>` : ''
         return `<tr><th scope="row"><span class="feature">${escapeHtml(row.title)}</span>${docsLink(row, repository)}<span class="text">${escapeHtml(row.text)}</span>${note}</th>${cells.join('')}</tr>`
       })
       .join('\n')

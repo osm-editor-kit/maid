@@ -26,7 +26,7 @@ column follows the modules the app's config calls.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | **WebGL map** ([docs](../packages/renderer/README.md)): The data is drawn on the graphics card, so large and dense areas stay smooth. _iD draws SVG; Rapid draws with PixiJS on WebGL, Maid with MapLibre GL._ | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **Turn the map** ([docs](../packages/shell/README.md)): Alt or Ctrl and drag, two fingers, or Shift and the arrow keys; N sets north up again. | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Lenses** ([docs](../packages/module-lenses/README.md)): Recolour the map for one question: surface, lighting, max speed, or a lens the editor brings (parking, lanes, bicycle infrastructure). Export and import your own. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Lenses** ([docs](../packages/module-lenses/README.md)): Recolour the map for one question: surface, lighting, max speed, or a lens the editor brings (parking, lanes, bicycle infrastructure). Export and import your own. _Rapid has an experiment with colour-blind modes and a high-contrast colour scheme for the whole map, merged but switched off; a larger colour scheme system was closed for now._ ([source](https://github.com/facebook/Rapid/pull/1384)) | – | ◐ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **Loaded data stays visible when zoomed out** ([docs](../packages/renderer/README.md)): Lines, areas and points stay drawn down to zoom 12; below zoom 18 the map is quiet and shows vertices only on the selected way. _iD and Rapid ask you to zoom in to edit below zoom 16._ | ◐ | ◐ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **Highlight edits** ([docs](../packages/renderer/README.md)): Your changes in colour on the map (key G), and cell by cell in the way table. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **Directions on the map** ([docs](../packages/renderer/README.md)): One-way arrows, sided line styles and view cones of cameras and signs, in iD's look. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -36,7 +36,7 @@ column follows the modules the app's config calls.
 | Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | **iD's operations and keys** ([docs](../packages/operations/README.md)): Draw, move, rotate, reflect, circularise, square, straighten, split, merge, disconnect, extract, copy and paste, with the keys mappers know. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Preview before you click** ([docs](../packages/renderer/README.md)): Hover a command and the map shows the result: the circle, the square, the flipped shape. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Preview before you click** ([docs](../packages/renderer/README.md)): Hover a command and the map shows the result: the circle, the square, the flipped shape. _iD shows the result of straighten, square, circularise and reflect while the button is hovered._ ([source](https://github.com/openstreetmap/iD/pull/11778)) | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **Several features at once** ([docs](../packages/shell/README.md)): Select several and edit the fields and tags they share; one change is one undo step. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **Lasso selection**: Select the nodes inside a drawn shape. | ✓ | ✓ | – | – | – | – | – |
 | **Measuring tape for widths** ([docs](../packages/renderer/README.md)): A width field measures on the map with a magnifier and writes the value. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ |

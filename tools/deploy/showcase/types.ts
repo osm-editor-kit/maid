@@ -25,6 +25,8 @@ export type FeatureRow = {
   rapid: Support
   /** A short note shown under the row, for partial cells or a difference worth knowing */
   note?: string
+  /** Where the note's claim is documented (an issue or pull request of iD or Rapid), linked after the note */
+  noteUrl?: string
 }
 
 export type FeatureGroup = { id: string; title: string; intro?: string; rows: FeatureRow[] }
