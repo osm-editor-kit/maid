@@ -97,7 +97,7 @@ export {
 export { FavouritesPanel } from './FavouritesPanel.tsx'
 export { FavouriteNumberField } from './FavouriteNumberField.tsx'
 export { AreaIcon, GeometryIcon, LineIcon } from './GeometryIcons.tsx'
-export { setBearing, useBearing } from './bearing.ts'
+export { setBearing, setPitch, useBearing, usePitch } from './bearing.ts'
 export {
   getSettings,
   loadStoredSettings,

@@ -498,6 +498,16 @@
       }
     }
   ],
+  "map_reset_view": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Reset north and tilt",
+        "input=*": "Reset north and tilt (N)"
+      }
+    }
+  ],
   "route_overview_preview_load": "Load preview of the {count} missing members",
   "route_overview_preview_loading": "Loading the preview…",
   "route_overview_preview_from": "Preview from {time}",

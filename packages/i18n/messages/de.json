@@ -498,6 +498,16 @@
       }
     }
   ],
+  "map_reset_view": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Nach Norden ausrichten und flach legen",
+        "input=*": "Nach Norden ausrichten und flach legen (N)"
+      }
+    }
+  ],
   "route_overview_preview_load": "Vorschau der {count} fehlenden Mitglieder laden",
   "route_overview_preview_loading": "Vorschau wird geladen …",
   "route_overview_preview_from": "Vorschau vom {time}",

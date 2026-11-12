@@ -498,6 +498,16 @@
       }
     }
   ],
+  "map_reset_view": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Orientar al norte y en plano",
+        "input=*": "Orientar al norte y en plano (N)"
+      }
+    }
+  ],
   "route_overview_preview_load": "Cargar la vista previa de los {count} miembros que faltan",
   "route_overview_preview_loading": "Cargando la vista previa…",
   "route_overview_preview_from": "Vista previa del {time}",

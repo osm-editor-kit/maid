@@ -14,7 +14,7 @@ import {
   type MaidEngine,
   type LayerOptions,
 } from '@osm-editor-kit/maid-renderer'
-import { getSettings, settingsActions, setBearing } from '@osm-editor-kit/maid-ui'
+import { getSettings, settingsActions, setBearing, setPitch } from '@osm-editor-kit/maid-ui'
 import * as maplibregl from 'maplibre-gl'
 import type { StyleSpecification } from 'maplibre-gl'
 import { useEffect, useRef, useState } from 'react'
@@ -205,6 +205,7 @@ export function MapView() {
     const map = event.target
     loaded.current = true
     setBearing(map.getBearing())
+    setPitch(map.getPitch())
     // Marker images are made when MapLibre asks for them, while it lays out a tile (see images.ts): no `prepare`
     installMarkerImages(map)
     setEngineHooks(engine, {
@@ -235,6 +236,10 @@ export function MapView() {
   // the compass shows while the map is turned, and its needle turns with the map
   const handleRotate = (event: ViewStateChangeEvent) => {
     setBearing(event.viewState.bearing)
+  }
+  // the compass shows while the map is tilted too, with the needle leaning back
+  const handlePitch = (event: ViewStateChangeEvent) => {
+    setPitch(event.viewState.pitch)
   }
   const handleResize = () => {
     resized.current = true
@@ -767,6 +772,7 @@ export function MapView() {
       onMove={handleMove}
       onMoveEnd={handleMoveEnd}
       onRotate={handleRotate}
+      onPitch={handlePitch}
       onResize={handleResize}
       onMouseDown={handleMouseDown}
       onMouseUp={release}

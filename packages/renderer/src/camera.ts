@@ -70,8 +70,9 @@ export class Camera {
   }
 
   /** Turns the map back to north: the compass button and N */
+  /** North up and flat: the compass and N bring a turned or tilted map back to the plain view */
   resetNorth() {
-    this.host.map()?.easeTo({ bearing: 0, duration: 300 })
+    this.host.map()?.easeTo({ bearing: 0, pitch: 0, duration: 300 })
   }
 
   /**

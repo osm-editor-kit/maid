@@ -498,6 +498,16 @@
       }
     }
   ],
+  "map_reset_view": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Réorienter au nord et à plat",
+        "input=*": "Réorienter au nord et à plat (N)"
+      }
+    }
+  ],
   "route_overview_preview_load": "Charger l’aperçu des {count} membres manquants",
   "route_overview_preview_loading": "Chargement de l’aperçu…",
   "route_overview_preview_from": "Aperçu du {time}",
