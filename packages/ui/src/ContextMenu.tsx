@@ -44,6 +44,11 @@ export type MenuItem = {
    * which has no hover.
    */
   details?: () => MenuDetails | undefined
+  /**
+   * A second level: the item opens a flyout beside it with these items (on hover, a click or the right arrow key), and
+   * its own `run` is not called. Used for an operation with several targets (which sidewalk gets the tags).
+   */
+  submenu?: MenuItem[]
 }
 
 /** The gap between the menu and the box of a row's details, and how long the box stays when the pointer leaves */
@@ -53,6 +58,8 @@ const DETAILS_LINGER = 120
 /** The menu is 208 px wide (w-52); it keeps 4 px to the edges of the window */
 const MENU_WIDTH = 208
 const MARGIN = 4
+/** The widest a flyout (`MenuItem.submenu`) gets: its labels say more than a command's */
+const FLYOUT_WIDTH = 320
 /**
  * The height of the rows as they are drawn: a row 28 px (h-7), 44 px on a touch device (`touch:h-11`, a finger's
  * size: the menu opens on a long press and holds Delete), 56 px on a touch device for a disabled row with its reason
@@ -158,6 +165,11 @@ export function ContextMenu(props: {
     const overflow = element.getBoundingClientRect().bottom - (window.innerHeight - MARGIN)
     if (overflow > 0) element.style.top = `${shown.top - overflow}px`
   }, [shown])
+  // the open flyout: the item it belongs to and where its row is on the screen
+  const [flyout, setFlyout] = useState<{ id: string; row: DOMRect; focus: boolean } | null>(null)
+  const flyoutItem = flyout ? items.find((item) => item.id === flyout.id) : undefined
+  const openFlyout = (item: MenuItem, row: HTMLElement, focus: boolean) =>
+    setFlyout({ id: item.id, row: row.getBoundingClientRect(), focus })
 
   // Closing gives the focus back to what had it before the menu opened (a keyboard user stays
   // where they were), unless the focus has moved on elsewhere meanwhile or the opener is gone.
@@ -199,6 +211,18 @@ export function ContextMenu(props: {
   }, [onClose])
 
   const onKeyDown = (event: KeyboardEvent) => {
+    // the right arrow opens the flyout of the focused item and moves the focus into it
+    const focused = document.activeElement
+    const withFlyout =
+      focused instanceof HTMLElement && menu.current?.contains(focused)
+        ? items.find((item) => item.submenu && item.id === focused.dataset.item)
+        : undefined
+    if (event.key === 'ArrowRight' && withFlyout && focused instanceof HTMLElement) {
+      openFlyout(withFlyout, focused, true)
+      event.preventDefault()
+      event.stopPropagation()
+      return
+    }
     const buttons = [...(menu.current?.querySelectorAll<HTMLButtonElement>('button:enabled') ?? [])]
     const current = buttons.findIndex((button) => button === document.activeElement)
     const focus = (index: number) =>
@@ -257,14 +281,26 @@ export function ContextMenu(props: {
           <button
             type="button"
             role="menuitem"
+            data-item={item.id}
             aria-current={item.current ? 'true' : undefined}
+            aria-haspopup={item.submenu ? 'menu' : undefined}
+            aria-expanded={item.submenu ? flyout?.id === item.id : undefined}
             disabled={item.reason !== undefined}
             title={item.reason}
-            onClick={() => {
+            onClick={(event) => {
+              if (item.submenu) {
+                openFlyout(item, event.currentTarget, event.detail === 0)
+                return
+              }
               if (!item.keepOpen) onClose()
               item.run()
             }}
-            onPointerEnter={() => item.preview?.(true)}
+            onPointerEnter={(event) => {
+              // another row closes the open flyout; a row with one opens it
+              if (item.submenu) openFlyout(item, event.currentTarget, false)
+              else if (flyout) setFlyout(null)
+              item.preview?.(true)
+            }}
             onPointerLeave={() => item.preview?.(false)}
             onFocus={(event) => {
               item.preview?.(true)
@@ -289,7 +325,12 @@ export function ContextMenu(props: {
                 </span>
               )}
             </span>
-            {item.shortcut && (
+            {item.submenu && (
+              <span aria-hidden="true" className="shrink-0 text-zinc-500 dark:text-zinc-400">
+                ›
+              </span>
+            )}
+            {item.shortcut && !item.submenu && (
               <kbd className="shrink-0 font-sans text-xs text-zinc-500 dark:text-zinc-400 nokeys:hidden">
                 {item.shortcut}
               </kbd>
@@ -365,6 +406,120 @@ export function ContextMenu(props: {
           {panel}
         </>
       )}
+      {flyout && flyoutItem?.submenu && (
+        <Flyout
+          key={flyout.id}
+          parent={flyoutItem}
+          row={flyout.row}
+          focus={flyout.focus}
+          onBack={() => {
+            setFlyout(null)
+            menu.current
+              ?.querySelector<HTMLButtonElement>(`button[data-item="${CSS.escape(flyout.id)}"]`)
+              ?.focus({ preventScroll: true })
+          }}
+          onClose={onClose}
+        />
+      )}
     </motion.div>
+  )
+}
+
+/**
+ * The second level of a context menu: the items of `parent.submenu` in a panel beside its row, to the right, or to the
+ * left when the window has no room there. Up and down move, Enter or a click chooses (and closes the whole menu), the
+ * left arrow or Escape goes back to the row. Inside the menu's frame, so a press in it does not close the menu.
+ */
+function Flyout(props: {
+  parent: MenuItem
+  row: DOMRect
+  focus: boolean
+  onBack: () => void
+  onClose: () => void
+}) {
+  const { parent, row, focus, onBack, onClose } = props
+  const panel = useRef<HTMLDivElement>(null)
+  const items = parent.submenu ?? []
+  const touch = device().input === 'touch'
+  useEffect(() => {
+    if (focus)
+      panel.current
+        ?.querySelector<HTMLButtonElement>('button:enabled')
+        ?.focus({ preventScroll: true })
+  }, [focus])
+  const height = menuHeight(items)
+  // as wide as its longest label, up to FLYOUT_WIDTH: placed for that width, so it never runs out of the window
+  const right = row.right + MARGIN
+  const left =
+    right + FLYOUT_WIDTH + MARGIN <= window.innerWidth
+      ? right
+      : row.left - FLYOUT_WIDTH - MARGIN >= MARGIN
+        ? row.left - FLYOUT_WIDTH - MARGIN
+        : Math.max(MARGIN, window.innerWidth - FLYOUT_WIDTH - MARGIN)
+  const top = Math.max(MARGIN, Math.min(row.top - 4, window.innerHeight - height - MARGIN))
+  const onKeyDown = (event: KeyboardEvent) => {
+    const buttons = [
+      ...(panel.current?.querySelectorAll<HTMLButtonElement>('button:enabled') ?? []),
+    ]
+    const current = buttons.findIndex((button) => button === document.activeElement)
+    const move = (index: number) =>
+      buttons[(index + buttons.length) % buttons.length]?.focus({ preventScroll: true })
+    switch (event.key) {
+      case 'ArrowLeft':
+      case 'Escape':
+        onBack()
+        break
+      case 'ArrowDown':
+        move(current + 1)
+        break
+      case 'ArrowUp':
+        move(current - 1)
+        break
+      default:
+        return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+  }
+  return (
+    <div
+      ref={panel}
+      role="menu"
+      aria-label={parent.label}
+      onKeyDown={onKeyDown}
+      style={{ left, top, maxWidth: FLYOUT_WIDTH }}
+      className="fixed z-50 w-max min-w-52 rounded-lg bg-white p-1 text-sm shadow-lg ring-1 ring-zinc-950/10 dark:bg-zinc-800 dark:ring-white/10"
+    >
+      {items.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          role="menuitem"
+          data-item={item.id}
+          disabled={item.reason !== undefined}
+          title={item.reason}
+          onClick={() => {
+            item.preview?.(false)
+            onClose()
+            item.run()
+          }}
+          onPointerEnter={() => item.preview?.(true)}
+          onPointerLeave={() => item.preview?.(false)}
+          onFocus={() => item.preview?.(true)}
+          onBlur={() => item.preview?.(false)}
+          className={`flex h-7 w-full cursor-pointer items-center gap-2 px-2 text-left disabled:cursor-default disabled:text-zinc-400 dark:disabled:text-zinc-500 ${touch && item.reason !== undefined ? 'touch:h-14' : 'touch:h-11'} ${TAP} ${ROW_BASE} ${ROW_FOCUS} enabled:hover:bg-zinc-950/5 enabled:active:bg-zinc-950/10 dark:enabled:hover:bg-white/10 dark:enabled:active:bg-white/15`}
+        >
+          <span className="flex size-5 shrink-0 items-center justify-center">{item.icon}</span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate">{item.label}</span>
+            {touch && item.reason !== undefined && (
+              <span className="line-clamp-2 text-xs leading-4 font-normal text-zinc-500 dark:text-zinc-400">
+                {item.reason}
+              </span>
+            )}
+          </span>
+        </button>
+      ))}
+    </div>
   )
 }

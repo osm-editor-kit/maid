@@ -1096,6 +1096,24 @@ function buildMainLayers(options: LayerOptions) {
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': '#2563eb', 'line-width': 5 },
     },
+    // where an operation would add a line that is not there yet (its own `preview` with style `helper`, for example
+    // the sidewalk extract would make): a dotted line in the blue of the guides, on a white glow
+    {
+      id: 'preview-helper-glow',
+      type: 'line',
+      source: SOURCES.highlight,
+      filter: ['==', ['get', 'state'], 'preview-helper'],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#fff', 'line-width': 8, 'line-opacity': 0.7, 'line-blur': 2 },
+    },
+    {
+      id: 'preview-helper-line',
+      type: 'line',
+      source: SOURCES.highlight,
+      filter: ['==', ['get', 'state'], 'preview-helper'],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#2b8ff0', 'line-width': 4, 'line-dasharray': [0, 2] },
+    },
   )
 
   // The field that has the focus or the pointer on it (field-overlay.ts). A side is a blue line a few

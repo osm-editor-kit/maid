@@ -33,6 +33,11 @@ export type Command = {
   preview?: (on: boolean) => void
   /** A table beside the edit menu while the pointer is on the row: what blocks it, or what it copies (`MenuItem.details`) */
   details?: () => MenuDetails | undefined
+  /**
+   * The targets to pick from (`Operation.choices`), each a command of its own: the edit menu shows them in a flyout
+   * under this one, the command bar as buttons of their own
+   */
+  submenu?: Command[]
 }
 
 /** A table of tags in one column, for the box beside Copy tags and Paste tags; none for no tags */
@@ -166,26 +171,55 @@ export function useEditCommands(at?: { lon: number; lat: number }) {
     const turnsDirection = e.transform.directionOf(ids) !== undefined
     // what applies, less the operations a superseding one replaces here (the core Merge under the areas union)
     const applicable = visibleOperations(operations, context)
-    const commandOf = (operation: Operation): Command => ({
-      id: operation.id,
-      label: operation.label,
-      icon: commandIcon(operation.id, operation.icon),
-      // delete has a key with a modifier, which an operation's one-letter shortcut cannot say
-      shortcut: operation.id === 'delete' ? modKey('⌫') : operation.shortcut?.toUpperCase(),
-      group: operation.group ?? DEFAULT_GROUP,
-      hints: operation.hints?.(),
-      reason: protectedReason ?? operation.disabled(context),
-      run: () => {
-        engine.previewOperation(null)
-        const next = engine.runOperation(operation, place)
-        if (next) select(next.length > 0 ? next : null)
-      },
-      preview: (on: boolean) => engine.previewOperation(on ? operation : null, place),
-      // asked on hover, with the data of that moment
-      details: operation.details
-        ? () => operation.details?.(engine.operationContext(place))
-        : undefined,
-    })
+    // the targets an operation offers (two sidewalks on one side), each run and previewed with its choice
+    const submenuOf = (operation: Operation): Command[] | undefined => {
+      const choices = protectedReason ? [] : (operation.choices?.(context) ?? [])
+      if (choices.length === 0) return undefined
+      return choices.map((choice) => ({
+        id: `${operation.id}:${choice.id}`,
+        label: choice.label,
+        icon: commandIcon(operation.id, operation.icon),
+        group: operation.group ?? DEFAULT_GROUP,
+        reason: operation.disabled({ ...context, choice: choice.id }),
+        run: () => {
+          engine.previewOperation(null)
+          const next = engine.runOperation(operation, place, choice.id)
+          if (next) select(next.length > 0 ? next : null)
+        },
+        preview: (on: boolean) => engine.previewOperation(on ? operation : null, place, choice.id),
+      }))
+    }
+    const commandOf = (operation: Operation): Command => {
+      const submenu = submenuOf(operation)
+      return {
+        submenu,
+        id: operation.id,
+        label: operation.label,
+        icon: commandIcon(operation.id, operation.icon),
+        // delete has a key with a modifier, which an operation's one-letter shortcut cannot say
+        shortcut: operation.id === 'delete' ? modKey('⌫') : operation.shortcut?.toUpperCase(),
+        group: operation.group ?? DEFAULT_GROUP,
+        hints: operation.hints?.(),
+        // with targets to pick from it can be opened while one of them can run (the others may be refused)
+        reason:
+          protectedReason ??
+          (submenu
+            ? submenu.every((choice) => choice.reason !== undefined)
+              ? submenu[0]!.reason
+              : undefined
+            : operation.disabled(context)),
+        run: () => {
+          engine.previewOperation(null)
+          const next = engine.runOperation(operation, place)
+          if (next) select(next.length > 0 ? next : null)
+        },
+        preview: (on: boolean) => engine.previewOperation(on ? operation : null, place),
+        // asked on hover, with the data of that moment
+        details: operation.details
+          ? () => operation.details?.(engine.operationContext(place))
+          : undefined,
+      }
+    }
     const leading = applicable
       .filter((operation) => LEADING_OPERATIONS.includes(operation.id))
       .map(commandOf)

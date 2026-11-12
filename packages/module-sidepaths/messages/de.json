@@ -34,5 +34,7 @@
   "extract_refused_no_sidewalk": "Neben dem {side} Radweg verläuft kein Gehweg.",
   "extract_refused_apart": "Der Gehweg auf der {side} Seite liegt zu weit vom Radweg entfernt.",
   "extract_refused_lengths": "Gehweg und Radweg auf der {side} Seite sind zu unterschiedlich lang. Teile zuerst den Gehweg.",
-  "extract_refused_different_values": "Gehweg und Radweg auf der {side} Seite haben verschiedene Werte für {key}."
+  "extract_refused_different_values": "Gehweg und Radweg auf der {side} Seite haben verschiedene Werte für {key}.",
+  "choice_distance": "{distance} m neben der Straße, {length} m lang",
+  "choice_both": "links {left} m, rechts {right} m von der Straße"
 }

@@ -34,5 +34,7 @@
   "extract_refused_no_sidewalk": "Aucun chemin piéton ne longe la piste du côté {side}.",
   "extract_refused_apart": "Le chemin piéton du côté {side} est trop loin de la piste.",
   "extract_refused_lengths": "Le chemin piéton du côté {side} et la piste ont des longueurs trop différentes. Divisez d'abord le chemin piéton.",
-  "extract_refused_different_values": "Le chemin piéton du côté {side} et la piste ont des valeurs différentes pour {key}."
+  "extract_refused_different_values": "Le chemin piéton du côté {side} et la piste ont des valeurs différentes pour {key}.",
+  "choice_distance": "à {distance} m de la rue, {length} m de long",
+  "choice_both": "gauche à {left} m, droite à {right} m de la rue"
 }

@@ -3,7 +3,7 @@
  * (or a cycle track's) go from the road to the ways found on that side, and the road keeps only `sidewalk:left=separate`.
  */
 import { type Action, actionChangeTags, type Graph, OsmWay } from '@osm-editor-kit/maid-model'
-import { separateWays } from './find.ts'
+import { type SeparateWay, separateWays } from './find.ts'
 import {
   canMoveSide,
   conflictingKeys,
@@ -70,6 +70,8 @@ export function moveSideTagsPlan(
   roadId: string,
   prefix: SidePrefix,
   sides: readonly Side[],
+  /** The ways of a side the mapper picked (`sideOptions`); a side without them gets all found ways */
+  picked: Partial<Record<Side, readonly SeparateWay[]>> = {},
 ): MovePlan {
   const road = graph.entity(roadId) as OsmWay
   const changes = new Map<string, Record<string, string>>()
@@ -77,7 +79,7 @@ export function moveSideTagsPlan(
   let firstConflict: MoveRefusal | undefined
   let moves = 0
   for (const side of sides) {
-    const ways = cachedSeparateWays(graph, roadId, prefix, side)
+    const ways = picked[side] ?? cachedSeparateWays(graph, roadId, prefix, side)
     if (!ways.length) return { refused: { reason: 'no_way', side } }
     const attributes = sideAttributes(road.tags, prefix, side)
     const conflicts = new Set<string>()

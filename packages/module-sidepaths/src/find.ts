@@ -83,6 +83,18 @@ function inBox(loc: Loc, box: Box) {
 /** A found separate way and whether it runs against the road */
 export type SeparateWay = { id: string; reversed: boolean }
 
+/** A found separate way with where it runs along the road, to tell pieces of one sidewalk from two sidewalks */
+export type SeparateWayDetails = SeparateWay & {
+  /** Metres along the road where the part that runs along it starts and ends */
+  from: number
+  to: number
+  /** Its median distance from the road, in metres */
+  distance: number
+  /** Its first and last node, to join the pieces of one sidewalk */
+  ends: [string, string]
+  locs: Loc[]
+}
+
 /**
  * The ways of this kind on `side` of the road that run along it: at least half of a way's points lie on that side
  * within a few metres of the road, or the way runs along a third of the road (a long sidewalk beside a short road
@@ -94,6 +106,19 @@ export function separateWays(
   prefix: SidePrefix,
   side: Side,
 ): SeparateWay[] {
+  return separateWayDetails(graph, roadId, prefix, side).map(({ id, reversed }) => ({
+    id,
+    reversed,
+  }))
+}
+
+/** `separateWays` with where each way runs along the road (`SeparateWayDetails`) */
+export function separateWayDetails(
+  graph: Graph,
+  roadId: string,
+  prefix: SidePrefix,
+  side: Side,
+): SeparateWayDetails[] {
   const road = graph.hasEntity(roadId)
   if (!(road instanceof OsmWay)) return []
   const roadLocs = locsOf(graph, road)
@@ -112,7 +137,7 @@ export function separateWays(
     )
   }
 
-  const result: SeparateWay[] = []
+  const result: SeparateWayDetails[] = []
   for (const way of waysOf(graph)) {
     if (way.id === roadId || way.isClosed() || !isSeparatePart(way.tags, prefix)) continue
     const locs = locsOf(graph, way)
@@ -135,7 +160,18 @@ export function separateWays(
     // the direction: where the way's ends lie along the road
     const start = projectOnLine(locs[0]!, roadLocs).along
     const end = projectOnLine(locs[locs.length - 1]!, roadLocs).along
-    result.push({ id: way.id, reversed: end < start })
+    const distances = near
+      .map((point) => projectOnLine(point, roadLocs).distance)
+      .sort((a, b) => a - b)
+    result.push({
+      id: way.id,
+      reversed: end < start,
+      from: Math.min(...along),
+      to: Math.max(...along),
+      distance: distances[Math.floor(distances.length / 2)]!,
+      ends: [way.nodes[0]!, way.nodes[way.nodes.length - 1]!],
+      locs,
+    })
   }
   return result.sort((a, b) => a.id.localeCompare(b.id))
 }

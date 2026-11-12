@@ -1057,9 +1057,10 @@ export class MaidEngine {
 
   /**
    * What an operation looks at: the current data and the selection. `at`: where the edit menu was opened with the
-   * pointer, as [lon, lat] (`OperationContext.at`).
+   * pointer, as [lon, lat] (`OperationContext.at`). `choice`: the target picked in the edit menu's flyout
+   * (`OperationContext.choice`).
    */
-  operationContext(at?: [number, number]): OperationContext {
+  operationContext(at?: [number, number], choice?: string): OperationContext {
     // the presets let extract refuse a feature whose point would carry no tags (a building), as iD
     const presets = this.options.editor.presets
     const presetOf: OperationContext['presetOf'] =
@@ -1067,7 +1068,9 @@ export class MaidEngine {
       ((entity, graph) =>
         presets.match(entity.tags, entity.geometry(graph), this.centreOf(entity.id)))
     const context = operationContextOf(this.map, this.data, this.selectedIds, presetOf)
-    return at ? { ...context, at } : context
+    return at || choice !== undefined
+      ? { ...context, ...(at && { at }), ...(choice !== undefined && { choice }) }
+      : context
   }
 
   /**
@@ -1075,8 +1078,8 @@ export class MaidEngine {
    * undefined if the operation does not apply or cannot run now. An operation with `start` asks for more
    * input: it starts its own mode (ADR 0011), and `run` is not called. The selection is then kept.
    */
-  runOperation(operation: Operation, at?: [number, number]) {
-    const context = this.operationContext(at)
+  runOperation(operation: Operation, at?: [number, number], choice?: string) {
+    const context = this.operationContext(at, choice)
     if (this.draw.active || this.selectedIds.some((id) => this.isReadOnly(id))) return
     if (!operation.applies(context) || operation.disabled(context)) return
     if (operation.start) {
@@ -1957,13 +1960,19 @@ export class MaidEngine {
    * ways would have, drawn dashed over the map. `null` takes the preview away. Nothing is
    * changed: the operation's actions run on a copy of the graph that is thrown away.
    * Operations that move no node (reverse, split, ...) show nothing. An operation with its own `preview` (delete
-   * segment) marks the lines it gives instead. `at`: where the edit menu was opened (`OperationContext.at`).
+   * segment) marks the lines it gives instead. `at`: where the edit menu was opened (`OperationContext.at`), `choice`:
+   * the target picked in its flyout (`OperationContext.choice`).
    */
-  previewOperation(operation: Operation | null, at?: [number, number]) {
+  previewOperation(operation: Operation | null, at?: [number, number], choice?: string) {
     // an operation that asks for input (`start`) has no preview: its `run` is not called
     const features =
       operation && !operation.start && !this.draw.active
-        ? operationPreview(operation, this.operationContext(at), this.data, this.selectedIds)
+        ? operationPreview(
+            operation,
+            this.operationContext(at, choice),
+            this.data,
+            this.selectedIds,
+          )
         : []
     if (features.length === 0 && this.previewFeatures.length === 0) return
     this.previewFeatures = features

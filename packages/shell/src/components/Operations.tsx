@@ -9,11 +9,17 @@ import { useEditCommands } from '../commands'
 export function Operations() {
   const commands = useEditCommands()
   if (commands.length === 0) return null
+  // an operation with several targets (two sidewalks on one side) has a button per target, its label in the tooltip
+  const items = commands.flatMap((command) =>
+    command.submenu
+      ? command.submenu.map((choice) => ({ ...choice, label: `${command.label}: ${choice.label}` }))
+      : [command],
+  )
   return (
     // a toolbar row under the header: no headline, the icons speak for themselves. The space above and under it
     // sets it off from the head and the sections (the sidebar's body has no top padding, for its sticky headings)
     <div className="py-3">
-      <CommandBar label="Edit" items={commands} />
+      <CommandBar label="Edit" items={items} />
     </div>
   )
 }

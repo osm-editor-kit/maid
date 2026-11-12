@@ -3,12 +3,14 @@
  * footway that already runs along it (iD-Radnetz's `actionExtractMergeSidepaths`, WORKDOC features 17 and 30). Each
  * plan is tried on a copy of the graph, so the edit menu knows why an entry is disabled before anything changes.
  */
-import { type Action, Graph } from '@osm-editor-kit/maid-model'
+import { type Action, Graph, OsmWay } from '@osm-editor-kit/maid-model'
+import type { OperationPreviewLine } from '@osm-editor-kit/maid-operations'
 import { type ExtractVariant, partKind } from '@tilda-geo/bicycle-infrastructure-tagging'
 import {
   actionExtractSidepath,
   type ExtractRefusal,
   extractRefusal,
+  roadLocs,
   type SignRules,
 } from './extract.ts'
 import { footwaysAlong } from './find.ts'
@@ -32,13 +34,26 @@ export type ExtractPlan =
       selected: string[]
       /** `key=value` tags of the deleted footways that lost against the surviving way's value */
       dropped: string[]
+      /** What the edit menu shows while the entry is hovered: the new ways as helper lines, the merged paths marked */
+      preview: OperationPreviewLine[]
     }
 
+type Steps = (g: Graph) => {
+  problem?: ExtractProblem
+  selected: string[]
+  dropped: string[]
+  preview?: OperationPreviewLine[]
+}
+
+/** A way of the trial graph as a preview line */
+function lineOf(g: Graph, id: string, style: 'mark' | 'helper'): OperationPreviewLine[] {
+  const way = g.hasEntity(id)
+  const locs = way instanceof OsmWay ? roadLocs(g, way) : undefined
+  return locs && locs.length > 1 ? [{ line: locs, style }] : []
+}
+
 /** Runs `steps` on a copy of the graph; the plan's action runs them again on the real one */
-function tryOn(
-  graph: Graph,
-  steps: (g: Graph) => { problem?: ExtractProblem; selected: string[]; dropped: string[] },
-): ExtractPlan {
+function tryOn(graph: Graph, steps: Steps): ExtractPlan {
   const trial = steps(new Graph(graph))
   if (trial.problem) return { problem: trial.problem }
   return {
@@ -48,6 +63,7 @@ function tryOn(
     },
     selected: trial.selected,
     dropped: trial.dropped,
+    preview: trial.preview ?? [],
   }
 }
 
@@ -71,7 +87,8 @@ export function extractPlan(
         return { problem: { reason: refusal, side, step: 'extract' }, selected: [], dropped: [] }
       action(g)
     }
-    return { selected: actions.map(({ action }) => action.wayId), dropped: [] }
+    const selected = actions.map(({ action }) => action.wayId)
+    return { selected, dropped: [], preview: selected.flatMap((id) => lineOf(g, id, 'helper')) }
   })
 }
 
@@ -94,12 +111,16 @@ export function extractMergePlan(
   return tryOn(graph, (g) => {
     const selected: string[] = []
     const dropped = new Set<string>()
+    const preview: OperationPreviewLine[] = []
     const fail = (problem: ExtractProblem) => ({ problem, selected: [], dropped: [] })
     for (const { side, action } of actions) {
       const refusal = extractRefusal(g, roadId)
       if (refusal) return fail({ reason: refusal, side, step: 'extract' })
       action(g)
+      // where the cycle track goes, and the footways it is merged into
+      preview.push(...lineOf(g, action.wayId, 'helper'))
       const footIds = footwaysAlong(g, action.wayId, isFoot)
+      preview.push(...footIds.flatMap((id) => lineOf(g, id, 'mark')))
       if (!footIds.length) return fail({ reason: 'no_sidewalk', side, step: 'merge' })
       const selection = mergeSidepathsSelection(g, [action.wayId, ...footIds])
       if (!selection) return fail({ reason: 'no_sidewalk', side, step: 'merge' })
@@ -111,6 +132,6 @@ export function extractMergePlan(
       selected.push(...result.survivorIds)
       for (const tag of result.dropped) dropped.add(tag)
     }
-    return { selected, dropped: [...dropped] }
+    return { selected, dropped: [...dropped], preview }
   })
 }

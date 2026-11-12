@@ -34,7 +34,25 @@ export type OperationContext = {
    * segment) reads which part from it.
    */
   at?: [number, number]
+  /**
+   * Which of the operation's `choices` the mapper picked (its `id`), for an operation that offers several targets (the
+   * sidewalk that gets the tags). Absent: the operation's own default.
+   */
+  choice?: string
 }
+
+/**
+ * A line the map draws while a command is hovered (`Operation.preview`), as [lon, lat] positions. A bare line, or
+ * `style: 'mark'`, is an existing part marked in blue (the segment delete segment takes out, the sidewalk that gets the
+ * tags); `style: 'helper'` is a dotted blue helper line for something that is not there yet (where a sidewalk would be
+ * extracted).
+ */
+export type OperationPreviewLine =
+  | [number, number][]
+  | { line: [number, number][]; style: 'mark' | 'helper' }
+
+/** One of the targets an operation offers (`Operation.choices`): the edit menu lists them in a flyout */
+export type OperationChoice = { id: string; label: string }
 
 /** What an operation reads of a preset (see `OperationContext.presetOf`); a `Preset` of maid-presets fits this type */
 export type OperationPreset = { name: string; geometry: readonly string[] }
@@ -108,9 +126,16 @@ export type Operation = {
   disabled(context: OperationContext): string | undefined
   /**
    * Lines, each as [lon, lat] positions, that the map marks while the command is hovered, in place of the outlines
-   * `run` would give: for an operation whose result is easier to see as the part it is about (delete segment).
+   * `run` would give: for an operation whose result is easier to see as the part it is about (delete segment), or as
+   * helper lines for what it adds (extract a sidewalk). Reads `context.choice` when the operation has `choices`.
    */
-  preview?(context: OperationContext): [number, number][][]
+  preview?(context: OperationContext): OperationPreviewLine[]
+  /**
+   * The targets to pick from when there are several (two sidewalks on one side of the road): the edit menu shows them
+   * in a flyout under the operation, and runs and previews it with `context.choice` set to the picked one's `id`.
+   * Empty or absent: no choice, the operation runs as it is.
+   */
+  choices?(context: OperationContext): OperationChoice[]
   /**
    * What lies behind `disabled` (or what the operation would do), as a table of the selected features' tags or
    * relations, for the box beside the edit menu. Asked only while the pointer is on the operation's row. Undefined:

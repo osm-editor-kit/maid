@@ -113,6 +113,13 @@ function operationOf(entry: Entry): Operation {
       const result = plan(context, road)
       return 'problem' in result ? problemSentence(result.problem) : undefined
     },
+    // where the new way would go, as a dotted helper line (and the footways a merge joins it with, marked)
+    preview: (context) => {
+      const road = roadOf(context)
+      if (!road) return []
+      const result = plan(context, road)
+      return 'problem' in result ? [] : result.preview
+    },
     run: (context) => {
       const result = plan(context, roadOf(context)!)
       if ('problem' in result) throw new Error(`${entry.id}: ${result.problem.reason}`)

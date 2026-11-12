@@ -18,11 +18,15 @@ export function operationPreview(
   if (!operation.start && operation.applies(context) && !operation.disabled(context)) {
     // the part the operation is about, marked as it is (state `preview-mark`), not the outlines after it
     if (operation.preview) {
-      return operation.preview(context).map((coordinates, i) => ({
-        type: 'Feature',
-        properties: { id: `preview-mark-${i}`, state: 'preview-mark' },
-        geometry: { type: 'LineString', coordinates },
-      }))
+      // a bare line is a mark; a helper line (style `helper`) is drawn dotted, for what is not there yet
+      return operation.preview(context).map((item, i) => {
+        const { line, style } = Array.isArray(item) ? { line: item, style: 'mark' } : item
+        return {
+          type: 'Feature',
+          properties: { id: `preview-${style}-${i}`, state: `preview-${style}` },
+          geometry: { type: 'LineString', coordinates: line },
+        }
+      })
     }
     let after: Graph | undefined
     try {

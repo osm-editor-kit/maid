@@ -9,9 +9,11 @@ export { OPERATION_GROUPS } from './types.ts'
 export type {
   Extent,
   Operation,
+  OperationChoice,
   OperationContext,
   OperationDetails,
   OperationPreset,
+  OperationPreviewLine,
   OperationGroup,
   OperationHint,
   OperationResult,
