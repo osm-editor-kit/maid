@@ -1,11 +1,11 @@
 /**
  * The climbing fields of id-tagging-schema PR 2793 ("Add additional fields to climbing presets", open, by elnappo),
  * as changes to the schema's data, so that Maid Climbing can be tried with them before the PR is merged. Taken from the
- * PR's head as of 2026-11-02 (docs/research/climbing.md, "Presets"). Two departures, both open review points of the PR:
+ * PR's head as of 2026-11-02 (docs/research/climbing.md, "Presets"). The wiki and this PR are Maid's reference for
+ * climbing (Tobias, 2026-11-12), so the style fields are the PR's `defaultCheck` (unset or yes; an existing `no` or a
+ * number still shows as its value). One departure, an open review point of the PR:
  *
- * - The style fields are `check` (yes, no, unset), not the PR's `defaultCheck`: the wiki lists `no`, and a check
- *   shows a `no` that is there (review point 2).
- * - The hueco options use an ASCII minus (`VB-`, `V0-`), as taginfo has them; the PR uses U+2212.
+ * - The hueco options use an ASCII minus (`VB-`, `V0-`), as taginfo and the data have them; the PR uses U+2212.
  *
  * Remove this file's entries once the schema version Maid uses has them.
  */
@@ -13,7 +13,7 @@ import type { PresetChanges } from '@osm-editor-kit/maid-presets'
 
 type Field = NonNullable<PresetChanges['fields']>[string]
 
-const style = (key: string, label: string): Field => ({ type: 'check', key, label })
+const style = (key: string, label: string): Field => ({ type: 'defaultCheck', key, label })
 
 const grade = (
   key: string,
@@ -31,6 +31,8 @@ const grade = (
 
 export const climbingPresetChanges: PresetChanges = {
   fields: {
+    'climbing/sport': style('climbing:sport', 'Sport climbing (bolted climbing)'),
+    'climbing/trad': style('climbing:trad', 'Traditional climbing'),
     'climbing/boulder': style('climbing:boulder', 'Bouldering'),
     'climbing/multipitch': style('climbing:multipitch', 'Multi-pitch Climbing'),
     'climbing/ice': style('climbing:ice', 'Ice Climbing'),

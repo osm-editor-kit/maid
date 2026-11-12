@@ -9,7 +9,7 @@ The climbing section of Maid Climbing (`apps/maid-climbing`): crags, boulders an
 - A crag as a point: a hint that only a crag relation can hold its routes.
 - An area relation (`climbing=area`): its crags with their number of routes.
 - A route (line, start point or relation): "Route 3 of 5 at Ostgipfel" with a button to the crag; or, in no crag yet, the loaded crag relations within 500 m (nearest first) with "Add", and "New crag with this route" (a `type=site` relation with the schema's addTags, then selected to be named). Each is one undo step.
-- The fields of id-tagging-schema PR 2793 (`climbingPresetChanges`): bouldering, multi-pitch, pitches, ice, mixed, dry-tooling, aid, and the grades hueco, water ice, mixed, dry and aid, on crags and routes. Style fields are `check`, not the PR's `defaultCheck` (see `src/presets.ts`).
+- The fields of id-tagging-schema PR 2793 (`climbingPresetChanges`): bouldering, multi-pitch, pitches, ice, mixed, dry-tooling, aid, and the grades hueco, water ice, mixed, dry and aid, on crags and routes. Style fields are the PR's `defaultCheck`; the hueco options use an ASCII minus (see `src/presets.ts`).
 
 ## Using it in an editor's config
 

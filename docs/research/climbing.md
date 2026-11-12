@@ -30,10 +30,7 @@ From the schema (main and PR 2793), OpenClimbing's code and the wiki:
 
 ## Presets: PR 2793
 
-The PR (open, by elnappo, last update 2026-11-02, no maintainer answer since) adds styles (boulder, multipitch, ice, mixed, dry, aid), pitches and five grade systems, and reorders the crag and route-start fields. Maid Climbing applies it as preset changes (`packages/module-climbing/src/presets.ts`), with two departures from the PR head, both open review points of the PR:
-
-- the style fields are `check`, not `defaultCheck`, so an existing `no` shows;
-- the hueco options use an ASCII minus.
+The PR (open, by elnappo, last update 2026-11-02, no maintainer answer since) adds styles (boulder, multipitch, ice, mixed, dry, aid), pitches and five grade systems, and reorders the crag and route-start fields. Maid Climbing applies it as preset changes (`packages/module-climbing/src/presets.ts`). The wiki and this PR are the reference, more than OpenClimbing (Tobias, 2026-11-12), so the style fields follow the PR head (`defaultCheck`; an existing `no` or number still shows). One departure: the hueco options use an ASCII minus, as the data has them.
 
 Open review points worth following (details in [presets-pr-2793.md](climbing-sources/presets-pr-2793.md)): yes/no or a number of routes as the value of a style; `climbing:rock` versus `material`; help texts of aid and dry; the hueco label. Tobias reviewed parts of the PR already.
 
@@ -87,6 +84,6 @@ Checked in a browser: the crag list, adding the lonely route to the Ostgipfel ("
 ## Open questions for Tobias
 
 1. ~~**Mapterhorn for OSM:** may Maid offer Mapterhorn at all?~~ **Decided (Tobias, 2026-11-12):** yes, framed as now ("for looking, not for mapping"). The editor is in beta; more research or other sources can follow.
-2. **Which crag model to write:** route lines with tags (iD style) or route starts with tags (OpenClimbing style)? Both are read; "New crag" and a future batch add have to pick one. OpenClimbing's is the more common in new data (inferred).
-3. **PR 2793:** follow the PR head (defaultCheck) or keep `check` until the review settles?
+2. ~~**Which crag model to write?**~~ **Decided (Tobias, 2026-11-12):** the wiki and id-tagging-schema with PR 2793 are the reference, not OpenClimbing. Both forms stay readable. In the schema the route start (`climbing=route_bottom`) owns the route fields and the line (`climbing=route`) inherits them, and the crag takes either as a member, so a batch add writes route starts and a drawn line stays possible.
+3. ~~**PR 2793:**~~ **Decided:** follow the PR head (`defaultCheck`), done.
 4. **Deploy:** add Maid Climbing to GitHub Pages now (it is in `deploy.env`) or only after the test?
