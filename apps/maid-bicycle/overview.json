@@ -1,9 +1,11 @@
 {
-  "compared": "Compared with Maid: everything of Maid, and",
-  "features": [
-    "Traffic signs: a field with the German traffic signs on roads and paths",
-    "Way table: the selected way next to the ways before and after it, tag by tag, editable",
-    "Reroute: on a bicycle or hiking route, click two points and the route runs over the loaded ways",
-    "Load changes from a file: an osmChange file (Go Map!!, JOSM) merged with the data, reviewed and uploaded with the normal save"
-  ]
+  "tagline": "Cycling infrastructure",
+  "description": "For the people who map bike lanes, cycle tracks and routes. Every road is drawn by its TILDA category, and each side gets a section that says what is missing and how to tag it.",
+  "highlights": [
+    "Roads coloured by bicycle infrastructure, with a TILDA section per side",
+    "Side paths: move sidewalk tags to the separate way, or extract a side",
+    "Traffic sign field and a way table for the ways along a street",
+    "Reroute a bicycle or hiking route; load osmChange files"
+  ],
+  "open": "map=19/52.47912/13.43741&id=w585753318"
 }

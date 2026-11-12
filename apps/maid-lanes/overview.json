@@ -1,9 +1,11 @@
 {
-  "compared": "Compared with Maid",
-  "features": [
-    "Lanes: a section above the fields of a road with its cross-section (the road before and after it included) and a table with a column per lane: turn, width, bus, bicycle, vehicles, lane change; add and remove lanes; one undo step per change",
-    "A Lanes lens: roads by how much of their lanes is mapped (values per lane, count only, nothing)",
-    "Turn restrictions, the traffic sign field and the way table, to compare the lanes of the ways along a street",
-    "German by default; leaves out the surface photos, parking and the drawing tools"
-  ]
+  "tagline": "Lanes of roads",
+  "description": "Every lane of a road at a glance: a cross-section with turn arrows, a table with a column per lane, and the lanes drawn on the map. German by default.",
+  "highlights": [
+    "Cross-section of the road with the roads before and after it",
+    "Turn, width, bus and bicycle per lane in one table",
+    "A lens that shows how much of each road's lanes is mapped",
+    "Turn restrictions, traffic signs and the way table alongside"
+  ],
+  "open": "map=19/52.47912/13.43741&id=w585753318"
 }
