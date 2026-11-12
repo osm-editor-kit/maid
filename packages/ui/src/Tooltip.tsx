@@ -115,8 +115,8 @@ function isDisabled(props: TooltipProps) {
 const KBD = twJoin(
   'rounded px-1 font-sans text-[11px] leading-4 font-medium',
   'bg-white/15 text-zinc-200 dark:bg-zinc-950/10 dark:text-zinc-700',
-  // a finger has no key: the chip is for a keyboard (touch:hidden, shell's styles.css)
-  'touch:hidden',
+  // a finger has no key: the chip shows once a keyboard is known (nokeys:hidden, shell's styles.css)
+  'nokeys:hidden',
 )
 
 /**

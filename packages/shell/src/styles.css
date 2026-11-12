@@ -26,10 +26,13 @@
 /* dark mode is a class on <html>, set by maid-ui's theme (light, dark or system) */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* the device's input is an attribute on <html>, set by mount.tsx (packages/i18n/src/device.ts): `touch:hidden` hides a
-   key chip on a phone, `keyboard:hidden` a touch hint on a desktop. Texts choose their words in the messages instead. */
+/* the device's input is an attribute on <html>, set by mount.tsx (packages/i18n/src/device.ts): `touch:` sizes a row
+   for a finger, `keyboard:hidden` hides a touch hint on a desktop. Texts choose their words in the messages instead. */
 @custom-variant touch (&:where([data-input='touch'], [data-input='touch'] *));
 @custom-variant keyboard (&:where([data-input='keyboard'], [data-input='keyboard'] *));
+/* a key chip (⇧, ⌘K) hides with `nokeys:hidden` until a keyboard is known: at once with a fine pointer, on a phone or
+   an iPad at its first hardware key (`data-keys`, hardware-keys.ts) */
+@custom-variant nokeys (&:where(html:not([data-keys]), html:not([data-keys]) *));
 
 html,
 body,
