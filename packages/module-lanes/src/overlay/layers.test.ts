@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-import { laneBands } from './lane-bands.ts'
 import {
   bandFeatures,
   EMPTY_BANDS,
@@ -9,6 +8,7 @@ import {
   metresToPx,
   pxPerMetreAt16,
 } from './layers.ts'
+import { sceneBands as laneBands } from './scene-bands.ts'
 
 const LINE: [number, number][] = [
   [13.4, 52.5],

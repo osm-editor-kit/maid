@@ -3,7 +3,7 @@
  * is drawn at. Pure, in planar metres around the way (good enough for the length of a road). A lane with a turn value
  * gets an arrow per token (`left;through` two arrows from one base); a lane without one an arrow along its travel.
  */
-import type { LaneBand } from './lane-bands.ts'
+import type { LaneBand } from './scene-bands.ts'
 
 /** The angle of a turn token, clockwise from straight ahead, in degrees; undefined for `none` and unknown tokens */
 export const TURN_ANGLE: Record<string, number> = {

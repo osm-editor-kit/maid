@@ -8,7 +8,7 @@
  * the editor named in BEFORE, as the bicycle infrastructure does): they cover the road's own colour, which says less
  * than the lanes while the road is selected, but never hide a vertex the person wants to drag.
  *
- * The bands and layers are built in lane-bands.ts and layers.ts (pure); this file reads the editor and draws.
+ * The bands and layers are built in scene-bands.ts and layers.ts (pure); this file reads the editor and draws.
  */
 import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react'
@@ -18,8 +18,8 @@ import { laneFocus } from '../hover-store.ts'
 import { isLaneRoad } from '../roads.ts'
 import { osmNumber } from '../scene.ts'
 import { arrowPoints } from './arrows.ts'
-import { laneBands } from './lane-bands.ts'
 import { bandFeatures, LANES_LAYERS, LANES_SOURCE, type LanesLayer } from './layers.ts'
+import { sceneBands } from './scene-bands.ts'
 
 /** The editor layers ours go below, the first one on the map wins (renderer layers.ts): labels of lines, midpoints */
 const BEFORE = ['label-line', 'highlight-midpoint']
@@ -109,25 +109,30 @@ const ARROW_IMAGE = 'maid-lanes-arrow'
 const ARROWS_SOURCE = 'maid-lanes-arrows'
 
 /**
- * The arrow icon: pointing up, its base at the bottom middle (the icon's anchor, so the arrows of `left;through` fan
- * out from one point), as an SDF so the layer colours it. Drawn on a canvas once.
+ * The arrow icon: white with a dark outline, pointing up, its base at the bottom middle (the icon's anchor, so the
+ * arrows of `left;through` fan out from one point). Drawn on a canvas once, with room around it for the outline: a
+ * plain image, not an SDF (MapLibre reads an SDF's alpha as a distance, and a filled shape then shows cut edges).
  */
 function arrowImage(): ImageData | undefined {
   const canvas = document.createElement('canvas')
-  canvas.width = 24
-  canvas.height = 40
+  canvas.width = 36
+  canvas.height = 56
   const context = canvas.getContext('2d')
   if (!context) return undefined
-  context.fillStyle = '#000'
   context.beginPath()
-  context.moveTo(12, 1) // tip
-  context.lineTo(23, 15)
-  context.lineTo(15.5, 15)
-  context.lineTo(15.5, 39)
-  context.lineTo(8.5, 39)
-  context.lineTo(8.5, 15)
-  context.lineTo(1, 15)
+  context.moveTo(18, 5) // tip
+  context.lineTo(31, 21)
+  context.lineTo(22, 21)
+  context.lineTo(22, 52)
+  context.lineTo(14, 52)
+  context.lineTo(14, 21)
+  context.lineTo(5, 21)
   context.closePath()
+  context.lineJoin = 'round'
+  context.lineWidth = 4
+  context.strokeStyle = 'rgba(24, 24, 27, 0.8)'
+  context.stroke()
+  context.fillStyle = '#ffffff'
   context.fill()
   return context.getImageData(0, 0, canvas.width, canvas.height)
 }
@@ -144,7 +149,7 @@ function useArrowImage() {
     const add = () => {
       if (map.hasImage(ARROW_IMAGE)) return
       const image = arrowImage()
-      if (image) map.addImage(ARROW_IMAGE, image, { sdf: true, pixelRatio: 2 })
+      if (image) map.addImage(ARROW_IMAGE, image, { pixelRatio: 2 })
     }
     const onMissing = (event: { id: string }) => {
       if (event.id === ARROW_IMAGE) add()
@@ -157,7 +162,7 @@ function useArrowImage() {
   }, [ref])
 }
 
-/** The arrows on the bands: white with a dark halo, from zoom 18, rotated with the map */
+/** The arrows on the bands, from zoom 18, rotated with the map */
 const ARROW_LAYER = {
   id: 'maid-lanes-arrows',
   type: 'symbol',
@@ -169,12 +174,7 @@ const ARROW_LAYER = {
     'icon-rotation-alignment': 'map',
     'icon-allow-overlap': true,
     'icon-ignore-placement': true,
-    'icon-size': ['interpolate', ['exponential', 2], ['zoom'], 18, 0.7, 21, 2.4],
-  },
-  paint: {
-    'icon-color': '#ffffff',
-    'icon-halo-color': 'rgba(24, 24, 27, 0.75)',
-    'icon-halo-width': 1.5,
+    'icon-size': ['interpolate', ['exponential', 2], ['zoom'], 18, 0.5, 21, 1.7],
   },
 } as unknown as LayerProps
 
@@ -195,7 +195,10 @@ export function LanesOnMap({ editor, engine }: MapContentProps) {
   const shape = useMemo(
     () =>
       way
-        ? { bands: laneBands(osmNumber(way.id), way.tags), coordinates: wayCoordinates(graph, way) }
+        ? {
+            bands: sceneBands(osmNumber(way.id), way.tags),
+            coordinates: wayCoordinates(graph, way),
+          }
         : undefined,
     // the graph: a moved node changes the line without changing the way
     [way, graph],

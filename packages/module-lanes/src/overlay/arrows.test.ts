@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { arrowPoints } from './arrows.ts'
-import { laneBands } from './lane-bands.ts'
+import { sceneBands as laneBands } from './scene-bands.ts'
 
 // a way drawn north, 100 m long, at the equator (1 m ≈ 1 / 111320 degree)
 const NORTH: [number, number][] = [

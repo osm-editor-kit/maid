@@ -1,5 +1,5 @@
 /**
- * The lane bands on the map as data: the GeoJSON features of a road's bands (lane-bands.ts) and the layers that draw
+ * The lane bands on the map as data: the GeoJSON features of a road's bands (scene-bands.ts) and the layers that draw
  * them. Pure: the tests read them, LanesOnMap.tsx turns them into MapLibre layers.
  *
  * Each band is the way's line, moved sideways with `line-offset` and as wide as the lane with `line-width`. Both are in
@@ -10,7 +10,7 @@
  *
  * A positive `line-offset` is right of the line's drawing direction, negative left, as the band's `offsetMetres`.
  */
-import type { LaneBand, LaneBandKind } from './lane-bands.ts'
+import type { LaneBand, LaneBandKind } from './scene-bands.ts'
 
 export const LANES_SOURCE = 'maid-lanes-bands'
 /** The bands show from here: below it a lane is a few pixels wide and the road's own drawing says more */
