@@ -45,6 +45,7 @@ import { MapContextMenu, type MenuPlace } from './MapContextMenu'
 import { MeasureLoupe } from './MeasureLoupe'
 import { MoveHandle } from './MoveHandle'
 import { PasteTagsDialog } from './PasteTagsDialog'
+import { RotateHandle } from './RotateHandle'
 import { StackPicker } from './StackPicker'
 
 /** No basemap: the benchmark compares how editors draw OSM data, not imagery. */
@@ -387,7 +388,10 @@ export function MapView() {
       })
       setCursor(engine.dragRefusal ? 'not-allowed' : 'grabbing')
     } else if (drawing) engine.draw.move(event.point, interactive)
-    else if (mode === 'move' || mode === 'rotate') engine.transform.move(lng, lat)
+    // a finger on the map pans it: under it the ground stays put, and a turn by it would turn the selection with the
+    // map. On a touch screen the move handle and the rotate handle give the transform its places (RotateHandle.tsx).
+    else if ((mode === 'move' || mode === 'rotate') && !('touches' in event.originalEvent))
+      engine.transform.move(lng, lat)
   }
   const handleMouseMove = (event: MapLayerMouseEvent) => {
     // a handle drag of a module mode whose button went up off the map ends here, where the pointer is
@@ -436,6 +440,20 @@ export function MapView() {
       features: ids.length > 1 ? ids : undefined,
     })
   }
+  // The menu button beside the move handle (MoveHandle.tsx) opens the menu for the selection, below the button
+  const openHandleMenu = (screen: Point) => {
+    const place = keyMenuPlace(engine)
+    if (!place || engine.mode !== 'browse') return
+    setStack(null)
+    setMenu({ ...place, ...screen })
+  }
+  // While rotating, two fingers turn the selection (RotateHandle.tsx), not the map; a pinch still zooms
+  useEffect(() => {
+    const map = engine.map
+    if (!map) return
+    if (mode === 'rotate') map.touchZoomRotate.disableRotation()
+    else map.touchZoomRotate.enableRotation()
+  }, [engine, mode])
   // The menu key (iD's "ContextMenu" key) opens the menu for the selection. A window listener,
   // as the editor's other keys are; the menu's state lives here.
   useEffect(() => {
@@ -659,8 +677,9 @@ export function MapView() {
       return
     }
     if (mode === 'move' || mode === 'rotate') {
-      // the click puts the selection down where it is now
-      engine.transform.move(event.lngLat.lng, event.lngLat.lat)
+      // the click puts the selection down where it is now. A tap is not a place for it: the handles gave the places
+      // (RotateHandle.tsx), and a tap on the map only says done.
+      if (device().input !== 'touch') engine.transform.move(event.lngLat.lng, event.lngLat.lat)
       engine.setMode('browse')
       return
     }
@@ -763,7 +782,8 @@ export function MapView() {
       {!menu && <StackPicker />}
       <FavouriteHint />
       <FollowLocation />
-      <MoveHandle />
+      <MoveHandle onMenu={openHandleMenu} />
+      <RotateHandle />
       {measuring && (
         <div
           role="status"

@@ -15,13 +15,16 @@ import { moveHandleAnchor, type Bounds, type HandleShape, type Loc } from './mov
  * The drag is the editor's move (`engine.setMode('move')`, iD's actionMove through transform.ts): the ways that share
  * a node with the feature keep their shape, and the move is one undo step. The handle is placed by a react-map-gl
  * Marker and follows the feature as it moves.
+ *
+ * Beside it a second button opens the edit menu, which a finger otherwise reaches only by a long press that nobody
+ * finds. Its Rotate leads to the rotate handle (RotateHandle.tsx); while rotating, both buttons are gone.
  */
-export function MoveHandle() {
+export function MoveHandle({ onMenu }: { onMenu: (screen: { x: number; y: number }) => void }) {
   // the device is fixed for the visit (device.ts): with a keyboard nothing here is read or subscribed to
-  return device().input === 'touch' ? <TouchMoveHandle /> : null
+  return device().input === 'touch' ? <TouchMoveHandle onMenu={onMenu} /> : null
 }
 
-function TouchMoveHandle() {
+function TouchMoveHandle({ onMenu }: { onMenu: (screen: { x: number; y: number }) => void }) {
   const [dragging, setDragging] = useState(false)
   const { zoom, bounds } = useView(useEngine((e) => e.map))
   // the selection is the address's (selection.ts): a change of it alone is no change of the engine's data
@@ -44,7 +47,11 @@ function TouchMoveHandle() {
       anchor={anchor.placement === 'above' ? 'bottom' : 'center'}
       offset={anchor.placement === 'above' ? [0, -12] : [0, 0]}
     >
-      <HandleButton onDragging={setDragging} />
+      <div className="relative">
+        <HandleButton onDragging={setDragging} />
+        {/* beside the move handle, so the move handle keeps the anchor's place; not while it is dragged */}
+        {!dragging && <MenuButton onMenu={onMenu} />}
+      </div>
     </Marker>
   )
 }
@@ -136,6 +143,45 @@ function HandleButton({ onDragging }: { onDragging: (dragging: boolean) => void 
         aria-hidden
       >
         <path d="M12 2v20M2 12h20M12 2l-3 3M12 2l3 3M12 22l-3-3M12 22l3-3M2 12l3-3M2 12l3 3M22 12l-3-3M22 12l-3 3" />
+      </svg>
+    </div>
+  )
+}
+
+/**
+ * The button that opens the edit menu. Its events are kept from the map with native listeners, as the move handle's:
+ * a tap on it must not select what is under it.
+ */
+function MenuButton({ onMenu }: { onMenu: (screen: { x: number; y: number }) => void }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const button = ref.current
+    if (!button) return
+    const stop = (event: Event) => event.stopPropagation()
+    const open = (event: Event) => {
+      event.stopPropagation()
+      const box = button.getBoundingClientRect()
+      onMenu({ x: box.left + box.width / 2, y: box.bottom })
+    }
+    const kept = ['pointerdown', 'touchstart', 'touchmove', 'touchend', 'mousedown', 'dblclick']
+    for (const type of kept) button.addEventListener(type, stop)
+    button.addEventListener('click', open)
+    return () => {
+      for (const type of kept) button.removeEventListener(type, stop)
+      button.removeEventListener('click', open)
+    }
+  }, [onMenu])
+  return (
+    <div
+      ref={ref}
+      role="button"
+      aria-label="Edit menu"
+      className="absolute top-1/2 left-full ml-2 grid size-11 -translate-y-1/2 cursor-pointer touch-none place-items-center rounded-full bg-white text-zinc-800 shadow-md ring-1 ring-zinc-950/10 select-none active:bg-zinc-100 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-white/10 dark:active:bg-zinc-700"
+    >
+      <svg className="size-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+        <circle cx="5" cy="12" r="2" />
+        <circle cx="12" cy="12" r="2" />
+        <circle cx="19" cy="12" r="2" />
       </svg>
     </div>
   )

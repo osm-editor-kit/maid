@@ -38,6 +38,7 @@
     "check-edit": "bun tools/bench/edit-check.ts",
     "check-favourites": "bun tools/bench/favourites-check.ts",
     "check-move-handle": "bun tools/bench/move-handle-check.ts",
+    "check-rotate-handle": "bun tools/bench/rotate-handle-check.ts",
     "check-filters": "bun tools/bench/filters-check.ts",
     "check-interactions": "bun tools/bench/interactions-check.ts",
     "check-journal": "bun tools/bench/journal-check.ts",

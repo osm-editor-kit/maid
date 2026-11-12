@@ -473,6 +473,10 @@
       }
     }
   ],
+  "rotate_panel_title": "Rotate",
+  "rotate_panel_hint": "Drag the round handle around the centre, or turn with two fingers. Tap Done or the map when it fits.",
+  "rotate_panel_done": "Done",
+  "rotate_panel_cancel": "Cancel",
   "map_stack_label": "Features at this place",
   "map_stack_description": [
     {

@@ -20,6 +20,7 @@ import {
   isDirectionKey,
   normalizeAzimuthDegrees,
   numericDirectionFieldKey,
+  parseDirectionDegreesSegment,
   retargetDirectionValue,
   rotatableDirectionKey,
 } from '@osm-editor-kit/maid-operations'
@@ -109,6 +110,13 @@ export function nodesOf(engine: MaidEngine, ids: readonly string[]) {
 type DirectionTurn = { id: string; key: string; tags: Record<string, string> }
 
 /**
+ * What a rotation turns around, for a handle that turns it without a mouse (the shell's RotateHandle on a touch
+ * screen): the pivot, how far the farthest node is from it (radians of the Mercator plane: times 512 * 2^zoom / 2π is
+ * CSS px), and for a direction the angle it points at now (degrees clockwise from north; 0 for a tag not written yet).
+ */
+export type RotationInfo = { pivot: Loc; reach: number; directionDegrees?: number }
+
+/**
  * The bearing of a point seen from the pivot, in degrees clockwise from north. The Mercator plane is
  * north-up and conformal: the angle is the one on the ground, whatever the map's bearing on screen.
  */
@@ -145,6 +153,8 @@ export class TransformTool {
   private latest?: XY
   /** The animation frame that applies `latest`, if one is asked for */
   private frame?: number
+  /** Set while rotating: see RotationInfo. One object per rotation, so a reader can compare it. */
+  rotation?: RotationInfo
 
   constructor(private engine: MaidEngine) {}
 
@@ -182,7 +192,24 @@ export class TransformTool {
     this.direction = direction
     this.rebase = false
     this.moveCache = {}
+    this.rotation = kind === 'rotate' ? this.rotationInfo(direction) : undefined
     return true
+  }
+
+  private rotationInfo(direction: DirectionTurn | undefined): RotationInfo {
+    let reach = 0
+    for (const [x, y] of this.origin.values())
+      reach = Math.max(reach, Math.hypot(x - this.pivot[0], y - this.pivot[1]))
+    const info: RotationInfo = { pivot: fromMercator(this.pivot), reach }
+    if (direction) {
+      // the first angle of the value is the one that follows the pointer (retargetDirectionValue)
+      const first = (direction.tags[direction.key] ?? '')
+        .split(';')
+        .map(parseDirectionDegreesSegment)
+        .find((degrees) => degrees !== undefined)
+      info.directionDegrees = first ?? 0
+    }
+    return info
   }
 
   /**
@@ -318,6 +345,7 @@ export class TransformTool {
     if (!kind) return false
     this.kind = undefined
     this.direction = undefined
+    this.rotation = undefined
     const { history } = engine.data
     if (!history.hasWorkInProgress) return false
     // as iD's annotations: a point's direction is "a point", a node of a way "a node in a way"
@@ -343,6 +371,7 @@ export class TransformTool {
     if (!this.kind) return
     this.kind = undefined
     this.direction = undefined
+    this.rotation = undefined
     this.rebase = false
     this.unschedule()
     this.latest = undefined

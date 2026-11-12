@@ -59,7 +59,7 @@ export { OsmLayers } from './OsmLayers'
 export { OsmData, type MergeResult } from './data'
 export { DrawTool, type DrawKind } from './draw'
 // actionMoveNodes: many nodes in one commit, as Rotate moves them (the resize box uses it)
-export { actionMoveNodes, TransformTool, type TransformKind } from './transform'
+export { actionMoveNodes, TransformTool, type RotationInfo, type TransformKind } from './transform'
 // The rule for the Rotate (R) hint of a direction field, shared with the documentation popover (ui).
 export { showsDirectionRotateHint } from '@osm-editor-kit/maid-operations'
 
