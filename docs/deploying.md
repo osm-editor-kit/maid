@@ -10,10 +10,13 @@ and publishes them to GitHub Pages, on every push to `main` and by hand from the
   - Several apps are each served from a folder of their own (`/maid/maid/`, `/maid/maid-bicycle/`, …), so each can be
     tested and used on its own. The path shows a page with a link to each. All of them log in through the `land.html`
     at the path, so the OAuth apps need one redirect URI for all.
-  - Under each link a row opens with what sets the app apart, from `apps/<app>/overview.json`: `compared` (against
-    iD for the standard editor, against `maid` for the others) and `features`, one line each. Update it when a module
-    that a person would notice is added to or removed from the app's `maid.config.ts`.
-  - This repository deploys all four apps. A fork that names one app keeps the editor at its path.
+  - The page at the path is an overview of the editors (`tools/deploy/showcase/`): a tile per app with its screenshot,
+    the strengths, a comparison with iD and Rapid, and thanks. A tile's text and the position its button opens are in
+    `apps/<app>/overview.json` (`tagline`, `description`, `highlights`, `open`); its screenshot is
+    `tools/deploy/showcase/shots/<app>.webp`. The comparison's Maid columns follow the modules each `maid.config.ts`
+    calls, so a new module needs a row in `tools/deploy/showcase/features.ts` (a test says which is missing). After a
+    change, `bun run features-doc` writes the same data to `docs/features.md`.
+  - This repository deploys all five apps. A fork that names one app keeps the editor at its path.
 - `MAID_BASE`: the path the site is served from. Empty means `/<repository name>/`, for example `/maid/`. A fork with its
   own domain sets `/`.
 

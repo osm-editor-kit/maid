@@ -257,7 +257,7 @@ function MenuRow(props: {
       <span className="min-w-0 flex-1">{label}</span>
       {pressed && <CheckIcon aria-hidden="true" className="size-5 shrink-0 sm:size-4" />}
       {shortcut && (
-        <kbd className="font-sans text-xs text-zinc-500 dark:text-zinc-400 touch:hidden">
+        <kbd className="font-sans text-xs text-zinc-500 dark:text-zinc-400 nokeys:hidden">
           {shortcut}
         </kbd>
       )}

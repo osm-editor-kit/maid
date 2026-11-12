@@ -26,10 +26,21 @@
 /* dark mode is a class on <html>, set by maid-ui's theme (light, dark or system) */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* the device's input is an attribute on <html>, set by mount.tsx (packages/i18n/src/device.ts): `touch:hidden` hides a
-   key chip on a phone, `keyboard:hidden` a touch hint on a desktop. Texts choose their words in the messages instead. */
+/* the device's input is an attribute on <html>, set by mount.tsx (packages/i18n/src/device.ts): `touch:` sizes a row
+   for a finger, `keyboard:hidden` hides a touch hint on a desktop. Texts choose their words in the messages instead. */
 @custom-variant touch (&:where([data-input='touch'], [data-input='touch'] *));
 @custom-variant keyboard (&:where([data-input='keyboard'], [data-input='keyboard'] *));
+/* a key chip (⇧, ⌘K) hides with `nokeys:hidden` until a keyboard is known: at once with a fine pointer, on a phone or
+   an iPad at its first hardware key (`data-keys`, hardware-keys.ts) */
+@custom-variant nokeys (&:where(html:not([data-keys]), html:not([data-keys]) *));
+@custom-variant keys (&:where(html[data-keys], html[data-keys] *));
+
+/* the focus ring is for a keyboard: without one (a phone, an iPad before its first hardware key) the focus that a menu
+   or a dialog moves itself is not drawn; a text field still shows its caret. Outside a layer, so it wins over the
+   `focus-visible:outline-*` utilities. A row's ring is `keys:focus:` (ROW_FOCUS, maid-ui's listbox.ts). */
+html:not([data-keys]) :focus-visible {
+  outline: none;
+}
 
 html,
 body,

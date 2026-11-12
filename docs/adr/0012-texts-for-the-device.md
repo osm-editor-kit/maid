@@ -20,8 +20,8 @@ the phone.
    without it.
 3. **Checks keep it so**: `i18n-check` fails when a language has other variants than English; `device-words.test.ts`
    fails when the text a touch device gets contains the words of a keyboard or a mouse, in each language.
-4. **What is not a text** follows the same device: key chips hide with the `touch:` Tailwind variant (`data-input` on
-   `<html>`), fields focus themselves only with a keyboard (`autoFocusFields()`, a search excepted), the context menu's
+4. **What is not a text** follows the same device: key chips hide with the `nokeys:` Tailwind variant until a keyboard
+   is known (amended 2026-11-12, below), fields focus themselves only with a keyboard (`autoFocusFields()`, a search excepted), the context menu's
    rows are 44 px on touch. Sizes and always-visible buttons use `touch:` too, not the `pointer-coarse:` media query:
    one signal, which `?device=touch` switches as a whole, so a browser check sees the phone's layout with its texts.
    Only the 16 px field rule against iOS's zoom stays a media query (`styles.css`): it is about the browser, not the
@@ -31,4 +31,15 @@ the phone.
 
 - A new text that names a key or a click fails the unit tests until it has a touch variant or an `ALLOWED` reason.
 - The device is fixed for the visit: attaching a keyboard to an iPad changes the texts on the next load.
+
+## Amendment 2026-11-12: key chips wait for a keyboard
+
+An iPad without a trackpad is `touch`, but it may have a keyboard (a Smart Keyboard Folio has no pointer), and a page
+cannot ask for one. So a key chip (⇧ on Resize's toggles, ⌘K in a menu) no longer follows `data-input`: it hides with
+`nokeys:hidden` until `data-keys` is on `<html>`, set at once with a fine pointer and on a touch device at its first
+key that only a hardware keyboard sends (`packages/shell/src/hardware-keys.ts`). What a key does on a desktop is a
+toggle chip the finger taps on touch (Resize, Extrude), or a long press while drawing (Shift). The texts stay with
+`data-input`: with a keyboard on an iPad the finger still taps. The focus ring waits for the keyboard too: without
+`data-keys` no `:focus-visible` outline is drawn and a menu row's ring is `keys:focus:` (a menu focuses its first row
+when it opens, which on an iPad marked "Move" with a ring that no key could move).
 - Packages without `maid-i18n` (`traffic-sign-field`'s English fallback) are not covered; their hosts pass the texts.

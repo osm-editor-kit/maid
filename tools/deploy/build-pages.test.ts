@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'bun:test'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { appsOf, basePathOf, indexPage, readDeployEnv, readOverview } from './build-pages.ts'
+import { appsOf, basePathOf, indexPage, listedApp, readDeployEnv } from './build-pages.ts'
+import { deployedApps, FEATURES_DOC, featuresDoc } from './features-doc.ts'
+import { GROUPS } from './showcase/features.ts'
+import { factoriesOf, supportOf } from './showcase/page.ts'
 
 describe('pages build', () => {
   it('reads deploy.env lines and skips comments', () => {
@@ -22,39 +25,74 @@ describe('pages build', () => {
     expect(basePathOf('editor', 'a/b')).toBe('/editor/')
   })
 
-  it('links each app by its folder, with its title', () => {
-    const page = indexPage(
-      [{ folder: 'maid-bicycle', title: 'Maid Bicycle' }],
-      'osm-editor-kit/maid',
-    )
-    expect(page).toContain('<a href="maid-bicycle/">Maid Bicycle</a>')
+  it('reads the module factories of an app config', () => {
+    const config = `const background = imagery()\nconst modules: MaidModule[] = [\n    tasks(),\n    lenses({ lenses: [x] }),\n    background,\n    angleSnap({ lengths: true }),\n  ]\n  if (bbox) modules.push(sceneBounds({ bbox }))`
+    expect([...factoriesOf(config)].sort()).toEqual(['angleSnap', 'imagery', 'lenses', 'tasks'])
   })
 
-  it('opens a row under an app with what sets it apart', () => {
-    const page = indexPage(
-      [
-        {
-          folder: 'maid',
-          title: 'Maid',
-          overview: { compared: 'Compared with iD', features: ['Indoor & levels'] },
-        },
-        { folder: 'other', title: 'Other' },
-      ],
-      'osm-editor-kit/maid',
-    )
-    expect(page).toContain('<summary>Compared with iD</summary>')
-    expect(page).toContain('<li>Indoor &amp; levels</li>')
-    expect(page).toContain('<li><a href="other/">Other</a> <code>other</code></li>')
-  })
-
-  it('has an overview for every deployed app, and the indoor editor names indoor', () => {
+  it('lists every deployed app with a tile, and the comparison follows its config', () => {
     const root = join(import.meta.dir, '../..')
     const env = readDeployEnv(readFileSync(join(root, 'deploy.env'), 'utf8'))
-    for (const app of appsOf(env.MAID_APP ?? '')) {
-      const overview = readOverview(readFileSync(join(root, 'apps', app, 'overview.json'), 'utf8'))
-      expect(overview?.features.length).toBeGreaterThan(0)
+    const apps = appsOf(env.MAID_APP ?? '').map(listedApp)
+    for (const app of apps) {
+      expect(app.overview.highlights.length).toBeGreaterThan(2)
+      expect(app.overview.open).toMatch(/^map=[\d.]+\/-?[\d.]+\/-?[\d.]+/)
+      expect(app.logo.startsWith('<svg')).toBe(true)
     }
-    const indoor = readOverview(readFileSync(join(root, 'apps/maid-indoor/overview.json'), 'utf8'))
-    expect(indoor?.features.some((feature) => feature.startsWith('Indoor'))).toBe(true)
+    const indoor = apps.find((app) => app.folder === 'maid-indoor')!
+    const levels = GROUPS.flatMap((group) => group.rows).find((row) =>
+      row.title.startsWith('Indoor'),
+    )!
+    expect(supportOf(levels, indoor)).toBe('yes')
+    expect(
+      supportOf(
+        levels,
+        apps.find((app) => app.folder === 'maid')!,
+      ),
+    ).toBe('no')
+    const page = indexPage(apps, 'osm-editor-kit/maid')
+    expect(page).toContain('<a class="button primary" href="maid-indoor/?map=')
+    expect(page).toContain('https://github.com/bhousel/Rapid')
+  })
+
+  it('names in the comparison every module an app switches on', () => {
+    const root = join(import.meta.dir, '../..')
+    const named = new Set(
+      GROUPS.flatMap((group) => group.rows).flatMap((row) =>
+        row.maid === 'core' ? [] : 'factory' in row.maid ? [row.maid.factory] : row.maid.factories,
+      ),
+    )
+    // built into the shell or plumbing, covered by the core rows
+    const plumbing = new Set([
+      'elementInfo',
+      'operations',
+      'relations',
+      'validation',
+      'sceneBounds',
+    ])
+    for (const app of appsOf(
+      readDeployEnv(readFileSync(join(root, 'deploy.env'), 'utf8')).MAID_APP ?? '',
+    )) {
+      for (const factory of listedApp(app).factories) {
+        if (!plumbing.has(factory))
+          expect(`${app}: ${factory} ${named.has(factory) ? 'named' : 'missing'}`).toBe(
+            `${app}: ${factory} named`,
+          )
+      }
+    }
+  })
+
+  it('links the docs of a row only to a package that has a README', () => {
+    const root = join(import.meta.dir, '../..')
+    for (const row of GROUPS.flatMap((group) => group.rows)) {
+      if (row.pkg)
+        expect(`${row.pkg}: ${existsSync(join(root, 'packages', row.pkg, 'README.md'))}`).toBe(
+          `${row.pkg}: true`,
+        )
+    }
+  })
+
+  it('has docs/features.md up to date (bun run features-doc)', () => {
+    expect(readFileSync(FEATURES_DOC, 'utf8')).toBe(featuresDoc(deployedApps()))
   })
 })

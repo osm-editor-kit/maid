@@ -105,6 +105,15 @@ export const parkingLens: Lens = {
         return CATEGORIES[id].label
       },
     })),
+    // buildings keep their own look too: dimmed to a quarter they vanish on aerial imagery (Tobias on an iPad,
+    // 2026-11-12), and they are what a parking mapper aligns the street sides and parking areas with
+    {
+      match: { building: true },
+      opacity: 1,
+      get label() {
+        return m.lens_buildings()
+      },
+    },
     // roads keep their own look: the lens only dims everything else
     { match: { highway: true }, opacity: 1 },
   ],

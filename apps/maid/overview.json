@@ -1,7 +1,11 @@
 {
-  "compared": "Compared with iD",
-  "features": [
-    "Map lenses: the map recoloured for one theme (surface, lit, max speed)",
-    "Surface and smoothness: a photo for each value in the inspector"
-  ]
+  "tagline": "MapLibre iD Editor",
+  "description": "The general editor: iD's presets, fields and editing on a fast WebGL map, for every kind of feature. Start here, or use it as the base of your own editor.",
+  "highlights": [
+    "Lenses that recolour the map by surface, lighting or max speed",
+    "Turn restrictions, relations and a route overview",
+    "Surface and smoothness chosen by photo",
+    "Private task lists, data layers and street-level photos"
+  ],
+  "open": "map=18/52.52190/13.41000&lens=surface"
 }

@@ -14,6 +14,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { setWorkerCount } from 'maplibre-gl'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
+import { watchHardwareKeys } from './hardware-keys'
 import { pinPage } from './page-pin'
 import { createShell, type AppBrand, type AppConfig } from './shell'
 import { ShellContext } from './shell-context'
@@ -84,6 +85,8 @@ export function mountEditor(rootElement: HTMLElement, app: AppConfig) {
   setDevice(visit)
   document.documentElement.dataset.input = visit.input
   document.documentElement.dataset.os = visit.os
+  // key chips show once a keyboard is known: at once with a fine pointer, on a touch device at its first hardware key
+  const unwatchKeys = watchHardwareKeys(visit.input === 'keyboard')
   // before the first render, so the page does not flash in the wrong theme: a link's `theme`, else the stored choice
   initTheme(readParams({ theme: stateParams.theme }, location.search).theme)
 
@@ -119,6 +122,7 @@ export function mountEditor(rootElement: HTMLElement, app: AppConfig) {
   }
   return () => {
     unpin()
+    unwatchKeys()
     root.unmount()
   }
 }

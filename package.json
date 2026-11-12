@@ -87,6 +87,7 @@
     "osm2world-fetch": "bun tools/osm2world-prototype/fetch.ts",
     "osm2world-prototype": "bun tools/osm2world-prototype/serve.ts",
     "pages-build": "bun tools/deploy/build-pages.ts",
+    "features-doc": "bun tools/deploy/features-doc.ts",
     "refs-serve": "bun run --parallel refs-serve-id refs-serve-rapid",
     "refs-serve-id": "bun tools/refs/id/serve.ts",
     "refs-serve-rapid": "bun tools/refs/rapid/serve.ts",

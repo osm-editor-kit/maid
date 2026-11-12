@@ -42,6 +42,7 @@
   "field_vehicle_motorcycle": "Motos uniquement (signalé)",
   "field_vehicle_motorhome": "Camping-cars uniquement (signalé)",
   "field_vehicle_taxi": "Taxis uniquement (signalé)",
+  "lens_buildings": "Bâtiments (comme sans style de carte)",
   "lens_category_charging_only": "Recharge",
   "lens_category_disabled": "Stationnement handicapés",
   "lens_category_free": "Stationnement gratuit",

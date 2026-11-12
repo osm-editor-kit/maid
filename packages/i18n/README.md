@@ -85,8 +85,9 @@ m.favourites_intro({ key, ...device() })
   "⌥", "Taste", "clavier" …). A text that is right as it is goes into its `ALLOWED` list with the reason.
 - `?device=touch`, `?device=ios`, `?device=touch-android` in the address shows a device's texts on another one.
   Under automation the device is a desktop with a keyboard unless the address names one.
-- Not a text: a key chip hides on touch with the `touch:hidden` class (`touch:` and `keyboard:` variants from
-  `data-input` on `<html>`, `packages/shell/src/styles.css`); a field that focuses itself asks `autoFocusFields()`
+- Not a text: a key chip hides with the `nokeys:hidden` class until a keyboard is known: at once with a fine pointer,
+  on a touch device at its first hardware key (`data-keys` on `<html>`, `packages/shell/src/hardware-keys.ts`). Sizes
+  use the `touch:` and `keyboard:` variants (`data-input`, `packages/shell/src/styles.css`). A field that focuses itself asks `autoFocusFields()`
   (maid-ui), which is false on touch, except a search.
 
 ## A module with texts of its own
