@@ -272,7 +272,7 @@ const CSS = `
   --accent: #a6d36b; --accent-soft: #2c3a1b; --accent-strong: #c3e58f; --yes: #86c75a; --partial: #e8b33d; --no: #3b4135;
 }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 4.5rem; }
+html { scroll-behavior: smooth; scroll-padding-top: 1rem; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
 a { color: var(--accent); text-underline-offset: 2px; }
 a:hover { color: var(--accent-strong); }
@@ -283,7 +283,7 @@ h2 { font-size: clamp(1.6rem, 3vw, 2.1rem); margin-bottom: 0.6rem; }
 .section-lead { color: var(--muted); max-width: 46rem; margin: 0 0 1.8rem; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-.top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.6rem 16px; background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.8rem 16px; border-bottom: 1px solid var(--line); }
 .brand { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; color: var(--text); text-decoration: none; }
 .brand svg { width: 28px; height: auto; }
 .top nav { display: flex; gap: 1.1rem; overflow-x: auto; }
@@ -333,7 +333,7 @@ h2 { font-size: clamp(1.6rem, 3vw, 2.1rem); margin-bottom: 0.6rem; }
 .legend .cell:first-child { margin-left: 0; }
 .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 .compare { border-collapse: collapse; width: 100%; min-width: 46rem; font-size: 0.92rem; }
-.compare thead th { position: sticky; top: 0; background: var(--surface); z-index: 1; padding: 0.8rem 0.5rem; border-bottom: 1px solid var(--line); font-size: 0.85rem; }
+.compare thead th { background: var(--surface); padding: 0.8rem 0.5rem; border-bottom: 1px solid var(--line); font-size: 0.85rem; }
 .compare thead a { color: var(--text); text-decoration: none; }
 .compare thead a:hover { color: var(--accent); }
 .compare th.corner { text-align: left; padding-left: 1rem; }
