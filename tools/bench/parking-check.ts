@@ -312,7 +312,7 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
 
   // --- the parking lens: side features in the map's source ---
   await page.getByRole('button', { name: 'Map style' }).click()
-  await page.getByRole('radio', { name: /^Parking/ }).click()
+  await page.getByRole('radio', { name: /^Standard: Parking/ }).click()
   await settle()
   let sides: string[] = []
   for (let i = 0; i < 20 && sides.length < 2; i++) {

@@ -13,7 +13,7 @@
   "lens_description": "Straßen danach, wie viel von ihren Fahrstreifen erfasst ist: Werte pro Fahrstreifen, nur die Anzahl oder nichts.",
   "lens_minor": "Wohnstraße, Erschließungsweg oder Spielstraße ohne Fahrstreifen-Tags",
   "lens_missing": "Hauptstraße ohne Fahrstreifen-Tags",
-  "lens_name": "Fahrstreifen",
+  "lens_name": "Standard: Fahrstreifen",
   "lens_rich": "Werte pro Fahrstreifen (Abbiegen, Breite, Bus, …)",
   "neighbours_none": "Keine weiterführende Straße geladen.",
   "no_lanes": "Noch keine Fahrstreifen-Tags. Mit + den ersten Fahrstreifen anlegen.",

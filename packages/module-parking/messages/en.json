@@ -56,7 +56,7 @@
   "lens_category_time_limit": "Time limit",
   "lens_category_warnings": "Warnings",
   "lens_description": "Roads by the parking on each side.",
-  "lens_name": "Parking",
+  "lens_name": "Standard: Parking",
   "operation_copy_left_right_annotation": "Copied the left parking to the right side",
   "operation_copy_left_right_disabled": "The right side already has the same parking tags.",
   "operation_copy_left_right_label": "Copy left parking to the right side",

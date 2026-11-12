@@ -1,7 +1,7 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "lens_name": "Bicycle infrastructure",
-  "lens_description": "The bicycle infrastructure as TILDA classifies it, everything else dimmed. Without a lens the editor shows the same lines.",
+  "lens_name": "Standard: Bicycle infrastructure",
+  "lens_description": "The bicycle infrastructure as TILDA classifies it, everything else dimmed. Maid standard shows the same lines, without dimming.",
   "group_separated": "Built apart from motor traffic (cycle track, bicycle street)",
   "group_lane": "On the carriageway (cycle lane, crossing)",
   "group_shared_motor": "Shared with motor vehicles or buses",

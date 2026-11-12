@@ -1,5 +1,5 @@
 /**
- * What the app says about its look without a lens ("None"): a description and a chosen legend, for an app whose own
+ * What the app says about its look without a lens ("Maid standard"): a description and a chosen legend, for an app whose own
  * look adds to iD's style (the bicycle editor draws its bicycle infrastructure). Set once by `lenses({ defaultLook })`
  * when the module is set up, read by the panel.
  */

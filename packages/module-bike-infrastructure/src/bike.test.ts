@@ -202,7 +202,10 @@ describe('lens', () => {
       '#174ed9',
     ])
     expect(entries.some((entry) => entry.kerbs)).toBe(true)
-    expect(bikeInfrastructureLens.rules).toEqual([{ match: { highway: true }, opacity: 1 }])
+    expect(bikeInfrastructureLens.rules).toEqual([
+      { match: { building: true }, opacity: 1 },
+      { match: { highway: true }, opacity: 1 },
+    ])
   })
 
   test('drawn without a lens and with its own lens, hidden under another', () => {

@@ -56,7 +56,7 @@
   "lens_category_time_limit": "Durée limitée",
   "lens_category_warnings": "Avertissements",
   "lens_description": "Voies selon le stationnement de chaque côté.",
-  "lens_name": "Stationnement",
+  "lens_name": "Standard : Stationnement",
   "operation_copy_left_right_annotation": "Stationnement de gauche copié à droite",
   "operation_copy_left_right_disabled": "Le côté droit a déjà les mêmes indications de stationnement.",
   "operation_copy_left_right_label": "Copier le stationnement de gauche à droite",

@@ -22,8 +22,8 @@ import { laneRules, lanes, lanesLens } from '@osm-editor-kit/maid-module-lanes'
 import { lensChoice, lenses } from '@osm-editor-kit/maid-module-lenses'
 
 validation({ rules: [...defaultRules, ...turnRestrictionRules, ...laneRules] }),
-lenses({ lenses: [lanesLens] }),
-lanes({ lenses: lensChoice }), // the "Lanes" lens is on at the first visit
+lenses({ lenses: [lanesLens], editorDefault: 'lanes' }), // "Standard: Lanes", on at the first visit
+lanes(),
 ```
 
 Only `maid-lanes` switches it on. The lens and the rules are wired by the app as shown. `packages/shell/src/styles.css` lists `@source '../../module-lanes/src';`.

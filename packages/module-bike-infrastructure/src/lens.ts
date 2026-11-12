@@ -67,8 +67,12 @@ export const bikeInfrastructureLens: Lens = {
   legend: bikeLegend,
   geometry: ['line', 'area'],
   rest: 'dim',
-  // roads and paths keep their own look: the lens only dims everything else, the lines are the map content's
-  rules: [{ match: { highway: true }, opacity: 1 }],
+  // roads and paths keep their own look: the lens only dims everything else, the lines are the map content's.
+  // Buildings keep theirs too: dimmed to a quarter they vanish on aerial imagery (as in the parking lens).
+  rules: [
+    { match: { building: true }, opacity: 1 },
+    { match: { highway: true }, opacity: 1 },
+  ],
 }
 
 /** What the lenses panel says about the bicycle editor's look without a lens (`lenses({ defaultLook })`) */

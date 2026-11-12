@@ -1,7 +1,7 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "lens_name": "Radinfrastruktur",
-  "lens_description": "Die Radinfrastruktur, wie TILDA sie einordnet; alles andere abgeschwächt. Ohne Kartenstil zeigt der Editor dieselben Linien.",
+  "lens_name": "Standard: Radinfrastruktur",
+  "lens_description": "Die Radinfrastruktur, wie TILDA sie einordnet; alles andere abgeschwächt. Maid standard zeigt dieselben Linien, ohne abzuschwächen.",
   "group_separated": "Baulich getrennt vom Kfz-Verkehr (Radweg, Fahrradstraße)",
   "group_lane": "Auf der Fahrbahn (Radfahrstreifen, Querung)",
   "group_shared_motor": "Mit Kfz oder Bus geteilt",

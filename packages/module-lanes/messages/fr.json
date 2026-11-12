@@ -13,7 +13,7 @@
   "lens_description": "Les routes selon ce qui est cartographié de leurs voies : des valeurs par voie, seulement le nombre, ou rien.",
   "lens_minor": "Rue résidentielle, voie de service ou zone de rencontre sans attributs de voies",
   "lens_missing": "Route principale sans attributs de voies",
-  "lens_name": "Voies",
+  "lens_name": "Standard : Voies",
   "lens_rich": "Valeurs par voie (direction, largeur, bus, …)",
   "neighbours_none": "Aucune route qui continue n'est chargée.",
   "no_lanes": "Pas encore d'attributs de voies. Ajoutez la première voie avec +.",

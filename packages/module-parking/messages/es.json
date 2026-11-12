@@ -56,7 +56,7 @@
   "lens_category_time_limit": "Tiempo limitado",
   "lens_category_warnings": "Advertencias",
   "lens_description": "Vías según el aparcamiento de cada lado.",
-  "lens_name": "Aparcamiento",
+  "lens_name": "Estándar: Aparcamiento",
   "operation_copy_left_right_annotation": "Aparcamiento de la izquierda copiado a la derecha",
   "operation_copy_left_right_disabled": "El lado derecho ya tiene las mismas etiquetas de aparcamiento.",
   "operation_copy_left_right_label": "Copiar el aparcamiento de la izquierda a la derecha",

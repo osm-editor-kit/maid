@@ -95,9 +95,9 @@ export function LensPanel({ engine }: { engine: MaidEngine }) {
             onClick={() => setActive(null)}
             className={`rounded-md px-2 py-1.5 text-left ${toolButtonTone(active === null ? 'selected' : 'idle')}`}
           >
-            <span className="block font-medium">None</span>
+            <span className="block font-medium">Maid standard</span>
             <span className="block text-xs text-zinc-500 dark:text-zinc-400">
-              {look.description ?? 'The default look.'}
+              {look.description ?? 'The look of every Maid editor, as in iD.'}
             </span>
           </button>
           {allLenses({ builtIn, imported }).map((lens) => {

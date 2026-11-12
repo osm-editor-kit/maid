@@ -13,7 +13,7 @@
   "lens_description": "Roads by how much of their lanes is mapped: values per lane, a lane count only, or nothing.",
   "lens_minor": "Residential, service road or living street without lane tags",
   "lens_missing": "Main road without lane tags",
-  "lens_name": "Lanes",
+  "lens_name": "Standard: Lanes",
   "lens_rich": "Values per lane (turn, width, bus, …)",
   "neighbours_none": "No continuing road is loaded.",
   "no_lanes": "No lane tags yet. Add the first lane with +.",

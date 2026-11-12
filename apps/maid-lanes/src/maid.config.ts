@@ -11,7 +11,7 @@ import { defaultFilters, type FilterState } from '@osm-editor-kit/maid-filters'
 import { dataLayers } from '@osm-editor-kit/maid-module-data-layers'
 import { imagery } from '@osm-editor-kit/maid-module-imagery'
 import { laneRules, lanes, lanesLens } from '@osm-editor-kit/maid-module-lanes'
-import { lensChoice, lenses } from '@osm-editor-kit/maid-module-lenses'
+import { lenses } from '@osm-editor-kit/maid-module-lenses'
 import { notes } from '@osm-editor-kit/maid-module-notes'
 import { streetImagery } from '@osm-editor-kit/maid-module-street-imagery'
 import { tasks } from '@osm-editor-kit/maid-module-tasks'
@@ -83,13 +83,13 @@ function editorConfig(config: Config) {
     background,
     // top bar "Data layers": GeoJSON, PMTiles and vector tiles to look at next to the OSM data
     dataLayers(),
-    // top bar "Map style": lenses that recolour the map for one theme; "Lanes" is this app's
-    lenses({ lenses: [lanesLens] }),
+    // top bar "Map style": lenses that recolour the map for one theme; "Standard: Lanes" is this editor's standard,
+    // listed under Maid standard and on at the first visit
+    lenses({ lenses: [lanesLens], editorDefault: 'lanes' }),
     // top bar and dock "Photos": street-level photos; Mapillary uses the token of apps/mapillary-token.ts
     streetImagery({ mapillaryToken: mapillaryToken() }),
-    // the lanes editor: section "Lanes" above the fields of a road, with the cross-section and the lane table;
-    // the lanes lens is on at the first visit
-    lanes({ lenses: lensChoice }),
+    // the lanes editor: section "Lanes" above the fields of a road, with the cross-section and the lane table
+    lanes(),
     // the German traffic sign field on roads (bus lanes, cycle lanes, turn arrows)
     trafficSigns({ country: 'DE' }),
     // dock "Way table": the selected way next to the ways before and after it, tag by tag

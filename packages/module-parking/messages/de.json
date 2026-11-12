@@ -56,7 +56,7 @@
   "lens_category_time_limit": "Zeitlich begrenzt",
   "lens_category_warnings": "Warnungen",
   "lens_description": "Straßen nach dem Parken auf jeder Seite.",
-  "lens_name": "Parken",
+  "lens_name": "Standard: Parkraum",
   "operation_copy_left_right_annotation": "Parken der linken Seite auf die rechte kopiert",
   "operation_copy_left_right_disabled": "Die rechte Seite hat schon dieselben Parkangaben.",
   "operation_copy_left_right_label": "Parken der linken Seite auf die rechte kopieren",

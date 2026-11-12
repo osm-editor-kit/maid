@@ -1,7 +1,7 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "lens_name": "Aménagements cyclables",
-  "lens_description": "Les aménagements cyclables tels que TILDA les classe, le reste atténué. Sans style de carte, l’éditeur montre les mêmes lignes.",
+  "lens_name": "Standard : Aménagements cyclables",
+  "lens_description": "Les aménagements cyclables tels que TILDA les classe, le reste atténué. Maid standard montre les mêmes lignes, sans atténuer.",
   "group_separated": "Séparé du trafic motorisé (piste cyclable, vélorue)",
   "group_lane": "Sur la chaussée (bande cyclable, traversée)",
   "group_shared_motor": "Partagé avec les véhicules motorisés ou les bus",

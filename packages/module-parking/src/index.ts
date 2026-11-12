@@ -1,4 +1,4 @@
-import { defineModule, isAutomated, moduleStorage } from '@osm-editor-kit/maid-core'
+import { defineModule } from '@osm-editor-kit/maid-core'
 import { QuickTagsSection } from './buttons/QuickTags.tsx'
 import { ParkingSidesOnMap } from './lens/side-features.tsx'
 import { connectParkingSides, type LensSource } from './lens/side-state.ts'
@@ -9,16 +9,14 @@ import {
   RestrictionField,
 } from './restriction/RestrictionField.tsx'
 
-const FIRST_VISIT_KEY = 'maid:parking:lens-started'
-
 /** The lens choice as the module uses it: `lensChoice` from `@osm-editor-kit/maid-module-lenses` has this shape */
 type LensStore = LensSource & { setActive: (id: string | null) => void }
 
 export type ParkingOptions = {
   /**
    * The lens choice of the lenses module (`lensChoice`). With it, the parking sides are drawn beside the roads while the "Parking" lens
-   * (`parkingLens`, which the app gives to `lenses({ lenses })`) is the active one, and the lens is switched on at the
-   * first visit. Without it no side line is drawn.
+   * (`parkingLens`, which the app gives to `lenses({ lenses, editorDefault: 'parking' })`) is the active one. Without
+   * it no side line is drawn.
    */
   lenses?: LensStore
   /** Also draw the side of a road that has no parking tag (the gap check). Default: no. */
@@ -59,13 +57,7 @@ export function parking(options: ParkingOptions = {}) {
       for (const operation of parkingOperations) api.register('edit.operation', operation)
       const { lenses } = options
       if (!lenses) return
-      // first visit (our own mark is not stored yet) and not under automation: start with the parking lens on, as a
-      // parking editor should. The lenses module stores its choice itself, so a person's "None" is kept afterwards.
-      const storage = moduleStorage()
-      if (!isAutomated() && storage.getItem(FIRST_VISIT_KEY) === null) {
-        storage.setItem(FIRST_VISIT_KEY, '1')
-        if (lenses.getActiveId() === null) lenses.setActive('parking')
-      }
+      // the parking lens is the editor's standard and on at the first visit: `lenses({ editorDefault: 'parking' })`
       return connectParkingSides(lenses, { showMissing: options.showMissing })
     },
   })

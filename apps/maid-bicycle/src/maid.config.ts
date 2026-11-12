@@ -5,6 +5,7 @@ import { canBeArea, lazyPresets, type MaidModule } from '@osm-editor-kit/maid-co
  */
 import { defaultFilters } from '@osm-editor-kit/maid-filters'
 import {
+  BIKE_LENS_ID,
   bikeDefaultLook,
   bikeInfrastructure,
   bikeInfrastructureLens,
@@ -87,10 +88,15 @@ function editorConfig(config: Config) {
     background,
     // top bar "Data layers": GeoJSON, PMTiles and vector tiles to look at next to the OSM data
     dataLayers(),
-    // top bar "Map style": lenses that recolour the map for one theme (surface, lit, max speed); "Bicycle
-    // infrastructure" is this app's: the default look below, with everything else dimmed. The panel shows the same
-    // chosen legend for the look without a lens (defaultLook)
-    lenses({ lenses: [bikeInfrastructureLens], defaultLook: bikeDefaultLook }),
+    // top bar "Map style": lenses that recolour the map for one theme (surface, lit, max speed); "Standard: Bicycle
+    // infrastructure" is this editor's standard (the infrastructure below, everything else dimmed), listed under Maid
+    // standard and on at the first visit. Maid standard draws the infrastructure too, so the panel shows the same
+    // chosen legend there (defaultLook)
+    lenses({
+      lenses: [bikeInfrastructureLens],
+      defaultLook: bikeDefaultLook,
+      editorDefault: BIKE_LENS_ID,
+    }),
     // the default look of this editor: the bicycle infrastructure as TILDA classifies it, blue for bicycles alone and
     // pink where it is shared with people on foot, drawn over iD's style while no other lens is on
     bikeInfrastructure({ lenses: lensChoice }),

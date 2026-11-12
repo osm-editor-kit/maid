@@ -1,7 +1,7 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "lens_name": "Infraestructura ciclista",
-  "lens_description": "La infraestructura ciclista tal como la clasifica TILDA, el resto atenuado. Sin estilo de mapa, el editor muestra las mismas líneas.",
+  "lens_name": "Estándar: Infraestructura ciclista",
+  "lens_description": "La infraestructura ciclista tal como la clasifica TILDA, el resto atenuado. Maid standard muestra las mismas líneas, sin atenuar.",
   "group_separated": "Separada del tráfico motorizado (vía ciclista, calle ciclista)",
   "group_lane": "En la calzada (carril bici, cruce)",
   "group_shared_motor": "Compartida con vehículos motorizados o autobuses",

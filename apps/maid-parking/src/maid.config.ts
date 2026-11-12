@@ -83,8 +83,9 @@ function editorConfig(config: Config) {
     background,
     // top bar "Data layers": GeoJSON, PMTiles and vector tiles to look at next to the OSM data
     dataLayers(),
-    // top bar "Map style": lenses that recolour the map for one theme; "Parking" is this app's
-    lenses({ lenses: [parkingLens] }),
+    // top bar "Map style": lenses that recolour the map for one theme; "Standard: Parking" is this editor's standard,
+    // listed under Maid standard and on at the first visit
+    lenses({ lenses: [parkingLens], editorDefault: 'parking' }),
     // top bar and dock "Photos": street-level photos; Mapillary uses the token of apps/mapillary-token.ts
     streetImagery({ mapillaryToken: mapillaryToken() }),
     // the parking editor: restriction field, quick buttons, parking sides on the map, its edit operations
