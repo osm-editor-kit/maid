@@ -30,6 +30,7 @@ Maid checked against the FMC skill `touch-ipad-review` (its checklist `reference
 Ranked by how much they hurt on a phone.
 
 1. **Height of the page** (_inferred_): `height: 100%`, no measured `--app-height`; Chrome and Firefox on iOS do not follow `dvh`. Fix per checklist 4b once a device shows the strip or the jump.
+   **Seen on 2026-11-12** (iPad, Chrome, Maid Parking): after the keyboard the whole page stayed scrolled up by the keyboard's height, top cut off, a white block below. Fixed by `packages/shell/src/page-pin.ts` (the page goes back to scroll 0 once no keyboard is open; pinch zoom left alone) and `overflow: hidden` on the page (`styles.css`). The height itself was not the cause.
 2. **Safe areas**: without `viewport-fit=cover` every `env(safe-area-inset-*)` is 0, so the code's insets do nothing. Decide: stay inside the safe area and drop them, or add `viewport-fit=cover` and pad the floating controls.
 
 ## Open: smaller

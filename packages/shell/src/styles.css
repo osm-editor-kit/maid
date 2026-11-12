@@ -37,6 +37,14 @@ body,
   height: 100%;
 }
 
+/* One screen, never a scrolling page: only the panels scroll. No rubber band on the page either. The keyboard's own
+   scroll on iOS ignores this; page-pin.ts undoes it. */
+html,
+body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 /* An app, not a page, on a phone: the page never zooms by a double tap. The map pinches and double-taps on its own
    canvas (MapLibre sets the canvas's touch-action). */
 html {

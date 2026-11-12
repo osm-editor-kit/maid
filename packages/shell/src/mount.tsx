@@ -14,6 +14,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { setWorkerCount } from 'maplibre-gl'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
+import { pinPage } from './page-pin'
 import { createShell, type AppBrand, type AppConfig } from './shell'
 import { ShellContext } from './shell-context'
 import { migrateIdHash } from './url/id-url'
@@ -86,6 +87,9 @@ export function mountEditor(rootElement: HTMLElement, app: AppConfig) {
   // before the first render, so the page does not flash in the wrong theme: a link's `theme`, else the stored choice
   initTheme(readParams({ theme: stateParams.theme }, location.search).theme)
 
+  // the page never stays scrolled: iOS shifts it for the keyboard and may not shift it back (page-pin.ts)
+  const unpin = pinPage()
+
   const shell = createShell(app)
   showBrandInTab(shell.brand)
 
@@ -113,5 +117,8 @@ export function mountEditor(rootElement: HTMLElement, app: AppConfig) {
   } else {
     show(<App />)
   }
-  return () => root.unmount()
+  return () => {
+    unpin()
+    root.unmount()
+  }
 }
