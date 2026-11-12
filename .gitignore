@@ -12,6 +12,7 @@ test-results/
 packages/*/paraglide/
 reports/i18n-missing.json
 reports/shots/
+reports/bike-style/
 reports/20*
 tools/refs/*/smoke*.png
 tools/refs/*/smoke*.json
