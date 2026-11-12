@@ -33,6 +33,7 @@ export {
   type MapContentItem,
   type MapContentProps,
   type MapLayerItem,
+  type MapViewItem,
 } from './extension-points'
 // The modifier keys that drawing and dragging read (engine.modifiers, ADR 0011)
 export { modifiersOf, NO_MODIFIERS, type Modifiers } from './modifiers'

@@ -1,4 +1,5 @@
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { useExtensionPoint } from '@osm-editor-kit/maid-core/react'
 import { device, m, mapLibreLocale } from '@osm-editor-kit/maid-i18n'
 import { NOTES_LAYER_IDS } from '@osm-editor-kit/maid-module-notes'
 import { streetImageryClick } from '@osm-editor-kit/maid-module-street-imagery'
@@ -134,6 +135,9 @@ export function MapView() {
   const shell = useShell()
   const { config, editor, engine } = shell
   const [cameraParam, setCameraParam] = useCameraParam()
+  // flat unless a module allows a tilt (`map.view`, e.g. the terrain module's 3D view): the largest maximum wins
+  const viewItems = useExtensionPoint(editor, 'map.view')
+  const maxPitch = Math.max(0, ...viewItems.map((item) => item.maxPitch))
   const { ids: selectedIds, select } = useSelection()
   // the URL's `id` mirrors the engine's selection (the one writer), and a change of `id` selects in the engine
   useSelectionMirror(engine)
@@ -238,10 +242,10 @@ export function MapView() {
   const handleMoveEnd = (event: ViewStateChangeEvent) => {
     engine.loadVisibleTiles()
     engine.refreshForView()
-    const { zoom, latitude, longitude, bearing } = event.viewState
+    const { zoom, latitude, longitude, bearing, pitch } = event.viewState
     const turn = normaliseBearing(bearing)
-    // OSM zoom (256px tiles) is MapLibre zoom plus one; the turn is in the URL when it is not zero
-    void setCameraParam({ zoom: zoom + 1, lat: latitude, lng: longitude, bearing: turn })
+    // OSM zoom (256px tiles) is MapLibre zoom plus one; the turn and the tilt are in the URL when they are not zero
+    void setCameraParam({ zoom: zoom + 1, lat: latitude, lng: longitude, bearing: turn, pitch })
     // the last position: the person's moves, stored once the map rests (view.ts). Storage keeps OSM zoom.
     const source = moveSource({
       loaded: loaded.current,
@@ -735,6 +739,8 @@ export function MapView() {
         latitude: initialCamera.lat,
         zoom: initialCamera.zoom - 1,
         bearing: initialCamera.bearing ?? 0,
+        // the URL's tilt counts only where a module allows one (MapLibre clamps it to maxPitch)
+        pitch: initialCamera.pitch ?? 0,
       }}
       mapStyle={EMPTY_STYLE}
       // OSM zoom 2, the world view: iD and Rapid stop there too (docs/research/zoom-study.md, D4)
@@ -745,10 +751,10 @@ export function MapView() {
       attributionControl={false}
       // the turn is by the mouse (startTurnOnOpenMap), by two fingers and by N and Shift+arrows (useShortcuts)
       dragRotate={false}
-      // no tilt, from any gesture or key: the maximum is flat
-      maxPitch={0}
+      // no tilt, from any gesture or key, unless a module allows one (`map.view`); then two fingers tilt too
+      maxPitch={maxPitch}
       pitchWithRotate={false}
-      touchPitch={false}
+      touchPitch={maxPitch > 0}
       // the keys are the editor's (useShortcuts): MapLibre's would turn by 15 degrees, and tilt
       keyboard={false}
       cursor={mapCursor}

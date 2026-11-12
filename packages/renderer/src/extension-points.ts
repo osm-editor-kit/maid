@@ -51,6 +51,14 @@ export type MapContentProps = {
 export type MapContentItem = { id: string; component: ComponentType<MapContentProps> }
 
 /**
+ * What a module allows the map's camera beyond the flat default (the editor works top-down: iD and Rapid have no tilt).
+ * `maxPitch` above 0 lets the map tilt, by the module's own controls, two fingers and the `map=` URL's fifth number;
+ * the largest of all items wins. Used by the terrain module for its 3D view. Mouse tilt stays off: a right-drag is
+ * the edit menu's, and dragRotate is off for the turn (MapView).
+ */
+export type MapViewItem = { id: string; maxPitch: number }
+
+/**
  * The imagery the map shows now, under the OSM data: what a measure on the map takes as its source,
  * and what a changeset cites as `imagery_used`. A module that draws imagery contributes it; the app
  * reads it outside React (`editor.registry('imagery.used').list()`). Names are as iD cites them.
@@ -155,6 +163,8 @@ declare module '@osm-editor-kit/maid-core' {
   interface ExtensionPoints {
     'map.layer': MapLayerItem
     'map.content': MapContentItem
+    /** What the camera may do beyond the flat default (see MapViewItem) */
+    'map.view': MapViewItem
     /** Something the editor can do to the selection: shown in the edit menu, run with its key */
     'edit.operation': Operation
     /** The imagery visible on the map now (see ImageryUsedItem). Declared here because it describes the map. */
