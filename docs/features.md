@@ -16,7 +16,7 @@ same data makes the overview page of the deployed site (https://osm-editor-kit.g
 
 ## Features compared with iD and Rapid
 
-✓ yes, ◐ partly, – no. iD is [openstreetmap/iD](https://github.com/openstreetmap/iD), Rapid is
+✓ yes, ◐ partly, – no; ✦ all have it, Maid does it differently. iD is [openstreetmap/iD](https://github.com/openstreetmap/iD), Rapid is
 [bhousel/Rapid](https://github.com/bhousel/Rapid), both checked in their code on their main branches (2026-11-12). A Maid
 column follows the modules the app's config calls.
 
@@ -50,13 +50,13 @@ column follows the modules the app's config calls.
 | Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | **Presets and fields of the tagging schema** ([docs](../packages/presets/README.md)): iD's feature types with their fields, country rules, related tags and favourites. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Tags as a table** ([docs](../packages/ui/README.md)): The raw tags as an editable grid with key and value suggestions from taginfo. _iD and Rapid have a list and a text view; Maid a spreadsheet-like grid._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Tags as a table** ([docs](../packages/ui/README.md)): The raw tags as an editable grid with key and value suggestions from taginfo. ✦ _Rethought: A spreadsheet-like grid in place of the list and text views, shared with the way table and the lanes table._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **The side on the map** ([docs](../packages/ui/README.md)): While a field for one side of a road has the focus, the map marks that side and its width. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **Wikidata and Wikipedia fields** ([docs](../packages/ui/README.md)): Find the article and the item, with the info from the OSM wiki on request. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Turn restrictions** ([docs](../packages/module-turn-restrictions/README.md)): A junction's turns as a diagram: click to forbid or allow, with a rule for incomplete restrictions. | ✓ | ✓ | ✓ | ✓ | – | – | ✓ |
+| **Turn restrictions** ([docs](../packages/module-turn-restrictions/README.md)): A junction's turns as a diagram: click to forbid or allow, with a rule for incomplete restrictions. _Rapid's turn restriction field waits for a rewrite on its new renderer and is not shown._ | ✓ | – | ✓ | ✓ | – | – | ✓ |
 | **Surface and smoothness by photo** ([docs](../packages/module-surface/README.md)): Choose the surface and the smoothness from photos of real roads. | – | – | ✓ | ✓ | – | – | – |
 | **Traffic sign field** ([docs](../packages/module-traffic-signs/README.md)): Pick signs with their pictures, search by name or number, add the plates under them. | – | – | – | ✓ | – | – | ✓ |
-| **Street-level photos** ([docs](../packages/module-street-imagery/README.md)): Mapillary and Panoramax in a viewer in the bottom dock, and a field that keeps the photo of a feature. _iD and Rapid have more providers, but no field for the photo ids._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Street-level photos** ([docs](../packages/module-street-imagery/README.md)): Mapillary and Panoramax in a viewer in the bottom dock, and a field that keeps the photo of a feature. ✦ _Rethought: The viewer sits in the bottom dock, and a field keeps the photo ids of a feature._ _iD and Rapid have more providers._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 ### Topic editors
 
@@ -76,8 +76,7 @@ What a single-purpose editor adds.
 
 | Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| **Relation editing** ([docs](../packages/shell/README.md)): Add to and remove from relations, reorder members, see the members on the map. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Relation column** ([docs](../packages/shell/README.md)): A relation's members in a column beside the inspector, which keeps the selected feature. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Relation editing** ([docs](../packages/shell/README.md)): Add to and remove from relations, reorder members, see the members on the map. ✦ _Rethought: A relation opens in a column beside the inspector, which keeps the selected feature._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **Route overview** ([docs](../packages/route-analysis/README.md)): A route as a line diagram like a railway sidebar: stops, guideposts, junctions, gaps, with kilometres; the whole route previewed from Postpass before it is loaded. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **Reroute a route** ([docs](../packages/module-reroute/README.md)): Click two points and a bicycle or hiking route runs over the loaded ways, turn restrictions respected. | – | – | – | ✓ | – | – | – |
 

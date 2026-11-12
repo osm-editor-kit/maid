@@ -84,7 +84,8 @@ export function featuresDoc(apps: ListedApp[]) {
       const cells = [row.iD, row.rapid, ...apps.map((app) => supportOf(row, app))].map(
         (support) => MARK[support],
       )
-      return `| **${row.title}**${docs}: ${row.text}${note} | ${cells.join(' | ')} |`
+      const rethought = row.rethought ? ` ✦ _Rethought: ${row.rethought}_` : ''
+      return `| **${row.title}**${docs}: ${row.text}${rethought}${note} | ${cells.join(' | ')} |`
     })
     return [
       `### ${group.title}`,
@@ -110,7 +111,7 @@ ${editors.join('\n')}
 
 ## Features compared with iD and Rapid
 
-✓ yes, ◐ partly, – no. iD is [openstreetmap/iD](https://github.com/openstreetmap/iD), Rapid is
+✓ yes, ◐ partly, – no; ✦ all have it, Maid does it differently. iD is [openstreetmap/iD](https://github.com/openstreetmap/iD), Rapid is
 [bhousel/Rapid](https://github.com/bhousel/Rapid), both checked in their code on their main branches (2026-11-12). A Maid
 column follows the modules the app's config calls.
 

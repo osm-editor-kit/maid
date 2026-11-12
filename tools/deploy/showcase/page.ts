@@ -45,8 +45,29 @@ export function factoriesOf(configSource: string) {
 
 const LABEL: Record<Support, string> = { yes: 'Yes', partial: 'Partly', no: 'No' }
 
-function cell(support: Support) {
-  return `<td class="cell ${support}"><span class="mark" aria-hidden="true"></span><span class="sr">${LABEL[support]}</span></td>`
+/**
+ * The cells of one row in a group of columns (iD and Rapid; the Maid editors). Neighbours with the same answer share
+ * one cell with a bar across them, so "the same in all of them" reads at a glance; a single column keeps its dot.
+ */
+export function runsOf(supports: Support[]) {
+  const runs: { support: Support; span: number }[] = []
+  for (const support of supports) {
+    const last = runs.at(-1)
+    if (last && last.support === support) last.span += 1
+    else runs.push({ support, span: 1 })
+  }
+  return runs
+}
+
+function cells(supports: Support[], group: 'ref' | 'maid') {
+  return runsOf(supports)
+    .map(({ support, span }) => {
+      const label = span > 1 ? `${LABEL[support]} (${span} columns)` : LABEL[support]
+      const shape = span > 1 ? 'bar' : 'mark'
+      const colspan = span > 1 ? ` colspan="${span}"` : ''
+      return `<td class="cell ${support} ${group}"${colspan}><span class="${shape}" aria-hidden="true"></span><span class="sr">${label}</span></td>`
+    })
+    .join('')
 }
 
 function docsLink(row: FeatureRow, repository: string) {
@@ -65,14 +86,21 @@ function comparison(apps: ListedApp[], repository: string) {
   const body = GROUPS.map((group) => {
     const rows = group.rows
       .map((row) => {
-        const cells = [
-          cell(row.iD),
-          cell(row.rapid),
-          ...apps.map((app) => cell(supportOf(row, app))),
-        ]
+        const rowCells =
+          cells([row.iD, row.rapid], 'ref') +
+          cells(
+            apps.map((app) => supportOf(row, app)),
+            'maid',
+          )
+        const rethought = row.rethought
+          ? ` <span class="rethought" title="${escapeHtml(row.rethought)}">✦ rethought</span>`
+          : ''
+        const rethoughtNote = row.rethought
+          ? `<span class="note">✦ ${escapeHtml(row.rethought)}</span>`
+          : ''
         const source = row.noteUrl ? ` <a href="${row.noteUrl}">source</a>` : ''
         const note = row.note ? `<span class="note">${escapeHtml(row.note)}${source}</span>` : ''
-        return `<tr><th scope="row"><span class="feature">${escapeHtml(row.title)}</span>${docsLink(row, repository)}<span class="text">${escapeHtml(row.text)}</span>${note}</th>${cells.join('')}</tr>`
+        return `<tr><th scope="row"><span class="feature">${escapeHtml(row.title)}</span>${rethought}${docsLink(row, repository)}<span class="text">${escapeHtml(row.text)}</span>${rethoughtNote}${note}</th>${rowCells}</tr>`
       })
       .join('\n')
     const intro = group.intro ? `<span class="intro">${escapeHtml(group.intro)}</span>` : ''
@@ -179,7 +207,7 @@ ${apps.map((app) => tile(app, repository)).join('\n')}
 <section id="compare">
   <h2>How the editors differ</h2>
   <p class="section-lead">iD and Rapid are mature editors that thousands of mappers rely on every day; Maid is a young project that builds on them and focuses on editors for one topic each. This table shows where they differ, including what Maid does not have yet. A Maid column follows the modules its config switches on. Rows with a <em>docs</em> link have a README that explains the module and how to use it in your own editor.</p>
-  <p class="legend"><span class="cell yes"><span class="mark"></span></span> yes <span class="cell partial"><span class="mark"></span></span> partly <span class="cell no"><span class="mark"></span></span> no</p>
+  <p class="legend"><span class="cell yes"><span class="mark"></span></span> yes <span class="cell partial"><span class="mark"></span></span> partly <span class="cell no"><span class="mark"></span></span> no <span class="cell yes"><span class="bar"></span></span> the same across these columns <span class="rethought">✦ rethought</span> all have it, Maid does it differently</p>
 ${comparison(apps, repository)}
   <p class="source">iD and Rapid as of their main branches in November 2026, read in their code. Corrections are welcome as an issue. The full list with every module: <a href="https://github.com/${repository}/blob/main/docs/features.md">docs/features.md</a>.</p>
 </section>
@@ -319,7 +347,14 @@ h2 { font-size: clamp(1.6rem, 3vw, 2.1rem); margin-bottom: 0.6rem; }
 .text { display: block; color: var(--muted); font-size: 0.86rem; margin-top: 0.15rem; }
 .note { display: block; color: var(--muted); font-size: 0.8rem; font-style: italic; margin-top: 0.15rem; }
 .cell { text-align: center; width: 4.6rem; position: relative; }
-td.cell:nth-of-type(1), td.cell:nth-of-type(2) { background: var(--surface-2); }
+td.cell.ref { background: var(--surface-2); }
+.bar { display: block; height: 0.55rem; margin: 0 0.6rem; border-radius: 999px; }
+.yes .bar { background: var(--yes); }
+.partial .bar { background: repeating-linear-gradient(90deg, var(--partial) 0 0.5rem, transparent 0.5rem 0.75rem); box-shadow: inset 0 0 0 1.5px var(--partial); }
+.no .bar { height: 2px; background: var(--no); }
+.legend .cell .bar { width: 2.2rem; margin: 0; }
+.rethought { display: inline-block; margin-left: 0.35rem; padding: 0 0.45rem; border-radius: 999px; font-size: 0.74rem; font-weight: 600; color: var(--accent-strong); background: var(--accent-soft); white-space: nowrap; }
+.legend .rethought { margin-left: 0.8rem; }
 .mark { display: inline-block; width: 0.85rem; height: 0.85rem; border-radius: 50%; vertical-align: middle; }
 .yes .mark { background: var(--yes); }
 .partial .mark { background: linear-gradient(90deg, var(--partial) 50%, transparent 50%); box-shadow: inset 0 0 0 2px var(--partial); }

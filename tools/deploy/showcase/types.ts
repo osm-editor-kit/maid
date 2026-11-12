@@ -25,6 +25,11 @@ export type FeatureRow = {
   rapid: Support
   /** A short note shown under the row, for partial cells or a difference worth knowing */
   note?: string
+  /**
+   * When all editors have it but Maid thought it anew: how, in one sentence. Shown as a "rethought" mark, not as better
+   * or worse.
+   */
+  rethought?: string
   /** Where the note's claim is documented (an issue or pull request of iD or Rapid), linked after the note */
   noteUrl?: string
 }

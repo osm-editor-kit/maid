@@ -194,7 +194,8 @@ export const GROUPS: FeatureGroup[] = [
         pkg: 'ui',
         iD: 'yes',
         rapid: 'yes',
-        note: 'iD and Rapid have a list and a text view; Maid a spreadsheet-like grid.',
+        rethought:
+          'A spreadsheet-like grid in place of the list and text views, shared with the way table and the lanes table.',
       },
       {
         title: 'The side on the map',
@@ -218,7 +219,8 @@ export const GROUPS: FeatureGroup[] = [
         maid: { factory: 'turnRestrictions' },
         pkg: 'module-turn-restrictions',
         iD: 'yes',
-        rapid: 'yes',
+        rapid: 'no',
+        note: "Rapid's turn restriction field waits for a rewrite on its new renderer and is not shown.",
       },
       {
         title: 'Surface and smoothness by photo',
@@ -243,7 +245,9 @@ export const GROUPS: FeatureGroup[] = [
         pkg: 'module-street-imagery',
         iD: 'yes',
         rapid: 'yes',
-        note: 'iD and Rapid have more providers, but no field for the photo ids.',
+        rethought:
+          'The viewer sits in the bottom dock, and a field keeps the photo ids of a feature.',
+        note: 'iD and Rapid have more providers.',
       },
     ],
   },
@@ -319,18 +323,12 @@ export const GROUPS: FeatureGroup[] = [
       {
         title: 'Relation editing',
         text: 'Add to and remove from relations, reorder members, see the members on the map.',
+        rethought:
+          'A relation opens in a column beside the inspector, which keeps the selected feature.',
         maid: 'core',
         pkg: 'shell',
         iD: 'yes',
         rapid: 'yes',
-      },
-      {
-        title: 'Relation column',
-        text: "A relation's members in a column beside the inspector, which keeps the selected feature.",
-        maid: 'core',
-        pkg: 'shell',
-        iD: 'no',
-        rapid: 'no',
       },
       {
         title: 'Route overview',
