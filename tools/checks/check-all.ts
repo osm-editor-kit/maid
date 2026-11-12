@@ -199,7 +199,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   touch: { maid: 0, bicycle: 0, parking: 14, indoor: 14, lanes: 0, golf: 14, climbing: 0 },
   levels: { maid: 0, bicycle: 0, parking: 0, indoor: 34, lanes: 0, golf: 0, climbing: 0 },
   room: { maid: 0, bicycle: 0, parking: 0, indoor: 21, lanes: 0, golf: 0, climbing: 0 },
-  menu: { maid: 16, bicycle: 16, parking: 16, indoor: 16, lanes: 16, golf: 16, climbing: 16 },
+  menu: { maid: 20, bicycle: 20, parking: 20, indoor: 20, lanes: 20, golf: 20, climbing: 20 },
   'merge-polygon': {
     maid: 23,
     bicycle: 23,

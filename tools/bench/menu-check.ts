@@ -1,13 +1,14 @@
 /**
  * Edit menu check for Maid: Continue at the end of a line (the menu's first item, and the key A),
- * Paste only on open ground, and Treat as area on a closed untagged line with the type search after it.
+ * Paste only on open ground, Delete segment on a line (its mark on hover, one undo step), and Treat as area on a closed
+ * untagged line with the type search after it.
  * Real mouse and key presses; the menu's own items are clicked, and the data and the mode are read back after
  * each step. A building's tags are removed first, so that a closed untagged line exists (fixtures only).
  *
  *   bun tools/bench/menu-check.ts [scene] --app maid
  *
  * Prints one line per check: `ok <check>`, or `FAIL <check>` with expected and actual. Exits 1 on any failure,
- * including a request outside localhost. Expected: 12 ok lines (11 checks, and the runner's request check).
+ * including a request outside localhost.
  */
 import { checkHelpers, type XY } from './check-helpers'
 import { runCheck } from './check-page'
@@ -32,6 +33,8 @@ const COMMANDS = [
   'Extract',
   'Flip long',
   'Flip short',
+  // before Delete: a label is matched by its start
+  'Delete segment',
   'Delete',
 ]
 
@@ -192,6 +195,56 @@ process.exit(
       await click(ground, { button: 'right' })
       report("open ground's menu offers Paste and nothing else", ['Paste'], await menuLabels())
       await key('Escape')
+
+      // --- Delete segment: on a right click on a line, the piece between the two nodes around the click ---
+      {
+        await page.evaluate((id) => window.__maid.engine.setSelected([id]), line)
+        await settle()
+        const at = await midpointOf(lineNodes[1]!, lineNodes[2]!)
+        if (!at) {
+          report('the line has a second segment to right-click on', 'a position', null)
+          return
+        }
+        await click(at, { button: 'right' })
+        const item = page.getByRole('menuitem', { name: /^Delete segment/ })
+        report("a line's menu offers Delete segment", 1, await item.count())
+        await item.first().hover()
+        await settle()
+        const marked = await page.evaluate(() => {
+          const { map } = window.__maid
+          return map.queryRenderedFeatures({ layers: ['preview-mark-line'] }).length > 0
+        })
+        report('hovering Delete segment marks the segment on the map', true, marked)
+        await item.first().click()
+        await settle()
+        const after = await page.evaluate(
+          ({ a, b }) => {
+            const { engine } = window.__maid
+            const ways = [...(engine.data.nodeWays.get(a) ?? [])].map(
+              (id) => engine.data.way(id)!.nodes as string[],
+            )
+            const joined = ways.some((nodes) =>
+              nodes.some(
+                (n, i) => (n === a && nodes[i + 1] === b) || (n === b && nodes[i + 1] === a),
+              ),
+            )
+            return { joined, undo: engine.undoState().undoLabel ?? null }
+          },
+          { a: lineNodes[1]!, b: lineNodes[2]! },
+        )
+        report(
+          'Delete segment: no way joins the two nodes any more, one undo step',
+          { joined: false, undo: 'Deleted a segment of a line' },
+          after,
+        )
+        await key('ControlOrMeta+z')
+        await settle()
+        report(
+          'one undo gives the line back',
+          original,
+          await page.evaluate((id) => [...(window.__maid.engine.data.way(id)?.nodes ?? [])], line),
+        )
+      }
 
       // --- Treat as area: a closed untagged line (a building with its tags removed for the check) ---
       if (!building) {

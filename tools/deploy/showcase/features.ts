@@ -108,6 +108,14 @@ export const GROUPS: FeatureGroup[] = [
         rapid: 'yes',
       },
       {
+        title: 'Delete a segment',
+        text: 'Right-click a line between two nodes: "Delete segment" takes out just that piece, marked in blue while hovered. For rebuilding a line in one step.',
+        maid: 'core',
+        pkg: 'operations',
+        iD: 'no',
+        rapid: 'no',
+      },
+      {
         title: 'Preview before you click',
         text: 'Hover a command and the map shows the result: the circle, the square, the flipped shape.',
         maid: 'core',

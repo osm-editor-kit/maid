@@ -122,12 +122,15 @@ export function editMenuItems<Here, Selected, Pasted>(
  * (`structure` when they have none), so delete (`remove`) is last. The sort is stable: the order
  * within a group stays as the operations give it. The same list serves the command bar and the
  * edit menu. Empty without a selection. A feature that a filter protects keeps its commands,
- * greyed out with the reason.
+ * greyed out with the reason. `at`: where the edit menu was opened with the pointer, for the operations about a part
+ * of a feature (delete segment); the command bar passes none.
  */
-export function useEditCommands() {
+export function useEditCommands(at?: { lon: number; lat: number }) {
   const { editor, engine } = useShell()
   const operations = useExtensionPoint(editor, 'edit.operation')
   const { ids, select } = useSelection()
+  const lon = at?.lon
+  const lat = at?.lat
   // the copied tags are read here, not in the engine's read below: a hook cannot run inside it
   const copied = useCopiedTags()
   // the version makes this read again after every edit: what applies depends on the data
@@ -139,7 +142,9 @@ export function useEditCommands() {
       : ids.some((id) => protectedBy(engine, id))
         ? PROTECTED_REASON.filter
         : undefined
-    const context = e.operationContext()
+    const place: [number, number] | undefined =
+      lon !== undefined && lat !== undefined ? [lon, lat] : undefined
+    const context = e.operationContext(place)
     // one point with a direction: R turns that direction, as iD's tooltip says
     const turnsDirection = e.transform.directionOf(ids) !== undefined
     // what applies, less the operations a superseding one replaces here (the core Merge under the areas union)
@@ -155,10 +160,10 @@ export function useEditCommands() {
       reason: protectedReason ?? operation.disabled(context),
       run: () => {
         engine.previewOperation(null)
-        const next = engine.runOperation(operation)
+        const next = engine.runOperation(operation, place)
         if (next) select(next.length > 0 ? next : null)
       },
-      preview: (on: boolean) => engine.previewOperation(on ? operation : null),
+      preview: (on: boolean) => engine.previewOperation(on ? operation : null, place),
     })
     const leading = applicable
       .filter((operation) => LEADING_OPERATIONS.includes(operation.id))

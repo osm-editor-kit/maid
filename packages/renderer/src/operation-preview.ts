@@ -1,6 +1,7 @@
 import { Graph, OsmNode, OsmWay } from '@osm-editor-kit/maid-model'
 import type { Operation, OperationContext } from '@osm-editor-kit/maid-operations'
-// The outlines an operation would give the selected ways, drawn before it runs (the engine's previewOperation()).
+// The outlines an operation would give the selected ways, drawn before it runs (the engine's previewOperation()),
+// or the lines its own `preview` marks.
 // Works on the copy of the graph the operation runs on: the staging graph is not changed.
 import type { Feature } from 'geojson'
 import type { OsmData } from './data'
@@ -15,6 +16,14 @@ export function operationPreview(
   const { graph } = data.history.staging
   // an operation that asks for more input (`start`) has nothing to show before it starts
   if (!operation.start && operation.applies(context) && !operation.disabled(context)) {
+    // the part the operation is about, marked as it is (state `preview-mark`), not the outlines after it
+    if (operation.preview) {
+      return operation.preview(context).map((coordinates, i) => ({
+        type: 'Feature',
+        properties: { id: `preview-mark-${i}`, state: 'preview-mark' },
+        geometry: { type: 'LineString', coordinates },
+      }))
+    }
     let after: Graph | undefined
     try {
       after = operation.run(context).actions.reduce((g, action) => action(g), new Graph(graph))

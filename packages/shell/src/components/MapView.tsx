@@ -447,6 +447,7 @@ export function MapView() {
       lat: lngLat.lat,
       ground: !id,
       features: ids.length > 1 ? ids : undefined,
+      pointer: true,
     })
   }
   // The menu button beside the move handle (MoveHandle.tsx) opens the menu for the selection, below the button

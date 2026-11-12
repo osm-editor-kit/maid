@@ -38,6 +38,7 @@ column follows the modules the app's config calls.
 | Feature | iD | Rapid | Maid | Bicycle | Parking | Indoor | Lanes | Golf | Climbing |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | **iD's operations and keys** ([docs](../packages/operations/README.md)): Draw, move, rotate, reflect, circularise, square, straighten, split, merge, disconnect, extract, copy and paste, with the keys mappers know. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **Delete a segment** ([docs](../packages/operations/README.md)): Right-click a line between two nodes: "Delete segment" takes out just that piece, marked in blue while hovered. For rebuilding a line in one step. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **Preview before you click** ([docs](../packages/renderer/README.md)): Hover a command and the map shows the result: the circle, the square, the flipped shape. _iD shows the result of straighten, square, circularise and reflect while the button is hovered._ ([source](https://github.com/openstreetmap/iD/pull/11778)) | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **Several features at once** ([docs](../packages/shell/README.md)): Select several and edit the fields and tags they share; one change is one undo step. | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **Lasso selection**: Select the nodes inside a drawn shape. | ✓ | ✓ | – | – | – | – | – | – | – |

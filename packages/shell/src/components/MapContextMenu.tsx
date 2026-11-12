@@ -17,6 +17,8 @@ export type MenuPlace = {
   lat: number
   ground?: boolean
   features?: string[]
+  /** Opened with the pointer (a right click or a long press), not by the menu key or the menu button: then `lon`, `lat` say which part of the feature the menu is about (delete segment) */
+  pointer?: boolean
 }
 
 /**
@@ -32,7 +34,7 @@ export type MenuPlace = {
 export function MapContextMenu({ place, onClose }: { place: MenuPlace; onClose: () => void }) {
   const { engine } = useShell()
   const { ids: selected, select } = useSelection()
-  const selection = useEditCommands()
+  const selection = useEditCommands(place.pointer ? place : undefined)
   const paste = usePasteCommand(place)
   const features = place.features ?? []
   // choosing one selects it and the menu stays open on what it is about now

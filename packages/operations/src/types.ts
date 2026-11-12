@@ -28,6 +28,12 @@ export type OperationContext = {
    * the editor's presets.
    */
   presetOf?: (entity: OsmEntity, graph: Graph) => OperationPreset | undefined
+  /**
+   * Where the edit menu was opened with the pointer (a right click or a long press), as [lon, lat]. Absent in the
+   * command bar, for keys and for a menu opened by the menu key. An operation about a part of a feature (delete
+   * segment) reads which part from it.
+   */
+  at?: [number, number]
 }
 
 /** What an operation reads of a preset (see `OperationContext.presetOf`); a `Preset` of maid-presets fits this type */
@@ -84,6 +90,11 @@ export type Operation = {
   applies(context: OperationContext): boolean
   /** Why it cannot run now although it applies, as a sentence for a tooltip. Undefined: it can run. */
   disabled(context: OperationContext): string | undefined
+  /**
+   * Lines, each as [lon, lat] positions, that the map marks while the command is hovered, in place of the outlines
+   * `run` would give: for an operation whose result is easier to see as the part it is about (delete segment).
+   */
+  preview?(context: OperationContext): [number, number][][]
   /** Only called when `applies` is true and `disabled` is undefined */
   run(context: OperationContext): OperationResult
   /**

@@ -21,6 +21,7 @@ import {
 } from '@osm-editor-kit/maid-model'
 import type { Action, DisconnectAction, Graph, OsmEntity } from '@osm-editor-kit/maid-model'
 import { continueOperation } from './continue.ts'
+import { deleteSegmentOperation } from './delete-segment.ts'
 import { isTooLargeToEdit } from './extent.ts'
 import { lineToAreaOperation } from './line-to-area.ts'
 import { mergeOperation } from './merge.ts'
@@ -861,5 +862,6 @@ export const defaultOperations: Operation[] = [
   extractOperation,
   reflectLongOperation,
   reflectShortOperation,
+  deleteSegmentOperation,
   deleteOperation,
 ]

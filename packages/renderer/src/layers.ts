@@ -1071,6 +1071,24 @@ function buildMainLayers(options: LayerOptions) {
       layout: { 'line-join': 'round' },
       paint: { 'line-color': '#f6634f', 'line-width': 2, 'line-dasharray': [3, 2] },
     },
+    // the part an operation is about (its own `preview`, for example the segment delete segment takes out): a wide
+    // line in the blue of the field marks below, on a white glow
+    {
+      id: 'preview-mark-glow',
+      type: 'line',
+      source: SOURCES.highlight,
+      filter: ['==', ['get', 'state'], 'preview-mark'],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#fff', 'line-width': 10, 'line-opacity': 0.8, 'line-blur': 2 },
+    },
+    {
+      id: 'preview-mark-line',
+      type: 'line',
+      source: SOURCES.highlight,
+      filter: ['==', ['get', 'state'], 'preview-mark'],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#2563eb', 'line-width': 5 },
+    },
   )
 
   // The field that has the focus or the pointer on it (field-overlay.ts). A side is a blue line a few
