@@ -65,6 +65,39 @@ let failed = await runCheck(sceneName, async ({ page, report, settle, drawnIn })
     [['areas'], true, 0, 'buildings:readonly'],
     [now.building, now.readOnly, now.hidden, now.param],
   )
+  /** Clicks the middle of a way's first segment and returns what is selected then */
+  async function clickOutline(id: string) {
+    const point = await page.evaluate((wayId) => {
+      const { map, engine } = window.__maid
+      engine.setSelected(null)
+      const way = engine.data.way(wayId)!
+      const a = engine.data.node(way.nodes[0]!)!.loc as [number, number]
+      const b = engine.data.node(way.nodes[1]!)!.loc as [number, number]
+      map.jumpTo({ center: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], zoom: 19 })
+      return map.project([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2])
+    }, id)
+    await settle()
+    const box = await page.locator('.maplibregl-canvas').boundingBox()
+    await page.mouse.click(box!.x + point.x, box!.y + point.y)
+    await settle()
+    return page.evaluate(() => window.__maid.engine.selected() as string[])
+  }
+
+  // a read-only feature is context: drawn faint (`ro`) and passed by a click, which selects nothing there (Tobias,
+  // 2026-11-12); a link or a search still selects it, below
+  const faint = await page.evaluate((id) => {
+    const { map } = window.__maid
+    return map
+      .querySourceFeatures('osm-areas')
+      .some((f: any) => String(f.id) === id && f.properties.ro === 1)
+  }, building)
+  const clicked = await clickOutline(building)
+  report(
+    'read-only buildings: drawn faint, a click on its outline selects nothing',
+    [true, []],
+    [faint, clicked],
+  )
+
   // the head of a read-only feature is no button of the type picker, but keeps the wiki's "i" of its type
   await page.evaluate((id) => {
     const url = new URL(location.href)
@@ -115,6 +148,7 @@ let failed = await runCheck(sceneName, async ({ page, report, settle, drawnIn })
     return name
   }, building)
   report('reset: the building can be edited again', 'Filter test', changed)
+  report('reset: a click on its outline selects it again', [building], await clickOutline(building))
 })
 
 // a link with a filter starts with it, in Maid's form and in iD's

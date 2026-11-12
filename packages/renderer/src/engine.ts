@@ -739,6 +739,15 @@ export class MaidEngine {
    * edited (`'none'`), every feature with a level is off. A node without a level of its own is on the levels of its
    * ways (a corner of a room).
    */
+  /**
+   * True if a click or a hover passes this feature by: it is on another level (isOffLevel), or a filter makes it
+   * read-only (build.ts isLocked). Such a feature is drawn faint and is context only; a search or a link can still
+   * select it, and the inspector then says why it cannot be changed.
+   */
+  isUnpickable(id: string) {
+    return this.isOffLevel(id) || this.builder.isLocked(id)
+  }
+
   isOffLevel(id: string) {
     const level = this.levelShown
     if (level === null || this.levelLockPaused) return false

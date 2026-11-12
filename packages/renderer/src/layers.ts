@@ -9,6 +9,7 @@ import type {
   LayerSpecification,
   SymbolLayerSpecification,
 } from 'maplibre-gl'
+import { READ_ONLY_OPACITY } from './build'
 import {
   ARROW_DEFAULT_COLOUR,
   ARROW_IMAGE_PREFIX,
@@ -210,6 +211,9 @@ const LEVEL_TEXT: ExpressionSpecification = [
   0,
 ] // prettier-ignore
 
+/** READ_ONLY_OPACITY for a feature a filter makes read-only (`ro`), else 1 */
+const READ_ONLY_DIM: ExpressionSpecification = ['case', ['has', 'ro'], READ_ONLY_OPACITY, 1]
+
 /**
  * An opacity times LEVEL_DIM. A zoom curve stays on top (MapLibre takes `zoom` only as the input of a top-level
  * `interpolate` or `step`), so each of its outputs is multiplied instead.
@@ -325,8 +329,11 @@ export function buildLayers(options: LayerOptions) {
     // selected, and a feature on another level is neither
     const dimmed = source === ACTIVE_SOURCE ? [] : (OPACITY[layer.type] ?? [])
     const leveled: Record<string, unknown> = { ...layer.paint }
+    // a feature a filter makes read-only is faint as well (build.ts markReadOnly)
     for (const prop of dimmed)
-      leveled[prop] = dimmedByLevel(leveled[prop], prop === 'text-opacity' ? LEVEL_TEXT : LEVEL_DIM)
+      leveled[prop] = dimmedByLevel(leveled[prop], [
+        '*', prop === 'text-opacity' ? LEVEL_TEXT : LEVEL_DIM, READ_ONLY_DIM,
+      ]) // prettier-ignore
     const floored = {
       ...layer,
       ...(dimmed.length > 0 ? { paint: leveled } : {}),

@@ -61,5 +61,5 @@ iD's "too many points, hide them all" is not part of this. Maid draws all points
 ## Open
 
 - The exact shape of `match` (how much can be data).
-- Whether read-only objects are drawn differently by default (iD draws nothing special; the Radnetz fork dims them).
+- ~~Whether read-only objects are drawn differently by default (iD draws nothing special; the Radnetz fork dims them).~~ Decided (Tobias, 2026-11-12): a read-only object is context. It is drawn at half its opacity (`ro` on the feature, layers.ts `READ_ONLY_OPACITY`) and a click, right click or hover passes it by (engine `isUnpickable`); a link or a search can still select it, and the inspector says why it cannot be changed. A vertex is passed by only when all of its ways are read-only.
 - What Rapid's filter system does better; see the [Rapid review](04-rapid-review.md).

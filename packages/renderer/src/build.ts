@@ -63,6 +63,8 @@ export type LineProps = {
   side?: string
   /** what an edit changed (edits.ts), only on an edited line: the edits highlight colours it */
   ed?: EditKind
+  /** 1 for a feature a filter makes read-only: drawn faint, not picked (layers.ts READ_ONLY_OPACITY, pick.ts) */
+  ro?: 1
   /** the floors it is on (markLevels), only when it has levels */
   lv?: string
   /** 1 for a building outline without a level, which stands on every level (levels onEveryLevel) */
@@ -92,6 +94,8 @@ export type AreaProps = {
   name?: string
   /** what an edit changed (edits.ts), only on an edited area */
   ed?: EditKind
+  /** 1 for a feature a filter makes read-only: drawn faint, not picked (layers.ts READ_ONLY_OPACITY, pick.ts) */
+  ro?: 1
   /** the floors it is on (markLevels), only when it has levels */
   lv?: string
   /** 1 for a building outline without a level, which stands on every level (levels onEveryLevel) */
@@ -108,6 +112,8 @@ export type PointProps = {
   name?: string
   addr?: string
   ed?: EditKind
+  /** 1 for a feature a filter makes read-only: drawn faint, not picked (layers.ts READ_ONLY_OPACITY, pick.ts) */
+  ro?: 1
   /** the floors it is on (markLevels), only when it has levels */
   lv?: string
   /** 1 for a building outline without a level, which stands on every level (levels onEveryLevel) */
@@ -122,6 +128,8 @@ export type VertexProps = {
   s: 0 | 1
   icon?: string
   ed?: EditKind
+  /** 1 for a feature a filter makes read-only: drawn faint, not picked (layers.ts READ_ONLY_OPACITY, pick.ts) */
+  ro?: 1
   /** the floors it is on (markLevels), only when it has levels */
   lv?: string
   /** 1 for a building outline without a level, which stands on every level (levels onEveryLevel) */
@@ -470,6 +478,31 @@ function markEdit(
   else target.ed = ed
 }
 
+/**
+ * The opacity of a feature a filter makes read-only, times its own: faint, so it reads as context, but still clear on
+ * aerial imagery (a quarter was too little there, Tobias 2026-11-12). layers.ts multiplies every opacity of the data by
+ * it where `ro` is set.
+ */
+export const READ_ONLY_OPACITY = 0.5
+
+/**
+ * Sets the `ro` property of a feature (or of its props) that a filter makes read-only. The band along an area's edge
+ * has one opacity for the whole layer (`line-layer-opacity`), so its colour is faded here instead.
+ */
+function markReadOnly(
+  target: { properties: { ro?: 1; fo?: string } } | { ro?: 1 },
+  readOnly: boolean,
+) {
+  if (!readOnly) return
+  if (!('properties' in target)) {
+    target.ro = 1
+    return
+  }
+  const p = target.properties
+  p.ro = 1
+  if (p.fo !== undefined) p.fo = scaleAlpha(p.fo, READ_ONLY_OPACITY)
+}
+
 const NO_FLOORS: readonly number[] = []
 /** The keys levels.ts reads. An entity with none of them is never parsed and gets no floors. */
 const LEVEL_KEYS = ['level', 'repeat_on', 'min_level', 'max_level'] as const
@@ -549,6 +582,7 @@ export class FeatureBuilder {
     this.leaving = []
     this.vertexState.clear()
     this.states.clear()
+    this.lockedVertices.clear()
   }
 
   /**
@@ -565,6 +599,19 @@ export class FeatureBuilder {
   isReadOnly(id: string) {
     return this.states.get(id) === 'readonly'
   }
+
+  /**
+   * True if the feature is read-only all the way: drawn faint and not picked. A way, point or relation when it is
+   * read-only; a vertex only when every way it is drawn with is (a corner shared with an editable road stays pickable,
+   * though it is read-only and cannot be dragged).
+   */
+  isLocked(id: string) {
+    if (this.states.get(id) !== 'readonly') return false
+    return id[0] !== 'n' || !this.data.nodeWays.has(id) || this.lockedVertices.has(id)
+  }
+
+  /** Vertices whose drawn ways are all read-only (isVertexFiltered) */
+  private lockedVertices = new Set<string>()
 
   /**
    * Asks the filters about an entity and remembers the answer. Returns true if it is hidden;
@@ -591,13 +638,17 @@ export class FeatureBuilder {
     if (!this.filters) return false
     let visible = false
     let readOnly = false
+    let editable = false
     for (const wayId of this.data.nodeWays.get(id) ?? []) {
       const state = this.states.get(wayId)
       if (state !== 'hidden') visible = true
       if (state === 'readonly') readOnly = true
+      if (state === undefined) editable = true
     }
     if (visible && readOnly) this.states.set(id, 'readonly')
     else this.states.delete(id)
+    if (visible && readOnly && !editable) this.lockedVertices.add(id)
+    else this.lockedVertices.delete(id)
     return !visible
   }
 
@@ -625,6 +676,7 @@ export class FeatureBuilder {
     if (area) {
       const feature = areaFeature(id, [[coords]], tags, tagClasses(tags))
       markEdit(feature, this.editOf(id))
+      markReadOnly(feature, this.isLocked(id))
       return { source: 'areas', feature: restyleArea(feature, lens) }
     }
     // an untagged member of a multipolygon is drawn by the relation's area; while the relation is
@@ -635,6 +687,7 @@ export class FeatureBuilder {
     }
     const feature = lineFeature(id, coords, tags, tagClasses(tags))
     markEdit(feature, this.editOf(id))
+    markReadOnly(feature, this.isLocked(id))
     return { source: 'lines', feature: restyleLine(feature, lens) }
   }
 
@@ -654,6 +707,7 @@ export class FeatureBuilder {
     if (this.isFiltered(id, node.tags, 'point', first)) return undefined
     const props: PointProps = { id }
     markEdit(props, this.editOf(id))
+    markReadOnly(props, this.isLocked(id))
     markLevels(props, floorsOf(node.tags))
     if (hasDirectionTags(node.tags)) addViewfields(props, node, this.data.history.staging.graph)
     if (isAddressTags(node.tags)) props.addr = addressLabel(node.tags)
@@ -716,6 +770,7 @@ export class FeatureBuilder {
       s: state[1] === '1' ? 1 : 0,
     }
     markEdit(props, this.editOf(node.id))
+    markReadOnly(props, this.isLocked(node.id))
     markLevels(props, this.floorsOfVertex(node))
     if (hasDirectionTags(node.tags)) addViewfields(props, node, this.data.history.staging.graph)
     const icon = props.t
@@ -750,10 +805,9 @@ export class FeatureBuilder {
       this.states.set(id, 'hidden')
       return undefined
     }
-    return {
-      source: 'lines' as const,
-      feature: restyleLine(partialFeature(id, coords, tags), lens),
-    }
+    const feature = partialFeature(id, coords, tags)
+    markReadOnly(feature, this.isLocked(id))
+    return { source: 'lines' as const, feature: restyleLine(feature, lens) }
   }
 
   /** Builds a way into the batch, once per build (`seen`): its outline, or its own feature */
@@ -862,6 +916,7 @@ export class FeatureBuilder {
       }
       const feature = areaFeature(id, polygons, tags, tagClasses(tags))
       markEdit(feature, this.editOf(id))
+      markReadOnly(feature, this.isLocked(id))
       out.areas.push(restyleArea(feature, lens))
     }
 

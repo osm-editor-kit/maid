@@ -11,7 +11,7 @@ import { EDIT_SOURCES, SELECT_SOURCES, SOURCES } from './layers'
 import { extentOf, orderPicks, PICK_LIMIT, type PickCandidate } from './pick-order'
 
 /** The map, the data and the level mode a pick reads: public members of the engine */
-type PickHost = Pick<MaidEngine, 'map' | 'data' | 'isOffLevel'>
+type PickHost = Pick<MaidEngine, 'map' | 'data' | 'isUnpickable'>
 
 const PRIORITY: Record<string, number> = {
   // the shape points of the selection are vertices like the others
@@ -46,11 +46,12 @@ export function pickFeature(
     ],
     { layers: layerIds },
   )
-  // a feature on another level than the one being edited is dimmed and cannot be picked (engine.setLevel)
+  // a feature on another level than the one being edited, or one a filter makes read-only, is faint and cannot be
+  // picked (engine.isUnpickable)
   return pickBest(
     features.filter((f) => {
       const id = featureId(f)
-      return id === undefined || (!skip?.has(id) && !engine.isOffLevel(id))
+      return id === undefined || (!skip?.has(id) && !engine.isUnpickable(id))
     }),
   )
 }
@@ -73,7 +74,7 @@ export function pickAllFeatures(
   const candidates = new Map<string, PickCandidate>()
   for (const f of features) {
     const id = featureId(f)
-    if (!id || engine.isOffLevel(id)) continue
+    if (!id || engine.isUnpickable(id)) continue
     // a feature drawn in more than one layer keeps the highest of its priorities, as pick does
     const priority = PRIORITY[f.source] ?? 9
     const known = candidates.get(id)

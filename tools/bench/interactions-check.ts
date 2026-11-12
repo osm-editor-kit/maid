@@ -1526,7 +1526,7 @@ failed += await runCheck(
   true,
 )
 
-// --- a building that a filter protects: its menu opens with the commands greyed out and the reason ---
+// --- a building that a filter protects: a right click passes it by ---
 failed += await runCheck(
   process.argv[2] ?? 'small',
   async ({ page, report, settle }) => {
@@ -1551,16 +1551,16 @@ failed += await runCheck(
     }
     await page.mouse.click(edge.x, edge.y, { button: 'right' })
     await settle()
-    const menu = page.getByRole('menu', { name: 'Edit' })
-    const first = menu.getByRole('menuitem').first()
+    // a read-only feature is context: drawn faint, and a click or a right click passes it by (Tobias, 2026-11-12)
     report(
-      'right click on a protected building: the menu opens, commands greyed out with the reason',
-      [1, true, 'A filter protects this feature', [edge.id]],
+      'right click on a protected building: it is passed by, nothing is selected and no menu is about it',
+      [[], 0],
       [
-        await menu.count(),
-        await first.isDisabled(),
-        await first.getAttribute('title'),
         await page.evaluate(() => [...window.__maid.engine.selection]),
+        await page
+          .getByRole('menu', { name: 'Edit' })
+          .getByRole('menuitem', { disabled: true })
+          .count(),
       ],
     )
   },

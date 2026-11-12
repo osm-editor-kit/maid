@@ -151,7 +151,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   validation: { maid: 8, bicycle: 8, parking: 8, indoor: 8, lanes: 8, golf: 8, climbing: 8 },
   'close-nodes': { maid: 8, bicycle: 8, parking: 8, indoor: 8, lanes: 8, golf: 8, climbing: 8 },
   journal: { maid: 17, bicycle: 17, parking: 17, indoor: 17, lanes: 17, golf: 17, climbing: 17 },
-  filters: { maid: 19, bicycle: 19, parking: 19, indoor: 19, lanes: 0, golf: 0, climbing: 19 },
+  filters: { maid: 21, bicycle: 21, parking: 21, indoor: 21, lanes: 0, golf: 0, climbing: 21 },
   tags: { maid: 23, bicycle: 23, parking: 23, indoor: 23, lanes: 23, golf: 23, climbing: 23 },
   multi: { maid: 11, bicycle: 11, parking: 11, indoor: 11, lanes: 11, golf: 11, climbing: 11 },
   'relations-scene': {
