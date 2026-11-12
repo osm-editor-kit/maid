@@ -235,6 +235,7 @@
   "issues_empty_quiet": "Aucun problème dans vos modifications. Les objets sélectionnés sont vérifiés aussi ; leurs problèmes dans les données existantes restent discrets.",
   "issues_empty_session": "Aucun problème dans vos modifications ni dans la sélection.",
   "issues_title": "Problèmes",
+  "issues_close_points_map": "Points très proches",
   "issues_severity_error": "Erreur",
   "issues_severity_warning": "Avertissement",
   "relations_section_members": "Membres",

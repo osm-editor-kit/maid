@@ -633,7 +633,10 @@ export class MaidEngine {
     this.sender.scheduleFlush(channel)
   }
 
-  /** Only the selection is drawn, at any zoom, and the data is hidden (layers.ts `selectionOnly`). Per visit. */
+  /**
+   * Only the selection is drawn, at any zoom, and the data is hidden (layers.ts `selectionOnly`). Per visit. No control
+   * sets it since its top bar button went (Tobias, 2026-11-12); kept for a module or a check that needs it.
+   */
   get selectionOnly() {
     return this.selectionOnlyShown
   }

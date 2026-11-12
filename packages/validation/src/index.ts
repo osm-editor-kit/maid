@@ -3,6 +3,7 @@
 
 import { almostJunction } from './rules/almost-junction.ts'
 import { boundaryNotClosed } from './rules/boundary-not-closed.ts'
+import { closeNodes } from './rules/close-nodes.ts'
 import { crossingWays } from './rules/crossing-ways.ts'
 import { disconnectedWay } from './rules/disconnected-way.ts'
 import { impossibleOneway } from './rules/impossible-oneway.ts'
@@ -46,6 +47,7 @@ export type { TagDiff } from './rules/outdated-tags.ts'
 export { osmApiLimits } from './rules/osm-api-limits.ts'
 export { privateData } from './rules/private-data.ts'
 export { boundaryNotClosed } from './rules/boundary-not-closed.ts'
+export { closeNodes, closeNodesThresholdMeters } from './rules/close-nodes.ts'
 export { restrictionBroken } from './rules/restriction-broken.ts'
 export { routeGap, routeJoins } from './rules/route-gap.ts'
 export { relationMembers } from './rules/relation-members.ts'
@@ -79,5 +81,7 @@ export const defaultRules: Rule[] = [
   boundaryNotClosed,
   // a turn restriction whose from or to way does not touch the via: a fix only when a from or to way was deleted
   restrictionBroken,
+  // two consecutive points of a way very close together: a warning with "Merge these points", also marked on the map
+  closeNodes,
   osmApiLimits,
 ]

@@ -30,9 +30,13 @@ export const ROW_CURRENT =
 const RING = 'ring-2 ring-inset ring-blue-500'
 export const ROW_ACTIVE = `bg-zinc-950/5 dark:bg-white/10 ${RING}`
 
-/** The key-focus look of a row that is a real button or menu item (focus moves, no aria-activedescendant) */
+/**
+ * The key-focus look of a row that is a real button or menu item (focus moves, no aria-activedescendant). Only once a
+ * keyboard is known (`keys:`, shell's styles.css): a menu that focuses its first row on a phone or an iPad without a
+ * keyboard would otherwise mark a row that no key can move.
+ */
 export const ROW_FOCUS =
-  'focus:bg-zinc-950/5 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:focus:bg-white/10'
+  'focus:outline-none keys:focus:bg-zinc-950/5 keys:focus:ring-2 keys:focus:ring-inset keys:focus:ring-blue-500 dark:keys:focus:bg-white/10'
 
 /** The classes of a row's outer element for its state */
 export function listRow(state: { current?: boolean; active?: boolean }): string {

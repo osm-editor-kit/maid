@@ -9,6 +9,8 @@ import {
   extrudeApplies,
   extrudeWayOf,
   sidesOf,
+  snapDistance,
+  snapTargets,
   type ExtrudeWay,
   type Side,
 } from './extrude.ts'
@@ -203,5 +205,57 @@ describe('extrudeAction', () => {
     expect(rel(w, p)).toEqual({ x: 10, y: -5 })
     // the graph it ran on is unchanged
     expect((graph.entity('w1') as OsmWay).nodes.length).toBe(7)
+  })
+})
+
+describe('snapping', () => {
+  /** An L: n1 (0,0), n2 (20,0), n3 (20,10), n4 (10,10), n5 (10,30), n6 (0,30); a lot x1-x4 to the east, 12 m north */
+  function lGraph() {
+    return graphOf(
+      node('n1', 0, 0),
+      node('n2', 20, 0),
+      node('n3', 20, 10),
+      node('n4', 10, 10),
+      node('n5', 10, 30),
+      node('n6', 0, 30),
+      node('x1', 30, 0),
+      node('x2', 40, 0),
+      node('x3', 40, 12),
+      node('x4', 30, 12),
+      node('far', 500, 0),
+      way('w1', ['n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n1'], { building: 'yes' }),
+      way('w2', ['x1', 'x2', 'x3', 'x4', 'x1'], { amenity: 'parking' }),
+    )
+  }
+
+  it('takes the corners of the way and of features nearby, without the side and what is far away', () => {
+    const graph = lGraph()
+    const w = wayOf(graph)
+    const targets = snapTargets(graph, w, sideOf(w, 'n3', 'n4'))
+    // n1, n2, n5, n6 of the way and x1 to x4: not n3 and n4 (the side), not `far`
+    expect(targets.length).toBe(8)
+  })
+
+  it('puts the pulled side through a corner within the tolerance', () => {
+    const graph = lGraph()
+    const w = wayOf(graph)
+    const side = sideOf(w, 'n3', 'n4')
+    // the side n3-n4 is at y = 10, its outside is north: x3 and x4 are 2 m out
+    const targets = snapTargets(graph, w, side)
+    const snapped = snapDistance(w, side, 2.4, targets, 0.5)
+    expect(snapped.distance).toBeCloseTo(2, 6)
+    expect(rel(w, snapped.target!)).toMatchObject({ y: 12 })
+    // too far from any corner: the pointer's distance stays
+    expect(snapDistance(w, side, 5, targets, 0.5)).toEqual({ distance: 5 })
+  })
+
+  it('does not snap back onto the side itself', () => {
+    const graph = lGraph()
+    const w = wayOf(graph)
+    const side = sideOf(w, 'n2', 'n3')
+    // n1 lies on the line of n2-n3's neighbour, not on n2-n3; x1 and x4 are 10 m east of n2-n3 (x = 20)
+    const targets = snapTargets(graph, w, side)
+    expect(snapDistance(w, side, 0.2, targets, 0.5)).toEqual({ distance: 0.2 })
+    expect(snapDistance(w, side, 9.7, targets, 0.5).distance).toBeCloseTo(10, 3)
   })
 })

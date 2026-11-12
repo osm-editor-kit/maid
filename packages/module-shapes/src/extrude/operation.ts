@@ -27,7 +27,10 @@ export const extrudeOperation: Operation = {
   icon: 'fas-chevron-circle-up',
   shortcut: 'j',
   group: 'position',
-  hints: () => [{ keys: 'Shift', text: m.extrude_hint_move() }],
+  hints: () => [
+    { keys: 'Shift', text: m.extrude_hint_move() },
+    { keys: 'Alt', text: m.extrude_hint_free() },
+  ],
   applies: (context: OperationContext) => extrudeApplies(context.graph, context.selected),
   disabled: (context) => {
     if (isTooLargeToEdit(context, context.selected)) return m.extrude_refused_too_large()

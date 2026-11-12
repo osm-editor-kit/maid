@@ -103,12 +103,13 @@
       "declarations": ["input input"],
       "selectors": ["input"],
       "match": {
-        "input=touch": "Ziehe den Punkt auf einer Seite, um sie heraus- oder hineinzuziehen. Tippe auf den Umriss, um eine Ecke zu setzen. Tippe auf Fertig, wenn du fertig bist.",
-        "input=*": "Ziehe den Punkt auf einer Seite, um sie heraus- oder hineinzuziehen. Klicke auf den Umriss, um eine Ecke zu setzen. Enter, Escape oder ein Klick daneben beendet."
+        "input=touch": "Ziehe einen Griff, um seine Seite heraus- oder hineinzuziehen; sie rastet an Ecken in der Nähe ein. Für nur einen Teil einer Seite tippe zuerst zweimal auf den Umriss: Das Stück dazwischen bekommt einen eigenen Griff. Tippe auf Fertig, wenn du fertig bist.",
+        "input=*": "Ziehe einen Griff, um seine Seite heraus- oder hineinzuziehen; sie rastet an Ecken in der Nähe ein. Für nur einen Teil einer Seite klicke zuerst zweimal auf den Umriss: Das Stück dazwischen bekommt einen eigenen Griff. Enter, Escape oder ein Klick daneben beendet."
       }
     }
   ],
   "extrude_hint_move": "Seite verschieben",
+  "extrude_hint_free": "Ohne Einrasten",
   "extrude_out": "{distance} heraus",
   "extrude_in": "{distance} hinein",
   "extrude_done": "Fertig",

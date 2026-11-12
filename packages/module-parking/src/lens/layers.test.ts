@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { DIM_OPACITY, lensStyle } from '@osm-editor-kit/maid-style'
 import { arrowPixels, ARROW_HEIGHT, ARROW_WIDTH } from './arrow-image.ts'
 import { areaCategory, CATEGORIES, hasSideTags, sideCategory } from './categories.ts'
 import { PARKING_LAYERS, SIDE_CASING_WIDTH, SIDE_WIDTH, sideOffset } from './layers.ts'
@@ -60,6 +61,7 @@ describe('colours', () => {
       'Parked, no further tags',
       'No parking on this side',
       'Not mapped (dashed)',
+      'Buildings (as without a map style)',
     ])
   })
 })
@@ -180,11 +182,16 @@ describe('categories', () => {
 })
 
 describe('the lens', () => {
-  test('a parking lens for lines and areas, dimming the rest, roads kept as they are', () => {
+  test('a parking lens for lines and areas, dimming the rest, buildings and roads kept as they are', () => {
     expect(parkingLens.id).toBe('parking')
     expect(parkingLens.rest).toBe('dim')
     expect(parkingLens.geometry).toEqual(['line', 'area'])
     expect(parkingLens.rules.at(-1)).toEqual({ match: { highway: true }, opacity: 1 })
+    const building = parkingLens.rules.at(-2)
+    expect(building?.match).toEqual({ building: true })
+    expect(building?.opacity).toBe(1)
+    expect(lensStyle(parkingLens, { building: 'house' }, 'area')).toEqual({ opacity: 1 })
+    expect(lensStyle(parkingLens, { landuse: 'grass' }, 'area')).toEqual({ opacity: DIM_OPACITY })
   })
 })
 

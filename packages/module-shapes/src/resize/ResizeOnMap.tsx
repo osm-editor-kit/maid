@@ -8,6 +8,7 @@ import { formatModifiers, isApplePlatform } from '@osm-editor-kit/maid-ui'
 import type { FeatureCollection } from 'geojson'
 import { Layer, type LayerProps, Source } from 'react-map-gl/maplibre'
 import { formatNumber, m } from '../messages.ts'
+import { CORNER_IMAGE, GRIP_IMAGE, useHandleImages } from '../shared/handle-images.ts'
 import { keepFromMap } from '../shared/keep-from-map.ts'
 import { heightOf, widthOf } from './box.ts'
 import { applyResize, MODE_ID } from './mode.ts'
@@ -21,8 +22,6 @@ import {
 import { movesFor } from './resize.ts'
 import {
   boxShapes,
-  CORNER_RADIUS,
-  EDGE_RADIUS,
   HANDLE_HIT_LAYER,
   HANDLE_HIT_RADIUS,
   HANDLE_LAYER,
@@ -78,14 +77,16 @@ const LAYERS = [
     paint: { 'text-color': '#ffffff', 'text-halo-color': COLOUR, 'text-halo-width': 2 },
   } satisfies LayerProps,
   {
+    // squares at the corners and grips on the edges, as Extrude's: round dots are nodes (shared/handle-images.ts)
     id: HANDLE_LAYER,
-    type: 'circle',
+    type: 'symbol',
     filter: ['in', ['get', 'kind'], ['literal', ['corner', 'edge']]],
-    paint: {
-      'circle-radius': ['case', ['==', ['get', 'kind'], 'corner'], CORNER_RADIUS, EDGE_RADIUS],
-      'circle-color': '#ffffff',
-      'circle-stroke-color': COLOUR,
-      'circle-stroke-width': 2,
+    layout: {
+      'icon-image': ['case', ['==', ['get', 'kind'], 'corner'], CORNER_IMAGE, GRIP_IMAGE],
+      'icon-rotate': ['get', 'rotate'],
+      'icon-rotation-alignment': 'map',
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
     },
   } satisfies LayerProps,
   {
@@ -114,6 +115,7 @@ function Toggle(props: { label: string; keys: string; pressed: boolean; onToggle
 }
 
 export function ResizeOnMap({ editor, engine }: MapContentProps) {
+  useHandleImages()
   const box = useResizeBox()
   const extent = useResizeExtent()
   const preview = useResizePreview()

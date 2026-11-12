@@ -103,12 +103,13 @@
       "declarations": ["input input"],
       "selectors": ["input"],
       "match": {
-        "input=touch": "Arrastra el punto de un lado para sacarlo o meterlo. Toca el contorno para añadir una esquina. Toca Hecho para terminar.",
-        "input=*": "Arrastra el punto de un lado para sacarlo o meterlo. Haz clic en el contorno para añadir una esquina. Intro, Escape o un clic fuera termina."
+        "input=touch": "Arrastra un asa para sacar o meter su lado; se alinea con las esquinas cercanas. Para mover solo una parte de un lado, toca antes dos veces el contorno: la parte entre ambos toques tiene su propia asa. Toca Hecho para terminar.",
+        "input=*": "Arrastra un asa para sacar o meter su lado; se alinea con las esquinas cercanas. Para mover solo una parte de un lado, haz antes dos clics en el contorno: la parte entre ambos tiene su propia asa. Intro, Escape o un clic fuera termina."
       }
     }
   ],
   "extrude_hint_move": "Mover el lado",
+  "extrude_hint_free": "Sin alinear",
   "extrude_out": "{distance} hacia fuera",
   "extrude_in": "{distance} hacia dentro",
   "extrude_done": "Hecho",

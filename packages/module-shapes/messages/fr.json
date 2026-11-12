@@ -103,12 +103,13 @@
       "declarations": ["input input"],
       "selectors": ["input"],
       "match": {
-        "input=touch": "Faites glisser le point d’un côté pour le tirer vers l’extérieur ou l’intérieur. Touchez le contour pour ajouter un coin. Touchez Terminé pour finir.",
-        "input=*": "Faites glisser le point d’un côté pour le tirer vers l’extérieur ou l’intérieur. Cliquez sur le contour pour ajouter un coin. Entrée, Échap ou un clic à côté termine."
+        "input=touch": "Faites glisser une poignée pour tirer son côté vers l’extérieur ou l’intérieur ; il s’aligne sur les coins proches. Pour ne tirer qu’une partie d’un côté, touchez d’abord deux fois le contour : la partie entre les deux a sa propre poignée. Touchez Terminé pour finir.",
+        "input=*": "Faites glisser une poignée pour tirer son côté vers l’extérieur ou l’intérieur ; il s’aligne sur les coins proches. Pour ne tirer qu’une partie d’un côté, cliquez d’abord deux fois sur le contour : la partie entre les deux a sa propre poignée. Entrée, Échap ou un clic à côté termine."
       }
     }
   ],
   "extrude_hint_move": "Déplacer le côté",
+  "extrude_hint_free": "Sans alignement",
   "extrude_out": "{distance} vers l’extérieur",
   "extrude_in": "{distance} vers l’intérieur",
   "extrude_done": "Terminé",

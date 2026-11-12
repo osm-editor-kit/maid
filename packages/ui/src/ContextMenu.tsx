@@ -123,7 +123,7 @@ export function ContextMenu(props: {
       const active = document.activeElement
       const lost = !active || active === document.body || element?.contains(active)
       if (lost && opener instanceof HTMLElement && opener !== document.body && opener.isConnected)
-        opener.focus()
+        opener.focus({ preventScroll: true })
     }
   }, [])
   // Opening moves the focus into the menu. It is not moved on every render: the menu re-renders
@@ -137,7 +137,11 @@ export function ContextMenu(props: {
     const current = menu.current?.querySelector<HTMLButtonElement>(
       'button[aria-current="true"]:enabled',
     )
-    ;(current ?? menu.current?.querySelector<HTMLButtonElement>('button:enabled'))?.focus()
+    // without a scroll: the menu is fixed and placed inside the window, and a focus that scrolls moves the whole
+    // page on iOS, which stays shifted (page-pin.ts)
+    ;(current ?? menu.current?.querySelector<HTMLButtonElement>('button:enabled'))?.focus({
+      preventScroll: true,
+    })
   }, [currentIndex])
   useEffect(() => {
     const element = frame.current
@@ -152,7 +156,8 @@ export function ContextMenu(props: {
   const onKeyDown = (event: KeyboardEvent) => {
     const buttons = [...(menu.current?.querySelectorAll<HTMLButtonElement>('button:enabled') ?? [])]
     const current = buttons.findIndex((button) => button === document.activeElement)
-    const focus = (index: number) => buttons[(index + buttons.length) % buttons.length]?.focus()
+    const focus = (index: number) =>
+      buttons[(index + buttons.length) % buttons.length]?.focus({ preventScroll: true })
     switch (event.key) {
       case 'Escape':
         onClose()

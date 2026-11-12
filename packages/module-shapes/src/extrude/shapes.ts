@@ -3,7 +3,9 @@
  * distance next to the pulled side, plus the names of the layers that draw them. Pure: no map, no editor.
  */
 import type { Feature, FeatureCollection } from 'geojson'
+import { gripRotation } from '../shared/handle-images.ts'
 import { toLoc } from '../shared/metres.ts'
+import { distance } from '../shared/vector.ts'
 import type { ExtrudePull } from './extrude-store.ts'
 import { previewLocs, type ExtrudeWay, type Side } from './extrude.ts'
 
@@ -13,7 +15,6 @@ export const HANDLE_LAYER = 'extrude-handle'
 /** The invisible layer over the handles: a press within HANDLE_HIT_RADIUS pixels takes the handle, for a finger too */
 export const HANDLE_HIT_LAYER = 'extrude-handle-hit'
 export const HANDLE_HIT_LAYERS: readonly string[] = [HANDLE_HIT_LAYER]
-export const HANDLE_RADIUS = 5
 export const HANDLE_HIT_RADIUS = 14
 
 const PREFIX = 'extrude:'
@@ -32,7 +33,8 @@ export function sideIndexOf(name: string): number | undefined {
 
 /**
  * What the map draws: with no pull, a handle on each side; during a pull, the way as it would be (a line, an area also
- * as a fill), a handle on the pulled side where it is now, and the distance next to it.
+ * as a fill), a handle on the pulled side where it is now, the distance at it, and when the side snapped a guide from
+ * the corner it lines up with to the nearer end of the side.
  * @param   way   - The way in metres
  * @param   sides - Its sides
  * @param   pull  - The pull under way, if any
@@ -48,7 +50,8 @@ export function extrudeShapes(
   const features: Feature[] = []
   const handle = (side: Side, at: { x: number; y: number }): Feature => ({
     type: 'Feature',
-    properties: { kind: 'handle', handle: handleName(side) },
+    // the grip lies along its side
+    properties: { kind: 'handle', handle: handleName(side), rotate: gripRotation(side.dir) },
     geometry: { type: 'Point', coordinates: toLoc(way.frame, at) },
   })
   if (!pull) {
@@ -70,22 +73,23 @@ export function extrudeShapes(
   const [a, b] = pull.result.side
   const middle = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
   features.push(handle(pull.side, middle))
-  if (label !== undefined) {
-    // the label a little beyond the side, on the side it moved to, so the handle does not cover it
-    const away = pull.distance < 0 ? -1 : 1
-    const n = pull.side.normal
-    const offset = Math.max(1.5, Math.min(4, pull.side.length / 4))
+  if (pull.target) {
+    const near = distance(pull.target, a) <= distance(pull.target, b) ? a : b
     features.push({
       type: 'Feature',
-      properties: { kind: 'distance', label },
+      properties: { kind: 'guide' },
       geometry: {
-        type: 'Point',
-        coordinates: toLoc(way.frame, {
-          x: middle.x + n.x * offset * away,
-          y: middle.y + n.y * offset * away,
-        }),
+        type: 'LineString',
+        coordinates: [toLoc(way.frame, pull.target), toLoc(way.frame, near)],
       },
     })
   }
+  // the label at the handle; the layer moves it a little below, in pixels, so it stays close at every zoom
+  if (label !== undefined)
+    features.push({
+      type: 'Feature',
+      properties: { kind: 'distance', label },
+      geometry: { type: 'Point', coordinates: toLoc(way.frame, middle) },
+    })
   return { type: 'FeatureCollection', features }
 }

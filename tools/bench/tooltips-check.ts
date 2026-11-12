@@ -57,7 +57,6 @@ let failed = await runCheck(
     const button = (name: string | RegExp) =>
       page.getByRole('button', typeof name === 'string' ? { name, exact: true } : { name }).first()
     const search = button('Search')
-    const selection = button('Show only the selection')
     const filters = button('Filters')
     const save = button('Save')
     const point = button(/^Add a point/)
@@ -78,8 +77,9 @@ let failed = await runCheck(
       first,
     )
 
-    // another button of the group: the same box, the new label, at once (the delay is not run again)
-    await pointAt(page, selection)
+    // the last button of the group, after another: the same box, its label at once (the delay is not run again). Save
+    // is not there while logged out (automation never logs in), as "Log in" takes its place
+    await pointAt(page, filters)
     await page.waitForTimeout(40)
     const moved = await readTooltip(page)
     const sameBox = await page.evaluate(() => {
@@ -87,23 +87,9 @@ let failed = await runCheck(
       return box !== null && box === (window as unknown as { __tip: Element | null }).__tip
     })
     report(
-      'move to another button: the same tooltip shows its label at once',
-      { count: 1, label: 'Show only the selection', kbd: null, kbdTag: null, same: true },
-      { ...moved, same: sameBox },
-    )
-
-    // the last button of the group, after another: its label at once. Save is not there while logged out (automation
-    // never logs in), as "Log in" takes its place
-    await pointAt(page, filters)
-    await page.waitForTimeout(40)
-    report(
-      'move to the Filters button: its label at once, and no Save button while logged out',
-      { count: 1, label: 'Filters', save: 0 },
-      {
-        count: (await readTooltip(page)).count,
-        label: (await readTooltip(page)).label,
-        save: await save.count(),
-      },
+      'move to the Filters button: the same tooltip shows its label at once, and no Save button while logged out',
+      { count: 1, label: 'Filters', kbd: null, kbdTag: null, same: true, save: 0 },
+      { ...moved, same: sameBox, save: await save.count() },
     )
 
     // the tool row is a group of its own: the first tool waits for the delay, and shows its key
