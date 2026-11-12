@@ -1,9 +1,11 @@
 {
-  "compared": "Compared with Maid",
-  "features": [
-    "Parking editor: a restriction field, quick buttons, the parking on each side of the street on the map, a parking lens and rules",
-    "Drawing tools: right angles with Shift and segment lengths, rectangles, merge two areas, cut an area along a line, divide it into rows of parking spaces, resize the selection",
-    "German by default",
-    "Leaves out turn restrictions and the surface photos"
-  ]
+  "tagline": "Street-side parking",
+  "description": "Maps the parking on both sides of every street, the way the Berlin parking project does it. German by default.",
+  "highlights": [
+    "Quick buttons per street side and a restriction field with conditions",
+    "The parking of each side on the map, a parking lens and nine rules",
+    "Drawing tools: right angles, rectangles, merge, cut, divide, resize, extrude",
+    "An area divided into rows of parking spaces"
+  ],
+  "open": "map=18.5/52.49129/13.42547&id=w4495005"
 }
