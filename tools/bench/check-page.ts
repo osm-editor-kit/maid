@@ -4,6 +4,7 @@
  * sources.
  */
 import { chromium, type Page } from '@playwright/test'
+import { defaultFilters } from '../../packages/filters/src/index'
 import { EDIT_SOURCES, SOURCES } from '../../packages/renderer/src/layers'
 import { getScene } from '../fixtures/scenes'
 import { PORTS } from '../ports'
@@ -15,6 +16,14 @@ import { noBackground } from './no-background'
  * loads, so it runs before any check reads `process.argv` (see args.ts).
  */
 export const app = takeApp()
+
+/**
+ * Apps whose config starts with other filter states than the default ones (Maid Lanes shows points
+ * and buildings read-only). A check that edits those objects would fail there, so it gets the
+ * default states in the URL unless it sets `filters=` itself or asks for the app's own states.
+ */
+const FOCUSED_APPS: readonly string[] = ['lanes']
+const DEFAULT_FILTER_PARAM = `filters=${defaultFilters.map((f) => `${f.id}:${f.state}`).join(',')}`
 
 export type Check = {
   page: Page
@@ -36,8 +45,14 @@ export async function runCheck(
   hasTouch = false,
   /** Browser permissions the page gets, e.g. `clipboard-read` for a paste check. None by default. */
   permissions: string[] = [],
+  /** Keep the app's own filter states, for a check of those (see FOCUSED_APPS) */
+  appFilters = false,
 ): Promise<number> {
   const scene = getScene(sceneName)
+  const filterParam =
+    FOCUSED_APPS.includes(app) && !appFilters && !query.includes('filters=')
+      ? `&${DEFAULT_FILTER_PARAM}`
+      : ''
   console.log(`app ${app} on port ${APPS[app].port}`)
   const browser = await chromium.launch({ channel: 'chrome', headless: true })
   let failed = 0
@@ -82,7 +97,7 @@ export async function runCheck(
     // a query that starts with # goes into the hash, as iD's links have it; the background stays off (noBackground)
     await page.goto(
       noBackground(
-        `http://localhost:${APPS[app].port}/?scene=${sceneName}${query && !query.startsWith('#') ? `&${query}` : ''}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}${query.startsWith('#') ? `&${query.slice(1)}` : ''}`,
+        `http://localhost:${APPS[app].port}/?scene=${sceneName}${filterParam}${query && !query.startsWith('#') ? `&${query}` : ''}#map=${scene.zoom}/${scene.center[1]}/${scene.center[0]}${query.startsWith('#') ? `&${query.slice(1)}` : ''}`,
       ),
     )
     await page.waitForFunction(() => window.__bench !== undefined, undefined, {

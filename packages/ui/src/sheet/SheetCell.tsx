@@ -1,3 +1,4 @@
+import { ChevronDownIcon } from '@heroicons/react/16/solid'
 import { m } from '@osm-editor-kit/maid-i18n'
 import { memo, useId, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { PLAIN_INPUT } from '../plain-input.ts'
@@ -20,6 +21,8 @@ export type SheetCellProps = {
   edges: number
   readOnly: boolean
   tabIndex: number
+  /** Opened with the list button: all suggestions are listed until the text changes */
+  browsing?: boolean
 }
 
 /**
@@ -30,11 +33,23 @@ export type SheetCellProps = {
  *
  * A column with `suggest` shows its list while the cell is edited (SuggestList). Arrows move the highlight; Enter
  * and Tab take the highlighted item into the input and then let the grid commit as usual; Escape closes the list
- * and stops there, so the cell stays in edit mode.
+ * and stops there, so the cell stays in edit mode. Such a cell also has a list button at its end (a chevron, as a
+ * select has): a press opens the cell with all of its suggestions, as if nothing were typed; typing filters again.
  */
 export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
-  const { row, column, data, trailing, active, editing, selected, edges, readOnly, tabIndex } =
-    props
+  const {
+    row,
+    column,
+    data,
+    trailing,
+    active,
+    editing,
+    selected,
+    edges,
+    readOnly,
+    tabIndex,
+    browsing = false,
+  } = props
   const committed = data?.value.kind === 'value' ? data.value.text : ''
   const mixed = data?.value.kind === 'mixed' ? data.value.values : undefined
   const [draft, setDraft] = useState<string | null>(null)
@@ -44,14 +59,16 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
   const messageId = useId()
   const listId = useId()
   const [anchor, setAnchor] = useState<HTMLTextAreaElement | null>(null)
+  const suggest = data?.noSuggestions === true ? undefined : column.suggest
   const suggestions = useSuggestions({
     enabled: editing,
-    suggest: column.suggest,
+    suggest,
     delay: column.suggestDelay ?? 0,
     cellRow: row.id,
     cellCol: column.id,
     row,
-    text: value,
+    // opened with the list button and nothing typed yet: all suggestions, not only those that fit the value
+    text: browsing && draft === null ? '' : value,
   })
   const optionId = (index: number) => `${listId}-${index}`
   // The host's message wins; else the column's check of what is shown (the draft while it is edited).
@@ -105,9 +122,9 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
         readOnly={!editing}
         tabIndex={tabIndex}
         spellCheck={false}
-        role={column.suggest !== undefined ? 'combobox' : undefined}
-        aria-autocomplete={column.suggest !== undefined ? 'list' : undefined}
-        aria-expanded={column.suggest !== undefined ? listShown : undefined}
+        role={suggest !== undefined ? 'combobox' : undefined}
+        aria-autocomplete={suggest !== undefined ? 'list' : undefined}
+        aria-expanded={suggest !== undefined ? listShown : undefined}
         aria-controls={listShown ? listId : undefined}
         aria-activedescendant={
           listShown && suggestions.highlighted >= 0 ? optionId(suggestions.highlighted) : undefined
@@ -126,14 +143,26 @@ export const SheetCell = memo(function SheetCell(props: SheetCellProps) {
         onBlur={(event) => {
           event.currentTarget.scrollTop = 0
         }}
-        className={inputClassName({
+        className={`${inputClassName({
           mono: column.mono === true,
           tone,
           mixed: mixed !== undefined,
           editing,
           open,
-        })}
+        })}${suggest !== undefined && !readOnly ? ' pr-6' : ''}`}
       />
+      {suggest !== undefined && !readOnly ? (
+        <button
+          type="button"
+          tabIndex={-1}
+          data-suggest-button=""
+          aria-label={m.ui_cell_suggestions({ column: column.header, row: row.label })}
+          title={m.ui_cell_suggestions({ column: column.header, row: row.label })}
+          className="absolute top-1 right-0.5 inline-flex size-5 items-center justify-center rounded text-zinc-400 hover:bg-zinc-950/5 hover:text-zinc-700 dark:text-zinc-500 dark:hover:bg-white/10 dark:hover:text-zinc-200"
+        >
+          <ChevronDownIcon className="size-4" aria-hidden="true" />
+        </button>
+      ) : null}
       {invalid !== undefined ? (
         <span id={messageId} className="sr-only">
           {invalid}

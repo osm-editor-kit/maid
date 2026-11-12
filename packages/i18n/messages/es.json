@@ -522,6 +522,7 @@
   "ui_dock_expand": "Expandir el panel",
   "ui_cell_label": "{column} de {row}",
   "ui_cell_mixed": "{count} valores distintos",
+  "ui_cell_suggestions": "Mostrar las sugerencias para {column} de {row}",
   "ui_search_fields": "Buscar campos",
   "ui_no_field_matches": "Ningún campo coincide",
   "ui_fields_to_add": "Campos para añadir",

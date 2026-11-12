@@ -168,6 +168,7 @@ export type {
   SheetColumn,
   SheetProps,
   SheetRow,
+  SheetSuggestion,
 } from './sheet/types.ts'
 export { WikiContext } from './inspector/fields/wiki-context.ts'
 export { createWikiSource, type WikiSource } from './inspector/fields/wiki-service.ts'

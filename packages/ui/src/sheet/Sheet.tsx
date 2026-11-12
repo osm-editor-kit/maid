@@ -60,6 +60,8 @@ type Track = {
   moved: boolean
   last?: CellRef
   lastRow?: RowId
+  /** The press was on a cell's list button: the click opens the cell with all of its suggestions */
+  browse?: boolean
 }
 type StatusInfo = { text: string; refused: PasteReport['refused'] }
 
@@ -143,6 +145,8 @@ export function Sheet(props: SheetProps) {
   const [mintRowId] = useState(newRowIds)
   const [status, setStatus] = useState<StatusInfo>()
   const [draftNote, setDraftNote] = useState<string>()
+  /** The cell opened with its list button: it lists all suggestions until something is typed */
+  const [browsing, setBrowsing] = useState<CellRef | null>(null)
   const [seenNote, setSeenNote] = useState(note)
   const grid = useRef<HTMLDivElement>(null)
   const pendingFocus = useRef<CellRef | null>(null)
@@ -492,13 +496,16 @@ export function Sheet(props: SheetProps) {
       event.preventDefault()
       cellInput(grid.current, cell)?.focus({ preventScroll: true })
     }
+    const browse = target.closest('[data-suggest-button]') !== null
     track.current = {
       kind: event.pointerType,
       cell,
       last: cell,
-      wasActive: sameCell(base.active, cell) && base.mode === 'navigate',
+      // the list button opens the cell at once, whether it was active or not
+      wasActive: browse || (sameCell(base.active, cell) && base.mode === 'navigate'),
       shift: event.shiftKey,
       moved: false,
+      browse,
     }
     setState(sheetReducer(base, { type: 'activate', cell, extend: event.shiftKey }, shape))
     listen()
@@ -514,6 +521,7 @@ export function Sheet(props: SheetProps) {
     const input = cellInput(grid.current, current.cell)
     if (input === null) return
     input.focus({ preventScroll: true })
+    setBrowsing(current.browse === true ? current.cell : null)
     beginEdit(input, 'keep')
   }
 
@@ -579,9 +587,10 @@ export function Sheet(props: SheetProps) {
             <div
               key={column.id}
               role="columnheader"
-              className="flex h-6 min-w-0 items-center border-r border-b border-zinc-950/10 px-2 text-xs font-medium text-zinc-500 dark:border-white/10 dark:text-zinc-400"
+              aria-label={column.headerContent !== undefined ? column.header : undefined}
+              className="flex min-h-6 min-w-0 items-center border-r border-b border-zinc-950/10 px-2 text-xs font-medium text-zinc-500 dark:border-white/10 dark:text-zinc-400"
             >
-              {column.header}
+              {column.headerContent ?? column.header}
             </div>
           ))}
         </div>
@@ -636,6 +645,7 @@ export function Sheet(props: SheetProps) {
                       edges={selected && rect !== undefined ? rangeEdges(r, c, rect) : 0}
                       readOnly={shape.readOnly(ref)}
                       tabIndex={sameCell(tabStop, ref) ? 0 : -1}
+                      browsing={sameCell(browsing, ref)}
                     />
                   )
                 })}

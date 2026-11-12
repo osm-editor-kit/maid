@@ -522,6 +522,7 @@
   "ui_dock_expand": "Bereich ausklappen",
   "ui_cell_label": "{column} von {row}",
   "ui_cell_mixed": "{count} verschiedene Werte",
+  "ui_cell_suggestions": "Vorschläge für {column} von {row} zeigen",
   "ui_search_fields": "Felder suchen",
   "ui_no_field_matches": "Kein Feld passt",
   "ui_fields_to_add": "Felder zum Hinzufügen",

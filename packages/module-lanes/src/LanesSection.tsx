@@ -6,11 +6,17 @@
  */
 import type { Editor } from '@osm-editor-kit/maid-core'
 import { actionChangeTags } from '@osm-editor-kit/maid-model'
-import type { InspectorSectionProps } from '@osm-editor-kit/maid-ui'
+import {
+  Sheet,
+  type InspectorSectionProps,
+  type SheetColumn,
+  type SheetRow,
+  type SheetSuggestion,
+} from '@osm-editor-kit/maid-ui'
 import type { Rule, RuleContext } from '@osm-editor-kit/maid-validation'
 import { formatLaneSlotId } from '@osm-editor-kit/osm-lane-diagram'
 import type { LaneDirection } from '@osm-editor-kit/osm-lanes'
-import { useEffect, useSyncExternalStore, type KeyboardEvent } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 import { LaneDiagram } from './diagram/LaneDiagram.tsx'
 import {
   addLane,
@@ -93,8 +99,21 @@ function columnsOf(counts: Record<LaneDirection, number>): Column[] {
   ]
 }
 
-const CELL =
-  'h-7 w-full min-w-20 rounded border border-zinc-950/10 bg-white px-1 text-xs text-zinc-950 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-white/10 dark:bg-zinc-950 dark:text-white dark:[color-scheme:dark]'
+/**
+ * The values offered for a cell of the lane table, by its row: the list of the row, the turn values with their arrow.
+ * The list button of a cell shows them all; typing keeps those that contain the text.
+ */
+function suggestFor(context: { row: { id: string }; text: string }): SheetSuggestion[] {
+  const values = ROWS.find((row) => row.prop === context.row.id)?.values ?? []
+  const text = context.text.trim().toLowerCase()
+  return values
+    .filter((value) => text === '' || value.includes(text))
+    .map((value) => ({
+      value,
+      ...(context.row.id === 'turn' && TURNS[value] ? { hint: TURNS[value] } : {}),
+    }))
+}
+
 const SMALL_BUTTON =
   'inline-flex h-6 min-w-6 items-center justify-center rounded border border-zinc-950/10 bg-white px-1.5 text-xs text-zinc-700 hover:border-zinc-950/30 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-white/30'
 
@@ -131,13 +150,12 @@ export function LanesSection({ entity, editor, readOnly }: InspectorSectionProps
     editor.history.perform(actionChangeTags(entity.id, changedTags(next)))
     editor.history.commit({ annotation, selectedIDs: [entity.id] })
   }
-  const setValue = (column: Column, prop: LaneProp, value: string) => {
-    const current = valueOf(column, prop)
-    if ((current ?? '') === value.trim()) return
-    write(setLaneValue(tags, column.direction, column.index, prop, value), m.undo_value())
-  }
   const valueOf = (column: Column, prop: LaneProp) =>
     tags[pipeKey(LANE_PROPS[prop], column.direction, oneway)]?.split('|')[column.index] || undefined
+
+  const columnOfSlot = new Map(
+    columns.map((column) => [formatLaneSlotId(wayNumber, column.direction, column.index), column]),
+  )
 
   const directions: LaneDirection[] = oneway
     ? ['forward']
@@ -188,119 +206,108 @@ export function LanesSection({ entity, editor, readOnly }: InspectorSectionProps
       {columns.length === 0 ? (
         <p className="text-xs text-zinc-500 dark:text-zinc-400">{m.no_lanes()}</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-separate border-spacing-1 text-xs" data-lanes-table="">
-            <thead>
-              <tr>
-                <th scope="col" className="sr-only">
-                  {m.row_lane()}
-                </th>
-                {columns.map((column) => {
-                  const slotId = formatLaneSlotId(wayNumber, column.direction, column.index)
-                  return (
-                    <th
-                      key={slotId}
-                      scope="col"
-                      className={`rounded px-1 py-0.5 text-center font-normal text-zinc-600 dark:text-zinc-300 ${chosen === slotId ? 'bg-blue-100 ring-2 ring-blue-600 dark:bg-blue-900/40' : hovered === slotId ? 'bg-amber-100 dark:bg-amber-900/40' : ''}`}
+        <div
+          className="overflow-x-auto"
+          data-lanes-table=""
+          // the lane under the pointer, from the cell or header it is over (the sheet's cells carry their column)
+          onPointerOver={(event) => {
+            const col = (event.target as HTMLElement).closest<HTMLElement>(
+              '[data-col], [data-lane-column]',
+            )
+            const id = col?.dataset.col ?? col?.dataset.laneColumn
+            setHovered(id !== undefined && id !== 'prop' ? id : null)
+          }}
+          onPointerLeave={() => setHovered(null)}
+        >
+          <Sheet
+            label={m.section_title()}
+            showHeader
+            columns={[
+              {
+                id: 'prop',
+                header: m.row_lane(),
+                width: 'max-content',
+                role: 'rowheader',
+                readOnly: true,
+              },
+              ...columns.map((column): SheetColumn => {
+                const slotId = formatLaneSlotId(wayNumber, column.direction, column.index)
+                const name = `${DIRECTION_ARROW[column.direction]} ${column.index + 1}`
+                return {
+                  id: slotId,
+                  header: `${name}, ${directionLabel(column.direction, oneway)}`,
+                  width: 'minmax(6.5rem, 1fr)',
+                  suggest: suggestFor,
+                  headerContent: (
+                    <span
+                      className={`flex w-full items-center justify-between gap-1 rounded px-0.5 ${chosen === slotId ? 'bg-blue-100 ring-2 ring-blue-600 dark:bg-blue-900/40' : hovered === slotId ? 'bg-amber-100 dark:bg-amber-900/40' : ''}`}
                       data-lane-column={slotId}
                       data-chosen={chosen === slotId ? '' : undefined}
-                      onPointerEnter={() => setHovered(slotId)}
-                      onPointerLeave={() => setHovered(null)}
-                      onClick={(event) => {
-                        if ((event.target as HTMLElement).closest('button')) return
-                        laneFocus.setChosen(chosen === slotId ? null : slotId)
-                      }}
                     >
-                      <span className="flex items-center justify-center gap-1">
-                        <span title={directionLabel(column.direction, oneway)}>
-                          {DIRECTION_ARROW[column.direction]} {column.index + 1}
-                        </span>
-                        <button
-                          type="button"
-                          className={SMALL_BUTTON}
-                          disabled={
-                            locked ||
-                            (column.direction !== 'both_ways' && counts[column.direction] <= 1)
-                          }
-                          aria-label={m.remove_lane()}
-                          title={m.remove_lane()}
-                          data-lane-remove={`${column.direction}:${column.index}`}
-                          onClick={() =>
-                            write(removeLane(tags, column.direction, column.index), m.undo_remove())
-                          }
-                        >
-                          ×
-                        </button>
-                      </span>
-                    </th>
-                  )
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {ROWS.map((row) => (
-                <tr key={row.prop}>
-                  <th
-                    scope="row"
-                    className="sticky left-0 z-10 bg-white pr-1 text-left font-normal whitespace-nowrap text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400"
-                  >
-                    {row.label()}
-                  </th>
-                  {columns.map((column) => {
-                    const slotId = formatLaneSlotId(wayNumber, column.direction, column.index)
-                    const value = valueOf(column, row.prop)
-                    const label = `${row.label()}, ${DIRECTION_ARROW[column.direction]} ${column.index + 1}`
-                    return (
-                      <td
-                        key={slotId}
-                        onPointerEnter={() => setHovered(slotId)}
-                        onPointerLeave={() => setHovered(null)}
+                      <button
+                        type="button"
+                        className="cursor-pointer tabular-nums"
+                        title={directionLabel(column.direction, oneway)}
+                        onClick={() => laneFocus.setChosen(chosen === slotId ? null : slotId)}
                       >
-                        {row.values ? (
-                          <select
-                            className={CELL}
-                            aria-label={label}
-                            disabled={locked}
-                            value={value ?? ''}
-                            data-lane-cell={`${row.prop}:${column.direction}:${column.index}`}
-                            onFocus={() => setHovered(slotId)}
-                            onChange={(event) => setValue(column, row.prop, event.target.value)}
-                          >
-                            <option value="">–</option>
-                            {[
-                              ...row.values,
-                              ...(value && !row.values.includes(value) ? [value] : []),
-                            ].map((option) => (
-                              <option key={option} value={option}>
-                                {row.prop === 'turn' && TURNS[option]
-                                  ? `${TURNS[option]} ${option}`
-                                  : option}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input
-                            key={value ?? ''}
-                            className={CELL}
-                            aria-label={label}
-                            disabled={locked}
-                            inputMode="decimal"
-                            defaultValue={value ?? ''}
-                            data-lane-cell={`${row.prop}:${column.direction}:${column.index}`}
-                            onFocus={() => setHovered(slotId)}
-                            onBlur={(event) => setValue(column, row.prop, event.target.value)}
-                            onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
-                              if (event.key === 'Enter') event.currentTarget.blur()
-                            }}
-                          />
-                        )}
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                        {name}
+                      </button>
+                      <button
+                        type="button"
+                        className={SMALL_BUTTON}
+                        disabled={
+                          locked ||
+                          (column.direction !== 'both_ways' && counts[column.direction] <= 1)
+                        }
+                        aria-label={m.remove_lane()}
+                        title={m.remove_lane()}
+                        data-lane-remove={`${column.direction}:${column.index}`}
+                        onClick={() =>
+                          write(removeLane(tags, column.direction, column.index), m.undo_remove())
+                        }
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ),
+                }
+              }),
+            ]}
+            rows={ROWS.map((row): SheetRow => ({
+              id: row.prop,
+              label: row.label(),
+              cells: {
+                prop: { value: { kind: 'value', text: row.label() }, tone: 'muted' },
+                ...Object.fromEntries(
+                  columns.map((column) => [
+                    formatLaneSlotId(wayNumber, column.direction, column.index),
+                    {
+                      value: { kind: 'value', text: valueOf(column, row.prop) ?? '' },
+                      // the width is a number: no list
+                      ...(row.values ? {} : { noSuggestions: true }),
+                    },
+                  ]),
+                ),
+              },
+            }))}
+            onChange={
+              locked
+                ? undefined
+                : (batch) => {
+                    // every change of the gesture on the tags as they become, written as one undo step
+                    let next: Record<string, string | undefined> = { ...tags }
+                    for (const change of batch.changes) {
+                      if (change.type !== 'set' && change.type !== 'clear') continue
+                      const column = columnOfSlot.get(change.col)
+                      const prop = change.row as LaneProp
+                      if (!column || !(prop in LANE_PROPS)) continue
+                      const text = change.type === 'set' ? change.text : undefined
+                      next = setLaneValue(next, column.direction, column.index, prop, text)
+                    }
+                    write(next, m.undo_value())
+                  }
+            }
+          />
         </div>
       )}
 

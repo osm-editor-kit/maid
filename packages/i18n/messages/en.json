@@ -522,6 +522,7 @@
   "ui_dock_expand": "Expand panel",
   "ui_cell_label": "{column} of {row}",
   "ui_cell_mixed": "{count} different values",
+  "ui_cell_suggestions": "Show the suggestions for {column} of {row}",
   "ui_search_fields": "Search fields",
   "ui_no_field_matches": "No field matches",
   "ui_fields_to_add": "Fields to add",

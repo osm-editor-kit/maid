@@ -50,6 +50,8 @@ export type SheetCellData = {
   invalid?: string
   /** A fixed set, so every sheet looks alike. */
   tone?: 'default' | 'muted' | 'differs' | 'changed'
+  /** The column suggests, but not for this cell: no list and no list button (a free number in a sheet of choices) */
+  noSuggestions?: boolean
 }
 
 /** One row of the sheet. The trailing empty row is NOT a `SheetRow`: the sheet has its id and no data. */
@@ -85,6 +87,8 @@ export type SheetColumn = {
   header: string
   /** A CSS grid track: '2fr', 'minmax(6rem,1fr)', '8rem'. */
   width: string
+  /** Shown in the visible header in place of `header` (which stays the accessible name), e.g. with a button. */
+  headerContent?: ReactNode
   /** The key column of a way table: the row header. */
   role?: 'rowheader'
   /** No cell of this column can be edited (the cells can still be selected and copied). */
