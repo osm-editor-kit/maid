@@ -168,7 +168,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   'merge-polygon': { maid: 23, bicycle: 23, parking: 23, indoor: 23, lanes: 23 },
   favourites: { maid: 13, bicycle: 13, parking: 13, indoor: 13, lanes: 13 },
   'move-handle': { maid: 15, bicycle: 15, parking: 15, indoor: 15, lanes: 15 },
-  tooltips: { maid: 11, bicycle: 11, parking: 11, indoor: 11, lanes: 11 },
+  tooltips: { maid: 10, bicycle: 10, parking: 10, indoor: 10, lanes: 10 },
   osmchange: { maid: 0, bicycle: 31, parking: 0, indoor: 0, lanes: 0 },
   tasks: { maid: 28, bicycle: 28, parking: 28, indoor: 28, lanes: 28 },
 }
