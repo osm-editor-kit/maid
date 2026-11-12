@@ -39,5 +39,7 @@ cannot ask for one. So a key chip (⇧ on Resize's toggles, ⌘K in a menu) no l
 `nokeys:hidden` until `data-keys` is on `<html>`, set at once with a fine pointer and on a touch device at its first
 key that only a hardware keyboard sends (`packages/shell/src/hardware-keys.ts`). What a key does on a desktop is a
 toggle chip the finger taps on touch (Resize, Extrude), or a long press while drawing (Shift). The texts stay with
-`data-input`: with a keyboard on an iPad the finger still taps.
+`data-input`: with a keyboard on an iPad the finger still taps. The focus ring waits for the keyboard too: without
+`data-keys` no `:focus-visible` outline is drawn and a menu row's ring is `keys:focus:` (a menu focuses its first row
+when it opens, which on an iPad marked "Move" with a ring that no key could move).
 - Packages without `maid-i18n` (`traffic-sign-field`'s English fallback) are not covered; their hosts pass the texts.
