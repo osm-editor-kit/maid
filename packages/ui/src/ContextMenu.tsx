@@ -3,11 +3,14 @@ import { motion, useReducedMotion } from 'motion/react'
 import {
   Fragment,
   useEffect,
+  useLayoutEffect,
   useRef,
+  useState,
   type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
 } from 'react'
+import { DETAILS_MAX_WIDTH, DetailsBox, type MenuDetails } from './DetailsBox.tsx'
 import { ROW_BASE, ROW_CURRENT, ROW_FOCUS } from './inspector/listbox.ts'
 import { UI_SPRING } from './motion.tsx'
 import { TAP } from './Toolbar.tsx'
@@ -35,7 +38,17 @@ export type MenuItem = {
   keepOpen?: boolean
   /** The current one of a choice: shown in bold, and it has the focus when the menu opens */
   current?: boolean
+  /**
+   * More than the label and the reason say, as a small table (what blocks a Merge, the tags Copy tags copies): shown in
+   * a box beside the menu while the pointer is on the row, a disabled one too. Asked only then. Not on a touch device,
+   * which has no hover.
+   */
+  details?: () => MenuDetails | undefined
 }
+
+/** The gap between the menu and the box of a row's details, and how long the box stays when the pointer leaves */
+const DETAILS_GAP = 8
+const DETAILS_LINGER = 120
 
 /** The menu is 208 px wide (w-52); it keeps 4 px to the edges of the window */
 const MENU_WIDTH = 208
@@ -113,6 +126,38 @@ export function ContextMenu(props: {
   const frame = useRef<HTMLDivElement>(null)
   const menu = useRef<HTMLDivElement>(null)
   const reducedMotion = useReducedMotion()
+  // the row whose details are shown, with its top edge in the frame's pixels
+  const [shown, setShown] = useState<{
+    id: string
+    top: number
+    details: MenuDetails
+  } | null>(null)
+  const linger = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const box = useRef<HTMLDivElement>(null)
+  useEffect(() => () => clearTimeout(linger.current), [])
+  const showDetails = (item: MenuItem, row: HTMLElement) => {
+    clearTimeout(linger.current)
+    // without a table the box still says the reason: a disabled row with details lets the pointer through, so its
+    // title shows no tooltip
+    const details =
+      item.details?.() ??
+      (item.reason !== undefined ? { title: item.reason, columns: [], rows: [] } : undefined)
+    const top = row.getBoundingClientRect().top - (frame.current?.getBoundingClientRect().top ?? 0)
+    setShown(details ? { id: item.id, top, details } : null)
+  }
+  // a moment's grace, so that the pointer can cross the gap to the box (a long table scrolls there)
+  const hideDetails = () => {
+    clearTimeout(linger.current)
+    linger.current = setTimeout(() => setShown(null), DETAILS_LINGER)
+  }
+  // the box stays inside the window: a box that would run off the bottom moves up
+  useLayoutEffect(() => {
+    const element = box.current
+    if (!element || !shown) return
+    element.style.top = `${shown.top}px`
+    const overflow = element.getBoundingClientRect().bottom - (window.innerHeight - MARGIN)
+    if (overflow > 0) element.style.top = `${shown.top - overflow}px`
+  }, [shown])
 
   // Closing gives the focus back to what had it before the menu opened (a keyboard user stays
   // where they were), unless the focus has moved on elsewhere meanwhile or the opener is gone.
@@ -157,7 +202,9 @@ export function ContextMenu(props: {
     const buttons = [...(menu.current?.querySelectorAll<HTMLButtonElement>('button:enabled') ?? [])]
     const current = buttons.findIndex((button) => button === document.activeElement)
     const focus = (index: number) =>
-      buttons[(index + buttons.length) % buttons.length]?.focus({ preventScroll: true })
+      buttons[(index + buttons.length) % buttons.length]?.focus({
+        preventScroll: true,
+      })
     switch (event.key) {
       case 'Escape':
         onClose()
@@ -188,6 +235,9 @@ export function ContextMenu(props: {
 
   // A touch device has no hover to show a reason, so a disabled row with one says it under its label
   const touch = device().input === 'touch'
+  // the details go right of the menu where they fit, else left of it
+  const detailsRight =
+    left + MENU_WIDTH + DETAILS_GAP + DETAILS_MAX_WIDTH + MARGIN <= window.innerWidth
 
   const panel = (
     <div
@@ -199,6 +249,10 @@ export function ContextMenu(props: {
     >
       {items.map((item, i) => {
         const previous = items[i - 1]
+        // a row with details shows them on hover; a disabled one lets the pointer through to its wrapper, as a
+        // disabled button gets no pointer events in every browser, and the box says its reason (the title stays for
+        // screen readers and the checks)
+        const withDetails = item.details !== undefined && !touch
         const row = (
           <button
             type="button"
@@ -212,9 +266,15 @@ export function ContextMenu(props: {
             }}
             onPointerEnter={() => item.preview?.(true)}
             onPointerLeave={() => item.preview?.(false)}
-            onFocus={() => item.preview?.(true)}
-            onBlur={() => item.preview?.(false)}
-            className={`flex h-7 w-full cursor-pointer items-center gap-2 px-2 text-left disabled:cursor-default disabled:text-zinc-400 dark:disabled:text-zinc-500 ${touch && item.reason !== undefined ? 'touch:h-14' : 'touch:h-11'} ${TAP} ${ROW_BASE} ${ROW_FOCUS} ${
+            onFocus={(event) => {
+              item.preview?.(true)
+              if (withDetails) showDetails(item, event.currentTarget)
+            }}
+            onBlur={() => {
+              item.preview?.(false)
+              if (withDetails) hideDetails()
+            }}
+            className={`flex h-7 ${withDetails ? 'disabled:pointer-events-none' : ''} w-full cursor-pointer items-center gap-2 px-2 text-left disabled:cursor-default disabled:text-zinc-400 dark:disabled:text-zinc-500 ${touch && item.reason !== undefined ? 'touch:h-14' : 'touch:h-11'} ${TAP} ${ROW_BASE} ${ROW_FOCUS} ${
               item.current
                 ? ROW_CURRENT
                 : 'enabled:hover:bg-zinc-950/5 enabled:active:bg-zinc-950/10 dark:enabled:hover:bg-white/10 dark:enabled:active:bg-white/15'
@@ -249,7 +309,15 @@ export function ContextMenu(props: {
             {!item.section && previous?.section && (
               <div role="separator" className="my-1 h-px bg-zinc-950/10 dark:bg-white/10" />
             )}
-            {item.hints && item.hints.length > 0 && item.reason === undefined ? (
+            {withDetails ? (
+              <div
+                data-details-row={item.id}
+                onPointerEnter={(event) => showDetails(item, event.currentTarget)}
+                onPointerLeave={hideDetails}
+              >
+                {row}
+              </div>
+            ) : item.hints && item.hints.length > 0 && item.reason === undefined ? (
               // the keys the command's mode reads, in the tooltip the command bar shows for it
               <Tooltip label={item.label} hints={item.hints} placement="right">
                 {row}
@@ -274,6 +342,18 @@ export function ContextMenu(props: {
       style={{ left, top }}
       className="fixed z-50 flex w-52 flex-col gap-1"
     >
+      {shown && (
+        <div
+          ref={box}
+          data-menu-details={shown.id}
+          onPointerEnter={() => clearTimeout(linger.current)}
+          onPointerLeave={hideDetails}
+          style={{ top: shown.top }}
+          className={`absolute ${detailsRight ? 'left-full ml-2' : 'right-full mr-2'}`}
+        >
+          <DetailsBox details={shown.details} />
+        </div>
+      )}
       {flipped ? (
         <>
           {panel}

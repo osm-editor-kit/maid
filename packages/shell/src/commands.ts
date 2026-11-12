@@ -3,6 +3,7 @@ import { m } from '@osm-editor-kit/maid-i18n'
 import { OPERATION_GROUPS, visibleOperations } from '@osm-editor-kit/maid-operations'
 import type { Operation, OperationGroup, OperationHint } from '@osm-editor-kit/maid-operations'
 import type { MaidEngine } from '@osm-editor-kit/maid-renderer'
+import type { MenuDetails } from '@osm-editor-kit/maid-ui'
 import type { ReactNode } from 'react'
 import { pasteAt } from './clipboard'
 import { commandIcon } from './command-icons'
@@ -30,6 +31,22 @@ export type Command = {
   run: () => void
   /** Shows on the map what the command would do, or takes that away again */
   preview?: (on: boolean) => void
+  /** A table beside the edit menu while the pointer is on the row: what blocks it, or what it copies (`MenuItem.details`) */
+  details?: () => MenuDetails | undefined
+}
+
+/** A table of tags in one column, for the box beside Copy tags and Paste tags; none for no tags */
+export function tagDetails(
+  title: string,
+  tags: Readonly<Record<string, string>>,
+): MenuDetails | undefined {
+  const keys = Object.keys(tags).sort()
+  if (keys.length === 0) return undefined
+  return {
+    title,
+    columns: [{ label: 'Value' }],
+    rows: keys.map((key) => ({ label: key, cells: [tags[key]] })),
+  }
 }
 
 /** The group of an operation without one: `structure`, as its docs say */
@@ -164,6 +181,10 @@ export function useEditCommands(at?: { lon: number; lat: number }) {
         if (next) select(next.length > 0 ? next : null)
       },
       preview: (on: boolean) => engine.previewOperation(on ? operation : null, place),
+      // asked on hover, with the data of that moment
+      details: operation.details
+        ? () => operation.details?.(engine.operationContext(place))
+        : undefined,
     })
     const leading = applicable
       .filter((operation) => LEADING_OPERATIONS.includes(operation.id))
@@ -210,6 +231,10 @@ export function useEditCommands(at?: { lon: number; lat: number }) {
               ? 'This feature has no tags'
               : undefined,
         run: () => tagClipboardActions.copy(tagsOfFeature(engine, ids[0]!)),
+        details:
+          ids.length === 1
+            ? () => tagDetails('Copies these tags:', tagsOfFeature(engine, ids[0]!))
+            : undefined,
       },
       ...(copied
         ? [
@@ -220,6 +245,7 @@ export function useEditCommands(at?: { lon: number; lat: number }) {
               group: 'position',
               reason: protectedReason,
               run: () => tagClipboardActions.openPaste(ids),
+              details: () => tagDetails('The copied tags:', copied),
             },
           ]
         : []),

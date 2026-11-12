@@ -3,6 +3,7 @@
  * never apply to the same selection, so the key runs whichever applies.
  */
 import { OsmWay } from '@osm-editor-kit/maid-model'
+import { relationRows, tagRows } from '@osm-editor-kit/maid-operations'
 import type { Operation, OperationContext } from '@osm-editor-kit/maid-operations'
 import { m } from '../messages.ts'
 import { sentenceOf } from '../shared/refusals.ts'
@@ -62,6 +63,27 @@ export const mergeAreasOperation: Operation = {
     if (!unionApplies(context)) return undefined
     const plan = mergePlan(context.graph, context.selected)
     return 'refused' in plan ? refusalSentence(plan.refused) : undefined
+  },
+  // the tags or relations that block it, side by side, as the core Merge shows them
+  details: (context) => {
+    if (!unionApplies(context)) return undefined
+    const plan = mergePlan(context.graph, context.selected)
+    if (!('refused' in plan)) return undefined
+    const { refused } = plan
+    if (refused !== 'conflicting_tags' && refused !== 'conflicting_relations') return undefined
+    const { graph } = context
+    const entities = context.selected.map((id) => graph.entity(id))
+    // the area merge wants equal tags (area=yes aside) and equal memberships, so every difference shows
+    const rows =
+      refused === 'conflicting_tags'
+        ? tagRows(entities, { strict: true, ignore: ['area'] })
+        : relationRows(entities, graph, { strict: true })
+    if (rows.length === 0) return undefined
+    const columns = entities.map((entity) => ({
+      label: entity.tags.name ?? context.presetOf?.(entity, graph)?.name ?? entity.id,
+      id: entity.id,
+    }))
+    return { title: refusalSentence(refused), columns, rows }
   },
   run: (context) => {
     const plan = mergePlan(context.graph, context.selected)

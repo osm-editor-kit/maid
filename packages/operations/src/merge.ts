@@ -12,6 +12,7 @@ import {
   actionMergePolygon,
 } from '@osm-editor-kit/maid-model'
 import type { Action, Graph, OsmEntity } from '@osm-editor-kit/maid-model'
+import { mergeDetails } from './merge-details.ts'
 import { reasonOf, resolveSelection } from './selection.ts'
 import type { Operation, OperationContext } from './types.ts'
 
@@ -34,6 +35,11 @@ const MERGE_REASONS: Record<string, string> = {
   // iD names the preset of the relation ("Turn Restriction", id-tagging-schema's name for type=restriction)
   restriction:
     'These features can\'t be merged because it would damage a "Turn Restriction" relation.',
+}
+
+/** The sentence for a reason code */
+function sentenceOf(reason: string): string {
+  return Object.hasOwn(MERGE_REASONS, reason) ? MERGE_REASONS[reason]! : FALLBACK
 }
 
 /** One of the four actions, with the kind it is and the ids it works on (in the order selected) */
@@ -120,7 +126,15 @@ export const mergeOperation: Operation = {
     if (!plan) return undefined
     const reason = reasonOf(plan.action, context.graph)
     if (reason === undefined) return undefined
-    return Object.hasOwn(MERGE_REASONS, reason) ? MERGE_REASONS[reason] : FALLBACK
+    return sentenceOf(reason)
+  },
+  // the tags or relations that block it, side by side
+  details: (context) => {
+    const plan = mergePlan(context)
+    if (!plan) return undefined
+    const reason = reasonOf(plan.action, context.graph)
+    if (reason === undefined) return undefined
+    return mergeDetails(context, plan, reason, sentenceOf(reason))
   },
   run: (context) => {
     const plan = mergePlan(context)

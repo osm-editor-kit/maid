@@ -9,6 +9,7 @@ export {
 } from './account.ts'
 export { BottomSheet } from './BottomSheet.tsx'
 export { ContextMenu, type MenuItem } from './ContextMenu.tsx'
+export { DetailsBox, type MenuDetails } from './DetailsBox.tsx'
 export { Dock, type DockTab } from './Dock.tsx'
 export { openDockView } from './dock-request.ts'
 export { Flyout } from './Flyout.tsx'

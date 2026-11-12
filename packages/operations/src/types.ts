@@ -55,6 +55,22 @@ export type OperationResult = {
 /** A modifier key of an operation and what it does, for its tooltip (see `Operation.hints`) */
 export type OperationHint = { keys: string; text: string }
 
+/**
+ * A small table that explains an operation (`Operation.details`): one column per feature, one row per tag key or
+ * relation. The edit menu shows it in a box beside the row while the pointer is on it.
+ */
+export type OperationDetails = {
+  /** The heading: why the operation cannot run, or what it would do */
+  title: string
+  /**
+   * The features, in the order selected: a short label, the feature's id, and a note on how the values were read
+   * (Merge: "reversed" for a line the join turns around, whose direction tags are shown turned)
+   */
+  columns: readonly { label: string; id: string; note?: string }[]
+  /** Rows that block the operation first (`conflict`), then the others; a cell without a value is undefined */
+  rows: readonly { label: string; cells: readonly (string | undefined)[]; conflict?: boolean }[]
+}
+
 /** The groups of the command bar, in their order there (see `Operation.group`) */
 export const OPERATION_GROUPS = ['position', 'shape', 'structure', 'remove'] as const
 export type OperationGroup = (typeof OPERATION_GROUPS)[number]
@@ -95,6 +111,12 @@ export type Operation = {
    * `run` would give: for an operation whose result is easier to see as the part it is about (delete segment).
    */
   preview?(context: OperationContext): [number, number][][]
+  /**
+   * What lies behind `disabled` (or what the operation would do), as a table of the selected features' tags or
+   * relations, for the box beside the edit menu. Asked only while the pointer is on the operation's row. Undefined:
+   * there is nothing more to show than the sentence.
+   */
+  details?(context: OperationContext): OperationDetails | undefined
   /** Only called when `applies` is true and `disabled` is undefined */
   run(context: OperationContext): OperationResult
   /**
