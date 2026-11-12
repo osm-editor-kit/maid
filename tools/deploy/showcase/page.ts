@@ -3,14 +3,7 @@
  * the comparison with iD and Rapid, and thanks. One self-contained HTML file: inline CSS, the logos inlined, no script
  * from elsewhere. The data is in `features.ts` and in each app's `overview.json`.
  */
-import {
-  GROUPS,
-  HIGHLIGHT_NUMBERS,
-  PERFORMANCE_SOURCE,
-  STRENGTHS,
-  THANKS,
-  THANKS_TOP,
-} from './features.ts'
+import { GROUPS, STRENGTHS, THANKS, THANKS_TOP } from './features.ts'
 import type { FeatureRow, ListedApp, Support } from './types.ts'
 
 const ID_REPO = 'https://github.com/openstreetmap/iD'
@@ -120,13 +113,6 @@ function strengths() {
   ).join('\n')
 }
 
-function numbers() {
-  return HIGHLIGHT_NUMBERS.map(
-    (item) =>
-      `<div class="number"><strong>${escapeHtml(item.value)}</strong><span>${escapeHtml(item.label)}</span></div>`,
-  ).join('\n')
-}
-
 function thanks() {
   const top = THANKS_TOP.map(
     (item) =>
@@ -160,8 +146,8 @@ ${CSS}
   <a class="brand" href="#top">${brand}<span>Maid</span></a>
   <nav aria-label="Sections">
     <a href="#editors">Editors</a>
-    <a href="#why">Why Maid</a>
-    <a href="#compare">Compare</a>
+    <a href="#compare">Differences</a>
+    <a href="#fork">Your own editor</a>
     <a href="#thanks">Thanks</a>
     <a href="https://github.com/${repository}">GitHub</a>
   </nav>
@@ -170,16 +156,15 @@ ${CSS}
 <section class="hero">
   <p class="eyebrow">MapLibre iD Editor</p>
   <h1>An OpenStreetMap editor for every topic.</h1>
-  <p class="lead">Maid keeps what makes <a href="${ID_REPO}">iD</a> good (the tagging schema, the presets, the way mappers edit) and puts it on a fast WebGL map. One core, many editors: each community gets an editor made for its topic, from a config file and a few modules.</p>
+  <p class="lead">Maid builds on <a href="${ID_REPO}">iD</a>: its tagging schema, its presets and the way mappers edit, drawn with MapLibre GL. One core, many editors: each community gets an editor made for its topic, from a config file and a few modules.</p>
   <div class="actions">
-    <a class="button primary" href="${openFirst}">Open Maid</a>
-    <a class="button" href="#editors">See all editors</a>
-    <a class="button" href="https://github.com/${repository}">Fork on GitHub</a>
+    <a class="button primary" href="#editors">See the editors</a>
+    <a class="button" href="${openFirst}">Open Maid</a>
+    <a class="button" href="https://github.com/${repository}">GitHub</a>
   </div>
-  <div class="numbers">
-${numbers()}
-  </div>
-  <p class="source">${PERFORMANCE_SOURCE}</p>
+  <aside class="beta" aria-label="Beta">
+    <strong>Beta.</strong> Maid is a young project. Many of its features are new and still need careful testing, so check your changes before you save. When something breaks, looks wrong or is unclear, please <a href="https://github.com/${repository}/issues/new">open an issue on GitHub</a>.
+  </aside>
 </section>
 
 <section id="editors">
@@ -190,25 +175,41 @@ ${apps.map((app) => tile(app, repository)).join('\n')}
   </div>
 </section>
 
+<section id="compare">
+  <h2>How the editors differ</h2>
+  <p class="section-lead">iD and Rapid are mature editors that thousands of mappers rely on every day; Maid is a young project that builds on them and focuses on editors for one topic each. This table shows where they differ, including what Maid does not have yet. A Maid column follows the modules its config switches on. Rows with a <em>docs</em> link have a README that explains the module and how to use it in your own editor.</p>
+  <p class="legend"><span class="cell yes"><span class="mark"></span></span> yes <span class="cell partial"><span class="mark"></span></span> partly <span class="cell no"><span class="mark"></span></span> no</p>
+${comparison(apps, repository)}
+  <p class="source">iD and Rapid as of their main branches in November 2026, read in their code. Corrections are welcome as an issue. The full list with every module: <a href="https://github.com/${repository}/blob/main/docs/features.md">docs/features.md</a>.</p>
+</section>
+
 <section id="why">
-  <h2>Why Maid</h2>
+  <h2>What Maid is built for</h2>
   <div class="strengths">
 ${strengths()}
   </div>
 </section>
 
-<section id="compare">
-  <h2>Feature by feature</h2>
-  <p class="section-lead">What iD and Rapid have, and what each Maid editor has. A Maid column follows the modules its config switches on. Rows with a <em>docs</em> link have a README that explains the module and how to use it in your own editor.</p>
-  <p class="legend"><span class="cell yes"><span class="mark"></span></span> yes <span class="cell partial"><span class="mark"></span></span> partly <span class="cell no"><span class="mark"></span></span> no</p>
-${comparison(apps, repository)}
-  <p class="source">iD and Rapid as of their main branches in November 2026, checked in their code. Full list with every module: <a href="https://github.com/${repository}/blob/main/docs/features.md">docs/features.md</a>.</p>
+<section id="fork">
+  <h2>An editor for your community</h2>
+  <div class="fork">
+    <div>
+      <p>Maid is meant to be forked. A community that wants an editor for its topic, say playgrounds, climbing routes or golf courses, forks this repository and adds its own app and modules next to ours. A coding agent such as Claude does most of the work: point it at <a href="https://github.com/${repository}/blob/main/ARCHITECTURE.md">ARCHITECTURE.md</a>, which explains apps, modules and extension points step by step, and <a href="https://github.com/${repository}/blob/main/AGENTS.md">AGENTS.md</a>, which gives it the rules, the scripts and the checks.</p>
+      <p>Your fork can live on its own and deploy its editor to its own GitHub Pages. We would still love a pull request with your app and modules: in one repository the editors keep sharing the core and its fixes, every module can be reused by the next community, and your editor gets a tile on this page, even while each one is developed by its own people.</p>
+    </div>
+    <ol class="steps">
+      <li><strong>Fork</strong> the repository.</li>
+      <li><strong>Add</strong> <code>apps/maid-yours</code> and <code>packages/module-yours</code>, with your agent and ARCHITECTURE.md.</li>
+      <li><strong>Deploy</strong>: set your app in <code>deploy.env</code> and push.</li>
+      <li><strong>Contribute back</strong> with a pull request, and merge the central Maid now and then.</li>
+    </ol>
+  </div>
 </section>
 
 <section id="thanks">
   <div class="callout">
     <h2>Thank you, iD and Rapid</h2>
-    <p>Maid exists because <a href="${ID_REPO}">iD</a> and <a href="${RAPID_REPO}">Rapid</a> did the hard work first. iD's maintainers and contributors built the editor most OpenStreetMap mappers start with, and the tagging schema, presets and validation rules that hold years of community knowledge. Rapid, now continued by Bryan Housel, rebuilt that editor on WebGL and gave it the clean data model Maid's own follows. We copied their behaviour on purpose, ported their tests, and compare against both in every benchmark. Thank you.</p>
+    <p>Maid exists because <a href="${ID_REPO}">iD</a> and <a href="${RAPID_REPO}">Rapid</a> did the hard work first. iD's maintainers and contributors built the editor most OpenStreetMap mappers start with, and the tagging schema, presets and validation rules that hold years of community knowledge. Rapid, now continued by Bryan Housel, rebuilt that editor on WebGL and gave it the clean data model Maid's own follows. We follow their behaviour on purpose, ported many of their tests and read their code whenever we are unsure. Thank you.</p>
   </div>
   <h2 class="thanks-title">Built with</h2>
   <p class="section-lead">Open source projects Maid stands on. Two of them carry the map itself.</p>
@@ -242,13 +243,13 @@ const CSS = `
   --accent: #a6d36b; --accent-soft: #2c3a1b; --accent-strong: #c3e58f; --yes: #86c75a; --partial: #e8b33d; --no: #3b4135;
 }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; scroll-padding-top: 4.5rem; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
 a { color: var(--accent); text-underline-offset: 2px; }
 a:hover { color: var(--accent-strong); }
 h1, h2, h3 { line-height: 1.15; letter-spacing: -0.01em; margin: 0; }
 main { max-width: 72rem; margin: 0 auto; padding: 0 16px; }
-section { padding: 4rem 0 1rem; scroll-margin-top: 3.5rem; }
+section { padding: 4rem 0 1rem; }
 h2 { font-size: clamp(1.6rem, 3vw, 2.1rem); margin-bottom: 0.6rem; }
 .section-lead { color: var(--muted); max-width: 46rem; margin: 0 0 1.8rem; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -269,10 +270,13 @@ h2 { font-size: clamp(1.6rem, 3vw, 2.1rem); margin-bottom: 0.6rem; }
 .button:hover { border-color: var(--accent); color: var(--text); }
 .button.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
 .button.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); color: var(--bg); }
-.numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 1px; margin-top: 3rem; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-.number { background: var(--surface); padding: 1.2rem 1.3rem; display: flex; flex-direction: column; gap: 0.2rem; }
-.number strong { font-size: 2rem; color: var(--accent); font-variant-numeric: tabular-nums; }
-.number span { color: var(--muted); font-size: 0.92rem; }
+.beta { margin-top: 2.2rem; padding: 1rem 1.2rem; border-radius: var(--radius); border: 1px solid color-mix(in srgb, var(--partial) 55%, transparent); background: color-mix(in srgb, var(--partial) 12%, var(--surface)); max-width: 46rem; }
+.beta strong { color: var(--text); }
+.fork { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 2rem; align-items: start; }
+.fork p { margin: 0 0 1rem; max-width: 44rem; }
+.steps { margin: 0; padding: 1.2rem 1.2rem 1.2rem 2.6rem; background: var(--surface-2); border-radius: var(--radius); display: grid; gap: 0.7rem; }
+.steps code { font-size: 0.88em; }
+@media (max-width: 48rem) { .fork { grid-template-columns: 1fr; } }
 .source { color: var(--muted); font-size: 0.85rem; margin-top: 0.8rem; }
 
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); gap: 1.1rem; }

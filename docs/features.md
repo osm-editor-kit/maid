@@ -111,7 +111,6 @@ What a single-purpose editor adds.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | **An editor from a config** ([docs](../packages/core/README.md)): Modules, presets and filters in one file; modules add to fixed extension points and clean up after themselves. _iD and Rapid are forked as a whole._ | – | – | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **Several editors from one repository** ([docs](../packages/shell/README.md)): Every app deploys to its own folder on GitHub Pages with one login setup. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Offline checks and benchmarks**: Frozen fixtures and a mock API, browser checks per app, benchmarks against iD and Rapid, all from the command line. _iD and Rapid have unit tests; no shared benchmark._ | ◐ | ◐ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 ## Packages
 

@@ -8,48 +8,31 @@
  */
 import type { FeatureGroup, Thanks } from './types.ts'
 
-/** The benchmark the numbers come from */
-export const PERFORMANCE_SOURCE =
-  'Medians of the dense Berlin scene (40,000 nodes) in Chrome, 3 runs, the same machine and data for all three editors, 2026-10-13. Method and all numbers: <a href="https://github.com/osm-editor-kit/maid/blob/main/docs/research/performance-2026-10-13.md">performance report</a>.'
-
-export const HIGHLIGHT_NUMBERS = [
-  { value: '60 fps', label: 'dragging a node in a dense city view (iD: 7.5 fps)' },
-  {
-    value: '1.8× faster',
-    label: 'until the map is drawn and settled than iD, 2.5× faster than Rapid',
-  },
-  { value: '⅓ of the CPU', label: 'that iD and Rapid need while you pan the map' },
-  { value: '5 editors', label: 'from one core, each with the modules its topic needs' },
-]
-
+/** What Maid is built for: neutral about the other editors, which serve other needs */
 export const STRENGTHS = [
   {
-    title: 'Fast on dense data',
-    text: 'The map is drawn by MapLibre GL on the graphics card. Geometry is computed when it is first needed, not on load, so a dense inner city stays smooth while you drag, pan and zoom.',
-  },
-  {
     title: 'One editor per topic',
-    text: 'An editor is a config file that picks modules, presets and filters. Fork the repository, add your app and your module next to ours, push, and GitHub Pages publishes it. Merging the central Maid stays painless.',
+    text: 'An editor is a config file that picks modules, presets and filters. A community gets an editor that shows its topic first and leaves out what it does not need.',
   },
   {
-    title: "iD's knowledge, kept",
-    text: "The tagging schema, presets, fields, validation rules, imagery index, the look of the data and the keys mappers know all come from iD. 70 % of iD's 2,196 unit tests are covered or adopted.",
+    title: "Built on iD's knowledge",
+    text: "The tagging schema, presets, fields, validation rules, imagery index, the look of the data and the keys mappers know all come from iD, and many of iD's unit tests were ported with them.",
+  },
+  {
+    title: 'A MapLibre map',
+    text: 'Maid draws with MapLibre GL, which keeps large and dense areas smooth on the graphics card and lets modules add their own layers, lenses and map tools. Our benchmark setup is public in the repository.',
   },
   {
     title: 'Made for the topic in front of you',
-    text: 'Lenses recolour the map for one question (surface, lighting, parking, lanes). Topic sections sit above the fields. Filters lock what you should not touch. The map shows what matters and stays quiet otherwise.',
+    text: 'Lenses recolour the map for one question (surface, lighting, parking, lanes). Topic sections sit above the fields. Filters lock what you should not touch.',
   },
   {
-    title: 'Work comes to the editor',
-    text: 'Private task lists from a GeoJSON file, osmChange files from other apps, your own data layers (GeoJSON, GPX, PMTiles, vector tiles) and a route preview from Postpass: Maid takes work from other tools and sends it back to OpenStreetMap.',
-  },
-  {
-    title: 'A modern interface',
-    text: 'Light and dark theme, a layout for phones and tablets, a map you can turn, tags as an editable table, previews of a command before you click it, and every view in the URL to share.',
+    title: 'Work from other tools',
+    text: 'Private task lists from a GeoJSON file, osmChange files from other apps, your own data layers and a route preview from Postpass: Maid takes work from other tools and sends it to OpenStreetMap.',
   },
   {
     title: 'Built with agents, checked by scripts',
-    text: 'Every workflow is a command: browser checks, benchmarks against iD and Rapid, type checks and unit tests. Automated runs use frozen fixtures and never send a request to OpenStreetMap.',
+    text: 'Every workflow is a command: browser checks, benchmarks, type checks and unit tests. Automated runs use frozen fixtures and never send a request to OpenStreetMap.',
   },
 ]
 
@@ -515,14 +498,6 @@ export const GROUPS: FeatureGroup[] = [
         pkg: 'shell',
         iD: 'no',
         rapid: 'no',
-      },
-      {
-        title: 'Offline checks and benchmarks',
-        text: 'Frozen fixtures and a mock API, browser checks per app, benchmarks against iD and Rapid, all from the command line.',
-        maid: 'core',
-        iD: 'partial',
-        rapid: 'partial',
-        note: 'iD and Rapid have unit tests; no shared benchmark.',
       },
     ],
   },

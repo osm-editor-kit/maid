@@ -35,8 +35,8 @@ To make your own editor:
 Kept from [iD](https://github.com/openstreetmap/iD): the tagging schema and presets, the imagery index, the look of the
 data and the editing behaviour mappers know. Rewritten: rendering (MapLibre GL through `react-map-gl`), the interface
 (React, TypeScript, Tailwind) and the tooling (Bun, Vite). The data model follows [Rapid](https://github.com/bhousel/Rapid).
-Maid is faster than both: the map is ready, drawn and fully loaded sooner in every benchmark scene
-([numbers](docs/research/performance-2026-10-13.md)). Everything Maid has built, editor by editor and compared with iD
+MapLibre keeps large and dense areas smooth; the benchmark that measures Maid, iD and Rapid on the same data is in
+the repository ([setup and numbers](docs/research/performance-2026-10-13.md)). Everything Maid has built, editor by editor and compared with iD
 and Rapid: [docs/features.md](docs/features.md).
 
 Maid exists because [iD](https://github.com/openstreetmap/iD) and [Rapid](https://github.com/bhousel/Rapid) did the hard
