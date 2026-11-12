@@ -50,6 +50,26 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
     )
   const undoLabel = () => page.evaluate(() => window.__maid.engine.undoState().undoLabel ?? null)
 
+  // --- the focused filters of the lanes editor ---
+  const states = await page.evaluate(() => window.__maid.engine.filters.states())
+  report(
+    'the lanes editor starts focused: roads editable, buildings and points locked, boundaries hidden',
+    {
+      traffic_roads: 'editable',
+      buildings: 'readonly',
+      points: 'readonly',
+      shops: 'readonly',
+      boundaries: 'hidden',
+    },
+    {
+      traffic_roads: states.traffic_roads,
+      buildings: states.buildings,
+      points: states.points,
+      shops: states.shops,
+      boundaries: states.boundaries,
+    },
+  )
+
   // setup, one step: a two-way road with one lane each way and no other lane keys
   await page.evaluate((id) => {
     const { engine } = window.__maid

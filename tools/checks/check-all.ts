@@ -89,9 +89,13 @@ type Run = { name: string; check: CheckName; scene?: string; only?: AppName[] }
 
 /** The checks of the shell on the default scene, the relation check on the scene made for relations, the module checks */
 const RUNS: Run[] = [
-  ...CHECKS.filter((check) => !MODULE_CHECKS.has(check) && !RELATIONS_SCENE_CHECKS.has(check)).map(
-    (check) => ({ name: check, check }),
-  ),
+  ...CHECKS.filter(
+    (check) =>
+      !MODULE_CHECKS.has(check) && !RELATIONS_SCENE_CHECKS.has(check) && check !== 'filters',
+  ).map((check) => ({ name: check, check })),
+  // the filters check starts from iD's states (buildings editable); the lanes app starts with its own focused states,
+  // which check-lanes tests
+  { name: 'filters', check: 'filters', only: ['maid', 'bicycle', 'parking', 'indoor'] },
   { name: 'relations-scene', check: 'relations', scene: 'relations' },
   { name: 'relation-column', check: 'relation-column', scene: 'relations' },
   { name: 'route-overview', check: 'route-overview', scene: 'relations' },
@@ -136,7 +140,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   relations: { maid: 21, bicycle: 21, parking: 21, indoor: 21, lanes: 21 },
   validation: { maid: 8, bicycle: 8, parking: 8, indoor: 8, lanes: 8 },
   journal: { maid: 17, bicycle: 17, parking: 17, indoor: 17, lanes: 17 },
-  filters: { maid: 19, bicycle: 19, parking: 19, indoor: 19, lanes: 19 },
+  filters: { maid: 19, bicycle: 19, parking: 19, indoor: 19, lanes: 0 },
   tags: { maid: 23, bicycle: 23, parking: 23, indoor: 23, lanes: 23 },
   multi: { maid: 11, bicycle: 11, parking: 11, indoor: 11, lanes: 11 },
   'relations-scene': { maid: 25, bicycle: 25, parking: 25, indoor: 25, lanes: 25 },
@@ -144,7 +148,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   'route-overview': { maid: 63, bicycle: 63, parking: 63, indoor: 63, lanes: 63 },
   // module checks run only for the apps in `only` (RUNS): the count is 0 elsewhere
   parking: { maid: 0, bicycle: 0, parking: 29, indoor: 0, lanes: 0 },
-  lanes: { maid: 0, bicycle: 0, parking: 0, indoor: 0, lanes: 24 },
+  lanes: { maid: 0, bicycle: 0, parking: 0, indoor: 0, lanes: 25 },
   'way-table': { maid: 0, bicycle: 25, parking: 0, indoor: 0, lanes: 25 },
   reroute: { maid: 0, bicycle: 12, parking: 0, indoor: 0, lanes: 0 },
   sidepaths: { maid: 0, bicycle: 15, parking: 0, indoor: 0, lanes: 0 },

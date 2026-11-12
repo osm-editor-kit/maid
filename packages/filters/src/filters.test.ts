@@ -36,7 +36,8 @@ describe('default filters follow iD categories', () => {
     ['waterway=river line is water', { waterway: 'river' }, 'line', 'water'],
     ['railway=rail line is rail', { railway: 'rail' }, 'line', 'rail'],
     ['power=line line is power', { power: 'line' }, 'line', 'power'],
-    ['amenity=cafe point is a point', { amenity: 'cafe' }, 'point', 'points'],
+    ['amenity=cafe point is a shop or business', { amenity: 'cafe' }, 'point', 'shops'],
+    ['amenity=bench point is a point', { amenity: 'bench' }, 'point', 'points'],
     ['amenity=cafe vertex is in no category', { amenity: 'cafe' }, 'vertex', undefined],
     [
       'highway=construction line is past/future',
@@ -54,10 +55,10 @@ describe('default filters follow iD categories', () => {
       'address_points',
     ],
     [
-      'addr tags plus a shop are a point',
+      'addr tags plus a shop are a shop',
       { 'addr:housenumber': '5', shop: 'bakery' },
       'point',
-      'points',
+      'shops',
     ],
     [
       'building=construction is past/future, not a building',
@@ -117,10 +118,13 @@ describe('default filters follow iD categories', () => {
       'buildings',
       'boundaries',
       'landuse',
+      'shops',
       'points',
       'others',
     ])
-    expect(defaultFilters.every((filter) => filter.state === 'editable')).toBe(true)
+    expect(
+      defaultFilters.filter((filter) => filter.state !== 'editable').map((filter) => filter.id),
+    ).toEqual(['boundaries'])
   })
 })
 
@@ -222,7 +226,8 @@ describe('createFilterSet', () => {
     expect(states.boundaries).toBe('hidden')
     expect(states.points).toBe('editable')
     expect(states.nope).toBeUndefined()
-    expect(decided.toParam()).toBe('buildings:readonly,boundaries:hidden')
+    // boundaries start hidden: only buildings differs from the defaults
+    expect(decided.toParam()).toBe('buildings:readonly')
   })
 
   it('applies the states to the objects', () => {
@@ -234,9 +239,9 @@ describe('createFilterSet', () => {
 
   it('with returns a new set and leaves the old one unchanged', () => {
     const before = createFilterSet(defaultFilters, 'buildings:readonly,boundaries:hidden')
-    const after = before.with('buildings', 'editable')
-    expect(after.toParam()).toBe('boundaries:hidden')
-    expect(before.toParam()).toBe('buildings:readonly,boundaries:hidden')
+    const after = before.with('buildings', 'editable').with('boundaries', 'editable')
+    expect(after.toParam()).toBe('boundaries:editable')
+    expect(before.toParam()).toBe('buildings:readonly')
     expect(before.states().buildings).toBe('readonly')
     expect(before.stateOf({ building: 'yes' }, 'area')).toBe('readonly')
     expect(after.stateOf({ building: 'yes' }, 'area')).toBe('editable')

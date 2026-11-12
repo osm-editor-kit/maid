@@ -242,7 +242,9 @@ describe('iD.rendererFeatures', () => {
       expect(stats('others')).toEqual(1)
       expect(stats('past_future')).toEqual(1)
       expect(stats('paths')).toEqual(0)
-      expect(stats('points')).toEqual(5)
+      // iD's points, split in Maid into shops and businesses (the bar) and the other points
+      expect(stats('points') + stats('shops')).toEqual(5)
+      expect(stats('shops')).toEqual(1)
       expect(stats('power')).toEqual(1)
       expect(stats('rail')).toEqual(1)
       expect(stats('water')).toEqual(1)
@@ -258,7 +260,8 @@ describe('iD.rendererFeatures', () => {
         'point_generator',
         'point_old_rail_station',
       ]) {
-        expect(belongsTo('points', id)).toBe(true)
+        // Maid splits iD's points: the bar is in shops
+        expect(belongsTo('points', id) || belongsTo('shops', id)).toBe(true)
       }
       for (const id of [
         'motorway',

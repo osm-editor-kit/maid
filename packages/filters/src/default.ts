@@ -316,7 +316,8 @@ export const boundaries: Filter = {
   label: 'Boundaries',
   match: isBoundary,
   geometry: ['line', 'relation'],
-  state: 'editable',
+  // hidden at the start in every Maid (Tobias, 2026-11-12)
+  state: 'hidden',
   kind: 'category',
 }
 
@@ -364,14 +365,72 @@ export const landuse: Filter = {
   kind: 'category',
 }
 
-/** iD's `points`: a point that is not an address point. A function, because the exclusion is a rule of its own. */
+/**
+ * Shops and businesses as points: the keys of iD's shop, craft and office presets, and the amenities and tourism
+ * presets where people buy or eat something (restaurants, cafés, banks, hotels, …). Maid's own split of iD's `points`
+ * (Tobias, 2026-11-12), so that a person can keep the shops of a street and still lock the other points.
+ */
+const businessAmenities: ReadonlySet<string> = new Set([
+  'restaurant',
+  'cafe',
+  'fast_food',
+  'bar',
+  'pub',
+  'biergarten',
+  'ice_cream',
+  'food_court',
+  'bank',
+  'bureau_de_change',
+  'pharmacy',
+  'fuel',
+  'car_rental',
+  'car_wash',
+  'marketplace',
+  'nightclub',
+  'cinema',
+  'theatre',
+])
+const businessTourism: ReadonlySet<string> = new Set([
+  'hotel',
+  'hostel',
+  'guest_house',
+  'motel',
+  'apartment',
+])
+
+function isBusiness(tags: Tags) {
+  if (tags.shop !== undefined || tags.craft !== undefined || tags.office !== undefined) return true
+  return (
+    (tags.amenity !== undefined && businessAmenities.has(tags.amenity)) ||
+    (tags.tourism !== undefined && businessTourism.has(tags.tourism))
+  )
+}
+
+/** A shop or business mapped as a point that is not an address point */
+function isBusinessPoint(tags: Tags) {
+  return !isAddressPoint(tags) && isBusiness(tags)
+}
+
+export const shops: Filter = {
+  id: 'shops',
+  label: 'Shops and Businesses',
+  match: isBusinessPoint,
+  geometry: ['point'],
+  state: 'editable',
+  kind: 'category',
+}
+
+/**
+ * iD's `points` without the shops and businesses (`shops`): a point that is not an address point. A function,
+ * because the exclusions are rules of their own.
+ */
 function isPoint(tags: Tags) {
-  return !isAddressPoint(tags)
+  return !isAddressPoint(tags) && !isBusiness(tags)
 }
 
 export const points: Filter = {
   id: 'points',
-  label: 'Points',
+  label: 'Other Points',
   match: isPoint,
   geometry: ['point'],
   state: 'editable',
@@ -388,7 +447,8 @@ export const others: Filter = {
   kind: 'fallback',
 }
 
-/** iD's categories, all editable. The order is the order of iD's list; it does not change which categories an object is in. */
+/** iD's categories, with `points` split into `shops` and the other points. All editable but `boundaries`, which every
+ * Maid starts hidden (Tobias, 2026-11-12): they cross the streets one edits and are rarely what one came for. The order is the order of iD's list; it does not change which categories an object is in. */
 export const defaultFilters: Filter[] = [
   pastFuture,
   addressPoints,
@@ -405,6 +465,7 @@ export const defaultFilters: Filter[] = [
   buildings,
   boundaries,
   landuse,
+  shops,
   points,
   others,
 ]

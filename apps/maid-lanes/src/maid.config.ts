@@ -7,7 +7,7 @@ import { canBeArea, lazyPresets, type MaidModule } from '@osm-editor-kit/maid-co
  * smoothness photos), and adds `lanes()` with its lens, the traffic sign field and the way table (the lanes of the ways
  * along a street side by side). Everything else of apps/maid is kept.
  */
-import { defaultFilters } from '@osm-editor-kit/maid-filters'
+import { defaultFilters, type FilterState } from '@osm-editor-kit/maid-filters'
 import { dataLayers } from '@osm-editor-kit/maid-module-data-layers'
 import { imagery } from '@osm-editor-kit/maid-module-imagery'
 import { laneRules, lanes, lanesLens } from '@osm-editor-kit/maid-module-lanes'
@@ -99,8 +99,33 @@ function editorConfig(config: Config) {
   ]
   // dashed outline around the area the fixture covers
   if (bbox) modules.push(sceneBounds({ bbox }))
-  return { modules, presets, filters: defaultFilters }
+  return { modules, presets, filters: lanesFilters }
 }
+
+/**
+ * The filters of the lanes editor: roads and paths editable, the rest locked or hidden, so the map stays on the street
+ * (Tobias, 2026-11-12). The person can change them in the filter panel as in any Maid.
+ */
+const LANES_FILTER_STATES: Record<string, FilterState> = {
+  past_future: 'readonly',
+  address_points: 'hidden',
+  building_parts: 'hidden',
+  indoor: 'hidden',
+  pistes: 'readonly',
+  aerialways: 'readonly',
+  power: 'readonly',
+  water: 'readonly',
+  buildings: 'readonly',
+  boundaries: 'hidden',
+  landuse: 'readonly',
+  shops: 'readonly',
+  points: 'readonly',
+  others: 'readonly',
+}
+const lanesFilters = defaultFilters.map((filter) => ({
+  ...filter,
+  state: LANES_FILTER_STATES[filter.id] ?? filter.state,
+}))
 
 /** The app: its name, its login to OpenStreetMap and its development server, and the editor above */
 export const app: AppConfig = {
