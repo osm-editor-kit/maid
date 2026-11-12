@@ -9,6 +9,8 @@ describe('iD.actionOrthogonalize', () => {
   const context = new Rapid.MockContext();
 
   describe('closed paths', () => {
+    // Maid differs: iD keeps both duplicate vertices (6 nodes); Maid merges them (SQUARE_MERGE_METERS). What #9155
+    // was about still holds: the corner is not removed.
     it('preserves a way\'s duplicate vertices', () => {
       // #9155
       const base = new Rapid.Graph(context, [
@@ -22,7 +24,8 @@ describe('iD.actionOrthogonalize', () => {
 
       const graph = new Rapid.Graph(base);
       const result = Rapid.actionOrthogonalize('-')(graph);
-      expect(result.entity('-').nodes.length).toEqual(6);
+      expect(result.entity('-').nodes).toEqual(['a', 'b', 'd', 'e', 'a']);
+      expect(result.hasEntity('c')).toBeUndefined();
     });
   });
 });

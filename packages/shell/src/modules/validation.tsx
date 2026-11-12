@@ -31,6 +31,7 @@ import {
   showAgainIssues,
   subscribeIgnored,
 } from './validation-ignored'
+import { IssuesOnMap } from './validation-map.tsx'
 
 /** The reads the views and the inspector's `when` make: the validator's, with the URL's levels applied */
 type ValidatorReads = Pick<
@@ -501,6 +502,13 @@ export function validation({ rules }: { rules: readonly Rule[] }) {
         )
       }
 
+      // the issues one cannot see at the zoom one edits at (two points a few centimetres apart) get a ring on the map
+      function OnMap() {
+        const issues = useIssues(store, (v) => v.issues())
+        return <IssuesOnMap issues={issues} />
+      }
+
+      api.register('map.content', { id: 'validation-on-map', component: OnMap })
       api.register('inspector.section', {
         id: 'validation-issues',
         title: m.issues_title(),

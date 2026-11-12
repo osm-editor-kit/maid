@@ -1,5 +1,5 @@
 import { actionDeleteNode } from './delete_node.ts';
-import { DEG2RAD, projWorldToWgs84, vecAdd, vecEqual, vecInterp, vecLength, vecNormalize, vecProject, vecScale, vecSubtract } from '@rapid-sdk/math';
+import { DEG2RAD, geoSphericalDistance, projWorldToWgs84, vecAdd, vecEqual, vecInterp, vecLength, vecNormalize, vecProject, vecScale, vecSubtract } from '@rapid-sdk/math';
 import { geoOrthoCalcScore, geoOrthoCanOrthogonalize, geoOrthoNormalizedDotProduct } from '../geo/ortho.ts';
 import { Graph } from '../lib/Graph.ts';
 import { OsmNode } from '../data/OsmNode.ts';
@@ -7,6 +7,17 @@ import { OsmWay } from '../data/OsmWay.ts';
 
 import type { Action } from './types.ts';
 import type { Vec2 } from '@rapid-sdk/math';
+
+
+/**
+ * Maid, not iD: two consecutive nodes of a squared way that are closer than this become one. iD keeps them, even at
+ * the same place (iD #9155): a step a few centimetres long then counts as two right angles, and the shape is
+ * "already square" with a redundant pair of nodes in it (for example after the extrude tool lined up two edges).
+ */
+export const SQUARE_MERGE_METERS = 0.2;
+
+/** A way whose box has a shorter diagonal than this keeps its close nodes: they may be the detail (as iD's close_nodes) */
+const SQUARE_MERGE_MIN_WAY_METERS = 1.5;
 
 
 /** Point with ID and coordinate for orthogonalization */
@@ -73,6 +84,24 @@ export function actionOrthogonalize(
     if (vertexID !== undefined) {
       nodes = getSelfAndNeighbors(nodes, vertexID, isClosed);
       if (nodes.length !== 3) return graph.commit();
+    }
+
+    // Maid: merge nodes that are almost at the same place, before the angles are looked at. The node that goes
+    // is an uninteresting one, the one that stays may then be on a straight line and goes as such below.
+    if (vertexID === undefined) {
+      const dropped = closeNodesToDrop(graph, nodes, isClosed);
+      if (dropped.size) {
+        for (const [droppedID, keptID] of dropped) {
+          if (t === 1) {
+            graph = actionDeleteNode(droppedID)(graph);
+          } else {
+            const dropping = graph.entity(droppedID) as OsmNode;
+            const keeping = graph.entity(keptID) as OsmNode;
+            graph.replace(dropping.move(vecInterp(dropping.loc!, keeping.loc!, t)));
+          }
+        }
+        nodes = nodes.filter(node => !dropped.has(node.id));
+      }
     }
 
     // note: all geometry functions here use the unclosed node/point/coord list
@@ -235,6 +264,76 @@ export function actionOrthogonalize(
 
 
   /**
+   * Maid: which nodes of the way go because they are almost at the place of their neighbour (`SQUARE_MERGE_METERS`),
+   * each with the node that stays there. Only an uninteresting node goes (no tags that matter, in this way only and
+   * once, in no relation), and not an end of an open way. Nothing goes when fewer than three nodes would be left or
+   * the way is tiny.
+   * @param   graph     The graph
+   * @param   nodes     The way's nodes, without the closing node of a closed way
+   * @param   isClosed  Whether the way is closed
+   * @return  Dropped node id → the id of the node that stays at its place
+   */
+  function closeNodesToDrop(graph: Graph, nodes: OsmNode[], isClosed: boolean): Map<EntityID, EntityID> {
+    const dropped = new Map<EntityID, EntityID>();
+    if (nodes.length < 4 || nodes.some(node => !node.loc)) return dropped;
+
+    let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
+    for (const node of nodes) {
+      const [lon, lat] = node.loc!;
+      minLon = Math.min(minLon, lon); maxLon = Math.max(maxLon, lon);
+      minLat = Math.min(minLat, lat); maxLat = Math.max(maxLat, lat);
+    }
+    if (geoSphericalDistance([minLon, minLat], [maxLon, maxLat]) < SQUARE_MERGE_MIN_WAY_METERS) return dropped;
+
+    const count = new Map<EntityID, number>();
+    for (const node of nodes) count.set(node.id, (count.get(node.id) ?? 0) + 1);
+    const ends = isClosed ? new Set<EntityID>() : new Set([nodes[0].id, nodes[nodes.length - 1].id]);
+    const canDrop = (node: OsmNode) => count.get(node.id) === 1 && !ends.has(node.id) && !node.isInteresting(graph);
+    const close = (a: OsmNode, b: OsmNode) => a.id !== b.id && geoSphericalDistance(a.loc!, b.loc!) < SQUARE_MERGE_METERS;
+
+    const kept: OsmNode[] = [];
+    for (const node of nodes) {
+      const last = kept[kept.length - 1];
+      if (last && close(last, node)) {
+        if (canDrop(node)) {
+          dropped.set(node.id, last.id);
+          continue;
+        }
+        if (canDrop(last)) {
+          dropped.set(last.id, node.id);
+          kept[kept.length - 1] = node;
+          continue;
+        }
+      }
+      kept.push(node);
+    }
+    if (isClosed && kept.length > 1) {
+      const first = kept[0];
+      const last = kept[kept.length - 1];
+      if (close(last, first)) {
+        if (canDrop(last)) {
+          dropped.set(last.id, first.id);
+          kept.pop();
+        } else if (canDrop(first)) {
+          dropped.set(first.id, last.id);
+          kept.shift();
+        }
+      }
+    }
+    if (kept.length < 3) return new Map();
+
+    // a node can stay for one that went for another one later: point every dropped node at the one that stays
+    const stays = new Set(kept.map(node => node.id));
+    for (const [droppedID, keptID] of dropped) {
+      let target = keptID;
+      while (!stays.has(target)) target = dropped.get(target)!;
+      dropped.set(droppedID, target);
+    }
+    return dropped;
+  }
+
+
+  /**
    * Given a nodelist and target nodeID, returns [previous, target, next].
    * Note that the nodelist array will already have its connecting node popped off,
    * so we need to pass in the `isClosed` flag to decide whether to treat it like a closed loop.
@@ -286,6 +385,9 @@ export function actionOrthogonalize(
       nodes = getSelfAndNeighbors(nodes, vertexID, isClosed);
       if (nodes.length !== 3) return 'end_vertex';
     }
+
+    // Maid: nodes almost at the same place are merged by squaring, so there is something to do
+    if (vertexID === undefined && closeNodesToDrop(graph, nodes, isClosed).size > 0) return false;
 
     // Gather world coordinates, choose a local origin for floating point stability.
     const points: Vec2[] = [];

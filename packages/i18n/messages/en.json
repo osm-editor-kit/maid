@@ -235,6 +235,7 @@
   "issues_empty_quiet": "No issues in what you changed. Features you select are checked too; their issues in existing data stay quiet.",
   "issues_empty_session": "No issues in what you changed or selected.",
   "issues_title": "Issues",
+  "issues_close_points_map": "Very close points",
   "issues_severity_error": "Error",
   "issues_severity_warning": "Warning",
   "relations_section_members": "Members",
