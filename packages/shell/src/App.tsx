@@ -14,7 +14,6 @@ import { RelationColumnSlot } from './components/RelationColumnSlot'
 import { RestorePrompt } from './components/RestorePrompt'
 import { SaveButton } from './components/SaveButton'
 import { SearchButton } from './components/SearchButton'
-import { SelectionOnlyButton } from './components/SelectionOnlyButton'
 import { TopBarPanels } from './components/TopBarPanels'
 import { UndoRedo } from './components/UndoRedo'
 import { UserButton } from './components/UserButton'
@@ -71,7 +70,6 @@ function Editor() {
             <>
               <SearchButton />
               <TopBarPanels />
-              <SelectionOnlyButton />
               <FilterButton />
               <SaveButton />
               <UserButton />
