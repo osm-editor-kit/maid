@@ -1,6 +1,6 @@
 import { OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 import type { Graph } from '@osm-editor-kit/maid-model'
-import { nodeLoc, touchPoints } from '../geo.ts'
+import { nodeLoc, sphericalDistance, touchPoints } from '../geo.ts'
 import type { Issue, Rule } from '../types.ts'
 
 // Maid's own check, after iD issue 11374 (a route whose ways do not join). `routeJoins` is the one place that decides
@@ -52,20 +52,31 @@ export function routeJoins(graph: Graph, relation: OsmRelation) {
   return joins
 }
 
-/** The point where two ways are closest, the midpoint of their two nearest ends: where the gap is shown */
-function gapLocation(graph: Graph, a: OsmWay, b: OsmWay): [number, number] | undefined {
-  let best: { distance: number; loc: [number, number] } | undefined
+/** The two nearest ends of two ways: where a gap between them is. Undefined when no end has a location. */
+function nearestEnds(graph: Graph, a: OsmWay, b: OsmWay) {
+  let best: { distance: number; pa: [number, number]; pb: [number, number] } | undefined
   for (const endA of [a.first(), a.last()]) {
     for (const endB of [b.first(), b.last()]) {
       const pa = endA === undefined ? undefined : nodeLoc(graph, endA)
       const pb = endB === undefined ? undefined : nodeLoc(graph, endB)
       if (!pa || !pb) continue
       const distance = (pa[0] - pb[0]) ** 2 + (pa[1] - pb[1]) ** 2
-      if (!best || distance < best.distance)
-        best = { distance, loc: [(pa[0] + pb[0]) / 2, (pa[1] + pb[1]) / 2] }
+      if (!best || distance < best.distance) best = { distance, pa, pb }
     }
   }
-  return best?.loc
+  return best
+}
+
+/** The point where two ways are closest, the midpoint of their two nearest ends: where the gap is shown */
+function gapLocation(graph: Graph, a: OsmWay, b: OsmWay): [number, number] | undefined {
+  const ends = nearestEnds(graph, a, b)
+  return ends && [(ends.pa[0] + ends.pb[0]) / 2, (ends.pa[1] + ends.pb[1]) / 2]
+}
+
+/** How far apart two ways are at a gap, in metres: between their two nearest ends. Undefined without locations. */
+export function gapMetres(graph: Graph, a: OsmWay, b: OsmWay) {
+  const ends = nearestEnds(graph, a, b)
+  return ends && sphericalDistance(ends.pa, ends.pb)
 }
 
 /**

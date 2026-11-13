@@ -9,11 +9,12 @@ import {
   ViewfinderCircleIcon,
   XMarkIcon,
 } from '@heroicons/react/16/solid'
-import { m } from '@osm-editor-kit/maid-i18n'
+import { getLocale, m } from '@osm-editor-kit/maid-i18n'
 import { actionAddMember, actionDeleteMember, OsmRelation } from '@osm-editor-kit/maid-model'
 import type { RelationRoles } from '@osm-editor-kit/maid-presets'
 import type { EntityInfo } from '@osm-editor-kit/maid-renderer'
 import {
+  Flyout,
   notify,
   SidebarDisclosure,
   stackedHeadingsCover,
@@ -41,10 +42,11 @@ import {
   relationRolesOf,
   roleLabel,
   roleToAdd,
-  routeGaps,
+  routeGapInfos,
   wouldContainItself,
   type MemberGroup,
   type MemberRow,
+  type RouteGapInfo,
 } from './relations-logic.ts'
 import { openRelationActions, useOpenRelationFrom } from './relations-open-store.ts'
 import { ColumnDragHandle, ReorderRow, useMemberReorder } from './relations-reorder.tsx'
@@ -205,7 +207,7 @@ function ColumnBody({
     openRelationActions.open(parent.id)
     select(child)
   }
-  const gaps = new Set(routeGaps(graph, relation))
+  const gaps = routeGapInfos(graph, relation)
   const roles = relationRolesOf(presets, relation.tags)
   const members = new Set(relation.members.map((member) => member.id))
   const selectedEntity = selected && selected !== id ? engine.entity(selected) : undefined
@@ -392,7 +394,9 @@ function ColumnBody({
                       // the gaps are between members in data order: hidden while the drag shows another order
                       relationId={id}
                       gapBelow={
-                        !reorder.dragging && gaps.has(row.index) && position < visible.length - 1
+                        !reorder.dragging && position < visible.length - 1
+                          ? gaps.get(row.index)
+                          : undefined
                       }
                     />
                   )
@@ -490,7 +494,7 @@ function MemberItem({
   /** Takes the member out of the relation (one undo step); also for a member that is not loaded */
   onRemove: () => void
   /** A line under the row for the gap to the next way */
-  gapBelow: boolean
+  gapBelow: RouteGapInfo | undefined
   relationId: EntityID
 }) {
   'use no memo'
@@ -634,17 +638,74 @@ function MemberItem({
               <span aria-hidden className="size-4 shrink-0" />
             )}
           </div>
-          {gapBelow && (
-            // a title, not a Tooltip: a line that cannot take focus
-            <div className={GAP} title={m.relations_gap_title()}>
-              <span className="h-px flex-1 border-t border-dashed border-amber-500/60" />
-              {m.relations_gap()}
-              <span className="h-px flex-1 border-t border-dashed border-amber-500/60" />
-            </div>
-          )}
+          {gapBelow && <GapLine gap={gapBelow} select={select} />}
         </>
       )}
     </ReorderRow>
+  )
+}
+
+/**
+ * The line under a way whose end does not meet the next way, with an "i" that explains the gap and what to do about it.
+ * The relation's Issues section leaves this warning out while the column shows it (validation.tsx), so this is where it
+ * is read and acted on.
+ */
+function GapLine({ gap, select }: { gap: RouteGapInfo; select: Select }) {
+  const { engine } = useShell()
+  return (
+    <div className={GAP}>
+      <span className="h-px flex-1 border-t border-dashed border-amber-500/60" />
+      <span className="flex items-center gap-1">
+        {m.relations_gap()}
+        <Flyout
+          label={m.relations_gap_info_title()}
+          placement="right-start"
+          className="w-80"
+          hover
+          focus={false}
+          trigger={
+            <button
+              type="button"
+              aria-label={m.relations_gap_info_label()}
+              className="relative z-10 grid size-5 shrink-0 cursor-pointer place-items-center rounded-full text-amber-700 after:absolute after:-inset-1.5 after:content-[''] hover:bg-amber-500/15 focus-visible:outline-2 focus-visible:outline-blue-500 aria-expanded:bg-amber-500/15 dark:text-amber-400"
+            >
+              <InformationCircleIcon aria-hidden="true" className="size-4" />
+            </button>
+          }
+        >
+          <div className="grid gap-2 p-3 text-xs leading-5 font-normal text-zinc-700 dark:text-zinc-300">
+            <p className="text-sm font-semibold text-zinc-950 dark:text-white">
+              {m.relations_gap_info_title()}
+            </p>
+            <p>
+              {m.relations_gap_title()}.
+              {gap.metres === undefined
+                ? null
+                : ` ${m.relations_gap_info_distance({ distance: formatMetres(gap.metres) })}`}
+            </p>
+            <p>{m.relations_gap_info_todo()}</p>
+            <button
+              type="button"
+              className={`${LINK} w-fit`}
+              onClick={() => {
+                select(gap.before)
+                engine.fitTo([gap.before, gap.after])
+              }}
+            >
+              {m.relations_gap_info_show()}
+            </button>
+          </div>
+        </Flyout>
+      </span>
+      <span className="h-px flex-1 border-t border-dashed border-amber-500/60" />
+    </div>
+  )
+}
+
+/** Metres as the gap's explanation gives them: a whole number, one decimal below 10 m */
+function formatMetres(metres: number) {
+  return new Intl.NumberFormat(getLocale(), { maximumFractionDigits: metres < 10 ? 1 : 0 }).format(
+    metres,
   )
 }
 

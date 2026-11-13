@@ -153,7 +153,7 @@ export { formatModifiers, formatShortcut, isApplePlatform } from './shortcut-lab
 export type { TooltipHint } from './tooltip-group.ts'
 export { errorText, notify, Toaster, type NotifyOptions } from './Toast.tsx'
 export { useResizable } from './useResizable.ts'
-export { useBreakpoint, type Breakpoint } from './useBreakpoint.ts'
+export { breakpoints, useBreakpoint, type Breakpoint } from './useBreakpoint.ts'
 export { PLAIN_INPUT } from './plain-input.ts'
 export { SuggestTextarea } from './SuggestTextarea.tsx'
 export { Sheet } from './sheet/Sheet.tsx'

@@ -20,7 +20,7 @@ import {
 // and where an entity sits in them. No React here, so the tests can build graphs by hand.
 import { labelOf } from '@osm-editor-kit/maid-renderer'
 import { isArea } from '@osm-editor-kit/maid-style'
-import { routeJoins as validationRouteJoins } from '@osm-editor-kit/maid-validation'
+import { gapMetres, routeJoins as validationRouteJoins } from '@osm-editor-kit/maid-validation'
 
 /** One place where an entity is a member: the relation, the position in its members, and the role. */
 export type Membership = { relation: OsmRelation; index: number; role: string }
@@ -536,6 +536,23 @@ export function routeGaps(graph: Graph, relation: OsmRelation) {
   return routeJoins(graph, relation)
     .filter((entry) => entry.join === 'gap')
     .map((entry) => entry.index)
+}
+
+/** One gap of a route as its member list explains it: the two ways that do not meet and how far apart they are */
+export type RouteGapInfo = { before: EntityID; after: EntityID; metres: number | undefined }
+
+/** The gaps of a route, keyed by the index of the earlier member (as `routeGaps`), with the two ways and the distance */
+export function routeGapInfos(graph: Graph, relation: OsmRelation) {
+  const infos = new Map<number, RouteGapInfo>()
+  for (const { index, before, after, join } of validationRouteJoins(graph, relation)) {
+    if (join !== 'gap' || !before || !after) continue
+    infos.set(index, {
+      before: before.id,
+      after: after.id,
+      metres: gapMetres(graph, before, after),
+    })
+  }
+  return infos
 }
 
 /**

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test'
-import { actionDeleteWay, Difference, Graph, OsmRelation } from '@osm-editor-kit/maid-model'
+import { actionDeleteWay, Difference, Graph, OsmRelation, OsmWay } from '@osm-editor-kit/maid-model'
 import { graphOf, node, relation, validateChanged, way } from '../id-test-helpers.ts'
 import { createValidator, runContext } from '../validator.ts'
-import { routeGap, routeJoins } from './route-gap.ts'
+import { gapMetres, routeGap, routeJoins } from './route-gap.ts'
 
 // Nodes n1 to n5 lie on one line, from west to east, so a gap has a place to be drawn.
 function line() {
@@ -49,6 +49,14 @@ describe('route_gap', () => {
     // the midpoint of the two nearest ends, n2 (lon 0.001) and n3 (lon 0.002)
     expect(issue?.loc?.[0]).toBeCloseTo(0.0015)
     expect(issue?.loc?.[1]).toBeCloseTo(0)
+  })
+
+  it('measures a gap between the two nearest ends, in metres', () => {
+    const graph = graphOf(...line(), way('w-1', ['n2', 'n1']), way('w-2', ['n3', 'n4']))
+    const [a, b] = [graph.entity('w-1'), graph.entity('w-2')]
+    if (!(a instanceof OsmWay) || !(b instanceof OsmWay)) throw new Error('ways expected')
+    // n2 and n3 are 0.001° of longitude apart on the equator: about 111 m
+    expect(gapMetres(graph, a, b)).toBeCloseTo(111.3, 0)
   })
 
   it('ignores stops and platforms between two ways that join, and the nodes of a route', () => {

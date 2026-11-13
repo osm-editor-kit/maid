@@ -1,7 +1,7 @@
 import { defineModule, type Editor } from '@osm-editor-kit/maid-core'
 import { m } from '@osm-editor-kit/maid-i18n'
 import { OsmWay, type Graph } from '@osm-editor-kit/maid-model'
-import { notify } from '@osm-editor-kit/maid-ui'
+import { breakpoints, notify, useBreakpoint } from '@osm-editor-kit/maid-ui'
 import type { DockViewProps, InspectorSectionProps } from '@osm-editor-kit/maid-ui'
 import {
   applyOverrides,
@@ -16,6 +16,7 @@ import {
 } from '@osm-editor-kit/maid-validation'
 import { useState, useSyncExternalStore } from 'react'
 import { readParams, stateParams } from '../url/params'
+import { currentOpenRelationId, useOpenRelationId } from './relations-open-store.ts'
 import { ExistingMenu } from './validation-existing-menu.tsx'
 import {
   existingActions,
@@ -316,6 +317,25 @@ function tagLinesOf(issue: Issue): TagLine[] {
 const TAG_SIGN = { '+': '+', '-': '−', '~': ' ' }
 
 /**
+ * A gap of the route that is open in the relation column: the column draws it as a line between the two ways, with an
+ * "i" that explains it and shows it on the map (relations-column.tsx), so a feature's Issues section leaves it out.
+ * Only where the column is shown, at `sm` and wider: on a phone the sheet has no column and the section keeps it.
+ */
+function inRelationColumn(issue: Issue, openRelation: EntityID | null, wide: boolean) {
+  return (
+    wide &&
+    openRelation !== null &&
+    issue.rule === 'route_gap' &&
+    issue.entityIds[0] === openRelation
+  )
+}
+
+/** Whether the window is wide enough for the relation column, read outside React (a section's `when`) */
+function columnShown() {
+  return globalThis.matchMedia?.(`(min-width: ${breakpoints.sm}px)`).matches ?? false
+}
+
+/**
  * One issue with its fixes: the row of the dock's list, of one feature's inspector and of several. `existing` is an
  * issue of existing data, shown folded: a quieter look, and a fix of it is the sign that the person wants to see them.
  */
@@ -441,11 +461,14 @@ export function validation({ rules }: { rules: readonly Rule[] }) {
 
       function EntityIssues({ entity, editor }: InspectorSectionProps) {
         const mode = useExistingMode()
-        const issues = useIssues(store, (v) => v.issuesFor(entity.id))
+        const openRelation = useOpenRelationId()
+        const wide = useBreakpoint('sm')
+        const shown = (issue: Issue) => !inRelationColumn(issue, openRelation, wide)
+        const issues = useIssues(store, (v) => v.issuesFor(entity.id)).filter(shown)
         // in Quiet mode the issues of existing data are folded; in the other modes they are in the list above
         const folded = useIssues(store, (v) =>
           showsExisting(mode) ? [] : v.existingIssuesFor(entity.id),
-        )
+        ).filter(shown)
         return (
           <div>
             <ExistingMenu />
@@ -516,9 +539,12 @@ export function validation({ rules }: { rules: readonly Rule[] }) {
         // click path, and what it finds is read by the section at the next render
         when: (entity) => {
           store.select(entity.id)
+          const openRelation = currentOpenRelationId()
+          const wide = columnShown()
+          const shown = (issue: Issue) => !inRelationColumn(issue, openRelation, wide)
           return (
-            store.reads.issuesFor(entity.id).length > 0 ||
-            store.reads.existingIssuesFor(entity.id).length > 0
+            store.reads.issuesFor(entity.id).some(shown) ||
+            store.reads.existingIssuesFor(entity.id).some(shown)
           )
         },
         component: EntityIssues,
