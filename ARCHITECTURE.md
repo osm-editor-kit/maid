@@ -77,7 +77,7 @@ What each app turns on today:
 | `apps/maid-lanes` | 5179 | lanes (section with the cross-section and the lane table, and its lens), turn restrictions, traffic signs, way table |
 | `apps/maid-golf` | 5180 | golf (a prototype): the holes as a scorecard in the dock, golf lens, golf rules and presets, drawing tools; roads and buildings locked |
 | `apps/maid-climbing` | 5181 | climbing (section for crags, areas and routes; the fields of id-tagging-schema PR 2793), terrain (relief and 3D, the map may tilt); no surface or turn restrictions |
-| `apps/maid-buildings` | 5182 | buildings (the buildings style after the kaligrafy iD fork as its standard, the number of dwellings on the map, level fields on every building, building favourites), shapes (angle snap with lengths, rectangle, merge, cut, divide, resize, extrude); roads, paths, rail, water and power locked |
+| `apps/maid-buildings` | 5182 | buildings (the buildings style after the kaligrafy iD fork as its standard, the number of dwellings on the map, level fields on every building, building favourites), shapes (angle snap with lengths, rectangle, merge, cut, divide, resize, extrude), HOT Tasking Manager (`tm=<project>/<task>`: the task on the map, its instructions in the dock, the project's changeset comment); roads, paths, rail, water and power locked |
 | `apps/maid-maproulette` | 5183 | MapRoulette (challenges by number, link or nearby, tasks on the map and in the inspector, tag fix, status right away or with the upload), turn restrictions, surface |
 
 The shared set is the same in all six: element info, operations, relations, validation, imagery, data layers, lenses,

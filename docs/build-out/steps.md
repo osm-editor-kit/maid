@@ -679,8 +679,19 @@ Tobias, 2026-11-13: the HOT Tasking Manager in Maid Buildings, with the mechanic
 button with projects, a link with a project and task, the tasks in the dock, the task area on the map, the instructions,
 presets and style from the project. Research and plan: [tasking-manager.md](../research/tasking-manager.md).
 
-- [ ] After the MapRoulette edition, first: `packages/module-tasking-manager` (read only) with the deep link
-      `?tm=<project>/<task>`: task area on the map, instructions, changeset comment; the mock project on `small`.
+- [x] 2026-11-13: `packages/module-tasking-manager` (read only) in Maid Buildings: `?tm=<project>/<task>` opens the
+      dock tab "Tasking Manager" (project, task status, the task's instructions with `{x}/{y}/{z}`, the project's
+      instructions and description, a link to the project's tasks in the TM, since the TM has no link to one task), the
+      map moves onto the task once the map is idle (the dock that opens resizes the map and stopped an earlier easing),
+      the area of interest dashed, the tasks by status under the OSM data, the current task outlined in HOT red; the save
+      form starts with the project's changeset comment. Mock: the made-up project 4242 (`bun run
+      fixtures-tasking-manager`, 36 tasks on the small scene) and a private 4243 under `/tasking-manager/api/v2`. Check
+      `check-tasking-manager` 11 ok, in `check-all --app buildings`. Not tried against the real TM (core rule 1): whether
+      its API allows requests from GitHub Pages (CORS) is open.
+      **Test for Tobias:** pick a building project on https://tasks.hotosm.org/explore and a task number, then open
+      `https://osm-editor-kit.github.io/maid/maid-buildings/?tm=<project>/<task>` : the map moves to the task, outlined in
+      red, the dock shows its status and instructions, and the save form starts with the project's comment. If the dock
+      says the TM is not reachable, the browser's console will name CORS.
 - [ ] Later: project list in the top bar, dock tab with the tasks, presets and style from the project.
 
 ### Traffic signs and the photo viewer (2026-11-12)

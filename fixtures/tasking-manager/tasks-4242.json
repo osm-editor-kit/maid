@@ -1,0 +1,1553 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.392334,
+                52.3923634
+              ],
+              [
+                13.3950806,
+                52.3923634
+              ],
+              [
+                13.3950806,
+                52.3940395
+              ],
+              [
+                13.392334,
+                52.3940395
+              ],
+              [
+                13.392334,
+                52.3923634
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 1,
+        "taskX": 70412,
+        "taskY": 88010,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "MAPPED",
+        "lockedBy": null,
+        "mappedBy": 1,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.3950806,
+                52.3923634
+              ],
+              [
+                13.3978271,
+                52.3923634
+              ],
+              [
+                13.3978271,
+                52.3940395
+              ],
+              [
+                13.3950806,
+                52.3940395
+              ],
+              [
+                13.3950806,
+                52.3923634
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 2,
+        "taskX": 70413,
+        "taskY": 88010,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "VALIDATED",
+        "lockedBy": null,
+        "mappedBy": 1,
+        "validatedBy": 2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.3978271,
+                52.3923634
+              ],
+              [
+                13.4005737,
+                52.3923634
+              ],
+              [
+                13.4005737,
+                52.3940395
+              ],
+              [
+                13.3978271,
+                52.3940395
+              ],
+              [
+                13.3978271,
+                52.3923634
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 3,
+        "taskX": 70414,
+        "taskY": 88010,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "INVALIDATED",
+        "lockedBy": null,
+        "mappedBy": 1,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.4005737,
+                52.3923634
+              ],
+              [
+                13.4033203,
+                52.3923634
+              ],
+              [
+                13.4033203,
+                52.3940395
+              ],
+              [
+                13.4005737,
+                52.3940395
+              ],
+              [
+                13.4005737,
+                52.3923634
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 4,
+        "taskX": 70415,
+        "taskY": 88010,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "LOCKED_FOR_MAPPING",
+        "lockedBy": 1,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.4033203,
+                52.3923634
+              ],
+              [
+                13.4060669,
+                52.3923634
+              ],
+              [
+                13.4060669,
+                52.3940395
+              ],
+              [
+                13.4033203,
+                52.3940395
+              ],
+              [
+                13.4033203,
+                52.3923634
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 5,
+        "taskX": 70416,
+        "taskY": 88010,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "BADIMAGERY",
+        "lockedBy": null,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.4060669,
+                52.3923634
+              ],
+              [
+                13.4088135,
+                52.3923634
+              ],
+              [
+                13.4088135,
+                52.3940395
+              ],
+              [
+                13.4060669,
+                52.3940395
+              ],
+              [
+                13.4060669,
+                52.3923634
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 6,
+        "taskX": 70417,
+        "taskY": 88010,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "READY",
+        "lockedBy": null,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.392334,
+                52.3906873
+              ],
+              [
+                13.3950806,
+                52.3906873
+              ],
+              [
+                13.3950806,
+                52.3923634
+              ],
+              [
+                13.392334,
+                52.3923634
+              ],
+              [
+                13.392334,
+                52.3906873
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 7,
+        "taskX": 70412,
+        "taskY": 88009,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "READY",
+        "lockedBy": null,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.3950806,
+                52.3906873
+              ],
+              [
+                13.3978271,
+                52.3906873
+              ],
+              [
+                13.3978271,
+                52.3923634
+              ],
+              [
+                13.3950806,
+                52.3923634
+              ],
+              [
+                13.3950806,
+                52.3906873
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 8,
+        "taskX": 70413,
+        "taskY": 88009,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "READY",
+        "lockedBy": null,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.3978271,
+                52.3906873
+              ],
+              [
+                13.4005737,
+                52.3906873
+              ],
+              [
+                13.4005737,
+                52.3923634
+              ],
+              [
+                13.3978271,
+                52.3923634
+              ],
+              [
+                13.3978271,
+                52.3906873
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 9,
+        "taskX": 70414,
+        "taskY": 88009,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "MAPPED",
+        "lockedBy": null,
+        "mappedBy": 1,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.4005737,
+                52.3906873
+              ],
+              [
+                13.4033203,
+                52.3906873
+              ],
+              [
+                13.4033203,
+                52.3923634
+              ],
+              [
+                13.4005737,
+                52.3923634
+              ],
+              [
+                13.4005737,
+                52.3906873
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 10,
+        "taskX": 70415,
+        "taskY": 88009,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "VALIDATED",
+        "lockedBy": null,
+        "mappedBy": 1,
+        "validatedBy": 2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.4033203,
+                52.3906873
+              ],
+              [
+                13.4060669,
+                52.3906873
+              ],
+              [
+                13.4060669,
+                52.3923634
+              ],
+              [
+                13.4033203,
+                52.3923634
+              ],
+              [
+                13.4033203,
+                52.3906873
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 11,
+        "taskX": 70416,
+        "taskY": 88009,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "INVALIDATED",
+        "lockedBy": null,
+        "mappedBy": 1,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.4060669,
+                52.3906873
+              ],
+              [
+                13.4088135,
+                52.3906873
+              ],
+              [
+                13.4088135,
+                52.3923634
+              ],
+              [
+                13.4060669,
+                52.3923634
+              ],
+              [
+                13.4060669,
+                52.3906873
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 12,
+        "taskX": 70417,
+        "taskY": 88009,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "LOCKED_FOR_MAPPING",
+        "lockedBy": 1,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.392334,
+                52.3890111
+              ],
+              [
+                13.3950806,
+                52.3890111
+              ],
+              [
+                13.3950806,
+                52.3906873
+              ],
+              [
+                13.392334,
+                52.3906873
+              ],
+              [
+                13.392334,
+                52.3890111
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 13,
+        "taskX": 70412,
+        "taskY": 88008,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "BADIMAGERY",
+        "lockedBy": null,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.3950806,
+                52.3890111
+              ],
+              [
+                13.3978271,
+                52.3890111
+              ],
+              [
+                13.3978271,
+                52.3906873
+              ],
+              [
+                13.3950806,
+                52.3906873
+              ],
+              [
+                13.3950806,
+                52.3890111
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 14,
+        "taskX": 70413,
+        "taskY": 88008,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "READY",
+        "lockedBy": null,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.3978271,
+                52.3890111
+              ],
+              [
+                13.4005737,
+                52.3890111
+              ],
+              [
+                13.4005737,
+                52.3906873
+              ],
+              [
+                13.3978271,
+                52.3906873
+              ],
+              [
+                13.3978271,
+                52.3890111
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 15,
+        "taskX": 70414,
+        "taskY": 88008,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "READY",
+        "lockedBy": null,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.4005737,
+                52.3890111
+              ],
+              [
+                13.4033203,
+                52.3890111
+              ],
+              [
+                13.4033203,
+                52.3906873
+              ],
+              [
+                13.4005737,
+                52.3906873
+              ],
+              [
+                13.4005737,
+                52.3890111
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 16,
+        "taskX": 70415,
+        "taskY": 88008,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "READY",
+        "lockedBy": null,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.4033203,
+                52.3890111
+              ],
+              [
+                13.4060669,
+                52.3890111
+              ],
+              [
+                13.4060669,
+                52.3906873
+              ],
+              [
+                13.4033203,
+                52.3906873
+              ],
+              [
+                13.4033203,
+                52.3890111
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 17,
+        "taskX": 70416,
+        "taskY": 88008,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "MAPPED",
+        "lockedBy": null,
+        "mappedBy": 1,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.4060669,
+                52.3890111
+              ],
+              [
+                13.4088135,
+                52.3890111
+              ],
+              [
+                13.4088135,
+                52.3906873
+              ],
+              [
+                13.4060669,
+                52.3906873
+              ],
+              [
+                13.4060669,
+                52.3890111
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 18,
+        "taskX": 70417,
+        "taskY": 88008,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "VALIDATED",
+        "lockedBy": null,
+        "mappedBy": 1,
+        "validatedBy": 2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.392334,
+                52.3873348
+              ],
+              [
+                13.3950806,
+                52.3873348
+              ],
+              [
+                13.3950806,
+                52.3890111
+              ],
+              [
+                13.392334,
+                52.3890111
+              ],
+              [
+                13.392334,
+                52.3873348
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 19,
+        "taskX": 70412,
+        "taskY": 88007,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "INVALIDATED",
+        "lockedBy": null,
+        "mappedBy": 1,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.3950806,
+                52.3873348
+              ],
+              [
+                13.3978271,
+                52.3873348
+              ],
+              [
+                13.3978271,
+                52.3890111
+              ],
+              [
+                13.3950806,
+                52.3890111
+              ],
+              [
+                13.3950806,
+                52.3873348
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 20,
+        "taskX": 70413,
+        "taskY": 88007,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "LOCKED_FOR_MAPPING",
+        "lockedBy": 1,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.3978271,
+                52.3873348
+              ],
+              [
+                13.4005737,
+                52.3873348
+              ],
+              [
+                13.4005737,
+                52.3890111
+              ],
+              [
+                13.3978271,
+                52.3890111
+              ],
+              [
+                13.3978271,
+                52.3873348
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 21,
+        "taskX": 70414,
+        "taskY": 88007,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "BADIMAGERY",
+        "lockedBy": null,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.4005737,
+                52.3873348
+              ],
+              [
+                13.4033203,
+                52.3873348
+              ],
+              [
+                13.4033203,
+                52.3890111
+              ],
+              [
+                13.4005737,
+                52.3890111
+              ],
+              [
+                13.4005737,
+                52.3873348
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 22,
+        "taskX": 70415,
+        "taskY": 88007,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "READY",
+        "lockedBy": null,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.4033203,
+                52.3873348
+              ],
+              [
+                13.4060669,
+                52.3873348
+              ],
+              [
+                13.4060669,
+                52.3890111
+              ],
+              [
+                13.4033203,
+                52.3890111
+              ],
+              [
+                13.4033203,
+                52.3873348
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 23,
+        "taskX": 70416,
+        "taskY": 88007,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "READY",
+        "lockedBy": null,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.4060669,
+                52.3873348
+              ],
+              [
+                13.4088135,
+                52.3873348
+              ],
+              [
+                13.4088135,
+                52.3890111
+              ],
+              [
+                13.4060669,
+                52.3890111
+              ],
+              [
+                13.4060669,
+                52.3873348
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 24,
+        "taskX": 70417,
+        "taskY": 88007,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "READY",
+        "lockedBy": null,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.392334,
+                52.3856585
+              ],
+              [
+                13.3950806,
+                52.3856585
+              ],
+              [
+                13.3950806,
+                52.3873348
+              ],
+              [
+                13.392334,
+                52.3873348
+              ],
+              [
+                13.392334,
+                52.3856585
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 25,
+        "taskX": 70412,
+        "taskY": 88006,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "MAPPED",
+        "lockedBy": null,
+        "mappedBy": 1,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.3950806,
+                52.3856585
+              ],
+              [
+                13.3978271,
+                52.3856585
+              ],
+              [
+                13.3978271,
+                52.3873348
+              ],
+              [
+                13.3950806,
+                52.3873348
+              ],
+              [
+                13.3950806,
+                52.3856585
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 26,
+        "taskX": 70413,
+        "taskY": 88006,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "VALIDATED",
+        "lockedBy": null,
+        "mappedBy": 1,
+        "validatedBy": 2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.3978271,
+                52.3856585
+              ],
+              [
+                13.4005737,
+                52.3856585
+              ],
+              [
+                13.4005737,
+                52.3873348
+              ],
+              [
+                13.3978271,
+                52.3873348
+              ],
+              [
+                13.3978271,
+                52.3856585
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 27,
+        "taskX": 70414,
+        "taskY": 88006,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "INVALIDATED",
+        "lockedBy": null,
+        "mappedBy": 1,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.4005737,
+                52.3856585
+              ],
+              [
+                13.4033203,
+                52.3856585
+              ],
+              [
+                13.4033203,
+                52.3873348
+              ],
+              [
+                13.4005737,
+                52.3873348
+              ],
+              [
+                13.4005737,
+                52.3856585
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 28,
+        "taskX": 70415,
+        "taskY": 88006,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "LOCKED_FOR_MAPPING",
+        "lockedBy": 1,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.4033203,
+                52.3856585
+              ],
+              [
+                13.4060669,
+                52.3856585
+              ],
+              [
+                13.4060669,
+                52.3873348
+              ],
+              [
+                13.4033203,
+                52.3873348
+              ],
+              [
+                13.4033203,
+                52.3856585
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 29,
+        "taskX": 70416,
+        "taskY": 88006,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "BADIMAGERY",
+        "lockedBy": null,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.4060669,
+                52.3856585
+              ],
+              [
+                13.4088135,
+                52.3856585
+              ],
+              [
+                13.4088135,
+                52.3873348
+              ],
+              [
+                13.4060669,
+                52.3873348
+              ],
+              [
+                13.4060669,
+                52.3856585
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 30,
+        "taskX": 70417,
+        "taskY": 88006,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "READY",
+        "lockedBy": null,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.392334,
+                52.3839821
+              ],
+              [
+                13.3950806,
+                52.3839821
+              ],
+              [
+                13.3950806,
+                52.3856585
+              ],
+              [
+                13.392334,
+                52.3856585
+              ],
+              [
+                13.392334,
+                52.3839821
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 31,
+        "taskX": 70412,
+        "taskY": 88005,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "READY",
+        "lockedBy": null,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.3950806,
+                52.3839821
+              ],
+              [
+                13.3978271,
+                52.3839821
+              ],
+              [
+                13.3978271,
+                52.3856585
+              ],
+              [
+                13.3950806,
+                52.3856585
+              ],
+              [
+                13.3950806,
+                52.3839821
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 32,
+        "taskX": 70413,
+        "taskY": 88005,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "READY",
+        "lockedBy": null,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.3978271,
+                52.3839821
+              ],
+              [
+                13.4005737,
+                52.3839821
+              ],
+              [
+                13.4005737,
+                52.3856585
+              ],
+              [
+                13.3978271,
+                52.3856585
+              ],
+              [
+                13.3978271,
+                52.3839821
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 33,
+        "taskX": 70414,
+        "taskY": 88005,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "MAPPED",
+        "lockedBy": null,
+        "mappedBy": 1,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.4005737,
+                52.3839821
+              ],
+              [
+                13.4033203,
+                52.3839821
+              ],
+              [
+                13.4033203,
+                52.3856585
+              ],
+              [
+                13.4005737,
+                52.3856585
+              ],
+              [
+                13.4005737,
+                52.3839821
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 34,
+        "taskX": 70415,
+        "taskY": 88005,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "VALIDATED",
+        "lockedBy": null,
+        "mappedBy": 1,
+        "validatedBy": 2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.4033203,
+                52.3839821
+              ],
+              [
+                13.4060669,
+                52.3839821
+              ],
+              [
+                13.4060669,
+                52.3856585
+              ],
+              [
+                13.4033203,
+                52.3856585
+              ],
+              [
+                13.4033203,
+                52.3839821
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 35,
+        "taskX": 70416,
+        "taskY": 88005,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "INVALIDATED",
+        "lockedBy": null,
+        "mappedBy": 1,
+        "validatedBy": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                13.4060669,
+                52.3839821
+              ],
+              [
+                13.4088135,
+                52.3839821
+              ],
+              [
+                13.4088135,
+                52.3856585
+              ],
+              [
+                13.4060669,
+                52.3856585
+              ],
+              [
+                13.4060669,
+                52.3839821
+              ]
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "taskId": 36,
+        "taskX": 70417,
+        "taskY": 88005,
+        "taskZoom": 17,
+        "taskIsSquare": true,
+        "taskStatus": "LOCKED_FOR_MAPPING",
+        "lockedBy": 1,
+        "mappedBy": null,
+        "validatedBy": null
+      }
+    }
+  ]
+}

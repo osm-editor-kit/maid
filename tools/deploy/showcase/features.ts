@@ -453,6 +453,16 @@ export const GROUPS: FeatureGroup[] = [
         noteUrl: 'https://github.com/tordans/iD/pull/4',
       },
       {
+        title: 'HOT Tasking Manager',
+        text: "A link opens a task of a Tasking Manager project: the task area and the other tasks by status on the map, the task's and the project's instructions in the dock, the project's changeset comment in the save form.",
+        maid: { factory: 'taskingManager' },
+        maidSupport: 'partial',
+        pkg: 'module-tasking-manager',
+        iD: 'no',
+        rapid: 'no',
+        note: 'iD and Rapid are opened by the Tasking Manager with the task as a GPX layer. Maid reads the TM itself, read only: locking a task and marking it as mapped stay in the Tasking Manager, which needs its own login.',
+      },
+      {
         title: 'Quality assurance services',
         text: 'Issues from Osmose or KeepRight on the map.',
         maid: 'core',

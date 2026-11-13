@@ -8,7 +8,8 @@ import { defaultFilters, type FilterState } from '@osm-editor-kit/maid-filters'
  * and smoothness photos) and adds `buildings()` with the buildings map style as the standard (after the kaligrafy iD
  * fork), the building presets first and as suggested favourites, and the drawing tools of the parking editor (rectangle,
  * right angles with lengths, extrude, resize, merge, cut, divide). Square (Q), the merge of very close points, Rotate
- * and Move are in every Maid. Roads, paths, rail, water and power are locked as context.
+ * and Move are in every Maid. Roads, paths, rail, water and power are locked as context. HOT's Tasking Manager: a link
+ * `tm=<project>/<task>` opens a task of a mapping project (module-tasking-manager).
  */
 import {
   BUILDING_FAVOURITES,
@@ -29,6 +30,11 @@ import {
   rectangle,
 } from '@osm-editor-kit/maid-module-shapes'
 import { streetImagery } from '@osm-editor-kit/maid-module-street-imagery'
+import {
+  MOCK_TASKING_MANAGER_API,
+  TASKING_MANAGER_API,
+  taskingManager,
+} from '@osm-editor-kit/maid-module-tasking-manager'
 import { tasks } from '@osm-editor-kit/maid-module-tasks'
 import { defaultOperations, pointToArea } from '@osm-editor-kit/maid-operations'
 import { operations } from '@osm-editor-kit/maid-renderer'
@@ -77,6 +83,11 @@ function editorConfig(config: Config) {
   const modules: MaidModule[] = [
     // private task lists: a GeoJSON file of features to check, the progress in the OSM user preferences (ADR 0013)
     tasks(),
+    // HOT's Tasking Manager, read only: `tm=<project>/<task>` opens a project at a task, its area on the map, the
+    // instructions in the dock, the project's changeset comment in the save form; the mock's made-up project on mock data
+    taskingManager({
+      apiUrl: config.source === 'mock' ? MOCK_TASKING_MANAGER_API : TASKING_MANAGER_API,
+    }),
     // inspector section "Element": id, version and upload state of the selected object
     elementInfo(),
     // the edit menu: reverse, split, merge, straighten, square, make round, disconnect, extract

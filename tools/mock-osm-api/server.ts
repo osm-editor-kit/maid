@@ -23,12 +23,14 @@
  *   gives for an id it does not know; another query is a 400.
  * MapRoulette's API v2 under /maproulette/api/v2 (maproulette.ts): made-up challenges on the small scene, statuses in
  *   memory, /maproulette/reset forgets them.
+ * HOT's Tasking Manager API v2 under /tasking-manager/api/v2 (tasking-manager.ts): a made-up project on the small scene.
  * Every other write is rejected with 405: the map data stays frozen. /requests returns a log of what was asked.
  */
 import { join } from 'node:path'
 import { SCENES } from '../fixtures/scenes'
 import { PORTS } from '../ports'
 import { createMapRouletteMock } from './maproulette'
+import { answerTaskingManager } from './tasking-manager'
 
 type Node = { type: 'node'; id: number; lat: number; lon: number }
 type Way = { type: 'way'; id: number; nodes: number[] }
@@ -322,6 +324,8 @@ export function createHandler(scenes: Map<string, SceneIndex>, options: { latenc
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS })
     const fromMapRoulette = await maproulette.answer(req, url)
     if (fromMapRoulette) return fromMapRoulette
+    const fromTaskingManager = answerTaskingManager(req, url)
+    if (fromTaskingManager) return fromTaskingManager
     if (url.pathname === '/requests') return Response.json(log, { headers: CORS })
     if (url.pathname === '/requests/reset') {
       log.length = 0

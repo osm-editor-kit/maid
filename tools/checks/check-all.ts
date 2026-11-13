@@ -60,6 +60,7 @@ const CHECKS = [
   'osmchange',
   'tasks',
   'maproulette',
+  'tasking-manager',
 ] as const
 type CheckName = (typeof CHECKS)[number]
 
@@ -83,6 +84,7 @@ const MODULE_CHECKS = new Set<CheckName>([
   'levels',
   'osmchange',
   'maproulette',
+  'tasking-manager',
 ])
 
 /** Checks that need the relations scene (routes with route masters), for every app */
@@ -130,6 +132,8 @@ const RUNS: Run[] = [
   { name: 'osmchange', check: 'osmchange', only: ['bicycle'] },
   // module-maproulette, on in the maproulette app: the mock's made-up challenges, nothing to maproulette.org
   { name: 'maproulette', check: 'maproulette', only: ['maproulette'] },
+  // module-tasking-manager, on in the buildings app: the mock's made-up project, nothing to the TM
+  { name: 'tasking-manager', check: 'tasking-manager', only: ['buildings'] },
 ]
 
 /**
@@ -567,6 +571,17 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     climbing: 0,
     buildings: 0,
     maproulette: 14,
+  },
+  'tasking-manager': {
+    maid: 0,
+    bicycle: 0,
+    parking: 0,
+    indoor: 0,
+    lanes: 0,
+    golf: 0,
+    climbing: 0,
+    buildings: 11,
+    maproulette: 0,
   },
   osmchange: {
     maid: 0,

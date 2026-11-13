@@ -5,7 +5,7 @@ https://tasks.hotosm.org) in Maid, with the same mechanics as the MapRoulette ed
 lists projects and links to the TM; a deep link with a project and task opens it; the footer (dock) lists the tasks;
 the map shows the task area; the instructions are shown; presets and styles follow the project.
 
-Status: research and plan. Built after the MapRoulette thread, whose top bar button, task UI and save hook it reuses.
+Status: the deep link is built (2026-11-13, `packages/module-tasking-manager`, steps.md "Tasking Manager in Maid Buildings"); the rest of the plan waits.
 
 ## Decisions (assumptions sent to Tobias on 2026-11-13, not answered yet)
 

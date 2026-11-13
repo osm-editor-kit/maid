@@ -1,0 +1,72 @@
+{
+  "_note": "Made up for the mock (tools/fixtures/tasking-manager.ts), in the shape of the TM API v2 ProjectDTO",
+  "projectId": 4242,
+  "status": "PUBLISHED",
+  "projectPriority": "MEDIUM",
+  "difficulty": "EASY",
+  "private": false,
+  "taskCreationMode": "GRID",
+  "mappingTypes": [
+    "BUILDINGS"
+  ],
+  "mappingEditors": [
+    "ID",
+    "JOSM",
+    "RAPID"
+  ],
+  "changesetComment": "#hotosm-project-4242 #maid-test Buildings in Lichtenrade",
+  "imagery": "tms[1,22]:https://tiles.example.org/{zoom}/{x}/{y}.png",
+  "idPresets": [
+    "building",
+    "building/house",
+    "building/garage"
+  ],
+  "extraIdParams": "",
+  "organisationName": "Maid test organisation",
+  "percentMapped": 38,
+  "percentValidated": 13,
+  "defaultLocale": "en",
+  "aoiBBOX": [
+    13.393,
+    52.385,
+    13.407,
+    52.393
+  ],
+  "areaOfInterest": {
+    "type": "MultiPolygon",
+    "coordinates": [
+      [
+        [
+          [
+            13.393,
+            52.385
+          ],
+          [
+            13.407,
+            52.385
+          ],
+          [
+            13.407,
+            52.393
+          ],
+          [
+            13.393,
+            52.393
+          ],
+          [
+            13.393,
+            52.385
+          ]
+        ]
+      ]
+    ]
+  },
+  "projectInfo": {
+    "locale": "en",
+    "name": "Buildings in Lichtenrade (made up)",
+    "shortDescription": "A made-up project for the checks of Maid.",
+    "description": "A **made-up** project on the small scene. Not a real Tasking Manager project.",
+    "instructions": "## What to map\n\n- Every **building** as an area, from the aerial imagery.\n- Set `building=house` for detached houses, `building=garage` for garages.\n\nDo not map trees or fences.",
+    "perTaskInstructions": "Map the buildings of tile {x}/{y} at zoom {z}."
+  }
+}

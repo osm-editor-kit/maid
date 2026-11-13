@@ -5,7 +5,8 @@
     "A buildings map style after the kaligrafy iD fork: every building in red, its type in its own colour, the number of dwellings as an outline and a label",
     "Building types first in the type picker and as suggested favourites; levels, levels underground and roof levels on every building",
     "Drawing tools of the parking editor: rectangle with three clicks, right angles with lengths, extrude, resize, merge, cut, divide into row houses",
-    "Roads, paths, rail and water locked as context, so a building is not glued to a road"
+    "Roads, paths, rail and water locked as context, so a building is not glued to a road",
+    "HOT Tasking Manager: a link `tm=<project>/<task>` opens a task, with its area on the map, its instructions in the dock and the project's changeset comment in the save form"
   ],
   "open": "map=18/52.38930/13.40160"
 }
