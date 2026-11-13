@@ -1,11 +1,12 @@
 /**
- * Check of the relation column, with real clicks: a road of a bus route is selected, "Open" on the route in the
+ * Check of the relation column, with real clicks: a road of a bus route is selected, "Edit" on the route in the
  * inspector's Relations section opens the column beside the inspector and keeps the road selected. A member row selects
  * that member and the column stays; the inspector lists no members while the column shows them. The column's head
  * selects the relation itself. A click on a row also moves the map to the member (no "Fly to" buttons). A feature that is not a member
  * gets the hint and "Add it" (one undo step). Dragging a way's handle above the one before it, and Alt+ArrowUp on
- * the handle, reorder the members: one edit and one undo step each. The head's close button, the "Open" button of the Members section and
- * Escape close and open it.
+ * the handle, reorder the members: one edit and one undo step each. The head's close button, "Edit" in the Members section and
+ * Escape close and open it. "Edit" lays the route into the bar over the map: after Escape its pill selects the route and
+ * opens the column again, its × takes it out of the bar.
  *
  *   bun tools/bench/relation-column-check.ts [scene] [--app maid|bicycle|parking]
  *
@@ -17,6 +18,7 @@ import { runCheck } from './check-page'
 const ROAD = 'w4875990'
 const ROUTE = 'r6783678'
 const ROUTE_NAME = 'Bus 162: U Rudow => Schloßplatz Köpenick'
+const EDIT = `Edit ${ROUTE_NAME}: open it beside the inspector and keep it in the bar over the map`
 
 const sceneName = process.argv[2] ?? 'relations'
 
@@ -34,26 +36,30 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
     await settle()
   }
   const row = (id: string) => column.locator(`li[data-row="${id}"]`)
+  const bar = page.getByRole('toolbar', { name: 'Relations you work on', exact: true })
 
-  // --- the road: "Open" on its bus route opens the column, the road stays selected ---
+  // --- the road: "Edit" on its bus route opens the column, the road stays selected ---
   await select(ROAD)
   await inspector.getByText('Relations', { exact: true }).click()
   await settle()
-  await inspector
-    .getByRole('button', { name: `Open ${ROUTE_NAME} beside the inspector`, exact: true })
-    .click()
+  await inspector.getByRole('button', { name: EDIT, exact: true }).click()
   await settle()
   // the column's code is a chunk of its own: its rows come once it is loaded
   await row(ROAD)
     .waitFor({ timeout: 5000 })
     .catch(() => undefined)
-  report('"Open" shows the relation column', 1, await column.count())
+  report('"Edit" shows the relation column', 1, await column.count())
   report('the road stays selected', ROAD, await selectedId())
   report('the road has its row in the column', 1, await row(ROAD).count())
   report(
-    'the route\'s card in the inspector now offers "Close"',
+    'the route\'s "Edit" in the inspector stays pressed',
+    'true',
+    await inspector.getByRole('button', { name: EDIT, exact: true }).getAttribute('aria-pressed'),
+  )
+  report(
+    '"Edit" lays the route into the bar over the map',
     1,
-    await inspector.getByRole('button', { name: 'Close the relation', exact: true }).count(),
+    await bar.getByRole('button', { name: `Open ${ROUTE_NAME} again`, exact: true }).count(),
   )
 
   // --- another member: its row selects it, the column stays ---
@@ -286,17 +292,15 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
     }
   }
 
-  // --- closing: the head's button, then "Open" in the Members section, then Escape ---
+  // --- closing: the head's button, then "Edit" in the Members section, then Escape ---
   await select(ROUTE)
   await column.getByRole('button', { name: 'Close the relation', exact: true }).click()
   await settle()
   report('the close button closes the column', 0, await column.count())
   report('the relation stays selected', ROUTE, await selectedId())
-  await inspector
-    .getByRole('button', { name: `Open ${ROUTE_NAME} beside the inspector`, exact: true })
-    .click()
+  await inspector.getByRole('button', { name: EDIT, exact: true }).click()
   await settle()
-  report('"Open" in the Members section opens it again', 1, await column.count())
+  report('"Edit" in the Members section opens it again', 1, await column.count())
   await page.locator('canvas').first().focus()
   await page.keyboard.press('Escape')
   await settle()
@@ -305,6 +309,19 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
     [null, 0],
     [await selectedId(), await column.count()],
   )
+
+  // --- the bar: its pill brings the route back after the selection ended, its × takes it out ---
+  await bar.getByRole('button', { name: `Open ${ROUTE_NAME} again`, exact: true }).click()
+  await settle()
+  report(
+    'the pill selects the route and opens its column again',
+    [ROUTE, 1],
+    [await selectedId(), await column.count()],
+  )
+  await bar.getByRole('button', { name: `Take ${ROUTE_NAME} out of the bar`, exact: true }).click()
+  await settle()
+  report('the × takes the route out of the bar, the bar goes', 0, await bar.count())
+  report('the column stays open', 1, await column.count())
 })
 
 process.exit(failed ? 1 : 0)

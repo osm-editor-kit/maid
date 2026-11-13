@@ -10,6 +10,7 @@ import { InspectorSlot } from './components/InspectorSlot'
 import { MapNotices } from './components/MapNotices'
 import { MapView } from './components/MapView'
 import { ModeButtons } from './components/ModeButtons'
+import { RelationBar } from './components/RelationBar'
 import { RelationColumnSlot } from './components/RelationColumnSlot'
 import { RestorePrompt } from './components/RestorePrompt'
 import { SaveButton } from './components/SaveButton'
@@ -92,6 +93,7 @@ function Editor() {
     >
       <MapView />
       <MapNotices />
+      <RelationBar />
       <ZoomControls />
       <RestorePrompt />
     </Shell>

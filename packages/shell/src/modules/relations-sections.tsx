@@ -13,6 +13,7 @@ import { SidebarDisclosure, Tooltip, type InspectorSectionProps } from '@osm-edi
 import { createContext, useContext, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { PresetIcon } from '../components/PresetIcon'
 import { usePresets, useShell } from '../shell-context'
+import { relationBarActions } from './relations-bar-store.ts'
 import { useRelatedWhileHovered, type RowHighlight } from './relations-hover.ts'
 import {
   cannotTakeReason,
@@ -259,14 +260,7 @@ export function MembersSection({ entity, editor }: Props) {
   return (
     <ReadOnlyContext value={entity.readOnly}>
       <div className="flex justify-end">
-        <button
-          type="button"
-          className={BUTTON}
-          aria-label={m.relations_open_label({ relation: relationLabel(relation) })}
-          onClick={() => openRelationActions.open(entity.id)}
-        >
-          {m.relations_open()}
-        </button>
+        <EditButton label={relationLabel(relation)} onEdit={() => editRelation(entity.id)} />
       </div>
     </ReadOnlyContext>
   )
@@ -347,12 +341,10 @@ function MembershipRow({
             )
           }
         />
-        <OpenToggle
+        <EditButton
           open={open}
           label={relationLabel(relation)}
-          onToggle={() =>
-            open ? openRelationActions.close() : openRelationActions.open(relation.id)
-          }
+          onEdit={() => editRelation(relation.id)}
         />
       </Row>
       {hint && <li className={HINT}>{hint}</li>}
@@ -814,33 +806,34 @@ export function MultiRelationsSection({ entities, editor, select, readOnly }: Pr
   )
 }
 
+/** "Edit": opens the relation beside the inspector and lays it into the bar over the map (RelationBar.tsx), to come back to */
+function editRelation(id: EntityID) {
+  relationBarActions.add(id)
+  openRelationActions.open(id)
+}
+
 /**
- * Open and close a relation beside the inspector: one button that stays pressed while the relation is open ("Open" /
- * "Opened"). Both words sit in the same grid cell and the hidden one keeps its width, so the button is as wide in every
- * row and in both states, and only as wide as the longer of two short words ("Schließen" made it wider than needed).
+ * The "Edit" button of a relation: it opens the relation and keeps it in the bar of the relations the person works on.
+ * While the relation is open the button stays pressed; the column's × closes it, the bar's pill brings it back.
  */
-function OpenToggle({
-  open,
+function EditButton({
+  open = false,
   label,
-  onToggle,
+  onEdit,
 }: {
-  open: boolean
+  open?: boolean
   label: string
-  onToggle: () => void
+  onEdit: () => void
 }) {
   return (
     <button
       type="button"
-      className={`${BUTTON} inline-grid! justify-items-center ${open ? 'bg-violet-100! text-violet-900 inset-ring-violet-500/40! dark:bg-violet-950! dark:text-violet-200' : ''}`}
+      className={`${BUTTON} ${open ? 'bg-violet-100! text-violet-900 inset-ring-violet-500/40! dark:bg-violet-950! dark:text-violet-200' : ''}`}
       aria-pressed={open}
-      aria-label={open ? m.relations_close_label() : m.relations_open_label({ relation: label })}
-      title={open ? m.relations_close_label() : undefined}
-      onClick={onToggle}
+      aria-label={m.relations_edit_label({ relation: label })}
+      onClick={onEdit}
     >
-      <span className={`[grid-area:1/1] ${open ? 'invisible' : ''}`}>{m.relations_open()}</span>
-      <span className={`[grid-area:1/1] ${open ? '' : 'invisible'}`} aria-hidden={!open}>
-        {m.relations_is_open()}
-      </span>
+      {m.relations_edit()}
     </button>
   )
 }
