@@ -73,6 +73,11 @@ export type ModuleMode = {
    * resize box shows its result and commits it at the end), so the key takes back that work and not the edit before.
    */
   endsOnUndo?: boolean
+  /**
+   * Undo and redo step through the history and the mode stays: for a mode that holds no id an edit made (the reroute
+   * mode holds only its route relation, and redraws from the data after each step)
+   */
+  staysOnUndo?: boolean
   /** The mode ends: Escape, a mode the editor changes to, `exitModuleMode`, or another module mode taking its place */
   onExit?: () => void
 }

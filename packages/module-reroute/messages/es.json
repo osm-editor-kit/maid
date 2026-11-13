@@ -1,8 +1,8 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "reroute_title": "Recalcular",
-  "reroute_start": "Recalcular un tramo",
-  "reroute_hint": "Elige el inicio y el final. La ruta sigue las calles y caminos entre ellos en el mapa cargado.",
+  "reroute_start": "Desviar la ruta",
+  "reroute_hint": "La ruta se convierte en una línea azul con puntos de apoyo donde gira. Arrastra la línea o un punto sobre otras vías: solo se recalcula el tramo entre los puntos vecinos, y al soltar se aplica enseguida.",
   "reroute_step_start": [
     {
       "declarations": ["input input"],
@@ -88,8 +88,8 @@
       "declarations": ["input input"],
       "selectors": ["input"],
       "match": {
-        "input=touch": "Arrastra el inicio y el final a lo largo de la ruta. Arrastra la línea azul sobre otras vías o toca donde deba pasar la ruta. «Quitar puntos de paso» los quita.",
-        "input=*": "Arrastra el inicio y el final a lo largo de la ruta. Arrastra la línea azul sobre otras vías o haz clic donde deba pasar la ruta. Retroceso quita el último punto de paso, Escape cancela."
+        "input=touch": "Arrastra la línea azul o un punto de apoyo sobre otras vías. Solo cambia el tramo entre los puntos vecinos, y al soltar se aplica enseguida (un paso para deshacer).",
+        "input=*": "Arrastra la línea azul o un punto de apoyo sobre otras vías. Solo cambia el tramo entre los puntos vecinos, y al soltar se aplica enseguida (un paso para deshacer). Escape termina."
       }
     }
   ],
@@ -108,5 +108,8 @@
         "input=*": "O haz clic derecho en una vía de la ruta y elige «Desviar la ruta»: el tramo empieza en esa vía."
       }
     }
-  ]
+  ],
+  "reroute_done_title": "Cambiado:",
+  "reroute_undo": "Deshacer",
+  "reroute_finish": "Listo"
 }

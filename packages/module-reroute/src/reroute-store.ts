@@ -1,5 +1,6 @@
-// The reroute the person is making, as UI state: the route relation, the two points they set, which occurrence of a
-// stretch that occurs more than once they picked, and their answers to the role questions. Private to the module: the
+// The reroute the person is making, as UI state: the route relation, the edit under way (the start and the end of the
+// stretch and the points the new path passes), which occurrence of a stretch that occurs more than once they picked,
+// their answers to the role questions, and what the last edit changed. Private to the module: the
 // components read it through the named hooks below and change it through `rerouteActions`, from event handlers only.
 // Nothing here touches the data (the apply port does that).
 import { create, useStore } from 'zustand'
@@ -8,7 +9,7 @@ import { create, useStore } from 'zustand'
 export type ViaHandle = 'start' | 'end' | `via-${number}`
 
 /** A point the person set, as longitude and latitude (snapped to the routing graph later, in the preview) */
-export type ViaPoint = { lon: number; lat: number }
+export type ViaPoint = { lon: number; lat: number; member?: number }
 
 type RerouteState = {
   /** The route relation being rerouted; undefined when no reroute is under way */
@@ -28,22 +29,37 @@ type RerouteState = {
   occurrence: number
   /** The answers to the role questions, by route segment index. They belong to one route: a moved point clears them. */
   roleChoices: Readonly<Record<number, string>>
+  /** Counts the drops: a new value asks the map to write the edit under way (RerouteOnMap) */
+  commitAsked: number
+  /** What the last written edit changed: the ways that left the route and those that joined it */
+  lastChange: RouteChange | undefined
+  /** Why the last drop could not be written, as the port or the plan says */
+  failure: string | undefined
 }
+
+/** The ways an edit took out of the route and put into it */
+export type RouteChange = { removed: readonly EntityID[]; added: readonly EntityID[] }
 
 type RerouteActions = {
   /** Starts a reroute of this relation from its inspector section: everything is cleared, the clicks set the points */
   begin: (relationId: EntityID) => void
   /**
-   * Starts a reroute of this relation on one of its ways (the edit menu): the start and the end are the way's ends, so
-   * the person drags the handles and the line from there
+   * Starts the route planner mode of this relation (the edit menu on a way, or the inspector section): the route is a
+   * line with support points; `selected` is what is selected now (a selection without it and the relation ends it)
    */
-  beginOnWay: (input: {
-    relationId: EntityID
-    wayId: EntityID
-    anchor: number
-    start: ViaPoint
-    end: ViaPoint
-  }) => void
+  beginRoute: (relationId: EntityID, selected: EntityID) => void
+  /** An edit begins: a press on the line or on a support point (chain.ts `editAt`, `editOfAnchor`) */
+  edit: (input: { start: ViaPoint; end: ViaPoint; via: ViaPoint; anchor: number }) => void
+  /** The drag ends: the map writes the edit (see `commitAsked`) */
+  drop: () => void
+  /** The edit was written: it is cleared, and its change is kept to show */
+  applied: (change: RouteChange) => void
+  /** The edit could not be written: it stays, with the reason */
+  failed: (reason: string) => void
+  /** Drops the edit under way, the mode stays */
+  discard: () => void
+  /** Forgets the last change (it was undone) */
+  forgetChange: () => void
   /** A via point dragged out of the line: inserted at `index` among the via points */
   addVia: (index: number, point: ViaPoint) => void
   /** Removes a via point; with no index, the last one */
@@ -96,14 +112,38 @@ const CLEARED: RerouteState = {
   selected: undefined,
   occurrence: 0,
   roleChoices: {},
+  commitAsked: 0,
+  lastChange: undefined,
+  failure: undefined,
 }
+
+/** No edit under way: the parts of the state an edit sets */
+const NO_EDIT = {
+  start: undefined,
+  end: undefined,
+  vias: [],
+  anchor: undefined,
+  occurrence: 0,
+  roleChoices: {},
+  failure: undefined,
+} as const
 
 const rerouteStore = create<RerouteStore>()((set) => ({
   ...CLEARED,
   actions: {
     begin: (relationId) => set({ ...CLEARED, relationId, selected: relationId }),
-    beginOnWay: ({ relationId, wayId, anchor, start, end }) =>
-      set({ ...CLEARED, relationId, anchor, start, end, selected: wayId }),
+    beginRoute: (relationId, selected) => set({ ...CLEARED, relationId, selected }),
+    edit: ({ start, end, via, anchor }) =>
+      set((state) =>
+        state.relationId === undefined
+          ? {}
+          : { ...NO_EDIT, start, end, vias: [via], anchor, lastChange: undefined },
+      ),
+    drop: () => set((state) => ({ commitAsked: state.commitAsked + 1 })),
+    applied: (change) => set({ ...NO_EDIT, lastChange: change }),
+    failed: (failure) => set({ failure }),
+    discard: () => set({ ...NO_EDIT }),
+    forgetChange: () => set({ lastChange: undefined }),
     addVia: (index, point) =>
       set((state) => {
         const vias = [...state.vias]
@@ -172,6 +212,18 @@ export function useRerouteSelected() {
   return useStore(rerouteStore, (state) => state.selected)
 }
 
+export function useRerouteCommitAsked() {
+  return useStore(rerouteStore, (state) => state.commitAsked)
+}
+
+export function useRerouteLastChange() {
+  return useStore(rerouteStore, (state) => state.lastChange)
+}
+
+export function useRerouteFailure() {
+  return useStore(rerouteStore, (state) => state.failure)
+}
+
 export function useRerouteOccurrence() {
   return useStore(rerouteStore, (state) => state.occurrence)
 }
@@ -182,7 +234,6 @@ export function useRerouteRoleChoices() {
 
 /** The state as it is now, for code outside React (the map's handlers and the tests) */
 export function readReroute(): RerouteState {
-  const { relationId, start, end, vias, anchor, selected, occurrence, roleChoices } =
-    rerouteStore.getState()
-  return { relationId, start, end, vias, anchor, selected, occurrence, roleChoices }
+  const { actions: _actions, ...state } = rerouteStore.getState()
+  return state
 }

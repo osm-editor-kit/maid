@@ -450,6 +450,40 @@ export function planReroute(input: PlanInput): PlanResult {
     family.set(split.wayId, [...parts, splitWayIds[i]!])
   }
 
+  // A route that leaves or joins a way at one of its inner nodes (a junction inside the way): the way is split at that
+  // node too, so the member is the part the route runs on, not the whole way (Tobias, 2026-11-13: a route dragged off a
+  // long street). Only the way of the route is split there, not the others that share the node.
+  const nodeSplits: Array<{ wayId: EntityID; nodeId: EntityID }> = []
+  for (const segment of route.segments) {
+    const way = origWays.get(segment.wayId)!
+    const ends = [
+      segment.startSplit ? undefined : segment.fromIndex,
+      segment.endSplit ? undefined : segment.toIndex,
+    ]
+    for (const index of ends) {
+      if (index === undefined || index <= 0 || index >= way.nodes.length - 1) continue
+      const nodeId = way.nodes[index]!
+      if (nodeSplits.some((split) => split.wayId === way.id && split.nodeId === nodeId)) continue
+      if (way.isClosed()) return refuse('closed-way-split')
+      if (outsideIds.has(way.id)) return refuse('split-way-used-outside')
+      if (readOnly?.(way.id)) return refuse('read-only')
+      nodeSplits.push({ wayId: way.id, nodeId })
+    }
+  }
+  for (const { wayId, nodeId } of nodeSplits) {
+    const parts = family.get(wayId) ?? [wayId]
+    const part = parts.find((id) => {
+      const way = sim.hasEntity(id)
+      if (!(way instanceof OsmWay)) return false
+      const at = way.nodes.indexOf(nodeId)
+      return at > 0 && at < way.nodes.length - 1
+    })
+    if (part === undefined) continue
+    const newId = new OsmWay(graph.context, { nodes: [] }).id
+    run(actionSplit(nodeId, [newId]).limitWays([part]))
+    family.set(wayId, [...parts, newId])
+  }
+
   const afterSplits = sim.hasEntity(relationId)
   if (
     !(afterSplits instanceof OsmRelation) ||

@@ -32,8 +32,11 @@ import {
   type RouteWay,
 } from './plan.ts'
 
-/** A point the person set, as longitude and latitude */
-export type ViaPoint = { lon: number; lat: number }
+/**
+ * A point the person set, as longitude and latitude. `member`: for a start or an end at a support point of the route
+ * (chain.ts), the member index of the way it lies on, so it snaps onto that way and no neighbour that shares the node.
+ */
+export type ViaPoint = { lon: number; lat: number; member?: number }
 
 /** A via point after snapping: `loc` is where it is on the routing graph, or the pointer when no road is near */
 export type Via = ViaPoint & { loc: Lonlat; snap?: Snap }
@@ -174,6 +177,11 @@ function endOf(
   point: ViaPoint,
   anchor: number | undefined,
 ): Via {
+  const given = point.member === undefined ? undefined : relation.members[point.member]
+  if (given?.type === 'way') {
+    const snap = snapToWay(routing, given.id, point.lon, point.lat)
+    if (snap) return { ...point, loc: snap.loc, snap }
+  }
   const nearest = nearestWayMember(graph, relation, [point.lon, point.lat], anchor)
   if (nearest && nearest.distanceM <= ON_ROUTE_M) {
     const wayId = relation.members[nearest.index]!.id
@@ -194,6 +202,10 @@ function stretchCandidates(
   end: Via,
   anchor: number | undefined,
 ): Stretch[] {
+  // the ends at support points of the route: the members between them, exactly
+  if (start.member !== undefined && end.member !== undefined && start.member <= end.member) {
+    return [{ from: start.member, to: end.member, reversed: false }]
+  }
   let found: Stretch[] = []
   if (start.snap && end.snap) {
     found = stretchesBetween(relation, start.snap.wayId, end.snap.wayId).map((stretch) => ({

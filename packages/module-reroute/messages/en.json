@@ -1,8 +1,8 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "reroute_title": "Reroute",
-  "reroute_start": "Reroute a stretch",
-  "reroute_hint": "Pick the start and the end. The route follows the roads and paths between them on the loaded map.",
+  "reroute_start": "Reroute the route",
+  "reroute_hint": "The route becomes a blue line with support points where it turns. Drag the line or a point onto other ways: only the stretch between the neighbouring points is routed again, and the drop takes it at once.",
   "reroute_step_start": [
     {
       "declarations": ["input input"],
@@ -88,8 +88,8 @@
       "declarations": ["input input"],
       "selectors": ["input"],
       "match": {
-        "input=touch": "Drag the start and the end along the route. Drag the blue line onto other ways, or tap where the route should pass. “Remove via points” takes them out again.",
-        "input=*": "Drag the start and the end along the route. Drag the blue line onto other ways, or click where the route should pass. Backspace takes out the last via point, Escape cancels."
+        "input=touch": "Drag the blue line or a support point onto other ways. Only the stretch between the neighbouring points changes, and letting go takes it at once (one undo step).",
+        "input=*": "Drag the blue line or a support point onto other ways. Only the stretch between the neighbouring points changes, and letting go takes it at once (one undo step). Escape ends."
       }
     }
   ],
@@ -108,5 +108,8 @@
         "input=*": "Or right click a way of the route and choose “Reroute the route”: the stretch starts on that way."
       }
     }
-  ]
+  ],
+  "reroute_done_title": "Changed:",
+  "reroute_undo": "Undo",
+  "reroute_finish": "Done"
 }

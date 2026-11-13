@@ -1,8 +1,8 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "reroute_title": "Refaire le tracé",
-  "reroute_start": "Refaire un tronçon",
-  "reroute_hint": "Choisissez le début et la fin. L'itinéraire suit les routes et chemins entre les deux sur la carte chargée.",
+  "reroute_start": "Dévier l’itinéraire",
+  "reroute_hint": "L’itinéraire devient une ligne bleue avec des points d’appui là où il tourne. Faites glisser la ligne ou un point sur d’autres voies : seul le tronçon entre les points voisins est recalculé, et le relâchement l’applique aussitôt.",
   "reroute_step_start": [
     {
       "declarations": ["input input"],
@@ -88,8 +88,8 @@
       "declarations": ["input input"],
       "selectors": ["input"],
       "match": {
-        "input=touch": "Faites glisser le début et la fin le long de l’itinéraire. Faites glisser la ligne bleue sur d’autres voies, ou touchez là où l’itinéraire doit passer. « Retirer les points de passage » les enlève.",
-        "input=*": "Faites glisser le début et la fin le long de l’itinéraire. Faites glisser la ligne bleue sur d’autres voies, ou cliquez là où l’itinéraire doit passer. Retour arrière retire le dernier point de passage, Échap annule."
+        "input=touch": "Faites glisser la ligne bleue ou un point d’appui sur d’autres voies. Seul le tronçon entre les points voisins change, et le relâchement l’applique aussitôt (une étape d’annulation).",
+        "input=*": "Faites glisser la ligne bleue ou un point d’appui sur d’autres voies. Seul le tronçon entre les points voisins change, et le relâchement l’applique aussitôt (une étape d’annulation). Échap termine."
       }
     }
   ],
@@ -108,5 +108,8 @@
         "input=*": "Ou faites un clic droit sur une voie de l’itinéraire et choisissez « Dévier l’itinéraire » : le tronçon commence sur cette voie."
       }
     }
-  ]
+  ],
+  "reroute_done_title": "Modifié :",
+  "reroute_undo": "Annuler",
+  "reroute_finish": "Terminé"
 }

@@ -1459,7 +1459,7 @@ export class MaidEngine {
     if (this.moduleMode?.endsOnUndo) return this.exitModuleMode()
     if (this.data.history.getUndoAnnotation() === undefined) return
     // a module mode holds ids of what the step may take back (a rectangle's corner): it ends, as iD leaves a mode
-    this.exitModuleMode()
+    if (!this.moduleMode?.staysOnUndo) this.exitModuleMode()
     this.change(() => this.data.history.undo())
     this.keepSelectionAfterStep()
   }
@@ -1469,7 +1469,7 @@ export class MaidEngine {
     if (this.busy()) return
     if (this.moduleMode?.endsOnUndo) return this.exitModuleMode()
     if (this.data.history.getRedoAnnotation() === undefined) return
-    this.exitModuleMode()
+    if (!this.moduleMode?.staysOnUndo) this.exitModuleMode()
     this.change(() => this.data.history.redo())
     this.keepSelectionAfterStep()
   }

@@ -155,6 +155,18 @@ describe('the engine sends the pointer to a module mode', () => {
     expect(exits).toEqual(['undo', 'redo'])
   })
 
+  test('undo and redo step through the history in a mode that stays on undo', () => {
+    const { engine } = engineWithData()
+    engine.setTag('w10', 'highway', 'service')
+    engine.enterModuleMode({ id: 'test', staysOnUndo: true })
+    engine.undo()
+    expect(engine.moduleMode?.id).toBe('test')
+    expect(engine.data.way('w10')?.tags.highway).toBe('residential')
+    engine.redo()
+    expect(engine.moduleMode?.id).toBe('test')
+    expect(engine.data.way('w10')?.tags.highway).toBe('service')
+  })
+
   test('undo ends such a mode also when there is nothing to undo', () => {
     const { engine } = engineWithData()
     engine.enterModuleMode({ id: 'test', endsOnUndo: true })

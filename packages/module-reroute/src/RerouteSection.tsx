@@ -1,5 +1,5 @@
-// The inspector section of a route relation: the button that starts a reroute by two clicks on the map, and the way
-// to start one on a way of the route (the edit menu). While a reroute of this route is under way, its panel is over
+// The inspector section of a route relation: the button that starts the route planner mode of the route, and the
+// way to start it on a way of the route (the edit menu). While a reroute of this route is under way, its panel is over
 // the map (ReroutePanel, put there by RerouteOnMap), and the section says so.
 import { device } from '@osm-editor-kit/maid-i18n'
 import type { InspectorSectionProps } from '@osm-editor-kit/maid-ui'
@@ -17,7 +17,11 @@ export function RerouteSection({ entity }: InspectorSectionProps) {
     <div className="flex flex-col gap-2">
       <p className={HINT}>{m.reroute_hint()}</p>
       <div>
-        <button type="button" className={BUTTON} onClick={() => rerouteActions.begin(entity.id)}>
+        <button
+          type="button"
+          className={BUTTON}
+          onClick={() => rerouteActions.beginRoute(entity.id, entity.id)}
+        >
           {m.reroute_start()}
         </button>
       </div>

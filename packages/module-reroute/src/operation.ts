@@ -1,8 +1,9 @@
 /**
  * The edit menu's "Reroute the route" on a way of a route relation (Tobias, 2026-11-13): the stretch starts on the
  * way that was right clicked, because a long route's start and end are rarely in view. A way in more than one route
- * that Maid can route offers each route in a flyout. The operation makes no change itself: `start` begins the reroute
- * with the way's two ends as its start and end, and RerouteOnMap takes the map from there (module mode).
+ * that Maid can route offers each route in a flyout. The operation makes no change itself: `start` begins the route
+ * planner mode of that route, with a support point where the menu was opened, and RerouteOnMap takes the map from
+ * there (module mode).
  */
 import { OsmRelation, OsmWay, type Graph } from '@osm-editor-kit/maid-model'
 import type {
@@ -11,6 +12,7 @@ import type {
   OperationContext,
   OperationPreviewLine,
 } from '@osm-editor-kit/maid-operations'
+import { editAt, routeChain } from './chain.ts'
 import { wayLine } from './geometry.ts'
 import { m } from './messages.ts'
 import { rerouteActions } from './reroute-store.ts'
@@ -87,27 +89,11 @@ export const rerouteOperation: Operation = {
     const chosen = chosenRoute(context)
     if (!chosen) return
     const { way, route } = chosen
-    const line = wayLine(context.graph, way.id)
-    const first = line[0]
-    const last = line.at(-1)
-    if (!first || !last) return
-    const anchor = route.members.findIndex(
-      (member) => member.type === 'way' && member.id === way.id,
-    )
-    // the way's ends, in the route's direction where the member before it tells which end comes first
-    const before = anchor > 0 ? route.members[anchor - 1] : undefined
-    const previous = before?.type === 'way' ? context.graph.hasEntity(before.id) : undefined
-    const turned =
-      previous instanceof OsmWay &&
-      !previous.nodes.includes(way.nodes[0]!) &&
-      previous.nodes.includes(way.nodes.at(-1)!)
-    const [start, end] = turned ? [last, first] : [first, last]
-    rerouteActions.beginOnWay({
-      relationId: route.id,
-      wayId: way.id,
-      anchor,
-      start: { lon: start[0], lat: start[1] },
-      end: { lon: end[0], lat: end[1] },
-    })
+    rerouteActions.beginRoute(route.id, way.id)
+    // where the menu was opened is a support point on the line, ready to be dragged away
+    const at = context.at
+    if (!at) return
+    const edit = editAt(routeChain(context.graph, route), at[0], at[1])
+    if (edit) rerouteActions.edit(edit)
   },
 }

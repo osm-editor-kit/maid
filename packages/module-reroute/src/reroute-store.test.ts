@@ -25,6 +25,9 @@ describe('the reroute state', () => {
       selected: 'r1',
       occurrence: 0,
       roleChoices: {},
+      commitAsked: 0,
+      lastChange: undefined,
+      failure: undefined,
     })
     rerouteActions.click(A)
     rerouteActions.stop()
@@ -45,21 +48,44 @@ describe('the reroute state', () => {
     expect(readReroute().vias).toEqual([B])
   })
 
-  test('begun on a way, the way is the selection and its ends are the points', () => {
-    rerouteActions.beginOnWay({ relationId: 'r1', wayId: 'w1', anchor: 4, start: A, end: C })
+  test('the route mode: an edit, a drop, the written change, and a new edit forgets it', () => {
+    rerouteActions.beginRoute('r1', 'w1')
+    expect(readReroute()).toMatchObject({ relationId: 'r1', selected: 'w1', start: undefined })
+    rerouteActions.edit({ start: { ...A, member: 2 }, end: { ...C, member: 5 }, via: B, anchor: 3 })
     expect(readReroute()).toMatchObject({
-      relationId: 'r1',
-      selected: 'w1',
-      anchor: 4,
-      start: A,
-      end: C,
+      start: { member: 2 },
+      end: { member: 5 },
+      vias: [B],
+      anchor: 3,
     })
+    rerouteActions.moveVia('via-0', C)
+    expect(readReroute().vias).toEqual([C])
+    rerouteActions.drop()
+    expect(readReroute().commitAsked).toBe(1)
+    rerouteActions.applied({ removed: ['w2'], added: ['w9'] })
+    expect(readReroute()).toMatchObject({
+      start: undefined,
+      vias: [],
+      lastChange: { added: ['w9'] },
+    })
+    rerouteActions.failed('route-changed')
+    expect(readReroute().failure).toBe('route-changed')
+    rerouteActions.edit({ start: A, end: C, via: B, anchor: 0 })
+    expect(readReroute()).toMatchObject({
+      lastChange: undefined,
+      failure: undefined,
+      relationId: 'r1',
+    })
+    rerouteActions.discard()
+    expect(readReroute()).toMatchObject({ start: undefined, relationId: 'r1' })
   })
 
   test('via points go in route order, move by their handle, and Backspace takes the last one out', () => {
     const D = { lon: 13.405, lat: 52.501 }
     const E = { lon: 13.415, lat: 52.501 }
-    rerouteActions.beginOnWay({ relationId: 'r1', wayId: 'w1', anchor: 0, start: A, end: C })
+    rerouteActions.begin('r1')
+    rerouteActions.click(A)
+    rerouteActions.click(C)
     rerouteActions.click(E)
     rerouteActions.click(D)
     expect(readReroute().vias).toEqual([D, E])

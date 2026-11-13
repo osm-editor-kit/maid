@@ -317,7 +317,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   },
   reroute: {
     maid: 0,
-    bicycle: 23,
+    bicycle: 20,
     parking: 0,
     indoor: 0,
     lanes: 0,
