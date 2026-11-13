@@ -648,9 +648,16 @@ function MemberItem({
   )
 }
 
+/** Roles of public transport stops and platforms */
+const STOP_ROLE = /^(stop|platform)(_entry_only|_exit_only)?$/
+
 /** The heading's name: Stops, Ways, Routes (a superrelation) or Members */
 function groupLabel(group: MemberGroup) {
-  if (group.key === 'stops') return m.relations_group_stops()
+  // a hiking or bicycle route lists guideposts and other points here, not stops
+  if (group.key === 'stops')
+    return group.rows.some((row) => STOP_ROLE.test(row.role))
+      ? m.relations_group_stops()
+      : m.relations_group_points()
   if (group.key === 'ways') return m.relations_group_ways()
   const allRelations = group.rows.length > 0 && group.rows.every((row) => row.type === 'relation')
   return allRelations ? m.relations_group_routes() : m.relations_section_members()

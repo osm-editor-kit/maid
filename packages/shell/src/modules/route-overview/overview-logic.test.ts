@@ -9,17 +9,25 @@ import {
 } from '@osm-editor-kit/maid-route-analysis'
 import {
   formatKm,
+  gapIds,
   groupOf,
   idsOf,
   includesHovered,
   ISSUE_CODES,
   issueMessageKeys,
   issueParams,
+  junctionNode,
+  memberName,
+  neighboursOnLine,
   rowLabel,
   rowRole,
   sectionHovered,
   selectableId,
+  selectedInLayout,
   splitRows,
+  stepLengthsOf,
+  stretchNames,
+  travelOrderOf,
 } from './overview-logic.ts'
 
 const input: RouteInput = {
@@ -152,5 +160,58 @@ describe('rows', () => {
     expect(shown.length).toBe(2)
     expect(placed.length + unplaced.length).toBe(layout.rows.length)
     expect(unplaced.length).toBeGreaterThan(0)
+  })
+})
+
+describe('stretches and the selection', () => {
+  const names = new Map([
+    ['w1', 'Freiheit'],
+    ['w2', 'Freiheit'],
+  ])
+  it('finds the stretch of a selected way and the row of a selected stop', () => {
+    const here = selectedInLayout(analysis, layout.sections, layout.rows, 'w1')
+    expect(here.sections.length).toBeGreaterThan(0)
+    for (const index of here.sections) expect(layout.sections[index]?.members).toContain(0)
+    expect(selectedInLayout(analysis, layout.sections, layout.rows, 'n9').rows).toEqual(['point:1'])
+    expect(selectedInLayout(analysis, layout.sections, layout.rows, 'w99')).toEqual({
+      sections: [],
+      rows: [],
+    })
+    expect(selectedInLayout(analysis, layout.sections, layout.rows, null).sections).toEqual([])
+  })
+  it('names the ways of a stretch once each, in travel order', () => {
+    const order = travelOrderOf(analysis)
+    expect(order.get(0)).toBe(0)
+    expect(stretchNames(analysis, [2, 0], (id) => names.get(id), order)).toEqual(['Freiheit'])
+    expect(stretchNames(analysis, [0], () => undefined, order)).toEqual([])
+    expect(stepLengthsOf(analysis).get(0)).toBeGreaterThan(60)
+  })
+  it('gives the ways of a gap and the node of a junction', () => {
+    expect(gapIds(analysis, { kind: 'gap', members: [0, 2] })).toEqual(['w1', 'w2'])
+    expect(gapIds(analysis, { kind: 'start', members: [0] })).toEqual([])
+    expect(junctionNode({ kind: 'junction', key: 'junction:n7' })).toBe('n7')
+    expect(junctionNode({ kind: 'gap', key: 'gap:0' })).toBeUndefined()
+  })
+  it('calls a guidepost without a name by what it is, not by its main tag', () => {
+    const hiking: RouteInput = {
+      tags: { type: 'route', route: 'hiking' },
+      members: [{ type: 'node', id: 'n1', role: 'guidepost' }],
+      ways: new Map(),
+      nodes: new Map([['n1', [0, 0]]]),
+      memberTags: new Map([['n1', { tourism: 'information', information: 'guidepost' }]]),
+    }
+    const result = analyzeRoute(hiking)
+    expect(memberName(result, 0, hiking.memberTags)).toEqual({ text: 'guidepost' })
+    const named = new Map([['n1', { tourism: 'information', name: 'Müggelturm' }]])
+    expect(memberName(result, 0, named)).toEqual({ name: 'Müggelturm' })
+  })
+})
+
+describe('walking the route', () => {
+  it('gives the ways before and after the selected one', () => {
+    expect(neighboursOnLine(analysis, 'w1')).toEqual({ previous: undefined, next: 2 })
+    expect(neighboursOnLine(analysis, 'w2')).toEqual({ previous: 0, next: undefined })
+    expect(neighboursOnLine(analysis, 'n9')).toBeUndefined()
+    expect(neighboursOnLine(analysis, null)).toBeUndefined()
   })
 })

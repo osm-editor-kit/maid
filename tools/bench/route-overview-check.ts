@@ -1,6 +1,7 @@
 /**
  * Check of the route overview in the relation column, with real input: a bus route shows its stops and platforms in
- * travel order and no junction rows; the spacing toggle switches to "To scale" and back; the pointer on a row lights
+ * travel order and no junction rows, and the ways between them as stretches (a click selects a single way, which is then
+ * marked, or lists the ways of the stretch), and the buttons to the way before and after the selected one; the spacing toggle switches to "To scale" and back; the pointer on a row lights
  * the member on the map, and a member hovered on the map lights its row; a click on a row selects the member; an (i)
  * button opens its note and Escape closes it. A hiking route folds its junctions without a guidepost into rows that
  * open and close, with a note that this is no error, and has a group of members that are not loaded, which opens to list them. Its preview (the mock's Postpass fixture) loads on a press, mutes its rows, draws
@@ -71,6 +72,39 @@ const failed = await runCheck(
     report('"To scale" moves the rows', true, (await lastTop()) !== before)
     await schematic.click()
     report('"Schematic" brings the rows back', before, await lastTop())
+
+    // --- the stretches of ways between the rows: named, a click selects the way or lists the ways ---
+    const stretches = overview.locator('[data-stretch]')
+    report('the ways between the stops are stretches', true, (await stretches.count()) >= 2)
+    const selectedNow = () =>
+      page.evaluate(() => new URL(location.href).searchParams.get('id') ?? '')
+    const single = stretches.filter({ hasText: /\b1 way\b/ }).first()
+    await single.getByRole('button').click()
+    await settle()
+    report('a stretch of one way selects that way', true, (await selectedNow()).startsWith('w'))
+    // a way that runs past a stop is in the stretches on both sides of it
+    report(
+      "the selected way's stretches are marked",
+      true,
+      (await overview.locator('[data-stretch][data-selected]').count()) >= 1,
+    )
+    const walked = await selectedNow()
+    const walk = overview.locator('[data-route-walk] button:not([disabled])').last()
+    await walk.click()
+    await settle()
+    report(
+      '"Next way" or "Previous way" selects the neighbour on the line',
+      true,
+      (await selectedNow()) !== walked,
+    )
+    const many = stretches.filter({ hasText: /\b\d+ ways\b/ }).first()
+    await many.getByRole('button').click()
+    const list = overview.getByRole('dialog', { name: 'Ways', exact: true })
+    report('a stretch of several ways opens their list', 1, await list.count())
+    report('the list names each way', true, (await list.getByRole('listitem').count()) >= 2)
+    await page.keyboard.press('Escape')
+    report('Escape closes the list', 0, await list.count())
+    await open(BUS)
 
     // --- hover: row to map, map to row ---
     const stopKey = busKeys.find((key) => key.startsWith('point:')) ?? ''

@@ -557,5 +557,19 @@
   "ui_close": "Schließen",
   "ui_remove": "Entfernen",
   "ui_unknown": "Unbekannt",
-  "ui_loading_description": "Beschreibung wird geladen…"
+  "ui_loading_description": "Beschreibung wird geladen…",
+  "route_overview_stretch_one": "{length}, 1 Weg",
+  "route_overview_stretch_many": "{length}, {count} Wege",
+  "route_overview_stretch_open": "Wege dieses Abschnitts: {name}",
+  "route_overview_stretch_fit": "Alle auf der Karte zeigen",
+  "route_overview_stretch_nameless": "Wege ohne Namen",
+  "route_overview_in_view": "Im Kartenausschnitt: km {from} bis {to}",
+  "route_overview_in_view_jump": "Hinspringen",
+  "route_overview_gap_show": "Lücke auf der Karte zeigen: {name}",
+  "route_overview_junction_select": "Kreuzungspunkt auswählen: {name}",
+  "relations_group_points": "Punkte",
+  "route_overview_stretch_position": "Weg {position} von {count}",
+  "route_overview_previous": "Vorheriger Weg: {name}",
+  "route_overview_next": "Nächster Weg: {name}",
+  "route_overview_walk": "Entlang der Route"
 }

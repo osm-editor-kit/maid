@@ -557,5 +557,19 @@
   "ui_close": "Fermer",
   "ui_remove": "Supprimer",
   "ui_unknown": "Inconnu",
-  "ui_loading_description": "Chargement de la description…"
+  "ui_loading_description": "Chargement de la description…",
+  "route_overview_stretch_one": "{length}, 1 voie",
+  "route_overview_stretch_many": "{length}, {count} voies",
+  "route_overview_stretch_open": "Voies de ce tronçon : {name}",
+  "route_overview_stretch_fit": "Tout afficher sur la carte",
+  "route_overview_stretch_nameless": "Voies sans nom",
+  "route_overview_in_view": "Dans la vue de la carte : km {from} à {to}",
+  "route_overview_in_view_jump": "Y aller",
+  "route_overview_gap_show": "Afficher la lacune sur la carte : {name}",
+  "route_overview_junction_select": "Sélectionner le nœud du carrefour : {name}",
+  "relations_group_points": "Points",
+  "route_overview_stretch_position": "Voie {position} sur {count}",
+  "route_overview_previous": "Voie précédente : {name}",
+  "route_overview_next": "Voie suivante : {name}",
+  "route_overview_walk": "Le long de l’itinéraire"
 }

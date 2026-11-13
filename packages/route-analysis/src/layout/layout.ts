@@ -89,6 +89,7 @@ export function layoutOverview(
   const sectionHeight = options.sectionHeight ?? SECTION_HEIGHT
   const pxPerKm = options.pxPerKm ?? PX_PER_KM
   const minSectionHeight = options.minSectionHeight ?? MIN_SECTION_HEIGHT
+  const waySectionHeight = options.waySectionHeight ?? sectionHeight
 
   const lanes = assignLanes(analysis.branches)
   const drafts = foldJunctions(placedDrafts(analysis, lanes), options.openJunctions)
@@ -113,15 +114,23 @@ export function layoutOverview(
     const here = drafts[i]
     if (!prev || !row || !before || !here) continue
     const length = Math.max(0, here.at - before.at)
+    const members = mergeSorted(stepMembers[i - 1] ?? [], parallelMembers[i - 1] ?? [])
+    const gap = prev.kind === 'gap' || row.kind === 'gap'
+    // a stretch of ways gets room for its label beside the line; a stretch between two rows at one metre does not
+    const ways = length > 0 && members.length > 0
     const height =
-      mode === 'scaled' ? Math.max(minSectionHeight, (length / 1000) * pxPerKm) : sectionHeight
+      mode === 'scaled'
+        ? Math.max(minSectionHeight, (length / 1000) * pxPerKm)
+        : ways
+          ? waySectionHeight
+          : sectionHeight
     sections.push({
       fromRow: i - 1,
       toRow: i,
       length,
-      members: mergeSorted(stepMembers[i - 1] ?? [], parallelMembers[i - 1] ?? []),
+      members,
       lane: 0,
-      gap: prev.kind === 'gap' || row.kind === 'gap',
+      gap,
       y: prev.y + rowHeight,
       height,
     })

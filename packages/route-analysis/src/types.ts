@@ -268,7 +268,7 @@ export type OverviewSection = {
   /** Member indexes of the main ways in this stretch */
   members: number[]
   lane: number
-  /** True when this stretch is a gap (drawn broken) */
+  /** True when this stretch touches a gap row; its ways are drawn whole, the break on the gap's row */
   gap: boolean
   y: number
   height: number
@@ -296,6 +296,11 @@ export type LayoutOptions = {
   rowHeight?: number
   /** Schematic: height of every section in px (default 12) */
   sectionHeight?: number
+  /**
+   * Schematic: height in px of a section that holds main ways and has a length, room for the label of its ways
+   * (default `sectionHeight`)
+   */
+  waySectionHeight?: number
   /** Scaled: px per kilometre (default 40) */
   pxPerKm?: number
   /** Scaled: the smallest section height in px (default 4) */

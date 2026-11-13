@@ -143,7 +143,10 @@ export function memberName(
 ): RowLabel {
   const info = analysis.members[index]
   if (!info) return { text: 'point' }
-  const named = memberLabel(memberTags?.get(info.member.id) as Record<string, string> | undefined)
+  const tags = memberTags?.get(info.member.id) as Record<string, string> | undefined
+  // a point without a name is called by what it is ("Guidepost"), not by its main tag ("tourism=information")
+  const kind = info.pointKind && info.pointKind !== 'other' ? info.pointKind : undefined
+  const named = kind ? tags?.name?.trim() || tags?.ref?.trim() : memberLabel(tags)
   if (named) return { name: named }
   if (info.member.type === 'way') return { way: info.member.id }
   if (info.member.type === 'relation') return { relation: info.member.id }
@@ -228,4 +231,91 @@ export function isRouteGroup(relation: {
     (type === 'superroute' || type === 'route_master') &&
     relation.members.some((member) => member.type === 'relation')
   )
+}
+
+/**
+ * The names of the ways of a stretch, in travel order, the same name only once: "Freiheit", "Footway". `nameOf` gives
+ * a way's name (its `name`, `ref`, or the preset's name); a way without any is left out.
+ */
+export function stretchNames(
+  analysis: RouteAnalysis,
+  members: readonly number[],
+  nameOf: (id: string) => string | undefined,
+  travelOrder: ReadonlyMap<number, number>,
+) {
+  const ordered = [...members].sort(
+    (a, b) => (travelOrder.get(a) ?? Infinity) - (travelOrder.get(b) ?? Infinity) || a - b,
+  )
+  const names: string[] = []
+  for (const index of ordered) {
+    const info = analysis.members[index]
+    if (!info) continue
+    const name = nameOf(info.member.id)
+    if (name && !names.includes(name)) names.push(name)
+  }
+  return names
+}
+
+/** The place of each main way on the line (member index to step number), to list a stretch's ways in travel order */
+export function travelOrderOf(analysis: RouteAnalysis) {
+  const order = new Map<number, number>()
+  for (const piece of analysis.chain.pieces)
+    for (const step of piece.steps) if (!order.has(step.index)) order.set(step.index, order.size)
+  return order
+}
+
+/** The metres of each main way along the line, by member index */
+export function stepLengthsOf(analysis: RouteAnalysis) {
+  const lengths = new Map<number, number>()
+  for (const piece of analysis.chain.pieces)
+    for (const step of piece.steps) lengths.set(step.index, step.length)
+  return lengths
+}
+
+/**
+ * Where the selected entity is in the overview: the stretches (sections, by index) that hold it as a way, and the
+ * rows that stand for it alone (a point, a stop). Both empty when it is no member on the line.
+ */
+export function selectedInLayout(
+  analysis: RouteAnalysis,
+  sections: readonly Pick<OverviewSection, 'members'>[],
+  rows: readonly OverviewRow[],
+  selected: string | null | undefined,
+) {
+  const result = { sections: [] as number[], rows: [] as string[] }
+  if (!selected) return result
+  const indexes = new Set<number>()
+  for (const info of analysis.members) if (info.member.id === selected) indexes.add(info.index)
+  if (indexes.size === 0) return result
+  sections.forEach((section, i) => {
+    if (section.members.some((member) => indexes.has(member))) result.sections.push(i)
+  })
+  for (const row of rows) {
+    if (row.kind === 'unplaced' || row.kind === 'branch-end') continue
+    if (row.members.length === 1 && indexes.has(row.members[0] ?? -1)) result.rows.push(row.key)
+    else if (row.kind === 'branch-start' && row.members.some((member) => indexes.has(member)))
+      result.rows.push(row.key)
+  }
+  return result
+}
+
+/** The two ways on either side of a gap row (its members), as entity ids: a click shows the gap between them */
+export function gapIds(analysis: RouteAnalysis, row: Pick<OverviewRow, 'kind' | 'members'>) {
+  return row.kind === 'gap' ? idsOf(analysis, row.members) : []
+}
+
+/** The node of a junction row (`junction:n123`), which a click selects; undefined for any other row */
+export function junctionNode(row: Pick<OverviewRow, 'kind' | 'key'>) {
+  return row.kind === 'junction' ? row.key.slice('junction:'.length) : undefined
+}
+
+/**
+ * The ways before and after the selected one along the line (travel order, across gaps): member indexes, undefined at
+ * either end or when the selection is no way of the main line.
+ */
+export function neighboursOnLine(analysis: RouteAnalysis, selected: string | null | undefined) {
+  const steps = analysis.chain.pieces.flatMap((piece) => piece.steps)
+  const at = selected ? steps.findIndex((step) => step.wayId === selected) : -1
+  if (at < 0) return undefined
+  return { previous: steps[at - 1]?.index, next: steps[at + 1]?.index }
 }

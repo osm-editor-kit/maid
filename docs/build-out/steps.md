@@ -668,7 +668,6 @@ heading, and colours by age. Research: [traffic-signs-mapillary.md](../research/
       outlines it; the date chart has bars; "Farbe nach" switches age and type.
 - [ ] Next: the fork's sign tagging buttons, auto-show on select, the selected sign in the URL (research doc).
 
-
 ### Rerouting a route from the way's edit menu (2026-11-13)
 
 Tobias, 2026-11-13: the reroute did not work for him: a long route's start and end are never in view, so the action
@@ -690,3 +689,22 @@ case: move a short stretch around a construction site.
       the panel lists what leaves and joins; "Übernehmen", then undo.
 - [ ] Next: decide whether Apply should stay or the change go straight into the history with the map's change
       highlight (Tobias' second idea); a spur out and back (a via dragged off a very short stretch) is not flagged yet.
+
+### The route sidebar made understandable (2026-11-13)
+
+Tobias, 2026-11-13: in the route overview the ways could not be seen or clicked, nor the gaps; the selected way and its
+neighbours were not to be found; a long route was an endless list. Research and proposals:
+[route-sidebar-ux.md](../research/route-sidebar-ux.md).
+
+- [x] 2026-11-13: the ways between two rows as stretches (names, length, count; hover both ways; a click selects the way
+      or lists the stretch's ways), the selected way or point marked and scrolled to, previous and next way along the
+      line, a bar and a line for the stretches in the map's view, gaps and junctions as buttons, the ways beside a gap
+      drawn whole, "Guidepost" instead of "tourism=information", "Points" instead of "Stops" for routes without stops.
+      `bun run check`; `check-route-overview` 70 of 70, `check-relation-column` 31 of 31.
+      **Test for Tobias:** https://osm-editor-kit.github.io/maid/maid/?map=17/52.4450/13.5729&id=w1433215704&relation=r3001299 :
+      the Müggel-Spree-Weg with Freiheit selected; the stretch with "Freiheit" is white, the buttons above walk to the
+      way before and after; press "Load the missing members", then open a stretch and click its ways; pan the map and
+      watch the blue bar; click a gap.
+- [ ] Next: the six open questions in the research doc (one list instead of three, long stretches, objects beside the
+      route, map marks, closing a gap with the reroute module, quieter hints).
+

@@ -557,5 +557,19 @@
   "ui_close": "Close",
   "ui_remove": "Remove",
   "ui_unknown": "Unknown",
-  "ui_loading_description": "Loading the description…"
+  "ui_loading_description": "Loading the description…",
+  "route_overview_stretch_one": "{length}, 1 way",
+  "route_overview_stretch_many": "{length}, {count} ways",
+  "route_overview_stretch_open": "Ways of this stretch: {name}",
+  "route_overview_stretch_fit": "Show all on the map",
+  "route_overview_stretch_nameless": "Ways without a name",
+  "route_overview_in_view": "In the map view: km {from} to {to}",
+  "route_overview_in_view_jump": "Go there",
+  "route_overview_gap_show": "Show the gap on the map: {name}",
+  "route_overview_junction_select": "Select the junction node: {name}",
+  "relations_group_points": "Points",
+  "route_overview_stretch_position": "Way {position} of {count}",
+  "route_overview_previous": "Previous way: {name}",
+  "route_overview_next": "Next way: {name}",
+  "route_overview_walk": "Along the route"
 }

@@ -131,10 +131,18 @@ describe('layoutOverview: a gap', () => {
     expect(gap.members).toEqual([0, 1])
   })
 
-  it('draws the sections on both sides of the gap as gap sections', () => {
+  it('marks the sections on both sides of the gap as touching it', () => {
     const layout = layoutOverview(analysis, 'schematic')
     expect(layout.sections.map((s) => s.gap)).toEqual([true, true])
     expect(layout.sections.map((s) => s.members)).toEqual([[0], [1]])
+  })
+
+  it('gives a stretch of ways the room for its label, also beside a gap', () => {
+    const layout = layoutOverview(analysis, 'schematic', { waySectionHeight: 24 })
+    expect(layout.sections.map((s) => s.height)).toEqual([24, 24])
+    expect(layoutOverview(analysis, 'scaled', { waySectionHeight: 24 }).sections[0]?.height).toBe(
+      layoutOverview(analysis, 'scaled').sections[0]?.height,
+    )
   })
 })
 
