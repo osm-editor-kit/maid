@@ -652,6 +652,15 @@ clicks, extrude) and the other building features, the filters set for the job.
       without type, levels or address in view), validation rules for buildings without levels, building:flats on
       non-residential types.
 
+### Tasking Manager in Maid Buildings (planned 2026-11-13)
+
+Tobias, 2026-11-13: the HOT Tasking Manager in Maid Buildings, with the mechanics of the MapRoulette edition: a top bar
+button with projects, a link with a project and task, the tasks in the dock, the task area on the map, the instructions,
+presets and style from the project. Research and plan: [tasking-manager.md](../research/tasking-manager.md).
+
+- [ ] After the MapRoulette edition: `packages/module-tasking-manager` (read only), the mock project on `small`, the
+      steps 1 to 7 of the plan, a check `check-tasking-manager`.
+
 ### Traffic signs and the photo viewer (2026-11-12)
 
 Tobias, 2026-11-12: traffic signs from Mapillary under Mapillary in the photos panel with the same filters, the package's
