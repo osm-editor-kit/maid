@@ -568,8 +568,6 @@
   "route_overview_stretch_open": "Ways of this stretch: {name}",
   "route_overview_stretch_fit": "Show all on the map",
   "route_overview_stretch_nameless": "Ways without a name",
-  "route_overview_in_view": "In the map view: km {from} to {to}",
-  "route_overview_in_view_jump": "Go there",
   "route_overview_gap_show": "Show the gap on the map: {name}",
   "route_overview_junction_select": "Select the junction node: {name}",
   "relations_group_points": "Points",
@@ -580,5 +578,10 @@
   "journal_other_tab": "Maid is also open in another tab, and only the other tab keeps unsaved edits across a reload. Your edits in this tab are lost when you reload or close it: upload them first, or go on editing in the other tab.",
   "journal_shared_edits": "Another tab has unsaved edits to {count} of the features you changed here. Only one tab can upload them: the second upload runs into a conflict. Upload in one tab and discard the edits in the other.",
   "journal_not_kept": "Edits are not kept across a reload: {message}",
-  "relations_is_open": "Open"
+  "relations_is_open": "Open",
+  "route_overview_km_from_start": "{km} km from the start",
+  "route_overview_length": "{km} km",
+  "route_overview_length_title": "Length of the route: the loaded ways from start to end, without the gaps and side lines",
+  "route_overview_state_title_no": "Has gaps: the ways do not form one line. The gaps are marked red on the line below.",
+  "route_overview_state_title_sorted": "Reordered: the ways form one line only in another order. The overview shows that order."
 }

@@ -568,8 +568,6 @@
   "route_overview_stretch_open": "Voies de ce tronçon : {name}",
   "route_overview_stretch_fit": "Tout afficher sur la carte",
   "route_overview_stretch_nameless": "Voies sans nom",
-  "route_overview_in_view": "Dans la vue de la carte : km {from} à {to}",
-  "route_overview_in_view_jump": "Y aller",
   "route_overview_gap_show": "Afficher la lacune sur la carte : {name}",
   "route_overview_junction_select": "Sélectionner le nœud du carrefour : {name}",
   "relations_group_points": "Points",
@@ -580,5 +578,10 @@
   "journal_other_tab": "Maid est aussi ouvert dans un autre onglet, et seul l’autre onglet conserve les modifications non enregistrées après un rechargement. Vos modifications dans cet onglet sont perdues si vous le rechargez ou le fermez : envoyez-les d'abord, ou continuez dans l'autre onglet.",
   "journal_shared_edits": "Un autre onglet a des modifications non enregistrées sur {count} des éléments que vous avez modifiés ici. Un seul onglet peut les envoyer : le second envoi provoque un conflit. Envoyez-les dans un onglet et abandonnez les modifications dans l'autre.",
   "journal_not_kept": "Les modifications ne sont pas conservées après un rechargement : {message}",
-  "relations_is_open": "Ouverte"
+  "relations_is_open": "Ouverte",
+  "route_overview_km_from_start": "{km} km depuis le départ",
+  "route_overview_length": "{km} km",
+  "route_overview_length_title": "Longueur de l’itinéraire : les voies chargées du début à la fin, sans les lacunes ni les variantes",
+  "route_overview_state_title_no": "A des lacunes : les voies ne forment pas une ligne continue. Les lacunes sont marquées en rouge sur la ligne ci-dessous.",
+  "route_overview_state_title_sorted": "Réordonné : les voies ne forment une ligne que dans un autre ordre. L’aperçu montre cet ordre."
 }

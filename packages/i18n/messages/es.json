@@ -568,8 +568,6 @@
   "route_overview_stretch_open": "Vías de este tramo: {name}",
   "route_overview_stretch_fit": "Mostrar todas en el mapa",
   "route_overview_stretch_nameless": "Vías sin nombre",
-  "route_overview_in_view": "En la vista del mapa: km {from} a {to}",
-  "route_overview_in_view_jump": "Ir allí",
   "route_overview_gap_show": "Mostrar el hueco en el mapa: {name}",
   "route_overview_junction_select": "Seleccionar el nodo del cruce: {name}",
   "relations_group_points": "Puntos",
@@ -580,5 +578,10 @@
   "journal_other_tab": "Maid también está abierto en otra pestaña, y solo la otra pestaña conserva los cambios sin guardar al recargar. Tus cambios en esta pestaña se pierden si la recargas o la cierras: súbelos antes o sigue editando en la otra pestaña.",
   "journal_shared_edits": "Otra pestaña tiene cambios sin guardar en {count} de los elementos que cambiaste aquí. Solo una pestaña puede subirlos: la segunda subida produce un conflicto. Súbelos en una pestaña y descarta los cambios en la otra.",
   "journal_not_kept": "Los cambios no se conservan al recargar: {message}",
-  "relations_is_open": "Abierta"
+  "relations_is_open": "Abierta",
+  "route_overview_km_from_start": "{km} km desde el inicio",
+  "route_overview_length": "{km} km",
+  "route_overview_length_title": "Longitud de la ruta: las vías cargadas de principio a fin, sin los huecos ni los ramales",
+  "route_overview_state_title_no": "Tiene huecos: las vías no forman una línea continua. Los huecos están marcados en rojo en la línea de abajo.",
+  "route_overview_state_title_sorted": "Reordenada: las vías solo forman una línea en otro orden. La vista muestra ese orden."
 }

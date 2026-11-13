@@ -75,7 +75,7 @@ export type Select = ReturnType<typeof useSelection>['select']
 const ROW_HEIGHT = 28
 /** Schematic: the height of a stretch of ways between two rows, room for the line of its names */
 const STRETCH_HEIGHT = 24
-const KM_WIDTH = 44
+const KM_WIDTH = 56
 const LANE_STEP = 14
 const MAIN_X = 14
 export const NEUTRAL = '#7c3aed'
@@ -361,12 +361,27 @@ export function OverviewHead({
       </button>
       {analysis ? (
         <>
-          <span className="flex items-center gap-1 font-medium" data-testid="route-overview-state">
-            <span aria-hidden="true">{STATE_ICON[analysis.chain.linear]}</span>
-            {STATE_TEXT[analysis.chain.linear]()}
-          </span>
-          <span className="text-zinc-500 tabular-nums dark:text-zinc-400">
-            {m.route_overview_km({ km: formatKm(analysis.chain.length, getLocale()) })}
+          {/* only a line with gaps or in another order is marked, with an icon; its tooltip says what it means */}
+          {analysis.chain.linear === 'no' || analysis.chain.linear === 'sorted' ? (
+            <span
+              className="flex cursor-help items-center"
+              data-testid="route-overview-state"
+              role="img"
+              aria-label={STATE_TEXT[analysis.chain.linear]()}
+              title={
+                analysis.chain.linear === 'no'
+                  ? m.route_overview_state_title_no()
+                  : m.route_overview_state_title_sorted()
+              }
+            >
+              {STATE_ICON[analysis.chain.linear]}
+            </span>
+          ) : null}
+          <span
+            className="cursor-help text-zinc-500 tabular-nums dark:text-zinc-400"
+            title={m.route_overview_length_title()}
+          >
+            {m.route_overview_length({ km: formatKm(analysis.chain.length, getLocale()) })}
           </span>
         </>
       ) : null}
@@ -553,11 +568,6 @@ export function RouteDiagram({
     },
     [scroll, selectedKey],
   )
-  function jumpToView() {
-    const list = box.current
-    const target = list?.querySelector<HTMLElement>('[data-in-view]')
-    if (list && target) scrollWithin(list, target, true)
-  }
   const travelOrder = travelOrderOf(analysis)
   const lengths = stepLengthsOf(analysis)
   const nameOf = (id: string) => {
@@ -579,11 +589,12 @@ export function RouteDiagram({
     const id = index === undefined ? undefined : analysis.members[index]?.member.id
     return id ? (nameOf(id) ?? id) : ''
   }
-  const firstInView = stretches.find(({ index }) => inView.has(index))
-  const lastInView = stretches.findLast(({ index }) => inView.has(index))
+
   const maxLane = layout.rows.reduce((top, row) => Math.max(top, row.lane), 0)
   const gutter = 40 + LANE_STEP * maxLane
-  const left = KM_WIDTH + gutter
+  // the km column only to scale, where the distances are what the rows are spaced by
+  const kmWidth = mode === 'scaled' ? KM_WIDTH : 4
+  const left = kmWidth + gutter
   const laneX = (lane: number) => MAIN_X + LANE_STEP * lane
 
   function removeDuplicate(issue: RouteIssue) {
@@ -675,25 +686,6 @@ export function RouteDiagram({
           </button>
         </nav>
       ) : null}
-      {firstInView && lastInView ? (
-        <p className="mb-1 flex flex-wrap items-baseline gap-x-2 text-xs text-sky-800 dark:text-sky-300">
-          <span>
-            {m.route_overview_in_view({
-              from: formatKm(layout.rows[firstInView.section.fromRow]?.at ?? 0, getLocale()),
-              to: formatKm(layout.rows[lastInView.section.toRow]?.at ?? 0, getLocale()),
-            })}
-          </span>
-          {scroll ? (
-            <button
-              type="button"
-              onClick={jumpToView}
-              className="cursor-pointer rounded font-medium text-blue-600 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-blue-400"
-            >
-              {m.route_overview_in_view_jump()}
-            </button>
-          ) : null}
-        </p>
-      ) : null}
       {/* a long route scrolls inside the overview, so the members below stay within reach */}
       <div
         ref={box}
@@ -711,7 +703,7 @@ export function RouteDiagram({
             width={gutter}
             height={diagramHeight}
             className="pointer-events-none absolute top-0"
-            style={{ left: KM_WIDTH }}
+            style={{ left: kmWidth }}
           >
             <Diagram
               layout={layout}
@@ -785,6 +777,7 @@ export function RouteDiagram({
               setOpen={setOpen}
               toggleJunctions={toggleJunctions}
               selected={selectedRows.has(row.key)}
+              kmWidth={kmWidth}
             />
           ))}
         </div>
@@ -1068,6 +1061,7 @@ function Row({
   setOpen,
   toggleJunctions,
   selected,
+  kmWidth,
 }: {
   row: OverviewRow
   analysis: RouteAnalysis
@@ -1083,6 +1077,8 @@ function Row({
   toggleJunctions: (key: string) => void
   /** The row stands for the selected member */
   selected: boolean
+  /** The width of the km column: none in the schematic spacing */
+  kmWidth: number
 }) {
   const { engine } = useShell()
   const ids = idsOf(analysis, row.members)
@@ -1134,12 +1130,13 @@ function Row({
     >
       <span
         aria-hidden="true"
-        className="shrink-0 pr-2 text-right text-[11px] text-zinc-500 tabular-nums dark:text-zinc-400"
-        style={{ width: KM_WIDTH }}
+        className="shrink-0 overflow-hidden pr-2 text-right text-[11px] whitespace-nowrap text-zinc-500 tabular-nums dark:text-zinc-400"
+        style={{ width: kmWidth }}
+        title={km && kmWidth >= KM_WIDTH ? m.route_overview_km_from_start({ km }) : undefined}
       >
-        {km}
+        {kmWidth >= KM_WIDTH && km ? m.route_overview_km({ km }) : null}
       </span>
-      <span className="shrink-0" style={{ width: left - KM_WIDTH - 4 }} aria-hidden="true" />
+      <span className="shrink-0" style={{ width: left - kmWidth - 4 }} aria-hidden="true" />
       {row.kind === 'junctions' ? (
         <button
           type="button"
@@ -1531,12 +1528,11 @@ function stretchesInView(
   return result
 }
 
-/** Scrolls only the box (scrollIntoView would also scroll the column and the page): the target into view, or to the top */
-function scrollWithin(box: HTMLElement, target: HTMLElement, toTop = false) {
+/** Scrolls only the box (scrollIntoView would also scroll the column and the page) so that the target is in view */
+function scrollWithin(box: HTMLElement, target: HTMLElement) {
   const top = target.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop
   const bottom = top + target.offsetHeight
-  if (toTop) box.scrollTop = Math.max(0, top - ROW_HEIGHT)
-  else if (top < box.scrollTop) box.scrollTop = Math.max(0, top - ROW_HEIGHT)
+  if (top < box.scrollTop) box.scrollTop = Math.max(0, top - ROW_HEIGHT)
   else if (bottom > box.scrollTop + box.clientHeight)
     box.scrollTop = bottom - box.clientHeight + ROW_HEIGHT
 }

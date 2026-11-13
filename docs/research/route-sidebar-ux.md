@@ -34,7 +34,11 @@ table, ids and tag text instead of names, one row per way (as endless as ours), 
 - **Previous / next way** along the line (`neighboursOnLine`, across gaps), above the line; the map follows when the way
   is out of view.
 - **In the map view**: a bar beside the stretches whose ways meet the map's bounds (`engine.inView`, again on every
-  `moveend`, cached per layout), and "In the map view: km a to b · Go there".
+  `moveend`, cached per layout). The line "In the map view: km a to b · Go there" was taken out again (Tobias,
+  2026-11-13: not understood).
+- **Head and km column** (Tobias, 2026-11-13): the km column only to scale, with the unit ("3.1 km", tooltip "from the
+  start"); the state only as an icon for gaps or another order, its tooltip says what it means; the length with a
+  tooltip that it is the loaded ways from start to end without gaps and side lines.
 - **Gaps and junctions** are buttons: a gap fits the two ways around it and selects the first; a junction selects its
   node. The ways beside a gap are drawn whole up to the gap's row (before, the whole section next to a gap was drawn as
   a red dashed gap, 8 km on the Müggel-Spree-Weg preview); `OverviewSection.gap` now means "touches a gap row".
