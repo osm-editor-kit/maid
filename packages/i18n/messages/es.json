@@ -367,8 +367,6 @@
   "relations_column_label": "Relación",
   "relations_column_not_member": "{name} no forma parte de esta relación.",
   "relations_column_add_it": "Añadirlo",
-  "relations_column_fly": "Ir",
-  "relations_column_fly_label": "Ir a {name}",
   "relations_column_fit": "Encuadrar los miembros en el mapa",
   "relations_column_show_relation": "Mostrar las etiquetas de la relación",
   "relations_group_routes": "Rutas",

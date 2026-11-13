@@ -6,7 +6,6 @@ import {
   ExclamationTriangleIcon,
   InformationCircleIcon,
   TrashIcon,
-  ViewfinderCircleIcon,
   XMarkIcon,
 } from '@heroicons/react/16/solid'
 import { getLocale, m } from '@osm-editor-kit/maid-i18n'
@@ -70,8 +69,6 @@ const LINK =
   'cursor-pointer rounded text-xs font-medium text-blue-600 hover:underline focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-blue-400'
 const ICON_BUTTON =
   'grid size-6 shrink-0 cursor-pointer place-items-center rounded-md text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white'
-const FLY_BUTTON =
-  'grid size-6 shrink-0 cursor-pointer place-items-center rounded-md text-blue-600 hover:bg-blue-600/10 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-blue-400 dark:hover:bg-blue-400/10'
 
 type Editor = ReturnType<typeof useShell>['editor']
 type Select = ReturnType<typeof useSelection>['select']
@@ -498,7 +495,7 @@ function MemberItem({
   relationId: EntityID
 }) {
   'use no memo'
-  // not compiled: whether the member is in view and loaded is read from the engine, which stays the same object
+  // not compiled: whether the member can be loaded is read outside React, from the engine that stays the same object
   const { engine } = useShell()
   // a relation member also tells the map which sub-route is pointed at (relations-map.tsx)
   const highlight = useRelatedWhileHovered(
@@ -507,7 +504,6 @@ function MemberItem({
   )
   const [busy, setBusy] = useState(false)
   const name = row.label ?? row.id
-  const flyable = row.loaded && !engine.inView([row.id])
   const loadable = !row.loaded && memberLoadPath(row.id) !== undefined
   const downloadLabel = m.relations_download_member({ id: row.id })
   function loadMember(then?: () => void) {
@@ -549,13 +545,15 @@ function MemberItem({
                 className="absolute inset-0 cursor-pointer rounded-[inherit] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-500"
                 aria-label={name}
                 aria-current={selected || undefined}
+                // a click always selects the member and moves the map to it (Tobias, 2026-11-13): no Fly button
                 onClick={() => {
                   // a sub-route is entered: the column shows its members, the path leads back
-                  if (row.loaded && row.type === 'relation') {
+                  if (row.loaded && row.type === 'relation')
                     openRelationActions.open(row.id, relationId)
+                  if (row.loaded) {
                     select(row.id)
-                  } else if (row.loaded) select(row.id)
-                  else
+                    engine.fitTo([row.id])
+                  } else
                     loadMember(() => {
                       select(row.id)
                       engine.fitTo([row.id])
@@ -606,17 +604,6 @@ function MemberItem({
             )}
             {/* the action slot is as wide in every row, so the icons line up */}
             <span className="relative z-10 grid size-6 shrink-0 place-items-center">
-              {flyable && (
-                <button
-                  type="button"
-                  className={FLY_BUTTON}
-                  aria-label={m.relations_column_fly_label({ name })}
-                  title={m.relations_column_fly()}
-                  onClick={() => engine.fitTo([row.id])}
-                >
-                  <ViewfinderCircleIcon className="size-4" />
-                </button>
-              )}
               {loadable && (
                 <button
                   type="button"

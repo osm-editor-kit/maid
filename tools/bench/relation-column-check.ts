@@ -2,7 +2,7 @@
  * Check of the relation column, with real clicks: a road of a bus route is selected, "Open" on the route in the
  * inspector's Relations section opens the column beside the inspector and keeps the road selected. A member row selects
  * that member and the column stays; the inspector lists no members while the column shows them. The column's head
- * selects the relation itself. "Fly to" moves the map to a member that is out of view. A feature that is not a member
+ * selects the relation itself. A click on a row also moves the map to the member (no "Fly to" buttons). A feature that is not a member
  * gets the hint and "Add it" (one undo step). Dragging a way's handle above the one before it, and Alt+ArrowUp on
  * the handle, reorder the members: one edit and one undo step each. The head's close button, the "Open" button of the Members section and
  * Escape close and open it.
@@ -94,18 +94,35 @@ const failed = await runCheck(sceneName, async ({ page, report, settle }) => {
       .count(),
   )
 
-  // --- Fly to: a member out of view gets the button, and the map moves to it ---
-  const fly = column.getByRole('button', { name: /^Fly to / }).first()
-  report('a member out of view has a "Fly to" button', true, (await fly.count()) > 0)
-  if ((await fly.count()) > 0) {
-    const target = await fly.evaluate((button) => button.closest('li')?.dataset.row ?? '')
-    await fly.click()
+  // --- a click on a row always selects the member and moves the map to it: no "Fly to" buttons ---
+  report(
+    'the rows have no "Fly to" buttons',
+    0,
+    await column.getByRole('button', { name: /^Fly to / }).count(),
+  )
+  const away = await page.evaluate((route) => {
+    const { engine, editor } = window.__maid
+    const graph = editor.history.staging.graph
+    return engine.data
+      .relation(route)
+      ?.members.find((m) => m.type === 'way' && graph.hasEntity(m.id) && !engine.inView([m.id]))?.id
+  }, ROUTE)
+  report('the route has a loaded way out of view', true, away !== undefined)
+  if (away) {
+    await row(away).evaluate((li) => {
+      const list = li.closest('[data-stack-scroll]')
+      if (list)
+        list.scrollTop +=
+          li.getBoundingClientRect().top - list.getBoundingClientRect().top - list.clientHeight / 2
+    })
+    await row(away).locator('button').first().click()
     await page.waitForTimeout(700)
     await settle()
+    report('a click on a row out of view selects it', away, await selectedId())
     report(
-      'after "Fly to" the member is in view',
+      'and moves the map to it',
       true,
-      await page.evaluate((id) => window.__maid.engine.inView([id]), target),
+      await page.evaluate((id) => window.__maid.engine.inView([id]), away),
     )
   }
 

@@ -1,10 +1,17 @@
 import { AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useId, useState, type ReactNode } from 'react'
 import { twJoin } from 'tailwind-merge'
 import { BottomSheet } from './BottomSheet.tsx'
 import { ResizeHandle } from './ResizeHandle.tsx'
 import { useBreakpoint } from './useBreakpoint.ts'
 import { useResizable } from './useResizable.ts'
+
+/**
+ * The slide of the column before the sidebar: short and without a spring's long settling tail, because the map beside it
+ * resizes on every frame of it (as when the sidebar's handle is dragged)
+ */
+const COLUMN_SLIDE = { type: 'tween', duration: 0.22, ease: [0.32, 0.72, 0, 1] } as const
 
 // Module level, so the hook sees the same function on every render.
 const sidebarMaxWidth = (viewport: number) => Math.min(640, viewport - 360)
@@ -78,6 +85,13 @@ export function Shell(props: {
     onSheetOpenChange?.(next)
   }
   const label = sheetLabel ?? 'Properties'
+  // The column before the sidebar slides open and shut: its width grows from 0 while its content keeps its own width
+  // (clipped), so the long member list is not laid out again on each frame. Only the map beside it resizes, as when the
+  // sidebar's handle is dragged. The tinted frame stays until the column is gone, so it does not jump while it closes.
+  const reducedMotion = useReducedMotion()
+  const [startShown, setStartShown] = useState(Boolean(sidebarStart))
+  if (sidebarStart && !startShown) setStartShown(true)
+  const framed = Boolean(sidebarStart) || startShown
   const inSheet = Boolean(sidebar) && !wide
 
   return (
@@ -89,19 +103,32 @@ export function Shell(props: {
             ref={publishWidth}
             className={twJoin(
               'relative flex min-h-0 shrink-0',
-              sidebarStart &&
+              framed &&
                 'border-r border-zinc-950/10 bg-violet-100 dark:border-white/10 dark:bg-violet-950/50',
             )}
           >
-            {sidebarStart ?? null}
+            <AnimatePresence initial={false} onExitComplete={() => setStartShown(false)}>
+              {sidebarStart ? (
+                <motion.div
+                  key="sidebar-start"
+                  className="flex min-h-0 shrink-0 overflow-hidden"
+                  initial={{ width: 0, opacity: 0 }}
+                  animate={{ width: 'auto', opacity: 1 }}
+                  exit={{ width: 0, opacity: 0 }}
+                  transition={reducedMotion ? { duration: 0 } : COLUMN_SLIDE}
+                >
+                  {sidebarStart}
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
             <div
-              className={twJoin('flex min-h-0', sidebarStart && 'py-2 pr-2')}
+              className={twJoin('flex min-h-0', framed && 'py-2 pr-2')}
               style={{ width: sidebarWidth.size }}
             >
               <div
                 className={twJoin(
                   'flex min-h-0 min-w-0 flex-1',
-                  sidebarStart &&
+                  framed &&
                     'overflow-hidden rounded-xl shadow-sm ring-1 ring-zinc-950/10 dark:ring-white/10 [&>aside]:border-r-0',
                 )}
               >

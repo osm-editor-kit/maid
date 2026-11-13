@@ -367,8 +367,6 @@
   "relations_column_label": "Relation",
   "relations_column_not_member": "{name} is not in this relation.",
   "relations_column_add_it": "Add it",
-  "relations_column_fly": "Fly to",
-  "relations_column_fly_label": "Fly to {name}",
   "relations_column_fit": "Fit the members in the map",
   "relations_column_show_relation": "Show the tags of the relation",
   "relations_group_routes": "Routes",
