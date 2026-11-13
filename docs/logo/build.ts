@@ -27,7 +27,16 @@ const ROAD = d(BASE, 'AZ')
 
 // --- New for Maid ------------------------------------------------------------
 
-type Fork = 'maid' | 'bicycle' | 'parking' | 'indoor' | 'lanes' | 'golf' | 'climbing' | 'buildings'
+type Fork =
+  | 'maid'
+  | 'bicycle'
+  | 'parking'
+  | 'indoor'
+  | 'lanes'
+  | 'golf'
+  | 'climbing'
+  | 'buildings'
+  | 'maproulette'
 const FORKS: Fork[] = [
   'maid',
   'bicycle',
@@ -37,6 +46,7 @@ const FORKS: Fork[] = [
   'golf',
   'climbing',
   'buildings',
+  'maproulette',
 ]
 // The lane colours: cycle lanes and parking lanes (the blue of the Parkraum lens). maid and indoor have none.
 const ACCENT: Record<Fork, string> = {
@@ -49,6 +59,8 @@ const ACCENT: Record<Fork, string> = {
   climbing: '#f6634f',
   // the salmon of the buildings map style (after the kaligrafy iD fork)
   buildings: '#e06e5f',
+  // the teal of Maid MapRoulette's task colour (module-maproulette), near MapRoulette's own green
+  maproulette: '#0d9488',
 }
 const VERTEX = 'fill="#fff" stroke="#222"'
 
@@ -136,6 +148,11 @@ const ICON: Record<Fork, string> = {
   buildings:
     '<g transform="rotate(45)"><path fill="#fff" d="M-13 13V-2l13-12 13 12v15Z"/>' +
     '<path fill="#262626" d="M-3.5 13V4h7v9Z"/></g>',
+  // a roulette wheel: a ring, its spokes and the ball in the middle
+  maproulette:
+    '<g fill="none" stroke="#fff" stroke-width="3"><circle r="13"/>' +
+    '<path stroke-width="2.4" stroke-linecap="round" d="M0-13V-6M0 6V13M-13 0H-6M6 0H13"/></g>' +
+    '<circle r="4" fill="#fff"/>',
 }
 
 // A pencil the size of the OSM lens, tip at the vertex, pointing down-left.
@@ -179,6 +196,7 @@ const APP_DIR: Record<Fork, string> = {
   golf: 'apps/maid-golf',
   climbing: 'apps/maid-climbing',
   buildings: 'apps/maid-buildings',
+  maproulette: 'apps/maid-maproulette',
 }
 
 const logo = (fork: Fork, viewBox: string) => {

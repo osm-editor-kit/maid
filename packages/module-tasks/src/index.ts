@@ -4,4 +4,4 @@
  */
 export { tasks } from './module.tsx'
 export { parseAsTasksUrl, TASKS_PARAM } from './url.ts'
-export { parseMarkdown, Markdown } from './markdown.tsx'
+export { parseMarkdown, Markdown } from '@osm-editor-kit/maid-ui'

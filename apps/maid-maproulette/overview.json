@@ -1,0 +1,12 @@
+{
+  "tagline": "MapRoulette challenges",
+  "description": "Works through MapRoulette challenges in Maid: open a challenge by its number or pick one near you, see its tasks on the map, read the instructions next to the feature, accept a tag fix, and the tasks are reported as fixed only once your changeset is uploaded. The MapRoulette API is changing its login, so status updates wait for it.",
+  "highlights": [
+    "A MapRoulette button in the top bar: the open challenge with its description, a challenge number to open, the challenges in the map view",
+    "The tasks of the view on the map, the task's ways highlighted",
+    "The task's instructions (Markdown, MapRoulette's shortcodes) and its status buttons above the feature",
+    "Tag fix challenges: the suggested tag change as a diff, accepted in one click",
+    "The save form lists the tasks it reports as fixed; MapRoulette hears of them after the upload"
+  ],
+  "open": "map=17/52.5219/13.4100"
+}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import type { ReactElement } from 'react'
 import * as server from 'react-dom/server'
-import { fillMustache, Markdown, type MarkdownContext, parseMarkdown } from './markdown.tsx'
+import { fillMustache, Markdown, type MarkdownContext, parseMarkdown } from './Markdown.tsx'
 
 const renderToStaticMarkup = server.renderToStaticMarkup as (node: ReactElement) => string
 const html = (text: string, context?: MarkdownContext) =>

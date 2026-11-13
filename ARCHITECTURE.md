@@ -24,7 +24,7 @@ packages/module-*   the modules an app switches on
 ## Folders
 
 ```
-apps/maid, maid-bicycle, maid-parking, maid-indoor, maid-lanes, maid-golf, maid-climbing, maid-buildings   the editors: maid.config.ts, presets.ts, main.tsx, vite.config.ts, env files
+apps/maid, maid-bicycle, maid-parking, maid-indoor, maid-lanes, maid-golf, maid-climbing, maid-buildings, maid-maproulette   the editors: maid.config.ts, presets.ts, main.tsx, vite.config.ts, env files
 apps/compare         Maid, iD and Rapid side by side
 packages/            the packages below
 tools/mock-osm-api   local stand-in for the OSM API, serves the fixtures
@@ -44,7 +44,7 @@ reports/             output of benchmarks and checks (mostly git-ignored)
 | Core | `core` | `createEditor`, `defineModule`, registries for extension points, hooks, module URL parameters, fetching |
 | Map | `renderer`, `style` | Features to MapLibre layers, drawing and dragging (the engine), iD's look as data |
 | Interface | `ui`, `shell`, `i18n` | Components and inspector fields; the shell that mounts an app; Paraglide texts |
-| Modules | `module-*` | Imagery, street-level images, data layers, notes, lenses, parking, shapes, surface, traffic signs, turn restrictions, way table, reroute, osmchange, tasks, sidepaths, TILDA, bike infrastructure, golf, climbing, terrain, buildings |
+| Modules | `module-*` | Imagery, street-level images, data layers, notes, lenses, parking, shapes, surface, traffic signs, turn restrictions, way table, reroute, osmchange, tasks, sidepaths, TILDA, bike infrastructure, golf, climbing, terrain, buildings, MapRoulette |
 | Task lists | `tasks`, `osm-prefs` | The task file format and its diff ([FORMAT.md](packages/tasks/FORMAT.md)); small data in the OSM user preferences, split into 255-character values ([ADR 0013](docs/adr/0013-task-lists-in-user-preferences.md)) |
 
 All packages are named `@osm-editor-kit/maid-<folder>` ([why](docs/architecture/03-packages.md#package-names)) and are
@@ -78,6 +78,7 @@ What each app turns on today:
 | `apps/maid-golf` | 5180 | golf (a prototype): the holes as a scorecard in the dock, golf lens, golf rules and presets, drawing tools; roads and buildings locked |
 | `apps/maid-climbing` | 5181 | climbing (section for crags, areas and routes; the fields of id-tagging-schema PR 2793), terrain (relief and 3D, the map may tilt); no surface or turn restrictions |
 | `apps/maid-buildings` | 5182 | buildings (the buildings style after the kaligrafy iD fork as its standard, the number of dwellings on the map, level fields on every building, building favourites), shapes (angle snap with lengths, rectangle, merge, cut, divide, resize, extrude); roads, paths, rail, water and power locked |
+| `apps/maid-maproulette` | 5183 | MapRoulette (challenges by number, link or nearby, tasks on the map and in the inspector, tag fix, status right away or with the upload), turn restrictions, surface |
 
 The shared set is the same in all six: element info, operations, relations, validation, imagery, data layers, lenses,
 street-level images, notes, task lists. Read the six config files side by side to see the pattern; they are short.
@@ -125,7 +126,7 @@ merging into `ExtensionPoints` of `@osm-editor-kit/maid-core`, in its `src/exten
 | Point | Declared in | Shown where | Example |
 | --- | --- | --- | --- |
 | `map.layer` | renderer | MapLibre source and layers, above or below the OSM data | `sceneBounds` in shell |
-| `map.content` | renderer | A React component inside the map (previews, handles) | parking, shapes |
+| `map.content` | renderer | A React component inside the map (previews, handles); `clickLayers` names layers whose clicks the module takes | parking, shapes, MapRoulette |
 | `map.view` | renderer | What the camera may do beyond flat: `maxPitch` (the largest wins) | terrain |
 | `edit.operation` | renderer | Edit menu, command bar and its key; `group` sets its group in the command bar, `supersedes` hides another operation | `operations(defaultOperations)`, shapes merge |
 | `imagery.used` | renderer | The imagery credited in a changeset | imagery |
@@ -133,10 +134,10 @@ merging into `ExtensionPoints` of `@osm-editor-kit/maid-core`, in its `src/exten
 | `draw.tool` | renderer | The dropdown of the Area button, and the keys 33, 333; or a button of its own after it (`placement: 'button'`, off while `unavailable` gives a reason) | rectangle; room |
 | `inspector.section` | ui | A block in the sidebar, above or below the fields | parking, relations |
 | `inspector.field` | ui | The component for a field type | traffic signs |
-| `dock.view` | ui | A tab in the bottom dock | way table |
-| `topbar.panel` | ui | A flyout behind an icon in the top bar | imagery |
+| `dock.view` | ui | A tab in the bottom dock; `tone` colours it (`tasks`, `maproulette`) | way table |
+| `topbar.panel` | ui | A flyout behind an icon in the top bar; `badge` shows a short state next to the icon | imagery, MapRoulette |
 | `account.item` | ui | An entry in the account menu, for a rarely needed job | osmchange |
-| `changeset.tags` | ui | Tags of a module on the changeset of an upload, and a comment and a source the save form starts with | osmchange |
+| `changeset.tags` | ui | Tags of a module on the changeset of an upload, and a comment and a source the save form starts with; `component` adds a block to the save form | osmchange, MapRoulette |
 | `note.selection` | module-notes | What the notes panel shows for a selected note | notes |
 
 `bun run check-config` loads each app's config without a browser and checks the ids and the ports, that each

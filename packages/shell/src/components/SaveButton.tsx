@@ -221,6 +221,11 @@ function SavePanel(props: {
         </p>
       </div>
       {rows.length > 0 && <ChangeRows rows={rows} />}
+      {/* what modules add to the upload (`changeset.tags` with a component): MapRoulette's tasks */}
+      {editor
+        .registry('changeset.tags')
+        .list()
+        .map((item) => item.component && <item.component key={item.id} editor={editor} />)}
       <div className="flex flex-col gap-1">
         <label htmlFor={commentId} className="font-medium">
           Changeset comment

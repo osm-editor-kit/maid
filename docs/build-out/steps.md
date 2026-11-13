@@ -210,8 +210,6 @@ Waiting for a decision by Tobias: bugs in the model that lose data (reverse with
 
 A local fix list from another project (asked by Tobias through the tilda-geo session on 2026-10-29: Markdown text, select the element, apply a tag change after a click) is covered by the private task lists (section "Private task lists" below); skill `maid-task-file` tells other projects how to write the file, including from MapRoulette's `.geojsonl` Tag Fix form, which Maid does not read itself.
 
-MapRoulette's online API (was D4: the task extension points and `maid-module-maproulette`): left out by Tobias on 2026-10-13, because the MapRoulette integration is broken by problems of its API at the moment. Teams use MapRoulette.
-
 Editing beyond 85°S (the Antarctic plateau), where Web Mercator ends: possible with MapLibre's experimental `addProjection` and a polar CRS, but without imagery, since no background Maid offers is cut in that CRS. iD and Rapid cannot either ([projections-and-coordinates.md](../research/projections-and-coordinates.md), 2026-11-11).
 
 GPX, measurement and history panels, keyboard shortcut help, the published npm packages and their release routine. They are listed so that nobody assumes they are covered. (Translations and turn restrictions stood here until 2026-10-13: both are in work now, see Part F.)
@@ -651,6 +649,29 @@ clicks, extrude) and the other building features, the filters set for the job.
 - [ ] Next: a check `check-buildings` (lens colours, labels, favourites), a progress view for a campaign (buildings
       without type, levels or address in view), validation rules for buildings without levels, building:flats on
       non-residential types.
+
+### Maid MapRoulette (2026-11-13)
+
+Tobias, 2026-11-13: an edition with MapRoulette after tordans/iD PR #4, on the overview page: a top bar button with the
+challenge's name and description, or a number to open and the challenges nearby; the tasks with their ways on the map
+and in the inspector; the statuses sent after the upload (or right away), a block in the save dialog; tag fix. Maid's
+design first, close to MapRoulette's new UI; its own colour (teal). The logic apart from the task lists, components
+shared. Login: MapRoulette is changing it (maproulette-backend #1288, #1289), so for now a pasted token as
+`Authorization: Bearer`, behind `MapRouletteAuth`.
+
+- [x] 2026-11-13: `packages/maproulette` (headless: client, schema, statuses, earmarks, tag fix, mustache, shortcodes,
+      nearby challenges, changeset tags), `packages/module-maproulette`, `apps/maid-maproulette` (5183), a made-up
+      MapRoulette in the mock (`bun run fixtures-maproulette`: three challenges on `small`, one a tag fix). Core:
+      `TopBarPanel.badge`, `ChangesetContribution.component`, `MapContentItem.clickLayers`, the `changeset.uploaded`
+      hook's `UploadInfo` (comment, server, user, changeset link), `Markdown` moved to `packages/ui`, the dock tone
+      `maproulette`. `bun run check`, `check-config` 91 of 91, `check-maproulette --app maproulette` 14 of 14. The upload
+      itself is covered by unit tests only (the mock does not save).
+      **Test for Tobias:** https://osm-editor-kit.github.io/maid/maid-maproulette/#map=16/52.52/13.405 : the MapRoulette
+      button lists the challenges with tasks in view (from maproulette.org, if its API answers); open one, "Next task
+      nearby" selects the way and shows the task in the sidebar. A status needs a token, which MapRoulette does not
+      hand out at the moment.
+- [ ] Next: the new login once MapRoulette has it; several options per task from Markdown (own data model); a check of
+      the save dialog block against a mock that saves.
 
 ### Tasking Manager in Maid Buildings (planned 2026-11-13)
 
