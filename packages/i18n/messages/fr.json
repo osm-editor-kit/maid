@@ -576,5 +576,8 @@
   "route_overview_stretch_position": "Voie {position} sur {count}",
   "route_overview_previous": "Voie précédente : {name}",
   "route_overview_next": "Voie suivante : {name}",
-  "route_overview_walk": "Le long de l’itinéraire"
+  "route_overview_walk": "Le long de l’itinéraire",
+  "journal_other_tab": "Maid est aussi ouvert dans un autre onglet, et seul cet onglet conserve les modifications non enregistrées après un rechargement. Vos modifications dans cet onglet sont perdues si vous le rechargez ou le fermez : envoyez-les d'abord, ou continuez dans l'autre onglet.",
+  "journal_shared_edits": "Un autre onglet a des modifications non enregistrées sur {count} des éléments que vous avez modifiés ici. Un seul onglet peut les envoyer : le second envoi provoque un conflit. Envoyez-les dans un onglet et abandonnez les modifications dans l'autre.",
+  "journal_not_kept": "Les modifications ne sont pas conservées après un rechargement : {message}"
 }
