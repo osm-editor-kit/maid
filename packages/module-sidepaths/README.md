@@ -30,7 +30,7 @@ No Tailwind source is needed: the module has no components.
 | `src/index.ts` | `sidepaths()`: registers the edit-menu entries; exports `separateWays` and `moveSideTagsPlan` |
 | `src/operations.ts` | The "Tags to … sidewalk / cycle track" entries (`move-*-tags-*`) |
 | `src/side-tags.ts`, `src/move-side-tags.ts` | Pure tag logic and the plan of the move |
-| `src/extract.ts`, `src/extract-operations.ts`, `src/extract-merge.ts` | The extraction, its edit-menu entries and the extract-and-merge plans. Each plan runs on a copy of the graph first |
+| `src/extract.ts`, `src/extract-operations.ts`, `src/extract-merge.ts` | The extraction, its edit-menu entries (registered as one group, "Extract side path", whose flyout lists them) and the extract-and-merge plans. Each plan runs on a copy of the graph first |
 | `src/merge.ts` | Merge of a cycle track and a footway into one path |
 | `src/find.ts` | Finds the separate way on a side of a road, by position |
 | `src/geometry.ts` | Lengths, distances and the line parallel to a road, in metres |

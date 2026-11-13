@@ -36,5 +36,6 @@
   "extract_refused_lengths": "Gehweg und Radweg auf der {side} Seite sind zu unterschiedlich lang. Teile zuerst den Gehweg.",
   "extract_refused_different_values": "Gehweg und Radweg auf der {side} Seite haben verschiedene Werte für {key}.",
   "choice_distance": "{distance} m neben der Straße, {length} m lang",
-  "choice_both": "links {left} m, rechts {right} m von der Straße"
+  "choice_both": "links {left} m, rechts {right} m von der Straße",
+  "extract_group_label": "Seitenweg extrahieren"
 }

@@ -2,6 +2,7 @@
 // Headless: plain data and functions on the data model. No map, no React, no DOM.
 export * from './delete-segment.ts'
 export * from './extent.ts'
+export * from './group.ts'
 export { relationRows, tagRows } from './merge-details.ts'
 export * from './operations.ts'
 export * from './point-to-area.ts'

@@ -122,29 +122,33 @@ process.exit(
 
     // --- extract, and extract and merge, on Spandauer Straße ---
     await select(SPANDAUER_STRASSE)
+    // the extractions are one edit menu entry ("Extract side path") whose flyout lists the ones that apply
     const extractEntries = () =>
       page.evaluate(() => {
         const { engine, editor } = window.__maid
         const context = engine.operationContext()
-        return editor
+        const group = editor
           .registry('edit.operation')
           .list()
-          .filter((o) => o.id.startsWith('extract-') && o.applies(context))
-          .map((o) => ({ id: o.id, disabled: o.disabled(context) ?? null }))
+          .find((o) => o.id === 'extract-side-path')
+        if (!group?.applies(context)) return []
+        return (group.choices?.(context) ?? []).map((choice) => ({
+          id: choice.id,
+          disabled: group.disabled({ ...context, choice: choice.id }) ?? null,
+        }))
       })
     // the traffic sign rules load at setup; wait until no entry says so
     await page.waitForFunction(() => {
       const { engine, editor } = window.__maid
       const context = engine.operationContext()
-      return editor
+      const group = editor
         .registry('edit.operation')
         .list()
-        .every(
-          (o) =>
-            !o.id.startsWith('extract-') ||
-            !o.applies(context) ||
-            !o.disabled(context)?.startsWith('Loading'),
-        )
+        .find((o) => o.id === 'extract-side-path')
+      if (!group?.applies(context)) return true
+      return (group.choices?.(context) ?? []).every(
+        (choice) => !group.disabled({ ...context, choice: choice.id })?.startsWith('Loading'),
+      )
     })
     report(
       'Spandauer Straße: extract the right cycle track, and extract and merge it',
@@ -157,11 +161,11 @@ process.exit(
     const run = (id: string) =>
       page.evaluate((id) => {
         const { engine, editor } = window.__maid
-        const operation = editor
+        const group = editor
           .registry('edit.operation')
           .list()
-          .find((o) => o.id === id)!
-        return engine.runOperation(operation) ?? null
+          .find((o) => o.id === 'extract-side-path')!
+        return engine.runOperation(group, undefined, id) ?? null
       }, id)
     const wayCount = () =>
       page.evaluate(() => window.__maid.engine.data.history.staging.graph.local.entities.size)

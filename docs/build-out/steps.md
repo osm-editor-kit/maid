@@ -708,3 +708,14 @@ neighbours were not to be found; a long route was an endless list. Research and 
 - [ ] Next: the six open questions in the research doc (one list instead of three, long stretches, objects beside the
       route, map marks, closing a gap with the reroute module, quieter hints).
 
+- [x] 2026-11-13: the edit menu's second level sits flush beside its row on both sides (on the left it was placed for
+      the flyout's widest size, which left a gap). The twelve extractions of `module-sidepaths` are one entry
+      "Seitenweg extrahieren" with a flyout of those that apply (`operationGroup` in `packages/operations`). The
+      sidebar's command bar shows an operation with choices as one dropdown button, icon and chevron like the
+      favourites star, instead of a button per choice. `bun run check`; browser checks bicycle: sidepaths 15, reroute
+      23, menu 20 ok.
+      **Test for Tobias:** https://osm-editor-kit.github.io/maid/maid-bicycle/?map=19/52.44266/13.57677&id=w10780539
+      (Kietz): right click: "Route umlegen ›" opens its routes right beside the menu (also near the right window edge,
+      then on the left); in the sidebar the route button with a chevron lists the same routes. On
+      https://osm-editor-kit.github.io/maid/maid-bicycle/#map=19/52.52033/13.40458&id=w4773465 (Spandauer Straße)
+      right click: "Seitenweg extrahieren ›" with the extractions in a flyout.

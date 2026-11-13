@@ -36,5 +36,6 @@
   "extract_refused_lengths": "Le chemin piéton du côté {side} et la piste ont des longueurs trop différentes. Divisez d'abord le chemin piéton.",
   "extract_refused_different_values": "Le chemin piéton du côté {side} et la piste ont des valeurs différentes pour {key}.",
   "choice_distance": "à {distance} m de la rue, {length} m de long",
-  "choice_both": "gauche à {left} m, droite à {right} m de la rue"
+  "choice_both": "gauche à {left} m, droite à {right} m de la rue",
+  "extract_group_label": "Extraire un chemin latéral"
 }

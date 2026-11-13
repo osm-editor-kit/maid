@@ -448,14 +448,17 @@ function Flyout(props: {
         ?.focus({ preventScroll: true })
   }, [focus])
   const height = menuHeight(items)
-  // as wide as its longest label, up to FLYOUT_WIDTH: placed for that width, so it never runs out of the window
-  const right = row.right + MARGIN
-  const left =
-    right + FLYOUT_WIDTH + MARGIN <= window.innerWidth
-      ? right
-      : row.left - FLYOUT_WIDTH - MARGIN >= MARGIN
-        ? row.left - FLYOUT_WIDTH - MARGIN
-        : Math.max(MARGIN, window.innerWidth - FLYOUT_WIDTH - MARGIN)
+  // as wide as its longest label, up to FLYOUT_WIDTH: the side is chosen for that width, so it never runs out of the
+  // window. On the left it is held by its right edge, so a panel narrower than FLYOUT_WIDTH still meets the menu
+  // (held by its left edge it left a gap of the difference).
+  const after = row.right + MARGIN
+  const before = row.left - MARGIN
+  const place: { left?: number; right?: number } =
+    after + FLYOUT_WIDTH + MARGIN <= window.innerWidth
+      ? { left: after }
+      : before - FLYOUT_WIDTH >= MARGIN
+        ? { right: window.innerWidth - before }
+        : { left: Math.max(MARGIN, window.innerWidth - FLYOUT_WIDTH - MARGIN) }
   const top = Math.max(MARGIN, Math.min(row.top - 4, window.innerHeight - height - MARGIN))
   const onKeyDown = (event: KeyboardEvent) => {
     const buttons = [
@@ -487,7 +490,7 @@ function Flyout(props: {
       role="menu"
       aria-label={parent.label}
       onKeyDown={onKeyDown}
-      style={{ left, top, maxWidth: FLYOUT_WIDTH }}
+      style={{ ...place, top, maxWidth: FLYOUT_WIDTH }}
       className="fixed z-50 w-max min-w-52 rounded-lg bg-white p-1 text-sm shadow-lg ring-1 ring-zinc-950/10 dark:bg-zinc-800 dark:ring-white/10"
     >
       {items.map((item) => (
