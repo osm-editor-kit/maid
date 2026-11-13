@@ -10,8 +10,11 @@ import type {
 } from '../types.ts'
 import { type LineIndex, xStretch } from './line-index.ts'
 
-/** A junction gets a guidepost within this many metres, unless the options say otherwise */
-const DEFAULT_GUIDEPOST_RADIUS_M = 50
+/**
+ * A junction gets a guidepost within this many metres, unless the options say otherwise: the guidepost stands at the
+ * junction, the two are one place (Tobias, 2026-11-13: "10 or 20 metres around the junction")
+ */
+const DEFAULT_GUIDEPOST_RADIUS_M = 20
 
 /**
  * The main-line nodes where other loaded ways (not members) meet the line, in order of `at`. Each one names the nearest

@@ -408,8 +408,8 @@
   "route_overview_label_information": "Information",
   "route_overview_label_station": "Station",
   "route_overview_label_point": "Point",
-  "route_overview_label_junction": "Junction, other ways: {ways}",
-  "route_overview_label_junctions": "{count} junctions with no guidepost in the relation",
+  "route_overview_label_junction": "Junction without a guidepost",
+  "route_overview_label_junctions": "{count} junctions without a guidepost",
   "route_overview_junctions_note_title": "Junctions without a guidepost",
   "route_overview_junctions_note_text": "Between these two rows the route passes {count} junctions with no guidepost of the relation near them. Open the list to go through them and add the guideposts that are there.",
   "route_overview_junctions_note_todo": "This is not an error: most junctions have no guidepost. Add only what you have seen on the ground.",
@@ -583,5 +583,7 @@
   "route_overview_length": "{km} km",
   "route_overview_length_title": "Length of the route: the loaded ways from start to end, without the gaps and side lines",
   "route_overview_state_title_no": "Has gaps: the ways do not form one line. The gaps are marked red on the line below.",
-  "route_overview_state_title_sorted": "Reordered: the ways form one line only in another order. The overview shows that order."
+  "route_overview_state_title_sorted": "Reordered: the ways form one line only in another order. The overview shows that order.",
+  "route_overview_at_junction_one": "at a junction",
+  "route_overview_at_junction_many": "at {count} junctions"
 }

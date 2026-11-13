@@ -60,3 +60,22 @@ list of several ways opens and closes), `check-relation-column` 31 of 31; unit t
 4. Km marks or stretch numbers on the map; "List follows the map".
 5. "Close the gap" handing over to the reroute module (another thread reworks it).
 6. Hints (junctions without a guidepost, points far from the line) behind a switch; gaps and order always shown.
+
+## Junctions and guideposts (Tobias, 2026-11-13)
+
+Junctions with the network are there to show where a guidepost is needed. A junction with a guidepost member within
+20 m (was 50) is one place: no junction row, the guidepost's row says "at a junction" (`OverviewRow.junctionsHere`). A
+junction without one is "Junction without a guidepost" (runs folded). The junctions go with the scale
+(`LayoutOptions.junctions`): the schematic spacing shows the relation's members only. To scale, the selected way gets
+the halo at its own metres (`spanOf`), not its whole stretch.
+
+## Why the groups "Points" and "Ways" are still there
+
+Every member is already in the overview (a row, a stretch, or a group at its bottom: not loaded, sub-routes, unknown
+roles, points far from the line). The groups below stay for editing only: they list the data order, which is what is
+saved and what PTv2 reads, and they hold the drag handle, remove, role and load per member. To drop them, the overview
+needs: remove and role in a stretch's list, "Sort as the line" (write the line's order into the relation in one undo
+step, instead of dragging), insert the selection at its place on the line, and a spur that goes out and back
+(`excursion` to a viewpoint) drawn as a lane that leaves and returns at one point (from = to, not tested with data:
+no fixture has an `excursion`; the Müggel-Spree-Weg r3001299 has `alternative`, the RR3 Spandau-Route r19172738 on the
+`medium` scene `approach`).

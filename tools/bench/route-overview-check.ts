@@ -3,7 +3,7 @@
  * travel order and no junction rows, and the ways between them as stretches (a click selects a single way, which is then
  * marked, or lists the ways of the stretch), and the buttons to the way before and after the selected one; the spacing toggle switches to "To scale" and back; the pointer on a row lights
  * the member on the map, and a member hovered on the map lights its row; a click on a row selects the member; an (i)
- * button opens its note and Escape closes it. A hiking route folds its junctions without a guidepost into rows that
+ * button opens its note and Escape closes it. A hiking route has no junction rows in the schematic spacing; to scale it folds its junctions without a guidepost into rows that
  * open and close, with a note that this is no error, and has a group of members that are not loaded, which opens to list them. Its preview (the mock's Postpass fixture) loads on a press, mutes its rows, draws
  * on the map, reloads, comes back from the cache without a request, and a click on a preview row loads the member.
  *
@@ -202,6 +202,13 @@ const failed = await runCheck(
       0,
       await overview.getByRole('dialog').count(),
     )
+    // the schematic spacing shows the relation's members only: the junctions go with the scale
+    report(
+      'the schematic hiking route has no junction rows',
+      false,
+      (await keys()).some((key) => key.startsWith('junction')),
+    )
+    await overview.getByRole('button', { name: 'To scale', exact: true }).click()
     const hikingKeys = await keys()
     report(
       'the line rows come first, the groups below them',
@@ -224,7 +231,7 @@ const failed = await runCheck(
       await foldRow.getAttribute('data-lit'),
     )
     const foldButton = foldRow.getByRole('button', {
-      name: /^\d+ junctions with no guidepost in the relation$/,
+      name: /^\d+ junctions without a guidepost$/,
     })
     const count = Number(((await foldButton.innerText()).match(/^\d+/) ?? ['0'])[0])
     report('the fold says how many junctions it holds', true, count >= 2)

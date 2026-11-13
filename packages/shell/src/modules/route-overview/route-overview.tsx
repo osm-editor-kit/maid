@@ -194,7 +194,7 @@ const GROUP_TEXT: Record<UnplacedGroup, (count: number) => string> = {
 
 function labelText(label: RowLabel): string {
   if ('name' in label) return label.name
-  if ('junction' in label) return m.route_overview_label_junction({ ways: label.junction })
+  if ('junction' in label) return m.route_overview_label_junction()
   if ('junctions' in label) return m.route_overview_label_junctions({ count: label.junctions })
   if ('gap' in label)
     return m.route_overview_label_gap({ distance: m.route_overview_metres({ count: label.gap }) })
@@ -507,7 +507,12 @@ export function RouteDiagram({
   const layoutKey = `${mode}|${[...openJunctions].join(',')}`
   let layout = route.layouts.get(layoutKey)
   if (!layout) {
-    layout = layoutOverview(analysis, mode, { openJunctions, waySectionHeight: STRETCH_HEIGHT })
+    layout = layoutOverview(analysis, mode, {
+      openJunctions,
+      waySectionHeight: STRETCH_HEIGHT,
+      // the schematic spacing shows the relation's members only; the junctions with the network go with the scale
+      junctions: mode === 'scaled',
+    })
     route.layouts.set(layoutKey, layout)
   }
   function toggleJunctions(key: string) {
@@ -557,16 +562,24 @@ export function RouteDiagram({
       : 0
   const noteRoom = Math.max(0, noteBottom - diagramHeight)
 
-  // the selected member's row or stretch is scrolled into the overview's box, when it is not in view there
-  const selectedKey = `${here.sections.join(',')}|${here.rows.join(',')}`
+  // to scale, the selected way itself is marked on the line, not its whole stretch (which can be kilometres long)
+  const span = mode === 'scaled' ? spanOf(analysis, layout, selected) : undefined
+  // the selected member's row or stretch (to scale: the way's own mark) is scrolled into the overview's box
+  const selectedKey = `${mode}|${here.sections.join(',')}|${here.rows.join(',')}`
+  const spanTop = span?.y1
   useEffect(
     function scrollTheSelectedMemberIntoTheBox() {
       const list = box.current
-      if (!scroll || !list || selectedKey === '|') return
+      if (!scroll || !list || selectedKey.endsWith('||')) return
+      if (spanTop !== undefined) {
+        if (spanTop < list.scrollTop || spanTop > list.scrollTop + list.clientHeight - ROW_HEIGHT)
+          list.scrollTop = Math.max(0, spanTop - ROW_HEIGHT * 2)
+        return
+      }
       const target = list.querySelector<HTMLElement>('[data-selected]')
       if (target) scrollWithin(list, target)
     },
-    [scroll, selectedKey],
+    [scroll, selectedKey, spanTop],
   )
   const travelOrder = travelOrderOf(analysis)
   const lengths = stepLengthsOf(analysis)
@@ -714,6 +727,7 @@ export function RouteDiagram({
               laneX={laneX}
               limitY={diagramHeight}
               selectedSections={selectedSections}
+              selectedSpan={span}
             />
           </svg>
           {/* the stretches in the map's view: a bar at the edge, as a scroll bar marks the visible part */}
@@ -753,6 +767,7 @@ export function RouteDiagram({
                 current={current}
                 left={left}
                 selected={selectedSections.has(index)}
+                tall={section.height > 2 * STRETCH_HEIGHT}
                 inView={inView.has(index)}
                 previewed={fromPreview(analysis, section.members, previewed)}
                 open={open === `stretch:${index}`}
@@ -1110,8 +1125,19 @@ function Row({
   const named = rowLabel(analysis, row, input.memberTags)
   const label = labelText(named)
   // "Guidepost" needs no role "guidepost" beside it
-  const role =
+  const ownRole =
     'text' in named && named.text === rowRole(analysis, row) ? '' : rowRole(analysis, row)
+  // a guidepost at a junction says so: the junction has no row of its own then
+  const role = row.junctionsHere
+    ? [
+        ownRole,
+        row.junctionsHere === 1
+          ? m.route_overview_at_junction_one()
+          : m.route_overview_at_junction_many({ count: row.junctionsHere }),
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : ownRole
   const target = selectableId(analysis, row)
   // a gap shows the two ways on either side of it, a junction selects its node: both go there on the map
   const gap = gapIds(analysis, row)
@@ -1313,6 +1339,7 @@ function Diagram({
   laneX,
   limitY,
   selectedSections,
+  selectedSpan,
 }: {
   layout: OverviewLayout
   shown: OverviewRow[]
@@ -1323,6 +1350,8 @@ function Diagram({
   limitY: number
   /** Sections (by index) that hold the selected way: drawn with a wide halo */
   selectedSections: ReadonlySet<number>
+  /** To scale: where the selected way itself is on the line, in px; it gets the halo instead of its whole stretch */
+  selectedSpan?: { y1: number; y2: number }
 }) {
   const { engine } = useShell()
   // only the line listens to the map's hover: the rows have their own
@@ -1342,7 +1371,7 @@ function Diagram({
         const y2 = shownRows.has(to) ? to.y + (to.kind === 'gap' ? 4 : half) : limitY
         return (
           <g key={`${section.fromRow}-${section.toRow}`}>
-            {selectedSections.has(index) ? (
+            {selectedSections.has(index) && !selectedSpan ? (
               <line
                 x1={x0}
                 x2={x0}
@@ -1393,6 +1422,18 @@ function Diagram({
           </g>
         )
       })}
+      {selectedSpan ? (
+        <line
+          x1={x0}
+          x2={x0}
+          y1={Math.min(selectedSpan.y1, limitY)}
+          y2={Math.min(selectedSpan.y2, limitY)}
+          stroke={colour}
+          strokeOpacity={0.45}
+          strokeWidth={13}
+          strokeLinecap="round"
+        />
+      ) : null}
       {layout.lanes.map((lane) => {
         const x = laneX(lane.lane)
         const a = lane.fromY + half
@@ -1557,6 +1598,7 @@ function Stretch({
   current,
   left,
   selected,
+  tall,
   inView,
   previewed,
   open,
@@ -1571,6 +1613,8 @@ function Stretch({
   current?: { name: string; position: number }
   left: number
   selected: boolean
+  /** Much higher than a line (to scale): the names at the top, and selected only outlined, not a white block */
+  tall: boolean
   inView: boolean
   previewed: boolean
   open: boolean
@@ -1607,7 +1651,7 @@ function Stretch({
       data-stretch={sectionKey}
       data-selected={selected || undefined}
       data-in-view={inView || undefined}
-      className={`absolute right-0 flex items-center pr-1 ${selected ? ROW_SELECTED : fromMap ? ROW_HOVER : ROW_PLAIN}`}
+      className={`absolute right-0 flex pr-1 ${tall ? 'items-start' : 'items-center'} ${selected ? (tall ? 'rounded-lg font-medium ring-1 ring-violet-500/40' : ROW_SELECTED) : fromMap ? ROW_HOVER : ROW_PLAIN}`}
       style={{ top: section.y, height: section.height, left: left - 6 }}
       {...related}
     >
@@ -1621,7 +1665,7 @@ function Stretch({
         aria-expanded={only ? undefined : open}
         title={`${names.join(', ') || m.route_overview_stretch_nameless()} (${count})`}
         onClick={() => (only ? onSelect(only) : setOpen(open ? null : sectionKey))}
-        className={`flex h-full min-w-0 flex-1 cursor-pointer items-center gap-2 rounded pl-1.5 text-left text-xs focus-visible:outline-2 focus-visible:outline-blue-500 ${previewed ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-600 dark:text-zinc-300'}`}
+        className={`flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded pl-1.5 ${tall ? 'pt-1' : 'h-full'} text-left text-xs focus-visible:outline-2 focus-visible:outline-blue-500 ${previewed ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-600 dark:text-zinc-300'}`}
       >
         {text ? (
           <>
@@ -1745,4 +1789,37 @@ function orderedWays(members: readonly number[], travelOrder: ReadonlyMap<number
   return [...members].sort(
     (a, b) => (travelOrder.get(a) ?? Infinity) - (travelOrder.get(b) ?? Infinity) || a - b,
   )
+}
+
+/**
+ * To scale: the px on the line where the selected way runs (its metres along the line, mapped through the rows on the
+ * main line, where the row centres sit at their metres). Undefined when the selection is no way of the main line.
+ */
+function spanOf(analysis: RouteAnalysis, layout: OverviewLayout, selected: string | null) {
+  if (!selected) return undefined
+  let step: { at: number; length: number } | undefined
+  for (const piece of analysis.chain.pieces) {
+    step = piece.steps.find((s) => s.wayId === selected)
+    if (step) break
+  }
+  if (!step) return undefined
+  const half = ROW_HEIGHT / 2
+  const yAt = (metres: number) => {
+    for (const section of layout.sections) {
+      const from = layout.rows[section.fromRow]
+      const to = layout.rows[section.toRow]
+      if (!from || !to || section.lane !== 0 || from.at === undefined || to.at === undefined)
+        continue
+      if (metres < from.at || metres > to.at) continue
+      const share = to.at > from.at ? (metres - from.at) / (to.at - from.at) : 0
+      return from.y + half + share * (to.y - from.y)
+    }
+    return undefined
+  }
+  const y1 = yAt(step.at)
+  const y2 = yAt(step.at + step.length)
+  if (y1 === undefined || y2 === undefined) return undefined
+  // a short way is still a mark that can be seen
+  const middle = (y1 + y2) / 2
+  return { y1: Math.min(y1, middle - 3), y2: Math.max(y2, middle + 3) }
 }

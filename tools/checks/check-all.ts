@@ -275,14 +275,14 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     buildings: 33,
   },
   'route-overview': {
-    maid: 70,
-    bicycle: 70,
-    parking: 70,
-    indoor: 70,
-    lanes: 70,
-    golf: 70,
-    climbing: 70,
-    buildings: 70,
+    maid: 71,
+    bicycle: 71,
+    parking: 71,
+    indoor: 71,
+    lanes: 71,
+    golf: 71,
+    climbing: 71,
+    buildings: 71,
   },
   // module checks run only for the apps in `only` (RUNS): the count is 0 elsewhere
   parking: {

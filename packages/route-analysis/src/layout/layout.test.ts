@@ -359,7 +359,7 @@ describe('layoutOverview: issues', () => {
 })
 
 describe('layoutOverview: junctions and guideposts', () => {
-  it('a junction and a guidepost 10 m apart keep both rows, the guidepost first', () => {
+  it('a junction with its guidepost near is one row: the guidepost, counting the junction', () => {
     const analysis = analysisOf({
       members: [member(0, 'main'), member(1, 'point', 'guidepost')],
       chain: chainOf([[[0, 300]]]),
@@ -367,7 +367,22 @@ describe('layoutOverview: junctions and guideposts', () => {
       junctions: [junction('n-j', 150, 1)],
     })
     const layout = layoutOverview(analysis, 'schematic')
-    expect(keysOf(layout)).toEqual(['start', 'point:1', 'junction:n-j', 'end'])
+    expect(keysOf(layout)).toEqual(['start', 'point:1', 'end'])
+    expect(rowOf(layout, 'point:1').junctionsHere).toBe(1)
+  })
+
+  it('leaves the junctions and their hints out when asked', () => {
+    const analysis = analysisOf({
+      members: [member(0, 'main'), member(1, 'point', 'guidepost')],
+      chain: chainOf([[[0, 300]]]),
+      points: [point(1, 140)],
+      junctions: [junction('n-j', 150, 1), junction('n-k', 250)],
+      issues: [{ ...issue('junction-without-guidepost', [], 250), detail: { node: 'n-k' } }],
+    })
+    const layout = layoutOverview(analysis, 'schematic', { junctions: false })
+    expect(keysOf(layout)).toEqual(['start', 'point:1', 'end'])
+    expect(rowOf(layout, 'point:1').junctionsHere).toBeUndefined()
+    expect(layout.rows.flatMap((row) => row.issues)).toEqual([])
   })
 })
 
@@ -394,16 +409,10 @@ describe('layoutOverview: folded junctions', () => {
     })
   }
 
-  it('folds a run of junctions without a guidepost into one row; a single one and one with a guidepost stay', () => {
+  it('folds a run of junctions without a guidepost into one row; a single one stays, one with a guidepost is on its row', () => {
     const layout = layoutOverview(trail(), 'schematic')
-    expect(keysOf(layout)).toEqual([
-      'start',
-      'junctions:a',
-      'junction:g',
-      'point:1',
-      'junction:d',
-      'end',
-    ])
+    expect(keysOf(layout)).toEqual(['start', 'junctions:a', 'point:1', 'junction:d', 'end'])
+    expect(rowOf(layout, 'point:1').junctionsHere).toBe(1)
     expect(rowOf(layout, 'junctions:a').folded).toEqual({ count: 3, open: false })
     expect(rowOf(layout, 'junctions:a').at).toBe(100)
   })

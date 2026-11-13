@@ -408,8 +408,8 @@
   "route_overview_label_information": "Information",
   "route_overview_label_station": "Gare",
   "route_overview_label_point": "Point",
-  "route_overview_label_junction": "Jonction, autres voies : {ways}",
-  "route_overview_label_junctions": "{count} intersections sans poteau indicateur dans la relation",
+  "route_overview_label_junction": "Intersection sans poteau indicateur",
+  "route_overview_label_junctions": "{count} intersections sans poteau indicateur",
   "route_overview_junctions_note_title": "Intersections sans poteau indicateur",
   "route_overview_junctions_note_text": "Entre ces deux lignes, l’itinéraire passe {count} intersections sans poteau indicateur de la relation à proximité. Ouvrez la liste pour les parcourir et ajouter les poteaux qui existent.",
   "route_overview_junctions_note_todo": "Ce n’est pas une erreur : la plupart des intersections n’ont pas de poteau indicateur. N’ajoutez que ce que vous avez vu sur le terrain.",
@@ -583,5 +583,7 @@
   "route_overview_length": "{km} km",
   "route_overview_length_title": "Longueur de l’itinéraire : les voies chargées du début à la fin, sans les lacunes ni les variantes",
   "route_overview_state_title_no": "A des lacunes : les voies ne forment pas une ligne continue. Les lacunes sont marquées en rouge sur la ligne ci-dessous.",
-  "route_overview_state_title_sorted": "Réordonné : les voies ne forment une ligne que dans un autre ordre. L’aperçu montre cet ordre."
+  "route_overview_state_title_sorted": "Réordonné : les voies ne forment une ligne que dans un autre ordre. L’aperçu montre cet ordre.",
+  "route_overview_at_junction_one": "à une intersection",
+  "route_overview_at_junction_many": "à {count} intersections"
 }

@@ -50,6 +50,8 @@ type Draft = {
   sub: number
   /** A junction row: its node, and whether a guidepost stands near it */
   junction?: { node: string; guidepost: boolean }
+  /** A guidepost's row: the junctions it stands at */
+  junctionsHere?: number
   /** A `junctions` row: the nodes it folds, and whether it is open */
   fold?: { nodes: string[]; open: boolean }
   /** Creation order, the last sort key */
@@ -92,7 +94,8 @@ export function layoutOverview(
   const waySectionHeight = options.waySectionHeight ?? sectionHeight
 
   const lanes = assignLanes(analysis.branches)
-  const drafts = foldJunctions(placedDrafts(analysis, lanes), options.openJunctions)
+  const showJunctions = options.junctions ?? true
+  const drafts = foldJunctions(placedDrafts(analysis, lanes, showJunctions), options.openJunctions)
   const rows: OverviewRow[] = drafts.map(rowOf)
 
   // Sections: one between each pair of consecutive placed rows. Main ways go into the sections they cover.
@@ -166,6 +169,8 @@ export function layoutOverview(
   const context = issueContext(rows, drafts, rowIndex)
   let fallback = rowIndex.get('start') ?? (rows.length > 0 ? 0 : undefined)
   analysis.issues.forEach((issue, i) => {
+    // the junctions are not shown: neither are their hints
+    if (!showJunctions && issue.code === 'junction-without-guidepost') return
     let target = targetOf(issue, analysis, context)
     target ??= fallback
     if (target === undefined) {
@@ -228,7 +233,11 @@ function assignLanes(branches: RouteAnalysis['branches']): number[] {
 }
 
 /** The rows on the line, in travel order. Sorted once. */
-function placedDrafts(analysis: RouteAnalysis, lanes: readonly number[]): Draft[] {
+function placedDrafts(
+  analysis: RouteAnalysis,
+  lanes: readonly number[],
+  showJunctions: boolean,
+): Draft[] {
   const { chain, members, points, junctions, branches } = analysis
   const drafts: Draft[] = []
   const add = (draft: Omit<Draft, 'seq'>) => {
@@ -296,7 +305,13 @@ function placedDrafts(analysis: RouteAnalysis, lanes: readonly number[]): Draft[
     })
   }
 
-  for (const junction of junctions) {
+  // a junction with a guidepost near is that guidepost's place: counted on its row, no row of its own
+  const atGuidepost = new Map<number, number>()
+  for (const junction of showJunctions ? junctions : []) {
+    if (junction.guidepost !== undefined && placedPoints.has(junction.guidepost)) {
+      atGuidepost.set(junction.guidepost, (atGuidepost.get(junction.guidepost) ?? 0) + 1)
+      continue
+    }
     add({
       key: `junction:${junction.node}`,
       kind: 'junction',
@@ -338,6 +353,11 @@ function placedDrafts(analysis: RouteAnalysis, lanes: readonly number[]): Draft[
     })
   })
 
+  for (const draft of drafts) {
+    const count = draft.kind === 'point' ? atGuidepost.get(draft.member) : undefined
+    if (count) draft.junctionsHere = count
+  }
+
   drafts.sort(
     (a, b) =>
       a.at - b.at || a.rank - b.rank || a.member - b.member || a.sub - b.sub || a.seq - b.seq,
@@ -357,6 +377,7 @@ function rowOf(draft: Draft): OverviewRow {
     y: 0,
   }
   if (draft.branch !== undefined) row.branch = draft.branch
+  if (draft.junctionsHere) row.junctionsHere = draft.junctionsHere
   if (draft.fold) row.folded = { count: draft.fold.nodes.length, open: draft.fold.open }
   return row
 }
