@@ -587,5 +587,9 @@
   "route_overview_state_title_no": "A des lacunes : les voies ne forment pas une ligne continue. Les lacunes sont marquées en rouge sur la ligne ci-dessous.",
   "route_overview_state_title_sorted": "Réordonné : les voies ne forment une ligne que dans un autre ordre. L’aperçu montre cet ordre.",
   "route_overview_at_junction_one": "à une intersection",
-  "route_overview_at_junction_many": "à {count} intersections"
+  "route_overview_at_junction_many": "à {count} intersections",
+  "route_overview_label_excursion_start": "Détour, aller-retour",
+  "route_overview_label_excursion_end": "Fin du détour",
+  "route_overview_label_loop_start": "Boucle annexe",
+  "route_overview_label_loop_end": "Retour sur l’itinéraire"
 }

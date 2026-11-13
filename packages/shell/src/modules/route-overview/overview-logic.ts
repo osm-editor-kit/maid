@@ -120,6 +120,10 @@ export type TextName =
   | 'point'
   | 'branch_start'
   | 'branch_end'
+  | 'excursion_start'
+  | 'excursion_end'
+  | 'loop_start'
+  | 'loop_end'
 
 /** What a row is called: a name taken from the member's tags, or a fallback the component turns into a text */
 export type RowLabel =
@@ -163,9 +167,9 @@ export function rowLabel(
     case 'end':
       return { text: row.kind }
     case 'branch-start':
-      return { text: 'branch_start' }
+      return { text: branchText(analysis, row, 'start') }
     case 'branch-end':
-      return { text: 'branch_end' }
+      return { text: branchText(analysis, row, 'end') }
     case 'junction': {
       const node = row.key.slice('junction:'.length)
       return { junction: analysis.junctions.find((j) => j.node === node)?.outside ?? 0 }
@@ -318,4 +322,16 @@ export function neighboursOnLine(analysis: RouteAnalysis, selected: string | nul
   const at = selected ? steps.findIndex((step) => step.wayId === selected) : -1
   if (at < 0) return undefined
   return { previous: steps[at - 1]?.index, next: steps[at + 1]?.index }
+}
+
+/** The text of a side line's start or end row: a spur out and back and a side loop are told apart from a side line */
+function branchText(
+  analysis: RouteAnalysis,
+  row: Pick<OverviewRow, 'branch'>,
+  side: 'start' | 'end',
+): TextName {
+  const branch = row.branch === undefined ? undefined : analysis.branches[row.branch]
+  if (branch?.loop) return side === 'start' ? 'loop_start' : 'loop_end'
+  if (branch?.spur) return side === 'start' ? 'excursion_start' : 'excursion_end'
+  return side === 'start' ? 'branch_start' : 'branch_end'
 }

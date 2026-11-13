@@ -587,5 +587,9 @@
   "route_overview_state_title_no": "Hat Lücken: Die Wege bilden keine durchgehende Linie. Die Lücken sind unten in der Linie rot markiert.",
   "route_overview_state_title_sorted": "Umsortiert: Die Wege bilden nur in einer anderen Reihenfolge eine durchgehende Linie. Die Übersicht zeigt diese Reihenfolge.",
   "route_overview_at_junction_one": "am Abzweig",
-  "route_overview_at_junction_many": "an {count} Abzweigen"
+  "route_overview_at_junction_many": "an {count} Abzweigen",
+  "route_overview_label_excursion_start": "Abstecher, hin und zurück",
+  "route_overview_label_excursion_end": "Ende des Abstechers",
+  "route_overview_label_loop_start": "Abstecher als Runde",
+  "route_overview_label_loop_end": "Zurück auf der Route"
 }

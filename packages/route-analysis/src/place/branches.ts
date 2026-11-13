@@ -9,6 +9,8 @@ type Run = {
   length: number
   /** The end nodes of the last way added */
   ends: readonly [string, string]
+  /** How often each end node of the run's ways occurs: all even means the ways close into a ring */
+  endCounts: Map<string, number>
   /** Smallest and largest metres along the line of the run's nodes on the main line */
   from?: number
   to?: number
@@ -42,8 +44,15 @@ export function buildBranches(
       run.ends = ends
     } else {
       if (run) out.push(finish(run))
-      run = { role, indexes: [info.index], length: wayLength(input, way), ends }
+      run = {
+        role,
+        indexes: [info.index],
+        length: wayLength(input, way),
+        ends,
+        endCounts: new Map(),
+      }
     }
+    for (const end of ends) run.endCounts.set(end, (run.endCounts.get(end) ?? 0) + 1)
     extend(run, way, index)
   }
   if (run) out.push(finish(run))
@@ -64,6 +73,10 @@ function finish(run: Run): Branch {
   const branch: Branch = { role: run.role, indexes: run.indexes, length: run.length }
   if (run.from !== undefined) branch.from = run.from
   if (run.to !== undefined) branch.to = run.to
+  if (run.from !== undefined && run.from === run.to) {
+    branch.spur = true
+    if ([...run.endCounts.values()].every((count) => count % 2 === 0)) branch.loop = true
+  }
   return branch
 }
 

@@ -587,5 +587,9 @@
   "route_overview_state_title_no": "Tiene huecos: las vías no forman una línea continua. Los huecos están marcados en rojo en la línea de abajo.",
   "route_overview_state_title_sorted": "Reordenada: las vías solo forman una línea en otro orden. La vista muestra ese orden.",
   "route_overview_at_junction_one": "en un cruce",
-  "route_overview_at_junction_many": "en {count} cruces"
+  "route_overview_at_junction_many": "en {count} cruces",
+  "route_overview_label_excursion_start": "Desvío, ida y vuelta",
+  "route_overview_label_excursion_end": "Fin del desvío",
+  "route_overview_label_loop_start": "Desvío circular",
+  "route_overview_label_loop_end": "De vuelta en la ruta"
 }

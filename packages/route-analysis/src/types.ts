@@ -156,6 +156,13 @@ export type Branch = {
   from?: number
   to?: number
   length: number
+  /**
+   * It touches the main line at one place only (`from` equals `to`): a side trip out and back (`excursion`), drawn as a
+   * lane that leaves and ends, not one that rejoins further on
+   */
+  spur?: boolean
+  /** A spur whose ways close into a ring: out on one way, back on another, to the same place */
+  loop?: boolean
 }
 
 /** A node of the main line where other ways (not members) meet it */

@@ -587,5 +587,9 @@
   "route_overview_state_title_no": "Has gaps: the ways do not form one line. The gaps are marked red on the line below.",
   "route_overview_state_title_sorted": "Reordered: the ways form one line only in another order. The overview shows that order.",
   "route_overview_at_junction_one": "at a junction",
-  "route_overview_at_junction_many": "at {count} junctions"
+  "route_overview_at_junction_many": "at {count} junctions",
+  "route_overview_label_excursion_start": "Side trip, out and back",
+  "route_overview_label_excursion_end": "End of the side trip",
+  "route_overview_label_loop_start": "Side loop",
+  "route_overview_label_loop_end": "Back on the route"
 }

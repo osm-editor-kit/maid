@@ -37,6 +37,43 @@ function branchesOf(data: RouteInput) {
 }
 
 describe('buildBranches', () => {
+  it('marks a side trip out and back from one place as a spur, not a loop', () => {
+    const x1: LonLat = [START[0] + 0.002, START[1] + NORTH]
+    const x2: LonLat = [START[0] + 0.002, START[1] + 2 * NORTH]
+    const data = input(
+      [member('way', 'ex1', 'excursion'), member('way', 'ex2', 'excursion')],
+      { x1, x2 },
+      { ex1: ['n2', 'x1'], ex2: ['x1', 'x2'] },
+    )
+    const [b] = branchesOf(data)
+    expect(b?.spur).toBe(true)
+    expect(b?.loop).toBeUndefined()
+    expect(b?.from).toBe(b?.to)
+  })
+
+  it('marks a spur whose ways close into a ring as a loop', () => {
+    const x1: LonLat = [START[0] + 0.0015, START[1] + NORTH]
+    const x2: LonLat = [START[0] + 0.0025, START[1] + NORTH]
+    const data = input(
+      [
+        member('way', 'ex1', 'excursion'),
+        member('way', 'ex2', 'excursion'),
+        member('way', 'ex3', 'excursion'),
+      ],
+      { x1, x2 },
+      { ex1: ['n2', 'x1'], ex2: ['x1', 'x2'], ex3: ['x2', 'n2'] },
+    )
+    const [b] = branchesOf(data)
+    expect(b?.spur).toBe(true)
+    expect(b?.loop).toBe(true)
+  })
+
+  it('a side line that rejoins further on is no spur', () => {
+    const x1: LonLat = [START[0] + 0.0015, START[1] + NORTH]
+    const data = input([member('way', 'alt1', 'alternative')], { x1 }, { alt1: ['n1', 'x1', 'n3'] })
+    expect(branchesOf(data)[0]?.spur).toBeUndefined()
+  })
+
   it('joins two ways of the same role that share an end node into one branch', () => {
     const x1: LonLat = [START[0] + 0.001, START[1] + NORTH]
     const x2: LonLat = [START[0] + 0.002, START[1] + NORTH]

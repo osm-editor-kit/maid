@@ -224,6 +224,14 @@ function labelText(label: RowLabel): string {
       return m.route_overview_label_branch_start()
     case 'branch_end':
       return m.route_overview_label_branch_end()
+    case 'excursion_start':
+      return m.route_overview_label_excursion_start()
+    case 'excursion_end':
+      return m.route_overview_label_excursion_end()
+    case 'loop_start':
+      return m.route_overview_label_loop_start()
+    case 'loop_end':
+      return m.route_overview_label_loop_end()
     case 'point':
       return m.route_overview_label_point()
   }
@@ -1480,21 +1488,33 @@ function Diagram({
         const a = lane.fromY + half
         const b = Math.min(lane.toY + half, limitY)
         if (a >= limitY) return null
-        const end = lane.toY + half <= limitY
-        // a lane that comes back bends twice, one that runs past the cut once: the bends never overlap
+        const branch = analysis.branches[lane.branch]
+        // a side trip out and back (a spur) leaves the line and ends there, like a git branch that is not merged back
+        const spur = branch?.spur === true && branch.loop !== true
+        const end = lane.toY + half <= limitY && !spur
+        // a lane that comes back bends twice, one that runs past the cut or ends once: the bends never overlap
         const bend = Math.min(10, (b - a) / (end ? 4 : 2))
         const d = end
           ? `M ${x0} ${a} C ${x0} ${a + bend}, ${x} ${a + bend}, ${x} ${a + 2 * bend} L ${x} ${b - 2 * bend} C ${x} ${b - bend}, ${x0} ${b - bend}, ${x0} ${b}`
           : `M ${x0} ${a} C ${x0} ${a + bend}, ${x} ${a + bend}, ${x} ${a + 2 * bend} L ${x} ${b}`
         return (
-          <path
-            key={`lane-${lane.branch}`}
-            d={d}
-            fill="none"
-            stroke={colour}
-            strokeWidth={2}
-            strokeOpacity={0.7}
-          />
+          <g key={`lane-${lane.branch}`}>
+            {branch?.loop ? (
+              // a side loop leaves and comes back at one place: that place is drawn long, from leaving to return
+              <rect
+                x={x0 - 5}
+                y={a - 5}
+                width={10}
+                height={Math.max(10, b - a + 10)}
+                rx={5}
+                fill={colour}
+                fillOpacity={0.3}
+                stroke={colour}
+                strokeWidth={2}
+              />
+            ) : null}
+            <path d={d} fill="none" stroke={colour} strokeWidth={2} strokeOpacity={0.7} />
+          </g>
         )
       })}
       {shown.map((row) => (
