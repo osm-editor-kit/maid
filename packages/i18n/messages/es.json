@@ -577,7 +577,7 @@
   "route_overview_previous": "Vía anterior: {name}",
   "route_overview_next": "Vía siguiente: {name}",
   "route_overview_walk": "A lo largo de la ruta",
-  "journal_other_tab": "Maid también está abierto en otra pestaña, y solo esa pestaña conserva los cambios sin guardar al recargar. Tus cambios en esta pestaña se pierden si la recargas o la cierras: súbelos antes o sigue editando en la otra pestaña.",
+  "journal_other_tab": "Maid también está abierto en otra pestaña, y solo la otra pestaña conserva los cambios sin guardar al recargar. Tus cambios en esta pestaña se pierden si la recargas o la cierras: súbelos antes o sigue editando en la otra pestaña.",
   "journal_shared_edits": "Otra pestaña tiene cambios sin guardar en {count} de los elementos que cambiaste aquí. Solo una pestaña puede subirlos: la segunda subida produce un conflicto. Súbelos en una pestaña y descarta los cambios en la otra.",
   "journal_not_kept": "Los cambios no se conservan al recargar: {message}"
 }
