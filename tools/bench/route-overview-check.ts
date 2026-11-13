@@ -79,7 +79,7 @@ const failed = await runCheck(
     const selectedNow = () =>
       page.evaluate(() => new URL(location.href).searchParams.get('id') ?? '')
     const single = stretches.filter({ hasText: /\b1 way\b/ }).first()
-    await single.getByRole('button').click()
+    await single.getByRole('button').first().click()
     await settle()
     report('a stretch of one way selects that way', true, (await selectedNow()).startsWith('w'))
     // a way that runs past a stop is in the stretches on both sides of it
@@ -88,6 +88,33 @@ const failed = await runCheck(
       true,
       (await overview.locator('[data-stretch][data-selected]').count()) >= 1,
     )
+    // the selected member's row has a trash button: it takes the member out, in one undo step
+    const memberCount = () =>
+      page.evaluate((id) => {
+        const maid = (
+          window as unknown as {
+            __maid: {
+              editor: {
+                history: {
+                  staging: { graph: { hasEntity(id: string): { members?: unknown[] } | undefined } }
+                }
+              }
+            }
+          }
+        ).__maid
+        return maid.editor.history.staging.graph.hasEntity(id)?.members?.length ?? -1
+      }, BUS)
+    const trash = overview.locator('[data-selected] [data-remove-member]').first()
+    report('the selected way has a trash button', 1, await trash.count())
+    const membersBefore = await memberCount()
+    await trash.click()
+    await settle()
+    report('the trash button takes one member out', membersBefore - 1, await memberCount())
+    await page.keyboard.press('ControlOrMeta+z')
+    await settle()
+    report('one undo brings it back', membersBefore, await memberCount())
+    await single.getByRole('button').first().click()
+    await settle()
     const walked = await selectedNow()
     const walk = overview.locator('[data-route-walk] button:not([disabled])').last()
     await walk.click()
@@ -98,7 +125,7 @@ const failed = await runCheck(
       (await selectedNow()) !== walked,
     )
     const many = stretches.filter({ hasText: /\b\d+ ways\b/ }).first()
-    await many.getByRole('button').click()
+    await many.getByRole('button').first().click()
     const list = overview.getByRole('dialog', { name: 'Ways', exact: true })
     report('a stretch of several ways opens their list', 1, await list.count())
     report('the list names each way', true, (await list.getByRole('listitem').count()) >= 2)

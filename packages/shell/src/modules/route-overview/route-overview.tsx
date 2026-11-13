@@ -8,6 +8,7 @@ import {
   ChevronRightIcon,
   ChevronDownIcon,
   ArrowPathIcon,
+  TrashIcon,
 } from '@heroicons/react/16/solid'
 import { getLocale, m } from '@osm-editor-kit/maid-i18n'
 import { actionDeleteMember, type OsmRelation } from '@osm-editor-kit/maid-model'
@@ -521,6 +522,17 @@ export function RouteDiagram({
     setOpenJunctions(next)
   }
   const readOnly = !graph.hasEntity(relationId) || engine.isReadOnly(relationId)
+  // the selected member's row offers to take it out of the relation (one undo step), as the member list does
+  const removeMember = readOnly
+    ? undefined
+    : (index: number) => {
+        editor.history.perform(actionDeleteMember(relationId, index))
+        editor.history.commit({
+          annotation: m.relations_undo_remove(),
+          selectedIDs: [...engine.selection],
+        })
+        setOpen(null)
+      }
 
   // where the selected member is: its stretch of ways, or its row; a long line is shown far enough to reach it
   const here = selectedInLayout(analysis, layout.sections, layout.rows, selected)
@@ -772,6 +784,11 @@ export function RouteDiagram({
                 previewed={fromPreview(analysis, section.members, previewed)}
                 open={open === `stretch:${index}`}
                 setOpen={setOpen}
+                onRemove={
+                  removeMember && selectedSections.has(index) && section.members.length === 1
+                    ? () => removeMember(section.members[0] as number)
+                    : undefined
+                }
                 onSelect={(id) =>
                   previewed.has(id) && !graph.hasEntity(id) ? loadAndSelect(id) : selectId(id)
                 }
@@ -793,6 +810,7 @@ export function RouteDiagram({
               toggleJunctions={toggleJunctions}
               selected={selectedRows.has(row.key)}
               kmWidth={kmWidth}
+              onRemove={removeMember}
             />
           ))}
         </div>
@@ -806,6 +824,7 @@ export function RouteDiagram({
             nameOf={nameOf}
             selected={selected}
             graph={graph}
+            onRemove={removeMember}
             onSelect={(id) => {
               if (previewed.has(id) && !graph.hasEntity(id)) loadAndSelect(id)
               else selectId(id)
@@ -1077,6 +1096,7 @@ function Row({
   toggleJunctions,
   selected,
   kmWidth,
+  onRemove,
 }: {
   row: OverviewRow
   analysis: RouteAnalysis
@@ -1094,6 +1114,8 @@ function Row({
   selected: boolean
   /** The width of the km column: none in the schematic spacing */
   kmWidth: number
+  /** Takes a member out of the relation; undefined when the relation cannot be edited */
+  onRemove?: (index: number) => void
 }) {
   const { engine } = useShell()
   const ids = idsOf(analysis, row.members)
@@ -1224,8 +1246,27 @@ function Row({
           ) : null}
         </span>
       )}
+      {selected && target && onRemove && row.members[0] !== undefined ? (
+        <RemoveButton name={label} onRemove={() => onRemove(row.members[0] as number)} />
+      ) : null}
       <IssueButtons row={row} analysis={analysis} label={label} open={open} setOpen={setOpen} />
     </div>
+  )
+}
+
+/** The trash button of the selected member: takes it out of the relation */
+function RemoveButton({ name, onRemove }: { name: string; onRemove: () => void }) {
+  return (
+    <button
+      type="button"
+      data-remove-member
+      aria-label={m.relations_column_remove({ name })}
+      title={m.relations_column_remove({ name })}
+      onClick={onRemove}
+      className={`${ICON_BUTTON} relative z-10 text-zinc-500 hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400`}
+    >
+      <TrashIcon aria-hidden="true" className="size-3.5" />
+    </button>
   )
 }
 
@@ -1603,6 +1644,7 @@ function Stretch({
   previewed,
   open,
   setOpen,
+  onRemove,
   onSelect,
 }: {
   sectionKey: string
@@ -1619,6 +1661,8 @@ function Stretch({
   previewed: boolean
   open: boolean
   setOpen: (key: string | null) => void
+  /** The selected stretch of one way: takes that way out of the relation */
+  onRemove?: () => void
   onSelect: (id: string) => void
 }) {
   const { engine } = useShell()
@@ -1682,6 +1726,7 @@ function Stretch({
           </>
         ) : null}
       </button>
+      {onRemove ? <RemoveButton name={title} onRemove={onRemove} /> : null}
     </div>
   )
 }
@@ -1696,6 +1741,7 @@ function StretchList({
   nameOf,
   selected,
   graph,
+  onRemove,
   onSelect,
   onFit,
   onClose,
@@ -1708,6 +1754,8 @@ function StretchList({
   nameOf: (id: string) => string | undefined
   selected: string | null
   graph: { hasEntity: (id: string) => unknown }
+  /** Takes a member out of the relation; undefined when it cannot be edited */
+  onRemove?: (index: number) => void
   onSelect: (id: string) => void
   onFit: () => void
   onClose: () => void
@@ -1750,7 +1798,7 @@ function StretchList({
           const name = nameOf(id) ?? labelText(memberName(analysis, index, input.memberTags))
           const length = lengths.get(index)
           return (
-            <li key={index} className={id === selected ? ROW_SELECTED : undefined}>
+            <li key={index} className={`flex items-center ${id === selected ? ROW_SELECTED : ''}`}>
               <MemberButton
                 ids={[id]}
                 name={name}
@@ -1760,6 +1808,9 @@ function StretchList({
                 disabled={!graph.hasEntity(id) && !input.ways.has(id)}
                 onClick={() => onSelect(id)}
               />
+              {id === selected && onRemove ? (
+                <RemoveButton name={name} onRemove={() => onRemove(index)} />
+              ) : null}
             </li>
           )
         })}
