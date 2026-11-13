@@ -686,7 +686,8 @@ presets and style from the project. Research and plan: [tasking-manager.md](../r
       the area of interest dashed, the tasks by status under the OSM data, the current task outlined in HOT red; the save
       form starts with the project's changeset comment. Mock: the made-up project 4242 (`bun run
       fixtures-tasking-manager`, 36 tasks on the small scene) and a private 4243 under `/tasking-manager/api/v2`. Check
-      `check-tasking-manager` 11 ok, in `check-all --app buildings`. Not tried against the real TM (core rule 1): whether
+      `check-tasking-manager` 11 ok; `check-all --app buildings` 30 of 31, only the step "stepping with the key" of
+      `interactions`, which fails on `main` too. Not tried against the real TM (core rule 1): whether
       its API allows requests from GitHub Pages (CORS) is open.
       **Test for Tobias:** pick a building project on https://tasks.hotosm.org/explore and a task number, then open
       `https://osm-editor-kit.github.io/maid/maid-buildings/?tm=<project>/<task>` : the map moves to the task, outlined in
