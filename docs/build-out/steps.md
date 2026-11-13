@@ -626,6 +626,32 @@ Tobias, 2026-11-12: a Maid for climbing and bouldering, with MapLibre's 3D view 
       **Test for Tobias:** https://osm-editor-kit.github.io/maid/maid-climbing/?map=17/49.6666/14.2517&id=r14297763&terrain=3d : Velká (Vltavská žula) in 3D with its routes in the section "Klettern"; tilt or turn the map, the compass shows, a click lays it flat.
 - [ ] Next (climbing.md, "Next steps"): a climbing lens, batch adding routes, rules, point crag to relation, a per-source terrain notice, a browser check `check-climbing`.
 
+### Buildings (started 2026-11-13)
+
+Tobias, 2026-11-13: a Maid for building mapping campaigns: the building presets as favourites, a standard map style that
+makes buildings stand out as the iD fork of kaligrafy does, the area tools of the parking editor (rectangle with three
+clicks, extrude) and the other building features, the filters set for the job.
+
+- [x] 2026-11-13: `apps/maid-buildings` (port 5182) with `packages/module-buildings`. The lens "Standard: Buildings"
+      after kaligrafy/iD (branches `v5`, `feat/quebec-building-styles`): every building salmon, outline and 30 % fill;
+      the type in its colour (commercial blue, office crimson, public orange, farm yellow, service teal, industrial violet,
+      house, detached, semi-detached, terrace, apartments each their own outline); the number of dwellings
+      (`building:flats`, `flats`, `houses`) as a thicker outline from cyan (1) to orange (8), red above, and as a label
+      from zoom 17. Every building preset shows levels, levels underground and roof levels (new field `roof_levels`), as
+      the fork's `feat/building-levels-always-visible`; the residential ones the number of dwellings. Twelve suggested
+      favourites, the building types first in the type picker. From `module-shapes`: rectangle (33), angle snap with
+      lengths, extrude (J), resize (K), merge, cut, divide (row houses); Square, the merge of very close points, Move and
+      Rotate are in every Maid. Filters: buildings, building parts, addresses, points, landuse editable; roads, paths,
+      rail, water, power read-only; indoor, pistes, aerialways, boundaries hidden. Core: `matchesTags` of a lens without
+      `Object.entries` (a lens of 80 rules: 11 µs to 1.6 µs per feature). On the overview page with a row. `bun run check`, `check-config` 82 of 82; browser checks for `--app buildings`: all generic ones as expected except the step "stepping with the key" of `interactions`, which fails on `main` too; rectangle 24, angle-snap 35, merge 31, cut 25, divide 23, resize 32, extrude 22, touch 14.
+      **Test for Tobias:** https://osm-editor-kit.github.io/maid/maid-buildings/#map=18/52.38930/13.40160 : buildings
+      are red, houses and terraces outlined in their colours, roads faint; the star menu has the building favourites in a
+      browser that had none; draw a building with 33 and three clicks, press J and pull a side out; set "Wohnungen" to 4
+      and see the outline turn green with "4 WE" on it.
+- [ ] Next: a check `check-buildings` (lens colours, labels, favourites), a progress view for a campaign (buildings
+      without type, levels or address in view), validation rules for buildings without levels, building:flats on
+      non-residential types.
+
 ### Traffic signs and the photo viewer (2026-11-12)
 
 Tobias, 2026-11-12: traffic signs from Mapillary under Mapillary in the photos panel with the same filters, the package's

@@ -19,6 +19,7 @@ export const APPS = {
   lanes: { dir: 'apps/maid-lanes', port: PORTS.maidLanes },
   golf: { dir: 'apps/maid-golf', port: PORTS.maidGolf },
   climbing: { dir: 'apps/maid-climbing', port: PORTS.maidClimbing },
+  buildings: { dir: 'apps/maid-buildings', port: PORTS.maidBuildings },
 } as const
 
 export type AppName = keyof typeof APPS

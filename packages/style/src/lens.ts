@@ -100,7 +100,10 @@ export const FILL_ALPHA = 0.3
 
 /** True if every key of the match holds for the tags */
 export function matchesTags(match: Record<string, LensMatchValue>, tags: Tags) {
-  for (const [key, want] of Object.entries(match)) {
+  // for…in, not Object.entries: this runs for every rule of a lens on every feature, and a lens with many rules (Maid
+  // Buildings: one per building type and number of dwellings) paid more for the arrays than for the comparisons
+  for (const key in match) {
+    const want = match[key]!
     const have = tags[key]
     if (want === true) {
       if (have === undefined) return false

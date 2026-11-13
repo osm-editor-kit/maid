@@ -24,7 +24,7 @@ packages/module-*   the modules an app switches on
 ## Folders
 
 ```
-apps/maid, maid-bicycle, maid-parking, maid-indoor, maid-lanes, maid-golf, maid-climbing   the editors: maid.config.ts, presets.ts, main.tsx, vite.config.ts, env files
+apps/maid, maid-bicycle, maid-parking, maid-indoor, maid-lanes, maid-golf, maid-climbing, maid-buildings   the editors: maid.config.ts, presets.ts, main.tsx, vite.config.ts, env files
 apps/compare         Maid, iD and Rapid side by side
 packages/            the packages below
 tools/mock-osm-api   local stand-in for the OSM API, serves the fixtures
@@ -44,7 +44,7 @@ reports/             output of benchmarks and checks (mostly git-ignored)
 | Core | `core` | `createEditor`, `defineModule`, registries for extension points, hooks, module URL parameters, fetching |
 | Map | `renderer`, `style` | Features to MapLibre layers, drawing and dragging (the engine), iD's look as data |
 | Interface | `ui`, `shell`, `i18n` | Components and inspector fields; the shell that mounts an app; Paraglide texts |
-| Modules | `module-*` | Imagery, street-level images, data layers, notes, lenses, parking, shapes, surface, traffic signs, turn restrictions, way table, reroute, osmchange, tasks, sidepaths, TILDA, bike infrastructure |
+| Modules | `module-*` | Imagery, street-level images, data layers, notes, lenses, parking, shapes, surface, traffic signs, turn restrictions, way table, reroute, osmchange, tasks, sidepaths, TILDA, bike infrastructure, golf, climbing, terrain, buildings |
 | Task lists | `tasks`, `osm-prefs` | The task file format and its diff ([FORMAT.md](packages/tasks/FORMAT.md)); small data in the OSM user preferences, split into 255-character values ([ADR 0013](docs/adr/0013-task-lists-in-user-preferences.md)) |
 
 All packages are named `@osm-editor-kit/maid-<folder>` ([why](docs/architecture/03-packages.md#package-names)) and are
@@ -77,6 +77,7 @@ What each app turns on today:
 | `apps/maid-lanes` | 5179 | lanes (section with the cross-section and the lane table, and its lens), turn restrictions, traffic signs, way table |
 | `apps/maid-golf` | 5180 | golf (a prototype): the holes as a scorecard in the dock, golf lens, golf rules and presets, drawing tools; roads and buildings locked |
 | `apps/maid-climbing` | 5181 | climbing (section for crags, areas and routes; the fields of id-tagging-schema PR 2793), terrain (relief and 3D, the map may tilt); no surface or turn restrictions |
+| `apps/maid-buildings` | 5182 | buildings (the buildings style after the kaligrafy iD fork as its standard, the number of dwellings on the map, level fields on every building, building favourites), shapes (angle snap with lengths, rectangle, merge, cut, divide, resize, extrude); roads, paths, rail, water and power locked |
 
 The shared set is the same in all six: element info, operations, relations, validation, imagery, data layers, lenses,
 street-level images, notes, task lists. Read the six config files side by side to see the pattern; they are short.

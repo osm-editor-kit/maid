@@ -18,8 +18,8 @@ import { app, runCheck } from './check-page'
 const sceneName = process.argv[2] ?? 'small'
 
 // the Cut operation is in the parking, indoor and golf editors only (their configs turn the module on)
-if (app !== 'parking' && app !== 'indoor' && app !== 'golf') {
-  console.error('cut-check needs --app parking, indoor or golf')
+if (!['parking', 'indoor', 'golf', 'buildings'].includes(app)) {
+  console.error('cut-check needs --app parking, indoor, golf or buildings')
   process.exit(2)
 }
 

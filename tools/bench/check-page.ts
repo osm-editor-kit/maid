@@ -22,7 +22,7 @@ export const app = takeApp()
  * and buildings read-only, Maid Golf roads and buildings). A check that edits those objects would fail there, so it gets the
  * default states in the URL unless it sets `filters=` itself or asks for the app's own states.
  */
-const FOCUSED_APPS: readonly string[] = ['lanes', 'golf', 'climbing']
+const FOCUSED_APPS: readonly string[] = ['lanes', 'golf', 'climbing', 'buildings']
 const DEFAULT_FILTER_PARAM = `filters=${defaultFilters.map((f) => `${f.id}:${f.state}`).join(',')}`
 
 export type Check = {

@@ -27,8 +27,17 @@ const ROAD = d(BASE, 'AZ')
 
 // --- New for Maid ------------------------------------------------------------
 
-type Fork = 'maid' | 'bicycle' | 'parking' | 'indoor' | 'lanes' | 'golf' | 'climbing'
-const FORKS: Fork[] = ['maid', 'bicycle', 'parking', 'indoor', 'lanes', 'golf', 'climbing']
+type Fork = 'maid' | 'bicycle' | 'parking' | 'indoor' | 'lanes' | 'golf' | 'climbing' | 'buildings'
+const FORKS: Fork[] = [
+  'maid',
+  'bicycle',
+  'parking',
+  'indoor',
+  'lanes',
+  'golf',
+  'climbing',
+  'buildings',
+]
 // The lane colours: cycle lanes and parking lanes (the blue of the Parkraum lens). maid and indoor have none.
 const ACCENT: Record<Fork, string> = {
   maid: '#f6634f',
@@ -38,6 +47,8 @@ const ACCENT: Record<Fork, string> = {
   lanes: '#f6634f',
   golf: '#16a34a',
   climbing: '#f6634f',
+  // the salmon of the buildings map style (after the kaligrafy iD fork)
+  buildings: '#e06e5f',
 }
 const VERTEX = 'fill="#fff" stroke="#222"'
 
@@ -121,6 +132,10 @@ const ICON: Record<Fork, string> = {
     '<path fill="#fff" d="M-3-13 12-7.5-3-2Z"/><ellipse cx="-4" cy="13" rx="8" ry="2.6" fill="#fff"/></g>',
   // a rock with two summits, upright against the pen's angle
   climbing: '<path fill="#fff" transform="rotate(45)" d="M-17 12-6-11l5 9 4-6 13 20Z"/>',
+  // a house with a gabled roof and a door, upright against the pen's angle
+  buildings:
+    '<g transform="rotate(45)"><path fill="#fff" d="M-13 13V-2l13-12 13 12v15Z"/>' +
+    '<path fill="#262626" d="M-3.5 13V4h7v9Z"/></g>',
 }
 
 // A pencil the size of the OSM lens, tip at the vertex, pointing down-left.
@@ -163,6 +178,7 @@ const APP_DIR: Record<Fork, string> = {
   lanes: 'apps/maid-lanes',
   golf: 'apps/maid-golf',
   climbing: 'apps/maid-climbing',
+  buildings: 'apps/maid-buildings',
 }
 
 const logo = (fork: Fork, viewBox: string) => {

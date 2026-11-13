@@ -308,6 +308,16 @@ export const GROUPS: FeatureGroup[] = [
         note: 'iD and Rapid have the golf presets of the tagging schema; they have no scorecard, golf style or golf rules.',
       },
       {
+        title: 'Buildings',
+        text: 'A buildings map style after the kaligrafy iD fork (every building in red, its type in its own colour, the number of dwellings as an outline and a label), levels, levels underground and roof levels on every building, and the building types first in the type picker.',
+        maid: { factory: 'buildings' },
+        pkg: 'module-buildings',
+        iD: 'partial',
+        rapid: 'partial',
+        note: 'iD and Rapid draw every building in one colour; a fork of iD by kaligrafy colours them by type and number of dwellings, which Maid follows.',
+        noteUrl: 'https://github.com/kaligrafy/iD',
+      },
+      {
         title: 'Bicycle infrastructure',
         text: 'Every road classified by TILDA\'s processing and drawn by category; a section per side with the open question, "Change to" and the checklist of a dataset.',
         maid: { factories: ['tilda', 'bikeInfrastructure'] },

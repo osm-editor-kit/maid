@@ -24,8 +24,12 @@ const HALF_H = 40
 
 process.exit(
   await runCheck(sceneName, async ({ page, report, settle }) => {
-    if (app !== 'parking') {
-      report('the check runs on --app parking, where Extrude is on', 'parking', app)
+    if (app !== 'parking' && app !== 'buildings') {
+      report(
+        'the check runs on --app parking or buildings, where Extrude is on',
+        'parking or buildings',
+        app,
+      )
       return
     }
     const { abs, click, key, where, selection } = await checkHelpers(page, settle)
