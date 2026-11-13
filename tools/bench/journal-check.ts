@@ -2,7 +2,9 @@ import { pickBuildingAndRoad, runDelete } from './check-helpers'
 /**
  * Journal check for Maid: edits, reloads, restores the edits from the browser's storage and
  * compares data and map with before the reload; then undoes everything and reloads (nothing is asked), makes one
- * edit, reloads, discards, and reloads once more to see that nothing is asked.
+ * edit, reloads, discards, and reloads once more to see that nothing is asked. Then opens a second tab: no
+ * warning while it has no edits, a warning that can be closed once it has one, and a warning in both tabs when
+ * they change the same feature.
  *
  *   bun tools/bench/journal-check.ts [scene]
  */
@@ -156,6 +158,52 @@ type Picked = { road: string; vertex: string; building: string }
     await reload()
     await ready()
     report('no restore question after discard', 0, await dialog.count())
+
+    // a second tab: the first one keeps the journal, the second does not
+    const second = await page.context().newPage()
+    await second.goto(page.url())
+    await second.waitForFunction(() => window.__bench !== undefined)
+    await second.evaluate(() => window.__bench.ready())
+    const otherTab = (tab: typeof page) => tab.getByText('Maid is also open in another tab')
+    const sharedEdits = (tab: typeof page) => tab.getByText('Another tab has unsaved edits to 1 of')
+    await second.waitForTimeout(500)
+    report('second tab without edits: no warning', 0, await otherTab(second).count())
+
+    await second.evaluate((id) => window.__maid.engine.setTag(id, 'note', 'second tab'), road)
+    await otherTab(second)
+      .waitFor({ timeout: 5000 })
+      .catch(() => undefined)
+    report('second tab with an edit: the warning shows', 1, await otherTab(second).count())
+    report(
+      'the first tab, which keeps its edits, shows no such warning',
+      0,
+      await otherTab(page).count(),
+    )
+
+    await page.evaluate((id) => window.__maid.engine.setTag(id, 'note', 'first tab'), road)
+    await sharedEdits(page)
+      .waitFor({ timeout: 5000 })
+      .catch(() => undefined)
+    await sharedEdits(second)
+      .waitFor({ timeout: 5000 })
+      .catch(() => undefined)
+    report(
+      'both tabs changed the same road: both warn',
+      [1, 1],
+      [await sharedEdits(page).count(), await sharedEdits(second).count()],
+    )
+
+    // the warnings can be closed, so the notices below them show
+    const toast = otherTab(second).locator('xpath=ancestor::li[1]')
+    await toast.getByRole('button').first().click()
+    await otherTab(second)
+      .waitFor({ state: 'detached', timeout: 5000 })
+      .catch(() => undefined)
+    report("the second tab's warning can be closed", 0, await otherTab(second).count())
+    await second.evaluate(() => window.__maid.engine.addPoint(0, 0, {}))
+    await second.waitForTimeout(500)
+    report('a closed warning stays closed after the next edit', 0, await otherTab(second).count())
+    await second.close()
   })
   process.exit(code)
 }

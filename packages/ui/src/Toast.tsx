@@ -6,8 +6,10 @@
  *          that was not caused by a form)
  *   (b) a standing condition of the session that the person must know while it lasts ("open in
  *       another tab: edits here are lost on reload") -> a toast that stays until the condition
- *       ends, one per condition (a stable id), updated in place, with no close button because
- *       closing it would hide a condition that still holds (`notify.standing`, `notify.clear`)
+ *       ends, one per condition (a stable id), updated in place (`notify.standing`, `notify.clear`).
+ *       It has no close button, unless it is `dismissible`: a warning the person has read and can
+ *       act on, which would otherwise hide the notices below it. A dismissed one stays away until
+ *       its condition ends and starts again.
  *   (c) guidance for a mode the person is in ("Click two points to measure. Escape cancels",
  *       the favourite number while Alt is held, "Zoom in to load data") -> NOT a toast: it stays
  *       on the map, where the mode is, and goes when the mode ends
@@ -20,7 +22,8 @@
  *
  * | Notice | Where | Starts when | Stays | Kind | Why |
  * | --- | --- | --- | --- | --- | --- |
- * | "This map is open in another tab. Edits made here are lost on reload." | RestorePrompt.tsx | the journal is locked by another tab | while locked | b, moved | a condition of the session; no close button |
+ * | "Maid is open in another tab ... Your edits in this tab are lost when you reload or close it" | RestorePrompt.tsx | the journal is locked by another tab and this tab has edits | while both hold | b, dismissible | a condition of the session; it explains what to do, then may go (Tobias, 2026-11-13) |
+ * | "Another tab has unsaved edits to N of the features you changed here" | RestorePrompt.tsx | two tabs of one journal changed the same features (other-tabs.ts) | while they share any | b, dismissible | the case where two tabs really conflict |
  * | "Edits are not kept across a reload: <message>" | RestorePrompt.tsx | the browser's storage fails | while failed | b, moved | the same condition family, same id |
  * | "Your edits are changeset N on the development server." | SaveButton.tsx | an upload succeeds | 4 s | a, moved | an event; the flyout keeps its own "Saved" panel because it is the form's state and blocks a second upload |
  * | "Added ... as member N after ..." (placement line) | modules/relations.tsx | a way is added to a relation | 4 s | a, moved | an event with its result; used to stay in the section until the next change |
@@ -73,6 +76,8 @@ export type NotifyOptions = {
   action?: { label: string; onClick: () => void }
   /** Stays two minutes and has a ×: a result with links, such as an upload's. Sonner's × does nothing on a toast that is not `dismissible`, so a swipe closes it too */
   lasting?: boolean
+  /** A standing notice only: it has a × and can be swiped away; it stays away until `clear` */
+  dismissible?: boolean
 }
 
 /**
@@ -95,6 +100,8 @@ export function errorText(problem: unknown, fallback = FALLBACK): string {
 
 /** The text of each standing notice as it is shown, by id: the same text is not shown, or read, twice */
 const standingTexts = new Map<string, string>()
+/** The standing notices the person closed: they stay away until their condition ends (`clear`) */
+const dismissedStanding = new Set<string>()
 
 /**
  * The notices of the app. Call sites never import sonner. Headless packages do not use this.
@@ -126,22 +133,34 @@ export const notify = {
   },
   /**
    * A condition of the session that stays while it holds. One toast per `id`: the same text does
-   * nothing, a new text updates the toast in place. It has no close button and cannot be swiped
-   * away, because closing it would hide a condition that still holds. Call `clear` when it ends.
+   * nothing, a new text updates the toast in place. Without `dismissible` it has no close button and
+   * cannot be swiped away, because closing it would hide a condition that still holds. With it, the
+   * person can close it once they have read it; it then stays away, also when its text changes,
+   * until `clear` says the condition ended. Call `clear` when it ends.
    */
   standing(id: string, text: string, options: NotifyOptions = {}): void {
+    if (dismissedStanding.has(id)) return
     if (standingTexts.get(id) === text) return
     standingTexts.set(id, text)
+    const dismissible = options.dismissible === true
     toast.warning(text, {
       id,
       action: options.action,
       duration: Infinity,
-      dismissible: false,
-      closeButton: false,
+      dismissible,
+      closeButton: dismissible,
+      // sonner also calls this for `toast.dismiss`: only a notice that still holds counts as closed
+      onDismiss: dismissible
+        ? () => {
+            if (!standingTexts.delete(id)) return
+            dismissedStanding.add(id)
+          }
+        : undefined,
     })
   },
   /** Takes a standing notice away, when its condition has ended. Nothing happens for an unknown id. */
   clear(id: string): void {
+    dismissedStanding.delete(id)
     if (!standingTexts.delete(id)) return
     toast.dismiss(id)
   },

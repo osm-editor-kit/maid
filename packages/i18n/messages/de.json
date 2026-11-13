@@ -571,5 +571,8 @@
   "route_overview_stretch_position": "Weg {position} von {count}",
   "route_overview_previous": "Vorheriger Weg: {name}",
   "route_overview_next": "Nächster Weg: {name}",
-  "route_overview_walk": "Entlang der Route"
+  "route_overview_walk": "Entlang der Route",
+  "journal_other_tab": "Maid ist auch in einem anderen Tab geöffnet, und nur dieser Tab sichert ungespeicherte Änderungen über ein Neuladen hinweg. Deine Änderungen in diesem Tab gehen verloren, wenn du ihn neu lädst oder schließt: Lade sie vorher hoch oder arbeite im anderen Tab weiter.",
+  "journal_shared_edits": "Ein anderer Tab hat ungespeicherte Änderungen an {count} der Objekte, die du hier geändert hast. Nur ein Tab kann sie hochladen, der zweite Upload läuft in einen Konflikt. Lade in einem Tab hoch und verwirf die Änderungen im anderen.",
+  "journal_not_kept": "Änderungen werden über ein Neuladen hinweg nicht gesichert: {message}"
 }

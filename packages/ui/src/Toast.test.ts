@@ -135,6 +135,18 @@ describe('notify.standing', () => {
     expect(calls.filter((call) => call.method === 'warning')).toHaveLength(2)
   })
 
+  it('lets a dismissible condition be closed, and keeps it away until it ends', () => {
+    notify.standing('t-dismiss', 'Edits here are lost.', { dismissible: true })
+    const options = calls[0]?.args[1] as { closeButton: boolean; onDismiss: () => void }
+    expect(options.closeButton).toBe(true)
+    options.onDismiss()
+    notify.standing('t-dismiss', 'Edits here are lost, 3 of them.', { dismissible: true })
+    expect(calls.filter((call) => call.method === 'warning')).toHaveLength(1)
+    notify.clear('t-dismiss')
+    notify.standing('t-dismiss', 'Edits here are lost.', { dismissible: true })
+    expect(calls.filter((call) => call.method === 'warning')).toHaveLength(2)
+  })
+
   it('does nothing when clearing an id that was never shown', () => {
     notify.clear('t-never')
     expect(calls).toEqual([])

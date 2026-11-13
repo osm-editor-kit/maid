@@ -10,6 +10,7 @@ import { discardedTags } from '@osm-editor-kit/maid-presets'
 import { useSyncExternalStore } from 'react'
 import type { Config } from './config'
 import { clearIgnoredIssues } from './modules/validation-ignored'
+import { createOtherTabs } from './other-tabs'
 import { toOsmChange, type OsmChange } from './save/osm-change'
 import { useShell } from './shell-context'
 
@@ -50,13 +51,14 @@ export type JournalState =
  */
 export function createShellJournal(id: string, config: Config, editor: Editor) {
   // One journal per data source: edits made on a fixture must never be restored onto a server's data
+  const name =
+    config.source === 'dev'
+      ? `${id}:osm-dev`
+      : config.source === 'osm'
+        ? `${id}:osm`
+        : `${id}:scene:${config.scene}`
   const journal = createJournal({
-    name:
-      config.source === 'dev'
-        ? `${id}:osm-dev`
-        : config.source === 'osm'
-          ? `${id}:osm`
-          : `${id}:scene:${config.scene}`,
+    name,
     context: editor.context,
     history: editor.history,
     onError: (error) => set({ status: 'failed', message: messageOf(error) }),
@@ -146,6 +148,8 @@ export function createShellJournal(id: string, config: Config, editor: Editor) {
 
   return {
     answerRestore,
+    /** The other tabs of this journal and the features both have changed (other-tabs.ts) */
+    tabs: createOtherTabs(name, editor.history),
     flushed: journalFlushed,
     getState: () => holder.state,
     subscribe: (listener: () => void) => {
@@ -156,6 +160,12 @@ export function createShellJournal(id: string, config: Config, editor: Editor) {
 }
 
 export type ShellJournal = ReturnType<typeof createShellJournal>
+
+/** The other tabs of the same editor and data, inside a component */
+export function useOtherTabs() {
+  const { tabs } = useShell().journal
+  return useSyncExternalStore(tabs.subscribe, tabs.getState)
+}
 
 /** Where the journal stands, inside a component */
 export function useJournal() {

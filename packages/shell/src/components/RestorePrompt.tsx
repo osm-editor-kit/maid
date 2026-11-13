@@ -1,12 +1,14 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import { notify, Time } from '@osm-editor-kit/maid-ui'
 import { useEffect } from 'react'
-import { useJournal, type RestoreSummary } from '../journal'
+import { useJournal, useOtherTabs, type RestoreSummary } from '../journal'
 import { useShell } from '../shell-context'
 import { RestoreChanges } from './RestoreChanges'
 
 /** The standing toast of the journal: one, for as long as the edits here are not kept */
 const JOURNAL_NOTICE = 'journal-edits'
-const JOURNAL_LOCKED = 'This map is open in another tab. Edits made here are lost on reload.'
+/** The standing toast for features that this tab and another tab both changed */
+const SHARED_NOTICE = 'journal-shared-edits'
 
 const BUTTON =
   'cursor-pointer rounded-md px-3 py-1.5 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500'
@@ -29,25 +31,40 @@ function editsText(summary: RestoreSummary) {
  * Asks whether the edits of the last visit come back, as iD does on start. It covers the app
  * until it is answered, because stored edits can only be put back before the first new one.
  * The question says what is stored: the context line, then the steps and the changed features,
- * both always listed. Also says so when edits are not kept: in a second tab, or when the browser's
- * storage fails.
+ * both always listed. Also says so when edits are not kept: in a second tab that has edits, or when
+ * the browser's storage fails; and when two tabs changed the same features (other-tabs.ts).
  */
 export function RestorePrompt() {
   const { answerRestore } = useShell().journal
   const journal = useJournal()
   const summary = journal.status === 'pending' ? journal.summary : undefined
 
-  // edits that are not kept show as one standing toast (Toast.tsx); it goes when they are kept again
+  const tabs = useOtherTabs()
+
+  // Edits that are not kept show as one standing toast (Toast.tsx); it goes when they are kept again.
+  // A second tab alone is no problem: the warning comes with the first edit in the tab whose edits
+  // are not kept, says what to do, and can be closed so the notices below it show.
+  const locked = journal.status === 'locked'
   const notKept =
-    journal.status === 'locked'
-      ? JOURNAL_LOCKED
+    locked && tabs.mine > 0
+      ? m.journal_other_tab()
       : journal.status === 'failed'
-        ? `Edits are not kept across a reload: ${journal.message}`
+        ? m.journal_not_kept({ message: journal.message })
         : undefined
   useEffect(() => {
     if (notKept === undefined) notify.clear(JOURNAL_NOTICE)
-    else notify.standing(JOURNAL_NOTICE, notKept)
-  }, [notKept])
+    else notify.standing(JOURNAL_NOTICE, notKept, { dismissible: locked })
+  }, [notKept, locked])
+
+  // Two tabs that changed the same features: only one of them can upload those without a conflict
+  const shared = tabs.shared.length
+  useEffect(() => {
+    if (shared === 0) notify.clear(SHARED_NOTICE)
+    else
+      notify.standing(SHARED_NOTICE, m.journal_shared_edits({ count: shared }), {
+        dismissible: true,
+      })
+  }, [shared])
 
   if (summary) {
     return (
