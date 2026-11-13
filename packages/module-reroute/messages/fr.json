@@ -88,8 +88,8 @@
       "declarations": ["input input"],
       "selectors": ["input"],
       "match": {
-        "input=touch": "Faites glisser la ligne bleue ou un point d’appui sur d’autres voies. Seul le tronçon entre les points voisins change, et le relâchement l’applique aussitôt (une étape d’annulation).",
-        "input=*": "Faites glisser la ligne bleue ou un point d’appui sur d’autres voies. Seul le tronçon entre les points voisins change, et le relâchement l’applique aussitôt (une étape d’annulation). Échap termine."
+        "input=touch": "Faites glisser la ligne bleue ou un point d'appui sur d'autres voies. Relâcher l'applique ; ce qui change est marqué dans la liste des voies à gauche.",
+        "input=*": "Faites glisser la ligne bleue ou un point d'appui sur d'autres voies. Relâcher l'applique ; ce qui change est marqué dans la liste des voies à gauche. Échap termine."
       }
     }
   ],

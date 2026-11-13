@@ -690,6 +690,21 @@ case: move a short stretch around a construction site.
 - [ ] Next: decide whether Apply should stay or the change go straight into the history with the map's change
       highlight (Tobias' second idea); a spur out and back (a via dragged off a very short stretch) is not flagged yet.
 
+- [x] 2026-11-13: the reroute as a route planner (Tobias: the whole route as the blue line, support points only where it
+      turns, drag the route away from where you clicked). The route in view is a blue line with support points at clear
+      turns (thinned to one per 35 m); a drag from the line or a support point reroutes the stretch between the
+      neighbouring support points and is written at the drop, one undo step, the mode stays (also after Undo, module
+      modes may now `staysOnUndo`). The plan splits ways at the node where the route leaves or joins them. The changes
+      are in the route's list of ways on the left, not in a window over the map (Tobias): joined green with +, left
+      struck through with − where they were (`setRelationMemberMarks` in `packages/ui`); over the map only a small bar
+      with Undo and Done. `bun run check`; `bun run check-reroute --app bicycle` 23 ok.
+      **Test for Tobias:** https://osm-editor-kit.github.io/maid/maid-bicycle/?map=18/52.44266/13.57677&id=w10780539
+      (Kietz in Köpenick): right click the street, "Route umlegen", "Dahme Radweg (DRW)"; the route column opens on the
+      left; drag the blue line from where you clicked onto a street beside it and let go; the list shows the new ways
+      green with + and the old ones struck through; undo with the bar or Ctrl+Z, the mode stays; Escape ends.
+- [ ] Next: spurs out and back (a point dropped onto a dead end) are written as the router gives them; a warning or a
+      snap to through ways would help.
+
 ### The route sidebar made understandable (2026-11-13)
 
 Tobias, 2026-11-13: in the route overview the ways could not be seen or clicked, nor the gaps; the selected way and its

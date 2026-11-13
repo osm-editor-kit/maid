@@ -88,8 +88,8 @@
       "declarations": ["input input"],
       "selectors": ["input"],
       "match": {
-        "input=touch": "Zieh die blaue Linie oder einen Stützpunkt auf andere Wege. Nur der Abschnitt zwischen den benachbarten Punkten ändert sich, und Loslassen übernimmt ihn sofort (ein Undo-Schritt).",
-        "input=*": "Zieh die blaue Linie oder einen Stützpunkt auf andere Wege. Nur der Abschnitt zwischen den benachbarten Punkten ändert sich, und Loslassen übernimmt ihn sofort (ein Undo-Schritt). Escape beendet."
+        "input=touch": "Zieh die blaue Linie oder einen Stützpunkt auf andere Wege. Loslassen übernimmt es; was sich ändert, steht links in der Wegeliste.",
+        "input=*": "Zieh die blaue Linie oder einen Stützpunkt auf andere Wege. Loslassen übernimmt es; was sich ändert, steht links in der Wegeliste. Escape beendet."
       }
     }
   ],

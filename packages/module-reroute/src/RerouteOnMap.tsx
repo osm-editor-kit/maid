@@ -8,6 +8,7 @@ import { OsmRelation, type Graph } from '@osm-editor-kit/maid-model'
 // around it is routed again. The drop writes it as one undo step, and what left and joined the route stays marked.
 // Backspace takes out the last via point of an edit, Escape ends the mode.
 import type { MaidEngine, MapContentProps, ModuleMode } from '@osm-editor-kit/maid-renderer'
+import { setRelationMemberMarks } from '@osm-editor-kit/maid-ui'
 import {
   useCallback,
   useEffect,
@@ -22,6 +23,7 @@ import { Layer, Source, useMap, type LayerProps } from 'react-map-gl/maplibre'
 import type { RerouteApply } from './apply-port.ts'
 import { editAt, editOfAnchor, routeChain, type RouteChain } from './chain.ts'
 import { wayLine } from './geometry.ts'
+import { memberMarks, wayMembers } from './member-marks.ts'
 import { changedWays, previewShapes } from './preview-shapes.ts'
 import {
   readReroute,
@@ -318,7 +320,7 @@ function OverMap({ children }: { children: ReactNode }) {
   const [frame] = useState(() => {
     if (typeof document === 'undefined') return undefined
     const element = document.createElement('div')
-    element.className = 'absolute top-3 left-3 z-10 w-[min(24rem,calc(100%-1.5rem))] cursor-auto'
+    element.className = 'absolute top-3 left-3 z-10 w-[min(21rem,calc(100%-1.5rem))] cursor-auto'
     return element
   })
   const container = map?.getContainer()
@@ -371,6 +373,21 @@ export function RerouteOnMap({ editor, engine, apply }: RerouteOnMapProps) {
     engine.enterModuleMode(modeFor(relationId, chain))
     return () => engine.exitModuleMode(MODE_ID)
   }, [engine, editor, relationId])
+
+  // the changes show in the route's list of members on the left (the relation column), against the members the route
+  // had when the mode began; the marks open the column on the route
+  const membersBefore = useRef<readonly EntityID[]>([])
+  useEffect(() => {
+    if (relationId === undefined) return
+    const now = editor.history.staging.graph.hasEntity(relationId)
+    membersBefore.current = wayMembers(now instanceof OsmRelation ? now : undefined)
+    setRelationMemberMarks({ relationId, added: [], removed: [] })
+    return () => setRelationMemberMarks(undefined)
+  }, [editor, relationId])
+  useEffect(() => {
+    if (relationId === undefined || !relation) return
+    setRelationMemberMarks(memberMarks(relationId, membersBefore.current, wayMembers(relation)))
+  }, [relationId, relation])
 
   // a drop writes the edit at once, as one undo step; an edit that changes nothing is dropped, one that cannot be
   // written stays with its reason (the panel says it)

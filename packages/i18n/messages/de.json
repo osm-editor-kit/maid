@@ -264,6 +264,8 @@
   "relations_not_loaded": "nicht geladen",
   "relations_role_placeholder": "Rolle",
   "relations_gap": "Lücke",
+  "relations_member_joined": "Neues Mitglied",
+  "relations_member_left": "Kein Mitglied mehr",
   "relations_gap_title": "Die Enden dieser beiden Wege treffen sich nicht",
   "relations_gap_info_label": "Was bedeutet die Lücke?",
   "relations_gap_info_title": "Die Route ist hier unterbrochen",

@@ -5,6 +5,8 @@ import {
   ChevronRightIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
+  MinusIcon,
+  PlusIcon,
   TrashIcon,
   XMarkIcon,
 } from '@heroicons/react/16/solid'
@@ -17,11 +19,20 @@ import {
   notify,
   SidebarDisclosure,
   stackedHeadingsCover,
+  useRelationMemberMarks,
   useStackedHeadings,
   RELATION_HEADING,
+  type RemovedMemberMark,
 } from '@osm-editor-kit/maid-ui'
 import { motion, Reorder, useReducedMotion } from 'motion/react'
-import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+  type RefObject,
+} from 'react'
 import { useMap } from 'react-map-gl/maplibre'
 import { PresetIcon } from '../components/PresetIcon'
 import { useSelection } from '../selection'
@@ -33,6 +44,7 @@ import {
   loadingLabel,
   loadResultSentence,
   memberGroups,
+  memberLabel,
   memberLoadPath,
   memberRows,
   notLoadedCount,
@@ -207,6 +219,38 @@ function ColumnBody({
   const gaps = routeGapInfos(graph, relation)
   const roles = relationRolesOf(presets, relation.tags)
   const members = new Set(relation.members.map((member) => member.id))
+  // a module's marks (the reroute): what joined gets a plus, what left stays struck through after the member before it.
+  // Only while true of the data: an undo that takes the change back takes the marks away.
+  const marks = useRelationMemberMarks()
+  const ours = marks?.relationId === id ? marks : undefined
+  const added = new Set(ours?.added.filter((member) => members.has(member)))
+  const leftAfter = new Map<EntityID | undefined, RemovedMemberMark[]>()
+  for (const gone of ours?.removed ?? []) {
+    if (members.has(gone.id) || !graph.hasEntity(gone.id)) continue
+    const after = gone.after !== undefined && members.has(gone.after) ? gone.after : undefined
+    leftAfter.set(after, [...(leftAfter.get(after) ?? []), gone])
+  }
+  // a new change scrolls its first mark into view, so the list shows what the last drop did
+  const markKey = ours ? [...ours.added, ...ours.removed.map((gone) => gone.id)].join(',') : ''
+  useEffect(() => {
+    if (!markKey) return
+    scroller.current
+      ?.querySelector('[data-member-joined], [data-member-left]')
+      ?.scrollIntoView({ block: 'nearest' })
+  }, [markKey, scroller])
+  const leftShown = new Set<EntityID | undefined>()
+  /** The ways that left after this member (undefined: at the top), once in the list */
+  const leftRows = (after: EntityID | undefined) => {
+    const gone = leftAfter.get(after)
+    if (!gone || leftShown.has(after)) return undefined
+    leftShown.add(after)
+    return gone.map((mark) => (
+      <LeftMember
+        key={`left:${mark.id}`}
+        label={memberLabel(graph.hasEntity(mark.id)?.tags) || mark.id}
+      />
+    ))
+  }
   const selectedEntity = selected && selected !== id ? engine.entity(selected) : undefined
   const showHint = selectedEntity !== undefined && !members.has(selectedEntity.id) && !readOnly
   // why the selection cannot be added: the relation would contain itself, or the schema refuses it (duplicate, no role)
@@ -360,6 +404,7 @@ function ColumnBody({
                 ) : undefined
               }
             >
+              {(group.key === 'ways' || groups.length === 1) && leftRows(undefined)}
               <Reorder.Group
                 as="ul"
                 axis="y"
@@ -382,6 +427,8 @@ function ColumnBody({
                       roles={roles}
                       selected={row.id === selected}
                       hairline={hairline}
+                      joined={added.has(row.id)}
+                      left={leftRows(row.id)}
                       warn={gaps.has(row.index) || gaps.has(row.index - 1)}
                       select={select}
                       editable={!readOnly}
@@ -475,6 +522,8 @@ function MemberItem({
   onRemove,
   gapBelow,
   relationId,
+  joined,
+  left,
 }: {
   row: MemberRow
   roles: RelationRoles
@@ -493,6 +542,10 @@ function MemberItem({
   /** A line under the row for the gap to the next way */
   gapBelow: RouteGapInfo | undefined
   relationId: EntityID
+  /** The member joined in a module's change (the reroute): a green plus */
+  joined?: boolean
+  /** The members that left after this one in that change, struck through */
+  left?: ReactNode
 }) {
   'use no memo'
   // not compiled: whether the member can be loaded is read outside React, from the engine that stays the same object
@@ -531,7 +584,8 @@ function MemberItem({
               event.preventDefault()
               onMove(event.key === 'ArrowUp' ? 'up' : 'down')
             }}
-            className={`group relative flex min-h-9 items-center gap-2 py-1 pl-1 text-xs ${selected ? SELECTED : PLAIN}`}
+            data-member-joined={joined || undefined}
+            className={`group relative flex min-h-9 items-center gap-2 py-1 pl-1 text-xs ${selected ? SELECTED : PLAIN} ${joined && !selected ? 'bg-green-100/70 dark:bg-green-500/10' : ''}`}
           >
             {hairline && (
               <span
@@ -570,6 +624,14 @@ function MemberItem({
               >
                 <Bars3Icon className="size-4" />
               </ColumnDragHandle>
+            )}
+            {joined && (
+              <span
+                title={m.relations_member_joined()}
+                className="grid size-4 shrink-0 place-items-center rounded-full bg-green-600 text-white dark:bg-green-500"
+              >
+                <PlusIcon aria-label={m.relations_member_joined()} className="size-3" />
+              </span>
             )}
             <span className="min-w-0 flex-1 truncate">
               {row.loaded ? (
@@ -625,10 +687,31 @@ function MemberItem({
               <span aria-hidden className="size-4 shrink-0" />
             )}
           </div>
+          {left}
           {gapBelow && <GapLine gap={gapBelow} select={select} />}
         </>
       )}
     </ReorderRow>
+  )
+}
+
+/** A member that left in a module's change (the reroute): struck through, where it was, not a member any more */
+function LeftMember({ label }: { label: string }) {
+  return (
+    <div
+      data-member-left
+      className="mr-2 flex min-h-8 items-center gap-2 rounded-lg bg-orange-100/70 py-1 pr-2 pl-1 text-xs text-zinc-500 dark:bg-orange-500/10 dark:text-zinc-400"
+    >
+      {/* the drag handle's place, so the names line up */}
+      <span aria-hidden className="size-6 shrink-0" />
+      <span
+        title={m.relations_member_left()}
+        className="grid size-4 shrink-0 place-items-center rounded-full bg-orange-500 text-white"
+      >
+        <MinusIcon aria-label={m.relations_member_left()} className="size-3" />
+      </span>
+      <span className="min-w-0 flex-1 truncate line-through decoration-orange-500/80">{label}</span>
+    </div>
   )
 }
 

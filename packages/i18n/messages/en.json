@@ -264,6 +264,8 @@
   "relations_not_loaded": "not loaded",
   "relations_role_placeholder": "role",
   "relations_gap": "gap",
+  "relations_member_joined": "New member",
+  "relations_member_left": "No longer a member",
   "relations_gap_title": "The ends of these two ways do not meet",
   "relations_gap_info_label": "What does the gap mean?",
   "relations_gap_info_title": "The route is broken here",

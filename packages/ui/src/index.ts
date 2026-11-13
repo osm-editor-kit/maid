@@ -12,6 +12,13 @@ export { ContextMenu, type MenuItem } from './ContextMenu.tsx'
 export { DetailsBox, type MenuDetails } from './DetailsBox.tsx'
 export { Dock, type DockTab } from './Dock.tsx'
 export { openDockView } from './dock-request.ts'
+export {
+  readRelationMemberMarks,
+  setRelationMemberMarks,
+  useRelationMemberMarks,
+  type RelationMemberMarks,
+  type RemovedMemberMark,
+} from './member-marks.ts'
 export { Flyout } from './Flyout.tsx'
 export { PencilSlashIcon } from './PencilSlashIcon.tsx'
 export { autoFocusFields } from './auto-focus.ts'

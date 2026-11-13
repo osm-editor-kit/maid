@@ -88,8 +88,8 @@
       "declarations": ["input input"],
       "selectors": ["input"],
       "match": {
-        "input=touch": "Drag the blue line or a support point onto other ways. Only the stretch between the neighbouring points changes, and letting go takes it at once (one undo step).",
-        "input=*": "Drag the blue line or a support point onto other ways. Only the stretch between the neighbouring points changes, and letting go takes it at once (one undo step). Escape ends."
+        "input=touch": "Drag the blue line or a support point onto other ways. Letting go takes it; what changes is marked in the list of ways on the left.",
+        "input=*": "Drag the blue line or a support point onto other ways. Letting go takes it; what changes is marked in the list of ways on the left. Escape ends."
       }
     }
   ],

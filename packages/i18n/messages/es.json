@@ -264,6 +264,8 @@
   "relations_not_loaded": "no cargado",
   "relations_role_placeholder": "rol",
   "relations_gap": "hueco",
+  "relations_member_joined": "Miembro nuevo",
+  "relations_member_left": "Ya no es miembro",
   "relations_gap_title": "Los extremos de estas dos vías no se tocan",
   "relations_gap_info_label": "¿Qué significa el hueco?",
   "relations_gap_info_title": "La ruta está interrumpida aquí",

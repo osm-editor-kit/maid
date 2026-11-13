@@ -86,7 +86,7 @@ What a single-purpose editor adds.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | **Relation editing** ([docs](../packages/shell/README.md)): Add to and remove from relations, reorder members, see the members on the map. ✦ _Rethought: A relation opens in a column beside the inspector, which keeps the selected feature._ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **Route overview** ([docs](../packages/route-analysis/README.md)): A route as a line diagram like a railway sidebar: stops, guideposts, junctions, gaps, with kilometres; the whole route previewed from Postpass before it is loaded. | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **Reroute a route** ([docs](../packages/module-reroute/README.md)): Right click a way of a bicycle or hiking route, then drag the route like in a route planner; the panel lists the ways that leave and join it. Turn restrictions respected. | – | – | – | ✓ | – | – | – | – | – | – |
+| **Reroute a route** ([docs](../packages/module-reroute/README.md)): Right click a way of a bicycle or hiking route, then drag the route like in a route planner, from the line or a support point; letting go writes it, and the route's list of ways marks what joined and what left. Turn restrictions respected. | – | – | – | ✓ | – | – | – | – | – | – |
 
 ### Data, tasks and files
 

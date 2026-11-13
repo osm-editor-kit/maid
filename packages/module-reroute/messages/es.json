@@ -88,8 +88,8 @@
       "declarations": ["input input"],
       "selectors": ["input"],
       "match": {
-        "input=touch": "Arrastra la línea azul o un punto de apoyo sobre otras vías. Solo cambia el tramo entre los puntos vecinos, y al soltar se aplica enseguida (un paso para deshacer).",
-        "input=*": "Arrastra la línea azul o un punto de apoyo sobre otras vías. Solo cambia el tramo entre los puntos vecinos, y al soltar se aplica enseguida (un paso para deshacer). Escape termina."
+        "input=touch": "Arrastra la línea azul o un punto de apoyo a otras vías. Al soltar se aplica; lo que cambia se marca en la lista de vías a la izquierda.",
+        "input=*": "Arrastra la línea azul o un punto de apoyo a otras vías. Al soltar se aplica; lo que cambia se marca en la lista de vías a la izquierda. Escape termina."
       }
     }
   ],

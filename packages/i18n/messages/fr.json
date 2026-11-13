@@ -264,6 +264,8 @@
   "relations_not_loaded": "non chargé",
   "relations_role_placeholder": "rôle",
   "relations_gap": "écart",
+  "relations_member_joined": "Nouveau membre",
+  "relations_member_left": "N'est plus membre",
   "relations_gap_title": "Les extrémités de ces deux voies ne se rejoignent pas",
   "relations_gap_info_label": "Que signifie l’écart ?",
   "relations_gap_info_title": "L’itinéraire est interrompu ici",

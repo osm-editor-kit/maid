@@ -1,8 +1,9 @@
 /**
  * Reroute check for Maid: the route planner mode of the route r156492 (the relations scene, Tobias 2026-11-13). The
  * edit menu of one of its ways offers "Reroute the route" with a flyout of the way's routes. The mode shows the route
- * as a line with support points and the panel. A drag from the way onto a way nearby is written at the drop, as one undo
- * step, and the panel lists what joined; its Undo restores the members exactly. A second drag from a support point,
+ * as a line with support points and a small bar. A drag from the way onto a way nearby is written at the drop, as one
+ * undo step, and the route's list of ways on the left marks what joined and what left; the bar's Undo restores the
+ * members exactly and the mode stays. A second drag from a support point,
  * Escape ends the mode, and with the mode off a click selects again. The inspector section starts the same mode.
  *
  *   bun tools/bench/reroute-check.ts [scene] --app bicycle
@@ -160,19 +161,22 @@ process.exit(
       // --- a drag from the way onto the way nearby: written at the drop, one undo step ---
       const before = await membersNow()
       await drag(at, target)
-      const joins = page.locator('[data-reroute-list="in"] li')
+      const joins = page.locator('aside [data-member-joined]')
+      const lefts = page.locator('aside [data-member-left]')
       await joins
         .first()
         .waitFor({ timeout: 15000 })
         .catch(() => {})
-      console.log(`panel after the drop: ${JSON.stringify(await panel.innerText())}`)
+      console.log(`marked in the list: +${await joins.count()} −${await lefts.count()}`)
       const after = await membersNow()
       report(
         'the drop changes the members of the route',
         false,
         JSON.stringify(before) === JSON.stringify(after),
       )
-      report('the panel lists the ways that joined', true, (await joins.count()) > 0)
+      report('the list of ways on the left marks what joined', true, (await joins.count()) > 0)
+      const box = await panel.boundingBox()
+      report('the bar over the map stays small', true, box !== null && box.height < 160)
       report('the mode stays on after the drop', 'reroute', await modeId())
       report(
         'what joined is marked green on the map',
@@ -184,6 +188,12 @@ process.exit(
       await panel.getByRole('button', { name: 'Undo', exact: true }).click()
       await settle()
       report('Undo in the panel restores the members exactly', before, await membersNow())
+      report(
+        'after the undo the list marks nothing',
+        0,
+        (await joins.count()) + (await lefts.count()),
+      )
+      report('the mode stays on after the undo', 'reroute', await modeId())
 
       // --- a support point dragged: the stretch between its neighbours ---
       const findAnchor = () =>
@@ -207,9 +217,12 @@ process.exit(
       }
       if (anchor) {
         await drag(anchor, [anchor[0] + 0.0004, anchor[1] + 0.0003])
-        console.log(`panel after the support point: ${JSON.stringify(await panel.innerText())}`)
+        console.log(
+          `marked after the support point: +${await joins.count()} −${await lefts.count()}`,
+        )
         report('a support point dragged keeps the mode', 'reroute', await modeId())
         const moved = JSON.stringify(await membersNow()) !== JSON.stringify(before)
+        report('the list strikes through what left', true, !moved || (await lefts.count()) > 0)
         if (moved) {
           await page.evaluate(() => window.__maid.engine.undo())
           await settle()

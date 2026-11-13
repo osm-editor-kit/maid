@@ -1,7 +1,7 @@
 import { m } from '@osm-editor-kit/maid-i18n'
-import { Brand, Shell, Toaster, TopBar } from '@osm-editor-kit/maid-ui'
+import { Brand, Shell, Toaster, TopBar, useRelationMemberMarks } from '@osm-editor-kit/maid-ui'
 import { NuqsAdapter } from 'nuqs/adapters/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { MapProvider } from 'react-map-gl/maplibre'
 import { BottomDock } from './components/BottomDock'
 import { FetchPauses } from './components/FetchPauses'
@@ -18,7 +18,7 @@ import { TopBarPanels } from './components/TopBarPanels'
 import { UndoRedo } from './components/UndoRedo'
 import { UserButton } from './components/UserButton'
 import { ZoomControls } from './components/ZoomControls'
-import { useOpenRelationId } from './modules/relations-open-store'
+import { openRelationActions, useOpenRelationId } from './modules/relations-open-store'
 import { useSelection } from './selection'
 import { useShell } from './shell-context'
 import { useDisplayUrl } from './url/display'
@@ -34,6 +34,11 @@ function Editor() {
   // the open relation beside the inspector, while something is selected
   const openRelation = useOpenRelationId()
   useOpenRelationUrl(ids)
+  // a module that marks a relation's members (the reroute) shows them in the column: it opens on that relation
+  const marked = useRelationMemberMarks()?.relationId
+  useEffect(() => {
+    if (marked) openRelationActions.open(marked)
+  }, [marked])
   const [sheet, setSheet] = useState({ open: false, selection: param })
   // on a phone the sheet opens only by its button (Tobias, 2026-10-29): a tap on the map selects, and the map stays in
   // view. A selection keeps the sheet as it is; clearing it closes the sheet.
