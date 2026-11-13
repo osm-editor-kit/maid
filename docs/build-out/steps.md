@@ -658,8 +658,9 @@ Tobias, 2026-11-13: the HOT Tasking Manager in Maid Buildings, with the mechanic
 button with projects, a link with a project and task, the tasks in the dock, the task area on the map, the instructions,
 presets and style from the project. Research and plan: [tasking-manager.md](../research/tasking-manager.md).
 
-- [ ] After the MapRoulette edition: `packages/module-tasking-manager` (read only), the mock project on `small`, the
-      steps 1 to 7 of the plan, a check `check-tasking-manager`.
+- [ ] After the MapRoulette edition, first: `packages/module-tasking-manager` (read only) with the deep link
+      `?tm=<project>/<task>`: task area on the map, instructions, changeset comment; the mock project on `small`.
+- [ ] Later: project list in the top bar, dock tab with the tasks, presets and style from the project.
 
 ### Traffic signs and the photo viewer (2026-11-12)
 

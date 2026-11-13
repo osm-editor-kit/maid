@@ -46,6 +46,9 @@ favourites, `extraIdParams` read for `disable_features` (as filters) and `backgr
 
 ## Plan
 
+First (Tobias, 2026-11-13): only the deep link that opens one task, `?tm=<project>/<task>`: the task area on the map,
+the map on it, the instructions, the changeset comment. The project list, the dock tab, presets and styles wait.
+
 The link: `?tm=<project>` or `?tm=<project>/<task>` (the same shape as `tasks=`; `tm-api=` for another server, mock
 under automation).
 
