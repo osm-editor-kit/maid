@@ -493,7 +493,7 @@ function RelationHead({
           onClick={() => select(relationId)}
         />
         <span className="pointer-events-none relative grid size-8 shrink-0 place-items-center rounded-md bg-zinc-950/5 text-zinc-700 dark:bg-white/10 dark:text-zinc-200">
-          <PresetIcon icon={icon} className="size-5" />
+          <PresetIcon icon={icon} className="size-5 fill-current" />
         </span>
         <span className="pointer-events-none relative line-clamp-2 min-w-0 flex-1 text-sm leading-[1.125rem] font-semibold [overflow-wrap:anywhere]">
           {title}

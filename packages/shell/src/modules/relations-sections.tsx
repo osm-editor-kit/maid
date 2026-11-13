@@ -305,7 +305,10 @@ function MembershipRow({
           aria-hidden="true"
           className={`grid size-6 shrink-0 place-items-center rounded ${RELATION_ICON}`}
         >
-          <PresetIcon icon={engine.entity(relation.id)?.preset?.icon} className="size-4" />
+          <PresetIcon
+            icon={engine.entity(relation.id)?.preset?.icon}
+            className="size-4 fill-current"
+          />
         </span>
         <Tooltip label={relation.id}>
           <button
