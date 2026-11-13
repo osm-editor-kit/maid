@@ -13,10 +13,15 @@ export function TopBarPanels() {
         placement="bottom-end"
         className={panel.width}
         trigger={
-          <button type="button" aria-label={panel.label} className={toolButtonClass(false)}>
+          <button
+            type="button"
+            aria-label={panel.label}
+            className={toolButtonClass(panel.badge !== undefined)}
+          >
             <span aria-hidden="true" className="inline-flex [&>svg]:size-5">
               {panel.icon}
             </span>
+            {panel.badge && <panel.badge editor={editor} />}
           </button>
         }
       >

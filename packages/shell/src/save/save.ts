@@ -7,6 +7,7 @@ import {
   type Issue,
 } from '@osm-editor-kit/maid-validation'
 import '../hooks'
+import { CHANGESET_URL } from '../config'
 import { imageryOnMap } from '../imagery-used'
 import { overridesFromSearch } from '../modules/validation'
 import { clearIgnoredIssues } from '../modules/validation-ignored'
@@ -97,11 +98,14 @@ export async function uploadEdits(
   const OSM = await auth.api()
   // the element shape is osm-api's, without the read-only attributes the server sets itself
   type Diff = Parameters<typeof OSM.uploadChangeset>[1]
-  const result = await OSM.uploadChangeset(
-    // the imagery on the map now, as iD's imagery_used (the background first)
-    changesetTags(draft, createdBy, imageryOnMap(editor).used, moduleChangesetTags(editor)),
-    change as unknown as Diff,
+  // the imagery on the map now, as iD's imagery_used (the background first)
+  const tags = changesetTags(
+    draft,
+    createdBy,
+    imageryOnMap(editor).used,
+    moduleChangesetTags(editor),
   )
+  const result = await OSM.uploadChangeset(tags, change as unknown as Diff)
   const selection = selectionAfterUpload(engine.selection, change, assignedIds(result))
   editor.history.reset()
   // ignored warnings belong to the edits that were just sent (as in iD)
@@ -109,6 +113,11 @@ export async function uploadEdits(
   engine.reloadAfterUpload(selection, REPLICATION_DELAY_MS)
   const changesets = changesetsOf(result)
   // modules let go of what they kept about the uploaded edits (hooks.ts)
-  editor.hooks.run('changeset.uploaded', changesets)
+  editor.hooks.run('changeset.uploaded', changesets, {
+    comment: tags.comment ?? draft.comment,
+    server: config.loginServer,
+    user: auth.getState().user,
+    changesetUrl: (id) => `${CHANGESET_URL[config.loginServer]}${id}`,
+  })
   return { changesets, selection }
 }

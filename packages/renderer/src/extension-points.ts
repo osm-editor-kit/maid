@@ -48,7 +48,16 @@ export type MapContentProps = {
  * its own `<Source>` and `<Layer>` elements of any kind (raster, vector, GeoJSON) and can use
  * `useMap`. For a plain GeoJSON overlay `map.layer` is less work.
  */
-export type MapContentItem = { id: string; component: ComponentType<MapContentProps> }
+export type MapContentItem = {
+  id: string
+  component: ComponentType<MapContentProps>
+  /**
+   * The ids of the module's layers that take a click themselves (markers it handles with MapLibre's layer-scoped
+   * `click`): a click on one of them selects no OSM feature under it. Read at each click, so layers that are not on
+   * the map yet are skipped.
+   */
+  clickLayers?: readonly string[]
+}
 
 /**
  * What a module allows the map's camera beyond the flat default (the editor works top-down: iD and Rapid have no tilt).

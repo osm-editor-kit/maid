@@ -3,7 +3,7 @@
  * only for the apps that have the module (parking; way table, reroute and sidepaths in bicycle; levels in indoor; the drawing
  * tools in parking and indoor).
  *
- *   bun run check-all [--app maid|bicycle|parking|indoor|lanes|golf|climbing|buildings]
+ *   bun run check-all [--app maid|bicycle|parking|indoor|lanes|golf|climbing|buildings|maproulette]
  *
  * Each check is started as `bun run check-<name> --app <app>` and must exit 0 with at least the
  * expected number of `ok` lines. Prints one line per check, then its FAIL lines. Writes
@@ -59,6 +59,7 @@ const CHECKS = [
   'levels',
   'osmchange',
   'tasks',
+  'maproulette',
 ] as const
 type CheckName = (typeof CHECKS)[number]
 
@@ -81,6 +82,7 @@ const MODULE_CHECKS = new Set<CheckName>([
   'touch',
   'levels',
   'osmchange',
+  'maproulette',
 ])
 
 /** Checks that need the relations scene (routes with route masters), for every app */
@@ -126,12 +128,14 @@ const RUNS: Run[] = [
   { name: 'levels', check: 'levels', scene: 'indoor', only: ['indoor'] },
   // module-osmchange, on in the bicycle app: an osmChange file merged with the mock and its hand-written history
   { name: 'osmchange', check: 'osmchange', only: ['bicycle'] },
+  // module-maproulette, on in the maproulette app: the mock's made-up challenges, nothing to maproulette.org
+  { name: 'maproulette', check: 'maproulette', only: ['maproulette'] },
 ]
 
 /**
  * The `ok` lines each check prints on the default scene (small) when it passes, per app. A check
  * with fewer `ok` lines fails. With more, it passes, and the run prints a note: update this table.
- * Bicycle, parking, indoor, lanes and climbing have the same numbers until a real run says otherwise.
+ * Bicycle, parking, indoor, lanes, climbing and maproulette have the same numbers until a real run says otherwise.
  */
 const EXPECTED_OK: Record<string, Record<AppName, number>> = {
   interactions: {
@@ -143,6 +147,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 163,
     climbing: 163,
     buildings: 163,
+    maproulette: 163,
   },
   edit: {
     maid: 20,
@@ -153,6 +158,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 20,
     climbing: 20,
     buildings: 20,
+    maproulette: 20,
   },
   draw: {
     maid: 14,
@@ -163,6 +169,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 14,
     climbing: 14,
     buildings: 14,
+    maproulette: 14,
   },
   undo: {
     maid: 43,
@@ -173,6 +180,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 43,
     climbing: 43,
     buildings: 43,
+    maproulette: 43,
   },
   ops: {
     maid: 17,
@@ -183,6 +191,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 17,
     climbing: 17,
     buildings: 17,
+    maproulette: 17,
   },
   relations: {
     maid: 21,
@@ -193,6 +202,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 21,
     climbing: 21,
     buildings: 21,
+    maproulette: 21,
   },
   validation: {
     maid: 8,
@@ -203,6 +213,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 8,
     climbing: 8,
     buildings: 8,
+    maproulette: 8,
   },
   'close-nodes': {
     maid: 8,
@@ -213,6 +224,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 8,
     climbing: 8,
     buildings: 8,
+    maproulette: 8,
   },
   journal: {
     maid: 23,
@@ -223,6 +235,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 23,
     climbing: 23,
     buildings: 23,
+    maproulette: 23,
   },
   filters: {
     maid: 21,
@@ -233,6 +246,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 0,
     climbing: 21,
     buildings: 0,
+    maproulette: 21,
   },
   tags: {
     maid: 23,
@@ -243,6 +257,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 23,
     climbing: 23,
     buildings: 23,
+    maproulette: 23,
   },
   multi: {
     maid: 11,
@@ -253,6 +268,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 11,
     climbing: 11,
     buildings: 11,
+    maproulette: 11,
   },
   'relations-scene': {
     maid: 25,
@@ -263,6 +279,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 25,
     climbing: 25,
     buildings: 25,
+    maproulette: 25,
   },
   'relation-column': {
     maid: 37,
@@ -273,6 +290,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 37,
     climbing: 37,
     buildings: 37,
+    maproulette: 37,
   },
   'route-overview': {
     maid: 74,
@@ -283,6 +301,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 74,
     climbing: 74,
     buildings: 74,
+    maproulette: 74,
   },
   // module checks run only for the apps in `only` (RUNS): the count is 0 elsewhere
   parking: {
@@ -294,6 +313,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 0,
     climbing: 0,
     buildings: 0,
+    maproulette: 0,
   },
   lanes: {
     maid: 0,
@@ -304,6 +324,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 0,
     climbing: 0,
     buildings: 0,
+    maproulette: 0,
   },
   'way-table': {
     maid: 0,
@@ -314,6 +335,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 0,
     climbing: 0,
     buildings: 0,
+    maproulette: 0,
   },
   reroute: {
     maid: 0,
@@ -324,6 +346,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 0,
     climbing: 0,
     buildings: 0,
+    maproulette: 0,
   },
   sidepaths: {
     maid: 0,
@@ -334,6 +357,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 0,
     climbing: 0,
     buildings: 0,
+    maproulette: 0,
   },
   'bike-style': {
     maid: 0,
@@ -344,6 +368,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 0,
     climbing: 0,
     buildings: 0,
+    maproulette: 0,
   },
   rectangle: {
     maid: 0,
@@ -354,6 +379,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 24,
     climbing: 0,
     buildings: 24,
+    maproulette: 0,
   },
   'angle-snap': {
     maid: 0,
@@ -364,6 +390,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 35,
     climbing: 0,
     buildings: 35,
+    maproulette: 0,
   },
   merge: {
     maid: 0,
@@ -374,6 +401,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 31,
     climbing: 0,
     buildings: 31,
+    maproulette: 0,
   },
   cut: {
     maid: 0,
@@ -384,6 +412,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 25,
     climbing: 0,
     buildings: 25,
+    maproulette: 0,
   },
   divide: {
     maid: 0,
@@ -394,6 +423,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 0,
     climbing: 0,
     buildings: 23,
+    maproulette: 0,
   },
   resize: {
     maid: 0,
@@ -404,6 +434,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 32,
     climbing: 0,
     buildings: 32,
+    maproulette: 0,
   },
   extrude: {
     maid: 0,
@@ -414,6 +445,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 0,
     climbing: 0,
     buildings: 22,
+    maproulette: 0,
   },
   display: {
     maid: 12,
@@ -424,6 +456,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 12,
     climbing: 12,
     buildings: 12,
+    maproulette: 12,
   },
   touch: {
     maid: 0,
@@ -434,6 +467,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 14,
     climbing: 0,
     buildings: 14,
+    maproulette: 0,
   },
   levels: {
     maid: 0,
@@ -444,6 +478,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 0,
     climbing: 0,
     buildings: 0,
+    maproulette: 0,
   },
   room: {
     maid: 0,
@@ -454,6 +489,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 0,
     climbing: 0,
     buildings: 0,
+    maproulette: 0,
   },
   menu: {
     maid: 20,
@@ -464,6 +500,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 20,
     climbing: 20,
     buildings: 20,
+    maproulette: 20,
   },
   'merge-polygon': {
     maid: 23,
@@ -474,6 +511,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 23,
     climbing: 23,
     buildings: 23,
+    maproulette: 23,
   },
   favourites: {
     maid: 13,
@@ -484,6 +522,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 13,
     climbing: 13,
     buildings: 13,
+    maproulette: 13,
   },
   'move-handle': {
     maid: 15,
@@ -494,6 +533,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 15,
     climbing: 15,
     buildings: 15,
+    maproulette: 15,
   },
   'rotate-handle': {
     maid: 22,
@@ -504,6 +544,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 22,
     climbing: 22,
     buildings: 22,
+    maproulette: 22,
   },
   tooltips: {
     maid: 10,
@@ -514,6 +555,18 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 10,
     climbing: 10,
     buildings: 10,
+    maproulette: 10,
+  },
+  maproulette: {
+    maid: 0,
+    bicycle: 0,
+    parking: 0,
+    indoor: 0,
+    lanes: 0,
+    golf: 0,
+    climbing: 0,
+    buildings: 0,
+    maproulette: 14,
   },
   osmchange: {
     maid: 0,
@@ -524,6 +577,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 0,
     climbing: 0,
     buildings: 0,
+    maproulette: 0,
   },
   tasks: {
     maid: 28,
@@ -534,6 +588,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     golf: 28,
     climbing: 28,
     buildings: 28,
+    maproulette: 28,
   },
 }
 

@@ -1,0 +1,77 @@
+[
+  {
+    "id": 9001,
+    "name": "Footways without surface",
+    "description": "Footways in Lichtenrade that have no `surface` tag. A made-up challenge of the Maid mock: no data of MapRoulette.",
+    "instruction": "## Add the surface of this footway\n\nLook at the aerial imagery or street-level photos and add `surface=*` to **{{name}}**.\n\n- paved footways: `surface=paving_stones` or `surface=asphalt`\n- unpaved ones: `surface=compacted`, `surface=fine_gravel` or `surface=ground`\n\nMore on the wiki: https://wiki.openstreetmap.org/wiki/Key:surface",
+    "checkinComment": "Add the surface of footways #maproulette",
+    "checkinSource": "survey;Bing",
+    "blurb": "Footways in Lichtenrade that have no `surface` tag. A made-up challenge of the Maid mock: no data of MapRoulette.",
+    "enabled": true,
+    "deleted": false,
+    "difficulty": 1,
+    "parent": 900,
+    "challengeType": 1,
+    "cooperativeType": 0,
+    "owner": 1,
+    "status": 3,
+    "defaultPriority": 0,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        13.4,
+        52.389
+      ]
+    }
+  },
+  {
+    "id": 9002,
+    "name": "Service roads: surface=asphalt?",
+    "description": "Service roads without a surface. The suggestion is `surface=asphalt`: check it on the imagery, then accept or reject it.",
+    "instruction": "This task suggests a tag change for {{osmIdentifier}}. Check the imagery: if the road is asphalt, accept the suggestion.",
+    "checkinComment": "Surface of service roads from a MapRoulette tag fix #maproulette",
+    "checkinSource": "survey;Bing",
+    "blurb": "Service roads without a surface. The suggestion is `surface=asphalt`: check it on the imagery, then accept or reject it.",
+    "enabled": true,
+    "deleted": false,
+    "difficulty": 1,
+    "parent": 900,
+    "challengeType": 1,
+    "cooperativeType": 1,
+    "owner": 1,
+    "status": 3,
+    "defaultPriority": 0,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        13.4,
+        52.389
+      ]
+    }
+  },
+  {
+    "id": 9003,
+    "name": "Steps without handrail",
+    "description": "Steps that have no `handrail` tag.",
+    "instruction": "Add `handrail=yes` or `handrail=no` to the steps, if you can see it on a photo.",
+    "checkinComment": "Handrails of steps #maproulette",
+    "checkinSource": "survey;Bing",
+    "blurb": "Steps that have no `handrail` tag.",
+    "enabled": true,
+    "deleted": false,
+    "difficulty": 1,
+    "parent": 900,
+    "challengeType": 1,
+    "cooperativeType": 0,
+    "owner": 1,
+    "status": 3,
+    "defaultPriority": 0,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        13.4,
+        52.389
+      ]
+    }
+  }
+]

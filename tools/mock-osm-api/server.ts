@@ -21,11 +21,14 @@
  *   `-- maid:route-preview <id>` line (route-analysis `routePreviewSql`) and serves fixtures/postpass/route-<id>.json,
  *   cut once from Postpass by `bun run fixtures-postpass`. Another relation is an answer without rows, as Postpass
  *   gives for an id it does not know; another query is a 400.
+ * MapRoulette's API v2 under /maproulette/api/v2 (maproulette.ts): made-up challenges on the small scene, statuses in
+ *   memory, /maproulette/reset forgets them.
  * Every other write is rejected with 405: the map data stays frozen. /requests returns a log of what was asked.
  */
 import { join } from 'node:path'
 import { SCENES } from '../fixtures/scenes'
 import { PORTS } from '../ports'
+import { createMapRouletteMock } from './maproulette'
 
 type Node = { type: 'node'; id: number; lat: number; lon: number }
 type Way = { type: 'way'; id: number; nodes: number[] }
@@ -253,7 +256,7 @@ const CAPABILITIES_XML = `<?xml version="1.0" encoding="UTF-8"?>
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': '*',
-  'Access-Control-Allow-Methods': 'GET, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, PUT, POST, DELETE, OPTIONS',
 }
 const JSON_HEADERS = { ...CORS, 'Content-Type': 'application/json; charset=utf-8' }
 
@@ -313,9 +316,12 @@ function preferencesAnswer(prefs: Map<string, string>, req: Request, path: strin
 export function createHandler(scenes: Map<string, SceneIndex>, options: { latency: number }) {
   const log: { t: number; method: string; path: string; status: number }[] = []
   const prefs = new Map<string, string>()
+  const maproulette = createMapRouletteMock()
   const respond = async (req: Request) => {
     const url = new URL(req.url)
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS })
+    const fromMapRoulette = await maproulette.answer(req, url)
+    if (fromMapRoulette) return fromMapRoulette
     if (url.pathname === '/requests') return Response.json(log, { headers: CORS })
     if (url.pathname === '/requests/reset') {
       log.length = 0

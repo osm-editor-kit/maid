@@ -9,6 +9,7 @@ import {
 } from '@osm-editor-kit/maid-model'
 import type { UploadResult } from 'osm-api'
 import type { DataSource } from '../config.ts'
+import type { UploadInfo } from '../hooks'
 import { pendingChange, uploadEdits } from './save.ts'
 
 type Upload = { tags: Record<string, string>; diff: ReturnType<typeof pendingChange> }
@@ -38,12 +39,16 @@ function setUp(
 
   // the hooks the upload runs, by name (hooks.ts)
   const hookRuns: string[] = []
+  const hookArgs: unknown[][] = []
   const editor = {
     context,
     history,
     registry: () => ({ list: () => [] }),
     hooks: {
-      run: (name: string) => hookRuns.push(name),
+      run: (name: string, ...args: unknown[]) => {
+        hookRuns.push(name)
+        hookArgs.push(args)
+      },
       apply: (_: string, value: unknown) => value,
     },
   } as unknown as Editor
@@ -72,23 +77,31 @@ function setUp(
       reloads.push({ selection: [...selection], delayMs }),
   }
   const shell = {
-    config: { source: options.source ?? 'dev' },
+    config: { source: options.source ?? 'dev', loginServer: 'dev' },
     editor,
     engine,
-    auth: { api: async () => OSM },
+    auth: { api: async () => OSM, getState: () => ({ user: 'Mapper' }) },
     brand: { name: options.brand ?? 'Maid Parking' },
     version: options.version ?? '0.1.0',
   } as unknown as Shelled
-  return { editor, history, context, shell, uploads, reloads, hookRuns }
+  return { editor, history, context, shell, uploads, reloads, hookRuns, hookArgs }
 }
 
 describe('uploadEdits', () => {
   it('uploads the edits, then forgets them and loads the map again once', async () => {
-    const { editor, history, shell, uploads, reloads, hookRuns } = setUp({ selectBench: true })
+    const { editor, history, shell, uploads, reloads, hookRuns, hookArgs } = setUp({
+      selectBench: true,
+    })
 
     const done = await uploadEdits(shell, { comment: 'Moved and added' })
-    // modules hear of it, once (the import review is cleared)
+    // modules hear of it, once (the import review is cleared), with what the upload was (MapRoulette links to it)
     expect(hookRuns).toEqual(['changeset.uploaded'])
+    const [ids, upload] = hookArgs[0] as [number[], UploadInfo]
+    expect(ids).toEqual([77])
+    expect(upload.comment).toBe('Moved and added')
+    expect(upload.server).toBe('dev')
+    expect(upload.user).toBe('Mapper')
+    expect(upload.changesetUrl(77)).toEndWith('/changeset/77')
 
     expect(done.changesets).toEqual([77])
     expect(done.selection).toEqual(['n555'])

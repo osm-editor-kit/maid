@@ -19,6 +19,7 @@ import {
   type TaskOption,
 } from '@osm-editor-kit/maid-tasks'
 import { TagDiff, TASKS_CARD, TASKS_FOOTER, TASKS_QUOTE, TASKS_TEXT } from '@osm-editor-kit/maid-ui'
+import { Markdown, type MarkdownContext, type OnOsmRef } from '@osm-editor-kit/maid-ui'
 import { useState } from 'react'
 import {
   applyTaskOption,
@@ -27,7 +28,6 @@ import {
   type DeleteOutcome,
 } from './apply.ts'
 import { entityIdOfRef } from './list.ts'
-import { Markdown, type MarkdownContext, type OnOsmRef } from './markdown.tsx'
 import { m } from './messages.ts'
 import { type AppliedTask, type TasksStore, useTasks } from './store.ts'
 

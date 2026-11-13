@@ -698,7 +698,14 @@ export function MapView() {
     // a photo or a note under the pointer takes the click: it opens, and no feature is selected.
     // Both are module layers outside `interactive`, and only a click asks: a query per click, not per move.
     if (streetImageryClick(event)) return
-    const noteLayers = NOTES_LAYER_IDS.filter((layer) => event.target.getLayer(layer))
+    // the notes' markers, and the layers a module says take their clicks (`map.content` clickLayers: MapRoulette)
+    const moduleClickLayers = editor
+      .registry('map.content')
+      .list()
+      .flatMap((item) => item.clickLayers ?? [])
+    const noteLayers = [...NOTES_LAYER_IDS, ...moduleClickLayers].filter((layer) =>
+      event.target.getLayer(layer),
+    )
     if (
       noteLayers.length > 0 &&
       event.target.queryRenderedFeatures(event.point, { layers: noteLayers }).length > 0

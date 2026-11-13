@@ -87,8 +87,8 @@ export type DockViewProps = {
 export type DockView = {
   id: string
   label: string
-  /** `'tasks'`: the tab of a task list, olive (tasks-tone.ts) */
-  tone?: 'tasks'
+  /** `'tasks'`: the tab of a task list, olive (tasks-tone.ts); `'maproulette'`: MapRoulette's, teal (maproulette-tone.ts) */
+  tone?: 'tasks' | 'maproulette'
   component: ComponentType<DockViewProps>
   /**
    * Whether the view has something to show now: its tab is left out while `get` is false (Tobias, 2026-10-23: no empty
@@ -114,6 +114,12 @@ export type TopBarPanel = {
   component: ComponentType<{ editor: Editor; engine: MaidEngine }>
   /** Tailwind width class of the flyout, e.g. `w-96` (the default) */
   width?: string
+  /**
+   * What the button shows after its icon, while there is something to say (the open challenge's name): a component of
+   * the module, so it follows the module's state and brings its own colour (MapRoulette's teal). It renders null for
+   * an icon-only button.
+   */
+  badge?: ComponentType<{ editor: Editor }>
 }
 
 /**
@@ -137,6 +143,11 @@ export type ChangesetContribution = {
   comment?: () => string | undefined
   /** The source to start with when the form's source is empty; undefined for none */
   source?: () => string | undefined
+  /**
+   * A block of the module in the save form, under the list of changes: what else the upload will do (the MapRoulette
+   * tasks it reports as fixed, with a box to leave one out). It renders nothing when it has nothing to say.
+   */
+  component?: ComponentType<{ editor: Editor }>
 }
 
 /**

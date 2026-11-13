@@ -28,7 +28,7 @@ URL parameter `tasks=<address>`: `https:` (or `http:` on this computer).
 | `src/open.ts` | Parse, find saved progress, fill the store, remember the file |
 | `src/sync.ts` | Reconcile, debounced push (2 s), conflict, 401/403, order hash check |
 | `src/cleanup.ts` | Lists to offer for deletion (30 days, never the open list) |
-| `src/markdown.tsx` | The safe Markdown renderer (no raw HTML, https links only) |
+| `Markdown` (in `packages/ui`) | The safe Markdown renderer (no raw HTML, https links only), shared with MapRoulette |
 | `src/apply.ts` | Applying an option as one undo step |
 | `src/TasksController.tsx`, `TasksView.tsx`, `TaskSection.tsx`, `TaskContent.tsx`, `TasksOnMap.tsx`, `LoadTasksItem.tsx` | The React parts |
 

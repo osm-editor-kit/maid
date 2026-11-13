@@ -15,6 +15,8 @@ export const PORTS = {
   maidClimbing: 5181,
   /** apps/maid-buildings (the eighth app): building mapping campaigns */
   maidBuildings: 5182,
+  /** apps/maid-maproulette (the ninth app): MapRoulette challenges */
+  maidMapRoulette: 5183,
   /** Production build of Maid, used by the benchmark */
   maidBuild: 5175,
   // not 5174: that is taken by other Vite projects on this machine
