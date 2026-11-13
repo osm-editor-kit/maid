@@ -579,5 +579,6 @@
   "route_overview_walk": "Along the route",
   "journal_other_tab": "Maid is also open in another tab, and only the other tab keeps unsaved edits across a reload. Your edits in this tab are lost when you reload or close it: upload them first, or go on editing in the other tab.",
   "journal_shared_edits": "Another tab has unsaved edits to {count} of the features you changed here. Only one tab can upload them: the second upload runs into a conflict. Upload in one tab and discard the edits in the other.",
-  "journal_not_kept": "Edits are not kept across a reload: {message}"
+  "journal_not_kept": "Edits are not kept across a reload: {message}",
+  "relations_is_open": "Open"
 }

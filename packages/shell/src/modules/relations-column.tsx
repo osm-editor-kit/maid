@@ -24,7 +24,7 @@ import {
   RELATION_HEADING,
   type RemovedMemberMark,
 } from '@osm-editor-kit/maid-ui'
-import { motion, Reorder, useReducedMotion } from 'motion/react'
+import { Reorder } from 'motion/react'
 import {
   useEffect,
   useRef,
@@ -196,7 +196,6 @@ function ColumnBody({
   // not compiled: it reads the graph and the engine, objects that stay the same when data arrives or a member loads
   const { engine, editor } = useShell()
   const presets = usePresets()
-  const reduce = useReducedMotion()
   const id = relation.id
   const graph = editor.history.staging.graph
 
@@ -266,12 +265,11 @@ function ColumnBody({
   }
 
   return (
-    <motion.aside
+    // no slide of its own: the Shell slides the column open and shut. A second one here ran after the code's first load
+    // (the frame shown while it loads was already open), so the column opened, closed and opened again
+    <aside
       aria-label={m.relations_column_label()}
       className="relative flex min-h-0 w-[22rem] shrink-0 flex-col overflow-hidden"
-      initial={reduce ? false : { width: 0, opacity: 0 }}
-      animate={{ width: '22rem', opacity: 1 }}
-      transition={reduce ? { duration: 0 } : { duration: 0.28, ease: [0.2, 0.7, 0.2, 1] }}
     >
       <div className="flex h-8 shrink-0 items-center gap-2 pr-2 pl-3">
         <span className="min-w-0 flex-1 truncate text-[11px] font-semibold tracking-wide text-violet-900 uppercase dark:text-violet-200">
@@ -459,7 +457,7 @@ function ColumnBody({
           )
         })}
       </div>
-    </motion.aside>
+    </aside>
   )
 }
 

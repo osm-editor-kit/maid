@@ -344,25 +344,13 @@ function MembershipRow({
             )
           }
         />
-        {open ? (
-          <button
-            type="button"
-            className={BUTTON}
-            aria-label={m.relations_close_label()}
-            onClick={() => openRelationActions.close()}
-          >
-            {m.relations_close()}
-          </button>
-        ) : (
-          <button
-            type="button"
-            className={BUTTON}
-            aria-label={m.relations_open_label({ relation: relationLabel(relation) })}
-            onClick={() => openRelationActions.open(relation.id)}
-          >
-            {m.relations_open()}
-          </button>
-        )}
+        <OpenToggle
+          open={open}
+          label={relationLabel(relation)}
+          onToggle={() =>
+            open ? openRelationActions.close() : openRelationActions.open(relation.id)
+          }
+        />
       </Row>
       {hint && <li className={HINT}>{hint}</li>}
     </>
@@ -820,5 +808,36 @@ export function MultiRelationsSection({ entities, editor, select, readOnly }: Pr
         />
       </div>
     </SidebarDisclosure>
+  )
+}
+
+/**
+ * Open and close a relation beside the inspector: one button that stays pressed while the relation is open ("Open" /
+ * "Opened"). Both words sit in the same grid cell and the hidden one keeps its width, so the button is as wide in every
+ * row and in both states, and only as wide as the longer of two short words ("Schließen" made it wider than needed).
+ */
+function OpenToggle({
+  open,
+  label,
+  onToggle,
+}: {
+  open: boolean
+  label: string
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      className={`${BUTTON} inline-grid! justify-items-center ${open ? 'bg-violet-100! text-violet-900 inset-ring-violet-500/40! dark:bg-violet-950! dark:text-violet-200' : ''}`}
+      aria-pressed={open}
+      aria-label={open ? m.relations_close_label() : m.relations_open_label({ relation: label })}
+      title={open ? m.relations_close_label() : undefined}
+      onClick={onToggle}
+    >
+      <span className={`[grid-area:1/1] ${open ? 'invisible' : ''}`}>{m.relations_open()}</span>
+      <span className={`[grid-area:1/1] ${open ? '' : 'invisible'}`} aria-hidden={!open}>
+        {m.relations_is_open()}
+      </span>
+    </button>
   )
 }
