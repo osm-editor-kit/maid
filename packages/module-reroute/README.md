@@ -11,6 +11,7 @@ Reroutes a stretch of a route relation over the ways that are loaded, as a route
 - The mode works as a route planner (Tobias, 2026-11-13): the whole route is a blue line, with white support points only where it turns clearly (40° over 12 m, at most one per 35 m; the ends of each piece dark, `chain.ts`). Where the menu was opened is a point to drag. A drag from the line or a support point reroutes only the stretch between the two neighbouring support points over the loaded ways, and letting go writes it at once, as one undo step (the plan splits ways where the route leaves or joins them). The new path shows while dragging; what joined stays green on the map.
 - The changes show in the route's list of ways on the left (the relation column, which opens on the route): the ways that joined green with a plus, the ways that left struck through with a minus where they were (`member-marks.ts`, `setRelationMemberMarks` in `packages/ui`). Worked out against the members at the start of the mode, so an undo or a redo shows what is true after it.
 - A small bar in the map's top left corner (`ReroutePanel`): the route's name, how to drag, why a drag cannot be made, Undo and Done. While the mode is on nothing else can be selected; Escape, Done or another selection ends it. Undo keeps the mode on (`staysOnUndo`).
+- Every way with a `highway` tag can be reached (`mapperProfile` in `packages/routing`, Tobias, 2026-11-13: "ich komme da nicht hin"): a footway without a bicycle tag or a road with `bicycle=no` costs twelve times a plain road, so the router only takes it where a point is dropped on it. A way the route also uses outside the stretch is split all the same; there the member becomes both parts, in the route's direction.
 - Messages say why there is no path (no way joins the points, one-way, a way not loaded) and why a point cannot be used (not on a road or path within 200 m).
 
 ## Using it in an editor's config
@@ -48,7 +49,7 @@ Only `maid-bicycle` switches it on. The router works on the data loaded in the e
 
 `bun test packages/module-reroute`: the plan (members, splits, roles, refusals), the route on a small test graph, the geometry, the preview shapes and the store.
 
-The browser check is `bun run check-reroute --app bicycle` (scene `relations`, 23 checks: the edit menu on a way with its flyout of routes, the route line and support points, a drag onto a way nearby written at the drop, the marks in the list of ways, the bar's Undo with the mode staying on, a support point dragged and undone, Escape, the inspector section). Its screenshot: `reports/reroute-panel.png`.
+The browser check is `bun run check-reroute --app bicycle` (scene `relations`, 25 checks: the edit menu on a way with its flyout of routes, the route line and support points, a drag onto a way nearby written at the drop, the marks in the list of ways, the bar's Undo with the mode staying on, a support point dragged and undone, a drop on a footway without a bicycle tag reached and undone, Escape, the inspector section). Its screenshot: `reports/reroute-panel.png`.
 
 ## More
 

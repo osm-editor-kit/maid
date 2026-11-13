@@ -14,6 +14,7 @@ import {
   buildRoutingGraph,
   findRoute,
   footProfile,
+  mapperProfile,
   snapToGraph,
   snapToWay,
   type Profile,
@@ -88,24 +89,24 @@ export type RoutePreview = {
   routeWays: RouteWay[]
 }
 
-/** The profile a route relation is routed with, or undefined when the reroute does not work on it */
+/** The profile a route relation is routed with (the mapper's: every highway can be reached), or undefined when the reroute does not work on it */
 export function profileOfRoute(tags: Readonly<Record<string, string>>): Profile | undefined {
   if (tags.type !== 'route') return undefined
   switch (tags.route) {
     case 'bicycle':
     case 'mtb':
-      return bicycleProfile
+      return mapperProfile(bicycleProfile)
     case 'hiking':
     case 'foot':
     case 'walking':
-      return footProfile
+      return mapperProfile(footProfile)
     case undefined:
     default:
       return undefined
   }
 }
 
-const routingGraphs = new WeakMap<Graph, Map<string, RoutingGraph>>()
+const routingGraphs = new WeakMap<Graph, Map<Profile, RoutingGraph>>()
 
 /**
  * The routing graph of the data for one profile. Built on first use and kept for as long as the graph object is the
@@ -117,10 +118,10 @@ export function routingGraphOf(graph: Graph, profile: Profile): RoutingGraph {
     byProfile = new Map()
     routingGraphs.set(graph, byProfile)
   }
-  let routing = byProfile.get(profile.name)
+  let routing = byProfile.get(profile)
   if (!routing) {
     routing = buildRoutingGraph(graph, profile)
-    byProfile.set(profile.name, routing)
+    byProfile.set(profile, routing)
   }
   return routing
 }

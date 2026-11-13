@@ -234,6 +234,55 @@ export const footProfile: Profile = makeProfile('foot', FOOT_KINDS, {
   exceptValue: undefined,
 })
 
+/** What a way the profile would not use costs in a mapper's profile, relative to a plain road */
+const MAPPER_FACTOR = 12
+
+/** Highway values that are no line a route can follow: no way of these is used, not even by a mapper */
+const NOT_A_WAY = new Set([
+  'proposed',
+  'construction',
+  'abandoned',
+  'razed',
+  'platform',
+  'bus_stop',
+  'elevator',
+  'corridor',
+  'no',
+])
+
+/**
+ * The profile for a mapper who moves a route by hand (Tobias, 2026-11-13: "ich komme da nicht hin"): every way with a
+ * `highway` tag can be used, so a point dropped on a footway or a road with `bicycle=no` is reached. The ways the plain
+ * profile would not use cost MAPPER_FACTOR times a plain road, so the router still prefers the others between the
+ * points; their one-way tags are not read (the route's roles say the direction). The ways the plain profile uses keep
+ * its rule. Areas (`area=yes`) stay out, as no line runs through them.
+ */
+export function mapperProfile(profile: Profile): Profile {
+  const cached = mapperProfiles.get(profile)
+  if (cached) return cached
+  const wayRule = (tags: Readonly<Record<string, string>>): WayRule | undefined => {
+    const rule = profile.wayRule(tags)
+    if (rule) return rule
+    const highway = tags.highway
+    if (highway === undefined || tags.area === 'yes' || NOT_A_WAY.has(highway)) return undefined
+    return {
+      kind: highway,
+      forward: true,
+      backward: true,
+      factor: MAPPER_FACTOR,
+      covered: ['mapper'],
+    }
+  }
+  const mapper: Profile = {
+    ...profile,
+    wayRule,
+    minFactor: Math.min(profile.minFactor, MAPPER_FACTOR),
+  }
+  mapperProfiles.set(profile, mapper)
+  return mapper
+}
+const mapperProfiles = new WeakMap<Profile, Profile>()
+
 export const profiles: Record<ProfileName, Profile> = {
   bicycle: bicycleProfile,
   foot: footProfile,

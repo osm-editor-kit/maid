@@ -705,6 +705,15 @@ case: move a short stretch around a construction site.
 - [ ] Next: spurs out and back (a point dropped onto a dead end) are written as the router gives them; a warning or a
       snap to through ways would help.
 
+- [x] 2026-11-13: Tobias could not drag the route onto the way under the pointer (a footway): the router used only the
+      ways a bicycle may use, so the point snapped elsewhere. The reroute now routes with a mapper's profile
+      (`mapperProfile` in `packages/routing`): every highway can be reached, the ways the plain profile leaves out cost
+      twelve times a plain road. A way the route also uses outside the stretch is split instead of refused (that member
+      becomes both parts there); the plan writes the members itself, as iD's split sorts the points of a route to the
+      front. `bun run check`; `bun run check-reroute --app bicycle` 25 ok.
+      **Test for Tobias:** https://osm-editor-kit.github.io/maid/maid-bicycle/?map=18/52.44266/13.57677&id=w10780539 :
+      "Route umlegen", then drag the blue line onto a footway or path beside it: the point stays on that way.
+
 ### The route sidebar made understandable (2026-11-13)
 
 Tobias, 2026-11-13: in the route overview the ways could not be seen or clicked, nor the gaps; the selected way and its

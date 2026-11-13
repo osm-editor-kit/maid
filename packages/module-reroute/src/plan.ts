@@ -19,7 +19,6 @@
 // A refusal carries a code only: the words for it are the module's texts (RerouteSection), not English here.
 import {
   actionAddEntity,
-  actionAddMember,
   actionAddVertex,
   actionDeleteMembers,
   actionSplit,
@@ -391,14 +390,10 @@ export function planReroute(input: PlanInput): PlanResult {
     if (!(way instanceof OsmWay)) return refuse('way-not-loaded')
     origWays.set(segment.wayId, way)
   }
-  const outsideIds = new Set(
-    members.filter((_, index) => index < from || index > to).map((m) => m.id),
-  )
   for (const split of route.splits) {
     const way = graph.hasEntity(split.wayId)
     if (!(way instanceof OsmWay)) return refuse('way-not-loaded')
     if (way.isClosed()) return refuse('closed-way-split')
-    if (outsideIds.has(split.wayId)) return refuse('split-way-used-outside')
     origWays.set(split.wayId, way)
   }
   for (const way of origWays.values()) {
@@ -465,7 +460,6 @@ export function planReroute(input: PlanInput): PlanResult {
       const nodeId = way.nodes[index]!
       if (nodeSplits.some((split) => split.wayId === way.id && split.nodeId === nodeId)) continue
       if (way.isClosed()) return refuse('closed-way-split')
-      if (outsideIds.has(way.id)) return refuse('split-way-used-outside')
       if (readOnly?.(way.id)) return refuse('read-only')
       nodeSplits.push({ wayId: way.id, nodeId })
     }
@@ -484,13 +478,33 @@ export function planReroute(input: PlanInput): PlanResult {
     family.set(wayId, [...parts, newId])
   }
 
+  // A way split here that the route also uses outside the stretch (Tobias, 2026-11-13: a route editor does not refuse
+  // that): there the member becomes all its parts, in the direction the route runs. iD's split also puts the parts in,
+  // but its sort of the route's ways moves other members (the points go first), so the members are written here.
   const afterSplits = sim.hasEntity(relationId)
-  if (
-    !(afterSplits instanceof OsmRelation) ||
-    afterSplits.members.length !== members.length - stretchMembers.length
-  ) {
-    return refuse('internal')
+  if (!(afterSplits instanceof OsmRelation)) return refuse('internal')
+  const expand = (
+    list: readonly OsmRelationMember[],
+    offset: number,
+  ): OsmRelationMember[] | undefined => {
+    const out: OsmRelationMember[] = []
+    for (const [k, member] of list.entries()) {
+      const parts = member.type === 'way' ? family.get(member.id) : undefined
+      if (!parts || parts.length < 2) {
+        out.push({ id: member.id, type: member.type, role: member.role })
+        continue
+      }
+      const ordered = partsInOrder(sim, origWays.get(member.id)!, parts)
+      if (!ordered) return undefined
+      if (runsBackward(graph, members, offset + k)) ordered.reverse()
+      for (const id of ordered) out.push({ id, type: 'way', role: member.role })
+    }
+    return out
   }
+  const prefix = expand(members.slice(0, from), 0)
+  const suffix = expand(members.slice(to + 1), to + 1)
+  if (!prefix || !suffix) return refuse('split-not-resolved')
+  const insertAt = prefix.length
 
   // 4. The part of each route segment: the part that holds both of its end nodes
   const partIds: EntityID[] = []
@@ -604,7 +618,7 @@ export function planReroute(input: PlanInput): PlanResult {
     newStretch.push(...before[i]!)
     addedMembers.push({
       segment: i,
-      index: from + newStretch.length,
+      index: insertAt + newStretch.length,
       id: partIds[i]!,
       fromWayId: route.segments[i]!.wayId,
       role: roles[i]!,
@@ -612,11 +626,10 @@ export function planReroute(input: PlanInput): PlanResult {
     newStretch.push({ id: partIds[i]!, type: 'way', role: roles[i]! })
     newStretch.push(...after[i]!)
   }
-  // `actionAddMember` with an index inserts the member as it is: the join of iD runs only without one
-  newStretch.forEach((m, k) => run(actionAddMember(relationId, m, from + k)))
+  const expected = [...prefix, ...newStretch, ...suffix]
+  run(setMembers(relationId, expected))
 
   const result = sim.hasEntity(relationId)
-  const expected = [...members.slice(0, from), ...newStretch, ...members.slice(to + 1)]
   if (!(result instanceof OsmRelation) || !sameMembers(result.members, expected)) {
     return refuse('internal')
   }
@@ -661,6 +674,47 @@ export function planReroute(input: PlanInput): PlanResult {
     members: result.members,
     lengthM: route.lengthM,
   }
+}
+
+/** Sets the relation's members as they are listed */
+function setMembers(relationId: EntityID, members: readonly OsmRelationMember[]): Action {
+  return (graph: Graph): Graph => {
+    const relation = graph.entity(relationId) as OsmRelation
+    graph.replace(relation.update({ members: members.map((member) => ({ ...member })) }))
+    return graph.commit()
+  }
+}
+
+/** The parts of a split way in the way's node order, or undefined when they do not chain from its first node */
+function partsInOrder(sim: Graph, way: OsmWay, parts: readonly EntityID[]): EntityID[] | undefined {
+  const ways = parts
+    .map((id) => sim.hasEntity(id))
+    .filter((part): part is OsmWay => part instanceof OsmWay)
+  if (ways.length !== parts.length) return undefined
+  const ordered: OsmWay[] = []
+  let at = way.nodes[0]
+  while (ordered.length < ways.length) {
+    const next = ways.find((part) => !ordered.includes(part) && part.nodes[0] === at)
+    if (!next) return undefined
+    ordered.push(next)
+    at = next.nodes.at(-1)
+  }
+  return ordered.map((part) => part.id)
+}
+
+/** Whether the route runs against the node order of the way member at `index`: by the ways before and after it */
+function runsBackward(graph: Graph, members: readonly OsmRelationMember[], index: number): boolean {
+  const way = graph.hasEntity(members[index]!.id)
+  if (!(way instanceof OsmWay)) return false
+  const first = way.nodes[0]
+  const last = way.nodes.at(-1)
+  const touches = (k: number, node: EntityID | undefined) => {
+    const other = members[k]?.type === 'way' ? graph.hasEntity(members[k]!.id) : undefined
+    return other instanceof OsmWay && (other.nodes[0] === node || other.nodes.at(-1) === node)
+  }
+  if (touches(index - 1, last) && !touches(index - 1, first)) return true
+  if (touches(index + 1, first) && !touches(index + 1, last)) return true
+  return false
 }
 
 function sameMembers(a: OsmRelationMember[], b: OsmRelationMember[]): boolean {

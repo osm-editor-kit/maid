@@ -399,7 +399,7 @@ describe('planReroute: other relations of a split way', () => {
     ).toBe(true)
   })
 
-  it('refuses when a split way is also a member of the route outside the stretch', () => {
+  it('a split way that the route also uses outside the stretch keeps both parts there', () => {
     const cycleway = way('wc', ['n1', 'c2', 'c3', 'c4', 'n5'], {
       highway: 'cycleway',
       oneway: 'yes',
@@ -410,10 +410,34 @@ describe('planReroute: other relations of a split way', () => {
     )
     const turn: [number, number] = [(lon(2) + lon(3)) / 2, 52.5001]
     const route = routeOf(entities, bicycleProfile, 'n1', turn)
-    expect(planFor(graphOf(entities), route, 0, 0)).toMatchObject({
-      ok: false,
-      reason: 'split-way-used-outside',
+    const plan = okPlan(planFor(graphOf(entities), route, 0, 0))
+    const split = plan.splitWays.find((s) => s.wayId === 'wc')!
+    expect(split).toBeDefined()
+    const ids = relOf(applyAll(graphOf(entities), plan.actions), 'r1').members.map((m) => m.id)
+    // the new stretch first, then the cycleway member as two parts side by side
+    expect(ids.slice(0, plan.addedMembers.length)).toEqual(plan.addedMembers.map((m) => m.id))
+    const rest = ids.slice(plan.addedMembers.length)
+    expect(rest).toHaveLength(2)
+    expect(rest).toEqual(expect.arrayContaining(['wc', split.newWayId]))
+  })
+
+  it('the same when that member comes before the stretch: the new stretch goes in after both parts', () => {
+    const cycleway = way('wc', ['n1', 'c2', 'c3', 'c4', 'n5'], {
+      highway: 'cycleway',
+      oneway: 'yes',
     })
+    const entities = withRelation(
+      [...streetEntities(), cycleway],
+      relation('r1', [member('wc'), member('w1')], { type: 'route', route: 'bicycle' }),
+    )
+    const turn: [number, number] = [(lon(2) + lon(3)) / 2, 52.5001]
+    const route = routeOf(entities, bicycleProfile, 'n1', turn)
+    const plan = okPlan(planFor(graphOf(entities), route, 1, 1))
+    const split = plan.splitWays.find((s) => s.wayId === 'wc')!
+    const ids = relOf(applyAll(graphOf(entities), plan.actions), 'r1').members.map((m) => m.id)
+    expect(ids.slice(0, 2)).toEqual(expect.arrayContaining(['wc', split.newWayId]))
+    expect(ids.slice(2)).toEqual(plan.addedMembers.map((m) => m.id))
+    expect(plan.addedMembers[0]!.index).toBe(2)
   })
 })
 

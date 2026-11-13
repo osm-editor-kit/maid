@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { bicycleProfile, footProfile, profiles } from './profile.ts'
+import { bicycleProfile, footProfile, mapperProfile, profiles } from './profile.ts'
 
 describe('bicycle profile: which ways', () => {
   it('a cycleway is routable both ways and preferred', () => {
@@ -169,5 +169,34 @@ describe('foot profile', () => {
   it('is listed under its name', () => {
     expect(profiles.foot).toBe(footProfile)
     expect(profiles.bicycle).toBe(bicycleProfile)
+  })
+})
+
+describe('mapperProfile', () => {
+  const mapper = mapperProfile(bicycleProfile)
+
+  it('reaches a footway and a road with bicycle=no, at a high cost and both ways', () => {
+    expect(mapper.wayRule({ highway: 'footway' })).toMatchObject({
+      factor: 12,
+      forward: true,
+      backward: true,
+    })
+    expect(mapper.wayRule({ highway: 'residential', bicycle: 'no' })?.factor).toBe(12)
+  })
+
+  it('keeps the plain rule where there is one', () => {
+    expect(mapper.wayRule({ highway: 'cycleway' })).toEqual(
+      bicycleProfile.wayRule({ highway: 'cycleway' }),
+    )
+  })
+
+  it('leaves out what is no line to follow, and areas', () => {
+    expect(mapper.wayRule({ highway: 'construction' })).toBeUndefined()
+    expect(mapper.wayRule({ highway: 'pedestrian', area: 'yes' })).toBeUndefined()
+    expect(mapper.wayRule({ building: 'yes' })).toBeUndefined()
+  })
+
+  it('is the same object for the same profile', () => {
+    expect(mapperProfile(bicycleProfile)).toBe(mapper)
   })
 })

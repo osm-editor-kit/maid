@@ -49,49 +49,58 @@ process.exit(
       }
 
       // --- a member way with a long segment, and a routable way near it that is not in the route ---
-      const found = (await page.evaluate((id) => {
-        const { engine, editor } = window.__maid
-        const graph = editor.history.staging.graph
-        const relation = engine.data.relation(id)!
-        const members = new Set(relation.members.map((member: any) => member.id))
-        const kinds = [
-          'residential',
-          'living_street',
-          'service',
-          'unclassified',
-          'tertiary',
-          'cycleway',
-        ]
-        let best:
-          | { wayId: string; at: [number, number]; target: [number, number]; d: number }
-          | undefined
-        for (const member of relation.members) {
-          if (member.type !== 'way') continue
-          const way = engine.data.way(member.id)
-          if (!way) continue
-          for (let k = 0; k + 1 < way.nodes.length; k++) {
-            const p = engine.data.node(way.nodes[k]!)?.loc
-            const q = engine.data.node(way.nodes[k + 1]!)?.loc
-            if (!p || !q) continue
-            const length = Math.hypot((p[0] - q[0]) * 0.61, p[1] - q[1]) * 111_000
-            if (length < 25) continue
-            const at: [number, number] = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]
-            for (const [, found] of graph.base.entities) {
-              const other = found as any
-              if (!other || other.type !== 'way' || members.has(other.id)) continue
-              if (!kinds.includes(other.tags.highway as string)) continue
-              for (const nodeId of other.nodes.slice(1, -1)) {
-                const loc = engine.data.node(nodeId)?.loc
-                if (!loc) continue
-                const d = Math.hypot((loc[0] - at[0]) * 0.61, loc[1] - at[1]) * 111_000
-                if (d > 40 && d < 120 && (!best || d < best.d))
-                  best = { wayId: member.id, at, target: [loc[0], loc[1]], d }
+      /** A member way with a long segment, and a node of a way of these kinds near it that is not in the route */
+      const findTarget = (kinds: string[], footwayOnly: boolean) =>
+        page.evaluate(
+          ({ id, kinds, footwayOnly }) => {
+            const { engine, editor } = window.__maid
+            const graph = editor.history.staging.graph
+            const relation = engine.data.relation(id)!
+            const members = new Set(relation.members.map((member: any) => member.id))
+            let best:
+              | {
+                  wayId: string
+                  at: [number, number]
+                  target: [number, number]
+                  d: number
+                  other: string
+                }
+              | undefined
+            for (const member of relation.members) {
+              if (member.type !== 'way') continue
+              const way = engine.data.way(member.id)
+              if (!way) continue
+              for (let k = 0; k + 1 < way.nodes.length; k++) {
+                const p = engine.data.node(way.nodes[k]!)?.loc
+                const q = engine.data.node(way.nodes[k + 1]!)?.loc
+                if (!p || !q) continue
+                const length = Math.hypot((p[0] - q[0]) * 0.61, p[1] - q[1]) * 111_000
+                if (length < 25) continue
+                const at: [number, number] = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]
+                for (const [, found] of graph.base.entities) {
+                  const other = found as any
+                  if (!other || other.type !== 'way' || members.has(other.id)) continue
+                  if (!kinds.includes(other.tags.highway as string)) continue
+                  // a footway a bicycle may not use: no bicycle tag, no access tag
+                  if (footwayOnly && (other.tags.bicycle || other.tags.access)) continue
+                  for (const nodeId of other.nodes.slice(1, -1)) {
+                    const loc = engine.data.node(nodeId)?.loc
+                    if (!loc) continue
+                    const d = Math.hypot((loc[0] - at[0]) * 0.61, loc[1] - at[1]) * 111_000
+                    if (d > 40 && d < 120 && (!best || d < best.d))
+                      best = { wayId: member.id, at, target: [loc[0], loc[1]], d, other: other.id }
+                  }
+                }
               }
             }
-          }
-        }
-        return best ?? null
-      }, ROUTE)) as { wayId: string; at: Loc; target: Loc } | null
+            return best ?? null
+          },
+          { id: ROUTE, kinds, footwayOnly },
+        ) as Promise<{ wayId: string; at: Loc; target: Loc; other: string } | null>
+      const found = await findTarget(
+        ['residential', 'living_street', 'service', 'unclassified', 'tertiary', 'cycleway'],
+        false,
+      )
       if (!found) {
         report('a member way with a way near it to drag the route onto', 'found', null)
         return
@@ -230,6 +239,47 @@ process.exit(
         report('after its undo the members are as before', before, await membersNow())
       } else {
         console.log('no draggable support point in view (not counted)')
+      }
+
+      // --- a footway a bicycle may not use is reached all the same (a mapper's route, Tobias 2026-11-13) ---
+      const footway = await findTarget(['footway'], true)
+      if (footway) {
+        await page.evaluate(
+          ({ a, b }) =>
+            window.__maid.map.fitBounds(
+              [
+                [Math.min(a[0], b[0]) - 0.0006, Math.min(a[1], b[1]) - 0.0006],
+                [Math.max(a[0], b[0]) + 0.0006, Math.max(a[1], b[1]) + 0.0006],
+              ],
+              { padding: 150, animate: false },
+            ),
+          { a: footway.at, b: footway.target },
+        )
+        await settle()
+        await drag(footway.at, footway.target)
+        await page.waitForTimeout(500)
+        // the route runs through the node it was dropped on (the footway may be split there, so by the node)
+        const reached = (await page.evaluate(
+          ({ id, target }) => {
+            const { engine } = window.__maid
+            return engine.data.relation(id)!.members.some((member: any) => {
+              const way = member.type === 'way' ? engine.data.way(member.id) : undefined
+              return way?.nodes.some((nodeId: string) => {
+                const loc = engine.data.node(nodeId)?.loc
+                return loc !== undefined && loc[0] === target[0] && loc[1] === target[1]
+              })
+            })
+          },
+          { id: ROUTE, target: footway.target },
+        )) as boolean
+        report('a drop on a footway without a bicycle tag reaches it', true, reached)
+        if (JSON.stringify(await membersNow()) !== JSON.stringify(before)) {
+          await page.evaluate(() => window.__maid.engine.undo())
+          await settle()
+        }
+        report('after its undo the members are as before (footway)', before, await membersNow())
+      } else {
+        console.log('no footway near the route (not counted)')
       }
 
       // --- Escape ends the mode; a click selects again ---
