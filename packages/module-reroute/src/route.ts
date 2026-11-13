@@ -15,10 +15,12 @@ import {
   findRoute,
   footProfile,
   snapToGraph,
+  snapToWay,
   type Profile,
   type RouteResult,
   type RoutingGraph,
   type Snap,
+  type SplitPoint,
 } from '@osm-editor-kit/maid-routing'
 import type { RerouteRequest } from './apply-port.ts'
 import { distanceToLineM, lineLengthM, wayLine, type Lonlat } from './geometry.ts'
@@ -44,6 +46,13 @@ export type Stretch = { from: number; to: number; reversed: boolean }
 export type PreviewInput = {
   start?: ViaPoint
   end?: ViaPoint
+  /** Points the new path must pass, in order from the start to the end (dragged out of the line, as in a route planner) */
+  vias?: readonly ViaPoint[]
+  /**
+   * The member index of the way the reroute was started from (the edit menu on a way). The start and the end prefer
+   * that way where it ties with a neighbour, and the stretches that hold it come first.
+   */
+  anchor?: number
   /** Which occurrence of a stretch that occurs more than once the mapper picked (0 is the first) */
   occurrence: number
   /** The mapper's answers to the role questions, by route segment index */
@@ -57,6 +66,8 @@ export type RoutePreview = {
   profile: Profile
   start?: Via
   end?: Via
+  /** The points between, as the input gave them, snapped to any road or path */
+  vias: Via[]
   /** Every stretch the two points give: more than one when the stretch occurs more than once in the relation */
   stretches: Stretch[]
   /** The stretch in use: `stretches[occurrence]` */
@@ -117,34 +128,98 @@ function viaOf(routing: RoutingGraph, point: ViaPoint): Via {
   return { ...point, loc: snap ? snap.loc : [point.lon, point.lat], snap }
 }
 
-/** The member index of the way nearest to a location; the first one at a tie */
-function nearestWayMember(graph: Graph, relation: OsmRelation, loc: Lonlat): number | undefined {
+/** The member index of the way nearest to a location, and its distance; the first one at a tie, or `prefer` when it ties */
+function nearestWayMember(
+  graph: Graph,
+  relation: OsmRelation,
+  loc: Lonlat,
+  prefer?: number,
+): { index: number; distanceM: number } | undefined {
   let best: number | undefined
   let bestDistance = Number.POSITIVE_INFINITY
+  const lines = new Map<EntityID, number>()
   relation.members.forEach((member, index) => {
     if (member.type !== 'way') return
-    const distance = distanceToLineM(loc, wayLine(graph, member.id))
+    let distance = lines.get(member.id)
+    if (distance === undefined) {
+      distance = distanceToLineM(loc, wayLine(graph, member.id))
+      lines.set(member.id, distance)
+    }
     if (distance < bestDistance) {
       bestDistance = distance
       best = index
     }
   })
-  return best
+  if (best === undefined) return undefined
+  const preferred = prefer === undefined ? undefined : relation.members[prefer]
+  if (preferred?.type === 'way' && (lines.get(preferred.id) ?? Infinity) <= bestDistance + TIE_M) {
+    return { index: prefer!, distanceM: lines.get(preferred.id)! }
+  }
+  return { index: best, distanceM: bestDistance }
+}
+
+/** Two member ways this close to a point are a tie (a point on the node they share), in metres */
+const TIE_M = 0.5
+/** How far the start or the end may be from the route's own ways to snap onto them, in metres (the router's reach) */
+const ON_ROUTE_M = 200
+
+/**
+ * The start or the end of the stretch: on the route's own way nearest to the point, so that the stretch begins and ends
+ * on the route. Off the route (no member way within reach, or the nearest one is not routable): the nearest road.
+ */
+function endOf(
+  graph: Graph,
+  relation: OsmRelation,
+  routing: RoutingGraph,
+  point: ViaPoint,
+  anchor: number | undefined,
+): Via {
+  const nearest = nearestWayMember(graph, relation, [point.lon, point.lat], anchor)
+  if (nearest && nearest.distanceM <= ON_ROUTE_M) {
+    const wayId = relation.members[nearest.index]!.id
+    const snap = snapToWay(routing, wayId, point.lon, point.lat)
+    if (snap) return { ...point, loc: snap.loc, snap }
+  }
+  return viaOf(routing, point)
 }
 
 /**
  * The stretches the two points give. When both lie on member ways, the member occurrences of those ways (plan.ts
  * `stretchesBetween`); otherwise the members nearest to each point, as one stretch.
  */
-function stretchCandidates(graph: Graph, relation: OsmRelation, start: Via, end: Via): Stretch[] {
+function stretchCandidates(
+  graph: Graph,
+  relation: OsmRelation,
+  start: Via,
+  end: Via,
+  anchor: number | undefined,
+): Stretch[] {
+  let found: Stretch[] = []
   if (start.snap && end.snap) {
-    const exact = stretchesBetween(relation, start.snap.wayId, end.snap.wayId)
-    if (exact.length > 0) return exact.map((stretch) => ({ ...stretch, reversed: false }))
+    found = stretchesBetween(relation, start.snap.wayId, end.snap.wayId).map((stretch) => ({
+      ...stretch,
+      reversed: false,
+    }))
+    if (found.length === 0) {
+      found = stretchesBetween(relation, end.snap.wayId, start.snap.wayId).map((stretch) => ({
+        ...stretch,
+        reversed: true,
+      }))
+    }
   }
-  const first = nearestWayMember(graph, relation, start.loc)
-  const last = nearestWayMember(graph, relation, end.loc)
-  if (first === undefined || last === undefined) return []
-  return [{ from: Math.min(first, last), to: Math.max(first, last), reversed: first > last }]
+  if (found.length === 0) {
+    const first = nearestWayMember(graph, relation, start.loc, anchor)?.index
+    const last = nearestWayMember(graph, relation, end.loc, anchor)?.index
+    if (first === undefined || last === undefined) return []
+    return [{ from: Math.min(first, last), to: Math.max(first, last), reversed: first > last }]
+  }
+  if (anchor === undefined || found.length < 2) return found
+  // started from a way: the shortest stretches that hold it come first, so the first occurrence is the one meant
+  const holds = (stretch: Stretch) => stretch.from <= anchor && anchor <= stretch.to
+  return [...found].sort(
+    (a, b) =>
+      Number(holds(b)) - Number(holds(a)) || a.to - a.from - (b.to - b.from) || a.from - b.from,
+  )
 }
 
 /** One key per snapped point: the router's answer depends on where the point is on the routing graph, not on the pointer */
@@ -188,6 +263,68 @@ function routeBetween(
   return route
 }
 
+/**
+ * Two legs as one route: the second leg starts where the first ends (a via point). Where both run on one way in one
+ * direction through the via point, their two pieces are one segment and the via point is no split (a via point in the
+ * middle of a way does not cut it).
+ */
+export function joinRoutes(first: RouteResult, second: RouteResult): RouteResult {
+  if (!first.ok) return first
+  if (!second.ok) return second
+  const segments = [...first.segments]
+  const splits = [...first.splits]
+  let rest = second.segments
+  let restSplits = second.splits
+  const last = segments.at(-1)
+  const next = rest[0]
+  if (last && next && last.wayId === next.wayId && last.forward === next.forward) {
+    const via = last.endSplit
+    const { endSplit: _via, ...kept } = last
+    segments[segments.length - 1] = {
+      ...kept,
+      toIndex: next.toIndex,
+      lengthM: last.lengthM + next.lengthM,
+      ...(next.endSplit && { endSplit: next.endSplit }),
+    }
+    rest = rest.slice(1)
+    const same = (a: SplitPoint, b: SplitPoint | undefined) =>
+      b !== undefined && a.wayId === b.wayId && a.segment === b.segment && a.t === b.t
+    if (via) {
+      const at = splits.findLastIndex((split) => same(split, via))
+      if (at >= 0) splits.splice(at, 1)
+    }
+    if (next.startSplit) {
+      const startSplit = next.startSplit
+      const at = restSplits.findIndex((split) => same(split, startSplit))
+      if (at >= 0) restSplits = restSplits.filter((_, index) => index !== at)
+    }
+  }
+  return {
+    ok: true,
+    segments: [...segments, ...rest],
+    splits: [...splits, ...restSplits],
+    lengthM: first.lengthM + second.lengthM,
+    cost: first.cost + second.cost,
+    expanded: first.expanded + second.expanded,
+  }
+}
+
+/** The route through the points in order: one leg per pair, each found once (`routeBetween`), joined */
+function routeThrough(
+  graph: Graph,
+  profile: Profile,
+  routing: RoutingGraph,
+  points: readonly Via[],
+): RouteResult {
+  let route: RouteResult | undefined
+  for (let index = 1; index < points.length; index++) {
+    const leg = routeBetween(graph, profile, routing, points[index - 1]!, points[index]!)
+    route = route ? joinRoutes(route, leg) : leg
+    if (!route.ok) return route
+  }
+  return route ?? { ok: false, reason: 'no-path', expanded: 0 }
+}
+
 /** The length of the way members of a stretch, whole ways, in metres */
 function stretchLengthM(graph: Graph, relation: OsmRelation, stretch: Stretch | undefined): number {
   if (!stretch) return 0
@@ -208,6 +345,8 @@ type PreviewMemo = {
   relation: OsmRelation
   start?: ViaPoint
   end?: ViaPoint
+  vias?: readonly ViaPoint[]
+  anchor?: number
   occurrence: number
   roleChoices: Readonly<Record<number, string>>
   /** Whether the input had a read-only check, and the answers the plan got from it */
@@ -244,6 +383,8 @@ export function previewReroute(
     memo.relation === relation &&
     memo.start === input.start &&
     memo.end === input.end &&
+    memo.vias === input.vias &&
+    memo.anchor === input.anchor &&
     memo.occurrence === input.occurrence &&
     memo.roleChoices === input.roleChoices &&
     answersHold(memo, input.readOnly)
@@ -266,8 +407,9 @@ export function previewReroute(
   const preview: RoutePreview = {
     relationId: relation.id,
     profile,
-    start: input.start ? viaOf(routing, input.start) : undefined,
-    end: input.end ? viaOf(routing, input.end) : undefined,
+    start: input.start ? endOf(graph, relation, routing, input.start, input.anchor) : undefined,
+    end: input.end ? endOf(graph, relation, routing, input.end, input.anchor) : undefined,
+    vias: (input.vias ?? []).map((point) => viaOf(routing, point)),
     stretches: [],
     expectedIds: [],
     oldLengthM: 0,
@@ -275,10 +417,12 @@ export function previewReroute(
     routeWays: [],
   }
   if (preview.start && preview.end) {
-    preview.stretches = stretchCandidates(graph, relation, preview.start, preview.end)
+    preview.stretches = stretchCandidates(graph, relation, preview.start, preview.end, input.anchor)
     preview.stretch = preview.stretches[Math.min(input.occurrence, preview.stretches.length - 1)]
     preview.oldLengthM = stretchLengthM(graph, relation, preview.stretch)
-    preview.route = routeBetween(graph, profile, routing, preview.start, preview.end)
+    // a via point with no road near is left out: its handle shows grey, and the route goes on without it
+    const vias = preview.vias.filter((via) => via.snap !== undefined)
+    preview.route = routeThrough(graph, profile, routing, [preview.start, ...vias, preview.end])
     if (preview.stretch) {
       const { from, to } = preview.stretch
       preview.expectedIds = relation.members.slice(from, to + 1).map((member) => member.id)
@@ -303,6 +447,8 @@ export function previewReroute(
     relation,
     start: input.start,
     end: input.end,
+    vias: input.vias,
+    anchor: input.anchor,
     occurrence: input.occurrence,
     roleChoices: input.roleChoices,
     checked: check !== undefined,

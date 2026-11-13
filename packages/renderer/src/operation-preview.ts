@@ -14,8 +14,13 @@ export function operationPreview(
 ): Feature[] {
   const features: Feature[] = []
   const { graph } = data.history.staging
-  // an operation that asks for more input (`start`) has nothing to show before it starts
-  if (!operation.start && operation.applies(context) && !operation.disabled(context)) {
+  // an operation that asks for more input (`start`) shows only the lines of its own `preview` (the route a reroute
+  // works on), as it has no outlines before it starts
+  if (
+    (!operation.start || operation.preview) &&
+    operation.applies(context) &&
+    !operation.disabled(context)
+  ) {
     // the part the operation is about, marked as it is (state `preview-mark`), not the outlines after it
     if (operation.preview) {
       // a bare line is a mark; a helper line (style `helper`) is drawn dotted, for what is not there yet

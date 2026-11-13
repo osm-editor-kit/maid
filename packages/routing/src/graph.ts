@@ -518,3 +518,60 @@ export function snapToGraph(
     distanceM: bestDist,
   }
 }
+
+/**
+ * The nearest point on one routable way to a coordinate, with no distance limit: for a point that must stay on a
+ * given way (the reroute's start and end stay on the route's own ways). Undefined when the way is not routable.
+ * Scans the way's edges, so it is linear in the number of edges; fine for a drag, not for a batch.
+ */
+export function snapToWay(
+  rg: RoutingGraph,
+  wayId: EntityID,
+  lon: number,
+  lat: number,
+): Snap | undefined {
+  const wayIdx = rg.wayIndex.get(wayId)
+  if (wayIdx === undefined) return undefined
+  const kx = METRES_PER_DEG * Math.cos((lat * Math.PI) / 180)
+  const ky = METRES_PER_DEG
+  let best = -1
+  let bestDist = Infinity
+  let bestT = 0
+  for (let edge = 0; edge < rg.edgeWay.length; edge++) {
+    if (rg.edgeWay[edge] !== wayIdx) continue
+    const first = rg.edgeSeg0[edge]!
+    const count = rg.edgeP1[edge]! - rg.edgeP0[edge]!
+    for (let seg = first; seg < first + count; seg++) {
+      const ax = (rg.segLon0[seg]! - lon) * kx
+      const ay = (rg.segLat0[seg]! - lat) * ky
+      const dx = (rg.segLon1[seg]! - rg.segLon0[seg]!) * kx
+      const dy = (rg.segLat1[seg]! - rg.segLat0[seg]!) * ky
+      const len2 = dx * dx + dy * dy
+      const t = len2 > 0 ? Math.min(1, Math.max(0, -(ax * dx + ay * dy) / len2)) : 0
+      const d = Math.hypot(ax + t * dx, ay + t * dy)
+      if (d < bestDist) {
+        bestDist = d
+        best = seg
+        bestT = t
+      }
+    }
+  }
+  if (best < 0) return undefined
+  const segLen = rg.segLen[best]!
+  let t = bestT
+  if (t * segLen < NODE_SNAP_M) t = 0
+  else if ((1 - t) * segLen < NODE_SNAP_M) t = 1
+  const edge = rg.segEdge[best]!
+  const lon0 = rg.segLon0[best]!
+  const lat0 = rg.segLat0[best]!
+  return {
+    edge,
+    seg: best,
+    wayIdx,
+    wayId,
+    segment: rg.segPos[best]!,
+    t,
+    loc: [lon0 + t * (rg.segLon1[best]! - lon0), lat0 + t * (rg.segLat1[best]! - lat0)],
+    distanceM: bestDist,
+  }
+}

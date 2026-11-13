@@ -91,7 +91,7 @@ describe('the preview of a reroute', () => {
   })
 
   test('a way the route cannot join is no path, and nothing is planned', () => {
-    // an isolated way 90 m north of the road: the end snaps to it, and no shared node joins it to the road
+    // an isolated way 90 m north of the road: a via point snaps to it, and no shared node joins it to the road
     const isolated = way('D', ['d1', 'd2'], { highway: 'residential' })
     const { nodes, ways } = network()
     const rel = relation('Rel', [{ id: 'R', type: 'way', role: '' }], {
@@ -108,11 +108,12 @@ describe('the preview of a reroute', () => {
     ])
     const preview = previewReroute(graph, graph.hasEntity('Rel') as OsmRelation, {
       start: START,
-      end: { lon: 13.406, lat: 52.5008 },
+      end: END,
+      vias: [{ lon: 13.406, lat: 52.5008 }],
       occurrence: 0,
       roleChoices: {},
     }) as RoutePreview
-    expect(preview.end?.snap?.wayId).toBe('D')
+    expect(preview.vias[0]?.snap?.wayId).toBe('D')
     expect(preview.route?.ok).toBe(false)
     expect(preview.route && !preview.route.ok ? preview.route.reason : undefined).toBe('no-path')
     expect(preview.plan).toBeUndefined()
@@ -257,5 +258,56 @@ describe('the apply writes nothing when a way of the route changed since the pre
     const same = editorOn(graph)
     expect(planApply.apply(same.editor, request!)).toEqual({ ok: true })
     expect(same.record).toEqual({ performed: 1, committed: 1 })
+  })
+})
+
+describe('via points', () => {
+  test('a via point on the road keeps the route on it, and the point does not split the road', () => {
+    const { graph, rel } = routeGraph(['R'])
+    const preview = previewReroute(graph, rel, {
+      start: START,
+      end: END,
+      vias: [{ lon: 13.4035, lat: 52.5 }],
+      occurrence: 0,
+      roleChoices: {},
+    }) as RoutePreview
+    expect(preview.route?.ok).toBe(true)
+    if (!preview.route?.ok) return
+    expect(preview.route.segments.map((segment) => segment.wayId)).toEqual(['R'])
+    expect(preview.route.splits.length).toBe(2)
+  })
+
+  test('a via point on the cycleway pulls the route onto it', () => {
+    const { graph, rel } = routeGraph(['R'])
+    const preview = previewReroute(graph, rel, {
+      start: { lon: 13.402, lat: 52.5 },
+      end: { lon: 13.405, lat: 52.5 },
+      vias: [{ lon: 13.4035, lat: 52.5002 }],
+      occurrence: 0,
+      roleChoices: {},
+    }) as RoutePreview
+    expect(preview.route?.ok).toBe(true)
+    if (!preview.route?.ok) return
+    expect(preview.route.segments.map((segment) => segment.wayId)).toEqual(['C'])
+  })
+
+  test('the start and the end stay on the route: a point near the cycleway snaps onto the road of the route', () => {
+    const { graph, rel } = routeGraph(['R'])
+    const preview = previewReroute(graph, rel, {
+      start: { lon: 13.4025, lat: 52.50018 },
+      end: END,
+      occurrence: 0,
+      roleChoices: {},
+    }) as RoutePreview
+    expect(preview.start?.snap?.wayId).toBe('R')
+  })
+
+  test('begun on a way, the stretches that hold it come first', () => {
+    const { graph, rel } = routeGraph(['R', 'C', 'R'])
+    const input = { start: START, end: END, occurrence: 0, roleChoices: {} }
+    const plain = previewReroute(graph, rel, input) as RoutePreview
+    expect(plain.stretches[0]).toEqual({ from: 0, to: 0, reversed: false })
+    const anchored = previewReroute(graph, rel, { ...input, anchor: 2 }) as RoutePreview
+    expect(anchored.stretches[0]).toEqual({ from: 2, to: 2, reversed: false })
   })
 })

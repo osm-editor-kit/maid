@@ -80,5 +80,33 @@
   "reroute_reason_not_routed": "Le profil vélo n'emprunte pas ce chemin.",
   "reroute_reason_against_order": "L'itinéraire va à contresens de l'ordre des nœuds d'un sens unique : avant serait faux.",
   "reroute_reason_one_way_backward": "Le chemin est à sens unique contre l'ordre de ses nœuds (oneway=-1) : arrière est presque inutilisé dans les données.",
-  "reroute_reason_loop": "L'itinéraire boucle ou passe deux fois sur ce chemin."
+  "reroute_reason_loop": "L'itinéraire boucle ou passe deux fois sur ce chemin.",
+  "reroute_operation": "Dévier l’itinéraire",
+  "reroute_panel_title": "Déviation : {name}",
+  "reroute_panel_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Faites glisser le début et la fin le long de l’itinéraire. Faites glisser la ligne bleue sur d’autres voies, ou touchez là où l’itinéraire doit passer. « Retirer les points de passage » les enlève.",
+        "input=*": "Faites glisser le début et la fin le long de l’itinéraire. Faites glisser la ligne bleue sur d’autres voies, ou cliquez là où l’itinéraire doit passer. Retour arrière retire le dernier point de passage, Échap annule."
+      }
+    }
+  ],
+  "reroute_out": "Quitte l’itinéraire ({count})",
+  "reroute_in": "Rejoint l’itinéraire ({count})",
+  "reroute_unchanged": "Rien ne change encore : faites glisser la ligne sur une autre voie.",
+  "reroute_unnamed": "Voie sans nom",
+  "reroute_vias_clear": "Retirer les points de passage",
+  "reroute_section_running": "La déviation est en cours sur la carte.",
+  "reroute_section_or": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Ou touchez longuement une voie de l’itinéraire et choisissez « Dévier l’itinéraire » : le tronçon commence sur cette voie.",
+        "input=*": "Ou faites un clic droit sur une voie de l’itinéraire et choisissez « Dévier l’itinéraire » : le tronçon commence sur cette voie."
+      }
+    }
+  ]
 }

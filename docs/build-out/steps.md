@@ -668,3 +668,25 @@ heading, and colours by age. Research: [traffic-signs-mapillary.md](../research/
       outlines it; the date chart has bars; "Farbe nach" switches age and type.
 - [ ] Next: the fork's sign tagging buttons, auto-show on select, the selected sign in the URL (research doc).
 
+
+### Rerouting a route from the way's edit menu (2026-11-13)
+
+Tobias, 2026-11-13: the reroute did not work for him: a long route's start and end are never in view, so the action
+belongs to the way (right click, choose the route when there are several), then a mode with handles as in a route
+planner where nothing else can be clicked, and the changes highlighted as in the way table instead of a dialog. The use
+case: move a short stretch around a construction site.
+
+- [x] 2026-11-13: edit menu "Route umlegen" on a way of a bicycle or hiking route, a flyout of the routes when the way is
+      in more than one (hovering one marks its ways); the reroute starts with the way's ends as handles. The start and
+      the end stay on the route's ways (`snapToWay` in `packages/routing`); a press on the blue line drags a via point
+      out of it, a click adds one, Backspace takes the last out (legs joined, a via inside a way splits nothing). The
+      panel sits in the map's corner: "Fliegt raus" and "Kommt rein" by street name in the edits display's colours, the
+      length and counts, the direction questions folded, Apply, Cancel, "Zwischenpunkte entfernen". The inspector
+      section still starts the two-click way and points to the edit menu. An operation with `start` can now show its
+      `preview` lines (renderer). `bun run check`; `bun run check-reroute --app bicycle` 23 ok.
+      **Test for Tobias:** https://osm-editor-kit.github.io/maid/maid-bicycle/?map=18/52.44266/13.57677&id=w10780539
+      (Kietz in Köpenick, in the Dahme-Radweg): right click the street, "Route umlegen", choose "Dahme Radweg (DRW)";
+      drag the two blue handles a few ways further along the route, then drag the blue line onto a street beside it;
+      the panel lists what leaves and joins; "Übernehmen", then undo.
+- [ ] Next: decide whether Apply should stay or the change go straight into the history with the map's change
+      highlight (Tobias' second idea); a spur out and back (a via dragged off a very short stretch) is not flagged yet.

@@ -80,5 +80,33 @@
   "reroute_reason_not_routed": "The bicycle profile does not route this way.",
   "reroute_reason_against_order": "The route runs against the node order of a one-way way: forward would be wrong.",
   "reroute_reason_one_way_backward": "The way is one-way against its node order (oneway=-1): backward is almost unused in the data.",
-  "reroute_reason_loop": "The route loops or runs twice over this way."
+  "reroute_reason_loop": "The route loops or runs twice over this way.",
+  "reroute_operation": "Reroute the route",
+  "reroute_panel_title": "Rerouting: {name}",
+  "reroute_panel_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Drag the start and the end along the route. Drag the blue line onto other ways, or tap where the route should pass. “Remove via points” takes them out again.",
+        "input=*": "Drag the start and the end along the route. Drag the blue line onto other ways, or click where the route should pass. Backspace takes out the last via point, Escape cancels."
+      }
+    }
+  ],
+  "reroute_out": "Leaves the route ({count})",
+  "reroute_in": "Joins the route ({count})",
+  "reroute_unchanged": "Nothing changes yet: drag the line onto another way.",
+  "reroute_unnamed": "Way without a name",
+  "reroute_vias_clear": "Remove via points",
+  "reroute_section_running": "The reroute is under way on the map.",
+  "reroute_section_or": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Or long-tap a way of the route and choose “Reroute the route”: the stretch starts on that way.",
+        "input=*": "Or right click a way of the route and choose “Reroute the route”: the stretch starts on that way."
+      }
+    }
+  ]
 }

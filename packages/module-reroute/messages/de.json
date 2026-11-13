@@ -80,5 +80,33 @@
   "reroute_reason_not_routed": "Das Fahrradprofil routet diesen Weg nicht.",
   "reroute_reason_against_order": "Die Route verläuft entgegen der Knotenreihenfolge eines Einbahnwegs: vorwärts wäre falsch.",
   "reroute_reason_one_way_backward": "Der Weg ist entgegen seiner Knotenreihenfolge einbahnig (oneway=-1): rückwärts wird in den Daten kaum genutzt.",
-  "reroute_reason_loop": "Die Route läuft über diesen Weg im Kreis oder zweimal."
+  "reroute_reason_loop": "Die Route läuft über diesen Weg im Kreis oder zweimal.",
+  "reroute_operation": "Route umlegen",
+  "reroute_panel_title": "Umlegen: {name}",
+  "reroute_panel_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Zieh Anfang und Ende entlang der Route. Zieh die blaue Linie auf andere Wege oder tippe dorthin, wo die Route entlang soll. „Zwischenpunkte entfernen“ nimmt sie wieder weg.",
+        "input=*": "Zieh Anfang und Ende entlang der Route. Zieh die blaue Linie auf andere Wege oder klick dorthin, wo die Route entlang soll. Die Rücktaste nimmt den letzten Zwischenpunkt weg, Escape bricht ab."
+      }
+    }
+  ],
+  "reroute_out": "Fliegt raus ({count})",
+  "reroute_in": "Kommt rein ({count})",
+  "reroute_unchanged": "Noch keine Änderung: Zieh die Linie auf einen anderen Weg.",
+  "reroute_unnamed": "Weg ohne Namen",
+  "reroute_vias_clear": "Zwischenpunkte entfernen",
+  "reroute_section_running": "Das Umlegen läuft auf der Karte.",
+  "reroute_section_or": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Oder: Tippe lange auf einen Weg der Route und wähle „Route umlegen“, dann beginnt der Abschnitt an diesem Weg.",
+        "input=*": "Oder: Rechtsklick auf einen Weg der Route und „Route umlegen“, dann beginnt der Abschnitt an diesem Weg."
+      }
+    }
+  ]
 }

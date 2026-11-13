@@ -20,6 +20,9 @@ describe('the reroute state', () => {
       relationId: 'r1',
       start: undefined,
       end: undefined,
+      vias: [],
+      anchor: undefined,
+      selected: 'r1',
       occurrence: 0,
       roleChoices: {},
     })
@@ -29,16 +32,45 @@ describe('the reroute state', () => {
     expect(readReroute().start).toBeUndefined()
   })
 
-  test('the first click is the start, the next the end, and a click after that moves the end', () => {
+  test('the first click is the start, the next the end, and a click after that adds a via point', () => {
     rerouteActions.begin('r1')
     rerouteActions.click(A)
     expect(readReroute().start).toEqual(A)
     expect(readReroute().end).toBeUndefined()
-    rerouteActions.click(B)
-    expect(readReroute().end).toEqual(B)
     rerouteActions.click(C)
+    expect(readReroute().end).toEqual(C)
+    rerouteActions.click(B)
     expect(readReroute().start).toEqual(A)
     expect(readReroute().end).toEqual(C)
+    expect(readReroute().vias).toEqual([B])
+  })
+
+  test('begun on a way, the way is the selection and its ends are the points', () => {
+    rerouteActions.beginOnWay({ relationId: 'r1', wayId: 'w1', anchor: 4, start: A, end: C })
+    expect(readReroute()).toMatchObject({
+      relationId: 'r1',
+      selected: 'w1',
+      anchor: 4,
+      start: A,
+      end: C,
+    })
+  })
+
+  test('via points go in route order, move by their handle, and Backspace takes the last one out', () => {
+    const D = { lon: 13.405, lat: 52.501 }
+    const E = { lon: 13.415, lat: 52.501 }
+    rerouteActions.beginOnWay({ relationId: 'r1', wayId: 'w1', anchor: 0, start: A, end: C })
+    rerouteActions.click(E)
+    rerouteActions.click(D)
+    expect(readReroute().vias).toEqual([D, E])
+    rerouteActions.moveVia('via-1', B)
+    expect(readReroute().vias).toEqual([D, B])
+    rerouteActions.addVia(0, E)
+    expect(readReroute().vias).toEqual([E, D, B])
+    rerouteActions.removeVia()
+    expect(readReroute().vias).toEqual([E, D])
+    rerouteActions.removeVia(0)
+    expect(readReroute().vias).toEqual([D])
   })
 
   test('a dragged handle moves its point and leaves the other one', () => {

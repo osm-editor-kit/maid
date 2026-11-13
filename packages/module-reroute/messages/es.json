@@ -80,5 +80,33 @@
   "reroute_reason_not_routed": "El perfil de bicicleta no enruta esta vía.",
   "reroute_reason_against_order": "La ruta va en contra del orden de los nodos de una vía de sentido único: adelante sería incorrecto.",
   "reroute_reason_one_way_backward": "La vía es de sentido único contra el orden de sus nodos (oneway=-1): atrás casi no se usa en los datos.",
-  "reroute_reason_loop": "La ruta da vueltas o pasa dos veces por esta vía."
+  "reroute_reason_loop": "La ruta da vueltas o pasa dos veces por esta vía.",
+  "reroute_operation": "Desviar la ruta",
+  "reroute_panel_title": "Desvío: {name}",
+  "reroute_panel_hint": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "Arrastra el inicio y el final a lo largo de la ruta. Arrastra la línea azul sobre otras vías o toca donde deba pasar la ruta. «Quitar puntos de paso» los quita.",
+        "input=*": "Arrastra el inicio y el final a lo largo de la ruta. Arrastra la línea azul sobre otras vías o haz clic donde deba pasar la ruta. Retroceso quita el último punto de paso, Escape cancela."
+      }
+    }
+  ],
+  "reroute_out": "Sale de la ruta ({count})",
+  "reroute_in": "Entra en la ruta ({count})",
+  "reroute_unchanged": "Aún no cambia nada: arrastra la línea sobre otra vía.",
+  "reroute_unnamed": "Vía sin nombre",
+  "reroute_vias_clear": "Quitar puntos de paso",
+  "reroute_section_running": "El desvío está en curso en el mapa.",
+  "reroute_section_or": [
+    {
+      "declarations": ["input input"],
+      "selectors": ["input"],
+      "match": {
+        "input=touch": "O toca un rato una vía de la ruta y elige «Desviar la ruta»: el tramo empieza en esa vía.",
+        "input=*": "O haz clic derecho en una vía de la ruta y elige «Desviar la ruta»: el tramo empieza en esa vía."
+      }
+    }
+  ]
 }

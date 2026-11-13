@@ -5,11 +5,13 @@ import type { Editor } from '@osm-editor-kit/maid-core'
 import { OsmRelation, type Graph } from '@osm-editor-kit/maid-model'
 import { useMemo, useSyncExternalStore } from 'react'
 import {
+  useRerouteAnchor,
   useRerouteEnd,
   useRerouteOccurrence,
   useRerouteRelationId,
   useRerouteRoleChoices,
   useRerouteStart,
+  useRerouteVias,
 } from './reroute-store.ts'
 import { previewReroute } from './route.ts'
 
@@ -37,6 +39,8 @@ export function useReroute(editor: Editor, readOnly?: (id: EntityID) => boolean)
   const relationId = useRerouteRelationId()
   const start = useRerouteStart()
   const end = useRerouteEnd()
+  const vias = useRerouteVias()
+  const anchor = useRerouteAnchor()
   const occurrence = useRerouteOccurrence()
   const roleChoices = useRerouteRoleChoices()
   const entity = relationId === undefined ? undefined : graph.hasEntity(relationId)
@@ -44,9 +48,17 @@ export function useReroute(editor: Editor, readOnly?: (id: EntityID) => boolean)
   const preview = useMemo(
     () =>
       relation
-        ? previewReroute(graph, relation, { start, end, occurrence, roleChoices, readOnly })
+        ? previewReroute(graph, relation, {
+            start,
+            end,
+            vias,
+            anchor,
+            occurrence,
+            roleChoices,
+            readOnly,
+          })
         : undefined,
-    [graph, relation, start, end, occurrence, roleChoices, readOnly],
+    [graph, relation, start, end, vias, anchor, occurrence, roleChoices, readOnly],
   )
   return { graph, relationId, relation, preview }
 }
