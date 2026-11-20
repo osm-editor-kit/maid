@@ -6,22 +6,23 @@
 import { defineModule } from '@osm-editor-kit/maid-core'
 import type { InspectorSectionProps } from '@osm-editor-kit/maid-ui'
 import type { RequirementsProfile } from '@tilda-geo/bicycle-infrastructure-tagging'
-import { radnetzBerlin } from '@tilda-geo/bicycle-infrastructure-tagging/profiles/radnetz-berlin'
+import { tildaGeo } from '@tilda-geo/bicycle-infrastructure-tagging/profiles/tilda-geo'
 import { createElement } from 'react'
 import { m } from './messages.ts'
 import { TildaSection } from './TildaSection.tsx'
 
 export type TildaOptions = {
   /**
-   * Which attributes the checklist asks for: the dataset's profile. Default: Radnetz Berlin. `tilda-geo` (from
-   * `@tilda-geo/bicycle-infrastructure-tagging/profiles/tilda-geo`) asks only for what TILDA itself reads.
+   * Which attributes the checklist asks for: the dataset's profile. Default: `tilda-geo`, only what TILDA itself reads,
+   * for all of Germany (Tobias, 2026-11-20). A campaign passes its own, e.g. `radnetzBerlin` from
+   * `@tilda-geo/bicycle-infrastructure-tagging/profiles/radnetz-berlin`.
    */
   profile?: RequirementsProfile
 }
 
 /** The TILDA section of a highway. Switched on by the app's config. */
 export function tilda(options: TildaOptions = {}) {
-  const profile = options.profile ?? radnetzBerlin
+  const profile = options.profile ?? tildaGeo
   return defineModule({
     id: 'tilda',
     setup(api) {

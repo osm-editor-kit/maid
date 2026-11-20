@@ -22,7 +22,7 @@ import { tilda } from '@osm-editor-kit/maid-module-tilda'
 tilda(),
 ```
 
-`tilda({ profile })` takes the dataset's requirements profile. The default is Radnetz Berlin. The `tilda-geo` profile (from `@tilda-geo/bicycle-infrastructure-tagging/profiles/tilda-geo`) asks only for what TILDA itself reads.
+`tilda({ profile })` takes the dataset's requirements profile. The default is `tilda-geo` (Tobias, 2026-11-20: Maid Bicycle is for all of Germany): it asks only for what TILDA itself reads. A campaign passes its own, e.g. `radnetzBerlin` from `@tilda-geo/bicycle-infrastructure-tagging/profiles/radnetz-berlin` (part widths, `dual_carriageway`, the damage sign and barrier reminders).
 
 `packages/shell/src/styles.css` lists `@source '../../module-tilda/src';`.
 
