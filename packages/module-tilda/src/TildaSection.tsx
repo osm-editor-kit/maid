@@ -592,6 +592,19 @@ function ChangeTo({
   if (after)
     for (const [key, value] of Object.entries(after))
       if (value !== undefined) afterTags[key] = value
+  // a planned tag with choices (the separation of a protected lane: bollard, flex_post, ...): the value picked here, else
+  // one of them that is tagged already, else the package's default (iD-Radnetz with tagging 0.3.0)
+  const [picked, setPicked] = useState<Readonly<Record<string, string>>>({})
+  const withChoices = plan
+    ? [...plan.add, ...plan.change].filter((entry) => entry.choices?.length)
+    : []
+  for (const entry of withChoices) {
+    const tagged = tags[entry.key]
+    const value =
+      picked[entry.key] ??
+      (tagged !== undefined && entry.choices?.includes(tagged) ? tagged : undefined)
+    if (value !== undefined) afterTags[entry.key] = value
+  }
   const changes = plan
     ? [
         ...plan.remove.map((key) => ({ key, reason: m.tilda_remove_reason() })),
@@ -657,6 +670,27 @@ function ChangeTo({
             ))}
           </div>
         ))}
+      {withChoices.map((entry) => (
+        <div
+          key={entry.key}
+          role="group"
+          aria-label={entry.key}
+          className="flex flex-wrap items-center gap-1"
+        >
+          <code className={`${MUTED} w-full`}>{entry.key}</code>
+          {entry.choices?.map((value) => (
+            <button
+              key={value}
+              type="button"
+              className={BUTTON}
+              aria-pressed={afterTags[entry.key] === value}
+              onClick={() => setPicked({ ...picked, [entry.key]: value })}
+            >
+              {value}
+            </button>
+          ))}
+        </div>
+      ))}
       {plan && (
         <>
           {after && Object.keys(update).length > 0 && (

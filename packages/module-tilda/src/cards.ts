@@ -13,6 +13,7 @@ import {
   applyCategoryPlan,
   gapTags,
   gapWriteKey,
+  onewayKey,
   planForMappingChoice,
   reminders,
   requiredAttributes,
@@ -90,7 +91,16 @@ export function planReached(tags: Tags, plan: CategoryChangePlan) {
   if (plan.conflicts.length > 0 || !plan.aligned) return false
   const after = applyCategoryPlan({ ...tags }, plan)
   const keys = new Set([...Object.keys(tags), ...Object.keys(after)])
-  return [...keys].every((key) => tags[key] === after[key])
+  // a key with choices (the separation of a protected lane) is reached with any of its values
+  const choices = new Map<string, readonly string[]>()
+  for (const entry of [...plan.add, ...plan.change])
+    if (entry.choices?.length) choices.set(entry.key, entry.choices)
+  return [...keys].every((key) => {
+    const value = tags[key]
+    return (
+      value === after[key] || (value !== undefined && choices.get(key)?.includes(value) === true)
+    )
+  })
 }
 
 /** The choices of "Change to" that the tags reach now are dropped: the card shows the new category instead */
@@ -194,7 +204,9 @@ export function bothSidesUpdate(left: TagsUpdate, right: TagsUpdate): TagsUpdate
 }
 
 /**
- * Tags `value` for an attribute. The oneway row of a footway or path writes `oneway:bicycle`; an old `oneway` with
+ * Tags `value` for an attribute. The oneway row of a way that pedestrians use too (footway, path, cycleway with
+ * `foot=yes|designated` or `segregated=yes`: the package's `onewayKey`) writes `oneway:bicycle` and sets `oneway=no`,
+ * because people on foot walk both ways there (iD-Radnetz, 2026-11-13 and 2026-11-20). Elsewhere an old `oneway` with
  * the same value goes in the same step, one with another value stays and shows as "not read".
  */
 export function attributeUpdate(
@@ -204,7 +216,11 @@ export function attributeUpdate(
   twin?: RequiredAttribute,
 ): TagsUpdate {
   const update: TagsUpdate = { [attribute.key]: value }
-  if (attribute.key === 'oneway:bicycle' && tags.oneway === value) update.oneway = undefined
+  if (attribute.key === 'oneway:bicycle') {
+    if (onewayKey(tags) === 'oneway:bicycle') {
+      if (tags.oneway !== 'no') update.oneway = 'no'
+    } else if (tags.oneway === value) update.oneway = undefined
+  }
   return twin ? bothSidesUpdate(update, { [twin.key]: value }) : update
 }
 

@@ -7,6 +7,7 @@ import {
   resolveCountry,
   splitSignIdSignValue,
   type SignEntry,
+  withoutNone,
 } from './sign-value.ts'
 
 const parse = (value: string) => parseSignValue(value, 'DE', trafficSignData)
@@ -102,5 +103,12 @@ describe('splitSignIdSignValue', () => {
   it('splits an id and its value', () => {
     expect(splitSignIdSignValue('274[47]')).toEqual({ signId: '274', signValue: '47' })
     expect(splitSignIdSignValue('"a[b]"')).toEqual({ signId: '"a[b]"', signValue: undefined })
+  })
+})
+
+describe('withoutNone', () => {
+  it('drops none once a sign is added, keeps none alone', () => {
+    expect(formatSignValue(withoutNone(parse('none;DE:240')), 'DE')).toBe('DE:240')
+    expect(formatSignValue(withoutNone(parse('none')), 'DE')).toBe('none')
   })
 })

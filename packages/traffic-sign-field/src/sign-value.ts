@@ -182,3 +182,12 @@ export function entryOf(sign: SignType): SignEntry {
 export function signTitle(sign: SignType): string {
   return sign.descriptiveName || sign.name || sign.osmValuePart
 }
+
+/**
+ * `none` ("no sign") next to a sign contradicts it: once a sign is added to `traffic_sign=none`, `none` goes
+ * (iD-Radnetz, 2026-11-12)
+ */
+export function withoutNone(entries: readonly SignEntry[]): SignEntry[] {
+  const signs = entries.filter((entry) => entry.part.trim() !== 'none')
+  return signs.length > 0 ? signs : [...entries]
+}

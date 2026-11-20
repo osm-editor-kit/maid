@@ -1,7 +1,13 @@
 import type { SignType } from '@osm-traffic-signs/converter'
 import { useEffect, useRef, useState } from 'react'
 import { isCountry, loadCatalogue, loadedCatalogue, type Country } from './catalogue.ts'
-import { formatSignValue, parseSignValue, resolveCountry, type SignEntry } from './sign-value.ts'
+import {
+  formatSignValue,
+  parseSignValue,
+  resolveCountry,
+  type SignEntry,
+  withoutNone,
+} from './sign-value.ts'
 import { SignRow } from './SignRow.tsx'
 import { SignSearch } from './SignSearch.tsx'
 import { DEFAULT_TEXTS, type TrafficSignTexts } from './texts.ts'
@@ -90,7 +96,7 @@ export function TrafficSignField({
   const editable = !readOnly && !mixed && !loading && onChange !== undefined
 
   function commit(next: SignEntry[]) {
-    const written = formatSignValue(next, country)
+    const written = formatSignValue(withoutNone(next), country)
     if (written !== value) onChange?.(written)
   }
 

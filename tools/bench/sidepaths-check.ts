@@ -8,8 +8,9 @@
  *   `sidewalk:left:surface`, the road stays selected; undo restores the road.
  * - Spandauer Straße (w4773465) has `cycleway:right=track` and a separate sidewalk on the right: the extract entries
  *   are offered; "Extract + merge right" turns the existing sidewalk into a foot and cycle path, the
- *   road gets `cycleway:right=separate`, no new way is left; undo restores both. "Extract right cycle track" adds one
- *   new cycleway, selected.
+ *   road gets `cycleway:right=separate`, no new way is left; undo restores both. Its track is
+ *   `cycleway:right:segregated=yes`, so "Extract right cycle track" merges it with the sidewalk too, into a segregated
+ *   foot and cycle path (iD-Radnetz with TILDA tagging 0.7.0).
  * Fixtures only, nothing leaves localhost.
  *
  *   bun tools/bench/sidepaths-check.ts medium --app bicycle
@@ -199,15 +200,15 @@ process.exit(
     await settle()
     const track = extracted?.[0] ? await tags(extracted[0]) : {}
     report(
-      'extract: a new cycleway, selected, with the tags of the side',
-      [1, true, 'cycleway', 'paving_stones'],
-      [extracted?.length, extracted?.[0]?.startsWith('w-'), track.highway, track.surface],
+      'extract a segregated track: merged with the sidewalk into a segregated path, selected',
+      [1, false, 'path', 'yes'],
+      [extracted?.length, extracted?.[0]?.startsWith('w-'), track.highway, track.segregated],
     )
     report('extract: the graph has new entities', true, (await wayCount()) > countBefore)
     await page.screenshot({ path: 'reports/sidepaths-extract.png' })
     console.log('screenshot: reports/sidepaths-extract.png')
     await page.evaluate(() => window.__maid.engine.undo())
     await settle()
-    report('undo removes the extracted way', roadBefore, await tags(SPANDAUER_STRASSE.id))
+    report('undo restores the road after extracting', roadBefore, await tags(SPANDAUER_STRASSE.id))
   }),
 )

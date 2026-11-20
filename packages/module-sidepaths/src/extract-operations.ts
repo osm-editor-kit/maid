@@ -11,6 +11,7 @@ import {
   type ExtractProblem,
   extractMergePlan,
   extractPlan,
+  segregatedTrack,
 } from './extract-merge.ts'
 import { m } from './messages.ts'
 import type { Side } from './side-tags.ts'
@@ -58,6 +59,8 @@ export function problemSentence(problem: ExtractProblem): string {
       return m.extract_refused_lengths({ side })
     case 'different_values':
       return m.extract_refused_different_values({ side, key: problem.key ?? '' })
+    case 'different_lifecycle':
+      return m.extract_refused_different_lifecycle({ side })
     case 'mixed':
       return m.extract_refused_no_sidewalk({ side })
     case 'incomplete':
@@ -164,9 +167,26 @@ const extractEntries: Entry[] = (['cycleway', 'sidewalk', 'path'] as const).flat
     annotation: () => m.extract_annotation(),
     applies: (road: OsmWay) => offers(road, variant, choice),
     plan: (graph: Graph, roadId: string) =>
-      extractPlan(graph, roadId, variant, SIDES_OF[choice], signRules() ?? {}),
+      variant === 'cycleway'
+        ? cyclewayPlan(graph, roadId, SIDES_OF[choice])
+        : extractPlan(graph, roadId, variant, SIDES_OF[choice], signRules() ?? {}),
   })),
 )
+
+/**
+ * "Extract cycle track": a cycle track segregated from the sidewalk (`cycleway:<side>:segregated=yes` on every side of
+ * the entry) is one segregated foot and cycle path with it, so the entry runs "Extract + merge", which decides per
+ * side (iD-Radnetz, 2026-11-20); the plain extraction when that is refused
+ */
+function cyclewayPlan(graph: Graph, roadId: string, sides: readonly Side[]): ExtractPlan {
+  const road = graph.entity(roadId) as OsmWay
+  const rules = signRules() ?? {}
+  if (sides.every((side) => segregatedTrack(road.tags, side))) {
+    const merged = extractMergePlan(graph, roadId, sides, rules)
+    if (!('problem' in merged)) return merged
+  }
+  return extractPlan(graph, roadId, 'cycleway', sides, rules)
+}
 
 const mergeEntries: Entry[] = CHOICES.map((choice) => ({
   id: `extract-merge-${choice}`,

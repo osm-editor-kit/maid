@@ -29,6 +29,13 @@ export function definedTags(
 /** What the traffic sign rules give the package; without them it reads no signs */
 export type SignRules = { recommend?: SignRecommend; joinSigns?: JoinSigns }
 
+/**
+ * A cycle track segregated from the sidewalk (`cycleway:<side>:segregated=yes`): `path` (the package's default) makes
+ * it a segregated foot and cycle path of its own; `twoLines` the cycleway line of a path mapped as two lines
+ * (`traffic_mode:<side>=foot`), to merge it with the sidewalk way or to keep it next to one (iD-Radnetz, 2026-11-20)
+ */
+export type SegregatedTrack = 'path' | 'twoLines'
+
 export type SidepathExtraction = {
   wayTags: Record<string, string>
   roadTags: Record<string, string>
@@ -50,8 +57,9 @@ export function planSidepathExtraction(
   variant: ExtractVariant,
   side: Side,
   rules: SignRules = {},
+  segregatedTrack?: SegregatedTrack,
 ): SidepathExtraction {
-  const plan = planExtraction(road, variant, side, rules)
+  const plan = planExtraction(road, variant, side, { ...rules, segregatedTrack })
   const wayTags = definedTags(plan.wayTags)
   const reversed = wayTags.oneway === '-1' || wayTags['oneway:bicycle'] === '-1'
   return {
@@ -98,12 +106,13 @@ export function actionExtractSidepath(
   variant: ExtractVariant,
   side: Side,
   rules: SignRules = {},
+  segregatedTrack?: SegregatedTrack,
 ): ExtractAction {
   // the new way's id is made here, once, so that a preview and the real run name the same way
   const way = new OsmWay(graph.context, { nodes: [], tags: {} })
   const action = ((g: Graph) => {
     const road = g.entity(roadId) as OsmWay
-    const plan = planSidepathExtraction(road.tags, variant, side, rules)
+    const plan = planSidepathExtraction(road.tags, variant, side, rules, segregatedTrack)
     const offset = offsetLine(roadLocs(g, road)!, plan.offsetMetres, side)
     // in the road's direction, or against it where its bikes ride against the road (`oneway=yes` then)
     if (plan.reversed) offset.reverse()

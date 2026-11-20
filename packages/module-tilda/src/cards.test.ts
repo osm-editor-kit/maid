@@ -116,6 +116,40 @@ describe('buildCards', () => {
   })
 })
 
+const onewayBicycleRow = {
+  id: 'oneway_bicycle',
+  ruleSet: 'common',
+  key: 'oneway:bicycle',
+  value: undefined,
+  tagged: [{ key: 'oneway', value: 'yes' }],
+  lookup: ['oneway:bicycle', 'oneway'],
+  tilda: 'yes',
+  state: 'ok',
+  options: [],
+  optional: false,
+  feeds: [],
+} as const
+
+test('attributeUpdate on a way shared with pedestrians writes oneway:bicycle and oneway=no', () => {
+  const row = {
+    ...onewayBicycleRow,
+    tagged: [...onewayBicycleRow.tagged],
+    lookup: [...onewayBicycleRow.lookup],
+    options: [],
+    feeds: [],
+  }
+  const shared: Record<string, string>[] = [
+    { highway: 'footway', oneway: 'yes' },
+    { highway: 'path', oneway: 'yes' },
+    { highway: 'cycleway', foot: 'designated', oneway: 'yes' },
+  ]
+  for (const tags of shared)
+    expect(attributeUpdate(tags, row, 'yes')).toEqual({ 'oneway:bicycle': 'yes', oneway: 'no' })
+  expect(attributeUpdate({ highway: 'path', oneway: 'no' }, row, 'yes')).toEqual({
+    'oneway:bicycle': 'yes',
+  })
+})
+
 test('attributeUpdate moves oneway to oneway:bicycle when the value is the same', () => {
   const attribute = {
     id: 'oneway_bicycle',

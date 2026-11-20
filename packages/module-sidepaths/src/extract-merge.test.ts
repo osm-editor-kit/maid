@@ -18,8 +18,12 @@ const road = {
 }
 
 /** A road running east, and optionally a footway 5 m to its south (its right side) */
-function graphOf(withFootway: boolean) {
-  const entities = [node('n1', 13.4, 52.5), node('n2', 13.402, 52.5), way('w1', ['n1', 'n2'], road)]
+function graphOf(withFootway: boolean, roadTags: Record<string, string> = road) {
+  const entities = [
+    node('n1', 13.4, 52.5),
+    node('n2', 13.402, 52.5),
+    way('w1', ['n1', 'n2'], roadTags),
+  ]
   if (withFootway)
     entities.push(
       node('n3', 13.4, north(-5)),
@@ -80,4 +84,49 @@ test('extract and merge without a footway is refused before anything changes', (
   expect(extractMergePlan(graphOf(false), 'w1', ['right'], {})).toEqual({
     problem: { reason: 'no_sidewalk', side: 'right', step: 'merge' },
   })
+})
+
+// iD-Radnetz, 2026-11-20 (TILDA tagging 0.7.0): a cycle track segregated from the sidewalk
+const segregatedRoad = { ...road, 'cycleway:both:segregated': 'yes' }
+
+test('a segregated cycle track is merged with the sidewalk into a segregated foot and cycle path', () => {
+  const graph = graphOf(true, segregatedRoad)
+  const plan = extractMergePlan(graph, 'w1', ['right'], {})
+  if ('problem' in plan) throw new Error(plan.problem.reason)
+  expect(plan.selected).toEqual(['w2'])
+  expect(plan.keptApart).toEqual([])
+  const path = apply(graph, plan).entity('w2') as OsmWay
+  expect(path.tags).toMatchObject({ highway: 'path', foot: 'designated', segregated: 'yes' })
+  expect(path.tags['traffic_mode:right']).toBeUndefined()
+})
+
+test('a segregated cycle track without a sidewalk way becomes a segregated path of its own, not a refusal', () => {
+  const graph = graphOf(false, segregatedRoad)
+  const plan = extractMergePlan(graph, 'w1', ['right'], {})
+  if ('problem' in plan) throw new Error(plan.problem.reason)
+  expect(plan.keptApart).toEqual([{ side: 'right', outcome: 'alone' }])
+  const created = apply(graph, plan).entity(plan.selected[0]!) as OsmWay
+  expect(created.tags).toMatchObject({ highway: 'path', foot: 'designated', segregated: 'yes' })
+})
+
+test('a segregated cycle track of a road under construction stays apart from a sidewalk that is not: two lines', () => {
+  const building = { ...segregatedRoad, highway: 'construction', construction: 'residential' }
+  const graph = graphOf(true, building)
+  const plan = extractMergePlan(graph, 'w1', ['right'], {})
+  if ('problem' in plan) throw new Error(plan.problem.reason)
+  expect(plan.keptApart).toEqual([{ side: 'right', outcome: 'two_lines' }])
+  const after = apply(graph, plan)
+  const created = after.entity(plan.selected[0]!) as OsmWay
+  expect(created.tags).toMatchObject({
+    highway: 'construction',
+    construction: 'cycleway',
+    'traffic_mode:right': 'foot',
+  })
+  expect(after.entity('w2').tags.highway).toBe('footway')
+})
+
+test('a plain cycle track of a road under construction is not merged with a sidewalk that is not', () => {
+  const graph = graphOf(true, { ...road, highway: 'construction', construction: 'residential' })
+  const plan = extractMergePlan(graph, 'w1', ['right'], {})
+  expect('problem' in plan && plan.problem.reason).toBe('different_lifecycle')
 })

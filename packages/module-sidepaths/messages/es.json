@@ -35,6 +35,7 @@
   "extract_refused_apart": "La acera del lado {side} está demasiado lejos del carril bici.",
   "extract_refused_lengths": "La acera del lado {side} y el carril bici tienen longitudes muy distintas. Divide primero la acera.",
   "extract_refused_different_values": "La acera del lado {side} y el carril bici tienen valores distintos para {key}.",
+  "extract_refused_different_lifecycle": "Solo uno de la acera del lado {side} y el carril bici está en construcción. Extrae el carril bici solo; la acera sigue siendo una línea propia.",
   "choice_distance": "a {distance} m de la calle, {length} m de largo",
   "choice_both": "izquierda a {left} m, derecha a {right} m de la calle",
   "extract_group_label": "Extraer vía lateral"

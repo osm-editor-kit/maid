@@ -35,6 +35,7 @@
   "extract_refused_apart": "The footway on the {side} side runs too far from the cycle track.",
   "extract_refused_lengths": "The footway on the {side} side and the cycle track differ too much in length. Split the footway first.",
   "extract_refused_different_values": "The footway on the {side} side and the cycle track have different values for {key}.",
+  "extract_refused_different_lifecycle": "Only one of the footway on the {side} side and the cycle track is under construction. Extract the cycle track alone; the footway stays a line of its own.",
   "choice_distance": "{distance} m from the road, {length} m long",
   "choice_both": "left {left} m, right {right} m from the road",
   "extract_group_label": "Extract side path"
