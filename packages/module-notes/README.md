@@ -24,7 +24,7 @@ import { notes } from '@osm-editor-kit/maid-module-notes'
 notes({ apiUrl: config.apiUrl }),
 ```
 
-All five apps (`maid`, `maid-bicycle`, `maid-parking`, `maid-indoor`, `maid-lanes`) call it this way. Tailwind needs `@source '../../module-notes/src';` in `packages/shell/src/styles.css` (listed there).
+Every app ([list](../../docs/features.md)) call it this way. Tailwind needs `@source '../../module-notes/src';` in `packages/shell/src/styles.css` (listed there).
 
 The module declares the extension point `note.selection` (`NoteSelection`, `src/extension-points.ts`): the chosen note, read by the shell's URL `id`. The app's map click handler must return early on the marker layers: `NOTES_LAYER_IDS` (for example with `map.queryRenderedFeatures`), or the OSM feature under the marker is selected too.
 

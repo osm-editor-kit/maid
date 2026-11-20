@@ -14,9 +14,10 @@ to it.
 ## One central Maid, many editors
 
 This repository is the central Maid. An editor is an app in `apps/` with a config that picks modules, presets and
-filters; everything a topic needs beyond that is a module in `packages/`. We build our own editors the same way:
-`apps/maid` (general), `apps/maid-bicycle` (road and bike infrastructure), `apps/maid-parking` (street parking),
-`apps/maid-indoor` (indoor and building levels), `apps/maid-lanes` (the lanes of roads) and `apps/maid-golf` (golf courses, a prototype).
+filters; everything a topic needs beyond that is a module in `packages/`. We build our own editors the same way, from
+the general `apps/maid` to street parking, bike infrastructure, lanes, indoor, buildings, golf, climbing and
+MapRoulette: [the overview page](https://osm-editor-kit.github.io/maid/) shows them, [docs/features.md](docs/features.md)
+lists each one's modules.
 
 To make your own editor:
 
@@ -47,7 +48,7 @@ work first. Thank you to their maintainers and contributors, and to [MapLibre](h
 
 ```bash
 bun install
-bun run dev        # the five apps and the local mock API
+bun run dev        # every app and the local mock API
 bun run check      # types, lint, format, texts, unit tests
 bun run check-all  # the browser checks
 ```

@@ -7,7 +7,8 @@ Why things are the way they are is in [docs/adr/](docs/adr/README.md). The deepe
 
 ## The idea in one paragraph
 
-Maid is one central editor core and several small editors built on it. An **editor** is an app folder in `apps/` with
+Maid is one central editor core and several small editors built on it. An **editor** (also called an app or an
+edition, for example Maid Parking) is an app folder in `apps/` with
 one config file, `src/maid.config.ts`, that names its **modules**, **presets** and **filters**. Everything an editor
 needs beyond the core lives in a **Maid module**, a package in `packages/module-*`. A module adds things to fixed places
 (**extension points**). It never patches the shell or the renderer. If an editor needs a new place, the core gets a new
@@ -50,8 +51,10 @@ reports/             output of benchmarks and checks (mostly git-ignored)
 All packages are named `@osm-editor-kit/maid-<folder>` ([why](docs/architecture/03-packages.md#package-names)) and are
 imported by that name, through the `exports` in their `package.json`. A package never imports another package's
 files by a relative path, and never imports from `tools/`. The shell, renderer, ui and core never import a module
-package. Built-in modules that every editor needs (element info, relations, validation, scene bounds) live in
-`packages/shell/src/modules/`.
+package. Built-in modules that every editor needs (element info, relations with the route overview, validation, scene
+bounds) live in `packages/shell/src/modules/`. Modules do not import each other. A module's logic that works without
+React and the map (a file format, an API client, a parser) goes into a package of its own without `module-` in the
+name (`tasks`, `maproulette`, `levels`, `osm-lanes`), so it can be tested and used alone.
 
 ## The config object
 
@@ -61,27 +64,17 @@ where an editor differs from another:
 | Field | What it sets |
 | --- | --- |
 | `id` | The name of the app's browser storage (journal, logged-in user); unique across apps |
-| `brand`, `version` | The name in the top bar; `created_by` of every changeset is `<brand.name> <version>`, with `version` from the app's `package.json` |
+| `brand`, `version` | Logo, favicon and name in the top bar and the browser tab (the SVGs come from `bun run logo-build`); `created_by` of every changeset is `<brand.name> <version>`, with `version` from the app's `package.json` |
+| `beta` | Where the "Beta" flag next to the logo links; `false` hides it |
 | `defaultLocale` | The language when the URL, the stored choice and the browser name none |
 | `osm` | Which servers the editor offers (`['osm', 'dev']`, first is the default), the OAuth client ids from the env file, the login origin |
+| `favourites` | The presets the editor suggests as favourites while a person has none of their own |
 | `editor(config)` | Returns the `EditorConfig` (`packages/core/src/types.ts`): `modules`, `presets`, `filters`. `config` holds the settings the shell read from the URL (scene, API, display), so a module can depend on them |
 
-What each app turns on today:
-
-| App | Port | Modules beyond the shared set |
-| --- | --- | --- |
-| `apps/maid` | 5173 | turn restrictions, surface |
-| `apps/maid-bicycle` | 5176 | turn restrictions, surface, traffic signs, way table, reroute, osmchange, sidepaths, TILDA, bike infrastructure (its default look) |
-| `apps/maid-parking` | 5177 | parking (with its lens and rules), shapes (angle snap with lengths, rectangle, merge, cut, divide, resize, extrude) |
-| `apps/maid-indoor` | 5178 | levels (with its level rules), shapes (angle snap with lengths, rectangle, room, merge, cut, divide, resize) |
-| `apps/maid-lanes` | 5179 | lanes (section with the cross-section and the lane table, and its lens), turn restrictions, traffic signs, way table |
-| `apps/maid-golf` | 5180 | golf (a prototype): the holes as a scorecard in the dock, golf lens, golf rules and presets, drawing tools; roads and buildings locked |
-| `apps/maid-climbing` | 5181 | climbing (section for crags, areas and routes; the fields of id-tagging-schema PR 2793), terrain (relief and 3D, the map may tilt); no surface or turn restrictions |
-| `apps/maid-buildings` | 5182 | buildings (the buildings style after the kaligrafy iD fork as its standard, the number of dwellings on the map, level fields on every building, building favourites), shapes (angle snap with lengths, rectangle, merge, cut, divide, resize, extrude), HOT Tasking Manager (`tm=<project>/<task>`: the task on the map, its instructions in the dock, the project's changeset comment); roads, paths, rail, water and power locked |
-| `apps/maid-maproulette` | 5183 | MapRoulette (challenges by number, link or nearby, tasks on the map and in the inspector, tag fix, status right away or with the upload), turn restrictions, surface |
-
-The shared set is the same in all six: element info, operations, relations, validation, imagery, data layers, lenses,
-street-level images, notes, task lists. Read the six config files side by side to see the pattern; they are short.
+**Which modules each app turns on** is listed in [docs/features.md](docs/features.md), generated from the config files
+(do not keep a second list by hand); ports are in `tools/ports.ts`. Every app shares a base set (element info,
+operations, relations, validation, imagery, data layers, lenses, street-level images, notes, task lists) and adds its
+own. Read two config files side by side to see the pattern; they are short.
 
 **Presets** come from `presets.ts` next to the config: the tagging schema's data with the changes that modules ship
 (`withChanges(defaultPresetData, parkingPresetChanges)`). They are loaded with `lazyPresets(() => import('./presets'))`
@@ -109,8 +102,9 @@ export function rectangle() {
 
 - `editor`: the editor, with its data, history, presets and registries.
 - `register(point, item)`: adds an item to an extension point.
-- `on(name, listener)`: listens to a hook. The hook mechanism exists, but no hook is used in production yet. Prefer an
-  extension point.
+- `on(name, listener)`: listens to a hook, an event the shell runs. The only hook is `changeset.uploaded`
+  (`packages/shell/src/hooks.ts`, marked experimental), used by osmchange and MapRoulette. Prefer an extension point;
+  a new hook is declared with `declareHooks` in the package that runs it.
 - `urlParam(declaration)`: declares a URL parameter the module owns. It throws when the app or another module already
   uses that name.
 
@@ -162,7 +156,8 @@ German, French and Spanish. The decisions are in [ADR 0009](docs/adr/0009-decisi
 - **A module's texts** live in the module: `project.inlang/settings.json` and `messages/<locale>.json`, plus a
   `src/messages.ts` that calls `linkModuleLocale(overwriteGetLocale)` and re-exports `m` (copy the one in
   `packages/module-parking`). The compile script finds every `packages/module-*` folder with a `project.inlang` folder;
-  no list needs to be edited.
+  no list needs to be edited. A module never adds its texts to `packages/i18n`, and the core never holds a module's
+  texts, so a module can be copied into a fork with its texts.
 - **Compiled output** goes to `<package>/paraglide/` and is not committed. `bun run i18n-compile` writes it, and `dev`,
   `type-check` and `check` run it first.
 - **Missing texts:** `bun run i18n-check` lists the keys a language lacks, and placeholders that differ, in
@@ -185,12 +180,18 @@ is in [storage and settings](docs/architecture/09-storage-and-settings.md).
 
 ## Build and deploy
 
-- `bun run dev` starts the six apps and the mock API. Ports are in `tools/ports.ts`.
+- `bun run dev` starts every app and the mock API, `bun run dev-<app>` one app. Ports are in `tools/ports.ts`.
 - Each app is built by Vite (`apps/<app>/vite.config.ts`, shared parts in `apps/vite-shared.ts`). The shell's
   `public/` folder is every app's public folder.
 - `bun run pages-build` builds the apps named in `deploy.env` (`MAID_APP`) into `site/`. The GitHub Action
   `.github/workflows/pages.yml` runs it on every push to `main` and publishes to GitHub Pages. Repository variables
   override `deploy.env`. Setup for a fork, OAuth and the variables: [docs/deploying.md](docs/deploying.md).
+- With several apps, the page at the path is an overview of the editors (`tools/deploy/showcase/`): a tile per app from
+  `apps/<app>/overview.json` and its screenshot, and a feature comparison with iD and Rapid from
+  `tools/deploy/showcase/features.ts`. `bun run features-doc` writes the same data to [docs/features.md](docs/features.md),
+  and a test fails when a module has no row there or the file is out of date.
+- **Test links:** a deployed app is at `https://osm-editor-kit.github.io/maid/<app>/`, for example
+  `…/maid-parking/?api=osm&map=19/52.38531/13.39869&id=w45898997`. Parameters: [URL state](docs/architecture/08-url-state.md).
 - **Versions:** each app's `package.json` has its own version. It goes into every changeset's `created_by`, so raise it
   when an app changes in a way mappers should be able to tell apart. There is no changelog file; the commit messages
   (`<Topic>: <outcome>` with outcome bullets) are the record.
@@ -206,32 +207,62 @@ is in [storage and settings](docs/architecture/09-storage-and-settings.md).
 4. If the module has Tailwind classes, add its `src` folder with `@source` in `packages/shell/src/styles.css`.
 5. Add the package to the app's `package.json`, run `bun install`, and add the factory to `modules` in
    `maid.config.ts`.
-6. Unit tests next to the code (`*.test.ts`). For behaviour on the map, a browser check in `tools/checks/` and a row in
-   `tools/checks/check-all.ts` and in the check table of [AGENTS.md](AGENTS.md).
-7. `bun run check`, `bun run check-config`, and `bun run check-all --app <app>`.
+6. Unit tests next to the code (`*.test.ts`). For behaviour on the map, a browser check (`tools/checks/README.md` says
+   how), a row in `tools/checks/check-all.ts` and one in [tools/checks/README.md](tools/checks/README.md).
+7. A row in `tools/deploy/showcase/features.ts` for what the module adds, then `bun run features-doc`.
+8. A `README.md` in the package: what it adds, its options, which apps call it (link [docs/features.md](docs/features.md)
+   rather than listing them).
+9. `bun run check`, `bun run check-config`, and `bun run check-all --app <app>`.
 
 ### Add an app
 
-1. Copy `apps/maid-parking` to `apps/maid-<name>`, without `dist/` and `node_modules/`.
-2. In the copy: `package.json` name, `index.html` title, `src/maid.config.ts` (`id`, `brand`, `defaultLocale`,
-   `osm.loginOrigin`, modules), `src/presets.ts`.
+An app is a new editor (an edition). The name of an app is written into several lists today; the steps below are all of
+them (a single list is proposed in [steps.md](docs/build-out/steps.md#architecture-follow-ups)).
+
+1. Copy `apps/maid-parking` to `apps/maid-<name>`, without `dist/`, `node_modules/` and `.env.local`.
+2. In the copy: `package.json` name (version `0.1.0`), `index.html` title, `.env.example`, `src/maid.config.ts` (`id`,
+   `brand`, `defaultLocale`, `osm.loginOrigin`, modules, `favourites`), `src/presets.ts`, and `overview.json` (the
+   tile on the overview page: `tagline`, `description`, `highlights`, `open`).
 3. Give it a port in `tools/ports.ts`, use that port in its `vite.config.ts`, and add it to `APPS` in
    `tools/bench/args.ts`. This list feeds `check-config`, `check-all` and the browser checks.
 4. Add a `dev-<name>` script to the root `package.json`, next to `dev-parking`, and add it to `dev`.
-5. To deploy it, add the folder name to `MAID_APP` in `deploy.env`.
-6. `bun install`, `bun run check`, `bun run check-config`, `bun run check-all --app <name>`.
+5. Logo: the app's colour and icon in `docs/logo/build.ts`, then `bun run logo-build` (writes `src/brand/`).
+6. Browser checks: the app's expected `ok` counts in `tools/checks/check-all.ts`.
+7. To deploy it, add the folder name to `MAID_APP` in `deploy.env`, run `bun run features-doc`, and add a screenshot
+   to `tools/deploy/showcase/shots/` (its README says how). Locally, logging in needs the app's port as a redirect URI
+   of the OAuth apps, which a person adds ([docs/deploying.md](docs/deploying.md)).
+8. `bun install`, `bun run check`, `bun run check-config`, `bun run check-all --app <name>`.
 
 ### Change the core
 
 Change it in the package that owns the behaviour, with a unit test, in a commit of its own. Run `bun run check-all`
-for all five apps, since every app uses the core. Follow iD where in doubt (rule 3 in [AGENTS.md](AGENTS.md)).
+for every app, since every app uses the core. Follow iD where in doubt (rule 3 in [AGENTS.md](AGENTS.md)).
 
 ## Where the code does not follow this yet
 
-The code was checked against this file on 2026-10-17. What does not follow it yet (texts in ui, shell and five
-modules; sentences from headless packages; the shell importing three modules) is listed in
+The code was checked against this file on 2026-10-17 and again on 2026-11-20. What does not follow it yet (texts in
+ui, shell and eight modules; sentences from headless packages; the shell importing three modules; the ui naming
+MapRoulette; packages importing from `tools/`) is listed in
 [steps.md, Architecture follow-ups](docs/build-out/steps.md#architecture-follow-ups). Fix the code there, not the
 rule here, unless the rule is wrong.
+
+## Where each topic is kept
+
+Each topic has one place; other files link to it instead of repeating it.
+
+| Topic | The one place |
+| --- | --- |
+| Rules for working here, the script names, subagents | [AGENTS.md](AGENTS.md) |
+| How it is built, config, modules, extension points, texts, recipes | this file |
+| Which app turns on which module, features compared with iD and Rapid | [docs/features.md](docs/features.md) (generated) |
+| Ports | `tools/ports.ts` |
+| Deploying, OAuth apps, repository variables | [docs/deploying.md](docs/deploying.md) |
+| URL parameters | [docs/architecture/08-url-state.md](docs/architecture/08-url-state.md) |
+| The browser checks | [tools/checks/README.md](tools/checks/README.md) |
+| The task file format | [packages/tasks/FORMAT.md](packages/tasks/FORMAT.md) |
+| What is done and next, tests for Tobias | [docs/build-out/steps.md](docs/build-out/steps.md) |
+| Decisions and why | [docs/adr/](docs/adr/README.md) |
+| One package's options and use | its `README.md` |
 
 ## Where to read on
 

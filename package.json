@@ -28,7 +28,7 @@
     "check-ci": "bun run i18n-compile && bun run --parallel type-check lint-check format-check i18n-check test-run",
     "sim-measure": "bun tools/sim/measure.ts",
     "check-close-nodes": "bun tools/bench/close-nodes-check.ts",
-    "check-config": "bun tools/checks/config-check.ts",
+    "check-config": "bun run i18n-compile && bun tools/checks/config-check.ts",
     "check-cut": "bun tools/bench/cut-check.ts",
     "check-display": "bun tools/bench/display-check.ts",
     "check-divide": "bun tools/bench/divide-check.ts",

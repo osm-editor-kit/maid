@@ -28,7 +28,7 @@ lenses({ lenses: [bikeInfrastructureLens], defaultLook: bikeDefaultLook, editorD
 parking({ lenses: lensChoice }),
 ```
 
-All five apps call `lenses()`, with or without options. The lens is applied by the renderer (`engine.setLens`). Tailwind needs `@source '../../module-lenses/src';` in `packages/shell/src/styles.css` (listed there).
+Every app ([list](../../docs/features.md)) call `lenses()`, with or without options. The lens is applied by the renderer (`engine.setLens`). Tailwind needs `@source '../../module-lenses/src';` in `packages/shell/src/styles.css` (listed there).
 
 ## Parts
 

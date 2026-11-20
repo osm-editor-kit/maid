@@ -24,7 +24,7 @@ dataLayers(),
 dataLayers({ layers: [{ id: 'bikeways', name: 'Bikeways', kind: 'geojson', url: '/data/bikeways.geojson' }] }),
 ```
 
-All five apps (`maid`, `maid-bicycle`, `maid-parking`, `maid-indoor`, `maid-lanes`) call `dataLayers()` without layers. Tailwind needs `@source '../../module-data-layers/src';` in `packages/shell/src/styles.css` (listed there).
+Every app ([list](../../docs/features.md)) call `dataLayers()` without layers. Tailwind needs `@source '../../module-data-layers/src';` in `packages/shell/src/styles.css` (listed there).
 
 ## Parts
 
