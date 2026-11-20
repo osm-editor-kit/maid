@@ -1,11 +1,12 @@
-# Upstream sync: iD and Rapid
+# Upstream sync: iD, Rapid and the Radnetz fork of iD
 
-Maid rewrites iD and borrows from Rapid. Here we record, commit by commit, what changed in both since the commits Maid was built against, and what we did about it. The `upstream-sync` skill runs the review; this file is its context.
+Maid rewrites iD and borrows from Rapid and from FixMyBerlin's iD fork for the Radnetz Berlin campaign. Here we record, commit by commit, what changed in each since the commits Maid was built against, and what we did about it. The `upstream-sync` skill runs the review; this file is its context.
 
 | Log                      | Parent                                                  | Branch    | Started from                                                                                |
 | ------------------------ | ------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------- |
 | [id.json](id.json)       | [openstreetmap/iD](https://github.com/openstreetmap/iD) | `develop` | v2.42.2 (`pin`), a release branch: `base` is v2.42.0 on `develop`, where it left the branch |
 | [rapid.json](rapid.json) | [bhousel/Rapid](https://github.com/bhousel/Rapid)       | `main`    | `413c0519f`, the pin in `tools/refs/rapid/pin.json`                                         |
+| [id-radnetz.json](id-radnetz.json) | [FixMyBerlin/iD](https://github.com/FixMyBerlin/iD) | `radnetz-mapping` | `32c05ed6f`, where the fork left iD's `develop` (no pin: Maid has no reference build of the fork) |
 
 The pins are in `tools/refs/id/pin.json` and `tools/refs/rapid/pin.json`. Moving one is a step of its own after a sync: change the pin, `bun run refs-setup`, then `bun run compare` and `bun run bench-smoke` to see that the comparison still works.
 
@@ -33,6 +34,17 @@ Check the current layout in [ARCHITECTURE.md](../../../ARCHITECTURE.md) before y
 - Rendering is MapLibre with layers, not SVG: an SVG fix is relevant only for what it changes visibly (an icon, a style rule, which features render).
 - A refactor or a migration to TypeScript in iD is `not-relevant`, unless it fixes a bug on the way.
 - iD's interaction details are the reference ("when in doubt, follow iD"): a behaviour change there is a candidate for us.
+
+## The Radnetz fork (FixMyBerlin/iD, `radnetz-mapping`)
+
+The fork is iD for one campaign: the Berlin cycle network (Radnetz), with TILDA, infraVelo and the campaign's key-value DB. Maid Bicycle is for all of Germany, so each change is sorted:
+
+- **Generic, adopt**: tagging logic of the TILDA packages (`@tilda-geo/bicycle-infrastructure`, `-tagging`: they are written for all of Germany, the Radnetz rules are one profile of them), OSM tagging practice (`oneway:bicycle` with `oneway=no` on shared ways), editor fixes and tools any bicycle mapper needs (traffic sign field, widths, side paths).
+- **Campaign-specific, reject**: the Radnetz preset field lists, the default hashtag, TILDA notes and TILDA-Direkt links, the infravelo region, infra3D (Berlin's imagery), the bundled "Radnetz QA" lens, the Netlify site.
+- **Already in Maid**: most features up to 2026-10-13 were taken over feature by feature in [radnetz-features.md](../../build-out/radnetz-features.md) (rows by number); those intents say "already-have" and name the row.
+- **Not relevant**: performance work on iD's SVG renderer, the fork's `WORKDOC.md` (noise rule `workdoc`), its tooling and its own German texts.
+
+The fork pins the TILDA packages in its `package.json`; a sync moves Maid's packages (`packages/module-tilda`, `module-sidepaths`, `module-bike-infrastructure`) to the same versions and ports what the fork changed around them. To find the new commits: clone the branch, add iD as a remote, `git log --no-merges <cursor>..origin/radnetz-mapping`.
 
 ## Rules for a run
 

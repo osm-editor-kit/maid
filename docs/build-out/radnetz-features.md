@@ -1,6 +1,6 @@
 # Radnetz Berlin: what Maid takes over
 
-The Radnetz Berlin editor is an iD fork (branch `radnetz-berlin` of `tordans/iD`). Its `WORKDOC.md` lists 36 features. This is the list of what `apps/radnetz-berlin` (step D6) takes over, where each one goes in Maid, and what Maid has of it today. Read from the work doc on 2026-10-13; the fork itself was not run.
+The Radnetz Berlin editor is an iD fork (branch `radnetz-berlin` of `tordans/iD`). Its `WORKDOC.md` lists 36 features. This is the list of what `apps/radnetz-berlin` (step D6) takes over, where each one goes in Maid, and what Maid has of it today. Read from the work doc on 2026-10-13; the fork itself was not run. Its commits since then are logged with decisions in [docs/upstream/sync/id-radnetz.json](../upstream/sync/id-radnetz.json).
 
 "Proposal" is a suggestion for Tobias to confirm or change: **yes** (part of D6), **later** (after D6), **no** (not needed in Maid). Rows marked with Tobias's name and a date are decided; the others are still proposals.
 
@@ -51,7 +51,7 @@ The Radnetz Berlin editor is an iD fork (branch `radnetz-berlin` of `tordans/iD`
 | # | Feature in the fork | Where in Maid | In Maid today | Proposal |
 | --- | --- | --- | --- | --- |
 | 15 | Preset changes and the missing fields (separation, marking, buffer, `is_sidepath`, ...) | `presets: withChanges(...)` in the app's config | partly: the config hook is built (`withChanges`, c756bc9); the Radnetz changes are not written yet (2026-10-13) | yes |
-| 8 | TILDA bike infrastructure helper (`@tilda-geo/bicycle-infrastructure`) | an inspector section | done 2026-11-10: `packages/module-tilda` in `apps/maid-bicycle`, on `@tilda-geo/bicycle-infrastructure-tagging` 0.2.0: a card per side, the open category question, the footway question, "Change to" with the tag diff, the Radnetz Berlin checklist, reminders. Not yet: field titles coloured by the checklist, "add below" links to the fields | yes |
+| 8 | TILDA bike infrastructure helper (`@tilda-geo/bicycle-infrastructure`) | an inspector section | done 2026-11-10: `packages/module-tilda` in `apps/maid-bicycle`, on `@tilda-geo/bicycle-infrastructure-tagging` 0.2.0 (0.7.0 since 2026-11-20, [id-radnetz.json](../upstream/sync/id-radnetz.json)): a card per side, the open category question, the footway question, "Change to" with the tag diff, the Radnetz Berlin checklist, reminders. Not yet: field titles coloured by the checklist, "add below" links to the fields | yes |
 | 32 | TILDA checklist: defaults to check, `oneway:bicycle`, wrong `cycleway:*:oneway` | the same section plus a validation rule | done in the section 2026-11-10 (defaults to check, `oneway:bicycle`); the validation rules (`/validation` of the tagging package) are not in yet | yes, with 8 |
 | 33 | "I checked this" and "Verified", stored in the key-value DB | the same section; needs the login | in the section, kept in the browser only (`checks-store.ts`); the shared key-value DB is not connected | later (needs the account) |
 | 17 | Extract a side into a separate way | an operation | done 2026-11-11: module `sidepaths`, edit menu entries per side ([sidepaths.md](../research/sidepaths.md)) | yes |

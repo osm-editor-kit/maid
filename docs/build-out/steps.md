@@ -484,6 +484,16 @@ The log of iD and Rapid changes since the pins, with the decisions: [docs/upstre
 - [ ] A circle from `diameter`, `radius` or `circumference` around a selected point, in metres (iD #9732, intent id-4; Tobias, 2026-10-23).
 - [ ] Later, to optimise: drop a GeoJSON or GPX file on the map. Rapid built a DragAndDropSystem for it; Maid builds its own (intent rapid-6; Tobias, 2026-10-23).
 
+### Radnetz fork sync (started 2026-11-20)
+
+Tobias, 2026-11-20: apply the upstream sync to FixMyBerlin's iD fork (`radnetz-mapping`): take its generic improvements into Maid Bicycle, leave the campaign's decisions out. Log and rules: [id-radnetz.json](../upstream/sync/id-radnetz.json), [README](../upstream/sync/README.md#the-radnetz-fork-fixmyberlinid-radnetz-mapping).
+
+- [x] 2026-11-20: 309 commits since iD `32c05ed6f` sorted into 37 intents (5 adopted, 20 already in Maid, 4 later, 4 rejected as campaign-specific, 4 not relevant). Adopted: TILDA packages 0.2.0 → tagging 0.7.0 / core 0.4.0. A cycle track with `cycleway:<side>:segregated=yes` is merged with the sidewalk into a segregated foot and cycle path ("Extract right cycle track" runs "Extract + merge" there); without a sidewalk way it becomes a segregated path of its own; when only one of road and sidewalk is under construction both stay as two lines. Roads under construction count as roads. The bike direction of a way people walk on too writes `oneway:bicycle` and `oneway=no`. "Change to" shows the choices of a planned tag (the separation of a protected lane). The traffic sign field drops `none` once a sign is added. `check-sidepaths` 15 ok, `check-bike-style` 45 ok.
+      **Test for Tobias:** <https://osm-editor-kit.github.io/maid/maid-bicycle/#map=19/52.52033/13.40458&id=w4773465> (Spandauer Straße, `cycleway:right:segregated=yes`), right click, "Extract right cycle track": the sidewalk becomes a segregated foot and cycle path (`segregated=yes`), no new way.
+- [ ] Widths of shared paths (intent radnetz-width-tools): fields for the cycleway and footway part of a segregated path, a warning when a part is as wide as the whole or the parts do not add up, widths from counted sett stones, a decimal comma in width inputs.
+- [ ] Shortcuts `.` and `,` select the next and previous way of the line, with the way table's continuation (intent radnetz-next-way-shortcuts).
+- [ ] Side prerequisites: a field per side only where its parent field allows it (`{side}` in `prerequisiteTag`), its value removed when the parent changes (intent radnetz-side-prerequisites).
+
 ### osmChange files (started 2026-10-23)
 
 Research and design: [osmchange-upload/README.md](../research/osmchange-upload/README.md) (Kyle Hensel's iD work, iD's conflict check, StreetComplete). Decided by Tobias on 2026-10-23: the base version comes from the OSM history (`<type>/<id>/<version>`), in tests from hand-written older versions in the mock (`tools/mock-osm-api/history/`); a delete of an element changed since is a decision that starts on "keep"; both moved a node less than 3 m apart → the file's position, further → a decision; the entry is in the account menu, the review in the dock with the changes on the map in OSMCha's colours; unsaved changes here to an element of the file refuse the file.
