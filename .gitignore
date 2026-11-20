@@ -23,6 +23,7 @@ reports/route-analysis-bench.json
 reports/validation-bench.json
 reports/renderer-build-bench.json
 reports/check-all-*
+reports/sidepaths-*.png
 reports/config-check.json
 reports/sim-measure-*
 reports/tasks-check.json
