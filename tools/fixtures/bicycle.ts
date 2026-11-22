@@ -18,6 +18,13 @@ export type Case = {
   tags: Record<string, string>
   /** The categories TILDA gives, as `side:category`, in its order */
   expect: string[]
+  /** Drawn from east to west, against the other cases of its column */
+  westward?: boolean
+  /**
+   * The riding direction of each line, as `side:dir` sorted (module-bike-infrastructure features.ts
+   * ridingDirection: 1 with the line, -1 against it, 2 both ways, `-` no arrows). Checked by check-bike-style.
+   */
+  dirs?: string[]
 }
 
 export const PATHS: Case[] = [
@@ -297,6 +304,143 @@ export const ROADS: Case[] = [
   },
 ]
 
+/**
+ * The riding direction (oneway=-1 and its kin): each way is drawn from west to east unless `westward`, so the line
+ * direction is the same for all and only the tags turn the direction of the bicycle traffic.
+ */
+export const DIRECTIONS: Case[] = [
+  {
+    name: 'D cycleway oneway=yes',
+    tags: { highway: 'cycleway', traffic_sign: 'DE:237', oneway: 'yes' },
+    expect: ['self:cycleway_adjoiningOrIsolated'],
+    dirs: ['self:1'],
+  },
+  {
+    name: 'D cycleway oneway=-1',
+    tags: { highway: 'cycleway', traffic_sign: 'DE:237', oneway: '-1' },
+    expect: ['self:cycleway_adjoiningOrIsolated'],
+    dirs: ['self:-1'],
+  },
+  {
+    name: 'D cycleway oneway=yes, drawn westward',
+    tags: { highway: 'cycleway', traffic_sign: 'DE:237', oneway: 'yes' },
+    expect: ['self:cycleway_adjoiningOrIsolated'],
+    dirs: ['self:1'],
+    westward: true,
+  },
+  {
+    name: 'D shared path oneway:bicycle=-1',
+    tags: {
+      highway: 'path',
+      bicycle: 'designated',
+      foot: 'designated',
+      segregated: 'no',
+      traffic_sign: 'DE:240',
+      'oneway:bicycle': '-1',
+    },
+    expect: ['self:footAndCyclewayShared_adjoiningOrIsolated'],
+    dirs: ['self:-1'],
+  },
+  {
+    name: 'D bicycle road oneway=-1',
+    tags: { highway: 'residential', bicycle_road: 'yes', oneway: '-1', traffic_sign: 'DE:244.1' },
+    expect: ['self:bicycleRoad'],
+    dirs: ['self:-1'],
+  },
+  {
+    name: 'D bicycle road oneway=-1, oneway:bicycle=no',
+    tags: {
+      highway: 'residential',
+      bicycle_road: 'yes',
+      oneway: '-1',
+      'oneway:bicycle': 'no',
+      traffic_sign: 'DE:244.1',
+    },
+    expect: ['self:bicycleRoad'],
+    dirs: ['self:-'],
+  },
+  {
+    name: 'D two-way road, lanes both',
+    tags: { highway: 'residential', 'cycleway:both': 'lane' },
+    expect: [
+      'left:cyclewayOnHighway_advisoryOrExclusive',
+      'right:cyclewayOnHighway_advisoryOrExclusive',
+    ],
+    dirs: ['left:-1', 'right:1'],
+  },
+  {
+    name: 'D two-way road, lanes both, drawn westward',
+    tags: { highway: 'residential', 'cycleway:both': 'lane' },
+    expect: [
+      'left:cyclewayOnHighway_advisoryOrExclusive',
+      'right:cyclewayOnHighway_advisoryOrExclusive',
+    ],
+    dirs: ['left:-1', 'right:1'],
+    westward: true,
+  },
+  {
+    name: 'D oneway=yes, lanes both',
+    tags: { highway: 'residential', oneway: 'yes', 'cycleway:both': 'lane' },
+    expect: [
+      'left:cyclewayOnHighway_advisoryOrExclusive',
+      'right:cyclewayOnHighway_advisoryOrExclusive',
+    ],
+    dirs: ['left:1', 'right:1'],
+  },
+  {
+    name: 'D oneway=-1, lanes both',
+    tags: { highway: 'residential', oneway: '-1', 'cycleway:both': 'lane' },
+    expect: [
+      'left:cyclewayOnHighway_advisoryOrExclusive',
+      'right:cyclewayOnHighway_advisoryOrExclusive',
+    ],
+    dirs: ['left:-1', 'right:-1'],
+  },
+  {
+    name: 'D oneway=-1, lane right',
+    tags: { highway: 'residential', oneway: '-1', 'cycleway:right': 'lane', 'cycleway:left': 'no' },
+    expect: ['left:data_no', 'right:cyclewayOnHighway_advisoryOrExclusive'],
+    dirs: ['right:-1'],
+  },
+  {
+    name: 'D oneway=yes, contraflow left',
+    tags: {
+      highway: 'residential',
+      oneway: 'yes',
+      'oneway:bicycle': 'no',
+      'cycleway:left': 'lane',
+      'cycleway:left:oneway': '-1',
+      'cycleway:right': 'no',
+    },
+    expect: ['left:cyclewayOnHighway_advisoryOrExclusive', 'right:data_no'],
+    dirs: ['left:-1'],
+  },
+  {
+    name: 'D oneway=-1, contraflow right',
+    tags: {
+      highway: 'residential',
+      oneway: '-1',
+      'oneway:bicycle': 'no',
+      'cycleway:right': 'lane',
+      'cycleway:right:oneway': 'yes',
+      'cycleway:left': 'no',
+    },
+    expect: ['left:data_no', 'right:cyclewayOnHighway_advisoryOrExclusive'],
+    dirs: ['right:1'],
+  },
+  {
+    name: 'D two-way track left',
+    tags: {
+      highway: 'secondary',
+      'cycleway:left': 'track',
+      'cycleway:left:oneway': 'no',
+      'cycleway:right': 'no',
+    },
+    expect: ['left:cycleway_adjoining', 'right:data_no'],
+    dirs: ['left:2'],
+  },
+]
+
 type Element =
   | {
       type: 'node'
@@ -318,7 +462,9 @@ function column(cases: Case[], west: number, east: number, step: number, firstId
   let id = firstId
   cases.forEach((item, row) => {
     const lat = round(north - row * step)
-    const nodes = [west, (west + east) / 2, east].map((lon) => {
+    const lons = [west, (west + east) / 2, east]
+    if (item.westward) lons.reverse()
+    const nodes = lons.map((lon) => {
       elements.push({ type: 'node', id: ++id, lat, lon: round(lon), version: 1 })
       return id
     })
@@ -335,7 +481,7 @@ function column(cases: Case[], west: number, east: number, step: number, firstId
 
 if (import.meta.main) {
   const failures: string[] = []
-  for (const item of [...PATHS, ...ROADS]) {
+  for (const item of [...PATHS, ...ROADS, ...DIRECTIONS]) {
     const got = tildaCategories(item.tags)
     if (JSON.stringify(got) !== JSON.stringify(item.expect))
       failures.push(
@@ -351,7 +497,8 @@ if (import.meta.main) {
   const scene = getScene('bicycle')
   const paths = column(PATHS, 13.3005, 13.3017, 0.00017, 1_000_000_000)
   const roads = column(ROADS, 13.3033, 13.3053, 0.0003, paths.last)
-  const elements = [...paths.elements, ...roads.elements]
+  const directions = column(DIRECTIONS, 13.3065, 13.3085, 0.0003, roads.last)
+  const elements = [...paths.elements, ...roads.elements, ...directions.elements]
   // nodes first, then ways, as the OSM API answers
   elements.sort((a, b) => (a.type === b.type ? a.id - b.id : a.type === 'node' ? -1 : 1))
   const counts = { node: 0, way: 0, relation: 0 }
@@ -372,6 +519,6 @@ if (import.meta.main) {
   }
   await Bun.write(join(outDir, 'bicycle.meta.json'), `${JSON.stringify(meta, null, 2)}\n`)
   console.log(
-    `bicycle: ${PATHS.length + ROADS.length} cases, ${counts.node} nodes, ${counts.way} ways; wrote ${outDir}/bicycle.json.gz`,
+    `bicycle: ${PATHS.length + ROADS.length + DIRECTIONS.length} cases, ${counts.node} nodes, ${counts.way} ways; wrote ${outDir}/bicycle.json.gz`,
   )
 }

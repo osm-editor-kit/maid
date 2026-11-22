@@ -15,7 +15,7 @@ import {
   BIKE_SIGN_SOURCE,
   BIKE_SOURCE,
 } from '../../packages/module-bike-infrastructure/src/layers.ts'
-import { PATHS, ROADS, type Case } from '../fixtures/bicycle'
+import { DIRECTIONS, PATHS, ROADS, type Case } from '../fixtures/bicycle'
 import { getScene } from '../fixtures/scenes'
 import { runCheck } from './check-page'
 
@@ -59,14 +59,38 @@ process.exit(
         return out
       }, BIKE_SOURCE)
 
-    // the whole scene at once: zoom 17 holds both columns
+    // the whole scene at once: zoom 17 holds all three columns
     await jump(scene.center, 17)
     const all = await drawn()
-    for (const item of [...PATHS, ...ROADS]) {
+    for (const item of [...PATHS, ...ROADS, ...DIRECTIONS]) {
       report(
         `${item.name}: drawn as ${drawnOf(item).join(' ') || 'nothing'}`,
         drawnOf(item),
         all[item.name] ?? [],
+      )
+    }
+
+    // the riding direction of each line (oneway=-1 and its kin): `side:dir`, `-` for none
+    const dirs = await page.evaluate((source) => {
+      const { map, engine } = window.__maid
+      const out: Record<string, string[]> = {}
+      for (const feature of map.querySourceFeatures(source)) {
+        const p = feature.properties as Record<string, string | number | undefined>
+        if (p.kind !== 'infra' || p.wayId === undefined) continue
+        const name = engine.data.way(String(p.wayId))?.tags.name ?? String(p.wayId)
+        const entry = `${p.side}:${p.dir ?? '-'}`
+        const list = (out[name] ??= [])
+        if (!list.includes(entry)) list.push(entry)
+      }
+      for (const list of Object.values(out)) list.sort((a, b) => a.localeCompare(b))
+      return out
+    }, BIKE_SOURCE)
+    for (const item of DIRECTIONS) {
+      if (item.dirs === undefined) continue
+      report(
+        `${item.name}: riding direction ${item.dirs.join(' ')}`,
+        item.dirs,
+        dirs[item.name] ?? [],
       )
     }
 
@@ -95,6 +119,9 @@ process.exit(
     // screenshots: the scene, then the paths and the roads in four parts each at zoom 19
     const pathLon = (13.3005 + 13.3017) / 2
     const roadLon = (13.3033 + 13.3053) / 2
+    const directionLon = (13.3065 + 13.3085) / 2
+    // the way ids of the direction column: after the paths and the roads, four ids per case
+    const directionsFirstId = 1_000_000_000 + 4 * (PATHS.length + ROADS.length)
     const north = scene.bbox[3] - 0.0002
     const shots: [string, [number, number], number][] = [
       ['overview', scene.center, 17.3],
@@ -106,6 +133,9 @@ process.exit(
       ['roads-2', [roadLon, north - 0.0003 * 5.5], 19],
       ['roads-3', [roadLon, north - 0.0003 * 9.5], 19],
       ['roads-4', [roadLon, north - 0.0003 * 11.5], 19],
+      ['directions-1', [directionLon, north - 0.0003 * 2], 19],
+      ['directions-2', [directionLon, north - 0.0003 * 7], 19],
+      ['directions-3', [directionLon, north - 0.0003 * 11.5], 19],
     ]
     await page.setViewportSize({ width: 1100, height: 1000 })
     for (const [name, center, zoom] of shots) {
@@ -115,6 +145,18 @@ process.exit(
       await settle()
       await page.screenshot({ path: `${OUT}/${name}.png` })
     }
+    // close-ups of the riding direction (oneway=-1 and its kin), in the west part of each way: the label sits in the
+    // middle. The map is the part right of the sidebar (320 px).
+    await page.setViewportSize({ width: 1000, height: 200 })
+    for (let row = 0; row < DIRECTIONS.length; row++) {
+      await jump([13.3071, north - 0.0003 * row], 20.5)
+      await settle()
+      await page.screenshot({
+        path: `${OUT}/direction-${String(row + 1).padStart(2, '0')}.png`,
+        clip: { x: 320, y: 50, width: 680, height: 150 },
+      })
+    }
+    await page.setViewportSize({ width: 1100, height: 1000 })
     console.log(`screenshots in ${OUT}/`)
 
     // the report: a sidewalk with bicycle=yes and DE:239,1022-10 is named for what TILDA sees
@@ -132,6 +174,26 @@ process.exit(
       inspector.includes('Sidewalk, bicycles allowed'),
     )
     await page.screenshot({ path: `${OUT}/sidewalk-selected.png` })
+    await page.evaluate(() => window.__maid.engine.setSelected([]))
+
+    // a road with oneway=-1: its side fields say that left and right follow the line, not the traffic
+    const reversedRow = DIRECTIONS.findIndex((item) => item.name === 'D oneway=-1, lanes both')
+    const reversedId = `w${directionsFirstId + 4 * (reversedRow + 1)}`
+    await jump([13.3071, north - 0.0003 * reversedRow], 20)
+    await page.evaluate((id) => window.__maid.engine.setSelected([id]), reversedId)
+    await settle()
+    await page.waitForTimeout(500)
+    report(
+      'a road with oneway=-1: the side fields say that left and right follow the line',
+      true,
+      (await page.locator('[data-reversed-hint]').count()) > 0,
+    )
+    await page
+      .locator('[data-reversed-hint]')
+      .first()
+      .scrollIntoViewIfNeeded()
+      .catch(() => undefined)
+    await page.screenshot({ path: `${OUT}/direction-selected.png` })
     await page.evaluate(() => window.__maid.engine.setSelected([]))
 
     // another lens hides the lines, the module's own lens shows them with the legend

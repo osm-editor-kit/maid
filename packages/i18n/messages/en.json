@@ -131,6 +131,8 @@
   "directional_side_left": "Left",
   "directional_side_right": "Right",
   "directional_unused_hint": "Not used when {field} is {value}",
+  "directional_reversed_hint": "Against the line's direction (oneway=-1): left and right always follow the line's direction, so in the direction of travel left is on the right.",
+  "oneway_reversed_label": "against line (-1)",
   "search_button": "Search",
   "search_panel_label": "Search",
   "search_input_label": "Search for coordinates, an OSM id, a name on the map or a place",

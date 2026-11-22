@@ -57,9 +57,9 @@ export const SCENES: Scene[] = [
   {
     name: 'bicycle',
     description:
-      'Made-up test cases of bicycle infrastructure: every TILDA category and subcategory on its own way, paths on the left, road sides on the right',
-    bbox: [13.3, 52.6, 13.306, 52.6045],
-    center: [13.303, 52.60225],
+      'Made-up test cases of bicycle infrastructure: every TILDA category and subcategory on its own way, paths on the left, road sides in the middle, riding directions (oneway=-1) on the right',
+    bbox: [13.3, 52.6, 13.309, 52.6045],
+    center: [13.3045, 52.60225],
     zoom: 18,
     madeBy: 'fixtures-bicycle',
   },

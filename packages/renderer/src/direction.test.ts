@@ -1,5 +1,15 @@
 import { describe, expect, test } from 'bun:test'
-import { arrowColour, onewayOf, sidedOf, SIDE_KINDS, arrowPadding, sideIconSize } from './direction'
+import {
+  arrowColour,
+  arrowImageId,
+  arrowPadding,
+  lineArrowImageId,
+  onewayOf,
+  parseArrowImageId,
+  SIDE_KINDS,
+  sideIconSize,
+  sidedOf,
+} from './direction'
 
 describe('onewayOf (iD isOneWay, isOneWayBackwards, isBiDirectional)', () => {
   test('oneway=yes goes along the way', () => {
@@ -142,5 +152,22 @@ describe('the collision boxes of the markers', () => {
     expect(sideIconSize(SIDE_KINDS.natural!)).toEqual({ width: 10, height: 10 })
     // a barrier's: from 1 to 2 units off the line
     expect(sideIconSize(SIDE_KINDS.barrier!)).toEqual({ width: 10, height: 19 })
+  })
+})
+
+describe('arrow images', () => {
+  test('oneway=-1 gets the hook that turns back, not the mirrored arrow of iD', () => {
+    expect(arrowImageId(1)).toBe('maid-arrow-forward-#333')
+    expect(arrowImageId(-1)).toBe('maid-arrow-reversed-#333')
+    expect(arrowImageId(2, '#fff')).toBe('maid-arrow-both-#fff')
+    expect(parseArrowImageId('maid-arrow-reversed-rgba(0, 0, 0, 0.5)')).toEqual({
+      shape: 'reversed',
+      colour: 'rgba(0, 0, 0, 0.5)',
+    })
+    expect(parseArrowImageId('maid-arrow-sideways-#333')).toBeUndefined()
+  })
+
+  test('the line arrows of a module', () => {
+    expect(lineArrowImageId('reversed-right')).toBe('maid-line-arrow-reversed-right')
   })
 })

@@ -8,7 +8,7 @@ import { isModified, isPresent, removeEdits, revertEdits, type TagEdit } from '.
 import { shownText } from './combo-logic.ts'
 import { unusedSides } from './directional-group-logic.ts'
 import { directionalKeys, sideStates, type DirectionalSide } from './directional-logic.ts'
-import { DIRECTIONAL_SIDES, DirectionalSideCombo, sideLabel } from './Directional.tsx'
+import { DIRECTIONAL_SIDES, DirectionalSideCombo, ReversedHint, sideLabel } from './Directional.tsx'
 import { mixedKeysOf } from './mixed-logic.ts'
 import { RelatedAddButtons, RelatedDetails, type RelatedRow } from './Related.tsx'
 import { ACTION_BUTTON, INFO_BUTTON } from './Row.tsx'
@@ -84,6 +84,7 @@ export function DirectionalGroup(props: {
           related={related}
         />
       ))}
+      <ReversedHint tags={tags} features={features} />
       {related
         ? fields.map((field) => (
             <RelatedDetails

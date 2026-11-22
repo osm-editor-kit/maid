@@ -131,6 +131,8 @@
   "directional_side_left": "Links",
   "directional_side_right": "Rechts",
   "directional_unused_hint": "Nicht verwendet bei {field}: {value}",
+  "directional_reversed_hint": "Gegen die Linienrichtung (oneway=-1): Links und Rechts gelten wie immer in Linienrichtung. In Fahrtrichtung ist Links also rechts.",
+  "oneway_reversed_label": "gegen Linie (-1)",
   "search_button": "Suche",
   "search_panel_label": "Suche",
   "search_input_label": "Suche nach Koordinaten, einer OSM-Id, einem Namen auf der Karte oder einem Ort",

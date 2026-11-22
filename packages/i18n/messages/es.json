@@ -131,6 +131,8 @@
   "directional_side_left": "Izquierda",
   "directional_side_right": "Derecha",
   "directional_unused_hint": "No se usa con {field}: {value}",
+  "directional_reversed_hint": "Contra el sentido de la línea (oneway=-1): izquierda y derecha siguen siempre el sentido de la línea, así que en el sentido de la marcha la izquierda queda a la derecha.",
+  "oneway_reversed_label": "contra la línea (-1)",
   "search_button": "Buscar",
   "search_panel_label": "Buscar",
   "search_input_label": "Buscar coordenadas, un id de OSM, un nombre del mapa o un lugar",

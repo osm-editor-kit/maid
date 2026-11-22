@@ -1,3 +1,4 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import { checkAfterClick, checkCycle, checkLabel, checkStateFor, impliesYes } from '../logic.ts'
 import { checkBoxOf } from './check-logic.ts'
 import { CheckBox } from './CheckBox.tsx'
@@ -23,8 +24,12 @@ export function CheckField(props: FieldProps) {
   const implied = impliesYes(field, tags)
   const mixed = mixedOf(combined, key)
   const checked = checkStateFor(field.type, current, implied, mixed)
+  // oneway=-1 counts as yes, as in iD; the text says that the traffic runs against the line's direction
+  const reversed = field.type === 'onewayCheck' && current === '-1' && mixed === undefined
   const label =
-    mixed === undefined ? checkLabel(field, field.type, current, implied) : MULTIPLE_VALUES
+    mixed === undefined
+      ? `${checkLabel(field, field.type, current, implied)}${reversed ? `, ${m.oneway_reversed_label()}` : ''}`
+      : MULTIPLE_VALUES
   const cycle = checkCycle(field)
   const { box, ariaChecked } = checkBoxOf(checked)
   return (

@@ -805,3 +805,22 @@ neighbours were not to be found; a long route was an endless list. Research and 
       then on the left); in the sidebar the route button with a chevron lists the same routes. On
       https://osm-editor-kit.github.io/maid/maid-bicycle/#map=19/52.52033/13.40458&id=w4773465 (Spandauer Straße)
       right click: "Seitenweg extrahieren ›" with the extractions in a flyout.
+
+### oneway=-1 made visible (2026-11-22)
+
+Tobias, 2026-11-22: the blue lines of the bicycle infrastructure should show their direction, and a way whose traffic
+runs against its line (`oneway=-1`) should say so, on the centre line too; the left and right fields were to be checked
+for `-1`. Decision and reasons: [ADR 0015](../adr/0015-oneway-minus-one-hook-arrows.md).
+
+- [x] 2026-11-22: a hook instead of iD's mirrored arrow for `oneway=-1` (every app); the blue and pink lines carry the
+      riding direction from zoom 17 as TILDA derives it (arrow, hook against the line, double arrow); the directional
+      fields and the one-way check say that left and right follow the line. Test cases: the third column of the scene
+      `bicycle`. `bun run check`; `check-bike-style` 74 ok (screenshots `reports/bike-style/direction-*.png`).
+      **Test for Tobias:** https://osm-editor-kit.github.io/maid/maid-bicycle/?map=19/52.52860/13.40931&id=w44427219
+      (Alte Schönhauser Straße, `oneway=yes` with a contraflow lane on the left): white arrows on the right lane, hooks
+      on the left lane. Then in the tag text set `oneway=-1` (do not save): the centre line gets dark hooks and the
+      directional field the line "Against the line's direction". Two-way:
+      https://osm-editor-kit.github.io/maid/maid-bicycle/?map=19/52.47753/13.43857&id=w47508565 (Karl-Marx-Straße):
+      hooks on the left lane, arrows on the right.
+- [ ] Next: `_lineReversed` for the way itself in the TILDA package
+      ([draft](../upstream/tilda-self-line-direction.md)); the iD-Radnetz port of the style, with a performance test.

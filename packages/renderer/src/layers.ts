@@ -754,7 +754,7 @@ function buildMainLayers(options: LayerOptions) {
 
   // direction markers, hidden in the wireframe (iD hides its oneway paths there)
   if (options.icons) {
-    // the arrow's shape from `oneway` (1 forward, -1 mirrored, 2 both), in the colour of `ac`
+    // the arrow's shape from `oneway` (1 forward, -1 the hook that turns back, 2 both), in the colour of `ac`
     const arrow: ExpressionSpecification = [
       'concat',
       ARROW_IMAGE_PREFIX,
@@ -763,7 +763,7 @@ function buildMainLayers(options: LayerOptions) {
         ['==', ['get', 'oneway'], 2],
         'both',
         ['==', ['get', 'oneway'], -1],
-        'backward',
+        'reversed',
         'forward',
       ],
       '-',

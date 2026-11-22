@@ -131,6 +131,60 @@ describe('features', () => {
   })
 })
 
+describe('riding direction', () => {
+  /** `side:dir` of each line of the way, `-` where it has no arrows */
+  const dirs = (tags: Record<string, string>) =>
+    bikeWayFeatures(way(tags))
+      .filter((feature) => feature.properties.kind === 'infra')
+      .map((feature) => {
+        const p = feature.properties as { side: string; dir?: number }
+        return `${p.side}:${p.dir ?? '-'}`
+      })
+
+  test('the way itself: with the line for oneway=yes, against it for -1, no arrows when both ways', () => {
+    const cycleway = { highway: 'cycleway', traffic_sign: 'DE:237' }
+    expect(dirs({ ...cycleway, oneway: 'yes' })).toEqual(['self:1'])
+    // TILDA gives oneway=yes for -1 too: the tag decides
+    expect(dirs({ ...cycleway, oneway: '-1' })).toEqual(['self:-1'])
+    expect(dirs(cycleway)).toEqual(['self:-'])
+    const path = { highway: 'path', bicycle: 'designated', foot: 'designated', segregated: 'no' }
+    expect(dirs({ ...path, oneway: 'no', 'oneway:bicycle': '-1' })).toEqual(['self:-1'])
+    // cars one way against the line, bicycles both ways
+    expect(
+      dirs({ highway: 'residential', bicycle_road: 'yes', oneway: '-1', 'oneway:bicycle': 'no' }),
+    ).toEqual(['self:-'])
+    expect(dirs({ highway: 'residential', bicycle_road: 'yes', oneway: '-1' })).toEqual(['self:-1'])
+  })
+
+  test("road sides: TILDA's direction of the side, against the line where it says so", () => {
+    const road = { highway: 'residential', 'cycleway:both': 'lane' }
+    // a two-way road: the left side runs against the line (right-hand traffic)
+    expect(dirs(road)).toEqual(['left:-1', 'right:1'])
+    expect(dirs({ ...road, oneway: 'yes' })).toEqual(['left:1', 'right:1'])
+    expect(dirs({ ...road, oneway: '-1' })).toEqual(['left:-1', 'right:-1'])
+    // a contraflow lane on the left of a one-way road
+    expect(
+      dirs({
+        highway: 'residential',
+        oneway: 'yes',
+        'oneway:bicycle': 'no',
+        'cycleway:left': 'lane',
+        'cycleway:left:oneway': '-1',
+        'cycleway:right': 'no',
+      }),
+    ).toEqual(['left:-1'])
+    // a two-way track: both ways
+    expect(
+      dirs({
+        highway: 'secondary',
+        'cycleway:left': 'track',
+        'cycleway:left:oneway': 'no',
+        'cycleway:right': 'no',
+      }),
+    ).toEqual(['left:2'])
+  })
+})
+
 describe('collect', () => {
   const node = (id: string, loc: [number, number]): GraphEntity => ({ id, tags: {}, loc })
   const base = new Map<string, GraphEntity | undefined>([
@@ -185,6 +239,21 @@ describe('layers', () => {
       -1,
       ['+', ['/', ['coalesce', ['get', 'road'], 10], 2], 5],
     ])
+  })
+
+  test('each part has its arrows, on its own offset; the hook of a side turns away from the road', () => {
+    const arrows = BIKE_LAYERS.filter((layer) => layer.id.endsWith('-arrows'))
+    expect(arrows.map((layer) => layer.id)).toEqual([
+      'bike-self-arrows',
+      'bike-left-cycleway-arrows',
+      'bike-left-sidewalk-arrows',
+      'bike-right-cycleway-arrows',
+      'bike-right-sidewalk-arrows',
+    ])
+    const hook = (id: string) =>
+      (arrows.find((layer) => layer.id === id)!.paint!['line-pattern'] as unknown[])[3]
+    expect(hook('bike-left-cycleway-arrows')).toBe('maid-line-arrow-reversed')
+    expect(hook('bike-right-cycleway-arrows')).toBe('maid-line-arrow-reversed-right')
   })
 
   test('only a centre line has the white casing', () => {

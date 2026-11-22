@@ -1,3 +1,4 @@
+import { LINE_ARROW_HEIGHT, lineArrowImageId } from '@osm-editor-kit/maid-renderer'
 /**
  * The layers of the bicycle infrastructure, as data (BikeInfraOnMap turns each into a MapLibre layer). Pure: the tests
  * read them.
@@ -11,6 +12,11 @@
  * - Sidepath (`_adjoining`): two thin lines in its colour along the path, a kerb on each side, so a path that runs along a road
  *   can be told from one on its own (`_isolated`) and from one where TILDA cannot tell (`_adjoiningOrIsolated`).
  * - Separately mapped (`cycleway:<side>=separate`): a thin dotted blue line at the side of the road.
+ * - Riding direction (`dir` of the feature, features.ts ridingDirection): white arrows with a dark outline on the line,
+ *   from zoom 17: an arrow where bicycles ride in the drawing direction of the way, a hook that starts along the way and
+ *   turns back where they ride against it (`oneway=-1`, the left side of a two-way road, a contraflow lane), arrows
+ *   both ways on a side tagged as two-way. The hook of a road side turns away from the road. Line patterns of the
+ *   renderer (LINE_ARROW_PREFIX), since a pattern follows the line's offset and a symbol does not.
  * - Traffic signs: the sign's image (the signs of the traffic sign field), at the middle of the part, turned with the
  *   line, from zoom 18.
  *
@@ -22,6 +28,9 @@ export const BIKE_SIGN_SOURCE = 'bike-infrastructure-signs'
 export const BIKE_MIN_ZOOM = 15
 /** The signs come later: at zoom 16 they would cover the lines */
 export const SIGN_MIN_ZOOM = 17
+
+/** The arrows of the riding direction come with the detail of zoom 17 (OSM), as iD's one-way arrows do */
+export const ARROW_MIN_ZOOM = 16
 
 /** A JSON expression of the style spec. The types live in maplibre-gl, which this package does not depend on. */
 export type Expression = readonly unknown[]
@@ -188,6 +197,29 @@ export const BIKE_LAYERS: readonly BikeLayer[] = [
         },
       },
     ]
+    const hook = lineArrowImageId(part.side === 'right' ? 'reversed-right' : 'reversed')
+    const arrows: BikeLayer = {
+      id: `bike-${partId(part)}-arrows`,
+      type: 'line',
+      source: BIKE_SOURCE,
+      minzoom: ARROW_MIN_ZOOM,
+      filter: [...filter, ['has', 'dir']],
+      layout: { 'line-join': 'round', 'line-cap': 'butt' },
+      paint: {
+        'line-pattern': [
+          'match',
+          ['get', 'dir'],
+          -1,
+          hook,
+          2,
+          lineArrowImageId('both'),
+          lineArrowImageId('forward'),
+        ],
+        'line-width': LINE_ARROW_HEIGHT,
+        'line-offset': offset,
+        'line-opacity': OPACITY,
+      },
+    }
     return [
       ...(self ? casing : []),
       {
@@ -219,6 +251,7 @@ export const BIKE_LAYERS: readonly BikeLayer[] = [
           'line-dasharray': [2, 1.5],
         },
       },
+      arrows,
     ]
   }),
 ]

@@ -15,3 +15,4 @@ One file per decision: what we decided, why, and what we measured. Number them i
 | [0012](0012-texts-for-the-device.md) | Texts for the device: message variants by input and system, checked by a test |
 | [0013](0013-task-lists-in-user-preferences.md) | Private task lists: a GeoJSON file, the progress in the OSM user preferences |
 | [0014](0014-quiet-map-below-zoom-18.md) | Below zoom 18: no nodes on shapes, small hint dots, junctions as iD |
+| [0015](0015-oneway-minus-one-hook-arrows.md) | oneway=-1 gets a hook arrow; the bicycle lines get their riding direction from TILDA |

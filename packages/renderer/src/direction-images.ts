@@ -14,7 +14,15 @@ import {
   ARROW_SPACING,
   ARROW_WIDTH,
   arrowImageId,
+  HOOK_HEIGHT,
+  HOOK_REACH,
   KEEPOUT_IMAGE,
+  LINE_ARROW_HEIGHT,
+  LINE_ARROW_PREFIX,
+  LINE_ARROW_SHAPES,
+  LINE_ARROW_SPACING,
+  lineArrowImageId,
+  type LineArrowShape,
   KEEPOUT_SIZE,
   parseArrowImageId,
   SELECTED_ARROW_HEIGHT,
@@ -82,12 +90,155 @@ function drawArrow(
   }
 }
 
+/** The hook of a `reversed` arrow is this wide (px) */
+const HOOK_WIDTH = 12
+
+/**
+ * The hook of a line whose traffic runs against its drawing direction (direction.ts `reversed`): a stroke along the
+ * line in its drawing direction (+x) from `left`, a half turn to one side (`up` in the image, else down), and back
+ * with the arrowhead pointing against the line. `line` is the y of the line in px. With `outline`, a dark outline
+ * goes under it first.
+ */
+function drawHook(
+  ctx: CanvasRenderingContext2D,
+  left: number,
+  line: number,
+  up: boolean,
+  colour: string,
+  outline?: string,
+) {
+  const u = up ? -1 : 1
+  const r = (HOOK_REACH - 1.5) / 2
+  const turn = left + HOOK_WIDTH - r - 1
+  const back = line + u * 2 * r
+  const head = left + 4.5
+  ctx.setTransform(RATIO, 0, 0, RATIO, 0, 0)
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  const stroke = (width: number, style: string) => {
+    ctx.beginPath()
+    ctx.moveTo(left + 0.5, line)
+    ctx.lineTo(turn, line)
+    // from the line around the turn to the leg that goes back
+    ctx.arc(
+      turn,
+      line + u * r,
+      r,
+      up ? Math.PI / 2 : -Math.PI / 2,
+      up ? -Math.PI / 2 : Math.PI / 2,
+      up,
+    )
+    ctx.lineTo(head, back)
+    ctx.strokeStyle = style
+    ctx.lineWidth = width
+    ctx.stroke()
+  }
+  const arrowhead = (fill: string, strokeStyle: string, width: number) => {
+    ctx.beginPath()
+    ctx.moveTo(left, back)
+    ctx.lineTo(head + 0.5, back - 2.4)
+    ctx.lineTo(head + 0.5, back + 2.4)
+    ctx.closePath()
+    ctx.fillStyle = fill
+    ctx.strokeStyle = strokeStyle
+    ctx.lineWidth = width
+    ctx.stroke()
+    ctx.fill()
+  }
+  if (outline) {
+    stroke(3.2, outline)
+    arrowhead(outline, outline, 1.6)
+  }
+  stroke(1.6, colour)
+  arrowhead(colour, colour, outline ? 0.1 : 0.3)
+}
+
 /** The arrow of a one-way line, in the colour of its `ac` (or the default) */
 function arrowImage(shape: ArrowShape, colour: string) {
+  if (shape === 'reversed') {
+    const el = canvas(ARROW_WIDTH, HOOK_HEIGHT)
+    const ctx = el.getContext('2d')!
+    drawHook(ctx, (ARROW_WIDTH - HOOK_WIDTH) / 2, HOOK_HEIGHT / 2, true, colour)
+    return { data: ctx.getImageData(0, 0, el.width, el.height), options: { pixelRatio: RATIO } }
+  }
   const el = canvas(ARROW_WIDTH, ARROW_HEIGHT)
   const ctx = el.getContext('2d')!
   drawArrow(ctx, shape, ARROW_WIDTH, 0, colour, colour, 0.3)
   return { data: ctx.getImageData(0, 0, el.width, el.height), options: { pixelRatio: RATIO } }
+}
+
+/**
+ * A module's line arrow (direction.ts LINE_ARROW_PREFIX) as a line pattern: white with a dark outline, one arrow in
+ * the middle of a tile LINE_ARROW_SPACING px long. The line runs through the middle of the tile; the hook of
+ * `reversed` turns to the left of the line's direction (the bottom of the tile), `reversed-right` to its right.
+ */
+function lineArrowImage(shape: LineArrowShape) {
+  const el = canvas(LINE_ARROW_SPACING, LINE_ARROW_HEIGHT)
+  const ctx = el.getContext('2d')!
+  const middle = LINE_ARROW_HEIGHT / 2
+  const outline = '#1c1c1c'
+  if (shape === 'reversed' || shape === 'reversed-right') {
+    // MapLibre lays a line pattern with the top of the image on the right of the line's direction
+    drawHook(
+      ctx,
+      (LINE_ARROW_SPACING - HOOK_WIDTH) / 2,
+      middle,
+      shape === 'reversed-right',
+      '#fff',
+      outline,
+    )
+  } else {
+    drawStraight(
+      ctx,
+      (LINE_ARROW_SPACING - HOOK_WIDTH) / 2,
+      middle,
+      shape === 'both',
+      '#fff',
+      outline,
+    )
+  }
+  return { data: ctx.getImageData(0, 0, el.width, el.height), options: { pixelRatio: RATIO } }
+}
+
+/**
+ * A straight arrow on a module's line, drawn like the hook: one stroke HOOK_WIDTH px long along the line with its
+ * arrowhead at the end (+x, the line's direction), with `both` one at each end.
+ */
+function drawStraight(
+  ctx: CanvasRenderingContext2D,
+  left: number,
+  line: number,
+  both: boolean,
+  colour: string,
+  outline: string,
+) {
+  const right = left + HOOK_WIDTH
+  ctx.setTransform(RATIO, 0, 0, RATIO, 0, 0)
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  const draw = (fill: string, width: number, headWidth: number) => {
+    ctx.beginPath()
+    ctx.moveTo(both ? left + 3 : left + 0.5, line)
+    ctx.lineTo(right - 3, line)
+    ctx.strokeStyle = fill
+    ctx.lineWidth = width
+    ctx.stroke()
+    const heads: [number, number][] = [[right, right - 4]]
+    if (both) heads.push([left, left + 4])
+    for (const [tip, base] of heads) {
+      ctx.beginPath()
+      ctx.moveTo(tip, line)
+      ctx.lineTo(base, line - 2.4)
+      ctx.lineTo(base, line + 2.4)
+      ctx.closePath()
+      ctx.fillStyle = fill
+      ctx.lineWidth = headWidth
+      ctx.stroke()
+      ctx.fill()
+    }
+  }
+  draw(outline, 3.2, 1.6)
+  draw(colour, 1.6, 0.1)
 }
 
 /**
@@ -171,6 +322,9 @@ function imageFor(id: string) {
   const arrow = parseArrowImageId(id)
   if (arrow) {
     image = arrowImage(arrow.shape, arrow.colour)
+  } else if (id.startsWith(LINE_ARROW_PREFIX)) {
+    const shape = id.slice(LINE_ARROW_PREFIX.length) as LineArrowShape
+    if (LINE_ARROW_SHAPES.includes(shape)) image = lineArrowImage(shape)
   } else if (id === SELECTED_ARROW_IMAGE) {
     image = selectedArrowImage(ARROW_WIDTH)
   } else if (id === SELECTED_ARROW_PATTERN) {
@@ -194,6 +348,7 @@ function preloadIds() {
   const ids: string[] = [SELECTED_ARROW_IMAGE, SELECTED_ARROW_PATTERN, KEEPOUT_IMAGE]
   for (const colour of ARROW_COLOURS)
     ids.push(arrowImageId(1, colour), arrowImageId(-1, colour), arrowImageId(2, colour))
+  for (const shape of LINE_ARROW_SHAPES) ids.push(lineArrowImageId(shape))
   for (const kind of Object.keys(SIDE_KINDS)) ids.push(`${SIDE_IMAGE_PREFIX}${kind}`)
   ids.push(CONE_IMAGE, CONE_IMAGE_WIDE)
   return ids

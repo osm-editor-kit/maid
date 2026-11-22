@@ -55,6 +55,13 @@ export { editKindOf, type EditKind } from './edits'
 export { iconImagePrefix, iconImagesRequestedAt } from './icon-requests'
 // The white arrow of the selected way, preloaded by the engine: a module's line-pattern can use it for its own arrows
 export { SELECTED_ARROW_HEIGHT, SELECTED_ARROW_PATTERN } from './direction'
+// The white arrows with a dark outline for a module's own lines, as line patterns (the bicycle infrastructure)
+export {
+  LINE_ARROW_HEIGHT,
+  LINE_ARROW_SPACING,
+  lineArrowImageId,
+  type LineArrowShape,
+} from './direction'
 export { ModuleLayers } from './ModuleLayers'
 export { OsmLayers } from './OsmLayers'
 export { OsmData, type MergeResult } from './data'

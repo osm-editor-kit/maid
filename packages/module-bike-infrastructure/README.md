@@ -8,6 +8,7 @@ which splits it into the way itself and its road sides and gives each part a cat
 | --- | --- |
 | The groups and their colours: **blue** for bicycles alone (dark: built apart, light: on the carriageway, dashed: shared with motor vehicles), **pink** where people on foot share it (solid: foot and cycle path, dashed: footway or pedestrian area with bicycles allowed), purple dashed for what TILDA cannot classify | `src/groups.ts` |
 | One line per part: on the way, or beside the road for a side (a sidewalk further out than the cycleway); two thin lines along a sidepath (`_adjoining`); a dotted line for a side mapped as a way of its own; lighter under construction | `src/features.ts`, `src/layers.ts` |
+| The riding direction from zoom 17: an arrow with the line, a hook that turns back where bicycles ride against it (`oneway=-1`, the left side of a two-way road, a contraflow lane), a double arrow on a two-way side; from TILDA's `oneway` and `_lineReversed` ([ADR 0015](../../docs/adr/0015-oneway-minus-one-hook-arrows.md)) | `src/features.ts` `ridingDirection`, `src/layers.ts` |
 | The traffic sign of a part as its image (main sign above the additional signs), the bundled SVGs of the traffic sign field | `src/sign-images.ts` |
 | Drawn while no lens is on, and with the lens "Bicycle infrastructure" (legend, rest dimmed); another lens hides it | `src/shown.ts`, `src/lens.ts` |
 | A preset per category and per subcategory a mapper chooses, with TILDA's German names as search terms; each preset's tags give its category (tested) | `src/presets.ts` |

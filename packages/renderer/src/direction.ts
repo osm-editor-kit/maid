@@ -158,9 +158,21 @@ export const ARROW_HEIGHT = 6
 export const ARROW_WIDTH = 13
 export const SIDE_SPACING = 30
 
-/** The arrow's shape, from `oneway`: forward, against the way (mirrored), both ways */
-export type ArrowShape = 'forward' | 'backward' | 'both'
-const SHAPE_OF: Record<OneWay, ArrowShape> = { 1: 'forward', [-1]: 'backward', 2: 'both' }
+/**
+ * The arrow's shape, from `oneway`: forward, both ways, and `reversed` for a line whose traffic runs against its
+ * drawing direction (`oneway=-1`): a hook that starts along the line and turns back, so the arrow says "drawn this way,
+ * driven that way" (Tobias, 2026-11-22). iD mirrors the arrow (`backward`), which cannot be told from a line drawn
+ * the other way; Maid draws the hook instead. `backward` stays an image for a module that wants the mirrored arrow.
+ */
+export type ArrowShape = 'forward' | 'backward' | 'both' | 'reversed'
+const SHAPE_OF: Record<OneWay, ArrowShape> = { 1: 'forward', [-1]: 'reversed', 2: 'both' }
+const SHAPES = new Set<string>(['forward', 'backward', 'both', 'reversed'])
+/**
+ * The hook of `reversed` reaches this far to one side of the line (px): its image is twice as high, with the line
+ * through its middle
+ */
+export const HOOK_REACH = 6
+export const HOOK_HEIGHT = 2 * HOOK_REACH + 2
 /** The arrow's colour when the feature has no `ac` */
 export const ARROW_DEFAULT_COLOUR = '#333'
 /** Colours of the arrows that are built ahead; other colours (the lens dims them) are built on demand */
@@ -224,7 +236,26 @@ export function parseArrowImageId(id: string): { shape: ArrowShape; colour: stri
   const rest = id.slice(ARROW_IMAGE_PREFIX.length)
   const dash = rest.indexOf('-')
   const shape = rest.slice(0, dash)
-  if (dash < 0 || (shape !== 'forward' && shape !== 'backward' && shape !== 'both'))
-    return undefined
-  return { shape, colour: rest.slice(dash + 1) }
+  if (dash < 0 || !SHAPES.has(shape)) return undefined
+  return { shape: shape as ArrowShape, colour: rest.slice(dash + 1) }
+}
+
+/**
+ * Arrows for a module's own lines (the bicycle infrastructure): white with a dark outline, so they read on any line
+ * colour, as a line pattern (`line-pattern`, one arrow every LINE_ARROW_SPACING px), which follows the layer's
+ * `line-offset`; a symbol does not. The layer's `line-width` is LINE_ARROW_HEIGHT. Ids: `maid-line-arrow-<shape>`,
+ * shape `forward`, `both`, `reversed` (the hook to the left of the line's direction) or `reversed-right`.
+ */
+export const LINE_ARROW_PREFIX = 'maid-line-arrow-'
+export const LINE_ARROW_SPACING = 56
+export const LINE_ARROW_HEIGHT = HOOK_HEIGHT
+export type LineArrowShape = 'forward' | 'both' | 'reversed' | 'reversed-right'
+export const LINE_ARROW_SHAPES: readonly LineArrowShape[] = [
+  'forward',
+  'both',
+  'reversed',
+  'reversed-right',
+]
+export function lineArrowImageId(shape: LineArrowShape) {
+  return `${LINE_ARROW_PREFIX}${shape}`
 }

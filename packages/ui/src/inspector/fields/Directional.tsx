@@ -22,6 +22,26 @@ export function sideLabel(side: DirectionalSide): string {
 }
 
 /**
+ * Whether the way's traffic runs against its drawing direction (`oneway=-1`), for every feature when there are several.
+ * Left and right keep following the drawing direction (OSM wiki, Forward & backward, left & right): nothing flips,
+ * but the mapper looking along the traffic sees them swapped, so the field says so (ReversedHint).
+ */
+export function runsAgainstLine(tags: Tags, features?: readonly Tags[]) {
+  const reversed = (t: Tags) => t.oneway === '-1'
+  return features === undefined ? reversed(tags) : features.length > 0 && features.every(reversed)
+}
+
+/** The hint under a directional field on a way with `oneway=-1` (runsAgainstLine) */
+export function ReversedHint(props: { tags: Tags; features?: readonly Tags[] }) {
+  if (!runsAgainstLine(props.tags, props.features)) return null
+  return (
+    <p className="min-w-0 text-xs text-zinc-500 dark:text-zinc-400" data-reversed-hint>
+      {m.directional_reversed_hint()}
+    </p>
+  )
+}
+
+/**
  * A value for each side of a field that has a left and a right tag (cycleway, sidewalk:both,
  * parking:both, parking:both:orientation). Two combos, Left and Right, each over the field's
  * options. The side shows its own key, or what the common keys say (sideStates); a choice writes the
@@ -54,6 +74,7 @@ export function DirectionalComboField(props: FieldProps) {
           onChangeTags={onChangeTags}
         />
       ))}
+      <ReversedHint tags={tags} features={features} />
     </div>
   )
 }
