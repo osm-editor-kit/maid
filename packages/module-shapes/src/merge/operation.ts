@@ -7,7 +7,13 @@ import { relationRows, tagRows } from '@osm-editor-kit/maid-operations'
 import type { Operation, OperationContext } from '@osm-editor-kit/maid-operations'
 import { m } from '../messages.ts'
 import { sentenceOf } from '../shared/refusals.ts'
-import { geometryRefusal, mergePlan, type MergeRefusal } from './merge.ts'
+import {
+  combinedValue,
+  geometryRefusal,
+  mergePlan,
+  type MergeOptions,
+  type MergeRefusal,
+} from './merge.ts'
 
 /** The sentence for each reason two areas cannot be merged. Read when shown, so it follows the page's language. */
 export const refusalSentence = sentenceOf<MergeRefusal>({
@@ -46,53 +52,72 @@ function unionApplies(context: OperationContext): boolean {
 
 /**
  * Merge areas: the union of two closed areas as one outline. Afterwards the survivor is selected. It supersedes the core
- * Merge for the areas it applies to, so the edit menu and C show one Merge.
+ * Merge for the areas it applies to, so the edit menu and C show one Merge. With `tags: 'combine'` (the building
+ * editor) areas with different tags merge too, as long as no key has two values that do not fit (merge.ts).
  */
-export const mergeAreasOperation: Operation = {
-  id: 'merge-areas',
-  get label() {
-    return m.merge_label()
-  },
-  // iD's merge icon, the one the line merge shows
-  icon: 'iD-operation-merge',
-  shortcut: 'c',
-  group: 'structure',
-  supersedes: ['merge'],
-  applies: unionApplies,
-  disabled: (context) => {
-    if (!unionApplies(context)) return undefined
-    const plan = mergePlan(context.graph, context.selected)
-    return 'refused' in plan ? refusalSentence(plan.refused) : undefined
-  },
-  // the tags or relations that block it, side by side, as the core Merge shows them
-  details: (context) => {
-    if (!unionApplies(context)) return undefined
-    const plan = mergePlan(context.graph, context.selected)
-    if (!('refused' in plan)) return undefined
-    const { refused } = plan
-    if (refused !== 'conflicting_tags' && refused !== 'conflicting_relations') return undefined
-    const { graph } = context
-    const entities = context.selected.map((id) => graph.entity(id))
-    // the area merge wants equal tags (area=yes aside) and equal memberships, so every difference shows
-    const rows =
-      refused === 'conflicting_tags'
-        ? tagRows(entities, { strict: true, ignore: ['area'] })
-        : relationRows(entities, graph, { strict: true })
-    if (rows.length === 0) return undefined
-    const columns = entities.map((entity) => ({
-      label: entity.tags.name ?? context.presetOf?.(entity, graph)?.name ?? entity.id,
-      id: entity.id,
-    }))
-    return { title: refusalSentence(refused), columns, rows }
-  },
-  run: (context) => {
-    const plan = mergePlan(context.graph, context.selected)
-    if (!('action' in plan))
-      throw new Error(`The merge-areas operation does not apply to this selection: ${plan.refused}`)
-    return {
-      actions: [plan.action],
-      annotation: m.merge_annotation(),
-      select: () => [plan.survivor],
-    }
-  },
+export function mergeAreasOperationWith(options: MergeOptions = {}): Operation {
+  const combine = options.tags === 'combine'
+  return {
+    id: 'merge-areas',
+    get label() {
+      return m.merge_label()
+    },
+    // iD's merge icon, the one the line merge shows
+    icon: 'iD-operation-merge',
+    shortcut: 'c',
+    group: 'structure',
+    supersedes: ['merge'],
+    applies: unionApplies,
+    disabled: (context) => {
+      if (!unionApplies(context)) return undefined
+      const plan = mergePlan(context.graph, context.selected, options)
+      return 'refused' in plan ? refusalSentence(plan.refused) : undefined
+    },
+    // the tags or relations that block it, side by side, as the core Merge shows them
+    details: (context) => {
+      if (!unionApplies(context)) return undefined
+      const plan = mergePlan(context.graph, context.selected, options)
+      if (!('refused' in plan)) return undefined
+      const { refused } = plan
+      if (refused !== 'conflicting_tags' && refused !== 'conflicting_relations') return undefined
+      const { graph } = context
+      const entities = context.selected.map((id) => graph.entity(id))
+      // the area merge wants equal tags (area=yes aside) and equal memberships, so every difference shows; when it
+      // combines the tags, only the keys whose two values do not fit block it
+      let rows =
+        refused === 'conflicting_tags'
+          ? tagRows(entities, { strict: true, ignore: ['area'] })
+          : relationRows(entities, graph, { strict: true })
+      if (combine && refused === 'conflicting_tags') {
+        const marked = rows.map((row) => ({
+          ...row,
+          conflict:
+            row.label !== 'area' &&
+            combinedValue(row.label, row.cells[0], row.cells[1]) === undefined,
+        }))
+        rows = [...marked.filter((row) => row.conflict), ...marked.filter((row) => !row.conflict)]
+      }
+      if (rows.length === 0) return undefined
+      const columns = entities.map((entity) => ({
+        label: entity.tags.name ?? context.presetOf?.(entity, graph)?.name ?? entity.id,
+        id: entity.id,
+      }))
+      return { title: refusalSentence(refused), columns, rows }
+    },
+    run: (context) => {
+      const plan = mergePlan(context.graph, context.selected, options)
+      if (!('action' in plan))
+        throw new Error(
+          `The merge-areas operation does not apply to this selection: ${plan.refused}`,
+        )
+      return {
+        actions: [plan.action],
+        annotation: m.merge_annotation(),
+        select: () => [plan.survivor],
+      }
+    },
+  }
 }
+
+/** Merge areas with equal tags, as iD wants them */
+export const mergeAreasOperation: Operation = mergeAreasOperationWith()

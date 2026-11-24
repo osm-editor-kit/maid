@@ -98,7 +98,7 @@ From the [JOSM help page](https://josm.openstreetmap.de/wiki/Help/Action/JoinAre
 | 8 | Multi-outer multipolygon | Disabled (`not_simple_area`). | Disabled, same reason. |
 | 9 | Ways that are members of other relations | Allowed only if both have the same parent relations; the loser's memberships move to the survivor with their role. | Same rule. Refuse different parent sets. |
 | 10 | Areas whose nodes are shared with other ways (row houses, landuse next to building) | Shared nodes kept if the position does not change; not checked. | Refuse if an outline node that moves or disappears is used by a way outside the selection. Shared nodes whose position stays are fine. |
-| 11 | Different tags (for example `building=yes` vs `building=house`) | Refused (`conflicting_tags`). | Refused, same as iD. JOSM's conflict dialog is a later option. |
+| 11 | Different tags (for example `building=yes` vs `building=house`) | Refused (`conflicting_tags`). | Refused, same as iD. JOSM's conflict dialog is a later option. Maid Buildings (`mergeAreas({ tags: 'combine' })`, Tobias, 2026-11-24): the tags of both are kept, `building=yes` and `building:part=yes` give way to a specific value, and only two values of one key refuse it. |
 | 12 | Same tags (differing only in `area=yes`) | Allowed; `area=yes` dropped when redundant. | Allowed, same rule. |
 | 12a | One area untagged (or only `area=yes`) and in no relation, the other tagged | Refused (`conflicting_tags`). | Allowed (Tobias, 2026-10-24): the tagged area survives with its id, tags and relations, whichever is older. |
 | 13 | Areas that do not overlap and do not touch | Not offered (`available` false). | Not offered. `applies` false, so no menu entry. |

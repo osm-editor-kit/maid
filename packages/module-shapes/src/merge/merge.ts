@@ -25,6 +25,22 @@ export type MergeRefusal =
   | 'not_simple'
   | 'too_many_nodes'
 
+/**
+ * How the merge treats the two areas' tags. `equal` (the default, as iD) wants the same tags. `combine` (the building
+ * editor) takes the tags of both: a key on one area only is kept, equal values are kept, and a generic `building=yes`
+ * (or `building:part=yes`) gives way to the specific value of the other area. Two different values of any other key
+ * still refuse the merge, so a second address or a different number of levels is never lost unseen.
+ */
+export type MergeTags = 'equal' | 'combine'
+
+/** Options of the area merge */
+export interface MergeOptions {
+  tags?: MergeTags
+}
+
+/** Keys whose value `yes` only says "some kind of": it gives way to the specific value of the other area */
+const GENERIC_YES_KEYS = new Set(['building', 'building:part'])
+
 /** The most nodes the merged outline may have */
 const MAX_NODES = 2000
 /** Points closer than this are one point, and a point this close to a line lies on it (about 1 cm) */
@@ -103,17 +119,19 @@ interface Contact {
  *
  * @param   graph - The current graph
  * @param   ids   - The two ways to merge
+ * @param   options - How the tags are merged (equal tags by default)
  * @return  The action and the survivor's id, or the reason the merge is refused
  */
 export function mergePlan(
   graph: Graph,
   ids: readonly string[],
+  options: MergeOptions = {},
 ): { action: Action; survivor: string } | { refused: MergeRefusal } {
-  const outline = planOutline(graph, ids)
+  const outline = planOutline(graph, ids, true, options.tags)
   if (typeof outline === 'string') return { refused: outline }
 
   const action: Action = (target: Graph): Graph => {
-    const current = planOutline(target, ids)
+    const current = planOutline(target, ids, true, options.tags)
     if (typeof current === 'string') throw new Error(`Merge refused: ${current}`)
     return applyOutline(target, current)
   }
@@ -138,12 +156,15 @@ export function geometryRefusal(graph: Graph, ids: readonly string[]): MergeRefu
  * Checks the two ways and computes the outline of their union.
  * @param   graph - The current graph
  * @param   ids   - The two ways to merge
+ * @param   checkTags - Whether the tags and relations are checked (not for the verdict on the place alone)
+ * @param   tagMode   - Equal tags, or the tags of both combined
  * @return  The outline, or the reason it is refused
  */
 function planOutline(
   graph: Graph,
   ids: readonly string[],
   checkTags = true,
+  tagMode: MergeTags = 'equal',
 ): Outline | MergeRefusal {
   if (ids.length !== 2 || ids[0] === ids[1]) return 'not_two_areas'
 
@@ -162,8 +183,14 @@ function planOutline(
   const tagged = (way: OsmWay) => Object.keys(withoutArea(way.tags)).length > 0
   const bare = (way: OsmWay) => !tagged(way) && graph.parentRelations(way).length === 0
   const taggedSurvivor = bare(a) && tagged(b) ? b : bare(b) && tagged(a) ? a : undefined
+  const combined =
+    tagMode === 'combine' ? combinedTags(withoutArea(a.tags), withoutArea(b.tags)) : undefined
   if (checkTags && taggedSurvivor === undefined) {
-    if (!sameTags(withoutArea(a.tags), withoutArea(b.tags))) return 'conflicting_tags'
+    const tagsFit =
+      tagMode === 'combine'
+        ? combined !== undefined
+        : sameTags(withoutArea(a.tags), withoutArea(b.tags))
+    if (!tagsFit) return 'conflicting_tags'
     if (!sameMemberships(graph, a, b)) return 'conflicting_relations'
   }
 
@@ -258,7 +285,7 @@ function planOutline(
 
   // Tags: the tagged way's (both ways have the same, or one has none), except area=yes, which stays only when the
   // tags do not already make an area
-  const rest = withoutArea((taggedSurvivor ?? keepWay).tags)
+  const rest = combined ?? withoutArea((taggedSurvivor ?? keepWay).tags)
   const areaTagged = a.tags.area === 'yes' || b.tags.area === 'yes'
   const tags = !keepWay.tagSuggestingArea(rest) && areaTagged ? { ...rest, area: 'yes' } : rest
 
@@ -320,6 +347,42 @@ function at<T>(list: readonly T[], i: number): T {
 function sameTags(a: Record<string, string>, b: Record<string, string>): boolean {
   const keys = Object.keys(a)
   return keys.length === Object.keys(b).length && keys.every((key) => b[key] === a[key])
+}
+
+/**
+ * The tags of both areas in one set, for the `combine` mode: undefined when a key has two values that do not fit.
+ * @param   a - Tags of the first way, without area=yes
+ * @param   b - Tags of the second way, without area=yes
+ * @return  The combined tags, or undefined on a conflict
+ */
+export function combinedTags(
+  a: Record<string, string>,
+  b: Record<string, string>,
+): Record<string, string> | undefined {
+  const out: Record<string, string> = {}
+  for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    const value = combinedValue(key, a[key], b[key])
+    if (value === undefined) return undefined
+    out[key] = value
+  }
+  return out
+}
+
+/**
+ * The value of one key in the `combine` mode, or undefined when the two values conflict.
+ * @param   key - The key
+ * @param   x   - Its value on the first way, if any
+ * @param   y   - Its value on the second way, if any
+ * @return  The value both fit, or undefined
+ */
+export function combinedValue(key: string, x?: string, y?: string): string | undefined {
+  if (x === undefined || x === '' || x === y) return y ?? x
+  if (y === undefined || y === '') return x
+  if (GENERIC_YES_KEYS.has(key)) {
+    if (x === 'yes') return y
+    if (y === 'yes') return x
+  }
+  return undefined
 }
 
 /**

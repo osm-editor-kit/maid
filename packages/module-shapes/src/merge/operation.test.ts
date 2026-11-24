@@ -4,7 +4,7 @@ import type { OsmEntity } from '@osm-editor-kit/maid-model'
 import { mergeOperation, visibleOperations } from '@osm-editor-kit/maid-operations'
 import type { OperationContext } from '@osm-editor-kit/maid-operations'
 import type { MergeRefusal } from './merge.ts'
-import { mergeAreasOperation, refusalSentence } from './operation.ts'
+import { mergeAreasOperation, mergeAreasOperationWith, refusalSentence } from './operation.ts'
 
 const modelContext = new ModelContext()
 
@@ -325,5 +325,60 @@ describe('merge-areas: texts of the refusals', () => {
       expect(mergeAreasOperation.applies(context)).toBe(true)
       expect(mergeAreasOperation.disabled(context)).toBe(refusalSentence(refusal))
     }
+  })
+})
+
+describe('merge-areas: tags combined (the building editor)', () => {
+  const combine = mergeAreasOperationWith({ tags: 'combine' })
+
+  function overlapping(a: Record<string, string>, b: Record<string, string>): Graph {
+    return graphOf(
+      ...square('a', 0, 0, 10),
+      ...square('b', 7, 7, 10),
+      // area=yes as in the tests above: the model here has no area keys, so a building alone is no area
+      ring('w1', ['na1', 'na2', 'na3', 'na4'], { area: 'yes', ...a }),
+      ring('w2', ['nb1', 'nb2', 'nb3', 'nb4'], { area: 'yes', ...b }),
+    )
+  }
+
+  function merged(graph: Graph): Record<string, string> {
+    const result = combine.run(contextOf(graph, ['w1', 'w2']))
+    const after = result.actions[0]!(new Graph(graph))
+    const [id = ''] = result.select!(after)
+    return (after.entity(id) as OsmWay).tags
+  }
+
+  it('building=yes gives way to building=house, and a key on one area only is kept', () => {
+    const graph = overlapping(
+      { building: 'yes', 'building:levels': '3' },
+      { building: 'house', 'addr:housenumber': '12' },
+    )
+    expect(combine.disabled(contextOf(graph, ['w1', 'w2']))).toBeUndefined()
+    expect(merged(graph)).toMatchObject({
+      building: 'house',
+      'building:levels': '3',
+      'addr:housenumber': '12',
+    })
+  })
+
+  it('two specific building values or two house numbers still refuse it, and the box marks only those rows', () => {
+    const graph = overlapping(
+      { building: 'house', 'addr:housenumber': '12', roof: 'flat' },
+      { building: 'garage', 'addr:housenumber': '14' },
+    )
+    const context = contextOf(graph, ['w1', 'w2'])
+    expect(combine.disabled(context)).toBe('These areas have different tags.')
+    const details = combine.details!(context)
+    expect(details?.rows.filter((row) => row.conflict).map((row) => row.label)).toEqual([
+      'addr:housenumber',
+      'building',
+    ])
+  })
+
+  it('the default operation still wants equal tags', () => {
+    const graph = overlapping({ building: 'yes' }, { building: 'house' })
+    expect(mergeAreasOperation.disabled(contextOf(graph, ['w1', 'w2']))).toBe(
+      'These areas have different tags.',
+    )
   })
 })

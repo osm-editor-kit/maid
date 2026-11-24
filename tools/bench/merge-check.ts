@@ -7,11 +7,17 @@
  *
  *   bun tools/bench/merge-check.ts small --app parking
  *
+ * With `--app buildings` (which combines the tags, `mergeAreas({ tags: 'combine' })`) also: building=yes with levels
+ * and building=house merge into one building=house with the levels, and one undo step brings both back.
+ *
  * Prints one line per check: `ok <check>`, or `FAIL <check>` with expected and actual. Exits 1 on any failure.
  */
+import { takeApp } from './args'
 import { checkHelpers, type XY, moveToOpenGround } from './check-helpers'
 import { runCheck } from './check-page'
 
+// the building editor combines the tags of the two areas (apps/maid-buildings maid.config.ts)
+const combinesTags = takeApp() === 'buildings'
 const sceneName = process.argv[2] ?? 'small'
 
 type WayData = { nodes: string[]; tags: Record<string, string> } | null
@@ -110,10 +116,10 @@ process.exit(
     }
     const mergeItems = async () => (await menuItems()).filter((item) => item.label === 'Merge')
 
-    // --- different tags: the menu says why, and C changes nothing ---
+    // --- different tags: the menu says why, and C changes nothing (two specific values refuse in every app) ---
     await page.evaluate(
       ([a, b]) => {
-        window.__maid.engine.changeTags([a!], { set: { building: 'yes' } }, 'Setup')
+        window.__maid.engine.changeTags([a!], { set: { building: 'garage' } }, 'Setup')
         window.__maid.engine.changeTags([b!], { set: { building: 'house' } }, 'Setup')
       },
       [idA, idB],
@@ -151,6 +157,36 @@ process.exit(
       [{ area: 'yes' }, { area: 'yes' }],
       [(await wayOf(idA))?.tags, (await wayOf(idB))?.tags],
     )
+
+    // --- the building editor: building=yes gives way to building=house, the levels of the other area stay ---
+    if (combinesTags) {
+      await page.evaluate(
+        ([a, b]) => {
+          window.__maid.engine.changeTags(
+            [a!],
+            { set: { building: 'yes', 'building:levels': '2' } },
+            'Setup',
+          )
+          window.__maid.engine.changeTags([b!], { set: { building: 'house' } }, 'Setup')
+        },
+        [idA, idB],
+      )
+      await selectBoth()
+      await key('c')
+      const kept = (await selection())[0] ?? ''
+      const tags = (await wayOf(kept))?.tags
+      report(
+        'buildings: C merges building=yes and building=house into one building=house with the levels',
+        [1, 'house', '2'],
+        [(await selection()).length, tags?.building, tags?.['building:levels']],
+      )
+      for (let i = 0; i < 3; i++) await key('ControlOrMeta+z')
+      report(
+        'buildings: undo of the merge and the tag changes: both areas are back as before',
+        [{ area: 'yes' }, { area: 'yes' }],
+        [(await wayOf(idA))?.tags, (await wayOf(idB))?.tags],
+      )
+    }
 
     // --- an untagged area and a tagged one: they merge, the older way survives (iD's survivor) with the tags ---
     await page.evaluate((id) => {

@@ -8,7 +8,7 @@ Drawing and editing tools for buildings, parking spaces and rooms: a right-angle
 | --- | --- | --- | --- |
 | Angle snap | `angleSnap({ lengths })` | Hold Shift while placing or dragging: segments turn in 45° steps and corners lock to 90°. `lengths: true` also shows each segment's length in metres while a node is placed | parking, indoor |
 | Rectangle | `rectangle()` | Area dropdown "Rectangle", or keys 3 then 3 (33). Click two corners for one wall, the pointer sets the depth, a third click commits | parking, indoor |
-| Merge areas | `mergeAreas()` | Two closed areas selected, then Merge (C) in the edit menu. One outline. Different tags are refused, with the reason | parking, indoor |
+| Merge areas | `mergeAreas()` | Two closed areas selected, then Merge (C) in the edit menu. One outline. Different tags are refused, with the reason; `mergeAreas({ tags: 'combine' })` keeps the tags of both instead (`building=yes` gives way to `building=house`) and refuses only two values of one key | parking, indoor, golf, buildings (combine) |
 | Cut | `cutArea()` | Edit menu "Cut" on one area or multipolygon. Drag the line's ends or midpoints; the two pieces are previewed. Enter cuts | parking, indoor |
 | Divide | `divideArea()` | Edit menu "Divide" on one area with four corners. `+` and `-` change the columns, Shift with them the rows, Enter applies | parking, indoor |
 | Resize | `resize()` | K, or "Resize" in the edit menu. A box with eight handles; Shift keeps the proportions, Alt resizes from the centre | parking, indoor |

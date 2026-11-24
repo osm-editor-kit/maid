@@ -404,7 +404,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     lanes: 0,
     golf: 31,
     climbing: 0,
-    buildings: 31,
+    buildings: 33,
     maproulette: 0,
   },
   cut: {
