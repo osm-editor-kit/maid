@@ -4,6 +4,7 @@
  * from elsewhere. The data is in `features.ts` and in each app's `overview.json`.
  */
 import { GROUPS, STRENGTHS, THANKS, THANKS_TOP } from './features.ts'
+import { openLink } from './open-link.ts'
 import type { FeatureRow, ListedApp, Support } from './types.ts'
 
 const ID_REPO = 'https://github.com/openstreetmap/iD'
@@ -43,6 +44,45 @@ export function factoriesOf(configSource: string) {
   return found
 }
 
+/**
+ * The attributes of a link that opens an app: its own place in `href`, and what the page's script needs to put the
+ * parameters of the page's own URL in instead (`openLink`).
+ */
+function appLink(app: ListedApp) {
+  const open = escapeHtml(app.overview.open)
+  return `href="${app.folder}/?${open}" data-app="${app.folder}" data-open="${open}"`
+}
+
+/**
+ * Passes the parameters the page was opened with on to every editor link (`openLink`). It reads them once at load
+ * and on a hash change that brings parameters, because the page's own anchors (#editors) replace the hash.
+ */
+function carryScript() {
+  return `<script>
+(() => {
+  const openLink = ${openLink.toString()}
+  let search = location.search
+  let hash = location.hash.includes('=') ? location.hash : ''
+  const apply = () => {
+    for (const link of document.querySelectorAll('a[data-app]')) {
+      link.href = openLink(link.dataset.app, link.dataset.open, search, hash)
+    }
+    const given = [search.replace(/^\\?/, ''), hash].filter(Boolean).join(' ')
+    const notice = document.getElementById('carried')
+    notice.hidden = given === ''
+    notice.querySelector('code').textContent = given
+  }
+  window.addEventListener('hashchange', () => {
+    if (location.hash.includes('=')) {
+      hash = location.hash
+      apply()
+    }
+  })
+  apply()
+})()
+</script>`
+}
+
 const LABEL: Record<Support, string> = { yes: 'Yes', partial: 'Partly', no: 'No' }
 
 /**
@@ -79,7 +119,7 @@ function comparison(apps: ListedApp[], repository: string) {
   const heads = apps
     .map(
       (app) =>
-        `<th scope="col" class="app"><a href="${app.folder}/?${escapeHtml(app.overview.open)}">${escapeHtml(app.name.replace(/^Maid /, ''))}</a></th>`,
+        `<th scope="col" class="app"><a ${appLink(app)}>${escapeHtml(app.name.replace(/^Maid /, ''))}</a></th>`,
     )
     .join('')
   const columns = 2 + apps.length + 1
@@ -118,7 +158,7 @@ function tile(app: ListedApp, repository: string) {
   const { overview } = app
   const highlights = overview.highlights.map((item) => `<li>${escapeHtml(item)}</li>`).join('')
   const shot = app.shot
-    ? `<a class="shot" href="${app.folder}/?${escapeHtml(overview.open)}"><img src="${app.shot}" alt="${escapeHtml(app.name)} with its topic on the map (fixture data)" width="960" height="600" loading="lazy" /></a>`
+    ? `<a class="shot" ${appLink(app)}><img src="${app.shot}" alt="${escapeHtml(app.name)} with its topic on the map (fixture data)" width="960" height="600" loading="lazy" /></a>`
     : ''
   return `<article class="tile">
   ${shot}
@@ -129,7 +169,7 @@ function tile(app: ListedApp, repository: string) {
   <p class="description">${escapeHtml(overview.description)}</p>
   <ul class="highlights">${highlights}</ul>
   <div class="actions">
-    <a class="button primary" href="${app.folder}/?${escapeHtml(overview.open)}">Open ${escapeHtml(app.name)}</a>
+    <a class="button primary" ${appLink(app)}>Open ${escapeHtml(app.name)}</a>
     <a class="button" href="https://github.com/${repository}/blob/main/apps/${app.folder}/src/maid.config.ts">Its config</a>
   </div>
 </article>`
@@ -157,7 +197,6 @@ function thanks() {
 /** The page at the path when several apps are deployed */
 export function indexPage(apps: ListedApp[], repository: string) {
   const [first] = apps
-  const openFirst = first ? `${first.folder}/?${escapeHtml(first.overview.open)}` : '#editors'
   const brand = first?.logo ?? ''
   return `<!doctype html>
 <html lang="en">
@@ -188,9 +227,10 @@ ${CSS}
   <p class="lead">Maid builds on <a href="${ID_REPO}">iD</a>: its tagging schema, its presets and the way mappers edit, drawn with MapLibre GL. One core, many editors: each community gets an editor made for its topic, from a config file and a few modules.</p>
   <div class="actions">
     <a class="button primary" href="#editors">See the editors</a>
-    <a class="button" href="${openFirst}">Open Maid</a>
+    <a class="button" ${first ? appLink(first) : 'href="#editors"'}>Open Maid</a>
     <a class="button" href="https://github.com/${repository}">GitHub</a>
   </div>
+  <p id="carried" class="carried" hidden>The editor buttons open the place from your link: <code></code> <a href="./">Use each editor's own place</a> · <a href="#url-parameters">About these parameters</a></p>
   <aside class="beta" aria-label="Beta">
     <strong>Beta.</strong> Maid is a young project. Many of its features are new and still need careful testing, so check your changes before you save. When something breaks, looks wrong or is unclear, please <a href="https://github.com/${repository}/issues/new">open an issue on GitHub</a>.
   </aside>
@@ -246,8 +286,21 @@ ${thanks()}
 </section>
 </main>
 <footer>
+  <details id="url-parameters" class="params">
+    <summary>Link to this page with a place</summary>
+    <p>Add a place to the link of this page and every editor button opens there. So you can link here from anywhere and choose the editor afterwards. Both of these forms work, the same ones the editors read themselves:</p>
+    <dl>
+      <dt>Maid's form, in the query</dt>
+      <dd><code>?map=18/52.52190/13.41000&amp;id=w4495005</code></dd>
+      <dt>iD's form, in the hash</dt>
+      <dd><code>#map=18/52.52190/13.41000&amp;id=w4495005</code>, as in the links of openstreetmap.org and of iD. The editors convert it when they start.</dd>
+    </dl>
+    <p><code>map</code> is zoom/latitude/longitude, <code>id</code> the features to select (<code>n</code> node, <code>w</code> way, <code>r</code> relation, several with commas). Other parameters go along as they are, for example <code>comment</code>, <code>hashtags</code> and <code>source</code> for the changeset, <code>background</code>, <code>lang</code> (iD: <code>locale</code>) or <code>theme</code>. An editor that does not know a parameter leaves it out.</p>
+    <p>A button keeps its own settings, for example a lens or the 3D terrain, unless your link sets the same parameter. When your link has <code>map</code> or <code>id</code>, the button's own place and selected feature are dropped.</p>
+  </details>
   <p>Maid is open source under the ISC licence: <a href="https://github.com/${repository}">${repository}</a>. Map data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>.</p>
 </footer>
+${carryScript()}
 </body>
 </html>
 `
@@ -371,5 +424,13 @@ td.cell.ref { background: var(--surface-2); }
 .thanks .thanks-top a { font-size: 1.15rem; }
 @media (max-width: 40rem) { .thanks .thanks-top { grid-column: auto; } .top nav a:nth-child(-n+3) { display: none; } }
 
+.carried { margin: 1.2rem 0 0; padding: 0.7rem 1rem; border-radius: var(--radius); background: var(--accent-soft); max-width: 46rem; overflow-wrap: anywhere; }
+.carried code { font-weight: 600; }
+.params { margin: 0 0 1.5rem; }
+.params summary { cursor: pointer; color: var(--text); font-weight: 600; }
+.params p, .params dl { max-width: 46rem; }
+.params dt { font-weight: 600; color: var(--text); margin-top: 0.6rem; }
+.params dd { margin: 0.2rem 0 0; }
+.params code { overflow-wrap: anywhere; }
 footer { max-width: 72rem; margin: 4rem auto 0; padding: 2rem 16px 3rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.88rem; }
 `
