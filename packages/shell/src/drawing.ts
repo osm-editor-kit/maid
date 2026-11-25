@@ -1,4 +1,6 @@
+import { m } from '@osm-editor-kit/maid-i18n'
 import type { DrawKind, DrawToolItem, MaidEngine, Mode } from '@osm-editor-kit/maid-renderer'
+import { notify } from '@osm-editor-kit/maid-ui'
 import { giveFavouriteType } from './favourites'
 import { markNewFeature } from './new-feature'
 
@@ -18,11 +20,39 @@ export async function drawClick(
 ) {
   const finished = await engine.draw.click(kind, point, layers)
   if (!finished) return false
-  giveFavouriteType({ engine }, finished, kind === 'line' ? 'draw-line' : 'draw-area')
+  afterDrawing(engine, finished, kind === 'line' ? 'draw-line' : 'draw-area')
   engine.setMode('browse')
   markNewFeature(finished)
   select(finished)
   return true
+}
+
+/** How many copied tags the toast names; the rest is a count */
+const TAGS_NAMED = 4
+
+/**
+ * A way that was just finished in `mode`, before it is selected. A favourite that started the mode gives its type;
+ * else a line that took all tags of the selected way it started on says so in a toast, which can take them off again.
+ */
+export function afterDrawing(engine: MaidEngine, wayId: string, mode: Mode) {
+  if (giveFavouriteType({ engine }, wayId, mode)) return
+  const copied = engine.draw.copied
+  if (copied?.wayId !== wayId) return
+  const pairs = Object.entries(copied.tags).map(([key, value]) => `${key}=${value}`)
+  const rest = pairs.length - TAGS_NAMED
+  const tags = pairs.slice(0, TAGS_NAMED).join(', ') + (rest > 0 ? `, +${rest}` : '')
+  notify.done(m.draw_copied_tags({ tags }), {
+    action: { label: m.draw_copied_tags_remove(), onClick: () => removeCopiedTags(engine, copied) },
+  })
+}
+
+/** Takes the copied tags off the new line again, those that still have the copied value. One undo step. */
+function removeCopiedTags(engine: MaidEngine, copied: NonNullable<MaidEngine['draw']['copied']>) {
+  const way = engine.data.way(copied.wayId)
+  if (!way) return
+  const tags = { ...way.tags }
+  for (const [key, value] of Object.entries(copied.tags)) if (tags[key] === value) delete tags[key]
+  engine.setTags(copied.wayId, tags, 'Removed the copied tags')
 }
 
 /**

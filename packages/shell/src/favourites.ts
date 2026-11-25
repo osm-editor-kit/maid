@@ -248,11 +248,11 @@ export function giveFavouriteTagsToNode({ editor, engine }: Parts, id: string) {
 
 /**
  * A line or an area that was just finished in `mode`. A favourite that started that mode gives it
- * its type: a second undo step, as the type picker makes one.
+ * its type: a second undo step, as the type picker makes one. Returns whether it gave one.
  */
 export function giveFavouriteType({ engine }: Pick<Parts, 'engine'>, id: string, mode: Mode) {
   const found = pending.current
-  if (!found || found.mode !== mode) return
+  if (!found || found.mode !== mode) return false
   pending.current = undefined
   const tags = found.presets.applyPreset(
     {},
@@ -262,4 +262,5 @@ export function giveFavouriteType({ engine }: Pick<Parts, 'engine'>, id: string,
     at(engine.centreOf(id)),
   )
   engine.setTags(id, tags, `Changed the feature type to ${found.preset.name}`)
+  return true
 }

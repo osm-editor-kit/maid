@@ -18,6 +18,32 @@ import type { MaidEngine } from './engine'
 import { nearestOnPolyline, SNAP_PX, type Loc, type Point, type Projected } from './snap'
 
 export type DrawKind = 'line' | 'area'
+
+/** The tags a new line took from the way it was started on (`DrawTool.copied`) */
+export type CopiedTags = { wayId: string; sourceId: string; tags: Record<string, string> }
+
+/**
+ * The way whose tags a line started on this node takes: a selected way that has the node, else, when only a node of
+ * it is selected now (a click on the vertex of the selected way selects the vertex), the way selected before that.
+ * An area gives no tags to a line. Undefined when no way fits.
+ */
+export function sourceWayOf(
+  nodeId: string,
+  selection: readonly string[],
+  previous: readonly string[],
+  wayOf: (id: string) => OsmWay | undefined,
+) {
+  const lineWith = (ids: readonly string[], node: string) =>
+    ids
+      .map((id) => (id[0] === 'w' ? wayOf(id) : undefined))
+      .find((way) => way !== undefined && way.nodes.includes(node) && !way.isArea())
+  const now = lineWith(selection, nodeId)
+  if (now) return now
+  const vertex = selection.length === 1 ? selection[0] : undefined
+  if (vertex?.[0] !== 'n') return undefined
+  const before = lineWith(previous, vertex)
+  return before?.nodes.includes(nodeId) ? before : undefined
+}
 /** What a click or the pointer lands on: an existing node, a place on a way, or open ground */
 type Target =
   | { type: 'node'; id: string; loc: Loc }
@@ -33,6 +59,10 @@ export class DrawTool {
   private atStart = false
   /** True if the way existed before: finishing with nothing added must not delete it */
   private continued = false
+  /** The tags the way being drawn took from the selected way it started on */
+  private copying?: CopiedTags
+  /** The tags the last finished way took from the way it started on, if it took any */
+  copied?: CopiedTags
   constructor(private engine: MaidEngine) {}
 
   get active() {
@@ -123,6 +153,8 @@ export class DrawTool {
     const wayId = this.wayId
     const cursorId = this.cursorId
     if (!wayId || !cursorId) return undefined
+    const copying = this.copying
+    this.copied = undefined
     engine.stopDrag()
     this.reset()
     let kept: string | undefined
@@ -136,6 +168,7 @@ export class DrawTool {
         return
       }
       kept = wayId
+      if (copying?.wayId === wayId) this.copied = copying
       const annotation = this.continued
         ? 'Continued a line'
         : this.kind === 'area'
@@ -190,6 +223,7 @@ export class DrawTool {
     this.wayId = undefined
     this.cursorId = undefined
     this.atStart = false
+    this.copying = undefined
     this.engine.setGuides([])
   }
 
@@ -220,6 +254,8 @@ export class DrawTool {
     this.kind = kind
     this.continued = false
     this.atStart = false
+    this.copying = undefined
+    this.copied = undefined
     engine.change(() => {
       let firstId: string
       if (target.type === 'node') {
@@ -240,14 +276,28 @@ export class DrawTool {
         if (target.type === 'way')
           history.perform(actionAddMidpoint({ loc: target.loc, edge: target.edge }, first))
       }
+      // a line started on a node of the selected way takes all of that way's tags
+      const source =
+        kind === 'line' && target.type === 'node'
+          ? sourceWayOf(target.id, engine.selection, engine.previousSelection, (id) =>
+              engine.data.way(id),
+            )
+          : undefined
+      const copied: Record<string, string> = source ? { ...source.tags } : {}
       // iD's convention: an area is a closed way with area=yes until it gets its type
       // and a feature drawn while a level is edited is on that level (engine.levelTags)
       const way = new OsmWay(context, {
         nodes: kind === 'area' ? [firstId, firstId] : [firstId],
-        tags: { ...this.engine.levelTags(), ...(kind === 'area' ? { area: 'yes' } : {}) },
+        tags: {
+          ...copied,
+          ...this.engine.levelTags(),
+          ...(kind === 'area' ? { area: 'yes' } : {}),
+        },
       })
       history.perform(actionAddEntity(way))
       this.wayId = way.id
+      if (source && Object.keys(copied).length > 0)
+        this.copying = { wayId: way.id, sourceId: source.id, tags: copied }
       this.addCursor(target.loc)
     })
   }

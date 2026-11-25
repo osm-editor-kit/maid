@@ -595,5 +595,7 @@
   "route_overview_label_excursion_start": "Side trip, out and back",
   "route_overview_label_excursion_end": "End of the side trip",
   "route_overview_label_loop_start": "Side loop",
-  "route_overview_label_loop_end": "Back on the route"
+  "route_overview_label_loop_end": "Back on the route",
+  "draw_copied_tags": "Took over all tags of the selected way. Please check them: {tags}",
+  "draw_copied_tags_remove": "Remove tags"
 }

@@ -184,6 +184,8 @@ export class MaidEngine {
   private selectedIds: string[] = []
   /** `selectedIds` as a set, for lookups in loops over changes; assigned with it in `setSelected` */
   private selectedSet: ReadonlySet<string> = new Set()
+  /** The selection before the current one: a line drawn from a vertex takes the tags of the way selected before it */
+  private previousSelectedIds: string[] = []
   private shownHover: string | null = null
   private shownSelected: string[] = []
   /**
@@ -1800,6 +1802,7 @@ export class MaidEngine {
       selection === null ? [] : typeof selection === 'string' ? [selection] : [...selection]
     const previous = this.selectedIds
     if (ids.length === previous.length && ids.every((id, i) => id === previous[i])) return
+    this.previousSelectedIds = previous
     this.selectedIds = ids
     this.selectedSet = new Set(ids)
     this.syncSelectTier(previous, ids)
@@ -1824,6 +1827,11 @@ export class MaidEngine {
   /** The ids that are selected (what was asked for; `selected()` is what the map shows) */
   get selection() {
     return this.selectedIds
+  }
+
+  /** The selection before the current one (drawing reads it: draw.ts, `sourceWayOf`) */
+  get previousSelection(): readonly string[] {
+    return this.previousSelectedIds
   }
 
   /** What is on screen as hovered or selected (lags the request by the time MapLibre needs to draw it) */
