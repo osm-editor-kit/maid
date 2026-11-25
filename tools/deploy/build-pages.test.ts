@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { runInNewContext } from 'node:vm'
 import { appsOf, basePathOf, indexPage, listedApp, readDeployEnv } from './build-pages.ts'
 import { deployedApps, FEATURES_DOC, featuresDoc } from './features-doc.ts'
 import { GROUPS } from './showcase/features.ts'
@@ -94,5 +95,41 @@ describe('pages build', () => {
 
   it('has docs/features.md up to date (bun run features-doc)', () => {
     expect(readFileSync(FEATURES_DOC, 'utf8')).toBe(featuresDoc(deployedApps()))
+  })
+})
+
+describe('the overview page script', () => {
+  /** Runs the page's inline script against a page with one editor link, the notice and the explanation */
+  function run(search: string, hash: string) {
+    const page = indexPage([listedApp('maid')], 'osm-editor-kit/maid')
+    const script = /<script>([\s\S]*?)<\/script>/.exec(page)![1]!
+    const link = { dataset: { app: 'maid', open: 'map=1/2/3&lens=surface' }, href: '' }
+    const code = { textContent: '' }
+    const notice = { hidden: true, querySelector: () => code }
+    const details = { open: false }
+    const elements: Record<string, unknown> = { carried: notice, 'url-parameters': details }
+    runInNewContext(script, {
+      URLSearchParams,
+      location: { search, hash },
+      window: { addEventListener: () => {} },
+      document: { querySelectorAll: () => [link], getElementById: (id: string) => elements[id] },
+    })
+    return { href: link.href, notice: notice.hidden ? '' : code.textContent, details: details.open }
+  }
+
+  it('passes a place on to the editor links and says so', () => {
+    expect(run('?comment=x', '#map=4/5/6')).toEqual({
+      href: 'maid/?lens=surface&comment=x#map=4/5/6',
+      notice: 'comment=x #map=4/5/6',
+      details: false,
+    })
+  })
+
+  it('shows no notice without a place, and opens the explanation from its link', () => {
+    expect(run('?utm_source=x', '#url-parameters')).toEqual({
+      href: 'maid/?map=1/2/3&lens=surface&utm_source=x',
+      notice: '',
+      details: true,
+    })
   })
 })

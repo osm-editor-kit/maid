@@ -4,7 +4,7 @@
  * from elsewhere. The data is in `features.ts` and in each app's `overview.json`.
  */
 import { GROUPS, STRENGTHS, THANKS, THANKS_TOP } from './features.ts'
-import { openLink } from './open-link.ts'
+import { namesPlace, openLink } from './open-link.ts'
 import type { FeatureRow, ListedApp, Support } from './types.ts'
 
 const ID_REPO = 'https://github.com/openstreetmap/iD'
@@ -61,23 +61,30 @@ function carryScript() {
   return `<script>
 (() => {
   const openLink = ${openLink.toString()}
+  const namesPlace = ${namesPlace.toString()}
   let search = location.search
   let hash = location.hash.includes('=') ? location.hash : ''
   const apply = () => {
     for (const link of document.querySelectorAll('a[data-app]')) {
       link.href = openLink(link.dataset.app, link.dataset.open, search, hash)
     }
-    const given = [search.replace(/^\\?/, ''), hash].filter(Boolean).join(' ')
+    // the notice only for a place: a query like ?utm_source=… goes along without one
     const notice = document.getElementById('carried')
-    notice.hidden = given === ''
-    notice.querySelector('code').textContent = given
+    notice.hidden = !namesPlace(search, hash)
+    notice.querySelector('code').textContent = [search.replace(/^\\?/, ''), hash].filter(Boolean).join(' ')
+  }
+  // the explanation is folded; its link opens it
+  const explain = () => {
+    if (location.hash === '#url-parameters') document.getElementById('url-parameters').open = true
   }
   window.addEventListener('hashchange', () => {
+    explain()
     if (location.hash.includes('=')) {
       hash = location.hash
       apply()
     }
   })
+  explain()
   apply()
 })()
 </script>`
@@ -295,7 +302,7 @@ ${thanks()}
       <dt>iD's form, in the hash</dt>
       <dd><code>#map=18/52.52190/13.41000&amp;id=w4495005</code>, as in the links of openstreetmap.org and of iD. The editors convert it when they start.</dd>
     </dl>
-    <p><code>map</code> is zoom/latitude/longitude, <code>id</code> the features to select (<code>n</code> node, <code>w</code> way, <code>r</code> relation, several with commas). Other parameters go along as they are, for example <code>comment</code>, <code>hashtags</code> and <code>source</code> for the changeset, <code>background</code>, <code>lang</code> (iD: <code>locale</code>) or <code>theme</code>. An editor that does not know a parameter leaves it out.</p>
+    <p><code>map</code> is zoom/latitude/longitude, <code>id</code> the features to select (<code>n</code> node, <code>w</code> way, <code>r</code> relation, several with commas). Other parameters go along as they are, for example <code>comment</code>, <code>hashtags</code> and <code>source</code> for the changeset, or <code>theme</code>. A few have another name in each form: <code>bg</code> in the query is <code>background</code> in the hash, <code>lang</code> is <code>locale</code>, <code>filters</code> is <code>disable_features</code>. Use iD's names only in the hash. An editor ignores a parameter it does not know.</p>
     <p>A button keeps its own settings, for example a lens or the 3D terrain, unless your link sets the same parameter. When your link has <code>map</code> or <code>id</code>, the button's own place and selected feature are dropped.</p>
   </details>
   <p>Maid is open source under the ISC licence: <a href="https://github.com/${repository}">${repository}</a>. Map data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>.</p>

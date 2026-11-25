@@ -13,11 +13,25 @@
  * body.
  */
 export function openLink(folder: string, defaults: string, search: string, hash: string) {
-  const query = new URLSearchParams(search)
+  // iD's names whose Maid name differs (id-url.ts and the imagery module): the button's default goes for either
+  const maidName: Record<string, string> = {
+    locale: 'lang',
+    disable_features: 'filters',
+    background: 'bg',
+    layer: 'bg',
+  }
+  const filled = (text: string) =>
+    new URLSearchParams([...new URLSearchParams(text)].filter(([, value]) => value !== ''))
+  const query = filled(search)
+  // osm.org's edit link carries `editor=id`, which means nothing to the editors
+  query.delete('editor')
   // a hash without `=` is the page's own anchor (#editors), not iD's parameters
-  const fromId = new URLSearchParams(hash.includes('=') ? hash.replace(/^#/, '') : '')
+  const fromId = filled(hash.includes('=') ? hash.replace(/^#/, '') : '')
   const out = new URLSearchParams(defaults)
-  const names = new Set([...query.keys(), ...fromId.keys()])
+  const names = new Set([
+    ...query.keys(),
+    ...[...fromId.keys()].map((name) => maidName[name] ?? name),
+  ])
   if (names.has('map') || names.has('id')) {
     out.delete('map')
     out.delete('id')
@@ -28,5 +42,15 @@ export function openLink(folder: string, defaults: string, search: string, hash:
   const plain = (params: URLSearchParams) =>
     params.toString().replace(/%2F/g, '/').replace(/%2C/g, ',')
   const rest = plain(fromId)
-  return `${folder}/?${plain(out)}${rest ? `#${rest}` : ''}`
+  const own = plain(out)
+  return `${folder}/${own ? `?${own}` : ''}${rest ? `#${rest}` : ''}`
+}
+
+/** Whether the page's URL names a place (`map` or `id`, in either form), which the page then says above the buttons */
+export function namesPlace(search: string, hash: string) {
+  const has = (params: URLSearchParams) => Boolean(params.get('map') || params.get('id'))
+  return (
+    has(new URLSearchParams(search)) ||
+    (hash.includes('=') && has(new URLSearchParams(hash.replace(/^#/, ''))))
+  )
 }

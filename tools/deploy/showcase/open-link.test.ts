@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 import { runInNewContext } from 'node:vm'
-import { openLink } from './open-link.ts'
+import { namesPlace, openLink } from './open-link.ts'
 
 const DEFAULTS = 'map=18/52.52190/13.41000&lens=surface'
 
@@ -39,7 +39,19 @@ describe('openLink', () => {
 
   it('carries other parameters, encoded', () => {
     expect(openLink('maid', '', '', '#map=17/1/2&comment=Fix%20paths&hashtags=%23maid')).toBe(
-      'maid/?#map=17/1/2&comment=Fix+paths&hashtags=%23maid',
+      'maid/#map=17/1/2&comment=Fix+paths&hashtags=%23maid',
+    )
+  })
+
+  it("drops the button's setting for an iD name whose Maid name differs", () => {
+    expect(openLink('maid', 'map=1/2/3&lang=de&bg=Bing', '', '#locale=fr-FR&background=Esri')).toBe(
+      'maid/?map=1/2/3#locale=fr-FR&background=Esri',
+    )
+  })
+
+  it("ignores empty values and osm.org's editor=id", () => {
+    expect(openLink('maid', DEFAULTS, '?map=&lens=&editor=id', '#id=')).toBe(
+      'maid/?map=18/52.52190/13.41000&lens=surface',
     )
   })
 
@@ -49,5 +61,14 @@ describe('openLink', () => {
       URLSearchParams,
     }) as typeof openLink
     expect(inlined('maid', DEFAULTS, '?map=1/2/3', '')).toBe('maid/?lens=surface&map=1/2/3')
+  })
+})
+
+describe('namesPlace', () => {
+  it('is true for map or id in either form, not for other parameters or anchors', () => {
+    expect(namesPlace('?map=1/2/3', '')).toBe(true)
+    expect(namesPlace('', '#id=w1')).toBe(true)
+    expect(namesPlace('?utm_source=x', '#editors')).toBe(false)
+    expect(namesPlace('?map=', '')).toBe(false)
   })
 })
