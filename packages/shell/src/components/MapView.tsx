@@ -45,6 +45,7 @@ import { FollowLocation } from './FollowLocation'
 import { MapContextMenu, type MenuPlace } from './MapContextMenu'
 import { MeasureLoupe } from './MeasureLoupe'
 import { MoveHandle } from './MoveHandle'
+import { OperationConfirmDialog } from './OperationConfirmDialog'
 import { PasteTagsDialog } from './PasteTagsDialog'
 import { RotateHandle } from './RotateHandle'
 import { StackPicker } from './StackPicker'
@@ -821,6 +822,7 @@ export function MapView() {
       )}
       {menu && <MapContextMenu place={menu} onClose={() => setMenu(null)} />}
       <PasteTagsDialog />
+      <OperationConfirmDialog />
     </Map>
   )
 }

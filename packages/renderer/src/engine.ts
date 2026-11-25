@@ -1060,7 +1060,11 @@ export class MaidEngine {
    * pointer, as [lon, lat] (`OperationContext.at`). `choice`: the target picked in the edit menu's flyout
    * (`OperationContext.choice`).
    */
-  operationContext(at?: [number, number], choice?: string): OperationContext {
+  operationContext(
+    at?: [number, number],
+    choice?: string,
+    picks?: Readonly<Record<string, string>>,
+  ): OperationContext {
     // the presets let extract refuse a feature whose point would carry no tags (a building), as iD
     const presets = this.options.editor.presets
     const presetOf: OperationContext['presetOf'] =
@@ -1068,20 +1072,71 @@ export class MaidEngine {
       ((entity, graph) =>
         presets.match(entity.tags, entity.geometry(graph), this.centreOf(entity.id)))
     const context = operationContextOf(this.map, this.data, this.selectedIds, presetOf)
-    return at || choice !== undefined
-      ? { ...context, ...(at && { at }), ...(choice !== undefined && { choice }) }
+    return at || choice !== undefined || picks
+      ? {
+          ...context,
+          ...(at && { at }),
+          ...(choice !== undefined && { choice }),
+          ...(picks && { picks }),
+        }
       : context
   }
 
   /**
+   * The operation that waits for the mapper's OK (`Operation.confirm`), with where and how it was asked; null when none
+   * does. The shell's confirm dialog reads it, and `confirmOperation` or `cancelOperation` ends it.
+   */
+  pendingOperation: {
+    operation: Operation
+    at?: [number, number]
+    choice?: string
+  } | null = null
+
+  /** Runs the waiting operation with the picked values, as one undo step; returns what `runOperation` returns */
+  confirmOperation(picks: Readonly<Record<string, string>>) {
+    const pending = this.pendingOperation
+    if (!pending) return undefined
+    this.pendingOperation = null
+    const next = this.runOperation(pending.operation, pending.at, pending.choice, {
+      picks,
+      confirmed: true,
+    })
+    this.changed()
+    return next
+  }
+
+  /** Drops the waiting operation: nothing changes */
+  cancelOperation() {
+    if (!this.pendingOperation) return
+    this.pendingOperation = null
+    this.changed()
+  }
+
+  /**
    * Runs an operation on the selection as one undo step. Returns what is selected afterwards, or
-   * undefined if the operation does not apply or cannot run now. An operation with `start` asks for more
+   * undefined if the operation does not apply or cannot run now, or asks first (`Operation.confirm`: it waits in
+   * `pendingOperation` for the dialog, and `asked` carries the mapper's picks when it runs). An operation with `start` asks for more
    * input: it starts its own mode (ADR 0011), and `run` is not called. The selection is then kept.
    */
-  runOperation(operation: Operation, at?: [number, number], choice?: string) {
-    const context = this.operationContext(at, choice)
+  runOperation(
+    operation: Operation,
+    at?: [number, number],
+    choice?: string,
+    asked?: { picks: Readonly<Record<string, string>>; confirmed: true },
+  ) {
+    const context = this.operationContext(at, choice, asked?.picks)
     if (this.draw.active || this.selectedIds.some((id) => this.isReadOnly(id))) return
     if (!operation.applies(context) || operation.disabled(context)) return
+    // an operation that asks first (`confirm`): the dialog runs it again with the mapper's picks
+    if (!asked && operation.confirm?.(context)) {
+      this.pendingOperation = {
+        operation,
+        ...(at && { at }),
+        ...(choice !== undefined && { choice }),
+      }
+      this.changed()
+      return
+    }
     if (operation.start) {
       operation.start(context, { engine: this, editor: this.options.editor })
       return this.selectedIds

@@ -318,9 +318,10 @@ describe('merge areas: two overlapping areas', () => {
 })
 
 describe('merge areas: shapes that are not two closed ways', () => {
-  it('three ways are refused as not_two_areas', () => {
-    const base = graphOf(...twoSquares(7, 7), ring('w3', ['na1', 'na2', 'na3', 'na4']))
-    expect(outcomeOf(base, ['w1', 'w2', 'w3'])).toBe('not_two_areas')
+  it('one way, or the same way twice, is refused as not_two_areas', () => {
+    const base = graphOf(...twoSquares(7, 7))
+    expect(outcomeOf(base, ['w1'])).toBe('not_two_areas')
+    expect(outcomeOf(base, ['w1', 'w1'])).toBe('not_two_areas')
   })
 
   it('an open way is refused as not_two_areas', () => {

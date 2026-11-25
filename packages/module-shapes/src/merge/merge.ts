@@ -27,15 +27,17 @@ export type MergeRefusal =
 
 /**
  * How the merge treats the two areas' tags. `equal` (the default, as iD) wants the same tags. `combine` (the building
- * editor) takes the tags of both: a key on one area only is kept, equal values are kept, and a generic `building=yes`
- * (or `building:part=yes`) gives way to the specific value of the other area. Two different values of any other key
- * still refuse the merge, so a second address or a different number of levels is never lost unseen.
+ * editor) takes the tags of all: a key on one area only is kept, equal values are kept, and a generic `building=yes`
+ * (or `building:part=yes`) gives way to the specific value of the other area. Where a key has two values, the
+ * mapper picks one (`picks`): the operation asks in a dialog with the tag diff before it runs (`tagConflicts`).
  */
 export type MergeTags = 'equal' | 'combine'
 
 /** Options of the area merge */
 export interface MergeOptions {
   tags?: MergeTags
+  /** The value the mapper picked for each key with two values (`combine` mode); else the survivor's value */
+  picks?: Readonly<Record<string, string>>
 }
 
 /** Keys whose value `yes` only says "some kind of": it gives way to the specific value of the other area */
@@ -113,58 +115,192 @@ interface Contact {
   u: number
 }
 
+/** A key whose value differs between the tagged areas, with the values to pick from (the survivor's first) */
+export interface TagConflict {
+  key: string
+  options: string[]
+}
+
 /**
- * Plans the merge of two closed ways into one area.
+ * Plans the merge of two or more closed ways into one area. The ways are joined one by one into the survivor (iD's
+ * survivor: the way that exists in OSM, the oldest), each next one touching what is merged so far.
  * The action plans again on the graph it gets, so a plan made earlier still gives the right outline.
  *
- * @param   graph - The current graph
- * @param   ids   - The two ways to merge
- * @param   options - How the tags are merged (equal tags by default)
- * @return  The action and the survivor's id, or the reason the merge is refused
+ * @param   graph   - The current graph
+ * @param   ids     - The ways to merge
+ * @param   options - How the tags are merged (equal tags by default), and the values picked for conflicting keys
+ * @return  The action, the survivor's id and its tags afterwards, or the reason the merge is refused
  */
 export function mergePlan(
   graph: Graph,
   ids: readonly string[],
   options: MergeOptions = {},
-): { action: Action; survivor: string } | { refused: MergeRefusal } {
-  const outline = planOutline(graph, ids, true, options.tags)
-  if (typeof outline === 'string') return { refused: outline }
+): { action: Action; survivor: string; tags: Record<string, string> } | { refused: MergeRefusal } {
+  const planned = planMerge(graph.snapshot(), ids, true, options)
+  if (typeof planned === 'string') return { refused: planned }
 
   const action: Action = (target: Graph): Graph => {
-    const current = planOutline(target, ids, true, options.tags)
+    const current = planMerge(target, ids, true, options)
     if (typeof current === 'string') throw new Error(`Merge refused: ${current}`)
-    return applyOutline(target, current)
+    return current.graph
   }
 
-  return { action, survivor: outline.survivor }
+  return { action, survivor: planned.survivor, tags: planned.tags }
 }
 
 /**
- * The verdict on the two areas' place alone, without their tags and relations. The union decides whether it applies
+ * The verdict on the areas' place alone, without their tags and relations. The union decides whether it applies
  * with this, so a contained or apart pair is the core Merge's (a multipolygon) whatever their tags; undefined when
  * the geometry has no refusal, and the other refusals (tags, relations, shape) are the union's to show.
  * @param   graph - The current graph
- * @param   ids   - The two ways
+ * @param   ids   - The ways
  * @return  The refusal of the geometry, or undefined
  */
 export function geometryRefusal(graph: Graph, ids: readonly string[]): MergeRefusal | undefined {
-  const outline = planOutline(graph, ids, false)
-  return typeof outline === 'string' ? outline : undefined
+  const planned = planMerge(graph.snapshot(), ids, false, {})
+  return typeof planned === 'string' ? planned : undefined
+}
+
+/**
+ * The keys whose values differ between the tagged areas in the `combine` mode (building=yes aside, which gives way),
+ * each with its values, the survivor's first. Empty: the tags combine without a question.
+ * @param   graph - The current graph
+ * @param   ids   - The ways
+ * @return  The conflicts
+ */
+export function tagConflicts(graph: Graph, ids: readonly string[]): TagConflict[] {
+  const ways = closedWays(graph, ids)
+  if (!ways) return []
+  const tagged = byAge(ways.filter((way) => isTagged(way)))
+  const keys = [...new Set(tagged.flatMap((way) => Object.keys(withoutArea(way.tags))))].sort()
+  const conflicts: TagConflict[] = []
+  for (const key of keys) {
+    const values = tagged.map((way) => way.tags[key]).filter((v): v is string => !!v)
+    const merged = combinedOfAll(key, values)
+    if (merged === undefined) conflicts.push({ key, options: [...new Set(values)] })
+  }
+  return conflicts
+}
+
+/** The ways of `ids` when each is a closed way; undefined otherwise */
+function closedWays(graph: Graph, ids: readonly string[]): OsmWay[] | undefined {
+  const found = ids.map((id) => graph.hasEntity(id))
+  return found.every((entity) => entity instanceof OsmWay && entity.isClosed())
+    ? (found as OsmWay[])
+    : undefined
+}
+
+/** Whether a way has tags besides area=yes */
+function isTagged(way: OsmWay): boolean {
+  return Object.keys(withoutArea(way.tags)).length > 0
+}
+
+/** The ways with the survivor first (iD's survivor: the way that exists in OSM, the oldest), then the rest in order */
+function byAge(ways: OsmWay[]): OsmWay[] {
+  const first = utilSurvivorID(ways)
+  return first === undefined
+    ? ways
+    : [...ways.filter((way) => way.id === first), ...ways.filter((way) => way.id !== first)]
+}
+
+/**
+ * The tags of the merged area, or the refusal: `equal` wants the same tags on every tagged area, `combine` takes them
+ * all, a picked value (or else the survivor's) where a key has two. Untagged areas in no relation only give their shape.
+ */
+function mergedTags(
+  graph: Graph,
+  ways: OsmWay[],
+  options: MergeOptions,
+): Record<string, string> | MergeRefusal {
+  // an untagged area in no relation (a sketched outline) only gives its shape to a tagged one; every other area counts
+  const anyTagged = ways.some((way) => isTagged(way))
+  const tagged = byAge(
+    anyTagged ? ways.filter((way) => isTagged(way) || graph.parentRelations(way).length > 0) : ways,
+  )
+  const [first] = tagged
+  if (!first) return {}
+  if (options.tags !== 'combine') {
+    const base = withoutArea(first.tags)
+    if (!tagged.every((way) => sameTags(base, withoutArea(way.tags)))) return 'conflicting_tags'
+  }
+  if (tagged.some((way) => !sameMemberships(graph, first, way))) return 'conflicting_relations'
+  if (options.tags !== 'combine') return withoutArea(first.tags)
+  const out: Record<string, string> = {}
+  for (const key of new Set(tagged.flatMap((way) => Object.keys(withoutArea(way.tags))))) {
+    const values = tagged.map((way) => way.tags[key]).filter((v): v is string => !!v)
+    const merged = combinedOfAll(key, values)
+    const picked = options.picks?.[key]
+    out[key] = merged ?? (picked !== undefined && values.includes(picked) ? picked : values[0]!)
+  }
+  return out
+}
+
+/**
+ * Merges the ways one by one on `graph` (which it changes): structure, then tags, then the outlines. Returns the
+ * graph after, the survivor and its tags, or the refusal.
+ */
+function planMerge(
+  graph: Graph,
+  ids: readonly string[],
+  checkTags: boolean,
+  options: MergeOptions,
+): { graph: Graph; survivor: EntityID; tags: Record<string, string> } | MergeRefusal {
+  if (ids.length < 2 || new Set(ids).size !== ids.length) return 'not_two_areas'
+  const found = ids.map((id) => graph.hasEntity(id))
+  const relations = found.filter((entity): entity is OsmRelation => entity instanceof OsmRelation)
+  if (relations.length)
+    return relations.some((relation) => relation.isMultipolygon())
+      ? 'multipolygon'
+      : 'not_two_areas'
+  const ways = closedWays(graph, ids)
+  if (!ways) return 'not_two_areas'
+
+  const rest = checkTags ? mergedTags(graph, ways, options) : {}
+  if (typeof rest === 'string') return rest
+
+  // the fold starts at the survivor; a tagged way in a relation survives, as an untagged one is a member of nothing
+  const inRelation = ways.find((way) => isTagged(way) && graph.parentRelations(way).length > 0)
+  let current = inRelation?.id ?? byAge(ways)[0]!.id
+  let remaining = ids.filter((id) => id !== current)
+  let work = graph
+  while (remaining.length > 0) {
+    let firstRefusal: MergeRefusal | undefined
+    let joined: EntityID | undefined
+    for (const id of remaining) {
+      const outline = planOutline(work, [current, id], false)
+      if (typeof outline === 'string') {
+        firstRefusal ??= outline
+        continue
+      }
+      work = applyOutline(work, outline)
+      current = outline.survivor
+      joined = id
+      break
+    }
+    if (joined === undefined) return firstRefusal ?? 'not_simple'
+    remaining = remaining.filter((id) => id !== joined)
+  }
+
+  if (!checkTags) return { graph: work, survivor: current, tags: {} }
+  // area=yes stays only when the tags do not already make an area
+  const survivor = work.entity(current) as OsmWay
+  const areaTagged = ways.some((way) => way.tags.area === 'yes')
+  const tags = !survivor.tagSuggestingArea(rest) && areaTagged ? { ...rest, area: 'yes' } : rest
+  work.replace(survivor.update({ tags }))
+  return { graph: work.commit(), survivor: current, tags }
 }
 
 /**
  * Checks the two ways and computes the outline of their union.
  * @param   graph - The current graph
  * @param   ids   - The two ways to merge
- * @param   checkTags - Whether the tags and relations are checked (not for the verdict on the place alone)
- * @param   tagMode   - Equal tags, or the tags of both combined
+ * @param   checkTags - Whether the tags and relations are checked (the fold checks them for all ways first)
  * @return  The outline, or the reason it is refused
  */
 function planOutline(
   graph: Graph,
   ids: readonly string[],
   checkTags = true,
-  tagMode: MergeTags = 'equal',
 ): Outline | MergeRefusal {
   if (ids.length !== 2 || ids[0] === ids[1]) return 'not_two_areas'
 
@@ -183,14 +319,8 @@ function planOutline(
   const tagged = (way: OsmWay) => Object.keys(withoutArea(way.tags)).length > 0
   const bare = (way: OsmWay) => !tagged(way) && graph.parentRelations(way).length === 0
   const taggedSurvivor = bare(a) && tagged(b) ? b : bare(b) && tagged(a) ? a : undefined
-  const combined =
-    tagMode === 'combine' ? combinedTags(withoutArea(a.tags), withoutArea(b.tags)) : undefined
   if (checkTags && taggedSurvivor === undefined) {
-    const tagsFit =
-      tagMode === 'combine'
-        ? combined !== undefined
-        : sameTags(withoutArea(a.tags), withoutArea(b.tags))
-    if (!tagsFit) return 'conflicting_tags'
+    if (!sameTags(withoutArea(a.tags), withoutArea(b.tags))) return 'conflicting_tags'
     if (!sameMemberships(graph, a, b)) return 'conflicting_relations'
   }
 
@@ -285,7 +415,7 @@ function planOutline(
 
   // Tags: the tagged way's (both ways have the same, or one has none), except area=yes, which stays only when the
   // tags do not already make an area
-  const rest = combined ?? withoutArea((taggedSurvivor ?? keepWay).tags)
+  const rest = withoutArea((taggedSurvivor ?? keepWay).tags)
   const areaTagged = a.tags.area === 'yes' || b.tags.area === 'yes'
   const tags = !keepWay.tagSuggestingArea(rest) && areaTagged ? { ...rest, area: 'yes' } : rest
 
@@ -350,22 +480,16 @@ function sameTags(a: Record<string, string>, b: Record<string, string>): boolean
 }
 
 /**
- * The tags of both areas in one set, for the `combine` mode: undefined when a key has two values that do not fit.
- * @param   a - Tags of the first way, without area=yes
- * @param   b - Tags of the second way, without area=yes
- * @return  The combined tags, or undefined on a conflict
+ * The value of one key on several areas in the `combine` mode, or undefined when two of them conflict.
+ * @param   key    - The key
+ * @param   values - Its values on the tagged areas that have it
+ * @return  The value they all fit, or undefined
  */
-export function combinedTags(
-  a: Record<string, string>,
-  b: Record<string, string>,
-): Record<string, string> | undefined {
-  const out: Record<string, string> = {}
-  for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
-    const value = combinedValue(key, a[key], b[key])
-    if (value === undefined) return undefined
-    out[key] = value
-  }
-  return out
+function combinedOfAll(key: string, values: string[]): string | undefined {
+  return values.reduce<string | undefined>(
+    (acc, value) => (acc === undefined ? undefined : combinedValue(key, acc, value)),
+    values[0],
+  )
 }
 
 /**

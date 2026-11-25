@@ -392,6 +392,8 @@
   "paste_tags_cancel": "Abbrechen",
   "paste_tags_submit": "Einfügen",
   "paste_tags_refused": "Die Tags konnten nicht eingefügt werden: Ein Objekt ist schreibgeschützt oder nicht mehr vorhanden.",
+  "operation_confirm_cancel": "Abbrechen",
+  "operation_confirm_pick": "Welcher Wert bleibt",
   "route_overview_title": "Streckenverlauf",
   "route_overview_list": "Linie der Route",
   "route_overview_state_yes": "In Reihenfolge",

@@ -39,6 +39,29 @@ export type OperationContext = {
    * sidewalk that gets the tags). Absent: the operation's own default.
    */
   choice?: string
+  /**
+   * The values the mapper picked in the operation's confirm dialog (`Operation.confirm`), one per key that has
+   * several. Absent: the operation's own default (the survivor's value), as for the preview.
+   */
+  picks?: Readonly<Record<string, string>>
+}
+
+/**
+ * What an operation asks the mapper before it runs (`Operation.confirm`): the tags of the feature that stays, before and
+ * after, as a tag diff, and a value to pick for each key that has several. The editor shows it in a dialog; OK runs
+ * the operation with `context.picks`, Cancel changes nothing.
+ */
+export type OperationConfirm = {
+  title: string
+  /** A sentence above the diff: what will happen */
+  text?: string
+  /** The keys with several values, each with its values (the default first) */
+  picks: readonly { key: string; options: readonly string[] }[]
+  /** The tags of the feature that stays, now and after the operation (with `context.picks`) */
+  before: Readonly<Record<string, string>>
+  after: Readonly<Record<string, string>>
+  /** The label of the button that runs it */
+  submit: string
 }
 
 /**
@@ -142,6 +165,13 @@ export type Operation = {
    * there is nothing more to show than the sentence.
    */
   details?(context: OperationContext): OperationDetails | undefined
+  /**
+   * Asks before it runs: when this returns something, the edit menu and the key open a dialog with it, and the
+   * operation runs only on OK, with the picked values in `context.picks` (asked again with them, so the diff follows
+   * the picks). Undefined: it runs at once, as without `confirm`. No silent change the mapper did not see: the merge of
+   * areas with different tags asks here (Tobias, 2026-11-25).
+   */
+  confirm?(context: OperationContext): OperationConfirm | undefined
   /** Only called when `applies` is true and `disabled` is undefined */
   run(context: OperationContext): OperationResult
   /**

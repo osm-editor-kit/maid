@@ -392,6 +392,8 @@
   "paste_tags_cancel": "Annuler",
   "paste_tags_submit": "Coller",
   "paste_tags_refused": "Les étiquettes n'ont pas pu être collées : un élément est en lecture seule ou n'existe plus.",
+  "operation_confirm_cancel": "Annuler",
+  "operation_confirm_pick": "Quelle valeur garder",
   "route_overview_title": "Aperçu de l’itinéraire",
   "route_overview_list": "Ligne de l’itinéraire",
   "route_overview_state_yes": "Dans l’ordre",

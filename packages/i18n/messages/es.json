@@ -392,6 +392,8 @@
   "paste_tags_cancel": "Cancelar",
   "paste_tags_submit": "Pegar",
   "paste_tags_refused": "No se pudieron pegar las etiquetas: un elemento es de solo lectura o ya no existe.",
+  "operation_confirm_cancel": "Cancelar",
+  "operation_confirm_pick": "Qué valor se queda",
   "route_overview_title": "Resumen de la ruta",
   "route_overview_list": "Línea de la ruta",
   "route_overview_state_yes": "En orden",

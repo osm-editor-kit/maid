@@ -11,6 +11,7 @@ export type {
   Extent,
   Operation,
   OperationChoice,
+  OperationConfirm,
   OperationContext,
   OperationDetails,
   OperationPreset,

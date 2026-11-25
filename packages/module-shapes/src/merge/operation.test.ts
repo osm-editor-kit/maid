@@ -361,18 +361,85 @@ describe('merge-areas: tags combined (the building editor)', () => {
     })
   })
 
-  it('two specific building values or two house numbers still refuse it, and the box marks only those rows', () => {
+  it('two values of one key ask in the confirm dialog: the box marks them, the pick decides', () => {
     const graph = overlapping(
       { building: 'house', 'addr:housenumber': '12', roof: 'flat' },
       { building: 'garage', 'addr:housenumber': '14' },
     )
     const context = contextOf(graph, ['w1', 'w2'])
-    expect(combine.disabled(context)).toBe('These areas have different tags.')
+    expect(combine.disabled(context)).toBeUndefined()
     const details = combine.details!(context)
     expect(details?.rows.filter((row) => row.conflict).map((row) => row.label)).toEqual([
       'addr:housenumber',
       'building',
     ])
+    const asked = combine.confirm!(context)
+    expect(asked?.picks).toEqual([
+      { key: 'addr:housenumber', options: ['12', '14'] },
+      { key: 'building', options: ['house', 'garage'] },
+    ])
+    // by default the survivor's values (w1, the oldest)
+    expect(asked?.after).toMatchObject({
+      building: 'house',
+      'addr:housenumber': '12',
+      roof: 'flat',
+    })
+    const picked = { ...context, picks: { building: 'garage', 'addr:housenumber': '14' } }
+    expect(combine.confirm!(picked)?.after).toMatchObject({
+      building: 'garage',
+      'addr:housenumber': '14',
+    })
+    const result = combine.run(picked)
+    const after = result.actions[0]!(new Graph(graph))
+    const [id = ''] = result.select!(after)
+    expect((after.entity(id) as OsmWay).tags).toMatchObject({
+      building: 'garage',
+      'addr:housenumber': '14',
+      roof: 'flat',
+    })
+  })
+
+  it('equal tags, or an untagged sketch joined to a building, run without asking', () => {
+    const equal = overlapping({ building: 'house' }, { building: 'house' })
+    expect(combine.confirm!(contextOf(equal, ['w1', 'w2']))).toBeUndefined()
+    expect(combine.details!(contextOf(equal, ['w1', 'w2']))).toBeUndefined()
+    const sketch = overlapping({}, { building: 'house' })
+    expect(combine.confirm!(contextOf(sketch, ['w1', 'w2']))).toBeUndefined()
+  })
+
+  it('building=yes and building=house ask too, with nothing to pick: the diff shows the change', () => {
+    const graph = overlapping({ building: 'yes' }, { building: 'house' })
+    const asked = combine.confirm!(contextOf(graph, ['w1', 'w2']))
+    expect(asked?.picks).toEqual([])
+    expect(asked?.before).toMatchObject({ building: 'yes' })
+    expect(asked?.after).toMatchObject({ building: 'house' })
+  })
+
+  it('three overlapping buildings merge into one outline in one step', () => {
+    const graph = graphOf(
+      ...square('a', 0, 0, 10),
+      ...square('b', 7, 7, 10),
+      ...square('c', 14, 14, 10),
+      ring('w1', ['na1', 'na2', 'na3', 'na4'], { area: 'yes', building: 'house' }),
+      ring('w2', ['nb1', 'nb2', 'nb3', 'nb4'], { area: 'yes', building: 'house' }),
+      ring('w3', ['nc1', 'nc2', 'nc3', 'nc4'], { area: 'yes', building: 'house' }),
+    )
+    // w3 only touches w2, so the order of the selection does not matter
+    for (const selected of [
+      ['w1', 'w2', 'w3'],
+      ['w3', 'w1', 'w2'],
+    ]) {
+      const context = contextOf(graph, selected)
+      expect(mergeAreasOperation.applies(context)).toBe(true)
+      expect(mergeAreasOperation.disabled(context)).toBeUndefined()
+      const result = mergeAreasOperation.run(context)
+      expect(result.annotation).toBe('Merged 3 areas')
+      const after = result.actions[0]!(new Graph(graph))
+      const survivors = selected.filter((id) => after.hasEntity(id))
+      expect(survivors).toEqual(['w1'])
+      // the staircase of three squares: 12 corners, 4 of them new crossings
+      expect(new Set((after.entity('w1') as OsmWay).nodes).size).toBe(12)
+    }
   })
 
   it('the default operation still wants equal tags', () => {

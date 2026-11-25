@@ -7,8 +7,9 @@
  *
  *   bun tools/bench/merge-check.ts small --app parking
  *
- * With `--app buildings` (which combines the tags, `mergeAreas({ tags: 'combine' })`) also: building=yes with levels
- * and building=house merge into one building=house with the levels, and one undo step brings both back.
+ * With `--app buildings` (which combines the tags, `mergeAreas({ tags: 'combine' })`) the different tags ask instead:
+ * Merge is enabled, C opens a dialog with the tag diff and nothing changes until OK; Cancel leaves both areas; the
+ * picked building value and the other area's levels end on the one building, one undo step.
  *
  * Prints one line per check: `ok <check>`, or `FAIL <check>` with expected and actual. Exits 1 on any failure.
  */
@@ -116,55 +117,56 @@ process.exit(
     }
     const mergeItems = async () => (await menuItems()).filter((item) => item.label === 'Merge')
 
-    // --- different tags: the menu says why, and C changes nothing (two specific values refuse in every app) ---
-    await page.evaluate(
-      ([a, b]) => {
-        window.__maid.engine.changeTags([a!], { set: { building: 'garage' } }, 'Setup')
-        window.__maid.engine.changeTags([b!], { set: { building: 'house' } }, 'Setup')
-      },
-      [idA, idB],
-    )
-    await selectBoth()
-    report('two areas selected', both, (await selection()).sort())
-    await click(rightOfB, { button: 'right' })
-    const offered = await mergeItems()
-    report('the edit menu offers one Merge', 1, offered.length)
-    report(
-      'Merge is disabled, with the sentence about the tags',
-      { disabled: true, title: 'These areas have different tags.' },
-      { disabled: offered[0]?.disabled, title: offered[0]?.title },
-    )
-    await key('Escape')
-    report(
-      'Escape closes the menu and keeps both areas selected',
-      [0, both],
-      [await menu.count(), (await selection()).sort()],
-    )
-    const beforeC = await state()
-    const snapA = await wayOf(idA)
-    const snapB = await wayOf(idB)
-    await key('c')
-    report(
-      'C with different tags: no undo step, both areas unchanged',
-      [beforeC.undo, snapA, snapB],
-      [(await state()).undo, await wayOf(idA), await wayOf(idB)],
-    )
-    // the two changes of the tags are the two undo steps: undo them, the tags agree again
-    await key('ControlOrMeta+z')
-    await key('ControlOrMeta+z')
-    report(
-      'undo of the tag changes: both areas have their tags again',
-      [{ area: 'yes' }, { area: 'yes' }],
-      [(await wayOf(idA))?.tags, (await wayOf(idB))?.tags],
-    )
-
-    // --- the building editor: building=yes gives way to building=house, the levels of the other area stay ---
-    if (combinesTags) {
+    if (!combinesTags) {
+      // --- different tags: the menu says why, and C changes nothing (two specific values refuse in every app) ---
+      await page.evaluate(
+        ([a, b]) => {
+          window.__maid.engine.changeTags([a!], { set: { building: 'garage' } }, 'Setup')
+          window.__maid.engine.changeTags([b!], { set: { building: 'house' } }, 'Setup')
+        },
+        [idA, idB],
+      )
+      await selectBoth()
+      report('two areas selected', both, (await selection()).sort())
+      await click(rightOfB, { button: 'right' })
+      const offered = await mergeItems()
+      report('the edit menu offers one Merge', 1, offered.length)
+      report(
+        'Merge is disabled, with the sentence about the tags',
+        { disabled: true, title: 'These areas have different tags.' },
+        { disabled: offered[0]?.disabled, title: offered[0]?.title },
+      )
+      await key('Escape')
+      report(
+        'Escape closes the menu and keeps both areas selected',
+        [0, both],
+        [await menu.count(), (await selection()).sort()],
+      )
+      const beforeC = await state()
+      const snapA = await wayOf(idA)
+      const snapB = await wayOf(idB)
+      await key('c')
+      report(
+        'C with different tags: no undo step, both areas unchanged',
+        [beforeC.undo, snapA, snapB],
+        [(await state()).undo, await wayOf(idA), await wayOf(idB)],
+      )
+      // the two changes of the tags are the two undo steps: undo them, the tags agree again
+      await key('ControlOrMeta+z')
+      await key('ControlOrMeta+z')
+      report(
+        'undo of the tag changes: both areas have their tags again',
+        [{ area: 'yes' }, { area: 'yes' }],
+        [(await wayOf(idA))?.tags, (await wayOf(idB))?.tags],
+      )
+    } else {
+      // --- the building editor: different tags ask first, in a dialog with the tag diff and a pick per key ---
+      const dialog = page.getByRole('dialog')
       await page.evaluate(
         ([a, b]) => {
           window.__maid.engine.changeTags(
             [a!],
-            { set: { building: 'yes', 'building:levels': '2' } },
+            { set: { building: 'garage', 'building:levels': '2' } },
             'Setup',
           )
           window.__maid.engine.changeTags([b!], { set: { building: 'house' } }, 'Setup')
@@ -172,13 +174,58 @@ process.exit(
         [idA, idB],
       )
       await selectBoth()
+      report('two areas selected', both, (await selection()).sort())
+      await click(rightOfB, { button: 'right' })
+      const offered = await mergeItems()
+      report(
+        'buildings: the edit menu offers one Merge, enabled',
+        [1, false],
+        [offered.length, offered[0]?.disabled],
+      )
+      await key('Escape')
+      const beforeAsk = await state()
       await key('c')
+      report(
+        'buildings: C opens the dialog and changes nothing yet',
+        [true, beforeAsk.undo],
+        [await dialog.isVisible(), (await state()).undo],
+      )
+      await dialog.getByRole('button', { name: 'Cancel' }).click()
+      await settle()
+      report(
+        'buildings: Cancel closes it, both areas unchanged',
+        [false, beforeAsk.undo, 'garage', 'house'],
+        [
+          await dialog.isVisible(),
+          (await state()).undo,
+          (await wayOf(idA))?.tags.building,
+          (await wayOf(idB))?.tags.building,
+        ],
+      )
+      await selectBoth()
+      await key('c')
+      // the survivor is the older area A (garage): its value is the default, house is picked
+      const before = await dialog.innerText()
+      await dialog.getByRole('radio', { name: 'house' }).click()
+      report(
+        "buildings: the diff shows the survivor's value, then the picked one",
+        [true, true],
+        [before.includes('building=garage'), (await dialog.innerText()).includes('→ house')],
+      )
+      await dialog.getByRole('button', { name: 'Merge' }).click()
+      await settle()
       const kept = (await selection())[0] ?? ''
       const tags = (await wayOf(kept))?.tags
       report(
-        'buildings: C merges building=yes and building=house into one building=house with the levels',
-        [1, 'house', '2'],
-        [(await selection()).length, tags?.building, tags?.['building:levels']],
+        'buildings: OK merges into one building=house with the levels of the other, one undo step',
+        [false, 1, 'house', '2', 'Merged two areas'],
+        [
+          await dialog.isVisible(),
+          (await selection()).length,
+          tags?.building,
+          tags?.['building:levels'],
+          (await state()).undo,
+        ],
       )
       for (let i = 0; i < 3; i++) await key('ControlOrMeta+z')
       report(

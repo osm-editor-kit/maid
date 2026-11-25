@@ -113,8 +113,8 @@ function editorConfig(config: Config) {
     angleSnap({ lengths: true }),
     // the Area button's "Rectangle" (key 33) draws one with three clicks,
     rectangle(),
-    // the edit menu merges two areas into one outline (C), also with different tags: what only one has is kept, and
-    // building=yes gives way to building=house; two different values of one key (two addresses) still refuse it,
+    // the edit menu merges two or more areas into one outline (C), also with different tags: the box beside the menu
+    // shows them, and C asks in a dialog with the tag diff, with a pick where a key has two values (two addresses),
     mergeAreas({ tags: 'combine' }),
     // cuts an area along a drawn line,
     cutArea(),

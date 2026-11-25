@@ -392,6 +392,8 @@
   "paste_tags_cancel": "Cancel",
   "paste_tags_submit": "Paste",
   "paste_tags_refused": "The tags could not be pasted: a feature is read-only or gone.",
+  "operation_confirm_cancel": "Cancel",
+  "operation_confirm_pick": "Which value to keep",
   "route_overview_title": "Route overview",
   "route_overview_list": "Route line",
   "route_overview_state_yes": "In order",
