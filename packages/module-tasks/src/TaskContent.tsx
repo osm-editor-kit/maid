@@ -25,7 +25,6 @@ import {
   applyTaskOption,
   operationLabel,
   operationsRefusal,
-  shapeSignature,
   createTaskFeature,
   deleteTaskFeatures,
   type DeleteOutcome,
@@ -242,8 +241,7 @@ export function TaskContent({
     const action = actionOf(option)
     // an answer without a change: the choice is the result
     if (action === 'none') {
-      setMessage(undefined)
-      setStatus('done')
+      done({ kind: 'none' }, option)
       return
     }
     if (action === 'create') {
@@ -289,16 +287,8 @@ export function TaskContent({
       return
     }
     // an option with operations is followed by the shape it gave, a plain one by its tags
-    if (option.operations?.length) {
-      done(
-        {
-          kind: 'shape',
-          entityIds: ids,
-          signature: shapeSignature(editor.history.staging.graph, ids),
-        },
-        option,
-      )
-    } else done({ kind: 'tag', entityIds: ids, option }, option)
+    if (option.operations?.length) done({ kind: 'edit', edit: editor.history.stable }, option)
+    else done({ kind: 'tag', entityIds: ids, option }, option)
   }
   /** Whether this session applied a create or delete option of this task and it is still done */
   const appliedHere = (option: TaskOption) =>
@@ -523,9 +513,13 @@ function OptionCard({
   // why its operations cannot run on the features now (iD's sentence), asked on a copy of the graph
   const refusal =
     operations.length > 0 && loaded.length === tagIds.length
-      ? operationsRefusal(editor.history.staging.graph, tagIds, operations)
+      ? operationsRefusal(editor.history.staging.graph, tagIds, operations, (operation) =>
+          m.tasks_operation_not_for({ operation }),
+        )
       : undefined
-  const blocked = action !== 'tag' && !applied && taskDone
+  // an option that adds, deletes or reshapes cannot tell from the data that it ran: on a done task it is not offered
+  // again (a second Reverse would turn the way back); a tag option without operations can, and is
+  const blocked = (action !== 'tag' || operations.length > 0) && !applied && taskDone
   const canApply = action !== 'tag' || (tagIds.length > 0 && loaded.length === tagIds.length)
   // the features named beside the label: what a tag option changes, what a delete option deletes
   const named =

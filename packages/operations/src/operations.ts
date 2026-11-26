@@ -81,25 +81,29 @@ function sameTags(a: Readonly<Record<string, string>>, b: Readonly<Record<string
   return keys.length === Object.keys(b).length && keys.every((key) => a[key] === b[key])
 }
 
-/** Keys whose `-1` Reverse turns into `yes`: `oneway`, `oneway:bicycle`, `cycleway:right:oneway`, … */
+/** The oneway keys of a way: `oneway`, `oneway:bicycle`, `cycleway:right:oneway`, … */
 const ONEWAY_KEY = /(^|:)oneway(:|$)/
 
 /**
- * iD's reverse, and a `-1` of a oneway key becomes `yes`: the line runs the other way now, so `yes` keeps the riding
- * direction on the ground and the `-1` is gone, which is what Reverse is mostly used for. `yes` stays `yes`, as in iD
- * (Reverse of a `yes` way fixes a way drawn the wrong way round). A deviation from iD (Tobias, 2026-11-26, ADR 0015).
+ * iD's reverse, with one addition for a way whose main direction is `-1` (`oneway`, or without it `oneway:bicycle`):
+ * there Reverse is used to get rid of the `-1`, so every riding direction stays on the ground: each oneway key's `-1`
+ * becomes `yes` and `yes` becomes `-1`. Any other way keeps its oneway values as in iD, so all of its directions turn
+ * together (Reverse of a `yes` way fixes a way drawn the wrong way round). Never a mix of the two. A deviation from iD
+ * (Tobias, 2026-11-26, ADR 0015).
  */
 export function reverseAction(id: string): Action {
   return (graph) => {
     const reversed = actionReverse(id)(graph)
     const entity = reversed.hasEntity(id)
     if (!(entity instanceof OsmWay)) return reversed
-    const keys = Object.keys(entity.tags).filter(
-      (key) => ONEWAY_KEY.test(key) && entity.tags[key] === '-1',
-    )
-    if (keys.length === 0) return reversed
+    const main = entity.tags.oneway ?? entity.tags['oneway:bicycle']
+    if (main !== '-1') return reversed
     const tags = { ...entity.tags }
-    for (const key of keys) tags[key] = 'yes'
+    for (const key of Object.keys(tags)) {
+      if (!ONEWAY_KEY.test(key)) continue
+      if (tags[key] === '-1') tags[key] = 'yes'
+      else if (tags[key] === 'yes') tags[key] = '-1'
+    }
     return actionChangeTags(id, tags)(reversed)
   }
 }

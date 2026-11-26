@@ -839,19 +839,43 @@ export function MapView() {
  */
 function showStartSelection(engine: MaidEngine, ids: readonly string[], moveTo: boolean) {
   if (ids.length === 0) return
+  // with a map in the link the features may well be in its view: first let the view's data come, then load only what
+  // is still missing (a relation would else come with all its members, /full)
+  if (moveTo) loadAndSelect(engine, ids, true)
+  else afterFirstLoad(engine, () => loadAndSelect(engine, ids, false))
+}
+
+function loadAndSelect(engine: MaidEngine, ids: readonly string[], moveTo: boolean) {
   const missing = ids.filter((id) => engine.entity(id) === undefined)
-  if (missing.length === 0) {
+  const select = () => {
+    // the person may have selected something else meanwhile: only a selection that is still empty or the same
+    const now = engine.selection
+    if (now.length > 0 && now.join(',') !== ids.join(',')) return
+    engine.setSelected(ids)
     if (moveTo) engine.fitTo(ids)
+  }
+  if (missing.length === 0) {
+    select()
     return
   }
-  Promise.all(missing.map((id) => engine.loadEntity(id))).then(
-    () => {
-      // the person may have selected something else meanwhile: only a selection that is still empty or the same
-      const now = engine.selection
-      if (now.length > 0 && now.join(',') !== ids.join(',')) return
-      engine.setSelected(ids)
-      if (moveTo) engine.fitTo(ids)
-    },
-    (error: unknown) => notify.failed(error),
+  Promise.all(missing.map((id) => engine.loadEntity(id))).then(select, (error: unknown) =>
+    notify.failed(error),
   )
+}
+
+/** How long the start selection waits at most for the first view's data, and how often it looks */
+const FIRST_LOAD_WAIT_MS = 10_000
+const FIRST_LOAD_LOOK_MS = 200
+
+/** Calls `done` once the first view's tiles are in (or none are wanted, or after a while): the tile loader's state */
+function afterFirstLoad(engine: MaidEngine, done: () => void) {
+  const started = Date.now()
+  const look = () => {
+    const { tiles } = engine
+    const loaded = tiles.firstLoadDone && tiles.inflight === 0
+    const nothingWanted = tiles.osmZoom() < engine.options.minDataZoom
+    if (loaded || nothingWanted || Date.now() - started > FIRST_LOAD_WAIT_MS) done()
+    else setTimeout(look, FIRST_LOAD_LOOK_MS)
+  }
+  setTimeout(look, FIRST_LOAD_LOOK_MS)
 }

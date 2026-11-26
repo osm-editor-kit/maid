@@ -247,8 +247,11 @@ export function createSync(deps: SyncDeps): Sync {
     },
     async replaceRemote() {
       const list = store.getState().list
-      if (disposed || !list || store.getState().sync.kind !== 'mismatch') return
+      if (disposed || !list || store.getState().sync.kind !== 'mismatch' || saving) return
       stopTimer()
+      // the same lock as push: a change meanwhile waits for the replace and is saved after it
+      saving = true
+      again = false
       actions().setSync('saving', server)
       const revisionAtSave = store.getState().localRevision
       try {
@@ -261,10 +264,12 @@ export function createSync(deps: SyncDeps): Sync {
         actions().markSaved(meta.r, meta.g, revisionAtSave)
         started = true
         if (!disposed) actions().setSync('saved', server)
-        // changes made while it saved go out as usual
-        if (!disposed && dirty()) schedule()
+        // changes made while it saved go out as usual, once the lock is free
+        if (!disposed && (again || dirty())) queueMicrotask(schedule)
       } catch (error) {
         if (!disposed) actions().setSync(isForbidden(error) ? 'forbidden' : 'failed', server)
+      } finally {
+        saving = false
       }
     },
     async resolveConflict(choice) {

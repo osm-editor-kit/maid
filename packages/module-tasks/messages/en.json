@@ -101,5 +101,6 @@
   "tasks_sync_replace_confirm": "Replace the account's copy?",
   "tasks_sync_replace_hint": "Your account holds this list for another version of the file. This replaces that copy with this version and the statuses of this browser; the account's statuses of the other version are then gone.",
   "tasks_apply_none": "Choose",
-  "tasks_operations": "Runs first:"
+  "tasks_operations": "Runs first:",
+  "tasks_operation_not_for": "{operation} does not work on this feature"
 }

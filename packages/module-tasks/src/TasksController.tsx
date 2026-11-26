@@ -10,12 +10,11 @@ import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import { isApplied } from '@osm-editor-kit/maid-tasks'
 import { Dialog, openDockView, usePrefsEndpoint } from '@osm-editor-kit/maid-ui'
 import { useEffect, useRef, useState } from 'react'
-import { shapeSignature } from './apply.ts'
 import { cleanupOffers } from './cleanup.ts'
 import { DOCK_VIEW } from './LoadTasksItem.tsx'
 import { m } from './messages.ts'
 import { openTaskText, type OpenDeps, restoreLastList } from './open.ts'
-import type { Shared } from './shared.ts'
+import { type Shared, setSharedEngine } from './shared.ts'
 import { useTasks, type TasksStore } from './store.ts'
 import { createSync, type Sync } from './sync.ts'
 import { fileNameOfUrl } from './url.ts'
@@ -51,9 +50,9 @@ export function createTasksController(
     const progressRef = useRef<ProgressStore | undefined>(undefined)
 
     useEffect(() => {
-      shared.engine = engine
+      setSharedEngine(shared, engine)
       return () => {
-        shared.engine = undefined
+        setSharedEngine(shared, undefined)
       }
     }, [engine])
 
@@ -102,8 +101,11 @@ export function createTasksController(
         store.getState().actions.followApplied(({ change }) => {
           if (change.kind === 'delete') return change.entityIds.every((id) => !graph.hasEntity(id))
           if (change.kind === 'create') return graph.hasEntity(change.entityId) !== undefined
-          if (change.kind === 'shape')
-            return shapeSignature(graph, change.entityIds) === change.signature
+          if (change.kind === 'none') return true
+          if (change.kind === 'edit') {
+            const at = editor.history.history.indexOf(change.edit as never)
+            return at >= 0 && at <= editor.history.index
+          }
           return change.entityIds.every((id) => {
             const entity = graph.hasEntity(id)
             return entity !== undefined && isApplied(entity.tags, change.option)

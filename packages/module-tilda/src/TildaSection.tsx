@@ -11,6 +11,7 @@ import {
   notify,
   TagDiff,
   type InspectorSectionProps,
+  useBearing,
 } from '@osm-editor-kit/maid-ui'
 import { isIncompleteCategoryId, type CategoryGap } from '@tilda-geo/bicycle-infrastructure'
 import {
@@ -114,9 +115,10 @@ export function TildaSection(props: TildaSectionProps) {
 }
 
 /**
- * The screen direction of the selected way, from its first to its last node, in degrees clockwise from east (north up):
- * the oneway choices show the line's drawing direction with it, so the person checks it before saying "with the line"
- * (Tobias, 2026-11-26). Undefined for a feature that is not a way.
+ * The screen direction of the selected way, along its first segment, in degrees clockwise from east, with the map's
+ * turn taken off: the oneway choices show the line's drawing direction with it, so the person checks it before saying
+ * "with the line" (Tobias, 2026-11-26). The first segment, not the first-to-last chord, which misleads on a U-shaped or
+ * closed way. Undefined for a feature that is not a way.
  */
 const LineAngle = createContext<number | undefined>(undefined)
 
@@ -124,7 +126,7 @@ function lineAngleOf(entity: OsmEntity | undefined, graph: Editor['history']['st
   if (!entity || entity.type !== 'way') return undefined
   const nodes = (entity as OsmEntity & { nodes: readonly string[] }).nodes
   const first = graph.hasEntity(nodes[0] ?? '')
-  const last = graph.hasEntity(nodes.at(-1) ?? '')
+  const last = graph.hasEntity(nodes[1] ?? '')
   const a = first && 'loc' in first ? (first.loc as [number, number]) : undefined
   const b = last && 'loc' in last ? (last.loc as [number, number]) : undefined
   if (!a || !b || (a[0] === b[0] && a[1] === b[1])) return undefined
@@ -132,6 +134,11 @@ function lineAngleOf(entity: OsmEntity | undefined, graph: Editor['history']['st
   const dx = (b[0] - a[0]) * Math.cos((((a[1] + b[1]) / 2) * Math.PI) / 180)
   const dy = b[1] - a[1]
   return (Math.atan2(-dy, dx) * 180) / Math.PI
+}
+
+/** A geographic angle (north up) as it is on a map turned by `bearing` degrees */
+function screenAngle(angle: number | undefined, bearing: number) {
+  return angle === undefined ? undefined : angle - bearing
 }
 
 /** The marker of a oneway value, by what the tag value means for the line: `yes` with it, `-1` against it, `no` both */
@@ -182,6 +189,8 @@ function TildaBox({ entity, editor, readOnly, onFieldFocus, profile }: TildaSect
   const [showDone, setShowDone] = useState<ReadonlySet<string>>(new Set())
 
   const checks = useTildaChecks()
+  // the map's turn: the line-direction arrows point as on the screen
+  const bearing = useBearing()
   const checkOf: CheckOf = (check) => checkIn(checks, wayId, check)
   const graph = editor.history.staging.graph
   const current: OsmEntity | undefined = graph.hasEntity(wayId)
@@ -275,7 +284,7 @@ function TildaBox({ entity, editor, readOnly, onFieldFocus, profile }: TildaSect
     verified?.wayVersion !== undefined && version !== undefined && verified.wayVersion !== version
 
   return (
-    <LineAngle value={lineAngleOf(current, graph)}>
+    <LineAngle value={screenAngle(lineAngleOf(current, graph), bearing)}>
       <div className="flex flex-col gap-2 text-sm" data-testid="tilda-section">
         <div className="flex justify-end">
           <button

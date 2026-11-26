@@ -13,7 +13,7 @@ import {
 } from './list.ts'
 import { m } from './messages.ts'
 import { goToTask } from './navigate.ts'
-import type { Shared } from './shared.ts'
+import { type Shared, useSharedEngine } from './shared.ts'
 import { type SyncKind, type TasksStore, useTasks } from './store.ts'
 import { StatusBadge, TaskContent, TaskLinks, statusLabel } from './TaskContent.tsx'
 
@@ -151,7 +151,7 @@ export function createTasksView(store: TasksStore, shared: Shared) {
             <div className="shrink-0 border-b border-zinc-950/10 px-4 py-2.5 dark:border-white/15">
               <Head store={store} shared={shared} />
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2 md:px-3">
+            <div data-tasks-rows className="min-h-0 flex-1 overflow-y-auto px-2 py-2 md:px-3">
               <Rows store={store} shared={shared} select={select} />
             </div>
           </section>
@@ -352,7 +352,14 @@ function Rows({
   // the current task's row stays in view in the scrolling list: a pick on the map or "Next open task" moves it there
   useEffect(
     function showTheCurrentRow() {
-      currentRow.current?.scrollIntoView({ block: 'nearest' })
+      // only the list's own scroller moves, not the dock around it (in one column the whole view scrolls)
+      const row = currentRow.current
+      const scroller = row?.closest<HTMLElement>('[data-tasks-rows]')
+      if (!row || !scroller) return
+      const box = scroller.getBoundingClientRect()
+      const at = row.getBoundingClientRect()
+      if (at.top < box.top) scroller.scrollTop -= box.top - at.top
+      else if (at.bottom > box.bottom) scroller.scrollTop += at.bottom - box.bottom
     },
     [current],
   )
@@ -461,7 +468,8 @@ function Detail({
   const list = useTasks(store, (state) => state.list)
   const statuses = useTasks(store, (state) => state.statuses)
   const current = useTasks(store, (state) => state.current)
-  const version = useEngineVersion(shared.engine)
+  const engine = useSharedEngine(shared)
+  const version = useEngineVersion(engine)
   const next = nextOpenIndex(statuses, current)
   const go = (index: number) => goToTask({ store, select, engine: shared.engine }, index)
   const nextButton = (
@@ -487,7 +495,7 @@ function Detail({
     )
   }
   const ids = entityIdsOfTask(task)
-  const target = taskTarget(shared.engine, ids, selected, version)
+  const target = taskTarget(engine, ids, selected, version)
   const onTask = ids.length > 0 && ids.every((id) => selected.includes(id))
   return (
     <div data-testid="tasks-current" className="flex min-h-0 flex-1 flex-col">

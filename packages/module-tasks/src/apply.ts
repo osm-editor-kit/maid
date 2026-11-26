@@ -52,6 +52,8 @@ export function operationsRefusal(
   graph: Graph,
   ids: readonly string[],
   operations: TaskOption['operations'],
+  notApplicable: (operation: string) => string = (operation) =>
+    `${operation}: not for this feature`,
 ): string | undefined {
   if (!operations || operations.length === 0) return undefined
   if (ids.some((id) => !graph.hasEntity(id))) return undefined
@@ -60,35 +62,12 @@ export function operationsRefusal(
   for (const { op } of operations) {
     const operation = OPERATIONS[op]
     const context = { graph: copy, selected: ids }
-    if (!operation.applies(context)) return `${operation.label}: not for this feature`
+    if (!operation.applies(context)) return notApplicable(operation.label)
     const reason = operation.disabled(context)
     if (reason !== undefined) return reason
     for (const action of operation.run(context).actions) copy = action(copy)
   }
   return undefined
-}
-
-/**
- * What the features look like after an option with operations: their node order and positions. Undo is followed by
- * comparing with it (the tags alone cannot tell, a reverse may change none).
- */
-export function shapeSignature(graph: Graph, ids: readonly string[]): string {
-  return ids
-    .map((id) => {
-      const entity = graph.hasEntity(id)
-      if (entity instanceof OsmWay) {
-        return `${id}:${entity.nodes
-          .map((node) => {
-            const loc = (graph.hasEntity(node) as OsmNode | undefined)?.loc
-            return `${node}@${loc?.join(',') ?? ''}`
-          })
-          .join(';')}`
-      }
-      if (entity instanceof OsmNode)
-        return `${id}@${entity.loc?.join(',') ?? ''}:${JSON.stringify(entity.tags)}`
-      return `${id}:-`
-    })
-    .join('|')
 }
 
 /**

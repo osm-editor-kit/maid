@@ -92,7 +92,7 @@ export type OptionAction = (typeof OPTION_ACTIONS)[number]
 
 /**
  * The editor operations a `tag` option may run on its features before it changes their tags, as the edit menu's
- * commands: Reverse (V, keeps `oneway` as it is), Square (Q), Straighten (S), Circularize (O). Only operations that keep
+ * commands: Reverse (V; on a way whose `oneway` is -1 it keeps the riding directions, see FORMAT.md), Square (Q), Straighten (S), Circularize (O). Only operations that keep
  * the feature and its id; more can come as `{ op, ... }` objects without a new format.
  */
 export const TASK_OPERATIONS = ['reverse', 'square', 'straighten', 'circularize'] as const

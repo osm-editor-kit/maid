@@ -101,5 +101,6 @@
   "tasks_sync_replace_confirm": "Remplacer la copie du compte ?",
   "tasks_sync_replace_hint": "Votre compte contient cette liste pour une autre version du fichier. Ceci remplace cette copie par cette version et les statuts de ce navigateur ; les statuts de l'autre version dans le compte sont alors perdus.",
   "tasks_apply_none": "Choisir",
-  "tasks_operations": "Exécute d'abord :"
+  "tasks_operations": "Exécute d'abord :",
+  "tasks_operation_not_for": "{operation} ne s'applique pas à cet élément"
 }

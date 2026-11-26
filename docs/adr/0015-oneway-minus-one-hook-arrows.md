@@ -44,10 +44,12 @@ tilda-geo turns the line of a `-1` way round when it publishes it. An editor can
 
 ## Addendum 2026-11-26: Reverse turns `-1` into `yes`
 
-Asked for by Tobias. The edit menu's Reverse (V) turns a `-1` of a oneway key (`oneway`, `oneway:bicycle`,
-`cycleway:right:oneway`, …) into `yes` after it turned the line: the riding direction on the ground stays, and the `-1`
-is gone, which is what Reverse is mostly used for. `yes` stays `yes`, as in iD, because Reverse of a `yes` way fixes a way
-drawn the wrong way round. iD keeps `-1` (its V does not touch oneway; only its join turns `-1` round). The tag box
-beside the menu and the confirm on touch show the change. Code: `reverseAction` in `packages/operations/src/operations.ts`.
+Asked for by Tobias. On a way whose main direction is `-1` (`oneway`, or without it `oneway:bicycle`), the edit
+menu's Reverse (V) keeps every riding direction on the ground after it turned the line: each oneway key's `-1` becomes
+`yes` and `yes` becomes `-1`, so the `-1` is gone, which is what Reverse is mostly used for there. Any other way keeps its
+oneway values, as in iD, so all of its directions turn together (Reverse of a `yes` way fixes a way drawn the wrong way
+round). Never a mix: a review found that turning only the `-1` keys made a contraflow track of a `yes` road run with
+the cars. iD keeps `-1` (its V does not touch oneway; its join flips them all, `reverseOneway`). The tag box beside the
+menu and the confirm on touch show the change. Code: `reverseAction` in `packages/operations/src/operations.ts`.
 Task files get the same through their `reverse` operation.
 

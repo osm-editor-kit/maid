@@ -116,26 +116,56 @@ describe('reverse', () => {
     expect(result.annotation).toBe('Reversed a line')
   })
 
-  it('turns a -1 of a oneway key into yes, keeps yes, and says so', () => {
+  it('keeps every direction on the ground of a way whose oneway is -1, and says so', () => {
     const minus = graphOf(
       node('n1', 0, 0),
       node('n2', 0.001, 0),
       way('w1', ['n1', 'n2'], {
-        highway: 'cycleway',
+        highway: 'residential',
         oneway: '-1',
-        'cycleway:left:oneway': '-1',
-        'oneway:bicycle': 'yes',
+        'cycleway:left': 'track',
+        'cycleway:left:oneway': 'yes',
       }),
     )
     const { after } = run(reverseOperation, minus, ['w1'])
     expect(wayIn(after, 'w1').tags).toEqual({
-      highway: 'cycleway',
+      highway: 'residential',
       oneway: 'yes',
-      'cycleway:right:oneway': 'yes',
-      'oneway:bicycle': 'yes',
+      'cycleway:right': 'track',
+      'cycleway:right:oneway': '-1',
     })
     const changes = reverseOperation.changes?.(at(['w1'], new Graph(minus)))
     expect(changes?.features[0]?.after.oneway).toBe('yes')
+  })
+
+  it('keeps the oneway values of any other way, as iD: all directions turn together', () => {
+    const contraflow = graphOf(
+      node('n1', 0, 0),
+      node('n2', 0.001, 0),
+      way('w1', ['n1', 'n2'], {
+        highway: 'residential',
+        oneway: 'yes',
+        'cycleway:left': 'track',
+        'cycleway:left:oneway': '-1',
+      }),
+    )
+    const { after } = run(reverseOperation, contraflow, ['w1'])
+    expect(wayIn(after, 'w1').tags).toEqual({
+      highway: 'residential',
+      oneway: 'yes',
+      'cycleway:right': 'track',
+      'cycleway:right:oneway': '-1',
+    })
+  })
+
+  it('uses oneway:bicycle as the main direction of a way without oneway', () => {
+    const cycleway = graphOf(
+      node('n1', 0, 0),
+      node('n2', 0.001, 0),
+      way('w1', ['n1', 'n2'], { highway: 'cycleway', 'oneway:bicycle': '-1' }),
+    )
+    const { after } = run(reverseOperation, cycleway, ['w1'])
+    expect(wayIn(after, 'w1').tags['oneway:bicycle']).toBe('yes')
   })
 
   it('says which tags it changes, and nothing for a line without direction tags', () => {

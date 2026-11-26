@@ -43,6 +43,8 @@ export function createLoadTasksItem(deps: OpenDeps): AccountMenuItem['component'
     const reopen = (listKey: string) => {
       close()
       openDockView(DOCK_VIEW)
+      // the open list only comes to the front: opening it again would drop this session's applied tasks
+      if (listKey === openKey) return
       void openCachedList(deps, listKey)
     }
     const pick = (file: File | undefined) => {
