@@ -1,3 +1,5 @@
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 /**
  * A contact sheet of the lane cases (fixtures/lanes, made by `bun run fixtures-lanes`): each case drawn with the street
  * drawing (module-lanes `streetOf`, osm-lane-diagram `street`) as an SVG, with its id, title and what it shows. Written to
@@ -7,8 +9,6 @@
  * Usage: bun run lanes-sheet [L08 L13 ...]   (all cases without arguments)
  */
 import { chromium } from '@playwright/test'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { streetOf, type StreetEntity } from '../../packages/module-lanes/src/overlay/street.ts'
 
 type CaseFile = {
@@ -18,17 +18,26 @@ type CaseFile = {
 type Entry = { id: string; title: string; shows: string; file: string; centre: [number, number] }
 
 const root = join(import.meta.dir, '../..')
-const catalogue = JSON.parse(readFileSync(join(root, 'fixtures/lanes/cases.json'), 'utf8')) as Entry[]
+const catalogue = JSON.parse(
+  readFileSync(join(root, 'fixtures/lanes/cases.json'), 'utf8'),
+) as Entry[]
 const wanted = process.argv.slice(2).map((a) => a.toUpperCase())
 const entries = wanted.length ? catalogue.filter((e) => wanted.includes(e.id)) : catalogue
 
 const SIZE = 420
 const HALF = 75
-const COLOURS: Record<string, string> = { car: '#71717a', bus: '#b91c1c', bicycle: '#15803d', other: '#7c3aed' }
+const COLOURS: Record<string, string> = {
+  car: '#71717a',
+  bus: '#b91c1c',
+  bicycle: '#15803d',
+  other: '#7c3aed',
+}
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
 
 function drawCase(entry: Entry): string {
-  const data = JSON.parse(readFileSync(join(root, 'fixtures/lanes', entry.file), 'utf8')) as CaseFile
+  const data = JSON.parse(
+    readFileSync(join(root, 'fixtures/lanes', entry.file), 'utf8'),
+  ) as CaseFile
   const nodes = new Map<string, StreetEntity>(
     Object.entries(data.nodes).map(([id, n]) => [id, { id, tags: n.tags, loc: n.loc }]),
   )
@@ -37,9 +46,18 @@ function drawCase(entry: Entry): string {
   const [lon0, lat0] = entry.centre
   const kx = Math.cos((lat0 * Math.PI) / 180) * 111_320
   const k = SIZE / (2 * HALF)
-  const P = (p: readonly number[]) => [((p[0]! - lon0) * kx + HALF) * k, (HALF - (p[1]! - lat0) * 111_320) * k]
+  const P = (p: readonly number[]) => [
+    ((p[0]! - lon0) * kx + HALF) * k,
+    (HALF - (p[1]! - lat0) * 111_320) * k,
+  ]
   const path = (points: readonly (readonly number[])[], close: boolean) =>
-    `M${points.map((p) => P(p).map((v) => v.toFixed(1)).join(',')).join('L')}${close ? 'Z' : ''}`
+    `M${points
+      .map((p) =>
+        P(p)
+          .map((v) => v.toFixed(1))
+          .join(','),
+      )
+      .join('L')}${close ? 'Z' : ''}`
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">`
   svg += `<rect width="${SIZE}" height="${SIZE}" fill="#e7e5e4"/>`
   for (const j of geometry.junctions) svg += `<path d="${path(j.ring, true)}" fill="#71717a"/>`
@@ -52,7 +70,8 @@ function drawCase(entry: Entry): string {
     svg += `<path d="${path(line.line, false)}" fill="none" stroke="${kerb ? '#fafafa' : line.kind === 'centre' ? '#fde047' : '#ffffff'}" stroke-width="${kerb ? 1.6 : 1}"${kerb ? '' : ' stroke-dasharray="5 5"'}/>`
   }
   for (const j of geometry.junctions) {
-    for (const kerb of j.kerbs) svg += `<path d="${path(kerb, false)}" fill="none" stroke="#fafafa" stroke-width="1.6"/>`
+    for (const kerb of j.kerbs)
+      svg += `<path d="${path(kerb, false)}" fill="none" stroke="#fafafa" stroke-width="1.6"/>`
   }
   // the OSM ways, thin, on top
   for (const way of ways) {
@@ -88,7 +107,9 @@ const htmlFile = join(reports, 'lanes-cases.html')
 writeFileSync(htmlFile, html)
 const browser = await chromium.launch({ channel: 'chrome', headless: true })
 const page = await browser.newPage({ viewport: { width: 5 * (SIZE + 16) + 32, height: 800 } })
-await page.route('**/*', (route) => (route.request().url().startsWith('file:') ? route.continue() : route.abort()))
+await page.route('**/*', (route) =>
+  route.request().url().startsWith('file:') ? route.continue() : route.abort(),
+)
 await page.goto(`file://${htmlFile}`)
 const pngFile = join(reports, 'lanes-cases.png')
 await page.screenshot({ path: pngFile, fullPage: true })

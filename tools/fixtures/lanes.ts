@@ -30,7 +30,10 @@ export type LaneCase = {
   /** What the case shows and what a good drawing does with it */
   shows: string
   /** Draws the case; `way` makes a way through the points, nodes at the same point are shared */
-  draw: (way: (points: Point[], tags: Tags) => void, node: (point: Point, tags: Tags) => void) => void
+  draw: (
+    way: (points: Point[], tags: Tags) => void,
+    node: (point: Point, tags: Tags) => void,
+  ) => void
 }
 
 const twoByTwo = { lanes: '4', 'lanes:forward': '2', 'lanes:backward': '2' }
@@ -39,21 +42,47 @@ export const CASES: LaneCase[] = [
   {
     id: 'L01',
     title: 'Straight on',
-    shows: 'Two ways of the same road in a line, two lanes each way: the lanes meet edge to edge, no step, no gap.',
+    shows:
+      'Two ways of the same road in a line, two lanes each way: the lanes meet edge to edge, no step, no gap.',
     draw: (way) => {
       const tags = { highway: 'primary', name: 'L01 Straight', ...twoByTwo }
-      way([[-140, 0], [0, 0]], tags)
-      way([[0, 0], [140, 0]], tags)
+      way(
+        [
+          [-140, 0],
+          [0, 0],
+        ],
+        tags,
+      )
+      way(
+        [
+          [0, 0],
+          [140, 0],
+        ],
+        tags,
+      )
     },
   },
   {
     id: 'L02',
     title: 'A bend between two ways',
-    shows: 'The road bends by 45° at the node where two ways meet: both are cut on the bisector of the bend.',
+    shows:
+      'The road bends by 45° at the node where two ways meet: both are cut on the bisector of the bend.',
     draw: (way) => {
       const tags = { highway: 'secondary', name: 'L02 Bend', lanes: '2' }
-      way([[-140, -60], [0, 0]], tags)
-      way([[0, 0], [90, 90]], tags)
+      way(
+        [
+          [-140, -60],
+          [0, 0],
+        ],
+        tags,
+      )
+      way(
+        [
+          [0, 0],
+          [90, 90],
+        ],
+        tags,
+      )
     },
   },
   {
@@ -62,8 +91,20 @@ export const CASES: LaneCase[] = [
     shows: 'A bend of 135° between two ways: the inner edges must not throw a spike.',
     draw: (way) => {
       const tags = { highway: 'tertiary', name: 'L03 Sharp bend', lanes: '2' }
-      way([[-120, -40], [0, 0]], tags)
-      way([[0, 0], [-120, 40]], tags)
+      way(
+        [
+          [-120, -40],
+          [0, 0],
+        ],
+        tags,
+      )
+      way(
+        [
+          [0, 0],
+          [-120, 40],
+        ],
+        tags,
+      )
     },
   },
   {
@@ -73,10 +114,34 @@ export const CASES: LaneCase[] = [
       'A one-way road of two lanes gets a third lane on the right before a junction (turn:lanes=through|through|right): the new lane widens out from the kerb over about 25 m, the through lanes run straight.',
     draw: (way) => {
       const road = { highway: 'primary', name: 'L04 Main', oneway: 'yes' }
-      way([[-140, 0], [-40, 0]], { ...road, lanes: '2', 'turn:lanes': 'through|through' })
-      way([[-40, 0], [60, 0]], { ...road, lanes: '3', 'turn:lanes': 'through|through|right' })
-      way([[60, 0], [140, 0]], { ...road, lanes: '2' })
-      way([[60, 0], [60, -120]], { highway: 'residential', name: 'L04 Side' })
+      way(
+        [
+          [-140, 0],
+          [-40, 0],
+        ],
+        { ...road, lanes: '2', 'turn:lanes': 'through|through' },
+      )
+      way(
+        [
+          [-40, 0],
+          [60, 0],
+        ],
+        { ...road, lanes: '3', 'turn:lanes': 'through|through|right' },
+      )
+      way(
+        [
+          [60, 0],
+          [140, 0],
+        ],
+        { ...road, lanes: '2' },
+      )
+      way(
+        [
+          [60, 0],
+          [60, -120],
+        ],
+        { highway: 'residential', name: 'L04 Side' },
+      )
     },
   },
   {
@@ -86,25 +151,62 @@ export const CASES: LaneCase[] = [
       'A two-way road of one lane each way gets a left-turn lane in its middle before a junction (lanes:forward=2, turn:lanes:forward=left|through): the new lane opens between the two directions, the through lane stays at the kerb.',
     draw: (way) => {
       const road = { highway: 'secondary', name: 'L05 Main' }
-      way([[-140, 0], [-40, 0]], { ...road, lanes: '2' })
-      way([[-40, 0], [60, 0]], {
-        ...road,
-        lanes: '3',
-        'lanes:forward': '2',
-        'lanes:backward': '1',
-        'turn:lanes:forward': 'left|through',
-      })
-      way([[60, 0], [140, 0]], { ...road, lanes: '2' })
-      way([[60, 0], [60, 120]], { highway: 'residential', name: 'L05 Side' })
+      way(
+        [
+          [-140, 0],
+          [-40, 0],
+        ],
+        { ...road, lanes: '2' },
+      )
+      way(
+        [
+          [-40, 0],
+          [60, 0],
+        ],
+        {
+          ...road,
+          lanes: '3',
+          'lanes:forward': '2',
+          'lanes:backward': '1',
+          'turn:lanes:forward': 'left|through',
+        },
+      )
+      way(
+        [
+          [60, 0],
+          [140, 0],
+        ],
+        { ...road, lanes: '2' },
+      )
+      way(
+        [
+          [60, 0],
+          [60, 120],
+        ],
+        { highway: 'residential', name: 'L05 Side' },
+      )
     },
   },
   {
     id: 'L06',
     title: 'Four lanes become two',
-    shows: 'A two-way road of two lanes each way goes on with one lane each way: the outer lanes narrow to nothing.',
+    shows:
+      'A two-way road of two lanes each way goes on with one lane each way: the outer lanes narrow to nothing.',
     draw: (way) => {
-      way([[-140, 0], [0, 0]], { highway: 'primary', name: 'L06 Road', ...twoByTwo })
-      way([[0, 0], [140, 0]], { highway: 'primary', name: 'L06 Road', lanes: '2' })
+      way(
+        [
+          [-140, 0],
+          [0, 0],
+        ],
+        { highway: 'primary', name: 'L06 Road', ...twoByTwo },
+      )
+      way(
+        [
+          [0, 0],
+          [140, 0],
+        ],
+        { highway: 'primary', name: 'L06 Road', lanes: '2' },
+      )
     },
   },
   {
@@ -113,8 +215,20 @@ export const CASES: LaneCase[] = [
     shows:
       'A residential street without lane markings (width=8) goes on as a road with one lane each way (6 m): the kerbs ease from one width to the other, nothing narrows to a point.',
     draw: (way) => {
-      way([[-140, 0], [0, 0]], { highway: 'residential', name: 'L07 Street', width: '8', lane_markings: 'no' })
-      way([[0, 0], [140, 0]], { highway: 'tertiary', name: 'L07 Street', lanes: '2' })
+      way(
+        [
+          [-140, 0],
+          [0, 0],
+        ],
+        { highway: 'residential', name: 'L07 Street', width: '8', lane_markings: 'no' },
+      )
+      way(
+        [
+          [0, 0],
+          [140, 0],
+        ],
+        { highway: 'tertiary', name: 'L07 Street', lanes: '2' },
+      )
     },
   },
   {
@@ -124,9 +238,27 @@ export const CASES: LaneCase[] = [
       'A side street joins a main road of two lanes each way: the main road runs through, the side street stops at its kerb, the junction is filled, the main road’s kerb opens for the side street.',
     draw: (way) => {
       const main = { highway: 'primary', name: 'L08 Main', ...twoByTwo }
-      way([[-140, 0], [0, 0]], main)
-      way([[0, 0], [140, 0]], main)
-      way([[0, 0], [0, -130]], { highway: 'residential', name: 'L08 Side' })
+      way(
+        [
+          [-140, 0],
+          [0, 0],
+        ],
+        main,
+      )
+      way(
+        [
+          [0, 0],
+          [140, 0],
+        ],
+        main,
+      )
+      way(
+        [
+          [0, 0],
+          [0, -130],
+        ],
+        { highway: 'residential', name: 'L08 Side' },
+      )
     },
   },
   {
@@ -136,21 +268,45 @@ export const CASES: LaneCase[] = [
       'A main road with a left-turn lane on each approach crosses a road of one lane each way: the main road runs through, the cross road stops at its kerbs, the turn arrows sit before the junction.',
     draw: (way) => {
       const main = { highway: 'primary', name: 'L09 Main', lanes: '3' }
-      way([[-140, 0], [0, 0]], {
-        ...main,
-        'lanes:forward': '2',
-        'lanes:backward': '1',
-        'turn:lanes:forward': 'left|through;right',
-      })
-      way([[0, 0], [140, 0]], {
-        ...main,
-        'lanes:forward': '1',
-        'lanes:backward': '2',
-        'turn:lanes:backward': 'left|through;right',
-      })
+      way(
+        [
+          [-140, 0],
+          [0, 0],
+        ],
+        {
+          ...main,
+          'lanes:forward': '2',
+          'lanes:backward': '1',
+          'turn:lanes:forward': 'left|through;right',
+        },
+      )
+      way(
+        [
+          [0, 0],
+          [140, 0],
+        ],
+        {
+          ...main,
+          'lanes:forward': '1',
+          'lanes:backward': '2',
+          'turn:lanes:backward': 'left|through;right',
+        },
+      )
       const cross = { highway: 'secondary', name: 'L09 Cross', lanes: '2' }
-      way([[0, -130], [0, 0]], cross)
-      way([[0, 0], [0, 130]], cross)
+      way(
+        [
+          [0, -130],
+          [0, 0],
+        ],
+        cross,
+      )
+      way(
+        [
+          [0, 0],
+          [0, 130],
+        ],
+        cross,
+      )
     },
   },
   {
@@ -159,8 +315,22 @@ export const CASES: LaneCase[] = [
     shows:
       'Two roads cross at 60°, each one way through the node: the junction is a rhombus, the kerb curves at the sharp corners stay inside it.',
     draw: (way) => {
-      way([[-140, 0], [0, 0], [140, 0]], { highway: 'tertiary', name: 'L10 Long', lanes: '2' })
-      way([[-70, -121], [0, 0], [70, 121]], { highway: 'residential', name: 'L10 Skew' })
+      way(
+        [
+          [-140, 0],
+          [0, 0],
+          [140, 0],
+        ],
+        { highway: 'tertiary', name: 'L10 Long', lanes: '2' },
+      )
+      way(
+        [
+          [-70, -121],
+          [0, 0],
+          [70, 121],
+        ],
+        { highway: 'residential', name: 'L10 Skew' },
+      )
     },
   },
   {
@@ -169,10 +339,30 @@ export const CASES: LaneCase[] = [
     shows:
       'A two-way road of two lanes each way splits into two one-way roads (traffic keeps right: the eastbound one to the south): no road runs through, the junction joins all three, each carriageway takes the lanes of its direction.',
     draw: (way) => {
-      way([[-140, 0], [0, 0]], { highway: 'primary', name: 'L11 Road', ...twoByTwo })
+      way(
+        [
+          [-140, 0],
+          [0, 0],
+        ],
+        { highway: 'primary', name: 'L11 Road', ...twoByTwo },
+      )
       const carriageway = { highway: 'primary', name: 'L11 Road', oneway: 'yes', lanes: '2' }
-      way([[0, 0], [60, -14], [140, -14]], carriageway)
-      way([[140, 14], [60, 14], [0, 0]], carriageway)
+      way(
+        [
+          [0, 0],
+          [60, -14],
+          [140, -14],
+        ],
+        carriageway,
+      )
+      way(
+        [
+          [140, 14],
+          [60, 14],
+          [0, 0],
+        ],
+        carriageway,
+      )
     },
   },
   {
@@ -182,12 +372,44 @@ export const CASES: LaneCase[] = [
       'A road crosses both carriageways of a dual carriageway; the piece between them is 24 m long: two junctions close together, which a good drawing shows as one.',
     draw: (way) => {
       const carriageway = { highway: 'primary', name: 'L12 Avenue', oneway: 'yes', lanes: '2' }
-      way([[-140, -12], [0, -12], [140, -12]], carriageway)
-      way([[140, 12], [0, 12], [-140, 12]], carriageway)
+      way(
+        [
+          [-140, -12],
+          [0, -12],
+          [140, -12],
+        ],
+        carriageway,
+      )
+      way(
+        [
+          [140, 12],
+          [0, 12],
+          [-140, 12],
+        ],
+        carriageway,
+      )
       const cross = { highway: 'secondary', name: 'L12 Cross', lanes: '2' }
-      way([[0, -130], [0, -12]], cross)
-      way([[0, -12], [0, 12]], cross)
-      way([[0, 12], [0, 130]], cross)
+      way(
+        [
+          [0, -130],
+          [0, -12],
+        ],
+        cross,
+      )
+      way(
+        [
+          [0, -12],
+          [0, 12],
+        ],
+        cross,
+      )
+      way(
+        [
+          [0, 12],
+          [0, 130],
+        ],
+        cross,
+      )
     },
   },
   {
@@ -200,10 +422,21 @@ export const CASES: LaneCase[] = [
         const a = (i / 16) * 2 * Math.PI
         return [30 * Math.cos(a), 30 * Math.sin(a)]
       })
-      way([...ring, ring[0]!], { highway: 'primary', name: 'L13 Ring', junction: 'roundabout', lanes: '2' })
+      way([...ring, ring[0]!], {
+        highway: 'primary',
+        name: 'L13 Ring',
+        junction: 'roundabout',
+        lanes: '2',
+      })
       for (const i of [0, 4, 8, 12]) {
         const [x, y] = ring[i]!
-        way([[x, y], [x * 4.3, y * 4.3]], { highway: 'secondary', name: `L13 Arm ${i / 4 + 1}`, lanes: '2' })
+        way(
+          [
+            [x, y],
+            [x * 4.3, y * 4.3],
+          ],
+          { highway: 'secondary', name: `L13 Arm ${i / 4 + 1}`, lanes: '2' },
+        )
       }
     },
   },
@@ -213,15 +446,27 @@ export const CASES: LaneCase[] = [
     shows:
       'A road with a bus lane on the right of its eastbound direction (bus:lanes:forward=|designated) goes on without it: the bus lane narrows to nothing at the kerb.',
     draw: (way) => {
-      way([[-140, 0], [0, 0]], {
-        highway: 'primary',
-        name: 'L14 Road',
-        lanes: '3',
-        'lanes:forward': '2',
-        'lanes:backward': '1',
-        'bus:lanes:forward': '|designated',
-      })
-      way([[0, 0], [140, 0]], { highway: 'primary', name: 'L14 Road', lanes: '2' })
+      way(
+        [
+          [-140, 0],
+          [0, 0],
+        ],
+        {
+          highway: 'primary',
+          name: 'L14 Road',
+          lanes: '3',
+          'lanes:forward': '2',
+          'lanes:backward': '1',
+          'bus:lanes:forward': '|designated',
+        },
+      )
+      way(
+        [
+          [0, 0],
+          [140, 0],
+        ],
+        { highway: 'primary', name: 'L14 Road', lanes: '2' },
+      )
     },
   },
   {
@@ -230,26 +475,44 @@ export const CASES: LaneCase[] = [
     shows:
       'The German pattern: a cycle lane between the through lane and the right-turn lane, in the lane keys but not in lanes (cycleway:lanes:forward=no|lane|no), before a junction with a side street; beyond the junction a plain road with cycle lanes on both sides (cycleway:both=lane).',
     draw: (way) => {
-      way([[-140, 0], [0, 0]], {
-        highway: 'secondary',
-        name: 'L15 Road',
-        lanes: '3',
-        'lanes:forward': '2',
-        'lanes:backward': '1',
-        'turn:lanes:forward': 'through||right',
-        'cycleway:lanes:forward': 'no|lane|no',
-        'bicycle:lanes:forward': 'no|designated|yes',
-        'vehicle:lanes:forward': 'yes|no|yes',
-        'width:lanes:forward': '3.25|1.8|3',
-        'cycleway:left': 'lane',
-      })
-      way([[0, 0], [140, 0]], {
-        highway: 'secondary',
-        name: 'L15 Road',
-        lanes: '2',
-        'cycleway:both': 'lane',
-      })
-      way([[0, 0], [0, -120]], { highway: 'residential', name: 'L15 Side' })
+      way(
+        [
+          [-140, 0],
+          [0, 0],
+        ],
+        {
+          highway: 'secondary',
+          name: 'L15 Road',
+          lanes: '3',
+          'lanes:forward': '2',
+          'lanes:backward': '1',
+          'turn:lanes:forward': 'through||right',
+          'cycleway:lanes:forward': 'no|lane|no',
+          'bicycle:lanes:forward': 'no|designated|yes',
+          'vehicle:lanes:forward': 'yes|no|yes',
+          'width:lanes:forward': '3.25|1.8|3',
+          'cycleway:left': 'lane',
+        },
+      )
+      way(
+        [
+          [0, 0],
+          [140, 0],
+        ],
+        {
+          highway: 'secondary',
+          name: 'L15 Road',
+          lanes: '2',
+          'cycleway:both': 'lane',
+        },
+      )
+      way(
+        [
+          [0, 0],
+          [0, -120],
+        ],
+        { highway: 'residential', name: 'L15 Side' },
+      )
     },
   },
   {
@@ -259,8 +522,20 @@ export const CASES: LaneCase[] = [
       'A one-way road of two lanes is mapped along the left edge of its first lane (placement=left_of:1), and goes on mapped along its middle: the lanes stay where they are, only the way line moves.',
     draw: (way) => {
       const road = { highway: 'primary', name: 'L16 Road', oneway: 'yes', lanes: '2' }
-      way([[-140, 0], [0, 0]], { ...road, placement: 'left_of:1' })
-      way([[0, 0], [140, -3.5]], road)
+      way(
+        [
+          [-140, 0],
+          [0, 0],
+        ],
+        { ...road, placement: 'left_of:1' },
+      )
+      way(
+        [
+          [0, 0],
+          [140, -3.5],
+        ],
+        road,
+      )
     },
   },
   {
@@ -269,20 +544,32 @@ export const CASES: LaneCase[] = [
     shows:
       'A one-way road of two lanes goes on as a way drawn the other way round (oneway=-1): the lanes and turn arrows carry on as if it were drawn along the traffic.',
     draw: (way) => {
-      way([[-140, 0], [0, 0]], {
-        highway: 'secondary',
-        name: 'L17 Road',
-        oneway: 'yes',
-        lanes: '2',
-        'turn:lanes': 'through|through',
-      })
-      way([[140, 0], [0, 0]], {
-        highway: 'secondary',
-        name: 'L17 Road',
-        oneway: '-1',
-        lanes: '2',
-        'turn:lanes': 'left|through',
-      })
+      way(
+        [
+          [-140, 0],
+          [0, 0],
+        ],
+        {
+          highway: 'secondary',
+          name: 'L17 Road',
+          oneway: 'yes',
+          lanes: '2',
+          'turn:lanes': 'through|through',
+        },
+      )
+      way(
+        [
+          [140, 0],
+          [0, 0],
+        ],
+        {
+          highway: 'secondary',
+          name: 'L17 Road',
+          oneway: '-1',
+          lanes: '2',
+          'turn:lanes': 'left|through',
+        },
+      )
     },
   },
   {
@@ -291,9 +578,29 @@ export const CASES: LaneCase[] = [
     shows:
       'Two side streets join a main road from opposite sides 16 m apart: two junctions close together, the main road runs through both.',
     draw: (way) => {
-      way([[-140, 0], [-8, 0], [8, 0], [140, 0]], { highway: 'primary', name: 'L18 Main', ...twoByTwo })
-      way([[-8, 0], [-8, 120]], { highway: 'residential', name: 'L18 North' })
-      way([[8, 0], [8, -120]], { highway: 'residential', name: 'L18 South' })
+      way(
+        [
+          [-140, 0],
+          [-8, 0],
+          [8, 0],
+          [140, 0],
+        ],
+        { highway: 'primary', name: 'L18 Main', ...twoByTwo },
+      )
+      way(
+        [
+          [-8, 0],
+          [-8, 120],
+        ],
+        { highway: 'residential', name: 'L18 North' },
+      )
+      way(
+        [
+          [8, 0],
+          [8, -120],
+        ],
+        { highway: 'residential', name: 'L18 South' },
+      )
     },
   },
   {
@@ -303,9 +610,28 @@ export const CASES: LaneCase[] = [
       'A one-way road of three lanes loses its right lane to a slip road (highway=primary_link) leaving at a shallow angle: the slip road should start where the right lane is.',
     draw: (way) => {
       const road = { highway: 'primary', name: 'L19 Road', oneway: 'yes' }
-      way([[-140, 0], [0, 0]], { ...road, lanes: '3', 'turn:lanes': 'through|through|slight_right' })
-      way([[0, 0], [140, 0]], { ...road, lanes: '2' })
-      way([[0, 0], [70, -14], [140, -45]], { highway: 'primary_link', name: 'L19 Slip', oneway: 'yes', lanes: '1' })
+      way(
+        [
+          [-140, 0],
+          [0, 0],
+        ],
+        { ...road, lanes: '3', 'turn:lanes': 'through|through|slight_right' },
+      )
+      way(
+        [
+          [0, 0],
+          [140, 0],
+        ],
+        { ...road, lanes: '2' },
+      )
+      way(
+        [
+          [0, 0],
+          [70, -14],
+          [140, -45],
+        ],
+        { highway: 'primary_link', name: 'L19 Slip', oneway: 'yes', lanes: '1' },
+      )
     },
   },
   {
@@ -315,9 +641,29 @@ export const CASES: LaneCase[] = [
       'Two one-way roads of one lane each join into a one-way road of two lanes: each lane runs on into its side of the joined road.',
     draw: (way) => {
       const branch = { highway: 'secondary', name: 'L20 Branch', oneway: 'yes', lanes: '1' }
-      way([[-140, 40], [-60, 10], [0, 0]], branch)
-      way([[-140, -40], [-60, -10], [0, 0]], branch)
-      way([[0, 0], [140, 0]], { highway: 'secondary', name: 'L20 Joined', oneway: 'yes', lanes: '2' })
+      way(
+        [
+          [-140, 40],
+          [-60, 10],
+          [0, 0],
+        ],
+        branch,
+      )
+      way(
+        [
+          [-140, -40],
+          [-60, -10],
+          [0, 0],
+        ],
+        branch,
+      )
+      way(
+        [
+          [0, 0],
+          [140, 0],
+        ],
+        { highway: 'secondary', name: 'L20 Joined', oneway: 'yes', lanes: '2' },
+      )
     },
   },
   {
@@ -326,9 +672,27 @@ export const CASES: LaneCase[] = [
     shows:
       'A residential street, a living street and a service road without any lane tags meet: each is drawn as one shared carriageway of an assumed width, muted, joined at the junction.',
     draw: (way, node) => {
-      way([[-140, 0], [0, 0]], { highway: 'residential', name: 'L21 Residential' })
-      way([[0, 0], [140, 0]], { highway: 'living_street', name: 'L21 Living street' })
-      way([[0, 0], [0, -110]], { highway: 'service', name: 'L21 Service' })
+      way(
+        [
+          [-140, 0],
+          [0, 0],
+        ],
+        { highway: 'residential', name: 'L21 Residential' },
+      )
+      way(
+        [
+          [0, 0],
+          [140, 0],
+        ],
+        { highway: 'living_street', name: 'L21 Living street' },
+      )
+      way(
+        [
+          [0, 0],
+          [0, -110],
+        ],
+        { highway: 'service', name: 'L21 Service' },
+      )
       node([140, 0], { highway: 'turning_circle' })
     },
   },
@@ -338,14 +702,26 @@ export const CASES: LaneCase[] = [
     shows:
       'A road of one wide lane and one narrow lane each way (width:lanes) goes on with equal lanes: every lane eases to its new width, the centre line stays straight.',
     draw: (way) => {
-      way([[-140, 0], [0, 0]], {
-        highway: 'secondary',
-        name: 'L22 Road',
-        ...twoByTwo,
-        'width:lanes:forward': '3.5|2.75',
-        'width:lanes:backward': '2.75|3.5',
-      })
-      way([[0, 0], [140, 0]], { highway: 'secondary', name: 'L22 Road', ...twoByTwo })
+      way(
+        [
+          [-140, 0],
+          [0, 0],
+        ],
+        {
+          highway: 'secondary',
+          name: 'L22 Road',
+          ...twoByTwo,
+          'width:lanes:forward': '3.5|2.75',
+          'width:lanes:backward': '2.75|3.5',
+        },
+      )
+      way(
+        [
+          [0, 0],
+          [140, 0],
+        ],
+        { highway: 'secondary', name: 'L22 Road', ...twoByTwo },
+      )
     },
   },
 ]
@@ -362,14 +738,20 @@ export function build() {
   const metresPerLat = 111_320
   const metresPerLon = 111_320 * Math.cos((north * Math.PI) / 180)
   const elements: Element[] = []
-  const perCase = new Map<string, { nodes: Map<number, Element & { type: 'node' }>; ways: (Element & { type: 'way' })[] }>()
+  const perCase = new Map<
+    string,
+    { nodes: Map<number, Element & { type: 'node' }>; ways: (Element & { type: 'way' })[] }
+  >()
   let id = 3_000_000_000
 
   CASES.forEach((laneCase, index) => {
     const cx = (index % COLUMNS) * CELL + CELL / 2
     const cy = -(Math.floor(index / COLUMNS) * CELL + CELL / 2)
     const nodes = new Map<string, number>()
-    const own = { nodes: new Map<number, Element & { type: 'node' }>(), ways: [] as (Element & { type: 'way' })[] }
+    const own = {
+      nodes: new Map<number, Element & { type: 'node' }>(),
+      ways: [] as (Element & { type: 'way' })[],
+    }
     perCase.set(laneCase.id, own)
     const nodeAt = ([x, y]: Point, tags?: Tags) => {
       const key = `${Math.round(x * 100)}:${Math.round(y * 100)}`
@@ -396,7 +778,13 @@ export function build() {
     }
     laneCase.draw(
       (points, tags) => {
-        const element = { type: 'way' as const, id: ++id, nodes: points.map((p) => nodeAt(p)), version: 1, tags }
+        const element = {
+          type: 'way' as const,
+          id: ++id,
+          nodes: points.map((p) => nodeAt(p)),
+          version: 1,
+          tags,
+        }
         elements.push(element)
         own.ways.push(element)
       },
@@ -435,16 +823,32 @@ if (import.meta.main) {
     const own = perCase.get(laneCase.id)!
     const lats = [...own.nodes.values()].map((n) => n.lat)
     const lons = [...own.nodes.values()].map((n) => n.lon)
-    const centre = [round((Math.min(...lons) + Math.max(...lons)) / 2), round((Math.min(...lats) + Math.max(...lats)) / 2)]
+    const centre = [
+      round((Math.min(...lons) + Math.max(...lons)) / 2),
+      round((Math.min(...lats) + Math.max(...lats)) / 2),
+    ]
     const file = {
       nodes: Object.fromEntries(
-        [...own.nodes.values()].map((n) => [`n${n.id}`, { loc: [n.lon, n.lat], tags: n.tags ?? {} }]),
+        [...own.nodes.values()].map((n) => [
+          `n${n.id}`,
+          { loc: [n.lon, n.lat], tags: n.tags ?? {} },
+        ]),
       ),
-      ways: own.ways.map((w) => ({ id: `w${w.id}`, nodes: w.nodes.map((n) => `n${n}`), tags: w.tags })),
+      ways: own.ways.map((w) => ({
+        id: `w${w.id}`,
+        nodes: w.nodes.map((n) => `n${n}`),
+        tags: w.tags,
+      })),
     }
     const name = `${laneCase.id.toLowerCase()}.json`
     await Bun.write(join(outDir, 'lanes', 'cases', name), `${JSON.stringify(file, null, 1)}\n`)
-    catalogue.push({ id: laneCase.id, title: laneCase.title, shows: laneCase.shows, file: `cases/${name}`, centre })
+    catalogue.push({
+      id: laneCase.id,
+      title: laneCase.title,
+      shows: laneCase.shows,
+      file: `cases/${name}`,
+      centre,
+    })
   }
   await Bun.write(join(outDir, 'lanes', 'cases.json'), `${JSON.stringify(catalogue, null, 2)}\n`)
   console.log(
