@@ -102,5 +102,9 @@
   "tasks_sync_replace_hint": "Votre compte contient cette liste pour une autre version du fichier. Ceci remplace cette copie par cette version et les statuts de ce navigateur ; les statuts de l'autre version dans le compte sont alors perdus.",
   "tasks_apply_none": "Choisir",
   "tasks_operations": "Exécute d'abord :",
-  "tasks_operation_not_for": "{operation} ne s'applique pas à cet élément"
+  "tasks_operation_not_for": "{operation} ne s'applique pas à cet élément",
+  "tasks_list_menu": "Actions de la liste",
+  "tasks_list_delete": "Supprimer la liste de ce navigateur",
+  "tasks_filter_show_all": "Tout afficher",
+  "tasks_next_short": "Suivante"
 }

@@ -1,9 +1,9 @@
+import { EllipsisHorizontalIcon, ViewfinderCircleIcon } from '@heroicons/react/20/solid'
 import type { TaskStatus } from '@osm-editor-kit/maid-osm-prefs'
 import type { EntityInfo } from '@osm-editor-kit/maid-renderer'
-import { type DockViewProps, notify, TASKS_SURFACE } from '@osm-editor-kit/maid-ui'
+import { type DockViewProps, Flyout, notify, TASKS_SURFACE } from '@osm-editor-kit/maid-ui'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import {
-  FILTERS,
   countStatuses,
   entityIdsOfTask,
   ignoredTasks,
@@ -13,6 +13,7 @@ import {
 } from './list.ts'
 import { m } from './messages.ts'
 import { goToTask } from './navigate.ts'
+import { forgetList, type OpenDeps } from './open.ts'
 import { type Shared, useSharedEngine } from './shared.ts'
 import { type SyncKind, type TasksStore, useTasks } from './store.ts'
 import { StatusBadge, TaskContent, TaskLinks, statusLabel } from './TaskContent.tsx'
@@ -26,10 +27,6 @@ const BUTTON =
 /** A button in the list's head: small, the head stays short */
 const SMALL_BUTTON =
   'cursor-pointer rounded-md border border-zinc-950/10 px-1.5 py-0.5 text-xs hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-white/15 dark:hover:bg-white/5'
-
-function filterLabel(filter: TasksFilter): string {
-  return filter === 'all' ? m.tasks_filter_all() : statusLabel(filter)
-}
 
 /** The ignored tasks as JSON text, for a chat or a script that makes the next list (`ignoredTasks`) */
 function ignoredText(
@@ -109,7 +106,7 @@ export function syncText(kind: SyncKind, server: 'mock' | 'osm' | 'dev' | undefi
 }
 
 /** The dock tab "Tasks": the list's head (title, progress, counts, filter, sync), the rows and the current task */
-export function createTasksView(store: TasksStore, shared: Shared) {
+export function createTasksView(store: TasksStore, shared: Shared, deps?: OpenDeps) {
   return function TasksView({ editor, select, selected, readOnly }: DockViewProps) {
     const list = useTasks(store, (state) => state.list)
     const error = useTasks(store, (state) => state.error)
@@ -149,7 +146,7 @@ export function createTasksView(store: TasksStore, shared: Shared) {
           >
             {/* the head stays while the rows scroll under it */}
             <div className="shrink-0 border-b border-zinc-950/10 px-4 py-2.5 dark:border-white/15">
-              <Head store={store} shared={shared} />
+              <Head store={store} shared={shared} deps={deps} />
             </div>
             <div data-tasks-rows className="min-h-0 flex-1 overflow-y-auto px-2 py-2 md:px-3">
               <Rows store={store} shared={shared} select={select} />
@@ -209,7 +206,7 @@ function ErrorBanner({ store }: { store: TasksStore }) {
   )
 }
 
-function Head({ store, shared }: { store: TasksStore; shared: Shared }) {
+function Head({ store, shared, deps }: { store: TasksStore; shared: Shared; deps?: OpenDeps }) {
   const list = useTasks(store, (state) => state.list)
   const statuses = useTasks(store, (state) => state.statuses)
   const filter = useTasks(store, (state) => state.filter)
@@ -217,10 +214,17 @@ function Head({ store, shared }: { store: TasksStore; shared: Shared }) {
   if (!list) return null
   const counts = countStatuses(statuses)
   const handled = counts.total - counts.open
+  const setFilter = (next: TasksFilter) => store.getState().actions.setFilter(next)
+  // the sync states that need the person: shown as a callout, not as a quiet line
+  const trouble =
+    sync.kind === 'failed' ||
+    sync.kind === 'forbidden' ||
+    sync.kind === 'conflict' ||
+    sync.kind === 'mismatch'
   // compact: the head stays above the rows in a low dock, so it takes as few lines as it can
   return (
     <header data-testid="tasks-head" className="flex flex-col gap-1.5">
-      <div className="flex items-baseline justify-between gap-2">
+      <div className="flex items-center justify-between gap-2">
         <h2
           data-testid="tasks-title"
           className="min-w-0 truncate text-sm/5 font-semibold"
@@ -228,8 +232,11 @@ function Head({ store, shared }: { store: TasksStore; shared: Shared }) {
         >
           {list.file.maid_tasks.title}
         </h2>
-        <span className="shrink-0 text-xs text-zinc-500 tabular-nums dark:text-zinc-400">
-          {m.tasks_progress({ done: handled, total: counts.total })}
+        <span className="flex shrink-0 items-center gap-1">
+          <span className="text-xs text-zinc-500 tabular-nums dark:text-zinc-400">
+            {m.tasks_progress({ done: handled, total: counts.total })}
+          </span>
+          <ListMenu store={store} deps={deps} />
         </span>
       </div>
       <div
@@ -246,37 +253,54 @@ function Head({ store, shared }: { store: TasksStore; shared: Shared }) {
           style={{ width: `${counts.total === 0 ? 0 : (handled / counts.total) * 100}%` }}
         />
       </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-        <ul data-testid="tasks-counts" className="flex flex-wrap gap-x-3">
-          {(['open', 'done', 'ignored', 'skipped'] as const).map((status) => (
-            <li key={status}>
-              <span data-testid={`tasks-count-${status}`} className="font-semibold tabular-nums">
-                {counts[status]}
-              </span>{' '}
-              <span className="text-zinc-500 dark:text-zinc-400">{statusLabel(status)}</span>
-            </li>
-          ))}
-        </ul>
-        <label className="ml-auto flex items-center gap-1.5">
-          <span className="text-zinc-500 dark:text-zinc-400">{m.tasks_filter_label()}</span>
-          <select
-            data-testid="tasks-filter"
-            value={filter}
-            onChange={(event) =>
-              store.getState().actions.setFilter(event.target.value as TasksFilter)
-            }
-            className="rounded-md border border-zinc-950/10 bg-transparent px-1.5 py-0.5 dark:border-white/15 dark:bg-zinc-800"
+      {/* the counts are the filter: one at a time, "show all" goes back (Tobias, 2026-11-26) */}
+      <div className="flex flex-wrap items-center gap-1 text-xs" data-testid="tasks-counts">
+        {(['open', 'done', 'ignored', 'skipped'] as const).map((status) => (
+          <button
+            key={status}
+            type="button"
+            aria-pressed={filter === status}
+            data-testid={`tasks-filter-${status}`}
+            onClick={() => setFilter(filter === status ? 'all' : status)}
+            className={`cursor-pointer rounded-md px-1.5 py-0.5 focus-visible:outline-2 focus-visible:outline-blue-500 ${
+              filter === status
+                ? 'bg-zinc-950 text-white dark:bg-white dark:text-zinc-950'
+                : 'hover:bg-zinc-950/5 dark:hover:bg-white/10'
+            }`}
           >
-            {FILTERS.map((option) => (
-              <option key={option} value={option}>
-                {filterLabel(option)}
-              </option>
-            ))}
-          </select>
-        </label>
+            <span data-testid={`tasks-count-${status}`} className="font-semibold tabular-nums">
+              {counts[status]}
+            </span>{' '}
+            <span className={filter === status ? '' : 'text-zinc-500 dark:text-zinc-400'}>
+              {statusLabel(status)}
+            </span>
+          </button>
+        ))}
+        {filter !== 'all' && (
+          <button
+            type="button"
+            data-testid="tasks-filter-all"
+            onClick={() => setFilter('all')}
+            className={`ml-auto ${SMALL_BUTTON}`}
+          >
+            {m.tasks_filter_show_all()}
+          </button>
+        )}
       </div>
-      <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
-        <span data-testid="tasks-sync" data-sync-kind={sync.kind} role="status">
+      <div
+        role={trouble ? 'alert' : 'status'}
+        data-testid="tasks-sync-box"
+        className={
+          trouble
+            ? `flex flex-wrap items-center gap-2 rounded-lg border p-2 text-xs ${
+                sync.kind === 'mismatch' || sync.kind === 'conflict'
+                  ? 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200'
+                  : 'border-red-300 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200'
+              }`
+            : 'flex flex-wrap items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300'
+        }
+      >
+        <span data-testid="tasks-sync" data-sync-kind={sync.kind}>
           {syncText(sync.kind, sync.server)}
         </span>
         {(sync.kind === 'failed' || sync.kind === 'forbidden') && (
@@ -302,35 +326,101 @@ function Head({ store, shared }: { store: TasksStore; shared: Shared }) {
             {m.tasks_sync_decide()}
           </button>
         )}
-        {counts.ignored > 0 && (
-          <span className="ml-auto flex items-center gap-1.5">
-            <button
-              type="button"
-              data-testid="tasks-ignored-copy"
-              title={m.tasks_ignored_copy_hint()}
-              onClick={() => copyIgnored(ignoredText(list.file, statuses))}
-              className={SMALL_BUTTON}
-            >
-              {m.tasks_ignored_copy()}
-            </button>
-            <button
-              type="button"
-              data-testid="tasks-ignored-download"
-              title={m.tasks_ignored_download_hint()}
-              onClick={() =>
-                downloadText(
-                  `${list.file.maid_tasks.list_id}-ignored.json`,
-                  ignoredText(list.file, statuses),
-                )
-              }
-              className={SMALL_BUTTON}
-            >
-              {m.tasks_ignored_download()}
-            </button>
-          </span>
-        )}
       </div>
     </header>
+  )
+}
+
+/** A row of the list's menu */
+const MENU_ROW =
+  'flex w-full cursor-pointer items-center rounded-md px-2 py-1.5 text-left text-sm hover:bg-zinc-950/5 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-50 dark:hover:bg-white/10'
+
+/**
+ * "⋯" beside the list's title: what belongs to the whole list, in one place (Tobias, 2026-11-26): copy or download the
+ * ignored tasks (for whoever makes the next list), and delete the list from this browser (a second click confirms).
+ */
+function ListMenu({ store, deps }: { store: TasksStore; deps?: OpenDeps }) {
+  const list = useTasks(store, (state) => state.list)
+  const statuses = useTasks(store, (state) => state.statuses)
+  const [open, setOpen] = useState(false)
+  const [asking, setAsking] = useState(false)
+  if (!list) return null
+  const ignored = countStatuses(statuses).ignored
+  const close = () => {
+    setOpen(false)
+    setAsking(false)
+  }
+  const forget = () => {
+    if (!asking) {
+      setAsking(true)
+      return
+    }
+    close()
+    const { listKey } = list
+    store.getState().actions.close()
+    if (deps) void forgetList(deps, listKey)
+  }
+  return (
+    <Flyout
+      label={m.tasks_list_menu()}
+      placement="bottom-end"
+      open={open}
+      onOpenChange={(next) => (next ? setOpen(true) : close())}
+      className="w-64 p-1"
+      trigger={
+        <button
+          type="button"
+          data-testid="tasks-list-menu"
+          aria-label={m.tasks_list_menu()}
+          title={m.tasks_list_menu()}
+          className="grid size-7 cursor-pointer place-items-center rounded-md text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
+        >
+          <EllipsisHorizontalIcon aria-hidden="true" className="size-5" />
+        </button>
+      }
+    >
+      <div className="flex flex-col">
+        <button
+          type="button"
+          data-testid="tasks-ignored-copy"
+          disabled={ignored === 0}
+          title={m.tasks_ignored_copy_hint()}
+          onClick={() => {
+            close()
+            copyIgnored(ignoredText(list.file, statuses))
+          }}
+          className={MENU_ROW}
+        >
+          {m.tasks_ignored_copy()}
+        </button>
+        <button
+          type="button"
+          data-testid="tasks-ignored-download"
+          disabled={ignored === 0}
+          title={m.tasks_ignored_download_hint()}
+          onClick={() => {
+            close()
+            downloadText(
+              `${list.file.maid_tasks.list_id}-ignored.json`,
+              ignoredText(list.file, statuses),
+            )
+          }}
+          className={MENU_ROW}
+        >
+          {m.tasks_ignored_download()}
+        </button>
+        <div className="my-1 border-t border-zinc-950/10 dark:border-white/10" />
+        <button
+          type="button"
+          data-testid="tasks-list-delete"
+          title={m.tasks_recent_delete_hint()}
+          onClick={forget}
+          className={`${MENU_ROW} ${asking ? 'bg-red-600 text-white hover:bg-red-700 dark:hover:bg-red-700' : 'text-red-700 dark:text-red-300'}`}
+        >
+          {asking ? m.tasks_recent_delete_confirm() : m.tasks_list_delete()}
+        </button>
+      </div>
+    </Flyout>
   )
 }
 
@@ -446,8 +536,8 @@ function taskTarget(
 }
 
 /**
- * The current task, beside the list: its heading with "Show on map" and "Next open task" stays, the description, the
- * actions and the closing buttons scroll under it. All the work on a task happens here, whatever is selected on the
+ * The current task, beside the list: its heading (title with status, links, the focus button) stays, the
+ * description, the actions and the action bar with "Next open task" scroll under it. All the work on a task happens here, whatever is selected on the
  * map; the inspector only points here (TaskSection). Without a current task it offers the next open one.
  */
 function Detail({
@@ -500,27 +590,29 @@ function Detail({
   return (
     <div data-testid="tasks-current" className="flex min-h-0 flex-1 flex-col">
       {/* the heading stays while the task scrolls under it */}
-      <header className="flex shrink-0 flex-col gap-1.5 border-b border-zinc-950/10 px-4 py-2.5 dark:border-white/15">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="text-sm/5 font-semibold break-words">{task.properties.title}</h3>
-          <span className="flex shrink-0 items-center gap-1">
-            <TaskLinks task={task} />
+      <header className="flex shrink-0 items-start justify-between gap-2 border-b border-zinc-950/10 px-4 py-2.5 dark:border-white/15">
+        <h3 className="min-w-0 text-sm/5 font-semibold break-words">
+          {task.properties.title}{' '}
+          <span className="inline-block align-middle">
             <StatusBadge status={status} />
           </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+        </h3>
+        <span className="flex shrink-0 items-center gap-0.5">
+          <TaskLinks task={task} />
           <button
             type="button"
             data-testid="tasks-show"
-            // selects the task's feature again and moves the map to it, after clicks elsewhere on the map
+            // selects the task's feature again and moves the map to it, after clicks elsewhere on the map; nothing
+            // to do while it is selected
             onClick={() => go(current)}
-            className={BUTTON}
-            aria-pressed={onTask}
+            disabled={onTask}
+            aria-label={ids.length > 0 ? m.tasks_select_task_feature() : m.tasks_show_task()}
+            title={ids.length > 0 ? m.tasks_select_task_feature() : m.tasks_show_task()}
+            className="grid size-7 cursor-pointer place-items-center rounded-md text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
           >
-            {ids.length > 0 ? m.tasks_select_task_feature() : m.tasks_show_task()}
+            <ViewfinderCircleIcon aria-hidden="true" className="size-5" />
           </button>
-          {nextButton}
-        </div>
+        </span>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
         <TaskContent
@@ -535,6 +627,8 @@ function Detail({
           select={select}
           hover={(id) => shared.engine?.setHover(id)}
           headed={false}
+          onNext={() => next !== undefined && go(next)}
+          hasNext={next !== undefined}
         />
       </div>
     </div>

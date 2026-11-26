@@ -102,5 +102,9 @@
   "tasks_sync_replace_hint": "Tu cuenta guarda esta lista para otra versión del archivo. Esto reemplaza esa copia por esta versión y los estados de este navegador; los estados de la otra versión en la cuenta se pierden.",
   "tasks_apply_none": "Elegir",
   "tasks_operations": "Ejecuta primero:",
-  "tasks_operation_not_for": "{operation} no sirve para este elemento"
+  "tasks_operation_not_for": "{operation} no sirve para este elemento",
+  "tasks_list_menu": "Acciones de la lista",
+  "tasks_list_delete": "Borrar la lista de este navegador",
+  "tasks_filter_show_all": "Mostrar todo",
+  "tasks_next_short": "Siguiente"
 }

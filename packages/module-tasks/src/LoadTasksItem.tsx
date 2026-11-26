@@ -4,7 +4,7 @@ import type { AccountMenuItem } from '@osm-editor-kit/maid-ui'
 import { useEffect, useRef, useState } from 'react'
 import type { CachedFile } from './local.ts'
 import { m } from './messages.ts'
-import { forgetList, openCachedList, openTaskText, type OpenDeps } from './open.ts'
+import { openCachedList, openTaskText, type OpenDeps } from './open.ts'
 import { useTasks } from './store.ts'
 
 export const DOCK_VIEW = 'tasks'
@@ -28,18 +28,6 @@ export function createLoadTasksItem(deps: OpenDeps): AccountMenuItem['component'
         alive = false
       }
     }, [])
-    // a second click deletes: the first only asks (the progress of this browser goes with it)
-    const [asking, setAsking] = useState<string | null>(null)
-    const forget = (listKey: string) => {
-      if (asking !== listKey) {
-        setAsking(listKey)
-        return
-      }
-      setAsking(null)
-      void forgetList(deps, listKey).then(() =>
-        setKept((files) => files.filter((file) => file.listKey !== listKey)),
-      )
-    }
     const reopen = (listKey: string) => {
       close()
       openDockView(DOCK_VIEW)
@@ -107,23 +95,6 @@ export function createLoadTasksItem(deps: OpenDeps): AccountMenuItem['component'
                     {file.fileName} · {new Date(file.savedAt).toLocaleDateString()}
                   </span>
                 </button>
-                {file.listKey !== openKey && (
-                  <button
-                    type="button"
-                    data-testid={`tasks-recent-delete-${file.listKey}`}
-                    onClick={() => forget(file.listKey)}
-                    title={m.tasks_recent_delete_hint()}
-                    className={`shrink-0 cursor-pointer rounded-md px-1.5 py-1 text-xs focus-visible:outline-2 focus-visible:outline-blue-500 ${
-                      asking === file.listKey
-                        ? 'bg-red-600 text-white hover:bg-red-700'
-                        : 'text-zinc-500 hover:bg-zinc-950/5 hover:text-zinc-950 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white'
-                    }`}
-                  >
-                    {asking === file.listKey
-                      ? m.tasks_recent_delete_confirm()
-                      : m.tasks_recent_delete()}
-                  </button>
-                )}
               </div>
             ))}
           </div>

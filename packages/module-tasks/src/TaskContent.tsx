@@ -53,8 +53,8 @@ const LINK_PREFIX: Record<LinkKind['kind'], string | undefined> = {
 }
 
 /**
- * The links of a task (and its Mapillary images) for the heading of a task: an OSM element as "OSM way 123", a wiki
- * page as "Wiki Key:oneway", anything else by its host; the whole address is the tooltip (Tobias, 2026-11-26).
+ * The links of a task (and its Mapillary images) for the heading of a task, short: "OSM", "Wiki", or the host of
+ * anything else; the element or page and the whole address are the tooltip (Tobias, 2026-11-26).
  */
 export function TaskLinks({ task }: { task: Task }) {
   const { links = [], mapillary = [] } = task.properties
@@ -63,20 +63,20 @@ export function TaskLinks({ task }: { task: Task }) {
     <span className="flex flex-wrap items-center justify-end" data-testid="tasks-links">
       {links.map((link) => {
         const { kind, label } = linkKind(link)
-        const prefix = LINK_PREFIX[kind]
+        // only the kind on the chip ("Wiki", "OSM"); which page or element is in the tooltip
+        const short = LINK_PREFIX[kind] ?? label
         return (
           <a
             key={link}
             href={link}
             target="_blank"
             rel="noopener noreferrer"
-            title={link}
+            title={`${label}\n${link}`}
             aria-label={m.tasks_open_link({ link })}
             data-link-kind={kind}
             className={LINK_CHIP}
           >
-            {prefix && <span className="font-semibold">{prefix}</span>}
-            <span className="truncate">{label}</span>
+            <span className="truncate font-semibold">{short}</span>
             <ArrowTopRightOnSquareIcon aria-hidden="true" className="size-3.5 shrink-0" />
           </a>
         )
@@ -192,6 +192,8 @@ export function TaskContent({
   select,
   hover,
   headed = true,
+  onNext,
+  hasNext = false,
 }: {
   store: TasksStore
   index: number
@@ -205,13 +207,19 @@ export function TaskContent({
   select?: (selection: string | readonly string[] | null) => void
   /** Gives a feature the map's hover (a feature named beside an action), null clears it */
   hover?: (id: string | null) => void
-  /** Draws the title, the status and the links; `false` where a heading around it shows them (the inspector) */
+  /** Draws the title, the status and the links; `false` where a heading around it shows them (the dock) */
   headed?: boolean
+  /** Goes to the next open task: the action bar offers it, and in place of a status just set here */
+  onNext?: () => void
+  /** Whether there is another open task for `onNext` */
+  hasNext?: boolean
 }) {
   const task = useTasks(store, (state) => state.list?.file.features[index])
   const status = useTasks(store, (state) => state.statuses[index])
   const applied = useTasks(store, (state) => state.applied)
   const [message, setMessage] = useState<string>()
+  // the status set with the action bar in this card: its button then offers the next task
+  const [closedHere, setClosedHere] = useState<TaskStatus | null>(null)
   if (!task || status === undefined) return null
   const p = task.properties
   const setStatus = (next: TaskStatus) => store.getState().actions.setStatus(index, next)
@@ -358,20 +366,53 @@ export function TaskContent({
         aria-label={m.tasks_finish()}
       >
         <span className={`mr-1 text-xs font-medium ${TASKS_TEXT}`}>{m.tasks_finish()}</span>
-        {ACTIONS.map((action) => (
+        {ACTIONS.map((action) => {
+          // the status just set here becomes "Next" in the same place: a second click there goes on, without
+          // moving the hand (Tobias, 2026-11-26); "Done" itself does not jump
+          const goOn =
+            onNext !== undefined && closedHere === action.status && status === action.status
+          return goOn ? (
+            <button
+              key={action.status}
+              type="button"
+              data-testid="tasks-next-here"
+              disabled={!hasNext}
+              title={hasNext ? m.tasks_next() : m.tasks_none_open()}
+              onClick={onNext}
+              className={`${STATUS_BUTTON} border-blue-600 bg-blue-600 text-white hover:bg-blue-700 dark:border-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500`}
+            >
+              {m.tasks_next_short()} →
+            </button>
+          ) : (
+            <button
+              key={action.status}
+              type="button"
+              data-testid={`tasks-status-${action.status}`}
+              data-task-id={p.task_id}
+              aria-pressed={status === action.status}
+              disabled={status === action.status}
+              onClick={() => {
+                setStatus(action.status)
+                setClosedHere(action.status === 'open' ? null : action.status)
+              }}
+              className={STATUS_BUTTON}
+            >
+              {action.label()}
+            </button>
+          )
+        })}
+        {onNext && (
           <button
-            key={action.status}
             type="button"
-            data-testid={`tasks-status-${action.status}`}
-            data-task-id={p.task_id}
-            aria-pressed={status === action.status}
-            disabled={status === action.status}
-            onClick={() => setStatus(action.status)}
-            className={STATUS_BUTTON}
+            data-testid="tasks-next"
+            disabled={!hasNext}
+            title={hasNext ? undefined : m.tasks_none_open()}
+            onClick={onNext}
+            className={`${STATUS_BUTTON} ml-auto`}
           >
-            {action.label()}
+            {m.tasks_next()}
           </button>
-        ))}
+        )}
       </footer>
     </section>
   )

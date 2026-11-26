@@ -47,7 +47,7 @@ export function tasks() {
           return m.tasks_tab()
         },
         tone: 'tasks',
-        component: createTasksView(store, shared),
+        component: createTasksView(store, shared, deps),
         // the tab is there from the moment a file is picked: while it loads, with its list, or with its error
         available: {
           get: () => {
