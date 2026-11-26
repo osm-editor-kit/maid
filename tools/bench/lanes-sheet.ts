@@ -18,7 +18,8 @@ type CaseFile = {
 type Entry = { id: string; title: string; shows: string; file: string; centre: [number, number] }
 
 const root = join(import.meta.dir, '../..')
-const read = (file: string) => JSON.parse(readFileSync(join(root, 'fixtures/lanes', file), 'utf8')) as Entry[]
+const read = (file: string) =>
+  JSON.parse(readFileSync(join(root, 'fixtures/lanes', file), 'utf8')) as Entry[]
 const catalogue = [...read('cases.json'), ...read('places.json')]
 const wanted = process.argv.slice(2).map((a) => a.toUpperCase())
 // all made-up cases without arguments; `P` for all real places

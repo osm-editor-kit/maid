@@ -153,7 +153,9 @@ export function streetCollector() {
         for (const id of dirty) for (const node of nodesOf(id)) widen(node)
         // the junctions along the ways at those nodes too: a fork's shape depends on how far its roads run to their
         // next junction, which a road added or removed at another node of theirs changes
-        for (const node of [...nodes])
+        // (a copy: `widen` adds to `nodes`, and the junctions found here are not followed further)
+        const atChanged = Array.from(nodes)
+        for (const node of atChanged)
           for (const id of waysAt(node)) for (const other of nodesOf(id)) widen(other)
         let done = false
         for (let pass = 0; pass < 4 && !done; pass++) {
