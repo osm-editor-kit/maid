@@ -3,9 +3,12 @@
  *
  * The first call draws every lane road of the graph. Later calls find the ways that changed (a new way object, a way
  * gone, or a moved node: a new node object) and draw only around them: a way's pieces depend on the junctions at its
- * nodes, and a junction on every way at its node, so the changed ways and the ways sharing a node with them are drawn
- * again, with the ways sharing a node with those as context. Their features replace the kept ones; everything else is
- * kept. A node drag on the dense fixture then costs a few ways, not three thousand.
+ * nodes, and a junction on every way at its node, so the ways at the nodes of the changed ways are drawn again, and
+ * the junctions at those nodes. A junction of several nodes close together (`StreetJunction.nodeIds`) is drawn again
+ * as a whole, with every way at one of its nodes: the nodes drawn again are widened to whole junctions, those of the
+ * kept drawing and those of the new one. Context is two rings of ways round the ways drawn again: one for the
+ * junctions at their far ends, one more because whether a node there is a junction (three roads or more) decides
+ * whether it belongs to a junction of several nodes. Their features replace the kept ones; everything else is kept.
  */
 import { isLaneRoad } from '../roads.ts'
 import {
@@ -58,6 +61,8 @@ export function streetCollector() {
   let byWay = new Map<string, StreetParts>()
   let byNode = new Map<string, StreetParts>()
   let last: StreetCollections | undefined
+  /** The nodes of each junction of several nodes in the kept drawing, by each of its nodes */
+  let groupAt = new Map<string, readonly string[]>()
   /** One frame for every drawing of this collector, so a part drawn again agrees with the rest */
   let origin: [number, number] | undefined
 
@@ -88,6 +93,9 @@ export function streetCollector() {
     const parts = streetParts(geometry, assumed)
     byWay = parts.byWay
     byNode = parts.byNode
+    groupAt = new Map()
+    for (const junction of geometry.junctions)
+      for (const node of junction.nodeIds ?? []) groupAt.set(node, junction.nodeIds!)
   }
 
   return {
@@ -128,30 +136,59 @@ export function streetCollector() {
           }
           return out
         }
-        const redrawn = neighbours(dirty)
-        const context = neighbours(redrawn)
-        const input = [...context].flatMap((id) => {
-          const way = ways.get(id)
-          return way ? [way] : []
-        })
-        const { geometry, assumed } = streetOf(input, (id) => graph.hasEntity(id), origin)
-        const parts = streetParts(geometry, assumed)
-        // the junctions at the nodes of the redrawn ways, before and after the change
+        const waysAt = (node: string) => [...(atNow.get(node) ?? []), ...(atBefore.get(node) ?? [])]
+        // the nodes whose junctions are drawn again: those of the changed ways, widened to whole junctions
         const nodes = new Set<string>()
-        for (const id of redrawn) {
+        const widen = (node: string) => {
+          if (nodes.has(node)) return
+          nodes.add(node)
+          for (const member of groupAt.get(node) ?? []) nodes.add(member)
+        }
+        for (const id of dirty) {
           for (const source of [kept.get(id), now.get(id)])
-            for (const node of source?.entity.nodes ?? []) nodes.add(node)
+            for (const node of source?.entity.nodes ?? []) widen(node)
         }
-        for (const id of redrawn) {
-          const fresh = parts.byWay.get(id)
-          if (fresh && ways.has(id)) byWay.set(id, fresh)
-          else byWay.delete(id)
+        let done = false
+        for (let pass = 0; pass < 4 && !done; pass++) {
+          const redrawn = new Set<string>(dirty)
+          for (const node of nodes) for (const id of waysAt(node)) redrawn.add(id)
+          const context = neighbours(neighbours(redrawn))
+          const input = [...context].flatMap((id) => {
+            const way = ways.get(id)
+            return way ? [way] : []
+          })
+          const { geometry, assumed } = streetOf(input, (id) => graph.hasEntity(id), origin)
+          // a junction of the new drawing that reaches beyond the nodes drawn again: once more, with all of it
+          done = true
+          for (const junction of geometry.junctions) {
+            const members = junction.nodeIds
+            if (!members || !members.some((node) => nodes.has(node))) continue
+            for (const node of members) {
+              if (nodes.has(node)) continue
+              done = false
+              widen(node)
+            }
+          }
+          if (!done) continue
+          const parts = streetParts(geometry, assumed)
+          for (const id of redrawn) {
+            const fresh = parts.byWay.get(id)
+            if (fresh && ways.has(id)) byWay.set(id, fresh)
+            else byWay.delete(id)
+          }
+          for (const node of nodes) {
+            const fresh = parts.byNode.get(node)
+            if (fresh) byNode.set(node, fresh)
+            else byNode.delete(node)
+            groupAt.delete(node)
+          }
+          for (const junction of geometry.junctions) {
+            if (!junction.nodeIds || !nodes.has(junction.nodeId)) continue
+            for (const node of junction.nodeIds) groupAt.set(node, junction.nodeIds)
+          }
         }
-        for (const node of nodes) {
-          const fresh = parts.byNode.get(node)
-          if (fresh) byNode.set(node, fresh)
-          else byNode.delete(node)
-        }
+        // (junctions that keep growing: a chain of close junctions longer than the passes)
+        if (!done) full(graph, ways)
       }
       kept = now
       last = collect([byNode.values(), byWay.values()])

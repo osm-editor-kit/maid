@@ -116,7 +116,11 @@ function readFilters(search: string) {
  * The display a link names, else the stored choice (`shown.display`, the URL's notation), else the app's
  * `defaultDisplay` (not under automation, whose runs start on the normal look), else the normal look
  */
-function readDisplay(search: string, stored: string | undefined, fallback: MapDisplay = 'normal'): MapDisplay {
+function readDisplay(
+  search: string,
+  stored: string | undefined,
+  fallback: MapDisplay = 'normal',
+): MapDisplay {
   const url = readParams({ display: stateParams.display }, search).display
   const start = fallback === 'normal' || isAutomated() ? '' : fallback
   return displayOf(startShown({ url, stored, fallback: start }).value)

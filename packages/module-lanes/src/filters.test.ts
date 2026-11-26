@@ -4,7 +4,12 @@ import { streetPoints } from './filters.ts'
 
 describe('streetPoints', () => {
   const set = createFilterSet(
-    [streetPoints, ...defaultFilters.map((f) => (f.id === 'points' || f.id === 'shops' ? { ...f, state: 'hidden' as const } : f))],
+    [
+      streetPoints,
+      ...defaultFilters.map((f) =>
+        f.id === 'points' || f.id === 'shops' ? { ...f, state: 'hidden' as const } : f,
+      ),
+    ],
     '',
   )
   it('keeps the points about the road, read-only, and hides the other points and shops', () => {

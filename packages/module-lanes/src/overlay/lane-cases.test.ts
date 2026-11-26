@@ -21,13 +21,18 @@ const catalogue = JSON.parse(readFileSync(new URL('cases.json', root), 'utf8')) 
 function draw(id: string) {
   const entry = catalogue.find((e) => e.id === id)!
   const data = JSON.parse(readFileSync(new URL(entry.file, root), 'utf8')) as CaseFile
-  const nodes = new Map<string, StreetEntity>(Object.entries(data.nodes).map(([nid, n]) => [nid, { id: nid, tags: n.tags, loc: n.loc }]))
+  const nodes = new Map<string, StreetEntity>(
+    Object.entries(data.nodes).map(([nid, n]) => [nid, { id: nid, tags: n.tags, loc: n.loc }]),
+  )
   const ways: StreetEntity[] = data.ways.map((w) => ({ id: w.id, tags: w.tags, nodes: w.nodes }))
   const { geometry, assumed } = streetOf(ways, (nid) => nodes.get(nid))
   const [lon0, lat0] = entry.centre
   const kx = Math.cos((lat0 * Math.PI) / 180) * 111_320
   /** Metres east and north of the case's middle */
-  const metres = (loc: readonly number[]): [number, number] => [(loc[0]! - lon0) * kx, (loc[1]! - lat0) * 111_320]
+  const metres = (loc: readonly number[]): [number, number] => [
+    (loc[0]! - lon0) * kx,
+    (loc[1]! - lat0) * 111_320,
+  ]
   const wayNamed = (name: string) => data.ways.filter((w) => w.tags.name === name).map((w) => w.id)
   return { data, geometry, assumed, metres, wayNamed }
 }
@@ -52,8 +57,17 @@ describe('every lane case', () => {
   for (const entry of catalogue) {
     test(`${entry.id} ${entry.title}: every way drawn, finite, no outline crossing itself`, () => {
       const { data, geometry } = draw(entry.id)
-      for (const way of data.ways) expect(geometry.lanes.some((l) => l.wayId === way.id)).toBe(true)
-      for (const polygon of [...geometry.lanes.map((l) => l.ring), ...geometry.junctions.map((j) => j.ring)]) {
+      for (const way of data.ways) {
+        // a short way inside a junction of several nodes is part of the junction's surface (L12)
+        const inside = geometry.junctions.some((j) =>
+          way.nodes.every((n) => j.nodeIds?.includes(n)),
+        )
+        if (!inside) expect(geometry.lanes.some((l) => l.wayId === way.id)).toBe(true)
+      }
+      for (const polygon of [
+        ...geometry.lanes.map((l) => l.ring),
+        ...geometry.junctions.map((j) => j.ring),
+      ]) {
         expect(polygon.flat().every(Number.isFinite)).toBe(true)
         expect(crosses(polygon)).toBe(false)
       }
@@ -88,7 +102,9 @@ describe('what each case is about', () => {
     const main = new Set(wayNamed('L08 Main'))
     const side = new Set(wayNamed('L08 Side'))
     const ys = (ids: Set<string>) =>
-      geometry.lanes.filter((l) => ids.has(l.wayId) && !l.taper).flatMap((l) => l.ring.map((p) => metres(p)[1]))
+      geometry.lanes
+        .filter((l) => ids.has(l.wayId) && !l.taper)
+        .flatMap((l) => l.ring.map((p) => metres(p)[1]))
     // the side street runs south from the main road: its northmost point is at the main road's south kerb
     expect(Math.max(...ys(side))).toBeLessThan(Math.min(...ys(main)) + 0.3)
     expect(geometry.junctions).toHaveLength(1)
@@ -96,7 +112,12 @@ describe('what each case is about', () => {
 
   test('L09 crossroads with turn lanes: an arrow per turning lane, before the junction', () => {
     const { geometry } = draw('L09')
-    expect(geometry.arrows.map((a) => a.turn).sort()).toEqual(['left', 'left', 'through;right', 'through;right'])
+    expect(geometry.arrows.map((a) => a.turn).sort()).toEqual([
+      'left',
+      'left',
+      'through;right',
+      'through;right',
+    ])
   })
 
   test('L11 a road splits into a dual carriageway: one junction, no taper', () => {
@@ -105,11 +126,26 @@ describe('what each case is about', () => {
     expect(tapers(geometry)).toHaveLength(0)
   })
 
+  test('L12 a dual carriageway crossed by a road: one junction of both crossings, the carriageways run through', () => {
+    const { geometry, wayNamed } = draw('L12')
+    expect(geometry.junctions).toHaveLength(1)
+    expect(geometry.junctions[0]!.nodeIds).toHaveLength(2)
+    for (const id of wayNamed('L12 Avenue'))
+      expect(geometry.lanes.filter((l) => l.wayId === id).length).toBeGreaterThan(0)
+  })
+
+  test('L18 staggered junction: one junction of both side streets', () => {
+    const { geometry } = draw('L18')
+    expect(geometry.junctions).toHaveLength(1)
+  })
+
   test('L13 a roundabout: every arm stops outside the ring (radius 30 m, lanes 3 m either side)', () => {
     const { geometry, metres, wayNamed } = draw('L13')
     const arms = new Set(['L13 Arm 1', 'L13 Arm 2', 'L13 Arm 3', 'L13 Arm 4'].flatMap(wayNamed))
     const nearest = Math.min(
-      ...geometry.lanes.filter((l) => arms.has(l.wayId)).flatMap((l) => l.ring.map((p) => Math.hypot(...metres(p)))),
+      ...geometry.lanes
+        .filter((l) => arms.has(l.wayId))
+        .flatMap((l) => l.ring.map((p) => Math.hypot(...metres(p)))),
     )
     expect(nearest).toBeGreaterThan(33)
   })
@@ -121,13 +157,20 @@ describe('what each case is about', () => {
 
   test('L15 a cycle lane between the lanes: drawn as a cycle lane', () => {
     const { geometry } = draw('L15')
-    expect(geometry.lanes.filter((l) => l.kind === 'bicycle' && !l.taper).length).toBeGreaterThanOrEqual(3)
+    expect(
+      geometry.lanes.filter((l) => l.kind === 'bicycle' && !l.taper).length,
+    ).toBeGreaterThanOrEqual(3)
   })
 
   test('L17 a one-way road drawn against its traffic: the lanes carry on, no taper', () => {
     const { geometry } = draw('L17')
     expect(tapers(geometry)).toHaveLength(0)
-    expect(geometry.arrows.map((a) => a.turn).sort()).toEqual(['left', 'through', 'through', 'through'])
+    expect(geometry.arrows.map((a) => a.turn).sort()).toEqual([
+      'left',
+      'through',
+      'through',
+      'through',
+    ])
   })
 
   test('L21 small streets without lane tags: each drawn as an assumed carriageway', () => {

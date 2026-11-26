@@ -6,7 +6,7 @@ import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { gunzipSync } from 'node:zlib'
 import { streetCollector, type StreetGraph } from './street-collect.ts'
-import type { StreetEntity } from './street.ts'
+import { streetOf, type StreetEntity } from './street.ts'
 
 type Element = {
   type: string
@@ -98,6 +98,28 @@ describe('the street drawing of the dense fixture', () => {
     expect(canonical(step.lines.features)).toEqual(canonical(fresh.lines.features))
     expect(canonical(step.arrows.features)).toEqual(canonical(fresh.arrows.features))
     expect(ms).toBeLessThan(100)
+  })
+
+  test('a drag step at a junction of several nodes is drawn around it, the same as drawing everything again', () => {
+    const collector = streetCollector()
+    collector.update(graphOf(base))
+    // a node of the largest junction of several nodes
+    const { geometry } = streetOf(base.values(), (id) => base.get(id))
+    const largest = geometry.junctions
+      .filter((j) => (j.nodeIds?.length ?? 0) > 1)
+      .toSorted((a, b) => b.nodeIds!.length - a.nodeIds!.length)[0]
+    expect(largest).toBeDefined()
+    const nodeId = largest!.nodeIds![1]!
+    const node = base.get(nodeId)!
+    const moved = {
+      ...node,
+      loc: [node.loc![0]! + 0.00002, node.loc![1]! + 0.00001] as [number, number],
+    }
+    const local = new Map<string, StreetEntity | undefined>([[nodeId, moved]])
+    const step = collector.update(graphOf(base, local))
+    const fresh = streetCollector().update(graphOf(base, local))
+    expect(canonical(step.areas.features)).toEqual(canonical(fresh.areas.features))
+    expect(canonical(step.lines.features)).toEqual(canonical(fresh.lines.features))
   })
 
   test('nothing changed: the same collections', () => {

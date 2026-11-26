@@ -13,6 +13,12 @@
  *   through untrimmed, its two arms partners as above. Every other arm is pulled back to where its kerbs meet its
  *   neighbours' (at most 30 m), and the junction's surface joins the ends of all arms, with a kerb curve round each
  *   corner. The main road's kerb stops where a side road joins it, its lane lines stop over the junction.
+ * - **Junctions of several nodes.** Junction nodes joined by a piece shorter than 25 m (a road crossing both
+ *   carriageways of a dual carriageway, a staggered junction) are one junction (Lane Studio's `junctionClusters`): the
+ *   short pieces between them are not drawn as roads, and one surface covers them all. Where Lane Studio fills the
+ *   nodes' boxes and the short pieces as one shape, the outline here is walked round the outside of the group, from
+ *   each road leaving it to the next and along the kerbs of the short pieces, so it is one ring. A short piece that is
+ *   the main road at both its ends keeps its lanes, without lines.
  * - **Pieces.** Each way is cut at its junction nodes; each piece is offset per lane with mitre joins (`vec.ts`).
  *
  * Left out for now (Lane Studio has them): forks and dual carriageways splitting, roundabout flares, turning heads,
@@ -46,6 +52,7 @@ import {
   polylineLength,
   rightNormal,
   scale,
+  signedArea2,
   slicePolyline,
   smooth,
   sub,
@@ -62,6 +69,8 @@ const RUN_LENGTH = 25
 const RUN_SHARE = 0.45
 /** Edges closer than this count as the same */
 const SAME_EDGE = 0.05
+/** Junction nodes joined by a piece shorter than this are one junction (Lane Studio's `clusterLink`) */
+const CLUSTER_LINK = 25
 /** Turn arrows sit this far before the end of the lane */
 const ARROW_FROM_END = 12
 
@@ -481,6 +490,12 @@ function runner(a: Arm, b: Arm): Arm {
 
 /* ---------- junctions ---------- */
 
+/** Where an arm's two edges end at its junction, and the direction each kerb runs in there */
+type End = { left: Vec2; right: Vec2; leftDirection: Vec2; rightDirection: Vec2 }
+
+/** A junction node of a group of several: its arms and their ends */
+type Box = { arms: Arm[]; ends: End[] }
+
 type Junctions = {
   trims: Map<string, number>
   partners: Map<string, Vec2>
@@ -489,6 +504,10 @@ type Junctions = {
   junctions: StreetJunction[]
   /** Nodes the ways are cut at */
   cuts: Set<string>
+  /** The arms that are a short piece inside a junction of several nodes, by arm key (both ends of each piece) */
+  inner: Set<string>
+  /** The nodes of junctions of several nodes, whose surface is drawn once for the group */
+  boxes: Map<string, Box>
 }
 
 function partnerUp(p: Arm, q: Arm, result: Junctions) {
@@ -505,7 +524,70 @@ function partnerUp(p: Arm, q: Arm, result: Junctions) {
   if (run) result.runs.set(armKey(runs.line.way.id, runs.index, runs.alongWay), run)
 }
 
-function junctionAt(nodeId: string, arms: Arm[], frame: MetricFrame, result: Junctions) {
+const keyOf = (arm: Arm) => armKey(arm.line.way.id, arm.index, arm.alongWay)
+
+/** The junction outline's points without the repeats that corners meeting in one point leave */
+function cleaned(points: readonly Vec2[]): Vec2[] {
+  return points.filter((p, i) => len(sub(p, points[(i + 1) % points.length]!)) > 0.05)
+}
+
+/** Where the segments a–b and c–d cross, or undefined (touching ends do not count) */
+function crossing(a: Vec2, b: Vec2, c: Vec2, d: Vec2): Vec2 | undefined {
+  const ab = sub(b, a)
+  const cd = sub(d, c)
+  const k = cross(ab, cd)
+  if (Math.abs(k) < 1e-9) return undefined
+  const t = cross(sub(c, a), cd) / k
+  const u = cross(sub(c, a), ab) / k
+  return t > 1e-6 && t < 1 - 1e-6 && u > 1e-6 && u < 1 - 1e-6 ? add(a, scale(ab, t)) : undefined
+}
+
+/** A loop of an outline is cut off where it has at most this many points */
+const LOOP_POINTS = 12
+
+/**
+ * An outline without its small loops: where an edge crosses one a few points on (two kerb curves running into each
+ * other, a road's end lying a little over its neighbour's), the points between are replaced by the crossing.
+ * (Lane Studio fills its boxes as overlapping shapes and has no need of this.)
+ */
+function unlooped(ring: readonly Vec2[]): Vec2[] {
+  let points = [...ring]
+  for (let pass = 0; pass < 8; pass++) {
+    let changed = false
+    for (let i = 0; i < points.length && points.length > 4; i++) {
+      const n = points.length
+      const a = points[i]!
+      const b = points[(i + 1) % n]!
+      for (let step = 2; step <= LOOP_POINTS && step < n / 2; step++) {
+        const j = (i + step) % n
+        const meet = crossing(a, b, points[j]!, points[(j + 1) % n]!)
+        if (!meet) continue
+        // points i+1 … j go, the crossing takes their place
+        const kept: Vec2[] = []
+        for (let k = (j + 1) % n; k !== (i + 1) % n; k = (k + 1) % n) kept.push(points[k]!)
+        kept.push(meet)
+        points = kept
+        changed = true
+        break
+      }
+    }
+    if (!changed) break
+  }
+  // a cut that takes much of the surface was no small loop: the outline stays as it was
+  return Math.abs(signedArea2(points)) > Math.abs(signedArea2(ring)) * 0.7 ? points : [...ring]
+}
+
+/**
+ * The junction at one node: how far its arms are pulled back, which run through, and its surface. `grouped`: the node
+ * is one of several of a junction, whose surface `groupJunction` draws from what is kept in `result.boxes`.
+ */
+function junctionAt(
+  nodeId: string,
+  arms: Arm[],
+  frame: MetricFrame,
+  result: Junctions,
+  grouped = false,
+) {
   if (arms.length === 2) {
     partnerUp(arms[0]!, arms[1]!, result)
     return
@@ -554,7 +636,6 @@ function junctionAt(nodeId: string, arms: Arm[], frame: MetricFrame, result: Jun
     })
   }
 
-  type End = { left: Vec2; right: Vec2; leftDirection: Vec2; rightDirection: Vec2 }
   const trimOf = (arm: Arm) =>
     result.trims.get(armKey(arm.line.way.id, arm.index, arm.alongWay)) ?? 0
   const directionAt = (arm: Arm, t: number) =>
@@ -587,6 +668,17 @@ function junctionAt(nodeId: string, arms: Arm[], frame: MetricFrame, result: Jun
         ends[i]!.right = edgeAt(arm, reach.right, 'right')
         ends[i]!.rightDirection = directionAt(arm, reach.right)
       }
+      // in a junction of several nodes the surface starts square across the main road, not from the node on the side
+      // without a side road: the other half of the road may be a short piece inside the junction, which has no lines
+      if (grouped) {
+        const square = Math.max(reach.left, reach.right)
+        for (const side of ['left', 'right'] as const) {
+          if (reach[side] === square) continue
+          reach[side] = square
+          ends[i]![side] = edgeAt(arm, square, side)
+          ends[i]![`${side}Direction`] = directionAt(arm, square)
+        }
+      }
       const lanes = Math.max(reach.left, reach.right)
       // in the way's frame an arm against the way has its sides swapped
       result.marks.set(
@@ -618,6 +710,11 @@ function junctionAt(nodeId: string, arms: Arm[], frame: MetricFrame, result: Jun
     })
   }
 
+  if (grouped) {
+    result.boxes.set(nodeId, { arms, ends })
+    return
+  }
+
   // arms are counter-clockwise and each arm's right edge comes before its left, so the outline does not cross itself
   const points: Vec2[] = []
   const kerbs: Vec2[][] = []
@@ -628,12 +725,228 @@ function junctionAt(nodeId: string, arms: Arm[], frame: MetricFrame, result: Jun
     points.push(end.right, end.left, ...corner.slice(1, -1))
     if (!(onMain(i) && onMain(j)) && len(sub(next.right, end.left)) > 0.5) kerbs.push(corner)
   })
-  // (corners that meet in one point leave repeated points)
-  const outline = points.filter((p, i) => len(sub(p, points[(i + 1) % points.length]!)) > 0.05)
   result.junctions.push({
     nodeId,
-    ring: outline.map((p) => frame.toLoc(p)),
+    ring: unlooped(cleaned(points)).map((p) => frame.toLoc(p)),
     kerbs: kerbs.map((kerb) => kerb.map((p) => frame.toLoc(p))),
+  })
+}
+
+/* ---------- junctions of several nodes ---------- */
+
+/** The index of the next junction node along a way from `index`, or -1 */
+function nextCut(line: WayLine, index: number, step: 1 | -1, junctionNodes: ReadonlySet<string>) {
+  for (let i = index + step; i >= 0 && i < line.nodeIds.length; i += step)
+    if (junctionNodes.has(line.nodeIds[i]!)) return i
+  return -1
+}
+
+/**
+ * Junction nodes joined by a piece of a way shorter than `CLUSTER_LINK`, as groups of node ids; only groups of two or
+ * more (Lane Studio's `junctionClusters`). The short pieces' arms go to `inner`. A roundabout's ring carries on between
+ * its junctions: they are never joined along it.
+ */
+function junctionGroups(
+  lines: readonly WayLine[],
+  junctionNodes: ReadonlySet<string>,
+  inner: Set<string>,
+): string[][] {
+  const parent = new Map<string, string>()
+  const linked = new Set<string>()
+  const find = (id: string): string => {
+    let root = id
+    for (let up = parent.get(root); up !== undefined; up = parent.get(root)) root = up
+    if (root !== id) parent.set(id, root)
+    return root
+  }
+  for (const line of lines) {
+    const tags = line.way.tags
+    if (tags.junction === 'roundabout' || tags.junction === 'circular') continue
+    let last = -1
+    line.nodeIds.forEach((id, i) => {
+      if (!junctionNodes.has(id)) return
+      const from = last
+      last = i
+      if (from < 0 || line.nodeIds[from] === id || line.at[i]! - line.at[from]! >= CLUSTER_LINK)
+        return
+      inner.add(armKey(line.way.id, from, true))
+      inner.add(armKey(line.way.id, i, false))
+      linked.add(line.nodeIds[from]!).add(id)
+      const a = find(line.nodeIds[from]!)
+      const b = find(id)
+      if (a !== b) parent.set(a, b)
+    })
+  }
+  const groups = new Map<string, string[]>()
+  for (const id of linked) {
+    const root = find(id)
+    const list = groups.get(root)
+    if (list) list.push(id)
+    else groups.set(root, [id])
+  }
+  return [...groups.values()].map((ids) => ids.sort())
+}
+
+/** Short pieces smaller than this between them leave no hole in a junction's surface, in square metres */
+const MIN_HOLE = 4
+
+/**
+ * The surface of a junction of several nodes: one ring round the outside of the group, and a hole for each gap that
+ * its short pieces enclose (an island, a block). Each is a walk, counter-clockwise as `junctionAt`'s round one node:
+ * at a road leaving the group it takes the road's end (right edge, then left) and a kerb curve to the next arm of that
+ * node; at a short piece inside the group it follows the piece's kerb to the node at its other end and carries on
+ * with the arm after it there. Every arm of every node starts one walk or lies on an earlier one; the walk round the
+ * outside encloses the most.
+ */
+function groupJunction(
+  nodeIds: readonly string[],
+  junctionNodes: ReadonlySet<string>,
+  frame: MetricFrame,
+  result: Junctions,
+) {
+  type At = { box: Box; i: number }
+  type Road = { end: End }
+  const boxes = nodeIds.flatMap((id) => result.boxes.get(id) ?? [])
+  const place = new Map<string, At>()
+  for (const box of boxes) box.arms.forEach((arm, i) => place.set(keyOf(arm), { box, i }))
+  /** The arm at the other end of a short piece, or undefined for a road leaving the group */
+  const across = (arm: Arm) => {
+    if (!result.inner.has(keyOf(arm))) return undefined
+    const far = nextCut(arm.line, arm.index, arm.alongWay ? 1 : -1, junctionNodes)
+    const other = far < 0 ? undefined : place.get(armKey(arm.line.way.id, far, !arm.alongWay))
+    return other ? { ...other, far } : undefined
+  }
+  /** Where the kerb the walk came in along (the left of `incoming`) meets the kerb it leaves along, at their node */
+  const turn = (incoming: Arm, outgoing: Arm): Vec2[] => {
+    const node = incoming.points[0]!
+    const a = add(node, scale(rightNormal(incoming.first), incoming.left))
+    const b = add(node, scale(rightNormal(outgoing.first), outgoing.right))
+    const meet = lineMeeting(a, incoming.first, b, outgoing.first)
+    const reach = Math.max(Math.abs(incoming.left), Math.abs(outgoing.right)) * 3 + 1
+    return meet && len(sub(meet, node)) < reach ? [meet] : [a, b]
+  }
+
+  /**
+   * Two roads side by side whose ends lie over each other (the carriageways of a dual carriageway drawn wider than
+   * the gap between their lines): going from the first one's left edge to the second one's right edge would go back
+   * on the first one's end, so both points are left out
+   */
+  const overlap = (a: End, b: End) => {
+    const across = sub(a.left, a.right)
+    const along = unit(across)
+    return (
+      Math.abs(cross(along, unit(sub(b.left, b.right)))) < 0.35 &&
+      Math.abs(cross(along, sub(b.right, a.right))) < 3 &&
+      dot(sub(b.right, a.left), along) < 0 &&
+      dot(sub(b.left, a.left), along) > 0 &&
+      dot(sub(b.right, a.right), along) > 0
+    )
+  }
+
+  const walked = new Set<string>()
+  const faces: { points: Vec2[]; kerbs: Vec2[][]; area: number }[] = []
+  for (const startBox of boxes) {
+    for (let startI = 0; startI < startBox.arms.length; startI++) {
+      if (walked.has(keyOf(startBox.arms[startI]!))) continue
+      const points: Vec2[] = []
+      const kerbs: Vec2[][] = []
+      /** The kerbs of the short pieces walked since the last road, and those walked before the first one */
+      let pending: Vec2[] = []
+      let lead: Vec2[] | undefined
+      let leadHops = 0
+      let from: Road | undefined
+      let opening: Road | undefined
+      let incoming: Arm | undefined
+      /** Short pieces walked since the last road */
+      let hops = 0
+      const join = (to: Road): boolean => {
+        if (!from) return false
+        if (pending.length === 0 && overlap(from.end, to.end)) {
+          points.pop()
+          return true
+        }
+        // a kerb curve only between two roads of one node: past a short piece the kerbs of the two roads meet
+        // somewhere else than at the corner of the surface, which runs along the piece's kerb
+        const corner =
+          hops > 0
+            ? [from.end.left, ...pending, to.end.right]
+            : cornerCurve(
+                from.end.left,
+                from.end.leftDirection,
+                to.end.right,
+                to.end.rightDirection,
+              )
+        points.push(...corner.slice(1, -1))
+        // (also between the two halves of a main road: their own kerbs stop where the surface starts)
+        if (len(sub(to.end.right, from.end.left)) > 0.5) kerbs.push(corner)
+        return false
+      }
+      let at: At = { box: startBox, i: startI }
+      do {
+        const arm = at.box.arms[at.i]!
+        walked.add(keyOf(arm))
+        const other = across(arm)
+        if (other) {
+          if (incoming) pending.push(...turn(incoming, arm))
+          const piece = arm.alongWay
+            ? arm.line.points.slice(arm.index, other.far + 1)
+            : arm.line.points.slice(other.far, arm.index + 1).reverse()
+          pending.push(
+            ...offsetPolyline(
+              piece,
+              piece.map(() => arm.right),
+            ).slice(1, -1),
+          )
+          incoming = other.box.arms[other.i]!
+          hops++
+          at = { box: other.box, i: (other.i + 1) % other.box.arms.length }
+        } else {
+          const road: Road = { end: at.box.ends[at.i]! }
+          const over = join(road)
+          if (!from) {
+            lead = pending
+            leadHops = hops
+          }
+          opening ??= road
+          if (!over) points.push(road.end.right)
+          points.push(road.end.left)
+          from = road
+          pending = []
+          hops = 0
+          incoming = undefined
+          at = { box: at.box, i: (at.i + 1) % at.box.arms.length }
+        }
+      } while (!(at.box === startBox && at.i === startI) && points.length < 10_000)
+      // back at the start: the corner there, then on to the first road past the short pieces walked before it
+      const startArm = startBox.arms[startI]!
+      if (incoming && across(startArm)) pending.push(...turn(incoming, startArm))
+      if (opening) {
+        pending.push(...(lead ?? []))
+        hops += leadHops
+        if (from !== opening && join(opening)) points.shift()
+      } else {
+        // no road leaves on this side: the short pieces' kerbs are the whole ring
+        points.push(...pending)
+        if (pending.length > 2) kerbs.push([...pending, pending[0]!])
+      }
+      const outline = unlooped(cleaned(points))
+      if (outline.length >= 3)
+        faces.push({ points: outline, kerbs, area: signedArea2(outline) / 2 })
+    }
+  }
+  faces.sort((a, b) => Math.abs(b.area) - Math.abs(a.area))
+  const outside = faces[0]
+  if (!outside) return
+  // a gap is walked the other way round than the outside; anything else is short pieces lying over each other
+  const holes = faces.slice(1).filter((face) => Math.sign(face.area) !== Math.sign(outside.area))
+  const kept = holes.filter((face) => Math.abs(face.area) > MIN_HOLE)
+  const toLocs = (line: Vec2[]) => line.map((p) => frame.toLoc(p))
+  result.junctions.push({
+    nodeId: nodeIds[0]!,
+    nodeIds: [...nodeIds],
+    ring: toLocs(outside.points),
+    ...(kept.length > 0 ? { holes: kept.map((face) => toLocs(face.points)) } : {}),
+    kerbs: [outside, ...kept].flatMap((face) => face.kerbs.map(toLocs)),
   })
 }
 
@@ -666,6 +979,10 @@ function drawWay(line: WayLine, junctions: Junctions, frame: MetricFrame, out: O
     if (length <= 0) continue
     const startKey = armKey(way.id, a, true)
     const endKey = armKey(way.id, b, false)
+    // a short piece inside a junction of several nodes is part of the junction's surface. Only where it is the main
+    // road at both its ends are its lanes drawn, so the road's lanes run through the junction, without lines
+    const inside = junctions.inner.has(startKey)
+    if (inside && !(junctions.partners.has(startKey) && junctions.partners.has(endKey))) continue
     let trimStart = junctions.trims.get(startKey) ?? 0
     let trimEnd = junctions.trims.get(endKey) ?? 0
     if (trimStart + trimEnd > length * 0.9) {
@@ -754,6 +1071,7 @@ function drawWay(line: WayLine, junctions: Junctions, frame: MetricFrame, out: O
     }
 
     // lane lines and kerbs, stopped where a junction's marks say (the main road through a junction)
+    if (inside) continue
     const markStart = trimStart < 0.01 ? junctions.marks.get(startKey) : undefined
     const markEnd = trimEnd < 0.01 ? junctions.marks.get(endKey) : undefined
     const keep = (from: number, to: number) =>
@@ -817,6 +1135,8 @@ export function streetGeometry(input: StreetInput): StreetGeometry {
     marks: new Map(),
     junctions: [],
     cuts: new Set(),
+    inner: new Set(),
+    boxes: new Map(),
   }
   // one frame for the area, at its first node
   let origin: readonly [number, number] | undefined = input.origin
@@ -845,11 +1165,19 @@ export function streetGeometry(input: StreetInput): StreetGeometry {
       else uses.set(id, [line])
     }
   }
+  const armsOf = new Map<string, Arm[]>()
+  const junctionNodes = new Set<string>()
   for (const [nodeId, users] of uses) {
     if (users.length < 2) continue
-    const distinct = [...new Set(users)]
-    junctionAt(nodeId, armsAt(nodeId, distinct), frame, junctions)
+    const arms = armsAt(nodeId, [...new Set(users)])
+    armsOf.set(nodeId, arms)
+    if (arms.length >= 3) junctionNodes.add(nodeId)
   }
+  const groups = junctionGroups(lines, junctionNodes, junctions.inner)
+  const grouped = new Set(groups.flat())
+  for (const [nodeId, arms] of armsOf)
+    junctionAt(nodeId, arms, frame, junctions, grouped.has(nodeId))
+  for (const group of groups) groupJunction(group, junctionNodes, frame, junctions)
   for (const line of lines) drawWay(line, junctions, frame, out)
   return { ...out, junctions: junctions.junctions }
 }

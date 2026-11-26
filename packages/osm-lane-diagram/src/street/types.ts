@@ -56,9 +56,17 @@ export type StreetLanePolygon = {
 }
 
 export type StreetJunction = {
+  /** The junction's node; of a junction of several nodes close together, the first of `nodeIds` */
   nodeId: string
+  /** Every node of a junction of several nodes close together (joined by pieces shorter than 25 m), sorted */
+  nodeIds?: string[]
   /** The junction's surface between the ends of its roads, closed ring, first point not repeated */
   ring: LonLat[]
+  /**
+   * Gaps in the surface of a junction of several nodes that its short pieces enclose (an island, a block), each a
+   * closed ring, first point not repeated
+   */
+  holes?: LonLat[][]
   /** The kerbs of its corners between neighbouring roads */
   kerbs: LonLat[][]
 }

@@ -291,3 +291,216 @@ describe('streetGeometry: junctions', () => {
     expect(backward.bearing).toBeCloseTo(270, 0)
   })
 })
+
+describe('streetGeometry: junctions of several nodes close together', () => {
+  /** Inside a ring given in [lon, lat] (even-odd) */
+  const inside = (ring: [number, number][], x: number, y: number) => {
+    const pts = ring.map(toMetres)
+    let hit = false
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      const [xi, yi] = pts[i]!
+      const [xj, yj] = pts[j]!
+      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) hit = !hit
+    }
+    return hit
+  }
+  const xs = (g: StreetGeometry, wayId: string) => pointsOf(g, wayId).map(([x]) => x)
+  const ys = (g: StreetGeometry, wayId: string) => pointsOf(g, wayId).map(([, y]) => y)
+
+  // two carriageways 24 m apart (two lanes each, 6 m wide), crossed by a road of two lanes
+  const dualCarriageway = () =>
+    build(
+      {
+        sw: [-100, 0],
+        s: [0, 0],
+        se: [100, 0],
+        ne: [100, 24],
+        n: [0, 24],
+        nw: [-100, 24],
+        south: [0, -100],
+        north: [0, 124],
+      },
+      [
+        {
+          id: 'east',
+          nodes: ['sw', 's', 'se'],
+          lanes: lanes('ff'),
+          tags: { highway: 'primary', name: 'Avenue', oneway: 'yes' },
+        },
+        {
+          id: 'west',
+          nodes: ['ne', 'n', 'nw'],
+          lanes: lanes('ff'),
+          tags: { highway: 'primary', name: 'Avenue', oneway: 'yes' },
+        },
+        { id: 'cross1', nodes: ['south', 's'], lanes: lanes('bf'), tags: { name: 'Cross' } },
+        { id: 'link', nodes: ['s', 'n'], lanes: lanes('bf'), tags: { name: 'Cross' } },
+        { id: 'cross2', nodes: ['n', 'north'], lanes: lanes('bf'), tags: { name: 'Cross' } },
+      ],
+    )
+
+  it('a dual carriageway crossed by a road: one junction for both nodes, simple, over the piece between them', () => {
+    const g = dualCarriageway()
+    expect(g.junctions).toHaveLength(1)
+    const junction = g.junctions[0]!
+    expect(junction.nodeIds).toEqual(['n', 's'])
+    expect(junction.nodeId).toBe('n')
+    expect(junction.holes).toBeUndefined()
+    expect(selfIntersects(junction.ring)).toBe(false)
+    // both nodes, the middle of the piece between them and its kerbs' side of the middle are on the surface
+    for (const [x, y] of [
+      [0, 0],
+      [0, 24],
+      [0, 12],
+      [2.5, 12],
+      [-2.5, 12],
+    ] as const)
+      expect(inside(junction.ring, x, y)).toBe(true)
+    // the median beside the piece is not
+    expect(inside(junction.ring, 6, 12)).toBe(false)
+    expect(inside(junction.ring, -6, 12)).toBe(false)
+  })
+
+  it('a dual carriageway crossed by a road: the piece between is not drawn, the carriageways run through', () => {
+    const g = dualCarriageway()
+    expect(g.lanes.filter((l) => l.wayId === 'link')).toHaveLength(0)
+    expect(g.lines.filter((l) => l.wayId === 'link')).toHaveLength(0)
+    // each carriageway is cut at its node and both pieces reach it
+    expect(g.lanes.filter((l) => l.wayId === 'east')).toHaveLength(4)
+    expect(Math.min(...xs(g, 'east').map(Math.abs))).toBeLessThan(0.01)
+    expect(Math.min(...xs(g, 'west').map(Math.abs))).toBeLessThan(0.01)
+    // the crossing road stops at the outer kerbs (3 m from each carriageway's line)
+    expect(Math.max(...ys(g, 'cross1'))).toBeCloseTo(-3, 1)
+    expect(Math.min(...ys(g, 'cross2'))).toBeCloseTo(27, 1)
+    // the carriageways' kerbs stop at the crossing road (3 m either side of its line) on both sides
+    const kerbs = g.lines.filter((l) => l.wayId === 'east' && l.kind === 'kerb')
+    for (const kerb of kerbs)
+      for (const p of kerb.line) expect(Math.abs(toMetres(p)[0])).toBeGreaterThan(2.99)
+  })
+
+  // a main road of four lanes (12 m wide), a side street from the north at x = 0 and one from the south at x = 16
+  const staggered = (gap = 16) =>
+    build({ a: [-100, 0], b: [0, 0], c: [gap, 0], d: [100, 0], n: [0, 100], s: [gap, -100] }, [
+      {
+        id: 'main',
+        nodes: ['a', 'b', 'c', 'd'],
+        lanes: lanes('bbff'),
+        tags: { highway: 'primary', name: 'Main' },
+      },
+      { id: 'north', nodes: ['b', 'n'], lanes: lanes('bf'), tags: { highway: 'residential' } },
+      { id: 'south', nodes: ['c', 's'], lanes: lanes('bf'), tags: { highway: 'residential' } },
+    ])
+
+  it('a staggered junction: one junction from the first side street to the second', () => {
+    const g = staggered()
+    expect(g.junctions).toHaveLength(1)
+    const junction = g.junctions[0]!
+    expect(junction.nodeIds).toEqual(['b', 'c'])
+    expect(selfIntersects(junction.ring)).toBe(false)
+    // square across the main road at the outer kerb of each side street (3 m beyond its line)
+    const ringX = junction.ring.map((p) => toMetres(p)[0])
+    const ringY = junction.ring.map((p) => toMetres(p)[1])
+    expect(Math.min(...ringX)).toBeCloseTo(-3, 1)
+    expect(Math.max(...ringX)).toBeCloseTo(19, 1)
+    expect(Math.min(...ringY)).toBeCloseTo(-6, 1)
+    expect(Math.max(...ringY)).toBeCloseTo(6, 1)
+    for (const [x, y] of [
+      [-2, 5],
+      [-2, -5],
+      [8, 5],
+      [8, -5],
+      [18, 5],
+      [18, -5],
+    ] as const)
+      expect(inside(junction.ring, x, y)).toBe(true)
+  })
+
+  it('a staggered junction: the main road keeps its lanes between the side streets, without lines', () => {
+    const g = staggered()
+    // three pieces of four lanes, meeting at the nodes
+    expect(g.lanes.filter((l) => l.wayId === 'main')).toHaveLength(12)
+    const between = g.lanes.filter(
+      (l) =>
+        l.wayId === 'main' && l.ring.every((p) => toMetres(p)[0] > -0.01 && toMetres(p)[0] < 16.01),
+    )
+    expect(between).toHaveLength(4)
+    // no line of the main road over the junction, and its kerbs go on from the junction's kerbs
+    for (const line of g.lines.filter((l) => l.wayId === 'main'))
+      for (const p of line.line) {
+        const [x] = toMetres(p)
+        expect(x < -2.99 || x > 18.99).toBe(true)
+      }
+    // the side streets stop at the main road's kerbs
+    expect(Math.min(...ys(g, 'north'))).toBeCloseTo(6, 1)
+    expect(Math.max(...ys(g, 'south'))).toBeCloseTo(-6, 1)
+    // the junction's kerbs close the main road's far side opposite each side street
+    const kerbPoints = g.junctions[0]!.kerbs.flatMap((kerb) => kerb.map(toMetres))
+    expect(kerbPoints.some(([x, y]) => Math.abs(x + 3) < 0.1 && Math.abs(y + 6) < 0.1)).toBe(true)
+    expect(kerbPoints.some(([x, y]) => Math.abs(x - 19) < 0.1 && Math.abs(y - 6) < 0.1)).toBe(true)
+  })
+
+  it('side streets 40 m apart stay two junctions', () => {
+    const g = staggered(40)
+    expect(g.junctions).toHaveLength(2)
+    expect(g.junctions.every((j) => j.nodeIds === undefined)).toBe(true)
+  })
+
+  it('short pieces round a block: one junction with the block as a hole', () => {
+    // a square of 20 m with a road leaving each corner
+    const g = build(
+      {
+        a: [0, 0],
+        b: [20, 0],
+        c: [20, 20],
+        d: [0, 20],
+        a2: [-80, -80],
+        b2: [100, -80],
+        c2: [100, 100],
+        d2: [-80, 100],
+      },
+      [
+        { id: 'square', nodes: ['a', 'b', 'c', 'd', 'a'], lanes: lanes('bf') },
+        { id: 'ra', nodes: ['a', 'a2'], lanes: lanes('bf') },
+        { id: 'rb', nodes: ['b', 'b2'], lanes: lanes('bf') },
+        { id: 'rc', nodes: ['c', 'c2'], lanes: lanes('bf') },
+        { id: 'rd', nodes: ['d', 'd2'], lanes: lanes('bf') },
+      ],
+    )
+    expect(g.junctions).toHaveLength(1)
+    const junction = g.junctions[0]!
+    expect(junction.nodeIds).toEqual(['a', 'b', 'c', 'd'])
+    expect(selfIntersects(junction.ring)).toBe(false)
+    expect(junction.holes).toHaveLength(1)
+    // the block between the square's inner kerbs (3 m in from its line) is the hole
+    expect(inside(junction.holes![0]!, 10, 10)).toBe(true)
+    expect(inside(junction.holes![0]!, 4, 4)).toBe(true)
+    expect(inside(junction.holes![0]!, 2, 10)).toBe(false)
+    expect(inside(junction.ring, 10, 10)).toBe(true)
+    expect(inside(junction.ring, 10, -2)).toBe(true)
+  })
+
+  it('a roundabout ring is not joined along itself', () => {
+    const nodes: Record<string, [number, number]> = {}
+    const ring: string[] = []
+    for (let i = 0; i < 24; i++) {
+      const a = (i / 24) * 2 * Math.PI
+      nodes[`r${i}`] = [25 * Math.cos(a), 25 * Math.sin(a)]
+      ring.push(`r${i}`)
+    }
+    // two roads joining the ring 13 m apart along it
+    nodes.e = [120, 0]
+    nodes.f = [120, 40]
+    const g = build(nodes, [
+      {
+        id: 'ring',
+        nodes: [...ring, 'r0'],
+        lanes: lanes('ff'),
+        tags: { highway: 'primary', junction: 'roundabout' },
+      },
+      { id: 'side1', nodes: ['r0', 'e'], lanes: lanes('bf') },
+      { id: 'side2', nodes: ['r2', 'f'], lanes: lanes('bf') },
+    ])
+    expect(g.junctions).toHaveLength(2)
+    expect(g.junctions.every((j) => j.nodeIds === undefined)).toBe(true)
+  })
+})
