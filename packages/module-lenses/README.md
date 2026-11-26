@@ -2,7 +2,9 @@
 
 Map style: a lens restyles the map for one mapping theme or quality check, for example roads by their surface. A lens is data, not code, so it can be imported and exported as a file. The module adds a "Map style" flyout in the top bar and the URL parameter `lens`.
 
-`lenses(options?)` is the module. `options.lenses` adds the app's own lenses next to the built-in ones. `options.defaultLook` says what the "Maid standard" entry shows when the app's own look adds to iD's style. `options.editorDefault` names the lens that is the editor's own standard: it is listed right under Maid standard, its name says "Standard: …", and it is switched on at the first visit (not under automation).
+`lenses(options?)` is the module. `options.lenses` adds the app's own lenses next to the built-in ones. `options.editorDefault` names the lens that is the editor's own style: it is listed right under Maid standard, its name says "Standard: …", it is switched on at the first visit (not under automation) and stays on until the person picks something else. "Maid standard" is the same in every editor: it looks like iD, with no highlights.
+
+What an editor draws over all features in view (parking sides, bicycle infrastructure, the street drawing of the lanes, dwelling counts, golf hole numbers) is drawn only while that editor's lens is the active one (the modules take `lensChoice` as `options.lenses`). Aids tied to the selection or a task (the bands of the selected road, tasks, notes, photos) stay in every style (Tobias, 2026-11-26).
 
 ## What a person sees / can do
 
@@ -22,13 +24,13 @@ import { lenses, lensChoice } from '@osm-editor-kit/maid-module-lenses'
 lenses(),
 // maid-parking, maid-lanes: the app's lens is added and is the editor's standard
 lenses({ lenses: [parkingLens], editorDefault: 'parking' }),
-// maid-bicycle: its own lens as the standard, and what "Maid standard" says (it draws the infrastructure too)
-lenses({ lenses: [bikeInfrastructureLens], defaultLook: bikeDefaultLook, editorDefault: BIKE_LENS_ID }),
-// another module that reads the chosen lens (parking, lanes, bicycle infrastructure):
+// maid-bicycle: its own lens as the editor's style
+lenses({ lenses: [bikeInfrastructureLens], editorDefault: BIKE_LENS_ID }),
+// the editor's module draws its look only while that lens is on (parking, bicycle infrastructure, lanes, buildings, golf):
 parking({ lenses: lensChoice }),
 ```
 
-Every app ([list](../../docs/features.md)) call `lenses()`, with or without options. The lens is applied by the renderer (`engine.setLens`). Tailwind needs `@source '../../module-lenses/src';` in `packages/shell/src/styles.css` (listed there).
+Every app ([list](../../docs/features.md)) calls `lenses()`, with or without options. The lens is applied by the renderer (`engine.setLens`). Tailwind needs `@source '../../module-lenses/src';` in `packages/shell/src/styles.css` (listed there).
 
 ## Parts
 
@@ -39,7 +41,6 @@ Every app ([list](../../docs/features.md)) call `lenses()`, with or without opti
 | `src/lens-file.ts` | Reading and writing lens files (`parseLensFile`, `serialiseLenses`, `MAX_FILE_BYTES`) |
 | `src/lens-store.ts` | The lens state (zustand): built-in, imported, the chosen one (`maid:lenses`) and the one on the map. `lensChoice` is the read for other modules |
 | `src/sync.ts`, `src/url.ts` | Keeps the `lens` URL parameter and the lens on the map in step (`useUrlSetting`) |
-| `src/default-look.ts` | The "Maid standard" entry's description and legend (`DefaultLook`) |
 | `src/LensPanel.tsx`, `src/LegendSwatch.tsx` | The flyout, the legend, the import and export buttons, the legend's pictures |
 
 The lens type and the matching live in `packages/style` (`src/lens.ts`), so the renderer and the other modules use one definition.

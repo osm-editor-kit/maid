@@ -1,14 +1,26 @@
 import { defineModule } from '@osm-editor-kit/maid-core'
+import { whileLens } from '@osm-editor-kit/maid-renderer'
+import type { LensSource } from '@osm-editor-kit/maid-style'
 import { lazyComponent } from '@osm-editor-kit/maid-ui'
+import { lanesLens } from './lens.ts'
 import { m } from './messages.ts'
 import { isLaneRoad } from './roads.ts'
+
+export type LanesOptions = {
+  /**
+   * The lens choice of the lenses module (`lensChoice`). With it, the street drawing of every lane road is on the map
+   * only while the lens "Lanes" (`lanesLens`) is the active one, and not in Maid standard or under another lens. The
+   * bands of the selected road stay in every style. Without it the street is always drawn.
+   */
+  lenses?: LensSource
+}
 
 /**
  * The lanes editor (apps/maid-lanes): `inspector.section` "Lanes" above the fields of a road, with the cross-section
  * diagram and the lane table. The section loads as a chunk of its own when it is first shown. The lens (`lanesLens`) is
  * given to `lenses({ lenses })` by the app, as with the parking module.
  */
-export function lanes() {
+export function lanes(options: LanesOptions = {}) {
   return defineModule({
     id: 'lanes',
     setup(api) {
@@ -33,9 +45,13 @@ export function lanes() {
       const StreetOnMap = lazyComponent(() =>
         import('./overlay/StreetOnMap.tsx').then((part) => ({ default: part.StreetOnMap })),
       )
-      api.register('map.content', { id: 'lanes-street', component: StreetOnMap })
+      // part of the lens's style: only while the lens is the active one
+      api.register('map.content', {
+        id: 'lanes-street',
+        component: whileLens(options.lenses, lanesLens.id, StreetOnMap),
+      })
       api.register('map.content', { id: 'lanes-bands', component: LanesOnMap })
-      // the lanes lens is the editor's standard and on at the first visit: `lenses({ editorDefault: 'lanes' })`
+      // the lanes lens is the editor's own style and on at the first visit: `lenses({ editorDefault: 'lanes' })`
     },
   })
 }

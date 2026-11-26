@@ -18,7 +18,7 @@ import {
 } from '@osm-editor-kit/maid-module-buildings'
 import { dataLayers } from '@osm-editor-kit/maid-module-data-layers'
 import { imagery } from '@osm-editor-kit/maid-module-imagery'
-import { lenses } from '@osm-editor-kit/maid-module-lenses'
+import { lensChoice, lenses } from '@osm-editor-kit/maid-module-lenses'
 import { notes } from '@osm-editor-kit/maid-module-notes'
 import {
   angleSnap,
@@ -106,8 +106,9 @@ function editorConfig(config: Config) {
     lenses({ lenses: [buildingsLens], editorDefault: 'buildings' }),
     // top bar and dock "Photos": street-level photos; Mapillary uses the token of apps/mapillary-token.ts
     streetImagery({ mapillaryToken: mapillaryToken() }),
-    // the building editor: the number of dwellings on each building that has one, from zoom 17
-    buildings(),
+    // the building editor: the number of dwellings on each building that has one, from zoom 17, while the lens
+    // "Buildings" is on
+    buildings({ lenses: lensChoice }),
     // drawing tools for buildings (docs/research/drawing-tools): Shift holds right angles, with the lengths of the
     // segments while a node is placed
     angleSnap({ lengths: true }),

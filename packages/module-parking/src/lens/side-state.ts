@@ -3,6 +3,7 @@
  * app) can set it without a module dependency: `connectParkingSides(lensChoice)` in the app's config, once.
  * The layers are drawn only while the parking lens is the active one (the default).
  */
+import type { LensSource } from '@osm-editor-kit/maid-style'
 import { create } from 'zustand'
 
 export type ParkingSidesState = { shown: boolean; showMissing: boolean }
@@ -53,12 +54,6 @@ export function useParkingShowMissing(): boolean {
 /** Sets part of the parking sides' state, through the store's actions */
 function setParkingSides(next: Partial<ParkingSidesState>) {
   useParkingSidesStore.getState().actions.set(next)
-}
-
-/** The part of the lens choice that connectParkingSides reads: `lensChoice` from the lenses module has this shape */
-export type LensSource = {
-  getActiveId: () => string | null
-  subscribe: (listener: () => void) => () => void
 }
 
 /**

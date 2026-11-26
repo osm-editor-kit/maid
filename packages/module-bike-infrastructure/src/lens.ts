@@ -33,7 +33,7 @@ const DASH = [2, 1.5]
 
 /**
  * The chosen legend of the bicycle infrastructure: the groups, then what the shapes mean (a line at the road's edge,
- * the kerb lines of a sidepath, the dotted side, the sign). Shown for the lens and for the editor's look without a lens.
+ * the kerb lines of a sidepath, the dotted side, the sign). Shown for the lens only.
  * A getter per text, so it is read in the page's language.
  */
 export const bikeLegend: LensLegend = {
@@ -73,12 +73,4 @@ export const bikeInfrastructureLens: Lens = {
     { match: { building: true }, opacity: 1 },
     { match: { highway: true }, opacity: 1 },
   ],
-}
-
-/** What the lenses panel says about the bicycle editor's look without a lens (`lenses({ defaultLook })`) */
-export const bikeDefaultLook = {
-  get description() {
-    return m.default_description()
-  },
-  legend: bikeLegend,
 }

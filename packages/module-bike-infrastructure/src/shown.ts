@@ -1,9 +1,10 @@
 /**
- * Whether the bicycle infrastructure is drawn. It is the default look of the bicycle editor: drawn while no lens is on
- * (`lens=none` as well) and while the lens "Bicycle infrastructure" is on (which adds the legend and dims the rest). A
- * lens for another theme (surface, lit) hides it, so that lens's colours are the only ones on the map.
+ * Whether the bicycle infrastructure is drawn. It belongs to the editor's own style, the lens "Bicycle infrastructure":
+ * drawn only while that lens is the active one. Maid standard (no lens, `lens=none`) and the lens of another theme
+ * (surface, lit) do not show it, so their colours are the only ones on the map (Tobias, 2026-11-26).
  * Kept outside React so that the lens choice can set it without a module dependency (the parking module does the same).
  */
+import type { LensSource } from '@osm-editor-kit/maid-style'
 import { create } from 'zustand'
 
 /** The id of the lens of this module (lens.ts) */
@@ -33,15 +34,9 @@ export function bikeInfraShown(): boolean {
   return useShownStore.getState().shown
 }
 
-/** The part of the lens choice that is read: `lensChoice` of the lenses module has this shape */
-export type LensSource = {
-  getActiveId: () => string | null
-  subscribe: (listener: () => void) => () => void
-}
-
-/** Whether a lens id shows the bicycle infrastructure: no lens, or this module's lens */
+/** Whether a lens id shows the bicycle infrastructure: this module's lens only, not Maid standard (`null`) */
 export function showsBikeInfra(activeId: string | null) {
-  return activeId === null || activeId === BIKE_LENS_ID
+  return activeId === BIKE_LENS_ID
 }
 
 /**

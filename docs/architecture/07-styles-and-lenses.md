@@ -51,8 +51,8 @@ Maid does not need its own style editor for this. What it needs is the export, t
 A lens may bring `legend`: a few entries with a small picture of a line each (colour, dash, white casing, two thin
 lines along it, a road it belongs to, a sign). The panel shows it instead of the list of rules: only what matters for
 that style and is not clear by itself, not every rule. The bicycle editor's lens explains its casings and side lines this
-way; a buildings style could explain the colours of its building types. An app whose look without a lens adds to iD's
-gives the same with `lenses({ defaultLook })` (Tobias, 2026-11-11).
+way; a buildings style could explain the colours of its building types. Maid standard (no lens) has no legend: it is iD's
+look in every editor, and an editor's own look is its lens (Tobias, 2026-11-26).
 
 ## What goes on the map: a decision
 

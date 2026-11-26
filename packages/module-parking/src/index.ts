@@ -1,7 +1,8 @@
 import { defineModule } from '@osm-editor-kit/maid-core'
+import type { LensSource } from '@osm-editor-kit/maid-style'
 import { QuickTagsSection } from './buttons/QuickTags.tsx'
 import { ParkingSidesOnMap } from './lens/side-features.tsx'
-import { connectParkingSides, type LensSource } from './lens/side-state.ts'
+import { connectParkingSides } from './lens/side-state.ts'
 import { m } from './messages.ts'
 import { parkingOperations } from './operations/index.ts'
 import {

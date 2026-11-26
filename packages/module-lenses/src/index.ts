@@ -18,4 +18,3 @@ export type {
   LensLegend,
   LensLegendEntry,
 } from '@osm-editor-kit/maid-style'
-export type { DefaultLook } from './default-look.ts'

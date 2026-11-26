@@ -4,7 +4,6 @@ import type { MapContentProps } from '@osm-editor-kit/maid-renderer'
 import type { Lens } from '@osm-editor-kit/maid-style'
 import { lazyComponent, PANEL_FALLBACK } from '@osm-editor-kit/maid-ui'
 import { BUILT_IN_LENSES } from './builtin.ts'
-import { type DefaultLook, setDefaultLook } from './default-look.ts'
 import { lensActions, lensChoice } from './lens-store.ts'
 import { m } from './messages.ts'
 import { useLensUrl } from './sync.ts'
@@ -13,17 +12,20 @@ import { parseAsLens } from './url.ts'
 /**
  * Map style: a topbar panel that restyles the map with a lens (see `connectLenses`). The app
  * gives its own lenses with `options.lenses`; they are listed next to the built-in ones. The lens on the map is
- * the URL's `lens` (`none` for no lens); the stored choice is the default (url.ts, sync.ts). `options.defaultLook` is
- * what the panel says about the look without a lens, when the app's own look adds to iD's (a description, a legend).
+ * the URL's `lens` (`none` for no lens); the stored choice is the default (url.ts, sync.ts).
  *
- * Two standards (Tobias, 2026-11-12): the look without a lens is "Maid standard", the same in every editor, and
- * `options.editorDefault` names the lens that is this editor's own standard (its name says so, e.g. "Standard:
- * Parking"). That lens is listed right under Maid standard and is switched on at the first visit; the person can always
- * go back to Maid standard, and that choice is kept.
+ * Two standards (Tobias, 2026-11-12): the look without a lens is "Maid standard", the same in every editor (it looks
+ * like iD, with no highlights), and `options.editorDefault` names the lens that is this editor's own style (its name
+ * says so, e.g. "Standard: Parking"). That lens is listed right under Maid standard and is switched on at the first
+ * visit, and it stays on until the person picks something else; the person can always go back to Maid standard, and that
+ * choice is kept.
+ *
+ * What an editor draws over all features in view (the parking sides, the bicycle infrastructure, the street drawing of
+ * the lanes, the dwellings of the buildings, the hole numbers of golf) belongs to that lens and is drawn only while it
+ * is the active one: the modules take `lensChoice` as `options.lenses` for that. Aids tied to the selection or to a task
+ * (the bands of the selected road, tasks, notes, photos) stay in every style (Tobias, 2026-11-26).
  */
-export function lenses(
-  options: { lenses?: Lens[]; defaultLook?: DefaultLook; editorDefault?: string } = {},
-) {
+export function lenses(options: { lenses?: Lens[]; editorDefault?: string } = {}) {
   return defineModule({
     id: 'lenses',
     setup(api) {
@@ -39,7 +41,6 @@ export function lenses(
         ...all.filter((lens) => lens.id === editorDefault),
         ...all.filter((lens) => lens.id !== editorDefault),
       ])
-      setDefaultLook(options.defaultLook ?? {})
       if (editorDefault && !isAutomated()) {
         // first visit (the mark is not stored yet): start with the editor's standard. The key is the one the parking
         // and lanes modules used before, so a person who came before is not switched again.

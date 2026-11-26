@@ -6,7 +6,6 @@ import { canBeArea, lazyPresets, type MaidModule } from '@osm-editor-kit/maid-co
 import { defaultFilters } from '@osm-editor-kit/maid-filters'
 import {
   BIKE_LENS_ID,
-  bikeDefaultLook,
   bikeInfrastructure,
   bikeInfrastructureLens,
 } from '@osm-editor-kit/maid-module-bike-infrastructure'
@@ -89,16 +88,14 @@ function editorConfig(config: Config) {
     // top bar "Data layers": GeoJSON, PMTiles and vector tiles to look at next to the OSM data
     dataLayers(),
     // top bar "Map style": lenses that recolour the map for one theme (surface, lit, max speed); "Standard: Bicycle
-    // infrastructure" is this editor's standard (the infrastructure below, everything else dimmed), listed under Maid
-    // standard and on at the first visit. Maid standard draws the infrastructure too, so the panel shows the same
-    // chosen legend there (defaultLook)
+    // infrastructure" is this editor's own style (the infrastructure below, everything else dimmed), listed under Maid
+    // standard and on at the first visit. Maid standard looks like iD, with no bicycle infrastructure.
     lenses({
       lenses: [bikeInfrastructureLens],
-      defaultLook: bikeDefaultLook,
       editorDefault: BIKE_LENS_ID,
     }),
-    // the default look of this editor: the bicycle infrastructure as TILDA classifies it, blue for bicycles alone and
-    // pink where it is shared with people on foot, drawn over iD's style while no other lens is on
+    // the editor's own style: the bicycle infrastructure as TILDA classifies it, blue for bicycles alone and pink
+    // where it is shared with people on foot, drawn over iD's style only while the lens "Bicycle infrastructure" is on
     bikeInfrastructure({ lenses: lensChoice }),
     // top bar and dock "Photos": street-level photos; Mapillary uses the token of apps/mapillary-token.ts
     streetImagery({ mapillaryToken: mapillaryToken() }),

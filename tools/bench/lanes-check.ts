@@ -2,7 +2,8 @@
  * Check of the lanes editor (`--app lanes`): the section "Lanes" of a selected road with its diagram, a value per lane
  * written from the table (one key, one undo step), a lane added and removed (counts and pipes of that direction, the
  * cycle lane pattern kept), a lane chosen in the diagram marking its column, the lane bands of the selected road on
- * the map, and a lane rule in the Issues dock with its fix. Automation runs in English.
+ * the map, the street drawing (the lens "Lanes" is asked for with `lens=lanes`; Maid standard has none), and a lane rule
+ * in the Issues dock with its fix. Automation runs in English.
  *
  *   bun run check-lanes [scene] --app lanes
  *
@@ -343,8 +344,37 @@ const failed = await runCheck(
     report('the fix writes lanes=2', '2', (await tagsOf(road)).lanes)
     report('and the issue is gone', 0, await reported())
     await restore()
+
+    // --- Maid standard has no street drawing: it belongs to the lens "Lanes" (Tobias, 2026-11-26) ---
+    // the road's middle, read before the reload: after it the data of that place may not be loaded yet
+    const middle = await page.evaluate((id) => {
+      const { engine } = window.__maid
+      const nodes = engine.data.way(id)!.nodes
+      return engine.data.node(nodes[Math.floor(nodes.length / 2)]!)!.loc!
+    }, road)
+    const none = new URL(page.url())
+    none.searchParams.set('lens', 'none')
+    none.hash = `map=18.00/${middle[1]}/${middle[0]}`
+    await page.goto(none.toString())
+    await page.waitForFunction(() => window.__bench !== undefined)
+    await page.evaluate(() => window.__bench.ready())
+    await settle()
+    await page.waitForTimeout(750)
+    // the road is on the map (its line is drawn), but not its street
+    const shown = await page.evaluate(() => {
+      const { map } = window.__maid
+      const streets = map.getSource('maid-street-areas')
+        ? map.querySourceFeatures('maid-street-areas').length
+        : 0
+      return { streets, lines: map.queryRenderedFeatures().length }
+    })
+    report(
+      'lens "none": no street drawing, the roads still drawn',
+      true,
+      shown.streets === 0 && shown.lines > 0,
+    )
   },
-  undefined,
+  'lens=lanes',
   undefined,
   undefined,
   true,

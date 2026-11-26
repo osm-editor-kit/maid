@@ -12,7 +12,7 @@ The look of ways on the map, taken from iD, and the lens type. Headless: no Reac
 | --- | --- | --- |
 | `tagClasses`, `hasInterestingTags`, `isArea`, `wayLayer`, `Tags` | iD's tag classes; whether a way is an area; the layer a way belongs to | `packages/renderer` (`build.ts`, `engine.ts`, and the other renderer files); shell |
 | `resolveWayStyle`, `PartStyle`, `WayStyle` | Colours, widths for both zoom bands and dashes of a way, from the generated rules | `packages/renderer/src/build.ts` |
-| `Lens`, `LensRule`, `LensLegend`, `LensStyle`, `lensStyle`, `matchesTags`, `describeMatch` | A lens, its rules and legend; the first matching rule decides; a list of values matches any | `module-lenses`, `module-lanes`, `module-parking`, `module-bike-infrastructure`, `module-turn-restrictions` |
+| `Lens`, `LensRule`, `LensLegend`, `LensStyle`, `LensSource`, `lensStyle`, `matchesTags`, `describeMatch` | A lens, its rules and legend; the first matching rule decides; a list of values matches any | `module-lenses`, `module-lanes`, `module-parking`, `module-bike-infrastructure`, `module-turn-restrictions` |
 | `parseColour`, `withAlpha`, `scaleAlpha`, `lensColour`, `lensFill`, `DIM_OPACITY`, `FILL_ALPHA` | Colour helpers for lens styles | the same modules, and the renderer |
 
 ## Parts

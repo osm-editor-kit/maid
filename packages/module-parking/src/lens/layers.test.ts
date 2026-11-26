@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test'
-import { DIM_OPACITY, lensStyle } from '@osm-editor-kit/maid-style'
+import { DIM_OPACITY, lensStyle, type LensSource } from '@osm-editor-kit/maid-style'
 import { arrowPixels, ARROW_HEIGHT, ARROW_WIDTH } from './arrow-image.ts'
 import { areaCategory, CATEGORIES, hasSideTags, sideCategory } from './categories.ts'
 import { PARKING_LAYERS, SIDE_CASING_WIDTH, SIDE_WIDTH, sideOffset } from './layers.ts'
 import { parkingLens } from './parking-lens.ts'
-import { connectParkingSides, getParkingSides, type LensSource } from './side-state.ts'
+import { connectParkingSides, getParkingSides } from './side-state.ts'
 
 /**
  * The colours of Styles_euvm_parking_import.mapcss, by the name the file uses. Copied here on purpose: the file is

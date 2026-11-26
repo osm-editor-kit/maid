@@ -111,7 +111,7 @@ const RUNS: Run[] = [
   { name: 'reroute', check: 'reroute', scene: 'relations', only: ['bicycle'] },
   // module-sidepaths, on in the bicycle app: tags of separately mapped sidewalks move to their way
   { name: 'sidepaths', check: 'sidepaths', scene: 'medium', only: ['bicycle'] },
-  // module-bike-infrastructure, the bicycle app's default look: every case of the made-up scene, signs, preset, lenses
+  // module-bike-infrastructure, the bicycle app's own style (its lens): every case of the made-up scene, signs, preset, lenses
   { name: 'bike-style', check: 'bike-style', scene: 'bicycle', only: ['bicycle'] },
   // the drawing tools of module-shapes, on in the parking and the indoor app
   { name: 'rectangle', check: 'rectangle', only: ['parking', 'indoor', 'golf', 'buildings'] },
@@ -324,7 +324,7 @@ const EXPECTED_OK: Record<string, Record<AppName, number>> = {
     bicycle: 0,
     parking: 0,
     indoor: 0,
-    lanes: 31,
+    lanes: 32,
     golf: 0,
     climbing: 0,
     buildings: 0,

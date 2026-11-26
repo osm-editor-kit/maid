@@ -12,7 +12,7 @@ import { defaultFilters, type FilterState } from '@osm-editor-kit/maid-filters'
 import { dataLayers } from '@osm-editor-kit/maid-module-data-layers'
 import { GOLF_FAVOURITES, golf, golfLens, golfRules } from '@osm-editor-kit/maid-module-golf'
 import { imagery } from '@osm-editor-kit/maid-module-imagery'
-import { lenses } from '@osm-editor-kit/maid-module-lenses'
+import { lensChoice, lenses } from '@osm-editor-kit/maid-module-lenses'
 import { notes } from '@osm-editor-kit/maid-module-notes'
 import {
   angleSnap,
@@ -89,8 +89,9 @@ function editorConfig(config: Config) {
     lenses({ lenses: [golfLens], editorDefault: 'golf' }),
     // top bar and dock "Photos": street-level photos; Mapillary uses the token of apps/mapillary-token.ts
     streetImagery({ mapillaryToken: mapillaryToken() }),
-    // the golf editor: dock view "Holes", the scorecard of the loaded holes
-    golf(),
+    // the golf editor: dock view "Holes", the scorecard of the loaded holes; the hole numbers on the map while the golf
+    // lens is on
+    golf({ lenses: lensChoice }),
     // drawing tools for greens, bunkers, tees and the clubhouse: Shift holds right angles, with the segment lengths,
     angleSnap({ lengths: true }),
     // the Area button's "Rectangle" (a tee box) draws one with three clicks,

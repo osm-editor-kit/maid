@@ -11,7 +11,7 @@ The golf editor of Maid Golf (`apps/maid-golf`), a prototype. The plan behind it
 - A map style "Standard: Golf" (`golfLens`), on at the first visit, in the colours of OSM Carto 5.4 (the jgruca diary):
   tee, fairway and driving range in grass green, rough a little darker, the green in pitch green with a darker outline (so
   it stands apart from water), bunkers in sand, water in water blue, the course in its light green; the holes as thin
-  grey lines with their number (`HoleNumbersOnMap`), amber and dashed while they lack number or par; out of bounds as a
+  grey lines with their number (`HoleNumbersOnMap`, drawn only while this lens is on), amber and dashed while they lack number or par; out of bounds as a
   dashed grey line. Everything else is drawn as usual.
 - Eleven rules for the Issues dock (`golfRules`), from the OSM wiki pages: a hole without number, without a par from 3
   to 6, with a handicap outside 1 to 18; `golf_hole=*` instead of `ref` (fix: move it); a hole whose points are not one
@@ -32,7 +32,7 @@ From `apps/maid-golf/src/maid.config.ts` and `presets.ts`:
 ```ts
 validation({ rules: [...defaultRules, ...golfRules] }),
 lenses({ lenses: [golfLens], editorDefault: 'golf' }),
-golf(),
+golf({ lenses: lensChoice }), // the hole numbers only while the lens is on
 // AppConfig
 favourites: GOLF_FAVOURITES,
 // presets.ts

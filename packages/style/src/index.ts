@@ -11,6 +11,7 @@ export {
   scaleAlpha,
   withAlpha,
   type Lens,
+  type LensSource,
   type LensGeometry,
   type LensLegend,
   type LensLegendEntry,

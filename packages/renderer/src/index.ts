@@ -35,6 +35,7 @@ export {
   type MapLayerItem,
   type MapViewItem,
 } from './extension-points'
+export { whileLens } from './while-lens'
 // The modifier keys that drawing and dragging read (engine.modifiers, ADR 0011)
 export { modifiersOf, NO_MODIFIERS, type Modifiers } from './modifiers'
 export {

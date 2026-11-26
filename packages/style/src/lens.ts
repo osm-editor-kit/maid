@@ -68,6 +68,18 @@ export type LensLegend = {
   note?: string
 }
 
+/**
+ * The part of the lens choice that a module reads to draw its look only while its lens is the active one:
+ * `lensChoice` of the lenses module has this shape (the parking, bicycle, lanes, buildings and golf modules take it as
+ * `options.lenses`).
+ */
+export type LensSource = {
+  /** The id of the lens on the map, `null` for none (Maid standard) */
+  getActiveId: () => string | null
+  /** Calls the listener after any change of the lenses. Returns a function that stops it. */
+  subscribe: (listener: () => void) => () => void
+}
+
 export type Lens = {
   id: string
   name: string

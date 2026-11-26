@@ -15,7 +15,7 @@ its colours and rules are written here as a Maid lens.
   orange, semi-detached mint, terrace green, apartments olive. A building with a number of dwellings
   (`building:flats`, then `flats`, then `houses`, above 0) gets a thicker outline from cyan (1) to orange (8), above
   that red; the number wins over the type, as in the fork. `building=no` and every other feature are drawn as usual.
-- The number of dwellings on each such building, from zoom 17 (`FlatsOnMap`, "4 WE" in German), below the middle of
+- The number of dwellings on each such building, from zoom 17 and only while that lens is on (`FlatsOnMap`, "4 WE" in German), below the middle of
   the building so a house number stays readable, left out where it would cover another label. The fork labels unnamed
   buildings with that number.
 - Preset changes (`buildingPresetChanges(data)`): every building preset shows levels, levels underground and roof
@@ -33,7 +33,7 @@ From `apps/maid-buildings/src/maid.config.ts` and `presets.ts`:
 
 ```ts
 lenses({ lenses: [buildingsLens], editorDefault: 'buildings' }),
-buildings(),
+buildings({ lenses: lensChoice }), // the dwelling counts only while the lens is on
 // AppConfig
 favourites: BUILDING_FAVOURITES,
 // presets.ts

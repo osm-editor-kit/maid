@@ -278,8 +278,8 @@ describe('lens', () => {
     ])
   })
 
-  test('drawn without a lens and with its own lens, hidden under another', () => {
-    expect(showsBikeInfra(null)).toBe(true)
+  test('drawn with its own lens only, hidden in Maid standard and under another', () => {
+    expect(showsBikeInfra(null)).toBe(false)
     expect(showsBikeInfra('bike-infrastructure')).toBe(true)
     expect(showsBikeInfra('surface')).toBe(false)
     let active: string | null = 'surface'
@@ -292,7 +292,13 @@ describe('lens', () => {
       },
     })
     expect(bikeInfraShown()).toBe(false)
+    active = 'bike-infrastructure'
+    for (const listener of listeners) listener()
+    expect(bikeInfraShown()).toBe(true)
     active = null
+    for (const listener of listeners) listener()
+    expect(bikeInfraShown()).toBe(false)
+    active = 'bike-infrastructure'
     for (const listener of listeners) listener()
     expect(bikeInfraShown()).toBe(true)
     stop()

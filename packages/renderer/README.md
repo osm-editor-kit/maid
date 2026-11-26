@@ -43,7 +43,7 @@ Also: `engine.enterModuleMode(mode)` and `exitModuleMode(id)` (`module-mode.ts`)
 | `draw.ts`, `drag.ts`, `transform.ts`, `turn.ts`, `camera.ts`, `modifiers.ts`, `module-mode.ts` | Drawing, dragging, move and rotate, turning the map, modifier keys, module modes |
 | `measure.ts`, `measure-session.ts`, `nearby.ts`, `related.ts`, `parent-relations.ts`, `entity-info.ts` | Measuring, nearby features, relations on the map, what the inspector reads |
 | `field-overlay.ts`, `operation-preview.ts`, `operation-context.ts`, `tag-edits.ts`, `set-tags-each.ts` | Field lines on the map, operation previews, tag writes |
-| `extension-points.ts`, `index.ts` | The extension points and the package's exports |
+| `extension-points.ts`, `while-lens.tsx`, `index.ts` | The extension points, `whileLens` (a `map.content` component that draws only while a lens is the active one), and the package's exports |
 | `id-*.test.ts` | Tests adapted from iD's specs (ISC, commit noted in each file) |
 
 ## Tests

@@ -3,7 +3,6 @@ import { describeMatch, type Lens } from '@osm-editor-kit/maid-style'
 import { MapDisplayChoice, notify, PLAIN_INPUT } from '@osm-editor-kit/maid-ui'
 import { toolButtonTone } from '@osm-editor-kit/maid-ui'
 import { useId, useRef, useState, type ChangeEvent } from 'react'
-import { defaultLook } from './default-look.ts'
 import { LegendSwatch } from './LegendSwatch.tsx'
 import { MAX_FILE_BYTES, parseLensFile, serialiseLenses } from './lens-file.ts'
 import {
@@ -53,9 +52,8 @@ export function LensPanel({ engine }: { engine: MaidEngine }) {
   const noticeId = useId()
 
   const active = activeLens({ shownId: activeId, builtIn, imported })
-  const look = defaultLook()
-  // a chosen legend: the active lens's, or without a lens the app's own look's
-  const chosenLegend = active ? active.legend : look.legend
+  // a chosen legend: the active lens's; Maid standard has none
+  const chosenLegend = active?.legend
   const isOwn = active !== null && imported.some((lens) => lens.id === active.id)
   const reserved = builtIn.map((lens) => lens.id)
 
@@ -99,7 +97,7 @@ export function LensPanel({ engine }: { engine: MaidEngine }) {
           >
             <span className="block font-medium">{m.lenses_maid_standard()}</span>
             <span className="block text-xs text-zinc-500 dark:text-zinc-400">
-              {look.description ?? m.lenses_maid_standard_description()}
+              {m.lenses_maid_standard_description()}
             </span>
           </button>
           {allLenses({ builtIn, imported }).map((lens) => {
