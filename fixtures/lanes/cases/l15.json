@@ -1,0 +1,78 @@
+{
+ "nodes": {
+  "n3000000120": {
+   "loc": [
+    13.3479041,
+    52.6132627
+   ],
+   "tags": {}
+  },
+  "n3000000121": {
+   "loc": [
+    13.3499757,
+    52.6132627
+   ],
+   "tags": {}
+  },
+  "n3000000123": {
+   "loc": [
+    13.3520472,
+    52.6132627
+   ],
+   "tags": {}
+  },
+  "n3000000125": {
+   "loc": [
+    13.3499757,
+    52.6121847
+   ],
+   "tags": {}
+  }
+ },
+ "ways": [
+  {
+   "id": "w3000000119",
+   "nodes": [
+    "n3000000120",
+    "n3000000121"
+   ],
+   "tags": {
+    "highway": "secondary",
+    "name": "L15 Road",
+    "lanes": "3",
+    "lanes:forward": "2",
+    "lanes:backward": "1",
+    "turn:lanes:forward": "through||right",
+    "cycleway:lanes:forward": "no|lane|no",
+    "bicycle:lanes:forward": "no|designated|yes",
+    "vehicle:lanes:forward": "yes|no|yes",
+    "width:lanes:forward": "3.25|1.8|3",
+    "cycleway:left": "lane"
+   }
+  },
+  {
+   "id": "w3000000122",
+   "nodes": [
+    "n3000000121",
+    "n3000000123"
+   ],
+   "tags": {
+    "highway": "secondary",
+    "name": "L15 Road",
+    "lanes": "2",
+    "cycleway:both": "lane"
+   }
+  },
+  {
+   "id": "w3000000124",
+   "nodes": [
+    "n3000000121",
+    "n3000000125"
+   ],
+   "tags": {
+    "highway": "residential",
+    "name": "L15 Side"
+   }
+  }
+ ]
+}

@@ -1,0 +1,95 @@
+{
+ "nodes": {
+  "n3000000052": {
+   "loc": [
+    13.3434651,
+    52.6159576
+   ],
+   "tags": {}
+  },
+  "n3000000053": {
+   "loc": [
+    13.3455366,
+    52.6159576
+   ],
+   "tags": {}
+  },
+  "n3000000055": {
+   "loc": [
+    13.3476082,
+    52.6159576
+   ],
+   "tags": {}
+  },
+  "n3000000057": {
+   "loc": [
+    13.3455366,
+    52.6147898
+   ],
+   "tags": {}
+  },
+  "n3000000059": {
+   "loc": [
+    13.3455366,
+    52.6171254
+   ],
+   "tags": {}
+  }
+ },
+ "ways": [
+  {
+   "id": "w3000000051",
+   "nodes": [
+    "n3000000052",
+    "n3000000053"
+   ],
+   "tags": {
+    "highway": "primary",
+    "name": "L09 Main",
+    "lanes": "3",
+    "lanes:forward": "2",
+    "lanes:backward": "1",
+    "turn:lanes:forward": "left|through;right"
+   }
+  },
+  {
+   "id": "w3000000054",
+   "nodes": [
+    "n3000000053",
+    "n3000000055"
+   ],
+   "tags": {
+    "highway": "primary",
+    "name": "L09 Main",
+    "lanes": "3",
+    "lanes:forward": "1",
+    "lanes:backward": "2",
+    "turn:lanes:backward": "left|through;right"
+   }
+  },
+  {
+   "id": "w3000000056",
+   "nodes": [
+    "n3000000057",
+    "n3000000053"
+   ],
+   "tags": {
+    "highway": "secondary",
+    "name": "L09 Cross",
+    "lanes": "2"
+   }
+  },
+  {
+   "id": "w3000000058",
+   "nodes": [
+    "n3000000053",
+    "n3000000059"
+   ],
+   "tags": {
+    "highway": "secondary",
+    "name": "L09 Cross",
+    "lanes": "2"
+   }
+  }
+ ]
+}

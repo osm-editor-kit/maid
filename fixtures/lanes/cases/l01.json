@@ -1,0 +1,55 @@
+{
+ "nodes": {
+  "n3000000002": {
+   "loc": [
+    13.330148,
+    52.6186525
+   ],
+   "tags": {}
+  },
+  "n3000000003": {
+   "loc": [
+    13.3322195,
+    52.6186525
+   ],
+   "tags": {}
+  },
+  "n3000000005": {
+   "loc": [
+    13.3342911,
+    52.6186525
+   ],
+   "tags": {}
+  }
+ },
+ "ways": [
+  {
+   "id": "w3000000001",
+   "nodes": [
+    "n3000000002",
+    "n3000000003"
+   ],
+   "tags": {
+    "highway": "primary",
+    "name": "L01 Straight",
+    "lanes": "4",
+    "lanes:forward": "2",
+    "lanes:backward": "2"
+   }
+  },
+  {
+   "id": "w3000000004",
+   "nodes": [
+    "n3000000003",
+    "n3000000005"
+   ],
+   "tags": {
+    "highway": "primary",
+    "name": "L01 Straight",
+    "lanes": "4",
+    "lanes:forward": "2",
+    "lanes:backward": "2"
+   }
+  }
+ ]
+}

@@ -1,0 +1,57 @@
+{
+ "nodes": {
+  "n3000000170": {
+   "loc": [
+    13.334587,
+    52.6078728
+   ],
+   "tags": {}
+  },
+  "n3000000171": {
+   "loc": [
+    13.3366586,
+    52.6078728
+   ],
+   "tags": {}
+  },
+  "n3000000173": {
+   "loc": [
+    13.3387301,
+    52.6078728
+   ],
+   "tags": {}
+  }
+ },
+ "ways": [
+  {
+   "id": "w3000000169",
+   "nodes": [
+    "n3000000170",
+    "n3000000171"
+   ],
+   "tags": {
+    "highway": "secondary",
+    "name": "L22 Road",
+    "lanes": "4",
+    "lanes:forward": "2",
+    "lanes:backward": "2",
+    "width:lanes:forward": "3.5|2.75",
+    "width:lanes:backward": "2.75|3.5"
+   }
+  },
+  {
+   "id": "w3000000172",
+   "nodes": [
+    "n3000000171",
+    "n3000000173"
+   ],
+   "tags": {
+    "highway": "secondary",
+    "name": "L22 Road",
+    "lanes": "4",
+    "lanes:forward": "2",
+    "lanes:backward": "2"
+   }
+  }
+ ]
+}

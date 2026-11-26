@@ -1,0 +1,55 @@
+{
+ "nodes": {
+  "n3000000132": {
+   "loc": [
+    13.334587,
+    52.6105677
+   ],
+   "tags": {}
+  },
+  "n3000000133": {
+   "loc": [
+    13.3366586,
+    52.6105677
+   ],
+   "tags": {}
+  },
+  "n3000000135": {
+   "loc": [
+    13.3387301,
+    52.6105677
+   ],
+   "tags": {}
+  }
+ },
+ "ways": [
+  {
+   "id": "w3000000131",
+   "nodes": [
+    "n3000000132",
+    "n3000000133"
+   ],
+   "tags": {
+    "highway": "secondary",
+    "name": "L17 Road",
+    "oneway": "yes",
+    "lanes": "2",
+    "turn:lanes": "through|through"
+   }
+  },
+  {
+   "id": "w3000000134",
+   "nodes": [
+    "n3000000135",
+    "n3000000133"
+   ],
+   "tags": {
+    "highway": "secondary",
+    "name": "L17 Road",
+    "oneway": "-1",
+    "lanes": "2",
+    "turn:lanes": "left|through"
+   }
+  }
+ ]
+}

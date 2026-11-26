@@ -1,0 +1,222 @@
+[
+  {
+    "id": "L01",
+    "title": "Straight on",
+    "shows": "Two ways of the same road in a line, two lanes each way: the lanes meet edge to edge, no step, no gap.",
+    "file": "cases/l01.json",
+    "centre": [
+      13.3322196,
+      52.6186525
+    ]
+  },
+  {
+    "id": "L02",
+    "title": "A bend between two ways",
+    "shows": "The road bends by 45° at the node where two ways meet: both are cut on the bisector of the bend.",
+    "file": "cases/l02.json",
+    "centre": [
+      13.3362887,
+      52.6187872
+    ]
+  },
+  {
+    "id": "L03",
+    "title": "A sharp bend",
+    "shows": "A bend of 135° between two ways: the inner edges must not throw a spike.",
+    "file": "cases/l03.json",
+    "centre": [
+      13.3402098,
+      52.6186525
+    ]
+  },
+  {
+    "id": "L04",
+    "title": "A right-turn lane added",
+    "shows": "A one-way road of two lanes gets a third lane on the right before a junction (turn:lanes=through|through|right): the new lane widens out from the kerb over about 25 m, the through lanes run straight.",
+    "file": "cases/l04.json",
+    "centre": [
+      13.3455367,
+      52.6181136
+    ]
+  },
+  {
+    "id": "L05",
+    "title": "A left-turn lane in the middle",
+    "shows": "A two-way road of one lane each way gets a left-turn lane in its middle before a junction (lanes:forward=2, turn:lanes:forward=left|through): the new lane opens between the two directions, the through lane stays at the kerb.",
+    "file": "cases/l05.json",
+    "centre": [
+      13.3499757,
+      52.6191915
+    ]
+  },
+  {
+    "id": "L06",
+    "title": "Four lanes become two",
+    "shows": "A two-way road of two lanes each way goes on with one lane each way: the outer lanes narrow to nothing.",
+    "file": "cases/l06.json",
+    "centre": [
+      13.3322196,
+      52.6159576
+    ]
+  },
+  {
+    "id": "L07",
+    "title": "An unmarked road meets a marked one",
+    "shows": "A residential street without lane markings (width=8) goes on as a road with one lane each way (6 m): the kerbs ease from one width to the other, nothing narrows to a point.",
+    "file": "cases/l07.json",
+    "centre": [
+      13.3366585,
+      52.6159576
+    ]
+  },
+  {
+    "id": "L08",
+    "title": "T-junction",
+    "shows": "A side street joins a main road of two lanes each way: the main road runs through, the side street stops at its kerb, the junction is filled, the main road’s kerb opens for the side street.",
+    "file": "cases/l08.json",
+    "centre": [
+      13.3410976,
+      52.6153737
+    ]
+  },
+  {
+    "id": "L09",
+    "title": "Crossroads with turn lanes",
+    "shows": "A main road with a left-turn lane on each approach crosses a road of one lane each way: the main road runs through, the cross road stops at its kerbs, the turn arrows sit before the junction.",
+    "file": "cases/l09.json",
+    "centre": [
+      13.3455367,
+      52.6159576
+    ]
+  },
+  {
+    "id": "L10",
+    "title": "A skewed crossing",
+    "shows": "Two roads cross at 60°, each one way through the node: the junction is a rhombus, the kerb curves at the sharp corners stay inside it.",
+    "file": "cases/l10.json",
+    "centre": [
+      13.3499757,
+      52.6159576
+    ]
+  },
+  {
+    "id": "L11",
+    "title": "A road splits into a dual carriageway",
+    "shows": "A two-way road of two lanes each way splits into two one-way roads (traffic keeps right: the eastbound one to the south): no road runs through, the junction joins all three, each carriageway takes the lanes of its direction.",
+    "file": "cases/l11.json",
+    "centre": [
+      13.3322196,
+      52.6132626
+    ]
+  },
+  {
+    "id": "L12",
+    "title": "A dual carriageway crossed by a road",
+    "shows": "A road crosses both carriageways of a dual carriageway; the piece between them is 24 m long: two junctions close together, which a good drawing shows as one.",
+    "file": "cases/l12.json",
+    "centre": [
+      13.3366585,
+      52.6132627
+    ]
+  },
+  {
+    "id": "L13",
+    "title": "A roundabout",
+    "shows": "A ring of radius 30 m and two lanes with four roads of one lane each way: each road stops outside the ring, the ring runs on past them.",
+    "file": "cases/l13.json",
+    "centre": [
+      13.3410976,
+      52.6132626
+    ]
+  },
+  {
+    "id": "L14",
+    "title": "A bus lane ends",
+    "shows": "A road with a bus lane on the right of its eastbound direction (bus:lanes:forward=|designated) goes on without it: the bus lane narrows to nothing at the kerb.",
+    "file": "cases/l14.json",
+    "centre": [
+      13.3455367,
+      52.6132627
+    ]
+  },
+  {
+    "id": "L15",
+    "title": "A cycle lane between the lanes",
+    "shows": "The German pattern: a cycle lane between the through lane and the right-turn lane, in the lane keys but not in lanes (cycleway:lanes:forward=no|lane|no), before a junction with a side street; beyond the junction a plain road with cycle lanes on both sides (cycleway:both=lane).",
+    "file": "cases/l15.json",
+    "centre": [
+      13.3499757,
+      52.6127237
+    ]
+  },
+  {
+    "id": "L16",
+    "title": "The way line moves within the road",
+    "shows": "A one-way road of two lanes is mapped along the left edge of its first lane (placement=left_of:1), and goes on mapped along its middle: the lanes stay where they are, only the way line moves.",
+    "file": "cases/l16.json",
+    "centre": [
+      13.3322196,
+      52.610552
+    ]
+  },
+  {
+    "id": "L17",
+    "title": "A one-way road drawn against its traffic",
+    "shows": "A one-way road of two lanes goes on as a way drawn the other way round (oneway=-1): the lanes and turn arrows carry on as if it were drawn along the traffic.",
+    "file": "cases/l17.json",
+    "centre": [
+      13.3366585,
+      52.6105677
+    ]
+  },
+  {
+    "id": "L18",
+    "title": "Staggered junction",
+    "shows": "Two side streets join a main road from opposite sides 16 m apart: two junctions close together, the main road runs through both.",
+    "file": "cases/l18.json",
+    "centre": [
+      13.3410976,
+      52.6105678
+    ]
+  },
+  {
+    "id": "L19",
+    "title": "A slip road leaves",
+    "shows": "A one-way road of three lanes loses its right lane to a slip road (highway=primary_link) leaving at a shallow angle: the slip road should start where the right lane is.",
+    "file": "cases/l19.json",
+    "centre": [
+      13.3455367,
+      52.6103656
+    ]
+  },
+  {
+    "id": "L20",
+    "title": "Two roads merge",
+    "shows": "Two one-way roads of one lane each join into a one-way road of two lanes: each lane runs on into its side of the joined road.",
+    "file": "cases/l20.json",
+    "centre": [
+      13.3499757,
+      52.6105678
+    ]
+  },
+  {
+    "id": "L21",
+    "title": "Small streets without lane tags",
+    "shows": "A residential street, a living street and a service road without any lane tags meet: each is drawn as one shared carriageway of an assumed width, muted, joined at the junction.",
+    "file": "cases/l21.json",
+    "centre": [
+      13.3322196,
+      52.6073788
+    ]
+  },
+  {
+    "id": "L22",
+    "title": "Widths per lane",
+    "shows": "A road of one wide lane and one narrow lane each way (width:lanes) goes on with equal lanes: every lane eases to its new width, the centre line stays straight.",
+    "file": "cases/l22.json",
+    "centre": [
+      13.3366585,
+      52.6078728
+    ]
+  }
+]
