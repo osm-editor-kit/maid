@@ -238,7 +238,18 @@ road in view or only the selected one; whether the edit goes through a model (La
 [maid-value-tests]: https://github.com/osm-editor-kit/maid/blob/main/packages/module-lanes/src/rules/value-rules.test.ts
 [ls-values]: https://github.com/MarcelMarzec/LaneStudio/blob/2bcdd49b7911896d69649dccd118049e166128b3/modules/lanes/model/values.ts
 
-## 10. Sources and method
+## 10. Afterwards: the whole street in Maid (2026-11-26, a branch)
+
+After this comparison Maid tried Lane Studio's central idea, drawing every road at its lane widths and joining the
+roads at junctions, which Maid had left out as too complicated. The geometry follows Lane Studio's
+`road_geometry.ts` and `frame.ts` in a reduced form: arms at a node, ends cut on the bisector, a road with fewer lanes
+running on out of the other's with tapers, side roads pulled back to the main road's kerb, junction surfaces with
+kerb curves, roundabout joins. It is a separate, pure module (`osm-lane-diagram/street`) that takes each way's
+cross-section as input, and Maid draws its output as MapLibre polygons, redrawing only the ways around an edit.
+Lane Studio's test examples (Boston roundabout, Holdingham, Luton, the M5 diverge) were drawn with it to compare;
+the details and what is still missing are in the package's README.
+
+## 11. Sources and method
 
 The Lane Studio code was cloned read-only into a scratch folder and read by three agents (model and tags, architecture
 and editing, drawing and tooling) and checked by hand where this doc relies on a detail (the validator, the offset

@@ -10,6 +10,7 @@ The lanes editor of Maid Lanes (`apps/maid-lanes`). A road's lanes are edited as
 - `+` next to each direction adds a lane, `×` in a column removes it. "Set lanes=N" sets the count to the sum of the directions when they do not add up.
 - A status line that says what is missing for the road's colour in the "Lanes" lens.
 - On the map: the lanes of the selected road as bands beside its line from zoom 17, turn arrows from zoom 18. The chosen lane is blue, the lane under the pointer amber.
+- On the map, from zoom 16: the whole street, every lane road of the loaded data with its lanes at their widths, joined at junctions, with lane lines, kerbs and turn arrows (`src/overlay/StreetOnMap.tsx`, `street.ts`, `street-collect.ts`; the geometry is osm-lane-diagram's `street`). It draws below the OSM lines; the wireframe (W) shows it best. Roads without lane tags get assumed lanes, drawn muted. A change redraws only the ways around it (a node drag step on the dense fixture about 8 ms).
 - A map style "Lanes" (top bar): values per lane green, lane count only amber, a main road without lane tags pink, a residential or service road without them grey.
 - Seven Issues rules. In `src/rules/lane-rules.ts`: the lane count does not add up, the number of values differs from the count, values of different length, and a placement on a lane the road does not have. In `src/rules/value-rules.ts`, adopted from Lane Studio (ISC, [comparison](../../docs/research/lane-studio-comparison.md)): a `turn` value the wiki does not know (fix for clear misspellings), a deprecated `change` value (fix), and a `width` narrower than lanes, parking and buffers add up to.
 
@@ -37,7 +38,7 @@ Only `maid-lanes` switches it on. The lens and the rules are wired by the app as
 | `src/edit.ts` | Pure tag edits: one value of one lane, one lane more or less |
 | `src/scene.ts`, `src/roads.ts` | The cross-section scene (the road and its neighbours), and which ways have lanes |
 | `src/diagram/` | The cross-section as an inline SVG (`LaneDiagram.tsx`), its shapes and turn arrows (pure) |
-| `src/overlay/` | `LanesOnMap.tsx` (on `map.content`), the bands and layers (`layers.ts`, `scene-bands.ts`) and the arrows (`arrows.ts`) |
+| `src/overlay/` | `StreetOnMap.tsx` (every road as its street, from `street.ts` and `street-collect.ts`), `LanesOnMap.tsx` (on `map.content`), the bands and layers (`layers.ts`, `scene-bands.ts`) and the arrows (`arrows.ts`) |
 | `src/lens.ts` | The "Lanes" lens and `laneStatus`, which reads the lens's own rules |
 | `src/rules/lane-rules.ts` | The four Issues rules, on the findings of osm-lanes |
 | `src/rules/value-rules.ts` | Three rules on the values: unknown turn, deprecated change, width too narrow (from Lane Studio) |

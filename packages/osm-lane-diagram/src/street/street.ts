@@ -205,7 +205,8 @@ function throughPair(arms: readonly Arm[]): [number, number] | null {
       const tb = b.line.way.tags
       // a third road leaving close to one of the pair as a peer (a fork): nothing runs straight through
       const peer = (c: Arm) =>
-        (c.line.way.tags.name !== undefined && (c.line.way.tags.name === ta.name || c.line.way.tags.name === tb.name)) ||
+        (c.line.way.tags.name !== undefined &&
+          (c.line.way.tags.name === ta.name || c.line.way.tags.name === tb.name)) ||
         rank(c) >= Math.min(rank(a), rank(b))
       if (
         arms.some(
@@ -213,7 +214,8 @@ function throughPair(arms: readonly Arm[]): [number, number] | null {
             k !== i &&
             k !== j &&
             peer(c) &&
-            (angleBetween(c.direction, a.direction) < 40 || angleBetween(c.direction, b.direction) < 40),
+            (angleBetween(c.direction, a.direction) < 40 ||
+              angleBetween(c.direction, b.direction) < 40),
         )
       )
         continue
@@ -253,7 +255,11 @@ function oneWayPair(arms: readonly Arm[]): [number, number] | null {
       const middle = unit(add(arms[i]!.direction, arms[j]!.direction))
       const stem = arms.some(
         (arm, k) =>
-          k !== i && k !== j && travels(arm, true) && travels(arm, false) && angleBetween(scale(arm.direction, -1), middle) < 60,
+          k !== i &&
+          k !== j &&
+          travels(arm, true) &&
+          travels(arm, false) &&
+          angleBetween(scale(arm.direction, -1), middle) < 60,
       )
       if (stem) return [i, j]
     }
@@ -277,6 +283,22 @@ function edgeMeeting(a: Arm, offA: number, b: Arm, offB: number): number | undef
 function edgeAt(arm: Arm, t: number, side: 'left' | 'right'): Vec2 {
   const at = pointAlong(arm.points, Math.min(t, polylineLength(arm.points)))
   return add(at.point, scale(rightNormal(at.direction), side === 'left' ? arm.left : arm.right))
+}
+
+const isRing = (arm: Arm) =>
+  arm.line.way.tags.junction === 'roundabout' || arm.line.way.tags.junction === 'circular'
+
+function distanceTo(points: readonly Vec2[], p: Vec2): number {
+  const at = pointAlong(points, projectOnto(points, p)).point
+  return len(sub(p, at))
+}
+
+/** Where the line through `a` along `da` meets the line through `b` along `db`; undefined when about parallel */
+function lineMeeting(a: Vec2, da: Vec2, b: Vec2, db: Vec2): Vec2 | undefined {
+  const c = cross(da, db)
+  if (Math.abs(c) < 0.02) return undefined
+  const t = cross(sub(b, a), db) / c
+  return add(a, scale(da, t))
 }
 
 function projectOnto(points: readonly Vec2[], p: Vec2): number {
@@ -312,7 +334,10 @@ const TURNS_INNER = new Set(['left', 'slight_left', 'sharp_left', 'reverse'])
 
 /** A lane only turning left (or round): a turn lane added in the middle of the road */
 function onlyTurnsLeft(lane: StreetLane | undefined): boolean {
-  const tokens = (lane?.turn ?? '').split(';').map((t) => t.trim()).filter((t) => t !== '' && t !== 'none')
+  const tokens = (lane?.turn ?? '')
+    .split(';')
+    .map((t) => t.trim())
+    .filter((t) => t !== '' && t !== 'none')
   return tokens.length > 0 && tokens.every((t) => TURNS_INNER.has(t))
 }
 
@@ -322,7 +347,11 @@ function onlyTurnsLeft(lane: StreetLane | undefined): boolean {
  * the inner side, unless the group with more lanes starts with a lane only turning towards the inner side (a turn lane
  * added in the middle of the road): then from the outer side.
  */
-function pairGroup(own: StreetLane[], other: StreetLane[], innerFirst: boolean): [number | undefined, number | undefined][] {
+function pairGroup(
+  own: StreetLane[],
+  other: StreetLane[],
+  innerFirst: boolean,
+): [number | undefined, number | undefined][] {
   const bigger = own.length >= other.length ? own : other
   const inner = innerFirst ? bigger[0] : bigger[bigger.length - 1]
   const turnLane = own.length !== other.length && onlyTurnsLeft(inner)
@@ -332,7 +361,10 @@ function pairGroup(own: StreetLane[], other: StreetLane[], innerFirst: boolean):
   for (let i = 0; i < n; i++) {
     const a = fromStart ? i : own.length - 1 - i
     const b = fromStart ? i : other.length - 1 - i
-    pairs.push([a >= 0 && a < own.length ? a : undefined, b >= 0 && b < other.length ? b : undefined])
+    pairs.push([
+      a >= 0 && a < own.length ? a : undefined,
+      b >= 0 && b < other.length ? b : undefined,
+    ])
   }
   return pairs
 }
@@ -409,7 +441,11 @@ function runOf(own: readonly StreetLane[], other: readonly StreetLane[]): Run | 
     tapers.length === 0 &&
     own.every((lane, i) => {
       const target = targets[i]
-      return target !== undefined && Math.abs(target[0] - lane.left) < SAME_EDGE && Math.abs(target[1] - lane.right) < SAME_EDGE
+      return (
+        target !== undefined &&
+        Math.abs(target[0] - lane.left) < SAME_EDGE &&
+        Math.abs(target[1] - lane.right) < SAME_EDGE
+      )
     })
   return same ? undefined : { targets, tapers }
 }
@@ -423,7 +459,8 @@ function affineRun(own: readonly StreetLane[], other: readonly StreetLane[]): Ru
   const ownRight = Math.max(...own.map((lane) => lane.right))
   const otherLeft = Math.min(...other.map((lane) => lane.left))
   const otherRight = Math.max(...other.map((lane) => lane.right))
-  if (Math.abs(ownLeft - otherLeft) < SAME_EDGE && Math.abs(ownRight - otherRight) < SAME_EDGE) return undefined
+  if (Math.abs(ownLeft - otherLeft) < SAME_EDGE && Math.abs(ownRight - otherRight) < SAME_EDGE)
+    return undefined
   const k = ownRight > ownLeft ? (otherRight - otherLeft) / (ownRight - ownLeft) : 1
   const map = (x: number) => otherLeft + (x - ownLeft) * k
   return { targets: own.map((lane) => [map(lane.left), map(lane.right)]), tapers: [] }
@@ -484,17 +521,53 @@ function junctionAt(nodeId: string, arms: Arm[], frame: MetricFrame, result: Jun
     const rightNeighbour = arms[(i - 1 + arms.length) % arms.length]!
     const l = edgeMeeting(arm, arm.left, leftNeighbour, leftNeighbour.right)
     const r = edgeMeeting(arm, arm.right, rightNeighbour, rightNeighbour.left)
-    result.trims.set(armKey(arm.line.way.id, arm.index, arm.alongWay), Math.min(MAX_CLEARANCE, Math.max(l ?? 0, r ?? 0)))
+    result.trims.set(
+      armKey(arm.line.way.id, arm.index, arm.alongWay),
+      Math.min(MAX_CLEARANCE, Math.max(l ?? 0, r ?? 0)),
+    )
   })
   if (through) partnerUp(arms[through[0]]!, arms[through[1]]!, result)
 
+  // a road joining a roundabout stops where both its kerbs are clear of the ring's curved outer edge, plus room for
+  // its kerbs to flare into the ring (Lane Studio's ring joins; the straight lines from the node that other junctions
+  // use miss the ring's curve)
+  if (through && through.every((k) => isRing(arms[k]!))) {
+    const ringArms = through.map((k) => arms[k]!)
+    const ringLine = [...[...ringArms[0]!.points].reverse(), ...ringArms[1]!.points.slice(1)]
+    const halfWidth = Math.max(
+      ...ringArms.map((arm) => Math.max(Math.abs(arm.left), Math.abs(arm.right))),
+    )
+    arms.forEach((arm, i) => {
+      if (onMain(i)) return
+      const length = polylineLength(arm.points)
+      const clear = (t: number) =>
+        (['left', 'right'] as const).every(
+          (side) => distanceTo(ringLine, edgeAt(arm, t, side)) > halfWidth + 0.3,
+        )
+      let t = 0
+      while (t < Math.min(MAX_CLEARANCE, length * 0.45) && !clear(t)) t += 0.5
+      const flare = Math.min(6, Math.max(2, (arm.right - arm.left) * 0.3))
+      result.trims.set(
+        armKey(arm.line.way.id, arm.index, arm.alongWay),
+        Math.min(t + flare, MAX_CLEARANCE, length * 0.45),
+      )
+    })
+  }
+
   type End = { left: Vec2; right: Vec2; leftDirection: Vec2; rightDirection: Vec2 }
-  const trimOf = (arm: Arm) => result.trims.get(armKey(arm.line.way.id, arm.index, arm.alongWay)) ?? 0
-  const directionAt = (arm: Arm, t: number) => pointAlong(arm.points, Math.min(t, polylineLength(arm.points))).direction
+  const trimOf = (arm: Arm) =>
+    result.trims.get(armKey(arm.line.way.id, arm.index, arm.alongWay)) ?? 0
+  const directionAt = (arm: Arm, t: number) =>
+    pointAlong(arm.points, Math.min(t, polylineLength(arm.points))).direction
   const ends: End[] = arms.map((arm) => {
     const t = trimOf(arm)
     const direction = directionAt(arm, t)
-    return { left: edgeAt(arm, t, 'left'), right: edgeAt(arm, t, 'right'), leftDirection: direction, rightDirection: direction }
+    return {
+      left: edgeAt(arm, t, 'left'),
+      right: edgeAt(arm, t, 'right'),
+      leftDirection: direction,
+      rightDirection: direction,
+    }
   })
   // the main road's end of the box reaches along it to the corners of the side roads next to it
   if (through) {
@@ -518,9 +591,31 @@ function junctionAt(nodeId: string, arms: Arm[], frame: MetricFrame, result: Jun
       // in the way's frame an arm against the way has its sides swapped
       result.marks.set(
         armKey(arm.line.way.id, arm.index, arm.alongWay),
-        arm.alongWay ? { left: reach.left, right: reach.right, lanes } : { left: reach.right, right: reach.left, lanes },
+        arm.alongWay
+          ? { left: reach.left, right: reach.right, lanes }
+          : { left: reach.right, right: reach.left, lanes },
       )
     }
+  }
+
+  // between the two halves of the main road, where their edges are still at the node, the two edges meet where they
+  // cross (on the bisector of the bend, as the lanes are cut), not each at its own normal (Lane Studio's `cutCorner`)
+  if (through) {
+    arms.forEach((arm, i) => {
+      const j = (i + 1) % arms.length
+      if (!onMain(i) || !onMain(j) || i === j) return
+      const end = ends[i]!
+      const next = ends[j]!
+      const node = arm.points[0]!
+      const atNode = (p: Vec2) =>
+        len(sub(p, node)) < Math.max(Math.abs(arm.left), Math.abs(arm.right)) * 2 + 1
+      if (!atNode(end.left) || !atNode(next.right)) return
+      const meet = lineMeeting(end.left, arm.first, next.right, arms[j]!.first)
+      if (meet && len(sub(meet, node)) < 50) {
+        end.left = meet
+        next.right = meet
+      }
+    })
   }
 
   // arms are counter-clockwise and each arm's right edge comes before its left, so the outline does not cross itself
@@ -533,9 +628,11 @@ function junctionAt(nodeId: string, arms: Arm[], frame: MetricFrame, result: Jun
     points.push(end.right, end.left, ...corner.slice(1, -1))
     if (!(onMain(i) && onMain(j)) && len(sub(next.right, end.left)) > 0.5) kerbs.push(corner)
   })
+  // (corners that meet in one point leave repeated points)
+  const outline = points.filter((p, i) => len(sub(p, points[(i + 1) % points.length]!)) > 0.05)
   result.junctions.push({
     nodeId,
-    ring: points.map((p) => frame.toLoc(p)),
+    ring: outline.map((p) => frame.toLoc(p)),
     kerbs: kerbs.map((kerb) => kerb.map((p) => frame.toLoc(p))),
   })
 }
@@ -557,7 +654,7 @@ function ring(left: Vec2[], right: Vec2[], frame: MetricFrame): LonLat[] {
 }
 
 function drawWay(line: WayLine, junctions: Junctions, frame: MetricFrame, out: Out) {
-  const { way, points, nodeIds, at, total } = line
+  const { way, points, nodeIds, at } = line
   const cuts = [0]
   for (let i = 1; i < nodeIds.length - 1; i++) if (junctions.cuts.has(nodeIds[i]!)) cuts.push(i)
   cuts.push(nodeIds.length - 1)
@@ -639,8 +736,12 @@ function drawWay(line: WayLine, junctions: Junctions, frame: MetricFrame, out: O
       const to = atStart ? Math.min(local.length, inRun.lastIndexOf(true) + 2) : local.length
       if (to - from < 2) continue
       for (const taper of run.tapers) {
-        const leftD = local.map((_, i) => taper.collapse + (taper.target[0] - taper.collapse) * weights[i]!)
-        const rightD = local.map((_, i) => taper.collapse + (taper.target[1] - taper.collapse) * weights[i]!)
+        const leftD = local.map(
+          (_, i) => taper.collapse + (taper.target[0] - taper.collapse) * weights[i]!,
+        )
+        const rightD = local.map(
+          (_, i) => taper.collapse + (taper.target[1] - taper.collapse) * weights[i]!,
+        )
         out.lanes.push({
           wayId: way.id,
           laneId: `${taper.lane.id}#taper`,
@@ -663,11 +764,13 @@ function drawWay(line: WayLine, junctions: Junctions, frame: MetricFrame, out: O
       edge.forEach((point, i) => {
         if (keepMask[i]) current.push(point)
         else {
-          if (current.length >= 2) out.lines.push({ wayId: way.id, kind, line: current.map((q) => frame.toLoc(q)) })
+          if (current.length >= 2)
+            out.lines.push({ wayId: way.id, kind, line: current.map((q) => frame.toLoc(q)) })
           current = []
         }
       })
-      if (current.length >= 2) out.lines.push({ wayId: way.id, kind, line: current.map((q) => frame.toLoc(q)) })
+      if (current.length >= 2)
+        out.lines.push({ wayId: way.id, kind, line: current.map((q) => frame.toLoc(q)) })
     }
     const first = boundaries[0]
     const last = boundaries[boundaries.length - 1]
@@ -717,13 +820,14 @@ export function streetGeometry(input: StreetInput): StreetGeometry {
   }
   // one frame for the area, at its first node
   let origin: readonly [number, number] | undefined = input.origin
-  if (!origin) for (const way of input.ways) {
-    for (const id of way.nodes) {
-      origin = input.loc(id)
+  if (!origin)
+    for (const way of input.ways) {
+      for (const id of way.nodes) {
+        origin = input.loc(id)
+        if (origin) break
+      }
       if (origin) break
     }
-    if (origin) break
-  }
   if (!origin) return { ...out, junctions: [] }
   const frame = metricFrame(origin)
 

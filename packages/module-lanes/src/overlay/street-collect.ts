@@ -8,7 +8,14 @@
  * kept. A node drag on the dense fixture then costs a few ways, not three thousand.
  */
 import { isLaneRoad } from '../roads.ts'
-import { collect, streetOf, streetParts, type StreetCollections, type StreetEntity, type StreetParts } from './street.ts'
+import {
+  collect,
+  streetOf,
+  streetParts,
+  type StreetCollections,
+  type StreetEntity,
+  type StreetParts,
+} from './street.ts'
 
 export type StreetGraph = {
   readonly base: { readonly entities: ReadonlyMap<string, StreetEntity | undefined> }
@@ -22,7 +29,12 @@ const FULL_REDRAW = 400
 type Kept = { entity: StreetEntity; nodes: (StreetEntity | undefined)[] }
 
 function isStreetWay(entity: StreetEntity): boolean {
-  return entity.id.startsWith('w') && entity.nodes !== undefined && isLaneRoad(entity.tags) && entity.tags.area !== 'yes'
+  return (
+    entity.id.startsWith('w') &&
+    entity.nodes !== undefined &&
+    isLaneRoad(entity.tags) &&
+    entity.tags.area !== 'yes'
+  )
 }
 
 /** The lane roads of the graph: the base's, with the edits' over them (an undefined edit deletes) */
@@ -38,7 +50,8 @@ function laneWays(graph: StreetGraph): Map<string, StreetEntity> {
   return ways
 }
 
-const sameNodes = (a: readonly unknown[], b: readonly unknown[]) => a.length === b.length && a.every((x, i) => x === b[i])
+const sameNodes = (a: readonly unknown[], b: readonly unknown[]) =>
+  a.length === b.length && a.every((x, i) => x === b[i])
 
 export function streetCollector() {
   let kept = new Map<string, Kept>()
@@ -86,7 +99,12 @@ export function streetCollector() {
       for (const [id, entity] of ways) {
         const nodes = (entity.nodes ?? []).map((node) => graph.hasEntity(node))
         const before = kept.get(id)
-        now.set(id, before && before.entity === entity && sameNodes(before.nodes, nodes) ? before : { entity, nodes })
+        now.set(
+          id,
+          before && before.entity === entity && sameNodes(before.nodes, nodes)
+            ? before
+            : { entity, nodes },
+        )
         if (!before || before.entity !== entity || !sameNodes(before.nodes, nodes)) dirty.add(id)
       }
       for (const id of kept.keys()) if (!ways.has(id)) dirty.add(id)
@@ -121,7 +139,8 @@ export function streetCollector() {
         // the junctions at the nodes of the redrawn ways, before and after the change
         const nodes = new Set<string>()
         for (const id of redrawn) {
-          for (const source of [kept.get(id), now.get(id)]) for (const node of source?.entity.nodes ?? []) nodes.add(node)
+          for (const source of [kept.get(id), now.get(id)])
+            for (const node of source?.entity.nodes ?? []) nodes.add(node)
         }
         for (const id of redrawn) {
           const fresh = parts.byWay.get(id)

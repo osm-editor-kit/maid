@@ -1,20 +1,24 @@
+import { mkdirSync } from 'node:fs'
 /**
  * Screenshots of Maid Lanes at given places, for the street drawing: no request outside localhost, no background.
  *
  *   bun tools/bench/street-shot.ts <out-dir> <scene> <zoom/lat/lon> [<zoom/lat/lon> ...] [--query a=b]
  */
 import { chromium } from '@playwright/test'
-import { mkdirSync } from 'node:fs'
 import { PORTS } from '../ports'
 
 const args = process.argv.slice(2)
 const queryIndex = args.indexOf('--query')
 const query = queryIndex >= 0 ? `&${args[queryIndex + 1]}` : ''
-const [out = 'reports/street', scene = 'dense', ...places] = queryIndex >= 0 ? args.slice(0, queryIndex) : args
+const [out = 'reports/street', scene = 'dense', ...places] =
+  queryIndex >= 0 ? args.slice(0, queryIndex) : args
 mkdirSync(out, { recursive: true })
 const port = PORTS.maidLanes
 const browser = await chromium.launch({ channel: 'chrome', headless: true })
-const context = await browser.newContext({ viewport: { width: 1200, height: 900 }, deviceScaleFactor: 2 })
+const context = await browser.newContext({
+  viewport: { width: 1200, height: 900 },
+  deviceScaleFactor: 2,
+})
 const blocked = new Set<string>()
 await context.route(
   (url) => !['localhost', '127.0.0.1'].includes(url.hostname),
@@ -42,8 +46,19 @@ for (const [i, place] of places.entries()) {
   }
   if (process.env.STREET_HIDE) {
     await page.evaluate(() => {
-      const map = (window as unknown as { __maid: { map: { getStyle(): { layers: { id: string }[] }; setLayoutProperty(id: string, k: string, v: string): void } } }).__maid.map
-      for (const layer of map.getStyle().layers) if (layer.id.startsWith('maid-street')) map.setLayoutProperty(layer.id, 'visibility', 'none')
+      const map = (
+        window as unknown as {
+          __maid: {
+            map: {
+              getStyle(): { layers: { id: string }[] }
+              setLayoutProperty(id: string, k: string, v: string): void
+            }
+          }
+        }
+      ).__maid.map
+      for (const layer of map.getStyle().layers)
+        if (layer.id.startsWith('maid-street'))
+          map.setLayoutProperty(layer.id, 'visibility', 'none')
     })
     await page.waitForTimeout(500)
   }

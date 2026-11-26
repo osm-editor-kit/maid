@@ -86,7 +86,10 @@ const LAYERS = [
     minzoom: STREET_MIN_ZOOM,
     filter: ['==', ['get', 'kind'], 'kerb'],
     layout: { 'line-join': 'round', 'line-cap': 'round' },
-    paint: { 'line-color': '#e4e4e7', 'line-width': ['interpolate', ['linear'], ['zoom'], 16, 0.5, 20, 2] },
+    paint: {
+      'line-color': '#e4e4e7',
+      'line-width': ['interpolate', ['linear'], ['zoom'], 16, 0.5, 20, 2],
+    },
   },
   {
     id: 'maid-street-lane-lines',

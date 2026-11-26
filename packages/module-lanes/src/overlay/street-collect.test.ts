@@ -8,20 +8,36 @@ import { gunzipSync } from 'node:zlib'
 import { streetCollector, type StreetGraph } from './street-collect.ts'
 import type { StreetEntity } from './street.ts'
 
-type Element = { type: string; id: number; lat?: number; lon?: number; nodes?: number[]; tags?: Record<string, string> }
+type Element = {
+  type: string
+  id: number
+  lat?: number
+  lon?: number
+  nodes?: number[]
+  tags?: Record<string, string>
+}
 
 function denseBase(): Map<string, StreetEntity> {
   const file = new URL('../../../../fixtures/dense.json.gz', import.meta.url)
   const data = JSON.parse(gunzipSync(readFileSync(file)).toString()) as { elements: Element[] }
   const entities = new Map<string, StreetEntity>()
   for (const e of data.elements) {
-    if (e.type === 'node') entities.set(`n${e.id}`, { id: `n${e.id}`, tags: e.tags ?? {}, loc: [e.lon!, e.lat!] })
-    else if (e.type === 'way') entities.set(`w${e.id}`, { id: `w${e.id}`, tags: e.tags ?? {}, nodes: e.nodes!.map((n) => `n${n}`) })
+    if (e.type === 'node')
+      entities.set(`n${e.id}`, { id: `n${e.id}`, tags: e.tags ?? {}, loc: [e.lon!, e.lat!] })
+    else if (e.type === 'way')
+      entities.set(`w${e.id}`, {
+        id: `w${e.id}`,
+        tags: e.tags ?? {},
+        nodes: e.nodes!.map((n) => `n${n}`),
+      })
   }
   return entities
 }
 
-function graphOf(base: Map<string, StreetEntity>, local = new Map<string, StreetEntity | undefined>()): StreetGraph {
+function graphOf(
+  base: Map<string, StreetEntity>,
+  local = new Map<string, StreetEntity | undefined>(),
+): StreetGraph {
   return {
     base: { entities: base },
     local: { entities: local },
@@ -30,12 +46,20 @@ function graphOf(base: Map<string, StreetEntity>, local = new Map<string, Street
 }
 
 const finite = (value: unknown): boolean =>
-  Array.isArray(value) ? value.every(finite) : typeof value === 'number' ? Number.isFinite(value) : true
+  Array.isArray(value)
+    ? value.every(finite)
+    : typeof value === 'number'
+      ? Number.isFinite(value)
+      : true
 
 /** A collection's features as sorted JSON, rounded to a centimetre or so */
 const canonical = (features: { geometry: unknown; properties: unknown }[]) =>
   features
-    .map((f) => JSON.stringify([f.properties, f.geometry], (_, v) => (typeof v === 'number' ? Math.round(v * 1e7) / 1e7 : v)))
+    .map((f) =>
+      JSON.stringify([f.properties, f.geometry], (_, v) =>
+        typeof v === 'number' ? Math.round(v * 1e7) / 1e7 : v,
+      ),
+    )
     .sort()
 
 describe('the street drawing of the dense fixture', () => {
@@ -46,7 +70,9 @@ describe('the street drawing of the dense fixture', () => {
     const t = performance.now()
     const drawn = collector.update(graphOf(base))
     const ms = performance.now() - t
-    console.log(`street, dense: ${drawn.areas.features.length} areas, ${drawn.lines.features.length} lines, ${ms.toFixed(0)} ms`)
+    console.log(
+      `street, dense: ${drawn.areas.features.length} areas, ${drawn.lines.features.length} lines, ${ms.toFixed(0)} ms`,
+    )
     expect(drawn.areas.features.length).toBeGreaterThan(5000)
     for (const f of [...drawn.areas.features, ...drawn.lines.features, ...drawn.arrows.features]) {
       expect(finite((f.geometry as { coordinates: unknown }).coordinates)).toBe(true)

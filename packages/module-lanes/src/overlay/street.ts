@@ -212,7 +212,11 @@ export function streetParts(
   return { byWay, byNode }
 }
 
-export type StreetCollections = { areas: FeatureCollection; lines: FeatureCollection; arrows: FeatureCollection }
+export type StreetCollections = {
+  areas: FeatureCollection
+  lines: FeatureCollection
+  arrows: FeatureCollection
+}
 
 /** Parts put together into one collection each; junctions first, so the lanes draw over them in one layer too */
 export function collect(groups: Iterable<Iterable<StreetParts>>): StreetCollections {
@@ -234,7 +238,10 @@ export function collect(groups: Iterable<Iterable<StreetParts>>): StreetCollecti
 }
 
 /** The drawing as GeoJSON in one go */
-export function streetFeatures(geometry: StreetGeometry, assumed: ReadonlySet<string>): StreetCollections {
+export function streetFeatures(
+  geometry: StreetGeometry,
+  assumed: ReadonlySet<string>,
+): StreetCollections {
   const { byWay, byNode } = streetParts(geometry, assumed)
   return collect([byNode.values(), byWay.values()])
 }

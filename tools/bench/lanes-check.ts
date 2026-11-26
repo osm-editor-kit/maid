@@ -260,6 +260,33 @@ const failed = await runCheck(
     }
     report('from zoom 18 the lanes have arrows on the map', true, arrows > 0)
 
+    // --- the whole street: every loaded road with its lanes, joined at junctions (overlay/StreetOnMap.tsx) ---
+    let street: { lanes: string[]; junctions: number } = { lanes: [], junctions: 0 }
+    for (let i = 0; i < 40 && street.lanes.length < 2; i++) {
+      street = await page.evaluate((number) => {
+        const features = window.__maid.map.querySourceFeatures('maid-street-areas') as any[]
+        return {
+          lanes: [
+            ...new Set(
+              features
+                .filter(
+                  (f) => f.properties?.part === 'lane' && f.properties?.wayId === `w${number}`,
+                )
+                .map((f) => String(f.properties?.laneId)),
+            ),
+          ].sort(),
+          junctions: features.filter((f) => f.properties?.part === 'junction').length,
+        }
+      }, wayNumber)
+      if (street.lanes.length < 2) await page.waitForTimeout(250)
+    }
+    report(
+      'the street drawing has the lanes of the selected road, as its bands',
+      bands,
+      street.lanes,
+    )
+    report('and the junctions of the roads around', true, street.junctions > 0)
+
     // --- a lane rule in the Issues dock, and its fix ---
     await page.evaluate((id) => window.__maid.engine.setTag(id, 'lanes', '5'), road)
     await settle()

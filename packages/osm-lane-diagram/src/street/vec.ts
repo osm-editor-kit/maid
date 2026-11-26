@@ -49,7 +49,8 @@ export function angleBetween(a: Vec2, b: Vec2): number {
 /** Distance along the polyline at each vertex */
 export function cumulative(points: readonly Vec2[]): number[] {
   const out = [0]
-  for (let i = 1; i < points.length; i++) out.push(out[i - 1]! + len(sub(points[i]!, points[i - 1]!)))
+  for (let i = 1; i < points.length; i++)
+    out.push(out[i - 1]! + len(sub(points[i]!, points[i - 1]!)))
   return out
 }
 
@@ -78,7 +79,12 @@ export function pointAlong(points: readonly Vec2[], s: number): { point: Vec2; d
 }
 
 /** The part of the polyline from `from` to `to` metres along it, with vertices added at `breaks` (metres) */
-export function slicePolyline(points: readonly Vec2[], from: number, to: number, breaks: readonly number[] = []): Vec2[] {
+export function slicePolyline(
+  points: readonly Vec2[],
+  from: number,
+  to: number,
+  breaks: readonly number[] = [],
+): Vec2[] {
   const at = cumulative(points)
   const stations = new Set<number>([from, to])
   for (const s of at) if (s > from && s < to) stations.add(s)
