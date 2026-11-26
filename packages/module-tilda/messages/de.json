@@ -81,5 +81,7 @@
   "tilda_category_needsClarification": "Needs clarification",
   "tilda_category_data_no": "Keine Radinfrastruktur",
   "tilda_category_separate_geometry": "Als eigener Weg kartiert",
-  "tilda_category_not_expected": "Keine Radinfrastruktur zu erwarten"
+  "tilda_category_not_expected": "Keine Radinfrastruktur zu erwarten",
+  "tilda_line_direction": "Linienrichtung:",
+  "tilda_line_direction_hint": "Die Zeichenrichtung des Wegs, wie sie die weißen Pfeile am ausgewählten Weg auf der Karte zeigen"
 }

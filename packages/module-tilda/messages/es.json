@@ -81,5 +81,7 @@
   "tilda_category_needsClarification": "Necesita aclaración",
   "tilda_category_data_no": "Sin infraestructura ciclista",
   "tilda_category_separate_geometry": "Cartografiada como vía separada",
-  "tilda_category_not_expected": "No se espera infraestructura ciclista"
+  "tilda_category_not_expected": "No se espera infraestructura ciclista",
+  "tilda_line_direction": "Sentido de la línea:",
+  "tilda_line_direction_hint": "El sentido de dibujo de la vía, como lo muestran las flechas blancas de la vía seleccionada"
 }

@@ -81,5 +81,7 @@
   "tilda_category_needsClarification": "À clarifier",
   "tilda_category_data_no": "Pas d’infrastructure cyclable",
   "tilda_category_separate_geometry": "Cartographiée comme voie séparée",
-  "tilda_category_not_expected": "Aucune infrastructure cyclable attendue"
+  "tilda_category_not_expected": "Aucune infrastructure cyclable attendue",
+  "tilda_line_direction": "Sens de la ligne :",
+  "tilda_line_direction_hint": "Le sens de dessin du chemin, tel que le montrent les flèches blanches sur le chemin sélectionné"
 }
