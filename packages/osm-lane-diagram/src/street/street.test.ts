@@ -504,3 +504,144 @@ describe('streetGeometry: junctions of several nodes close together', () => {
     expect(g.junctions.every((j) => j.nodeIds === undefined)).toBe(true)
   })
 })
+
+describe('streetGeometry: forks, slip roads and merges', () => {
+  const oneWay = { highway: 'primary', oneway: 'yes' }
+  /** The y at which a lane's outline is at the node (x = 0): its two corners there */
+  const atNode = (g: StreetGeometry, wayId: string, laneId: string) =>
+    g.lanes
+      .find((l) => l.wayId === wayId && l.laneId === laneId)!
+      .ring.map(toMetres)
+      .filter(([x]) => Math.abs(x) < 0.01)
+      .map(([, y]) => y)
+      .sort((a, b) => a - b)
+
+  it('a slip road leaves (as L19): it starts on the right lane, the through lanes on theirs, no box', () => {
+    // three lanes become two, a one-lane link leaves to the right at about 11°
+    const g = build({ a: [-100, 0], b: [0, 0], c: [100, 0], d: [70, -14], e: [140, -45] }, [
+      { id: 'stem', nodes: ['a', 'b'], lanes: lanes('fff'), tags: oneWay },
+      { id: 'main', nodes: ['b', 'c'], lanes: lanes('ff'), tags: oneWay },
+      {
+        id: 'slip',
+        nodes: ['b', 'd', 'e'],
+        lanes: lanes('f'),
+        tags: { highway: 'primary_link', oneway: 'yes' },
+      },
+    ])
+    // the stem's lanes: 4.5 to 1.5, 1.5 to -1.5, -1.5 to -4.5 (north is left of a road going east)
+    expect(atNode(g, 'slip', 'f0')).toEqual([expect.closeTo(-4.5, 2), expect.closeTo(-1.5, 2)])
+    expect(atNode(g, 'main', 'f0')).toEqual([expect.closeTo(1.5, 2), expect.closeTo(4.5, 2)])
+    expect(atNode(g, 'main', 'f1')).toEqual([expect.closeTo(-1.5, 2), expect.closeTo(1.5, 2)])
+    expect(g.lanes.filter((l) => l.taper)).toHaveLength(0)
+    // further on each road is where its way is
+    const far = pointsOf(g, 'main').filter(([x]) => x > 60)
+    expect(Math.max(...far.map(([, y]) => y))).toBeCloseTo(3, 2)
+    expect(Math.min(...far.map(([, y]) => y))).toBeCloseTo(-3, 2)
+    // only the wedge between the two roads is the fork's surface: it starts at the node and lies off the through lanes
+    expect(g.junctions).toHaveLength(1)
+    const wedge = g.junctions[0]!.ring.map(toMetres)
+    expect(selfIntersects(g.junctions[0]!.ring)).toBe(false)
+    expect(Math.min(...wedge.map(([x]) => x))).toBeCloseTo(0, 2)
+    expect(Math.max(...wedge.map(([, y]) => y))).toBeLessThan(-1.4)
+    expect(Math.min(...wedge.map(([, y]) => y))).toBeGreaterThan(-9)
+    for (const lane of g.lanes) expect(selfIntersects(lane.ring)).toBe(false)
+  })
+
+  it('a slip road with no lane of its own on the stem peels off the outer lane, the main road is unchanged', () => {
+    const g = build({ a: [-100, 0], b: [0, 0], c: [100, 0], d: [70, -14] }, [
+      { id: 'main', nodes: ['a', 'b', 'c'], lanes: lanes('ff'), tags: oneWay },
+      {
+        id: 'slip',
+        nodes: ['b', 'd'],
+        lanes: lanes('f'),
+        tags: { highway: 'primary_link', oneway: 'yes' },
+      },
+    ])
+    expect(atNode(g, 'slip', 'f0')).toEqual([expect.closeTo(-3, 2), expect.closeTo(0, 2)])
+    const ys = pointsOf(g, 'main').map(([, y]) => y)
+    expect(Math.max(...ys)).toBeCloseTo(3, 2)
+    expect(Math.min(...ys)).toBeCloseTo(-3, 2)
+    expect(g.junctions).toHaveLength(0)
+    // the main road's kerb on the slip road's side is open at the mouth and starts again beyond it
+    const south = g.lines
+      .filter((l) => l.wayId === 'main' && l.kind === 'kerb')
+      .map((l) => l.line.map(toMetres))
+      .filter((line) => line.every(([x, y]) => x > 0.01 && y < -2.9))
+    expect(south).toHaveLength(1)
+    expect(Math.min(...south[0]!.map(([x]) => x))).toBeGreaterThan(5)
+  })
+
+  it('two one-way roads join (as L20): each runs into its side of the joined road, its kerbs run on', () => {
+    const g = build({ a: [-80, 13], b: [-80, -13], c: [0, 0], d: [100, 0] }, [
+      { id: 'north', nodes: ['a', 'c'], lanes: lanes('f'), tags: oneWay },
+      { id: 'south', nodes: ['b', 'c'], lanes: lanes('f'), tags: oneWay },
+      { id: 'joined', nodes: ['c', 'd'], lanes: lanes('ff'), tags: oneWay },
+    ])
+    expect(atNode(g, 'north', 'f0')).toEqual([expect.closeTo(0, 2), expect.closeTo(3, 2)])
+    expect(atNode(g, 'south', 'f0')).toEqual([expect.closeTo(-3, 2), expect.closeTo(0, 2)])
+    expect(g.lanes.filter((l) => l.taper)).toHaveLength(0)
+    // the joined road is untouched, and a kerb of each branch ends on its kerb
+    const ys = pointsOf(g, 'joined').map(([, y]) => y)
+    expect(Math.max(...ys)).toBeCloseTo(3, 2)
+    expect(Math.min(...ys)).toBeCloseTo(-3, 2)
+    const kerbEnds = (wayId: string) =>
+      g.lines
+        .filter((l) => l.wayId === wayId && l.kind === 'kerb')
+        .flatMap((l) => [l.line[0]!, l.line[l.line.length - 1]!].map(toMetres))
+    expect(kerbEnds('north').some(([x, y]) => Math.hypot(x, y - 3) < 0.01)).toBe(true)
+    expect(kerbEnds('south').some(([x, y]) => Math.hypot(x, y + 3) < 0.01)).toBe(true)
+    expect(g.junctions).toHaveLength(1)
+    expect(selfIntersects(g.junctions[0]!.ring)).toBe(false)
+  })
+
+  it('a road parts into its two carriageways (as L11): each takes the lanes of its direction, a wedge opens between', () => {
+    // traffic keeps right: the eastbound carriageway is the southern one
+    const g = build(
+      { a: [-100, 0], b: [0, 0], c: [60, -14], d: [140, -14], e: [140, 14], f: [60, 14] },
+      [
+        { id: 'stem', nodes: ['a', 'b'], lanes: lanes('bbff') },
+        { id: 'east', nodes: ['b', 'c', 'd'], lanes: lanes('ff'), tags: oneWay },
+        { id: 'west', nodes: ['e', 'f', 'b'], lanes: lanes('ff'), tags: oneWay },
+      ],
+    )
+    expect(atNode(g, 'east', 'f0')).toEqual([expect.closeTo(-3, 2), expect.closeTo(0, 2)])
+    expect(atNode(g, 'east', 'f1')).toEqual([expect.closeTo(-6, 2), expect.closeTo(-3, 2)])
+    // (the westbound way runs towards the node: its left lane is the southern one)
+    expect(atNode(g, 'west', 'f0')).toEqual([expect.closeTo(0, 2), expect.closeTo(3, 2)])
+    expect(atNode(g, 'west', 'f1')).toEqual([expect.closeTo(3, 2), expect.closeTo(6, 2)])
+    expect(g.lanes.filter((l) => l.taper)).toHaveLength(0)
+    expect(g.junctions).toHaveLength(1)
+    const wedge = g.junctions[0]!.ring.map(toMetres)
+    expect(selfIntersects(g.junctions[0]!.ring)).toBe(false)
+    expect(Math.max(...wedge.map(([, y]) => Math.abs(y)))).toBeLessThan(2)
+    expect(Math.max(...wedge.map(([x]) => x))).toBeLessThan(40)
+    for (const lane of g.lanes) expect(selfIntersects(lane.ring)).toBe(false)
+  })
+
+  it('no fork where traffic would cross, at a wide angle, or just before a junction', () => {
+    // the one-way road leaving on the left of a two-way road that runs on crosses the oncoming lanes
+    const crossing = build({ a: [-100, 0], b: [0, 0], c: [100, 0], d: [80, 20] }, [
+      { id: 'main', nodes: ['a', 'b', 'c'], lanes: lanes('bf') },
+      { id: 'left', nodes: ['b', 'd'], lanes: lanes('f'), tags: oneWay },
+    ])
+    expect(crossing.lines.filter((l) => l.wayId === 'main' && l.kind === 'centre')).toHaveLength(2)
+    expect(Math.min(...pointsOf(crossing, 'left').map(([x]) => x))).toBeGreaterThan(3)
+    // a side street at 60°
+    const wide = build({ a: [-100, 0], b: [0, 0], c: [100, 0], d: [40, -70] }, [
+      { id: 'main', nodes: ['a', 'b', 'c'], lanes: lanes('ff'), tags: oneWay },
+      { id: 'side', nodes: ['b', 'd'], lanes: lanes('f'), tags: oneWay },
+    ])
+    expect(Math.max(...pointsOf(wide, 'side').map(([, y]) => y))).toBeLessThan(-2.9)
+    // a slip road 15 m before a crossroads belongs to that junction
+    const close = build(
+      { a: [-100, 0], b: [0, 0], c: [15, 0], d: [100, 0], e: [70, -14], n: [15, 60], s: [15, -3] },
+      [
+        { id: 'main', nodes: ['a', 'b', 'c', 'd'], lanes: lanes('ff'), tags: oneWay },
+        { id: 'slip', nodes: ['b', 'e'], lanes: lanes('f'), tags: oneWay },
+        { id: 'cross', nodes: ['n', 'c', 's'], lanes: lanes('bf') },
+      ],
+    )
+    expect(close.junctions).toHaveLength(1)
+    expect(close.junctions[0]!.nodeIds).toEqual(['b', 'c'])
+  })
+})

@@ -122,6 +122,32 @@ describe('the street drawing of the dense fixture', () => {
     expect(canonical(step.lines.features)).toEqual(canonical(fresh.lines.features))
   })
 
+  test('a drag step at a fork (Karl-Marx-Straße parting into its carriageways) equals drawing everything again', () => {
+    const collector = streetCollector()
+    collector.update(graphOf(base))
+    // the node nearest to where the street parts, 52.480286 13.436081
+    let nodeId = ''
+    let best = Infinity
+    for (const entity of base.values()) {
+      if (!entity.loc) continue
+      const d = Math.hypot(entity.loc[0]! - 13.436081, entity.loc[1]! - 52.480286)
+      if (d < best) {
+        best = d
+        nodeId = entity.id
+      }
+    }
+    const node = base.get(nodeId)!
+    const moved = {
+      ...node,
+      loc: [node.loc![0]! - 0.00002, node.loc![1]! + 0.00001] as [number, number],
+    }
+    const local = new Map<string, StreetEntity | undefined>([[nodeId, moved]])
+    const step = collector.update(graphOf(base, local))
+    const fresh = streetCollector().update(graphOf(base, local))
+    expect(canonical(step.areas.features)).toEqual(canonical(fresh.areas.features))
+    expect(canonical(step.lines.features)).toEqual(canonical(fresh.lines.features))
+  })
+
   test('nothing changed: the same collections', () => {
     const collector = streetCollector()
     const first = collector.update(graphOf(base))

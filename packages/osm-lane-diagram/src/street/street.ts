@@ -19,10 +19,18 @@
  *   nodes' boxes and the short pieces as one shape, the outline here is walked round the outside of the group, from
  *   each road leaving it to the next and along the kerbs of the short pieces, so it is one ring. A short piece that is
  *   the main road at both its ends keeps its lanes, without lines.
+ * - **Forks, slip roads and merges.** Where a road divides at a shallow angle and no traffic crosses (a slip road
+ *   leaving, two one-way roads joining, a road parting into its two carriageways), the node is no junction (Lane
+ *   Studio's `splitAt`, `alignFork`, `alignBranches` and `alignMerges`, here as one rule): the road before the fork (the
+ *   stem) ends square at the node, its lanes are shared out among the roads beyond (Lane Studio's `shareOut`), and
+ *   each of those starts on its share, cut along the stem's end, and runs in straight lines to its own lanes. The wedge
+ *   between two of them, up to where they have drawn apart, is the fork's surface. A slip road with no lane of its own
+ *   on the stem peels off the outer lane.
  * - **Pieces.** Each way is cut at its junction nodes; each piece is offset per lane with mitre joins (`vec.ts`).
  *
- * Left out for now (Lane Studio has them): forks and dual carriageways splitting, roundabout flares, turning heads,
- * guide lines through junctions, connectivity relations, carriageway areas, painted islands.
+ * Left out for now (Lane Studio has them): forks of more than three roads, roundabout flares, turning heads, guide
+ * lines through junctions, connectivity relations, carriageway areas, painted islands, hard shoulders beside slip
+ * roads, and telling a merge from a road that gives way at its end (the drawing gets no node tags).
  *
  * Pure: plain data in, plain data out, no caches.
  */
@@ -71,6 +79,17 @@ const RUN_SHARE = 0.45
 const SAME_EDGE = 0.05
 /** Junction nodes joined by a piece shorter than this are one junction (Lane Studio's `clusterLink`) */
 const CLUSTER_LINK = 25
+/** At a fork, each road beyond lies within this angle of straight on from the stem, in degrees */
+const FORK_ANGLE = 35
+/** A fork's roads run from the stem's lanes to their own over at least this length */
+const FORK_RUN = 15
+/** ...and at most this share of the shortest of them, where a junction follows and where none does */
+const FORK_SHARE = 0.6
+const FORK_SHARE_FREE = 0.9
+/** A road shorter than this up to its next junction does not fork: it is part of that junction */
+const FORK_MIN_PIECE = 20
+/** How far along a fork's roads the point where they are clear of each other is looked for */
+const FORK_CLEAR = 60
 /** Turn arrows sit this far before the end of the lane */
 const ARROW_FROM_END = 12
 
@@ -131,6 +150,13 @@ type Run = {
   /** Per own lane (by index in WayLine.lanes): the edges at the node, in way orientation */
   targets: ([number, number] | undefined)[]
   tapers: RunTaper[]
+  /**
+   * At a fork: the run's length, and where the targets are measured: along `axis` from the node (the stem's square
+   * end, towards the way's right), not across this road. An edge is moved as a whole from where the road's own square
+   * end has it (along `normal`, the way's right at the node) onto its target, less and less along the run: in a
+   * straight line, not eased, so the edges of two roads leaving one point do not cross on their way apart.
+   */
+  fork?: { length: number; axis: Vec2; normal: Vec2 }
 }
 
 /** Lane lines and kerbs stop this far from the node (main road through a junction) */
@@ -360,30 +386,45 @@ function pairGroup(
   own: StreetLane[],
   other: StreetLane[],
   innerFirst: boolean,
+  byKind: boolean,
 ): [number | undefined, number | undefined][] {
   const bigger = own.length >= other.length ? own : other
   const inner = innerFirst ? bigger[0] : bigger[bigger.length - 1]
   const turnLane = own.length !== other.length && onlyTurnsLeft(inner)
-  const fromStart = innerFirst !== turnLane
   const n = Math.max(own.length, other.length)
-  const pairs: [number | undefined, number | undefined][] = []
-  for (let i = 0; i < n; i++) {
-    const a = fromStart ? i : own.length - 1 - i
-    const b = fromStart ? i : other.length - 1 - i
-    pairs.push([
-      a >= 0 && a < own.length ? a : undefined,
-      b >= 0 && b < other.length ? b : undefined,
-    ])
+  const pairsFrom = (fromStart: boolean) => {
+    const pairs: [number | undefined, number | undefined][] = []
+    for (let i = 0; i < n; i++) {
+      const a = fromStart ? i : own.length - 1 - i
+      const b = fromStart ? i : other.length - 1 - i
+      pairs.push([
+        a >= 0 && a < own.length ? a : undefined,
+        b >= 0 && b < other.length ? b : undefined,
+      ])
+    }
+    return pairs
   }
-  return pairs
+  const pairs = pairsFrom(innerFirst !== turnLane)
+  if (!byKind || own.length === other.length) return pairs
+  // from the side that pairs more lanes of one kind: a cycle lane at the kerb carries on as the cycle lane
+  const alike = (list: typeof pairs) =>
+    list.filter(([a, b]) => a !== undefined && b !== undefined && own[a]!.kind === other[b]!.kind)
+      .length
+  const others = pairsFrom(innerFirst === turnLane)
+  return alike(others) > alike(pairs) ? others : pairs
 }
 
 /**
  * The run of `own` out of `other` at one node: `other`'s lanes are already in `own`'s way orientation. Lanes are
  * grouped by direction (backward, both ways, forward, as they lie left to right on a road where traffic keeps right)
- * and paired within a group from the middle of the road outwards.
+ * and paired within a group from the middle of the road outwards; `byKind` (at a fork): from the side on which more
+ * lanes of one kind pair up.
  */
-function runOf(own: readonly StreetLane[], other: readonly StreetLane[]): Run | undefined {
+function runOf(
+  own: readonly StreetLane[],
+  other: readonly StreetLane[],
+  byKind = false,
+): Run | undefined {
   if (own.length === 1 || other.length === 1) return affineRun(own, other)
   const groupOf = (lanes: readonly StreetLane[]) => ({
     backward: lanes.filter((lane) => lane.direction === 'backward'),
@@ -408,7 +449,7 @@ function runOf(own: readonly StreetLane[], other: readonly StreetLane[]): Run | 
         [[[...own], [...other], !(a.backward.length > 0 || b.backward.length > 0)]]
 
   for (const [mine, theirs, innerFirst] of groups) {
-    const pairs = pairGroup(mine, theirs, innerFirst)
+    const pairs = pairGroup(mine, theirs, innerFirst, byKind)
     // the edge a lane without partner closes onto: the side of its nearest paired neighbour towards it
     for (let p = 0; p < pairs.length; p++) {
       const [i, j] = pairs[p]!
@@ -732,6 +773,274 @@ function junctionAt(
   })
 }
 
+/* ---------- forks: slip roads, merges, a road parting into its carriageways ---------- */
+
+/** A road beyond a fork */
+type ForkBranch = {
+  arm: Arm
+  /**
+   * Its share of the stem's end: from and to, in metres across the stem at the node, to the right of someone looking
+   * from the stem on over the fork
+   */
+  span: [number, number]
+  /** The stem's lanes of its share, as lanes of this road: offsets along the stem's end, to the way's right */
+  lanes: StreetLane[]
+  /** The length of its piece, up to its next junction or its end */
+  piece: number
+  /** How much of that the fork may take: less where a junction follows, which pulls the road back */
+  room: number
+}
+
+/** A fork: the road before it and the two roads beyond, the left one first (as seen from the stem) */
+type Fork = { stem: Arm; right: Vec2; branches: [ForkBranch, ForkBranch] }
+
+/**
+ * Shares `n` lanes (left to right) out among roads of `counts` lanes each (left to right), in proportion: each road
+ * takes the lanes nearest its side, at least one; a lane between two shares goes to both (Lane Studio's `shareOut`)
+ */
+function shareOut(n: number, counts: readonly number[]): [number, number][] {
+  const total = counts.reduce((a, b) => a + b, 0)
+  let start = 0
+  return counts.map((count) => {
+    const from = Math.min(n - 1, Math.floor((start * n) / total))
+    start += count
+    const to = Math.min(n, Math.max(from + 1, Math.ceil((start * n) / total)))
+    return [from, to]
+  })
+}
+
+/**
+ * The fork at a node of three arms, or null: one arm (the stem) with the two others carrying on from it at shallow
+ * angles, and lanes such that no traffic crosses: what arrives on the stem leaves on the roads beyond, what arrives on
+ * those leaves on the stem, and the shares of the stem's lanes lie side by side as the roads do. That is a slip road
+ * leaving or joining a road that runs on, two one-way roads joining, a road parting into two carriageways (Lane
+ * Studio's `splitAt`, and what its `alignBranches` and `alignMerges` take as a slip road). `cutNodes`: where the ways
+ * are cut, for the length of each road beyond the fork.
+ */
+function forkAt(arms: readonly Arm[], cutNodes: ReadonlySet<string>): Fork | null {
+  if (arms.length !== 3 || arms.some(isRing)) return null
+  // (a lane used both ways has no side of the road to share out)
+  if (arms.some((arm) => arm.line.lanes.some((lane) => lane.direction === 'both_ways'))) return null
+  let best: { fork: Fork; deviation: number } | null = null
+  for (const stem of arms) {
+    const others = arms.filter((arm) => arm !== stem)
+    const ahead = scale(stem.direction, -1)
+    const deviation = Math.max(...others.map((arm) => angleBetween(arm.direction, ahead)))
+    if (deviation > FORK_ANGLE || (best && best.deviation <= deviation)) continue
+    if (others[0]!.line === others[1]!.line) continue
+    // the stem ends square across itself: `right` is along its end
+    const right = rightNormal(scale(stem.first, -1))
+    if (others.some((arm) => dot(right, rightNormal(arm.first)) < 0.7)) continue
+    const [a, b] = [...others].sort((p, q) => dot(p.direction, right) - dot(q.direction, right))
+    const pieces = [a!, b!].map((arm) => {
+      const far = nextCut(arm.line, arm.index, arm.alongWay ? 1 : -1, cutNodes)
+      const end = far < 0 ? (arm.alongWay ? arm.line.total : 0) : arm.line.at[far]!
+      const piece = Math.abs(end - arm.line.at[arm.index]!)
+      return { piece, room: piece * (far < 0 ? FORK_SHARE_FREE : FORK_SHARE) }
+    })
+    if (Math.min(...pieces.map((p) => p.piece)) < FORK_MIN_PIECE) continue
+
+    const spans: [number, number][] = [
+      [Infinity, -Infinity],
+      [Infinity, -Infinity],
+    ]
+    const shared: StreetLane[][] = [[], []]
+    let fits = true
+    // traffic arriving on the stem and leaving on the roads beyond, then the other way round
+    for (const arriving of [true, false]) {
+      // the stem's lanes that way, across its end from left to right
+      const wanted = arriving === stem.alongWay ? 'backward' : 'forward'
+      const stemLanes = stem.line.lanes
+        .filter((lane) => lane.direction === wanted)
+        .map((lane) => ({
+          lane,
+          across: (stem.alongWay ? [-lane.right, -lane.left] : [lane.left, lane.right]) as [
+            number,
+            number,
+          ],
+        }))
+        .sort((p, q) => p.across[0] - q.across[0])
+      const counts = [a!, b!].map((arm) => {
+        const away = arriving === arm.alongWay ? 'forward' : 'backward'
+        return arm.line.lanes.filter((lane) => lane.direction === away).length
+      })
+      const takers = counts.flatMap((count, k) => (count > 0 ? [k] : []))
+      if (stemLanes.length === 0 && takers.length === 0) continue
+      if (stemLanes.length === 0 || takers.length === 0) {
+        fits = false
+        break
+      }
+      const shares = shareOut(
+        stemLanes.length,
+        takers.map((k) => counts[k]!),
+      )
+      takers.forEach((k, t) => {
+        const [from, to] = shares[t]!
+        spans[k] = [
+          Math.min(spans[k]![0], stemLanes[from]!.across[0]),
+          Math.max(spans[k]![1], stemLanes[to - 1]!.across[1]),
+        ]
+        // as lanes of the road beyond: what arrives on the stem carries on away from the node
+        const arm = k === 0 ? a! : b!
+        for (const { lane, across } of stemLanes.slice(from, to)) {
+          shared[k]!.push({
+            id: lane.id,
+            kind: lane.kind,
+            left: arm.alongWay ? across[0] : -across[1],
+            right: arm.alongWay ? across[1] : -across[0],
+            direction: arriving === arm.alongWay ? 'forward' : 'backward',
+          })
+        }
+      })
+    }
+    // the shares lie as the roads do: otherwise one road's traffic would cross the other's
+    if (
+      !fits ||
+      spans.some((span) => !(span[1] > span[0])) ||
+      spans[0]![0] > spans[1]![0] + SAME_EDGE ||
+      spans[0]![1] > spans[1]![1] + SAME_EDGE
+    )
+      continue
+    best = {
+      deviation,
+      fork: {
+        stem,
+        right,
+        branches: [
+          { arm: a!, span: spans[0]!, lanes: shared[0]!, ...pieces[0]! },
+          { arm: b!, span: spans[1]!, lanes: shared[1]!, ...pieces[1]! },
+        ],
+      },
+    }
+  }
+  return best?.fork ?? null
+}
+
+/**
+ * An edge of a road beyond a fork over the first `length` metres, from the node outwards, as `drawWay` draws it: the
+ * road's own edge (`own`, in the arm's frame), moved by `shift` at the node and less and less up to `length`. `at`: how
+ * far along the road each point is.
+ */
+function forkEdge(arm: Arm, own: number, shift: Vec2, length: number) {
+  const points = slicePolyline(arm.points, 0, Math.min(length, polylineLength(arm.points)))
+  const at = cumulative(points)
+  const edge = offsetPolyline(
+    points,
+    points.map(() => own),
+  ).map((p, i) => add(p, scale(shift, Math.max(0, 1 - at[i]! / length))))
+  return { edge, at }
+}
+
+/** Where two lines first cross: the segment of each and how far along it, 0 to 1 */
+function linesCross(a: readonly Vec2[], b: readonly Vec2[]) {
+  for (let i = 0; i + 1 < a.length; i++) {
+    for (let j = 0; j + 1 < b.length; j++) {
+      const meet = crossing(a[i]!, a[i + 1]!, b[j]!, b[j + 1]!)
+      if (!meet) continue
+      const share = (p: Vec2, q: Vec2) => len(sub(meet, p)) / len(sub(q, p))
+      return { i, ti: share(a[i]!, a[i + 1]!), j, tj: share(b[j]!, b[j + 1]!) }
+    }
+  }
+  return undefined
+}
+
+/**
+ * A fork is no junction (Lane Studio's `alignFork` and `splitJunction`): the stem runs up to the node and ends square,
+ * and each road beyond starts there on its share of the stem's lanes and runs in straight lines to its own lanes.
+ * (Lane Studio cuts the road's end along the stem's and moves its lane edges sideways; here each edge is moved as a
+ * whole from the road's own square end onto the stem's, which leaves no kink at a vertex close to the node.) The
+ * length of that is the same for both roads, so their edges do not cross: to where the two are clear of each other
+ * and a little on. The wedge between them up to there is the fork's surface, with a kerb across its tip. Where the
+ * two start on the same lane (a slip road peeling off a lane that runs on), their kerbs start where they part.
+ */
+function forkJunction(nodeId: string, fork: Fork, frame: MetricFrame, result: Junctions) {
+  result.cuts.add(nodeId)
+  const [a, b] = fork.branches
+  const ends = fork.branches.map(({ arm, lanes }) => {
+    const { line } = arm
+    const normal = scale(rightNormal(arm.first), arm.alongWay ? 1 : -1)
+    const axis = scale(fork.right, arm.alongWay ? 1 : -1)
+    // its lanes carry on from the stem's lanes of its share, as the lanes of a road running on do (`runOf`)
+    const run = runOf(
+      line.lanes,
+      [...lanes].sort((p, q) => p.left - q.left),
+      true,
+    )
+    const targets = line.lanes.map(
+      (lane, i): [number, number] => run?.targets[i] ?? [lane.left, lane.right],
+    )
+    const tapers = run?.tapers ?? []
+    /** How far an edge is moved at the node: from `own` across this road to `target` along the stem's end */
+    const shift = (own: number, target: number): Vec2 =>
+      sub(scale(axis, target), scale(normal, own))
+    // the outer edges of all that starts at the node, lanes of the stem narrowing to nothing on this road too
+    const from = Math.min(...targets.map((t) => t[0]), ...tapers.map((t) => t.target[0]))
+    const to = Math.max(...targets.map((t) => t[1]), ...tapers.map((t) => t.target[1]))
+    return {
+      arm,
+      axis,
+      normal,
+      targets,
+      tapers,
+      outer: [shift(line.left, from), shift(line.right, to)],
+    }
+  })
+  const moved = Math.max(...ends.flatMap(({ outer }) => outer.map(len)))
+  // where the two roads' own edges are clear of each other
+  let clear = 0
+  const reach = Math.min(FORK_CLEAR, a.piece, b.piece)
+  while (
+    clear < reach &&
+    (distanceTo(b.arm.points, edgeAt(a.arm, clear, 'right')) < -b.arm.left + 0.2 ||
+      distanceTo(a.arm.points, edgeAt(b.arm, clear, 'left')) < a.arm.right + 0.2)
+  )
+    clear += 1
+  const length = Math.min(Math.max(FORK_RUN, moved * 4, clear + 3), a.room, b.room)
+  for (const { arm, axis, normal, targets, tapers } of ends)
+    result.runs.set(keyOf(arm), { targets, tapers, fork: { length, axis, normal } })
+
+  // the edges of the two roads that face each other: the left road's right one, the right road's left one
+  const inner = (k: 0 | 1) => {
+    const { arm, outer } = ends[k]!
+    const side = k === 0 ? 'right' : 'left'
+    // in the way's frame an arm against the way has its sides swapped
+    const waySide = arm.alongWay ? side : side === 'left' ? 'right' : 'left'
+    return { arm, waySide, ...forkEdge(arm, arm[side], outer[waySide === 'left' ? 0 : 1]!, length) }
+  }
+  const edgeA = inner(0)
+  const edgeB = inner(1)
+  const marksFrom = (side: ReturnType<typeof inner>, from: number) =>
+    result.marks.set(keyOf(side.arm), { left: 0, right: 0, lanes: 0, [side.waySide]: from })
+  const cross = linesCross(edgeA.edge, edgeB.edge)
+  if (a.span[1] > b.span[0] + SAME_EDGE || length < clear) {
+    // both start on one lane, or the run is cut short before the roads are clear of each other: no kerb between
+    // them up to where their edges cross
+    const station = (side: ReturnType<typeof inner>, i: number, t: number) =>
+      side.at[i]! + (side.at[i + 1]! - side.at[i]!) * t
+    marksFrom(edgeA, cross ? station(edgeA, cross.i, cross.ti) : length)
+    marksFrom(edgeB, cross ? station(edgeB, cross.j, cross.tj) : length)
+    return
+  }
+  const tipA = edgeA.edge[edgeA.edge.length - 1]!
+  const tipB = edgeB.edge[edgeB.edge.length - 1]!
+  const outline = cleaned([...edgeB.edge, ...[...edgeA.edge].reverse()])
+  // only where the roads have drawn apart by the end of the wedge; cut short, they lie over each other
+  if (
+    cross ||
+    outline.length < 3 ||
+    signedArea2(outline) < 1 ||
+    dot(sub(tipB, tipA), fork.right) < 0
+  )
+    return
+  marksFrom(edgeA, length)
+  marksFrom(edgeB, length)
+  result.junctions.push({
+    nodeId,
+    ring: outline.map((p) => frame.toLoc(p)),
+    kerbs: len(sub(tipB, tipA)) > 0.3 ? [[tipA, tipB].map((p) => frame.toLoc(p))] : [],
+  })
+}
+
 /* ---------- junctions of several nodes ---------- */
 
 /** The index of the next junction node along a way from `index`, or -1 */
@@ -750,6 +1059,7 @@ function junctionGroups(
   lines: readonly WayLine[],
   junctionNodes: ReadonlySet<string>,
   inner: Set<string>,
+  forkNodes: ReadonlySet<string>,
 ): string[][] {
   const parent = new Map<string, string>()
   const linked = new Set<string>()
@@ -764,6 +1074,8 @@ function junctionGroups(
     if (tags.junction === 'roundabout' || tags.junction === 'circular') continue
     let last = -1
     line.nodeIds.forEach((id, i) => {
+      // the ways are cut at a fork too: no short piece runs across one
+      if (forkNodes.has(id)) last = -1
       if (!junctionNodes.has(id)) return
       const from = last
       last = i
@@ -992,16 +1304,25 @@ function drawWay(line: WayLine, junctions: Junctions, frame: MetricFrame, out: O
     }
     const runStart = trimStart < 0.01 ? junctions.runs.get(startKey) : undefined
     const runEnd = trimEnd < 0.01 ? junctions.runs.get(endKey) : undefined
-    const runLength = Math.min(RUN_LENGTH, length * RUN_SHARE)
+    // (a fork's run has its own length, but ends before a junction's trim at the piece's other end)
+    const runLengthOf = (run: Run | undefined, otherTrim: number) =>
+      run?.fork === undefined
+        ? Math.min(RUN_LENGTH, length * RUN_SHARE)
+        : Math.max(1, Math.min(run.fork.length, length - otherTrim - 1))
+    const runLengthStart = runLengthOf(runStart, trimEnd)
+    const runLengthEnd = runLengthOf(runEnd, trimStart)
+    const markStart = trimStart < 0.01 ? junctions.marks.get(startKey) : undefined
+    const markEnd = trimEnd < 0.01 ? junctions.marks.get(endKey) : undefined
     const centre = points.slice(a, b + 1)
-    // vertices every 2 m along a run, so its edges ease smoothly
+    // vertices every 2 m along a run, so its edges ease smoothly; a fork's run is straight and needs only its end
     const breaks: number[] = []
-    for (const [run, from] of [
-      [runStart, 0],
-      [runEnd, length - runLength],
+    for (const [run, from, runLength] of [
+      [runStart, 0, runLengthStart],
+      [runEnd, length - runLengthEnd, runLengthEnd],
     ] as const) {
       if (!run) continue
-      for (let s = 0; s <= runLength; s += 2) breaks.push(from + s)
+      if (run.fork) breaks.push(from, from + runLength)
+      else for (let s = 0; s <= runLength; s += 2) breaks.push(from + s)
     }
     const sliced = slicePolyline(centre, trimStart, length - trimEnd, breaks)
     const local = cumulative(sliced).map((s) => s + trimStart)
@@ -1013,14 +1334,17 @@ function drawWay(line: WayLine, junctions: Junctions, frame: MetricFrame, out: O
     const offset = (distances: number[]) => offsetPolyline(sliced, distances, ends)
 
     // run weights at each vertex: 1 at the node, 0 a run's length on
-    const wStart = local.map((s) => (runStart ? smooth(1 - s / runLength) : 0))
-    const wEnd = local.map((s) => (runEnd ? smooth(1 - (length - s) / runLength) : 0))
+    const weight = (run: Run | undefined, x: number) =>
+      !run ? 0 : run.fork === undefined ? smooth(x) : Math.max(0, Math.min(1, x))
+    const wStart = local.map((s) => weight(runStart, 1 - s / runLengthStart))
+    const wEnd = local.map((s) => weight(runEnd, 1 - (length - s) / runLengthEnd))
     const edgeOf = (laneIndex: number, side: 0 | 1, i: number) => {
       const lane = line.lanes[laneIndex]!
       const own = side === 0 ? lane.left : lane.right
       let value = own
-      const ts = runStart?.targets[laneIndex]
-      const te = runEnd?.targets[laneIndex]
+      // (a fork's targets are not across this road: its edges are moved afterwards)
+      const ts = runStart?.fork ? undefined : runStart?.targets[laneIndex]
+      const te = runEnd?.fork ? undefined : runEnd?.targets[laneIndex]
       if (ts) value += (ts[side] - own) * wStart[i]!
       if (te) value += (te[side] - own) * wEnd[i]!
       return value
@@ -1030,6 +1354,23 @@ function drawWay(line: WayLine, junctions: Junctions, frame: MetricFrame, out: O
       left: offset(local.map((_, i) => edgeOf(laneIndex, 0, i))),
       right: offset(local.map((_, i) => edgeOf(laneIndex, 1, i))),
     }))
+    // beyond a fork the edges start on the stem's end and run to their own places
+    const forkShift = (run: Run, own: number, target: number): Vec2 =>
+      sub(scale(run.fork!.axis, target), scale(run.fork!.normal, own))
+    const moved = (edge: Vec2[], by: Vec2, weights: number[]) =>
+      edge.map((p, i) => add(p, scale(by, weights[i]!)))
+    for (const [run, weights] of [
+      [runStart, wStart],
+      [runEnd, wEnd],
+    ] as const) {
+      if (!run?.fork) continue
+      boundaries.forEach((boundary, laneIndex) => {
+        const lane = line.lanes[laneIndex]!
+        const target = run.targets[laneIndex] ?? [lane.left, lane.right]
+        boundary.left = moved(boundary.left, forkShift(run, lane.left, target[0]), weights)
+        boundary.right = moved(boundary.right, forkShift(run, lane.right, target[1]), weights)
+      })
+    }
     line.lanes.forEach((lane, laneIndex) => {
       const { left, right } = boundaries[laneIndex]!
       out.lanes.push({
@@ -1053,18 +1394,24 @@ function drawWay(line: WayLine, junctions: Junctions, frame: MetricFrame, out: O
       const to = atStart ? Math.min(local.length, inRun.lastIndexOf(true) + 2) : local.length
       if (to - from < 2) continue
       for (const taper of run.tapers) {
-        const leftD = local.map(
-          (_, i) => taper.collapse + (taper.target[0] - taper.collapse) * weights[i]!,
-        )
-        const rightD = local.map(
-          (_, i) => taper.collapse + (taper.target[1] - taper.collapse) * weights[i]!,
-        )
+        const edge = (target: number) =>
+          run.fork
+            ? moved(
+                offset(local.map(() => taper.collapse)),
+                forkShift(run, taper.collapse, target),
+                [...weights],
+              )
+            : offset(local.map((_, i) => taper.collapse + (target - taper.collapse) * weights[i]!))
         out.lanes.push({
           wayId: way.id,
           laneId: `${taper.lane.id}#taper`,
           kind: taper.lane.kind,
           direction: taper.lane.direction,
-          ring: ring(offset(leftD).slice(from, to), offset(rightD).slice(from, to), frame),
+          ring: ring(
+            edge(taper.target[0]).slice(from, to),
+            edge(taper.target[1]).slice(from, to),
+            frame,
+          ),
           taper: true,
         })
       }
@@ -1072,35 +1419,39 @@ function drawWay(line: WayLine, junctions: Junctions, frame: MetricFrame, out: O
 
     // lane lines and kerbs, stopped where a junction's marks say (the main road through a junction)
     if (inside) continue
-    const markStart = trimStart < 0.01 ? junctions.marks.get(startKey) : undefined
-    const markEnd = trimEnd < 0.01 ? junctions.marks.get(endKey) : undefined
-    const keep = (from: number, to: number) =>
-      local.map((s) => s >= pieceStart + from - 1e-6 && s <= pieceEnd - to + 1e-6)
-    const push = (kind: StreetLineKind, edge: Vec2[], keepMask: boolean[]) => {
-      // split into runs of kept vertices
-      let current: Vec2[] = []
-      edge.forEach((point, i) => {
-        if (keepMask[i]) current.push(point)
-        else {
-          if (current.length >= 2)
-            out.lines.push({ wayId: way.id, kind, line: current.map((q) => frame.toLoc(q)) })
-          current = []
-        }
+    /** The part of an edge from `from` metres after the piece's start to `to` metres before its end */
+    const part = (edge: Vec2[], from: number, to: number): Vec2[] => {
+      const lo = pieceStart + from
+      const hi = pieceEnd - to
+      const kept: Vec2[] = []
+      if (hi - lo < 0.01) return kept
+      local.forEach((s, i) => {
+        if (s >= lo - 1e-6 && s <= hi + 1e-6) kept.push(edge[i]!)
+        const next = local[i + 1]
+        if (next === undefined) return
+        // (an end between two vertices: the point on the edge there)
+        for (const x of [lo, hi])
+          if (x > s + 1e-6 && x < next - 1e-6)
+            kept.push(add(edge[i]!, scale(sub(edge[i + 1]!, edge[i]!), (x - s) / (next - s))))
       })
-      if (current.length >= 2)
-        out.lines.push({ wayId: way.id, kind, line: current.map((q) => frame.toLoc(q)) })
+      return kept
+    }
+    const push = (kind: StreetLineKind, edge: Vec2[], from: number, to: number) => {
+      const kept = part(edge, from, to)
+      if (kept.length >= 2)
+        out.lines.push({ wayId: way.id, kind, line: kept.map((q) => frame.toLoc(q)) })
     }
     const first = boundaries[0]
     const last = boundaries[boundaries.length - 1]
-    if (first) push('kerb', first.left, keep(markStart?.left ?? 0, markEnd?.left ?? 0))
-    if (last) push('kerb', last.right, keep(markStart?.right ?? 0, markEnd?.right ?? 0))
+    if (first) push('kerb', first.left, markStart?.left ?? 0, markEnd?.left ?? 0)
+    if (last) push('kerb', last.right, markStart?.right ?? 0, markEnd?.right ?? 0)
     for (let i = 0; i + 1 < line.lanes.length; i++) {
       const lane = line.lanes[i]!
       const next = line.lanes[i + 1]!
       if (Math.abs(lane.right - next.left) > SAME_EDGE) continue
       const kind: StreetLineKind =
         (lane.direction === 'forward') !== (next.direction === 'forward') ? 'centre' : 'lane'
-      push(kind, boundaries[i]!.right, keep(markStart?.lanes ?? 0, markEnd?.lanes ?? 0))
+      push(kind, boundaries[i]!.right, markStart?.lanes ?? 0, markEnd?.lanes ?? 0)
     }
 
     // turn arrows, near the end each lane runs to
@@ -1166,17 +1517,27 @@ export function streetGeometry(input: StreetInput): StreetGeometry {
     }
   }
   const armsOf = new Map<string, Arm[]>()
-  const junctionNodes = new Set<string>()
+  /** The nodes the ways are cut at: junctions and forks */
+  const cutNodes = new Set<string>()
   for (const [nodeId, users] of uses) {
     if (users.length < 2) continue
     const arms = armsAt(nodeId, [...new Set(users)])
     armsOf.set(nodeId, arms)
-    if (arms.length >= 3) junctionNodes.add(nodeId)
+    if (arms.length >= 3) cutNodes.add(nodeId)
   }
-  const groups = junctionGroups(lines, junctionNodes, junctions.inner)
+  const forks = new Map<string, Fork>()
+  for (const nodeId of cutNodes) {
+    const fork = forkAt(armsOf.get(nodeId)!, cutNodes)
+    if (fork) forks.set(nodeId, fork)
+  }
+  const junctionNodes = new Set([...cutNodes].filter((id) => !forks.has(id)))
+  const groups = junctionGroups(lines, junctionNodes, junctions.inner, new Set(forks.keys()))
   const grouped = new Set(groups.flat())
-  for (const [nodeId, arms] of armsOf)
-    junctionAt(nodeId, arms, frame, junctions, grouped.has(nodeId))
+  for (const [nodeId, arms] of armsOf) {
+    const fork = forks.get(nodeId)
+    if (fork) forkJunction(nodeId, fork, frame, junctions)
+    else junctionAt(nodeId, arms, frame, junctions, grouped.has(nodeId))
+  }
   for (const group of groups) groupJunction(group, junctionNodes, frame, junctions)
   for (const line of lines) drawWay(line, junctions, frame, out)
   return { ...out, junctions: junctions.junctions }
